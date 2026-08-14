@@ -1,0 +1,5 @@
+# Exclude documentation, tests, and temporary development artifacts from skill packages
+docs/
+documentation/
+*.log
+.DS_Store
