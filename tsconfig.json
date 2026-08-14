@@ -1,0 +1,27 @@
+{
+  "compilerOptions": {
+    "target": "ES2024",
+    "lib": ["ES2024"],
+    "module": "ESNext",
+    "moduleDetection": "force",
+    "moduleResolution": "Bundler",
+    "allowImportingTsExtensions": true,
+    "exactOptionalPropertyTypes": true,
+    "noEmit": true,
+    "types": ["node"],
+    "strict": true,
+    "noImplicitAny": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": [
+    "orchestrating-long-tasks/scripts/src/**/*.ts",
+    "orchestrating-long-tasks/scripts/harness.ts"
+  ],
+  "exclude": ["orchestrating-long-tasks/scripts/tests"]
+}

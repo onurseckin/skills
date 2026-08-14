@@ -1,0 +1,47 @@
+# dependencies
+node_modules/
+
+# caches
+.turbo/
+.expo/
+coverage/
+.vite/
+.pytest_cache/
+__pycache__/
+*.py[cod]
+.mypy_cache/
+.ruff_cache/
+
+# build / harness scratch
+.tmp/
+.harness/
+
+# os / filesystem
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+ehthumbs_vista.db
+Thumbs.db
+Thumbs.db:encryptable
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+*~
+*.swp
+*.swo
+.fuse_hidden*
+.directory
+.Trash-*
+
+# logs / debug
+*.log
+npm-debug.log*
+yarn-error.log*
+
+# editor
+.idea/
+*.sublime-workspace
+*.sublime-project

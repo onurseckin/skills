@@ -1,0 +1,82 @@
+import type { JsonObject } from "../contracts/json.ts";
+import { sha256Bytes } from "../core/json.ts";
+import { inspectRepositoryGitControls } from "./repository-git-controls.ts";
+import {
+  createRepositoryGitCommand,
+  repositoryWorktree,
+  type RepositoryGitCommand,
+} from "./repository-git-command.ts";
+import { hasRepositoryGitMetadata } from "./repository-git-metadata.ts";
+import { decodeNulRecords, rejectRepositoryGitlinks } from "./repository-git-paths.ts";
+
+export interface RepositoryGitIdentity extends JsonObject {
+  available: boolean;
+  head_oid?: string | null;
+  head_ref?: string | null;
+  index?: { bytes: number; sha256: string };
+  local_controls?: { bytes: number; sha256: string };
+  status?: { bytes: number; sha256: string };
+}
+
+export interface RepositoryGitIdentityDependencies {
+  command?: RepositoryGitCommand;
+  environment?: Readonly<NodeJS.ProcessEnv>;
+}
+
+function optionalText(repo: string, argv: string[], command: RepositoryGitCommand): string | null {
+  const result = command(repo, argv, 1024, [0, 1]);
+  if (result.status !== 0) return null;
+  const value = result.bytes.toString("utf8").trim();
+  return value === "" ? null : value;
+}
+
+function digest(bytes: Buffer): { bytes: number; sha256: string } {
+  return { bytes: bytes.byteLength, sha256: sha256Bytes(bytes) };
+}
+
+export function inspectRepositoryGitIdentity(
+  repo: string,
+  maximum = 8 * 1024 * 1024,
+  controlMaximum = 64 * 1024 * 1024,
+  controlTotalMaximum = 256 * 1024 * 1024,
+  dependencies: RepositoryGitIdentityDependencies = {},
+): RepositoryGitIdentity {
+  if (!hasRepositoryGitMetadata(repo)) return { available: false };
+  const command = dependencies.command ?? createRepositoryGitCommand(dependencies.environment);
+  if (!repositoryWorktree(repo, command)) return { available: false };
+  const localControls = inspectRepositoryGitControls(
+    repo,
+    command,
+    controlMaximum,
+    controlTotalMaximum,
+  );
+  const index = command(
+    repo,
+    ["ls-files", "--stage", "-z", "--", ".", ":(exclude).harness", ":(exclude).harness/**"],
+    maximum,
+  ).bytes;
+  rejectRepositoryGitlinks(decodeNulRecords(index, "identity index"));
+  const status = command(
+    repo,
+    [
+      "status",
+      "--porcelain=v2",
+      "--branch",
+      "-z",
+      "--untracked-files=all",
+      "--",
+      ".",
+      ":(exclude).harness",
+      ":(exclude).harness/**",
+    ],
+    maximum,
+  ).bytes;
+  return {
+    available: true,
+    head_oid: optionalText(repo, ["rev-parse", "--verify", "-q", "HEAD"], command),
+    head_ref: optionalText(repo, ["symbolic-ref", "-q", "HEAD"], command),
+    index: digest(index),
+    local_controls: localControls,
+    status: digest(status),
+  };
+}

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Orchestrating Long Tasks"
+  short_description: "Run durable, validated multi-agent harnesses"
+  default_prompt: "Use $orchestrating-long-tasks to execute this request autonomously with durable planning, independent validation, and recovery."
