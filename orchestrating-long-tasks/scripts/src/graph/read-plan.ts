@@ -11,7 +11,7 @@ export interface ReadPlanOptions {
 }
 
 function identity(stats: BigIntStats): string {
-  return [stats.dev, stats.ino, stats.mode, stats.size, stats.mtimeNs, stats.ctimeNs].join(":");
+  return [stats.dev, stats.ino, stats.mode, stats.size, stats.mtimeNs].join(":");
 }
 
 async function boundedRead(handle: FileHandle, size: number): Promise<Uint8Array> {

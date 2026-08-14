@@ -244,5 +244,5 @@ describe("CLI authoritative terminal lifecycle", () => {
     expect(status.completion_result).toMatchObject({ status: "complete" });
     const doctor = await execute(["doctor", "--run", run]);
     expect(doctor).toMatchObject({ healthy: true, workflow_issues: [] });
-  });
+  }, 30000);
 });

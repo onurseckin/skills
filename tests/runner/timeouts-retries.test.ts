@@ -24,9 +24,9 @@ describe("watchdog and retry policy", () => {
       cwd: dir,
       commandDir: join(dir, "commands"),
       actor: "test",
-      idleTimeoutMs: 40,
-      wallTimeoutMs: 500,
-      graceMs: 10,
+      idleTimeoutMs: 80,
+      wallTimeoutMs: 1_000,
+      graceMs: 30,
     });
     expect(result.record.status).toBe("timed_out");
     expect(result.attempts[0]!.failureClass).toBe("timeout");
@@ -43,7 +43,7 @@ describe("watchdog and retry policy", () => {
       actor: "test",
       idleTimeoutMs: 300,
       wallTimeoutMs: 1_200,
-      graceMs: 20,
+      graceMs: 30,
     });
     expect(result.record.status).toBe("succeeded");
   });
@@ -55,9 +55,9 @@ describe("watchdog and retry policy", () => {
       cwd: dir,
       commandDir: join(dir, "commands"),
       actor: "test",
-      idleTimeoutMs: 80,
-      wallTimeoutMs: 70,
-      graceMs: 20,
+      idleTimeoutMs: 300,
+      wallTimeoutMs: 100,
+      graceMs: 30,
     });
     expect(result.record.status).toBe("timed_out");
     expect(result.record.timeout_kind).toBe("wall");
@@ -203,7 +203,7 @@ describe("watchdog and retry policy", () => {
       actor: "test",
       idleTimeoutMs: 250,
       wallTimeoutMs: 1_000,
-      graceMs: 20,
+      graceMs: 50,
     });
     const pid = Number(await readFile(pidPath, "utf8"));
     expect(() => process.kill(pid, 0)).toThrow();

@@ -2,6 +2,7 @@ import type { CommandRecord } from "../contracts/commands.ts";
 import { sameCommandJson } from "../runner/command-shape.ts";
 
 export function sameOptionalJson(left: unknown, right: unknown): boolean {
+  if (left == null && right == null) return true;
   if (left === undefined || right === undefined) return left === right;
   return sameCommandJson(left, right);
 }
