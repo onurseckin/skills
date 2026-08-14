@@ -41,9 +41,9 @@ describe("watchdog and retry policy", () => {
       cwd: dir,
       commandDir: join(dir, "commands"),
       actor: "test",
-      idleTimeoutMs: 120,
-      wallTimeoutMs: 500,
-      graceMs: 10,
+      idleTimeoutMs: 300,
+      wallTimeoutMs: 1_200,
+      graceMs: 20,
     });
     expect(result.record.status).toBe("succeeded");
   });

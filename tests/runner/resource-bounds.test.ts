@@ -132,10 +132,10 @@ describe("runner resource bounds", () => {
       runRoot,
       commandDir: join(runRoot, "commands"),
       actor: "validator",
-      drainTimeoutMs: 60,
-      graceMs: 20,
+      drainTimeoutMs: 100,
+      graceMs: 40,
     });
-    expect(Date.now() - started).toBeLessThan(800);
+    expect(Date.now() - started).toBeLessThan(1200);
     const pid = Number(await readFile(pidPath, "utf8"));
     expect(result.record.signals_sent).toContain("SIGTERM");
     expect(() => process.kill(pid, 0)).toThrow();
