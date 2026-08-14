@@ -1,22 +1,11 @@
 {
   "name": "@onurseckin/skills",
   "version": "0.1.0",
-  "private": true,
   "description": "Personal collection of autonomous agent skills for AI assistants",
-  "keywords": [
-    "agent-skills",
-    "ai-agents",
-    "antigravity",
-    "chatgpt",
-    "claude-code",
-    "codex",
-    "skills"
-  ],
-  "license": "MIT",
-  "author": "Onur Seçkin Şenoğlu",
+  "private": true,
   "type": "module",
   "scripts": {
-    "test": "cd orchestrating-long-tasks/scripts && bun test",
+    "test": "bun test tests",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "format": "oxfmt"
   },
@@ -25,5 +14,16 @@
     "@types/node": "^22.13.0",
     "oxfmt": "^0.63.0",
     "typescript": "^5.7.3"
-  }
+  },
+  "keywords": [
+    "agent-skills",
+    "ai-agents",
+    "skills",
+    "antigravity",
+    "claude-code",
+    "codex",
+    "chatgpt"
+  ],
+  "author": "Onur Seçkin Şenoğlu",
+  "license": "MIT"
 }

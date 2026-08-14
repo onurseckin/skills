@@ -23,5 +23,5 @@
     "orchestrating-long-tasks/scripts/src/**/*.ts",
     "orchestrating-long-tasks/scripts/harness.ts"
   ],
-  "exclude": ["orchestrating-long-tasks/scripts/tests"]
+  "exclude": ["tests"]
 }
