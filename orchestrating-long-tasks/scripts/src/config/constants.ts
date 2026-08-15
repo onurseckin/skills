@@ -8,4 +8,5 @@ export const MAX_JSON_FILE_BYTES = 64 * 1024 * 1024;
 export const MAX_EVENT_BYTES = 64 * 1024 * 1024;
 export const MAX_PRODUCTION_LINES = 200;
 export const MAX_TEST_LINES = 250;
-export const MAX_REPAIR_ROUNDS = 5;
+export const MIN_ADVERSARIAL_REJECTIONS = 3;
+export const MAX_REPAIR_ROUNDS = 6;

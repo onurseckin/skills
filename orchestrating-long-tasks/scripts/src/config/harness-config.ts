@@ -1,8 +1,9 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { MAX_REPAIR_ROUNDS } from "./constants.ts";
+import { MAX_REPAIR_ROUNDS, MIN_ADVERSARIAL_REJECTIONS } from "./constants.ts";
 
 export interface HarnessConfig {
+  min_adversarial_rejections: number;
   max_repair_rounds: number;
   max_output_bytes: number;
   default_lease_seconds: number;
@@ -11,6 +12,7 @@ export interface HarnessConfig {
 }
 
 export const DEFAULT_CONFIG: HarnessConfig = {
+  min_adversarial_rejections: MIN_ADVERSARIAL_REJECTIONS,
   max_repair_rounds: MAX_REPAIR_ROUNDS,
   max_output_bytes: 10 * 1024 * 1024,
   default_lease_seconds: 1800,
@@ -28,6 +30,14 @@ function parseConfigFile(filePath: string): Partial<HarnessConfig> | null {
     }
     const record = parsed as Record<string, unknown>;
     const partial: Partial<HarnessConfig> = {};
+
+    if (
+      typeof record.min_adversarial_rejections === "number" &&
+      Number.isInteger(record.min_adversarial_rejections) &&
+      record.min_adversarial_rejections >= 0
+    ) {
+      partial.min_adversarial_rejections = record.min_adversarial_rejections;
+    }
 
     if (
       typeof record.max_repair_rounds === "number" &&

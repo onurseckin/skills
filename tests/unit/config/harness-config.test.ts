@@ -31,7 +31,8 @@ describe("harness-config", () => {
     const dir = makeTempDir();
     const config = loadHarnessConfig(dir);
     expect(config).toEqual(DEFAULT_CONFIG);
-    expect(config.max_repair_rounds).toBe(5);
+    expect(config.min_adversarial_rejections).toBe(3);
+    expect(config.max_repair_rounds).toBe(6);
     expect(config.max_output_bytes).toBe(10 * 1024 * 1024);
     expect(config.default_lease_seconds).toBe(1800);
     expect(config.default_max_parallel).toBe(4);
@@ -41,6 +42,7 @@ describe("harness-config", () => {
   test("loads settings from harness.config.json in repo root", () => {
     const dir = makeTempDir();
     const custom = {
+      min_adversarial_rejections: 4,
       max_repair_rounds: 8,
       max_output_bytes: 5 * 1024 * 1024,
       default_lease_seconds: 900,

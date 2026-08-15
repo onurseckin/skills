@@ -187,7 +187,7 @@ describe("completion critic lifecycle", () => {
 
   test("requires remediation and a fresh critic, preserves history, and bounds rounds", () => {
     const port = readyPort();
-    for (let attempt = 1; attempt <= 5; attempt += 1) {
+    for (let attempt = 1; attempt <= 6; attempt += 1) {
       const critic = `critic-${attempt}`;
       const authorization = beginCompletenessCritic(port, critic, { clock });
       findings(port, critic, attempt, authorization.token);
@@ -196,8 +196,8 @@ describe("completion critic lifecycle", () => {
       remediate(port);
       expect(() => beginCompletenessCritic(port, critic, { clock })).toThrow();
     }
-    expect(port.read().completion_remediations).toHaveLength(5);
-    expect(() => beginCompletenessCritic(port, "critic-6", { clock })).toThrow();
+    expect(port.read().completion_remediations).toHaveLength(6);
+    expect(() => beginCompletenessCritic(port, "critic-7", { clock })).toThrow();
   });
 
   test("completion rechecks immutable critic and remediation history", () => {

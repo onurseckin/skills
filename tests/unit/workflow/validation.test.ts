@@ -199,9 +199,9 @@ describe("independent validation and repair", () => {
     expect(state.tasks["T-1"]!.findings![0]!.status).toBe("resolved");
   });
 
-  test("five rejected rounds escalate instead of succeeding", () => {
+  test("six rejected rounds escalate instead of succeeding", () => {
     const port = submitted();
-    for (let round = 1; round <= 5; round += 1) {
+    for (let round = 1; round <= 6; round += 1) {
       const token = validationToken(port, `validator-${round}`);
       recordReview(
         port,
@@ -214,7 +214,7 @@ describe("independent validation and repair", () => {
         },
         clock,
       );
-      if (round < 5) {
+      if (round < 6) {
         const { token } = claimTask(port, "T-1", "implementer", "repairer", { clock });
         registerTaskPacket(port, "repairer", "implementer", round + 1);
         submitTask(port, "T-1", "implementer", token, report, clock);

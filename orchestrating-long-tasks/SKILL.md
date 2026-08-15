@@ -145,16 +145,34 @@ The coordinator must direct Tier 3 validators to perform rigorous, multi-round a
   - Verify that no placeholder text, mock stubs, or unlinked artifacts remain.
 - **Substantive Test Audit**: Reject tautological, empty, or mocked-out tests that bypass actual business logic.
 
-### 4. Structured Pushback (`task:reject`) & Bounded Repair Loops
+### 4. Structured Pushback, Minimum Mandatory Rejection Gauntlet & Bounded Repair Loops
 
-When any invariant check fails or tests are incomplete:
+To guarantee publication-grade code robustness, the harness enforces a **Mandatory Multi-Round Adversarial Rejection Gauntlet**:
 
-1. **Formal Pushback**: The validator executes `task:reject` with structured findings (`--reason`, `--finding`, `--evidence`).
-2. **Targeted Repair**: The task transitions to `changes_requested`. The coordinator routes the finding back to the worker for targeted remediation within `write_scope`.
-3. **Re-Verification in Round 2+**: A fresh validator verifies the fix against prior findings, re-runs `run:exec`, re-checks all invariants, and only approves via `task:review --status pass` when completely satisfied.
-4. **Bounded Escalation**: If a task fails across max repair rounds (default 5, configurable via `max_repair_rounds`), the harness transitions the task to `escalated` and alerts the coordinator/user.
+1. **Minimum Mandatory Rejections (Min 3 Rejections)**:
+   - **Rounds 1, 2, and 3 MUST BE REJECTED** by the Validator (`task:reject`), regardless of whether the initial code passes basic tests.
+   - The Validator must actively question and stress-test the implementation:
+     - **Round 1 Pushback**: Stress-tests boundary inputs, empty/large collections, invalid unicode, and demands explicit negative test assertions.
+     - **Round 2 Pushback**: Stress-tests typing strictness, zero-any compliance, exact optional properties, memory/runtime performance, and demands missing defensive guards.
+     - **Round 3 Pushback**: Stress-tests documentation depth ("why" vs "what"), visual/layout bounds, accessibility, and demands comprehensive end-to-end integration tests.
+2. **Conditional Approval (Round 4+)**:
+   - In Round 4+, the Validator may issue `task:review --status pass` ONLY IF all prior pushback demands from Rounds 1–3 have been comprehensively satisfied with empirical test proofs and zero defects.
+3. **Configurable Pushback Thresholds**:
+   - `min_adversarial_rejections`: Default `3` (minimum mandatory pushback rounds).
+   - `max_repair_rounds`: Default `6` (maximum 6 total rounds: 3 mandatory rejections + up to 3 repair rounds before escalation).
+   - Both parameters are fully configurable via config files (`.capsulerc`, `harness.config.json`, or agent YAML).
+4. **Bounded Escalation**: If a task fails across max repair rounds (default 6), the harness transitions the task to `escalated` and alerts the coordinator/user.
 
-### 5. Cascading Scope-Aware Replanning & Fan-Back Protocol
+### 5. The 4 Non-Negotiable Coordinator Laws
+
+To prevent single-agent collapse and preserve multi-agent integrity:
+
+1. **Mandatory No-Code Edit Law**: The Coordinator is strictly forbidden from writing, editing, or patching application source code, test files, or scripts. All code modifications must be delegated to Tier 3 Implementers via `invoke_subagent`.
+2. **Harness-Only Workflow Management**: The Coordinator drives the workflow exclusively through the pinned harness CLI (`bun $PINNED <cmd>`) and host subagent dispatch (`invoke_subagent`).
+3. **Persistent Lifecycle Law (Coordinator Stays as the Last)**: The Coordinator remains active from start to final sealing, observing wave barriers and dispatching subsequent subagent waves.
+4. **Cascading Rule Invocation**: When gaps or pushbacks arise, the Coordinator invokes the Cascading Fan-Back Protocol (`plan:replan`) to partition scopes and dispatch fresh repair subagent pairs.
+
+### 6. Cascading Scope-Aware Replanning & Fan-Back Protocol
 
 When late-stage completeness verification reveals defects, the orchestrator MUST NOT attempt in-place monolithic patching. Instead, follow the formal **Fan-Back Protocol**:
 
