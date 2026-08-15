@@ -74,15 +74,15 @@ export interface TimingBreakdown {
 }
 
 export interface NodeMetrics {
-  tokensIn?: number;
-  tokensOut?: number;
-  costUsd?: number;
-  durationMs?: number;
-  retries?: number;
-  commandCount?: number;
-  tokens?: TokenUsageDetail;
-  hostAgent?: HostAgentMetadata;
-  timingBreakdown?: TimingBreakdown;
+  tokensIn?: number | undefined;
+  tokensOut?: number | undefined;
+  costUsd?: number | undefined;
+  durationMs?: number | undefined;
+  retries?: number | undefined;
+  commandCount?: number | undefined;
+  tokens?: TokenUsageDetail | undefined;
+  hostAgent?: HostAgentMetadata | undefined;
+  timingBreakdown?: TimingBreakdown | undefined;
 }
 
 export interface CommandExecutionDetail {

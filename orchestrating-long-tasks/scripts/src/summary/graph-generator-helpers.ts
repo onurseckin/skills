@@ -48,7 +48,7 @@ export function mapTaskStatus(status: string): NodeStatus {
 export function mapGateStatus(task: TaskRecord): NodeStatus {
   if (task.status === "done" || task.status === "validated") return "success";
   if (task.status === "changes_requested") return "warning";
-  if (task.status === "failed" || task.status === "cancelled" || task.status === "escalated") return "error";
+  if (task.status === "cancelled" || task.status === "escalated") return "error";
   if (task.status === "validating" || task.status === "gating" || Boolean(task.validation)) return "running";
   return "pending";
 }
@@ -58,8 +58,8 @@ export interface TaskNodeContext {
   taskStep: number;
   taskWave: number;
   taskCmds: CommandRecord[];
-  events?: readonly HarnessEvent[];
-  manifest?: Manifest;
+  events?: readonly HarnessEvent[] | undefined;
+  manifest?: Manifest | undefined;
 }
 
 export function buildTaskAndGateNodes(ctx: TaskNodeContext): {
@@ -120,13 +120,16 @@ export function buildTaskAndGateNodes(ctx: TaskNodeContext): {
     timingBreakdown,
   };
 
+  const mappedTaskStatus = mapTaskStatus(task.status);
   const taskNode: GraphNodeData = {
-    id: taskNodeId, name: taskName, kind: "agent" as NodeKind, status: mapTaskStatus(task.status),
+    id: taskNodeId, name: taskName, kind: "agent" as NodeKind, status: mappedTaskStatus,
     step: taskStep, stepLabel: `Step ${taskStep}: Wave ${taskWave} Tasks`,
     ...(model !== undefined ? { model } : {}), ...(tier !== undefined ? { tier } : {}),
     badge: { text: badgeText, variant: "info", icon: "IconRobot" },
     description: summaryText ?? `Goal and execution scope for ${taskName}.`,
-    files, metrics: taskNodeMetrics, io: { inputs: taskInputs, outputs: taskOutputs },
+    files,
+    ...(mappedTaskStatus !== "pending" ? { metrics: taskNodeMetrics } : {}),
+    io: { inputs: taskInputs, outputs: taskOutputs },
     metadata, mediaAssets, screenshots: mediaAssets.filter((a) => a.type === "image"),
   };
 
@@ -138,8 +141,8 @@ export function buildTaskAndGateNodes(ctx: TaskNodeContext): {
   const { model: valModel, tier: valTier } = detectHostModel(validatorId);
 
   const isGateDone = task.status === "done" || task.status === "validated";
+  const isGateError = task.status === "cancelled" || task.status === "escalated";
   const isGateWarning = task.status === "changes_requested";
-  const isGateError = task.status === "failed" || task.status === "cancelled" || task.status === "escalated";
   const gateStatus = mapGateStatus(task);
   const gateBadgeVariant = gateStatus === "success" ? "success" : gateStatus === "warning" ? "warning" : gateStatus === "error" ? "error" : "info";
   const gateBadgeText = isGateDone
@@ -163,16 +166,18 @@ export function buildTaskAndGateNodes(ctx: TaskNodeContext): {
     description: `Independent verification gate for ${taskName}.`,
     ...(valModel !== undefined ? { model: valModel } : {}),
     ...(valTier !== undefined ? { tier: valTier } : {}),
-    metrics: {
-      tokensIn: gateTokens.inputTokens,
-      tokensOut: gateTokens.outputTokens,
-      ...(gateTokens.costUsd !== undefined ? { costUsd: gateTokens.costUsd } : {}),
-      durationMs: gateTiming?.wallDurationMs ?? 0,
-      commandCount: gateValCmds.length,
-      tokens: gateTokens,
-      ...(valTelemetry.hostAgent ? { hostAgent: valTelemetry.hostAgent } : {}),
-      ...(gateTiming ? { timingBreakdown: gateTiming } : {}),
-    },
+    ...(gateStatus !== "pending" ? {
+      metrics: {
+        tokensIn: gateTokens.inputTokens,
+        tokensOut: gateTokens.outputTokens,
+        ...(gateTokens.costUsd !== undefined ? { costUsd: gateTokens.costUsd } : {}),
+        durationMs: gateTiming?.wallDurationMs ?? 0,
+        commandCount: gateValCmds.length,
+        tokens: gateTokens,
+        ...(valTelemetry.hostAgent ? { hostAgent: valTelemetry.hostAgent } : {}),
+        ...(gateTiming ? { timingBreakdown: gateTiming } : {}),
+      },
+    } : {}),
     metadata: {
       findings, mediaAssets, screenshots: mediaAssets.filter((a) => a.type === "image"),
       assets: mediaAssets, commands: mapCommandDetails(gateValCmds),

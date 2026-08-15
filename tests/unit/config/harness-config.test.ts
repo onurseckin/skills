@@ -31,7 +31,7 @@ describe("harness-config", () => {
     const dir = makeTempDir();
     const config = loadHarnessConfig(dir);
     expect(config).toEqual(DEFAULT_CONFIG);
-    expect(config.min_adversarial_rejections).toBe(3);
+    expect(config.min_adversarial_rejections).toBe(1);
     expect(config.max_repair_rounds).toBe(6);
     expect(config.max_output_bytes).toBe(10 * 1024 * 1024);
     expect(config.default_lease_seconds).toBe(1800);

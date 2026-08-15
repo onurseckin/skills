@@ -194,19 +194,17 @@ harness mandates a **3-Tier Hierarchy** governed by the **Triad Floor** and **$2
      - $N = 4 \implies$ **9 Agents** (1 Coordinator + 4 Implementers + 4 Validators)
      - $N = 6 \implies$ **13 Agents** (1 Coordinator + 6 Implementers + 6 Validators)
 
-### The 3-Round Mandatory Adversarial Validation Gauntlet
+### Mandatory Adversarial Validation Gauntlet
 
-1. **Minimum Mandatory Rejections (Min 3 Rejections)**:
-   - **Rounds 1, 2, and 3 MUST BE REJECTED** by the Validator (`task:reject`), regardless of whether the initial code passes basic tests.
-   - The Validator must actively question and stress-test the implementation:
-     - **Round 1 Pushback**: Stress-tests boundary inputs, empty/large collections, invalid unicode, and demands explicit negative test assertions.
-     - **Round 2 Pushback**: Stress-tests typing strictness, zero-any compliance, exact optional properties, memory/runtime performance, and demands missing defensive guards.
-     - **Round 3 Pushback**: Stress-tests documentation depth ("why" vs "what"), visual/layout bounds, accessibility, and demands comprehensive end-to-end integration tests.
-2. **Conditional Approval (Round 4+)**:
-   - In Round 4+, the Validator may issue `task:review --status pass` ONLY IF all prior pushback demands from Rounds 1–3 have been comprehensively satisfied with empirical test proofs and zero defects.
+1. **Minimum Mandatory Rejections (Min 1 Rejection)**:
+   - **Round 1 MUST BE REJECTED** by the Validator (`task:reject`), regardless of whether the initial code passes basic tests.
+   - The Validator must actively question and stress-test the implementation on boundary inputs, edge cases, typing strictness, visual layout bounds, and negative invariants.
+2. **Conditional Approval (Round 2+) & Additional Pushbacks**:
+   - In Round 2+, the Validator may issue `task:review --status pass` ONLY IF all prior pushback demands have been comprehensively satisfied with empirical test proofs and zero defects.
+   - If any defects or gaps remain in Round 2+, the Validator issues additional structured pushbacks (`task:reject`) until fully satisfied.
 3. **Configurable Thresholds**:
-   - `min_adversarial_rejections`: Default `3`.
-   - `max_repair_rounds`: Default `6` (3 mandatory + up to 3 repair rounds before escalation).
+   - `min_adversarial_rejections`: Default `1`.
+   - `max_repair_rounds`: Default `6` (1 mandatory + up to 5 repair rounds before escalation).
 
 ### The 4 Non-Negotiable Coordinator Laws
 

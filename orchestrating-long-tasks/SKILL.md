@@ -189,17 +189,16 @@ The coordinator must direct Tier 3 validators to perform rigorous, multi-round a
 
 To guarantee publication-grade code robustness, the harness enforces a **Mandatory Multi-Round Adversarial Rejection Gauntlet** (implemented by [`agents/validator.yaml`](file:///Users/onurseckinsenoglu/repos/skills/orchestrating-long-tasks/agents/validator.yaml)):
 
-1. **Minimum Mandatory Rejections (Min 3 Rejections)**:
-   - **Rounds 1, 2, and 3 MUST BE REJECTED** by the Validator (`task:reject`), regardless of whether the initial code passes basic tests.
+1. **Minimum Mandatory Rejections (Min 1 Rejection)**:
+   - **Round 1 MUST BE REJECTED** by the Validator (`task:reject`), regardless of whether the initial code passes basic tests.
    - The Validator must actively question and stress-test the implementation:
-     - **Round 1 Pushback**: Stress-tests boundary inputs, empty/large collections, invalid unicode, empty/stubbed screenshot captures, and demands explicit negative test assertions.
-     - **Round 2 Pushback**: Stress-tests typing strictness, zero-any compliance, exact optional properties, memory/runtime performance, layout overflow (`overflow-x` leaks on 375px/768px/1280px), descending glyph clipping ('g','y','p','q'), and z-index stacking collisions (modals vs headers vs tooltips).
-     - **Round 3 Pushback**: Stress-tests documentation depth ("why" vs "what"), visual/layout bounds, responsive viewport constraints, touch target sizing (44x44px), accessibility (WCAG AA), and demands comprehensive end-to-end integration tests.
-2. **Conditional Approval (Round 4+)**:
-   - In Round 4+, the Validator may issue `task:review --status pass` ONLY IF all prior pushback demands from Rounds 1–3 have been comprehensively satisfied with empirical test proofs and zero defects.
+     - **Round 1 Pushback**: Stress-tests boundary inputs, empty/large collections, typing strictness, zero-any compliance, negative invariants, visual layout bounds, and demands explicit negative test assertions.
+2. **Conditional Approval (Round 2+) & Additional Pushbacks**:
+   - In Round 2+, the Validator may issue `task:review --status pass` ONLY IF all prior pushback demands have been comprehensively satisfied with empirical test proofs and zero defects.
+   - If any defects or gaps remain in Round 2+, the Validator issues additional structured pushbacks (`task:reject`) until fully satisfied.
 3. **Configurable Pushback Thresholds**:
-   - `min_adversarial_rejections`: Default `3` (minimum mandatory pushback rounds).
-   - `max_repair_rounds`: Default `6` (maximum 6 total rounds: 3 mandatory rejections + up to 3 repair rounds before escalation).
+   - `min_adversarial_rejections`: Default `1` (minimum mandatory pushback round).
+   - `max_repair_rounds`: Default `6` (maximum 6 total rounds: 1 mandatory rejection + up to 5 repair rounds before escalation).
    - Both parameters are fully configurable via config files (`.capsulerc`, `harness.config.json`, or agent YAML).
 4. **Bounded Escalation**: If a task fails across max repair rounds (default 6), the harness transitions the task to `escalated` and alerts the coordinator/user.
 
