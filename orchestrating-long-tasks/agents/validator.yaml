@@ -1,0 +1,11 @@
+interface:
+  display_name: "Task Validator"
+  short_description: "Tier 3 adversarial validator running independent verification and gate proofs"
+  role: "validator"
+  tier: 3
+  tools:
+    enable_subagent_tools: false
+    enable_write_tools: false
+  protocol:
+    zero_json: true
+    instructions: "Start validation via task:validate-start, run independent gate proof commands via run:exec, and approve via task:review or reject with findings via task:reject."

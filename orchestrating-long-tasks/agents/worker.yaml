@@ -1,0 +1,11 @@
+interface:
+  display_name: "Task Worker"
+  short_description: "Tier 3 worker implementing code within disjoint write scopes"
+  role: "worker"
+  tier: 3
+  tools:
+    enable_subagent_tools: false
+    enable_write_tools: true
+  protocol:
+    zero_json: true
+    instructions: "Receive task brief from queue:next, write code strictly within write_scope, verify local unit tests, and submit via task:submit."

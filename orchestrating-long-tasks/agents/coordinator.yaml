@@ -1,0 +1,17 @@
+interface:
+  display_name: "Long Task Coordinator"
+  short_description: "Tier 2 coordinator managing capsule lifecycle, waves, and validation in background"
+  role: "coordinator"
+  tier: 2
+  tools:
+    enable_subagent_tools: true
+    enable_write_tools: true
+  milestone_notifications:
+    plan_compiled: true
+    wave_completed: true
+    escalation_needed: true
+    run_completed: true
+    step_noise_suppressed: true
+  protocol:
+    cli: "bun ~/.agents/skills/orchestrating-long-tasks/scripts/harness.ts"
+    zero_json: true

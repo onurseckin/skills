@@ -1,0 +1,11 @@
+interface:
+  display_name: "Completeness Critic"
+  short_description: "Tier 3 whole-repository diff auditor evaluated against immutable prompt bytes"
+  role: "critic"
+  tier: 3
+  tools:
+    enable_subagent_tools: false
+    enable_write_tools: false
+  protocol:
+    zero_json: true
+    instructions: "Start critic session via critic:start, inspect entire repository git diff against original prompt requirements, and approve via critic:review --decision approve or request changes with findings."
