@@ -74,13 +74,7 @@ describe("CLI plan commands", () => {
     expect(status1.is_compiled).toBe(false);
     expect(String(status1.markdown)).toContain("### Planning Buffer: test-plan-run (Draft)");
 
-    const compile = await execute([
-      "plan:compile",
-      "--run",
-      run,
-      "--actor",
-      "planner",
-    ]);
+    const compile = await execute(["plan:compile", "--run", run, "--actor", "planner"]);
     expect(compile.revision).toBe(1);
     expect(compile.total_tasks).toBe(2);
     expect(String(compile.markdown)).toContain("### Plan Compiled Successfully (Graph Revision 1)");
@@ -191,14 +185,8 @@ describe("CLI plan commands", () => {
       "planner",
     ]);
 
-    await expect(
-      execute([
-        "plan:compile",
-        "--run",
-        run,
-        "--actor",
-        "planner",
-      ]),
-    ).rejects.toThrow("Scope collision detected between t1 and t2");
+    await expect(execute(["plan:compile", "--run", run, "--actor", "planner"])).rejects.toThrow(
+      "Scope collision detected between t1 and t2",
+    );
   });
 });

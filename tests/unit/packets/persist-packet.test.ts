@@ -10,7 +10,11 @@ import type { BuiltPacket } from "../../../orchestrating-long-tasks/scripts/src/
 import { TestPort, workflowState, repositoryBinding } from "../workflow/test-port.ts";
 import { tokenDigest } from "../../../orchestrating-long-tasks/scripts/src/workflow/lease/token.ts";
 
-function createPacket(role: string, taskId: string | null = "T-1", overrides: Record<string, unknown> = {}): BuiltPacket {
+function createPacket(
+  role: string,
+  taskId: string | null = "T-1",
+  overrides: Record<string, unknown> = {},
+): BuiltPacket {
   return {
     markdown: "# Packet Markdown",
     metadata: {

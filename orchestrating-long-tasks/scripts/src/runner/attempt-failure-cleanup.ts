@@ -38,14 +38,26 @@ export function startAttemptPumpsAndMonitoring(
   const budget = new OutputBudget(options.maxOutputBytes);
   const pump = options.pump ?? pumpOutput;
   pumps.push(
-    pump(child.stdout, stdout, portableArtifactPath(options.runRoot, stdoutPath), activity("stdout"), {
-      signal: pumpAbort.signal,
-      budget,
-    }),
-    pump(child.stderr, stderr, portableArtifactPath(options.runRoot, stderrPath), activity("stderr"), {
-      signal: pumpAbort.signal,
-      budget,
-    }),
+    pump(
+      child.stdout,
+      stdout,
+      portableArtifactPath(options.runRoot, stdoutPath),
+      activity("stdout"),
+      {
+        signal: pumpAbort.signal,
+        budget,
+      },
+    ),
+    pump(
+      child.stderr,
+      stderr,
+      portableArtifactPath(options.runRoot, stderrPath),
+      activity("stderr"),
+      {
+        signal: pumpAbort.signal,
+        budget,
+      },
+    ),
   );
   const allPumps = Promise.all(pumps) as Promise<[OutputSummary, OutputSummary]>;
   const monitoring = monitorProcess(
@@ -70,7 +82,9 @@ export async function settleAndTerminateAttempt(
   recordSignal: (signal: NodeJS.Signals) => void,
 ): Promise<{ descendantsAbsent: boolean; rootProof: boolean; exitCode: number | null }> {
   if ((outcome.timeout || outcome.interrupted) && !rootIdentity) {
-    throw new Error(`termination withheld because strong root identity was unavailable; residual pid ${child.pid} requires inspection`);
+    throw new Error(
+      `termination withheld because strong root identity was unavailable; residual pid ${child.pid} requires inspection`,
+    );
   }
   if (outcome.timeout || outcome.interrupted) {
     await terminateProcessGroup(child.pid, options.graceMs, child.exited, rootIdentity, {
@@ -85,7 +99,9 @@ export async function settleAndTerminateAttempt(
   const descendantsAbsent = await descendants.proveAbsent();
   let rootProof = false;
   if (rootIdentity) {
-    try { rootProof = probeAttemptProcess(rootIdentity) === "absent"; } catch {}
+    try {
+      rootProof = probeAttemptProcess(rootIdentity) === "absent";
+    } catch {}
   }
   if (!descendantsAbsent || ((outcome.timeout || outcome.interrupted) && !rootProof)) {
     throw new Error("attempt process absence was not proven before terminal evidence");
@@ -134,9 +150,13 @@ export async function handleAttemptFailure(ctx: {
       beforeCleanup: () => {
         if (ctx.cleanupPrewriteFailed) throw ctx.error;
         try {
-          ctx.attemptIntent?.beginCleanupUncertain([ctx.error instanceof Error ? ctx.error.message : String(ctx.error)]);
+          ctx.attemptIntent?.beginCleanupUncertain([
+            ctx.error instanceof Error ? ctx.error.message : String(ctx.error),
+          ]);
         } catch (dispositionError) {
-          throw new Error(`${ctx.error instanceof Error ? ctx.error.message : String(ctx.error)}; cleanup uncertainty prewrite failed: ${String(dispositionError)}`);
+          throw new Error(
+            `${ctx.error instanceof Error ? ctx.error.message : String(ctx.error)}; cleanup uncertainty prewrite failed: ${String(dispositionError)}`,
+          );
         }
       },
       persistSignal: ctx.persistSignal,
@@ -148,15 +168,23 @@ export async function handleAttemptFailure(ctx: {
     } catch (dispositionError) {
       cleanup.issues.push(`cleanup uncertainty disposition failed: ${String(dispositionError)}`);
     }
-    throw new Error(`${ctx.error instanceof Error ? ctx.error.message : String(ctx.error)}; command cleanup failed: ${cleanup.issues.join("; ")}`);
+    throw new Error(
+      `${ctx.error instanceof Error ? ctx.error.message : String(ctx.error)}; command cleanup failed: ${cleanup.issues.join("; ")}`,
+    );
   }
   if (ctx.startedAt && ctx.activityRecord) {
     try {
-      if (!cleanup.terminalProof) throw new Error("failed attempt cleanup lacks strong terminal process proof");
+      if (!cleanup.terminalProof)
+        throw new Error("failed attempt cleanup lacks strong terminal process proof");
       ctx.attemptIntent?.markRecordPending("failed-attempt evidence is ready to persist");
-      ctx.attemptIntent?.markTerminalProof("failed-attempt root and descendant absence proven", cleanup.terminalProof);
+      ctx.attemptIntent?.markTerminalProof(
+        "failed-attempt root and descendant absence proven",
+        cleanup.terminalProof,
+      );
     } catch (proofError) {
-      throw new Error(`${ctx.error instanceof Error ? ctx.error.message : String(ctx.error)}; terminal process proof failed: ${String(proofError)}`);
+      throw new Error(
+        `${ctx.error instanceof Error ? ctx.error.message : String(ctx.error)}; terminal process proof failed: ${String(proofError)}`,
+      );
     }
     throw createAttemptExecutionError({
       options: ctx.options,

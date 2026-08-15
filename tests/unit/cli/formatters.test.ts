@@ -33,7 +33,13 @@ describe("Markdown Formatters", () => {
   });
 
   test("formatTable generates markdown tables", () => {
-    const rows = formatTable(["A", "B"], [["1", "2"], ["3", "4"]]);
+    const rows = formatTable(
+      ["A", "B"],
+      [
+        ["1", "2"],
+        ["3", "4"],
+      ],
+    );
     expect(rows).toHaveLength(4);
     expect(rows[0]).toBe("| A | B |");
     expect(rows[1]).toBe("| :--- | :--- |");
@@ -63,7 +69,10 @@ describe("Markdown Formatters", () => {
     const compileBrief = formatPlanCompileBrief({
       revision: 1,
       totalTasks: 3,
-      waves: [{ waveIndex: 0, tasks: ["t1", "t2"] }, { waveIndex: 1, tasks: ["t3"] }],
+      waves: [
+        { waveIndex: 0, tasks: ["t1", "t2"] },
+        { waveIndex: 1, tasks: ["t3"] },
+      ],
       collisions: 0,
       requirementsCount: 3,
       runId: "run-1",

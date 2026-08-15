@@ -1,7 +1,13 @@
 import { describe, expect, test } from "bun:test";
-import type { HarnessEvent, Manifest } from "../../../orchestrating-long-tasks/scripts/src/contracts/capsule.ts";
+import type {
+  HarnessEvent,
+  Manifest,
+} from "../../../orchestrating-long-tasks/scripts/src/contracts/capsule.ts";
 import type { CommandRecord } from "../../../orchestrating-long-tasks/scripts/src/contracts/commands.ts";
-import type { TaskRecord, WorkflowState } from "../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
+import type {
+  TaskRecord,
+  WorkflowState,
+} from "../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
 import { collectMetrics } from "../../../orchestrating-long-tasks/scripts/src/summary/metrics-collector.ts";
 
 describe("metrics collector", () => {
@@ -89,7 +95,13 @@ describe("metrics collector", () => {
         kind: "plan-init",
         payload: {},
         previous_hash: null,
-        projection: { schema: "harness.state", version: 1, revision: 1, event_sequence: 1, event_head: null },
+        projection: {
+          schema: "harness.state",
+          version: 1,
+          revision: 1,
+          event_sequence: 1,
+          event_head: null,
+        },
         hash: "h1",
       },
       {
@@ -104,7 +116,13 @@ describe("metrics collector", () => {
         kind: "run-completed",
         payload: {},
         previous_hash: null,
-        projection: { schema: "harness.state", version: 1, revision: 1, event_sequence: 2, event_head: null },
+        projection: {
+          schema: "harness.state",
+          version: 1,
+          revision: 1,
+          event_sequence: 2,
+          event_head: null,
+        },
         hash: "h2",
       },
     ];
@@ -122,6 +140,10 @@ describe("metrics collector", () => {
     expect(metrics.satisfied_tasks).toBe(2);
     expect(metrics.failed_tasks).toBe(0);
     expect(metrics.repair_rounds_total).toBe(1);
+    expect(metrics.pushbacks_total).toBe(1);
+    expect(metrics.pushback_rounds).toHaveLength(1);
+    expect(metrics.pushback_rounds[0]?.task_id).toBe("T-1");
+    expect(metrics.total_edge_traffic_exchanges).toBeGreaterThanOrEqual(5);
     expect(metrics.wall_duration_ms).toBe(60_000);
     expect(metrics.active_command_duration_ms).toBe(2_500);
     expect(metrics.total_commands_executed).toBe(1);

@@ -42,7 +42,11 @@ export function normalizeScopePath(path: string): string {
 export function checkScopeOverlap(
   scopesA: readonly string[],
   scopesB: readonly string[],
-): { hasOverlap: boolean; conflictingPath: string; relation: "exact_match" | "parent_child" | "none" } {
+): {
+  hasOverlap: boolean;
+  conflictingPath: string;
+  relation: "exact_match" | "parent_child" | "none";
+} {
   for (const a of scopesA) {
     for (const b of scopesB) {
       if (a === b) {

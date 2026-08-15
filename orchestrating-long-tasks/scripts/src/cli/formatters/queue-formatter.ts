@@ -63,23 +63,36 @@ export function formatQueueListBrief(partitions: QueueListPartitions, maxParalle
   const headers = ["Partition", "Count", "Tasks"];
   const rows: string[][] = [];
 
-  const readyStr = partitions.ready.length > 0 ? partitions.ready.map((t) => `\`${t}\``).join(", ") : "-";
+  const readyStr =
+    partitions.ready.length > 0 ? partitions.ready.map((t) => `\`${t}\``).join(", ") : "-";
   rows.push(["🟢 **Ready**", String(partitions.ready.length), readyStr]);
 
-  const leasedStr = partitions.leased.length > 0
-    ? partitions.leased.map((l) => `\`${l.id}\` (Agent: \`${l.agent}\`${l.timeLeft ? `, Exp: ${l.timeLeft}` : ""})`).join(", ")
-    : "-";
+  const leasedStr =
+    partitions.leased.length > 0
+      ? partitions.leased
+          .map(
+            (l) => `\`${l.id}\` (Agent: \`${l.agent}\`${l.timeLeft ? `, Exp: ${l.timeLeft}` : ""})`,
+          )
+          .join(", ")
+      : "-";
   rows.push(["🔄 **Leased**", String(partitions.leased.length), leasedStr]);
 
-  const valStr = partitions.validating.length > 0 ? partitions.validating.map((t) => `\`${t}\``).join(", ") : "-";
+  const valStr =
+    partitions.validating.length > 0
+      ? partitions.validating.map((t) => `\`${t}\``).join(", ")
+      : "-";
   rows.push(["🔍 **Validating**", String(partitions.validating.length), valStr]);
 
-  const blockedStr = partitions.blocked.length > 0
-    ? partitions.blocked.map((b) => `\`${b.id}\` (waiting for: ${b.waitingOn.map((w) => `\`${w}\``).join(", ")})`).join(", ")
-    : "-";
+  const blockedStr =
+    partitions.blocked.length > 0
+      ? partitions.blocked
+          .map((b) => `\`${b.id}\` (waiting for: ${b.waitingOn.map((w) => `\`${w}\``).join(", ")})`)
+          .join(", ")
+      : "-";
   rows.push(["⏳ **Blocked**", String(partitions.blocked.length), blockedStr]);
 
-  const satStr = partitions.satisfied.length > 0 ? partitions.satisfied.map((t) => `\`${t}\``).join(", ") : "-";
+  const satStr =
+    partitions.satisfied.length > 0 ? partitions.satisfied.map((t) => `\`${t}\``).join(", ") : "-";
   rows.push(["✅ **Satisfied**", String(partitions.satisfied.length), satStr]);
 
   if (partitions.repairNeeded && partitions.repairNeeded.length > 0) {

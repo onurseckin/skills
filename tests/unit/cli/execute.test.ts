@@ -3,7 +3,9 @@ import { execute } from "../../../orchestrating-long-tasks/scripts/src/cli/execu
 
 describe("CLI execute dispatcher", () => {
   test("throws on unknown command", async () => {
-    await expect(execute(["non-existent-cmd"])).rejects.toThrow("unknown command: non-existent-cmd");
+    await expect(execute(["non-existent-cmd"])).rejects.toThrow(
+      "unknown command: non-existent-cmd",
+    );
   });
 
   test("throws when non-run command receives trailing -- remainder arguments", async () => {

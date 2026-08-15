@@ -1,11 +1,3 @@
-export {
-  taskClaimCommand,
-  taskHeartbeatCommand,
-  taskSubmitCommand,
-} from "./task-claim.ts";
+export { taskClaimCommand, taskHeartbeatCommand, taskSubmitCommand } from "./task-claim.ts";
 
-export {
-  taskRejectCommand,
-  taskReviewCommand,
-  taskValidateStartCommand,
-} from "./task-review.ts";
+export { taskRejectCommand, taskReviewCommand, taskValidateStartCommand } from "./task-review.ts";

@@ -2,7 +2,11 @@ import { describe, expect, test } from "bun:test";
 import type { HarnessEvent } from "../../../orchestrating-long-tasks/scripts/src/contracts/capsule.ts";
 import { collectTimeline } from "../../../orchestrating-long-tasks/scripts/src/summary/timeline-collector.ts";
 
-function createEvent(kind: string, payload: Record<string, unknown> = {}, sequence = 1): HarnessEvent {
+function createEvent(
+  kind: string,
+  payload: Record<string, unknown> = {},
+  sequence = 1,
+): HarnessEvent {
   return {
     schema: "harness.event",
     version: 1,
@@ -15,7 +19,13 @@ function createEvent(kind: string, payload: Record<string, unknown> = {}, sequen
     kind,
     payload,
     previous_hash: null,
-    projection: { schema: "harness.state", version: 1, revision: 1, event_sequence: sequence, event_head: null },
+    projection: {
+      schema: "harness.state",
+      version: 1,
+      revision: 1,
+      event_sequence: sequence,
+      event_head: null,
+    },
     hash: "hash",
   };
 }
@@ -42,7 +52,16 @@ describe("timeline collector", () => {
       createEvent("task-heartbeat", { task_id: "T-1" }, 2),
       createEvent("task-submitted", { task_id: "T-1" }, 3),
       createEvent("task-validation-started", { task_id: "T-1" }, 4),
-      createEvent("review-recorded", { task_id: "T-1", verdict: "reject", findings: [{ id: "F-1" }], round: 1 }, 5),
+      createEvent(
+        "review-recorded",
+        {
+          task_id: "T-1",
+          verdict: "reject",
+          findings: [{ id: "F-1" }],
+          round: 1,
+        },
+        5,
+      ),
       createEvent("review-recorded", { task_id: "T-1", verdict: "pass" }, 6),
       createEvent("task-finished", { task_id: "T-1" }, 7),
     ];
@@ -58,7 +77,11 @@ describe("timeline collector", () => {
 
   test("collects command, critic, and completion events", () => {
     const events: HarnessEvent[] = [
-      createEvent("command-recorded", { command_id: "C-1", argv: ["bun", "test"], exit_code: 0 }, 1),
+      createEvent(
+        "command-recorded",
+        { command_id: "C-1", argv: ["bun", "test"], exit_code: 0 },
+        1,
+      ),
       createEvent("critic-started", {}, 2),
       createEvent("critic-reviewed", { verdict: "clean" }, 3),
       createEvent("run-completed", {}, 4),

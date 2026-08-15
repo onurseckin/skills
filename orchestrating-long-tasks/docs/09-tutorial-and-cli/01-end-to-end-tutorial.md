@@ -31,6 +31,7 @@ The CLI outputs a concise Markdown brief confirming the capsule root and prompt 
 ## 📝 Step 2: Declare Tasks & Compile the Dependency Graph
 
 1. **Register Modular Tasks (`plan:add`):**
+
    ```bash
    bun harness.ts plan:add \
      --run .capsules/my-feature \

@@ -75,13 +75,7 @@ describe("CLI queue commands", () => {
     expect(list1.partitions).toBeObject();
     expect(String(list1.markdown)).toContain("### Execution Queue Summary");
 
-    const pop1 = await execute([
-      "queue:pop",
-      "--run",
-      run,
-      "--agent",
-      "worker-core",
-    ]);
+    const pop1 = await execute(["queue:pop", "--run", run, "--agent", "worker-core"]);
     expect(pop1.token).toBeString();
     expect((pop1.task as { id: string }).id).toBe("task-core");
     expect(String(pop1.markdown)).toContain("### Task Popped & Leased: task-core");
@@ -127,8 +121,8 @@ describe("CLI queue commands", () => {
     await execute(["plan:compile", "--run", run, "--actor", "planner"]);
     await execute(["queue:pop", "--run", run, "--agent", "w1"]);
 
-    await expect(
-      execute(["queue:pop", "--run", run, "--agent", "w2"]),
-    ).rejects.toThrow("no ready tasks available in queue to pop");
+    await expect(execute(["queue:pop", "--run", run, "--agent", "w2"])).rejects.toThrow(
+      "no ready tasks available in queue to pop",
+    );
   });
 });

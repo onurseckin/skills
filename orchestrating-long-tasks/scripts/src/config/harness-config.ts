@@ -72,10 +72,7 @@ function parseConfigFile(filePath: string): Partial<HarnessConfig> | null {
   }
 }
 
-export function loadHarnessConfig(
-  repoRoot?: string,
-  capsuleRoot?: string,
-): HarnessConfig {
+export function loadHarnessConfig(repoRoot?: string, capsuleRoot?: string): HarnessConfig {
   const root = repoRoot ?? process.cwd();
   let repoConfig: Partial<HarnessConfig> | null = null;
   const standardRepo = join(root, "harness.config.json");

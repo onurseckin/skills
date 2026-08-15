@@ -60,11 +60,16 @@ export function compileRequirementsFromPrompt(
         const gateArgv = typeof task.gate === "string" ? task.gate.split(" ") : [...task.gate];
         (existingReq.acceptance as Record<string, unknown>[]).push({
           id: `crit-${existingReqId}-${critIdx}`,
-          criterion: task.criteria?.[0] ?? `Task gate \`${typeof task.gate === "string" ? task.gate : task.gate.join(" ")}\` passes with exit code 0`,
+          criterion:
+            task.criteria?.[0] ??
+            `Task gate \`${typeof task.gate === "string" ? task.gate : task.gate.join(" ")}\` passes with exit code 0`,
           evidence: [`Gate execution output for \`${task.id}\``],
         });
         if (Array.isArray(existingReq.candidate_gates)) {
-          (existingReq.candidate_gates as Record<string, unknown>[]).push({ argv: gateArgv, cwd: "." });
+          (existingReq.candidate_gates as Record<string, unknown>[]).push({
+            argv: gateArgv,
+            cwd: ".",
+          });
         }
       }
       requirementIdsByTask.set(task.id, [existingReqId]);
@@ -77,9 +82,12 @@ export function compileRequirementsFromPrompt(
     const excerpt = promptLines[assignedLine - 1]!;
     const gateArgv = typeof task.gate === "string" ? task.gate.split(" ") : [...task.gate];
 
-    const criteriaList = task.criteria && task.criteria.length > 0
-      ? task.criteria
-      : [`Task gate \`${typeof task.gate === "string" ? task.gate : task.gate.join(" ")}\` passes with exit code 0`];
+    const criteriaList =
+      task.criteria && task.criteria.length > 0
+        ? task.criteria
+        : [
+            `Task gate \`${typeof task.gate === "string" ? task.gate : task.gate.join(" ")}\` passes with exit code 0`,
+          ];
 
     const acceptance = criteriaList.map((crit, critIdx) => ({
       id: `crit-${reqId}-${critIdx + 1}`,
@@ -136,7 +144,10 @@ export function compileRequirementsFromPrompt(
 
   const issues = validateRequirements(prompt, document);
   if (issues.length > 0) {
-    throw new HarnessError("INTEGRITY", `compiled requirements failed validation: ${issues.join("; ")}`);
+    throw new HarnessError(
+      "INTEGRITY",
+      `compiled requirements failed validation: ${issues.join("; ")}`,
+    );
   }
 
   return { requirementsDocument: document, atomicRequirements, requirementIdsByTask };

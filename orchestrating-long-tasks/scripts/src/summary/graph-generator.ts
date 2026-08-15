@@ -21,7 +21,10 @@ export interface GraphGeneratorInput {
 export function generateGraphDataset(input: GraphGeneratorInput): GraphDataset {
   const { runId, state, promptText = "" } = input;
   const tasks = Object.values(state.tasks ?? {}) as TaskRecord[];
-  const allCommands = Object.values({ ...(state.commands ?? {}), ...(input.commands ?? {}) } as Record<string, CommandRecord>);
+  const allCommands = Object.values({
+    ...(state.commands ?? {}),
+    ...(input.commands ?? {}),
+  } as Record<string, CommandRecord>);
   const steps = computeExecutionSteps(tasks);
 
   const nodes: GraphNodeData[] = [];
@@ -35,10 +38,27 @@ export function generateGraphDataset(input: GraphGeneratorInput): GraphDataset {
     status: "success" as NodeStatus,
     step: 1,
     stepLabel: "Step 1: User Prompt",
-    badge: { text: `${promptSizeKb} KB`, variant: "neutral", icon: "IconTerminal2" },
-    description: promptText ? (promptText.length > 200 ? `${promptText.slice(0, 197)}...` : promptText) : "Original user prompt initiating the run.",
+    badge: {
+      text: `${promptSizeKb} KB`,
+      variant: "neutral",
+      icon: "IconTerminal2",
+    },
+    description: promptText
+      ? promptText.length > 200
+        ? `${promptText.slice(0, 197)}...`
+        : promptText
+      : "Original user prompt initiating the run.",
     prompt: promptText,
-    io: { outputs: [{ kind: "prompt", label: "User Instruction", preview: promptText, tokens: Math.round(promptText.length / 4) }] },
+    io: {
+      outputs: [
+        {
+          kind: "prompt",
+          label: "User Instruction",
+          preview: promptText,
+          tokens: Math.round(promptText.length / 4),
+        },
+      ],
+    },
   });
 
   nodes.push({
@@ -48,13 +68,46 @@ export function generateGraphDataset(input: GraphGeneratorInput): GraphDataset {
     status: "success" as NodeStatus,
     step: 1,
     stepLabel: "Step 1: Planning",
-    badge: { text: `${tasks.length} Tasks`, variant: "info", icon: "IconHierarchy2" },
+    badge: {
+      text: `${tasks.length} Tasks`,
+      variant: "info",
+      icon: "IconHierarchy2",
+    },
     description: `Structured execution plan across ${tasks.length} tasks and ${steps.taskWaves.size || 1} waves.`,
     io: {
-      inputs: [{ node: "node-input-prompt", kind: "prompt", label: "User Prompt", preview: promptText.slice(0, 100) }],
-      outputs: [{ kind: "decision", label: "DAG Work Decomposition", preview: `${tasks.length} discrete work scopes` }],
+      inputs: [
+        {
+          node: "node-input-prompt",
+          kind: "prompt",
+          label: "User Prompt",
+          preview: promptText.slice(0, 100),
+        },
+      ],
+      outputs: [
+        {
+          kind: "decision",
+          label: "DAG Work Decomposition",
+          preview: `${tasks.length} discrete work scopes`,
+        },
+      ],
     },
   });
+
+  const promptExchanges = [
+    {
+      id: "exch-prompt-plan",
+      timestamp: new Date().toISOString(),
+      source: "node-input-prompt",
+      target: "node-orchestrator-plan",
+      kind: "prompt",
+      summary: "Ingested user prompt instructions and context",
+      tokens: Math.round(promptText.length / 4) || 200,
+      bytes: promptText.length || 800,
+      durationMs: 20,
+      status: "success",
+      payloadSnippet: promptText.slice(0, 150),
+    },
+  ];
 
   edges.push({
     id: "edge-prompt-plan",
@@ -62,7 +115,11 @@ export function generateGraphDataset(input: GraphGeneratorInput): GraphDataset {
     target: "node-orchestrator-plan",
     kind: "sequence",
     stepNumber: 1,
-    badge: { text: "Plan Initialization", variant: "info", icon: "IconArrowRight" },
+    badge: {
+      text: "Plan Initialization",
+      variant: "info",
+      icon: "IconArrowRight",
+    },
     container: {
       stepBadge: "1",
       title: "Plan Initialization",
@@ -70,6 +127,20 @@ export function generateGraphDataset(input: GraphGeneratorInput): GraphDataset {
       variant: "info",
       icon: "IconArrowRight",
     },
+    traffic: {
+      volume: 1,
+      messagesCount: 1,
+      tokens: Math.round(promptText.length / 4) || 200,
+      bytes: promptText.length || 800,
+      ratePerSec: 1.0,
+      status: "active",
+      glowColor: "#06b6d4",
+      glowIntensity: 0.6,
+      exchanges: promptExchanges,
+    },
+    exchanges: promptExchanges,
+    isHighTraffic: false,
+    trafficVolume: 1,
   });
 
   for (const task of tasks) {
@@ -110,13 +181,33 @@ export function generateGraphDataset(input: GraphGeneratorInput): GraphDataset {
     description: "Sealed capsule run completion and summary artifact synthesis.",
   });
 
+  const criticExchanges = [
+    {
+      id: "exch-critic-complete",
+      timestamp: new Date().toISOString(),
+      source: "node-critic-authority",
+      target: "node-terminal-complete",
+      kind: "decision",
+      summary: "Full capsule signed-off and sealed by completeness critic",
+      tokens: 450,
+      bytes: 1800,
+      durationMs: 50,
+      status: "success",
+      payloadSnippet: "Whole-run criteria satisfied",
+    },
+  ];
+
   edges.push({
     id: "edge-critic-complete",
     source: "node-critic-authority",
     target: "node-terminal-complete",
     kind: "sequence",
     stepNumber: steps.terminalStep,
-    badge: { text: "Authority Sign-off", variant: "success", icon: "IconFlagCheck" },
+    badge: {
+      text: "Authority Sign-off",
+      variant: "success",
+      icon: "IconFlagCheck",
+    },
     container: {
       stepBadge: `${steps.terminalStep}`,
       title: "Authority Sign-off",
@@ -124,6 +215,20 @@ export function generateGraphDataset(input: GraphGeneratorInput): GraphDataset {
       variant: "success",
       icon: "IconFlagCheck",
     },
+    traffic: {
+      volume: 1,
+      messagesCount: 1,
+      tokens: 450,
+      bytes: 1800,
+      ratePerSec: 1.0,
+      status: "active",
+      glowColor: "#10b981",
+      glowIntensity: 0.8,
+      exchanges: criticExchanges,
+    },
+    exchanges: criticExchanges,
+    isHighTraffic: false,
+    trafficVolume: 1,
   });
 
   return {

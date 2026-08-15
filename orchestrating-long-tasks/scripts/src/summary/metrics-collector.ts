@@ -46,7 +46,7 @@ function computeTokenEstimations(
   }
 
   const tokensIn = Math.round((promptBytes + reportBytes + stdoutBytes) / 4);
-  const tokensOut = Math.round((taskSummaryBytes + (tasks.length * 200)) / 4);
+  const tokensOut = Math.round((taskSummaryBytes + tasks.length * 200) / 4);
   return {
     tokens_in: tokensIn,
     tokens_out: tokensOut,
@@ -59,7 +59,7 @@ function computeFilesTouched(tasks: TaskRecord[]): FileChurnRecord[] {
   for (const task of tasks) {
     const changedRaw = task.report?.files_changed;
     const changed: readonly string[] = Array.isArray(changedRaw)
-      ? (changedRaw.filter((f): f is string => typeof f === "string"))
+      ? changedRaw.filter((f): f is string => typeof f === "string")
       : task.write_scope;
     for (const filePath of changed) {
       if (!fileMap.has(filePath)) {
@@ -77,7 +77,10 @@ function computeFilesTouched(tasks: TaskRecord[]): FileChurnRecord[] {
 export function collectMetrics(input: MetricsInput): RollupMetrics {
   const { runId, manifest, state, events } = input;
   const tasks = Object.values(state.tasks ?? {}) as TaskRecord[];
-  const commandMap = { ...(state.commands ?? {}), ...(input.commands ?? {}) } as Record<string, CommandRecord>;
+  const commandMap = {
+    ...(state.commands ?? {}),
+    ...(input.commands ?? {}),
+  } as Record<string, CommandRecord>;
   const commands = Object.values(commandMap);
 
   let activeCommandDurationMs = 0;
@@ -92,11 +95,48 @@ export function collectMetrics(input: MetricsInput): RollupMetrics {
   let satisfiedTasks = 0;
   let failedTasks = 0;
   let repairRoundsTotal = 0;
+  let pushbacksTotal = 0;
+  const pushbackRounds: Array<{
+    task_id: string;
+    round: number;
+    findings_count: number;
+    reason?: string;
+  }> = [];
+  let resolvedFindingsTotal = 0;
+  let openFindingsTotal = 0;
+  let totalMediaAssets = 0;
+
   for (const task of tasks) {
     if (task.status === "done") satisfiedTasks++;
     else if (task.status === "cancelled" || task.status === "escalated") failedTasks++;
-    repairRoundsTotal += task.repair_round ?? 0;
+
+    const repairRound = task.repair_round ?? 0;
+    repairRoundsTotal += repairRound;
+    if (repairRound > 0) {
+      pushbacksTotal += repairRound;
+      const findingsCount = (task.findings ?? []).length;
+      const firstFinding = task.findings?.[0]?.observation;
+      pushbackRounds.push({
+        task_id: task.id,
+        round: repairRound,
+        findings_count: findingsCount,
+        ...(firstFinding ? { reason: firstFinding } : {}),
+      });
+    }
+
+    for (const f of task.findings ?? []) {
+      if (f.status === "resolved") resolvedFindingsTotal++;
+      else openFindingsTotal++;
+    }
+
+    const rawReport = task.report as Record<string, unknown> | undefined;
+    if (Array.isArray(rawReport?.media_assets)) totalMediaAssets += rawReport.media_assets.length;
+    if (Array.isArray(rawReport?.screenshots)) totalMediaAssets += rawReport.screenshots.length;
   }
+
+  // Calculate edge traffic exchanges & tokens estimates
+  const totalEdgeTrafficExchanges = tasks.length * 2 + pushbacksTotal + 2;
+  const totalEdgeTrafficTokens = tasks.length * 1000 + pushbacksTotal * 300 + 650;
 
   const estimatedTokens = computeTokenEstimations(manifest, tasks, commands);
   const filesTouched = computeFilesTouched(tasks);
@@ -107,6 +147,13 @@ export function collectMetrics(input: MetricsInput): RollupMetrics {
     satisfied_tasks: satisfiedTasks,
     failed_tasks: failedTasks,
     repair_rounds_total: repairRoundsTotal,
+    pushbacks_total: pushbacksTotal,
+    pushback_rounds: pushbackRounds,
+    resolved_findings_total: resolvedFindingsTotal,
+    open_findings_total: openFindingsTotal,
+    total_media_assets: totalMediaAssets,
+    total_edge_traffic_exchanges: totalEdgeTrafficExchanges,
+    total_edge_traffic_tokens: totalEdgeTrafficTokens,
     wall_duration_ms: computeWallDurationMs(events),
     active_command_duration_ms: activeCommandDurationMs,
     total_commands_executed: commands.length,

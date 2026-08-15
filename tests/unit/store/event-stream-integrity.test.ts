@@ -101,9 +101,7 @@ describe("store event-stream, validation, and integrity branches", () => {
     const filePath = join(parent, "file.txt");
     writeFileSync(filePath, "not a dir");
 
-    expect(() => recoverProjection(filePath, "actor")).toThrow(
-      "run_root must be a real directory",
-    );
+    expect(() => recoverProjection(filePath, "actor")).toThrow("run_root must be a real directory");
   });
 
   test("quarantineAndTruncateTail cleans up temp files on error", () => {

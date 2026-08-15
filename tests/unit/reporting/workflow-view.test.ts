@@ -205,8 +205,14 @@ describe("reporting workflow view", () => {
     expect(view.completion_result).toMatchObject({ status: "complete" });
 
     // Stale evidence contains expired lease, validation, and critic
-    expect(view.stale_evidence).toContainEqual(expect.stringContaining("task task-1 lease expired"));
-    expect(view.stale_evidence).toContainEqual(expect.stringContaining("task task-2 validation expired"));
-    expect(view.stale_evidence).toContainEqual(expect.stringContaining("completion critic critic-1 expired"));
+    expect(view.stale_evidence).toContainEqual(
+      expect.stringContaining("task task-1 lease expired"),
+    );
+    expect(view.stale_evidence).toContainEqual(
+      expect.stringContaining("task task-2 validation expired"),
+    );
+    expect(view.stale_evidence).toContainEqual(
+      expect.stringContaining("completion critic critic-1 expired"),
+    );
   });
 });

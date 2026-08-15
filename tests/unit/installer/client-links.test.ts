@@ -16,7 +16,9 @@ describe("installer client links", () => {
     const home = await realpath(rawHome);
     const paths = clientLinkPaths(home);
     expect(paths.claude).toBe(join(home, ".claude", "skills", "orchestrating-long-tasks"));
-    expect(paths.antigravity).toBe(join(home, ".gemini", "config", "skills", "orchestrating-long-tasks"));
+    expect(paths.antigravity).toBe(
+      join(home, ".gemini", "config", "skills", "orchestrating-long-tasks"),
+    );
   });
 
   test("preflightClientLinks generates plans for selected clients", async () => {

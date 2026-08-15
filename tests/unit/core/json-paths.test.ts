@@ -132,15 +132,11 @@ describe("canonical JSON", () => {
 
     const unsortedPath = join(root, "unsorted.json");
     writeFileSync(unsortedPath, '{"b":2,"a":1}');
-    expect(() => readCanonicalObject(unsortedPath, "unsorted.json")).toThrow(
-      /not canonical JSON/i,
-    );
+    expect(() => readCanonicalObject(unsortedPath, "unsorted.json")).toThrow(/not canonical JSON/i);
 
     const spacedPath = join(root, "spaced.json");
     writeFileSync(spacedPath, '{\n  "a": 1\n}');
-    expect(() => readCanonicalObject(spacedPath, "spaced.json")).toThrow(
-      /not canonical JSON/i,
-    );
+    expect(() => readCanonicalObject(spacedPath, "spaced.json")).toThrow(/not canonical JSON/i);
   });
 
   test("normalizeJson validates and serializes JSON objects and primitives", () => {
@@ -170,4 +166,3 @@ describe("canonical JSON", () => {
     );
   });
 });
-

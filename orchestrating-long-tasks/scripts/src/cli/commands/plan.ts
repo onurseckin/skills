@@ -7,7 +7,10 @@ import { projectPlan } from "../../graph/project-plan.ts";
 import { guardPlanRevision } from "../../graph/revision-guard.ts";
 import { analyzeScopeIndependence } from "../../graph/scope-analyzer.ts";
 import { dependencyData } from "../../graph/topology.ts";
-import { compileRequirementsFromPrompt, type TaskDeclaration } from "../../requirements/compiler.ts";
+import {
+  compileRequirementsFromPrompt,
+  type TaskDeclaration,
+} from "../../requirements/compiler.ts";
 import { initRun, loadRun } from "../../store/index.ts";
 import { transact } from "../../store/transaction.ts";
 import { ensureHarnessIgnored } from "../git-ignore.ts";
@@ -17,27 +20,47 @@ import {
   formatPlanStatusBrief,
   formatTaskRegisteredBrief,
 } from "../formatters/index.ts";
-import { actorFlag, assertFlags, boolFlag, integerFlag, textFlag, type Flags, type CommandContext } from "../options.ts";
+import {
+  actorFlag,
+  assertFlags,
+  boolFlag,
+  integerFlag,
+  textFlag,
+  type Flags,
+  type CommandContext,
+} from "../options.ts";
 
 export async function planInitCommand(
   flags: Flags,
   context: CommandContext = {},
 ): Promise<Record<string, unknown>> {
-  assertFlags(flags, ["run", "run-id", "prompt-file", "prompt-stdin", "repo", "capture-mode", "source-verified"]);
+  assertFlags(flags, [
+    "run",
+    "run-id",
+    "prompt-file",
+    "prompt-stdin",
+    "repo",
+    "capture-mode",
+    "source-verified",
+  ]);
   const runId = textFlag(flags, "run", false) ?? textFlag(flags, "run-id", false);
   if (!runId) throw new HarnessError("INVALID_ARGUMENT", "must provide --run or --run-id");
 
   const fromFile = textFlag(flags, "prompt-file", false);
   const fromStdin = boolFlag(flags, "prompt-stdin");
-  const prompt = fromFile === undefined ? context.stdin : readBoundedBytes(fromFile, 64 * 1024 * 1024);
-  if (prompt === undefined) throw new HarnessError("INVALID_ARGUMENT", "prompt source is unavailable");
+  const prompt =
+    fromFile === undefined ? context.stdin : readBoundedBytes(fromFile, 64 * 1024 * 1024);
+  if (prompt === undefined)
+    throw new HarnessError("INVALID_ARGUMENT", "prompt source is unavailable");
 
   const repo = textFlag(flags, "repo", false) ?? ".";
   const ignore_assurance = ensureHarnessIgnored(repo);
-  const captureMode = textFlag(flags, "capture-mode", false) ?? (fromFile !== undefined ? "file" : "stdin");
-  const sourceVerified = flags["source-verified"] === undefined
-    ? (captureMode === "file" || captureMode === "stdin")
-    : boolFlag(flags, "source-verified");
+  const captureMode =
+    textFlag(flags, "capture-mode", false) ?? (fromFile !== undefined ? "file" : "stdin");
+  const sourceVerified =
+    flags["source-verified"] === undefined
+      ? captureMode === "file" || captureMode === "stdin"
+      : boolFlag(flags, "source-verified");
 
   const runRoot = initRun(repo, runId, prompt, captureMode, sourceVerified);
   const manifest = loadRun(runRoot).manifest;
@@ -55,18 +78,43 @@ export async function planInitCommand(
 }
 
 export function planAddCommand(flags: Flags): Record<string, unknown> {
-  assertFlags(flags, ["run", "id", "label", "scope", "gate", "deps", "goal", "criteria", "priority", "effort", "actor"]);
+  assertFlags(flags, [
+    "run",
+    "id",
+    "label",
+    "scope",
+    "gate",
+    "deps",
+    "goal",
+    "criteria",
+    "priority",
+    "effort",
+    "actor",
+  ]);
   const run = textFlag(flags, "run")!;
   const id = textFlag(flags, "id")!;
   const label = textFlag(flags, "label")!;
   const scopeRaw = textFlag(flags, "scope")!;
-  const writeScope = scopeRaw.split(",").map((s) => s.trim()).filter(Boolean);
+  const writeScope = scopeRaw
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
   const gate = textFlag(flags, "gate")!;
   const depsRaw = textFlag(flags, "deps", false);
-  const deps = depsRaw ? depsRaw.split(",").map((d) => d.trim()).filter(Boolean) : [];
+  const deps = depsRaw
+    ? depsRaw
+        .split(",")
+        .map((d) => d.trim())
+        .filter(Boolean)
+    : [];
   const goal = textFlag(flags, "goal", false);
   const criteriaRaw = textFlag(flags, "criteria", false);
-  const criteria = criteriaRaw ? criteriaRaw.split(";").map((c) => c.trim()).filter(Boolean) : undefined;
+  const criteria = criteriaRaw
+    ? criteriaRaw
+        .split(";")
+        .map((c) => c.trim())
+        .filter(Boolean)
+    : undefined;
   const priority = integerFlag(flags, "priority");
   const effort = integerFlag(flags, "effort");
   const actor = actorFlag(flags);
@@ -98,7 +146,14 @@ export function planAddCommand(flags: Flags): Record<string, unknown> {
     totalTasks = buffer.length;
   });
 
-  const markdown = formatTaskRegisteredBrief({ taskId: id, label, writeScope, gateCmd: gate, deps, totalTasks });
+  const markdown = formatTaskRegisteredBrief({
+    taskId: id,
+    label,
+    writeScope,
+    gateCmd: gate,
+    deps,
+    totalTasks,
+  });
   return { markdown, run_root: run, task: newTask, total_tasks: totalTasks };
 }
 
@@ -128,26 +183,51 @@ export function planCompileCommand(flags: Flags): Record<string, unknown> {
   const prompt = new TextDecoder("utf-8", { fatal: true }).decode(loaded.prompt);
   const rawBuffer = Array.isArray(loaded.state.planning_buffer) ? loaded.state.planning_buffer : [];
   const buffer = rawBuffer as unknown as TaskDeclaration[];
-  if (buffer.length === 0) throw new HarnessError("INVALID_STATE", "cannot compile empty planning buffer");
+  if (buffer.length === 0)
+    throw new HarnessError("INVALID_STATE", "cannot compile empty planning buffer");
 
   const scopeAnalysis = analyzeScopeIndependence(
     buffer.map((t) => ({ taskId: t.id, writeScope: t.writeScope, dependencies: t.deps })),
   );
   if (scopeAnalysis.collisions.length > 0) {
     const c = scopeAnalysis.collisions[0]!;
-    throw new HarnessError("INTEGRITY", `Scope collision detected between ${c.taskA} and ${c.taskB} on path '${c.conflictingPath}'.`);
+    throw new HarnessError(
+      "INTEGRITY",
+      `Scope collision detected between ${c.taskA} and ${c.taskB} on path '${c.conflictingPath}'.`,
+    );
   }
 
-  const { requirementsDocument, requirementIdsByTask } = compileRequirementsFromPrompt(prompt, buffer);
-  const { graphDocument } = compileGraphDocument(buffer, requirementsDocument, requirementIdsByTask, 1);
-  const { dependencies } = dependencyData(graphDocument.nodes as Record<string, unknown>[], graphDocument.edges as Record<string, unknown>[]);
+  const { requirementsDocument, requirementIdsByTask } = compileRequirementsFromPrompt(
+    prompt,
+    buffer,
+  );
+  const { graphDocument } = compileGraphDocument(
+    buffer,
+    requirementsDocument,
+    requirementIdsByTask,
+    1,
+  );
+  const { dependencies } = dependencyData(
+    graphDocument.nodes as Record<string, unknown>[],
+    graphDocument.edges as Record<string, unknown>[],
+  );
 
   transact(run, actor, "plan-compiled", { tasks_count: buffer.length }, (state) => {
     if (!Array.isArray(state.plan_history)) {
       state.plan_history = [];
     }
-    guardPlanRevision(state as unknown as Record<string, unknown>, requirementsDocument, graphDocument, dependencies);
-    projectPlan(state as unknown as Record<string, unknown>, requirementsDocument, graphDocument, dependencies);
+    guardPlanRevision(
+      state as unknown as Record<string, unknown>,
+      requirementsDocument,
+      graphDocument,
+      dependencies,
+    );
+    projectPlan(
+      state as unknown as Record<string, unknown>,
+      requirementsDocument,
+      graphDocument,
+      dependencies,
+    );
     state.planning_tasks = buffer as unknown as JsonValue;
   });
 
@@ -162,5 +242,11 @@ export function planCompileCommand(flags: Flags): Record<string, unknown> {
     advisories,
   });
 
-  return { markdown, run_root: run, revision: 1, total_tasks: buffer.length, waves: scopeAnalysis.concurrencyWaves };
+  return {
+    markdown,
+    run_root: run,
+    revision: 1,
+    total_tasks: buffer.length,
+    waves: scopeAnalysis.concurrencyWaves,
+  };
 }

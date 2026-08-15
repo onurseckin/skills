@@ -33,29 +33,31 @@ Edges are not just lines with simple labels. They are **rich communicative conta
 ### 1.1 Semantic Edge Diversity & Taxonomy
 
 Edges are classified into 7 distinct semantic types with clear visual conventions:
+
 1. **`spawn` (Dispatch Edge)**:
-   - *Style*: Cyan/Electric Blue dashed line with `IconRocket` badge.
-   - *Meaning*: Coordinator leasing and dispatching a worker agent.
+   - _Style_: Cyan/Electric Blue dashed line with `IconRocket` badge.
+   - _Meaning_: Coordinator leasing and dispatching a worker agent.
 2. **`sequence` (Linear Lifecycle Flow)**:
-   - *Style*: Neutral slate/zinc line (`#3f3f46`), clean and understated.
-   - *Meaning*: Sequential pipeline progression.
+   - _Style_: Neutral slate/zinc line (`#3f3f46`), clean and understated.
+   - _Meaning_: Sequential pipeline progression.
 3. **`data` / `handoff` (Artifact Transfer)**:
-   - *Style*: Indigo/Violet solid curve with `IconFileText` badge.
-   - *Meaning*: Direct transfer of diffs, test outputs, or reports between nodes.
+   - _Style_: Indigo/Violet solid curve with `IconFileText` badge.
+   - _Meaning_: Direct transfer of diffs, test outputs, or reports between nodes.
 4. **`dependency` (Requirement Unlocked)**:
-   - *Style*: Subtle dashed line with `IconLink` badge.
-   - *Meaning*: Upstream task unblocking downstream tasks.
+   - _Style_: Subtle dashed line with `IconLink` badge.
+   - _Meaning_: Upstream task unblocking downstream tasks.
 5. **`loop` / `pushback` (Validation Rejection Cycle)**:
-   - *Style*: Crimson/Amber reverse-pulsating dashes with `IconAlertTriangle` badge.
-   - *Meaning*: Validator pushback triggering implementer repair round.
+   - _Style_: Crimson/Amber reverse-pulsating dashes with `IconAlertTriangle` badge.
+   - _Meaning_: Validator pushback triggering implementer repair round.
 6. **`gate` / `validation` (Independent Gate Verification)**:
-   - *Style*: Emerald Green solid line with `IconShieldCheck` badge.
-   - *Meaning*: Monitored test gate execution and verification pass.
+   - _Style_: Emerald Green solid line with `IconShieldCheck` badge.
+   - _Meaning_: Monitored test gate execution and verification pass.
 7. **`critic` / `signoff` (Whole-Run Sign-off)**:
-   - *Style*: Metallic Gold / Deep Indigo solid line with `IconCertificate` badge.
-   - *Meaning*: Authority review and whole-capsule sealing.
+   - _Style_: Metallic Gold / Deep Indigo solid line with `IconCertificate` badge.
+   - _Meaning_: Authority review and whole-capsule sealing.
 
 ### 1.2 Edge Coloring & Neutrality Convention
+
 - **Neutral by Default**: Standard structural and sequential edges use subtle dark-mode zinc tones (`#27272a` / `#3f3f46`) to keep the canvas clean and avoid visual noise.
 - **Purposeful Color Accents**: Color is applied only to meaningful events (dispatches, artifact submissions, pushbacks, gate approvals, and critic sign-offs).
 - **Collision Prevention**: Edge badge overlays are anchored to midpoints with leader paths and bounding rect checks in WASM/Canvas layout to ensure badges never overlap or obscure neighboring node cards.
@@ -65,11 +67,13 @@ Edges are classified into 7 distinct semantic types with clear visual convention
 ## 2. Dynamic Canvas Path Highlighting
 
 ### 2.1 The Visual Highlighting Problem
+
 In a large graph with 30+ nodes, clicking a node shouldn't just highlight one box with a static border. The viewer wants to see the **causal flow**: where did this node come from, and what downstream nodes did it influence?
 
 ### 2.2 Dynamic Accent Illumination Algorithm
 
 When a node is selected on the canvas:
+
 1. **Dominant Accent Color Inheritance**:
    - The selected node's primary archetype accent color (e.g. Cyan for Worker, Violet for Prompt, Amber for Gate, Electric Blue for Planner) becomes the **Active Accent Hue**.
 2. **Path Illumination**:
@@ -86,14 +90,14 @@ When a node is selected on the canvas:
 
 All colors are meticulously tuned for dark mode canvas contrast:
 
-| Entity Type | Accent Hue | Stroke Color (Dark Canvas) | Container Background |
-| :--- | :--- | :--- | :--- |
-| **Prompt (`input`)** | Royal Violet | `#a78bfa` (Violet 400) | `#1e1533` (Deep Violet Black) |
-| **Planner (`orchestrator`)** | Sapphire Blue | `#60a5fa` (Blue 400) | `#0f1d38` (Deep Blue Black) |
-| **Worker (`agent`)** | Cyan / Teal | `#22d3ee` (Cyan 400) | `#09222c` (Deep Cyan Black) |
-| **Tool (`tool`)** | Slate Dark | `#94a3b8` (Slate 400) | `#0a0e17` (Monospace Jet Black) |
-| **Router (`router`)** | Amber Gold | `#fcd34d` (Amber 300) | `#261a08` (Deep Amber Black) |
-| **Gate (`gate`)** | Emerald / Orange | `#34d399` / `#fb923c` | `#0d281e` / `#2b1408` |
-| **Critic (`critic`)** | Indigo Gold | `#818cf8` / `#f59e0b` | `#1a1638` |
-| **Terminal (`terminal`)** | Emerald Seal | `#10b981` (Emerald 500) | `#062419` |
-| **Pushback Loop** | Crimson Amber | `#f87171` (Red 400) | `#2a0e14` (Pulsating reverse dashes) |
+| Entity Type                  | Accent Hue       | Stroke Color (Dark Canvas) | Container Background                 |
+| :--------------------------- | :--------------- | :------------------------- | :----------------------------------- |
+| **Prompt (`input`)**         | Royal Violet     | `#a78bfa` (Violet 400)     | `#1e1533` (Deep Violet Black)        |
+| **Planner (`orchestrator`)** | Sapphire Blue    | `#60a5fa` (Blue 400)       | `#0f1d38` (Deep Blue Black)          |
+| **Worker (`agent`)**         | Cyan / Teal      | `#22d3ee` (Cyan 400)       | `#09222c` (Deep Cyan Black)          |
+| **Tool (`tool`)**            | Slate Dark       | `#94a3b8` (Slate 400)      | `#0a0e17` (Monospace Jet Black)      |
+| **Router (`router`)**        | Amber Gold       | `#fcd34d` (Amber 300)      | `#261a08` (Deep Amber Black)         |
+| **Gate (`gate`)**            | Emerald / Orange | `#34d399` / `#fb923c`      | `#0d281e` / `#2b1408`                |
+| **Critic (`critic`)**        | Indigo Gold      | `#818cf8` / `#f59e0b`      | `#1a1638`                            |
+| **Terminal (`terminal`)**    | Emerald Seal     | `#10b981` (Emerald 500)    | `#062419`                            |
+| **Pushback Loop**            | Crimson Amber    | `#f87171` (Red 400)        | `#2a0e14` (Pulsating reverse dashes) |

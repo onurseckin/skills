@@ -16,9 +16,9 @@ describe("graph project plan", () => {
     expect(state.graph).toBeObject();
     expect(state.requirements).toBeObject();
     expect(state.task_order).toEqual(["task-1", "task-2"]);
-    expect((state.tasks as Record<string, { dependencies: string[] }>)["task-2"].dependencies).toEqual([
-      "task-1",
-    ]);
+    expect(
+      (state.tasks as Record<string, { dependencies: string[] }>)["task-2"].dependencies,
+    ).toEqual(["task-1"]);
   });
 
   test("preserves existing requirement runtime and task runtime across revisions", () => {
@@ -52,7 +52,8 @@ describe("graph project plan", () => {
     nextGraph.revision = 2;
     projectPlan(state, requirements, nextGraph, deps);
 
-    const projectedReqs = (state.requirements as { requirements: Record<string, unknown>[] }).requirements;
+    const projectedReqs = (state.requirements as { requirements: Record<string, unknown>[] })
+      .requirements;
     expect(projectedReqs[0].status).toBe("satisfied");
     expect(projectedReqs[0].authority_status).toBe("granted");
 
@@ -70,11 +71,15 @@ describe("graph project plan", () => {
       plan_history: "not-an-array",
     };
 
-    expect(() => projectPlan(state, requirements, graph, deps)).toThrow("plan_history must be a list");
+    expect(() => projectPlan(state, requirements, graph, deps)).toThrow(
+      "plan_history must be a list",
+    );
 
     // Invalid graph causing projection issues
     const invalidGraph = structuredClone(graph);
-    const taskNode = (invalidGraph.nodes as Record<string, unknown>[]).find((n) => n.type === "task")!;
+    const taskNode = (invalidGraph.nodes as Record<string, unknown>[]).find(
+      (n) => n.type === "task",
+    )!;
     taskNode.status = "invalid_status";
     const validState: Record<string, unknown> = { revision: 0, plan_history: [] };
     expect(() => projectPlan(validState, requirements, invalidGraph, deps)).toThrow(

@@ -39,7 +39,7 @@ A plan revision must obey strict versioning rules:
 
 | Property                 | Behavior During Execution / Revision | Rationale                                                                   |
 | :----------------------- | :----------------------------------- | :-------------------------------------------------------------------------- |
-| **`prompt.md`**          | **100% Immutable (Frozen)**          | Cryptographically bound to manifest SHA-256 via `plan:init`.               |
+| **`prompt.md`**          | **100% Immutable (Frozen)**          | Cryptographically bound to manifest SHA-256 via `plan:init`.                |
 | **Done Task Contracts**  | **Frozen**                           | Completed work cannot be mutated or downgraded.                             |
 | **Active Leased Scopes** | **Frozen**                           | Cannot expand or contract write leases while an agent holds them.           |
 | **Task Status**          | **Evolves Dynamically**              | Managed by the harness state machine (`ready` $\to$ `leased` $\to$ `done`). |

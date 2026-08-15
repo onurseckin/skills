@@ -24,7 +24,11 @@ export function mandatoryRunGateCommands(
   issues: string[] = [],
 ): { [gateId: string]: string } {
   const result: { [gateId: string]: string } = {};
-  const gates = (state.gates ?? (state as unknown as { graph?: { gates?: typeof state.gates } }).graph?.gates ?? []).filter((gate) => gate.scope === "run" && gate.mandatory);
+  const gates = (
+    state.gates ??
+    (state as unknown as { graph?: { gates?: typeof state.gates } }).graph?.gates ??
+    []
+  ).filter((gate) => gate.scope === "run" && gate.mandatory);
   if (gates.length === 0) issues.push("run has no mandatory run gate");
   for (const gate of gates) {
     const commands = Object.values(state.commands)
@@ -76,7 +80,12 @@ function validatorProofIssues(state: WorkflowState, task: TaskRecord): string[] 
 function extractRequirements(state: WorkflowState): readonly RequirementRuntime[] {
   const raw = state.requirements as unknown;
   if (Array.isArray(raw)) return raw;
-  if (raw && typeof raw === "object" && "requirements" in raw && Array.isArray((raw as { requirements: unknown }).requirements)) {
+  if (
+    raw &&
+    typeof raw === "object" &&
+    "requirements" in raw &&
+    Array.isArray((raw as { requirements: unknown }).requirements)
+  ) {
     return (raw as { requirements: RequirementRuntime[] }).requirements;
   }
   return Object.values((raw ?? {}) as Record<string, RequirementRuntime>);

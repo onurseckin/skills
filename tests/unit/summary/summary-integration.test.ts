@@ -53,17 +53,76 @@ async function setupExecutedRun(name: string) {
 
   await execute(["plan:compile", "--run", run, "--actor", "planner"]);
 
-  const claim = await execute(["task:claim", "--run", run, "--task", "task-1", "--agent", "worker-1"]);
+  const claim = await execute([
+    "task:claim",
+    "--run",
+    run,
+    "--task",
+    "task-1",
+    "--agent",
+    "worker-1",
+  ]);
   const token = claim.token as string;
 
-  await execute(["task:submit", "--run", run, "--task", "task-1", "--agent", "worker-1", "--token", token, "--summary", "Task 1 complete"]);
-  const val = await execute(["task:validate-start", "--run", run, "--task", "task-1", "--validator", "validator-1"]);
+  await execute([
+    "task:submit",
+    "--run",
+    run,
+    "--task",
+    "task-1",
+    "--agent",
+    "worker-1",
+    "--token",
+    token,
+    "--summary",
+    "Task 1 complete",
+  ]);
+  const val = await execute([
+    "task:validate-start",
+    "--run",
+    run,
+    "--task",
+    "task-1",
+    "--validator",
+    "validator-1",
+  ]);
   const valToken = val.token as string;
 
-  const gateExec = await execute(["run:exec", "--run", run, "--task", "task-1", "--gate", "gate-1", "--actor", "validator-1", "--cwd", repo, "--", "bun", "gate.ts"]);
+  const gateExec = await execute([
+    "run:exec",
+    "--run",
+    run,
+    "--task",
+    "task-1",
+    "--gate",
+    "gate-1",
+    "--actor",
+    "validator-1",
+    "--cwd",
+    repo,
+    "--",
+    "bun",
+    "gate.ts",
+  ]);
   const cmdId = gateExec.command_id as string;
 
-  await execute(["task:review", "--run", run, "--task", "task-1", "--validator", "validator-1", "--token", valToken, "--evidence", cmdId, "--status", "pass", "--summary", "Passed"]);
+  await execute([
+    "task:review",
+    "--run",
+    run,
+    "--task",
+    "task-1",
+    "--validator",
+    "validator-1",
+    "--token",
+    valToken,
+    "--evidence",
+    cmdId,
+    "--status",
+    "pass",
+    "--summary",
+    "Passed",
+  ]);
 
   return { repo, run };
 }

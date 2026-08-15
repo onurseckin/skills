@@ -113,7 +113,10 @@ describe("installer identity", () => {
       installed_at: "2026-08-14T00:00:00.000Z",
       clients: ["claude"],
     });
-    await writeFile(join(source, "installation.json"), canonicalJsonBytes(mismatchedVersionManifest));
+    await writeFile(
+      join(source, "installation.json"),
+      canonicalJsonBytes(mismatchedVersionManifest),
+    );
     expect(await identifiedInstallation(source)).toBe(false);
 
     const mismatchedDigestManifest = sealInstallationManifest({
@@ -125,7 +128,10 @@ describe("installer identity", () => {
       installed_at: "2026-08-14T00:00:00.000Z",
       clients: ["claude"],
     });
-    await writeFile(join(source, "installation.json"), canonicalJsonBytes(mismatchedDigestManifest));
+    await writeFile(
+      join(source, "installation.json"),
+      canonicalJsonBytes(mismatchedDigestManifest),
+    );
     expect(await identifiedInstallation(source)).toBe(false);
 
     // Corrupted skill source structure (e.g. invalid SKILL.md)

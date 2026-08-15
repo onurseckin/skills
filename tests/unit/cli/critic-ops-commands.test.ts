@@ -53,8 +53,26 @@ async function setupReadyRun(name: string) {
 
   const claim = await execute(["task:claim", "--run", run, "--task", "task-1", "--agent", "w1"]);
   const token = claim.token as string;
-  await execute(["task:submit", "--run", run, "--task", "task-1", "--agent", "w1", "--token", token]);
-  const val = await execute(["task:validate-start", "--run", run, "--task", "task-1", "--validator", "v1"]);
+  await execute([
+    "task:submit",
+    "--run",
+    run,
+    "--task",
+    "task-1",
+    "--agent",
+    "w1",
+    "--token",
+    token,
+  ]);
+  const val = await execute([
+    "task:validate-start",
+    "--run",
+    run,
+    "--task",
+    "task-1",
+    "--validator",
+    "v1",
+  ]);
 
   const execGate = await execute([
     "run:exec",
@@ -202,6 +220,8 @@ describe("CLI critic-ops commands", () => {
       "Add test for cross-module edge case",
     ]);
     expect(review.decision).toBe("request_changes");
-    expect(String(review.markdown)).toContain("### Completeness Critic Sign-Off: CHANGES REQUESTED");
+    expect(String(review.markdown)).toContain(
+      "### Completeness Critic Sign-Off: CHANGES REQUESTED",
+    );
   });
 });

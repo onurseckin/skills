@@ -54,23 +54,36 @@ export async function executeInternalPreparedCommand(
   runtime: CommandRuntimeCapability,
   dependencies: InternalExecutionDependencies,
 ): Promise<CommandResult> {
-  const durable = readCanonicalObject(runtime.recordPath, "prepared command intent", { maxBytes: MAX_COMMAND_RECORD_BYTES, maxDepth: 64 });
-  if (!sameCommandJson(durable, prepared.record)) throw new HarnessError("INTEGRITY", "prepared command does not match its durable intent");
+  const durable = readCanonicalObject(runtime.recordPath, "prepared command intent", {
+    maxBytes: MAX_COMMAND_RECORD_BYTES,
+    maxDepth: 64,
+  });
+  if (!sameCommandJson(durable, prepared.record))
+    throw new HarnessError("INTEGRITY", "prepared command does not match its durable intent");
   const record = structuredClone(durable) as unknown as CommandRecord;
   const issues = embeddedCommandIssues(record);
-  if (issues.length > 0) throw new HarnessError("INTEGRITY", `prepared command intent is invalid: ${issues.join("; ")}`);
-  if (record.status !== "running" || (record.attempts?.length ?? 0) !== 0) throw new HarnessError("INTEGRITY", "prepared command intent is not pristine");
+  if (issues.length > 0)
+    throw new HarnessError("INTEGRITY", `prepared command intent is invalid: ${issues.join("; ")}`);
+  if (record.status !== "running" || (record.attempts?.length ?? 0) !== 0)
+    throw new HarnessError("INTEGRITY", "prepared command intent is not pristine");
   if (runtime.attemptSigner.verificationPublicKey !== record.attempt_signing_public_key) {
-    throw new HarnessError("INTEGRITY", "prepared command signing capability does not match durable intent");
+    throw new HarnessError(
+      "INTEGRITY",
+      "prepared command signing capability does not match durable intent",
+    );
   }
   const snapshot = commandExecutionSnapshot(record, runtime);
-  if (snapshot.retries + 1 > MAX_COMMAND_ATTEMPTS) throw new HarnessError("INTEGRITY", "command retry policy exceeds terminal capacity");
+  if (snapshot.retries + 1 > MAX_COMMAND_ATTEMPTS)
+    throw new HarnessError("INTEGRITY", "command retry policy exceeds terminal capacity");
   const attempts: AttemptResult[] = [];
   let inGatePreflight = false;
   let preflightRepository: CommandRecord["repository_after"] = null;
   try {
     for (let attempt = 1; attempt <= snapshot.retries + 1; attempt += 1) {
-      if (record.retry_pending) { delete record.retry_pending; delete record.evidence_error; }
+      if (record.retry_pending) {
+        delete record.retry_pending;
+        delete record.evidence_error;
+      }
       preflightRepository = null;
       inGatePreflight = record.gate_id !== null;
       if (record.gate_id) record.repository_after = null;
@@ -78,17 +91,40 @@ export async function executeInternalPreparedCommand(
         ? (() => {
             const actual = structuredClone(dependencies.inspectRepository(record.repository_root));
             preflightRepository = actual;
-            if (!sameRepositoryObservation(record.repository_before!, actual)) throw new HarnessError("INTEGRITY", "repository observation changed before gate attempt");
+            if (!sameRepositoryObservation(record.repository_before!, actual))
+              throw new HarnessError(
+                "INTEGRITY",
+                "repository observation changed before gate attempt",
+              );
             const envIssues = gateEnvironmentIssues(record.environment);
             if (envIssues.length > 0) throw new HarnessError("INTEGRITY", envIssues.join("; "));
-            assertGatePathBindings(record.repository_root, record.cwd, record.argv, record.path_bindings, record.environment?.PATH);
-            return gateExecutionSnapshot(snapshot, [...(record.execution_argv ?? executionArgv(record.argv, record.path_bindings ?? []))], structuredClone(record.environment ?? {}));
+            assertGatePathBindings(
+              record.repository_root,
+              record.cwd,
+              record.argv,
+              record.path_bindings,
+              record.environment?.PATH,
+            );
+            return gateExecutionSnapshot(
+              snapshot,
+              [
+                ...(record.execution_argv ??
+                  executionArgv(record.argv, record.path_bindings ?? [])),
+              ],
+              structuredClone(record.environment ?? {}),
+            );
           })()
         : snapshot;
       let executionFailure: AttemptExecutionError | undefined;
       let result: AttemptResult;
       try {
-        result = await dependencies.attempt(execution, attempt, record.id, runtime.commandRoot, runtime.attemptSigner);
+        result = await dependencies.attempt(
+          execution,
+          attempt,
+          record.id,
+          runtime.commandRoot,
+          runtime.attemptSigner,
+        );
       } catch (error) {
         if (!(error instanceof AttemptExecutionError)) throw error;
         executionFailure = error;
@@ -98,7 +134,10 @@ export async function executeInternalPreparedCommand(
       persistAttempt(runtime.commandRoot, result);
       attempts.push(result);
       applyAttempt(record, result);
-      if (record.gate_id) { record.status = "running"; record.finished_at = null; }
+      if (record.gate_id) {
+        record.status = "running";
+        record.finished_at = null;
+      }
       publish(runtime.recordPath, record);
       if (record.gate_id) {
         const postIssues = finalizeGateAttempt(record, result, dependencies.inspectRepository);
@@ -121,24 +160,44 @@ export async function executeInternalPreparedCommand(
         if (executionFailure) throw executionFailure.original;
         throw new HarnessError("INTEGRITY", result.record.integrity_failure);
       }
-      const again = shouldRetry(result.failureClass, snapshot.idempotent, attempt, snapshot.retries);
+      const again = shouldRetry(
+        result.failureClass,
+        snapshot.idempotent,
+        attempt,
+        snapshot.retries,
+      );
       updateRetryExhaustion(record, result.failureClass, again);
-      if (again) { record.retry_pending = true; record.evidence_error = RETRY_PENDING; } else delete record.retry_pending;
+      if (again) {
+        record.retry_pending = true;
+        record.evidence_error = RETRY_PENDING;
+      } else delete record.retry_pending;
       publish(runtime.recordPath, record);
       if (!again) break;
     }
   } catch (error) {
-    const unreturned = join(runtime.commandRoot, `attempt-${(record.attempts?.length ?? 0) + 1}`, "attempt-started.json");
+    const unreturned = join(
+      runtime.commandRoot,
+      `attempt-${(record.attempts?.length ?? 0) + 1}`,
+      "attempt-started.json",
+    );
     if (existsSync(unreturned)) {
       publish(runtime.recordPath, structuredClone(durable) as unknown as CommandRecord);
       throw error;
     }
-    if (record.gate_id && (record.attempts?.length ?? 0) > 0 && record.attempts?.at(-1)?.gate_finalized_at === undefined) throw error;
+    if (
+      record.gate_id &&
+      (record.attempts?.length ?? 0) > 0 &&
+      record.attempts?.at(-1)?.gate_finalized_at === undefined
+    )
+      throw error;
     if (!record.evidence_error) {
       record.status = "failed";
       record.finished_at = new Date().toISOString();
       record.evidence_error = boundedEvidenceError(error);
-      if (inGatePreflight) { record.repository_after = preflightRepository; record.preflight_failure = record.evidence_error; }
+      if (inGatePreflight) {
+        record.repository_after = preflightRepository;
+        record.preflight_failure = record.evidence_error;
+      }
     }
     publish(runtime.recordPath, record);
     throw error;

@@ -18,11 +18,7 @@ function createTask(id: string, dependencies: string[] = []): TaskRecord {
 
 describe("step calculator", () => {
   test("assigns steps correctly for linear pipeline", () => {
-    const tasks = [
-      createTask("T-1", []),
-      createTask("T-2", ["T-1"]),
-      createTask("T-3", ["T-2"]),
-    ];
+    const tasks = [createTask("T-1", []), createTask("T-2", ["T-1"]), createTask("T-3", ["T-2"])];
 
     const result = computeExecutionSteps(tasks);
     expect(result.taskSteps.get("T-1")).toBe(2);
@@ -39,11 +35,7 @@ describe("step calculator", () => {
   });
 
   test("assigns concurrent tasks in same wave to same step", () => {
-    const tasks = [
-      createTask("T-A", []),
-      createTask("T-B", []),
-      createTask("T-C", ["T-A", "T-B"]),
-    ];
+    const tasks = [createTask("T-A", []), createTask("T-B", []), createTask("T-C", ["T-A", "T-B"])];
 
     const result = computeExecutionSteps(tasks);
     expect(result.taskSteps.get("T-A")).toBe(2);

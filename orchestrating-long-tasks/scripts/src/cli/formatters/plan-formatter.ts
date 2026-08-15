@@ -32,7 +32,10 @@ export interface TaskRegisteredParams {
 
 export function formatTaskRegisteredBrief(params: TaskRegisteredParams): string {
   const scopeStr = params.writeScope.map((s) => `\`${s}\``).join(", ") || "`none`";
-  const depsStr = params.deps.length > 0 ? params.deps.map((d) => `\`${d}\``).join(", ") : "None (Parallel-ready)";
+  const depsStr =
+    params.deps.length > 0
+      ? params.deps.map((d) => `\`${d}\``).join(", ")
+      : "None (Parallel-ready)";
   const md = [
     `### Task Registered: ${params.taskId}`,
     `- **Label**: ${params.label}`,
@@ -71,8 +74,12 @@ export function formatPlanCompileBrief(params: PlanCompileParams): string {
     lines.push(`- **Wave ${wave.waveIndex} (Blocked)**: ${waveTasks}`);
   }
 
-  lines.push(`- **Scope Isolation**: Disjoint write scopes verified (${params.collisions} collisions)`);
-  lines.push(`- **Requirements Covered**: ${params.requirementsCount}/${params.requirementsCount} atomic obligations mapped`);
+  lines.push(
+    `- **Scope Isolation**: Disjoint write scopes verified (${params.collisions} collisions)`,
+  );
+  lines.push(
+    `- **Requirements Covered**: ${params.requirementsCount}/${params.requirementsCount} atomic obligations mapped`,
+  );
 
   if (params.advisories && params.advisories.length > 0) {
     for (const adv of params.advisories) {
@@ -80,7 +87,9 @@ export function formatPlanCompileBrief(params: PlanCompileParams): string {
     }
   }
 
-  lines.push(`- **Next Step**: Query ready tasks via \`bun harness.ts queue:next --run ${params.runId}\``);
+  lines.push(
+    `- **Next Step**: Query ready tasks via \`bun harness.ts queue:next --run ${params.runId}\``,
+  );
   return enforceLineLimit(lines.join("\n"), 30);
 }
 
@@ -92,7 +101,11 @@ export interface PlanStatusItem {
   deps: readonly string[];
 }
 
-export function formatPlanStatusBrief(runId: string, tasks: readonly PlanStatusItem[], isCompiled = false): string {
+export function formatPlanStatusBrief(
+  runId: string,
+  tasks: readonly PlanStatusItem[],
+  isCompiled = false,
+): string {
   const headers = ["ID", "Label", "Write Scope", "Gate", "Dependencies"];
   const rows = tasks.map((t) => [
     `\`${t.id}\``,

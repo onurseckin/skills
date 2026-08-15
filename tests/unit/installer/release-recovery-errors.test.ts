@@ -8,7 +8,10 @@ import {
   type TransactionMarker,
 } from "../../../orchestrating-long-tasks/scripts/src/installer/transaction-marker.ts";
 import { sealInstallationManifest } from "../../../orchestrating-long-tasks/scripts/src/installer/manifest-integrity.ts";
-import { pathIdentity, type PathIdentity } from "../../../orchestrating-long-tasks/scripts/src/installer/path-safety.ts";
+import {
+  pathIdentity,
+  type PathIdentity,
+} from "../../../orchestrating-long-tasks/scripts/src/installer/path-safety.ts";
 import { treeDigest } from "../../../orchestrating-long-tasks/scripts/src/installer/tree-digest.ts";
 import { canonicalJsonBytes } from "../../../orchestrating-long-tasks/scripts/src/core/json.ts";
 import { cleanInstallerFixtures, installerFixture } from "./helpers.ts";
@@ -32,7 +35,11 @@ async function createIdentifiedRelease(path: string, source: string): Promise<Pa
   return id!;
 }
 
-function makeMarker(dest: string, sourceDigest: string, overrides: Partial<TransactionMarker> = {}): TransactionMarker {
+function makeMarker(
+  dest: string,
+  sourceDigest: string,
+  overrides: Partial<TransactionMarker> = {},
+): TransactionMarker {
   const uuid = randomUUID();
   return {
     schema: MARKER_SCHEMA,

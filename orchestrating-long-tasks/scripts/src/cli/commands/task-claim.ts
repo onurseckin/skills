@@ -80,7 +80,8 @@ export async function taskSubmitCommand(flags: Flags): Promise<Record<string, un
   const reportPayload: Record<string, unknown> = {
     summary,
     requirement_ids: taskBefore.requirement_ids,
-    files_changed: taskBefore.write_scope.length > 0 ? [taskBefore.write_scope[0]!] : ["src/index.ts"],
+    files_changed:
+      taskBefore.write_scope.length > 0 ? [taskBefore.write_scope[0]!] : ["src/index.ts"],
     checks: [{ command_id: `cmd-${taskId}-gate` }],
     evidence: [{ kind: "completion", detail: summary }],
   };

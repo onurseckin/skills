@@ -80,7 +80,9 @@ describe("CLI run-ops commands", () => {
       "monitored execution proof",
     ]);
     expect(execResult.command).toBeObject();
-    expect(String(execResult.markdown)).toContain("### Command Executed: `echo monitored execution proof`");
+    expect(String(execResult.markdown)).toContain(
+      "### Command Executed: `echo monitored execution proof`",
+    );
     expect(String(execResult.markdown)).toContain("Exit Code");
     expect(execResult.exit_code).toBe(0);
   });

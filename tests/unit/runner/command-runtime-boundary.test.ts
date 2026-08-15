@@ -42,16 +42,28 @@ function binding(marker = "a"): RepositoryBinding {
 function attemptResult(id: string, attempt: number, transient = false): AttemptResult {
   const empty = { path: "empty", bytes: 0, sha256: digest("e") };
   const record: CommandAttemptRecord = {
-    id, attempt, status: transient ? "failed" : "succeeded",
-    started_at: "2026-08-14T00:00:00.000Z", finished_at: "2026-08-14T00:00:01.000Z",
-    exit_code: transient ? 1 : 0, signal: null, signals_sent: [], timeout_kind: null,
+    id,
+    attempt,
+    status: transient ? "failed" : "succeeded",
+    started_at: "2026-08-14T00:00:00.000Z",
+    finished_at: "2026-08-14T00:00:01.000Z",
+    exit_code: transient ? 1 : 0,
+    signal: null,
+    signals_sent: [],
+    timeout_kind: null,
     failure_class: transient ? "network_transient" : null,
-    activity_path: "empty", activity: empty, logs: { stdout: empty, stderr: empty },
+    activity_path: "empty",
+    activity: empty,
+    logs: { stdout: empty, stderr: empty },
   };
   return {
-    record, attempt,
+    record,
+    attempt,
     ...(transient ? { failureClass: "network_transient" as const } : {}),
-    stdoutPath: "empty", stderrPath: "empty", activityPath: "empty", outputTail: "",
+    stdoutPath: "empty",
+    stderrPath: "empty",
+    activityPath: "empty",
+    outputTail: "",
   };
 }
 
@@ -64,11 +76,21 @@ async function fixture(label: string) {
   return {
     root,
     input: {
-      argv: ["./bin/verify"], cwd: root, runRoot: join(root, ".capsules"),
-      commandDir: join(root, ".capsules", "commands"), actor: "validator" as const,
-      taskId: "T-observed", gateId: "G-observed", retries: 1, idempotent: true,
-      maxOutputBytes: 4096, wallTimeoutMs: 5000, idleTimeoutMs: 4000, graceMs: 3000,
-      drainTimeoutMs: 2000, heartbeatIntervalMs: 1000,
+      argv: ["./bin/verify"],
+      cwd: root,
+      runRoot: join(root, ".capsules"),
+      commandDir: join(root, ".capsules", "commands"),
+      actor: "validator" as const,
+      taskId: "T-observed",
+      gateId: "G-observed",
+      retries: 1,
+      idempotent: true,
+      maxOutputBytes: 4096,
+      wallTimeoutMs: 5000,
+      idleTimeoutMs: 4000,
+      graceMs: 3000,
+      drainTimeoutMs: 2000,
+      heartbeatIntervalMs: 1000,
     },
   };
 }
@@ -137,7 +159,12 @@ describe("command runtime boundary", () => {
           return attemptResult(id, attempt, attempt === 1);
         },
       });
-      const prepared = await runner.prepareCommand({ ...input, gateId: undefined, retries: 1, idempotent: true });
+      const prepared = await runner.prepareCommand({
+        ...input,
+        gateId: undefined,
+        retries: 1,
+        idempotent: true,
+      });
       expect(prepared.record.environment?.[secretKey]).toBeUndefined();
       const durableEnvironment = structuredClone(prepared.record.environment!);
       prepared.options.environment.PATH = "/caller/mutated";
@@ -197,24 +224,38 @@ describe("command runtime boundary", () => {
   test("reserves terminal headroom and bounds evidence errors", async () => {
     const { input } = await fixture("command-intent-headroom");
     expect(
-      MAX_COMMAND_INTENT_BYTES + (MAX_COMMAND_ATTEMPTS + 1) * MAX_COMMAND_ATTEMPT_BYTES + MAX_EVIDENCE_ERROR_BYTES,
+      MAX_COMMAND_INTENT_BYTES +
+        (MAX_COMMAND_ATTEMPTS + 1) * MAX_COMMAND_ATTEMPT_BYTES +
+        MAX_EVIDENCE_ERROR_BYTES,
     ).toBeLessThan(MAX_COMMAND_RECORD_BYTES);
     const runner = createInternalCommandRunner({
       inspectRepository: () => binding(),
-      attempt: async () => { throw new Error("\0".repeat(MAX_EVIDENCE_ERROR_BYTES)); },
+      attempt: async () => {
+        throw new Error("\0".repeat(MAX_EVIDENCE_ERROR_BYTES));
+      },
     });
     await expect(
-      runner.prepareCommand({ ...input, argv: ["tool", "x".repeat(MAX_COMMAND_INTENT_BYTES)], gateId: undefined, retries: 0 }),
+      runner.prepareCommand({
+        ...input,
+        argv: ["tool", "x".repeat(MAX_COMMAND_INTENT_BYTES)],
+        gateId: undefined,
+        retries: 0,
+      }),
     ).rejects.toThrow(/intent.*size|size.*limit/i);
     expect(await readdir(input.commandDir)).toEqual([]);
 
     const prepared = await runner.prepareCommand({
-      ...input, argv: ["tool", "x".repeat(MAX_COMMAND_INTENT_BYTES - 64 * 1024)], gateId: undefined, retries: 0,
+      ...input,
+      argv: ["tool", "x".repeat(MAX_COMMAND_INTENT_BYTES - 64 * 1024)],
+      gateId: undefined,
+      retries: 0,
     });
     await expect(runner.executePreparedCommand(prepared)).rejects.toThrow();
     const storedText = await readFile(prepared.recordPath, "utf8");
     const stored = JSON.parse(storedText);
-    expect(new TextEncoder().encode(stored.evidence_error).byteLength).toBeLessThanOrEqual(MAX_EVIDENCE_ERROR_BYTES);
+    expect(new TextEncoder().encode(stored.evidence_error).byteLength).toBeLessThanOrEqual(
+      MAX_EVIDENCE_ERROR_BYTES,
+    );
     expect(Buffer.byteLength(storedText)).toBeLessThanOrEqual(MAX_COMMAND_RECORD_BYTES);
   });
 });

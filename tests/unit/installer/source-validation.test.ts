@@ -53,9 +53,7 @@ describe("installer source validation", () => {
   test("rejects when scripts/package.json contains invalid json", async () => {
     const { source } = await installerFixture();
     await writeFile(join(source, "scripts", "package.json"), "invalid json content");
-    await expect(validateSkillSource(source)).rejects.toThrow(
-      /skill runtime package is invalid/,
-    );
+    await expect(validateSkillSource(source)).rejects.toThrow(/skill runtime package is invalid/);
   });
 
   test("rejects when scripts/package.json has wrong package name or invalid structure", async () => {

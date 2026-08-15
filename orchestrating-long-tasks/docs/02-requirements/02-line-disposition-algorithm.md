@@ -77,18 +77,18 @@ This allows the scheduler to dispatch `R-CACHE` immediately in parallel via `que
 
 ## 📐 Atomic Requirement Structure
 
-| Field                 | Purpose                                                                | Validation Rule                               |
-| :-------------------- | :--------------------------------------------------------------------- | :-------------------------------------------- |
-| **`id`**              | Unique alphanumeric requirement identifier (`req-foundations`, `R-001`).| Must be unique across the entire run.         |
-| **`source_lines`**    | Exact 1-indexed line numbers in `prompt.md`.                           | Must strictly match the lines in `prompt.md`. |
-| **`source_excerpt`**  | Exact string from `prompt.md` joined across `source_lines`.            | Byte-exact match with `prompt.md`.            |
-| **`instruction`**     | Concise summary of what the user asked for.                            | Non-empty string.                             |
-| **`implementation`**  | Technical explanation of how the system will satisfy it.               | Non-empty string.                             |
-| **`subsystem`**       | Target directory or module path.                                       | Non-empty path string.                        |
-| **`acceptance`**      | Array of acceptance criteria with IDs (`A-001`) and expected evidence. | Non-empty array of objects.                   |
-| **`candidate_gates`** | Proposed test commands that will prove completion.                     | Array of literal argv objects.                |
-| **`disposition`**     | Current actionability (`actionable` vs `needs_authority`).             | Closed enum.                                  |
-| **`status`**          | Lifecycle state (`planned`, `in_progress`, `satisfied`, `disposed`).   | Closed enum.                                  |
+| Field                 | Purpose                                                                  | Validation Rule                               |
+| :-------------------- | :----------------------------------------------------------------------- | :-------------------------------------------- |
+| **`id`**              | Unique alphanumeric requirement identifier (`req-foundations`, `R-001`). | Must be unique across the entire run.         |
+| **`source_lines`**    | Exact 1-indexed line numbers in `prompt.md`.                             | Must strictly match the lines in `prompt.md`. |
+| **`source_excerpt`**  | Exact string from `prompt.md` joined across `source_lines`.              | Byte-exact match with `prompt.md`.            |
+| **`instruction`**     | Concise summary of what the user asked for.                              | Non-empty string.                             |
+| **`implementation`**  | Technical explanation of how the system will satisfy it.                 | Non-empty string.                             |
+| **`subsystem`**       | Target directory or module path.                                         | Non-empty path string.                        |
+| **`acceptance`**      | Array of acceptance criteria with IDs (`A-001`) and expected evidence.   | Non-empty array of objects.                   |
+| **`candidate_gates`** | Proposed test commands that will prove completion.                       | Array of literal argv objects.                |
+| **`disposition`**     | Current actionability (`actionable` vs `needs_authority`).               | Closed enum.                                  |
+| **`status`**          | Lifecycle state (`planned`, `in_progress`, `satisfied`, `disposed`).     | Closed enum.                                  |
 
 ---
 

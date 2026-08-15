@@ -27,12 +27,24 @@ export function formatSummaryMarkdown(input: MarkdownFormatterInput): string {
   lines.push("");
   lines.push("| Metric | Value | Metric | Value |");
   lines.push("| :--- | :--- | :--- | :--- |");
-  lines.push(`| **Total Tasks** | ${metrics.total_tasks} | **Satisfied Tasks** | ${metrics.satisfied_tasks} / ${metrics.total_tasks} |`);
-  lines.push(`| **Wall Duration** | ${formatDuration(metrics.wall_duration_ms)} | **Active Compute** | ${formatDuration(metrics.active_command_duration_ms)} |`);
-  lines.push(`| **Commands Executed** | ${metrics.total_commands_executed} | **Gates Passed** | ${metrics.total_gates_passed} |`);
-  lines.push(`| **Repair Rounds** | ${metrics.repair_rounds_total} | **Failed Tasks** | ${metrics.failed_tasks} |`);
-  lines.push(`| **Est. Tokens In** | ${metrics.estimated_tokens.tokens_in.toLocaleString()} | **Est. Tokens Out** | ${metrics.estimated_tokens.tokens_out.toLocaleString()} |`);
-  lines.push(`| **Total Tokens** | ${metrics.estimated_tokens.total_tokens.toLocaleString()} | **Files Touched** | ${metrics.files_touched.length} files |`);
+  lines.push(
+    `| **Total Tasks** | ${metrics.total_tasks} | **Satisfied Tasks** | ${metrics.satisfied_tasks} / ${metrics.total_tasks} |`,
+  );
+  lines.push(
+    `| **Wall Duration** | ${formatDuration(metrics.wall_duration_ms)} | **Active Compute** | ${formatDuration(metrics.active_command_duration_ms)} |`,
+  );
+  lines.push(
+    `| **Commands Executed** | ${metrics.total_commands_executed} | **Gates Passed** | ${metrics.total_gates_passed} |`,
+  );
+  lines.push(
+    `| **Repair Rounds** | ${metrics.repair_rounds_total} | **Failed Tasks** | ${metrics.failed_tasks} |`,
+  );
+  lines.push(
+    `| **Est. Tokens In** | ${metrics.estimated_tokens.tokens_in.toLocaleString()} | **Est. Tokens Out** | ${metrics.estimated_tokens.tokens_out.toLocaleString()} |`,
+  );
+  lines.push(
+    `| **Total Tokens** | ${metrics.estimated_tokens.total_tokens.toLocaleString()} | **Files Touched** | ${metrics.files_touched.length} files |`,
+  );
   lines.push("");
 
   lines.push("## Task Trajectory & Validation Breakdown");
@@ -41,11 +53,44 @@ export function formatSummaryMarkdown(input: MarkdownFormatterInput): string {
   lines.push("| :--- | :--- | :--- | :--- | :--- | :--- |");
   for (const t of tasks) {
     const label = typeof t.label === "string" ? t.label : t.id;
-    const statusText = t.status === "done" ? "Done" : t.status === "changes_requested" ? "Repair" : t.status;
+    const statusText =
+      t.status === "done" ? "Done" : t.status === "changes_requested" ? "Repair" : t.status;
     const agent = t.lease?.agent_id ?? t.original_implementer ?? "-";
     const writeScope = t.write_scope.join(", ") || "-";
-    lines.push(`| \`${t.id}\` | ${label} | ${statusText} | \`${agent}\` | ${t.repair_round ?? 0} | \`${writeScope}\` |`);
+    lines.push(
+      `| \`${t.id}\` | ${label} | ${statusText} | \`${agent}\` | ${t.repair_round ?? 0} | \`${writeScope}\` |`,
+    );
   }
+  lines.push("");
+
+  if (
+    (metrics.pushbacks_total ?? 0) > 0 &&
+    Array.isArray(metrics.pushback_rounds) &&
+    metrics.pushback_rounds.length > 0
+  ) {
+    lines.push("## Pushback Analysis & Repair Iterations");
+    lines.push("");
+    lines.push(`- **Total Pushback Rounds**: ${metrics.pushbacks_total}`);
+    lines.push(`- **Resolved Findings**: ${metrics.resolved_findings_total ?? 0}`);
+    lines.push(`- **Open Findings**: ${metrics.open_findings_total ?? 0}`);
+    lines.push("");
+    lines.push("| Task ID | Repair Round | Findings Count | Remediation / Primary Finding |");
+    lines.push("| :--- | :--- | :--- | :--- |");
+    for (const pb of metrics.pushback_rounds) {
+      lines.push(
+        `| \`${pb.task_id}\` | Round ${pb.round} | ${pb.findings_count} findings | ${pb.reason ?? "-"} |`,
+      );
+    }
+    lines.push("");
+  }
+
+  lines.push("## Edge Traffic & Inter-Agent Exchanges");
+  lines.push("");
+  lines.push(`- **Total Inter-Agent Exchanges**: ${metrics.total_edge_traffic_exchanges ?? 0}`);
+  lines.push(
+    `- **Total Traffic Token Volume**: ~${(metrics.total_edge_traffic_tokens ?? 0).toLocaleString()} tokens`,
+  );
+  lines.push(`- **Validator Media Assets**: ${metrics.total_media_assets ?? 0} assets recorded`);
   lines.push("");
 
   if (metrics.files_touched.length > 0) {
@@ -63,10 +108,15 @@ export function formatSummaryMarkdown(input: MarkdownFormatterInput): string {
   lines.push("");
   lines.push("| # | Time (UTC) | Phase | Actor | Event Summary |");
   lines.push("| :--- | :--- | :--- | :--- | :--- |");
-  const sampleEvents = timeline.length <= 15 ? timeline : [...timeline.slice(0, 8), ...timeline.slice(-7)];
+  const sampleEvents =
+    timeline.length <= 15 ? timeline : [...timeline.slice(0, 8), ...timeline.slice(-7)];
   for (const event of sampleEvents) {
-    const timeStr = event.timestamp.includes("T") ? event.timestamp.split("T")[1]?.slice(0, 8) ?? event.timestamp : event.timestamp;
-    lines.push(`| ${event.sequence} | \`${timeStr}\` | **${event.phase}** | \`${event.actor}\` | ${event.summary} |`);
+    const timeStr = event.timestamp.includes("T")
+      ? (event.timestamp.split("T")[1]?.slice(0, 8) ?? event.timestamp)
+      : event.timestamp;
+    lines.push(
+      `| ${event.sequence} | \`${timeStr}\` | **${event.phase}** | \`${event.actor}\` | ${event.summary} |`,
+    );
   }
   lines.push("");
 

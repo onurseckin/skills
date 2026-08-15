@@ -40,9 +40,7 @@ describe("installer stable file reader", () => {
     const { root } = await installerFixture();
     const dirPath = join(root, "some-dir");
     await mkdir(dirPath);
-    expect(() => readStableBytes(dirPath)).toThrow(
-      /source identity file is unsafe or oversized/,
-    );
+    expect(() => readStableBytes(dirPath)).toThrow(/source identity file is unsafe or oversized/);
   });
 
   test("rejects when target path is a symlink", async () => {
@@ -51,9 +49,7 @@ describe("installer stable file reader", () => {
     const linkPath = join(root, "link.txt");
     await writeFile(targetPath, "content");
     await symlink(targetPath, linkPath);
-    expect(() => readStableBytes(linkPath)).toThrow(
-      /source identity file is unsafe or oversized/,
-    );
+    expect(() => readStableBytes(linkPath)).toThrow(/source identity file is unsafe or oversized/);
   });
 
   test("readStableText throws INTEGRITY error for non-UTF8 binary data", async () => {

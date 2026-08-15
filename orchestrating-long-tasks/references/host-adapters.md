@@ -45,35 +45,39 @@ All supported host environments must enforce the **Two-Tier Isolation Model**:
 
 To keep the user's interactive thread pristine, the Background Run Coordinator communicates with the Tier 1 parent **only at major lifecycle milestones**:
 
-| Milestone Event | Notification Sent to User? | Content Delivered |
-| :--- | :--- | :--- |
-| **Plan Compiled** | ✅ Yes | Brief summary of total tasks, execution waves, and write scopes. |
-| **Wave Completed** | ✅ Yes | Confirmation of completed wave tasks and entry into validation. |
-| **Escalation / Decision Needed** | ✅ Yes | Finding details if a task exhausts configured repair rounds. |
-| **Step / Tool-Call Noise** | ❌ No (Suppressed) | Internal test runs, file edits, and heartbeats stay in background. |
-| **Run Complete** | ✅ Yes | Final completeness sign-off, diff summary, and verification report. |
+| Milestone Event                  | Notification Sent to User? | Content Delivered                                                   |
+| :------------------------------- | :------------------------- | :------------------------------------------------------------------ |
+| **Plan Compiled**                | ✅ Yes                     | Brief summary of total tasks, execution waves, and write scopes.    |
+| **Wave Completed**               | ✅ Yes                     | Confirmation of completed wave tasks and entry into validation.     |
+| **Escalation / Decision Needed** | ✅ Yes                     | Finding details if a task exhausts configured repair rounds.        |
+| **Step / Tool-Call Noise**       | ❌ No (Suppressed)         | Internal test runs, file edits, and heartbeats stay in background.  |
+| **Run Complete**                 | ✅ Yes                     | Final completeness sign-off, diff summary, and verification report. |
 
 ---
 
 ## 3. Host-Specific Adapter Implementations
 
 ### A. Google Antigravity (AGY / Antigravity CLI)
+
 - **Discovery**: Global link at `~/.gemini/config/skills/orchestrating-long-tasks` or canonical `.agents/skills/orchestrating-long-tasks`.
 - **Coordinator Spawning**:
   The main assistant calls `invoke_subagent` once to launch the Coordinator:
   ```json
   {
-    "Subagents": [{
-      "Role": "Run Coordinator",
-      "TypeName": "self",
-      "Prompt": "Orchestrate run <RUN_ID> using bun harness.ts commands."
-    }]
+    "Subagents": [
+      {
+        "Role": "Run Coordinator",
+        "TypeName": "self",
+        "Prompt": "Orchestrate run <RUN_ID> using bun harness.ts commands."
+      }
+    ]
   }
   ```
 - **Wave Dispatch**: The Coordinator calls `invoke_subagent` with multiple worker specs in a single call to launch concurrent lanes.
 - **Direct Messaging (`send_message`)**: Workers send completion messages to their parent Coordinator ID.
 
 ### B. Anthropic Claude Code
+
 - **Discovery**: `.claude/skills/orchestrating-long-tasks` or `~/.claude/skills/orchestrating-long-tasks`.
 - **Agent Teams & Teammates**:
   - The Lead Agent acts as the Tier 2 Coordinator, initializing the capsule and planning the graph.
@@ -81,6 +85,7 @@ To keep the user's interactive thread pristine, the Background Run Coordinator c
   - Claude hooks may trigger `bun harness.ts task:heartbeat`, but hook output is never authoritative state.
 
 ### C. OpenAI Codex & ChatGPT Coding Agents
+
 - **Discovery**: `.agents/skills/orchestrating-long-tasks` or `~/.agents/skills/orchestrating-long-tasks`.
 - **Worker Isolation**: Give each subagent its focused role packet path (`.capsules/<run>/packets/<task>/packet.md`), exclusive write scope, and gate command.
 - **State Advancement**: The Coordinator alone advances durable state using the Harness CLI.

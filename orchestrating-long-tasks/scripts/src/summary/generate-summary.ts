@@ -71,8 +71,16 @@ export function generateSummarySuite(options: SummaryGenerationOptions): Summary
       mkdirSync(summaryDir, { recursive: true });
     }
 
-    writeFileSync(join(summaryDir, "timeline.json"), JSON.stringify(timeline, null, 2) + "\n", "utf-8");
-    writeFileSync(join(summaryDir, "metrics.json"), JSON.stringify(metrics, null, 2) + "\n", "utf-8");
+    writeFileSync(
+      join(summaryDir, "timeline.json"),
+      JSON.stringify(timeline, null, 2) + "\n",
+      "utf-8",
+    );
+    writeFileSync(
+      join(summaryDir, "metrics.json"),
+      JSON.stringify(metrics, null, 2) + "\n",
+      "utf-8",
+    );
     writeFileSync(join(summaryDir, "graph.json"), JSON.stringify(graph, null, 2) + "\n", "utf-8");
     writeFileSync(join(summaryDir, "summary.md"), markdown, "utf-8");
 

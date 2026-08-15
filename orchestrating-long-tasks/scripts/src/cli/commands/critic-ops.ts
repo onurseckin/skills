@@ -27,7 +27,9 @@ export async function criticStartCommand(flags: Flags): Promise<Record<string, u
   const tasks = Object.values(result.state.tasks);
   const satisfiedCount = tasks.filter((t) => t.status === "done").length;
   const totalReqs = result.state.requirements.length;
-  const evidencedReqs = result.state.requirements.filter((r) => r.status === "satisfied" || r.evidence.length > 0).length;
+  const evidencedReqs = result.state.requirements.filter(
+    (r) => r.status === "satisfied" || r.evidence.length > 0,
+  ).length;
 
   const markdown = formatCriticStartBrief({
     critic,
@@ -100,19 +102,38 @@ export async function criticReviewCommand(flags: Flags): Promise<Record<string, 
     const rawReqs = state.requirements as unknown;
     const reqList: { id: string }[] = Array.isArray(rawReqs)
       ? (rawReqs as { id: string }[])
-      : (rawReqs && typeof rawReqs === "object" && "requirements" in rawReqs && Array.isArray((rawReqs as { requirements: unknown }).requirements))
-      ? (rawReqs as { requirements: { id: string }[] }).requirements
-      : (Object.values((rawReqs ?? {}) as Record<string, { id: string }>));
+      : rawReqs &&
+          typeof rawReqs === "object" &&
+          "requirements" in rawReqs &&
+          Array.isArray((rawReqs as { requirements: unknown }).requirements)
+        ? (rawReqs as { requirements: { id: string }[] }).requirements
+        : Object.values((rawReqs ?? {}) as Record<string, { id: string }>);
 
     const proofs = reqList.map((req) => ({
       requirement_id: req.id,
       status: "satisfied" as const,
-      evidence: checksList.length > 0
-        ? [{ kind: "command" as const, reference: checksList[0]!.command_id, observation: `Requirement ${req.id} satisfied.` }]
-        : [{ kind: "state" as const, reference: req.id, observation: `Requirement ${req.id} satisfied.` }],
+      evidence:
+        checksList.length > 0
+          ? [
+              {
+                kind: "command" as const,
+                reference: checksList[0]!.command_id,
+                observation: `Requirement ${req.id} satisfied.`,
+              },
+            ]
+          : [
+              {
+                kind: "state" as const,
+                reference: req.id,
+                observation: `Requirement ${req.id} satisfied.`,
+              },
+            ],
     }));
 
-    const graphRev = state.graph_revision ?? (state as unknown as { graph?: { revision?: number } }).graph?.revision ?? 1;
+    const graphRev =
+      state.graph_revision ??
+      (state as unknown as { graph?: { revision?: number } }).graph?.revision ??
+      1;
 
     reviewPayload = {
       packet_id: "packet-critic-direct",
@@ -132,11 +153,8 @@ export async function criticReviewCommand(flags: Flags): Promise<Record<string, 
     };
   }
 
-  const state = recordCompletionReview(
-    workflowPort(run),
-    critic,
-    reviewPayload,
-    (expected) => liveRepositoryBinding(run, expected),
+  const state = recordCompletionReview(workflowPort(run), critic, reviewPayload, (expected) =>
+    liveRepositoryBinding(run, expected),
   );
 
   const markdown = formatCriticReviewBrief({

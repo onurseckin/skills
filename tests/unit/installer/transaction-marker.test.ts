@@ -19,7 +19,10 @@ afterEach(cleanInstallerFixtures);
 describe("installer transaction marker", () => {
   const uuid = randomUUID();
 
-  function sampleMarker(destination: string, overrides: Partial<TransactionMarker> = {}): TransactionMarker {
+  function sampleMarker(
+    destination: string,
+    overrides: Partial<TransactionMarker> = {},
+  ): TransactionMarker {
     return {
       schema: MARKER_SCHEMA,
       pid: process.pid,

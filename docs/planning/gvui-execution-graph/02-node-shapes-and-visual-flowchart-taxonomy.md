@@ -14,13 +14,13 @@ Nodes do not have to be uniform rectangles. Different entities earn distinct geo
 ```
 ┌─────────────────────────┐          ◇ DIAMOND ROUTER ◇
 │  📥 USER PROMPT STADIUM  │          (Decision / Branching)
-│  (Rounded 12px pill)    │          
-└─────────────────────────┘          
+│  (Rounded 12px pill)    │
+└─────────────────────────┘
                                      ┌─────────────────────────┐
 ┌─────────────────────────┐          │  🛡️ VALIDATOR CHECKPOINT │
 │  💻 MONOSPACE CLI TOOL  │          │  (Chamfered Top Corners)│
 │  (Terminal Window Box)  │          └─────────────────────────┘
-└─────────────────────────┘          
+└─────────────────────────┘
                                      ┌─────────────────────────┐
 ┌─────────────────────────┐          │  ⚖️ CRITIC CERTIFICATE  │
 │  🤖 AGENT WORKER CARD   │          │  (Double-Bordered Frame)│
@@ -81,6 +81,7 @@ Nodes do not have to be uniform rectangles. Different entities earn distinct geo
 ### 1.2 Color Harmony & Border Matching Standard
 
 To maintain visual cohesion, every node archetype enforces strict **background and border color matching**:
+
 - **Violet Nodes (`kind: "input"`)**: Background `rgba(139, 92, 246, 0.08)` $\to$ Border `rgba(139, 92, 246, 0.45)` $\to$ Accent `#8b5cf6`.
 - **Blue Nodes (`kind: "orchestrator"`)**: Background `rgba(59, 130, 246, 0.08)` $\to$ Border `rgba(59, 130, 246, 0.45)` $\to$ Accent `#3b82f6`.
 - **Cyan Nodes (`kind: "agent"`)**: Background `rgba(6, 182, 212, 0.08)` $\to$ Border `rgba(6, 182, 212, 0.45)` $\to$ Accent `#06b6d4`.
@@ -96,6 +97,7 @@ To maintain visual cohesion, every node archetype enforces strict **background a
 ## 2. Dynamic Card Height Sizing (Zero Content Clipping)
 
 In `canvasMeasurer.ts` and the WASM layout engine:
+
 - Node dimensions are dynamically computed based on:
   - Header height + Badge chip heights.
   - Multi-line description text wrapping (exact font metrics).
@@ -113,11 +115,11 @@ In `canvasMeasurer.ts` and the WASM layout engine:
 
 ## 4. Node Sub-Element Taxonomy (Condensed Card vs Expanded Drawer)
 
-| Information Domain | What Appears on the Node Card (Condensed Summary) | What Appears in the Detail Drawer (Expanded View) |
-| :--- | :--- | :--- |
-| **Changed Files** | `📁 +900, -300 lines (4 files)` | Full interactive file tree, line-by-line stats, and syntax-highlighted unified diffs. |
-| **Command Executions** | `💻 2 commands (Exit 0, 142ms)` | Monospace terminal window with expandable, copyable `stdout` and `stderr` logs. |
-| **User Input Prompt** | 2-line quoted excerpt with `4.1 KB` length chip | Complete, verbatim unclipped prompt with token counts and source verification proof. |
-| **Output Artifacts** | `📦 Submission Report (180 tokens)` | Full markdown report text, exported data files, and decision rationales. |
-| **Validator Findings** | `🔄 Round 2 (1 pushback resolved)` | Multi-round accordion: Round 1 finding observations $\to$ remediation notes $\to$ Round 2 passing test proof. |
-| **Causal Lineage** | Step number `[Step 2]` and parent link count | Complete causal graph: Triggered by Node A $\to$ Unblocks Node B, C. |
+| Information Domain     | What Appears on the Node Card (Condensed Summary) | What Appears in the Detail Drawer (Expanded View)                                                             |
+| :--------------------- | :------------------------------------------------ | :------------------------------------------------------------------------------------------------------------ |
+| **Changed Files**      | `📁 +900, -300 lines (4 files)`                   | Full interactive file tree, line-by-line stats, and syntax-highlighted unified diffs.                         |
+| **Command Executions** | `💻 2 commands (Exit 0, 142ms)`                   | Monospace terminal window with expandable, copyable `stdout` and `stderr` logs.                               |
+| **User Input Prompt**  | 2-line quoted excerpt with `4.1 KB` length chip   | Complete, verbatim unclipped prompt with token counts and source verification proof.                          |
+| **Output Artifacts**   | `📦 Submission Report (180 tokens)`               | Full markdown report text, exported data files, and decision rationales.                                      |
+| **Validator Findings** | `🔄 Round 2 (1 pushback resolved)`                | Multi-round accordion: Round 1 finding observations $\to$ remediation notes $\to$ Round 2 passing test proof. |
+| **Causal Lineage**     | Step number `[Step 2]` and parent link count      | Complete causal graph: Triggered by Node A $\to$ Unblocks Node B, C.                                          |

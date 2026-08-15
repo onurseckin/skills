@@ -22,12 +22,12 @@
 
 ## ⚠️ Common Pitfalls & How to Avoid Them
 
-| Pitfall                     | Root Cause                                                      | Solution                                                                                                |
-| :-------------------------- | :-------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------ |
-| **Self-Validation Failure** | Implementer attempts to validate its own task.                  | The harness enforces strict role separation. Always dispatch a distinct validator ID via `task:validate-start`. |
-| **Gate Stale Mismatch**     | Repository files were modified after gate execution.            | Re-run the gate command via `run:exec --gate <gate-id>` to capture fresh `trusted_host_observed_v1` evidence. |
-| **Shell String in Gate**    | Passing `"bun test tests/*.ts"` as a single shell string.       | Use literal bare executable string arrays: `["bun", "test", "tests/foo.test.ts"]`.                     |
-| **Unanchored Prompt Lines** | Leaving prompt lines without requirement mappings.              | Every non-blank line in `prompt.md` must be covered when compiling the plan with `plan:compile`.       |
+| Pitfall                     | Root Cause                                                | Solution                                                                                                        |
+| :-------------------------- | :-------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------- |
+| **Self-Validation Failure** | Implementer attempts to validate its own task.            | The harness enforces strict role separation. Always dispatch a distinct validator ID via `task:validate-start`. |
+| **Gate Stale Mismatch**     | Repository files were modified after gate execution.      | Re-run the gate command via `run:exec --gate <gate-id>` to capture fresh `trusted_host_observed_v1` evidence.   |
+| **Shell String in Gate**    | Passing `"bun test tests/*.ts"` as a single shell string. | Use literal bare executable string arrays: `["bun", "test", "tests/foo.test.ts"]`.                              |
+| **Unanchored Prompt Lines** | Leaving prompt lines without requirement mappings.        | Every non-blank line in `prompt.md` must be covered when compiling the plan with `plan:compile`.                |
 
 ---
 

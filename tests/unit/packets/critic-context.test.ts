@@ -93,7 +93,9 @@ describe("critic-context", () => {
   test("rejects when readiness sha256 changed before publication", () => {
     const input = createValidInput();
     input.state.completion_critic!.readiness_sha256 = "invalid_sha";
-    expect(() => criticContext(input)).toThrow("completion readiness changed before packet publication");
+    expect(() => criticContext(input)).toThrow(
+      "completion readiness changed before packet publication",
+    );
   });
 
   test("rejects when repository binding changed before critic publication", () => {
@@ -102,7 +104,9 @@ describe("critic-context", () => {
       ...input.state.completion_critic!.repository_binding,
       content_sha256: "1".repeat(64),
     };
-    expect(() => criticContext(input)).toThrow("repository bytes changed before critic packet publication");
+    expect(() => criticContext(input)).toThrow(
+      "repository bytes changed before critic packet publication",
+    );
   });
 
   test("validates repository_evidence command_ids format and authoritativeness", () => {
@@ -115,7 +119,9 @@ describe("critic-context", () => {
       COMMAND_ID,
       COMMAND_ID,
     ];
-    expect(() => criticContext(input2)).toThrow("repository_evidence.command_ids must be nonempty and duplicate-free");
+    expect(() => criticContext(input2)).toThrow(
+      "repository_evidence.command_ids must be nonempty and duplicate-free",
+    );
 
     const input3 = createValidInput();
     (input3.authoritativeContext.repository_evidence as { command_ids: unknown }).command_ids = [

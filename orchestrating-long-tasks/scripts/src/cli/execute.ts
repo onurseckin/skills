@@ -8,11 +8,7 @@ import {
   planCompileCommand,
   planStatusCommand,
 } from "./commands/plan.ts";
-import {
-  queueNextCommand,
-  queueListCommand,
-  queuePopCommand,
-} from "./commands/queue.ts";
+import { queueNextCommand, queueListCommand, queuePopCommand } from "./commands/queue.ts";
 import {
   taskClaimCommand,
   taskHeartbeatCommand,
@@ -22,15 +18,8 @@ import {
   taskRejectCommand,
 } from "./commands/task-ops.ts";
 import { criticStartCommand, criticReviewCommand } from "./commands/critic-ops.ts";
-import {
-  runCompleteCommand,
-  runStatusCommand,
-  runExecCommand,
-} from "./commands/run-ops.ts";
-import {
-  summaryExportCommand,
-  summaryViewCommand,
-} from "./commands/summary-ops.ts";
+import { runCompleteCommand, runStatusCommand, runExecCommand } from "./commands/run-ops.ts";
+import { summaryExportCommand, summaryViewCommand } from "./commands/summary-ops.ts";
 
 export async function execute(
   argv: readonly string[],

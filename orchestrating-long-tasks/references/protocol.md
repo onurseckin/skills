@@ -89,6 +89,7 @@ focused command IDs. A fresh validator receives only authoritative, allowlisted 
 implementer narrative or subjective confidence to eliminate anchoring bias. The validator inspects
 the repository, executes mandatory gate commands under monitored execution (`run:exec`), and performs
 an exhaustive adversarial invariant audit:
+
 - Contract boundaries, input extremes, and edge cases;
 - Negative assertions and error handling paths;
 - Mathematical, algorithmic, and layout precision;

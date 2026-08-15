@@ -20,9 +20,13 @@ export function summaryExportCommand(flags: Flags): Record<string, unknown> {
   lines.push(`### Summary Suite Exported: \`${runId}\``);
   lines.push(`- **Capsule Summary Root**: \`${summaryDir}\``);
   lines.push(`- **Artifacts Generated**:`);
-  lines.push(`  - \`graph.json\` (GVUI GraphDataset, ${suite.graph.nodes.length} nodes, ${suite.graph.edges.length} edges)`);
+  lines.push(
+    `  - \`graph.json\` (GVUI GraphDataset, ${suite.graph.nodes.length} nodes, ${suite.graph.edges.length} edges)`,
+  );
   lines.push(`  - \`timeline.json\` (${suite.timeline.length} chronological events)`);
-  lines.push(`  - \`metrics.json\` (${suite.metrics.satisfied_tasks}/${suite.metrics.total_tasks} satisfied tasks)`);
+  lines.push(
+    `  - \`metrics.json\` (${suite.metrics.satisfied_tasks}/${suite.metrics.total_tasks} satisfied tasks)`,
+  );
   lines.push(`  - \`summary.md\` (Executive brief)`);
   if (out) {
     lines.push(`- **GVUI Registry Export**: \`${join(out, `${runId}.json`)}\``);

@@ -48,47 +48,47 @@ All visual iconography across cards, status badges, edge overlays, and drawer ta
 
 ### 3.1 Node Archetype Icons
 
-| Node Archetype | Tabler Icon Component | Visual Semantic |
-| :--- | :--- | :--- |
-| **`input`** | `IconTerminal2` / `IconPrompt` | Original user request / instruction trigger |
-| **`orchestrator`** | `IconHierarchy2` / `IconCrown` | Tier 2 Coordinator / execution decomposition |
-| **`agent`** | `IconRobot` / `IconCpu` | Tier 3 Implementation worker |
-| **`tool`** | `IconCode` / `IconTerminal` | Monitored CLI command / script execution |
-| **`gate`** | `IconShieldCheck` / `IconCheckbox` | Independent validator checkpoint |
-| **`critic`** | `IconScale` / `IconCertificate` | Completeness critic / authority audit |
-| **`terminal`** | `IconFlagCheckered` / `IconCircleCheck` | Final sealed run outcome |
+| Node Archetype     | Tabler Icon Component                   | Visual Semantic                              |
+| :----------------- | :-------------------------------------- | :------------------------------------------- |
+| **`input`**        | `IconTerminal2` / `IconPrompt`          | Original user request / instruction trigger  |
+| **`orchestrator`** | `IconHierarchy2` / `IconCrown`          | Tier 2 Coordinator / execution decomposition |
+| **`agent`**        | `IconRobot` / `IconCpu`                 | Tier 3 Implementation worker                 |
+| **`tool`**         | `IconCode` / `IconTerminal`             | Monitored CLI command / script execution     |
+| **`gate`**         | `IconShieldCheck` / `IconCheckbox`      | Independent validator checkpoint             |
+| **`critic`**       | `IconScale` / `IconCertificate`         | Completeness critic / authority audit        |
+| **`terminal`**     | `IconFlagCheckered` / `IconCircleCheck` | Final sealed run outcome                     |
 
 ### 3.2 Execution Status Icons
 
-| Status | Tabler Icon | Color Accent | Meaning |
-| :--- | :--- | :--- | :--- |
-| **`success`** | `IconCheck` | Emerald (`#34d399`) | Clean pass / satisfied |
-| **`running`** | `IconLoader2` (animated spin) | Amber (`#fbbf24`) | In-flight execution |
-| **`warning`** | `IconAlertTriangle` | Orange (`#fb923c`) | Pushback / changes requested |
-| **`error`** | `IconX` | Red (`#f87171`) | Gate failure / hard error |
-| **`skipped`** | `IconBan` | Zinc (`#71717a`) | Disposed / cancelled |
-| **`pending`** | `IconClock` | Slate (`#64748b`) | Unblocked / queued |
+| Status        | Tabler Icon                   | Color Accent        | Meaning                      |
+| :------------ | :---------------------------- | :------------------ | :--------------------------- |
+| **`success`** | `IconCheck`                   | Emerald (`#34d399`) | Clean pass / satisfied       |
+| **`running`** | `IconLoader2` (animated spin) | Amber (`#fbbf24`)   | In-flight execution          |
+| **`warning`** | `IconAlertTriangle`           | Orange (`#fb923c`)  | Pushback / changes requested |
+| **`error`**   | `IconX`                       | Red (`#f87171`)     | Gate failure / hard error    |
+| **`skipped`** | `IconBan`                     | Zinc (`#71717a`)    | Disposed / cancelled         |
+| **`pending`** | `IconClock`                   | Slate (`#64748b`)   | Unblocked / queued           |
 
 ### 3.3 Drawer Navigation & Tab Icons
 
-| Drawer Tab | Tabler Icon | Render Condition |
-| :--- | :--- | :--- |
-| **Overview** | `IconInfoCircle` | Always rendered |
-| **Inputs / Outputs** | `IconArrowsExchange` | Rendered if `node.io` has inputs or outputs |
-| **Files & Diffs** | `IconFiles` | Rendered only if `node.files` is non-empty |
-| **Executions** | `IconTerminal` | Rendered only if `metadata.commands` is non-empty |
-| **Feedback / Reviews** | `IconShieldSearch` | Rendered if findings, reviews, or critic proofs exist |
-| **Raw Provenance** | `IconBinary` | Always rendered (collapsible) |
+| Drawer Tab             | Tabler Icon          | Render Condition                                      |
+| :--------------------- | :------------------- | :---------------------------------------------------- |
+| **Overview**           | `IconInfoCircle`     | Always rendered                                       |
+| **Inputs / Outputs**   | `IconArrowsExchange` | Rendered if `node.io` has inputs or outputs           |
+| **Files & Diffs**      | `IconFiles`          | Rendered only if `node.files` is non-empty            |
+| **Executions**         | `IconTerminal`       | Rendered only if `metadata.commands` is non-empty     |
+| **Feedback / Reviews** | `IconShieldSearch`   | Rendered if findings, reviews, or critic proofs exist |
+| **Raw Provenance**     | `IconBinary`         | Always rendered (collapsible)                         |
 
 ### 3.4 Edge Archetype Icons
 
-| Edge Kind | Tabler Icon on Badge | Visual Semantic |
-| :--- | :--- | :--- |
-| **`spawn`** | `IconRocket` | Subagent creation & lease dispatch |
-| **`sequence`** | `IconArrowRight` | Forward DAG dependency satisfaction |
-| **`loop`** | `IconRefresh` / `IconAlertCircle` | Validator pushback / repair cycle |
-| **`data`** | `IconFileText` | Evidence report / diff handoff |
-| **`join`** | `IconGitMerge` | Multi-task aggregation to barrier |
+| Edge Kind      | Tabler Icon on Badge              | Visual Semantic                     |
+| :------------- | :-------------------------------- | :---------------------------------- |
+| **`spawn`**    | `IconRocket`                      | Subagent creation & lease dispatch  |
+| **`sequence`** | `IconArrowRight`                  | Forward DAG dependency satisfaction |
+| **`loop`**     | `IconRefresh` / `IconAlertCircle` | Validator pushback / repair cycle   |
+| **`data`**     | `IconFileText`                    | Evidence report / diff handoff      |
+| **`join`**     | `IconGitMerge`                    | Multi-task aggregation to barrier   |
 
 ---
 

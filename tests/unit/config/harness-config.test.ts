@@ -85,10 +85,7 @@ describe("harness-config", () => {
       join(capDir, "config.json"),
       JSON.stringify({ max_repair_rounds: 4, default_max_parallel: 8 }),
     );
-    writeFileSync(
-      join(repoDir, "harness.config.json"),
-      JSON.stringify({ max_repair_rounds: 6 }),
-    );
+    writeFileSync(join(repoDir, "harness.config.json"), JSON.stringify({ max_repair_rounds: 6 }));
 
     const config = loadHarnessConfig(repoDir, capDir);
     expect(config.max_repair_rounds).toBe(6);

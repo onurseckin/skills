@@ -51,7 +51,8 @@ export function recordCompletionReview(
   if (typeof value !== "object" || value === null || Array.isArray(value))
     throw new HarnessError("INVALID_ARGUMENT", "completion review must be an object");
   const input = value as Record<string, unknown>;
-  const packetId = typeof input.packet_id === "string" && input.packet_id.trim() ? input.packet_id : "direct";
+  const packetId =
+    typeof input.packet_id === "string" && input.packet_id.trim() ? input.packet_id : "direct";
   const criticToken = requireText(input.critic_token, "critic_token");
   const packetSha = typeof input.packet_sha256 === "string" ? input.packet_sha256 : "";
   const graphRevision = input.graph_revision;
@@ -105,7 +106,10 @@ export function recordCompletionReview(
         packet.integrity_evidence_sha256 !== integritySha ||
         JSON.stringify(packet.repository_command_ids) !== JSON.stringify(repositoryIds)
       ) {
-        throw new HarnessError("INVALID_STATE", "critic review does not match its published packet");
+        throw new HarnessError(
+          "INVALID_STATE",
+          "critic review does not match its published packet",
+        );
       }
     }
     for (const id of repositoryIds) {

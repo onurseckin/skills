@@ -1,13 +1,60 @@
 import type { JsonObject } from "../contracts/json.ts";
 
-export type NodeKind = "orchestrator" | "agent" | "tool" | "router" | "join" | "gate" | "critic" | "terminal" | "input";
-export type NodeStatus = "pending" | "running" | "success" | "error" | "warning" | "skipped" | "cached";
-export type EdgeKind = "sequence" | "spawn" | "conditional" | "loop" | "fallback" | "join" | "data" | "dependency" | "gate" | "critic";
+export type NodeKind =
+  | "orchestrator"
+  | "agent"
+  | "tool"
+  | "router"
+  | "join"
+  | "gate"
+  | "critic"
+  | "terminal"
+  | "input";
+export type NodeStatus =
+  | "pending"
+  | "running"
+  | "success"
+  | "error"
+  | "warning"
+  | "skipped"
+  | "cached";
+export type EdgeKind =
+  | "sequence"
+  | "spawn"
+  | "conditional"
+  | "loop"
+  | "fallback"
+  | "join"
+  | "data"
+  | "dependency"
+  | "gate"
+  | "critic";
 export type PayloadKind = "prompt" | "full-context" | "summary" | "artifact" | "decision" | "file";
 export type ModelTier = "xs" | "s" | "m" | "l";
-export interface FileRef { path: string; mode?: "read" | "write" | "attach"; lines?: string; diff?: string; additions?: number; deletions?: number; }
-export interface IoPort { node?: string; kind: PayloadKind; label: string; tokens?: number; preview?: string; dataRef?: string; }
-export interface NodeMetrics { tokensIn?: number; tokensOut?: number; costUsd?: number; durationMs?: number; retries?: number; commandCount?: number; }
+export interface FileRef {
+  path: string;
+  mode?: "read" | "write" | "attach";
+  lines?: string;
+  diff?: string;
+  additions?: number;
+  deletions?: number;
+}
+export interface IoPort {
+  node?: string;
+  kind: PayloadKind;
+  label: string;
+  tokens?: number;
+  preview?: string;
+  dataRef?: string;
+}
+export interface NodeMetrics {
+  tokensIn?: number;
+  tokensOut?: number;
+  costUsd?: number;
+  durationMs?: number;
+  retries?: number;
+  commandCount?: number;
+}
 
 export interface CommandExecutionDetail {
   id: string;
@@ -50,6 +97,63 @@ export interface BadgeDetail {
   targetTab?: "overview" | "io" | "files" | "commands" | "feedback" | string;
 }
 
+export interface MediaAsset {
+  id: string;
+  type: "image" | "video" | "audio" | "document" | "code" | "log" | string;
+  url: string;
+  title?: string;
+  description?: string;
+  thumbnailUrl?: string;
+  timestamp?: string;
+  step?: number | string;
+  author?: string;
+  mimeType?: string;
+  sizeBytes?: number;
+  dimensions?: { width: number; height: number };
+  metadata?: Record<string, unknown>;
+}
+
+export interface PlaywrightMetadata {
+  viewport?: { width: number; height: number };
+  traces?: string[];
+  videos?: string[];
+  screenshots?: MediaAsset[];
+  testFile?: string;
+  durationMs?: number;
+  browser?: string;
+  status?: "passed" | "failed" | "timedOut" | "interrupted" | string;
+  [key: string]: unknown;
+}
+
+export interface EdgeTrafficExchange {
+  id: string;
+  timestamp: string;
+  source: string;
+  target: string;
+  kind?: PayloadKind | string;
+  summary?: string;
+  tokens?: number;
+  bytes?: number;
+  durationMs?: number;
+  status?: "success" | "error" | "warning" | "in_transit" | string;
+  payloadSnippet?: string;
+  fullPayload?: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface EdgeTrafficDetail {
+  volume?: number;
+  tokens?: number;
+  bytes?: number;
+  messagesCount?: number;
+  exchanges?: EdgeTrafficExchange[];
+  ratePerSec?: number;
+  lastActive?: string;
+  status?: "active" | "idle" | "congested" | "error" | string;
+  glowColor?: string;
+  glowIntensity?: number;
+}
+
 export interface GraphNodeData {
   id: string;
   name: string;
@@ -60,7 +164,10 @@ export interface GraphNodeData {
   step?: number;
   stepLabel?: string;
   badge?: BadgeDetail;
-  badges?: Array<{ label: string; variant?: "success" | "info" | "amber" | "error" | "gray" }>;
+  badges?: Array<{
+    label: string;
+    variant?: "success" | "info" | "amber" | "error" | "gray";
+  }>;
   model?: string;
   harnessModel?: string;
   tier?: ModelTier;
@@ -78,8 +185,14 @@ export interface GraphNodeData {
     writeScope?: string[];
     leaseAgent?: string;
     repairRounds?: number;
+    mediaAssets?: MediaAsset[];
+    screenshots?: MediaAsset[];
+    assets?: MediaAsset[];
+    playwrightMetadata?: PlaywrightMetadata;
     [key: string]: unknown;
   };
+  mediaAssets?: MediaAsset[];
+  screenshots?: MediaAsset[];
   rank?: number;
   group?: string;
 }
@@ -113,6 +226,10 @@ export interface GraphEdgeData {
   handoff?: EdgeHandoff;
   weight?: number;
   minLen?: number;
+  traffic?: EdgeTrafficDetail;
+  isHighTraffic?: boolean;
+  trafficVolume?: number;
+  exchanges?: EdgeTrafficExchange[];
 }
 
 export interface GraphDataset {
@@ -153,12 +270,26 @@ export interface FileChurnRecord extends JsonObject {
   deletions: number;
 }
 
+export interface PushbackRoundRecord extends JsonObject {
+  task_id: string;
+  round: number;
+  findings_count: number;
+  reason?: string;
+}
+
 export interface RollupMetrics extends JsonObject {
   run_id: string;
   total_tasks: number;
   satisfied_tasks: number;
   failed_tasks: number;
   repair_rounds_total: number;
+  pushbacks_total: number;
+  pushback_rounds: PushbackRoundRecord[];
+  resolved_findings_total: number;
+  open_findings_total: number;
+  total_media_assets: number;
+  total_edge_traffic_exchanges: number;
+  total_edge_traffic_tokens: number;
   wall_duration_ms: number;
   active_command_duration_ms: number;
   total_commands_executed: number;

@@ -113,7 +113,8 @@ export interface GraphEdgeData {
 ```
 
 ### Edge Archetype Visuals:
-- **`loop` (Feedback Pushback)**: Thick amber/red dashed spline with pulsating reverse particle animation. Badge: `[IconAlertCircle] Pushback: Round X (Y Findings) ↳ Re-assigned`. Clicking opens Tab 5 (*Feedback*).
+
+- **`loop` (Feedback Pushback)**: Thick amber/red dashed spline with pulsating reverse particle animation. Badge: `[IconAlertCircle] Pushback: Round X (Y Findings) ↳ Re-assigned`. Clicking opens Tab 5 (_Feedback_).
 - **`spawn`**: Blue dotted spline with `[IconRocket] Dispatches Worker` badge.
 - **`sequence`**: Solid forward spline with `[IconArrowRight] Submit for Review` badge.
 - **`data`**: Emerald dash-dotted spline with `[IconFileText] Evidence: +14, -2 lines` badge.

@@ -79,5 +79,4 @@ describe("workflow submissions", () => {
     ).toThrow();
     expect(port.read().orphan_evidence).toEqual([]);
   });
-
 });

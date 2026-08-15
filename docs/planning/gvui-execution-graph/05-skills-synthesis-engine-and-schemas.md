@@ -21,6 +21,7 @@ export interface SummarySuite {
 ```
 
 ### 1.1 Step & Wave Assignment Algorithm
+
 ```typescript
 export function computeExecutionSteps(tasks: TaskRecord[]): Map<string, number> {
   const stepMap = new Map<string, number>();
@@ -67,15 +68,16 @@ export function computeExecutionSteps(tasks: TaskRecord[]): Map<string, number> 
 
 ```typescript
 export type NodeKind =
-  | "input"         // User prompt trigger
-  | "orchestrator"  // Coordinator / execution planner
-  | "agent"         // Implementation worker
-  | "tool"          // Monitored CLI command execution
-  | "gate"          // Independent validator checkpoint
-  | "critic"        // Completeness authority
-  | "terminal";     // Final sealed outcome
+  | "input" // User prompt trigger
+  | "orchestrator" // Coordinator / execution planner
+  | "agent" // Implementation worker
+  | "tool" // Monitored CLI command execution
+  | "gate" // Independent validator checkpoint
+  | "critic" // Completeness authority
+  | "terminal"; // Final sealed outcome
 
-export type NodeStatus = "pending" | "running" | "success" | "warning" | "error" | "skipped" | "cached";
+export type NodeStatus =
+  "pending" | "running" | "success" | "warning" | "error" | "skipped" | "cached";
 export type EdgeKind = "sequence" | "spawn" | "loop" | "conditional" | "data" | "fallback" | "join";
 export type ModelTier = "xs" | "s" | "m" | "l";
 
@@ -193,6 +195,7 @@ gantt
 ---
 
 ## 4. Verification Gates & Standards
+
 - **Zero LLM Overhead**: Summary compilation $< 50\text{ms}$.
 - **Layout Invariants**: Preserves Rust WASM engine waypoint calculations.
 - **Type Safety**: Zero `any`, `@ts-ignore`, or `@ts-expect-error`.

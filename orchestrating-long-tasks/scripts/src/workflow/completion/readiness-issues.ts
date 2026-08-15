@@ -11,7 +11,12 @@ import { currentRepositoryBinding } from "./repository-binding.ts";
 function extractRequirements(state: WorkflowState): readonly RequirementRuntime[] {
   const raw = state.requirements as unknown;
   if (Array.isArray(raw)) return raw;
-  if (raw && typeof raw === "object" && "requirements" in raw && Array.isArray((raw as { requirements: unknown }).requirements)) {
+  if (
+    raw &&
+    typeof raw === "object" &&
+    "requirements" in raw &&
+    Array.isArray((raw as { requirements: unknown }).requirements)
+  ) {
     return (raw as { requirements: RequirementRuntime[] }).requirements;
   }
   return Object.values((raw ?? {}) as Record<string, RequirementRuntime>);
@@ -68,7 +73,10 @@ export function completionReadinessIssues(state: WorkflowState): string[] {
   } catch {
     issues.push("current repository binding is missing or invalid");
   }
-  const graphRevision = state.graph_revision ?? (state as unknown as { graph?: { revision?: number } }).graph?.revision ?? state.revision;
+  const graphRevision =
+    state.graph_revision ??
+    (state as unknown as { graph?: { revision?: number } }).graph?.revision ??
+    state.revision;
   if (!Number.isSafeInteger(graphRevision) || Number(graphRevision) < 1)
     issues.push("graph revision is invalid");
   for (const command of Object.values(state.commands))
@@ -88,7 +96,11 @@ export function completionReadinessIssues(state: WorkflowState): string[] {
     if (requirement.evidence.length === 0)
       issues.push(`requirement ${requirement.id} has no evidence`);
   }
-  const runGates = (state.gates ?? (state as unknown as { graph?: { gates?: typeof state.gates } }).graph?.gates ?? []).filter((gate) => gate.scope === "run" && gate.mandatory);
+  const runGates = (
+    state.gates ??
+    (state as unknown as { graph?: { gates?: typeof state.gates } }).graph?.gates ??
+    []
+  ).filter((gate) => gate.scope === "run" && gate.mandatory);
   if (runGates.length === 0) issues.push("run has no mandatory run gate");
   for (const gate of runGates) {
     const command = Object.values(state.commands).find(

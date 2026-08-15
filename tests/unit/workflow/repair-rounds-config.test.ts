@@ -175,9 +175,7 @@ function recordFindings(port: TestPort, critic: string, attempt: number, token: 
         {
           requirement_id: "R-1",
           status: "satisfied",
-          evidence: [
-            { kind: "command", reference: `C-CHECK-${attempt}`, observation: "checked" },
-          ],
+          evidence: [{ kind: "command", reference: `C-CHECK-${attempt}`, observation: "checked" }],
         },
       ],
       residual_risks: [],
@@ -232,8 +230,8 @@ describe("configurable repair rounds", () => {
       recordRemediation(port);
     }
     expect(port.read().completion_remediations).toHaveLength(2);
-    expect(() =>
-      beginCompletenessCritic(port, "critic-3", { clock, maxRepairRounds: 2 }),
-    ).toThrow("rounds are exhausted");
+    expect(() => beginCompletenessCritic(port, "critic-3", { clock, maxRepairRounds: 2 })).toThrow(
+      "rounds are exhausted",
+    );
   });
 });

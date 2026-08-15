@@ -159,7 +159,7 @@ describe("gate-path-tree", () => {
                 isSymbolicLink: () => false,
                 isFile: () => false,
                 isDirectory: () => false,
-              } as never),
+              }) as never,
           },
         ),
       ).toThrow("gate tree entry is not a regular file or directory");

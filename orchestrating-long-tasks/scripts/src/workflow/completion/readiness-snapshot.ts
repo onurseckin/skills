@@ -8,9 +8,12 @@ import type { RepositoryBinding } from "../../contracts/repository.ts";
 function sortedValues<T extends { id: string }>(values: T[] | Record<string, T> | unknown): T[] {
   const arr = Array.isArray(values)
     ? values
-    : (values && typeof values === "object" && "requirements" in values && Array.isArray((values as { requirements: unknown }).requirements))
-    ? (values as { requirements: T[] }).requirements
-    : (Object.values((values ?? {}) as Record<string, T>) as T[]);
+    : values &&
+        typeof values === "object" &&
+        "requirements" in values &&
+        Array.isArray((values as { requirements: unknown }).requirements)
+      ? (values as { requirements: T[] }).requirements
+      : (Object.values((values ?? {}) as Record<string, T>) as T[]);
   return [...arr].sort((left, right) => left.id.localeCompare(right.id));
 }
 
@@ -45,7 +48,11 @@ export function completionReadinessSnapshot(
     graph_revision: state.graph_revision ?? null,
     tasks: sortedValues(Object.values(state.tasks)),
     requirements: sortedValues(state.requirements),
-    gates: sortedValues((state.gates ?? (state as unknown as { graph?: { gates?: typeof state.gates } }).graph?.gates ?? [])),
+    gates: sortedValues(
+      state.gates ??
+        (state as unknown as { graph?: { gates?: typeof state.gates } }).graph?.gates ??
+        [],
+    ),
     commands,
     packets,
     orphan_evidence: state.orphan_evidence,
@@ -74,7 +81,10 @@ export function commandIsSuccessfulGate(
   taskId: string | null,
 ): boolean {
   const command = commandId ? state.commands[commandId] : undefined;
-  const gates = (state.gates ?? (state as unknown as { graph?: { gates?: typeof state.gates } }).graph?.gates ?? []);
+  const gates =
+    state.gates ??
+    (state as unknown as { graph?: { gates?: typeof state.gates } }).graph?.gates ??
+    [];
   const gate = gates.find((entry) => entry.id === gateId);
   return Boolean(
     command &&

@@ -11,9 +11,9 @@ describe("gate-path-bindings", () => {
     writeFileSync(scriptPath, "#!/bin/sh\necho hi\n");
     chmodSync(scriptPath, 0o644); // Not executable
 
-    expect(() =>
-      captureGatePathBindings(repoRoot, repoRoot, ["./run.sh"]),
-    ).toThrow("repo-local gate executable is not executable: run.sh");
+    expect(() => captureGatePathBindings(repoRoot, repoRoot, ["./run.sh"])).toThrow(
+      "repo-local gate executable is not executable: run.sh",
+    );
   });
 
   test("rejects bare executable resolved inside repositoryRoot", () => {
@@ -24,20 +24,20 @@ describe("gate-path-bindings", () => {
     writeFileSync(execPath, "#!/bin/sh\necho hi\n");
     chmodSync(execPath, 0o755);
 
-    expect(() =>
-      captureGatePathBindings(repoRoot, repoRoot, ["mycmd"], binDir),
-    ).toThrow("bare gate executable resolved inside repositoryRoot");
+    expect(() => captureGatePathBindings(repoRoot, repoRoot, ["mycmd"], binDir)).toThrow(
+      "bare gate executable resolved inside repositoryRoot",
+    );
   });
 
   test("rejects invalid command wrappers and nonexistent paths", () => {
     const repoRoot = realpathSync(mkdtempSync(join(tmpdir(), "gate-bind-")));
-    expect(() =>
-      captureGatePathBindings(repoRoot, repoRoot, ["command", "-invalid"]),
-    ).toThrow("gate command wrapper is invalid");
+    expect(() => captureGatePathBindings(repoRoot, repoRoot, ["command", "-invalid"])).toThrow(
+      "gate command wrapper is invalid",
+    );
 
-    expect(() =>
-      captureGatePathBindings(repoRoot, repoRoot, ["./nonexistent.sh"]),
-    ).toThrow("gate path must exist without symbolic links");
+    expect(() => captureGatePathBindings(repoRoot, repoRoot, ["./nonexistent.sh"])).toThrow(
+      "gate path must exist without symbolic links",
+    );
   });
 
   test("rejects repeated canonical path operands", () => {
@@ -63,12 +63,7 @@ describe("gate-path-bindings", () => {
     const repoFile = join(repoRoot, "input.json");
     writeFileSync(repoFile, "{}");
 
-    const bindings = captureGatePathBindings(
-      repoRoot,
-      repoRoot,
-      ["tool", "./input.json"],
-      sysDir,
-    );
+    const bindings = captureGatePathBindings(repoRoot, repoRoot, ["tool", "./input.json"], sysDir);
 
     expect(bindings.length).toBe(2);
     expect(bindings[0].scope).toBe("system");

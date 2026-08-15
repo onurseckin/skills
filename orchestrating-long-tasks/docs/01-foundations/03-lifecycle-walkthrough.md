@@ -187,20 +187,20 @@ Every individual task inside the dependency graph moves through a strict, determ
 
 ## 📊 Summary of Task States
 
-| State                   | Meaning                                                                 | Permitted Next Actions                                           |
-| :---------------------- | :---------------------------------------------------------------------- | :--------------------------------------------------------------- |
-| **`proposed`**          | Initial state in plan; waiting for prerequisite dependencies to finish. | Automatically transitions to `ready` when dependencies complete. |
-| **`ready`**             | Unblocked and eligible for scheduler batching.                          | Coordinator executes `queue:pop` or `task:claim`.                |
-| **`leased`**            | Claimed by an agent; one-time bearer token issued; timer running.       | Agent calls `task:heartbeat` or begins execution.                |
-| **`running`**           | Active work in progress with verified heartbeats.                       | Implementer executes `task:submit`.                              |
-| **`submitted`**         | Implementer submitted structured report; write lease closed.            | Coordinator calls `task:validate-start`.                         |
-| **`validating`**        | Independent validator holds exclusive inspection lease.                 | Validator executes `run:exec` and `task:review` / `task:reject`. |
-| **`validated`**         | Independent validator passed the work with command evidence.            | Coordinator triggers mandatory task gates (`run:exec`).          |
-| **`gating`**            | Task gates are running under watchdog observation.                      | On gate pass, transitions to `done`.                             |
+| State                   | Meaning                                                                 | Permitted Next Actions                                            |
+| :---------------------- | :---------------------------------------------------------------------- | :---------------------------------------------------------------- |
+| **`proposed`**          | Initial state in plan; waiting for prerequisite dependencies to finish. | Automatically transitions to `ready` when dependencies complete.  |
+| **`ready`**             | Unblocked and eligible for scheduler batching.                          | Coordinator executes `queue:pop` or `task:claim`.                 |
+| **`leased`**            | Claimed by an agent; one-time bearer token issued; timer running.       | Agent calls `task:heartbeat` or begins execution.                 |
+| **`running`**           | Active work in progress with verified heartbeats.                       | Implementer executes `task:submit`.                               |
+| **`submitted`**         | Implementer submitted structured report; write lease closed.            | Coordinator calls `task:validate-start`.                          |
+| **`validating`**        | Independent validator holds exclusive inspection lease.                 | Validator executes `run:exec` and `task:review` / `task:reject`.  |
+| **`validated`**         | Independent validator passed the work with command evidence.            | Coordinator triggers mandatory task gates (`run:exec`).           |
+| **`gating`**            | Task gates are running under watchdog observation.                      | On gate pass, transitions to `done`.                              |
 | **`changes_requested`** | Validator rejected with structured findings (`F-xxx`).                  | Implementer repairs and re-submits (`task:claim`, `task:submit`). |
-| **`done`**              | Terminal success for this task. Unblocks dependent tasks.               | None (Immutable).                                                |
-| **`escalated`**         | Hit max repair limit (default 5 rounds) or hit unresolvable blocker.    | Human operator intervention or plan revision.                    |
-| **`cancelled`**         | Associated requirements were declined via user authority.               | None (Cleanly disposed).                                         |
+| **`done`**              | Terminal success for this task. Unblocks dependent tasks.               | None (Immutable).                                                 |
+| **`escalated`**         | Hit max repair limit (default 5 rounds) or hit unresolvable blocker.    | Human operator intervention or plan revision.                     |
+| **`cancelled`**         | Associated requirements were declined via user authority.               | None (Cleanly disposed).                                          |
 
 ---
 

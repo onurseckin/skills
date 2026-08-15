@@ -50,9 +50,10 @@ export interface TaskSubmitParams {
 
 export function formatTaskSubmitBrief(params: TaskSubmitParams): string {
   const scopeStr = params.writeScope.map((s) => `\`${s}\``).join(", ") || "`none`";
-  const diffStats = params.linesAdded !== undefined && params.linesRemoved !== undefined
-    ? `+${params.linesAdded} lines, -${params.linesRemoved} lines`
-    : `${params.filesTouchedCount} files touched`;
+  const diffStats =
+    params.linesAdded !== undefined && params.linesRemoved !== undefined
+      ? `+${params.linesAdded} lines, -${params.linesRemoved} lines`
+      : `${params.filesTouchedCount} files touched`;
   const md = [
     `### Submission Accepted: ${params.taskId}`,
     `- **Agent**: \`${params.agent}\` | Status: \`submitted\``,
@@ -93,9 +94,10 @@ export interface TaskReviewPassParams {
 }
 
 export function formatTaskReviewPassBrief(params: TaskReviewPassParams): string {
-  const unblockedStr = params.unblockedTasks && params.unblockedTasks.length > 0
-    ? `Unblocked ${params.unblockedTasks.map((t) => `\`${t}\``).join(", ")} in queue`
-    : "None";
+  const unblockedStr =
+    params.unblockedTasks && params.unblockedTasks.length > 0
+      ? `Unblocked ${params.unblockedTasks.map((t) => `\`${t}\``).join(", ")} in queue`
+      : "None";
   const md = [
     `### Task Validated & Satisfied: ${params.taskId}`,
     `- **Validator**: \`${params.validator}\` | Verdict: ✅ PASS`,

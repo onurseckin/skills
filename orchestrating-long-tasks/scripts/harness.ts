@@ -25,9 +25,7 @@ export async function main(argv: readonly string[]): Promise<void> {
     argv.some((arg, idx) => arg === "--format" && argv[idx + 1] === "json");
   const filteredArgv = argv.filter(
     (arg, idx) =>
-      arg !== "--format=json" &&
-      arg !== "--format" &&
-      (idx === 0 || argv[idx - 1] !== "--format"),
+      arg !== "--format=json" && arg !== "--format" && (idx === 0 || argv[idx - 1] !== "--format"),
   );
   const context = shouldReadPromptStdin(filteredArgv)
     ? { stdin: await stdinBytes(), executingRuntime }

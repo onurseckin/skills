@@ -54,7 +54,9 @@ export interface GraphEdgeData {
 ```
 
 ### 1.1 Pure Data Contracts in JSON (Zero Visual Styling)
+
 The generated `GraphDataset` JSON adheres to a **pure data contract**:
+
 - JSON contains ONLY semantic fields: `id`, `kind`, `source`, `target`, `stepNumber`, `description`, `files`, `io`, `metrics`, `commands`, `findings`.
 - Zero visual styling (CSS colors, pixel dimensions, border radii) is stored in the JSON.
 - **GVUI's renderer** is 100% responsible for mapping semantic `kind` and metadata to geometric silhouettes, color palettes, Tabler icons, and layout geometry.
@@ -90,12 +92,14 @@ flowchart TD
 ## 3. Implementation File Matrix across Repositories
 
 ### Group A: `skills` Repository (`/Users/onurseckinsenoglu/repos/skills`)
+
 1. **`src/summary/types.ts`**: Update contracts for `GraphNodeData`, `GraphEdgeData`, `container`, `stepNumber`, `additions`, `deletions`.
 2. **`src/summary/step-calculator.ts`**: Topological wave-to-step computation with explicit step numbers.
 3. **`src/summary/graph-generator.ts`**: Emits the 7+ node archetypes, diamond routers, rich edge containers, and unclipped I/O streams.
 4. **Unit Tests**: `tests/unit/summary/` (100% pass rate).
 
 ### Group B: `gvui` Repository (`/Users/onurseckinsenoglu/repos/gvui`)
+
 1. **`src/types/graphData.ts`**: Mirror all extended node/edge properties.
 2. **`src/primitives/nodes/NodeCard/`**:
    - Distinct geometric card components for each archetype (Input stadium, Tool monospace console, Agent worker card, Gate shield, Critic certificate, Decision diamond, Terminal capsule).
@@ -117,6 +121,7 @@ flowchart TD
 ---
 
 ## 3. Visual UI/UX Validation Gate with Chrome MCP
+
 - Prior to declaring completion, validator agents will use **Chrome DevTools MCP** (`navigate_page`, `take_screenshot`) to visually audit the rendered application in a real browser session, verifying:
   - Removal of left-side colored strips and status circles.
   - Distinct geometric silhouettes per archetype.

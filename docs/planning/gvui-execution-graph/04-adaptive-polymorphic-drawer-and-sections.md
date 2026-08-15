@@ -34,6 +34,7 @@ To keep the graph canvas clean and uncluttered, all step navigation and playback
 ```
 
 ### Top Nav Dropdown Features:
+
 1. **Multi-Select Checkboxes**: Check or uncheck individual steps to filter and highlight nodes on the canvas.
 2. **Global Toggles**: "Select All" and "Clear All" buttons for instant batch selection.
 3. **Playback Animation**: Integrated Play/Pause and speed multiplier (0.5x, 1x, 2x) to animate the graph chronologically step by step.
@@ -62,6 +63,7 @@ The sidebar expands to **560px** (resizable up to **680px**) to give code diffs 
 ## 3. Detailed Tab Sub-Views
 
 ### 3.1 Overview & I/O Tab (Merged & Interactive)
+
 - **High-Level Purpose**: Full unclipped task specification, prompt instruction, or gate objective.
 - **Operational Grid**: Assigned write scopes, lease agent identity, execution wall duration, and active command compute.
 - **Expandable Input Payloads Accordion**:
@@ -74,27 +76,31 @@ The sidebar expands to **560px** (resizable up to **680px**) to give code diffs 
 - **Causal Lineage**: Upstream dependencies $\to$ Unblocked downstream nodes.
 
 ### 3.2 Files & Diffs Tab
+
 - **File Churn Bar**: `4 files modified (+900, -300 lines)`.
 - **Interactive File Tree**: Grouped by directory hierarchy with fuzzy search filtering.
 - **Unified Diff Inspector**: Full syntax-highlighted code diffs with line numbers and addition/deletion highlighting.
 
 ### 3.3 Executions Tab (Terminal Monospace Logs)
+
 - **Terminal Window Accordion**:
   - Command Header: `$ bun test tests/unit/summary/graph-generator.test.ts` with `[Exit 0]` badge and execution time (`142ms`).
   - Terminal Window Body: Full monospace `stdout` and `stderr` streams with a one-click copy button.
 
 ### 3.4 Feedback & Quality Reviews Tab (Polymorphic)
+
 - **Multi-Round Pushback Accordion**:
-  - *Round 1 (Rejected)*:
+  - _Round 1 (Rejected)_:
     - Validator Observation: `"Missing edge-case unit test for expired token refresh"`.
     - Severity: `Important`.
     - Failed Test Stack Trace.
     - Remediation Prompt.
-  - *Round 2 (Approved)*:
+  - _Round 2 (Approved)_:
     - Implementer Fix Note: `"Added test in auth-expired.test.ts (+14 lines)"`.
     - Passing Gate Proof: `bun test` passed cleanly with exit code `0`.
 
 ### 3.5 Raw Provenance Tab
+
 - **Merkle Event Chain Link**: Transaction hash in `events.jsonl`.
 - **Raw JSON Viewer**: Collapsible JSON definition of the `GraphNodeData` object.
 
@@ -103,6 +109,7 @@ The sidebar expands to **560px** (resizable up to **680px**) to give code diffs 
 ## 4. Typography & Design Token Standard
 
 To preserve repository visual coherence, the Detail Drawer strictly conforms to GVUI design tokens:
+
 - **Font Families**: Standard UI `--font-sans` for headers/body; `--font-mono` for commands, paths, and diffs.
 - **Font Sizes**:
   - Headers / Titles: `13px` / `14px` (`font-weight: 600`).

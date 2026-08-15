@@ -42,7 +42,9 @@ export function formatCriticReviewBrief(params: CriticReviewParams): string {
   if (isApproved) {
     lines.push(`- **Authorization**: Valid completion certificate issued`);
     if (params.promptCoverage) lines.push(`- **Prompt Coverage**: ${params.promptCoverage}`);
-    lines.push(`- **Next Step**: Seal run via \`bun harness.ts run:complete --run ${params.runId} --auth-token ${params.token}\``);
+    lines.push(
+      `- **Next Step**: Seal run via \`bun harness.ts run:complete --run ${params.runId} --auth-token ${params.token}\``,
+    );
   } else {
     if (params.findingId) lines.push(`- **Finding Recorded**: \`${params.findingId}\``);
     lines.push(`- **Next Step**: Dispatch remediation task to resolve identified gap.`);

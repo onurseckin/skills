@@ -87,16 +87,16 @@ An agent claiming in chat that _"Feature X is complete"_ has zero authoritative 
 
 The harness enforces eight structural invariants that cannot be bypassed by any prompt, LLM output, or agent role:
 
-| Invariant                             | Description                                                                                                                  | Enforcement Mechanism                                             |
-| :------------------------------------ | :--------------------------------------------------------------------------------------------------------------------------- | :---------------------------------------------------------------- |
-| **1. Byte-Exact Prompt Capture**      | `prompt.md` is preserved byte-for-byte with mode `0444` and bound via SHA-256 to `manifest.json`.                            | Cryptographic SHA-256 verification on every startup and mutation (`plan:init`). |
-| **2. Immutable Capture Assurance**    | A run initialized from context copy is marked `recorded-unverified`; direct capture is `source-verified`.                   | Closed enum schema enforcement in manifest.                       |
-| **3. 100% Line Disposition Coverage** | Every non-blank prompt line must have exactly one disposition mapping to atomic requirements.                                | Requirements compiler validator (`plan:compile`) rejects unmapped lines. |
-| **4. Pinned Runtime & Hashed Events** | All state mutations must use the Zero-JSON colon CLI and append to `events.jsonl`.                                           | Kernel POSIX `flock` on inode + SHA-256 hash chaining.            |
-| **5. Disjoint Write-Scope Leases**    | Parallel agents can only write within strictly disjoint directory scopes.                                                    | Topological conflict-free scheduler arbiter (`queue:pop`, `task:claim`). |
-| **6. Adversarial Role Separation**    | Implementers cannot validate their own work; validators receive allowlisted context stripped of prose.                       | Tokenized validator identities and context sanitization (`task:validate-start`). |
-| **7. Bounded Deterministic Retries**  | Retries are strictly bounded (configurable via `harness.config.json`, default 5 repair rounds).                             | Watchdog command runner and repair counter escalation.            |
-| **8. Mechanical Completion Gate**     | Completion requires zero open findings, all tasks done, all gates passed, and clean critic approval.                         | `run:complete` verification engine with live `trusted_host_observed_v1` proof. |
+| Invariant                             | Description                                                                                               | Enforcement Mechanism                                                            |
+| :------------------------------------ | :-------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------- |
+| **1. Byte-Exact Prompt Capture**      | `prompt.md` is preserved byte-for-byte with mode `0444` and bound via SHA-256 to `manifest.json`.         | Cryptographic SHA-256 verification on every startup and mutation (`plan:init`).  |
+| **2. Immutable Capture Assurance**    | A run initialized from context copy is marked `recorded-unverified`; direct capture is `source-verified`. | Closed enum schema enforcement in manifest.                                      |
+| **3. 100% Line Disposition Coverage** | Every non-blank prompt line must have exactly one disposition mapping to atomic requirements.             | Requirements compiler validator (`plan:compile`) rejects unmapped lines.         |
+| **4. Pinned Runtime & Hashed Events** | All state mutations must use the Zero-JSON colon CLI and append to `events.jsonl`.                        | Kernel POSIX `flock` on inode + SHA-256 hash chaining.                           |
+| **5. Disjoint Write-Scope Leases**    | Parallel agents can only write within strictly disjoint directory scopes.                                 | Topological conflict-free scheduler arbiter (`queue:pop`, `task:claim`).         |
+| **6. Adversarial Role Separation**    | Implementers cannot validate their own work; validators receive allowlisted context stripped of prose.    | Tokenized validator identities and context sanitization (`task:validate-start`). |
+| **7. Bounded Deterministic Retries**  | Retries are strictly bounded (configurable via `harness.config.json`, default 5 repair rounds).           | Watchdog command runner and repair counter escalation.                           |
+| **8. Mechanical Completion Gate**     | Completion requires zero open findings, all tasks done, all gates passed, and clean critic approval.      | `run:complete` verification engine with live `trusted_host_observed_v1` proof.   |
 
 ---
 

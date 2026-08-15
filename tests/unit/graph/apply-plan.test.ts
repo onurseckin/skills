@@ -44,7 +44,10 @@ describe("graph apply plan", () => {
     // Invalid graph plan (invalid node type)
     const invalidGraph = structuredClone(graph);
     (invalidGraph.nodes as Record<string, unknown>[])[0].type = "unknown_type";
-    const { reqPath: badReq, graphPath: badGraph } = await makePlanFiles(requirements, invalidGraph);
+    const { reqPath: badReq, graphPath: badGraph } = await makePlanFiles(
+      requirements,
+      invalidGraph,
+    );
     await expect(applyPlan(store, "planner", badReq, badGraph, 0)).rejects.toThrow(
       "plan is invalid",
     );

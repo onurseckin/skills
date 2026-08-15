@@ -1,7 +1,14 @@
 import { describe, expect, test } from "bun:test";
-import { leasedActions, validationActions } from "../../../orchestrating-long-tasks/scripts/src/reporting/active-actions.ts";
+import {
+  leasedActions,
+  validationActions,
+} from "../../../orchestrating-long-tasks/scripts/src/reporting/active-actions.ts";
 import { taskActions } from "../../../orchestrating-long-tasks/scripts/src/reporting/task-actions.ts";
-import type { GateView, PacketView, TaskView } from "../../../orchestrating-long-tasks/scripts/src/reporting/action-types.ts";
+import type {
+  GateView,
+  PacketView,
+  TaskView,
+} from "../../../orchestrating-long-tasks/scripts/src/reporting/action-types.ts";
 
 describe("reporting actions generators", () => {
   test("leasedActions handles existing packet and missing packet", () => {

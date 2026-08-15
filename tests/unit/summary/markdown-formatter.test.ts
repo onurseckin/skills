@@ -1,7 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import type { WorkflowState } from "../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
 import { formatSummaryMarkdown } from "../../../orchestrating-long-tasks/scripts/src/summary/markdown-formatter.ts";
-import type { RollupMetrics, TimelineEventRecord } from "../../../orchestrating-long-tasks/scripts/src/summary/types.ts";
+import type {
+  RollupMetrics,
+  TimelineEventRecord,
+} from "../../../orchestrating-long-tasks/scripts/src/summary/types.ts";
 
 describe("markdown formatter", () => {
   test("formats executive summary correctly", () => {
@@ -15,13 +18,31 @@ describe("markdown formatter", () => {
       active_command_duration_ms: 5_000,
       total_commands_executed: 4,
       total_gates_passed: 4,
-      estimated_tokens: { tokens_in: 1000, tokens_out: 500, total_tokens: 1500 },
+      estimated_tokens: {
+        tokens_in: 1000,
+        tokens_out: 500,
+        total_tokens: 1500,
+      },
       files_touched: [{ path: "src/index.ts", additions: 100, deletions: 20 }],
     };
 
     const timeline: TimelineEventRecord[] = [
-      { sequence: 1, timestamp: "2026-08-14T20:00:00.000Z", actor: "coord", event: "plan-init", phase: "planning", summary: "Init" },
-      { sequence: 2, timestamp: "2026-08-14T20:00:45.000Z", actor: "coord", event: "run-completed", phase: "completion", summary: "Done" },
+      {
+        sequence: 1,
+        timestamp: "2026-08-14T20:00:00.000Z",
+        actor: "coord",
+        event: "plan-init",
+        phase: "planning",
+        summary: "Init",
+      },
+      {
+        sequence: 2,
+        timestamp: "2026-08-14T20:00:45.000Z",
+        actor: "coord",
+        event: "run-completed",
+        phase: "completion",
+        summary: "Done",
+      },
     ];
 
     const state: WorkflowState = {

@@ -17,7 +17,10 @@ function determinePhaseAndSummary(event: HarnessEvent, promptBytes = 0): EventDe
   const gateId = typeof p.gate_id === "string" ? p.gate_id : undefined;
   const commandId = typeof p.command_id === "string" ? p.command_id : undefined;
   const round = typeof p.round === "number" ? p.round : undefined;
-  const result: EventDetails = { phase: "general", summary: `Event ${event.kind}` };
+  const result: EventDetails = {
+    phase: "general",
+    summary: `Event ${event.kind}`,
+  };
 
   switch (event.kind) {
     case "plan-init":

@@ -38,9 +38,7 @@ describe("packet-bundle", () => {
     const root = realpathSync(mkdtempSync(join(tmpdir(), "pkt-bundle-")));
     const packet = samplePacket();
 
-    expect(() => createPacketBundle(root, "../unsafe", packet, false)).toThrow(
-      "unsafe packet id",
-    );
+    expect(() => createPacketBundle(root, "../unsafe", packet, false)).toThrow("unsafe packet id");
     expect(() => createPacketBundle(root, "-invalid-start", packet, false)).toThrow(
       "unsafe packet id",
     );

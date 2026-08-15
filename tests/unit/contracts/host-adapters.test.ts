@@ -56,11 +56,24 @@ describe("host adapters & two-tier architecture specifications", () => {
     const content = readFileSync(cliDocPath, "utf8");
 
     const commands = [
-      "plan:init", "plan:add", "plan:compile", "plan:status",
-      "queue:next", "queue:list", "queue:pop",
-      "task:claim", "task:heartbeat", "task:submit", "task:validate-start", "task:review", "task:reject",
-      "critic:start", "critic:review",
-      "run:exec", "run:status", "run:complete"
+      "plan:init",
+      "plan:add",
+      "plan:compile",
+      "plan:status",
+      "queue:next",
+      "queue:list",
+      "queue:pop",
+      "task:claim",
+      "task:heartbeat",
+      "task:submit",
+      "task:validate-start",
+      "task:review",
+      "task:reject",
+      "critic:start",
+      "critic:review",
+      "run:exec",
+      "run:status",
+      "run:complete",
     ];
 
     for (const cmd of commands) {

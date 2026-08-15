@@ -18,13 +18,13 @@ This guide serves as the **high-level orchestrator manual** directing orchestrat
 
 The harness partitions responsibilities across four distinct agent archetypes defined under `agents/`:
 
-| Agent Spec | Tier | Role & Responsibilities |
-| :--- | :---: | :--- |
-| [`agents/coordinator.yaml`](agents/coordinator.yaml) | Tier 2 | **Long Task Coordinator**: Owns capsule lifecycle, prompt capture, graph compilation, concurrency wave management, heartbeat tracking, and run completion. Dispatches Tier 3 workers and validators in the background. |
-| [`agents/worker.yaml`](agents/worker.yaml) | Tier 3 | **Task Worker**: Implements features strictly within assigned `write_scope`, conducts local pre-submission testing (unit/integration/negative tests), and resolves validator findings during repair rounds. |
-| [`agents/validator.yaml`](agents/validator.yaml) | Tier 3 | **Adversarial Validator**: Executes mandatory gate proof commands via `run:exec`, performs adversarial invariant audits (edge cases, contract boundaries, layout math, negative assertions, visual layout bounds), and issues formal structured pushbacks (`task:reject`) or passes (`task:review`). |
-| [`agents/critic.yaml`](agents/critic.yaml) | Tier 3 | **Completeness Critic**: Evaluates whole-repository git diff against original immutable prompt bytes, audits requirement coverage, verifies run completion gates, and issues final sign-off (`critic:review`). |
-| [`agents/openai.yaml`](agents/openai.yaml) | — | **OpenAI / Codex Profile**: System interface definition for OpenAI Codex and ChatGPT coding agent environments. |
+| Agent Spec                                           |  Tier  | Role & Responsibilities                                                                                                                                                                                                                                                                              |
+| :--------------------------------------------------- | :----: | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`agents/coordinator.yaml`](agents/coordinator.yaml) | Tier 2 | **Long Task Coordinator**: Owns capsule lifecycle, prompt capture, graph compilation, concurrency wave management, heartbeat tracking, and run completion. Dispatches Tier 3 workers and validators in the background.                                                                               |
+| [`agents/worker.yaml`](agents/worker.yaml)           | Tier 3 | **Task Worker**: Implements features strictly within assigned `write_scope`, conducts local pre-submission testing (unit/integration/negative tests), and resolves validator findings during repair rounds.                                                                                          |
+| [`agents/validator.yaml`](agents/validator.yaml)     | Tier 3 | **Adversarial Validator**: Executes mandatory gate proof commands via `run:exec`, performs adversarial invariant audits (edge cases, contract boundaries, layout math, negative assertions, visual layout bounds), and issues formal structured pushbacks (`task:reject`) or passes (`task:review`). |
+| [`agents/critic.yaml`](agents/critic.yaml)           | Tier 3 | **Completeness Critic**: Evaluates whole-repository git diff against original immutable prompt bytes, audits requirement coverage, verifies run completion gates, and issues final sign-off (`critic:review`).                                                                                       |
+| [`agents/openai.yaml`](agents/openai.yaml)           |   —    | **OpenAI / Codex Profile**: System interface definition for OpenAI Codex and ChatGPT coding agent environments.                                                                                                                                                                                      |
 
 ---
 
@@ -98,12 +98,14 @@ See [references/host-adapters.md](references/host-adapters.md) for adapter imple
 ### 2. Context Sanitization & Independent Validation
 
 Self-grading and conversational bias lead to unhandled edge cases, missing assertions, and overlooked defects. The harness enforces **Adversarial Role Separation**:
+
 - **Context Sanitization**: When a worker submits a task via `task:submit`, implementer prose and subjective confidence claims are completely stripped from the validator's packet.
 - **Pure Allowlisted Context**: The validator receives only immutable prompt requirements, acceptance criteria, write scope, changed file paths, physical git diff, and mandatory gate command contracts.
 
 ### 3. Adversarial Invariant Audits & Visual/Layout Checks
 
 The coordinator must direct Tier 3 validators to perform rigorous, multi-round adversarial verification:
+
 - **Mandatory Gate Execution**: Execute test suites via `run:exec` under process monitoring and verify exit code 0.
 - **Contract & Boundary Stress-Testing**: Test boundary conditions, input extremes (empty collections, maximum byte buffers, invalid unicode), and type contracts.
 - **Negative Assertions & Error Handling**: Prove that unauthorized requests, invalid arguments, and failure conditions are explicitly tested and cleanly handled.
@@ -116,6 +118,7 @@ The coordinator must direct Tier 3 validators to perform rigorous, multi-round a
 ### 4. Structured Pushback (`task:reject`) & Bounded Repair Loops
 
 When any invariant check fails or tests are incomplete:
+
 1. **Formal Pushback**: The validator executes `task:reject` with structured findings (`--reason`, `--finding`, `--evidence`).
 2. **Targeted Repair**: The task transitions to `changes_requested`. The coordinator routes the finding back to the worker for targeted remediation within `write_scope`.
 3. **Re-Verification in Round 2+**: A fresh validator verifies the fix against prior findings, re-runs `run:exec`, re-checks all invariants, and only approves via `task:review --status pass` when completely satisfied.
@@ -136,32 +139,38 @@ RUN=.capsules/<slug>
 ### Phase 1: Planning & Compilation
 
 Initialize the capsule with exact prompt capture:
+
 ```bash
 printf "%s" "$PROMPT" | bun $PINNED plan:init --repo . --run <slug> --prompt-stdin
 ```
 
 Register modular tasks with disjoint write scopes:
+
 ```bash
 bun $PINNED plan:add --run $RUN --id <task-id> --label "<label>" --scope <path> --gate "<gate-cmd>" [--deps <dep-id>]
 ```
 
 Check plan status and compile the dependency graph:
+
 ```bash
 bun $PINNED plan:status --run $RUN
 bun $PINNED plan:compile --run $RUN --actor planner
 ```
+
 `plan:compile` automatically performs atomic prompt decomposition, line-by-line coverage analysis,
 scope independence validation, and graph construction.
 
 ### Phase 2: Queue Management & Concurrency
 
 Inspect ready and partitioned tasks:
+
 ```bash
 bun $PINNED queue:next --run $RUN
 bun $PINNED queue:list --run $RUN
 ```
 
 Pop the highest-priority task and lease it to a worker:
+
 ```bash
 bun $PINNED queue:pop --run $RUN --agent <worker-id> --lease-seconds 1800
 ```
@@ -169,6 +178,7 @@ bun $PINNED queue:pop --run $RUN --agent <worker-id> --lease-seconds 1800
 ### Phase 3: Task Implementation & Review Lifecycle
 
 Claim, heartbeat, and submit implementation:
+
 ```bash
 # Claim explicit task (or use queue:pop)
 bun $PINNED task:claim --run $RUN --task <task-id> --agent <worker-id>
@@ -181,6 +191,7 @@ bun $PINNED task:submit --run $RUN --task <task-id> --agent <worker-id> --token 
 ```
 
 Independent Validation & Review:
+
 ```bash
 # Start independent validation (dispatches validator packet)
 bun $PINNED task:validate-start --run $RUN --task <task-id> --validator <val-agent>
@@ -198,6 +209,7 @@ bun $PINNED task:reject --run $RUN --task <task-id> --validator <val-agent> --to
 ### Phase 4: Completeness Critic & Lifecycle Completion
 
 Run final completion gate and completeness critic:
+
 ```bash
 # Run completion gate
 bun $PINNED run:exec --run $RUN --gate gate-run-completion --actor coordinator -- bun test tests
@@ -216,6 +228,7 @@ bun $PINNED run:status --run $RUN
 ### Phase 5: Visual Reporting & Summary Suite
 
 Export graph summary and visual dashboard:
+
 ```bash
 # Export summary suite (graph dataset, metrics, timeline)
 bun $PINNED summary:export --run $RUN

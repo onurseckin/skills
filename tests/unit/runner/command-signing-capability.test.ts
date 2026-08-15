@@ -70,7 +70,9 @@ describe("command-signing-capability", () => {
     controller.recordSignal("SIGKILL");
 
     // Invalid signal order or unsupported signal
-    expect(() => controller.recordSignal("SIGINT" as never)).toThrow("unsupported attempt cleanup signal");
+    expect(() => controller.recordSignal("SIGINT" as never)).toThrow(
+      "unsupported attempt cleanup signal",
+    );
 
     // Mark record pending
     controller.markRecordPending("all descendants dead");
@@ -88,12 +90,8 @@ describe("command-signing-capability", () => {
     expect(() => controller.beginCleanupUncertain(["more work"])).toThrow(
       "attempt terminal proof is final",
     );
-    expect(() => controller.recordSignal("SIGTERM")).toThrow(
-      "attempt terminal proof is final",
-    );
-    expect(() => controller.markRecordPending("again")).toThrow(
-      "attempt terminal proof is final",
-    );
+    expect(() => controller.recordSignal("SIGTERM")).toThrow("attempt terminal proof is final");
+    expect(() => controller.markRecordPending("again")).toThrow("attempt terminal proof is final");
     expect(() =>
       controller.markTerminalProof("again", {
         kind: "strong_absence",

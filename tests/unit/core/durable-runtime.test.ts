@@ -155,4 +155,3 @@ describe("durable runtime files", () => {
     expect(() => fsyncDirectory(root)).not.toThrow();
   });
 });
-

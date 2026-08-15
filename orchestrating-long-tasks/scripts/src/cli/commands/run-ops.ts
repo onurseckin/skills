@@ -32,10 +32,14 @@ function verifyCompletionArtifacts(
   for (const id of requirements.command_ids) {
     const command = state.commands[id];
     if (!command) issues.push(`command ${id}: missing durable command record`);
-    else issues.push(...verifyCommandRecord(run, command).map((issue) => `command ${id}: ${issue}`));
+    else
+      issues.push(...verifyCommandRecord(run, command).map((issue) => `command ${id}: ${issue}`));
   }
   if (issues.length > 0) {
-    throw new HarnessError("INTEGRITY", `completion artifact verification failed: ${issues.join("; ")}`);
+    throw new HarnessError(
+      "INTEGRITY",
+      `completion artifact verification failed: ${issues.join("; ")}`,
+    );
   }
   return {
     verified_at: new Date().toISOString(),
@@ -110,13 +114,17 @@ export function runStatusCommand(flags: Flags): Record<string, unknown> {
   const progressSummary = `${satCount}/${tasks.length} Satisfied, ${valCount} Validating, ${leasedCount} Leased, ${blockedCount} Blocked.`;
 
   const completionResult = state.completion_result as { status: string } | undefined;
-  const phase = completionResult?.status === "complete" ? "Completed" : state.graph ? "Executing" : "Planning";
+  const phase =
+    completionResult?.status === "complete" ? "Completed" : state.graph ? "Executing" : "Planning";
   const markdown = formatRunStatusBrief(basename(run), phase, taskItems, progressSummary);
 
   return { markdown, run_root: run, state, detailed };
 }
 
-export async function runExecCommand(flags: Flags, argv: readonly string[]): Promise<Record<string, unknown>> {
+export async function runExecCommand(
+  flags: Flags,
+  argv: readonly string[],
+): Promise<Record<string, unknown>> {
   assertFlags(flags, ["run", "task", "gate", "cwd", "save-evidence", "actor"]);
   const run = textFlag(flags, "run")!;
   const task = textFlag(flags, "task", false);
@@ -153,8 +161,12 @@ export async function runExecCommand(flags: Flags, argv: readonly string[]): Pro
   const record = result.record;
   const commandStr = argv.join(" ");
   const exitCode = record.exit_code ?? 0;
-  const durationSec = ((record.finished_at ? Date.parse(record.finished_at) : 0) - (record.started_at ? Date.parse(record.started_at) : 0)) / 1000;
-  const outputSummary = exitCode === 0 ? "Command completed successfully" : "Command returned non-zero exit code";
+  const durationSec =
+    ((record.finished_at ? Date.parse(record.finished_at) : 0) -
+      (record.started_at ? Date.parse(record.started_at) : 0)) /
+    1000;
+  const outputSummary =
+    exitCode === 0 ? "Command completed successfully" : "Command returned non-zero exit code";
 
   const markdown = formatRunExecBrief({
     commandStr,
@@ -165,5 +177,12 @@ export async function runExecCommand(flags: Flags, argv: readonly string[]): Pro
     logPath: result.recordPath,
   });
 
-  return { markdown, run_root: run, command: record, command_id: record.id, exit_code: exitCode, ...result };
+  return {
+    markdown,
+    run_root: run,
+    command: record,
+    command_id: record.id,
+    exit_code: exitCode,
+    ...result,
+  };
 }

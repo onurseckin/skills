@@ -37,20 +37,33 @@ describe("Requirements and Graph Compilers", () => {
   });
 
   test("compileRequirementsFromPrompt throws on empty prompt", () => {
-    expect(() => compileRequirementsFromPrompt("\n  \n", [{ id: "t1", label: "T1", writeScope: ["a"], gate: "g" }])).toThrow(
-      "prompt must contain at least one non-blank line",
-    );
+    expect(() =>
+      compileRequirementsFromPrompt("\n  \n", [
+        { id: "t1", label: "T1", writeScope: ["a"], gate: "g" },
+      ]),
+    ).toThrow("prompt must contain at least one non-blank line");
   });
 
   test("compileGraphDocument compiles a valid graph matching requirements", () => {
     const prompt = "Goal 1\n\nGoal 2";
     const tasks = [
       { id: "task-1", label: "Task 1", writeScope: ["src/a"], gate: "bun test tests/a" },
-      { id: "task-2", label: "Task 2", writeScope: ["src/b"], gate: "bun test tests/b", deps: ["task-1"] },
+      {
+        id: "task-2",
+        label: "Task 2",
+        writeScope: ["src/b"],
+        gate: "bun test tests/b",
+        deps: ["task-1"],
+      },
     ];
 
     const reqResult = compileRequirementsFromPrompt(prompt, tasks);
-    const graphResult = compileGraphDocument(tasks, reqResult.requirementsDocument, reqResult.requirementIdsByTask, 1);
+    const graphResult = compileGraphDocument(
+      tasks,
+      reqResult.requirementsDocument,
+      reqResult.requirementIdsByTask,
+      1,
+    );
 
     expect(graphResult.graphDocument.schema).toBe("harness.graph");
     expect(graphResult.graphDocument.revision).toBe(1);

@@ -10,6 +10,7 @@
 ## 1. Overview & Key Enhancements
 
 The right-hand inspection drawer is upgraded with:
+
 1. **Expanded Width**: Width increased to **560px** (resizable up to **680px**) to comfortably display code diffs, logs, and I/O previews without cramped wrapping.
 2. **Adaptive Dynamic Tabs**: Tabs dynamically adapt to the selected node archetype. Empty sections are automatically hidden (e.g. no Files tab if no files were touched).
 3. **Dynamic Header & Archetype Titles**: Header displays the exact archetype badge and full unclipped node title.
@@ -36,20 +37,21 @@ The right-hand inspection drawer is upgraded with:
 
 Tabs conditionally render based on payload availability, ensuring zero empty states:
 
-| Tab Name | Tabler Icon | Render Condition | Content Provided |
-| :--- | :--- | :--- | :--- |
-| **1. Overview** | `IconInfoCircle` | Always rendered | Unclipped purpose, goals, model tier, status, step #, duration, write scopes, and parent/child lineage. |
-| **2. Inputs & Outputs (I/O)** | `IconArrowsExchange` | Rendered if `node.io` has inputs or outputs | Expandable cards for each I/O stream with payload types, token sizes, source/target nodes, and full preview text. |
-| **3. Files & Diffs** | `IconFiles` | Rendered only if `node.files` has $\ge 1$ entry | Touched file paths with addition/deletion chips and expandable syntax-highlighted unified diff views. |
-| **4. Executions** | `IconTerminal` | Rendered only if `metadata.commands` has $\ge 1$ entry | Monitored CLI commands with working directory, duration, exit code, and terminal-style expandable stdout/stderr. |
-| **5. Feedback & Reviews** | `IconShieldSearch` | Rendered if findings, reviews, or critic proofs exist | Polymorphic panel: validator pushbacks, finding details, remediation plans, and passing gate records. |
-| **6. Raw Provenance** | `IconBinary` | Always rendered (collapsible) | Merkle event chain links and full node JSON. |
+| Tab Name                      | Tabler Icon          | Render Condition                                       | Content Provided                                                                                                  |
+| :---------------------------- | :------------------- | :----------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------- |
+| **1. Overview**               | `IconInfoCircle`     | Always rendered                                        | Unclipped purpose, goals, model tier, status, step #, duration, write scopes, and parent/child lineage.           |
+| **2. Inputs & Outputs (I/O)** | `IconArrowsExchange` | Rendered if `node.io` has inputs or outputs            | Expandable cards for each I/O stream with payload types, token sizes, source/target nodes, and full preview text. |
+| **3. Files & Diffs**          | `IconFiles`          | Rendered only if `node.files` has $\ge 1$ entry        | Touched file paths with addition/deletion chips and expandable syntax-highlighted unified diff views.             |
+| **4. Executions**             | `IconTerminal`       | Rendered only if `metadata.commands` has $\ge 1$ entry | Monitored CLI commands with working directory, duration, exit code, and terminal-style expandable stdout/stderr.  |
+| **5. Feedback & Reviews**     | `IconShieldSearch`   | Rendered if findings, reviews, or critic proofs exist  | Polymorphic panel: validator pushbacks, finding details, remediation plans, and passing gate records.             |
+| **6. Raw Provenance**         | `IconBinary`         | Always rendered (collapsible)                          | Merkle event chain links and full node JSON.                                                                      |
 
 ---
 
 ## 3. Tab Sub-View Specifications
 
 ### Tab 1: Overview & Context
+
 - **Archetype Banner**: Displays archetype badge, model tier chip, and execution status pill.
 - **Full Purpose Text**: Complete, unclipped task description or verbatim user prompt.
 - **Operational Metadata Grid**:
@@ -59,6 +61,7 @@ Tabs conditionally render based on payload availability, ensuring zero empty sta
   - `Lineage`: Direct parent trigger and downstream dependencies.
 
 ### Tab 2: Inputs & Outputs (I/O)
+
 - **Input Stream Cards**:
   - Payload Kind Badge: `[IconTerminal] Prompt`, `[IconFile] File`, `[IconPackage] Artifact`.
   - Originating Node Reference.
@@ -70,27 +73,31 @@ Tabs conditionally render based on payload availability, ensuring zero empty sta
   - Full output body.
 
 ### Tab 3: Files & Diffs Inspector
+
 - **Summary Bar**: Total files touched, total line additions ($+$), and deletions ($-$).
 - **File List with Tree View**: Grouped by directory hierarchy with search filter.
 - **Diff Viewer**: Syntax-highlighted unified diff inspector with line numbers and copy-diff button.
 
 ### Tab 4: Executions & Command Terminal
+
 - **Command List**: Each executed command renders as a terminal card:
   - Header: Exit code badge (`[IconCheck] Exit 0` / `[IconX] Exit 1`), execution duration (`142ms`), actor ID.
   - Monospace Command Line: `$ bun test tests/unit/auth.test.ts`
   - Collapsible Stdout / Stderr streams with syntax highlighting and copy-log trigger.
 
 ### Tab 5: Feedback, Pushbacks & Quality Reviews (Polymorphic)
+
 - **Multi-Round Pushback Accordion**:
-  - *Round 1 (Rejected)*:
+  - _Round 1 (Rejected)_:
     - Finding List: Observation, severity badge (`Critical` / `Important`), remediation instructions.
     - Failed Gate Output: Test failure stack trace.
-  - *Round 2 (Re-validation)*:
+  - _Round 2 (Re-validation)_:
     - Implementer Fix Notes & Incremental Diff.
     - Validator Sign-off Verdict (`[IconCheck] Approved`).
 - **Completeness Critic Scorecard**:
   - Authority token digest, verified readiness hash, residual risks assessment ($0$), and whole-run gate proofs.
 
 ### Tab 6: Raw Provenance & Event Chain
+
 - **Merkle Event Proof**: Hash of the triggering event in `events.jsonl`.
 - **Raw JSON Viewer**: Collapsible, syntax-highlighted JSON viewer of the complete `GraphNodeData` object.

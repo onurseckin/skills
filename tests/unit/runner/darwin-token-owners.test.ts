@@ -20,10 +20,8 @@ describe("darwin-token-owners", () => {
   });
 
   test("skips process.pid and missing pids", () => {
-    const res = scanDarwinTokenOwners(
-      [process.pid, 999999],
-      "some-token",
-      (pid) => (pid === 999999 ? undefined : sampleIdentity),
+    const res = scanDarwinTokenOwners([process.pid, 999999], "some-token", (pid) =>
+      pid === 999999 ? undefined : sampleIdentity,
     );
     expect(res).toEqual([]);
   });
