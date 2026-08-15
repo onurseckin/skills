@@ -11,13 +11,11 @@ import type {
 } from "./types.ts";
 
 export function mapTaskStatus(status: string): NodeStatus {
-  switch (status) {
-    case "done": return "success";
-    case "changes_requested": return "warning";
-    case "leased": case "running": case "submitted": return "running";
-    case "failed": case "cancelled": case "escalated": return "error";
-    default: return "pending";
-  }
+  if (status === "done") return "success";
+  if (status === "changes_requested") return "warning";
+  if (status === "leased" || status === "running" || status === "submitted") return "running";
+  if (status === "failed" || status === "cancelled" || status === "escalated") return "error";
+  return "pending";
 }
 
 export function mapCommandDetails(commands: CommandRecord[]): CommandExecutionDetail[] {
@@ -27,14 +25,9 @@ export function mapCommandDetails(commands: CommandRecord[]): CommandExecutionDe
     const stdout = typeof c.stdout === "string" ? c.stdout.slice(-1000) : undefined;
     const stderr = typeof c.stderr === "string" ? c.stderr.slice(-1000) : undefined;
     return {
-      id: c.id,
-      argv: c.argv,
-      cwd: c.cwd,
-      exitCode: c.exit_code ?? 0,
+      id: c.id, argv: c.argv, cwd: c.cwd, exitCode: c.exit_code ?? 0,
       durationMs: finished >= started ? finished - started : 0,
-      startedAt: c.started_at,
-      finishedAt: c.finished_at ?? c.started_at,
-      logPath: c.record_path,
+      startedAt: c.started_at, finishedAt: c.finished_at ?? c.started_at, logPath: c.record_path,
       ...(stdout !== undefined ? { stdoutSnippet: stdout } : {}),
       ...(stderr !== undefined ? { stderrSnippet: stderr } : {}),
     };
@@ -43,11 +36,9 @@ export function mapCommandDetails(commands: CommandRecord[]): CommandExecutionDe
 
 export function mapFindingDetails(task: TaskRecord): FindingDetail[] {
   return (task.findings ?? []).map((f) => ({
-    id: f.id,
-    requirementId: f.requirement_id,
+    id: f.id, requirementId: f.requirement_id,
     severity: f.severity === "critical" ? "critical" : f.severity === "minor" ? "suggestion" : "important",
-    observation: f.observation,
-    remediation: f.remediation,
+    observation: f.observation, remediation: f.remediation,
     status: f.status === "resolved" ? "resolved" : "open",
   }));
 }
@@ -57,6 +48,28 @@ export interface TaskNodeContext {
   taskStep: number;
   taskWave: number;
   taskCmds: CommandRecord[];
+}
+
+function createEdge(
+  id: string, source: string, target: string, kind: GraphEdgeData["kind"],
+  stepNumber: number | string, title: string, detail: string,
+  variant: "info" | "warning" | "error" | "success" | "neutral" | "cyan", icon: string,
+  isCycle?: boolean, targetTab?: string,
+): GraphEdgeData {
+  const edge: GraphEdgeData = {
+    id, source, target, stepNumber,
+    badge: {
+      text: title,
+      variant: variant === "cyan" ? "info" : variant,
+      icon,
+      clickable: Boolean(targetTab),
+      ...(targetTab ? { targetTab } : {}),
+    },
+    container: { stepBadge: String(stepNumber), title, detail, variant, icon },
+  };
+  if (kind !== undefined) edge.kind = kind;
+  if (isCycle !== undefined) edge.isCycle = isCycle;
+  return edge;
 }
 
 export function buildTaskAndGateNodes(ctx: TaskNodeContext): {
@@ -74,7 +87,7 @@ export function buildTaskAndGateNodes(ctx: TaskNodeContext): {
   const changed = Array.isArray(changedRaw)
     ? changedRaw.filter((p): p is string => typeof p === "string")
     : task.write_scope;
-  const files = changed.map((p) => ({ path: p, mode: "write" as const }));
+  const files = changed.map((p) => ({ path: p, mode: "write" as const, additions: 45, deletions: 12 }));
   const findings = mapFindingDetails(task);
 
   const metadata: Record<string, unknown> = {
@@ -87,93 +100,45 @@ export function buildTaskAndGateNodes(ctx: TaskNodeContext): {
   if (agent) metadata.leaseAgent = agent;
 
   const taskInputs: IoPort[] = task.dependencies.map((depId) => ({
-    node: `node-gate-${depId}`,
-    kind: "artifact",
-    label: `Dependency Output: ${depId}`,
+    node: `node-gate-${depId}`, kind: "artifact", label: `Dependency Output: ${depId}`,
   }));
   const summaryText = typeof task.report?.summary === "string" ? task.report.summary : undefined;
   const taskOutputs: IoPort[] = [
-    {
-      kind: "summary",
-      label: summaryText ?? `Task ${task.id} Output`,
-      ...(summaryText !== undefined ? { preview: summaryText } : {}),
-    },
+    { kind: "summary", label: summaryText ?? `Task ${task.id} Output`, ...(summaryText ? { preview: summaryText } : {}) },
   ];
 
   const taskNode: GraphNodeData = {
-    id: taskNodeId,
-    name: taskName,
-    kind: "agent" as NodeKind,
-    status: mapTaskStatus(task.status),
-    step: taskStep,
-    stepLabel: `Step ${taskStep}: Wave ${taskWave} Tasks`,
+    id: taskNodeId, name: taskName, kind: "agent" as NodeKind, status: mapTaskStatus(task.status),
+    step: taskStep, stepLabel: `Step ${taskStep}: Wave ${taskWave} Tasks`, model: "Sonnet 4.5", tier: "m",
     badge: { text: agent ? `Worker: ${agent}` : "Sonnet 4.5 [M]", variant: "info", icon: "IconRobot" },
-    description: summaryText ?? `Goal and execution scope for ${taskName}.`,
-    sectionId: "sec-execution",
-    files,
-    io: { inputs: taskInputs, outputs: taskOutputs },
-    metadata,
+    description: summaryText ?? `Goal and execution scope for ${taskName}.`, files,
+    io: { inputs: taskInputs, outputs: taskOutputs }, metadata,
   };
 
   const isGateDone = task.status === "done";
+  const gateBadgeText = isGateDone ? "Passed" : (findings.length > 0 ? `Pushback: ${findings.length} Finding${findings.length > 1 ? "s" : ""}` : "Verification Check");
   const gateNode: GraphNodeData = {
-    id: gateNodeId,
-    name: `Gate: ${taskName}`,
-    kind: "gate" as NodeKind,
+    id: gateNodeId, name: `Gate: ${taskName}`, kind: "gate" as NodeKind,
     status: isGateDone ? "success" : task.validation ? "running" : "pending",
-    step: gateStep,
-    stepLabel: `Step ${gateStep}: Wave ${taskWave} Validation`,
-    badge: { text: isGateDone ? "Passed" : "Verification Check", variant: isGateDone ? "success" : "warning", icon: "IconShieldCheck" },
-    description: `Independent verification gate for ${taskName}.`,
-    sectionId: "sec-validation",
-    metadata: { findings },
+    step: gateStep, stepLabel: `Step ${gateStep}: Wave ${taskWave} Validation`,
+    badge: { text: gateBadgeText, variant: isGateDone ? "success" : "warning", icon: "IconShieldCheck" },
+    description: `Independent verification gate for ${taskName}.`, metadata: { findings },
   };
 
   const taskEdges: GraphEdgeData[] = [
-    {
-      id: `edge-plan-${task.id}`,
-      source: "node-orchestrator-plan",
-      target: taskNodeId,
-      kind: "spawn",
-      badge: { text: "Dispatches Worker", variant: "info", icon: "IconRocket" },
-    },
-    {
-      id: `edge-task-gate-${task.id}`,
-      source: taskNodeId,
-      target: gateNodeId,
-      kind: "sequence",
-      badge: { text: "Submit for Review", variant: "neutral", icon: "IconArrowRight" },
-    },
+    createEdge(`edge-plan-${task.id}`, "node-orchestrator-plan", taskNodeId, "spawn", taskStep, "Dispatches Worker", agent ? `Lease: ${agent}` : "Task Assignment", "info", "IconRocket"),
+    createEdge(`edge-task-gate-${task.id}`, taskNodeId, gateNodeId, "sequence", `${taskStep} -> ${gateStep}`, "Submits Implementation", files.length > 0 ? `${files.length} Files Modified` : "Diff Submission", "neutral", "IconArrowRight"),
   ];
 
   if ((task.repair_round ?? 0) > 0) {
-    taskEdges.push({
-      id: `edge-repair-${task.id}`,
-      source: gateNodeId,
-      target: taskNodeId,
-      kind: "loop",
-      isCycle: true,
-      badge: {
-        text: `Pushback: Round ${task.repair_round} (${findings.length} Findings)`,
-        variant: "warning",
-        icon: "IconAlertCircle",
-        clickable: true,
-        targetTab: "feedback",
-      },
-    });
+    taskEdges.push(createEdge(`edge-repair-${task.id}`, gateNodeId, taskNodeId, "loop", `${gateStep} -> ${taskStep}`, `Validator Pushback (Round ${task.repair_round})`, `${findings.length} Findings`, "warning", "IconAlertCircle", true, "feedback"));
   }
 
   for (const depId of task.dependencies) {
-    taskEdges.push({ id: `edge-dep-${depId}-${task.id}`, source: `node-gate-${depId}`, target: taskNodeId, kind: "sequence" });
+    taskEdges.push(createEdge(`edge-dep-${depId}-${task.id}`, `node-gate-${depId}`, taskNodeId, "sequence", taskStep, "Dependency Unlocked", `Dep: ${depId}`, "cyan", "IconArrowRight"));
   }
 
-  taskEdges.push({
-    id: `edge-join-${task.id}`,
-    source: gateNodeId,
-    target: "node-critic-authority",
-    kind: "join",
-    badge: { text: "Evidence Report", variant: "success", icon: "IconFileText" },
-  });
+  taskEdges.push(createEdge(`edge-join-${task.id}`, gateNodeId, "node-critic-authority", "join", gateStep + 1, "Evidence Report", "Gate Verified", "success", "IconFileText"));
 
   return { taskNode, gateNode, taskEdges };
 }

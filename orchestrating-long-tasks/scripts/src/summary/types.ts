@@ -5,32 +5,9 @@ export type NodeStatus = "pending" | "running" | "success" | "error" | "warning"
 export type EdgeKind = "sequence" | "spawn" | "conditional" | "loop" | "fallback" | "join" | "data";
 export type PayloadKind = "prompt" | "full-context" | "summary" | "artifact" | "decision" | "file";
 export type ModelTier = "xs" | "s" | "m" | "l";
-
-export interface FileRef {
-  path: string;
-  mode?: "read" | "write" | "attach";
-  lines?: string;
-  additions?: number;
-  deletions?: number;
-}
-
-export interface IoPort {
-  node?: string;
-  kind: PayloadKind;
-  label: string;
-  tokens?: number;
-  preview?: string;
-  dataRef?: string;
-}
-
-export interface NodeMetrics {
-  tokensIn?: number;
-  tokensOut?: number;
-  costUsd?: number;
-  durationMs?: number;
-  retries?: number;
-  commandCount?: number;
-}
+export interface FileRef { path: string; mode?: "read" | "write" | "attach"; lines?: string; additions?: number; deletions?: number; }
+export interface IoPort { node?: string; kind: PayloadKind; label: string; tokens?: number; preview?: string; dataRef?: string; }
+export interface NodeMetrics { tokensIn?: number; tokensOut?: number; costUsd?: number; durationMs?: number; retries?: number; commandCount?: number; }
 
 export interface CommandExecutionDetail {
   id: string;
@@ -114,6 +91,14 @@ export interface EdgeHandoff {
   tokens?: number;
 }
 
+export interface EdgeContainerDetail {
+  stepBadge: string;
+  title: string;
+  detail?: string;
+  variant: "info" | "warning" | "error" | "success" | "neutral" | "cyan";
+  icon?: string;
+}
+
 export interface GraphEdgeData {
   id: string;
   source: string;
@@ -123,7 +108,9 @@ export interface GraphEdgeData {
   isCycle?: boolean;
   kind?: EdgeKind;
   condition?: string;
+  stepNumber?: number | string;
   badge?: BadgeDetail;
+  container?: EdgeContainerDetail;
   handoff?: EdgeHandoff;
   weight?: number;
   minLen?: number;

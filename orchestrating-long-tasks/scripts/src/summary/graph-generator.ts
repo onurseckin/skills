@@ -26,9 +26,8 @@ export function generateGraphDataset(input: GraphGeneratorInput): GraphDataset {
 
   const nodes: GraphNodeData[] = [];
   const edges: GraphEdgeData[] = [];
-  const execNodeIds: string[] = [];
-  const valNodeIds: string[] = [];
 
+  const promptSizeKb = (promptText.length / 1024).toFixed(1);
   nodes.push({
     id: "node-input-prompt",
     name: "User Request Prompt",
@@ -36,9 +35,8 @@ export function generateGraphDataset(input: GraphGeneratorInput): GraphDataset {
     status: "success" as NodeStatus,
     step: 1,
     stepLabel: "Step 1: User Prompt",
-    badge: { text: "Stdin (Verified)", variant: "neutral", icon: "IconTerminal2" },
-    description: promptText ? promptText.slice(0, 180) : "Original user prompt initiating the run.",
-    sectionId: "sec-planning",
+    badge: { text: `${promptSizeKb} KB`, variant: "neutral", icon: "IconTerminal2" },
+    description: promptText ? (promptText.length > 200 ? `${promptText.slice(0, 197)}...` : promptText) : "Original user prompt initiating the run.",
     prompt: promptText,
     io: { outputs: [{ kind: "prompt", label: "User Instruction", preview: promptText, tokens: Math.round(promptText.length / 4) }] },
   });
@@ -52,7 +50,6 @@ export function generateGraphDataset(input: GraphGeneratorInput): GraphDataset {
     stepLabel: "Step 1: Planning",
     badge: { text: `${tasks.length} Tasks`, variant: "info", icon: "IconHierarchy2" },
     description: `Structured execution plan across ${tasks.length} tasks and ${steps.taskWaves.size || 1} waves.`,
-    sectionId: "sec-planning",
     io: {
       inputs: [{ node: "node-input-prompt", kind: "prompt", label: "User Prompt", preview: promptText.slice(0, 100) }],
       outputs: [{ kind: "decision", label: "DAG Work Decomposition", preview: `${tasks.length} discrete work scopes` }],
@@ -64,7 +61,15 @@ export function generateGraphDataset(input: GraphGeneratorInput): GraphDataset {
     source: "node-input-prompt",
     target: "node-orchestrator-plan",
     kind: "sequence",
+    stepNumber: 1,
     badge: { text: "Plan Initialization", variant: "info", icon: "IconArrowRight" },
+    container: {
+      stepBadge: "1",
+      title: "Plan Initialization",
+      detail: `${promptSizeKb} KB Prompt`,
+      variant: "info",
+      icon: "IconArrowRight",
+    },
   });
 
   for (const task of tasks) {
@@ -79,8 +84,6 @@ export function generateGraphDataset(input: GraphGeneratorInput): GraphDataset {
       taskCmds,
     });
 
-    execNodeIds.push(taskNode.id);
-    valNodeIds.push(gateNode.id);
     nodes.push(taskNode, gateNode);
     edges.push(...taskEdges);
   }
@@ -92,9 +95,8 @@ export function generateGraphDataset(input: GraphGeneratorInput): GraphDataset {
     status: state.completion_review ? "success" : "running",
     step: steps.criticStep,
     stepLabel: `Step ${steps.criticStep}: Completeness Critic`,
-    badge: { text: "Authority Review", variant: "warning", icon: "IconScale" },
+    badge: { text: "Audit Scorecard", variant: "warning", icon: "IconScale" },
     description: "Final completeness critic inspection and whole-run sign-off.",
-    sectionId: "sec-review",
   });
 
   nodes.push({
@@ -106,17 +108,23 @@ export function generateGraphDataset(input: GraphGeneratorInput): GraphDataset {
     stepLabel: `Step ${steps.terminalStep}: Terminal Outcome`,
     badge: { text: "Sealed Run", variant: "success", icon: "IconFlagCheck" },
     description: "Sealed capsule run completion and summary artifact synthesis.",
-    sectionId: "sec-review",
   });
 
-  edges.push({ id: "edge-critic-complete", source: "node-critic-authority", target: "node-terminal-complete", kind: "sequence" });
-
-  const sections: GraphSection[] = [
-    { id: "sec-planning", title: "Phase 1: Planning & Setup", nodeIds: ["node-input-prompt", "node-orchestrator-plan"] },
-    { id: "sec-execution", title: "Phase 2: Task Execution", nodeIds: execNodeIds },
-    { id: "sec-validation", title: "Phase 3: Validation Gates", nodeIds: valNodeIds },
-    { id: "sec-review", title: "Phase 4: Completeness & Review", nodeIds: ["node-critic-authority", "node-terminal-complete"] },
-  ];
+  edges.push({
+    id: "edge-critic-complete",
+    source: "node-critic-authority",
+    target: "node-terminal-complete",
+    kind: "sequence",
+    stepNumber: steps.terminalStep,
+    badge: { text: "Authority Sign-off", variant: "success", icon: "IconFlagCheck" },
+    container: {
+      stepBadge: `${steps.terminalStep}`,
+      title: "Authority Sign-off",
+      detail: "Sealed Run",
+      variant: "success",
+      icon: "IconFlagCheck",
+    },
+  });
 
   return {
     id: runId,
@@ -125,7 +133,7 @@ export function generateGraphDataset(input: GraphGeneratorInput): GraphDataset {
     directed: true,
     entry: "node-input-prompt",
     exits: ["node-terminal-complete"],
-    sections,
+    sections: [],
     nodes,
     edges,
   };
