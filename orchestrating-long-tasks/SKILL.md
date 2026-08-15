@@ -167,9 +167,3 @@ To keep the user's interactive conversation clean, responsive, and free of worke
 
 See [references/host-adapters.md](references/host-adapters.md) for adapter implementations across Antigravity, Claude Code, and Codex.
 
-## Backward Compatibility & Recovery
-
-Existing commands (`init`, `plan-apply`, `claim`, `heartbeat`, `submit`, `review`, `doctor`, `handoff`, `complete`)
-remain fully supported alongside the new colon-based CLI commands.
-For crash recovery, run `doctor` followed by `handoff` or `recover` as specified in [references/protocol.md](references/protocol.md).
-

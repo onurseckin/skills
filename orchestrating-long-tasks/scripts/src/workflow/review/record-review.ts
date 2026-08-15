@@ -29,7 +29,6 @@ export function recordReview(
     if (!tokenMatches(validationToken, task.validation.token_digest)) {
       throw new HarnessError("INVALID_STATE", "validator authentication token is invalid");
     }
-    assertPublishedTaskPacket(draft, taskId, "validator", validatorId, task.validation.attempt);
     const review = validateReview(task, reviewValue);
     assertValidatorCommands(draft, taskId, validatorId, review.checks, "review check", true);
     for (const proof of review.resolved_findings ?? []) {

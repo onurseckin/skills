@@ -11,7 +11,6 @@ import {
   formatTaskSubmitBrief,
 } from "../formatters/index.ts";
 import { assertFlags, integerFlag, textFlag, type Flags } from "../options.ts";
-import { packetCommand } from "./packet.ts";
 
 export async function taskClaimCommand(flags: Flags): Promise<Record<string, unknown>> {
   assertFlags(flags, ["run", "task", "agent", "role", "lease-duration", "lease-seconds"]);
@@ -33,20 +32,6 @@ export async function taskClaimCommand(flags: Flags): Promise<Record<string, unk
 
   const durationMin = Math.round((leaseSeconds ?? 1200) / 60);
   const task = result.state.tasks[taskId]!;
-  let packetPath = `${run}/packets/${taskId}/packet.md`;
-  try {
-    const published = await packetCommand({
-      run,
-      task: taskId,
-      role,
-      agent,
-      token: result.token,
-      id: `packet-${taskId}-${agent}`,
-    });
-    if (typeof published.path === "string") packetPath = published.path;
-  } catch {
-    // Gracefully handle if already published
-  }
 
   const markdown = formatTaskClaimBrief({
     taskId,
@@ -54,7 +39,6 @@ export async function taskClaimCommand(flags: Flags): Promise<Record<string, unk
     token: result.token,
     durationMinutes: durationMin,
     writeScope: task.write_scope,
-    packetPath,
   });
 
   return { markdown, run_root: run, token: result.token, task };

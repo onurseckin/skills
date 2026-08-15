@@ -11,7 +11,6 @@ import {
   formatQueuePopBrief,
 } from "../formatters/index.ts";
 import { assertFlags, integerFlag, textFlag, type Flags } from "../options.ts";
-import { packetCommand } from "./packet.ts";
 
 export function queueNextCommand(flags: Flags): Record<string, unknown> {
   assertFlags(flags, ["run"]);
@@ -34,7 +33,6 @@ export function queueNextCommand(flags: Flags): Record<string, unknown> {
 
   const highest = readyTasks[0]!;
   const gateCmd = `bun test ${highest.write_scope.join(" ")}`;
-  const packetPath = `${run}/packets/${highest.id}/packet.md`;
 
   const markdown = formatQueueNextBrief({
     taskId: highest.id,
@@ -42,7 +40,6 @@ export function queueNextCommand(flags: Flags): Record<string, unknown> {
     priority: Number(highest.priority ?? 50),
     writeScope: highest.write_scope,
     gateCmd,
-    packetPath,
     runId: basename(run),
   });
 
@@ -118,20 +115,6 @@ export async function queuePopCommand(flags: Flags): Promise<Record<string, unkn
   const durationMin = Math.round((leaseSeconds ?? 1200) / 60);
   const task = result.state.tasks[highest.id]!;
   const gateCmd = `bun test ${highest.write_scope.join(" ")}`;
-  let packetPath = `${run}/packets/${highest.id}/packet.md`;
-  try {
-    const published = await packetCommand({
-      run,
-      task: highest.id,
-      role: "implementer",
-      agent,
-      token: result.token,
-      id: `packet-${highest.id}-${agent}`,
-    });
-    if (typeof published.path === "string") packetPath = published.path;
-  } catch {
-    // Gracefully handle if already published
-  }
 
   const markdown = formatQueuePopBrief({
     taskId: highest.id,
@@ -141,7 +124,6 @@ export async function queuePopCommand(flags: Flags): Promise<Record<string, unkn
     expiresAt: task.lease?.expires_at ?? "30m",
     writeScope: task.write_scope,
     gateCmd,
-    packetPath,
   });
 
   return { markdown, run_root: run, token: result.token, task };

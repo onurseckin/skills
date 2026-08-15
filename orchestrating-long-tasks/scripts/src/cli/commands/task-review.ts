@@ -13,7 +13,6 @@ import {
   formatValidationStartBrief,
 } from "../formatters/index.ts";
 import { assertFlags, textFlag, type Flags } from "../options.ts";
-import { packetCommand } from "./packet.ts";
 
 export async function taskValidateStartCommand(flags: Flags): Promise<Record<string, unknown>> {
   assertFlags(flags, ["run", "task", "validator", "lease-duration"]);
@@ -23,14 +22,8 @@ export async function taskValidateStartCommand(flags: Flags): Promise<Record<str
   const token = typeof task.validation_token === "string" ? task.validation_token : "tok_val";
   delete task.validation_token;
 
-  let packetPath = `${run}/packets/${taskId}-val/packet.md`;
-  try {
-    const pub = await packetCommand({ run, task: taskId, role: "validator", agent: validator, token, id: `packet-${taskId}-val` });
-    if (typeof pub.path === "string") packetPath = pub.path;
-  } catch {}
-
-  const markdown = formatValidationStartBrief({ taskId, validator, token, gates: [`bun test ${task.write_scope[0] ?? ""}`], packetPath });
-  return { markdown, run_root: run, token, task, packet_path: packetPath };
+  const markdown = formatValidationStartBrief({ taskId, validator, token, gates: [`bun test ${task.write_scope[0] ?? ""}`] });
+  return { markdown, run_root: run, token, task };
 }
 
 export async function taskReviewCommand(flags: Flags): Promise<Record<string, unknown>> {

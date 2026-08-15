@@ -33,14 +33,6 @@ export function submitTask(
     if (!current && !expiredAttempt) {
       throw new HarnessError("INVALID_STATE", "lease identity or token is invalid");
     }
-    const attempt = expiredAttempt ?? lease;
-    assertPublishedTaskPacket(
-      draft,
-      taskId,
-      String(attempt?.role ?? ""),
-      agentId,
-      Number(attempt?.attempt ?? 0),
-    );
     const report = validateReport(task, reportValue);
     if (expiredAttempt || (lease && Date.parse(lease.expires_at) <= now.valueOf())) {
       const canonical = JSON.stringify(report);

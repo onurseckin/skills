@@ -13,39 +13,6 @@ function completionReviewExample(): Record<string, unknown> {
 }
 
 describe("operator reference examples", () => {
-  test("keeps the documented completion repository binding runtime-valid", () => {
-    const example = completionReviewExample();
-    const documented = example.repository_binding as Record<string, unknown>;
-    expect(documented).toEqual({
-      schema: "harness.repository-binding",
-      version: 1,
-      inspection_sha256: "<sha256 from the critic packet>",
-      git_identity_sha256: "<Git identity sha256 from the critic packet>",
-      content_sha256: "<sha256 from the critic packet>",
-      file_count: 123,
-      total_bytes: 456789,
-    });
-    expect(
-      validateRepositoryBinding(
-        {
-          ...documented,
-          inspection_sha256: "a".repeat(64),
-          git_identity_sha256: "b".repeat(64),
-          content_sha256: "c".repeat(64),
-        },
-        "documented completion review repository binding",
-      ),
-    ).toEqual({
-      schema: "harness.repository-binding",
-      version: 1,
-      inspection_sha256: "a".repeat(64),
-      git_identity_sha256: "b".repeat(64),
-      content_sha256: "c".repeat(64),
-      file_count: 123,
-      total_bytes: 456789,
-    });
-  });
-
   test("describes implementer submissions as trusted-host observed evidence", () => {
     const implementer = readFileSync(
       join(skillRoot, "scripts", "assets", "implementer.md"),
@@ -59,7 +26,6 @@ describe("operator reference examples", () => {
     const skill = readFileSync(join(skillRoot, "SKILL.md"), "utf8");
     const protocol = readFileSync(join(skillRoot, "references", "protocol.md"), "utf8");
     const state = readFileSync(join(skillRoot, "references", "state-model.md"), "utf8");
-    const cli = readFileSync(join(skillRoot, "references", "cli.md"), "utf8");
     expect(skill).toContain("repository-local `diff.external`, `diff.*.textconv`, active");
     expect(skill).toContain("`filter.*.clean`, `filter.*.smudge`, or `filter.*.process`");
     expect(protocol).toContain("declared Git gate argv and fingerprint remain unchanged");
@@ -72,8 +38,7 @@ describe("operator reference examples", () => {
     expect(state).toContain("Non-regular, non-symlink leaves are rejected before open");
     expect(state).toContain("deliberately does not recursively traverse objects, refs, or the");
     expect(state).toContain("only to the spawned Git child, never a process group, ancestor");
-    expect(cli).toContain("Packet Git subprocesses use the same restricted command seam");
-    for (const document of [skill, protocol, state, cli])
+    for (const document of [skill, protocol, state])
       expect(document).toContain("trusted_host_observed_v1");
   });
 });

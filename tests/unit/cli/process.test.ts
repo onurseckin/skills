@@ -36,7 +36,7 @@ describe("CLI process contract", () => {
         [
           "bun",
           entrypoint,
-          "init",
+          "plan:init",
           "--repo",
           repo,
           "--run-id",
@@ -46,6 +46,8 @@ describe("CLI process contract", () => {
           "--capture-mode",
           "file",
           "--source-verified",
+          "--format",
+          "json",
         ],
         { stdout: "pipe", stderr: "pipe" },
       ),
@@ -60,7 +62,7 @@ describe("CLI process contract", () => {
     });
 
     const status = await output(
-      Bun.spawn(["bun", entrypoint, "status", "--run", join(repo, ".capsules", "process-run")], {
+      Bun.spawn(["bun", entrypoint, "run:status", "--run", join(repo, ".capsules", "process-run"), "--format", "json"], {
         stdout: "pipe",
         stderr: "pipe",
       }),
@@ -68,7 +70,7 @@ describe("CLI process contract", () => {
     expect(status.exit).toBe(0);
     expect(JSON.parse(status.stdout)).toMatchObject({
       ok: true,
-      result: { run_id: "process-run" },
+      result: { run_root: join(repo, ".capsules", "process-run") },
     });
   });
 

@@ -3,6 +3,10 @@ import type { FlagValue } from "./arguments.ts";
 
 export type Flags = Readonly<Record<string, FlagValue>>;
 
+export interface CommandContext {
+  stdin?: Uint8Array;
+}
+
 export function assertFlags(flags: Flags, allowed: readonly string[]): void {
   const permitted = new Set(allowed);
   const unknown = Object.keys(flags).filter((name) => !permitted.has(name));

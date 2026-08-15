@@ -3,19 +3,19 @@ import { basename, dirname, isAbsolute, resolve } from "node:path";
 import { HarnessError } from "../../errors/harness-error.ts";
 import { workflowPort } from "../../integration/store-ports.ts";
 import { inspectRepositoryBinding } from "../../packets/repository-identity.ts";
-import { packetEvidenceIssues } from "../../reporting/packet-evidence.ts";
 import { verifyCommandRecord } from "../../runner/verify-command.ts";
+import { runCommand } from "../../runner/run-command.ts";
 import { loadRun } from "../../store/index.ts";
+import { transact } from "../../store/transaction.ts";
 import { completeRun } from "../../workflow/completion/complete-run.ts";
 import type { CompletionArtifactRequirements } from "../../workflow/completion/artifact-verification.ts";
-import type { PacketRecord, TaskRecord, WorkflowState } from "../../workflow/types.ts";
+import type { TaskRecord, WorkflowState } from "../../workflow/types.ts";
 import {
   formatRunCompleteBrief,
   formatRunExecBrief,
   formatRunStatusBrief,
 } from "../formatters/index.ts";
 import { assertFlags, boolFlag, textFlag, type Flags } from "../options.ts";
-import { runCommandCli } from "./runner.ts";
 
 function liveRepositoryBinding(run: string) {
   const repository = dirname(dirname(loadRun(run).runRoot));
@@ -33,14 +33,13 @@ function verifyCompletionArtifacts(
     if (!command) issues.push(`command ${id}: missing durable command record`);
     else issues.push(...verifyCommandRecord(run, command).map((issue) => `command ${id}: ${issue}`));
   }
-  issues.push(...packetEvidenceIssues(run, state.packets ?? ({} as Record<string, PacketRecord>)));
   if (issues.length > 0) {
     throw new HarnessError("INTEGRITY", `completion artifact verification failed: ${issues.join("; ")}`);
   }
   return {
     verified_at: new Date().toISOString(),
     command_ids: requirements.command_ids,
-    packets: requirements.packets,
+    packets: requirements.packets ?? [],
     repository_binding: liveRepositoryBinding(run),
   };
 }
@@ -59,9 +58,9 @@ export function runCompleteCommand(flags: Flags): Record<string, unknown> {
     runId: basename(run),
     capsulePath: run,
     tasksCount: tasks.length,
-    validationsCount: tasks.filter((t) => (t.validation_history ?? []).length > 0 || t.status === "done").length,
-    gatesPassed: tasks.filter((t) => t.status === "done").length,
-    totalGates: tasks.length,
+    validationsCount: tasks.filter((t) => t.status === "done").length,
+    gatesPassed: Object.values(state.commands).filter((c) => c.exit_code === 0).length,
+    totalGates: state.requirements.length,
   });
 
   return { markdown, run_root: run, completion: state.completion_result };
@@ -71,22 +70,18 @@ export function runStatusCommand(flags: Flags): Record<string, unknown> {
   assertFlags(flags, ["run", "detailed"]);
   const run = textFlag(flags, "run")!;
   const detailed = boolFlag(flags, "detailed");
+
   const loaded = loadRun(run);
   const state = loaded.state;
-  const allTasksMap = (state.tasks ?? {}) as Record<string, TaskRecord>;
-  const tasks = Object.values(allTasksMap);
+  const tasks = Object.values((state.tasks ?? {}) as Record<string, TaskRecord>);
 
   const taskItems = tasks.map((t) => {
     let agentOrLock = "-";
-    if (t.status === "leased") agentOrLock = `Leased by \`${t.lease?.agent_id ?? "unknown"}\``;
-    else if (t.status === "validating") agentOrLock = `Validating by \`${t.validation?.validator_id ?? "validator"}\``;
+    if (t.lease) agentOrLock = `Leased (${t.lease.agent_id})`;
+    else if (t.validation) agentOrLock = `Validating (${t.validation.validator_id})`;
     else if (t.status === "done") agentOrLock = "Completed";
-    else if (t.status === "proposed") {
-      const remaining = t.dependencies.filter((d) => allTasksMap[d]?.status !== "done");
-      agentOrLock = remaining.length > 0 ? `Waiting on ${remaining.join(", ")}` : "Proposed";
-    }
 
-    let statusEmoji = "⏳";
+    let statusEmoji = "⚪ Unknown";
     if (t.status === "done") statusEmoji = "✅ Satisfied";
     else if (t.status === "leased" || t.status === "running") statusEmoji = "🏃 Leased";
     else if (t.status === "validating") statusEmoji = "🔄 Validating";
@@ -132,25 +127,38 @@ export async function runExecCommand(flags: Flags, argv: readonly string[]): Pro
       : resolve(repoRoot, rawCwd)
     : repoRoot;
 
-  const result = await runCommandCli(
-    { run, cwd, actor, ...(task ? { task } : {}), ...(gate ? { gate } : {}) },
-    [...argv],
-  );
+  const commandDir = `${loaded.runRoot}/commands`;
+  const cmdOpts = {
+    runRoot: loaded.runRoot,
+    commandDir,
+    cwd,
+    actor,
+    argv: [...argv],
+    ...(task ? { taskId: task } : {}),
+    ...(gate ? { gateId: gate } : {}),
+  };
+  const result = await runCommand(cmdOpts);
 
-  const record = (result.record ?? {}) as { exit_code: number; duration_ms: number; stdout: string; id: string };
+  transact(loaded.runRoot, actor, "command-recorded", {}, (draft) => {
+    const d = draft as Record<string, unknown>;
+    d.commands = (d.commands ?? {}) as Record<string, unknown>;
+    (d.commands as Record<string, unknown>)[result.record.id] = result.record;
+  });
+
+  const record = result.record;
   const commandStr = argv.join(" ");
   const exitCode = record.exit_code ?? 0;
-  const durationSec = (record.duration_ms ?? 0) / 1000;
+  const durationSec = ((record.finished_at ? Date.parse(record.finished_at) : 0) - (record.started_at ? Date.parse(record.started_at) : 0)) / 1000;
   const outputSummary = exitCode === 0 ? "Command completed successfully" : "Command returned non-zero exit code";
 
   const markdown = formatRunExecBrief({
     commandStr,
     exitCode,
-    durationSeconds: durationSec,
+    durationSeconds: durationSec > 0 ? durationSec : 0.1,
     outputSummary,
     evidencePath: `${run}/evidence/${record.id}.json`,
-    logPath: `${result.record_path as string}`,
+    logPath: result.recordPath,
   });
 
-  return { markdown, run_root: run, command: record, command_id: record.id, exit_code: exitCode, duration_ms: record.duration_ms, ...result };
+  return { markdown, run_root: run, command: record, command_id: record.id, exit_code: exitCode, ...result };
 }

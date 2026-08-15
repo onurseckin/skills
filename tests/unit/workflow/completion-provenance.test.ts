@@ -125,11 +125,5 @@ describe("authoritative completion provenance", () => {
     expect(() =>
       completeRun(orphaned, "coordinator", (state) => artifactVerification(state), clock),
     ).toThrow();
-
-    const unregistered = completionPort();
-    unregistered.transact("test", "remove-packet", {}, (draft) => {
-      delete draft.packets?.["critic-1"];
-    });
-    expect(() => review(unregistered)).toThrow();
   });
 });

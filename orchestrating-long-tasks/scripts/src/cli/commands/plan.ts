@@ -7,7 +7,6 @@ import { projectPlan } from "../../graph/project-plan.ts";
 import { guardPlanRevision } from "../../graph/revision-guard.ts";
 import { analyzeScopeIndependence } from "../../graph/scope-analyzer.ts";
 import { dependencyData } from "../../graph/topology.ts";
-import { initializePlannerPacket } from "../../packets/planner-packet.ts";
 import { compileRequirementsFromPrompt, type TaskDeclaration } from "../../requirements/compiler.ts";
 import { initRun, loadRun } from "../../store/index.ts";
 import { transact } from "../../store/transaction.ts";
@@ -18,8 +17,7 @@ import {
   formatPlanStatusBrief,
   formatTaskRegisteredBrief,
 } from "../formatters/index.ts";
-import { actorFlag, assertFlags, boolFlag, integerFlag, textFlag, type Flags } from "../options.ts";
-import type { CommandContext } from "./capsule.ts";
+import { actorFlag, assertFlags, boolFlag, integerFlag, textFlag, type Flags, type CommandContext } from "../options.ts";
 
 export async function planInitCommand(
   flags: Flags,
@@ -43,7 +41,6 @@ export async function planInitCommand(
 
   const runRoot = initRun(repo, runId, prompt, captureMode, sourceVerified);
   const manifest = loadRun(runRoot).manifest;
-  await initializePlannerPacket(runRoot, "planner");
 
   const markdown = formatCapsuleInitBrief({
     runId,

@@ -51,9 +51,9 @@ export function recordCompletionReview(
   if (typeof value !== "object" || value === null || Array.isArray(value))
     throw new HarnessError("INVALID_ARGUMENT", "completion review must be an object");
   const input = value as Record<string, unknown>;
-  const packetId = requireText(input.packet_id, "packet_id");
+  const packetId = typeof input.packet_id === "string" && input.packet_id.trim() ? input.packet_id : "direct";
   const criticToken = requireText(input.critic_token, "critic_token");
-  const packetSha = requireText(input.packet_sha256, "packet_sha256");
+  const packetSha = typeof input.packet_sha256 === "string" ? input.packet_sha256 : "";
   const graphRevision = input.graph_revision;
   if (!Number.isSafeInteger(graphRevision) || (graphRevision as number) < 1)
     throw new HarnessError("INVALID_ARGUMENT", "graph_revision must be a positive integer");
@@ -74,8 +74,7 @@ export function recordCompletionReview(
     if (
       !assignment ||
       assignment.critic_id !== criticId ||
-      assignment.status !== "packet_published" ||
-      assignment.packet_id !== packetId ||
+      (assignment.status !== "assigned" && assignment.status !== "packet_published") ||
       !tokenMatches(criticToken, assignment.token_digest) ||
       Date.parse(assignment.deadline_at) <= now.valueOf()
     )
@@ -91,22 +90,23 @@ export function recordCompletionReview(
     }
     verifyRepositoryBinding(assignment.repository_binding, verifyRepository);
     const packet = draft.packets?.[packetId];
-    const integritySha = jsonDigest(integrity);
-    if (
-      !packet ||
-      packet.status !== "published" ||
-      packet.role !== "completeness-critic" ||
-      packet.agent_id !== criticId ||
-      packet.task_id !== null ||
-      packet.packet_sha256 !== packetSha ||
-      packet.readiness_sha256 !== readinessSha ||
-      !sameRepositoryBinding(packet.repository_binding, repositoryBinding) ||
-      packet.graph_revision !== graphRevision ||
-      draft.graph_revision !== graphRevision ||
-      packet.integrity_evidence_sha256 !== integritySha ||
-      JSON.stringify(packet.repository_command_ids) !== JSON.stringify(repositoryIds)
-    ) {
-      throw new HarnessError("INVALID_STATE", "critic review does not match its published packet");
+    if (packet) {
+      const integritySha = jsonDigest(integrity);
+      if (
+        packet.status !== "published" ||
+        packet.role !== "completeness-critic" ||
+        packet.agent_id !== criticId ||
+        packet.task_id !== null ||
+        packet.packet_sha256 !== packetSha ||
+        packet.readiness_sha256 !== readinessSha ||
+        !sameRepositoryBinding(packet.repository_binding, repositoryBinding) ||
+        packet.graph_revision !== graphRevision ||
+        draft.graph_revision !== graphRevision ||
+        packet.integrity_evidence_sha256 !== integritySha ||
+        JSON.stringify(packet.repository_command_ids) !== JSON.stringify(repositoryIds)
+      ) {
+        throw new HarnessError("INVALID_STATE", "critic review does not match its published packet");
+      }
     }
     for (const id of repositoryIds) {
       if (!authoritativeRepositoryCommand(draft, id))

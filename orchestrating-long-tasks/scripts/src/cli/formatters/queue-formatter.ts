@@ -7,7 +7,7 @@ export interface QueueNextParams {
   goal?: string;
   writeScope: readonly string[];
   gateCmd: string;
-  packetPath: string;
+  packetPath?: string;
   runId: string;
 }
 
@@ -20,7 +20,6 @@ export function formatQueueNextBrief(params: QueueNextParams): string {
     `- **Goal**: ${goalStr}`,
     `- **Write Scope**: ${scopeStr}`,
     `- **Mandatory Gate**: \`${params.gateCmd}\``,
-    `- **Role Packet**: \`${params.packetPath}\``,
     "",
     `#### Claim Command:`,
     "```bash",
@@ -106,7 +105,7 @@ export interface QueuePopParams {
   expiresAt: string;
   writeScope: readonly string[];
   gateCmd: string;
-  packetPath: string;
+  packetPath?: string;
 }
 
 export function formatQueuePopBrief(params: QueuePopParams): string {
@@ -118,7 +117,6 @@ export function formatQueuePopBrief(params: QueuePopParams): string {
     `- **Deadline**: ${params.deadlineMinutes}m (Expires: ${params.expiresAt})`,
     `- **Write Scope**: ${scopeStr}`,
     `- **Mandatory Gate**: \`${params.gateCmd}\``,
-    `- **Packet**: \`${params.packetPath}\``,
   ].join("\n");
   return enforceLineLimit(md, 30);
 }

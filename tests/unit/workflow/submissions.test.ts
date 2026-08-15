@@ -80,9 +80,4 @@ describe("workflow submissions", () => {
     expect(port.read().orphan_evidence).toEqual([]);
   });
 
-  test("refuses submission without matching durable packet authority", () => {
-    const port = new TestPort(workflowState());
-    const { token } = claimTask(port, "T-1", "agent", "implementer", { clock: start });
-    expect(() => submitTask(port, "T-1", "agent", token, report, start)).toThrow();
-  });
 });

@@ -6,7 +6,7 @@ export interface TaskClaimParams {
   token: string;
   durationMinutes: number;
   writeScope: readonly string[];
-  packetPath: string;
+  packetPath?: string;
 }
 
 export function formatTaskClaimBrief(params: TaskClaimParams): string {
@@ -17,7 +17,6 @@ export function formatTaskClaimBrief(params: TaskClaimParams): string {
     `- **Lease Token**: \`${params.token}\``,
     `- **Duration**: ${params.durationMinutes} minutes`,
     `- **Assigned Write Scope**: ${scopeStr}`,
-    `- **Role Packet**: \`${params.packetPath}\``,
     `- **Note**: Pass \`--token ${params.token}\` to \`task:submit\`.`,
   ].join("\n");
   return enforceLineLimit(md, 30);
@@ -70,7 +69,7 @@ export interface ValidationStartParams {
   validator: string;
   token: string;
   gates: readonly string[];
-  packetPath: string;
+  packetPath?: string;
 }
 
 export function formatValidationStartBrief(params: ValidationStartParams): string {
@@ -81,7 +80,6 @@ export function formatValidationStartBrief(params: ValidationStartParams): strin
     `- **Validation Token**: \`${params.token}\``,
     `- **Mandatory Gates to Run**:`,
     ...gateLines,
-    `- **Validator Packet**: \`${params.packetPath}\``,
   ].join("\n");
   return enforceLineLimit(md, 30);
 }

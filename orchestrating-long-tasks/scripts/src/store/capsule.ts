@@ -42,7 +42,7 @@ export function initRun(
   mkdirSync(runRoot, { mode: 0o755 });
   fsyncDirectory(capsulesRoot);
   try {
-    for (const directory of ["packets", "evidence", "findings", "commands"])
+    for (const directory of ["evidence", "findings", "reports", "commands"])
       mkdirSync(join(runRoot, directory), { mode: 0o755 });
     fsyncDirectory(runRoot);
     atomicWriteBytes(join(runRoot, "prompt.md"), prompt, { mode: 0o444 });

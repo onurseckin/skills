@@ -8,7 +8,7 @@ export interface CriticStartParams {
   reqsEvidenced: number;
   totalReqs: number;
   finalGate: string;
-  packetPath: string;
+  packetPath?: string;
 }
 
 export function formatCriticStartBrief(params: CriticStartParams): string {
@@ -18,7 +18,6 @@ export function formatCriticStartBrief(params: CriticStartParams): string {
     `- **Critic Token**: \`${params.token}\``,
     `- **Scope Under Review**: ${params.tasksSatisfied}/${params.totalTasks} tasks satisfied | ${params.reqsEvidenced}/${params.totalReqs} requirements evidenced`,
     `- **Mandatory Final Gate**: \`${params.finalGate}\``,
-    `- **Critic Packet**: \`${params.packetPath}\``,
   ].join("\n");
   return enforceLineLimit(md, 30);
 }
