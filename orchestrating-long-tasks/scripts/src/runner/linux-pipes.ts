@@ -57,10 +57,7 @@ function boundedEnvironment(pid: number, budget: { bytes: number }): Buffer {
       if (read === 0) break;
       processBytes += read;
       budget.bytes += read;
-      if (
-        processBytes > MAX_PROCESS_ENVIRONMENT_BYTES ||
-        budget.bytes > MAX_TOKEN_SCAN_BYTES
-      )
+      if (processBytes > MAX_PROCESS_ENVIRONMENT_BYTES || budget.bytes > MAX_TOKEN_SCAN_BYTES)
         throw new HarnessError("INVALID_STATE", "ownership-token environment scan is too large");
       chunks.push(chunk.subarray(0, read));
     }

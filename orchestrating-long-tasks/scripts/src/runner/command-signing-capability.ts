@@ -140,13 +140,10 @@ export function createAttemptDispositionCapabilityWithKey(
             if (signals.includes(signal)) return;
             if (signal === "SIGKILL" && !signals.includes("SIGTERM"))
               throw new HarnessError("INVALID_STATE", "attempt cleanup signal order is invalid");
-            record = append(
-              record,
-              "uncertain",
-              null,
-              record.cleanup_disposition.reason,
-              [...signals, signal],
-            );
+            record = append(record, "uncertain", null, record.cleanup_disposition.reason, [
+              ...signals,
+              signal,
+            ]);
           },
           markRecordPending(reason) {
             assertNotTerminal();

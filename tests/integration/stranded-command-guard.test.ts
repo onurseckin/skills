@@ -2,7 +2,10 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { recordCommandIntent, runAndRecordCommand } from "../../orchestrating-long-tasks/scripts/src/integration/record-command.ts";
+import {
+  recordCommandIntent,
+  runAndRecordCommand,
+} from "../../orchestrating-long-tasks/scripts/src/integration/record-command.ts";
 import { prepareCommand } from "../../orchestrating-long-tasks/scripts/src/runner/run-command.ts";
 import { initRun } from "../../orchestrating-long-tasks/scripts/src/store/index.ts";
 

@@ -12,16 +12,9 @@ When an implementer completes its assigned coding work, it does not send convers
 {
   "summary": "Implemented lease timeout engine with atomic POSIX fsync durability.",
   "requirement_ids": ["R-LEASE-01", "R-LEASE-02"],
-  "files_changed": [
-    "src/engine/lease.ts",
-    "src/engine/timeout.ts"
-  ],
-  "checks": [
-    { "command_id": "C-ca197aba-a389-40a2-9d36-9b775d8f237b" }
-  ],
-  "evidence": [
-    { "path": "src/engine/lease.ts" }
-  ]
+  "files_changed": ["src/engine/lease.ts", "src/engine/timeout.ts"],
+  "checks": [{ "command_id": "C-ca197aba-a389-40a2-9d36-9b775d8f237b" }],
+  "evidence": [{ "path": "src/engine/lease.ts" }]
 }
 ```
 
@@ -29,7 +22,7 @@ When an implementer completes its assigned coding work, it does not send convers
 
 ## 🔬 Monitored Command Proofs (`commands/`)
 
-In `orchestrating-long-tasks`, an agent cannot claim *"I ran the tests and they passed"* without attaching an immutable **Command Record ID** (`C-xxx`).
+In `orchestrating-long-tasks`, an agent cannot claim _"I ran the tests and they passed"_ without attaching an immutable **Command Record ID** (`C-xxx`).
 
 All commands must be executed through the watchdog runner (`harness.ts run`):
 
@@ -45,7 +38,9 @@ bun orchestrating-long-tasks/scripts/harness.ts run \
 ```
 
 ### What `run` Produces on Disk:
+
 Under `.capsules/<run-id>/commands/<command-id>/`:
+
 1. **`intent.json`**: Literal argv, cwd, actor, task ID, timeouts, environment overrides.
 2. **`stdout.log` & `stderr.log`**: Exact output streams captured directly from OS file descriptors with SHA-256 digests.
 3. **`activity.json`**: Timing marks, process PID, memory snapshots, signals sent.
@@ -71,6 +66,7 @@ Under `.capsules/<run-id>/commands/<command-id>/`:
 ## 🔒 Submission Invariants Enforced by `harness.ts submit`
 
 When `submit` is called with `--token <bearer-token> --report report.json`:
+
 1. **Token Authentication:** Matches bearer token against `lease.token_digest`.
 2. **Scope Enforcement:** Every entry in `files_changed` must fall within `task.write_scope`.
 3. **Requirement Mapping:** `requirement_ids` must be a subset of the task's assigned requirements.

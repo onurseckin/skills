@@ -1,9 +1,5 @@
 import { HarnessError } from "../errors/harness-error.ts";
-import {
-  darwinPipeHandles,
-  darwinPipeOwners,
-  darwinTokenOwnerIdentities,
-} from "./darwin-pipes.ts";
+import { darwinPipeHandles, darwinPipeOwners, darwinTokenOwnerIdentities } from "./darwin-pipes.ts";
 import {
   linuxPipeHandles,
   linuxPipeOwners,

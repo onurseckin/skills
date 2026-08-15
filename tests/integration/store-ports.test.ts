@@ -3,12 +3,19 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { applyPlan } from "../../orchestrating-long-tasks/scripts/src/graph/apply-plan.ts";
-import { planningPort, workflowPort } from "../../orchestrating-long-tasks/scripts/src/integration/store-ports.ts";
+import {
+  planningPort,
+  workflowPort,
+} from "../../orchestrating-long-tasks/scripts/src/integration/store-ports.ts";
 import { proposeBatch } from "../../orchestrating-long-tasks/scripts/src/scheduler/propose-batch.ts";
-import { initRun, loadRun, transact } from "../../orchestrating-long-tasks/scripts/src/store/index.ts";
+import {
+  initRun,
+  loadRun,
+  transact,
+} from "../../orchestrating-long-tasks/scripts/src/store/index.ts";
 import { claimTask } from "../../orchestrating-long-tasks/scripts/src/workflow/lease/claim.ts";
-import { graphDocument } from "../graph/fixtures.ts";
-import { requirementsDocument } from "../requirements/fixtures.ts";
+import { graphDocument } from "../unit/graph/fixtures.ts";
+import { requirementsDocument } from "../unit/requirements/fixtures.ts";
 
 const roots: string[] = [];
 

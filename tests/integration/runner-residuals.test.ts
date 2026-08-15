@@ -7,7 +7,10 @@ import {
   recordCommandIntent,
   recordCommandResult,
 } from "../../orchestrating-long-tasks/scripts/src/integration/record-command.ts";
-import { executePreparedCommand, prepareCommand } from "../../orchestrating-long-tasks/scripts/src/runner/run-command.ts";
+import {
+  executePreparedCommand,
+  prepareCommand,
+} from "../../orchestrating-long-tasks/scripts/src/runner/run-command.ts";
 import { initRun, loadRun } from "../../orchestrating-long-tasks/scripts/src/store/index.ts";
 
 const roots: string[] = [];

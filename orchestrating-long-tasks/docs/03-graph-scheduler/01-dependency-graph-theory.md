@@ -7,6 +7,7 @@
 ## 🕸️ Why a Formal Graph?
 
 Complex engineering projects cannot be represented as simple linear "to-do lists." In any non-trivial codebase:
+
 - Task D depends on Task A and Task B.
 - Task C can run completely in parallel with Task A.
 - Task E produces an artifact consumed by Task F.
@@ -43,18 +44,18 @@ The graph schema recognizes exactly eight formal node types:
 
 Edges represent typed relationships between nodes. The vocabulary is strictly closed to prevent ambiguity:
 
-| Edge Type | Valid Source Node | Valid Target Node | Meaning |
-| :--- | :--- | :--- | :--- |
-| **`depends_on`** | `task` | `task` (Prerequisite) | **Directional execution prerequisite.** Target must be `done` before Source can run. |
-| **`implements`** | `task` | `requirement` | Declares which atomic requirements the task fulfills. |
-| **`produces`** | `task` | `artifact` | Declares the deliverables created by this task. |
-| **`validates`** | `gate` / `agent` | `task` / `requirement` | Binds verification evidence to work. |
-| **`evidenced_by`**| `requirement` / `finding` | `gate` / `command` | Points to command execution receipts. |
-| **`assigned_to`**| `task` | `agent` | Records worker leasing. |
-| **`discovered_from`**| `finding` | `task` / `gate` | Traces defect origin. |
-| **`supersedes`** | `task` / `artifact` | `task` / `artifact` | Versioning and replacement links. |
-| **`blocks`** | `finding` | `task` | Prevents task completion. |
-| **`relates_to`** | Any | Any | General semantic relation (can form cycles). |
+| Edge Type             | Valid Source Node         | Valid Target Node      | Meaning                                                                              |
+| :-------------------- | :------------------------ | :--------------------- | :----------------------------------------------------------------------------------- |
+| **`depends_on`**      | `task`                    | `task` (Prerequisite)  | **Directional execution prerequisite.** Target must be `done` before Source can run. |
+| **`implements`**      | `task`                    | `requirement`          | Declares which atomic requirements the task fulfills.                                |
+| **`produces`**        | `task`                    | `artifact`             | Declares the deliverables created by this task.                                      |
+| **`validates`**       | `gate` / `agent`          | `task` / `requirement` | Binds verification evidence to work.                                                 |
+| **`evidenced_by`**    | `requirement` / `finding` | `gate` / `command`     | Points to command execution receipts.                                                |
+| **`assigned_to`**     | `task`                    | `agent`                | Records worker leasing.                                                              |
+| **`discovered_from`** | `finding`                 | `task` / `gate`        | Traces defect origin.                                                                |
+| **`supersedes`**      | `task` / `artifact`       | `task` / `artifact`    | Versioning and replacement links.                                                    |
+| **`blocks`**          | `finding`                 | `task`                 | Prevents task completion.                                                            |
+| **`relates_to`**      | Any                       | Any                    | General semantic relation (can form cycles).                                         |
 
 ---
 

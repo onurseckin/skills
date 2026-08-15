@@ -38,6 +38,7 @@ bunx skills add onurseckin/skills --skill orchestrating-long-tasks
 ```
 
 #### Managing Installed Skills:
+
 ```bash
 # List all installed skills across your environment
 npx skills list
@@ -94,6 +95,7 @@ skills/
 ```
 
 ### Standard `SKILL.md` Format:
+
 ```markdown
 ---
 name: your-skill-name
@@ -112,13 +114,17 @@ Detailed instructions, workflows, triggers, and operational steps...
 When developing or updating skills locally:
 
 ### 1. Install Dev Dependencies
+
 Developer tooling (`typescript`, `oxfmt`, `@types/bun`, `@types/node`) is used for local typechecks and testing:
+
 ```bash
 bun install
 ```
 
 ### 2. Run Test Suites
+
 All skills maintain comprehensive test suites:
+
 ```bash
 # Run all unit, integration, and architecture tests
 bun test
@@ -128,7 +134,9 @@ cd orchestrating-long-tasks/scripts && bun test
 ```
 
 ### 3. Typecheck & Formatting
+
 Enforce zero-error type safety and consistent code style:
+
 ```bash
 # Run strict TypeScript compiler verification
 bun run typecheck
@@ -138,7 +146,9 @@ bun run format
 ```
 
 ### 4. Local Testing & Verification
+
 Before pushing changes, test installing locally from your local working copy:
+
 ```bash
 # Test local installation
 npx skills add ./orchestrating-long-tasks
@@ -149,6 +159,7 @@ npx skills add ./orchestrating-long-tasks
 ## 📜 Quality Invariants
 
 All skills in this repository adhere to the following core engineering standards:
+
 1. **Zero Runtime Dependencies:** Runtime scripts must run directly via `bun` or `node` built-ins without requiring runtime `npm install`.
 2. **Context Modularity:** Keep production files within context-friendly limits ($\le 200$ lines for production sources, $\le 250$ lines for tests).
 3. **No Hardcoded Tokens or AI APIs:** Tooling must remain host-agnostic and avoid hardcoded vendor API keys or network model calls.

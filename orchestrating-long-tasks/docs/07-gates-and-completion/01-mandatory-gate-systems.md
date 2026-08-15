@@ -33,11 +33,13 @@ In `orchestrating-long-tasks`, verification contracts are represented as **Manda
 The harness supports two distinct gate scopes:
 
 ### 1. Task Gates (`scope: "task"`)
+
 - Bound to specific task nodes in `graph.json`.
 - Evaluated immediately after a task passes independent validation.
 - Must succeed with exit code 0 before the task can transition from `gating` to `done`.
 
 ### 2. Run Gates (`scope: "run"`)
+
 - Global repository verification suites (e.g. full end-to-end integration tests, package build gates).
 - Evaluated at the end of the entire project run.
 - Must succeed with exit code 0 before the harness permits final terminal completion (`complete`).
@@ -47,11 +49,12 @@ The harness supports two distinct gate scopes:
 ## 📜 Direct Argv Grammar Rules
 
 To prevent command injection, shell escaping vulnerabilities, and unpredictable terminal environments:
+
 - **No Shell Wrappers:** Gate commands MUST be expressed as literal bare executable string arrays:
   - ✅ `["bun", "test", "tests/unit/cache.test.ts"]`
   - ✅ `["cargo", "test", "--package", "auth"]`
-  - ❌ `["sh", "-c", "bun test tests/unit/*.test.ts"]` *(Rejected)*
-  - ❌ `"bun test tests/unit/cache.test.ts"` *(Rejected)*
+  - ❌ `["sh", "-c", "bun test tests/unit/*.test.ts"]` _(Rejected)_
+  - ❌ `"bun test tests/unit/cache.test.ts"` _(Rejected)_
 - **Git Security Seams:** When running Git commands, the harness injects strict isolation headers (`GIT_NO_REPLACE_OBJECTS=1`, `--no-ext-diff`, `GIT_CONFIG_NOSYSTEM=1`, `GIT_CONFIG_GLOBAL=/dev/null`).
 
 ---

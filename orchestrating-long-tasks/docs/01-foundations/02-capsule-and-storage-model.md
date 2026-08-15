@@ -9,9 +9,11 @@
 In `orchestrating-long-tasks`, all coordination state, historical records, and execution runtimes for a given task execution live inside an isolated directory called a **Run Capsule**.
 
 By default, every run is created under:
+
 ```text
 <repository-root>/.capsules/<run-id>/
 ```
+
 Where `<run-id>` is a unique, URL-safe slug identifying the task execution (e.g., `auth-refactor-2026`, `feature-cache-layer`).
 
 The capsule is completely self-contained, zero-dependency, and isolated from external package changes. If an AI agent crashes, or if the user switches from Antigravity to Claude Code or Codex, the incoming agent simply points to the `.capsules/<run-id>/` directory and resumes with 100% fidelity.
@@ -83,6 +85,7 @@ Let's examine the four core files that guarantee data integrity across crashes a
 ```
 
 ### 1. `prompt.md` & `manifest.json`
+
 - **`prompt.md`**: Contains the exact raw bytes of the user's prompt. It is created with mode `0444` (read-only) and is never modified during the entire lifecycle of the run.
 - **`manifest.json`**: Records the capture metadata:
   ```json
@@ -102,6 +105,7 @@ Let's examine the four core files that guarantee data integrity across crashes a
   - **Capture Assurance**: If initialized via `--source-verified` with direct file/stdin retrieval, assurance is `source-verified`. If transcribed from chat history, assurance is `recorded-unverified`.
 
 ### 2. `events.jsonl` (The Cryptographic Hash Chain)
+
 All mutations to the run state are modeled as **immutable events** appended to `events.jsonl`.
 Every event line contains a forward-secure cryptographic hash chain:
 
@@ -128,12 +132,15 @@ The hash of Event $N$ is computed as:
 $$\text{event\_sha256}_N = \text{SHA-256}(\text{previous\_event\_sha256}_N + \text{canonical\_json}(\text{event\_fields}))$$
 
 **Why this matters:**
+
 1. **Tamper Proof**: If an agent or bug edits an earlier event in the middle of the file, the entire remaining hash chain breaks immediately.
 2. **Crash Resilience**: If a machine crashes mid-write, creating a "torn line" at the very end of `events.jsonl`, the forensic recovery engine detects the torn fragment, quarantines it, truncates back to the last valid hash link, and rebuilds state cleanly without data loss.
 
 ### 3. `state.json` (The Current Authoritative Projection)
+
 `state.json` is a deterministic, materialized view computed by replaying `events.jsonl` from sequence 0 to sequence $N$.
 It contains:
+
 - Graph revision and active nodes/edges
 - Current task status (`ready`, `leased`, `running`, `submitted`, `validating`, `done`, etc.)
 - Active leases and token SHA-256 digests
@@ -163,6 +170,7 @@ Each run capsule under `.capsules/<run-id>/` is designed as a pure data and veri
 ```
 
 ### Benefits of the Pure Data Model
+
 1. **Zero Disk Bloat**: Does not duplicate code files across runs, making initialization instantaneous and disk usage negligible.
 2. **Deterministic Portability**: The entire `.capsules/<run-id>/` directory can be moved to another machine or archived; executing `bun orchestrating-long-tasks/scripts/harness.ts status --run .capsules/<run-id>` inspects and resumes the run cleanly.
 3. **Consolidated Ephemeral Scratch**: All run-specific temporary data lives in `.capsules/<run-id>/tmp/`, keeping the repository root completely clean.
@@ -174,7 +182,7 @@ Each run capsule under `.capsules/<run-id>/` is designed as a pure data and veri
 To allow multiple concurrent agents and watchdog processes to operate safely without corrupting files, the storage engine implements strict kernel-level locking and atomic filesystem mutations:
 
 ```text
-[ Agent Action ] 
+[ Agent Action ]
        │
        ▼
 1. Acquire POSIX kernel `flock` on inode (<run-dir>/.lock)
@@ -205,6 +213,7 @@ To allow multiple concurrent agents and watchdog processes to operate safely wit
 ```
 
 ### Key Properties of this Design:
+
 - **Inode-Bound Locking**: Locking is performed on the underlying file inode. If a Rogue process deletes or renames the `.lock` path, the kernel lock remains securely held on the opened descriptor.
 - **Fail-Closed on Collision**: If a lock cannot be acquired within the timeout window, the command fails with `CONFLICT` error rather than corrupting state.
 - **No In-Memory Illusions**: State transitions only succeed once the bytes have been physically flushed to the OS storage controller via `fsync()`.

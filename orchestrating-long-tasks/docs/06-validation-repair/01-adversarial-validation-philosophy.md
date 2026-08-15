@@ -6,7 +6,8 @@
 
 ## 🎭 The Fatal Flaw of Self-Grading
 
-In traditional agent workflows, when an AI writes code and is asked *"Did your tests pass?"*, it evaluates its own output under deep cognitive and conversational bias:
+In traditional agent workflows, when an AI writes code and is asked _"Did your tests pass?"_, it evaluates its own output under deep cognitive and conversational bias:
+
 - It assumes its reasoning was correct.
 - It interprets ambiguous test output optimistically.
 - It overlooks unhandled edge cases because it didn't think of them during implementation.
@@ -20,7 +21,7 @@ To achieve production-grade reliability, `orchestrating-long-tasks` enforces **A
 ## 🧼 Context Sanitization: Stripping Prose & Confidence
 
 Even when a separate agent is used as a validator, a subtle cognitive trap remains: **Anchoring Bias**.
-If the validator reads the implementer's chat narrative (e.g., *"I refactored the auth module, verified all tokens, and achieved 100% test coverage"*), the validator subconsciously assumes the work is solid and skims the diff.
+If the validator reads the implementer's chat narrative (e.g., _"I refactored the auth module, verified all tokens, and achieved 100% test coverage"_), the validator subconsciously assumes the work is solid and skims the diff.
 
 The harness eliminates anchoring bias through **Context Sanitization**:
 
@@ -52,6 +53,7 @@ The harness eliminates anchoring bias through **Context Sanitization**:
 ## 🔍 The Validator's Mindset: Adversarial Verification
 
 The validator's sole job is to **attempt to break the implementation** within the bounds of the acceptance criteria:
+
 1. It does not trust the implementer's narrative.
 2. It inspects the actual code on disk.
 3. It executes the mandatory test command directly via `harness.ts run`.

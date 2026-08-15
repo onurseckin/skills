@@ -7,12 +7,7 @@ import { safeRepoPath } from "../core/paths.ts";
 import { sha256Bytes } from "../core/json.ts";
 import { HarnessError } from "../errors/harness-error.ts";
 import { captureAssurance, isCaptureMode } from "./assurance.ts";
-import {
-  FORMAT_VERSION,
-  MANIFEST_SCHEMA,
-  RUN_ID_PATTERN,
-  RUNTIME_VERSION,
-} from "./constants.ts";
+import { FORMAT_VERSION, MANIFEST_SCHEMA, RUN_ID_PATTERN, RUNTIME_VERSION } from "./constants.ts";
 import { initialState } from "./state.ts";
 
 export interface InitRunOptions {

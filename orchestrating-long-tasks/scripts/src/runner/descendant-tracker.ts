@@ -9,10 +9,7 @@ import {
   type ProcessTopology,
 } from "./process-identity.ts";
 import { ancestry, matchesTopology } from "./process-tree.ts";
-import {
-  expandDescendants,
-  liveTrackedParents,
-} from "./descendant-topology.ts";
+import { expandDescendants, liveTrackedParents } from "./descendant-topology.ts";
 
 export type { ProcessIdentity } from "./process-identity.ts";
 
@@ -186,7 +183,8 @@ export class DescendantTracker {
   ): boolean {
     const delivered = this.deliveredSignals.get(signal);
     return Boolean(
-      delivered && identities.some((identity) => delivered.has(`${identity.pid}:${identity.birth}`)),
+      delivered &&
+      identities.some((identity) => delivered.has(`${identity.pid}:${identity.birth}`)),
     );
   }
 }

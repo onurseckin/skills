@@ -2,7 +2,10 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { executePreparedCommand, prepareCommand } from "../../orchestrating-long-tasks/scripts/src/runner/run-command.ts";
+import {
+  executePreparedCommand,
+  prepareCommand,
+} from "../../orchestrating-long-tasks/scripts/src/runner/run-command.ts";
 import { pumpOutput } from "../../orchestrating-long-tasks/scripts/src/runner/output-pump.ts";
 import { runAttempt } from "../../orchestrating-long-tasks/scripts/src/runner/run-attempt.ts";
 import { createCommandSigningCapability } from "../../orchestrating-long-tasks/scripts/src/runner/attempt-disposition-capability.ts";
@@ -18,7 +21,7 @@ import {
 import { runDoctor } from "../../orchestrating-long-tasks/scripts/src/reporting/doctor.ts";
 import { initRun, loadRun } from "../../orchestrating-long-tasks/scripts/src/store/index.ts";
 
-const fixture = join(import.meta.dir, "../runner/fixtures/command-fixture.ts");
+const fixture = join(import.meta.dir, "../unit/runner/fixtures/command-fixture.ts");
 const roots: string[] = [];
 
 async function harness(): Promise<{ repo: string; runRoot: string }> {

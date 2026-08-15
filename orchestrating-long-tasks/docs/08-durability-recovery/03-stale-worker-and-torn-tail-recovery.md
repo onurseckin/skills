@@ -51,6 +51,7 @@ When an agent crashes or loses network connectivity, its task lease eventually e
 $$\text{now}() > \text{lease.expires\_at}$$
 
 During recovery:
+
 1. The coordinator scans all active task leases.
 2. Expired leases are identified and marked as stale.
 3. If an associated OS process is still running, the watchdog emits `SIGTERM` followed by `SIGKILL` (Strong Absence Verification).

@@ -6,7 +6,7 @@
 
 ## 🚫 Why AI Agents Cannot Declare Victory by Assertion
 
-In standard LLM systems, an agent prints *"Everything is complete and tested! Thank you!"* even when half the files are missing or broken.
+In standard LLM systems, an agent prints _"Everything is complete and tested! Thank you!"_ even when half the files are missing or broken.
 
 In `orchestrating-long-tasks`, the final state transition to `status: "completed"` is computed **purely deterministically** by the completion engine (`harness.ts complete`).
 
@@ -44,6 +44,7 @@ bun orchestrating-long-tasks/scripts/harness.ts complete \
 ```
 
 ### Successful Completion Output:
+
 ```json
 {
   "ok": true,
@@ -61,6 +62,7 @@ bun orchestrating-long-tasks/scripts/harness.ts complete \
 ## 🚢 Post-Completion Workflow: Git Commit & Push
 
 Once the run is officially `completed` by the harness engine:
+
 1. The developer or agent reviews the git status:
    ```bash
    git status --short

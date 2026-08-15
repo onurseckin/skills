@@ -7,10 +7,7 @@ import { policyRecordIssues } from "./policy.ts";
 import { gateEnvironmentIssues } from "./gate-environment.ts";
 import { gitExecutionArgvIssues } from "./git-execution-shape.ts";
 import { commandSigningPublicKeyIssues } from "./attempt-cleanup-disposition.ts";
-import {
-  repositoryObservationIssues,
-  sameCommandJson,
-} from "./repository-observation-shape.ts";
+import { repositoryObservationIssues, sameCommandJson } from "./repository-observation-shape.ts";
 
 export { repositoryObservationIssues, sameCommandJson };
 

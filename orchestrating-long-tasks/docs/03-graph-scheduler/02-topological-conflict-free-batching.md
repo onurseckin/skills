@@ -7,6 +7,7 @@
 ## ⚡ The Challenge of Multi-Agent Concurrency
 
 When an AI system dispatches multiple coding agents in parallel, chaos easily ensues if two agents attempt to edit the same file or overlapping directory trees at the same time:
+
 - Agent 1 writes `src/auth/session.ts`.
 - Agent 2 writes `src/auth/index.ts`.
 - Filesystem race conditions cause torn reads, clobbered functions, and broken imports.
@@ -44,20 +45,21 @@ When the coordinator runs `harness.ts schedule --max-parallel <N>`, the schedule
 
 Candidate tasks that are unblocked are sorted using a multi-dimensional comparator. If two tasks tie on the first factor, the engine evaluates the next factor:
 
-| Rank Factor | Property Evaluated | Sort Direction | Rationale |
-| :--- | :--- | :--- | :--- |
-| **Factor 1** | `priority` | **Descending** (Highest first) | Explicit business/architectural importance set in plan. |
-| **Factor 2** | `critical_depth` | **Descending** (Longest path first) | Longest dependency chain downstream; unblocks the most future work. |
-| **Factor 3** | `distinct_descendants`| **Descending** (Most dependents first)| Number of unique downstream tasks waiting on this result. |
-| **Factor 4** | `created_order` | **Ascending** (Oldest first) | First-in, first-out fairness based on plan authoring order. |
-| **Factor 5** | `effort` | **Ascending** (Smallest first) | Shortest job first (SJF) optimization to quickly clear bandwidth. |
-| **Factor 6** | `id` | **Ascending** (ASCII alphabetical) | Total deterministic tie-breaker (eliminates nondeterministic sorting). |
+| Rank Factor  | Property Evaluated     | Sort Direction                         | Rationale                                                              |
+| :----------- | :--------------------- | :------------------------------------- | :--------------------------------------------------------------------- |
+| **Factor 1** | `priority`             | **Descending** (Highest first)         | Explicit business/architectural importance set in plan.                |
+| **Factor 2** | `critical_depth`       | **Descending** (Longest path first)    | Longest dependency chain downstream; unblocks the most future work.    |
+| **Factor 3** | `distinct_descendants` | **Descending** (Most dependents first) | Number of unique downstream tasks waiting on this result.              |
+| **Factor 4** | `created_order`        | **Ascending** (Oldest first)           | First-in, first-out fairness based on plan authoring order.            |
+| **Factor 5** | `effort`               | **Ascending** (Smallest first)         | Shortest job first (SJF) optimization to quickly clear bandwidth.      |
+| **Factor 6** | `id`                   | **Ascending** (ASCII alphabetical)     | Total deterministic tie-breaker (eliminates nondeterministic sorting). |
 
 ---
 
 ## 🛡️ Step 3: Write-Scope Collision Detection
 
 The scheduler evaluates the `write_scope` of each candidate against already-selected tasks in the batch. Two write scopes conflict if:
+
 1. **Exact Match:** Task A has `write_scope: ["src/auth"]` and Task B has `write_scope: ["src/auth"]`.
 2. **Ancestor / Descendant Collision:** Task A has `write_scope: ["src"]` and Task B has `write_scope: ["src/auth"]` (Ancestor contains descendant).
 
@@ -66,11 +68,12 @@ The scheduler evaluates the `write_scope` of each candidate against already-sele
 Suppose we have 4 ready tasks and `max-parallel: 3`:
 
 - **Task 1:** Priority 100, `write_scope: ["src/auth"]`
-- **Task 2:** Priority 95, `write_scope: ["src/auth/session"]` *(Conflicts with Task 1!)*
-- **Task 3:** Priority 90, `write_scope: ["src/database"]` *(Disjoint)*
-- **Task 4:** Priority 85, `write_scope: ["src/api"]` *(Disjoint)*
+- **Task 2:** Priority 95, `write_scope: ["src/auth/session"]` _(Conflicts with Task 1!)_
+- **Task 3:** Priority 90, `write_scope: ["src/database"]` _(Disjoint)_
+- **Task 4:** Priority 85, `write_scope: ["src/api"]` _(Disjoint)_
 
 **Resulting Batch:**
+
 1. **Task 1** is selected (Highest priority).
 2. **Task 2** is **skipped** (Write scope `src/auth/session` is a descendant of `src/auth`).
 3. **Task 3** is selected (Disjoint from Task 1).

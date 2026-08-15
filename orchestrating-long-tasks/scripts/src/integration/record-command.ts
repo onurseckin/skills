@@ -19,11 +19,7 @@ import {
   recoverAggregateFromAttempts,
   type AttemptReconciliationDependencies,
 } from "./reconcile-command-attempts.ts";
-import {
-  sameIntent,
-  sameOptionalJson,
-  sameRepositoryTransition,
-} from "./command-intent-match.ts";
+import { sameIntent, sameOptionalJson, sameRepositoryTransition } from "./command-intent-match.ts";
 
 export { sameIntent, sameOptionalJson, sameRepositoryTransition };
 

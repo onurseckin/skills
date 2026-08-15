@@ -9,9 +9,10 @@
 The entire foundation of deterministic long-task execution depends on one non-negotiable rule: **The harness must capture and preserve the user's prompt byte-for-byte, character-for-character, before any model summarization or planning can occur.**
 
 If an agent paraphrases, summarizes, or cleans up the prompt during ingestion:
+
 - Subtle edge cases are silently dropped.
 - Formatting and indentation requirements are lost.
-- Negative constraints (e.g., *"Do NOT use third-party libraries"*) get filtered out.
+- Negative constraints (e.g., _"Do NOT use third-party libraries"_) get filtered out.
 - The agent invents a hallucinated baseline against which it tests itself.
 
 ---
@@ -41,8 +42,9 @@ The harness supports three capture mechanisms through the `harness.ts init` CLI:
 ```
 
 ### The Assurance Label Contract:
+
 - **`source-verified`**: The harness opened a direct OS file descriptor or pipe and hashed the raw source bytes before any model interaction.
-- **`recorded-unverified`**: The prompt was copied from chat memory. The harness acknowledges that it *cannot prove* identity to an inaccessible original source. **The harness strictly forbids an agent from silently claiming `source-verified` on a transcribed copy.**
+- **`recorded-unverified`**: The prompt was copied from chat memory. The harness acknowledges that it _cannot prove_ identity to an inaccessible original source. **The harness strictly forbids an agent from silently claiming `source-verified` on a transcribed copy.**
 
 ---
 

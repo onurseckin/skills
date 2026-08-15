@@ -40,13 +40,15 @@ export async function initCommand(
     throw new HarnessError("INVALID_ARGUMENT", "prompt stdin is unavailable");
   const repo = textFlag(flags, "repo")!;
   const ignore_assurance = ensureHarnessIgnored(repo);
+  const sourceVerified = boolFlag(flags, "source-verified");
+  const runtimeSource = textFlag(flags, "runtime-source", false);
   const runRoot = initRun(
     repo,
     textFlag(flags, "run-id")!,
     prompt,
     textFlag(flags, "capture-mode")!,
-    boolFlag(flags, "source-verified"),
-    { runtimeSource: textFlag(flags, "runtime-source", false) },
+    sourceVerified,
+    runtimeSource === undefined ? {} : { runtimeSource },
   );
   const planner = await initializePlannerPacket(runRoot, "planner");
   return {

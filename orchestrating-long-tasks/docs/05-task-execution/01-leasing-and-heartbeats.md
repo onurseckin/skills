@@ -9,6 +9,7 @@
 When an agent claims a task (`claim`), the harness does not grant an open-ended lock. Instead, it issues a **Time-Bounded Lease** (default 1200 seconds / 20 minutes).
 
 A lease defines:
+
 - The assigned `agent_id` and `role`.
 - The exact `write_scope` and `resource_scope`.
 - An immutable `issued_at` timestamp.
@@ -44,6 +45,7 @@ bun orchestrating-long-tasks/scripts/harness.ts heartbeat \
 ```
 
 ### Heartbeat Rules:
+
 1. **Authenticated:** Must provide the valid bearer token matching `token_digest`.
 2. **Cap on Extensions:** Extensions are bounded to prevent infinite zombie leases.
 3. **State Logging:** Records `heartbeat_at` in `state.json` and logs a keepalive event.
@@ -53,6 +55,7 @@ bun orchestrating-long-tasks/scripts/harness.ts heartbeat \
 ## 🔄 Automatic Stale Recovery
 
 If an agent host crashes, runs out of memory, or disconnects without releasing its lease, the coordinator watchdog detects the expired timestamp during `status` or `recover`:
+
 - The dead worker's lease is revoked.
 - The task transitions to `retry_ready`.
 - The attempt count increments ($1 \to 2$).

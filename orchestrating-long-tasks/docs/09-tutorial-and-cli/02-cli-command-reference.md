@@ -19,6 +19,7 @@ All CLI commands output machine-parseable JSON lines (`{"ok": true, "result": ..
 ## 📑 Core Command Catalog
 
 ### 1. Run Lifecycle & Status
+
 - **`init`**: Initialize a new run capsule from an immutable prompt file.
   - Flags: `--run <path>`, `--prompt <path>`, `--actor <name>`
 - **`status`**: Output complete task counts, integrity audit, and recent event stream.
@@ -29,6 +30,7 @@ All CLI commands output machine-parseable JSON lines (`{"ok": true, "result": ..
   - Flags: `--run <path>`, `--actor <name>`, `[--grace-seconds <N>]`
 
 ### 2. Planning & Graph Scheduling
+
 - **`plan-apply`**: Apply and validate requirements and task graph with atomic revision locking.
   - Flags: `--run <path>`, `--requirements <path>`, `--graph <path>`, `--expected-revision <N>`, `--actor <name>`
 - **`ready`**: List eligible tasks whose dependencies are satisfied without mutating state.
@@ -37,6 +39,7 @@ All CLI commands output machine-parseable JSON lines (`{"ok": true, "result": ..
   - Flags: `--run <path>`, `--max-parallel <N>`, `--actor <name>`
 
 ### 3. Task Execution & Leasing
+
 - **`claim`**: Lease an available task for finite duration and issue a bearer token.
   - Flags: `--run <path>`, `--task <id>`, `--agent <id>`, `--role <implementer|planner>`
 - **`heartbeat`**: Extend an active lease before expiration.
@@ -47,6 +50,7 @@ All CLI commands output machine-parseable JSON lines (`{"ok": true, "result": ..
   - Flags: `--run <path>`, `--task <id>`, `--agent <id>`, `--token <token>`, `--report <path>`
 
 ### 4. Validation & Gate Attachment
+
 - **`begin-validation`**: Authorize an independent validator and issue a validation token.
   - Flags: `--run <path>`, `--task <id>`, `--validator <id>`
 - **`review`**: Validator records pass verdict or structured rejection findings.
@@ -59,6 +63,7 @@ All CLI commands output machine-parseable JSON lines (`{"ok": true, "result": ..
   - Flags: `--run <path>`, `--task <id>`, `--actor <name>`
 
 ### 5. Watchdog Command Runner
+
 - **`run`**: Execute a command under fail-closed process monitoring, logging, and repository binding.
   - Flags: `--run <path>`, `--actor <id>`, `[--task <id>]`, `[--gate <id>]`, `--cwd <dir>`, `[--wall-ms <N>]`, `[--idle-ms <N>]`
   - Remainder: `-- <executable> [args...]`

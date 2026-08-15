@@ -39,6 +39,7 @@ The harness enforces strict access control through a **One-Time Bearer Token Sec
 ## 🚨 What Happens If a Token is Lost?
 
 If an agent process crashes or loses its in-memory token:
+
 - **No Regeneration:** The harness will **never** guess, recalculate, or reveal the token from its digest.
 - **Deadline Wait:** The coordinator waits for the lease duration (or validation deadline) to pass.
 - **Stale Recovery:** The coordinator runs:

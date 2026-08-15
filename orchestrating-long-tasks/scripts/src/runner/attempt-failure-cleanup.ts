@@ -38,14 +38,26 @@ export function startAttemptPumpsAndMonitoring(
   const budget = new OutputBudget(options.maxOutputBytes);
   const pump = options.pump ?? pumpOutput;
   pumps.push(
-    pump(child.stdout, stdout, portableArtifactPath(options.runRoot, stdoutPath), activity("stdout"), {
-      signal: pumpAbort.signal,
-      budget,
-    }),
-    pump(child.stderr, stderr, portableArtifactPath(options.runRoot, stderrPath), activity("stderr"), {
-      signal: pumpAbort.signal,
-      budget,
-    }),
+    pump(
+      child.stdout,
+      stdout,
+      portableArtifactPath(options.runRoot, stdoutPath),
+      activity("stdout"),
+      {
+        signal: pumpAbort.signal,
+        budget,
+      },
+    ),
+    pump(
+      child.stderr,
+      stderr,
+      portableArtifactPath(options.runRoot, stderrPath),
+      activity("stderr"),
+      {
+        signal: pumpAbort.signal,
+        budget,
+      },
+    ),
   );
   const allPumps = Promise.all(pumps) as Promise<[OutputSummary, OutputSummary]>;
   const monitoring = monitorProcess(

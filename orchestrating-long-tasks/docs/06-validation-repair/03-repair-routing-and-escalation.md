@@ -51,7 +51,9 @@ bun orchestrating-long-tasks/scripts/harness.ts assign-repairer \
 ```
 
 ### What the Repairer Receives:
+
 The repairer receives the `repairer.md` role packet containing:
+
 1. The leased write scope.
 2. The exact list of open findings (`F-001`, `F-002`).
 3. The observations, remediations, and `revalidation_command` for each finding.
@@ -73,6 +75,7 @@ $$\text{repair\_round} \le 3$$
 - **If Round 3 Fails Validation:** The task immediately transitions to **`escalated`**.
 
 ### What Happens in `escalated`:
+
 1. The task is **frozen** and removed from the active scheduling queue.
 2. No further automated retries or claims are permitted.
 3. The coordinator emits an alert for human operator inspection.

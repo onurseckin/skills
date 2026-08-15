@@ -7,6 +7,7 @@
 ## 🛑 The Principle of Strict Write Containment
 
 In multi-agent systems, "scope creep" often takes the form of uncoordinated file modifications:
+
 - An implementer fixing an authentication bug decides to "clean up formatting" in `src/utils/logger.ts`.
 - Another implementer concurrently refactors `src/utils/logger.ts`.
 - A git conflict occurs, or one agent silently clobbers the other's changes.
@@ -20,6 +21,7 @@ To eliminate this class of bugs entirely, the harness enforces the **Write Scope
 ## 🔍 Path Normalization & Ancestor Validation
 
 During plan validation (`validate`) and submission validation (`submit`), write scopes are strictly normalized:
+
 1. **No Relative Traversal:** Paths with `.` or `..` components are resolved and normalized relative to repository root.
 2. **Normalized Prefix Matching:** A modified file path $F$ belongs to scope $S$ if and only if:
    - $F == S$ (Exact file match), or
@@ -44,6 +46,7 @@ Invalid File Modifications (Rejected with Error):
 ## 📂 Shared Files & Monolithic Configurations
 
 What if multiple tasks need to add exports to a shared `index.ts` or package manifest?
+
 - **Pattern:** Create a dedicated integration task downstream whose write scope is `["src/index.ts"]` or `["package.json"]`.
 - **Ordering:** The integration task declares `depends_on: [task-A, task-B]`. It runs only after both parallel workers have finished, merging the exports deterministically without races!
 

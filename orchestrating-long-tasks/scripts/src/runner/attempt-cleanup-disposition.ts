@@ -44,10 +44,7 @@ export function cleanupDispositionIssues(
   else if (record.verification_public_key !== expectedVerificationPublicKey)
     issues.push("attempt started public key does not match command intent");
   if (record.base_sha256 !== base) issues.push("attempt started base hash does not match");
-  if (
-    !Array.isArray(record.cleanup_history) ||
-    record.cleanup_history.length > MAX_CLEANUP_HISTORY
-  )
+  if (!Array.isArray(record.cleanup_history) || record.cleanup_history.length > MAX_CLEANUP_HISTORY)
     return [...issues, "attempt cleanup disposition history is invalid"];
   let previousSha256 = base;
   let previousSignature: string | null = null;
@@ -80,10 +77,7 @@ export function cleanupDispositionIssues(
       )
     )
       issues.push("attempt cleanup disposition signature does not verify");
-    if (
-      disposition.sha256 !==
-      cleanupDispositionEntryDigest(base, payload, disposition.signature)
-    )
+    if (disposition.sha256 !== cleanupDispositionEntryDigest(base, payload, disposition.signature))
       issues.push("attempt cleanup disposition hash does not match");
     previousSha256 = disposition.sha256;
     previousSignature = disposition.signature;
@@ -93,8 +87,7 @@ export function cleanupDispositionIssues(
     issues.push("attempt cleanup disposition head hash does not match");
   const latest = record.cleanup_history.at(-1) ?? null;
   if (
-    digest({ disposition: record.cleanup_disposition ?? null }) !==
-    digest({ disposition: latest })
+    digest({ disposition: record.cleanup_disposition ?? null }) !== digest({ disposition: latest })
   )
     issues.push("attempt cleanup disposition does not match its history");
   if (

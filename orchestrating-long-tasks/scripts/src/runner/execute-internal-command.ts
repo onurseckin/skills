@@ -157,7 +157,12 @@ export async function executeInternalPreparedCommand(
         if (executionFailure) throw executionFailure.original;
         throw new HarnessError("INTEGRITY", result.record.integrity_failure);
       }
-      const again = shouldRetry(result.failureClass, snapshot.idempotent, attempt, snapshot.retries);
+      const again = shouldRetry(
+        result.failureClass,
+        snapshot.idempotent,
+        attempt,
+        snapshot.retries,
+      );
       updateRetryExhaustion(record, result.failureClass, again);
       if (again) {
         record.retry_pending = true;

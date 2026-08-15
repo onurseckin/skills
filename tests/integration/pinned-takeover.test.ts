@@ -2,12 +2,19 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtemp, mkdir, readdir, rename, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { graphDocument } from "../graph/fixtures.ts";
-import { requirementsDocument } from "../requirements/fixtures.ts";
-import { cleanupRoots } from "../cli/full-lifecycle-fixture.ts";
+import { graphDocument } from "../unit/graph/fixtures.ts";
+import { requirementsDocument } from "../unit/requirements/fixtures.ts";
+import { cleanupRoots } from "../unit/cli/full-lifecycle-fixture.ts";
 
 const roots: string[] = [];
-const installedEntrypoint = join(import.meta.dir, "..", "..", "orchestrating-long-tasks", "scripts", "harness.ts");
+const installedEntrypoint = join(
+  import.meta.dir,
+  "..",
+  "..",
+  "orchestrating-long-tasks",
+  "scripts",
+  "harness.ts",
+);
 afterEach(async () => cleanupRoots(roots));
 
 async function invoke(argv: string[], cwd?: string): Promise<Record<string, unknown>> {
@@ -122,7 +129,10 @@ describe("pinned runtime takeover", () => {
     const movedRepo = join(base, "moved");
     await rename(repo, movedRepo);
     const movedRun = join(movedRepo, ".capsules", "takeover-run");
-    const status = await invoke(["bun", installedEntrypoint, "status", "--run", movedRun], movedRepo);
+    const status = await invoke(
+      ["bun", installedEntrypoint, "status", "--run", movedRun],
+      movedRepo,
+    );
     expect(status).toMatchObject({
       run_id: "takeover-run",
       graph_revision: 1,

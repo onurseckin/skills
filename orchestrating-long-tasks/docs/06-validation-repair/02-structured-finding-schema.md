@@ -6,7 +6,8 @@
 
 ## 🛑 Why Vague Feedback Fails
 
-When human reviewers or AI reviewers leave vague feedback like *"This code looks buggy, please fix error handling"*, repair workers waste cycles guessing what was wrong:
+When human reviewers or AI reviewers leave vague feedback like _"This code looks buggy, please fix error handling"_, repair workers waste cycles guessing what was wrong:
+
 - Which function failed?
 - What input caused the crash?
 - What command reproduces the error?
@@ -50,13 +51,13 @@ Every finding recorded in `.capsules/<run-id>/findings/<finding-id>/finding.json
 
 ## 🔍 The 5 Mandatory Finding Fields Explained
 
-| Field | Purpose | Schema Requirement |
-| :--- | :--- | :--- |
-| **`observation`** | Exactly what observed behavior violated which acceptance criterion. | Non-empty descriptive string. |
-| **`evidence`** | Concrete command records (`C-xxx`), logs, or error excerpts proving the failure. | Non-empty array of objects referencing valid commands. |
-| **`remediation`** | Actionable instructions on what code needs to change to resolve the defect. | Non-empty instructions string. |
-| **`revalidation_command`**| The exact literal argv command that must succeed to prove resolution. | Literal argv object (no shell string). |
-| **`severity`** | Criticality of defect (`blocker`, `high`, `medium`, `low`). | Closed enum. |
+| Field                      | Purpose                                                                          | Schema Requirement                                     |
+| :------------------------- | :------------------------------------------------------------------------------- | :----------------------------------------------------- |
+| **`observation`**          | Exactly what observed behavior violated which acceptance criterion.              | Non-empty descriptive string.                          |
+| **`evidence`**             | Concrete command records (`C-xxx`), logs, or error excerpts proving the failure. | Non-empty array of objects referencing valid commands. |
+| **`remediation`**          | Actionable instructions on what code needs to change to resolve the defect.      | Non-empty instructions string.                         |
+| **`revalidation_command`** | The exact literal argv command that must succeed to prove resolution.            | Literal argv object (no shell string).                 |
+| **`severity`**             | Criticality of defect (`blocker`, `high`, `medium`, `low`).                      | Closed enum.                                           |
 
 ---
 

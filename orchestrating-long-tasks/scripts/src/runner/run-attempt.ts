@@ -36,14 +36,20 @@ export async function runAttempt(
   const stderrPath = join(attemptDir, "stderr.log");
   const activityPath = join(attemptDir, "activity.json");
   let stdout: FileHandle | undefined, stderr: FileHandle | undefined;
-  let child: ReturnType<BunSpawnApi["spawn"]> | undefined, descendants: DescendantTracker | undefined;
+  let child: ReturnType<BunSpawnApi["spawn"]> | undefined,
+    descendants: DescendantTracker | undefined;
   let activityRecord: ActivityRecord | undefined, rootIdentity: ProcessIdentity | undefined;
   let attemptIntent: AttemptIntentController | undefined;
   let trackerReady: Promise<ProcessIdentity | undefined> | undefined, startedAt: Date | undefined;
-  let observedExitCode: number | null = null, outputTail = "";
-  const deliveredSignals: NodeJS.Signals[] = [], durableSignals: NodeJS.Signals[] = [], processGroupSignals: NodeJS.Signals[] = [];
-  let cleanupPrewriteFailed = false, pumpsSettled = false;
-  const pumps: Promise<OutputSummary>[] = [], pumpAbort = new AbortController();
+  let observedExitCode: number | null = null,
+    outputTail = "";
+  const deliveredSignals: NodeJS.Signals[] = [],
+    durableSignals: NodeJS.Signals[] = [],
+    processGroupSignals: NodeJS.Signals[] = [];
+  let cleanupPrewriteFailed = false,
+    pumpsSettled = false;
+  const pumps: Promise<OutputSummary>[] = [],
+    pumpAbort = new AbortController();
   const persistSignal = (signal: NodeJS.Signals): void => {
     if (durableSignals.includes(signal)) return;
     attemptIntent?.recordSignal(signal);
@@ -82,7 +88,9 @@ export async function runAttempt(
       attempt,
       startedAt.toISOString(),
       ownershipToken,
-      (identity) => { rootIdentity = identity; },
+      (identity) => {
+        rootIdentity = identity;
+      },
       attemptSigner,
     );
     child = runtime.spawn({
@@ -94,7 +102,12 @@ export async function runAttempt(
       stdin: "ignore",
       env: options.environment,
     });
-    void child.exited.then((code) => { observedExitCode = code; }, () => undefined);
+    void child.exited.then(
+      (code) => {
+        observedExitCode = code;
+      },
+      () => undefined,
+    );
     descendants = new DescendantTracker(child.pid, addedPipeHandles(pipeBaseline), ownershipToken);
     trackerReady = descendants.start().then(attemptIntent.bindRoot);
     const { allPumps, monitoring } = startAttemptPumpsAndMonitoring(
@@ -111,7 +124,10 @@ export async function runAttempt(
       () => lastActivity,
       activityRecord,
     );
-    const pumpFailed = allPumps.then(() => new Promise<never>(() => undefined), (error) => Promise.reject(error));
+    const pumpFailed = allPumps.then(
+      () => new Promise<never>(() => undefined),
+      (error) => Promise.reject(error),
+    );
     const [, outcome] = await Promise.all([trackerReady, Promise.race([monitoring, pumpFailed])]);
     await descendants.stop();
     try {

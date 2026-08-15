@@ -65,13 +65,15 @@ Here is the exact structure of `planning/requirements.json`:
 
 In natural language, users frequently pack multiple independent obligations into a single sentence. For example:
 
-> *"Add Redis caching for user sessions and deploy the schema migration only after I explicitly confirm it."*
+> _"Add Redis caching for user sessions and deploy the schema migration only after I explicitly confirm it."_
 
 This single line (Line 1) contains two distinct obligations:
-1. **`R-CACHE`**: An immediately actionable coding task (*"Add Redis caching for user sessions"*).
-2. **`R-MIGRATE`**: An authority-gated external mutation (*"Deploy schema migration only after explicit confirmation"*).
+
+1. **`R-CACHE`**: An immediately actionable coding task (_"Add Redis caching for user sessions"_).
+2. **`R-MIGRATE`**: An authority-gated external mutation (_"Deploy schema migration only after explicit confirmation"_).
 
 ### The Plural Disposition Solution:
+
 Instead of creating a monolithic requirement or dropping the approval constraint, the compiler creates **two atomic requirements** mapped to the same source line:
 
 ```json
@@ -88,6 +90,7 @@ Instead of creating a monolithic requirement or dropping the approval constraint
 ```
 
 Both `R-CACHE` and `R-MIGRATE` list `source_lines: [1]` and `source_excerpt: "Add Redis caching..."`.
+
 - `R-CACHE` has `disposition: "actionable"`.
 - `R-MIGRATE` has `disposition: "needs_authority"`.
 
@@ -97,18 +100,18 @@ This allows the scheduler to dispatch `R-CACHE` immediately in parallel, while p
 
 ## 📐 Atomic Requirement Fields Explained
 
-| Field | Purpose | Validation Rule |
-| :--- | :--- | :--- |
-| **`id`** | Unique alphanumeric requirement identifier (`R-001`, `R-AUTH`). | Must be unique across the entire run. |
-| **`source_lines`** | Exact 1-indexed line numbers in `prompt.md`. | Must strictly match the lines in `prompt.md`. |
-| **`source_excerpt`** | Exact string from `prompt.md` joined across `source_lines`. | Byte-exact match with `prompt.md`. |
-| **`instruction`** | Concise summary of what the user asked for. | Non-empty string. |
-| **`implementation`** | Technical explanation of how the system will satisfy it. | Non-empty string. |
-| **`subsystem`** | Target directory or module path. | Non-empty path string. |
-| **`acceptance`** | Array of acceptance criteria with IDs (`A-001`) and expected evidence. | Non-empty array of objects. |
-| **`candidate_gates`** | Proposed test commands that will prove completion. | Array of literal argv objects. |
-| **`disposition`** | Current actionability (`actionable` vs `needs_authority`). | Closed enum. |
-| **`status`** | Lifecycle state (`planned`, `in_progress`, `satisfied`, `disposed`). | Closed enum. |
+| Field                 | Purpose                                                                | Validation Rule                               |
+| :-------------------- | :--------------------------------------------------------------------- | :-------------------------------------------- |
+| **`id`**              | Unique alphanumeric requirement identifier (`R-001`, `R-AUTH`).        | Must be unique across the entire run.         |
+| **`source_lines`**    | Exact 1-indexed line numbers in `prompt.md`.                           | Must strictly match the lines in `prompt.md`. |
+| **`source_excerpt`**  | Exact string from `prompt.md` joined across `source_lines`.            | Byte-exact match with `prompt.md`.            |
+| **`instruction`**     | Concise summary of what the user asked for.                            | Non-empty string.                             |
+| **`implementation`**  | Technical explanation of how the system will satisfy it.               | Non-empty string.                             |
+| **`subsystem`**       | Target directory or module path.                                       | Non-empty path string.                        |
+| **`acceptance`**      | Array of acceptance criteria with IDs (`A-001`) and expected evidence. | Non-empty array of objects.                   |
+| **`candidate_gates`** | Proposed test commands that will prove completion.                     | Array of literal argv objects.                |
+| **`disposition`**     | Current actionability (`actionable` vs `needs_authority`).             | Closed enum.                                  |
+| **`status`**          | Lifecycle state (`planned`, `in_progress`, `satisfied`, `disposed`).   | Closed enum.                                  |
 
 ---
 

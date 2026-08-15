@@ -62,9 +62,7 @@ export function baseFields(record: Partial<CommandAttemptStartedRecord>): JsonOb
   };
 }
 
-export function attemptStartedBaseDigest(
-  record: Partial<CommandAttemptStartedRecord>,
-): string {
+export function attemptStartedBaseDigest(record: Partial<CommandAttemptStartedRecord>): string {
   return digest(baseFields(record));
 }
 
@@ -117,7 +115,9 @@ export function commandSigningPublicKeyIssues(value: unknown): string[] {
   return verificationKey(value) ? [] : ["command attempt signing public key is invalid"];
 }
 
-export function payloadOf(disposition: CommandAttemptCleanupDisposition): CleanupDispositionPayload {
+export function payloadOf(
+  disposition: CommandAttemptCleanupDisposition,
+): CleanupDispositionPayload {
   const { sha256: _sha256, signature: _signature, ...payload } = disposition;
   return payload;
 }

@@ -7,11 +7,13 @@
 ## 📄 What is a Role Packet?
 
 Rather than passing informal conversational prompts to subagents, the harness generates **Immutable, Cryptographically Bound Role Packets** under:
+
 ```text
 .capsules/<run-id>/packets/<packet-id>/packet.md
 ```
 
 A role packet is a standalone, self-contained Markdown file that acts as an **airtight legal contract** for the worker agent. It defines:
+
 1. The exact, immutable requirements to satisfy.
 2. The strictly leased, exclusive directory write scope.
 3. The expected verification evidence schema.
@@ -44,6 +46,7 @@ The harness defines five specialized role templates located in `scripts/assets/`
 ## 🔏 Cryptographic Packet Sealing
 
 When a packet is generated via `harness.ts packet`, the harness:
+
 1. Synthesizes the role template with current task metadata from `state.json`.
 2. Appends `common-instructions.md` byte-for-byte.
 3. Computes the SHA-256 hash of the complete packet text (`packet_sha256`).
@@ -70,6 +73,7 @@ If the dispatched subagent tampers with or modifies its assigned packet file, th
 ## 📜 Universal Invariants in `common-instructions.md`
 
 Every single role packet unconditionally appends the 14 rules from `common-instructions.md`. Key invariants include:
+
 - **Rule 2 (Exclusive Scope):** Treat the write scope as an exclusive lease. Never edit, format, or delete any file outside it.
 - **Rule 5 (Direct Argv):** Execute commands as literal argv without a shell.
 - **Rule 6 (Focused Proof):** Implementers run only focused tests for their owned behavior; full integration suites belong to the coordinator.

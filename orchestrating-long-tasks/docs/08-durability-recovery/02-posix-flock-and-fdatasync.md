@@ -7,6 +7,7 @@
 ## 💥 The Reality of Power Cuts & OS Crashes
 
 Operating systems buffer file writes in memory before flushing them to physical disk sectors. If power is interrupted or an agent process is killed via `SIGKILL`, buffered writes can:
+
 - Be lost completely.
 - Leave half-written, torn JSON fragments on disk.
 - Corrupt filesystem directory entry tables.

@@ -63,7 +63,10 @@ export function dispositionShapeIssues(value: unknown): string[] {
   if (disposition.status === "terminal_proof") {
     if (!["settled", "strong_absence"].includes(String(disposition.proof_kind)))
       issues.push("attempt terminal proof kind is invalid");
-    if (disposition.proof_kind === "strong_absence" && !identityValid(disposition.root_pid_identity))
+    if (
+      disposition.proof_kind === "strong_absence" &&
+      !identityValid(disposition.root_pid_identity)
+    )
       issues.push("attempt strong terminal proof lacks a root identity");
   } else if (disposition.proof_kind !== null) {
     issues.push("nonterminal cleanup disposition contains terminal proof");

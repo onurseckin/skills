@@ -63,7 +63,10 @@ function attemptIssues(
       issues.push(`attempt ${index + 1} terminal evidence lacks a signed terminal proof`);
     else if (!sameCommandJson(disposition.signals_sent, attempt.signals_sent))
       issues.push(`attempt ${index + 1} delivered signals do not match marker`);
-    if (attempt.failure_class === "evidence_failure" && disposition?.proof_kind !== "strong_absence")
+    if (
+      attempt.failure_class === "evidence_failure" &&
+      disposition?.proof_kind !== "strong_absence"
+    )
       issues.push(`attempt ${index + 1} evidence failure lacks strong terminal proof`);
     if (started.started_at !== attempt.started_at)
       issues.push(`attempt ${index + 1} start timestamp does not match marker`);

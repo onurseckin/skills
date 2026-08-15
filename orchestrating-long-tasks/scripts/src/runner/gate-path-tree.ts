@@ -1,10 +1,5 @@
 import { createHash } from "node:crypto";
-import {
-  closeSync,
-  lstatSync,
-  opendirSync,
-  realpathSync,
-} from "node:fs";
+import { closeSync, lstatSync, opendirSync, realpathSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 import type { CommandPathBinding } from "../contracts/commands.ts";
 import type { JsonObject } from "../contracts/json.ts";

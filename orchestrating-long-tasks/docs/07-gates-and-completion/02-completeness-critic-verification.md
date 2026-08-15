@@ -7,6 +7,7 @@
 ## 🎯 The Purpose of the Completeness Critic
 
 While individual task validators review isolated subfolder scopes, a macro-level risk remains: **Systemic Blind Spots**.
+
 - Did the agents implement all tasks, but forget a global cross-cutting user requirement?
 - Are all generated artifact files physically present on disk with valid byte sizes?
 - Does every line of the original prompt have a verified requirement and task disposition?

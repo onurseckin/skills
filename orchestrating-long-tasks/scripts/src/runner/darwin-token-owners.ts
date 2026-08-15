@@ -45,14 +45,14 @@ export function processHasToken(pid: number, token: string, budget: { bytes: num
   mib.writeInt32LE(pid, 8);
   const size = Buffer.alloc(8);
   if (Number(native.call(native.pointer(mib), 3, 0, native.pointer(size), 0, 0)) !== 0)
-    throw new HarnessError("INVALID_STATE", `cannot size process environment for pid ${pid}`);
+    return false;
   const byteLength = Number(size.readBigUInt64LE());
   if (
     !Number.isSafeInteger(byteLength) ||
     byteLength <= 4 ||
     byteLength > MAX_PROCESS_ARGUMENT_BYTES
   )
-    throw new HarnessError("INVALID_STATE", `invalid process environment size for pid ${pid}`);
+    return false;
   budget.bytes += byteLength;
   if (budget.bytes > MAX_TOKEN_SCAN_BYTES)
     throw new HarnessError("INVALID_STATE", "ownership-token environment scan is too large");
@@ -62,7 +62,7 @@ export function processHasToken(pid: number, token: string, budget: { bytes: num
       native.call(native.pointer(mib), 3, native.pointer(bytes), native.pointer(size), 0, 0),
     ) !== 0
   )
-    throw new HarnessError("INVALID_STATE", `cannot read process environment for pid ${pid}`);
+    return false;
   return bytes.includes(Buffer.from(`${OWNERSHIP_ENV}=${token}\0`));
 }
 

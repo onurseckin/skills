@@ -39,7 +39,10 @@ interface CleanupAttemptOptions {
 async function exitedWithin(exited: Promise<number>, milliseconds: number): Promise<boolean> {
   return await new Promise<boolean>((resolve) => {
     const timer = setTimeout(() => resolve(false), Math.max(0, milliseconds));
-    const settle = () => { clearTimeout(timer); resolve(true); };
+    const settle = () => {
+      clearTimeout(timer);
+      resolve(true);
+    };
     void exited.then(settle, settle);
   });
 }
@@ -169,8 +172,7 @@ export async function cleanupFailedAttempt(
     }
     try {
       descendantsAbsent = await options.descendants.proveAbsent();
-      if (!descendantsAbsent)
-        issue("tracked descendant absence was not proven after cleanup");
+      if (!descendantsAbsent) issue("tracked descendant absence was not proven after cleanup");
     } catch (error) {
       issue(String(error));
       issue("tracked descendant absence was not proven after cleanup");
