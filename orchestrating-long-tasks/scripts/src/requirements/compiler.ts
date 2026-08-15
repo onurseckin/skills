@@ -43,16 +43,35 @@ export function compileRequirementsFromPrompt(
   const assignedLines = new Map<number, string>();
 
   tasks.forEach((task, taskIdx) => {
-    const reqId = `req-${task.id.replace(/^task-?/, "")}`;
-    const targetLine = nonBlankLineIndices[taskIdx % nonBlankLineIndices.length]!;
-
-    let assignedLine = targetLine;
+    let assignedLine: number | undefined;
     for (const lineNum of nonBlankLineIndices) {
       if (!assignedLines.has(lineNum)) {
         assignedLine = lineNum;
         break;
       }
     }
+
+    if (assignedLine === undefined) {
+      const fallbackLine = nonBlankLineIndices[taskIdx % nonBlankLineIndices.length]!;
+      const existingReqId = assignedLines.get(fallbackLine)!;
+      const existingReq = atomicRequirements.find((r) => r.id === existingReqId);
+      if (existingReq && Array.isArray(existingReq.acceptance)) {
+        const critIdx = existingReq.acceptance.length + 1;
+        const gateArgv = typeof task.gate === "string" ? task.gate.split(" ") : [...task.gate];
+        (existingReq.acceptance as Record<string, unknown>[]).push({
+          id: `crit-${existingReqId}-${critIdx}`,
+          criterion: task.criteria?.[0] ?? `Task gate \`${typeof task.gate === "string" ? task.gate : task.gate.join(" ")}\` passes with exit code 0`,
+          evidence: [`Gate execution output for \`${task.id}\``],
+        });
+        if (Array.isArray(existingReq.candidate_gates)) {
+          (existingReq.candidate_gates as Record<string, unknown>[]).push({ argv: gateArgv, cwd: "." });
+        }
+      }
+      requirementIdsByTask.set(task.id, [existingReqId]);
+      return;
+    }
+
+    const reqId = `req-${task.id.replace(/^task-?/, "")}`;
     assignedLines.set(assignedLine, reqId);
 
     const excerpt = promptLines[assignedLine - 1]!;

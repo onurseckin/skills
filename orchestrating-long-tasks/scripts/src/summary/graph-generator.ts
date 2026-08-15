@@ -1,8 +1,8 @@
 import type { CommandRecord } from "../contracts/commands.ts";
 import type { TaskRecord, WorkflowState } from "../workflow/types.ts";
+import { buildTaskAndGateNodes } from "./graph-generator-helpers.ts";
+import { computeExecutionSteps } from "./step-calculator.ts";
 import type {
-  CommandExecutionDetail,
-  FindingDetail,
   GraphDataset,
   GraphEdgeData,
   GraphNodeData,
@@ -18,52 +18,11 @@ export interface GraphGeneratorInput {
   commands?: Record<string, CommandRecord>;
 }
 
-function mapTaskStatus(status: string): NodeStatus {
-  switch (status) {
-    case "done": return "success";
-    case "changes_requested": return "warning";
-    case "leased": case "running": case "submitted": return "running";
-    case "failed": case "cancelled": case "escalated": return "error";
-    default: return "pending";
-  }
-}
-
-function mapCommandDetails(commands: CommandRecord[]): CommandExecutionDetail[] {
-  return commands.map((c) => {
-    const started = c.started_at ? Date.parse(c.started_at) : 0;
-    const finished = c.finished_at ? Date.parse(c.finished_at) : started;
-    return {
-      id: c.id,
-      argv: c.argv,
-      cwd: c.cwd,
-      exitCode: c.exit_code ?? 0,
-      durationMs: finished >= started ? finished - started : 0,
-      startedAt: c.started_at,
-      finishedAt: c.finished_at ?? c.started_at,
-      logPath: c.record_path,
-    };
-  });
-}
-
-function mapFindingDetails(task: TaskRecord): FindingDetail[] {
-  return (task.findings ?? []).map((f) => {
-    const severity: "critical" | "important" | "suggestion" =
-      f.severity === "critical" ? "critical" : f.severity === "minor" ? "suggestion" : "important";
-    return {
-      id: f.id,
-      requirementId: f.requirement_id,
-      severity,
-      observation: f.observation,
-      remediation: f.remediation,
-      status: f.status === "resolved" ? "resolved" : "open",
-    };
-  });
-}
-
 export function generateGraphDataset(input: GraphGeneratorInput): GraphDataset {
   const { runId, state, promptText = "" } = input;
   const tasks = Object.values(state.tasks ?? {}) as TaskRecord[];
   const allCommands = Object.values({ ...(state.commands ?? {}), ...(input.commands ?? {}) } as Record<string, CommandRecord>);
+  const steps = computeExecutionSteps(tasks);
 
   const nodes: GraphNodeData[] = [];
   const edges: GraphEdgeData[] = [];
@@ -75,9 +34,13 @@ export function generateGraphDataset(input: GraphGeneratorInput): GraphDataset {
     name: "User Request Prompt",
     kind: "input" as NodeKind,
     status: "success" as NodeStatus,
-    description: "Original user prompt request initiating the run.",
+    step: 1,
+    stepLabel: "Step 1: User Prompt",
+    badge: { text: "Stdin (Verified)", variant: "neutral", icon: "IconTerminal2" },
+    description: promptText ? promptText.slice(0, 180) : "Original user prompt initiating the run.",
     sectionId: "sec-planning",
     prompt: promptText,
+    io: { outputs: [{ kind: "prompt", label: "User Instruction", preview: promptText, tokens: Math.round(promptText.length / 4) }] },
   });
 
   nodes.push({
@@ -85,67 +48,41 @@ export function generateGraphDataset(input: GraphGeneratorInput): GraphDataset {
     name: "Execution Plan",
     kind: "orchestrator" as NodeKind,
     status: "success" as NodeStatus,
-    description: "Structured execution graph and work decomposition plan.",
+    step: 1,
+    stepLabel: "Step 1: Planning",
+    badge: { text: `${tasks.length} Tasks`, variant: "info", icon: "IconHierarchy2" },
+    description: `Structured execution plan across ${tasks.length} tasks and ${steps.taskWaves.size || 1} waves.`,
     sectionId: "sec-planning",
+    io: {
+      inputs: [{ node: "node-input-prompt", kind: "prompt", label: "User Prompt", preview: promptText.slice(0, 100) }],
+      outputs: [{ kind: "decision", label: "DAG Work Decomposition", preview: `${tasks.length} discrete work scopes` }],
+    },
   });
 
-  edges.push({ id: "edge-prompt-plan", source: "node-input-prompt", target: "node-orchestrator-plan", kind: "sequence" });
+  edges.push({
+    id: "edge-prompt-plan",
+    source: "node-input-prompt",
+    target: "node-orchestrator-plan",
+    kind: "sequence",
+    badge: { text: "Plan Initialization", variant: "info", icon: "IconArrowRight" },
+  });
 
   for (const task of tasks) {
-    const taskNodeId = `node-task-${task.id}`;
-    const gateNodeId = `node-gate-${task.id}`;
-    const taskName = typeof task.label === "string" ? task.label : task.id;
-    execNodeIds.push(taskNodeId);
-    valNodeIds.push(gateNodeId);
-
+    const taskStep = steps.taskSteps.get(task.id) ?? 2;
+    const taskWave = steps.taskWaves.get(task.id) ?? 1;
     const taskCmds = allCommands.filter((c) => c.task_id === task.id);
-    const changedRaw = task.report?.files_changed;
-    const changed = Array.isArray(changedRaw)
-      ? changedRaw.filter((p): p is string => typeof p === "string")
-      : task.write_scope;
-    const files = changed.map((p) => ({ path: p, mode: "write" as const }));
 
-    const metadata: Record<string, unknown> = {
-      writeScope: task.write_scope,
-      repairRounds: task.repair_round ?? 0,
-      commands: mapCommandDetails(taskCmds),
-      findings: mapFindingDetails(task),
-    };
-    const agent = task.lease?.agent_id ?? task.original_implementer;
-    if (agent) metadata.leaseAgent = agent;
-
-    nodes.push({
-      id: taskNodeId,
-      name: taskName,
-      kind: "agent" as NodeKind,
-      status: mapTaskStatus(task.status),
-      description: typeof task.report?.summary === "string" ? task.report.summary : (typeof task.label === "string" ? task.label : `Execution task ${task.id}`),
-      sectionId: "sec-execution",
-      files,
-      metadata,
+    const { taskNode, gateNode, taskEdges } = buildTaskAndGateNodes({
+      task,
+      taskStep,
+      taskWave,
+      taskCmds,
     });
 
-    nodes.push({
-      id: gateNodeId,
-      name: `Gate: ${taskName}`,
-      kind: "gate" as NodeKind,
-      status: task.status === "done" ? "success" : task.validation ? "running" : "pending",
-      description: `Independent validation gate and evidence verification for ${taskName}.`,
-      sectionId: "sec-validation",
-    });
-
-    edges.push({ id: `edge-plan-${task.id}`, source: "node-orchestrator-plan", target: taskNodeId, kind: "spawn" });
-    edges.push({ id: `edge-task-gate-${task.id}`, source: taskNodeId, target: gateNodeId, kind: "sequence" });
-
-    if ((task.repair_round ?? 0) > 0) {
-      edges.push({ id: `edge-repair-${task.id}`, source: gateNodeId, target: taskNodeId, kind: "loop", isCycle: true });
-    }
-
-    for (const depId of task.dependencies) {
-      edges.push({ id: `edge-dep-${depId}-${task.id}`, source: `node-gate-${depId}`, target: taskNodeId, kind: "sequence" });
-    }
-
-    edges.push({ id: `edge-join-${task.id}`, source: gateNodeId, target: "node-critic-authority", kind: "join" });
+    execNodeIds.push(taskNode.id);
+    valNodeIds.push(gateNode.id);
+    nodes.push(taskNode, gateNode);
+    edges.push(...taskEdges);
   }
 
   nodes.push({
@@ -153,6 +90,9 @@ export function generateGraphDataset(input: GraphGeneratorInput): GraphDataset {
     name: "Completeness Critic Review",
     kind: "critic" as NodeKind,
     status: state.completion_review ? "success" : "running",
+    step: steps.criticStep,
+    stepLabel: `Step ${steps.criticStep}: Completeness Critic`,
+    badge: { text: "Authority Review", variant: "warning", icon: "IconScale" },
     description: "Final completeness critic inspection and whole-run sign-off.",
     sectionId: "sec-review",
   });
@@ -162,6 +102,9 @@ export function generateGraphDataset(input: GraphGeneratorInput): GraphDataset {
     name: "Run Completion",
     kind: "terminal" as NodeKind,
     status: state.completion_result?.status === "complete" ? "success" : "pending",
+    step: steps.terminalStep,
+    stepLabel: `Step ${steps.terminalStep}: Terminal Outcome`,
+    badge: { text: "Sealed Run", variant: "success", icon: "IconFlagCheck" },
     description: "Sealed capsule run completion and summary artifact synthesis.",
     sectionId: "sec-review",
   });

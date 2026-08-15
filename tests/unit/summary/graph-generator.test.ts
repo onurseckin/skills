@@ -4,7 +4,7 @@ import type { TaskRecord, WorkflowState } from "../../../orchestrating-long-task
 import { generateGraphDataset } from "../../../orchestrating-long-tasks/scripts/src/summary/graph-generator.ts";
 
 describe("graph generator", () => {
-  test("generates full GVUI compliant GraphDataset", () => {
+  test("generates full GVUI compliant GraphDataset with archetypes, steps and badges", () => {
     const task1: TaskRecord = {
       id: "T-1",
       label: "Task One",
@@ -99,36 +99,55 @@ describe("graph generator", () => {
     expect(dataset.entry).toBe("node-input-prompt");
     expect(dataset.exits).toEqual(["node-terminal-complete"]);
 
-    // Nodes
-    const nodeIds = dataset.nodes.map((n) => n.id);
-    expect(nodeIds).toContain("node-input-prompt");
-    expect(nodeIds).toContain("node-orchestrator-plan");
-    expect(nodeIds).toContain("node-task-T-1");
-    expect(nodeIds).toContain("node-gate-T-1");
-    expect(nodeIds).toContain("node-task-T-2");
-    expect(nodeIds).toContain("node-gate-T-2");
-    expect(nodeIds).toContain("node-critic-authority");
-    expect(nodeIds).toContain("node-terminal-complete");
+    // Nodes presence and archetypes
+    const promptNode = dataset.nodes.find((n) => n.id === "node-input-prompt");
+    expect(promptNode?.kind).toBe("input");
+    expect(promptNode?.step).toBe(1);
+    expect(promptNode?.badge?.icon).toBe("IconTerminal2");
+    expect(promptNode?.io?.outputs?.[0]?.kind).toBe("prompt");
 
-    // Sections
-    expect(dataset.sections).toHaveLength(4);
-    expect(dataset.sections?.map((s) => s.id)).toEqual([
-      "sec-planning",
-      "sec-execution",
-      "sec-validation",
-      "sec-review",
-    ]);
+    const orchNode = dataset.nodes.find((n) => n.id === "node-orchestrator-plan");
+    expect(orchNode?.kind).toBe("orchestrator");
+    expect(orchNode?.step).toBe(1);
+    expect(orchNode?.badge?.icon).toBe("IconHierarchy2");
 
-    // Metadata
     const t1Node = dataset.nodes.find((n) => n.id === "node-task-T-1");
-    expect(t1Node?.status).toBe("success");
-    expect(t1Node?.metadata?.repairRounds).toBe(1);
+    expect(t1Node?.kind).toBe("agent");
+    expect(t1Node?.step).toBe(2);
+    expect(t1Node?.badge?.icon).toBe("IconRobot");
     expect(t1Node?.metadata?.commands).toHaveLength(1);
     expect(t1Node?.metadata?.findings).toHaveLength(1);
 
-    // Repair cycle edge
-    const repairEdge = dataset.edges.find((e) => e.kind === "loop");
-    expect(repairEdge).toBeDefined();
-    expect(repairEdge?.isCycle).toBe(true);
+    const g1Node = dataset.nodes.find((n) => n.id === "node-gate-T-1");
+    expect(g1Node?.kind).toBe("gate");
+    expect(g1Node?.step).toBe(3);
+    expect(g1Node?.badge?.icon).toBe("IconShieldCheck");
+
+    const t2Node = dataset.nodes.find((n) => n.id === "node-task-T-2");
+    expect(t2Node?.kind).toBe("agent");
+    expect(t2Node?.step).toBe(4);
+
+    const criticNode = dataset.nodes.find((n) => n.id === "node-critic-authority");
+    expect(criticNode?.kind).toBe("critic");
+    expect(criticNode?.badge?.icon).toBe("IconScale");
+
+    const terminalNode = dataset.nodes.find((n) => n.id === "node-terminal-complete");
+    expect(terminalNode?.kind).toBe("terminal");
+    expect(terminalNode?.badge?.icon).toBe("IconFlagCheck");
+
+    // Sections
+    expect(dataset.sections).toHaveLength(4);
+
+    // Edge badges
+    const spawnEdge = dataset.edges.find((e) => e.kind === "spawn");
+    expect(spawnEdge?.badge?.icon).toBe("IconRocket");
+
+    const loopEdge = dataset.edges.find((e) => e.kind === "loop");
+    expect(loopEdge?.isCycle).toBe(true);
+    expect(loopEdge?.badge?.icon).toBe("IconAlertCircle");
+    expect(loopEdge?.badge?.text).toContain("Pushback: Round 1");
+
+    const joinEdge = dataset.edges.find((e) => e.kind === "join");
+    expect(joinEdge?.badge?.icon).toBe("IconFileText");
   });
 });

@@ -19,6 +19,7 @@ export interface IoPort {
   kind: PayloadKind;
   label: string;
   tokens?: number;
+  preview?: string;
   dataRef?: string;
 }
 
@@ -39,6 +40,8 @@ export interface CommandExecutionDetail {
   durationMs: number;
   startedAt: string;
   finishedAt: string;
+  stdoutSnippet?: string;
+  stderrSnippet?: string;
   stdoutTail?: string;
   stderrTail?: string;
   logPath?: string;
@@ -63,6 +66,14 @@ export interface GraphSection {
   collapsed?: boolean;
 }
 
+export interface BadgeDetail {
+  text: string;
+  variant?: "info" | "warning" | "error" | "success" | "neutral";
+  icon?: string;
+  clickable?: boolean;
+  targetTab?: "overview" | "io" | "files" | "commands" | "feedback" | string;
+}
+
 export interface GraphNodeData {
   id: string;
   name: string;
@@ -70,11 +81,14 @@ export interface GraphNodeData {
   type?: string;
   kind?: NodeKind;
   status?: NodeStatus;
+  step?: number;
+  stepLabel?: string;
+  badge?: BadgeDetail;
+  badges?: Array<{ label: string; variant?: "success" | "info" | "amber" | "error" | "gray" }>;
   model?: string;
   harnessModel?: string;
   tier?: ModelTier;
   sectionId?: string;
-  badges?: Array<{ label: string; variant?: "success" | "info" | "amber" | "error" | "gray" }>;
   tools?: Array<{ name: string; type?: "generic" | "custom" }>;
   files?: FileRef[];
   metrics?: NodeMetrics;
@@ -109,6 +123,7 @@ export interface GraphEdgeData {
   isCycle?: boolean;
   kind?: EdgeKind;
   condition?: string;
+  badge?: BadgeDetail;
   handoff?: EdgeHandoff;
   weight?: number;
   minLen?: number;
