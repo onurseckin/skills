@@ -45,6 +45,7 @@ export async function taskReviewCommand(flags: Flags): Promise<Record<string, un
         .map((c) => c.id);
 
   const isPass = status === "pass";
+  const openFindings = (taskBefore.findings ?? []).filter((f) => f.status === "open");
   const reviewPayload: Record<string, unknown> = {
     verdict: isPass ? "pass" : "reject",
     validation_token: token,
@@ -59,7 +60,15 @@ export async function taskReviewCommand(flags: Flags): Promise<Record<string, un
       remediation: "Correct implementation to satisfy requirements and pass gates.",
       revalidation: `Run gate tests for ${taskId}`,
     }],
+    resolved_findings: isPass && openFindings.length > 0
+      ? openFindings.map((f) => ({
+          finding_id: f.id,
+          method: "verification_passed",
+          evidence: checkIds.map((id) => ({ command_id: id })),
+        }))
+      : undefined,
   };
+
 
   let state = recordReview(workflowPort(run), taskId, validator, reviewPayload);
   if (isPass) {
