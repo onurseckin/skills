@@ -23,7 +23,7 @@ export function formatSummaryMarkdown(input: MarkdownFormatterInput): string {
   const lines: string[] = [];
   lines.push(`# Execution Run Summary: \`${runId}\``);
   lines.push("");
-  lines.push("## 📊 Executive Metrics");
+  lines.push("## Executive Metrics");
   lines.push("");
   lines.push("| Metric | Value | Metric | Value |");
   lines.push("| :--- | :--- | :--- | :--- |");
@@ -35,21 +35,21 @@ export function formatSummaryMarkdown(input: MarkdownFormatterInput): string {
   lines.push(`| **Total Tokens** | ${metrics.estimated_tokens.total_tokens.toLocaleString()} | **Files Touched** | ${metrics.files_touched.length} files |`);
   lines.push("");
 
-  lines.push("## 📋 Task Trajectory & Validation Breakdown");
+  lines.push("## Task Trajectory & Validation Breakdown");
   lines.push("");
   lines.push("| Task ID | Label | Status | Agent | Repair Rounds | Write Scope |");
   lines.push("| :--- | :--- | :--- | :--- | :--- | :--- |");
   for (const t of tasks) {
     const label = typeof t.label === "string" ? t.label : t.id;
-    const statusEmoji = t.status === "done" ? "✅ Done" : t.status === "changes_requested" ? "🛠️ Repair" : `⏳ ${t.status}`;
+    const statusText = t.status === "done" ? "Done" : t.status === "changes_requested" ? "Repair" : t.status;
     const agent = t.lease?.agent_id ?? t.original_implementer ?? "-";
     const writeScope = t.write_scope.join(", ") || "-";
-    lines.push(`| \`${t.id}\` | ${label} | ${statusEmoji} | \`${agent}\` | ${t.repair_round ?? 0} | \`${writeScope}\` |`);
+    lines.push(`| \`${t.id}\` | ${label} | ${statusText} | \`${agent}\` | ${t.repair_round ?? 0} | \`${writeScope}\` |`);
   }
   lines.push("");
 
   if (metrics.files_touched.length > 0) {
-    lines.push("## 📂 Files Touched & Churn");
+    lines.push("## Files Touched & Churn");
     lines.push("");
     lines.push("| File Path | Status | Additions | Deletions |");
     lines.push("| :--- | :--- | :--- | :--- |");
@@ -59,7 +59,7 @@ export function formatSummaryMarkdown(input: MarkdownFormatterInput): string {
     lines.push("");
   }
 
-  lines.push("## ⏱️ Timeline Milestones");
+  lines.push("## Timeline Milestones");
   lines.push("");
   lines.push("| # | Time (UTC) | Phase | Actor | Event Summary |");
   lines.push("| :--- | :--- | :--- | :--- | :--- |");

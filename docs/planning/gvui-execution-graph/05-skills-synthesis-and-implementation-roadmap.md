@@ -53,9 +53,41 @@ export interface GraphEdgeData {
 }
 ```
 
+### 1.1 Pure Data Contracts in JSON (Zero Visual Styling)
+The generated `GraphDataset` JSON adheres to a **pure data contract**:
+- JSON contains ONLY semantic fields: `id`, `kind`, `source`, `target`, `stepNumber`, `description`, `files`, `io`, `metrics`, `commands`, `findings`.
+- Zero visual styling (CSS colors, pixel dimensions, border radii) is stored in the JSON.
+- **GVUI's renderer** is 100% responsible for mapping semantic `kind` and metadata to geometric silhouettes, color palettes, Tabler icons, and layout geometry.
+
 ---
 
-## 2. Implementation File Matrix across Repositories
+## 2. Multi-Agent Parallel Execution Waves
+
+To ensure rigorous multi-agent execution and true parallelism, tasks are structured into concurrent waves:
+
+```mermaid
+flowchart TD
+    subgraph Wave 1: Foundation (Parallel)
+        W1A["Agent 1: skills Data Engine\n(Clean JSON Contracts & No Fake Models)"]
+        W1B["Agent 2: gvui Canvas Measurer\n(Dynamic Card Heights & No Clipping)"]
+    end
+
+    subgraph Wave 2: Visual Engine & Drawer (Parallel)
+        W2A["Agent 3: gvui Node Archetypes\n(Color Harmony & Matching Borders)"]
+        W2B["Agent 4: gvui Edge Containers\n(Semantic Diversity & Collision Prevention)"]
+        W2C["Agent 5: gvui Detail Drawer\n(Merged Overview & I/O + Expandable Accordions)"]
+    end
+
+    subgraph Wave 3: Integration & Visual Validation
+        W3["Agent 6: E2E Integration & Visual Audit\n(26/26 Layout Suites + Chrome DevTools MCP)"]
+    end
+
+    Wave 1 --> Wave 2 --> Wave 3
+```
+
+---
+
+## 3. Implementation File Matrix across Repositories
 
 ### Group A: `skills` Repository (`/Users/onurseckinsenoglu/repos/skills`)
 1. **`src/summary/types.ts`**: Update contracts for `GraphNodeData`, `GraphEdgeData`, `container`, `stepNumber`, `additions`, `deletions`.

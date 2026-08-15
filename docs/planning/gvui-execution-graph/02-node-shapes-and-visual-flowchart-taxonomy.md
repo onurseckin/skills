@@ -78,11 +78,40 @@ Nodes do not have to be uniform rectangles. Different entities earn distinct geo
    - **On-Card Fields**: `[IconFlagCheckered] SEALED OUTCOME`, `[Step N+1]`, final status, total wall clock (`42s`), total tokens (`19.4k`).
    - **Accent Color**: Emerald Green (`#059669`).
 
+### 1.2 Color Harmony & Border Matching Standard
+
+To maintain visual cohesion, every node archetype enforces strict **background and border color matching**:
+- **Violet Nodes (`kind: "input"`)**: Background `rgba(139, 92, 246, 0.08)` $\to$ Border `rgba(139, 92, 246, 0.45)` $\to$ Accent `#8b5cf6`.
+- **Blue Nodes (`kind: "orchestrator"`)**: Background `rgba(59, 130, 246, 0.08)` $\to$ Border `rgba(59, 130, 246, 0.45)` $\to$ Accent `#3b82f6`.
+- **Cyan Nodes (`kind: "agent"`)**: Background `rgba(6, 182, 212, 0.08)` $\to$ Border `rgba(6, 182, 212, 0.45)` $\to$ Accent `#06b6d4`.
+- **Slate Nodes (`kind: "tool"`)**: Background `rgba(24, 24, 27, 0.9)` $\to$ Border `rgba(63, 63, 70, 0.6)` $\to$ Accent `#71717a`.
+- **Amber Nodes (`kind: "router"`)**: Background `rgba(245, 158, 11, 0.08)` $\to$ Border `rgba(245, 158, 11, 0.45)` $\to$ Accent `#f59e0b`.
+- **Emerald Gate Nodes (`kind: "gate"`, Passed)**: Background `rgba(16, 185, 129, 0.08)` $\to$ Border `rgba(16, 185, 129, 0.45)` $\to$ Accent `#10b981`. (Strictly no yellow/orange border on green base!).
+- **Amber/Red Gate Nodes (`kind: "gate"`, Pushback)**: Background `rgba(239, 68, 68, 0.08)` $\to$ Border `rgba(239, 68, 68, 0.45)` $\to$ Accent `#ef4444`.
+- **Indigo/Gold Critic Nodes (`kind: "critic"`)**: Background `rgba(99, 102, 241, 0.08)` $\to$ Border `rgba(129, 140, 248, 0.5)` $\to$ Accent `#818cf8`.
+- **Green Terminal Nodes (`kind: "terminal"`)**: Background `rgba(5, 150, 105, 0.1)` $\to$ Border `rgba(16, 185, 129, 0.5)` $\to$ Accent `#10b981`.
+
 ---
 
-## 2. Node Sub-Element Taxonomy (Condensed Card vs Expanded Drawer)
+## 2. Dynamic Card Height Sizing (Zero Content Clipping)
 
-To prevent visual clutter, node cards on the canvas show high-signal summary metrics, while the expanded sidebar contains full unclipped details:
+In `canvasMeasurer.ts` and the WASM layout engine:
+- Node dimensions are dynamically computed based on:
+  - Header height + Badge chip heights.
+  - Multi-line description text wrapping (exact font metrics).
+  - Sub-element chips (file churn, tool counts).
+- **Invariable Rule**: Nodes must NEVER have artificial height caps that clip content. The canvas measurer allocates full vertical space for all rendered fields.
+
+---
+
+## 3. Authentic Model Metadata (Zero Hardcoded / Fake Data)
+
+- Agents harvest their model identity directly from the runtime environment / host adapter or state projection (e.g. `Flash 2.0`, `Pro 2.0`, `Default Tier`).
+- **Strict Prohibition**: Never hardcode fake model strings (e.g., `Sonnet 4.5`) when running on Gemini or local runners. Emit only authentic host metadata.
+
+---
+
+## 4. Node Sub-Element Taxonomy (Condensed Card vs Expanded Drawer)
 
 | Information Domain | What Appears on the Node Card (Condensed Summary) | What Appears in the Detail Drawer (Expanded View) |
 | :--- | :--- | :--- |

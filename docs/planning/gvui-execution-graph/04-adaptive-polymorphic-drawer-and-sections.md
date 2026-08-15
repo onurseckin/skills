@@ -61,29 +61,29 @@ The sidebar expands to **560px** (resizable up to **680px**) to give code diffs 
 
 ## 3. Detailed Tab Sub-Views
 
-### 3.1 Overview Tab (Unclipped Purpose & Operational Context)
-- **Full Purpose Text**: The complete, unclipped task specification or user prompt.
-- **Operational Grid**: Write scopes, lease agent ID, start/finish timestamps, wall duration, active compute time.
-- **Causal Lineage**: Triggered by parent node(s) $\to$ Unblocks downstream task(s).
+### 3.1 Overview & I/O Tab (Merged & Interactive)
+- **High-Level Purpose**: Full unclipped task specification, prompt instruction, or gate objective.
+- **Operational Grid**: Assigned write scopes, lease agent identity, execution wall duration, and active command compute.
+- **Expandable Input Payloads Accordion**:
+  - Click to expand/collapse each incoming stream item.
+  - Full unclipped text content, payload type pill (`Prompt`, `Artifact`, `Requirement`), source node linkage, byte and token counters.
+  - Zero repetitive boilerplate labels (e.g. no repeating generic `(handoff)` suffixes).
+- **Expandable Output Payloads Accordion**:
+  - Click to expand/collapse each outgoing stream item.
+  - Full submission report, gate verdicts, or sealed artifacts with one-click copy button.
+- **Causal Lineage**: Upstream dependencies $\to$ Unblocked downstream nodes.
 
-### 3.2 Inputs & Outputs (I/O) Tab
-- **Incoming Payloads**:
-  - `[IconTerminal2] Prompt`: Verbatim prompt / instructions (token count, originating node).
-  - `[IconFile] Input Context`: Ingested file references and configurations.
-- **Outgoing Payloads**:
-  - `[IconFileText] Submission Report`: Detailed implementation report and decision rationales.
-
-### 3.3 Files & Diffs Tab
+### 3.2 Files & Diffs Tab
 - **File Churn Bar**: `4 files modified (+900, -300 lines)`.
 - **Interactive File Tree**: Grouped by directory hierarchy with fuzzy search filtering.
 - **Unified Diff Inspector**: Full syntax-highlighted code diffs with line numbers and addition/deletion highlighting.
 
-### 3.4 Commands & Tools Tab
+### 3.3 Executions Tab (Terminal Monospace Logs)
 - **Terminal Window Accordion**:
   - Command Header: `$ bun test tests/unit/summary/graph-generator.test.ts` with `[Exit 0]` badge and execution time (`142ms`).
   - Terminal Window Body: Full monospace `stdout` and `stderr` streams with a one-click copy button.
 
-### 3.5 Feedback & Quality Reviews Tab (Polymorphic)
+### 3.4 Feedback & Quality Reviews Tab (Polymorphic)
 - **Multi-Round Pushback Accordion**:
   - *Round 1 (Rejected)*:
     - Validator Observation: `"Missing edge-case unit test for expired token refresh"`.
@@ -94,6 +94,19 @@ The sidebar expands to **560px** (resizable up to **680px**) to give code diffs 
     - Implementer Fix Note: `"Added test in auth-expired.test.ts (+14 lines)"`.
     - Passing Gate Proof: `bun test` passed cleanly with exit code `0`.
 
-### 3.6 Raw Provenance Tab
+### 3.5 Raw Provenance Tab
 - **Merkle Event Chain Link**: Transaction hash in `events.jsonl`.
 - **Raw JSON Viewer**: Collapsible JSON definition of the `GraphNodeData` object.
+
+---
+
+## 4. Typography & Design Token Standard
+
+To preserve repository visual coherence, the Detail Drawer strictly conforms to GVUI design tokens:
+- **Font Families**: Standard UI `--font-sans` for headers/body; `--font-mono` for commands, paths, and diffs.
+- **Font Sizes**:
+  - Headers / Titles: `13px` / `14px` (`font-weight: 600`).
+  - Body Text / Summaries: `12px` (`line-height: 1.5`).
+  - Badges, Meta Chips & Labels: `11px` (`font-weight: 500`, uppercase tracking).
+  - Code / Terminal Streams: `11px` (`font-mono`).
+- **Color Palette**: Dark-mode zinc (`#09090b` canvas, `#18181b` drawer background, `#27272a` container borders, `#a1a1aa` muted text, `#f4f4f5` primary text). Zero font bloat or oversized headers.

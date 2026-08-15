@@ -43,15 +43,27 @@ To ensure every agent understands the true intent, nuances, and philosophy, here
 > *Let's say all nodes don't always need to look like rectangles. They can also have flowchart-like attributes. For example, maybe the tool made some edge decisions based on a yes/no decision, and it connected to other things. We can use a diamond-shaped node for that, or a circle-shaped node.*
 > *The shapes of the nodes can be flexible, and the content, background color, and edge colors can be flexible. When I click on a node, the dominant background color of a specific node, chosen nodes, and the connection edges can temporarily get that color as a highlight. All color choices should still lean on dark mode colors."*
 
+### User Prompt D: Stream Quality, Color Harmony, Edge Diversity, Collision Prevention & Multi-Agent Discipline
+> *"I see a huge improvement, thanks for that. It's getting way better.*
+> *Now, using the same system, when we click on nodes, we see some details about the nodes. For those details, I want you to study the sidebar fields, such as: Overview, Input, Output, Files, Executions. I want to see whether some of these sections can be merged, for example, Overview and Input/Output. Overview and Input/Output are kind of the same, so they can be merged as I/O.*
+> *The Input and Output sections are still weird. It's still using the same handoff word in parentheses almost everywhere, and it's using the same summary title everywhere. Inputs and outputs are not expandable. When I click on them, they don't expand, and the handoff wording and summary badges are constantly repeating. Input/output stream information is not clearly given in enough detail, which is highly annoying.*
+> *Also, the background color and border for most nodes should match. For example, blue base, teal base, purple base, etc., but for green base, it uses an orange or yellow border unnecessarily. The edge colors should not be broken. Edge connectors should also be colored, and some should not be. I want you to have a proper convention for that. There can be different kinds of edges. Currently, all edges are still one or two types, and I do not see much diversity in the edges. This can be improved.*
+> *For the graph visualization, nodes have a height limit, and they are not showing whatever they have on the graph when I look at it properly. There is not enough internal space, and I am not sure why this is happening. Regardless of what the node needs to show, it should always show that.*
+> *Also, on agents, I see Sonnet 4.5 mentioned, but during task executions, we never use the Sonnet model. I think we always use Gemini's Flash model or something. Is this a blunder? Did you manually take a risk and put some fake data in there, or is there a system blunder? The nodes should also be flexible. If a node needs to show something, it should show that.*
+> *On the sidebar, inside each section, the font sizes are too large, or there is a font mismatch issue. They are not aligning with the repository standards. When coding this repo, I completely forgot how the repository system looks. There is some kind of blunder going on here, and it did not respect the repo. Some edges are also colliding, and edge information is colliding.*
+> *Did you run GVUI's unit tests with this new system? GVUI's layout unit tests should guide you to make sure that, for example, in the graph testing phases for different graph examples (the 26 different scenarios given), all of them and all of their tests pass, and the layout status is valid.*
+> *There should not be any visualization information given in JSON. How things are visualized is directly responsible for GVUI's layout. GVUI's JSON should only give fields and their relation to one another. Step-related information, all the color choices, and all the things should be automatically decided by the type of the node or type of the element rendered by the page. Ideally, the graph renderer should have enough space to render everything without things colliding.*
+> *Right now, I want you to do the same double flow: (1) You are getting feedback and enhancing it by organizing the long task skill and creating an advanced plan from my feedback. (2) On the second run, you should use the same skill again for actual execution. Also, make sure that when executions happen, there is proper multi-agent use, parallelization, and proper validation during these implementations."*
+
 ---
 
 ## 3. Core Architectural Tenets
 
 ```mermaid
 flowchart TD
-    A["User Request & Intent"] --> B["1. Flexible Geometric Shapes\n(Diamonds for Decisions, Terminals for Prompts, Shields for Gates, Cards for Agents)"]
-    A --> C["2. Clear Node vs. Sub-Element Boundary\n(Condensed metrics on card: +900/-300 lines;\nDeep unclipped code diffs & logs in expanded drawer)"]
-    A --> D["3. Rich Edge Information Containers\n(Step numbers [7], transition payloads, pushback reasons)"]
-    A --> E["4. Dynamic Canvas Path Highlighting\n(Clicking a node illuminates connected edges & ancestors in accent color)"]
-    A --> F["5. Top Navbar Steps Dropdown\n(Multi-select step filter checkboxes & playback off the canvas)"]
+    A["User Request & Intent"] --> B["1. Unified I/O & Context Section\n(Merge Overview + I/O into expandable, rich interactive accordions)"]
+    A --> C["2. Color Harmony & Dynamic Node Heights\n(Matching backgrounds and borders; layout measurer sizes full node contents)"]
+    A --> D["3. Semantic Edge Taxonomy & Collision Prevention\n(Spawn, sequence, data, loop, gate, dependency; layout avoids collisions)"]
+    A --> E["4. Pure Data Contracts in JSON\n(Zero styling in JSON; GVUI components decide visual rendering)"]
+    A --> F["5. Authentic Metadata & Multi-Agent Parallelism\n(Zero fake models; parallel task waves with independent validators)"]
 ```

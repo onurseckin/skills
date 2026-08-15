@@ -30,30 +30,35 @@ Edges are not just lines with simple labels. They are **rich communicative conta
                           [Step 4: Worker T-02 (Repair)]
 ```
 
-### 1.1 Anatomy of the Edge Information Container
+### 1.1 Semantic Edge Diversity & Taxonomy
 
-```typescript
-export interface GraphEdgeData {
-  id: string;
-  source: string;
-  target: string;
-  kind?: "sequence" | "spawn" | "loop" | "conditional" | "data" | "fallback" | "join";
-  stepNumber?: number | string; // e.g. 7, "3 -> 4"
-  label?: string;
-  container?: {
-    stepBadge: string;          // e.g. "3", "7", "3 -> 4"
-    title: string;              // e.g. "Submits Implementation", "Validator Pushback"
-    detail?: string;            // e.g. "Diff: +900, -300 lines", "1 Finding"
-    variant: "info" | "warning" | "error" | "success" | "neutral" | "cyan";
-    icon?: string;              // Tabler icon identifier
-  };
-  isCycle?: boolean;
-}
-```
+Edges are classified into 7 distinct semantic types with clear visual conventions:
+1. **`spawn` (Dispatch Edge)**:
+   - *Style*: Cyan/Electric Blue dashed line with `IconRocket` badge.
+   - *Meaning*: Coordinator leasing and dispatching a worker agent.
+2. **`sequence` (Linear Lifecycle Flow)**:
+   - *Style*: Neutral slate/zinc line (`#3f3f46`), clean and understated.
+   - *Meaning*: Sequential pipeline progression.
+3. **`data` / `handoff` (Artifact Transfer)**:
+   - *Style*: Indigo/Violet solid curve with `IconFileText` badge.
+   - *Meaning*: Direct transfer of diffs, test outputs, or reports between nodes.
+4. **`dependency` (Requirement Unlocked)**:
+   - *Style*: Subtle dashed line with `IconLink` badge.
+   - *Meaning*: Upstream task unblocking downstream tasks.
+5. **`loop` / `pushback` (Validation Rejection Cycle)**:
+   - *Style*: Crimson/Amber reverse-pulsating dashes with `IconAlertTriangle` badge.
+   - *Meaning*: Validator pushback triggering implementer repair round.
+6. **`gate` / `validation` (Independent Gate Verification)**:
+   - *Style*: Emerald Green solid line with `IconShieldCheck` badge.
+   - *Meaning*: Monitored test gate execution and verification pass.
+7. **`critic` / `signoff` (Whole-Run Sign-off)**:
+   - *Style*: Metallic Gold / Deep Indigo solid line with `IconCertificate` badge.
+   - *Meaning*: Authority review and whole-capsule sealing.
 
-- **Top-Left Step Number Pill**: Every edge information container prominently displays its **Step Number** (e.g. `[7]` or `[3 → 4]`).
-- **Context Body**: Tells the viewer what was transferred (e.g. `Diff: +900, -300 lines`, `Dispatches Worker Lease`, `Approved: 2/2 Gates`).
-- **Minimal Fallback**: If an edge has no custom textual context, it at least cleanly displays the step number badge `[7]`.
+### 1.2 Edge Coloring & Neutrality Convention
+- **Neutral by Default**: Standard structural and sequential edges use subtle dark-mode zinc tones (`#27272a` / `#3f3f46`) to keep the canvas clean and avoid visual noise.
+- **Purposeful Color Accents**: Color is applied only to meaningful events (dispatches, artifact submissions, pushbacks, gate approvals, and critic sign-offs).
+- **Collision Prevention**: Edge badge overlays are anchored to midpoints with leader paths and bounding rect checks in WASM/Canvas layout to ensure badges never overlap or obscure neighboring node cards.
 
 ---
 
