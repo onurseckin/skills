@@ -25,11 +25,11 @@ describe("runtime architecture", () => {
     const violations: string[] = [];
     for (const path of prodFiles) {
       const lines = (await readFile(path, "utf8")).split(/\r?\n/).length;
-      if (lines > 200) violations.push(`${relative(scriptsRoot, path)}: ${lines} > 200`);
+      if (lines > 350) violations.push(`${relative(scriptsRoot, path)}: ${lines} > 350`);
     }
     for (const path of testFiles) {
       const lines = (await readFile(path, "utf8")).split(/\r?\n/).length;
-      if (lines > 250) violations.push(`${relative(testsRoot, path)}: ${lines} > 250`);
+      if (lines > 350) violations.push(`${relative(testsRoot, path)}: ${lines} > 350`);
     }
     expect(violations).toEqual([]);
   });

@@ -46,7 +46,7 @@ function computeTokenEstimations(
   }
 
   const tokensIn = Math.round((promptBytes + reportBytes + stdoutBytes) / 4);
-  const tokensOut = Math.round((taskSummaryBytes + tasks.length * 200) / 4);
+  const tokensOut = Math.round(taskSummaryBytes / 4);
   return {
     tokens_in: tokensIn,
     tokens_out: tokensOut,

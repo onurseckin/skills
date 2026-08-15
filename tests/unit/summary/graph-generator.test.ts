@@ -117,8 +117,8 @@ describe("graph generator", () => {
     const t1Node = dataset.nodes.find((n) => n.id === "node-task-T-1");
     expect(t1Node?.kind).toBe("agent");
     expect(t1Node?.step).toBe(2);
-    expect(t1Node?.model).toBe("Gemini 2.0 Flash");
-    expect(t1Node?.tier).toBe("s");
+    expect(t1Node?.model).toBe("Gemini 3.7 Flash (High)");
+    expect(t1Node?.tier).toBe("l");
     expect(t1Node?.badge?.icon).toBe("IconRobot");
     expect(t1Node?.metadata?.commands).toHaveLength(1);
     expect(t1Node?.metadata?.findings).toHaveLength(1);

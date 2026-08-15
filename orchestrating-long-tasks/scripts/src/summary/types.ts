@@ -47,6 +47,25 @@ export interface IoPort {
   preview?: string;
   dataRef?: string;
 }
+export interface TokenUsageDetail {
+  inputTokens?: number;
+  outputTokens?: number;
+  reasoningTokens?: number;
+  cacheCreationTokens?: number;
+  cacheReadTokens?: number;
+  totalTokens?: number;
+  costUsd?: number;
+  isEstimated?: boolean;
+}
+
+export interface HostAgentMetadata {
+  hostTool: "antigravity" | "claude-code" | "cursor" | "codex" | "custom" | "unknown";
+  modelName?: string;
+  thinkingLevel?: "high" | "medium" | "low" | "off" | string;
+  modelTier?: "xs" | "s" | "m" | "l";
+  tokens?: TokenUsageDetail;
+}
+
 export interface NodeMetrics {
   tokensIn?: number;
   tokensOut?: number;
@@ -54,6 +73,8 @@ export interface NodeMetrics {
   durationMs?: number;
   retries?: number;
   commandCount?: number;
+  tokens?: TokenUsageDetail;
+  hostAgent?: HostAgentMetadata;
 }
 
 export interface CommandExecutionDetail {
