@@ -10,6 +10,7 @@ import { loadRun } from "../../store/index.ts";
 import { beginCompletenessCritic } from "../../workflow/completion/begin-completeness-critic.ts";
 import { parseRawFindings } from "../../workflow/completion/parse-raw-findings.ts";
 import { recordCompletionReview } from "../../workflow/completion/record-completion-review.ts";
+import { authoritativeRepositoryCommand } from "../../workflow/completion/repository-evidence.ts";
 import type { CompletionFinding } from "../../workflow/completion/types.ts";
 import {
   formatCriticRejectBrief,
@@ -123,7 +124,12 @@ export async function criticReviewCommand(flags: Flags): Promise<Record<string, 
       .map((c) => ({ command_id: c.id }));
 
     const repoCmds = Object.values(state.commands)
-      .filter((c) => c.gate_id === "gate-run-completion" && c.exit_code === 0)
+      .filter(
+        (c) =>
+          c.gate_id === "gate-run-completion" &&
+          c.exit_code === 0 &&
+          authoritativeRepositoryCommand(state, c.id) !== undefined,
+      )
       .map((c) => c.id);
 
     const rawReqs = state.requirements as unknown;

@@ -9,17 +9,44 @@ interface EventDetails {
   gate_id?: string;
   command_id?: string;
   round?: number;
+  tokens?: number;
+  cost_usd?: number;
+  duration_ms?: number;
 }
 
 function determinePhaseAndSummary(event: HarnessEvent, promptBytes = 0): EventDetails {
-  const p = event.payload ?? {};
+  const p = (event.payload ?? {}) as Record<string, unknown>;
   const taskId = typeof p.task_id === "string" ? p.task_id : undefined;
   const gateId = typeof p.gate_id === "string" ? p.gate_id : undefined;
   const commandId = typeof p.command_id === "string" ? p.command_id : undefined;
   const round = typeof p.round === "number" ? p.round : undefined;
+  const tokens =
+    typeof p.tokens === "number"
+      ? p.tokens
+      : typeof p.total_tokens === "number"
+        ? p.total_tokens
+        : typeof p.totalTokens === "number"
+          ? p.totalTokens
+          : undefined;
+  const costUsd =
+    typeof p.cost_usd === "number"
+      ? p.cost_usd
+      : typeof p.costUsd === "number"
+        ? p.costUsd
+        : undefined;
+  const durationMs =
+    typeof p.duration_ms === "number"
+      ? p.duration_ms
+      : typeof p.durationMs === "number"
+        ? p.durationMs
+        : undefined;
+
   const result: EventDetails = {
     phase: "general",
     summary: `Event ${event.kind}`,
+    ...(tokens !== undefined ? { tokens } : {}),
+    ...(costUsd !== undefined ? { cost_usd: costUsd } : {}),
+    ...(durationMs !== undefined ? { duration_ms: durationMs } : {}),
   };
 
   switch (event.kind) {
@@ -39,6 +66,7 @@ function determinePhaseAndSummary(event: HarnessEvent, promptBytes = 0): EventDe
       result.summary = `Plan compiled with revision ${event.revision ?? 1}`;
       break;
     case "task-claimed":
+    case "task-leased":
       result.phase = "execution";
       result.summary = `Task ${taskId ?? "unknown"} claimed by ${event.actor} (role: ${String(p.role ?? "implementer")})`;
       if (taskId) result.task_id = taskId;
@@ -48,16 +76,46 @@ function determinePhaseAndSummary(event: HarnessEvent, promptBytes = 0): EventDe
       result.summary = `Heartbeat acknowledged for task ${taskId ?? "unknown"}`;
       if (taskId) result.task_id = taskId;
       break;
+    case "lease-renewed":
+      result.phase = "execution";
+      result.summary = `Lease renewed for task ${taskId ?? "unknown"} by ${event.actor}`;
+      if (taskId) result.task_id = taskId;
+      break;
+    case "lease-revoked":
+      result.phase = "execution";
+      result.summary = `Lease revoked for task ${taskId ?? "unknown"}`;
+      if (taskId) result.task_id = taskId;
+      break;
     case "task-submitted":
       result.phase = "execution";
       result.summary = `Task ${taskId ?? "unknown"} submitted by ${event.actor}`;
       if (taskId) result.task_id = taskId;
       break;
-    case "task-validation-started":
-      result.phase = "validation";
-      result.summary = `Validation started for task ${taskId ?? "unknown"} by ${event.actor}`;
+    case "task-escalated":
+      result.phase = "execution";
+      result.summary = `Task ${taskId ?? "unknown"} escalated by ${event.actor}: ${String(p.reason ?? "escalation")}`;
       if (taskId) result.task_id = taskId;
       break;
+    case "task-cancelled":
+      result.phase = "execution";
+      result.summary = `Task ${taskId ?? "unknown"} cancelled`;
+      if (taskId) result.task_id = taskId;
+      break;
+    case "task-validation-started":
+    case "gate-started":
+      result.phase = "validation";
+      result.summary = `Validation started for task ${taskId ?? gateId ?? "unknown"} by ${event.actor}`;
+      if (taskId) result.task_id = taskId;
+      if (gateId) result.gate_id = gateId;
+      break;
+    case "gate-completed": {
+      const isPass = p.verdict === "pass" || p.status === "pass";
+      result.phase = "validation";
+      result.summary = `Gate verification for task ${taskId ?? gateId ?? "unknown"} ${isPass ? "passed" : "rejected"}`;
+      if (taskId) result.task_id = taskId;
+      if (gateId) result.gate_id = gateId;
+      break;
+    }
     case "review-recorded": {
       const isPass = p.verdict === "pass" || p.status === "pass";
       const findings = Array.isArray(p.findings) ? p.findings.length : 0;
@@ -130,6 +188,9 @@ export function collectTimeline(
     if (details.gate_id) record.gate_id = details.gate_id;
     if (details.command_id) record.command_id = details.command_id;
     if (details.round !== undefined) record.round = details.round;
+    if (details.tokens !== undefined) record.tokens = details.tokens;
+    if (details.cost_usd !== undefined) record.cost_usd = details.cost_usd;
+    if (details.duration_ms !== undefined) record.duration_ms = details.duration_ms;
     return record;
   });
 }

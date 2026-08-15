@@ -94,4 +94,63 @@ describe("timeline collector", () => {
     expect(timeline[2]!.phase).toBe("review");
     expect(timeline[3]!.phase).toBe("completion");
   });
+
+  test("propagates optional telemetry fields (tokens, cost_usd, duration_ms) when present in event payloads", () => {
+    const events: HarnessEvent[] = [
+      createEvent(
+        "command-recorded",
+        {
+          command_id: "C-100",
+          argv: ["bun", "test"],
+          exit_code: 0,
+          duration_ms: 1250,
+          tokens: 450,
+          cost_usd: 0.0025,
+        },
+        1,
+      ),
+      createEvent(
+        "task-submitted",
+        {
+          task_id: "T-1",
+          total_tokens: 1500,
+          cost_usd: 0.012,
+          duration_ms: 45000,
+        },
+        2,
+      ),
+      createEvent(
+        "gate-completed",
+        {
+          task_id: "T-1",
+          verdict: "pass",
+          totalTokens: 800,
+          costUsd: 0.004,
+          durationMs: 3200,
+        },
+        3,
+      ),
+    ];
+
+    const timeline = collectTimeline(events);
+    expect(timeline).toHaveLength(3);
+
+    // Event 1 (command-recorded with snake_case fields)
+    expect(timeline[0]!.command_id).toBe("C-100");
+    expect(timeline[0]!.duration_ms).toBe(1250);
+    expect(timeline[0]!.tokens).toBe(450);
+    expect(timeline[0]!.cost_usd).toBe(0.0025);
+
+    // Event 2 (task-submitted with total_tokens & duration_ms)
+    expect(timeline[1]!.task_id).toBe("T-1");
+    expect(timeline[1]!.tokens).toBe(1500);
+    expect(timeline[1]!.cost_usd).toBe(0.012);
+    expect(timeline[1]!.duration_ms).toBe(45000);
+
+    // Event 3 (gate-completed with camelCase totalTokens / costUsd / durationMs)
+    expect(timeline[2]!.task_id).toBe("T-1");
+    expect(timeline[2]!.tokens).toBe(800);
+    expect(timeline[2]!.cost_usd).toBe(0.004);
+    expect(timeline[2]!.duration_ms).toBe(3200);
+  });
 });

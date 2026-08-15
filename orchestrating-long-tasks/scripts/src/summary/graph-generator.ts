@@ -1,8 +1,10 @@
+import type { HarnessEvent, Manifest } from "../contracts/capsule.ts";
 import type { CommandRecord } from "../contracts/commands.ts";
 import type { TaskRecord, WorkflowState } from "../workflow/types.ts";
 import { buildTaskAndGateNodes } from "./graph-generator-helpers.ts";
 import { computeExecutionSteps } from "./step-calculator.ts";
 import type {
+  EdgeTrafficExchange,
   GraphDataset,
   GraphEdgeData,
   GraphNodeData,
@@ -16,10 +18,12 @@ export interface GraphGeneratorInput {
   state: Readonly<WorkflowState>;
   promptText?: string;
   commands?: Record<string, CommandRecord>;
+  events?: readonly HarnessEvent[];
+  manifest?: Manifest;
 }
 
 export function generateGraphDataset(input: GraphGeneratorInput): GraphDataset {
-  const { runId, state, promptText = "" } = input;
+  const { runId, state, promptText = "", events, manifest } = input;
   const tasks = Object.values(state.tasks ?? {}) as TaskRecord[];
   const allCommands = Object.values({
     ...(state.commands ?? {}),
@@ -31,6 +35,7 @@ export function generateGraphDataset(input: GraphGeneratorInput): GraphDataset {
   const edges: GraphEdgeData[] = [];
 
   const promptSizeKb = (promptText.length / 1024).toFixed(1);
+  const promptTokens = Math.round(promptText.length / 4) || 200;
   nodes.push({
     id: "node-input-prompt",
     name: "User Request Prompt",
@@ -55,7 +60,7 @@ export function generateGraphDataset(input: GraphGeneratorInput): GraphDataset {
           kind: "prompt",
           label: "User Instruction",
           preview: promptText,
-          tokens: Math.round(promptText.length / 4),
+          tokens: promptTokens,
         },
       ],
     },
@@ -93,7 +98,7 @@ export function generateGraphDataset(input: GraphGeneratorInput): GraphDataset {
     },
   });
 
-  const promptExchanges = [
+  const promptExchanges: EdgeTrafficExchange[] = [
     {
       id: "exch-prompt-plan",
       timestamp: new Date().toISOString(),
@@ -101,7 +106,9 @@ export function generateGraphDataset(input: GraphGeneratorInput): GraphDataset {
       target: "node-orchestrator-plan",
       kind: "prompt",
       summary: "Ingested user prompt instructions and context",
-      tokens: Math.round(promptText.length / 4) || 200,
+      tokens: promptTokens,
+      tokensIn: 0,
+      tokensOut: promptTokens,
       bytes: promptText.length || 800,
       durationMs: 20,
       status: "success",
@@ -130,10 +137,13 @@ export function generateGraphDataset(input: GraphGeneratorInput): GraphDataset {
     traffic: {
       volume: 1,
       messagesCount: 1,
-      tokens: Math.round(promptText.length / 4) || 200,
+      tokens: promptTokens,
+      tokensIn: 0,
+      tokensOut: promptTokens,
+      latencyMs: 20,
       bytes: promptText.length || 800,
       ratePerSec: 1.0,
-      status: "active",
+      status: "nominal",
       glowColor: "#06b6d4",
       glowIntensity: 0.6,
       exchanges: promptExchanges,
@@ -153,6 +163,8 @@ export function generateGraphDataset(input: GraphGeneratorInput): GraphDataset {
       taskStep,
       taskWave,
       taskCmds,
+      events,
+      manifest,
     });
 
     nodes.push(taskNode, gateNode);
@@ -181,7 +193,7 @@ export function generateGraphDataset(input: GraphGeneratorInput): GraphDataset {
     description: "Sealed capsule run completion and summary artifact synthesis.",
   });
 
-  const criticExchanges = [
+  const criticExchanges: EdgeTrafficExchange[] = [
     {
       id: "exch-critic-complete",
       timestamp: new Date().toISOString(),
@@ -190,6 +202,8 @@ export function generateGraphDataset(input: GraphGeneratorInput): GraphDataset {
       kind: "decision",
       summary: "Full capsule signed-off and sealed by completeness critic",
       tokens: 450,
+      tokensIn: 150,
+      tokensOut: 300,
       bytes: 1800,
       durationMs: 50,
       status: "success",
@@ -219,9 +233,12 @@ export function generateGraphDataset(input: GraphGeneratorInput): GraphDataset {
       volume: 1,
       messagesCount: 1,
       tokens: 450,
+      tokensIn: 150,
+      tokensOut: 300,
+      latencyMs: 50,
       bytes: 1800,
       ratePerSec: 1.0,
-      status: "active",
+      status: "nominal",
       glowColor: "#10b981",
       glowIntensity: 0.8,
       exchanges: criticExchanges,

@@ -66,6 +66,13 @@ export interface HostAgentMetadata {
   tokens?: TokenUsageDetail;
 }
 
+export interface TimingBreakdown {
+  wallDurationMs: number;
+  activeCommandMs: number;
+  cognitiveLatencyMs: number;
+  validationDurationMs?: number;
+}
+
 export interface NodeMetrics {
   tokensIn?: number;
   tokensOut?: number;
@@ -75,6 +82,7 @@ export interface NodeMetrics {
   commandCount?: number;
   tokens?: TokenUsageDetail;
   hostAgent?: HostAgentMetadata;
+  timingBreakdown?: TimingBreakdown;
 }
 
 export interface CommandExecutionDetail {
@@ -154,6 +162,8 @@ export interface EdgeTrafficExchange {
   kind?: PayloadKind | string;
   summary?: string;
   tokens?: number;
+  tokensIn?: number;
+  tokensOut?: number;
   bytes?: number;
   durationMs?: number;
   status?: "success" | "error" | "warning" | "in_transit" | string;
@@ -164,15 +174,18 @@ export interface EdgeTrafficExchange {
 
 export interface EdgeTrafficDetail {
   volume?: number;
-  tokens?: number;
-  bytes?: number;
   messagesCount?: number;
-  exchanges?: EdgeTrafficExchange[];
+  tokens?: number;
+  tokensIn?: number;
+  tokensOut?: number;
+  latencyMs?: number;
+  bytes?: number;
   ratePerSec?: number;
   lastActive?: string;
-  status?: "active" | "idle" | "congested" | "error" | string;
+  status?: "nominal" | "high" | "congested" | "active" | "idle" | "error" | string;
   glowColor?: string;
   glowIntensity?: number;
+  exchanges?: EdgeTrafficExchange[];
 }
 
 export interface GraphNodeData {
@@ -277,6 +290,9 @@ export interface TimelineEventRecord extends JsonObject {
   gate_id?: string;
   command_id?: string;
   round?: number;
+  tokens?: number;
+  cost_usd?: number;
+  duration_ms?: number;
 }
 
 export interface TokenEstimation extends JsonObject {
