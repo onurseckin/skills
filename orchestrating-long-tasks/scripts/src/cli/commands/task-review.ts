@@ -99,7 +99,11 @@ export async function taskRejectCommand(flags: Flags): Promise<Record<string, un
   if (!taskBefore) throw new HarnessError("INVALID_ARGUMENT", `unknown task ${taskId}`);
 
   const explicitEvidence = textFlag(flags, "evidence", false) ?? textFlag(flags, "checks", false);
-  const checkIds = explicitEvidence ? explicitEvidence.split(",").map((s) => s.trim()).filter(Boolean) : [];
+  const checkIds = explicitEvidence
+    ? explicitEvidence.split(",").map((s) => s.trim()).filter(Boolean)
+    : (Object.values(loadRun(run).state.commands ?? {}) as { id: string; actor?: string; task_id?: string; exit_code?: number }[])
+        .filter((c) => c.task_id === taskId && c.actor === validator)
+        .map((c) => c.id);
   const findingId = `finding-${taskId}-reject`;
 
   const reviewPayload: Record<string, unknown> = {
@@ -111,12 +115,13 @@ export async function taskRejectCommand(flags: Flags): Promise<Record<string, un
       id: findingId,
       requirement_id: taskBefore.requirement_ids[0] ?? `req-${taskId}`,
       severity: "critical",
-      evidence: [{ kind: "failure", detail: reason }],
+      evidence: checkIds.length > 0 ? checkIds.map((id) => ({ kind: "command", reference: id })) : [{ kind: "failure", detail: reason }],
       observation: reason,
       remediation: finding,
       revalidation: `Run gate tests for ${taskId}`,
     }],
   };
+
 
   const state = recordReview(workflowPort(run), taskId, validator, reviewPayload);
   const markdown = formatTaskRejectBrief({ taskId, validator, findingId, issue: reason });
