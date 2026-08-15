@@ -35,11 +35,22 @@ export function beginCompletenessCritic(
     if (remediations.length >= MAX_REPAIR_ROUNDS)
       throw new HarnessError("INVALID_STATE", "completeness critic rounds are exhausted");
     if (current) {
-      if (current.status !== "reviewed" && current.status !== "expired")
+      if (
+        current.status !== "reviewed" &&
+        current.status !== "expired" &&
+        sameRepositoryBinding(currentRepositoryBinding(draft), current.repository_binding)
+      )
         throw new HarnessError(
           "INVALID_STATE",
           "completeness critic authorization is already active",
         );
+      if (current.status !== "reviewed" && current.status !== "expired") {
+        current.status = "expired";
+        const historical = history.find(
+          (entry) => entry.attempt === current.attempt && entry.critic_id === current.critic_id,
+        );
+        if (historical) historical.status = "expired";
+      }
       if (current.status === "reviewed") {
         const review = draft.completion_review;
         if (!review || review.critic_id !== current.critic_id)
