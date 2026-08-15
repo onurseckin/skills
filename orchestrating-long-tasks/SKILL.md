@@ -149,6 +149,24 @@ Harness behavior can be customized by placing a `harness.config.json` or `.harne
 - **`default_max_parallel`** (default `4`): Default concurrency limit for independent task execution.
 - **`strict_validation`** (default `true`): Enforces mandatory gate coverage and independent validator checks.
 
+## Two-Tier Agent Architecture & Main Thread Isolation
+
+To keep the user's interactive conversation clean, responsive, and free of worker tool churn, adhere strictly to the 3-tier hierarchy:
+
+1. **Tier 1 (Main Interactive Thread)**:
+   - Dedicated exclusively to user interaction.
+   - Spawns **exactly one** child: the `Background Run Coordinator`.
+   - Never runs implementer/validator tool loops or background polls directly.
+2. **Tier 2 (Background Run Coordinator)**:
+   - Owns capsule lifecycle, planning, waves, and validation.
+   - Spawns and manages all Tier 3 workers in the background tree.
+   - Reports to Tier 1 parent **only at major milestones** (Plan Ready, Wave Complete, Escalation, Final Sign-off).
+3. **Tier 3 (Worker & Validator Subagents)**:
+   - Ephemeral executors assigned disjoint write scopes.
+   - Message and report exclusively to the Tier 2 Coordinator.
+
+See [references/host-adapters.md](references/host-adapters.md) for adapter implementations across Antigravity, Claude Code, and Codex.
+
 ## Backward Compatibility & Recovery
 
 Existing commands (`init`, `plan-apply`, `claim`, `heartbeat`, `submit`, `review`, `doctor`, `handoff`, `complete`)
