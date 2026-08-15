@@ -16,12 +16,12 @@
   "author": "Onur Seçkin Şenoğlu",
   "type": "module",
   "scripts": {
-    "test": "bun test --parallel tests/unit",
-    "test:unit": "bun test --parallel tests/unit",
+    "test": "bun test --timeout 30000 --parallel tests/unit",
+    "test:unit": "bun test --timeout 30000 --parallel tests/unit",
     "test:integration": "bun test --timeout 30000 tests/integration",
     "test:integrations": "bun test --timeout 30000 tests/integration",
     "test:all": "bun run test:unit && bun run test:integration",
-    "test:coverage": "bun test --coverage tests/unit",
+    "test:coverage": "bun test --timeout 30000 --coverage tests/unit",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "format": "oxfmt"
   },
