@@ -64,11 +64,11 @@ The harness provides a **Zero-JSON CLI API** where all commands output clean, co
   ```
 - **`task:review`**: Submits validator sign-off and attaches mandatory gate proof.
   ```bash
-  bun harness.ts task:review --run <run-id> --task <task-id> --validator <val-agent> --token <token> --status pass --summary "<summary>"
+  bun harness.ts task:review --run <run-id> --task <task-id> --validator <val-agent> --token <token> --status pass --summary "<summary>" [--evidence <cmd-id>]
   ```
 - **`task:reject`**: Rejects a task with structured findings for targeted implementer repair.
   ```bash
-  bun harness.ts task:reject --run <run-id> --task <task-id> --validator <val-agent> --token <token> --finding-id <finding-id> --severity important --observation "<issue>" --remediation "<remediation>"
+  bun harness.ts task:reject --run <run-id> --task <task-id> --validator <val-agent> --token <token> --reason "<reason>" --finding "<remediation>" [--evidence <cmd-id>]
   ```
 
 ---
@@ -94,4 +94,17 @@ The harness provides a **Zero-JSON CLI API** where all commands output clean, co
 - **`run:complete`**: Seals the capsule and commits terminal completion.
   ```bash
   bun harness.ts run:complete --run <run-id> --actor coordinator
+  ```
+
+---
+
+## 5. Visual Summary & Analytics (`summary:*`)
+
+- **`summary:export`**: Generates full Graph Visualization UI (GVUI) datasets, metrics, and timeline events.
+  ```bash
+  bun harness.ts summary:export --run <run-id>
+  ```
+- **`summary:view`**: Renders terminal executive summary and execution metrics.
+  ```bash
+  bun harness.ts summary:view --run <run-id>
   ```

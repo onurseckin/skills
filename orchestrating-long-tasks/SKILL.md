@@ -10,6 +10,38 @@ authoritative coordination under `.capsules/<run>/`, stores lightweight, verifia
 and can be resumed by Codex, ChatGPT coding agents, Claude Code, or Antigravity without relying
 on conversation history or model-provider APIs.
 
+This guide serves as the **high-level orchestrator manual** directing orchestrators on how to leverage the specialized agent configurations under `agents/` and detailed protocol references under `references/`.
+
+---
+
+## Specialized Agent Archetypes (`agents/`)
+
+The harness partitions responsibilities across four distinct agent archetypes defined under `agents/`:
+
+| Agent Spec | Tier | Role & Responsibilities |
+| :--- | :---: | :--- |
+| [`agents/coordinator.yaml`](agents/coordinator.yaml) | Tier 2 | **Long Task Coordinator**: Owns capsule lifecycle, prompt capture, graph compilation, concurrency wave management, heartbeat tracking, and run completion. Dispatches Tier 3 workers and validators in the background. |
+| [`agents/worker.yaml`](agents/worker.yaml) | Tier 3 | **Task Worker**: Implements features strictly within assigned `write_scope`, conducts local pre-submission testing (unit/integration/negative tests), and resolves validator findings during repair rounds. |
+| [`agents/validator.yaml`](agents/validator.yaml) | Tier 3 | **Adversarial Validator**: Executes mandatory gate proof commands via `run:exec`, performs adversarial invariant audits (edge cases, contract boundaries, layout math, negative assertions, visual layout bounds), and issues formal structured pushbacks (`task:reject`) or passes (`task:review`). |
+| [`agents/critic.yaml`](agents/critic.yaml) | Tier 3 | **Completeness Critic**: Evaluates whole-repository git diff against original immutable prompt bytes, audits requirement coverage, verifies run completion gates, and issues final sign-off (`critic:review`). |
+| [`agents/openai.yaml`](agents/openai.yaml) | — | **OpenAI / Codex Profile**: System interface definition for OpenAI Codex and ChatGPT coding agent environments. |
+
+---
+
+## Specialized Reference Manuals (`references/`)
+
+Deep technical documentation and operational contracts are available under `references/`:
+
+- [`references/protocol.md`](references/protocol.md): Non-negotiable invariants, immutable prompt capture, role packet sanitization, and gate execution rules.
+- [`references/cli.md`](references/cli.md): Comprehensive syntax reference for all 18 colon-based CLI subcommands (`plan:*`, `queue:*`, `task:*`, `run:*`, `critic:*`).
+- [`references/state-model.md`](references/state-model.md): Run directory structure, task state transitions, lease/recovery mechanics, and event stream integrity.
+- [`references/host-adapters.md`](references/host-adapters.md): Two-tier agent architecture, main-thread isolation, and host-native subagent adapters for AGY, Claude Code, and Codex.
+- [`references/failure-modes.md`](references/failure-modes.md): Complete failure mode taxonomy (stale leases, worker crashes, scope collisions, gate mismatches) and deterministic recovery strategies.
+- [`references/parity-matrix.md`](references/parity-matrix.md): Host capability parity matrix across AI agent execution platforms.
+- [`references/schema-examples.md`](references/schema-examples.md): Canonical JSON schemas for requirements, DAG graphs, submissions, findings, and reviews.
+
+---
+
 ## When to use
 
 Use this skill when any of these are true:
@@ -23,6 +55,8 @@ Use this skill when any of these are true:
 
 Do not create a harness for a simple answer, a one-file mechanical edit, or a short diagnostic that
 one agent can finish and verify directly.
+
+---
 
 ## Hard rules
 
@@ -38,6 +72,56 @@ one agent can finish and verify directly.
    hooks, pathname fsmonitor, replacement objects, pagers, external diff, and text conversion.
    Repository discovery rejects repository-local `diff.external`, `diff.*.textconv`, active
    `core.fsmonitor`, or `filter.*.clean`, `filter.*.smudge`, or `filter.*.process` before status.
+
+---
+
+## Orchestrator Guidance: Multi-Agent Dispatch & Adversarial Validation
+
+### 1. Two-Tier Agent Architecture & Main Thread Isolation
+
+To keep the user's interactive conversation clean, responsive, and free of worker tool churn, adhere strictly to the 3-tier hierarchy:
+
+1. **Tier 1 (Main Interactive Thread)**:
+   - Dedicated exclusively to user interaction.
+   - Spawns **exactly one** child: the `Background Run Coordinator`.
+   - Never runs implementer/validator tool loops or background polls directly.
+2. **Tier 2 (Background Run Coordinator)**:
+   - Owns capsule lifecycle, planning, waves, and validation.
+   - Spawns and manages all Tier 3 workers in the background tree.
+   - Reports to Tier 1 parent **only at major milestones** (Plan Ready, Wave Complete, Escalation, Final Sign-off).
+3. **Tier 3 (Worker & Validator Subagents)**:
+   - Ephemeral executors assigned disjoint write scopes.
+   - Message and report exclusively to the Tier 2 Coordinator.
+
+See [references/host-adapters.md](references/host-adapters.md) for adapter implementations across Antigravity, Claude Code, and Codex.
+
+### 2. Context Sanitization & Independent Validation
+
+Self-grading and conversational bias lead to unhandled edge cases, missing assertions, and overlooked defects. The harness enforces **Adversarial Role Separation**:
+- **Context Sanitization**: When a worker submits a task via `task:submit`, implementer prose and subjective confidence claims are completely stripped from the validator's packet.
+- **Pure Allowlisted Context**: The validator receives only immutable prompt requirements, acceptance criteria, write scope, changed file paths, physical git diff, and mandatory gate command contracts.
+
+### 3. Adversarial Invariant Audits & Visual/Layout Checks
+
+The coordinator must direct Tier 3 validators to perform rigorous, multi-round adversarial verification:
+- **Mandatory Gate Execution**: Execute test suites via `run:exec` under process monitoring and verify exit code 0.
+- **Contract & Boundary Stress-Testing**: Test boundary conditions, input extremes (empty collections, maximum byte buffers, invalid unicode), and type contracts.
+- **Negative Assertions & Error Handling**: Prove that unauthorized requests, invalid arguments, and failure conditions are explicitly tested and cleanly handled.
+- **Visual & Layout Audits on Generated Artifacts**: For generated UI components, HTML/CSS layouts, SVGs, or documentation:
+  - Verify responsive constraints, layout coordinates, non-overlapping containers, and bounding box math.
+  - Verify typography tracking, WCAG accessibility attributes (ARIA roles, semantic elements, color contrast), and zero text clipping.
+  - Verify that no placeholder text, mock stubs, or unlinked artifacts remain.
+- **Substantive Test Audit**: Reject tautological, empty, or mocked-out tests that bypass actual business logic.
+
+### 4. Structured Pushback (`task:reject`) & Bounded Repair Loops
+
+When any invariant check fails or tests are incomplete:
+1. **Formal Pushback**: The validator executes `task:reject` with structured findings (`--reason`, `--finding`, `--evidence`).
+2. **Targeted Repair**: The task transitions to `changes_requested`. The coordinator routes the finding back to the worker for targeted remediation within `write_scope`.
+3. **Re-Verification in Round 2+**: A fresh validator verifies the fix against prior findings, re-runs `run:exec`, re-checks all invariants, and only approves via `task:review --status pass` when completely satisfied.
+4. **Bounded Escalation**: If a task fails across max repair rounds (default 5, configurable via `max_repair_rounds`), the harness transitions the task to `escalated` and alerts the coordinator/user.
+
+---
 
 ## Standard CLI & API Protocol
 
@@ -108,7 +192,7 @@ bun $PINNED run:exec --run $RUN --task <task-id> --gate <gate-id> --actor <val-a
 bun $PINNED task:review --run $RUN --task <task-id> --validator <val-agent> --token <token> --status pass --summary "<summary>"
 
 # Or reject with findings for implementer repair
-bun $PINNED task:reject --run $RUN --task <task-id> --validator <val-agent> --token <token> --reason "<reason>" --finding "<remediation>"
+bun $PINNED task:reject --run $RUN --task <task-id> --validator <val-agent> --token <token> --reason "<reason>" --finding "<remediation>" [--evidence <cmd-id>]
 ```
 
 ### Phase 4: Completeness Critic & Lifecycle Completion
@@ -129,6 +213,19 @@ bun $PINNED run:complete --run $RUN --actor coordinator
 bun $PINNED run:status --run $RUN
 ```
 
+### Phase 5: Visual Reporting & Summary Suite
+
+Export graph summary and visual dashboard:
+```bash
+# Export summary suite (graph dataset, metrics, timeline)
+bun $PINNED summary:export --run $RUN
+
+# View human-readable summary
+bun $PINNED summary:view --run $RUN
+```
+
+---
+
 ## Harness Configuration (`harness.config.json`)
 
 Harness behavior can be customized by placing a `harness.config.json` or `.harness.config.json` file in the repository root (or per-capsule `config.json`):
@@ -148,22 +245,3 @@ Harness behavior can be customized by placing a `harness.config.json` or `.harne
 - **`default_lease_seconds`** (default `1800`): Default worker lease duration for task claims.
 - **`default_max_parallel`** (default `4`): Default concurrency limit for independent task execution.
 - **`strict_validation`** (default `true`): Enforces mandatory gate coverage and independent validator checks.
-
-## Two-Tier Agent Architecture & Main Thread Isolation
-
-To keep the user's interactive conversation clean, responsive, and free of worker tool churn, adhere strictly to the 3-tier hierarchy:
-
-1. **Tier 1 (Main Interactive Thread)**:
-   - Dedicated exclusively to user interaction.
-   - Spawns **exactly one** child: the `Background Run Coordinator`.
-   - Never runs implementer/validator tool loops or background polls directly.
-2. **Tier 2 (Background Run Coordinator)**:
-   - Owns capsule lifecycle, planning, waves, and validation.
-   - Spawns and manages all Tier 3 workers in the background tree.
-   - Reports to Tier 1 parent **only at major milestones** (Plan Ready, Wave Complete, Escalation, Final Sign-off).
-3. **Tier 3 (Worker & Validator Subagents)**:
-   - Ephemeral executors assigned disjoint write scopes.
-   - Message and report exclusively to the Tier 2 Coordinator.
-
-See [references/host-adapters.md](references/host-adapters.md) for adapter implementations across Antigravity, Claude Code, and Codex.
-

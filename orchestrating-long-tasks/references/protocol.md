@@ -85,16 +85,27 @@ submissions as orphan evidence after expiry/recovery, but never let them mutate 
 ### 6. Collect evidence and validate
 
 Implementer submissions cover every mapped requirement and include changed paths, artifacts, and
-focused command IDs. A fresh validator receives only authoritative, allowlisted context. It inspects
-the repository and runs independent focused proof. Structured rejection findings return to a
-repairer; passing prose without evidence is invalid.
+focused command IDs. A fresh validator receives only authoritative, allowlisted context without
+implementer narrative or subjective confidence to eliminate anchoring bias. The validator inspects
+the repository, executes mandatory gate commands under monitored execution (`run:exec`), and performs
+an exhaustive adversarial invariant audit:
+- Contract boundaries, input extremes, and edge cases;
+- Negative assertions and error handling paths;
+- Mathematical, algorithmic, and layout precision;
+- Visual/layout bounds, responsive constraints, typography, and styling for generated artifacts;
+- Substantive test verification (rejecting tautological, shallow, or mocked-out tests).
+
+Structured rejection findings (`task:reject`) return to the implementer with actionable remediation
+instructions and proof evidence; passing prose without verifiable command evidence is invalid. Passing
+reviews (`task:review --status pass`) attach command evidence and satisfy the task.
 
 ### 7. Repair with bounded feedback
 
 Route the first repair to the original implementer. If recorded policy marks the author unavailable,
 stale, or repeatedly failing, lease a replacement with the same frozen task contract. A fresh
-validator must resolve findings with nonempty revalidation evidence. After three rejected rounds,
-escalate and preserve the exact handoff instead of self-approving.
+validator must re-verify the repaired code against prior findings and re-run gate proofs with nonempty
+revalidation evidence. After max repair rounds (default 5, configurable via `max_repair_rounds`),
+escalate to the coordinator/user and preserve the exact handoff instead of self-approving.
 
 ### 8. Gates and completeness
 
