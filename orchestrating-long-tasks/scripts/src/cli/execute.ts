@@ -29,6 +29,7 @@ import {
   findingGetCommand,
   reportGetCommand,
   evidenceGetCommand,
+  evidenceScreenshotsCommand,
 } from "./commands/inspection-ops.ts";
 
 export async function execute(
@@ -100,6 +101,8 @@ export async function execute(
       return reportGetCommand(parsed.flags) as JsonObject;
     case "evidence:get":
       return evidenceGetCommand(parsed.flags) as JsonObject;
+    case "evidence:screenshots":
+      return evidenceScreenshotsCommand(parsed.flags) as JsonObject;
 
     default:
       throw new HarnessError("INVALID_ARGUMENT", `unknown command: ${parsed.command}`);

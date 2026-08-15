@@ -18,13 +18,13 @@ This guide serves as the **high-level orchestrator manual** directing orchestrat
 
 The harness partitions responsibilities across four distinct agent archetypes defined under `agents/`:
 
-| Agent Spec                                           |  Tier  | Role & Responsibilities                                                                                                                                                                                                                                                                              |
-| :--------------------------------------------------- | :----: | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [`agents/coordinator.yaml`](agents/coordinator.yaml) | Tier 2 | **Long Task Coordinator**: Owns capsule lifecycle, prompt capture, graph compilation, concurrency wave management, heartbeat tracking, and run completion. Dispatches Tier 3 workers and validators in the background.                                                                               |
-| [`agents/worker.yaml`](agents/worker.yaml)           | Tier 3 | **Task Worker**: Implements features strictly within assigned `write_scope`, conducts local pre-submission testing (unit/integration/negative tests), and resolves validator findings during repair rounds.                                                                                          |
-| [`agents/validator.yaml`](agents/validator.yaml)     | Tier 3 | **Adversarial Validator**: Executes mandatory gate proof commands via `run:exec`, performs adversarial invariant audits (edge cases, contract boundaries, layout math, negative assertions, visual layout bounds), and issues formal structured pushbacks (`task:reject`) or passes (`task:review`). |
-| [`agents/critic.yaml`](agents/critic.yaml)           | Tier 3 | **Completeness Critic**: Evaluates whole-repository git diff against original immutable prompt bytes, audits requirement coverage, verifies run completion gates, and issues final sign-off (`critic:review`).                                                                                       |
-| [`agents/openai.yaml`](agents/openai.yaml)           |   —    | **OpenAI / Codex Profile**: System interface definition for OpenAI Codex and ChatGPT coding agent environments.                                                                                                                                                                                      |
+| Agent Spec                                           |  Tier  | Role & Responsibilities                                                                                                                                                                                                                                                                                                                                                                                               |
+| :--------------------------------------------------- | :----: | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`agents/coordinator.yaml`](agents/coordinator.yaml) | Tier 2 | **Long Task Coordinator**: Owns capsule lifecycle, prompt capture, graph compilation, concurrency wave management, heartbeat tracking, and run completion. Dispatches Tier 3 workers and validators in the background.                                                                                                                                                                                                |
+| [`agents/worker.yaml`](agents/worker.yaml)           | Tier 3 | **Task Worker**: Implements features strictly within assigned `write_scope`, conducts local pre-submission testing (unit/integration/negative tests), and resolves validator findings during repair rounds.                                                                                                                                                                                                           |
+| [`agents/validator.yaml`](agents/validator.yaml)     | Tier 3 | **Adversarial Validator**: Executes mandatory gate proof commands via `run:exec`, enforces frontend visual validation mandate (Playwright screenshots for UI repositories/components), performs adversarial invariant audits (edge cases, contract boundaries, layout math, text clipping, visual collisions, negative assertions), and issues formal structured pushbacks (`task:reject`) or passes (`task:review`). |
+| [`agents/critic.yaml`](agents/critic.yaml)           | Tier 3 | **Completeness Critic**: Evaluates whole-repository git diff against original immutable prompt bytes, audits requirement coverage, verifies run completion gates, and issues final sign-off (`critic:review`).                                                                                                                                                                                                        |
+| [`agents/openai.yaml`](agents/openai.yaml)           |   —    | **OpenAI / Codex Profile**: System interface definition for OpenAI Codex and ChatGPT coding agent environments.                                                                                                                                                                                                                                                                                                       |
 
 ---
 
@@ -155,29 +155,46 @@ Self-grading and conversational bias lead to unhandled edge cases, missing asser
 - **Context Sanitization**: When a worker submits a task via `task:submit`, implementer prose and subjective confidence claims are completely stripped from the validator's packet.
 - **Pure Allowlisted Context**: The validator receives only immutable prompt requirements, acceptance criteria, write scope, changed file paths, physical git diff, and mandatory gate command contracts.
 
-### 3. Adversarial Invariant Audits & Visual/Layout Checks
+### 3. Adversarial Invariant Audits & Frontend Visual Validation Mandate
 
-The coordinator must direct Tier 3 validators to perform rigorous, multi-round adversarial verification:
+The coordinator must direct Tier 3 validators to perform rigorous, multi-round adversarial verification across all system dimensions (detailed agent instructions defined in [`agents/validator.yaml`](file:///Users/onurseckinsenoglu/repos/skills/orchestrating-long-tasks/agents/validator.yaml)):
 
 - **Mandatory Gate Execution**: Execute test suites via `run:exec` under process monitoring and verify exit code 0.
+- **Frontend Visual Validation Mandate & Architectural Rationale (Playwright Screenshots)**:
+  - **Architectural Rationale ("Why" over "What")**:
+    Headless DOM assertions (such as jsdom or shallow render `.toBeVisible()` checks) operate solely on virtual DOM nodes and CSS property declarations in memory. Consequently, they fail completely to detect actual visual rendering regressions: subpixel layout arithmetic rounding overflows, GPU rasterization text clipping, font-fallback baseline misalignments, descending glyph clipping under fixed line-height/overflow:hidden boundaries, flex-wrap child layout collisions, and complex runtime `z-index` stacking context overlaps. Playwright screenshot verification executes full geometry rendering against authentic browser layout engines (Chromium/WebKit), providing empirical, pixel-level proof of visual correctness.
+  - **Mandatory Execution**: Whenever working on a frontend/UI repository (e.g., UI component libraries, web applications, canvas rendering engines) or validating UI components, pages, layouts, or styling, Validators **MUST** execute visual validation with Playwright screenshot capture via the 5-step validation workflow (see [`agents/validator.yaml`](file:///Users/onurseckinsenoglu/repos/skills/orchestrating-long-tasks/agents/validator.yaml)).
+  - **Negative Visual Validation & Anti-Mocking Rules**:
+    1. **Zero Mocked/Stubbed Screenshots**: Validators **MUST REJECT** empty (0-byte) screenshot captures, stubbed image outputs, bypassed canvas contexts, or test runs that skip authentic Playwright browser layout rendering.
+    2. **Strict Failure on Visual Threshold Breaches & Missing Viewports**: Validators **MUST REJECT** submissions where pixel differences exceed strict visual regression thresholds or where the required multi-viewport matrix (mobile 375x667, tablet 768x1024, desktop 1280x800) is omitted or incomplete.
+    3. **Concrete Negative Testing Requirements**: Negative visual tests **MUST** prove that broken layouts, unlinked stylesheets/fonts, missing SVG assets, or container collisions actively trigger test failures and screenshot diff rejections.
+  - **Automated Screenshot Artifact Ingestion**: In `run:exec`, `task:review`, or `task:reject`, when a test/check command outputs screenshots (or Playwright writes to `test-results/` / `screenshots/`), the harness automatically detects and ingests them into `.capsules/<run>/evidence/screenshots/<cmd-id>-<name>.png` and `.capsules/<run>/reports/screenshots/`, recording screenshot paths in the evidence and report JSON records.
+  - **Harness Screenshot Inspection Commands**: Inspect captured screenshots using `bun $PINNED evidence:get --run $RUN --task <task-id> --screenshots`, `bun $PINNED report:get --run $RUN --task <task-id> --screenshots`, or `bun $PINNED evidence:screenshots --run $RUN`.
+  - **Screenshot Evaluation Invariant in Reviews**: Validators **MUST** inspect captured screenshots and evaluate them explicitly in their review findings and markdown before issuing any approval:
+    - **Layout Overflow**: Detect and reject unintentional horizontal scrollbars (`overflow-x` leaks) on 375px mobile, 768px tablet, and 1280px desktop viewports. Detect flex/grid child overflow where child containers exceed parent boundaries (e.g. missing `min-width: 0` or unconstrained flex items).
+    - **Text Clipping & Descending Glyphs**: Reject premature or unintended ellipsis truncation, unnatural mid-word breaks or orphan words, and clipped descending glyphs ('g', 'y', 'p', 'q', 'j') caused by tight `line-height` combined with `overflow: hidden` or fixed container heights.
+    - **Visual Collisions & Stacking Contexts**: Enforce strict `z-index` stacking hierarchy across modals, fixed/sticky headers, floating action buttons (FABs), dropdowns, and tooltips. Ensure notification badges or floating overlays never collide with or obscure interactive tap targets (minimum 44x44px touch targets).
+    - **Responsive Constraints**: Ensure visual fidelity across all standard breakpoints (mobile 375px, tablet 768px, desktop 1280px+) without collapsed panels or squished inputs.
+    - **Typography & Accessibility**: Verify correct letter-spacing/tracking, font hierarchy, semantic HTML tags, ARIA attributes, and WCAG AA contrast.
+  - **Prohibition of Blind UI Approvals**: Issuing an approval (`task:review --status pass`) on UI changes without empirical visual screenshot evaluation is strictly prohibited.
+  - **Render Cache & Database Reset Mandate**: When validating layout rendering or running visual checks against stateful or caching UI engines (e.g., in-memory layout caches, local database stores, persistent viewport storage), Validators **MUST** ensure the render cache is reset prior to screenshot capture (e.g., clearing layout caches, resetting local storage/database) to guarantee that fresh layout engine geometry is computed and regressions are not masked by stale cache.
+  - **Top-Left / Origin Orphan Text Invariant**: Ensure that no orphan text, unplaced edge badges, or unpositioned labels appear stuck at canvas origin `(0, 0)` or fail to refresh when panning/dragging away. Unpositioned elements without valid coordinates MUST NOT render at `(0, 0)`.
+  - **Canvas Reset Action Invariant**: Verify that pressing the Reset button (or `R` keyboard shortcut) not only resets viewport zoom/pan but also cleanly purges cached layout geometry for the active dataset to trigger fresh layout recalculation.
 - **Contract & Boundary Stress-Testing**: Test boundary conditions, input extremes (empty collections, maximum byte buffers, invalid unicode), and type contracts.
 - **Negative Assertions & Error Handling**: Prove that unauthorized requests, invalid arguments, and failure conditions are explicitly tested and cleanly handled.
-- **Visual & Layout Audits on Generated Artifacts**: For generated UI components, HTML/CSS layouts, SVGs, or documentation:
-  - Verify responsive constraints, layout coordinates, non-overlapping containers, and bounding box math.
-  - Verify typography tracking, WCAG accessibility attributes (ARIA roles, semantic elements, color contrast), and zero text clipping.
-  - Verify that no placeholder text, mock stubs, or unlinked artifacts remain.
 - **Substantive Test Audit**: Reject tautological, empty, or mocked-out tests that bypass actual business logic.
+- **Zero-Any TypeScript Audit**: Prohibit all forms of TypeScript `any` (`: any`, `Promise<any>`, `as any`, `<any>x`, `T = any`) and lint suppressions (`@ts-ignore`, `@ts-expect-error`, `eslint-disable`).
 
 ### 4. Structured Pushback, Minimum Mandatory Rejection Gauntlet & Bounded Repair Loops
 
-To guarantee publication-grade code robustness, the harness enforces a **Mandatory Multi-Round Adversarial Rejection Gauntlet**:
+To guarantee publication-grade code robustness, the harness enforces a **Mandatory Multi-Round Adversarial Rejection Gauntlet** (implemented by [`agents/validator.yaml`](file:///Users/onurseckinsenoglu/repos/skills/orchestrating-long-tasks/agents/validator.yaml)):
 
 1. **Minimum Mandatory Rejections (Min 3 Rejections)**:
    - **Rounds 1, 2, and 3 MUST BE REJECTED** by the Validator (`task:reject`), regardless of whether the initial code passes basic tests.
    - The Validator must actively question and stress-test the implementation:
-     - **Round 1 Pushback**: Stress-tests boundary inputs, empty/large collections, invalid unicode, and demands explicit negative test assertions.
-     - **Round 2 Pushback**: Stress-tests typing strictness, zero-any compliance, exact optional properties, memory/runtime performance, and demands missing defensive guards.
-     - **Round 3 Pushback**: Stress-tests documentation depth ("why" vs "what"), visual/layout bounds, accessibility, and demands comprehensive end-to-end integration tests.
+     - **Round 1 Pushback**: Stress-tests boundary inputs, empty/large collections, invalid unicode, empty/stubbed screenshot captures, and demands explicit negative test assertions.
+     - **Round 2 Pushback**: Stress-tests typing strictness, zero-any compliance, exact optional properties, memory/runtime performance, layout overflow (`overflow-x` leaks on 375px/768px/1280px), descending glyph clipping ('g','y','p','q'), and z-index stacking collisions (modals vs headers vs tooltips).
+     - **Round 3 Pushback**: Stress-tests documentation depth ("why" vs "what"), visual/layout bounds, responsive viewport constraints, touch target sizing (44x44px), accessibility (WCAG AA), and demands comprehensive end-to-end integration tests.
 2. **Conditional Approval (Round 4+)**:
    - In Round 4+, the Validator may issue `task:review --status pass` ONLY IF all prior pushback demands from Rounds 1–3 have been comprehensively satisfied with empirical test proofs and zero defects.
 3. **Configurable Pushback Thresholds**:
@@ -298,10 +315,16 @@ bun $PINNED task:validate-start --run $RUN --task <task-id> --validator <val-age
 # Validator executes the mandatory gate command under monitoring
 bun $PINNED run:exec --run $RUN --task <task-id> --gate <gate-id> --actor <val-agent> -- <gate-argv...>
 
-# Record validation approval (automatically attaches gates and satisfies task)
+# Execute frontend visual validation gate (Playwright screenshot test suite)
+bun $PINNED run:exec --run $RUN --task <task-id> --gate gate-ui-visual --actor <val-agent> -- bun test tests/visual/...
+
+# Inspect captured screenshot evidence
+bun $PINNED evidence:get --run $RUN --task <task-id> --screenshots
+
+# Record validation approval (including visual screenshot evaluation)
 bun $PINNED task:review --run $RUN --task <task-id> --validator <val-agent> --token <token> --status pass --summary "<summary>"
 
-# Or reject with findings for implementer repair
+# Or reject with findings for implementer repair (including visual defects)
 bun $PINNED task:reject --run $RUN --task <task-id> --validator <val-agent> --token <token> --reason "<reason>" --finding "<remediation>" [--evidence <cmd-id>]
 ```
 
@@ -337,6 +360,9 @@ bun $PINNED summary:export --run $RUN
 
 # View human-readable summary
 bun $PINNED summary:view --run $RUN
+
+# Inspect captured screenshots across tasks and runs
+bun $PINNED evidence:screenshots --run $RUN
 ```
 
 ---

@@ -50,6 +50,7 @@ export interface ReportBriefParams {
   report: Record<string, unknown>;
   path: string;
   name?: string;
+  showScreenshots?: boolean;
 }
 
 export function formatReportBrief(params: ReportBriefParams): string {
@@ -57,18 +58,26 @@ export function formatReportBrief(params: ReportBriefParams): string {
   const name = params.name ?? "Report";
   const status = String(r.status ?? r.verdict ?? r.decision ?? "unknown");
   const summary = String(r.summary ?? "No summary provided");
+  const screenshots = Array.isArray(r.screenshots) ? r.screenshots : [];
   const lines = [
     `### Report: \`${name}\``,
     `- **Status / Verdict**: \`${status}\``,
     `- **Summary**: ${summary}`,
     `- **Path**: \`${params.path}\``,
   ];
+  if (screenshots.length > 0 || params.showScreenshots) {
+    lines.push(`- **Screenshots**: ${screenshots.length} captured`);
+    for (const s of screenshots.slice(0, 5)) {
+      lines.push(`  - \`${String(s)}\``);
+    }
+  }
   return enforceLineLimit(lines.join("\n"), 30);
 }
 
 export interface ReportsListParams {
   reports: { name: string; path: string; data?: Record<string, unknown> }[];
   count: number;
+  showScreenshots?: boolean;
 }
 
 export function formatReportsListBrief(params: ReportsListParams): string {
@@ -77,7 +86,11 @@ export function formatReportsListBrief(params: ReportsListParams): string {
     lines.push("- No reports recorded for this run.");
   } else {
     for (const r of params.reports.slice(0, 10)) {
-      lines.push(`- **\`${r.name}\`**: \`${r.path}\``);
+      const sCount = Array.isArray(r.data?.screenshots)
+        ? (r.data?.screenshots as unknown[]).length
+        : 0;
+      const sSuffix = params.showScreenshots || sCount > 0 ? ` (${sCount} screenshots)` : "";
+      lines.push(`- **\`${r.name}\`**${sSuffix}: \`${r.path}\``);
     }
     if (params.reports.length > 10) {
       lines.push(`- ... and ${params.reports.length - 10} more reports.`);
@@ -89,6 +102,7 @@ export function formatReportsListBrief(params: ReportsListParams): string {
 export interface EvidenceBriefParams {
   evidence: Record<string, unknown>;
   path: string;
+  showScreenshots?: boolean;
 }
 
 export function formatEvidenceBrief(params: EvidenceBriefParams): string {
@@ -98,18 +112,26 @@ export function formatEvidenceBrief(params: EvidenceBriefParams): string {
   const dur = typeof e.duration_ms === "number" ? `${e.duration_ms}ms` : "N/A";
   const actor = String(e.actor ?? "unknown");
   const argv = Array.isArray(e.argv) ? e.argv.map(String).join(" ") : "";
+  const screenshots = Array.isArray(e.screenshots) ? e.screenshots : [];
   const lines = [
     `### Evidence: \`${cmdId}\``,
     `- **Command**: \`${argv}\``,
     `- **Actor**: \`${actor}\` | **Exit Code**: \`${code}\` | **Duration**: \`${dur}\``,
     `- **Path**: \`${params.path}\``,
   ];
+  if (screenshots.length > 0 || params.showScreenshots) {
+    lines.push(`- **Screenshots**: ${screenshots.length} captured`);
+    for (const s of screenshots.slice(0, 5)) {
+      lines.push(`  - \`${String(s)}\``);
+    }
+  }
   return enforceLineLimit(lines.join("\n"), 30);
 }
 
 export interface EvidenceListParams {
   evidence: Record<string, unknown>[];
   count: number;
+  showScreenshots?: boolean;
 }
 
 export function formatEvidenceListBrief(params: EvidenceListParams): string {
@@ -121,7 +143,9 @@ export function formatEvidenceListBrief(params: EvidenceListParams): string {
       const id = String(e.command_id ?? e.id ?? "cmd");
       const code = String(e.exit_code ?? 0);
       const argv = Array.isArray(e.argv) ? e.argv.map(String).join(" ").slice(0, 50) : "";
-      lines.push(`- **\`${id}\`** (exit: \`${code}\`): \`${argv}\``);
+      const sCount = Array.isArray(e.screenshots) ? e.screenshots.length : 0;
+      const sSuffix = params.showScreenshots || sCount > 0 ? ` (${sCount} screenshots)` : "";
+      lines.push(`- **\`${id}\`** (exit: \`${code}\`${sSuffix}): \`${argv}\``);
     }
     if (params.evidence.length > 10) {
       lines.push(`- ... and ${params.evidence.length - 10} more evidence records.`);

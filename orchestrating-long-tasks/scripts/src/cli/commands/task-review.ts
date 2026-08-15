@@ -1,11 +1,6 @@
-import { mkdirSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
 import { HarnessError } from "../../errors/harness-error.ts";
 import { workflowPort } from "../../integration/store-ports.ts";
 import { loadRun } from "../../store/index.ts";
-import { attachGateResult } from "../../workflow/gates/attach-result.ts";
-import { finishTask } from "../../workflow/gates/finish-task.ts";
-import { applicableGates } from "../../workflow/gates/gate-policy.ts";
 import { beginValidation } from "../../workflow/review/begin-validation.ts";
 import { recordReview } from "../../workflow/review/record-review.ts";
 import type { TaskRecord } from "../../workflow/types.ts";
@@ -15,6 +10,14 @@ import {
   formatValidationStartBrief,
 } from "../formatters/index.ts";
 import { assertFlags, textFlag, type Flags } from "../options.ts";
+import {
+  buildReviewFinding,
+  collectTaskScreenshots,
+  finalizePassingTask,
+  persistFindingFile,
+  persistReviewReport,
+  resolveCheckIds,
+} from "./task-review-support.ts";
 
 export async function taskValidateStartCommand(flags: Flags): Promise<Record<string, unknown>> {
   assertFlags(flags, ["run", "task", "validator", "lease-duration"]);
@@ -58,29 +61,22 @@ export async function taskReviewCommand(flags: Flags): Promise<Record<string, un
   ];
   const summary = textFlag(flags, "summary", false) ?? `Validation ${status}`;
   const customFindingId = textFlag(flags, "finding-id", false);
-  if (status !== "pass" && status !== "fail")
+  if (status !== "pass" && status !== "fail") {
     throw new HarnessError("INVALID_ARGUMENT", "--status must be pass or fail");
+  }
 
   const loaded = loadRun(run);
   const taskBefore = ((loaded.state.tasks ?? {}) as Record<string, TaskRecord>)[taskId];
   if (!taskBefore) throw new HarnessError("INVALID_ARGUMENT", `unknown task ${taskId}`);
 
   const explicitEvidence = textFlag(flags, "evidence", false) ?? textFlag(flags, "checks", false);
-  const checkIds = explicitEvidence
-    ? explicitEvidence
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean)
-    : (
-        Object.values(loaded.state.commands ?? {}) as {
-          id: string;
-          actor?: string;
-          task_id?: string;
-          exit_code?: number;
-        }[]
-      )
-        .filter((c) => c.task_id === taskId && c.actor === validator && c.exit_code === 0)
-        .map((c) => c.id);
+  const checkIds = resolveCheckIds(
+    explicitEvidence,
+    loaded.state.commands,
+    taskId,
+    validator,
+    true,
+  );
 
   const isPass = status === "pass";
   const openFindings = (taskBefore.findings ?? []).filter((f) => f.status === "open");
@@ -88,22 +84,17 @@ export async function taskReviewCommand(flags: Flags): Promise<Record<string, un
     (taskBefore.repair_round ?? 0) + 1,
     (taskBefore.findings ?? []).length + 1,
   );
-  const findingId =
-    customFindingId ??
-    (round > 1 ? `finding-${taskId}-${String(round).padStart(2, "0")}` : `finding-${taskId}-01`);
 
-  const findingObj = {
-    id: findingId,
-    requirement_id: taskBefore.requirement_ids[0] ?? `req-${taskId}`,
+  const findingObj = buildReviewFinding({
+    taskId,
+    findingId: customFindingId,
+    round,
+    requirementId: taskBefore.requirement_ids[0] ?? `req-${taskId}`,
     severity: "important",
-    evidence:
-      checkIds.length > 0
-        ? checkIds.map((id) => ({ kind: "command", reference: id }))
-        : [{ kind: "failure", detail: summary }],
-    observation: summary,
+    checkIds,
+    summary,
     remediation: "Correct implementation to satisfy requirements and pass gates.",
-    revalidation: `Run gate tests for ${taskId}`,
-  };
+  });
 
   const reviewPayload: Record<string, unknown> = {
     verdict: isPass ? "pass" : "reject",
@@ -123,34 +114,9 @@ export async function taskReviewCommand(flags: Flags): Promise<Record<string, un
 
   let state = recordReview(workflowPort(run), taskId, validator, reviewPayload);
   if (isPass) {
-    const currentTask = state.tasks[taskId];
-    if (currentTask) {
-      for (const gate of applicableGates(state, currentTask)) {
-        const matchingCmd = checkIds.find((id) => {
-          const cmd = state.commands[id];
-          return cmd && (cmd.gate_id === gate.id || !cmd.gate_id);
-        });
-        if (matchingCmd) {
-          try {
-            state = attachGateResult(workflowPort(run), taskId, gate.id, matchingCmd, validator);
-          } catch {}
-        }
-      }
-      try {
-        state = finishTask(workflowPort(run), taskId, validator);
-      } catch {}
-    }
-  }
-
-  // Persist finding to disk if validation failed
-  if (!isPass) {
-    const findingsDir = join(loaded.runRoot, "findings");
-    mkdirSync(findingsDir, { recursive: true });
-    writeFileSync(
-      join(findingsDir, `${findingId}.json`),
-      JSON.stringify(findingObj, null, 2),
-      "utf-8",
-    );
+    state = finalizePassingTask(run, taskId, validator, checkIds, state);
+  } else {
+    persistFindingFile(loaded.runRoot, findingObj);
   }
 
   const unblocked = isPass
@@ -162,10 +128,9 @@ export async function taskReviewCommand(flags: Flags): Promise<Record<string, un
         .map((o) => o.id)
     : [];
 
-  // Persist review report to disk
-  const reportsDir = join(loaded.runRoot, "reports");
-  mkdirSync(reportsDir, { recursive: true });
-  const reportPath = join(reportsDir, `${taskId}-review.json`);
+  const taskScreenshots = collectTaskScreenshots(loaded.runRoot, taskId, validator, checkIds);
+  const screenshotPaths = taskScreenshots.map((s) => s.report_path);
+
   const reportData = {
     task_id: taskId,
     validator,
@@ -179,9 +144,12 @@ export async function taskReviewCommand(flags: Flags): Promise<Record<string, un
     resolved_findings: reviewPayload.resolved_findings ?? [],
     unblocked,
     task: state.tasks[taskId],
+    screenshots: screenshotPaths,
+    screenshot_records: taskScreenshots,
   };
-  writeFileSync(reportPath, JSON.stringify(reportData, null, 2), "utf-8");
+  const reportPath = persistReviewReport(loaded.runRoot, taskId, reportData);
 
+  const findingId = String(findingObj.id);
   const markdown = isPass
     ? formatTaskReviewPassBrief({
         taskId,
@@ -204,6 +172,8 @@ export async function taskReviewCommand(flags: Flags): Promise<Record<string, un
     verdict: status,
     unblocked,
     report_path: reportPath,
+    screenshots: screenshotPaths,
+    screenshot_records: taskScreenshots,
     ...(isPass ? {} : { finding_id: findingId, finding: findingObj }),
   };
 }
@@ -235,42 +205,30 @@ export async function taskRejectCommand(flags: Flags): Promise<Record<string, un
   if (!taskBefore) throw new HarnessError("INVALID_ARGUMENT", `unknown task ${taskId}`);
 
   const explicitEvidence = textFlag(flags, "evidence", false) ?? textFlag(flags, "checks", false);
-  const checkIds = explicitEvidence
-    ? explicitEvidence
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean)
-    : (
-        Object.values(loaded.state.commands ?? {}) as {
-          id: string;
-          actor?: string;
-          task_id?: string;
-          exit_code?: number;
-        }[]
-      )
-        .filter((c) => c.task_id === taskId && c.actor === validator)
-        .map((c) => c.id);
+  const checkIds = resolveCheckIds(
+    explicitEvidence,
+    loaded.state.commands,
+    taskId,
+    validator,
+    false,
+  );
 
   const round = Math.max(
     (taskBefore.repair_round ?? 0) + 1,
     (taskBefore.findings ?? []).length + 1,
   );
-  const findingId =
-    customFindingId ??
-    (round > 1 ? `finding-${taskId}-reject-${round}` : `finding-${taskId}-reject`);
-
-  const findingObj = {
-    id: findingId,
-    requirement_id: taskBefore.requirement_ids[0] ?? `req-${taskId}`,
+  const findingObj = buildReviewFinding({
+    taskId,
+    findingId:
+      customFindingId ??
+      (round > 1 ? `finding-${taskId}-reject-${round}` : `finding-${taskId}-reject`),
+    round,
+    requirementId: taskBefore.requirement_ids[0] ?? `req-${taskId}`,
     severity: "critical",
-    evidence:
-      checkIds.length > 0
-        ? checkIds.map((id) => ({ kind: "command", reference: id }))
-        : [{ kind: "failure", detail: reason }],
-    observation: reason,
+    checkIds,
+    summary: reason,
     remediation: finding,
-    revalidation: `Run gate tests for ${taskId}`,
-  };
+  });
 
   const reviewPayload: Record<string, unknown> = {
     verdict: "reject",
@@ -281,17 +239,11 @@ export async function taskRejectCommand(flags: Flags): Promise<Record<string, un
   };
 
   const state = recordReview(workflowPort(run), taskId, validator, reviewPayload);
+  persistFindingFile(loaded.runRoot, findingObj);
 
-  // Persist finding to disk
-  const findingsDir = join(loaded.runRoot, "findings");
-  mkdirSync(findingsDir, { recursive: true });
-  const findingPath = join(findingsDir, `${findingId}.json`);
-  writeFileSync(findingPath, JSON.stringify(findingObj, null, 2), "utf-8");
+  const taskScreenshots = collectTaskScreenshots(loaded.runRoot, taskId, validator, checkIds);
+  const screenshotPaths = taskScreenshots.map((s) => s.report_path);
 
-  // Persist review report to disk
-  const reportsDir = join(loaded.runRoot, "reports");
-  mkdirSync(reportsDir, { recursive: true });
-  const reportPath = join(reportsDir, `${taskId}-review.json`);
   const reportData = {
     task_id: taskId,
     validator,
@@ -303,9 +255,12 @@ export async function taskRejectCommand(flags: Flags): Promise<Record<string, un
     checks: checkIds,
     findings: [findingObj],
     task: state.tasks[taskId],
+    screenshots: screenshotPaths,
+    screenshot_records: taskScreenshots,
   };
-  writeFileSync(reportPath, JSON.stringify(reportData, null, 2), "utf-8");
+  const reportPath = persistReviewReport(loaded.runRoot, taskId, reportData);
 
+  const findingId = String(findingObj.id);
   const markdown = formatTaskRejectBrief({ taskId, validator, findingId, issue: reason });
   return {
     markdown,
@@ -314,5 +269,7 @@ export async function taskRejectCommand(flags: Flags): Promise<Record<string, un
     finding_id: findingId,
     finding: findingObj,
     report_path: reportPath,
+    screenshots: screenshotPaths,
+    screenshot_records: taskScreenshots,
   };
 }

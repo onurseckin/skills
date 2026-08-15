@@ -1,6 +1,7 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../../errors/harness-error.ts";
+import { queryScreenshots } from "../../reporting/screenshot-store.ts";
 import { loadRun } from "../../store/index.ts";
 import {
   formatEvidenceBrief,
@@ -9,6 +10,7 @@ import {
   formatFindingsListBrief,
   formatReportBrief,
   formatReportsListBrief,
+  formatScreenshotsListBrief,
 } from "../formatters/index.ts";
 import { assertFlags, boolFlag, textFlag, type Flags } from "../options.ts";
 
@@ -76,12 +78,14 @@ export function reportGetCommand(flags: Flags): Record<string, unknown> {
     "stage",
     "submission",
     "review",
+    "screenshots",
   ]);
   const run = textFlag(flags, "run")!;
   const task = textFlag(flags, "task", false);
   const isCriticFlag = boolFlag(flags, "critic");
   const isSubmissionFlag = boolFlag(flags, "submission");
   const isReviewFlag = boolFlag(flags, "review");
+  const showScreenshots = boolFlag(flags, "screenshots");
   const typeFlag = textFlag(flags, "type", false);
   const stageFlag = textFlag(flags, "stage", false);
   const reportName = textFlag(flags, "report", false) ?? textFlag(flags, "id", false);
@@ -125,12 +129,19 @@ export function reportGetCommand(flags: Flags): Record<string, unknown> {
     } catch {
       throw new HarnessError("INVALID_ARGUMENT", `invalid json in report file: ${filePath}`);
     }
-    const markdown = formatReportBrief({ report: data, path: filePath, name: targetFileName });
+    const markdown = formatReportBrief({
+      report: data,
+      path: filePath,
+      name: targetFileName,
+      showScreenshots,
+    });
     return {
       markdown,
       run_root: run,
       report: data,
       path: filePath,
+      screenshots: Array.isArray(data.screenshots) ? data.screenshots : [],
+      screenshot_records: Array.isArray(data.screenshot_records) ? data.screenshot_records : [],
     };
   }
 
@@ -148,7 +159,7 @@ export function reportGetCommand(flags: Flags): Record<string, unknown> {
     }
   }
 
-  const markdown = formatReportsListBrief({ reports, count: reports.length });
+  const markdown = formatReportsListBrief({ reports, count: reports.length, showScreenshots });
   return {
     markdown,
     run_root: run,
@@ -158,7 +169,7 @@ export function reportGetCommand(flags: Flags): Record<string, unknown> {
 }
 
 export function evidenceGetCommand(flags: Flags): Record<string, unknown> {
-  assertFlags(flags, ["run", "command", "id", "cmd", "task", "gate", "actor"]);
+  assertFlags(flags, ["run", "command", "id", "cmd", "task", "gate", "actor", "screenshots"]);
   const run = textFlag(flags, "run")!;
   const cmdId =
     textFlag(flags, "command", false) ??
@@ -167,6 +178,7 @@ export function evidenceGetCommand(flags: Flags): Record<string, unknown> {
   const taskFilter = textFlag(flags, "task", false);
   const gateFilter = textFlag(flags, "gate", false);
   const actorFilter = textFlag(flags, "actor", false);
+  const showScreenshots = boolFlag(flags, "screenshots");
 
   const loaded = loadRun(run);
   const evidenceDir = join(loaded.runRoot, "evidence");
@@ -183,7 +195,7 @@ export function evidenceGetCommand(flags: Flags): Record<string, unknown> {
     } catch {
       throw new HarnessError("INVALID_ARGUMENT", `invalid json in evidence file: ${filePath}`);
     }
-    const markdown = formatEvidenceBrief({ evidence: data, path: filePath });
+    const markdown = formatEvidenceBrief({ evidence: data, path: filePath, showScreenshots });
     return {
       markdown,
       run_root: run,
@@ -191,12 +203,16 @@ export function evidenceGetCommand(flags: Flags): Record<string, unknown> {
         (data.command_id as string | undefined) ?? (data.id as string | undefined) ?? cmdId,
       evidence: data,
       path: filePath,
+      screenshots: Array.isArray(data.screenshots) ? data.screenshots : [],
+      screenshot_records: Array.isArray(data.screenshot_records) ? data.screenshot_records : [],
     };
   }
 
   const evidenceList: Record<string, unknown>[] = [];
   if (existsSync(evidenceDir)) {
-    const files = readdirSync(evidenceDir).filter((f) => f.endsWith(".json"));
+    const files = readdirSync(evidenceDir).filter(
+      (f) => f.endsWith(".json") && f !== "manifest.json",
+    );
     for (const f of files) {
       try {
         const item = JSON.parse(readFileSync(join(evidenceDir, f), "utf-8")) as Record<
@@ -211,11 +227,47 @@ export function evidenceGetCommand(flags: Flags): Record<string, unknown> {
     }
   }
 
-  const markdown = formatEvidenceListBrief({ evidence: evidenceList, count: evidenceList.length });
+  const markdown = formatEvidenceListBrief({
+    evidence: evidenceList,
+    count: evidenceList.length,
+    showScreenshots,
+  });
   return {
     markdown,
     run_root: run,
     evidence: evidenceList,
     count: evidenceList.length,
+  };
+}
+
+export function evidenceScreenshotsCommand(flags: Flags): Record<string, unknown> {
+  assertFlags(flags, ["run", "task", "command", "cmd", "id", "actor"]);
+  const run = textFlag(flags, "run")!;
+  const taskFilter = textFlag(flags, "task", false);
+  const cmdFilter =
+    textFlag(flags, "command", false) ??
+    textFlag(flags, "cmd", false) ??
+    textFlag(flags, "id", false);
+  const actorFilter = textFlag(flags, "actor", false);
+
+  const loaded = loadRun(run);
+  const screenshots = queryScreenshots(loaded.runRoot, {
+    taskId: taskFilter,
+    commandId: cmdFilter,
+    actor: actorFilter,
+  });
+
+  const markdown = formatScreenshotsListBrief({
+    screenshots,
+    count: screenshots.length,
+    taskId: taskFilter,
+    commandId: cmdFilter,
+  });
+
+  return {
+    markdown,
+    run_root: run,
+    screenshots,
+    count: screenshots.length,
   };
 }

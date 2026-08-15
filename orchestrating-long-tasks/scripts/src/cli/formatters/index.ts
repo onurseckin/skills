@@ -4,3 +4,4 @@ export * from "./queue-formatter.ts";
 export * from "./task-formatter.ts";
 export * from "./run-formatter.ts";
 export * from "./inspection-formatter.ts";
+export * from "./screenshot-formatter.ts";

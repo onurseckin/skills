@@ -17,6 +17,7 @@ import {
   formatCriticStartBrief,
 } from "../formatters/index.ts";
 import { assertFlags, textFlag, type Flags } from "../options.ts";
+import { queryScreenshots } from "../../reporting/screenshot-store.ts";
 
 function liveRepositoryBinding(run: string, expected: Readonly<RepositoryBinding>) {
   void expected;
@@ -204,6 +205,7 @@ export async function criticReviewCommand(flags: Flags): Promise<Record<string, 
   const reportsDir = join(loaded.runRoot, "reports");
   mkdirSync(reportsDir, { recursive: true });
   const reportPath = join(reportsDir, "critic-review.json");
+  const runScreenshots = queryScreenshots(loaded.runRoot);
   const reportData = {
     critic,
     token,
@@ -211,6 +213,8 @@ export async function criticReviewCommand(flags: Flags): Promise<Record<string, 
     summary,
     created_at: new Date().toISOString(),
     findings,
+    screenshots: runScreenshots.map((s) => s.report_path),
+    screenshot_records: runScreenshots,
     completion_review: state.completion_review ?? reviewPayload,
   };
   writeFileSync(reportPath, JSON.stringify(reportData, null, 2), "utf-8");
