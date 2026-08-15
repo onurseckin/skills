@@ -53,7 +53,7 @@ function succeeded(id: string, attempt: number, commandRoot: string): AttemptRes
 async function setup(name: string) {
   const root = await mkdtemp(join(tmpdir(), name));
   roots.push(root);
-  const runRoot = join(root, ".harness");
+  const runRoot = join(root, ".capsules");
   await mkdir(join(runRoot, "commands"), { recursive: true });
   await mkdir(join(root, "bin"));
   await writeFile(join(root, "bin", "verify"), "#!/bin/sh\nexit 0\n", { mode: 0o700 });

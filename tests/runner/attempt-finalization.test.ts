@@ -141,7 +141,7 @@ describe("two-phase command attempt finalization", () => {
   test("leaves an unreturned started attempt running for conservative reconciliation", async () => {
     const root = await mkdtemp(join(tmpdir(), "attempt-unreturned-"));
     roots.push(root);
-    const runRoot = join(root, ".harness");
+    const runRoot = join(root, ".capsules");
     await mkdir(join(runRoot, "commands"), { recursive: true });
     const runner = createInternalCommandRunner({
       inspectRepository: () => binding("a"),
@@ -172,7 +172,7 @@ describe("two-phase command attempt finalization", () => {
   test("retains raw attempt evidence when the repository changes after the child exits", async () => {
     const root = await mkdtemp(join(tmpdir(), "attempt-finalization-"));
     roots.push(root);
-    const runRoot = join(root, ".harness");
+    const runRoot = join(root, ".capsules");
     await mkdir(join(runRoot, "commands"), { recursive: true });
     await mkdir(join(root, "bin"));
     await writeFile(join(root, "bin", "verify"), "#!/bin/sh\nexit 0\n", { mode: 0o700 });
@@ -222,7 +222,7 @@ describe("two-phase command attempt finalization", () => {
   test("captures repository_after for a successful gate terminalization", async () => {
     const root = await mkdtemp(join(tmpdir(), "attempt-success-after-"));
     roots.push(root);
-    const runRoot = join(root, ".harness");
+    const runRoot = join(root, ".capsules");
     await mkdir(join(runRoot, "commands"), { recursive: true });
     await mkdir(join(root, "bin"));
     await writeFile(join(root, "bin", "verify"), "#!/bin/sh\nexit 0\n", { mode: 0o700 });

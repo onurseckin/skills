@@ -3,7 +3,7 @@
 ## Run directory
 
 ```text
-.harness/<run>/
+.capsules/<run>/
 ├── prompt.md             immutable original bytes, mode 0444
 ├── manifest.json         assurance, prompt digest, pinned runtime digest
 ├── state.json            canonical current projection
@@ -79,7 +79,7 @@ repository scans is outside the threat model. This is observation evidence, not 
 reproducible-build, sandboxed, or complete inferred-closure evidence.
 
 Completion binds two matching full scans of every Git-tracked and nonignored untracked node outside
-`.git` and `.harness`. Regular files bind bytes, type, mode, and staged metadata. Symbolic links bind
+`.git` and `.capsules`. Regular files bind bytes, type, mode, and staged metadata. Symbolic links bind
 their link-target bytes and are never followed; symbolic ancestors and unstable component identities
 fail closed. Non-regular, non-symlink leaves are rejected before open; regular leaves are opened
 nonblocking and no-follow, then required by descriptor inspection to remain regular. The stable

@@ -10,13 +10,13 @@ afterEach(async () =>
 );
 
 describe("capsule ignore policy", () => {
-  test("rejects a Git repository until .harness is ignored", async () => {
+  test("rejects a Git repository until .capsules is ignored", async () => {
     const repo = await mkdtemp(join(tmpdir(), "harness-ignore-"));
     roots.push(repo);
     const initialized = Bun.spawnSync({ cmd: ["git", "-C", repo, "init", "--quiet"] });
     expect(initialized.exitCode).toBe(0);
     expect(() => ensureHarnessIgnored(repo)).toThrow("gitignored");
-    await writeFile(join(repo, ".gitignore"), ".harness/\n");
+    await writeFile(join(repo, ".gitignore"), ".capsules/\n");
     expect(() => ensureHarnessIgnored(repo)).not.toThrow();
   });
 

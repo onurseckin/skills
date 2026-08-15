@@ -14,11 +14,12 @@ export interface Manifest extends JsonObject {
   capture_mode: CaptureMode;
   source_verified: boolean;
   assurance: CaptureAssurance;
+  created_at?: string;
   runtime_sha256?: string;
-  runtime_files: number;
-  runtime_entrypoint: string;
+  runtime_files?: number;
+  runtime_entrypoint?: string;
   bun_version: string;
-  bun_compatibility: BunCompatibility;
+  bun_compatibility?: BunCompatibility;
   runtime_version: string;
 }
 

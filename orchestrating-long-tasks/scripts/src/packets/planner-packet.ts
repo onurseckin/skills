@@ -1,7 +1,9 @@
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { readRegularFileNoFollow } from "../core/no-follow.ts";
 import { HarnessError } from "../errors/harness-error.ts";
 import { loadRun } from "../store/index.ts";
+import { resolveRoleAsset } from "./asset-paths.ts";
 import { requireText } from "../workflow/task-state.ts";
 import type { PublishedPacket } from "./persist-packet.ts";
 import { publishPacket } from "./persist-packet.ts";
@@ -32,14 +34,14 @@ export async function initializePlannerPacket(
   const context = repositoryInspectionContext(loaded.state, false);
   const requirementsPath = join(loaded.runRoot, "planning", "requirements.json");
   const graphPath = join(loaded.runRoot, "planning", "graph.json");
-  const runtime = join(loaded.runRoot, "runtime", "harness.ts");
+  const harnessScript = fileURLToPath(new URL("../../harness.ts", import.meta.url));
   const packet = await buildPacketFromPinnedRuntime(loaded.runRoot, {
     runId: loaded.manifest.run_id,
     graphRevision: 0,
     role: "planner",
     agentId: plannerId,
     state: port.read(),
-    roleInstructions: decoded(join(loaded.runRoot, "runtime", "assets", "planner.md")),
+    roleInstructions: decoded(resolveRoleAsset("planner")),
     authoritativeContext: {
       original_prompt: new TextDecoder("utf-8", { fatal: true }).decode(loaded.prompt),
       capture_manifest: structuredClone(loaded.manifest),
@@ -51,7 +53,7 @@ export async function initializePlannerPacket(
     targetedCommands: [
       [
         "bun",
-        runtime,
+        harnessScript,
         "validate",
         "--run",
         loaded.runRoot,
@@ -62,7 +64,7 @@ export async function initializePlannerPacket(
       ],
       [
         "bun",
-        runtime,
+        harnessScript,
         "plan-apply",
         "--run",
         loaded.runRoot,

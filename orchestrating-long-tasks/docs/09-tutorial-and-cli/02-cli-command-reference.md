@@ -9,7 +9,7 @@
 The `orchestrating-long-tasks` CLI is executed via the pinned runtime inside each run capsule:
 
 ```bash
-bun .harness/<run-id>/runtime/harness.ts <subcommand> [flags...] [-- <argv...>]
+bun orchestrating-long-tasks/scripts/harness.ts <subcommand> [flags...] [-- <argv...>]
 ```
 
 All CLI commands output machine-parseable JSON lines (`{"ok": true, "result": ...}`) on stdout, or structured errors (`{"ok": false, "error": {"code": ...}}`) on stderr.

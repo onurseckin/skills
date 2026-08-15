@@ -15,7 +15,7 @@
 ### Q3: Why is my task stuck in `validating`?
 **A:** An agent started validation via `begin-validation` but hasn't submitted a review. If the validator timed out or crashed, run:
 ```bash
-bun .harness/<run-id>/runtime/harness.ts recover --run .harness/<run-id> --actor coordinator --grace-seconds 0
+bun orchestrating-long-tasks/scripts/harness.ts recover --run .capsules/<run-id> --actor coordinator --grace-seconds 0
 ```
 This reclaims expired leases and resets the validation state.
 

@@ -43,8 +43,8 @@ When a validator rejects a task, the task enters the `changes_requested` state. 
 The coordinator leases the task back to the original implementer (or an assigned repairer agent):
 
 ```bash
-bun .harness/<run-id>/runtime/harness.ts assign-repairer \
-  --run .harness/<run-id> \
+bun orchestrating-long-tasks/scripts/harness.ts assign-repairer \
+  --run .capsules/<run-id> \
   --task task-auth \
   --agent implementer-1 \
   --role repairer

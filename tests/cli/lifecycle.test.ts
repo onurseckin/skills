@@ -13,7 +13,7 @@ afterEach(async () => cleanupRoots(roots));
 async function fixture() {
   const repo = await mkdtemp(join(tmpdir(), "harness-cli-"));
   roots.push(repo);
-  await mkdir(join(repo, ".harness"));
+  await mkdir(join(repo, ".capsules"));
   const prompt = "First\n\nThird";
   const promptPath = join(repo, "prompt.txt");
   const requirementsPath = join(repo, "requirements.json");

@@ -106,10 +106,10 @@ export async function normalizeCommandOptions(
   const runRoot = realpathSync(requestedRunRoot);
   if (input.gateId !== undefined && input.gateId !== null) {
     const runFromRepository = relative(repositoryRoot, runRoot);
-    if (runFromRepository !== ".harness" && !runFromRepository.startsWith(`.harness${sep}`)) {
+    if (runFromRepository !== ".capsules" && !runFromRepository.startsWith(`.capsules${sep}`)) {
       throw new HarnessError(
         "PATH_SAFETY",
-        "gate command artifacts must be stored under the repository .harness directory",
+        "gate command artifacts must be stored under the repository .capsules directory",
       );
     }
   }

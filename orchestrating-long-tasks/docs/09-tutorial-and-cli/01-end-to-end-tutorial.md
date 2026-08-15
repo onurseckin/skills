@@ -17,16 +17,16 @@ By the end of this tutorial, you will understand how to initialize a task capsul
 When given a complex project prompt, capture it into an immutable prompt file and initialize the run:
 
 ```bash
-mkdir -p .harness/my-feature
-cat << 'EOF' > .harness/my-feature/prompt.md
+mkdir -p .capsules/my-feature
+cat << 'EOF' > .capsules/my-feature/prompt.md
 Refactor user authentication to support OAuth2 GitHub and Google providers.
 All existing unit tests must pass.
 Add comprehensive integration tests for token exchange.
 EOF
 
 bun orchestrating-long-tasks/scripts/src/entrypoints/harness.ts init \
-  --run .harness/my-feature \
-  --prompt .harness/my-feature/prompt.md \
+  --run .capsules/my-feature \
+  --prompt .capsules/my-feature/prompt.md \
   --actor coordinator
 ```
 
@@ -36,8 +36,8 @@ bun orchestrating-long-tasks/scripts/src/entrypoints/harness.ts init \
 
 1. **Claim the Planner Lease:**
    ```bash
-   bun .harness/my-feature/runtime/harness.ts claim \
-     --run .harness/my-feature \
+   bun orchestrating-long-tasks/scripts/harness.ts claim \
+     --run .capsules/my-feature \
      --task planner-0 \
      --agent planner \
      --role planner
@@ -46,10 +46,10 @@ bun orchestrating-long-tasks/scripts/src/entrypoints/harness.ts init \
 3. **Author `graph.json`:** Structure the tasks DAG with write scopes, dependencies, artifacts, and gate commands.
 4. **Apply the Plan:**
    ```bash
-   bun .harness/my-feature/runtime/harness.ts plan-apply \
-     --run .harness/my-feature \
-     --requirements .harness/my-feature/planning/requirements.json \
-     --graph .harness/my-feature/planning/graph.json \
+   bun orchestrating-long-tasks/scripts/harness.ts plan-apply \
+     --run .capsules/my-feature \
+     --requirements .capsules/my-feature/planning/requirements.json \
+     --graph .capsules/my-feature/planning/graph.json \
      --expected-revision 0 \
      --actor coordinator
    ```
@@ -60,23 +60,23 @@ bun orchestrating-long-tasks/scripts/src/entrypoints/harness.ts init \
 
 1. **Schedule Available Batches:**
    ```bash
-   bun .harness/my-feature/runtime/harness.ts schedule \
-     --run .harness/my-feature \
+   bun orchestrating-long-tasks/scripts/harness.ts schedule \
+     --run .capsules/my-feature \
      --max-parallel 3 \
      --actor coordinator
    ```
 2. **Claim a Task Lease:**
    ```bash
-   bun .harness/my-feature/runtime/harness.ts claim \
-     --run .harness/my-feature \
+   bun orchestrating-long-tasks/scripts/harness.ts claim \
+     --run .capsules/my-feature \
      --task task-gh-auth \
      --agent implementer-1 \
      --role implementer
    ```
 3. **Generate & Read Role Packet:**
    ```bash
-   bun .harness/my-feature/runtime/harness.ts packet \
-     --run .harness/my-feature \
+   bun orchestrating-long-tasks/scripts/harness.ts packet \
+     --run .capsules/my-feature \
      --task task-gh-auth \
      --role implementer \
      --agent implementer-1 \
@@ -91,8 +91,8 @@ bun orchestrating-long-tasks/scripts/src/entrypoints/harness.ts init \
 1. Write code strictly within the assigned `write_scope`.
 2. Execute local tests under the watchdog runner:
    ```bash
-   bun .harness/my-feature/runtime/harness.ts run \
-     --run .harness/my-feature \
+   bun orchestrating-long-tasks/scripts/harness.ts run \
+     --run .capsules/my-feature \
      --actor implementer-1 \
      --task task-gh-auth \
      --cwd . \
@@ -100,8 +100,8 @@ bun orchestrating-long-tasks/scripts/src/entrypoints/harness.ts init \
    ```
 3. Submit task completion report:
    ```bash
-   bun .harness/my-feature/runtime/harness.ts submit \
-     --run .harness/my-feature \
+   bun orchestrating-long-tasks/scripts/harness.ts submit \
+     --run .capsules/my-feature \
      --task task-gh-auth \
      --agent implementer-1 \
      --token <implementer-token> \
@@ -114,15 +114,15 @@ bun orchestrating-long-tasks/scripts/src/entrypoints/harness.ts init \
 
 1. **Begin Validation with a New Agent:**
    ```bash
-   bun .harness/my-feature/runtime/harness.ts begin-validation \
-     --run .harness/my-feature \
+   bun orchestrating-long-tasks/scripts/harness.ts begin-validation \
+     --run .capsules/my-feature \
      --task task-gh-auth \
      --validator validator-1
    ```
 2. **Execute Mandatory Gate:**
    ```bash
-   bun .harness/my-feature/runtime/harness.ts run \
-     --run .harness/my-feature \
+   bun orchestrating-long-tasks/scripts/harness.ts run \
+     --run .capsules/my-feature \
      --actor validator-1 \
      --task task-gh-auth \
      --gate gate-gh-auth \
@@ -131,22 +131,22 @@ bun orchestrating-long-tasks/scripts/src/entrypoints/harness.ts init \
    ```
 3. **Submit Validation Review & Attach Gate:**
    ```bash
-   bun .harness/my-feature/runtime/harness.ts review \
-     --run .harness/my-feature \
+   bun orchestrating-long-tasks/scripts/harness.ts review \
+     --run .capsules/my-feature \
      --task task-gh-auth \
      --validator validator-1 \
      --token <validator-token> \
      --review review.json
 
-   bun .harness/my-feature/runtime/harness.ts gate \
-     --run .harness/my-feature \
+   bun orchestrating-long-tasks/scripts/harness.ts gate \
+     --run .capsules/my-feature \
      --task task-gh-auth \
      --gate gate-gh-auth \
      --command-id <cmd-id> \
      --actor coordinator
 
-   bun .harness/my-feature/runtime/harness.ts finish \
-     --run .harness/my-feature \
+   bun orchestrating-long-tasks/scripts/harness.ts finish \
+     --run .capsules/my-feature \
      --task task-gh-auth \
      --actor coordinator
    ```
@@ -158,20 +158,20 @@ bun orchestrating-long-tasks/scripts/src/entrypoints/harness.ts init \
 1. Execute and attach global run gates (`gate-run`).
 2. Run Completeness Critic review:
    ```bash
-   bun .harness/my-feature/runtime/harness.ts begin-critic \
-     --run .harness/my-feature \
+   bun orchestrating-long-tasks/scripts/harness.ts begin-critic \
+     --run .capsules/my-feature \
      --critic critic-1
 
-   bun .harness/my-feature/runtime/harness.ts review-completion \
-     --run .harness/my-feature \
+   bun orchestrating-long-tasks/scripts/harness.ts review-completion \
+     --run .capsules/my-feature \
      --critic critic-1 \
      --token <critic-token> \
      --review critic-review.json
    ```
 3. Mechanically complete the run:
    ```bash
-   bun .harness/my-feature/runtime/harness.ts complete \
-     --run .harness/my-feature \
+   bun orchestrating-long-tasks/scripts/harness.ts complete \
+     --run .capsules/my-feature \
      --actor coordinator
    ```
 4. Commit and push:

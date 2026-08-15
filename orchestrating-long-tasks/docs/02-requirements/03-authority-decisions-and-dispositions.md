@@ -48,8 +48,8 @@ When a requirement is flagged as `needs_authority`, the harness pauses all tasks
 The coordinator records the user's decision using the pinned CLI:
 
 ```bash
-bun .harness/<run-id>/runtime/harness.ts decide-authority \
-  --run .harness/<run-id> \
+bun orchestrating-long-tasks/scripts/harness.ts decide-authority \
+  --run .capsules/<run-id> \
   --requirement R-PUBLISH \
   --decision grant \
   --rationale "User confirmed the production deployment window is open." \

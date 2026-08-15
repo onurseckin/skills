@@ -43,7 +43,7 @@ If an agent process crashes or loses its in-memory token:
 - **Deadline Wait:** The coordinator waits for the lease duration (or validation deadline) to pass.
 - **Stale Recovery:** The coordinator runs:
   ```bash
-  bun .harness/<run-id>/runtime/harness.ts recover --run .harness/<run-id> --actor coordinator --grace-seconds 0
+  bun orchestrating-long-tasks/scripts/harness.ts recover --run .capsules/<run-id> --actor coordinator --grace-seconds 0
   ```
 - **New Lease & Token:** The task transitions to `retry_ready`, a fresh `claim` is issued to an agent, and a brand-new token is generated!
 

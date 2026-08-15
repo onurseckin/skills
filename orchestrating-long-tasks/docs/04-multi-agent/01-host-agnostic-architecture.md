@@ -36,7 +36,7 @@ Instead, `orchestrating-long-tasks` is **100% Host-Agnostic and Zero-Dependency*
 |                                       ▼                                                       |
 |                     +-----------------------------------+                                     |
 |                     |        PINNED HARNESS RUNTIME     |                                     |
-|                     | .harness/<run>/runtime/harness.ts |                                     |
+|                     | orchestrating-long-tasks/scripts/harness.ts |                                     |
 |                     +-----------------------------------+                                     |
 |                                                                                               |
 +-----------------------------------------------------------------------------------------------+

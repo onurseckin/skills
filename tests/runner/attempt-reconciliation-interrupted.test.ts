@@ -36,7 +36,7 @@ async function fixture(
 ) {
   const root = await mkdtemp(join(tmpdir(), "attempt-reconcile-interrupted-"));
   roots.push(root);
-  const runRoot = join(root, ".harness");
+  const runRoot = join(root, ".capsules");
   await mkdir(join(runRoot, "commands"), { recursive: true });
   if (gate) {
     await mkdir(join(root, "bin"));

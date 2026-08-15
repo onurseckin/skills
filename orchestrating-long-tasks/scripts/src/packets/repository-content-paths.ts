@@ -21,7 +21,7 @@ const MAX_DIRECTORY_ENTRIES = 50_000;
 
 function excluded(path: string): boolean {
   const [root] = path.split("/");
-  return root === ".git" || root === ".harness";
+  return root === ".git" || root === ".capsules";
 }
 
 function gitRepository(repo: string): boolean {

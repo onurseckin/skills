@@ -30,13 +30,13 @@ export function verifyCommonInstructions(value: CanonicalCommonInstructions): {
   return { canonical: { bytes, sha256: actual }, text };
 }
 
+import { resolveCommonInstructionsAsset } from "./asset-paths.ts";
+
 export async function loadCommonInstructions(
   runRoot: string,
 ): Promise<CanonicalCommonInstructions> {
   const loaded = loadRun(runRoot);
-  const bytes = readRegularFileNoFollow(
-    join(loaded.runRoot, "runtime", "assets", "common-instructions.md"),
-  );
+  const bytes = readRegularFileNoFollow(resolveCommonInstructionsAsset());
   loadRun(loaded.runRoot);
   return verifyCommonInstructions({ bytes, sha256: digest(bytes) }).canonical;
 }

@@ -34,8 +34,8 @@ In `orchestrating-long-tasks`, an agent cannot claim *"I ran the tests and they 
 All commands must be executed through the watchdog runner (`harness.ts run`):
 
 ```bash
-bun .harness/<run-id>/runtime/harness.ts run \
-  --run .harness/<run-id> \
+bun orchestrating-long-tasks/scripts/harness.ts run \
+  --run .capsules/<run-id> \
   --actor implementer-1 \
   --task task-1 \
   --cwd . \
@@ -45,7 +45,7 @@ bun .harness/<run-id>/runtime/harness.ts run \
 ```
 
 ### What `run` Produces on Disk:
-Under `.harness/<run-id>/commands/<command-id>/`:
+Under `.capsules/<run-id>/commands/<command-id>/`:
 1. **`intent.json`**: Literal argv, cwd, actor, task ID, timeouts, environment overrides.
 2. **`stdout.log` & `stderr.log`**: Exact output streams captured directly from OS file descriptors with SHA-256 digests.
 3. **`activity.json`**: Timing marks, process PID, memory snapshots, signals sent.
@@ -56,7 +56,7 @@ Under `.harness/<run-id>/commands/<command-id>/`:
 |                                    COMMAND RECORD RECEPTACLE                                  |
 +-----------------------------------------------------------------------------------------------+
 |                                                                                               |
-|  .harness/<run-id>/commands/C-ca197aba/                                                       |
+|  .capsules/<run-id>/commands/C-ca197aba/                                                       |
 |  ├── intent.json      ---> Argv: ["bun", "test", "tests/unit/lease.test.ts"], Cwd: "."        |
 |  ├── stdout.log       ---> "pass 12 tests in 45ms\n" (SHA-256: d6684989b...)                  |
 |  ├── stderr.log       ---> Empty or warnings (SHA-256: 647c7d92f...)                          |

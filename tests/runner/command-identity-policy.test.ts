@@ -44,7 +44,7 @@ describe("command identity policy", () => {
     ];
 
     for (const [index, identity] of hostile.entries()) {
-      const runRoot = join(repositoryRoot, ".harness", `run-${index}`);
+      const runRoot = join(repositoryRoot, ".capsules", `run-${index}`);
       await mkdir(runRoot, { recursive: true });
       const commandDir = join(runRoot, "commands");
       await expect(
@@ -76,7 +76,7 @@ describe("command identity policy", () => {
     ];
 
     for (const [index, identity] of hostile.entries()) {
-      const runRoot = join(repositoryRoot, `.harness-invalid-${index}`);
+      const runRoot = join(repositoryRoot, `.capsules-invalid-${index}`);
       await expect(
         runAndRecordCommand(
           runRoot,
@@ -113,7 +113,7 @@ describe("command identity policy", () => {
   test("rejects blank durable task and gate identities", async () => {
     const repositoryRoot = await mkdtemp(join(tmpdir(), "command-record-identity-"));
     roots.push(repositoryRoot);
-    const runRoot = join(repositoryRoot, ".harness");
+    const runRoot = join(repositoryRoot, ".capsules");
     await mkdir(runRoot);
     const runner = createInternalCommandRunner({
       inspectRepository: () => {
@@ -144,7 +144,7 @@ describe("command identity policy", () => {
   test("bounds argv count and aggregate UTF-8 bytes before creating command artifacts", async () => {
     const repositoryRoot = await mkdtemp(join(tmpdir(), "command-argv-policy-"));
     roots.push(repositoryRoot);
-    const runRoot = join(repositoryRoot, ".harness");
+    const runRoot = join(repositoryRoot, ".capsules");
     await mkdir(runRoot);
     const runner = createInternalCommandRunner({
       inspectRepository: () => {

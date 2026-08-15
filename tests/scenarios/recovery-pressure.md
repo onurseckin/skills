@@ -181,12 +181,12 @@ count—controls dispatch.
 For the deterministic replacement capsule, these commands are literal and executable:
 
 ```text
-bun /Users/onurseckinsenoglu/repos/limo/.harness/interrupted-recovery-20260814/runtime/harness.ts doctor --run /Users/onurseckinsenoglu/repos/limo/.harness/interrupted-recovery-20260814
-bun /Users/onurseckinsenoglu/repos/limo/.harness/interrupted-recovery-20260814/runtime/harness.ts handoff --run /Users/onurseckinsenoglu/repos/limo/.harness/interrupted-recovery-20260814
+bun /Users/onurseckinsenoglu/repos/limo/.capsules/interrupted-recovery-20260814/runtime/harness.ts doctor --run /Users/onurseckinsenoglu/repos/limo/.capsules/interrupted-recovery-20260814
+bun /Users/onurseckinsenoglu/repos/limo/.capsules/interrupted-recovery-20260814/runtime/harness.ts handoff --run /Users/onurseckinsenoglu/repos/limo/.capsules/interrupted-recovery-20260814
 ```
 
 The second command atomically writes the concrete restart artifact
-`/Users/onurseckinsenoglu/repos/limo/.harness/interrupted-recovery-20260814/handoff.md`. It records the
+`/Users/onurseckinsenoglu/repos/limo/.capsules/interrupted-recovery-20260814/handoff.md`. It records the
 capture assurance and prompt digest, revisions, task/dependency states, owners and expiries, open
 findings, commands/gates, orphan evidence, recent events, completion blockers, and JSON-encoded exact
 next argv using the pinned runtime and absolute run path. A takeover client runs `doctor`, reads that

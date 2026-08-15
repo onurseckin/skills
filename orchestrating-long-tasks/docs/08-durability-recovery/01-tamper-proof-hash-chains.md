@@ -8,7 +8,7 @@
 
 In traditional systems, state is updated by mutating a central database or JSON file in place. If the system crashes mid-write, data is corrupted or lost forever.
 
-`orchestrating-long-tasks` uses an **Append-Only Event Sourcing** architecture. Every state change (plan initialization, task claiming, command start, validation submission, gate attachment) is appended as a discrete line in `.harness/<run-id>/events.jsonl`.
+`orchestrating-long-tasks` uses an **Append-Only Event Sourcing** architecture. Every state change (plan initialization, task claiming, command start, validation submission, gate attachment) is appended as a discrete line in `.capsules/<run-id>/events.jsonl`.
 
 ```text
 ┌─────────────────────────────────────────────────────────────────┐

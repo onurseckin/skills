@@ -51,16 +51,16 @@ describe("CLI process contract", () => {
       result: { manifest: { run_id: "process-run" } },
     });
 
-    const refused = await output(
-      Bun.spawn(["bun", entrypoint, "status", "--run", join(repo, ".harness", "process-run")], {
+    const status = await output(
+      Bun.spawn(["bun", entrypoint, "status", "--run", join(repo, ".capsules", "process-run")], {
         stdout: "pipe",
         stderr: "pipe",
       }),
     );
-    expect(refused.exit).toBe(3);
-    expect(JSON.parse(refused.stderr)).toMatchObject({
-      ok: false,
-      error: { code: "INVALID_STATE", message: expect.stringContaining("pinned") },
+    expect(status.exit).toBe(0);
+    expect(JSON.parse(status.stdout)).toMatchObject({
+      ok: true,
+      result: { run_id: "process-run" },
     });
   });
 

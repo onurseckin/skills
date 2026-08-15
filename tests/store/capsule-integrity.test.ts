@@ -40,7 +40,7 @@ describe("run capsule and integrity", () => {
     const root = repo();
     const prompt = new Uint8Array([0, 101, 120, 97, 99, 116, 255, 13, 10]);
     const run = init(root, "run-001", prompt);
-    expect(run).toBe(join(realpathSync(root), ".harness/run-001"));
+    expect(run).toBe(join(realpathSync(root), ".capsules/run-001"));
     expect(new Uint8Array(readFileSync(join(run, "prompt.md")))).toEqual(prompt);
     const loaded = loadRun(run);
     expect(loaded.manifest.prompt_bytes).toBe(prompt.byteLength);
@@ -70,10 +70,10 @@ describe("run capsule and integrity", () => {
       expect(() => init(root, runId)).toThrow(/run_id/i);
     }
     expect(() =>
-      transact(join(realpathSync(root), ".harness/run-001"), "  ", "record", {}, () => undefined),
+      transact(join(realpathSync(root), ".capsules/run-001"), "  ", "record", {}, () => undefined),
     ).toThrow(/actor/i);
     expect(() =>
-      transact(join(realpathSync(root), ".harness/run-001"), "worker", "", {}, () => undefined),
+      transact(join(realpathSync(root), ".capsules/run-001"), "worker", "", {}, () => undefined),
     ).toThrow(/kind/i);
   });
 
@@ -103,40 +103,15 @@ describe("run capsule and integrity", () => {
     expect(messages(verifyIntegrity(run))).toMatch(/prompt.*digest/i);
   });
 
-  test("runtime pin detects prompt-adjacent runtime tampering", () => {
+  test("lightweight capsule initializes without runtime directory and includes tmp directory", () => {
     const root = repo();
-    const source = join(root, "runtime-source");
-    mkdirSync(join(source, "src/config"), { recursive: true });
-    writeFileSync(join(source, "harness.ts"), "export {};\n");
-    writeFileSync(
-      join(source, "src/config/constants.ts"),
-      `export const RUNTIME_VERSION = ${JSON.stringify(RUNTIME_VERSION)};\n`,
-    );
-    writeFileSync(join(source, "src/tool.ts"), "export const ok = true;\n");
-    const run = initRun(root, "runtime", bytes("prompt"), "file", true, { runtimeSource: source });
-    writeFileSync(join(run, "runtime/src/tool.ts"), "tampered\n");
-    expect(messages(verifyIntegrity(run))).toMatch(/runtime/i);
-    expect(() => loadRun(run)).toThrow();
-  });
-
-  test("test_runtime_source_change_during_copy_aborts_and_cleans_capsule", () => {
-    const root = repo();
-    const source = join(root, "changing-runtime");
-    mkdirSync(join(source, "src/config"), { recursive: true });
-    writeFileSync(join(source, "harness.ts"), "export {};\n");
-    writeFileSync(
-      join(source, "src/config/constants.ts"),
-      `export const RUNTIME_VERSION = ${JSON.stringify(RUNTIME_VERSION)};\n`,
-    );
-    const sourceFile = join(source, "src/tool.ts");
-    writeFileSync(sourceFile, "before\n");
-    expect(() =>
-      initRun(root, "changing-runtime-run", bytes("prompt"), "verbatim_context_copy", false, {
-        runtimeSource: source,
-        beforeRuntimeSourceRecheck: () => writeFileSync(sourceFile, "after\n"),
-      }),
-    ).toThrow(/changed/i);
-    expect(existsSync(join(root, ".harness/changing-runtime-run"))).toBeFalse();
+    const run = initRun(root, "lightweight", bytes("prompt"), "file", true);
+    expect(existsSync(join(run, "tmp"))).toBeTrue();
+    expect(existsSync(join(run, "runtime"))).toBeFalse();
+    const loaded = loadRun(run);
+    expect(loaded.manifest.run_id).toBe("lightweight");
+    expect(loaded.manifest.created_at).toBeDefined();
+    expect(messages(verifyIntegrity(run))).toBe("");
   });
 
   test("fails closed when a canonical store path is replaced by a symlink", () => {

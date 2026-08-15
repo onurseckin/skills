@@ -12,9 +12,9 @@ __pycache__/
 .mypy_cache/
 .ruff_cache/
 
-# build / harness scratch
+# build / run capsules scratch
 .tmp/
-.harness/
+.capsules/
 
 # os / filesystem
 .DS_Store

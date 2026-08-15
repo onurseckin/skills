@@ -48,8 +48,6 @@ export async function runDoctor(
   options: DoctorOptions = {},
 ): Promise<Record<string, unknown>> {
   const integrityIssues = verifyIntegrity(runRoot);
-  const runtimeEntrypoint = join(runRoot, "runtime", "harness.ts");
-  const runtimePinned = existsSync(runtimeEntrypoint);
   const gitignored = ignoredByGit(runRoot);
   const bunSupported = versionAtLeast(Bun.version, MINIMUM_BUN_VERSION);
   const loaded = integrityIssues.length === 0 ? loadRun(runRoot) : undefined;
@@ -79,7 +77,6 @@ export async function runDoctor(
   const installationIssues = (installation?.issues ?? []).map((issue) => `installation: ${issue}`);
   const issues = [
     ...integrityIssues.map(({ code, message }) => `${code}: ${message}`),
-    ...(!runtimePinned ? ["pinned runtime entrypoint is missing"] : []),
     ...(gitignored === false ? ["run capsule is not gitignored"] : []),
     ...(!bunSupported ? [`Bun ${Bun.version} is below ${MINIMUM_BUN_VERSION}`] : []),
     ...commandIssues,
@@ -94,8 +91,6 @@ export async function runDoctor(
     run_root: runRoot,
     bun_version: Bun.version,
     bun_supported: bunSupported,
-    runtime_pinned: runtimePinned,
-    runtime_entrypoint: runtimeEntrypoint,
     gitignored,
     integrity_issues: integrityIssues,
     command_issues: commandIssues,

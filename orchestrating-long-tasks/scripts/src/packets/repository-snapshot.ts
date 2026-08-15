@@ -9,7 +9,7 @@ import { inspectRepositoryBinding } from "./repository-identity.ts";
 
 const ignored = new Set([
   ".git",
-  ".harness",
+  ".capsules",
   "node_modules",
   "dist",
   "build",

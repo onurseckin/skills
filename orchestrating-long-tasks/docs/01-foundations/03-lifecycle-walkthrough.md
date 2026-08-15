@@ -36,7 +36,7 @@ The `orchestrating-long-tasks` system guides a complex software engineering requ
 
 ### Stage 1: Capture & Capsule Initialization
 - **Action**: The user's exact, unedited prompt is saved to a file and initialized via `harness.ts init`.
-- **Artifacts Created**: `.harness/<run-id>/prompt.md` (read-only mode `0444`), `manifest.json` (SHA-256 bound), `events.jsonl`, `state.json`, and `.harness/<run-id>/runtime/` (the pinned zero-dependency Bun runtime).
+- **Artifacts Created**: `.capsules/<run-id>/prompt.md` (read-only mode `0444`), `manifest.json` (SHA-256 bound), `events.jsonl`, `state.json`, and `.capsules/<run-id>/runtime/` (the pinned zero-dependency Bun runtime).
 - **Assurance**: Marked as `source-verified` (if direct file/stdin) or `recorded-unverified` (if context transcribed).
 
 ### Stage 2: Baseline Repository Inspection

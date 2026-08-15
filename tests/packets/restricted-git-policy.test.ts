@@ -112,7 +112,7 @@ describe("restricted Git policy", () => {
     const repo = join(root, "repo"), tools = join(root, "tools");
     mkdirSync(repo);
     mkdirSync(tools);
-    mkdirSync(join(repo, ".harness", "commands"), { recursive: true });
+    mkdirSync(join(repo, ".capsules", "commands"), { recursive: true });
     const git = join(tools, "git");
     writeFileSync(git, "not executed\n");
     chmodSync(git, 0o700);
@@ -135,25 +135,25 @@ describe("restricted Git policy", () => {
       const prepared = await runner.prepareCommand({
         argv: ["git", "diff", "--check"],
         cwd: repo,
-        runRoot: join(repo, ".harness"),
-        commandDir: join(repo, ".harness", "commands"),
+        runRoot: join(repo, ".capsules"),
+        commandDir: join(repo, ".capsules", "commands"),
         actor: "validator",
         gateId: "G-diff",
       });
       expect(prepared.record.execution_argv).toEqual([
         realpathSync(git), ...restrictedPrefix, "diff", "--no-ext-diff", "--no-textconv", "--check",
       ]);
-      expect(verifyCommandRecord(join(repo, ".harness"), prepared.record)).toEqual([]);
+      expect(verifyCommandRecord(join(repo, ".capsules"), prepared.record)).toEqual([]);
       const forged = structuredClone(prepared.record);
       forged.execution_argv!.splice(-2, 1);
-      expect(verifyCommandRecord(join(repo, ".harness"), forged)).toContain(
+      expect(verifyCommandRecord(join(repo, ".capsules"), forged)).toContain(
         "Git gate execution argv does not match its restricted policy",
       );
       const noncanonical = structuredClone(prepared.record);
       noncanonical.argv = ["./scripts/env", "git", "diff", "--check"];
       noncanonical.fingerprint = canonicalCommandFingerprint(noncanonical.cwd, noncanonical.argv);
       delete noncanonical.execution_argv;
-      expect(verifyCommandRecord(join(repo, ".harness"), noncanonical)).toContain(
+      expect(verifyCommandRecord(join(repo, ".capsules"), noncanonical)).toContain(
         "Git gate command is not an accepted restricted diff check",
       );
     } finally {
@@ -165,7 +165,7 @@ describe("restricted Git policy", () => {
 
   test("rejects non-grammar Git gates before publishing or attempting them", async () => {
     const root = mkdtempSync(join(tmpdir(), "restricted-git-classifier-"));
-    const runRoot = join(root, ".harness");
+    const runRoot = join(root, ".capsules");
     mkdirSync(join(runRoot, "commands"), { recursive: true });
     try {
       let attempted = false;

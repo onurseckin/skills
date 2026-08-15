@@ -8,7 +8,7 @@
 
 Rather than passing informal conversational prompts to subagents, the harness generates **Immutable, Cryptographically Bound Role Packets** under:
 ```text
-.harness/<run-id>/packets/<packet-id>/packet.md
+.capsules/<run-id>/packets/<packet-id>/packet.md
 ```
 
 A role packet is a standalone, self-contained Markdown file that acts as an **airtight legal contract** for the worker agent. It defines:

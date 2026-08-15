@@ -168,13 +168,12 @@ describe("status handoff and doctor", () => {
     expect(renderHandoff(run)).not.toContain("token_digest");
   });
 
-  test("doctor reports integrity and pinned-runtime availability separately", async () => {
+  test("doctor reports integrity and workflow issues separately", async () => {
     const run = await fixture();
     const report = await runDoctor(run);
     expect(report.gate_evidence).toEqual(gateEvidence);
     expect(report.gate_evidence_limitations).toEqual(gateEvidenceLimitations);
     expect(report.integrity_issues).toEqual([]);
-    expect(report.runtime_pinned).toBeFalse();
     expect(report.workflow_issues).toContain("task task-1 is ready, not done");
     expect(report.packet_issues).toEqual([]);
     expect(report.healthy).toBeFalse();

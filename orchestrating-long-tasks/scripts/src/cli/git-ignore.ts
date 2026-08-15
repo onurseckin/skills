@@ -15,11 +15,11 @@ export function ensureHarnessIgnored(
   if (!hasRepositoryGitMetadata(root) || !repositoryWorktree(root, command)) {
     return "not-a-git-worktree";
   }
-  const ignored = command(root, ["check-ignore", "--quiet", ".harness/probe"], 1024, [0, 1]);
+  const ignored = command(root, ["check-ignore", "--quiet", ".capsules/probe"], 1024, [0, 1]);
   if (ignored.status !== 0) {
     throw new HarnessError(
       "INVALID_STATE",
-      ".harness must be gitignored before initializing a run",
+      ".capsules must be gitignored before initializing a run",
     );
   }
   return "gitignored";

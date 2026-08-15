@@ -11,8 +11,8 @@ What happens when an agent subagent crashes mid-execution, a laptop battery dies
 The harness provides an automated, fail-safe **Recovery Engine** (`harness.ts recover`):
 
 ```bash
-bun .harness/<run-id>/runtime/harness.ts recover \
-  --run .harness/<run-id> \
+bun orchestrating-long-tasks/scripts/harness.ts recover \
+  --run .capsules/<run-id> \
   --actor coordinator \
   --grace-seconds 0
 ```
@@ -35,7 +35,7 @@ Instead of crashing or silently deleting bytes, the harness runs the **Quarantin
 │  QUARANTINE ACTION:                                    │
 │  1. Identify exact offset of last valid byte           │
 │  2. Copy corrupted fragment to:                        │
-│     `.harness/<run-id>/evidence/recovery-torn-<id>.fragment`
+│     `.capsules/<run-id>/evidence/recovery-torn-<id>.fragment`
 │  3. `ftruncateSync(fd, lastValidByteOffset)`           │
 │  4. `fsyncSync(fd)`                                    │
 │  5. Re-evaluate hash chain head cleanly                │

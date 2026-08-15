@@ -18,7 +18,7 @@ In `orchestrating-long-tasks`, a rejection is invalid unless it produces **Struc
 
 ## 📋 The Anatomy of a Finding (`F-001`)
 
-Every finding recorded in `.harness/<run-id>/findings/<finding-id>/finding.json` contains five mandatory sections:
+Every finding recorded in `.capsules/<run-id>/findings/<finding-id>/finding.json` contains five mandatory sections:
 
 ```json
 {

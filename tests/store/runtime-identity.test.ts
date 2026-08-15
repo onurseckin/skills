@@ -3,6 +3,7 @@ import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { canonicalJsonBytes } from "../../orchestrating-long-tasks/scripts/src/core/json.ts";
+import { RUNTIME_VERSION } from "../../orchestrating-long-tasks/scripts/src/config/constants.ts";
 import { initRun } from "../../orchestrating-long-tasks/scripts/src/store/capsule.ts";
 import { verifyIntegrity } from "../../orchestrating-long-tasks/scripts/src/store/integrity.ts";
 
@@ -31,37 +32,31 @@ function rewriteManifest(run: string, mutate: (manifest: Record<string, unknown>
   writeFileSync(path, canonicalJsonBytes(manifest));
 }
 
-describe("pinned runtime manifest identity", () => {
-  test("records the frozen runtime contract instead of an undeclared count field", () => {
-    const { repo, runtime } = fixture();
-    const run = initRun(repo, "runtime", new TextEncoder().encode("prompt"), "file", true, {
-      runtimeSource: runtime,
-    });
+describe("capsule manifest identity", () => {
+  test("records the capsule contract with run_id, bun_version, and created_at", () => {
+    const { repo } = fixture();
+    const run = initRun(repo, "capsule-id-test", new TextEncoder().encode("prompt"), "file", true);
     const manifest = JSON.parse(readFileSync(join(run, "manifest.json"), "utf8"));
-    expect(manifest.runtime_files).toBe(3);
-    expect(manifest.runtime_entrypoint).toBe("runtime/harness.ts");
+    expect(manifest.run_id).toBe("capsule-id-test");
     expect(manifest.bun_version).toBe(Bun.version);
-    expect(manifest.runtime_version).toBe(PINNED_SOURCE_VERSION);
-    expect("runtime_file_count" in manifest).toBeFalse();
+    expect(manifest.runtime_version).toBe(RUNTIME_VERSION);
+    expect(manifest.created_at).toBeDefined();
     expect(verifyIntegrity(run)).toEqual([]);
   });
 
   test.each([
-    ["runtime_files", -1, /runtime.*files/i],
-    ["runtime_entrypoint", "runtime/other.ts", /entrypoint/i],
-    ["bun_version", "", /bun.*version/i],
-    ["runtime_version", "wrong", /runtime.*version/i],
-  ] as const)("rejects invalid %s identity", (field, value, expected) => {
-    const { repo, runtime } = fixture();
+    ["schema", "invalid.schema", /schema/i],
+    ["run_id", "invalid/run/id", /run_id/i],
+    ["prompt_sha256", "invalid-sha", /digest/i],
+    ["runtime_version", "   ", /runtime.*version/i],
+  ] as const)("rejects invalid %s in manifest", (field, value, expected) => {
+    const { repo } = fixture();
     const run = initRun(
       repo,
       `tamper-${field.replaceAll("_", "-")}`,
       new TextEncoder().encode("p"),
       "file",
       true,
-      {
-        runtimeSource: runtime,
-      },
     );
     rewriteManifest(run, (manifest) => {
       manifest[field] = value;

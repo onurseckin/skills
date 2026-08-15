@@ -25,12 +25,12 @@
 Write the user's exact prompt to a file without summarizing or normalizing it. Initialize from that
 file when possible. Use stdin only when the host can prove it supplied the complete source. Record
 capture mode and assurance. The initializer copies the dependency-free Bun runtime into
-`.harness/<run>/runtime/` and binds the tree digest.
+`.capsules/<run>/runtime/` and binds the tree digest.
 
 After initialization, execute all run commands with the pinned entrypoint:
 
 ```text
-bun .harness/<run>/runtime/harness.ts <command> ...
+bun orchestrating-long-tasks/scripts/harness.ts <command> ...
 ```
 
 If that runtime is missing or its digest drifts, stop and run `doctor`; never fall back silently to

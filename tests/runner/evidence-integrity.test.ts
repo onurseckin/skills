@@ -89,7 +89,7 @@ describe("command identity and evidence integrity", () => {
 
   test("binds gate evidence to its canonical repository-relative cwd", async () => {
     const repositoryRoot = await root();
-    const runRoot = join(repositoryRoot, ".harness", "gate");
+    const runRoot = join(repositoryRoot, ".capsules", "gate");
     await mkdir(join(runRoot, "commands"), { recursive: true });
     const cwd = join(repositoryRoot, "packages", "api");
     await mkdir(cwd, { recursive: true });

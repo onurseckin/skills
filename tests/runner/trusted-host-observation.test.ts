@@ -56,7 +56,7 @@ async function fixture() {
   const root = await mkdtemp(join(tmpdir(), "trusted-host-observation-"));
   roots.push(root);
   await mkdir(join(root, "bin"));
-  await mkdir(join(root, ".harness", "commands"), { recursive: true });
+  await mkdir(join(root, ".capsules", "commands"), { recursive: true });
   await writeFile(join(root, "bin", "verify"), "#!/bin/sh\nexit 0\n");
   await chmod(join(root, "bin", "verify"), 0o700);
   return {
@@ -64,8 +64,8 @@ async function fixture() {
     input: {
       argv: ["./bin/verify"],
       cwd: root,
-      runRoot: join(root, ".harness"),
-      commandDir: join(root, ".harness", "commands"),
+      runRoot: join(root, ".capsules"),
+      commandDir: join(root, ".capsules", "commands"),
       actor: "validator",
       gateId: "G-observed",
     },
@@ -96,7 +96,7 @@ describe("trusted-host command observations", () => {
         runRoot: root,
         commandDir: join(root, "commands"),
       }),
-    ).rejects.toThrow(/gate.*artifact|\.harness/i);
+    ).rejects.toThrow(/gate.*artifact|\.capsules/i);
 
     expect(observed).toBeFalse();
     expect(existsSync(join(root, "commands"))).toBeFalse();

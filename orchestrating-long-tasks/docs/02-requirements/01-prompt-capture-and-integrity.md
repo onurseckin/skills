@@ -48,7 +48,7 @@ The harness supports three capture mechanisms through the `harness.ts init` CLI:
 
 ## 🛡️ The `manifest.json` Cryptographic Binding
 
-During `init`, the prompt is written to `.harness/<run-id>/prompt.md` with read-only permissions (`mode 0444`), and its SHA-256 digest is permanently bound in `manifest.json`:
+During `init`, the prompt is written to `.capsules/<run-id>/prompt.md` with read-only permissions (`mode 0444`), and its SHA-256 digest is permanently bound in `manifest.json`:
 
 ```json
 {

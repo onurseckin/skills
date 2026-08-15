@@ -83,7 +83,7 @@ The harness enforces eight structural invariants that cannot be bypassed by any 
 | **1. Byte-Exact Prompt Capture** | `prompt.md` is preserved byte-for-byte with mode `0444` and bound via SHA-256 to `manifest.json`. | Cryptographic SHA-256 verification on every startup and mutation. |
 | **2. Immutable Capture Assurance** | A run initialized from context copy is marked `recorded-unverified`; it can never be silently upgraded to `source-verified`. | Closed enum schema enforcement in manifest. |
 | **3. 100% Line Disposition Coverage** | Every non-blank prompt line must have exactly one disposition mapping to atomic requirements. | Requirements compiler validator rejects unmapped lines. |
-| **4. Pinned Runtime & Hashed Events** | All state mutations must use the pinned Bun runtime at `.harness/<run>/runtime/` and append to `events.jsonl`. | Kernel POSIX `flock` on inode + SHA-256 hash chaining. |
+| **4. Pinned Runtime & Hashed Events** | All state mutations must use the pinned Bun runtime at `.capsules/<run>/runtime/` and append to `events.jsonl`. | Kernel POSIX `flock` on inode + SHA-256 hash chaining. |
 | **5. Disjoint Write-Scope Leases** | Parallel agents can only write within strictly disjoint directory scopes. | Topological conflict-free scheduler arbiter. |
 | **6. Adversarial Role Separation** | Implementers cannot validate their own work; validators receive allowlisted context stripped of prose. | Tokenized validator identities and context sanitization. |
 | **7. Bounded Deterministic Retries** | Retries are strictly bounded and permitted only for declared idempotent transient failures. | Watchdog command runner with exponential backoff. |
@@ -99,7 +99,7 @@ TRADITIONAL CHAT-DRIVEN AGENTS               THE HARNESS ARCHITECTURE
 [ User Prompt ]                              [ User Prompt ]
       |                                            | (Byte-exact SHA-256 capture)
       v                                            v
-[ Monolithic Conversational Context ]        [ Immutable Capsule: .harness/<run>/ ]
+[ Monolithic Conversational Context ]        [ Immutable Capsule: .capsules/<run>/ ]
       |                                            | (100% Line Coverage Compilation)
       v (Hallucination & Scope Drift)              v
 [ Agent writes all files at once ]           [ Formal Dependency Graph DAG ]

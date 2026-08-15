@@ -52,7 +52,7 @@ export function inspectRepositoryGitIdentity(
   );
   const index = command(
     repo,
-    ["ls-files", "--stage", "-z", "--", ".", ":(exclude).harness", ":(exclude).harness/**"],
+    ["ls-files", "--stage", "-z", "--", ".", ":(exclude).capsules", ":(exclude).capsules/**"],
     maximum,
   ).bytes;
   rejectRepositoryGitlinks(decodeNulRecords(index, "identity index"));
@@ -66,8 +66,8 @@ export function inspectRepositoryGitIdentity(
       "--untracked-files=all",
       "--",
       ".",
-      ":(exclude).harness",
-      ":(exclude).harness/**",
+      ":(exclude).capsules",
+      ":(exclude).capsules/**",
     ],
     maximum,
   ).bytes;

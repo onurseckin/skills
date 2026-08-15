@@ -38,8 +38,8 @@ The CLI inspects `state.json` and evaluates an uncompromising **8-Point Mechanic
 When all tasks and gates are satisfied, the coordinator runs the final command:
 
 ```bash
-bun .harness/<run-id>/runtime/harness.ts complete \
-  --run .harness/<run-id> \
+bun orchestrating-long-tasks/scripts/harness.ts complete \
+  --run .capsules/<run-id> \
   --actor coordinator
 ```
 

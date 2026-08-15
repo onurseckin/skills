@@ -58,7 +58,7 @@ describe("gate observation aggregate mutations", () => {
   test("rejects an aggregate post-binding different from its final attempt", async () => {
     const root = await mkdtemp(join(tmpdir(), "attempt-binding-mismatch-"));
     roots.push(root);
-    const runRoot = join(root, ".harness");
+    const runRoot = join(root, ".capsules");
     await mkdir(join(runRoot, "commands"), { recursive: true });
     await mkdir(join(root, "bin"));
     await writeFile(join(root, "bin", "verify"), "#!/bin/sh\nexit 0\n", { mode: 0o700 });

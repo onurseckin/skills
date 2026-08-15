@@ -35,8 +35,8 @@ A lease defines:
 If a long-running compile or complex test suite takes significant time, the agent must periodically send a **Heartbeat** to prevent its lease from expiring:
 
 ```bash
-bun .harness/<run-id>/runtime/harness.ts heartbeat \
-  --run .harness/<run-id> \
+bun orchestrating-long-tasks/scripts/harness.ts heartbeat \
+  --run .capsules/<run-id> \
   --task task-1 \
   --agent implementer-1 \
   --token <bearer-token> \

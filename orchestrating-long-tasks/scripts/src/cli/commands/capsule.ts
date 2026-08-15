@@ -46,7 +46,7 @@ export async function initCommand(
     prompt,
     textFlag(flags, "capture-mode")!,
     boolFlag(flags, "source-verified"),
-    { runtimeSource: textFlag(flags, "runtime-source", false) ?? runtimeRoot },
+    { runtimeSource: textFlag(flags, "runtime-source", false) },
   );
   const planner = await initializePlannerPacket(runRoot, "planner");
   return {

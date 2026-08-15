@@ -50,7 +50,7 @@ function view(status: string): JsonObject {
 }
 
 const rendered = (status: string) =>
-  nextArgv("/repo/.harness/run", "/repo/.harness/run/runtime/harness.ts", view(status))
+  nextArgv("/repo/.capsules/run", "/repo/.capsules/run/runtime/harness.ts", view(status))
     .map((argv) => argv.join(" "))
     .join("\n");
 
@@ -91,7 +91,7 @@ describe("state-specific resumable argv", () => {
         mandatory: false,
       },
     );
-    const actions = nextArgv("/repo/.harness/run", "/repo/.harness/run/runtime/harness.ts", state)
+    const actions = nextArgv("/repo/.capsules/run", "/repo/.capsules/run/runtime/harness.ts", state)
       .map((argv) => argv.join(" "))
       .join("\n");
     expect(actions).toContain("--gate G-task");
@@ -103,7 +103,7 @@ describe("state-specific resumable argv", () => {
   test("prioritizes recovery over actions authenticated by expired authority", () => {
     const state = view("leased");
     state.stale_evidence = ["task T-1 lease expired at 2026-08-13T12:00:00.000Z"];
-    const actions = nextArgv("/repo/.harness/run", "/repo/.harness/run/runtime/harness.ts", state)
+    const actions = nextArgv("/repo/.capsules/run", "/repo/.capsules/run/runtime/harness.ts", state)
       .map((argv) => argv.join(" "))
       .join("\n");
 
@@ -122,7 +122,7 @@ describe("state-specific resumable argv", () => {
         authority_status: null,
       },
     ];
-    const actions = nextArgv("/repo/.harness/run", "/repo/.harness/run/runtime/harness.ts", state)
+    const actions = nextArgv("/repo/.capsules/run", "/repo/.capsules/run/runtime/harness.ts", state)
       .map((argv) => argv.join(" "))
       .join("\n");
 
@@ -143,7 +143,7 @@ describe("state-specific resumable argv", () => {
     state.commands = [{ id: "C-RUN", status: "succeeded", task_id: null, gate_id: "G-run" }];
     const evidence = { task_id: "T-1", report_sha256: "late" };
     state.orphan_evidence = [{ orphan_sha256: orphanEvidenceSha256(evidence), evidence }];
-    const actions = nextArgv("/repo/.harness/run", "/repo/.harness/run/runtime/harness.ts", state)
+    const actions = nextArgv("/repo/.capsules/run", "/repo/.capsules/run/runtime/harness.ts", state)
       .map((argv) => argv.join(" "))
       .join("\n");
     expect(actions).toContain(" disposition-orphan ");
@@ -155,7 +155,7 @@ describe("state-specific resumable argv", () => {
     const state = view("done");
     state.commands = [{ id: "C-RUN", status: "succeeded", task_id: null, gate_id: "G-run" }];
     const actions = () =>
-      nextArgv("/repo/.harness/run", "/repo/.harness/run/runtime/harness.ts", state)
+      nextArgv("/repo/.capsules/run", "/repo/.capsules/run/runtime/harness.ts", state)
         .map((argv) => argv.join(" "))
         .join("\n");
     expect(actions()).toContain(" begin-critic ");

@@ -13,6 +13,7 @@ import { actorFlag, assertFlags, textFlag, type Flags } from "../options.ts";
 import { loadPublishedPacketRetry } from "./packet-retry.ts";
 import { evidenceSchema } from "../../packets/evidence-schema.ts";
 import { initializePlannerPacket } from "../../packets/planner-packet.ts";
+import { resolveRoleAsset } from "../../packets/asset-paths.ts";
 import {
   recordRepositoryInspection,
   repositoryInspectionContext,
@@ -140,7 +141,6 @@ export async function packetCommand(flags: Flags): Promise<Record<string, unknow
   recordRepositoryInspection(run, agentId, "current");
   loaded = loadRun(run);
   state = workflowPort(run).read();
-  const assets = join(run, "runtime", "assets");
   const graph = loaded.state.graph as Record<string, unknown>;
   const repositoryIds = commandIds(textFlag(flags, "repository-command-ids", false));
   if (role === "completeness-critic" && repositoryIds.length === 0) {
@@ -162,7 +162,7 @@ export async function packetCommand(flags: Flags): Promise<Record<string, unknow
     agentId,
     ...(task === undefined ? {} : { task }),
     state,
-    roleInstructions: decoded(join(assets, `${role}.md`)),
+    roleInstructions: decoded(resolveRoleAsset(role)),
     authoritativeContext: {
       ...authoritativeContext(
         run,

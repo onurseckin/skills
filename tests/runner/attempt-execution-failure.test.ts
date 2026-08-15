@@ -124,7 +124,7 @@ async function attemptResult(
 async function fixture(name: string) {
   const repositoryRoot = await mkdtemp(join(tmpdir(), name));
   roots.push(repositoryRoot);
-  const runRoot = join(repositoryRoot, ".harness", "run");
+  const runRoot = join(repositoryRoot, ".capsules", "run");
   await mkdir(join(runRoot, "commands"), { recursive: true });
   return { repositoryRoot, runRoot };
 }

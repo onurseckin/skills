@@ -164,7 +164,7 @@ describe("dynamic gate path bindings", () => {
 
   test("rejects capture-to-spawn mutation before invoking the attempt runner", async () => {
     const root = await repository();
-    const runRoot = join(root, ".harness");
+    const runRoot = join(root, ".capsules");
     await mkdir(join(runRoot, "commands"), { recursive: true });
     const executable = join(root, "tools", "verify");
     await writeFile(executable, "#!/bin/sh\nexit 0\n", { mode: 0o700 });

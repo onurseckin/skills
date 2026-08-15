@@ -10,11 +10,11 @@ In `orchestrating-long-tasks`, all coordination state, historical records, and e
 
 By default, every run is created under:
 ```text
-<repository-root>/.harness/<run-id>/
+<repository-root>/.capsules/<run-id>/
 ```
 Where `<run-id>` is a unique, URL-safe slug identifying the task execution (e.g., `auth-refactor-2026`, `feature-cache-layer`).
 
-The capsule is completely self-contained, zero-dependency, and isolated from external package changes. If an AI agent crashes, or if the user switches from Antigravity to Claude Code or Codex, the incoming agent simply points to the `.harness/<run-id>/` directory and resumes with 100% fidelity.
+The capsule is completely self-contained, zero-dependency, and isolated from external package changes. If an AI agent crashes, or if the user switches from Antigravity to Claude Code or Codex, the incoming agent simply points to the `.capsules/<run-id>/` directory and resumes with 100% fidelity.
 
 ---
 
@@ -23,7 +23,7 @@ The capsule is completely self-contained, zero-dependency, and isolated from ext
 Here is the exact filesystem structure of a live run capsule:
 
 ```text
-.harness/<run-id>/
+.capsules/<run-id>/
 ├── prompt.md             # Immutable original prompt bytes (Read-only, mode 0444)
 ├── manifest.json         # Capture assurance, prompt SHA-256, runtime digest
 ├── state.json            # Authoritative current projection (derived from events)
@@ -146,20 +146,26 @@ It contains:
 
 ---
 
-## 🛠️ The Pinned Runtime (`.harness/<run-id>/runtime/`)
+## 🛠️ The Lightweight Capsule Storage Architecture
 
-When a run is initialized, the harness copies its own complete, zero-dependency Bun/TypeScript runtime into `.harness/<run-id>/runtime/` and records its SHA-256 tree digest in `manifest.json`.
+Each run capsule under `.capsules/<run-id>/` is designed as a pure data and verification store. It contains zero code duplication and minimal disk overhead:
 
 ```text
-Host System Skill (/path/to/skill/)
-       │
-       ▼ (Copied during init)
-.harness/<run-id>/runtime/harness.ts  <--- PINNED IMMUTABLE ENTRYPOINT
+.capsules/<run-id>/
+├── manifest.json      # Run metadata & prompt SHA-256
+├── prompt.md          # Verbatim captured prompt (mode 0444)
+├── state.json         # Current state projection
+├── events.jsonl       # Tamper-proof append-only event stream
+├── graph.json         # Task DAG & schedule
+├── packets/           # Immutable role packets (md + json pairs)
+├── commands/          # Monitored execution logs & stdout/stderr
+└── tmp/               # Run-scoped ephemeral scratch
 ```
 
-### Why Pin the Runtime?
-1. **Immunity to External Updates**: If someone updates the global skill repository or modifies the installed skill files midway through a 48-hour run, the in-flight run is unaffected. It continues executing with the exact code it started with.
-2. **Portability**: The entire `.harness/<run-id>/` directory can be moved to another developer machine or CI runner with zero configuration; executing `bun .harness/<run-id>/runtime/harness.ts status --run .harness/<run-id>` works instantly.
+### Benefits of the Pure Data Model
+1. **Zero Disk Bloat**: Does not duplicate code files across runs, making initialization instantaneous and disk usage negligible.
+2. **Deterministic Portability**: The entire `.capsules/<run-id>/` directory can be moved to another machine or archived; executing `bun orchestrating-long-tasks/scripts/harness.ts status --run .capsules/<run-id>` inspects and resumes the run cleanly.
+3. **Consolidated Ephemeral Scratch**: All run-specific temporary data lives in `.capsules/<run-id>/tmp/`, keeping the repository root completely clean.
 
 ---
 

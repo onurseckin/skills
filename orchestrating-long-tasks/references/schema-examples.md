@@ -233,7 +233,7 @@ the task write scope. `checks` and `evidence` are nonempty substantive object li
       "requirement_id": "R-001",
       "severity": "important",
       "observation": "prompt.md retains writable mode bits after initialization.",
-      "evidence": [{ "path": ".harness/example/prompt.md", "mode": "0644" }],
+      "evidence": [{ "path": ".capsules/example/prompt.md", "mode": "0644" }],
       "remediation": "Persist prompt.md without any write mode bits and fsync the containing directory.",
       "revalidation": "Initialize a fresh run and assert prompt.md mode has no 0222 bits."
     }

@@ -119,11 +119,11 @@ describe("audited repository inspections", () => {
 
   test("hashes tracked and nonignored untracked bytes while excluding harness and ignored bytes", async () => {
     const { repo } = await fixture();
-    await writeFile(join(repo, ".gitignore"), "ignored.txt\n.harness/\n");
+    await writeFile(join(repo, ".gitignore"), "ignored.txt\n.capsules/\n");
     await writeFile(join(repo, "untracked.txt"), "untracked one\n");
     await writeFile(join(repo, "ignored.txt"), "ignored one\n");
-    await mkdir(join(repo, ".harness"), { recursive: true });
-    await writeFile(join(repo, ".harness", "state.json"), "harness one\n");
+    await mkdir(join(repo, ".capsules"), { recursive: true });
+    await writeFile(join(repo, ".capsules", "state.json"), "harness one\n");
     const first = inspectRepositoryContent(repo);
 
     await writeFile(join(repo, "AGENTS.md"), "# Changed tracked bytes\n");
@@ -135,7 +135,7 @@ describe("audited repository inspections", () => {
     expect(untracked.content_sha256).not.toBe(tracked.content_sha256);
 
     await writeFile(join(repo, "ignored.txt"), "ignored two\n");
-    await writeFile(join(repo, ".harness", "state.json"), "harness two\n");
+    await writeFile(join(repo, ".capsules", "state.json"), "harness two\n");
     expect(inspectRepositoryContent(repo)).toEqual(untracked);
   });
 
@@ -193,9 +193,9 @@ describe("audited repository inspections", () => {
   test("stable binding detects chmod plus index add and reset", async () => {
     const { repo } = await fixture();
     const initial = inspectRepositoryBinding(repo);
-    await mkdir(join(repo, ".harness"), { recursive: true });
-    await writeFile(join(repo, ".harness", "runtime.json"), "harness-only bytes\n");
-    git(repo, ["add", "-f", ".harness/runtime.json"]);
+    await mkdir(join(repo, ".capsules"), { recursive: true });
+    await writeFile(join(repo, ".capsules", "runtime.json"), "harness-only bytes\n");
+    git(repo, ["add", "-f", ".capsules/runtime.json"]);
     expect(inspectRepositoryBinding(repo)).toEqual(initial);
     await chmod(join(repo, "AGENTS.md"), 0o755);
     const executable = inspectRepositoryBinding(repo);

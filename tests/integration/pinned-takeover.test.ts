@@ -63,10 +63,9 @@ describe("pinned runtime takeover", () => {
       "--source-verified",
     ]);
     const originalRun = initialized.run_root as string;
-    const originalPinned = join(originalRun, "runtime", "harness.ts");
     await invoke([
       "bun",
-      originalPinned,
+      installedEntrypoint,
       "plan-apply",
       "--run",
       originalRun,
@@ -81,7 +80,7 @@ describe("pinned runtime takeover", () => {
     ]);
     const claim = await invoke([
       "bun",
-      originalPinned,
+      installedEntrypoint,
       "claim",
       "--run",
       originalRun,
@@ -94,7 +93,7 @@ describe("pinned runtime takeover", () => {
     ]);
     await invoke([
       "bun",
-      originalPinned,
+      installedEntrypoint,
       "packet",
       "--run",
       originalRun,
@@ -122,21 +121,13 @@ describe("pinned runtime takeover", () => {
 
     const movedRepo = join(base, "moved");
     await rename(repo, movedRepo);
-    const movedRun = join(movedRepo, ".harness", "takeover-run");
-    const pinned = join(movedRun, "runtime", "harness.ts");
-    const status = await invoke(["bun", pinned, "status", "--run", movedRun], movedRepo);
+    const movedRun = join(movedRepo, ".capsules", "takeover-run");
+    const status = await invoke(["bun", installedEntrypoint, "status", "--run", movedRun], movedRepo);
     expect(status).toMatchObject({
       run_id: "takeover-run",
       graph_revision: 1,
       counts: { leased: 1, proposed: 1 },
     });
-
-    const runtimePaths = await pathsBelow(join(movedRun, "runtime"));
-    expect(
-      runtimePaths.some((path) => path.endsWith(".py") || path.includes("__pycache__")),
-    ).toBeFalse();
-    expect(runtimePaths.some((path) => path.includes(`${join("runtime", "tests")}`))).toBeFalse();
-    expect(runtimePaths.some((path) => path.endsWith(join("assets", "validator.md")))).toBeTrue();
 
     await writeFile(
       join(movedRun, "state.json"),
@@ -144,7 +135,7 @@ describe("pinned runtime takeover", () => {
     );
     const recovered = await invoke([
       "bun",
-      pinned,
+      installedEntrypoint,
       "projection-recover",
       "--run",
       movedRun,
@@ -156,7 +147,7 @@ describe("pinned runtime takeover", () => {
     expect(recoveredState.event_sequence).toBe(recoveredState.revision);
     const submitted = await invoke([
       "bun",
-      pinned,
+      installedEntrypoint,
       "submit",
       "--run",
       movedRun,

@@ -15,7 +15,7 @@ This repository is structured as a modular, multi-skill monorepo adhering to the
 - **Immutable Prompt Preservation:** Byte-for-byte SHA-256 capture before planning to eliminate scope drift and hallucinated acceptance criteria.
 - **Topological Conflict-Free Scheduling:** Dependency graph scheduling with strict write-scope and resource isolation.
 - **Adversarial Multi-Agent Validation:** Implementers cannot self-validate; independent validators generate command-backed proofs under trusted host observation.
-- **Durable Crash Recovery:** Ephemeral capsules under `.harness/<run-id>/` allow resuming seamlessly across interruptions, restarts, or context resets.
+- **Durable Crash Recovery:** Ephemeral capsules under `.capsules/<run-id>/` allow resuming seamlessly across interruptions, restarts, or context resets.
 - **Zero Runtime Dependencies:** Pure Bun standard library and native OS bindings (`bun:sqlite`, `node:fs`, `node:crypto`, `node:child_process`). Requires no `node_modules` or `bun install` at runtime.
 
 ---

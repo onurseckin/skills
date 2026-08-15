@@ -14,7 +14,7 @@ Every document in this directory includes previous/next navigation links at the 
 1. **[01. Why Long Tasks Fail in Autonomous Agents](./01-foundations/01-why-long-tasks-fail.md)**
    *Context decay, sycophancy, hallucinated progress, write collisions, and the core philosophy: "Prose is not state, memory is not proof."*
 2. **[02. Capsule & Storage Model](./01-foundations/02-capsule-and-storage-model.md)**
-   *The `.harness/<run-id>/` directory layout, `prompt.md` immutability, `manifest.json`, `events.jsonl` cryptographic hash chain, `state.json` projection, and POSIX kernel `flock` atomicity.*
+   *The `.capsules/<run-id>/` directory layout, `prompt.md` immutability, `manifest.json`, `events.jsonl` cryptographic hash chain, `state.json` projection, and POSIX kernel `flock` atomicity.*
 3. **[03. The 9-Stage Lifecycle Walkthrough](./01-foundations/03-lifecycle-walkthrough.md)**
    *Bird's-eye view of the full lifecycle from prompt capture to mechanical run completion, alongside the formal task state machine.*
 
@@ -109,10 +109,10 @@ Below is the conceptual architecture showing how a user prompt moves through the
                                                   |
                                                   v
 +---------------------------------------------------------------------------------------------------+
-|                                 1. IMMUTABLE RUN CAPSULE (.harness/<run>/)                        |
+|                                 1. IMMUTABLE RUN CAPSULE (.capsules/<run>/)                        |
 |  - prompt.md (SHA-256 verified)         - events.jsonl (Append-only hash chain)                   |
 |  - manifest.json                        - state.json (Authoritative projection)                   |
-|  - Pinned Bun Runtime (.harness/<run>/runtime/harness.ts)                                         |
+|  - Pinned Bun Runtime (orchestrating-long-tasks/scripts/harness.ts)                                         |
 +---------------------------------------------------------------------------------------------------+
                                                   |
                                                   v

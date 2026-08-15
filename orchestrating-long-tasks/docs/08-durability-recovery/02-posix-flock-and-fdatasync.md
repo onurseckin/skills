@@ -17,9 +17,9 @@ To achieve enterprise-grade durability, `orchestrating-long-tasks` implements th
 
 ## 🔒 Concurrency Control: Advisory POSIX File Locks (`flock`)
 
-Multiple subagents running concurrently on the same host machine must never write to `.harness/<run-id>/events.jsonl` simultaneously.
+Multiple subagents running concurrently on the same host machine must never write to `.capsules/<run-id>/events.jsonl` simultaneously.
 
-Every state transition acquires an exclusive advisory file lock on `.harness/<run-id>/state.lock`:
+Every state transition acquires an exclusive advisory file lock on `.capsules/<run-id>/state.lock`:
 
 ```typescript
 // scripts/src/store/event-stream.ts

@@ -6,8 +6,8 @@ description: Use when a request is long-running, spans multiple files or subsyst
 # Orchestrating Long Tasks
 
 Turn a large prompt into a durable, graph-scheduled, independently validated run. The harness keeps
-authoritative coordination under `.harness/<run>/`, copies its own Bun/TypeScript runtime into the
-run, and can be resumed by Codex, ChatGPT coding agents, Claude Code, or Antigravity without relying
+authoritative coordination under `.capsules/<run>/`, stores lightweight, verifiable state artifacts,
+and can be resumed by Codex, ChatGPT coding agents, Claude Code, or Antigravity without relying
 on conversation history or model-provider APIs.
 
 ## When to use
@@ -30,7 +30,7 @@ one agent can finish and verify directly.
 2. Never treat agent prose as authoritative state or proof.
 3. Never let an implementer validate its own work or feed its report into a validator packet.
 4. Never dispatch overlapping write scopes in parallel.
-5. Never mutate a run with the installed skill after initialization; use its pinned runtime.
+5. Never mutate a run with an unauthenticated external tool; dispatch mutations strictly through the harness CLI.
 6. Never call a model API or launch an LLM CLI. Dispatch only through the current host's native
    subagent mechanism.
 7. Never announce completion while the runtime reports a blocker.
@@ -58,12 +58,12 @@ source. When direct source retrieval is unavailable, capture the visible context
 `--capture-mode verbatim_context_copy` and omit `--source-verified`. Tell the user/run that assurance
 is `recorded-unverified`; do not pretend a model-transcribed copy is source-verified.
 
-Initialization creates `.harness/<slug>/runtime/harness.ts`. Set this conceptual entrypoint for the
+Initialization creates `orchestrating-long-tasks/scripts/harness.ts`. Set this conceptual entrypoint for the
 rest of the run:
 
 ```text
-PINNED=.harness/<slug>/runtime/harness.ts
-RUN=.harness/<slug>
+PINNED=orchestrating-long-tasks/scripts/harness.ts
+RUN=.capsules/<slug>
 ```
 
 Do not depend on shell variables in durable packets; record full literal paths/argv there.
@@ -79,7 +79,7 @@ cannot republish the already-bound packet.
 
 Record repository status, applicable instruction files, recent commits, package/runtime versions,
 coding and testing conventions, ownership hotspots, existing dirty paths, and final gates. Confirm
-`.harness/` is gitignored. Preserve all unrelated staged, unstaged, and untracked work.
+`.capsules/` is gitignored. Preserve all unrelated staged, unstaged, and untracked work.
 
 ### 3. Compile every instruction
 

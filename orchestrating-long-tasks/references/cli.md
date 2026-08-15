@@ -1,6 +1,6 @@
 # Pinned runtime CLI
 
-Always run post-initialization commands with `.harness/<run>/runtime/harness.ts`. Every successful
+Always run post-initialization commands with `orchestrating-long-tasks/scripts/harness.ts`. Every successful
 process emits one JSON object to stdout; errors emit one structured object to stderr and a stable
 nonzero exit. Mutation commands require a recorded actor/agent identity.
 

@@ -39,9 +39,6 @@ export async function execute(
   context: CommandContext = {},
 ): Promise<JsonObject> {
   const parsed = parseArguments(argv);
-  if (context.executingRuntime && typeof parsed.flags.run === "string") {
-    requirePinnedRuntime(parsed.flags.run, context.executingRuntime);
-  }
   if (parsed.remainder.length && parsed.command !== "run") {
     throw new HarnessError(
       "INVALID_ARGUMENT",
