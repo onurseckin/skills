@@ -45,6 +45,9 @@ export function createEdge(
           },
         ];
 
+  const resolvedGlowColor =
+    glowColor ?? (isCycle ? "#f59e0b" : isHighTraffic ? "#06b6d4" : undefined);
+
   const trafficDetail: EdgeTrafficDetail = {
     volume: finalExchanges.length,
     messagesCount: finalExchanges.length,
@@ -52,7 +55,7 @@ export function createEdge(
     bytes: totalBytes || 520,
     ratePerSec: isHighTraffic ? 8.5 : 2.0,
     status: isCycle ? "congested" : isHighTraffic ? "active" : "idle",
-    glowColor: glowColor ?? (isCycle ? "#f59e0b" : isHighTraffic ? "#06b6d4" : undefined),
+    ...(resolvedGlowColor !== undefined ? { glowColor: resolvedGlowColor } : {}),
     glowIntensity: glowIntensity ?? (isCycle ? 0.85 : isHighTraffic ? 0.75 : 0.35),
     exchanges: finalExchanges,
   };
@@ -65,15 +68,21 @@ export function createEdge(
     badge: {
       text: title,
       variant: variant === "cyan" ? "info" : variant,
-      icon,
+      ...(icon ? { icon } : {}),
       clickable: Boolean(targetTab),
       ...(targetTab ? { targetTab } : {}),
     },
-    container: { stepBadge: String(stepNumber), title, detail, variant, icon },
+    container: {
+      stepBadge: String(stepNumber),
+      title,
+      variant,
+      ...(icon ? { icon } : {}),
+      ...(detail ? { detail } : {}),
+    },
     traffic: trafficDetail,
     exchanges: finalExchanges,
     isHighTraffic: isHighTraffic || Boolean(isCycle) || finalExchanges.length > 1,
-    trafficVolume: trafficDetail.volume,
+    ...(trafficDetail.volume !== undefined ? { trafficVolume: trafficDetail.volume } : {}),
   };
   if (kind !== undefined) edge.kind = kind;
   if (isCycle !== undefined) edge.isCycle = isCycle;

@@ -119,12 +119,14 @@ export function buildTaskAndGateNodes(ctx: TaskNodeContext): {
     },
     description: summaryText ?? `Goal and execution scope for ${taskName}.`,
     files,
-    metrics: hostTelemetry.hostAgent?.tokens
+    ...(hostTelemetry.hostAgent?.tokens
       ? {
-          tokens: hostTelemetry.hostAgent.tokens,
-          hostAgent: hostTelemetry.hostAgent,
+          metrics: {
+            tokens: hostTelemetry.hostAgent.tokens,
+            hostAgent: hostTelemetry.hostAgent,
+          },
         }
-      : undefined,
+      : {}),
     io: { inputs: taskInputs, outputs: taskOutputs },
     metadata,
     mediaAssets,

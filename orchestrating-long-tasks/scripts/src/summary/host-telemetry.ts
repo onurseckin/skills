@@ -124,8 +124,8 @@ export function detectHostTelemetry(agentId?: string): HostModelDetectionResult 
     return { model: modelStr, tier, hostAgent };
   }
 
-  // 5. Undetected: Return undefined (Rule 1 & Rule 2: Zero Fallback Fabrication)
-  return { model: undefined, tier: undefined, hostAgent: undefined };
+  // 5. Undetected: Return empty object (Rule 1 & Rule 2: Zero Fallback Fabrication)
+  return {};
 }
 
 export function detectHostModel(agentId?: string): {
@@ -133,5 +133,8 @@ export function detectHostModel(agentId?: string): {
   tier?: ModelTier;
 } {
   const result = detectHostTelemetry(agentId);
-  return { model: result.model, tier: result.tier };
+  return {
+    ...(result.model !== undefined ? { model: result.model } : {}),
+    ...(result.tier !== undefined ? { tier: result.tier } : {}),
+  };
 }

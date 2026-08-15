@@ -21,7 +21,7 @@ export function mapCommandDetails(commands: CommandRecord[]): CommandExecutionDe
       durationMs: finished >= started ? finished - started : 0,
       startedAt: c.started_at,
       finishedAt: c.finished_at ?? c.started_at,
-      logPath: c.record_path,
+      ...(c.record_path ? { logPath: c.record_path } : {}),
       ...(stdout !== undefined ? { stdoutSnippet: stdout } : {}),
       ...(stderr !== undefined ? { stderrSnippet: stderr } : {}),
     };
@@ -31,11 +31,11 @@ export function mapCommandDetails(commands: CommandRecord[]): CommandExecutionDe
 export function mapFindingDetails(task: TaskRecord): FindingDetail[] {
   return (task.findings ?? []).map((f) => ({
     id: f.id,
-    requirementId: f.requirement_id,
+    ...(f.requirement_id ? { requirementId: f.requirement_id } : {}),
     severity:
       f.severity === "critical" ? "critical" : f.severity === "minor" ? "suggestion" : "important",
     observation: f.observation,
-    remediation: f.remediation,
+    ...(f.remediation ? { remediation: f.remediation } : {}),
     status: f.status === "resolved" ? "resolved" : "open",
   }));
 }
@@ -55,14 +55,14 @@ export function mapMediaAssets(task: TaskRecord, commands: CommandRecord[]): Med
   if (Array.isArray(rawReport?.screenshots)) {
     for (const s of rawReport.screenshots as MediaAsset[]) {
       if (s && typeof s === "object" && s.id && s.url) {
-        assets.push({ type: "image", ...s });
+        assets.push({ ...s, type: s.type ?? "image" });
       }
     }
   }
 
   for (const cmd of commands) {
-    if (cmd.argv.some((arg) => arg.includes("playwright") || arg.includes("test"))) {
-      if (cmd.stdout && cmd.stdout.includes(".png")) {
+    if (cmd.argv.some((arg) => typeof arg === "string" && (arg.includes("playwright") || arg.includes("test")))) {
+      if (typeof cmd.stdout === "string" && cmd.stdout.includes(".png")) {
         const matches = cmd.stdout.match(/[\w\-./]+\.png/g);
         if (matches) {
           for (const match of matches) {
@@ -93,20 +93,21 @@ export function detectPlaywrightMetadata(
 ): PlaywrightMetadata | undefined {
   const hasPlaywright =
     commands.some((c) =>
-      c.argv.some((arg) => arg.includes("playwright") || arg.includes("test")),
+      c.argv.some((arg) => typeof arg === "string" && (arg.includes("playwright") || arg.includes("test"))),
     ) || Boolean((task.report as Record<string, unknown> | undefined)?.playwright);
 
   if (!hasPlaywright && mediaAssets.length === 0) return undefined;
 
   const screenshots = mediaAssets.filter((a) => a.type === "image");
-  const testCmd = commands.find((c) => c.argv.some((arg) => arg.includes("test")));
+  const testCmd = commands.find((c) => c.argv.some((arg) => typeof arg === "string" && arg.includes("test")));
+  const testFile = testCmd?.argv.find((arg) => typeof arg === "string" && (arg.includes(".test.") || arg.includes(".spec.")));
 
   return {
     viewport: { width: 1280, height: 720 },
     traces: [],
     videos: [],
     screenshots,
-    testFile: testCmd?.argv.find((arg) => arg.includes(".test.") || arg.includes(".spec.")),
+    ...(testFile ? { testFile } : {}),
     durationMs: testCmd
       ? Date.parse(testCmd.finished_at ?? "") - Date.parse(testCmd.started_at ?? "") || 150
       : 150,

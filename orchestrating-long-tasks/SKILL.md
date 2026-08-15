@@ -42,7 +42,29 @@ Deep technical documentation and operational contracts are available under `refe
 
 ---
 
+## Mandatory Multi-Agent Dispatch Invariant
+
+When running long-task execution waves, the coordinator MUST dispatch all concurrent implementers and validators simultaneously using a **single batch `invoke_subagent` tool call**:
+
+```typescript
+// Correct: True parallel multi-agent dispatch in a single tool call
+invoke_subagent({
+  Subagents: [
+    { Role: "Implementer 1 (Task T-01)", TypeName: "self", Prompt: "..." },
+    { Role: "Validator 1 (Task T-01)",   TypeName: "self", Prompt: "..." },
+    { Role: "Implementer 2 (Task T-02)", TypeName: "self", Prompt: "..." },
+    { Role: "Validator 2 (Task T-02)",   TypeName: "self", Prompt: "..." },
+  ]
+});
+```
+
+- **NEVER** run a single subagent loop to execute multiple tasks sequentially.
+- **NEVER** block the Tier 1 main chat; subagents must run in the background and report strictly to the orchestrator.
+
+---
+
 ## When to use
+
 
 Use this skill when any of these are true:
 
