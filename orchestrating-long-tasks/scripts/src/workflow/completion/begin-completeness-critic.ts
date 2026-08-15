@@ -12,6 +12,7 @@ const CRITIC_DURATION_MS = 20 * 60 * 1_000;
 
 export interface BeginCriticOptions {
   clock?: Clock;
+  maxRepairRounds?: number;
 }
 
 export function beginCompletenessCritic(
@@ -22,6 +23,7 @@ export function beginCompletenessCritic(
   criticId = requireText(criticId, "critic_id");
   const now = (options.clock ?? systemClock).now();
   const token = newLeaseToken();
+  const maxRounds = options.maxRepairRounds ?? MAX_REPAIR_ROUNDS;
   const state = port.transact(criticId, "critic-assigned", {}, (draft) => {
     if (draft.completion_result?.status === "complete") {
       throw new HarnessError("INVALID_STATE", "run is already completed");
@@ -32,7 +34,7 @@ export function beginCompletenessCritic(
     if (history.some((entry) => entry.critic_id === criticId))
       throw new HarnessError("INVALID_STATE", "a fresh completeness critic identity is required");
     const remediations = draft.completion_remediations ?? [];
-    if (remediations.length >= MAX_REPAIR_ROUNDS)
+    if (remediations.length >= maxRounds)
       throw new HarnessError("INVALID_STATE", "completeness critic rounds are exhausted");
     if (current) {
       if (

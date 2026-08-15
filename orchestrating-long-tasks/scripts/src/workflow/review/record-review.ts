@@ -14,6 +14,7 @@ export function recordReview(
   validatorId: string,
   reviewValue: unknown,
   clock: Clock = systemClock,
+  maxRepairRounds: number = MAX_REPAIR_ROUNDS,
 ) {
   const now = clock.now();
   return port.transact(validatorId, "review-recorded", { task_id: taskId }, (draft) => {
@@ -53,7 +54,7 @@ export function recordReview(
         throw new HarnessError("INVALID_STATE", "task has no original implementer");
       }
       task.repair_assignee = task.original_implementer;
-      const exhausted = task.repair_round >= MAX_REPAIR_ROUNDS;
+      const exhausted = task.repair_round >= maxRepairRounds;
       transition(
         task,
         exhausted ? "escalated" : "changes_requested",

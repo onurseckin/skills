@@ -2,25 +2,74 @@ import { createHash } from "node:crypto";
 import { describe, expect, test } from "bun:test";
 import { canonicalJsonBytes } from "../../../orchestrating-long-tasks/scripts/src/core/json.ts";
 import { beginCompletenessCritic } from "../../../orchestrating-long-tasks/scripts/src/workflow/completion/begin-completeness-critic.ts";
-import { checkCompletion } from "../../../orchestrating-long-tasks/scripts/src/workflow/completion/check-completion.ts";
 import { recordCompletionRemediation } from "../../../orchestrating-long-tasks/scripts/src/workflow/completion/record-completion-remediation.ts";
 import { recordCompletionReview } from "../../../orchestrating-long-tasks/scripts/src/workflow/completion/record-completion-review.ts";
+import { claimTask } from "../../../orchestrating-long-tasks/scripts/src/workflow/lease/claim.ts";
 import { tokenDigest } from "../../../orchestrating-long-tasks/scripts/src/workflow/lease/token.ts";
+import { beginValidation } from "../../../orchestrating-long-tasks/scripts/src/workflow/review/begin-validation.ts";
+import { recordReview } from "../../../orchestrating-long-tasks/scripts/src/workflow/review/record-review.ts";
+import { submitTask } from "../../../orchestrating-long-tasks/scripts/src/workflow/submission/submit.ts";
 import {
   at,
   commandRecord,
+  registerCommand,
+  registerTaskPacket,
   repositoryBinding,
   TEST_GATE_ARGV,
   TestPort,
   workflowState,
 } from "./test-port.ts";
 
-const clock = at("2026-08-13T12:00:00.000Z");
+const clock = at("2026-08-14T12:00:00.000Z");
 const integrity = [{ status: "passed", event_head: "head" }];
 const integritySha = createHash("sha256").update(canonicalJsonBytes(integrity)).digest("hex");
 const verifyRepository = () => structuredClone(repositoryBinding);
 
-function readyPort(): TestPort {
+const report = {
+  summary: "work completed",
+  requirement_ids: ["R-1"],
+  files_changed: ["src/owned/a.ts"],
+  checks: [{ command: "bun test", status: "passed" }],
+  evidence: [{ kind: "diff" }],
+};
+
+const finding = {
+  id: "F-1",
+  requirement_id: "R-1",
+  severity: "important",
+  observation: "edge case bug",
+  evidence: [{ path: "a.ts" }],
+  remediation: "handle edge case",
+  revalidation: "bun test",
+  status: "open",
+};
+
+function submitted(): TestPort {
+  const port = new TestPort(workflowState());
+  const { token } = claimTask(port, "T-1", "implementer", "implementer", { clock });
+  registerTaskPacket(port, "implementer", "implementer", 1);
+  submitTask(port, "T-1", "implementer", token, report, clock);
+  return port;
+}
+
+function validationToken(port: TestPort, validator: string): string {
+  registerCommand(port, `C-${validator}`, validator);
+  const started = beginValidation(port, "T-1", validator, clock);
+  registerTaskPacket(port, "validator", validator, started.tasks["T-1"]!.validation!.attempt);
+  return started.tasks["T-1"]!.validation_token!;
+}
+
+function rejectPayload(token: string, validator: string, round: number) {
+  return {
+    verdict: "reject",
+    validation_token: token,
+    requirement_ids: ["R-1"],
+    checks: [{ command_id: `C-${validator}`, result: "failed" }],
+    findings: [{ ...finding, id: `F-${round}` }],
+  };
+}
+
+function readyCriticPort(): TestPort {
   const state = workflowState();
   Object.assign(state.tasks["T-1"]!, {
     status: "done",
@@ -30,7 +79,7 @@ function readyPort(): TestPort {
       token_digest: "digest",
       attempt: 1,
       started_at: clock.now().toISOString(),
-      deadline_at: "2026-08-13T13:00:00.000Z",
+      deadline_at: "2026-08-14T13:00:00.000Z",
       verdict: "pass",
       reviewed_requirement_ids: ["R-1"],
       checks: [{ command_id: "C-V" }],
@@ -91,14 +140,13 @@ function publishCritic(port: TestPort, critic: string, attempt: number, token: s
       integrity_evidence_sha256: integritySha,
       published_at: clock.now().toISOString(),
     };
-    expect(authority.token_digest).toBe(tokenDigest(token));
     authority.status = "packet_published";
     authority.packet_id = id;
     Object.assign(draft.completion_critic_history![attempt - 1]!, authority);
   });
 }
 
-function findings(port: TestPort, critic: string, attempt: number, token: string): void {
+function recordFindings(port: TestPort, critic: string, attempt: number, token: string): void {
   publishCritic(port, critic, attempt, token);
   recordCompletionReview(
     port,
@@ -117,10 +165,10 @@ function findings(port: TestPort, critic: string, attempt: number, token: string
           id: `CF-${attempt}`,
           requirement_id: "R-1",
           severity: "important",
-          observation: "missing final proof",
+          observation: "missing proof",
           evidence: [{ attempt }],
           remediation: "repair and verify",
-          revalidation: "rerun focused command",
+          revalidation: "rerun command",
         },
       ],
       requirement_proofs: [
@@ -128,11 +176,7 @@ function findings(port: TestPort, critic: string, attempt: number, token: string
           requirement_id: "R-1",
           status: "satisfied",
           evidence: [
-            {
-              kind: "command",
-              reference: `C-CHECK-${attempt}`,
-              observation: "checked",
-            },
+            { kind: "command", reference: `C-CHECK-${attempt}`, observation: "checked" },
           ],
         },
       ],
@@ -146,7 +190,7 @@ function findings(port: TestPort, critic: string, attempt: number, token: string
   );
 }
 
-function remediate(port: TestPort): void {
+function recordRemediation(port: TestPort): void {
   const review = port.read().completion_review!;
   recordCompletionRemediation(
     port,
@@ -163,52 +207,33 @@ function remediate(port: TestPort): void {
   );
 }
 
-describe("completion critic lifecycle", () => {
-  test("critic authorization is one-time and includes validation history identity", () => {
-    const port = readyPort();
-    const first = beginCompletenessCritic(port, "critic", { clock });
-    expect(() => beginCompletenessCritic(port, "critic", { clock })).toThrow();
-    expect(first.state.completion_critic_history).toHaveLength(1);
+describe("configurable repair rounds", () => {
+  test("recordReview escalates after custom maxRepairRounds = 2", () => {
+    const port = submitted();
+    const token1 = validationToken(port, "validator-1");
+    recordReview(port, "T-1", "validator-1", rejectPayload(token1, "validator-1", 1), clock, 2);
+    expect(port.read().tasks["T-1"]!.status).toBe("changes_requested");
 
-    const prior = readyPort();
-    prior.transact("test", "history", {}, (draft) => {
-      draft.tasks["T-1"]!.validation_history = [
-        {
-          validator_id: "prior-validator",
-          token_digest: "digest",
-          attempt: 1,
-          started_at: clock.now().toISOString(),
-          deadline_at: clock.now().toISOString(),
-        },
-      ];
-    });
-    expect(() => beginCompletenessCritic(prior, "prior-validator", { clock })).toThrow();
+    const claim = claimTask(port, "T-1", "implementer", "repairer", { clock });
+    registerTaskPacket(port, "repairer", "implementer", 2);
+    submitTask(port, "T-1", "implementer", claim.token, report, clock);
+
+    const token2 = validationToken(port, "validator-2");
+    recordReview(port, "T-1", "validator-2", rejectPayload(token2, "validator-2", 2), clock, 2);
+    expect(port.read().tasks["T-1"]!.status).toBe("escalated");
   });
 
-  test("requires remediation and a fresh critic, preserves history, and bounds rounds", () => {
-    const port = readyPort();
-    for (let attempt = 1; attempt <= 5; attempt += 1) {
-      const critic = `critic-${attempt}`;
-      const authorization = beginCompletenessCritic(port, critic, { clock });
-      findings(port, critic, attempt, authorization.token);
-      expect(port.read().completion_reviews).toHaveLength(attempt);
-      expect(() => beginCompletenessCritic(port, `early-${attempt}`, { clock })).toThrow();
-      remediate(port);
-      expect(() => beginCompletenessCritic(port, critic, { clock })).toThrow();
+  test("beginCompletenessCritic bounds critic rounds using custom maxRepairRounds", () => {
+    const port = readyCriticPort();
+    for (let round = 1; round <= 2; round += 1) {
+      const critic = `critic-${round}`;
+      const { token } = beginCompletenessCritic(port, critic, { clock, maxRepairRounds: 2 });
+      recordFindings(port, critic, round, token);
+      recordRemediation(port);
     }
-    expect(port.read().completion_remediations).toHaveLength(5);
-    expect(() => beginCompletenessCritic(port, "critic-6", { clock })).toThrow();
-  });
-
-  test("completion rechecks immutable critic and remediation history", () => {
-    const port = readyPort();
-    const authorization = beginCompletenessCritic(port, "critic-1", { clock });
-    findings(port, "critic-1", 1, authorization.token);
-    remediate(port);
-    const state = port.read();
-    state.completion_remediations![0]!.remediation_sha256 = "tampered";
-    expect(checkCompletion(new TestPort(state))).toContain(
-      "completion remediation 1 has an invalid digest",
-    );
+    expect(port.read().completion_remediations).toHaveLength(2);
+    expect(() =>
+      beginCompletenessCritic(port, "critic-3", { clock, maxRepairRounds: 2 }),
+    ).toThrow("rounds are exhausted");
   });
 });

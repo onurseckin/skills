@@ -129,8 +129,29 @@ bun $PINNED run:complete --run $RUN --actor coordinator
 bun $PINNED run:status --run $RUN
 ```
 
+## Harness Configuration (`harness.config.json`)
+
+Harness behavior can be customized by placing a `harness.config.json` or `.harness.config.json` file in the repository root (or per-capsule `config.json`):
+
+```json
+{
+  "max_repair_rounds": 5,
+  "max_output_bytes": 10485760,
+  "default_lease_seconds": 1800,
+  "default_max_parallel": 4,
+  "strict_validation": true
+}
+```
+
+- **`max_repair_rounds`** (default `5`): Maximum repair rounds allowed for a rejected task or completeness critic remediation before transitioning to `escalated`.
+- **`max_output_bytes`** (default `10MB`): Maximum stdout/stderr output size captured per command execution.
+- **`default_lease_seconds`** (default `1800`): Default worker lease duration for task claims.
+- **`default_max_parallel`** (default `4`): Default concurrency limit for independent task execution.
+- **`strict_validation`** (default `true`): Enforces mandatory gate coverage and independent validator checks.
+
 ## Backward Compatibility & Recovery
 
 Existing commands (`init`, `plan-apply`, `claim`, `heartbeat`, `submit`, `review`, `doctor`, `handoff`, `complete`)
 remain fully supported alongside the new colon-based CLI commands.
 For crash recovery, run `doctor` followed by `handoff` or `recover` as specified in [references/protocol.md](references/protocol.md).
+
