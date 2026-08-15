@@ -20,10 +20,9 @@ To achieve enterprise-grade durability, `orchestrating-long-tasks` implements th
 
 Multiple subagents running concurrently on the same host machine must never write to `.capsules/<run-id>/events.jsonl` simultaneously.
 
-Every state transition acquires an exclusive advisory file lock on `.capsules/<run-id>/state.lock`:
+Every state transition acquires an exclusive advisory file lock on `.capsules/<run-id>/.lock`:
 
 ```typescript
-// scripts/src/store/event-stream.ts
 const lockFd = openSync(lockPath, constants.O_CREAT | constants.O_RDWR, 0o600);
 flockSync(lockFd, constants.LOCK_EX);
 try {
@@ -45,7 +44,7 @@ When writing any persistent artifact (manifest, state projection, command record
 
 ```text
 [ Stage 1: Write Temporary File ]
-  ├── Create `.state.json.<uuid>.tmp` with permission 0600
+  ├── Create `state.json.tmp-<uuid>` with permission 0600
   ├── Write canonical JSON buffer
   └── Call `fsyncSync(fd)` (Flushes data & inode metadata to physical platter/NVMe)
 

@@ -1,4 +1,4 @@
-# 03. Bounded Repair Routing & 3-Round Escalation Policy
+# 03. Bounded Repair Routing & Configurable Repair Limits
 
 [⬅ Previous: Structured Finding Schema](./02-structured-finding-schema.md) | [Master Table of Contents](../README.md) | [Next: Chapter 07 — Gate Systems & Provenance ➡](../07-gates-and-completion/01-mandatory-gate-systems.md)
 
@@ -6,31 +6,31 @@
 
 ## 🔁 The Repair Feedback Loop
 
-When a validator rejects a task, the task enters the `changes_requested` state. The harness routes the task into an automated, bounded **Repair Loop**:
+When a validator rejects a task via `task:reject`, the task enters the `changes_requested` state. The harness routes the task into an automated, bounded **Repair Loop**:
 
 ```text
                ┌───────────────────────┐
                │   changes_requested   │
                └───────────┬───────────┘
                            │
-                           ▼ (assign-repairer lease)
+                           ▼ (task:claim repair lease)
                ┌───────────────────────┐
-               │    repair (Round 1)   │ ──> [ Implementer fixes code & re-submits ]
+               │    repair (Round 1)   │ ──> [ Implementer fixes code & task:submit ]
                └───────────┬───────────┘
                            │
-                           ▼ (begin-validation)
+                           ▼ (task:validate-start)
                ┌───────────────────────┐
                │      validating       │
                └─────┬───────────┬─────┘
                      │           │
          ┌───────────┘           └───────────┐
-         │ (Pass)                            │ (Reject)
+         │ (task:review pass)                │ (task:reject)
          ▼                                   ▼
    ┌───────────┐                       ┌───────────────────────┐
    │ validated │                       │    repair (Round 2)   │
    └───────────┘                       └───────────┬───────────┘
                                                    │
-                                                   ▼ (Reject Round 3)
+                                                   ▼ (Exceeds max_repair_rounds)
                                        ┌───────────────────────┐
                                        │       escalated       │
                                        └───────────────────────┘
@@ -38,50 +38,56 @@ When a validator rejects a task, the task enters the `changes_requested` state. 
 
 ---
 
-## 🧭 Step 1: Repairer Assignment (`assign-repairer`)
+## 🧭 Step 1: Repair Lease & Re-Submission
 
-The coordinator leases the task back to the original implementer (or an assigned repairer agent):
+The coordinator leases the task back to the implementer via `task:claim`:
 
 ```bash
-bun orchestrating-long-tasks/scripts/harness.ts assign-repairer \
+bun harness.ts task:claim \
   --run .capsules/<run-id> \
-  --task task-auth \
-  --agent implementer-1 \
-  --role repairer
+  --task <task-id> \
+  --agent <worker-id>
 ```
 
 ### What the Repairer Receives:
 
-The repairer receives the `repairer.md` role packet containing:
+The repair brief highlights:
 
 1. The leased write scope.
-2. The exact list of open findings (`F-001`, `F-002`).
-3. The observations, remediations, and `revalidation_command` for each finding.
-4. Clean, unopinionated instruction to fix the defects and run the revalidation command.
+2. The exact list of open findings and validator remediation instructions.
+3. Instructions to implement the fix, verify locally, and execute `task:submit`.
 
 ---
 
-## 🚨 Step 2: The 3-Round Hard Escalation Ceiling
+## 🚨 Step 2: Configurable Repair Limits (`harness.config.json`)
 
 In unbounded agent loops, an agent that cannot solve a problem will burn hundreds of thousands of tokens endlessly retrying the same flawed approach.
 
-To protect time and compute budgets, the harness enforces a **Strict 3-Round Escalation Ceiling**:
+To protect time and compute budgets, the harness enforces a **Configurable Repair Limit** (default `5` rounds, defined in `harness.config.json`):
 
-$$\text{repair\_round} \le 3$$
+```json
+{
+  "max_repair_rounds": 5,
+  "max_output_bytes": 10485760,
+  "default_lease_seconds": 1800,
+  "default_max_parallel": 4,
+  "strict_validation": true
+}
+```
 
-- **Round 1:** First repair attempt after initial submission failure.
-- **Round 2:** Second repair attempt.
-- **Round 3:** Final automated attempt.
-- **If Round 3 Fails Validation:** The task immediately transitions to **`escalated`**.
+$$\text{repair\_round} \le \text{max\_repair\_rounds}$$
+
+- **Rounds 1–5:** Automated repair attempts.
+- **If Maximum Rounds are Exceeded:** The task immediately transitions to **`escalated`**.
 
 ### What Happens in `escalated`:
 
 1. The task is **frozen** and removed from the active scheduling queue.
 2. No further automated retries or claims are permitted.
-3. The coordinator emits an alert for human operator inspection.
+3. The coordinator emits an escalation alert for human operator inspection.
 4. The human developer can either:
-   - Provide guidance and reset the repair counter via an audited decision, or
-   - Update the plan via `plan-apply --expected-revision <N>`, or
+   - Provide guidance and reset the repair counter, or
+   - Update the plan via `plan:add` and `plan:compile`, or
    - Cancel the task if the requirement is deemed infeasible.
 
 ---

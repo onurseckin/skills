@@ -10,53 +10,30 @@ In standard development, an agent reads a 500-word prompt, generates a brief 3-p
 
 To completely prevent unhandled requirements, the `orchestrating-long-tasks` compiler enforces the **100% Line Disposition Invariant**:
 
-> **Every single non-blank line of the user's prompt must be assigned exactly one mathematical disposition record in `requirements.json`.**
+> **Every single non-blank line of the user's prompt must be assigned exactly one mathematical disposition record during plan compilation.**
 
-If a prompt has 10 non-blank lines, the `dispositions` array must have exactly 10 disposition entries mapping line 1 through line 10. If even one line is omitted, `harness.ts validate` fails with a schema violation.
+When the planner executes `plan:compile --actor planner`, the compiler validates that every non-blank line in `prompt.md` is strictly mapped to atomic requirements. If even one line is omitted, `plan:compile` fails with an `INTEGRITY` error.
 
 ---
 
-## 🧩 Schema for Atomic Requirements & Dispositions
+## 🧩 Declaring Tasks & Compiling the Graph
 
-Here is the exact structure of `planning/requirements.json`:
+Tasks are declared cleanly through the CLI with disjoint write scopes and mandatory gates:
 
-```json
-{
-  "schema": "harness.requirements",
-  "version": 1,
-  "prompt_sha256": "8dcd43232e1bf99c2746f2d7ae338227da95178c43cbcd637a4f11486a0a9aa8",
-  "requirements": [
-    {
-      "id": "R-001",
-      "source_lines": [1],
-      "source_excerpt": "Preserve the complete prompt.",
-      "instruction": "Preserve the complete prompt.",
-      "implementation": "Store the exact prompt bytes and bind them to the run manifest digest.",
-      "subsystem": "src/store",
-      "acceptance": [
-        {
-          "id": "A-001",
-          "criterion": "The stored prompt bytes and manifest digest match the source.",
-          "evidence": ["A passing prompt-capsule integrity test command"]
-        }
-      ],
-      "candidate_gates": [{ "argv": ["bun", "test", "tests/store/prompt.test.ts"], "cwd": "." }],
-      "priority": 100,
-      "risk": "high",
-      "ambiguity": [],
-      "dependencies": [],
-      "disposition": "actionable",
-      "status": "planned"
-    }
-  ],
-  "dispositions": [
-    {
-      "line": 1,
-      "kind": "requirement",
-      "requirement_id": "R-001"
-    }
-  ]
-}
+```bash
+bun harness.ts plan:add --run .capsules/<slug> --actor planner --id <task-id> --label "<label>" --scope <path> --gate "<gate-cmd>" [--deps <dep-id>]
+```
+
+You can inspect the planning buffer at any time:
+
+```bash
+bun harness.ts plan:status --run .capsules/<slug>
+```
+
+And compile the verified graph:
+
+```bash
+bun harness.ts plan:compile --run .capsules/<slug> --actor planner
 ```
 
 ---
@@ -74,7 +51,7 @@ This single line (Line 1) contains two distinct obligations:
 
 ### The Plural Disposition Solution:
 
-Instead of creating a monolithic requirement or dropping the approval constraint, the compiler creates **two atomic requirements** mapped to the same source line:
+Instead of creating a monolithic requirement or dropping the approval constraint, the compiler decomposes the line into **two atomic requirements** mapped to the same source line:
 
 ```json
 {
@@ -94,15 +71,15 @@ Both `R-CACHE` and `R-MIGRATE` list `source_lines: [1]` and `source_excerpt: "Ad
 - `R-CACHE` has `disposition: "actionable"`.
 - `R-MIGRATE` has `disposition: "needs_authority"`.
 
-This allows the scheduler to dispatch `R-CACHE` immediately in parallel, while pausing `R-MIGRATE` until the user provides an audited authority decision!
+This allows the scheduler to dispatch `R-CACHE` immediately in parallel via `queue:pop` / `task:claim`, while pausing `R-MIGRATE` until the user provides an audited authority decision!
 
 ---
 
-## 📐 Atomic Requirement Fields Explained
+## 📐 Atomic Requirement Structure
 
 | Field                 | Purpose                                                                | Validation Rule                               |
 | :-------------------- | :--------------------------------------------------------------------- | :-------------------------------------------- |
-| **`id`**              | Unique alphanumeric requirement identifier (`R-001`, `R-AUTH`).        | Must be unique across the entire run.         |
+| **`id`**              | Unique alphanumeric requirement identifier (`req-foundations`, `R-001`).| Must be unique across the entire run.         |
 | **`source_lines`**    | Exact 1-indexed line numbers in `prompt.md`.                           | Must strictly match the lines in `prompt.md`. |
 | **`source_excerpt`**  | Exact string from `prompt.md` joined across `source_lines`.            | Byte-exact match with `prompt.md`.            |
 | **`instruction`**     | Concise summary of what the user asked for.                            | Non-empty string.                             |

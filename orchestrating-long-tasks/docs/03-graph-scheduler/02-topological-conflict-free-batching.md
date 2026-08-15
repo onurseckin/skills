@@ -12,13 +12,13 @@ When an AI system dispatches multiple coding agents in parallel, chaos easily en
 - Agent 2 writes `src/auth/index.ts`.
 - Filesystem race conditions cause torn reads, clobbered functions, and broken imports.
 
-The `orchestrating-long-tasks` scheduler solves this through **Topological Conflict-Free Batch Scheduling**.
+The `orchestrating-long-tasks` scheduler solves this through **Topological Conflict-Free Batch Scheduling** via `queue:next`, `queue:list`, and `queue:pop`.
 
 ---
 
 ## 🧮 The 5-Step Scheduling Algorithm
 
-When the coordinator runs `harness.ts schedule --max-parallel <N>`, the scheduler executes a 5-step deterministic algorithm:
+When the coordinator inspects `queue:next` or invokes `queue:pop`, the scheduler executes a 5-step deterministic algorithm:
 
 ```text
 [ Graph in state.json ]
@@ -36,7 +36,7 @@ When the coordinator runs `harness.ts schedule --max-parallel <N>`, the schedule
 4. Concurrency Limit Clamp (Batch size <= max-parallel)
           │
           ▼
-[ Return Dispatch Batch & Atomically Transition Tasks to 'ready' ]
+[ Return Dispatch Batch & Atomically Lease Tasks to Agents ]
 ```
 
 ---
@@ -65,19 +65,19 @@ The scheduler evaluates the `write_scope` of each candidate against already-sele
 
 ### Worked Example:
 
-Suppose we have 4 ready tasks and `max-parallel: 3`:
+Suppose we have 4 ready tasks and `default_max_parallel: 3`:
 
 - **Task 1:** Priority 100, `write_scope: ["src/auth"]`
 - **Task 2:** Priority 95, `write_scope: ["src/auth/session"]` _(Conflicts with Task 1!)_
 - **Task 3:** Priority 90, `write_scope: ["src/database"]` _(Disjoint)_
 - **Task 4:** Priority 85, `write_scope: ["src/api"]` _(Disjoint)_
 
-**Resulting Batch:**
+**Resulting Dispatch:**
 
-1. **Task 1** is selected (Highest priority).
-2. **Task 2** is **skipped** (Write scope `src/auth/session` is a descendant of `src/auth`).
-3. **Task 3** is selected (Disjoint from Task 1).
-4. **Task 4** is selected (Disjoint from Tasks 1 and 3).
+1. **Task 1** is leased via `queue:pop` / `task:claim` (Highest priority).
+2. **Task 2** is **held back** (Write scope `src/auth/session` is a descendant of `src/auth`).
+3. **Task 3** is leased (Disjoint from Task 1).
+4. **Task 4** is leased (Disjoint from Tasks 1 and 3).
 
 **Dispatched Batch:** `[Task 1, Task 3, Task 4]`.
 Task 2 remains queued safely until Task 1 completes and releases its write lease!

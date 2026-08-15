@@ -4,69 +4,68 @@
 
 ---
 
-## 📖 CLI Grammar & Invocation Patterns
+## 📖 Zero-JSON CLI Grammar & Invocation Patterns
 
-The `orchestrating-long-tasks` CLI is executed via the pinned runtime inside each run capsule:
+The `orchestrating-long-tasks` CLI provides domain-specific colon commands designed for direct agent consumption. Instead of authoring large JSON payloads, all interactions use concise CLI flags and emit compact Markdown briefs ($\le 30$ lines):
 
 ```bash
-bun orchestrating-long-tasks/scripts/harness.ts <subcommand> [flags...] [-- <argv...>]
+bun harness.ts <domain:command> [flags...] [-- <argv...>]
 ```
-
-All CLI commands output machine-parseable JSON lines (`{"ok": true, "result": ...}`) on stdout, or structured errors (`{"ok": false, "error": {"code": ...}}`) on stderr.
 
 ---
 
-## 📑 Core Command Catalog
+## 📑 Complete Command Catalog
 
-### 1. Run Lifecycle & Status
+### 1. Planning & Decomposition
 
-- **`init`**: Initialize a new run capsule from an immutable prompt file.
-  - Flags: `--run <path>`, `--prompt <path>`, `--actor <name>`
-- **`status`**: Output complete task counts, integrity audit, and recent event stream.
+- **`plan:init`**: Initialize a new run capsule with byte-exact prompt capture.
+  - Flags: `--repo <path>`, `--run <slug>`, `--prompt-stdin`
+- **`plan:add`**: Register a task with disjoint write scopes and mandatory gates.
+  - Flags: `--run <path>`, `--actor <name>`, `--id <task-id>`, `--label "<label>"`, `--scope <path>`, `--gate "<gate-cmd>"`, `[--deps <dep-id>]`
+- **`plan:status`**: Output current draft planning buffer and task table.
   - Flags: `--run <path>`
-- **`complete`**: Evaluate the 8-point terminal completion checklist.
+- **`plan:compile`**: Compile dependency DAG with 100% line disposition coverage verification.
   - Flags: `--run <path>`, `--actor <name>`
-- **`recover`**: Reclaim expired leases, terminate orphaned processes, and quarantine torn event tails.
-  - Flags: `--run <path>`, `--actor <name>`, `[--grace-seconds <N>]`
 
-### 2. Planning & Graph Scheduling
+### 2. Queue & Dispatch Management
 
-- **`plan-apply`**: Apply and validate requirements and task graph with atomic revision locking.
-  - Flags: `--run <path>`, `--requirements <path>`, `--graph <path>`, `--expected-revision <N>`, `--actor <name>`
-- **`ready`**: List eligible tasks whose dependencies are satisfied without mutating state.
-  - Flags: `--run <path>`, `--max-parallel <N>`
-- **`schedule`**: Transition eligible tasks from `proposed` to `ready`.
-  - Flags: `--run <path>`, `--max-parallel <N>`, `--actor <name>`
+- **`queue:next`**: Query the next ready task unblocked in the dependency graph.
+  - Flags: `--run <path>`
+- **`queue:list`**: List all currently queued, ready, or leased tasks across waves.
+  - Flags: `--run <path>`
+- **`queue:pop`**: Pop the highest-priority conflict-free task and lease it to a worker.
+  - Flags: `--run <path>`, `--agent <worker-id>`, `[--lease-seconds <N>]`
 
-### 3. Task Execution & Leasing
+### 3. Task Implementation & Submission
 
-- **`claim`**: Lease an available task for finite duration and issue a bearer token.
-  - Flags: `--run <path>`, `--task <id>`, `--agent <id>`, `--role <implementer|planner>`
-- **`heartbeat`**: Extend an active lease before expiration.
-  - Flags: `--run <path>`, `--task <id>`, `--token <bearer-token>`
-- **`packet`**: Generate a sanitised role-specific markdown instruction packet.
-  - Flags: `--run <path>`, `--task <id>`, `--role <role>`, `--agent <id>`, `--token <token>`, `--id <packet-id>`
-- **`submit`**: Implementer submits task completion report and evidence.
-  - Flags: `--run <path>`, `--task <id>`, `--agent <id>`, `--token <token>`, `--report <path>`
+- **`task:claim`**: Explicitly lease a ready task to an assigned agent.
+  - Flags: `--run <path>`, `--task <task-id>`, `--agent <worker-id>`, `[--lease-seconds <N>]`
+- **`task:heartbeat`**: Extend an active task lease during ongoing execution.
+  - Flags: `--run <path>`, `--task <task-id>`, `--agent <worker-id>`, `--token <bearer-token>`
+- **`task:submit`**: Submit finished implementation work with diff verification.
+  - Flags: `--run <path>`, `--task <task-id>`, `--agent <worker-id>`, `--token <bearer-token>`, `--summary "<summary>"`
 
-### 4. Validation & Gate Attachment
+### 4. Independent Validation & Bounded Repair
 
-- **`begin-validation`**: Authorize an independent validator and issue a validation token.
-  - Flags: `--run <path>`, `--task <id>`, `--validator <id>`
-- **`review`**: Validator records pass verdict or structured rejection findings.
-  - Flags: `--run <path>`, `--task <id>`, `--validator <id>`, `--token <token>`, `--review <path>`
-- **`gate`**: Attach passing command evidence to satisfy a task-level mandatory gate.
-  - Flags: `--run <path>`, `--task <id>`, `--gate <gate-id>`, `--command-id <cmd-id>`, `--actor <name>`
-- **`run-gate`**: Attach passing command evidence to satisfy a global run-level gate.
-  - Flags: `--run <path>`, `--gate <gate-id>`, `--command-id <cmd-id>`, `--actor <name>`
-- **`finish`**: Transition task from `gating` to `done` once all reviews and gates pass.
-  - Flags: `--run <path>`, `--task <id>`, `--actor <name>`
+- **`task:validate-start`**: Dispatch an independent validator with a fresh validation token.
+  - Flags: `--run <path>`, `--task <task-id>`, `--validator <val-id>`
+- **`task:review`**: Record validator approval following successful gate runs.
+  - Flags: `--run <path>`, `--task <task-id>`, `--validator <val-id>`, `--token <val-token>`, `--status pass`, `--summary "<summary>"`
+- **`task:reject`**: Reject task submission with structured remediation findings.
+  - Flags: `--run <path>`, `--task <task-id>`, `--validator <val-id>`, `--token <val-token>`, `--reason "<reason>"`, `--finding "<remediation>"`
 
-### 5. Watchdog Command Runner
+### 5. Monitored Execution & Run Lifecycle
 
-- **`run`**: Execute a command under fail-closed process monitoring, logging, and repository binding.
-  - Flags: `--run <path>`, `--actor <id>`, `[--task <id>]`, `[--gate <id>]`, `--cwd <dir>`, `[--wall-ms <N>]`, `[--idle-ms <N>]`
-  - Remainder: `-- <executable> [args...]`
+- **`run:exec`**: Execute commands under watchdog monitoring and capture `trusted_host_observed_v1` evidence.
+  - Flags: `--run <path>`, `--actor <id>`, `[--task <task-id>]`, `[--gate <gate-id>]`, `-- <argv...>`
+- **`run:status`**: Output complete task states, findings, and gate results.
+  - Flags: `--run <path>`
+- **`critic:start`**: Begin completeness critic review session.
+  - Flags: `--run <path>`, `--critic <critic-id>`
+- **`critic:review`**: Submit final completeness critic audit decision.
+  - Flags: `--run <path>`, `--critic <critic-id>`, `--token <critic-token>`, `--decision <approve|reject>`, `--summary "<summary>"`
+- **`run:complete`**: Mechanically evaluate the 8-point checklist and seal the run.
+  - Flags: `--run <path>`, `--actor <name>`
 
 ---
 

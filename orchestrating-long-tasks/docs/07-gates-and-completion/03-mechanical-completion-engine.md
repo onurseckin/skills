@@ -8,9 +8,9 @@
 
 In standard LLM systems, an agent prints _"Everything is complete and tested! Thank you!"_ even when half the files are missing or broken.
 
-In `orchestrating-long-tasks`, the final state transition to `status: "completed"` is computed **purely deterministically** by the completion engine (`harness.ts complete`).
+In `orchestrating-long-tasks`, the final state transition to `status: "completed"` is computed **purely deterministically** by the completion engine (`run:complete`).
 
-The CLI inspects `state.json` and evaluates an uncompromising **8-Point Mechanical Checklist**. If even a single condition fails, `complete` aborts with exit code 1 and outputs the exact blocking reasons.
+The CLI inspects `state.json` and evaluates an uncompromising **8-Point Mechanical Checklist**. If even a single condition fails, `run:complete` aborts with an error and outputs the exact blocking reasons.
 
 ---
 
@@ -33,28 +33,21 @@ The CLI inspects `state.json` and evaluates an uncompromising **8-Point Mechanic
 
 ---
 
-## 💻 Terminal CLI Execution
+## 💻 Terminal CLI Execution (`run:complete`)
 
 When all tasks and gates are satisfied, the coordinator runs the final command:
 
 ```bash
-bun orchestrating-long-tasks/scripts/harness.ts complete \
+bun harness.ts run:complete \
   --run .capsules/<run-id> \
   --actor coordinator
 ```
 
-### Successful Completion Output:
+You can inspect the sealed run status at any time:
 
-```json
-{
-  "ok": true,
-  "result": {
-    "run_id": "docs-system",
-    "status": "completed",
-    "finished_at": "2026-08-14T23:30:00.000Z",
-    "summary": "Run completed with 100% task and requirement satisfaction. All 9 gates verified."
-  }
-}
+```bash
+bun harness.ts run:status \
+  --run .capsules/<run-id>
 ```
 
 ---

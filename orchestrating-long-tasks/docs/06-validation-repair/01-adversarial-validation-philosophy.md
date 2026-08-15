@@ -26,26 +26,24 @@ If the validator reads the implementer's chat narrative (e.g., _"I refactored th
 The harness eliminates anchoring bias through **Context Sanitization**:
 
 ```text
-[ Implementer Submits Report ]
+[ Implementer Submits Work: task:submit ]
   ├── summary: "I fixed the bug and tests pass 100%!" (PROSE)
-  ├── confidence: "high" (SUBJECTIVE)
   ├── files_changed: ["src/auth.ts"]
-  └── requirement_ids: ["R-AUTH"]
+  └── write_scope: ["src/auth"]
                   │
-                  ▼ (Harness Sanitization Engine)
+                  ▼ (Harness Sanitization Engine: task:validate-start)
 ┌────────────────────────────────────────────────────────┐
-│  STRIPPED FROM VALIDATOR PACKET:                       │
-│  ❌ implementer_report      ❌ previous_reviews        │
-│  ❌ decision_narrative      ❌ confidence              │
-│  ❌ prior_review_notes      ❌ validator_reports       │
+│  STRIPPED FROM VALIDATOR BRIEF:                        │
+│  ❌ implementer_narrative   ❌ subjective_confidence   │
+│  ❌ prior_review_notes      ❌ implementer_claims      │
 └──────────────────────────┬─────────────────────────────┘
                            │
                            ▼
 [ Pure Allowlisted Context Delivered to Validator ]
   ✅ Original Prompt Text
-  ✅ Atomic Acceptance Criteria (A-001)
+  ✅ Atomic Acceptance Criteria
   ✅ Physical Git Diff on Disk
-  ✅ Mandatory Test Command Argv
+  ✅ Mandatory Test Command Argv (run:exec)
 ```
 
 ---
@@ -56,9 +54,9 @@ The validator's sole job is to **attempt to break the implementation** within th
 
 1. It does not trust the implementer's narrative.
 2. It inspects the actual code on disk.
-3. It executes the mandatory test command directly via `harness.ts run`.
+3. It executes the mandatory test command directly via `run:exec`.
 4. It checks negative constraints, edge cases, type contracts, and failure modes.
-5. It issues either a `pass` verdict or a `reject` verdict backed by structured findings (`F-xxx`).
+5. It issues either a `pass` verdict via `task:review` or a `reject` verdict backed by structured findings via `task:reject`.
 
 ---
 

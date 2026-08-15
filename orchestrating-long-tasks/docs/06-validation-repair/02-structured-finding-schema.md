@@ -13,13 +13,25 @@ When human reviewers or AI reviewers leave vague feedback like _"This code looks
 - What command reproduces the error?
 - How will the fix be proven?
 
-In `orchestrating-long-tasks`, a rejection is invalid unless it produces **Structured Findings** conforming to the `harness.finding` schema.
+In `orchestrating-long-tasks`, a rejection is invalid unless it produces **Structured Findings** via `task:reject`.
 
 ---
 
-## 📋 The Anatomy of a Finding (`F-001`)
+## 📋 Structured Rejection via `task:reject`
 
-Every finding recorded in `.capsules/<run-id>/findings/<finding-id>/finding.json` contains five mandatory sections:
+When a validator discovers a defect during verification, it rejects the submission using the CLI:
+
+```bash
+bun harness.ts task:reject \
+  --run .capsules/<run-id> \
+  --task <task-id> \
+  --validator <val-id> \
+  --token <validation-token> \
+  --reason "Session token does not expire after inactivity timeout." \
+  --finding "Update src/auth/session.ts line 42 to calculate expiration against lastActivity."
+```
+
+Every recorded finding contains mandatory metadata:
 
 ```json
 {
@@ -27,8 +39,7 @@ Every finding recorded in `.capsules/<run-id>/findings/<finding-id>/finding.json
   "version": 1,
   "id": "F-001",
   "task_id": "task-auth",
-  "requirement_id": "R-SESSION",
-  "validator_id": "validator-1",
+  "validator_id": "val-auth",
   "status": "open",
   "severity": "high",
   "observation": "Session token does not expire after 3600 seconds of inactivity.",
@@ -39,33 +50,28 @@ Every finding recorded in `.capsules/<run-id>/findings/<finding-id>/finding.json
     }
   ],
   "remediation": "Update `src/auth/session.ts` line 42 to calculate expiration against `lastActivity` instead of `createdAt`.",
-  "revalidation_command": {
-    "argv": ["bun", "test", "tests/auth/timeout.test.ts"],
-    "cwd": "."
-  },
   "created_at": "2026-08-14T23:25:00.000Z"
 }
 ```
 
 ---
 
-## 🔍 The 5 Mandatory Finding Fields Explained
+## 🔍 The Mandatory Finding Components
 
-| Field                      | Purpose                                                                          | Schema Requirement                                     |
-| :------------------------- | :------------------------------------------------------------------------------- | :----------------------------------------------------- |
-| **`observation`**          | Exactly what observed behavior violated which acceptance criterion.              | Non-empty descriptive string.                          |
-| **`evidence`**             | Concrete command records (`C-xxx`), logs, or error excerpts proving the failure. | Non-empty array of objects referencing valid commands. |
-| **`remediation`**          | Actionable instructions on what code needs to change to resolve the defect.      | Non-empty instructions string.                         |
-| **`revalidation_command`** | The exact literal argv command that must succeed to prove resolution.            | Literal argv object (no shell string).                 |
-| **`severity`**             | Criticality of defect (`blocker`, `high`, `medium`, `low`).                      | Closed enum.                                           |
+| Field             | Purpose                                                                          | Schema Requirement                                     |
+| :---------------- | :------------------------------------------------------------------------------- | :----------------------------------------------------- |
+| **`observation`** | Exactly what observed behavior violated which acceptance criterion.              | Non-empty descriptive string.                          |
+| **`evidence`**    | Concrete command records (`C-xxx`), logs, or error excerpts proving the failure. | Non-empty array of objects referencing valid commands. |
+| **`remediation`** | Actionable instructions on what code needs to change to resolve the defect.      | Non-empty instructions string.                         |
+| **`severity`**    | Criticality of defect (`blocker`, `high`, `medium`, `low`).                      | Closed enum.                                           |
 
 ---
 
 ## 🔒 Finding Invariants
 
-1. **No Phantom Rejections:** A validator cannot issue a `reject` review with an empty findings array. Rejection strictly requires at least one structured finding.
-2. **Immutable Traceability:** Findings are permanently recorded in `events.jsonl`.
-3. **Mechanical Proof for Resolution:** A finding cannot be marked `resolved` by implementer prose. The repairer must submit a passing command record matching the finding's `revalidation_command`!
+1. **No Phantom Rejections:** A validator cannot issue a rejection without supplying concrete reasons and actionable remediation findings.
+2. **Immutable Traceability:** Findings are permanently recorded in `events.jsonl` and mirrored in `state.json`.
+3. **Mechanical Proof for Resolution:** A finding cannot be marked `resolved` by implementer prose. The repairer must submit a passing command record through `run:exec` and `task:submit`!
 
 ---
 

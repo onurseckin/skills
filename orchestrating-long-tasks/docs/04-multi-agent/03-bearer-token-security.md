@@ -1,6 +1,6 @@
 # 03. Bearer Token Protocol & Dispatch Security
 
-[⬅ Previous: Immutable Role Packets](./02-immutable-role-packets.md) | [Master Table of Contents](../README.md) | [Next: Chapter 05 — Leases & Heartbeats ➡](../05-task-execution/01-leasing-and-heartbeats.md)
+[⬅ Previous: Role Briefs & Task Contracts](./02-immutable-role-packets.md) | [Master Table of Contents](../README.md) | [Next: Chapter 05 — Leases & Heartbeats ➡](../05-task-execution/01-leasing-and-heartbeats.md)
 
 ---
 
@@ -11,49 +11,46 @@ In a multi-agent environment, how does the harness prevent **Agent A** from subm
 The harness enforces strict access control through a **One-Time Bearer Token Security Protocol**.
 
 ```text
-[ Coordinator executes `claim` ]
-            │
-            ▼
+[ Coordinator executes `task:claim` or `queue:pop` ]
+                        │
+                        ▼
 ┌────────────────────────────────────────────────────────┐
-│  Returns Plaintext Token ONCE to Coordinator Process:  │
-│  "B-LkQM_7JYP2KLKXjWz2NRTBJr2RgYiPzoVvC5us6co"        │
-└──────────────────────────┬─────────────────────────────┘
-                           │
-             ┌─────────────┴─────────────┐
-             ▼                           ▼
-[ Delivered via Host Channel ]     [ Stored in state.json & events.jsonl ]
-(To Subagent Memory Only)          (ONLY SHA-256 Digest: "7688e3c79ba...")
+│  Returns Plaintext Token ONCE to Process Stdout:       │
+│  "DL1UOpoktcMRt_AhFJ0gwclQ56FLvxmhZPQV9Zdxa6o"         │
+└───────────────────────┬────────────────────────────────┘
+                        │
+          ┌─────────────┴─────────────┐
+          ▼                           ▼
+[ Delivered via Host Channel ]   [ Stored in state.json & events.jsonl ]
+(To Subagent Memory Only)        (ONLY SHA-256 Digest: "7688e3c79ba...")
 ```
 
 ---
 
 ## 🔒 The Token Invariants
 
-1. **Returned Once via Process Stdout:** The plaintext token is generated using cryptographically secure random bytes (`randomBytes(32).toString("base64url")`) and returned exactly once to the coordinator CLI caller.
-2. **Digest-Only Persistence:** The harness **never** writes plaintext bearer tokens to disk, state files, event logs, packets, git history, or handoff documents. Only the SHA-256 digest (`token_digest`) is stored.
-3. **Capability-Only Lifetime:** The token is valid only for the duration of the leased attempt.
-4. **Mandatory Protected Mutations:** The CLI subcommands `heartbeat`, `submit`, `review`, and `release` **require** the plaintext `--token` flag. If the provided token's SHA-256 hash does not match `lease.token_digest`, the mutation is rejected with `UNAUTHORIZED`.
+1. **Returned Once via Process Stdout:** The plaintext token is generated using cryptographically secure random bytes (`randomBytes(32).toString("base64url")`) and emitted once in the command markdown brief.
+2. **Digest-Only Persistence:** The harness **never** writes plaintext bearer tokens to disk, state files, event logs, git history, or documentation. Only the SHA-256 digest (`token_digest`) is stored.
+3. **Capability-Only Lifetime:** The token is valid only for the duration of the active lease attempt.
+4. **Mandatory Protected Mutations:** The CLI subcommands `task:heartbeat`, `task:submit`, `task:review`, `task:reject`, and `critic:review` **require** the plaintext `--token` flag. If the provided token's SHA-256 hash does not match `lease.token_digest`, the mutation is rejected with `UNAUTHORIZED`.
 
 ---
 
-## 🚨 What Happens If a Token is Lost?
+## 🚨 What Happens If a Token is Lost or Expires?
 
 If an agent process crashes or loses its in-memory token:
 
 - **No Regeneration:** The harness will **never** guess, recalculate, or reveal the token from its digest.
-- **Deadline Wait:** The coordinator waits for the lease duration (or validation deadline) to pass.
-- **Stale Recovery:** The coordinator runs:
-  ```bash
-  bun orchestrating-long-tasks/scripts/harness.ts recover --run .capsules/<run-id> --actor coordinator --grace-seconds 0
-  ```
-- **New Lease & Token:** The task transitions to `retry_ready`, a fresh `claim` is issued to an agent, and a brand-new token is generated!
+- **Deadline Expiration:** The coordinator waits for the lease duration to lapse.
+- **Task Re-Queue:** Once expired, the task transitions back to `ready` (or `retry_ready`).
+- **New Lease & Token:** A new claim via `queue:pop` or `task:claim` issues a fresh lease and brand-new token.
 
 ---
 
 ## 🛡️ Preventing Late Token Collisions
 
-If an agent with an expired lease attempts to submit a report after recovery has completed, the submission is rejected, and its late payload is safely quarantined in `evidence/` as **Orphan Evidence** without contaminating active task state.
+If an agent with an expired lease attempts to submit a report via `task:submit` after expiration or recovery, the submission is rejected, and its late payload is safely quarantined in `evidence/` without contaminating active task state.
 
 ---
 
-[⬅ Previous: Immutable Role Packets](./02-immutable-role-packets.md) | [Master Table of Contents](../README.md) | [Next: Chapter 05 — Leases & Heartbeats ➡](../05-task-execution/01-leasing-and-heartbeats.md)
+[⬅ Previous: Role Briefs & Task Contracts](./02-immutable-role-packets.md) | [Master Table of Contents](../README.md) | [Next: Chapter 05 — Leases & Heartbeats ➡](../05-task-execution/01-leasing-and-heartbeats.md)

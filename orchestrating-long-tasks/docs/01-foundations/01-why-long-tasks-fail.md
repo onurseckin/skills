@@ -35,7 +35,7 @@ Unstructured agent runs fail due to six fundamental failure modes:
 
 As an agent performs work, its context window fills with bash command outputs, compiler errors, tool calls, and conversational prose. Under context truncation or attention degradation:
 
-- The agent forgets constraints mentioned at line 45 of the original prompt.
+- The agent forgets constraints mentioned deep within the original prompt.
 - The agent invents new requirements that the user never asked for (scope creep).
 - The agent "hallucinates" that it already completed requirements that it actually skipped.
 
@@ -69,7 +69,7 @@ When an agent reviews another agent's code, but is given the implementer's narra
 
 ### 6. Assurance Inflation
 
-Unstructured agents frequently use vague, inflated claims: _"The test suite passed hermetically with 100% certainty."_ In reality, the command was run directly on the host machine against dirty untracked files, without verifying pre-command and post-command repository state.
+Unstructured agents frequently use vague, inflated claims: _"The test suite passed hermetically with 100% certainty."_ In reality, commands run on a host machine require precise attribution and verification. The harness explicitly models evidence as `trusted_host_observed_v1`, capturing pre-command and post-command repository state, SHA-256 bound stdout/stderr, and strict process isolation without false hermetic assumptions.
 
 ---
 
@@ -89,14 +89,14 @@ The harness enforces eight structural invariants that cannot be bypassed by any 
 
 | Invariant                             | Description                                                                                                                  | Enforcement Mechanism                                             |
 | :------------------------------------ | :--------------------------------------------------------------------------------------------------------------------------- | :---------------------------------------------------------------- |
-| **1. Byte-Exact Prompt Capture**      | `prompt.md` is preserved byte-for-byte with mode `0444` and bound via SHA-256 to `manifest.json`.                            | Cryptographic SHA-256 verification on every startup and mutation. |
-| **2. Immutable Capture Assurance**    | A run initialized from context copy is marked `recorded-unverified`; it can never be silently upgraded to `source-verified`. | Closed enum schema enforcement in manifest.                       |
-| **3. 100% Line Disposition Coverage** | Every non-blank prompt line must have exactly one disposition mapping to atomic requirements.                                | Requirements compiler validator rejects unmapped lines.           |
-| **4. Pinned Runtime & Hashed Events** | All state mutations must use the pinned Bun runtime at `.capsules/<run>/runtime/` and append to `events.jsonl`.              | Kernel POSIX `flock` on inode + SHA-256 hash chaining.            |
-| **5. Disjoint Write-Scope Leases**    | Parallel agents can only write within strictly disjoint directory scopes.                                                    | Topological conflict-free scheduler arbiter.                      |
-| **6. Adversarial Role Separation**    | Implementers cannot validate their own work; validators receive allowlisted context stripped of prose.                       | Tokenized validator identities and context sanitization.          |
-| **7. Bounded Deterministic Retries**  | Retries are strictly bounded and permitted only for declared idempotent transient failures.                                  | Watchdog command runner with exponential backoff.                 |
-| **8. Mechanical Completion Gate**     | Completion requires zero open findings, all tasks done, all gates passed, and clean critic approval.                         | `complete` command verification engine with live repo binding.    |
+| **1. Byte-Exact Prompt Capture**      | `prompt.md` is preserved byte-for-byte with mode `0444` and bound via SHA-256 to `manifest.json`.                            | Cryptographic SHA-256 verification on every startup and mutation (`plan:init`). |
+| **2. Immutable Capture Assurance**    | A run initialized from context copy is marked `recorded-unverified`; direct capture is `source-verified`.                   | Closed enum schema enforcement in manifest.                       |
+| **3. 100% Line Disposition Coverage** | Every non-blank prompt line must have exactly one disposition mapping to atomic requirements.                                | Requirements compiler validator (`plan:compile`) rejects unmapped lines. |
+| **4. Pinned Runtime & Hashed Events** | All state mutations must use the Zero-JSON colon CLI and append to `events.jsonl`.                                           | Kernel POSIX `flock` on inode + SHA-256 hash chaining.            |
+| **5. Disjoint Write-Scope Leases**    | Parallel agents can only write within strictly disjoint directory scopes.                                                    | Topological conflict-free scheduler arbiter (`queue:pop`, `task:claim`). |
+| **6. Adversarial Role Separation**    | Implementers cannot validate their own work; validators receive allowlisted context stripped of prose.                       | Tokenized validator identities and context sanitization (`task:validate-start`). |
+| **7. Bounded Deterministic Retries**  | Retries are strictly bounded (configurable via `harness.config.json`, default 5 repair rounds).                             | Watchdog command runner and repair counter escalation.            |
+| **8. Mechanical Completion Gate**     | Completion requires zero open findings, all tasks done, all gates passed, and clean critic approval.                         | `run:complete` verification engine with live `trusted_host_observed_v1` proof. |
 
 ---
 
@@ -106,30 +106,40 @@ The harness enforces eight structural invariants that cannot be bypassed by any 
 TRADITIONAL CHAT-DRIVEN AGENTS               THE HARNESS ARCHITECTURE
 ================================             =======================================
 [ User Prompt ]                              [ User Prompt ]
-      |                                            | (Byte-exact SHA-256 capture)
+      |                                            | (Byte-exact SHA-256 capture: plan:init)
       v                                            v
 [ Monolithic Conversational Context ]        [ Immutable Capsule: .capsules/<run>/ ]
-      |                                            | (100% Line Coverage Compilation)
+      |                                            | (100% Line Coverage: plan:compile)
       v (Hallucination & Scope Drift)              v
-[ Agent writes all files at once ]           [ Formal Dependency Graph DAG ]
-      |                                            | (Disjoint Write-Scope Scheduler)
+[ Agent writes all files at once ]           [ Formal Dependency Graph DAG: plan:add ]
+      |                                            | (Disjoint Write-Scope Scheduler: queue:pop)
       v (Race conditions & overwrite)              v
-[ Implementer tests own code ]               [ Independent Implementer Agents ]
-      |                                            | (Structured Submission Report)
+[ Implementer tests own code ]               [ Independent Implementer Agents (Tier 3) ]
+      |                                            | (Structured Submission: task:submit)
       v (Sycophantic "Looks good!")                v
-[ Claims Done (Broken Code) ]                [ Adversarial Independent Validator ]
-                                                   |
+[ Claims Done (Broken Code) ]                [ Adversarial Independent Validator (Tier 3) ]
+                                                   | (task:validate-start + run:exec)
                                             +------+------+
                                             | (Pass)      | (Reject: Structured Findings)
                                             v             v
-                                     [ Task Gates ]  [ Bounded Repair Loop (Max 3) ]
+                                     [ Task Gates ]  [ Bounded Repair Loop (Default 5) ]
                                             |
                                             v
-                                     [ Run Gates & Completeness Critic ]
-                                            |
+                                     [ Run Gates & Completeness Critic: critic:start ]
+                                            | (critic:review --decision approve)
                                             v
-                                     [ Mechanical Terminal Completion ]
+                                     [ Mechanical Terminal Completion: run:complete ]
 ```
+
+---
+
+## 👥 Two-Tier Agent Architecture
+
+To prevent conversational context explosion and preserve interactive responsiveness, the harness enforces a clear 3-tier hierarchy:
+
+1. **Tier 1 (Main Interactive Thread)**: Dedicated exclusively to communicating with the user. Spawns exactly one Tier 2 Background Coordinator and does not engage in worker tool loops.
+2. **Tier 2 (Background Run Coordinator)**: Manages capsule lifecycle, planning, scheduling waves, and lifecycle gates. Dispatches work to Tier 3 subagents.
+3. **Tier 3 (Worker & Validator Subagents)**: Ephemeral task executors assigned disjoint write scopes. Receive compact markdown briefs ($\le 30$ lines) and report execution results back to Tier 2.
 
 ---
 

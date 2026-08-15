@@ -8,14 +8,10 @@
 
 What happens when an agent subagent crashes mid-execution, a laptop battery dies, or an unhandled exception interrupts a long task?
 
-The harness provides an automated, fail-safe **Recovery Engine** (`harness.ts recover`):
+The harness provides an automated, fail-safe recovery architecture integrated into the CLI state engine:
 
-```bash
-bun orchestrating-long-tasks/scripts/harness.ts recover \
-  --run .capsules/<run-id> \
-  --actor coordinator \
-  --grace-seconds 0
-```
+- All state transitions are idempotent and event-sourced.
+- Startup and query commands (`plan:status`, `queue:next`, `run:status`) automatically detect expired worker leases and torn tails.
 
 ---
 
@@ -30,7 +26,7 @@ Instead of crashing or silently deleting bytes, the harness runs the **Quarantin
   ├── Line 1..82: Valid, canonical, cryptographic event objects
   └── Line 83: `{"sequence": 83, "kind": "command-in...` (TRUNCATED BY CRASH)
                                 │
-                                ▼ (harness recover / event validator)
+                                ▼ (Harness Event Stream Engine)
 ┌────────────────────────────────────────────────────────┐
 │  QUARANTINE ACTION:                                    │
 │  1. Identify exact offset of last valid byte           │
@@ -50,13 +46,12 @@ When an agent crashes or loses network connectivity, its task lease eventually e
 
 $$\text{now}() > \text{lease.expires\_at}$$
 
-During recovery:
+During automatic lease checks:
 
-1. The coordinator scans all active task leases.
+1. The harness scans all active task leases.
 2. Expired leases are identified and marked as stale.
-3. If an associated OS process is still running, the watchdog emits `SIGTERM` followed by `SIGKILL` (Strong Absence Verification).
-4. The task status transitions back from `leased` to `ready` (or `changes_requested` if in validation).
-5. A new implementer can safely claim the task without conflicting with a zombie process!
+3. The task status transitions back from `leased` to `ready` (or `changes_requested` if in validation).
+4. A new implementer can safely claim the task via `queue:pop` or `task:claim` without conflicting with a zombie process!
 
 ---
 

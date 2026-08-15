@@ -18,8 +18,8 @@ The `orchestrating-long-tasks` system guides a complex software engineering requ
                                                                    ▼
   8. GATES & CRITIC    7. REPAIR           6. VALIDATE         5. DISPATCH
 ┌─────────────┐     ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│ Run Gates & │ <── │ Bounded     │ <── │ Adversarial │ <── │ Leased Role │
-│ Critic Pass │     │ Fix Loop    │     │ Proof       │     │ Packets     │
+│ Run Gates & │ <── │ Bounded Fix │ <── │ Adversarial │ <── │ Leased Role │
+│ Critic Pass │     │ Loop (Max 5)│     │ Proof       │     │ Briefs      │
 └─────────────┘     └─────────────┘     └─────────────┘     └─────────────┘
        │
        ▼
@@ -36,55 +36,89 @@ The `orchestrating-long-tasks` system guides a complex software engineering requ
 
 ### Stage 1: Capture & Capsule Initialization
 
-- **Action**: The user's exact, unedited prompt is saved to a file and initialized via `harness.ts init`.
-- **Artifacts Created**: `.capsules/<run-id>/prompt.md` (read-only mode `0444`), `manifest.json` (SHA-256 bound), `events.jsonl`, `state.json`, and `.capsules/<run-id>/runtime/` (the pinned zero-dependency Bun runtime).
+- **Action**: The user's exact, unedited prompt is piped to standard input and initialized via `plan:init`:
+  ```bash
+  printf "%s" "$PROMPT" | bun harness.ts plan:init --repo . --run <slug> --prompt-stdin
+  ```
+- **Artifacts Created**: `.capsules/<run-id>/prompt.md` (read-only mode `0444`), `manifest.json` (SHA-256 bound), `events.jsonl`, and `state.json`.
 - **Assurance**: Marked as `source-verified` (if direct file/stdin) or `recorded-unverified` (if context transcribed).
 
 ### Stage 2: Baseline Repository Inspection
 
-- **Action**: Before any planning or editing, the harness inspects the host repository.
-- **Artifacts Recorded**: Git HEAD commit, branch status, modified/untracked files, lockfiles, convention configs (`tsconfig.json`, `package.json`), and content hashes.
-- **Planner Registration**: Publishes the immutable `planner-0` packet.
+- **Action**: Before any planning or editing, the coordinator or planner inspects the host repository.
+- **Artifacts Recorded**: Git HEAD commit, branch status, modified/untracked files, and key project configs (`tsconfig.json`, `package.json`).
 
-### Stage 3: Prompt Compilation (Requirements Decomposition)
+### Stage 3: Modular Task Registration (`plan:add`)
 
-- **Action**: The planner agent parses the prompt and generates `planning/requirements.json`.
-- **100% Line Coverage**: Every single non-blank prompt line is assigned a mathematical disposition (`requirement` with `requirement_id` or `requirement_ids`).
-- **Atomic Obligations**: Compound sentences are split into atomic, independently testable requirements.
+- **Action**: The planner registers tasks with disjoint directory scopes and mandatory validation gates:
+  ```bash
+  bun harness.ts plan:add --run .capsules/<slug> --actor planner --id <task-id> --label "<label>" --scope <path> --gate "<gate-cmd>" [--deps <dep-id>]
+  ```
+- **Disjoint Scopes**: Guarantees that parallel lanes cannot collide on the filesystem.
 
-### Stage 4: Relational Graph Construction
+### Stage 4: Graph Compilation & Line Coverage (`plan:compile`)
 
-- **Action**: The planner designs `planning/graph.json`.
-- **Topology**: Defines task nodes with normalized, disjoint write scopes, requirement mappings, artifact outputs, priority weights, and verification gate contracts.
-- **Validation & Apply**: The plan is checked via `validate` and applied atomically via `plan-apply --expected-revision 0`.
+- **Action**: The planner compiles the dependency graph:
+  ```bash
+  bun harness.ts plan:compile --run .capsules/<slug> --actor planner
+  ```
+- **100% Line Coverage**: Performs line-by-line decomposition, ensuring every requirement is mapped and free of cycles.
 
 ### Stage 5: Conflict-Free Scheduling & Role Dispatch
 
-- **Action**: The coordinator queries `ready` and executes `schedule --max-parallel <N>`.
-- **Conflict-Free Batches**: The scheduler picks tasks whose prerequisites are `done` and ensures no two concurrently running tasks have overlapping directory write scopes.
-- **Bearer Tokens**: `claim` returns a one-time bearer token (only its SHA-256 digest is stored) and publishes an immutable role packet (`task-X-implementer.md`).
+- **Action**: The coordinator queries `queue:next` or `queue:list`, then leases work to Tier 3 subagents:
+  ```bash
+  bun harness.ts queue:pop --run .capsules/<slug> --agent <worker-id> --lease-seconds 1800
+  # Or explicit claim:
+  bun harness.ts task:claim --run .capsules/<slug> --task <task-id> --agent <worker-id>
+  ```
+- **Bearer Tokens**: `task:claim` returns a one-time bearer token (only its SHA-256 digest is stored in `state.json`) and emits a compact markdown brief ($\le 30$ lines).
 
 ### Stage 6: Implementation & Adversarial Validation
 
-- **Action**: The implementer works strictly within its leased write scope, runs focused tests, and submits a structured report via `submit`.
-- **Context Sanitization**: A fresh, independent validator is leased (`begin-validation`). The validator receives **allowlisted context only**—all implementer prose, confidence, and subjective claims are stripped.
-- **Independent Proof**: The validator runs fresh commands on actual disk state and issues either a `pass` or `reject` review.
+- **Action**: The implementer works strictly within its leased write scope, heartbeats active leases via `task:heartbeat`, and submits work:
+  ```bash
+  bun harness.ts task:submit --run .capsules/<slug> --task <task-id> --agent <worker-id> --token <token> --summary "<summary>"
+  ```
+- **Context Sanitization**: A fresh, independent validator is dispatched (`task:validate-start`). The validator receives allowlisted context stripped of subjective implementer prose.
+- **Independent Proof**: The validator executes the mandatory gate command under monitoring:
+  ```bash
+  bun harness.ts run:exec --run .capsules/<slug> --task <task-id> --gate <gate-id> --actor <val-agent> -- <gate-argv...>
+  ```
+- **Review Verdict**: The validator records approval or rejection:
+  ```bash
+  bun harness.ts task:review --run .capsules/<slug> --task <task-id> --validator <val-agent> --token <token> --status pass --summary "<summary>"
+  ```
 
 ### Stage 7: Bounded Repair Loop
 
-- **Action**: If rejected, the validator outputs structured findings (`F-xxx`) with mandatory observations, evidence, remediations, and revalidation commands.
-- **Routing**: The task enters `changes_requested` and routes back to the original implementer under a repair lease (`assign-repairer`).
-- **Escalation**: If a task fails 3 consecutive validation rounds, it escalates to prevent infinite token-wasting loops.
+- **Action**: If rejected, the validator executes `task:reject` with structured findings and remediation hints:
+  ```bash
+  bun harness.ts task:reject --run .capsules/<slug> --task <task-id> --validator <val-agent> --token <token> --reason "<reason>" --finding "<remediation>"
+  ```
+- **Routing**: The task transitions to `changes_requested` and routes back to the implementer.
+- **Escalation**: Configurable via `harness.config.json` (default 5 rounds). If a task fails 5 consecutive rounds, it escalates to prevent runaway agent loops.
 
 ### Stage 8: Mandatory Task Gates, Run Gates & Completeness Critic
 
-- **Action**: Once validation passes, mandatory task gates and global run gates are executed through the watchdog runner (`run` command).
-- **Trusted Host Observation**: Each gate verifies pre-command and post-command repository state (`trusted_host_observed_v1`).
-- **Completeness Critic**: A fresh critic reviews the whole run against the original prompt, dispositions, diffs, and gate records.
+- **Action**: Once validation passes, mandatory task gates and global run gates are executed through `run:exec`:
+  ```bash
+  bun harness.ts run:exec --run .capsules/<slug> --gate gate-run-completion --actor coordinator -- bun test tests/unit
+  ```
+- **Trusted Host Observation**: Each gate verifies pre-command and post-command repository state under `trusted_host_observed_v1`.
+- **Completeness Critic**: A fresh critic verifies requirements and diffs:
+  ```bash
+  bun harness.ts critic:start --run .capsules/<slug> --critic critic-lead
+  bun harness.ts critic:review --run .capsules/<slug> --critic critic-lead --token <token> --decision approve --summary "<summary>"
+  ```
 
 ### Stage 9: Mechanical Terminal Completion
 
-- **Action**: The coordinator runs `complete`.
+- **Action**: The coordinator seals the run:
+  ```bash
+  bun harness.ts run:complete --run .capsules/<slug> --actor coordinator
+  bun harness.ts run:status --run .capsules/<slug>
+  ```
 - **Zero-Blocker Invariant**: Completion passes if and only if:
   1. Zero integrity or traceability issues exist.
   2. All prompt lines are disposed and all requirements satisfied with command proof.
@@ -107,40 +141,40 @@ Every individual task inside the dependency graph moves through a strict, determ
                      ┌───────────┐
        ┌────────────>│   ready   │
        │             └─────┬─────┘
-       │ (Lease expiry)    │ (claim command + bearer token issued)
+       │ (Lease expiry)    │ (queue:pop / task:claim + bearer token issued)
        │                   ▼
        │             ┌───────────┐
        ├─────────────┤  leased   │
        │             └─────┬─────┘
-       │                   │ (Heartbeat / active progress)
+       │                   │ (task:heartbeat / active progress)
        │                   ▼
        │             ┌───────────┐
        ├─────────────┤  running  │
        │             └─────┬─────┘
-       │                   │ (submit command + report validation)
+       │                   │ (task:submit + report validation)
        │                   ▼
        │             ┌───────────┐
        │             │ submitted │
        │             └─────┬─────┘
-       │                   │ (begin-validation command)
+       │                   │ (task:validate-start command)
        │                   ▼
        │             ┌────────────┐
        │             │ validating │
        │             └─────┬──────┘
        │                   │
        │         ┌─────────┴─────────┐
-       │         │ (review verdict)  │
+       │         │ (task:review)     │ (task:reject)
        │         ▼                   ▼
        │   ┌───────────┐       ┌───────────────────┐
        │   │ validated │       │ changes_requested │
        │   └─────┬─────┘       └─────────┬─────────┘
        │         │                       │
-       │         │ (Run task gates)      ├─> (assign-repairer lease) ──> [ repair ]
-       │         ▼                       │                                   │
-       │   ┌───────────┐                 │                                   ▼
-       │   │  gating   │                 │                             (re-submit)
+       │         │ (run:exec task gates) ├─> (task:claim repair) ──> [ repair ]
+       │         ▼                       │                              │
+       │   ┌───────────┐                 │                              ▼
+       │   │  gating   │                 │                        (task:submit)
        │   └─────┬─────┘                 │
-       │         │ (All gates pass)      ▼ (After 3 rejected rounds)
+       │         │ (All gates pass)      ▼ (After 5 rejected rounds)
        │         ▼                 ┌───────────┐
        │   ┌───────────┐           │ escalated │
        │   │   done    │           └───────────┘
@@ -156,16 +190,16 @@ Every individual task inside the dependency graph moves through a strict, determ
 | State                   | Meaning                                                                 | Permitted Next Actions                                           |
 | :---------------------- | :---------------------------------------------------------------------- | :--------------------------------------------------------------- |
 | **`proposed`**          | Initial state in plan; waiting for prerequisite dependencies to finish. | Automatically transitions to `ready` when dependencies complete. |
-| **`ready`**             | Unblocked and eligible for scheduler batching.                          | Coordinator executes `claim`.                                    |
-| **`leased`**            | Claimed by an agent; one-time bearer token issued; timer running.       | Agent calls `heartbeat` or begins execution.                     |
-| **`running`**           | Active work in progress with verified heartbeats.                       | Implementer executes `submit`.                                   |
-| **`submitted`**         | Implementer submitted structured report; write lease closed.            | Coordinator calls `begin-validation`.                            |
-| **`validating`**        | Independent validator holds exclusive inspection lease.                 | Validator executes `review` (`pass` or `reject`).                |
-| **`validated`**         | Independent validator passed the work with command evidence.            | Coordinator triggers mandatory task gates.                       |
+| **`ready`**             | Unblocked and eligible for scheduler batching.                          | Coordinator executes `queue:pop` or `task:claim`.                |
+| **`leased`**            | Claimed by an agent; one-time bearer token issued; timer running.       | Agent calls `task:heartbeat` or begins execution.                |
+| **`running`**           | Active work in progress with verified heartbeats.                       | Implementer executes `task:submit`.                              |
+| **`submitted`**         | Implementer submitted structured report; write lease closed.            | Coordinator calls `task:validate-start`.                         |
+| **`validating`**        | Independent validator holds exclusive inspection lease.                 | Validator executes `run:exec` and `task:review` / `task:reject`. |
+| **`validated`**         | Independent validator passed the work with command evidence.            | Coordinator triggers mandatory task gates (`run:exec`).          |
 | **`gating`**            | Task gates are running under watchdog observation.                      | On gate pass, transitions to `done`.                             |
-| **`changes_requested`** | Validator rejected with structured findings (`F-xxx`).                  | Coordinator routes to repairer via `assign-repairer`.            |
+| **`changes_requested`** | Validator rejected with structured findings (`F-xxx`).                  | Implementer repairs and re-submits (`task:claim`, `task:submit`). |
 | **`done`**              | Terminal success for this task. Unblocks dependent tasks.               | None (Immutable).                                                |
-| **`escalated`**         | Failed 3 validation rounds or hit unresolvable blocker.                 | Human operator intervention or plan revision.                    |
+| **`escalated`**         | Hit max repair limit (default 5 rounds) or hit unresolvable blocker.    | Human operator intervention or plan revision.                    |
 | **`cancelled`**         | Associated requirements were declined via user authority.               | None (Cleanly disposed).                                         |
 
 ---

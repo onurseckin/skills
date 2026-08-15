@@ -1,84 +1,73 @@
-# 02. Immutable Role Packets & Templates
+# 02. Role Briefs & Task Execution Contracts
 
 [⬅ Previous: Host-Agnostic Architecture](./01-host-agnostic-architecture.md) | [Master Table of Contents](../README.md) | [Next: Bearer Token Security ➡](./03-bearer-token-security.md)
 
 ---
 
-## 📄 What is a Role Packet?
+## 📄 Zero-JSON CLI & Compact Markdown Briefs
 
-Rather than passing informal conversational prompts to subagents, the harness generates **Immutable, Cryptographically Bound Role Packets** under:
+Rather than requiring agents to construct and write large JSON files or parse separate multi-page packet files from disk, the modern harness CLI directly outputs **Compact Markdown Briefs ($\le 30$ lines)** directly to stdout upon lease acquisition:
 
 ```text
-.capsules/<run-id>/packets/<packet-id>/packet.md
+### Task Leased: task-auth-session
+- Agent: worker-1
+- Lease Token: DL1UOpoktcMRt_AhFJ0gwclQ56FLvxmhZPQV9Zdxa6o
+- Duration: 20 minutes
+- Assigned Write Scope: src/auth/session
+- Note: Pass --token <token> to task:submit.
 ```
 
-A role packet is a standalone, self-contained Markdown file that acts as an **airtight legal contract** for the worker agent. It defines:
-
-1. The exact, immutable requirements to satisfy.
-2. The strictly leased, exclusive directory write scope.
-3. The expected verification evidence schema.
-4. The literal commands to run.
-5. Authoritative baseline repository state.
-6. The universal `common-instructions.md` rules.
+This design keeps agent context windows lean, reduces token consumption by over 90%, and eliminates JSON parsing errors.
 
 ---
 
-## 🎭 The 5 Core Role Templates
+## 🎭 The 5 Core Role Specifications
 
-The harness defines five specialized role templates located in `scripts/assets/`:
+The harness defines five specialized roles across the orchestration lifecycle:
 
 ```text
 +-----------------------------------------------------------------------------------------------+
-|                                     THE 5 ROLE PACKET TYPES                                   |
+|                                      THE 5 CORE ROLES                                         |
 +-----------------------------------------------------------------------------------------------+
 |                                                                                               |
-|  1. planner.md             ---> Decomposes raw prompt into requirements & DAG; no code edits. |
-|  2. implementer.md         ---> Writes code within leased write scope & runs focused tests.   |
-|  3. validator.md           ---> Adversarial reviewer; runs fresh commands; outputs findings.  |
-|  4. repairer.md            ---> Fixes structured defects reported by validator (max 3 rounds).|
-|  5. completeness-critic.md ---> Final run-level auditor; verifies overall completion proof.   |
+|  1. Planner              ---> Registers modular tasks & compiles DAG (plan:add, plan:compile) |
+|  2. Implementer          ---> Leases disjoint scope, executes work (task:claim, task:submit) |
+|  3. Independent Validator---> Runs mandatory gates adversarially (task:validate-start, review)|
+|  4. Repairer             ---> Fixes structured findings (configurable, default max 5 rounds)  |
+|  5. Completeness Critic  ---> Verifies end-to-end prompt completion (critic:start, review)   |
 |                                                                                               |
 +-----------------------------------------------------------------------------------------------+
 ```
 
 ---
 
-## 🔏 Cryptographic Packet Sealing
+## ⚙️ Configurable Repair Limits (`harness.config.json`)
 
-When a packet is generated via `harness.ts packet`, the harness:
-
-1. Synthesizes the role template with current task metadata from `state.json`.
-2. Appends `common-instructions.md` byte-for-byte.
-3. Computes the SHA-256 hash of the complete packet text (`packet_sha256`).
-4. Writes the packet with read-only permissions (`mode 0444`).
-5. Appends a `packet_published` event to `events.jsonl`.
+If an independent validator rejects a submission, the task transitions to `changes_requested`. The maximum number of allowable repair rounds is configured in `harness.config.json`:
 
 ```json
 {
-  "schema": "harness.packet",
-  "version": 1,
-  "run_id": "docs-system",
-  "role": "implementer",
-  "agent_id": "implementer-1",
-  "task_id": "task-1",
-  "attempt": 1,
-  "packet_sha256": "0c6e71ff9896ad7131b3ee29d54f89f678e054d336d926ea07dec522cc4e0a9f"
+  "max_repair_rounds": 5,
+  "max_output_bytes": 10485760,
+  "default_lease_seconds": 1800,
+  "default_max_parallel": 4,
+  "strict_validation": true
 }
 ```
 
-If the dispatched subagent tampers with or modifies its assigned packet file, the harness detects the SHA-256 mismatch upon submission and rejects the attempt.
+- **Default:** 5 repair rounds.
+- **Escalation:** If a task fails 5 consecutive validation rounds without passing, the state machine transitions the task to `escalated` to prevent runaway token spend.
 
 ---
 
-## 📜 Universal Invariants in `common-instructions.md`
+## 📜 Universal Invariants for Worker Subagents
 
-Every single role packet unconditionally appends the 14 rules from `common-instructions.md`. Key invariants include:
+Every worker subagent operating in the harness adheres to fundamental execution invariants:
 
-- **Rule 2 (Exclusive Scope):** Treat the write scope as an exclusive lease. Never edit, format, or delete any file outside it.
-- **Rule 5 (Direct Argv):** Execute commands as literal argv without a shell.
-- **Rule 6 (Focused Proof):** Implementers run only focused tests for their owned behavior; full integration suites belong to the coordinator.
-- **Rule 11 (No API Calls):** Never call LLM APIs or launch LLM CLI subshells.
-- **Rule 13 (Token Secrecy):** Never write bearer tokens into packet files, status reports, or git commits.
+- **Exclusive Write Scope:** Treat the assigned write scope as an exclusive lease. Never edit, format, or delete any file outside it.
+- **Direct Argv Execution:** Commands are executed through `run:exec` as direct argv arrays without unsafe shell interpolation.
+- **Focused Verification:** Implementers verify their own changes using focused tests within their scope; whole-repo completion gates are run by the Tier 2 Coordinator.
+- **Token Confidentiality:** Plaintext bearer tokens must only be passed as CLI arguments to `task:submit`, `task:review`, `task:reject`, or `critic:review`. Never log tokens in git commits or chat messages.
 
 ---
 

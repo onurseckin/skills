@@ -44,25 +44,14 @@ When a requirement is flagged as `needs_authority`, the harness pauses all tasks
 
 ---
 
-## ⚡ The `decide-authority` CLI Command
+## ⚡ Recording Decisions in the State Machine
 
-The coordinator records the user's decision using the pinned CLI:
-
-```bash
-bun orchestrating-long-tasks/scripts/harness.ts decide-authority \
-  --run .capsules/<run-id> \
-  --requirement R-PUBLISH \
-  --decision grant \
-  --rationale "User confirmed the production deployment window is open." \
-  --actor coordinator
-```
-
-### What Happens Internally:
+When a human user grants or declines authority:
 
 1. An immutable event `authority_decided` is appended to `events.jsonl`.
 2. The requirement gains `authority_status: "granted"` (or `"declined"`).
 3. The requirement's resulting disposition becomes `actionable` (for `grant`) or `out_of_scope` (for `decline`).
-4. An immutable audit record is stored with a SHA-256 digest:
+4. An immutable audit record is stored with a cryptographic SHA-256 digest:
    ```json
    {
      "decision_id": "authority-7f41a8",
@@ -84,9 +73,9 @@ bun orchestrating-long-tasks/scripts/harness.ts decide-authority \
 When a user declines an authority-gated requirement:
 
 - The requirement is marked `out_of_scope`.
-- Any task in `graph.json` mapped **solely** to that declined requirement transitions directly to `cancelled`.
+- Any task in the graph mapped **solely** to that declined requirement transitions directly to `cancelled`.
 - Any mandatory task gates associated solely with the declined requirement are marked **not applicable**.
-- **No fake unit tests or simulated proofs are needed.** The run can reach terminal completion cleanly because the decline is an audited, first-class mathematical disposition.
+- **No fake unit tests or simulated proofs are needed.** The run can reach terminal completion cleanly via `run:complete` because the decline is an audited, first-class mathematical disposition.
 
 ### Mixed Tasks:
 

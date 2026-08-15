@@ -20,25 +20,25 @@ To eliminate this class of bugs entirely, the harness enforces the **Write Scope
 
 ## 🔍 Path Normalization & Ancestor Validation
 
-During plan validation (`validate`) and submission validation (`submit`), write scopes are strictly normalized:
+During plan compilation (`plan:compile`) and submission verification (`task:submit`), write scopes are strictly normalized:
 
 1. **No Relative Traversal:** Paths with `.` or `..` components are resolved and normalized relative to repository root.
 2. **Normalized Prefix Matching:** A modified file path $F$ belongs to scope $S$ if and only if:
    - $F == S$ (Exact file match), or
    - $F$ starts with $S + \text{"/"}$ (Directory containment).
-3. **Quarantine on Boundary Breach:** If `files_changed` in a submission report contains even one file outside the leased write scope, the submission is **instantly rejected with `WRITE_SCOPE_VIOLATION`**.
+3. **Quarantine on Boundary Breach:** If touched files during a task submission contain even one file outside the leased write scope, `task:submit` is **instantly rejected with `WRITE_SCOPE_VIOLATION`**.
 
 ```text
 Task Leased Write Scope: ["orchestrating-long-tasks/docs/05-task-execution"]
 
 Valid File Modifications:
-  ✅ orchestrating-long-tasks/docs/05-task-execution/01-leasing.md
-  ✅ orchestrating-long-tasks/docs/05-task-execution/02-scopes.md
+  ✅ orchestrating-long-tasks/docs/05-task-execution/01-leasing-and-heartbeats.md
+  ✅ orchestrating-long-tasks/docs/05-task-execution/02-atomic-filesystem-scopes.md
 
 Invalid File Modifications (Rejected with Error):
-  ❌ orchestrating-long-tasks/docs/01-foundations/01-why.md  [Out of scope]
-  ❌ orchestrating-long-tasks/package.json                   [Out of scope]
-  ❌ tests/execution/suite.test.ts                           [Out of scope]
+  ❌ orchestrating-long-tasks/docs/01-foundations/01-why-long-tasks-fail.md  [Out of scope]
+  ❌ orchestrating-long-tasks/package.json                                  [Out of scope]
+  ❌ tests/execution/suite.test.ts                                          [Out of scope]
 ```
 
 ---

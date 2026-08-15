@@ -16,62 +16,51 @@ The **Completeness Critic** is an independent auditing role that evaluates the e
 
 ---
 
-## 🔐 The Critic Token Lifecycle
+## 🔐 The Critic Lifecycle: `critic:start` and `critic:review`
 
-The critic evaluation workflow follows a secure 3-step sequence:
+The critic evaluation workflow follows a secure sequence:
 
 ```text
-[ Coordinator initiates completion review ]
+[ Coordinator initiates completeness review ]
                  │
                  ▼
-     (harness.ts begin-critic)
+     (bun harness.ts critic:start --run .capsules/<slug> --critic <critic-id>)
                  │
                  ├── Generates high-entropy bearer token (e.g. `critic-tok-992...`)
                  ├── Calculates token digest (SHA-256)
-                 └── Records `completion-critic-started` in events.jsonl
+                 └── Records critic session in events.jsonl
                  │
                  ▼
-     (harness.ts packet --role critic)
-                 │
-                 └── Publishes sanitised `critic.md` packet
+     (Critic inspects requirements, diffs, and runs validation commands)
                  │
                  ▼
-     (harness.ts review-completion)
+     (bun harness.ts critic:review --run .capsules/<slug> --critic <critic-id> --token <token> --decision approve --summary "...")
                  │
-                 └── Submits audited verdict (`pass` or `reject`)
+                 └── Submits audited verdict (`approve` or `reject`)
 ```
 
 ---
 
-## 📝 The Completion Review Payload
+## 📝 Critic Verification Review
 
-The critic evaluates the repository and submits a structured JSON payload:
+The critic evaluates the repository and submits its verdict:
 
-```json
-{
-  "verdict": "pass",
-  "summary": "Audited all 10 requirements against live code. Verified that all 27 markdown documentation files exist, contain bidirectional navigation links, and strictly satisfy the junior-developer tutorial mandate.",
-  "reviewed_requirement_ids": [
-    "R-INIT-CAPSULE",
-    "R-DECISION-MAKING",
-    "R-TASK-MANAGEMENT",
-    "R-MULTI-AGENT-DEPLOY",
-    "R-TASK-FOLLOWING",
-    "R-TRACKING-FEEDBACK",
-    "R-EXTENDED-SYSTEMS",
-    "R-COMPLETION-GIT-PUSH"
-  ],
-  "findings": []
-}
+```bash
+bun harness.ts critic:review \
+  --run .capsules/<run-id> \
+  --critic critic-lead \
+  --token <critic-token> \
+  --decision approve \
+  --summary "Audited all requirements against live code. Verified that all documentation chapters exist, contain bidirectional navigation links, and strictly satisfy the Zero-JSON CLI API requirements."
 ```
 
 ---
 
 ## 🛡️ Critic Verification Rules
 
-1. **Token Digest Verification:** The critic token presented on review submission must cryptographically match the SHA-256 digest recorded in the active `completion_critic` record.
-2. **Exhaustive Requirement Review:** The critic must evaluate and list every requirement defined in `requirements.json`.
-3. **Artifact Integrity Audit:** The critic verifies that all declared artifacts in `graph.json` are physically inspectable, non-empty, and free of placeholder stubs.
+1. **Token Digest Verification:** The critic token presented on review submission must cryptographically match the SHA-256 digest recorded in the active critic session.
+2. **Exhaustive Requirement Review:** The critic must evaluate all requirements defined in the compiled plan.
+3. **Artifact Integrity Audit:** The critic verifies that all declared files and directories are physically inspectable, non-empty, and free of placeholder stubs.
 
 ---
 

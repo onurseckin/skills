@@ -8,173 +8,159 @@
 
 This hands-on tutorial guides a developer or agent through the complete lifecycle of executing a complex, multi-file software engineering project using `orchestrating-long-tasks`.
 
-By the end of this tutorial, you will understand how to initialize a task capsule, decompose user prompts with 100% line coverage, orchestrate concurrent subagents, validate with adversarial role separation, and mechanically complete a verified run.
+By the end of this tutorial, you will understand how to initialize a task capsule, decompose user prompts with 100% line coverage, orchestrate concurrent subagents with Zero-JSON CLI briefs, validate with adversarial role separation, and mechanically complete a verified run.
 
 ---
 
-## 🛠️ Step 1: Initialize the Run Capsule (`init`)
+## 🛠️ Step 1: Capture Prompt & Initialize Capsule (`plan:init`)
 
-When given a complex project prompt, capture it into an immutable prompt file and initialize the run:
+When given a complex project prompt, capture it directly via standard input:
 
 ```bash
-mkdir -p .capsules/my-feature
-cat << 'EOF' > .capsules/my-feature/prompt.md
+cat << 'EOF' | bun harness.ts plan:init --repo . --run my-feature --prompt-stdin
 Refactor user authentication to support OAuth2 GitHub and Google providers.
 All existing unit tests must pass.
 Add comprehensive integration tests for token exchange.
 EOF
-
-bun orchestrating-long-tasks/scripts/src/entrypoints/harness.ts init \
-  --run .capsules/my-feature \
-  --prompt .capsules/my-feature/prompt.md \
-  --actor coordinator
 ```
 
----
-
-## 📝 Step 2: Planning & Graph Formulation (`plan-apply`)
-
-1. **Claim the Planner Lease:**
-   ```bash
-   bun orchestrating-long-tasks/scripts/harness.ts claim \
-     --run .capsules/my-feature \
-     --task planner-0 \
-     --agent planner \
-     --role planner
-   ```
-2. **Author `requirements.json`:** Decompose every single line of `prompt.md` into atomic requirement objects (`R-OAUTH-GH`, `R-OAUTH-GOOGLE`, `R-TESTS`).
-3. **Author `graph.json`:** Structure the tasks DAG with write scopes, dependencies, artifacts, and gate commands.
-4. **Apply the Plan:**
-   ```bash
-   bun orchestrating-long-tasks/scripts/harness.ts plan-apply \
-     --run .capsules/my-feature \
-     --requirements .capsules/my-feature/planning/requirements.json \
-     --graph .capsules/my-feature/planning/graph.json \
-     --expected-revision 0 \
-     --actor coordinator
-   ```
+The CLI outputs a concise Markdown brief confirming the capsule root and prompt SHA-256 digest.
 
 ---
 
-## ⚡ Step 3: Schedule & Claim Tasks (`schedule` / `claim`)
+## 📝 Step 2: Declare Tasks & Compile the Dependency Graph
 
-1. **Schedule Available Batches:**
+1. **Register Modular Tasks (`plan:add`):**
    ```bash
-   bun orchestrating-long-tasks/scripts/harness.ts schedule \
+   bun harness.ts plan:add \
      --run .capsules/my-feature \
-     --max-parallel 3 \
-     --actor coordinator
+     --actor planner \
+     --id task-gh-auth \
+     --label "Implement GitHub OAuth2 provider" \
+     --scope src/auth/github \
+     --gate "bun test tests/unit/auth-github.test.ts"
+
+   bun harness.ts plan:add \
+     --run .capsules/my-feature \
+     --actor planner \
+     --id task-google-auth \
+     --label "Implement Google OAuth2 provider" \
+     --scope src/auth/google \
+     --gate "bun test tests/unit/auth-google.test.ts"
    ```
-2. **Claim a Task Lease:**
+
+2. **Inspect Plan Status & Compile Graph:**
    ```bash
-   bun orchestrating-long-tasks/scripts/harness.ts claim \
-     --run .capsules/my-feature \
-     --task task-gh-auth \
-     --agent implementer-1 \
-     --role implementer
+   bun harness.ts plan:status --run .capsules/my-feature
+   bun harness.ts plan:compile --run .capsules/my-feature --actor planner
    ```
-3. **Generate & Read Role Packet:**
-   ```bash
-   bun orchestrating-long-tasks/scripts/harness.ts packet \
-     --run .capsules/my-feature \
-     --task task-gh-auth \
-     --role implementer \
-     --agent implementer-1 \
-     --token <implementer-token> \
-     --id packet-gh-1
-   ```
+   `plan:compile` automatically verifies 100% line disposition coverage, checks for dependency cycles, and prepares the execution queue.
 
 ---
 
-## 💻 Step 4: Implement & Submit (`run` / `submit`)
+## ⚡ Step 3: Inspect Queue & Lease Tasks (`queue:pop` / `task:claim`)
+
+1. **Inspect Ready Tasks:**
+   ```bash
+   bun harness.ts queue:next --run .capsules/my-feature
+   ```
+2. **Lease Task to an Implementer Worker:**
+   ```bash
+   bun harness.ts queue:pop \
+     --run .capsules/my-feature \
+     --agent worker-1 \
+     --lease-seconds 1800
+   ```
+   The CLI outputs the lease brief containing the one-time plaintext bearer token and assigned write scope.
+
+---
+
+## 💻 Step 4: Implement, Heartbeat & Submit (`task:submit`)
 
 1. Write code strictly within the assigned `write_scope`.
-2. Execute local tests under the watchdog runner:
+2. Heartbeat active leases during lengthy compilations:
    ```bash
-   bun orchestrating-long-tasks/scripts/harness.ts run \
+   bun harness.ts task:heartbeat \
      --run .capsules/my-feature \
-     --actor implementer-1 \
      --task task-gh-auth \
-     --cwd . \
-     -- bun test tests/auth/github.test.ts
+     --agent worker-1 \
+     --token <bearer-token>
    ```
-3. Submit task completion report:
+3. Submit task completion:
    ```bash
-   bun orchestrating-long-tasks/scripts/harness.ts submit \
+   bun harness.ts task:submit \
      --run .capsules/my-feature \
      --task task-gh-auth \
-     --agent implementer-1 \
-     --token <implementer-token> \
-     --report submit-report.json
+     --agent worker-1 \
+     --token <bearer-token> \
+     --summary "Implemented GitHub OAuth2 provider and verified unit tests"
    ```
 
 ---
 
 ## 🔍 Step 5: Adversarial Validation & Gate Execution
 
-1. **Begin Validation with a New Agent:**
+1. **Dispatch Independent Validator (`task:validate-start`):**
    ```bash
-   bun orchestrating-long-tasks/scripts/harness.ts begin-validation \
+   bun harness.ts task:validate-start \
      --run .capsules/my-feature \
      --task task-gh-auth \
-     --validator validator-1
+     --validator val-1
    ```
-2. **Execute Mandatory Gate:**
+2. **Validator Runs Mandatory Gate (`run:exec`):**
    ```bash
-   bun orchestrating-long-tasks/scripts/harness.ts run \
+   bun harness.ts run:exec \
      --run .capsules/my-feature \
-     --actor validator-1 \
      --task task-gh-auth \
-     --gate gate-gh-auth \
-     --cwd . \
-     -- bun test tests/auth/github.test.ts
+     --gate gate-task-gh-auth-0 \
+     --actor val-1 \
+     -- bun test tests/unit/auth-github.test.ts
    ```
-3. **Submit Validation Review & Attach Gate:**
+3. **Submit Validation Verdict (`task:review` or `task:reject`):**
    ```bash
-   bun orchestrating-long-tasks/scripts/harness.ts review \
+   bun harness.ts task:review \
      --run .capsules/my-feature \
      --task task-gh-auth \
-     --validator validator-1 \
-     --token <validator-token> \
-     --review review.json
-
-   bun orchestrating-long-tasks/scripts/harness.ts gate \
-     --run .capsules/my-feature \
-     --task task-gh-auth \
-     --gate gate-gh-auth \
-     --command-id <cmd-id> \
-     --actor coordinator
-
-   bun orchestrating-long-tasks/scripts/harness.ts finish \
-     --run .capsules/my-feature \
-     --task task-gh-auth \
-     --actor coordinator
+     --validator val-1 \
+     --token <validation-token> \
+     --status pass \
+     --summary "GitHub OAuth2 flows verified with clean unit test exit code 0"
    ```
 
 ---
 
-## 🏁 Step 6: Final Critic Review & Run Completion (`complete`)
+## 🏁 Step 6: Completeness Critic Review & Run Completion (`run:complete`)
 
-1. Execute and attach global run gates (`gate-run`).
-2. Run Completeness Critic review:
+1. **Execute Global Run Gates:**
    ```bash
-   bun orchestrating-long-tasks/scripts/harness.ts begin-critic \
+   bun harness.ts run:exec \
      --run .capsules/my-feature \
-     --critic critic-1
-
-   bun orchestrating-long-tasks/scripts/harness.ts review-completion \
-     --run .capsules/my-feature \
-     --critic critic-1 \
-     --token <critic-token> \
-     --review critic-review.json
+     --gate gate-run-completion \
+     --actor coordinator \
+     -- bun test tests/unit
    ```
-3. Mechanically complete the run:
+2. **Completeness Critic Evaluation:**
    ```bash
-   bun orchestrating-long-tasks/scripts/harness.ts complete \
+   bun harness.ts critic:start \
+     --run .capsules/my-feature \
+     --critic critic-lead
+
+   bun harness.ts critic:review \
+     --run .capsules/my-feature \
+     --critic critic-lead \
+     --token <critic-token> \
+     --decision approve \
+     --summary "All OAuth2 provider requirements implemented and integration suites passing"
+   ```
+3. **Seal Run Completion:**
+   ```bash
+   bun harness.ts run:complete \
      --run .capsules/my-feature \
      --actor coordinator
+
+   bun harness.ts run:status --run .capsules/my-feature
    ```
-4. Commit and push:
+4. **Commit and Push:**
    ```bash
    git add src/ tests/
    git commit -m "feat(auth): implement oauth2 github and google providers"

@@ -34,15 +34,18 @@ The harness supports two distinct gate scopes:
 
 ### 1. Task Gates (`scope: "task"`)
 
-- Bound to specific task nodes in `graph.json`.
-- Evaluated immediately after a task passes independent validation.
-- Must succeed with exit code 0 before the task can transition from `gating` to `done`.
+- Bound to specific task nodes declared in `plan:add`.
+- Evaluated during validation via `run:exec`.
+- Must succeed with exit code 0 before the task can be validated and marked `done`.
 
 ### 2. Run Gates (`scope: "run"`)
 
 - Global repository verification suites (e.g. full end-to-end integration tests, package build gates).
-- Evaluated at the end of the entire project run.
-- Must succeed with exit code 0 before the harness permits final terminal completion (`complete`).
+- Evaluated prior to completeness critic review:
+  ```bash
+  bun harness.ts run:exec --run .capsules/<slug> --gate gate-run-completion --actor coordinator -- bun test tests/unit
+  ```
+- Must succeed with exit code 0 before the harness permits final terminal completion (`run:complete`).
 
 ---
 

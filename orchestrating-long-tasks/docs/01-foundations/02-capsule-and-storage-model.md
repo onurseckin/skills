@@ -30,18 +30,8 @@ Here is the exact filesystem structure of a live run capsule:
 ├── manifest.json         # Capture assurance, prompt SHA-256, runtime digest
 ├── state.json            # Authoritative current projection (derived from events)
 ├── events.jsonl          # Canonical append-only cryptographic hash chain
-├── runtime/              # Pinned, zero-dependency Bun runtime entrypoint and modules
-│   ├── harness.ts
-│   ├── package.json
-│   └── src/
-├── planning/             # Requirements and graph definitions created by planner
-│   ├── requirements.json
-│   └── graph.json
-├── packets/              # Immutable role packets dispatched to subagents
-│   ├── planner-0.md
-│   ├── planner-0.json
-│   ├── task-1-implementer-1.md
-│   └── task-1-validator-1.md
+├── plan.json             # Task declarations and dependency graph
+├── config.json           # Optional per-capsule configuration overrides
 ├── commands/             # Monitored command outputs, timing, exit codes & fingerprints
 │   └── C-001/
 │       ├── intent.json
@@ -49,8 +39,7 @@ Here is the exact filesystem structure of a live run capsule:
 │       ├── stderr.log
 │       └── record.json
 ├── evidence/             # Immutable quarantined reports and validation receipts
-├── findings/             # Structured finding records (F-001, F-002, etc.)
-└── handoff.md            # Deterministic, self-contained restart and takeover manual
+└── findings/             # Structured finding records (F-001, F-002, etc.)
 ```
 
 ---
@@ -86,7 +75,7 @@ Let's examine the four core files that guarantee data integrity across crashes a
 
 ### 1. `prompt.md` & `manifest.json`
 
-- **`prompt.md`**: Contains the exact raw bytes of the user's prompt. It is created with mode `0444` (read-only) and is never modified during the entire lifecycle of the run.
+- **`prompt.md`**: Contains the exact raw bytes of the user's prompt. It is created with mode `0444` (read-only) via `plan:init` and is never modified during the entire lifecycle of the run.
 - **`manifest.json`**: Records the capture metadata:
   ```json
   {
@@ -94,15 +83,14 @@ Let's examine the four core files that guarantee data integrity across crashes a
     "version": 1,
     "run_id": "feature-auth-refactor",
     "created_at": "2026-08-14T16:00:00.000Z",
-    "capture_mode": "file",
+    "capture_mode": "stdin",
     "source_verified": true,
     "prompt_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "creator_bun_version": "1.3.14",
-    "runtime_version": "1.0.0",
-    "pinned_runtime_digest": "4a7d...39f1"
+    "runtime_version": "1.0.0"
   }
   ```
-  - **Capture Assurance**: If initialized via `--source-verified` with direct file/stdin retrieval, assurance is `source-verified`. If transcribed from chat history, assurance is `recorded-unverified`.
+  - **Capture Assurance**: If initialized via `--prompt-stdin` or direct file retrieval, assurance is `source-verified`. If transcribed from chat history, assurance is `recorded-unverified`.
 
 ### 2. `events.jsonl` (The Cryptographic Hash Chain)
 
@@ -119,9 +107,9 @@ Every event line contains a forward-secure cryptographic hash chain:
     "task_id": "task-1",
     "agent_id": "agent-implementer-1",
     "role": "implementer",
-    "lease_seconds": 1200,
+    "lease_seconds": 1800,
     "token_sha256": "8f43...2a10",
-    "expires_at": "2026-08-14T16:21:23.456Z"
+    "expires_at": "2026-08-14T16:31:23.456Z"
   },
   "previous_event_sha256": "9b12...44f2",
   "event_sha256": "7c88...19e0"
@@ -153,28 +141,44 @@ It contains:
 
 ---
 
-## 🛠️ The Lightweight Capsule Storage Architecture
+## 🛠️ The Zero-JSON CLI & Markdown Briefs
 
-Each run capsule under `.capsules/<run-id>/` is designed as a pure data and verification store. It contains zero code duplication and minimal disk overhead:
+Instead of generating raw JSON files or separate markdown packets on disk, the harness provides domain-specific colon commands (`plan:init`, `plan:add`, `plan:compile`, `queue:pop`, `task:claim`, `task:submit`, `task:validate-start`, `task:review`, `run:exec`, `run:complete`).
+
+Each command emits a compact, structured Markdown brief ($\le 30$ lines) directly to standard output:
 
 ```text
-.capsules/<run-id>/
-├── manifest.json      # Run metadata & prompt SHA-256
-├── prompt.md          # Verbatim captured prompt (mode 0444)
-├── state.json         # Current state projection
-├── events.jsonl       # Tamper-proof append-only event stream
-├── graph.json         # Task DAG & schedule
-├── packets/           # Immutable role packets (md + json pairs)
-├── evidence/          # Command outputs, diffs, snapshots
-├── findings/          # Agent and critic output deliverables
-└── commands/          # Monitored execution logs & stdout/stderr
+### Task Leased: task-foundations
+- Agent: worker-1
+- Lease Token: rdxsAB_jLJ07AwyNxacA8MFQ2XZJ3j_r9SpPOZjWqc8
+- Duration: 20 minutes
+- Assigned Write Scope: orchestrating-long-tasks/docs/01-foundations
+- Note: Pass --token <token> to task:submit.
 ```
 
-### Benefits of the Pure Data Model
+Subagents parse these concise Markdown briefs without token bloat or error-prone JSON serialization.
 
-1. **Zero Disk Bloat**: Does not duplicate code files across runs, making initialization instantaneous and disk usage negligible.
-2. **Deterministic Portability**: The entire `.capsules/<run-id>/` directory can be moved to another machine or archived; executing `bun orchestrating-long-tasks/scripts/harness.ts status --run .capsules/<run-id>` inspects and resumes the run cleanly.
-3. **Structured Verification & Auditability**: All run artifacts live in schema-validated subdirectories (`evidence/`, `findings/`, `packets/`, `commands/`), ensuring strict reproducibility without unstructured scratch.
+---
+
+## ⚙️ Configuration File (`harness.config.json`)
+
+Global and repository-level defaults are controlled via `harness.config.json` (or `.harness.config.json`):
+
+```json
+{
+  "max_repair_rounds": 5,
+  "max_output_bytes": 10485760,
+  "default_lease_seconds": 1800,
+  "default_max_parallel": 4,
+  "strict_validation": true
+}
+```
+
+- **`max_repair_rounds`** (default `5`): Maximum repair attempts allowed before a rejected task or critic finding escalates.
+- **`max_output_bytes`** (default `10485760` / 10MB): Maximum command output buffered before truncation.
+- **`default_lease_seconds`** (default `1800`): Worker lease duration.
+- **`default_max_parallel`** (default `4`): Concurrency cap for independent tasks.
+- **`strict_validation`** (default `true`): Enforces mandatory gate coverage.
 
 ---
 
@@ -218,6 +222,7 @@ To allow multiple concurrent agents and watchdog processes to operate safely wit
 - **Inode-Bound Locking**: Locking is performed on the underlying file inode. If a Rogue process deletes or renames the `.lock` path, the kernel lock remains securely held on the opened descriptor.
 - **Fail-Closed on Collision**: If a lock cannot be acquired within the timeout window, the command fails with `CONFLICT` error rather than corrupting state.
 - **No In-Memory Illusions**: State transitions only succeed once the bytes have been physically flushed to the OS storage controller via `fsync()`.
+- **Evidence Assurance**: Commands recorded via `run:exec` capture stdout/stderr with exact timestamps and process exit codes, classified under `trusted_host_observed_v1`.
 
 ---
 

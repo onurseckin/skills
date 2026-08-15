@@ -13,7 +13,7 @@ Complex engineering projects cannot be represented as simple linear "to-do lists
 - Task E produces an artifact consumed by Task F.
 - Multiple tasks might relate to the same semantic topic or feature requirement.
 
-To model these multi-dimensional relationships deterministically, `orchestrating-long-tasks` uses a **Strict Relational Dependency Graph** defined in `planning/graph.json`.
+To model these multi-dimensional relationships deterministically, `orchestrating-long-tasks` compiles a **Strict Relational Dependency Graph** through `plan:add` and `plan:compile`.
 
 ---
 
@@ -64,62 +64,21 @@ Edges represent typed relationships between nodes. The vocabulary is strictly cl
 The harness makes a critical distinction between **Execution Dependencies** and **Semantic Relations**:
 
 1. **`depends_on` (Execution Graph): MUST BE A DAG (Directed Acyclic Graph)**
-   - Cyclic dependencies (`Task A -> Task B -> Task A`) represent deadlock and are **strictly rejected** during `validate`.
-   - The graph engine runs a topological cycle-detection algorithm on all `depends_on` edges before plan application.
+   - Cyclic dependencies (`Task A -> Task B -> Task A`) represent deadlock and are **strictly rejected** during `plan:compile`.
+   - The graph engine runs a topological cycle-detection algorithm on all `depends_on` edges before compiling the execution plan.
 
 2. **`relates_to` (Semantic Graph): CYCLES PERMITTED**
    - Topic nodes and semantic concepts (e.g. `Auth System` $\leftrightarrow$ `Database Layer`) can have bidirectional or cyclic relations without affecting task execution.
 
 ---
 
-## 📜 Full `graph.json` Schema Example
+## 📜 Declarative CLI Assembly
 
-```json
-{
-  "schema": "harness.graph",
-  "version": 1,
-  "revision": 1,
-  "nodes": [
-    {
-      "id": "req-1",
-      "type": "requirement",
-      "label": "R-001",
-      "requirement_id": "R-001"
-    },
-    {
-      "id": "art-1",
-      "type": "artifact",
-      "label": "Prompt capsule module"
-    },
-    {
-      "id": "task-1",
-      "type": "task",
-      "label": "Implement prompt capsule",
-      "requirement_ids": ["R-001"],
-      "write_scope": ["src/store"],
-      "resource_scope": [],
-      "artifact_ids": ["art-1"],
-      "status": "ready",
-      "priority": 100,
-      "effort": 3,
-      "created_order": 0
-    }
-  ],
-  "edges": [
-    { "source": "task-1", "target": "req-1", "type": "implements" },
-    { "source": "task-1", "target": "art-1", "type": "produces" }
-  ],
-  "gates": [
-    {
-      "id": "gate-task-1",
-      "command": ["bun", "test", "tests/store/prompt.test.ts"],
-      "cwd": ".",
-      "scope": "task",
-      "requirement_ids": ["R-001"],
-      "mandatory": true
-    }
-  ]
-}
+Tasks and gates are declared and compiled using the zero-JSON colon commands:
+
+```bash
+bun harness.ts plan:add --run .capsules/<slug> --actor planner --id task-auth --label "Implement Authentication" --scope src/auth --gate "bun test tests/auth.test.ts"
+bun harness.ts plan:compile --run .capsules/<slug> --actor planner
 ```
 
 ---
