@@ -2,10 +2,10 @@ import type { JsonObject } from "../contracts/json.ts";
 
 export type NodeKind = "orchestrator" | "agent" | "tool" | "router" | "join" | "gate" | "critic" | "terminal" | "input";
 export type NodeStatus = "pending" | "running" | "success" | "error" | "warning" | "skipped" | "cached";
-export type EdgeKind = "sequence" | "spawn" | "conditional" | "loop" | "fallback" | "join" | "data";
+export type EdgeKind = "sequence" | "spawn" | "conditional" | "loop" | "fallback" | "join" | "data" | "dependency" | "gate" | "critic";
 export type PayloadKind = "prompt" | "full-context" | "summary" | "artifact" | "decision" | "file";
 export type ModelTier = "xs" | "s" | "m" | "l";
-export interface FileRef { path: string; mode?: "read" | "write" | "attach"; lines?: string; additions?: number; deletions?: number; }
+export interface FileRef { path: string; mode?: "read" | "write" | "attach"; lines?: string; diff?: string; additions?: number; deletions?: number; }
 export interface IoPort { node?: string; kind: PayloadKind; label: string; tokens?: number; preview?: string; dataRef?: string; }
 export interface NodeMetrics { tokensIn?: number; tokensOut?: number; costUsd?: number; durationMs?: number; retries?: number; commandCount?: number; }
 
@@ -26,10 +26,10 @@ export interface CommandExecutionDetail {
 
 export interface FindingDetail {
   id: string;
-  requirementId: string;
+  requirementId?: string;
   severity: "critical" | "important" | "suggestion";
   observation: string;
-  remediation: string;
+  remediation?: string;
   status: "open" | "resolved";
   revalidationProof?: { method: string; evidence: string[] };
 }
@@ -38,7 +38,6 @@ export interface GraphSection {
   id: string;
   title: string;
   description?: string;
-  color?: string;
   nodeIds: string[];
   collapsed?: boolean;
 }

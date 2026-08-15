@@ -2,10 +2,12 @@ import type { CommandRecord } from "../contracts/commands.ts";
 import type { TaskRecord } from "../workflow/types.ts";
 import type {
   CommandExecutionDetail,
+  FileRef,
   FindingDetail,
   GraphEdgeData,
   GraphNodeData,
   IoPort,
+  ModelTier,
   NodeKind,
   NodeStatus,
 } from "./types.ts";
@@ -16,6 +18,21 @@ export function mapTaskStatus(status: string): NodeStatus {
   if (status === "leased" || status === "running" || status === "submitted") return "running";
   if (status === "failed" || status === "cancelled" || status === "escalated") return "error";
   return "pending";
+}
+
+export function detectHostModel(agentId?: string): { model: string; tier: ModelTier } {
+  const envModel = process.env.MODEL ?? process.env.AI_MODEL ?? process.env.GEMINI_MODEL ?? process.env.ANTIGRAVITY_MODEL;
+  if (envModel && envModel.trim().length > 0) {
+    const trimmed = envModel.trim();
+    const lower = trimmed.toLowerCase();
+    const tier: ModelTier = lower.includes("pro") || lower.includes("opus") || lower.includes("large")
+      ? "l"
+      : lower.includes("flash") || lower.includes("haiku") || lower.includes("small")
+      ? "s"
+      : "m";
+    return { model: trimmed, tier };
+  }
+  return { model: "Gemini 2.0 Flash", tier: "s" };
 }
 
 export function mapCommandDetails(commands: CommandRecord[]): CommandExecutionDetail[] {
@@ -87,7 +104,7 @@ export function buildTaskAndGateNodes(ctx: TaskNodeContext): {
   const changed = Array.isArray(changedRaw)
     ? changedRaw.filter((p): p is string => typeof p === "string")
     : task.write_scope;
-  const files = changed.map((p) => ({ path: p, mode: "write" as const, additions: 45, deletions: 12 }));
+  const files: FileRef[] = changed.map((p) => ({ path: p, mode: "write" as const }));
   const findings = mapFindingDetails(task);
 
   const metadata: Record<string, unknown> = {
@@ -99,6 +116,8 @@ export function buildTaskAndGateNodes(ctx: TaskNodeContext): {
   const agent = task.lease?.agent_id ?? task.original_implementer;
   if (agent) metadata.leaseAgent = agent;
 
+  const { model, tier } = detectHostModel(agent);
+
   const taskInputs: IoPort[] = task.dependencies.map((depId) => ({
     node: `node-gate-${depId}`, kind: "artifact", label: `Dependency Output: ${depId}`,
   }));
@@ -109,8 +128,8 @@ export function buildTaskAndGateNodes(ctx: TaskNodeContext): {
 
   const taskNode: GraphNodeData = {
     id: taskNodeId, name: taskName, kind: "agent" as NodeKind, status: mapTaskStatus(task.status),
-    step: taskStep, stepLabel: `Step ${taskStep}: Wave ${taskWave} Tasks`, model: "Sonnet 4.5", tier: "m",
-    badge: { text: agent ? `Worker: ${agent}` : "Sonnet 4.5 [M]", variant: "info", icon: "IconRobot" },
+    step: taskStep, stepLabel: `Step ${taskStep}: Wave ${taskWave} Tasks`, model, tier,
+    badge: { text: agent ? `Worker: ${agent}` : `${model} [${tier.toUpperCase()}]`, variant: "info", icon: "IconRobot" },
     description: summaryText ?? `Goal and execution scope for ${taskName}.`, files,
     io: { inputs: taskInputs, outputs: taskOutputs }, metadata,
   };
@@ -135,7 +154,7 @@ export function buildTaskAndGateNodes(ctx: TaskNodeContext): {
   }
 
   for (const depId of task.dependencies) {
-    taskEdges.push(createEdge(`edge-dep-${depId}-${task.id}`, `node-gate-${depId}`, taskNodeId, "sequence", taskStep, "Dependency Unlocked", `Dep: ${depId}`, "cyan", "IconArrowRight"));
+    taskEdges.push(createEdge(`edge-dep-${depId}-${task.id}`, `node-gate-${depId}`, taskNodeId, "dependency", taskStep, "Dependency Unlocked", `Dep: ${depId}`, "cyan", "IconArrowRight"));
   }
 
   taskEdges.push(createEdge(`edge-join-${task.id}`, gateNodeId, "node-critic-authority", "join", gateStep + 1, "Evidence Report", "Gate Verified", "success", "IconFileText"));

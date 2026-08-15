@@ -65,8 +65,8 @@ function computeFilesTouched(tasks: TaskRecord[]): FileChurnRecord[] {
       if (!fileMap.has(filePath)) {
         fileMap.set(filePath, {
           path: filePath,
-          additions: 50,
-          deletions: 10,
+          additions: 0,
+          deletions: 0,
         });
       }
     }
