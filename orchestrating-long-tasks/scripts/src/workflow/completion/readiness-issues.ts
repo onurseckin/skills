@@ -89,7 +89,7 @@ export function completionReadinessIssues(state: WorkflowState): string[] {
   }
   issues.push(...orphanEvidenceIssues(state));
   for (const id of Object.values(state.commands)
-    .filter((entry) => entry.task_id === null)
+    .filter((entry) => entry.task_id === null && entry.gate_id === null)
     .map(({ id }) => id))
     if (!authoritativeRepositoryCommand(state, id) && state.commands[id]?.status === "succeeded")
       issues.push(`repository command is not authoritative: ${id}`);

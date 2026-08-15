@@ -165,15 +165,16 @@ Each run capsule under `.capsules/<run-id>/` is designed as a pure data and veri
 ├── events.jsonl       # Tamper-proof append-only event stream
 ├── graph.json         # Task DAG & schedule
 ├── packets/           # Immutable role packets (md + json pairs)
-├── commands/          # Monitored execution logs & stdout/stderr
-└── tmp/               # Run-scoped ephemeral scratch
+├── evidence/          # Command outputs, diffs, snapshots
+├── findings/          # Agent and critic output deliverables
+└── commands/          # Monitored execution logs & stdout/stderr
 ```
 
 ### Benefits of the Pure Data Model
 
 1. **Zero Disk Bloat**: Does not duplicate code files across runs, making initialization instantaneous and disk usage negligible.
 2. **Deterministic Portability**: The entire `.capsules/<run-id>/` directory can be moved to another machine or archived; executing `bun orchestrating-long-tasks/scripts/harness.ts status --run .capsules/<run-id>` inspects and resumes the run cleanly.
-3. **Consolidated Ephemeral Scratch**: All run-specific temporary data lives in `.capsules/<run-id>/tmp/`, keeping the repository root completely clean.
+3. **Structured Verification & Auditability**: All run artifacts live in schema-validated subdirectories (`evidence/`, `findings/`, `packets/`, `commands/`), ensuring strict reproducibility without unstructured scratch.
 
 ---
 

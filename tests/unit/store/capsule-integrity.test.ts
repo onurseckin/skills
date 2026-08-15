@@ -103,11 +103,14 @@ describe("run capsule and integrity", () => {
     expect(messages(verifyIntegrity(run))).toMatch(/prompt.*digest/i);
   });
 
-  test("lightweight capsule initializes without runtime directory and includes tmp directory", () => {
+  test("lightweight capsule initializes without runtime or tmp directory", () => {
     const root = repo();
     const run = initRun(root, "lightweight", bytes("prompt"), "file", true);
-    expect(existsSync(join(run, "tmp"))).toBeTrue();
+    expect(existsSync(join(run, "tmp"))).toBeFalse();
     expect(existsSync(join(run, "runtime"))).toBeFalse();
+    for (const directory of ["packets", "evidence", "findings", "commands"]) {
+      expect(existsSync(join(run, directory))).toBeTrue();
+    }
     const loaded = loadRun(run);
     expect(loaded.manifest.run_id).toBe("lightweight");
     expect(loaded.manifest.created_at).toBeDefined();

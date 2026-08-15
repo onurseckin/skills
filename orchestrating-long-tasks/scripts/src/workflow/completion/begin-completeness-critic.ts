@@ -31,7 +31,8 @@ export function beginCompletenessCritic(
     const current = draft.completion_critic;
     if (history.some((entry) => entry.critic_id === criticId))
       throw new HarnessError("INVALID_STATE", "a fresh completeness critic identity is required");
-    if (history.length >= MAX_REPAIR_ROUNDS)
+    const remediations = draft.completion_remediations ?? [];
+    if (remediations.length >= MAX_REPAIR_ROUNDS)
       throw new HarnessError("INVALID_STATE", "completeness critic rounds are exhausted");
     if (current) {
       if (current.status !== "reviewed" && current.status !== "expired")
