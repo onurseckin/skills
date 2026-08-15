@@ -15,7 +15,8 @@ __pycache__/
 # build / run capsules scratch
 .tmp/
 .capsules/
-/docs/
+/docs/*
+!/docs/planning/
 
 # os / filesystem
 .DS_Store
