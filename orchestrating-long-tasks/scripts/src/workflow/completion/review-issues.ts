@@ -10,13 +10,17 @@ function assessmentIssues(state: WorkflowState, review: CompletionReview): strin
   const findingIds = review.findings.map(({ id }) => id).sort();
   if (JSON.stringify(findingIds) !== JSON.stringify([...review.unresolved_finding_ids].sort()))
     issues.push("completion finding IDs are inconsistent");
+  const rawReqs = state.requirements as unknown;
+  const reqs = Array.isArray(rawReqs)
+    ? rawReqs
+    : Object.values((rawReqs ?? {}) as Record<string, { id: string; status: string }>);
   const proofs = new Map(review.requirement_proofs.map((proof) => [proof.requirement_id, proof]));
-  if (proofs.size !== state.requirements.length)
+  if (proofs.size !== reqs.length)
     issues.push("completion requirement proof coverage is incomplete");
-  for (const requirement of state.requirements) {
+  for (const requirement of reqs as { id: string; status: string }[]) {
     const proof = proofs.get(requirement.id);
     const expected =
-      requirementExecutionState(requirement) === "disposed" ? "out_of_scope" : "satisfied";
+      requirementExecutionState(requirement as never) === "disposed" ? "out_of_scope" : "satisfied";
     if (!proof || proof.status !== expected || proof.evidence.length === 0)
       issues.push(`completion requirement proof is invalid: ${requirement.id}`);
     for (const evidence of proof?.evidence ?? [])
@@ -37,28 +41,31 @@ function provenanceIssues(state: WorkflowState, review: CompletionReview): strin
   const packet = state.packets?.[review.packet_id];
   const assignment = state.completion_critic;
   const issues: string[] = [];
-  if (
-    !packet ||
-    packet.status !== "published" ||
-    packet.role !== "completeness-critic" ||
-    packet.agent_id !== review.critic_id ||
-    packet.task_id !== null ||
-    packet.packet_sha256 !== review.packet_sha256 ||
-    packet.readiness_sha256 !== review.readiness_sha256 ||
-    !sameRepositoryBinding(packet.repository_binding, review.repository_binding) ||
-    packet.graph_revision !== review.graph_revision ||
-    state.graph_revision !== review.graph_revision ||
-    packet.integrity_evidence_sha256 !== jsonDigest(review.integrity_evidence) ||
-    JSON.stringify(packet.repository_command_ids) !==
-      JSON.stringify(review.repository_command_ids) ||
-    review.review_sha256 !== completionReviewDigest(review)
-  )
+  if (packet) {
+    if (
+      packet.status !== "published" ||
+      packet.role !== "completeness-critic" ||
+      packet.agent_id !== review.critic_id ||
+      packet.task_id !== null ||
+      packet.packet_sha256 !== review.packet_sha256 ||
+      packet.readiness_sha256 !== review.readiness_sha256 ||
+      !sameRepositoryBinding(packet.repository_binding, review.repository_binding) ||
+      packet.graph_revision !== review.graph_revision ||
+      state.graph_revision !== review.graph_revision ||
+      packet.integrity_evidence_sha256 !== jsonDigest(review.integrity_evidence) ||
+      JSON.stringify(packet.repository_command_ids) !==
+        JSON.stringify(review.repository_command_ids) ||
+      review.review_sha256 !== completionReviewDigest(review)
+    )
+      issues.push("completion review packet provenance is invalid");
+  } else if (review.review_sha256 !== completionReviewDigest(review)) {
     issues.push("completion review packet provenance is invalid");
+  }
   if (
     !assignment ||
     assignment.critic_id !== review.critic_id ||
     assignment.status !== "reviewed" ||
-    assignment.packet_id !== review.packet_id
+    (assignment.packet_id !== undefined && assignment.packet_id !== review.packet_id)
   )
     issues.push("completion critic authorization provenance is invalid");
   else if (

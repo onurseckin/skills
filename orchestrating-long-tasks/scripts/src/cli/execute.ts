@@ -27,6 +27,10 @@ import {
   runStatusCommand,
   runExecCommand,
 } from "./commands/run-ops.ts";
+import {
+  summaryExportCommand,
+  summaryViewCommand,
+} from "./commands/summary-ops.ts";
 
 export async function execute(
   argv: readonly string[],
@@ -81,6 +85,11 @@ export async function execute(
       return runStatusCommand(parsed.flags) as JsonObject;
     case "run:complete":
       return runCompleteCommand(parsed.flags) as JsonObject;
+
+    case "summary:export":
+      return summaryExportCommand(parsed.flags) as JsonObject;
+    case "summary:view":
+      return summaryViewCommand(parsed.flags) as JsonObject;
 
     default:
       throw new HarnessError("INVALID_ARGUMENT", `unknown command: ${parsed.command}`);

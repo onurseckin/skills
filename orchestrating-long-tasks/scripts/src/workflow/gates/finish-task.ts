@@ -26,6 +26,15 @@ export function finishTask(
       throw new HarnessError("INVALID_STATE", "mandatory task gates have not passed");
     }
     transition(task, "done", actor, now, "review and mandatory gates passed");
+    for (const candidate of Object.values(draft.tasks)) {
+      if (
+        candidate.status === "proposed" &&
+        candidate.dependencies.length > 0 &&
+        candidate.dependencies.every((depId) => draft.tasks[depId]?.status === "done")
+      ) {
+        transition(candidate, "ready", actor, now, "dependencies satisfied");
+      }
+    }
     for (const requirement of draft.requirements) {
       if (requirementExecutionState(requirement) !== "executable") continue;
       const covering = Object.values(draft.tasks).filter((candidate) =>

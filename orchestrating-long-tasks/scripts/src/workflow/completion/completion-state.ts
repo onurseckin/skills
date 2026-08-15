@@ -6,6 +6,7 @@ import { orphanEvidenceIssues } from "../orphan-evidence/digest.ts";
 import type {
   CompletionArtifactVerification,
   GateRuntime,
+  RequirementRuntime,
   TaskRecord,
   WorkflowState,
 } from "../types.ts";
@@ -72,10 +73,20 @@ function validatorProofIssues(state: WorkflowState, task: TaskRecord): string[] 
   });
 }
 
+function extractRequirements(state: WorkflowState): readonly RequirementRuntime[] {
+  const raw = state.requirements as unknown;
+  if (Array.isArray(raw)) return raw;
+  if (raw && typeof raw === "object" && "requirements" in raw && Array.isArray((raw as { requirements: unknown }).requirements)) {
+    return (raw as { requirements: RequirementRuntime[] }).requirements;
+  }
+  return Object.values((raw ?? {}) as Record<string, RequirementRuntime>);
+}
+
 export function completionIssues(
   state: WorkflowState,
   verification: CompletionArtifactVerification | undefined = state.completion_verification,
 ): string[] {
+  const reqs = extractRequirements(state);
   const issues = completionReviewIssues(state, state.completion_review);
   issues.push(...completionHistoryIssues(state));
   const runCommands = mandatoryRunGateCommands(state, issues);
@@ -95,7 +106,7 @@ export function completionIssues(
     const disposed =
       task.requirement_ids.length > 0 &&
       task.requirement_ids.every((id) => {
-        const requirement = state.requirements.find((entry) => entry.id === id);
+        const requirement = reqs.find((entry) => entry.id === id);
         return requirement && requirementExecutionState(requirement) === "disposed";
       });
     if (disposed && task.status === "cancelled") continue;
@@ -111,7 +122,7 @@ export function completionIssues(
       if (!taskGatePassed(state, task, gate))
         issues.push(`task ${task.id} lacks authoritative gate ${gate.id}`);
   }
-  for (const requirement of state.requirements) {
+  for (const requirement of reqs) {
     const execution = requirementExecutionState(requirement);
     if (execution === "disposed") continue;
     if (execution === "paused") {

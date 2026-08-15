@@ -3,18 +3,28 @@ import { commandMatchesGate } from "../gates/gate-policy.ts";
 import { embeddedCommandIssues } from "../../runner/command-shape.ts";
 import { requirementExecutionState } from "../authority/index.ts";
 import { orphanEvidenceIssues } from "../orphan-evidence/digest.ts";
-import type { WorkflowState } from "../types.ts";
+import type { RequirementRuntime, WorkflowState } from "../types.ts";
 import { authoritativeRepositoryCommand } from "./repository-evidence.ts";
 import { commandIsSuccessfulGate } from "./readiness-snapshot.ts";
 import { currentRepositoryBinding } from "./repository-binding.ts";
 
+function extractRequirements(state: WorkflowState): readonly RequirementRuntime[] {
+  const raw = state.requirements as unknown;
+  if (Array.isArray(raw)) return raw;
+  if (raw && typeof raw === "object" && "requirements" in raw && Array.isArray((raw as { requirements: unknown }).requirements)) {
+    return (raw as { requirements: RequirementRuntime[] }).requirements;
+  }
+  return Object.values((raw ?? {}) as Record<string, RequirementRuntime>);
+}
+
 function taskIssues(state: WorkflowState): string[] {
+  const reqs = extractRequirements(state);
   return Object.values(state.tasks).flatMap((task) => {
     const issues: string[] = [];
     const disposed =
       task.requirement_ids.length > 0 &&
       task.requirement_ids.every((id) => {
-        const requirement = state.requirements.find((entry) => entry.id === id);
+        const requirement = reqs.find((entry) => entry.id === id);
         return requirement && requirementExecutionState(requirement) === "disposed";
       });
     if (disposed && task.status === "cancelled") return issues;
@@ -52,19 +62,21 @@ function taskIssues(state: WorkflowState): string[] {
 
 export function completionReadinessIssues(state: WorkflowState): string[] {
   const issues = taskIssues(state);
+  const reqs = extractRequirements(state);
   try {
     currentRepositoryBinding(state);
   } catch {
     issues.push("current repository binding is missing or invalid");
   }
-  if (!Number.isSafeInteger(state.graph_revision) || Number(state.graph_revision) < 1)
+  const graphRevision = state.graph_revision ?? (state as unknown as { graph?: { revision?: number } }).graph?.revision ?? state.revision;
+  if (!Number.isSafeInteger(graphRevision) || Number(graphRevision) < 1)
     issues.push("graph revision is invalid");
   for (const command of Object.values(state.commands))
     if (command.status === "running")
       issues.push(`running command blocks completion: ${command.id}`);
   for (const packet of Object.values(state.packets ?? {}))
     if (packet.status !== "published") issues.push(`packet ${packet.id} is not durably published`);
-  for (const requirement of state.requirements) {
+  for (const requirement of reqs) {
     const execution = requirementExecutionState(requirement);
     if (execution === "disposed") continue;
     if (execution === "paused") {

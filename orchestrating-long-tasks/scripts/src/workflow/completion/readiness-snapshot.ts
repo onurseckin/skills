@@ -5,8 +5,13 @@ import { jsonDigest } from "./completion-review-digest.ts";
 import { currentRepositoryBinding } from "./repository-binding.ts";
 import type { RepositoryBinding } from "../../contracts/repository.ts";
 
-function sortedValues<T extends { id: string }>(values: T[]): T[] {
-  return [...values].sort((left, right) => left.id.localeCompare(right.id));
+function sortedValues<T extends { id: string }>(values: T[] | Record<string, T> | unknown): T[] {
+  const arr = Array.isArray(values)
+    ? values
+    : (values && typeof values === "object" && "requirements" in values && Array.isArray((values as { requirements: unknown }).requirements))
+    ? (values as { requirements: T[] }).requirements
+    : (Object.values((values ?? {}) as Record<string, T>) as T[]);
+  return [...arr].sort((left, right) => left.id.localeCompare(right.id));
 }
 
 export interface CompletionReadinessSnapshot extends JsonObject {

@@ -16,6 +16,7 @@ import {
   formatRunStatusBrief,
 } from "../formatters/index.ts";
 import { assertFlags, boolFlag, textFlag, type Flags } from "../options.ts";
+import { generateSummarySuite } from "../../summary/generate-summary.ts";
 
 function liveRepositoryBinding(run: string) {
   const repository = dirname(dirname(loadRun(run).runRoot));
@@ -52,6 +53,10 @@ export function runCompleteCommand(flags: Flags): Record<string, unknown> {
   const state = completeRun(workflowPort(run), actor, (lockedState, requirements) =>
     verifyCompletionArtifacts(run, lockedState, requirements),
   );
+
+  try {
+    generateSummarySuite({ capsulePath: run, writeToDisk: true });
+  } catch {}
 
   const tasks = Object.values(state.tasks);
   const markdown = formatRunCompleteBrief({

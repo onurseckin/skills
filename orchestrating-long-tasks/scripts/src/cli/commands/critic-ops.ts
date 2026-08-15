@@ -97,7 +97,14 @@ export async function criticReviewCommand(flags: Flags): Promise<Record<string, 
       .filter((c) => c.gate_id === "gate-run-completion" && c.exit_code === 0)
       .map((c) => c.id);
 
-    const proofs = state.requirements.map((req) => ({
+    const rawReqs = state.requirements as unknown;
+    const reqList: { id: string }[] = Array.isArray(rawReqs)
+      ? (rawReqs as { id: string }[])
+      : (rawReqs && typeof rawReqs === "object" && "requirements" in rawReqs && Array.isArray((rawReqs as { requirements: unknown }).requirements))
+      ? (rawReqs as { requirements: { id: string }[] }).requirements
+      : (Object.values((rawReqs ?? {}) as Record<string, { id: string }>));
+
+    const proofs = reqList.map((req) => ({
       requirement_id: req.id,
       status: "satisfied" as const,
       evidence: checksList.length > 0
@@ -105,11 +112,13 @@ export async function criticReviewCommand(flags: Flags): Promise<Record<string, 
         : [{ kind: "state" as const, reference: req.id, observation: `Requirement ${req.id} satisfied.` }],
     }));
 
+    const graphRev = state.graph_revision ?? (state as unknown as { graph?: { revision?: number } }).graph?.revision ?? 1;
+
     reviewPayload = {
       packet_id: "packet-critic-direct",
       critic_token: token,
       packet_sha256: "",
-      graph_revision: state.graph_revision,
+      graph_revision: graphRev,
       status: isApproved ? "clean" : "findings",
       readiness_sha256: assignment.readiness_sha256,
       repository_binding: assignment.repository_binding,

@@ -79,7 +79,7 @@ export async function taskReviewCommand(flags: Flags): Promise<Record<string, un
   }
 
   const unblocked = isPass
-    ? Object.values(state.tasks).filter((o) => o.status === "proposed" && o.dependencies.includes(taskId)).map((o) => o.id)
+    ? Object.values(state.tasks).filter((o) => (o.status === "proposed" || o.status === "ready") && o.dependencies.includes(taskId)).map((o) => o.id)
     : [];
 
   const markdown = isPass

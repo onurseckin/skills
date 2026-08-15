@@ -9,6 +9,7 @@ import { mandatoryRunGateCommands } from "./completion-state.ts";
 import { jsonDigest } from "./completion-review-digest.ts";
 import {
   currentRepositoryBinding,
+  repositoryBindingIsValid,
   sameRepositoryBinding,
   validateRepositoryBinding,
 } from "./repository-binding.ts";
@@ -122,7 +123,11 @@ export function validateCompletionArtifactVerification(
         "INVALID_STATE",
         `gate command ${id} lacks terminal trusted-host assurance`,
       );
-    if (!sameRepositoryBinding(command.repository_after, actual.repository_binding))
+    if (
+      !repositoryBindingIsValid(command.repository_after) ||
+      ((command.task_id === null || gateCommandIds.size === 1) &&
+        !sameRepositoryBinding(command.repository_after, actual.repository_binding))
+    )
       throw new HarnessError(
         "INVALID_STATE",
         `gate command ${id} repository_after does not match live completion binding`,

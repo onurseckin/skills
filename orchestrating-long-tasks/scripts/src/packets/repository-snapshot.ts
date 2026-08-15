@@ -13,6 +13,8 @@ const ignored = new Set([
   "node_modules",
   "dist",
   "build",
+  "target",
+  "wasm_pkg",
   ".next",
   "Pods",
   ".turbo",
