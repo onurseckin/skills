@@ -1,10 +1,10 @@
 #!/usr/bin/env bun
 
+import { fileURLToPath } from "node:url";
 import { HarnessError } from "./src/errors/harness-error.ts";
 import { normalizeError } from "./src/errors/normalize-error.ts";
 import { execute } from "./src/cli/execute.ts";
 import { shouldReadPromptStdin } from "./src/cli/prompt-input.ts";
-import { fileURLToPath } from "node:url";
 
 async function stdinBytes(maximum = 64 * 1024 * 1024): Promise<Uint8Array> {
   const chunks: Buffer[] = [];
@@ -20,11 +20,30 @@ async function stdinBytes(maximum = 64 * 1024 * 1024): Promise<Uint8Array> {
 
 export async function main(argv: readonly string[]): Promise<void> {
   const executingRuntime = fileURLToPath(new URL(".", import.meta.url));
-  const context = shouldReadPromptStdin(argv)
+  const isJsonFormat =
+    argv.includes("--format=json") ||
+    argv.some((arg, idx) => arg === "--format" && argv[idx + 1] === "json");
+  const filteredArgv = argv.filter(
+    (arg, idx) =>
+      arg !== "--format=json" &&
+      arg !== "--format" &&
+      (idx === 0 || argv[idx - 1] !== "--format"),
+  );
+  const context = shouldReadPromptStdin(filteredArgv)
     ? { stdin: await stdinBytes(), executingRuntime }
     : { executingRuntime };
-  const result = await execute(argv, context);
-  process.stdout.write(`${JSON.stringify({ ok: true, result })}\n`);
+  const result = await execute(filteredArgv, context);
+  if (
+    !isJsonFormat &&
+    typeof result === "object" &&
+    result !== null &&
+    "markdown" in result &&
+    typeof result.markdown === "string"
+  ) {
+    process.stdout.write(`${result.markdown}\n`);
+  } else {
+    process.stdout.write(`${JSON.stringify({ ok: true, result })}\n`);
+  }
 }
 
 if (import.meta.main) {

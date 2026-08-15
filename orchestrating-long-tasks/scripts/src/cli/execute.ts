@@ -21,7 +21,6 @@ import {
   submitCommand,
   validationStartCommand,
 } from "./commands/workflow.ts";
-import { requirePinnedRuntime } from "./pinned-runtime.ts";
 import { runCommandCli } from "./commands/runner.ts";
 import { installCommand, installationStatusCommand } from "./commands/installer.ts";
 import { packetCommand, repositoryInspectionCommand } from "./commands/packet.ts";
@@ -33,19 +32,75 @@ import {
 } from "./commands/completion.ts";
 import { doctorCommand, handoffCommand, statusCommand } from "./commands/reporting.ts";
 import { dispositionOrphanEvidenceCommand } from "./commands/orphan-evidence.ts";
+import { planInitCommand, planAddCommand, planCompileCommand, planStatusCommand } from "./commands/plan.ts";
+import { queueNextCommand, queueListCommand, queuePopCommand } from "./commands/queue.ts";
+import {
+  taskClaimCommand,
+  taskHeartbeatCommand,
+  taskSubmitCommand,
+  taskValidateStartCommand,
+  taskReviewCommand,
+  taskRejectCommand,
+} from "./commands/task-ops.ts";
+import { criticStartCommand, criticReviewCommand } from "./commands/critic-ops.ts";
+import { runCompleteCommand, runStatusCommand, runExecCommand } from "./commands/run-ops.ts";
 
 export async function execute(
   argv: readonly string[],
   context: CommandContext = {},
 ): Promise<JsonObject> {
   const parsed = parseArguments(argv);
-  if (parsed.remainder.length && parsed.command !== "run") {
+  if (parsed.remainder.length && parsed.command !== "run" && parsed.command !== "run:exec") {
     throw new HarnessError(
       "INVALID_ARGUMENT",
       `command ${parsed.command} does not accept -- arguments`,
     );
   }
+
   switch (parsed.command) {
+    // New colon-based domain commands
+    case "plan:init":
+      return (await planInitCommand(parsed.flags, context)) as JsonObject;
+    case "plan:add":
+      return planAddCommand(parsed.flags) as JsonObject;
+    case "plan:compile":
+      return planCompileCommand(parsed.flags) as JsonObject;
+    case "plan:status":
+      return planStatusCommand(parsed.flags) as JsonObject;
+
+    case "queue:next":
+      return queueNextCommand(parsed.flags) as JsonObject;
+    case "queue:list":
+      return queueListCommand(parsed.flags) as JsonObject;
+    case "queue:pop":
+      return (await queuePopCommand(parsed.flags)) as JsonObject;
+
+    case "task:claim":
+      return (await taskClaimCommand(parsed.flags)) as JsonObject;
+    case "task:heartbeat":
+      return taskHeartbeatCommand(parsed.flags) as JsonObject;
+    case "task:submit":
+      return (await taskSubmitCommand(parsed.flags)) as JsonObject;
+    case "task:validate-start":
+      return (await taskValidateStartCommand(parsed.flags)) as JsonObject;
+    case "task:review":
+      return (await taskReviewCommand(parsed.flags)) as JsonObject;
+    case "task:reject":
+      return (await taskRejectCommand(parsed.flags)) as JsonObject;
+
+    case "critic:start":
+      return (await criticStartCommand(parsed.flags)) as JsonObject;
+    case "critic:review":
+      return (await criticReviewCommand(parsed.flags)) as JsonObject;
+
+    case "run:complete":
+      return runCompleteCommand(parsed.flags) as JsonObject;
+    case "run:status":
+      return runStatusCommand(parsed.flags) as JsonObject;
+    case "run:exec":
+      return (await runExecCommand(parsed.flags, parsed.remainder)) as JsonObject;
+
+    // Backward-compatible legacy commands
     case "init":
       return (await initCommand(parsed.flags, context)) as JsonObject;
     case "validate":
@@ -106,6 +161,7 @@ export async function execute(
       return handoffCommand(parsed.flags) as JsonObject;
     case "doctor":
       return (await doctorCommand(parsed.flags)) as JsonObject;
+
     default:
       throw new HarnessError("INVALID_ARGUMENT", `unknown command: ${parsed.command}`);
   }
