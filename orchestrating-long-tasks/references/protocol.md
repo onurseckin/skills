@@ -102,11 +102,14 @@ reviews (`task:review --status pass`) attach command evidence and satisfy the ta
 
 ### 7. Repair with bounded feedback
 
-Route the first repair to the original implementer. If recorded policy marks the author unavailable,
-stale, or repeatedly failing, lease a replacement with the same frozen task contract. A fresh
-validator must re-verify the repaired code against prior findings and re-run gate proofs with nonempty
-revalidation evidence. After max repair rounds (default 5, configurable via `max_repair_rounds`),
-escalate to the coordinator/user and preserve the exact handoff instead of self-approving.
+Route single-task repair findings to the original implementer within `write_scope`. If recorded policy
+marks the author unavailable, stale, or repeatedly failing, lease a replacement with the same frozen task
+contract. A fresh validator must re-verify the repaired code against prior findings and re-run gate proofs
+with nonempty revalidation evidence. After max repair rounds (default 5, configurable via
+`max_repair_rounds`), escalate to the coordinator/user and preserve the exact handoff instead of self-approving.
+
+When defects are cross-cutting or discovered during late-stage completeness review, the coordinator must
+not perform in-place single-agent patching. Instead, the harness triggers the **Cascading Scope-Aware Replanning & Fan-Back Protocol** via `critic:reject` and `plan:replan`.
 
 ### 8. Gates and completeness
 
@@ -153,9 +156,142 @@ other gate-tagged effective Git command is rejected before command intent public
 
 ### 9. Complete or hand off
 
-Complete only when the runtime reports zero blockers. Otherwise generate `handoff.md`; it contains
-assurance, revisions, tasks, owners, leases, findings, recent events, and exact next argv so another
-supported client can continue with no conversational context.
+Complete only when the runtime reports zero blockers and the completeness critic has approved the run
+(`critic:review --decision approve`). Otherwise generate `handoff.md`; it contains assurance, revisions,
+tasks, owners, leases, findings, recent events, and exact next argv so another supported client can
+continue with no conversational context.
+
+---
+
+## 3-Tier Multi-Agent Reporting Hierarchy & Isolation Boundaries
+
+To maintain strict operational boundaries, context freshness, and zero noise on the main thread, the
+harness mandates a **3-Tier Hierarchy** governed by the **$2N + 1$ Agent Sizing Formula**:
+
+```text
+[Tier 1: Main Interactive Thread] (User interaction only)
+               │ (Spawns exactly 1 child)
+               ▼
+[Tier 2: Background Run Coordinator] (Capsule, graph, leases, wave lifecycle)
+               │ (Dispatches 2N parallel subagents in single invoke_subagent call)
+        ┌──────┴─────────────────────────────┐
+        ▼                                    ▼
+[Tier 3: Task Implementers (N)]       [Tier 3: Adversarial Validators (N)]
+ (Disjoint write scopes)               (Allowlisted context, mandatory gates)
+```
+
+### Parent-Child Isolation Boundaries
+
+1. **Main Thread Isolation**:
+   - Tier 1 (Main Interactive Thread) is strictly dedicated to user dialogue and high-level milestone notifications.
+   - Tier 1 MUST NOT execute task worker tools, modify codebase files directly, or poll background tasks.
+   - Tier 1 spawns **exactly one** subagent: the Tier 2 Coordinator.
+2. **Coordinator Mediation (Tier 2)**:
+   - Tier 2 Coordinator holds capsule ownership, manages lease tokens, compiles graph revisions, and orchestrates concurrency waves.
+   - Tier 2 dispatches $N$ implementers and $N$ validators concurrently using a single batch `invoke_subagent` call ($2N + 1$ total active subagents).
+   - Tier 2 emits concise milestone summaries (Plan Ready, Wave Completed, Escalation, Final Completion) back to Tier 1 via `send_message`.
+3. **Leaf Worker & Validator Isolation (Tier 3)**:
+   - Tier 3 Implementers and Validators report **exclusively** to the Tier 2 Coordinator via host-native messaging.
+   - Tier 3 agents never send messages to Tier 1 or cross-communicate with other Tier 3 peers.
+4. **Token & Lease Isolation**:
+   - Authority tokens (`worker_token`, `validator_token`, `critic_token`) are single-use, non-transferable, and tied to specific agent IDs and lease expirations.
+   - Tokens are distributed by the Coordinator over native channels and never stored in plain-text shared files.
+5. **Filesystem Write Scope Isolation**:
+   - Every implementer is leased a normalized, disjoint `write_scope`.
+   - Concurrent tasks with overlapping scopes ($S_i \cap S_j \neq \emptyset$) are strictly prohibited by the scheduler.
+
+---
+
+## Cascading Scope-Aware Replanning & Fan-Back Protocol
+
+When late-stage completeness verification detects defects across the repository diff, the harness
+triggers dynamic graph recompilation and parallel repair waves:
+
+```text
+               ┌────────────────────────────────────────────────────────┐
+               ▼                                                        │
+[All Tasks Done] ──► [critic:start] ──► [critic:reject]                 │
+                                               │                        │
+                                               ▼                        │
+                                        [plan:replan]                   │
+                                               │                        │
+                                               ▼                        │
+                                  [Compile Repair Wave R DAG]           │
+                                  (Graph Revision R -> R+1)             │
+                                               │                        │
+                                               ▼                        │
+                             [Batch Dispatch 2N+1 Repair Wave]          │
+                             (N Implementers + N Validators)            │
+                                               │                        │
+                                               ▼                        │
+                                 [Validation Barrier: Wave R]           │
+                                 (All repair tasks reach done)          │
+                                               │                        │
+                                               └────────────────────────┘
+                                               │ (Re-convergence)
+                                               ▼
+                                        [critic:start]
+                                               │
+                                               ▼
+                                        [critic:review] (approve)
+                                               │
+                                               ▼
+                                        [run:complete]
+```
+
+### 1. Late-Stage Defect Ingestion & Rejection (`critic:reject`)
+- The Completeness Critic reviews the full repository diff against immutable prompt bytes.
+- When unfulfilled requirements, regressions, or integration gaps are identified, the critic rejects the run via `critic:reject` (or `critic:review --decision request_changes`).
+- The rejection persists structured findings (`findings.json`) containing:
+  - `id`: Unique finding identifier (e.g. `finding-critic-01`);
+  - `requirement_id`: Target requirement obligation;
+  - `severity`: `critical`, `important`, or `minor`;
+  - `observation`: Specific defect observed;
+  - `file_paths`: Specific source files requiring remediation;
+  - `remediation`: Concrete remediation instructions;
+  - `revalidation`: Mandatory gate command to prove remediation.
+
+### 2. Dynamic Scope Partitioning & DAG Compilation (`plan:replan`)
+- The Coordinator invokes `plan:replan --run $RUN --actor coordinator`.
+- **Finding Clustering**: The harness analyzes all open critic findings and clusters them by file paths into disjoint write scopes. Findings touching intersecting files are grouped into a single repair task to prevent write collisions.
+- **Task & Gate Generation**: Generates modular repair tasks (`task-repair-r<round>-<idx>`) and attaches mandatory revalidation gates (`gate-task-repair-r<round>-<idx>`).
+- **Graph Revisioning**: Increments `graph_revision` ($R \to R+1$), archives previous graph state to `plan_history`, and clears `completion_critic` and `completion_review` records to reset the critic lifecycle.
+
+### 3. Parallel Batch Repair Wave Dispatch ($2N + 1$)
+- The Coordinator calculates $N$ (number of repair tasks) and dispatches $N$ repair implementers and $N$ adversarial validators simultaneously in a single `invoke_subagent` tool call.
+- Repair workers operate strictly within their partitioned write scopes, executing targeted remediation and local pre-submission validation.
+
+### 4. Validation Barriers & Re-Convergence Semantics
+- **Atomic Validation Barrier**: All repair tasks in Wave $R$ must independently complete the full lifecycle: `ready` $\to$ `leased` $\to$ `submitted` $\to$ `validating` $\to$ `done` via `task:review` with verified `run:exec` command evidence.
+- The barrier blocks completion until zero repair tasks remain in unverified or failed states.
+- **Re-Convergence**: Once the validation barrier is cleared, the Coordinator re-triggers `critic:start` with the updated repository state. The critic conducts a fresh full-repository evaluation against prompt requirements.
+- On approval (`critic:review --decision approve`), the Coordinator completes the run via `run:complete`.
+
+---
+
+## Formal State Transitions & Lifecycle Grammar
+
+### State Machine Transitions
+
+| Current State               | Trigger / Command                                      | Next State                  | Required Conditions & Invariant Checks                                              |
+| :-------------------------- | :----------------------------------------------------- | :-------------------------- | :---------------------------------------------------------------------------------- |
+| `proposed`                  | `plan:compile`                                         | `ready`                     | Disjoint write scopes validated; atomic requirements mapped.                        |
+| `ready`                     | `task:claim` / `queue:pop`                             | `leased`                    | Active lease token generated; deadline timestamp bound.                             |
+| `leased`                    | `task:submit`                                          | `submitted`                 | Valid worker token; write scope unviolated; diff non-empty.                         |
+| `submitted`                 | `task:validate-start`                                  | `validating`                | Independent validator assigned; implementer prose stripped from packet.             |
+| `validating`                | `task:reject`                                          | `changes_requested`         | Structured reject findings attached (`id`, `observation`, `remediation`, `evidence`). |
+| `changes_requested`         | `task:claim` (repair)                                  | `leased`                    | Repair attempt counter incremented; bounded by `max_repair_rounds`.                  |
+| `validating`                | `task:review --status pass`                            | `done`                      | Monitored `run:exec` gate evidence exit code 0; invariant audit passed.             |
+| `done` (All Wave tasks)     | `critic:start`                                         | `critic_assigned`           | All wave tasks satisfied; fresh repository inspection recorded.                     |
+| `critic_assigned`           | `critic:reject`                                        | `critic_changes_requested`  | Structured completion findings recorded; completion blocked.                        |
+| `critic_changes_requested`  | `plan:replan`                                          | `ready` (Wave $R$ Tasks)    | Graph revision $R \to R+1$; findings partitioned into disjoint repair scopes.        |
+| `ready` (Wave $R$ Tasks)    | Batch $2N+1$ Dispatch                                  | `leased` (Wave $R$ Tasks)   | True parallel dispatch via single `invoke_subagent` call.                           |
+| `validating` (Wave $R$)     | `task:review --status pass`                            | `done` (Wave $R$ Tasks)     | Repair validation barrier satisfied when all Wave $R$ tasks reach `done`.           |
+| `done` (Wave $R$ Barrier)   | `critic:start` (Re-convergence)                        | `critic_assigned`           | Critic state reset; full diff re-audited against immutable prompt bytes.             |
+| `critic_assigned`           | `critic:review --decision approve`                     | `critic_approved`           | 100% requirement coverage verified; all mandatory completion gates pass.            |
+| `critic_approved`           | `run:complete`                                         | `completed`                 | Zero blockers reported; pristine repository digest matches live binding. Sealed.    |
+
+---
 
 ## Host interruption monitor
 

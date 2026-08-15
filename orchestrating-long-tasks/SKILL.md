@@ -42,12 +42,19 @@ Deep technical documentation and operational contracts are available under `refe
 
 ---
 
-## Mandatory Multi-Agent Dispatch Invariant
+## Mandatory Multi-Agent Dispatch & The "Always +1" Orchestrator Invariant
 
-When running long-task execution waves, the coordinator MUST dispatch all concurrent implementers and validators simultaneously using a **single batch `invoke_subagent` tool call**:
+When running long-task execution waves, the orchestrator MUST enforce the **"Always +1" Agent Sizing Invariant** ($2N + 1$ formula) and dispatch all concurrent implementers and validators simultaneously using a **single batch `invoke_subagent` tool call**:
+
+### The $2N + 1$ Agent Sizing Formula
+For an execution wave containing $N$ independent, parallel tasks:
+- **$N$ Task Implementers (Tier 3)**: Each assigned a strictly disjoint filesystem write scope.
+- **$N$ Adversarial Validators (Tier 3)**: Paired 1:1 with each task to conduct independent, unsanitized verification.
+- **$+1$ Run Coordinator (Tier 2)**: The dedicated background coordinator orchestrating graph state, wave transitions, lease management, and milestone reports.
+- **Total Active Subagents**: Exactly $2N + 1$ subagents running concurrently.
 
 ```typescript
-// Correct: True parallel multi-agent dispatch in a single tool call
+// Correct: True parallel multi-agent dispatch in a single tool call for N=2 tasks (2N+1 architecture)
 invoke_subagent({
   Subagents: [
     { Role: "Implementer 1 (Task T-01)", TypeName: "self", Prompt: "..." },
@@ -59,7 +66,7 @@ invoke_subagent({
 ```
 
 - **NEVER** run a single subagent loop to execute multiple tasks sequentially.
-- **NEVER** block the Tier 1 main chat; subagents must run in the background and report strictly to the orchestrator.
+- **NEVER** block the Tier 1 main interactive thread; all workers and validators run in the background tree and report exclusively to the Tier 2 Coordinator.
 
 ---
 
@@ -99,21 +106,22 @@ one agent can finish and verify directly.
 
 ## Orchestrator Guidance: Multi-Agent Dispatch & Adversarial Validation
 
-### 1. Two-Tier Agent Architecture & Main Thread Isolation
+### 1. Two-Tier Agent Architecture & Main Thread Isolation (3-Tier Hierarchy & "$2N + 1$" Formula)
 
-To keep the user's interactive conversation clean, responsive, and free of worker tool churn, adhere strictly to the 3-tier hierarchy:
+To keep the user's interactive conversation clean, responsive, and completely isolated from worker tool churn, adhere strictly to the 3-tier hierarchy:
 
 1. **Tier 1 (Main Interactive Thread)**:
-   - Dedicated exclusively to user interaction.
-   - Spawns **exactly one** child: the `Background Run Coordinator`.
-   - Never runs implementer/validator tool loops or background polls directly.
+   - Dedicated exclusively to user interaction, requirement intake, and final delivery.
+   - Spawns **exactly one** child: the `Background Run Coordinator` (Tier 2).
+   - Never runs implementer/validator tool loops, git operations, or background command polling directly.
 2. **Tier 2 (Background Run Coordinator)**:
-   - Owns capsule lifecycle, planning, waves, and validation.
-   - Spawns and manages all Tier 3 workers in the background tree.
+   - Owns capsule lifecycle, planning, dependency graph compilation, concurrency waves, and lease management.
+   - Dispatches and supervises all Tier 3 workers and validators using the $2N + 1$ sizing formula.
    - Reports to Tier 1 parent **only at major milestones** (Plan Ready, Wave Complete, Escalation, Final Sign-off).
 3. **Tier 3 (Worker & Validator Subagents)**:
    - Ephemeral executors assigned disjoint write scopes.
-   - Message and report exclusively to the Tier 2 Coordinator.
+   - $N$ implementers + $N$ validators running concurrently.
+   - Message and report exclusively to the Tier 2 Coordinator via host-native messaging.
 
 See [references/host-adapters.md](references/host-adapters.md) for adapter implementations across Antigravity, Claude Code, and Codex.
 
@@ -145,6 +153,27 @@ When any invariant check fails or tests are incomplete:
 2. **Targeted Repair**: The task transitions to `changes_requested`. The coordinator routes the finding back to the worker for targeted remediation within `write_scope`.
 3. **Re-Verification in Round 2+**: A fresh validator verifies the fix against prior findings, re-runs `run:exec`, re-checks all invariants, and only approves via `task:review --status pass` when completely satisfied.
 4. **Bounded Escalation**: If a task fails across max repair rounds (default 5, configurable via `max_repair_rounds`), the harness transitions the task to `escalated` and alerts the coordinator/user.
+
+### 5. Cascading Scope-Aware Replanning & Fan-Back Protocol
+
+When late-stage completeness verification reveals defects, the orchestrator MUST NOT attempt in-place monolithic patching. Instead, follow the formal **Fan-Back Protocol**:
+
+1. **Late-Stage Defect Detection**:
+   - The Completeness Critic reviews the full repository diff against immutable prompt bytes during `critic:start`.
+   - If missing requirements, cross-subsystem defects, or contract gaps are identified, the critic rejects the run via `critic:reject` with structured findings.
+2. **Critic Rejection (`critic:reject`)**:
+   - The critic submits actionable findings specifying finding IDs, affected file paths, observation, remediation requirements, and revalidation gates.
+   - Run state records `request_changes` and completion is halted.
+3. **Scope-Aware Dynamic Replanning (`plan:replan`)**:
+   - The Tier 2 Coordinator executes `plan:replan --run $RUN --actor coordinator`.
+   - The harness ingests critic findings, clusters them by file paths into disjoint write scopes, increments the graph revision ($R \to R+1$), and compiles a new Repair Wave $R$ DAG containing modular repair tasks (e.g. `task-repair-r1-1`, `task-repair-r1-2`) with mandatory revalidation gates.
+4. **Parallel Batch Repair Wave Dispatch ($2N + 1$)**:
+   - The coordinator calculates the repair wave size $N$ and dispatches $N$ repair implementers and $N$ adversarial validators simultaneously in a single `invoke_subagent` call.
+   - Repair workers execute remediation strictly within their partitioned disjoint write scopes.
+5. **Validation Barriers & Re-Convergence**:
+   - Every repair task must independently pass adversarial validation and mandatory gate execution via `run:exec` and `task:review`.
+   - All repair tasks in Wave $R$ form an atomic validation barrier; once all are `done`, the repair wave converges.
+   - The coordinator dispatches a fresh completeness critic session (`critic:start` -> `critic:review`) to verify whole-repository compliance before final sealing (`run:complete`).
 
 ---
 
@@ -179,7 +208,14 @@ bun $PINNED plan:status --run $RUN
 bun $PINNED plan:compile --run $RUN --actor planner
 ```
 
-`plan:compile` automatically performs atomic prompt decomposition, line-by-line coverage analysis,
+Dynamic scope-aware replanning from critic/validator findings:
+
+```bash
+# Ingest critic rejection findings, partition scopes, and compile Repair Wave DAG (Revision R+1)
+bun $PINNED plan:replan --run $RUN --actor coordinator [--findings-file <file> | --findings '<json>'] [--gate "<reval-gate>"]
+```
+
+`plan:compile` and `plan:replan` automatically perform atomic prompt decomposition, line-by-line coverage analysis,
 scope independence validation, and graph construction.
 
 ### Phase 2: Queue Management & Concurrency
@@ -242,7 +278,10 @@ bun $PINNED critic:start --run $RUN --critic <critic-id>
 # Critic approves all requirements and gate evidence
 bun $PINNED critic:review --run $RUN --critic <critic-id> --token <token> --decision approve --summary "<summary>"
 
-# Complete the run and seal artifacts
+# Or critic rejects with structured findings triggering fan-back replanning
+bun $PINNED critic:reject --run $RUN --critic <critic-id> --token <token> --reason "<reason>" --finding "<remediation>" [--findings-file <file>]
+
+# Complete the run and seal artifacts (only after critic approval)
 bun $PINNED run:complete --run $RUN --actor coordinator
 bun $PINNED run:status --run $RUN
 ```

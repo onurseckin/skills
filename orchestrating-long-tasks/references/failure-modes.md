@@ -49,3 +49,13 @@ This file is canonical for structural countermeasures. Each scenario’s `Observ
 - Observed loophole: Repository assurance is treated as permission to signal an unproven process.
   - Structural countermeasure: Keep process ownership and host-ancestor protection independently
     fail closed before signaling.
+
+## Late-Stage Monolithic Collapse ("Monolithic Single-Agent Trap")
+
+- `MC-1` — Observed loophole: Monolithic Single-Agent In-Place Repair. When late-stage Completeness Critic detects multiple cross-subsystem defects, missing features, or requirement gaps across the repository diff, the orchestrator assigns all repair tasks to a single agent or attempts sequential in-place fixes directly on the main thread. This causes context window exhaustion, hallucinated changes, cross-module regressions, loss of write scope isolation, and unbounded repair loops.
+  - Structural countermeasure: Mandatory Fan-Back & Cascading Scope-Aware Replanning. When `critic:reject` is executed, the harness blocks single-agent in-place patching and requires `plan:replan`. The harness dynamically clusters findings by file paths into disjoint write scopes, commits Graph Revision $R \to R+1$, and compiles a new Repair Wave $R$ DAG. The coordinator must dispatch $2N + 1$ Tier 3 subagents (independent implementers and adversarial validators) in a parallel batch.
+- `MC-2` — Observed loophole: Repair Self-Approval & Bypassed Gate Barriers. An implementer addressing critic findings bypasses independent adversarial validation or gate execution under the assumption that "the critic already flagged it, so quick edits are sufficient", causing unverified regressions to reach completion.
+  - Structural countermeasure: Strict Validation Barriers & Monitored Execution. Every injected repair task must undergo independent validator lease, monitored execution (`run:exec`), and formal sign-off (`task:review`). Completion remains mechanically blocked until all repair tasks in the active wave reach `done` and a fresh critic reviews the whole repository diff.
+- `MC-3` — Observed loophole: Context Contamination across Repair Waves. Repair subagents receive prior conversational debates, subjective implementer justifications, or unverified logs from previous failed iterations, leading to anchoring bias and recurring errors.
+  - Structural countermeasure: Allowlisted Context Sanitization for Repair Packets. Repair task packets are compiled strictly from authoritative requirement IDs, structured finding records (`id`, `severity`, `observation`, `file_paths`, `remediation`, `revalidation`), and fresh git diffs. All subjective narratives and conversational histories are quarantined.
+

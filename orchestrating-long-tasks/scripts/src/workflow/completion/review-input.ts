@@ -44,12 +44,20 @@ function findingList(state: WorkflowState, value: unknown): CompletionFinding[] 
       requirement_id: requirementId,
       severity: finding.severity as CompletionFinding["severity"],
       observation: requireText(finding.observation, "finding.observation"),
+      ...(Array.isArray(finding.file_paths)
+        ? {
+            file_paths: finding.file_paths
+              .map((p) => String(p).trim())
+              .filter(Boolean),
+          }
+        : {}),
       evidence: uniqueObjects(finding.evidence, `finding evidence for ${id}`),
       remediation: requireText(finding.remediation, "finding.remediation"),
       revalidation: requireText(finding.revalidation, "finding.revalidation"),
     };
   });
 }
+
 
 function evidenceItems(value: unknown, field: string): CompletionEvidenceItem[] {
   return uniqueObjects(value, field).map((raw) => {

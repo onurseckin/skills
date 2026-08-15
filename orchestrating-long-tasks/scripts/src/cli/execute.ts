@@ -6,6 +6,7 @@ import {
   planInitCommand,
   planAddCommand,
   planCompileCommand,
+  planReplanCommand,
   planStatusCommand,
 } from "./commands/plan.ts";
 import { queueNextCommand, queueListCommand, queuePopCommand } from "./commands/queue.ts";
@@ -17,7 +18,11 @@ import {
   taskReviewCommand,
   taskRejectCommand,
 } from "./commands/task-ops.ts";
-import { criticStartCommand, criticReviewCommand } from "./commands/critic-ops.ts";
+import {
+  criticStartCommand,
+  criticReviewCommand,
+  criticRejectCommand,
+} from "./commands/critic-ops.ts";
 import { runCompleteCommand, runStatusCommand, runExecCommand } from "./commands/run-ops.ts";
 import { summaryExportCommand, summaryViewCommand } from "./commands/summary-ops.ts";
 
@@ -40,6 +45,8 @@ export async function execute(
       return planAddCommand(parsed.flags) as JsonObject;
     case "plan:compile":
       return planCompileCommand(parsed.flags) as JsonObject;
+    case "plan:replan":
+      return planReplanCommand(parsed.flags) as JsonObject;
     case "plan:status":
       return planStatusCommand(parsed.flags) as JsonObject;
 
@@ -67,6 +74,8 @@ export async function execute(
       return (await criticStartCommand(parsed.flags)) as JsonObject;
     case "critic:review":
       return (await criticReviewCommand(parsed.flags)) as JsonObject;
+    case "critic:reject":
+      return (await criticRejectCommand(parsed.flags)) as JsonObject;
 
     case "run:exec":
       return (await runExecCommand(parsed.flags, parsed.remainder)) as JsonObject;
@@ -84,3 +93,4 @@ export async function execute(
       throw new HarnessError("INVALID_ARGUMENT", `unknown command: ${parsed.command}`);
   }
 }
+

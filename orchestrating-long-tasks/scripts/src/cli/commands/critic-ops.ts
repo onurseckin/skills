@@ -1,4 +1,5 @@
 import { dirname } from "node:path";
+import { readFileSync } from "node:fs";
 import type { RepositoryBinding } from "../../contracts/repository.ts";
 import { HarnessError } from "../../errors/harness-error.ts";
 import { readPlanObject } from "../../graph/read-plan.ts";
@@ -8,13 +9,84 @@ import { recordRepositoryInspection } from "../../packets/repository-inspection.
 import { loadRun } from "../../store/index.ts";
 import { beginCompletenessCritic } from "../../workflow/completion/begin-completeness-critic.ts";
 import { recordCompletionReview } from "../../workflow/completion/record-completion-review.ts";
-import { formatCriticReviewBrief, formatCriticStartBrief } from "../formatters/index.ts";
+import type { CompletionFinding } from "../../workflow/completion/types.ts";
+import {
+  formatCriticRejectBrief,
+  formatCriticReviewBrief,
+  formatCriticStartBrief,
+} from "../formatters/index.ts";
 import { assertFlags, textFlag, type Flags } from "../options.ts";
 
 function liveRepositoryBinding(run: string, expected: Readonly<RepositoryBinding>) {
   void expected;
   const repository = dirname(dirname(loadRun(run).runRoot));
   return inspectRepositoryBinding(repository);
+}
+
+function parseRawFindings(
+  findingsRaw: string | undefined,
+  findingsFile: string | undefined,
+  firstReqId: string,
+  defaultSummary: string,
+): CompletionFinding[] {
+  let content = findingsRaw;
+  if (!content && findingsFile) {
+    try {
+      content = readFileSync(findingsFile, "utf-8");
+    } catch (err) {
+      throw new HarnessError("INVALID_ARGUMENT", `cannot read findings file: ${findingsFile}`);
+    }
+  }
+  if (!content) return [];
+
+  try {
+    const parsed = JSON.parse(content);
+    const list = Array.isArray(parsed)
+      ? parsed
+      : typeof parsed === "object" && parsed !== null && Array.isArray((parsed as Record<string, unknown>).findings)
+        ? (parsed as Record<string, unknown>).findings as unknown[]
+        : [parsed];
+
+    return list.map((item: unknown, idx: number) => {
+      const rec = (typeof item === "object" && item !== null ? item : {}) as Record<string, unknown>;
+      const id = typeof rec.id === "string" && rec.id.trim() ? rec.id.trim() : `finding-critic-${String(idx + 1).padStart(2, "0")}`;
+      const requirementId = typeof rec.requirement_id === "string" && rec.requirement_id.trim() ? rec.requirement_id.trim() : firstReqId;
+      const severity = (rec.severity === "critical" || rec.severity === "minor" ? rec.severity : "important") as CompletionFinding["severity"];
+      const observation = typeof rec.observation === "string" ? rec.observation : String(rec.finding ?? rec.message ?? defaultSummary);
+      const remediation = typeof rec.remediation === "string" ? rec.remediation : "Address identified gap prior to completion.";
+      const revalidation = typeof rec.revalidation === "string" ? rec.revalidation : "Re-run full verification gate.";
+      const filePaths = Array.isArray(rec.file_paths)
+        ? rec.file_paths.map(String)
+        : typeof rec.file_path === "string"
+          ? [rec.file_path]
+          : typeof rec.path === "string"
+            ? [rec.path]
+            : undefined;
+
+      return {
+        id,
+        requirement_id: requirementId,
+        severity,
+        observation,
+        ...(filePaths ? { file_paths: filePaths } : {}),
+        evidence: [{ kind: "state", reference: requirementId, observation }],
+        remediation,
+        revalidation,
+      };
+    });
+  } catch {
+    return [
+      {
+        id: "finding-critic-01",
+        requirement_id: firstReqId,
+        severity: "important",
+        observation: content.trim() || defaultSummary,
+        evidence: [{ kind: "state", reference: firstReqId, observation: content.trim() || defaultSummary }],
+        remediation: "Address identified gap prior to completion.",
+        revalidation: "Re-run full verification gate.",
+      },
+    ];
+  }
 }
 
 export async function criticStartCommand(flags: Flags): Promise<Record<string, unknown>> {
@@ -50,13 +122,26 @@ export async function criticStartCommand(flags: Flags): Promise<Record<string, u
 }
 
 export async function criticReviewCommand(flags: Flags): Promise<Record<string, unknown>> {
-  assertFlags(flags, ["run", "critic", "token", "decision", "summary", "finding", "review"]);
+  assertFlags(flags, [
+    "run",
+    "critic",
+    "token",
+    "decision",
+    "summary",
+    "finding",
+    "findings",
+    "findings-file",
+    "reason",
+    "review",
+  ]);
   const run = textFlag(flags, "run")!;
   const critic = textFlag(flags, "critic")!;
   const token = textFlag(flags, "token")!;
   const decision = textFlag(flags, "decision", false) ?? "approve";
   const summary = textFlag(flags, "summary", false) ?? `Critic review: ${decision}`;
-  const finding = textFlag(flags, "finding", false);
+  const finding = textFlag(flags, "finding", false) ?? textFlag(flags, "reason", false);
+  const findingsRaw = textFlag(flags, "findings", false);
+  const findingsFile = textFlag(flags, "findings-file", false);
   const reviewFile = textFlag(flags, "review", false);
 
   if (decision !== "approve" && decision !== "request_changes") {
@@ -77,9 +162,12 @@ export async function criticReviewCommand(flags: Flags): Promise<Record<string, 
     }
 
     const firstReqId = state.requirements[0]?.id ?? "req-1";
-    const findingsList = isApproved
-      ? []
-      : [
+    let findingsList: CompletionFinding[] = [];
+    if (!isApproved) {
+      if (findingsRaw || findingsFile) {
+        findingsList = parseRawFindings(findingsRaw, findingsFile, firstReqId, summary);
+      } else {
+        findingsList = [
           {
             id: "finding-critic-01",
             requirement_id: firstReqId,
@@ -90,6 +178,8 @@ export async function criticReviewCommand(flags: Flags): Promise<Record<string, 
             revalidation: "Re-run full verification gate.",
           },
         ];
+      }
+    }
 
     const checksList = Object.values(state.commands)
       .filter((c) => c.actor === critic && c.exit_code === 0)
@@ -157,13 +247,16 @@ export async function criticReviewCommand(flags: Flags): Promise<Record<string, 
     liveRepositoryBinding(run, expected),
   );
 
+  const findings = state.completion_review?.findings ?? [];
+  const firstFindingId = findings[0]?.id ?? (decision === "request_changes" ? "finding-critic-01" : undefined);
+
   const markdown = formatCriticReviewBrief({
     critic,
     decision: decision as "approve" | "request_changes",
     summary,
     token,
     runId: run,
-    findingId: decision === "request_changes" ? "finding-critic-01" : undefined,
+    findingId: firstFindingId,
   });
 
   return {
@@ -172,5 +265,50 @@ export async function criticReviewCommand(flags: Flags): Promise<Record<string, 
     decision,
     summary,
     completion_review: state.completion_review,
+  };
+}
+
+export async function criticRejectCommand(flags: Flags): Promise<Record<string, unknown>> {
+  assertFlags(flags, [
+    "run",
+    "critic",
+    "token",
+    "summary",
+    "reason",
+    "finding",
+    "findings",
+    "findings-file",
+    "review",
+  ]);
+  const rejectFlags = {
+    ...flags,
+    decision: "request_changes",
+  };
+  const result = await criticReviewCommand(rejectFlags);
+  const review = result.completion_review as { findings?: CompletionFinding[] } | undefined;
+  const findings = review?.findings ?? [];
+  const findingIds = findings.map((f) => f.id);
+  const critic = textFlag(flags, "critic")!;
+  const token = textFlag(flags, "token")!;
+  const run = textFlag(flags, "run")!;
+  const summary = textFlag(flags, "summary", false) ?? "Critic rejected: defects found";
+
+  const markdown = formatCriticRejectBrief({
+    critic,
+    token,
+    runId: run,
+    summary,
+    findingsCount: findings.length,
+    findingIds,
+  });
+
+  return {
+    markdown,
+    run_root: run,
+    decision: "request_changes",
+    summary,
+    findings_count: findings.length,
+    findings,
+    completion_review: result.completion_review,
   };
 }

@@ -19,10 +19,12 @@ export interface CompletionFinding extends JsonObject {
   requirement_id: string;
   severity: "critical" | "important" | "minor";
   observation: string;
+  file_paths?: string[];
   evidence: JsonObject[];
   remediation: string;
   revalidation: string;
 }
+
 
 export interface CompletionResidualRisk extends JsonObject {
   id: string;

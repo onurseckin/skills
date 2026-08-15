@@ -125,3 +125,27 @@ export function formatPlanStatusBrief(
   ];
   return enforceLineLimit(lines.join("\n"), 30);
 }
+
+export interface PlanReplanParams {
+  revision: number;
+  repairRound: number;
+  newTasksCount: number;
+  repairTasks: { id: string; writeScope: readonly string[]; findingsCount: number }[];
+  runId: string;
+}
+
+export function formatPlanReplanBrief(params: PlanReplanParams): string {
+  const taskNames = params.repairTasks.map((t) => `\`${t.id}\``).join(", ") || "None";
+  const lines = [
+    `### Plan Recompiled: Wave R${params.repairRound} (Graph Revision ${params.revision})`,
+    `- **Injected Repair Tasks**: ${params.newTasksCount} tasks (${taskNames})`,
+    `- **Repair Round**: Round ${params.repairRound}`,
+    ...params.repairTasks.map(
+      (t) => `- **Task \`${t.id}\`**: Scope \`${t.writeScope.join(", ")}\` (${t.findingsCount} findings)`,
+    ),
+    `- **Validation Barrier**: Completion gate and critic audit locked until all repair tasks pass.`,
+    `- **Next Step**: Dispatch parallel batch repair implementers and validators.`,
+  ];
+  return enforceLineLimit(lines.join("\n"), 30);
+}
+

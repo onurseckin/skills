@@ -52,6 +52,29 @@ export function formatCriticReviewBrief(params: CriticReviewParams): string {
   return enforceLineLimit(lines.join("\n"), 30);
 }
 
+export interface CriticRejectParams {
+  critic: string;
+  token: string;
+  runId: string;
+  summary: string;
+  findingsCount: number;
+  findingIds: string[];
+}
+
+export function formatCriticRejectBrief(params: CriticRejectParams): string {
+  const findingsStr = params.findingIds.map((id) => `\`${id}\``).join(", ") || "None";
+  const lines = [
+    `### Completeness Critic Sign-Off: CHANGES REQUESTED (Findings Recorded)`,
+    `- **Critic**: \`${params.critic}\``,
+    `- **Summary**: ${params.summary}`,
+    `- **Findings Count**: ${params.findingsCount} (${findingsStr})`,
+    `- **Protocol Action**: Read-Only Auditor Invariant enforced. Yielding to Coordinator.`,
+    `- **Next Step**: Coordinator runs \`plan:replan\` to partition scopes and inject repair tasks.`,
+  ];
+  return enforceLineLimit(lines.join("\n"), 30);
+}
+
+
 export interface RunCompleteParams {
   runId: string;
   capsulePath: string;

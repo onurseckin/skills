@@ -189,4 +189,74 @@ describe("CLI plan commands", () => {
       "Scope collision detected between t1 and t2",
     );
   });
+
+  test("plan:replan ingests findings, partitions scopes, and increments graph_revision", async () => {
+    const repo = await mkdtemp(join(tmpdir(), "harness-plan-replan-"));
+    roots.push(repo);
+    const promptPath = join(repo, "prompt.txt");
+    await writeFile(promptPath, "Initial requirements for Drawer and Layout");
+
+    const init = await execute([
+      "plan:init",
+      "--repo",
+      repo,
+      "--run",
+      "replan-run",
+      "--prompt-file",
+      promptPath,
+    ]);
+    const run = init.run_root as string;
+
+    await execute([
+      "plan:add",
+      "--run",
+      run,
+      "--id",
+      "task-init",
+      "--label",
+      "Initial Task",
+      "--scope",
+      "src/init",
+      "--gate",
+      "bun test tests/init",
+      "--actor",
+      "planner",
+    ]);
+
+    await execute(["plan:compile", "--run", run, "--actor", "planner"]);
+
+    const findingsJson = JSON.stringify([
+      {
+        id: "F-DRAWER-01",
+        severity: "critical",
+        file_paths: ["src/components/EdgeDetailDrawer/EdgeDrawer.tsx"],
+        observation: "TS2322 in drawer toggle handler",
+        remediation: "Update Props interface",
+      },
+      {
+        id: "F-LAYOUT-01",
+        severity: "important",
+        file_paths: ["src/engine/layout/hierarchical.ts"],
+        observation: "Negative coordinate clamping bug",
+        remediation: "Clamp coordinates to zero",
+      },
+    ]);
+
+    const replan = await execute([
+      "plan:replan",
+      "--run",
+      run,
+      "--findings",
+      findingsJson,
+      "--actor",
+      "coordinator",
+    ]);
+
+    expect(replan.revision).toBe(2);
+    expect(replan.repair_round).toBe(1);
+    expect(Array.isArray(replan.new_tasks)).toBe(true);
+    expect((replan.new_tasks as string[]).length).toBe(2);
+    expect(String(replan.markdown)).toContain("### Plan Recompiled: Wave R1 (Graph Revision 2)");
+  });
 });
+

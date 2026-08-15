@@ -224,4 +224,83 @@ describe("CLI critic-ops commands", () => {
       "### Completeness Critic Sign-Off: CHANGES REQUESTED",
     );
   });
+
+  test("critic:reject records structured findings and integrates with plan:replan", async () => {
+    const { repo, run } = await setupReadyRun("critic-reject-flow");
+
+    const execInspect = await execute([
+      "run:exec",
+      "--run",
+      run,
+      "--actor",
+      "critic-gamma",
+      "--cwd",
+      repo,
+      "--",
+      "bun",
+      "gate-t1.ts",
+    ]);
+    const cmdId = execInspect.command_id as string;
+
+    const start = await execute([
+      "critic:start",
+      "--run",
+      run,
+      "--critic",
+      "critic-gamma",
+      "--repository-command-ids",
+      cmdId,
+    ]);
+    const criticToken = start.token as string;
+
+    const findingsPayload = JSON.stringify([
+      {
+        id: "F-DRAWER-01",
+        severity: "critical",
+        file_paths: ["src/components/EdgeDetailDrawer/EdgeDrawer.tsx"],
+        observation: "Missing toggle callback causing TS2322",
+        remediation: "Add onToggle prop",
+      },
+      {
+        id: "F-LAYOUT-01",
+        severity: "important",
+        file_paths: ["src/engine/layout/hierarchical.ts"],
+        observation: "Negative coordinate clamping omitted",
+        remediation: "Clamp coordinates to zero",
+      },
+    ]);
+
+    const reject = await execute([
+      "critic:reject",
+      "--run",
+      run,
+      "--critic",
+      "critic-gamma",
+      "--token",
+      criticToken,
+      "--findings",
+      findingsPayload,
+      "--summary",
+      "Rejected with 2 defects found",
+    ]);
+
+    expect(reject.decision).toBe("request_changes");
+    expect(reject.findings_count).toBe(2);
+    expect(String(reject.markdown)).toContain("CHANGES REQUESTED (Findings Recorded)");
+
+    // Coordinator now triggers plan:replan directly reading recorded findings
+    const replan = await execute([
+      "plan:replan",
+      "--run",
+      run,
+      "--actor",
+      "coordinator",
+    ]);
+
+    expect(replan.revision).toBe(2);
+    expect(replan.repair_round).toBe(1);
+    expect((replan.new_tasks as string[]).length).toBe(2);
+    expect(String(replan.markdown)).toContain("### Plan Recompiled: Wave R1 (Graph Revision 2)");
+  });
 });
+
