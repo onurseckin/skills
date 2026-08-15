@@ -25,7 +25,6 @@ export interface CompletionFinding extends JsonObject {
   revalidation: string;
 }
 
-
 export interface CompletionResidualRisk extends JsonObject {
   id: string;
   severity: "critical" | "important" | "minor";

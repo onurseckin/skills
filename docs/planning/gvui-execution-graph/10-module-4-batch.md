@@ -3,15 +3,16 @@
 **Document**: `docs/planning/gvui-execution-graph/10-module-4-batch.md`  
 **Date**: 2026-08-15  
 **Status**: Authoritative Architectural Specification  
-**Subsystem**: Multi-Agent Orchestration & Subagent Tool Protocol  
+**Subsystem**: Multi-Agent Orchestration & Subagent Tool Protocol
 
 ---
 
 ## 1. The Single-Batch Multi-Lane Invariant
 
-When the Tier 2 Coordinator finishes dynamic scope partitioning and compiles the Repair Wave DAG, it **MUST NOT** serialize subagent dispatches or wait for one lane before starting another. 
+When the Tier 2 Coordinator finishes dynamic scope partitioning and compiles the Repair Wave DAG, it **MUST NOT** serialize subagent dispatches or wait for one lane before starting another.
 
 ### Core Invariant
+
 > **All independent repair lanes must be dispatched simultaneously in a single, multi-entry `invoke_subagent` tool call.**
 
 This ensures true OS-level concurrency, minimizes wall-clock turnaround, and leverages the underlying host's parallel processing capabilities.
@@ -21,6 +22,7 @@ This ensures true OS-level concurrency, minimizes wall-clock turnaround, and lev
 ## 2. Role Sanitization & Subagent Contract
 
 The host's `invoke_subagent` schema requires:
+
 - `TypeName`: Must be an available subagent definition (e.g. `"self"`).
 - `Role`: A 2–5 word human-readable job title containing only letters, numbers, spaces, and hyphens (e.g., `"Repair Implementer: Edge Drawer"`).
 - `Model`: Defaults to `"inherit"`.

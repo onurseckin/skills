@@ -11,7 +11,6 @@ export interface FindingDetail {
   readonly revalidation_gate?: string | undefined;
 }
 
-
 export interface ScopedRepairCluster {
   readonly taskId: string;
   readonly label: string;

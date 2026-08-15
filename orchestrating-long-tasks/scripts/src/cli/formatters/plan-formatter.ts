@@ -141,11 +141,11 @@ export function formatPlanReplanBrief(params: PlanReplanParams): string {
     `- **Injected Repair Tasks**: ${params.newTasksCount} tasks (${taskNames})`,
     `- **Repair Round**: Round ${params.repairRound}`,
     ...params.repairTasks.map(
-      (t) => `- **Task \`${t.id}\`**: Scope \`${t.writeScope.join(", ")}\` (${t.findingsCount} findings)`,
+      (t) =>
+        `- **Task \`${t.id}\`**: Scope \`${t.writeScope.join(", ")}\` (${t.findingsCount} findings)`,
     ),
     `- **Validation Barrier**: Completion gate and critic audit locked until all repair tasks pass.`,
     `- **Next Step**: Dispatch parallel batch repair implementers and validators.`,
   ];
   return enforceLineLimit(lines.join("\n"), 30);
 }
-

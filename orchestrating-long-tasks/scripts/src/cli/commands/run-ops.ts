@@ -1,5 +1,5 @@
-import { realpathSync } from "node:fs";
-import { basename, dirname, isAbsolute, resolve } from "node:path";
+import { mkdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
+import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 import { HarnessError } from "../../errors/harness-error.ts";
 import { workflowPort } from "../../integration/store-ports.ts";
 import { inspectRepositoryBinding } from "../../packets/repository-identity.ts";
@@ -131,6 +131,13 @@ export async function runExecCommand(
   const gate = textFlag(flags, "gate", false);
   const rawCwd = textFlag(flags, "cwd", false);
   const actor = textFlag(flags, "actor", false) ?? "coordinator";
+  const rawSaveEvidence = flags["save-evidence"];
+  const saveEvidence =
+    rawSaveEvidence === undefined ||
+    rawSaveEvidence === true ||
+    (typeof rawSaveEvidence === "string" &&
+      rawSaveEvidence.toLowerCase() !== "false" &&
+      rawSaveEvidence !== "0");
 
   const loaded = loadRun(run);
   const repoRoot = dirname(dirname(loaded.runRoot));
@@ -161,12 +168,51 @@ export async function runExecCommand(
   const record = result.record;
   const commandStr = argv.join(" ");
   const exitCode = record.exit_code ?? 0;
-  const durationSec =
-    ((record.finished_at ? Date.parse(record.finished_at) : 0) -
-      (record.started_at ? Date.parse(record.started_at) : 0)) /
-    1000;
+  const durationMs =
+    record.started_at && record.finished_at
+      ? Math.max(0, Date.parse(record.finished_at) - Date.parse(record.started_at))
+      : 0;
+  const durationSec = durationMs / 1000;
   const outputSummary =
     exitCode === 0 ? "Command completed successfully" : "Command returned non-zero exit code";
+
+  let stdoutStr = "";
+  let stderrStr = "";
+  const lastAttempt = result.attempts?.at(-1);
+  if (lastAttempt) {
+    try {
+      if (lastAttempt.stdoutPath) {
+        stdoutStr = readFileSync(lastAttempt.stdoutPath, "utf-8");
+      }
+    } catch {}
+    try {
+      if (lastAttempt.stderrPath) {
+        stderrStr = readFileSync(lastAttempt.stderrPath, "utf-8");
+      }
+    } catch {}
+  }
+
+  const evidencePayload = {
+    id: record.id,
+    command_id: record.id,
+    argv: [...record.argv],
+    cwd: record.cwd,
+    actor: record.actor,
+    exit_code: exitCode,
+    duration_ms: durationMs,
+    stdout: stdoutStr,
+    stderr: stderrStr,
+    timestamp: record.finished_at ?? record.started_at ?? new Date().toISOString(),
+    task_id: task ?? record.task_id ?? null,
+    gate_id: gate ?? record.gate_id ?? null,
+  };
+
+  const evidenceDir = join(loaded.runRoot, "evidence");
+  const evidencePath = join(evidenceDir, `${record.id}.json`);
+  if (saveEvidence) {
+    mkdirSync(evidenceDir, { recursive: true });
+    writeFileSync(evidencePath, JSON.stringify(evidencePayload, null, 2), "utf-8");
+  }
 
   const markdown = formatRunExecBrief({
     commandStr,
@@ -183,6 +229,8 @@ export async function runExecCommand(
     command: record,
     command_id: record.id,
     exit_code: exitCode,
+    evidence_path: evidencePath,
+    evidence: evidencePayload,
     ...result,
   };
 }

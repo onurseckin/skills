@@ -21,19 +21,13 @@ describe("Scope Partitioner Algorithm", () => {
 
     test("returns shared LCA directory for multiple files in same folder", () => {
       expect(
-        computeLcaDirectory([
-          "src/engine/layout/hierarchical.ts",
-          "src/engine/layout/clamping.ts",
-        ]),
+        computeLcaDirectory(["src/engine/layout/hierarchical.ts", "src/engine/layout/clamping.ts"]),
       ).toBe("src/engine/layout");
     });
 
     test("returns common ancestor directory for sibling directories", () => {
       expect(
-        computeLcaDirectory([
-          "src/components/Drawer/Drawer.tsx",
-          "src/components/Modal/Modal.tsx",
-        ]),
+        computeLcaDirectory(["src/components/Drawer/Drawer.tsx", "src/components/Modal/Modal.tsx"]),
       ).toBe("src/components");
     });
   });
@@ -64,7 +58,9 @@ describe("Scope Partitioner Algorithm", () => {
       const clusters = partitionFindingsIntoScopes(findings, 1);
       expect(clusters).toHaveLength(2);
 
-      const drawerCluster = clusters.find((c) => c.taskId === "repair-R1-src-components-EdgeDetailDrawer");
+      const drawerCluster = clusters.find(
+        (c) => c.taskId === "repair-R1-src-components-EdgeDetailDrawer",
+      );
       const layoutCluster = clusters.find((c) => c.taskId === "repair-R1-src-engine-layout");
 
       expect(drawerCluster).toBeDefined();

@@ -1,3 +1,5 @@
+import { mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { HarnessError } from "../../errors/harness-error.ts";
 import { workflowPort } from "../../integration/store-ports.ts";
 import { loadRun } from "../../store/index.ts";
@@ -73,7 +75,8 @@ export async function taskSubmitCommand(flags: Flags): Promise<Record<string, un
   const token = textFlag(flags, "token")!;
   const summary = textFlag(flags, "summary", false) ?? "Task implementation completed";
 
-  const allTasks = (loadRun(run).state.tasks ?? {}) as Record<string, TaskRecord>;
+  const loaded = loadRun(run);
+  const allTasks = (loaded.state.tasks ?? {}) as Record<string, TaskRecord>;
   const taskBefore = allTasks[taskId];
   if (!taskBefore) throw new HarnessError("INVALID_ARGUMENT", `unknown task ${taskId}`);
 
@@ -89,6 +92,26 @@ export async function taskSubmitCommand(flags: Flags): Promise<Record<string, un
   const result = submitTask(workflowPort(run), taskId, agent, token, reportPayload);
   const task = result.state.tasks[taskId]!;
   const reportPath = `${run}/reports/${taskId}-submission.json`;
+
+  const reportsDir = join(loaded.runRoot, "reports");
+  mkdirSync(reportsDir, { recursive: true });
+  writeFileSync(
+    join(reportsDir, `${taskId}-submission.json`),
+    JSON.stringify(
+      {
+        task_id: taskId,
+        agent,
+        token,
+        summary,
+        created_at: new Date().toISOString(),
+        report: reportPayload,
+        task,
+      },
+      null,
+      2,
+    ),
+    "utf-8",
+  );
 
   const markdown = formatTaskSubmitBrief({
     taskId,

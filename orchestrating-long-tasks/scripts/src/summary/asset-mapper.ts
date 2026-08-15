@@ -61,7 +61,11 @@ export function mapMediaAssets(task: TaskRecord, commands: CommandRecord[]): Med
   }
 
   for (const cmd of commands) {
-    if (cmd.argv.some((arg) => typeof arg === "string" && (arg.includes("playwright") || arg.includes("test")))) {
+    if (
+      cmd.argv.some(
+        (arg) => typeof arg === "string" && (arg.includes("playwright") || arg.includes("test")),
+      )
+    ) {
       if (typeof cmd.stdout === "string" && cmd.stdout.includes(".png")) {
         const matches = cmd.stdout.match(/[\w\-./]+\.png/g);
         if (matches) {
@@ -93,14 +97,20 @@ export function detectPlaywrightMetadata(
 ): PlaywrightMetadata | undefined {
   const hasPlaywright =
     commands.some((c) =>
-      c.argv.some((arg) => typeof arg === "string" && (arg.includes("playwright") || arg.includes("test"))),
+      c.argv.some(
+        (arg) => typeof arg === "string" && (arg.includes("playwright") || arg.includes("test")),
+      ),
     ) || Boolean((task.report as Record<string, unknown> | undefined)?.playwright);
 
   if (!hasPlaywright && mediaAssets.length === 0) return undefined;
 
   const screenshots = mediaAssets.filter((a) => a.type === "image");
-  const testCmd = commands.find((c) => c.argv.some((arg) => typeof arg === "string" && arg.includes("test")));
-  const testFile = testCmd?.argv.find((arg) => typeof arg === "string" && (arg.includes(".test.") || arg.includes(".spec.")));
+  const testCmd = commands.find((c) =>
+    c.argv.some((arg) => typeof arg === "string" && arg.includes("test")),
+  );
+  const testFile = testCmd?.argv.find(
+    (arg) => typeof arg === "string" && (arg.includes(".test.") || arg.includes(".spec.")),
+  );
 
   return {
     viewport: { width: 1280, height: 720 },

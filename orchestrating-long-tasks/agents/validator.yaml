@@ -8,7 +8,7 @@ interface:
     enable_write_tools: false
   config:
     min_adversarial_rejections: 3 # Minimum 3 mandatory rejection rounds to stress-test implementation
-    max_repair_rounds: 6         # Maximum 6 total rounds (3 mandatory + up to 3 additional repair rounds before escalation)
+    max_repair_rounds: 6 # Maximum 6 total rounds (3 mandatory + up to 3 additional repair rounds before escalation)
   protocol:
     cli: "bun ~/.agents/skills/orchestrating-long-tasks/scripts/harness.ts"
     zero_json: true

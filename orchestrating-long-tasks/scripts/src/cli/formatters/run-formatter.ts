@@ -74,7 +74,6 @@ export function formatCriticRejectBrief(params: CriticRejectParams): string {
   return enforceLineLimit(lines.join("\n"), 30);
 }
 
-
 export interface RunCompleteParams {
   runId: string;
   capsulePath: string;

@@ -1,0 +1,131 @@
+import { enforceLineLimit } from "./line-limiter.ts";
+
+export interface FindingBriefParams {
+  finding: Record<string, unknown>;
+  path: string;
+}
+
+export function formatFindingBrief(params: FindingBriefParams): string {
+  const f = params.finding;
+  const id = String(f.id ?? "unknown");
+  const req = String(f.requirement_id ?? "none");
+  const sev = String(f.severity ?? "unknown");
+  const obs = String(f.observation ?? f.message ?? "No observation");
+  const rem = String(f.remediation ?? "None");
+  const lines = [
+    `### Finding Detail: \`${id}\``,
+    `- **Severity**: \`${sev}\``,
+    `- **Requirement ID**: \`${req}\``,
+    `- **Observation**: ${obs}`,
+    `- **Remediation**: ${rem}`,
+    `- **File Path**: \`${params.path}\``,
+  ];
+  return enforceLineLimit(lines.join("\n"), 30);
+}
+
+export interface FindingsListParams {
+  findings: Record<string, unknown>[];
+  count: number;
+}
+
+export function formatFindingsListBrief(params: FindingsListParams): string {
+  const lines = [`### Run Findings: ${params.count} total`];
+  if (params.findings.length === 0) {
+    lines.push("- No findings recorded for this run.");
+  } else {
+    for (const f of params.findings.slice(0, 10)) {
+      const id = String(f.id ?? "finding");
+      const sev = String(f.severity ?? "info");
+      const obs = String(f.observation ?? f.message ?? "").slice(0, 60);
+      lines.push(`- **\`${id}\`** [\`${sev}\`]: ${obs}`);
+    }
+    if (params.findings.length > 10) {
+      lines.push(`- ... and ${params.findings.length - 10} more findings.`);
+    }
+  }
+  return enforceLineLimit(lines.join("\n"), 30);
+}
+
+export interface ReportBriefParams {
+  report: Record<string, unknown>;
+  path: string;
+  name?: string;
+}
+
+export function formatReportBrief(params: ReportBriefParams): string {
+  const r = params.report;
+  const name = params.name ?? "Report";
+  const status = String(r.status ?? r.verdict ?? r.decision ?? "unknown");
+  const summary = String(r.summary ?? "No summary provided");
+  const lines = [
+    `### Report: \`${name}\``,
+    `- **Status / Verdict**: \`${status}\``,
+    `- **Summary**: ${summary}`,
+    `- **Path**: \`${params.path}\``,
+  ];
+  return enforceLineLimit(lines.join("\n"), 30);
+}
+
+export interface ReportsListParams {
+  reports: { name: string; path: string; data?: Record<string, unknown> }[];
+  count: number;
+}
+
+export function formatReportsListBrief(params: ReportsListParams): string {
+  const lines = [`### Run Reports: ${params.count} total`];
+  if (params.reports.length === 0) {
+    lines.push("- No reports recorded for this run.");
+  } else {
+    for (const r of params.reports.slice(0, 10)) {
+      lines.push(`- **\`${r.name}\`**: \`${r.path}\``);
+    }
+    if (params.reports.length > 10) {
+      lines.push(`- ... and ${params.reports.length - 10} more reports.`);
+    }
+  }
+  return enforceLineLimit(lines.join("\n"), 30);
+}
+
+export interface EvidenceBriefParams {
+  evidence: Record<string, unknown>;
+  path: string;
+}
+
+export function formatEvidenceBrief(params: EvidenceBriefParams): string {
+  const e = params.evidence;
+  const cmdId = String(e.command_id ?? e.id ?? "unknown");
+  const code = String(e.exit_code ?? 0);
+  const dur = typeof e.duration_ms === "number" ? `${e.duration_ms}ms` : "N/A";
+  const actor = String(e.actor ?? "unknown");
+  const argv = Array.isArray(e.argv) ? e.argv.map(String).join(" ") : "";
+  const lines = [
+    `### Evidence: \`${cmdId}\``,
+    `- **Command**: \`${argv}\``,
+    `- **Actor**: \`${actor}\` | **Exit Code**: \`${code}\` | **Duration**: \`${dur}\``,
+    `- **Path**: \`${params.path}\``,
+  ];
+  return enforceLineLimit(lines.join("\n"), 30);
+}
+
+export interface EvidenceListParams {
+  evidence: Record<string, unknown>[];
+  count: number;
+}
+
+export function formatEvidenceListBrief(params: EvidenceListParams): string {
+  const lines = [`### Run Evidence: ${params.count} commands recorded`];
+  if (params.evidence.length === 0) {
+    lines.push("- No evidence recorded for this run.");
+  } else {
+    for (const e of params.evidence.slice(0, 10)) {
+      const id = String(e.command_id ?? e.id ?? "cmd");
+      const code = String(e.exit_code ?? 0);
+      const argv = Array.isArray(e.argv) ? e.argv.map(String).join(" ").slice(0, 50) : "";
+      lines.push(`- **\`${id}\`** (exit: \`${code}\`): \`${argv}\``);
+    }
+    if (params.evidence.length > 10) {
+      lines.push(`- ... and ${params.evidence.length - 10} more evidence records.`);
+    }
+  }
+  return enforceLineLimit(lines.join("\n"), 30);
+}

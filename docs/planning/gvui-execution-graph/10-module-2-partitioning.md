@@ -3,7 +3,7 @@
 **Document**: `docs/planning/gvui-execution-graph/10-module-2-partitioning.md`  
 **Date**: 2026-08-15  
 **Status**: Authoritative Algorithmic Specification  
-**Subsystem**: Dynamic Replanning & Scope Independence  
+**Subsystem**: Dynamic Replanning & Scope Independence
 
 ---
 
@@ -18,6 +18,7 @@ $$\text{Paths}(f_i) = \{ p_{i,1}, p_{i,2}, \dots, p_{i,m_i} \}$$
 The objective of the **Scope Partitioning Algorithm** is to compute a minimal partition of disjoint write scopes:
 $$\mathcal{S} = \{ S_1, S_2, \dots, S_M \} \quad (M \le K)$$
 such that:
+
 1. **Full Coverage**: Every file path across all findings is covered by at least one write scope:
    $$\forall f_i \in \mathcal{F}, \forall p \in \text{Paths}(f_i), \exists S_j \in \mathcal{S} \text{ such that } p \subseteq S_j$$
 2. **Strict Disjointness (Zero Collisions)**: No two distinct write scopes share paths or have ancestor/descendant relationships:
@@ -99,22 +100,27 @@ export interface ScopedRepairCluster {
 ```
 
 ### Stage 1: Path Normalization & Canonicalization
+
 - Normalize path separators (`\` $\to$ `/`).
 - Strip leading `./` and trailing `/`.
 - Ensure all paths are strictly repository-relative (rejecting absolute paths or paths traversing outside repository root via `..`).
 
 ### Stage 2: Subsystem Boundary & LCA Directory Extraction
+
 For any set of paths belonging to a single finding, compute the **Lowest Common Ancestor (LCA)** directory:
+
 1. Split each path into directory segments: `["src", "components", "EdgeDrawer", "EdgeDrawer.tsx"]`.
 2. Compute the shared prefix across all paths in the finding.
 3. If the LCA is a single file, expand to its parent directory unless the file is an isolated root configuration (e.g. `vite.config.ts`).
 4. Snap to the nearest **Architectural Component Boundary** (e.g., if paths are in `src/engine/layout/clamping.ts` and `src/engine/layout/tree.ts`, snap to `src/engine/layout/`).
 
 ### Stage 3: Initial Finding Clustering
+
 - Group findings that resolve to identical LCA directory stems into candidate clusters.
 - Associate all related `FindingDetail` records with the candidate cluster.
 
 ### Stage 4: Overlap Detection & Deterministic Parent Merge
+
 - Pairwise evaluate all candidate clusters $(C_a, C_b)$ using `checkScopeOverlap(C_a.writeScope, C_b.writeScope)`:
   - If $C_a$ and $C_b$ have exact match or parent-child overlap (e.g. $C_a = \text{"src/engine"}$ and $C_b = \text{"src/engine/layout"}$):
     - **Merge Action**: Collapse $C_b$ into $C_a$, assigning the wider scope $\text{"src/engine"}$ and combining their findings.
@@ -122,6 +128,7 @@ For any set of paths belonging to a single finding, compute the **Lowest Common 
 - **Invariant**: The resulting clusters are guaranteed to pass `analyzeScopeIndependence` with zero collisions.
 
 ### Stage 5: Task Synthesis & Gate Generation
+
 - Construct a deterministic `taskId`: `repair-R<round>-<subsystem-slug>` (e.g., `repair-R1-drawer`, `repair-R1-layout`).
 - Generate focused test gate commands:
   - If package/subsystem has a co-located test directory (e.g. `tests/unit/drawer`), configure `bun test tests/unit/drawer`.
@@ -237,9 +244,9 @@ export function partitionFindingsIntoScopes(
 
 ## 5. Edge Cases & Safety Guarantees
 
-| Edge Case Scenario | Algorithmic Handling | Guarantees |
-| :--- | :--- | :--- |
-| **All findings in single file** | Scope resolves to parent directory containing that file. | Single repair task generated; zero fragmentation. |
-| **Findings in shared root files** (e.g. `package.json`, `index.html`) | Scope resolves to root `.`. Overlap detection merges any child subsystem scopes into `.` | Safe single-lane execution; prevents conflicting writes to root manifest. |
-| **Findings across 4 completely disjoint modules** | Scopes resolve to `src/moduleA`, `src/moduleB`, `src/moduleC`, `src/moduleD`. | 4 parallel repair tasks created; maximum concurrency with zero write contention. |
-| **Nested Subsystem finding + Parent finding** (e.g. `src/components/` and `src/components/EdgeDrawer/`) | Stage 4 merges `EdgeDrawer` into parent `src/components/`. | Eliminates parent-child collision; guarantees DAG compilation passes cleanly. |
+| Edge Case Scenario                                                                                      | Algorithmic Handling                                                                     | Guarantees                                                                       |
+| :------------------------------------------------------------------------------------------------------ | :--------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------- |
+| **All findings in single file**                                                                         | Scope resolves to parent directory containing that file.                                 | Single repair task generated; zero fragmentation.                                |
+| **Findings in shared root files** (e.g. `package.json`, `index.html`)                                   | Scope resolves to root `.`. Overlap detection merges any child subsystem scopes into `.` | Safe single-lane execution; prevents conflicting writes to root manifest.        |
+| **Findings across 4 completely disjoint modules**                                                       | Scopes resolve to `src/moduleA`, `src/moduleB`, `src/moduleC`, `src/moduleD`.            | 4 parallel repair tasks created; maximum concurrency with zero write contention. |
+| **Nested Subsystem finding + Parent finding** (e.g. `src/components/` and `src/components/EdgeDrawer/`) | Stage 4 merges `EdgeDrawer` into parent `src/components/`.                               | Eliminates parent-child collision; guarantees DAG compilation passes cleanly.    |

@@ -1,5 +1,5 @@
-import { dirname } from "node:path";
-import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { mkdirSync, writeFileSync } from "node:fs";
 import type { RepositoryBinding } from "../../contracts/repository.ts";
 import { HarnessError } from "../../errors/harness-error.ts";
 import { readPlanObject } from "../../graph/read-plan.ts";
@@ -8,6 +8,7 @@ import { inspectRepositoryBinding } from "../../packets/repository-identity.ts";
 import { recordRepositoryInspection } from "../../packets/repository-inspection.ts";
 import { loadRun } from "../../store/index.ts";
 import { beginCompletenessCritic } from "../../workflow/completion/begin-completeness-critic.ts";
+import { parseRawFindings } from "../../workflow/completion/parse-raw-findings.ts";
 import { recordCompletionReview } from "../../workflow/completion/record-completion-review.ts";
 import type { CompletionFinding } from "../../workflow/completion/types.ts";
 import {
@@ -21,72 +22,6 @@ function liveRepositoryBinding(run: string, expected: Readonly<RepositoryBinding
   void expected;
   const repository = dirname(dirname(loadRun(run).runRoot));
   return inspectRepositoryBinding(repository);
-}
-
-function parseRawFindings(
-  findingsRaw: string | undefined,
-  findingsFile: string | undefined,
-  firstReqId: string,
-  defaultSummary: string,
-): CompletionFinding[] {
-  let content = findingsRaw;
-  if (!content && findingsFile) {
-    try {
-      content = readFileSync(findingsFile, "utf-8");
-    } catch (err) {
-      throw new HarnessError("INVALID_ARGUMENT", `cannot read findings file: ${findingsFile}`);
-    }
-  }
-  if (!content) return [];
-
-  try {
-    const parsed = JSON.parse(content);
-    const list = Array.isArray(parsed)
-      ? parsed
-      : typeof parsed === "object" && parsed !== null && Array.isArray((parsed as Record<string, unknown>).findings)
-        ? (parsed as Record<string, unknown>).findings as unknown[]
-        : [parsed];
-
-    return list.map((item: unknown, idx: number) => {
-      const rec = (typeof item === "object" && item !== null ? item : {}) as Record<string, unknown>;
-      const id = typeof rec.id === "string" && rec.id.trim() ? rec.id.trim() : `finding-critic-${String(idx + 1).padStart(2, "0")}`;
-      const requirementId = typeof rec.requirement_id === "string" && rec.requirement_id.trim() ? rec.requirement_id.trim() : firstReqId;
-      const severity = (rec.severity === "critical" || rec.severity === "minor" ? rec.severity : "important") as CompletionFinding["severity"];
-      const observation = typeof rec.observation === "string" ? rec.observation : String(rec.finding ?? rec.message ?? defaultSummary);
-      const remediation = typeof rec.remediation === "string" ? rec.remediation : "Address identified gap prior to completion.";
-      const revalidation = typeof rec.revalidation === "string" ? rec.revalidation : "Re-run full verification gate.";
-      const filePaths = Array.isArray(rec.file_paths)
-        ? rec.file_paths.map(String)
-        : typeof rec.file_path === "string"
-          ? [rec.file_path]
-          : typeof rec.path === "string"
-            ? [rec.path]
-            : undefined;
-
-      return {
-        id,
-        requirement_id: requirementId,
-        severity,
-        observation,
-        ...(filePaths ? { file_paths: filePaths } : {}),
-        evidence: [{ kind: "state", reference: requirementId, observation }],
-        remediation,
-        revalidation,
-      };
-    });
-  } catch {
-    return [
-      {
-        id: "finding-critic-01",
-        requirement_id: firstReqId,
-        severity: "important",
-        observation: content.trim() || defaultSummary,
-        evidence: [{ kind: "state", reference: firstReqId, observation: content.trim() || defaultSummary }],
-        remediation: "Address identified gap prior to completion.",
-        revalidation: "Re-run full verification gate.",
-      },
-    ];
-  }
 }
 
 export async function criticStartCommand(flags: Flags): Promise<Record<string, unknown>> {
@@ -149,11 +84,12 @@ export async function criticReviewCommand(flags: Flags): Promise<Record<string, 
   }
 
   let reviewPayload: Record<string, unknown>;
+  const isApproved = decision === "approve";
+
   if (reviewFile !== undefined) {
     reviewPayload = await readPlanObject(reviewFile, "completion review");
     reviewPayload.critic_token = token;
   } else {
-    const isApproved = decision === "approve";
     const port = workflowPort(run);
     const state = port.read();
     const assignment = state.completion_critic;
@@ -247,8 +183,40 @@ export async function criticReviewCommand(flags: Flags): Promise<Record<string, 
     liveRepositoryBinding(run, expected),
   );
 
-  const findings = state.completion_review?.findings ?? [];
-  const firstFindingId = findings[0]?.id ?? (decision === "request_changes" ? "finding-critic-01" : undefined);
+  const loaded = loadRun(run);
+  const findings =
+    state.completion_review?.findings ??
+    (reviewPayload.findings as CompletionFinding[] | undefined) ??
+    [];
+
+  // If request_changes / not approved, persist findings to <run>/findings/<finding-id>.json
+  if (!isApproved && findings.length > 0) {
+    const findingsDir = join(loaded.runRoot, "findings");
+    mkdirSync(findingsDir, { recursive: true });
+    for (const f of findings) {
+      if (f && typeof f.id === "string") {
+        writeFileSync(join(findingsDir, `${f.id}.json`), JSON.stringify(f, null, 2), "utf-8");
+      }
+    }
+  }
+
+  // Persist critic report to <run>/reports/critic-review.json
+  const reportsDir = join(loaded.runRoot, "reports");
+  mkdirSync(reportsDir, { recursive: true });
+  const reportPath = join(reportsDir, "critic-review.json");
+  const reportData = {
+    critic,
+    token,
+    decision,
+    summary,
+    created_at: new Date().toISOString(),
+    findings,
+    completion_review: state.completion_review ?? reviewPayload,
+  };
+  writeFileSync(reportPath, JSON.stringify(reportData, null, 2), "utf-8");
+
+  const firstFindingId =
+    findings[0]?.id ?? (decision === "request_changes" ? "finding-critic-01" : undefined);
 
   const markdown = formatCriticReviewBrief({
     critic,
@@ -265,6 +233,7 @@ export async function criticReviewCommand(flags: Flags): Promise<Record<string, 
     decision,
     summary,
     completion_review: state.completion_review,
+    report_path: reportPath,
   };
 }
 

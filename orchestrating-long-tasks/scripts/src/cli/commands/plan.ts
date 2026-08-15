@@ -30,8 +30,6 @@ import {
   type CommandContext,
 } from "../options.ts";
 
-
-
 export async function planInitCommand(
   flags: Flags,
   context: CommandContext = {},
@@ -254,5 +252,3 @@ export function planCompileCommand(flags: Flags): Record<string, unknown> {
 }
 
 export { planReplanCommand } from "./plan-replan.ts";
-
-

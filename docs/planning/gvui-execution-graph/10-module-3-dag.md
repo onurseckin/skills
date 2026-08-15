@@ -3,7 +3,7 @@
 **Document**: `docs/planning/gvui-execution-graph/10-module-3-dag.md`  
 **Date**: 2026-08-15  
 **Status**: Authoritative Architectural Specification  
-**Subsystem**: Graph State Machine & Dynamic Compilation  
+**Subsystem**: Graph State Machine & Dynamic Compilation
 
 ---
 
@@ -54,6 +54,7 @@ When a late-stage validation or Completeness Critic rejects a candidate run, the
 ## 2. Formal State Transitions in `state.json`
 
 ### Transition 1: `critic:reject` (`critic-reviewed` with status `findings`)
+
 ```json
 {
   "graph_revision": 1,
@@ -83,6 +84,7 @@ When a late-stage validation or Completeness Critic rejects a candidate run, the
 ```
 
 ### Transition 2: `plan:replan` (`plan-recompiled`, Revision $1 \to 2$)
+
 ```json
 {
   "graph_revision": 2,
@@ -94,9 +96,9 @@ When a late-stage validation or Completeness Critic rejects a candidate run, the
     }
   ],
   "tasks": {
-    "task-01-types": { "status": "done", "..." : "..." },
-    "task-02-drawer": { "status": "done", "..." : "..." },
-    "task-03-layout": { "status": "done", "..." : "..." },
+    "task-01-types": { "status": "done", "...": "..." },
+    "task-02-drawer": { "status": "done", "...": "..." },
+    "task-03-layout": { "status": "done", "...": "..." },
     "repair-R1-drawer": {
       "id": "repair-R1-drawer",
       "label": "Repair Wave 1: src/components/EdgeDetailDrawer",

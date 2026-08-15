@@ -2,13 +2,14 @@
 
 **Document**: `docs/planning/gvui-execution-graph/08-streamlined-edge-system-and-traffic-drawer-plan.md`  
 **Date**: 2026-08-15  
-**Status**: Approved Architecture & Locked Planning Specification  
+**Status**: Approved Architecture & Locked Planning Specification
 
 ---
 
 ## 1. Core Visual Principles: Static by Default, Animated on Highlight
 
 ### A. Clean, Standard Edge Lines (Zero Clutter)
+
 1. **Static by Default**:
    - All edge lines and arrows on the canvas remain **static, clean, and understated**.
    - No distracting continuous background animations or multi-pattern circus lines when unselected.
@@ -37,6 +38,7 @@ Rather than altering line geometry, the **Information Badge Container** carries 
 ```
 
 ### Canvas Invariants:
+
 - **No Decorative Icons**: Removed from edge containers.
 - **No Token Chips**: Tokens belong on Node Cards, not on connection lines.
 - **Pure Numeric Step Badge**: `2`, `3`, or `3 -> 2` for cycles. Never uses the word `"Step"`.

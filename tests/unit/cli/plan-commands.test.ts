@@ -259,4 +259,3 @@ describe("CLI plan commands", () => {
     expect(String(replan.markdown)).toContain("### Plan Recompiled: Wave R1 (Graph Revision 2)");
   });
 });
-

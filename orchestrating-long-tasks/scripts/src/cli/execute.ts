@@ -25,6 +25,11 @@ import {
 } from "./commands/critic-ops.ts";
 import { runCompleteCommand, runStatusCommand, runExecCommand } from "./commands/run-ops.ts";
 import { summaryExportCommand, summaryViewCommand } from "./commands/summary-ops.ts";
+import {
+  findingGetCommand,
+  reportGetCommand,
+  evidenceGetCommand,
+} from "./commands/inspection-ops.ts";
 
 export async function execute(
   argv: readonly string[],
@@ -89,8 +94,14 @@ export async function execute(
     case "summary:view":
       return summaryViewCommand(parsed.flags) as JsonObject;
 
+    case "finding:get":
+      return findingGetCommand(parsed.flags) as JsonObject;
+    case "report:get":
+      return reportGetCommand(parsed.flags) as JsonObject;
+    case "evidence:get":
+      return evidenceGetCommand(parsed.flags) as JsonObject;
+
     default:
       throw new HarnessError("INVALID_ARGUMENT", `unknown command: ${parsed.command}`);
   }
 }
-

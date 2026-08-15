@@ -47,6 +47,7 @@ Deep technical documentation and operational contracts are available under `refe
 When running long-task execution waves, the orchestrator MUST enforce the **"Triad Floor" Invariant** (minimum 3 agents deployed) and the **"$2N + 1$" Agent Sizing Formula**, dispatching all concurrent implementers and validators simultaneously using a **single batch `invoke_subagent` tool call**:
 
 ### The Triad Floor & Atomic Implementer-Validator Pair Invariant
+
 1. **Atomic Pair Rule**: When the Coordinator deploys an Implementer agent for any task, it **MUST ALWAYS** deploy a paired independent Validator agent simultaneously. An Implementer is **NEVER** dispatched alone.
 2. **The Triad Minimum (Floor $\ge 3$)**: For any long-task workflow—even a single sequential task ($N = 1$)—there must **ALWAYS be at least 3 agents deployed**:
    - **1 Run Coordinator (Tier 2)**: Persistent manager of the capsule lifecycle, wave transitions, and milestone delivery.
@@ -63,11 +64,27 @@ When running long-task execution waves, the orchestrator MUST enforce the **"Tri
 // Correct: Single batch tool call deploying the 3-agent Triad (N=1) or multi-pair wave (N=2+)
 invoke_subagent({
   Subagents: [
-    { Role: "Implementer 1 (Task T-01)", TypeName: "self", Prompt: "Claim and implement task T-01 in run $RUN..." },
-    { Role: "Validator 1 (Task T-01)",   TypeName: "self", Prompt: "Adversarially audit task T-01 in run $RUN..." },
-    { Role: "Implementer 2 (Task T-02)", TypeName: "self", Prompt: "Claim and implement task T-02 in run $RUN..." },
-    { Role: "Validator 2 (Task T-02)",   TypeName: "self", Prompt: "Adversarially audit task T-02 in run $RUN..." },
-  ]
+    {
+      Role: "Implementer 1 (Task T-01)",
+      TypeName: "self",
+      Prompt: "Claim and implement task T-01 in run $RUN...",
+    },
+    {
+      Role: "Validator 1 (Task T-01)",
+      TypeName: "self",
+      Prompt: "Adversarially audit task T-01 in run $RUN...",
+    },
+    {
+      Role: "Implementer 2 (Task T-02)",
+      TypeName: "self",
+      Prompt: "Claim and implement task T-02 in run $RUN...",
+    },
+    {
+      Role: "Validator 2 (Task T-02)",
+      TypeName: "self",
+      Prompt: "Adversarially audit task T-02 in run $RUN...",
+    },
+  ],
 });
 ```
 
@@ -78,7 +95,6 @@ invoke_subagent({
 ---
 
 ## When to use
-
 
 Use this skill when any of these are true:
 

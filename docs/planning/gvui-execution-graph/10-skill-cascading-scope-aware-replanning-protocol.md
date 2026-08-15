@@ -3,7 +3,7 @@
 **Document**: `docs/planning/gvui-execution-graph/10-skill-cascading-scope-aware-replanning-protocol.md`  
 **Date**: 2026-08-15  
 **Status**: Approved Architecture & Locked Planning Specification  
-**Canonical Skill**: `skills/orchestrating-long-tasks`  
+**Canonical Skill**: `skills/orchestrating-long-tasks`
 
 ---
 
@@ -14,7 +14,9 @@ In long-running autonomous multi-agent engineering workflows, tasks are schedule
 If this late-stage agent detects compilation errors, type mismatches, broken regression assertions, or missing prompt requirements, a severe systemic failure occurs if the harness lacks a structured **Cascading Fan-Back Protocol**:
 
 ### The "Monolithic Single-Agent Trap" Anti-Pattern
+
 Without a structured replanning protocol, the lone agent attempts to remediate all discovered defects directly within its own session. This triggers four catastrophic failure modes:
+
 1. **Violation of Disjoint Write Scopes**: A single agent modifies files across multiple independent subsystems (e.g., React UI components, WebAssembly layout kernels, and CLI scripts), obliterating the core spatial isolation guarantees of the orchestrator.
 2. **Destruction of Independent Adversarial Validation**: The agent reviews, writes, and tests its own code modifications without an independent, non-anchored validator auditing the work.
 3. **Context Window Saturation & Semantic Drift**: Loading massive diffs and debugging logs across disparate subsystems rapidly exhausts the model's effective context window, leading to hallucinated APIs, broken imports, and cascading syntax errors.
@@ -75,6 +77,7 @@ The objective of the **Scope Partitioning Algorithm** is to compute a minimal pa
 $$\mathcal{S} = \{ S_1, S_2, \dots, S_M \} \quad (M \le K)$$
 
 ### Mathematical Guarantees:
+
 1. **Full Coverage**: Every file path across all findings is covered by at least one write scope:
    $$\forall f_i \in \mathcal{F}, \forall p \in \text{Paths}(f_i), \exists S_j \in \mathcal{S} \text{ such that } p \subseteq S_j$$
 2. **Strict Disjointness (Zero Collisions)**: No two distinct write scopes share paths or have ancestor/descendant relationships:
@@ -82,6 +85,7 @@ $$\mathcal{S} = \{ S_1, S_2, \dots, S_M \} \quad (M \le K)$$
 3. **Maximal Concurrency**: The partition maximizes $M$ (the number of parallel repair lanes) while maintaining architectural cohesion within individual subsystem directories.
 
 ### Type Definitions
+
 ```typescript
 export interface FindingDetail {
   readonly id: string;
@@ -104,6 +108,7 @@ export interface ScopedRepairCluster {
 ```
 
 ### Deterministic Implementation (TypeScript)
+
 ```typescript
 import { posix } from "node:path";
 import { checkScopeOverlap, normalizeScopePath } from "./scope-analyzer.ts";
@@ -206,6 +211,7 @@ export function partitionFindingsIntoScopes(
 ## 4. Dynamic Repair Wave DAG Compilation & State Transitions
 
 ### A. Formal State Transitions in `state.json`
+
 1. **`critic:reject`**:
    - `completion_review.status` becomes `"findings"`.
    - Populates `unresolved_finding_ids`.
@@ -217,6 +223,7 @@ export function partitionFindingsIntoScopes(
    - Event `plan-recompiled` appended to `events.jsonl`.
 
 ### B. Append-Only Hashed Audit Trail (`events.jsonl`)
+
 ```jsonl
 {"sequence": 42, "timestamp": "2026-08-15T01:10:05Z", "actor": "critic-round-1", "event": "critic-reviewed", "payload": {"status": "findings", "findings_count": 2}, "prev_hash": "a1...", "hash": "b2..."}
 {"sequence": 43, "timestamp": "2026-08-15T01:10:10Z", "actor": "coordinator", "event": "plan-recompiled", "payload": {"revision": 2, "new_tasks": ["repair-R1-drawer", "repair-R1-layout"], "repair_round": 1}, "prev_hash": "b2...", "hash": "c3..."}
@@ -234,6 +241,7 @@ export function partitionFindingsIntoScopes(
 ## 5. Parallel Batch `invoke_subagent` Integration
 
 ### A. The Single-Batch Multi-Lane Invariant
+
 The Tier 2 Coordinator **MUST** dispatch all independent repair lanes concurrently in a single `invoke_subagent` call:
 
 ```json
@@ -272,6 +280,7 @@ The Tier 2 Coordinator **MUST** dispatch all independent repair lanes concurrent
 ## 6. End-to-End Walkthrough & Worked Examples
 
 ### 7-Step Lifecycle:
+
 1. **Wave 0 Completion**: Original tasks (`task-01-types`, `task-02-drawer`, `task-03-layout`) pass unit gates and finish (`status: "done"`).
 2. **Critic Start & Audit**: Tier 3 Critic claims session via `critic:start` and audits whole-repo diff against immutable `prompt.md`.
 3. **Structured Rejection**: Critic finds TS2322 in `EdgeDrawer.tsx` and clamping bug in `hierarchical.ts`. Critic issues `critic:review --decision request_changes` with structured `review.json`.

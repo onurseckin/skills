@@ -10,13 +10,7 @@ import {
 } from "../../workflow/scope-partitioner.ts";
 import { utc } from "../../workflow/task-state.ts";
 import type { TaskRecord, GateRuntime } from "../../workflow/types.ts";
-import {
-  actorFlag,
-  assertFlags,
-  integerFlag,
-  textFlag,
-  type Flags,
-} from "../options.ts";
+import { actorFlag, assertFlags, integerFlag, textFlag, type Flags } from "../options.ts";
 
 export function planReplanCommand(flags: Flags): Record<string, unknown> {
   assertFlags(flags, ["run", "findings", "findings-file", "round", "actor", "gate"]);
@@ -46,14 +40,22 @@ export function planReplanCommand(flags: Flags): Record<string, unknown> {
         const parsed = JSON.parse(content);
         const list = Array.isArray(parsed)
           ? parsed
-          : typeof parsed === "object" && parsed !== null && Array.isArray((parsed as Record<string, unknown>).findings)
-            ? (parsed as Record<string, unknown>).findings as unknown[]
+          : typeof parsed === "object" &&
+              parsed !== null &&
+              Array.isArray((parsed as Record<string, unknown>).findings)
+            ? ((parsed as Record<string, unknown>).findings as unknown[])
             : [parsed];
 
         findingsToPartition = list.map((item: unknown, idx: number) => {
-          const rec = (typeof item === "object" && item !== null ? item : {}) as Record<string, unknown>;
+          const rec = (typeof item === "object" && item !== null ? item : {}) as Record<
+            string,
+            unknown
+          >;
           return {
-            id: typeof rec.id === "string" && rec.id.trim() ? rec.id.trim() : `finding-critic-${idx + 1}`,
+            id:
+              typeof rec.id === "string" && rec.id.trim()
+                ? rec.id.trim()
+                : `finding-critic-${idx + 1}`,
             requirement_id: typeof rec.requirement_id === "string" ? rec.requirement_id : undefined,
             severity: (rec.severity as FindingDetail["severity"]) ?? "important",
             file_paths: Array.isArray(rec.file_paths)
@@ -63,9 +65,14 @@ export function planReplanCommand(flags: Flags): Record<string, unknown> {
                 : typeof rec.path === "string"
                   ? [rec.path]
                   : [],
-            observation: typeof rec.observation === "string" ? rec.observation : String(rec.finding ?? rec.message ?? "Defect observed"),
-            remediation: typeof rec.remediation === "string" ? rec.remediation : "Address identified defect",
-            revalidation_gate: typeof rec.revalidation_gate === "string" ? rec.revalidation_gate : fallbackGate,
+            observation:
+              typeof rec.observation === "string"
+                ? rec.observation
+                : String(rec.finding ?? rec.message ?? "Defect observed"),
+            remediation:
+              typeof rec.remediation === "string" ? rec.remediation : "Address identified defect",
+            revalidation_gate:
+              typeof rec.revalidation_gate === "string" ? rec.revalidation_gate : fallbackGate,
           };
         });
       } catch {
@@ -86,7 +93,19 @@ export function planReplanCommand(flags: Flags): Record<string, unknown> {
   }
 
   if (findingsToPartition.length === 0) {
-    const criticReview = state.completion_review as { findings?: { id: string; requirement_id?: string; severity?: string; file_paths?: string[]; observation?: string; remediation?: string; revalidation?: string }[] } | undefined;
+    const criticReview = state.completion_review as
+      | {
+          findings?: {
+            id: string;
+            requirement_id?: string;
+            severity?: string;
+            file_paths?: string[];
+            observation?: string;
+            remediation?: string;
+            revalidation?: string;
+          }[];
+        }
+      | undefined;
     if (criticReview?.findings && criticReview.findings.length > 0) {
       findingsToPartition = criticReview.findings.map((f, idx) => ({
         id: f.id ?? `finding-critic-${idx + 1}`,
@@ -104,9 +123,11 @@ export function planReplanCommand(flags: Flags): Record<string, unknown> {
     throw new HarnessError("INVALID_STATE", "no findings available for replanning");
   }
 
-  const currentTasks = Object.values((state.tasks ?? {}) as Record<string, { repair_round?: number }>);
+  const currentTasks = Object.values(
+    (state.tasks ?? {}) as Record<string, { repair_round?: number }>,
+  );
   const maxRound = Math.max(0, ...currentTasks.map((t) => t.repair_round ?? 0));
-  const repairRound = roundFlag ?? (maxRound + 1);
+  const repairRound = roundFlag ?? maxRound + 1;
 
   const clusters = partitionFindingsIntoScopes(findingsToPartition, repairRound);
   if (clusters.length === 0) {
@@ -143,7 +164,10 @@ export function planReplanCommand(flags: Flags): Record<string, unknown> {
           id: cluster.taskId,
           status: "ready",
           requirement_ids: cluster.findings
-            .map((f) => f.requirement_id ?? (draft.requirements as { id?: string }[])?.[0]?.id ?? "req-1")
+            .map(
+              (f) =>
+                f.requirement_id ?? (draft.requirements as { id?: string }[])?.[0]?.id ?? "req-1",
+            )
             .filter(Boolean),
           write_scope: [...cluster.writeScope],
           dependencies: [],
@@ -161,7 +185,8 @@ export function planReplanCommand(flags: Flags): Record<string, unknown> {
           repair_round: repairRound,
           findings: cluster.findings.map((f) => ({
             id: f.id,
-            requirement_id: f.requirement_id ?? (draft.requirements as { id?: string }[])?.[0]?.id ?? "req-1",
+            requirement_id:
+              f.requirement_id ?? (draft.requirements as { id?: string }[])?.[0]?.id ?? "req-1",
             severity: f.severity === "suggestion" ? "minor" : f.severity,
             observation: f.observation,
             evidence: [],
@@ -188,9 +213,9 @@ export function planReplanCommand(flags: Flags): Record<string, unknown> {
 
       if (draft.completion_critic) {
         if (draft.completion_critic_history) {
-          const hist = (draft.completion_critic_history as { attempt: number; status: string }[]).find(
-            (h) => h.attempt === (draft.completion_critic as { attempt?: number })?.attempt,
-          );
+          const hist = (
+            draft.completion_critic_history as { attempt: number; status: string }[]
+          ).find((h) => h.attempt === (draft.completion_critic as { attempt?: number })?.attempt);
           if (hist) hist.status = "expired";
         }
         delete (draft as { completion_critic?: unknown }).completion_critic;
@@ -200,7 +225,6 @@ export function planReplanCommand(flags: Flags): Record<string, unknown> {
       draft.graph_revision = nextRev;
       totalTasksCount = Object.keys(draftTasks).length;
     },
-
   );
 
   const markdown = formatPlanReplanBrief({

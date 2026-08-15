@@ -289,13 +289,7 @@ describe("CLI critic-ops commands", () => {
     expect(String(reject.markdown)).toContain("CHANGES REQUESTED (Findings Recorded)");
 
     // Coordinator now triggers plan:replan directly reading recorded findings
-    const replan = await execute([
-      "plan:replan",
-      "--run",
-      run,
-      "--actor",
-      "coordinator",
-    ]);
+    const replan = await execute(["plan:replan", "--run", run, "--actor", "coordinator"]);
 
     expect(replan.revision).toBe(2);
     expect(replan.repair_round).toBe(1);
@@ -303,4 +297,3 @@ describe("CLI critic-ops commands", () => {
     expect(String(replan.markdown)).toContain("### Plan Recompiled: Wave R1 (Graph Revision 2)");
   });
 });
-

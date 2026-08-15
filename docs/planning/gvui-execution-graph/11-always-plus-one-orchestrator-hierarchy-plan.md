@@ -2,13 +2,14 @@
 
 **Document**: `docs/planning/gvui-execution-graph/11-always-plus-one-orchestrator-hierarchy-plan.md`  
 **Date**: 2026-08-15  
-**Status**: Authoritative Architectural Specification & Skill Standard  
+**Status**: Authoritative Architectural Specification & Skill Standard
 
 ---
 
 ## 1. Executive Summary & The Problem
 
 ### Why Subagents Were Reporting to the Main Thread
+
 In Antigravity and subagent frameworks, when Agent A calls `invoke_subagent` to spawn Agent B, the platform routes all completion messages and lifecycle signals from Agent B **directly back to Agent A**.
 
 - **The Anti-Pattern (What was happening)**: When the Main Interactive Thread (Tier 1) called `invoke_subagent` with 4 worker agents, the platform treated the Main Thread as the direct parent. Every time a worker or validator completed a task, its detailed report was delivered into the Main Thread context, interrupting and cluttering the user conversation.
@@ -103,6 +104,7 @@ When all Tier 3 tasks complete, the **Tier 2 Orchestrator Agent** acts as the fi
 ## 5. Skill Protocol Rules to Update
 
 This invariant will be integrated directly into:
+
 1. `skills/orchestrating-long-tasks/SKILL.md` and `~/.agents/skills/orchestrating-long-tasks/SKILL.md`:
    - Enforce the **"Always +1" Orchestrator Invariant** as a mandatory rule.
    - Forbid Tier 1 from invoking Tier 3 workers directly.

@@ -3,7 +3,7 @@
 **Document**: `docs/planning/gvui-execution-graph/10-module-5-walkthrough.md`  
 **Date**: 2026-08-15  
 **Status**: Concrete Reference Trace & Worked Execution Example  
-**Subsystem**: End-to-End Cascading Execution Protocol  
+**Subsystem**: End-to-End Cascading Execution Protocol
 
 ---
 
@@ -22,6 +22,7 @@
 ## 2. Step-by-Step Execution Trace
 
 ### Step 1: Critic Session Claim (`critic:start`)
+
 The Tier 3 Completeness Critic initializes an independent session:
 
 ```bash
@@ -31,8 +32,10 @@ bun ~/.agents/skills/orchestrating-long-tasks/scripts/harness.ts critic:start \
 ```
 
 **Output**:
+
 ```markdown
 ### Completeness Critic Session Started
+
 - **Critic ID**: `critic-attempt-1`
 - **Lease Token**: `tok_critic_78dfa91b`
 - **Tasks Satisfied**: 3/3 tasks completed
@@ -43,7 +46,9 @@ bun ~/.agents/skills/orchestrating-long-tasks/scripts/harness.ts critic:start \
 ---
 
 ### Step 2: Critic Audits & Detects Cross-Module Defects
+
 The Critic reviews `prompt.md` line-by-line against `git diff` and finds 2 unaddressed edge cases:
+
 1. `src/components/EdgeDetailDrawer/EdgeDrawer.tsx`: Missing toggle callback causing TS2322 compile diagnostic.
 2. `src/engine/layout/hierarchical.ts`: Negative canvas coordinate clamping omitted.
 
@@ -87,6 +92,7 @@ The Critic reviews `prompt.md` line-by-line against `git diff` and finds 2 unadd
 ```
 
 The Critic submits the rejection:
+
 ```bash
 bun ~/.agents/skills/orchestrating-long-tasks/scripts/harness.ts critic:review \
   --run /Users/onurseckinsenoglu/repos/gvui/.capsules/2026-08-15-cascading-replanning-deep-plan \
@@ -99,7 +105,9 @@ bun ~/.agents/skills/orchestrating-long-tasks/scripts/harness.ts critic:review \
 ---
 
 ### Step 3: Coordinator Dynamic Scope Partitioning & Re-Planning
+
 The Coordinator ingests `findings` from `state.json` and runs `partitionFindingsIntoScopes(findings, 1)`:
+
 - **Cluster 1**: `src/components/EdgeDetailDrawer/` $\to$ Task `repair-R1-drawer`
 - **Cluster 2**: `src/engine/layout/` $\to$ Task `repair-R1-layout`
 
@@ -108,6 +116,7 @@ The Coordinator executes `plan:replan` (or registers tasks and advances graph to
 ---
 
 ### Step 4: Parallel Batch `invoke_subagent` Dispatch
+
 The Coordinator dispatches both repair lanes concurrently in a single tool call:
 
 ```typescript
@@ -116,24 +125,27 @@ invoke_subagent({
     {
       TypeName: "self",
       Role: "Repair Implementer: Edge Drawer",
-      Prompt: "Claim repair-R1-drawer, fix F-DRAWER-01 in src/components/EdgeDetailDrawer/, submit task."
+      Prompt:
+        "Claim repair-R1-drawer, fix F-DRAWER-01 in src/components/EdgeDetailDrawer/, submit task.",
     },
     {
       TypeName: "self",
       Role: "Repair Validator: Edge Drawer",
-      Prompt: "Validate repair-R1-drawer, run gate proof bun test tests via run:exec, verify fix, review pass."
+      Prompt:
+        "Validate repair-R1-drawer, run gate proof bun test tests via run:exec, verify fix, review pass.",
     },
     {
       TypeName: "self",
       Role: "Repair Implementer: Layout Engine",
-      Prompt: "Claim repair-R1-layout, fix F-LAYOUT-01 in src/engine/layout/, submit task."
+      Prompt: "Claim repair-R1-layout, fix F-LAYOUT-01 in src/engine/layout/, submit task.",
     },
     {
       TypeName: "self",
       Role: "Repair Validator: Layout Engine",
-      Prompt: "Validate repair-R1-layout, run gate proof bun test tests via run:exec, verify fix, review pass."
-    }
-  ]
+      Prompt:
+        "Validate repair-R1-layout, run gate proof bun test tests via run:exec, verify fix, review pass.",
+    },
+  ],
 });
 ```
 
@@ -142,6 +154,7 @@ invoke_subagent({
 ### Step 5: Parallel Worker Implementation & Submission
 
 #### Lane 1: Edge Drawer
+
 ```bash
 # Worker Claims
 bun harness.ts task:claim --run $RUN --task repair-R1-drawer --agent worker-drawer --lease-seconds 1800
@@ -151,6 +164,7 @@ bun harness.ts task:submit --run $RUN --task repair-R1-drawer --agent worker-dra
 ```
 
 #### Lane 2: Layout Engine
+
 ```bash
 # Worker Claims
 bun harness.ts task:claim --run $RUN --task repair-R1-layout --agent worker-layout --lease-seconds 1800
@@ -164,6 +178,7 @@ bun harness.ts task:submit --run $RUN --task repair-R1-layout --agent worker-lay
 ### Step 6: Parallel Validator Gate Proofs & Passing Reviews
 
 #### Lane 1 Validator
+
 ```bash
 bun harness.ts task:validate-start --run $RUN --task repair-R1-drawer --validator validator-drawer
 bun harness.ts run:exec --run $RUN --task repair-R1-drawer --actor validator-drawer -- bun test tests
@@ -171,6 +186,7 @@ bun harness.ts task:review --run $RUN --task repair-R1-drawer --validator valida
 ```
 
 #### Lane 2 Validator
+
 ```bash
 bun harness.ts task:validate-start --run $RUN --task repair-R1-layout --validator validator-layout
 bun harness.ts run:exec --run $RUN --task repair-R1-layout --actor validator-layout -- bun test tests
@@ -200,8 +216,10 @@ bun harness.ts task:review --run $RUN --task repair-R1-layout --validator valida
    ```
 
 **Final Output**:
+
 ```markdown
 ### Run Completed Successfully: 2026-08-15-cascading-replanning-deep-plan
+
 - **Capsule Path**: `/Users/onurseckinsenoglu/repos/gvui/.capsules/2026-08-15-cascading-replanning-deep-plan`
 - **Total Tasks Satisfied**: 5/5 tasks done (3 original + 2 repair wave tasks)
 - **Mandatory Gates Passed**: 5/5

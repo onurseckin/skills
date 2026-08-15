@@ -2,7 +2,7 @@
 
 **Document**: `docs/planning/gvui-execution-graph/09-sequential-waves-and-multi-round-repair-model.md`  
 **Date**: 2026-08-15  
-**Status**: Authoritative Architectural Specification  
+**Status**: Authoritative Architectural Specification
 
 ---
 
@@ -80,6 +80,7 @@ When a validator finds a defect during an adversarial audit, the file-based stat
 ```
 
 ### Exact File-Based State Transitions:
+
 1. **Initial Submission**:
    - Implementer runs $\to$ executes `task:submit --task-id T-01 --report-file report.json`.
    - `state.json` marks status as `submitted`.
