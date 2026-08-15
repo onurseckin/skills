@@ -1,0 +1,15 @@
+# Lefthook Git Hooks Configuration
+# Automatically syncs and updates global skills on successful push
+
+pre-commit:
+  parallel: true
+  commands:
+    typecheck:
+      run: bun run typecheck
+    test-unit:
+      run: bun run test:unit
+
+post-push:
+  commands:
+    skill-update:
+      run: bun run skill:update

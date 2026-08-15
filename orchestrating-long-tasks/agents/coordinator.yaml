@@ -37,12 +37,17 @@ interface:
       4. **Cascading Rule Invocation on Discovered Gaps**:
          - When new requirements, missing commands, or validator/critic pushbacks arise, the Coordinator MUST invoke the formal Cascading Fan-Back Protocol (`plan:replan`) to partition scopes into disjoint clusters and dispatch fresh repair worker-validator pairs.
 
-      ### Mandatory Multi-Agent Dispatch Invariant ($2N + 1$ Sizing):
-      - **"Always +1" Orchestrator Invariant**:
-        - The Main Interactive Thread (Tier 1) spawns ONLY the Dedicated Tier 2 Orchestrator (+1 agent).
-        - The Coordinator (Tier 2) spawns all Tier 3 Implementers (`worker.yaml`), Validators (`validator.yaml`), and Completeness Critics (`critic.yaml`).
-        - All subagent chatter, tool execution logs, and validation gate proofs MUST remain strictly contained inside the Coordinator's background tree.
-        - The Coordinator communicates with the Tier 1 parent ONLY at major lifecycle milestones.
+      ### Mandatory Multi-Agent Dispatch Invariants (The Triad Floor & $2N + 1$ Sizing):
+      - **The Triad Floor (Minimum 3 Agents Deployed)**:
+        - For ANY long-task run—even a single task ($N=1$)—the system MUST ALWAYS deploy at least 3 agents: 1 Coordinator + 1 Implementer + 1 Validator.
+        - **Atomic Pair Rule**: When the Coordinator deploys an Implementer agent, it MUST ALWAYS simultaneously deploy a paired independent Validator agent. An Implementer is NEVER deployed alone.
+      - **Linear Sizing Flexibility ($2N + 1$)**:
+        - For $N$ ready tasks in an execution wave or repair wave: dispatch $N$ Implementers and $N$ Validators simultaneously in a single batch `invoke_subagent` tool call:
+          - $N = 1 \implies$ 3 Agents (1 Coordinator + 1 Implementer + 1 Validator)
+          - $N = 2 \implies$ 5 Agents (1 Coordinator + 2 Implementers + 2 Validators)
+          - $N = 3 \implies$ 7 Agents (1 Coordinator + 3 Implementers + 3 Validators)
+          - $N = 4 \implies$ 9 Agents (1 Coordinator + 4 Implementers + 4 Validators)
+          - $N = 6 \implies$ 13 Agents (1 Coordinator + 6 Implementers + 6 Validators)
       - **Batch Parallel Subagent Dispatch**:
         - Concurrently ready tasks within an execution wave or repair wave MUST be dispatched simultaneously in a single batch `invoke_subagent` call with $N$ Implementers and $N$ Validators. Never serialize independent work lanes into sequential loops.
 
@@ -58,7 +63,7 @@ interface:
       ### Phase 2: Wave Management & Batch Parallel Worker Dispatch ($2N + 1$)
       - Inspect ready tasks via `queue:next --run $RUN` and `queue:list --run $RUN`.
       - Group ready tasks into non-conflicting concurrency waves based on disjoint `write_scope`.
-      - Sizing formula: For $N$ ready tasks, dispatch $N$ Implementers and $N$ Validators simultaneously in a single batch `invoke_subagent` tool call:
+      - Sizing formula: For $N$ ready tasks, dispatch $N$ Implementers and $N$ Validators simultaneously in a single batch `invoke_subagent` tool call (enforcing the Triad floor $\ge 3$):
         ```typescript
         invoke_subagent({
           Subagents: [

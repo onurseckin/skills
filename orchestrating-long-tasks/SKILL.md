@@ -42,29 +42,36 @@ Deep technical documentation and operational contracts are available under `refe
 
 ---
 
-## Mandatory Multi-Agent Dispatch & The "Always +1" Orchestrator Invariant
+## Mandatory Multi-Agent Dispatch, The "Triad Floor" & The "$2N + 1$" Sizing Invariant
 
-When running long-task execution waves, the orchestrator MUST enforce the **"Always +1" Agent Sizing Invariant** ($2N + 1$ formula) and dispatch all concurrent implementers and validators simultaneously using a **single batch `invoke_subagent` tool call**:
+When running long-task execution waves, the orchestrator MUST enforce the **"Triad Floor" Invariant** (minimum 3 agents deployed) and the **"$2N + 1$" Agent Sizing Formula**, dispatching all concurrent implementers and validators simultaneously using a **single batch `invoke_subagent` tool call**:
 
-### The $2N + 1$ Agent Sizing Formula
-For an execution wave containing $N$ independent, parallel tasks:
-- **$N$ Task Implementers (Tier 3)**: Each assigned a strictly disjoint filesystem write scope.
-- **$N$ Adversarial Validators (Tier 3)**: Paired 1:1 with each task to conduct independent, unsanitized verification.
-- **$+1$ Run Coordinator (Tier 2)**: The dedicated background coordinator orchestrating graph state, wave transitions, lease management, and milestone reports.
-- **Total Active Subagents**: Exactly $2N + 1$ subagents running concurrently.
+### The Triad Floor & Atomic Implementer-Validator Pair Invariant
+1. **Atomic Pair Rule**: When the Coordinator deploys an Implementer agent for any task, it **MUST ALWAYS** deploy a paired independent Validator agent simultaneously. An Implementer is **NEVER** dispatched alone.
+2. **The Triad Minimum (Floor $\ge 3$)**: For any long-task workflow—even a single sequential task ($N = 1$)—there must **ALWAYS be at least 3 agents deployed**:
+   - **1 Run Coordinator (Tier 2)**: Persistent manager of the capsule lifecycle, wave transitions, and milestone delivery.
+   - **1 Task Implementer (Tier 3)**: Dedicated executor modifying code strictly within the leased `write_scope`.
+   - **1 Adversarial Validator (Tier 3)**: Independent verifier executing monitored gate proofs and the 3-round rejection gauntlet.
+3. **Linear Sizing Flexibility ($2N + 1$)**: For $N$ parallel tasks, the system scales with full flexibility:
+   - $N = 1 \implies$ **3 Agents** (1 Coordinator + 1 Implementer + 1 Validator)
+   - $N = 2 \implies$ **5 Agents** (1 Coordinator + 2 Implementers + 2 Validators)
+   - $N = 3 \implies$ **7 Agents** (1 Coordinator + 3 Implementers + 3 Validators)
+   - $N = 4 \implies$ **9 Agents** (1 Coordinator + 4 Implementers + 4 Validators)
+   - $N = 6 \implies$ **13 Agents** (1 Coordinator + 6 Implementers + 6 Validators)
 
 ```typescript
-// Correct: True parallel multi-agent dispatch in a single tool call for N=2 tasks (2N+1 architecture)
+// Correct: Single batch tool call deploying the 3-agent Triad (N=1) or multi-pair wave (N=2+)
 invoke_subagent({
   Subagents: [
-    { Role: "Implementer 1 (Task T-01)", TypeName: "self", Prompt: "..." },
-    { Role: "Validator 1 (Task T-01)",   TypeName: "self", Prompt: "..." },
-    { Role: "Implementer 2 (Task T-02)", TypeName: "self", Prompt: "..." },
-    { Role: "Validator 2 (Task T-02)",   TypeName: "self", Prompt: "..." },
+    { Role: "Implementer 1 (Task T-01)", TypeName: "self", Prompt: "Claim and implement task T-01 in run $RUN..." },
+    { Role: "Validator 1 (Task T-01)",   TypeName: "self", Prompt: "Adversarially audit task T-01 in run $RUN..." },
+    { Role: "Implementer 2 (Task T-02)", TypeName: "self", Prompt: "Claim and implement task T-02 in run $RUN..." },
+    { Role: "Validator 2 (Task T-02)",   TypeName: "self", Prompt: "Adversarially audit task T-02 in run $RUN..." },
   ]
 });
 ```
 
+- **NEVER** deploy an Implementer without its paired Validator.
 - **NEVER** run a single subagent loop to execute multiple tasks sequentially.
 - **NEVER** block the Tier 1 main interactive thread; all workers and validators run in the background tree and report exclusively to the Tier 2 Coordinator.
 

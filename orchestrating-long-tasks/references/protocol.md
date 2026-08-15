@@ -163,10 +163,10 @@ continue with no conversational context.
 
 ---
 
-## 3-Tier Multi-Agent Reporting Hierarchy & Isolation Boundaries
+## 3-Tier Multi-Agent Reporting Hierarchy, Triad Floor & Isolation Boundaries
 
 To maintain strict operational boundaries, context freshness, and zero noise on the main thread, the
-harness mandates a **3-Tier Hierarchy** governed by the **$2N + 1$ Agent Sizing Formula**:
+harness mandates a **3-Tier Hierarchy** governed by the **Triad Floor** and **$2N + 1$ Agent Sizing Formula**:
 
 ```text
 [Tier 1: Main Interactive Thread] (User interaction only)
@@ -179,6 +179,38 @@ harness mandates a **3-Tier Hierarchy** governed by the **$2N + 1$ Agent Sizing 
 [Tier 3: Task Implementers (N)]       [Tier 3: Adversarial Validators (N)]
  (Disjoint write scopes)               (Allowlisted context, mandatory gates)
 ```
+
+### The Triad Floor & Atomic Implementer-Validator Pair Invariants
+1. **The Triad Floor (Minimum 3 Agents Deployed)**:
+   - For ANY long-task run—even a single sequential task ($N=1$)—the system MUST ALWAYS deploy at least 3 agents: 1 Coordinator + 1 Implementer + 1 Validator.
+2. **Atomic Pair Rule**:
+   - When the Coordinator deploys an Implementer agent for any task, it **MUST ALWAYS** deploy a paired independent Validator agent simultaneously. An Implementer is **NEVER** dispatched alone.
+3. **Linear Sizing Flexibility ($2N + 1$)**:
+   - For $N$ ready tasks in an execution wave or repair wave: dispatch $N$ Implementers and $N$ Validators simultaneously in a single batch `invoke_subagent` tool call:
+     - $N = 1 \implies$ **3 Agents** (1 Coordinator + 1 Implementer + 1 Validator)
+     - $N = 2 \implies$ **5 Agents** (1 Coordinator + 2 Implementers + 2 Validators)
+     - $N = 3 \implies$ **7 Agents** (1 Coordinator + 3 Implementers + 3 Validators)
+     - $N = 4 \implies$ **9 Agents** (1 Coordinator + 4 Implementers + 4 Validators)
+     - $N = 6 \implies$ **13 Agents** (1 Coordinator + 6 Implementers + 6 Validators)
+
+### The 3-Round Mandatory Adversarial Validation Gauntlet
+1. **Minimum Mandatory Rejections (Min 3 Rejections)**:
+   - **Rounds 1, 2, and 3 MUST BE REJECTED** by the Validator (`task:reject`), regardless of whether the initial code passes basic tests.
+   - The Validator must actively question and stress-test the implementation:
+     - **Round 1 Pushback**: Stress-tests boundary inputs, empty/large collections, invalid unicode, and demands explicit negative test assertions.
+     - **Round 2 Pushback**: Stress-tests typing strictness, zero-any compliance, exact optional properties, memory/runtime performance, and demands missing defensive guards.
+     - **Round 3 Pushback**: Stress-tests documentation depth ("why" vs "what"), visual/layout bounds, accessibility, and demands comprehensive end-to-end integration tests.
+2. **Conditional Approval (Round 4+)**:
+   - In Round 4+, the Validator may issue `task:review --status pass` ONLY IF all prior pushback demands from Rounds 1–3 have been comprehensively satisfied with empirical test proofs and zero defects.
+3. **Configurable Thresholds**:
+   - `min_adversarial_rejections`: Default `3`.
+   - `max_repair_rounds`: Default `6` (3 mandatory + up to 3 repair rounds before escalation).
+
+### The 4 Non-Negotiable Coordinator Laws
+1. **Mandatory No-Code Edit Law**: The Coordinator is strictly forbidden from writing, editing, or patching application source code, test files, or scripts. All code modifications must be delegated to Tier 3 Implementers via `invoke_subagent`.
+2. **Harness-Only Workflow Management**: The Coordinator drives the workflow exclusively through the pinned harness CLI (`bun $PINNED <cmd>`) and host subagent dispatch (`invoke_subagent`).
+3. **Persistent Lifecycle Law (Coordinator Stays as the Last)**: The Coordinator remains active from start to final sealing, observing wave barriers and dispatching subsequent subagent waves.
+4. **Cascading Rule Invocation**: When gaps or pushbacks arise, the Coordinator invokes the Cascading Fan-Back Protocol (`plan:replan`) to partition scopes and dispatch fresh repair subagent pairs.
 
 ### Parent-Child Isolation Boundaries
 
