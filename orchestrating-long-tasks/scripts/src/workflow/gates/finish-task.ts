@@ -34,7 +34,7 @@ export function finishTask(
       if (
         covering.length > 0 &&
         covering.every((candidate) => candidate.status === "done") &&
-        draft.gates
+        (draft.gates ?? (draft as unknown as { graph?: { gates?: typeof draft.gates } }).graph?.gates ?? [])
           .filter(
             (gate) =>
               gate.scope === "task" &&

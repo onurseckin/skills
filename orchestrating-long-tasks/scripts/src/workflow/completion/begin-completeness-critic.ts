@@ -6,7 +6,7 @@ import { systemClock, type Clock, type TransactionPort, type WorkflowState } fro
 import { assertCriticIndependent } from "./critic-identity.ts";
 import { completionReadinessIssues } from "./readiness-issues.ts";
 import { completionReadinessSnapshot } from "./readiness-snapshot.ts";
-import { currentRepositoryBinding } from "./repository-binding.ts";
+import { currentRepositoryBinding, sameRepositoryBinding } from "./repository-binding.ts";
 
 const CRITIC_DURATION_MS = 20 * 60 * 1_000;
 
@@ -43,12 +43,16 @@ export function beginCompletenessCritic(
         const review = draft.completion_review;
         if (!review || review.critic_id !== current.critic_id)
           throw new HarnessError("INTEGRITY", "completion critic review history is inconsistent");
-        if (review.status === "clean")
+        if (
+          review.status === "clean" &&
+          sameRepositoryBinding(currentRepositoryBinding(draft), current.repository_binding)
+        )
           throw new HarnessError(
             "INVALID_STATE",
             "the completeness critic review is already clean",
           );
         if (
+          review.status === "findings" &&
           !(draft.completion_remediations ?? []).some(
             (entry) => entry.review_sha256 === review.review_sha256,
           )

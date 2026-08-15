@@ -31,14 +31,16 @@ export function completionReadinessSnapshot(
   const packets = Object.values(state.packets ?? {})
     .filter((packet) => packet.role !== "completeness-critic")
     .sort((left, right) => left.id.localeCompare(right.id));
-  const priorReviews = (state.completion_reviews ?? []).slice(0, Math.max(0, attempt - 1));
+  const priorReviews = (state.completion_reviews ?? [])
+    .filter((review) => review.critic_id !== activeCriticId)
+    .slice(0, Math.max(0, attempt - 1));
   const remediations = state.completion_remediations ?? [];
   const source = {
     repository_binding: currentRepositoryBinding(state),
     graph_revision: state.graph_revision ?? null,
     tasks: sortedValues(Object.values(state.tasks)),
     requirements: sortedValues(state.requirements),
-    gates: sortedValues(state.gates),
+    gates: sortedValues((state.gates ?? (state as unknown as { graph?: { gates?: typeof state.gates } }).graph?.gates ?? [])),
     commands,
     packets,
     orphan_evidence: state.orphan_evidence,
@@ -67,7 +69,8 @@ export function commandIsSuccessfulGate(
   taskId: string | null,
 ): boolean {
   const command = commandId ? state.commands[commandId] : undefined;
-  const gate = state.gates.find((entry) => entry.id === gateId);
+  const gates = (state.gates ?? (state as unknown as { graph?: { gates?: typeof state.gates } }).graph?.gates ?? []);
+  const gate = gates.find((entry) => entry.id === gateId);
   return Boolean(
     command &&
     gate &&

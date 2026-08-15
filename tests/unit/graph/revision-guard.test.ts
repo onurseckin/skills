@@ -1,0 +1,118 @@
+import { describe, expect, test } from "bun:test";
+import { guardPlanRevision } from "../../../orchestrating-long-tasks/scripts/src/graph/revision-guard.ts";
+import { validPlanningDocuments } from "./fixtures.ts";
+import { dependencyMap } from "../../../orchestrating-long-tasks/scripts/src/graph/dependency-map.ts";
+
+describe("graph revision guard", () => {
+  test("enforces initial revision and sequential increments", () => {
+    const { requirements, graph } = validPlanningDocuments();
+    const deps = dependencyMap(graph);
+
+    // Initial revision must be 1
+    const invalidInitGraph = structuredClone(graph);
+    invalidInitGraph.revision = 2;
+    expect(() => guardPlanRevision({}, requirements, invalidInitGraph, deps)).toThrow(
+      "initial graph revision must be 1",
+    );
+
+    // Initial revision 1 succeeds
+    expect(() => guardPlanRevision({}, requirements, graph, deps)).not.toThrow();
+
+    // Subsequent revision must increase by exactly 1
+    const state = {
+      graph: { revision: 1, nodes: graph.nodes, edges: graph.edges },
+      requirements,
+      tasks: {},
+    };
+    const invalidNextGraph = structuredClone(graph);
+    invalidNextGraph.revision = 3;
+    expect(() => guardPlanRevision(state, requirements, invalidNextGraph, deps)).toThrow(
+      "graph revision must increase by exactly one",
+    );
+  });
+
+  test("rejects requirement contract alterations and malformed tasks projection", () => {
+    const { requirements, graph } = validPlanningDocuments();
+    const deps = dependencyMap(graph);
+    const state = {
+      graph: { revision: 1, nodes: graph.nodes, edges: graph.edges },
+      requirements,
+      tasks: "invalid-tasks",
+    };
+
+    const nextGraph = structuredClone(graph);
+    nextGraph.revision = 2;
+
+    const modifiedReqs = structuredClone(requirements);
+    (modifiedReqs.requirements as Record<string, unknown>[])[0].instruction = "Changed instruction";
+    expect(() => guardPlanRevision(state, modifiedReqs, nextGraph, deps)).toThrow(
+      "cannot change requirement source contracts",
+    );
+
+    expect(() => guardPlanRevision(state, requirements, nextGraph, deps)).toThrow(
+      "tasks projection must be an object",
+    );
+  });
+
+  test("validates active and planned task preservation across revisions", () => {
+    const { requirements, graph } = validPlanningDocuments();
+    const deps = dependencyMap(graph);
+
+    const nextGraph = structuredClone(graph);
+    nextGraph.revision = 2;
+    // Remove task-1 from nextGraph
+    nextGraph.nodes = (nextGraph.nodes as Record<string, unknown>[]).filter(
+      (node) => node.id !== "task-1",
+    );
+
+    // Active task removed throws error
+    const activeState = {
+      graph: { revision: 1, nodes: graph.nodes, edges: graph.edges },
+      requirements,
+      tasks: {
+        "task-1": { status: "running", dependencies: [] },
+      },
+    };
+    expect(() => guardPlanRevision(activeState, requirements, nextGraph, deps)).toThrow(
+      "plan revision cannot delete active task task-1",
+    );
+
+    // Planned task removed without supersession decision throws error
+    const plannedState = {
+      graph: { revision: 1, nodes: graph.nodes, edges: graph.edges },
+      requirements,
+      tasks: {
+        "task-1": { status: "proposed", dependencies: [] },
+      },
+    };
+    expect(() => guardPlanRevision(plannedState, requirements, nextGraph, deps)).toThrow(
+      "plan revision cannot remove planned task task-1 without supersedes explanation",
+    );
+
+    // Active task missing from prior graph
+    const missingPriorState = {
+      graph: { revision: 1, nodes: [], edges: [] },
+      requirements,
+      tasks: {
+        "task-1": { status: "running", dependencies: [] },
+      },
+    };
+    const validNextGraph = structuredClone(graph);
+    validNextGraph.revision = 2;
+    expect(() => guardPlanRevision(missingPriorState, requirements, validNextGraph, deps)).toThrow(
+      "active task task-1 is missing from the prior graph",
+    );
+
+    // Active task with invalid dependency history
+    const invalidDepsState = {
+      graph: { revision: 1, nodes: graph.nodes, edges: graph.edges },
+      requirements,
+      tasks: {
+        "task-1": { status: "running", dependencies: [123] },
+      },
+    };
+    expect(() => guardPlanRevision(invalidDepsState, requirements, validNextGraph, deps)).toThrow(
+      "active task task-1 has invalid dependency history",
+    );
+  });
+});

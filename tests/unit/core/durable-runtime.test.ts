@@ -12,7 +12,11 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { atomicWriteBytes } from "../../../orchestrating-long-tasks/scripts/src/core/durable-write.ts";
+import {
+  atomicWriteBytes,
+  atomicWriteJson,
+  fsyncDirectory,
+} from "../../../orchestrating-long-tasks/scripts/src/core/durable-write.ts";
 import {
   copyPinnedRuntime,
   runtimeTreeSnapshot,
@@ -111,4 +115,44 @@ describe("durable runtime files", () => {
     ).toThrow(/changed/i);
     expect(existsSync(destination)).toBeFalse();
   });
+
+  test("atomicWriteBytes cleans up temporary file and descriptor when writing fails", () => {
+    const { root } = fixture();
+    const target = join(root, "failed-file");
+    expect(() =>
+      atomicWriteBytes(target, new TextEncoder().encode("data"), {
+        observe: (step) => {
+          if (step === "file-fsync") throw new Error("simulated failure after fsync");
+        },
+      }),
+    ).toThrow(/simulated failure/);
+    expect(existsSync(target)).toBeFalse();
+  });
+
+  test("atomicWriteBytes handles post-rename failure when directory fsync fails", () => {
+    const { root } = fixture();
+    const target = join(root, "failed-rename");
+    expect(() =>
+      atomicWriteBytes(target, new TextEncoder().encode("data"), {
+        observe: (step) => {
+          if (step === "directory-fsync") throw new Error("simulated directory fsync failure");
+        },
+      }),
+    ).toThrow(/simulated directory fsync failure/);
+  });
+
+  test("atomicWriteJson writes canonical JSON with configured file permissions", () => {
+    const { root } = fixture();
+    const target = join(root, "data.json");
+    atomicWriteJson(target, { hello: "world", count: 42 }, 0o600);
+    expect(existsSync(target)).toBeTrue();
+    expect(readFileSync(target, "utf8")).toBe('{"count":42,"hello":"world"}');
+    expect(statSync(target).mode & 0o777).toBe(0o600);
+  });
+
+  test("fsyncDirectory safely syncs an existing directory", () => {
+    const { root } = fixture();
+    expect(() => fsyncDirectory(root)).not.toThrow();
+  });
 });
+

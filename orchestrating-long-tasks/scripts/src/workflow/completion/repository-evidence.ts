@@ -18,7 +18,8 @@ export function authoritativeRepositoryCommand(
   )
     return undefined;
   if (command.gate_id === null) return command;
-  const gate = state.gates.find(
+  const gates = (state.gates ?? (state as unknown as { graph?: { gates?: typeof state.gates } }).graph?.gates ?? []);
+  const gate = gates.find(
     (candidate) => candidate.id === command.gate_id && candidate.scope === "run",
   );
   return gate && commandMatchesGate(command, gate) ? command : undefined;
