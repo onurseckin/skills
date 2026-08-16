@@ -13,7 +13,12 @@ function assessmentIssues(state: WorkflowState, review: CompletionReview): strin
   const rawReqs = state.requirements as unknown;
   const reqs = Array.isArray(rawReqs)
     ? rawReqs
-    : Object.values((rawReqs ?? {}) as Record<string, { id: string; status: string }>);
+    : rawReqs &&
+        typeof rawReqs === "object" &&
+        "requirements" in rawReqs &&
+        Array.isArray((rawReqs as { requirements: unknown }).requirements)
+      ? (rawReqs as { requirements: { id: string; status: string }[] }).requirements
+      : Object.values((rawReqs ?? {}) as Record<string, { id: string; status: string }>);
   const proofs = new Map(review.requirement_proofs.map((proof) => [proof.requirement_id, proof]));
   if (proofs.size !== reqs.length)
     issues.push("completion requirement proof coverage is incomplete");

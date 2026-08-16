@@ -31,6 +31,8 @@ import {
   evidenceGetCommand,
   evidenceScreenshotsCommand,
 } from "./commands/inspection-ops.ts";
+import { orchestratorRunCommand } from "./commands/orchestrator-ops.ts";
+
 
 export async function execute(
   argv: readonly string[],
@@ -104,7 +106,12 @@ export async function execute(
     case "evidence:screenshots":
       return evidenceScreenshotsCommand(parsed.flags) as JsonObject;
 
+    case "orchestrator:run":
+    case "orchestrator":
+      return (await orchestratorRunCommand(parsed.flags, context)) as JsonObject;
+
     default:
       throw new HarnessError("INVALID_ARGUMENT", `unknown command: ${parsed.command}`);
+
   }
 }
