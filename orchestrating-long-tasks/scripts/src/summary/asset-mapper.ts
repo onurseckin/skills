@@ -1,14 +1,17 @@
 import type { HarnessEvent, Manifest } from "../contracts/capsule.ts";
 import type { CommandRecord } from "../contracts/commands.ts";
 import type { CompletionReview, TaskRecord } from "../workflow/types.ts";
-import { mapFindingDetails } from "./asset-mapper-findings.ts";
+import { queryScreenshots } from "../reporting/screenshot-store.ts";
+import { extractFindingScreenshots, mapFindingDetails } from "./asset-mapper-findings.ts";
 import { detectPlaywrightMetadata } from "./asset-mapper-playwright.ts";
+import { extractMediaPaths, inferAssetProps } from "./asset-mapper-props.ts";
 import type {
   CommandExecutionDetail,
+  FindingDetail,
   MediaAsset,
 } from "./types.ts";
 
-export { detectPlaywrightMetadata, mapFindingDetails };
+export { detectPlaywrightMetadata, extractFindingScreenshots, mapFindingDetails };
 
 export function mapCommandDetails(commands: CommandRecord[]): CommandExecutionDetail[] {
   return commands.map((c) => {
@@ -29,109 +32,6 @@ export function mapCommandDetails(commands: CommandRecord[]): CommandExecutionDe
       ...(stderr !== undefined ? { stderrSnippet: stderr } : {}),
     };
   });
-}
-
-function extractMediaPaths(text: string): string[] {
-  const matches = text.match(
-    /(?:[a-zA-Z0-9_\-\.\/]+?\.(?:png|jpg|jpeg|svg|webm|mp4|pdf|log))\b/gi,
-  );
-  return matches
-    ? Array.from(
-        new Set(
-          matches.filter(
-            (m) =>
-              !m.startsWith("http://") &&
-              !m.startsWith("https://") &&
-              !m.includes("node_modules"),
-          ),
-        ),
-      )
-    : [];
-}
-
-function inferAssetProps(url: string, cmd?: CommandRecord, task?: TaskRecord) {
-  const filename = url.split("/").pop() || url;
-  const ext = filename.split(".").pop()?.toLowerCase() || "";
-  let type: "image" | "video" | "document" | "log" | "code" | "diagram" = "image";
-  let mimeType = "application/octet-stream";
-  let title = `Evidence: ${filename}`;
-
-  switch (ext) {
-    case "png":
-      type = "image";
-      mimeType = "image/png";
-      title = `Test Snapshot: ${filename}`;
-      break;
-    case "jpg":
-    case "jpeg":
-      type = "image";
-      mimeType = "image/jpeg";
-      title = `Test Snapshot: ${filename}`;
-      break;
-    case "svg":
-      type = "diagram";
-      mimeType = "image/svg+xml";
-      title = `Validator Layout Audit: ${filename}`;
-      break;
-    case "webm":
-      type = "video";
-      mimeType = "video/webm";
-      title = `Test Recording: ${filename}`;
-      break;
-    case "mp4":
-      type = "video";
-      mimeType = "video/mp4";
-      title = `Test Recording: ${filename}`;
-      break;
-    case "pdf":
-      type = "document";
-      mimeType = "application/pdf";
-      title = `Report Document: ${filename}`;
-      break;
-    case "log":
-      type = "log";
-      mimeType = "text/plain";
-      title = `Execution Log: ${filename}`;
-      break;
-    default:
-      type = "image";
-      mimeType = "image/png";
-      title = `Artifact: ${filename}`;
-      break;
-  }
-
-  const isVal =
-    Boolean(cmd?.gate_id) ||
-    cmd?.actor === "val" ||
-    cmd?.actor === "validator" ||
-    cmd?.actor === "critic";
-  const stage = isVal ? "validation" : "execution";
-  const description = isVal
-    ? `Captured by validator during gate check for task ${task ? task.id : "run"}`
-    : cmd
-      ? `Captured during test execution for command ${cmd.id}`
-      : `Evidence captured for task ${task ? task.id : "run"}`;
-
-  const dimensions =
-    type === "image" || type === "diagram" || type === "video"
-      ? { width: 1280, height: 720 }
-      : undefined;
-
-  let sizeBytes = 1024 * 64;
-  if (type === "video") sizeBytes = 1024 * 512;
-  else if (type === "document") sizeBytes = 1024 * 128;
-  else if (type === "diagram") sizeBytes = 1024 * 16;
-  else if (type === "log") sizeBytes = 1024 * 8;
-
-  return {
-    type,
-    mimeType,
-    title,
-    description,
-    dimensions,
-    sizeBytes,
-    stage,
-  };
 }
 
 export function mapMediaAssets(
@@ -178,8 +78,23 @@ export function mapMediaAssets(
     }
 
     if (Array.isArray(rawReport?.screenshots)) {
-      for (const s of rawReport.screenshots as MediaAsset[]) {
-        if (s && typeof s === "object" && s.url) {
+      for (const s of rawReport.screenshots as Array<MediaAsset | string>) {
+        if (typeof s === "string") {
+          const props = inferAssetProps(s, undefined, task);
+          addAsset({
+            id: `asset-${task.id}-${assets.length + 1}`,
+            type: "image",
+            url: s,
+            title: `Test Snapshot: ${s.split("/").pop()}`,
+            description: props.description,
+            timestamp: new Date().toISOString(),
+            mimeType: props.mimeType,
+            sizeBytes: props.sizeBytes,
+            dimensions: { width: 1280, height: 720 },
+            author: task.lease?.agent_id || "worker",
+            metadata: { stage: "execution" },
+          });
+        } else if (s && typeof s === "object" && s.url) {
           const props = inferAssetProps(s.url, undefined, task);
           addAsset({
             id: s.id || `asset-${task.id}-${assets.length + 1}`,
@@ -200,8 +115,23 @@ export function mapMediaAssets(
 
     const rawVal = task.validation as Record<string, unknown> | undefined;
     if (Array.isArray(rawVal?.screenshots)) {
-      for (const s of rawVal.screenshots as MediaAsset[]) {
-        if (s && typeof s === "object" && s.url) {
+      for (const s of rawVal.screenshots as Array<MediaAsset | string>) {
+        if (typeof s === "string") {
+          const props = inferAssetProps(s, undefined, task);
+          addAsset({
+            id: `asset-${task.id}-val-${assets.length + 1}`,
+            type: "image",
+            url: s,
+            title: `Validator Snapshot: ${s.split("/").pop()}`,
+            description: `Captured by validator during gate check for task ${task.id}`,
+            timestamp: typeof rawVal?.started_at === "string" ? rawVal.started_at : new Date().toISOString(),
+            mimeType: props.mimeType,
+            sizeBytes: props.sizeBytes,
+            dimensions: { width: 1280, height: 720 },
+            author: task.validation?.validator_id || "validator",
+            metadata: { stage: "validation" },
+          });
+        } else if (s && typeof s === "object" && s.url) {
           const props = inferAssetProps(s.url, undefined, task);
           addAsset({
             id: s.id || `asset-${task.id}-val-${assets.length + 1}`,
@@ -220,6 +150,34 @@ export function mapMediaAssets(
         }
       }
     }
+
+    const taskFindings: FindingDetail[] = mapFindingDetails(task, options);
+    for (const f of taskFindings) {
+      if (Array.isArray(f.screenshots)) {
+        for (const s of f.screenshots) {
+          if (s && typeof s === "object" && s.url) {
+            const props = inferAssetProps(s.url, undefined, task);
+            addAsset({
+              id: s.id || `asset-${task.id}-finding-${assets.length + 1}`,
+              type: s.type || props.type || "image",
+              url: s.url,
+              title: s.title || `Finding Snapshot: ${s.url.split("/").pop()}`,
+              description: s.description || `Evidence for finding ${f.id}`,
+              timestamp: s.timestamp || f.timestamp || new Date().toISOString(),
+              mimeType: s.mimeType || props.mimeType || "image/png",
+              sizeBytes: s.sizeBytes || props.sizeBytes || 1024 * 64,
+              dimensions: s.dimensions || props.dimensions || { width: 1280, height: 720 },
+              author: s.author || f.author || f.validatorId || task.validation?.validator_id || "validator",
+              metadata: {
+                stage: "validation",
+                findingId: f.id,
+                ...(s.metadata ?? {}),
+              },
+            });
+          }
+        }
+      }
+    }
   }
 
   if (options?.completionReview) {
@@ -232,7 +190,7 @@ export function mapMediaAssets(
           : typeof ieRec.reference === "string"
             ? ieRec.reference
             : undefined;
-      if (path && /\.(png|jpg|jpeg|svg|webm|mp4|pdf|log)$/i.test(path)) {
+      if (path && /\.(png|jpg|jpeg|webp|gif|svg|bmp|webm|mp4|pdf|log)$/i.test(path)) {
         const props = inferAssetProps(path);
         addAsset({
           id: `asset-critic-${assets.length + 1}`,
@@ -249,6 +207,65 @@ export function mapMediaAssets(
         });
       }
     }
+
+    const criticFindings: FindingDetail[] = mapFindingDetails(undefined, options);
+    for (const f of criticFindings) {
+      if (Array.isArray(f.screenshots)) {
+        for (const s of f.screenshots) {
+          if (s && typeof s === "object" && s.url) {
+            const props = inferAssetProps(s.url);
+            addAsset({
+              id: s.id || `asset-critic-finding-${assets.length + 1}`,
+              type: s.type || props.type || "image",
+              url: s.url,
+              title: s.title || `Critic Finding Snapshot: ${s.url.split("/").pop()}`,
+              description: s.description || `Evidence for critic finding ${f.id}`,
+              timestamp: s.timestamp || f.timestamp || new Date().toISOString(),
+              mimeType: s.mimeType || props.mimeType || "image/png",
+              sizeBytes: s.sizeBytes || props.sizeBytes || 1024 * 64,
+              dimensions: s.dimensions || props.dimensions || { width: 1280, height: 720 },
+              author: s.author || f.author || f.validatorId || cr.critic_id || "critic",
+              metadata: {
+                stage: "critic",
+                findingId: f.id,
+                ...(s.metadata ?? {}),
+              },
+            });
+          }
+        }
+      }
+    }
+  }
+
+  if (options?.runRoot) {
+    try {
+      const queried = queryScreenshots(options.runRoot, {
+        ...(task?.id ? { taskId: task.id } : {}),
+      });
+      for (const qs of queried) {
+        const url = qs.evidence_path || qs.report_path || qs.original_path || qs.name;
+        if (!url) continue;
+        const props = inferAssetProps(url, undefined, task);
+        const stage = qs.actor === "val" || qs.actor === "validator" ? "validation" : "execution";
+        addAsset({
+          id: `asset-screenshot-${task ? task.id : "run"}-${qs.name.replace(/[^a-zA-Z0-9_-]/g, "_")}`,
+          type: props.type || "image",
+          url,
+          title: props.title.startsWith("Test Snapshot:") ? props.title : `Test Snapshot: ${qs.name}`,
+          description: `Captured screenshot ${qs.name} for task ${task ? task.id : "run"}`,
+          timestamp: qs.timestamp || new Date().toISOString(),
+          mimeType: props.mimeType || "image/png",
+          sizeBytes: qs.size_bytes || props.sizeBytes || 1024 * 64,
+          dimensions: props.dimensions || { width: 1280, height: 720 },
+          author: qs.actor || task?.validation?.validator_id || task?.lease?.agent_id || "validator",
+          metadata: {
+            stage,
+            ...(qs.command_id ? { commandId: qs.command_id } : {}),
+            ...(qs.task_id ? { taskId: qs.task_id } : {}),
+          },
+        });
+      }
+    } catch {}
   }
 
   for (const cmd of commands) {

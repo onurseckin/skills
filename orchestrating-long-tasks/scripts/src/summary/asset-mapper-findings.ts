@@ -1,14 +1,21 @@
 import type { HarnessEvent, Manifest } from "../contracts/capsule.ts";
 import type { CompletionReview, TaskRecord } from "../workflow/types.ts";
-import type { FileRef, FindingDetail, MediaAsset } from "./types.ts";
+import { extractFindingScreenshots } from "./asset-mapper-finding-screenshots.ts";
+import { isImageExtension } from "./asset-mapper-props.ts";
+import type { FileRef, FindingDetail } from "./types.ts";
+
+export { extractFindingScreenshots };
+
+export interface FindingDetailsOptions {
+  completionReview?: CompletionReview | undefined;
+  events?: readonly HarnessEvent[] | undefined;
+  manifest?: Manifest | undefined;
+  runRoot?: string | undefined;
+}
 
 export function mapFindingDetails(
   task?: TaskRecord,
-  options?: {
-    completionReview?: CompletionReview | undefined;
-    events?: readonly HarnessEvent[] | undefined;
-    manifest?: Manifest | undefined;
-  } | undefined,
+  options?: FindingDetailsOptions | undefined,
 ): FindingDetail[] {
   const findings: FindingDetail[] = [];
   const seenIds = new Set<string>();
@@ -110,7 +117,7 @@ export function mapFindingDetails(
             ? f.rejection_round
             : typeof f.rejectionRound === "number"
               ? f.rejectionRound
-              : task.repair_round ?? 0;
+              : (task.repair_round ?? 0);
 
       const author =
         typeof f.author === "string"
@@ -168,17 +175,28 @@ export function mapFindingDetails(
         | Array<{ kind?: string | undefined; reference?: string | undefined; observation?: string | undefined; url?: string | undefined }>
         | undefined = undefined;
       if (Array.isArray(f.evidence)) {
-        evidenceList = (f.evidence as Array<Record<string, unknown>>).map((ev) => ({
-          ...(typeof ev.kind === "string" ? { kind: ev.kind } : {}),
-          ...(typeof ev.reference === "string" ? { reference: ev.reference } : {}),
-          ...(typeof ev.observation === "string" ? { observation: ev.observation } : {}),
-          ...(typeof ev.url === "string" ? { url: ev.url } : {}),
-        }));
+        evidenceList = (f.evidence as unknown[]).map((ev) => {
+          if (typeof ev === "string") {
+            return {
+              kind: isImageExtension(ev) ? "screenshot" : "reference",
+              reference: ev,
+              url: ev,
+            };
+          }
+          if (typeof ev === "object" && ev !== null) {
+            const evObj = ev as Record<string, unknown>;
+            return {
+              ...(typeof evObj.kind === "string" ? { kind: evObj.kind } : {}),
+              ...(typeof evObj.reference === "string" ? { reference: evObj.reference } : {}),
+              ...(typeof evObj.observation === "string" ? { observation: evObj.observation } : {}),
+              ...(typeof evObj.url === "string" ? { url: evObj.url } : {}),
+            };
+          }
+          return {};
+        });
       }
 
-      const screenshots = Array.isArray(f.screenshots)
-        ? (f.screenshots as MediaAsset[])
-        : undefined;
+      const extractedScreenshots = extractFindingScreenshots(f, id, author, timestamp);
 
       addFinding({
         id,
@@ -198,7 +216,7 @@ export function mapFindingDetails(
         ...(revalProof ? { revalidationProof: revalProof } : {}),
         ...(remediationProof ? { remediationProof: revalProof ?? remediationProof } : {}),
         ...(evidenceList ? { evidence: evidenceList } : {}),
-        ...(screenshots ? { screenshots } : {}),
+        ...(extractedScreenshots.length > 0 ? { screenshots: extractedScreenshots } : {}),
       });
     }
 
@@ -251,8 +269,8 @@ export function mapFindingDetails(
             severity: "important",
             observation: reason,
             pushbackReason: reason,
-            rejectionRound: typeof p.round === "number" ? p.round : task?.repair_round ?? 1,
-            round: typeof p.round === "number" ? p.round : task?.repair_round ?? 1,
+            rejectionRound: typeof p.round === "number" ? p.round : (task?.repair_round ?? 1),
+            round: typeof p.round === "number" ? p.round : (task?.repair_round ?? 1),
             author: ev.actor,
             validatorId: ev.actor,
             timestamp: ev.timestamp,
@@ -267,6 +285,13 @@ export function mapFindingDetails(
     const cr = options.completionReview;
     for (const cf of cr.findings ?? []) {
       const isUnresolved = cr.unresolved_finding_ids?.includes(cf.id);
+      const extractedScreenshots = extractFindingScreenshots(
+        cf as Record<string, unknown>,
+        cf.id,
+        cr.critic_id,
+        cr.reviewed_at,
+      );
+
       addFinding({
         id: cf.id,
         ...(cf.requirement_id ? { requirementId: cf.requirement_id } : {}),
@@ -295,6 +320,7 @@ export function mapFindingDetails(
               revalidationProof: { method: cf.revalidation, evidence: [] },
             }
           : {}),
+        ...(extractedScreenshots.length > 0 ? { screenshots: extractedScreenshots } : {}),
       });
     }
   }

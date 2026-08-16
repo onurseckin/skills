@@ -18,10 +18,11 @@ export interface GraphGeneratorInput {
   commands?: Record<string, CommandRecord>;
   events?: readonly HarnessEvent[];
   manifest?: Manifest;
+  runRoot?: string;
 }
 
 export function generateGraphDataset(input: GraphGeneratorInput): GraphDataset {
-  const { runId, state, promptText = "", events, manifest } = input;
+  const { runId, state, promptText = "", events, manifest, runRoot } = input;
   const tasks = Object.values(state.tasks ?? {}) as TaskRecord[];
   const allCommands = Object.values({
     ...(state.commands ?? {}),
@@ -52,6 +53,7 @@ export function generateGraphDataset(input: GraphGeneratorInput): GraphDataset {
       taskCmds,
       events,
       manifest,
+      runRoot,
     });
 
     nodes.push(taskNode, gateNode);
@@ -66,6 +68,7 @@ export function generateGraphDataset(input: GraphGeneratorInput): GraphDataset {
     allCommands,
     events,
     manifest,
+    runRoot,
   );
   nodes.push(criticNode, terminalNode);
   edges.push(criticCompleteEdge);

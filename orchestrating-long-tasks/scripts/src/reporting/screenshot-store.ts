@@ -1,10 +1,56 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { basename, join } from "node:path";
 import type {
+  ClippingViolation,
   EvidenceManifestData,
+  OverflowViolation,
   ScreenshotQueryOptions,
   ScreenshotRecord,
+  StackingViolation,
+  ViewportMetrics,
+  VisualMetricsReport,
 } from "./screenshot-types.ts";
+
+export function getVisualReport(runRoot: string): VisualMetricsReport | null {
+  const reportPath = join(runRoot, "reports", "visual-report.json");
+  const evidencePath = join(runRoot, "evidence", "visual-report.json");
+
+  const targetPath = existsSync(reportPath)
+    ? reportPath
+    : existsSync(evidencePath)
+      ? evidencePath
+      : undefined;
+  if (!targetPath) return null;
+
+  try {
+    const content = readFileSync(targetPath, "utf-8");
+    const parsed = JSON.parse(content) as Record<string, unknown>;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+
+    return {
+      timestamp:
+        typeof parsed.timestamp === "string" ? parsed.timestamp : new Date().toISOString(),
+      viewports:
+        parsed.viewports && typeof parsed.viewports === "object" && !Array.isArray(parsed.viewports)
+          ? (parsed.viewports as Record<string, ViewportMetrics>)
+          : {},
+      layoutOverflows: Array.isArray(parsed.layoutOverflows)
+        ? (parsed.layoutOverflows as OverflowViolation[])
+        : [],
+      textClippings: Array.isArray(parsed.textClippings)
+        ? (parsed.textClippings as ClippingViolation[])
+        : [],
+      collisions: Array.isArray(parsed.collisions)
+        ? (parsed.collisions as StackingViolation[])
+        : [],
+      ...(parsed.metadata && typeof parsed.metadata === "object" && !Array.isArray(parsed.metadata)
+        ? { metadata: parsed.metadata as Record<string, unknown> }
+        : {}),
+    };
+  } catch {
+    return null;
+  }
+}
 
 export function queryScreenshots(
   runRoot: string,

@@ -39,6 +39,7 @@ export interface GateNodeBuilderParams {
   validatorId?: string | undefined;
   taskCmds: CommandRecord[];
   events?: readonly HarnessEvent[] | undefined;
+  runRoot?: string | undefined;
 }
 
 export function buildGateNode(params: GateNodeBuilderParams): GraphNodeData {

@@ -57,6 +57,7 @@ export function generateSummarySuite(options: SummaryGenerationOptions): Summary
     commands: diskCommands,
     events: loaded.events,
     manifest: loaded.manifest,
+    runRoot: loaded.runRoot,
   });
   const markdown = formatSummaryMarkdown({
     runId,

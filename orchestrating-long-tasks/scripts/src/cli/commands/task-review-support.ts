@@ -1,7 +1,13 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { ingestScreenshots } from "../../reporting/screenshot-ingestion.ts";
-import { queryScreenshots } from "../../reporting/screenshot-store.ts";
+import {
+  ingestScreenshots,
+  ingestVisualReport,
+} from "../../reporting/screenshot-ingestion.ts";
+import {
+  getVisualReport,
+  queryScreenshots,
+} from "../../reporting/screenshot-store.ts";
 import type { ScreenshotRecord } from "../../reporting/screenshot-types.ts";
 import { attachGateResult } from "../../workflow/gates/attach-result.ts";
 import { finishTask } from "../../workflow/gates/finish-task.ts";
@@ -62,7 +68,26 @@ export function collectTaskScreenshots(
     runRoot,
     taskId,
     actor: validator,
-    searchDirs: [repoRoot, join(repoRoot, "test-results"), join(repoRoot, "screenshots")],
+    searchDirs: [
+      repoRoot,
+      join(repoRoot, "test-results"),
+      join(repoRoot, "screenshots"),
+      join(repoRoot, "playwright-report"),
+    ],
+    overwrite: true,
+  });
+
+  ingestVisualReport({
+    runRoot,
+    taskId,
+    actor: validator,
+    searchDirs: [
+      repoRoot,
+      join(repoRoot, "test-results"),
+      join(repoRoot, "screenshots"),
+      join(repoRoot, "playwright-report"),
+    ],
+    overwrite: true,
   });
 
   const directScreenshots = queryScreenshots(runRoot, { taskId });
@@ -93,7 +118,14 @@ export function persistReviewReport(
   const reportsDir = join(runRoot, "reports");
   mkdirSync(reportsDir, { recursive: true });
   const reportPath = join(reportsDir, `${taskId}-review.json`);
-  writeFileSync(reportPath, JSON.stringify(reportData, null, 2), "utf-8");
+
+  const visualReport = getVisualReport(runRoot);
+  const finalData = {
+    ...reportData,
+    ...(visualReport && !reportData.visual_report ? { visual_report: visualReport } : {}),
+  };
+
+  writeFileSync(reportPath, JSON.stringify(finalData, null, 2), "utf-8");
   return reportPath;
 }
 

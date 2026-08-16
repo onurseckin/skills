@@ -17,7 +17,10 @@ import {
 } from "../formatters/index.ts";
 import { assertFlags, boolFlag, textFlag, type Flags } from "../options.ts";
 import { generateSummarySuite } from "../../summary/generate-summary.ts";
-import { ingestScreenshots } from "../../reporting/screenshot-ingestion.ts";
+import {
+  ingestScreenshots,
+  ingestVisualReport,
+} from "../../reporting/screenshot-ingestion.ts";
 
 function liveRepositoryBinding(run: string) {
   const repository = dirname(dirname(loadRun(run).runRoot));
@@ -201,6 +204,18 @@ export async function runExecCommand(
     searchDirs: [cwd, repoRoot],
     stdout: stdoutStr,
     stderr: stderrStr,
+    overwrite: true,
+  });
+
+  const visualReport = ingestVisualReport({
+    runRoot: loaded.runRoot,
+    commandId: record.id,
+    taskId: task ?? record.task_id ?? undefined,
+    actor,
+    searchDirs: [cwd, repoRoot],
+    stdout: stdoutStr,
+    stderr: stderrStr,
+    overwrite: true,
   });
 
   const screenshotPaths = ingested.map((s) => s.evidence_path);
@@ -220,6 +235,7 @@ export async function runExecCommand(
     gate_id: gate ?? record.gate_id ?? null,
     screenshots: screenshotPaths,
     screenshot_records: ingested,
+    ...(visualReport ? { visual_report: visualReport } : {}),
   };
 
   const evidenceDir = join(loaded.runRoot, "evidence");
@@ -248,6 +264,7 @@ export async function runExecCommand(
     evidence: evidencePayload,
     screenshots: screenshotPaths,
     screenshot_records: ingested,
+    ...(visualReport ? { visual_report: visualReport } : {}),
     ...result,
   };
 }

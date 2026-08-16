@@ -51,6 +51,7 @@ export interface TaskNodeContext {
   taskCmds: CommandRecord[];
   events?: readonly HarnessEvent[] | undefined;
   manifest?: Manifest | undefined;
+  runRoot?: string | undefined;
 }
 
 export function buildTaskAndGateNodes(ctx: TaskNodeContext): {
@@ -58,7 +59,7 @@ export function buildTaskAndGateNodes(ctx: TaskNodeContext): {
   gateNode: GraphNodeData;
   taskEdges: GraphEdgeData[];
 } {
-  const { task, taskStep, taskWave, taskCmds, events, manifest } = ctx;
+  const { task, taskStep, taskWave, taskCmds, events, manifest, runRoot } = ctx;
   const taskNodeId = `node-task-${task.id}`,
     gateNodeId = `node-gate-${task.id}`;
   const taskName = typeof task.label === "string" ? task.label : task.id;
@@ -72,10 +73,12 @@ export function buildTaskAndGateNodes(ctx: TaskNodeContext): {
   const findings = mapFindingDetails(task, {
     ...(events !== undefined ? { events } : {}),
     ...(manifest !== undefined ? { manifest } : {}),
+    ...(runRoot !== undefined ? { runRoot } : {}),
   });
   const mediaAssets = mapMediaAssets(task, taskCmds, {
     ...(events !== undefined ? { events } : {}),
     ...(manifest !== undefined ? { manifest } : {}),
+    ...(runRoot !== undefined ? { runRoot } : {}),
   });
   const screenshots = mediaAssets.filter(
     (a) => a.type === "image" || a.mimeType?.startsWith("image/"),
@@ -234,6 +237,7 @@ export function buildTaskAndGateNodes(ctx: TaskNodeContext): {
     validatorId,
     taskCmds,
     events,
+    runRoot,
   });
 
   const now = new Date().toISOString();

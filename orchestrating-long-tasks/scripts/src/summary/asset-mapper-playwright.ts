@@ -16,9 +16,13 @@ export function detectPlaywrightMetadata(
 
   if (!hasPlaywright && mediaAssets.length === 0) return undefined;
 
-  const screenshots = mediaAssets.filter(
-    (a) => a.type === "image" || a.mimeType?.startsWith("image/"),
-  );
+  const screenshots = mediaAssets
+    .filter((a) => a.type === "image" || a.mimeType?.startsWith("image/"))
+    .map((s) => ({
+      ...s,
+      dimensions: s.dimensions || { width: 1280, height: 720 },
+      mimeType: s.mimeType || "image/png",
+    }));
   const videos = mediaAssets.filter((a) => a.type === "video").map((a) => a.url);
   const traces: string[] = [];
 

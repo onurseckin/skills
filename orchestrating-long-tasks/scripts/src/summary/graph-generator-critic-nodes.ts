@@ -23,6 +23,7 @@ export function buildCriticAndTerminalNodes(
   allCommands: CommandRecord[],
   events?: readonly HarnessEvent[] | undefined,
   manifest?: Manifest | undefined,
+  runRoot?: string | undefined,
 ): {
   criticNode: GraphNodeData;
   terminalNode: GraphNodeData;
@@ -33,6 +34,7 @@ export function buildCriticAndTerminalNodes(
     ...(criticReview !== undefined ? { completionReview: criticReview } : {}),
     ...(events !== undefined ? { events } : {}),
     ...(manifest !== undefined ? { manifest } : {}),
+    ...(runRoot !== undefined ? { runRoot } : {}),
   });
   const criticCmds = allCommands.filter(
     (c) =>
@@ -44,6 +46,7 @@ export function buildCriticAndTerminalNodes(
     ...(criticReview !== undefined ? { completionReview: criticReview } : {}),
     ...(events !== undefined ? { events } : {}),
     ...(manifest !== undefined ? { manifest } : {}),
+    ...(runRoot !== undefined ? { runRoot } : {}),
   });
   const criticScreenshots = criticMediaAssets.filter(
     (a) => a.type === "image" || a.mimeType?.startsWith("image/"),
@@ -93,10 +96,8 @@ export function buildCriticAndTerminalNodes(
     stepLabel: `Step ${steps.criticStep}: Completeness Critic`,
     badge: {
       text: criticReview
-        ? criticReview.status === "clean"
-          ? "Certified Clean"
-          : "Findings Recorded"
-        : "Audit Scorecard",
+        ? (criticReview.status === "clean" ? "Certified Clean" : "Findings Recorded")
+        : "Certified Clean",
       variant: criticReview?.status === "clean" ? "success" : "warning",
       icon: "IconScale",
     },
@@ -106,6 +107,11 @@ export function buildCriticAndTerminalNodes(
     mediaAssets: criticMediaAssets,
     screenshots: criticScreenshots,
   };
+  if (criticNode.badge && criticReview && criticReview.status !== "clean") {
+    criticNode.badge.text = "Findings Recorded";
+  } else if (criticNode.badge && !criticReview) {
+    criticNode.badge.text = "Audit Scorecard";
+  }
 
   const terminalNode: GraphNodeData = {
     id: "node-terminal-complete",
