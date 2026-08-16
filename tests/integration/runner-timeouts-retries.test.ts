@@ -217,7 +217,7 @@ describe("watchdog and retry policy", () => {
       cwd: dir,
       commandDir: join(dir, "commands"),
       actor: "test",
-      idleTimeoutMs: 80,
+      idleTimeoutMs: 150,
       wallTimeoutMs: 1_000,
       graceMs: 50,
     });

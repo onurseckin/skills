@@ -1,76 +1,77 @@
-import type { JsonObject } from "../contracts/json.ts";
+import type { JsonObject, JsonValue } from "../contracts/json.ts";
+import type {
+  BadgeDetail,
+  EdgeContainerDetail,
+  EdgeHandoff,
+  EdgeKind,
+  EdgeTrafficDetail,
+  EdgeTrafficExchange,
+  ExchangeFinding,
+  ExchangeResolutionProof,
+  ExchangeTransferredFile,
+  FileRef,
+  FindingDetail,
+  GraphDataset,
+  GraphEdgeData,
+  GraphNodeData as RawGraphNodeData,
+  GraphSection,
+  IoPort,
+  MediaAsset,
+  ModelTier,
+  NodeKind,
+  NodeStatus,
+  PayloadKind,
+  PlaywrightMetadata,
+} from "./graph-types.ts";
 
-export type NodeKind =
-  | "orchestrator"
-  | "agent"
-  | "tool"
-  | "router"
-  | "join"
-  | "gate"
-  | "critic"
-  | "terminal"
-  | "input";
-export type NodeStatus =
-  | "pending"
-  | "running"
-  | "success"
-  | "error"
-  | "warning"
-  | "skipped"
-  | "cached";
-export type EdgeKind =
-  | "sequence"
-  | "spawn"
-  | "conditional"
-  | "loop"
-  | "fallback"
-  | "join"
-  | "data"
-  | "dependency"
-  | "gate"
-  | "critic";
-export type PayloadKind = "prompt" | "full-context" | "summary" | "artifact" | "decision" | "file";
-export type ModelTier = "xs" | "s" | "m" | "l";
-export interface FileRef {
-  path: string;
-  mode?: "read" | "write" | "attach";
-  lines?: string;
-  diff?: string;
-  additions?: number;
-  deletions?: number;
-}
-export interface IoPort {
-  node?: string;
-  kind: PayloadKind;
-  label: string;
-  tokens?: number;
-  preview?: string;
-  dataRef?: string;
-}
+export type {
+  BadgeDetail,
+  EdgeContainerDetail,
+  EdgeHandoff,
+  EdgeKind,
+  EdgeTrafficDetail,
+  EdgeTrafficExchange,
+  ExchangeFinding,
+  ExchangeResolutionProof,
+  ExchangeTransferredFile,
+  FileRef,
+  FindingDetail,
+  GraphDataset,
+  GraphEdgeData,
+  GraphSection,
+  IoPort,
+  MediaAsset,
+  ModelTier,
+  NodeKind,
+  NodeStatus,
+  PayloadKind,
+  PlaywrightMetadata,
+};
+
 export interface TokenUsageDetail {
-  inputTokens?: number;
-  outputTokens?: number;
-  reasoningTokens?: number;
-  cacheCreationTokens?: number;
-  cacheReadTokens?: number;
-  totalTokens?: number;
-  costUsd?: number;
-  isEstimated?: boolean;
+  inputTokens?: number | undefined;
+  outputTokens?: number | undefined;
+  reasoningTokens?: number | undefined;
+  cacheCreationTokens?: number | undefined;
+  cacheReadTokens?: number | undefined;
+  totalTokens?: number | undefined;
+  costUsd?: number | undefined;
+  isEstimated?: boolean | undefined;
 }
 
 export interface HostAgentMetadata {
   hostTool: "antigravity" | "claude-code" | "cursor" | "codex" | "custom" | "unknown";
-  modelName?: string;
-  thinkingLevel?: "high" | "medium" | "low" | "off" | string;
-  modelTier?: "xs" | "s" | "m" | "l";
-  tokens?: TokenUsageDetail;
+  modelName?: string | undefined;
+  thinkingLevel?: "high" | "medium" | "low" | "off" | string | undefined;
+  modelTier?: "xs" | "s" | "m" | "l" | undefined;
+  tokens?: TokenUsageDetail | undefined;
 }
 
 export interface TimingBreakdown {
   wallDurationMs: number;
   activeCommandMs: number;
   cognitiveLatencyMs: number;
-  validationDurationMs?: number;
+  validationDurationMs?: number | undefined;
 }
 
 export interface NodeMetrics {
@@ -93,189 +94,39 @@ export interface CommandExecutionDetail {
   durationMs: number;
   startedAt: string;
   finishedAt: string;
-  stdoutSnippet?: string;
-  stderrSnippet?: string;
-  stdoutTail?: string;
-  stderrTail?: string;
-  logPath?: string;
+  stdoutSnippet?: string | undefined;
+  stderrSnippet?: string | undefined;
+  stdoutTail?: string | undefined;
+  stderrTail?: string | undefined;
+  logPath?: string | undefined;
 }
 
-export interface FindingDetail {
-  id: string;
-  requirementId?: string;
-  severity: "critical" | "important" | "suggestion";
-  observation: string;
-  remediation?: string;
-  status: "open" | "resolved";
-  revalidationProof?: { method: string; evidence: string[] };
-}
-
-export interface GraphSection {
-  id: string;
-  title: string;
-  description?: string;
-  nodeIds: string[];
-  collapsed?: boolean;
-}
-
-export interface BadgeDetail {
-  text: string;
-  variant?: "info" | "warning" | "error" | "success" | "neutral";
-  icon?: string;
-  clickable?: boolean;
-  targetTab?: "overview" | "io" | "files" | "commands" | "feedback" | string;
-}
-
-export interface MediaAsset {
-  id: string;
-  type: "image" | "video" | "audio" | "document" | "code" | "log" | string;
-  url: string;
-  title?: string;
-  description?: string;
-  thumbnailUrl?: string;
-  timestamp?: string;
-  step?: number | string;
-  author?: string;
-  mimeType?: string;
-  sizeBytes?: number;
-  dimensions?: { width: number; height: number };
-  metadata?: Record<string, unknown>;
-}
-
-export interface PlaywrightMetadata {
-  viewport?: { width: number; height: number };
-  traces?: string[];
-  videos?: string[];
-  screenshots?: MediaAsset[];
-  testFile?: string;
-  durationMs?: number;
-  browser?: string;
-  status?: "passed" | "failed" | "timedOut" | "interrupted" | string;
-  [key: string]: unknown;
-}
-
-export interface EdgeTrafficExchange {
-  id: string;
-  timestamp: string;
-  source: string;
-  target: string;
-  kind?: PayloadKind | string;
-  summary?: string;
-  tokens?: number;
-  tokensIn?: number;
-  tokensOut?: number;
-  bytes?: number;
-  durationMs?: number;
-  status?: "success" | "error" | "warning" | "in_transit" | string;
-  payloadSnippet?: string;
-  fullPayload?: string;
-  metadata?: Record<string, unknown>;
-}
-
-export interface EdgeTrafficDetail {
-  volume?: number;
-  messagesCount?: number;
-  tokens?: number;
-  tokensIn?: number;
-  tokensOut?: number;
-  latencyMs?: number;
-  bytes?: number;
-  ratePerSec?: number;
-  lastActive?: string;
-  status?: "nominal" | "high" | "congested" | "active" | "idle" | "error" | string;
-  glowColor?: string;
-  glowIntensity?: number;
-  exchanges?: EdgeTrafficExchange[];
-}
-
-export interface GraphNodeData {
-  id: string;
-  name: string;
-  description?: string;
-  type?: string;
-  kind?: NodeKind;
-  status?: NodeStatus;
-  step?: number;
-  stepLabel?: string;
-  badge?: BadgeDetail;
-  badges?: Array<{
-    label: string;
-    variant?: "success" | "info" | "amber" | "error" | "gray";
-  }>;
-  model?: string;
-  harnessModel?: string;
-  tier?: ModelTier;
-  sectionId?: string;
-  tools?: Array<{ name: string; type?: "generic" | "custom" }>;
-  files?: FileRef[];
-  metrics?: NodeMetrics;
-  io?: { inputs?: IoPort[]; outputs?: IoPort[] };
-  prompt?: string;
-  output?: string;
-  logs?: string;
+export interface GraphNodeData extends Omit<RawGraphNodeData, "metrics" | "metadata"> {
+  metrics?: NodeMetrics | undefined;
   metadata?: {
-    commands?: CommandExecutionDetail[];
-    findings?: FindingDetail[];
-    writeScope?: string[];
-    leaseAgent?: string;
-    repairRounds?: number;
-    mediaAssets?: MediaAsset[];
-    screenshots?: MediaAsset[];
-    assets?: MediaAsset[];
-    playwrightMetadata?: PlaywrightMetadata;
+    commands?: CommandExecutionDetail[] | undefined;
+    findings?: FindingDetail[] | undefined;
+    writeScope?: string[] | undefined;
+    leaseAgent?: string | undefined;
+    validator_id?: string | undefined;
+    validatorId?: string | undefined;
+    repairRounds?: number | undefined;
+    validationHistory?: unknown[] | undefined;
+    mediaAssets?: MediaAsset[] | undefined;
+    screenshots?: MediaAsset[] | undefined;
+    assets?: MediaAsset[] | undefined;
+    playwrightMetadata?: PlaywrightMetadata | undefined;
+    opposedChangesCount?: number | undefined;
+    pushbackCount?: number | undefined;
+    critic_id?: string | undefined;
+    criticId?: string | undefined;
+    status?: string | undefined;
+    unresolved_finding_ids?: string[] | undefined;
+    unresolvedFindingIds?: string[] | undefined;
+    residual_risks?: unknown[] | undefined;
+    requirement_proofs?: unknown[] | undefined;
     [key: string]: unknown;
-  };
-  mediaAssets?: MediaAsset[];
-  screenshots?: MediaAsset[];
-  rank?: number;
-  group?: string;
-}
-
-export interface EdgeHandoff {
-  kind: PayloadKind;
-  summary?: string;
-  tokens?: number;
-}
-
-export interface EdgeContainerDetail {
-  stepBadge: string;
-  title: string;
-  detail?: string;
-  variant: "info" | "warning" | "error" | "success" | "neutral" | "cyan";
-  icon?: string;
-}
-
-export interface GraphEdgeData {
-  id: string;
-  source: string;
-  target: string;
-  label?: string;
-  directed?: boolean;
-  isCycle?: boolean;
-  kind?: EdgeKind;
-  condition?: string;
-  stepNumber?: number | string;
-  badge?: BadgeDetail;
-  container?: EdgeContainerDetail;
-  handoff?: EdgeHandoff;
-  weight?: number;
-  minLen?: number;
-  traffic?: EdgeTrafficDetail;
-  isHighTraffic?: boolean;
-  trafficVolume?: number;
-  exchanges?: EdgeTrafficExchange[];
-}
-
-export interface GraphDataset {
-  id: string;
-  title: string;
-  description?: string;
-  directed?: boolean;
-  entry?: string;
-  exits?: string[];
-  sections?: GraphSection[];
-  nodes: GraphNodeData[];
-  edges: GraphEdgeData[];
+  } | undefined;
 }
 
 export interface TimelineEventRecord extends JsonObject {
@@ -293,6 +144,10 @@ export interface TimelineEventRecord extends JsonObject {
   tokens?: number;
   cost_usd?: number;
   duration_ms?: number;
+  pushback_reason?: string;
+  findings?: JsonValue;
+  severity?: string;
+  validator_id?: string;
 }
 
 export interface TokenEstimation extends JsonObject {
@@ -343,7 +198,7 @@ export interface SummarySuite {
 }
 
 export interface SummaryGenerationOptions {
-  outDir?: string;
+  outDir?: string | undefined;
   capsulePath: string;
-  writeToDisk?: boolean;
+  writeToDisk?: boolean | undefined;
 }

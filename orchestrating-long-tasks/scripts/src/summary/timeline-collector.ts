@@ -1,4 +1,5 @@
 import type { HarnessEvent } from "../contracts/capsule.ts";
+import type { JsonValue } from "../contracts/json.ts";
 import type { TimelineEventRecord } from "./types.ts";
 
 interface EventDetails {
@@ -12,6 +13,10 @@ interface EventDetails {
   tokens?: number;
   cost_usd?: number;
   duration_ms?: number;
+  pushback_reason?: string;
+  findings?: JsonValue;
+  severity?: string;
+  validator_id?: string;
 }
 
 function determinePhaseAndSummary(event: HarnessEvent, promptBytes = 0): EventDetails {
@@ -40,6 +45,26 @@ function determinePhaseAndSummary(event: HarnessEvent, promptBytes = 0): EventDe
       : typeof p.durationMs === "number"
         ? p.durationMs
         : undefined;
+  const pushbackReason =
+    typeof p.pushback_reason === "string"
+      ? p.pushback_reason
+      : typeof p.pushbackReason === "string"
+        ? p.pushbackReason
+        : typeof p.reason === "string"
+          ? p.reason
+          : undefined;
+  const validatorId =
+    typeof p.validator_id === "string"
+      ? p.validator_id
+      : typeof p.validatorId === "string"
+        ? p.validatorId
+        : typeof p.critic_id === "string"
+          ? p.critic_id
+          : typeof p.criticId === "string"
+            ? p.criticId
+            : undefined;
+  const severity = typeof p.severity === "string" ? p.severity : undefined;
+  const findingsVal = p.findings !== undefined ? (p.findings as JsonValue) : undefined;
 
   const result: EventDetails = {
     phase: "general",
@@ -47,6 +72,10 @@ function determinePhaseAndSummary(event: HarnessEvent, promptBytes = 0): EventDe
     ...(tokens !== undefined ? { tokens } : {}),
     ...(costUsd !== undefined ? { cost_usd: costUsd } : {}),
     ...(durationMs !== undefined ? { duration_ms: durationMs } : {}),
+    ...(pushbackReason !== undefined ? { pushback_reason: pushbackReason } : {}),
+    ...(findingsVal !== undefined ? { findings: findingsVal } : {}),
+    ...(severity !== undefined ? { severity } : {}),
+    ...(validatorId !== undefined ? { validator_id: validatorId } : {}),
   };
 
   switch (event.kind) {
@@ -107,6 +136,7 @@ function determinePhaseAndSummary(event: HarnessEvent, promptBytes = 0): EventDe
       result.summary = `Validation started for task ${taskId ?? gateId ?? "unknown"} by ${event.actor}`;
       if (taskId) result.task_id = taskId;
       if (gateId) result.gate_id = gateId;
+      if (!result.validator_id && event.actor) result.validator_id = event.actor;
       break;
     case "gate-completed": {
       const isPass = p.verdict === "pass" || p.status === "pass";
@@ -114,17 +144,23 @@ function determinePhaseAndSummary(event: HarnessEvent, promptBytes = 0): EventDe
       result.summary = `Gate verification for task ${taskId ?? gateId ?? "unknown"} ${isPass ? "passed" : "rejected"}`;
       if (taskId) result.task_id = taskId;
       if (gateId) result.gate_id = gateId;
+      if (!result.validator_id && event.actor) result.validator_id = event.actor;
       break;
     }
     case "review-recorded": {
       const isPass = p.verdict === "pass" || p.status === "pass";
-      const findings = Array.isArray(p.findings) ? p.findings.length : 0;
+      const findingsCount = Array.isArray(p.findings)
+        ? p.findings.length
+        : typeof p.findings === "number"
+          ? p.findings
+          : 0;
       result.phase = isPass ? "validation" : "repair";
       result.summary = isPass
         ? `Task ${taskId ?? "unknown"} passed validation review`
-        : `Task ${taskId ?? "unknown"} review requested changes (${findings} findings)`;
+        : `Task ${taskId ?? "unknown"} review requested changes (${findingsCount} findings)`;
       if (taskId) result.task_id = taskId;
       if (round !== undefined) result.round = round;
+      if (!result.validator_id && event.actor) result.validator_id = event.actor;
       break;
     }
     case "task-finished":
@@ -145,10 +181,12 @@ function determinePhaseAndSummary(event: HarnessEvent, promptBytes = 0): EventDe
     case "critic-started":
       result.phase = "review";
       result.summary = `Completeness critic review started by ${event.actor}`;
+      if (!result.validator_id && event.actor) result.validator_id = event.actor;
       break;
     case "critic-reviewed":
       result.phase = "review";
       result.summary = `Completeness critic review completed (${String(p.verdict ?? "reviewed")})`;
+      if (!result.validator_id && event.actor) result.validator_id = event.actor;
       break;
     case "run-completed":
       result.phase = "completion";
@@ -191,6 +229,10 @@ export function collectTimeline(
     if (details.tokens !== undefined) record.tokens = details.tokens;
     if (details.cost_usd !== undefined) record.cost_usd = details.cost_usd;
     if (details.duration_ms !== undefined) record.duration_ms = details.duration_ms;
+    if (details.pushback_reason !== undefined) record.pushback_reason = details.pushback_reason;
+    if (details.findings !== undefined) record.findings = details.findings;
+    if (details.severity !== undefined) record.severity = details.severity;
+    if (details.validator_id !== undefined) record.validator_id = details.validator_id;
     return record;
   });
 }

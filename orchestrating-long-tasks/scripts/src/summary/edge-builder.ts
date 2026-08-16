@@ -10,18 +10,18 @@ export function createEdge(
   detail: string,
   variant: "info" | "warning" | "error" | "success" | "neutral" | "cyan",
   icon: string,
-  isCycle?: boolean,
-  targetTab?: string,
+  isCycle?: boolean | undefined,
+  targetTab?: string | undefined,
   exchanges: EdgeTrafficExchange[] = [],
   isHighTraffic = false,
-  glowColor?: string,
-  glowIntensity?: number,
+  glowColor?: string | undefined,
+  glowIntensity?: number | undefined,
   trafficOptions?: {
-    latencyMs?: number;
-    tokensIn?: number;
-    tokensOut?: number;
-    status?: "nominal" | "high" | "congested" | "active" | "idle" | "error" | string;
-  },
+    latencyMs?: number | undefined;
+    tokensIn?: number | undefined;
+    tokensOut?: number | undefined;
+    status?: "nominal" | "high" | "congested" | "active" | "idle" | "error" | string | undefined;
+  } | undefined,
 ): GraphEdgeData {
   const totalTokens = exchanges.reduce(
     (acc, x) => acc + (x.tokens ?? ((x.tokensIn ?? 0) + (x.tokensOut ?? 0))),
@@ -40,7 +40,21 @@ export function createEdge(
       ? exchanges.reduce((acc, x) => acc + (x.durationMs ?? 0), 0)
       : 50);
 
-  const finalExchanges =
+  const defaultDirection = isCycle ? "reverse" : "forward";
+  const defaultType =
+    kind === "spawn"
+      ? "dispatch"
+      : kind === "sequence"
+        ? "submission"
+        : kind === "loop"
+          ? "rejection"
+          : kind === "dependency"
+            ? "handoff"
+            : kind === "join" || kind === "critic"
+              ? "approval"
+              : "decision";
+
+  const finalExchanges: EdgeTrafficExchange[] =
     exchanges.length > 0
       ? exchanges
       : [
@@ -49,6 +63,10 @@ export function createEdge(
             timestamp: new Date().toISOString(),
             source,
             target,
+            stepNumber,
+            ...(typeof stepNumber === "number" ? { step: stepNumber } : {}),
+            direction: defaultDirection,
+            type: defaultType,
             kind:
               kind === "spawn"
                 ? "prompt"
@@ -63,8 +81,11 @@ export function createEdge(
             tokensOut: totalTokensOut || (kind === "spawn" ? 40 : 100),
             bytes: totalBytes || 520,
             durationMs: totalLatencyMs,
+            latencyMs: totalLatencyMs,
             status: isCycle ? "warning" : "success",
             payloadSnippet: detail,
+            payloadPreview: detail,
+            fullPayload: detail,
           },
         ];
 
