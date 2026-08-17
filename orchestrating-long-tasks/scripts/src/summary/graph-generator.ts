@@ -5,11 +5,7 @@ import { buildPromptAndPlanNodes } from "./graph-generator-core-nodes.ts";
 import { buildCriticAndTerminalNodes } from "./graph-generator-critic-nodes.ts";
 import { buildTaskAndGateNodes } from "./graph-generator-helpers.ts";
 import { computeExecutionSteps } from "./step-calculator.ts";
-import type {
-  GraphDataset,
-  GraphEdgeData,
-  GraphNodeData,
-} from "./types.ts";
+import type { GraphDataset, GraphEdgeData, GraphNodeData } from "./types.ts";
 
 export interface GraphGeneratorInput {
   runId: string;

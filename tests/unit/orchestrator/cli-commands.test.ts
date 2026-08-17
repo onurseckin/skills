@@ -58,7 +58,7 @@ describe("CLI Command: orchestrator:run Standard Execution", () => {
       expect(result.all_gates_passed).toBe(true);
       expect(result.final_critic_decision).toBe("approve");
       expect(typeof result.markdown).toBe("string");
-      expect((result.markdown as string)).toContain("Autonomous Multi-Round Loop Summary");
+      expect(result.markdown as string).toContain("Autonomous Multi-Round Loop Summary");
 
       const summaryFile = join(testDir, ".capsules", "orch-cli-test-01-loop-summary.json");
       expect(existsSync(summaryFile)).toBe(true);
@@ -89,7 +89,15 @@ describe("CLI Command: orchestrator:run Standard Execution", () => {
       };
 
       const result = await execute(
-        ["orchestrator", "--repo", testDir, "--prompt", "Alias invocation test", "--run-id", "orch-alias-01"],
+        [
+          "orchestrator",
+          "--repo",
+          testDir,
+          "--prompt",
+          "Alias invocation test",
+          "--run-id",
+          "orch-alias-01",
+        ],
         { executor: mockExecutor },
       );
 
@@ -104,7 +112,11 @@ describe("CLI Command: orchestrator:run Standard Execution", () => {
     const testDir = mkdtempSync(join(tmpdir(), "cli-orch-file-"));
     try {
       const promptFilePath = join(testDir, "task-spec.md");
-      writeFileSync(promptFilePath, "# Task Specification\n\nBuild full end-to-end telemetry system.", "utf-8");
+      writeFileSync(
+        promptFilePath,
+        "# Task Specification\n\nBuild full end-to-end telemetry system.",
+        "utf-8",
+      );
 
       let receivedPrompt = "";
       const mockExecutor: RoundExecutor = {

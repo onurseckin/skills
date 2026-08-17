@@ -28,8 +28,7 @@ export function getVisualReport(runRoot: string): VisualMetricsReport | null {
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
 
     return {
-      timestamp:
-        typeof parsed.timestamp === "string" ? parsed.timestamp : new Date().toISOString(),
+      timestamp: typeof parsed.timestamp === "string" ? parsed.timestamp : new Date().toISOString(),
       viewports:
         parsed.viewports && typeof parsed.viewports === "object" && !Array.isArray(parsed.viewports)
           ? (parsed.viewports as Record<string, ViewportMetrics>)

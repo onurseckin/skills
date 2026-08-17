@@ -168,7 +168,9 @@ export class AutonomousLoopRunner {
           durationMs,
           criticDecision: result.criticDecision,
           taskCount: result.tasks.length,
-          completedTaskCount: result.tasks.filter((t) => t.status === "done" || t.status === "validated").length,
+          completedTaskCount: result.tasks.filter(
+            (t) => t.status === "done" || t.status === "validated",
+          ).length,
           openFindingsCount: openFindings.length,
           resolvedFindingsCount: resolvedFindings.length,
           gatesPassed,
@@ -178,7 +180,12 @@ export class AutonomousLoopRunner {
         roundTelemetryList.push(telemetry);
         this.onRoundComplete?.(telemetry);
 
-        if (result.status === "completed" && isApprovedByCritic && gatesPassed && openFindings.length === 0) {
+        if (
+          result.status === "completed" &&
+          isApprovedByCritic &&
+          gatesPassed &&
+          openFindings.length === 0
+        ) {
           finalStatus = "converged_success";
           break;
         }

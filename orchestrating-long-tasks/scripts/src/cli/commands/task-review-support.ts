@@ -1,13 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import {
-  ingestScreenshots,
-  ingestVisualReport,
-} from "../../reporting/screenshot-ingestion.ts";
-import {
-  getVisualReport,
-  queryScreenshots,
-} from "../../reporting/screenshot-store.ts";
+import { ingestScreenshots, ingestVisualReport } from "../../reporting/screenshot-ingestion.ts";
+import { getVisualReport, queryScreenshots } from "../../reporting/screenshot-store.ts";
 import type { ScreenshotRecord } from "../../reporting/screenshot-types.ts";
 import { attachGateResult } from "../../workflow/gates/attach-result.ts";
 import { finishTask } from "../../workflow/gates/finish-task.ts";

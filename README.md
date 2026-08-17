@@ -1,6 +1,6 @@
-# Personal Agent Skills Repository
+# Autonomous Agent Skills Monorepo
 
-Welcome to **`@onurseckin/skills`**, a centralized collection of high-performance, autonomous AI agent skills designed for seamless execution across modern AI developer environments including **Google Antigravity**, **Claude Code**, **OpenAI Codex**, and **ChatGPT Coding Agents**.
+Welcome to **`@onurseckin/skills`**, a production-grade collection of autonomous AI agent skills engineered for seamless execution across modern AI developer environments including **Google Antigravity**, **Claude Code**, **OpenAI Codex**, and **ChatGPT Coding Agents**.
 
 This repository is structured as a modular, multi-skill monorepo adhering to the universal Agent Skills specification (`SKILL.md` frontmatter + scoped reference docs + zero-dependency runtimes).
 
@@ -13,18 +13,51 @@ This repository is structured as a modular, multi-skill monorepo adhering to the
 **Durable, multi-phase, graph-scheduled task orchestration with adversarial independent validation.**
 
 - **Immutable Prompt Preservation:** Byte-for-byte SHA-256 capture before planning to eliminate scope drift and hallucinated acceptance criteria.
-- **Topological Conflict-Free Scheduling:** Dependency graph scheduling with strict write-scope and resource isolation.
-- **Adversarial Multi-Agent Validation:** Implementers cannot self-validate; independent validators generate command-backed proofs under trusted host observation.
+- **Topological Conflict-Free Scheduling:** Dependency graph compilation with strict write-scope and resource isolation.
+- **Adversarial Multi-Agent Validation:** Implementers cannot self-validate; independent validators generate command-backed proofs under trusted host observation (`run:exec`).
+- **Dual-Channel Validator Protocol:** Synthesizes computed DOM metrics (`visual-report.json`) with authentic Playwright layout screenshots (`.png`) across mobile, tablet, and desktop viewports.
+- **Cascading Scope-Aware Replanning:** Automatic fan-back and repair wave generation (`plan:replan`) upon completeness critic pushbacks.
 - **Durable Crash Recovery:** Ephemeral capsules under `.capsules/<run-id>/` allow resuming seamlessly across interruptions, restarts, or context resets.
-- **Zero Runtime Dependencies:** Pure Bun standard library and native OS bindings (`bun:sqlite`, `node:fs`, `node:crypto`, `node:child_process`). Requires no `node_modules` or `bun install` at runtime.
+- **Zero Runtime Dependencies:** Pure Bun standard library and native OS bindings (`bun:sqlite`, `node:fs`, `node:crypto`, `node:child_process`). Requires no `node_modules` or external network calls at runtime.
 
 ---
 
-## 🚀 Installation Guide
+## 🏗️ Multi-Agent Orchestration Architecture
+
+The system enforces a strict **3-Tier Hierarchy** and the **"$2N + 1$" Sizing Invariant**:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│             Tier 1: Main Interactive Chat Session           │
+│   (Dedicated to human conversation; 0 worker tool chatter)  │
+└──────────────────────────────┬──────────────────────────────┘
+                               │ Spawns 1 Coordinator
+                               ▼
+┌─────────────────────────────────────────────────────────────┐
+│             Tier 2: Background Run Coordinator              │
+│   (Owns capsule lifecycle, planning, waves, and validation) │
+└──────────────┬───────────────────────────────┬──────────────┘
+               │                               │ Spawns in background (2N+1 Triad)
+               ▼                               ▼
+        ┌─────────────┐                 ┌─────────────┐
+        │   Tier 3:   │                 │   Tier 3:   │
+        │ Implementer │                 │  Validator  │
+        │  (Task 1)   │                 │  (Task 1)   │
+        └─────────────┘                 └─────────────┘
+```
+
+1. **Tier 1 (Main Interactive Thread)**: Dedicated exclusively to user interaction, requirement intake, and milestone delivery.
+2. **Tier 2 (Background Run Coordinator)**: Persistent manager of capsule lifecycle, prompt capture, graph compilation, concurrency waves, and run completion.
+3. **Tier 3 (Implementer & Validator Pairs)**: Dispatched concurrently via `invoke_subagent`. For every implementer modifying code in a leased `write_scope`, an independent paired validator audits the work and runs mandatory gates.
+4. **Triad Floor Invariant ($\ge 3$ Agents)**: Even for a single task ($N = 1$), 3 agents are deployed (1 Coordinator + 1 Implementer + 1 Validator). For $N$ parallel tasks, $2N + 1$ agents are deployed.
+
+---
+
+## 🚀 Installation & Client Linking
 
 ### Method A: Install via `npx skills` / `bunx skills` (Recommended)
 
-You can install any skill from this repository globally or locally into your current project using standard skill discovery:
+Install any skill globally or locally into your current project:
 
 ```bash
 # Install all skills from this repository
@@ -46,7 +79,7 @@ npx skills list
 # Check for updates from GitHub
 npx skills check
 
-# Update installed skills to the latest version
+# Update installed skills to latest version
 npx skills update
 
 # Remove an installed skill
@@ -57,7 +90,7 @@ npx skills remove orchestrating-long-tasks
 
 ### Method B: Native Harness Multi-Client Installer
 
-For the `orchestrating-long-tasks` skill, you can also use the native zero-dependency installer to link the canonical skill across all supported AI assistants simultaneously:
+For `orchestrating-long-tasks`, use the native zero-dependency installer to link the canonical skill across all supported AI assistants simultaneously:
 
 ```bash
 # Install and link to Claude Code, Antigravity, Codex, and ChatGPT
@@ -70,6 +103,41 @@ bun orchestrating-long-tasks/scripts/harness.ts install \
 bun orchestrating-long-tasks/scripts/harness.ts installation-status \
   --source $(pwd)/orchestrating-long-tasks \
   --home ~
+```
+
+---
+
+## ⚡ Quickstart: Running a Multi-Agent Task
+
+```bash
+PINNED=orchestrating-long-tasks/scripts/harness.ts
+RUN=.capsules/2026-08-17-feature-implementation
+
+# 1. Initialize Capsule with immutable prompt capture
+printf "%s" "Implement user authentication and profile dashboard" | \
+  bun $PINNED plan:init --repo . --run 2026-08-17-feature-implementation --prompt-stdin
+
+# 2. Stage Modular Tasks
+bun $PINNED plan:add --run $RUN --id auth-api --label "Auth API & JWT" --scope "src/auth,src/middleware" --gate "bun test tests/auth.test.ts"
+bun $PINNED plan:add --run $RUN --id user-ui --label "User Profile UI" --scope "src/components/profile" --gate "bun test tests/profile.test.ts" --deps auth-api
+
+# 3. Compile DAG Plan
+bun $PINNED plan:compile --run $RUN --actor coordinator
+
+# 4. Claim Task & Execute Implementation
+bun $PINNED task:claim --run $RUN --task auth-api --agent worker-auth
+# (Worker edits code within src/auth and src/middleware)
+bun $PINNED task:submit --run $RUN --task auth-api --agent worker-auth --token <WORKER_TOKEN> --summary "Implemented JWT auth"
+
+# 5. Independent Validator Verification
+bun $PINNED task:validate-start --run $RUN --task auth-api --validator val-auth
+bun $PINNED run:exec --run $RUN --task auth-api --gate gate-1 --actor val-auth -- bun test tests/auth.test.ts
+bun $PINNED task:review --run $RUN --task auth-api --validator val-auth --token <VAL_TOKEN> --status pass --summary "All auth tests pass"
+
+# 6. Completeness Critic & Run Seal
+bun $PINNED critic:start --run $RUN --critic critic-1
+bun $PINNED critic:review --run $RUN --critic critic-1 --token <CRITIC_TOKEN> --decision approve --summary "Whole-diff verified against prompt"
+bun $PINNED run:complete --run $RUN --actor coordinator
 ```
 
 ---
@@ -87,6 +155,7 @@ bun orchestrating-long-tasks/scripts/harness.ts summary:export --run .capsules/<
 ```
 
 This compiles `.capsules/<run-id>/summary/`:
+
 - `graph.json` — Interactive DAG nodes, edges, subagents, and execution states.
 - `metrics.json` — Token footprints, wall-clock timing, gate pass rates.
 - `timeline.json` — Event-sourced state transitions and heartbeat logs.
@@ -111,10 +180,7 @@ Start the GVUI dev server and open the preview URL:
 bun run dev:host  # http://localhost:4444
 ```
 
-Open **`http://localhost:4444/?graph=<slug>`** to inspect:
-- **DAG Topologies**: Layered & radial graph views with real-time layout physics.
-- **Subagent Telemetry**: Worker, Validator, and Critic logs with bearer token tracking.
-- **Dual-Channel Audit Evidence**: DOM bounding metrics, Playwright screenshots, and adversarial findings.
+Open **`http://localhost:4444/?graph=<slug>`** to inspect interactive DAG topologies, subagent telemetry, dual-channel visual validation screenshots, and gate evidence.
 
 ---
 
@@ -153,61 +219,15 @@ Detailed instructions, workflows, triggers, and operational steps...
 
 ---
 
-## 💻 Development & Maintenance Mode
+## 💻 Development & Quality Invariants
 
 When developing or updating skills locally:
 
-### 1. Install Dev Dependencies
-
-Developer tooling (`typescript`, `oxfmt`, `@types/bun`, `@types/node`) is used for local typechecks and testing:
-
-```bash
-bun install
-```
-
-### 2. Run Test Suites
-
-All skills maintain comprehensive test suites:
-
-```bash
-# Run all unit, integration, and architecture tests
-bun test
-
-# Or run tests for a specific skill
-cd orchestrating-long-tasks/scripts && bun test
-```
-
-### 3. Typecheck & Formatting
-
-Enforce zero-error type safety and consistent code style:
-
-```bash
-# Run strict TypeScript compiler verification
-bun run typecheck
-
-# Format codebase
-bun run format
-```
-
-### 4. Local Testing & Verification
-
-Before pushing changes, test installing locally from your local working copy:
-
-```bash
-# Test local installation
-npx skills add ./orchestrating-long-tasks
-```
-
----
-
-## 📜 Quality Invariants
-
-All skills in this repository adhere to the following core engineering standards:
-
-1. **Zero Runtime Dependencies:** Runtime scripts must run directly via `bun` or `node` built-ins without requiring runtime `npm install`.
-2. **Context Modularity:** Keep production files within context-friendly limits ($\le 200$ lines for production sources, $\le 250$ lines for tests).
-3. **No Hardcoded Tokens or AI APIs:** Tooling must remain host-agnostic and avoid hardcoded vendor API keys or network model calls.
-4. **Strict Type Safety:** Zero TypeScript `any` types; all boundaries must use strict types with type guards.
+1. **Install Dev Dependencies**: `bun install`
+2. **Run Test Suites**: `bun test` (or `bun run test:unit`, `bun run test:integration`)
+3. **Strict Type Safety**: `bun run typecheck` (zero TypeScript `any`, zero `@ts-ignore`)
+4. **Code Formatting**: `bun run format` (using `oxfmt`)
+5. **Zero Runtime Dependencies**: All runtime scripts must run directly via `bun` standard libraries and Node built-ins without requiring runtime `node_modules`.
 
 ---
 

@@ -11,9 +11,9 @@ describe("Orchestrator YAML Specification Unit Tests", () => {
     expect(existsSync(yamlPath)).toBe(true);
 
     const content = readFileSync(yamlPath, "utf-8");
-    expect(content).toContain("role: \"orchestrator\"");
+    expect(content).toContain('role: "orchestrator"');
     expect(content).toContain("tier: 1");
-    expect(content).toContain("display_name: \"Meta-Orchestrator & Loop Runner\"");
+    expect(content).toContain('display_name: "Meta-Orchestrator & Loop Runner"');
     expect(content).toContain("enable_subagent_tools: true");
     expect(content).toContain("enable_write_tools: true");
     expect(content).toContain("max_autonomous_rounds: 10");
@@ -22,7 +22,9 @@ describe("Orchestrator YAML Specification Unit Tests", () => {
     expect(content).toContain("background_watchdog_monitoring: true");
     expect(content).toContain("triad_floor_enforcement: true");
     expect(content).toContain("zero_main_thread_pollution: true");
-    expect(content).toContain("cli: \"bun ~/.agents/skills/orchestrating-long-tasks/scripts/harness.ts\"");
+    expect(content).toContain(
+      'cli: "bun ~/.agents/skills/orchestrating-long-tasks/scripts/harness.ts"',
+    );
     expect(content).toContain("round_started: true");
     expect(content).toContain("round_completed: true");
     expect(content).toContain("defect_synthesis_ready: true");

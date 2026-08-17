@@ -120,8 +120,7 @@ export function extractDomViolations(
         addFinding(
           "stacking",
           "error",
-          sv.message ||
-            `Z-index stacking context collision between '${topSel}' and '${botSel}'.`,
+          sv.message || `Z-index stacking context collision between '${topSel}' and '${botSel}'.`,
           "Enforce strict z-index stacking hierarchy and isolate stacking contexts.",
           `${topSel} / ${botSel}`,
           vp.viewport,

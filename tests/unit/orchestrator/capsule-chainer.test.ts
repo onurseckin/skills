@@ -77,7 +77,9 @@ describe("Capsule Chainer Unit Tests", () => {
 
       // Verify file written to target
       const targetManifestFile = join(targetCapsule, "chain_manifest.json");
-      const readContent = JSON.parse(readFileSync(targetManifestFile, "utf-8")) as CapsuleChainManifest;
+      const readContent = JSON.parse(
+        readFileSync(targetManifestFile, "utf-8"),
+      ) as CapsuleChainManifest;
       expect(readContent.targetRunId).toBe("run-2");
       expect(readContent.carryoverRequirements).toEqual(["req-02"]);
     } finally {

@@ -18,13 +18,13 @@ This guide serves as the **high-level orchestrator manual** directing orchestrat
 
 The harness partitions responsibilities across four distinct agent archetypes defined under `agents/`:
 
-| Agent Spec                                           |  Tier  | Role & Responsibilities                                                                                                                                                                                                                                                                                                                                                                                               |
-| :--------------------------------------------------- | :----: | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [`agents/coordinator.yaml`](agents/coordinator.yaml) | Tier 2 | **Long Task Coordinator**: Owns capsule lifecycle, prompt capture, graph compilation, concurrency wave management, heartbeat tracking, and run completion. Dispatches Tier 3 workers and validators in the background.                                                                                                                                                                                                |
-| [`agents/worker.yaml`](agents/worker.yaml)           | Tier 3 | **Task Worker**: Implements features strictly within assigned `write_scope`, conducts local pre-submission testing (unit/integration/negative tests), and resolves validator findings during repair rounds.                                                                                                                                                                                                           |
+| Agent Spec                                           |  Tier  | Role & Responsibilities                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| :--------------------------------------------------- | :----: | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`agents/coordinator.yaml`](agents/coordinator.yaml) | Tier 2 | **Long Task Coordinator**: Owns capsule lifecycle, prompt capture, graph compilation, concurrency wave management, heartbeat tracking, and run completion. Dispatches Tier 3 workers and validators in the background.                                                                                                                                                                                                                           |
+| [`agents/worker.yaml`](agents/worker.yaml)           | Tier 3 | **Task Worker**: Implements features strictly within assigned `write_scope`, conducts local pre-submission testing (unit/integration/negative tests), and resolves validator findings during repair rounds.                                                                                                                                                                                                                                      |
 | [`agents/validator.yaml`](agents/validator.yaml)     | Tier 3 | **Adversarial Validator**: Executes mandatory gate proof commands via `run:exec`, enforces the Dual-Channel Validator Protocol & Automated UI Task Mandate (synthesizing DOM metrics and Playwright screenshots), performs adversarial invariant audits (edge cases, contract boundaries, layout math, text clipping, visual collisions, negative assertions), and issues formal structured pushbacks (`task:reject`) or passes (`task:review`). |
-| [`agents/critic.yaml`](agents/critic.yaml)           | Tier 3 | **Completeness Critic**: Evaluates whole-repository git diff against original immutable prompt bytes, audits requirement coverage, verifies run completion gates, and issues final sign-off (`critic:review`).                                                                                                                                                                                                        |
-| [`agents/openai.yaml`](agents/openai.yaml)           |   —    | **OpenAI / Codex Profile**: System interface definition for OpenAI Codex and ChatGPT coding agent environments.                                                                                                                                                                                                                                                                                                       |
+| [`agents/critic.yaml`](agents/critic.yaml)           | Tier 3 | **Completeness Critic**: Evaluates whole-repository git diff against original immutable prompt bytes, audits requirement coverage, verifies run completion gates, and issues final sign-off (`critic:review`).                                                                                                                                                                                                                                   |
+| [`agents/openai.yaml`](agents/openai.yaml)           |   —    | **OpenAI / Codex Profile**: System interface definition for OpenAI Codex and ChatGPT coding agent environments.                                                                                                                                                                                                                                                                                                                                  |
 
 ---
 
@@ -33,7 +33,7 @@ The harness partitions responsibilities across four distinct agent archetypes de
 Deep technical documentation and operational contracts are available under `references/`:
 
 - [`references/protocol.md`](references/protocol.md): Non-negotiable invariants, immutable prompt capture, role packet sanitization, and gate execution rules.
-- [`references/cli.md`](references/cli.md): Comprehensive syntax reference for all 18 colon-based CLI subcommands (`plan:*`, `queue:*`, `task:*`, `run:*`, `critic:*`).
+- [`references/cli.md`](references/cli.md): Exhaustive reference for every `harness.ts` command (`plan:*`, `queue:*`, `task:*`, `run:*`, `critic:*`, `summary:*`, `finding:*`, `report:*`, `evidence:*`, `orchestrator:*`).
 - [`references/state-model.md`](references/state-model.md): Run directory structure, task state transitions, lease/recovery mechanics, and event stream integrity.
 - [`references/host-adapters.md`](references/host-adapters.md): Two-tier agent architecture, main-thread isolation, and host-native subagent adapters for AGY, Claude Code, and Codex.
 - [`references/failure-modes.md`](references/failure-modes.md): Complete failure mode taxonomy (stale leases, worker crashes, scope collisions, gate mismatches) and deterministic recovery strategies.
@@ -52,7 +52,7 @@ When running long-task execution waves, the orchestrator MUST enforce the **"Tri
 2. **The Triad Minimum (Floor $\ge 3$)**: For any long-task workflow—even a single sequential task ($N = 1$)—there must **ALWAYS be at least 3 agents deployed**:
    - **1 Run Coordinator (Tier 2)**: Persistent manager of the capsule lifecycle, wave transitions, and milestone delivery.
    - **1 Task Implementer (Tier 3)**: Dedicated executor modifying code strictly within the leased `write_scope`.
-   - **1 Adversarial Validator (Tier 3)**: Independent verifier executing monitored gate proofs and the 3-round rejection gauntlet.
+   - **1 Adversarial Validator (Tier 3)**: Independent verifier executing monitored gate proofs and the multi-round rejection gauntlet.
 3. **Linear Sizing Flexibility ($2N + 1$)**: For $N$ parallel tasks, the system scales with full flexibility:
    - $N = 1 \implies$ **3 Agents** (1 Coordinator + 1 Implementer + 1 Validator)
    - $N = 2 \implies$ **5 Agents** (1 Coordinator + 2 Implementers + 2 Validators)
@@ -157,7 +157,7 @@ Self-grading and conversational bias lead to unhandled edge cases, missing asser
 
 ### 3. Dual-Channel Validator Protocol, Invariant Audits & Automated UI Task Mandate
 
-The coordinator must direct Tier 3 validators to perform rigorous, multi-round adversarial verification across all system dimensions (detailed agent instructions defined in [`agents/validator.yaml`](file:///Users/onurseckinsenoglu/repos/skills/orchestrating-long-tasks/agents/validator.yaml)):
+The coordinator must direct Tier 3 validators to perform rigorous, multi-round adversarial verification across all system dimensions (detailed agent instructions defined in [`agents/validator.yaml`](agents/validator.yaml)):
 
 - **Mandatory Gate Execution**: Execute test suites via `run:exec` under process monitoring and verify exit code 0.
 - **Dual-Channel Validator Protocol & Architectural Rationale**:
@@ -192,7 +192,7 @@ The coordinator must direct Tier 3 validators to perform rigorous, multi-round a
 
 ### 4. Structured Pushback, Minimum Mandatory Rejection Gauntlet & Bounded Repair Loops
 
-To guarantee publication-grade code robustness, the harness enforces a **Mandatory Multi-Round Adversarial Rejection Gauntlet** (implemented by [`agents/validator.yaml`](file:///Users/onurseckinsenoglu/repos/skills/orchestrating-long-tasks/agents/validator.yaml)):
+To guarantee publication-grade code robustness, the harness enforces a **Mandatory Multi-Round Adversarial Rejection Gauntlet** (implemented by [`agents/validator.yaml`](agents/validator.yaml)):
 
 1. **Minimum Mandatory Rejections (Min 1 Rejection)**:
    - **Round 1 MUST BE REJECTED** by the Validator (`task:reject`), regardless of whether the initial code passes basic tests.

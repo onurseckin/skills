@@ -65,7 +65,12 @@ describe("CLI Command: orchestrator:run Stress & Edge Cases", () => {
       };
 
       const result = await orchestratorRunCommand(
-        { repo: testDir, prompt: "Fix crash in worker", "run-id": "orch-multi-test", "max-rounds": "5" },
+        {
+          repo: testDir,
+          prompt: "Fix crash in worker",
+          "run-id": "orch-multi-test",
+          "max-rounds": "5",
+        },
         { executor: mockExecutor },
       );
 
@@ -160,31 +165,48 @@ describe("CLI Command: orchestrator:run Stress & Edge Cases", () => {
 
   describe("Validation and Error Handling", () => {
     it("rejects unknown flags with HarnessError INVALID_ARGUMENT", async () => {
-      expect(orchestratorRunCommand({ prompt: "Valid", "bad-flag": "bad" })).rejects.toThrow(HarnessError);
+      expect(orchestratorRunCommand({ prompt: "Valid", "bad-flag": "bad" })).rejects.toThrow(
+        HarnessError,
+      );
     });
 
     it("rejects non-integer --max-rounds with HarnessError INVALID_ARGUMENT", async () => {
-      expect(orchestratorRunCommand({ prompt: "Valid", "max-rounds": "not-num" })).rejects.toThrow(HarnessError);
-      expect(orchestratorRunCommand({ prompt: "Valid", "max-rounds": "3.14" })).rejects.toThrow(HarnessError);
+      expect(orchestratorRunCommand({ prompt: "Valid", "max-rounds": "not-num" })).rejects.toThrow(
+        HarnessError,
+      );
+      expect(orchestratorRunCommand({ prompt: "Valid", "max-rounds": "3.14" })).rejects.toThrow(
+        HarnessError,
+      );
     });
 
     it("rejects missing prompt source with HarnessError INVALID_ARGUMENT", async () => {
-      expect(orchestratorRunCommand({ repo: "/tmp", "run-id": "missing-prompt" })).rejects.toThrow(HarnessError);
+      expect(orchestratorRunCommand({ repo: "/tmp", "run-id": "missing-prompt" })).rejects.toThrow(
+        HarnessError,
+      );
     });
 
     it("rejects blank prompt with HarnessError INVALID_ARGUMENT", async () => {
-      expect(orchestratorRunCommand({ prompt: "   ", "run-id": "blank-prompt" })).rejects.toThrow(HarnessError);
+      expect(orchestratorRunCommand({ prompt: "   ", "run-id": "blank-prompt" })).rejects.toThrow(
+        HarnessError,
+      );
     });
 
     it("rejects missing prompt-file with HarnessError INVALID_ARGUMENT", async () => {
       expect(
-        orchestratorRunCommand({ "prompt-file": "/non/existent/path.md", "run-id": "missing-file" }),
+        orchestratorRunCommand({
+          "prompt-file": "/non/existent/path.md",
+          "run-id": "missing-file",
+        }),
       ).rejects.toThrow(HarnessError);
     });
 
     it("rejects non-existent repo path with HarnessError INVALID_ARGUMENT", async () => {
       expect(
-        orchestratorRunCommand({ repo: "/non/existent/repo/dir/12345", prompt: "Valid", "run-id": "missing-repo" }),
+        orchestratorRunCommand({
+          repo: "/non/existent/repo/dir/12345",
+          prompt: "Valid",
+          "run-id": "missing-repo",
+        }),
       ).rejects.toThrow(HarnessError);
     });
 
@@ -194,7 +216,11 @@ describe("CLI Command: orchestrator:run Stress & Edge Cases", () => {
         const emptyFilePath = join(testDir, "empty.md");
         writeFileSync(emptyFilePath, "   \n\t  \n", "utf-8");
         expect(
-          orchestratorRunCommand({ repo: testDir, "prompt-file": emptyFilePath, "run-id": "empty-file-test" }),
+          orchestratorRunCommand({
+            repo: testDir,
+            "prompt-file": emptyFilePath,
+            "run-id": "empty-file-test",
+          }),
         ).rejects.toThrow(HarnessError);
       } finally {
         rmSync(testDir, { recursive: true, force: true });
@@ -205,15 +231,21 @@ describe("CLI Command: orchestrator:run Stress & Edge Cases", () => {
       const testDir = mkdtempSync(join(tmpdir(), "cli-orch-empty-stdin-"));
       try {
         expect(
-          execute(["orchestrator:run", "--repo", testDir, "--prompt-stdin", "--run-id", "empty-stdin"], {
-            stdin: new Uint8Array(0),
-          }),
+          execute(
+            ["orchestrator:run", "--repo", testDir, "--prompt-stdin", "--run-id", "empty-stdin"],
+            {
+              stdin: new Uint8Array(0),
+            },
+          ),
         ).rejects.toThrow(HarnessError);
 
         expect(
-          execute(["orchestrator:run", "--repo", testDir, "--prompt-stdin", "--run-id", "ws-stdin"], {
-            stdin: new TextEncoder().encode("   \n\t  "),
-          }),
+          execute(
+            ["orchestrator:run", "--repo", testDir, "--prompt-stdin", "--run-id", "ws-stdin"],
+            {
+              stdin: new TextEncoder().encode("   \n\t  "),
+            },
+          ),
         ).rejects.toThrow(HarnessError);
       } finally {
         rmSync(testDir, { recursive: true, force: true });

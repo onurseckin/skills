@@ -5,11 +5,7 @@ import { queryScreenshots } from "../reporting/screenshot-store.ts";
 import { extractFindingScreenshots, mapFindingDetails } from "./asset-mapper-findings.ts";
 import { detectPlaywrightMetadata } from "./asset-mapper-playwright.ts";
 import { extractMediaPaths, inferAssetProps } from "./asset-mapper-props.ts";
-import type {
-  CommandExecutionDetail,
-  FindingDetail,
-  MediaAsset,
-} from "./types.ts";
+import type { CommandExecutionDetail, FindingDetail, MediaAsset } from "./types.ts";
 
 export { detectPlaywrightMetadata, extractFindingScreenshots, mapFindingDetails };
 
@@ -37,12 +33,14 @@ export function mapCommandDetails(commands: CommandRecord[]): CommandExecutionDe
 export function mapMediaAssets(
   task?: TaskRecord,
   commands: CommandRecord[] = [],
-  options?: {
-    runRoot?: string | undefined;
-    events?: readonly HarnessEvent[] | undefined;
-    manifest?: Manifest | undefined;
-    completionReview?: CompletionReview | undefined;
-  } | undefined,
+  options?:
+    | {
+        runRoot?: string | undefined;
+        events?: readonly HarnessEvent[] | undefined;
+        manifest?: Manifest | undefined;
+        completionReview?: CompletionReview | undefined;
+      }
+    | undefined,
 ): MediaAsset[] {
   const assets: MediaAsset[] = [];
   const seenUrls = new Set<string>();
@@ -69,7 +67,11 @@ export function mapMediaAssets(
             timestamp: a.timestamp || new Date().toISOString(),
             mimeType: a.mimeType || props.mimeType,
             sizeBytes: a.sizeBytes || props.sizeBytes,
-            ...(a.dimensions ? { dimensions: a.dimensions } : props.dimensions ? { dimensions: props.dimensions } : {}),
+            ...(a.dimensions
+              ? { dimensions: a.dimensions }
+              : props.dimensions
+                ? { dimensions: props.dimensions }
+                : {}),
             author: a.author || task.lease?.agent_id || "worker",
             ...(a.metadata ? { metadata: a.metadata } : {}),
           });
@@ -124,7 +126,8 @@ export function mapMediaAssets(
             url: s,
             title: `Validator Snapshot: ${s.split("/").pop()}`,
             description: `Captured by validator during gate check for task ${task.id}`,
-            timestamp: typeof rawVal?.started_at === "string" ? rawVal.started_at : new Date().toISOString(),
+            timestamp:
+              typeof rawVal?.started_at === "string" ? rawVal.started_at : new Date().toISOString(),
             mimeType: props.mimeType,
             sizeBytes: props.sizeBytes,
             dimensions: { width: 1280, height: 720 },
@@ -140,7 +143,10 @@ export function mapMediaAssets(
             title: s.title || `Validator Snapshot: ${s.url.split("/").pop()}`,
             description: `Captured by validator during gate check for task ${task.id}`,
             timestamp:
-              s.timestamp || (typeof rawVal.started_at === "string" ? rawVal.started_at : new Date().toISOString()),
+              s.timestamp ||
+              (typeof rawVal.started_at === "string"
+                ? rawVal.started_at
+                : new Date().toISOString()),
             mimeType: s.mimeType || "image/png",
             sizeBytes: s.sizeBytes || 1024 * 64,
             dimensions: s.dimensions || { width: 1280, height: 720 },
@@ -167,7 +173,12 @@ export function mapMediaAssets(
               mimeType: s.mimeType || props.mimeType || "image/png",
               sizeBytes: s.sizeBytes || props.sizeBytes || 1024 * 64,
               dimensions: s.dimensions || props.dimensions || { width: 1280, height: 720 },
-              author: s.author || f.author || f.validatorId || task.validation?.validator_id || "validator",
+              author:
+                s.author ||
+                f.author ||
+                f.validatorId ||
+                task.validation?.validator_id ||
+                "validator",
               metadata: {
                 stage: "validation",
                 findingId: f.id,
@@ -251,13 +262,16 @@ export function mapMediaAssets(
           id: `asset-screenshot-${task ? task.id : "run"}-${qs.name.replace(/[^a-zA-Z0-9_-]/g, "_")}`,
           type: props.type || "image",
           url,
-          title: props.title.startsWith("Test Snapshot:") ? props.title : `Test Snapshot: ${qs.name}`,
+          title: props.title.startsWith("Test Snapshot:")
+            ? props.title
+            : `Test Snapshot: ${qs.name}`,
           description: `Captured screenshot ${qs.name} for task ${task ? task.id : "run"}`,
           timestamp: qs.timestamp || new Date().toISOString(),
           mimeType: props.mimeType || "image/png",
           sizeBytes: qs.size_bytes || props.sizeBytes || 1024 * 64,
           dimensions: props.dimensions || { width: 1280, height: 720 },
-          author: qs.actor || task?.validation?.validator_id || task?.lease?.agent_id || "validator",
+          author:
+            qs.actor || task?.validation?.validator_id || task?.lease?.agent_id || "validator",
           metadata: {
             stage,
             ...(qs.command_id ? { commandId: qs.command_id } : {}),

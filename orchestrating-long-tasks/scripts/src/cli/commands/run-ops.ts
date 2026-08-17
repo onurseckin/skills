@@ -17,10 +17,7 @@ import {
 } from "../formatters/index.ts";
 import { assertFlags, boolFlag, textFlag, type Flags } from "../options.ts";
 import { generateSummarySuite } from "../../summary/generate-summary.ts";
-import {
-  ingestScreenshots,
-  ingestVisualReport,
-} from "../../reporting/screenshot-ingestion.ts";
+import { ingestScreenshots, ingestVisualReport } from "../../reporting/screenshot-ingestion.ts";
 
 function liveRepositoryBinding(run: string) {
   const repository = dirname(dirname(loadRun(run).runRoot));

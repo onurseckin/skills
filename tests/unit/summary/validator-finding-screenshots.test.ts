@@ -129,7 +129,11 @@ describe("Round 3: Finding Screenshots & Evidence Extraction", () => {
       evidence: ["screenshots/diff.webp", "reports/evidence-01.png"],
     };
 
-    const extracted = extractFindingScreenshots(finding, "F-STRING-EVIDENCE", "validator-playwright");
+    const extracted = extractFindingScreenshots(
+      finding,
+      "F-STRING-EVIDENCE",
+      "validator-playwright",
+    );
     expect(extracted).toHaveLength(2);
 
     const shot1 = extracted[0];

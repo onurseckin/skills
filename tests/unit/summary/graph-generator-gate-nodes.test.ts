@@ -1,8 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { CommandRecord } from "../../../orchestrating-long-tasks/scripts/src/contracts/commands.ts";
-import type {
-  TaskRecord,
-} from "../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
+import type { TaskRecord } from "../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
 import {
   buildTaskAndGateNodes,
   mapGateStatus,
@@ -10,32 +8,133 @@ import {
 
 describe("graph generator gate node helpers", () => {
   test("maps gate status correctly across all task lifecycle states", () => {
-    expect(mapGateStatus({ id: "1", status: "done", requirement_ids: [], write_scope: [], dependencies: [], attempts: [], history: [], repair_round: 0 })).toBe("success");
-    expect(mapGateStatus({ id: "2", status: "validated", requirement_ids: [], write_scope: [], dependencies: [], attempts: [], history: [], repair_round: 0 })).toBe("success");
-    expect(mapGateStatus({ id: "3", status: "changes_requested", requirement_ids: [], write_scope: [], dependencies: [], attempts: [], history: [], repair_round: 1 })).toBe("warning");
-    expect(mapGateStatus({ id: "4", status: "cancelled", requirement_ids: [], write_scope: [], dependencies: [], attempts: [], history: [], repair_round: 0 })).toBe("error");
-    expect(mapGateStatus({ id: "5", status: "escalated", requirement_ids: [], write_scope: [], dependencies: [], attempts: [], history: [], repair_round: 0 })).toBe("error");
-    expect(mapGateStatus({ id: "6", status: "validating", requirement_ids: [], write_scope: [], dependencies: [], attempts: [], history: [], repair_round: 0 })).toBe("running");
-    expect(mapGateStatus({ id: "7", status: "gating", requirement_ids: [], write_scope: [], dependencies: [], attempts: [], history: [], repair_round: 0 })).toBe("running");
-    expect(mapGateStatus({
-      id: "8",
-      status: "leased",
-      requirement_ids: [],
-      write_scope: [],
-      dependencies: [],
-      attempts: [],
-      history: [],
-      repair_round: 0,
-      validation: {
-        validator_id: "val-1",
-        token_digest: "tok",
-        attempt: 1,
-        started_at: "2026-08-14T20:00:00.000Z",
-        deadline_at: "2026-08-14T20:10:00.000Z",
-      },
-    })).toBe("running");
-    expect(mapGateStatus({ id: "9", status: "proposed", requirement_ids: [], write_scope: [], dependencies: [], attempts: [], history: [], repair_round: 0 })).toBe("pending");
-    expect(mapGateStatus({ id: "10", status: "ready", requirement_ids: [], write_scope: [], dependencies: [], attempts: [], history: [], repair_round: 0 })).toBe("pending");
+    expect(
+      mapGateStatus({
+        id: "1",
+        status: "done",
+        requirement_ids: [],
+        write_scope: [],
+        dependencies: [],
+        attempts: [],
+        history: [],
+        repair_round: 0,
+      }),
+    ).toBe("success");
+    expect(
+      mapGateStatus({
+        id: "2",
+        status: "validated",
+        requirement_ids: [],
+        write_scope: [],
+        dependencies: [],
+        attempts: [],
+        history: [],
+        repair_round: 0,
+      }),
+    ).toBe("success");
+    expect(
+      mapGateStatus({
+        id: "3",
+        status: "changes_requested",
+        requirement_ids: [],
+        write_scope: [],
+        dependencies: [],
+        attempts: [],
+        history: [],
+        repair_round: 1,
+      }),
+    ).toBe("warning");
+    expect(
+      mapGateStatus({
+        id: "4",
+        status: "cancelled",
+        requirement_ids: [],
+        write_scope: [],
+        dependencies: [],
+        attempts: [],
+        history: [],
+        repair_round: 0,
+      }),
+    ).toBe("error");
+    expect(
+      mapGateStatus({
+        id: "5",
+        status: "escalated",
+        requirement_ids: [],
+        write_scope: [],
+        dependencies: [],
+        attempts: [],
+        history: [],
+        repair_round: 0,
+      }),
+    ).toBe("error");
+    expect(
+      mapGateStatus({
+        id: "6",
+        status: "validating",
+        requirement_ids: [],
+        write_scope: [],
+        dependencies: [],
+        attempts: [],
+        history: [],
+        repair_round: 0,
+      }),
+    ).toBe("running");
+    expect(
+      mapGateStatus({
+        id: "7",
+        status: "gating",
+        requirement_ids: [],
+        write_scope: [],
+        dependencies: [],
+        attempts: [],
+        history: [],
+        repair_round: 0,
+      }),
+    ).toBe("running");
+    expect(
+      mapGateStatus({
+        id: "8",
+        status: "leased",
+        requirement_ids: [],
+        write_scope: [],
+        dependencies: [],
+        attempts: [],
+        history: [],
+        repair_round: 0,
+        validation: {
+          validator_id: "val-1",
+          token_digest: "tok",
+          attempt: 1,
+          started_at: "2026-08-14T20:00:00.000Z",
+          deadline_at: "2026-08-14T20:10:00.000Z",
+        },
+      }),
+    ).toBe("running");
+    expect(
+      mapGateStatus({
+        id: "9",
+        status: "proposed",
+        requirement_ids: [],
+        write_scope: [],
+        dependencies: [],
+        attempts: [],
+        history: [],
+        repair_round: 0,
+      }),
+    ).toBe("pending");
+    expect(
+      mapGateStatus({
+        id: "10",
+        status: "ready",
+        requirement_ids: [],
+        write_scope: [],
+        dependencies: [],
+        attempts: [],
+        history: [],
+        repair_round: 0,
+      }),
+    ).toBe("pending");
   });
 
   test("enriches gate node status, metadata, validator attribution and validation history", () => {

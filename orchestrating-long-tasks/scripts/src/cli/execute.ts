@@ -33,7 +33,6 @@ import {
 } from "./commands/inspection-ops.ts";
 import { orchestratorRunCommand } from "./commands/orchestrator-ops.ts";
 
-
 export async function execute(
   argv: readonly string[],
   context: CommandContext = {},
@@ -112,6 +111,5 @@ export async function execute(
 
     default:
       throw new HarnessError("INVALID_ARGUMENT", `unknown command: ${parsed.command}`);
-
   }
 }

@@ -109,7 +109,9 @@ describe("Defect Synthesizer Unit Tests", () => {
     expect(synthesis.priorRunId).toBe("run-alpha-r1");
     expect(synthesis.unresolvedFindings.length).toBe(0);
     expect(synthesis.synthesizedPrompt).toContain("Round 2 Refinement Directive");
-    expect(synthesis.synthesizedPrompt).toContain("Implement user authentication and profile page.");
+    expect(synthesis.synthesizedPrompt).toContain(
+      "Implement user authentication and profile page.",
+    );
     expect(synthesis.synthesizedPrompt).toContain("No explicit structured findings recorded.");
   });
 
@@ -154,7 +156,11 @@ describe("Defect Synthesizer Unit Tests", () => {
 
     expect(synthesis.roundNumber).toBe(3);
     expect(synthesis.unresolvedFindings.length).toBe(3);
-    expect(synthesis.affectedFiles).toEqual(["README.md", "src/api/routes.ts", "src/db/connection.ts"]);
+    expect(synthesis.affectedFiles).toEqual([
+      "README.md",
+      "src/api/routes.ts",
+      "src/db/connection.ts",
+    ]);
     expect(synthesis.synthesizedPrompt).toContain("🔴 Critical Findings");
     expect(synthesis.synthesizedPrompt).toContain("[crit-01]");
     expect(synthesis.synthesizedPrompt).toContain("🟡 Important Findings");

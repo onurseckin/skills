@@ -54,7 +54,8 @@ export function normalizeFindingToDetail(finding: Finding | FindingDetail): Find
   return {
     id: f.id,
     requirement_id: f.requirement_id,
-    severity: f.severity === "minor" ? "minor" : f.severity === "critical" ? "critical" : "important",
+    severity:
+      f.severity === "minor" ? "minor" : f.severity === "critical" ? "critical" : "important",
     file_paths: inferredFiles,
     observation: f.observation,
     remediation: f.remediation,
@@ -79,7 +80,9 @@ export function synthesizeNextRoundPrompt(input: SynthesizeDefectsInput): Defect
       const normalized = normalizeFindingToDetail(rawFinding);
       const existing = dedupedMap.get(normalized.id);
       if (existing) {
-        const mergedFiles = Array.from(new Set([...existing.file_paths, ...normalized.file_paths])).sort();
+        const mergedFiles = Array.from(
+          new Set([...existing.file_paths, ...normalized.file_paths]),
+        ).sort();
         dedupedMap.set(normalized.id, {
           ...normalized,
           file_paths: mergedFiles,
@@ -104,7 +107,9 @@ export function synthesizeNextRoundPrompt(input: SynthesizeDefectsInput): Defect
   // Group findings by severity
   const critical = normalizedFindings.filter((f) => f.severity === "critical");
   const important = normalizedFindings.filter((f) => f.severity === "important");
-  const minor = normalizedFindings.filter((f) => f.severity === "minor" || f.severity === "suggestion");
+  const minor = normalizedFindings.filter(
+    (f) => f.severity === "minor" || f.severity === "suggestion",
+  );
 
   const lines: string[] = [];
   lines.push(`## Evolutionary Round ${roundNumber} Refinement Directive`);
@@ -131,7 +136,9 @@ export function synthesizeNextRoundPrompt(input: SynthesizeDefectsInput): Defect
   lines.push(`### Unresolved Defect Synthesis (${normalizedFindings.length} findings)`);
 
   if (normalizedFindings.length === 0) {
-    lines.push("No explicit structured findings recorded. Complete all remaining open requirements and run-level validation gates.");
+    lines.push(
+      "No explicit structured findings recorded. Complete all remaining open requirements and run-level validation gates.",
+    );
   } else {
     if (critical.length > 0) {
       lines.push("#### 🔴 Critical Findings");
@@ -174,7 +181,9 @@ export function synthesizeNextRoundPrompt(input: SynthesizeDefectsInput): Defect
   lines.push("1. Remediate all critical and important findings within scoped repair tasks.");
   lines.push("2. Implement explicit non-mocked regression tests for every finding.");
   lines.push("3. Execute all mandatory validation gates and confirm zero pushback.");
-  lines.push("4. Obtain Passing Review from Adversarial Validator and Approval from Completeness Critic.");
+  lines.push(
+    "4. Obtain Passing Review from Adversarial Validator and Approval from Completeness Critic.",
+  );
 
   const synthesizedPrompt = lines.join("\n");
 

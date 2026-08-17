@@ -1,11 +1,6 @@
 import type { TaskRecord } from "../workflow/types.ts";
 import { createEdge } from "./edge-builder.ts";
-import type {
-  EdgeTrafficExchange,
-  FileRef,
-  FindingDetail,
-  GraphEdgeData,
-} from "./types.ts";
+import type { EdgeTrafficExchange, FileRef, FindingDetail, GraphEdgeData } from "./types.ts";
 
 export interface TaskEdgeFactoryParams {
   task: TaskRecord;

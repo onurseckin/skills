@@ -22,7 +22,18 @@ describe("Automated Visual Validation - Boundaries & Resilience", () => {
     createMockScreenshot(join(repo, "test-results"), "recovered.png");
 
     await execute([
-      "run:exec", "--run", run, "--task", "task-core", "--actor", "val-rec", "--cwd", repo, "--", "echo", "rec",
+      "run:exec",
+      "--run",
+      run,
+      "--task",
+      "task-core",
+      "--actor",
+      "val-rec",
+      "--cwd",
+      repo,
+      "--",
+      "echo",
+      "rec",
     ]);
 
     const manifestPath = join(run, "evidence", "manifest.json");
@@ -42,12 +53,31 @@ describe("Automated Visual Validation - Boundaries & Resilience", () => {
     const critToken = startCrit.token as string;
 
     await execute([
-      "run:exec", "--run", run, "--actor", "crit-1", "--cwd", repo, "--", "bun", "test", "tests",
+      "run:exec",
+      "--run",
+      run,
+      "--actor",
+      "crit-1",
+      "--cwd",
+      repo,
+      "--",
+      "bun",
+      "test",
+      "tests",
     ]);
 
     await execute([
-      "critic:review", "--run", run, "--critic", "crit-1", "--token", critToken,
-      "--decision", "request_changes", "--summary", "Defects found in review",
+      "critic:review",
+      "--run",
+      run,
+      "--critic",
+      "crit-1",
+      "--token",
+      critToken,
+      "--decision",
+      "request_changes",
+      "--summary",
+      "Defects found in review",
     ]);
 
     const criticRep = readJsonFile<{ screenshots: string[]; screenshot_records: unknown[] }>(
@@ -64,7 +94,16 @@ describe("Automated Visual Validation - Boundaries & Resilience", () => {
     createMockScreenshot(deepDir, "deep-screen.png");
 
     const exec = await execute([
-      "run:exec", "--run", run, "--task", "task-core", "--cwd", repo, "--", "echo", "deep",
+      "run:exec",
+      "--run",
+      run,
+      "--task",
+      "task-core",
+      "--cwd",
+      repo,
+      "--",
+      "echo",
+      "deep",
     ]);
     const cmdId = String(exec.command_id);
     expect(existsSync(join(run, "evidence", "screenshots", `${cmdId}-deep-screen.png`))).toBe(true);
@@ -75,13 +114,31 @@ describe("Automated Visual Validation - Boundaries & Resilience", () => {
     createMockScreenshot(join(repo, "test-results"), "component.png", "data-v1");
 
     const exec1 = await execute([
-      "run:exec", "--run", run, "--task", "task-core", "--cwd", repo, "--", "echo", "1",
+      "run:exec",
+      "--run",
+      run,
+      "--task",
+      "task-core",
+      "--cwd",
+      repo,
+      "--",
+      "echo",
+      "1",
     ]);
     const cmd1 = String(exec1.command_id);
 
     createMockScreenshot(join(repo, "test-results"), "component.png", "data-v2");
     const exec2 = await execute([
-      "run:exec", "--run", run, "--task", "task-core", "--cwd", repo, "--", "echo", "2",
+      "run:exec",
+      "--run",
+      run,
+      "--task",
+      "task-core",
+      "--cwd",
+      repo,
+      "--",
+      "echo",
+      "2",
     ]);
     const cmd2 = String(exec2.command_id);
 
@@ -99,7 +156,16 @@ describe("Automated Visual Validation - Boundaries & Resilience", () => {
     writeFileSync(join(testResultsDir, "debug.log"), "logs", "utf-8");
 
     const exec = await execute([
-      "run:exec", "--run", run, "--task", "task-core", "--cwd", repo, "--", "echo", "filter",
+      "run:exec",
+      "--run",
+      run,
+      "--task",
+      "task-core",
+      "--cwd",
+      repo,
+      "--",
+      "echo",
+      "filter",
     ]);
     const screenshots = exec.screenshots as string[];
     expect(screenshots.length).toBe(0);
@@ -108,7 +174,16 @@ describe("Automated Visual Validation - Boundaries & Resilience", () => {
   test("boundary: non-existent search directories are gracefully handled with 0 screenshots", async () => {
     const { repo, run } = await setupCompiledRun("visual-nonexist", roots);
     const exec = await execute([
-      "run:exec", "--run", run, "--task", "task-core", "--cwd", repo, "--", "echo", "clean",
+      "run:exec",
+      "--run",
+      run,
+      "--task",
+      "task-core",
+      "--cwd",
+      repo,
+      "--",
+      "echo",
+      "clean",
     ]);
     const screenshots = exec.screenshots as string[];
     expect(screenshots.length).toBe(0);
@@ -125,7 +200,16 @@ describe("Automated Visual Validation - Boundaries & Resilience", () => {
     } catch {}
 
     const exec = await execute([
-      "run:exec", "--run", run, "--task", "task-core", "--cwd", repo, "--", "echo", "safe",
+      "run:exec",
+      "--run",
+      run,
+      "--task",
+      "task-core",
+      "--cwd",
+      repo,
+      "--",
+      "echo",
+      "safe",
     ]);
     expect(exec.exit_code).toBe(0);
 
@@ -141,7 +225,16 @@ describe("Automated Visual Validation - Boundaries & Resilience", () => {
     writeFileSync(join(testResultsDir, "visual-report.json"), "NOT_JSON_DATA {{{", "utf-8");
 
     const exec = await execute([
-      "run:exec", "--run", run, "--task", "task-core", "--cwd", repo, "--", "echo", "malformed-test",
+      "run:exec",
+      "--run",
+      run,
+      "--task",
+      "task-core",
+      "--cwd",
+      repo,
+      "--",
+      "echo",
+      "malformed-test",
     ]);
     expect(exec.exit_code).toBe(0);
     expect(exec.visual_report).toBeUndefined();
@@ -155,7 +248,16 @@ describe("Automated Visual Validation - Boundaries & Resilience", () => {
     writeFileSync(join(testResultsDir, "visual-report.json"), JSON.stringify({}), "utf-8");
 
     const exec = await execute([
-      "run:exec", "--run", run, "--task", "task-core", "--cwd", repo, "--", "echo", "partial-test",
+      "run:exec",
+      "--run",
+      run,
+      "--task",
+      "task-core",
+      "--cwd",
+      repo,
+      "--",
+      "echo",
+      "partial-test",
     ]);
     expect(exec.exit_code).toBe(0);
     const rep = exec.visual_report as VisualMetricsReport;
@@ -172,10 +274,10 @@ describe("Automated Visual Validation - Boundaries & Resilience", () => {
     const repDir = join(run, "reports");
     mkdirSync(repDir, { recursive: true });
 
-    writeFileSync(join(repDir, "visual-report.json"), "[\"invalid\", \"array\"]", "utf-8");
+    writeFileSync(join(repDir, "visual-report.json"), '["invalid", "array"]', "utf-8");
     expect(getVisualReport(run)).toBeNull();
 
-    writeFileSync(join(repDir, "visual-report.json"), "\"string-primitive\"", "utf-8");
+    writeFileSync(join(repDir, "visual-report.json"), '"string-primitive"', "utf-8");
     expect(getVisualReport(run)).toBeNull();
 
     writeFileSync(join(repDir, "visual-report.json"), "{}", "utf-8");

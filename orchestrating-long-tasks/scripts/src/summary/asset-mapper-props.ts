@@ -32,9 +32,7 @@ export function extractMediaPaths(text: string): string[] {
         new Set(
           matches.filter(
             (m) =>
-              !m.startsWith("http://") &&
-              !m.startsWith("https://") &&
-              !m.includes("node_modules"),
+              !m.startsWith("http://") && !m.startsWith("https://") && !m.includes("node_modules"),
           ),
         ),
       )

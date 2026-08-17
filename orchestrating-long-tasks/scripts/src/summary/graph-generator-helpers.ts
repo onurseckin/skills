@@ -120,7 +120,9 @@ export function buildTaskAndGateNodes(ctx: TaskNodeContext): {
       node: gateNodeId,
       kind: "decision",
       label: `Pushback Decision (Round ${task.repair_round})`,
-      preview: String(findings[0]?.pushbackReason ?? findings[0]?.observation ?? "Changes requested"),
+      preview: String(
+        findings[0]?.pushbackReason ?? findings[0]?.observation ?? "Changes requested",
+      ),
     });
   }
 

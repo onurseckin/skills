@@ -82,7 +82,13 @@ describe("AutonomousLoopRunner Unit Tests", () => {
               criticDecision: "approve",
               tasks: [{ id: "task-01", status: "done", writeScope: ["src/"] }],
               findings: [],
-              gateResults: [{ gate_id: "gate-01", command_id: "cmd-failed", status: "failed" as unknown as "passed" }],
+              gateResults: [
+                {
+                  gate_id: "gate-01",
+                  command_id: "cmd-failed",
+                  status: "failed" as unknown as "passed",
+                },
+              ],
               summary: "Gate failed in R1.",
             };
           }
@@ -304,9 +310,15 @@ describe("AutonomousLoopRunner Unit Tests", () => {
   });
 
   it("validates required options and throws HarnessError INVALID_ARGUMENT", () => {
-    expect(() => new AutonomousLoopRunner({ baseRunId: "", repoPath: "/tmp", initialPrompt: "Prompt" })).toThrow(HarnessError);
-    expect(() => new AutonomousLoopRunner({ baseRunId: "run-1", repoPath: "", initialPrompt: "Prompt" })).toThrow(HarnessError);
-    expect(() => new AutonomousLoopRunner({ baseRunId: "run-1", repoPath: "/tmp", initialPrompt: "" })).toThrow(HarnessError);
+    expect(
+      () => new AutonomousLoopRunner({ baseRunId: "", repoPath: "/tmp", initialPrompt: "Prompt" }),
+    ).toThrow(HarnessError);
+    expect(
+      () => new AutonomousLoopRunner({ baseRunId: "run-1", repoPath: "", initialPrompt: "Prompt" }),
+    ).toThrow(HarnessError);
+    expect(
+      () => new AutonomousLoopRunner({ baseRunId: "run-1", repoPath: "/tmp", initialPrompt: "" }),
+    ).toThrow(HarnessError);
   });
 
   it("integrates with watchdog and forwards stall events to onStall hook", async () => {

@@ -1,11 +1,34 @@
-# Python oracle to Bun parity matrix
+# Parity Matrix & Host Capabilities
 
-This matrix records the final 65-behavior migration checkpoint. On 2026-08-13, the temporary Python
-oracle passed 31 storage tests and 34 planning tests immediately before retirement. The mapped Bun
-suites passed in the same workspace; the TypeScript tests remain authoritative after the oracle is
-removed.
+This document provides two authoritative parity references:
 
-## Storage oracle — 31 behaviors
+1. **Agent Host Feature Parity Matrix**: Capabilities and subagent mechanics across supported AI assistant hosts.
+2. **Oracle Migration Parity Record**: The 65-behavior baseline verified during the pure-Bun runtime migration.
+
+---
+
+## 1. Agent Host Feature Parity Matrix
+
+| Feature / Capability                           |      Google Antigravity       |       Anthropic Claude Code        |    OpenAI Codex / ChatGPT    |     Generic Subagent CLI     |
+| :--------------------------------------------- | :---------------------------: | :--------------------------------: | :--------------------------: | :--------------------------: |
+| **Two-Tier Orchestration**                     |  Native (`invoke_subagent`)   | Native (`Agent Teams` / Teammates) |  Native (Subagent Dispatch)  |  Scripted Fork / Subprocess  |
+| **Triad Floor ($2N+1$ Sizing)**                | Supported (Batch `Subagents`) |  Supported (Concurrent Teammates)  |   Supported (Batch Runner)   |   Supported (Process Pool)   |
+| **Zero-JSON CLI Briefs**                       |   Supported (`<= 30` lines)   |     Supported (`<= 30` lines)      |  Supported (`<= 30` lines)   |  Supported (`<= 30` lines)   |
+| **Structured Pushbacks (`task:reject`)**       |           Supported           |             Supported              |          Supported           |          Supported           |
+| **Dual-Channel Visual Validation**             | Supported (Playwright + DOM)  |    Supported (Playwright + DOM)    | Supported (Playwright + DOM) | Supported (Playwright + DOM) |
+| **Cascading Scope Replanning (`plan:replan`)** |           Supported           |             Supported              |          Supported           |          Supported           |
+| **GVUI Graph Export (`summary:export`)**       |           Supported           |             Supported              |          Supported           |          Supported           |
+| **Posix Inode Kernel Locking (`flock`)**       |           Supported           |             Supported              |          Supported           |          Supported           |
+| **Subagent Messaging (`send_message`)**        |            Direct             |               Direct               |            Direct            |          IPC / Pipe          |
+| **Crash & Lease Recovery**                     |   Deterministic (`recover`)   |     Deterministic (`recover`)      |  Deterministic (`recover`)   |  Deterministic (`recover`)   |
+
+---
+
+## 2. Oracle Migration Parity Record (65-Behavior Baseline)
+
+On 2026-08-13, the temporary Python oracle passed 31 storage tests and 34 planning tests immediately before retirement. The mapped Bun suites passed in the same workspace; the TypeScript tests remain authoritative after the oracle is removed.
+
+### Storage Oracle — 31 Behaviors
 
 | Python oracle behavior                                                | Bun test file                           |
 | --------------------------------------------------------------------- | --------------------------------------- |
@@ -41,7 +64,7 @@ removed.
 | `test_transactions_advance_hash_chain_and_projection_together`        | `tests/store/events-recovery.test.ts`   |
 | `test_verified_load_rejects_prompt_mutation`                          | `tests/store/capsule-integrity.test.ts` |
 
-## Requirements, graph, plan, and scheduler oracle — 34 behaviors
+### Requirements, Graph, Plan, and Scheduler Oracle — 34 Behaviors
 
 | Python oracle behavior                                                    | Bun test file                             |
 | ------------------------------------------------------------------------- | ----------------------------------------- |
@@ -79,15 +102,3 @@ removed.
 | `test_unhashable_nested_graph_values_return_issues`                       | `tests/graph/contracts.test.ts`           |
 | `test_unhashable_nested_requirement_values_return_issues`                 | `tests/requirements/malformed.test.ts`    |
 | `test_valid_revision_preserves_satisfied_and_done_runtime_history`        | `tests/graph/plan-revision.test.ts`       |
-
-## Retirement gate — passed
-
-The oracle retired on 2026-08-13 only after every gate passed in the same workspace:
-
-- [x] The final Python run passed all 65 tests and 89 parameterized subtests.
-- [x] The authoritative Bun suite passed 296 tests and all 65 mapped behaviors.
-- [x] Strict TypeScript and the 200/250-line dependency-free architecture gate passed.
-- [x] A moved capsule resumed through only its copied Bun entrypoint.
-- [x] Separate Bun processes proved lock, claim, plan application, command recovery, and projection
-      recovery.
-- [x] All Python sources, tests, bytecode, and `__pycache__` directories were removed.

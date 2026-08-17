@@ -103,30 +103,32 @@ export interface CommandExecutionDetail {
 
 export interface GraphNodeData extends Omit<RawGraphNodeData, "metrics" | "metadata"> {
   metrics?: NodeMetrics | undefined;
-  metadata?: {
-    commands?: CommandExecutionDetail[] | undefined;
-    findings?: FindingDetail[] | undefined;
-    writeScope?: string[] | undefined;
-    leaseAgent?: string | undefined;
-    validator_id?: string | undefined;
-    validatorId?: string | undefined;
-    repairRounds?: number | undefined;
-    validationHistory?: unknown[] | undefined;
-    mediaAssets?: MediaAsset[] | undefined;
-    screenshots?: MediaAsset[] | undefined;
-    assets?: MediaAsset[] | undefined;
-    playwrightMetadata?: PlaywrightMetadata | undefined;
-    opposedChangesCount?: number | undefined;
-    pushbackCount?: number | undefined;
-    critic_id?: string | undefined;
-    criticId?: string | undefined;
-    status?: string | undefined;
-    unresolved_finding_ids?: string[] | undefined;
-    unresolvedFindingIds?: string[] | undefined;
-    residual_risks?: unknown[] | undefined;
-    requirement_proofs?: unknown[] | undefined;
-    [key: string]: unknown;
-  } | undefined;
+  metadata?:
+    | {
+        commands?: CommandExecutionDetail[] | undefined;
+        findings?: FindingDetail[] | undefined;
+        writeScope?: string[] | undefined;
+        leaseAgent?: string | undefined;
+        validator_id?: string | undefined;
+        validatorId?: string | undefined;
+        repairRounds?: number | undefined;
+        validationHistory?: unknown[] | undefined;
+        mediaAssets?: MediaAsset[] | undefined;
+        screenshots?: MediaAsset[] | undefined;
+        assets?: MediaAsset[] | undefined;
+        playwrightMetadata?: PlaywrightMetadata | undefined;
+        opposedChangesCount?: number | undefined;
+        pushbackCount?: number | undefined;
+        critic_id?: string | undefined;
+        criticId?: string | undefined;
+        status?: string | undefined;
+        unresolved_finding_ids?: string[] | undefined;
+        unresolvedFindingIds?: string[] | undefined;
+        residual_risks?: unknown[] | undefined;
+        requirement_proofs?: unknown[] | undefined;
+        [key: string]: unknown;
+      }
+    | undefined;
 }
 
 export interface TimelineEventRecord extends JsonObject {

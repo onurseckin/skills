@@ -159,8 +159,10 @@ export function collectMetrics(input: MetricsInput): RollupMetrics {
   }
 
   // Calculate edge traffic exchanges & tokens estimates
-  const totalEdgeTrafficExchanges = 2 + tasks.length * 3 + totalDependencies + totalPushbackExchanges;
-  const totalEdgeTrafficTokens = 650 + tasks.length * 1300 + totalDependencies * 420 + totalPushbackTokens;
+  const totalEdgeTrafficExchanges =
+    2 + tasks.length * 3 + totalDependencies + totalPushbackExchanges;
+  const totalEdgeTrafficTokens =
+    650 + tasks.length * 1300 + totalDependencies * 420 + totalPushbackTokens;
 
   const estimatedTokens = computeTokenEstimations(manifest, tasks, commands);
   const filesTouched = computeFilesTouched(tasks);

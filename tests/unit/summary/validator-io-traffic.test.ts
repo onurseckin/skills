@@ -137,7 +137,9 @@ describe("Round 3: Validator I/O Streams & Edge Traffic Exchanges", () => {
       expect(gateApiNode?.io?.inputs?.[0]?.node).toBe("node-task-T-api");
       const gateOutputs = gateApiNode?.io?.outputs ?? [];
       expect(gateOutputs.some((o) => o.kind === "decision")).toBe(true);
-      expect(gateOutputs.some((o) => o.kind === "artifact" && o.label.includes("Validator Findings"))).toBe(true);
+      expect(
+        gateOutputs.some((o) => o.kind === "artifact" && o.label.includes("Validator Findings")),
+      ).toBe(true);
 
       // 5. Critic Node
       const criticNode = dataset.nodes.find((n) => n.id === "node-critic-authority");

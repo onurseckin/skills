@@ -8,9 +8,7 @@ import type {
   TaskRecord,
   WorkflowState,
 } from "../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
-import {
-  collectMetrics,
-} from "../../../orchestrating-long-tasks/scripts/src/summary/metrics-collector.ts";
+import { collectMetrics } from "../../../orchestrating-long-tasks/scripts/src/summary/metrics-collector.ts";
 
 describe("metrics collector", () => {
   test("computes rollup metrics accurately", () => {

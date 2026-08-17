@@ -31,7 +31,9 @@ export function mapFindingDetails(
     const rawReport = task.report as Record<string, unknown> | undefined;
     const taskFindings = [
       ...(task.findings ?? []),
-      ...((Array.isArray(rawReport?.findings) ? rawReport.findings : []) as Array<Record<string, unknown>>),
+      ...((Array.isArray(rawReport?.findings) ? rawReport.findings : []) as Array<
+        Record<string, unknown>
+      >),
     ];
 
     const validatorId =
@@ -172,7 +174,12 @@ export function mapFindingDetails(
       }
 
       let evidenceList:
-        | Array<{ kind?: string | undefined; reference?: string | undefined; observation?: string | undefined; url?: string | undefined }>
+        | Array<{
+            kind?: string | undefined;
+            reference?: string | undefined;
+            observation?: string | undefined;
+            url?: string | undefined;
+          }>
         | undefined = undefined;
       if (Array.isArray(f.evidence)) {
         evidenceList = (f.evidence as unknown[]).map((ev) => {

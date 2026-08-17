@@ -45,8 +45,7 @@ export async function orchestratorRunCommand(
   const capsulesDir = textFlag(flags, "capsules-dir", false);
 
   const rawMaxRounds = integerFlag(flags, "max-rounds");
-  const maxRounds =
-    rawMaxRounds !== undefined ? Math.min(10, Math.max(1, rawMaxRounds)) : 10;
+  const maxRounds = rawMaxRounds !== undefined ? Math.min(10, Math.max(1, rawMaxRounds)) : 10;
 
   const inlinePrompt = textFlag(flags, "prompt", false);
   const promptFile = textFlag(flags, "prompt-file", false);

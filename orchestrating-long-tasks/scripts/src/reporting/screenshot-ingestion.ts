@@ -7,10 +7,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { basename, join, resolve } from "node:path";
-import {
-  discoverScreenshotCandidates,
-  findVisualReportCandidates,
-} from "./screenshot-scanner.ts";
+import { discoverScreenshotCandidates, findVisualReportCandidates } from "./screenshot-scanner.ts";
 import type {
   ClippingViolation,
   EvidenceManifestData,
@@ -160,13 +157,7 @@ export function ingestScreenshots(options: ScreenshotIngestOptions): ScreenshotR
 }
 
 export function ingestVisualReport(options: VisualReportIngestOptions): VisualMetricsReport | null {
-  const {
-    runRoot,
-    searchDirs = [],
-    stdout,
-    stderr,
-    explicitPaths,
-  } = options;
+  const { runRoot, searchDirs = [], stdout, stderr, explicitPaths } = options;
 
   let candidatePaths: string[] = [];
   try {
@@ -186,7 +177,9 @@ export function ingestVisualReport(options: VisualReportIngestOptions): VisualMe
         timestamp:
           typeof parsed.timestamp === "string" ? parsed.timestamp : new Date().toISOString(),
         viewports:
-          parsed.viewports && typeof parsed.viewports === "object" && !Array.isArray(parsed.viewports)
+          parsed.viewports &&
+          typeof parsed.viewports === "object" &&
+          !Array.isArray(parsed.viewports)
             ? (parsed.viewports as Record<string, ViewportMetrics>)
             : {},
         layoutOverflows: Array.isArray(parsed.layoutOverflows)
@@ -198,7 +191,9 @@ export function ingestVisualReport(options: VisualReportIngestOptions): VisualMe
         collisions: Array.isArray(parsed.collisions)
           ? (parsed.collisions as StackingViolation[])
           : [],
-        ...(parsed.metadata && typeof parsed.metadata === "object" && !Array.isArray(parsed.metadata)
+        ...(parsed.metadata &&
+        typeof parsed.metadata === "object" &&
+        !Array.isArray(parsed.metadata)
           ? { metadata: parsed.metadata as Record<string, unknown> }
           : {}),
       };

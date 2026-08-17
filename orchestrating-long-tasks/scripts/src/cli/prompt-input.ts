@@ -10,4 +10,3 @@ export function shouldReadPromptStdin(argv: readonly string[]): boolean {
   const options = boundary === -1 ? argv : argv.slice(0, boundary);
   return options.includes("--prompt-stdin");
 }
-

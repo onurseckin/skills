@@ -85,7 +85,14 @@ export interface FindingDetail {
   fileRefs?: FileRef[] | undefined;
   revalidationProof?: { method: string; evidence: string[] } | undefined;
   remediationProof?: { method: string; evidence: string[] } | undefined;
-  evidence?: Array<{ kind?: string | undefined; reference?: string | undefined; observation?: string | undefined; url?: string | undefined }> | undefined;
+  evidence?:
+    | Array<{
+        kind?: string | undefined;
+        reference?: string | undefined;
+        observation?: string | undefined;
+        url?: string | undefined;
+      }>
+    | undefined;
   screenshots?: MediaAsset[] | undefined;
   [key: string]: unknown;
 }
@@ -171,7 +178,16 @@ export interface EdgeTrafficExchange {
   bytes?: number | undefined;
   durationMs?: number | undefined;
   latencyMs?: number | undefined;
-  status?: "success" | "error" | "warning" | "in_transit" | "nominal" | "high" | "congested" | string | undefined;
+  status?:
+    | "success"
+    | "error"
+    | "warning"
+    | "in_transit"
+    | "nominal"
+    | "high"
+    | "congested"
+    | string
+    | undefined;
   payloadSnippet?: string | undefined;
   payloadPreview?: string | undefined;
   fullPayload?: string | undefined;
@@ -255,10 +271,12 @@ export interface GraphNodeData {
   step?: number | undefined;
   stepLabel?: string | undefined;
   badge?: BadgeDetail | undefined;
-  badges?: Array<{
-    label: string;
-    variant?: "success" | "info" | "amber" | "error" | "gray" | undefined;
-  }> | undefined;
+  badges?:
+    | Array<{
+        label: string;
+        variant?: "success" | "info" | "amber" | "error" | "gray" | undefined;
+      }>
+    | undefined;
   model?: string | undefined;
   harnessModel?: string | undefined;
   tier?: ModelTier | undefined;
@@ -270,30 +288,32 @@ export interface GraphNodeData {
   prompt?: string | undefined;
   output?: string | undefined;
   logs?: string | undefined;
-  metadata?: {
-    commands?: unknown[] | undefined;
-    findings?: FindingDetail[] | undefined;
-    writeScope?: string[] | undefined;
-    leaseAgent?: string | undefined;
-    validator_id?: string | undefined;
-    validatorId?: string | undefined;
-    repairRounds?: number | undefined;
-    validationHistory?: unknown[] | undefined;
-    mediaAssets?: MediaAsset[] | undefined;
-    screenshots?: MediaAsset[] | undefined;
-    assets?: MediaAsset[] | undefined;
-    playwrightMetadata?: PlaywrightMetadata | undefined;
-    opposedChangesCount?: number | undefined;
-    pushbackCount?: number | undefined;
-    critic_id?: string | undefined;
-    criticId?: string | undefined;
-    status?: string | undefined;
-    unresolved_finding_ids?: string[] | undefined;
-    unresolvedFindingIds?: string[] | undefined;
-    residual_risks?: unknown[] | undefined;
-    requirement_proofs?: unknown[] | undefined;
-    [key: string]: unknown;
-  } | undefined;
+  metadata?:
+    | {
+        commands?: unknown[] | undefined;
+        findings?: FindingDetail[] | undefined;
+        writeScope?: string[] | undefined;
+        leaseAgent?: string | undefined;
+        validator_id?: string | undefined;
+        validatorId?: string | undefined;
+        repairRounds?: number | undefined;
+        validationHistory?: unknown[] | undefined;
+        mediaAssets?: MediaAsset[] | undefined;
+        screenshots?: MediaAsset[] | undefined;
+        assets?: MediaAsset[] | undefined;
+        playwrightMetadata?: PlaywrightMetadata | undefined;
+        opposedChangesCount?: number | undefined;
+        pushbackCount?: number | undefined;
+        critic_id?: string | undefined;
+        criticId?: string | undefined;
+        status?: string | undefined;
+        unresolved_finding_ids?: string[] | undefined;
+        unresolvedFindingIds?: string[] | undefined;
+        residual_risks?: unknown[] | undefined;
+        requirement_proofs?: unknown[] | undefined;
+        [key: string]: unknown;
+      }
+    | undefined;
   mediaAssets?: MediaAsset[] | undefined;
   screenshots?: MediaAsset[] | undefined;
   rank?: number | undefined;

@@ -20,7 +20,8 @@ export function mapGateStatus(task: TaskRecord): NodeStatus {
   if (task.status === "done" || task.status === "validated") return "success";
   if (task.status === "changes_requested") return "warning";
   if (task.status === "cancelled" || task.status === "escalated") return "error";
-  if (task.status === "validating" || task.status === "gating" || Boolean(task.validation)) return "running";
+  if (task.status === "validating" || task.status === "gating" || Boolean(task.validation))
+    return "running";
   return "pending";
 }
 

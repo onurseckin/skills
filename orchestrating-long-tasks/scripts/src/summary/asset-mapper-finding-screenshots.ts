@@ -116,7 +116,11 @@ export function extractFindingScreenshots(
         const evUrl = typeof ev.url === "string" ? ev.url.trim() : "";
         const path = typeof ev.path === "string" ? ev.path.trim() : "";
         const target = evUrl || ref || path;
-        if (kind === "screenshot" || kind === "image" || (target.length > 0 && isImageExtension(target))) {
+        if (
+          kind === "screenshot" ||
+          kind === "image" ||
+          (target.length > 0 && isImageExtension(target))
+        ) {
           processCandidate(
             {
               url: target,

@@ -33,7 +33,10 @@ export interface TaskTimestampSummary {
   validationIntervals: ValidationInterval[];
 }
 
-export function extractTaskTimestamps(task: TaskRecord, events: readonly HarnessEvent[]): TaskTimestampSummary {
+export function extractTaskTimestamps(
+  task: TaskRecord,
+  events: readonly HarnessEvent[],
+): TaskTimestampSummary {
   let claim: string | undefined;
   let submit: string | undefined;
   let valStart: string | undefined;
@@ -50,7 +53,8 @@ export function extractTaskTimestamps(task: TaskRecord, events: readonly Harness
 
   for (const ev of events) {
     const p = (ev.payload ?? {}) as Record<string, unknown>;
-    const tId = typeof p.task_id === "string" ? p.task_id : typeof p.id === "string" ? p.id : undefined;
+    const tId =
+      typeof p.task_id === "string" ? p.task_id : typeof p.id === "string" ? p.id : undefined;
     if (tId === task.id) {
       if (ev.kind === "task-claimed" || ev.kind === "task-leased") {
         if (!claim) claim = ev.timestamp;
@@ -67,7 +71,11 @@ export function extractTaskTimestamps(task: TaskRecord, events: readonly Harness
         if (!currentValStart) {
           currentValStart = ev.timestamp;
         }
-      } else if (ev.kind === "review-recorded" || ev.kind === "task-finished" || ev.kind === "gate-completed") {
+      } else if (
+        ev.kind === "review-recorded" ||
+        ev.kind === "task-finished" ||
+        ev.kind === "gate-completed"
+      ) {
         review = ev.timestamp;
         if (currentValStart) {
           const durationMs = parseDurationMs(currentValStart, ev.timestamp);
@@ -114,7 +122,10 @@ export function computeTaskTiming(
     executionDurationMs,
     validationDurationMs: accumulatedValMs,
   } = extractTaskTimestamps(task, events);
-  const activeCommandMs = taskCmds.reduce((acc, c) => acc + parseDurationMs(c.started_at, c.finished_at), 0);
+  const activeCommandMs = taskCmds.reduce(
+    (acc, c) => acc + parseDurationMs(c.started_at, c.finished_at),
+    0,
+  );
 
   let wallDurationMs = 0;
   if (executionDurationMs !== undefined && executionDurationMs > 0) {
@@ -125,8 +136,11 @@ export function computeTaskTiming(
     wallDurationMs = parseDurationMs(claim, review);
   } else if (taskCmds.length > 0) {
     const sTimes = taskCmds.map((c) => Date.parse(c.started_at)).filter((t) => !isNaN(t));
-    const eTimes = taskCmds.map((c) => Date.parse(c.finished_at ?? c.started_at)).filter((t) => !isNaN(t));
-    if (sTimes.length > 0 && eTimes.length > 0) wallDurationMs = Math.max(activeCommandMs, Math.max(...eTimes) - Math.min(...sTimes));
+    const eTimes = taskCmds
+      .map((c) => Date.parse(c.finished_at ?? c.started_at))
+      .filter((t) => !isNaN(t));
+    if (sTimes.length > 0 && eTimes.length > 0)
+      wallDurationMs = Math.max(activeCommandMs, Math.max(...eTimes) - Math.min(...sTimes));
   }
   if (wallDurationMs < activeCommandMs) wallDurationMs = activeCommandMs;
 
@@ -138,10 +152,19 @@ export function computeTaskTiming(
     validationDurationMs = parseDurationMs(valStart, review);
   } else {
     const valCmds = taskCmds.filter((c) => Boolean(c.gate_id) || c.actor === "val");
-    if (valCmds.length > 0) validationDurationMs = valCmds.reduce((acc, c) => acc + parseDurationMs(c.started_at, c.finished_at), 0);
+    if (valCmds.length > 0)
+      validationDurationMs = valCmds.reduce(
+        (acc, c) => acc + parseDurationMs(c.started_at, c.finished_at),
+        0,
+      );
   }
 
-  return { wallDurationMs, activeCommandMs, cognitiveLatencyMs, ...(validationDurationMs !== undefined ? { validationDurationMs } : {}) };
+  return {
+    wallDurationMs,
+    activeCommandMs,
+    cognitiveLatencyMs,
+    ...(validationDurationMs !== undefined ? { validationDurationMs } : {}),
+  };
 }
 
 export function computeGateTiming(
@@ -149,9 +172,16 @@ export function computeGateTiming(
   events: readonly HarnessEvent[] = [],
   taskCmds: readonly CommandRecord[] = [],
 ): TimingBreakdown | undefined {
-  const { valStart, review, validationDurationMs: accumulatedValMs } = extractTaskTimestamps(task, events);
+  const {
+    valStart,
+    review,
+    validationDurationMs: accumulatedValMs,
+  } = extractTaskTimestamps(task, events);
   const valCmds = taskCmds.filter((c) => Boolean(c.gate_id) || c.actor === "val");
-  const activeCommandMs = valCmds.reduce((acc, c) => acc + parseDurationMs(c.started_at, c.finished_at), 0);
+  const activeCommandMs = valCmds.reduce(
+    (acc, c) => acc + parseDurationMs(c.started_at, c.finished_at),
+    0,
+  );
 
   let wallDurationMs = 0;
   if (accumulatedValMs !== undefined) {
@@ -160,8 +190,11 @@ export function computeGateTiming(
     wallDurationMs = parseDurationMs(valStart, review);
   } else if (valCmds.length > 0) {
     const sTimes = valCmds.map((c) => Date.parse(c.started_at)).filter((t) => !isNaN(t));
-    const eTimes = valCmds.map((c) => Date.parse(c.finished_at ?? c.started_at)).filter((t) => !isNaN(t));
-    if (sTimes.length > 0 && eTimes.length > 0) wallDurationMs = Math.max(activeCommandMs, Math.max(...eTimes) - Math.min(...sTimes));
+    const eTimes = valCmds
+      .map((c) => Date.parse(c.finished_at ?? c.started_at))
+      .filter((t) => !isNaN(t));
+    if (sTimes.length > 0 && eTimes.length > 0)
+      wallDurationMs = Math.max(activeCommandMs, Math.max(...eTimes) - Math.min(...sTimes));
   }
   if (wallDurationMs < activeCommandMs) wallDurationMs = activeCommandMs;
 
@@ -189,9 +222,15 @@ export function computeTaskTokens(
     return {
       inputTokens: input,
       outputTokens: output,
-      ...(hostTokens.reasoningTokens !== undefined ? { reasoningTokens: hostTokens.reasoningTokens } : {}),
-      ...(hostTokens.cacheCreationTokens !== undefined ? { cacheCreationTokens: hostTokens.cacheCreationTokens } : {}),
-      ...(hostTokens.cacheReadTokens !== undefined ? { cacheReadTokens: hostTokens.cacheReadTokens } : {}),
+      ...(hostTokens.reasoningTokens !== undefined
+        ? { reasoningTokens: hostTokens.reasoningTokens }
+        : {}),
+      ...(hostTokens.cacheCreationTokens !== undefined
+        ? { cacheCreationTokens: hostTokens.cacheCreationTokens }
+        : {}),
+      ...(hostTokens.cacheReadTokens !== undefined
+        ? { cacheReadTokens: hostTokens.cacheReadTokens }
+        : {}),
       totalTokens,
       ...(hostTokens.costUsd !== undefined ? { costUsd: hostTokens.costUsd } : {}),
       isEstimated: false,
@@ -200,7 +239,9 @@ export function computeTaskTokens(
 
   const promptBytes = manifest?.prompt_bytes ?? 1200;
   let cmdStdoutBytes = 0;
-  for (const cmd of taskCmds) cmdStdoutBytes += cmd.logs?.stdout?.bytes ?? (typeof cmd.stdout === "string" ? cmd.stdout.length : 0);
+  for (const cmd of taskCmds)
+    cmdStdoutBytes +=
+      cmd.logs?.stdout?.bytes ?? (typeof cmd.stdout === "string" ? cmd.stdout.length : 0);
   const reportBytes = task.report ? JSON.stringify(task.report).length : 400;
   const summaryStr = typeof task.report?.summary === "string" ? task.report.summary : "";
 
@@ -209,7 +250,12 @@ export function computeTaskTokens(
   const reasoningTokens = hostTokens?.reasoningTokens;
   const cacheCreationTokens = hostTokens?.cacheCreationTokens;
   const cacheReadTokens = hostTokens?.cacheReadTokens;
-  const totalTokens = inputTokens + outputTokens + (reasoningTokens ?? 0) + (cacheCreationTokens ?? 0) + (cacheReadTokens ?? 0);
+  const totalTokens =
+    inputTokens +
+    outputTokens +
+    (reasoningTokens ?? 0) +
+    (cacheCreationTokens ?? 0) +
+    (cacheReadTokens ?? 0);
 
   return {
     inputTokens,
@@ -238,9 +284,15 @@ export function computeGateTokens(
     return {
       inputTokens: input,
       outputTokens: output,
-      ...(hostTokens.reasoningTokens !== undefined ? { reasoningTokens: hostTokens.reasoningTokens } : {}),
-      ...(hostTokens.cacheCreationTokens !== undefined ? { cacheCreationTokens: hostTokens.cacheCreationTokens } : {}),
-      ...(hostTokens.cacheReadTokens !== undefined ? { cacheReadTokens: hostTokens.cacheReadTokens } : {}),
+      ...(hostTokens.reasoningTokens !== undefined
+        ? { reasoningTokens: hostTokens.reasoningTokens }
+        : {}),
+      ...(hostTokens.cacheCreationTokens !== undefined
+        ? { cacheCreationTokens: hostTokens.cacheCreationTokens }
+        : {}),
+      ...(hostTokens.cacheReadTokens !== undefined
+        ? { cacheReadTokens: hostTokens.cacheReadTokens }
+        : {}),
       totalTokens,
       ...(hostTokens.costUsd !== undefined ? { costUsd: hostTokens.costUsd } : {}),
       isEstimated: false,
@@ -250,7 +302,8 @@ export function computeGateTokens(
   const valCmds = taskCmds.filter((c) => Boolean(c.gate_id) || c.actor === "val");
   let valStdoutBytes = 0;
   for (const cmd of valCmds) {
-    valStdoutBytes += cmd.logs?.stdout?.bytes ?? (typeof cmd.stdout === "string" ? cmd.stdout.length : 0);
+    valStdoutBytes +=
+      cmd.logs?.stdout?.bytes ?? (typeof cmd.stdout === "string" ? cmd.stdout.length : 0);
   }
   const findingsBytes = (task.findings ?? []).reduce((acc, f) => acc + JSON.stringify(f).length, 0);
   const inputTokens = Math.max(40, Math.round((valStdoutBytes + findingsBytes + 200) / 4));
@@ -258,7 +311,12 @@ export function computeGateTokens(
   const reasoningTokens = hostTokens?.reasoningTokens;
   const cacheCreationTokens = hostTokens?.cacheCreationTokens;
   const cacheReadTokens = hostTokens?.cacheReadTokens;
-  const totalTokens = inputTokens + outputTokens + (reasoningTokens ?? 0) + (cacheCreationTokens ?? 0) + (cacheReadTokens ?? 0);
+  const totalTokens =
+    inputTokens +
+    outputTokens +
+    (reasoningTokens ?? 0) +
+    (cacheCreationTokens ?? 0) +
+    (cacheReadTokens ?? 0);
 
   return {
     inputTokens,

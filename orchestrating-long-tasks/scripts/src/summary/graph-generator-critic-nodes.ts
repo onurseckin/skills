@@ -1,11 +1,7 @@
 import type { HarnessEvent, Manifest } from "../contracts/capsule.ts";
 import type { CommandRecord } from "../contracts/commands.ts";
 import type { TaskRecord, WorkflowState } from "../workflow/types.ts";
-import {
-  mapCommandDetails,
-  mapFindingDetails,
-  mapMediaAssets,
-} from "./graph-generator-helpers.ts";
+import { mapCommandDetails, mapFindingDetails, mapMediaAssets } from "./graph-generator-helpers.ts";
 import type { StepAssignments } from "./step-calculator.ts";
 import type {
   EdgeTrafficExchange,
@@ -38,9 +34,7 @@ export function buildCriticAndTerminalNodes(
   });
   const criticCmds = allCommands.filter(
     (c) =>
-      c.actor === "critic" ||
-      c.actor === "authority" ||
-      Boolean(c.gate_id?.includes("critic")),
+      c.actor === "critic" || c.actor === "authority" || Boolean(c.gate_id?.includes("critic")),
   );
   const criticMediaAssets = mapMediaAssets(undefined, criticCmds, {
     ...(criticReview !== undefined ? { completionReview: criticReview } : {}),
@@ -96,7 +90,9 @@ export function buildCriticAndTerminalNodes(
     stepLabel: `Step ${steps.criticStep}: Completeness Critic`,
     badge: {
       text: criticReview
-        ? (criticReview.status === "clean" ? "Certified Clean" : "Findings Recorded")
+        ? criticReview.status === "clean"
+          ? "Certified Clean"
+          : "Findings Recorded"
         : "Certified Clean",
       variant: criticReview?.status === "clean" ? "success" : "warning",
       icon: "IconScale",

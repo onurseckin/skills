@@ -16,29 +16,35 @@ export function createEdge(
   isHighTraffic = false,
   glowColor?: string | undefined,
   glowIntensity?: number | undefined,
-  trafficOptions?: {
-    latencyMs?: number | undefined;
-    tokensIn?: number | undefined;
-    tokensOut?: number | undefined;
-    status?: "nominal" | "high" | "congested" | "active" | "idle" | "error" | string | undefined;
-  } | undefined,
+  trafficOptions?:
+    | {
+        latencyMs?: number | undefined;
+        tokensIn?: number | undefined;
+        tokensOut?: number | undefined;
+        status?:
+          | "nominal"
+          | "high"
+          | "congested"
+          | "active"
+          | "idle"
+          | "error"
+          | string
+          | undefined;
+      }
+    | undefined,
 ): GraphEdgeData {
   const totalTokens = exchanges.reduce(
-    (acc, x) => acc + (x.tokens ?? ((x.tokensIn ?? 0) + (x.tokensOut ?? 0))),
+    (acc, x) => acc + (x.tokens ?? (x.tokensIn ?? 0) + (x.tokensOut ?? 0)),
     0,
   );
   const totalTokensIn =
-    trafficOptions?.tokensIn ??
-    exchanges.reduce((acc, x) => acc + (x.tokensIn ?? 0), 0);
+    trafficOptions?.tokensIn ?? exchanges.reduce((acc, x) => acc + (x.tokensIn ?? 0), 0);
   const totalTokensOut =
-    trafficOptions?.tokensOut ??
-    exchanges.reduce((acc, x) => acc + (x.tokensOut ?? 0), 0);
+    trafficOptions?.tokensOut ?? exchanges.reduce((acc, x) => acc + (x.tokensOut ?? 0), 0);
   const totalBytes = exchanges.reduce((acc, x) => acc + (x.bytes ?? 0), 0);
   const totalLatencyMs =
     trafficOptions?.latencyMs ??
-    (exchanges.length > 0
-      ? exchanges.reduce((acc, x) => acc + (x.durationMs ?? 0), 0)
-      : 50);
+    (exchanges.length > 0 ? exchanges.reduce((acc, x) => acc + (x.durationMs ?? 0), 0) : 50);
 
   const defaultDirection = isCycle ? "reverse" : "forward";
   const defaultType =
@@ -102,12 +108,7 @@ export function createEdge(
             : undefined);
 
   const resolvedStatus =
-    trafficOptions?.status ??
-    (isCycle
-      ? "congested"
-      : isHighTraffic
-        ? "high"
-        : "nominal");
+    trafficOptions?.status ?? (isCycle ? "congested" : isHighTraffic ? "high" : "nominal");
 
   const trafficDetail: EdgeTrafficDetail = {
     volume: finalExchanges.length,

@@ -243,12 +243,8 @@ describe("Dual-Channel Visual Analyzer - Negative Bounds & Custom Viewports", ()
 
       const consistency = validateCrossChannelConsistency(domReport, screenshots);
       expect(consistency.consistent).toBe(false);
-      expect(
-        consistency.discrepancies.some((d) => d.includes("Malformed dimension")),
-      ).toBe(true);
-      expect(
-        consistency.discrepancies.some((d) => d.includes("Dimension mismatch")),
-      ).toBe(true);
+      expect(consistency.discrepancies.some((d) => d.includes("Malformed dimension"))).toBe(true);
+      expect(consistency.discrepancies.some((d) => d.includes("Dimension mismatch"))).toBe(true);
     });
   });
 });
