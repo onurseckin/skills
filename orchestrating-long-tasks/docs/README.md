@@ -103,7 +103,7 @@ Every document in this directory includes previous/next navigation links at the 
 25. **[01. Complete End-to-End Tutorial](./09-tutorial-and-cli/01-end-to-end-tutorial.md)**
     _A hands-on, practical walkthrough from an initial prompt to full completion, illustrating every CLI step, file creation, and state transition._
 26. **[02. Comprehensive CLI Command Reference Manual](./09-tutorial-and-cli/02-cli-command-reference.md)**
-    _Exhaustive reference for all Zero-JSON colon CLI commands (`plan:init`, `plan:add`, `plan:compile`, `queue:pop`, `task:claim`, `task:submit`, `task:validate-start`, `task:review`, `run:exec`, `critic:start`, `run:complete`)._
+    _Exhaustive reference for all Zero-JSON colon CLI commands (`plan:init`, `plan:add`, `plan:compile`, `queue:pop`, `task:claim`, `task:submit`, `task:validate-start`, `task:review`, `run:exec`, `critic:start`, `run:complete`, `summary:export`, `gvui:import`)._
 27. **[03. Troubleshooting, Common Pitfalls & FAQ](./09-tutorial-and-cli/03-troubleshooting-and-faq.md)**
     _Common operational errors, diagnosing integrity issues, resolving gate failures, and answers to frequently asked questions._
 

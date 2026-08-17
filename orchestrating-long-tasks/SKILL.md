@@ -356,7 +356,7 @@ bun $PINNED run:status --run $RUN
 
 ### Phase 5: Visual Reporting & Summary Suite
 
-Export graph summary and visual dashboard:
+Export graph summary, visual dashboard, and import into GVUI:
 
 ```bash
 # Export summary suite (graph dataset, metrics, timeline)
@@ -367,6 +367,9 @@ bun $PINNED summary:view --run $RUN
 
 # Inspect captured screenshots across tasks and runs
 bun $PINNED evidence:screenshots --run $RUN
+
+# Import execution graph into GVUI (run from gvui repo)
+bun run gvui:import --capsule $RUN
 ```
 
 ---

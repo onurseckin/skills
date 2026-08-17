@@ -67,6 +67,17 @@ bun harness.ts <domain:command> [flags...] [-- <argv...>]
 - **`run:complete`**: Mechanically evaluate the 8-point checklist and seal the run.
   - Flags: `--run <path>`, `--actor <name>`
 
+### 6. Visual Summary & GVUI Ingestion
+
+- **`summary:export`**: Generate complete graph dataset, metrics, timeline, and Markdown summary suite.
+  - Flags: `--run <path>`, `[--out <dir>]`
+- **`summary:view`**: Render terminal executive summary and execution telemetry.
+  - Flags: `--run <path>`
+- **`evidence:screenshots`**: Inspect captured Playwright and visual audit screenshots.
+  - Flags: `--run <path>`, `[--task <task-id>]`
+- **GVUI CLI Ingestion (`gvui:import`)**: Ingest capsule graph into GVUI (`public/data/graphs/<slug>.json`) for interactive inspection.
+  - Command: `bun run gvui:import --capsule /path/to/.capsules/<run-id>` *(run from gvui repo)*
+
 ---
 
 [⬅ Previous: Complete End-to-End Tutorial](./01-end-to-end-tutorial.md) | [Master Table of Contents](../README.md) | [Next: Troubleshooting & FAQ ➡](./03-troubleshooting-and-faq.md)

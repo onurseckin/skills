@@ -74,6 +74,50 @@ bun orchestrating-long-tasks/scripts/harness.ts installation-status \
 
 ---
 
+## 📊 Visualizing Execution Graphs in GVUI
+
+Runs executed by `orchestrating-long-tasks` produce complete execution graph datasets, subagent telemetry, gate verifications, and visual audit evidence inside `.capsules/<run-id>/`. You can visualize any run interactively in [**GVUI (Graph Visualization UI)**](https://github.com/onurseckin/gvui):
+
+### 1. Export the Capsule Summary Suite
+
+From the workspace where your task ran, export the graph datasets:
+
+```bash
+bun orchestrating-long-tasks/scripts/harness.ts summary:export --run .capsules/<run-id>
+```
+
+This compiles `.capsules/<run-id>/summary/`:
+- `graph.json` — Interactive DAG nodes, edges, subagents, and execution states.
+- `metrics.json` — Token footprints, wall-clock timing, gate pass rates.
+- `timeline.json` — Event-sourced state transitions and heartbeat logs.
+- `summary.md` — Executive Markdown brief.
+
+### 2. Import into GVUI via CLI
+
+In your local `gvui` repository, import the capsule report:
+
+```bash
+# From the gvui repository root:
+bun run gvui:import --capsule /path/to/.capsules/<run-id>
+# Or directly:
+bun scripts/import-capsule.ts --capsule /path/to/.capsules/<run-id>
+```
+
+### 3. Explore the Execution Graph
+
+Start the GVUI dev server and open the preview URL:
+
+```bash
+bun run dev:host  # http://localhost:4444
+```
+
+Open **`http://localhost:4444/?graph=<slug>`** to inspect:
+- **DAG Topologies**: Layered & radial graph views with real-time layout physics.
+- **Subagent Telemetry**: Worker, Validator, and Critic logs with bearer token tracking.
+- **Dual-Channel Audit Evidence**: DOM bounding metrics, Playwright screenshots, and adversarial findings.
+
+---
+
 ## 🛠️ Adding New Skills to this Repository
 
 Adding a new skill is straightforward. Each skill lives in its own top-level directory:

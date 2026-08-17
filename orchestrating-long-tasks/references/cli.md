@@ -108,3 +108,9 @@ The harness provides a **Zero-JSON CLI API** where all commands output clean, co
   ```bash
   bun harness.ts summary:view --run <run-id>
   ```
+- **GVUI CLI Ingestion (`gvui:import`)**: Imports the generated summary into GVUI for browser-based DAG inspection.
+  ```bash
+  # Run from gvui repository
+  bun run gvui:import --capsule /path/to/.capsules/<run-id>
+  ```
+
