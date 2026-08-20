@@ -28,13 +28,18 @@ Here is the exact filesystem structure of a live run capsule:
 .capsules/<run-id>/
 ├── prompt.md             # Immutable original prompt bytes (read-only, mode 0444)
 ├── README.md             # The generated layout note: one line per entry and what it is for
-├── manifest.json         # Capture assurance, prompt SHA-256, runtime version
+├── handoff.md            # Regenerated restart document: state, live wave, gate assurance
+├── manifest.json         # Capture assurance, prompt SHA-256, runtime pin, runtime version
 ├── state.json            # Authoritative current projection (derived from events)
 ├── events.jsonl          # Canonical append-only cryptographic hash chain
 ├── index.json            # Derived catalogue: the routine questions answered in one read
 ├── trace.md              # Derived step trace: one row per recorded event, in order
 ├── captures.json         # The capture ledger: every stored blob and who produced it
 ├── planning/             # plan:enhance output: enhanced-plan.md + enhanced-plan.json (0444)
+├── packets/               # One directory per published role packet
+│   └── <role>-<hash>/
+│       ├── packet.md             # Immutable contract text handed to the dispatched agent
+│       └── metadata.json         # packet_sha256, role, grant binding
 ├── commands/             # One directory per recorded command
 │   └── C-<uuid>/
 │       ├── record.json           # argv, cwd, exit code, timings, repository binding, log digests
@@ -45,6 +50,7 @@ Here is the exact filesystem structure of a live run capsule:
 ├── evidence/             # Readable names hardlinked onto blobs/; holds no bytes of its own
 ├── quarantine/           # Event-log fragments recovery removed, kept byte for byte
 ├── reports/              # Submission, probe, review and critic reports
+├── runtime/              # The harness scripts pinned at plan:init, unless --no-runtime-pin
 └── summary/              # summary:export output: graph.json, timeline.json, metrics.json, summary.md
 ```
 
@@ -103,10 +109,17 @@ Let's examine the four core files that guarantee data integrity across crashes a
     "prompt_bytes": 200,
     "prompt_sha256": "ba20966731e18c4133cd16a43dd9d2f205c7d57844d58ce2e332cc5e2a91401d",
     "bun_version": "1.3.14",
-    "runtime_version": "0.1.0"
+    "bun_compatibility": "same-major-not-older",
+    "runtime_version": "0.1.0",
+    "runtime_entrypoint": "runtime/harness.ts",
+    "runtime_files": 479,
+    "runtime_sha256": "1eac54785ea994a159cea10dde52362b36f48f72cfdd0b556f051a178efe6c77"
   }
   ```
   - **Capture Assurance**: If initialized via `--prompt-stdin` or direct file retrieval, assurance is `source-verified`. If transcribed from chat history, assurance is `recorded-unverified`.
+  - **Runtime Pin**: `runtime_entrypoint`, `runtime_files` and `runtime_sha256` are absent when
+    `--no-runtime-pin` was passed at `plan:init`; otherwise they name the pinned copy under `runtime/`
+    that this capsule stays reproducible against, independent of what the global skill later becomes.
 
 ### 2. `events.jsonl` (The Cryptographic Hash Chain)
 
@@ -173,6 +186,7 @@ topology         # recorded waves and per-task scheduling decisions
 agents           # the grant ledger
 branches         # the branch ledger (absent until the first branch:open)
 commands         # every recorded command
+packets          # published role-packet contracts, keyed by packet id
 orphan_evidence  # evidence that arrived without a live owner
 
 # the completion block, written by critic:start / critic:review / run:complete
@@ -184,6 +198,8 @@ completion_verification    # the artifact and receipt re-verification
 completion_result          # the sealed outcome
 
 # repository binding, written whenever the harness inspects the worktree
+baseline_repository_binding            # the commit and dirty-state at the run's first inspection
+baseline_repository_inspection_sha256  # digest of that inspection (write-once)
 current_repository_binding             # the commit and dirty-state the last inspection saw
 current_repository_inspection_sha256   # digest of that inspection
 repository_inspections                 # every recorded inspection
@@ -198,7 +214,7 @@ existed simply has none, and every reader must see that absence rather than a de
 
 ## 🛠️ The Zero-JSON CLI & Markdown Briefs
 
-Instead of generating raw JSON files or separate markdown packets on disk, the harness provides domain-specific colon commands across twelve domains — `plan`, `queue`, `task`, `run`, `critic`, `summary`, `inspection`, `orchestrator`, `branch`, `agent`, `install` and `diagnostics`. The generated manifest at [`references/cli-capabilities.md`](../../references/cli-capabilities.md) is the single description of that surface; `bun harness.ts help` prints it from the terminal.
+Instead of generating raw JSON files or separate markdown packets on disk, the harness provides domain-specific colon commands across fourteen domains — `plan`, `queue`, `task`, `run`, `critic`, `summary`, `inspection`, `orchestrator`, `branch`, `agent`, `authority`, `orphan`, `install` and `diagnostics`. The generated manifest at [`references/cli-capabilities.md`](../../references/cli-capabilities.md) is the single description of that surface; `bun harness.ts help` prints it from the terminal.
 
 Each command emits a compact, structured Markdown brief ($\le 30$ lines) directly to standard output:
 

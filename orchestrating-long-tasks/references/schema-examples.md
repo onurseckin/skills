@@ -355,7 +355,7 @@ present when Git could be read; `git_available: false` leaves it absent rather t
 
 ## Agent grant
 
-One entry in `state.agents`, after the host reported telemetry:
+One entry in `state.agents`, after the dispatcher reported telemetry via CLI flags:
 
 ```json
 {
@@ -366,9 +366,9 @@ One entry in `state.agents`, after the host reported telemetry:
   "host": "claude-code",
   "granted_at": "2026-08-19T09:58:40.000Z",
   "status": "active",
-  "model": { "value": "claude-opus-5", "evidence_class": "host_reported" },
-  "model_tier": { "value": "l", "evidence_class": "host_reported" },
-  "thinking_level": { "value": "high", "evidence_class": "host_reported" },
+  "model": { "value": "claude-opus-5", "evidence_class": "agent_reported" },
+  "model_tier": { "value": "l", "evidence_class": "agent_reported" },
+  "thinking_level": { "value": "high", "evidence_class": "agent_reported" },
   "tools_granted": { "value": ["Read", "Edit", "Bash"], "evidence_class": "agent_reported" },
   "tools_used": [
     {
@@ -377,18 +377,20 @@ One entry in `state.agents`, after the host reported telemetry:
       "first_reported_at": "2026-08-19T10:02:00.000Z"
     }
   ],
-  "tokens_in": { "value": 18000, "evidence_class": "host_reported" },
-  "tokens_out": { "value": 2400, "evidence_class": "host_reported" },
+  "tokens_in": { "value": 18000, "evidence_class": "agent_reported" },
+  "tokens_out": { "value": 2400, "evidence_class": "agent_reported" },
   "last_reported_at": "2026-08-19T10:02:00.000Z",
   "report_count": 1
 }
 ```
 
-A grant the host reported nothing about carries `id`, `role`, `parent_agent_id`, `parent_task_id`,
+A grant nobody reported telemetry for carries `id`, `role`, `parent_agent_id`, `parent_task_id`,
 `host`, `granted_at` and `status` alone. The missing fields stay missing and render as "unknown";
-none of them is filled in from the exporting machine. Tool names arrive over the CLI from the agent,
-so they are `agent_reported` even when the model, tier and token counts are `host_reported`. Counts
-recorded with `--tokens-estimated` carry `"evidence_class": "derived"` and `"is_estimated": true`.
+none of them is filled in from the exporting machine. Model, tier, thinking level, tool names and
+token counts all arrive over the CLI from whichever process called the harness, so all of them carry
+`agent_reported` — a CLI flag is an unverified claim, not a host attestation, no matter which field
+it fills. Counts recorded with `--tokens-estimated` carry `"evidence_class": "derived"` and
+`"is_estimated": true`.
 
 ## Topology record
 

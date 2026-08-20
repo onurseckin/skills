@@ -158,17 +158,27 @@ interface AgentGrantRecord {
   status: "active" | "released";
   released_at?: string;
   release_reason?: string;
-  model?: Evidenced<string>; // host_reported, or absent
-  model_tier?: Evidenced<AgentModelTier>;
-  thinking_level?: Evidenced<ThinkingLevel>;
-  tools_granted?: Evidenced<string[]>;
+  provider?: Evidenced<string>; // agent_reported, or absent
+  model?: Evidenced<string>; // agent_reported, or absent — never parsed or matched against
+  model_tier?: Evidenced<AgentModelTier>; // agent_reported, or absent — never inferred from model
+  thinking_level?: Evidenced<ThinkingLevel>; // agent_reported, or absent
+  context_window?: Evidenced<number>; // agent_reported, or absent
+  tools_granted?: Evidenced<AgentToolRef[]>;
   tools_used?: AgentToolUse[];
-  tokens_in?: Evidenced<number>;
-  tokens_out?: Evidenced<number>;
+  tokens_in?: Evidenced<number>; // agent_reported, or derived + is_estimated
+  tokens_out?: Evidenced<number>; // agent_reported, or derived + is_estimated
+  token_extras?: Record<string, Evidenced<number>>; // provider-specific counters, same rule
   last_reported_at?: string;
   report_count?: number;
 }
 ```
+
+Every telemetry field above is `agent_reported`: it arrived as free-text CLI input from whichever
+process called the harness, indistinguishable from any other flag. `host_reported` is a defined
+evidence class but no current code path assigns it to an agent grant field — a value the harness
+independently confirmed off the host's own config or transcript earns `derived` or
+`harness_observed` instead, and only ever fills a field with no explicit report already on it (see
+[Chapter 09 §03](../docs/09-branching-and-honesty/03-evidence-classes-and-honesty.md)).
 
 The parent must already hold a grant, which is what makes lineage a chain rather than a claim; an
 unregistered parent is refused rather than recorded as a dangling reference, a duplicate agent id is

@@ -28,7 +28,7 @@ Every value the system reports is labelled with how it was learned:
 | :----------------- | :------------------------------------------------------------------------------ |
 | `harness_observed` | The harness measured it: exit codes, byte counts, Git diffs, wall clock.        |
 | `agent_reported`   | An agent said so through the CLI. True only if the agent was honest.            |
-| `host_reported`    | The host runtime supplied it: model id, tier, thinking level, token usage.      |
+| `host_reported`    | Defined for a host attestation the harness independently verified; no current code path assigns it — model id, tier, thinking level and token usage all arrive as CLI input and carry `agent_reported` instead. |
 | `derived`          | Computed from other recorded values, such as wave numbers or estimates.         |
 | `unknown`          | Not available. It must render as "unknown", never as a neutral-looking default. |
 

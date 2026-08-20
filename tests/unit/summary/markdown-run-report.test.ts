@@ -67,6 +67,13 @@ describe("summary.md is a complete, sequential run report", () => {
     expect(markdown).toContain("Prompt line dispositions");
   });
 
+  test("states how each requirement is to be implemented, not only its instruction", () => {
+    expect(markdown).toContain("### How each requirement is to be implemented");
+    expect(markdown).toContain(
+      "| `req-alpha` | Implement requirements for Alpha subsystem within scope src/alpha |",
+    );
+  });
+
   test("records the topology and explains what ran in parallel and why", () => {
     expect(markdown).toContain("**Max parallel**");
     expect(markdown).toContain("priority_capacity");
@@ -109,6 +116,19 @@ describe("summary.md is a complete, sequential run report", () => {
     expect(markdown).toContain("S-lexer finished");
   });
 
+  test("times each sub-task's claim and submission, not only its final status", () => {
+    const branchSection = markdown.slice(
+      positionOf("## 10. Branch Excursions"),
+      positionOf("## 11. Files Changed"),
+    );
+    expect(branchSection).toContain("Claimed at");
+    expect(branchSection).toContain("Submitted at");
+    const lexerRow = branchSection.split("\n").find((line) => line.includes("`S-lexer`"));
+    expect(lexerRow).toBeDefined();
+    // Two distinct ISO timestamps on the row: claimed, then submitted, both harness clock reads.
+    expect(lexerRow!.match(/\d{4}-\d{2}-\d{2}T[\d:.]+Z/gu)?.length).toBeGreaterThanOrEqual(2);
+  });
+
   test("lists every recorded command with its exit code, including a failing one", () => {
     expect(failingExitCode).toBe(3);
     expect(markdown).toContain("bun -e process.exit(3)");
@@ -126,6 +146,12 @@ describe("summary.md is a complete, sequential run report", () => {
     expect(markdown).toContain("| `task-beta` | 1 | 1 |");
     expect(markdown).toContain("| `task-beta` | 1 | code-quality | `validator-1` | reject |");
     expect(markdown).toContain("| `task-beta` | 2 | code-quality | `validator-2` | pass |");
+    // A probe carries its own remediation and revalidation instruction, same as a defect finding;
+    // the round number alone does not say what would satisfy it.
+    expect(markdown).toContain("Cite a command id that proves this for task-beta");
+    expect(markdown).toContain(
+      "Answer the demand with evidence, or record a defect with task:reject if it does not hold.",
+    );
   });
 
   test("reports the gates, their recorded runs and the critic's verdict", () => {
@@ -135,6 +161,27 @@ describe("summary.md is a complete, sequential run report", () => {
     expect(markdown).toContain("| Verdict | clean |");
     expect(markdown).toContain("| Run completion | complete |");
     expect(markdown).toContain("| `req-alpha` | satisfied |");
+  });
+
+  test("times the critic's authorisation and names the packet it worked from", () => {
+    expect(markdown).toContain("| Authorised at | 2");
+    expect(markdown).toContain("| Authorisation deadline | 2");
+    expect(markdown).toContain("| Critic packet | `completeness-critic-");
+  });
+
+  test("says why each requirement proof holds, not only what it cites", () => {
+    expect(markdown).toContain("req-alpha proven by the critic's own gate run");
+  });
+
+  test("records whether the capsule's own integrity check passed", () => {
+    expect(markdown).toContain("### Capsule integrity evidence");
+    expect(markdown).toContain("| capsule_integrity | passed |");
+  });
+
+  test("carries what the implementer cited as evidence for a submission, not only its summary", () => {
+    expect(markdown).toContain("Checks cited");
+    expect(markdown).toContain("Evidence cited");
+    expect(markdown).toContain("kind=command_record");
   });
 
   test("reports telemetry with its evidence class and unknown where nothing was reported", () => {

@@ -114,6 +114,7 @@ bun harness.ts plan:enhance --run .capsules/slugger --actor planner \
 - **Risks**: 1 | **Open Questions**: 1 | **Sources Read**: 2
 - **Evidence**: `agent_reported` throughout — this is the agent's claim about the repository, not a harness measurement.
 - **Authority**: `prompt.md` (sha256 `ba20966731e18c4133cd16a43dd9d2f205c7d57844d58ce2e332cc5e2a91401d`) stays the requirement source; this document is derived.
+- **Next Step**: Review the document, then declare tasks with `plan:add --requirement-lines`.
 ```
 
 The document is explicitly derived. `prompt.md` remains the only thing requirements bind to.
@@ -191,6 +192,10 @@ bun harness.ts queue:wave --run .capsules/slugger
 
 - **Topology**: recorded at graph revision 1
 - **Dispatch**: each row is independently claimable now — claim it the moment an agent is free; do not wait for the rest of this list before claiming the next one.
+
+```bash
+bun harness.ts task:claim --run slugger --task <TASK_ID> --agent <AGENT_ID> --role implementer
+```
 ```
 
 `queue:wave` is read-only and reports every task claimable right now, so a coordinator dispatches
@@ -216,23 +221,37 @@ bun harness.ts agent:register --run .capsules/slugger --agent impl-truncate \
 ```text
 ### Agent Granted: impl-slug (implementer)
 - **Under**: `coordinator-1` / task `task-slug`
-- **Host**: `claude-code`
-- **Model**: `claude-opus-4-6` (host_reported) · **Tier**: `l` (host_reported)
-- **Thinking**: `high` (host_reported)
-- **Tools Granted**: `Read`, `Write`, `Bash` (agent_reported)
+- **Host**: `claude-code` · **Provider**: unknown
+- **Model**: `claude-opus-4-6` (agent_reported) · **Tier**: `l` (agent_reported)
+- **Thinking**: `high` (agent_reported) · **Context Window**: unknown
+- **Tools Granted**: `Read` (uncategorised), `Write` (uncategorised), `Bash` (uncategorised) (agent_reported)
+
+#### Close The Grant:
+```bash
+bun harness.ts agent:release --run .capsules/slugger --agent impl-slug
+```
 ```
 
 ```text
 ### Agent Granted: impl-truncate (implementer)
 - **Under**: `coordinator-1` / task `task-truncate`
-- **Host**: `claude-code`
+- **Host**: `claude-code` · **Provider**: unknown
 - **Model**: unknown · **Tier**: unknown
-- **Thinking**: unknown
+- **Thinking**: unknown · **Context Window**: unknown
 - **Tools Granted**: unknown
+
+#### Close The Grant:
+```bash
+bun harness.ts agent:release --run .capsules/slugger --agent impl-truncate
+```
 ```
 
 Same machine, same second. The second agent reads `unknown` because nothing was reported for it, and
-the harness will not infer a model from the machine it happens to be running on.
+the harness will not infer a model from the machine it happens to be running on. `(agent_reported)` is
+the whole class here, not `(host_reported)`: a plain CLI flag is an unverified claim relayed by
+whoever called the harness, not a fact the host itself attested to (see
+[Chapter 09 §03](../09-branching-and-honesty/03-evidence-classes-and-honesty.md)). A tool with no
+`--tool-extra` category shows `(uncategorised)` rather than being guessed into a familiar one.
 
 ---
 
@@ -297,7 +316,8 @@ bun harness.ts task:submit --run .capsules/slugger --task task-slug --agent impl
 ### Command Executed: `bun test tests/slug.test.ts`
 - **Exit Code**: `0` (Success) | **Duration**: 0.67s
 - **Output Summary**: Command completed successfully
-- **Evidence Recorded**: `.capsules/slugger/evidence/C-d5c672c2-6ec5-44af-a547-86c3fb253dbf.json`
+- **Evidence Recorded**: `.capsules/slugger/commands/C-d5c672c2-6ec5-44af-a547-86c3fb253dbf/record.json`
+- **Raw Stream Log**: `<absolute-path-to-the-same-record.json>`
 ```
 
 ```text
@@ -306,10 +326,14 @@ bun harness.ts task:submit --run .capsules/slugger --task task-slug --agent impl
 - **Write Scope Compliance**: Passed (1 files touched within `src/slug.ts`)
 - **Diff Stats**: 1 files touched
 - **Report**: `.capsules/slugger/reports/task-slug-submission.json`
+- **Next Step**: Dispatch independent validator via `bun harness.ts task:validate-start --run <RUN_ID> --task task-slug --validator <VALIDATOR_ID>`
 ```
 
 `--summary` is mandatory. The harness substitutes nothing for it, and `files_changed` came from a Git
-observation of the worktree narrowed to the write scope, not from a default path.
+observation of the worktree narrowed to the write scope, not from a default path. Every recorded
+command now lives at `commands/C-<uuid>/record.json` rather than a flat `evidence/` file; `evidence/`
+still exists on disk but only for readable names hardlinked onto `blobs/`, never command records
+(Chapter 01 §02).
 
 ---
 
@@ -371,6 +395,11 @@ bun harness.ts branch:collect --run .capsules/slugger --branch "$BRANCH" \
 - **Files Changed**: 2 files (harness_observed)
   - `src/truncate/ellipsis.ts`
   - `src/truncate/measure.ts`
+
+| Sub-task | Label | Status | Agent | Write Scope |
+| :--- | :--- | :--- | :--- | :--- |
+| `S-measure` | Cut-point measurement | submitted | `sub-measure` | `src/truncate/measure.ts` |
+| `S-ellipsis` | Ellipsis character | submitted | `sub-ellipsis` | `src/truncate/ellipsis.ts` |
 ```
 
 Collect is the only place the filesystem is measured. The parent then writes `src/truncate/index.ts`,
@@ -481,7 +510,7 @@ bun harness.ts task:probe --run .capsules/slugger --task task-slug --validator v
 ```text
 ### Adversarial Probe Recorded: task-slug
 - **Validator**: `val-slug-2` | Verdict: 🔎 PROBE (Round 1)
-- **Nature**: Demand for proof, not a defect. Repair round stays 0.
+- **Nature**: Demand for proof, not a defect. Repair round stays 1.
 - **Demands**:
   - `probe-task-slug-01-1`: Prove the slug is computed, not matched: …
 - **Next Step**: Answer every demand with command evidence, then `task:review --status pass`, or `task:reject` if a demand fails.
@@ -537,7 +566,13 @@ bun harness.ts run:exec --run .capsules/slugger --gate gate-run-completion \
 | `task-truncate` | Truncate helper | `src/truncate` | ✅ Satisfied | Validating (val-truncate) |
 
 **Progress**: 2/2 Satisfied, 0 Validating, 0 Leased, 0 Blocked.
+**Occupancy**: 0/4 occupancy slots in use.
+**Capsule**: `<N>` commands, `<N>` captures over `<N>` blobs (`<size>`), 0 open findings — index current
 ```
+
+`run:status` reports live occupancy against `default_max_parallel` and a one-line capsule catalogue
+summary alongside task progress — the occupancy figure is what B24's continuous-dispatch policy makes
+visible: idle capacity that would otherwise go unnoticed.
 
 ---
 
@@ -546,8 +581,15 @@ bun harness.ts run:exec --run .capsules/slugger --gate gate-run-completion \
 ```bash
 bun harness.ts agent:register --run .capsules/slugger --agent critic-1 \
   --role completeness-critic --host claude-code --parent-agent coordinator-1
-bun harness.ts critic:start --run .capsules/slugger --critic critic-1
+
+CRITIC_TOKEN=$(bun harness.ts critic:start --format json --run .capsules/slugger \
+  --critic critic-1 | bun -e '…read result.token…')
 ```
+
+`critic:start` hands back a bearer token the same way `task:claim` does — capture it with
+`--format json`, the same way `$SLUG_TOKEN` was captured in Step 7. It is used twice: once on
+`critic:review` below, and again as `run:complete --auth-token` in Step 15, because the completion
+certificate `critic:review --decision approve` issues is bound to that same token.
 
 The critic must then run its **own** commands. Both its independent checks and its requirement proofs
 must be commands whose actor is the critic and which are **not bound to a task**:
@@ -620,8 +662,13 @@ for a in impl-slug impl-truncate val-slug-2 val-truncate critic-1 coordinator-1;
   bun harness.ts agent:release --run .capsules/slugger --agent "$a" --reason "run sealed"
 done
 
-bun harness.ts run:complete --run .capsules/slugger --actor coordinator-1
+bun harness.ts run:complete --run .capsules/slugger --actor coordinator-1 \
+  --auth-token "$CRITIC_TOKEN"
 ```
+
+`--auth-token` is mandatory and is checked against the critic assignment's own token digest, not the
+critic's live grant — releasing `critic-1` first does not invalidate it. Omitting the flag is refused
+outright: `{"ok":false,"error":{"code":"INVALID_ARGUMENT","message":"--auth-token is required"}}`.
 
 ```text
 ### 🎉 Run Completed Successfully: slugger

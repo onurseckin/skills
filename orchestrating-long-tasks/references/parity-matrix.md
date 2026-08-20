@@ -18,9 +18,9 @@ recording the result.
 
 | Reported through                                           | What it carries                                       | When it is absent                                                      |
 | :--------------------------------------------------------- | :---------------------------------------------------- | :--------------------------------------------------------------------- |
-| `agent:register --model / --model-tier / --thinking-level` | Host-reported model identity for one agent            | The field stays absent and renders as "unknown"                        |
+| `agent:register --model / --model-tier / --thinking-level` | Model identity for one agent (`agent_reported`)       | The field stays absent and renders as "unknown"                        |
 | `agent:register --tool`                                    | The toolset the dispatcher granted (`agent_reported`) | No toolset is recorded for that grant                                  |
-| `agent:report --tokens-in / --tokens-out`                  | Host-reported running totals (`host_reported`)        | No token counts; `--tokens-estimated` marks a derived estimate instead |
+| `agent:report --tokens-in / --tokens-out`                  | Running totals as relayed (`agent_reported`)          | No token counts; `--tokens-estimated` marks a derived estimate instead |
 | `agent:register --parent-agent / --parent-task`            | Lineage: who deployed this agent, onto what           | Only a root agent may omit the parent                                  |
 
 No host is required to report telemetry. A host that reports none still gets a correct graph — it

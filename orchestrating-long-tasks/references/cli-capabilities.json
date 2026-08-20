@@ -2847,6 +2847,14 @@
           "description": "Occupancy ceiling; falls back to the run's configured default."
         },
         {
+          "name": "gate-max-parallel",
+          "type": "int",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "B27.2: the separate, lower ceiling for gate-running (CPU-bound) work, reported alongside --max-parallel; falls back to the run's configured default (derived from host cores)."
+        },
+        {
           "name": "no-recover",
           "type": "bool",
           "required": false,
@@ -3461,7 +3469,7 @@
       "aliases": [],
       "domain": "agent",
       "summary": "Record a dispatched subagent and mint its grant.",
-      "description": "Spawning happens host-side; this is how the run learns a subagent exists, who deployed it and under which task. Host-reported model, tier and thinking level, plus the granted toolset the dispatcher relays, are recorded only when supplied and stay absent otherwise. The parent agent must already hold a grant.",
+      "description": "Spawning happens host-side; this is how the run learns a subagent exists, who deployed it and under which task. Model, tier, thinking level and toolset below are whatever the dispatcher relays — recorded only when supplied, tagged agent_reported, and left absent otherwise. The harness separately probes the host's own config and transcript for the same fields automatically; only that probe ever earns host_reported/derived/harness_observed. The parent agent must already hold a grant.",
       "flags": [
         {
           "name": "run",
@@ -3525,7 +3533,7 @@
           "required": false,
           "repeatable": false,
           "default": null,
-          "description": "Host-reported provider serving the model."
+          "description": "Provider serving the model, as the caller relays it (agent_reported)."
         },
         {
           "name": "model",
@@ -3533,7 +3541,7 @@
           "required": false,
           "repeatable": false,
           "default": null,
-          "description": "Host-reported model id, recorded exactly as given and never parsed."
+          "description": "Model id as the caller relays it, recorded exactly as given and never parsed (agent_reported)."
         },
         {
           "name": "model-tier",
@@ -3541,7 +3549,7 @@
           "required": false,
           "repeatable": false,
           "default": null,
-          "description": "Host-reported tier: xs, s, m, l or unknown."
+          "description": "Tier as the caller relays it: xs, s, m, l or unknown (agent_reported unless unknown)."
         },
         {
           "name": "thinking-level",
@@ -3549,7 +3557,7 @@
           "required": false,
           "repeatable": false,
           "default": null,
-          "description": "Host-reported level: low, medium, high or unknown."
+          "description": "Level as the caller relays it: low, medium, high or unknown (agent_reported unless unknown)."
         },
         {
           "name": "context-window",
@@ -3557,7 +3565,7 @@
           "required": false,
           "repeatable": false,
           "default": null,
-          "description": "Host-reported context window in tokens."
+          "description": "Context window in tokens, as the caller relays it (agent_reported)."
         },
         {
           "name": "tool",
@@ -3604,8 +3612,8 @@
       "name": "agent:report",
       "aliases": [],
       "domain": "agent",
-      "summary": "Ingest host-observed tool usage and token counts mid-flight.",
-      "description": "Token counts are the host's running totals and replace the previous ones; --tokens-estimated marks them derived estimates instead of measured counts. At least one of --tool, --tokens-in, --tokens-out or --token-extra is required.",
+      "summary": "Ingest the caller's own report of tool usage and token counts mid-flight.",
+      "description": "Token counts are the caller's running totals and replace the previous ones, tagged agent_reported; --tokens-estimated marks them derived estimates instead. The harness separately probes the host's own transcript for real counts (B34), which is what actually earns harness_observed. At least one of --tool, --tokens-in, --tokens-out or --token-extra is required.",
       "flags": [
         {
           "name": "run",
@@ -3645,7 +3653,7 @@
           "required": false,
           "repeatable": false,
           "default": null,
-          "description": "Host-reported input tokens consumed so far."
+          "description": "Input tokens consumed so far, as the caller reports it."
         },
         {
           "name": "tokens-out",
@@ -3653,7 +3661,7 @@
           "required": false,
           "repeatable": false,
           "default": null,
-          "description": "Host-reported output tokens produced so far."
+          "description": "Output tokens produced so far, as the caller reports it."
         },
         {
           "name": "token-extra",
@@ -3661,7 +3669,7 @@
           "required": false,
           "repeatable": true,
           "default": null,
-          "description": "One provider-specific counter as <name>=<count>, kept under the name the host reported it by."
+          "description": "One provider-specific counter as <name>=<count>, kept under the name the caller reported it by."
         },
         {
           "name": "tokens-estimated",
@@ -3773,7 +3781,7 @@
       "aliases": [],
       "domain": "agent",
       "summary": "Show who is deployed, or the lineage of one task.",
-      "description": "Without flags it lists active grants with their host-reported telemetry. --task answers who worked a task and under whom, including the agents those agents dispatched.",
+      "description": "Without flags it lists active grants with whatever telemetry was recorded, each field labelled with the evidence class it actually earned. --task answers who worked a task and under whom, including the agents those agents dispatched.",
       "flags": [
         {
           "name": "run",

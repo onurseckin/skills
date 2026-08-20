@@ -25,6 +25,8 @@ settings, and anything unset keeps its default.
 | `max_output_bytes`       | `10485760` | Maximum stdout/stderr captured per command execution (10 MiB).                                                                                                                        |
 | `default_lease_seconds`  | `1800`     | Default lease duration for a **branch sub-task** claim (`branch:claim`). It does not govern `task:claim` or `queue:pop`, whose lease is 1,200 seconds unless a lease flag says otherwise. |
 | `default_max_parallel`   | `4`        | Occupancy ceiling used by `queue:wave` and the scheduler — a live cap on concurrent claims, not a batch size; the eligible set is dispatched continuously as slots free.               |
+| `gate_max_parallel`      | `5`        | A separate, lower ceiling for agents running mandatory gates. Gate work is local-CPU bound while reasoning is provider bound, so one number cannot govern both; this is the one derived from the machine.        |
+| `default_max_parallel_source` | `assumed_default` | Where `default_max_parallel` came from: `assumed_default` when nothing observed it, or the host signal that supplied it. Recorded so a run can say whether its concurrency was measured or guessed. |
 
 Mandatory gate coverage and independent-validator checks are not configurable — they are enforced
 unconditionally by the graph compiler and the completion checks, not gated behind a knob.

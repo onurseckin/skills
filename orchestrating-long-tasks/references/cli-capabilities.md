@@ -884,6 +884,7 @@ One reclaim-classify-dispatch pass over a run's eligible set: reclaims leases wh
 | `--run` | string | yes | no | - | Capsule run root. |
 | `--actor` | string | yes | no | - | Who is running the supervisor. Recorded on every event; there is no default actor. |
 | `--max-parallel` | int | no | no | - | Occupancy ceiling; falls back to the run's configured default. |
+| `--gate-max-parallel` | int | no | no | - | B27.2: the separate, lower ceiling for gate-running (CPU-bound) work, reported alongside --max-parallel; falls back to the run's configured default (derived from host cores). |
 | `--no-recover` | bool | no | no | - | Disable automatic dead-agent reclaim and escalation (on by default). |
 | `--grace-seconds` | int | no | no | - | Grace period past lease expiry before reclaiming, 0-86400. |
 | `--poll-interval-ms` | int | no | no | - | How often to re-tick while a dispatcher is driving the loop. |
@@ -1049,7 +1050,7 @@ bun harness.ts branch:status --run .capsules/<run-id> --task task-1 --all
 
 Record a dispatched subagent and mint its grant.
 
-Spawning happens host-side; this is how the run learns a subagent exists, who deployed it and under which task. Host-reported model, tier and thinking level, plus the granted toolset the dispatcher relays, are recorded only when supplied and stay absent otherwise. The parent agent must already hold a grant.
+Spawning happens host-side; this is how the run learns a subagent exists, who deployed it and under which task. Model, tier, thinking level and toolset below are whatever the dispatcher relays — recorded only when supplied, tagged agent_reported, and left absent otherwise. The harness separately probes the host's own config and transcript for the same fields automatically; only that probe ever earns host_reported/derived/harness_observed. The parent agent must already hold a grant.
 
 - **Aliases**: none
 - **Stdin**: not read
@@ -1064,11 +1065,11 @@ Spawning happens host-side; this is how the run learns a subagent exists, who de
 | `--parent-agent` | string | no | no | - | Agent id that dispatched it; omit for the root. |
 | `--parent-task` | string | no | no | - | Task or branch sub-task the agent is dispatched onto. |
 | `--actor` | string | no | no | - | Event actor; defaults to the parent agent, else the agent. |
-| `--provider` | string | no | no | - | Host-reported provider serving the model. |
-| `--model` | string | no | no | - | Host-reported model id, recorded exactly as given and never parsed. |
-| `--model-tier` | string | no | no | - | Host-reported tier: xs, s, m, l or unknown. |
-| `--thinking-level` | string | no | no | - | Host-reported level: low, medium, high or unknown. |
-| `--context-window` | int | no | no | - | Host-reported context window in tokens. |
+| `--provider` | string | no | no | - | Provider serving the model, as the caller relays it (agent_reported). |
+| `--model` | string | no | no | - | Model id as the caller relays it, recorded exactly as given and never parsed (agent_reported). |
+| `--model-tier` | string | no | no | - | Tier as the caller relays it: xs, s, m, l or unknown (agent_reported unless unknown). |
+| `--thinking-level` | string | no | no | - | Level as the caller relays it: low, medium, high or unknown (agent_reported unless unknown). |
+| `--context-window` | int | no | no | - | Context window in tokens, as the caller relays it (agent_reported). |
 | `--tool` | string | no | yes | - | One tool as <name> or <name>=<category>; repeat the flag for each tool. Generic category of the tool, e.g. browser-automation, build, database, documentation, file-edit, formatter, http-client, linter, package-manager, search, shell, test-runner, type-checker, version-control. Any other value is recorded as given. A tool given without a category has none recorded. |
 | `--tool-extra` | string | no | yes | - | One tool-specific fact as <tool>:<key>=<value>, kept verbatim under the reported name. The tool must also be given with --tool. |
 
@@ -1078,9 +1079,9 @@ bun harness.ts agent:register --run .capsules/<run-id> --agent worker-1 --role i
 
 ### `agent:report`
 
-Ingest host-observed tool usage and token counts mid-flight.
+Ingest the caller's own report of tool usage and token counts mid-flight.
 
-Token counts are the host's running totals and replace the previous ones; --tokens-estimated marks them derived estimates instead of measured counts. At least one of --tool, --tokens-in, --tokens-out or --token-extra is required.
+Token counts are the caller's running totals and replace the previous ones, tagged agent_reported; --tokens-estimated marks them derived estimates instead. The harness separately probes the host's own transcript for real counts (B34), which is what actually earns harness_observed. At least one of --tool, --tokens-in, --tokens-out or --token-extra is required.
 
 - **Aliases**: none
 - **Stdin**: not read
@@ -1092,9 +1093,9 @@ Token counts are the host's running totals and replace the previous ones; --toke
 | `--agent` | string | yes | no | - | Agent id holding the grant. |
 | `--tool` | string | no | yes | - | One tool as <name> or <name>=<category>; repeat the flag for each tool. Generic category of the tool, e.g. browser-automation, build, database, documentation, file-edit, formatter, http-client, linter, package-manager, search, shell, test-runner, type-checker, version-control. Any other value is recorded as given. A tool given without a category has none recorded. |
 | `--tool-extra` | string | no | yes | - | One tool-specific fact as <tool>:<key>=<value>, kept verbatim under the reported name. The tool must also be given with --tool. |
-| `--tokens-in` | int | no | no | - | Host-reported input tokens consumed so far. |
-| `--tokens-out` | int | no | no | - | Host-reported output tokens produced so far. |
-| `--token-extra` | string | no | yes | - | One provider-specific counter as <name>=<count>, kept under the name the host reported it by. |
+| `--tokens-in` | int | no | no | - | Input tokens consumed so far, as the caller reports it. |
+| `--tokens-out` | int | no | no | - | Output tokens produced so far, as the caller reports it. |
+| `--token-extra` | string | no | yes | - | One provider-specific counter as <name>=<count>, kept under the name the caller reported it by. |
 | `--tokens-estimated` | bool | no | no | - | Record the counts as estimates, not measurements. |
 | `--actor` | string | no | no | - | Event actor; defaults to the reporting agent. |
 
@@ -1127,7 +1128,7 @@ bun harness.ts agent:release --run .capsules/<run-id> --agent worker-1 --reason 
 
 Show who is deployed, or the lineage of one task.
 
-Without flags it lists active grants with their host-reported telemetry. --task answers who worked a task and under whom, including the agents those agents dispatched.
+Without flags it lists active grants with whatever telemetry was recorded, each field labelled with the evidence class it actually earned. --task answers who worked a task and under whom, including the agents those agents dispatched.
 
 - **Aliases**: none
 - **Stdin**: not read

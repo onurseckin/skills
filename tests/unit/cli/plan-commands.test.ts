@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtemp, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execute } from "../../../orchestrating-long-tasks/scripts/src/cli/execute.ts";
@@ -285,5 +285,93 @@ describe("CLI plan commands", () => {
     expect(Array.isArray(replan.new_tasks)).toBe(true);
     expect((replan.new_tasks as string[]).length).toBe(2);
     expect(String(replan.markdown)).toContain("### Plan Recompiled: Wave R1 (Graph Revision 2)");
+  });
+
+  // B29.3: this exercises the actual plan:add call site (planAddCommand), not just gate-breadth.ts's
+  // own unit tests — the wiring from a whole-suite gate + narrow scope through to a warning AND a
+  // disk-discovered suggestion in the real CLI response is otherwise unproven.
+  test("plan:add warns on a whole-suite gate against a narrow scope and suggests real test paths", async () => {
+    const repo = await mkdtemp(join(tmpdir(), "harness-plan-breadth-"));
+    roots.push(repo);
+    // The suggestion must come from a path this fixture repository actually has on disk, never a
+    // guessed convention: discoverGatePaths requires the write scope itself to exist before it looks
+    // for a mirror, so both the scope and the mirrored test directory need to be real here.
+    await mkdir(join(repo, "src/db"), { recursive: true });
+    await mkdir(join(repo, "tests/unit/db"), { recursive: true });
+    const promptPath = join(repo, "prompt.txt");
+    await writeFile(promptPath, "Database task");
+
+    const init = await execute([
+      "plan:init",
+      "--repo",
+      repo,
+      "--run",
+      "breadth-run",
+      "--prompt-file",
+      promptPath,
+    ]);
+    const run = init.run_root as string;
+
+    const add = await execute([
+      "plan:add",
+      "--run",
+      run,
+      "--id",
+      "task-db",
+      "--label",
+      "Database",
+      "--scope",
+      "src/db",
+      "--gate",
+      "bun test",
+      "--actor",
+      "planner",
+    ]);
+
+    expect(add.gate_breadth_warning).toBeString();
+    expect(String(add.gate_breadth_warning)).toContain(
+      'gate "bun test" looks like a whole-suite run',
+    );
+    expect(add.suggested_gate_paths).toEqual(["tests/unit/db"]);
+    expect(String(add.markdown)).toContain("> **Gate breadth**:");
+    expect(String(add.markdown)).toContain("This repository already has: tests/unit/db.");
+  });
+
+  test("plan:add stays silent when the gate is already scoped to the write scope", async () => {
+    const repo = await mkdtemp(join(tmpdir(), "harness-plan-narrow-"));
+    roots.push(repo);
+    const promptPath = join(repo, "prompt.txt");
+    await writeFile(promptPath, "Database task");
+
+    const init = await execute([
+      "plan:init",
+      "--repo",
+      repo,
+      "--run",
+      "narrow-run",
+      "--prompt-file",
+      promptPath,
+    ]);
+    const run = init.run_root as string;
+
+    const add = await execute([
+      "plan:add",
+      "--run",
+      run,
+      "--id",
+      "task-db",
+      "--label",
+      "Database",
+      "--scope",
+      "src/db",
+      "--gate",
+      "bun test tests/unit/db",
+      "--actor",
+      "planner",
+    ]);
+
+    expect(add.gate_breadth_warning).toBeUndefined();
+    expect(add.suggested_gate_paths).toBeUndefined();
+    expect(String(add.markdown)).not.toContain("Gate breadth");
   });
 });

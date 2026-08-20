@@ -46,24 +46,37 @@ That last rule is the whole point. Compare two real registrations from the tutor
 ```text
 ### Agent Granted: impl-slug (implementer)
 - **Under**: `coordinator-1` / task `task-slug`
-- **Host**: `claude-code`
-- **Model**: `claude-opus-4-6` (host_reported) · **Tier**: `l` (host_reported)
-- **Thinking**: `high` (host_reported)
-- **Tools Granted**: `Read`, `Write`, `Bash` (agent_reported)
+- **Host**: `claude-code` · **Provider**: unknown
+- **Model**: `claude-opus-4-6` (agent_reported) · **Tier**: `l` (agent_reported)
+- **Thinking**: `high` (agent_reported) · **Context Window**: unknown
+- **Tools Granted**: `Read` (uncategorised), `Write` (uncategorised), `Bash` (uncategorised) (agent_reported)
+
+#### Close The Grant:
+```bash
+bun harness.ts agent:release --run .capsules/slugger --agent impl-slug
+```
 ```
 
 ```text
 ### Agent Granted: impl-truncate (implementer)
 - **Under**: `coordinator-1` / task `task-truncate`
-- **Host**: `claude-code`
+- **Host**: `claude-code` · **Provider**: unknown
 - **Model**: unknown · **Tier**: unknown
-- **Thinking**: unknown
+- **Thinking**: unknown · **Context Window**: unknown
 - **Tools Granted**: unknown
+
+#### Close The Grant:
+```bash
+bun harness.ts agent:release --run .capsules/slugger --agent impl-truncate
+```
 ```
 
 The second agent ran on the same machine, under the same harness, on the same day. Nothing was
 inferred from the exporting machine's config, and no plausible default was substituted. It renders as
-`unknown` because it _is_ unknown.
+`unknown` because it _is_ unknown. Every field on the first block reads `agent_reported`, not
+`host_reported`: a `--model`/`--model-tier`/`--thinking-level` flag is whatever the calling process
+claims, and nothing here confirms the host itself attested to it — see
+[Evidence Classes §03](./03-evidence-classes-and-honesty.md).
 
 ---
 
@@ -74,11 +87,15 @@ bun harness.ts agent:report --run .capsules/<run-id> --agent impl-slug \
   --tool Read --tool Edit --tokens-in 18000 --tokens-out 2400
 ```
 
-- At least one of `--tool`, `--tokens-in`, `--tokens-out` is required; an empty report is refused.
-- Token counts are the host's **running totals** and replace the previous ones, not add to them.
-- `--tokens-estimated` records the counts as `derived` estimates with `is_estimated: true` instead of
-  measured `host_reported` values. There is no third option: a number is either what the host counted
-  or an estimate that says so.
+- At least one of `--tool`, `--tokens-in`, `--tokens-out` or `--token-extra` is required; an empty
+  report is refused.
+- Token counts are whatever the caller relayed as **running totals** and replace the previous ones,
+  not add to them. Like every other field an `agent:report` flag sets, they carry `agent_reported`
+  evidence class — a plain `--tokens-in`/`--tokens-out` count is unverified CLI input, not a host
+  attestation, unless a transcript probe later corroborates it.
+- `--tokens-estimated` records the counts as `derived` estimates with `is_estimated: true` instead.
+  There is no third option: a number is either an unverified count someone reported or an estimate
+  that says so.
 - A released grant can no longer report.
 
 ---
@@ -99,7 +116,7 @@ Release every grant **before** `run:complete`. A completed run is terminal, and 
 
 ## 🧬 `agent:list` — roster and lineage
 
-Without flags, `agent:list` shows active grants with their host-reported telemetry. With `--task` it
+Without flags, `agent:list` shows active grants with whatever telemetry was reported for them. With `--task` it
 answers "who worked this task, and under whom", including the agents those agents dispatched:
 
 ```text
@@ -127,10 +144,10 @@ which is what the table above used after the run had closed every grant.
 | `id`, `role`, `host`, `granted_at`        | harness                                        | Always present.                                      |
 | `parent_agent_id`, `parent_task_id`       | harness                                        | `null` for the root.                                 |
 | `status`, `released_at`, `release_reason` | harness                                        | `active` or `released`.                              |
-| `model`, `model_tier`, `thinking_level`   | `host_reported`                                | Optional. Absent unless the dispatcher supplied it.  |
+| `model`, `model_tier`, `thinking_level`   | `agent_reported`                               | Optional. Absent unless the dispatcher supplied it.  |
 | `tools_granted`                           | `agent_reported`                               | Optional; what the dispatcher relayed.               |
 | `tools_used[]`                            | per-entry `evidence_class`                     | Each tool carries its own class and first-seen time. |
-| `tokens_in`, `tokens_out`                 | `host_reported`, or `derived` + `is_estimated` | Optional.                                            |
+| `tokens_in`, `tokens_out`                 | `agent_reported`, or `derived` + `is_estimated`| Optional.                                            |
 | `report_count`, `last_reported_at`        | harness                                        | Optional.                                            |
 
 The three events are `agent-registered`, `agent-reported`, `agent-released`.

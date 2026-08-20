@@ -16,10 +16,24 @@ and an implementer's summary are both stored; they are not the same kind of fact
 export type EvidenceClass =
   | "harness_observed" // the harness itself measured it: exit codes, byte counts, git diff, wall clock
   | "agent_reported" // an agent said so through the CLI; true only if the agent was honest
-  | "host_reported" // the host runtime told us: model id, token usage, thinking level
-  | "derived" // computed from other recorded values: wave numbers, estimates
+  | "host_reported" // defined for a host attestation the harness independently confirmed; see below
+  | "derived" // computed from other recorded values, or read off the host's own static config
   | "unknown"; // not available — renders as "unknown", never as a default
 ```
+
+`host_reported` is a real member of the type, but no current code path assigns it. Model, tier,
+thinking level, granted tools and token counts all arrive as free-text CLI input from whichever
+process called the harness — indistinguishable, mechanically, from any other flag — so they carry
+`agent_reported`, the same as everything else typed on the command line. This was a deliberate
+correction: stamping `host_reported` on a CLI-supplied value unconditionally would let a caller type
+a nonexistent model id and have it recorded as though the host had attested to it. The two real
+sources that DO earn a stronger class are `detectHostTelemetry` (the host's own on-disk config,
+read automatically rather than typed — `derived`, because it is a setting that merely implies what
+ran) and `readAgentTranscriptTelemetry` (the host's own transcript of the agent — `harness_observed`,
+because it is what the host recorded actually happening). Either one only ever fills a field with no
+explicit report already on it; a value that disagrees with an explicit report is never silently
+substituted, it is recorded as a conflict instead. `model_tier` is never probed at all: nothing
+legitimately infers a tier from a model string.
 
 Three rules follow, and they are absolute:
 
@@ -39,8 +53,8 @@ Three rules follow, and they are absolute:
 | Task submission `summary`                       | `agent_reported`                                             | The implementer's own words.                                          |
 | Branch `reason`, sub-task summaries             | `agent_reported`                                             | Why an agent chose to subdivide, in its own words.                    |
 | `plan:enhance` document, in full                | `agent_reported`                                             | The agent's reading of the repository, not a harness measurement.     |
-| Agent `model` / `model_tier` / `thinking_level` | `host_reported`                                              | Only when the dispatcher supplied it; otherwise the field is absent.  |
-| Token counts                                    | `host_reported`, or `derived` + `is_estimated`               | Counted, or explicitly a guess.                                       |
+| Agent `model` / `model_tier` / `thinking_level` | `agent_reported`                                             | Only when the dispatcher supplied it; otherwise the field is absent.  |
+| Token counts                                    | `agent_reported`, or `derived` + `is_estimated`               | Relayed, or explicitly a guess.                                       |
 | Topology `rationale`                            | `agent_reported` when a coordinator wrote it, else `derived` | The harness's own explanation is derived, not attributed to anyone.   |
 | Probe demands                                   | `agent_reported`                                             | A demand is a validator's claim about what still needs proving.       |
 
@@ -51,9 +65,9 @@ A concrete pair from the tutorial capsule's exported graph:
   "agentId": "impl-slug",
   "role": "implementer",
   "host": "claude-code",
-  "model":         { "evidence_class": "host_reported", "value": "claude-opus-4-6" },
-  "modelTier":     { "evidence_class": "host_reported", "value": "l" },
-  "thinkingLevel": { "evidence_class": "host_reported", "value": "high" }
+  "model":         { "evidence_class": "agent_reported", "value": "claude-opus-4-6" },
+  "modelTier":     { "evidence_class": "agent_reported", "value": "l" },
+  "thinkingLevel": { "evidence_class": "agent_reported", "value": "high" }
 }
 ```
 
