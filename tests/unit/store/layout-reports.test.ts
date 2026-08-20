@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { initRun } from "../../../orchestrating-long-tasks/scripts/src/store/capsule.ts";
@@ -58,9 +58,24 @@ describe("reports/ holds only the shapes the harness itself writes", () => {
     expect(codes(run)).toContain("REPORT_UNDECLARED");
   });
 
-  test("a directory sitting in reports/ is reported rather than silently walked", () => {
+  test("a directory sitting in reports/ is tolerated, not flagged as undeclared", () => {
+    // Real capsules on this machine (.capsules/2026-08-17-*) carry exactly this shape: a
+    // `reports/screenshots/` directory from before `evidence/screenshots` became the convention
+    // (`eaabd5c`). This check runs on every load and hard-fails it (`loadRun`'s `verify`), so
+    // flagging a superseded-but-legitimate naming convention would break those capsules outright —
+    // see layout-reports.ts's doc comment. A directory is therefore out of scope for this check.
     const run = runWithTask();
     mkdirSync(join(run, "reports", "screenshots"), { recursive: true });
+
+    expect(codes(run)).toEqual([]);
+  });
+
+  test("a non-file, non-directory entry in reports/ is still reported", () => {
+    // Unlike a directory, nothing the harness ever legitimately wrote takes this shape, so it stays
+    // in scope: a symlink is exactly the kind of thing an injected/tampered entry would look like.
+    const run = runWithTask();
+    write(run, "T-1-review.json");
+    symlinkSync(join(run, "reports", "T-1-review.json"), join(run, "reports", "sneaky-link"));
 
     expect(codes(run)).toContain("REPORT_UNDECLARED");
   });
