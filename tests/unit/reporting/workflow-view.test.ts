@@ -75,12 +75,17 @@ describe("reporting workflow view", () => {
           requirement_ids: ["R-1"],
           dependencies: [],
           write_scope: ["src/**"],
-          validation: {
-            validator_id: "val-1",
-            attempt: 2,
-            deadline_at: pastTime,
-            verdict: "pass",
-          },
+          // No verdict: an open attempt whose deadline has passed is what "stale" means (B12.2 — a
+          // domain that already recorded one is settled, however old its deadline, so it does not
+          // count as stale evidence; see workflow-view.ts's own staleEvidence()).
+          validations: [
+            {
+              validator_id: "val-1",
+              domain: "code-quality",
+              attempt: 2,
+              deadline_at: pastTime,
+            },
+          ],
           history: [],
           repair_round: 0,
         },
@@ -170,11 +175,13 @@ describe("reporting workflow view", () => {
     });
     expect(view.tasks[1]).toMatchObject({
       id: "task-2",
-      validation: {
-        validator_id: "val-1",
-        attempt: 2,
-        verdict: "pass",
-      },
+      validation: [
+        {
+          validator_id: "val-1",
+          domain: "code-quality",
+          attempt: 2,
+        },
+      ],
     });
 
     expect(view.requirements[0]).toMatchObject({
@@ -209,7 +216,7 @@ describe("reporting workflow view", () => {
       expect.stringContaining("task task-1 lease expired"),
     );
     expect(view.stale_evidence).toContainEqual(
-      expect.stringContaining("task task-2 validation expired"),
+      expect.stringContaining("task task-2 code-quality validation expired"),
     );
     expect(view.stale_evidence).toContainEqual(
       expect.stringContaining("completion critic critic-1 expired"),

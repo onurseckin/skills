@@ -24,7 +24,10 @@ export function view(status: string, overrides: JsonObject = {}): JsonObject {
         gate_results: [],
         open_finding_ids: [],
         probe_round: 0,
-        validation: status === "validating" ? { validator_id: "validator", attempt: 1 } : null,
+        validation:
+          status === "validating"
+            ? [{ validator_id: "validator", domain: "code-quality", attempt: 1 }]
+            : [],
       },
     ],
     gates: [

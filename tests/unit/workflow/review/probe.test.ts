@@ -67,7 +67,7 @@ function submitted(commands: Record<string, ReturnType<typeof commandRecord>> = 
 function validationToken(port: TestPort, validator: string): string {
   registerCommand(port, `C-${validator}`, validator);
   const state = beginValidation(port, "T-1", validator, clock);
-  registerTaskPacket(port, "validator", validator, state.tasks["T-1"]!.validation!.attempt);
+  registerTaskPacket(port, "validator", validator, state.tasks["T-1"]!.validations!.at(-1)!.attempt);
   const token = state.tasks["T-1"]!.validation_token;
   if (typeof token !== "string") throw new TypeError("validation token missing");
   return token;
@@ -106,7 +106,7 @@ describe("the adversarial probe is not a rejection", () => {
     expect(task.status).toBe("validating");
     expect(task.probe_round).toBe(1);
     expect(task.repair_round).toBe(0);
-    expect(task.validation!.verdict).toBe("probe");
+    expect(task.validations!.at(-1)!.verdict).toBe("probe");
     expect(task.findings).toHaveLength(1);
     expect(isProbeDemand(task.findings![0]!)).toBe(true);
     expect(task.findings![0]!.status).toBe("open");

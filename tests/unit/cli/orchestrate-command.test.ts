@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { createHash } from "node:crypto";
+import { existsSync } from "node:fs";
 import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -268,6 +269,30 @@ describe("orchestrate", () => {
     );
     expect(parsed.result.manifest.capture_mode).toBe("argv");
   });
+
+  test("spawned as a real process, --repo trailing inline text is refused, never silently applied", async () => {
+    // End-to-end regression for the same bug the pure-function test above proves: run the real
+    // entrypoint from an unrelated cwd, naming the actual target repo with a trailing --repo, and
+    // assert the target repo's capsule is never created — the old behaviour opened it against cwd
+    // instead, with exit 0 and no error at all.
+    const targetRepo = await mkdtemp(join(tmpdir(), "harness-orchestrate-spawn-target-"));
+    const cwdRepo = await mkdtemp(join(tmpdir(), "harness-orchestrate-spawn-cwd-"));
+    roots.push(targetRepo, cwdRepo);
+
+    const result = await spawnOrchestrate(
+      ["Add", "input", "validation", "--repo", targetRepo, "--format", "json"],
+      "ignore",
+      cwdRepo,
+    );
+
+    expect(result.exit).not.toBe(0);
+    expect(JSON.parse(result.stderr.trimEnd())).toMatchObject({
+      ok: false,
+      error: { code: "INVALID_ARGUMENT" },
+    });
+    expect(existsSync(join(targetRepo, ".capsules"))).toBe(false);
+    expect(existsSync(join(cwdRepo, ".capsules"))).toBe(false);
+  });
 });
 
 describe("extractOrchestrateInlinePrompt", () => {
@@ -286,6 +311,29 @@ describe("extractOrchestrateInlinePrompt", () => {
 
   test("leaves argv untouched when there is nothing after the command name", () => {
     expect(extractOrchestrateInlinePrompt(["orchestrate"])).toEqual({ argv: ["orchestrate"] });
+  });
+
+  test("refuses a registered flag trailing the inline text instead of swallowing it as prompt bytes", () => {
+    // Regression: `orchestrate <text> --repo /other` used to join "--repo /other" into the prompt
+    // and silently drop the flag, so the run opened against cwd instead of the named repo with no
+    // error at all. It must fail loudly instead of ever capturing that flag as prose.
+    expect(() =>
+      extractOrchestrateInlinePrompt(["orchestrate", "Fix", "the", "bug", "--repo", "/other"]),
+    ).toThrow(/--repo cannot follow inline prompt text/);
+    expect(() =>
+      extractOrchestrateInlinePrompt(["orchestrate", "Fix", "the", "bug", "--run", "my-run"]),
+    ).toThrow(/--run cannot follow inline prompt text/);
+  });
+
+  test("still treats an unrecognised --like token as ordinary prompt text", () => {
+    // Only orchestrate's OWN registered flags trigger the guard; a prompt that genuinely discusses
+    // CLI flags in prose (a word that merely starts with "--") is not mistaken for one.
+    expect(
+      extractOrchestrateInlinePrompt(["orchestrate", "Explain", "--verbose", "logging"]),
+    ).toEqual({
+      argv: ["orchestrate"],
+      inlinePrompt: "Explain --verbose logging",
+    });
   });
 
   test("does nothing for any command other than orchestrate", () => {

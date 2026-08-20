@@ -8,14 +8,17 @@ function probedTask(overrides: Partial<TaskRecord> = {}): TaskRecord {
     status: "validating",
     probe_round: 1,
     repair_round: 0,
-    validation: {
-      validator_id: "val-probe",
-      token_digest: "tok",
-      attempt: 1,
-      started_at: "2026-08-14T20:00:00.000Z",
-      deadline_at: "2026-08-14T20:10:00.000Z",
-      verdict: "probe",
-    },
+    validations: [
+      {
+        validator_id: "val-probe",
+        domain: "code-quality",
+        token_digest: "tok",
+        attempt: 1,
+        started_at: "2026-08-14T20:00:00.000Z",
+        deadline_at: "2026-08-14T20:10:00.000Z",
+        verdict: "probe",
+      },
+    ],
     findings: [
       {
         id: "F-demand",
@@ -37,14 +40,17 @@ function rejectedTask(): TaskRecord {
   return makeTask("T-defect", {
     status: "changes_requested",
     repair_round: 1,
-    validation: {
-      validator_id: "val-defect",
-      token_digest: "tok",
-      attempt: 1,
-      started_at: "2026-08-14T20:00:00.000Z",
-      deadline_at: "2026-08-14T20:10:00.000Z",
-      verdict: "reject",
-    },
+    validations: [
+      {
+        validator_id: "val-defect",
+        domain: "code-quality",
+        token_digest: "tok",
+        attempt: 1,
+        started_at: "2026-08-14T20:00:00.000Z",
+        deadline_at: "2026-08-14T20:10:00.000Z",
+        verdict: "reject",
+      },
+    ],
     findings: [
       {
         id: "F-defect",
@@ -107,14 +113,17 @@ describe("probe and pushback are different relationships", () => {
     const passed = probedTask({
       status: "done",
       report: { summary: "Proof recorded", files_changed: ["src/T-probe.ts"] },
-      validation: {
-        validator_id: "val-probe",
-        token_digest: "tok",
-        attempt: 1,
-        started_at: "2026-08-14T20:00:00.000Z",
-        deadline_at: "2026-08-14T20:10:00.000Z",
-        verdict: "pass",
-      },
+      validations: [
+        {
+          validator_id: "val-probe",
+          domain: "code-quality",
+          token_digest: "tok",
+          attempt: 1,
+          started_at: "2026-08-14T20:00:00.000Z",
+          deadline_at: "2026-08-14T20:10:00.000Z",
+          verdict: "pass",
+        },
+      ],
     });
     const dataset = generateGraphDataset({ runId: "run-passed", state: makeState([passed]) });
 
@@ -209,14 +218,17 @@ function multiRoundTask(): TaskRecord {
         checks: [{ command_id: "C-r1" }],
       },
     ],
-    validation: {
-      validator_id: "val-r2",
-      token_digest: "tok",
-      attempt: 2,
-      started_at: "2026-08-14T20:20:00.000Z",
-      deadline_at: "2026-08-14T20:30:00.000Z",
-      verdict: "pass",
-    },
+    validations: [
+      {
+        validator_id: "val-r2",
+        domain: "code-quality",
+        token_digest: "tok",
+        attempt: 2,
+        started_at: "2026-08-14T20:20:00.000Z",
+        deadline_at: "2026-08-14T20:30:00.000Z",
+        verdict: "pass",
+      },
+    ],
   });
 }
 

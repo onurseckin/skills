@@ -48,7 +48,7 @@ function populate(run: string): RunState {
           },
           { id: "F-2", requirement_id: "REQ-1", severity: "minor", status: "resolved" },
         ],
-        validation: { checks: [{ command_id: "C-1" }] },
+        validations: [{ checks: [{ command_id: "C-1" }] }],
       },
     };
     state.commands = {

@@ -223,7 +223,11 @@ function task(status: string): Record<string, unknown> {
       ? { lease: { agent_id: "worker-1", role: "implementer", attempt: 1, expires_at: ahead() } }
       : {}),
     ...(status === "validating"
-      ? { validation: { validator_id: "val-1", attempt: 1, deadline_at: ahead() } }
+      ? {
+          validations: [
+            { validator_id: "val-1", domain: "code-quality", attempt: 1, deadline_at: ahead() },
+          ],
+        }
       : {}),
   };
 }

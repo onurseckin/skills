@@ -15,11 +15,11 @@ document that exists — a summary is a second copy with a shorter half-life.
 
 ## Primary entry point: `orchestrate`
 
-Reach for `orchestrate` before assembling this sequence by hand: pipe the user's entire message,
-byte for byte, to `--prompt-stdin` as the immutable prompt (`--prompt-file` also works). It captures
-the prompt, opens the capsule, and hands back the fixed checklist for what happens next — enhance,
-stage, compile, dispatch — bound to that run. When this skill is driving, it owns the orchestration:
-stand down the host's own todo/workflow tool for the run's duration.
+Reach for `orchestrate` before assembling this sequence by hand: everything after the command name
+is the prompt, byte for byte, no flags to learn — a bare piped stdin is read automatically too
+(`--prompt-stdin`/`--prompt-file` still work for a caller that also needs `--repo`/`--run`). It opens
+the capsule and hands back the fixed checklist for what's next — enhance, stage, compile, dispatch.
+When this skill is driving, it owns the orchestration: stand down the host's own todo/workflow tool.
 
 ## Why the harness exists
 

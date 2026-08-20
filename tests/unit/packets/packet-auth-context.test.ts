@@ -85,13 +85,16 @@ describe("packet authority and critic state", () => {
     validation.agentId = "validator";
     validation.role = "validator";
     validation.leaseToken = "validator-token";
-    validation.task!.validation = {
-      validator_id: "validator",
-      token_digest: tokenDigest("validator-token"),
-      attempt: 1,
-      started_at: clock.now().toISOString(),
-      deadline_at: "2026-08-13T12:20:00.000Z",
-    };
+    validation.task!.validations = [
+      {
+        validator_id: "validator",
+        domain: "code-quality",
+        token_digest: tokenDigest("validator-token"),
+        attempt: 1,
+        started_at: clock.now().toISOString(),
+        deadline_at: "2026-08-13T12:20:00.000Z",
+      },
+    ];
     expect(() => buildPacket({ ...validation, clock: at("2026-08-13T12:21:00.000Z") })).toThrow();
   });
 

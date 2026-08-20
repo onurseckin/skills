@@ -56,14 +56,17 @@ function reviewedTask(): TaskRecord {
       write_scope: ["src/T-1.ts"],
       resource_scope: [],
     },
-    validation: {
-      validator_id: "reviewer-2",
-      token_digest: "tok",
-      attempt: 1,
-      started_at: "2026-08-15T19:00:00.000Z",
-      deadline_at: "2026-08-15T19:10:00.000Z",
-      verdict: "pass",
-    },
+    validations: [
+      {
+        validator_id: "reviewer-2",
+        domain: "code-quality",
+        token_digest: "tok",
+        attempt: 1,
+        started_at: "2026-08-15T19:00:00.000Z",
+        deadline_at: "2026-08-15T19:10:00.000Z",
+        verdict: "pass",
+      },
+    ],
   });
 }
 

@@ -45,7 +45,7 @@ function base() {
     runId: "run-1",
     graphRevision: started.graph_revision ?? 1,
     agentId: "val-agent",
-    attempt: task.validation!.attempt,
+    attempt: task.validations!.at(-1)!.attempt,
     state: started,
     task,
     commonInstructions: {

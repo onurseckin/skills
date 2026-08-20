@@ -281,13 +281,25 @@ task in `validating` and is refused; a `sub-validator` is dispatched into a bran
 agent that owns the branch.
 
 1. **The Triad Floor (Minimum 3 Agents Deployed)**: for any run — even a single sequential task
-   ($N=1$) — at least 1 Coordinator + 1 Implementer + 1 Validator are deployed.
-2. **Pairing Invariant**: an Implementer is never dispatched alone; its independent Validator is
-   dispatched with it and becomes eligible the instant that implementer submits.
-3. **Occupancy, not sizing**: there is no fixed implementer:validator ratio and no batch size to
+   ($N=1$) — at least 1 Coordinator + 1 Implementer + 1 Validator are deployed. This is a floor, not
+   the sizing rule: it is what the formula below reduces to when a task draws exactly one validator
+   domain, the common case.
+2. **Pairing Invariant, not strict 1:1**: an Implementer is never dispatched alone — every task
+   draws at least one independent Validator, becoming eligible the instant that implementer submits.
+   But a task's write scope can draw *more than one* validator domain (B12.2's derivation — every
+   task draws `code-quality`; a task touching `.tsx`/`.css` also draws `ui-design`; one touching a
+   schema or a public contract also draws `system-design`), and the coordinator dispatches one
+   validator per applicable domain. The task reaches `validated` only once every domain it drew has
+   independently passed — the pairing is guaranteed, the ratio is not fixed at one.
+3. **Sizing is Σ, not 2N+1**: total agents deployed is `1 coordinator + N implementers +
+   Σ(validators per task)`, where each task contributes as many validators as it has applicable
+   domains (at least one). A single-domain run collapses back to the familiar `2N+1`; a run with
+   multi-domain tasks costs more agents for richer validation, bounded by `max_agents` (the run's
+   total-agent budget, independent of this formula).
+4. **Occupancy, not sizing**: there is no fixed implementer:validator ratio and no batch size to
    compute. Dispatch whatever is claimable up to the occupancy ceiling (`default_max_parallel`), and
    refill the instant a slot frees.
-4. **Every dispatch is registered**: one `agent:register` per subagent, before it starts work.
+5. **Every dispatch is registered**: one `agent:register` per subagent, before it starts work.
 
 ### Isolation boundaries
 

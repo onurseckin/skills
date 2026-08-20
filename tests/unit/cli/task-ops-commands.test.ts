@@ -338,7 +338,9 @@ describe("CLI task-ops commands", () => {
       "300",
     ]);
     const deadline = new Date(
-      (valStart.task as { validation: { deadline_at: string } }).validation.deadline_at,
+      (
+        valStart.task as { validations: { deadline_at: string }[] }
+      ).validations[0]!.deadline_at,
     ).valueOf();
     // The default window is 1200s (20min); a requested 300s must land near now+300s, not the
     // default, which is the whole difference between the flag being read and being dropped.

@@ -19,14 +19,17 @@ describe("Round 3: Validator Findings & Asset Pipeline", () => {
         attempts: [],
         history: [],
         repair_round: 2,
-        validation: {
-          validator_id: "validator-sec-audit",
-          token_digest: "digest-123",
-          attempt: 2,
-          started_at: "2026-08-15T19:00:00.000Z",
-          deadline_at: "2026-08-15T19:15:00.000Z",
-          verdict: "reject",
-        },
+        validations: [
+          {
+            validator_id: "validator-sec-audit",
+            domain: "code-quality",
+            token_digest: "digest-123",
+            attempt: 2,
+            started_at: "2026-08-15T19:00:00.000Z",
+            deadline_at: "2026-08-15T19:15:00.000Z",
+            verdict: "reject",
+          },
+        ],
         findings: [
           {
             id: "FINDING-AUTH-101",

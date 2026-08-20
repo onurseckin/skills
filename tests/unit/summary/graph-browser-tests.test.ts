@@ -98,7 +98,7 @@ describe("browser runs in the graph", () => {
       runId: "run-browser-gate",
       state: makeState([
         makeTask("T-1", {
-          validation: { validator_id: "validator-1", started_at: "2026-08-14T20:00:00.000Z" },
+          validations: [{ domain: "code-quality", validator_id: "validator-1", started_at: "2026-08-14T20:00:00.000Z" }],
         }),
       ]),
       commands: {

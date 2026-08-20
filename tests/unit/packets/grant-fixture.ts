@@ -3,7 +3,10 @@ import { readFileSync } from "node:fs";
 import { rm } from "node:fs/promises";
 import { join } from "node:path";
 import { execute } from "../../../orchestrating-long-tasks/scripts/src/cli/execute.ts";
-import { loadRoleContract } from "../../../orchestrating-long-tasks/scripts/src/packets/role-contract.ts";
+import {
+  loadRoleContract,
+  type RoleContract,
+} from "../../../orchestrating-long-tasks/scripts/src/packets/role-contract.ts";
 import { loadRun } from "../../../orchestrating-long-tasks/scripts/src/store/index.ts";
 import type { PacketRecord } from "../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
 
@@ -36,8 +39,11 @@ export function publishedFor(
 export function expectCarriesContract(
   markdown: string,
   role: Parameters<typeof loadRoleContract>[0],
+  // B12.2: a validator's packet now always carries its domain contract (standing checklist folded
+  // in), not the bare role contract, so a caller checking a validator packet passes it in already
+  // loaded rather than this function re-deriving which domain applied.
+  contract: RoleContract = loadRoleContract(role),
 ) {
-  const contract = loadRoleContract(role);
   expect(markdown).toContain("## Role contract");
   expect(markdown).toContain(contract.text.trim());
   // The document wraps long clauses; the parser joins them, so the comparison collapses whitespace.

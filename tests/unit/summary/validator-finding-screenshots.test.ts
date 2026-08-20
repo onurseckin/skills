@@ -17,10 +17,13 @@ describe("Round 3: Finding Screenshots & Evidence Extraction", () => {
       attempts: [],
       history: [],
       repair_round: 1,
-      validation: {
-        validator_id: "val-playwright",
-        verdict: "reject",
-      },
+      validations: [
+        {
+          validator_id: "val-playwright",
+          domain: "code-quality",
+          verdict: "reject",
+        },
+      ],
       findings: [
         {
           id: "F-STR-ARRAY",

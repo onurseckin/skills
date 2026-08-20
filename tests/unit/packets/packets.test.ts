@@ -50,13 +50,16 @@ function authorizeValidator(input: ReturnType<typeof base>): void {
   input.leaseToken = token;
   input.task!.status = "validating";
   delete input.task!.lease;
-  input.task!.validation = {
-    validator_id: "validator",
-    token_digest: tokenDigest(token),
-    attempt: 1,
-    started_at: "2026-08-13T12:00:00.000Z",
-    deadline_at: "2026-08-13T12:20:00.000Z",
-  };
+  input.task!.validations = [
+    {
+      validator_id: "validator",
+      domain: "code-quality",
+      token_digest: tokenDigest(token),
+      attempt: 1,
+      started_at: "2026-08-13T12:00:00.000Z",
+      deadline_at: "2026-08-13T12:20:00.000Z",
+    },
+  ];
 }
 
 describe("role packets", () => {

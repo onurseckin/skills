@@ -9,7 +9,10 @@ import {
   publishSubTaskRolePacket,
   publishTaskRolePacket,
 } from "../../../orchestrating-long-tasks/scripts/src/packets/role-grant.ts";
-import { loadRoleContract } from "../../../orchestrating-long-tasks/scripts/src/packets/role-contract.ts";
+import {
+  loadRoleContract,
+  loadValidatorDomainContract,
+} from "../../../orchestrating-long-tasks/scripts/src/packets/role-contract.ts";
 import type { TransactionPort } from "../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
 import { branchCapsule, openBranchVia, type BranchFixture } from "../branch/fixture.ts";
 import { setupReadyRun } from "../cli/critic-run-fixture.ts";
@@ -104,11 +107,16 @@ describe("every authority grant hands over a role contract", () => {
       "--validator",
       VALIDATOR,
     ]);
-    expect(started.role_contract_sha256).toBe(loadRoleContract("validator").sha256);
+    // B12.2: task:validate-start derives a domain from the task's write scope even when the caller
+    // never passes --validator-domain, so the packet carries that domain's contract (standing
+    // checklist folded in) rather than the bare validator role contract. This task's write scope
+    // draws only code-quality (see probe-fixture.ts).
+    const domainContract = loadValidatorDomainContract("code-quality");
+    expect(started.role_contract_sha256).toBe(domainContract.sha256);
     const { record, markdown } = publishedFor(run, VALIDATOR);
     expect(record.role).toBe("validator");
     expect(record.task_id).toBe(TASK_ID);
-    expectCarriesContract(markdown, "validator");
+    expectCarriesContract(markdown, "validator", domainContract);
   });
 
   test("branch:claim publishes the sub-agent contract bound to its sub-task", async () => {

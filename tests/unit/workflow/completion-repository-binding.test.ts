@@ -31,16 +31,19 @@ function readyPort(): TestPort {
   Object.assign(state.tasks["T-1"]!, {
     status: "done",
     report: { summary: "done" },
-    validation: {
-      validator_id: "validator",
-      token_digest: "digest",
-      attempt: 1,
-      started_at: clock.now().toISOString(),
-      deadline_at: clock.now().toISOString(),
-      verdict: "pass",
-      reviewed_requirement_ids: ["R-1"],
-      checks: [{ command_id: "C-V" }],
-    },
+    validations: [
+      {
+        validator_id: "validator",
+        domain: "code-quality",
+        token_digest: "digest",
+        attempt: 1,
+        started_at: clock.now().toISOString(),
+        deadline_at: clock.now().toISOString(),
+        verdict: "pass",
+        reviewed_requirement_ids: ["R-1"],
+        checks: [{ command_id: "C-V" }],
+      },
+    ],
     gate_results: [{ gate_id: "G-1", command_id: "C-T", status: "passed" }],
   });
   state.requirements[0] = {

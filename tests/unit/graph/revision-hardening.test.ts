@@ -20,7 +20,7 @@ describe("plan revision runtime and supersession", () => {
       status: "changes_requested",
       attempts: [{ attempt: 2 }],
       report: { summary: "submitted" },
-      validation: { validator_id: "agent-v", verdict: "reject" },
+      validations: [{ validator_id: "agent-v", domain: "code-quality", verdict: "reject" }],
       original_implementer: "agent-i",
       repair_assignee: "agent-r",
       repair_round: 2,

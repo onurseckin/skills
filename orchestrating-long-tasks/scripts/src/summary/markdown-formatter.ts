@@ -1,15 +1,8 @@
 import type { Manifest } from "../contracts/capsule.ts";
 import type { CommandRecord } from "../contracts/commands.ts";
 import type { WorkflowState } from "../workflow/types.ts";
+import { renderChecklistCoverage } from "./markdown-checklist-coverage.ts";
 import {
-  renderAgents,
-  renderBranches,
-  renderFilesChanged,
-  renderPhases,
-  renderTaskTrajectory,
-} from "./markdown-execution-sections.ts";
-import {
-  renderChecklistCoverage,
   renderCritic,
   renderGates,
   renderProbesAndPushbacks,
@@ -18,6 +11,13 @@ import {
   renderTimeline,
   renderTools,
 } from "./markdown-evidence-sections.ts";
+import {
+  renderAgents,
+  renderBranches,
+  renderFilesChanged,
+  renderPhases,
+  renderTaskTrajectory,
+} from "./markdown-execution-sections.ts";
 import {
   renderEnhancedPlan,
   renderOriginalPrompt,

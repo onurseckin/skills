@@ -60,13 +60,16 @@ describe("assertCriticIndependent", () => {
   // must not later certify the whole run's completeness, active assignment or historical.
   test("refuses the current validator of a task", () => {
     const state = workflowState();
-    state.tasks["T-1"]!.validation = {
-      validator_id: "critic-1",
-      token_digest: "d".repeat(64),
-      attempt: 1,
-      started_at: "2026-08-13T12:00:00.000Z",
-      deadline_at: "2026-08-13T12:20:00.000Z",
-    };
+    state.tasks["T-1"]!.validations = [
+      {
+        validator_id: "critic-1",
+        domain: "code-quality",
+        token_digest: "d".repeat(64),
+        attempt: 1,
+        started_at: "2026-08-13T12:00:00.000Z",
+        deadline_at: "2026-08-13T12:20:00.000Z",
+      },
+    ];
     expect(() => assertCriticIndependent(state, "critic-1")).toThrow(HarnessError);
   });
 
@@ -75,6 +78,7 @@ describe("assertCriticIndependent", () => {
     state.tasks["T-1"]!.validation_history = [
       {
         validator_id: "critic-1",
+        domain: "code-quality",
         token_digest: "d".repeat(64),
         attempt: 1,
         started_at: "2026-08-13T12:00:00.000Z",

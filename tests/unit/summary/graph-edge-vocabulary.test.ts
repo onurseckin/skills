@@ -67,14 +67,17 @@ function fullDataset() {
     probe_round: 1,
     replacement_reason: "repeated_failure",
     repair_assignee: "worker-2",
-    validation: {
-      validator_id: "val-1",
-      token_digest: "tok",
-      attempt: 2,
-      started_at: "2026-08-14T20:30:00.000Z",
-      deadline_at: "2026-08-14T20:50:00.000Z",
-      verdict: "reject",
-    },
+    validations: [
+      {
+        validator_id: "val-1",
+        domain: "code-quality",
+        token_digest: "tok",
+        attempt: 2,
+        started_at: "2026-08-14T20:30:00.000Z",
+        deadline_at: "2026-08-14T20:50:00.000Z",
+        verdict: "reject",
+      },
+    ],
     findings: [
       {
         id: "F-defect",

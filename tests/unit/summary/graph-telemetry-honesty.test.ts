@@ -47,14 +47,17 @@ describe("per-agent telemetry comes only from the grant ledger", () => {
     ];
     const task = {
       ...leasedTask("worker-1"),
-      validation: {
-        validator_id: "val-1",
-        token_digest: "tok",
-        attempt: 1,
-        started_at: "2026-08-14T20:10:00.000Z",
-        deadline_at: "2026-08-14T20:20:00.000Z",
-        verdict: "pass" as const,
-      },
+      validations: [
+        {
+          validator_id: "val-1",
+          domain: "code-quality",
+          token_digest: "tok",
+          attempt: 1,
+          started_at: "2026-08-14T20:10:00.000Z",
+          deadline_at: "2026-08-14T20:20:00.000Z",
+          verdict: "pass" as const,
+        },
+      ],
     };
     const dataset = generateGraphDataset({
       runId: "run-ledger",

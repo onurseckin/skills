@@ -1,3 +1,4 @@
+import { HarnessError } from "../errors/harness-error.ts";
 import { findCommand } from "./registry/index.ts";
 
 export function shouldReadPromptStdin(argv: readonly string[]): boolean {
@@ -15,14 +16,38 @@ export interface OrchestrateArgv {
   readonly inlinePrompt?: string;
 }
 
+// Real `orchestrate` flags (--repo, --run, ...) that must never be silently swallowed as prompt
+// bytes. Read from the registry rather than hand-listed, so a flag added to the command later is
+// covered automatically instead of quietly reopening this gap.
+function orchestrateFlagNames(): ReadonlySet<string> {
+  return new Set((findCommand("orchestrate")?.flags ?? []).map((flag) => flag.name));
+}
+
 // The bare form only fires when the very first token after the command name is not a flag — a real
 // prompt essentially never opens with "--", and this keeps the rule a single unambiguous check
 // instead of trying to interleave free text with recognised flags token by token. A caller who
 // needs --repo or --run alongside a real file/pipe keeps using the flag form untouched.
+//
+// A registered flag name appearing LATER in the tail (`orchestrate fix the bug --repo /other`) is
+// refused rather than folded into the prompt: silently swallowing it would both corrupt the
+// byte-for-byte prompt capture with flag syntax the user did not mean as prose, and discard the
+// flag's actual effect without any error — observed concretely as `--repo` losing its value and the
+// run silently opening against `cwd` instead of the repo the caller named.
 export function extractOrchestrateInlinePrompt(argv: readonly string[]): OrchestrateArgv {
   if (argv[0] !== "orchestrate") return { argv };
   const rest = argv.slice(1);
   if (rest.length === 0 || rest[0]!.startsWith("--")) return { argv };
+  const flagNames = orchestrateFlagNames();
+  const strayFlag = rest
+    .slice(1)
+    .find((token) => token.startsWith("--") && flagNames.has(token.slice(2)));
+  if (strayFlag !== undefined) {
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      `${strayFlag} cannot follow inline prompt text — it would be captured as prompt bytes ` +
+        "instead of taking effect. Pass it through --prompt-file or piped stdin instead.",
+    );
+  }
   return { argv: [argv[0]!], inlinePrompt: rest.join(" ") };
 }
 

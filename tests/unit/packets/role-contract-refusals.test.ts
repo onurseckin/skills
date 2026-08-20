@@ -83,7 +83,7 @@ describe("acting without a published contract is refused", () => {
     expect(() => recordReview(port, "T-1", "validator", review, clock)).toThrow(
       "validator action requires a matching durably published packet",
     );
-    registerTaskPacket(port, "validator", "validator", started.tasks["T-1"]!.validation!.attempt);
+    registerTaskPacket(port, "validator", "validator", started.tasks["T-1"]!.validations!.at(-1)!.attempt);
     expect(recordReview(port, "T-1", "validator", review, clock).tasks["T-1"]!.status).toBe(
       "changes_requested",
     );

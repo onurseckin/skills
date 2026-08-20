@@ -8,14 +8,17 @@ function twoTaskDataset() {
     status: "done",
     repair_round: 1,
     report: { summary: "Implemented A", files_changed: ["src/a.ts"] },
-    validation: {
-      validator_id: "val-1",
-      token_digest: "tok",
-      attempt: 1,
-      started_at: "2026-08-14T20:00:00.000Z",
-      deadline_at: "2026-08-14T20:10:00.000Z",
-      verdict: "pass",
-    },
+    validations: [
+      {
+        validator_id: "val-1",
+        domain: "code-quality",
+        token_digest: "tok",
+        attempt: 1,
+        started_at: "2026-08-14T20:00:00.000Z",
+        deadline_at: "2026-08-14T20:10:00.000Z",
+        verdict: "pass",
+      },
+    ],
     findings: [
       {
         id: "F-1",

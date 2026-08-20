@@ -75,14 +75,17 @@ describe("media assets come from recorded bytes", () => {
       status: "changes_requested",
       repair_round: 1,
       report: { summary: "done", screenshots: ["evidence/report-shot.png"] },
-      validation: {
-        validator_id: "val-visual-inspector",
-        token_digest: "tok",
-        attempt: 1,
-        started_at: "2026-08-15T19:00:00.000Z",
-        deadline_at: "2026-08-15T19:10:00.000Z",
-        verdict: "reject",
-      },
+      validations: [
+        {
+          validator_id: "val-visual-inspector",
+          domain: "code-quality",
+          token_digest: "tok",
+          attempt: 1,
+          started_at: "2026-08-15T19:00:00.000Z",
+          deadline_at: "2026-08-15T19:10:00.000Z",
+          verdict: "reject",
+        },
+      ],
       findings: [
         {
           id: "FINDING-THEME-01",
@@ -117,14 +120,17 @@ describe("media assets come from recorded bytes", () => {
         // the url writes. The recording must not be reported as an "image".
         screenshots: [{ url: "evidence/dashboard-recording.webm" }],
       },
-      validation: {
-        validator_id: "val-visual-inspector",
-        token_digest: "tok",
-        attempt: 1,
-        started_at: "2026-08-15T19:00:00.000Z",
-        deadline_at: "2026-08-15T19:10:00.000Z",
-        verdict: "reject",
-      },
+      validations: [
+        {
+          validator_id: "val-visual-inspector",
+          domain: "code-quality",
+          token_digest: "tok",
+          attempt: 1,
+          started_at: "2026-08-15T19:00:00.000Z",
+          deadline_at: "2026-08-15T19:10:00.000Z",
+          verdict: "reject",
+        },
+      ],
     });
 
     const implementer = mapMediaAssets(task, [], { scope: "implementer" });
@@ -132,15 +138,18 @@ describe("media assets come from recorded bytes", () => {
     expect(implementer[0].type).toBe("video");
 
     const validatorTask = makeTask("T-media-typed-val", {
-      validation: {
-        validator_id: "val-visual-inspector",
-        token_digest: "tok",
-        attempt: 1,
-        started_at: "2026-08-15T19:00:00.000Z",
-        deadline_at: "2026-08-15T19:10:00.000Z",
-        verdict: "reject",
-        screenshots: [{ url: "evidence/gate-audit.svg" }],
-      },
+      validations: [
+        {
+          validator_id: "val-visual-inspector",
+          domain: "code-quality",
+          token_digest: "tok",
+          attempt: 1,
+          started_at: "2026-08-15T19:00:00.000Z",
+          deadline_at: "2026-08-15T19:10:00.000Z",
+          verdict: "reject",
+          screenshots: [{ url: "evidence/gate-audit.svg" }],
+        },
+      ],
     });
     const validatorAssets = mapMediaAssets(validatorTask, [], { scope: "validator" });
     expect(validatorAssets).toHaveLength(1);

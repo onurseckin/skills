@@ -51,13 +51,16 @@ function leased(role: AgentRole): WorkflowState {
 function validating(): WorkflowState {
   const state = workflowState();
   state.tasks["T-1"]!.status = "validating";
-  state.tasks["T-1"]!.validation = {
-    validator_id: "agent-1",
-    attempt: 1,
-    started_at: "2026-08-13T12:00:00.000Z",
-    deadline_at: "2026-08-13T13:00:00.000Z",
-    token_digest: tokenDigest(TOKEN),
-  };
+  state.tasks["T-1"]!.validations = [
+    {
+      validator_id: "agent-1",
+      domain: "code-quality",
+      attempt: 1,
+      started_at: "2026-08-13T12:00:00.000Z",
+      deadline_at: "2026-08-13T13:00:00.000Z",
+      token_digest: tokenDigest(TOKEN),
+    },
+  ];
   return state;
 }
 

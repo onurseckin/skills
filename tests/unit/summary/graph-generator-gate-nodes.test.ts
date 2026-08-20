@@ -38,13 +38,16 @@ describe("gate node", () => {
       mapGateStatus(
         makeTask("T", {
           status: "leased",
-          validation: {
-            validator_id: "val-1",
-            token_digest: "tok",
-            attempt: 1,
-            started_at: "2026-08-14T20:00:00.000Z",
-            deadline_at: "2026-08-14T20:10:00.000Z",
-          },
+          validations: [
+            {
+              validator_id: "val-1",
+              domain: "code-quality",
+              token_digest: "tok",
+              attempt: 1,
+              started_at: "2026-08-14T20:00:00.000Z",
+              deadline_at: "2026-08-14T20:10:00.000Z",
+            },
+          ],
         }),
       ),
     ).toBe("running");
@@ -56,14 +59,17 @@ describe("gate node", () => {
       repair_round: 2,
       write_scope: ["src/feature.ts"],
       gate_results: [{ gate_id: "gate-1", command_id: "C-9", status: "passed" }],
-      validation: {
-        validator_id: "validator-alpha",
-        token_digest: "tok1",
-        attempt: 1,
-        started_at: "2026-08-14T20:00:00.000Z",
-        deadline_at: "2026-08-14T20:10:00.000Z",
-        verdict: "reject",
-      },
+      validations: [
+        {
+          validator_id: "validator-alpha",
+          domain: "code-quality",
+          token_digest: "tok1",
+          attempt: 1,
+          started_at: "2026-08-14T20:00:00.000Z",
+          deadline_at: "2026-08-14T20:10:00.000Z",
+          verdict: "reject",
+        },
+      ],
       findings: [
         {
           id: "F-101",

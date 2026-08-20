@@ -13,16 +13,19 @@ function validatedPort(): TestPort {
   Object.assign(state.tasks["T-1"]!, {
     status: "validated",
     report: { summary: "done" },
-    validation: {
-      validator_id: "validator",
-      token_digest: "digest",
-      attempt: 1,
-      started_at: clock.now().toISOString(),
-      deadline_at: clock.now().toISOString(),
-      verdict: "pass",
-      reviewed_requirement_ids: ["R-1"],
-      checks: [{ command_id: "C-VALIDATE" }],
-    },
+    validations: [
+      {
+        validator_id: "validator",
+        domain: "code-quality",
+        token_digest: "digest",
+        attempt: 1,
+        started_at: clock.now().toISOString(),
+        deadline_at: clock.now().toISOString(),
+        verdict: "pass",
+        reviewed_requirement_ids: ["R-1"],
+        checks: [{ command_id: "C-VALIDATE" }],
+      },
+    ],
   });
   state.commands["C-1"] = commandRecord("C-1", {
     task_id: "T-1",

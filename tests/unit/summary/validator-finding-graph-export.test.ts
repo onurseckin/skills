@@ -18,15 +18,18 @@ const visualTask: TaskRecord = makeTask("T-full-visual", {
     files_changed: ["src/components/Chart.tsx"],
     screenshots: ["test-results/chart-render.png"],
   },
-  validation: {
-    validator_id: "val-chart-spec",
-    token_digest: "tok",
-    attempt: 1,
-    started_at: "2026-08-15T19:20:00.000Z",
-    deadline_at: "2026-08-15T19:40:00.000Z",
-    verdict: "reject",
-    screenshots: ["evidence/chart-overflow.png"],
-  },
+  validations: [
+    {
+      validator_id: "val-chart-spec",
+      domain: "code-quality",
+      token_digest: "tok",
+      attempt: 1,
+      started_at: "2026-08-15T19:20:00.000Z",
+      deadline_at: "2026-08-15T19:40:00.000Z",
+      verdict: "reject",
+      screenshots: ["evidence/chart-overflow.png"],
+    },
+  ],
   findings: [
     {
       id: "F-CHART-01",

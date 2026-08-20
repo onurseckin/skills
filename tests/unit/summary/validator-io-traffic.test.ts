@@ -7,28 +7,34 @@ function pipelineDataset() {
     label: "Build Core Engine",
     status: "done",
     report: { summary: "Core engine completed", files_changed: ["src/core.ts"] },
-    validation: {
-      validator_id: "val-core",
-      token_digest: "tok",
-      attempt: 1,
-      started_at: "2026-08-15T19:30:00.000Z",
-      deadline_at: "2026-08-15T19:40:00.000Z",
-      verdict: "pass",
-    },
+    validations: [
+      {
+        validator_id: "val-core",
+        domain: "code-quality",
+        token_digest: "tok",
+        attempt: 1,
+        started_at: "2026-08-15T19:30:00.000Z",
+        deadline_at: "2026-08-15T19:40:00.000Z",
+        verdict: "pass",
+      },
+    ],
   });
   const api = makeTask("T-api", {
     label: "Build API Gateway",
     status: "changes_requested",
     dependencies: ["T-core"],
     repair_round: 1,
-    validation: {
-      validator_id: "val-api",
-      token_digest: "tok",
-      attempt: 1,
-      started_at: "2026-08-15T19:35:00.000Z",
-      deadline_at: "2026-08-15T19:45:00.000Z",
-      verdict: "reject",
-    },
+    validations: [
+      {
+        validator_id: "val-api",
+        domain: "code-quality",
+        token_digest: "tok",
+        attempt: 1,
+        started_at: "2026-08-15T19:35:00.000Z",
+        deadline_at: "2026-08-15T19:45:00.000Z",
+        verdict: "reject",
+      },
+    ],
     findings: [
       {
         id: "F-API-1",

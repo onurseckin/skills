@@ -49,7 +49,7 @@ function validationToken(port: TestPort, validatorId: string): string {
   const state = beginValidation(port, "T-1", validatorId, clock);
   const token = state.tasks["T-1"]!.validation_token;
   if (typeof token !== "string") throw new TypeError("validation token missing");
-  registerTaskPacket(port, "validator", validatorId, state.tasks["T-1"]!.validation!.attempt);
+  registerTaskPacket(port, "validator", validatorId, state.tasks["T-1"]!.validations!.at(-1)!.attempt);
   return token;
 }
 
@@ -57,7 +57,7 @@ describe("independent validation and repair", () => {
   test("honors an explicit validation window and rejects an out-of-bounds one", () => {
     const port = submitted();
     const state = beginValidation(port, "T-1", "validator", clock, 300);
-    const deadline = new Date(state.tasks["T-1"]!.validation!.deadline_at).valueOf();
+    const deadline = new Date(state.tasks["T-1"]!.validations!.at(-1)!.deadline_at).valueOf();
     expect(deadline - clock.now().valueOf()).toBe(300_000);
     expect(() => beginValidation(port, "T-1", "validator", clock, 4)).toThrow(
       "lease_seconds must be an integer from 5 to 86400",

@@ -56,7 +56,7 @@ function submitted(): TestPort {
 function validationToken(port: TestPort, validator: string): string {
   registerCommand(port, `C-${validator}`, validator);
   const started = beginValidation(port, "T-1", validator, clock);
-  registerTaskPacket(port, "validator", validator, started.tasks["T-1"]!.validation!.attempt);
+  registerTaskPacket(port, "validator", validator, started.tasks["T-1"]!.validations!.at(-1)!.attempt);
   return started.tasks["T-1"]!.validation_token!;
 }
 

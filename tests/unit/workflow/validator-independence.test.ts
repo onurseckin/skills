@@ -50,7 +50,7 @@ function startValidation(port: TestPort, validator: string): string {
   const state = beginValidation(port, "T-1", validator, clock);
   const token = state.tasks["T-1"]!.validation_token;
   if (typeof token !== "string") throw new TypeError("validation token missing");
-  registerTaskPacket(port, "validator", validator, state.tasks["T-1"]!.validation!.attempt);
+  registerTaskPacket(port, "validator", validator, state.tasks["T-1"]!.validations!.at(-1)!.attempt);
   return token;
 }
 
@@ -84,7 +84,7 @@ describe("no agent validates a task it has already worked on or reviewed", () =>
 
     const second = beginValidation(port, "T-1", "validator-r2", clock);
     expect(second.tasks["T-1"]!.status).toBe("validating");
-    expect(second.tasks["T-1"]!.validation!.attempt).toBe(2);
+    expect(second.tasks["T-1"]!.validations!.at(-1)!.attempt).toBe(2);
   });
 
   test("the task's original implementer is refused, whatever its attempt record says", () => {

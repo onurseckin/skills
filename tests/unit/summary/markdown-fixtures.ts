@@ -241,15 +241,18 @@ export const populatedState: JsonObject = {
         files_changed_evidence_class: "harness_observed",
       },
       gate_results: [{ gate_id: "gate-1", command_id: "C-1", status: "passed" }],
-      validation: {
-        validator_id: "validator-2",
-        token_digest: "d",
-        attempt: 2,
-        started_at: "2026-08-20T00:00:04.000Z",
-        deadline_at: "2026-08-20T01:00:04.000Z",
-        verdict: "pass",
-        checks: [{ command_id: "C-1" }],
-      },
+      validations: [
+        {
+          validator_id: "validator-2",
+          domain: "code-quality",
+          token_digest: "d",
+          attempt: 2,
+          started_at: "2026-08-20T00:00:04.000Z",
+          deadline_at: "2026-08-20T01:00:04.000Z",
+          verdict: "pass",
+          checks: [{ command_id: "C-1" }],
+        },
+      ],
       validation_history: [
         {
           validator_id: "validator-1",
