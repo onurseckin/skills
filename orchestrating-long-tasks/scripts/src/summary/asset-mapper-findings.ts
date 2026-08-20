@@ -61,7 +61,7 @@ export function mapFindingDetails(
     ];
 
     const validatorId =
-      task.validation?.validator_id ??
+      task.validations?.[0]?.validator_id ??
       (Array.isArray(task.validation_history) && task.validation_history.length > 0
         ? task.validation_history[task.validation_history.length - 1]?.validator_id
         : undefined);

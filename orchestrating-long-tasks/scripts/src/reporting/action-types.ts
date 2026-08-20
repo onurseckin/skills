@@ -11,7 +11,9 @@ export interface TaskView {
   repair_assignee: string | null;
   original_implementer: string | null;
   gate_results: { gate_id: string; command_id: string }[];
-  validation: { validator_id: string; attempt: number } | null;
+  // B12.2: at most one open attempt per domain, so a task can list several while it waits on more
+  // than one validator.
+  validation: { validator_id: string; attempt: number; domain: string }[];
   open_finding_ids: string[];
   probe_round: number;
 }

@@ -60,7 +60,7 @@ export async function planInitCommand(
     textFlag(flags, "capture-mode", false) ?? (fromFile !== undefined ? "file" : "stdin");
   const sourceVerified =
     flags["source-verified"] === undefined
-      ? captureMode === "file" || captureMode === "stdin"
+      ? captureMode === "file" || captureMode === "stdin" || captureMode === "argv"
       : boolFlag(flags, "source-verified");
 
   // An explicit --runtime-source wins; otherwise the process that is running this very command

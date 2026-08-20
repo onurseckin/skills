@@ -1,22 +1,50 @@
-import { existsSync, lstatSync, readdirSync } from "node:fs";
+import { existsSync, lstatSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import type { IntegrityIssue } from "../contracts/capsule.ts";
-import { blobContentDigest, blobRelativePath, listBlobs } from "./blobs.ts";
-import { CAPTURES_FILE, readCaptures } from "./captures.ts";
+import { readBoundedBytes, sha256Bytes } from "../core/json.ts";
+import { MAX_BLOB_BYTES, blobContentDigest, blobRelativePath, listBlobs } from "./blobs.ts";
+import { CAPTURES_FILE, readCaptures, type CaptureRecord } from "./captures.ts";
+import { commandLayout } from "./layout-commands.ts";
 import { SHA256_PATTERN } from "./constants.ts";
 import { issue } from "./issues.ts";
 import { isDeclaredCapsuleEntry } from "./layout.ts";
+import { isRecord, type JsonRecord } from "./layout-json.ts";
+import { packetLayout } from "./layout-packets.ts";
+import { reportsLayout } from "./layout-reports.ts";
+
+/**
+ * A tolerant, best-effort read: state.json's own integrity — readable, canonical, equal to the
+ * chain projection — is verified separately by `verifyIntegrity`. A failure here yields no packet,
+ * command or report findings rather than a second, differently-worded report of the same corruption.
+ */
+function readState(runRoot: string): JsonRecord | undefined {
+  try {
+    const parsed: unknown = JSON.parse(readFileSync(join(runRoot, "state.json"), "utf-8"));
+    return isRecord(parsed) ? parsed : undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 /**
  * Integrity beyond the four files the chain binds directly.
  *
  * The chain proves the prompt, the manifest, the event log and the projection. Everything else the
- * run wrote — blobs, the readable names that point at them, the capture ledger — was unverified and
- * silently tolerated if altered, which is as much an integrity gap as a duplicated one. These
- * checks are structural and cheap enough to run on every load.
+ * run wrote — blobs, the readable names that point at them, the capture ledger, packet bundles,
+ * command records and validation reports — was unverified and silently tolerated if altered, which
+ * is as much an integrity gap as a duplicated one. These checks are structural and cheap enough to
+ * run on every load: they read the small per-record documents a run produces (packet.md, a command's
+ * record.json), never the large captured logs and screenshots a deep pass re-hashes.
  */
 export function verifyCapsuleLayout(runRoot: string): IntegrityIssue[] {
-  return [...blobNaming(runRoot), ...captureReferences(runRoot)];
+  const state = readState(runRoot);
+  return [
+    ...blobNaming(runRoot),
+    ...captureReferences(runRoot),
+    ...packetLayout(runRoot, state),
+    ...commandLayout(runRoot, state),
+    ...reportsLayout(runRoot, state),
+  ];
 }
 
 /**
@@ -103,6 +131,68 @@ function blobNaming(runRoot: string): IntegrityIssue[] {
   return found;
 }
 
+function sameInode(left: string, right: string): boolean {
+  try {
+    const a = statSync(left);
+    const b = statSync(right);
+    return a.dev === b.dev && a.ino === b.ino;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * `hardlink` storage means the view and the blob are the same inode by construction — a view that no
+ * longer shares it was replaced independently of the blob, and an existence check alone would miss
+ * that entirely, since the replacement still "exists". `copy` is the documented fallback for
+ * filesystems without hardlinks, so its only available invariant is content: the bytes still have to
+ * hash to what the ledger recorded. Ingestion always writes the blob and the view before the ledger
+ * entry that names them (`reporting/screenshot-ingestion.ts`), so by the time a capture is in the
+ * ledger both files are already settled — there is no in-flight window to race here.
+ */
+function captureViewDivergenceIssues(
+  capture: CaptureRecord,
+  blobPath: string,
+  viewPath: string,
+): IntegrityIssue[] {
+  if (capture.storage === "hardlink") {
+    return sameInode(blobPath, viewPath)
+      ? []
+      : [
+          issue(
+            "CAPTURE_VIEW_DIVERGED",
+            `capture ${capture.name} view is no longer linked to its blob`,
+            capture.path,
+          ),
+        ];
+  }
+  if (capture.storage === "copy") {
+    try {
+      const bytes = readBoundedBytes(viewPath, MAX_BLOB_BYTES);
+      return sha256Bytes(bytes) === capture.sha256
+        ? []
+        : [
+            issue(
+              "CAPTURE_VIEW_DIVERGED",
+              `capture ${capture.name} view no longer matches its recorded content`,
+              capture.path,
+            ),
+          ];
+    } catch (error) {
+      return [
+        issue(
+          "CAPTURE_UNREADABLE",
+          `capture ${capture.name} view is unreadable: ${String(error)}`,
+          capture.path,
+        ),
+      ];
+    }
+  }
+  return [
+    issue("CAPTURE_STORAGE", `capture ${capture.name} has an unrecognized storage mode`, capture.path),
+  ];
+}
+
 /** Every recorded capture must still point at bytes that exist, and at the name it claims. */
 function captureReferences(runRoot: string): IntegrityIssue[] {
   const found: IntegrityIssue[] = [];
@@ -122,7 +212,11 @@ function captureReferences(runRoot: string): IntegrityIssue[] {
           capture.blob_path,
         ),
       );
-    if (!existsSync(join(runRoot, capture.blob_path)))
+    const blobPath = join(runRoot, capture.blob_path);
+    const viewPath = join(runRoot, capture.path);
+    const blobPresent = existsSync(blobPath);
+    const viewPresent = existsSync(viewPath);
+    if (!blobPresent)
       found.push(
         issue(
           "CAPTURE_BLOB_MISSING",
@@ -130,10 +224,10 @@ function captureReferences(runRoot: string): IntegrityIssue[] {
           capture.blob_path,
         ),
       );
-    if (!existsSync(join(runRoot, capture.path)))
-      found.push(
-        issue("CAPTURE_VIEW_MISSING", `capture ${capture.name} has no readable name`, capture.path),
-      );
+    if (!viewPresent)
+      found.push(issue("CAPTURE_VIEW_MISSING", `capture ${capture.name} has no readable name`, capture.path));
+    if (blobPresent && viewPresent)
+      found.push(...captureViewDivergenceIssues(capture, blobPath, viewPath));
     if (seenNames.has(capture.path))
       found.push(issue("CAPTURE_NAME_REUSED", `two captures claim ${capture.path}`, capture.path));
     seenNames.add(capture.path);

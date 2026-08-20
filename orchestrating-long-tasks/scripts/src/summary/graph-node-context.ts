@@ -1,6 +1,7 @@
 import type { HarnessEvent, Manifest } from "../contracts/capsule.ts";
 import type { CommandRecord } from "../contracts/commands.ts";
 import type { TaskRecord } from "../workflow/types.ts";
+import { earliestOpenValidation } from "../workflow/review/validation-state.ts";
 import type { AgentLedgerView } from "./agent-telemetry.ts";
 import type { ArchivedRoundContext } from "./graph-round-context.ts";
 import type { FileRef, MediaAsset, NodeFinding, NodeStatus } from "./types.ts";
@@ -48,14 +49,22 @@ export function mapGateStatus(task: TaskRecord): NodeStatus {
   if (task.status === "done" || task.status === "validated") return "success";
   if (task.status === "changes_requested") return "warning";
   if (task.status === "cancelled" || task.status === "escalated") return "error";
-  if (task.status === "validating" || task.status === "gating" || Boolean(task.validation)) {
+  if (
+    task.status === "validating" ||
+    task.status === "gating" ||
+    (task.validations !== undefined && task.validations.length > 0)
+  ) {
     return "running";
   }
   return "pending";
 }
 
+// B12.2: several domains can be open at once; the earliest-started one is the representative
+// identity for the single validator-node-per-round shape this graph still draws (see
+// graph-task-preparation.ts's own note on why the fallback below is deliberately narrower).
 export function resolveValidatorId(task: TaskRecord): string | undefined {
-  if (task.validation?.validator_id) return task.validation.validator_id;
+  const open = earliestOpenValidation(task);
+  if (open?.validator_id) return open.validator_id;
   const history = task.validation_history;
   if (Array.isArray(history) && history.length > 0) {
     return history[history.length - 1]?.validator_id;

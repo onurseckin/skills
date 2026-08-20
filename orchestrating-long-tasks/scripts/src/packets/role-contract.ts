@@ -2,6 +2,11 @@ import { createHash } from "node:crypto";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { isAgentRole, type AgentRole } from "../contracts/packets.ts";
+import {
+  isValidatorDomain,
+  VALIDATOR_DOMAINS,
+  type ValidatorDomain,
+} from "../contracts/workflow.ts";
 import { readRegularFileNoFollow } from "../core/no-follow.ts";
 import { HarnessError } from "../errors/harness-error.ts";
 
@@ -20,18 +25,12 @@ type DocumentKind = "role contract" | "checklist";
  * every workflow check keyed on the literal role string "validator" (packet isolation, token
  * authorization, `task:review` acceptance) — none of that is touched. Only the role prose and the
  * standing checklist a domain contract carries differ, via `loadValidatorDomainContract` below.
+ *
+ * The type, roster and guard themselves live in `contracts/workflow.ts` now (the state machine needs
+ * them to key a task's per-domain validation collection); re-exported here so every existing caller
+ * of this module keeps working unchanged.
  */
-export type ValidatorDomain = "code-quality" | "product" | "security" | "system-design" | "ui-design";
-
-/** The full domain roster — B12.2's "extensible by design": a new domain is added here and nowhere else
- *  needs to know the closed set. */
-export const VALIDATOR_DOMAINS: readonly ValidatorDomain[] = [
-  "code-quality",
-  "product",
-  "security",
-  "system-design",
-  "ui-design",
-];
+export { isValidatorDomain, VALIDATOR_DOMAINS, type ValidatorDomain };
 
 /** Stable ID prefix per domain, enforced on every checklist item so a copy-pasted ID cannot drift. */
 const DOMAIN_ID_PREFIX: Readonly<Record<ValidatorDomain, string>> = {
@@ -41,10 +40,6 @@ const DOMAIN_ID_PREFIX: Readonly<Record<ValidatorDomain, string>> = {
   "system-design": "SYS",
   "ui-design": "UI",
 };
-
-export function isValidatorDomain(value: string): value is ValidatorDomain {
-  return (VALIDATOR_DOMAINS as readonly string[]).includes(value);
-}
 
 export interface RoleContract {
   role: AgentRole;

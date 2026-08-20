@@ -7,8 +7,8 @@ import type { TaskRecord } from "../workflow/types.ts";
  * entry here is a round the state machine actually lived through — never a round guessed from
  * `repair_round`, which only counts them and can disagree with this list on a capsule that
  * predates the field. The current/final round is never in this array: it stays whatever
- * `task.validation` or the task's live fields describe, exactly as before this split existed, so a
- * task still on its first round is untouched by any of it.
+ * `task.validations` (B12.2's per-domain collection) or the task's live fields describe, exactly as
+ * before this split existed, so a task still on its first round is untouched by any of it.
  */
 export interface ArchivedRoundContext {
   round: number;

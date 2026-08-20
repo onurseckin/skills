@@ -24,7 +24,7 @@ own status in `exit_code`.
 
 The primary entry point: the user's entire prompt in, a running orchestration out.
 
-Takes the user's whole message as free text, captures it byte-for-byte as the immutable prompt (identical guarantee to plan:init), and opens the capsule. No flag is required to shape or structure the prompt; the harness's own stdin gate still needs --prompt-stdin to read piped text (or --prompt-file for a file), the same contract plan:init uses. Returns the fixed checklist for what happens next — plan:enhance, plan:add, plan:compile, queue:wave — bound to the run it just opened, so the calling agent never has to assemble that sequence by hand. It cannot run plan:enhance itself: reading the repository and deciding what the run is actually about needs a model's judgment, and the harness never calls one. --run is optional; omitted, a run id is derived from today's date and the first few words of the prompt.
+Takes the user's whole message as free text and captures it byte-for-byte as the immutable prompt (identical guarantee to plan:init), then opens the capsule. No flags to learn: everything typed after `orchestrate` is the prompt, and a piped stdin with no flags at all is read automatically (detected the way `cat`/`grep` do it, by checking whether stdin is actually a pipe, never by blocking an interactive terminal). --prompt-stdin and --prompt-file still work exactly as before, for a caller that wants to be explicit or that also needs --repo/--run alongside a real file or pipe. Returns the fixed checklist for what happens next — plan:enhance, plan:add, plan:compile, queue:wave — bound to the run it just opened, so the calling agent never has to assemble that sequence by hand. It cannot run plan:enhance itself: reading the repository and deciding what the run is actually about needs a model's judgment, and the harness never calls one. --run is optional; omitted, a run id is derived from today's date and the first few words of the prompt.
 
 - **Aliases**: none
 - **Stdin**: reads stdin when `--prompt-stdin` is set
@@ -36,14 +36,15 @@ Takes the user's whole message as free text, captures it byte-for-byte as the im
 | `--run` | string | no | no | - | Run id; interchangeable with --run-id. Derived from the prompt when omitted. |
 | `--run-id` | string | no | no | - | Run id; interchangeable with --run. Derived from the prompt when omitted. |
 | `--prompt-file` | string | no | no | - | File holding the verbatim prompt bytes. |
-| `--prompt-stdin` | bool | no | no | - | Read the verbatim prompt bytes from stdin. Required to use stdin at all; the CLI never blocks reading an unredirected terminal without it. |
-| `--capture-mode` | string | no | no | - | How the prompt was captured; defaults to the source used. |
+| `--prompt-stdin` | bool | no | no | - | Read the verbatim prompt bytes from stdin explicitly. Not required for a real pipe: a bare `orchestrate` with nothing else after it already reads stdin when it is not an interactive terminal. This flag exists for a caller that wants the read to fail loudly instead of silently falling through when stdin turns out not to be piped. |
+| `--capture-mode` | string | no | no | - | How the prompt was captured; defaults to argv, file or stdin, whichever was actually used. |
 | `--source-verified` | bool | no | no | - | Assert the prompt source was verified by the caller. |
 | `--runtime-source` | string | no | no | - | Directory to pin as this run's runtime, verified and copied into runtime/. Defaults to the directory containing the currently running harness.ts. |
 | `--no-runtime-pin` | bool | no | no | - | Skip pinning a runtime even when one is available by default. |
 
 ```bash
-printf "%s" "$PROMPT" | bun harness.ts orchestrate --repo . --prompt-stdin
+bun harness.ts orchestrate Add a slugify helper that lowercases text and collapses punctuation.
+printf "%s" "$PROMPT" | bun harness.ts orchestrate
 bun harness.ts orchestrate --repo . --run my-feature --prompt-file prompt.txt
 ```
 
@@ -399,7 +400,7 @@ Assigns the validator and mints the validation token required by task:review.
 | `--task` | string | yes | no | - | Submitted task id. |
 | `--validator` | string | yes | no | - | Validator agent id. |
 | `--lease-duration` | int | no | no | - | Validation window in seconds. |
-| `--validator-domain` | string | no | no | - | B12.2 standing checklist domain (code-quality, product, security, system-design, ui-design); binds the matching checklist into this validator's packet. |
+| `--validator-domain` | string | no | no | - | B12.2 standing checklist domain (code-quality, product, security, system-design, ui-design); binds the matching checklist into this validator's packet. Omitted, the domain is DERIVED from the task's write scope (code-quality always applies; ui-design/system-design follow file extension and path signals) — the first applicable domain nobody has an open validation against yet. A task can carry several open validations at once, one per applicable domain; it reaches validated only once every one of them has passed. |
 
 ```bash
 bun harness.ts task:validate-start --run .capsules/<run-id> --task task-1 --validator val-1
@@ -410,7 +411,7 @@ bun harness.ts task:validate-start --run .capsules/<run-id> --task task-1 --vali
 
 Record a validator verdict with its gate evidence.
 
---status pass finalises the task and unblocks dependants; --status fail records a defect finding and returns the task for repair. A failing verdict must carry --summary, --severity and --remediation: they are the validator's own finding and the harness supplies no wording for them. A pass is refused while the task is short of min_adversarial_probes probes, a mandatory gate's recorded run exited non-zero, or an open finding has no --resolve answering it. Every open finding, probe demand or defect, must be answered explicitly: the harness never marks one answered on the validator's behalf.
+--status pass finalises the task and unblocks dependants; --status fail records a defect finding and returns the task for repair. A failing verdict must carry --summary, --severity and --remediation: they are the validator's own finding and the harness supplies no wording for them. A pass is refused while the task is short of min_adversarial_probes probes, a mandatory gate's recorded run exited non-zero, or an open finding has no --resolve answering it. Every open finding, probe demand or defect, must be answered explicitly: the harness never marks one answered on the validator's behalf. --checklist-domain plus --checklist-report (B12.5) attach standing-checklist coverage to the report: which items were checked and passed, which were not applicable, which could not be checked, and any standing-standard finding outside this task's own scope. None of it gates this task's verdict; the report states it separately so the coverage is visible rather than implied.
 
 - **Aliases**: none
 - **Stdin**: not read
@@ -433,11 +434,14 @@ Record a validator verdict with its gate evidence.
 | `--requirement` | string | no | no | - | Requirement a failing verdict binds its finding to. |
 | `--resolve` | string | no | yes | - | Answer an open finding: <finding-id>=<command-id>[,<command-id>]. |
 | `--resolution-method` | string | no | yes | - | How a finding was answered: <finding-id>=<method>; defaults to the finding's class. |
+| `--checklist-domain` | string | no | no | - | B12.5: the standing checklist (code-quality, product, security, system-design, ui-design) this review reports coverage against. Requires --checklist-report; every item in that domain's checklist must be accounted for. |
+| `--checklist-report` | string | no | no | - | Path to a JSON file: {"items":[{"id":"<checklist-id>","disposition":"checked|not_applicable|could_not_check","reason":"<required unless checked>"}, ...],"adjacent_findings":[{"id","checklist_item_id","severity","observation","remediation","evidence":[...]}]}. Requires --checklist-domain. |
 
 ```bash
 bun harness.ts task:review --run .capsules/<run-id> --task task-1 --validator val-1 --token <token> --status pass --checks C-123 --summary "All gates pass"
 bun harness.ts task:review --run .capsules/<run-id> --task task-1 --validator val-1 --token <token> --status pass --checks C-123 --resolve probe-task-1-01-1=C-123
 bun harness.ts task:review --run .capsules/<run-id> --task task-1 --validator val-1 --token <token> --status fail --summary "Gate command never ran against the new schema" --severity critical --remediation "Point the gate at tests/db and rerun it"
+bun harness.ts task:review --run .capsules/<run-id> --task task-1 --validator val-1 --token <token> --status pass --checks C-123 --summary "All gates pass" --checklist-domain code-quality --checklist-report coverage.json
 ```
 
 ### `task:probe`

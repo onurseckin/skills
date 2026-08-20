@@ -156,8 +156,12 @@ function indexTasks(state: RunState): { tasks: IndexTask[]; findings: IndexFindi
         ...optional("status", status),
       });
     }
-    const checks = isObject(task.validation)
-      ? stringListOfCommandProofs(task.validation.checks)
+    // B12.2: `task.validation` (singleton) became `task.validations` (one entry per domain); merge
+    // every open domain's checks so a multi-domain task's command evidence is not silently dropped.
+    const checks = Array.isArray(task.validations)
+      ? task.validations.flatMap((entry) =>
+          isObject(entry) ? stringListOfCommandProofs(entry.checks) : [],
+        )
       : [];
     tasks.push({
       id,

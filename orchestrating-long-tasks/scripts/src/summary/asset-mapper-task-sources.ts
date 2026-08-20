@@ -71,28 +71,32 @@ export function collectValidationAssets(
   add: AssetSink,
   nextIndex: IndexProvider,
 ): void {
-  const validation = asRecord(task.validation);
-  if (!Array.isArray(validation?.screenshots)) return;
-  const startedAt = typeof validation.started_at === "string" ? validation.started_at : undefined;
-  for (const shot of validation.screenshots as Array<MediaAsset | string>) {
-    const url = typeof shot === "string" ? shot : shot?.url;
-    if (!url) continue;
-    const props = inferAssetProps(url, undefined, task);
-    const object = typeof shot === "string" ? undefined : shot;
-    add({
-      id: object?.id || `asset-${task.id}-val-${nextIndex()}`,
-      // See collectReportAssets above: props.type is the extension-derived signal, not a guess.
-      type: object?.type || props.type,
-      url,
-      title: object?.title || `Validator Snapshot: ${url.split("/").pop()}`,
-      description: `Captured by validator during gate check for task ${task.id}`,
-      ...(object?.timestamp || startedAt ? { timestamp: object?.timestamp || startedAt } : {}),
-      mimeType: object?.mimeType || props.mimeType,
-      ...(object?.sizeBytes === undefined ? {} : { sizeBytes: object.sizeBytes }),
-      ...(object?.dimensions ? { dimensions: object.dimensions } : {}),
-      ...(task.validation?.validator_id ? { author: task.validation.validator_id } : {}),
-      metadata: { stage: "validation" },
-    });
+  // B12.2: one entry per domain, so every open domain's own screenshots are collected — not just a
+  // single representative validator's.
+  for (const entry of task.validations ?? []) {
+    const validation = asRecord(entry);
+    if (!Array.isArray(validation?.screenshots)) continue;
+    const startedAt = typeof validation.started_at === "string" ? validation.started_at : undefined;
+    for (const shot of validation.screenshots as Array<MediaAsset | string>) {
+      const url = typeof shot === "string" ? shot : shot?.url;
+      if (!url) continue;
+      const props = inferAssetProps(url, undefined, task);
+      const object = typeof shot === "string" ? undefined : shot;
+      add({
+        id: object?.id || `asset-${task.id}-val-${nextIndex()}`,
+        // See collectReportAssets above: props.type is the extension-derived signal, not a guess.
+        type: object?.type || props.type,
+        url,
+        title: object?.title || `Validator Snapshot: ${url.split("/").pop()}`,
+        description: `Captured by validator during gate check for task ${task.id}`,
+        ...(object?.timestamp || startedAt ? { timestamp: object?.timestamp || startedAt } : {}),
+        mimeType: object?.mimeType || props.mimeType,
+        ...(object?.sizeBytes === undefined ? {} : { sizeBytes: object.sizeBytes }),
+        ...(object?.dimensions ? { dimensions: object.dimensions } : {}),
+        ...(entry.validator_id ? { author: entry.validator_id } : {}),
+        metadata: { stage: "validation" },
+      });
+    }
   }
 }
 
@@ -111,7 +115,7 @@ export function collectFindingAssets(
         shot.author ||
         finding.author ||
         finding.validatorId ||
-        context.task?.validation?.validator_id ||
+        context.task?.validations?.[0]?.validator_id ||
         context.criticId;
       const scopeId = context.task ? context.task.id : "critic";
       add({

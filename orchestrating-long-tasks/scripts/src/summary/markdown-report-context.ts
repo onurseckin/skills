@@ -14,6 +14,7 @@ import type {
   EnhancedPlanView,
   GateView,
   RequirementView,
+  TaskChecklistCoverageView,
 } from "./markdown-sources.ts";
 import {
   readBranches,
@@ -24,6 +25,7 @@ import {
   readGates,
   readGraphRevision,
   readRequirements,
+  readTaskChecklistCoverage,
   readTopologyRecord,
 } from "./markdown-sources.ts";
 import type { RollupMetrics, TimelineEventRecord } from "./types.ts";
@@ -61,6 +63,8 @@ export interface ReportContext {
   waves: AsciiWave[];
   metrics: RollupMetrics;
   timeline: TimelineEventRecord[];
+  /** B12.5: one entry per task that has ever recorded a `task:review`, in task order. */
+  checklistCoverage: TaskChecklistCoverageView[];
 }
 
 function orderedTasks(state: Readonly<WorkflowState>): TaskRecord[] {
@@ -125,5 +129,9 @@ export function buildReportContext(input: ReportContextInput): ReportContext {
     waves: buildWaves(topology, tasks),
     metrics: input.metrics,
     timeline: input.timeline,
+    checklistCoverage: tasks.flatMap((task) => {
+      const coverage = readTaskChecklistCoverage(input.runRoot, task.id);
+      return coverage === null ? [] : [coverage];
+    }),
   };
 }

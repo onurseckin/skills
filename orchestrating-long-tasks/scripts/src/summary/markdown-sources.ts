@@ -306,3 +306,77 @@ export function readCriticReport(runRoot: string): CriticReportView | null {
     createdAt: textOf(parsed.created_at),
   };
 }
+
+// --- B12.5: checklist coverage, read back from `reports/<task>-review.json` -------------------
+//
+// `task_scope_findings` duplicates `task.findings`, which the report already renders elsewhere
+// (probes and pushbacks), so only the standing-checklist coverage — the part with no other home in
+// `WorkflowState` — is read back here.
+
+export interface ChecklistCoverageItemView {
+  id: string;
+  disposition: "checked" | "not_applicable" | "could_not_check";
+  reason: string | null;
+}
+
+export interface AdjacentFindingView {
+  id: string;
+  checklistItemId: string;
+  severity: "critical" | "important" | "minor";
+  observation: string;
+  remediation: string;
+}
+
+export interface TaskChecklistCoverageView {
+  taskId: string;
+  applicable: boolean;
+  /** Why coverage does not apply; null once `applicable` is true. */
+  reason: string | null;
+  domain: string | null;
+  items: ChecklistCoverageItemView[];
+  adjacentFindings: AdjacentFindingView[];
+}
+
+function checklistDisposition(value: JsonValue | undefined): ChecklistCoverageItemView["disposition"] | null {
+  return value === "checked" || value === "not_applicable" || value === "could_not_check" ? value : null;
+}
+
+function checklistSeverity(value: JsonValue | undefined): AdjacentFindingView["severity"] | null {
+  return value === "critical" || value === "important" || value === "minor" ? value : null;
+}
+
+function checklistCoverageView(taskId: string, raw: JsonValue | undefined): TaskChecklistCoverageView | null {
+  if (!isJsonObject(raw)) return null;
+  if (raw.applicable === false) {
+    return { taskId, applicable: false, reason: textOf(raw.reason), domain: null, items: [], adjacentFindings: [] };
+  }
+  if (raw.applicable !== true) return null;
+  const items = objectsOf(raw.items).flatMap((entry) => {
+    const id = textOf(entry.id);
+    const disposition = checklistDisposition(entry.disposition);
+    if (id === null || disposition === null) return [];
+    return [{ id, disposition, reason: textOf(entry.reason) }];
+  });
+  const adjacentFindings = objectsOf(raw.adjacent_findings).flatMap((entry) => {
+    const id = textOf(entry.id);
+    const checklistItemId = textOf(entry.checklist_item_id);
+    const severity = checklistSeverity(entry.severity);
+    const observation = textOf(entry.observation);
+    const remediation = textOf(entry.remediation);
+    if (id === null || checklistItemId === null || severity === null || observation === null || remediation === null)
+      return [];
+    return [{ id, checklistItemId, severity, observation, remediation }];
+  });
+  return { taskId, applicable: true, reason: null, domain: textOf(raw.domain), items, adjacentFindings };
+}
+
+/**
+ * `task:review` overwrites `<task>-review.json` on every call, so this reads whichever verdict is
+ * current for the task — the same single-latest-report shape every other reader of this file
+ * assumes (there is no per-round history for it, unlike the round-numbered probe reports).
+ */
+export function readTaskChecklistCoverage(runRoot: string, taskId: string): TaskChecklistCoverageView | null {
+  const parsed = parseJsonFile(join(runRoot, "reports", `${taskId}-review.json`));
+  if (!isJsonObject(parsed)) return null;
+  return checklistCoverageView(taskId, parsed.checklist_coverage);
+}

@@ -3,12 +3,14 @@ import { mapGateStatus, type TaskNodeContext } from "./graph-node-context.ts";
 import { computeGateTiming, computeGateTokens } from "./metrics-collector.ts";
 import { buildNodeBrowserTests } from "./browser-tests.ts";
 import { buildNodeScripts } from "./node-evidence.ts";
+import { earliestOpenValidation } from "../workflow/review/validation-state.ts";
 import type { BadgeDetail, GraphNodeData, IoPort, NodeKind, NodeMetrics } from "./types.ts";
 
 function validatorBadge(ctx: TaskNodeContext): BadgeDetail {
   const { task } = ctx;
   const probes = task.probe_round ?? 0;
-  if (task.validation?.verdict === "probe" || (probes > 0 && task.status === "validating")) {
+  const validation = earliestOpenValidation(task);
+  if (validation?.verdict === "probe" || (probes > 0 && task.status === "validating")) {
     return {
       text: `Adversarial Probe (Round ${probes})`,
       variant: "info",
@@ -33,6 +35,7 @@ function validatorBadge(ctx: TaskNodeContext): BadgeDetail {
 function validatorIo(ctx: TaskNodeContext): { inputs: IoPort[]; outputs: IoPort[] } {
   const { task, files, findings } = ctx;
   const probes = task.probe_round ?? 0;
+  const validation = earliestOpenValidation(task);
   const inputs: IoPort[] = [
     {
       node: ctx.taskNodeId,
@@ -53,8 +56,8 @@ function validatorIo(ctx: TaskNodeContext): { inputs: IoPort[]; outputs: IoPort[
       kind: "decision",
       label: "Verification Verdict",
       preview:
-        task.validation?.verdict !== undefined
-          ? `Recorded verdict: ${task.validation.verdict}`
+        validation?.verdict !== undefined
+          ? `Recorded verdict: ${validation.verdict}`
           : `Task status: ${task.status}`,
     },
     {
@@ -104,9 +107,11 @@ export function buildValidatorNode(ctx: TaskNodeContext): GraphNodeData {
 
   const browserTests = buildNodeBrowserTests(validatorCommands, ctx.runRoot);
   const io = validatorIo(ctx);
+  const openValidation = earliestOpenValidation(task);
+  const plan = openValidation?.plan;
   const description =
-    typeof task.validation?.plan === "string" && task.validation.plan.trim().length > 0
-      ? task.validation.plan
+    typeof plan === "string" && plan.trim().length > 0
+      ? plan
       : `Independent verification of ${ctx.taskName}.`;
 
   return {
@@ -132,7 +137,7 @@ export function buildValidatorNode(ctx: TaskNodeContext): GraphNodeData {
       repairRounds: task.repair_round ?? 0,
       probeRounds: task.probe_round ?? 0,
       validationHistory: task.validation_history ?? [],
-      ...(task.validation?.verdict !== undefined ? { verdict: task.validation.verdict } : {}),
+      ...(openValidation?.verdict !== undefined ? { verdict: openValidation.verdict } : {}),
     },
   };
 }

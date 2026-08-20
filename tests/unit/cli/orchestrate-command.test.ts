@@ -8,6 +8,10 @@ import {
   deriveRunId,
   firstAvailableRunId,
 } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/orchestrate-slug.ts";
+import {
+  extractOrchestrateInlinePrompt,
+  shouldAutoReadOrchestrateStdin,
+} from "../../../orchestrating-long-tasks/scripts/src/cli/prompt-input.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
 
 const roots: string[] = [];
@@ -17,11 +21,9 @@ function stdinFor(text: string): Uint8Array {
   return new TextEncoder().encode(text);
 }
 
-// Every other test in this file calls `execute()` directly with `context.stdin` already
-// populated, which never exercises `harness.ts`'s own stdin gate (`shouldReadPromptStdin`) —
-// the exact seam that let a bare `printf ... | bun harness.ts orchestrate --repo .` (no
-// `--prompt-stdin`) ship as a documented example while actually failing with INVALID_ARGUMENT.
-// These two spawn the real entrypoint so a regression here fails a test again.
+// Every other test in this file calls `execute()` directly with `context.stdin`/`context.inlinePrompt`
+// already populated, which never exercises `harness.ts`'s own entrypoint (argv extraction, the
+// stdin gate). These spawn the real entrypoint so a regression in that wiring fails a test here.
 const entrypoint = join(
   import.meta.dir,
   "..",
@@ -32,11 +34,16 @@ const entrypoint = join(
   "harness.ts",
 );
 
-async function spawnOrchestrate(args: readonly string[], stdin: Uint8Array) {
+async function spawnOrchestrate(
+  args: readonly string[],
+  stdin: Uint8Array | "ignore",
+  cwd?: string,
+) {
   const proc = Bun.spawn(["bun", entrypoint, "orchestrate", ...args], {
     stdin,
     stdout: "pipe",
     stderr: "pipe",
+    ...(cwd === undefined ? {} : { cwd }),
   });
   return {
     exit: await proc.exited,
@@ -163,9 +170,45 @@ describe("orchestrate", () => {
       promptPath,
     ]);
 
-    const manifest = result.manifest as { prompt_sha256: string };
+    const manifest = result.manifest as { prompt_sha256: string; capture_mode: string };
     expect(manifest.prompt_sha256).toBe(
       createHash("sha256").update("Build the reporting dashboard").digest("hex"),
+    );
+    expect(manifest.capture_mode).toBe("file");
+  });
+
+  test("captures an inline free-text prompt passed through context, with its own capture mode", async () => {
+    const repo = await mkdtemp(join(tmpdir(), "harness-orchestrate-inline-"));
+    roots.push(repo);
+    const prompt = "Add a greeting banner to the dashboard";
+
+    const result = await execute(["orchestrate", "--repo", repo], { inlinePrompt: prompt });
+
+    const manifest = result.manifest as {
+      prompt_sha256: string;
+      prompt_bytes: number;
+      capture_mode: string;
+      source_verified: boolean;
+    };
+    expect(manifest.prompt_sha256).toBe(createHash("sha256").update(prompt).digest("hex"));
+    expect(manifest.prompt_bytes).toBe(Buffer.byteLength(prompt));
+    expect(manifest.capture_mode).toBe("argv");
+    expect(manifest.source_verified).toBe(true);
+    expect(String(result.run_id)).toMatch(/^\d{4}-\d{2}-\d{2}-add-a-greeting-banner-to-the$/);
+  });
+
+  test("an inline prompt wins over stdin when both are present", async () => {
+    const repo = await mkdtemp(join(tmpdir(), "harness-orchestrate-inline-wins-"));
+    roots.push(repo);
+
+    const result = await execute(["orchestrate", "--repo", repo], {
+      inlinePrompt: "Use the inline text",
+      stdin: stdinFor("Ignore the piped text"),
+    });
+
+    const manifest = result.manifest as { prompt_sha256: string };
+    expect(manifest.prompt_sha256).toBe(
+      createHash("sha256").update("Use the inline text").digest("hex"),
     );
   });
 
@@ -182,20 +225,100 @@ describe("orchestrate", () => {
     expect(JSON.parse(result.stdout.trimEnd())).toMatchObject({ ok: true });
   });
 
-  test("spawned as a real process, a bare pipe with no --prompt-stdin refuses (the CLI's stdin gate " +
-    "is opt-in; orchestrate does not bypass it)", async () => {
-    const repo = await mkdtemp(join(tmpdir(), "harness-orchestrate-spawn-noflag-"));
+  test("spawned as a real process, a bare pipe with no flags at all is read automatically", async () => {
+    const repo = await mkdtemp(join(tmpdir(), "harness-orchestrate-spawn-bare-pipe-"));
     roots.push(repo);
 
     const result = await spawnOrchestrate(
-      ["--repo", repo, "--format", "json"],
+      ["--format", "json"],
       stdinFor("Ship the reporting dashboard"),
+      repo,
     );
 
-    expect(result.exit).not.toBe(0);
-    expect(JSON.parse(result.stderr.trimEnd())).toMatchObject({
-      ok: false,
-      error: { code: "INVALID_ARGUMENT" },
+    expect(result.exit).toBe(0);
+    const parsed = JSON.parse(result.stdout.trimEnd()) as {
+      ok: true;
+      result: { manifest: { prompt_sha256: string; capture_mode: string } };
+    };
+    expect(parsed.ok).toBe(true);
+    expect(parsed.result.manifest.prompt_sha256).toBe(
+      createHash("sha256").update("Ship the reporting dashboard").digest("hex"),
+    );
+    expect(parsed.result.manifest.capture_mode).toBe("stdin");
+  });
+
+  test("spawned as a real process, inline free text with no flags at all becomes the prompt", async () => {
+    const repo = await mkdtemp(join(tmpdir(), "harness-orchestrate-spawn-inline-"));
+    roots.push(repo);
+
+    const result = await spawnOrchestrate(
+      ["Add", "a", "greeting", "banner", "component", "--format", "json"],
+      "ignore",
+      repo,
+    );
+
+    expect(result.exit).toBe(0);
+    const parsed = JSON.parse(result.stdout.trimEnd()) as {
+      ok: true;
+      result: { manifest: { prompt_sha256: string; capture_mode: string } };
+    };
+    expect(parsed.ok).toBe(true);
+    expect(parsed.result.manifest.prompt_sha256).toBe(
+      createHash("sha256").update("Add a greeting banner component").digest("hex"),
+    );
+    expect(parsed.result.manifest.capture_mode).toBe("argv");
+  });
+});
+
+describe("extractOrchestrateInlinePrompt", () => {
+  test("joins every token after the command name when the first one is not a flag", () => {
+    expect(extractOrchestrateInlinePrompt(["orchestrate", "Fix", "the", "login", "bug"])).toEqual({
+      argv: ["orchestrate"],
+      inlinePrompt: "Fix the login bug",
     });
+  });
+
+  test("leaves argv untouched when the first token after the command is a flag", () => {
+    expect(extractOrchestrateInlinePrompt(["orchestrate", "--repo", "."])).toEqual({
+      argv: ["orchestrate", "--repo", "."],
+    });
+  });
+
+  test("leaves argv untouched when there is nothing after the command name", () => {
+    expect(extractOrchestrateInlinePrompt(["orchestrate"])).toEqual({ argv: ["orchestrate"] });
+  });
+
+  test("does nothing for any command other than orchestrate", () => {
+    expect(extractOrchestrateInlinePrompt(["plan:status", "extra"])).toEqual({
+      argv: ["plan:status", "extra"],
+    });
+  });
+});
+
+describe("shouldAutoReadOrchestrateStdin", () => {
+  test("reads a bare orchestrate with piped (non-TTY) stdin", () => {
+    expect(shouldAutoReadOrchestrateStdin(["orchestrate"], false)).toBe(true);
+  });
+
+  test("never blocks an interactive terminal", () => {
+    expect(shouldAutoReadOrchestrateStdin(["orchestrate"], true)).toBe(false);
+  });
+
+  test("stands down once an inline prompt is present", () => {
+    expect(shouldAutoReadOrchestrateStdin(["orchestrate", "Fix", "the", "bug"], false)).toBe(false);
+  });
+
+  test("stands down for --prompt-file, which already names its own source", () => {
+    expect(
+      shouldAutoReadOrchestrateStdin(["orchestrate", "--prompt-file", "prompt.txt"], false),
+    ).toBe(false);
+  });
+
+  test("still reads when other flags like --repo are present, as long as none is --prompt-file", () => {
+    expect(shouldAutoReadOrchestrateStdin(["orchestrate", "--repo", "."], false)).toBe(true);
+  });
+
+  test("does nothing for any command other than orchestrate", () => {
+    expect(shouldAutoReadOrchestrateStdin(["plan:init", "--prompt-stdin"], false)).toBe(false);
   });
 });

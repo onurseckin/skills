@@ -1,5 +1,9 @@
 import type { CommandRecord } from "../contracts/commands.ts";
 import type { TaskRecord } from "../workflow/types.ts";
+import {
+  earliestOpenValidation,
+  everyApplicableDomainPassed,
+} from "../workflow/review/validation-state.ts";
 import type { EdgeExchange, ExchangeTransferredFile, FileRef, NodeFinding } from "./types.ts";
 
 export function transferredFiles(files: readonly FileRef[]): ExchangeTransferredFile[] {
@@ -81,11 +85,14 @@ export function submissionExchange(
   };
 }
 
+// B12.2: several domains can be open at once, each with its own verdict. PASS only once every
+// applicable domain has one; a still-open probe reads as PROBE; the reject case is read from
+// `task.status` because record-review.ts archives a rejecting round's entries the instant it
+// records the reject, so a live "reject" verdict is never actually observable here.
 function verdictOf(task: TaskRecord): "PASS" | "FAIL" | "PROBE" | undefined {
-  const verdict = task.validation?.verdict;
-  if (verdict === "pass") return "PASS";
-  if (verdict === "reject") return "FAIL";
-  if (verdict === "probe") return "PROBE";
+  const validations = task.validations ?? [];
+  if (validations.length > 0 && everyApplicableDomainPassed(task)) return "PASS";
+  if (validations.some((entry) => entry.verdict === "probe")) return "PROBE";
   if (task.status === "done" || task.status === "validated") return "PASS";
   if (task.status === "changes_requested") return "FAIL";
   return undefined;
@@ -98,9 +105,10 @@ export function verdictExchange(
   const verdict = verdictOf(task);
   const bytes = commandLogBytes(validatorCommands);
   const duration = commandDurationMs(validatorCommands);
+  const validation = earliestOpenValidation(task);
   return {
     id: `exch-verdict-${task.id}`,
-    ...(task.validation?.started_at ? { timestamp: task.validation.started_at } : {}),
+    ...(validation?.started_at ? { timestamp: validation.started_at } : {}),
     direction: "forward",
     type: "verdict",
     kind: "decision",
@@ -108,7 +116,7 @@ export function verdictExchange(
     ...(verdict !== undefined ? { verdict } : {}),
     ...(bytes !== undefined ? { bytes } : {}),
     ...(duration !== undefined ? { durationMs: duration } : {}),
-    evidence_class: task.validation ? "harness_observed" : "derived",
+    evidence_class: validation ? "harness_observed" : "derived",
   };
 }
 

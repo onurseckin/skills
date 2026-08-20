@@ -142,12 +142,16 @@ function authorize(
   }
   const task = bound;
   if (TASK_VALIDATION_ROLES.has(role)) {
+    // B12.2: a task can carry several open validations, one per domain — find the one this agent's
+    // own attempt belongs to rather than assuming a single slot.
+    const validation = (task.validations ?? []).find(
+      (entry) => entry.validator_id === agent && entry.attempt === attempt,
+    );
     if (
       task.status !== "validating" ||
-      task.validation?.validator_id !== agent ||
-      task.validation.attempt !== attempt ||
-      Date.parse(task.validation.deadline_at) <= now.valueOf() ||
-      !tokenMatches(auth.token, task.validation.token_digest)
+      !validation ||
+      Date.parse(validation.deadline_at) <= now.valueOf() ||
+      !tokenMatches(auth.token, validation.token_digest)
     )
       throw new HarnessError("INVALID_STATE", "validator packet authority changed");
     return;

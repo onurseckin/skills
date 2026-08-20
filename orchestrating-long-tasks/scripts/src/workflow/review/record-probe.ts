@@ -6,6 +6,7 @@ import { systemClock, type Clock, type TransactionPort } from "../types.ts";
 import { tokenMatches } from "../lease/token.ts";
 import { probeRoundsRecorded } from "./pass-preconditions.ts";
 import { validateFindings } from "./validate-review.ts";
+import { validationForValidator } from "./validation-state.ts";
 
 export interface ProbeInput extends JsonObject {
   findings: Finding[];
@@ -46,14 +47,15 @@ export function recordProbe(
     { task_id: taskId, round, finding_ids: findingIds },
     (draft) => {
       const task = taskIn(draft, taskId);
-      if (task.status !== "validating" || task.validation?.validator_id !== validatorId) {
+      const mine = task.status === "validating" ? validationForValidator(task, validatorId) : undefined;
+      if (!mine) {
         throw new HarnessError("INVALID_STATE", "validator does not own the current validation");
       }
       const token =
         typeof probeValue === "object" && probeValue !== null && !Array.isArray(probeValue)
           ? (probeValue as Record<string, unknown>).validation_token
           : undefined;
-      if (!tokenMatches(token, task.validation.token_digest)) {
+      if (!tokenMatches(token, mine.token_digest)) {
         throw new HarnessError("INVALID_STATE", "validator authentication token is invalid");
       }
       if (probeRoundsRecorded(task) + 1 !== round) {
@@ -73,7 +75,7 @@ export function recordProbe(
         ),
       );
       task.probe_round = round;
-      task.validation.verdict = "probe";
+      mine.verdict = "probe";
     },
   );
 }

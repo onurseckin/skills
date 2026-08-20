@@ -94,12 +94,14 @@ export function authenticatePacketIdentity(
     throw new HarnessError("INVALID_STATE", "packet task is not the authoritative task state");
   }
   if (input.role === "validator") {
-    const validation = authoritative.validation;
+    // B12.2: a task can carry several open validations, one per domain — find the one this agent's
+    // own attempt belongs to rather than assuming a single slot.
+    const validation = (authoritative.validations ?? []).find(
+      (entry) => entry.validator_id === input.agentId && entry.attempt === input.attempt,
+    );
     if (
       authoritative.status !== "validating" ||
       !validation ||
-      validation.validator_id !== input.agentId ||
-      validation.attempt !== input.attempt ||
       Date.parse(validation.deadline_at) <= now ||
       !tokenMatches(input.leaseToken, validation.token_digest)
     ) {

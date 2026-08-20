@@ -16,7 +16,11 @@ function gateBadge(ctx: TaskNodeContext): BadgeDetail | undefined {
   if (task.status === "done" || task.status === "validated") {
     return { text: "Gate Passed", variant: "success", icon: "IconShieldCheck" };
   }
-  if (task.status === "validating" || task.status === "gating" || Boolean(task.validation)) {
+  if (
+    task.status === "validating" ||
+    task.status === "gating" ||
+    (task.validations !== undefined && task.validations.length > 0)
+  ) {
     return { text: "Awaiting Verdict", variant: "info", icon: "IconShield" };
   }
   return undefined;

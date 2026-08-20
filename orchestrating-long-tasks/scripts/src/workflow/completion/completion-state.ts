@@ -1,4 +1,5 @@
 import type { CommandRecord } from "../../contracts/commands.ts";
+import { applicableValidatorDomains } from "../../contracts/workflow.ts";
 import { embeddedCommandIssues } from "../../runner/command-shape.ts";
 import { openBranchIssues } from "../branch/completion-blockers.ts";
 import { applicableGates, commandMatchesGate } from "../gates/gate-policy.ts";
@@ -11,6 +12,7 @@ import type {
   TaskRecord,
   WorkflowState,
 } from "../types.ts";
+import { openValidations, validationForDomain } from "../review/validation-state.ts";
 import { jsonDigest } from "./completion-review-digest.ts";
 import { completionHistoryIssues } from "./completion-history.ts";
 import { completionReviewIssues } from "./review-issues.ts";
@@ -93,21 +95,26 @@ export function gateTally(state: WorkflowState): GateTally {
   return { total, green };
 }
 
+// B12.2: a task passes only once every domain its write scope draws has its own recorded pass, so
+// completion checks each domain's approval independently rather than a single verdict.
 function validatorProofIssues(state: WorkflowState, task: TaskRecord): string[] {
-  const validation = task.validation;
-  if (validation?.verdict !== "pass")
-    return [`task ${task.id} lacks independent validator approval`];
-  if (!validation.checks?.length) return [`task ${task.id} lacks validator command evidence`];
   const gates = applicableGates(state, task);
-  return validation.checks.flatMap(({ command_id: id }) => {
-    const command = state.commands[id];
-    return successful(command) &&
-      command.task_id === task.id &&
-      command.actor === validation.validator_id &&
-      embeddedCommandIssues(command).length === 0 &&
-      gates.some((gate) => commandMatchesGate(command, gate))
-      ? []
-      : [`task ${task.id} has invalid validator command ${id}`];
+  return applicableValidatorDomains(task.write_scope).flatMap((domain) => {
+    const validation = validationForDomain(task, domain);
+    if (validation?.verdict !== "pass")
+      return [`task ${task.id} lacks independent ${domain} validator approval`];
+    if (!validation.checks?.length)
+      return [`task ${task.id} lacks ${domain} validator command evidence`];
+    return validation.checks.flatMap(({ command_id: id }) => {
+      const command = state.commands[id];
+      return successful(command) &&
+        command.task_id === task.id &&
+        command.actor === validation.validator_id &&
+        embeddedCommandIssues(command).length === 0 &&
+        gates.some((gate) => commandMatchesGate(command, gate))
+        ? []
+        : [`task ${task.id} has invalid validator command ${id}`];
+    });
   });
 }
 
@@ -158,7 +165,7 @@ export function completionIssues(
     if (task.lease) issues.push(`task ${task.id} has a live lease`);
     if (!task.report) issues.push(`task ${task.id} lacks a submission report`);
     issues.push(...validatorProofIssues(state, task));
-    if (task.validation && !task.validation.verdict)
+    if (openValidations(task).some((entry) => entry.verdict === undefined))
       issues.push(`task ${task.id} has an active validation`);
     for (const finding of task.findings ?? [])
       if (finding.status === "open") issues.push(`task ${task.id} has open finding ${finding.id}`);

@@ -121,6 +121,12 @@ export const ALLOWED_FINDINGS: readonly HealthAllowance[] = [
     reason:
       "B13's one checkable token is the path `references/cli-capabilities.md`, and tests/unit/contracts/skill-router.test.ts's \"every document path it names exists\" test proves it by reading SKILL.md, extracting every linked path with a regex, and asserting each resolves on disk - the exact requirement B13 states. It never spells the path out as a literal in its own source (it is discovered from SKILL.md's content at run time), which is the one shape this check's literal-substring scan cannot see.",
   },
+  {
+    key: "intent-untested:docs/planning/orchestration-overhaul/BACKLOG.md:B37",
+    check: "intent-drift",
+    reason:
+      "Same shape as the already-allowed B13 entry above, and the same file: B37's one checkable token is the path `references/cli-capabilities.md`, named in its item 1 as the file `generate-cli-manifest.ts` regenerates. tests/unit/cli/manifest.test.ts proves it - more strongly than a mention would - by asserting the checked-in file's bytes equal the registry's own render, so the doc can never drift from the source of truth silently. The path there is built with `join(references, \"cli-capabilities.md\")` rather than spelled as one literal, which is the same reason this check's literal-substring scan cannot see B13's proof either.",
+  },
 ];
 
 export function assertAllowancesHaveReasons(
@@ -132,7 +138,12 @@ export function assertAllowancesHaveReasons(
   }
 }
 
-function matches(allowance: HealthAllowance, key: string): boolean {
+function matches(allowance: HealthAllowance, check: HealthCheckId, key: string): boolean {
+  // A key match alone is not enough: keys are namespaced by convention (a check's own prefix on
+  // every key it emits), not by construction, so two checks could in principle emit the same key.
+  // Requiring `check` too means an allowance scoped to one check can never suppress a same-keyed
+  // finding from a different one, even if that convention ever slips.
+  if (allowance.check !== check) return false;
   return allowance.key.endsWith("*")
     ? key.startsWith(allowance.key.slice(0, -1))
     : allowance.key === key;
@@ -150,13 +161,19 @@ export function applyAllowances(
 ): AllowanceOutcome {
   assertAllowancesHaveReasons(allowances);
   const requested = new Set(checks.map((result) => result.check));
+  // Keyed by check+key, not by key alone: two allowances for different checks can share a key
+  // string (nothing stops it - see matches()'s own comment on the same risk), and a plain
+  // Set<key> would let a real match under one check silently mark a same-keyed allowance for an
+  // unrelated check as "used" too, hiding it from the staleness sweep below even though nothing
+  // under its own check ever matched it.
+  const usedKey = (check: HealthCheckId, key: string): string => `${check} ${key}`;
   const used = new Set<string>();
   const applied = checks.map((result) => ({
     ...result,
     findings: result.findings.map((entry) => {
-      const allowance = allowances.find((candidate) => matches(candidate, entry.key));
+      const allowance = allowances.find((candidate) => matches(candidate, result.check, entry.key));
       if (allowance === undefined) return entry;
-      used.add(allowance.key);
+      used.add(usedKey(allowance.check, allowance.key));
       return { ...entry, acknowledged: allowance.reason };
     }),
   }));
@@ -165,7 +182,7 @@ export function applyAllowances(
   // anything either way, so it is silently skipped rather than reported stale - staleness is only
   // meaningful for a check this call actually looked at.
   const stale = allowances
-    .filter((allowance) => requested.has(allowance.check) && !used.has(allowance.key))
+    .filter((allowance) => requested.has(allowance.check) && !used.has(usedKey(allowance.check, allowance.key)))
     .map((allowance) =>
       finding(
         "unused-code",

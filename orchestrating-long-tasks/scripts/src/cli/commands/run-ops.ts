@@ -108,7 +108,8 @@ export function runStatusCommand(flags: Flags): Record<string, unknown> {
   const taskItems = tasks.map((t) => {
     let agentOrLock = "-";
     if (t.lease) agentOrLock = `Leased (${t.lease.agent_id})`;
-    else if (t.validation) agentOrLock = `Validating (${t.validation.validator_id})`;
+    else if (t.validations && t.validations.length > 0)
+      agentOrLock = `Validating (${t.validations.map((v) => v.validator_id).join(", ")})`;
     else if (t.status === "done") agentOrLock = "Completed";
 
     let statusEmoji = "⚪ Unknown";

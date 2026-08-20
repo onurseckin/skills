@@ -1,7 +1,7 @@
 import type { JsonObject, JsonValue } from "./json.ts";
 
 export type CaptureAssurance = "recorded-unverified" | "source-verified";
-export type CaptureMode = "file" | "stdin" | "verbatim_context_copy";
+export type CaptureMode = "file" | "stdin" | "argv" | "verbatim_context_copy";
 export type BunCompatibility = "same-major-not-older";
 
 export interface Manifest extends JsonObject {

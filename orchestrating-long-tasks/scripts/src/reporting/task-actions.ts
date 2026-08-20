@@ -83,10 +83,16 @@ export function taskActions(
       ]),
     );
   }
-  if (task.status === "validating" && task.validation) {
-    const validator = task.validation.validator_id;
-    argv.push(...outstandingGateRuns(entrypoint, runRoot, task, gates, records, validator));
-    argv.push(...validationActions(entrypoint, runRoot, task, minProbes));
+  if (task.status === "validating" && task.validation.length > 0) {
+    // B12.2: several domains can be validating the same task at once; a mandatory gate only needs
+    // running once, so its hint is attributed to whichever validator opened first, but every open
+    // validator gets its own probe/verdict hint.
+    argv.push(
+      ...outstandingGateRuns(entrypoint, runRoot, task, gates, records, task.validation[0]!.validator_id),
+    );
+    for (const validation of task.validation) {
+      argv.push(...validationActions(entrypoint, runRoot, task, minProbes, validation.validator_id));
+    }
   }
   // `validated` and `gating` are windows inside a single `task:review --status pass`: the gate
   // attachment and the finish both run within it. A task parked in one of them is a crashed review,

@@ -22,6 +22,8 @@ export interface CommandContext {
   stdin?: Uint8Array;
   /** Directory the currently-running harness.ts lives in — the source `plan:init` pins for a run. */
   executingRuntime?: string;
+  /** `orchestrate`'s bare form: the free-text prompt typed after the command name, joined by spaces. */
+  inlinePrompt?: string;
 }
 
 export function assertFlags(flags: Flags, allowed: readonly string[]): void {

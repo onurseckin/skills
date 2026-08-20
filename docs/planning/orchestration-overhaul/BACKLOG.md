@@ -1996,7 +1996,7 @@ material was already written there despite the note.
 
 ---
 
-## B36 — Findings from the first post-implementation verification pass   `queued`
+## B37 — Findings from the first post-implementation verification pass   `queued`
 
 **The rule worked.** A read-only pass over items marked done produced 13 findings that nothing else caught.
 This is the record of what verification uncovered; each is queued as work in its own right.

@@ -9,7 +9,7 @@ import {
   type CaptureRecord,
 } from "../../../orchestrating-long-tasks/scripts/src/store/captures.ts";
 import { verifyCapsuleLayout } from "../../../orchestrating-long-tasks/scripts/src/store/layout-integrity.ts";
-import { putBlobFile } from "../../../orchestrating-long-tasks/scripts/src/store/blobs.ts";
+import { linkBlobIntoView, putBlobFile } from "../../../orchestrating-long-tasks/scripts/src/store/blobs.ts";
 
 const roots: string[] = [];
 
@@ -163,11 +163,53 @@ describe("the capture ledger is the one home for capture attribution", () => {
     mkdirSync(join(root, "source"), { recursive: true });
     writeFileSync(join(root, "source", "shot.png"), "pixels", "utf-8");
     const blob = putBlobFile(root, join(root, "source", "shot.png"));
-    mkdirSync(join(root, "evidence", "screenshots"), { recursive: true });
-    writeFileSync(join(root, "evidence", "screenshots", "shot.png"), "pixels", "utf-8");
-    chmodSync(join(root, "evidence", "screenshots", "shot.png"), 0o444);
-    recordCaptures(root, [capture({ sha256: blob.sha256, blob_path: blob.path })]);
+    // A real hardlink, exactly as `linkBlobIntoView` makes one in production — the layout check
+    // verifies the view shares the blob's inode, so a fixture that only wrote matching bytes to a
+    // second file would no longer count as well-formed.
+    const view = linkBlobIntoView(root, blob, "evidence/screenshots", "shot.png");
+    recordCaptures(root, [
+      capture({ sha256: blob.sha256, blob_path: blob.path, path: view.view_path, storage: view.storage }),
+    ]);
 
     expect(verifyCapsuleLayout(root)).toEqual([]);
+  });
+
+  test("a capture claims a hardlink but the view was replaced independently of the blob", () => {
+    const root = runRoot();
+    mkdirSync(join(root, "source"), { recursive: true });
+    writeFileSync(join(root, "source", "shot.png"), "pixels", "utf-8");
+    const blob = putBlobFile(root, join(root, "source", "shot.png"));
+    const view = linkBlobIntoView(root, blob, "evidence/screenshots", "shot.png");
+    recordCaptures(root, [
+      capture({ sha256: blob.sha256, blob_path: blob.path, path: view.view_path, storage: "hardlink" }),
+    ]);
+    // Break the link: replacing the linked file (not editing it in place, which would edit the
+    // blob too — they share an inode) leaves the same bytes at a different inode than the blob.
+    rmSync(join(root, view.view_path));
+    writeFileSync(join(root, view.view_path), "pixels", "utf-8");
+
+    const codes = verifyCapsuleLayout(root).map((issue) => issue.code);
+    expect(codes).toContain("CAPTURE_VIEW_DIVERGED");
+  });
+
+  test("a copy-storage capture whose view bytes drifted from the recorded digest is caught", () => {
+    const root = runRoot();
+    mkdirSync(join(root, "source"), { recursive: true });
+    writeFileSync(join(root, "source", "shot.png"), "pixels", "utf-8");
+    const blob = putBlobFile(root, join(root, "source", "shot.png"));
+    const view = linkBlobIntoView(root, blob, "evidence/screenshots", "shot.png", {
+      link() {
+        throw Object.assign(new Error("cross-device link"), { code: "EXDEV" });
+      },
+    });
+    expect(view.storage).toBe("copy");
+    recordCaptures(root, [
+      capture({ sha256: blob.sha256, blob_path: blob.path, path: view.view_path, storage: "copy" }),
+    ]);
+    chmodSync(join(root, view.view_path), 0o644);
+    writeFileSync(join(root, view.view_path), "tampered", "utf-8");
+
+    const codes = verifyCapsuleLayout(root).map((issue) => issue.code);
+    expect(codes).toContain("CAPTURE_VIEW_DIVERGED");
   });
 });

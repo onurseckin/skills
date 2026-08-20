@@ -8,7 +8,7 @@ import type { TaskRecord, WorkflowState } from "../workflow/types.ts";
 import { trustedHostEvidence } from "../contracts/trusted-host.ts";
 
 function taskView(task: TaskRecord): JsonObject {
-  const validation = task.validation;
+  const validations = task.validations ?? [];
   return {
     id: task.id,
     status: task.status,
@@ -16,19 +16,18 @@ function taskView(task: TaskRecord): JsonObject {
     dependencies: [...task.dependencies],
     owner: task.lease?.agent_id ?? task.repair_assignee ?? null,
     role: task.lease?.role ?? null,
-    attempt: task.lease?.attempt ?? task.validation?.attempt ?? null,
+    attempt: task.lease?.attempt ?? validations[0]?.attempt ?? null,
     lease_expires_at: task.lease?.expires_at ?? null,
     original_implementer: task.original_implementer ?? null,
     repair_assignee: task.repair_assignee ?? null,
-    validation:
-      validation === undefined
-        ? null
-        : {
-            validator_id: validation.validator_id,
-            attempt: validation.attempt,
-            deadline_at: validation.deadline_at,
-            verdict: validation.verdict ?? null,
-          },
+    // B12.2: at most one open attempt per domain, so a task can carry several at once.
+    validation: validations.map((validation) => ({
+      validator_id: validation.validator_id,
+      domain: validation.domain,
+      attempt: validation.attempt,
+      deadline_at: validation.deadline_at,
+      verdict: validation.verdict ?? null,
+    })),
     open_finding_ids: (task.findings ?? [])
       .filter(({ status }) => status === "open")
       .map(({ id }) => id)
@@ -79,12 +78,16 @@ function staleEvidence(state: WorkflowState, now: Date): string[] {
       // reporting it as expired would contradict the recovery that deliberately leaves it alone.
       if (lease && !isLeaseSuspended(lease) && Date.parse(lease.expires_at) <= current)
         issues.push(`task ${task.id} lease expired at ${lease.expires_at}`);
-      if (
-        task.status === "validating" &&
-        task.validation &&
-        Date.parse(task.validation.deadline_at) <= current
-      )
-        issues.push(`task ${task.id} validation expired at ${task.validation.deadline_at}`);
+      if (task.status === "validating") {
+        // A domain that already recorded a verdict is done, not stale, however old its deadline —
+        // only an attempt still awaiting one can expire (mirrors recover-stale.ts's own rule).
+        for (const validation of task.validations ?? []) {
+          if (validation.verdict === undefined && Date.parse(validation.deadline_at) <= current)
+            issues.push(
+              `task ${task.id} ${validation.domain} validation expired at ${validation.deadline_at}`,
+            );
+        }
+      }
       return issues;
     })
     .sort();

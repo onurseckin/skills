@@ -5,6 +5,12 @@ not a command reference. Flags, stdin rules, exit codes and examples live in the
 [`cli-capabilities.md`](cli-capabilities.md), and the rules each phase enforces live in
 [`protocol.md`](protocol.md). Check a flag there before writing an invocation anywhere.
 
+`orchestrate` is the primary entry point (see SKILL.md) and runs the opening of Phase 1 for you —
+capture and opening the capsule — in one call, then hands back the same checklist this file spells
+out phase by phase. Reach for `orchestrate` first; read the phases below for what each step in that
+checklist actually does, and for everything past the opening (dispatch, branching, validation,
+completion), which `orchestrate` does not run on its own.
+
 ```text
 PINNED=orchestrating-long-tasks/scripts/harness.ts
 RUN=.capsules/<slug>
@@ -201,7 +207,7 @@ bun $PINNED critic:review --run $RUN --critic <critic-id> --token <token> --deci
 bun $PINNED critic:reject --run $RUN --critic <critic-id> --token <token> \
   --summary "<what is missing>" --findings-file <findings.json>
 
-bun $PINNED run:complete --run $RUN --actor coordinator
+bun $PINNED run:complete --run $RUN --actor coordinator --auth-token <token-from-critic:review>
 bun $PINNED run:status --run $RUN --detailed
 ```
 

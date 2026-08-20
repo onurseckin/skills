@@ -47,13 +47,16 @@ describe("submission, gate, and completion evidence", () => {
     Object.assign(state.tasks["T-1"]!, {
       status: "validated",
       report: { summary: "done" },
-      validation: {
-        validator_id: "v",
-        started_at: clock.now().toISOString(),
-        deadline_at: clock.now().toISOString(),
-        verdict: "pass",
-        reviewed_requirement_ids: ["R-1"],
-      },
+      validations: [
+        {
+          validator_id: "v",
+          domain: "code-quality",
+          started_at: clock.now().toISOString(),
+          deadline_at: clock.now().toISOString(),
+          verdict: "pass",
+          reviewed_requirement_ids: ["R-1"],
+        },
+      ],
     });
     state.commands["C-1"] = commandRecord("C-1", {
       task_id: "T-other",
@@ -77,13 +80,16 @@ describe("submission, gate, and completion evidence", () => {
         status: "validated",
         write_scope: ["tools/verify"],
         report: { summary: "done" },
-        validation: {
-          validator_id: "v",
-          started_at: clock.now().toISOString(),
-          deadline_at: clock.now().toISOString(),
-          verdict: "pass",
-          reviewed_requirement_ids: ["R-1"],
-        },
+        validations: [
+          {
+            validator_id: "v",
+            domain: "code-quality",
+            started_at: clock.now().toISOString(),
+            deadline_at: clock.now().toISOString(),
+            verdict: "pass",
+            reviewed_requirement_ids: ["R-1"],
+          },
+        ],
       });
       state.gates[0]!.command = argv;
       state.commands["C-1"] = commandRecord("C-1", {
@@ -108,16 +114,19 @@ describe("submission, gate, and completion evidence", () => {
     const state = workflowState();
     state.tasks["T-1"]!.status = "done";
     state.tasks["T-1"]!.report = { summary: "done" };
-    state.tasks["T-1"]!.validation = {
-      validator_id: "validator",
-      token_digest: "digest",
-      attempt: 1,
-      started_at: clock.now().toISOString(),
-      deadline_at: clock.now().toISOString(),
-      verdict: "pass",
-      reviewed_requirement_ids: ["R-1"],
-      checks: [{ command_id: "C-VALIDATE" }],
-    };
+    state.tasks["T-1"]!.validations = [
+      {
+        validator_id: "validator",
+        domain: "code-quality",
+        token_digest: "digest",
+        attempt: 1,
+        started_at: clock.now().toISOString(),
+        deadline_at: clock.now().toISOString(),
+        verdict: "pass",
+        reviewed_requirement_ids: ["R-1"],
+        checks: [{ command_id: "C-VALIDATE" }],
+      },
+    ];
     state.requirements[0] = {
       id: "R-1",
       status: "satisfied",
@@ -189,7 +198,7 @@ describe("submission, gate, and completion evidence", () => {
     ];
     const issues = completionIssues(new TestPort(state).read());
     expect(issues).toContain("task T-1 lacks a submission report");
-    expect(issues).toContain("task T-1 lacks independent validator approval");
+    expect(issues).toContain("task T-1 lacks independent code-quality validator approval");
     expect(issues).toContain("task T-1 lacks authoritative gate G-1");
   });
 });

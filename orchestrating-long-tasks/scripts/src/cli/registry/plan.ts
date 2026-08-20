@@ -23,7 +23,7 @@ export const PLAN_COMMANDS: readonly CommandSpec[] = [
     domain: "plan",
     summary: "The primary entry point: the user's entire prompt in, a running orchestration out.",
     description:
-      "Takes the user's whole message as free text, captures it byte-for-byte as the immutable prompt (identical guarantee to plan:init), and opens the capsule. No flag is required to shape or structure the prompt; the harness's own stdin gate still needs --prompt-stdin to read piped text (or --prompt-file for a file), the same contract plan:init uses. Returns the fixed checklist for what happens next — plan:enhance, plan:add, plan:compile, queue:wave — bound to the run it just opened, so the calling agent never has to assemble that sequence by hand. It cannot run plan:enhance itself: reading the repository and deciding what the run is actually about needs a model's judgment, and the harness never calls one. --run is optional; omitted, a run id is derived from today's date and the first few words of the prompt.",
+      "Takes the user's whole message as free text and captures it byte-for-byte as the immutable prompt (identical guarantee to plan:init), then opens the capsule. No flags to learn: everything typed after `orchestrate` is the prompt, and a piped stdin with no flags at all is read automatically (detected the way `cat`/`grep` do it, by checking whether stdin is actually a pipe, never by blocking an interactive terminal). --prompt-stdin and --prompt-file still work exactly as before, for a caller that wants to be explicit or that also needs --repo/--run alongside a real file or pipe. Returns the fixed checklist for what happens next — plan:enhance, plan:add, plan:compile, queue:wave — bound to the run it just opened, so the calling agent never has to assemble that sequence by hand. It cannot run plan:enhance itself: reading the repository and deciding what the run is actually about needs a model's judgment, and the harness never calls one. --run is optional; omitted, a run id is derived from today's date and the first few words of the prompt.",
     flags: [
       optionalFlag("repo", "string", "Repository root that owns the capsule.", "."),
       optionalFlag(
@@ -40,13 +40,15 @@ export const PLAN_COMMANDS: readonly CommandSpec[] = [
       optionalFlag(
         "prompt-stdin",
         "bool",
-        "Read the verbatim prompt bytes from stdin. Required to use stdin at all; the CLI never " +
-          "blocks reading an unredirected terminal without it.",
+        "Read the verbatim prompt bytes from stdin explicitly. Not required for a real pipe: a " +
+          "bare `orchestrate` with nothing else after it already reads stdin when it is not an " +
+          "interactive terminal. This flag exists for a caller that wants the read to fail loudly " +
+          "instead of silently falling through when stdin turns out not to be piped.",
       ),
       optionalFlag(
         "capture-mode",
         "string",
-        "How the prompt was captured; defaults to the source used.",
+        "How the prompt was captured; defaults to argv, file or stdin, whichever was actually used.",
       ),
       optionalFlag(
         "source-verified",
@@ -68,7 +70,8 @@ export const PLAN_COMMANDS: readonly CommandSpec[] = [
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
-      'printf "%s" "$PROMPT" | bun harness.ts orchestrate --repo . --prompt-stdin',
+      "bun harness.ts orchestrate Add a slugify helper that lowercases text and collapses punctuation.",
+      'printf "%s" "$PROMPT" | bun harness.ts orchestrate',
       "bun harness.ts orchestrate --repo . --run my-feature --prompt-file prompt.txt",
     ],
     handler: orchestrateCommand,

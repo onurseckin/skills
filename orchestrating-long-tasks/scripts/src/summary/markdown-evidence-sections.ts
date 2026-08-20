@@ -18,7 +18,7 @@ import {
   toolRefText,
 } from "./markdown-primitives.ts";
 import type { ReportContext } from "./markdown-report-context.ts";
-import type { CommandView } from "./markdown-sources.ts";
+import type { CommandView, TaskChecklistCoverageView } from "./markdown-sources.ts";
 
 function durationOf(command: CommandView): string {
   if (command.startedAt === null || command.finishedAt === null) return UNKNOWN;
@@ -120,8 +120,9 @@ function resolutionText(finding: Finding): string {
   return `${method} via ${joinOrUnknown(evidence.map(code))}`;
 }
 
+// B12.2: one entry per domain now open, alongside every archived round's entries.
 function validationAttempts(task: TaskRecord): ValidationAttempt[] {
-  return [...(task.validation_history ?? []), ...(task.validation ? [task.validation] : [])];
+  return [...(task.validation_history ?? []), ...(task.validations ?? [])];
 }
 
 export function renderProbesAndPushbacks(context: ReportContext): string[] {
@@ -445,4 +446,78 @@ export function renderTimeline(context: ReportContext): string[] {
     ...table(["#", "Timestamp", "Phase", "Actor", "Event", "Summary", "Task", "Round"], rows),
   ];
   return section("18. Complete Timeline", body);
+}
+
+function checklistCoverageBlock(coverage: TaskChecklistCoverageView): string[] {
+  const heading = [`### ${coverage.taskId}`, ""];
+  if (!coverage.applicable) {
+    return [
+      ...heading,
+      ...note(coverage.reason ?? "no standing checklist domain was named for this review"),
+      "",
+    ];
+  }
+  const checked = coverage.items.filter((item) => item.disposition === "checked");
+  const notApplicable = coverage.items.filter((item) => item.disposition === "not_applicable");
+  const couldNotCheck = coverage.items.filter((item) => item.disposition === "could_not_check");
+  return [
+    ...heading,
+    `Domain: ${textOrUnknown(coverage.domain)}. ${checked.length} checked and passed, ${notApplicable.length} not applicable, ${couldNotCheck.length} could not be checked, of ${coverage.items.length} total.`,
+    "",
+    `Checked and passed: ${joinOrNone(checked.map((item) => code(item.id)))}`,
+    "",
+    "**Not applicable**",
+    "",
+    ...(notApplicable.length === 0
+      ? note("No item was found not applicable.")
+      : table(
+          ["Item", "Reason"],
+          notApplicable.map((item) => [code(item.id), textOrUnknown(item.reason)]),
+        )),
+    "",
+    "**Could not be checked**",
+    "",
+    ...(couldNotCheck.length === 0
+      ? note("No item was left unchecked.")
+      : table(
+          ["Item", "Reason"],
+          couldNotCheck.map((item) => [code(item.id), textOrUnknown(item.reason)]),
+        )),
+    "",
+    "**Adjacent standing-standard findings**",
+    "",
+    ...(coverage.adjacentFindings.length === 0
+      ? note("No adjacent finding was recorded outside this task's own write scope.")
+      : table(
+          ["Finding", "Checklist item", "Severity", "Observation", "Remediation"],
+          coverage.adjacentFindings.map((finding) => [
+            code(finding.id),
+            code(finding.checklistItemId),
+            finding.severity,
+            finding.observation,
+            finding.remediation,
+          ]),
+        )),
+    "",
+  ];
+}
+
+/**
+ * B12.5: what a validator's standing checklist actually covered, per task — separate from the
+ * task's own pass/fail finding (section 14, "Probes, Pushbacks And Repairs"). A task with no
+ * coverage recorded says so in the validator's own stated reason rather than rendering an empty
+ * table indistinguishable from a checklist that came back clean (B33: an omission and a fabricated
+ * pass are the same failure mode).
+ */
+export function renderChecklistCoverage(context: ReportContext): string[] {
+  const lines = [
+    ...note(
+      "Coverage never gates a task's own verdict (section 14); it states separately what the validator's standing checklist actually inspected.",
+    ),
+    "",
+    ...(context.checklistCoverage.length === 0
+      ? note("No task has recorded a review yet, so no standing checklist coverage exists.")
+      : context.checklistCoverage.flatMap(checklistCoverageBlock)),
+  ];
+  return section("19. Standing Checklist Coverage", lines);
 }

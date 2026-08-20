@@ -130,7 +130,9 @@ function repositoryDelta(input: ValidationRoundInput, boundary: string | undefin
  * packet it always was.
  */
 export function validationRoundContext(input: ValidationRoundInput): ValidationRound | undefined {
-  const round = input.task.validation?.attempt ?? input.task.repair_round + 1;
+  // Every domain open this round shares one attempt number (B12.2), so any open entry names it;
+  // absent one (nothing open yet, or everything already archived) it is the round about to start.
+  const round = input.task.validations?.[0]?.attempt ?? input.task.repair_round + 1;
   if (round <= 1) return undefined;
   const previous = input.task.validation_history?.at(-1);
   const endedAt = previousRoundEnd(input.task);

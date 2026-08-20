@@ -9,6 +9,7 @@ import {
   renderTaskTrajectory,
 } from "./markdown-execution-sections.ts";
 import {
+  renderChecklistCoverage,
   renderCritic,
   renderGates,
   renderProbesAndPushbacks,
@@ -70,6 +71,7 @@ export function formatSummaryMarkdown(input: MarkdownFormatterInput): string {
     ...renderCritic(context),
     ...renderTelemetry(context),
     ...renderTimeline(context),
+    ...renderChecklistCoverage(context),
     "---",
     `Generated from the capsule at \`${context.runRoot}\`. Every value is labelled with the evidence that supports it.`,
     "",

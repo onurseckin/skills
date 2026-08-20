@@ -40,13 +40,21 @@ export function recoverStale(
         delete task.lease;
         transition(task, repair ? "changes_requested" : "retry_ready", actor, now, "lease expired");
       }
-      if (
-        task.status === "validating" &&
-        task.validation &&
-        Date.parse(task.validation.deadline_at) <= now.valueOf()
-      ) {
-        delete task.validation;
-        transition(task, "submitted", actor, now, "validation interrupted");
+      // B12.2: several domains can be validating at once. Only an attempt still awaiting a verdict
+      // can go stale — a domain that already recorded one is settled, however old its deadline —
+      // and pruning it frees just that domain's slot; the task only falls back to "submitted" once
+      // nothing at all is left open, the same as a single validator going stale always did.
+      if (task.status === "validating" && task.validations) {
+        const stillOpen = task.validations.filter(
+          (entry) => entry.verdict !== undefined || Date.parse(entry.deadline_at) > now.valueOf(),
+        );
+        if (stillOpen.length !== task.validations.length) {
+          if (stillOpen.length > 0) task.validations = stillOpen;
+          else {
+            delete task.validations;
+            transition(task, "submitted", actor, now, "validation interrupted");
+          }
+        }
       }
     }
     // Leaves first: reclaiming a dead sub-agent re-opens work, which is what tells the level above

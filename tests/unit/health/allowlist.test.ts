@@ -80,6 +80,94 @@ describe("the opt-out list excuses code, and every entry says why", () => {
     ]);
     expect(checks[0]?.findings[1]?.acknowledged).toBeUndefined();
   });
+
+  test("an allowance does not cross-suppress an identical key from a different check", () => {
+    // Same finding key, deliberately reused across two different checks - the shape the fix
+    // guards against even though today's checks namespace their keys by convention and would
+    // never collide in practice.
+    const collidingKey = "same-key-different-check";
+    const twoChecks: HealthCheckResult[] = [
+      {
+        check: "unused-code",
+        title: "Unused code",
+        scanned: 1,
+        limitations: [],
+        findings: [finding("unused-code", collidingKey, "a.ts", "no caller")],
+      },
+      {
+        check: "literal-fallbacks",
+        title: "Literal fallbacks",
+        scanned: 1,
+        limitations: [],
+        findings: [finding("literal-fallbacks", collidingKey, "b.ts", "plausible literal")],
+      },
+    ];
+    const { checks } = applyAllowances(twoChecks, [
+      { check: "unused-code", key: collidingKey, reason: "excused for unused-code only" },
+    ]);
+    expect(checks[0]?.findings[0]?.acknowledged).toBe("excused for unused-code only");
+    expect(checks[1]?.findings[0]?.acknowledged).toBeUndefined();
+  });
+
+  test("staleness is scoped by check too: a key match under the wrong check is not a use", () => {
+    const collidingKey = "same-key-different-check";
+    const twoChecks: HealthCheckResult[] = [
+      {
+        check: "unused-code",
+        title: "Unused code",
+        scanned: 1,
+        limitations: [],
+        findings: [finding("unused-code", collidingKey, "a.ts", "no caller")],
+      },
+      // Requested, so its allowance is eligible to be judged stale - but it has no finding with
+      // the colliding key itself, only "unused-code" does.
+      {
+        check: "literal-fallbacks",
+        title: "Literal fallbacks",
+        scanned: 1,
+        limitations: [],
+        findings: [],
+      },
+    ];
+    // The allowance names "literal-fallbacks", which produced no finding with this key - only
+    // the unrelated "unused-code" check did - so it must be reported stale rather than silently
+    // considered used via the key match alone.
+    const { stale } = applyAllowances(twoChecks, [
+      { check: "literal-fallbacks", key: collidingKey, reason: "wrong check on purpose" },
+    ]);
+    expect(stale).toHaveLength(1);
+  });
+
+  test("a real match on one check does not mark a same-keyed allowance for a different check as used", () => {
+    // The gap the previous test alone did not close: this time BOTH allowances are in play, and
+    // the unused-code one genuinely matches its finding. A used-set keyed on the string alone
+    // would record that match under the bare key and let it silently satisfy the unrelated
+    // literal-fallbacks allowance too, even though nothing under literal-fallbacks ever matched.
+    const collidingKey = "same-key-different-check-both-present";
+    const twoChecks: HealthCheckResult[] = [
+      {
+        check: "unused-code",
+        title: "Unused code",
+        scanned: 1,
+        limitations: [],
+        findings: [finding("unused-code", collidingKey, "a.ts", "no caller")],
+      },
+      {
+        check: "literal-fallbacks",
+        title: "Literal fallbacks",
+        scanned: 1,
+        limitations: [],
+        findings: [],
+      },
+    ];
+    const { checks, stale } = applyAllowances(twoChecks, [
+      { check: "unused-code", key: collidingKey, reason: "genuinely excuses the unused-code finding" },
+      { check: "literal-fallbacks", key: collidingKey, reason: "stale: nothing under this check matches" },
+    ]);
+    expect(checks[0]?.findings[0]?.acknowledged).toBe("genuinely excuses the unused-code finding");
+    expect(stale).toHaveLength(1);
+    expect(stale[0]?.detail).toContain(collidingKey);
+  });
 });
 
 describe("the rendered report separates what failed from what was allowed", () => {

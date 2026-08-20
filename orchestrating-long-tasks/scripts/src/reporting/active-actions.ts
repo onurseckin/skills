@@ -37,8 +37,8 @@ export function validationActions(
   runRoot: string,
   task: TaskView,
   minProbes: number,
+  validator: string,
 ): string[][] {
-  const validator = task.validation!.validator_id;
   const argv: string[][] = [];
   if (task.probe_round < minProbes) {
     pushArgv(

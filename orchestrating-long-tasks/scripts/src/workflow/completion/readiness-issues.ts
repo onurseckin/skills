@@ -1,3 +1,4 @@
+import { applicableValidatorDomains } from "../../contracts/workflow.ts";
 import { openBranchIssues } from "../branch/completion-blockers.ts";
 import { applicableGates } from "../gates/gate-policy.ts";
 import { commandMatchesGate } from "../gates/gate-policy.ts";
@@ -5,6 +6,7 @@ import { embeddedCommandIssues } from "../../runner/command-shape.ts";
 import { requirementExecutionState } from "../authority/index.ts";
 import { orphanEvidenceIssues } from "../orphan-evidence/digest.ts";
 import type { RequirementRuntime, WorkflowState } from "../types.ts";
+import { validationForDomain } from "../review/validation-state.ts";
 import { authoritativeRepositoryCommand } from "./repository-evidence.ts";
 import { commandIsSuccessfulGate } from "./readiness-snapshot.ts";
 import { currentRepositoryBinding } from "./repository-binding.ts";
@@ -37,23 +39,28 @@ function taskIssues(state: WorkflowState): string[] {
     if (task.status !== "done") issues.push(`task ${task.id} is ${task.status}, not done`);
     if (task.lease) issues.push(`task ${task.id} has a live lease`);
     if (!task.report) issues.push(`task ${task.id} lacks a submission report`);
-    if (task.validation?.verdict !== "pass")
-      issues.push(`task ${task.id} lacks independent validator approval`);
-    if (!task.validation?.checks?.length)
-      issues.push(`task ${task.id} lacks validator command evidence`);
     const gates = applicableGates(state, task);
-    for (const proof of task.validation?.checks ?? []) {
-      const command = state.commands[proof.command_id];
-      if (
-        !command ||
-        command.status !== "succeeded" ||
-        command.exit_code !== 0 ||
-        command.task_id !== task.id ||
-        command.actor !== task.validation?.validator_id ||
-        embeddedCommandIssues(command).length > 0 ||
-        !gates.some((gate) => commandMatchesGate(command, gate))
-      )
-        issues.push(`task ${task.id} has invalid validator command ${proof.command_id}`);
+    // B12.2: a task passes only once every domain its write scope draws has its own recorded pass,
+    // so completion checks each domain's approval independently rather than a single verdict.
+    for (const domain of applicableValidatorDomains(task.write_scope)) {
+      const validation = validationForDomain(task, domain);
+      if (validation?.verdict !== "pass")
+        issues.push(`task ${task.id} lacks independent ${domain} validator approval`);
+      if (!validation?.checks?.length)
+        issues.push(`task ${task.id} lacks ${domain} validator command evidence`);
+      for (const proof of validation?.checks ?? []) {
+        const command = state.commands[proof.command_id];
+        if (
+          !command ||
+          command.status !== "succeeded" ||
+          command.exit_code !== 0 ||
+          command.task_id !== task.id ||
+          command.actor !== validation?.validator_id ||
+          embeddedCommandIssues(command).length > 0 ||
+          !gates.some((gate) => commandMatchesGate(command, gate))
+        )
+          issues.push(`task ${task.id} has invalid validator command ${proof.command_id}`);
+      }
     }
     for (const finding of task.findings ?? [])
       if (finding.status === "open") issues.push(`task ${task.id} has open finding ${finding.id}`);

@@ -87,13 +87,13 @@ function changedFiles(
 export function prepareTaskContext(input: TaskPreparationInput): TaskNodeContext {
   const { task, registry } = input;
   const validatorId = resolveValidatorId(task);
-  // A live validator node exists only while the state machine still holds a live `validation`
-  // record. On reject, record-review.ts deletes it and moves the identity into
-  // `validation_history`, which computeArchivedRounds already turns into that round's own node
-  // pair below — so falling back to a historical identity here, as `validatorId` alone would, draws
-  // the same validator twice: once honestly as the archived round, once as a phantom "live" node
-  // whose handoff and verdict edges never actually happened for whatever round is now in progress.
-  const hasValidator = Boolean(task.validation);
+  // A live validator node exists only while the state machine still holds a live `validations`
+  // entry (B12.2). On reject, record-review.ts archives every open entry into `validation_history`,
+  // which computeArchivedRounds already turns into that round's own node pair below — so falling
+  // back to a historical identity here, as `validatorId` alone would, draws the same validator
+  // twice: once honestly as the archived round, once as a phantom "live" node whose handoff and
+  // verdict edges never actually happened for whatever round is now in progress.
+  const hasValidator = task.validations !== undefined && task.validations.length > 0;
   const taskCommands = input.commands.filter((command) => command.task_id === task.id);
   const partition = partitionTaskCommands(taskCommands, validatorId);
 

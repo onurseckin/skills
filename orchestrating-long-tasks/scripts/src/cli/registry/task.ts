@@ -109,7 +109,7 @@ export const TASK_COMMANDS: readonly CommandSpec[] = [
       optionalFlag(
         "validator-domain",
         "string",
-        "B12.2 standing checklist domain (code-quality, product, security, system-design, ui-design); binds the matching checklist into this validator's packet.",
+        "B12.2 standing checklist domain (code-quality, product, security, system-design, ui-design); binds the matching checklist into this validator's packet. Omitted, the domain is DERIVED from the task's write scope (code-quality always applies; ui-design/system-design follow file extension and path signals) — the first applicable domain nobody has an open validation against yet. A task can carry several open validations at once, one per applicable domain; it reaches validated only once every one of them has passed.",
       ),
     ],
     readsStdin: false,
@@ -127,7 +127,7 @@ export const TASK_COMMANDS: readonly CommandSpec[] = [
     domain: "task",
     summary: "Record a validator verdict with its gate evidence.",
     description:
-      "--status pass finalises the task and unblocks dependants; --status fail records a defect finding and returns the task for repair. A failing verdict must carry --summary, --severity and --remediation: they are the validator's own finding and the harness supplies no wording for them. A pass is refused while the task is short of min_adversarial_probes probes, a mandatory gate's recorded run exited non-zero, or an open finding has no --resolve answering it. Every open finding, probe demand or defect, must be answered explicitly: the harness never marks one answered on the validator's behalf.",
+      "--status pass finalises the task and unblocks dependants; --status fail records a defect finding and returns the task for repair. A failing verdict must carry --summary, --severity and --remediation: they are the validator's own finding and the harness supplies no wording for them. A pass is refused while the task is short of min_adversarial_probes probes, a mandatory gate's recorded run exited non-zero, or an open finding has no --resolve answering it. Every open finding, probe demand or defect, must be answered explicitly: the harness never marks one answered on the validator's behalf. --checklist-domain plus --checklist-report (B12.5) attach standing-checklist coverage to the report: which items were checked and passed, which were not applicable, which could not be checked, and any standing-standard finding outside this task's own scope. None of it gates this task's verdict; the report states it separately so the coverage is visible rather than implied.",
     flags: [
       requiredFlag("run", "string", "Capsule run root."),
       requiredFlag("task", "string", "Task under validation."),
@@ -168,6 +168,16 @@ export const TASK_COMMANDS: readonly CommandSpec[] = [
         "string",
         "How a finding was answered: <finding-id>=<method>; defaults to the finding's class.",
       ),
+      optionalFlag(
+        "checklist-domain",
+        "string",
+        "B12.5: the standing checklist (code-quality, product, security, system-design, ui-design) this review reports coverage against. Requires --checklist-report; every item in that domain's checklist must be accounted for.",
+      ),
+      optionalFlag(
+        "checklist-report",
+        "string",
+        'Path to a JSON file: {"items":[{"id":"<checklist-id>","disposition":"checked|not_applicable|could_not_check","reason":"<required unless checked>"}, ...],"adjacent_findings":[{"id","checklist_item_id","severity","observation","remediation","evidence":[...]}]}. Requires --checklist-domain.',
+      ),
     ],
     readsStdin: false,
     takesRemainder: false,
@@ -176,6 +186,7 @@ export const TASK_COMMANDS: readonly CommandSpec[] = [
       'bun harness.ts task:review --run .capsules/<run-id> --task task-1 --validator val-1 --token <token> --status pass --checks C-123 --summary "All gates pass"',
       "bun harness.ts task:review --run .capsules/<run-id> --task task-1 --validator val-1 --token <token> --status pass --checks C-123 --resolve probe-task-1-01-1=C-123",
       'bun harness.ts task:review --run .capsules/<run-id> --task task-1 --validator val-1 --token <token> --status fail --summary "Gate command never ran against the new schema" --severity critical --remediation "Point the gate at tests/db and rerun it"',
+      "bun harness.ts task:review --run .capsules/<run-id> --task task-1 --validator val-1 --token <token> --status pass --checks C-123 --summary \"All gates pass\" --checklist-domain code-quality --checklist-report coverage.json",
     ],
     handler: taskReviewCommand,
   },

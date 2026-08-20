@@ -155,7 +155,7 @@ Never emit a command the host cannot execute. A confusing failure is worse than 
 ## 4. Silent Worker Recovery & Heartbeats
 
 1. **Heartbeat Protocol**:
-   - Active workers on long-running tasks send periodic heartbeats via `bun harness.ts task:heartbeat --task <id> --token <token>`.
+   - Active workers on long-running tasks send periodic heartbeats via `bun harness.ts task:heartbeat --run <RUN> --task <id> --agent <worker-id> --token <token>`.
 2. **Crash & Hang Detection**:
    - If an agent crashes or stops reporting past `lease_seconds`, the Coordinator runs:
      ```bash

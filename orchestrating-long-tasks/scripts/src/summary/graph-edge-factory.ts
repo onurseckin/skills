@@ -1,5 +1,6 @@
 import type { CommandRecord } from "../contracts/commands.ts";
 import type { TaskRecord } from "../workflow/types.ts";
+import { earliestOpenValidation } from "../workflow/review/validation-state.ts";
 import { createEdge } from "./edge-builder.ts";
 import {
   commandDurationMs,
@@ -87,6 +88,7 @@ function validatorSpawnEdges(params: TaskEdgeFactoryParams): GraphEdgeData[] {
     }),
   );
   if (validatorNodeId !== undefined) {
+    const validation = earliestOpenValidation(task);
     edges.push(
       createEdge({
         id: `edge-spawn-validator-${task.id}`,
@@ -101,12 +103,12 @@ function validatorSpawnEdges(params: TaskEdgeFactoryParams): GraphEdgeData[] {
         exchanges: [
           {
             id: `exch-spawn-validator-${task.id}`,
-            ...(task.validation?.started_at ? { timestamp: task.validation.started_at } : {}),
+            ...(validation?.started_at ? { timestamp: validation.started_at } : {}),
             direction: "forward",
             type: "dispatch",
             kind: "prompt",
             summary: `Validation of ${task.id} assigned`,
-            evidence_class: task.validation ? "harness_observed" : "derived",
+            evidence_class: validation ? "harness_observed" : "derived",
           },
         ],
       }),

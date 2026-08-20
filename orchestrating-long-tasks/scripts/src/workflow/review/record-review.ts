@@ -9,6 +9,7 @@ import { assertValidatorCommands } from "./command-evidence.ts";
 import { assertPublishedTaskPacket } from "../packet-authority.ts";
 import { assertGatesNotFailing, assertProbeSatisfied } from "./pass-preconditions.ts";
 import { readReviewShape, reviewRecordedPayload } from "./review-event.ts";
+import { archiveOpenValidations, everyApplicableDomainPassed, validationForValidator } from "./validation-state.ts";
 
 export function recordReview(
   port: TransactionPort,
@@ -31,19 +32,20 @@ export function recordReview(
   );
   return port.transact(validatorId, "review-recorded", payload, (draft) => {
     const task = taskIn(draft, taskId);
-    if (task.status !== "validating" || task.validation?.validator_id !== validatorId) {
+    const mine = task.status === "validating" ? validationForValidator(task, validatorId) : undefined;
+    if (!mine) {
       throw new HarnessError("INVALID_STATE", "validator does not own the current validation");
     }
     const validationToken =
       typeof reviewValue === "object" && reviewValue !== null && !Array.isArray(reviewValue)
         ? (reviewValue as Record<string, unknown>).validation_token
         : undefined;
-    if (!tokenMatches(validationToken, task.validation.token_digest)) {
+    if (!tokenMatches(validationToken, mine.token_digest)) {
       throw new HarnessError("INVALID_STATE", "validator authentication token is invalid");
     }
     // A verdict is the strongest authority in the run. It is only accepted from a validator the
     // harness durably handed a validator contract to, so a token alone cannot buy one.
-    assertPublishedTaskPacket(draft, taskId, "validator", validatorId, task.validation.attempt);
+    assertPublishedTaskPacket(draft, taskId, "validator", validatorId, mine.attempt);
     const review = validateReview(task, reviewValue);
     const sealed = reviewRecordedPayload(taskId, task, {
       verdict: review.verdict,
@@ -65,9 +67,9 @@ export function recordReview(
         `revalidation for ${proof.finding_id}`,
       );
     }
-    task.validation.verdict = review.verdict;
-    task.validation.reviewed_requirement_ids = review.requirement_ids;
-    task.validation.checks = review.checks;
+    mine.verdict = review.verdict;
+    mine.reviewed_requirement_ids = review.requirement_ids;
+    mine.checks = review.checks;
     if (review.verdict === "reject") {
       task.findings ??= [];
       task.findings.push(
@@ -86,9 +88,9 @@ export function recordReview(
         now,
         exhausted ? "repair rounds exhausted" : "validator requested changes",
       );
-      task.validation_history ??= [];
-      task.validation_history.push(task.validation);
-      delete task.validation;
+      // B12.2: a reject from any one domain ends the round for every domain — the others still
+      // mid-flight lose their slot along with the one that rejected (see validation-state.ts).
+      archiveOpenValidations(task);
       return;
     }
     assertProbeSatisfied(task, minProbes);
@@ -112,6 +114,12 @@ export function recordReview(
         revalidation_proof: { method: proof.method, evidence: proof.evidence },
       });
     }
-    transition(task, "validated", validatorId, now, "independent validation passed");
+    // B12.2: the task passes only once every domain its write scope drew has its own pass on
+    // record — the first domain to pass no longer terminates a task other domains still owe a
+    // verdict on. `mine` stays in `task.validations` either way, carrying this domain's settled
+    // result until the round itself is archived (a later reject) or the task finishes.
+    if (everyApplicableDomainPassed(task)) {
+      transition(task, "validated", validatorId, now, "independent validation passed");
+    }
   });
 }

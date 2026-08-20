@@ -5,6 +5,7 @@ import { publishTaskRolePacket } from "../../packets/role-grant.ts";
 import { loadRun } from "../../store/index.ts";
 import { applicableGates } from "../../workflow/gates/gate-policy.ts";
 import { beginValidation } from "../../workflow/review/begin-validation.ts";
+import { validationForValidator } from "../../workflow/review/validation-state.ts";
 import { formatValidationStartBrief } from "../formatters/index.ts";
 import { integerFlag, textFlag, type Flags } from "../options.ts";
 import { reviewPolicyFor } from "./task-review-support.ts";
@@ -15,8 +16,8 @@ export async function taskValidateStartCommand(flags: Flags): Promise<Record<str
     textFlag(flags, "task")!,
     textFlag(flags, "validator")!,
   ];
-  // B12.2: the domain the coordinator dispatched this agent for, when it is one of the validator
-  // family. Absent for a task-only validator, exactly as before this flag existed.
+  // B12.2: the domain the coordinator dispatched this agent for. Optional — omitted, beginValidation
+  // DERIVES it from the task's write scope instead of requiring the caller to remember it.
   const rawDomain = textFlag(flags, "validator-domain", false);
   if (rawDomain !== undefined && !isValidatorDomain(rawDomain)) {
     throw new HarnessError(
@@ -25,19 +26,29 @@ export async function taskValidateStartCommand(flags: Flags): Promise<Record<str
     );
   }
   const leaseDuration = integerFlag(flags, "lease-duration", { minimum: 5, maximum: 86_400 });
-  const state = beginValidation(workflowPort(run), taskId, validator, undefined, leaseDuration);
+  const state = beginValidation(
+    workflowPort(run),
+    taskId,
+    validator,
+    undefined,
+    leaseDuration,
+    rawDomain,
+  );
   const task = state.tasks[taskId]!;
   if (typeof task.validation_token !== "string") {
     throw new HarnessError("INVALID_STATE", `validation for ${taskId} produced no token`);
   }
   const token = task.validation_token;
   delete task.validation_token;
-  const validation = task.validation;
+  const validation = validationForValidator(task, validator);
   if (!validation)
     throw new HarnessError("INTEGRITY", `validation of ${taskId} recorded no attempt`);
 
   // The validator's contract reaches it in the same breath as its authority, so a verdict can never
-  // be recorded by an agent the harness never handed a validator contract to.
+  // be recorded by an agent the harness never handed a validator contract to. `validation.domain` is
+  // always populated here — explicit or derived — so the matching checklist binds into the packet
+  // whether or not the caller passed --validator-domain (B12.2's whole point: selection is a
+  // checkable rule, not something the coordinator has to remember to state).
   const published = await publishTaskRolePacket({
     runRoot: run,
     port: workflowPort(run),
@@ -46,7 +57,7 @@ export async function taskValidateStartCommand(flags: Flags): Promise<Record<str
     attempt: validation.attempt,
     token,
     taskId,
-    ...(rawDomain !== undefined ? { validatorDomain: rawDomain } : {}),
+    validatorDomain: validation.domain,
   });
 
   const policy = reviewPolicyFor(loadRun(run).runRoot);

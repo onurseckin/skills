@@ -1,10 +1,16 @@
+import { readRegularFileNoFollow } from "../../core/no-follow.ts";
 import { HarnessError } from "../../errors/harness-error.ts";
 import { workflowPort } from "../../integration/store-ports.ts";
+import { isValidatorDomain } from "../../packets/role-contract.ts";
 import { refreshHandoffOnEscalation } from "../../reporting/handoff.ts";
 import { loadRun } from "../../store/index.ts";
 import { tokenDigest } from "../../workflow/lease/token.ts";
 import { gateRunEvidence, probeRoundsRecorded } from "../../workflow/review/pass-preconditions.ts";
 import { recordReview } from "../../workflow/review/record-review.ts";
+import {
+  validateChecklistCoverage,
+  type ChecklistCoverageReport,
+} from "../../workflow/review/validate-review.ts";
 import { systemClock, type TaskRecord, type WorkflowState } from "../../workflow/types.ts";
 import { formatTaskRejectBrief, formatTaskReviewPassBrief } from "../formatters/index.ts";
 import { textFlag, type Flags } from "../options.ts";
@@ -28,6 +34,61 @@ import {
   reviewPolicyFor,
   runDualChannelAudit,
 } from "./task-review-support.ts";
+
+type ChecklistCoverageResult =
+  | ({ applicable: true } & ChecklistCoverageReport)
+  | { applicable: false; reason: string };
+
+/**
+ * B12.5: standing-checklist coverage is opt-in per review, named explicitly rather than inferred
+ * from the task. A validator that names no domain gets a report that says so, in those words,
+ * instead of a section that is merely absent — so a reader can tell "no standing checklist applied"
+ * from "applied and came back clean" (B33: an omission and a fabricated pass are the same failure).
+ * `--checklist-domain` and `--checklist-report` are demanded together: a domain with nothing to
+ * check it against, or a report file with nothing declaring what it is measured against, are both
+ * half a claim.
+ */
+function resolveChecklistCoverage(flags: Flags): ChecklistCoverageResult {
+  const domain = textFlag(flags, "checklist-domain", false);
+  const reportPath = textFlag(flags, "checklist-report", false);
+  if (domain === undefined && reportPath === undefined) {
+    return {
+      applicable: false,
+      reason: "no --checklist-domain was named for this review; no standing checklist coverage applies",
+    };
+  }
+  if (domain === undefined || reportPath === undefined) {
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      "--checklist-domain and --checklist-report must be given together",
+    );
+  }
+  if (!isValidatorDomain(domain)) {
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      `--checklist-domain is not a recognized validator domain: ${domain}`,
+    );
+  }
+  let bytes: Uint8Array;
+  try {
+    bytes = readRegularFileNoFollow(reportPath);
+  } catch (error) {
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      `--checklist-report is unreadable: ${reportPath}: ${String(error)}`,
+    );
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
+  } catch (error) {
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      `--checklist-report is not valid JSON: ${reportPath}: ${String(error)}`,
+    );
+  }
+  return { applicable: true, ...validateChecklistCoverage(domain, parsed) };
+}
 
 /** Reads the gate ledger back to the validator: a gate nobody ran says so, in those words. */
 function gateEvidenceSummary(state: WorkflowState, task: TaskRecord): string {
@@ -54,6 +115,9 @@ export async function taskReviewCommand(flags: Flags): Promise<Record<string, un
   if (status !== "pass" && status !== "fail") {
     throw new HarnessError("INVALID_ARGUMENT", "--status must be pass or fail");
   }
+  // Read and validated before any state changes: a malformed coverage report refuses the whole
+  // call rather than recording a verdict the harness would then have no way to attach it to.
+  const checklistCoverage = resolveChecklistCoverage(flags);
   // The shape of the call is judged before its content: --resolve on a failing verdict is a
   // contradiction, and saying so is more use than demanding the finding fields first.
   if (status === "fail") assertNoResolutions(flags);
@@ -159,7 +223,14 @@ export async function taskReviewCommand(flags: Flags): Promise<Record<string, un
     ...(summary === undefined ? {} : { summary }),
     created_at: new Date().toISOString(),
     checks: checkIds,
+    // Kept for existing readers of `findings`; `task_scope_findings` is the same content under the
+    // name B12.5 asks for, stated beside the standing-checklist buckets rather than instead of them.
     findings: findingObj === null ? [] : [findingObj],
+    task_scope_findings: findingObj === null ? [] : [findingObj],
+    // B12.5: checked-and-passed, not-applicable, could-not-check and adjacent findings, separate
+    // from this task's own verdict. `applicable: false` states the reason rather than leaving the
+    // section absent, so a reader can tell "not carried" from "carried and clean".
+    checklist_coverage: checklistCoverage,
     resolved_findings: resolutions,
     unblocked,
     task: state.tasks[taskId],
@@ -205,6 +276,7 @@ export async function taskReviewCommand(flags: Flags): Promise<Record<string, un
     probe_rounds: probeRoundsRecorded(state.tasks[taskId]!),
     min_adversarial_probes: policy.minProbes,
     resolved_findings: resolutions,
+    checklist_coverage: checklistCoverage,
     ...(handoffPath === undefined ? {} : { handoff_path: handoffPath }),
     ...(findingObj === null ? {} : { finding_id: findingId, finding: findingObj }),
   };
