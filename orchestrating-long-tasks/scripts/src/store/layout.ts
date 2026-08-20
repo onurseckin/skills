@@ -125,6 +125,12 @@ export const CAPSULE_LAYOUT: readonly LayoutEntry[] = [
       "Event-log fragments recovery removed, kept byte for byte as forensic evidence.",
     createdAtInit: false,
   },
+  {
+    name: "runtime/",
+    role: "runtime",
+    responsibility: "The pinned copy of the harness code that is executing this run.",
+    createdAtInit: false,
+  },
 ];
 
 /** Directory that holds run locks, a sibling of the capsules rather than a member of one. */
@@ -157,6 +163,7 @@ const ROLE_MEANING: readonly string[] = [
   "- **DERIVED** — rebuilt from PRIMARY entries. Safe to delete.",
   "- **VIEW** — readable names for bytes that live in `blobs/`. Holds no bytes of its own.",
   "- **EXPORT** — handed to another program, and deliberately self-contained.",
+  "- **RUNTIME** — a pinned, verified copy of the code executing this run, not a fact about it.",
 ];
 
 /** The layout note B5 asks for: one line per entry, generated from the declaration above. */

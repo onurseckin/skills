@@ -117,18 +117,6 @@ export function resolveHarnessConfig(
   };
 }
 
-export function loadHarnessConfig(repoRoot?: string, capsuleRoot?: string): HarnessConfig {
-  const resolved = resolveHarnessConfig(repoRoot, capsuleRoot);
-  return {
-    max_repair_rounds: resolved.max_repair_rounds,
-    max_branch_depth: resolved.max_branch_depth,
-    max_agents: resolved.max_agents,
-    max_output_bytes: resolved.max_output_bytes,
-    default_lease_seconds: resolved.default_lease_seconds,
-    default_max_parallel: resolved.default_max_parallel,
-  };
-}
-
 const resolvedCache = new Map<string, Readonly<ResolvedHarnessConfig>>();
 
 function cacheKey(repoRoot: string, capsuleRoot: string | undefined): string {

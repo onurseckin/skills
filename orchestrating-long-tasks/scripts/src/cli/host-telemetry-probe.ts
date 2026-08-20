@@ -1,13 +1,20 @@
+import type { JsonObject } from "../contracts/json.ts";
 import type { DerivedTelemetryInput, TelemetryFieldConflict } from "../workflow/agents/grants.ts";
 import { detectHostTelemetry, type HostTelemetryProbe } from "../summary/host-telemetry.ts";
+import { readAgentTranscriptTelemetry } from "../workflow/agents/transcript-telemetry.ts";
 
 /**
  * The hardcoded probe step shared by `agent:register`, `task:claim`, `task:submit` and
- * `agent:release`: read the host's own configuration for this agent, automatically, on every call —
- * never a separate command, never a round-trip back to the agent for telemetry it may not have.
+ * `agent:release`: read the host's own configuration AND the host's own transcript for this agent,
+ * automatically, on every call — never a separate command, never a round-trip back to the agent for
+ * telemetry it may not have (B32.3, B34). The two sources are independent: a machine can identify a
+ * config-probed host while carrying no transcript evidence for this particular agent id, or the
+ * reverse, so either one alone is enough to return something.
  */
 export function probeAgentTelemetry(agentId: string): DerivedTelemetryInput {
-  return toDerivedTelemetry(detectHostTelemetry(agentId));
+  const derived = toDerivedTelemetry(detectHostTelemetry(agentId));
+  const transcript = readAgentTranscriptTelemetry(agentId);
+  return transcript === null ? derived : { ...derived, transcript };
 }
 
 /** Attaches the probe's conflicts to a command's result only when there is one to report. */
@@ -22,7 +29,12 @@ export function withHostTelemetryConflicts(
 
 function toDerivedTelemetry(probe: HostTelemetryProbe | null): DerivedTelemetryInput {
   if (probe === null) return {};
-  const capabilities = probe.capabilities;
+  // Real recorded spend rides along inside the same open bag as the structural capabilities: it is
+  // audit context about the host, not a per-agent grant field, exactly like `nesting_depth` above it.
+  const capabilities: JsonObject = {
+    ...probe.capabilities,
+    ...(probe.last_model_usage === undefined ? {} : { last_model_usage: probe.last_model_usage }),
+  };
   return {
     // Which runtime the capabilities were read off, carried so the record never lets them be read
     // as facts about the host the dispatcher declared: this machine can carry evidence of a

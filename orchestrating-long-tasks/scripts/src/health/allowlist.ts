@@ -31,6 +31,21 @@ export const ALLOWED_FINDINGS: readonly HealthAllowance[] = [
     reason:
       "A declared policy default, not a reading: it sits with the five timeout defaults above it and states what the watchdog does when the caller expresses no preference. The numeric half of the check already excludes knobs from POLICY_WORDS; the string half has no such vocabulary, so the same kind of default reads as a substitution.",
   },
+  {
+    key: "unused-export:orchestrating-long-tasks/scripts/src/config/harness-config.ts#resetHarnessConfigCache",
+    reason:
+      "The resolved-config cache lives for the life of one process, and every harness.ts invocation is a fresh process, so production never has a stale read to invalidate. The reset exists to stop the shared module cache leaking between test cases that run in the same process - a problem only the test runner has.",
+  },
+  {
+    key: "unused-export:orchestrating-long-tasks/scripts/src/installer/release-copy.ts#atomicReleaseCopy",
+    reason:
+      "The one production installer (installer/install.ts) must apply client links between the release copy's commit and finalize, so it drives prepareReleaseCopy directly instead of through this all-in-one helper. atomicReleaseCopy composes the same commit/rollback/cleanup sequence without that interleaving, which is exactly the shape the release-copy subsystem's own tests - and the crash-injection worker they spawn - need to exercise it in isolation from client-link concerns.",
+  },
+  {
+    key: "unused-export:orchestrating-long-tasks/scripts/src/runner/attempt-intent.ts#writeAttemptStarted",
+    reason:
+      "Production always needs the AttemptIntentController this record initialisation can return, and run-attempt.ts gets it from the sibling startAttemptIntent. writeAttemptStarted returns the bare record and accepts a syncParent override that startAttemptIntent does not expose, which is the seam attempt-directory-durability.test.ts needs to observe fsync-before-marker ordering directly - a capability only a test asks for.",
+  },
 ];
 
 export function assertAllowancesHaveReasons(

@@ -20,6 +20,8 @@ function given(flags: Flags, name: string): FlagValues | undefined {
 
 export interface CommandContext {
   stdin?: Uint8Array;
+  /** Directory the currently-running harness.ts lives in — the source `plan:init` pins for a run. */
+  executingRuntime?: string;
 }
 
 export function assertFlags(flags: Flags, allowed: readonly string[]): void {

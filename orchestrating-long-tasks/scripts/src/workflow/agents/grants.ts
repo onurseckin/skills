@@ -21,7 +21,9 @@ import {
   writeAgentLedger,
 } from "./ledger.ts";
 import {
-  mergeDerivedField,
+  applyDerivedTelemetry,
+  checkParentAgentConflict,
+  transcriptAuditContext,
   type DerivedTelemetryInput,
   type TelemetryFieldConflict,
 } from "./telemetry-merge.ts";
@@ -92,7 +94,16 @@ function hostLevel<T extends string>(value: T): Evidenced<T> {
 
 type GrantTelemetryFields = Pick<
   AgentGrantRecord,
-  "provider" | "model" | "model_tier" | "thinking_level" | "context_window" | "tools_granted"
+  | "provider"
+  | "model"
+  | "model_tier"
+  | "thinking_level"
+  | "context_window"
+  | "tools_granted"
+  | "tokens_in"
+  | "tokens_out"
+  | "token_extras"
+  | "tools_used"
 >;
 
 function telemetryFields(telemetry: GrantTelemetryInput): GrantTelemetryFields {
@@ -117,37 +128,22 @@ function telemetryFields(telemetry: GrantTelemetryInput): GrantTelemetryFields {
 }
 
 /**
- * Folds a derived host-config probe into the explicitly reported telemetry. Model tier is
- * deliberately untouched: nothing legitimately infers a tier from a model string, so a probe never
- * carries one and there is no field here to merge it into.
+ * Folds a derived host-config probe and a transcript read into the explicitly reported telemetry.
+ * Model tier is deliberately untouched: nothing legitimately infers a tier from a model string, so
+ * neither probe ever carries one and there is no field here to merge it into.
  */
 function mergeTelemetry(
   telemetry: GrantTelemetryInput,
   derived: DerivedTelemetryInput | undefined,
   conflicts: TelemetryFieldConflict[],
+  observedAt: string,
 ): GrantTelemetryFields {
   const explicit = telemetryFields(telemetry);
-  const provider = mergeDerivedField(explicit.provider, derived?.provider, "provider", conflicts);
-  const model = mergeDerivedField(explicit.model, derived?.model, "model", conflicts);
-  const thinkingLevel = mergeDerivedField(
-    explicit.thinking_level,
-    derived?.thinkingLevel,
-    "thinking_level",
-    conflicts,
-  );
-  const contextWindow = mergeDerivedField(
-    explicit.context_window,
-    derived?.contextWindow,
-    "context_window",
-    conflicts,
-  );
+  const merged = applyDerivedTelemetry(explicit, derived, conflicts, observedAt);
   return {
     ...(explicit.model_tier === undefined ? {} : { model_tier: explicit.model_tier }),
     ...(explicit.tools_granted === undefined ? {} : { tools_granted: explicit.tools_granted }),
-    ...(provider === undefined ? {} : { provider }),
-    ...(model === undefined ? {} : { model }),
-    ...(thinkingLevel === undefined ? {} : { thinking_level: thinkingLevel }),
-    ...(contextWindow === undefined ? {} : { context_window: contextWindow }),
+    ...merged,
   };
 }
 
@@ -167,7 +163,9 @@ export function registerAgentGrant(input: RegisterAgentInput): AgentGrantOutcome
   }
   const grantedAt = (input.now ?? new Date()).toISOString();
   const conflicts: TelemetryFieldConflict[] = [];
-  const fields = mergeTelemetry(input.telemetry, input.derivedTelemetry, conflicts);
+  const fields = mergeTelemetry(input.telemetry, input.derivedTelemetry, conflicts, grantedAt);
+  checkParentAgentConflict(input.parentAgentId, input.derivedTelemetry?.transcript, conflicts);
+  const transcriptContext = transcriptAuditContext(input.derivedTelemetry?.transcript);
   let minted: AgentGrantRecord | undefined;
   let ledgerAfter: AgentGrantRecord[] = [];
   const state = transact(
@@ -190,6 +188,7 @@ export function registerAgentGrant(input: RegisterAgentInput): AgentGrantOutcome
               ? {}
               : { host_capabilities_source: input.derivedTelemetry.hostTool }),
           }),
+      ...(transcriptContext === undefined ? {} : { transcript_context: transcriptContext }),
       ...(conflicts.length === 0 ? {} : { telemetry_conflicts: conflicts }),
     },
     (draft) => {

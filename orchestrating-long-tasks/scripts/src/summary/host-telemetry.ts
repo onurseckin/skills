@@ -3,12 +3,14 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { isThinkingLevel, type ThinkingLevel } from "../contracts/agents.ts";
 import { evidenced, type Evidenced } from "../contracts/evidence.ts";
-import type { JsonObject } from "../contracts/json.ts";
+import { isJsonObject, type JsonObject } from "../contracts/json.ts";
 import type { HostIdentity } from "./types.ts";
 
 export interface DetectHostIdentityOptions {
   homeDir?: string;
   env?: Record<string, string | undefined>;
+  /** The project path a per-project config keys its own values by. Defaults to `process.cwd()`. */
+  cwd?: string;
 }
 
 function parseJsonSafe(raw: string): Record<string, unknown> | null {
@@ -207,6 +209,9 @@ export interface HostTelemetryProbe extends JsonObject {
   thinking_level?: Evidenced<ThinkingLevel>;
   context_window?: Evidenced<number>;
   capabilities: HostCapabilities;
+  /** Real recorded spend for this project, keyed by exact model id, straight off the host's own
+   * usage ledger rather than a rate-card estimate. Absent when the host has recorded no usage here. */
+  last_model_usage?: Evidenced<JsonObject>;
 }
 
 function derivedString(value: string | undefined): Evidenced<string> | undefined {
@@ -251,7 +256,27 @@ type TelemetryProbe = (
   homeDir: string | undefined,
   env: Record<string, string | undefined>,
   agentId: string,
+  cwd: string | undefined,
 ) => HostTelemetryProbe;
+
+/** The project this run's own spend and settings are keyed under, in whichever host config records
+ * them by absolute path. Read straight from disk rather than reconstructed from a slug — a config
+ * that keys by path is asking to be indexed by that same path, not a derivative of it. */
+function readLastModelUsage(
+  homeDir: string | undefined,
+  cwd: string | undefined,
+): Evidenced<JsonObject> | undefined {
+  if (cwd === undefined) return undefined;
+  const config = readConfig(homeDir, [".claude.json"], "json");
+  if (config === null) return undefined;
+  const projects = config.projects;
+  if (!isJsonObject(projects)) return undefined;
+  const project = projects[cwd];
+  if (!isJsonObject(project)) return undefined;
+  const usage = project.lastModelUsage;
+  if (!isJsonObject(usage) || Object.keys(usage).length === 0) return undefined;
+  return evidenced(usage, "derived");
+}
 
 // Named by role, not vendor: the variable itself is never the host's name, only its value is.
 const SPAWN_DEPTH_ENV_VAR = "CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH";
@@ -262,7 +287,7 @@ const TELEMETRY_PROBES: Readonly<Record<string, TelemetryProbe>> = {
   // agent definition files this host keeps per agent. A definition is evidence about THIS agent only
   // when one is filed under the very id the grant was registered with, so a run whose ids do not
   // match any definition reads nothing here rather than picking a neighbouring file.
-  "codex": (homeDir, _env, agentId) => {
+  "codex": (homeDir, _env, agentId, _cwd) => {
     const config = readConfig(homeDir, [".codex", "config.toml"], "toml");
     const agentsTable = isPlainObject(config?.agents) ? config.agents : null;
     const featuresTable = isPlainObject(config?.features) ? config.features : null;
@@ -298,11 +323,25 @@ const TELEMETRY_PROBES: Readonly<Record<string, TelemetryProbe>> = {
   // Spawn limits are environment-configured with documented defaults, but an unset variable does
   // not prove the default is still in force on some future release — an absence stays absent
   // rather than becoming today's documented number.
-  "claude-code": (_homeDir, env) => {
+  "claude-code": (homeDir, env, _agentId, cwd) => {
     const depth = derivedInt(parseFiniteInt(env[SPAWN_DEPTH_ENV_VAR]));
     const concurrency = derivedInt(parseFiniteInt(env[SPAWN_CONCURRENCY_ENV_VAR]));
+    // The machine's own default reasoning effort, not this agent's — a fallback for whichever agent
+    // the dispatcher never overrode, recorded as `derived` because it is read off a setting rather
+    // than reported by the run itself. A value outside this harness's vocabulary (e.g. "xhigh" is
+    // not one of the four `ThinkingLevel`s) is left unset rather than forced into "unknown", which
+    // would misstate a specific answer the host gave as the host having no answer at all.
+    const settings = readConfig(homeDir, [".claude", "settings.json"], "json");
+    const effortLevel = readStringField(settings, "effortLevel");
+    const thinkingLevel =
+      effortLevel !== undefined && isThinkingLevel(effortLevel)
+        ? evidenced(effortLevel, "derived")
+        : undefined;
+    const lastModelUsage = readLastModelUsage(homeDir, cwd);
     return {
       host_tool: "claude-code",
+      ...(thinkingLevel === undefined ? {} : { thinking_level: thinkingLevel }),
+      ...(lastModelUsage === undefined ? {} : { last_model_usage: lastModelUsage }),
       capabilities: {
         ...(depth === undefined ? {} : { nesting_depth: depth }),
         ...(concurrency === undefined ? {} : { concurrency_ceiling: concurrency }),
@@ -333,6 +372,16 @@ const TELEMETRY_PROBES: Readonly<Record<string, TelemetryProbe>> = {
  * evidence with whatever the agent or host separately reports; `agent:register`, `task:claim`,
  * `task:submit` and `agent:release` all call this on every invocation rather than as a separate step.
  */
+function resolveCwd(options: DetectHostIdentityOptions | undefined): string | undefined {
+  if (hasText(options?.cwd)) return options.cwd.trim();
+  try {
+    const cwd = process.cwd();
+    return hasText(cwd) ? cwd : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export function detectHostTelemetry(
   agentId: string,
   options?: DetectHostIdentityOptions,
@@ -343,5 +392,5 @@ export function detectHostTelemetry(
   const probe = TELEMETRY_PROBES[identity.hostTool];
   if (probe === undefined) return null;
   const env = options?.env ?? process.env;
-  return probe(resolveHomeDir(options, env), env, agentId);
+  return probe(resolveHomeDir(options, env), env, agentId, resolveCwd(options));
 }
