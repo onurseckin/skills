@@ -4,6 +4,8 @@ import { fileURLToPath } from "node:url";
 import { HarnessError } from "./src/errors/harness-error.ts";
 import { normalizeError } from "./src/errors/normalize-error.ts";
 import { execute } from "./src/cli/execute.ts";
+import { helpRequest, renderHelp } from "./src/cli/help.ts";
+import { stripOutputFormat } from "./src/cli/output-format.ts";
 import { shouldReadPromptStdin } from "./src/cli/prompt-input.ts";
 
 async function stdinBytes(maximum = 64 * 1024 * 1024): Promise<Uint8Array> {
@@ -20,19 +22,18 @@ async function stdinBytes(maximum = 64 * 1024 * 1024): Promise<Uint8Array> {
 
 export async function main(argv: readonly string[]): Promise<void> {
   const executingRuntime = fileURLToPath(new URL(".", import.meta.url));
-  const isJsonFormat =
-    argv.includes("--format=json") ||
-    argv.some((arg, idx) => arg === "--format" && argv[idx + 1] === "json");
-  const filteredArgv = argv.filter(
-    (arg, idx) =>
-      arg !== "--format=json" && arg !== "--format" && (idx === 0 || argv[idx - 1] !== "--format"),
-  );
-  const context = shouldReadPromptStdin(filteredArgv)
+  const format = stripOutputFormat(argv);
+  const help = helpRequest(format.argv);
+  if (help !== null) {
+    process.stdout.write(`${renderHelp(help.command)}\n`);
+    return;
+  }
+  const context = shouldReadPromptStdin(format.argv)
     ? { stdin: await stdinBytes(), executingRuntime }
     : { executingRuntime };
-  const result = await execute(filteredArgv, context);
+  const result = await execute(format.argv, context);
   if (
-    !isJsonFormat &&
+    !format.json &&
     typeof result === "object" &&
     result !== null &&
     "markdown" in result &&

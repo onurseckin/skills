@@ -13,12 +13,17 @@ This repository is structured as a modular, multi-skill monorepo adhering to the
 **Durable, multi-phase, graph-scheduled task orchestration with adversarial independent validation.**
 
 - **Immutable Prompt Preservation:** Byte-for-byte SHA-256 capture before planning to eliminate scope drift and hallucinated acceptance criteria.
-- **Topological Conflict-Free Scheduling:** Dependency graph compilation with strict write-scope and resource isolation.
-- **Adversarial Multi-Agent Validation:** Implementers cannot self-validate; independent validators generate command-backed proofs under trusted host observation (`run:exec`).
-- **Dual-Channel Validator Protocol:** Synthesizes computed DOM metrics (`visual-report.json`) with authentic Playwright layout screenshots (`.png`) across mobile, tablet, and desktop viewports.
-- **Cascading Scope-Aware Replanning:** Automatic fan-back and repair wave generation (`plan:replan`) upon completeness critic pushbacks.
-- **Durable Crash Recovery:** Ephemeral capsules under `.capsules/<run-id>/` allow resuming seamlessly across interruptions, restarts, or context resets.
-- **Zero Runtime Dependencies:** Pure Bun standard library and native OS bindings (`bun:sqlite`, `node:fs`, `node:crypto`, `node:child_process`). Requires no `node_modules` or external network calls at runtime.
+- **Topological Conflict-Free Scheduling:** One scheduling authority, a recorded topology, and glob-aware write-scope isolation. `queue:wave` hands out a whole parallel wave instead of one task at a time.
+- **Adversarial Multi-Agent Validation:** Implementers cannot self-validate, and a repair round needs a _fresh_ validator. Every pass is held behind a mandatory adversarial **probe** — a demand for proof, not a fabricated rejection — and every open finding must be answered with a recorded command id.
+- **Execution-Time Branch & Collect:** A working agent can subdivide the work it already holds (`branch:open` … `branch:collect`) without touching the frozen plan; the parent's lease clock freezes and the file list that comes back is a real Git observation.
+- **Agent Grant Ledger:** Every dispatched subagent is registered with its role, parent and host-reported telemetry, so a run can answer who was deployed, under whom, and on what model.
+- **Labelled Evidence Throughout:** Every reported value carries an `evidence_class` — `harness_observed`, `agent_reported`, `host_reported`, `derived` or `unknown`. Nothing substitutes a plausible value for a missing one.
+- **Dual-Channel Validator Protocol:** Computed DOM metrics (`visual-report.json`) alongside Playwright layout screenshots across mobile, tablet, and desktop viewports.
+- **Cascading Scope-Aware Replanning:** `plan:replan` partitions findings into a disjoint repair wave so repairs run in parallel too.
+- **Durable Crash Recovery:** Capsules under `.capsules/<run-id>/` resume across interruptions; `recover` reclaims dead leases explicitly and `task:release` hands one back voluntarily.
+- **Zero Runtime Dependencies:** Pure Bun standard library and native OS bindings (`node:fs`, `node:crypto`, `node:child_process`). No `node_modules` and no network calls at runtime.
+
+📚 **[Read the full manual →](./orchestrating-long-tasks/docs/README.md)** · 🧭 **[Generated CLI manifest →](./orchestrating-long-tasks/references/cli-capabilities.md)** · 🧪 **[Executable tutorial →](./orchestrating-long-tasks/docs/10-tutorial-and-cli/01-end-to-end-tutorial.md)**
 
 ---
 
@@ -43,13 +48,25 @@ The system enforces a strict **3-Tier Hierarchy** and the **"$2N + 1$" Sizing In
         │   Tier 3:   │                 │   Tier 3:   │
         │ Implementer │                 │  Validator  │
         │  (Task 1)   │                 │  (Task 1)   │
-        └─────────────┘                 └─────────────┘
+        └──────┬──────┘                 └─────────────┘
+               │ branch:open (execution-time only; never a plan task)
+               ▼
+     ┌───────────────────────────────┐
+     │ sub-implementer / sub-validator│
+     │ sub-investigator               │
+     └───────────────────────────────┘
 ```
+
+Nine canonical roles exist, each with a binding capability contract in
+[`orchestrating-long-tasks/roles/`](./orchestrating-long-tasks/roles): `coordinator`, `planner`,
+`implementer`, `validator`, `repairer`, `completeness-critic`, `sub-implementer`, `sub-validator`,
+`sub-investigator`. `task:claim --role` binds the agent to one for the whole lease.
 
 1. **Tier 1 (Main Interactive Thread)**: Dedicated exclusively to user interaction, requirement intake, and milestone delivery.
 2. **Tier 2 (Background Run Coordinator)**: Persistent manager of capsule lifecycle, prompt capture, graph compilation, concurrency waves, and run completion.
 3. **Tier 3 (Implementer & Validator Pairs)**: Dispatched concurrently via `invoke_subagent`. For every implementer modifying code in a leased `write_scope`, an independent paired validator audits the work and runs mandatory gates.
 4. **Triad Floor Invariant ($\ge 3$ Agents)**: Even for a single task ($N = 1$), 3 agents are deployed (1 Coordinator + 1 Implementer + 1 Validator). For $N$ parallel tasks, $2N + 1$ agents are deployed.
+5. **Every Agent Is Registered**: Spawning happens host-side, so the run learns an agent exists only when `agent:register` records it. Model, tier, thinking level and token counts are recorded when the host reports them, and stay `unknown` when it does not.
 
 ---
 
@@ -107,44 +124,126 @@ bun orchestrating-long-tasks/scripts/harness.ts installation-status \
 
 ---
 
-## ⚡ Quickstart: Running a Multi-Agent Task
+## ⚡ Quickstart: One Task, End to End
+
+Every line below was executed in order and works as written. `jv` reads one field out of a
+`--format json` result, which is how a real coordinator captures the bearer tokens the harness prints
+exactly once.
 
 ```bash
-PINNED=orchestrating-long-tasks/scripts/harness.ts
-RUN=.capsules/2026-08-17-feature-implementation
+H=orchestrating-long-tasks/scripts/harness.ts
+RUN=.capsules/quickstart
+jv() { bun -e 'const p=Bun.argv[1];const j=JSON.parse(await Bun.stdin.text());console.log(String(p.split(".").reduce((a,k)=>a?.[k],j)))' "$1"; }
 
-# 1. Initialize Capsule with immutable prompt capture
-printf "%s" "Implement user authentication and profile dashboard" | \
-  bun $PINNED plan:init --repo . --run 2026-08-17-feature-implementation --prompt-stdin
+# 0. The capsule must be gitignored before it may be created
+printf '.capsules/\n' >> .gitignore
 
-# 2. Stage Modular Tasks
-bun $PINNED plan:add --run $RUN --id auth-api --label "Auth API & JWT" --scope "src/auth,src/middleware" --gate "bun test tests/auth.test.ts"
-bun $PINNED plan:add --run $RUN --id user-ui --label "User Profile UI" --scope "src/components/profile" --gate "bun test tests/profile.test.ts" --deps auth-api
+# 0b. The gate has to name a file that exists: run:exec refuses a gate path it cannot lstat
+mkdir -p tests && cat > tests/slug.test.ts <<'EOF'
+import { expect, test } from "bun:test";
+import { slugify } from "../src/slug.ts";
 
-# 3. Compile DAG Plan
-bun $PINNED plan:compile --run $RUN --actor coordinator
+test("lowercases and hyphenates", () => {
+  expect(slugify("Hello World")).toBe("hello-world");
+});
 
-# 4. Claim Task & Execute Implementation
-bun $PINNED task:claim --run $RUN --task auth-api --agent worker-auth
-# (Worker edits code within src/auth and src/middleware)
-bun $PINNED task:submit --run $RUN --task auth-api --agent worker-auth --token <WORKER_TOKEN> --summary "Implemented JWT auth"
+test("collapses punctuation instead of leaving empty segments", () => {
+  expect(slugify("Ship it, now!")).toBe("ship-it-now");
+});
+EOF
 
-# 5. Independent Validator Verification
-bun $PINNED task:validate-start --run $RUN --task auth-api --validator val-auth
-bun $PINNED run:exec --run $RUN --task auth-api --gate gate-1 --actor val-auth -- bun test tests/auth.test.ts
-bun $PINNED task:review --run $RUN --task auth-api --validator val-auth --token <VAL_TOKEN> --status pass --summary "All auth tests pass"
+# 1. Freeze the prompt
+printf '%s\n' 'Add a slugify helper in src/slug.ts that lowercases text and collapses punctuation into single hyphens.' > prompt.txt
+bun $H plan:init --repo . --run quickstart --prompt-file prompt.txt --capture-mode file
 
-# 6. Completeness Critic & Run Seal
-bun $PINNED critic:start --run $RUN --critic critic-1
-bun $PINNED critic:review --run $RUN --critic critic-1 --token <CRITIC_TOKEN> --decision approve --summary "Whole-diff verified against prompt"
-bun $PINNED run:complete --run $RUN --actor coordinator
+# 2. Declare the task, bound to the prompt line it implements
+bun $H plan:add --run $RUN --actor planner --id task-slug --label "Slugify helper" \
+  --scope src/slug.ts --gate "bun test tests/slug.test.ts" --requirement-lines 1
+
+# 3. Compile. --completion-gate is mandatory and has no default.
+bun $H plan:compile --run $RUN --actor planner --completion-gate "bun test tests"
+
+# 4. See the whole dispatchable wave (read-only; queue:pop is the one-at-a-time fallback)
+bun $H queue:wave --run $RUN
+
+# 5. Register every agent before it works
+bun $H agent:register --run $RUN --agent coordinator-1 --role coordinator --host claude-code
+bun $H agent:register --run $RUN --agent impl-1 --role implementer --host claude-code \
+  --parent-agent coordinator-1 --parent-task task-slug
+bun $H agent:register --run $RUN --agent val-1 --role validator --host claude-code \
+  --parent-agent coordinator-1 --parent-task task-slug
+
+# 6. Claim under an explicit role and capture the one-time token
+TOKEN=$(bun $H task:claim --format json --run $RUN --task task-slug --agent impl-1 --role implementer | jv result.token)
+
+# ... the implementer works, inside its write scope and nowhere else ...
+mkdir -p src && cat > src/slug.ts <<'EOF'
+export function slugify(input: string): string {
+  return input
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+EOF
+
+# 7. Prove it, then submit. --summary is mandatory.
+bun $H run:exec --run $RUN --task task-slug --gate gate-slug --actor impl-1 -- bun test tests/slug.test.ts
+bun $H task:submit --run $RUN --task task-slug --agent impl-1 --token "$TOKEN" \
+  --summary "slugify lowercases, collapses punctuation runs to one hyphen, and trims the edges."
+
+# 8. Independent validation: probe first, then pass
+VAL=$(bun $H task:validate-start --format json --run $RUN --task task-slug --validator val-1 | jv result.token)
+DEMAND=$(bun $H task:probe --format json --run $RUN --task task-slug --validator val-1 --token "$VAL" \
+  --demand "Prove the punctuation case is covered by a test that actually runs." \
+  --revalidation "bun test tests/slug.test.ts" | jv result.finding_ids.0)
+PROOF=$(bun $H run:exec --format json --run $RUN --task task-slug --gate gate-slug --actor val-1 \
+  -- bun test tests/slug.test.ts | jv result.command_id)
+bun $H task:review --run $RUN --task task-slug --validator val-1 --token "$VAL" --status pass \
+  --summary "Gate rerun independently; the demand is answered by that run." \
+  --checks "$PROOF" --resolve "$DEMAND=$PROOF"
+
+# 9. Run gate, then a critic that runs its OWN unbound commands
+bun $H run:exec --run $RUN --gate gate-run-completion --actor coordinator-1 -- bun test tests
+bun $H agent:register --run $RUN --agent critic-1 --role completeness-critic --host claude-code \
+  --parent-agent coordinator-1
+CRITIC=$(bun $H critic:start --format json --run $RUN --critic critic-1 | jv result.token)
+CPROOF=$(bun $H run:exec --format json --run $RUN --actor critic-1 -- bun test tests | jv result.command_id)
+# Write the proofs OUTSIDE the repository: any byte that changes after critic:start invalidates the authorization
+PROOFS="${TMPDIR:-/tmp}/proofs.json"
+printf '[{"requirement_id":"req-slug","status":"satisfied","evidence":[{"kind":"command","reference":"%s","observation":"the critic ran the suite itself and it exited 0"}]}]\n' "$CPROOF" > "$PROOFS"
+bun $H critic:review --run $RUN --critic critic-1 --token "$CRITIC" --decision approve \
+  --proofs-file "$PROOFS" --summary "The prompt line is implemented and bound to a recorded gate run."
+
+# 10. Close every grant BEFORE sealing: a completed run is terminal
+for a in impl-1 val-1 critic-1 coordinator-1; do bun $H agent:release --run $RUN --agent "$a" --reason "run sealed"; done
+bun $H run:complete --run $RUN --actor coordinator-1
+
+# 11. Read the result
+bun $H run:status --run $RUN
+bun $H agent:list --run $RUN --task task-slug
+bun $H summary:export --run $RUN
+bun $H doctor --run $RUN
 ```
+
+Three things in that sequence are easy to get wrong and are refused outright:
+
+- `--format json` must come **before** any `--`, or it is passed to the child process.
+- `task:review --status pass` needs a `--resolve` for **every** open finding — probe demands and
+  defects alike — and is blocked while a mandatory gate's recorded run exited nonzero.
+- The critic's evidence must be commands **it** ran with no `--task`; a validator's run is not critic
+  evidence, and a requirement with no proof is recorded `unproven` and blocks completion.
+- Nothing in the repository may change between `critic:start` and `critic:review`, not even a scratch
+  file — the authorization is bound to the bytes it inspected. Write the proofs payload outside the
+  repository.
+
+The [end-to-end tutorial](./orchestrating-long-tasks/docs/10-tutorial-and-cli/01-end-to-end-tutorial.md)
+runs the same flow with a branch, a real rejection and a repair round.
 
 ---
 
 ## 📊 Visualizing Execution Graphs in GVUI
 
-Runs executed by `orchestrating-long-tasks` produce complete execution graph datasets, subagent telemetry, gate verifications, and visual audit evidence inside `.capsules/<run-id>/`. You can visualize any run interactively in [**GVUI (Graph Visualization UI)**](https://github.com/onurseckin/gvui):
+Runs executed by `orchestrating-long-tasks` produce complete execution graph datasets, agent-grant telemetry, gate verifications, and visual audit evidence inside `.capsules/<run-id>/`. Every value in that export carries its `evidence_class`, and a value nobody reported renders as `unknown` rather than as a plausible default. You can visualize any run interactively in [**GVUI (Graph Visualization UI)**](https://github.com/onurseckin/gvui):
 
 ### 1. Export the Capsule Summary Suite
 
@@ -156,10 +255,22 @@ bun orchestrating-long-tasks/scripts/harness.ts summary:export --run .capsules/<
 
 This compiles `.capsules/<run-id>/summary/`:
 
-- `graph.json` — Interactive DAG nodes, edges, subagents, and execution states.
-- `metrics.json` — Token footprints, wall-clock timing, gate pass rates.
-- `timeline.json` — Event-sourced state transitions and heartbeat logs.
-- `summary.md` — Executive Markdown brief.
+- `graph.json` — Nodes, edges and sections. Validators are their own nodes, a branch becomes a section carrying the reason it was opened, and each node owns its evidence in `node.assets` plus its `scripts`, `tools` and `stateTransitions`.
+- `metrics.json` — Gate pass rates, wall-clock timing, and token footprints where the host reported them.
+- `timeline.json` — Event-sourced state transitions, with each review carrying its verdict, round, finding class and finding count.
+- `summary.md` — The complete run report: prompt, enhanced plan, requirements, waves, an ASCII task graph, every agent, branch, command, tool, probe, pushback, gate, the critic's verdict and the full timeline.
+
+Real output from a two-task run with one branch:
+
+```text
+### Summary Suite Exported: `slugger`
+- **Capsule Summary Root**: `.capsules/slugger/summary`
+- **Artifacts Generated**:
+  - `graph.json` (GVUI GraphDataset, 12 nodes, 19 edges)
+  - `timeline.json` (61 chronological events)
+  - `metrics.json` (2/2 satisfied tasks)
+  - `summary.md` (complete run report)
+```
 
 ### 2. Import into GVUI via CLI
 
@@ -199,6 +310,9 @@ skills/
 │   │   └── openai.yaml      # Client-specific agent descriptors
 │   ├── references/          # Detailed documentation and playbooks
 │   │   └── *.md
+│   ├── roles/               # (Optional) Capability contracts, one per agent role
+│   │   └── <role>.md
+│   ├── docs/                # (Optional) The long-form manual
 │   └── scripts/             # (Optional) Executable tooling, helpers, and tests
 │       ├── src/
 │       └── tests/
@@ -224,10 +338,12 @@ Detailed instructions, workflows, triggers, and operational steps...
 When developing or updating skills locally:
 
 1. **Install Dev Dependencies**: `bun install`
-2. **Run Test Suites**: `bun test` (or `bun run test:unit`, `bun run test:integration`)
+2. **Run Test Suites**: `bun run test:unit` (or `bun run test:integration`, `bun run test:all`)
 3. **Strict Type Safety**: `bun run typecheck` (zero TypeScript `any`, zero `@ts-ignore`)
 4. **Code Formatting**: `bun run format` (using `oxfmt`)
 5. **Zero Runtime Dependencies**: All runtime scripts must run directly via `bun` standard libraries and Node built-ins without requiring runtime `node_modules`.
+6. **The CLI Manifest Is Generated**: `references/cli-capabilities.md` and `.json` are rendered from `src/cli/registry/` by `scripts/generate-cli-manifest.ts`, and a unit test asserts the checked-in files still match the registry. Change the registry, regenerate, never hand-edit.
+7. **Role Contracts Are Checked**: every `commands:` entry in `orchestrating-long-tasks/roles/*.md` must name a command that exists in the manifest, and the frontmatter is parsed and hashed at runtime — a malformed contract is an `INTEGRITY` error.
 
 ---
 

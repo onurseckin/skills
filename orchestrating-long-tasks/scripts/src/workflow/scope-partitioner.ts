@@ -16,7 +16,6 @@ export interface ScopedRepairCluster {
   readonly label: string;
   readonly writeScope: readonly string[];
   readonly findings: readonly FindingDetail[];
-  readonly gateCommand: readonly string[];
   readonly effort: number;
 }
 
@@ -100,14 +99,14 @@ export function partitionFindingsIntoScopes(
     const taskId = `repair-R${repairRound}-${slug}`;
     const label = `Repair Wave ${repairRound}: ${cluster.scope}`;
     const effort = Math.min(5, Math.max(1, cluster.findings.length + 1));
-    const gateCommand = ["bun", "test", "tests"];
 
+    // No gate is minted here: partitioning knows which files a repair touches, not which command
+    // proves the repair. The caller resolves that from the run and refuses when nothing declares it.
     return {
       taskId,
       label,
       writeScope: [cluster.scope],
       findings: cluster.findings,
-      gateCommand,
       effort,
     };
   });

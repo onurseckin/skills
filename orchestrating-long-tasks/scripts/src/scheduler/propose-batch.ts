@@ -23,8 +23,20 @@ function taskRecord(value: unknown): value is ScheduledTask {
   );
 }
 
-function activeTask(task: ScheduledTask): boolean {
-  return hasActiveOwnership(task.status);
+const DISPATCHABLE_STATUSES = new Set(["proposed", "ready", "retry_ready"]);
+
+function dispatchable(task: ScheduledTask): boolean {
+  return DISPATCHABLE_STATUSES.has(String(task.status));
+}
+
+/**
+ * `retry_ready` survives `hasActiveOwnership` because a released task still blocks a *claim* until
+ * someone takes it. For scheduling it holds no lease and no agent, so counting it as an occupant
+ * would let two conflicting released tasks veto each other and leave the wave permanently empty.
+ * Conflicts between candidates are resolved by the batch loop instead.
+ */
+function occupiesScope(task: ScheduledTask): boolean {
+  return hasActiveOwnership(task.status) && !dispatchable(task);
 }
 
 function conflicts(left: ScheduledTask, right: ScheduledTask): boolean {
@@ -48,15 +60,14 @@ export function proposeBatch(state: unknown, maxParallel: number | null = null):
   }
   const done = new Set([...tasks].filter(([, task]) => task.status === "done").map(([id]) => id));
   const metrics = schedulingMetrics(dependencies);
-  const active = [...tasks.values()].filter(activeTask);
+  const occupied = [...tasks.values()].filter(occupiesScope);
   const eligible = rankTasks(
     [...tasks]
       .filter(([id, task]) => {
-        const statusReady = task.status === "proposed" || task.status === "ready";
         return (
-          statusReady &&
+          dispatchable(task) &&
           taskExecutionState(state, task.requirement_ids) === "executable" &&
-          !active.some((running) => conflicts(task, running)) &&
+          !occupied.some((running) => conflicts(task, running)) &&
           [...(dependencies.get(id) ?? [])].every((dependency) => done.has(dependency))
         );
       })

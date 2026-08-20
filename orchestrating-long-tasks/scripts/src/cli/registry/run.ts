@@ -1,0 +1,92 @@
+import { runCompleteCommand, runExecCommand, runStatusCommand } from "../commands/run-ops.ts";
+import { CATEGORY_FLAG_HELP } from "../taxonomy-flags.ts";
+import {
+  DEFAULT_EXIT_CODES,
+  optionalFlag,
+  requiredFlag,
+  type CommandSpec,
+  type ExitCodeSpec,
+} from "./types.ts";
+
+// run:exec reports the child exit code in the record; the CLI itself still exits 0 on a failing gate.
+const EXEC_EXIT_CODES: readonly ExitCodeSpec[] = [
+  { code: 0, meaning: "SUCCESS - the command ran; read exit_code for the child's own result" },
+  ...DEFAULT_EXIT_CODES.slice(1),
+];
+
+export const RUN_COMMANDS: readonly CommandSpec[] = [
+  {
+    name: "run:exec",
+    aliases: [],
+    domain: "run",
+    summary: "Run a gate command under process isolation and record the evidence.",
+    description:
+      "Captures argv, cwd, timestamps, exit code and log bytes into the capsule, then ingests any screenshots, visual report and browser run metadata the command produced.",
+    flags: [
+      requiredFlag("run", "string", "Capsule run root."),
+      optionalFlag("task", "string", "Task the command belongs to."),
+      optionalFlag("gate", "string", "Gate id the command proves."),
+      optionalFlag("cwd", "string", "Working directory; falls back to the repository root."),
+      requiredFlag(
+        "actor",
+        "string",
+        "Who is running the command. Recorded on the command and its event; there is no default actor.",
+      ),
+      optionalFlag("tool-category", "string", CATEGORY_FLAG_HELP),
+      optionalFlag("tool", "string", "The tool this command invoked, named as you name it."),
+      {
+        name: "tool-extra",
+        type: "string",
+        required: false,
+        repeatable: true,
+        description:
+          "One tool-specific fact about this command as <key>=<value>, kept verbatim under the reported name.",
+      },
+    ],
+    readsStdin: false,
+    takesRemainder: true,
+    exitCodes: EXEC_EXIT_CODES,
+    examples: [
+      "bun harness.ts run:exec --run .capsules/<run-id> --task task-1 --gate gate-1 --actor val-1 --tool-category test-runner --tool bun-test -- bun test tests/unit/auth.test.ts",
+    ],
+    handler: (flags, _context, remainder) => runExecCommand(flags, remainder),
+  },
+  {
+    name: "run:status",
+    aliases: [],
+    domain: "run",
+    summary: "Show phase, per-task status and progress for the run.",
+    description: "Reads the capsule without mutating it and renders the execution table.",
+    flags: [
+      requiredFlag("run", "string", "Capsule run root."),
+      optionalFlag("detailed", "bool", "Include the raw state in the JSON result."),
+    ],
+    readsStdin: false,
+    takesRemainder: false,
+    exitCodes: DEFAULT_EXIT_CODES,
+    examples: ["bun harness.ts run:status --run .capsules/<run-id>"],
+    handler: runStatusCommand,
+  },
+  {
+    name: "run:complete",
+    aliases: [],
+    domain: "run",
+    summary: "Seal the capsule after verifying every completion artifact.",
+    description:
+      "Re-verifies the recorded command evidence and the live repository binding, then commits terminal completion and regenerates the summary suite.",
+    flags: [
+      requiredFlag("run", "string", "Capsule run root."),
+      requiredFlag(
+        "actor",
+        "string",
+        "Who is completing the run. Recorded on the completion event; there is no default actor.",
+      ),
+      optionalFlag("auth-token", "string", "Completion authorisation token."),
+    ],
+    readsStdin: false,
+    takesRemainder: false,
+    exitCodes: DEFAULT_EXIT_CODES,
+    examples: ["bun harness.ts run:complete --run .capsules/<run-id> --actor coordinator"],
+    handler: runCompleteCommand,
+  },
+];

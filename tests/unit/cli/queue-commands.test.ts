@@ -64,7 +64,15 @@ describe("CLI queue commands", () => {
       "planner",
     ]);
 
-    await execute(["plan:compile", "--run", run, "--actor", "planner"]);
+    await execute([
+      "plan:compile",
+      "--run",
+      run,
+      "--actor",
+      "planner",
+      "--completion-gate",
+      "bun test tests",
+    ]);
 
     const next1 = await execute(["queue:next", "--run", run]);
     expect(next1.task).toBeObject();
@@ -118,7 +126,15 @@ describe("CLI queue commands", () => {
       "--actor",
       "planner",
     ]);
-    await execute(["plan:compile", "--run", run, "--actor", "planner"]);
+    await execute([
+      "plan:compile",
+      "--run",
+      run,
+      "--actor",
+      "planner",
+      "--completion-gate",
+      "bun test tests",
+    ]);
     await execute(["queue:pop", "--run", run, "--agent", "w1"]);
 
     await expect(execute(["queue:pop", "--run", run, "--agent", "w2"])).rejects.toThrow(

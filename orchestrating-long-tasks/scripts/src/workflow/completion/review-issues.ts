@@ -1,6 +1,7 @@
 import { requirementExecutionState } from "../authority/index.ts";
 import type { CompletionReview, WorkflowState } from "../types.ts";
-import { completionReviewDigest, jsonDigest } from "./completion-review-digest.ts";
+import { criticIntegrityDigest } from "../../packets/critic-integrity-digest.ts";
+import { completionReviewDigest } from "./completion-review-digest.ts";
 import { completionReadinessSnapshot } from "./readiness-snapshot.ts";
 import { authoritativeRepositoryCommand } from "./repository-evidence.ts";
 import { sameRepositoryBinding } from "./repository-binding.ts";
@@ -26,7 +27,10 @@ function assessmentIssues(state: WorkflowState, review: CompletionReview): strin
     const proof = proofs.get(requirement.id);
     const expected =
       requirementExecutionState(requirement as never) === "disposed" ? "out_of_scope" : "satisfied";
-    if (!proof || proof.status !== expected || proof.evidence.length === 0)
+    if (!proof) issues.push(`completion requirement proof is missing: ${requirement.id}`);
+    else if (proof.status === "unproven" || proof.evidence.length === 0)
+      issues.push(`completion requirement is unproven: ${requirement.id}`);
+    else if (proof.status !== expected)
       issues.push(`completion requirement proof is invalid: ${requirement.id}`);
     for (const evidence of proof?.evidence ?? [])
       if (evidence.kind === "command") {
@@ -57,7 +61,7 @@ function provenanceIssues(state: WorkflowState, review: CompletionReview): strin
       !sameRepositoryBinding(packet.repository_binding, review.repository_binding) ||
       packet.graph_revision !== review.graph_revision ||
       state.graph_revision !== review.graph_revision ||
-      packet.integrity_evidence_sha256 !== jsonDigest(review.integrity_evidence) ||
+      packet.integrity_evidence_sha256 !== criticIntegrityDigest(review.integrity_evidence) ||
       JSON.stringify(packet.repository_command_ids) !==
         JSON.stringify(review.repository_command_ids) ||
       review.review_sha256 !== completionReviewDigest(review)

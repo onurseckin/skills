@@ -42,10 +42,3 @@ export function objectList(
   });
   return objects;
 }
-
-export function promptLines(prompt: string): string[] {
-  if (prompt.length === 0) return [];
-  const lines = prompt.split(/\r\n|[\n\r\v\f\x1c-\x1e\x85\u2028\u2029]/u);
-  if (/\r\n|[\n\r\v\f\x1c-\x1e\x85\u2028\u2029]$/u.test(prompt)) lines.pop();
-  return lines;
-}

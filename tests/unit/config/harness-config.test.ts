@@ -33,6 +33,8 @@ describe("harness-config", () => {
     expect(config).toEqual(DEFAULT_CONFIG);
     expect(config.min_adversarial_rejections).toBe(1);
     expect(config.max_repair_rounds).toBe(6);
+    expect(config.max_branch_depth).toBe(5);
+    expect(config.max_agents).toBe(100);
     expect(config.max_output_bytes).toBe(10 * 1024 * 1024);
     expect(config.default_lease_seconds).toBe(1800);
     expect(config.default_max_parallel).toBe(4);
@@ -44,6 +46,8 @@ describe("harness-config", () => {
     const custom = {
       min_adversarial_rejections: 4,
       max_repair_rounds: 8,
+      max_branch_depth: 3,
+      max_agents: 12,
       max_output_bytes: 5 * 1024 * 1024,
       default_lease_seconds: 900,
       default_max_parallel: 2,

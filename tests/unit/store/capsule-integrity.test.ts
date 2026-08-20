@@ -47,9 +47,11 @@ describe("run capsule and integrity", () => {
     expect(loaded.manifest.capture_mode).toBe("verbatim_context_copy");
     expect(loaded.manifest.assurance).toBe("recorded-unverified");
     expect(statSync(join(run, "prompt.md")).mode & 0o222).toBe(0);
-    for (const directory of ["evidence", "findings", "reports", "commands"]) {
+    for (const directory of ["evidence", "blobs", "reports", "commands", "planning"]) {
       expect(statSync(join(run, directory)).isDirectory()).toBeTrue();
     }
+    expect(existsSync(join(run, "findings"))).toBeFalse();
+    expect(readFileSync(join(run, "README.md"), "utf-8")).toContain("blobs/");
     expect(readFileSync(join(run, "events.jsonl"))).toHaveLength(0);
     expect(loaded.state.event_sequence).toBe(0);
   });
@@ -108,7 +110,7 @@ describe("run capsule and integrity", () => {
     const run = initRun(root, "lightweight", bytes("prompt"), "file", true);
     expect(existsSync(join(run, "tmp"))).toBeFalse();
     expect(existsSync(join(run, "runtime"))).toBeFalse();
-    for (const directory of ["evidence", "findings", "reports", "commands"]) {
+    for (const directory of ["evidence", "blobs", "reports", "commands", "planning"]) {
       expect(existsSync(join(run, directory))).toBeTrue();
     }
     const loaded = loadRun(run);

@@ -11,11 +11,11 @@ describe("installer link diagnostics", () => {
   test("doctor reports missing wrong and broken requested links", async () => {
     const { source, home } = await installerFixture();
     const installed = await installSkill(source, home, ["claude", "antigravity"]);
-    const claude = join(home, ".claude", "skills", "orchestrating-long-tasks");
-    const antigravity = join(home, ".gemini", "config", "skills", "orchestrating-long-tasks");
-    await unlink(claude);
-    await unlink(antigravity);
-    await symlink(join(home, "missing-release"), antigravity);
+    const clientLink = join(home, ".claude", "skills", "orchestrating-long-tasks");
+    const otherClientLink = join(home, ".gemini", "config", "skills", "orchestrating-long-tasks");
+    await unlink(clientLink);
+    await unlink(otherClientLink);
+    await symlink(join(home, "missing-release"), otherClientLink);
 
     const missing = await installationStatus(source, home);
     expect(missing.drifted).toBeTrue();
@@ -34,9 +34,9 @@ describe("installer link diagnostics", () => {
   test("doctor reports a non-symlink requested client path", async () => {
     const { source, home } = await installerFixture();
     await installSkill(source, home, ["claude"]);
-    const claude = join(home, ".claude", "skills", "orchestrating-long-tasks");
-    await unlink(claude);
-    await mkdir(claude);
+    const clientLink = join(home, ".claude", "skills", "orchestrating-long-tasks");
+    await unlink(clientLink);
+    await mkdir(clientLink);
     const status = await installationStatus(source, home);
     expect(
       status.issues.some((issue) => issue.includes("claude") && issue.includes("not a symlink")),

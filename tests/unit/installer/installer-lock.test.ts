@@ -21,7 +21,15 @@ describe("kernel installer ownership", () => {
     const first = await reader.read();
     expect(new TextDecoder().decode(first.value)).toContain("locked");
     expect(() => acquireInstallerLock(parent)).toThrow(/lock|owned|busy/i);
+
     child.kill("SIGTERM");
-    expect(await child.exited).toBe(0);
+    const exitCode = await child.exited;
+
+    // The worker installs its SIGTERM handler before it announces the lock, so a kill that follows
+    // "locked" always reaches the handler: it releases and exits, never dying on the signal itself.
+    expect(child.signalCode).toBeNull();
+    expect(exitCode).toBe(0);
+    // Release really ran if the parent can now take the lock the worker was holding.
+    acquireInstallerLock(parent).release();
   });
 });

@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
+import { COMMAND_REGISTRY } from "../../../orchestrating-long-tasks/scripts/src/cli/registry/index.ts";
 
 describe("host adapters & two-tier architecture specifications", () => {
   const root = join(import.meta.dir, "../../..");
@@ -28,21 +29,28 @@ describe("host adapters & two-tier architecture specifications", () => {
     expect(content).toContain("Silent Worker Recovery & Heartbeats");
   });
 
-  test("SKILL.md references two-tier isolation and host adapters", () => {
+  test("SKILL.md routes to host-adapters.md instead of restating the tier ladder", () => {
     expect(existsSync(skillPath)).toBe(true);
     const content = readFileSync(skillPath, "utf8");
 
-    expect(content).toContain("Two-Tier Agent Architecture & Main Thread Isolation");
-    expect(content).toContain("Background Run Coordinator");
     expect(content).toContain("references/host-adapters.md");
+    expect(content).toContain("main-thread isolation");
+    // The ladder itself is specified once, in host-adapters.md.
+    expect(content).not.toContain("Tier 1 (Main Interactive Thread)");
+    expect(content).not.toContain("Tier 3 (Implementer, Validator & Critic Subagents)");
   });
 
   test("all 4 multi-agent YAML specifications exist with proper tier metadata", () => {
     const agentDir = join(root, "orchestrating-long-tasks/agents");
-    const roles = ["coordinator", "worker", "validator", "critic"];
+    const personas = {
+      coordinator: "coordinator",
+      worker: "implementer",
+      validator: "validator",
+      critic: "completeness-critic",
+    };
 
-    for (const role of roles) {
-      const file = join(agentDir, `${role}.yaml`);
+    for (const [persona, role] of Object.entries(personas)) {
+      const file = join(agentDir, `${persona}.yaml`);
       expect(existsSync(file)).toBe(true);
       const yaml = readFileSync(file, "utf8");
       expect(yaml).toContain(`role: "${role}"`);
@@ -51,33 +59,23 @@ describe("host adapters & two-tier architecture specifications", () => {
     }
   });
 
-  test("references/cli.md documents all 18 colon commands", () => {
+  test("references/cli.md points at the generated manifest instead of copying it", () => {
     expect(existsSync(cliDocPath)).toBe(true);
     const content = readFileSync(cliDocPath, "utf8");
 
-    const commands = [
-      "plan:init",
-      "plan:add",
-      "plan:compile",
-      "plan:status",
-      "queue:next",
-      "queue:list",
-      "queue:pop",
-      "task:claim",
-      "task:heartbeat",
-      "task:submit",
-      "task:validate-start",
-      "task:review",
-      "task:reject",
-      "critic:start",
-      "critic:review",
-      "run:exec",
-      "run:status",
-      "run:complete",
-    ];
+    expect(content).toContain("cli-capabilities.md");
+    expect(content).toContain("cli-capabilities.json");
+    expect(content).toContain("bun harness.ts help <command>");
+    // A per-command flag table is the drift the generated manifest exists to prevent.
+    expect(content).not.toContain("| Flag | Type |");
+    expect(content).not.toContain("**Flags**");
+    expect(content.split("\n").length).toBeLessThan(60);
+  });
 
-    for (const cmd of commands) {
-      expect(content).toContain(cmd);
-    }
+  test("every command cli.md names by hand exists in the registry", () => {
+    const content = readFileSync(cliDocPath, "utf8");
+    const known = new Set(COMMAND_REGISTRY.map((spec) => spec.name));
+    const named = [...content.matchAll(/`([a-z][a-z-]*:[a-z][a-z-]*)`/gu)].map((match) => match[1]);
+    for (const command of named) expect(known).toContain(command);
   });
 });

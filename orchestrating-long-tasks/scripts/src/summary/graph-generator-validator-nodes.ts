@@ -1,0 +1,138 @@
+import { buildNodeTelemetry, buildNodeTools, reportedTokenUsage } from "./agent-telemetry.ts";
+import { mapGateStatus, type TaskNodeContext } from "./graph-node-context.ts";
+import { computeGateTiming, computeGateTokens } from "./metrics-collector.ts";
+import { buildNodeBrowserTests } from "./browser-tests.ts";
+import { buildNodeScripts } from "./node-evidence.ts";
+import type { BadgeDetail, GraphNodeData, IoPort, NodeKind, NodeMetrics } from "./types.ts";
+
+function validatorBadge(ctx: TaskNodeContext): BadgeDetail {
+  const { task } = ctx;
+  const probes = task.probe_round ?? 0;
+  if (task.validation?.verdict === "probe" || (probes > 0 && task.status === "validating")) {
+    return {
+      text: `Adversarial Probe (Round ${probes})`,
+      variant: "info",
+      icon: "IconSearch",
+      targetTab: "feedback",
+    };
+  }
+  if (task.status === "changes_requested") {
+    return {
+      text: `Pushback: ${ctx.findings.length} Finding${ctx.findings.length === 1 ? "" : "s"}`,
+      variant: "warning",
+      icon: "IconAlertTriangle",
+      targetTab: "feedback",
+    };
+  }
+  if (task.status === "done" || task.status === "validated") {
+    return { text: "Verification Complete", variant: "success", icon: "IconShieldCheck" };
+  }
+  return { text: "Auditing", variant: "info", icon: "IconShield" };
+}
+
+function validatorIo(ctx: TaskNodeContext): { inputs: IoPort[]; outputs: IoPort[] } {
+  const { task, files, findings } = ctx;
+  const probes = task.probe_round ?? 0;
+  const inputs: IoPort[] = [
+    {
+      node: ctx.taskNodeId,
+      kind: "file",
+      label: "Task Submission",
+      preview: `${files.length} modified files handed off for verification`,
+    },
+    {
+      node: "node-orchestrator-plan",
+      kind: "artifact",
+      label: "Acceptance Criteria",
+      preview: `Requirements bound to ${task.id}: ${task.requirement_ids.join(", ")}`,
+    },
+  ];
+
+  const outputs: IoPort[] = [
+    {
+      kind: "decision",
+      label: "Verification Verdict",
+      preview:
+        task.validation?.verdict !== undefined
+          ? `Recorded verdict: ${task.validation.verdict}`
+          : `Task status: ${task.status}`,
+    },
+    {
+      kind: "artifact",
+      label: "Validator Findings",
+      preview: `${findings.length} findings recorded (${findings.filter((f) => f.status === "resolved").length} resolved)`,
+    },
+  ];
+  if (probes > 0) {
+    outputs.push({
+      kind: "decision",
+      label: "Adversarial Probe Demands",
+      preview: `${probes} probe round${probes === 1 ? "" : "s"} demanding proof`,
+    });
+  }
+  return { inputs, outputs };
+}
+
+/**
+ * The validator is an agent with its own commands, findings and grant — not a property of the gate
+ * it feeds. Fusing the two is what made the implementer→validator→gate chain unreadable.
+ */
+export function buildValidatorNode(ctx: TaskNodeContext): GraphNodeData {
+  const { task, validatorId, validatorCommands, ledger } = ctx;
+  const nodeId = ctx.validatorNodeId ?? `node-validator-${task.id}`;
+  const assets = ctx.validatorAssets;
+
+  const telemetry = buildNodeTelemetry(validatorId, ledger);
+  const tools = buildNodeTools(validatorId, ledger);
+  const timingBreakdown = computeGateTiming(task, ctx.events, validatorCommands);
+  const tokens = computeGateTokens(
+    task,
+    validatorCommands,
+    reportedTokenUsage(validatorId, ledger),
+  );
+
+  const metrics: NodeMetrics = {
+    ...(tokens.inputTokens !== undefined ? { tokensIn: tokens.inputTokens } : {}),
+    ...(tokens.outputTokens !== undefined ? { tokensOut: tokens.outputTokens } : {}),
+    ...(tokens.costUsd !== undefined ? { costUsd: tokens.costUsd } : {}),
+    ...(timingBreakdown ? { durationMs: timingBreakdown.wallDurationMs } : {}),
+    commandCount: validatorCommands.length,
+    retries: task.repair_round ?? 0,
+    tokens,
+    ...(timingBreakdown ? { timingBreakdown } : {}),
+  };
+
+  const browserTests = buildNodeBrowserTests(validatorCommands, ctx.runRoot);
+  const io = validatorIo(ctx);
+  const description =
+    typeof task.validation?.plan === "string" && task.validation.plan.trim().length > 0
+      ? task.validation.plan
+      : `Independent verification of ${ctx.taskName}.`;
+
+  return {
+    id: nodeId,
+    name: validatorId ? `Validator: ${validatorId}` : `Validator: ${ctx.taskName}`,
+    description,
+    kind: "agent" as NodeKind,
+    status: mapGateStatus(task),
+    step: ctx.gateStep,
+    stepLabel: `Wave ${ctx.taskWave} · Verification`,
+    badge: validatorBadge(ctx),
+    ...(telemetry ? { telemetry } : {}),
+    ...(tools.length > 0 ? { tools } : {}),
+    scripts: buildNodeScripts(validatorCommands, ctx.runRoot),
+    ...(browserTests.length > 0 ? { browserTests } : {}),
+    ...(assets.length > 0 ? { assets } : {}),
+    metrics,
+    io: { inputs: io.inputs, outputs: io.outputs },
+    metadata: {
+      role: "validator",
+      ...(validatorId ? { agentId: validatorId, validatorId } : {}),
+      findings: ctx.findings,
+      repairRounds: task.repair_round ?? 0,
+      probeRounds: task.probe_round ?? 0,
+      validationHistory: task.validation_history ?? [],
+      ...(task.validation?.verdict !== undefined ? { verdict: task.validation.verdict } : {}),
+    },
+  };
+}

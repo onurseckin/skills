@@ -1,9 +1,10 @@
 # Validator-green schema examples
 
 These are complete, executable examples for runtime version 1. The test
-`scripts/tests/packets/schema-examples.test.ts` parses every block below and runs the production
-requirements, graph, submission, and review validators. Do not remove required fields or substitute
-agent prose for command-backed evidence.
+`tests/unit/packets/schema-examples.test.ts` parses the requirements, graph, submission and review
+blocks below and runs the production validators over them, so those four cannot drift from the code.
+The state-record examples that follow them show the shapes the harness itself writes. Do not remove
+required fields or substitute agent prose for command-backed evidence.
 
 ## Requirements
 
@@ -230,6 +231,7 @@ the task write scope. `checks` and `evidence` are nonempty substantive object li
   "findings": [
     {
       "id": "F-001",
+      "class": "defect",
       "requirement_id": "R-001",
       "severity": "important",
       "observation": "prompt.md retains writable mode bits after initialization.",
@@ -241,8 +243,10 @@ the task write scope. `checks` and `evidence` are nonempty substantive object li
 }
 ```
 
-A rejection has at least one mapped, substantive finding. The validator command ID must resolve to
-a fresh successful command owned by the active validator when the review is recorded.
+A rejection has at least one mapped, substantive finding, and `class` is `defect`: a rejection
+asserts that something is broken. A review verdict may not carry a `probe_demand` finding — those are
+recorded with `task:probe`. The validator command ID must resolve to a fresh successful command owned
+by the active validator when the review is recorded.
 
 ## Validator pass after repair
 
@@ -265,3 +269,185 @@ a fresh successful command owned by the active validator when the review is reco
 A repaired pass explicitly resolves every open finding with fresh command-backed evidence. Runtime
 authorization additionally requires a different validator identity from all earlier validation
 rounds and from every implementer or repairer.
+
+## Adversarial probe demand
+
+`task:probe --demand "Prove the parser rejects an empty payload"` files one finding per demand. A
+probe demand asserts nothing about the code, so requiring one is not fabrication:
+
+```json
+{
+  "id": "probe-task-1-01-1",
+  "class": "probe_demand",
+  "requirement_id": "R-001",
+  "severity": "minor",
+  "evidence": [
+    {
+      "kind": "demand",
+      "detail": "Prove the parser rejects an empty payload",
+      "evidence_class": "agent_reported"
+    }
+  ],
+  "observation": "Prove the parser rejects an empty payload",
+  "remediation": "Answer the demand with evidence, or record a defect with task:reject if it does not hold.",
+  "revalidation": "Cite a command id that proves this for task-1",
+  "status": "open",
+  "probe_round": 1
+}
+```
+
+`severity` is the lowest the finding contract allows because a demand grades nothing; what separates
+it from a defect is `class`, never severity. When the probe cites command ids, `evidence` carries one
+`{ "kind": "command", "reference": "<command-id>", "evidence_class": "harness_observed" }` entry per
+id instead of the agent-reported demand entry. The demand is closed by
+`task:review --status pass --resolve probe-task-1-01-1=<command-id>`, which records a
+`probe_demand_answered` resolution.
+
+## Branch record
+
+One entry in `state.branches`, after a collect:
+
+```json
+{
+  "id": "B-4f1c2a9e6b0d4d18a1b6c2e5f70d3a91",
+  "parent_task_id": "task-1",
+  "parent_agent_id": "worker-1",
+  "reason": "the parser rewrite blocks the API change and the two touch disjoint trees",
+  "depth": 1,
+  "status": "collected",
+  "opened_at": "2026-08-19T10:04:11.000Z",
+  "collected_at": "2026-08-19T10:41:52.000Z",
+  "outcome_summary": "Parser fixed; API change unblocked.",
+  "sub_tasks": [
+    {
+      "id": "S-1",
+      "label": "Fix the parser",
+      "write_scope": ["src/store/parser"],
+      "gate": "bun test tests/unit/store/parser.test.ts",
+      "status": "submitted",
+      "agent_id": "sub-1",
+      "claimed_at": "2026-08-19T10:05:02.000Z",
+      "submitted_at": "2026-08-19T10:39:18.000Z",
+      "summary": "Parser accepts the new grammar and rejects the empty payload."
+    }
+  ],
+  "files_changed": {
+    "value": ["src/store/parser/grammar.ts"],
+    "evidence_class": "harness_observed"
+  },
+  "collected_observation": {
+    "observed_at": "2026-08-19T10:41:52.000Z",
+    "git_available": true,
+    "head": "9d3b7c1f0a52d84e6b19f4c7a20e5d8b3f6c1a94",
+    "entries": [
+      {
+        "path": "src/store/parser/grammar.ts",
+        "status_code": " M",
+        "sha256": "3c9a1e7d5b2f48c6a0d93e1b7f45c82a6d0e39b1c74f2a8560de3b91c7a4f605"
+      }
+    ]
+  }
+}
+```
+
+Sub-task scopes are subsets of the parent scope and disjoint from each other. `files_changed` is only
+present when Git could be read; `git_available: false` leaves it absent rather than empty.
+
+## Agent grant
+
+One entry in `state.agents`, after the host reported telemetry:
+
+```json
+{
+  "id": "worker-1",
+  "role": "implementer",
+  "parent_agent_id": "coordinator-1",
+  "parent_task_id": "task-1",
+  "host": "claude-code",
+  "granted_at": "2026-08-19T09:58:40.000Z",
+  "status": "active",
+  "model": { "value": "claude-opus-5", "evidence_class": "host_reported" },
+  "model_tier": { "value": "l", "evidence_class": "host_reported" },
+  "thinking_level": { "value": "high", "evidence_class": "host_reported" },
+  "tools_granted": { "value": ["Read", "Edit", "Bash"], "evidence_class": "agent_reported" },
+  "tools_used": [
+    {
+      "name": "Read",
+      "evidence_class": "agent_reported",
+      "first_reported_at": "2026-08-19T10:02:00.000Z"
+    }
+  ],
+  "tokens_in": { "value": 18000, "evidence_class": "host_reported" },
+  "tokens_out": { "value": 2400, "evidence_class": "host_reported" },
+  "last_reported_at": "2026-08-19T10:02:00.000Z",
+  "report_count": 1
+}
+```
+
+A grant the host reported nothing about carries `id`, `role`, `parent_agent_id`, `parent_task_id`,
+`host`, `granted_at` and `status` alone. The missing fields stay missing and render as "unknown";
+none of them is filled in from the exporting machine. Tool names arrive over the CLI from the agent,
+so they are `agent_reported` even when the model, tier and token counts are `host_reported`. Counts
+recorded with `--tokens-estimated` carry `"evidence_class": "derived"` and `"is_estimated": true`.
+
+## Topology record
+
+`state.topology`, written once by `plan:compile`:
+
+```json
+{
+  "revision": 1,
+  "max_parallel": 4,
+  "waves": [
+    { "wave": 1, "task_ids": ["task-1", "task-2"] },
+    { "wave": 2, "task_ids": ["task-3"] }
+  ],
+  "decisions": [
+    {
+      "task_id": "task-2",
+      "wave": 1,
+      "parallel_with": ["task-1"],
+      "serialized_after": [],
+      "reason": "priority_capacity",
+      "rationale": "Disjoint write scopes and no dependency; both fit inside max_parallel.",
+      "evidence_class": "derived"
+    },
+    {
+      "task_id": "task-3",
+      "wave": 2,
+      "parallel_with": [],
+      "serialized_after": ["task-1"],
+      "reason": "dependency",
+      "rationale": "task-3 depends on task-1.",
+      "evidence_class": "derived"
+    }
+  ]
+}
+```
+
+`rationale` is `agent_reported` only when a coordinator supplied the sentence; the harness's own
+explanation is `derived`. There is no third source, so a decision never carries prose nobody wrote.
+
+## Enhanced plan record
+
+`state.planning.enhanced_plan`, written by `plan:enhance`:
+
+```json
+{
+  "markdown_path": "planning/enhanced-plan.md",
+  "json_path": "planning/enhanced-plan.json",
+  "markdown_sha256": "b71f0c5a9e34d8271c6f0a4b5d9e2731c84a6f05b3d1e97240ac68b5f31d7e02",
+  "json_sha256": "5a4c81f30b9d6e27f1a83c05b47de962184c7f30a2b6d5e91c380f47a6b2d1e8",
+  "revision": 1,
+  "prompt_sha256": "fe515cb0785793c167ccb9259e21974d41a6935703ac03176d3e5e88159f9aa0",
+  "recorded_at": "2026-08-19T09:51:07.000Z",
+  "actor": "planner",
+  "evidence_class": "agent_reported",
+  "counts": { "observations": 3, "todos": 5, "risks": 2, "open_questions": 1, "sources": 7 }
+}
+```
+
+The harness hashed the two artifacts it wrote, but their contents are the agent's claim, which is
+why the record is `agent_reported`. `prompt_sha256` ties the enhancement to the prompt it was written
+against; the prompt keeps requirement authority and this document never becomes the requirement
+source.

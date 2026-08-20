@@ -1,4 +1,5 @@
 import { posix } from "node:path";
+import { scopeConflict } from "../scheduler/conflicts.ts";
 
 export interface TaskScopeInput {
   taskId: string;
@@ -39,6 +40,13 @@ export function normalizeScopePath(path: string): string {
   return normalized;
 }
 
+/** The deeper pattern names the collision: it is the one whose files the broader scope swallows. */
+function moreSpecific(left: string, right: string): string {
+  const depth = left.split("/").length - right.split("/").length;
+  if (depth !== 0) return depth > 0 ? left : right;
+  return left.length >= right.length ? left : right;
+}
+
 export function checkScopeOverlap(
   scopesA: readonly string[],
   scopesB: readonly string[],
@@ -52,11 +60,10 @@ export function checkScopeOverlap(
       if (a === b) {
         return { hasOverlap: true, conflictingPath: a, relation: "exact_match" };
       }
-      if (a.startsWith(`${b}/`)) {
-        return { hasOverlap: true, conflictingPath: a, relation: "parent_child" };
-      }
-      if (b.startsWith(`${a}/`)) {
-        return { hasOverlap: true, conflictingPath: b, relation: "parent_child" };
+      // Detection is `scopeConflict`, the same predicate the scheduler serializes on, so plan time
+      // and run time cannot disagree about which declarations collide.
+      if (scopeConflict([a], [b])) {
+        return { hasOverlap: true, conflictingPath: moreSpecific(a, b), relation: "parent_child" };
       }
     }
   }

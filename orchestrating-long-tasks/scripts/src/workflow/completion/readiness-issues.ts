@@ -1,3 +1,4 @@
+import { openBranchIssues } from "../branch/completion-blockers.ts";
 import { applicableGates } from "../gates/gate-policy.ts";
 import { commandMatchesGate } from "../gates/gate-policy.ts";
 import { embeddedCommandIssues } from "../../runner/command-shape.ts";
@@ -112,6 +113,7 @@ export function completionReadinessIssues(state: WorkflowState): string[] {
     if (!command) issues.push(`run gate ${gate.id} lacks an authoritative passing command`);
   }
   issues.push(...orphanEvidenceIssues(state));
+  issues.push(...openBranchIssues(state));
   for (const id of Object.values(state.commands)
     .filter((entry) => entry.task_id === null && entry.gate_id === null)
     .map(({ id }) => id))

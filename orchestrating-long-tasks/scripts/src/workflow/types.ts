@@ -1,3 +1,4 @@
+import type { BranchRecord } from "../contracts/branch.ts";
 import type { CommandRecord } from "../contracts/commands.ts";
 import type { Finding, GateResult, Lease, TaskStatus } from "../contracts/workflow.ts";
 import type { JsonObject, JsonValue } from "../contracts/json.ts";
@@ -41,7 +42,7 @@ export interface ValidationAttempt extends JsonObject {
   attempt: number;
   started_at: string;
   deadline_at: string;
-  verdict?: "pass" | "reject";
+  verdict?: "pass" | "probe" | "reject";
   reviewed_requirement_ids?: string[];
   checks?: CommandProof[];
 }
@@ -65,6 +66,7 @@ export interface TaskRecord extends JsonObject {
   attempts: JsonObject[];
   history: TaskHistory[];
   repair_round: number;
+  probe_round?: number;
   original_implementer?: string;
   repair_assignee?: string;
   replacement_reason?: "repeated_failure" | "stale" | "unavailable";
@@ -140,6 +142,7 @@ export interface WorkflowState extends JsonObject {
   graph_revision?: number;
   current_repository_binding?: RepositoryBinding;
   packets?: { [packetId: string]: PacketRecord };
+  branches?: BranchRecord[];
   completion_critic?: CompletionCriticAuthorization;
   completion_critic_history?: CompletionCriticAuthorization[];
   completion_review?: CompletionReview;

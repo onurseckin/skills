@@ -1,129 +1,78 @@
-import type { TaskRecord, WorkflowState } from "../workflow/types.ts";
+import type { Manifest } from "../contracts/capsule.ts";
+import type { CommandRecord } from "../contracts/commands.ts";
+import type { WorkflowState } from "../workflow/types.ts";
+import {
+  renderAgents,
+  renderBranches,
+  renderFilesChanged,
+  renderPhases,
+  renderTaskTrajectory,
+} from "./markdown-execution-sections.ts";
+import {
+  renderCritic,
+  renderGates,
+  renderProbesAndPushbacks,
+  renderScripts,
+  renderTelemetry,
+  renderTimeline,
+  renderTools,
+} from "./markdown-evidence-sections.ts";
+import {
+  renderEnhancedPlan,
+  renderOriginalPrompt,
+  renderRequirements,
+  renderRunIdentity,
+  renderTaskGraph,
+  renderTopology,
+} from "./markdown-plan-sections.ts";
+import { buildReportContext } from "./markdown-report-context.ts";
 import type { RollupMetrics, TimelineEventRecord } from "./types.ts";
 
 export interface MarkdownFormatterInput {
   runId: string;
+  /** Capsule root, so the report can quote the planning and review artifacts the run wrote. */
+  runRoot: string;
+  manifest: Manifest;
+  /** The verbatim prompt bytes, decoded. The report quotes them rather than paraphrasing. */
+  promptText: string;
   metrics: RollupMetrics;
   timeline: TimelineEventRecord[];
   state: Readonly<WorkflowState>;
+  /** Command records read from the capsule, merged over the ones the projection carries. */
+  commands: Record<string, CommandRecord>;
 }
 
-function formatDuration(ms: number): string {
-  if (ms < 1000) return `${ms}ms`;
-  const sec = (ms / 1000).toFixed(1);
-  if (ms < 60_000) return `${sec}s`;
-  const min = (ms / 60_000).toFixed(1);
-  return `${min}m (${sec}s)`;
-}
-
+/**
+ * The human-readable sibling of `graph.json`: read top to bottom it is the whole run, in run order,
+ * complete on its own. Anything the run did not record renders as unknown rather than as a default,
+ * so a reader can tell the difference between a zero and a silence.
+ */
 export function formatSummaryMarkdown(input: MarkdownFormatterInput): string {
-  const { runId, metrics, timeline, state } = input;
-  const tasks = Object.values(state.tasks ?? {}) as TaskRecord[];
-
-  const lines: string[] = [];
-  lines.push(`# Execution Run Summary: \`${runId}\``);
-  lines.push("");
-  lines.push("## Executive Metrics");
-  lines.push("");
-  lines.push("| Metric | Value | Metric | Value |");
-  lines.push("| :--- | :--- | :--- | :--- |");
-  lines.push(
-    `| **Total Tasks** | ${metrics.total_tasks} | **Satisfied Tasks** | ${metrics.satisfied_tasks} / ${metrics.total_tasks} |`,
-  );
-  lines.push(
-    `| **Wall Duration** | ${formatDuration(metrics.wall_duration_ms)} | **Active Compute** | ${formatDuration(metrics.active_command_duration_ms)} |`,
-  );
-  lines.push(
-    `| **Commands Executed** | ${metrics.total_commands_executed} | **Gates Passed** | ${metrics.total_gates_passed} |`,
-  );
-  lines.push(
-    `| **Repair Rounds** | ${metrics.repair_rounds_total} | **Failed Tasks** | ${metrics.failed_tasks} |`,
-  );
-  lines.push(
-    `| **Est. Tokens In** | ${metrics.estimated_tokens.tokens_in.toLocaleString()} | **Est. Tokens Out** | ${metrics.estimated_tokens.tokens_out.toLocaleString()} |`,
-  );
-  lines.push(
-    `| **Total Tokens** | ${metrics.estimated_tokens.total_tokens.toLocaleString()} | **Files Touched** | ${metrics.files_touched.length} files |`,
-  );
-  lines.push("");
-
-  lines.push("## Task Trajectory & Validation Breakdown");
-  lines.push("");
-  lines.push("| Task ID | Label | Status | Agent | Repair Rounds | Write Scope |");
-  lines.push("| :--- | :--- | :--- | :--- | :--- | :--- |");
-  for (const t of tasks) {
-    const label = typeof t.label === "string" ? t.label : t.id;
-    const statusText =
-      t.status === "done" ? "Done" : t.status === "changes_requested" ? "Repair" : t.status;
-    const agent = t.lease?.agent_id ?? t.original_implementer ?? "-";
-    const writeScope = t.write_scope.join(", ") || "-";
-    lines.push(
-      `| \`${t.id}\` | ${label} | ${statusText} | \`${agent}\` | ${t.repair_round ?? 0} | \`${writeScope}\` |`,
-    );
-  }
-  lines.push("");
-
-  if (
-    (metrics.pushbacks_total ?? 0) > 0 &&
-    Array.isArray(metrics.pushback_rounds) &&
-    metrics.pushback_rounds.length > 0
-  ) {
-    lines.push("## Pushback Analysis & Repair Iterations");
-    lines.push("");
-    lines.push(`- **Total Pushback Rounds**: ${metrics.pushbacks_total}`);
-    lines.push(`- **Resolved Findings**: ${metrics.resolved_findings_total ?? 0}`);
-    lines.push(`- **Open Findings**: ${metrics.open_findings_total ?? 0}`);
-    lines.push("");
-    lines.push("| Task ID | Repair Round | Findings Count | Remediation / Primary Finding |");
-    lines.push("| :--- | :--- | :--- | :--- |");
-    for (const pb of metrics.pushback_rounds) {
-      lines.push(
-        `| \`${pb.task_id}\` | Round ${pb.round} | ${pb.findings_count} findings | ${pb.reason ?? "-"} |`,
-      );
-    }
-    lines.push("");
-  }
-
-  lines.push("## Edge Traffic & Inter-Agent Exchanges");
-  lines.push("");
-  lines.push(`- **Total Inter-Agent Exchanges**: ${metrics.total_edge_traffic_exchanges ?? 0}`);
-  lines.push(
-    `- **Total Traffic Token Volume**: ~${(metrics.total_edge_traffic_tokens ?? 0).toLocaleString()} tokens`,
-  );
-  lines.push(`- **Validator Media Assets**: ${metrics.total_media_assets ?? 0} assets recorded`);
-  lines.push("");
-
-  if (metrics.files_touched.length > 0) {
-    lines.push("## Files Touched & Churn");
-    lines.push("");
-    lines.push("| File Path | Status | Additions | Deletions |");
-    lines.push("| :--- | :--- | :--- | :--- |");
-    for (const file of metrics.files_touched) {
-      lines.push(`| \`${file.path}\` | Modified | +${file.additions} | -${file.deletions} |`);
-    }
-    lines.push("");
-  }
-
-  lines.push("## Timeline Milestones");
-  lines.push("");
-  lines.push("| # | Time (UTC) | Phase | Actor | Event Summary |");
-  lines.push("| :--- | :--- | :--- | :--- | :--- |");
-  const sampleEvents =
-    timeline.length <= 15 ? timeline : [...timeline.slice(0, 8), ...timeline.slice(-7)];
-  for (const event of sampleEvents) {
-    const timeStr = event.timestamp.includes("T")
-      ? (event.timestamp.split("T")[1]?.slice(0, 8) ?? event.timestamp)
-      : event.timestamp;
-    lines.push(
-      `| ${event.sequence} | \`${timeStr}\` | **${event.phase}** | \`${event.actor}\` | ${event.summary} |`,
-    );
-  }
-  lines.push("");
-
-  lines.push("---");
-  lines.push(`*Generated deterministically by Capsule Summary Engine for GVUI Visualization.*`);
-  lines.push(`*Preview in GVUI: \`bun run gvui:import --capsule <path>\`*`);
-  lines.push("");
-
+  const context = buildReportContext(input);
+  const lines: string[] = [
+    `# Execution Run Report: \`${context.runId}\``,
+    "",
+    ...renderRunIdentity(context),
+    ...renderOriginalPrompt(context),
+    ...renderEnhancedPlan(context),
+    ...renderRequirements(context),
+    ...renderTopology(context),
+    ...renderTaskGraph(context),
+    ...renderPhases(context),
+    ...renderTaskTrajectory(context),
+    ...renderAgents(context),
+    ...renderBranches(context),
+    ...renderFilesChanged(context),
+    ...renderScripts(context),
+    ...renderTools(context),
+    ...renderProbesAndPushbacks(context),
+    ...renderGates(context),
+    ...renderCritic(context),
+    ...renderTelemetry(context),
+    ...renderTimeline(context),
+    "---",
+    `Generated from the capsule at \`${context.runRoot}\`. Every value is labelled with the evidence that supports it.`,
+    "",
+  ];
   return lines.join("\n");
 }

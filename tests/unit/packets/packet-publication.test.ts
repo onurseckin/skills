@@ -33,7 +33,6 @@ function claimed() {
     task: claim.state.tasks["T-1"],
     state: claim.state,
     commonInstructions: common,
-    roleInstructions: "Implement the contract.",
     authoritativeContext: { original_prompt: "Implement R-1", ...inspectionContext() },
     evidenceSchema: { required: ["evidence"] },
     targetedCommands: [["bun", "test"]],
@@ -202,7 +201,6 @@ describe("durable packet publication", () => {
       agentId: "critic",
       state: assignment.state,
       commonInstructions: common,
-      roleInstructions: "Audit the whole run.",
       authoritativeContext: {
         ...inspectionContext(),
         original_prompt: "Implement R-1",

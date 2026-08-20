@@ -85,7 +85,7 @@ describe("Round 3: Finding Screenshots & Evidence Extraction", () => {
     expect(shot1?.mimeType).toBe("image/png");
     expect(shot1?.title).toBe("Finding Screenshot: header-mobile-fail.png");
     expect(shot1?.description).toBe("Screenshot evidence for finding F-STR-ARRAY");
-    expect(shot1?.dimensions).toEqual({ width: 1280, height: 720 });
+    expect(shot1?.dimensions).toBeUndefined();
     expect(shot1?.author).toBe("val-playwright");
     expect(shot1?.metadata?.stage).toBe("validation");
     expect(shot1?.metadata?.findingId).toBe("F-STR-ARRAY");
@@ -105,7 +105,7 @@ describe("Round 3: Finding Screenshots & Evidence Extraction", () => {
     const singularShot = fObj?.screenshots?.[1];
     expect(singularShot?.url).toBe("evidence/screenshots/contrast-fixed.webp");
     expect(singularShot?.mimeType).toBe("image/webp");
-    expect(singularShot?.dimensions).toEqual({ width: 1280, height: 720 });
+    expect(singularShot?.dimensions).toBeUndefined();
 
     const fEv = findings.find((f) => f.id === "F-EVIDENCE-REFS");
     expect(fEv).toBeDefined();
@@ -140,7 +140,7 @@ describe("Round 3: Finding Screenshots & Evidence Extraction", () => {
     expect(shot1.url).toBe("screenshots/diff.webp");
     expect(shot1.mimeType).toBe("image/webp");
     expect(shot1.type).toBe("image");
-    expect(shot1.dimensions).toEqual({ width: 1280, height: 720 });
+    expect(shot1.dimensions).toBeUndefined();
     expect(shot1.metadata?.stage).toBe("validation");
     expect(shot1.metadata?.findingId).toBe("F-STRING-EVIDENCE");
     expect(shot1.author).toBe("validator-playwright");
@@ -149,7 +149,7 @@ describe("Round 3: Finding Screenshots & Evidence Extraction", () => {
     expect(shot2.url).toBe("reports/evidence-01.png");
     expect(shot2.mimeType).toBe("image/png");
     expect(shot2.type).toBe("image");
-    expect(shot2.dimensions).toEqual({ width: 1280, height: 720 });
+    expect(shot2.dimensions).toBeUndefined();
     expect(shot2.metadata?.stage).toBe("validation");
     expect(shot2.metadata?.findingId).toBe("F-STRING-EVIDENCE");
   });
@@ -211,7 +211,7 @@ describe("Round 3: Finding Screenshots & Evidence Extraction", () => {
 
     const webpShot = f.screenshots?.find((s) => s.url === "evidence/diff-01.webp");
     expect(webpShot?.mimeType).toBe("image/webp");
-    expect(webpShot?.dimensions).toEqual({ width: 1280, height: 720 });
+    expect(webpShot?.dimensions).toBeUndefined();
     expect(webpShot?.metadata?.stage).toBe("validation");
     expect(webpShot?.metadata?.findingId).toBe("F-MIXED-01");
 
@@ -227,7 +227,7 @@ describe("Round 3: Finding Screenshots & Evidence Extraction", () => {
     expect(gifShot?.mimeType).toBe("image/gif");
   });
 
-  test("uniformly normalizes MIME types and fallback dimensions for all supported image extensions (.png, .jpg, .jpeg, .webp, .gif, .svg, .bmp)", () => {
+  test("normalizes MIME types for every supported image extension and measures no dimensions", () => {
     const extensions = [
       { ext: "png", expectedMime: "image/png" },
       { ext: "jpg", expectedMime: "image/jpeg" },
@@ -250,7 +250,8 @@ describe("Round 3: Finding Screenshots & Evidence Extraction", () => {
       expect(asset.url).toBe(`artifacts/render.${ext}`);
       expect(asset.mimeType).toBe(expectedMime);
       expect(asset.type).toBe("image");
-      expect(asset.dimensions).toEqual({ width: 1280, height: 720 });
+      // Nothing opened the file, so its resolution is unknown rather than 1280x720.
+      expect(asset.dimensions).toBeUndefined();
       expect(asset.metadata?.stage).toBe("validation");
       expect(asset.metadata?.findingId).toBe(`F-EXT-${ext.toUpperCase()}`);
       expect(asset.author).toBe("auditor");

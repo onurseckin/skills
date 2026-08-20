@@ -1,76 +1,104 @@
+import { readFileSync, statSync } from "node:fs";
+import { basename, extname, resolve } from "node:path";
+import { linkBlobIntoView, putBlobFile } from "../store/blobs.ts";
+import { readCaptures, recordCaptures, type CaptureRecord } from "../store/captures.ts";
 import {
-  copyFileSync,
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  statSync,
-  writeFileSync,
-} from "node:fs";
-import { basename, join, resolve } from "node:path";
-import { discoverScreenshotCandidates, findVisualReportCandidates } from "./screenshot-scanner.ts";
+  discoverScreenshotCandidates,
+  extractImagesFromText,
+  extractVisualReportsFromText,
+  findVisualReportCandidates,
+} from "./screenshot-scanner.ts";
+import { normalizeVisualReport } from "./visual-report.ts";
 import type {
-  ClippingViolation,
-  EvidenceManifestData,
-  OverflowViolation,
   ScreenshotIngestOptions,
   ScreenshotRecord,
-  StackingViolation,
-  ViewportMetrics,
   VisualMetricsReport,
   VisualReportIngestOptions,
 } from "./screenshot-types.ts";
 
+const SCREENSHOT_VIEW_DIRECTORY = "evidence/screenshots";
+const VISUAL_REPORT_VIEW_NAME = "visual-report.json";
+
 function sanitizeFilename(name: string): string {
-  return name.replace(/[^a-zA-Z0-9._-]/g, "_");
+  return name.replace(/[^a-zA-Z0-9._-]/gu, "_");
 }
 
-function updateEvidenceManifest(runRoot: string, newRecords: ScreenshotRecord[]): void {
+function mtimeIso(path: string): string | undefined {
   try {
-    const evidenceDir = join(runRoot, "evidence");
-    mkdirSync(evidenceDir, { recursive: true });
-    const manifestPath = join(evidenceDir, "manifest.json");
-
-    let existing: EvidenceManifestData = { screenshots: [], updated_at: new Date().toISOString() };
-    if (existsSync(manifestPath)) {
-      try {
-        const parsed = JSON.parse(
-          readFileSync(manifestPath, "utf-8"),
-        ) as Partial<EvidenceManifestData>;
-        if (Array.isArray(parsed.screenshots)) {
-          existing.screenshots = parsed.screenshots;
-        }
-      } catch {}
-    }
-
-    const existingMap = new Map<string, ScreenshotRecord>();
-    for (const s of existing.screenshots) {
-      existingMap.set(s.name, s);
-    }
-    for (const record of newRecords) {
-      existingMap.set(record.name, record);
-    }
-
-    const updated: EvidenceManifestData = {
-      screenshots: Array.from(existingMap.values()),
-      updated_at: new Date().toISOString(),
-    };
-
-    writeFileSync(manifestPath, JSON.stringify(updated, null, 2), "utf-8");
-  } catch {}
+    return statSync(path).mtime.toISOString();
+  } catch {
+    return undefined;
+  }
 }
 
+/**
+ * A file the command did not write while it was running is not that command's output. No upper
+ * bound: a process may flush its last file after it exits, and dropping those would lose real
+ * evidence to guard against a defect the lower bound already closes.
+ */
+function writtenDuringRun(path: string, startedAt: string | null | undefined): boolean {
+  if (!startedAt) return true;
+  const start = Date.parse(startedAt);
+  if (!Number.isFinite(start)) return true;
+  try {
+    return statSync(path).mtimeMs >= start;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Whether this capture may be recorded as the caller's work.
+ *
+ * Three things are evidence of that, and nothing else is: the caller named the path, the command
+ * printed the path itself, or the file was written while the command was running. A stale image
+ * sitting at the repository root satisfies none of them, so it is still stored — the bytes are real
+ * — but it is recorded unattributed rather than credited to whichever command scanned it first.
+ * Crediting it is what put one image on every command in a run.
+ */
+function attributable(
+  path: string,
+  named: ReadonlySet<string>,
+  cited: ReadonlySet<string>,
+  startedAt: string | null | undefined,
+): boolean {
+  return named.has(path) || cited.has(path) || writtenDuringRun(path, startedAt);
+}
+
+/**
+ * A readable name for the blob. Content that already has a name keeps it; a different image landing
+ * on a taken name is disambiguated by its own digest rather than by the id of whatever command
+ * happened to ingest it — that prefixing is what defeated the old dedupe guard.
+ */
+function viewName(original: string, sha256: string, takenNames: ReadonlySet<string>): string {
+  const base = sanitizeFilename(basename(original));
+  if (!takenNames.has(base)) return base;
+  const extension = extname(base);
+  const stem = extension.length > 0 ? base.slice(0, -extension.length) : base;
+  return `${stem}-${sha256.slice(0, 8)}${extension}`;
+}
+
+function ownership(options: {
+  commandId?: string | undefined;
+  taskId?: string | undefined;
+  actor?: string | undefined;
+}): Pick<CaptureRecord, "command_id" | "task_id" | "actor"> {
+  return {
+    ...(options.commandId ? { command_id: options.commandId } : {}),
+    ...(options.taskId ? { task_id: options.taskId } : {}),
+    ...(options.actor ? { actor: options.actor } : {}),
+  };
+}
+
+/**
+ * Stores every newly captured image once and gives it a readable name.
+ *
+ * The dedupe guard is content: bytes already in the ledger are the same capture, so a later sighting
+ * of an unchanged file adds no record and no bytes. The returned records are the ones this call
+ * newly recorded, which is why a repeated scan returns nothing rather than a second copy.
+ */
 export function ingestScreenshots(options: ScreenshotIngestOptions): ScreenshotRecord[] {
-  const {
-    runRoot,
-    commandId,
-    taskId,
-    actor,
-    searchDirs = [],
-    stdout,
-    stderr,
-    explicitPaths,
-    overwrite = true,
-  } = options;
+  const { runRoot, searchDirs = [], stdout, stderr, explicitPaths, startedAt } = options;
 
   let candidatePaths: string[] = [];
   try {
@@ -80,84 +108,64 @@ export function ingestScreenshots(options: ScreenshotIngestOptions): ScreenshotR
   }
   if (candidatePaths.length === 0) return [];
 
-  const evidenceScreenshotsDir = join(runRoot, "evidence", "screenshots");
-  const reportScreenshotsDir = join(runRoot, "reports", "screenshots");
-
-  try {
-    mkdirSync(evidenceScreenshotsDir, { recursive: true });
-    mkdirSync(reportScreenshotsDir, { recursive: true });
-  } catch {}
+  const named = new Set((explicitPaths ?? []).map((path) => resolve(path)));
+  const baseDir = searchDirs[0];
+  const cited = new Set(
+    [
+      ...extractImagesFromText(stdout ?? "", baseDir),
+      ...extractImagesFromText(stderr ?? "", baseDir),
+    ].map((path) => resolve(path)),
+  );
+  const existing = readCaptures(runRoot);
+  const knownContent = new Set(
+    existing.filter((record) => record.kind === "screenshot").map((record) => record.sha256),
+  );
+  const takenNames = new Set(existing.map((record) => record.name));
 
   const ingested: ScreenshotRecord[] = [];
-  const processedDestNames = new Set<string>();
-  const now = new Date().toISOString();
-
   for (const originalPath of candidatePaths) {
-    const rawBase = basename(originalPath);
-    const sanitizedBase = sanitizeFilename(rawBase);
-
-    let destName = sanitizedBase;
-    if (commandId && !sanitizedBase.startsWith(`${commandId}-`)) {
-      destName = `${commandId}-${sanitizedBase}`;
-    } else if (!commandId && taskId && !sanitizedBase.startsWith(`${taskId}-`)) {
-      destName = `${taskId}-${sanitizedBase}`;
-    }
-
-    if (processedDestNames.has(destName)) {
-      continue;
-    }
-    processedDestNames.add(destName);
-
-    const evidenceDestPath = join(evidenceScreenshotsDir, destName);
-    const reportDestPath = join(reportScreenshotsDir, destName);
-
-    // Skip if original path is already the destination file
-    if (
-      resolve(originalPath) === resolve(evidenceDestPath) ||
-      resolve(originalPath) === resolve(reportDestPath)
-    ) {
-      continue;
-    }
-
-    // Skip if file already exists and overwrite is explicitly false
-    if (!overwrite && existsSync(evidenceDestPath)) {
-      continue;
-    }
-
+    const owned = attributable(originalPath, named, cited, startedAt);
+    let blob;
     try {
-      copyFileSync(originalPath, evidenceDestPath);
-      copyFileSync(originalPath, reportDestPath);
-
-      let sizeBytes: number | undefined;
-      try {
-        sizeBytes = statSync(originalPath).size;
-      } catch {}
-
-      const record: ScreenshotRecord = {
-        name: destName,
-        original_path: originalPath,
-        evidence_path: evidenceDestPath,
-        report_path: reportDestPath,
-        ...(commandId ? { command_id: commandId } : {}),
-        ...(taskId ? { task_id: taskId } : {}),
-        ...(actor ? { actor } : {}),
-        ...(sizeBytes !== undefined ? { size_bytes: sizeBytes } : {}),
-        timestamp: now,
-      };
-
-      ingested.push(record);
-    } catch {}
+      blob = putBlobFile(runRoot, originalPath);
+    } catch {
+      continue;
+    }
+    if (knownContent.has(blob.sha256)) continue;
+    knownContent.add(blob.sha256);
+    const name = viewName(originalPath, blob.sha256, takenNames);
+    takenNames.add(name);
+    let link;
+    try {
+      link = linkBlobIntoView(runRoot, blob, SCREENSHOT_VIEW_DIRECTORY, name);
+    } catch {
+      continue;
+    }
+    const capturedAt = mtimeIso(originalPath);
+    ingested.push({
+      kind: "screenshot",
+      name: link.name,
+      sha256: link.sha256,
+      bytes: link.bytes,
+      blob_path: link.path,
+      path: link.view_path,
+      storage: link.storage,
+      original_path: originalPath,
+      ...(owned ? ownership(options) : {}),
+      ...(capturedAt === undefined ? {} : { timestamp: capturedAt }),
+    });
   }
 
-  if (ingested.length > 0) {
-    updateEvidenceManifest(runRoot, ingested);
-  }
-
+  recordCaptures(runRoot, ingested);
   return ingested;
 }
 
+/**
+ * Stores the visual report exactly as it was written and returns what it says. The bytes on disk are
+ * the capture; the parsed shape is a reading of it, and is not written back as a second copy.
+ */
 export function ingestVisualReport(options: VisualReportIngestOptions): VisualMetricsReport | null {
-  const { runRoot, searchDirs = [], stdout, stderr, explicitPaths } = options;
+  const { runRoot, searchDirs = [], stdout, stderr, explicitPaths, startedAt } = options;
 
   let candidatePaths: string[] = [];
   try {
@@ -167,51 +175,51 @@ export function ingestVisualReport(options: VisualReportIngestOptions): VisualMe
   }
   if (candidatePaths.length === 0) return null;
 
+  const named = new Set((explicitPaths ?? []).map((path) => resolve(path)));
+  const baseDir = searchDirs[0];
+  const cited = new Set(
+    [
+      ...extractVisualReportsFromText(stdout ?? "", baseDir),
+      ...extractVisualReportsFromText(stderr ?? "", baseDir),
+    ].map((path) => resolve(path)),
+  );
+  const takenNames = new Set(readCaptures(runRoot).map((record) => record.name));
   for (const candidatePath of candidatePaths) {
+    const owned = attributable(candidatePath, named, cited, startedAt);
+    let parsed: unknown;
     try {
-      const content = readFileSync(candidatePath, "utf-8");
-      const parsed = JSON.parse(content) as Record<string, unknown>;
-      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) continue;
-
-      const report: VisualMetricsReport = {
-        timestamp:
-          typeof parsed.timestamp === "string" ? parsed.timestamp : new Date().toISOString(),
-        viewports:
-          parsed.viewports &&
-          typeof parsed.viewports === "object" &&
-          !Array.isArray(parsed.viewports)
-            ? (parsed.viewports as Record<string, ViewportMetrics>)
-            : {},
-        layoutOverflows: Array.isArray(parsed.layoutOverflows)
-          ? (parsed.layoutOverflows as OverflowViolation[])
-          : [],
-        textClippings: Array.isArray(parsed.textClippings)
-          ? (parsed.textClippings as ClippingViolation[])
-          : [],
-        collisions: Array.isArray(parsed.collisions)
-          ? (parsed.collisions as StackingViolation[])
-          : [],
-        ...(parsed.metadata &&
-        typeof parsed.metadata === "object" &&
-        !Array.isArray(parsed.metadata)
-          ? { metadata: parsed.metadata as Record<string, unknown> }
-          : {}),
-      };
-
-      const evidenceReportsDir = join(runRoot, "reports");
-      const evidenceDir = join(runRoot, "evidence");
-
-      try {
-        mkdirSync(evidenceReportsDir, { recursive: true });
-        mkdirSync(evidenceDir, { recursive: true });
-
-        const formatted = JSON.stringify(report, null, 2);
-        writeFileSync(join(evidenceReportsDir, "visual-report.json"), formatted, "utf-8");
-        writeFileSync(join(evidenceDir, "visual-report.json"), formatted, "utf-8");
-      } catch {}
-
+      parsed = JSON.parse(readFileSync(candidatePath, "utf-8"));
+    } catch {
+      continue;
+    }
+    const report = normalizeVisualReport(parsed, mtimeIso(candidatePath));
+    if (report === null) continue;
+    try {
+      const blob = putBlobFile(runRoot, candidatePath);
+      const link = linkBlobIntoView(
+        runRoot,
+        blob,
+        "evidence",
+        viewName(VISUAL_REPORT_VIEW_NAME, blob.sha256, takenNames),
+      );
+      recordCaptures(runRoot, [
+        {
+          kind: "visual_report",
+          name: link.name,
+          sha256: link.sha256,
+          bytes: link.bytes,
+          blob_path: link.path,
+          path: link.view_path,
+          storage: link.storage,
+          original_path: candidatePath,
+          ...(owned ? ownership(options) : {}),
+          ...(report.timestamp === undefined ? {} : { timestamp: report.timestamp }),
+        },
+      ]);
+    } catch {
       return report;
-    } catch {}
+    }
+    return report;
   }
 
   return null;

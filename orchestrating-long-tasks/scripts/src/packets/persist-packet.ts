@@ -1,6 +1,9 @@
 import { join } from "node:path";
+import { isAgentRole, type AgentRole } from "../contracts/packets.ts";
 import { canonicalJsonBytes } from "../core/json.ts";
 import { HarnessError } from "../errors/harness-error.ts";
+import { readAgentLedger } from "../workflow/agents/ledger.ts";
+import { locateSubTask, readBranchLedger } from "../workflow/branch/ledger.ts";
 import { tokenMatches } from "../workflow/lease/token.ts";
 import { assertCriticIndependent } from "../workflow/completion/critic-identity.ts";
 import type { Clock, PacketRecord, TransactionPort, WorkflowState } from "../workflow/types.ts";
@@ -21,6 +24,94 @@ export interface PublishedPacket {
   metadataPath: string;
   record: PacketRecord;
 }
+// Roles that work under a task lease. A branch sub-agent holds the same kind of lease as the
+// implementer it was split off from, so it is authorised the same way and cannot publish without one.
+const TASK_LEASE_ROLES: ReadonlySet<AgentRole> = new Set([
+  "implementer",
+  "repairer",
+  "sub-implementer",
+  "sub-investigator",
+]);
+// Roles that work under the independent validation authority rather than the task lease.
+const TASK_VALIDATION_ROLES: ReadonlySet<AgentRole> = new Set(["sub-validator", "validator"]);
+// Roles a branch dispatches into. Their binding may be a branch sub-task, which never enters
+// `state.tasks`, so it is authorised against the branch ledger instead.
+const BRANCH_ROLES: ReadonlySet<AgentRole> = new Set([
+  "sub-implementer",
+  "sub-investigator",
+  "sub-validator",
+]);
+
+function authorizeBranchSubTask(
+  state: WorkflowState,
+  subTaskId: string,
+  role: AgentRole,
+  agent: string,
+  token: string | undefined,
+  now: Date,
+): void {
+  if (!BRANCH_ROLES.has(role))
+    throw new HarnessError("INVALID_STATE", "packet task is not authoritative");
+  const location = locateSubTask(readBranchLedger(state), subTaskId);
+  const lease = location?.subTask.lease;
+  if (
+    !location ||
+    location.branch.status !== "open" ||
+    location.subTask.status !== "claimed" ||
+    !lease ||
+    lease.agent_id !== agent ||
+    Date.parse(lease.expires_at) <= now.valueOf() ||
+    !tokenMatches(token, lease.token_digest)
+  )
+    throw new HarnessError("INVALID_STATE", "branch sub-task packet authority changed");
+}
+
+function requireActiveGrant(state: WorkflowState, agent: string, role: AgentRole): void {
+  const grant = readAgentLedger(state).find((entry) => entry.id === agent);
+  if (!grant || grant.status !== "active" || grant.role !== role)
+    throw new HarnessError("INVALID_STATE", `${role} packet has no active agent grant: ${agent}`);
+}
+
+function authorizeRunLevel(
+  state: WorkflowState,
+  packet: BuiltPacket,
+  auth: PacketAuthorization,
+  role: AgentRole,
+  agent: string,
+  attempt: number,
+  now: Date,
+): void {
+  if (packet.metadata.task_id !== null)
+    throw new HarnessError("INVALID_STATE", "run-level packet has a task association");
+  if (role === "completeness-critic") {
+    const critic = state.completion_critic;
+    assertCriticIndependent(state, agent);
+    if (critic) assertActiveCriticDeadline(critic.deadline_at, now.valueOf());
+    if (
+      !critic ||
+      critic.critic_id !== agent ||
+      critic.attempt !== attempt ||
+      metadataText(packet.metadata, "readiness_sha256") !== critic.readiness_sha256 ||
+      !sameRepositoryBinding(packet.metadata.repository_binding, critic.repository_binding) ||
+      !["assigned", "packet_published"].includes(critic.status) ||
+      !tokenMatches(auth.token, critic.token_digest)
+    )
+      throw new HarnessError("INVALID_STATE", "completeness critic authority changed");
+    if (!sameRepositoryBinding(state.current_repository_binding, critic.repository_binding))
+      throw new HarnessError(
+        "INVALID_STATE",
+        "repository bytes changed before critic packet publication",
+      );
+    return;
+  }
+  if (role === "coordinator") {
+    requireActiveGrant(state, agent, role);
+    return;
+  }
+  // planner: a planner packet is minted to bootstrap the run, before any grant ledger or graph
+  // revision exists, so the null task binding above is the whole of its authority.
+}
+
 function authorize(
   state: WorkflowState,
   packet: BuiltPacket,
@@ -35,36 +126,22 @@ function authorize(
   const attempt = metadataInteger(packet.metadata, "attempt");
   if (agent !== auth.agentId || attempt !== auth.attempt)
     throw new HarnessError("INVALID_STATE", "packet publication identity changed");
+  if (!isAgentRole(role))
+    throw new HarnessError("INVALID_STATE", `packet role is not a canonical role: ${role}`);
   const taskId = packet.metadata.task_id;
-  if (!["implementer", "repairer", "validator"].includes(role)) {
-    if (taskId !== null)
-      throw new HarnessError("INVALID_STATE", "run-level packet has a task association");
-    if (role === "completeness-critic") {
-      const critic = state.completion_critic;
-      assertCriticIndependent(state, agent);
-      if (critic) assertActiveCriticDeadline(critic.deadline_at, now.valueOf());
-      if (
-        !critic ||
-        critic.critic_id !== agent ||
-        critic.attempt !== attempt ||
-        metadataText(packet.metadata, "readiness_sha256") !== critic.readiness_sha256 ||
-        !sameRepositoryBinding(packet.metadata.repository_binding, critic.repository_binding) ||
-        !["assigned", "packet_published"].includes(critic.status) ||
-        !tokenMatches(auth.token, critic.token_digest)
-      )
-        throw new HarnessError("INVALID_STATE", "completeness critic authority changed");
-      if (!sameRepositoryBinding(state.current_repository_binding, critic.repository_binding))
-        throw new HarnessError(
-          "INVALID_STATE",
-          "repository bytes changed before critic packet publication",
-        );
-    }
+  if (!TASK_LEASE_ROLES.has(role) && !TASK_VALIDATION_ROLES.has(role)) {
+    authorizeRunLevel(state, packet, auth, role, agent, attempt, now);
     return;
   }
-  if (typeof taskId !== "string" || !state.tasks[taskId])
+  if (typeof taskId !== "string")
     throw new HarnessError("INVALID_STATE", "packet task is not authoritative");
-  const task = state.tasks[taskId]!;
-  if (role === "validator") {
+  const bound = state.tasks[taskId];
+  if (!bound) {
+    authorizeBranchSubTask(state, taskId, role, agent, auth.token, now);
+    return;
+  }
+  const task = bound;
+  if (TASK_VALIDATION_ROLES.has(role)) {
     if (
       task.status !== "validating" ||
       task.validation?.validator_id !== agent ||

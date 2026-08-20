@@ -1,76 +1,14 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { realpathSync } from "node:fs";
-import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { execute } from "../../../orchestrating-long-tasks/scripts/src/cli/execute.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
+import { setupCompiledRun } from "./task-ops-fixture.ts";
 
 const roots: string[] = [];
 afterEach(async () => cleanupRoots(roots));
 
-async function setupCompiledRun(name: string) {
-  const repo = realpathSync(await mkdtemp(join(tmpdir(), `harness-task-ops-${name}-`)));
-  roots.push(repo);
-  const promptPath = join(repo, "prompt.txt");
-  await writeFile(promptPath, "Core unit tests\n\nSecondary tests");
-  await mkdir(join(repo, "tests/unit/core"), { recursive: true });
-  await mkdir(join(repo, "tests/unit/sec"), { recursive: true });
-  await writeFile(join(repo, "gate-core.ts"), "console.log('gate-core');\n");
-  await writeFile(join(repo, "gate-sec.ts"), "console.log('gate-sec');\n");
-
-  const init = await execute([
-    "plan:init",
-    "--repo",
-    repo,
-    "--run",
-    name,
-    "--prompt-file",
-    promptPath,
-  ]);
-  const run = init.run_root as string;
-
-  await execute([
-    "plan:add",
-    "--run",
-    run,
-    "--id",
-    "task-core",
-    "--label",
-    "Core Unit Tests",
-    "--scope",
-    "tests/unit/core",
-    "--gate",
-    "bun gate-core.ts",
-    "--actor",
-    "planner",
-  ]);
-
-  await execute([
-    "plan:add",
-    "--run",
-    run,
-    "--id",
-    "task-sec",
-    "--label",
-    "Secondary Tests",
-    "--scope",
-    "tests/unit/sec",
-    "--gate",
-    "bun gate-sec.ts",
-    "--deps",
-    "task-core",
-    "--actor",
-    "planner",
-  ]);
-
-  await execute(["plan:compile", "--run", run, "--actor", "planner"]);
-  return { repo, run };
-}
-
 describe("CLI task-ops commands", () => {
   test("task:claim, task:heartbeat, task:submit, task:validate-start, task:review pass flow", async () => {
-    const { repo, run } = await setupCompiledRun("task-pass-run");
+    const { repo, run } = await setupCompiledRun("task-pass-run", roots);
 
     const claim = await execute([
       "task:claim",
@@ -80,6 +18,8 @@ describe("CLI task-ops commands", () => {
       "task-core",
       "--agent",
       "worker-core",
+      "--role",
+      "implementer",
     ]);
     expect(claim.token).toBeString();
     expect(String(claim.markdown)).toContain("### Task Leased: task-core");
@@ -100,6 +40,22 @@ describe("CLI task-ops commands", () => {
     ]);
     expect(String(hb.markdown)).toContain("### Heartbeat Acknowledged: task-core");
 
+    // A submission is only accepted against recorded evidence, so the implementer runs its own
+    // command before it submits.
+    await execute([
+      "run:exec",
+      "--run",
+      run,
+      "--task",
+      "task-core",
+      "--actor",
+      "worker-core",
+      "--cwd",
+      repo,
+      "--",
+      "echo",
+      "implementer-work",
+    ]);
     const submit = await execute([
       "task:submit",
       "--run",
@@ -112,6 +68,8 @@ describe("CLI task-ops commands", () => {
       workerToken,
       "--summary",
       "Core tests implemented",
+      "--files-changed",
+      "tests/unit/core/impl.ts",
     ]);
     expect(submit.orphaned).toBe(false);
     expect(String(submit.markdown)).toContain("### Submission Accepted: task-core");
@@ -147,6 +105,23 @@ describe("CLI task-ops commands", () => {
     ]);
     const gateCmdId = execGate.command_id as string;
 
+    // The mandatory adversarial probe is a precondition of any sign-off.
+    const probe = await execute([
+      "task:probe",
+      "--run",
+      run,
+      "--task",
+      "task-core",
+      "--validator",
+      "val-agent-1",
+      "--token",
+      valToken,
+      "--demand",
+      "Prove the core tests fail when the assertion is inverted",
+    ]);
+    expect(probe.probe_round).toBe(1);
+    expect(probe.repair_round).toBe(0);
+
     const review = await execute([
       "task:review",
       "--run",
@@ -159,6 +134,8 @@ describe("CLI task-ops commands", () => {
       valToken,
       "--evidence",
       gateCmdId,
+      "--resolve",
+      `${(probe.finding_ids as string[])[0]}=${gateCmdId}`,
       "--status",
       "pass",
       "--summary",
@@ -170,7 +147,7 @@ describe("CLI task-ops commands", () => {
   });
 
   test("task:review fail and task:reject record findings", async () => {
-    const { repo, run } = await setupCompiledRun("task-fail-run");
+    const { repo, run } = await setupCompiledRun("task-fail-run", roots);
 
     const claim = await execute([
       "task:claim",
@@ -180,9 +157,27 @@ describe("CLI task-ops commands", () => {
       "task-core",
       "--agent",
       "worker-core",
+      "--role",
+      "implementer",
     ]);
     const workerToken = claim.token as string;
 
+    // A submission is only accepted against recorded evidence, so the implementer runs its own
+    // command before it submits.
+    await execute([
+      "run:exec",
+      "--run",
+      run,
+      "--task",
+      "task-core",
+      "--actor",
+      "worker-core",
+      "--cwd",
+      repo,
+      "--",
+      "echo",
+      "implementer-work",
+    ]);
     await execute([
       "task:submit",
       "--run",
@@ -193,6 +188,10 @@ describe("CLI task-ops commands", () => {
       "worker-core",
       "--token",
       workerToken,
+      "--files-changed",
+      "tests/unit/core/impl.ts",
+      "--summary",
+      "Implemented the task under test",
     ]);
 
     const valStart = await execute([
@@ -226,6 +225,8 @@ describe("CLI task-ops commands", () => {
 
     const reject = await execute([
       "task:reject",
+      "--severity",
+      "critical",
       "--run",
       run,
       "--task",
@@ -243,5 +244,41 @@ describe("CLI task-ops commands", () => {
     ]);
     expect(reject.finding_id).toBeString();
     expect(String(reject.markdown)).toContain("### Task Rejected: task-core");
+  });
+  test("task:heartbeat reports the deadline the lease actually carries", async () => {
+    const { run } = await setupCompiledRun("task-heartbeat-truth", roots);
+    const claim = await execute([
+      "task:claim",
+      "--run",
+      run,
+      "--task",
+      "task-core",
+      "--agent",
+      "worker-core",
+      "--role",
+      "implementer",
+      "--lease-duration",
+      "600",
+    ]);
+
+    const beat = await execute([
+      "task:heartbeat",
+      "--run",
+      run,
+      "--task",
+      "task-core",
+      "--agent",
+      "worker-core",
+      "--token",
+      claim.token as string,
+      "--extend",
+      "3600",
+    ]);
+
+    const lease = (beat.task as { lease: { expires_at: string } }).lease;
+    // The lease is renewed for its own recorded duration, so the brief must quote that renewal and
+    // the real expiry rather than the hour that was requested.
+    expect(String(beat.markdown)).toContain(`+10 minutes (New Deadline: ${lease.expires_at})`);
+    expect(String(beat.markdown)).not.toContain("+60 minutes");
   });
 });

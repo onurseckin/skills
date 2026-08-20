@@ -92,12 +92,14 @@ function determinePhaseAndSummary(event: HarnessEvent, promptBytes = 0): EventDe
       break;
     case "plan-compiled":
       result.phase = "planning";
-      result.summary = `Plan compiled with revision ${event.revision ?? 1}`;
+      result.summary = `Plan compiled with revision ${event.revision ?? "unknown"}`;
       break;
     case "task-claimed":
     case "task-leased":
       result.phase = "execution";
-      result.summary = `Task ${taskId ?? "unknown"} claimed by ${event.actor} (role: ${String(p.role ?? "implementer")})`;
+      // The role is on the event or it is unknown; naming a contract the claim never stated would
+      // put the agent under a role nobody recorded.
+      result.summary = `Task ${taskId ?? "unknown"} claimed by ${event.actor} (role: ${String(p.role ?? "unknown")})`;
       if (taskId) result.task_id = taskId;
       break;
     case "task-heartbeat":
@@ -148,16 +150,26 @@ function determinePhaseAndSummary(event: HarnessEvent, promptBytes = 0): EventDe
       break;
     }
     case "review-recorded": {
-      const isPass = p.verdict === "pass" || p.status === "pass";
-      const findingsCount = Array.isArray(p.findings)
-        ? p.findings.length
-        : typeof p.findings === "number"
-          ? p.findings
-          : 0;
-      result.phase = isPass ? "validation" : "repair";
-      result.summary = isPass
-        ? `Task ${taskId ?? "unknown"} passed validation review`
-        : `Task ${taskId ?? "unknown"} review requested changes (${findingsCount} findings)`;
+      // A capsule written before the payload carried its verdict says nothing about the outcome,
+      // and an unstated verdict is not a rejection.
+      const verdict = p.verdict === "pass" || p.verdict === "reject" ? p.verdict : null;
+      const findingCount =
+        typeof p.finding_count === "number"
+          ? p.finding_count
+          : Array.isArray(p.findings)
+            ? p.findings.length
+            : typeof p.findings === "number"
+              ? p.findings
+              : null;
+      const counted = findingCount === null ? "" : ` (${findingCount} findings)`;
+      result.phase =
+        verdict === "reject" ? "repair" : verdict === "pass" ? "validation" : "general";
+      result.summary =
+        verdict === "pass"
+          ? `Task ${taskId ?? "unknown"} passed validation review`
+          : verdict === "reject"
+            ? `Task ${taskId ?? "unknown"} review requested changes${counted}`
+            : `Task ${taskId ?? "unknown"} review recorded; the event states no verdict`;
       if (taskId) result.task_id = taskId;
       if (round !== undefined) result.round = round;
       if (!result.validator_id && event.actor) result.validator_id = event.actor;
@@ -169,10 +181,17 @@ function determinePhaseAndSummary(event: HarnessEvent, promptBytes = 0): EventDe
       if (taskId) result.task_id = taskId;
       break;
     case "command-recorded": {
-      const exitCode = typeof p.exit_code === "number" ? p.exit_code : 0;
-      const argv = Array.isArray(p.argv) ? p.argv.join(" ") : String(p.command ?? "cmd");
+      // An event that never stated its exit code did not report a success, and one that never
+      // stated its argv did not run something called `cmd`.
+      const exitCode = typeof p.exit_code === "number" ? ` (exit ${p.exit_code})` : "";
+      const argv = Array.isArray(p.argv)
+        ? p.argv.join(" ")
+        : typeof p.command === "string"
+          ? p.command
+          : null;
       result.phase = taskId ? "execution" : "system";
-      result.summary = `Command executed: ${argv} (exit ${exitCode})`;
+      result.summary =
+        argv === null ? `Command recorded${exitCode}` : `Command executed: ${argv}${exitCode}`;
       if (taskId) result.task_id = taskId;
       if (gateId) result.gate_id = gateId;
       if (commandId ?? p.id) result.command_id = commandId ?? String(p.id);

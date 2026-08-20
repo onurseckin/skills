@@ -8,7 +8,10 @@ import { sha256Bytes } from "../core/json.ts";
 import { HarnessError } from "../errors/harness-error.ts";
 import { captureAssurance, isCaptureMode } from "./assurance.ts";
 import { FORMAT_VERSION, MANIFEST_SCHEMA, RUN_ID_PATTERN, RUNTIME_VERSION } from "./constants.ts";
+import { initialCapsuleDirectories, renderLayoutReadme } from "./layout.ts";
 import { initialState } from "./state.ts";
+import { writeIndex } from "./capsule-index.ts";
+import { writeTrace } from "./trace.ts";
 
 export interface InitRunOptions {
   runtimeSource?: string;
@@ -42,7 +45,7 @@ export function initRun(
   mkdirSync(runRoot, { mode: 0o755 });
   fsyncDirectory(capsulesRoot);
   try {
-    for (const directory of ["evidence", "findings", "reports", "commands"])
+    for (const directory of initialCapsuleDirectories())
       mkdirSync(join(runRoot, directory), { mode: 0o755 });
     fsyncDirectory(runRoot);
     atomicWriteBytes(join(runRoot, "prompt.md"), prompt, { mode: 0o444 });
@@ -62,7 +65,16 @@ export function initRun(
     };
     atomicWriteJson(join(runRoot, "manifest.json"), manifest);
     atomicWriteBytes(join(runRoot, "events.jsonl"), new Uint8Array());
-    atomicWriteJson(join(runRoot, "state.json"), initialState());
+    const state = initialState();
+    atomicWriteJson(join(runRoot, "state.json"), state);
+    // The layout note, the catalogue and the step trace exist from the first moment, so a capsule
+    // is never a directory a reader has to guess the shape of.
+    atomicWriteBytes(
+      join(runRoot, "README.md"),
+      new TextEncoder().encode(renderLayoutReadme(runId)),
+    );
+    writeIndex(runRoot, state);
+    writeTrace(runRoot, []);
     return runRoot;
   } catch (error) {
     rmSync(runRoot, { recursive: true, force: true });

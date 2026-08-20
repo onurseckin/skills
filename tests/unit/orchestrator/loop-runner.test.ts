@@ -53,7 +53,7 @@ describe("AutonomousLoopRunner Unit Tests", () => {
 
       expect(summary.totalRoundsExecuted).toBe(1);
       expect(summary.finalStatus).toBe("converged_success");
-      expect(summary.allGatesPassed).toBe(true);
+      expect(summary.gateStatus).toBe("passed");
       expect(summary.finalCriticDecision).toBe("approve");
       expect(summary.rounds.length).toBe(1);
       expect(startRounds).toEqual([1]);
@@ -86,7 +86,7 @@ describe("AutonomousLoopRunner Unit Tests", () => {
                 {
                   gate_id: "gate-01",
                   command_id: "cmd-failed",
-                  status: "failed" as unknown as "passed",
+                  status: "failed",
                 },
               ],
               summary: "Gate failed in R1.",

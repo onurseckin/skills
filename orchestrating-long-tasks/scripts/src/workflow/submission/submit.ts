@@ -52,6 +52,11 @@ export function submitTask(
     if (!["leased", "running"].includes(task.status)) {
       throw new HarnessError("INVALID_STATE", "task is not accepting a submission");
     }
+    // The packet is the agent's copy of its role contract; without a published one nothing binds the
+    // submitter to the capabilities it is claiming, so the submission is refused rather than trusted.
+    // Orphan evidence above is deliberately exempt: preserving a dead agent's work is not an act of
+    // authority, and refusing it would destroy the only record of what that agent did.
+    assertPublishedTaskPacket(draft, taskId, lease.role, agentId, lease.attempt);
     task.report = report;
     delete task.lease;
     const latestAttempt = task.attempts.at(-1);

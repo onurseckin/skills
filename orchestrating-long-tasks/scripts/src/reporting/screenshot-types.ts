@@ -1,3 +1,5 @@
+import type { CaptureRecord } from "../store/captures.ts";
+
 export interface ViewportMetrics {
   width: number;
   height: number;
@@ -33,7 +35,8 @@ export interface StackingViolation {
 }
 
 export interface VisualMetricsReport {
-  timestamp: string;
+  /** When the report says it was produced. Absent when the file carried no timestamp of its own. */
+  timestamp?: string | undefined;
   viewports: Record<string, ViewportMetrics>;
   layoutOverflows: OverflowViolation[];
   textClippings: ClippingViolation[];
@@ -41,21 +44,17 @@ export interface VisualMetricsReport {
   metadata?: Record<string, unknown> | undefined;
 }
 
-export interface ScreenshotRecord {
-  name: string;
-  original_path: string;
-  evidence_path: string;
-  report_path: string;
-  command_id?: string | undefined;
-  task_id?: string | undefined;
-  actor?: string | undefined;
-  size_bytes?: number | undefined;
-  timestamp: string;
-  dimensions?: { width: number; height: number } | undefined;
-  mime_type?: string | undefined;
-  overwrite?: boolean | undefined;
-}
+/**
+ * A screenshot is a capture like any other: its bytes live once in `blobs/`, `path` is the readable
+ * name that links to them, and the ledger in `captures.json` is the one home for the record.
+ */
+export type ScreenshotRecord = CaptureRecord;
 
+/**
+ * `startedAt` bounds attribution. A file that already existed when the command started was not
+ * produced by it, and claiming it would attribute one stale image to every command in the run.
+ * Paths the caller names explicitly, and paths the command printed, are the command's own claim.
+ */
 export interface ScreenshotIngestOptions {
   runRoot: string;
   commandId?: string | undefined;
@@ -65,7 +64,7 @@ export interface ScreenshotIngestOptions {
   stdout?: string | undefined;
   stderr?: string | undefined;
   explicitPaths?: string[] | undefined;
-  overwrite?: boolean | undefined;
+  startedAt?: string | null | undefined;
 }
 
 export interface VisualReportIngestOptions {
@@ -77,16 +76,11 @@ export interface VisualReportIngestOptions {
   stdout?: string | undefined;
   stderr?: string | undefined;
   explicitPaths?: string[] | undefined;
-  overwrite?: boolean | undefined;
+  startedAt?: string | null | undefined;
 }
 
 export interface ScreenshotQueryOptions {
   taskId?: string | undefined;
   commandId?: string | undefined;
   actor?: string | undefined;
-}
-
-export interface EvidenceManifestData {
-  screenshots: ScreenshotRecord[];
-  updated_at: string;
 }

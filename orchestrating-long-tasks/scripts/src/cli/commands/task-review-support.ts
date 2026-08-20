@@ -1,5 +1,6 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { getHarnessConfig } from "../../config/harness-config.ts";
 import { ingestScreenshots, ingestVisualReport } from "../../reporting/screenshot-ingestion.ts";
 import { getVisualReport, queryScreenshots } from "../../reporting/screenshot-store.ts";
 import type { ScreenshotRecord } from "../../reporting/screenshot-types.ts";
@@ -9,46 +10,46 @@ import { applicableGates } from "../../workflow/gates/gate-policy.ts";
 import { workflowPort } from "../../integration/store-ports.ts";
 import type { WorkflowState } from "../../workflow/types.ts";
 
-export interface ReviewFindingParams {
-  taskId: string;
-  findingId?: string | undefined;
-  round: number;
-  requirementId: string;
-  severity: "critical" | "important" | "minor";
-  checkIds: string[];
-  summary: string;
-  remediation: string;
+/** The run root is `<repo>/.capsules/<run-id>`; both layers of config are keyed off that pair. */
+export function repoRootOf(runRoot: string): string {
+  return dirname(dirname(runRoot));
 }
 
-export function buildReviewFinding(params: ReviewFindingParams): Record<string, unknown> {
-  const findingId =
-    params.findingId ??
-    (params.round > 1
-      ? `finding-${params.taskId}-${String(params.round).padStart(2, "0")}`
-      : `finding-${params.taskId}-01`);
+export interface ReviewPolicy {
+  minProbes: number;
+  maxRepairRounds: number;
+  /** Set when the config still speaks in rejections, which are a different thing from probes. */
+  legacyRejectionWarning: string | null;
+}
 
+export function reviewPolicyFor(runRoot: string): ReviewPolicy {
+  const config = getHarnessConfig(repoRootOf(runRoot), runRoot);
+  const legacy = config.min_adversarial_rejections;
+  const probes = config.min_adversarial_probes;
   return {
-    id: findingId,
-    requirement_id: params.requirementId,
-    severity: params.severity,
-    evidence:
-      params.checkIds.length > 0
-        ? params.checkIds.map((id) => ({ kind: "command", reference: id }))
-        : [{ kind: "failure", detail: params.summary }],
-    observation: params.summary,
-    remediation: params.remediation,
-    revalidation: `Run gate tests for ${params.taskId}`,
+    minProbes: probes,
+    maxRepairRounds: config.max_repair_rounds,
+    legacyRejectionWarning:
+      legacy === probes
+        ? null
+        : `harness config sets min_adversarial_rejections=${legacy}; a rejection is not a probe, so the probe requirement stays min_adversarial_probes=${probes}`,
   };
 }
 
-export function persistFindingFile(runRoot: string, finding: Record<string, unknown>): string {
-  const findingsDir = join(runRoot, "findings");
-  mkdirSync(findingsDir, { recursive: true });
-  const findingId = String(finding.id ?? "finding");
-  const findingPath = join(findingsDir, `${findingId}.json`);
-  writeFileSync(findingPath, JSON.stringify(finding, null, 2), "utf-8");
-  return findingPath;
-}
+export {
+  buildProbeDemand,
+  buildReviewFinding,
+  failingVerdictInput,
+  nextFindingRound,
+  parseSeverity,
+  resolveFindingRequirement,
+} from "./task-finding-input.ts";
+export type {
+  FailingVerdictInput,
+  FindingSeverity,
+  ProbeDemandParams,
+  ReviewFindingParams,
+} from "./task-finding-input.ts";
 
 export function collectTaskScreenshots(
   runRoot: string,
@@ -56,7 +57,7 @@ export function collectTaskScreenshots(
   validator: string,
   checkIds: string[],
 ): ScreenshotRecord[] {
-  const repoRoot = dirname(dirname(runRoot));
+  const repoRoot = repoRootOf(runRoot);
 
   ingestScreenshots({
     runRoot,
@@ -68,7 +69,6 @@ export function collectTaskScreenshots(
       join(repoRoot, "screenshots"),
       join(repoRoot, "playwright-report"),
     ],
-    overwrite: true,
   });
 
   ingestVisualReport({
@@ -81,7 +81,6 @@ export function collectTaskScreenshots(
       join(repoRoot, "screenshots"),
       join(repoRoot, "playwright-report"),
     ],
-    overwrite: true,
   });
 
   const directScreenshots = queryScreenshots(runRoot, { taskId });
@@ -99,9 +98,23 @@ export function collectTaskScreenshots(
   const combined = [...directScreenshots, ...checkScreenshots];
   const uniqueMap = new Map<string, ScreenshotRecord>();
   for (const s of combined) {
-    uniqueMap.set(s.evidence_path, s);
+    uniqueMap.set(s.sha256, s);
   }
   return Array.from(uniqueMap.values());
+}
+
+export function persistProbeReport(
+  runRoot: string,
+  taskId: string,
+  round: number,
+  reportData: Record<string, unknown>,
+): string {
+  const reportsDir = join(runRoot, "reports");
+  mkdirSync(reportsDir, { recursive: true });
+  // Probe rounds are numbered so a later round never overwrites the demand history of an earlier one.
+  const reportPath = join(reportsDir, `${taskId}-probe-${String(round).padStart(2, "0")}.json`);
+  writeFileSync(reportPath, JSON.stringify(reportData, null, 2), "utf-8");
+  return reportPath;
 }
 
 export function persistReviewReport(
@@ -153,6 +166,18 @@ export function resolveCheckIds(
     .map((c) => c.id);
 }
 
+/**
+ * Only a command the runner bound to this gate proves it. An unbound run proves whatever it ran,
+ * which is not the same thing as the gate the plan made mandatory, however alike the two look.
+ */
+export function gateProofCommand(
+  commands: Readonly<Record<string, { gate_id: string | null }>>,
+  gateId: string,
+  checkIds: readonly string[],
+): string | undefined {
+  return checkIds.find((id) => commands[id]?.gate_id === gateId);
+}
+
 export function finalizePassingTask(
   run: string,
   taskId: string,
@@ -164,10 +189,7 @@ export function finalizePassingTask(
   const currentTask = curState.tasks[taskId];
   if (currentTask) {
     for (const gate of applicableGates(curState, currentTask)) {
-      const matchingCmd = checkIds.find((id) => {
-        const cmd = curState.commands[id];
-        return cmd && (cmd.gate_id === gate.id || !cmd.gate_id);
-      });
+      const matchingCmd = gateProofCommand(curState.commands, gate.id, checkIds);
       if (matchingCmd) {
         try {
           curState = attachGateResult(workflowPort(run), taskId, gate.id, matchingCmd, validator);

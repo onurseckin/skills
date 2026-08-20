@@ -165,9 +165,9 @@ describe("CLI Command: orchestrator:run Stress & Edge Cases", () => {
 
   describe("Validation and Error Handling", () => {
     it("rejects unknown flags with HarnessError INVALID_ARGUMENT", async () => {
-      expect(orchestratorRunCommand({ prompt: "Valid", "bad-flag": "bad" })).rejects.toThrow(
-        HarnessError,
-      );
+      expect(
+        execute(["orchestrator:run", "--prompt", "Valid", "--bad-flag", "bad"]),
+      ).rejects.toThrow(HarnessError);
     });
 
     it("rejects non-integer --max-rounds with HarnessError INVALID_ARGUMENT", async () => {

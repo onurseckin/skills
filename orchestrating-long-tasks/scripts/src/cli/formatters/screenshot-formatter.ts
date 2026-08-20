@@ -26,7 +26,7 @@ export function formatScreenshotsListBrief(params: ScreenshotsListParams): strin
       if (s.task_id) details.push(`Task: \`${s.task_id}\``);
       if (s.actor) details.push(`Actor: \`${s.actor}\``);
       const detailStr = details.length > 0 ? ` (${details.join(" | ")})` : "";
-      lines.push(`- **\`${s.name}\`**${detailStr}: \`${s.evidence_path}\``);
+      lines.push(`- **\`${s.name}\`**${detailStr}: \`${s.path}\``);
     }
     if (params.screenshots.length > 15) {
       lines.push(`- ... and ${params.screenshots.length - 15} more screenshots.`);

@@ -1,4 +1,5 @@
 import { HarnessError } from "../../errors/harness-error.ts";
+import { isLeaseSuspended } from "./suspension.ts";
 import { tokenMatches } from "./token.ts";
 import { requireText, taskIn, transition, utc } from "../task-state.ts";
 import { systemClock, type Clock, type TransactionPort } from "../types.ts";
@@ -17,6 +18,14 @@ export function heartbeat(
     const lease = task.lease;
     if (!lease || lease.agent_id !== agentId || !tokenMatches(token, lease.token_digest)) {
       throw new HarnessError("INVALID_STATE", "lease identity or token is invalid");
+    }
+    // A suspended clock cannot be wound forward: the holder is blocked on a branch, the lease is
+    // already protected from recovery, and extending the frozen expiry would erase the freeze.
+    if (isLeaseSuspended(lease)) {
+      throw new HarnessError(
+        "INVALID_STATE",
+        "lease clock is suspended while a branch is open; collect or abandon the branch first",
+      );
     }
     if (Date.parse(lease.expires_at) <= now.valueOf()) {
       throw new HarnessError("INVALID_STATE", "lease has expired");

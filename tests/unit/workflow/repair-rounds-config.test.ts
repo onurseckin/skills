@@ -19,10 +19,11 @@ import {
   TestPort,
   workflowState,
 } from "./test-port.ts";
+import { criticIntegrityDigest } from "../../../orchestrating-long-tasks/scripts/src/packets/critic-integrity-digest.ts";
 
 const clock = at("2026-08-14T12:00:00.000Z");
 const integrity = [{ status: "passed", event_head: "head" }];
-const integritySha = createHash("sha256").update(canonicalJsonBytes(integrity)).digest("hex");
+const integritySha = criticIntegrityDigest(integrity);
 const verifyRepository = () => structuredClone(repositoryBinding);
 
 const report = {

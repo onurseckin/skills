@@ -4,9 +4,11 @@ import type { JsonObject } from "../contracts/json.ts";
 import { atomicWriteJson } from "../core/durable-write.ts";
 import { canonicalJsonBytes, normalizeJson, sha256Bytes } from "../core/json.ts";
 import { HarnessError } from "../errors/harness-error.ts";
+import { writeIndex } from "./capsule-index.ts";
 import { EVENT_SCHEMA, FORMAT_VERSION, type StoreLimits } from "./constants.ts";
 import { runFilePath } from "./paths.ts";
 import { cloneObject } from "./state.ts";
+import { appendTraceStep } from "./trace.ts";
 
 function append(path: string, data: Uint8Array): void {
   const descriptor = openSync(
@@ -75,5 +77,26 @@ export function appendProjectionEvent(
   append(eventPath, line);
   const next = { ...projection, event_head: event.hash };
   atomicWriteJson(runFilePath(runRoot, "state.json"), next);
+  refreshDerived(runRoot, manifest, event, next);
   return cloneObject(next);
+}
+
+/**
+ * The trace and the catalogue are caches over an event that is already committed, so failing to
+ * write one is not a failure of the transaction. The cost of that tolerance is bounded: the index
+ * records the head it was built at, so a reader detects the staleness in a single comparison
+ * instead of assuming it away.
+ */
+function refreshDerived(
+  runRoot: string,
+  manifest: Manifest,
+  event: HarnessEvent,
+  next: RunState,
+): void {
+  try {
+    appendTraceStep(runRoot, event);
+  } catch {}
+  try {
+    writeIndex(runRoot, next, manifest.run_id);
+  } catch {}
 }

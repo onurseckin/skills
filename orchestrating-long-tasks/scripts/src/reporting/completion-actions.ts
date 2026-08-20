@@ -1,145 +1,133 @@
 import type { JsonObject } from "../contracts/json.ts";
 import {
-  gateCommand,
-  packetSecret,
-  placeholder,
+  gateArgv,
+  CRITIC_TOKEN,
   type CommandView,
   type GateView,
-  type PacketView,
+  type NextActions,
 } from "./action-types.ts";
+import { placeholder, pushArgv, registryArgv } from "./registry-argv.ts";
 
+const COORDINATOR = "coordinator";
+
+function criticStart(entrypoint: string, runRoot: string): string[] | undefined {
+  return registryArgv(entrypoint, "critic:start", [
+    ["run", runRoot],
+    ["critic", placeholder("fresh-critic-id")],
+  ]);
+}
+
+/**
+ * A completion review carries the critic's own checks, and those are read off the commands the
+ * critic itself recorded — a review by a critic that ran nothing is refused outright. So the run
+ * gates are named again under the critic's actor before the verdict, and only until one of its
+ * commands has actually landed; otherwise the handoff would hand a fresh critic a command that
+ * cannot succeed on arrival.
+ */
+function criticChecks(
+  entrypoint: string,
+  runRoot: string,
+  criticId: string,
+  gates: GateView[],
+  records: CommandView[],
+): string[][] {
+  if (records.some((record) => record.actor === criticId && record.status === "succeeded")) {
+    return [];
+  }
+  const argv: string[][] = [];
+  for (const gate of gates) {
+    if (gate.scope !== "run") continue;
+    pushArgv(argv, gateArgv(entrypoint, runRoot, gate, criticId));
+  }
+  return argv;
+}
+
+function criticReview(entrypoint: string, runRoot: string, criticId: string): string[] | undefined {
+  return registryArgv(entrypoint, "critic:review", [
+    ["run", runRoot],
+    ["critic", criticId],
+    ["token", CRITIC_TOKEN],
+    ["decision", placeholder("approve-or-request_changes")],
+    ["summary", placeholder("completeness-verdict-in-the-critics-own-words")],
+  ]);
+}
+
+/**
+ * Everything between "every task is done" and a sealed capsule, in the order the harness enforces:
+ * orphan evidence first, then the run gates, then the completeness critic, then completion itself.
+ * Two of those steps have no registry command at all, and saying so is the only honest report: a
+ * fabricated invocation would send a fresh agent to a command that does not exist.
+ */
 export function completionActions(
-  prefix: string[],
+  entrypoint: string,
   runRoot: string,
   view: JsonObject,
   gates: GateView[],
   records: CommandView[],
-): string[][] {
-  const commands: string[][] = [];
-  const orphanEvidence = (view.orphan_evidence ?? []) as {
-    orphan_sha256: string;
-    evidence: JsonObject;
-  }[];
+): NextActions {
+  const argv: string[][] = [];
+  const orphanEvidence = (view.orphan_evidence ?? []) as { orphan_sha256: string }[];
   const dispositions = new Set(
-    ((view.orphan_evidence_dispositions ?? []) as unknown as { orphan_sha256: string }[]).map(
+    ((view.orphan_evidence_dispositions ?? []) as { orphan_sha256: string }[]).map(
       ({ orphan_sha256 }) => orphan_sha256,
     ),
   );
-  for (const orphan of orphanEvidence) {
-    const sha = orphan.orphan_sha256;
-    if (!dispositions.has(sha))
-      commands.push([
-        ...prefix,
-        "disposition-orphan",
-        "--run",
-        runRoot,
-        "--actor",
-        "coordinator",
-        "--disposition",
-        placeholder(`orphan-disposition-json-for:${sha}`),
-      ]);
+  const undispositioned = orphanEvidence
+    .map(({ orphan_sha256 }) => orphan_sha256)
+    .filter((sha) => !dispositions.has(sha));
+  if (undispositioned.length > 0) {
+    return {
+      argv,
+      unavailable: undispositioned.map(
+        (sha) =>
+          `orphan evidence ${sha} blocks completion and no registry command dispositions it; the disposition has to be recorded before the run can seal`,
+      ),
+    };
   }
-  if (commands.length > 0) return commands;
   const missingRunGates = gates.filter(
-    (entry) =>
-      entry.scope === "run" &&
+    (gate) =>
+      gate.scope === "run" &&
       !records.some(
         (record) =>
-          record.status === "succeeded" && record.task_id === null && record.gate_id === entry.id,
+          record.status === "succeeded" && record.task_id === null && record.gate_id === gate.id,
       ),
   );
-  for (const gate of missingRunGates) commands.push(gateCommand(prefix, runRoot, gate));
-  if (missingRunGates.length > 0) return commands;
-  const critic = view.completion_critic as {
-    critic_id: string;
-    attempt: number;
-    status: string;
-    packet_id: string | null;
-  } | null;
+  for (const gate of missingRunGates) {
+    pushArgv(argv, gateArgv(entrypoint, runRoot, gate, COORDINATOR));
+  }
+  if (missingRunGates.length > 0) return { argv, unavailable: [] };
+  const critic = view.completion_critic as { critic_id: string; status: string } | null;
   if (critic === null || critic.status === "expired") {
-    commands.push([
-      ...prefix,
-      "begin-critic",
-      "--run",
-      runRoot,
-      "--critic",
-      placeholder("fresh-critic-id"),
-    ]);
-    return commands;
+    pushArgv(argv, criticStart(entrypoint, runRoot));
+    return { argv, unavailable: [] };
   }
-  const packets = view.packets as unknown as PacketView[];
-  const criticPacket = packets.find((packet) => packet.id === critic.packet_id);
-  const secret = packetSecret(criticPacket);
-  if (critic.status === "assigned") {
-    const repositoryIds = records
-      .filter(
-        (record) =>
-          record.status === "succeeded" && record.task_id === null && record.gate_id !== null,
-      )
-      .map(({ id }) => id)
-      .sort();
-    commands.push([
-      ...prefix,
-      "packet",
-      "--run",
-      runRoot,
-      "--role",
-      "completeness-critic",
-      "--agent",
-      critic.critic_id,
-      "--token",
-      placeholder("host-only-bearer-secret-returned-by:begin-critic"),
-      "--repository-command-ids",
-      repositoryIds.join(","),
-      "--id",
-      `critic-${critic.attempt}`,
-    ]);
-  } else if (critic.status === "packet_published") {
-    commands.push([
-      ...prefix,
-      "review-completion",
-      "--run",
-      runRoot,
-      "--critic",
-      critic.critic_id,
-      "--token",
-      secret,
-      "--review",
-      placeholder(`completion-review-json-for:${critic.packet_id}`),
-    ]);
-  } else if (critic.status === "reviewed") {
-    const review = view.completion_review as {
-      status: "clean" | "findings";
-      review_sha256: string;
-    } | null;
-    if (review?.status === "findings") {
-      const remediations = view.completion_remediations as unknown as {
-        review_sha256: string;
-      }[];
-      if (remediations.some((entry) => entry.review_sha256 === review.review_sha256)) {
-        commands.push([
-          ...prefix,
-          "begin-critic",
-          "--run",
-          runRoot,
-          "--critic",
-          placeholder("fresh-critic-id"),
-        ]);
-      } else {
-        commands.push([
-          ...prefix,
-          "remediate-completion",
-          "--run",
-          runRoot,
-          "--actor",
-          "coordinator",
-          "--remediation",
-          placeholder(`completion-remediation-json-for:${review.review_sha256}`),
-        ]);
-      }
-    } else if (review?.status === "clean") {
-      commands.push([...prefix, "complete", "--run", runRoot, "--actor", "coordinator"]);
-    }
+  if (critic.status === "assigned" || critic.status === "packet_published") {
+    argv.push(...criticChecks(entrypoint, runRoot, critic.critic_id, gates, records));
+    pushArgv(argv, criticReview(entrypoint, runRoot, critic.critic_id));
+    return { argv, unavailable: [] };
   }
-  return commands;
+  if (critic.status !== "reviewed") return { argv, unavailable: [] };
+  const review = view.completion_review as { status: string; review_sha256: string } | null;
+  if (review?.status === "clean") {
+    pushArgv(
+      argv,
+      registryArgv(entrypoint, "run:complete", [
+        ["run", runRoot],
+        ["actor", COORDINATOR],
+      ]),
+    );
+    return { argv, unavailable: [] };
+  }
+  if (review?.status !== "findings") return { argv, unavailable: [] };
+  const remediations = (view.completion_remediations ?? []) as { review_sha256: string }[];
+  if (remediations.some((entry) => entry.review_sha256 === review.review_sha256)) {
+    pushArgv(argv, criticStart(entrypoint, runRoot));
+    return { argv, unavailable: [] };
+  }
+  return {
+    argv,
+    unavailable: [
+      `completion review ${review.review_sha256} recorded findings and no registry command records the remediation that answers them`,
+    ],
+  };
 }

@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { readCaptures } from "../../../orchestrating-long-tasks/scripts/src/store/captures.ts";
 import { join } from "node:path";
 import { execute } from "../../../orchestrating-long-tasks/scripts/src/cli/execute.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
@@ -7,8 +8,10 @@ import { setupCompiledRun } from "./file-persistence-fixture.ts";
 import {
   createMockScreenshot,
   readJsonFile,
+  recordMandatoryProbe,
   runGateExec,
   submitAndStartValidation,
+  writeScreenshotArgv,
 } from "./visual-validation-fixture.ts";
 import { getVisualReport } from "../../../orchestrating-long-tasks/scripts/src/reporting/screenshot-store.ts";
 import { ingestScreenshots } from "../../../orchestrating-long-tasks/scripts/src/reporting/screenshot-ingestion.ts";
@@ -20,7 +23,6 @@ afterEach(async () => cleanupRoots(roots));
 describe("Automated Visual Validation & Screenshot Pipeline - Reports & Verification", () => {
   test("task:reject records screenshots in findings and reports during failure review", async () => {
     const { repo, run } = await setupCompiledRun("visual-reject", roots);
-    createMockScreenshot(join(repo, "test-results"), "diff.png");
     const { valToken } = await submitAndStartValidation({
       run,
       repo,
@@ -29,11 +31,29 @@ describe("Automated Visual Validation & Screenshot Pipeline - Reports & Verifica
       validator: "v1",
     });
 
+    // The validator captures the screenshot by running something that produces it, which is what
+    // makes the capture the validator's rather than a file that happened to be lying in the repo.
+    await execute([
+      "run:exec",
+      "--run",
+      run,
+      "--task",
+      "task-core",
+      "--actor",
+      "v1",
+      "--cwd",
+      repo,
+      "--",
+      ...writeScreenshotArgv(join(repo, "test-results"), "diff.png", "diff-pixels"),
+    ]);
+
     const exec = await runGateExec(run, repo, "task-core", "v1");
     const cmdId = String(exec.command_id);
 
     const reject = await execute([
       "task:reject",
+      "--severity",
+      "critical",
       "--run",
       run,
       "--task",
@@ -46,6 +66,8 @@ describe("Automated Visual Validation & Screenshot Pipeline - Reports & Verifica
       cmdId,
       "--reason",
       "Visual overflow",
+      "--remediation",
+      "Constrain the container so the panel stops overflowing",
     ]);
 
     expect(reject.finding_id).toBe("finding-task-core-reject");
@@ -57,7 +79,7 @@ describe("Automated Visual Validation & Screenshot Pipeline - Reports & Verifica
     expect(reportData.screenshots.some((s) => s.includes("diff.png"))).toBe(true);
   });
 
-  test("deterministic in-place screenshot overwrite updates files and deduplicates manifest.json", async () => {
+  test("a screenshot rewritten in place becomes a second capture, and neither overwrites the other", async () => {
     const { repo, run } = await setupCompiledRun("visual-overwrite", roots);
     const originalFile = createMockScreenshot(
       join(repo, "test-results"),
@@ -72,17 +94,8 @@ describe("Automated Visual Validation & Screenshot Pipeline - Reports & Verifica
       searchDirs: [join(repo, "test-results")],
     });
     expect(firstIngested.length).toBe(1);
-
-    const destEvidencePath = join(run, "evidence", "screenshots", "cmd-fixed-drawer-overview.png");
-    expect(existsSync(destEvidencePath)).toBe(true);
-    expect(readFileSync(destEvidencePath, "utf-8")).toBe("content-v1");
-
-    const manifestBefore = readJsonFile<{
-      screenshots: Array<{ name: string; size_bytes?: number }>;
-    }>(join(run, "evidence", "manifest.json"));
-    expect(
-      manifestBefore.screenshots.filter((s) => s.name === "cmd-fixed-drawer-overview.png").length,
-    ).toBe(1);
+    const firstView = join(run, "evidence", "screenshots", "drawer-overview.png");
+    expect(readFileSync(firstView, "utf-8")).toBe("content-v1");
 
     writeFileSync(originalFile, "content-v2-updated-visuals", "utf-8");
 
@@ -91,22 +104,19 @@ describe("Automated Visual Validation & Screenshot Pipeline - Reports & Verifica
       taskId: "task-core",
       commandId: "cmd-fixed",
       searchDirs: [join(repo, "test-results")],
-      overwrite: true,
     });
     expect(secondIngested.length).toBe(1);
-    expect(readFileSync(destEvidencePath, "utf-8")).toBe("content-v2-updated-visuals");
-
-    const manifestAfter = readJsonFile<{
-      screenshots: Array<{ name: string; size_bytes?: number }>;
-    }>(join(run, "evidence", "manifest.json"));
-    const matchedEntries = manifestAfter.screenshots.filter(
-      (s) => s.name === "cmd-fixed-drawer-overview.png",
+    // The earlier capture is evidence too, so the later one gets its own name rather than
+    // replacing bytes something already cited.
+    expect(readFileSync(firstView, "utf-8")).toBe("content-v1");
+    expect(readFileSync(join(run, secondIngested[0]!.path), "utf-8")).toBe(
+      "content-v2-updated-visuals",
     );
-    expect(matchedEntries.length).toBe(1);
-    expect(matchedEntries[0]?.size_bytes).toBe("content-v2-updated-visuals".length);
+    expect(secondIngested[0]?.bytes).toBe("content-v2-updated-visuals".length);
+    expect(readCaptures(run)).toHaveLength(2);
   });
 
-  test("run:exec discovers and ingests visual-report.json into evidence and reports", async () => {
+  test("run:exec stores a discovered visual report once and reads it back", async () => {
     const { repo, run } = await setupCompiledRun("visual-report-ingest", roots);
     const mockReport: VisualMetricsReport = {
       timestamp: "2026-08-15T19:00:00.000Z",
@@ -156,6 +166,8 @@ describe("Automated Visual Validation & Screenshot Pipeline - Reports & Verifica
       "run:exec",
       "--run",
       run,
+      "--actor",
+      "coordinator",
       "--task",
       "task-core",
       "--cwd",
@@ -173,8 +185,12 @@ describe("Automated Visual Validation & Screenshot Pipeline - Reports & Verifica
     expect(parsedExecReport.textClippings.length).toBe(1);
     expect(parsedExecReport.collisions.length).toBe(1);
 
-    expect(existsSync(join(run, "reports", "visual-report.json"))).toBe(true);
+    // One stored copy, one readable name for it, and no second document repeating the bytes.
+    expect(existsSync(join(run, "reports", "visual-report.json"))).toBe(false);
     expect(existsSync(join(run, "evidence", "visual-report.json"))).toBe(true);
+    const [capture] = readCaptures(run).filter((entry) => entry.kind === "visual_report");
+    expect(capture?.path).toBe("evidence/visual-report.json");
+    expect(existsSync(join(run, capture!.blob_path))).toBe(true);
 
     const retrieved = getVisualReport(run);
     expect(retrieved).not.toBeNull();
@@ -210,6 +226,8 @@ describe("Automated Visual Validation & Screenshot Pipeline - Reports & Verifica
     const exec = await runGateExec(run, repo, "task-core", "v1");
     const cmdId = String(exec.command_id);
 
+    const demands = await recordMandatoryProbe(run, "task-core", "v1", valToken);
+
     const review = await execute([
       "task:review",
       "--run",
@@ -222,6 +240,8 @@ describe("Automated Visual Validation & Screenshot Pipeline - Reports & Verifica
       valToken,
       "--evidence",
       cmdId,
+      "--resolve",
+      `${demands[0]}=${cmdId}`,
       "--status",
       "pass",
       "--summary",

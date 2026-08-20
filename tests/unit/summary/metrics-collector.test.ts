@@ -9,6 +9,7 @@ import type {
   WorkflowState,
 } from "../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
 import { collectMetrics } from "../../../orchestrating-long-tasks/scripts/src/summary/metrics-collector.ts";
+import { generateGraphDataset } from "../../../orchestrating-long-tasks/scripts/src/summary/graph-generator.ts";
 
 describe("metrics collector", () => {
   test("computes rollup metrics accurately", () => {
@@ -143,7 +144,8 @@ describe("metrics collector", () => {
     expect(metrics.pushbacks_total).toBe(1);
     expect(metrics.pushback_rounds).toHaveLength(1);
     expect(metrics.pushback_rounds[0]?.task_id).toBe("T-1");
-    expect(metrics.total_edge_traffic_exchanges).toBeGreaterThanOrEqual(5);
+    // No graph was generated for this call, so there is no exchange count to report.
+    expect(metrics.total_edge_traffic_exchanges).toBeUndefined();
     expect(metrics.wall_duration_ms).toBe(60_000);
     expect(metrics.active_command_duration_ms).toBe(2_500);
     expect(metrics.total_commands_executed).toBe(1);
@@ -152,7 +154,7 @@ describe("metrics collector", () => {
     expect(metrics.files_touched).toHaveLength(2);
   });
 
-  test("calculates edge traffic exchanges and token volume with dependencies and critic join edges", () => {
+  test("counts the exchanges the emitted graph carries and reports no invented token volume", () => {
     const taskA: TaskRecord = {
       id: "T-A",
       status: "done",
@@ -215,14 +217,18 @@ describe("metrics collector", () => {
       graph_revision: 1,
     };
 
+    const graph = generateGraphDataset({ runId: "traffic-test-run", state });
     const metrics = collectMetrics({
       runId: "traffic-test-run",
       state,
       events: [],
+      graph,
     });
 
+    const emitted = graph.edges.reduce((total, edge) => total + (edge.exchanges?.length ?? 0), 0);
     expect(metrics.total_tasks).toBe(3);
-    expect(metrics.total_edge_traffic_exchanges).toBe(16);
-    expect(metrics.total_edge_traffic_tokens).toBe(6370);
+    expect(metrics.total_edge_traffic_exchanges).toBe(emitted);
+    expect(emitted).toBeGreaterThan(0);
+    expect(JSON.stringify(metrics)).not.toContain("total_edge_traffic_tokens");
   });
 });

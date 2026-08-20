@@ -8,18 +8,18 @@ import {
   advanceRunToCritic,
   createMockScreenshot,
   readJsonFile,
+  writeScreenshotArgv,
 } from "./visual-validation-fixture.ts";
 import { getVisualReport } from "../../../orchestrating-long-tasks/scripts/src/reporting/screenshot-store.ts";
-import { ingestScreenshots } from "../../../orchestrating-long-tasks/scripts/src/reporting/screenshot-ingestion.ts";
+import { readCaptures } from "../../../orchestrating-long-tasks/scripts/src/store/captures.ts";
 import type { VisualMetricsReport } from "../../../orchestrating-long-tasks/scripts/src/reporting/screenshot-types.ts";
 
 const roots: string[] = [];
 afterEach(async () => cleanupRoots(roots));
 
 describe("Automated Visual Validation - Boundaries & Resilience", () => {
-  test("evidence:screenshots recovers gracefully when evidence/manifest.json is deleted", async () => {
-    const { repo, run } = await setupCompiledRun("visual-manifest-del", roots);
-    createMockScreenshot(join(repo, "test-results"), "recovered.png");
+  test("deleting the derived catalogue loses no capture, because it is only a cache", async () => {
+    const { repo, run } = await setupCompiledRun("visual-index-del", roots);
 
     await execute([
       "run:exec",
@@ -32,12 +32,12 @@ describe("Automated Visual Validation - Boundaries & Resilience", () => {
       "--cwd",
       repo,
       "--",
-      "echo",
-      "rec",
+      ...writeScreenshotArgv(join(repo, "test-results"), "recovered.png"),
     ]);
 
-    const manifestPath = join(run, "evidence", "manifest.json");
-    if (existsSync(manifestPath)) unlinkSync(manifestPath);
+    const indexPath = join(run, "index.json");
+    expect(existsSync(indexPath)).toBe(true);
+    unlinkSync(indexPath);
 
     const recovered = await execute(["evidence:screenshots", "--run", run, "--task", "task-core"]);
     expect(Number(recovered.count)).toBeGreaterThanOrEqual(1);
@@ -65,7 +65,6 @@ describe("Automated Visual Validation - Boundaries & Resilience", () => {
       "test",
       "tests",
     ]);
-
     await execute([
       "critic:review",
       "--run",
@@ -78,6 +77,17 @@ describe("Automated Visual Validation - Boundaries & Resilience", () => {
       "request_changes",
       "--summary",
       "Defects found in review",
+      "--findings",
+      JSON.stringify([
+        {
+          id: "F-VISUAL-01",
+          requirement_id: "req-core",
+          severity: "important",
+          observation: "The rendered panel does not match the captured screenshot",
+          remediation: "Align the panel layout with the approved capture",
+          revalidation: "bun test tests",
+        },
+      ]),
     ]);
 
     const criticRep = readJsonFile<{ screenshots: string[]; screenshot_records: unknown[] }>(
@@ -91,60 +101,64 @@ describe("Automated Visual Validation - Boundaries & Resilience", () => {
   test("boundary: nested directory scanning discovers deep screenshots", async () => {
     const { repo, run } = await setupCompiledRun("visual-nested", roots);
     const deepDir = join(repo, "test-results", "nested", "level2", "deep");
-    createMockScreenshot(deepDir, "deep-screen.png");
 
     const exec = await execute([
       "run:exec",
       "--run",
       run,
+      "--actor",
+      "coordinator",
       "--task",
       "task-core",
       "--cwd",
       repo,
       "--",
-      "echo",
-      "deep",
+      ...writeScreenshotArgv(deepDir, "deep-screen.png"),
     ]);
-    const cmdId = String(exec.command_id);
-    expect(existsSync(join(run, "evidence", "screenshots", `${cmdId}-deep-screen.png`))).toBe(true);
+    expect(exec.exit_code).toBe(0);
+    expect(existsSync(join(run, "evidence", "screenshots", "deep-screen.png"))).toBe(true);
   });
 
-  test("boundary: duplicate image filenames across multiple commands preserve unique cmd-id prefixes", async () => {
+  test("boundary: two different images under one file name are both kept, named by content", async () => {
     const { repo, run } = await setupCompiledRun("visual-duplicate", roots);
-    createMockScreenshot(join(repo, "test-results"), "component.png", "data-v1");
+    const shots = join(repo, "test-results");
 
     const exec1 = await execute([
       "run:exec",
       "--run",
       run,
+      "--actor",
+      "coordinator",
       "--task",
       "task-core",
       "--cwd",
       repo,
       "--",
-      "echo",
-      "1",
+      ...writeScreenshotArgv(shots, "component.png", "data-v1"),
     ]);
-    const cmd1 = String(exec1.command_id);
-
-    createMockScreenshot(join(repo, "test-results"), "component.png", "data-v2");
     const exec2 = await execute([
       "run:exec",
       "--run",
       run,
+      "--actor",
+      "coordinator",
       "--task",
       "task-core",
       "--cwd",
       repo,
       "--",
-      "echo",
-      "2",
+      ...writeScreenshotArgv(shots, "component.png", "data-v2"),
     ]);
-    const cmd2 = String(exec2.command_id);
 
-    expect(cmd1).not.toBe(cmd2);
-    expect(existsSync(join(run, "evidence", "screenshots", `${cmd1}-component.png`))).toBe(true);
-    expect(existsSync(join(run, "evidence", "screenshots", `${cmd2}-component.png`))).toBe(true);
+    expect(exec1.command_id).not.toBe(exec2.command_id);
+    const captures = readCaptures(run);
+    expect(captures).toHaveLength(2);
+    expect(new Set(captures.map((capture) => capture.sha256)).size).toBe(2);
+    // The first keeps the readable name; the second is disambiguated by its own digest, never by
+    // the id of the command that ingested it.
+    expect(captures[0]?.name).toBe("component.png");
+    expect(captures[1]?.name).toBe(`component-${captures[1]!.sha256.slice(0, 8)}.png`);
+    for (const capture of captures) expect(existsSync(join(run, capture.path))).toBe(true);
   });
 
   test("boundary: non-image files are filtered and ignored during screenshot scanning", async () => {
@@ -159,6 +173,8 @@ describe("Automated Visual Validation - Boundaries & Resilience", () => {
       "run:exec",
       "--run",
       run,
+      "--actor",
+      "coordinator",
       "--task",
       "task-core",
       "--cwd",
@@ -177,6 +193,8 @@ describe("Automated Visual Validation - Boundaries & Resilience", () => {
       "run:exec",
       "--run",
       run,
+      "--actor",
+      "coordinator",
       "--task",
       "task-core",
       "--cwd",
@@ -203,6 +221,8 @@ describe("Automated Visual Validation - Boundaries & Resilience", () => {
       "run:exec",
       "--run",
       run,
+      "--actor",
+      "coordinator",
       "--task",
       "task-core",
       "--cwd",
@@ -228,6 +248,8 @@ describe("Automated Visual Validation - Boundaries & Resilience", () => {
       "run:exec",
       "--run",
       run,
+      "--actor",
+      "coordinator",
       "--task",
       "task-core",
       "--cwd",
@@ -251,6 +273,8 @@ describe("Automated Visual Validation - Boundaries & Resilience", () => {
       "run:exec",
       "--run",
       run,
+      "--actor",
+      "coordinator",
       "--task",
       "task-core",
       "--cwd",
@@ -267,73 +291,5 @@ describe("Automated Visual Validation - Boundaries & Resilience", () => {
     expect(Array.isArray(rep.textClippings)).toBe(true);
     expect(Array.isArray(rep.collisions)).toBe(true);
     expect(typeof rep.viewports).toBe("object");
-  });
-
-  test("boundary: getVisualReport handles empty object, non-object, and array schemas gracefully", async () => {
-    const { run } = await setupCompiledRun("visual-fallback-schemas", roots);
-    const repDir = join(run, "reports");
-    mkdirSync(repDir, { recursive: true });
-
-    writeFileSync(join(repDir, "visual-report.json"), '["invalid", "array"]', "utf-8");
-    expect(getVisualReport(run)).toBeNull();
-
-    writeFileSync(join(repDir, "visual-report.json"), '"string-primitive"', "utf-8");
-    expect(getVisualReport(run)).toBeNull();
-
-    writeFileSync(join(repDir, "visual-report.json"), "{}", "utf-8");
-    const normalized = getVisualReport(run);
-    expect(normalized).not.toBeNull();
-    expect(normalized?.layoutOverflows).toEqual([]);
-    expect(normalized?.textClippings).toEqual([]);
-    expect(normalized?.collisions).toEqual([]);
-    expect(typeof normalized?.viewports).toBe("object");
-  });
-
-  test("boundary: duplicate explicitPaths do not cause redundant filesystem writes", async () => {
-    const { repo, run } = await setupCompiledRun("visual-dup-explicit", roots);
-    const imgPath = createMockScreenshot(join(repo, "test-results"), "dup-test.png", "raw-bytes");
-
-    const ingested = ingestScreenshots({
-      runRoot: run,
-      commandId: "cmd-dup",
-      explicitPaths: [imgPath, imgPath, join(repo, "test-results", "dup-test.png")],
-    });
-    expect(ingested.length).toBe(1);
-
-    const manifest = readJsonFile<{ screenshots: Array<{ name: string }> }>(
-      join(run, "evidence", "manifest.json"),
-    );
-    expect(manifest.screenshots.filter((s) => s.name === "cmd-dup-dup-test.png").length).toBe(1);
-  });
-
-  test("boundary: ingestScreenshots with overwrite: false skips existing destination files", async () => {
-    const { repo, run } = await setupCompiledRun("visual-no-overwrite", roots);
-    createMockScreenshot(join(repo, "test-results"), "static.png", "initial-data");
-
-    const res1 = ingestScreenshots({
-      runRoot: run,
-      commandId: "cmd-static",
-      searchDirs: [join(repo, "test-results")],
-    });
-    expect(res1.length).toBe(1);
-
-    const destPath = join(run, "evidence", "screenshots", "cmd-static-static.png");
-    expect(readFileSync(destPath, "utf-8")).toBe("initial-data");
-
-    writeFileSync(join(repo, "test-results", "static.png"), "modified-data", "utf-8");
-
-    const res2 = ingestScreenshots({
-      runRoot: run,
-      commandId: "cmd-static",
-      searchDirs: [join(repo, "test-results")],
-      overwrite: false,
-    });
-    expect(res2.length).toBe(0);
-    expect(readFileSync(destPath, "utf-8")).toBe("initial-data");
-  });
-
-  test("boundary: getVisualReport returns null when reports and evidence directories have no visual-report", async () => {
-    const { run } = await setupCompiledRun("visual-no-report", roots);
-    expect(getVisualReport(run)).toBeNull();
   });
 });

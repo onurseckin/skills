@@ -4,6 +4,8 @@ import { HarnessError } from "../errors/harness-error.ts";
 import { OrchestratorWatchdog } from "./watchdog.ts";
 import { synthesizeNextRoundPrompt } from "./defect-synthesizer.ts";
 import { chainCapsules } from "./capsule-chainer.ts";
+import { loopGateStatus, roundGateStatus } from "./gate-status.ts";
+import { formatLoopMarkdownSummary } from "./loop-summary-brief.ts";
 import type {
   CapsuleChainManifest,
   DefectSynthesis,
@@ -91,6 +93,15 @@ export class AutonomousLoopRunner {
   }
 
   public async run(): Promise<LoopSummary> {
+    // Without an injected executor nothing can execute a round. Reporting a synthetic approved
+    // round here would write a signed summary claiming work that never happened, so the loop
+    // refuses to start instead.
+    const executor = this.executor;
+    if (!executor)
+      throw new HarnessError(
+        "INVALID_STATE",
+        "autonomous loop has no round executor; the host must inject one before orchestrator:run can execute a round",
+      );
     const loopStartTime = Date.now();
     const startedAt = new Date(loopStartTime).toISOString();
     const roundTelemetryList: RoundTelemetry[] = [];
@@ -144,9 +155,7 @@ export class AutonomousLoopRunner {
           priorDefects: priorSynthesis,
         };
 
-        const result: RoundExecutionResult = this.executor
-          ? await this.executor.executeRound(executionInput)
-          : await this.defaultExecuteRound(executionInput);
+        const result: RoundExecutionResult = await executor.executeRound(executionInput);
 
         const roundEndTime = Date.now();
         const durationMs = roundEndTime - roundStartTime;
@@ -154,8 +163,7 @@ export class AutonomousLoopRunner {
 
         const openFindings = result.findings.filter((f) => f.status !== "resolved");
         const resolvedFindings = result.findings.filter((f) => f.status === "resolved");
-        const gatesPassed =
-          result.gateResults.length === 0 || result.gateResults.every((g) => g.status === "passed");
+        const gateStatus = roundGateStatus(result.gateResults);
         const isApprovedByCritic = result.criticDecision === "approve";
         lastCriticDecision = result.criticDecision;
 
@@ -173,17 +181,20 @@ export class AutonomousLoopRunner {
           ).length,
           openFindingsCount: openFindings.length,
           resolvedFindingsCount: resolvedFindings.length,
-          gatesPassed,
+          gateStatus,
+          gateCount: result.gateResults.length,
           summary: result.summary,
         };
 
         roundTelemetryList.push(telemetry);
         this.onRoundComplete?.(telemetry);
 
+        // Convergence demands gates that actually ran and passed. A round with no gate result has
+        // proven nothing, so it can never seal the loop as a success.
         if (
           result.status === "completed" &&
           isApprovedByCritic &&
-          gatesPassed &&
+          gateStatus === "passed" &&
           openFindings.length === 0
         ) {
           finalStatus = "converged_success";
@@ -224,20 +235,18 @@ export class AutonomousLoopRunner {
     const loopEndTime = Date.now();
     const completedAt = new Date(loopEndTime).toISOString();
     const overallDurationMs = loopEndTime - loopStartTime;
-    const allGatesPassed = roundTelemetryList.every((r) => r.gatesPassed);
+    const gateStatus = loopGateStatus(roundTelemetryList);
 
-    const markdownSummary = this.formatLoopMarkdownSummary({
+    const markdownSummary = formatLoopMarkdownSummary({
       loopId: `loop-${this.baseRunId}`,
       baseRunId: this.baseRunId,
       totalRoundsExecuted: roundTelemetryList.length,
       maxRoundsConfigured: this.maxRoundsConfigured,
       finalStatus,
-      startedAt,
-      completedAt,
       overallDurationMs,
       rounds: roundTelemetryList,
       totalFindingsSynthesized: totalSynthesizedFindings,
-      allGatesPassed,
+      gateStatus,
       finalCriticDecision: lastCriticDecision,
     });
 
@@ -252,7 +261,7 @@ export class AutonomousLoopRunner {
       overallDurationMs,
       rounds: roundTelemetryList,
       totalFindingsSynthesized: totalSynthesizedFindings,
-      allGatesPassed,
+      gateStatus,
       finalCriticDecision: lastCriticDecision,
       finalMarkdownSummary: markdownSummary,
     };
@@ -261,59 +270,6 @@ export class AutonomousLoopRunner {
     writeFileSync(summaryPath, JSON.stringify(loopSummary, null, 2) + "\n", "utf-8");
     this.onLoopComplete?.(loopSummary);
     return loopSummary;
-  }
-
-  private async defaultExecuteRound(input: RoundExecutionInput): Promise<RoundExecutionResult> {
-    return {
-      runId: input.runId,
-      round: input.round,
-      status: "completed",
-      criticDecision: "approve",
-      tasks: [],
-      findings: [],
-      gateResults: [],
-      summary: `Round ${input.round} completed default execution.`,
-    };
-  }
-
-  private formatLoopMarkdownSummary(summary: {
-    readonly loopId: string;
-    readonly baseRunId: string;
-    readonly totalRoundsExecuted: number;
-    readonly maxRoundsConfigured: number;
-    readonly finalStatus: LoopExecutionStatus;
-    readonly startedAt: string;
-    readonly completedAt: string;
-    readonly overallDurationMs: number;
-    readonly rounds: readonly RoundTelemetry[];
-    readonly totalFindingsSynthesized: number;
-    readonly allGatesPassed: boolean;
-    readonly finalCriticDecision?: RoundTelemetry["criticDecision"] | undefined;
-  }): string {
-    const lines: string[] = [
-      `# Autonomous Multi-Round Loop Summary: \`${summary.baseRunId}\``,
-      "",
-      `- **Loop ID:** \`${summary.loopId}\``,
-      `- **Final Status:** \`${summary.finalStatus}\``,
-      `- **Total Rounds Executed:** ${summary.totalRoundsExecuted} / ${summary.maxRoundsConfigured}`,
-      `- **Overall Duration:** ${(summary.overallDurationMs / 1000).toFixed(2)}s`,
-      `- **Total Synthesized Findings:** ${summary.totalFindingsSynthesized}`,
-      `- **All Gates Passed:** ${summary.allGatesPassed ? "✅ Yes" : "❌ No"}`,
-      `- **Final Critic Decision:** \`${summary.finalCriticDecision ?? "none"}\``,
-      "",
-      "## Round Execution Breakdown",
-      "",
-      "| Round | Run ID | Status | Critic Decision | Tasks Done | Open Findings | Duration |",
-      "| :--- | :--- | :--- | :--- | :--- | :--- | :--- |",
-    ];
-
-    for (const r of summary.rounds) {
-      lines.push(
-        `| Round ${r.round} | \`${r.runId}\` | \`${r.status}\` | \`${r.criticDecision ?? "n/a"}\` | ${r.completedTaskCount}/${r.taskCount} | ${r.openFindingsCount} | ${(r.durationMs / 1000).toFixed(2)}s |`,
-      );
-    }
-    lines.push("");
-    return lines.join("\n");
   }
 }
 

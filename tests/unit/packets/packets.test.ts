@@ -27,7 +27,6 @@ const base = () => {
       bytes: commonBytes,
       sha256: createHash("sha256").update(commonBytes).digest("hex"),
     },
-    roleInstructions: "Inspect authoritative evidence.",
     evidenceSchema: { required: ["evidence"] },
     targetedCommands: [["bun", "test"]],
     leaseToken: claim.token,

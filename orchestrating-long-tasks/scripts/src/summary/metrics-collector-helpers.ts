@@ -1,7 +1,18 @@
 import type { HarnessEvent, Manifest } from "../contracts/capsule.ts";
 import type { CommandRecord } from "../contracts/commands.ts";
 import type { TaskRecord } from "../workflow/types.ts";
+import { resolveValidatorId } from "./graph-node-context.ts";
+import { partitionTaskCommands } from "./node-evidence.ts";
 import type { TimingBreakdown, TokenUsageDetail } from "./types.ts";
+
+/**
+ * The commands that count as validation for a task: gate runs, plus whatever the agent the task
+ * recorded as its validator ran. An actor named "val" is a name, not a role, so no metric here is
+ * built out of one.
+ */
+function validationCommands(task: TaskRecord, taskCmds: readonly CommandRecord[]): CommandRecord[] {
+  return partitionTaskCommands(taskCmds, resolveValidatorId(task)).validator;
+}
 
 export function parseDurationMs(startedAt?: string | null, finishedAt?: string | null): number {
   if (!startedAt || !finishedAt) return 0;
@@ -151,7 +162,7 @@ export function computeTaskTiming(
   } else if (valStart && review) {
     validationDurationMs = parseDurationMs(valStart, review);
   } else {
-    const valCmds = taskCmds.filter((c) => Boolean(c.gate_id) || c.actor === "val");
+    const valCmds = validationCommands(task, taskCmds);
     if (valCmds.length > 0)
       validationDurationMs = valCmds.reduce(
         (acc, c) => acc + parseDurationMs(c.started_at, c.finished_at),
@@ -177,7 +188,7 @@ export function computeGateTiming(
     review,
     validationDurationMs: accumulatedValMs,
   } = extractTaskTimestamps(task, events);
-  const valCmds = taskCmds.filter((c) => Boolean(c.gate_id) || c.actor === "val");
+  const valCmds = validationCommands(task, taskCmds);
   const activeCommandMs = valCmds.reduce(
     (acc, c) => acc + parseDurationMs(c.started_at, c.finished_at),
     0,
@@ -234,15 +245,17 @@ export function computeTaskTokens(
       totalTokens,
       ...(hostTokens.costUsd !== undefined ? { costUsd: hostTokens.costUsd } : {}),
       isEstimated: false,
+      evidenceClass: hostTokens.evidenceClass ?? "host_reported",
     };
   }
 
-  const promptBytes = manifest?.prompt_bytes ?? 1200;
+  // A missing manifest contributes nothing to the estimate rather than a stand-in prompt size.
+  const promptBytes = manifest?.prompt_bytes ?? 0;
   let cmdStdoutBytes = 0;
   for (const cmd of taskCmds)
     cmdStdoutBytes +=
       cmd.logs?.stdout?.bytes ?? (typeof cmd.stdout === "string" ? cmd.stdout.length : 0);
-  const reportBytes = task.report ? JSON.stringify(task.report).length : 400;
+  const reportBytes = task.report ? JSON.stringify(task.report).length : 0;
   const summaryStr = typeof task.report?.summary === "string" ? task.report.summary : "";
 
   const inputTokens = Math.max(50, Math.round((promptBytes + cmdStdoutBytes) / 4));
@@ -266,6 +279,8 @@ export function computeTaskTokens(
     totalTokens,
     ...(hostTokens?.costUsd !== undefined ? { costUsd: hostTokens.costUsd } : {}),
     isEstimated: true,
+    // A byte-ratio guess is never presented as a measurement.
+    evidenceClass: "derived",
   };
 }
 
@@ -296,10 +311,11 @@ export function computeGateTokens(
       totalTokens,
       ...(hostTokens.costUsd !== undefined ? { costUsd: hostTokens.costUsd } : {}),
       isEstimated: false,
+      evidenceClass: hostTokens.evidenceClass ?? "host_reported",
     };
   }
 
-  const valCmds = taskCmds.filter((c) => Boolean(c.gate_id) || c.actor === "val");
+  const valCmds = validationCommands(task, taskCmds);
   let valStdoutBytes = 0;
   for (const cmd of valCmds) {
     valStdoutBytes +=
@@ -327,5 +343,7 @@ export function computeGateTokens(
     totalTokens,
     ...(hostTokens?.costUsd !== undefined ? { costUsd: hostTokens.costUsd } : {}),
     isEstimated: true,
+    // A byte-ratio guess is never presented as a measurement.
+    evidenceClass: "derived",
   };
 }

@@ -1,5 +1,6 @@
 import type { JsonObject } from "./json.ts";
 import type { RepositoryBinding } from "./repository.ts";
+import type { CategoryExtras, ToolCategory } from "./taxonomy.ts";
 
 export type CommandAssurance = "trusted_host_observed_v1";
 
@@ -118,6 +119,14 @@ export interface CommandRecord extends JsonObject {
   attempt_signing_public_key: string;
   record_path: string;
   actor: string;
+  /**
+   * What the caller declared this command to be: a generic category, the instance that ran it, and
+   * whatever else about it does not generalise. Declared, never read out of the argv — inferring a
+   * tool from a command line is exactly the guess this schema refuses to make.
+   */
+  tool_category?: ToolCategory;
+  tool?: string;
+  tool_extras?: CategoryExtras;
   timeout_kind?: null | CommandTimeoutKind;
   signals_sent?: string[];
   logs?: { stdout: CommandLogMetadata; stderr: CommandLogMetadata };

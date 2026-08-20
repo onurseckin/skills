@@ -5,10 +5,17 @@ import { HarnessError } from "../../errors/harness-error.ts";
 import { readPlanObject } from "../../graph/read-plan.ts";
 import { workflowPort } from "../../integration/store-ports.ts";
 import { inspectRepositoryBinding } from "../../packets/repository-identity.ts";
-import { recordRepositoryInspection } from "../../packets/repository-inspection.ts";
+import {
+  publishCriticRolePacket,
+  repositoryEvidenceCommandIds,
+} from "../../packets/critic-grant.ts";
+import { recordGrantInspections } from "../../packets/role-grant.ts";
 import { loadRun } from "../../store/index.ts";
+import { tokenDigest } from "../../workflow/lease/token.ts";
 import { beginCompletenessCritic } from "../../workflow/completion/begin-completeness-critic.ts";
 import { parseRawFindings } from "../../workflow/completion/parse-raw-findings.ts";
+import { parseRawProofs } from "../../workflow/completion/parse-raw-proofs.ts";
+import { observeCapsuleIntegrity } from "../../workflow/completion/integrity-evidence.ts";
 import { recordCompletionReview } from "../../workflow/completion/record-completion-review.ts";
 import { authoritativeRepositoryCommand } from "../../workflow/completion/repository-evidence.ts";
 import type { CompletionFinding } from "../../workflow/completion/types.ts";
@@ -17,7 +24,7 @@ import {
   formatCriticReviewBrief,
   formatCriticStartBrief,
 } from "../formatters/index.ts";
-import { assertFlags, textFlag, type Flags } from "../options.ts";
+import { textFlag, type Flags } from "../options.ts";
 import { queryScreenshots } from "../../reporting/screenshot-store.ts";
 
 function liveRepositoryBinding(run: string, expected: Readonly<RepositoryBinding>) {
@@ -27,18 +34,33 @@ function liveRepositoryBinding(run: string, expected: Readonly<RepositoryBinding
 }
 
 export async function criticStartCommand(flags: Flags): Promise<Record<string, unknown>> {
-  assertFlags(flags, ["run", "critic", "repository-command-ids"]);
   const run = textFlag(flags, "run")!;
   const critic = textFlag(flags, "critic")!;
 
-  recordRepositoryInspection(run, critic, "current");
+  // Both observations are taken before the authorisation is minted, so the readiness digest the
+  // assignment records is the one the packet is later built and authorised against.
+  recordGrantInspections(run, critic);
   const result = beginCompletenessCritic(workflowPort(run), critic);
+  // The critic's contract is published with its authority: a review can only be recorded by an
+  // agent the harness durably handed the critic contract to.
+  const published = await publishCriticRolePacket({
+    runRoot: run,
+    port: workflowPort(run),
+    criticId: critic,
+    token: result.token,
+  });
   const tasks = Object.values(result.state.tasks);
   const satisfiedCount = tasks.filter((t) => t.status === "done").length;
   const totalReqs = result.state.requirements.length;
   const evidencedReqs = result.state.requirements.filter(
     (r) => r.status === "satisfied" || r.evidence.length > 0,
   ).length;
+
+  // The mandatory final gate is whatever the compiled plan declares. Naming a command the run
+  // never registered would send the critic to prove something the harness will not accept.
+  const finalGates = result.state.gates
+    .filter((gate) => gate.scope === "run" && gate.mandatory)
+    .map((gate) => (Array.isArray(gate.command) ? gate.command.join(" ") : gate.command));
 
   const markdown = formatCriticStartBrief({
     critic,
@@ -47,7 +69,7 @@ export async function criticStartCommand(flags: Flags): Promise<Record<string, u
     totalTasks: tasks.length,
     reqsEvidenced: evidencedReqs,
     totalReqs,
-    finalGate: "bun test tests",
+    finalGates,
   });
 
   return {
@@ -55,30 +77,22 @@ export async function criticStartCommand(flags: Flags): Promise<Record<string, u
     run_root: run,
     token: result.token,
     critic: result.state.completion_critic,
+    packet_id: published.record.id,
+    packet_path: published.markdownPath,
+    role_contract_sha256: published.packet.metadata.role_contract_sha256,
   };
 }
 
 export async function criticReviewCommand(flags: Flags): Promise<Record<string, unknown>> {
-  assertFlags(flags, [
-    "run",
-    "critic",
-    "token",
-    "decision",
-    "summary",
-    "finding",
-    "findings",
-    "findings-file",
-    "reason",
-    "review",
-  ]);
   const run = textFlag(flags, "run")!;
   const critic = textFlag(flags, "critic")!;
   const token = textFlag(flags, "token")!;
-  const decision = textFlag(flags, "decision", false) ?? "approve";
-  const summary = textFlag(flags, "summary", false) ?? `Critic review: ${decision}`;
-  const finding = textFlag(flags, "finding", false) ?? textFlag(flags, "reason", false);
+  const decision = textFlag(flags, "decision")!;
+  const summary = textFlag(flags, "summary")!;
   const findingsRaw = textFlag(flags, "findings", false);
   const findingsFile = textFlag(flags, "findings-file", false);
+  const proofsRaw = textFlag(flags, "proofs", false);
+  const proofsFile = textFlag(flags, "proofs-file", false);
   const reviewFile = textFlag(flags, "review", false);
 
   if (decision !== "approve" && decision !== "request_changes") {
@@ -88,9 +102,19 @@ export async function criticReviewCommand(flags: Flags): Promise<Record<string, 
   let reviewPayload: Record<string, unknown>;
   const isApproved = decision === "approve";
 
+  // Capsule integrity is the harness's own measurement of the chain it wrote. Whichever way the
+  // verdict arrives, the observation is taken here and overrides whatever the payload claims: a
+  // file that certifies its own capsule proves nothing.
+  const capsuleNow = loadRun(run);
+  const observedIntegrity = observeCapsuleIntegrity(
+    capsuleNow.runRoot,
+    capsuleNow.state.event_head,
+  );
+
   if (reviewFile !== undefined) {
     reviewPayload = await readPlanObject(reviewFile, "completion review");
     reviewPayload.critic_token = token;
+    reviewPayload.integrity_evidence = [observedIntegrity];
   } else {
     const port = workflowPort(run);
     const state = port.read();
@@ -99,84 +123,55 @@ export async function criticReviewCommand(flags: Flags): Promise<Record<string, 
       throw new HarnessError("INVALID_STATE", "no completeness critic assignment found");
     }
 
-    const firstReqId = state.requirements[0]?.id ?? "req-1";
+    // A rejection is a claim about specific defects. The harness will not compose one on the
+    // critic's behalf, so request_changes without a findings payload is refused outright.
     let findingsList: CompletionFinding[] = [];
-    if (!isApproved) {
-      if (findingsRaw || findingsFile) {
-        findingsList = parseRawFindings(findingsRaw, findingsFile, firstReqId, summary);
-      } else {
-        findingsList = [
-          {
-            id: "finding-critic-01",
-            requirement_id: firstReqId,
-            severity: "important",
-            observation: finding ?? summary,
-            evidence: [{ kind: "state", reference: firstReqId, observation: finding ?? summary }],
-            remediation: "Address identified gap prior to completion.",
-            revalidation: "Re-run full verification gate.",
-          },
-        ];
-      }
+    if (isApproved) {
+      if (findingsRaw !== undefined || findingsFile !== undefined)
+        throw new HarnessError(
+          "INVALID_ARGUMENT",
+          "--decision approve cannot carry findings; record them with --decision request_changes",
+        );
+    } else {
+      if (findingsRaw === undefined && findingsFile === undefined)
+        throw new HarnessError(
+          "INVALID_ARGUMENT",
+          "--decision request_changes requires --findings or --findings-file; a rejection must name the defects it found",
+        );
+      findingsList = parseRawFindings(findingsRaw, findingsFile);
+      if (findingsList.length === 0)
+        throw new HarnessError(
+          "INVALID_ARGUMENT",
+          "--decision request_changes requires at least one finding",
+        );
     }
 
     const checksList = Object.values(state.commands)
       .filter((c) => c.actor === critic && c.exit_code === 0)
       .map((c) => ({ command_id: c.id }));
 
-    const repoCmds = Object.values(state.commands)
-      .filter(
-        (c) =>
-          c.gate_id === "gate-run-completion" &&
-          c.exit_code === 0 &&
-          authoritativeRepositoryCommand(state, c.id) !== undefined,
-      )
-      .map((c) => c.id);
-
-    const rawReqs = state.requirements as unknown;
-    const reqList: { id: string }[] = Array.isArray(rawReqs)
-      ? (rawReqs as { id: string }[])
-      : rawReqs &&
-          typeof rawReqs === "object" &&
-          "requirements" in rawReqs &&
-          Array.isArray((rawReqs as { requirements: unknown }).requirements)
-        ? (rawReqs as { requirements: { id: string }[] }).requirements
-        : Object.values((rawReqs ?? {}) as Record<string, { id: string }>);
-
-    const proofs = reqList.map((req) => ({
-      requirement_id: req.id,
-      status: "satisfied" as const,
-      evidence:
-        checksList.length > 0
-          ? [
-              {
-                kind: "command" as const,
-                reference: checksList[0]!.command_id,
-                observation: `Requirement ${req.id} satisfied.`,
-              },
-            ]
-          : [
-              {
-                kind: "state" as const,
-                reference: req.id,
-                observation: `Requirement ${req.id} satisfied.`,
-              },
-            ],
-    }));
+    // Only proofs the critic actually wrote. Requirements it left out are recorded `unproven` by
+    // the review parser and block completion; nothing here manufactures a sign-off.
+    const proofs = parseRawProofs(proofsRaw, proofsFile);
 
     const graphRev =
       state.graph_revision ??
-      (state as unknown as { graph?: { revision?: number } }).graph?.revision ??
-      1;
+      (state as unknown as { graph?: { revision?: number } }).graph?.revision;
+
+    const packet = assignment.packet_id ? state.packets?.[assignment.packet_id] : undefined;
+
+    // The packet named the repository evidence this critic was handed. The review answers with that
+    // exact list rather than recomputing one that may have drifted since the packet was published.
+    const repoCmds = packet?.repository_command_ids ?? repositoryEvidenceCommandIds(state);
 
     reviewPayload = {
-      packet_id: "packet-critic-direct",
+      ...(packet ? { packet_id: packet.id, packet_sha256: packet.packet_sha256 } : {}),
       critic_token: token,
-      packet_sha256: "",
       graph_revision: graphRev,
       status: isApproved ? "clean" : "findings",
       readiness_sha256: assignment.readiness_sha256,
       repository_binding: assignment.repository_binding,
-      integrity_evidence: [{ status: "passed", issues: [] }],
+      integrity_evidence: [observedIntegrity],
       repository_command_ids: repoCmds,
       checks: checksList,
       findings: findingsList,
@@ -191,21 +186,8 @@ export async function criticReviewCommand(flags: Flags): Promise<Record<string, 
   );
 
   const loaded = loadRun(run);
-  const findings =
-    state.completion_review?.findings ??
-    (reviewPayload.findings as CompletionFinding[] | undefined) ??
-    [];
-
-  // If request_changes / not approved, persist findings to <run>/findings/<finding-id>.json
-  if (!isApproved && findings.length > 0) {
-    const findingsDir = join(loaded.runRoot, "findings");
-    mkdirSync(findingsDir, { recursive: true });
-    for (const f of findings) {
-      if (f && typeof f.id === "string") {
-        writeFileSync(join(findingsDir, `${f.id}.json`), JSON.stringify(f, null, 2), "utf-8");
-      }
-    }
-  }
+  const recordedReview = state.completion_review;
+  const findings = recordedReview?.findings ?? [];
 
   // Persist critic report to <run>/reports/critic-review.json
   const reportsDir = join(loaded.runRoot, "reports");
@@ -214,19 +196,20 @@ export async function criticReviewCommand(flags: Flags): Promise<Record<string, 
   const runScreenshots = queryScreenshots(loaded.runRoot);
   const reportData = {
     critic,
-    token,
+    // The critic token is a live bearer credential; only its digest is durable, and the recorded
+    // review is used verbatim so no in-memory payload carrying the token can reach the capsule.
+    critic_token_digest: tokenDigest(token),
     decision,
     summary,
     created_at: new Date().toISOString(),
     findings,
-    screenshots: runScreenshots.map((s) => s.report_path),
+    screenshots: runScreenshots.map((s) => s.path),
     screenshot_records: runScreenshots,
-    completion_review: state.completion_review ?? reviewPayload,
+    completion_review: recordedReview ?? null,
   };
   writeFileSync(reportPath, JSON.stringify(reportData, null, 2), "utf-8");
 
-  const firstFindingId =
-    findings[0]?.id ?? (decision === "request_changes" ? "finding-critic-01" : undefined);
+  const firstFindingId = findings[0]?.id;
 
   const markdown = formatCriticReviewBrief({
     critic,
@@ -248,17 +231,6 @@ export async function criticReviewCommand(flags: Flags): Promise<Record<string, 
 }
 
 export async function criticRejectCommand(flags: Flags): Promise<Record<string, unknown>> {
-  assertFlags(flags, [
-    "run",
-    "critic",
-    "token",
-    "summary",
-    "reason",
-    "finding",
-    "findings",
-    "findings-file",
-    "review",
-  ]);
   const rejectFlags = {
     ...flags,
     decision: "request_changes",
@@ -270,7 +242,7 @@ export async function criticRejectCommand(flags: Flags): Promise<Record<string, 
   const critic = textFlag(flags, "critic")!;
   const token = textFlag(flags, "token")!;
   const run = textFlag(flags, "run")!;
-  const summary = textFlag(flags, "summary", false) ?? "Critic rejected: defects found";
+  const summary = textFlag(flags, "summary")!;
 
   const markdown = formatCriticRejectBrief({
     critic,

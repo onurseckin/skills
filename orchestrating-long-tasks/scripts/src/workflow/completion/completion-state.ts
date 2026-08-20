@@ -1,5 +1,6 @@
 import type { CommandRecord } from "../../contracts/commands.ts";
 import { embeddedCommandIssues } from "../../runner/command-shape.ts";
+import { openBranchIssues } from "../branch/completion-blockers.ts";
 import { applicableGates, commandMatchesGate } from "../gates/gate-policy.ts";
 import { requirementExecutionState } from "../authority/index.ts";
 import { orphanEvidenceIssues } from "../orphan-evidence/digest.ts";
@@ -59,6 +60,39 @@ function taskGatePassed(state: WorkflowState, task: TaskRecord, gate: GateRuntim
   );
 }
 
+export interface GateTally {
+  /** Gates the plan made mandatory: every applicable task gate plus every mandatory run gate. */
+  total: number;
+  /** Of those, the ones with an authoritative passing command bound to them. */
+  green: number;
+}
+
+/**
+ * Counts gates, and only gates. A brief that reports command exit codes or requirement totals under
+ * a gate heading is reporting two numbers that are not gate counts.
+ */
+export function gateTally(state: WorkflowState): GateTally {
+  let total = 0;
+  let green = 0;
+  for (const task of Object.values(state.tasks)) {
+    for (const gate of applicableGates(state, task)) {
+      total += 1;
+      if (taskGatePassed(state, task, gate)) green += 1;
+    }
+  }
+  const runGates = (
+    state.gates ??
+    (state as unknown as { graph?: { gates?: typeof state.gates } }).graph?.gates ??
+    []
+  ).filter((gate) => gate.scope === "run" && gate.mandatory);
+  const proven = mandatoryRunGateCommands(state);
+  for (const gate of runGates) {
+    total += 1;
+    if (proven[gate.id] !== undefined) green += 1;
+  }
+  return { total, green };
+}
+
 function validatorProofIssues(state: WorkflowState, task: TaskRecord): string[] {
   const validation = task.validation;
   if (validation?.verdict !== "pass")
@@ -111,6 +145,7 @@ export function completionIssues(
       issues.push("completion artifact verification digest is invalid");
   }
   issues.push(...orphanEvidenceIssues(state));
+  issues.push(...openBranchIssues(state));
   for (const task of Object.values(state.tasks).sort((a, b) => a.id.localeCompare(b.id))) {
     const disposed =
       task.requirement_ids.length > 0 &&

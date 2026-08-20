@@ -1,7 +1,7 @@
 # Common agent instructions
 
-These instructions are authoritative for every planner, implementer, validator, repairer, and
-completeness critic packet.
+These instructions are authoritative for every role packet. The packet's role contract adds the
+non-negotiable capability list for that specific role; where both speak, both bind.
 
 1. Follow system/developer instructions, the repository's checked-in agent guidance, and the
    immutable packet. Never weaken, reinterpret, or silently skip them.

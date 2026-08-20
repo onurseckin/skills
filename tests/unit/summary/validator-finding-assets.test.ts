@@ -65,7 +65,9 @@ describe("Round 3: Validator Findings & Asset Pipeline", () => {
       expect(f1?.severity).toBe("critical");
       expect(f1?.observation).toContain("JWT signature validation is bypassed");
       expect(f1?.pushbackReason).toContain("JWT signature validation is bypassed");
-      expect(f1?.opposedChanges).toBe("src/auth/service.ts, src/auth/service.test.ts");
+      // The finding named no opposed changes and no target files, and the task's write scope is
+      // not an objection anyone raised, so nothing stands in for one.
+      expect(f1?.opposedChanges).toBeUndefined();
       expect(f1?.remediation).toContain("Enforce HS256");
       expect(f1?.round).toBe(2);
       expect(f1?.rejectionRound).toBe(2);
@@ -140,7 +142,46 @@ describe("Round 3: Validator Findings & Asset Pipeline", () => {
       expect(f.revalidationProof?.method).toBe("bun run build:analyze");
     });
 
-    test("synthesizes finding from review-recorded rejection event when task.findings is missing", () => {
+    test("keeps a remediation proof under its own label when both proofs are present", () => {
+      const task: TaskRecord = {
+        id: "T-proofs",
+        label: "Both proofs",
+        status: "done",
+        requirement_ids: ["REQ-01"],
+        write_scope: ["src/proofs.ts"],
+        dependencies: [],
+        attempts: [],
+        history: [],
+        repair_round: 1,
+        findings: [
+          {
+            id: "F-PROOFS-01",
+            requirement_id: "REQ-01",
+            severity: "important",
+            observation: "The retry path was never exercised",
+            remediation: "Cover the retry path",
+            revalidation: "Rerun the gate",
+            status: "resolved",
+            revalidation_proof: { method: "independent rerun", evidence: ["cmd-reval"] },
+            remediation_proof: { method: "patch applied", evidence: ["cmd-patch"] },
+          },
+        ],
+      } as unknown as TaskRecord;
+
+      const [finding] = mapFindingDetails(task);
+      // Evidence of one kind was being shown under the label of the other: the revalidation proof
+      // overwrote the remediation proof, so the patch evidence disappeared behind a rerun.
+      expect(finding?.revalidationProof).toEqual({
+        method: "independent rerun",
+        evidence: ["cmd-reval"],
+      });
+      expect(finding?.remediationProof).toEqual({
+        method: "patch applied",
+        evidence: ["cmd-patch"],
+      });
+    });
+
+    test("records no finding for a rejection event that carries no finding", () => {
       const task: TaskRecord = {
         id: "T-legacy-task",
         label: "Legacy Worker Task",
@@ -173,14 +214,10 @@ describe("Round 3: Validator Findings & Asset Pipeline", () => {
         },
       ];
 
-      const findings = mapFindingDetails(task, { events });
-      expect(findings).toHaveLength(1);
-      expect(findings[0].id).toBe("finding-T-legacy-task-12");
-      expect(findings[0].observation).toBe("Missing bounds check in buffer decoder");
-      expect(findings[0].pushbackReason).toBe("Missing bounds check in buffer decoder");
-      expect(findings[0].round).toBe(1);
-      expect(findings[0].author).toBe("validator-sec");
-      expect(findings[0].status).toBe("resolved");
+      // The event states that a verdict happened. The defect it refers to lives in task.findings,
+      // and this task has none: a finding minted out of the event would carry an id, a severity and
+      // an observation the validator never wrote.
+      expect(mapFindingDetails(task, { events })).toEqual([]);
     });
   });
 });

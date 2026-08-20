@@ -71,6 +71,7 @@ export interface ValidationStartParams {
   token: string;
   gates: readonly string[];
   packetPath?: string;
+  minProbes?: number;
 }
 
 export function formatValidationStartBrief(params: ValidationStartParams): string {
@@ -79,8 +80,13 @@ export function formatValidationStartBrief(params: ValidationStartParams): strin
     `### Validation Leased: ${params.taskId}`,
     `- **Validator**: \`${params.validator}\``,
     `- **Validation Token**: \`${params.token}\``,
-    `- **Mandatory Gates to Run**:`,
+    `- **Mandatory Gates to Run**:${gateLines.length === 0 ? " none recorded for this task" : ""}`,
     ...gateLines,
+    ...(params.minProbes === undefined || params.minProbes === 0
+      ? []
+      : [
+          `- **Before Sign-off**: record ${params.minProbes} adversarial probe(s) with \`task:probe\`; a pass is refused without them.`,
+        ]),
   ].join("\n");
   return enforceLineLimit(md, 30);
 }
@@ -91,6 +97,7 @@ export interface TaskReviewPassParams {
   gateSummary: string;
   unblockedTasks?: readonly string[];
   reportPath: string;
+  probeRounds?: number;
 }
 
 export function formatTaskReviewPassBrief(params: TaskReviewPassParams): string {
@@ -101,6 +108,9 @@ export function formatTaskReviewPassBrief(params: TaskReviewPassParams): string 
   const md = [
     `### Task Validated & Satisfied: ${params.taskId}`,
     `- **Validator**: \`${params.validator}\` | Verdict: ✅ PASS`,
+    ...(params.probeRounds === undefined
+      ? []
+      : [`- **Adversarial Probes**: ${params.probeRounds} answered before sign-off`]),
     `- **Gate Results**: ${params.gateSummary}`,
     `- **Downstream Impact**: ${unblockedStr}`,
     `- **Review Report**: \`${params.reportPath}\``,
@@ -113,17 +123,43 @@ export interface TaskRejectParams {
   validator: string;
   findingId: string;
   issue: string;
-  action?: string;
+  /** The status the transaction actually left the task in, e.g. changes_requested or escalated. */
+  status: string;
 }
 
 export function formatTaskRejectBrief(params: TaskRejectParams): string {
-  const actionStr = params.action ?? "Task returned to queue with status `repair_needed`.";
+  // The brief quotes the recorded status. "Returned to queue" was a sentence about a state the
+  // task may never have reached: an exhausted repair budget escalates instead.
+  const actionStr = `Task recorded as \`${params.status}\`.`;
   const md = [
     `### Task Rejected: ${params.taskId}`,
     `- **Validator**: \`${params.validator}\` | Verdict: ❌ REJECTED`,
     `- **Finding ID**: \`${params.findingId}\``,
     `- **Issue**: \`${params.issue}\``,
     `- **Action**: ${actionStr}`,
+  ].join("\n");
+  return enforceLineLimit(md, 30);
+}
+
+export interface TaskProbeParams {
+  taskId: string;
+  validator: string;
+  round: number;
+  demands: readonly { id: string; demand: string }[];
+  repairRound: number;
+  warning?: string | undefined;
+}
+
+export function formatTaskProbeBrief(params: TaskProbeParams): string {
+  const demandLines = params.demands.map((d) => `  - \`${d.id}\`: ${d.demand}`);
+  const md = [
+    `### Adversarial Probe Recorded: ${params.taskId}`,
+    `- **Validator**: \`${params.validator}\` | Verdict: 🔎 PROBE (Round ${params.round})`,
+    `- **Nature**: Demand for proof, not a defect. Repair round stays ${params.repairRound}.`,
+    `- **Demands**:`,
+    ...demandLines,
+    ...(params.warning ? [`- **Config Warning**: ${params.warning}`] : []),
+    `- **Next Step**: Answer every demand with command evidence, then \`task:review --status pass\`, or \`task:reject\` if a demand fails.`,
   ].join("\n");
   return enforceLineLimit(md, 30);
 }

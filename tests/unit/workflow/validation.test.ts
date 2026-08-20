@@ -56,7 +56,9 @@ function validationToken(port: TestPort, validatorId: string): string {
 describe("independent validation and repair", () => {
   test("requires a validator distinct from every implementer", () => {
     const port = submitted();
-    expect(() => beginValidation(port, "T-1", "implementer", clock)).toThrow();
+    expect(() => beginValidation(port, "T-1", "implementer", clock)).toThrow(
+      "validator must be independent from implementers",
+    );
     const state = beginValidation(port, "T-1", "validator", clock);
     expect(state.tasks["T-1"]!.status).toBe("validating");
   });

@@ -74,7 +74,15 @@ describe("CLI plan commands", () => {
     expect(status1.is_compiled).toBe(false);
     expect(String(status1.markdown)).toContain("### Planning Buffer: test-plan-run (Draft)");
 
-    const compile = await execute(["plan:compile", "--run", run, "--actor", "planner"]);
+    const compile = await execute([
+      "plan:compile",
+      "--run",
+      run,
+      "--actor",
+      "planner",
+      "--completion-gate",
+      "bun test tests",
+    ]);
     expect(compile.revision).toBe(1);
     expect(compile.total_tasks).toBe(2);
     expect(String(compile.markdown)).toContain("### Plan Compiled Successfully (Graph Revision 1)");
@@ -185,9 +193,17 @@ describe("CLI plan commands", () => {
       "planner",
     ]);
 
-    await expect(execute(["plan:compile", "--run", run, "--actor", "planner"])).rejects.toThrow(
-      "Scope collision detected between t1 and t2",
-    );
+    await expect(
+      execute([
+        "plan:compile",
+        "--run",
+        run,
+        "--actor",
+        "planner",
+        "--completion-gate",
+        "bun test tests",
+      ]),
+    ).rejects.toThrow("Scope collision detected between t1 and t2");
   });
 
   test("plan:replan ingests findings, partitions scopes, and increments graph_revision", async () => {
@@ -223,11 +239,20 @@ describe("CLI plan commands", () => {
       "planner",
     ]);
 
-    await execute(["plan:compile", "--run", run, "--actor", "planner"]);
+    await execute([
+      "plan:compile",
+      "--run",
+      run,
+      "--actor",
+      "planner",
+      "--completion-gate",
+      "bun test tests",
+    ]);
 
     const findingsJson = JSON.stringify([
       {
         id: "F-DRAWER-01",
+        requirement_id: "req-init",
         severity: "critical",
         file_paths: ["src/components/EdgeDetailDrawer/EdgeDrawer.tsx"],
         observation: "TS2322 in drawer toggle handler",
@@ -235,6 +260,7 @@ describe("CLI plan commands", () => {
       },
       {
         id: "F-LAYOUT-01",
+        requirement_id: "req-init",
         severity: "important",
         file_paths: ["src/engine/layout/hierarchical.ts"],
         observation: "Negative coordinate clamping bug",
@@ -250,6 +276,8 @@ describe("CLI plan commands", () => {
       findingsJson,
       "--actor",
       "coordinator",
+      "--gate",
+      "bun test tests/init",
     ]);
 
     expect(replan.revision).toBe(2);

@@ -4,63 +4,165 @@
 
 ---
 
-## 🎯 The Purpose of the Completeness Critic
+## 🎯 What the Critic Is For
 
-While individual task validators review isolated subfolder scopes, a macro-level risk remains: **Systemic Blind Spots**.
+Task validators review one scope each. A macro-level risk survives that: every task can pass while the
+**request** goes unmet.
 
-- Did the agents implement all tasks, but forget a global cross-cutting user requirement?
-- Are all generated artifact files physically present on disk with valid byte sizes?
-- Does every line of the original prompt have a verified requirement and task disposition?
+- All tasks done, one cross-cutting user requirement forgotten.
+- Artifacts declared but absent, empty, or stubbed.
+- A prompt line disposed as `context` that was actually an obligation.
 
-The **Completeness Critic** is an independent auditing role that evaluates the entire repository and execution history before run finalization.
+The completeness critic is an independent audit of the whole request, run after task validation and
+before completion.
 
 ---
 
-## 🔐 The Critic Lifecycle: `critic:start` and `critic:review`
-
-The critic evaluation workflow follows a secure sequence:
+## 🔐 The Lifecycle
 
 ```text
-[ Coordinator initiates completeness review ]
+[ critic:start --critic <id> ]
+        ├── refuses a critic that planned, implemented, repaired or validated anything in this run
+        ├── records a repository inspection and a readiness snapshot
+        └── returns the critic token (once, stdout only; digest persisted)
                  │
                  ▼
-     (bun harness.ts critic:start --run .capsules/<slug> --critic <critic-id>)
-                 │
-                 ├── Generates high-entropy bearer token (e.g. `critic-tok-992...`)
-                 ├── Calculates token digest (SHA-256)
-                 └── Records critic session in events.jsonl
+[ the critic runs its OWN commands: run:exec --actor <critic> ]
                  │
                  ▼
-     (Critic inspects requirements, diffs, and runs validation commands)
-                 │
-                 ▼
-     (bun harness.ts critic:review --run .capsules/<slug> --critic <critic-id> --token <token> --decision approve --summary "...")
-                 │
-                 └── Submits audited verdict (`approve` or `reject`)
+[ critic:review --decision approve|request_changes  |  critic:reject ]
 ```
-
----
-
-## 📝 Critic Verification Review
-
-The critic evaluates the repository and submits its verdict:
 
 ```bash
-bun harness.ts critic:review \
-  --run .capsules/<run-id> \
-  --critic critic-lead \
-  --token <critic-token> \
-  --decision approve \
-  --summary "Audited all requirements against live code. Verified that all documentation chapters exist, contain bidirectional navigation links, and strictly satisfy the Zero-JSON CLI API requirements."
+bun harness.ts critic:start --run .capsules/<run-id> --critic critic-1
+```
+
+Independence is enforced, not requested:
+
+```text
+completeness critic must be independent from implementers, repairers, and validators
 ```
 
 ---
 
-## 🛡️ Critic Verification Rules
+## 🧪 The Critic Must Run Its Own Commands
 
-1. **Token Digest Verification:** The critic token presented on review submission must cryptographically match the SHA-256 digest recorded in the active critic session.
-2. **Exhaustive Requirement Review:** The critic must evaluate all requirements defined in the compiled plan.
-3. **Artifact Integrity Audit:** The critic verifies that all declared files and directories are physically inspectable, non-empty, and free of placeholder stubs.
+This is the step most people miss. The critic's evidence is collected automatically from the commands
+whose **actor is the critic** — and a command qualifies only if it is **not bound to a task**:
+
+```bash
+bun harness.ts run:exec --run .capsules/<run-id> --actor critic-1 -- bun test tests/slug.test.ts
+bun harness.ts run:exec --run .capsules/<run-id> --actor critic-1 -- bun test tests/truncate.test.ts
+bun harness.ts run:exec --run .capsules/<run-id> --gate gate-run-completion --actor critic-1 -- bun test tests
+```
+
+Skip it and the review is refused:
+
+```text
+{"ok":false,"error":{"code":"INVALID_ARGUMENT","message":"critic checks must be nonempty"}}
+```
+
+Cite a task-bound or someone else's command and it is refused too:
+
+```text
+{"ok":false,"error":{"code":"INVALID_STATE","message":"critic independent check is invalid: C-312707c8-…"}}
+```
+
+Rerunning the suite under the critic's own actor is the price of a sign-off. That is the whole
+mechanism by which "the critic verified it" means something.
+
+---
+
+## 📝 Requirement Proofs Are Mandatory and Unfakeable
+
+An approval must carry one proof per requirement, supplied by `--proofs`, `--proofs-file`, or a
+complete `--review` payload:
+
+```json
+[
+  {
+    "requirement_id": "req-slug",
+    "status": "satisfied",
+    "evidence": [
+      {
+        "kind": "command",
+        "reference": "C-6c9cbf46-fe0b-405d-a060-69176613528f",
+        "observation": "the critic ran bun test tests/slug.test.ts itself and it exited 0"
+      }
+    ]
+  }
+]
+```
+
+- `status` is `satisfied`, `out_of_scope`, or `unproven`.
+- **`unproven` is not something a critic can claim.** It is what the harness records for a requirement
+  the critic never proved, and it blocks completion.
+- A clean verdict with any unproven requirement is refused:
+  ```text
+  clean completion review leaves requirements unproven: req-truncate
+  ```
+- Every `kind: "command"` reference must resolve to a critic-run, task-unbound, successful command:
+  ```text
+  requirement proof command is invalid: C-3e1dbf9d-…
+  ```
+
+Nothing auto-generates a `satisfied` proof. A requirement the critic did not look at stays unproven,
+and the run does not finish.
+
+---
+
+## ✅ Approving
+
+```bash
+bun harness.ts critic:review --run .capsules/<run-id> --critic critic-1 --token <critic-token> \
+  --decision approve --proofs-file proofs.json \
+  --summary "Both prompt lines are implemented and each is bound to a gate run the harness recorded."
+```
+
+```text
+### Completeness Critic Sign-Off: APPROVED
+- **Critic**: `critic-1`
+- **Summary**: Both prompt lines are implemented and each is bound to a gate run the harness recorded.
+- **Authorization**: Valid completion certificate issued
+- **Next Step**: Seal run via `bun harness.ts run:complete --run .capsules/<run-id> --auth-token …`
+```
+
+`--summary` is mandatory and is the critic's own words. `integrity_evidence` is always the harness's
+own capsule integrity observation measured at review time — a `--review` file cannot certify its own
+capsule, so whatever it declares under that key is replaced.
+
+---
+
+## ❌ Rejecting
+
+```bash
+bun harness.ts critic:reject --run .capsules/<run-id> --critic critic-1 --token <critic-token> \
+  --summary "Missing error boundary" \
+  --findings '[{"id":"F-01","requirement_id":"req-1","severity":"critical","observation":"No error boundary around the render tree","remediation":"Wrap the tree in an error boundary","revalidation":"bun test tests/render"}]'
+```
+
+Structured findings are **mandatory**:
+
+```text
+--decision request_changes requires --findings or --findings-file; a rejection must name the defects it found
+```
+
+Each finding carries `id`, `requirement_id`, `severity`, `observation`, `remediation` and
+`revalidation`. A critic that wants to reject but has nothing concrete to say **fails** rather than
+producing a finding the harness wrote for it. Rejected findings feed `plan:replan`, which partitions
+them into a disjoint repair wave.
+
+---
+
+## 🛡️ The Critic's Own Rules
+
+1. **Token digest verification.** The critic token must match the digest recorded at `critic:start`.
+2. **Independence.** No prior role in this run, ever.
+3. **No implementer prose.** The critic consumes the prompt, the dispositions, the whole-repository
+   diff, and the authoritative command, gate and finding records — not self-grading narratives.
+4. **Readiness binding.** Any drift from the packet's readiness digest or repository binding is a
+   rejection, not a note.
+5. **Explicit residual risk.** An approval may carry risks; it may not carry silence about them.
 
 ---
 

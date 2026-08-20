@@ -76,8 +76,13 @@ export function chainCapsules(options: ChainCapsulesOptions): CapsuleChainManife
           }
         }
       }
-    } catch {
-      // Allow fallback if state is not standard
+    } catch (err: unknown) {
+      // Swallowing this would chain a round onto an unreadable capsule and report zero carryover
+      // requirements and zero unresolved findings, which is a clean slate the harness never saw.
+      throw new HarnessError(
+        "INTEGRITY",
+        `Corrupt source state at ${sourceStatePath}: ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
   }
 

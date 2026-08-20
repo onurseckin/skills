@@ -7,6 +7,8 @@ import { validateReview } from "./validate-review.ts";
 import { tokenMatches } from "../lease/token.ts";
 import { assertValidatorCommands } from "./command-evidence.ts";
 import { assertPublishedTaskPacket } from "../packet-authority.ts";
+import { assertGatesNotFailing, assertProbeSatisfied } from "./pass-preconditions.ts";
+import { readReviewShape, reviewRecordedPayload } from "./review-event.ts";
 
 export function recordReview(
   port: TransactionPort,
@@ -15,9 +17,19 @@ export function recordReview(
   reviewValue: unknown,
   clock: Clock = systemClock,
   maxRepairRounds: number = MAX_REPAIR_ROUNDS,
+  // The probe budget lives in harness config on disk, which only the command boundary can resolve.
+  // An unstated budget enforces nothing here rather than guessing what the run requires.
+  minProbes = 0,
 ) {
   const now = clock.now();
-  return port.transact(validatorId, "review-recorded", { task_id: taskId }, (draft) => {
+  // The store seals the event payload before the mutation runs, so the enriched payload is built
+  // from the state the caller is acting on and re-checked against the draft inside the lock.
+  const payload = reviewRecordedPayload(
+    taskId,
+    taskIn(port.read(), taskId),
+    readReviewShape(reviewValue),
+  );
+  return port.transact(validatorId, "review-recorded", payload, (draft) => {
     const task = taskIn(draft, taskId);
     if (task.status !== "validating" || task.validation?.validator_id !== validatorId) {
       throw new HarnessError("INVALID_STATE", "validator does not own the current validation");
@@ -29,7 +41,20 @@ export function recordReview(
     if (!tokenMatches(validationToken, task.validation.token_digest)) {
       throw new HarnessError("INVALID_STATE", "validator authentication token is invalid");
     }
+    // A verdict is the strongest authority in the run. It is only accepted from a validator the
+    // harness durably handed a validator contract to, so a token alone cannot buy one.
+    assertPublishedTaskPacket(draft, taskId, "validator", validatorId, task.validation.attempt);
     const review = validateReview(task, reviewValue);
+    const sealed = reviewRecordedPayload(taskId, task, {
+      verdict: review.verdict,
+      findings: review.findings,
+      resolvedIds: (review.resolved_findings ?? []).map((proof) => proof.finding_id),
+    });
+    // Both payloads come from one builder, so a textual difference means the task moved between the
+    // read and the lock and the sealed payload would misreport this verdict.
+    if (JSON.stringify(sealed) !== JSON.stringify(payload)) {
+      throw new HarnessError("INVALID_STATE", "the review changed while it was being recorded");
+    }
     assertValidatorCommands(draft, taskId, validatorId, review.checks, "review check", true);
     for (const proof of review.resolved_findings ?? []) {
       assertValidatorCommands(
@@ -66,6 +91,8 @@ export function recordReview(
       delete task.validation;
       return;
     }
+    assertProbeSatisfied(task, minProbes);
+    assertGatesNotFailing(draft, task);
     const open = (task.findings ?? []).filter((finding) => finding.status === "open");
     const resolved = new Map(
       (review.resolved_findings ?? []).map((proof) => [proof.finding_id, proof]),

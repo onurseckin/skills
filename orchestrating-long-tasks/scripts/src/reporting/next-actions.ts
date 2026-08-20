@@ -1,83 +1,108 @@
+import { getHarnessConfig } from "../config/harness-config.ts";
+import type { AgentGrantRecord } from "../contracts/agents.ts";
 import type { JsonObject } from "../contracts/json.ts";
-import { type CommandView, type GateView, type PacketView, type TaskView } from "./action-types.ts";
+import {
+  mergeActions,
+  repositoryOf,
+  type BranchView,
+  type CommandView,
+  type GateView,
+  type NextActions,
+  type TaskView,
+} from "./action-types.ts";
+import { openBranchActions } from "./branch-actions.ts";
 import { completionActions } from "./completion-actions.ts";
+import { pushArgv, registryArgv } from "./registry-argv.ts";
 import { taskActions } from "./task-actions.ts";
 
-export function nextArgv(runRoot: string, runtime: string, view: JsonObject): string[][] {
-  const prefix = ["bun", runtime];
-  const commands = [
-    [...prefix, "status", "--run", runRoot],
-    [...prefix, "doctor", "--run", runRoot],
-  ];
-  const staleEvidence = Array.isArray(view.stale_evidence) ? view.stale_evidence : [];
-  if (staleEvidence.length > 0) {
-    commands.push([
-      ...prefix,
-      "recover",
-      "--run",
-      runRoot,
-      "--actor",
-      "coordinator",
-      "--grace-seconds",
-      "0",
-    ]);
-    return commands;
+const DISPATCHABLE = new Set(["ready", "proposed", "retry_ready"]);
+
+/** Read-only commands that orient a fresh agent before it changes anything. */
+function orientation(
+  entrypoint: string,
+  runRoot: string,
+  agents: readonly AgentGrantRecord[],
+  branches: readonly BranchView[],
+): string[][] {
+  const argv: string[][] = [];
+  pushArgv(argv, registryArgv(entrypoint, "run:status", [["run", runRoot]]));
+  pushArgv(argv, registryArgv(entrypoint, "doctor", [["run", runRoot]]));
+  if (agents.length > 0) {
+    pushArgv(argv, registryArgv(entrypoint, "agent:list", [["run", runRoot]]));
   }
-  const tasks = view.tasks as unknown as TaskView[];
+  if (branches.length > 0) {
+    pushArgv(argv, registryArgv(entrypoint, "branch:status", [["run", runRoot], ["all"]]));
+  }
+  return argv;
+}
+
+function pausedRequirementIds(view: JsonObject): Set<string> {
   const requirements = Array.isArray(view.requirements)
     ? (view.requirements as Record<string, unknown>[])
     : [];
-  const pausedRequirementIds = new Set(
+  return new Set(
     requirements
       .filter(
         ({ disposition, authority_status }) =>
-          disposition === "needs_authority" && authority_status === null,
+          disposition === "needs_authority" &&
+          (authority_status === null || authority_status === undefined),
       )
       .map(({ id }) => String(id)),
   );
-  for (const requirementId of [...pausedRequirementIds].sort()) {
-    commands.push([
-      ...prefix,
-      "decide-authority",
-      "--run",
-      runRoot,
-      "--requirement",
-      requirementId,
-      "--actor",
-      "coordinator",
-      "--decision",
-      "<grant-or-decline>",
-      "--rationale",
-      `<authority-rationale-for:${requirementId}>`,
-    ]);
+}
+
+/**
+ * Every command a fresh agent could run right now, resolved through the command registry, plus the
+ * steps this run needs that no command performs. The two halves are reported together because a
+ * handoff that lists only the runnable half reads as if nothing else were outstanding.
+ */
+export function nextActions(
+  runRoot: string,
+  entrypoint: string,
+  view: JsonObject,
+  agents: readonly AgentGrantRecord[] = [],
+): NextActions {
+  const branches = (Array.isArray(view.branches) ? view.branches : []) as unknown as BranchView[];
+  const argv = orientation(entrypoint, runRoot, agents, branches);
+  const staleEvidence = Array.isArray(view.stale_evidence) ? view.stale_evidence : [];
+  if (staleEvidence.length > 0) {
+    // Recovery comes first: every other action authenticates with a lease the harness has already
+    // stopped honouring, so naming them here would hand out argv that is refused on arrival.
+    pushArgv(
+      argv,
+      registryArgv(entrypoint, "recover", [
+        ["run", runRoot],
+        ["actor", "coordinator"],
+        ["grace-seconds", "0"],
+      ]),
+    );
+    return { argv, unavailable: [] };
   }
+  const paused = pausedRequirementIds(view);
+  const unavailable = [...paused]
+    .sort()
+    .map(
+      (id) =>
+        `requirement ${id} is paused for an authority decision and no registry command records one; every task bound to it stays undispatched`,
+    );
+  const tasks = view.tasks as unknown as TaskView[];
   const gates = view.gates as unknown as GateView[];
-  const packets = view.packets as unknown as PacketView[];
   const records = view.commands as unknown as CommandView[];
-  if (
-    tasks.some(
-      ({ status, requirement_ids: ids }) =>
-        (status === "ready" || status === "proposed" || status === "retry_ready") &&
-        !ids.some((id) => pausedRequirementIds.has(id)),
-    )
-  ) {
-    commands.push([...prefix, "ready", "--run", runRoot, "--max-parallel", "1"]);
-    commands.push([
-      ...prefix,
-      "schedule",
-      "--run",
-      runRoot,
-      "--max-parallel",
-      "1",
-      "--actor",
-      "coordinator",
-    ]);
+  const active = tasks.filter(
+    ({ requirement_ids }) => !requirement_ids.some((id) => paused.has(id)),
+  );
+  if (active.some(({ status }) => DISPATCHABLE.has(status))) {
+    pushArgv(argv, registryArgv(entrypoint, "queue:wave", [["run", runRoot]]));
+    pushArgv(argv, registryArgv(entrypoint, "queue:next", [["run", runRoot]]));
   }
-  for (const task of tasks)
-    if (!task.requirement_ids.some((id) => pausedRequirementIds.has(id)))
-      commands.push(...taskActions(prefix, runRoot, task, gates, packets));
-  if (tasks.length > 0 && tasks.every(({ status }) => status === "done")) {
-    commands.push(...completionActions(prefix, runRoot, view, gates, records));
-  }
-  return commands;
+  const minProbes = getHarnessConfig(repositoryOf(runRoot), runRoot).min_adversarial_probes;
+  const perTask = active.map((task) =>
+    taskActions(entrypoint, runRoot, task, gates, records, minProbes),
+  );
+  const branchWork = openBranchActions(entrypoint, runRoot, branches);
+  const completion =
+    tasks.length > 0 && tasks.every(({ status }) => status === "done")
+      ? completionActions(entrypoint, runRoot, view, gates, records)
+      : { argv: [], unavailable: [] };
+  return mergeActions({ argv, unavailable }, ...perTask, branchWork, completion);
 }

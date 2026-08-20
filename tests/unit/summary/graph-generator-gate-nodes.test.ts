@@ -1,249 +1,118 @@
 import { describe, expect, test } from "bun:test";
-import type { CommandRecord } from "../../../orchestrating-long-tasks/scripts/src/contracts/commands.ts";
+import { readAgentLedgerView } from "../../../orchestrating-long-tasks/scripts/src/summary/agent-telemetry.ts";
+import { AssetRegistry } from "../../../orchestrating-long-tasks/scripts/src/summary/graph-asset-ownership.ts";
+import { buildGateNode } from "../../../orchestrating-long-tasks/scripts/src/summary/graph-generator-gate-helpers.ts";
+import { mapGateStatus } from "../../../orchestrating-long-tasks/scripts/src/summary/graph-node-context.ts";
+import { prepareTaskContext } from "../../../orchestrating-long-tasks/scripts/src/summary/graph-task-preparation.ts";
 import type { TaskRecord } from "../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
-import {
-  buildTaskAndGateNodes,
-  mapGateStatus,
-} from "../../../orchestrating-long-tasks/scripts/src/summary/graph-generator-helpers.ts";
+import { makeTask } from "./graph-fixtures.ts";
 
-describe("graph generator gate node helpers", () => {
-  test("maps gate status correctly across all task lifecycle states", () => {
+function contextFor(task: TaskRecord) {
+  return prepareTaskContext({
+    task,
+    taskStep: 2,
+    taskWave: 1,
+    commands: [],
+    ledger: readAgentLedgerView({}),
+    registry: new AssetRegistry(),
+  });
+}
+
+describe("gate node", () => {
+  test("maps gate status across the task lifecycle", () => {
+    const statuses: Array<[TaskRecord["status"], string]> = [
+      ["done", "success"],
+      ["validated", "success"],
+      ["changes_requested", "warning"],
+      ["cancelled", "error"],
+      ["escalated", "error"],
+      ["validating", "running"],
+      ["gating", "running"],
+      ["proposed", "pending"],
+      ["ready", "pending"],
+    ];
+    for (const [status, expected] of statuses) {
+      expect(mapGateStatus(makeTask("T", { status }))).toBe(expected);
+    }
     expect(
-      mapGateStatus({
-        id: "1",
-        status: "done",
-        requirement_ids: [],
-        write_scope: [],
-        dependencies: [],
-        attempts: [],
-        history: [],
-        repair_round: 0,
-      }),
-    ).toBe("success");
-    expect(
-      mapGateStatus({
-        id: "2",
-        status: "validated",
-        requirement_ids: [],
-        write_scope: [],
-        dependencies: [],
-        attempts: [],
-        history: [],
-        repair_round: 0,
-      }),
-    ).toBe("success");
-    expect(
-      mapGateStatus({
-        id: "3",
-        status: "changes_requested",
-        requirement_ids: [],
-        write_scope: [],
-        dependencies: [],
-        attempts: [],
-        history: [],
-        repair_round: 1,
-      }),
-    ).toBe("warning");
-    expect(
-      mapGateStatus({
-        id: "4",
-        status: "cancelled",
-        requirement_ids: [],
-        write_scope: [],
-        dependencies: [],
-        attempts: [],
-        history: [],
-        repair_round: 0,
-      }),
-    ).toBe("error");
-    expect(
-      mapGateStatus({
-        id: "5",
-        status: "escalated",
-        requirement_ids: [],
-        write_scope: [],
-        dependencies: [],
-        attempts: [],
-        history: [],
-        repair_round: 0,
-      }),
-    ).toBe("error");
-    expect(
-      mapGateStatus({
-        id: "6",
-        status: "validating",
-        requirement_ids: [],
-        write_scope: [],
-        dependencies: [],
-        attempts: [],
-        history: [],
-        repair_round: 0,
-      }),
+      mapGateStatus(
+        makeTask("T", {
+          status: "leased",
+          validation: {
+            validator_id: "val-1",
+            token_digest: "tok",
+            attempt: 1,
+            started_at: "2026-08-14T20:00:00.000Z",
+            deadline_at: "2026-08-14T20:10:00.000Z",
+          },
+        }),
+      ),
     ).toBe("running");
-    expect(
-      mapGateStatus({
-        id: "7",
-        status: "gating",
-        requirement_ids: [],
-        write_scope: [],
-        dependencies: [],
-        attempts: [],
-        history: [],
-        repair_round: 0,
-      }),
-    ).toBe("running");
-    expect(
-      mapGateStatus({
-        id: "8",
-        status: "leased",
-        requirement_ids: [],
-        write_scope: [],
-        dependencies: [],
-        attempts: [],
-        history: [],
-        repair_round: 0,
-        validation: {
-          validator_id: "val-1",
-          token_digest: "tok",
-          attempt: 1,
-          started_at: "2026-08-14T20:00:00.000Z",
-          deadline_at: "2026-08-14T20:10:00.000Z",
-        },
-      }),
-    ).toBe("running");
-    expect(
-      mapGateStatus({
-        id: "9",
-        status: "proposed",
-        requirement_ids: [],
-        write_scope: [],
-        dependencies: [],
-        attempts: [],
-        history: [],
-        repair_round: 0,
-      }),
-    ).toBe("pending");
-    expect(
-      mapGateStatus({
-        id: "10",
-        status: "ready",
-        requirement_ids: [],
-        write_scope: [],
-        dependencies: [],
-        attempts: [],
-        history: [],
-        repair_round: 0,
-      }),
-    ).toBe("pending");
   });
 
-  test("enriches gate node status, metadata, validator attribution and validation history", () => {
-    const task: TaskRecord = {
-      id: "T-pushback",
-      label: "Feature with Pushback",
+  test("records gate results and references findings instead of copying them", () => {
+    const task = makeTask("T-pushback", {
       status: "changes_requested",
-      requirement_ids: ["R-PB"],
-      write_scope: ["src/feature.ts", "src/feature.test.ts"],
-      dependencies: [],
-      attempts: [],
-      history: [],
       repair_round: 2,
-      validation_history: [
-        {
-          validator_id: "validator-agent-alpha",
-          token_digest: "tok1",
-          attempt: 1,
-          started_at: "2026-08-14T20:00:00.000Z",
-          deadline_at: "2026-08-14T20:10:00.000Z",
-          verdict: "reject",
-        },
-      ],
+      write_scope: ["src/feature.ts"],
+      gate_results: [{ gate_id: "gate-1", command_id: "C-9", status: "passed" }],
+      validation: {
+        validator_id: "validator-alpha",
+        token_digest: "tok1",
+        attempt: 1,
+        started_at: "2026-08-14T20:00:00.000Z",
+        deadline_at: "2026-08-14T20:10:00.000Z",
+        verdict: "reject",
+      },
       findings: [
         {
           id: "F-101",
-          requirement_id: "R-PB",
+          requirement_id: "REQ-T-pushback",
           severity: "critical",
           observation: "Coverage below threshold",
           remediation: "Add unit tests",
           revalidation: "Run coverage gate",
           status: "open",
+          evidence: [],
         },
       ],
-    };
-
-    const { gateNode } = buildTaskAndGateNodes({
-      task,
-      taskStep: 2,
-      taskWave: 1,
-      taskCmds: [],
     });
+
+    const gateNode = buildGateNode(contextFor(task));
 
     expect(gateNode.status).toBe("warning");
-    expect(gateNode.badge?.variant).toBe("warning");
     expect(gateNode.badge?.text).toBe("Pushback: 1 Finding");
-    expect(gateNode.badge?.icon).toBe("IconAlertTriangle");
-
-    expect(gateNode.metadata?.validator_id).toBe("validator-agent-alpha");
-    expect(gateNode.metadata?.leaseAgent).toBe("validator-agent-alpha");
-    expect(gateNode.metadata?.repairRounds).toBe(2);
-    expect(gateNode.metadata?.validationHistory).toHaveLength(1);
-    expect(gateNode.metadata?.writeScope).toEqual(["src/feature.ts", "src/feature.test.ts"]);
-    expect(gateNode.metadata?.findings).toHaveLength(1);
+    expect(gateNode.metadata?.gateResults).toEqual([
+      { gateId: "gate-1", commandId: "C-9", status: "passed" },
+    ]);
+    expect(gateNode.metadata?.openFindingIds).toEqual(["F-101"]);
+    expect(gateNode.metadata?.validatorNodeId).toBe("node-validator-T-pushback");
+    // The validator authored the findings, so the gate carries ids and the validator carries bodies.
+    expect(gateNode.metadata?.findings).toBeUndefined();
+    expect(gateNode.assets).toBeUndefined();
+    expect(gateNode.scripts).toBeUndefined();
   });
 
-  test("elevates top-level costUsd to node metrics on taskNode and gateNode", () => {
-    const task: TaskRecord = {
-      id: "T-cost",
-      label: "Cost Elevation Test",
-      status: "done",
-      requirement_ids: ["R-C"],
-      write_scope: ["src/cost.ts"],
-      dependencies: [],
-      attempts: [],
-      history: [],
-      repair_round: 0,
-      report: { summary: "Implemented cost feature", files_changed: ["src/cost.ts"] },
-      validation: {
-        validator_id: "val-cost",
-        token_digest: "tok",
-        attempt: 1,
-        started_at: "2026-08-14T20:00:00.000Z",
-        deadline_at: "2026-08-14T20:10:00.000Z",
-      },
-    };
-
-    const cmd: CommandRecord = {
-      id: "C-cost",
-      argv: ["bun", "test"],
-      cwd: "/repo",
-      cwd_relative: ".",
-      repository_root: "/repo",
-      status: "succeeded",
-      task_id: "T-cost",
-      started_at: "2026-08-14T20:00:00.000Z",
-      finished_at: "2026-08-14T20:00:01.000Z",
-      exit_code: 0,
-      signal: null,
-      fingerprint: "fp-cost",
-      attempt_signing_public_key: "pk-cost",
-      record_path: "commands/C-cost/record.json",
-      actor: "val",
-    };
-
-    const { taskNode, gateNode } = buildTaskAndGateNodes({
-      task,
-      taskStep: 2,
-      taskWave: 1,
-      taskCmds: [cmd],
+  test("keeps the findings when there is no validator node to own them", () => {
+    const task = makeTask("T-no-validator", {
+      status: "changes_requested",
+      repair_round: 1,
+      findings: [
+        {
+          id: "F-orphan",
+          requirement_id: "REQ-T-no-validator",
+          severity: "important",
+          observation: "No validator recorded",
+          remediation: "n/a",
+          revalidation: "n/a",
+          status: "open",
+          evidence: [],
+        },
+      ],
     });
 
-    expect(taskNode.metrics).toBeDefined();
-    if (taskNode.metrics?.tokens?.costUsd !== undefined) {
-      expect(taskNode.metrics.costUsd).toBe(taskNode.metrics.tokens.costUsd);
-    }
-    expect(gateNode.metrics).toBeDefined();
-    if (gateNode.metrics?.tokens?.costUsd !== undefined) {
-      expect(gateNode.metrics.costUsd).toBe(gateNode.metrics.tokens.costUsd);
-    }
+    const gateNode = buildGateNode(contextFor(task));
+    expect(gateNode.metadata?.validatorNodeId).toBeUndefined();
+    expect(gateNode.metadata?.findings).toHaveLength(1);
   });
 });

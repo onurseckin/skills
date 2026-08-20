@@ -9,7 +9,7 @@ const roots: string[] = [];
 afterEach(async () => cleanupRoots(roots));
 
 describe("Harness File Persistence - Evidence Commands", () => {
-  test("run:exec persists evidence by default and supports evidence:get inspection and filtering", async () => {
+  test("run:exec keeps the command record as the only evidence document, and evidence:get reads it", async () => {
     const { repo, run } = await setupCompiledRun("exec-persist", roots);
 
     const execResult = await execute([
@@ -32,22 +32,21 @@ describe("Harness File Persistence - Evidence Commands", () => {
     const cmdId = execResult.command_id as string;
     expect(cmdId).toBeString();
 
-    const expectedEvidencePath = join(run, "evidence", `${cmdId}.json`);
+    const expectedEvidencePath = join(run, "commands", cmdId, "record.json");
     expect(existsSync(expectedEvidencePath)).toBe(true);
+    // The evidence document the old layout wrote beside the record is gone; the record is it.
+    expect(existsSync(join(run, "evidence", `${cmdId}.json`))).toBe(false);
 
     const evidenceRaw = readFileSync(expectedEvidencePath, "utf-8");
     const evidence = JSON.parse(evidenceRaw) as Record<string, unknown>;
 
     expect(evidence.id).toBe(cmdId);
-    expect(evidence.command_id).toBe(cmdId);
     expect(evidence.argv).toEqual(["echo", "hello persistence"]);
     expect(evidence.actor).toBe("worker-core");
     expect(evidence.exit_code).toBe(0);
-    expect(typeof evidence.duration_ms).toBe("number");
-    expect(typeof evidence.timestamp).toBe("string");
+    expect(typeof evidence.started_at).toBe("string");
     expect(evidence.task_id).toBe("task-core");
     expect(evidence.gate_id).toBe("gate-core");
-    expect(String(evidence.stdout)).toContain("hello persistence");
 
     // Execute another command for coordinator with different gate
     const execResult2 = await execute([
@@ -69,7 +68,7 @@ describe("Harness File Persistence - Evidence Commands", () => {
     // Test evidence:get with specific ID
     const getResult = await execute(["evidence:get", "--run", run, "--id", cmdId]);
     expect(getResult.command_id).toBe(cmdId);
-    expect(getResult.path).toBe(expectedEvidencePath);
+    expect(getResult.path).toBe(`${run}/commands/${cmdId}/record.json`);
     expect(String(getResult.markdown)).toContain(`### Evidence: \`${cmdId}\``);
 
     // Test evidence:get listing all
@@ -102,35 +101,19 @@ describe("Harness File Persistence - Evidence Commands", () => {
     // Test evidence:get filtering with no matches
     const noMatch = await execute(["evidence:get", "--run", run, "--task", "task-nonexistent"]);
     expect(noMatch.count).toBe(0);
-
-    // Test --save-evidence false
-    const noSaveExec = await execute([
-      "run:exec",
-      "--run",
-      run,
-      "--cwd",
-      repo,
-      "--save-evidence",
-      "false",
-      "--",
-      "echo",
-      "no save",
-    ]);
-    const noSaveId = noSaveExec.command_id as string;
-    expect(existsSync(join(run, "evidence", `${noSaveId}.json`))).toBe(false);
   });
 
   test("inspection commands throw INVALID_ARGUMENT when files do not exist", async () => {
     const { run } = await setupCompiledRun("errors-persist", roots);
 
     expect(execute(["finding:get", "--run", run, "--id", "nonexistent-finding"])).rejects.toThrow(
-      /not found/u,
+      /not recorded/u,
     );
     expect(execute(["report:get", "--run", run, "--task", "nonexistent-task"])).rejects.toThrow(
       /not found/u,
     );
     expect(execute(["evidence:get", "--run", run, "--id", "nonexistent-cmd"])).rejects.toThrow(
-      /not found/u,
+      /not recorded/u,
     );
   });
 });

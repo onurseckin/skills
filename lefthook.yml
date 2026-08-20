@@ -1,11 +1,21 @@
 # Lefthook Git Hooks Configuration
-# Automatically syncs and updates global skills on successful push
+#
+# Commit is kept cheap so work can be checkpointed often: only the typecheck runs, which is a few
+# seconds and catches the breakage most likely to be committed by accident. The unit suite moved to
+# pre-push because it takes far longer, and because a suite run against a working tree that several
+# agents are editing concurrently reports their transient state rather than the commit's.
+#
+# Push is the boundary that matters: nothing reaches a remote without the full suite passing.
 
 pre-commit:
   parallel: true
   commands:
     typecheck:
       run: bun run typecheck
+
+pre-push:
+  parallel: true
+  commands:
     test-unit:
       run: bun run test:unit
 

@@ -16,11 +16,11 @@ Understanding _why_ these failures happen is the foundational motivation behind 
 
 ## 💥 The Anatomy of Long-Task Failure Modes
 
-Unstructured agent runs fail due to six fundamental failure modes:
+Unstructured agent runs fail due to seven fundamental failure modes:
 
 ```text
 +-----------------------------------------------------------------------------------------+
-|                                6 CORE AGENT FAILURE MODES                               |
+|                                7 CORE AGENT FAILURE MODES                               |
 +-----------------------------------------------------------------------------------------+
 |  1. Scope Drift & Prompt Amnesia      ---> Forget initial constraints as chat grows     |
 |  2. Sycophantic Self-Grading          ---> "I wrote the code, so of course it works!"   |
@@ -28,6 +28,7 @@ Unstructured agent runs fail due to six fundamental failure modes:
 |  4. Ephemeral State Loss              ---> Process crash = complete loss of progress    |
 |  5. Anchoring on Prior Biases         ---> Validators trusting flawed implementer prose |
 |  6. Assurance Inflation               ---> Claiming tests passed when none were executed|
+|  7. Confident Fabrication             ---> Filling an unknown value with a plausible one |
 +-----------------------------------------------------------------------------------------+
 ```
 
@@ -71,32 +72,38 @@ When an agent reviews another agent's code, but is given the implementer's narra
 
 Unstructured agents frequently use vague, inflated claims: _"The test suite passed hermetically with 100% certainty."_ In reality, commands run on a host machine require precise attribution and verification. The harness explicitly models evidence as `trusted_host_observed_v1`, capturing pre-command and post-command repository state, SHA-256 bound stdout/stderr, and strict process isolation without false hermetic assumptions.
 
+### 7. Confident Fabrication
+
+The subtlest failure is not a wrong answer; it is a **plausible** one where there was no answer at all. A summary that lists a model nobody reported, a file list that is empty because git could not be read, a dollar cost invented from a zero — each looks like data and is not. The harness answers this with `evidence_class`: every reported value is labelled `harness_observed`, `agent_reported`, `host_reported`, `derived` or `unknown`, and an absent value stays absent. See [Chapter 09 §03](../09-branching-and-honesty/03-evidence-classes-and-honesty.md).
+
 ---
 
 ## 🏛️ The Core Philosophy: Prose is Not State
 
 To eliminate these vulnerabilities, `orchestrating-long-tasks` is built on a single, uncompromising architectural principle:
 
-> **"Prose is not state. Memory is not proof. Agent confidence is irrelevant."**
+> **"Prose is not state. Memory is not proof. Agent confidence is irrelevant. An unknown is not a default."**
 
 An agent claiming in chat that _"Feature X is complete"_ has zero authoritative weight in the harness. The harness only recognizes cryptographic proofs, deterministic filesystem state machines, append-only event logs, independent adversarial validation reports, and literal command exit records.
 
 ---
 
-## 📜 The 8 Non-Negotiable Invariants
+## 📜 The 10 Non-Negotiable Invariants
 
-The harness enforces eight structural invariants that cannot be bypassed by any prompt, LLM output, or agent role:
+The harness enforces ten structural invariants that cannot be bypassed by any prompt, LLM output, or agent role:
 
-| Invariant                             | Description                                                                                               | Enforcement Mechanism                                                            |
-| :------------------------------------ | :-------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------- |
-| **1. Byte-Exact Prompt Capture**      | `prompt.md` is preserved byte-for-byte with mode `0444` and bound via SHA-256 to `manifest.json`.         | Cryptographic SHA-256 verification on every startup and mutation (`plan:init`).  |
-| **2. Immutable Capture Assurance**    | A run initialized from context copy is marked `recorded-unverified`; direct capture is `source-verified`. | Closed enum schema enforcement in manifest.                                      |
-| **3. 100% Line Disposition Coverage** | Every non-blank prompt line must have exactly one disposition mapping to atomic requirements.             | Requirements compiler validator (`plan:compile`) rejects unmapped lines.         |
-| **4. Pinned Runtime & Hashed Events** | All state mutations must use the Zero-JSON colon CLI and append to `events.jsonl`.                        | Kernel POSIX `flock` on inode + SHA-256 hash chaining.                           |
-| **5. Disjoint Write-Scope Leases**    | Parallel agents can only write within strictly disjoint directory scopes.                                 | Topological conflict-free scheduler arbiter (`queue:pop`, `task:claim`).         |
-| **6. Adversarial Role Separation**    | Implementers cannot validate their own work; validators receive allowlisted context stripped of prose.    | Tokenized validator identities and context sanitization (`task:validate-start`). |
-| **7. Bounded Deterministic Retries**  | Retries are strictly bounded (configurable via `harness.config.json`, default 5 repair rounds).           | Watchdog command runner and repair counter escalation.                           |
-| **8. Mechanical Completion Gate**     | Completion requires zero open findings, all tasks done, all gates passed, and clean critic approval.      | `run:complete` verification engine with live `trusted_host_observed_v1` proof.   |
+| Invariant                             | Description                                                                                                                                  | Enforcement Mechanism                                                             |
+| :------------------------------------ | :------------------------------------------------------------------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------- |
+| **1. Byte-Exact Prompt Capture**      | `prompt.md` is preserved byte-for-byte with mode `0444` and bound via SHA-256 to `manifest.json`.                                            | Cryptographic SHA-256 verification on every startup and mutation (`plan:init`).   |
+| **2. Immutable Capture Assurance**    | A run initialized from context copy is marked `recorded-unverified`; direct capture is `source-verified`.                                    | Closed enum schema enforcement in manifest.                                       |
+| **3. 100% Line Disposition Coverage** | Every non-blank prompt line must have exactly one disposition mapping to atomic requirements.                                                | Requirements compiler validator (`plan:compile`) rejects unmapped lines.          |
+| **4. Pinned Runtime & Hashed Events** | All state mutations must use the Zero-JSON colon CLI and append to `events.jsonl`.                                                           | Kernel POSIX `flock` on inode + SHA-256 hash chaining.                            |
+| **5. Disjoint Write-Scope Leases**    | Parallel agents can only write within strictly disjoint directory scopes.                                                                    | Topological conflict-free scheduler arbiter (`queue:pop`, `task:claim`).          |
+| **6. Adversarial Role Separation**    | Implementers cannot validate their own work; validators receive allowlisted context stripped of prose.                                       | Tokenized validator identities and context sanitization (`task:validate-start`).  |
+| **7. Bounded Deterministic Retries**  | Retries are strictly bounded (configurable via `harness.config.json`, default 6 repair rounds).                                              | Watchdog command runner and repair counter escalation.                            |
+| **8. Mechanical Completion Gate**     | Completion requires zero open findings, all tasks done, all gates passed, and clean critic approval.                                         | `run:complete` verification engine with live `trusted_host_observed_v1` proof.    |
+| **9. Mandatory Adversarial Probe**    | A pass is refused until the validator has recorded at least `min_adversarial_probes` (default 1) probes, and every open finding is answered. | `task:probe` records demands; `task:review --status pass --resolve` answers them. |
+| **10. Labelled Evidence**             | Every reported value carries an `evidence_class`; nothing substitutes a plausible value for a missing one.                                   | Typed `Evidenced<T>` wrappers in state, events and graph output.                  |
 
 ---
 
@@ -120,9 +127,9 @@ TRADITIONAL CHAT-DRIVEN AGENTS               THE HARNESS ARCHITECTURE
 [ Claims Done (Broken Code) ]                [ Adversarial Independent Validator (Tier 3) ]
                                                    | (task:validate-start + run:exec)
                                             +------+------+
-                                            | (Pass)      | (Reject: Structured Findings)
+                                            | (Probe/Pass)| (Reject: Structured Findings)
                                             v             v
-                                     [ Task Gates ]  [ Bounded Repair Loop (Default 5) ]
+                                     [ Task Gates ]  [ Bounded Repair Loop (Default 6) ]
                                             |
                                             v
                                      [ Run Gates & Completeness Critic: critic:start ]
@@ -139,7 +146,9 @@ To prevent conversational context explosion and preserve interactive responsiven
 
 1. **Tier 1 (Main Interactive Thread)**: Dedicated exclusively to communicating with the user. Spawns exactly one Tier 2 Background Coordinator and does not engage in worker tool loops.
 2. **Tier 2 (Background Run Coordinator)**: Manages capsule lifecycle, planning, scheduling waves, and lifecycle gates. Dispatches work to Tier 3 subagents.
-3. **Tier 3 (Worker & Validator Subagents)**: Ephemeral task executors assigned disjoint write scopes. Receive compact markdown briefs ($\le 30$ lines) and report execution results back to Tier 2.
+3. **Tier 3 (Worker & Validator Subagents)**: Ephemeral task executors assigned disjoint write scopes. Receive compact markdown briefs ($\le 30$ lines) and report execution results back to Tier 2. Nine canonical roles exist — `coordinator`, `planner`, `implementer`, `validator`, `repairer`, `completeness-critic`, `sub-implementer`, `sub-validator`, `sub-investigator` — each with a binding capability contract in `orchestrating-long-tasks/roles/`.
+
+Every dispatched subagent is recorded with `agent:register` before it starts, so the run can attribute work to an identity instead of inferring it later ([Chapter 09 §02](../09-branching-and-honesty/02-agent-grant-ledger.md)).
 
 ---
 

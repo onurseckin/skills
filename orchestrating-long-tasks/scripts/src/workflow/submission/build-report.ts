@@ -1,0 +1,94 @@
+import type { CommandRecord } from "../../contracts/commands.ts";
+import type { EvidenceClass } from "../../contracts/evidence.ts";
+import type { JsonObject } from "../../contracts/json.ts";
+import { HarnessError } from "../../errors/harness-error.ts";
+import type { TaskRecord } from "../types.ts";
+import { pathAllowed } from "./validate-report.ts";
+
+export interface SubmissionReportInputs {
+  readonly task: TaskRecord;
+  readonly agentId: string;
+  readonly summary: string;
+  readonly declaredFiles?: readonly string[] | undefined;
+  readonly declaredCommandIds?: readonly string[] | undefined;
+  readonly observedFiles: readonly string[] | null;
+  readonly commands: Readonly<Record<string, CommandRecord>>;
+}
+
+function resolveFiles(inputs: SubmissionReportInputs): {
+  files: string[];
+  evidenceClass: EvidenceClass;
+} {
+  // The declared list wins when it is given: the harness sees every in-scope working-tree change,
+  // but it cannot attribute one to this agent, and an agent that names its files is the stronger
+  // claim. Nothing is substituted when both sources are silent.
+  if (inputs.declaredFiles && inputs.declaredFiles.length > 0)
+    return { files: [...inputs.declaredFiles], evidenceClass: "agent_reported" };
+  const observed = (inputs.observedFiles ?? []).filter((path) =>
+    pathAllowed(path, inputs.task.write_scope),
+  );
+  if (observed.length === 0) {
+    throw new HarnessError(
+      "INVALID_STATE",
+      `cannot determine files_changed for ${inputs.task.id}: no working-tree change inside the task write scope was observed; pass --files-changed or --report`,
+    );
+  }
+  return { files: observed, evidenceClass: "harness_observed" };
+}
+
+function resolveChecks(inputs: SubmissionReportInputs): {
+  commands: CommandRecord[];
+  evidenceClass: EvidenceClass;
+} {
+  const declared = inputs.declaredCommandIds;
+  if (declared && declared.length > 0) {
+    const commands = declared.map((id) => {
+      const command = inputs.commands[id];
+      if (!command)
+        throw new HarnessError(
+          "INVALID_STATE",
+          `submission evidence names no recorded command: ${id}`,
+        );
+      if (command.task_id !== null && command.task_id !== inputs.task.id)
+        throw new HarnessError(
+          "INVALID_STATE",
+          `submission evidence command ${id} belongs to task ${String(command.task_id)}`,
+        );
+      return command;
+    });
+    return { commands, evidenceClass: "agent_reported" };
+  }
+  const observed = Object.values(inputs.commands)
+    .filter((command) => command.task_id === inputs.task.id && command.actor === inputs.agentId)
+    .sort((left, right) => left.id.localeCompare(right.id));
+  if (observed.length === 0) {
+    throw new HarnessError(
+      "INVALID_STATE",
+      `cannot determine checks for ${inputs.task.id}: the agent has no recorded command; run the task gate through run:exec, or pass --evidence or --report`,
+    );
+  }
+  return { commands: observed, evidenceClass: "harness_observed" };
+}
+
+/**
+ * Assembles the submission report out of recorded facts only. Every field either comes from a
+ * command the harness ran, a path Git reported, or an explicit agent declaration, and the absence
+ * of all three is an error rather than a filler value.
+ */
+export function buildSubmissionReport(inputs: SubmissionReportInputs): JsonObject {
+  const { files, evidenceClass: filesClass } = resolveFiles(inputs);
+  const { commands, evidenceClass: checksClass } = resolveChecks(inputs);
+  return {
+    summary: inputs.summary,
+    requirement_ids: [...inputs.task.requirement_ids],
+    files_changed: files,
+    files_changed_evidence_class: filesClass,
+    checks: commands.map((command) => ({ command_id: command.id })),
+    checks_evidence_class: checksClass,
+    evidence: commands.map((command) => ({
+      kind: "command_record",
+      command_id: command.id,
+      path: command.record_path,
+    })),
+  };
+}

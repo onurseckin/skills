@@ -15,6 +15,12 @@ Complex engineering projects cannot be represented as simple linear "to-do lists
 
 To model these multi-dimensional relationships deterministically, `orchestrating-long-tasks` compiles a **Strict Relational Dependency Graph** through `plan:add` and `plan:compile`.
 
+> **Two graphs, two vocabularies.** The _plan graph_ in `state.graph` is what the scheduler reasons
+> over: 8 node types, 10 edge types, cycle-free on `depends_on`. The _narrative graph_ written by
+> `summary:export` is a different artifact with its own richer vocabulary — 19 edge kinds, sections,
+> per-node evidence — built for a human reading the run afterwards. This chapter describes the first;
+> [Chapter 09 §03](../09-branching-and-honesty/03-evidence-classes-and-honesty.md) describes the second.
+
 ---
 
 ## 🏷️ The 8 Node Types
@@ -77,9 +83,18 @@ The harness makes a critical distinction between **Execution Dependencies** and 
 Tasks and gates are declared and compiled using the zero-JSON colon commands:
 
 ```bash
-bun harness.ts plan:add --run .capsules/<slug> --actor planner --id task-auth --label "Implement Authentication" --scope src/auth --gate "bun test tests/auth.test.ts"
-bun harness.ts plan:compile --run .capsules/<slug> --actor planner
+bun harness.ts plan:add --run .capsules/<slug> --actor planner --id task-auth \
+  --label "Implement Authentication" --scope src/auth \
+  --gate "bun test tests/auth.test.ts" --requirement-lines 3
+
+bun harness.ts plan:compile --run .capsules/<slug> --actor planner \
+  --completion-gate "bun test tests/unit"
 ```
+
+`plan:compile` writes three things at once: the requirements document, the graph at revision 1, and
+`state.topology` — the wave assignment and the reason each task landed where it did. The gate ids it
+derives follow the task ids: `task-auth` yields `gate-auth`, and the run-scope gate declared by
+`--completion-gate` is always `gate-run-completion`.
 
 ---
 

@@ -17,7 +17,7 @@ function safeRelative(path: unknown): string {
   return normalized;
 }
 
-function pathAllowed(path: string, scopes: readonly string[]): boolean {
+export function pathAllowed(path: string, scopes: readonly string[]): boolean {
   return scopes.some((scope) => path === scope || path.startsWith(`${scope}/`));
 }
 

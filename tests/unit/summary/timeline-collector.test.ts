@@ -153,4 +153,33 @@ describe("timeline collector", () => {
     expect(timeline[2]!.cost_usd).toBe(0.004);
     expect(timeline[2]!.duration_ms).toBe(3200);
   });
+
+  test("a review verdict is read from the event, and an unstated one is not a rejection", () => {
+    const timeline = collectTimeline([
+      createEvent("review-recorded", { task_id: "T-1", verdict: "reject", finding_count: 2 }, 1),
+      createEvent("review-recorded", { task_id: "T-1", verdict: "pass", resolved_count: 2 }, 2),
+      createEvent("review-recorded", { task_id: "T-1" }, 3),
+    ]);
+
+    expect(timeline[0]!.phase).toBe("repair");
+    expect(timeline[0]!.summary).toBe("Task T-1 review requested changes (2 findings)");
+    expect(timeline[1]!.phase).toBe("validation");
+    expect(timeline[1]!.summary).toBe("Task T-1 passed validation review");
+    expect(timeline[2]!.phase).toBe("general");
+    expect(timeline[2]!.summary).toBe("Task T-1 review recorded; the event states no verdict");
+  });
+
+  test("a command event states only the exit code and argv it carries", () => {
+    const timeline = collectTimeline([
+      createEvent(
+        "command-recorded",
+        { command_id: "C-1", argv: ["bun", "test"], exit_code: 1 },
+        1,
+      ),
+      createEvent("command-recorded", {}, 2),
+    ]);
+
+    expect(timeline[0]!.summary).toBe("Command executed: bun test (exit 1)");
+    expect(timeline[1]!.summary).toBe("Command recorded");
+  });
 });

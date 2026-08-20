@@ -7,7 +7,7 @@ export interface CriticStartParams {
   totalTasks: number;
   reqsEvidenced: number;
   totalReqs: number;
-  finalGate: string;
+  finalGates: readonly string[];
   packetPath?: string;
 }
 
@@ -17,7 +17,11 @@ export function formatCriticStartBrief(params: CriticStartParams): string {
     `- **Critic**: \`${params.critic}\``,
     `- **Critic Token**: \`${params.token}\``,
     `- **Scope Under Review**: ${params.tasksSatisfied}/${params.totalTasks} tasks satisfied | ${params.reqsEvidenced}/${params.totalReqs} requirements evidenced`,
-    `- **Mandatory Final Gate**: \`${params.finalGate}\``,
+    // An empty list is stated as such: the run declares no mandatory run gate, which is a fact
+    // the critic needs, not a gate command to be guessed at.
+    params.finalGates.length === 0
+      ? `- **Mandatory Final Gate**: none declared by this run`
+      : `- **Mandatory Final Gate**: ${params.finalGates.map((gate) => `\`${gate}\``).join(", ")}`,
   ].join("\n");
   return enforceLineLimit(md, 30);
 }
@@ -85,13 +89,15 @@ export interface RunCompleteParams {
 }
 
 export function formatRunCompleteBrief(params: RunCompleteParams): string {
-  const durationStr = params.duration ?? "Completed";
+  // No duration is recorded unless the caller measured one; the brief says so rather than
+  // printing a number nothing observed.
+  const durationStr = params.duration ?? "unknown";
   const md = [
     `### 🎉 Run Completed Successfully: ${params.runId}`,
     `- **Capsule**: \`${params.capsulePath}\``,
     `- **Summary**: ${params.tasksCount} tasks executed, ${params.validationsCount} independent validations passed, 1 critic sign-off`,
     `- **Total Gates Verified**: ${params.gatesPassed}/${params.totalGates} gates green`,
-    `- **Run Duration**: ${durationStr} | Token Efficiency: 98.2% reduction`,
+    `- **Run Duration**: ${durationStr}`,
     `- **Capsule Status**: Sealed & Auditable`,
   ].join("\n");
   return enforceLineLimit(md, 30);
@@ -130,18 +136,23 @@ export function formatRunStatusBrief(
 
 export interface RunExecParams {
   commandStr: string;
-  exitCode: number;
-  durationSeconds: number;
+  /** null when the runner never collected one; an uncollected code is not a success. */
+  exitCode: number | null;
+  durationSeconds?: number | undefined;
   outputSummary: string;
   evidencePath?: string | undefined;
   logPath?: string | undefined;
 }
 
 export function formatRunExecBrief(params: RunExecParams): string {
-  const isSuccess = params.exitCode === 0;
+  const outcome =
+    params.exitCode === null ? "Unknown" : params.exitCode === 0 ? "Success" : "Failure";
+  const code = params.exitCode === null ? "unknown" : String(params.exitCode);
+  const duration =
+    params.durationSeconds === undefined ? "unknown" : `${params.durationSeconds.toFixed(2)}s`;
   const lines = [
     `### Command Executed: \`${params.commandStr}\``,
-    `- **Exit Code**: \`${params.exitCode}\` (${isSuccess ? "Success" : "Failure"}) | **Duration**: ${params.durationSeconds.toFixed(2)}s`,
+    `- **Exit Code**: \`${code}\` (${outcome}) | **Duration**: ${duration}`,
     `- **Output Summary**: ${params.outputSummary}`,
   ];
   if (params.evidencePath) lines.push(`- **Evidence Recorded**: \`${params.evidencePath}\``);

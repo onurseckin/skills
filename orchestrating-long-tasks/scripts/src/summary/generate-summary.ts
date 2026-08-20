@@ -43,13 +43,6 @@ export function generateSummarySuite(options: SummaryGenerationOptions): Summary
   const state = loaded.state as unknown as WorkflowState;
 
   const timeline = collectTimeline(loaded.events, loaded.manifest.prompt_bytes);
-  const metrics = collectMetrics({
-    runId,
-    manifest: loaded.manifest,
-    state,
-    events: loaded.events,
-    commands: diskCommands,
-  });
   const graph = generateGraphDataset({
     runId,
     state,
@@ -59,11 +52,23 @@ export function generateSummarySuite(options: SummaryGenerationOptions): Summary
     manifest: loaded.manifest,
     runRoot: loaded.runRoot,
   });
+  const metrics = collectMetrics({
+    runId,
+    manifest: loaded.manifest,
+    state,
+    events: loaded.events,
+    commands: diskCommands,
+    graph,
+  });
   const markdown = formatSummaryMarkdown({
     runId,
+    runRoot: loaded.runRoot,
+    manifest: loaded.manifest,
+    promptText,
     metrics,
     timeline,
     state,
+    commands: diskCommands,
   });
 
   const suite: SummarySuite = { timeline, metrics, graph, markdown };

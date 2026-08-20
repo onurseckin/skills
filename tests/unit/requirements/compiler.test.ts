@@ -63,6 +63,7 @@ describe("Requirements and Graph Compilers", () => {
       reqResult.requirementsDocument,
       reqResult.requirementIdsByTask,
       1,
+      ["bun", "test", "tests"],
     );
 
     expect(graphResult.graphDocument.schema).toBe("harness.graph");

@@ -13,6 +13,24 @@ export function createMockScreenshot(
   return filePath;
 }
 
+/**
+ * Argv that writes the screenshot while the command runs. A file that already existed when the
+ * command started is not that command's output, so a test that wants an attributed capture has to
+ * produce one the way a real suite does.
+ */
+export function writeScreenshotArgv(
+  dir: string,
+  filename: string,
+  content = "fake-image",
+): string[] {
+  const target = JSON.stringify(join(dir, filename));
+  return [
+    "bun",
+    "-e",
+    `const fs=require("node:fs");fs.mkdirSync(${JSON.stringify(dir)},{recursive:true});fs.writeFileSync(${target},${JSON.stringify(content)});`,
+  ];
+}
+
 export function readJsonFile<T = Record<string, unknown>>(filePath: string): T {
   return JSON.parse(readFileSync(filePath, "utf-8")) as T;
 }
@@ -32,9 +50,27 @@ export async function submitAndStartValidation(options: {
     options.taskId,
     "--agent",
     options.worker,
+    "--role",
+    "implementer",
   ]);
   const workerToken = claim.token as string;
 
+  // A submission is only accepted against recorded evidence, so the implementer runs its own
+  // command before it submits.
+  await execute([
+    "run:exec",
+    "--run",
+    options.run,
+    "--task",
+    options.taskId,
+    "--actor",
+    options.worker,
+    "--cwd",
+    options.repo,
+    "--",
+    "echo",
+    "implementer-work",
+  ]);
   await execute([
     "task:submit",
     "--run",
@@ -45,6 +81,10 @@ export async function submitAndStartValidation(options: {
     options.worker,
     "--token",
     workerToken,
+    "--files-changed",
+    "tests/unit/core/impl.ts",
+    "--summary",
+    "Implemented the task under test",
   ]);
 
   const valStart = await execute([
@@ -87,6 +127,28 @@ export async function runGateExec(
   ]);
 }
 
+export async function recordMandatoryProbe(
+  run: string,
+  taskId: string,
+  validator: string,
+  valToken: string,
+): Promise<string[]> {
+  const probe = await execute([
+    "task:probe",
+    "--run",
+    run,
+    "--task",
+    taskId,
+    "--validator",
+    validator,
+    "--token",
+    valToken,
+    "--demand",
+    "Prove the captured screenshots come from the changed screen",
+  ]);
+  return probe.finding_ids as string[];
+}
+
 export async function advanceRunToCritic(
   run: string,
   repo: string,
@@ -96,6 +158,7 @@ export async function advanceRunToCritic(
 ): Promise<void> {
   const { valToken } = await submitAndStartValidation({ run, repo, taskId, worker, validator });
   const gateCmd = await runGateExec(run, repo, taskId, validator);
+  const demands = await recordMandatoryProbe(run, taskId, validator, valToken);
   await execute([
     "task:review",
     "--run",
@@ -108,6 +171,8 @@ export async function advanceRunToCritic(
     valToken,
     "--evidence",
     String(gateCmd.command_id),
+    "--resolve",
+    `${demands[0]}=${String(gateCmd.command_id)}`,
     "--status",
     "pass",
     "--summary",

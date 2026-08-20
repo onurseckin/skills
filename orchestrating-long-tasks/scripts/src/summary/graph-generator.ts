@@ -1,11 +1,23 @@
+import type { BranchRecord } from "../contracts/branch.ts";
 import type { HarnessEvent, Manifest } from "../contracts/capsule.ts";
 import type { CommandRecord } from "../contracts/commands.ts";
+import { isJsonObject } from "../contracts/json.ts";
+import { readBranchLedger } from "../workflow/branch/ledger.ts";
 import type { TaskRecord, WorkflowState } from "../workflow/types.ts";
+import { readAgentLedgerView } from "./agent-telemetry.ts";
+import { AssetRegistry } from "./graph-asset-ownership.ts";
+import { buildBranchSubgraphs } from "./graph-generator-branch-nodes.ts";
+import { buildRunFacts } from "./graph-run-facts.ts";
+import { buildNodeScripts } from "./node-evidence.ts";
 import { buildPromptAndPlanNodes } from "./graph-generator-core-nodes.ts";
 import { buildCriticAndTerminalNodes } from "./graph-generator-critic-nodes.ts";
-import { buildTaskAndGateNodes } from "./graph-generator-helpers.ts";
+import { buildGateNode } from "./graph-generator-gate-helpers.ts";
+import { buildImplementerNode } from "./graph-generator-helpers.ts";
+import { buildValidatorNode } from "./graph-generator-validator-nodes.ts";
+import { buildTaskEdges } from "./graph-edge-factory.ts";
+import { prepareTaskContext } from "./graph-task-preparation.ts";
 import { computeExecutionSteps } from "./step-calculator.ts";
-import type { GraphDataset, GraphEdgeData, GraphNodeData } from "./types.ts";
+import type { GraphDataset, GraphEdgeData, GraphNodeData, GraphSection } from "./types.ts";
 
 export interface GraphGeneratorInput {
   runId: string;
@@ -17,57 +29,123 @@ export interface GraphGeneratorInput {
   runRoot?: string;
 }
 
+/** A branch ledger that cannot be read yields no branch nodes rather than invented ones. */
+function readBranches(state: Readonly<WorkflowState>): BranchRecord[] {
+  if (!isJsonObject(state)) return [];
+  try {
+    return readBranchLedger(state);
+  } catch {
+    return [];
+  }
+}
+
 export function generateGraphDataset(input: GraphGeneratorInput): GraphDataset {
   const { runId, state, promptText = "", events, manifest, runRoot } = input;
   const tasks = Object.values(state.tasks ?? {}) as TaskRecord[];
-  const allCommands = Object.values({
+  const commands = Object.values({
     ...(state.commands ?? {}),
     ...(input.commands ?? {}),
   } as Record<string, CommandRecord>);
-  const steps = computeExecutionSteps(tasks);
+
+  // The recorded topology is the authority on what ran together; deriving waves is the fallback.
+  const steps = computeExecutionSteps(tasks, state);
+  const ledger = readAgentLedgerView(state);
+  const registry = new AssetRegistry();
+  const branches = readBranches(state);
 
   const nodes: GraphNodeData[] = [];
   const edges: GraphEdgeData[] = [];
 
-  const { promptNode, planNode, promptPlanEdge } = buildPromptAndPlanNodes(
+  const core = buildPromptAndPlanNodes({
     promptText,
     tasks,
-    steps.taskWaves.size || 1,
-  );
-  nodes.push(promptNode, planNode);
-  edges.push(promptPlanEdge);
+    steps,
+    branchCount: branches.length,
+    ...(ledger.integrityIssue !== undefined ? { ledgerIntegrityIssue: ledger.integrityIssue } : {}),
+  });
+  nodes.push(core.promptNode, core.planNode);
+  edges.push(core.promptPlanEdge);
 
   for (const task of tasks) {
-    const taskStep = steps.taskSteps.get(task.id) ?? 2;
-    const taskWave = steps.taskWaves.get(task.id) ?? 1;
-    const taskCmds = allCommands.filter((c) => c.task_id === task.id);
-
-    const { taskNode, gateNode, taskEdges } = buildTaskAndGateNodes({
+    const ctx = prepareTaskContext({
       task,
-      taskStep,
-      taskWave,
-      taskCmds,
-      events,
-      manifest,
-      runRoot,
+      taskStep: steps.taskSteps.get(task.id) ?? 2,
+      taskWave: steps.taskWaves.get(task.id) ?? 1,
+      commands,
+      ledger,
+      registry,
+      ...(events !== undefined ? { events } : {}),
+      ...(manifest !== undefined ? { manifest } : {}),
+      ...(runRoot !== undefined ? { runRoot } : {}),
     });
 
-    nodes.push(taskNode, gateNode);
-    edges.push(...taskEdges);
+    nodes.push(buildImplementerNode(ctx));
+    if (ctx.validatorNodeId !== undefined) nodes.push(buildValidatorNode(ctx));
+    nodes.push(buildGateNode(ctx));
+
+    edges.push(
+      ...buildTaskEdges({
+        task,
+        taskNodeId: ctx.taskNodeId,
+        gateNodeId: ctx.gateNodeId,
+        ...(ctx.validatorNodeId !== undefined ? { validatorNodeId: ctx.validatorNodeId } : {}),
+        taskName: ctx.taskName,
+        taskStep: ctx.taskStep,
+        gateStep: ctx.gateStep,
+        ...(ctx.agentId !== undefined ? { agent: ctx.agentId } : {}),
+        ...(ctx.validatorId !== undefined ? { validatorId: ctx.validatorId } : {}),
+        files: ctx.files,
+        findings: ctx.findings,
+        validatorCommands: ctx.validatorCommands,
+        isGateDone: task.status === "done" || task.status === "validated",
+      }),
+    );
   }
 
-  const { criticNode, terminalNode, criticCompleteEdge } = buildCriticAndTerminalNodes(
+  const subgraphs = buildBranchSubgraphs({
+    branches,
+    commands,
+    stepOfTask: (taskId) => steps.taskSteps.get(taskId),
+    ledger,
+    registry,
+    ...(events !== undefined ? { events } : {}),
+    ...(manifest !== undefined ? { manifest } : {}),
+    ...(runRoot !== undefined ? { runRoot } : {}),
+  });
+  nodes.push(...subgraphs.nodes);
+  edges.push(...subgraphs.edges);
+  const sections: GraphSection[] = subgraphs.sections;
+
+  const critic = buildCriticAndTerminalNodes({
     runId,
     state,
     steps,
     tasks,
-    allCommands,
-    events,
-    manifest,
-    runRoot,
-  );
-  nodes.push(criticNode, terminalNode);
-  edges.push(criticCompleteEdge);
+    commands,
+    ledger,
+    registry,
+    ...(manifest !== undefined ? { manifest } : {}),
+    ...(runRoot !== undefined ? { runRoot } : {}),
+  });
+  nodes.push(critic.criticNode, critic.terminalNode);
+  edges.push(...critic.edges);
+
+  // A run gate belongs to no task and to no agent's node, so without this it reached the export
+  // through nothing at all. The terminal node carries what nobody claimed, labelled for what it is
+  // rather than attributed to an agent that did not run it.
+  const claimed = new Set<string>();
+  for (const node of nodes) for (const script of node.scripts ?? []) claimed.add(script.commandId);
+  const unclaimed = commands.filter((command) => !claimed.has(command.id));
+  if (unclaimed.length > 0) {
+    critic.terminalNode.scripts = [
+      ...(critic.terminalNode.scripts ?? []),
+      ...buildNodeScripts(unclaimed, runRoot),
+    ];
+    critic.terminalNode.metadata = {
+      ...critic.terminalNode.metadata,
+      unattributedCommandCount: unclaimed.length,
+    };
+  }
 
   return {
     id: runId,
@@ -76,8 +154,19 @@ export function generateGraphDataset(input: GraphGeneratorInput): GraphDataset {
     directed: true,
     entry: "node-input-prompt",
     exits: ["node-terminal-complete"],
-    sections: [],
+    sections,
     nodes,
     edges,
+    run: buildRunFacts({
+      runId,
+      state,
+      promptText,
+      branches,
+      agents: [...ledger.grants.values()],
+      ...(events !== undefined ? { events } : {}),
+      ...(ledger.integrityIssue !== undefined ? { agentLedgerIssue: ledger.integrityIssue } : {}),
+      ...(manifest !== undefined ? { manifest } : {}),
+      ...(runRoot !== undefined ? { runRoot } : {}),
+    }),
   };
 }

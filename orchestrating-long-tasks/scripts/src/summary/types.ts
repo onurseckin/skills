@@ -1,14 +1,17 @@
+import type { EvidenceClass } from "../contracts/evidence.ts";
 import type { JsonObject, JsonValue } from "../contracts/json.ts";
 import type {
   BadgeDetail,
+  BrowserTestRun,
+  BrowserTestViewport,
   EdgeContainerDetail,
-  EdgeHandoff,
+  EdgeExchange,
   EdgeKind,
   EdgeTrafficDetail,
-  EdgeTrafficExchange,
+  EdgeVariant,
   ExchangeFinding,
-  ExchangeResolutionProof,
   ExchangeTransferredFile,
+  ExchangeType,
   FileRef,
   FindingDetail,
   GraphDataset,
@@ -17,23 +20,38 @@ import type {
   GraphSection,
   IoPort,
   MediaAsset,
-  ModelTier,
+  NamedBrowserTestViewport,
+  NodeFinding,
   NodeKind,
+  NodeRole,
+  NodeScript,
+  NodeStateTransition,
   NodeStatus,
+  NodeTelemetry,
+  NodeTool,
   PayloadKind,
-  PlaywrightMetadata,
+  RunCompletionFacts,
+  RunEnhancedPlanFacts,
+  RunFacts,
+  RunIntegrityFacts,
+  RunPromptFacts,
+  RunReportFacts,
+  RunRepositoryFacts,
+  RunRequirementFacts,
 } from "./graph-types.ts";
 
 export type {
   BadgeDetail,
+  BrowserTestRun,
+  BrowserTestViewport,
   EdgeContainerDetail,
-  EdgeHandoff,
+  EdgeExchange,
   EdgeKind,
   EdgeTrafficDetail,
-  EdgeTrafficExchange,
+  EdgeVariant,
   ExchangeFinding,
-  ExchangeResolutionProof,
   ExchangeTransferredFile,
+  ExchangeType,
   FileRef,
   FindingDetail,
   GraphDataset,
@@ -41,11 +59,24 @@ export type {
   GraphSection,
   IoPort,
   MediaAsset,
-  ModelTier,
+  NamedBrowserTestViewport,
+  NodeFinding,
   NodeKind,
+  NodeRole,
+  NodeScript,
+  NodeStateTransition,
   NodeStatus,
+  NodeTelemetry,
+  NodeTool,
   PayloadKind,
-  PlaywrightMetadata,
+  RunCompletionFacts,
+  RunEnhancedPlanFacts,
+  RunFacts,
+  RunIntegrityFacts,
+  RunPromptFacts,
+  RunReportFacts,
+  RunRepositoryFacts,
+  RunRequirementFacts,
 };
 
 export interface TokenUsageDetail {
@@ -57,14 +88,18 @@ export interface TokenUsageDetail {
   totalTokens?: number | undefined;
   costUsd?: number | undefined;
   isEstimated?: boolean | undefined;
+  /** "host_reported" for a real count, "derived" for the byte-ratio estimate. */
+  evidenceClass?: EvidenceClass | undefined;
 }
 
-export interface HostAgentMetadata {
-  hostTool: "antigravity" | "claude-code" | "cursor" | "codex" | "custom" | "unknown";
-  modelName?: string | undefined;
-  thinkingLevel?: "high" | "medium" | "low" | "off" | string | undefined;
-  modelTier?: "xs" | "s" | "m" | "l" | undefined;
-  tokens?: TokenUsageDetail | undefined;
+/**
+ * Which harness the run was exported under. It says nothing about any individual agent's model.
+ * `hostTool` is an open string: every host is an instance in the detector's table, never a member
+ * of a type, so recognising a new one takes a row of data and no change here.
+ */
+export interface HostIdentity {
+  hostTool: string;
+  evidenceClass: EvidenceClass;
 }
 
 export interface TimingBreakdown {
@@ -82,53 +117,32 @@ export interface NodeMetrics {
   retries?: number | undefined;
   commandCount?: number | undefined;
   tokens?: TokenUsageDetail | undefined;
-  hostAgent?: HostAgentMetadata | undefined;
   timingBreakdown?: TimingBreakdown | undefined;
 }
 
-export interface CommandExecutionDetail {
-  id: string;
-  argv: string[];
-  cwd: string;
-  exitCode: number;
-  durationMs: number;
-  startedAt: string;
-  finishedAt: string;
-  stdoutSnippet?: string | undefined;
-  stderrSnippet?: string | undefined;
-  stdoutTail?: string | undefined;
-  stderrTail?: string | undefined;
-  logPath?: string | undefined;
+export interface NodeMetadata {
+  role?: NodeRole | undefined;
+  agentId?: string | undefined;
+  findings?: NodeFinding[] | undefined;
+  writeScope?: string[] | undefined;
+  validatorId?: string | undefined;
+  repairRounds?: number | undefined;
+  probeRounds?: number | undefined;
+  validationHistory?: unknown[] | undefined;
+  branchId?: string | undefined;
+  branchReason?: string | undefined;
+  subTaskId?: string | undefined;
+  criticId?: string | undefined;
+  status?: string | undefined;
+  unresolvedFindingIds?: string[] | undefined;
+  residualRisks?: unknown[] | undefined;
+  requirementProofs?: unknown[] | undefined;
+  [key: string]: unknown;
 }
 
 export interface GraphNodeData extends Omit<RawGraphNodeData, "metrics" | "metadata"> {
   metrics?: NodeMetrics | undefined;
-  metadata?:
-    | {
-        commands?: CommandExecutionDetail[] | undefined;
-        findings?: FindingDetail[] | undefined;
-        writeScope?: string[] | undefined;
-        leaseAgent?: string | undefined;
-        validator_id?: string | undefined;
-        validatorId?: string | undefined;
-        repairRounds?: number | undefined;
-        validationHistory?: unknown[] | undefined;
-        mediaAssets?: MediaAsset[] | undefined;
-        screenshots?: MediaAsset[] | undefined;
-        assets?: MediaAsset[] | undefined;
-        playwrightMetadata?: PlaywrightMetadata | undefined;
-        opposedChangesCount?: number | undefined;
-        pushbackCount?: number | undefined;
-        critic_id?: string | undefined;
-        criticId?: string | undefined;
-        status?: string | undefined;
-        unresolved_finding_ids?: string[] | undefined;
-        unresolvedFindingIds?: string[] | undefined;
-        residual_risks?: unknown[] | undefined;
-        requirement_proofs?: unknown[] | undefined;
-        [key: string]: unknown;
-      }
-    | undefined;
+  metadata?: NodeMetadata | undefined;
 }
 
 export interface TimelineEventRecord extends JsonObject {
@@ -182,8 +196,8 @@ export interface RollupMetrics extends JsonObject {
   resolved_findings_total: number;
   open_findings_total: number;
   total_media_assets: number;
-  total_edge_traffic_exchanges: number;
-  total_edge_traffic_tokens: number;
+  /** Exchanges the emitted graph actually carries. Absent when no graph was generated. */
+  total_edge_traffic_exchanges?: number;
   wall_duration_ms: number;
   active_command_duration_ms: number;
   total_commands_executed: number;

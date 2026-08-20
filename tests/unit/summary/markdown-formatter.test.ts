@@ -1,83 +1,457 @@
-import { describe, expect, test } from "bun:test";
-import type { WorkflowState } from "../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
-import { formatSummaryMarkdown } from "../../../orchestrating-long-tasks/scripts/src/summary/markdown-formatter.ts";
-import type {
-  RollupMetrics,
-  TimelineEventRecord,
-} from "../../../orchestrating-long-tasks/scripts/src/summary/types.ts";
+import { afterEach, describe, expect, test } from "bun:test";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import type { CommandRecord } from "../../../orchestrating-long-tasks/scripts/src/contracts/commands.ts";
+import type { TimelineEventRecord } from "../../../orchestrating-long-tasks/scripts/src/summary/types.ts";
+import { cleanupRoots, emptyState, metrics, render, task, tempRoot } from "./markdown-fixtures.ts";
 
-describe("markdown formatter", () => {
-  test("formats executive summary correctly", () => {
-    const metrics: RollupMetrics = {
-      run_id: "test-run",
-      total_tasks: 2,
-      satisfied_tasks: 2,
-      failed_tasks: 0,
-      repair_rounds_total: 0,
-      wall_duration_ms: 45_000,
-      active_command_duration_ms: 5_000,
-      total_commands_executed: 4,
-      total_gates_passed: 4,
-      estimated_tokens: {
-        tokens_in: 1000,
-        tokens_out: 500,
-        total_tokens: 1500,
+afterEach(cleanupRoots);
+
+describe("markdown report: absence is stated, never defaulted", () => {
+  test("an empty capsule renders every section and says what it does not have", () => {
+    const markdown = render(emptyState);
+
+    expect(markdown).toContain("# Execution Run Report: `unit-run`");
+    expect(markdown).toContain("| Graph revision | unknown | harness_observed |");
+    expect(markdown).toContain("| Inter-agent exchanges | unknown | derived |");
+    expect(markdown).toContain("| Media assets recorded | 0 | harness_observed |");
+    expect(markdown).toContain("No enhanced plan was recorded for this run.");
+    expect(markdown).toContain("No requirements were compiled.");
+    expect(markdown).toContain("No topology was recorded");
+    expect(markdown).toContain("(no tasks were compiled into this run)");
+    expect(markdown).toContain("No tasks were scheduled into a phase.");
+    expect(markdown).toContain("The run compiled no tasks.");
+    expect(markdown).toContain("No agent grants were registered.");
+    expect(markdown).toContain("No branch was opened during this run.");
+    expect(markdown).toContain("No agent reported a changed file");
+    expect(markdown).toContain("No command was recorded in this run.");
+    expect(markdown).toContain("No tool was granted or reported through the CLI");
+    expect(markdown).toContain("No probe demand was recorded.");
+    expect(markdown).toContain("No defect finding was recorded.");
+    expect(markdown).toContain("No gate was compiled.");
+    expect(markdown).toContain("No completeness critic was authorised for this run.");
+    expect(markdown).toContain("The capsule recorded no event.");
+  });
+
+  test("durations are rendered at the scale they were measured at", () => {
+    const markdown = render(emptyState, {
+      metrics: { ...metrics, wall_duration_ms: 3_720_000, active_command_duration_ms: 250 },
+    });
+    expect(markdown).toContain("| Wall duration | 62.0m (3720.0s) | harness_observed |");
+    expect(markdown).toContain("| Active command time | 250ms | harness_observed |");
+  });
+
+  test("a capsule with no prompt bytes says so instead of showing an empty quote", () => {
+    expect(render(emptyState, { promptText: "   " })).toContain(
+      "The capsule holds no prompt bytes.",
+    );
+  });
+
+  test("an unreadable agent ledger is reported, never rendered as an empty roster", () => {
+    const markdown = render({ ...emptyState, agents: "not-a-ledger" });
+    expect(markdown).toContain("The grant ledger could not be read:");
+    expect(markdown).toContain("state.agents must be an array of agent grant records");
+    expect(markdown).not.toContain("No agent grants were registered.");
+  });
+
+  test("a recorded enhanced plan whose document is missing is not silently dropped", () => {
+    const markdown = render({
+      ...emptyState,
+      planning: { enhanced_plan: { revision: 1, markdown_path: "planning/enhanced-plan.md" } },
+    });
+    expect(markdown).toContain("planning/enhanced-plan.json could not be read");
+  });
+
+  test("a plan document with no summary renders the summary as unknown", () => {
+    const runRoot = tempRoot();
+    mkdirSync(join(runRoot, "planning"), { recursive: true });
+    writeFileSync(
+      join(runRoot, "planning", "enhanced-plan.json"),
+      JSON.stringify({
+        schema: "harness.enhanced-plan",
+        version: 1,
+        run_id: "unit-run",
+        prompt_sha256: "abc123",
+        derived_from: "prompt.md",
+        authoritative: false,
+        recorded_at: "2026-08-20T00:00:00.000Z",
+        actor: "planner-1",
+        observations: [],
+        todos: [],
+        risks: [],
+        open_questions: [],
+        sources: [],
+      }),
+    );
+    const markdown = render(emptyState, { runRoot });
+    expect(markdown).toContain("**Summary**: unknown (unknown)");
+    expect(markdown).toContain("None recorded.");
+  });
+});
+
+describe("markdown report: the drawing and the tables follow the recorded topology", () => {
+  test("tasks the topology never placed are drawn under an explicitly unknown wave", () => {
+    const markdown = render({
+      ...emptyState,
+      tasks: { "task-1": task({ id: "task-1", label: "First" }) },
+      task_order: ["task-1"],
+    });
+    expect(markdown).toContain("[ WAVE unknown ]");
+    expect(markdown).toContain("Phase: wave unknown");
+    expect(markdown).toContain("One task was scheduled into this phase.");
+    expect(markdown).toContain("no topology decision was recorded for this task");
+  });
+
+  test("a topology naming a task the state does not hold says so in the drawing", () => {
+    const markdown = render({
+      ...emptyState,
+      tasks: { "task-1": task({ id: "task-1", label: "First" }) },
+      topology: {
+        revision: 2,
+        max_parallel: 3,
+        waves: [
+          { wave: 1, task_ids: ["task-1"] },
+          { wave: 2, task_ids: ["task-ghost"] },
+        ],
+        decisions: [],
       },
-      files_touched: [{ path: "src/index.ts", additions: 100, deletions: 20 }],
-    };
+    });
+    expect(markdown).toContain(
+      "(task task-ghost is listed in the topology but absent from the run state)",
+    );
+    expect(markdown).toContain("**Topology revision**: 2");
+  });
 
+  test("each topology decision is rendered with its rationale and evidence class", () => {
+    const markdown = render({
+      ...emptyState,
+      tasks: {
+        "task-1": task({ id: "task-1", label: "First" }),
+        "task-2": task({ id: "task-2", label: "Second", dependencies: ["task-1"] }),
+      },
+      topology: {
+        revision: 1,
+        max_parallel: 2,
+        waves: [
+          { wave: 1, task_ids: ["task-1"] },
+          { wave: 2, task_ids: ["task-2"] },
+        ],
+        decisions: [
+          {
+            task_id: "task-1",
+            wave: 1,
+            parallel_with: ["task-3"],
+            serialized_after: [],
+            reason: "priority_capacity",
+            rationale: "",
+            evidence_class: "derived",
+          },
+          {
+            task_id: "task-2",
+            wave: 2,
+            parallel_with: [],
+            serialized_after: ["task-1"],
+            reason: "dependency",
+            rationale: "waits on task-1",
+            evidence_class: "agent_reported",
+          },
+        ],
+      },
+    });
+    expect(markdown).toContain(
+      "| `task-1` | 1 | `task-3` | none | priority_capacity | unknown | derived |",
+    );
+    expect(markdown).toContain(
+      "| `task-2` | 2 | none | `task-1` | dependency | waits on task-1 | agent_reported |",
+    );
+  });
+
+  test("a table cell may not smuggle a pipe into the table", () => {
+    const markdown = render({
+      ...emptyState,
+      tasks: { "task-1": task({ id: "task-1", label: "First | Second" }) },
+    });
+    expect(markdown).toContain("First \\| Second");
+  });
+
+  test("a prompt containing a fence is quoted with a longer barrier", () => {
+    const markdown = render(emptyState, { promptText: "before\n```\ninner\n```\nafter" });
+    expect(markdown).toContain("````\nbefore");
+  });
+
+  test("a prompt whose own fence is already four backticks wide cannot close the quote", () => {
+    const markdown = render(emptyState, { promptText: "before\n````\ninner\n````\nafter" });
+    expect(markdown).toContain("`````\nbefore");
+    expect(markdown).toContain("after\n`````");
+  });
+
+  test("a value carrying backticks keeps them instead of ending its own code span", () => {
+    const markdown = render({
+      ...emptyState,
+      tasks: { "task-1": task({ id: "task-1", write_scope: ["src/`odd`.ts"] }) },
+    });
+    expect(markdown).toContain("`` src/`odd`.ts ``");
+  });
+});
+
+describe("markdown report: evidence travels with every value", () => {
+  test("a command with no exit code renders unknown rather than a zero", () => {
+    const command: CommandRecord = {
+      id: "C-1",
+      argv: ["bun", "test"],
+      cwd: "/repo",
+      cwd_relative: ".",
+      repository_root: "/repo",
+      status: "running",
+      task_id: null,
+      gate_id: null,
+      started_at: "2026-08-20T00:00:00.000Z",
+      finished_at: null,
+      exit_code: null,
+      signal: null,
+      fingerprint: "f",
+      attempt_signing_public_key: "k",
+      record_path: "commands/C-1/record.json",
+      actor: "worker-1",
+    };
+    const markdown = render(emptyState, { commands: { "C-1": command } });
+    expect(markdown).toContain(
+      "| `C-1` | `bun test` | `worker-1` | - | - | running | unknown | unknown |",
+    );
+  });
+
+  test("a probe without a recorded round, and an open defect, both stay honest", () => {
+    const markdown = render({
+      ...emptyState,
+      tasks: {
+        "task-1": task({
+          id: "task-1",
+          label: "First",
+          findings: [
+            {
+              id: "probe-1",
+              class: "probe_demand",
+              requirement_id: "req-1",
+              severity: "minor",
+              observation: "Prove it",
+              evidence: [],
+              remediation: "Answer the demand",
+              revalidation: "cite a command",
+              status: "open",
+            },
+            {
+              id: "defect-1",
+              requirement_id: "req-1",
+              severity: "critical",
+              observation: "It is broken",
+              evidence: [],
+              remediation: "Fix it",
+              revalidation: "rerun the gate",
+              status: "open",
+            },
+          ],
+        }),
+      },
+    });
+    expect(markdown).toContain(
+      "| `task-1` | unknown | `probe-1` | Prove it | open | unknown | open |",
+    );
+    expect(markdown).toContain("| `task-1` | `defect-1` | critical | It is broken |");
+  });
+
+  test("host-reported telemetry keeps its label and an ungranted agent stays unknown", () => {
+    const markdown = render({
+      ...emptyState,
+      agents: [
+        {
+          id: "worker-1",
+          role: "implementer",
+          parent_agent_id: null,
+          parent_task_id: null,
+          host: "claude-code",
+          granted_at: "2026-08-20T00:00:00.000Z",
+          status: "active",
+          model: { value: "test-model", evidence_class: "host_reported" },
+          tokens_in: { value: 10, evidence_class: "host_reported" },
+          token_extras: { cache_read: { value: 7, evidence_class: "host_reported" } },
+          tools_granted: {
+            value: [{ name: "Bash", category: "shell" }],
+            evidence_class: "agent_reported",
+          },
+        },
+        {
+          id: "worker-2",
+          role: "implementer",
+          parent_agent_id: "worker-1",
+          parent_task_id: null,
+          host: "claude-code",
+          granted_at: "2026-08-20T00:00:01.000Z",
+          status: "released",
+          released_at: "2026-08-20T00:00:02.000Z",
+          release_reason: "done",
+        },
+      ],
+    });
+    expect(markdown).toContain("test-model (host_reported)");
+    expect(markdown).toContain("| `worker-1` | `cache_read` | 7 (host_reported) |");
+    expect(markdown).toContain("`Bash (shell)`");
+    expect(markdown).toContain(
+      "| `worker-2` | implementer | unknown | unknown | unknown | unknown | unknown | unknown |",
+    );
+    expect(markdown).toContain("| Tokens in | 1,000 | derived, estimate |");
+  });
+
+  test("the critic's unproven requirements and residual risks are reported as recorded", () => {
+    const markdown = render({
+      ...emptyState,
+      completion_critic: {
+        critic_id: "critic-1",
+        token_digest: "d",
+        attempt: 1,
+        status: "reviewed",
+        started_at: "2026-08-20T00:00:00.000Z",
+        deadline_at: "2026-08-20T01:00:00.000Z",
+        readiness_sha256: "r",
+        repository_binding: {},
+      },
+      completion_review: {
+        critic_id: "critic-1",
+        packet_id: "P-1",
+        graph_revision: 1,
+        readiness_sha256: "r",
+        repository_binding: {},
+        status: "findings",
+        unresolved_finding_ids: ["F-1"],
+        findings: [
+          {
+            id: "F-1",
+            requirement_id: "req-1",
+            severity: "critical",
+            observation: "the drawer never renders",
+            evidence: [],
+            remediation: "wire the drawer",
+            revalidation: "bun test src",
+          },
+        ],
+        requirement_proofs: [
+          {
+            requirement_id: "req-2",
+            status: "unproven",
+            evidence: [{ kind: "command", reference: "C-1", observation: "the gate ran" }],
+          },
+        ],
+        residual_risks: [
+          {
+            id: "R-1",
+            severity: "minor",
+            description: "the fixture predates the schema",
+            disposition: "accepted",
+            rationale: "regenerated next wave",
+            evidence: [],
+          },
+        ],
+        integrity_evidence: [],
+        repository_command_ids: [],
+        checks: [],
+        reviewed_at: "2026-08-20T00:30:00.000Z",
+        review_sha256: "s",
+      },
+      completion_remediations: [
+        {
+          actor: "coordinator-1",
+          review_sha256: "s",
+          resolutions: [{ finding_id: "F-1", method: "verification_passed", command_ids: ["C-1"] }],
+          recorded_at: "2026-08-20T00:40:00.000Z",
+          remediation_sha256: "m",
+        },
+      ],
+    });
+    expect(markdown).toContain("| Verdict | findings |");
+    expect(markdown).toContain("| `req-2` | unproven | command C-1 |");
+    expect(markdown).toContain("the drawer never renders");
+    expect(markdown).toContain("the fixture predates the schema");
+    expect(markdown).toContain("| `coordinator-1` | 2026-08-20T00:40:00.000Z | `F-1` |");
+    expect(markdown).toContain("| Run completion | unknown |");
+  });
+
+  test("an abandoned branch keeps its reason, its recovery and its unmeasured file list", () => {
+    const markdown = render({
+      ...emptyState,
+      tasks: { "task-1": task({ id: "task-1", label: "First" }) },
+      branches: [
+        {
+          id: "B-1",
+          parent_task_id: "task-1",
+          parent_agent_id: "worker-1",
+          reason: "the fix needed a second pair of hands",
+          depth: 1,
+          status: "abandoned",
+          opened_at: "2026-08-20T00:00:00.000Z",
+          abandoned_at: "2026-08-20T00:10:00.000Z",
+          sub_tasks: [
+            {
+              id: "S-1",
+              label: "Chase the failure",
+              write_scope: ["src/one"],
+              status: "abandoned",
+              agent_id: "sub-1",
+              recovery: {
+                recovered_at: "2026-08-20T00:05:00.000Z",
+                expired_agent_id: "sub-0",
+                expired_at: "2026-08-20T00:04:00.000Z",
+              },
+            },
+          ],
+          opened_observation: {
+            observed_at: "2026-08-20T00:00:00.000Z",
+            git_available: false,
+            head: null,
+            entries: [],
+          },
+        },
+      ],
+    });
+    expect(markdown).toContain("the fix needed a second pair of hands");
+    expect(markdown).toContain("| Files changed | unknown |");
+    expect(markdown).toContain("| Worktree at open | the repository could not be observed |");
+    expect(markdown).toContain("| Worktree at collect | unknown |");
+    expect(markdown).toContain("was reclaimed at 2026-08-20T00:05:00.000Z from sub-0");
+    expect(markdown).toContain("\\__ branch B-1 [abandoned]");
+  });
+
+  test("requirements recorded as the runtime array are rendered too", () => {
+    const markdown = render({
+      ...emptyState,
+      requirements: [{ id: "req-1", status: "satisfied", evidence: ["task:task-1"] }],
+    });
+    expect(markdown).toContain("| `req-1` | satisfied | unknown | unknown |");
+    expect(markdown).toContain("task:task-1");
+  });
+
+  test("a task with no recorded transitions says so", () => {
+    const markdown = render({
+      ...emptyState,
+      tasks: { "task-1": task({ id: "task-1", label: "First" }) },
+    });
+    expect(markdown).toContain("No transitions were recorded.");
+  });
+
+  test("timeline rows carry the round when the event recorded one", () => {
     const timeline: TimelineEventRecord[] = [
       {
         sequence: 1,
-        timestamp: "2026-08-14T20:00:00.000Z",
-        actor: "coord",
-        event: "plan-init",
-        phase: "planning",
-        summary: "Init",
-      },
-      {
-        sequence: 2,
-        timestamp: "2026-08-14T20:00:45.000Z",
-        actor: "coord",
-        event: "run-completed",
-        phase: "completion",
-        summary: "Done",
+        timestamp: "2026-08-20T00:00:00.000Z",
+        actor: "validator-1",
+        event: "probe-recorded",
+        phase: "validation",
+        summary: "probe recorded",
+        task_id: "task-1",
+        round: 2,
       },
     ];
-
-    const state: WorkflowState = {
-      tasks: {
-        "T-1": {
-          id: "T-1",
-          label: "First Task",
-          status: "done",
-          requirement_ids: [],
-          write_scope: ["src/index.ts"],
-          dependencies: [],
-          attempts: [],
-          history: [],
-          repair_round: 0,
-        },
-      },
-      requirements: [],
-      gates: [],
-      commands: {},
-      orphan_evidence: [],
-      graph_revision: 1,
-    };
-
-    const markdown = formatSummaryMarkdown({
-      runId: "test-run",
-      metrics,
-      timeline,
-      state,
-    });
-
-    expect(markdown).toContain("# Execution Run Summary: `test-run`");
-    expect(markdown).toContain("45.0s");
-    expect(markdown).toContain("First Task");
-    expect(markdown).toContain("src/index.ts");
-    expect(markdown).toContain("Executive Metrics");
-    expect(markdown).toContain("Timeline Milestones");
+    const markdown = render(emptyState, { timeline });
+    expect(markdown).toContain(
+      "| 1 | 2026-08-20T00:00:00.000Z | validation | `validator-1` | `probe-recorded` | probe recorded | `task-1` | 2 |",
+    );
   });
 });

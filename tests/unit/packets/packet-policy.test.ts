@@ -35,7 +35,6 @@ const base = () => {
     state: claimed,
     task: claimed.tasks["T-1"],
     commonInstructions: common,
-    roleInstructions: "Implement the exact contract.",
     evidenceSchema: { required: ["requirement_ids", "files_changed", "checks", "evidence"] },
     targetedCommands: [["bun", "test", "tests/workflow"]],
     leaseToken: claim.token,

@@ -1,23 +1,18 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { validateRepositoryBinding } from "../../../orchestrating-long-tasks/scripts/src/workflow/completion/repository-binding.ts";
 
 const skillRoot = join(import.meta.dir, "..", "..", "..", "orchestrating-long-tasks");
 
-function completionReviewExample(): Record<string, unknown> {
-  const cli = readFileSync(join(skillRoot, "references", "cli.md"), "utf8");
-  const match = /The `review-completion[\s\S]*?```json\n([\s\S]*?)\n```/u.exec(cli);
-  if (!match) throw new Error("completion review example is missing");
-  return JSON.parse(match[1]!);
-}
-
 describe("operator reference examples", () => {
+  test("the CLI reference delegates to the generated manifest", () => {
+    const cli = readFileSync(join(skillRoot, "references", "cli.md"), "utf8");
+    expect(cli).toContain("cli-capabilities.md");
+    expect(cli).toContain("This file documents no command.");
+  });
+
   test("describes implementer submissions as trusted-host observed evidence", () => {
-    const implementer = readFileSync(
-      join(skillRoot, "scripts", "assets", "implementer.md"),
-      "utf8",
-    );
+    const implementer = readFileSync(join(skillRoot, "roles", "implementer.md"), "utf8");
     expect(implementer).toContain("trusted-host observed evidence");
     expect(implementer).not.toContain("reproducible evidence");
   });
@@ -26,8 +21,8 @@ describe("operator reference examples", () => {
     const skill = readFileSync(join(skillRoot, "SKILL.md"), "utf8");
     const protocol = readFileSync(join(skillRoot, "references", "protocol.md"), "utf8");
     const state = readFileSync(join(skillRoot, "references", "state-model.md"), "utf8");
-    expect(skill).toContain("repository-local `diff.external`, `diff.*.textconv`, active");
-    expect(skill).toContain("`filter.*.clean`, `filter.*.smudge`, or `filter.*.process`");
+    expect(protocol).toContain("`filter.*.clean`, `filter.*.smudge`, or `filter.*.process`");
+    expect(protocol).toContain("local `diff.external`, every `diff.*.textconv`");
     expect(protocol).toContain("declared Git gate argv and fingerprint remain unchanged");
     expect(protocol).toContain("Declared Git and wrapper executable names must be bare");
     expect(protocol).toContain("persisted `execution_argv`");

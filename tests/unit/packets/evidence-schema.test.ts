@@ -25,6 +25,27 @@ describe("generated evidence schemas", () => {
     };
     expect(evidenceSchema("implementer")).toEqual(expected);
     expect(evidenceSchema("repairer")).toEqual(expected);
+    expect(evidenceSchema("sub-implementer")).toEqual(expected);
+  });
+
+  test("gives a read-only sub-investigator a schema that never asks for a file change", () => {
+    const schema = evidenceSchema("sub-investigator");
+    expect(schema).not.toHaveProperty("files_changed");
+    expect(schema.sources).toEqual(["<repository-relative path actually read>"]);
+    expect(schema.reproduction).toBeString();
+    expect(schema).not.toEqual(evidenceSchema("implementer"));
+  });
+
+  test("gives the coordinator a dispatch-and-gate schema, not a submission schema", () => {
+    const schema = evidenceSchema("coordinator");
+    expect(schema).not.toHaveProperty("files_changed");
+    expect(schema.dispatched_agents).toEqual(["<agent id registered through agent:register>"]);
+    expect(schema.waves).toBeArray();
+  });
+
+  test("gives sub-validator the validator contract and planner the planning contract", () => {
+    expect(evidenceSchema("sub-validator")).toEqual(evidenceSchema("validator"));
+    expect(evidenceSchema("planner").requirements_path).toBe("<validated requirements JSON path>");
   });
 
   test("matches the validator review runtime contract without a token field", () => {

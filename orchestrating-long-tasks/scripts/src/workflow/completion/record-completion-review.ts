@@ -5,7 +5,8 @@ import { requireText, utc } from "../task-state.ts";
 import { systemClock, type Clock, type CompletionReview, type TransactionPort } from "../types.ts";
 import { assertCriticIndependent } from "./critic-identity.ts";
 import { authoritativeRepositoryCommand } from "./repository-evidence.ts";
-import { completionReviewDigest, jsonDigest } from "./completion-review-digest.ts";
+import { criticIntegrityDigest } from "../../packets/critic-integrity-digest.ts";
+import { completionReviewDigest } from "./completion-review-digest.ts";
 import { completionReadinessSnapshot } from "./readiness-snapshot.ts";
 import { parseCompletionAssessment } from "./review-input.ts";
 import {
@@ -54,7 +55,17 @@ export function recordCompletionReview(
   const packetId =
     typeof input.packet_id === "string" && input.packet_id.trim() ? input.packet_id : "direct";
   const criticToken = requireText(input.critic_token, "critic_token");
-  const packetSha = typeof input.packet_sha256 === "string" ? input.packet_sha256 : "";
+  const packetSha = input.packet_sha256;
+  // A review without a published packet carries no digest at all; an empty string would read as a
+  // recorded value that happens to be blank.
+  if (
+    packetSha !== undefined &&
+    (typeof packetSha !== "string" || !/^[0-9a-f]{64}$/u.test(packetSha))
+  )
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      "packet_sha256 must be a sha256 digest when present",
+    );
   const graphRevision = input.graph_revision;
   if (!Number.isSafeInteger(graphRevision) || (graphRevision as number) < 1)
     throw new HarnessError("INVALID_ARGUMENT", "graph_revision must be a positive integer");
@@ -92,7 +103,9 @@ export function recordCompletionReview(
     verifyRepositoryBinding(assignment.repository_binding, verifyRepository);
     const packet = draft.packets?.[packetId];
     if (packet) {
-      const integritySha = jsonDigest(integrity);
+      if (packetSha === undefined)
+        throw new HarnessError("INVALID_STATE", "critic review omits its published packet digest");
+      const integritySha = criticIntegrityDigest(integrity);
       if (
         packet.status !== "published" ||
         packet.role !== "completeness-critic" ||
@@ -122,6 +135,16 @@ export function recordCompletionReview(
         throw new HarnessError("INVALID_STATE", `critic independent check is invalid: ${id}`);
     }
     const assessment = parseCompletionAssessment(draft, input);
+    const unproven = assessment.requirement_proofs
+      .filter((proof) => proof.status === "unproven")
+      .map((proof) => proof.requirement_id);
+    // A clean verdict is the critic asserting the whole requirement set holds. It may not be
+    // recorded while any requirement is unproven, or the sign-off proves itself.
+    if (input.status === "clean" && unproven.length > 0)
+      throw new HarnessError(
+        "INVALID_STATE",
+        `clean completion review leaves requirements unproven: ${unproven.join(", ")}`,
+      );
     for (const proof of assessment.requirement_proofs)
       for (const evidence of proof.evidence)
         if (evidence.kind === "command") {
@@ -135,7 +158,7 @@ export function recordCompletionReview(
     const review = {
       critic_id: criticId,
       packet_id: packetId,
-      packet_sha256: packetSha,
+      ...(packetSha === undefined ? {} : { packet_sha256: packetSha }),
       graph_revision: graphRevision as number,
       readiness_sha256: readinessSha,
       repository_binding: repositoryBinding,

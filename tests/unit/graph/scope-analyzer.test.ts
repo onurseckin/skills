@@ -40,6 +40,39 @@ describe("Scope Independence Analyzer", () => {
     });
   });
 
+  test("checkScopeOverlap sees through globs", () => {
+    expect(checkScopeOverlap(["docs/**"], ["docs/concepts/**"])).toEqual({
+      hasOverlap: true,
+      conflictingPath: "docs/concepts/**",
+      relation: "parent_child",
+    });
+
+    expect(checkScopeOverlap(["src/*.ts"], ["src/foo.ts"])).toEqual({
+      hasOverlap: true,
+      conflictingPath: "src/foo.ts",
+      relation: "parent_child",
+    });
+
+    expect(checkScopeOverlap(["docs/api/**"], ["docs/concepts/**"])).toEqual({
+      hasOverlap: false,
+      conflictingPath: "",
+      relation: "none",
+    });
+  });
+
+  test("analyzeScopeIndependence refuses to clear colliding globs", () => {
+    const result = analyzeScopeIndependence([
+      { taskId: "t1", writeScope: ["src/*.ts"], dependencies: [] },
+      { taskId: "t2", writeScope: ["src/queue.ts"], dependencies: [] },
+      { taskId: "t3", writeScope: ["docs/**"], dependencies: [] },
+    ]);
+
+    expect(result.collisions).toHaveLength(1);
+    expect(result.collisions[0]!.taskA).toBe("t1");
+    expect(result.collisions[0]!.taskB).toBe("t2");
+    expect(result.collisions[0]!.conflictingPath).toBe("src/queue.ts");
+  });
+
   test("computeConcurrencyWaves calculates topological waves correctly", () => {
     const tasks = [
       { taskId: "t1", writeScope: ["src/a"], dependencies: [] },

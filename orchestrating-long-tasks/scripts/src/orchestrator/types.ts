@@ -1,6 +1,6 @@
 import type { JsonObject, JsonValue } from "../contracts/json.ts";
 import type { FindingDetail } from "../workflow/scope-partitioner.ts";
-import type { Finding, GateResult, TaskStatus } from "../contracts/workflow.ts";
+import type { Finding, TaskStatus } from "../contracts/workflow.ts";
 
 export type RoundExecutionStatus =
   | "pending"
@@ -22,6 +22,12 @@ export type LoopExecutionStatus =
   | "aborted";
 
 export type CriticDecision = "approve" | "request_changes" | "rejected" | "escalated";
+
+/** A round either ran gates that all passed, ran gates that did not, or ran none at all. */
+export type GateRoundStatus = "passed" | "failed" | "not_run";
+
+/** `partial` is the loop-level shape a single round cannot have: some rounds ran gates, some did not. */
+export type GateOverallStatus = GateRoundStatus | "partial";
 
 export type AutoWakeAction = "nudge" | "reclaim_lease" | "restart_agent" | "escalate";
 
@@ -119,7 +125,8 @@ export interface RoundTelemetry {
   readonly completedTaskCount: number;
   readonly openFindingsCount: number;
   readonly resolvedFindingsCount: number;
-  readonly gatesPassed: boolean;
+  readonly gateStatus: GateRoundStatus;
+  readonly gateCount: number;
   readonly summary?: string | undefined;
 }
 
@@ -134,7 +141,7 @@ export interface LoopSummary {
   readonly overallDurationMs: number;
   readonly rounds: readonly RoundTelemetry[];
   readonly totalFindingsSynthesized: number;
-  readonly allGatesPassed: boolean;
+  readonly gateStatus: GateOverallStatus;
   readonly finalCriticDecision?: CriticDecision | undefined;
   readonly finalMarkdownSummary: string;
 }
@@ -150,6 +157,18 @@ export interface RoundExecutionInput {
   readonly priorDefects?: DefectSynthesis | undefined;
 }
 
+/**
+ * A gate outcome as an injected round executor reports it. It is deliberately not the state
+ * ledger's `GateResult`, whose `status` is the literal `"passed"` because `attachGateResult`
+ * refuses to record anything else — a round executor is reporting what a gate did, including
+ * failing, so its status must be able to say so.
+ */
+export interface RoundGateResult {
+  readonly gate_id: string;
+  readonly command_id: string;
+  readonly status: "passed" | "failed";
+}
+
 export interface RoundExecutionResult {
   readonly runId: string;
   readonly round: number;
@@ -162,7 +181,7 @@ export interface RoundExecutionResult {
     readonly gatePassed?: boolean | undefined;
   }[];
   readonly findings: readonly Finding[];
-  readonly gateResults: readonly GateResult[];
+  readonly gateResults: readonly RoundGateResult[];
   readonly summary?: string | undefined;
   readonly logs?: readonly string[] | undefined;
 }

@@ -1,9 +1,8 @@
 import { basename, join } from "node:path";
 import { generateSummarySuite } from "../../summary/generate-summary.ts";
-import { assertFlags, textFlag, type Flags } from "../options.ts";
+import { textFlag, type Flags } from "../options.ts";
 
 export function summaryExportCommand(flags: Flags): Record<string, unknown> {
-  assertFlags(flags, ["run", "out"]);
   const run = textFlag(flags, "run")!;
   const out = textFlag(flags, "out", false);
 
@@ -27,7 +26,7 @@ export function summaryExportCommand(flags: Flags): Record<string, unknown> {
   lines.push(
     `  - \`metrics.json\` (${suite.metrics.satisfied_tasks}/${suite.metrics.total_tasks} satisfied tasks)`,
   );
-  lines.push(`  - \`summary.md\` (Executive brief)`);
+  lines.push(`  - \`summary.md\` (complete run report)`);
   if (out) {
     lines.push(`- **GVUI Registry Export**: \`${join(out, `${runId}.json`)}\``);
   }
@@ -43,7 +42,6 @@ export function summaryExportCommand(flags: Flags): Record<string, unknown> {
 }
 
 export function summaryViewCommand(flags: Flags): Record<string, unknown> {
-  assertFlags(flags, ["run"]);
   const run = textFlag(flags, "run")!;
 
   const suite = generateSummarySuite({

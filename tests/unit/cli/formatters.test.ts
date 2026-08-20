@@ -69,10 +69,14 @@ describe("Markdown Formatters", () => {
     const compileBrief = formatPlanCompileBrief({
       revision: 1,
       totalTasks: 3,
-      waves: [
-        { waveIndex: 0, tasks: ["t1", "t2"] },
-        { waveIndex: 1, tasks: ["t3"] },
-      ],
+      topology: {
+        revision: 1,
+        maxParallel: 3,
+        waves: [
+          { wave: 1, taskIds: ["t1", "t2"] },
+          { wave: 2, taskIds: ["t3"] },
+        ],
+      },
       collisions: 0,
       requirementsCount: 3,
       runId: "run-1",
@@ -90,7 +94,7 @@ describe("Markdown Formatters", () => {
       label: "Task 1",
       priority: 80,
       writeScope: ["src/a"],
-      gateCmd: "bun test",
+      gates: ["bun test"],
       packetPath: ".capsules/packet.md",
       runId: "run-1",
     });
@@ -115,7 +119,7 @@ describe("Markdown Formatters", () => {
       deadlineMinutes: 30,
       expiresAt: "20:00:00",
       writeScope: ["src/a"],
-      gateCmd: "bun test",
+      gates: ["bun test"],
       packetPath: ".capsules/packet.md",
     });
     expect(queuePop.split("\n").length).toBeLessThanOrEqual(30);
@@ -169,6 +173,7 @@ describe("Markdown Formatters", () => {
       validator: "val-1",
       findingId: "f-1",
       issue: "timeout",
+      status: "changes_requested",
     });
     expect(taskRej.split("\n").length).toBeLessThanOrEqual(30);
 
@@ -179,7 +184,7 @@ describe("Markdown Formatters", () => {
       totalTasks: 3,
       reqsEvidenced: 3,
       totalReqs: 3,
-      finalGate: "bun test",
+      finalGates: ["bun test"],
       packetPath: "critic.md",
     });
     expect(critStart.split("\n").length).toBeLessThanOrEqual(30);
@@ -212,6 +217,9 @@ describe("Markdown Formatters", () => {
       totalGates: 3,
     });
     expect(runComp.split("\n").length).toBeLessThanOrEqual(30);
+    // Nothing measured token usage, so the brief claims no efficiency figure at all.
+    expect(runComp).not.toContain("Token Efficiency");
+    expect(runComp).toContain("**Run Duration**: unknown");
 
     const runStat = formatRunStatusBrief("run-1", "Executing", [], "0/0");
     expect(runStat.split("\n").length).toBeLessThanOrEqual(30);

@@ -1,52 +1,56 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { execute } from "../../../orchestrating-long-tasks/scripts/src/cli/execute.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
 import { setupCompiledRun } from "./file-persistence-fixture.ts";
 import {
   createMockScreenshot,
-  readJsonFile,
+  recordMandatoryProbe,
   runGateExec,
   submitAndStartValidation,
+  writeScreenshotArgv,
 } from "./visual-validation-fixture.ts";
-import { ingestScreenshots } from "../../../orchestrating-long-tasks/scripts/src/reporting/screenshot-ingestion.ts";
+import { readCaptures } from "../../../orchestrating-long-tasks/scripts/src/store/captures.ts";
 
 const roots: string[] = [];
 afterEach(async () => cleanupRoots(roots));
 
 describe("Automated Visual Validation & Screenshot Pipeline - Core", () => {
-  test("run:exec detects screenshots in test-results, copies to evidence and reports, updates manifest", async () => {
+  test("run:exec stores a screenshot once and gives the one copy a readable name", async () => {
     const { repo, run } = await setupCompiledRun("visual-exec", roots);
-    createMockScreenshot(join(repo, "test-results"), "button.png");
 
     const exec = await execute([
       "run:exec",
       "--run",
       run,
+      "--actor",
+      "coordinator",
       "--task",
       "task-core",
       "--cwd",
       repo,
       "--",
-      "echo",
-      "run",
+      ...writeScreenshotArgv(join(repo, "test-results"), "button.png"),
     ]);
     const cmdId = String(exec.command_id);
     expect(exec.exit_code).toBe(0);
 
     const screenshots = exec.screenshots as string[];
-    expect(screenshots.length).toBeGreaterThanOrEqual(1);
-    expect(existsSync(join(run, "evidence", "screenshots", `${cmdId}-button.png`))).toBe(true);
-    expect(existsSync(join(run, "reports", "screenshots", `${cmdId}-button.png`))).toBe(true);
+    expect(screenshots).toEqual(["evidence/screenshots/button.png"]);
+    // The old layout wrote the same image under reports/ as well.
+    expect(existsSync(join(run, "reports", "screenshots"))).toBe(false);
 
-    const evJson = readJsonFile<Record<string, unknown>>(join(run, "evidence", `${cmdId}.json`));
-    expect(Array.isArray(evJson.screenshots)).toBe(true);
+    const captures = readCaptures(run);
+    expect(captures).toHaveLength(1);
+    expect(captures[0]?.command_id).toBe(cmdId);
+    expect(captures[0]?.storage).toBe("hardlink");
 
-    const manifest = readJsonFile<{ screenshots: Array<{ name: string }> }>(
-      join(run, "evidence", "manifest.json"),
-    );
-    expect(manifest.screenshots.some((s) => s.name.includes("button.png"))).toBe(true);
+    // One set of bytes, two names: the readable name and the content address are the same file.
+    const view = statSync(join(run, "evidence", "screenshots", "button.png"));
+    const blob = statSync(join(run, captures[0]!.blob_path));
+    expect(view.ino).toBe(blob.ino);
+    expect(view.dev).toBe(blob.dev);
   });
 
   test("run:exec ingests screenshots referenced in command stdout", async () => {
@@ -62,6 +66,8 @@ describe("Automated Visual Validation & Screenshot Pipeline - Core", () => {
       "run:exec",
       "--run",
       run,
+      "--actor",
+      "coordinator",
       "--task",
       "task-core",
       "--cwd",
@@ -76,7 +82,6 @@ describe("Automated Visual Validation & Screenshot Pipeline - Core", () => {
 
   test("evidence:screenshots queries and filters captured UI screenshots", async () => {
     const { repo, run } = await setupCompiledRun("visual-query", roots);
-    createMockScreenshot(join(repo, "test-results"), "view.png");
 
     const exec = await execute([
       "run:exec",
@@ -89,8 +94,7 @@ describe("Automated Visual Validation & Screenshot Pipeline - Core", () => {
       "--cwd",
       repo,
       "--",
-      "echo",
-      "done",
+      ...writeScreenshotArgv(join(repo, "test-results"), "view.png"),
     ]);
     const cmdId = String(exec.command_id);
 
@@ -160,6 +164,8 @@ describe("Automated Visual Validation & Screenshot Pipeline - Core", () => {
     const exec = await runGateExec(run, repo, "task-core", "v1");
     const cmdId = String(exec.command_id);
 
+    const demands = await recordMandatoryProbe(run, "task-core", "v1", valToken);
+
     await execute([
       "task:review",
       "--run",
@@ -172,6 +178,8 @@ describe("Automated Visual Validation & Screenshot Pipeline - Core", () => {
       valToken,
       "--evidence",
       cmdId,
+      "--resolve",
+      `${demands[0]}=${cmdId}`,
       "--status",
       "pass",
       "--summary",

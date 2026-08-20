@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { promptLines } from "./predicates.ts";
+import { promptLines } from "./prompt-lines.ts";
 
 export interface PromptSource {
   digest: string;

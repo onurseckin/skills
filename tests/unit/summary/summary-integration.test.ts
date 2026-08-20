@@ -51,7 +51,15 @@ async function setupExecutedRun(name: string) {
     "planner",
   ]);
 
-  await execute(["plan:compile", "--run", run, "--actor", "planner"]);
+  await execute([
+    "plan:compile",
+    "--run",
+    run,
+    "--actor",
+    "planner",
+    "--completion-gate",
+    "bun test tests",
+  ]);
 
   const claim = await execute([
     "task:claim",
@@ -61,9 +69,27 @@ async function setupExecutedRun(name: string) {
     "task-1",
     "--agent",
     "worker-1",
+    "--role",
+    "implementer",
   ]);
   const token = claim.token as string;
 
+  // A submission is only accepted against recorded evidence, so the implementer runs its own
+  // command before it submits.
+  await execute([
+    "run:exec",
+    "--run",
+    run,
+    "--task",
+    "task-1",
+    "--actor",
+    "worker-1",
+    "--cwd",
+    repo,
+    "--",
+    "echo",
+    "implementer-work",
+  ]);
   await execute([
     "task:submit",
     "--run",
@@ -76,6 +102,8 @@ async function setupExecutedRun(name: string) {
     token,
     "--summary",
     "Task 1 complete",
+    "--files-changed",
+    "src/index.ts",
   ]);
   const val = await execute([
     "task:validate-start",
@@ -106,6 +134,20 @@ async function setupExecutedRun(name: string) {
   ]);
   const cmdId = gateExec.command_id as string;
 
+  const probe = await execute([
+    "task:probe",
+    "--run",
+    run,
+    "--task",
+    "task-1",
+    "--validator",
+    "validator-1",
+    "--token",
+    valToken,
+    "--demand",
+    "Prove the gate fails when the fix is reverted",
+  ]);
+
   await execute([
     "task:review",
     "--run",
@@ -118,6 +160,8 @@ async function setupExecutedRun(name: string) {
     valToken,
     "--evidence",
     cmdId,
+    "--resolve",
+    `${(probe.finding_ids as string[])[0]}=${cmdId}`,
     "--status",
     "pass",
     "--summary",
@@ -142,7 +186,7 @@ describe("summary suite generation and CLI", () => {
     expect(suite.metrics.total_tasks).toBe(1);
     expect(suite.metrics.satisfied_tasks).toBe(1);
     expect(suite.graph.nodes.length).toBeGreaterThan(0);
-    expect(suite.markdown).toContain("Execution Run Summary");
+    expect(suite.markdown).toContain("Execution Run Report");
 
     // Verify files on disk
     expect(existsSync(join(run, "summary", "timeline.json"))).toBe(true);
@@ -163,6 +207,6 @@ describe("summary suite generation and CLI", () => {
     expect(existsSync(join(outDir, "cli-sum-run.json"))).toBe(true);
 
     const viewRes = await execute(["summary:view", "--run", run]);
-    expect(String(viewRes.markdown)).toContain("Execution Run Summary");
+    expect(String(viewRes.markdown)).toContain("Execution Run Report");
   });
 });

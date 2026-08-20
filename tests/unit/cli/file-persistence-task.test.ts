@@ -9,7 +9,7 @@ const roots: string[] = [];
 afterEach(async () => cleanupRoots(roots));
 
 describe("Harness File Persistence - Task Reports & Review", () => {
-  test("task:reject and task:review (fail) persist findings and reports, inspected via finding:get and report:get", async () => {
+  test("task:reject and task:review (fail) record findings in state and reports on disk, inspected via finding:get and report:get", async () => {
     const { repo, run } = await setupCompiledRun("task-fail-persist", roots);
 
     const claim = await execute([
@@ -20,9 +20,27 @@ describe("Harness File Persistence - Task Reports & Review", () => {
       "task-core",
       "--agent",
       "worker-core",
+      "--role",
+      "implementer",
     ]);
     const workerToken = claim.token as string;
 
+    // A submission is only accepted against recorded evidence, so the implementer runs its own
+    // command before it submits.
+    await execute([
+      "run:exec",
+      "--run",
+      run,
+      "--task",
+      "task-core",
+      "--actor",
+      "worker-core",
+      "--cwd",
+      repo,
+      "--",
+      "echo",
+      "implementer-work",
+    ]);
     await execute([
       "task:submit",
       "--run",
@@ -33,6 +51,10 @@ describe("Harness File Persistence - Task Reports & Review", () => {
       "worker-core",
       "--token",
       workerToken,
+      "--files-changed",
+      "tests/unit/core/impl.ts",
+      "--summary",
+      "Implemented the task under test",
     ]);
 
     const valStart = await execute([
@@ -66,6 +88,8 @@ describe("Harness File Persistence - Task Reports & Review", () => {
 
     const reject = await execute([
       "task:reject",
+      "--severity",
+      "critical",
       "--run",
       run,
       "--task",
@@ -85,16 +109,15 @@ describe("Harness File Persistence - Task Reports & Review", () => {
     const findingId = reject.finding_id as string;
     expect(findingId).toBe("finding-task-core-reject");
 
-    const expectedFindingPath = join(run, "findings", `${findingId}.json`);
-    expect(existsSync(expectedFindingPath)).toBe(true);
+    // A finding has one home, and it is the chain-bound projection rather than a loose file.
+    expect(existsSync(join(run, "findings"))).toBe(false);
 
-    const findingData = JSON.parse(readFileSync(expectedFindingPath, "utf-8")) as Record<
-      string,
-      unknown
-    >;
+    const findingData = (await execute(["finding:get", "--run", run, "--id", findingId]))
+      .finding as Record<string, unknown>;
     expect(findingData.id).toBe(findingId);
     expect(findingData.observation).toBe("Missing test coverage for boundary conditions");
     expect(findingData.remediation).toBe("Add edge case tests");
+    expect(findingData.task_id).toBe("task-core");
 
     const expectedReportPath = join(run, "reports", "task-core-review.json");
     expect(existsSync(expectedReportPath)).toBe(true);
@@ -129,9 +152,27 @@ describe("Harness File Persistence - Task Reports & Review", () => {
       "task-core",
       "--agent",
       "worker-core",
+      "--role",
+      "implementer",
     ]);
     const workerToken = claim.token as string;
 
+    // A submission is only accepted against recorded evidence, so the implementer runs its own
+    // command before it submits.
+    await execute([
+      "run:exec",
+      "--run",
+      run,
+      "--task",
+      "task-core",
+      "--actor",
+      "worker-core",
+      "--cwd",
+      repo,
+      "--",
+      "echo",
+      "implementer-work",
+    ]);
     await execute([
       "task:submit",
       "--run",
@@ -144,6 +185,8 @@ describe("Harness File Persistence - Task Reports & Review", () => {
       workerToken,
       "--summary",
       "Submission for task-core",
+      "--files-changed",
+      "tests/unit/core/impl.ts",
     ]);
 
     const valStart = await execute([
@@ -174,6 +217,20 @@ describe("Harness File Persistence - Task Reports & Review", () => {
       "gate-core.ts",
     ]);
 
+    const probe = await execute([
+      "task:probe",
+      "--run",
+      run,
+      "--task",
+      "task-core",
+      "--validator",
+      "val-agent-1",
+      "--token",
+      valToken,
+      "--demand",
+      "Prove the suite fails when the assertion is inverted",
+    ]);
+
     const review = await execute([
       "task:review",
       "--run",
@@ -186,6 +243,8 @@ describe("Harness File Persistence - Task Reports & Review", () => {
       valToken,
       "--evidence",
       execGate.command_id as string,
+      "--resolve",
+      `${(probe.finding_ids as string[])[0]}=${execGate.command_id as string}`,
       "--status",
       "pass",
       "--summary",

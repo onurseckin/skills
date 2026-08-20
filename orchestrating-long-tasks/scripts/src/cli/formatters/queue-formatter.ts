@@ -1,3 +1,4 @@
+import { DEFAULT_RESOLVED_CONFIG } from "../../config/harness-config.ts";
 import { enforceLineLimit, formatTable } from "./line-limiter.ts";
 
 export interface QueueNextParams {
@@ -6,9 +7,15 @@ export interface QueueNextParams {
   priority: number;
   goal?: string;
   writeScope: readonly string[];
-  gateCmd: string;
+  /** The mandatory gates the plan compiled for this task; empty when it declared none. */
+  gates: readonly string[];
   packetPath?: string;
   runId: string;
+}
+
+// A task whose plan declared no gate has none to quote; naming one would invent the proof.
+function gateList(gates: readonly string[]): string {
+  return gates.length === 0 ? "`none declared`" : gates.map((gate) => `\`${gate}\``).join(", ");
 }
 
 export function formatQueueNextBrief(params: QueueNextParams): string {
@@ -19,11 +26,11 @@ export function formatQueueNextBrief(params: QueueNextParams): string {
     `- **Label**: ${params.label}`,
     `- **Goal**: ${goalStr}`,
     `- **Write Scope**: ${scopeStr}`,
-    `- **Mandatory Gate**: \`${params.gateCmd}\``,
+    `- **Mandatory Gate**: ${gateList(params.gates)}`,
     "",
     `#### Claim Command:`,
     "```bash",
-    `bun harness.ts task:claim --run ${params.runId} --task ${params.taskId} --agent <AGENT_ID>`,
+    `bun harness.ts task:claim --run ${params.runId} --task ${params.taskId} --agent <AGENT_ID> --role implementer`,
     "```",
   ].join("\n");
   return enforceLineLimit(md, 30);
@@ -59,7 +66,10 @@ export interface QueueListPartitions {
   repairNeeded?: readonly string[];
 }
 
-export function formatQueueListBrief(partitions: QueueListPartitions, maxParallel = 3): string {
+export function formatQueueListBrief(
+  partitions: QueueListPartitions,
+  maxParallel = DEFAULT_RESOLVED_CONFIG.default_max_parallel,
+): string {
   const headers = ["Partition", "Count", "Tasks"];
   const rows: string[][] = [];
 
@@ -110,6 +120,48 @@ export function formatQueueListBrief(partitions: QueueListPartitions, maxParalle
   return enforceLineLimit(lines.join("\n"), 30);
 }
 
+export interface QueueWaveItem {
+  taskId: string;
+  label: string | null;
+  priority: number;
+  writeScope: readonly string[];
+  recordedWave: number | null;
+}
+
+export interface QueueWaveParams {
+  runId: string;
+  entries: readonly QueueWaveItem[];
+  maxParallel: number;
+  topologySource: "recorded" | "absent";
+  topologyRevision: number | null;
+}
+
+export function formatQueueWaveBrief(params: QueueWaveParams): string {
+  const rows = params.entries.map((entry) => [
+    `\`${entry.taskId}\``,
+    entry.label === null ? "-" : entry.label,
+    String(entry.priority),
+    entry.writeScope.map((scope) => `\`${scope}\``).join(", ") || "`none`",
+    entry.recordedWave === null ? "unknown" : String(entry.recordedWave),
+  ]);
+  const topology =
+    params.topologySource === "recorded"
+      ? `recorded at graph revision ${params.topologyRevision ?? "unknown"}`
+      : "not recorded for this capsule";
+  const lines = [
+    `### Dispatchable Wave: ${params.entries.length}/${params.maxParallel} conflict-free tasks`,
+    ...formatTable(["Task", "Label", "Priority", "Write Scope", "Planned Wave"], rows),
+    "",
+    `- **Topology**: ${topology}`,
+    `- **Dispatch**: launch all ${params.entries.length} agents in one batch; each claims its own task.`,
+    "",
+    "```bash",
+    `bun harness.ts task:claim --run ${params.runId} --task <TASK_ID> --agent <AGENT_ID> --role implementer`,
+    "```",
+  ];
+  return enforceLineLimit(lines.join("\n"), 30);
+}
+
 export interface QueuePopParams {
   taskId: string;
   agent: string;
@@ -117,7 +169,7 @@ export interface QueuePopParams {
   deadlineMinutes: number;
   expiresAt: string;
   writeScope: readonly string[];
-  gateCmd: string;
+  gates: readonly string[];
   packetPath?: string;
 }
 
@@ -129,7 +181,7 @@ export function formatQueuePopBrief(params: QueuePopParams): string {
     `- **Lease Token**: \`${params.token}\``,
     `- **Deadline**: ${params.deadlineMinutes}m (Expires: ${params.expiresAt})`,
     `- **Write Scope**: ${scopeStr}`,
-    `- **Mandatory Gate**: \`${params.gateCmd}\``,
+    `- **Mandatory Gate**: ${gateList(params.gates)}`,
   ].join("\n");
   return enforceLineLimit(md, 30);
 }

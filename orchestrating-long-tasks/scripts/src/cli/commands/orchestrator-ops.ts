@@ -3,14 +3,7 @@ import { readBoundedBytes } from "../../core/json.ts";
 import { HarnessError } from "../../errors/harness-error.ts";
 import { AutonomousLoopRunner } from "../../orchestrator/loop-runner.ts";
 import type { RoundExecutor } from "../../orchestrator/types.ts";
-import {
-  assertFlags,
-  boolFlag,
-  integerFlag,
-  textFlag,
-  type CommandContext,
-  type Flags,
-} from "../options.ts";
+import { boolFlag, integerFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
 
 export interface OrchestratorCommandContext extends CommandContext {
   executor?: RoundExecutor | undefined;
@@ -20,18 +13,6 @@ export async function orchestratorRunCommand(
   flags: Flags,
   context: OrchestratorCommandContext = {},
 ): Promise<Record<string, unknown>> {
-  assertFlags(flags, [
-    "repo",
-    "prompt",
-    "prompt-file",
-    "prompt-stdin",
-    "max-rounds",
-    "capsules-dir",
-    "actor",
-    "run-id",
-    "run",
-  ]);
-
   const repo = textFlag(flags, "repo", false) ?? process.cwd();
   if (!existsSync(repo)) {
     throw new HarnessError("INVALID_ARGUMENT", `repository path does not exist: ${repo}`);
@@ -82,6 +63,15 @@ export async function orchestratorRunCommand(
     );
   }
 
+  // Rounds are executed by the host, never by the harness. Without an injected executor there is
+  // nothing to report, so the command refuses rather than writing a summary for work never done.
+  if (context.executor === undefined) {
+    throw new HarnessError(
+      "INVALID_STATE",
+      "orchestrator:run requires a host-injected round executor; the CLI cannot execute a round by itself",
+    );
+  }
+
   const loopRunner = new AutonomousLoopRunner({
     baseRunId: runId,
     repoPath: repo,
@@ -104,7 +94,7 @@ export async function orchestratorRunCommand(
     total_rounds_executed: summary.totalRoundsExecuted,
     max_rounds_configured: summary.maxRoundsConfigured,
     overall_duration_ms: summary.overallDurationMs,
-    all_gates_passed: summary.allGatesPassed,
+    gate_status: summary.gateStatus,
     final_critic_decision: summary.finalCriticDecision,
     total_findings_synthesized: summary.totalFindingsSynthesized,
     telemetry: summary.rounds,

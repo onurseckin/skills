@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm } from "node:fs/promises";
+import { realpathSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import {
@@ -14,26 +16,24 @@ afterEach(async () =>
 );
 
 describe("doctor diagnostics and gitignore policy", () => {
-  test("ignoredByGit returns null without .git and handles success, non-zero, and exceptions", async () => {
+  test("ignoredByGit answers true, false, or unknown and never guesses", async () => {
     const repo = await mkdtemp(join(tmpdir(), "harness-git-doc-"));
     roots.push(repo);
     const runRoot = join(repo, ".capsules", "run-1");
 
-    // No .git directory -> returns null
+    // Nothing to ask: the directory is not a repository.
     expect(ignoredByGit(runRoot)).toBeNull();
 
-    // With .git directory
     await mkdir(join(repo, ".git"));
-    const mockSuccess = () => ({ status: 0, stdout: "", stderr: "" });
-    expect(ignoredByGit(runRoot, mockSuccess)).toBe(true);
+    const exitCode = (status: number) => () => ({ status, bytes: Buffer.alloc(0) });
+    expect(ignoredByGit(runRoot, exitCode(0))).toBe(true);
+    expect(ignoredByGit(runRoot, exitCode(1))).toBe(false);
 
-    const mockFailure = () => ({ status: 1, stdout: "", stderr: "" });
-    expect(ignoredByGit(runRoot, mockFailure)).toBe(false);
-
+    // A probe that could not run is unknown, not "tracked".
     const mockThrow = () => {
       throw new Error("git exec failure");
     };
-    expect(ignoredByGit(runRoot, mockThrow)).toBe(false);
+    expect(ignoredByGit(runRoot, mockThrow)).toBeNull();
   });
 
   test("runDoctor collects command, packet, and workflow issues", async () => {
@@ -88,9 +88,10 @@ describe("doctor diagnostics and gitignore policy", () => {
   });
 
   test("runDoctor flags run capsule when not gitignored", async () => {
-    const repo = await mkdtemp(join(tmpdir(), "harness-doc-unignored-"));
+    const repo = realpathSync(await mkdtemp(join(tmpdir(), "harness-doc-unignored-")));
     roots.push(repo);
-    await mkdir(join(repo, ".git"));
+    // A real repository, so `check-ignore` returns a real answer instead of failing the probe.
+    spawnSync("git", ["init", "--quiet"], { cwd: repo });
     const runRoot = initRun(
       repo,
       "unignored-run",
@@ -101,5 +102,22 @@ describe("doctor diagnostics and gitignore policy", () => {
     const report = await runDoctor(runRoot);
     expect(report.gitignored).toBe(false);
     expect(report.issues).toContain("run capsule is not gitignored");
+  });
+
+  test("runDoctor reports an unanswerable gitignore probe as unknown, not as a violation", async () => {
+    const repo = await mkdtemp(join(tmpdir(), "harness-doc-unknown-ignore-"));
+    roots.push(repo);
+    // A `.git` entry the probe cannot read: present enough to be asked, broken enough to fail.
+    await mkdir(join(repo, ".git"));
+    const runRoot = initRun(
+      repo,
+      "unknown-ignore-run",
+      new TextEncoder().encode("Doctor prompt"),
+      "file",
+      true,
+    );
+    const report = await runDoctor(runRoot);
+    expect(report.gitignored).toBeNull();
+    expect(report.issues).not.toContain("run capsule is not gitignored");
   });
 });

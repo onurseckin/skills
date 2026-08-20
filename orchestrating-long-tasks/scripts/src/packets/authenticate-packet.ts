@@ -1,5 +1,7 @@
+import type { BranchSubTask } from "../contracts/branch.ts";
 import { canonicalJsonBytes } from "../core/json.ts";
 import { HarnessError } from "../errors/harness-error.ts";
+import { readBranchLedger, locateSubTask } from "../workflow/branch/ledger.ts";
 import { tokenMatches } from "../workflow/lease/token.ts";
 import { requireText } from "../workflow/task-state.ts";
 import type { TaskRecord } from "../workflow/types.ts";
@@ -13,10 +15,36 @@ function sameTask(left: TaskRecord, right: TaskRecord): boolean {
   return Buffer.from(canonicalJsonBytes(left)).equals(Buffer.from(canonicalJsonBytes(right)));
 }
 
+function sameSubTask(left: BranchSubTask, right: BranchSubTask): boolean {
+  return Buffer.from(canonicalJsonBytes(left)).equals(Buffer.from(canonicalJsonBytes(right)));
+}
+
+/** The roles a branch dispatches into. Each holds a sub-task lease, never a plan-task lease. */
+const BRANCH_ROLES: readonly string[] = ["sub-implementer", "sub-investigator", "sub-validator"];
+
 export type PacketAuthenticationInput = Pick<
   PacketInput,
-  "agentId" | "attempt" | "clock" | "leaseToken" | "role" | "state" | "task"
+  "agentId" | "attempt" | "clock" | "leaseToken" | "role" | "state" | "subTask" | "task"
 >;
+
+function authenticateSubTask(input: PacketAuthenticationInput, now: number): void {
+  const supplied = input.subTask;
+  const location = supplied ? locateSubTask(readBranchLedger(input.state), supplied.id) : undefined;
+  const lease = location?.subTask.lease;
+  if (
+    !supplied ||
+    !location ||
+    location.branch.status !== "open" ||
+    location.subTask.status !== "claimed" ||
+    !sameSubTask(supplied, location.subTask) ||
+    !lease ||
+    lease.agent_id !== input.agentId ||
+    Date.parse(lease.expires_at) <= now ||
+    !tokenMatches(input.leaseToken, lease.token_digest)
+  ) {
+    throw new HarnessError("INVALID_STATE", "branch sub-task packet authentication is invalid");
+  }
+}
 
 export function authenticatePacketIdentity(
   input: PacketAuthenticationInput,
@@ -30,6 +58,12 @@ export function authenticatePacketIdentity(
   if (!taskRole) {
     if (input.task)
       throw new HarnessError("INVALID_ARGUMENT", "run-level packet cannot include a task");
+    if (BRANCH_ROLES.includes(input.role)) {
+      authenticateSubTask(input, now);
+      return undefined;
+    }
+    if (input.subTask)
+      throw new HarnessError("INVALID_ARGUMENT", "run-level packet cannot include a sub-task");
     if (input.role === "completeness-critic") {
       const critic = input.state.completion_critic;
       assertCriticIndependent(input.state, input.agentId);
@@ -52,6 +86,8 @@ export function authenticatePacketIdentity(
     }
     return undefined;
   }
+  if (input.subTask)
+    throw new HarnessError("INVALID_ARGUMENT", "a plan-task packet cannot include a sub-task");
   const supplied = input.task;
   const authoritative = supplied ? input.state.tasks[supplied.id] : undefined;
   if (!supplied || !authoritative || !sameTask(supplied, authoritative)) {

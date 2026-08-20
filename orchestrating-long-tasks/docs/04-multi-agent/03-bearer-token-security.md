@@ -11,7 +11,7 @@ In a multi-agent environment, how does the harness prevent **Agent A** from subm
 The harness enforces strict access control through a **One-Time Bearer Token Security Protocol**.
 
 ```text
-[ Coordinator executes `task:claim` or `queue:pop` ]
+[ `task:claim`, `queue:pop`, `task:validate-start`, `critic:start`, `branch:open`, `branch:claim` ]
                         │
                         ▼
 ┌────────────────────────────────────────────────────────┐
@@ -30,9 +30,10 @@ The harness enforces strict access control through a **One-Time Bearer Token Sec
 ## 🔒 The Token Invariants
 
 1. **Returned Once via Process Stdout:** The plaintext token is generated using cryptographically secure random bytes (`randomBytes(32).toString("base64url")`) and emitted once in the command markdown brief.
-2. **Digest-Only Persistence:** The harness **never** writes plaintext bearer tokens to disk, state files, event logs, git history, or documentation. Only the SHA-256 digest (`token_digest`) is stored.
+2. **Digest-Only Persistence:** The harness **never** writes plaintext bearer tokens to disk, state files, event logs, git history, or documentation. Only the SHA-256 digest (`token_digest`) is stored — in `state.json`, in `events.jsonl`, and in the submission, review and critic reports under `reports/`, which record `token_digest` and never the token itself.
 3. **Capability-Only Lifetime:** The token is valid only for the duration of the active lease attempt.
-4. **Mandatory Protected Mutations:** The CLI subcommands `task:heartbeat`, `task:submit`, `task:review`, `task:reject`, and `critic:review` **require** the plaintext `--token` flag. If the provided token's SHA-256 hash does not match `lease.token_digest`, the mutation is rejected with `UNAUTHORIZED`.
+4. **Mandatory Protected Mutations:** `task:heartbeat`, `task:submit`, `task:release`, `task:probe`, `task:review`, `task:reject`, `critic:review`, `critic:reject`, `branch:open`, `branch:submit`, `branch:collect` and `branch:abandon` all **require** the plaintext `--token` flag. A token whose SHA-256 does not match the recorded digest — or that belongs to a different agent — is refused with `lease identity or token is invalid`.
+5. **Three Token Families, Not One:** a _lease_ token proves you hold the write scope; a _validation_ token proves you own the current review; a _critic_ token proves you hold the completion authorisation. They are not interchangeable, and an agent holding one cannot act with another's authority. This is why a validator cannot `branch:open`: it never holds a lease token.
 
 ---
 
@@ -41,9 +42,11 @@ The harness enforces strict access control through a **One-Time Bearer Token Sec
 If an agent process crashes or loses its in-memory token:
 
 - **No Regeneration:** The harness will **never** guess, recalculate, or reveal the token from its digest.
-- **Deadline Expiration:** The coordinator waits for the lease duration to lapse.
-- **Task Re-Queue:** Once expired, the task transitions back to `ready` (or `retry_ready`).
-- **New Lease & Token:** A new claim via `queue:pop` or `task:claim` issues a fresh lease and brand-new token.
+- **Voluntary Hand-Back:** if the token still exists, `task:release --token <token>` returns the task to `retry_ready` immediately (or `changes_requested` when the released attempt was a repair) instead of waiting out the clock.
+- **Deadline Expiration:** otherwise the lease lapses and `recover --actor <you>` reclaims it.
+- **Task Re-Queue:** the task transitions to `retry_ready` and holds no lease.
+- **New Lease & Token:** a fresh `task:claim --role` issues a new lease and a brand-new token.
+- **One Exception:** a `branched` parent is never reaped. Its lease clock is frozen because it is blocked on children, and `task:release` refuses it until the branch is collected or abandoned.
 
 ---
 

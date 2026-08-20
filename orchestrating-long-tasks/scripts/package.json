@@ -3,7 +3,6 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "bun test tests",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   }
 }

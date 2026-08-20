@@ -1,129 +1,165 @@
 import { describe, expect, test } from "bun:test";
+import type { JsonObject } from "../../../orchestrating-long-tasks/scripts/src/contracts/json.ts";
+import type { BranchView } from "../../../orchestrating-long-tasks/scripts/src/reporting/action-types.ts";
 import {
-  leasedActions,
-  validationActions,
-} from "../../../orchestrating-long-tasks/scripts/src/reporting/active-actions.ts";
-import { taskActions } from "../../../orchestrating-long-tasks/scripts/src/reporting/task-actions.ts";
-import type {
-  GateView,
-  PacketView,
-  TaskView,
-} from "../../../orchestrating-long-tasks/scripts/src/reporting/action-types.ts";
+  branchActions,
+  openBranchActions,
+} from "../../../orchestrating-long-tasks/scripts/src/reporting/branch-actions.ts";
+import { registryArgv } from "../../../orchestrating-long-tasks/scripts/src/reporting/registry-argv.ts";
+import { actions, ENTRYPOINT, RUN, view } from "./actions-fixture.ts";
+import { dispatchFailure, dispatchFailures } from "./dispatchable.ts";
 
-describe("reporting actions generators", () => {
-  test("leasedActions handles existing packet and missing packet", () => {
-    const prefix = ["bun", "harness.ts"];
-    const runRoot = "/path/to/run";
-    const task: TaskView = {
-      id: "task-1",
-      status: "leased",
-      owner: "worker-1",
-      role: "implementer",
-      attempt: 1,
-      gate_results: [],
-    };
+function branch(overrides: Partial<BranchView> = {}): BranchView {
+  return {
+    id: "B-1",
+    parent_task_id: "T-1",
+    parent_agent_id: "worker",
+    status: "open",
+    reason: "the parser blocks the API change",
+    sub_tasks: [{ id: "S-1", label: "Fix the parser", status: "open", agent_id: null }],
+    ...overrides,
+  };
+}
 
-    // No matching packet -> includes packet command
-    const actionsWithoutPacket = leasedActions(prefix, runRoot, task, []);
-    expect(actionsWithoutPacket.some((cmd) => cmd.includes("packet"))).toBe(true);
-    expect(actionsWithoutPacket.some((cmd) => cmd.includes("heartbeat"))).toBe(true);
-    expect(actionsWithoutPacket.some((cmd) => cmd.includes("submit"))).toBe(true);
+const text = (branches: readonly BranchView[]) =>
+  openBranchActions(ENTRYPOINT, RUN, branches)
+    .argv.map((argv) => argv.join(" "))
+    .join("\n");
 
-    // Matching packet exists -> omits packet command
-    const matchingPacket: PacketView = {
-      id: "P-1",
-      task_id: "task-1",
-      agent_id: "worker-1",
-      role: "implementer",
-      attempt: 1,
-      packet_sha256: "sha-1",
-    };
-    const actionsWithPacket = leasedActions(prefix, runRoot, task, [matchingPacket]);
-    expect(actionsWithPacket.some((cmd) => cmd.includes("packet"))).toBe(false);
-    expect(actionsWithPacket.some((cmd) => cmd.includes("heartbeat"))).toBe(true);
-    expect(actionsWithPacket.some((cmd) => cmd.includes("submit"))).toBe(true);
+describe("registry-resolved argv", () => {
+  test("the guard itself refuses argv that names nothing runnable", () => {
+    expect(dispatchFailure(["node", ENTRYPOINT, "run:status"])).toContain(
+      "does not start with bun",
+    );
+    expect(dispatchFailure(["bun", ENTRYPOINT])).toContain("names no command");
+    expect(dispatchFailure(["bun", ENTRYPOINT, "status"])).toBe("no registry command named status");
+    expect(dispatchFailure(["bun", ENTRYPOINT, "run:status"])).toBe("run:status is missing --run");
+    expect(dispatchFailure(["bun", ENTRYPOINT, "run:status", "--run", RUN, "--nope"])).toContain(
+      "unknown option",
+    );
+    expect(dispatchFailure(["bun", ENTRYPOINT, "run:status", "--run", RUN, "--", "bun"])).toContain(
+      "does not accept -- arguments",
+    );
   });
 
-  test("validationActions handles existing packet and missing packet", () => {
-    const prefix = ["bun", "harness.ts"];
-    const runRoot = "/path/to/run";
-    const task: TaskView = {
-      id: "task-1",
-      status: "validating",
-      validation: { validator_id: "val-1", attempt: 1 },
-      gate_results: [],
-    };
-
-    // No matching packet -> includes packet command
-    const actionsWithoutPacket = validationActions(prefix, runRoot, task, []);
-    expect(actionsWithoutPacket.some((cmd) => cmd.includes("packet"))).toBe(true);
-    expect(actionsWithoutPacket.some((cmd) => cmd.includes("review"))).toBe(true);
-
-    // Matching packet exists -> omits packet command
-    const matchingPacket: PacketView = {
-      id: "P-VAL-1",
-      task_id: "task-1",
-      agent_id: "val-1",
-      role: "validator",
-      attempt: 1,
-      packet_sha256: "sha-val",
-    };
-    const actionsWithPacket = validationActions(prefix, runRoot, task, [matchingPacket]);
-    expect(actionsWithPacket.some((cmd) => cmd.includes("packet"))).toBe(false);
-    expect(actionsWithPacket.some((cmd) => cmd.includes("review"))).toBe(true);
+  test("refuses to name a command the registry does not have", () => {
+    expect(registryArgv(ENTRYPOINT, "status", [["run", RUN]])).toBeUndefined();
+    expect(registryArgv(ENTRYPOINT, "packet", [["run", RUN]])).toBeUndefined();
+    expect(registryArgv(ENTRYPOINT, "gate", [["run", RUN]])).toBeUndefined();
+    expect(registryArgv(ENTRYPOINT, "finish", [["run", RUN]])).toBeUndefined();
+    expect(registryArgv(ENTRYPOINT, "begin-validation", [["run", RUN]])).toBeUndefined();
+    expect(registryArgv(ENTRYPOINT, "", [])).toBeUndefined();
   });
 
-  test("taskActions generates appropriate commands across all task statuses", () => {
-    const prefix = ["bun", "harness.ts"];
-    const runRoot = "/path/to/run";
-    const gates: GateView[] = [
-      {
-        id: "gate-1",
-        scope: "task",
-        command: ["bun", "test"],
-        cwd: ".",
-        requirement_ids: ["R-1"],
-        mandatory: true,
-      },
-    ];
+  test("refuses a flag the command's own spec does not declare", () => {
+    expect(
+      registryArgv(ENTRYPOINT, "run:status", [
+        ["run", RUN],
+        ["max-parallel", "3"],
+      ]),
+    ).toBeUndefined();
+  });
 
-    // Status: ready & retry_ready
-    const readyTask: TaskView = { id: "t1", status: "ready", gate_results: [] };
-    expect(taskActions(prefix, runRoot, readyTask, gates, [])[0]).toContain("claim");
+  test("refuses a -- tail on a command that takes none", () => {
+    expect(registryArgv(ENTRYPOINT, "run:status", [["run", RUN]], ["bun", "test"])).toBeUndefined();
+    expect(
+      registryArgv(ENTRYPOINT, "run:exec", [["run", RUN]], ["bun", "test"])?.slice(-3),
+    ).toEqual(["--", "bun", "test"]);
+  });
 
-    const retryTask: TaskView = {
-      id: "t1",
-      status: "retry_ready",
-      original_implementer: "orig-worker",
-      gate_results: [],
-    };
-    expect(taskActions(prefix, runRoot, retryTask, gates, [])[0]).toContain("orig-worker");
+  test("renders a required flag the caller could not fill as a hole, not a value", () => {
+    const argv = registryArgv(ENTRYPOINT, "plan:compile", [["run", RUN]])!;
+    expect(argv).toEqual([
+      "bun",
+      ENTRYPOINT,
+      "plan:compile",
+      "--run",
+      RUN,
+      "--actor",
+      "<actor-for:plan:compile>",
+      "--completion-gate",
+      "<completion-gate-for:plan:compile>",
+    ]);
+    expect(dispatchFailures([argv])).toEqual([]);
+  });
 
-    // Status: changes_requested
-    const crTask: TaskView = {
-      id: "t1",
-      status: "changes_requested",
-      repair_assignee: "rep-1",
-      gate_results: [],
-    };
-    expect(taskActions(prefix, runRoot, crTask, gates, [])[0]).toContain("rep-1");
+  test("keeps a bool flag valueless", () => {
+    expect(registryArgv(ENTRYPOINT, "branch:status", [["run", RUN], ["all"]])).toEqual([
+      "bun",
+      ENTRYPOINT,
+      "branch:status",
+      "--run",
+      RUN,
+      "--all",
+    ]);
+  });
+});
 
-    // Status: submitted
-    const subTask: TaskView = { id: "t1", status: "submitted", gate_results: [] };
-    expect(taskActions(prefix, runRoot, subTask, gates, [])[0]).toContain("begin-validation");
+describe("branch next actions", () => {
+  test("claims an unclaimed sub-task and never collects before it is terminal", () => {
+    const open = text([branch()]);
+    expect(open).toContain(" branch:claim ");
+    expect(open).toContain("--sub-task S-1");
+    expect(open).not.toContain(" branch:submit ");
+    expect(open).not.toContain(" branch:collect ");
+    expect(open).toContain(" branch:abandon ");
+  });
 
-    // Status: validated
-    const valTask: TaskView = {
-      id: "t1",
-      status: "validated",
-      requirement_ids: ["R-1"],
-      gate_results: [],
-    };
-    const valActions = taskActions(prefix, runRoot, valTask, gates, []);
-    expect(valActions.some((cmd) => cmd.includes("gate"))).toBe(true);
+  test("submits a claimed sub-task under the agent the ledger recorded", () => {
+    const claimed = text([
+      branch({
+        sub_tasks: [{ id: "S-1", label: "Fix the parser", status: "claimed", agent_id: "sub-1" }],
+      }),
+    ]);
+    expect(claimed).toContain(" branch:submit ");
+    expect(claimed).toContain("--agent sub-1");
+    expect(claimed).toContain("<sub-task-token-returned-by:branch:claim>");
+    expect(claimed).not.toContain(" branch:collect ");
+  });
 
-    // Status: gating
-    const gatingTask: TaskView = { id: "t1", status: "gating", gate_results: [] };
-    expect(taskActions(prefix, runRoot, gatingTask, gates, [])[0]).toContain("finish");
+  test("names a sub-agent hole when a claimed sub-task recorded none", () => {
+    const claimed = text([
+      branch({
+        sub_tasks: [{ id: "S-1", label: "Fix the parser", status: "claimed", agent_id: null }],
+      }),
+    ]);
+    expect(claimed).toContain("--agent <sub-agent-for:S-1>");
+  });
+
+  test("collects once every sub-task is terminal", () => {
+    const done = text([
+      branch({
+        status: "collecting",
+        sub_tasks: [
+          { id: "S-1", label: "Fix the parser", status: "submitted", agent_id: "sub-1" },
+          { id: "S-2", label: "Drop the shim", status: "abandoned", agent_id: "sub-2" },
+        ],
+      }),
+    ]);
+    expect(done).toContain(" branch:collect ");
+    expect(done).toContain("--agent worker");
+    expect(done).not.toContain(" branch:claim ");
+  });
+
+  test("says nothing about a branch that is already settled", () => {
+    expect(text([branch({ status: "collected" })])).toBe("");
+    expect(text([branch({ status: "abandoned" })])).toBe("");
+    expect(openBranchActions(ENTRYPOINT, RUN, []).argv).toEqual([]);
+  });
+
+  test("every branch argv is one the CLI can dispatch", () => {
+    const result = branchActions(ENTRYPOINT, RUN, branch());
+    expect(dispatchFailures(result.argv)).toEqual([]);
+    expect(result.unavailable).toEqual([]);
+  });
+
+  test("an open branch reaches the run's next actions and offers the ledger read", () => {
+    const state: JsonObject = view("branched", {
+      branches: [branch() as unknown as JsonObject],
+    });
+    const result = actions(state);
+    expect(result.text).toContain(" branch:status ");
+    expect(result.text).toContain("--all");
+    expect(result.text).toContain(" branch:claim ");
   });
 });

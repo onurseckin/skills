@@ -1,78 +1,114 @@
 import { describe, expect, test } from "bun:test";
+import type { AgentGrantRecord } from "../../../orchestrating-long-tasks/scripts/src/contracts/agents.ts";
 import type { JsonObject } from "../../../orchestrating-long-tasks/scripts/src/contracts/json.ts";
-import { nextArgv } from "../../../orchestrating-long-tasks/scripts/src/reporting/next-actions.ts";
-import { orphanEvidenceSha256 } from "../../../orchestrating-long-tasks/scripts/src/workflow/orphan-evidence/digest.ts";
+import { nextActions } from "../../../orchestrating-long-tasks/scripts/src/reporting/next-actions.ts";
+import { actions, ENTRYPOINT, RUN, view } from "./actions-fixture.ts";
+import { dispatchFailures } from "./dispatchable.ts";
 
-function view(status: string): JsonObject {
-  return {
-    tasks: [
-      {
-        id: "T-1",
-        status,
-        owner: status === "leased" ? "worker" : null,
-        role: status === "leased" ? "implementer" : null,
-        attempt: 1,
-        repair_assignee: status === "changes_requested" ? "worker" : null,
-        original_implementer: "worker",
-        requirement_ids: ["R-1"],
-        gate_results: [],
-        validation: status === "validating" ? { validator_id: "validator", attempt: 1 } : null,
-      },
-    ],
-    gates: [
-      {
-        id: "G-task",
-        scope: "task",
-        cwd: ".",
-        command: ["bun", "test", "focused"],
-        requirement_ids: ["R-1"],
-        mandatory: true,
-      },
-      {
-        id: "G-run",
-        scope: "run",
-        cwd: ".",
-        command: ["bun", "test", "all"],
-        requirement_ids: [],
-        mandatory: true,
-      },
-    ],
-    packets: [],
-    commands: [],
-    completion_critic: null,
-    completion_review: null,
-    completion_remediations: [],
-    completion_result: null,
-    requirements: [],
-    orphan_evidence: [],
-    orphan_evidence_dispositions: [],
-  };
-}
+const rendered = (status: string) => actions(view(status)).text;
 
-const rendered = (status: string) =>
-  nextArgv("/repo/.capsules/run", "/repo/.capsules/run/runtime/harness.ts", view(status))
-    .map((argv) => argv.join(" "))
-    .join("\n");
+const grant: AgentGrantRecord = {
+  id: "worker",
+  role: "implementer",
+  parent_agent_id: null,
+  parent_task_id: "T-1",
+  host: "claude-code",
+  granted_at: "2026-08-13T12:00:00.000Z",
+  status: "active",
+};
 
 describe("state-specific resumable argv", () => {
-  test("covers every active task transition without exposing a secret", () => {
-    expect(rendered("leased")).toContain(" packet ");
-    expect(rendered("leased")).toContain(" heartbeat ");
-    expect(rendered("leased")).toContain(" submit ");
-    expect(rendered("leased")).toContain("<host-only-bearer-secret-not-stored-in-packet>");
-    expect(rendered("leased")).not.toContain("secret-from");
-    expect(rendered("leased")).not.toContain("packet.md");
-    expect(rendered("submitted")).toContain(" begin-validation ");
-    expect(rendered("validating")).toContain(" review ");
-    expect(rendered("changes_requested")).toContain("--role repairer");
-    expect(rendered("validated")).toContain("--gate G-task");
-    expect(rendered("validated")).toContain(" gate ");
-    expect(rendered("gating")).toContain(" finish ");
-    expect(rendered("leased")).not.toContain("token_digest");
+  test("every task status yields commands the registry can dispatch", () => {
+    for (const status of [
+      "proposed",
+      "ready",
+      "retry_ready",
+      "changes_requested",
+      "leased",
+      "running",
+      "submitted",
+      "validating",
+      "validated",
+      "gating",
+      "branched",
+      "escalated",
+      "done",
+    ]) {
+      expect(dispatchFailures(nextActions(RUN, ENTRYPOINT, view(status)).argv)).toEqual([]);
+    }
   });
 
-  test("handoff emits only applicable mandatory task gates", () => {
-    const state = view("validated");
+  test("orients a fresh reader before it changes anything", () => {
+    const opened = actions(view("ready"), [grant]);
+    expect(opened.text).toContain(" run:status ");
+    expect(opened.text).toContain(" doctor ");
+    expect(opened.text).toContain(" agent:list ");
+    // No grant ledger and no branches: the reads that would report on them are not offered.
+    expect(rendered("ready")).not.toContain(" agent:list ");
+    expect(rendered("ready")).not.toContain(" branch:status ");
+  });
+
+  test("dispatches a ready task through the wave, not one task at a time", () => {
+    const ready = rendered("ready");
+    expect(ready).toContain(" queue:wave ");
+    expect(ready).toContain(" queue:next ");
+    expect(ready).toContain(" task:claim ");
+    expect(ready).toContain("--role implementer");
+    expect(rendered("changes_requested")).toContain("--role repairer");
+    expect(rendered("changes_requested")).toContain("--agent worker");
+  });
+
+  test("names the lease commands while an agent holds the work", () => {
+    for (const status of ["leased", "running"]) {
+      const held = rendered(status);
+      expect(held).toContain(" task:heartbeat ");
+      expect(held).toContain(" task:submit ");
+      expect(held).toContain("<lease-token-returned-by:task:claim>");
+      expect(held).not.toContain("token_digest");
+    }
+  });
+
+  test("carries a submitted task into validation and a validating one to a verdict", () => {
+    expect(rendered("submitted")).toContain(" task:validate-start ");
+    const validating = rendered("validating");
+    expect(validating).toContain(" task:probe ");
+    expect(validating).toContain(" task:review ");
+    expect(validating).toContain("--status <pass-or-fail>");
+    expect(validating).toContain("--gate G-task");
+    expect(validating).toContain("--validator validator");
+  });
+
+  test("stops naming the probe once the configured rounds are recorded", () => {
+    const probed = view("validating");
+    (probed.tasks as JsonObject[])[0]!.probe_round = 1;
+    const text = actions(probed).text;
+    expect(text).not.toContain(" task:probe ");
+    expect(text).toContain(" task:review ");
+  });
+
+  test("answers every open probe demand in the verdict it names", () => {
+    const probed = view("validating");
+    (probed.tasks as JsonObject[])[0]!.open_finding_ids = ["probe-T-1-01-1", "probe-T-1-01-2"];
+    const text = actions(probed).text;
+    expect(text).toContain("--resolve probe-T-1-01-1=<command-id-answering:probe-T-1-01-1>");
+    expect(text).toContain("--resolve probe-T-1-01-2=<command-id-answering:probe-T-1-01-2>");
+  });
+
+  test("names no resolution when the validator owes no answer", () => {
+    expect(rendered("validating")).not.toContain("--resolve");
+  });
+
+  test("omits a gate whose recorded run already succeeded", () => {
+    const proven = view("validating", {
+      commands: [
+        { id: "C-1", actor: "validator", status: "succeeded", task_id: "T-1", gate_id: "G-task" },
+      ],
+    });
+    expect(actions(proven).text).not.toContain("--gate G-task");
+  });
+
+  test("emits only the mandatory task gates that bind this task's requirements", () => {
+    const state = view("validating");
     (state.gates as JsonObject[]).push(
       {
         id: "G-unrelated",
@@ -91,117 +127,56 @@ describe("state-specific resumable argv", () => {
         mandatory: false,
       },
     );
-    const actions = nextArgv("/repo/.capsules/run", "/repo/.capsules/run/runtime/harness.ts", state)
-      .map((argv) => argv.join(" "))
-      .join("\n");
-    expect(actions).toContain("--gate G-task");
-    expect(actions).not.toContain("--gate G-unrelated");
-    expect(actions).not.toContain("--gate G-optional");
-    expect(actions).not.toContain("--gate G-run");
+    const text = actions(state).text;
+    expect(text).toContain("--gate G-task");
+    expect(text).not.toContain("--gate G-unrelated");
+    expect(text).not.toContain("--gate G-optional");
+    expect(text).not.toContain("--gate G-run");
   });
 
-  test("prioritizes recovery over actions authenticated by expired authority", () => {
-    const state = view("leased");
-    state.stale_evidence = ["task T-1 lease expired at 2026-08-13T12:00:00.000Z"];
-    const actions = nextArgv("/repo/.capsules/run", "/repo/.capsules/run/runtime/harness.ts", state)
-      .map((argv) => argv.join(" "))
-      .join("\n");
-
-    expect(actions).toContain(" recover ");
-    expect(actions).toContain("--grace-seconds 0");
-    expect(actions).not.toContain(" heartbeat ");
-    expect(actions).not.toContain(" submit ");
+  test("reports the sign-off window as unresumable instead of naming a command for it", () => {
+    for (const status of ["validated", "gating"]) {
+      const stuck = actions(view(status));
+      expect(stuck.argv.some((argv) => argv.includes("task:review"))).toBeFalse();
+      expect(stuck.unavailable).toEqual([
+        `task T-1 is ${status}: that step runs inside task:review, and no CLI command resumes it from here`,
+      ]);
+    }
   });
 
-  test("pauses task dispatch and emits an exact authority decision action", () => {
-    const state = view("ready");
-    state.requirements = [
-      {
-        id: "R-1",
-        disposition: "needs_authority",
-        authority_status: null,
-      },
-    ];
-    const actions = nextArgv("/repo/.capsules/run", "/repo/.capsules/run/runtime/harness.ts", state)
-      .map((argv) => argv.join(" "))
-      .join("\n");
-
-    expect(actions).toContain(" decide-authority ");
-    expect(actions).toContain("--requirement R-1");
-    expect(actions).not.toContain(" claim ");
-    expect(actions).not.toContain(" schedule ");
+  test("sends an escalated task back to replanning", () => {
+    expect(rendered("escalated")).toContain(" plan:replan ");
   });
 
-  test("covers run gates and critic assignment after every task is done", () => {
-    const actions = rendered("done");
-    expect(actions).toContain("--gate G-run");
-    expect(actions).not.toContain(" begin-critic ");
+  test("prioritizes recovery over actions authenticated by an expired lease", () => {
+    const stale = view("leased", {
+      stale_evidence: ["task T-1 lease expired at 2026-08-13T12:00:00.000Z"],
+    });
+    const text = actions(stale).text;
+    expect(text).toContain(" recover ");
+    expect(text).toContain("--grace-seconds 0");
+    expect(text).not.toContain(" task:heartbeat ");
+    expect(text).not.toContain(" task:submit ");
   });
 
-  test("dispositions orphan evidence before critic assignment", () => {
-    const state = view("done");
-    state.commands = [{ id: "C-RUN", status: "succeeded", task_id: null, gate_id: "G-run" }];
-    const evidence = { task_id: "T-1", report_sha256: "late" };
-    state.orphan_evidence = [{ orphan_sha256: orphanEvidenceSha256(evidence), evidence }];
-    const actions = nextArgv("/repo/.capsules/run", "/repo/.capsules/run/runtime/harness.ts", state)
-      .map((argv) => argv.join(" "))
-      .join("\n");
-    expect(actions).toContain(" disposition-orphan ");
-    expect(actions).toContain(orphanEvidenceSha256(evidence));
-    expect(actions).not.toContain(" begin-critic ");
+  test("pauses a task bound to a requirement awaiting authority, and says why", () => {
+    const paused = view("ready", {
+      requirements: [{ id: "R-1", disposition: "needs_authority", authority_status: null }],
+    });
+    const result = actions(paused);
+    expect(result.text).not.toContain(" task:claim ");
+    expect(result.text).not.toContain(" queue:wave ");
+    expect(result.unavailable).toEqual([
+      "requirement R-1 is paused for an authority decision and no registry command records one; every task bound to it stays undispatched",
+    ]);
   });
 
-  test("covers critic packet, review, remediation, fresh review, and completion transitions", () => {
-    const state = view("done");
-    state.commands = [{ id: "C-RUN", status: "succeeded", task_id: null, gate_id: "G-run" }];
-    const actions = () =>
-      nextArgv("/repo/.capsules/run", "/repo/.capsules/run/runtime/harness.ts", state)
-        .map((argv) => argv.join(" "))
-        .join("\n");
-    expect(actions()).toContain(" begin-critic ");
-    state.completion_critic = {
-      critic_id: "critic-1",
-      attempt: 1,
-      status: "assigned",
-      packet_id: null,
-    };
-    expect(actions()).toContain(" packet ");
-    expect(actions()).toContain("--repository-command-ids C-RUN");
-    state.completion_critic = {
-      critic_id: "critic-1",
-      attempt: 1,
-      status: "packet_published",
-      packet_id: "critic-1",
-    };
-    state.packets = [
-      {
-        id: "critic-1",
-        role: "completeness-critic",
-        agent_id: "critic-1",
-        task_id: null,
-        attempt: 1,
-        markdown_path: "packets/critic-1/packet.md",
-      },
-    ];
-    expect(actions()).toContain(" review-completion ");
-    state.completion_critic = {
-      critic_id: "critic-1",
-      attempt: 1,
-      status: "reviewed",
-      packet_id: "critic-1",
-    };
-    state.completion_review = { status: "findings", review_sha256: "review-1" };
-    expect(actions()).toContain(" remediate-completion ");
-    state.completion_remediations = [{ review_sha256: "review-1" }];
-    expect(actions()).toContain(" begin-critic ");
-    state.completion_review = { status: "clean", review_sha256: "review-2" };
-    expect(actions()).toContain(" complete ");
-    state.completion_critic = {
-      critic_id: "expired-critic",
-      attempt: 2,
-      status: "expired",
-      packet_id: null,
-    };
-    expect(actions()).toContain(" begin-critic ");
+  test("dispatches again once the authority decision is recorded", () => {
+    const granted = view("ready", {
+      requirements: [{ id: "R-1", disposition: "needs_authority", authority_status: "granted" }],
+    });
+    const result = actions(granted);
+    expect(result.text).toContain(" task:claim ");
+    expect(result.unavailable).toEqual([]);
   });
 });

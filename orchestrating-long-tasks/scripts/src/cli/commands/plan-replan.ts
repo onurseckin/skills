@@ -4,124 +4,42 @@ import { HarnessError } from "../../errors/harness-error.ts";
 import { loadRun } from "../../store/index.ts";
 import { transact } from "../../store/transaction.ts";
 import { formatPlanReplanBrief } from "../formatters/index.ts";
-import {
-  partitionFindingsIntoScopes,
-  type FindingDetail,
-} from "../../workflow/scope-partitioner.ts";
+import { partitionFindingsIntoScopes } from "../../workflow/scope-partitioner.ts";
 import { utc } from "../../workflow/task-state.ts";
 import type { TaskRecord, GateRuntime } from "../../workflow/types.ts";
-import { actorFlag, assertFlags, integerFlag, textFlag, type Flags } from "../options.ts";
+import { actorFlag, integerFlag, textFlag, type Flags } from "../options.ts";
+import { collectReplanFindings } from "./plan-replan-findings.ts";
+import {
+  gateArgv,
+  readPlanBindings,
+  resolveClusterGate,
+  resolveFindingRequirement,
+  type GateSource,
+} from "./plan-replan-bindings.ts";
 
 export function planReplanCommand(flags: Flags): Record<string, unknown> {
-  assertFlags(flags, ["run", "findings", "findings-file", "round", "actor", "gate"]);
   const run = textFlag(flags, "run")!;
   const actor = actorFlag(flags);
-  const findingsRaw = textFlag(flags, "findings", false);
-  const findingsFile = textFlag(flags, "findings-file", false);
   const roundFlag = integerFlag(flags, "round");
-  const fallbackGate = textFlag(flags, "gate", false) ?? "bun test tests";
+  const gateFlag = textFlag(flags, "gate", false);
+  // An absent --gate stays absent. The gate becomes the repair task's mandatory proof, so a
+  // convenient default would be recorded as a measurement of something nobody chose to run.
+  const flagGate = gateFlag === undefined ? undefined : gateArgv(gateFlag);
+  if (gateFlag !== undefined && flagGate === undefined)
+    throw new HarnessError("INVALID_ARGUMENT", "--gate must name a command");
 
   const loaded = loadRun(run);
   const state = loaded.state;
+  const bindings = readPlanBindings(state);
 
-  let findingsToPartition: FindingDetail[] = [];
-
-  if (findingsRaw || findingsFile) {
-    let content = findingsRaw;
-    if (!content && findingsFile) {
-      try {
-        content = readFileSync(findingsFile, "utf-8");
-      } catch (err) {
-        throw new HarnessError("INVALID_ARGUMENT", `cannot read findings file: ${findingsFile}`);
-      }
-    }
-    if (content) {
-      try {
-        const parsed = JSON.parse(content);
-        const list = Array.isArray(parsed)
-          ? parsed
-          : typeof parsed === "object" &&
-              parsed !== null &&
-              Array.isArray((parsed as Record<string, unknown>).findings)
-            ? ((parsed as Record<string, unknown>).findings as unknown[])
-            : [parsed];
-
-        findingsToPartition = list.map((item: unknown, idx: number) => {
-          const rec = (typeof item === "object" && item !== null ? item : {}) as Record<
-            string,
-            unknown
-          >;
-          return {
-            id:
-              typeof rec.id === "string" && rec.id.trim()
-                ? rec.id.trim()
-                : `finding-critic-${idx + 1}`,
-            requirement_id: typeof rec.requirement_id === "string" ? rec.requirement_id : undefined,
-            severity: (rec.severity as FindingDetail["severity"]) ?? "important",
-            file_paths: Array.isArray(rec.file_paths)
-              ? rec.file_paths.map(String)
-              : typeof rec.file_path === "string"
-                ? [rec.file_path]
-                : typeof rec.path === "string"
-                  ? [rec.path]
-                  : [],
-            observation:
-              typeof rec.observation === "string"
-                ? rec.observation
-                : String(rec.finding ?? rec.message ?? "Defect observed"),
-            remediation:
-              typeof rec.remediation === "string" ? rec.remediation : "Address identified defect",
-            revalidation_gate:
-              typeof rec.revalidation_gate === "string" ? rec.revalidation_gate : fallbackGate,
-          };
-        });
-      } catch {
-        if (content.trim()) {
-          findingsToPartition = [
-            {
-              id: "finding-critic-01",
-              severity: "important",
-              file_paths: [],
-              observation: content.trim(),
-              remediation: "Address identified defect",
-              revalidation_gate: fallbackGate,
-            },
-          ];
-        }
-      }
-    }
-  }
-
-  if (findingsToPartition.length === 0) {
-    const criticReview = state.completion_review as
-      | {
-          findings?: {
-            id: string;
-            requirement_id?: string;
-            severity?: string;
-            file_paths?: string[];
-            observation?: string;
-            remediation?: string;
-            revalidation?: string;
-          }[];
-        }
-      | undefined;
-    if (criticReview?.findings && criticReview.findings.length > 0) {
-      findingsToPartition = criticReview.findings.map((f, idx) => ({
-        id: f.id ?? `finding-critic-${idx + 1}`,
-        requirement_id: f.requirement_id,
-        severity: (f.severity as FindingDetail["severity"]) ?? "important",
-        file_paths: f.file_paths ?? [],
-        observation: f.observation ?? "Defect observed",
-        remediation: f.remediation ?? "Address identified defect",
-        revalidation_gate: f.revalidation ?? fallbackGate,
-      }));
-    }
-  }
-
-  if (findingsToPartition.length === 0) {
+  const findingsToPartition = collectReplanFindings({
+    inline: textFlag(flags, "findings", false),
+    file: textFlag(flags, "findings-file", false),
+    readFile: (path) => readFileSync(path, "utf-8"),
+    recorded: state.completion_review,
+  });
+  if (findingsToPartition.length === 0)
     throw new HarnessError("INVALID_STATE", "no findings available for replanning");
-  }
 
   const currentTasks = Object.values(
     (state.tasks ?? {}) as Record<string, { repair_round?: number }>,
@@ -130,9 +48,28 @@ export function planReplanCommand(flags: Flags): Record<string, unknown> {
   const repairRound = roundFlag ?? maxRound + 1;
 
   const clusters = partitionFindingsIntoScopes(findingsToPartition, repairRound);
-  if (clusters.length === 0) {
+  if (clusters.length === 0)
     throw new HarnessError("INVALID_STATE", "scope partitioner generated 0 clusters");
-  }
+
+  // Both bindings resolve before the transaction: a cluster the harness cannot bind to a real gate
+  // and a real requirement must abort the replan rather than reach state carrying a stand-in.
+  const resolved = clusters.map((cluster) => {
+    const gate = resolveClusterGate(bindings, {
+      taskId: cluster.taskId,
+      writeScope: cluster.writeScope,
+      declared: cluster.findings
+        .map((finding) => gateArgv(finding.revalidation_gate ?? null))
+        .filter((argv): argv is string[] => argv !== undefined),
+      flagGate,
+    });
+    return {
+      cluster,
+      gate,
+      requirementIds: cluster.findings.map((finding) =>
+        resolveFindingRequirement(bindings, finding.requirement_id, finding.id, cluster.writeScope),
+      ),
+    };
+  });
 
   const currentRev = (state.graph_revision as number | undefined) ?? 1;
   const nextRev = currentRev + 1;
@@ -159,16 +96,12 @@ export function planReplanCommand(flags: Flags): Record<string, unknown> {
       draft.tasks ??= {};
       const draftTasks = draft.tasks as Record<string, TaskRecord>;
 
-      for (const cluster of clusters) {
+      for (const { cluster, gate, requirementIds } of resolved) {
+        const revalidation = gate.argv.join(" ");
         draftTasks[cluster.taskId] = {
           id: cluster.taskId,
           status: "ready",
-          requirement_ids: cluster.findings
-            .map(
-              (f) =>
-                f.requirement_id ?? (draft.requirements as { id?: string }[])?.[0]?.id ?? "req-1",
-            )
-            .filter(Boolean),
+          requirement_ids: [...new Set(requirementIds)],
           write_scope: [...cluster.writeScope],
           dependencies: [],
           attempts: [],
@@ -183,15 +116,14 @@ export function planReplanCommand(flags: Flags): Record<string, unknown> {
             },
           ],
           repair_round: repairRound,
-          findings: cluster.findings.map((f) => ({
-            id: f.id,
-            requirement_id:
-              f.requirement_id ?? (draft.requirements as { id?: string }[])?.[0]?.id ?? "req-1",
-            severity: f.severity === "suggestion" ? "minor" : f.severity,
-            observation: f.observation,
+          findings: cluster.findings.map((finding, index) => ({
+            id: finding.id,
+            requirement_id: requirementIds[index]!,
+            severity: finding.severity === "suggestion" ? "minor" : finding.severity,
+            observation: finding.observation,
             evidence: [],
-            remediation: f.remediation,
-            revalidation: f.revalidation_gate ?? fallbackGate,
+            remediation: finding.remediation,
+            revalidation,
             status: "open",
           })),
         };
@@ -202,7 +134,7 @@ export function planReplanCommand(flags: Flags): Record<string, unknown> {
         if (!gateList.some((g) => g.id === gateId)) {
           gateList.push({
             id: gateId,
-            command: cluster.gateCommand as string[],
+            command: [...gate.argv],
             cwd: ".",
             scope: "task",
             requirement_ids: draftTasks[cluster.taskId]!.requirement_ids,
@@ -231,10 +163,12 @@ export function planReplanCommand(flags: Flags): Record<string, unknown> {
     revision: nextRev,
     repairRound,
     newTasksCount: clusters.length,
-    repairTasks: clusters.map((c) => ({
-      id: c.taskId,
-      writeScope: c.writeScope,
-      findingsCount: c.findings.length,
+    repairTasks: resolved.map(({ cluster, gate }) => ({
+      id: cluster.taskId,
+      writeScope: cluster.writeScope,
+      findingsCount: cluster.findings.length,
+      gate: gate.argv.join(" "),
+      gateSource: gate.source,
     })),
     runId: basename(run),
   });
@@ -245,7 +179,12 @@ export function planReplanCommand(flags: Flags): Record<string, unknown> {
     revision: nextRev,
     repair_round: repairRound,
     new_tasks: clusters.map((c) => c.taskId),
-    repair_tasks: clusters,
+    repair_tasks: resolved.map(({ cluster, gate, requirementIds }) => ({
+      ...cluster,
+      gateCommand: gate.argv,
+      gate_source: gate.source satisfies GateSource,
+      requirement_ids: [...new Set(requirementIds)],
+    })),
     total_tasks: totalTasksCount,
   };
 }

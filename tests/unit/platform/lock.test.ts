@@ -11,6 +11,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
+import { observerDirectory } from "../../../orchestrating-long-tasks/scripts/src/platform/observer.ts";
 import { withRunLock } from "../../../orchestrating-long-tasks/scripts/src/platform/run-lock.ts";
 
 const lockModule = new URL(
@@ -37,13 +38,16 @@ function subprocessAttempt(run: string, timeoutMs: number): ReturnType<typeof sp
 describe("inode-bound POSIX run lock", () => {
   test("test_nested_lock_times_out_without_removing_owner_lock", () => {
     const run = runRoot();
+    const observer = observerDirectory(run);
     withRunLock(run, () => {
-      const before = readFileSync(join(run, ".lock/owner.json"));
+      const before = readFileSync(join(observer, "owner.json"));
       expect(() => withRunLock(run, () => undefined, { timeoutMs: 10 })).toThrow(/timed out/i);
-      expect(readFileSync(join(run, ".lock/owner.json"))).toEqual(before);
+      expect(readFileSync(join(observer, "owner.json"))).toEqual(before);
     });
-    expect(existsSync(join(run, ".lock"))).toBeTrue();
-    expect(existsSync(join(run, ".lock/owner.json"))).toBeFalse();
+    expect(existsSync(observer)).toBeTrue();
+    expect(existsSync(join(observer, "owner.json"))).toBeFalse();
+    // Coordination state is a sibling of the capsules, never a member of one.
+    expect(existsSync(join(run, ".lock"))).toBeFalse();
   });
 
   test("test_kernel_lock_blocks_an_independent_process_until_release", () => {
@@ -56,8 +60,8 @@ describe("inode-bound POSIX run lock", () => {
 
   test("test_replaced_lock_and_renamed_owned_lock_are_retained", () => {
     const run = runRoot();
-    const original = join(run, ".lock");
-    const renamed = join(run, ".lock-renamed");
+    const original = observerDirectory(run);
+    const renamed = `${original}-renamed`;
     withRunLock(run, () => {
       const owner = readFileSync(join(original, "owner.json"));
       renameSync(original, renamed);
@@ -71,7 +75,7 @@ describe("inode-bound POSIX run lock", () => {
 
   test("test_lock_with_missing_owner_is_retained_fail_closed", () => {
     const run = runRoot();
-    withRunLock(run, () => rmSync(join(run, ".lock/owner.json")));
-    expect(existsSync(join(run, ".lock"))).toBeTrue();
+    withRunLock(run, () => rmSync(join(observerDirectory(run), "owner.json")));
+    expect(existsSync(observerDirectory(run))).toBeTrue();
   });
 });

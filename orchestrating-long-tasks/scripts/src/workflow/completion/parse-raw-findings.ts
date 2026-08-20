@@ -1,12 +1,54 @@
 import { readFileSync } from "node:fs";
 import { HarnessError } from "../../errors/harness-error.ts";
+import { isJsonObject, type JsonObject } from "../../contracts/json.ts";
 import type { CompletionFinding } from "./types.ts";
 
+const SEVERITIES = new Set(["critical", "important", "minor"]);
+
+function text(record: Record<string, unknown>, field: string, findingRef: string): string {
+  const value = record[field];
+  if (typeof value !== "string" || value.trim() === "") {
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      `completion finding ${findingRef} must carry a nonempty ${field}`,
+    );
+  }
+  return value.trim();
+}
+
+function findingList(parsed: unknown): unknown[] {
+  if (Array.isArray(parsed)) return parsed;
+  if (typeof parsed === "object" && parsed !== null) {
+    const nested = (parsed as Record<string, unknown>).findings;
+    if (Array.isArray(nested)) return nested;
+    return [parsed];
+  }
+  throw new HarnessError("INVALID_ARGUMENT", "findings payload must be a JSON object or array");
+}
+
+function suppliedEvidence(record: Record<string, unknown>): JsonObject[] | undefined {
+  const raw = record.evidence;
+  if (!Array.isArray(raw)) return undefined;
+  const entries = raw.filter(isJsonObject);
+  return entries.length > 0 ? entries : undefined;
+}
+
+function filePaths(record: Record<string, unknown>): string[] | undefined {
+  const raw = record.file_paths;
+  if (!Array.isArray(raw)) return undefined;
+  const paths = raw.filter((entry): entry is string => typeof entry === "string" && !!entry.trim());
+  return paths.length > 0 ? paths.map((entry) => entry.trim()) : undefined;
+}
+
+/**
+ * Reads the critic's own findings payload. Every field of a defect claim — what is wrong, which
+ * requirement it breaks, how severe it is, what fixes it and how the fix is revalidated — must come
+ * from the critic. Nothing here supplies a value the critic left out; a gap is an argument error,
+ * because a fabricated remediation would enter the hash chain as the critic's own words.
+ */
 export function parseRawFindings(
   findingsRaw: string | undefined,
   findingsFile: string | undefined,
-  firstReqId: string,
-  defaultSummary: string,
 ): CompletionFinding[] {
   let content = findingsRaw;
   if (!content && findingsFile) {
@@ -16,76 +58,52 @@ export function parseRawFindings(
       throw new HarnessError("INVALID_ARGUMENT", `cannot read findings file: ${findingsFile}`);
     }
   }
-  if (!content) return [];
+  if (!content || content.trim() === "") return [];
 
+  let parsed: unknown;
   try {
-    const parsed = JSON.parse(content);
-    const list = Array.isArray(parsed)
-      ? parsed
-      : typeof parsed === "object" &&
-          parsed !== null &&
-          Array.isArray((parsed as Record<string, unknown>).findings)
-        ? ((parsed as Record<string, unknown>).findings as unknown[])
-        : [parsed];
-
-    return list.map((item: unknown, idx: number) => {
-      const rec = (typeof item === "object" && item !== null ? item : {}) as Record<
-        string,
-        unknown
-      >;
-      const id =
-        typeof rec.id === "string" && rec.id.trim()
-          ? rec.id.trim()
-          : `finding-critic-${String(idx + 1).padStart(2, "0")}`;
-      const requirementId =
-        typeof rec.requirement_id === "string" && rec.requirement_id.trim()
-          ? rec.requirement_id.trim()
-          : firstReqId;
-      const severity = (
-        rec.severity === "critical" || rec.severity === "minor" ? rec.severity : "important"
-      ) as CompletionFinding["severity"];
-      const observation =
-        typeof rec.observation === "string"
-          ? rec.observation
-          : String(rec.finding ?? rec.message ?? defaultSummary);
-      const remediation =
-        typeof rec.remediation === "string"
-          ? rec.remediation
-          : "Address identified gap prior to completion.";
-      const revalidation =
-        typeof rec.revalidation === "string" ? rec.revalidation : "Re-run full verification gate.";
-      const filePaths = Array.isArray(rec.file_paths)
-        ? rec.file_paths.map(String)
-        : typeof rec.file_path === "string"
-          ? [rec.file_path]
-          : typeof rec.path === "string"
-            ? [rec.path]
-            : undefined;
-
-      return {
-        id,
-        requirement_id: requirementId,
-        severity,
-        observation,
-        ...(filePaths ? { file_paths: filePaths } : {}),
-        evidence: [{ kind: "state", reference: requirementId, observation }],
-        remediation,
-        revalidation,
-      };
-    });
+    parsed = JSON.parse(content) as unknown;
   } catch {
-    return [
-      {
-        id: "finding-critic-01",
-        requirement_id: firstReqId,
-        severity: "important",
-        observation: content.trim() || defaultSummary,
-        evidence: [
-          { kind: "state", reference: firstReqId, observation: content.trim() || defaultSummary },
-        ],
-        remediation: "Address identified gap prior to completion.",
-        revalidation: "Re-run full verification gate.",
-      },
-    ];
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      "findings payload is not valid JSON; pass a JSON array of structured findings",
+    );
   }
+
+  return findingList(parsed).map((item, index) => {
+    const reference = `#${index + 1}`;
+    if (typeof item !== "object" || item === null || Array.isArray(item)) {
+      throw new HarnessError(
+        "INVALID_ARGUMENT",
+        `completion finding ${reference} must be an object`,
+      );
+    }
+    const record = item as Record<string, unknown>;
+    const id = text(record, "id", reference);
+    const severity = record.severity;
+    if (typeof severity !== "string" || !SEVERITIES.has(severity)) {
+      throw new HarnessError(
+        "INVALID_ARGUMENT",
+        `completion finding ${id} must declare severity critical, important or minor`,
+      );
+    }
+    const requirementId = text(record, "requirement_id", id);
+    const observation = text(record, "observation", id);
+    const paths = filePaths(record);
+    return {
+      id,
+      requirement_id: requirementId,
+      severity: severity as CompletionFinding["severity"],
+      observation,
+      ...(paths ? { file_paths: paths } : {}),
+      // Evidence the critic cited is carried through as it was written. When it cited none, the
+      // finding is the critic's own assertion and is labelled as exactly that — it is not dressed
+      // up as a reference to state the critic never pointed at.
+      evidence: suppliedEvidence(record) ?? [
+        { kind: "critic_assertion", evidence_class: "agent_reported", observation },
+      ],
+      remediation: text(record, "remediation", id),
+      revalidation: text(record, "revalidation", id),
+    };
+  });
 }

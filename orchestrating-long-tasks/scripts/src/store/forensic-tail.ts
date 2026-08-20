@@ -32,11 +32,11 @@ function copyFromOffset(source: number, destination: number, offset: number): vo
 export function quarantineAndTruncateTail(
   eventsPath: string,
   completeBytes: number,
-  evidenceDirectory: string,
+  quarantineDirectory: string,
 ): string {
   const token = `${Date.now()}-${randomUUID()}`;
-  const destination = join(evidenceDirectory, `recovery-torn-${token}.fragment`);
-  const temporary = join(evidenceDirectory, `.recovery-torn-${token}.tmp`);
+  const destination = join(quarantineDirectory, `recovery-torn-${token}.fragment`);
+  const temporary = join(quarantineDirectory, `.recovery-torn-${token}.tmp`);
   let source: number | undefined;
   let output: number | undefined;
   try {
@@ -53,7 +53,7 @@ export function quarantineAndTruncateTail(
     closeSync(output);
     output = undefined;
     renameSync(temporary, destination);
-    fsyncDirectory(evidenceDirectory);
+    fsyncDirectory(quarantineDirectory);
   } catch (error) {
     if (output !== undefined) closeSync(output);
     if (existsSync(temporary)) rmSync(temporary);

@@ -42,7 +42,6 @@ describe("canonical common packet instructions", () => {
       role: "planner",
       agentId: "planner",
       state: workflowState(),
-      roleInstructions: "Plan exact requirements.",
       authoritativeContext: { original_prompt: "prompt" },
       evidenceSchema: { required: ["requirements"] },
       targetedCommands: [],

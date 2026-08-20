@@ -2,6 +2,7 @@ import type { JsonObject } from "./json.ts";
 
 export type TaskStatus =
   | "blocked"
+  | "branched"
   | "cancelled"
   | "changes_requested"
   | "done"

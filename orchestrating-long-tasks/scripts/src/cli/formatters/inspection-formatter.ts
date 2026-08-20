@@ -34,8 +34,9 @@ export function formatFindingsListBrief(params: FindingsListParams): string {
     lines.push("- No findings recorded for this run.");
   } else {
     for (const f of params.findings.slice(0, 10)) {
-      const id = String(f.id ?? "finding");
-      const sev = String(f.severity ?? "info");
+      const id = String(f.id ?? "unknown");
+      // A finding that recorded no severity has none; "info" would read as a graded judgement.
+      const sev = String(f.severity ?? "unknown");
       const obs = String(f.observation ?? f.message ?? "").slice(0, 60);
       lines.push(`- **\`${id}\`** [\`${sev}\`]: ${obs}`);
     }
@@ -108,7 +109,8 @@ export interface EvidenceBriefParams {
 export function formatEvidenceBrief(params: EvidenceBriefParams): string {
   const e = params.evidence;
   const cmdId = String(e.command_id ?? e.id ?? "unknown");
-  const code = String(e.exit_code ?? 0);
+  // An unrecorded exit code is not a zero; a reader would take the zero for a success.
+  const code = String(e.exit_code ?? "unknown");
   const dur = typeof e.duration_ms === "number" ? `${e.duration_ms}ms` : "N/A";
   const actor = String(e.actor ?? "unknown");
   const argv = Array.isArray(e.argv) ? e.argv.map(String).join(" ") : "";
@@ -140,8 +142,8 @@ export function formatEvidenceListBrief(params: EvidenceListParams): string {
     lines.push("- No evidence recorded for this run.");
   } else {
     for (const e of params.evidence.slice(0, 10)) {
-      const id = String(e.command_id ?? e.id ?? "cmd");
-      const code = String(e.exit_code ?? 0);
+      const id = String(e.command_id ?? e.id ?? "unknown");
+      const code = String(e.exit_code ?? "unknown");
       const argv = Array.isArray(e.argv) ? e.argv.map(String).join(" ").slice(0, 50) : "";
       const sCount = Array.isArray(e.screenshots) ? e.screenshots.length : 0;
       const sSuffix = params.showScreenshots || sCount > 0 ? ` (${sCount} screenshots)` : "";

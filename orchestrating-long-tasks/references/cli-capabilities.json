@@ -1,0 +1,3675 @@
+{
+  "schema": "orchestrating-long-tasks/cli-capabilities@1",
+  "source": "orchestrating-long-tasks/scripts/src/cli/registry",
+  "commands": [
+    {
+      "name": "plan:init",
+      "aliases": [
+        "init"
+      ],
+      "domain": "plan",
+      "summary": "Create a run capsule and capture the prompt bytes immutably.",
+      "description": "Initialises <repo>/.capsules/<run-id>, records the verbatim prompt with its sha256, and ensures the capsule is gitignored.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Run id; interchangeable with --run-id."
+        },
+        {
+          "name": "run-id",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Run id; interchangeable with --run."
+        },
+        {
+          "name": "repo",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": ".",
+          "description": "Repository root that owns the capsule."
+        },
+        {
+          "name": "prompt-file",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "File holding the verbatim prompt bytes."
+        },
+        {
+          "name": "prompt-stdin",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Read the verbatim prompt bytes from stdin."
+        },
+        {
+          "name": "capture-mode",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "How the prompt was captured; defaults to the source used."
+        },
+        {
+          "name": "source-verified",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Assert the prompt source was verified by the caller."
+        }
+      ],
+      "reads_stdin": true,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "printf \"%s\" \"$PROMPT\" | bun harness.ts plan:init --repo . --run <run-id> --prompt-stdin",
+        "bun harness.ts plan:init --repo . --run-id <run-id> --prompt-file prompt.txt --capture-mode file"
+      ]
+    },
+    {
+      "name": "plan:enhance",
+      "aliases": [],
+      "domain": "plan",
+      "summary": "Record the agent's reading of the repository as a reviewable plan document.",
+      "description": "Writes planning/enhanced-plan.md and planning/enhanced-plan.json read-only and records their digests in state.planning.enhanced_plan. The agent reads the repository host-side and reports what it found; the harness asks no model anything and invents no entry, so everything recorded carries evidence_class agent_reported. The document is derived: prompt.md stays the requirement source. Needs at least one of --summary, --observation, --todo, --risk or --open-question.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root."
+        },
+        {
+          "name": "actor",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Actor recorded on the event."
+        },
+        {
+          "name": "summary",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "The enhanced brief: what this run is actually about."
+        },
+        {
+          "name": "observation",
+          "type": "string",
+          "required": false,
+          "repeatable": true,
+          "default": null,
+          "description": "Something the agent found in the repository."
+        },
+        {
+          "name": "todo",
+          "type": "string",
+          "required": false,
+          "repeatable": true,
+          "default": null,
+          "description": "One organised to-do item, in the order to do it."
+        },
+        {
+          "name": "risk",
+          "type": "string",
+          "required": false,
+          "repeatable": true,
+          "default": null,
+          "description": "A risk the agent identified."
+        },
+        {
+          "name": "open-question",
+          "type": "string",
+          "required": false,
+          "repeatable": true,
+          "default": null,
+          "description": "A question the agent could not answer."
+        },
+        {
+          "name": "source",
+          "type": "string",
+          "required": false,
+          "repeatable": true,
+          "default": null,
+          "description": "A file the agent actually read."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts plan:enhance --run .capsules/<run-id> --actor planner --summary \"Wire the drawer to the graph store\" --todo \"Add the state machine tab\" --todo \"Delete the legacy asset writes\" --risk \"Fixture dataset predates the new schema\" --source src/graph/store.ts"
+      ]
+    },
+    {
+      "name": "plan:add",
+      "aliases": [],
+      "domain": "plan",
+      "summary": "Register a task declaration in the planning buffer.",
+      "description": "Appends one task to the uncompiled planning buffer. Rejected once the plan has been compiled.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root."
+        },
+        {
+          "name": "id",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Task id, unique within the buffer."
+        },
+        {
+          "name": "label",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Human label for the task."
+        },
+        {
+          "name": "scope",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Comma-separated write scope paths."
+        },
+        {
+          "name": "gate",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Verification command that proves the task."
+        },
+        {
+          "name": "actor",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Actor recorded on the event."
+        },
+        {
+          "name": "deps",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Comma-separated ids this task depends on."
+        },
+        {
+          "name": "goal",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Goal statement for the task."
+        },
+        {
+          "name": "criteria",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Semicolon-separated acceptance criteria."
+        },
+        {
+          "name": "priority",
+          "type": "int",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Scheduling priority; higher runs earlier."
+        },
+        {
+          "name": "effort",
+          "type": "int",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Relative effort estimate."
+        },
+        {
+          "name": "requirement-lines",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Prompt lines this task implements, e.g. \"3-5,8\". Without it the compiler glues the task to a prompt line by position and warns."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts plan:add --run .capsules/<run-id> --id task-1 --label \"Database schema\" --scope \"src/db\" --gate \"bun test tests/db.test.ts\" --actor coordinator",
+        "bun harness.ts plan:add --run .capsules/<run-id> --id task-2 --label \"CLI wiring\" --scope \"src/cli\" --gate \"bun test tests/unit/cli\" --actor coordinator --requirement-lines \"3-5\""
+      ]
+    },
+    {
+      "name": "plan:compile",
+      "aliases": [],
+      "domain": "plan",
+      "summary": "Compile the planning buffer into requirements, the DAG, and revision 1.",
+      "description": "Checks scope independence, derives requirements from the prompt lines, builds the graph, and commits graph revision 1. The mandatory run-completion gate is whatever --completion-gate declares; the compiler has no default for it and refuses to invent one.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root."
+        },
+        {
+          "name": "actor",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Actor recorded on the event."
+        },
+        {
+          "name": "completion-gate",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Command the whole run is finally held to, e.g. \"bun test tests/unit\". Recorded as the mandatory run-scope gate; there is no default."
+        },
+        {
+          "name": "strict-parallel",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Treat serialization advisories as failures."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts plan:compile --run .capsules/<run-id> --actor planner --completion-gate \"bun test tests/unit\""
+      ]
+    },
+    {
+      "name": "plan:replan",
+      "aliases": [],
+      "domain": "plan",
+      "summary": "Partition findings into a repair wave and raise the graph revision.",
+      "description": "Ingests validator or critic findings, partitions them into disjoint write scopes, and compiles the next revision.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root."
+        },
+        {
+          "name": "actor",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Actor recorded on the event."
+        },
+        {
+          "name": "findings",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Inline JSON findings payload."
+        },
+        {
+          "name": "findings-file",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Path to a JSON findings payload."
+        },
+        {
+          "name": "round",
+          "type": "int",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Explicit repair round number."
+        },
+        {
+          "name": "gate",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Revalidation gate for generated repair tasks. Omit only when the findings declare revalidation_gate or the planned task covering the scope has a gate to inherit; there is no default."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts plan:replan --run .capsules/<run-id> --actor coordinator --gate \"bun run typecheck\""
+      ]
+    },
+    {
+      "name": "plan:status",
+      "aliases": [],
+      "domain": "plan",
+      "summary": "Show the planning buffer or the compiled plan summary.",
+      "description": "Reports every buffered task with its scope, gate and dependencies.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts plan:status --run .capsules/<run-id>"
+      ]
+    },
+    {
+      "name": "queue:next",
+      "aliases": [],
+      "domain": "queue",
+      "summary": "Show the highest-priority ready task without claiming it.",
+      "description": "Reads the queue and reports the task a coordinator would dispatch next.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts queue:next --run .capsules/<run-id>"
+      ]
+    },
+    {
+      "name": "queue:list",
+      "aliases": [],
+      "domain": "queue",
+      "summary": "Partition every task by queue status.",
+      "description": "Groups tasks into ready, leased, validating, blocked and satisfied partitions with the blocking dependencies.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts queue:list --run .capsules/<run-id>"
+      ]
+    },
+    {
+      "name": "queue:wave",
+      "aliases": [],
+      "domain": "queue",
+      "summary": "Show the whole next conflict-free wave so agents dispatch in one batch.",
+      "description": "Runs the scheduler over live task state and returns every task that may run in parallel right now, capped at max_parallel. Annotates each task with the wave plan:compile recorded, or reports the topology as absent. Read-only: each dispatched agent still claims its own task.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root."
+        },
+        {
+          "name": "max-parallel",
+          "type": "int",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Wave size cap; defaults to the configured default_max_parallel."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts queue:wave --run .capsules/<run-id> --max-parallel 4"
+      ]
+    },
+    {
+      "name": "queue:pop",
+      "aliases": [],
+      "domain": "queue",
+      "summary": "Claim the highest-priority ready task and mint a lease token.",
+      "description": "Atomically leases the next ready task to an agent. Fails when no task is ready rather than waiting.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root."
+        },
+        {
+          "name": "agent",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Agent id receiving the lease."
+        },
+        {
+          "name": "lease-duration",
+          "type": "int",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Lease length in seconds (5-86400)."
+        },
+        {
+          "name": "lease-seconds",
+          "type": "int",
+          "required": false,
+          "repeatable": false,
+          "default": 1200,
+          "description": "Alias of --lease-duration."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts queue:pop --run .capsules/<run-id> --agent worker-1 --lease-seconds 1800"
+      ]
+    },
+    {
+      "name": "task:claim",
+      "aliases": [],
+      "domain": "task",
+      "summary": "Lease a specific ready task under a declared role.",
+      "description": "Transitions the task to leased and returns the bearer token the agent must echo back. --role is the capability contract the agent is bound to for the whole lease, so the caller names it: implementer for fresh work, repairer for a task returned by a validator.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root."
+        },
+        {
+          "name": "task",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Task id to claim."
+        },
+        {
+          "name": "agent",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Agent id receiving the lease."
+        },
+        {
+          "name": "role",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Role contract the agent claims under: implementer for a ready task, repairer for one in changes_requested."
+        },
+        {
+          "name": "lease-duration",
+          "type": "int",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Lease length in seconds (5-86400)."
+        },
+        {
+          "name": "lease-seconds",
+          "type": "int",
+          "required": false,
+          "repeatable": false,
+          "default": 1200,
+          "description": "Alias of --lease-duration."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts task:claim --run .capsules/<run-id> --task task-1 --agent worker-1 --role implementer",
+        "bun harness.ts task:claim --run .capsules/<run-id> --task task-1 --agent worker-1 --role repairer"
+      ]
+    },
+    {
+      "name": "task:heartbeat",
+      "aliases": [],
+      "domain": "task",
+      "summary": "Extend a live lease so a long edit does not expire.",
+      "description": "Requires the lease token; a stale or foreign token is refused.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root."
+        },
+        {
+          "name": "task",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Leased task id."
+        },
+        {
+          "name": "agent",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Agent holding the lease."
+        },
+        {
+          "name": "token",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Lease bearer token."
+        },
+        {
+          "name": "extend",
+          "type": "int",
+          "required": false,
+          "repeatable": false,
+          "default": 1800,
+          "description": "Extension in seconds (60-86400)."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts task:heartbeat --run .capsules/<run-id> --task task-1 --agent worker-1 --token <token>"
+      ]
+    },
+    {
+      "name": "task:submit",
+      "aliases": [],
+      "domain": "task",
+      "summary": "Submit completed task work for validation.",
+      "description": "Records the submission report, audits write-scope compliance, and moves the task to submitted. --summary is mandatory unless --report supplies the whole report; nothing is substituted for it. files_changed comes from --files-changed when given, otherwise from the Git working-tree observation narrowed to the write scope; checks come from --evidence when given, otherwise from the agent's recorded commands. The command fails when neither source yields anything.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root."
+        },
+        {
+          "name": "task",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Leased task id."
+        },
+        {
+          "name": "agent",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Agent holding the lease."
+        },
+        {
+          "name": "token",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Lease bearer token."
+        },
+        {
+          "name": "summary",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "What the agent changed. Required unless --report carries the summary."
+        },
+        {
+          "name": "evidence",
+          "type": "string",
+          "required": false,
+          "repeatable": true,
+          "default": null,
+          "description": "Recorded command id proving the work."
+        },
+        {
+          "name": "files-changed",
+          "type": "string",
+          "required": false,
+          "repeatable": true,
+          "default": null,
+          "description": "Repository-relative path the agent changed."
+        },
+        {
+          "name": "report",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Path to a complete submission report payload."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts task:submit --run .capsules/<run-id> --task task-1 --agent worker-1 --token <token> --summary \"Implemented user auth\""
+      ]
+    },
+    {
+      "name": "task:validate-start",
+      "aliases": [],
+      "domain": "task",
+      "summary": "Dispatch an independent validator against a submitted task.",
+      "description": "Assigns the validator and mints the validation token required by task:review.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root."
+        },
+        {
+          "name": "task",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Submitted task id."
+        },
+        {
+          "name": "validator",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Validator agent id."
+        },
+        {
+          "name": "lease-duration",
+          "type": "int",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Validation window in seconds."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts task:validate-start --run .capsules/<run-id> --task task-1 --validator val-1"
+      ]
+    },
+    {
+      "name": "task:review",
+      "aliases": [],
+      "domain": "task",
+      "summary": "Record a validator verdict with its gate evidence.",
+      "description": "--status pass finalises the task and unblocks dependants; --status fail records a defect finding and returns the task for repair. A failing verdict must carry --summary, --severity and --remediation: they are the validator's own finding and the harness supplies no wording for them. A pass is refused while the task is short of min_adversarial_probes probes, a mandatory gate's recorded run exited non-zero, or an open finding has no --resolve answering it. Every open finding, probe demand or defect, must be answered explicitly: the harness never marks one answered on the validator's behalf.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root."
+        },
+        {
+          "name": "task",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Task under validation."
+        },
+        {
+          "name": "validator",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Validator agent id."
+        },
+        {
+          "name": "token",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Validation token."
+        },
+        {
+          "name": "status",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "pass or fail."
+        },
+        {
+          "name": "summary",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Verdict summary; with --status fail this is the defect the validator observed and is required."
+        },
+        {
+          "name": "severity",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "critical, important or minor. Required with --status fail; there is no default severity."
+        },
+        {
+          "name": "remediation",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "What would fix the defect. Required with --status fail; the harness writes no remediation of its own."
+        },
+        {
+          "name": "revalidation",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "How the fix is to be proven. Without it the finding cites the task's own gate."
+        },
+        {
+          "name": "evidence",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Comma-separated command ids proving the verdict."
+        },
+        {
+          "name": "checks",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Alias of --evidence."
+        },
+        {
+          "name": "finding-id",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Explicit finding id for a failing verdict."
+        },
+        {
+          "name": "requirement",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Requirement a failing verdict binds its finding to."
+        },
+        {
+          "name": "resolve",
+          "type": "string",
+          "required": false,
+          "repeatable": true,
+          "default": null,
+          "description": "Answer an open finding: <finding-id>=<command-id>[,<command-id>]."
+        },
+        {
+          "name": "resolution-method",
+          "type": "string",
+          "required": false,
+          "repeatable": true,
+          "default": null,
+          "description": "How a finding was answered: <finding-id>=<method>; defaults to the finding's class."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts task:review --run .capsules/<run-id> --task task-1 --validator val-1 --token <token> --status pass --checks C-123 --summary \"All gates pass\"",
+        "bun harness.ts task:review --run .capsules/<run-id> --task task-1 --validator val-1 --token <token> --status pass --checks C-123 --resolve probe-task-1-01-1=C-123",
+        "bun harness.ts task:review --run .capsules/<run-id> --task task-1 --validator val-1 --token <token> --status fail --summary \"Gate command never ran against the new schema\" --severity critical --remediation \"Point the gate at tests/db and rerun it\""
+      ]
+    },
+    {
+      "name": "task:probe",
+      "aliases": [],
+      "domain": "task",
+      "summary": "Record the mandatory adversarial probe: a demand for proof, not a rejection.",
+      "description": "Each --demand becomes a probe_demand finding on the task. The task stays in validating under the same validator, repair_round is untouched, and task:review --status pass stays blocked until min_adversarial_probes rounds are recorded and every demand is answered with command evidence.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root."
+        },
+        {
+          "name": "task",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Task under validation."
+        },
+        {
+          "name": "validator",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Validator agent id."
+        },
+        {
+          "name": "token",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Validation token."
+        },
+        {
+          "name": "demand",
+          "type": "string",
+          "required": false,
+          "repeatable": true,
+          "default": null,
+          "description": "What the implementation must prove; repeat per demand."
+        },
+        {
+          "name": "requirement",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Requirement the demands bind to."
+        },
+        {
+          "name": "revalidation",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "How each demand is to be answered."
+        },
+        {
+          "name": "evidence",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Comma-separated command ids the demands cite."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts task:probe --run .capsules/<run-id> --task task-1 --validator val-1 --token <token> --demand \"Prove the parser rejects an empty payload\""
+      ]
+    },
+    {
+      "name": "task:reject",
+      "aliases": [],
+      "domain": "task",
+      "summary": "Reject a task with a structured finding for targeted repair.",
+      "description": "Records the validator's finding and returns the task to the implementer. The severity and the remediation are the validator's own judgement, so both are demanded; nothing is graded or worded on its behalf.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root."
+        },
+        {
+          "name": "task",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Task under validation."
+        },
+        {
+          "name": "validator",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Validator agent id."
+        },
+        {
+          "name": "token",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Validation token."
+        },
+        {
+          "name": "reason",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "What is defective."
+        },
+        {
+          "name": "severity",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "critical, important or minor."
+        },
+        {
+          "name": "remediation",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "What would fix the defect. Required unless --finding carries it."
+        },
+        {
+          "name": "finding",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Alias of --remediation."
+        },
+        {
+          "name": "finding-id",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Explicit finding id."
+        },
+        {
+          "name": "evidence",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Comma-separated command ids proving the defect."
+        },
+        {
+          "name": "checks",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Alias of --evidence."
+        },
+        {
+          "name": "requirement",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Requirement the finding binds to."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts task:reject --run .capsules/<run-id> --task task-1 --validator val-1 --token <token> --reason \"Missing input validation\" --severity critical --remediation \"Validate the payload before the insert\""
+      ]
+    },
+    {
+      "name": "run:exec",
+      "aliases": [],
+      "domain": "run",
+      "summary": "Run a gate command under process isolation and record the evidence.",
+      "description": "Captures argv, cwd, timestamps, exit code and log bytes into the capsule, then ingests any screenshots, visual report and browser run metadata the command produced.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root."
+        },
+        {
+          "name": "task",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Task the command belongs to."
+        },
+        {
+          "name": "gate",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Gate id the command proves."
+        },
+        {
+          "name": "cwd",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Working directory; falls back to the repository root."
+        },
+        {
+          "name": "actor",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Who is running the command. Recorded on the command and its event; there is no default actor."
+        },
+        {
+          "name": "tool-category",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Generic category of the tool, e.g. browser-automation, build, database, documentation, file-edit, formatter, http-client, linter, package-manager, search, shell, test-runner, type-checker, version-control. Any other value is recorded as given."
+        },
+        {
+          "name": "tool",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "The tool this command invoked, named as you name it."
+        },
+        {
+          "name": "tool-extra",
+          "type": "string",
+          "required": false,
+          "repeatable": true,
+          "default": null,
+          "description": "One tool-specific fact about this command as <key>=<value>, kept verbatim under the reported name."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": true,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - the command ran; read exit_code for the child's own result"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts run:exec --run .capsules/<run-id> --task task-1 --gate gate-1 --actor val-1 --tool-category test-runner --tool bun-test -- bun test tests/unit/auth.test.ts"
+      ]
+    },
+    {
+      "name": "run:status",
+      "aliases": [],
+      "domain": "run",
+      "summary": "Show phase, per-task status and progress for the run.",
+      "description": "Reads the capsule without mutating it and renders the execution table.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root."
+        },
+        {
+          "name": "detailed",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Include the raw state in the JSON result."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts run:status --run .capsules/<run-id>"
+      ]
+    },
+    {
+      "name": "run:complete",
+      "aliases": [],
+      "domain": "run",
+      "summary": "Seal the capsule after verifying every completion artifact.",
+      "description": "Re-verifies the recorded command evidence and the live repository binding, then commits terminal completion and regenerates the summary suite.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root."
+        },
+        {
+          "name": "actor",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Who is completing the run. Recorded on the completion event; there is no default actor."
+        },
+        {
+          "name": "auth-token",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Completion authorisation token."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts run:complete --run .capsules/<run-id> --actor coordinator"
+      ]
+    },
+    {
+      "name": "critic:start",
+      "aliases": [],
+      "domain": "critic",
+      "summary": "Authorise a completeness critic against the immutable prompt bytes.",
+      "description": "Records a repository inspection, assigns the critic, and returns the critic token required to review.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root."
+        },
+        {
+          "name": "critic",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Critic agent id."
+        },
+        {
+          "name": "repository-command-ids",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Command ids that bound the repository."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts critic:start --run .capsules/<run-id> --critic critic-1"
+      ]
+    },
+    {
+      "name": "critic:review",
+      "aliases": [],
+      "domain": "critic",
+      "summary": "Record the completeness verdict over the whole repository diff.",
+      "description": "--decision approve clears completion; request_changes records findings that block it and requires --findings or --findings-file, because the harness never composes a finding on the critic's behalf. Every finding must carry id, requirement_id, severity, observation, remediation and revalidation. Requirement proofs come only from --proofs/--proofs-file or --review; a requirement with no proof is recorded unproven and blocks completion, and a clean verdict with any unproven requirement is refused. integrity_evidence is always the harness's own capsule integrity observation, measured at review time; a --review file cannot certify its own capsule, so whatever it declares under that key is replaced.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root."
+        },
+        {
+          "name": "critic",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Critic agent id."
+        },
+        {
+          "name": "token",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Critic token."
+        },
+        {
+          "name": "decision",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "approve or request_changes."
+        },
+        {
+          "name": "summary",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Verdict summary in the critic's own words."
+        },
+        {
+          "name": "findings",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Inline JSON findings payload."
+        },
+        {
+          "name": "findings-file",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Path to a JSON findings payload."
+        },
+        {
+          "name": "proofs",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Inline JSON requirement_proofs payload."
+        },
+        {
+          "name": "proofs-file",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Path to a JSON requirement_proofs payload."
+        },
+        {
+          "name": "review",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Path to a complete review payload."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts critic:review --run .capsules/<run-id> --critic critic-1 --token <token> --decision approve --proofs-file proofs.json --summary \"Whole diff verified\""
+      ]
+    },
+    {
+      "name": "critic:reject",
+      "aliases": [],
+      "domain": "critic",
+      "summary": "Reject completion with findings that trigger replanning.",
+      "description": "Equivalent to critic:review --decision request_changes with a rejection brief. Structured findings are mandatory: pass --findings or --findings-file.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root."
+        },
+        {
+          "name": "critic",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Critic agent id."
+        },
+        {
+          "name": "token",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Critic token."
+        },
+        {
+          "name": "summary",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Rejection summary in the critic's own words."
+        },
+        {
+          "name": "findings",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Inline JSON findings payload."
+        },
+        {
+          "name": "findings-file",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Path to a JSON findings payload."
+        },
+        {
+          "name": "proofs",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Inline JSON requirement_proofs payload."
+        },
+        {
+          "name": "proofs-file",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Path to a JSON requirement_proofs payload."
+        },
+        {
+          "name": "review",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Path to a complete review payload."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts critic:reject --run .capsules/<run-id> --critic critic-1 --token <token> --summary \"Missing error boundary\" --findings '[{\"id\":\"F-01\",\"requirement_id\":\"req-1\",\"severity\":\"critical\",\"observation\":\"No error boundary around the render tree\",\"remediation\":\"Wrap the tree in an error boundary\",\"revalidation\":\"bun test tests/render\"}]'"
+      ]
+    },
+    {
+      "name": "summary:export",
+      "aliases": [],
+      "domain": "summary",
+      "summary": "Write the graph, timeline, metrics and executive brief to disk.",
+      "description": "Generates the summary suite under <run>/summary and, with --out, an additional registry export for the graph viewer.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root."
+        },
+        {
+          "name": "out",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Directory for the viewer registry export."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts summary:export --run .capsules/<run-id>"
+      ]
+    },
+    {
+      "name": "summary:view",
+      "aliases": [],
+      "domain": "summary",
+      "summary": "Render the executive brief without writing anything.",
+      "description": "Generates the same suite in memory and returns only the markdown brief.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts summary:view --run .capsules/<run-id>"
+      ]
+    },
+    {
+      "name": "finding:get",
+      "aliases": [],
+      "domain": "inspection",
+      "summary": "Read one finding file, or every finding in the capsule.",
+      "description": "Without an id the whole findings directory is listed.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root."
+        },
+        {
+          "name": "id",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Finding id or file name."
+        },
+        {
+          "name": "finding",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Alias of --id."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts finding:get --run .capsules/<run-id> --id finding-task-1"
+      ]
+    },
+    {
+      "name": "report:get",
+      "aliases": [],
+      "domain": "inspection",
+      "summary": "Read a submission, review or critic report.",
+      "description": "With --task the review report is preferred and the submission is used as the fallback; --critic reads the completeness review.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root."
+        },
+        {
+          "name": "task",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Task whose report is wanted."
+        },
+        {
+          "name": "critic",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Read the critic review report."
+        },
+        {
+          "name": "submission",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Force the submission report."
+        },
+        {
+          "name": "review",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Force the review report."
+        },
+        {
+          "name": "type",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "submission, review or critic."
+        },
+        {
+          "name": "stage",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Alias of --type."
+        },
+        {
+          "name": "report",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Explicit report file name."
+        },
+        {
+          "name": "id",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Alias of --report."
+        },
+        {
+          "name": "screenshots",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Include screenshot records."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts report:get --run .capsules/<run-id> --task task-1 --type review"
+      ]
+    },
+    {
+      "name": "evidence:get",
+      "aliases": [],
+      "domain": "inspection",
+      "summary": "Read recorded command evidence.",
+      "description": "Filters the evidence directory by command id, task, gate or actor.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root."
+        },
+        {
+          "name": "command",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Command id."
+        },
+        {
+          "name": "id",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Alias of --command."
+        },
+        {
+          "name": "cmd",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Alias of --command."
+        },
+        {
+          "name": "task",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Filter by task id."
+        },
+        {
+          "name": "gate",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Filter by gate id."
+        },
+        {
+          "name": "actor",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Filter by actor."
+        },
+        {
+          "name": "screenshots",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Include screenshot records."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts evidence:get --run .capsules/<run-id> --task task-1"
+      ]
+    },
+    {
+      "name": "evidence:screenshots",
+      "aliases": [],
+      "domain": "inspection",
+      "summary": "List captured UI screenshots with their test ids and viewports.",
+      "description": "Queries the screenshot store rather than the evidence files.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root."
+        },
+        {
+          "name": "task",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Filter by task id."
+        },
+        {
+          "name": "command",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Filter by command id."
+        },
+        {
+          "name": "cmd",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Alias of --command."
+        },
+        {
+          "name": "id",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Alias of --command."
+        },
+        {
+          "name": "actor",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Filter by actor."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts evidence:screenshots --run .capsules/<run-id> --task task-1"
+      ]
+    },
+    {
+      "name": "orchestrator:run",
+      "aliases": [
+        "orchestrator"
+      ],
+      "domain": "orchestrator",
+      "summary": "Run the autonomous coordination loop over a fresh capsule.",
+      "description": "Drives plan, execute, validate and critic rounds until the critic approves or the round budget is spent. The host must inject a round executor; without one the command fails with INVALID_STATE.",
+      "flags": [
+        {
+          "name": "repo",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Repository root; falls back to the current directory."
+        },
+        {
+          "name": "prompt",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Inline prompt text."
+        },
+        {
+          "name": "prompt-file",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "File holding the prompt."
+        },
+        {
+          "name": "prompt-stdin",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Read the prompt from stdin."
+        },
+        {
+          "name": "run-id",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Base run id for the generated capsules."
+        },
+        {
+          "name": "run",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Alias of --run-id."
+        },
+        {
+          "name": "capsules-dir",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Directory that holds the capsules."
+        },
+        {
+          "name": "max-rounds",
+          "type": "int",
+          "required": false,
+          "repeatable": false,
+          "default": 10,
+          "description": "Round budget, clamped to 1-10."
+        },
+        {
+          "name": "actor",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": "orchestrator",
+          "description": "Actor recorded on the events."
+        }
+      ],
+      "reads_stdin": true,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts orchestrator:run --repo . --prompt \"Implement the feature\" --max-rounds 3"
+      ]
+    },
+    {
+      "name": "branch:open",
+      "aliases": [],
+      "domain": "branch",
+      "summary": "Subdivide the work you hold into sub-tasks a sub-agent can take.",
+      "description": "A branch is an execution-time subdivision, never a plan task, so it never touches the plan revision. The parent moves to `branched` and its lease clock freezes until collect or abandon, which is what stops a parent blocked on children from being reaped as stale. Every sub-task scope must be a STRICTLY PROPER subset of the parent scope and stay disjoint from its siblings; a violation is refused, not trimmed. That proper-subset rule is what makes a chain of branches terminate. --parent-task accepts a plan task or another branch's sub-task; config max_branch_depth (default 5) is an escalation tripwire on nesting rather than a structural bound, and config max_agents (default 100) caps the grants a run may issue at any depth — a branch is charged one grant per sub-task up front.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root."
+        },
+        {
+          "name": "parent-task",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Plan task or sub-task the branch hangs off."
+        },
+        {
+          "name": "agent",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Agent holding the parent lease."
+        },
+        {
+          "name": "token",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Parent lease bearer token."
+        },
+        {
+          "name": "reason",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Why the work had to be subdivided."
+        },
+        {
+          "name": "sub-task",
+          "type": "string",
+          "required": false,
+          "repeatable": true,
+          "default": null,
+          "description": "Sub-task id; repeat the flag for each sub-task."
+        },
+        {
+          "name": "sub-label",
+          "type": "string",
+          "required": false,
+          "repeatable": true,
+          "default": null,
+          "description": "`<sub-task-id>=<label>`; one per sub-task."
+        },
+        {
+          "name": "sub-scope",
+          "type": "string",
+          "required": false,
+          "repeatable": true,
+          "default": null,
+          "description": "`<sub-task-id>=<path>`; repeat for each path."
+        },
+        {
+          "name": "sub-gate",
+          "type": "string",
+          "required": false,
+          "repeatable": true,
+          "default": null,
+          "description": "`<sub-task-id>=<command>`; optional revalidation gate."
+        },
+        {
+          "name": "repo",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Repository root observed through Git; falls back to the current directory."
+        },
+        {
+          "name": "actor",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Event actor; defaults to the acting agent."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts branch:open --run .capsules/<run-id> --parent-task task-1 --agent worker-1 --token <token> --reason \"parser rewrite blocks the API change\" --sub-task S-1 --sub-label S-1=\"Fix the parser\" --sub-scope S-1=src/one/parser"
+      ]
+    },
+    {
+      "name": "branch:claim",
+      "aliases": [],
+      "domain": "branch",
+      "summary": "Lease one branch sub-task to a sub-agent.",
+      "description": "Returns the bearer token the sub-agent echoes back to branch:submit. The lease expires like any other, and `recover` reclaims it if the sub-agent dies.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root."
+        },
+        {
+          "name": "branch",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Branch id returned by branch:open."
+        },
+        {
+          "name": "sub-task",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Sub-task id to claim."
+        },
+        {
+          "name": "agent",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Sub-agent receiving the lease."
+        },
+        {
+          "name": "role",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Branch role the sub-agent works under: sub-implementer, sub-investigator or sub-validator."
+        },
+        {
+          "name": "lease-seconds",
+          "type": "int",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Lease length in seconds (5-86400)."
+        },
+        {
+          "name": "repo",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Repository root observed through Git; falls back to the current directory."
+        },
+        {
+          "name": "actor",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Event actor; defaults to the acting agent."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts branch:claim --run .capsules/<run-id> --branch B-<uuid> --sub-task S-1 --agent sub-1 --role sub-implementer"
+      ]
+    },
+    {
+      "name": "branch:submit",
+      "aliases": [],
+      "domain": "branch",
+      "summary": "Hand a finished sub-task back to the branch.",
+      "description": "Records what the sub-agent reports it did and releases the sub-lease. The summary is agent-reported; the file-level truth is measured once, by branch:collect.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root."
+        },
+        {
+          "name": "branch",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Branch id returned by branch:open."
+        },
+        {
+          "name": "sub-task",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Sub-task id being submitted."
+        },
+        {
+          "name": "agent",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Sub-agent holding the sub-lease."
+        },
+        {
+          "name": "token",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Sub-lease bearer token."
+        },
+        {
+          "name": "summary",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "What the sub-agent changed."
+        },
+        {
+          "name": "actor",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Event actor; defaults to the acting agent."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts branch:submit --run .capsules/<run-id> --branch B-<uuid> --sub-task S-1 --agent sub-1 --token <token> --summary \"Parser accepts the new grammar\""
+      ]
+    },
+    {
+      "name": "branch:collect",
+      "aliases": [],
+      "domain": "branch",
+      "summary": "Take the branch back and resume the parent.",
+      "description": "Refuses while any sub-task is still live. Records a real Git observation of the worktree delta across the branch window as harness_observed evidence, restores the parent lease with a fresh expiry and returns the parent to `running`. When the repository cannot be observed the file list stays absent rather than becoming an empty one.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root."
+        },
+        {
+          "name": "branch",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Branch id returned by branch:open."
+        },
+        {
+          "name": "agent",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Parent agent that opened the branch."
+        },
+        {
+          "name": "token",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Parent lease bearer token."
+        },
+        {
+          "name": "summary",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "What came back from the sub-agents."
+        },
+        {
+          "name": "repo",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Repository root observed through Git; falls back to the current directory."
+        },
+        {
+          "name": "actor",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Event actor; defaults to the acting agent."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts branch:collect --run .capsules/<run-id> --branch B-<uuid> --agent worker-1 --token <token> --summary \"Parser fixed; API change unblocked\""
+      ]
+    },
+    {
+      "name": "branch:abandon",
+      "aliases": [],
+      "domain": "branch",
+      "summary": "Give up on a branch and resume the parent.",
+      "description": "The failure path. Every non-terminal sub-task is marked abandoned and its lease released, then the parent gets its lease back and returns to `running` to carry the work itself.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root."
+        },
+        {
+          "name": "branch",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Branch id returned by branch:open."
+        },
+        {
+          "name": "agent",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Parent agent that opened the branch."
+        },
+        {
+          "name": "token",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Parent lease bearer token."
+        },
+        {
+          "name": "reason",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Why the branch is being given up."
+        },
+        {
+          "name": "actor",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Event actor; defaults to the acting agent."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts branch:abandon --run .capsules/<run-id> --branch B-<uuid> --agent worker-1 --token <token> --reason \"sub-agent could not reproduce the failure\""
+      ]
+    },
+    {
+      "name": "branch:status",
+      "aliases": [],
+      "domain": "branch",
+      "summary": "Show which branches are open and what they are waiting on.",
+      "description": "Lists open branches by default with the reason each one was opened. --all includes collected and abandoned ones, --branch narrows to one and --task narrows to a parent.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root."
+        },
+        {
+          "name": "branch",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Show only this branch."
+        },
+        {
+          "name": "task",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Show only branches under this parent."
+        },
+        {
+          "name": "all",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Include collected and abandoned branches."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts branch:status --run .capsules/<run-id>",
+        "bun harness.ts branch:status --run .capsules/<run-id> --task task-1 --all"
+      ]
+    },
+    {
+      "name": "agent:register",
+      "aliases": [],
+      "domain": "agent",
+      "summary": "Record a dispatched subagent and mint its grant.",
+      "description": "Spawning happens host-side; this is how the run learns a subagent exists, who deployed it and under which task. Host-reported model, tier and thinking level, plus the granted toolset the dispatcher relays, are recorded only when supplied and stay absent otherwise. The parent agent must already hold a grant.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root."
+        },
+        {
+          "name": "agent",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Agent id of the dispatched subagent."
+        },
+        {
+          "name": "role",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Canonical role the agent is granted."
+        },
+        {
+          "name": "host",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Host runtime that spawned the agent."
+        },
+        {
+          "name": "parent-agent",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Agent id that dispatched it; omit for the root."
+        },
+        {
+          "name": "parent-task",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Task or branch sub-task the agent is dispatched onto."
+        },
+        {
+          "name": "actor",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Event actor; defaults to the parent agent, else the agent."
+        },
+        {
+          "name": "provider",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Host-reported provider serving the model."
+        },
+        {
+          "name": "model",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Host-reported model id, recorded exactly as given and never parsed."
+        },
+        {
+          "name": "model-tier",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Host-reported tier: xs, s, m, l or unknown."
+        },
+        {
+          "name": "thinking-level",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Host-reported level: low, medium, high or unknown."
+        },
+        {
+          "name": "context-window",
+          "type": "int",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Host-reported context window in tokens."
+        },
+        {
+          "name": "tool",
+          "type": "string",
+          "required": false,
+          "repeatable": true,
+          "default": null,
+          "description": "One tool as <name> or <name>=<category>; repeat the flag for each tool. Generic category of the tool, e.g. browser-automation, build, database, documentation, file-edit, formatter, http-client, linter, package-manager, search, shell, test-runner, type-checker, version-control. Any other value is recorded as given. A tool given without a category has none recorded."
+        },
+        {
+          "name": "tool-extra",
+          "type": "string",
+          "required": false,
+          "repeatable": true,
+          "default": null,
+          "description": "One tool-specific fact as <tool>:<key>=<value>, kept verbatim under the reported name. The tool must also be given with --tool."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts agent:register --run .capsules/<run-id> --agent worker-1 --role implementer --host claude-code --parent-agent coordinator-1 --parent-task task-1 --tool Bash=shell --tool-extra Bash:shell=zsh"
+      ]
+    },
+    {
+      "name": "agent:report",
+      "aliases": [],
+      "domain": "agent",
+      "summary": "Ingest host-observed tool usage and token counts mid-flight.",
+      "description": "Token counts are the host's running totals and replace the previous ones; --tokens-estimated marks them derived estimates instead of measured counts. At least one of --tool, --tokens-in, --tokens-out or --token-extra is required.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root."
+        },
+        {
+          "name": "agent",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Agent id holding the grant."
+        },
+        {
+          "name": "tool",
+          "type": "string",
+          "required": false,
+          "repeatable": true,
+          "default": null,
+          "description": "One tool as <name> or <name>=<category>; repeat the flag for each tool. Generic category of the tool, e.g. browser-automation, build, database, documentation, file-edit, formatter, http-client, linter, package-manager, search, shell, test-runner, type-checker, version-control. Any other value is recorded as given. A tool given without a category has none recorded."
+        },
+        {
+          "name": "tool-extra",
+          "type": "string",
+          "required": false,
+          "repeatable": true,
+          "default": null,
+          "description": "One tool-specific fact as <tool>:<key>=<value>, kept verbatim under the reported name. The tool must also be given with --tool."
+        },
+        {
+          "name": "tokens-in",
+          "type": "int",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Host-reported input tokens consumed so far."
+        },
+        {
+          "name": "tokens-out",
+          "type": "int",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Host-reported output tokens produced so far."
+        },
+        {
+          "name": "token-extra",
+          "type": "string",
+          "required": false,
+          "repeatable": true,
+          "default": null,
+          "description": "One provider-specific counter as <name>=<count>, kept under the name the host reported it by."
+        },
+        {
+          "name": "tokens-estimated",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Record the counts as estimates, not measurements."
+        },
+        {
+          "name": "actor",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Event actor; defaults to the reporting agent."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts agent:report --run .capsules/<run-id> --agent worker-1 --tool Read=file-edit --tool Grep=search --tokens-in 18000 --tokens-out 2400 --token-extra cache_read_input_tokens=91000"
+      ]
+    },
+    {
+      "name": "agent:release",
+      "aliases": [],
+      "domain": "agent",
+      "summary": "Close a subagent's grant.",
+      "description": "Marks the grant released and stamps the release time. A released agent can no longer report.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root."
+        },
+        {
+          "name": "agent",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Agent id holding the grant."
+        },
+        {
+          "name": "reason",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Why the grant closed."
+        },
+        {
+          "name": "actor",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Event actor; defaults to the released agent."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts agent:release --run .capsules/<run-id> --agent worker-1 --reason \"task-1 submitted\""
+      ]
+    },
+    {
+      "name": "agent:list",
+      "aliases": [],
+      "domain": "agent",
+      "summary": "Show who is deployed, or the lineage of one task.",
+      "description": "Without flags it lists active grants with their host-reported telemetry. --task answers who worked a task and under whom, including the agents those agents dispatched.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root."
+        },
+        {
+          "name": "task",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Report the lineage of this task instead of the roster."
+        },
+        {
+          "name": "all",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Include released grants."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts agent:list --run .capsules/<run-id>",
+        "bun harness.ts agent:list --run .capsules/<run-id> --task task-1"
+      ]
+    },
+    {
+      "name": "install",
+      "aliases": [],
+      "domain": "install",
+      "summary": "Install the skill release and link it into the requested clients.",
+      "description": "Copies the validated source tree to <home>/.agents/skills and publishes a symlink per client, rolling the whole transaction back on failure.",
+      "flags": [
+        {
+          "name": "source",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Skill source directory to install."
+        },
+        {
+          "name": "home",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Home directory that receives the release."
+        },
+        {
+          "name": "clients",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Comma-separated clients: antigravity, claude, codex, chatgpt."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts install --source . --home ~ --clients claude,antigravity"
+      ]
+    },
+    {
+      "name": "installation-status",
+      "aliases": [],
+      "domain": "install",
+      "summary": "Audit the installed release, its digest and its client links.",
+      "description": "Compares the installed tree digest against the source, then checks every client symlink target.",
+      "flags": [
+        {
+          "name": "source",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Skill source directory to compare against."
+        },
+        {
+          "name": "home",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Home directory holding the release."
+        },
+        {
+          "name": "clients",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Comma-separated clients; defaults to the installed manifest."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts installation-status --source . --home ~"
+      ]
+    },
+    {
+      "name": "health",
+      "aliases": [],
+      "domain": "diagnostics",
+      "summary": "Check whether the code still does what the requirements said.",
+      "description": "Reports unused exports and unreachable modules, dead or superseded code, declared behaviour nothing enforces, requirements with no code or no test, literal fallbacks that substitute a plausible value for a missing one, and vendor names in identifier positions. Every check prints what it cannot see. Unlike `doctor` it reads a source tree, not a capsule.",
+      "flags": [
+        {
+          "name": "scripts",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Harness scripts root to inspect. Defaults to the running harness."
+        },
+        {
+          "name": "consumer",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Consumer repository root. Without it the vendor-name sweep covers one repo, and says so."
+        },
+        {
+          "name": "check",
+          "type": "string",
+          "required": false,
+          "repeatable": true,
+          "default": null,
+          "description": "Restrict the run to named checks."
+        },
+        {
+          "name": "all",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "List every failure instead of the first five per check, and every advisory alongside them."
+        },
+        {
+          "name": "strict",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Exit nonzero when the report is unhealthy."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts health",
+        "bun harness.ts health --consumer ../gvui --all",
+        "bun harness.ts health --check unused-code --strict"
+      ]
+    },
+    {
+      "name": "doctor",
+      "aliases": [],
+      "domain": "diagnostics",
+      "summary": "Verify capsule integrity, command evidence and the runtime.",
+      "description": "Re-hashes the event chain, re-verifies every recorded command, reports workflow blockers and, with --source and --home, the installation state.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root."
+        },
+        {
+          "name": "source",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Skill source directory for the installation check."
+        },
+        {
+          "name": "home",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Home directory for the installation check."
+        },
+        {
+          "name": "clients",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Comma-separated clients for the installation check."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts doctor --run .capsules/<run-id>"
+      ]
+    },
+    {
+      "name": "recover",
+      "aliases": [],
+      "domain": "diagnostics",
+      "summary": "Release expired leases and interrupted validations.",
+      "description": "Returns tasks whose lease expired to retry_ready (or changes_requested after a repair attempt), reopens interrupted validations, reclaims branch sub-tasks whose sub-agent died, and expires a stale completeness critic. A branched parent's frozen lease is never reaped: it is blocked on children, not gone.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root."
+        },
+        {
+          "name": "actor",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Who is running the recovery. Recorded on the event; there is no default actor."
+        },
+        {
+          "name": "grace-seconds",
+          "type": "int",
+          "required": false,
+          "repeatable": false,
+          "default": 30,
+          "description": "Grace period past expiry, 0-86400."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts recover --run .capsules/<run-id> --actor coordinator"
+      ]
+    },
+    {
+      "name": "task:release",
+      "aliases": [],
+      "domain": "task",
+      "summary": "Hand a live lease back without waiting for it to expire.",
+      "description": "The voluntary counterpart to `recover`. Requires the live lease token; the task returns to retry_ready, or to changes_requested when the released attempt was a repair. A branched task cannot be released - collect or abandon the branch first.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root."
+        },
+        {
+          "name": "task",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Leased task id."
+        },
+        {
+          "name": "agent",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Agent holding the lease."
+        },
+        {
+          "name": "token",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Lease bearer token."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts task:release --run .capsules/<run-id> --task task-1 --agent worker-1 --token <token>"
+      ]
+    }
+  ]
+}

@@ -29,7 +29,6 @@ function taskPacket() {
     task: state.tasks["T-1"],
     state,
     commonInstructions: common,
-    roleInstructions: "Implement only the frozen contract.",
     authoritativeContext: {
       ...inspectionContext(),
       original_prompt: "Implement R-1",

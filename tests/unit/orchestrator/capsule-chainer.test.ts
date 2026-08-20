@@ -120,4 +120,25 @@ describe("Capsule Chainer Unit Tests", () => {
       rmSync(testDir, { recursive: true, force: true });
     }
   });
+
+  it("refuses an unreadable source state instead of chaining an empty carryover", () => {
+    const testDir = mkdtempSync(join(tmpdir(), "capsule-bad-state-"));
+    try {
+      const sourceCapsule = join(testDir, "run-bad-state");
+      mkdirSync(sourceCapsule, { recursive: true });
+      writeFileSync(join(sourceCapsule, "state.json"), "{ not json at all");
+
+      expect(() => {
+        chainCapsules({
+          sourceRunId: "run-bad-state",
+          targetRunId: "run-target",
+          sourceCapsulePath: sourceCapsule,
+          targetCapsulePath: join(testDir, "target"),
+          roundNumber: 2,
+        });
+      }).toThrow("Corrupt source state");
+    } finally {
+      rmSync(testDir, { recursive: true, force: true });
+    }
+  });
 });

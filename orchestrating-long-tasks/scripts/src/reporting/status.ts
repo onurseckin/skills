@@ -1,4 +1,4 @@
-import { loadRun, verifyIntegrity } from "../store/index.ts";
+import { indexFreshness, loadIndex, loadRun, verifyIntegrity } from "../store/index.ts";
 import { workflowView } from "./workflow-view.ts";
 import { trustedHostEvidence, trustedHostLimitations } from "../contracts/trusted-host.ts";
 
@@ -10,6 +10,36 @@ function counts(values: readonly unknown[], field: string): Record<string, numbe
     if (typeof key === "string") result[key] = (result[key] ?? 0) + 1;
   }
   return result;
+}
+
+/**
+ * The catalogue as an operator sees it: what the capsule holds, and whether the catalogue still
+ * describes where the run stands. A catalogue that might be stale is reported as unknown rather
+ * than presented as current.
+ */
+function capsuleCatalogue(runRoot: string): Record<string, unknown> {
+  let index;
+  try {
+    index = loadIndex(runRoot).index;
+  } catch {
+    return { available: false, freshness: "unknown" };
+  }
+  return {
+    available: true,
+    freshness: indexFreshness(runRoot, index),
+    index_of_event: index.index_of_event,
+    counts: {
+      tasks: index.tasks.length,
+      commands: index.commands.length,
+      findings: index.findings.length,
+      open_findings: index.tasks.reduce((sum, task) => sum + task.open_finding_ids.length, 0),
+      reports: index.reports.length,
+      captures: index.captures.length,
+      blobs: index.blobs.length,
+      packets: index.packets.length,
+    },
+    stored_bytes: index.blobs.reduce((sum, blob) => sum + blob.bytes, 0),
+  };
 }
 
 export function runStatus(runRoot: string): Record<string, unknown> {
@@ -34,6 +64,7 @@ export function runStatus(runRoot: string): Record<string, unknown> {
     counts: counts(tasks, "status"),
     requirement_counts: counts(requirements, "status"),
     integrity_issues: issues,
+    catalogue: capsuleCatalogue(loaded.runRoot),
     ...view,
     recent_events: loaded.events.slice(-10).map(({ sequence, timestamp, actor, kind, hash }) => ({
       sequence,

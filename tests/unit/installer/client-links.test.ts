@@ -15,8 +15,8 @@ describe("installer client links", () => {
     const { home: rawHome } = await installerFixture();
     const home = await realpath(rawHome);
     const paths = clientLinkPaths(home);
-    expect(paths.claude).toBe(join(home, ".claude", "skills", "orchestrating-long-tasks"));
-    expect(paths.antigravity).toBe(
+    expect(paths["claude"]).toBe(join(home, ".claude", "skills", "orchestrating-long-tasks"));
+    expect(paths["antigravity"]).toBe(
       join(home, ".gemini", "config", "skills", "orchestrating-long-tasks"),
     );
   });
@@ -41,7 +41,7 @@ describe("installer client links", () => {
     const home = await realpath(rawHome);
     const source = await realpath(rawSource);
     const paths = clientLinkPaths(home);
-    await mkdir(paths.claude, { recursive: true });
+    await mkdir(paths["claude"], { recursive: true });
     await expect(preflightClientLinks(home, source, new Set(["claude"]))).rejects.toThrow(
       /client skill path is not a symlink/,
     );
@@ -76,17 +76,17 @@ describe("installer client links", () => {
     await mkdir(oldTarget);
 
     const paths = clientLinkPaths(home);
-    await mkdir(dirname(paths.claude), { recursive: true });
-    await symlink(oldTarget, paths.claude, "dir");
+    await mkdir(dirname(paths["claude"]), { recursive: true });
+    await symlink(oldTarget, paths["claude"], "dir");
 
     const plans = await preflightClientLinks(home, source, new Set(["claude"]));
     expect(plans[0]?.previous?.target).toBe(oldTarget);
 
     const applied = await applyClientLinks(plans);
-    expect(await readlink(paths.claude)).toBe(source);
+    expect(await readlink(paths["claude"])).toBe(source);
 
     await applied.rollback();
-    expect(await readlink(paths.claude)).toBe(oldTarget);
+    expect(await readlink(paths["claude"])).toBe(oldTarget);
   });
 
   test("applyClientLinks is a no-op if link already points to target", async () => {
@@ -94,13 +94,13 @@ describe("installer client links", () => {
     const home = await realpath(rawHome);
     const source = await realpath(rawSource);
     const paths = clientLinkPaths(home);
-    await mkdir(dirname(paths.claude), { recursive: true });
-    await symlink(source, paths.claude, "dir");
+    await mkdir(dirname(paths["claude"]), { recursive: true });
+    await symlink(source, paths["claude"], "dir");
 
     const plans = await preflightClientLinks(home, source, new Set(["claude"]));
     const applied = await applyClientLinks(plans);
-    expect(applied.paths).toEqual([paths.claude]);
-    expect(await readlink(paths.claude)).toBe(source);
+    expect(applied.paths).toEqual([paths["claude"]]);
+    expect(await readlink(paths["claude"])).toBe(source);
   });
 
   test("applyClientLinks rolls back partially applied links when a failure occurs", async () => {
@@ -120,8 +120,8 @@ describe("installer client links", () => {
     ).rejects.toThrow(/simulated antigravity link publish error/);
 
     const paths = clientLinkPaths(home);
-    expect(await lstat(paths.claude).catch(() => null)).toBeNull();
-    expect(await lstat(paths.antigravity).catch(() => null)).toBeNull();
+    expect(await lstat(paths["claude"]).catch(() => null)).toBeNull();
+    expect(await lstat(paths["antigravity"]).catch(() => null)).toBeNull();
   });
 
   test("applyClientLinks detects if link changed identity during publish", async () => {
@@ -129,17 +129,17 @@ describe("installer client links", () => {
     const home = await realpath(rawHome);
     const source = await realpath(rawSource);
     const paths = clientLinkPaths(home);
-    await mkdir(dirname(paths.claude), { recursive: true });
+    await mkdir(dirname(paths["claude"]), { recursive: true });
     await writeFile(join(home, "other"), "data");
-    await symlink(join(home, "other"), paths.claude);
+    await symlink(join(home, "other"), paths["claude"]);
 
     const plans = await preflightClientLinks(home, source, new Set(["claude"]));
 
     await expect(
       applyClientLinks(plans, {
         async beforePublish() {
-          await unlink(paths.claude);
-          await symlink(source, paths.claude);
+          await unlink(paths["claude"]);
+          await symlink(source, paths["claude"]);
         },
       }),
     ).rejects.toThrow(/client skill path changed identity/);
@@ -153,14 +153,14 @@ describe("installer client links", () => {
     await mkdir(oldTarget);
 
     const paths = clientLinkPaths(home);
-    await mkdir(dirname(paths.claude), { recursive: true });
-    await symlink(oldTarget, paths.claude, "dir");
+    await mkdir(dirname(paths["claude"]), { recursive: true });
+    await symlink(oldTarget, paths["claude"], "dir");
 
     const plans = await preflightClientLinks(home, source, new Set(["claude"]));
     const applied = await applyClientLinks(plans, {
       async beforeRollback() {
-        await unlink(paths.claude);
-        await symlink(oldTarget, paths.claude);
+        await unlink(paths["claude"]);
+        await symlink(oldTarget, paths["claude"]);
       },
     });
 

@@ -19,13 +19,12 @@ import {
   TestPort,
   workflowState,
 } from "./test-port.ts";
+import { criticIntegrityDigest } from "../../../orchestrating-long-tasks/scripts/src/packets/critic-integrity-digest.ts";
 
 const clock = at("2026-08-13T12:00:00.000Z");
 const criticToken = "critic-token";
 const integrityEvidence = [{ status: "passed", event_head: "event-sha" }];
-const integritySha = createHash("sha256")
-  .update(canonicalJsonBytes(integrityEvidence))
-  .digest("hex");
+const integritySha = criticIntegrityDigest(integrityEvidence);
 
 function readyPort(): TestPort {
   const state = workflowState();
@@ -141,7 +140,6 @@ function criticPacket(state: ReturnType<TestPort["read"]>, token: string) {
       bytes: commonBytes,
       sha256: createHash("sha256").update(commonBytes).digest("hex"),
     },
-    roleInstructions: "Inspect independently.",
     authoritativeContext: {
       ...inspectionContext(),
       original_prompt: "Do work",

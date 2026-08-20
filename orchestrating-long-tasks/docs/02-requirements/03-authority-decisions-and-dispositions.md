@@ -1,85 +1,102 @@
-# 03. Authority Decisions & External Gate Lifecycle
+# 03. Authority-Gated Obligations & Their Dispositions
 
 [⬅ Previous: Line Disposition Algorithm](./02-line-disposition-algorithm.md) | [Master Table of Contents](../README.md) | [Next: Chapter 03 — Dependency Graph Theory ➡](../03-graph-scheduler/01-dependency-graph-theory.md)
 
 ---
 
-## 🛑 What is a `needs_authority` Requirement?
+## 🛑 The Problem
 
-In real-world engineering, certain user instructions cannot be executed autonomously without human confirmation. Common examples include:
+Some instructions must not be executed autonomously:
 
 - _"Drop the legacy SQLite tables and migrate to Postgres after my approval."_
 - _"Deploy the container to production if all tests pass."_
 - _"Delete all orphaned S3 buckets."_
 
-If an AI agent blindly executes destructive or external mutations, it causes catastrophic data loss. If an agent simply ignores the instruction, it fails the prompt.
-
-The harness solves this with **`needs_authority` Requirements**.
+Blind execution causes catastrophic loss. Silent omission fails the prompt. Neither is acceptable, so
+the harness models the gap explicitly rather than letting an agent decide in prose.
 
 ---
 
-## 🔄 The Authority Decision Lifecycle
+## 🧾 What Exists Today, Precisely
 
-When a requirement is flagged as `needs_authority`, the harness pauses all tasks that depend exclusively on that requirement until an explicit, audited decision is recorded.
+This is the one place in the book where the honest answer is "the vocabulary is real, the recording
+path is not wired yet". Both halves matter.
+
+### The vocabulary is real and enforced
+
+| Level                          | Values                                                         | Enforcement                                                                                                                                         |
+| :----------------------------- | :------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Requirement `disposition`      | `actionable`, `needs_authority`                                | `plan:compile` validates the enum. `out_of_scope` is **rejected in a plan**: _"disposition cannot be out_of_scope in a plan; use needs_authority"_. |
+| Requirement `authority_status` | `granted`, `declined`                                          | Read by the scheduler's execution-state check and by completion.                                                                                    |
+| Runtime disposition            | `actionable`, `needs_authority`, `out_of_scope`                | A requirement that is `needs_authority` without a grant makes its tasks non-executable.                                                             |
+| Disposition `rationale`        | required whenever a line links a `needs_authority` requirement | `plan:compile` refuses a bare disposition for a gated obligation.                                                                                   |
+| Event                          | `requirement-authority-decided`                                | Appended when a decision is recorded.                                                                                                               |
+
+`proposeBatch` will not schedule a task whose requirements are not `executable`, so a gated
+requirement genuinely holds its work back. Completion honours a declined requirement as cleanly
+disposed rather than demanding a fabricated proof for it.
+
+### The recording path is not exposed
+
+There is **no CLI command** that grants or declines authority. The decision recorder exists in the
+workflow layer; nothing in `references/cli-capabilities.json` reaches it. And `plan:compile` version 1
+derives every requirement as `actionable`, so a compiled plan does not currently produce a
+`needs_authority` requirement on its own.
+
+Documenting a `decide` command here would be inventing one. It does not exist.
+
+---
+
+## ✅ How To Handle a Gated Obligation Today
+
+1. **Do not declare a task for it.** `plan:add` is what turns a prompt line into work. Leave the
+   gated line unclaimed and `plan:compile` disposes it `kind: "context"` — recorded, visible, and not
+   scheduled.
+2. **Say so in the enhanced plan.** `plan:enhance --open-question "Line 7 asks for a production
+deploy; that needs a human decision before it can be planned."` puts the gap in
+   `planning/enhanced-plan.md`, digest-bound and reviewable.
+3. **Let the critic see it.** The completeness critic reads every disposition. A `context` disposition
+   on an obligation-shaped line is exactly the thing it is meant to question, and it can approve with
+   an explicit residual risk or reject and force a replan.
+4. **If the human grants it later**, add the task with `plan:add --requirement-lines <that line>` and
+   raise the revision with `plan:compile`. The grant becomes an ordinary planned obligation with its
+   own gate, which is stronger evidence than an authority flag ever was.
 
 ```text
-                     ┌───────────────────────────┐
-                     │ planned: needs_authority  │
-                     └─────────────┬─────────────┘
-                                   │
-                    ┌──────────────┴──────────────┐
-                    │ (User Decision in Terminal) │
-                    ▼                             ▼
-          ┌───────────────────┐         ┌───────────────────┐
-          │  decide: 'grant'  │         │ 'decline'         │
-          └─────────┬─────────┘         └─────────┬─────────┘
-                    │                             │
-                    ▼                             ▼
-          ┌───────────────────┐         ┌───────────────────┐
-          │    actionable     │         │   out_of_scope    │
-          │ (Task is Ready to │         │ (Task is Cleanly  │
-          │    be Claimed)    │         │    Cancelled)     │
-          └───────────────────┘         └───────────────────┘
+                     ┌─────────────────────────────────┐
+                     │ prompt line asks for a gated act│
+                     └────────────────┬────────────────┘
+                                      │
+                    ┌─────────────────┴─────────────────┐
+                    │ human has not decided             │ human granted it
+                    ▼                                   ▼
+        ┌───────────────────────────┐       ┌───────────────────────────┐
+        │ leave it unclaimed        │       │ plan:add --requirement-   │
+        │ → disposition "context"   │       │ lines <n> → real task,    │
+        │ → plan:enhance records    │       │   real gate, real proof   │
+        │   the open question       │       │   at revision N+1         │
+        └───────────────────────────┘       └───────────────────────────┘
 ```
 
 ---
 
-## ⚡ Recording Decisions in the State Machine
+## 🚫 What Not To Do
 
-When a human user grants or declines authority:
-
-1. An immutable event `authority_decided` is appended to `events.jsonl`.
-2. The requirement gains `authority_status: "granted"` (or `"declined"`).
-3. The requirement's resulting disposition becomes `actionable` (for `grant`) or `out_of_scope` (for `decline`).
-4. An immutable audit record is stored with a cryptographic SHA-256 digest:
-   ```json
-   {
-     "decision_id": "authority-7f41a8",
-     "requirement_id": "R-PUBLISH",
-     "decision": "grant",
-     "actor": "coordinator",
-     "rationale": "User confirmed the production deployment window is open.",
-     "decided_at": "2026-08-14T23:17:00.000Z",
-     "prior_disposition": "needs_authority",
-     "resulting_disposition": "actionable",
-     "decision_sha256": "4b68e920c8..."
-   }
-   ```
+- **Do not fabricate a proof.** A declined or undecided obligation has no test that passes; writing
+  one is exactly the assurance inflation the harness exists to prevent.
+- **Do not claim the line with a task that does something else.** The requirement's excerpt would
+  then quote an obligation the gate never proves, and every mechanical check would still pass.
+- **Do not describe the decision only in chat.** Prose is not state. If it is not in
+  `planning/enhanced-plan.md` or the graph, the next agent will not see it.
 
 ---
 
-## 🚫 Handling Declines Cleanly (Without Fabricating Tests)
+## 📌 Mixed Lines
 
-When a user declines an authority-gated requirement:
-
-- The requirement is marked `out_of_scope`.
-- Any task in the graph mapped **solely** to that declined requirement transitions directly to `cancelled`.
-- Any mandatory task gates associated solely with the declined requirement are marked **not applicable**.
-- **No fake unit tests or simulated proofs are needed.** The run can reach terminal completion cleanly via `run:complete` because the decline is an audited, first-class mathematical disposition.
-
-### Mixed Tasks:
-
-If a task covers both an actionable requirement (`R-LOCAL`) and a declined requirement (`R-PUBLISH`), the task remains executable for `R-LOCAL`, and only the gates for `R-PUBLISH` are deactivated.
+A single line can carry both an actionable and a gated obligation. Bind the actionable half to a task
+with `--requirement-lines`; the line is then disposed as a `requirement` naming that task's
+requirement, and the gated half belongs in the enhanced plan's open questions until a human settles
+it. The line is disposed exactly once either way.
 
 ---
 

@@ -1,5 +1,6 @@
 import type { CommandRecord } from "../contracts/commands.ts";
 import type { TaskRecord } from "../workflow/types.ts";
+import { resolveValidatorId } from "./graph-node-context.ts";
 
 export function getMimeTypeForUrl(url: string, explicitMime?: unknown): string {
   if (typeof explicitMime === "string" && explicitMime.trim().length > 0) {
@@ -105,11 +106,12 @@ export function inferAssetProps(url: string, cmd?: CommandRecord, task?: TaskRec
       break;
   }
 
+  // A gate command is a recorded validation, and the task record names its own validator. An actor
+  // called "val" is a name, not a role, so nothing here reads one out of the actor string.
+  const validatorId = task === undefined ? undefined : resolveValidatorId(task);
   const isVal =
     Boolean(cmd?.gate_id) ||
-    cmd?.actor === "val" ||
-    cmd?.actor === "validator" ||
-    cmd?.actor === "critic";
+    (validatorId !== undefined && cmd?.actor !== undefined && cmd.actor === validatorId);
   const stage = isVal ? "validation" : "execution";
   const description = isVal
     ? `Captured by validator during gate check for task ${task ? task.id : "run"}`
@@ -117,24 +119,14 @@ export function inferAssetProps(url: string, cmd?: CommandRecord, task?: TaskRec
       ? `Captured during test execution for command ${cmd.id}`
       : `Evidence captured for task ${task ? task.id : "run"}`;
 
-  const dimensions =
-    type === "image" || type === "diagram" || type === "video"
-      ? { width: 1280, height: 720 }
-      : undefined;
-
-  let sizeBytes = 1024 * 64;
-  if (type === "video") sizeBytes = 1024 * 512;
-  else if (type === "document") sizeBytes = 1024 * 128;
-  else if (type === "diagram") sizeBytes = 1024 * 16;
-  else if (type === "log") sizeBytes = 1024 * 8;
-
+  // Nothing here opens the file, so nothing here knows its pixel size or its byte count. What the
+  // extension supports is a type and a mime type; a resolution and a size would be guesses wearing
+  // the shape of a measurement.
   return {
     type,
     mimeType,
     title,
     description,
-    dimensions,
-    sizeBytes,
     stage,
   };
 }

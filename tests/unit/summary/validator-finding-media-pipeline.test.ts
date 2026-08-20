@@ -1,130 +1,111 @@
-import { describe, expect, test } from "bun:test";
-import type { CommandRecord } from "../../../orchestrating-long-tasks/scripts/src/contracts/commands.ts";
-import type { TaskRecord } from "../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
-import {
-  detectPlaywrightMetadata,
-  mapMediaAssets,
-} from "../../../orchestrating-long-tasks/scripts/src/summary/asset-mapper.ts";
+import { afterEach, describe, expect, test } from "bun:test";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { mapMediaAssets } from "../../../orchestrating-long-tasks/scripts/src/summary/asset-mapper.ts";
+import { makeCommand, makeTask } from "./graph-fixtures.ts";
 
-describe("Round 3: Validator Evidence & Screenshot Asset Pipeline", () => {
-  test("crawls commands argv, stdout, stderr and maps rich MediaAsset objects with metadata", () => {
-    const task: TaskRecord = {
-      id: "T-ui-dashboard",
-      label: "Build Telemetry Dashboard UI",
-      status: "done",
-      requirement_ids: ["REQ-UI-01"],
-      write_scope: ["src/ui/dashboard.tsx"],
-      dependencies: [],
-      attempts: [],
-      history: [],
-      repair_round: 0,
-    };
+const roots: string[] = [];
+afterEach(() => {
+  for (const root of roots) rmSync(root, { recursive: true, force: true });
+  roots.length = 0;
+});
 
-    const cmdGate: CommandRecord = {
-      id: "CMD-GATE-PLAYWRIGHT",
+function runRootWithLog(contents: string): string {
+  const root = mkdtempSync(join(tmpdir(), "asset-mapper-"));
+  roots.push(root);
+  mkdirSync(join(root, "commands", "CMD-GATE"), { recursive: true });
+  writeFileSync(join(root, "commands", "CMD-GATE", "stdout.log"), contents);
+  return root;
+}
+
+describe("media assets come from recorded bytes", () => {
+  test("extracts paths from argv and from the log file the runner actually wrote", () => {
+    const runRoot = runRootWithLog(
+      [
+        "Running 3 tests using 1 worker",
+        "  Captured artifact: test-results/dashboard/telemetry_cards.png",
+        "  Captured layout audit: playwright-report/audit/layout_radial.svg",
+        "  Captured video recording: test-results/dashboard/run_recording.webm",
+        "  Generated document: evidence/audit_summary.pdf",
+      ].join("\n"),
+    );
+    const task = makeTask("T-ui-dashboard", { label: "Build Telemetry Dashboard UI" });
+    const command = makeCommand("CMD-GATE", {
       argv: ["playwright", "test", "tests/ui/dashboard.spec.ts", "--reporter=line"],
-      cwd: "/repo",
-      cwd_relative: ".",
-      repository_root: "/repo",
-      status: "succeeded",
       task_id: "T-ui-dashboard",
       gate_id: "gate-ui-check",
       actor: "val",
-      started_at: "2026-08-15T19:10:00.000Z",
-      finished_at: "2026-08-15T19:10:05.000Z",
-      exit_code: 0,
-      signal: null,
-      fingerprint: "fp-playwright",
-      attempt_signing_public_key: "pk-val",
-      record_path: "commands/CMD-GATE-PLAYWRIGHT/record.json",
-      stdout: `
-Running 3 tests using 1 worker
-  ✓ [chromium] › dashboard.spec.ts:12:5 › render telemetry cards (450ms)
-    Captured artifact: test-results/dashboard/telemetry_cards.png
-    Captured layout audit: playwright-report/audit/layout_radial.svg
-    Captured video recording: test-results/dashboard/run_recording.webm
-    Generated document: evidence/audit_summary.pdf
-    Detailed logs: logs/test_execution.log
-      `,
-    };
+      logs: {
+        stdout: { path: "commands/CMD-GATE/stdout.log", bytes: 256, sha256: "a" },
+        stderr: { path: "commands/CMD-GATE/stderr.log", bytes: 0, sha256: "b" },
+      },
+    });
 
-    const assets = mapMediaAssets(task, [cmdGate]);
-    expect(assets.length).toBeGreaterThanOrEqual(5);
+    const assets = mapMediaAssets(task, [command], { runRoot });
+    const byUrl = new Map(assets.map((asset) => [asset.url, asset]));
 
-    const pngAsset = assets.find((a) => a.url.endsWith("telemetry_cards.png"));
-    expect(pngAsset).toBeDefined();
-    expect(pngAsset?.type).toBe("image");
-    expect(pngAsset?.mimeType).toBe("image/png");
-    expect(pngAsset?.title).toBe("Test Snapshot: telemetry_cards.png");
-    expect(pngAsset?.description).toContain("Captured by validator");
-    expect(pngAsset?.dimensions).toEqual({ width: 1280, height: 720 });
-    expect(pngAsset?.metadata?.stage).toBe("validation");
-    expect(pngAsset?.metadata?.commandId).toBe("CMD-GATE-PLAYWRIGHT");
+    const png = byUrl.get("test-results/dashboard/telemetry_cards.png");
+    expect(png?.type).toBe("image");
+    expect(png?.mimeType).toBe("image/png");
+    expect(png?.metadata?.stage).toBe("validation");
+    expect(png?.metadata?.commandId).toBe("CMD-GATE");
 
-    const svgAsset = assets.find((a) => a.url.endsWith("layout_radial.svg"));
-    expect(svgAsset).toBeDefined();
-    expect(svgAsset?.type).toBe("diagram");
-    expect(svgAsset?.mimeType).toBe("image/svg+xml");
-    expect(svgAsset?.title).toBe("Validator Layout Audit: layout_radial.svg");
-
-    const webmAsset = assets.find((a) => a.url.endsWith("run_recording.webm"));
-    expect(webmAsset).toBeDefined();
-    expect(webmAsset?.type).toBe("video");
-    expect(webmAsset?.mimeType).toBe("video/webm");
-
-    const pdfAsset = assets.find((a) => a.url.endsWith("audit_summary.pdf"));
-    expect(pdfAsset).toBeDefined();
-    expect(pdfAsset?.type).toBe("document");
-    expect(pdfAsset?.mimeType).toBe("application/pdf");
-
-    const logAsset = assets.find((a) => a.url.endsWith("test_execution.log"));
-    expect(logAsset).toBeDefined();
-    expect(logAsset?.type).toBe("log");
-    expect(logAsset?.mimeType).toBe("text/plain");
-
-    const pwMeta = detectPlaywrightMetadata(task, [cmdGate], assets);
-    expect(pwMeta).toBeDefined();
-    expect(pwMeta?.browser).toBe("chromium");
-    expect(pwMeta?.status).toBe("passed");
-    expect(pwMeta?.testFile).toBe("tests/ui/dashboard.spec.ts");
-    expect(pwMeta?.videos).toContain("test-results/dashboard/run_recording.webm");
-    expect(pwMeta?.screenshots?.length).toBeGreaterThanOrEqual(1);
+    expect(byUrl.get("playwright-report/audit/layout_radial.svg")?.type).toBe("diagram");
+    expect(byUrl.get("test-results/dashboard/run_recording.webm")?.type).toBe("video");
+    expect(byUrl.get("evidence/audit_summary.pdf")?.type).toBe("document");
   });
 
-  test("maps task finding screenshots into media assets with dimensions, title, and author", () => {
-    const task: TaskRecord = {
-      id: "T-media-findings",
-      label: "Visual Regression Check",
+  test("finds nothing in a log the run never wrote rather than inventing an asset", () => {
+    const task = makeTask("T-no-logs");
+    const command = makeCommand("CMD-MISSING", {
+      task_id: "T-no-logs",
+      argv: ["bun", "test"],
+      logs: {
+        stdout: { path: "commands/CMD-MISSING/stdout.log", bytes: 900, sha256: "a" },
+        stderr: { path: "commands/CMD-MISSING/stderr.log", bytes: 0, sha256: "b" },
+      },
+    });
+
+    expect(mapMediaAssets(task, [command], { runRoot: "/nonexistent-run-root" })).toEqual([]);
+  });
+
+  test("scopes finding screenshots to the validator and report screenshots to the implementer", () => {
+    const task = makeTask("T-media-findings", {
       status: "changes_requested",
-      requirement_ids: ["REQ-VR-01"],
-      write_scope: ["src/ui/theme.ts"],
-      dependencies: [],
-      attempts: [],
-      history: [],
       repair_round: 1,
+      report: { summary: "done", screenshots: ["evidence/report-shot.png"] },
       validation: {
         validator_id: "val-visual-inspector",
+        token_digest: "tok",
+        attempt: 1,
+        started_at: "2026-08-15T19:00:00.000Z",
+        deadline_at: "2026-08-15T19:10:00.000Z",
         verdict: "reject",
       },
       findings: [
         {
           id: "FINDING-THEME-01",
+          requirement_id: "REQ-T-media-findings",
+          severity: "critical",
           observation: "Dark mode background has low contrast",
+          remediation: "Raise the contrast",
+          revalidation: "Re-run the theme gate",
+          status: "open",
+          evidence: [],
           screenshots: ["evidence/theme-dark.png"],
         },
       ],
-    };
+    });
 
-    const assets = mapMediaAssets(task, []);
-    expect(assets).toHaveLength(1);
-    const asset = assets[0];
-    expect(asset.id).toBe("FINDING-THEME-01-screenshot-1");
-    expect(asset.type).toBe("image");
-    expect(asset.url).toBe("evidence/theme-dark.png");
-    expect(asset.mimeType).toBe("image/png");
-    expect(asset.dimensions).toEqual({ width: 1280, height: 720 });
-    expect(asset.author).toBe("val-visual-inspector");
-    expect(asset.metadata?.findingId).toBe("FINDING-THEME-01");
-    expect(asset.metadata?.stage).toBe("validation");
+    const implementer = mapMediaAssets(task, [], { scope: "implementer" });
+    expect(implementer.map((asset) => asset.url)).toEqual(["evidence/report-shot.png"]);
+
+    const validator = mapMediaAssets(task, [], { scope: "validator" });
+    expect(validator).toHaveLength(1);
+    expect(validator[0].id).toBe("FINDING-THEME-01-screenshot-1");
+    expect(validator[0].url).toBe("evidence/theme-dark.png");
+    expect(validator[0].author).toBe("val-visual-inspector");
+    expect(validator[0].metadata?.findingId).toBe("FINDING-THEME-01");
   });
 });

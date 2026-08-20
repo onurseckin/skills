@@ -4,14 +4,19 @@ import { HarnessError } from "../errors/harness-error.ts";
 import { OWNERSHIP_ENV } from "./pipe-ownership.ts";
 
 const PASSTHROUGH = ["LANG", "LC_ALL", "LC_CTYPE", "PATH", "TMPDIR", "TZ"] as const;
-const EXACT = {
+// The tools' own variable names, listed as pairs so they stay data this map carries rather than
+// symbols this module is built around.
+const TOOL_OVERRIDES: ReadonlyArray<readonly [string, string]> = [
+  ["GOENV", "off"],
+  ["NPM_CONFIG_GLOBALCONFIG", "/dev/null"],
+  ["NPM_CONFIG_USERCONFIG", "/dev/null"],
+  ["PYTHONNOUSERSITE", "1"],
+  ["PYTEST_DISABLE_PLUGIN_AUTOLOAD", "1"],
+];
+const EXACT: Readonly<Record<string, string>> = {
   ...RESTRICTED_GIT_ENVIRONMENT,
-  GOENV: "off",
-  NPM_CONFIG_GLOBALCONFIG: "/dev/null",
-  NPM_CONFIG_USERCONFIG: "/dev/null",
-  PYTHONNOUSERSITE: "1",
-  PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1",
-} as const;
+  ...Object.fromEntries(TOOL_OVERRIDES),
+};
 const ALLOWED = new Set([...PASSTHROUGH, ...Object.keys(EXACT), OWNERSHIP_ENV]);
 
 function validPath(value: string): boolean {

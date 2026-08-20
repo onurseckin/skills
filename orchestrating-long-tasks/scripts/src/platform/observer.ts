@@ -1,8 +1,9 @@
 import { chmodSync, existsSync, lstatSync, mkdirSync, readFileSync, rmSync } from "node:fs";
 import { hostname } from "node:os";
-import { join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import { randomUUID } from "node:crypto";
 import { atomicWriteJson, fsyncDirectory } from "../core/durable-write.ts";
+import { LOCKS_DIRECTORY } from "../store/layout.ts";
 
 interface Observer {
   path: string;
@@ -25,9 +26,18 @@ function sameDirectory(observer: Observer): boolean {
   }
 }
 
+/**
+ * Who currently holds the run lock. This is coordination state, not durable state, so it lives
+ * beside the capsules rather than inside one — a capsule should contain only what the run recorded,
+ * and a reader browsing it should not have to tell a lock apart from evidence.
+ */
+export function observerDirectory(runRoot: string): string {
+  return join(dirname(runRoot), LOCKS_DIRECTORY, basename(runRoot));
+}
+
 export function publishObserver(runRoot: string): Observer {
-  const path = join(runRoot, ".lock");
-  if (!existsSync(path)) mkdirSync(path, { mode: 0o700 });
+  const path = observerDirectory(runRoot);
+  if (!existsSync(path)) mkdirSync(path, { recursive: true, mode: 0o700 });
   const stat = lstatSync(path);
   if (!stat.isDirectory() || stat.isSymbolicLink())
     throw new Error(`unsafe observer directory: ${path}`);

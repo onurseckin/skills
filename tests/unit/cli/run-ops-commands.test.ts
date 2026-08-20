@@ -45,7 +45,15 @@ describe("CLI run-ops commands", () => {
     const statBefore = await execute(["run:status", "--run", run]);
     expect(String(statBefore.markdown)).toContain("### Run Status: status-run (Phase: Planning)");
 
-    await execute(["plan:compile", "--run", run, "--actor", "planner"]);
+    await execute([
+      "plan:compile",
+      "--run",
+      run,
+      "--actor",
+      "planner",
+      "--completion-gate",
+      "bun test tests",
+    ]);
 
     const statAfter = await execute(["run:status", "--run", run, "--detailed"]);
     expect(String(statAfter.markdown)).toContain("### Run Status: status-run (Phase: Executing)");
@@ -73,6 +81,8 @@ describe("CLI run-ops commands", () => {
       "run:exec",
       "--run",
       run,
+      "--actor",
+      "coordinator",
       "--cwd",
       repo,
       "--",

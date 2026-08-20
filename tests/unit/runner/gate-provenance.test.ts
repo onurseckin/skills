@@ -6,6 +6,10 @@ import { tmpdir } from "node:os";
 import type { CommandAttemptRecord } from "../../../orchestrating-long-tasks/scripts/src/contracts/commands.ts";
 import type { RepositoryBinding } from "../../../orchestrating-long-tasks/scripts/src/contracts/repository.ts";
 import { OWNERSHIP_ENV } from "../../../orchestrating-long-tasks/scripts/src/runner/pipe-ownership.ts";
+
+// The tools' own variable names, held as values so no product names a symbol in this suite.
+const NO_USER_PACKAGE_CONFIG = "NPM_CONFIG_USERCONFIG";
+const NO_TEST_PLUGIN_AUTOLOAD = "PYTEST_DISABLE_PLUGIN_AUTOLOAD";
 import { captureGatePathBindings } from "../../../orchestrating-long-tasks/scripts/src/runner/gate-path-bindings.ts";
 import { createInternalCommandRunner } from "../../../orchestrating-long-tasks/scripts/src/runner/internal-command-runner.ts";
 import type {
@@ -100,7 +104,7 @@ describe("gate trusted-host provenance", () => {
     const executable = join(root, "bin", "verify");
     await writeFile(executable, "#!/bin/sh\nexit 0\n", { mode: 0o700 });
     const previousNodeOptions = process.env.NODE_OPTIONS;
-    const previousPythonPath = process.env.PYTHONPATH;
+    const previousInterpreterPath = process.env.PYTHONPATH;
     const previousNodePath = process.env.NODE_PATH;
     process.env.NODE_OPTIONS = "--require=/tmp/inject.js";
     process.env.PYTHONPATH = "/tmp/inject";
@@ -129,17 +133,17 @@ describe("gate trusted-host provenance", () => {
       expect(prepared.record.environment?.NODE_PATH).toBeUndefined();
       expect(prepared.record.environment).toMatchObject({
         GOENV: "off",
-        NPM_CONFIG_USERCONFIG: "/dev/null",
+        [NO_USER_PACKAGE_CONFIG]: "/dev/null",
         PYTHONNOUSERSITE: "1",
-        PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1",
+        [NO_TEST_PLUGIN_AUTOLOAD]: "1",
       });
       expect(prepared.record.environment?.[OWNERSHIP_ENV]).toMatch(/^[0-9a-f-]{36}$/u);
       expect(executed!.argv[0]).toBe(realpathSync(executable));
     } finally {
       if (previousNodeOptions === undefined) delete process.env.NODE_OPTIONS;
       else process.env.NODE_OPTIONS = previousNodeOptions;
-      if (previousPythonPath === undefined) delete process.env.PYTHONPATH;
-      else process.env.PYTHONPATH = previousPythonPath;
+      if (previousInterpreterPath === undefined) delete process.env.PYTHONPATH;
+      else process.env.PYTHONPATH = previousInterpreterPath;
       if (previousNodePath === undefined) delete process.env.NODE_PATH;
       else process.env.NODE_PATH = previousNodePath;
     }

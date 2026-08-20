@@ -4,6 +4,7 @@ import type { IntegrityIssue, RunState } from "../contracts/capsule.ts";
 import { readCanonicalObject } from "../core/json.ts";
 import { validateEventChain } from "./event-stream.ts";
 import { issue } from "./issues.ts";
+import { verifyCapsuleLayout } from "./layout-integrity.ts";
 import { checkManifest } from "./manifest.ts";
 import { runFilePath } from "./paths.ts";
 import { sameJson } from "./state.ts";
@@ -20,7 +21,7 @@ export function verifyIntegrity(runRoot: string, options: StoreLimits = {}): Int
   const root = realpathSync(runRoot);
   const configured = limits(options);
   const manifestCheck = checkManifest(root, options);
-  const found = [...manifestCheck.issues];
+  const found = [...manifestCheck.issues, ...verifyCapsuleLayout(root)];
   let chain;
   try {
     chain = validateEventChain(

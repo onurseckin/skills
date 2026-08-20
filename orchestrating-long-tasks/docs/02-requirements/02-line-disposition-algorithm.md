@@ -1,4 +1,4 @@
-# 02. Line Disposition & Atomic Decomposition Algorithm
+# 02. Line Disposition & Requirement Derivation
 
 [⬅ Previous: Prompt Capture & Integrity](./01-prompt-capture-and-integrity.md) | [Master Table of Contents](../README.md) | [Next: Authority Decisions & Dispositions ➡](./03-authority-decisions-and-dispositions.md)
 
@@ -6,89 +6,149 @@
 
 ## 🔍 The 100% Line Disposition Rule
 
-In standard development, an agent reads a 500-word prompt, generates a brief 3-point plan, and gets to work. Along the way, 40% of the subtle constraints in the prompt are quietly forgotten.
+In standard development, an agent reads a 500-word prompt, generates a brief 3-point plan, and gets
+to work. Along the way 40% of the subtle constraints are quietly forgotten.
 
-To completely prevent unhandled requirements, the `orchestrating-long-tasks` compiler enforces the **100% Line Disposition Invariant**:
+The compiler forbids that outcome with the **100% Line Disposition Invariant**:
 
-> **Every single non-blank line of the user's prompt must be assigned exactly one mathematical disposition record during plan compilation.**
+> **Every non-blank line of `prompt.md` gets exactly one disposition record during `plan:compile`.**
 
-When the planner executes `plan:compile --actor planner`, the compiler validates that every non-blank line in `prompt.md` is strictly mapped to atomic requirements. If even one line is omitted, `plan:compile` fails with an `INTEGRITY` error.
+A line is disposed one of two ways. If a task claims it, its disposition is `kind: "requirement"` and
+it names the requirement ids that cover it. If no task claims it, the compiler disposes it as
+`kind: "context"` with the rationale _"Contextual background, architectural guidance, or specification
+constraints"_.
+
+This matters more than it sounds: a line does **not** silently vanish, and it does **not** block
+compilation either. It is recorded as context, visibly, so the completeness critic and a human reader
+can both see which lines the plan chose not to turn into work.
+
+Version 1 of the requirements document accepts four disposition kinds — `requirement`, `context`,
+`constraint`, `non_actionable` — and the compiler emits the first two.
 
 ---
 
-## 🧩 Declaring Tasks & Compiling the Graph
-
-Tasks are declared cleanly through the CLI with disjoint write scopes and mandatory gates:
+## 🧩 Declaring Tasks and Binding Them to Lines
 
 ```bash
-bun harness.ts plan:add --run .capsules/<slug> --actor planner --id <task-id> --label "<label>" --scope <path> --gate "<gate-cmd>" [--deps <dep-id>]
-```
+bun harness.ts plan:add --run .capsules/<slug> --actor planner --id <task-id> \
+  --label "<label>" --scope <path> --gate "<gate-cmd>" --requirement-lines "3-5,8" [--deps <dep-id>]
 
-You can inspect the planning buffer at any time:
-
-```bash
 bun harness.ts plan:status --run .capsules/<slug>
+
+bun harness.ts plan:compile --run .capsules/<slug> --actor planner --completion-gate "bun test tests"
 ```
 
-And compile the verified graph:
+Real output of a bound declaration:
 
-```bash
-bun harness.ts plan:compile --run .capsules/<slug> --actor planner
+```text
+### Task Registered: task-slug
+- **Label**: Slugify helper
+- **Write Scope**: `src/slug.ts`
+- **Mandatory Gate**: `bun test tests/slug.test.ts`
+- **Dependencies**: None (Parallel-ready)
+- **Prompt Binding**: Declared prompt lines 1
+- **Plan Size**: 1 tasks registered. Run `plan:compile` when finished adding tasks.
 ```
 
 ---
 
-## 🔬 Decomposing Compound Sentences: Plural Line Mapping
+## 📐 How the Compiler Actually Assigns Lines
 
-In natural language, users frequently pack multiple independent obligations into a single sentence. For example:
+The algorithm is short and worth knowing exactly, because its fallback is the source of most
+mis-scoped plans.
 
-> _"Add Redis caching for user sessions and deploy the schema migration only after I explicitly confirm it."_
+```text
+1. Collect every non-blank prompt line, 1-indexed.
+2. Withhold every line any task DECLARED via --requirement-lines, before the sweep starts.
+   → A task that named its lines cannot lose them to an earlier task that named none.
+3. For each task, in declaration order:
+     a. Declared lines?  → use them.
+     b. Otherwise        → take the next unclaimed, undeclared line by POSITION, and WARN.
+     c. No line left     → fold this task's gate and criterion into the requirement that already
+                           claims the fallback line, and WARN. If there is none, fail INTEGRITY.
+4. Mint one requirement per task: id `req-<task-id minus the "task-" prefix>`, disposition
+   `actionable`, status `planned`, acceptance criteria derived from the task's gate.
+5. Dispose every non-blank line: `requirement` if claimed, `context` if not.
+```
 
-This single line (Line 1) contains two distinct obligations:
+The positional fallback is a convenience with teeth. Its warning says so:
 
-1. **`R-CACHE`**: An immediately actionable coding task (_"Add Redis caching for user sessions"_).
-2. **`R-MIGRATE`**: An authority-gated external mutation (_"Deploy schema migration only after explicit confirmation"_).
+```text
+task task-2 was glued to prompt line 4 by position, not by declaration; pass
+--requirement-lines to bind it to the lines it actually implements
+```
 
-### The Plural Disposition Solution:
+And when there are more tasks than prompt lines:
 
-Instead of creating a monolithic requirement or dropping the approval constraint, the compiler decomposes the line into **two atomic requirements** mapped to the same source line:
+```text
+task task-9 had no unclaimed prompt line; its gate was folded into requirement req-1.
+Bind it with --requirement-lines to give it a requirement of its own
+```
+
+**Bind your lines.** A task glued to the wrong line proves the wrong obligation, and the critic will
+happily certify the mismatch because every mechanical check passes.
+
+---
+
+## 🔬 One Line, Several Obligations
+
+Users pack multiple obligations into one sentence:
+
+> _"Add Redis caching for user sessions and deploy the schema migration only after I confirm it."_
+
+Two tasks may both declare `--requirement-lines 1`. The line is then disposed once, naming both
+requirement ids:
 
 ```json
 {
-  "dispositions": [
-    {
-      "line": 1,
-      "kind": "requirement",
-      "requirement_ids": ["R-CACHE", "R-MIGRATE"],
-      "rationale": "Line contains both an actionable implementation obligation and a user-gated deployment obligation."
-    }
-  ]
+  "line": 1,
+  "kind": "requirement",
+  "requirement_ids": ["req-cache", "req-migrate"]
 }
 ```
 
-Both `R-CACHE` and `R-MIGRATE` list `source_lines: [1]` and `source_excerpt: "Add Redis caching..."`.
-
-- `R-CACHE` has `disposition: "actionable"`.
-- `R-MIGRATE` has `disposition: "needs_authority"`.
-
-This allows the scheduler to dispatch `R-CACHE` immediately in parallel via `queue:pop` / `task:claim`, while pausing `R-MIGRATE` until the user provides an audited authority decision!
+One disposition, several requirements — not several dispositions for one line. The compiler counts
+dispositions per line and rejects a duplicate.
 
 ---
 
-## 📐 Atomic Requirement Structure
+## 📋 The Derived Requirement
 
-| Field                 | Purpose                                                                  | Validation Rule                               |
-| :-------------------- | :----------------------------------------------------------------------- | :-------------------------------------------- |
-| **`id`**              | Unique alphanumeric requirement identifier (`req-foundations`, `R-001`). | Must be unique across the entire run.         |
-| **`source_lines`**    | Exact 1-indexed line numbers in `prompt.md`.                             | Must strictly match the lines in `prompt.md`. |
-| **`source_excerpt`**  | Exact string from `prompt.md` joined across `source_lines`.              | Byte-exact match with `prompt.md`.            |
-| **`instruction`**     | Concise summary of what the user asked for.                              | Non-empty string.                             |
-| **`implementation`**  | Technical explanation of how the system will satisfy it.                 | Non-empty string.                             |
-| **`subsystem`**       | Target directory or module path.                                         | Non-empty path string.                        |
-| **`acceptance`**      | Array of acceptance criteria with IDs (`A-001`) and expected evidence.   | Non-empty array of objects.                   |
-| **`candidate_gates`** | Proposed test commands that will prove completion.                       | Array of literal argv objects.                |
-| **`disposition`**     | Current actionability (`actionable` vs `needs_authority`).               | Closed enum.                                  |
-| **`status`**          | Lifecycle state (`planned`, `in_progress`, `satisfied`, `disposed`).     | Closed enum.                                  |
+Each requirement the compiler mints carries:
+
+| Field               | Value                                                                                                                           |
+| :------------------ | :------------------------------------------------------------------------------------------------------------------------------ |
+| `id`                | `req-<task suffix>` — `task-slug` yields `req-slug`.                                                                            |
+| `source_lines`      | The 1-indexed prompt lines the task bound to.                                                                                   |
+| `source_excerpt`    | Byte-exact text of those lines from `prompt.md`.                                                                                |
+| `instruction`       | The task's `--goal`, or its `--label` when no goal was given. Not the prompt sentence — read `source_excerpt` for that.         |
+| `implementation`    | A template the compiler writes from the label and write scope: _"Implement requirements for `<label>` within scope `<scope>`"_. |
+| `subsystem`         | The constant `"runtime/planning"`. The compiler derives nothing here, so do not read it as the target module.                   |
+| `acceptance[]`      | Criteria with their own ids, e.g. `crit-req-slug-1`, each naming its evidence.                                                  |
+| `candidate_gates[]` | Literal argv plus cwd, derived from the task's `--gate`.                                                                        |
+| `priority`          | The task's `--priority`, or `50`.                                                                                               |
+| `risk`              | The constant `"medium"`. Nothing measures it; treat it as unset.                                                                |
+| `dependencies`      | `req-` ids derived from the task's `--deps`.                                                                                    |
+| `disposition`       | `actionable`. `out_of_scope` is rejected in a plan; use `needs_authority`.                                                      |
+| `status`            | `planned`, then `satisfied` once proven.                                                                                        |
+
+Three of those fields are placeholders the compiler fills rather than facts it derived —
+`implementation`, `subsystem` and `risk`. They are documented here so a reader does not mistake a
+constant for a measurement; the fields that carry real information are `source_lines`,
+`source_excerpt`, `acceptance[]` and `candidate_gates[]`.
+
+The default acceptance criterion the compiler writes is exactly the gate:
+
+```json
+{
+  "id": "crit-req-slug-1",
+  "criterion": "Task gate `bun test tests/slug.test.ts` passes with exit code 0",
+  "evidence": ["Gate execution output for `task-slug`"]
+}
+```
+
+That is why a task with a weak gate produces a weak requirement. The gate is not a formality attached
+to the requirement — for a derived requirement, the gate _is_ the acceptance criterion.
 
 ---
 

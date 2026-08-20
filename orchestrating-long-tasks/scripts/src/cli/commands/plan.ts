@@ -1,5 +1,6 @@
-import { basename } from "node:path";
-import type { JsonValue } from "../../contracts/json.ts";
+import { basename, resolve } from "node:path";
+import { getHarnessConfig } from "../../config/harness-config.ts";
+import { isJsonObject, type JsonObject, type JsonValue } from "../../contracts/json.ts";
 import { readBoundedBytes } from "../../core/json.ts";
 import { HarnessError } from "../../errors/harness-error.ts";
 import { compileGraphDocument } from "../../graph/compiler.ts";
@@ -11,38 +12,39 @@ import {
   compileRequirementsFromPrompt,
   type TaskDeclaration,
 } from "../../requirements/compiler.ts";
+import { buildEnhancedPlan, writeEnhancedPlan } from "../../requirements/enhanced-plan.ts";
+import { parseRequirementLines } from "../../requirements/requirement-lines.ts";
+import { recordTopology } from "../../scheduler/index.ts";
 import { initRun, loadRun } from "../../store/index.ts";
 import { transact } from "../../store/transaction.ts";
 import { ensureHarnessIgnored } from "../git-ignore.ts";
+import { gateArgv } from "./plan-replan-bindings.ts";
+import { gateBreadthWarning } from "../../graph/gate-breadth.ts";
 import {
   formatCapsuleInitBrief,
   formatPlanCompileBrief,
+  formatPlanEnhanceBrief,
   formatPlanStatusBrief,
   formatTaskRegisteredBrief,
 } from "../formatters/index.ts";
 import {
   actorFlag,
-  assertFlags,
   boolFlag,
   integerFlag,
+  listFlag,
   textFlag,
   type Flags,
   type CommandContext,
 } from "../options.ts";
 
+function promptText(prompt: Uint8Array): string {
+  return new TextDecoder("utf-8", { fatal: true }).decode(prompt);
+}
+
 export async function planInitCommand(
   flags: Flags,
   context: CommandContext = {},
 ): Promise<Record<string, unknown>> {
-  assertFlags(flags, [
-    "run",
-    "run-id",
-    "prompt-file",
-    "prompt-stdin",
-    "repo",
-    "capture-mode",
-    "source-verified",
-  ]);
   const runId = textFlag(flags, "run", false) ?? textFlag(flags, "run-id", false);
   if (!runId) throw new HarnessError("INVALID_ARGUMENT", "must provide --run or --run-id");
 
@@ -77,20 +79,95 @@ export async function planInitCommand(
   return { markdown, run_root: runRoot, manifest, ignore_assurance };
 }
 
+/**
+ * The agent reads the repository host-side and reports what it found. Nothing here consults a model
+ * or the filesystem under test, so every recorded value is a claim carrying `agent_reported`, and
+ * the raw prompt keeps its authority over what the run is obliged to deliver.
+ */
+export function planEnhanceCommand(flags: Flags): Record<string, unknown> {
+  const run = textFlag(flags, "run")!;
+  const actor = actorFlag(flags);
+  const loaded = loadRun(run);
+  const document = buildEnhancedPlan({
+    runId: loaded.manifest.run_id,
+    promptSha256: loaded.manifest.prompt_sha256,
+    actor,
+    recordedAt: new Date().toISOString(),
+    summary: textFlag(flags, "summary", false),
+    observations: listFlag(flags, "observation"),
+    todos: listFlag(flags, "todo"),
+    risks: listFlag(flags, "risk"),
+    openQuestions: listFlag(flags, "open-question"),
+    sources: listFlag(flags, "source"),
+  });
+  // Written before the transaction so the digests recorded in state are of bytes that exist.
+  const artifacts = writeEnhancedPlan(loaded.runRoot, document);
+
+  const counts = {
+    observations: document.observations.length,
+    todos: document.todos.length,
+    risks: document.risks.length,
+    open_questions: document.open_questions.length,
+    sources: document.sources.length,
+  };
+  let revision = 1;
+  transact(
+    run,
+    actor,
+    "plan-enhanced",
+    {
+      prompt_sha256: document.prompt_sha256,
+      markdown_sha256: artifacts.markdown_sha256,
+      json_sha256: artifacts.json_sha256,
+      todo_count: counts.todos,
+      observation_count: counts.observations,
+    },
+    (state) => {
+      const planning = isJsonObject(state.planning) ? state.planning : {};
+      const previous = isJsonObject(planning.enhanced_plan) ? planning.enhanced_plan : undefined;
+      const previousRevision = previous?.revision;
+      revision = typeof previousRevision === "number" ? previousRevision + 1 : 1;
+      const entry: JsonObject = {
+        ...artifacts,
+        revision,
+        prompt_sha256: document.prompt_sha256,
+        recorded_at: document.recorded_at,
+        actor,
+        // The artifacts were written and hashed by the harness; their contents are the agent's claim.
+        evidence_class: "agent_reported",
+        counts,
+      };
+      state.planning = { ...planning, enhanced_plan: entry };
+    },
+  );
+
+  const markdown = formatPlanEnhanceBrief({
+    runId: loaded.manifest.run_id,
+    markdownPath: artifacts.markdown_path,
+    jsonPath: artifacts.json_path,
+    markdownSha256: artifacts.markdown_sha256,
+    promptSha256: document.prompt_sha256,
+    revision,
+    summaryPresent: document.summary !== undefined,
+    counts: {
+      observations: counts.observations,
+      todos: counts.todos,
+      risks: counts.risks,
+      openQuestions: counts.open_questions,
+      sources: counts.sources,
+    },
+  });
+
+  return {
+    markdown,
+    run_root: loaded.runRoot,
+    revision,
+    enhanced_plan: { ...artifacts, revision, counts },
+    document,
+  };
+}
+
 export function planAddCommand(flags: Flags): Record<string, unknown> {
-  assertFlags(flags, [
-    "run",
-    "id",
-    "label",
-    "scope",
-    "gate",
-    "deps",
-    "goal",
-    "criteria",
-    "priority",
-    "effort",
-    "actor",
-  ]);
   const run = textFlag(flags, "run")!;
   const id = textFlag(flags, "id")!;
   const label = textFlag(flags, "label")!;
@@ -118,6 +195,13 @@ export function planAddCommand(flags: Flags): Record<string, unknown> {
   const priority = integerFlag(flags, "priority");
   const effort = integerFlag(flags, "effort");
   const actor = actorFlag(flags);
+  const requirementLinesSpec = textFlag(flags, "requirement-lines", false);
+  // Only read when a binding is declared: the positional path must keep working on a capsule the
+  // caller has not otherwise touched.
+  const requirementLines =
+    requirementLinesSpec === undefined
+      ? undefined
+      : parseRequirementLines(requirementLinesSpec, promptText(loadRun(run).prompt));
 
   const newTask: TaskDeclaration = {
     id,
@@ -129,6 +213,7 @@ export function planAddCommand(flags: Flags): Record<string, unknown> {
     ...(criteria !== undefined ? { criteria } : {}),
     ...(priority !== undefined ? { priority } : {}),
     ...(effort !== undefined ? { effort } : {}),
+    ...(requirementLines !== undefined ? { requirementLines } : {}),
   };
 
   let totalTasks = 0;
@@ -146,6 +231,7 @@ export function planAddCommand(flags: Flags): Record<string, unknown> {
     totalTasks = buffer.length;
   });
 
+  const breadthWarning = gateBreadthWarning(gate, writeScope);
   const markdown = formatTaskRegisteredBrief({
     taskId: id,
     label,
@@ -153,12 +239,21 @@ export function planAddCommand(flags: Flags): Record<string, unknown> {
     gateCmd: gate,
     deps,
     totalTasks,
+    requirementLines,
   });
-  return { markdown, run_root: run, task: newTask, total_tasks: totalTasks };
+  return {
+    markdown:
+      breadthWarning === undefined
+        ? markdown
+        : `${markdown}\n\n> **Gate breadth**: ${breadthWarning}`,
+    run_root: run,
+    task: newTask,
+    total_tasks: totalTasks,
+    ...(breadthWarning === undefined ? {} : { gate_breadth_warning: breadthWarning }),
+  };
 }
 
 export function planStatusCommand(flags: Flags): Record<string, unknown> {
-  assertFlags(flags, ["run"]);
   const run = textFlag(flags, "run")!;
   const state = loadRun(run).state;
   const rawBuffer = Array.isArray(state.planning_buffer) ? state.planning_buffer : [];
@@ -175,80 +270,5 @@ export function planStatusCommand(flags: Flags): Record<string, unknown> {
   return { markdown, run_root: run, tasks, is_compiled: isCompiled };
 }
 
-export function planCompileCommand(flags: Flags): Record<string, unknown> {
-  assertFlags(flags, ["run", "strict-parallel", "actor"]);
-  const run = textFlag(flags, "run")!;
-  const actor = actorFlag(flags);
-  const loaded = loadRun(run);
-  const prompt = new TextDecoder("utf-8", { fatal: true }).decode(loaded.prompt);
-  const rawBuffer = Array.isArray(loaded.state.planning_buffer) ? loaded.state.planning_buffer : [];
-  const buffer = rawBuffer as unknown as TaskDeclaration[];
-  if (buffer.length === 0)
-    throw new HarnessError("INVALID_STATE", "cannot compile empty planning buffer");
-
-  const scopeAnalysis = analyzeScopeIndependence(
-    buffer.map((t) => ({ taskId: t.id, writeScope: t.writeScope, dependencies: t.deps })),
-  );
-  if (scopeAnalysis.collisions.length > 0) {
-    const c = scopeAnalysis.collisions[0]!;
-    throw new HarnessError(
-      "INTEGRITY",
-      `Scope collision detected between ${c.taskA} and ${c.taskB} on path '${c.conflictingPath}'.`,
-    );
-  }
-
-  const { requirementsDocument, requirementIdsByTask } = compileRequirementsFromPrompt(
-    prompt,
-    buffer,
-  );
-  const { graphDocument } = compileGraphDocument(
-    buffer,
-    requirementsDocument,
-    requirementIdsByTask,
-    1,
-  );
-  const { dependencies } = dependencyData(
-    graphDocument.nodes as Record<string, unknown>[],
-    graphDocument.edges as Record<string, unknown>[],
-  );
-
-  transact(run, actor, "plan-compiled", { tasks_count: buffer.length }, (state) => {
-    if (!Array.isArray(state.plan_history)) {
-      state.plan_history = [];
-    }
-    guardPlanRevision(
-      state as unknown as Record<string, unknown>,
-      requirementsDocument,
-      graphDocument,
-      dependencies,
-    );
-    projectPlan(
-      state as unknown as Record<string, unknown>,
-      requirementsDocument,
-      graphDocument,
-      dependencies,
-    );
-    state.planning_tasks = buffer as unknown as JsonValue;
-  });
-
-  const advisories = scopeAnalysis.serializationWarnings.map((w) => w.message);
-  const markdown = formatPlanCompileBrief({
-    revision: 1,
-    totalTasks: buffer.length,
-    waves: scopeAnalysis.concurrencyWaves,
-    collisions: scopeAnalysis.collisions.length,
-    requirementsCount: requirementIdsByTask.size,
-    runId: basename(run),
-    advisories,
-  });
-
-  return {
-    markdown,
-    run_root: run,
-    revision: 1,
-    total_tasks: buffer.length,
-    waves: scopeAnalysis.concurrencyWaves,
-  };
-}
-
+export { planCompileCommand } from "./plan-compile.ts";
 export { planReplanCommand } from "./plan-replan.ts";

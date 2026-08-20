@@ -43,11 +43,11 @@ describe("operable recovery and event bounds", () => {
     expect(recovered.value).toBe(expected.value);
     expect(recovered.event_sequence).toBe(expected.event_sequence + 1);
     expect(verifyIntegrity(root)).toEqual([]);
-    const quarantines = readdirSync(join(root, "evidence")).filter((name) =>
+    const quarantines = readdirSync(join(root, "quarantine")).filter((name) =>
       name.startsWith("recovery-torn-"),
     );
     expect(quarantines).toHaveLength(1);
-    expect(readFileSync(join(root, "evidence", quarantines[0]!))).toEqual(Buffer.from(torn));
+    expect(readFileSync(join(root, "quarantine", quarantines[0]!))).toEqual(Buffer.from(torn));
     const repairedLog = readFileSync(join(root, "events.jsonl"), "utf8");
     expect(repairedLog.endsWith("\n")).toBeTrue();
     expect(repairedLog.trim().split("\n")).toHaveLength(2);
@@ -81,8 +81,7 @@ describe("operable recovery and event bounds", () => {
     const beforeState = readFileSync(join(root, "state.json"));
     const outside = `${root}-outside`;
     mkdirSync(outside);
-    rmSync(join(root, "evidence"), { recursive: true });
-    symlinkSync(outside, join(root, "evidence"));
+    symlinkSync(outside, join(root, "quarantine"));
 
     expect(() => recoverProjection(root, "recovery-agent")).toThrow(/unsafe|symbolic/i);
     expect(readFileSync(join(root, "events.jsonl"))).toEqual(beforeEvents);

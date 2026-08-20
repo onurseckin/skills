@@ -1,86 +1,182 @@
-# 02. Topological Conflict-Free Batch Scheduling
+# 02. Topological Conflict-Free Batching & The Recorded Topology
 
 [⬅ Previous: Dependency Graph Theory](./01-dependency-graph-theory.md) | [Master Table of Contents](../README.md) | [Next: Plan Revision & Freezing ➡](./03-plan-revision-and-freezing.md)
 
 ---
 
-## ⚡ The Challenge of Multi-Agent Concurrency
+## ⚡ One Authority for "What May Run Together"
 
-When an AI system dispatches multiple coding agents in parallel, chaos easily ensues if two agents attempt to edit the same file or overlapping directory trees at the same time:
+When several coding agents run at once, chaos follows if two of them edit overlapping paths. There is
+exactly **one** function that decides which tasks may run together — `proposeBatch` — and every
+command that answers a scheduling question calls it: `queue:next`, `queue:list`, `queue:wave`,
+`queue:pop`, and the topology recorder inside `plan:compile`.
 
-- Agent 1 writes `src/auth/session.ts`.
-- Agent 2 writes `src/auth/index.ts`.
-- Filesystem race conditions cause torn reads, clobbered functions, and broken imports.
-
-The `orchestrating-long-tasks` scheduler solves this through **Topological Conflict-Free Batch Scheduling** via `queue:next`, `queue:list`, and `queue:pop`.
+That single authority is the point. A second, divergent derivation of "which wave is this task in"
+was exactly how a plan and its summary could disagree about the same run.
 
 ---
 
-## 🧮 The 5-Step Scheduling Algorithm
-
-When the coordinator inspects `queue:next` or invokes `queue:pop`, the scheduler executes a 5-step deterministic algorithm:
+## 🧮 The Algorithm, Exactly
 
 ```text
-[ Graph in state.json ]
+[ state.graph + state.tasks ]
           │
           ▼
-1. Filter Ready Candidates (All prerequisites are 'done' & no un-granted authority)
+1. Reject outright unless a plan has been applied
+   → "a plan must be applied before scheduling"
           │
           ▼
-2. 6-Factor Deterministic Priority Ranking (P1 -> P2 -> P3 -> P4 -> P5 -> P6)
+2. Candidate filter. A task is eligible when ALL of:
+     • status ∈ { proposed, ready, retry_ready }
+     • its requirements are executable (no ungranted authority gate)
+     • it conflicts with no task that currently OCCUPIES a scope
+     • every dependency is done
           │
           ▼
-3. Conflict-Free Write Scope Filter (Greedy packing without path collisions)
+3. Rank the eligible set with the 6-factor comparator
           │
           ▼
-4. Concurrency Limit Clamp (Batch size <= max-parallel)
+4. Greedy pack: walk the ranked list, take a task only if it conflicts
+   with nothing already selected
           │
           ▼
-[ Return Dispatch Batch & Atomically Lease Tasks to Agents ]
+5. Clamp to maxParallel (config default_max_parallel, default 4)
+          │
+          ▼
+[ the wave ]
 ```
 
----
+### Who "occupies" a scope
 
-## 🥇 Step 2: The 6-Factor Deterministic Ranking Formula
-
-Candidate tasks that are unblocked are sorted using a multi-dimensional comparator. If two tasks tie on the first factor, the engine evaluates the next factor:
-
-| Rank Factor  | Property Evaluated     | Sort Direction                         | Rationale                                                              |
-| :----------- | :--------------------- | :------------------------------------- | :--------------------------------------------------------------------- |
-| **Factor 1** | `priority`             | **Descending** (Highest first)         | Explicit business/architectural importance set in plan.                |
-| **Factor 2** | `critical_depth`       | **Descending** (Longest path first)    | Longest dependency chain downstream; unblocks the most future work.    |
-| **Factor 3** | `distinct_descendants` | **Descending** (Most dependents first) | Number of unique downstream tasks waiting on this result.              |
-| **Factor 4** | `created_order`        | **Ascending** (Oldest first)           | First-in, first-out fairness based on plan authoring order.            |
-| **Factor 5** | `effort`               | **Ascending** (Smallest first)         | Shortest job first (SJF) optimization to quickly clear bandwidth.      |
-| **Factor 6** | `id`                   | **Ascending** (ASCII alphabetical)     | Total deterministic tie-breaker (eliminates nondeterministic sorting). |
+A task occupies its write scope when it holds active ownership _and_ is not itself dispatchable —
+that is, anything outside `proposed`, `ready`, `done`, `cancelled`, `blocked`, `escalated`, `stale`,
+minus the dispatchable states. `retry_ready` is deliberately excluded: a released task holds no lease
+and no agent, so counting it as an occupant would let two conflicting released tasks veto each other
+and leave the wave permanently empty. Conflicts _between_ candidates are resolved by the packing loop
+instead.
 
 ---
 
-## 🛡️ Step 3: Write-Scope Collision Detection
+## 🥇 The 6-Factor Deterministic Ranking
 
-The scheduler evaluates the `write_scope` of each candidate against already-selected tasks in the batch. Two write scopes conflict if:
+Ties fall through to the next factor; the last factor is total, so the order is fully deterministic.
 
-1. **Exact Match:** Task A has `write_scope: ["src/auth"]` and Task B has `write_scope: ["src/auth"]`.
-2. **Ancestor / Descendant Collision:** Task A has `write_scope: ["src"]` and Task B has `write_scope: ["src/auth"]` (Ancestor contains descendant).
+| Rank | Property        | Direction  | Rationale                                                    |
+| :--- | :-------------- | :--------- | :----------------------------------------------------------- |
+| 1    | `priority`      | Descending | Explicit importance declared in `plan:add --priority`.       |
+| 2    | `criticalDepth` | Descending | Longest downstream dependency chain; unblocks the most work. |
+| 3    | `descendants`   | Descending | Distinct downstream tasks waiting on this one.               |
+| 4    | `created_order` | Ascending  | FIFO fairness by authoring order.                            |
+| 5    | `effort`        | Ascending  | Shortest job first, to clear bandwidth.                      |
+| 6    | `id`            | Ascending  | Total tie-break; eliminates nondeterministic sorting.        |
 
-### Worked Example:
+---
 
-Suppose we have 4 ready tasks and `default_max_parallel: 3`:
+## 🛡️ Scope Conflict Is Glob-Aware
 
-- **Task 1:** Priority 100, `write_scope: ["src/auth"]`
-- **Task 2:** Priority 95, `write_scope: ["src/auth/session"]` _(Conflicts with Task 1!)_
-- **Task 3:** Priority 90, `write_scope: ["src/database"]` _(Disjoint)_
-- **Task 4:** Priority 85, `write_scope: ["src/api"]` _(Disjoint)_
+Two scopes conflict when they can name the same literal path. That is a broader test than string
+prefixing, and it has to be:
 
-**Resulting Dispatch:**
+| Left       | Right              | Conflict? | Why                                                   |
+| :--------- | :----------------- | :-------- | :---------------------------------------------------- |
+| `src/auth` | `src/auth`         | yes       | Identical.                                            |
+| `src`      | `src/auth`         | yes       | A scope owns everything beneath it.                   |
+| `docs/**`  | `docs/concepts/**` | **yes**   | `**` absorbs any number of remaining segments.        |
+| `src/*.ts` | `src/index.ts`     | **yes**   | `*` matches any run of characters inside one segment. |
+| `src/auth` | `src/database`     | no        | Genuinely disjoint.                                   |
 
-1. **Task 1** is leased via `queue:pop` / `task:claim` (Highest priority).
-2. **Task 2** is **held back** (Write scope `src/auth/session` is a descendant of `src/auth`).
-3. **Task 3** is leased (Disjoint from Task 1).
-4. **Task 4** is leased (Disjoint from Tasks 1 and 3).
+The matcher runs a segment-by-segment reachability table, so a `**` on either side branches between
+absorbing a segment and matching nothing, and `*` inside a segment is compared against the other
+side's characters rather than as an opaque string. A missed collision hands two agents the same file,
+so the test errs toward conflict.
 
-**Dispatched Batch:** `[Task 1, Task 3, Task 4]`.
-Task 2 remains queued safely until Task 1 completes and releases its write lease!
+The same function guards branch sub-scopes ([Chapter 09 §01](../09-branching-and-honesty/01-execution-time-branching.md)),
+so sibling sub-agents cannot overlap either.
+
+Alongside write scopes, `resource_scope` conflicts on plain set intersection: two tasks that both
+declare `port:5432` are serialised even though they touch different files.
+
+---
+
+## 🌊 Take the Whole Wave
+
+```bash
+bun harness.ts queue:wave --run .capsules/<run-id> --max-parallel 4
+```
+
+```text
+### Dispatchable Wave: 2/4 conflict-free tasks
+| Task | Label | Priority | Write Scope | Planned Wave |
+| :--- | :--- | :--- | :--- | :--- |
+| `task-slug` | Slugify helper | 50 | `src/slug.ts` | 1 |
+| `task-truncate` | Truncate helper | 50 | `src/truncate` | 1 |
+
+- **Topology**: recorded at graph revision 1
+- **Dispatch**: launch all 2 agents in one batch; each claims its own task.
+```
+
+`queue:wave` is **read-only**. It reports what may run together now, annotated with the wave
+`plan:compile` recorded — or states that the topology is absent, rather than inventing one. Each
+dispatched agent then claims its own task with `task:claim --role`.
+
+`queue:pop` still exists and still leases exactly one task. Using it in a loop is what turns a
+parallel graph into a waterfall; reach for it when you genuinely want one worker.
+
+`--max-parallel` overrides the cap for one call; without it the configured `default_max_parallel`
+applies. No formatter hardcodes a parallelism number any more — the brief above says "2/4" because
+the config says 4.
+
+---
+
+## 🗺️ The Recorded Topology
+
+`plan:compile` persists its scheduling decision in `state.topology` so nothing downstream has to
+re-derive it:
+
+```json
+{
+  "revision": 1,
+  "max_parallel": 4,
+  "waves": [{ "wave": 1, "task_ids": ["task-slug", "task-truncate"] }],
+  "decisions": [
+    {
+      "task_id": "task-slug",
+      "wave": 1,
+      "parallel_with": ["task-truncate"],
+      "serialized_after": [],
+      "reason": "priority_capacity",
+      "rationale": "wave 1: no dependency or scope conflict; ranked into a slot of max_parallel 4",
+      "evidence_class": "derived"
+    }
+  ]
+}
+```
+
+Three `reason` values exist: `dependency`, `write_scope_conflict`, `priority_capacity`. The
+`rationale` is `agent_reported` only when a coordinator supplied the sentence; the harness's own
+explanation is `derived`. There is no third source, so a decision never carries prose nobody wrote.
+
+`summary/step-calculator.ts` reads this record instead of re-deriving waves, which is what keeps the
+executive brief and the scheduler telling the same story. A capsule written before topology existed
+simply has none, and readers must see that absence rather than a default.
+
+---
+
+## 🔬 Worked Example
+
+Four ready tasks, `default_max_parallel: 3`:
+
+- **Task 1** priority 100, `write_scope: ["src/auth"]`
+- **Task 2** priority 95, `write_scope: ["src/auth/session"]`
+- **Task 3** priority 90, `write_scope: ["src/database"]`
+- **Task 4** priority 85, `write_scope: ["src/api"]`
+
+Ranking gives `[1, 2, 3, 4]`. The packing loop takes Task 1, skips Task 2 (`src/auth` owns
+`src/auth/session`), takes Task 3, takes Task 4, and stops at the cap.
+
+**Wave:** `[Task 1, Task 3, Task 4]`. Task 2's decision is recorded with
+`reason: "write_scope_conflict"` and `serialized_after: ["task-1"]`, so the plan states plainly why it
+waited rather than leaving a reader to guess.
 
 ---
 

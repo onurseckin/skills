@@ -1,6 +1,15 @@
+import type { EvidenceClass } from "../contracts/evidence.ts";
 import type { FindingDetail } from "../workflow/scope-partitioner.ts";
-import type { Finding, GateResult } from "../contracts/workflow.ts";
-import type { DefectSynthesis, CriticDecision } from "./types.ts";
+import type { Finding } from "../contracts/workflow.ts";
+import type { DefectSynthesis, CriticDecision, RoundGateResult } from "./types.ts";
+
+/**
+ * A finding carrying the provenance of its file list. Paths a finding declared are facts; paths
+ * recovered from its prose are inference, and the synthesized prompt says which it is reading.
+ */
+export interface NormalizedFinding extends FindingDetail {
+  readonly file_paths_evidence_class: EvidenceClass;
+}
 
 export interface SynthesizeDefectsInput {
   readonly roundNumber: number;
@@ -9,7 +18,7 @@ export interface SynthesizeDefectsInput {
   readonly findings?: readonly (Finding | FindingDetail)[] | undefined;
   readonly criticDecision?: CriticDecision | undefined;
   readonly criticFeedback?: string | undefined;
-  readonly gateResults?: readonly GateResult[] | undefined;
+  readonly gateResults?: readonly RoundGateResult[] | undefined;
   readonly gateFailures?: readonly string[] | undefined;
 }
 
@@ -21,13 +30,14 @@ function isFindingDetail(finding: Finding | FindingDetail): finding is FindingDe
   );
 }
 
-export function normalizeFindingToDetail(finding: Finding | FindingDetail): FindingDetail {
+export function normalizeFindingToDetail(finding: Finding | FindingDetail): NormalizedFinding {
   if (isFindingDetail(finding)) {
     return {
       id: finding.id,
       requirement_id: finding.requirement_id,
-      severity: finding.severity || "important",
+      severity: finding.severity,
       file_paths: finding.file_paths,
+      file_paths_evidence_class: "agent_reported",
       observation: finding.observation,
       remediation: finding.remediation,
       revalidation_gate: finding.revalidation_gate,
@@ -47,20 +57,45 @@ export function normalizeFindingToDetail(finding: Finding | FindingDetail): Find
       }
     }
   }
-  if (inferredFiles.length === 0) {
-    inferredFiles.push(".");
-  }
-
+  // No path in the text means no path is known. The repository root is not a stand-in for one.
   return {
     id: f.id,
     requirement_id: f.requirement_id,
     severity:
       f.severity === "minor" ? "minor" : f.severity === "critical" ? "critical" : "important",
     file_paths: inferredFiles,
+    file_paths_evidence_class: "derived",
     observation: f.observation,
     remediation: f.remediation,
     revalidation_gate: f.revalidation,
   };
+}
+
+function pathLine(finding: NormalizedFinding): string | undefined {
+  if (finding.file_paths.length === 0) return undefined;
+  const paths = finding.file_paths.map((p) => `\`${p}\``).join(", ");
+  return finding.file_paths_evidence_class === "agent_reported"
+    ? `  - **Affected Files:** ${paths}`
+    : `  - **Files Named In The Observation (inferred, not declared):** ${paths}`;
+}
+
+function renderFindingGroup(
+  lines: string[],
+  heading: string,
+  group: readonly NormalizedFinding[],
+  withRevalidation: boolean,
+): void {
+  if (group.length === 0) return;
+  lines.push(heading);
+  for (const finding of group) {
+    lines.push(`- **[${finding.id}]** ${finding.observation}`);
+    const paths = pathLine(finding);
+    if (paths) lines.push(paths);
+    lines.push(`  - **Remediation:** ${finding.remediation}`);
+    if (withRevalidation && finding.revalidation_gate)
+      lines.push(`  - **Revalidation Command:** \`${finding.revalidation_gate}\``);
+  }
+  lines.push("");
 }
 
 export function synthesizeNextRoundPrompt(input: SynthesizeDefectsInput): DefectSynthesis {
@@ -74,7 +109,7 @@ export function synthesizeNextRoundPrompt(input: SynthesizeDefectsInput): Defect
   } = input;
 
   // Deduplicate findings by id, merging affected file paths
-  const dedupedMap = new Map<string, FindingDetail>();
+  const dedupedMap = new Map<string, NormalizedFinding>();
   for (const rawFinding of findings) {
     if (rawFinding && typeof rawFinding.id === "string" && rawFinding.id.length > 0) {
       const normalized = normalizeFindingToDetail(rawFinding);
@@ -83,9 +118,14 @@ export function synthesizeNextRoundPrompt(input: SynthesizeDefectsInput): Defect
         const mergedFiles = Array.from(
           new Set([...existing.file_paths, ...normalized.file_paths]),
         ).sort();
+        // A union that absorbed an inferred path is itself inference, so the weaker class wins.
         dedupedMap.set(normalized.id, {
           ...normalized,
           file_paths: mergedFiles,
+          file_paths_evidence_class:
+            existing.file_paths_evidence_class === normalized.file_paths_evidence_class
+              ? normalized.file_paths_evidence_class
+              : "derived",
         });
       } else {
         dedupedMap.set(normalized.id, normalized);
@@ -140,41 +180,9 @@ export function synthesizeNextRoundPrompt(input: SynthesizeDefectsInput): Defect
       "No explicit structured findings recorded. Complete all remaining open requirements and run-level validation gates.",
     );
   } else {
-    if (critical.length > 0) {
-      lines.push("#### 🔴 Critical Findings");
-      for (const f of critical) {
-        lines.push(`- **[${f.id}]** ${f.observation}`);
-        lines.push(`  - **Affected Files:** ${f.file_paths.map((p) => `\`${p}\``).join(", ")}`);
-        lines.push(`  - **Remediation:** ${f.remediation}`);
-        if (f.revalidation_gate) {
-          lines.push(`  - **Revalidation Command:** \`${f.revalidation_gate}\``);
-        }
-      }
-      lines.push("");
-    }
-
-    if (important.length > 0) {
-      lines.push("#### 🟡 Important Findings");
-      for (const f of important) {
-        lines.push(`- **[${f.id}]** ${f.observation}`);
-        lines.push(`  - **Affected Files:** ${f.file_paths.map((p) => `\`${p}\``).join(", ")}`);
-        lines.push(`  - **Remediation:** ${f.remediation}`);
-        if (f.revalidation_gate) {
-          lines.push(`  - **Revalidation Command:** \`${f.revalidation_gate}\``);
-        }
-      }
-      lines.push("");
-    }
-
-    if (minor.length > 0) {
-      lines.push("#### ⚪ Minor Findings & Suggestions");
-      for (const f of minor) {
-        lines.push(`- **[${f.id}]** ${f.observation}`);
-        lines.push(`  - **Affected Files:** ${f.file_paths.map((p) => `\`${p}\``).join(", ")}`);
-        lines.push(`  - **Remediation:** ${f.remediation}`);
-      }
-      lines.push("");
-    }
+    renderFindingGroup(lines, "#### 🔴 Critical Findings", critical, true);
+    renderFindingGroup(lines, "#### 🟡 Important Findings", important, true);
+    renderFindingGroup(lines, "#### ⚪ Minor Findings & Suggestions", minor, false);
   }
 
   lines.push("### Mandatory Next Round Invariants");

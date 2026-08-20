@@ -10,7 +10,9 @@ export interface CapsuleInitParams {
 }
 
 export function formatCapsuleInitBrief(params: CapsuleInitParams): string {
-  const bunVer = params.bunVersion ?? "1.3.14";
+  // A missing runtime version is reported as missing; naming a version nobody measured would make
+  // the capsule look reproducible against a runtime it may never have run on.
+  const bunVer = params.bunVersion ?? "unknown";
   const md = [
     `### Capsule Initialized: ${params.runId}`,
     `- **Capsule Root**: \`${params.runRoot}\``,
@@ -28,6 +30,7 @@ export interface TaskRegisteredParams {
   gateCmd: string;
   deps: readonly string[];
   totalTasks: number;
+  requirementLines?: readonly number[] | undefined;
 }
 
 export function formatTaskRegisteredBrief(params: TaskRegisteredParams): string {
@@ -36,42 +39,97 @@ export function formatTaskRegisteredBrief(params: TaskRegisteredParams): string 
     params.deps.length > 0
       ? params.deps.map((d) => `\`${d}\``).join(", ")
       : "None (Parallel-ready)";
+  const binding =
+    params.requirementLines && params.requirementLines.length > 0
+      ? `Declared prompt lines ${params.requirementLines.join(", ")}`
+      : "⚠️ Positional fallback — pass `--requirement-lines` to bind this task to the prompt lines it implements";
   const md = [
     `### Task Registered: ${params.taskId}`,
     `- **Label**: ${params.label}`,
     `- **Write Scope**: ${scopeStr}`,
     `- **Mandatory Gate**: \`${params.gateCmd}\``,
     `- **Dependencies**: ${depsStr}`,
+    `- **Prompt Binding**: ${binding}`,
     `- **Plan Size**: ${params.totalTasks} tasks registered. Run \`plan:compile\` when finished adding tasks.`,
   ].join("\n");
   return enforceLineLimit(md, 30);
 }
 
+export interface PlanEnhanceParams {
+  runId: string;
+  markdownPath: string;
+  jsonPath: string;
+  markdownSha256: string;
+  promptSha256: string;
+  revision: number;
+  summaryPresent: boolean;
+  counts: {
+    observations: number;
+    todos: number;
+    risks: number;
+    openQuestions: number;
+    sources: number;
+  };
+}
+
+export function formatPlanEnhanceBrief(params: PlanEnhanceParams): string {
+  const md = [
+    `### Enhanced Plan Recorded: ${params.runId} (revision ${params.revision})`,
+    `- **Document**: \`${params.markdownPath}\` (sha256 \`${params.markdownSha256}\`)`,
+    `- **Machine Copy**: \`${params.jsonPath}\``,
+    `- **Brief**: ${params.summaryPresent ? "reported" : "not reported"} | **To-dos**: ${params.counts.todos} | **Observations**: ${params.counts.observations}`,
+    `- **Risks**: ${params.counts.risks} | **Open Questions**: ${params.counts.openQuestions} | **Sources Read**: ${params.counts.sources}`,
+    `- **Evidence**: \`agent_reported\` throughout — this is the agent's claim about the repository, not a harness measurement.`,
+    `- **Authority**: \`prompt.md\` (sha256 \`${params.promptSha256}\`) stays the requirement source; this document is derived.`,
+    `- **Next Step**: Review the document, then declare tasks with \`plan:add --requirement-lines\`.`,
+  ].join("\n");
+  return enforceLineLimit(md, 30);
+}
+
+export interface PlanCompileTopology {
+  revision: number;
+  maxParallel: number;
+  waves: { wave: number; taskIds: readonly string[] }[];
+}
+
 export interface PlanCompileParams {
   revision: number;
   totalTasks: number;
-  waves: { waveIndex: number; tasks: string[]; dependencies?: string[] }[];
+  /** The topology the command just recorded. The brief reports that record and nothing else, so the
+   *  parallelisation the caller reads is the one the queue will hand out. */
+  topology: PlanCompileTopology;
   collisions: number;
   requirementsCount: number;
   runId: string;
   advisories?: string[];
+  warnings?: string[];
 }
 
 export function formatPlanCompileBrief(params: PlanCompileParams): string {
-  const wave0 = params.waves.find((w) => w.waveIndex === 0);
-  const wave0Tasks = wave0 ? wave0.tasks.map((t) => `\`${t}\``).join(", ") : "None";
-  const wave0Lanes = wave0 ? wave0.tasks.length : 0;
-  const otherWaves = params.waves.filter((w) => w.waveIndex > 0);
+  const waves = params.topology.waves;
+  const scheduled = new Set(waves.flatMap((wave) => [...wave.taskIds]));
 
   const lines = [
     `### Plan Compiled Successfully (Graph Revision ${params.revision})`,
-    `- **Total Tasks**: ${params.totalTasks} registered | **Parallel Concurrency Waves**: ${params.waves.length}`,
-    `- **Wave 0 (Ready Now)**: ${wave0Tasks} (${wave0Lanes} parallel ${wave0Lanes === 1 ? "lane" : "lanes"})`,
+    `- **Total Tasks**: ${params.totalTasks} registered | **Recorded Waves**: ${waves.length} (topology revision ${params.topology.revision}, max_parallel ${params.topology.maxParallel})`,
   ];
 
-  for (const wave of otherWaves) {
-    const waveTasks = wave.tasks.map((t) => `\`${t}\``).join(", ");
-    lines.push(`- **Wave ${wave.waveIndex} (Blocked)**: ${waveTasks}`);
+  if (waves.length === 0) {
+    lines.push(`- **Waves**: none — the scheduler could make no task eligible`);
+  }
+  for (const [index, wave] of waves.entries()) {
+    const taskList = wave.taskIds.map((id) => `\`${id}\``).join(", ") || "None";
+    const lanes = wave.taskIds.length;
+    const state = index === 0 ? "Ready Now" : "Queued";
+    lines.push(
+      `- **Wave ${wave.wave} (${state})**: ${taskList} (${lanes} parallel ${lanes === 1 ? "lane" : "lanes"})`,
+    );
+  }
+
+  if (scheduled.size < params.totalTasks) {
+    lines.push(
+      `- ⚠️ [UNSCHEDULED]: ${params.totalTasks - scheduled.size} task(s) never became eligible and carry no wave`,
+    );
   }
 
   lines.push(
@@ -87,8 +145,12 @@ export function formatPlanCompileBrief(params: PlanCompileParams): string {
     }
   }
 
+  for (const warning of params.warnings ?? []) {
+    lines.push(`- ⚠️ [PROMPT BINDING]: ${warning}`);
+  }
+
   lines.push(
-    `- **Next Step**: Query ready tasks via \`bun harness.ts queue:next --run ${params.runId}\``,
+    `- **Next Step**: Dispatch the whole ready wave via \`bun harness.ts queue:wave --run ${params.runId}\``,
   );
   return enforceLineLimit(lines.join("\n"), 30);
 }
@@ -130,9 +192,21 @@ export interface PlanReplanParams {
   revision: number;
   repairRound: number;
   newTasksCount: number;
-  repairTasks: { id: string; writeScope: readonly string[]; findingsCount: number }[];
+  repairTasks: {
+    id: string;
+    writeScope: readonly string[];
+    findingsCount: number;
+    gate: string;
+    gateSource: "flag" | "finding" | "parent_task";
+  }[];
   runId: string;
 }
+
+const GATE_PROVENANCE: Record<PlanReplanParams["repairTasks"][number]["gateSource"], string> = {
+  flag: "declared by `--gate`",
+  finding: "declared by the findings",
+  parent_task: "inherited from the planned task gating this scope",
+};
 
 export function formatPlanReplanBrief(params: PlanReplanParams): string {
   const taskNames = params.repairTasks.map((t) => `\`${t.id}\``).join(", ") || "None";
@@ -142,7 +216,7 @@ export function formatPlanReplanBrief(params: PlanReplanParams): string {
     `- **Repair Round**: Round ${params.repairRound}`,
     ...params.repairTasks.map(
       (t) =>
-        `- **Task \`${t.id}\`**: Scope \`${t.writeScope.join(", ")}\` (${t.findingsCount} findings)`,
+        `- **Task \`${t.id}\`**: Scope \`${t.writeScope.join(", ")}\` (${t.findingsCount} findings) | Gate \`${t.gate}\` (${GATE_PROVENANCE[t.gateSource]})`,
     ),
     `- **Validation Barrier**: Completion gate and critic audit locked until all repair tasks pass.`,
     `- **Next Step**: Dispatch parallel batch repair implementers and validators.`,

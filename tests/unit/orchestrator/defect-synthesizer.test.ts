@@ -25,6 +25,7 @@ describe("Defect Synthesizer Unit Tests", () => {
     expect(detail.severity).toBe("critical");
     expect(detail.file_paths).toContain("src/auth/token.ts");
     expect(detail.file_paths).toContain("tests/unit/auth/token.test.ts");
+    expect(detail.file_paths_evidence_class).toBe("derived");
     expect(detail.revalidation_gate).toBe("bun test tests/unit/auth/token.test.ts");
   });
 
@@ -42,10 +43,11 @@ describe("Defect Synthesizer Unit Tests", () => {
     const detail = normalizeFindingToDetail(detailInput);
     expect(detail.id).toBe("f-02");
     expect(detail.file_paths).toEqual(["src/components/Button.tsx"]);
+    expect(detail.file_paths_evidence_class).toBe("agent_reported");
     expect(detail.severity).toBe("minor");
   });
 
-  it("falls back to root path '.' when no files are mentioned in text", () => {
+  it("records no file paths when the finding text names none", () => {
     const finding: Finding = {
       id: "f-03",
       requirement_id: "req-gen",
@@ -58,7 +60,8 @@ describe("Defect Synthesizer Unit Tests", () => {
     };
 
     const detail = normalizeFindingToDetail(finding);
-    expect(detail.file_paths).toEqual(["."]);
+    expect(detail.file_paths).toEqual([]);
+    expect(detail.file_paths_evidence_class).toBe("derived");
   });
 
   it("deduplicates findings with identical IDs and merges file paths", () => {

@@ -36,17 +36,17 @@ describe("installer transaction safety", () => {
   test("preflights every client conflict before changing release or links", async () => {
     const { source, home } = await installerFixture();
     const destination = join(home, ".agents", "skills", "orchestrating-long-tasks");
-    const claude = join(home, ".claude", "skills", "orchestrating-long-tasks");
-    const antigravity = join(home, ".gemini", "config", "skills", "orchestrating-long-tasks");
-    await mkdir(claude, { recursive: true });
+    const clientLink = join(home, ".claude", "skills", "orchestrating-long-tasks");
+    const otherClientLink = join(home, ".gemini", "config", "skills", "orchestrating-long-tasks");
+    await mkdir(clientLink, { recursive: true });
     await mkdir(join(home, ".gemini", "config", "skills"), { recursive: true });
-    await symlink("/previous/target", antigravity);
+    await symlink("/previous/target", otherClientLink);
 
     await expect(installSkill(source, home, ["antigravity", "claude"])).rejects.toThrow("client");
 
     expect(await lstat(destination).catch(() => null)).toBeNull();
-    expect(await readlink(antigravity)).toBe("/previous/target");
-    expect((await lstat(claude)).isDirectory()).toBeTrue();
+    expect(await readlink(otherClientLink)).toBe("/previous/target");
+    expect((await lstat(clientLink)).isDirectory()).toBeTrue();
   });
 
   test("rolls back canonical release and earlier links after an injected link failure", async () => {
@@ -54,7 +54,7 @@ describe("installer transaction safety", () => {
     const first = await installSkill(source, home, []);
     const original = await readFile(join(first.destination, "scripts", "harness.ts"), "utf8");
     await writeFile(join(source, "scripts", "harness.ts"), "console.log('replacement')\n");
-    const claude = join(home, ".claude", "skills", "orchestrating-long-tasks");
+    const clientLink = join(home, ".claude", "skills", "orchestrating-long-tasks");
     await expect(
       installWithOptions(source, home, ["claude", "antigravity"], {
         linkHooks: {
@@ -65,7 +65,7 @@ describe("installer transaction safety", () => {
       }),
     ).rejects.toThrow("injected link publication fault");
     expect(await readFile(join(first.destination, "scripts", "harness.ts"), "utf8")).toBe(original);
-    expect(await lstat(claude).catch(() => null)).toBeNull();
+    expect(await lstat(clientLink).catch(() => null)).toBeNull();
   });
 
   test("attempts every recovery step and preserves primary plus recovery failures", async () => {

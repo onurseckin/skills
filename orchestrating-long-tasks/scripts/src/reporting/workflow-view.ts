@@ -1,7 +1,9 @@
+import type { BranchRecord } from "../contracts/branch.ts";
 import type { JsonObject } from "../contracts/json.ts";
 import { workflowPort } from "../integration/store-ports.ts";
 import { completionIssues } from "../workflow/completion/completion-state.ts";
 import { orphanEvidenceSha256 } from "../workflow/orphan-evidence/digest.ts";
+import { isLeaseSuspended } from "../workflow/lease/suspension.ts";
 import type { TaskRecord, WorkflowState } from "../workflow/types.ts";
 import { trustedHostEvidence } from "../contracts/trusted-host.ts";
 
@@ -34,6 +36,36 @@ function taskView(task: TaskRecord): JsonObject {
     gate_results: structuredClone(task.gate_results ?? []),
     report_recorded: task.report !== undefined,
     repair_round: task.repair_round,
+    // A probe is a demand for proof, not a repair round, so the two counts are reported apart: a
+    // pass is refused while the probe count is short of the configured minimum.
+    probe_round: task.probe_round ?? 0,
+  };
+}
+
+/**
+ * What a fresh agent needs to see about a branch: who opened it, why, and where each sub-task got
+ * to. `files_changed` is the harness's own git observation at collect time and stays absent until
+ * there is one, because an empty change set and an unmeasured one are different answers.
+ */
+function branchView(branch: BranchRecord): JsonObject {
+  return {
+    id: branch.id,
+    parent_task_id: branch.parent_task_id,
+    parent_agent_id: branch.parent_agent_id,
+    status: branch.status,
+    reason: branch.reason,
+    depth: branch.depth,
+    opened_at: branch.opened_at,
+    collected_at: branch.collected_at ?? null,
+    outcome_summary: branch.outcome_summary ?? null,
+    files_changed: structuredClone(branch.files_changed ?? null),
+    sub_tasks: branch.sub_tasks.map((subTask) => ({
+      id: subTask.id,
+      label: subTask.label,
+      status: subTask.status,
+      agent_id: subTask.agent_id ?? null,
+      write_scope: [...subTask.write_scope],
+    })),
   };
 }
 
@@ -42,8 +74,11 @@ function staleEvidence(state: WorkflowState, now: Date): string[] {
   const issues = Object.values(state.tasks)
     .flatMap((task) => {
       const issues: string[] = [];
-      if (task.lease && Date.parse(task.lease.expires_at) <= current)
-        issues.push(`task ${task.id} lease expired at ${task.lease.expires_at}`);
+      const lease = task.lease;
+      // A branched parent's clock is frozen, so its lease is not stale however old the stamp looks;
+      // reporting it as expired would contradict the recovery that deliberately leaves it alone.
+      if (lease && !isLeaseSuspended(lease) && Date.parse(lease.expires_at) <= current)
+        issues.push(`task ${task.id} lease expired at ${lease.expires_at}`);
       if (
         task.status === "validating" &&
         task.validation &&
@@ -115,6 +150,7 @@ export function workflowView(runRoot: string, now = new Date()): JsonObject {
     packets: Object.values(state.packets ?? {}).sort((left, right) =>
       left.id.localeCompare(right.id),
     ),
+    branches: (state.branches ?? []).map(branchView),
     orphan_evidence: state.orphan_evidence.map((evidence) => ({
       orphan_sha256: orphanEvidenceSha256(evidence),
       evidence: structuredClone(evidence),

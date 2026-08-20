@@ -77,6 +77,7 @@ function workflowState(value: Record<string, unknown>): WorkflowState {
   for (const field of [
     "current_repository_binding",
     "packets",
+    "branches",
     "orphan_evidence_dispositions",
     "completion_critic",
     "completion_critic_history",
@@ -106,6 +107,7 @@ function mergeWorkflow(draft: Record<string, unknown>, workflow: WorkflowState):
   for (const field of [
     "current_repository_binding",
     "completion",
+    "branches",
     "packets",
     "orphan_evidence_dispositions",
     "completion_critic",

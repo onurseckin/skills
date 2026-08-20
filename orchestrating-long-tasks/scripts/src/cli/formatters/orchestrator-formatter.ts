@@ -1,5 +1,6 @@
 import { enforceLineLimit, formatTable } from "./line-limiter.ts";
-import type { LoopSummary, RoundTelemetry } from "../../orchestrator/types.ts";
+import { gateStatusLine } from "../../orchestrator/gate-status.ts";
+import type { GateOverallStatus, LoopSummary, RoundTelemetry } from "../../orchestrator/types.ts";
 
 export interface OrchestratorRunBriefParams {
   readonly loopId: string;
@@ -9,7 +10,7 @@ export interface OrchestratorRunBriefParams {
   readonly maxRoundsConfigured: number;
   readonly durationSeconds: number;
   readonly totalFindingsSynthesized: number;
-  readonly allGatesPassed: boolean;
+  readonly gateStatus: GateOverallStatus;
   readonly finalCriticDecision?: string | undefined;
   readonly rounds: readonly RoundTelemetry[];
 }
@@ -22,6 +23,7 @@ export function formatOrchestratorRunBrief(params: OrchestratorRunBriefParams): 
     "Critic Decision",
     "Tasks Done",
     "Open Findings",
+    "Gates",
     "Duration",
   ];
   const rows = params.rounds.map((r) => [
@@ -31,6 +33,7 @@ export function formatOrchestratorRunBrief(params: OrchestratorRunBriefParams): 
     `\`${r.criticDecision ?? "n/a"}\``,
     `${r.completedTaskCount}/${r.taskCount}`,
     `${r.openFindingsCount}`,
+    r.gateCount === 0 ? "`not_run` (0)" : `\`${r.gateStatus}\` (${r.gateCount})`,
     `${(r.durationMs / 1000).toFixed(2)}s`,
   ]);
 
@@ -42,7 +45,7 @@ export function formatOrchestratorRunBrief(params: OrchestratorRunBriefParams): 
     `- **Total Rounds Executed:** ${params.totalRoundsExecuted} / ${params.maxRoundsConfigured}`,
     `- **Overall Duration:** ${params.durationSeconds.toFixed(2)}s`,
     `- **Total Synthesized Findings:** ${params.totalFindingsSynthesized}`,
-    `- **All Gates Passed:** ${params.allGatesPassed ? "✅ Yes" : "❌ No"}`,
+    gateStatusLine(params.gateStatus),
     `- **Final Critic Decision:** \`${params.finalCriticDecision ?? "none"}\``,
     "",
     "## Round Execution Breakdown",

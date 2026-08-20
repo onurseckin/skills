@@ -48,10 +48,8 @@ describe("Harness File Persistence - Multiple Rejection Rounds", () => {
     });
     expect(reject3.finding_id).toBe("finding-custom-round-3");
 
-    // Verify all 3 finding files exist on disk independently
-    expect(existsSync(join(run, "findings", "finding-task-core-reject.json"))).toBe(true);
-    expect(existsSync(join(run, "findings", "finding-task-core-reject-2.json"))).toBe(true);
-    expect(existsSync(join(run, "findings", "finding-custom-round-3.json"))).toBe(true);
+    // Every round keeps its own finding, and none of them is written to a second place.
+    expect(existsSync(join(run, "findings"))).toBe(false);
 
     // Verify finding:get can inspect each individually
     const f1 = await execute(["finding:get", "--run", run, "--id", "finding-task-core-reject"]);

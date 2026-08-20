@@ -72,28 +72,30 @@ function requirementProofs(state: WorkflowState, value: unknown): CompletionRequ
   if (!Array.isArray(value))
     throw new HarnessError("INVALID_ARGUMENT", "requirement_proofs must be an array");
   const byId = new Map(state.requirements.map((requirement) => [requirement.id, requirement]));
-  const seen = new Set<string>();
-  const proofs = value.map((raw) => {
+  const supplied = new Map<string, CompletionRequirementProof>();
+  for (const raw of value) {
     if (typeof raw !== "object" || raw === null || Array.isArray(raw))
       throw new HarnessError("INVALID_ARGUMENT", "requirement proof must be an object");
     const proof = raw as Record<string, unknown>;
     const id = requireText(proof.requirement_id, "requirement_proof.requirement_id");
     const requirement = byId.get(id);
-    if (!requirement || seen.has(id))
+    if (!requirement || supplied.has(id))
       throw new HarnessError("INVALID_ARGUMENT", `invalid or duplicate requirement proof: ${id}`);
-    seen.add(id);
     const expected: CompletionRequirementProof["status"] =
       requirementExecutionState(requirement) === "disposed" ? "out_of_scope" : "satisfied";
     if (proof.status !== expected)
       throw new HarnessError("INVALID_ARGUMENT", `requirement proof ${id} must be ${expected}`);
-    return {
+    supplied.set(id, {
       requirement_id: id,
       status: expected,
       evidence: evidenceItems(proof.evidence, `proof ${id}`),
-    };
-  });
-  if (proofs.length !== byId.size)
-    throw new HarnessError("INVALID_ARGUMENT", "requirement proofs must cover every requirement");
+    });
+  }
+  // A requirement the critic did not prove is recorded as unproven rather than dropped or assumed:
+  // the review stays a complete map of the requirement set, and the gap blocks completion.
+  const proofs = [...byId.keys()].map(
+    (id) => supplied.get(id) ?? { requirement_id: id, status: "unproven" as const, evidence: [] },
+  );
   return proofs.sort((left, right) => left.requirement_id.localeCompare(right.requirement_id));
 }
 

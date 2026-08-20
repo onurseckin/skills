@@ -2,7 +2,7 @@ import { join } from "node:path";
 import type { CommandAttemptRecord } from "../contracts/commands.ts";
 import { atomicWriteJson } from "../core/durable-write.ts";
 import { readBoundedBytes } from "../core/json.ts";
-import { activityMetadata, timeoutAfter } from "./attempt-support.ts";
+import { activityMetadata, raceWithTimeout } from "./attempt-support.ts";
 import { portableArtifactPath } from "./artifact-paths.ts";
 import { classifySignals, type FailureSignals } from "./classify-failure.ts";
 import { outputEvidenceIssues } from "./output-evidence.ts";
@@ -110,10 +110,11 @@ export async function finalizeSuccessfulAttempt(ctx: {
   rootIdentity: ProcessIdentity | undefined;
   attemptIntent: AttemptIntentController;
 }): Promise<AttemptResult> {
-  const [stdoutLog, stderrLog] = await Promise.race([
+  const [stdoutLog, stderrLog] = await raceWithTimeout(
     ctx.allPumps,
-    timeoutAfter(ctx.options.drainTimeoutMs, "command pipe drain timeout"),
-  ]);
+    ctx.options.drainTimeoutMs,
+    "command pipe drain timeout",
+  );
   const finishedAt = new Date();
   ctx.activityRecord.complete("completed", finishedAt);
   const terminalProof =

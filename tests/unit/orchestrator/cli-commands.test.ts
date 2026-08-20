@@ -55,7 +55,7 @@ describe("CLI Command: orchestrator:run Standard Execution", () => {
       expect(result.rounds_executed).toBe(1);
       expect(result.total_rounds_executed).toBe(1);
       expect(result.max_rounds_configured).toBe(5);
-      expect(result.all_gates_passed).toBe(true);
+      expect(result.gate_status).toBe("passed");
       expect(result.final_critic_decision).toBe("approve");
       expect(typeof result.markdown).toBe("string");
       expect(result.markdown as string).toContain("Autonomous Multi-Round Loop Summary");
@@ -82,7 +82,7 @@ describe("CLI Command: orchestrator:run Standard Execution", () => {
             criticDecision: "approve",
             tasks: [],
             findings: [],
-            gateResults: [],
+            gateResults: [{ gate_id: "gate-01", command_id: "cmd-01", status: "passed" }],
             summary: "Alias command test passed.",
           };
         },
@@ -129,7 +129,7 @@ describe("CLI Command: orchestrator:run Standard Execution", () => {
             criticDecision: "approve",
             tasks: [],
             findings: [],
-            gateResults: [],
+            gateResults: [{ gate_id: "gate-01", command_id: "cmd-01", status: "passed" }],
           };
         },
       };
@@ -162,7 +162,7 @@ describe("CLI Command: orchestrator:run Standard Execution", () => {
             criticDecision: "approve",
             tasks: [],
             findings: [],
-            gateResults: [],
+            gateResults: [{ gate_id: "gate-01", command_id: "cmd-01", status: "passed" }],
           };
         },
       };
@@ -192,7 +192,7 @@ describe("CLI Command: orchestrator:run Standard Execution", () => {
             criticDecision: "approve",
             tasks: [],
             findings: [],
-            gateResults: [],
+            gateResults: [{ gate_id: "gate-01", command_id: "cmd-01", status: "passed" }],
           };
         },
       };
@@ -227,7 +227,7 @@ describe("CLI Command: orchestrator:run Standard Execution", () => {
             criticDecision: "approve",
             tasks: [],
             findings: [],
-            gateResults: [],
+            gateResults: [{ gate_id: "gate-01", command_id: "cmd-01", status: "passed" }],
           };
         },
       };
@@ -258,7 +258,7 @@ describe("CLI Command: orchestrator:run Standard Execution", () => {
       maxRoundsConfigured: 5,
       durationSeconds: 2.5,
       totalFindingsSynthesized: 0,
-      allGatesPassed: true,
+      gateStatus: "passed",
       finalCriticDecision: "approve",
       rounds: [
         {
@@ -270,7 +270,8 @@ describe("CLI Command: orchestrator:run Standard Execution", () => {
           completedTaskCount: 1,
           openFindingsCount: 0,
           resolvedFindingsCount: 0,
-          gatesPassed: true,
+          gateStatus: "passed",
+          gateCount: 1,
           durationMs: 2500,
           startedAt: new Date().toISOString(),
         },

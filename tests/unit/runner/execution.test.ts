@@ -24,6 +24,30 @@ async function waitForActivity(commandDir: string): Promise<string> {
   }
   throw new Error("activity record was not created");
 }
+interface ActivitySnapshot {
+  status: string;
+  heartbeat_at: string;
+  stdout_bytes: number;
+}
+
+async function readActivity(path: string): Promise<ActivitySnapshot> {
+  return JSON.parse(await readFile(path, "utf8")) as ActivitySnapshot;
+}
+
+/**
+ * Waits for the next heartbeat to land instead of sleeping past where one should have. A fixed sleep
+ * has to guess how far behind the machine is: too short and the beat has not been written yet, too
+ * long and the wall timeout has already ended the command this assertion needs still running.
+ */
+async function waitForHeartbeatAfter(path: string, previous: string): Promise<ActivitySnapshot> {
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    const record = await readActivity(path);
+    if (record.heartbeat_at > previous) return record;
+    await Bun.sleep(5);
+  }
+  throw new Error("heartbeat never advanced");
+}
+
 afterEach(async () =>
   Promise.all(roots.splice(0).map((path) => rm(path, { recursive: true, force: true }))),
 );
@@ -74,15 +98,14 @@ describe("monitored command execution", () => {
       cwd: dir,
       commandDir,
       actor: "test",
-      idleTimeoutMs: 200,
-      wallTimeoutMs: 180,
+      idleTimeoutMs: 1_200,
+      wallTimeoutMs: 600,
       graceMs: 20,
       heartbeatIntervalMs: 20,
     });
     const activityPath = await waitForActivity(commandDir);
-    const first = JSON.parse(await readFile(activityPath, "utf8"));
-    await Bun.sleep(60);
-    const second = JSON.parse(await readFile(activityPath, "utf8"));
+    const first = await readActivity(activityPath);
+    const second = await waitForHeartbeatAfter(activityPath, first.heartbeat_at);
 
     expect(first.status).toBe("running");
     expect(second.status).toBe("running");

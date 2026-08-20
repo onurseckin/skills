@@ -3,16 +3,22 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
-import { initRun, transact } from "../../../orchestrating-long-tasks/scripts/src/store/index.ts";
+import {
+  initRun,
+  loadRun,
+  transact,
+} from "../../../orchestrating-long-tasks/scripts/src/store/index.ts";
 import { runDoctor } from "../../../orchestrating-long-tasks/scripts/src/reporting/doctor.ts";
 import {
   renderHandoff,
   writeHandoff,
 } from "../../../orchestrating-long-tasks/scripts/src/reporting/handoff.ts";
+import { renderPreplanHandoff } from "../../../orchestrating-long-tasks/scripts/src/reporting/preplan-handoff.ts";
 import { runStatus } from "../../../orchestrating-long-tasks/scripts/src/reporting/status.ts";
 import { repositoryBinding } from "../workflow/test-port.ts";
 import { orphanEvidenceSha256 } from "../../../orchestrating-long-tasks/scripts/src/workflow/orphan-evidence/digest.ts";
 import { commandRecord } from "../workflow/test-port.ts";
+import { dispatchFailures, handoffArgv } from "./dispatchable.ts";
 
 const roots: string[] = [];
 const skillRoot = fileURLToPath(new URL("../../../orchestrating-long-tasks", import.meta.url));
@@ -79,9 +85,35 @@ describe("status handoff and doctor", () => {
     expect(handoff).toContain("neither configures nor attests it");
     expect(runStatus(run).gate_evidence_limitations).toEqual(gateEvidenceLimitations);
     expect((await runDoctor(run)).gate_evidence_limitations).toEqual(gateEvidenceLimitations);
-    expect(handoff).toContain('"packet"');
-    expect(handoff).toContain('"planner-0"');
-    expect(handoff).toContain('"--expected-revision","0"');
+    const entrypoint = join(skillRoot, "scripts", "harness.ts");
+    expect(handoff).toContain(JSON.stringify(["bun", entrypoint, "plan:status", "--run", run]));
+    expect(handoff).toContain(JSON.stringify(["bun", entrypoint, "doctor", "--run", run]));
+    expect(handoff).toContain(
+      JSON.stringify([
+        "bun",
+        entrypoint,
+        "plan:compile",
+        "--run",
+        run,
+        "--actor",
+        "<actor-for:plan:compile>",
+        "--completion-gate",
+        "<completion-gate-for:plan:compile>",
+      ]),
+    );
+
+    // Every command the handoff names must be one the CLI can actually dispatch.
+    const named = handoffArgv(handoff);
+    expect(named.length).toBeGreaterThan(0);
+    expect(dispatchFailures(named)).toEqual([]);
+
+    // A capsule that has only been initialised has no events, so the document says so; once the
+    // planner records one, the same document has to show it rather than keep reporting none.
+    expect(handoff).toContain("none");
+    transact(run, "planner", "task-declared", {}, (state) => {
+      state.planning = { tasks: [{ id: "task-1" }] };
+    });
+    expect(renderPreplanHandoff(loadRun(run), entrypoint)).toContain("| planner | task-declared");
   });
 
   test("renders deterministic resumable state and exact argv", async () => {
@@ -96,17 +128,25 @@ describe("status handoff and doctor", () => {
     expect(first).toContain("## Requirements");
     expect(first).toContain("## Completion blockers");
     expect(first).toContain("requirement R-1 is not satisfied");
+    const entrypoint = join(skillRoot, "scripts", "harness.ts");
+    expect(first).toContain(JSON.stringify(["bun", entrypoint, "queue:wave", "--run", run]));
     expect(first).toContain(
       JSON.stringify([
         "bun",
-        join(run, "runtime", "harness.ts"),
-        "ready",
+        entrypoint,
+        "task:claim",
         "--run",
         run,
-        "--max-parallel",
-        "1",
+        "--task",
+        "task-1",
+        "--agent",
+        "<implementer-for:task-1>",
+        "--role",
+        "implementer",
       ]),
     );
+    // Every line under the argv heading, on the compiled path as well as the pre-plan one.
+    expect(dispatchFailures(handoffArgv(first))).toEqual([]);
     const path = writeHandoff(run);
     expect(path).toBe(join(run, "handoff.md"));
   });

@@ -1,19 +1,36 @@
-import { basename } from "node:path";
+import { basename, resolve } from "node:path";
+import { getHarnessConfig } from "../../config/harness-config.ts";
 import { HarnessError } from "../../errors/harness-error.ts";
 import { workflowPort } from "../../integration/store-ports.ts";
+import { publishTaskRolePacket } from "../../packets/role-grant.ts";
+import { nextWave } from "../../scheduler/index.ts";
 import { loadRun } from "../../store/index.ts";
+import { applicableGates, commandArgv } from "../../workflow/gates/gate-policy.ts";
 import { claimTask } from "../../workflow/lease/claim.ts";
-import type { TaskRecord } from "../../workflow/types.ts";
+import type { TaskRecord, WorkflowState } from "../../workflow/types.ts";
 import {
   formatQueueEmptyBrief,
   formatQueueListBrief,
   formatQueueNextBrief,
   formatQueuePopBrief,
+  formatQueueWaveBrief,
 } from "../formatters/index.ts";
-import { assertFlags, integerFlag, textFlag, type Flags } from "../options.ts";
+import { integerFlag, textFlag, type Flags } from "../options.ts";
+
+/** A run root is `<repo>/.capsules/<run-id>`, so repo config sits two levels above the capsule. */
+function runConfig(runRoot: string): ReturnType<typeof getHarnessConfig> {
+  return getHarnessConfig(resolve(runRoot, "..", ".."), runRoot);
+}
+
+/**
+ * The gate a task is actually held to is the one the plan compiled for it. Composing a plausible
+ * `bun test <scope>` here would hand the agent a command the harness will not accept as proof.
+ */
+function mandatoryGateCommands(state: WorkflowState, task: TaskRecord): string[] {
+  return applicableGates(state, task).map((gate) => commandArgv(gate.command).join(" "));
+}
 
 export function queueNextCommand(flags: Flags): Record<string, unknown> {
-  assertFlags(flags, ["run"]);
   const run = textFlag(flags, "run")!;
   const loaded = loadRun(run);
   const tasks = Object.values((loaded.state.tasks ?? {}) as Record<string, TaskRecord>);
@@ -32,14 +49,14 @@ export function queueNextCommand(flags: Flags): Record<string, unknown> {
   }
 
   const highest = readyTasks[0]!;
-  const gateCmd = `bun test ${highest.write_scope.join(" ")}`;
+  const gates = mandatoryGateCommands(loaded.state as unknown as WorkflowState, highest);
 
   const markdown = formatQueueNextBrief({
     taskId: highest.id,
     label: (highest.label as string | undefined) ?? highest.id,
     priority: Number(highest.priority ?? 50),
     writeScope: highest.write_scope,
-    gateCmd,
+    gates,
     runId: basename(run),
   });
 
@@ -47,7 +64,6 @@ export function queueNextCommand(flags: Flags): Record<string, unknown> {
 }
 
 export function queueListCommand(flags: Flags): Record<string, unknown> {
-  assertFlags(flags, ["run"]);
   const run = textFlag(flags, "run")!;
   const loaded = loadRun(run);
   const allTasksMap = (loaded.state.tasks ?? {}) as Record<string, TaskRecord>;
@@ -75,13 +91,55 @@ export function queueListCommand(flags: Flags): Record<string, unknown> {
   }
 
   const partitions = { ready, leased, validating, blocked, satisfied };
-  const markdown = formatQueueListBrief(partitions);
+  const maxParallel = runConfig(run).default_max_parallel;
+  const markdown = formatQueueListBrief(partitions, maxParallel);
 
-  return { markdown, run_root: run, partitions };
+  return { markdown, run_root: run, partitions, max_parallel: maxParallel };
+}
+
+export function queueWaveCommand(flags: Flags): Record<string, unknown> {
+  const run = textFlag(flags, "run")!;
+  const maxParallel =
+    integerFlag(flags, "max-parallel", { minimum: 1, maximum: 64 }) ??
+    runConfig(run).default_max_parallel;
+  const selection = nextWave(loadRun(run).state, maxParallel);
+
+  if (selection.entries.length === 0) {
+    return {
+      markdown: formatQueueEmptyBrief(basename(run)),
+      run_root: run,
+      wave: [],
+      max_parallel: selection.max_parallel,
+      topology_source: selection.topology_source,
+      topology_revision: selection.topology_revision,
+    };
+  }
+
+  const markdown = formatQueueWaveBrief({
+    runId: basename(run),
+    entries: selection.entries.map((entry) => ({
+      taskId: entry.task_id,
+      label: entry.label,
+      priority: entry.priority,
+      writeScope: entry.write_scope,
+      recordedWave: entry.recorded_wave,
+    })),
+    maxParallel: selection.max_parallel,
+    topologySource: selection.topology_source,
+    topologyRevision: selection.topology_revision,
+  });
+
+  return {
+    markdown,
+    run_root: run,
+    wave: selection.entries,
+    max_parallel: selection.max_parallel,
+    topology_source: selection.topology_source,
+    topology_revision: selection.topology_revision,
+  };
 }
 
 export async function queuePopCommand(flags: Flags): Promise<Record<string, unknown>> {
-  assertFlags(flags, ["run", "agent", "lease-duration", "lease-seconds"]);
   const run = textFlag(flags, "run")!;
   const agent = textFlag(flags, "agent")!;
   const leaseSeconds =
@@ -112,19 +170,41 @@ export async function queuePopCommand(flags: Flags): Promise<Record<string, unkn
     leaseSeconds === undefined ? {} : { leaseSeconds },
   );
 
-  const durationMin = Math.round((leaseSeconds ?? 1200) / 60);
   const task = result.state.tasks[highest.id]!;
-  const gateCmd = `bun test ${highest.write_scope.join(" ")}`;
+  const lease = task.lease;
+  if (!lease)
+    throw new HarnessError("INTEGRITY", `pop of ${highest.id} left the task without a lease`);
+
+  // A pop is a claim by another name, so it hands over the same pair: the lease token and the
+  // published contract the work is bounded by.
+  const published = await publishTaskRolePacket({
+    runRoot: run,
+    port: workflowPort(run),
+    role: "implementer",
+    agentId: agent,
+    attempt: lease.attempt,
+    token: result.token,
+    taskId: highest.id,
+  });
 
   const markdown = formatQueuePopBrief({
     taskId: highest.id,
     agent,
     token: result.token,
-    deadlineMinutes: durationMin,
-    expiresAt: task.lease?.expires_at ?? "30m",
+    // The lease the transaction recorded, not the one the flags asked for.
+    deadlineMinutes: Math.round(lease.duration_seconds / 60),
+    expiresAt: lease.expires_at,
     writeScope: task.write_scope,
-    gateCmd,
+    gates: mandatoryGateCommands(result.state as unknown as WorkflowState, task),
   });
 
-  return { markdown, run_root: run, token: result.token, task };
+  return {
+    markdown,
+    run_root: run,
+    token: result.token,
+    task,
+    packet_id: published.record.id,
+    packet_path: published.markdownPath,
+    role_contract_sha256: published.packet.metadata.role_contract_sha256,
+  };
 }

@@ -46,8 +46,7 @@ export async function runAttempt(
   const deliveredSignals: NodeJS.Signals[] = [],
     durableSignals: NodeJS.Signals[] = [],
     processGroupSignals: NodeJS.Signals[] = [];
-  let cleanupPrewriteFailed = false,
-    pumpsSettled = false;
+  let cleanupPrewriteFailed = false;
   const pumps: Promise<OutputSummary>[] = [],
     pumpAbort = new AbortController();
   const persistSignal = (signal: NodeJS.Signals): void => {
@@ -198,7 +197,7 @@ export async function runAttempt(
     try {
       await descendants?.stop();
     } catch {}
-    if (!pumpsSettled) await settleBounded(pumps, options.drainTimeoutMs);
+    await settleBounded(pumps, options.drainTimeoutMs);
     await Promise.allSettled([stdout?.close(), stderr?.close()].filter(Boolean));
   }
 }

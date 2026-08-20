@@ -1,0 +1,189 @@
+/**
+ * The declared shape of a capsule.
+ *
+ * Grouping is by lifecycle — who owns a fact and how long it lives — not by which code path happens
+ * to write it. `role` is that lifecycle: a PRIMARY entry is the only copy of a fact and losing it
+ * loses the fact; a DERIVED entry is a cache that may be deleted and rebuilt; a VIEW holds no bytes
+ * of its own; an EXPORT is the one place repetition is deliberate.
+ *
+ * `responsibility` is the one line B5 demands. A directory whose line is hard to write is a
+ * directory that should not exist, so the line is a design check, not documentation.
+ */
+
+export type LayoutRole = "anchor" | "primary" | "derived" | "view" | "export" | "runtime";
+
+export interface LayoutEntry {
+  /** Path relative to the capsule root. A trailing "/" marks a directory. */
+  readonly name: string;
+  readonly role: LayoutRole;
+  readonly responsibility: string;
+  /** Created by initRun. Everything else appears when the run first produces it. */
+  readonly createdAtInit: boolean;
+}
+
+export const CAPSULE_LAYOUT: readonly LayoutEntry[] = [
+  {
+    name: "README.md",
+    role: "derived",
+    responsibility: "What every entry in this capsule is for.",
+    createdAtInit: true,
+  },
+  {
+    name: "prompt.md",
+    role: "primary",
+    responsibility: "The prompt as it was given, byte for byte, never rewritten.",
+    createdAtInit: true,
+  },
+  {
+    name: "manifest.json",
+    role: "anchor",
+    responsibility: "Who this capsule is: run identity, capture assurance and the prompt digest.",
+    createdAtInit: true,
+  },
+  {
+    name: "events.jsonl",
+    role: "primary",
+    responsibility: "Everything that happened, in order, as an append-only hash chain.",
+    createdAtInit: true,
+  },
+  {
+    name: "state.json",
+    role: "derived",
+    responsibility: "Where the run stands now, replayed from the chain.",
+    createdAtInit: true,
+  },
+  {
+    name: "index.json",
+    role: "derived",
+    responsibility: "The catalogue of what exists and where, so a routine question costs one read.",
+    createdAtInit: true,
+  },
+  {
+    name: "trace.md",
+    role: "derived",
+    responsibility: "The run read top to bottom as a numbered sequence of steps.",
+    createdAtInit: true,
+  },
+  {
+    name: "handoff.md",
+    role: "derived",
+    responsibility: "What the next agent needs in order to pick the run up.",
+    createdAtInit: false,
+  },
+  {
+    name: "captures.json",
+    role: "primary",
+    responsibility: "Every captured blob and the command or task that produced it.",
+    createdAtInit: false,
+  },
+  {
+    name: "planning/",
+    role: "primary",
+    responsibility: "The plan documents the run was given, frozen when they were accepted.",
+    createdAtInit: true,
+  },
+  {
+    name: "packets/",
+    role: "primary",
+    responsibility: "The role contract each agent was handed, frozen when it was handed over.",
+    createdAtInit: false,
+  },
+  {
+    name: "commands/",
+    role: "primary",
+    responsibility: "One directory per executed command: what ran, and what it produced.",
+    createdAtInit: true,
+  },
+  {
+    name: "blobs/",
+    role: "primary",
+    responsibility: "Every captured byte-blob, stored once under its own SHA-256.",
+    createdAtInit: true,
+  },
+  {
+    name: "evidence/",
+    role: "view",
+    responsibility: "Readable names for the blobs, linked so the bytes are still stored only once.",
+    createdAtInit: true,
+  },
+  {
+    name: "reports/",
+    role: "primary",
+    responsibility: "One immutable document per validation act, kept as it was asserted.",
+    createdAtInit: true,
+  },
+  {
+    name: "summary/",
+    role: "export",
+    responsibility: "The export handed to the visualizer: the one place repetition is deliberate.",
+    createdAtInit: false,
+  },
+  {
+    name: "quarantine/",
+    role: "primary",
+    responsibility:
+      "Event-log fragments recovery removed, kept byte for byte as forensic evidence.",
+    createdAtInit: false,
+  },
+];
+
+/** Directory that holds run locks, a sibling of the capsules rather than a member of one. */
+export const LOCKS_DIRECTORY = ".locks";
+
+const DECLARED = new Set(CAPSULE_LAYOUT.map((entry) => entry.name.replace(/\/$/u, "")));
+
+export function isDeclaredCapsuleEntry(name: string): boolean {
+  return DECLARED.has(name);
+}
+
+export function initialCapsuleDirectories(): string[] {
+  return CAPSULE_LAYOUT.filter((entry) => entry.createdAtInit && entry.name.endsWith("/")).map(
+    (entry) => entry.name.slice(0, -1),
+  );
+}
+
+const ROLE_LABEL: Record<LayoutRole, string> = {
+  anchor: "ANCHOR",
+  primary: "PRIMARY",
+  derived: "DERIVED",
+  view: "VIEW",
+  export: "EXPORT",
+  runtime: "RUNTIME",
+};
+
+const ROLE_MEANING: readonly string[] = [
+  "- **PRIMARY** — the only copy. Losing it loses the fact.",
+  "- **ANCHOR** — the identity this capsule is bound to.",
+  "- **DERIVED** — rebuilt from PRIMARY entries. Safe to delete.",
+  "- **VIEW** — readable names for bytes that live in `blobs/`. Holds no bytes of its own.",
+  "- **EXPORT** — handed to another program, and deliberately self-contained.",
+];
+
+/** The layout note B5 asks for: one line per entry, generated from the declaration above. */
+export function renderLayoutReadme(runId: string): string {
+  const width = Math.max(...CAPSULE_LAYOUT.map((entry) => entry.name.length));
+  const rows = CAPSULE_LAYOUT.map(
+    (entry) =>
+      `${entry.name.padEnd(width)}  ${ROLE_LABEL[entry.role].padEnd(7)}  ${entry.responsibility}`,
+  );
+  return [
+    `# Capsule \`${runId}\``,
+    "",
+    "Everything this run recorded. Read `trace.md` for the sequence of steps, `index.json` to find",
+    "a specific record, and `events.jsonl` when you need the authority behind either.",
+    "",
+    "```",
+    ...rows,
+    "```",
+    "",
+    ...ROLE_MEANING,
+    "",
+    "Every byte-blob — screenshots, captured reports — is stored exactly once under `blobs/`, named",
+    "by its SHA-256. `evidence/` gives those blobs readable names by linking to them, so a file that",
+    "appears in both places is one file on disk, not two copies.",
+    "",
+    "Run locks are not stored here. They live beside the capsules in `.capsules/.locks/`, because",
+    "coordination state is not durable state.",
+    "",
+  ].join("\n");
+}

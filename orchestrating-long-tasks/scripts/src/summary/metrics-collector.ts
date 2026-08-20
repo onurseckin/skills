@@ -14,6 +14,7 @@ import {
 } from "./metrics-collector-helpers.ts";
 import type {
   FileChurnRecord,
+  GraphDataset,
   RollupMetrics,
   TimingBreakdown,
   TokenEstimation,
@@ -38,6 +39,8 @@ export interface MetricsInput {
   state: Readonly<WorkflowState>;
   events: readonly HarnessEvent[];
   commands?: Record<string, CommandRecord>;
+  /** The dataset this run produced, so exchange counts come from emitted edges, not a formula. */
+  graph?: GraphDataset;
 }
 
 function computeTokenEstimations(
@@ -120,9 +123,6 @@ export function collectMetrics(input: MetricsInput): RollupMetrics {
   let resolvedFindingsTotal = 0;
   let openFindingsTotal = 0;
   let totalMediaAssets = 0;
-  let totalDependencies = 0;
-  let totalPushbackExchanges = 0;
-  let totalPushbackTokens = 0;
 
   for (const task of tasks) {
     if (task.status === "done") satisfiedTasks++;
@@ -140,13 +140,7 @@ export function collectMetrics(input: MetricsInput): RollupMetrics {
         findings_count: findingsCount,
         ...(firstFinding ? { reason: firstFinding } : {}),
       });
-
-      const exchangeCount = Math.max(1, findingsCount);
-      totalPushbackExchanges += exchangeCount;
-      totalPushbackTokens += exchangeCount * 280;
     }
-
-    totalDependencies += (task.dependencies ?? []).length;
 
     for (const f of task.findings ?? []) {
       if (f.status === "resolved") resolvedFindingsTotal++;
@@ -158,11 +152,12 @@ export function collectMetrics(input: MetricsInput): RollupMetrics {
     if (Array.isArray(rawReport?.screenshots)) totalMediaAssets += rawReport.screenshots.length;
   }
 
-  // Calculate edge traffic exchanges & tokens estimates
-  const totalEdgeTrafficExchanges =
-    2 + tasks.length * 3 + totalDependencies + totalPushbackExchanges;
-  const totalEdgeTrafficTokens =
-    650 + tasks.length * 1300 + totalDependencies * 420 + totalPushbackTokens;
+  // Counted from the emitted edges. There is no per-edge token measurement anywhere in the run, so
+  // no token volume is reported at all rather than a plausible-looking arithmetic stand-in.
+  const totalEdgeTrafficExchanges = input.graph?.edges.reduce(
+    (total, edge) => total + (edge.exchanges?.length ?? 0),
+    0,
+  );
 
   const estimatedTokens = computeTokenEstimations(manifest, tasks, commands);
   const filesTouched = computeFilesTouched(tasks);
@@ -178,8 +173,9 @@ export function collectMetrics(input: MetricsInput): RollupMetrics {
     resolved_findings_total: resolvedFindingsTotal,
     open_findings_total: openFindingsTotal,
     total_media_assets: totalMediaAssets,
-    total_edge_traffic_exchanges: totalEdgeTrafficExchanges,
-    total_edge_traffic_tokens: totalEdgeTrafficTokens,
+    ...(totalEdgeTrafficExchanges !== undefined
+      ? { total_edge_traffic_exchanges: totalEdgeTrafficExchanges }
+      : {}),
     wall_duration_ms: computeWallDurationMs(events),
     active_command_duration_ms: activeCommandDurationMs,
     total_commands_executed: commands.length,

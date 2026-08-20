@@ -1,51 +1,27 @@
-import { join } from "node:path";
 import type { RunFiles } from "../contracts/capsule.ts";
+import { registryArgv } from "./registry-argv.ts";
 
-function argv(value: string[]): string {
-  return JSON.stringify(value);
-}
+/**
+ * The path out of an uncompiled run: read the buffer, check the capsule, add the remaining tasks,
+ * then compile. Every entry is resolved through the registry before it is printed, so the handoff
+ * cannot name a command the CLI does not implement.
+ */
+const PREPLAN_NEXT_COMMANDS: readonly string[] = [
+  "plan:status",
+  "doctor",
+  "plan:add",
+  "plan:compile",
+];
 
 export function renderPreplanHandoff(loaded: RunFiles, entrypoint: string): string {
   const run = loaded.runRoot;
-  const requirements = join(run, "planning", "requirements.json");
-  const graph = join(run, "planning", "graph.json");
   const packets = loaded.state.packets ?? {};
   const recent = loaded.events
     .slice(-10)
     .map((event) => `${event.sequence} | ${event.timestamp} | ${event.actor} | ${event.kind}`);
-  const commands = [
-    ["bun", entrypoint, "status", "--run", run],
-    ["bun", entrypoint, "doctor", "--run", run],
-    [
-      "bun",
-      entrypoint,
-      "packet",
-      "--run",
-      run,
-      "--role",
-      "planner",
-      "--agent",
-      "planner",
-      "--id",
-      "planner-0",
-    ],
-    ["bun", entrypoint, "validate", "--run", run, "--requirements", requirements, "--graph", graph],
-    [
-      "bun",
-      entrypoint,
-      "plan-apply",
-      "--run",
-      run,
-      "--requirements",
-      requirements,
-      "--graph",
-      graph,
-      "--expected-revision",
-      "0",
-      "--actor",
-      "planner",
-    ],
-  ];
+  const commands = PREPLAN_NEXT_COMMANDS.map((name) =>
+    registryArgv(entrypoint, name, [["run", run]]),
+  ).filter((command): command is string[] => command !== undefined);
   return [
     "# Harness handoff",
     "",
@@ -54,6 +30,7 @@ export function renderPreplanHandoff(loaded: RunFiles, entrypoint: string): stri
     `Prompt SHA-256: ${loaded.manifest.prompt_sha256}`,
     `State revision: ${loaded.state.revision}`,
     "Graph revision: not-applied",
+    "Live wave: none, the plan is not compiled yet",
     "",
     "## Planning state",
     "",
@@ -75,7 +52,7 @@ export function renderPreplanHandoff(loaded: RunFiles, entrypoint: string): stri
     "",
     "## Exact next argv",
     "",
-    ...commands.map(argv),
+    ...commands.map((command) => JSON.stringify(command)),
     "",
   ].join("\n");
 }

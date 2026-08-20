@@ -192,8 +192,11 @@ describe("OrchestratorWatchdog Unit Tests", () => {
 
     watchdog.start();
 
-    // Wait for polling cycles
-    await new Promise((resolve) => setTimeout(resolve, 60));
+    // Poll for the escalation the background timer raises rather than sleeping a fixed span: the
+    // interval is 10ms, so a loaded machine that falls behind still lands well inside this deadline.
+    for (let attempt = 0; attempt < 200 && escalatedEvents.length === 0; attempt += 1) {
+      await Bun.sleep(5);
+    }
 
     watchdog.stop();
 

@@ -10,7 +10,9 @@ export interface CompletionEvidenceItem extends JsonObject {
 
 export interface CompletionRequirementProof extends JsonObject {
   requirement_id: string;
-  status: "satisfied" | "out_of_scope";
+  // `unproven` is what the harness records for a requirement the critic never proved. It is never
+  // something a critic can claim, and it blocks completion.
+  status: "satisfied" | "out_of_scope" | "unproven";
   evidence: CompletionEvidenceItem[];
 }
 
@@ -37,7 +39,9 @@ export interface CompletionResidualRisk extends JsonObject {
 export interface CompletionReview extends JsonObject {
   critic_id: string;
   packet_id: string;
-  packet_sha256: string;
+  // Absent when the review was recorded without a published critic packet; a review that has no
+  // packet carries no packet digest rather than an empty-string stand-in.
+  packet_sha256?: string;
   graph_revision: number;
   readiness_sha256: string;
   repository_binding: RepositoryBinding;

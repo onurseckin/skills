@@ -2,6 +2,7 @@ import type { HarnessEvent, Manifest } from "../contracts/capsule.ts";
 import type { CompletionReview, TaskRecord } from "../workflow/types.ts";
 import { extractFindingScreenshots } from "./asset-mapper-finding-screenshots.ts";
 import { isImageExtension } from "./asset-mapper-props.ts";
+import { isFindingClass } from "../workflow/review/finding-class.ts";
 import type { FileRef, FindingDetail } from "./types.ts";
 
 export { extractFindingScreenshots };
@@ -11,6 +12,29 @@ export interface FindingDetailsOptions {
   events?: readonly HarnessEvent[] | undefined;
   manifest?: Manifest | undefined;
   runRoot?: string | undefined;
+}
+
+/**
+ * A recorded resolution proof. The harness stores its evidence as `{command_id}` objects, so
+ * stringifying the array turned every command id into "[object Object]" and destroyed the only
+ * link between a resolved finding and the command that answered it.
+ */
+function readProof(value: unknown): { method: string; evidence: string[] } | undefined {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return undefined;
+  const proof = value as Record<string, unknown>;
+  const evidence: string[] = [];
+  for (const entry of Array.isArray(proof.evidence) ? proof.evidence : []) {
+    if (typeof entry === "string") {
+      evidence.push(entry);
+      continue;
+    }
+    if (typeof entry === "object" && entry !== null && !Array.isArray(entry)) {
+      const commandId = (entry as Record<string, unknown>).command_id;
+      if (typeof commandId === "string") evidence.push(commandId);
+    }
+  }
+  // "unstated" is what the record says when it carries no method, not a method invented for it.
+  return { method: typeof proof.method === "string" ? proof.method : "unstated", evidence };
 }
 
 export function mapFindingDetails(
@@ -65,7 +89,7 @@ export function mapFindingDetails(
             ? f.reason
             : typeof f.message === "string"
               ? f.message
-              : "Pushback requested changes";
+              : "The recorded finding states no observation";
       const pushbackReason =
         typeof f.pushback_reason === "string"
           ? f.pushback_reason
@@ -96,6 +120,8 @@ export function mapFindingDetails(
         ? targetFilesRaw.filter((p): p is string => typeof p === "string")
         : undefined;
 
+      // A write scope is the ground a task was allowed to touch. It is not a list of changes anyone
+      // objected to, so it never stands in for one.
       const opposedChanges =
         typeof f.opposed_changes === "string"
           ? f.opposed_changes
@@ -103,23 +129,24 @@ export function mapFindingDetails(
             ? f.opposedChanges
             : targetFiles && targetFiles.length > 0
               ? targetFiles.join(", ")
-              : task.write_scope && task.write_scope.length > 0
-                ? task.write_scope.join(", ")
-                : undefined;
+              : undefined;
 
       const fileRefs: FileRef[] | undefined = targetFiles?.map((path) => ({
         path,
         mode: "write" as const,
       }));
 
+      const findingClass = isFindingClass(f.class) ? f.class : undefined;
       const round =
-        typeof f.round === "number"
-          ? f.round
-          : typeof f.rejection_round === "number"
-            ? f.rejection_round
-            : typeof f.rejectionRound === "number"
-              ? f.rejectionRound
-              : (task.repair_round ?? 0);
+        typeof f.probe_round === "number"
+          ? f.probe_round
+          : typeof f.round === "number"
+            ? f.round
+            : typeof f.rejection_round === "number"
+              ? f.rejection_round
+              : typeof f.rejectionRound === "number"
+                ? f.rejectionRound
+                : (task.repair_round ?? 0);
 
       const author =
         typeof f.author === "string"
@@ -141,37 +168,12 @@ export function mapFindingDetails(
 
       const status: "open" | "resolved" = f.status === "resolved" ? "resolved" : "open";
 
-      let revalProof: { method: string; evidence: string[] } | undefined = undefined;
-      if (f.revalidation_proof && typeof f.revalidation_proof === "object") {
-        const rp = f.revalidation_proof as Record<string, unknown>;
-        revalProof = {
-          method: String(rp.method ?? "check"),
-          evidence: Array.isArray(rp.evidence) ? rp.evidence.map(String) : [],
-        };
-      } else if (f.revalidationProof && typeof f.revalidationProof === "object") {
-        const rp = f.revalidationProof as Record<string, unknown>;
-        revalProof = {
-          method: String(rp.method ?? "check"),
-          evidence: Array.isArray(rp.evidence) ? rp.evidence.map(String) : [],
-        };
-      } else if (typeof f.revalidation === "string") {
-        revalProof = { method: f.revalidation, evidence: [] };
-      }
+      const revalProof =
+        readProof(f.revalidation_proof) ??
+        readProof(f.revalidationProof) ??
+        (typeof f.revalidation === "string" ? { method: f.revalidation, evidence: [] } : undefined);
 
-      let remediationProof: { method: string; evidence: string[] } | undefined = undefined;
-      if (f.remediation_proof && typeof f.remediation_proof === "object") {
-        const rmp = f.remediation_proof as Record<string, unknown>;
-        remediationProof = {
-          method: String(rmp.method ?? "patch"),
-          evidence: Array.isArray(rmp.evidence) ? rmp.evidence.map(String) : [],
-        };
-      } else if (f.remediationProof && typeof f.remediationProof === "object") {
-        const rmp = f.remediationProof as Record<string, unknown>;
-        remediationProof = {
-          method: String(rmp.method ?? "patch"),
-          evidence: Array.isArray(rmp.evidence) ? rmp.evidence.map(String) : [],
-        };
-      }
+      const remediationProof = readProof(f.remediation_proof) ?? readProof(f.remediationProof);
 
       let evidenceList:
         | Array<{
@@ -210,6 +212,7 @@ export function mapFindingDetails(
         ...(reqId ? { requirementId: reqId } : {}),
         severity,
         observation,
+        ...(findingClass ? { class: findingClass } : {}),
         ...(pushbackReason ? { pushbackReason } : {}),
         ...(opposedChanges ? { opposedChanges } : {}),
         ...(remediation ? { remediation } : {}),
@@ -221,72 +224,21 @@ export function mapFindingDetails(
         ...(targetFiles ? { targetFiles } : {}),
         ...(fileRefs ? { fileRefs } : {}),
         ...(revalProof ? { revalidationProof: revalProof } : {}),
-        ...(remediationProof ? { remediationProof: revalProof ?? remediationProof } : {}),
+        ...(remediationProof ? { remediationProof } : {}),
+        ...(typeof f.resolved_at === "string" ? { resolvedAt: f.resolved_at } : {}),
+        ...(typeof f.resolved_by === "string" ? { resolvedBy: f.resolved_by } : {}),
         ...(evidenceList ? { evidence: evidenceList } : {}),
         ...(extractedScreenshots.length > 0 ? { screenshots: extractedScreenshots } : {}),
       });
     }
 
-    if (taskFindings.length === 0 && Array.isArray(task.validation_history)) {
-      for (const valAttempt of task.validation_history) {
-        if (valAttempt.verdict === "reject") {
-          const attemptFindingId = `finding-${task.id}-val-attempt-${valAttempt.attempt}`;
-          if (!seenIds.has(attemptFindingId)) {
-            addFinding({
-              id: attemptFindingId,
-              severity: "important",
-              observation: `Validation attempt ${valAttempt.attempt} rejected changes`,
-              pushbackReason: `Validation attempt ${valAttempt.attempt} rejected changes`,
-              opposedChanges: task.write_scope.join(", "),
-              rejectionRound: valAttempt.attempt,
-              round: valAttempt.attempt,
-              author: valAttempt.validator_id,
-              validatorId: valAttempt.validator_id,
-              timestamp: valAttempt.started_at,
-              status: task.status === "done" ? "resolved" : "open",
-              targetFiles: task.write_scope,
-              fileRefs: task.write_scope.map((path) => ({ path, mode: "write" as const })),
-            });
-          }
-        }
-      }
-    }
+    // A rejection in validation_history says a verdict happened, not what the validator found. The
+    // finding it filed is in task.findings; if there is none, there is nothing to show, and a
+    // stand-in graded "important" over the task's own write scope is an objection nobody made.
   }
 
-  if (findings.length === 0 && options?.events) {
-    for (const ev of options.events) {
-      const p = (ev.payload ?? {}) as Record<string, unknown>;
-      const taskId = typeof p.task_id === "string" ? p.task_id : undefined;
-      if (task && taskId && taskId !== task.id) continue;
-
-      if (
-        ev.kind === "review-recorded" &&
-        (p.verdict === "reject" || p.status === "changes_requested")
-      ) {
-        const evFindingId = `finding-${taskId ?? "rev"}-${ev.sequence ?? findings.length + 1}`;
-        if (!seenIds.has(evFindingId)) {
-          const reason =
-            typeof p.reason === "string"
-              ? p.reason
-              : typeof p.pushback_reason === "string"
-                ? p.pushback_reason
-                : "Review requested changes";
-          addFinding({
-            id: evFindingId,
-            severity: "important",
-            observation: reason,
-            pushbackReason: reason,
-            rejectionRound: typeof p.round === "number" ? p.round : (task?.repair_round ?? 1),
-            round: typeof p.round === "number" ? p.round : (task?.repair_round ?? 1),
-            author: ev.actor,
-            validatorId: ev.actor,
-            timestamp: ev.timestamp,
-            status: task?.status === "done" ? "resolved" : "open",
-          });
-        }
-      }
-    }
-  }
+  // `review-recorded` carries a verdict, not a defect. Synthesising a finding out of it invented an
+  // id, a severity and an observation the validator never wrote.
 
   if (options?.completionReview) {
     const cr = options.completionReview;

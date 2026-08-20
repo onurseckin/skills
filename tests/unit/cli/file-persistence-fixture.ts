@@ -47,7 +47,15 @@ export async function setupCompiledRun(
     "planner",
   ]);
 
-  await execute(["plan:compile", "--run", run, "--actor", "planner"]);
+  await execute([
+    "plan:compile",
+    "--run",
+    run,
+    "--actor",
+    "planner",
+    "--completion-gate",
+    "bun test tests",
+  ]);
   return { repo, run };
 }
 
@@ -59,6 +67,7 @@ export async function claimSubmitValidateAndReject(options: {
   validator: string;
   role?: string;
   reason: string;
+  remediation?: string;
   findingId?: string;
 }): Promise<Record<string, unknown>> {
   const claim = await execute([
@@ -69,7 +78,24 @@ export async function claimSubmitValidateAndReject(options: {
     options.taskId,
     "--agent",
     options.agent,
-    ...(options.role ? ["--role", options.role] : []),
+    "--role",
+    options.role ?? "implementer",
+  ]);
+  // A submission is only accepted against recorded evidence, so the implementer runs its own
+  // command before it submits.
+  await execute([
+    "run:exec",
+    "--run",
+    options.run,
+    "--task",
+    options.taskId,
+    "--actor",
+    options.agent,
+    "--cwd",
+    options.repo,
+    "--",
+    "echo",
+    "implementer-work",
   ]);
   await execute([
     "task:submit",
@@ -81,6 +107,10 @@ export async function claimSubmitValidateAndReject(options: {
     options.agent,
     "--token",
     claim.token as string,
+    "--files-changed",
+    "tests/unit/core/impl.ts",
+    "--summary",
+    "Implemented the task under test",
   ]);
   const val = await execute([
     "task:validate-start",
@@ -109,6 +139,8 @@ export async function claimSubmitValidateAndReject(options: {
   ]);
   return execute([
     "task:reject",
+    "--severity",
+    "critical",
     "--run",
     options.run,
     "--task",
@@ -121,6 +153,8 @@ export async function claimSubmitValidateAndReject(options: {
     gateCmd.command_id as string,
     "--reason",
     options.reason,
+    "--remediation",
+    options.remediation ?? "Correct the defect the reason names and rerun the gate",
     ...(options.findingId ? ["--finding-id", options.findingId] : []),
   ]);
 }

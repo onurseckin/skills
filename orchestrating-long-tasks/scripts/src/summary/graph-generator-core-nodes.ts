@@ -1,23 +1,28 @@
 import type { TaskRecord } from "../workflow/types.ts";
-import type {
-  EdgeTrafficExchange,
-  GraphEdgeData,
-  GraphNodeData,
-  NodeKind,
-  NodeStatus,
-} from "./types.ts";
+import { createEdge } from "./edge-builder.ts";
+import { detectHostIdentity } from "./host-telemetry.ts";
+import type { StepAssignments } from "./step-calculator.ts";
+import type { GraphEdgeData, GraphNodeData, NodeKind, NodeStatus } from "./types.ts";
 
-export function buildPromptAndPlanNodes(
-  promptText: string,
-  tasks: TaskRecord[],
-  waveCount: number,
-): {
+export interface CoreNodeInput {
+  promptText: string;
+  tasks: readonly TaskRecord[];
+  steps: StepAssignments;
+  branchCount: number;
+  ledgerIntegrityIssue?: string | undefined;
+}
+
+export interface CoreNodes {
   promptNode: GraphNodeData;
   planNode: GraphNodeData;
   promptPlanEdge: GraphEdgeData;
-} {
-  const promptSizeKb = (promptText.length / 1024).toFixed(1);
-  const promptTokens = Math.round(promptText.length / 4) || 200;
+}
+
+export function buildPromptAndPlanNodes(input: CoreNodeInput): CoreNodes {
+  const { promptText, tasks, steps } = input;
+  const promptBytes = Buffer.byteLength(promptText, "utf-8");
+  const waveCount = steps.taskWaves.size > 0 ? Math.max(...steps.taskWaves.values()) : 0;
+  const hostIdentity = detectHostIdentity();
 
   const promptNode: GraphNodeData = {
     id: "node-input-prompt",
@@ -27,7 +32,7 @@ export function buildPromptAndPlanNodes(
     step: 1,
     stepLabel: "Step 1: User Prompt",
     badge: {
-      text: `${promptSizeKb} KB`,
+      text: `${(promptBytes / 1024).toFixed(1)} KB`,
       variant: "neutral",
       icon: "IconTerminal2",
     },
@@ -39,22 +44,9 @@ export function buildPromptAndPlanNodes(
     prompt: promptText,
     io: {
       inputs: [],
-      outputs: [
-        {
-          kind: "prompt",
-          label: "User Instruction",
-          preview: promptText,
-          tokens: promptTokens,
-        },
-      ],
+      outputs: [{ kind: "prompt", label: "User Instruction", preview: promptText }],
     },
-    metadata: {
-      mediaAssets: [],
-      screenshots: [],
-      assets: [],
-    },
-    mediaAssets: [],
-    screenshots: [],
+    metadata: { promptBytes },
   };
 
   const planNode: GraphNodeData = {
@@ -64,12 +56,21 @@ export function buildPromptAndPlanNodes(
     status: "success" as NodeStatus,
     step: 1,
     stepLabel: "Step 1: Planning",
-    badge: {
-      text: `${tasks.length} Tasks`,
-      variant: "info",
-      icon: "IconHierarchy2",
-    },
-    description: `Structured execution plan across ${tasks.length} tasks and ${waveCount} waves.`,
+    badge: { text: `${tasks.length} Tasks`, variant: "info", icon: "IconHierarchy2" },
+    badges: [
+      {
+        // The label says where the waves came from, so a derived partition never reads as recorded.
+        label:
+          steps.waveSource.value === "recorded"
+            ? `${waveCount} recorded waves`
+            : `${waveCount} derived waves`,
+        variant: steps.waveSource.value === "recorded" ? "info" : "gray",
+      },
+      ...(input.branchCount > 0
+        ? [{ label: `${input.branchCount} branches`, variant: "amber" as const }]
+        : []),
+    ],
+    description: `Execution plan across ${tasks.length} tasks and ${waveCount} waves.`,
     io: {
       inputs: [
         {
@@ -83,80 +84,46 @@ export function buildPromptAndPlanNodes(
         {
           kind: "decision",
           label: "DAG Work Decomposition",
-          preview: `${tasks.length} discrete work scopes (${tasks.map((t) => t.id).join(", ")})`,
+          preview: `${tasks.length} discrete work scopes (${tasks.map((task) => task.id).join(", ")})`,
         },
       ],
     },
     metadata: {
       taskCount: tasks.length,
       waveCount,
-      mediaAssets: [],
-      screenshots: [],
-      assets: [],
+      branchCount: input.branchCount,
+      waveSource: steps.waveSource,
+      topologyRevision: steps.topologyRevision,
+      ...(hostIdentity ? { hostIdentity } : {}),
+      ...(input.ledgerIntegrityIssue !== undefined
+        ? { agentLedgerIssue: input.ledgerIntegrityIssue }
+        : {}),
     },
-    mediaAssets: [],
-    screenshots: [],
   };
 
-  const promptExchanges: EdgeTrafficExchange[] = [
-    {
-      id: "exch-prompt-plan",
-      timestamp: new Date().toISOString(),
-      source: "node-input-prompt",
-      target: "node-orchestrator-plan",
-      stepNumber: 1,
-      step: 1,
-      direction: "forward",
-      type: "prompt",
-      kind: "prompt",
-      summary: "Ingested user prompt instructions and context",
-      tokens: promptTokens,
-      tokensIn: 0,
-      tokensOut: promptTokens,
-      bytes: promptText.length || 800,
-      durationMs: 20,
-      latencyMs: 20,
-      status: "success",
-      inputGoal: promptText,
-      payloadSnippet: promptText.slice(0, 150),
-      payloadPreview: promptText.slice(0, 150),
-      fullPayload: promptText,
-      metadata: { promptSizeKb },
-    },
-  ];
-
-  const promptPlanEdge: GraphEdgeData = {
+  const promptPlanEdge = createEdge({
     id: "edge-prompt-plan",
     source: "node-input-prompt",
     target: "node-orchestrator-plan",
     kind: "sequence",
     stepNumber: 1,
-    badge: { text: "Prompt Input", variant: "info", icon: "IconTerminal2" },
-    container: {
-      stepBadge: "1",
-      title: "User Prompt Ingested",
-      detail: `${promptSizeKb} KB`,
-      variant: "info",
-      icon: "IconTerminal2",
-    },
-    traffic: {
-      volume: 1,
-      messagesCount: 1,
-      tokens: promptTokens,
-      tokensIn: 0,
-      tokensOut: promptTokens,
-      latencyMs: 20,
-      bytes: promptText.length || 800,
-      ratePerSec: 1.0,
-      status: "nominal",
-      glowColor: "#3b82f6",
-      glowIntensity: 0.7,
-      exchanges: promptExchanges,
-    },
-    exchanges: promptExchanges,
-    isHighTraffic: false,
-    trafficVolume: 1,
-  };
+    title: "User Prompt Ingested",
+    detail: `${(promptBytes / 1024).toFixed(1)} KB`,
+    variant: "info",
+    icon: "IconTerminal2",
+    exchanges: [
+      {
+        id: "exch-prompt-plan",
+        direction: "forward",
+        type: "prompt",
+        kind: "prompt",
+        summary: "Ingested user prompt",
+        detail: promptText.slice(0, 150),
+        bytes: promptBytes,
+        evidence_class: "harness_observed",
+      },
+    ],
+  });
 
   return { promptNode, planNode, promptPlanEdge };
 }

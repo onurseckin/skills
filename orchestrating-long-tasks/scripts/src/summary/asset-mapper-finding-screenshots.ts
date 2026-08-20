@@ -45,27 +45,32 @@ export function extractFindingScreenshots(
       typeof rawObj?.description === "string" && rawObj.description.trim().length > 0
         ? rawObj.description.trim()
         : `Screenshot evidence for finding ${findingId}`;
+    // "validator" is a job title, not an agent id. When nobody recorded who captured the shot the
+    // asset carries no author at all.
     const assetAuthor =
       typeof rawObj?.author === "string" && rawObj.author.trim().length > 0
         ? rawObj.author.trim()
-        : (author ?? "validator");
+        : author;
+    // The moment the summary ran is not the moment the screenshot was taken.
     const assetTimestamp =
       typeof rawObj?.timestamp === "string" && rawObj.timestamp.trim().length > 0
         ? rawObj.timestamp.trim()
-        : (timestamp ?? new Date().toISOString());
+        : timestamp;
+    // Both are measurements of a file this module never opens: recorded when the capture reported
+    // them, absent otherwise.
     const dimensions =
       rawObj?.dimensions &&
       typeof rawObj.dimensions === "object" &&
       typeof (rawObj.dimensions as { width?: unknown }).width === "number" &&
       typeof (rawObj.dimensions as { height?: unknown }).height === "number"
         ? (rawObj.dimensions as { width: number; height: number })
-        : { width: 1280, height: 720 };
+        : undefined;
     const sizeBytes =
       typeof rawObj?.sizeBytes === "number"
         ? rawObj.sizeBytes
         : typeof rawObj?.size_bytes === "number"
           ? rawObj.size_bytes
-          : 1024 * 64;
+          : undefined;
 
     const existingMeta =
       rawObj?.metadata && typeof rawObj.metadata === "object"
@@ -79,10 +84,10 @@ export function extractFindingScreenshots(
       title,
       description,
       mimeType,
-      sizeBytes,
-      dimensions,
-      author: assetAuthor,
-      timestamp: assetTimestamp,
+      ...(sizeBytes === undefined ? {} : { sizeBytes }),
+      ...(dimensions === undefined ? {} : { dimensions }),
+      ...(assetAuthor === undefined ? {} : { author: assetAuthor }),
+      ...(assetTimestamp === undefined ? {} : { timestamp: assetTimestamp }),
       metadata: {
         stage: "validation",
         findingId,

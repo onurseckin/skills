@@ -90,24 +90,61 @@ const criticReview: JsonObject = {
   ],
 };
 
+// A read-only branch child has an empty write scope by contract, so its report names what it read
+// and what it reproduced; asking it for files_changed would demand a change it may not make.
+const investigationReport: JsonObject = {
+  summary: "<nonempty summary>",
+  requirement_ids: ["<every mapped requirement id exactly once>"],
+  sources: ["<repository-relative path actually read>"],
+  reproduction: "<the exact command or steps that reproduce the behaviour, or an explicit unknown>",
+  checks: [{ command_id: "<read-only diagnostic command id>" }],
+  findings: [
+    {
+      id: "<stable finding id>",
+      requirement_id: "<mapped requirement id>",
+      severity: "critical|important|minor",
+      observation: "<what was observed, never a hypothesis>",
+      evidence: [{ path: "<direct evidence path>" }],
+      remediation: "<required remediation>",
+      revalidation: "<exact revalidation method>",
+    },
+  ],
+  evidence: [{ path: "<durable evidence path>" }],
+};
+
+// The coordinator never edits the repository; its evidence is what it dispatched, ran and recorded.
+const coordinationRecord: JsonObject = {
+  summary: "<nonempty summary>",
+  dispatched_agents: ["<agent id registered through agent:register>"],
+  waves: [{ wave: "<recorded topology wave>", task_ids: ["<task id dispatched in that wave>"] }],
+  checks: [{ command_id: "<mandatory gate command id the coordinator executed>" }],
+  evidence: [{ path: "<durable evidence path>" }],
+};
+
 const plannerDocuments: JsonObject = {
   requirements_path: "<validated requirements JSON path>",
   graph_path: "<validated graph JSON path>",
   validation: [{ command: ["bun", "<pinned-runtime>", "validate"], status: "passed" }],
 };
 
+// Exhaustive by construction: a new canonical role cannot compile until its contract is chosen,
+// which is what stops a read-only role from being handed a schema that demands file changes.
+const ROLE_CONTRACTS: Readonly<Record<AgentRole, JsonObject>> = {
+  "completeness-critic": criticReview,
+  coordinator: coordinationRecord,
+  implementer: taskSubmission,
+  planner: plannerDocuments,
+  repairer: taskSubmission,
+  "sub-implementer": taskSubmission,
+  "sub-investigator": investigationReport,
+  "sub-validator": validatorReview,
+  validator: validatorReview,
+};
+
 export function evidenceSchema(role: AgentRole): JsonObject {
-  const contract =
-    role === "validator"
-      ? validatorReview
-      : role === "completeness-critic"
-        ? criticReview
-        : role === "planner"
-          ? plannerDocuments
-          : taskSubmission;
   return {
     gate_evidence: trustedHostEvidence(),
     gate_evidence_limitations: trustedHostLimitations(),
-    ...structuredClone(contract),
+    ...structuredClone(ROLE_CONTRACTS[role]),
   };
 }

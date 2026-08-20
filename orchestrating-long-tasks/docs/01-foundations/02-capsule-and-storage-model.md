@@ -26,21 +26,27 @@ Here is the exact filesystem structure of a live run capsule:
 
 ```text
 .capsules/<run-id>/
-├── prompt.md             # Immutable original prompt bytes (Read-only, mode 0444)
-├── manifest.json         # Capture assurance, prompt SHA-256, runtime digest
+├── prompt.md             # Immutable original prompt bytes (read-only, mode 0444)
+├── manifest.json         # Capture assurance, prompt SHA-256, runtime version
 ├── state.json            # Authoritative current projection (derived from events)
 ├── events.jsonl          # Canonical append-only cryptographic hash chain
-├── plan.json             # Task declarations and dependency graph
-├── config.json           # Optional per-capsule configuration overrides
-├── commands/             # Monitored command outputs, timing, exit codes & fingerprints
-│   └── C-001/
-│       ├── intent.json
-│       ├── stdout.log
-│       ├── stderr.log
-│       └── record.json
-├── evidence/             # Immutable quarantined reports and validation receipts
-└── findings/             # Structured finding records (F-001, F-002, etc.)
+├── .lock                 # The inode POSIX flock is taken on
+├── planning/             # plan:enhance output: enhanced-plan.md + enhanced-plan.json (0444)
+├── commands/             # One directory per recorded command
+│   └── C-<uuid>/
+│       ├── record.json           # argv, cwd, exit code, timings, repository binding, log digests
+│       └── attempt-1/
+│           ├── stdout.log
+│           └── stderr.log
+├── evidence/             # C-<uuid>.json evidence files, plus quarantined fragments
+├── findings/             # One file per finding: finding-<task>-reject.json, probe-<task>-NN-N.json
+├── reports/              # Submission, probe, review and critic reports
+└── summary/              # summary:export output: graph.json, timeline.json, metrics.json, summary.md
 ```
+
+There is no `plan.json` and no per-capsule `config.json`. The compiled graph, the requirements
+document, the topology record, the branch ledger and the agent ledger are all keys inside
+`state.json`, because they are projections of the event chain and nothing else may write them.
 
 ---
 
@@ -81,13 +87,16 @@ Let's examine the four core files that guarantee data integrity across crashes a
   {
     "schema": "harness.manifest",
     "version": 1,
-    "run_id": "feature-auth-refactor",
-    "created_at": "2026-08-14T16:00:00.000Z",
-    "capture_mode": "stdin",
+    "run_id": "slugger",
+    "capsule_id": "f5c05b7bd29d4207a7dc0f93484717c3",
+    "created_at": "2026-08-20T05:12:58.486Z",
+    "capture_mode": "file",
+    "assurance": "source-verified",
     "source_verified": true,
-    "prompt_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-    "creator_bun_version": "1.3.14",
-    "runtime_version": "1.0.0"
+    "prompt_bytes": 200,
+    "prompt_sha256": "ba20966731e18c4133cd16a43dd9d2f205c7d57844d58ce2e332cc5e2a91401d",
+    "bun_version": "1.3.14",
+    "runtime_version": "0.1.0"
   }
   ```
   - **Capture Assurance**: If initialized via `--prompt-stdin` or direct file retrieval, assurance is `source-verified`. If transcribed from chat history, assurance is `recorded-unverified`.
@@ -99,25 +108,40 @@ Every event line contains a forward-secure cryptographic hash chain:
 
 ```json
 {
-  "seq": 4,
-  "timestamp": "2026-08-14T16:01:23.456Z",
-  "actor": "coordinator",
-  "kind": "task_claimed",
-  "payload": {
-    "task_id": "task-1",
-    "agent_id": "agent-implementer-1",
-    "role": "implementer",
-    "lease_seconds": 1800,
-    "token_sha256": "8f43...2a10",
-    "expires_at": "2026-08-14T16:31:23.456Z"
+  "schema": "harness.event",
+  "version": 1,
+  "run_id": "slugger",
+  "capsule_id": "f5c05b7b…",
+  "sequence": 4,
+  "revision": 4,
+  "timestamp": "2026-08-20T05:22:19.372Z",
+  "actor": "impl-slug",
+  "kind": "task-claimed",
+  "payload": { "task_id": "task-slug", "agent_id": "impl-slug", "role": "implementer" },
+  "previous_hash": "9b12…44f2",
+  "projection": {
+    "schema": "harness.state",
+    "version": 1,
+    "revision": 4,
+    "event_sequence": 4,
+    "event_head": "9b12…44f2"
   },
-  "previous_event_sha256": "9b12...44f2",
-  "event_sha256": "7c88...19e0"
+  "hash": "7c88…19e0"
 }
 ```
 
 The hash of Event $N$ is computed as:
-$$\text{event\_sha256}_N = \text{SHA-256}(\text{previous\_event\_sha256}_N + \text{canonical\_json}(\text{event\_fields}))$$
+$$\text{hash}_N = \text{SHA-256}(\text{previous\_hash}_N + \text{canonical\_json}(\text{event\_fields}))$$
+
+Event kinds are hyphenated, not underscored, and the vocabulary grew with the ledgers: alongside
+`plan-init`, `plan-task-added`, `plan-compiled`, `task-claimed`, `task-submitted`, `validation-started`,
+`review-recorded`, `command-recorded` and `run-completed`, a capsule now records `plan-enhanced`,
+`topology-recorded`, `probe-recorded`, `branch-opened`, `branch-claimed`, `branch-submitted`,
+`branch-collected`, `branch-abandoned`, `agent-registered`, `agent-reported` and `agent-released`.
+
+Payload enrichment is **forward-only**. `review-recorded` carries `verdict`, `round`, `class` and
+`finding_count`; older events keep the payload they were written with and are never backfilled,
+because rewriting a payload would break every hash after it.
 
 **Why this matters:**
 
@@ -126,16 +150,40 @@ $$\text{event\_sha256}_N = \text{SHA-256}(\text{previous\_event\_sha256}_N + \te
 
 ### 3. `state.json` (The Current Authoritative Projection)
 
-`state.json` is a deterministic, materialized view computed by replaying `events.jsonl` from sequence 0 to sequence $N$.
-It contains:
+`state.json` is a deterministic, materialized view computed by replaying `events.jsonl` from sequence 0 to sequence $N$. The top-level keys of the sealed tutorial capsule, read back from disk, are:
 
-- Graph revision and active nodes/edges
-- Current task status (`ready`, `leased`, `running`, `submitted`, `validating`, `done`, etc.)
-- Active leases and token SHA-256 digests
-- Open and resolved findings
-- Mandatory gate execution receipts
-- Authority decision records
-- Completeness critic review records
+```text
+schema  version  revision  event_sequence  event_head
+graph            # nodes, edges, gates, revision
+requirements     # prompt_sha256, requirements[], dispositions[]
+tasks            # per-task status, lease, findings, history, probe_round, repair_round
+task_order       # deterministic scheduling order
+planning         # digest of the plan:enhance document
+planning_buffer  # uncompiled plan:add declarations
+planning_tasks   # compiled task declarations
+plan_history     # archived revisions
+topology         # recorded waves and per-task scheduling decisions
+agents           # the grant ledger
+branches         # the branch ledger (absent until the first branch:open)
+commands         # every recorded command
+orphan_evidence  # evidence that arrived without a live owner
+
+# the completion block, written by critic:start / critic:review / run:complete
+completion_critic          # the assigned critic and its authorization
+completion_critic_history  # every critic assignment, in order
+completion_review          # the authoritative critic verdict
+completion_reviews         # the verdict history
+completion_verification    # the artifact and receipt re-verification
+completion_result          # the sealed outcome
+
+# repository binding, written whenever the harness inspects the worktree
+current_repository_binding             # the commit and dirty-state the last inspection saw
+current_repository_inspection_sha256   # digest of that inspection
+repository_inspections                 # every recorded inspection
+```
+
+`branches`, `agents`, `topology` and `planning` are all optional: a capsule written before they
+existed simply has none, and every reader must see that absence rather than a default.
 
 > **Important**: Agents NEVER edit `state.json` directly. `state.json` is rewritten atomically by the harness CLI only after an event has been securely appended and synced to disk.
 
@@ -143,17 +191,17 @@ It contains:
 
 ## 🛠️ The Zero-JSON CLI & Markdown Briefs
 
-Instead of generating raw JSON files or separate markdown packets on disk, the harness provides domain-specific colon commands (`plan:init`, `plan:add`, `plan:compile`, `queue:pop`, `task:claim`, `task:submit`, `task:validate-start`, `task:review`, `run:exec`, `run:complete`).
+Instead of generating raw JSON files or separate markdown packets on disk, the harness provides domain-specific colon commands across twelve domains — `plan`, `queue`, `task`, `run`, `critic`, `summary`, `inspection`, `orchestrator`, `branch`, `agent`, `install` and `diagnostics`. The generated manifest at [`references/cli-capabilities.md`](../../references/cli-capabilities.md) is the single description of that surface; `bun harness.ts help` prints it from the terminal.
 
 Each command emits a compact, structured Markdown brief ($\le 30$ lines) directly to standard output:
 
 ```text
-### Task Leased: task-foundations
-- Agent: worker-1
-- Lease Token: rdxsAB_jLJ07AwyNxacA8MFQ2XZJ3j_r9SpPOZjWqc8
-- Duration: 20 minutes
-- Assigned Write Scope: orchestrating-long-tasks/docs/01-foundations
-- Note: Pass --token <token> to task:submit.
+### Task Leased: task-slug
+- **Agent**: `impl-slug`
+- **Lease Token**: `K6QeJSe2sZ4n4kcMTiH1oxGbXEKstjtLEBxG2F-2-5A`
+- **Duration**: 20 minutes
+- **Assigned Write Scope**: `src/slug.ts`
+- **Note**: Pass `--token K6QeJSe2sZ4n4kcMTiH1oxGbXEKstjtLEBxG2F-2-5A` to `task:submit`.
 ```
 
 Subagents parse these concise Markdown briefs without token bloat or error-prone JSON serialization.
@@ -166,7 +214,10 @@ Global and repository-level defaults are controlled via `harness.config.json` (o
 
 ```json
 {
-  "max_repair_rounds": 5,
+  "min_adversarial_probes": 1,
+  "max_repair_rounds": 6,
+  "max_branch_depth": 5,
+  "max_agents": 100,
   "max_output_bytes": 10485760,
   "default_lease_seconds": 1800,
   "default_max_parallel": 4,
@@ -174,11 +225,18 @@ Global and repository-level defaults are controlled via `harness.config.json` (o
 }
 ```
 
-- **`max_repair_rounds`** (default `5`): Maximum repair attempts allowed before a rejected task or critic finding escalates.
+- **`min_adversarial_probes`** (default `1`): Probe rounds a validator must record before `task:review --status pass` is allowed. A probe is a demand for proof, not a rejection.
+- **`max_repair_rounds`** (default `6`): Recorded rejections a task may absorb before it becomes `escalated`.
+- **`max_branch_depth`** (default `5`): Escalation tripwire on branch nesting, not a structural bound — termination is guaranteed by the proper-subset rule on write scopes. Crossing it escalates to a human.
+- **`max_agents`** (default `100`): Total agent grants a run may issue across every depth. Assumed, not measured; `agent:register` and `branch:open` refuse once it is spent.
 - **`max_output_bytes`** (default `10485760` / 10MB): Maximum command output buffered before truncation.
-- **`default_lease_seconds`** (default `1800`): Worker lease duration.
-- **`default_max_parallel`** (default `4`): Concurrency cap for independent tasks.
+- **`default_lease_seconds`** (default `1800`): Sub-task lease duration for `branch:claim`. It does **not** govern `task:claim`, which defaults to 1200 seconds and is overridden per call with `--lease-seconds`.
+- **`default_max_parallel`** (default `4`): Concurrency cap for independent tasks; `queue:wave` and `queue:list` read it rather than hardcoding one.
 - **`strict_validation`** (default `true`): Enforces mandatory gate coverage.
+
+A legacy `min_adversarial_rejections` key is still parsed, but it no longer governs the probe
+requirement: a rejection is not a probe, and a file that sets only the old key leaves the probe count
+at its default while the harness warns.
 
 ---
 

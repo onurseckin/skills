@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { HarnessError } from "../errors/harness-error.ts";
+import { promptLines } from "./prompt-lines.ts";
 import { validateRequirements } from "./validate-requirements.ts";
 
 export interface TaskDeclaration {
@@ -12,12 +13,24 @@ export interface TaskDeclaration {
   criteria?: readonly string[] | undefined;
   priority?: number | undefined;
   effort?: number | undefined;
+  /** Ascending prompt lines the task was explicitly declared against; absent means positional. */
+  requirementLines?: readonly number[] | undefined;
 }
 
 export interface CompiledRequirementsResult {
   requirementsDocument: Record<string, unknown>;
   atomicRequirements: Record<string, unknown>[];
   requirementIdsByTask: Map<string, string[]>;
+  /** Every place a task's prompt binding was guessed rather than declared. */
+  warnings: string[];
+}
+
+function gateArgvOf(task: TaskDeclaration): string[] {
+  return typeof task.gate === "string" ? task.gate.split(" ") : [...task.gate];
+}
+
+function gateText(task: TaskDeclaration): string {
+  return typeof task.gate === "string" ? task.gate : task.gate.join(" ");
 }
 
 export function compileRequirementsFromPrompt(
@@ -25,11 +38,11 @@ export function compileRequirementsFromPrompt(
   tasks: readonly TaskDeclaration[],
 ): CompiledRequirementsResult {
   const promptSha256 = createHash("sha256").update(prompt, "utf8").digest("hex");
-  const promptLines = prompt.split(/\r?\n/);
+  const lines = promptLines(prompt);
 
   const nonBlankLineIndices: number[] = [];
-  for (let i = 0; i < promptLines.length; i++) {
-    if (promptLines[i]!.trim().length > 0) {
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i]!.trim().length > 0) {
       nonBlankLineIndices.push(i + 1);
     }
   }
@@ -40,34 +53,58 @@ export function compileRequirementsFromPrompt(
 
   const atomicRequirements: Record<string, unknown>[] = [];
   const requirementIdsByTask = new Map<string, string[]>();
-  const assignedLines = new Map<number, string>();
+  const warnings: string[] = [];
+  // Every requirement claiming a line, in declaration order; a line may carry more than one once
+  // tasks bind explicitly, and the dispositions below have to name all of them.
+  const claims = new Map<number, string[]>();
+
+  // Declared lines are withheld from the positional sweep before it starts, so a task that named
+  // its lines cannot lose them to an earlier task that named none.
+  const declared = new Set<number>();
+  for (const task of tasks) for (const line of task.requirementLines ?? []) declared.add(line);
+
+  const nextPositionalLine = (): number | undefined =>
+    nonBlankLineIndices.find((line) => !declared.has(line) && !claims.has(line));
 
   tasks.forEach((task, taskIdx) => {
-    let assignedLine: number | undefined;
-    for (const lineNum of nonBlankLineIndices) {
-      if (!assignedLines.has(lineNum)) {
-        assignedLine = lineNum;
-        break;
+    const explicit = task.requirementLines ?? [];
+    const assignedLines = explicit.length > 0 ? [...explicit] : [];
+    if (assignedLines.length === 0) {
+      const positional = nextPositionalLine();
+      if (positional !== undefined) {
+        assignedLines.push(positional);
+        warnings.push(
+          `task ${task.id} was glued to prompt line ${positional} by position, not by declaration; pass --requirement-lines to bind it to the lines it actually implements`,
+        );
       }
     }
 
-    if (assignedLine === undefined) {
+    if (assignedLines.length === 0) {
+      // More tasks than prompt lines: the task gets no requirement of its own, so its gate is
+      // folded into one that already exists rather than a line being reused as if it were free.
       const fallbackLine = nonBlankLineIndices[taskIdx % nonBlankLineIndices.length]!;
-      const existingReqId = assignedLines.get(fallbackLine)!;
+      const existingReqId = claims.get(fallbackLine)?.[0];
+      if (existingReqId === undefined) {
+        throw new HarnessError(
+          "INTEGRITY",
+          `task ${task.id} has no prompt line to bind to and no requirement to fold into`,
+        );
+      }
+      warnings.push(
+        `task ${task.id} had no unclaimed prompt line; its gate was folded into requirement ${existingReqId}. Bind it with --requirement-lines to give it a requirement of its own`,
+      );
       const existingReq = atomicRequirements.find((r) => r.id === existingReqId);
       if (existingReq && Array.isArray(existingReq.acceptance)) {
         const critIdx = existingReq.acceptance.length + 1;
-        const gateArgv = typeof task.gate === "string" ? task.gate.split(" ") : [...task.gate];
         (existingReq.acceptance as Record<string, unknown>[]).push({
           id: `crit-${existingReqId}-${critIdx}`,
           criterion:
-            task.criteria?.[0] ??
-            `Task gate \`${typeof task.gate === "string" ? task.gate : task.gate.join(" ")}\` passes with exit code 0`,
+            task.criteria?.[0] ?? `Task gate \`${gateText(task)}\` passes with exit code 0`,
           evidence: [`Gate execution output for \`${task.id}\``],
         });
         if (Array.isArray(existingReq.candidate_gates)) {
           (existingReq.candidate_gates as Record<string, unknown>[]).push({
-            argv: gateArgv,
+            argv: gateArgvOf(task),
             cwd: ".",
           });
         }
@@ -77,17 +114,16 @@ export function compileRequirementsFromPrompt(
     }
 
     const reqId = `req-${task.id.replace(/^task-?/, "")}`;
-    assignedLines.set(assignedLine, reqId);
+    for (const line of assignedLines) {
+      claims.set(line, [...(claims.get(line) ?? []), reqId]);
+    }
 
-    const excerpt = promptLines[assignedLine - 1]!;
-    const gateArgv = typeof task.gate === "string" ? task.gate.split(" ") : [...task.gate];
+    const excerpt = assignedLines.map((line) => lines[line - 1]!).join("\n");
 
     const criteriaList =
       task.criteria && task.criteria.length > 0
         ? task.criteria
-        : [
-            `Task gate \`${typeof task.gate === "string" ? task.gate : task.gate.join(" ")}\` passes with exit code 0`,
-          ];
+        : [`Task gate \`${gateText(task)}\` passes with exit code 0`];
 
     const acceptance = criteriaList.map((crit, critIdx) => ({
       id: `crit-${reqId}-${critIdx + 1}`,
@@ -97,13 +133,13 @@ export function compileRequirementsFromPrompt(
 
     const reqObj: Record<string, unknown> = {
       id: reqId,
-      source_lines: [assignedLine],
+      source_lines: assignedLines,
       source_excerpt: excerpt,
       instruction: task.goal ?? task.label,
       implementation: `Implement requirements for ${task.label} within scope ${task.writeScope.join(", ")}`,
       subsystem: "runtime/planning",
       acceptance,
-      candidate_gates: [{ argv: gateArgv, cwd: "." }],
+      candidate_gates: [{ argv: gateArgvOf(task), cwd: "." }],
       priority: task.priority ?? 50,
       risk: "medium",
       ambiguity: [],
@@ -118,19 +154,17 @@ export function compileRequirementsFromPrompt(
 
   const dispositions: Record<string, unknown>[] = [];
   for (const lineNum of nonBlankLineIndices) {
-    const linkedReqId = assignedLines.get(lineNum);
-    if (linkedReqId) {
-      dispositions.push({
-        line: lineNum,
-        kind: "requirement",
-        requirement_id: linkedReqId,
-      });
-    } else {
+    const linked = claims.get(lineNum);
+    if (linked === undefined) {
       dispositions.push({
         line: lineNum,
         kind: "context",
         rationale: "Contextual background, architectural guidance, or specification constraints",
       });
+    } else if (linked.length === 1) {
+      dispositions.push({ line: lineNum, kind: "requirement", requirement_id: linked[0] });
+    } else {
+      dispositions.push({ line: lineNum, kind: "requirement", requirement_ids: [...linked] });
     }
   }
 
@@ -150,5 +184,5 @@ export function compileRequirementsFromPrompt(
     );
   }
 
-  return { requirementsDocument: document, atomicRequirements, requirementIdsByTask };
+  return { requirementsDocument: document, atomicRequirements, requirementIdsByTask, warnings };
 }
