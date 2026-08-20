@@ -2117,6 +2117,24 @@ both files; no new finding needed there. B31 (deferred by owner): confirmed unto
    treatment `processSnapshot` already has, and sweep for any other single-shot `spawnSync` or execSync
    call (Node's own child_process API, not a symbol defined in this repo) reachable from a role-grant
    or lease path.
+   **RESOLVED, verified 2026-08-20:** `createRepositoryGitCommand` (`repository-git-command.ts:106-114`)
+   now retries on the exact `isTransientSpawnFailure` shape (status===null, error===undefined, empty/absent
+   stderr) up to `GIT_SPAWN_TRANSIENT_RETRIES`=3 times with a `GIT_SPAWN_TRANSIENT_RETRY_DELAY_MS`=20ms
+   delay between attempts, the same bounded-retry shape `process-tree.ts`'s `SNAPSHOT_SPAWN_RETRIES`
+   already uses for `ps`; a real git failure (non-zero status, an error object, or any stderr text) is
+   still never retried. `tests/unit/packets/repository-git-spawn-retry.test.ts` (new, 6 tests) proves both
+   directions: `bun test tests/unit/packets/repository-git-spawn-retry.test.ts` — 6 pass, 0 fail. Guard
+   confirmed load-bearing per B33/B38's own method — reverted the retry loop to a single `spawn` call in an
+   `rsync`ed scratch copy under `/tmp` (never the real tree): 2/6 tests failed (the retry-then-succeed case
+   and the bounded-give-up case), then discarded the copy and confirmed `git status` on the real tree showed
+   no changes. Sweep for other single-shot `spawnSync` or execSync calls (Node's own child_process API, not
+   a symbol defined in this repo) reachable from a role-grant or lease path: a grep across
+   `orchestrating-long-tasks/scripts/src` for both names (excluding tests) matches only this one call site;
+   `process-tree.ts` uses async `execFile` with its own `SNAPSHOT_SPAWN_RETRIES`, not a synchronous spawn,
+   so no other unretried single-shot spawn exists on that path. `bun run typecheck` passes clean. The
+   harness's own health check now reports the intent-drift check at 0 failures (the finding this item names
+   is gone; B37's own separately-tracked allowance in `health/allowlist.ts` is unaffected by this note);
+   overall verdict healthy, 0 failures repo-wide.
 
 2. **B32/B34 telemetry-to-`graph.json`: the wiring is now genuinely correct and reachable, but B32.2's own
    literal closure bar is still unmet.** Verified by reading the call sites directly: `probeAgentTelemetry`

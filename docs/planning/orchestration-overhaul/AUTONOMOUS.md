@@ -81,6 +81,49 @@ checked, and the next pass repeats the work.
 **Termination requires all three: the backlog holds no `queued` item, `health` reports HEALTHY, and a
 verification pass has just run and re-added nothing.** Two out of three keeps the loop going.
 
+## Stray cleanup, every cycle — with a hard protected list
+
+Long autonomous runs leak background processes. The audio-notification hooks were the worst case: one
+`afplay` per agent turn stop, hundreds accumulated over fourteen hours, each holding a `coreaudiod`
+connection until that daemon sat at 105% CPU for seven days. Killing the strays dropped it to 35%
+immediately. Check for this class every cycle, before deciding wave width.
+
+### NEVER kill these. They are the working environment.
+
+    agy            Antigravity CLI — the owner's coding agent
+    claude         Claude Code — this session and its subagents
+    wezterm-gui    the terminal
+    tmux           the multiplexer inside it
+    zsh / bash / login / sh    shells, including every subprocess of the above
+
+If a candidate's ancestry reaches any of those, leave it. When unsure, leave it and report instead —
+killing the owner's editor or terminal costs far more than a slow machine.
+
+### Safe to terminate when they pile up or stick
+
+- `afplay` strays beyond a couple: a notification-hook leak, never real work.
+- Orphaned `bun`/`node` whose parent is 1 AND whose workflow has completed: leftovers from a finished
+  wave. Check the workflow is actually done first — a live agent's parent may briefly reparent.
+- A system daemon genuinely pegged for hours where a restart is the standard remedy — `coreaudiod` is the
+  known case. It needs `sudo`, so report it rather than failing silently:
+  `sudo killall coreaudiod` (launchd respawns it instantly; audio reconnects).
+
+### The check
+
+    load=$(uptime | sed 's/.*averages*: *//' | awk '{print int($1)}')
+    strays=$(pgrep -x afplay | wc -l)
+    ps -axo pid=,pcpu=,etime=,comm= | sort -k2 -rn | head -5
+
+Read the top five before killing anything. Twice in this run the biggest consumer was NOT this project —
+once a third repo's `tsc`, once the audio daemon — and killing agents would have fixed neither. The
+armed watchdog reports IDLE, OVERLOAD (load > 150 or free memory < 400 MB, naming the top three) and
+AUDIO STRAYS, so the signal usually arrives before the next cycle does.
+
+### Wave width follows the machine
+
+Full width (8 workstreams) when load is normal. Half (4) while recovering. The watchdog emits RECOVERED
+when full width is safe again.
+
 ## Recovery
 
 - A workflow that dies mid-flight leaves its transcripts under
