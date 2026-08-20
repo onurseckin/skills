@@ -54,14 +54,19 @@ carried in from the assignment.
 | Tag | Count | Items |
 |---|---:|---|
 | `done (<sha>), verified` | 3 | B2, B5, B13 |
-| `verified` | 17 | B1, B6, B7, B10, B11, B12, B14, B16, B19, B23, B24, B26, B28, B29, B30, B34, B36 |
-| `queued` | 19 | B3, B4, B8, B9, B15, B17, B18, B20, B21, B22, B25, B27, B32, B33, B35, B37, B38, B39, B40 |
+| `verified` | 19 | B1, B6, B7, B10, B11, B12, B14, B16, B19, B23, B24, B25, B26, B27, B28, B29, B30, B34, B36 |
+| `queued` | 17 | B3, B4, B8, B9, B15, B17, B18, B20, B21, B22, B32, B33, B35, B37, B38, B39, B40 |
 | `deferred by owner` | 1 | B31 |
 | **Total** | **40** | B1-B40 |
 
 **Not re-derived above; corrected in place (B19/B20 reconciliation pass):** B19 moved `queued` →
 `verified` this pass (see B19's own entry) after this table was written by the prior pass — the table
 above reflects that move rather than the stale 16/20 split the prior pass's own count left behind.
+
+**Corrected in place again (DAG-readiness/concurrency pass):** B25 moved `queued` → `verified` in a
+later pass than the one that wrote this table (see B25's own entry, "fourth pass") and B27 moved
+`queued` → `verified` in this pass (see B27's own entry) — both were still shown `queued` here even
+though their own section headers already carried the newer tag. The table above reflects both moves.
 
 Prior pass's own account, kept for provenance:
 
@@ -1886,7 +1891,38 @@ reject, repair, re-validate with the same identity) and assert the refusal BY ER
 
 ---
 
-## B27 — Concurrency is a workload property, not a CPU formula   `queued`
+## B27 — Concurrency is a workload property, not a CPU formula   `verified`
+
+**Verified 2026-08-20 (fifth pass) — the only blocker the fourth pass recorded, an uncommitted diff, is
+gone: `git status --short` is clean and `git rev-list --left-right --count
+origin/orchestration-overhaul...HEAD` reports `0  0`.** `git log` confirms the four files it named
+(`SKILL.md`, `agents/coordinator.yaml`, `cli/commands/run-ops.ts`, `tests/unit/cli/run-ops-commands.test.ts`)
+landed in `85e832d` and `b70d1ae`. Re-ran B33's three-bar check fresh rather than trusting the prior tag:
+
+- **Reachable and correct, read directly, not re-derived from the note:** `SKILL.md` Hard Rule 11 and
+  `agents/coordinator.yaml` Phase 2 both state the provider-bound/local-bound split and point at the two
+  separate ceilings. `config/host-concurrency.ts`'s `discoverHostConcurrencyCeiling` asks
+  `summary/host-telemetry.ts` (never hardcodes a number, returns `null` on a silent host) and
+  `deriveGateConcurrencyCeiling` halves the discovered core count, floored at 1, config-overridable.
+  `cli/commands/run-ops.ts`'s `occupancyCeilings` reads both `default_max_parallel` and
+  `gate_max_parallel` and the JSON/markdown `run:status` output carries both.
+- **B27.3 ("widen until the provider pushes back, then back off") was not a separate unimplemented
+  mechanism — it already exists, built for B28.3.** `orchestrator/failure-classifier.ts`'s
+  `UNBOUNDED_COUNT_TRANSIENT_SIGNALS` includes `rate_limit` by name, with exponential backoff plus jitter
+  and no retry-count cap (only an elapsed-time budget), which is exactly "the provider's pushback is the
+  honest signal, retry past it rather than pre-guessing a ceiling." No new code needed; this is legitimate
+  reuse across two backlog items describing the same mechanism from different angles.
+- **Guard holds:** `bun test tests/unit/config/host-concurrency.test.ts
+  tests/unit/config/harness-config.test.ts tests/unit/cli/run-ops-commands.test.ts` — 35 pass, 0 fail, run
+  this pass, not carried over.
+
+No code or doc changes were needed this pass — the fourth pass's implementation was already correct and
+complete; only the commit/push state and the tag were stale.
+
+---
+
+<details>
+<summary>Prior pass's note (superseded by the verification above, kept for history)</summary>
 
 **Still queued 2026-08-20 (fourth pass) — B27.2 re-confirmed landed and tested; B27.1's documented gap
 closed in this pass, but the diff is uncommitted, so the item cannot carry `verified` yet (that tag
@@ -1967,6 +2003,8 @@ The skill must not hardcode a number:
 Rate limits and provider errors are the honest signal that the outer ceiling was hit — not a guess made in
 advance. Widen until the provider pushes back, then back off. That is what makes an unattended overnight
 run finish sooner rather than idling under a conservative constant.
+
+</details>
 
 ---
 
@@ -2477,12 +2515,55 @@ Reasoning effort is recorded; reasoning content is not. Record that as a genuine
 
 ## B35 — Three more load-sensitive tests; B11.1's sweep was incomplete   `queued`
 
-**Still queued 2026-08-20 (completion-tagging pass):** the item's own "Verified fix." paragraph below,
-plus a direct check just now, confirm the three named CLI tests, the four `process.kill` assertions,
-and the file-size-cap splits are all done — `wc -l` across `tests/unit` shows no file over 487 lines
-today (was 851/881/692). What remains open, in the item's own words: one residual load-only flake in
-`tests/integration/runner-timeouts-retries.test.ts`, explicitly left for owner sign-off or a follow-up
-item rather than resolved here.
+**Still queued 2026-08-20 (fifth pass, re-confirmed fresh, nothing changed).** Independently re-opened
+every file this item and the prior pass name, rather than trusting either note:
+
+- `tests/unit/cli/honesty-sweep.test.ts` (360 lines), `critic-ops-commands.test.ts` (350),
+  `task-probe-commands.test.ts` (155) — all under the 495-line working cap, no `.skip`/`.todo` markers.
+- All four `process.kill(pid, 0)` sites (`resource-bounds.test.ts:147,186`,
+  `runner-timeouts-retries.test.ts:216,233`) now go through the bounded-poll helper exported by
+  `tests/unit/runner/run-command-fixture.ts`, not an instant absence check.
+- The two production races the prior fix traced past the test layer are both still in place:
+  `settleAndTerminateAttempt` (`runner/attempt-failure-cleanup.ts`) bounded-polls descendant/root
+  absence instead of checking once right after SIGKILL; `processSnapshot` (`runner/process-tree.ts`)
+  retries a failed `ps` spawn up to 3 times with a 20ms delay before hard-failing.
+- The specific race this pass was asked to check by name — "`planner-packet.test.ts` 'runtime source
+  changed while it was being copied' race in its own file-copy window" — turned out to be filed under a
+  different test: the assertion string lives in `tests/unit/store/runtime-pin.test.ts:89`, and
+  `planner-packet.test.ts` is the file whose own comment (lines 15-20) explains why and how it was made
+  deterministic — a private, frozen-once-in-setup copy of the scripts tree (`scriptsRoot`) that nothing
+  but the test file itself ever touches, closing the exposure window entirely rather than tolerating it.
+  `runtime-pin.test.ts`'s own version of the same assertion is likewise not a race at all: it uses an
+  injected `beforeRuntimeSourceRecheck` hook to deterministically mutate the source file inside the
+  copy-then-recheck window on demand, never relying on real timing. Both were already fixed before this
+  pass; there is no remaining flaky race under either file. `bun test
+  tests/unit/cli/honesty-sweep.test.ts tests/unit/cli/critic-ops-commands.test.ts
+  tests/unit/cli/task-probe-commands.test.ts tests/unit/runner/resource-bounds.test.ts
+  tests/integration/runner-timeouts-retries.test.ts tests/unit/store/runtime-pin.test.ts
+  tests/unit/packets/planner-packet.test.ts` — 54 pass, 0 fail, run this pass.
+
+**What actually keeps this item open, and why it was not touched this pass:** the one residual,
+load-only flake in `runner-timeouts-retries.test.ts`'s "kills TERM-resistant descendants after a
+cooperative leader exits" (reproduces only at ambient load ~300+ on a 10-core box, traced to real
+CPU-scheduler starvation of the wall-clock `graceMs`/idle-timeout windows, not a fixable test
+assumption — an untouched, pre-existing idle-timeout test fails the same way at the same load). Fixing
+it for real means replacing a wall-clock-based readiness signal in the runner's watchdog/grace-period
+path with something starvation-independent, which is an actual design choice with more than one
+reasonable shape, not a one-line correction:
+
+1. **Do nothing / accept at this load level** — the flake only manifests well past any load this repo's
+   own CI or interactive use produces; document the load threshold and move on.
+2. **Event-driven descendant reaping** — replace the `setTimeout`-based grace race
+   (`runner/process-group.ts`'s `wait(graceMs)` / `runner/descendant-tracker.ts`) with a signal that
+   fires on the child's actual `exited` promise settling under contention, removing the fixed-delay
+   assumption rather than lengthening it.
+3. **Load-aware skip** — detect load average at test start and skip (not widen) the specific assertion
+   above a documented threshold, so the test suite stays honest about what it can assert at extreme
+   contention instead of asserting something the scheduler cannot guarantee.
+
+This is exactly the class of decision the standing rule reserves for the owner ("when a fix has a real
+design choice, write a 2-3 option plan and wait for `go` before touching code") — so it stays `queued`
+on that one sub-item rather than being silently resolved either by a code change or by a tag flip.
 
 **Observed 2026-08-20 at the Wave 9 push gate.** These pass 10/10 in isolation and fail under
 `bun test --parallel` on a loaded machine:

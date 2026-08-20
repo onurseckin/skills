@@ -1,6 +1,7 @@
 import type { HarnessEvent } from "../contracts/capsule.ts";
 import type { JsonValue } from "../contracts/json.ts";
 import type { ActionKind, ActionOutcome, ActionStepRecord, ActionTarget } from "./graph-types.ts";
+import { narrateUnclassifiedEvent } from "./step-event-summaries.ts";
 import type { TimelineEventRecord } from "./types.ts";
 
 interface EventDetails {
@@ -247,13 +248,24 @@ function determinePhaseAndSummary(event: HarnessEvent, promptBytes = 0): EventDe
       result.phase = "execution";
       result.summary = "Downstream tasks unblocked and marked ready";
       break;
-    default:
-      result.summary = `Event ${event.kind} recorded by ${event.actor}`;
+    default: {
+      // Roughly 40 recognised event kinds fell here before `step-event-summaries.ts` existed —
+      // each got a step (B15.1 held), but a step whose own text discarded the payload's real
+      // content, which is exactly what B21.3's "reconstructible from summaries alone" bar refuses
+      // to accept. Only a kind genuinely no emitter has named yet keeps the fully generic text.
+      const narrated = narrateUnclassifiedEvent(event);
+      if (narrated) {
+        result.phase = narrated.phase;
+        result.summary = narrated.summary;
+      } else {
+        result.summary = `Event ${event.kind} recorded by ${event.actor}`;
+      }
       if (taskId) result.task_id = taskId;
       if (gateId) result.gate_id = gateId;
       if (commandId) result.command_id = commandId;
       if (round !== undefined) result.round = round;
       break;
+    }
   }
   return result;
 }

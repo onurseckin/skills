@@ -42,6 +42,29 @@ describe("workflow submissions", () => {
     expect(() => submitTask(port, "T-1", "agent", token, [], start)).toThrow();
   });
 
+  // B21.2: the harness refuses the transition when the summary is missing, rather than trusting a
+  // caller to have supplied one. `report.summary` has enforced this since the initial commit via
+  // `requireText` in `validate-report.ts`; nothing previously proved it at the `submitTask` seam
+  // task:submit actually calls, so a regression here (a validator loosened, a field renamed) would
+  // have gone unnoticed until a run's own summaries silently went missing.
+  test("B21.2: refuses submission with no summary, an empty summary, or a whitespace-only one", () => {
+    for (const invalid of [
+      (() => {
+        const { summary: _omit, ...rest } = report;
+        return rest;
+      })(),
+      { ...report, summary: "" },
+      { ...report, summary: "   " },
+    ]) {
+      const port = new TestPort(workflowState());
+      const { token } = claimTask(port, "T-1", "agent", "implementer", { clock: start });
+      registerTaskPacket(port, "implementer", "agent", 1);
+      const before = port.read();
+      expect(() => submitTask(port, "T-1", "agent", token, invalid, start)).toThrow();
+      expect(port.read()).toEqual(before);
+    }
+  });
+
   test("requires nonempty substantive checks and evidence", () => {
     for (const invalid of [
       { ...report, checks: [] },

@@ -200,6 +200,31 @@ describe("timeline collector", () => {
     expect(timeline[1]!.summary).toBe("Task T-9 escalated by test-actor: no reason recorded");
     expect(timeline[2]!.summary).toBe("Completeness critic review completed (no verdict recorded)");
   });
+
+  // Regression guard for the wiring itself, not just `step-event-summaries.ts` in isolation: a
+  // real fixture run (`.tmp/fixture-build/build-fixture.ts`) had 42 of 78 recorded steps fall to
+  // the fully generic `Event <kind> recorded by <actor>` before this case existed, which is what
+  // B21.3's "reconstructible from summaries alone" bar refuses to accept. This proves both
+  // `collectTimeline` and `collectActionSteps` route an event kind their own switch has no case
+  // for through the narration module before falling back to the generic text.
+  test("both collectTimeline and collectActionSteps narrate a kind their own switch has no case for", () => {
+    const event = createEvent(
+      "branch-opened",
+      { branch_id: "B-1", parent_task_id: "T-1", reason: "the flush path needs investigation" },
+      1,
+    );
+    const [timelineEntry] = collectTimeline([event]);
+    expect(timelineEntry!.phase).toBe("branch");
+    expect(timelineEntry!.summary).toBe(
+      "Branch B-1 opened off T-1 by test-actor: the flush path needs investigation",
+    );
+
+    const [step] = collectActionSteps([event]);
+    expect(step!.summary).toBe(
+      "Branch B-1 opened off T-1 by test-actor: the flush path needs investigation",
+    );
+    expect(step!.summary.startsWith("Event ")).toBe(false);
+  });
 });
 
 describe("collectActionSteps", () => {
@@ -248,7 +273,11 @@ describe("collectActionSteps", () => {
   test("classifies the real store-emitted validation and escalation kinds, not a guessed name", () => {
     const steps = collectActionSteps([
       createEvent("validation-started", { task_id: "T-1" }, 1),
-      createEvent("task-escalated-by-supervisor", { task_id: "T-1", reason: "retry_budget_exhausted" }, 2),
+      createEvent(
+        "task-escalated-by-supervisor",
+        { task_id: "T-1", reason: "retry_budget_exhausted" },
+        2,
+      ),
     ]);
     expect(steps[0]!.kind).toBe("gate");
     expect(steps[1]!.kind).toBe("task");
