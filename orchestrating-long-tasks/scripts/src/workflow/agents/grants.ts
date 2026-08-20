@@ -62,7 +62,7 @@ export interface AgentReportInput {
   tools: readonly AgentToolRef[];
   tokensIn?: number;
   tokensOut?: number;
-  /** Provider-specific counters keyed by the name the host reported them under. */
+  /** Provider-specific counters keyed by the name the caller reported them under. */
   tokenExtras?: Readonly<Record<string, number>>;
   tokensEstimated: boolean;
   now?: Date;

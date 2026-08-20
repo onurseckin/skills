@@ -113,8 +113,11 @@ function mirrorStem(segments: readonly string[]): string[] {
  */
 export function discoverGatePaths(repoRoot: string, writeScope: readonly string[]): string[] {
   const found = new Set<string>();
+  // Every call site below passes a path strictly inside repoRoot (a file or directory found under
+  // a narrowed scope, never repoRoot itself — the root-scope case is skipped above), so
+  // relative() here can never return "" and there is no missing-value case to paper over.
   const record = (absPath: string): void => {
-    found.add(relative(repoRoot, absPath) || ".");
+    found.add(relative(repoRoot, absPath));
   };
   for (const raw of writeScope) {
     const trimmed = raw.trim();

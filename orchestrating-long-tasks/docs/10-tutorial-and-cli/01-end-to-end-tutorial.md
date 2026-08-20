@@ -76,12 +76,16 @@ bun harness.ts plan:init --repo . --run slugger --prompt-file prompt.txt --captu
 - **Capsule Root**: `…/slugger/.capsules/slugger`
 - **Prompt SHA-256**: `ba20966731e18c4133cd16a43dd9d2f205c7d57844d58ce2e332cc5e2a91401d` (200 bytes)
 - **Assurance**: `source-verified` | Runtime: Bun 1.3.14
+- **Runtime Pin**: `<sha256>` (`<N>` files, see `runtime/`).
 - **Status**: Ready for task declarations (`plan:add`).
 ```
 
-The capsule now exists with `prompt.md` (mode `0444`), `manifest.json`, `state.json`, an empty
-`events.jsonl`, the generated `README.md`, `index.json` and `trace.md`, and the
-`blobs/ commands/ evidence/ planning/ reports/` directories.
+The **Runtime Pin** is a hash over the harness scripts themselves, taken automatically unless
+`--no-runtime-pin` is passed — it survives even if the global skill is later updated, so a capsule
+stays reproducible against the exact code that opened it. The capsule now exists with `prompt.md`
+(mode `0444`), `manifest.json`, `state.json`, an empty `events.jsonl`, the generated `README.md`,
+`index.json` and `trace.md`, and the `blobs/ commands/ evidence/ planning/ reports/ runtime/`
+directories.
 
 ---
 

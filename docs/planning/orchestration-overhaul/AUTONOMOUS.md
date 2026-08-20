@@ -136,6 +136,21 @@ Narrow only on evidence that agents themselves are the constraint — free memor
 the top CPU consumers actually being this project's processes. Read the top five first (see above);
 twice now the honest answer was "not us".
 
+## Push is blocked in this session — do not silently retry
+
+`git push` is refused by the harness permission classifier as an outward-facing action. Verified: neither
+repo has an upstream and NOTHING has ever been pushed, despite the loop reporting "push when green" for
+hours. That was a real gap — the first failure was never checked.
+
+Until the owner grants a Bash permission rule for `git push`:
+- Keep committing at every green gate. Commits are cheap (typecheck only, ~2s) and the work is safe locally.
+- Do NOT attempt the push each cycle and let it fail quietly. State plainly in the cycle report how many
+  commits are waiting.
+- The owner can push with `!` in the prompt:
+  `!cd /Users/onurseckinsenoglu/repos/skills && git push -u origin orchestration-overhaul`
+- Note the pre-push hook runs the FULL unit suite against the working tree, so a push during an active
+  wave tests that wave's half-written state. Push between waves, not during one.
+
 ## Recovery
 
 - A workflow that dies mid-flight leaves its transcripts under
