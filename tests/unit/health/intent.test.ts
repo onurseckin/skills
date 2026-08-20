@@ -197,6 +197,48 @@ describe("a requirement the owner marked deferred is excluded, not judged missin
   });
 });
 
+describe("health/allowlist.ts quoting a path token is not evidence the repo uses it", () => {
+  // An allowance's own `key` necessarily repeats the finding's token verbatim (matches() requires
+  // an exact string match), so without this exclusion, allowlisting a missing-file finding would
+  // make the token look "written" and the check would call the allowance that just suppressed it
+  // unnecessary - self-cancelling the moment someone tries to use it.
+  const result = (production: Parameters<typeof checkIntentDrift>[0]["production"]) => {
+    const root = writeTree(tempRoot("allowlist-self-reference"), {
+      "SPEC.md": [
+        "## 1. R1 - a produced artifact",
+        "",
+        "- Produces `.tmp/scratch/build.ts`.",
+      ].join("\n"),
+    });
+    return checkIntentDrift({
+      documents: [{ relative: "SPEC.md", absolute: join(root, "SPEC.md"), headingLevel: 2 }],
+      production,
+      tests: [],
+      paths: [],
+      registryApplies: true,
+    });
+  };
+
+  test("the token appearing only inside health/allowlist.ts still reads as missing", () => {
+    const report = result([
+      sourceOf(
+        "health/allowlist.ts",
+        'key: "intent-missing:SPEC.md:R1:.tmp/scratch/build.ts",',
+      ),
+    ]);
+    expect(report.findings.map((entry) => entry.key)).toContain(
+      "intent-missing:SPEC.md:R1:.tmp/scratch/build.ts",
+    );
+  });
+
+  test("the same token in any other production file still counts as written", () => {
+    const report = result([sourceOf("core/paths.ts", 'const p = ".tmp/scratch/build.ts";')]);
+    expect(report.findings.map((entry) => entry.key)).not.toContain(
+      "intent-missing:SPEC.md:R1:.tmp/scratch/build.ts",
+    );
+  });
+});
+
 describe("a command token is not judged against a registry that does not describe the tree", () => {
   const result = (): ReturnType<typeof checkIntentDrift> => {
     const root = writeTree(tempRoot("foreign-intent"), {

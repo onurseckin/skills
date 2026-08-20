@@ -56,6 +56,31 @@ in the SAME turn. Assessment and planning are not a turn of their own.
    post-push hook runs `skill:update`, which refreshes the global skill from GitHub.
 8. **Repeat** from step 1 until the backlog is drained and the health check is HEALTHY.
 
+## "Drained" is a claim, not a state
+
+An empty backlog never ends the loop on its own. Before stopping, run a POST-IMPLEMENTATION VERIFICATION
+pass over everything marked done, and put back whatever does not survive it.
+
+The evidence is overwhelming and all from this overhaul: the role-packet subsystem, the Dual-Channel
+Validator, the conflict-aware scheduler, the config loader, lease recovery, `handoff.md` and the host
+telemetry probe were each fully implemented, typechecked, tested — and called by nothing. Every one was
+reported done. A list that says "done" is the least reliable artifact in the repository.
+
+For each completed item prove three things, and treat any failure as a NEW backlog entry:
+
+1. **It is reachable.** A producer writes it, a reader consumes it, and a test exercises the path.
+   `harness.ts health` answers most of this mechanically — use it rather than reading code and believing.
+2. **It does what the item asked**, not what was convenient to build. Re-read the item's own words and
+   check the behaviour against them. A partial fix reported as complete is the commonest failure here.
+3. **Its guard holds.** Delete the guard in a scratch copy and confirm a test fails. A test that passes
+   with the code removed is not defending anything.
+
+Write a NEW item rather than reopening the old one — a reopened item loses the record of what was already
+checked, and the next pass repeats the work.
+
+**Termination requires all three: the backlog holds no `queued` item, `health` reports HEALTHY, and a
+verification pass has just run and re-added nothing.** Two out of three keeps the loop going.
+
 ## Recovery
 
 - A workflow that dies mid-flight leaves its transcripts under

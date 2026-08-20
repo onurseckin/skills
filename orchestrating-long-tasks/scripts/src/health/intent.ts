@@ -103,7 +103,14 @@ function classify(
   // produces, in which case the writer spells it out as a literal - that counts as present.
   if (PATH_TOKEN.test(token)) {
     const onDisk = input.paths.some((path) => path.endsWith(`/${token}`));
-    const written = input.production.some((file) => file.text.includes(token));
+    // health/allowlist.ts is excluded from this scan on purpose: its entries quote a finding's own
+    // key back at this exact check to suppress it, so any path token this check is looking for
+    // would trivially "match" the moment someone allowlisted it - a self-cancelling loop where
+    // adding the allowance makes the check say the allowance is unnecessary. Its content is a
+    // record of what this check found, never evidence that the repository uses the artifact.
+    const written = input.production.some(
+      (file) => !file.relative.endsWith("health/allowlist.ts") && file.text.includes(token),
+    );
     return { kind: "file", found: onDisk || written };
   }
   // A backticked lowercase word is a value the prose quotes ("pass", "derived"), not a symbol.
