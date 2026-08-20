@@ -45,8 +45,9 @@ agent can finish and verify directly.
 1. Preserve the user's complete prompt as immutable bytes before summarizing or planning it.
 2. Never treat agent prose as authoritative state or proof.
 3. Never let an implementer validate its own work or feed its report into a validator packet, and
-   never dispatch an implementer without its paired independent validator — the Triad Floor and the
-   $2N + 1$ sizing rule are specified in [`references/protocol.md`](references/protocol.md).
+   never dispatch an implementer without its paired independent validator, eligible the instant that
+   implementer submits — the Triad Floor and the pairing invariant are specified in
+   [`references/protocol.md`](references/protocol.md).
 4. Never dispatch overlapping write scopes in parallel.
 5. Never mutate a run with an unauthenticated external tool; every mutation goes through the harness CLI.
 6. Never call a model API or launch an LLM CLI. Dispatch only through the host's native subagent mechanism.
@@ -56,6 +57,10 @@ agent can finish and verify directly.
 9. Describe mandatory gate evidence only as `trusted_host_observed_v1` — never as hermetic, sealed,
    sandboxed or reproducible. The restricted Git seam, and what repository discovery rejects before
    status, are specified in [`references/protocol.md`](references/protocol.md).
+10. Scope a task's `--gate` to the tests covering that task's write scope, and have its validator run
+    that gate rather than the suite. The whole-suite run is `plan:compile --completion-gate`, and it
+    runs once, at the completion barrier. A repair round re-runs the task's gate plus any gate whose
+    scope the repair touched — never everything.
 
 ## Route by role
 
@@ -90,7 +95,7 @@ phase enforces: [`references/protocol.md`](references/protocol.md).
 | Phase                      | Commands                                                    | Read before acting                                                   |
 | :------------------------- | :---------------------------------------------------------- | :------------------------------------------------------------------- |
 | Capture, enhance, plan     | `plan:init`, `plan:enhance`, `plan:add`, `plan:compile`     | Playbook Phase 1, [schema-examples.md](references/schema-examples.md) |
-| Dispatch a wave            | `queue:wave`, `agent:register`                              | Playbook Phase 2, [host-adapters.md](references/host-adapters.md)     |
+| Dispatch continuously      | `queue:wave`, `agent:register`                              | Playbook Phase 2, [host-adapters.md](references/host-adapters.md)     |
 | Implement                  | `task:claim`, `run:exec`, `task:submit`, `task:release`     | Playbook Phase 3 + your role contract                                 |
 | Subdivide at execution time | `branch:open`, `branch:claim`, `branch:submit`, `branch:collect` | Playbook Phase 4, [state-model.md](references/state-model.md)     |
 | Validate                   | `task:validate-start`, `task:probe`, `task:reject`, `task:review` | Playbook Phase 5, [agents/validator.yaml](agents/validator.yaml) |
@@ -108,7 +113,7 @@ phase enforces: [`references/protocol.md`](references/protocol.md).
 - [`references/run-playbook.md`](references/run-playbook.md) — the phases in order, with the command
   sequence for each.
 - [`references/protocol.md`](references/protocol.md) — non-negotiable invariants, the evidence spine,
-  the lifecycle, tiered dispatch and the $2N + 1$ sizing rule, gate grammar, state transitions.
+  the lifecycle, tiered dispatch and the pairing invariant, gate grammar, state transitions.
 - [`references/state-model.md`](references/state-model.md) — run directory, task states, lease
   suspension, and the branch, agent, topology and planning ledgers.
 - [`references/host-adapters.md`](references/host-adapters.md) — the two-tier architecture and

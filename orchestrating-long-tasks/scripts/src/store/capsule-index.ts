@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import type { Manifest, RunState } from "../contracts/capsule.ts";
@@ -5,7 +6,7 @@ import type { JsonObject, JsonValue } from "../contracts/json.ts";
 import { atomicWriteBytes } from "../core/durable-write.ts";
 import { HarnessError } from "../errors/harness-error.ts";
 import { listBlobs } from "./blobs.ts";
-import { readCaptures, type CaptureKind } from "./captures.ts";
+import { capturesPath, readCaptures, type CaptureKind } from "./captures.ts";
 import { runFilePath } from "./paths.ts";
 
 const INDEX_FILE = "index.json";
@@ -27,6 +28,12 @@ export interface CapsuleIndex {
   run_id: string;
   generated_at: string;
   index_of_event: { sequence: number; head: string | null };
+  /**
+   * The capture ledger this catalogue was built from, digested. The ledger is written outside the
+   * event chain, so the event head alone cannot tell a reader whether the capture and blob
+   * catalogues are still true. Null when the run has captured nothing.
+   */
+  index_of_captures: string | null;
   tasks: IndexTask[];
   commands: IndexCommand[];
   findings: IndexFinding[];
@@ -255,6 +262,17 @@ function indexReports(runRoot: string, taskIds: readonly string[]): IndexReport[
   return found;
 }
 
+/** The ledger's bytes as they stand, so a catalogue built from them can be checked against them. */
+function captureLedgerDigest(runRoot: string): string | null {
+  try {
+    return createHash("sha256")
+      .update(readFileSync(capturesPath(runRoot)))
+      .digest("hex");
+  } catch {
+    return null;
+  }
+}
+
 /** Builds the catalogue for the state given. Reads no event; every input is a file it names. */
 export function buildIndex(runRoot: string, state: RunState, runId: string): CapsuleIndex {
   const { tasks, findings } = indexTasks(state);
@@ -269,6 +287,7 @@ export function buildIndex(runRoot: string, state: RunState, runId: string): Cap
     run_id: runId,
     generated_at: new Date().toISOString(),
     index_of_event: { sequence: state.event_sequence, head: state.event_head },
+    index_of_captures: captureLedgerDigest(runRoot),
     tasks,
     commands: indexCommands(state),
     findings,
@@ -360,6 +379,10 @@ export function loadIndex(runRoot: string): LoadedIndex {
 /**
  * Whether the catalogue describes where the run currently stands. `unknown` when the projection
  * head cannot be read: an index that might be stale is never reported as current.
+ *
+ * Both inputs are checked. The event chain moves the tasks, commands and packets; the capture
+ * ledger moves the captures and blobs, and it is written outside the chain — so a catalogue built
+ * at the current head can still be counting an older set of captures.
  */
 export function indexFreshness(runRoot: string, index: CapsuleIndex): IndexFreshness {
   let state: unknown;
@@ -373,7 +396,22 @@ export function indexFreshness(runRoot: string, index: CapsuleIndex): IndexFresh
   const sequence = projection.event_sequence;
   const head = projection.event_head;
   if (typeof sequence !== "number" || (head !== null && typeof head !== "string")) return "unknown";
-  return index.index_of_event.sequence === sequence && index.index_of_event.head === head
-    ? "current"
-    : "stale";
+  if (index.index_of_event.sequence !== sequence || index.index_of_event.head !== head)
+    return "stale";
+  return index.index_of_captures === captureLedgerDigest(runRoot) ? "current" : "stale";
+}
+
+/**
+ * Rebuilds the catalogue against the projection already on disk, for a writer that changed what
+ * the capsule holds without appending an event. Ingestion is the case: the capture ledger is not
+ * chain-bound, so nothing else would bring the capture and blob catalogues back into agreement.
+ *
+ * Tolerant of failure for the same reason the post-commit refresh is: the catalogue is a cache over
+ * facts that are already durable, and `index_of_captures` keeps the resulting staleness detectable.
+ */
+export function refreshIndex(runRoot: string): void {
+  try {
+    const state = JSON.parse(readFileSync(runFilePath(runRoot, "state.json"), "utf-8")) as RunState;
+    writeIndex(runRoot, state);
+  } catch {}
 }

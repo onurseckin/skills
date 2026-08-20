@@ -1,10 +1,12 @@
 import { AGENT_COMMANDS } from "./agent.ts";
+import { AUTHORITY_COMMANDS } from "./authority.ts";
 import { BRANCH_COMMANDS } from "./branch.ts";
 import { CRITIC_COMMANDS } from "./critic.ts";
 import { DIAGNOSTICS_COMMANDS } from "./diagnostics.ts";
 import { INSPECTION_COMMANDS } from "./inspection.ts";
 import { INSTALL_COMMANDS } from "./install.ts";
 import { ORCHESTRATOR_COMMANDS } from "./orchestrator.ts";
+import { ORPHAN_COMMANDS } from "./orphan.ts";
 import { PLAN_COMMANDS } from "./plan.ts";
 import { QUEUE_COMMANDS } from "./queue.ts";
 import { RUN_COMMANDS } from "./run.ts";
@@ -25,6 +27,8 @@ export const COMMAND_REGISTRY: readonly CommandSpec[] = [
   ...ORCHESTRATOR_COMMANDS,
   ...BRANCH_COMMANDS,
   ...AGENT_COMMANDS,
+  ...ORPHAN_COMMANDS,
+  ...AUTHORITY_COMMANDS,
   ...INSTALL_COMMANDS,
   ...DIAGNOSTICS_COMMANDS,
 ];
@@ -40,6 +44,8 @@ export const COMMAND_DOMAINS: readonly CommandDomain[] = [
   "orchestrator",
   "branch",
   "agent",
+  "orphan",
+  "authority",
   "install",
   "diagnostics",
 ];

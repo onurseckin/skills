@@ -1,4 +1,4 @@
-import { dependencyMap } from "../../../orchestrating-long-tasks/scripts/src/graph/index.ts";
+import { dependencyMap } from "../../../orchestrating-long-tasks/scripts/src/graph/dependency-map.ts";
 
 function task(
   id: string,

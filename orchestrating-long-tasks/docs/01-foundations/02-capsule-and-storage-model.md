@@ -27,10 +27,13 @@ Here is the exact filesystem structure of a live run capsule:
 ```text
 .capsules/<run-id>/
 ├── prompt.md             # Immutable original prompt bytes (read-only, mode 0444)
+├── README.md             # The generated layout note: one line per entry and what it is for
 ├── manifest.json         # Capture assurance, prompt SHA-256, runtime version
 ├── state.json            # Authoritative current projection (derived from events)
 ├── events.jsonl          # Canonical append-only cryptographic hash chain
-├── .lock                 # The inode POSIX flock is taken on
+├── index.json            # Derived catalogue: the routine questions answered in one read
+├── trace.md              # Derived step trace: one row per recorded event, in order
+├── captures.json         # The capture ledger: every stored blob and who produced it
 ├── planning/             # plan:enhance output: enhanced-plan.md + enhanced-plan.json (0444)
 ├── commands/             # One directory per recorded command
 │   └── C-<uuid>/
@@ -38,11 +41,15 @@ Here is the exact filesystem structure of a live run capsule:
 │       └── attempt-1/
 │           ├── stdout.log
 │           └── stderr.log
-├── evidence/             # C-<uuid>.json evidence files, plus quarantined fragments
-├── findings/             # One file per finding: finding-<task>-reject.json, probe-<task>-NN-N.json
+├── blobs/                # <aa>/<sha256>: the one physical home for every captured byte-blob, 0444
+├── evidence/             # Readable names hardlinked onto blobs/; holds no bytes of its own
+├── quarantine/           # Event-log fragments recovery removed, kept byte for byte
 ├── reports/              # Submission, probe, review and critic reports
 └── summary/              # summary:export output: graph.json, timeline.json, metrics.json, summary.md
 ```
+
+The lock the capsule is coordinated with is not stored here. It lives beside the capsules, in
+`.capsules/.locks/<run-id>/`, because coordination state is not durable state.
 
 There is no `plan.json` and no per-capsule `config.json`. The compiled graph, the requirements
 document, the topology record, the branch ledger and the agent ledger are all keys inside
@@ -220,8 +227,7 @@ Global and repository-level defaults are controlled via `harness.config.json` (o
   "max_agents": 100,
   "max_output_bytes": 10485760,
   "default_lease_seconds": 1800,
-  "default_max_parallel": 4,
-  "strict_validation": true
+  "default_max_parallel": 4
 }
 ```
 
@@ -232,11 +238,9 @@ Global and repository-level defaults are controlled via `harness.config.json` (o
 - **`max_output_bytes`** (default `10485760` / 10MB): Maximum command output buffered before truncation.
 - **`default_lease_seconds`** (default `1800`): Sub-task lease duration for `branch:claim`. It does **not** govern `task:claim`, which defaults to 1200 seconds and is overridden per call with `--lease-seconds`.
 - **`default_max_parallel`** (default `4`): Concurrency cap for independent tasks; `queue:wave` and `queue:list` read it rather than hardcoding one.
-- **`strict_validation`** (default `true`): Enforces mandatory gate coverage.
 
-A legacy `min_adversarial_rejections` key is still parsed, but it no longer governs the probe
-requirement: a rejection is not a probe, and a file that sets only the old key leaves the probe count
-at its default while the harness warns.
+Mandatory gate coverage and independent-validator checks are not configurable: the compiler and the
+completion checks enforce them unconditionally, not behind a knob.
 
 ---
 
@@ -248,7 +252,7 @@ To allow multiple concurrent agents and watchdog processes to operate safely wit
 [ Agent Action ]
        │
        ▼
-1. Acquire POSIX kernel `flock` on inode (<run-dir>/.lock)
+1. Acquire POSIX kernel `flock` on the capsule directory inode (<run-dir>)
        │
        ▼
 2. Read & verify `manifest.json`, `events.jsonl` hash chain
@@ -277,7 +281,7 @@ To allow multiple concurrent agents and watchdog processes to operate safely wit
 
 ### Key Properties of this Design:
 
-- **Inode-Bound Locking**: Locking is performed on the underlying file inode. If a Rogue process deletes or renames the `.lock` path, the kernel lock remains securely held on the opened descriptor.
+- **Inode-Bound Locking**: Locking is performed on the capsule directory's own inode. If a rogue process deletes or renames the capsule path, the kernel lock remains securely held on the opened descriptor.
 - **Fail-Closed on Collision**: If a lock cannot be acquired within the timeout window, the command fails with `CONFLICT` error rather than corrupting state.
 - **No In-Memory Illusions**: State transitions only succeed once the bytes have been physically flushed to the OS storage controller via `fsync()`.
 - **Evidence Assurance**: Commands recorded via `run:exec` capture stdout/stderr with exact timestamps and process exit codes, classified under `trusted_host_observed_v1`.

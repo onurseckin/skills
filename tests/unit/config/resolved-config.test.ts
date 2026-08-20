@@ -40,7 +40,7 @@ describe("resolved harness config", () => {
     expect(config.default_max_parallel).toBe(4);
   });
 
-  test("reads the probe key, and never lets the legacy rejection key set the probe count", () => {
+  test("reads the probe key from a config file", () => {
     const probeDir = makeTempDir();
     writeFileSync(
       join(probeDir, "harness.config.json"),
@@ -48,27 +48,6 @@ describe("resolved harness config", () => {
     );
     const probeConfig = resolveHarnessConfig(probeDir);
     expect(probeConfig.min_adversarial_probes).toBe(3);
-    expect(probeConfig.min_adversarial_rejections).toBe(3);
-
-    const legacyDir = makeTempDir();
-    writeFileSync(
-      join(legacyDir, "harness.config.json"),
-      JSON.stringify({ min_adversarial_rejections: 2 }),
-    );
-    const legacyConfig = resolveHarnessConfig(legacyDir);
-    expect(legacyConfig.min_adversarial_probes).toBe(1);
-    expect(legacyConfig.min_adversarial_rejections).toBe(2);
-  });
-
-  test("prefers the probe key when a file carries both spellings", () => {
-    const dir = makeTempDir();
-    writeFileSync(
-      join(dir, "harness.config.json"),
-      JSON.stringify({ min_adversarial_probes: 5, min_adversarial_rejections: 9 }),
-    );
-    const config = resolveHarnessConfig(dir);
-    expect(config.min_adversarial_probes).toBe(5);
-    expect(config.min_adversarial_rejections).toBe(9);
   });
 
   test("rejects non-integer and negative probe counts", () => {
@@ -97,12 +76,12 @@ describe("resolved harness config", () => {
     expect(config.default_max_parallel).toBe(8);
   });
 
-  test("keeps loadHarnessConfig on the legacy key set", () => {
+  test("keeps loadHarnessConfig on the unresolved key set, dropping the probe count", () => {
     const dir = makeTempDir();
     writeFileSync(join(dir, "harness.config.json"), JSON.stringify({ min_adversarial_probes: 3 }));
     const config = loadHarnessConfig(dir);
     expect(Object.keys(config).sort()).toEqual(Object.keys(DEFAULT_CONFIG).sort());
-    expect(config.min_adversarial_rejections).toBe(3);
+    expect(config).not.toHaveProperty("min_adversarial_probes");
   });
 
   test("caches per root pair and rereads after a reset", () => {

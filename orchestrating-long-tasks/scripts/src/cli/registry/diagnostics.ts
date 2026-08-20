@@ -2,6 +2,7 @@ import {
   doctorCommand,
   healthCommand,
   recoverCommand,
+  repairProjectionCommand,
   taskReleaseCommand,
 } from "../commands/diagnostics-ops.ts";
 import {
@@ -67,6 +68,27 @@ export const DIAGNOSTICS_COMMANDS: readonly CommandSpec[] = [
     exitCodes: DEFAULT_EXIT_CODES,
     examples: ["bun harness.ts doctor --run .capsules/<run-id>"],
     handler: doctorCommand,
+  },
+  {
+    name: "doctor:repair",
+    aliases: [],
+    domain: "diagnostics",
+    summary: "Re-derive state.json from the event chain after a crash tears the log's tail.",
+    description:
+      "The repair counterpart to `doctor`: `doctor` only reports a torn tail or a state/event mismatch. This re-derives state.json from the event chain's last complete event, quarantining any torn final fragment under quarantine/ instead of discarding it, and records a projection-recovered event. Refuses if the manifest or prompt itself is corrupt - that is an integrity failure, not something to repair silently.",
+    flags: [
+      requiredFlag("run", "string", "Capsule run root."),
+      requiredFlag(
+        "actor",
+        "string",
+        "Who is running the repair. Recorded on the event; there is no default actor.",
+      ),
+    ],
+    readsStdin: false,
+    takesRemainder: false,
+    exitCodes: DEFAULT_EXIT_CODES,
+    examples: ["bun harness.ts doctor:repair --run .capsules/<run-id> --actor coordinator"],
+    handler: repairProjectionCommand,
   },
   {
     name: "recover",

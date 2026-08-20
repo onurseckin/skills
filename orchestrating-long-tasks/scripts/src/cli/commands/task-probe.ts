@@ -70,7 +70,6 @@ export async function taskProbeCommand(flags: Flags): Promise<Record<string, unk
     round,
     demands: demandSummaries,
     repairRound: state.tasks[taskId]!.repair_round,
-    ...(policy.legacyRejectionWarning ? { warning: policy.legacyRejectionWarning } : {}),
   });
   return {
     markdown,
@@ -83,6 +82,5 @@ export async function taskProbeCommand(flags: Flags): Promise<Record<string, unk
     finding_ids: demandSummaries.map((demand) => demand.id),
     findings,
     report_path: reportPath,
-    ...(policy.legacyRejectionWarning ? { warning: policy.legacyRejectionWarning } : {}),
   };
 }

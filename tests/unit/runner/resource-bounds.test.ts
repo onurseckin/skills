@@ -10,7 +10,7 @@ import {
   reserveCommandRoot,
 } from "../../../orchestrating-long-tasks/scripts/src/runner/platform-policy.ts";
 import { signalProcessGroup } from "../../../orchestrating-long-tasks/scripts/src/runner/process-group.ts";
-import { runCommand } from "../../../orchestrating-long-tasks/scripts/src/runner/run-command.ts";
+import { runCommand } from "./run-command-fixture.ts";
 import type { OutputPumpOptions } from "../../../orchestrating-long-tasks/scripts/src/runner/types.ts";
 
 const fixture = join(import.meta.dir, "fixtures/command-fixture.ts");

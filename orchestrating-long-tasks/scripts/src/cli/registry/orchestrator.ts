@@ -18,7 +18,11 @@ export const ORCHESTRATOR_COMMANDS: readonly CommandSpec[] = [
       optionalFlag("run", "string", "Alias of --run-id."),
       optionalFlag("capsules-dir", "string", "Directory that holds the capsules."),
       optionalFlag("max-rounds", "int", "Round budget, clamped to 1-10.", 10),
-      optionalFlag("actor", "string", "Actor recorded on the events.", "orchestrator"),
+      optionalFlag(
+        "actor",
+        "string",
+        "Actor recorded on the loop summary; omitted leaves the loop unattributed.",
+      ),
     ],
     readsStdin: true,
     takesRemainder: false,

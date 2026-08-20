@@ -126,10 +126,26 @@ describe("a recorded command says what it ran and how it ended", () => {
       "gate-core.ts",
     ]);
 
-    const recorded = events(run).filter((event) => event.kind === "command-recorded");
-    expect(recorded).toHaveLength(1);
-    expect(recorded[0]?.payload).toMatchObject({
-      command_id: executed.command_id as string,
+    // The durable intent/reconcile protocol records "running" before the spawn and a terminal
+    // reconciliation after, so a crash mid-command leaves recoverable evidence instead of nothing.
+    const commandEvents = events(run).filter(
+      (event) => event.kind === "command-intent-recorded" || event.kind === "command-reconciled",
+    );
+    expect(commandEvents.map((event) => event.kind)).toEqual([
+      "command-intent-recorded",
+      "command-reconciled",
+    ]);
+    expect(commandEvents.every((event) => event.payload.command_id === executed.command_id)).toBe(
+      true,
+    );
+
+    const stored = (
+      loadRun(run).state.commands as Record<
+        string,
+        { argv: string[]; status: string; exit_code: number | null }
+      >
+    )[executed.command_id as string];
+    expect(stored).toMatchObject({
       argv: ["bun", "gate-core.ts"],
       status: "succeeded",
       exit_code: 0,

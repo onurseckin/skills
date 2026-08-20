@@ -1,6 +1,9 @@
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { isThinkingLevel, type ThinkingLevel } from "../contracts/agents.ts";
+import { evidenced, type Evidenced } from "../contracts/evidence.ts";
+import type { JsonObject } from "../contracts/json.ts";
 import type { HostIdentity } from "./types.ts";
 
 export interface DetectHostIdentityOptions {
@@ -22,8 +25,26 @@ function parseJsonSafe(raw: string): Record<string, unknown> | null {
   return null;
 }
 
+function parseTomlSafe(raw: string): Record<string, unknown> | null {
+  try {
+    const trimmed = raw.trim();
+    if (trimmed.length === 0) return null;
+    const parsed: unknown = Bun.TOML.parse(trimmed);
+    if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
+      return parsed as Record<string, unknown>;
+    }
+  } catch {
+    // A config we cannot parse tells us nothing; it must not become a guess.
+  }
+  return null;
+}
+
 function hasText(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function resolveHomeDir(
@@ -41,6 +62,8 @@ function resolveHomeDir(
   }
 }
 
+type ConfigFormat = "json" | "toml";
+
 /**
  * One host runtime and the local evidence that it is the one this capsule was exported under. Every
  * product name in this file is a VALUE in this table — a row of data, never a type, a field or a
@@ -53,6 +76,8 @@ interface HostProbe {
   envVars: readonly string[];
   /** Config files below the home directory, as path segments. */
   configPaths: readonly (readonly string[])[];
+  /** How the file at `configPaths` is parsed. */
+  configFormat: ConfigFormat;
   /** Keys in that config whose presence makes the file evidence rather than a coincidence. */
   configKeys: readonly string[];
 }
@@ -62,15 +87,26 @@ const HOST_PROBES: readonly HostProbe[] = [
     hostTool: "antigravity",
     envVars: [],
     configPaths: [[".gemini", "antigravity-cli", "settings.json"]],
+    configFormat: "json",
     configKeys: ["model"],
   },
   {
     hostTool: "claude-code",
     envVars: ["CLAUDE_CODE_MODEL", "ANTHROPIC_MODEL"],
     configPaths: [[".claude.json"]],
+    configFormat: "json",
     configKeys: ["model", "currentModel"],
   },
-  { hostTool: "cursor", envVars: ["CURSOR_MODEL"], configPaths: [], configKeys: [] },
+  {
+    hostTool: "codex",
+    envVars: [],
+    configPaths: [[".codex", "config.toml"]],
+    configFormat: "toml",
+    // `agents` and `[features]` are tables, not strings; a config that declares either one is real
+    // evidence of Codex even though neither carries a plain string value to check.
+    configKeys: ["agents", "features", "model"],
+  },
+  { hostTool: "cursor", envVars: ["CURSOR_MODEL"], configPaths: [], configFormat: "json", configKeys: [] },
 ];
 
 /**
@@ -84,17 +120,34 @@ const UNATTRIBUTED_MODEL_VARS: readonly string[] = [
   "ANTIGRAVITY_MODEL",
 ];
 
+function readConfig(
+  homeDir: string | undefined,
+  segments: readonly string[],
+  format: ConfigFormat,
+): Record<string, unknown> | null {
+  if (!homeDir) return null;
+  try {
+    const configPath = join(homeDir, ...segments);
+    if (!existsSync(configPath)) return null;
+    const raw = readFileSync(configPath, "utf-8");
+    return format === "toml" ? parseTomlSafe(raw) : parseJsonSafe(raw);
+  } catch {
+    // An unreadable config is not evidence either way.
+    return null;
+  }
+}
+
+/** A key counts as evidence when it is present at all — a table or a boolean is as real as a string. */
+function keyIsEvidence(parsed: Record<string, unknown>, key: string): boolean {
+  const value = parsed[key];
+  if (value === undefined) return false;
+  return typeof value === "string" ? value.trim().length > 0 : true;
+}
+
 function configConfigured(homeDir: string | undefined, probe: HostProbe): boolean {
-  if (!homeDir) return false;
   for (const segments of probe.configPaths) {
-    try {
-      const configPath = join(homeDir, ...segments);
-      if (!existsSync(configPath)) continue;
-      const parsed = parseJsonSafe(readFileSync(configPath, "utf-8"));
-      if (parsed !== null && probe.configKeys.some((key) => hasText(parsed[key]))) return true;
-    } catch {
-      // An unreadable config is not evidence either way; the next candidate still gets its turn.
-    }
+    const parsed = readConfig(homeDir, segments, probe.configFormat);
+    if (parsed !== null && probe.configKeys.some((key) => keyIsEvidence(parsed, key))) return true;
   }
   return false;
 }
@@ -127,4 +180,168 @@ export function detectHostIdentity(options?: DetectHostIdentityOptions): HostIde
     return { hostTool: "custom", evidenceClass: "harness_observed" };
   }
   return null;
+}
+
+/**
+ * What a host can structurally do, independent of which model it happens to be running. Every field
+ * is absent rather than guessed when this machine's config does not say — a host with no documented
+ * or configured value for a capability stays unknown, never a plausible default.
+ */
+export interface HostCapabilities extends JsonObject {
+  nesting_depth?: Evidenced<number>;
+  concurrency_ceiling?: Evidenced<number>;
+  native_workspace_isolation?: Evidenced<boolean>;
+  native_resume?: Evidenced<boolean>;
+  per_agent_model_selection?: Evidenced<boolean>;
+  multi_agent_enabled?: Evidenced<boolean>;
+}
+
+/**
+ * What the host's own configuration says about one agent, read from disk rather than asked of the
+ * agent — the `derived` counterpart to whatever the agent or host separately reports over the CLI.
+ */
+export interface HostTelemetryProbe extends JsonObject {
+  host_tool: string;
+  provider?: Evidenced<string>;
+  model?: Evidenced<string>;
+  thinking_level?: Evidenced<ThinkingLevel>;
+  context_window?: Evidenced<number>;
+  capabilities: HostCapabilities;
+}
+
+function derivedString(value: string | undefined): Evidenced<string> | undefined {
+  return value === undefined ? undefined : evidenced(value, "derived");
+}
+
+function derivedInt(value: number | undefined): Evidenced<number> | undefined {
+  return value === undefined ? undefined : evidenced(value, "derived");
+}
+
+function derivedBool(value: boolean | undefined): Evidenced<boolean> | undefined {
+  return value === undefined ? undefined : evidenced(value, "derived");
+}
+
+function readStringField(source: Record<string, unknown> | null, key: string): string | undefined {
+  if (source === null) return undefined;
+  const value = source[key];
+  return hasText(value) ? value.trim() : undefined;
+}
+
+function readIntField(source: Record<string, unknown> | null, key: string): number | undefined {
+  if (source === null) return undefined;
+  const value = source[key];
+  return typeof value === "number" && Number.isFinite(value) ? Math.trunc(value) : undefined;
+}
+
+function readBoolField(source: Record<string, unknown> | null, key: string): boolean | undefined {
+  if (source === null) return undefined;
+  const value = source[key];
+  return typeof value === "boolean" ? value : undefined;
+}
+
+function parseFiniteInt(raw: string | undefined): number | undefined {
+  if (!hasText(raw)) return undefined;
+  const value = Number(raw.trim());
+  return Number.isFinite(value) && Number.isInteger(value) ? value : undefined;
+}
+
+/** A single host's telemetry probe: the local evidence for one `hostTool`, keyed by that string
+ * rather than named after it — matching the identity table above, no product names an identifier. */
+type TelemetryProbe = (
+  homeDir: string | undefined,
+  env: Record<string, string | undefined>,
+  agentId: string,
+) => HostTelemetryProbe;
+
+// Named by role, not vendor: the variable itself is never the host's name, only its value is.
+const SPAWN_DEPTH_ENV_VAR = "CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH";
+const SPAWN_CONCURRENCY_ENV_VAR = "CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS";
+
+const TELEMETRY_PROBES: Readonly<Record<string, TelemetryProbe>> = {
+  // The richest of the four sources: a session-wide concurrency ceiling and feature flag, plus the
+  // agent definition files this host keeps per agent. A definition is evidence about THIS agent only
+  // when one is filed under the very id the grant was registered with, so a run whose ids do not
+  // match any definition reads nothing here rather than picking a neighbouring file.
+  "codex": (homeDir, _env, agentId) => {
+    const config = readConfig(homeDir, [".codex", "config.toml"], "toml");
+    const agentsTable = isPlainObject(config?.agents) ? config.agents : null;
+    const featuresTable = isPlainObject(config?.features) ? config.features : null;
+    const agentConfig = readConfig(homeDir, [".codex", "agents", `${agentId}.toml`], "toml");
+
+    const model = derivedString(readStringField(agentConfig, "model"));
+    const provider = derivedString(readStringField(agentConfig, "provider"));
+    const reasoningEffort = readStringField(agentConfig, "reasoning_effort");
+    const thinkingLevel =
+      reasoningEffort !== undefined && isThinkingLevel(reasoningEffort)
+        ? evidenced(reasoningEffort, "derived")
+        : undefined;
+    const concurrencyCeiling = derivedInt(
+      readIntField(agentsTable, "max_concurrent_threads_per_session"),
+    );
+    const multiAgentEnabled = derivedBool(readBoolField(featuresTable, "multi_agent"));
+
+    return {
+      host_tool: "codex",
+      ...(provider === undefined ? {} : { provider }),
+      ...(model === undefined ? {} : { model }),
+      ...(thinkingLevel === undefined ? {} : { thinking_level: thinkingLevel }),
+      capabilities: {
+        ...(concurrencyCeiling === undefined ? {} : { concurrency_ceiling: concurrencyCeiling }),
+        ...(multiAgentEnabled === undefined ? {} : { multi_agent_enabled: multiAgentEnabled }),
+        // A documented product capability (`resume_agent`, `spawn_agent`'s `model` parameter)
+        // rather than something a local file states, so it is recorded whenever this host is.
+        native_resume: evidenced(true, "derived"),
+        per_agent_model_selection: evidenced(true, "derived"),
+      },
+    };
+  },
+  // Spawn limits are environment-configured with documented defaults, but an unset variable does
+  // not prove the default is still in force on some future release — an absence stays absent
+  // rather than becoming today's documented number.
+  "claude-code": (_homeDir, env) => {
+    const depth = derivedInt(parseFiniteInt(env[SPAWN_DEPTH_ENV_VAR]));
+    const concurrency = derivedInt(parseFiniteInt(env[SPAWN_CONCURRENCY_ENV_VAR]));
+    return {
+      host_tool: "claude-code",
+      capabilities: {
+        ...(depth === undefined ? {} : { nesting_depth: depth }),
+        ...(concurrency === undefined ? {} : { concurrency_ceiling: concurrency }),
+        // Frontmatter `model:`/`effort:`, resolved env > per-call > frontmatter > session default.
+        per_agent_model_selection: evidenced(true, "derived"),
+      },
+    };
+  },
+  // A workspace-isolation and a resume primitive, both documented and neither discoverable from a
+  // local config file; nesting depth and concurrency are not documented at all for this host.
+  "antigravity": () => ({
+    host_tool: "antigravity",
+    capabilities: {
+      native_workspace_isolation: evidenced(true, "derived"),
+      native_resume: evidenced(true, "derived"),
+    },
+  }),
+  // Since 2.5, the main agent and its direct subagents may spawn; a subagent's subagent may not.
+  "cursor": () => ({
+    host_tool: "cursor",
+    capabilities: { nesting_depth: evidenced(2, "derived") },
+  }),
+};
+
+/**
+ * The automatic, hardcoded half of telemetry: what this machine's own configuration says about the
+ * named agent, read from disk without asking the agent for anything. Callers combine this `derived`
+ * evidence with whatever the agent or host separately reports; `agent:register`, `task:claim`,
+ * `task:submit` and `agent:release` all call this on every invocation rather than as a separate step.
+ */
+export function detectHostTelemetry(
+  agentId: string,
+  options?: DetectHostIdentityOptions,
+): HostTelemetryProbe | null {
+  const identity = detectHostIdentity(options);
+  if (identity === null) return null;
+  // A host identified only by an unattributed model variable carries no known capability table.
+  const probe = TELEMETRY_PROBES[identity.hostTool];
+  if (probe === undefined) return null;
+  const env = options?.env ?? process.env;
+  return probe(resolveHomeDir(options, env), env, agentId);
 }

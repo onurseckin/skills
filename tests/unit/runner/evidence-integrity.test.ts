@@ -3,7 +3,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { canonicalCommandFingerprint } from "../../../orchestrating-long-tasks/scripts/src/runner/command-id.ts";
-import { runCommand } from "../../../orchestrating-long-tasks/scripts/src/runner/run-command.ts";
+import { runCommand } from "./run-command-fixture.ts";
 import { verifyCommandRecord } from "../../../orchestrating-long-tasks/scripts/src/runner/verify-command.ts";
 import { embeddedCommandIssues } from "../../../orchestrating-long-tasks/scripts/src/runner/command-shape.ts";
 import { commandMatchesGate } from "../../../orchestrating-long-tasks/scripts/src/workflow/gates/gate-policy.ts";

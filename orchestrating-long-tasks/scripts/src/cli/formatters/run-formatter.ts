@@ -73,7 +73,7 @@ export function formatCriticRejectBrief(params: CriticRejectParams): string {
     `- **Summary**: ${params.summary}`,
     `- **Findings Count**: ${params.findingsCount} (${findingsStr})`,
     `- **Protocol Action**: Read-Only Auditor Invariant enforced. Yielding to Coordinator.`,
-    `- **Next Step**: Coordinator runs \`plan:replan\` to partition scopes and inject repair tasks.`,
+    `- **Next Step**: Coordinator runs \`plan:replan\` to partition scopes and inject repair tasks, then \`critic:remediate\` to close this review out once they're proven.`,
   ];
   return enforceLineLimit(lines.join("\n"), 30);
 }
@@ -116,6 +116,7 @@ export function formatRunStatusBrief(
   phase: string,
   tasks: readonly RunStatusTaskItem[],
   progressSummary: string,
+  catalogueSummary?: string | undefined,
 ): string {
   const headers = ["Task ID", "Label", "Write Scope", "Status", "Agent / Lock"];
   const rows = tasks.map((t) => [
@@ -131,6 +132,7 @@ export function formatRunStatusBrief(
     "",
     `**Progress**: ${progressSummary}`,
   ];
+  if (catalogueSummary !== undefined) lines.push(`**Capsule**: ${catalogueSummary}`);
   return enforceLineLimit(lines.join("\n"), 30);
 }
 

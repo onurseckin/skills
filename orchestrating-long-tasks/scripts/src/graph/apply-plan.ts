@@ -2,11 +2,27 @@ import { HarnessError } from "../errors/harness-error.ts";
 import { isInteger } from "../requirements/predicates.ts";
 import { validateRequirements } from "../requirements/validate-requirements.ts";
 import { dependencyMap } from "./dependency-map.ts";
-import type { PlanningStore } from "./planning-store.ts";
 import { projectPlan } from "./project-plan.ts";
 import { readPlanObject } from "./read-plan.ts";
 import { guardPlanRevision } from "./revision-guard.ts";
 import { validateGraph } from "./validate-graph.ts";
+
+export interface PlanningSnapshot {
+  prompt: Uint8Array;
+  state: Record<string, unknown>;
+}
+
+export type PlanningMutation = (state: Record<string, unknown>) => void | Promise<void>;
+
+export interface PlanningStore {
+  load(): Promise<PlanningSnapshot>;
+  transact(
+    actor: string,
+    kind: string,
+    payload: Record<string, unknown>,
+    mutation: PlanningMutation,
+  ): Promise<Record<string, unknown>>;
+}
 
 export async function applyPlan(
   store: PlanningStore,

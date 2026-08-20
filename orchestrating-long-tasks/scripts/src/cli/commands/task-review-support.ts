@@ -4,11 +4,16 @@ import { getHarnessConfig } from "../../config/harness-config.ts";
 import { ingestScreenshots, ingestVisualReport } from "../../reporting/screenshot-ingestion.ts";
 import { getVisualReport, queryScreenshots } from "../../reporting/screenshot-store.ts";
 import type { ScreenshotRecord } from "../../reporting/screenshot-types.ts";
+import { analyzeDualChannel, type DualChannelAuditResult } from "../../validation/dual-channel-analyzer.ts";
+import {
+  adaptIngestedVisualReport,
+  adaptScreenshotRecords,
+} from "../../validation/report-adapter.ts";
 import { attachGateResult } from "../../workflow/gates/attach-result.ts";
 import { finishTask } from "../../workflow/gates/finish-task.ts";
 import { applicableGates } from "../../workflow/gates/gate-policy.ts";
 import { workflowPort } from "../../integration/store-ports.ts";
-import type { WorkflowState } from "../../workflow/types.ts";
+import type { TaskRecord, WorkflowState } from "../../workflow/types.ts";
 
 /** The run root is `<repo>/.capsules/<run-id>`; both layers of config are keyed off that pair. */
 export function repoRootOf(runRoot: string): string {
@@ -18,21 +23,13 @@ export function repoRootOf(runRoot: string): string {
 export interface ReviewPolicy {
   minProbes: number;
   maxRepairRounds: number;
-  /** Set when the config still speaks in rejections, which are a different thing from probes. */
-  legacyRejectionWarning: string | null;
 }
 
 export function reviewPolicyFor(runRoot: string): ReviewPolicy {
   const config = getHarnessConfig(repoRootOf(runRoot), runRoot);
-  const legacy = config.min_adversarial_rejections;
-  const probes = config.min_adversarial_probes;
   return {
-    minProbes: probes,
+    minProbes: config.min_adversarial_probes,
     maxRepairRounds: config.max_repair_rounds,
-    legacyRejectionWarning:
-      legacy === probes
-        ? null
-        : `harness config sets min_adversarial_rejections=${legacy}; a rejection is not a probe, so the probe requirement stays min_adversarial_probes=${probes}`,
   };
 }
 
@@ -101,6 +98,38 @@ export function collectTaskScreenshots(
     uniqueMap.set(s.sha256, s);
   }
   return Array.from(uniqueMap.values());
+}
+
+/**
+ * Runs the Dual-Channel Validator Protocol the skill mandates for UI tasks against evidence the run
+ * actually recorded: the ingested `visual-report.json` (DOM channel) and the screenshots collected
+ * for this task (visual channel). Reads `task.write_scope`, the lease the run itself granted, rather
+ * than a file list a caller could shape to dodge the mandate.
+ *
+ * Both channels are read scoped to this task. The run-wide latest report would let a UI task clear
+ * the mandate on a sibling task's capture, which is the misattribution the capture ledger records
+ * ownership to prevent.
+ */
+export function runDualChannelAudit(
+  runRoot: string,
+  task: TaskRecord,
+  screenshots: readonly ScreenshotRecord[],
+): DualChannelAuditResult {
+  return analyzeDualChannel({
+    writeScope: task.write_scope,
+    domReport: adaptIngestedVisualReport(getVisualReport(runRoot, task.id)),
+    screenshots: adaptScreenshotRecords(screenshots),
+  });
+}
+
+/**
+ * The sentence a refused pass carries: which findings the mandate turned up, not just that it did.
+ * `task:review` reads this to refuse a UI pass that lacks corroborated dual-channel evidence.
+ */
+export function dualChannelRefusalMessage(taskId: string, audit: DualChannelAuditResult): string {
+  const errors = audit.findings.filter((f) => f.severity === "error");
+  const detail = errors.map((f) => `${f.id} [${f.category}] ${f.message}`).join("; ");
+  return `cannot pass ${taskId}: Dual-Channel Validator Protocol mandate not satisfied (mode ${audit.mode}): ${detail || audit.summary}`;
 }
 
 export function persistProbeReport(

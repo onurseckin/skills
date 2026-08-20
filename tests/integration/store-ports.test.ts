@@ -2,35 +2,73 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { applyPlan } from "../../orchestrating-long-tasks/scripts/src/graph/apply-plan.ts";
-import {
-  planningPort,
-  workflowPort,
-} from "../../orchestrating-long-tasks/scripts/src/integration/store-ports.ts";
+import { execute } from "../../orchestrating-long-tasks/scripts/src/cli/execute.ts";
+import { workflowPort } from "../../orchestrating-long-tasks/scripts/src/integration/store-ports.ts";
 import { proposeBatch } from "../../orchestrating-long-tasks/scripts/src/scheduler/propose-batch.ts";
-import {
-  initRun,
-  loadRun,
-  transact,
-} from "../../orchestrating-long-tasks/scripts/src/store/index.ts";
+import { loadRun, transact } from "../../orchestrating-long-tasks/scripts/src/store/index.ts";
 import { claimTask } from "../../orchestrating-long-tasks/scripts/src/workflow/lease/claim.ts";
-import { graphDocument } from "../unit/graph/fixtures.ts";
-import { requirementsDocument } from "../unit/requirements/fixtures.ts";
 
 const roots: string[] = [];
 
+// A real capsule, compiled through the same CLI path a coordinator drives (`plan:init`,
+// `plan:add`, `plan:compile`), so the port is read against state a run actually produces.
 async function initializedRun() {
   const repo = await mkdtemp(join(tmpdir(), "harness-ports-"));
   roots.push(repo);
-  const prompt = "First\n\nThird";
-  const runRoot = initRun(repo, "adapter-run", new TextEncoder().encode(prompt), "file", true);
-  const requirements = requirementsDocument(prompt);
-  const graph = graphDocument(requirements);
-  const requirementsPath = join(repo, "requirements.json");
-  const graphPath = join(repo, "graph.json");
-  await writeFile(requirementsPath, JSON.stringify(requirements));
-  await writeFile(graphPath, JSON.stringify(graph));
-  return { runRoot, requirementsPath, graphPath };
+  const promptPath = join(repo, "prompt.txt");
+  await writeFile(promptPath, "First\n\nThird");
+  const init = await execute([
+    "plan:init",
+    "--repo",
+    repo,
+    "--run",
+    "adapter-run",
+    "--prompt-file",
+    promptPath,
+  ]);
+  const runRoot = init.run_root as string;
+  await execute([
+    "plan:add",
+    "--run",
+    runRoot,
+    "--id",
+    "task-1",
+    "--label",
+    "Task 1",
+    "--scope",
+    "src/area-1",
+    "--gate",
+    "bun test tests/planning",
+    "--actor",
+    "planner",
+  ]);
+  await execute([
+    "plan:compile",
+    "--run",
+    runRoot,
+    "--actor",
+    "planner",
+    "--completion-gate",
+    "bun test tests",
+  ]);
+  return { runRoot };
+}
+
+async function uncompiledRun() {
+  const repo = await mkdtemp(join(tmpdir(), "harness-ports-"));
+  roots.push(repo);
+  const promptPath = join(repo, "prompt.txt");
+  await writeFile(promptPath, "First\n\nThird");
+  const init = await execute([
+    "plan:init",
+    "--repo",
+    repo,
+    "--run",
+    "adapter-run-unplanned",
+    "--prompt-file",
+    promptPath,
+  ]);
+  return { runRoot: init.run_root as string };
 }
 
 afterEach(async () =>
@@ -38,29 +76,15 @@ afterEach(async () =>
 );
 
 describe("durable integration ports", () => {
-  test("applies a plan to a real capsule and schedules its first task", async () => {
+  test("compiles a plan into a real capsule and schedules its first task", async () => {
     const fixture = await initializedRun();
-    await applyPlan(
-      planningPort(fixture.runRoot),
-      "planner",
-      fixture.requirementsPath,
-      fixture.graphPath,
-      0,
-    );
     const loaded = loadRun(fixture.runRoot);
     expect(proposeBatch(loaded.state, 2).map(({ id }) => id)).toEqual(["task-1"]);
-    expect(loaded.events.at(-1)?.kind).toBe("plan-applied");
+    expect(loaded.events.at(-1)?.kind).toBe("topology-recorded");
   });
 
   test("normalizes workflow runtime fields inside the first audited mutation", async () => {
     const fixture = await initializedRun();
-    await applyPlan(
-      planningPort(fixture.runRoot),
-      "planner",
-      fixture.requirementsPath,
-      fixture.graphPath,
-      0,
-    );
     const result = claimTask(workflowPort(fixture.runRoot), "task-1", "implementer", "implementer");
     expect(result.token).toHaveLength(43);
     expect(result.state.tasks["task-1"]?.status).toBe("leased");
@@ -72,7 +96,7 @@ describe("durable integration ports", () => {
   });
 
   test("workflow reads do not mutate an unplanned capsule", async () => {
-    const fixture = await initializedRun();
+    const fixture = await uncompiledRun();
     const before = loadRun(fixture.runRoot).state;
     expect(() => workflowPort(fixture.runRoot).read()).toThrow("plan");
     expect(loadRun(fixture.runRoot).state).toEqual(before);
@@ -80,13 +104,6 @@ describe("durable integration ports", () => {
 
   test("workflow mutations preserve authoritative completion evidence", async () => {
     const fixture = await initializedRun();
-    await applyPlan(
-      planningPort(fixture.runRoot),
-      "planner",
-      fixture.requirementsPath,
-      fixture.graphPath,
-      0,
-    );
     const completion = {
       integrity_issues: [],
       critic: { status: "clean", unresolved_finding_ids: [] },
@@ -101,13 +118,6 @@ describe("durable integration ports", () => {
 
   test("workflow mutations preserve packet and terminal lifecycle state", async () => {
     const fixture = await initializedRun();
-    await applyPlan(
-      planningPort(fixture.runRoot),
-      "planner",
-      fixture.requirementsPath,
-      fixture.graphPath,
-      0,
-    );
     const packet = {
       id: "critic-1",
       role: "completeness-critic",

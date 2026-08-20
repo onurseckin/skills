@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { mkdtemp, readFile, readdir, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { runCommand } from "../../../orchestrating-long-tasks/scripts/src/runner/run-command.ts";
+import { runCommand } from "./run-command-fixture.ts";
 
 const fixture = join(import.meta.dir, "fixtures/command-fixture.ts");
 const roots: string[] = [];

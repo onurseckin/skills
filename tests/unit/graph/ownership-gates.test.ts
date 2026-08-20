@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { validateGraph } from "../../../orchestrating-long-tasks/scripts/src/graph/index.ts";
+import { validateGraph } from "../../../orchestrating-long-tasks/scripts/src/graph/validate-graph.ts";
 import { taskById, validPlanningDocuments } from "./fixtures.ts";
 
 describe("graph ownership roles and scoped gates", () => {

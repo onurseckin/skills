@@ -59,11 +59,14 @@ interface:
          - Wake deterministically through the harness: `recover --run $RUN --actor <your-id>` releases
            expired leases, reopens interrupted validations, reclaims dead branch sub-tasks and expires
            a stale critic. `doctor --run $RUN` re-verifies capsule integrity. Escalate only after both.
-      5. **Strict Triad Floor & $2N + 1$ Multi-Agent Scaling**:
-         - Delegate execution waves to the Tier 2 Coordinator (`coordinator.yaml`), which reads whole
-           waves with `queue:wave` and dispatches $N$ implementers and $N$ validators in one batch.
+      5. **Strict Triad Floor & Continuous Pairing**:
+         - Delegate execution to the Tier 2 Coordinator (`coordinator.yaml`), which keeps its eligible
+           set full — dispatching every claimable task the instant it is claimable, using `queue:wave`
+           as a live readiness snapshot rather than a batch to assemble and wait on.
          - Enforce the Triad Floor ($\ge 3$ agents: 1 Coordinator + 1 Implementer + 1 Validator) and
-           atomic implementer-validator pairing across all rounds.
+           the Pairing Invariant (an implementer's work is always independently validated) across all
+           rounds. There is no fixed implementer:validator ratio to compute — dispatch whatever is
+           claimable up to the occupancy ceiling.
          - Every agent deployed in every round is recorded with `agent:register`, under its parent
            agent and parent task, so lineage survives the chaining.
 
@@ -77,7 +80,9 @@ interface:
       - Initialize the loop with the base run id, target repository and initial prompt.
       - Spawn the Tier 2 Coordinator (`coordinator.yaml`) for Round 1, and register it.
       - Start the background watchdog to track coordinator and worker heartbeats.
-      - Observe Round 1 until the wave barrier completes.
+      - Observe Round 1 until it converges — completeness critic approval, zero open findings, every
+        gate green, no open branch. There is no wave barrier to wait on: the Tier 2 coordinator inside
+        the round dispatches continuously, and convergence, not a wave finishing, is what ends it.
 
       ### Phase 2: Round Evaluation & Convergence Verification
       - On completion of round $N$:

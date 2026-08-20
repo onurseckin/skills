@@ -586,8 +586,8 @@
       "name": "queue:wave",
       "aliases": [],
       "domain": "queue",
-      "summary": "Show the whole next conflict-free wave so agents dispatch in one batch.",
-      "description": "Runs the scheduler over live task state and returns every task that may run in parallel right now, capped at max_parallel. Annotates each task with the wave plan:compile recorded, or reports the topology as absent. Read-only: each dispatched agent still claims its own task.",
+      "summary": "Show every task claimable right now, ranked by critical depth — for display only.",
+      "description": "The readiness query: runs the scheduler over live task state and returns every task whose dependencies are done and whose write scope collides with nothing currently leased, ranked by critical depth and capped at max_parallel. Annotates each task with the wave plan:compile recorded, or reports the topology as absent, purely for display. This is not a batch to assemble and dispatch as one unit — claim each entry the moment an agent is free, and re-run this (or claim atomically with queue:pop / task:claim) the instant any agent finishes; never wait for the rest of one call's answer before claiming the next task. Read-only: each dispatched agent still claims its own task.",
       "flags": [
         {
           "name": "run",
@@ -603,7 +603,7 @@
           "required": false,
           "repeatable": false,
           "default": null,
-          "description": "Wave size cap; defaults to the configured default_max_parallel."
+          "description": "Occupancy ceiling for this query; defaults to the configured default_max_parallel."
         }
       ],
       "reads_stdin": false,
@@ -1386,6 +1386,86 @@
       ]
     },
     {
+      "name": "task:assign-repairer",
+      "aliases": [],
+      "domain": "task",
+      "summary": "Replace the original implementer as a task's repairer, with a recorded reason.",
+      "description": "The original implementer always gets the first repair opportunity; this records the harness's own decision to hand the repair lease to someone else instead. --reason stale requires the prior repair attempt's lease to have gone stale; --reason repeated_failure requires at least two recorded repair rounds; --reason unavailable carries no precondition beyond the task already awaiting its original repairer.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root."
+        },
+        {
+          "name": "task",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Task in changes_requested, awaiting its original repairer."
+        },
+        {
+          "name": "actor",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Who is recording the reassignment."
+        },
+        {
+          "name": "repairer",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Replacement agent id; must differ from the original."
+        },
+        {
+          "name": "reason",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "repeated_failure, stale, or unavailable; each carries its own precondition."
+        },
+        {
+          "name": "evidence",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Why the replacement is warranted."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts task:assign-repairer --run .capsules/<run-id> --task task-1 --actor coordinator --repairer worker-2 --reason unavailable --evidence \"worker-1 released without claiming the repair lease\""
+      ]
+    },
+    {
       "name": "run:exec",
       "aliases": [],
       "domain": "run",
@@ -1855,6 +1935,78 @@
       ],
       "examples": [
         "bun harness.ts critic:reject --run .capsules/<run-id> --critic critic-1 --token <token> --summary \"Missing error boundary\" --findings '[{\"id\":\"F-01\",\"requirement_id\":\"req-1\",\"severity\":\"critical\",\"observation\":\"No error boundary around the render tree\",\"remediation\":\"Wrap the tree in an error boundary\",\"revalidation\":\"bun test tests/render\"}]'"
+      ]
+    },
+    {
+      "name": "critic:remediate",
+      "aliases": [],
+      "domain": "critic",
+      "summary": "Close out a critic findings review with command-backed remediation evidence.",
+      "description": "Every review recorded with status findings stays in history and blocks completion until it carries a remediation naming exactly its own finding ids, each proven by a critic-run, task-unbound, successful command. --resolve is repeatable as <finding-id>=<command-id>[,<command-id>]; --resolution-method names how each finding was closed. --review-sha256 defaults to the currently recorded review.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root."
+        },
+        {
+          "name": "actor",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Who is recording the remediation."
+        },
+        {
+          "name": "review-sha256",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Digest of the review being remediated."
+        },
+        {
+          "name": "resolve",
+          "type": "string",
+          "required": false,
+          "repeatable": true,
+          "default": null,
+          "description": "Answer a finding: <finding-id>=<command-id>[,<command-id>]."
+        },
+        {
+          "name": "resolution-method",
+          "type": "string",
+          "required": false,
+          "repeatable": true,
+          "default": null,
+          "description": "How a finding was answered: <finding-id>=<method>."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts critic:remediate --run .capsules/<run-id> --actor coordinator --resolve CF-1=C-fix-1 --resolution-method CF-1=\"focused repair and verification\""
       ]
     },
     {
@@ -2367,8 +2519,8 @@
           "type": "string",
           "required": false,
           "repeatable": false,
-          "default": "orchestrator",
-          "description": "Actor recorded on the events."
+          "default": null,
+          "description": "Actor recorded on the loop summary; omitted leaves the loop unattributed."
         }
       ],
       "reads_stdin": true,
@@ -3302,6 +3454,158 @@
       ]
     },
     {
+      "name": "orphan:dispose",
+      "aliases": [],
+      "domain": "orphan",
+      "summary": "Close out a command record that arrived without a live owner.",
+      "description": "Orphan evidence — typically a durable command record left behind by an agent that died mid-run — blocks completion until it is explicitly dispositioned. --disposition is ignored_non_authoritative, rejected, or superseded; there is no default, and each disposition is terminal.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root."
+        },
+        {
+          "name": "actor",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Who is recording the disposition."
+        },
+        {
+          "name": "orphan-sha256",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Digest of the orphan evidence, from doctor's issues."
+        },
+        {
+          "name": "disposition",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "ignored_non_authoritative, rejected, or superseded."
+        },
+        {
+          "name": "rationale",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Why this disposition is correct."
+        },
+        {
+          "name": "evidence",
+          "type": "string",
+          "required": false,
+          "repeatable": true,
+          "default": null,
+          "description": "Command id supporting the disposition; repeat per id."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts orphan:dispose --run .capsules/<run-id> --actor coordinator --orphan-sha256 <sha> --disposition ignored_non_authoritative --rationale \"agent worker-3 died before submitting; the command it ran is not authoritative for any task\" --evidence C-abc123"
+      ]
+    },
+    {
+      "name": "authority:decide",
+      "aliases": [],
+      "domain": "authority",
+      "summary": "Grant or decline a needs_authority requirement.",
+      "description": "A requirement disposed needs_authority holds every task built on it non-executable until this is recorded. Granting makes it actionable; declining disposes it out_of_scope and cancels every dormant task that depends on it alone, refusing instead if that would invalidate an active or completed one. The decision is permanent: a second call with the same actor and rationale is idempotent, any other call against an already-decided requirement is refused.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root."
+        },
+        {
+          "name": "requirement",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Requirement id, currently disposed needs_authority."
+        },
+        {
+          "name": "actor",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Who is making the decision."
+        },
+        {
+          "name": "decision",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "grant or decline."
+        },
+        {
+          "name": "rationale",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Why this decision is correct."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts authority:decide --run .capsules/<run-id> --requirement req-prod-deploy --actor coordinator --decision grant --rationale \"Human approved the production deploy in the review thread\""
+      ]
+    },
+    {
       "name": "install",
       "aliases": [],
       "domain": "install",
@@ -3549,6 +3853,54 @@
       ],
       "examples": [
         "bun harness.ts doctor --run .capsules/<run-id>"
+      ]
+    },
+    {
+      "name": "doctor:repair",
+      "aliases": [],
+      "domain": "diagnostics",
+      "summary": "Re-derive state.json from the event chain after a crash tears the log's tail.",
+      "description": "The repair counterpart to `doctor`: `doctor` only reports a torn tail or a state/event mismatch. This re-derives state.json from the event chain's last complete event, quarantining any torn final fragment under quarantine/ instead of discarding it, and records a projection-recovered event. Refuses if the manifest or prompt itself is corrupt - that is an integrity failure, not something to repair silently.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root."
+        },
+        {
+          "name": "actor",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Who is running the repair. Recorded on the event; there is no default actor."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts doctor:repair --run .capsules/<run-id> --actor coordinator"
       ]
     },
     {

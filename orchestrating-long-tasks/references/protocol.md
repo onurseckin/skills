@@ -117,8 +117,9 @@ Construct an immutable packet for each role and persist its Markdown plus metada
 Append the canonical common instructions exactly and bind the packet digest. Use only host-native
 agent tools; do not call an API or launch an LLM CLI.
 
-Read the whole next wave with `queue:wave` and dispatch it in one batch, rather than popping one task
-and serialising the run behind it. Record every dispatched subagent with `agent:register` — id,
+Keep the eligible set full. `queue:wave` is a read-only readiness snapshot — every task claimable
+right now — so dispatch each entry the moment an agent is free and recompute it the instant a slot
+frees, rather than assembling one batch and waiting for it. Record every dispatched subagent with `agent:register` — id,
 role, host, parent agent, parent task, and any host-reported model, tier, thinking level and granted
 toolset. The parent must already hold a grant, so lineage is a chain rather than a claim.
 
@@ -256,14 +257,14 @@ can continue with no conversational context.
 
 ---
 
-## Tiered dispatch, the Triad Floor, and the $2N + 1$ sizing rule
+## Tiered dispatch, the Triad Floor, and the Pairing Invariant
 
 ```text
 [Tier 1: Main Interactive Thread] (User interaction only)
                │ (Spawns exactly 1 child)
                ▼
-[Tier 2: Background Run Coordinator] (Capsule, graph, topology, leases, wave lifecycle)
-               │ (Dispatches one whole queue:wave in a single batch call)
+[Tier 2: Background Run Coordinator] (Capsule, graph, topology, leases, lease lifecycle)
+               │ (Dispatches each task the instant it becomes claimable)
         ┌──────┴─────────────────────────────┐
         ▼                                    ▼
 [Tier 3: Task Implementers (N)]       [Tier 3: Adversarial Validators (N)]
@@ -281,11 +282,11 @@ agent that owns the branch.
 
 1. **The Triad Floor (Minimum 3 Agents Deployed)**: for any run — even a single sequential task
    ($N=1$) — at least 1 Coordinator + 1 Implementer + 1 Validator are deployed.
-2. **Atomic Pair Rule**: an Implementer is never dispatched alone; its independent Validator is
-   dispatched in the same batch.
-3. **Linear Sizing ($2N + 1$)**: for the $N$ tasks `queue:wave` returns, dispatch $N$ implementers
-   and $N$ validators in one batch call — $N=1 \implies 3$, $N=2 \implies 5$, $N=3 \implies 7$,
-   $N=4 \implies 9$, $N=6 \implies 13$ agents.
+2. **Pairing Invariant**: an Implementer is never dispatched alone; its independent Validator is
+   dispatched with it and becomes eligible the instant that implementer submits.
+3. **Occupancy, not sizing**: there is no fixed implementer:validator ratio and no batch size to
+   compute. Dispatch whatever is claimable up to the occupancy ceiling (`default_max_parallel`), and
+   refill the instant a slot frees.
 4. **Every dispatch is registered**: one `agent:register` per subagent, before it starts work.
 
 ### Isolation boundaries
@@ -293,7 +294,7 @@ agent that owns the branch.
 1. **Main Thread Isolation**: Tier 1 is dedicated to user dialogue and milestone notifications. It
    never runs worker tools, edits files, or polls background tasks, and spawns exactly one child.
 2. **Coordinator Mediation (Tier 2)**: the coordinator holds capsule ownership, manages lease tokens,
-   compiles graph revisions, and dispatches waves. It emits milestone summaries to Tier 1.
+   compiles graph revisions, and dispatches continuously. It emits milestone summaries to Tier 1.
 3. **Leaf Isolation (Tier 3)**: implementers and validators report exclusively to the coordinator,
    never to Tier 1 and never to each other. Sub-agents report to the agent that branched them.
 4. **Token & Lease Isolation**: lease, validation and critic tokens are non-transferable, tied to a
@@ -310,7 +311,7 @@ summary.
 ## Cascading Scope-Aware Replanning & Fan-Back Protocol
 
 When late-stage completeness verification detects defects across the repository diff, the harness
-triggers dynamic graph recompilation and parallel repair waves:
+triggers dynamic graph recompilation and parallel repair rounds:
 
 ```text
                ┌────────────────────────────────────────────────────────┐
@@ -321,15 +322,15 @@ triggers dynamic graph recompilation and parallel repair waves:
                                         [plan:replan]                   │
                                                │                        │
                                                ▼                        │
-                                  [Compile Repair Wave R DAG]           │
+                                 [Compile Repair Round R DAG]           │
                                   (Graph Revision R -> R+1)             │
                                                │                        │
                                                ▼                        │
-                             [Batch Dispatch 2N+1 Repair Wave]          │
-                             (N Implementers + N Validators)            │
+                          [Dispatch Each Repair Task When Claimable]    │
+                               (One fresh validator per repair)         │
                                                │                        │
                                                ▼                        │
-                                 [Validation Barrier: Wave R]           │
+                                  [All Repair Tasks Terminal]           │
                                  (All repair tasks reach done)          │
                                                │                        │
                                                └────────────────────────┘
@@ -364,10 +365,12 @@ triggers dynamic graph recompilation and parallel repair waves:
 - **Graph revisioning**: `graph_revision` increments by exactly one, the previous documents are
   archived immutably, and the critic lifecycle records are cleared for a fresh review.
 
-### 3. Parallel batch repair wave dispatch ($2N + 1$)
+### 3. Continuous repair dispatch
 
-- The coordinator reads the injected repair wave with `queue:wave` and dispatches $N$ repair
-  implementers and $N$ adversarial validators in a single batch call, registering each one.
+- The coordinator reads the injected repair tasks with `queue:wave` and dispatches each one the
+  moment it is claimable, registering every agent. A repair task's fresh adversarial validator is
+  eligible the instant that repair is submitted, independent of every other repair task in the
+  revision.
 - Repair workers operate strictly within their partitioned write scopes.
 
 ### 4. Validation barriers and re-convergence
@@ -401,9 +404,9 @@ triggers dynamic graph recompilation and parallel repair waves:
 | `validating`            | `task:review --status pass`         | `validated`              | Probe budget met; no failing gate run; every open finding `--resolve`d.                         |
 | `validated`             | mandatory gate attachment           | `gating`                 | Gate argv fingerprint, task and gate ids match the contract; bindings match.                    |
 | `gating`                | all mandatory gates attached        | `done`                   | Review passed and every applicable mandatory gate satisfied.                                    |
-| `done` (all wave tasks) | `critic:start`                      | critic assigned          | Fresh repository inspection recorded; critic token minted.                                      |
+| `done` (all tasks)      | `critic:start`                      | critic assigned          | Fresh repository inspection recorded; critic token minted.                                      |
 | critic assigned         | `critic:reject`                     | completion blocked       | Structured findings recorded; completion halted.                                                |
-| completion blocked      | `plan:replan`                       | `ready` (wave $R$ tasks) | Revision $R \to R+1$; findings partitioned into disjoint repair scopes.                         |
+| completion blocked      | `plan:replan`                       | `ready` (revision $R$)   | Revision $R \to R+1$; findings partitioned into disjoint repair scopes.                         |
 | critic assigned         | `critic:review --decision approve`  | critic approved          | Every requirement proved; no requirement left `unproven`.                                       |
 | critic approved         | `run:complete`                      | completed                | Zero blockers, no open branch, live repository binding matches every gate. Sealed.              |
 

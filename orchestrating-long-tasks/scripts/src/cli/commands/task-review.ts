@@ -21,10 +21,12 @@ import {
 } from "./task-finding-input.ts";
 import {
   collectTaskScreenshots,
+  dualChannelRefusalMessage,
   finalizePassingTask,
   persistReviewReport,
   resolveCheckIds,
   reviewPolicyFor,
+  runDualChannelAudit,
 } from "./task-review-support.ts";
 
 /** Reads the gate ledger back to the validator: a gate nobody ran says so, in those words. */
@@ -81,6 +83,16 @@ export async function taskReviewCommand(flags: Flags): Promise<Record<string, un
   const resolutions = isPass ? resolutionProofs(flags, taskId, openFindings) : [];
   if (isPass) assertOpenFindingsAnswered(taskId, openFindings, resolutions);
 
+  // Screenshots and the DOM report are ingested before the verdict is recorded so a UI pass can be
+  // refused on missing dual-channel evidence before the review, the lease, and the attempt it spends
+  // are committed to state. `task:review` re-ingests on every call, so a validator who supplies the
+  // missing evidence and reruns simply passes.
+  const taskScreenshots = collectTaskScreenshots(loaded.runRoot, taskId, validator, checkIds);
+  const dualChannel = runDualChannelAudit(loaded.runRoot, taskBefore, taskScreenshots);
+  if (isPass && dualChannel.isUiTask && !dualChannel.passed) {
+    throw new HarnessError("INVALID_STATE", dualChannelRefusalMessage(taskId, dualChannel));
+  }
+
   // A passing review carries no finding, so the requirement binding is only resolved when one is
   // actually recorded; a multi-requirement task would otherwise be forced to name a requirement to
   // sign off on work that has no defect to bind.
@@ -134,7 +146,6 @@ export async function taskReviewCommand(flags: Flags): Promise<Record<string, un
         .map((o) => o.id)
     : [];
 
-  const taskScreenshots = collectTaskScreenshots(loaded.runRoot, taskId, validator, checkIds);
   const screenshotPaths = taskScreenshots.map((s) => s.path);
 
   const reportData = {
@@ -154,6 +165,7 @@ export async function taskReviewCommand(flags: Flags): Promise<Record<string, un
     task: state.tasks[taskId],
     screenshots: screenshotPaths,
     screenshot_records: taskScreenshots,
+    dual_channel_audit: dualChannel,
   };
   const reportPath = persistReviewReport(loaded.runRoot, taskId, reportData);
 
@@ -189,11 +201,11 @@ export async function taskReviewCommand(flags: Flags): Promise<Record<string, un
     report_path: reportPath,
     screenshots: screenshotPaths,
     screenshot_records: taskScreenshots,
+    dual_channel_audit: dualChannel,
     probe_rounds: probeRoundsRecorded(state.tasks[taskId]!),
     min_adversarial_probes: policy.minProbes,
     resolved_findings: resolutions,
     ...(handoffPath === undefined ? {} : { handoff_path: handoffPath }),
-    ...(policy.legacyRejectionWarning ? { warning: policy.legacyRejectionWarning } : {}),
     ...(findingObj === null ? {} : { finding_id: findingId, finding: findingObj }),
   };
 }

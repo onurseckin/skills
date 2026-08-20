@@ -1,24 +1,7 @@
+import { jsonCopy, sameJson } from "../core/json.ts";
 import { PLANNABLE_TASK_STATUSES, RUNTIME_TASK_FIELDS } from "./constants.ts";
 
-export function jsonCopy<T>(value: T): T {
-  return structuredClone(value);
-}
-
-function normalized(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map(normalized);
-  if (typeof value === "object" && value !== null) {
-    return Object.fromEntries(
-      Object.entries(value)
-        .sort(([left], [right]) => left.localeCompare(right))
-        .map(([key, nested]) => [key, normalized(nested)]),
-    );
-  }
-  return value;
-}
-
-export function sameJson(left: unknown, right: unknown): boolean {
-  return JSON.stringify(normalized(left)) === JSON.stringify(normalized(right));
-}
+export { jsonCopy, sameJson };
 
 export function requirementContract(document: Record<string, unknown>): Record<string, unknown> {
   const contract = jsonCopy(document);

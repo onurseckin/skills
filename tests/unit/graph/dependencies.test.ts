@@ -1,8 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import {
-  dependencyMap,
-  validateGraph,
-} from "../../../orchestrating-long-tasks/scripts/src/graph/index.ts";
+import { dependencyMap } from "../../../orchestrating-long-tasks/scripts/src/graph/dependency-map.ts";
+import { validateGraph } from "../../../orchestrating-long-tasks/scripts/src/graph/validate-graph.ts";
 import { proposeBatch } from "../../../orchestrating-long-tasks/scripts/src/scheduler/index.ts";
 import { graphDocument, validPlanningDocuments } from "./fixtures.ts";
 

@@ -11,7 +11,9 @@ import {
   writeIndex,
 } from "../../../orchestrating-long-tasks/scripts/src/store/capsule-index.ts";
 import { ingestScreenshots } from "../../../orchestrating-long-tasks/scripts/src/reporting/screenshot-ingestion.ts";
+import { recordCaptures } from "../../../orchestrating-long-tasks/scripts/src/store/captures.ts";
 import { runStatus } from "../../../orchestrating-long-tasks/scripts/src/reporting/status.ts";
+import { runStatusCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/run-ops.ts";
 import type { RunState } from "../../../orchestrating-long-tasks/scripts/src/contracts/capsule.ts";
 
 const roots: string[] = [];
@@ -35,6 +37,7 @@ function populate(run: string): RunState {
         id: "T-1",
         status: "changes_requested",
         requirement_ids: ["REQ-1"],
+        write_scope: ["src"],
         findings: [
           {
             id: "F-1",
@@ -167,5 +170,73 @@ describe("the catalogue answers the routine questions without a chain walk", () 
     expect(status.catalogue.available).toBeTrue();
     expect(status.catalogue.freshness).toBe("current");
     expect(status.catalogue.counts).toMatchObject({ tasks: 1, commands: 1, open_findings: 1 });
+  });
+
+  test("the run:status command an agent actually invokes surfaces the catalogue", () => {
+    const run = capsule("run-index-cli");
+    populate(run);
+
+    const result = runStatusCommand({ run }) as {
+      markdown: string;
+      catalogue: { available: boolean; freshness: string };
+    };
+
+    expect(result.catalogue.available).toBeTrue();
+    expect(result.catalogue.freshness).toBe("current");
+    expect(result.markdown).toContain("**Capsule**:");
+    expect(result.markdown).toContain("index current");
+  });
+
+  test("a capture recorded after the last event still reaches the catalogue", () => {
+    const run = capsule("run-index-captures");
+    populate(run);
+    const shot = join(run, "..", "..", "after-the-event.png");
+    writeFileSync(shot, "pixels", "utf-8");
+
+    // Ingestion writes the ledger outside the chain, so no event follows the capture.
+    ingestScreenshots({ runRoot: run, commandId: "C-1", explicitPaths: [shot] });
+
+    const index = loadIndex(run).index;
+    expect(index.captures.map((capture) => capture.name)).toEqual(["after-the-event.png"]);
+    expect(index.blobs).toHaveLength(1);
+    expect(indexFreshness(run, index)).toBe("current");
+  });
+
+  test("a ledger that moved under the catalogue makes it stale, not silently wrong", () => {
+    const run = capsule("run-index-ledger-moved");
+    populate(run);
+    const built = loadIndex(run).index;
+    recordCaptures(run, [
+      {
+        kind: "screenshot",
+        name: "unseen.png",
+        sha256: "a".repeat(64),
+        bytes: 1,
+        blob_path: `blobs/aa/${"a".repeat(64)}`,
+        path: "evidence/screenshots/unseen.png",
+        storage: "hardlink",
+        original_path: "/elsewhere/unseen.png",
+      },
+    ]);
+
+    // The event head has not moved, so only the ledger's own digest can expose the drift.
+    expect(built.captures).toEqual([]);
+    expect(indexFreshness(run, built)).toBe("stale");
+  });
+
+  test("run:status says the catalogue is unreadable rather than reporting an empty capsule", () => {
+    const run = capsule("run-index-cli-broken");
+    populate(run);
+    rmSync(join(run, "index.json"));
+
+    const result = runStatusCommand({ run }) as {
+      markdown: string;
+      catalogue: { available: boolean; freshness: string; counts?: unknown };
+    };
+
+    expect(result.catalogue.available).toBeFalse();
+    expect(result.catalogue.freshness).toBe("unknown");
+    expect(result.catalogue.counts).toBeUndefined();
+    expect(result.markdown).toContain("counts unknown");
   });
 });

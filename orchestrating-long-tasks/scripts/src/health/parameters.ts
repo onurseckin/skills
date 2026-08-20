@@ -114,8 +114,8 @@ function boundNames(parameter: string): string[] {
 }
 
 /**
- * B9.2 asks for parameters that are never read. `detectHostTelemetry` ignoring its `agentId` and
- * stamping one model on every node is the defect this looks for; a leading underscore is the
+ * B9.2 asks for parameters that are never read: a function that accepts something specific, ignores
+ * it, and returns an answer that is therefore about something else. A leading underscore is the
  * language's own way of saying the parameter is there for position only.
  */
 export function scanUnreadParameters(file: SourceFile): HealthFinding[] {

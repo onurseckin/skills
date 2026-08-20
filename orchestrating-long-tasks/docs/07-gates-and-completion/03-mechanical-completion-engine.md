@@ -34,7 +34,17 @@ The CLI inspects `state.json`, re-verifies the recorded command evidence against
 ```
 
 Undisposed orphan evidence — a command record that arrived without a live owner, typically from an
-agent that died mid-run — also blocks completion. It is disposed explicitly, never ignored.
+agent that died mid-run — also blocks completion. It is disposed explicitly, never ignored:
+
+```bash
+bun harness.ts orphan:dispose --run .capsules/<run-id> --actor coordinator \
+  --orphan-sha256 <sha, from doctor's issues> --disposition ignored_non_authoritative \
+  --rationale "worker-1's lease expired before it submitted; the work was re-dispatched" \
+  --evidence <command-id>
+```
+
+`--disposition` is `ignored_non_authoritative`, `rejected`, or `superseded`, and every disposition is
+terminal — the same orphan can never be dispositioned twice.
 
 ---
 

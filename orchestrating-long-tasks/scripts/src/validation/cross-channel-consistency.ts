@@ -22,6 +22,12 @@ export function normalizeViewportName(name?: string, width?: number): string {
   return "unknown";
 }
 
+/** Renders a dimension pair the source may not carry, so an unrecorded size never prints as `0`. */
+function dimensionText(width?: number, height?: number): string {
+  if (typeof width !== "number" || typeof height !== "number") return "dimensions unknown";
+  return `${width}x${height}`;
+}
+
 export function validateCrossChannelConsistency(
   domReport: VisualMetricsReport,
   screenshots: ScreenshotMetadata[],
@@ -44,27 +50,37 @@ export function validateCrossChannelConsistency(
     const sc = screenshotViewports.get(name);
     if (!sc) {
       discrepancies.push(
-        `DOM metrics report defines viewport '${name}' (${vp.width}x${vp.height}) but no matching screenshot was captured`,
+        `DOM metrics report defines viewport '${name}' (${dimensionText(vp.width, vp.height)}) but no matching screenshot was captured`,
       );
-    } else if (typeof sc.width === "number" && typeof sc.height === "number") {
-      if (
-        isNaN(sc.width) ||
-        isNaN(sc.height) ||
-        sc.width <= 0 ||
-        sc.height <= 0 ||
-        isNaN(vp.width) ||
-        isNaN(vp.height) ||
-        vp.width <= 0 ||
-        vp.height <= 0
-      ) {
-        discrepancies.push(
-          `Malformed dimension detected for viewport '${name}': DOM report is ${vp.width}x${vp.height} while screenshot is ${sc.width}x${sc.height}`,
-        );
-      } else if (sc.width !== vp.width || sc.height !== vp.height) {
-        discrepancies.push(
-          `Dimension mismatch for viewport '${name}': DOM report is ${vp.width}x${vp.height} while screenshot is ${sc.width}x${sc.height}`,
-        );
-      }
+      continue;
+    }
+    // A dimension the source never recorded is not a discrepancy; only two recorded dimensions can
+    // disagree. Comparing against a stand-in would report a mismatch nobody measured.
+    if (
+      typeof sc.width !== "number" ||
+      typeof sc.height !== "number" ||
+      typeof vp.width !== "number" ||
+      typeof vp.height !== "number"
+    ) {
+      continue;
+    }
+    if (
+      isNaN(sc.width) ||
+      isNaN(sc.height) ||
+      sc.width <= 0 ||
+      sc.height <= 0 ||
+      isNaN(vp.width) ||
+      isNaN(vp.height) ||
+      vp.width <= 0 ||
+      vp.height <= 0
+    ) {
+      discrepancies.push(
+        `Malformed dimension detected for viewport '${name}': DOM report is ${vp.width}x${vp.height} while screenshot is ${sc.width}x${sc.height}`,
+      );
+    } else if (sc.width !== vp.width || sc.height !== vp.height) {
+      discrepancies.push(
+        `Dimension mismatch for viewport '${name}': DOM report is ${vp.width}x${vp.height} while screenshot is ${sc.width}x${sc.height}`,
+      );
     }
   }
 

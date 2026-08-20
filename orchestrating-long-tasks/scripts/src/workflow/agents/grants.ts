@@ -20,6 +20,14 @@ import {
   requireGrant,
   writeAgentLedger,
 } from "./ledger.ts";
+import {
+  mergeDerivedField,
+  type DerivedTelemetryInput,
+  type TelemetryFieldConflict,
+} from "./telemetry-merge.ts";
+
+export type { DerivedTelemetryInput, TelemetryFieldConflict } from "./telemetry-merge.ts";
+export { refreshAgentDerivedTelemetry } from "./telemetry-merge.ts";
 
 export interface GrantTelemetryInput {
   provider?: string;
@@ -40,6 +48,8 @@ export interface RegisterAgentInput {
   actor: string;
   maxAgents: number;
   telemetry: GrantTelemetryInput;
+  /** The host's own config, probed automatically at the CLI boundary rather than asked of the agent. */
+  derivedTelemetry?: DerivedTelemetryInput;
   now?: Date;
 }
 
@@ -68,6 +78,8 @@ export interface AgentGrantOutcome {
   grant: AgentGrantRecord;
   ledger: AgentGrantRecord[];
   state: RunState;
+  /** Present only where a derived probe ran alongside an explicit report and the two disagreed. */
+  conflicts?: readonly TelemetryFieldConflict[];
 }
 
 /**
@@ -104,6 +116,41 @@ function telemetryFields(telemetry: GrantTelemetryInput): GrantTelemetryFields {
   };
 }
 
+/**
+ * Folds a derived host-config probe into the explicitly reported telemetry. Model tier is
+ * deliberately untouched: nothing legitimately infers a tier from a model string, so a probe never
+ * carries one and there is no field here to merge it into.
+ */
+function mergeTelemetry(
+  telemetry: GrantTelemetryInput,
+  derived: DerivedTelemetryInput | undefined,
+  conflicts: TelemetryFieldConflict[],
+): GrantTelemetryFields {
+  const explicit = telemetryFields(telemetry);
+  const provider = mergeDerivedField(explicit.provider, derived?.provider, "provider", conflicts);
+  const model = mergeDerivedField(explicit.model, derived?.model, "model", conflicts);
+  const thinkingLevel = mergeDerivedField(
+    explicit.thinking_level,
+    derived?.thinkingLevel,
+    "thinking_level",
+    conflicts,
+  );
+  const contextWindow = mergeDerivedField(
+    explicit.context_window,
+    derived?.contextWindow,
+    "context_window",
+    conflicts,
+  );
+  return {
+    ...(explicit.model_tier === undefined ? {} : { model_tier: explicit.model_tier }),
+    ...(explicit.tools_granted === undefined ? {} : { tools_granted: explicit.tools_granted }),
+    ...(provider === undefined ? {} : { provider }),
+    ...(model === undefined ? {} : { model }),
+    ...(thinkingLevel === undefined ? {} : { thinking_level: thinkingLevel }),
+    ...(contextWindow === undefined ? {} : { context_window: contextWindow }),
+  };
+}
+
 function requireKnownTask(state: JsonObject, taskId: null | string): void {
   if (taskId === null) return;
   if (!knownTaskIds(state).has(taskId)) {
@@ -119,6 +166,8 @@ export function registerAgentGrant(input: RegisterAgentInput): AgentGrantOutcome
     throw new HarnessError("INVALID_ARGUMENT", "an agent cannot be its own parent");
   }
   const grantedAt = (input.now ?? new Date()).toISOString();
+  const conflicts: TelemetryFieldConflict[] = [];
+  const fields = mergeTelemetry(input.telemetry, input.derivedTelemetry, conflicts);
   let minted: AgentGrantRecord | undefined;
   let ledgerAfter: AgentGrantRecord[] = [];
   const state = transact(
@@ -132,7 +181,16 @@ export function registerAgentGrant(input: RegisterAgentInput): AgentGrantOutcome
       parent_task_id: input.parentTaskId,
       host: input.host,
       granted_at: grantedAt,
-      telemetry_recorded: Object.keys(telemetryFields(input.telemetry)),
+      telemetry_recorded: Object.keys(fields),
+      ...(input.derivedTelemetry?.capabilities === undefined
+        ? {}
+        : {
+            host_capabilities: input.derivedTelemetry.capabilities,
+            ...(input.derivedTelemetry.hostTool === undefined
+              ? {}
+              : { host_capabilities_source: input.derivedTelemetry.hostTool }),
+          }),
+      ...(conflicts.length === 0 ? {} : { telemetry_conflicts: conflicts }),
     },
     (draft) => {
       const ledger = readAgentLedger(draft);
@@ -157,7 +215,7 @@ export function registerAgentGrant(input: RegisterAgentInput): AgentGrantOutcome
         host: input.host,
         granted_at: grantedAt,
         status: "active",
-        ...telemetryFields(input.telemetry),
+        ...fields,
       };
       minted = grant;
       ledgerAfter = [...ledger, grant];
@@ -165,7 +223,12 @@ export function registerAgentGrant(input: RegisterAgentInput): AgentGrantOutcome
     },
   );
   if (!minted) throw new HarnessError("INVALID_STATE", "agent grant was not minted");
-  return { grant: minted, ledger: ledgerAfter, state };
+  return {
+    grant: minted,
+    ledger: ledgerAfter,
+    state,
+    ...(conflicts.length === 0 ? {} : { conflicts }),
+  };
 }
 
 /**

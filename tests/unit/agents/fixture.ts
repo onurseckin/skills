@@ -2,6 +2,7 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execute } from "../../../orchestrating-long-tasks/scripts/src/cli/execute.ts";
+import type { JsonObject } from "../../../orchestrating-long-tasks/scripts/src/contracts/json.ts";
 import { loadRun } from "../../../orchestrating-long-tasks/scripts/src/store/index.ts";
 import { readAgentLedger } from "../../../orchestrating-long-tasks/scripts/src/workflow/agents/ledger.ts";
 
@@ -71,6 +72,14 @@ export function ledgerOf(run: string) {
 
 export function eventKinds(run: string): string[] {
   return loadRun(run).events.map((event) => event.kind);
+}
+
+/** The payload of the most recent event of one kind, for asserting what a command actually recorded. */
+export function lastPayload(run: string, kind: string): JsonObject {
+  const events = loadRun(run).events.filter((event) => event.kind === kind);
+  const last = events.at(-1);
+  if (last === undefined) throw new Error(`no ${kind} event was recorded in ${run}`);
+  return last.payload;
 }
 
 export async function registerCoordinator(run: string, id = "coordinator-1"): Promise<void> {

@@ -7,6 +7,7 @@ import { safeRepoPath } from "../core/paths.ts";
 import { sha256Bytes } from "../core/json.ts";
 import { HarnessError } from "../errors/harness-error.ts";
 import { captureAssurance, isCaptureMode } from "./assurance.ts";
+import { BUN_COMPATIBILITY } from "./bun-compatibility.ts";
 import { FORMAT_VERSION, MANIFEST_SCHEMA, RUN_ID_PATTERN, RUNTIME_VERSION } from "./constants.ts";
 import { initialCapsuleDirectories, renderLayoutReadme } from "./layout.ts";
 import { initialState } from "./state.ts";
@@ -61,6 +62,7 @@ export function initRun(
       assurance,
       created_at: new Date().toISOString(),
       bun_version: Bun.version,
+      bun_compatibility: BUN_COMPATIBILITY,
       runtime_version: RUNTIME_VERSION,
     };
     atomicWriteJson(join(runRoot, "manifest.json"), manifest);

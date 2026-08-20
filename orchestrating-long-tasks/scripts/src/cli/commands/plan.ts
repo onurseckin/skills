@@ -55,7 +55,7 @@ export async function planInitCommand(
   if (prompt === undefined)
     throw new HarnessError("INVALID_ARGUMENT", "prompt source is unavailable");
 
-  const repo = textFlag(flags, "repo", false) ?? ".";
+  const repo = textFlag(flags, "repo", false) ?? process.cwd();
   const ignore_assurance = ensureHarnessIgnored(repo);
   const captureMode =
     textFlag(flags, "capture-mode", false) ?? (fromFile !== undefined ? "file" : "stdin");

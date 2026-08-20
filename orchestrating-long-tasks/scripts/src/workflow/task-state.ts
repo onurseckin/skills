@@ -1,10 +1,7 @@
 import { HarnessError } from "../errors/harness-error.ts";
-import type { JsonValue } from "../contracts/json.ts";
 import type { TaskRecord, WorkflowState } from "./types.ts";
 
-export function jsonCopy<T extends JsonValue>(value: T): T {
-  return JSON.parse(JSON.stringify(value)) as unknown as T;
-}
+export { jsonCopy } from "../core/json.ts";
 
 export function requireText(value: unknown, field: string): string {
   if (typeof value !== "string" || value.trim() === "") {

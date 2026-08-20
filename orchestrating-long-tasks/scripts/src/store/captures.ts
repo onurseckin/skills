@@ -80,9 +80,12 @@ export function readCaptures(runRoot: string): CaptureRecord[] {
  * Records captures that were not already recorded, keyed by content. A second sighting of the same
  * bytes is the same capture, so it does not become a second record under a second owner — that
  * re-attribution is exactly how one stale image ended up claimed by every command in a run.
+ *
+ * Reports whether the ledger changed, so a caller that keeps a catalogue over it knows when the
+ * catalogue has fallen behind.
  */
-export function recordCaptures(runRoot: string, additions: readonly CaptureRecord[]): void {
-  if (additions.length === 0) return;
+export function recordCaptures(runRoot: string, additions: readonly CaptureRecord[]): boolean {
+  if (additions.length === 0) return false;
   const existing = readCaptures(runRoot);
   const seen = new Set(existing.map((record) => `${record.kind}:${record.sha256}`));
   const merged = [...existing];
@@ -92,7 +95,7 @@ export function recordCaptures(runRoot: string, additions: readonly CaptureRecor
     seen.add(key);
     merged.push(addition);
   }
-  if (merged.length === existing.length) return;
+  if (merged.length === existing.length) return false;
   const ledger: CaptureLedger = {
     schema: CAPTURES_SCHEMA,
     version: 1,
@@ -101,4 +104,5 @@ export function recordCaptures(runRoot: string, additions: readonly CaptureRecor
   };
   // Indented rather than canonical: this file is one a person opens to see what a run captured.
   atomicWriteBytes(capturesPath(runRoot), Buffer.from(`${JSON.stringify(ledger, null, 2)}\n`));
+  return true;
 }

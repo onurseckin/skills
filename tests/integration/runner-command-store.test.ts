@@ -15,7 +15,6 @@ import {
   reconcileCommandResult,
   reconcileStrandedCommands,
   recordCommandIntent,
-  recordCommandResult,
   runAndRecordCommand,
 } from "../../orchestrating-long-tasks/scripts/src/integration/record-command.ts";
 import { runDoctor } from "../../orchestrating-long-tasks/scripts/src/reporting/doctor.ts";
@@ -146,7 +145,7 @@ describe("runner command store integration", () => {
     });
     const forged = structuredClone(result.record);
     forged.fingerprint = "f".repeat(64);
-    expect(() => recordCommandResult(runRoot, "attacker", forged)).toThrow("fingerprint");
+    expect(() => reconcileCommandResult(runRoot, "attacker", forged)).toThrow("fingerprint");
 
     await writeFile(join(runRoot, result.record.logs!.stdout.path), "drift");
     const report = await runDoctor(runRoot);

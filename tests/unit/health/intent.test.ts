@@ -94,6 +94,61 @@ describe("an artifact the run produces counts as present", () => {
   });
 });
 
+describe("a token naming another application's own identifier is exempt, not missing", () => {
+  const result = (): ReturnType<typeof checkIntentDrift> => {
+    const root = writeTree(tempRoot("external-intent"), {
+      "SPEC.md": [
+        "## 1. R1 - host research",
+        "",
+        "- Claude Code exposes `SendMessage`; the harness never defines it.",
+      ].join("\n"),
+    });
+    return checkIntentDrift({
+      documents: [{ relative: "SPEC.md", absolute: join(root, "SPEC.md"), headingLevel: 2 }],
+      production: [],
+      tests: [],
+      paths: [],
+      registryApplies: true,
+    });
+  };
+
+  test("the host's own tool name is not reported as a missing symbol", () => {
+    const report = result();
+    expect(report.findings.map((entry) => entry.key)).toEqual([]);
+  });
+
+  test("the exemption is counted and disclosed, not silently dropped", () => {
+    const report = result();
+    const disclosed = report.limitations.join(" ");
+    expect(disclosed).toContain("1 token(s) name another application's own identifier");
+    // The requirement had one token and it was exempted, so the check now knows nothing about R1.
+    // Reporting the token count alone would let that silence pass for a clean result.
+    expect(disclosed).toContain("1 requirement(s) named nothing checkable once those exemptions");
+  });
+
+  test("a requirement that still names its own symbol keeps being judged", () => {
+    const root = writeTree(tempRoot("external-mixed"), {
+      "SPEC.md": [
+        "## 1. R1 - host research",
+        "",
+        "- Claude Code exposes `SendMessage`; this repo records it through `HostProbe`.",
+      ].join("\n"),
+    });
+    const report = checkIntentDrift({
+      documents: [{ relative: "SPEC.md", absolute: join(root, "SPEC.md"), headingLevel: 2 }],
+      production: [],
+      tests: [],
+      paths: [],
+      registryApplies: true,
+    });
+    expect(report.findings.map((entry) => entry.detail)).toEqual([
+      "R1 names the symbol `HostProbe`, which is not present in the scanned source",
+      "R1 names 1 symbol(s) and no test in the suite mentions any of them",
+    ]);
+    expect(report.limitations.join(" ")).toContain("0 requirement(s) named nothing checkable");
+  });
+});
+
 describe("a command token is not judged against a registry that does not describe the tree", () => {
   const result = (): ReturnType<typeof checkIntentDrift> => {
     const root = writeTree(tempRoot("foreign-intent"), {

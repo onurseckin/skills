@@ -56,7 +56,8 @@ export interface ReportBriefParams {
 
 export function formatReportBrief(params: ReportBriefParams): string {
   const r = params.report;
-  const name = params.name ?? "Report";
+  // "Report" would read as a real title; an omitted name is genuinely unknown, not generic.
+  const name = params.name ?? "unknown";
   const status = String(r.status ?? r.verdict ?? r.decision ?? "unknown");
   const summary = String(r.summary ?? "No summary provided");
   const screenshots = Array.isArray(r.screenshots) ? r.screenshots : [];

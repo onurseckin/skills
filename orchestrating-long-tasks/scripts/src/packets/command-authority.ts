@@ -62,7 +62,14 @@ function capsuleState(runRoot: string): RunState | undefined {
   // Before plan:init has run, `--run` names a run id rather than a capsule root. There is no ledger
   // to read then, and therefore no recorded role whose contract could govern the call.
   if (!existsSync(join(runRoot, "state.json"))) return undefined;
-  return loadRun(runRoot).state;
+  try {
+    return loadRun(runRoot).state;
+  } catch {
+    // A capsule an integrity check refuses to load carries no readable ledger either, so there is
+    // still no grant to enforce against. Throwing here would also make `doctor:repair` unrunnable
+    // on the exact capsule it exists to fix - the command's own INTEGRITY error is the real signal.
+    return undefined;
+  }
 }
 
 /**

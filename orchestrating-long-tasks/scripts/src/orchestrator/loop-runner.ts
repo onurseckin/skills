@@ -28,7 +28,7 @@ export class AutonomousLoopRunner {
   public readonly initialPrompt: string;
   public readonly maxRoundsConfigured: number;
   public readonly capsulesDir: string;
-  public readonly actor: string;
+  public readonly actor: string | undefined;
 
   private readonly executor?: RoundExecutor | undefined;
   private readonly watchdog: OrchestratorWatchdog;
@@ -60,7 +60,7 @@ export class AutonomousLoopRunner {
     this.repoPath = options.repoPath.trim();
     this.initialPrompt = options.initialPrompt;
     this.capsulesDir = options.capsulesDir ?? join(this.repoPath, ".capsules");
-    this.actor = options.actor ?? "orchestrator";
+    this.actor = options.actor;
     this.executor = options.executor;
     this.onRoundStart = options.onRoundStart;
     this.onRoundComplete = options.onRoundComplete;
@@ -264,6 +264,9 @@ export class AutonomousLoopRunner {
       gateStatus,
       finalCriticDecision: lastCriticDecision,
       finalMarkdownSummary: markdownSummary,
+      // Attribution is recorded only when the caller supplied one: an unattributed loop leaves the
+      // field off rather than crediting the run to a name nobody gave.
+      ...(this.actor === undefined ? {} : { actor: this.actor }),
     };
 
     const summaryPath = join(this.capsulesDir, `${this.baseRunId}-loop-summary.json`);

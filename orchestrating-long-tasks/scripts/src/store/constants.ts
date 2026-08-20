@@ -5,7 +5,6 @@ export {
   RUNTIME_VERSION,
   STATE_SCHEMA,
 } from "../config/constants.ts";
-export const RUNTIME_ENTRYPOINT = "runtime/harness.ts";
 export const RUN_ID_PATTERN = /^[A-Za-z0-9](?:[A-Za-z0-9._-]{0,126}[A-Za-z0-9])?$/;
 export const SHA256_PATTERN = /^[0-9a-f]{64}$/;
 export const CAPSULE_ID_PATTERN = /^[0-9a-f]{32}$/;

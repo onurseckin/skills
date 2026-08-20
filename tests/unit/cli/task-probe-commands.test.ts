@@ -89,22 +89,6 @@ describe("CLI task:probe", () => {
     ).rejects.toThrow(/mandatory gate evidence records a failure/);
   });
 
-  test("the legacy rejection key never becomes a probe count, and is reported as a warning", async () => {
-    const { repo, run } = await setupRun("legacy-config", roots, { min_adversarial_rejections: 2 });
-    const token = (await claimSubmitValidate(repo, run)).token as string;
-    const gateCmd = await runGate(repo, run, "gate-core.ts");
-    const probe = await recordProbe(run, token, "Prove the bounds are checked");
-    expect(probe.min_adversarial_probes).toBe(1);
-    expect(String(probe.warning)).toContain("min_adversarial_rejections=2");
-    expect(String(probe.warning)).toContain("min_adversarial_probes=1");
-
-    const review = await execute(
-      reviewPass(run, token, gateCmd, answeredBy(probe.finding_ids, gateCmd)),
-    );
-    expect(review.verdict).toBe("pass");
-    expect(review.min_adversarial_probes).toBe(1);
-  });
-
   test("a probe demand names a real requirement and cites only what it was given", async () => {
     const { repo, run } = await setupRun("probe-shape", roots);
     const token = (await claimSubmitValidate(repo, run)).token as string;

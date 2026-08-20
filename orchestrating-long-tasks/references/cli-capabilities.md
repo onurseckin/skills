@@ -202,9 +202,9 @@ bun harness.ts queue:list --run .capsules/<run-id>
 
 ### `queue:wave`
 
-Show the whole next conflict-free wave so agents dispatch in one batch.
+Show every task claimable right now, ranked by critical depth — for display only.
 
-Runs the scheduler over live task state and returns every task that may run in parallel right now, capped at max_parallel. Annotates each task with the wave plan:compile recorded, or reports the topology as absent. Read-only: each dispatched agent still claims its own task.
+The readiness query: runs the scheduler over live task state and returns every task whose dependencies are done and whose write scope collides with nothing currently leased, ranked by critical depth and capped at max_parallel. Annotates each task with the wave plan:compile recorded, or reports the topology as absent, purely for display. This is not a batch to assemble and dispatch as one unit — claim each entry the moment an agent is free, and re-run this (or claim atomically with queue:pop / task:claim) the instant any agent finishes; never wait for the rest of one call's answer before claiming the next task. Read-only: each dispatched agent still claims its own task.
 
 - **Aliases**: none
 - **Stdin**: not read
@@ -213,7 +213,7 @@ Runs the scheduler over live task state and returns every task that may run in p
 | Flag | Type | Required | Repeatable | Default | Description |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `--run` | string | yes | no | - | Capsule run root. |
-| `--max-parallel` | int | no | no | - | Wave size cap; defaults to the configured default_max_parallel. |
+| `--max-parallel` | int | no | no | - | Occupancy ceiling for this query; defaults to the configured default_max_parallel. |
 
 ```bash
 bun harness.ts queue:wave --run .capsules/<run-id> --max-parallel 4
@@ -422,6 +422,29 @@ Records the validator's finding and returns the task to the implementer. The sev
 bun harness.ts task:reject --run .capsules/<run-id> --task task-1 --validator val-1 --token <token> --reason "Missing input validation" --severity critical --remediation "Validate the payload before the insert"
 ```
 
+### `task:assign-repairer`
+
+Replace the original implementer as a task's repairer, with a recorded reason.
+
+The original implementer always gets the first repair opportunity; this records the harness's own decision to hand the repair lease to someone else instead. --reason stale requires the prior repair attempt's lease to have gone stale; --reason repeated_failure requires at least two recorded repair rounds; --reason unavailable carries no precondition beyond the task already awaiting its original repairer.
+
+- **Aliases**: none
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--run` | string | yes | no | - | Capsule run root. |
+| `--task` | string | yes | no | - | Task in changes_requested, awaiting its original repairer. |
+| `--actor` | string | yes | no | - | Who is recording the reassignment. |
+| `--repairer` | string | yes | no | - | Replacement agent id; must differ from the original. |
+| `--reason` | string | yes | no | - | repeated_failure, stale, or unavailable; each carries its own precondition. |
+| `--evidence` | string | yes | no | - | Why the replacement is warranted. |
+
+```bash
+bun harness.ts task:assign-repairer --run .capsules/<run-id> --task task-1 --actor coordinator --repairer worker-2 --reason unavailable --evidence "worker-1 released without claiming the repair lease"
+```
+
 ### `task:release`
 
 Hand a live lease back without waiting for it to expire.
@@ -584,6 +607,28 @@ Equivalent to critic:review --decision request_changes with a rejection brief. S
 bun harness.ts critic:reject --run .capsules/<run-id> --critic critic-1 --token <token> --summary "Missing error boundary" --findings '[{"id":"F-01","requirement_id":"req-1","severity":"critical","observation":"No error boundary around the render tree","remediation":"Wrap the tree in an error boundary","revalidation":"bun test tests/render"}]'
 ```
 
+### `critic:remediate`
+
+Close out a critic findings review with command-backed remediation evidence.
+
+Every review recorded with status findings stays in history and blocks completion until it carries a remediation naming exactly its own finding ids, each proven by a critic-run, task-unbound, successful command. --resolve is repeatable as <finding-id>=<command-id>[,<command-id>]; --resolution-method names how each finding was closed. --review-sha256 defaults to the currently recorded review.
+
+- **Aliases**: none
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--run` | string | yes | no | - | Capsule run root. |
+| `--actor` | string | yes | no | - | Who is recording the remediation. |
+| `--review-sha256` | string | no | no | - | Digest of the review being remediated. |
+| `--resolve` | string | no | yes | - | Answer a finding: <finding-id>=<command-id>[,<command-id>]. |
+| `--resolution-method` | string | no | yes | - | How a finding was answered: <finding-id>=<method>. |
+
+```bash
+bun harness.ts critic:remediate --run .capsules/<run-id> --actor coordinator --resolve CF-1=C-fix-1 --resolution-method CF-1="focused repair and verification"
+```
+
 ## summary
 
 ### `summary:export`
@@ -742,7 +787,7 @@ Drives plan, execute, validate and critic rounds until the critic approves or th
 | `--run` | string | no | no | - | Alias of --run-id. |
 | `--capsules-dir` | string | no | no | - | Directory that holds the capsules. |
 | `--max-rounds` | int | no | no | `10` | Round budget, clamped to 1-10. |
-| `--actor` | string | no | no | `orchestrator` | Actor recorded on the events. |
+| `--actor` | string | no | no | - | Actor recorded on the loop summary; omitted leaves the loop unattributed. |
 
 ```bash
 bun harness.ts orchestrator:run --repo . --prompt "Implement the feature" --max-rounds 3
@@ -997,6 +1042,55 @@ bun harness.ts agent:list --run .capsules/<run-id>
 bun harness.ts agent:list --run .capsules/<run-id> --task task-1
 ```
 
+## orphan
+
+### `orphan:dispose`
+
+Close out a command record that arrived without a live owner.
+
+Orphan evidence — typically a durable command record left behind by an agent that died mid-run — blocks completion until it is explicitly dispositioned. --disposition is ignored_non_authoritative, rejected, or superseded; there is no default, and each disposition is terminal.
+
+- **Aliases**: none
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--run` | string | yes | no | - | Capsule run root. |
+| `--actor` | string | yes | no | - | Who is recording the disposition. |
+| `--orphan-sha256` | string | yes | no | - | Digest of the orphan evidence, from doctor's issues. |
+| `--disposition` | string | yes | no | - | ignored_non_authoritative, rejected, or superseded. |
+| `--rationale` | string | yes | no | - | Why this disposition is correct. |
+| `--evidence` | string | no | yes | - | Command id supporting the disposition; repeat per id. |
+
+```bash
+bun harness.ts orphan:dispose --run .capsules/<run-id> --actor coordinator --orphan-sha256 <sha> --disposition ignored_non_authoritative --rationale "agent worker-3 died before submitting; the command it ran is not authoritative for any task" --evidence C-abc123
+```
+
+## authority
+
+### `authority:decide`
+
+Grant or decline a needs_authority requirement.
+
+A requirement disposed needs_authority holds every task built on it non-executable until this is recorded. Granting makes it actionable; declining disposes it out_of_scope and cancels every dormant task that depends on it alone, refusing instead if that would invalidate an active or completed one. The decision is permanent: a second call with the same actor and rationale is idempotent, any other call against an already-decided requirement is refused.
+
+- **Aliases**: none
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--run` | string | yes | no | - | Capsule run root. |
+| `--requirement` | string | yes | no | - | Requirement id, currently disposed needs_authority. |
+| `--actor` | string | yes | no | - | Who is making the decision. |
+| `--decision` | string | yes | no | - | grant or decline. |
+| `--rationale` | string | yes | no | - | Why this decision is correct. |
+
+```bash
+bun harness.ts authority:decide --run .capsules/<run-id> --requirement req-prod-deploy --actor coordinator --decision grant --rationale "Human approved the production deploy in the review thread"
+```
+
 ## install
 
 ### `install`
@@ -1084,6 +1178,25 @@ Re-hashes the event chain, re-verifies every recorded command, reports workflow 
 
 ```bash
 bun harness.ts doctor --run .capsules/<run-id>
+```
+
+### `doctor:repair`
+
+Re-derive state.json from the event chain after a crash tears the log's tail.
+
+The repair counterpart to `doctor`: `doctor` only reports a torn tail or a state/event mismatch. This re-derives state.json from the event chain's last complete event, quarantining any torn final fragment under quarantine/ instead of discarding it, and records a projection-recovered event. Refuses if the manifest or prompt itself is corrupt - that is an integrity failure, not something to repair silently.
+
+- **Aliases**: none
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--run` | string | yes | no | - | Capsule run root. |
+| `--actor` | string | yes | no | - | Who is running the repair. Recorded on the event; there is no default actor. |
+
+```bash
+bun harness.ts doctor:repair --run .capsules/<run-id> --actor coordinator
 ```
 
 ### `recover`

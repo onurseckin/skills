@@ -62,9 +62,3 @@ export function taskExecutionBlockers(state: unknown, requirementIds: readonly s
     return execution === "paused" || (execution === "executable" && !authorized.has(id));
   });
 }
-
-export function requirementIsTerminal(requirement: Record<string, unknown>): boolean {
-  return (
-    requirementExecutionState(requirement) === "disposed" || requirement.status === "satisfied"
-  );
-}

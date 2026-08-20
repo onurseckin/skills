@@ -8,6 +8,10 @@ import { refreshHandoff } from "../../reporting/handoff.ts";
 import { workflowPort } from "../../integration/store-ports.ts";
 import { publishTaskRolePacket } from "../../packets/role-grant.ts";
 import { loadRun } from "../../store/index.ts";
+import {
+  refreshAgentDerivedTelemetry,
+  type TelemetryFieldConflict,
+} from "../../workflow/agents/grants.ts";
 import { claimTask } from "../../workflow/lease/claim.ts";
 import { heartbeat } from "../../workflow/lease/heartbeat.ts";
 import { tokenDigest } from "../../workflow/lease/token.ts";
@@ -20,7 +24,26 @@ import {
   formatTaskHeartbeatBrief,
   formatTaskSubmitBrief,
 } from "../formatters/index.ts";
+import { probeAgentTelemetry, withHostTelemetryConflicts } from "../host-telemetry-probe.ts";
 import { integerFlag, listFlag, textFlag, type Flags } from "../options.ts";
+
+/**
+ * The probe hardcoded into `task:claim` and `task:submit`: it only ever touches an agent that
+ * already holds an active grant, so a run that never calls `agent:register` sees no change here at
+ * all — this never becomes a second way to register one.
+ */
+function probeAtTaskBoundary(run: string, agent: string, boundary: string): TelemetryFieldConflict[] {
+  const derived = probeAgentTelemetry(agent);
+  if (Object.keys(derived).length === 0) return [];
+  const refreshed = refreshAgentDerivedTelemetry({
+    runRoot: run,
+    agentId: agent,
+    actor: agent,
+    boundary,
+    derived,
+  });
+  return refreshed?.conflicts === undefined ? [] : [...refreshed.conflicts];
+}
 
 export async function taskClaimCommand(flags: Flags): Promise<Record<string, unknown>> {
   const run = textFlag(flags, "run")!;
@@ -70,15 +93,20 @@ export async function taskClaimCommand(flags: Flags): Promise<Record<string, unk
     writeScope: task.write_scope,
   });
 
-  return {
-    markdown,
-    run_root: run,
-    token: result.token,
-    task,
-    packet_id: published.record.id,
-    packet_path: published.markdownPath,
-    role_contract_sha256: published.packet.metadata.role_contract_sha256,
-  };
+  const conflicts = probeAtTaskBoundary(run, agent, "task:claim");
+
+  return withHostTelemetryConflicts(
+    {
+      markdown,
+      run_root: run,
+      token: result.token,
+      task,
+      packet_id: published.record.id,
+      packet_path: published.markdownPath,
+      role_contract_sha256: published.packet.metadata.role_contract_sha256,
+    },
+    conflicts,
+  );
 }
 
 export function taskHeartbeatCommand(flags: Flags): Record<string, unknown> {
@@ -186,13 +214,17 @@ export async function taskSubmitCommand(flags: Flags): Promise<Record<string, un
   // A submission is the point where the work leaves one agent's head, so the restart document is
   // rewritten here: whatever happens to that agent next, the run is resumable from the capsule.
   const handoffPath = refreshHandoff(run);
+  const conflicts = probeAtTaskBoundary(run, agent, "task:submit");
 
-  return {
-    markdown,
-    run_root: run,
-    orphaned: result.orphaned,
-    task,
-    report_path: reportPath,
-    ...(handoffPath === undefined ? {} : { handoff_path: handoffPath }),
-  };
+  return withHostTelemetryConflicts(
+    {
+      markdown,
+      run_root: run,
+      orphaned: result.orphaned,
+      task,
+      report_path: reportPath,
+      ...(handoffPath === undefined ? {} : { handoff_path: handoffPath }),
+    },
+    conflicts,
+  );
 }

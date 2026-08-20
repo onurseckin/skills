@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { checkCompletion } from "../../../orchestrating-long-tasks/scripts/src/workflow/completion/check-completion.ts";
+import { completionIssues } from "../../../orchestrating-long-tasks/scripts/src/workflow/completion/completion-state.ts";
 import { completeRun } from "../../../orchestrating-long-tasks/scripts/src/workflow/completion/complete-run.ts";
 import { recordCompletionReview } from "../../../orchestrating-long-tasks/scripts/src/workflow/completion/record-completion-review.ts";
 import { commandRecord, TestPort } from "./test-port.ts";
@@ -30,7 +30,7 @@ describe("authoritative completion provenance", () => {
       repository_command_ids: ["C-REPO"],
     });
     expect(state.completion_review!.review_sha256).toMatch(/^[0-9a-f]{64}$/);
-    expect(checkCompletion(port)).toEqual(["completion artifact verification is missing"]);
+    expect(completionIssues(port.read())).toEqual(["completion artifact verification is missing"]);
   });
 
   test("rechecks the critic review and packet fingerprints at completion", () => {
@@ -38,7 +38,7 @@ describe("authoritative completion provenance", () => {
     review(port);
     const state = port.read();
     state.completion_review!.review_sha256 = "tampered";
-    expect(checkCompletion(new TestPort(state))).toContain(
+    expect(completionIssues(new TestPort(state).read())).toContain(
       "completion review packet provenance is invalid",
     );
   });
@@ -48,12 +48,12 @@ describe("authoritative completion provenance", () => {
     review(port);
     const missing = port.read();
     delete missing.commands["C-RUN"];
-    expect(checkCompletion(new TestPort(missing))).toContain(
+    expect(completionIssues(new TestPort(missing).read())).toContain(
       "run gate G-RUN lacks an authoritative passing command",
     );
     const drift = port.read();
     drift.commands["C-RUN"]!.fingerprint = "caller-selected";
-    expect(checkCompletion(new TestPort(drift))).toContain(
+    expect(completionIssues(new TestPort(drift).read())).toContain(
       "run gate G-RUN lacks an authoritative passing command",
     );
   });

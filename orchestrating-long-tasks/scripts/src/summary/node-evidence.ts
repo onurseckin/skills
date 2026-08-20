@@ -232,8 +232,7 @@ function reviewSignalsFor(task: TaskRecord, events: readonly HarnessEvent[]): Re
       actor: event.actor,
       verdict: payloadText(payload, "verdict"),
       round: payloadNumber(payload, "round"),
-      findingClass:
-        payloadText(payload, "class") ?? classOfReferencedFindings(task, findingIds),
+      findingClass: payloadText(payload, "class") ?? classOfReferencedFindings(task, findingIds),
       findingCount:
         payloadNumber(payload, "finding_count") ??
         (Array.isArray(findingIds) ? findingIds.length : undefined),

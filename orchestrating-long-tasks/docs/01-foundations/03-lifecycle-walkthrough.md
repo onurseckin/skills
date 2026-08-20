@@ -88,8 +88,9 @@ bun harness.ts agent:register --run .capsules/<slug> --agent <id> --role impleme
 bun harness.ts task:claim --run .capsules/<slug> --task <task-id> --agent <id> --role implementer
 ```
 
-`queue:wave` returns the entire conflict-free wave so N agents launch in one batch. `queue:pop` still
-exists for one-at-a-time dispatch and is what serialises an otherwise parallel graph. `task:claim`
+`queue:wave` reports every task claimable right now, so each one is dispatched as an agent frees up
+rather than as a batch to wait on. `queue:pop` claims a single task atomically and fills one freed
+slot. `task:claim`
 demands an explicit `--role` and returns a one-time bearer token; only its digest is persisted.
 
 ### Stage 6: Execute (`run:exec`, `branch:*`, `task:submit`)

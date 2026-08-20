@@ -3,7 +3,7 @@ import { getHarnessConfig } from "../../config/harness-config.ts";
 import { HarnessError } from "../../errors/harness-error.ts";
 import { workflowPort } from "../../integration/store-ports.ts";
 import { publishTaskRolePacket } from "../../packets/role-grant.ts";
-import { nextWave } from "../../scheduler/index.ts";
+import { readySet, type ReadyEntry, type ReadySetSelection } from "../../scheduler/index.ts";
 import { loadRun } from "../../store/index.ts";
 import { applicableGates, commandArgv } from "../../workflow/gates/gate-policy.ts";
 import { claimTask } from "../../workflow/lease/claim.ts";
@@ -97,12 +97,19 @@ export function queueListCommand(flags: Flags): Record<string, unknown> {
   return { markdown, run_root: run, partitions, max_parallel: maxParallel };
 }
 
+/**
+ * `queue:wave` is the readiness query B25 asks for: every task claimable right now — dependencies
+ * done, write scope free of every active lease — ranked by critical depth. It is read-only and
+ * exists for display and planning, never as an execution instruction; a coordinator keeping its
+ * eligible set full re-runs this (or claims one at a time with `queue:pop` / `task:claim`) every
+ * time a slot frees, and never waits for the rest of one call's answer to be dispatched.
+ */
 export function queueWaveCommand(flags: Flags): Record<string, unknown> {
   const run = textFlag(flags, "run")!;
   const maxParallel =
     integerFlag(flags, "max-parallel", { minimum: 1, maximum: 64 }) ??
     runConfig(run).default_max_parallel;
-  const selection = nextWave(loadRun(run).state, maxParallel);
+  const selection: ReadySetSelection = readySet(loadRun(run).state, maxParallel);
 
   if (selection.entries.length === 0) {
     return {
@@ -117,7 +124,7 @@ export function queueWaveCommand(flags: Flags): Record<string, unknown> {
 
   const markdown = formatQueueWaveBrief({
     runId: basename(run),
-    entries: selection.entries.map((entry) => ({
+    entries: selection.entries.map((entry: ReadyEntry) => ({
       taskId: entry.task_id,
       label: entry.label,
       priority: entry.priority,

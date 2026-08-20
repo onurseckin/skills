@@ -163,3 +163,21 @@ export function formatTaskProbeBrief(params: TaskProbeParams): string {
   ].join("\n");
   return enforceLineLimit(md, 30);
 }
+
+export interface TaskAssignRepairerParams {
+  taskId: string;
+  replacementId: string;
+  reason: string;
+  evidence: string;
+}
+
+export function formatTaskAssignRepairerBrief(params: TaskAssignRepairerParams): string {
+  const md = [
+    `### Repairer Reassigned: ${params.taskId}`,
+    `- **Replacement**: \`${params.replacementId}\``,
+    `- **Reason**: ${params.reason}`,
+    `- **Evidence**: ${params.evidence}`,
+    `- **Next Step**: \`${params.replacementId}\` claims with \`task:claim --role repairer\`.`,
+  ].join("\n");
+  return enforceLineLimit(md, 30);
+}

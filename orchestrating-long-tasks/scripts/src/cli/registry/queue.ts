@@ -38,15 +38,15 @@ export const QUEUE_COMMANDS: readonly CommandSpec[] = [
     name: "queue:wave",
     aliases: [],
     domain: "queue",
-    summary: "Show the whole next conflict-free wave so agents dispatch in one batch.",
+    summary: "Show every task claimable right now, ranked by critical depth — for display only.",
     description:
-      "Runs the scheduler over live task state and returns every task that may run in parallel right now, capped at max_parallel. Annotates each task with the wave plan:compile recorded, or reports the topology as absent. Read-only: each dispatched agent still claims its own task.",
+      "The readiness query: runs the scheduler over live task state and returns every task whose dependencies are done and whose write scope collides with nothing currently leased, ranked by critical depth and capped at max_parallel. Annotates each task with the wave plan:compile recorded, or reports the topology as absent, purely for display. This is not a batch to assemble and dispatch as one unit — claim each entry the moment an agent is free, and re-run this (or claim atomically with queue:pop / task:claim) the instant any agent finishes; never wait for the rest of one call's answer before claiming the next task. Read-only: each dispatched agent still claims its own task.",
     flags: [
       requiredFlag("run", "string", "Capsule run root."),
       optionalFlag(
         "max-parallel",
         "int",
-        "Wave size cap; defaults to the configured default_max_parallel.",
+        "Occupancy ceiling for this query; defaults to the configured default_max_parallel.",
       ),
     ],
     readsStdin: false,

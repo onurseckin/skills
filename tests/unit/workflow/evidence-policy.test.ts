@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { checkCompletion } from "../../../orchestrating-long-tasks/scripts/src/workflow/completion/check-completion.ts";
+import { completionIssues } from "../../../orchestrating-long-tasks/scripts/src/workflow/completion/completion-state.ts";
 import { attachGateResult } from "../../../orchestrating-long-tasks/scripts/src/workflow/gates/attach-result.ts";
 import { claimTask } from "../../../orchestrating-long-tasks/scripts/src/workflow/lease/claim.ts";
 import { submitTask } from "../../../orchestrating-long-tasks/scripts/src/workflow/submission/submit.ts";
@@ -149,18 +149,18 @@ describe("submission, gate, and completion evidence", () => {
     state.commands["C-RUN"]!.fingerprint = commandRecord("C-RUN", {
       argv: TEST_GATE_ARGV,
     }).fingerprint;
-    expect(checkCompletion(new TestPort(state))).toEqual([
+    expect(completionIssues(new TestPort(state).read())).toEqual([
       "authoritative completion review is missing",
       "completion review history is missing or stale",
       "completion artifact verification is missing",
     ]);
     state.commands["C-RUN"]!.task_id = "T-1";
-    expect(checkCompletion(new TestPort(state))).toContain(
+    expect(completionIssues(new TestPort(state).read())).toContain(
       "run gate G-RUN lacks an authoritative passing command",
     );
     state.commands["C-RUN"]!.task_id = null;
     state.commands["C-RUN"]!.fingerprint = "caller-selected-command";
-    expect(checkCompletion(new TestPort(state))).toContain(
+    expect(completionIssues(new TestPort(state).read())).toContain(
       "run gate G-RUN lacks an authoritative passing command",
     );
     state.commands["C-RUN"]!.fingerprint = commandRecord("C-RUN", {
@@ -168,7 +168,7 @@ describe("submission, gate, and completion evidence", () => {
     }).fingerprint;
     state.orphan_evidence.push({ task_id: "T-1", report_sha256: "digest" });
     expect(
-      checkCompletion(new TestPort(state)).some((issue) =>
+      completionIssues(new TestPort(state).read()).some((issue) =>
         issue.startsWith("orphan evidence is open:"),
       ),
     ).toBeTrue();
@@ -187,7 +187,7 @@ describe("submission, gate, and completion evidence", () => {
     state.tasks["T-1"]!.gate_results = [
       { gate_id: "G-1", command_id: "missing", status: "passed" },
     ];
-    const issues = checkCompletion(new TestPort(state));
+    const issues = completionIssues(new TestPort(state).read());
     expect(issues).toContain("task T-1 lacks a submission report");
     expect(issues).toContain("task T-1 lacks independent validator approval");
     expect(issues).toContain("task T-1 lacks authoritative gate G-1");

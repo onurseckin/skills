@@ -105,9 +105,10 @@ Both produce findings that must be answered with `--resolve` before a pass.
 
 ### `queue:pop` or `queue:wave`?
 
-`queue:wave` unless you have a reason. It returns the whole conflict-free wave so N agents can be
-dispatched in one batch; `queue:pop` hands out one task and is what turns a parallel graph into a
-waterfall. `queue:wave` is read-only — each dispatched agent still claims its own task.
+`queue:wave` to see everything claimable right now; `queue:pop` to actually take one. The wave query
+is read-only and never a batch to wait on — dispatch each row as an agent frees up, and re-run it the
+instant one does. Looping `queue:pop` alone, one task at a time, is what turns a parallel graph into
+a waterfall.
 
 ### An agent died holding a lease. Now what?
 

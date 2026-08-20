@@ -154,6 +154,25 @@ them into a disjoint repair wave.
 
 ---
 
+## 🔧 Closing the Loop: `critic:remediate`
+
+`plan:replan` schedules the repair work; it does not, by itself, satisfy completion. Every review ever
+recorded with `status: "findings"` stays in the run's history and blocks completion until it carries a
+remediation naming exactly its own finding ids, each proven by a task-unbound, successful command:
+
+```bash
+bun harness.ts critic:remediate --run .capsules/<run-id> --actor coordinator \
+  --resolve CF-1=<fix-command-id> --resolution-method CF-1="focused repair and verification"
+```
+
+`--resolve` is repeatable as `<finding-id>=<command-id>[,<command-id>]`; every finding the review
+opened must be answered exactly, no more and no fewer. `--review-sha256` defaults to the currently
+recorded review. This does **not** clear the review's own `unresolved_finding_ids` or make it
+`clean` — only a fresh, independent critic pass does that. What it does is record that the defects
+were closed, so completion's history check stops demanding a remediation that was never made.
+
+---
+
 ## 🛡️ The Critic's Own Rules
 
 1. **Token digest verification.** The critic token must match the digest recorded at `critic:start`.

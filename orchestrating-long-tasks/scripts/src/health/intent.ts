@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { commandInvocations } from "../cli/registry/index.ts";
+import { EXTERNAL_IDENTIFIERS } from "./external-identifiers.ts";
 import type { SourceFile } from "./sources.ts";
 import { finding, type HealthCheckResult, type HealthFinding } from "./types.ts";
 
@@ -36,6 +37,7 @@ const COMMAND_TOKEN = /^[a-z][a-z0-9-]*:[a-z][a-z0-9-]*$/u;
 const IDENTIFIER_TOKEN = /^[A-Za-z_$][A-Za-z0-9_$]*$/u;
 const PATH_TOKEN = /^[A-Za-z0-9_@./-]+\.(?:ts|tsx|md)$/u;
 const PLACEHOLDER_TOKEN = /[<>*]/u;
+const EXTERNAL_IDENTIFIER_SET = new Set(EXTERNAL_IDENTIFIERS);
 
 function sections(text: string, level: number): Requirement[] {
   const marker = `${"#".repeat(level)} `;
@@ -73,6 +75,11 @@ function classify(
   invocations: ReadonlySet<string>,
 ): { kind: string; found: boolean } | null {
   if (PLACEHOLDER_TOKEN.test(token)) return null;
+  // A requirement doc may cite another application's own tool, env var or parameter name to reason
+  // about host behaviour (B27, B30, B32 research). That name will never appear in this repo's
+  // source or tests - it belongs to the host, not to us - so it is excluded rather than judged
+  // missing. See external-identifiers.ts for what qualifies and why.
+  if (EXTERNAL_IDENTIFIER_SET.has(token)) return null;
   if (COMMAND_TOKEN.test(token)) {
     return input.registryApplies ? { kind: "command", found: invocations.has(token) } : null;
   }
@@ -96,20 +103,31 @@ export function checkIntentDrift(input: IntentInput): HealthCheckResult {
   const findings: HealthFinding[] = [];
   let checkable = 0;
   let unclassified = 0;
+  let external = 0;
+  let externalOnly = 0;
   let requirements = 0;
 
   for (const document of input.documents) {
     const text = readFileSync(document.absolute, "utf-8");
     for (const requirement of sections(text, document.headingLevel)) {
       requirements += 1;
+      const requirementExternal = requirement.tokens.filter((token) =>
+        EXTERNAL_IDENTIFIER_SET.has(token),
+      ).length;
+      external += requirementExternal;
       const classified = requirement.tokens
         .map((token) => ({ token, verdict: classify(token, input, invocations) }))
         .filter(
           (entry): entry is { token: string; verdict: { kind: string; found: boolean } } =>
             entry.verdict !== null,
         );
-      unclassified += requirement.tokens.length - classified.length;
+      unclassified += requirement.tokens.length - classified.length - requirementExternal;
       checkable += classified.length;
+      // An exemption that removes a requirement's LAST checkable token silences it entirely: with
+      // nothing classified there is no missing-symbol finding and no untested finding either. That
+      // is the one way this list can hide a real gap, so the count is reported rather than left to
+      // be discovered.
+      if (classified.length === 0 && requirementExternal > 0) externalOnly += 1;
       const missing = classified.filter((entry) => !entry.verdict.found);
       for (const entry of missing) {
         findings.push(
@@ -145,6 +163,8 @@ export function checkIntentDrift(input: IntentInput): HealthCheckResult {
     limitations: [
       `${unclassified} backticked token(s) across the documents name no command, file or symbol and cannot be checked mechanically; prose requirements are outside this check entirely.`,
       `${checkable} token(s) were checkable.`,
+      `${external} token(s) name another application's own identifier (see external-identifiers.ts) and were exempted rather than judged missing.`,
+      `${externalOnly} requirement(s) named nothing checkable once those exemptions were applied, so this check says nothing about them either way.`,
       ...(input.registryApplies
         ? []
         : [

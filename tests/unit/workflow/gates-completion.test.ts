@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { attachGateResult } from "../../../orchestrating-long-tasks/scripts/src/workflow/gates/attach-result.ts";
-import { checkCompletion } from "../../../orchestrating-long-tasks/scripts/src/workflow/completion/check-completion.ts";
+import { completionIssues } from "../../../orchestrating-long-tasks/scripts/src/workflow/completion/completion-state.ts";
 import { finishTask } from "../../../orchestrating-long-tasks/scripts/src/workflow/gates/finish-task.ts";
 import { makeAuthorityDecisionRecord } from "../../../orchestrating-long-tasks/scripts/src/workflow/authority/decision-record.ts";
 import { applicableGates } from "../../../orchestrating-long-tasks/scripts/src/workflow/gates/gate-policy.ts";
@@ -46,7 +46,7 @@ describe("gates and completion", () => {
     const done = finishTask(port, "T-1", "coordinator", clock);
     expect(done.tasks["T-1"]!.status).toBe("done");
     expect(done.requirements[0]!.status).toBe("satisfied");
-    expect(checkCompletion(port)).toContain("authoritative completion review is missing");
+    expect(completionIssues(port.read())).toContain("authoritative completion review is missing");
   });
 
   test("does not fabricate satisfaction evidence for a declined mixed obligation", () => {
@@ -192,7 +192,7 @@ describe("gates and completion", () => {
         status: "open",
       },
     ];
-    const issues = checkCompletion(new TestPort(state));
+    const issues = completionIssues(new TestPort(state).read());
     expect(issues.some((issue) => issue.includes("not done"))).toBeTrue();
     expect(issues.some((issue) => issue.includes("open finding"))).toBeTrue();
     expect(issues.some((issue) => issue.includes("not satisfied"))).toBeTrue();

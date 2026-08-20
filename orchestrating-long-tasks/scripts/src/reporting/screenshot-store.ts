@@ -13,9 +13,16 @@ import type {
  *
  * The ledger is the only source consulted. Scanning the capsule for a file that looks like a report
  * would resurrect a copy the run never recorded, and there is no honest owner to attach it to.
+ *
+ * Naming a task narrows the search to reports the ingestion attributed to that task. Ingestion
+ * records `task_id` only on a report a command actually produced, so a caller that must not accept
+ * another node's evidence - or a stale file nobody's command wrote - passes the task it is judging.
  */
-export function getVisualReport(runRoot: string): VisualMetricsReport | null {
-  const reports = readCaptures(runRoot).filter((record) => record.kind === "visual_report");
+export function getVisualReport(runRoot: string, taskId?: string): VisualMetricsReport | null {
+  const reports = readCaptures(runRoot).filter(
+    (record) =>
+      record.kind === "visual_report" && (taskId === undefined || record.task_id === taskId),
+  );
   const latest = reports.at(-1);
   if (latest === undefined) return null;
   try {

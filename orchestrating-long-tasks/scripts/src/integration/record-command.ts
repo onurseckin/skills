@@ -105,10 +105,6 @@ export function reconcileCommandResult(
   );
 }
 
-export function recordCommandResult(runRoot: string, actor: string, record: CommandRecord): void {
-  reconcileCommandResult(runRoot, actor, record);
-}
-
 export function reconcileStrandedCommands(
   runRoot: string,
   actor: string,

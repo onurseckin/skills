@@ -5,10 +5,13 @@ may:
   - Capture the immutable prompt, initialise the run capsule, and pin the runtime
   - Compile and revise the task graph through recorded revisions with an expected revision number
   - Dispatch tier 3 agents through the host's native subagent mechanism and register each dispatch
-  - Hand out only the work the scheduler placed in the current conflict-free wave
+  - Hand out any task the scheduler currently reports claimable — dependencies done, write scope
+    free of every active lease — the instant a slot frees, without waiting for sibling tasks
   - Execute mandatory gate commands through the harness runner and record their argv, exit and evidence
   - Release an expired lease and recover a stale task so a dead agent cannot block completion
   - Assign the completeness critic and record run completion once every gate and verdict exists
+  - Reassign a changes_requested task to a replacement repairer, with the recorded reason
+  - Dispose orphan evidence with a rationale and evidence, and remediate a critic's findings review
 must_not:
   - Declare a whole-suite gate for a narrow task; the run-wide suite belongs to the completion gate
   - Write, edit, stage, revert, format, or delete any repository file, including a one-line fix
@@ -29,7 +32,10 @@ commands:
   - queue:list
   - queue:pop
   - task:release
+  - task:assign-repairer
   - critic:start
+  - critic:remediate
+  - orphan:dispose
   - run:exec
   - run:status
   - recover
@@ -59,8 +65,11 @@ spawns:
 Own the run, not the code. The coordinator turns a compiled graph into dispatched agents and
 recorded evidence, and is the only role permitted to declare the run finished.
 
-- Dispatch by wave. The scheduler decides what may run together; asking for one task at a time is
-  what serialises an otherwise parallel graph.
+- Keep the eligible set full. The scheduler already tells you, live, everything claimable right
+  now (`queue:wave`); dispatch it as it becomes claimable and re-check the instant any agent
+  finishes — an implementer's validator is eligible the moment the implementer submits, independent
+  of every other task. Waiting for a batch to complete before dispatching the next eligible task is
+  what leaves idle capacity on the table.
 - Every dispatched agent is registered before it starts working, so the run ledger can attribute
   its model, tier, and token usage instead of inferring them from the exporting machine.
 - Mandatory gates are the coordinator's evidence, not an implementer's claim. Run them yourself and
@@ -69,5 +78,9 @@ recorded evidence, and is the only role permitted to declare the run finished.
   findings rather than looping.
 - A blocked or dead agent is a recovery problem, not a completion problem: release the lease,
   dispose the orphan evidence, and re-dispatch.
+- Three points genuinely wait, and only these three: `branch:collect` (the parent cannot resume
+  with a sub-task still in flight), the completeness critic (it judges the whole diff, so every task
+  must be terminal first), and `run:complete` itself (mechanically blocked by a live lease, an open
+  finding, or a failed gate). Everywhere else, dispatch continuously.
 - This contract covers both drivers: the tier 2 coordinator that owns one run, and the tier 1 loop
   runner that chains runs and dispatches coordinators. Neither ever edits the repository.

@@ -98,26 +98,27 @@ declare `port:5432` are serialised even though they touch different files.
 
 ---
 
-## 🌊 Take the Whole Wave
+## 🌊 Ask What Is Claimable Now
 
 ```bash
 bun harness.ts queue:wave --run .capsules/<run-id> --max-parallel 4
 ```
 
 ```text
-### Dispatchable Wave: 2/4 conflict-free tasks
+### Claimable Now: 2/4 conflict-free tasks
 | Task | Label | Priority | Write Scope | Planned Wave |
 | :--- | :--- | :--- | :--- | :--- |
 | `task-slug` | Slugify helper | 50 | `src/slug.ts` | 1 |
 | `task-truncate` | Truncate helper | 50 | `src/truncate` | 1 |
 
 - **Topology**: recorded at graph revision 1
-- **Dispatch**: launch all 2 agents in one batch; each claims its own task.
+- **Dispatch**: each row is independently claimable now — claim it the moment an agent is free; do not wait for the rest of this list before claiming the next one.
 ```
 
-`queue:wave` is **read-only**. It reports what may run together now, annotated with the wave
-`plan:compile` recorded — or states that the topology is absent, rather than inventing one. Each
-dispatched agent then claims its own task with `task:claim --role`.
+`queue:wave` is **read-only**. It reports what is claimable right now, annotated with the wave
+`plan:compile` recorded — a display annotation, never an instruction to wait for the rest of the
+list — or states that the topology is absent, rather than inventing one. Claim each row the moment
+an agent is free, with `task:claim --role`, and re-run the query whenever a slot frees.
 
 `queue:pop` still exists and still leases exactly one task. Using it in a loop is what turns a
 parallel graph into a waterfall; reach for it when you genuinely want one worker.

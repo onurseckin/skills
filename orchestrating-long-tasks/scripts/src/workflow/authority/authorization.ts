@@ -113,11 +113,3 @@ export function authorizedRequirementIds(state: unknown): Set<string> {
   }
   return authorized;
 }
-
-export function unauthorizedRequirementIds(
-  state: unknown,
-  requirementIds: readonly string[],
-): string[] {
-  const authorized = authorizedRequirementIds(state);
-  return requirementIds.filter((id) => !authorized.has(id));
-}

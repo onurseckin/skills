@@ -197,6 +197,27 @@ function determinePhaseAndSummary(event: HarnessEvent, promptBytes = 0): EventDe
       if (commandId ?? p.id) result.command_id = commandId ?? String(p.id);
       break;
     }
+    case "command-intent-recorded":
+      // The durable intent/reconcile protocol splits a command into two events so a crash between
+      // them leaves recoverable evidence; the payload carries only the id, never argv or exit code.
+      result.phase = taskId ? "execution" : "system";
+      result.summary = `Command ${commandId ?? "unknown"} started`;
+      if (taskId) result.task_id = taskId;
+      if (gateId) result.gate_id = gateId;
+      if (commandId) result.command_id = commandId;
+      break;
+    case "command-reconciled": {
+      const status = typeof p.status === "string" ? p.status : undefined;
+      result.phase = taskId ? "execution" : "system";
+      result.summary =
+        status === undefined
+          ? `Command ${commandId ?? "unknown"} reconciled`
+          : `Command ${commandId ?? "unknown"} finished (${status})`;
+      if (taskId) result.task_id = taskId;
+      if (gateId) result.gate_id = gateId;
+      if (commandId) result.command_id = commandId;
+      break;
+    }
     case "critic-started":
       result.phase = "review";
       result.summary = `Completeness critic review started by ${event.actor}`;

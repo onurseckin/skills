@@ -236,12 +236,10 @@ export function buildBranchSubgraphs(input: BranchSubgraphInput): BranchSubgraph
       status: branch.status,
       depth: branch.depth,
       openedAt: branch.opened_at,
-      ...(branch.collected_at ?? branch.abandoned_at
+      ...((branch.collected_at ?? branch.abandoned_at)
         ? { closedAt: branch.collected_at ?? branch.abandoned_at }
         : {}),
-      ...(branch.outcome_summary !== undefined
-        ? { outcomeSummary: branch.outcome_summary }
-        : {}),
+      ...(branch.outcome_summary !== undefined ? { outcomeSummary: branch.outcome_summary } : {}),
       ...(branch.files_changed !== undefined ? { filesChanged: branch.files_changed } : {}),
       ...(observedFiles(branch).length > 0 ? { files: observedFiles(branch) } : {}),
       nodeIds: sectionNodeIds,

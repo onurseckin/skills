@@ -9,6 +9,7 @@ import {
   refreshHandoffOnEscalation,
 } from "../../../orchestrating-long-tasks/scripts/src/reporting/handoff.ts";
 import { initRun, transact } from "../../../orchestrating-long-tasks/scripts/src/store/index.ts";
+import { buildCompletenessRun } from "../summary/completeness-run-fixture.ts";
 import { commandRecord, TEST_GATE_ARGV } from "../workflow/test-port.ts";
 
 const roots: string[] = [];
@@ -194,6 +195,29 @@ describe("the restart document is written where a run can be lost", () => {
     expect(refreshHandoffOnEscalation(absent, "changes_requested")).toBeUndefined();
     expect(refreshHandoffOnEscalation(absent, "done")).toBeUndefined();
   });
+
+  /**
+   * The seal is the one trigger no lighter fixture can reach: `run:complete` refuses a capsule that
+   * has not been through planning, validation, a branch collection and a critic sign-off. Driving
+   * the whole run is what makes this an execution check rather than the source scan below — a call
+   * moved behind a condition that never fires would still satisfy that scan.
+   */
+  const SEAL_TIMEOUT_MS = 300_000;
+
+  test(
+    "sealing the run rewrites it against the completed state",
+    async () => {
+      const built = await buildCompletenessRun("handoff-seal");
+      roots.push(built.repo);
+
+      const document = readFileSync(handoffPath(built.run), "utf-8");
+
+      expect(document).toContain('"status":"complete"');
+      expect(document).toContain("## Completion blockers\n\nnone");
+      expect(statSync(handoffPath(built.run)).mode & 0o777).toBe(0o444);
+    },
+    SEAL_TIMEOUT_MS,
+  );
 
   test("every trigger the run depends on still has its call site", async () => {
     const wiring: Record<string, string> = {

@@ -1,5 +1,4 @@
 import type { JsonObject } from "../contracts/json.ts";
-import type { PlanningStore } from "../graph/planning-store.ts";
 import { loadRun, transact } from "../store/index.ts";
 import type {
   CompletionEvidence,
@@ -9,25 +8,6 @@ import type {
   TransactionPort,
   WorkflowState,
 } from "../workflow/types.ts";
-
-export function planningPort(runRoot: string): PlanningStore {
-  return {
-    async load() {
-      const loaded = loadRun(runRoot);
-      return { prompt: loaded.prompt.slice(), state: structuredClone(loaded.state) };
-    },
-    async transact(actor, kind, payload, mutation) {
-      return transact(runRoot, actor, kind, payload as JsonObject, (draft) => {
-        draft.tasks ??= {};
-        draft.plan_history ??= [];
-        const result = mutation(draft);
-        if (result instanceof Promise) {
-          throw new TypeError("durable planning mutations must be synchronous");
-        }
-      });
-    },
-  };
-}
 
 function taskRecord(value: Record<string, unknown>): TaskRecord {
   const copy = structuredClone(value) as TaskRecord;

@@ -147,7 +147,7 @@ describe("the references the router points at", () => {
     const playbook = readFileSync(join(referenceDir, "run-playbook.md"), "utf8");
     for (const phase of [
       "Phase 1 — Capture, enhance, plan, compile",
-      "Phase 2 — Wave dispatch",
+      "Phase 2 — Continuous dispatch",
       "Phase 3 — Implementation",
       "Phase 4 — Branch and collect",
       "Phase 5 — Independent validation",
@@ -210,7 +210,6 @@ describe("the references the router points at", () => {
       "max_output_bytes",
       "default_lease_seconds",
       "default_max_parallel",
-      "strict_validation",
     ])
       expect(configuration).toContain(key);
     expect(configuration).not.toContain("bun ");

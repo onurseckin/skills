@@ -1,4 +1,5 @@
 import { indexFreshness, loadIndex, loadRun, verifyIntegrity } from "../store/index.ts";
+import type { IndexFreshness } from "../store/capsule-index.ts";
 import { workflowView } from "./workflow-view.ts";
 import { trustedHostEvidence, trustedHostLimitations } from "../contracts/trusted-host.ts";
 
@@ -12,12 +13,32 @@ function counts(values: readonly unknown[], field: string): Record<string, numbe
   return result;
 }
 
+export interface CatalogueCounts {
+  tasks: number;
+  commands: number;
+  findings: number;
+  open_findings: number;
+  reports: number;
+  captures: number;
+  blobs: number;
+  packets: number;
+}
+
+export interface CapsuleCatalogue {
+  /** False when the catalogue could not be read at all, in which case it counts nothing. */
+  available: boolean;
+  freshness: IndexFreshness;
+  index_of_event?: { sequence: number; head: string | null } | undefined;
+  counts?: CatalogueCounts | undefined;
+  stored_bytes?: number | undefined;
+}
+
 /**
  * The catalogue as an operator sees it: what the capsule holds, and whether the catalogue still
  * describes where the run stands. A catalogue that might be stale is reported as unknown rather
- * than presented as current.
+ * than presented as current, and one that cannot be read counts nothing rather than counting zero.
  */
-function capsuleCatalogue(runRoot: string): Record<string, unknown> {
+export function capsuleCatalogue(runRoot: string): CapsuleCatalogue {
   let index;
   try {
     index = loadIndex(runRoot).index;

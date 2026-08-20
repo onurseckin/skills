@@ -148,7 +148,12 @@ export function captureOpenedPath(
   return {
     ...binding,
     entries: entries.length,
-    tree_bytes: entries.reduce((sum, entry) => sum + (entry.bytes ?? 0), 0),
+    // Directory entries carry no byte count by definition, so the total sums the counts that were
+    // actually measured rather than crediting an unmeasured entry with a zero-byte reading.
+    tree_bytes: entries.reduce(
+      (sum, entry) => (typeof entry.bytes === "number" ? sum + entry.bytes : sum),
+      0,
+    ),
     tree_sha256: createHash("sha256").update(canonicalJsonBytes(entries)).digest("hex"),
   };
 }

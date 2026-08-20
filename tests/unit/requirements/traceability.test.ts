@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { createHash } from "node:crypto";
-import { validateRequirements } from "../../../orchestrating-long-tasks/scripts/src/requirements/index.ts";
+import { validateRequirements } from "../../../orchestrating-long-tasks/scripts/src/requirements/validate-requirements.ts";
 import { requirement, requirementsDocument } from "./fixtures.ts";
 
 describe("requirement traceability", () => {

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { appendFile, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execute } from "../../../orchestrating-long-tasks/scripts/src/cli/execute.ts";
@@ -62,6 +62,36 @@ describe("doctor", () => {
     expect(report.integrity_issues).toEqual([]);
     expect(report.issues).toContain("task task-1 is ready, not done");
     expect(String(report.markdown)).toContain("### Capsule Doctor");
+  });
+});
+
+describe("doctor:repair", () => {
+  test("quarantines a crash-torn event tail and restores a usable capsule", async () => {
+    const run = await compiledCapsule("repair-run");
+    // Simulates a crash mid-append: a fragment with no closing brace or trailing newline, exactly
+    // what an interrupted write leaves behind.
+    await appendFile(join(run, "events.jsonl"), '{"schema":"harness.event","sequence":99');
+
+    const broken = await execute(["doctor", "--run", run]);
+    expect(broken.integrity_issues).not.toEqual([]);
+    expect(broken.issues).toContain("EVENT_TORN: events.jsonl has a torn final fragment at line 4");
+    await expect(execute(["queue:list", "--run", run])).rejects.toThrow();
+
+    const repaired = await execute([
+      "doctor:repair",
+      "--run",
+      run,
+      "--actor",
+      "coordinator",
+    ]);
+    expect(repaired.quarantined_torn_tail).toBeTrue();
+    expect(String(repaired.markdown)).toContain("### Projection Repaired");
+
+    // The torn tail is gone; what remains is ordinary workflow progress, not a durability defect.
+    const healed = await execute(["doctor", "--run", run]);
+    expect(healed.integrity_issues).toEqual([]);
+    const queue = await execute(["queue:list", "--run", run]);
+    expect(queue.partitions).toMatchObject({ ready: ["task-1"] });
   });
 });
 

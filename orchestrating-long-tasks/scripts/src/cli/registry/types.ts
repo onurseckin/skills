@@ -29,6 +29,8 @@ export type CommandDomain =
   | "install"
   | "agent"
   | "branch"
+  | "orphan"
+  | "authority"
   | "diagnostics";
 
 // Remainder is the argv tail after `--`; only commands declaring takesRemainder ever receive one.

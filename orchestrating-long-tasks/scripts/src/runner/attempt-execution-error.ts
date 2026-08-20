@@ -5,7 +5,9 @@ export class AttemptExecutionError extends Error {
     public readonly original: unknown,
     public readonly result: AttemptResult,
   ) {
-    super(result.record.integrity_failure ?? "command attempt evidence failed");
+    // Every production path fills integrity_failure via boundedEvidenceError before this runs;
+    // "unknown" names the gap honestly if a future caller ever constructs a result without it.
+    super(result.record.integrity_failure ?? "unknown");
     this.name = "AttemptExecutionError";
   }
 }

@@ -2,12 +2,11 @@ import { readFileSync, realpathSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 import type { JsonObject } from "../../contracts/json.ts";
 import { HarnessError } from "../../errors/harness-error.ts";
+import { runAndRecordCommand } from "../../integration/record-command.ts";
 import { workflowPort } from "../../integration/store-ports.ts";
 import { inspectRepositoryBinding } from "../../packets/repository-identity.ts";
 import { verifyCommandRecord } from "../../runner/verify-command.ts";
-import { runCommand } from "../../runner/run-command.ts";
 import { loadRun } from "../../store/index.ts";
-import { transact } from "../../store/transaction.ts";
 import { completeRun } from "../../workflow/completion/complete-run.ts";
 import { gateTally } from "../../workflow/completion/completion-state.ts";
 import type { CompletionArtifactRequirements } from "../../workflow/completion/artifact-verification.ts";
@@ -17,13 +16,14 @@ import {
   formatRunExecBrief,
   formatRunStatusBrief,
 } from "../formatters/index.ts";
-import { boolFlag, textFlag, type Flags } from "../options.ts";
+import { boolFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
 import { declaredToolFlags } from "../taxonomy-flags.ts";
 import { generateSummarySuite } from "../../summary/generate-summary.ts";
 import { ingestBrowserRun } from "../../reporting/browser-run-ingestion.ts";
 import { refreshHandoff } from "../../reporting/handoff.ts";
 import { ingestScreenshots, ingestVisualReport } from "../../reporting/screenshot-ingestion.ts";
 import { commandEvidenceView, commandRecordPath } from "../../reporting/command-evidence.ts";
+import { capsuleCatalogue, runStatus, type CapsuleCatalogue } from "../../reporting/status.ts";
 
 function liveRepositoryBinding(run: string) {
   const repository = dirname(dirname(loadRun(run).runRoot));
@@ -133,13 +133,34 @@ export function runStatusCommand(flags: Flags): Record<string, unknown> {
   const completionResult = state.completion_result as { status: string } | undefined;
   const phase =
     completionResult?.status === "complete" ? "Completed" : state.graph ? "Executing" : "Planning";
-  const markdown = formatRunStatusBrief(basename(run), phase, taskItems, progressSummary);
+  // The catalogue is what an agent reads instead of walking the capsule: how much the run has
+  // stored, and whether that count still describes where the run stands.
+  const catalogue = capsuleCatalogue(loaded.runRoot);
+  const markdown = formatRunStatusBrief(
+    basename(run),
+    phase,
+    taskItems,
+    progressSummary,
+    catalogueSummary(catalogue),
+  );
 
-  return { markdown, run_root: run, state, detailed };
+  // The raw workflow state carries lease token digests and other internals an agent should never
+  // read back out of a status report; runStatus() is the redacted, purpose-built status view.
+  return { markdown, run_root: run, state: runStatus(run), detailed, catalogue };
+}
+
+/** One line of the catalogue. An unreadable or stale index says so rather than reporting zero. */
+function catalogueSummary(catalogue: CapsuleCatalogue): string {
+  if (!catalogue.available || catalogue.counts === undefined)
+    return "catalogue unreadable (index.json); counts unknown";
+  const { commands, captures, blobs, open_findings } = catalogue.counts;
+  const bytes = catalogue.stored_bytes === undefined ? "unknown" : `${catalogue.stored_bytes} B`;
+  return `${commands} commands, ${captures} captures over ${blobs} blobs (${bytes}), ${open_findings} open findings — index ${catalogue.freshness}`;
 }
 
 export async function runExecCommand(
   flags: Flags,
+  _context: CommandContext,
   argv: readonly string[],
 ): Promise<Record<string, unknown>> {
   const run = textFlag(flags, "run")!;
@@ -167,23 +188,10 @@ export async function runExecCommand(
     ...(gate ? { gateId: gate } : {}),
     ...declared,
   };
-  const result = await runCommand(cmdOpts);
-
-  // The event says what ran and how it ended. An empty payload left every reader to guess, and the
-  // ones that guessed read an unrecorded command as a successful one.
-  const recordedPayload: JsonObject = {
-    command_id: result.record.id,
-    argv: [...result.record.argv],
-    status: result.record.status,
-    exit_code: result.record.exit_code,
-    ...(result.record.task_id === null ? {} : { task_id: result.record.task_id }),
-    ...(result.record.gate_id === null ? {} : { gate_id: result.record.gate_id }),
-  };
-  transact(loaded.runRoot, actor, "command-recorded", recordedPayload, (draft) => {
-    const d = draft as Record<string, unknown>;
-    d.commands = (d.commands ?? {}) as Record<string, unknown>;
-    (d.commands as Record<string, unknown>)[result.record.id] = result.record;
-  });
+  // The durable intent/reconcile protocol records the command as "running" before it spawns and
+  // reconciles it to a terminal record afterward, so a crash mid-command leaves recoverable evidence
+  // instead of a run that silently forgot it was ever attempted (B28's unattended recovery contract).
+  const result = await runAndRecordCommand(loaded.runRoot, cmdOpts);
 
   const record = result.record;
   const commandStr = argv.join(" ");

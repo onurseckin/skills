@@ -14,6 +14,7 @@ import { HarnessError } from "../../errors/harness-error.ts";
 import { loadRun } from "../../store/index.ts";
 import {
   recordAgentReport,
+  refreshAgentDerivedTelemetry,
   registerAgentGrant,
   releaseAgentGrant,
   type GrantTelemetryInput,
@@ -27,6 +28,7 @@ import {
   formatAgentReleaseBrief,
   formatAgentReportBrief,
 } from "../formatters/agent-formatter.ts";
+import { probeAgentTelemetry, withHostTelemetryConflicts } from "../host-telemetry-probe.ts";
 import { boolFlag, integerFlag, textFlag, type Flags } from "../options.ts";
 import { tokenExtraFlags, toolRefFlags } from "../taxonomy-flags.ts";
 
@@ -87,6 +89,7 @@ export function agentRegisterCommand(flags: Flags): Record<string, unknown> {
   const parentAgent = textFlag(flags, "parent-agent", false) ?? null;
   const parentTask = textFlag(flags, "parent-task", false) ?? null;
   const actor = textFlag(flags, "actor", false) ?? parentAgent ?? agent;
+  const derivedTelemetry = probeAgentTelemetry(agent);
   const outcome = registerAgentGrant({
     runRoot: run,
     agentId: agent,
@@ -99,13 +102,17 @@ export function agentRegisterCommand(flags: Flags): Record<string, unknown> {
     // belongs to rather than whatever directory the dispatcher happened to be standing in.
     maxAgents: getHarnessConfig(dirname(dirname(run)), run).max_agents,
     telemetry: telemetryFlags(flags),
+    ...(Object.keys(derivedTelemetry).length === 0 ? {} : { derivedTelemetry }),
   });
-  return {
-    markdown: formatAgentRegisterBrief(outcome.grant, run),
-    run_root: run,
-    agent: outcome.grant,
-    active_grants: outcome.ledger.filter((grant) => grant.status === "active").length,
-  };
+  return withHostTelemetryConflicts(
+    {
+      markdown: formatAgentRegisterBrief(outcome.grant, run),
+      run_root: run,
+      agent: outcome.grant,
+      active_grants: outcome.ledger.filter((grant) => grant.status === "active").length,
+    },
+    outcome.conflicts,
+  );
 }
 
 export function agentReportCommand(flags: Flags): Record<string, unknown> {
@@ -135,18 +142,35 @@ export function agentReleaseCommand(flags: Flags): Record<string, unknown> {
   const run = textFlag(flags, "run")!;
   const agent = textFlag(flags, "agent")!;
   const reason = textFlag(flags, "reason", false);
+  const actor = textFlag(flags, "actor", false) ?? agent;
+  // Probed and folded in before release, while the grant is still active: a released grant refuses
+  // any further telemetry, the same rule `agent:report` already enforces.
+  const derivedTelemetry = probeAgentTelemetry(agent);
+  const refreshed =
+    Object.keys(derivedTelemetry).length === 0
+      ? null
+      : refreshAgentDerivedTelemetry({
+          runRoot: run,
+          agentId: agent,
+          actor,
+          boundary: "agent:release",
+          derived: derivedTelemetry,
+        });
   const outcome = releaseAgentGrant({
     runRoot: run,
     agentId: agent,
-    actor: textFlag(flags, "actor", false) ?? agent,
+    actor,
     ...(reason === undefined ? {} : { reason }),
   });
-  return {
-    markdown: formatAgentReleaseBrief(outcome.grant, run),
-    run_root: run,
-    agent: outcome.grant,
-    active_grants: outcome.ledger.filter((grant) => grant.status === "active").length,
-  };
+  return withHostTelemetryConflicts(
+    {
+      markdown: formatAgentReleaseBrief(outcome.grant, run),
+      run_root: run,
+      agent: outcome.grant,
+      active_grants: outcome.ledger.filter((grant) => grant.status === "active").length,
+    },
+    refreshed?.conflicts,
+  );
 }
 
 function withAncestors(

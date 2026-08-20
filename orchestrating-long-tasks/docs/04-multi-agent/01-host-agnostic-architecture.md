@@ -41,8 +41,8 @@ To prevent conversational context explosion and preserve interactive responsiven
 |                      ▼                                                                        |
 |  [ Tier 2: Background Run Coordinator ]                                                       |
 |    ➜ Owns capsule lifecycle: plan:init, plan:enhance, plan:add, plan:compile, run:complete    |
-|    ➜ Dispatches whole waves via queue:wave; registers every agent with agent:register         |
-|    ➜ Reports back to Tier 1 ONLY at major milestones (Plan Ready, Wave Done, Final Sign-off)  |
+|    ➜ Dispatches each claimable task via queue:wave; registers every agent with agent:register |
+|    ➜ Reports to Tier 1 ONLY at milestones (Plan Compiled, Queue Drained, Final Sign-off)      |
 |                      │                                                                        |
 |                      ▼                                                                        |
 |  [ Tier 3: Ephemeral Worker, Validator & Critic Subagents ]                                   |

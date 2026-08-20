@@ -49,7 +49,7 @@ export const RUN_COMMANDS: readonly CommandSpec[] = [
     examples: [
       "bun harness.ts run:exec --run .capsules/<run-id> --task task-1 --gate gate-1 --actor val-1 --tool-category test-runner --tool bun-test -- bun test tests/unit/auth.test.ts",
     ],
-    handler: (flags, _context, remainder) => runExecCommand(flags, remainder),
+    handler: runExecCommand,
   },
   {
     name: "run:status",

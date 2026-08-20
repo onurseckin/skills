@@ -5,11 +5,9 @@ import {
   MAX_BRANCH_DEPTH,
   MAX_REPAIR_ROUNDS,
   MIN_ADVERSARIAL_PROBES,
-  MIN_ADVERSARIAL_REJECTIONS,
 } from "./constants.ts";
 
 export interface HarnessConfig {
-  min_adversarial_rejections: number;
   max_repair_rounds: number;
   /**
    * Escalation tripwire on branch nesting. Chains terminate because every branch must strictly
@@ -22,27 +20,19 @@ export interface HarnessConfig {
   max_output_bytes: number;
   default_lease_seconds: number;
   default_max_parallel: number;
-  strict_validation: boolean;
 }
 
-/**
- * `min_adversarial_probes` supersedes `min_adversarial_rejections`: an adversarial probe is a demand
- * for proof, not a rejection. A file that still only sets the legacy key leaves the probe count at
- * its default; callers compare the two fields to warn that the legacy key no longer governs.
- */
 export interface ResolvedHarnessConfig extends HarnessConfig {
   min_adversarial_probes: number;
 }
 
 export const DEFAULT_CONFIG: HarnessConfig = {
-  min_adversarial_rejections: MIN_ADVERSARIAL_REJECTIONS,
   max_repair_rounds: MAX_REPAIR_ROUNDS,
   max_branch_depth: MAX_BRANCH_DEPTH,
   max_agents: MAX_AGENTS,
   max_output_bytes: 10 * 1024 * 1024,
   default_lease_seconds: 1800,
   default_max_parallel: 4,
-  strict_validation: true,
 };
 
 export const DEFAULT_RESOLVED_CONFIG: ResolvedHarnessConfig = {
@@ -65,16 +55,8 @@ function parseConfigFile(filePath: string): Partial<ResolvedHarnessConfig> | nul
     const record = parsed as Record<string, unknown>;
     const partial: Partial<ResolvedHarnessConfig> = {};
 
-    const rejections = positiveCount(record.min_adversarial_rejections, 0);
-    if (rejections !== null) partial.min_adversarial_rejections = rejections;
-
     const probes = positiveCount(record.min_adversarial_probes, 0);
     if (probes !== null) partial.min_adversarial_probes = probes;
-
-    // The legacy spelling is read back verbatim so a caller can warn about it, but it never becomes
-    // a probe count: a rejection claims a defect, a probe demands proof, and silently promoting one
-    // to the other would invent a requirement the config never stated.
-    if (rejections === null && probes !== null) partial.min_adversarial_rejections = probes;
 
     const repairRounds = positiveCount(record.max_repair_rounds, 1);
     if (repairRounds !== null) partial.max_repair_rounds = repairRounds;
@@ -95,10 +77,6 @@ function parseConfigFile(filePath: string): Partial<ResolvedHarnessConfig> | nul
 
     const maxParallel = positiveCount(record.default_max_parallel, 1);
     if (maxParallel !== null) partial.default_max_parallel = maxParallel;
-
-    if (typeof record.strict_validation === "boolean") {
-      partial.strict_validation = record.strict_validation;
-    }
 
     return partial;
   } catch {
@@ -142,14 +120,12 @@ export function resolveHarnessConfig(
 export function loadHarnessConfig(repoRoot?: string, capsuleRoot?: string): HarnessConfig {
   const resolved = resolveHarnessConfig(repoRoot, capsuleRoot);
   return {
-    min_adversarial_rejections: resolved.min_adversarial_rejections,
     max_repair_rounds: resolved.max_repair_rounds,
     max_branch_depth: resolved.max_branch_depth,
     max_agents: resolved.max_agents,
     max_output_bytes: resolved.max_output_bytes,
     default_lease_seconds: resolved.default_lease_seconds,
     default_max_parallel: resolved.default_max_parallel,
-    strict_validation: resolved.strict_validation,
   };
 }
 

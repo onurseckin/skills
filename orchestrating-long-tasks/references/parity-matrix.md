@@ -9,7 +9,7 @@ recording the result.
 | Capability                          |       Google Antigravity       |      Anthropic Claude Code       |   OpenAI Codex / ChatGPT   |    Generic subagent CLI    |
 | :---------------------------------- | :----------------------------: | :------------------------------: | :------------------------: | :------------------------: |
 | **Tiered orchestration**            |   Native (`invoke_subagent`)   | Native (Agent Teams / teammates) | Native (subagent dispatch) | Scripted fork / subprocess |
-| **Batch wave dispatch ($2N+1$)**    | One `invoke_subagent` per wave |       Concurrent teammates       |        Batch runner        |        Process pool        |
+| **Paired continuous dispatch**      | One `invoke_subagent` per pair |       Concurrent teammates       |        Batch runner        |        Process pool        |
 | **Sub-agents for branch sub-tasks** |    Nested `invoke_subagent`    |      Teammate per sub-task       |      Nested dispatch       |       Nested process       |
 | **Direct messaging to the parent**  |         `send_message`         |        Teammate messaging        |           Direct           |         IPC / pipe         |
 | **Main-thread isolation**           |        Background tree         |         Background tree          |      Background tree       |     Detached processes     |

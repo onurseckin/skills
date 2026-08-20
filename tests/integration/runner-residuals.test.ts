@@ -5,7 +5,6 @@ import { join } from "node:path";
 import {
   reconcileCommandResult,
   recordCommandIntent,
-  recordCommandResult,
 } from "../../orchestrating-long-tasks/scripts/src/integration/record-command.ts";
 import {
   executePreparedCommand,
@@ -45,7 +44,7 @@ describe("runner durable identity residuals", () => {
   test("terminal insertion requires its previously persisted running intent", async () => {
     const { runRoot, command } = await prepared();
     const result = await executePreparedCommand(command);
-    expect(() => recordCommandResult(runRoot, "validator", result.record)).toThrow(/intent/i);
+    expect(() => reconcileCommandResult(runRoot, "validator", result.record)).toThrow(/intent/i);
     expect(loadRun(runRoot).state.commands).toBeUndefined();
   });
 });

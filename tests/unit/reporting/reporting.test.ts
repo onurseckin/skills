@@ -15,6 +15,7 @@ import {
 } from "../../../orchestrating-long-tasks/scripts/src/reporting/handoff.ts";
 import { renderPreplanHandoff } from "../../../orchestrating-long-tasks/scripts/src/reporting/preplan-handoff.ts";
 import { runStatus } from "../../../orchestrating-long-tasks/scripts/src/reporting/status.ts";
+import { runStatusCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/run-ops.ts";
 import { repositoryBinding } from "../workflow/test-port.ts";
 import { orphanEvidenceSha256 } from "../../../orchestrating-long-tasks/scripts/src/workflow/orphan-evidence/digest.ts";
 import { commandRecord } from "../workflow/test-port.ts";
@@ -209,6 +210,22 @@ describe("status handoff and doctor", () => {
     });
     expect(JSON.stringify(runStatus(run))).not.toContain("token_digest");
     expect(renderHandoff(run)).not.toContain("token_digest");
+  });
+
+  test("the run:status an agent actually invokes carries no lease token digest", async () => {
+    const run = await fixture();
+    transact(run, "coordinator", "lease-fixture", {}, (state) => {
+      const tasks = state.tasks as Record<string, Record<string, unknown>>;
+      tasks["task-1"]!.status = "leased";
+      tasks["task-1"]!.lease = {
+        agent_id: "worker-1",
+        role: "implementer",
+        token_digest: "b".repeat(64),
+        attempt: 1,
+        expires_at: "2026-08-13T12:20:00.000Z",
+      };
+    });
+    expect(JSON.stringify(runStatusCommand({ run }))).not.toContain("token_digest");
   });
 
   test("doctor reports integrity and workflow issues separately", async () => {

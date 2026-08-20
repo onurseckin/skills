@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { execute } from "../../../orchestrating-long-tasks/scripts/src/cli/execute.ts";
 import { workflowPort } from "../../../orchestrating-long-tasks/scripts/src/integration/store-ports.ts";
-import { checkCompletion } from "../../../orchestrating-long-tasks/scripts/src/workflow/completion/check-completion.ts";
+import { completionIssues } from "../../../orchestrating-long-tasks/scripts/src/workflow/completion/completion-state.ts";
 import { openBranchIssues } from "../../../orchestrating-long-tasks/scripts/src/workflow/branch/completion-blockers.ts";
 import { branchCapsule, branchChain, cleanupRoots, openBranchVia } from "./fixture.ts";
 
@@ -15,7 +15,7 @@ describe("an uncollected branch blocks completion", () => {
     const opened = await openBranchVia(fixture);
     const blocker = `branch ${String(opened.branch_id)} on task-1 at depth 1 is open, not collected`;
 
-    expect(checkCompletion(workflowPort(fixture.run))).toContain(blocker);
+    expect(completionIssues(workflowPort(fixture.run).read())).toContain(blocker);
     await expect(
       execute(["run:complete", "--run", fixture.run, "--actor", "coordinator"]),
     ).rejects.toThrow(blocker);
@@ -42,7 +42,7 @@ describe("an uncollected branch blocks completion", () => {
     ]);
     const blocker = `branch ${deepest.branchId} on ${chain[1]!.subTaskId} at depth 3 is open, not collected`;
 
-    expect(checkCompletion(workflowPort(fixture.run))).toContain(blocker);
+    expect(completionIssues(workflowPort(fixture.run).read())).toContain(blocker);
     await expect(
       execute(["run:complete", "--run", fixture.run, "--actor", "coordinator"]),
     ).rejects.toThrow(blocker);
@@ -100,7 +100,7 @@ describe("an uncollected branch blocks completion", () => {
     ]);
 
     expect(
-      checkCompletion(workflowPort(fixture.run)).filter((issue) => issue.startsWith("branch ")),
+      completionIssues(workflowPort(fixture.run).read()).filter((issue) => issue.startsWith("branch ")),
     ).toEqual([]);
   });
 

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { validateRequirements } from "../../../orchestrating-long-tasks/scripts/src/requirements/index.ts";
+import { validateRequirements } from "../../../orchestrating-long-tasks/scripts/src/requirements/validate-requirements.ts";
 import { requirementsDocument } from "./fixtures.ts";
 
 describe("malformed requirement documents", () => {

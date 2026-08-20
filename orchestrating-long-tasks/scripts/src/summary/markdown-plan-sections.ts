@@ -1,4 +1,5 @@
 import { isJsonObject } from "../contracts/json.ts";
+import { branchesForParent } from "../workflow/branch/ledger.ts";
 import type { AsciiBranch, AsciiTask } from "./markdown-ascii-graph.ts";
 import { renderTaskGraphAscii } from "./markdown-ascii-graph.ts";
 import {
@@ -232,19 +233,17 @@ export function renderTopology(context: ReportContext): string[] {
 }
 
 function asciiBranchesFor(context: ReportContext, taskId: string): AsciiBranch[] {
-  return context.branches
-    .filter((branch) => branch.parent_task_id === taskId)
-    .map((branch) => ({
-      id: branch.id,
-      reason: branch.reason,
-      status: branch.status,
-      subTasks: branch.sub_tasks.map((subTask) => ({
-        id: subTask.id,
-        label: subTask.label,
-        status: subTask.status,
-        agentId: subTask.agent_id ?? null,
-      })),
-    }));
+  return branchesForParent(context.branches, taskId).map((branch) => ({
+    id: branch.id,
+    reason: branch.reason,
+    status: branch.status,
+    subTasks: branch.sub_tasks.map((subTask) => ({
+      id: subTask.id,
+      label: subTask.label,
+      status: subTask.status,
+      agentId: subTask.agent_id ?? null,
+    })),
+  }));
 }
 
 export function renderTaskGraph(context: ReportContext): string[] {

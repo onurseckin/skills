@@ -329,7 +329,11 @@ async function runBeta(repo: string, run: string, issue: Issue): Promise<string>
     "--summary": PLANTED.collectSummary,
     "--repo": repo,
   });
-  await cli("agent:release", { "--run": run, "--agent": "sub-beta-1", "--reason": "S-1 submitted" });
+  await cli("agent:release", {
+    "--run": run,
+    "--agent": "sub-beta-1",
+    "--reason": "S-1 submitted",
+  });
 
   const work = await cli(
     "run:exec",

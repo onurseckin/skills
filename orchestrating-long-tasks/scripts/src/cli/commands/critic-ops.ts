@@ -17,6 +17,7 @@ import { parseRawFindings } from "../../workflow/completion/parse-raw-findings.t
 import { parseRawProofs } from "../../workflow/completion/parse-raw-proofs.ts";
 import { observeCapsuleIntegrity } from "../../workflow/completion/integrity-evidence.ts";
 import { recordCompletionReview } from "../../workflow/completion/record-completion-review.ts";
+import { recordCompletionRemediation } from "../../workflow/completion/record-completion-remediation.ts";
 import { authoritativeRepositoryCommand } from "../../workflow/completion/repository-evidence.ts";
 import type { CompletionFinding } from "../../workflow/completion/types.ts";
 import {
@@ -24,7 +25,8 @@ import {
   formatCriticReviewBrief,
   formatCriticStartBrief,
 } from "../formatters/index.ts";
-import { textFlag, type Flags } from "../options.ts";
+import { enforceLineLimit } from "../formatters/line-limiter.ts";
+import { listFlag, textFlag, type Flags } from "../options.ts";
 import { queryScreenshots } from "../../reporting/screenshot-store.ts";
 
 function liveRepositoryBinding(run: string, expected: Readonly<RepositoryBinding>) {
@@ -261,5 +263,89 @@ export async function criticRejectCommand(flags: Flags): Promise<Record<string, 
     findings_count: findings.length,
     findings,
     completion_review: result.completion_review,
+  };
+}
+
+function splitFindingPair(entry: string, flag: string): [string, string] {
+  const index = entry.indexOf("=");
+  if (index <= 0 || index === entry.length - 1) {
+    throw new HarnessError("INVALID_ARGUMENT", `--${flag} must be given as <finding-id>=<value>`);
+  }
+  return [entry.slice(0, index), entry.slice(index + 1)];
+}
+
+/**
+ * Every completion review ever recorded with status "findings" stays in history and blocks
+ * completion (see completionHistoryIssues) until it carries a remediation naming exactly its own
+ * finding ids. plan:replan is how the repair work itself gets scheduled; this is the harness's
+ * record that the work closed the loop, whether it ran through plan:replan or was fixed directly.
+ */
+export function criticRemediateCommand(flags: Flags): Record<string, unknown> {
+  const run = textFlag(flags, "run")!;
+  const actor = textFlag(flags, "actor")!;
+  const port = workflowPort(run);
+  const review = port.read().completion_review;
+  if (!review) {
+    throw new HarnessError("INVALID_STATE", "no completion review is recorded for this run");
+  }
+  const reviewSha = textFlag(flags, "review-sha256", false) ?? review.review_sha256;
+
+  const methods = new Map<string, string>();
+  for (const entry of listFlag(flags, "resolution-method") ?? []) {
+    const [findingId, method] = splitFindingPair(entry, "resolution-method");
+    if (methods.has(findingId)) {
+      throw new HarnessError(
+        "INVALID_ARGUMENT",
+        `finding ${findingId} has two --resolution-method`,
+      );
+    }
+    methods.set(findingId, method);
+  }
+
+  const commandIdsByFinding = new Map<string, string[]>();
+  for (const entry of listFlag(flags, "resolve", true)!) {
+    const [findingId, commands] = splitFindingPair(entry, "resolve");
+    const commandIds = commands
+      .split(",")
+      .map((id) => id.trim())
+      .filter(Boolean);
+    if (commandIds.length === 0) {
+      throw new HarnessError("INVALID_ARGUMENT", `--resolve ${findingId} cites no command id`);
+    }
+    commandIdsByFinding.set(findingId, [
+      ...(commandIdsByFinding.get(findingId) ?? []),
+      ...commandIds,
+    ]);
+  }
+
+  const resolutions = [...commandIdsByFinding].map(([findingId, commandIds]) => {
+    const method = methods.get(findingId);
+    if (method === undefined) {
+      throw new HarnessError(
+        "INVALID_ARGUMENT",
+        `finding ${findingId} has no --resolution-method; state how it was remediated`,
+      );
+    }
+    return { finding_id: findingId, method, command_ids: commandIds };
+  });
+
+  const state = recordCompletionRemediation(port, actor, {
+    review_sha256: reviewSha,
+    resolutions,
+  });
+  const remediation = state.completion_remediations!.find(
+    (entry) => entry.review_sha256 === reviewSha,
+  )!;
+  const md = [
+    `### Completion Findings Remediated: \`${reviewSha.slice(0, 12)}…\``,
+    `- **Findings Resolved**: ${resolutions.map((r) => `\`${r.finding_id}\``).join(", ")}`,
+    `- **Recorded By**: \`${actor}\``,
+    `- **Next Step**: assign a fresh completeness critic with \`critic:start\`.`,
+  ].join("\n");
+  return {
+    markdown: enforceLineLimit(md, 30),
+    run_root: run,
+    remediation,
+    completion_remediations: state.completion_remediations,
   };
 }

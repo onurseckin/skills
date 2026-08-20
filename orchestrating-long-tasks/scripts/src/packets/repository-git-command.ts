@@ -87,7 +87,11 @@ export function createRepositoryGitCommand(
     if ((result.error as NodeJS.ErrnoException | undefined)?.code === "ETIMEDOUT")
       throw new HarnessError("INVALID_STATE", "repository Git command timed out");
     if (result.error || !accepted.includes(result.status ?? -1)) {
-      const detail = result.stderr?.toString("utf8").trim() || String(result.error ?? "git failed");
+      // No plausible-sounding placeholder when stderr and error are both empty: report the exit
+      // status actually observed rather than inventing a cause the command never gave us.
+      const detail =
+        result.stderr?.toString("utf8").trim() ||
+        (result.error ? String(result.error) : `unaccepted exit status ${result.status ?? "unknown"}`);
       throw new HarnessError("INTEGRITY", `repository Git command failed: ${detail}`);
     }
     return { status: result.status, bytes };

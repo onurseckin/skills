@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { describe, expect, test } from "bun:test";
 import { canonicalJsonBytes } from "../../../orchestrating-long-tasks/scripts/src/core/json.ts";
 import { beginCompletenessCritic } from "../../../orchestrating-long-tasks/scripts/src/workflow/completion/begin-completeness-critic.ts";
-import { checkCompletion } from "../../../orchestrating-long-tasks/scripts/src/workflow/completion/check-completion.ts";
+import { completionIssues } from "../../../orchestrating-long-tasks/scripts/src/workflow/completion/completion-state.ts";
 import { recordCompletionRemediation } from "../../../orchestrating-long-tasks/scripts/src/workflow/completion/record-completion-remediation.ts";
 import { recordCompletionReview } from "../../../orchestrating-long-tasks/scripts/src/workflow/completion/record-completion-review.ts";
 import { tokenDigest } from "../../../orchestrating-long-tasks/scripts/src/workflow/lease/token.ts";
@@ -208,7 +208,7 @@ describe("completion critic lifecycle", () => {
     remediate(port);
     const state = port.read();
     state.completion_remediations![0]!.remediation_sha256 = "tampered";
-    expect(checkCompletion(new TestPort(state))).toContain(
+    expect(completionIssues(new TestPort(state).read())).toContain(
       "completion remediation 1 has an invalid digest",
     );
   });

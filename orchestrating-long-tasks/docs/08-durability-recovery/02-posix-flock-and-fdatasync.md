@@ -20,10 +20,13 @@ To achieve enterprise-grade durability, `orchestrating-long-tasks` implements th
 
 Multiple subagents running concurrently on the same host machine must never write to `.capsules/<run-id>/events.jsonl` simultaneously.
 
-Every state transition acquires an exclusive advisory file lock on `.capsules/<run-id>/.lock`:
+Every state transition acquires an exclusive advisory lock on the capsule directory's own inode.
+There is no lock file inside the capsule: the directory is the thing opened, so a rogue process
+cannot displace the lock by replacing a path, and a reader browsing the capsule never has to tell
+coordination state apart from evidence.
 
 ```typescript
-const lockFd = openSync(lockPath, constants.O_CREAT | constants.O_RDWR, 0o600);
+const lockFd = openSync(runRoot, constants.O_RDONLY | constants.O_DIRECTORY | constants.O_NOFOLLOW);
 flockSync(lockFd, constants.LOCK_EX);
 try {
   // 1. Read latest events.jsonl

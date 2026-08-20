@@ -6,6 +6,7 @@ import type { HealthCheckId } from "../../health/types.ts";
 import { HarnessError } from "../../errors/harness-error.ts";
 import { workflowPort } from "../../integration/store-ports.ts";
 import { runDoctor } from "../../reporting/doctor.ts";
+import { loadRun, recoverProjection } from "../../store/index.ts";
 import { recoverStale } from "../../workflow/lease/recover-stale.ts";
 import { releaseLease } from "../../workflow/lease/release.ts";
 import { systemClock, type WorkflowState } from "../../workflow/types.ts";
@@ -113,6 +114,32 @@ export function recoverCommand(flags: Flags): Record<string, unknown> {
     recovered,
     recovered_sub_tasks: recoveredSubTasks,
     tasks: state.tasks,
+  };
+}
+
+/**
+ * `doctor` only reports a torn tail or a state/event mismatch; this is the repair. It re-derives
+ * `state.json` from the event chain's valid prefix and quarantines whatever a crash left dangling
+ * off the end, so a run interrupted mid-write can resume instead of every later command throwing on
+ * the same integrity check `doctor` just used to diagnose it.
+ */
+export function repairProjectionCommand(flags: Flags): Record<string, unknown> {
+  const run = textFlag(flags, "run")!;
+  const actor = textFlag(flags, "actor")!;
+  const state = recoverProjection(run, actor);
+  const lastEvent = loadRun(run).events.at(-1);
+  const quarantined = lastEvent?.payload.quarantined_torn_tail === true;
+  const lines = [
+    `### Projection Repaired: \`${run}\``,
+    `- **Actor**: ${actor}`,
+    `- **Event Sequence**: ${state.event_sequence}`,
+    `- **Torn Tail Quarantined**: ${quarantined ? "yes" : "no"}`,
+  ];
+  return {
+    markdown: enforceLineLimit(lines.join("\n")),
+    run_root: run,
+    state,
+    quarantined_torn_tail: quarantined,
   };
 }
 

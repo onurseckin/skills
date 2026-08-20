@@ -102,7 +102,7 @@ Semantics:
   the parent lease with a fresh expiry, and returns the parent to `running`.
 - `branch:abandon` is the failure path; it releases sub-leases and returns the parent to `running`.
 - Failure recovery must exist: expose the already-implemented but unreachable
-  `release` and `recover-stale` as CLI commands (`task:release`, `run:recover`). Without these a
+  `release` and `recover-stale` as CLI commands (`task:release`, `recover`). Without these a
   dead sub-agent permanently blocks completion via orphan evidence.
 - New `TaskStatus` member: `branched`. Nesting depth is capped (config `max_branch_depth`, default 2).
 

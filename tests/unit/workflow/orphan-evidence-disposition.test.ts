@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { checkCompletion } from "../../../orchestrating-long-tasks/scripts/src/workflow/completion/check-completion.ts";
+import { completionIssues } from "../../../orchestrating-long-tasks/scripts/src/workflow/completion/completion-state.ts";
 import { dispositionOrphanEvidence } from "../../../orchestrating-long-tasks/scripts/src/workflow/orphan-evidence/disposition.ts";
 import { orphanEvidenceSha256 } from "../../../orchestrating-long-tasks/scripts/src/workflow/orphan-evidence/digest.ts";
 import { at, TestPort, workflowState } from "./test-port.ts";
@@ -13,7 +13,7 @@ describe("orphan evidence disposition", () => {
     state.orphan_evidence.push(orphan);
     const port = new TestPort(state);
     const sha = orphanEvidenceSha256(orphan);
-    expect(checkCompletion(port)).toContain(`orphan evidence is open: ${sha}`);
+    expect(completionIssues(port.read())).toContain(`orphan evidence is open: ${sha}`);
 
     const decided = dispositionOrphanEvidence(
       port,
@@ -33,7 +33,7 @@ describe("orphan evidence disposition", () => {
       actor: "coordinator",
     });
     expect(decided.orphan_evidence_dispositions?.[0]?.disposition_sha256).toMatch(/^[0-9a-f]{64}$/);
-    expect(checkCompletion(port)).not.toContain(`orphan evidence is open: ${sha}`);
+    expect(completionIssues(port.read())).not.toContain(`orphan evidence is open: ${sha}`);
     expect(() =>
       dispositionOrphanEvidence(
         port,

@@ -51,21 +51,24 @@ bun $PINNED plan:replan --run $RUN --actor coordinator \
 
 ---
 
-## Phase 2 — Wave dispatch
+## Phase 2 — Continuous dispatch
 
 ```bash
-bun $PINNED queue:wave --run $RUN [--max-parallel 4]   # the whole next conflict-free wave
+bun $PINNED queue:wave --run $RUN [--max-parallel 4]   # everything claimable right now
 bun $PINNED queue:next --run $RUN                      # the single highest-priority ready task
 bun $PINNED queue:list --run $RUN                      # everything, grouped by status
 bun $PINNED queue:pop  --run $RUN --agent <worker-id> --lease-seconds 1800
 ```
 
-`queue:wave` returns every task that may run in parallel right now, capped at `default_max_parallel`.
-`queue:pop` hands out one task at a time and is what turns a graph into a waterfall; use it only when
-a single lane is genuinely what you want.
+`queue:wave` is a read-only readiness query: every task whose dependencies are done and whose write
+scope collides with nothing currently leased, capped at `default_max_parallel`. It is not a batch to
+wait on — re-run it the instant a slot frees. `queue:pop` claims one task atomically and is the right
+tool for filling a single freed slot; looping it alone is what turns a graph into a waterfall.
 
-Dispatch the whole wave in one host call — $N$ implementers and $N$ paired validators, never an
-implementer alone. The Triad Floor and the $2N + 1$ sizing rule are stated in
+Dispatch each claimable task as a pair — one implementer and its own independent validator, never an
+implementer alone. One host call may carry several pairs when several tasks are claimable at once,
+but nothing waits for the call's other pairs: a validator becomes eligible the instant its own
+implementer submits. The Triad Floor and the Pairing Invariant are stated in
 [`protocol.md`](protocol.md); this is the shape of the call:
 
 ```typescript

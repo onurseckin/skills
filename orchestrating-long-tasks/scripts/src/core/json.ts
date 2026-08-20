@@ -115,3 +115,23 @@ export function normalizeJson(value: unknown, label: string): JsonValue {
   canonicalJsonBytes(normalized);
   return normalized;
 }
+
+/**
+ * Deep copy, so a caller can hand a stored value to a mutator without the mutation reaching back
+ * into the record it came from. Structured clone rather than a JSON round-trip: the round-trip
+ * silently drops keys whose value is `undefined`, which turns an ill-formed record into a
+ * well-formed one on the way past instead of leaving it to be rejected.
+ */
+export function jsonCopy<T>(value: T): T {
+  return structuredClone(value);
+}
+
+/**
+ * Deep-equal by canonical byte comparison, so key order never causes a false mismatch. The single
+ * comparator behind every "did this actually change" check in the store and the graph layer.
+ */
+export function sameJson(left: unknown, right: unknown): boolean {
+  return Buffer.from(canonicalJsonBytes(normalizeJson(left, "left value"))).equals(
+    Buffer.from(canonicalJsonBytes(normalizeJson(right, "right value"))),
+  );
+}

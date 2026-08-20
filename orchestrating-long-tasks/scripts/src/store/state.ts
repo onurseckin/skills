@@ -1,7 +1,8 @@
 import type { RunState } from "../contracts/capsule.ts";
 import type { JsonObject } from "../contracts/json.ts";
-import { canonicalJsonBytes } from "../core/json.ts";
 import { FORMAT_VERSION, STATE_SCHEMA } from "./constants.ts";
+
+export { sameJson } from "../core/json.ts";
 
 export function initialState(): RunState {
   return {
@@ -15,8 +16,4 @@ export function initialState(): RunState {
 
 export function cloneObject<T extends JsonObject>(value: T): T {
   return structuredClone(value);
-}
-
-export function sameJson(left: JsonObject, right: JsonObject): boolean {
-  return Buffer.from(canonicalJsonBytes(left)).equals(Buffer.from(canonicalJsonBytes(right)));
 }

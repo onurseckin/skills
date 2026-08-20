@@ -144,6 +144,8 @@ export interface LoopSummary {
   readonly gateStatus: GateOverallStatus;
   readonly finalCriticDecision?: CriticDecision | undefined;
   readonly finalMarkdownSummary: string;
+  /** Absent when the loop was started without an attributed actor; never filled with a stand-in. */
+  readonly actor?: string | undefined;
 }
 
 export interface RoundExecutionInput {

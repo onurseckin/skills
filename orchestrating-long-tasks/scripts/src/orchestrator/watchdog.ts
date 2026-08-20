@@ -36,6 +36,7 @@ export class OrchestratorWatchdog {
     this.wallClockTimeoutMs = config.wallClockTimeoutMs ?? 3_600_000;
     this.pollIntervalMs = config.pollIntervalMs ?? 1_000;
     this.maxWakeRetries = config.maxWakeRetries ?? 3;
+    // Config default alongside its sibling timeouts above, not a substitute for a missing value.
     this.autoWakeAction = config.autoWakeAction ?? "nudge";
   }
 
@@ -201,7 +202,7 @@ export class OrchestratorWatchdog {
         agentId: monitor.agentId,
         taskId: monitor.taskId,
         runId: monitor.runId,
-        details: `Max wake attempts (${this.maxWakeRetries}) exceeded. Escalating to human/coordinator. Reason: ${reason ?? "Stall detected"}`,
+        details: `Max wake attempts (${this.maxWakeRetries}) exceeded. Escalating to human/coordinator. Reason: ${reason ?? "unknown"}`,
         attempt: monitor.wakeAttempts,
       });
 
@@ -221,7 +222,7 @@ export class OrchestratorWatchdog {
       agentId: monitor.agentId,
       taskId: monitor.taskId,
       runId: monitor.runId,
-      details: `Auto-wake attempt ${monitor.wakeAttempts}/${this.maxWakeRetries} via action "${this.autoWakeAction}". Reason: ${reason ?? "Stall detected"}`,
+      details: `Auto-wake attempt ${monitor.wakeAttempts}/${this.maxWakeRetries} via action "${this.autoWakeAction}". Reason: ${reason ?? "unknown"}`,
       attempt: monitor.wakeAttempts,
     });
 

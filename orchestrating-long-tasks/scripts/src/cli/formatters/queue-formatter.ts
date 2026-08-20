@@ -149,11 +149,11 @@ export function formatQueueWaveBrief(params: QueueWaveParams): string {
       ? `recorded at graph revision ${params.topologyRevision ?? "unknown"}`
       : "not recorded for this capsule";
   const lines = [
-    `### Dispatchable Wave: ${params.entries.length}/${params.maxParallel} conflict-free tasks`,
+    `### Claimable Now: ${params.entries.length}/${params.maxParallel} conflict-free tasks`,
     ...formatTable(["Task", "Label", "Priority", "Write Scope", "Planned Wave"], rows),
     "",
     `- **Topology**: ${topology}`,
-    `- **Dispatch**: launch all ${params.entries.length} agents in one batch; each claims its own task.`,
+    `- **Dispatch**: each row is independently claimable now — claim it the moment an agent is free; do not wait for the rest of this list before claiming the next one.`,
     "",
     "```bash",
     `bun harness.ts task:claim --run ${params.runId} --task <TASK_ID> --agent <AGENT_ID> --role implementer`,

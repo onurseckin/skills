@@ -68,21 +68,21 @@ await raceWithTimeout(Promise.resolve(1), 30_000, "unused");
     expect(elapsed).toBeLessThan(5_000);
   });
 
-  test("runCommand returns the host to an idle event loop once the child has exited", async () => {
+  test("a finished command returns the host to an idle event loop", async () => {
     const dir = await scratch("run-command-idle");
-    // The drain bound defaults to 5s; before the fix this child idled for that full budget after the
-    // echo had already exited, which is what timed out a 5s integration test.
+    // The drain bound is 5s: a child that has already exited must not hold the loop open for the
+    // rest of that budget, or every caller pays the full bound for a command that is already done.
     const elapsed = await exitDelayMs(
       dir,
-      `import { runCommand } from ${JSON.stringify(RUN_COMMAND)};
-const result = await runCommand({
+      `import { executePreparedCommand, prepareCommand } from ${JSON.stringify(RUN_COMMAND)};
+const result = await executePreparedCommand(await prepareCommand({
   argv: ["/bin/echo", "hello"],
   cwd: ${JSON.stringify(dir)},
   repositoryRoot: ${JSON.stringify(dir)},
   runRoot: ${JSON.stringify(dir)},
   commandDir: ${JSON.stringify(join(dir, "commands"))},
   actor: "timer-probe",
-});
+}));
 if (result.record.exit_code !== 0) throw new Error("gate probe did not exit 0");
 `,
     );

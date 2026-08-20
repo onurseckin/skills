@@ -176,6 +176,25 @@ describe("a command may only claim the captures there is evidence it produced", 
     expect(ingested).toEqual([]);
   });
 
+  test("a scan that ran no command records what it finds without claiming it", () => {
+    const { run, shots } = workspace();
+    image(shots, "found.png", "bytes", new Date("2020-01-01T00:00:00.000Z"));
+
+    // What a task-level sweep of the repository looks like: an owner named, no window, no path
+    // named, nothing printed. Finding a file is not evidence of having produced it.
+    const [record] = ingestScreenshots({
+      runRoot: run,
+      taskId: "T-1",
+      actor: "val-1",
+      searchDirs: [shots],
+    });
+
+    expect(record?.name).toBe("found.png");
+    expect(record?.task_id).toBeUndefined();
+    expect(record?.actor).toBeUndefined();
+    expect(queryScreenshots(run, { taskId: "T-1" })).toEqual([]);
+  });
+
   test("nothing to ingest records nothing and writes no ledger", () => {
     const { run, shots } = workspace();
 

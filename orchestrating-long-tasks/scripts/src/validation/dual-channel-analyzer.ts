@@ -2,7 +2,7 @@ import {
   normalizeViewportName,
   validateCrossChannelConsistency,
 } from "./cross-channel-consistency.ts";
-import { extractDomViolations } from "./dom-violation-extractor.ts";
+import { extractDomViolations, type FindingAdder } from "./dom-violation-extractor.ts";
 import type {
   ClippingViolation,
   ContrastViolation,
@@ -71,6 +71,28 @@ export function isUiScope(paths: readonly string[]): boolean {
 
 const DEFAULT_REQUIRED_VIEWPORTS = ["mobile", "tablet", "desktop"] as const;
 
+/**
+ * The invariants the supplied evidence let this audit actually inspect for one viewport. A category
+ * the report carries no field for was never examined, so naming it here would sign off on a check
+ * that never ran. An empty array means "inspected, nothing found"; an absent one means "not
+ * inspected", and only the first earns its name in a proof.
+ */
+function domInvariantsInspected(vp: ViewportMetrics, report: VisualMetricsReport): string[] {
+  const inspected: string[] = [];
+  if (vp.overflowViolations) inspected.push("no_overflow");
+  if (vp.clippingViolations) inspected.push("no_clipping");
+  if (vp.stackingViolations) inspected.push("stacking_order");
+  if (vp.contrastViolations) inspected.push("wcag_contrast");
+  if (vp.orphanViolations) inspected.push("no_origin_orphans");
+  if (vp.renderCacheReset !== undefined || report.renderCacheReset !== undefined) {
+    inspected.push("render_cache_clean");
+  }
+  return inspected;
+}
+
+/** All the visual channel establishes on its own: the capture exists and carries bytes. */
+const SCREENSHOT_INVARIANT = "screenshot_non_empty";
+
 export function analyzeDualChannel(input: DualChannelInput): DualChannelAuditResult {
   const allPaths = [...(input.taskFiles ?? []), ...(input.writeScope ?? [])];
   const isUi = isUiScope(allPaths);
@@ -90,13 +112,13 @@ export function analyzeDualChannel(input: DualChannelInput): DualChannelAuditRes
   const proofs: CrossChannelProof[] = [];
   let findingCounter = 1;
 
-  const addFinding = (
-    category: StructuredFinding["category"],
-    severity: StructuredFinding["severity"],
-    message: string,
-    remediation: string,
-    affectedSelector?: string,
-    viewport?: string,
+  const addFinding: FindingAdder = (
+    category,
+    severity,
+    message,
+    remediation,
+    affectedSelector,
+    viewport,
   ) => {
     findings.push({
       id: `VF-${String(findingCounter++).padStart(3, "0")}`,
@@ -194,27 +216,25 @@ export function analyzeDualChannel(input: DualChannelInput): DualChannelAuditRes
 
     for (const vp of input.domReport!.viewports) {
       const norm = normalizeViewportName(vp.viewport, vp.width);
-      const sc =
-        validScreenshots.find(
-          (s) => normalizeViewportName(s.viewport ?? s.name, s.width) === norm,
-        ) ?? validScreenshots[0]!;
+      // A viewport with no capture of its own is proven by the DOM channel alone. Falling back to
+      // another viewport's screenshot filed one capture as proof for a viewport it never rendered.
+      const sc = validScreenshots.find(
+        (s) => normalizeViewportName(s.viewport ?? s.name, s.width) === norm,
+      );
       const hasViolations = findings.some(
         (f) => f.viewport === vp.viewport && f.severity === "error",
       );
+      const inspected = domInvariantsInspected(vp, input.domReport!);
       proofs.push({
         viewport: vp.viewport,
-        screenshotPath: sc.path,
+        ...(sc === undefined ? {} : { screenshotPath: sc.path, screenshotSizeBytes: sc.sizeBytes }),
         domMetricsPresent: true,
-        screenshotSizeBytes: sc.sizeBytes,
-        verifiedInvariants: [
-          "no_overflow",
-          "no_clipping",
-          "stacking_order",
-          "wcag_contrast",
-          "no_origin_orphans",
-          "render_cache_clean",
-        ],
-        status: hasViolations ? "violation_detected" : "corroborated",
+        verifiedInvariants: sc === undefined ? inspected : [...inspected, SCREENSHOT_INVARIANT],
+        status: hasViolations
+          ? "violation_detected"
+          : sc === undefined
+            ? "dom_only_gap_filled"
+            : "corroborated",
       });
     }
   } else if (hasDomReport) {
@@ -223,12 +243,12 @@ export function analyzeDualChannel(input: DualChannelInput): DualChannelAuditRes
       const hasViolations = findings.some(
         (f) => f.viewport === vp.viewport && f.severity === "error",
       );
+      // No capture was matched, so the proof carries no path and no size rather than a sentinel
+      // path and a 0-byte reading for a screenshot that does not exist.
       proofs.push({
         viewport: vp.viewport,
-        screenshotPath: "gap_filled_by_dom_metrics",
         domMetricsPresent: true,
-        screenshotSizeBytes: 0,
-        verifiedInvariants: ["dom_bounding_boxes", "computed_styles", "render_cache_clean"],
+        verifiedInvariants: domInvariantsInspected(vp, input.domReport!),
         status: hasViolations ? "violation_detected" : "dom_only_gap_filled",
       });
     }
@@ -242,7 +262,7 @@ export function analyzeDualChannel(input: DualChannelInput): DualChannelAuditRes
         screenshotPath: sc.path,
         domMetricsPresent: false,
         screenshotSizeBytes: sc.sizeBytes,
-        verifiedInvariants: ["visual_layout_rasterization", "viewport_bounds"],
+        verifiedInvariants: [SCREENSHOT_INVARIANT],
         status: hasViolations ? "violation_detected" : "screenshot_only_gap_filled",
       });
     }

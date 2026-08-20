@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { runCommand } from "../../orchestrating-long-tasks/scripts/src/runner/run-command.ts";
+import { runCommand } from "../unit/runner/run-command-fixture.ts";
 import { classifyFailure } from "../../orchestrating-long-tasks/scripts/src/runner/classify-failure.ts";
 
 const fixture = join(import.meta.dir, "../unit/runner/fixtures/command-fixture.ts");

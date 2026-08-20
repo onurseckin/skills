@@ -171,8 +171,7 @@ an agent to fail. Two examples that were corrected:
   "max_agents": 100,
   "max_output_bytes": 10485760,
   "default_lease_seconds": 1800,
-  "default_max_parallel": 4,
-  "strict_validation": true
+  "default_max_parallel": 4
 }
 ```
 

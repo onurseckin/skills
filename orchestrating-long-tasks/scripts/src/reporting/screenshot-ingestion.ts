@@ -1,6 +1,7 @@
 import { readFileSync, statSync } from "node:fs";
 import { basename, extname, resolve } from "node:path";
 import { linkBlobIntoView, putBlobFile } from "../store/blobs.ts";
+import { refreshIndex } from "../store/capsule-index.ts";
 import { readCaptures, recordCaptures, type CaptureRecord } from "../store/captures.ts";
 import {
   discoverScreenshotCandidates,
@@ -35,9 +36,14 @@ function mtimeIso(path: string): string | undefined {
  * A file the command did not write while it was running is not that command's output. No upper
  * bound: a process may flush its last file after it exits, and dropping those would lose real
  * evidence to guard against a defect the lower bound already closes.
+ *
+ * A caller that names no window is claiming no execution at all — a task-level scan of the
+ * repository, not a command that ran. It has nothing to have produced the file with, so the scan
+ * is not evidence of authorship. That is different from a window the harness recorded but cannot
+ * parse, where a command demonstrably ran and only the clock reading is lost.
  */
 function writtenDuringRun(path: string, startedAt: string | null | undefined): boolean {
-  if (!startedAt) return true;
+  if (startedAt === undefined || startedAt === null || startedAt.length === 0) return false;
   const start = Date.parse(startedAt);
   if (!Number.isFinite(start)) return true;
   try {
@@ -55,6 +61,9 @@ function writtenDuringRun(path: string, startedAt: string | null | undefined): b
  * sitting at the repository root satisfies none of them, so it is still stored — the bytes are real
  * — but it is recorded unattributed rather than credited to whichever command scanned it first.
  * Crediting it is what put one image on every command in a run.
+ *
+ * A scan that ran no command satisfies none of them either, so a task-level sweep of the repository
+ * records what it finds without claiming it.
  */
 function attributable(
   path: string,
@@ -156,7 +165,9 @@ export function ingestScreenshots(options: ScreenshotIngestOptions): ScreenshotR
     });
   }
 
-  recordCaptures(runRoot, ingested);
+  // The catalogue counts captures but is not chain-bound, so nothing else brings it back into
+  // agreement with a ledger that just grew.
+  if (recordCaptures(runRoot, ingested)) refreshIndex(runRoot);
   return ingested;
 }
 
@@ -202,7 +213,7 @@ export function ingestVisualReport(options: VisualReportIngestOptions): VisualMe
         "evidence",
         viewName(VISUAL_REPORT_VIEW_NAME, blob.sha256, takenNames),
       );
-      recordCaptures(runRoot, [
+      const recorded = recordCaptures(runRoot, [
         {
           kind: "visual_report",
           name: link.name,
@@ -216,6 +227,7 @@ export function ingestVisualReport(options: VisualReportIngestOptions): VisualMe
           ...(report.timestamp === undefined ? {} : { timestamp: report.timestamp }),
         },
       ]);
+      if (recorded) refreshIndex(runRoot);
     } catch {
       return report;
     }

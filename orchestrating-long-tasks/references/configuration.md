@@ -12,8 +12,7 @@ settings, and anything unset keeps its default.
   "max_agents": 100,
   "max_output_bytes": 10485760,
   "default_lease_seconds": 1800,
-  "default_max_parallel": 4,
-  "strict_validation": true
+  "default_max_parallel": 4
 }
 ```
 
@@ -26,8 +25,9 @@ settings, and anything unset keeps its default.
 | `max_output_bytes`       | `10485760` | Maximum stdout/stderr captured per command execution (10 MiB).                                                                                                                        |
 | `default_lease_seconds`  | `1800`     | Default lease duration for a **branch sub-task** claim (`branch:claim`). It does not govern `task:claim` or `queue:pop`, whose lease is 1,200 seconds unless a lease flag says otherwise. |
 | `default_max_parallel`   | `4`        | Wave size cap used by `queue:wave` and the scheduler.                                                                                                                                 |
-| `strict_validation`      | `true`     | Enforces mandatory gate coverage and independent validator checks.                                                                                                                    |
-| `min_adversarial_rejections` | `1`    | Recognized but superseded by `min_adversarial_probes`. A rejection claims a defect and a probe demands proof, so setting this never raises the probe requirement; `task:review` reports the discrepancy instead of silently promoting one to the other. |
+
+Mandatory gate coverage and independent-validator checks are not configurable — they are enforced
+unconditionally by the graph compiler and the completion checks, not gated behind a knob.
 
 These values are read by the harness, never inferred: a config key nobody set keeps the default
 above, and the default is what the code enforces. The semantics each key protects are in

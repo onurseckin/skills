@@ -57,7 +57,17 @@ independent validator can do that.
 
 **The original implementer gets the first repair opportunity.** A replacement is assigned only through
 the recorded stale / unavailable / repeated-failure policy, and that assignment is the harness's
-decision, recorded with its reason, not an agent's choice.
+decision, recorded with its reason, not an agent's choice:
+
+```bash
+bun harness.ts task:assign-repairer --run .capsules/<run-id> --task <task-id> --actor coordinator \
+  --repairer <replacement-agent-id> --reason unavailable \
+  --evidence "worker-1 released without claiming the repair lease"
+```
+
+`--reason stale` requires the prior repair attempt's own lease to have gone stale; `repeated_failure`
+requires at least two recorded repair rounds; `unavailable` carries no precondition beyond the task
+already awaiting its original repairer. The replacement can never equal the original implementer.
 
 ---
 
@@ -92,8 +102,7 @@ finding — including the defect finding the previous round opened.
   "max_agents": 100,
   "max_output_bytes": 10485760,
   "default_lease_seconds": 1800,
-  "default_max_parallel": 4,
-  "strict_validation": true
+  "default_max_parallel": 4
 }
 ```
 

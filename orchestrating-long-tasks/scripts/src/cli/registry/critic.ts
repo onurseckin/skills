@@ -1,9 +1,16 @@
 import {
   criticRejectCommand,
+  criticRemediateCommand,
   criticReviewCommand,
   criticStartCommand,
 } from "../commands/critic-ops.ts";
-import { DEFAULT_EXIT_CODES, optionalFlag, requiredFlag, type CommandSpec } from "./types.ts";
+import {
+  DEFAULT_EXIT_CODES,
+  optionalFlag,
+  repeatableFlag,
+  requiredFlag,
+  type CommandSpec,
+} from "./types.ts";
 
 export const CRITIC_COMMANDS: readonly CommandSpec[] = [
   {
@@ -76,5 +83,31 @@ export const CRITIC_COMMANDS: readonly CommandSpec[] = [
       'bun harness.ts critic:reject --run .capsules/<run-id> --critic critic-1 --token <token> --summary "Missing error boundary" --findings \'[{"id":"F-01","requirement_id":"req-1","severity":"critical","observation":"No error boundary around the render tree","remediation":"Wrap the tree in an error boundary","revalidation":"bun test tests/render"}]\'',
     ],
     handler: criticRejectCommand,
+  },
+  {
+    name: "critic:remediate",
+    aliases: [],
+    domain: "critic",
+    summary: "Close out a critic findings review with command-backed remediation evidence.",
+    description:
+      "Every review recorded with status findings stays in history and blocks completion until it carries a remediation naming exactly its own finding ids, each proven by a critic-run, task-unbound, successful command. --resolve is repeatable as <finding-id>=<command-id>[,<command-id>]; --resolution-method names how each finding was closed. --review-sha256 defaults to the currently recorded review.",
+    flags: [
+      requiredFlag("run", "string", "Capsule run root."),
+      requiredFlag("actor", "string", "Who is recording the remediation."),
+      optionalFlag("review-sha256", "string", "Digest of the review being remediated."),
+      repeatableFlag(
+        "resolve",
+        "string",
+        "Answer a finding: <finding-id>=<command-id>[,<command-id>].",
+      ),
+      repeatableFlag("resolution-method", "string", "How a finding was answered: <finding-id>=<method>."),
+    ],
+    readsStdin: false,
+    takesRemainder: false,
+    exitCodes: DEFAULT_EXIT_CODES,
+    examples: [
+      'bun harness.ts critic:remediate --run .capsules/<run-id> --actor coordinator --resolve CF-1=C-fix-1 --resolution-method CF-1="focused repair and verification"',
+    ],
+    handler: criticRemediateCommand,
   },
 ];

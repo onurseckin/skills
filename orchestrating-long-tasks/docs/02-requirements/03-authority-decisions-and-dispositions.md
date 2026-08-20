@@ -19,9 +19,6 @@ the harness models the gap explicitly rather than letting an agent decide in pro
 
 ## 🧾 What Exists Today, Precisely
 
-This is the one place in the book where the honest answer is "the vocabulary is real, the recording
-path is not wired yet". Both halves matter.
-
 ### The vocabulary is real and enforced
 
 | Level                          | Values                                                         | Enforcement                                                                                                                                         |
@@ -36,14 +33,25 @@ path is not wired yet". Both halves matter.
 requirement genuinely holds its work back. Completion honours a declined requirement as cleanly
 disposed rather than demanding a fabricated proof for it.
 
-### The recording path is not exposed
+### The recording path: `authority:decide`
 
-There is **no CLI command** that grants or declines authority. The decision recorder exists in the
-workflow layer; nothing in `references/cli-capabilities.json` reaches it. And `plan:compile` version 1
-derives every requirement as `actionable`, so a compiled plan does not currently produce a
-`needs_authority` requirement on its own.
+```bash
+bun harness.ts authority:decide --run .capsules/<run-id> --requirement req-prod-deploy \
+  --actor coordinator --decision grant \
+  --rationale "The user approved the production deploy in the review thread."
+```
 
-Documenting a `decide` command here would be inventing one. It does not exist.
+`--decision` is `grant` or `decline`, both terminal: a second call against an already-decided
+requirement is refused with `INVALID_STATE`, and an exact retry (same actor, same rationale) is
+idempotent rather than re-appending history. `decline` disposes the requirement `out_of_scope` and
+cancels every dormant task built on it alone; it refuses instead if that would invalidate an active
+or completed task, so a decline can never retroactively unmake finished work.
+
+This command is deliberately outside every agent's role contract — `--actor` records who decided, but
+no `commands:` grant names it, because the decision it records is a human one, not an agent's to make
+on its own. `plan:compile` version 1 still derives every requirement as `actionable`, so a compiled
+plan does not currently produce a `needs_authority` requirement on its own; see the next section for
+how to gate one today.
 
 ---
 
@@ -60,7 +68,9 @@ deploy; that needs a human decision before it can be planned."` puts the gap in
    an explicit residual risk or reject and force a replan.
 4. **If the human grants it later**, add the task with `plan:add --requirement-lines <that line>` and
    raise the revision with `plan:compile`. The grant becomes an ordinary planned obligation with its
-   own gate, which is stronger evidence than an authority flag ever was.
+   own gate, which is stronger evidence than an authority flag ever was. `authority:decide` settles a
+   requirement the compiler already produced as `needs_authority`; it is not a substitute for planning
+   the obligation properly once it is approved.
 
 ```text
                      ┌─────────────────────────────────┐

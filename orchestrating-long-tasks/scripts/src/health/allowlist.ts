@@ -9,16 +9,27 @@ export interface HealthAllowance {
 }
 
 /**
- * The opt-out list. It is short on purpose: everything on it is code that genuinely has no caller
- * inside the tree because it is the boundary the tree is entered through. A finding parked here
- * because nobody has fixed it yet would turn the report into a list of things we have agreed to
- * stop seeing.
+ * The opt-out list. It is short on purpose: every entry is a place the checker's pattern cannot
+ * tell a defect from the thing it is looking at - the boundary the tree is entered through, or a
+ * declared policy the fallback grammar has no way to recognise. A finding parked here because
+ * nobody has fixed it yet would turn the report into a list of things we have agreed to stop
+ * seeing, so an entry must say what makes the code correct, not when someone means to get to it.
  */
 export const ALLOWED_FINDINGS: readonly HealthAllowance[] = [
   {
     key: "unused-export:orchestrating-long-tasks/scripts/harness.ts#main",
     reason:
       "The process entry point. Nothing inside the tree can call it - the runtime does - and it stays exported so the CLI can be driven in-process instead of only by spawning bun.",
+  },
+  {
+    key: "string-fallback:orchestrating-long-tasks/scripts/src/installer/tree-digest.ts:):.",
+    reason:
+      "No value is missing here: relative(root, root) returns the empty string, and `.` is that result spelled as a path so the root entry has a path of its own. The check reads every `||` with a string on the right as a substitution and cannot see that this one converts a known result rather than inventing an unknown one.",
+  },
+  {
+    key: "string-fallback:orchestrating-long-tasks/scripts/src/orchestrator/watchdog.ts:config.autoWakeAction:nudge",
+    reason:
+      "A declared policy default, not a reading: it sits with the five timeout defaults above it and states what the watchdog does when the caller expresses no preference. The numeric half of the check already excludes knobs from POLICY_WORDS; the string half has no such vocabulary, so the same kind of default reads as a substitution.",
   },
 ];
 

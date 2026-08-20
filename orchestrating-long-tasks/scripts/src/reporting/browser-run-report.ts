@@ -117,7 +117,9 @@ function projectFacts(config: unknown): {
     if (browser) browsers.push(browser);
     const viewport = use ? viewportOf(use.viewport) : undefined;
     if (viewport) {
-      named.push({ ...viewport, name: text(project, "name") ?? browser ?? "project" });
+      // Every field here is what the report declared (see file header); "project" would read as
+      // a real name the config gave when neither project.name nor a browser name were present.
+      named.push({ ...viewport, name: text(project, "name") ?? browser ?? "unknown" });
     }
   }
   const browser = unanimous(browsers);

@@ -78,6 +78,8 @@ export function buildPacket(input: PacketInput): BuiltPacket {
   if (input.role !== "planner") validateRepositoryInspectionPair(input.authoritativeContext);
   const context = roleContext(input);
   const common = verifyCommonInstructions(input.commonInstructions);
+  // null genuinely means "no task or sub-task" — the packet is for the run as a whole, not a
+  // missing id standing in for one that exists.
   const taskId = input.task?.id ?? input.subTask?.id ?? null;
   const requirementIds = input.task?.requirement_ids ?? [];
   const mappedRequirements = input.state.requirements.filter((requirement) =>
@@ -123,7 +125,9 @@ export function buildPacket(input: PacketInput): BuiltPacket {
     `# ${input.role} packet`,
     section(
       "Identity",
-      `Run: ${input.runId}\nTask: ${taskId ?? "run-level"}\nAttempt: ${input.attempt}`,
+      // A null taskId is the absence of a task, not an unknown one: this packet was issued at run
+      // level, so the line reports no task rather than naming one the packet never carried.
+      `Run: ${input.runId}\nTask: ${taskId ?? "none - run-level packet"}\nAttempt: ${input.attempt}`,
     ),
     section("Role contract", roleContract.text),
     jsonSection("Task contract", taskContract(input)),

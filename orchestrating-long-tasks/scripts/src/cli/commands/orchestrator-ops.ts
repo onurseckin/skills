@@ -18,7 +18,7 @@ export async function orchestratorRunCommand(
     throw new HarnessError("INVALID_ARGUMENT", `repository path does not exist: ${repo}`);
   }
 
-  const actor = textFlag(flags, "actor", false) ?? "orchestrator";
+  const actor = textFlag(flags, "actor", false);
   const runId =
     textFlag(flags, "run-id", false) ??
     textFlag(flags, "run", false) ??
@@ -78,7 +78,7 @@ export async function orchestratorRunCommand(
     initialPrompt: prompt,
     maxRounds,
     ...(capsulesDir !== undefined ? { capsulesDir } : {}),
-    actor,
+    ...(actor !== undefined ? { actor } : {}),
     ...(context.executor !== undefined ? { executor: context.executor } : {}),
   });
 

@@ -5,22 +5,29 @@
 ```text
 .capsules/<run>/
 ├── prompt.md             immutable original bytes, mode 0444
+├── README.md             generated layout note: one line per entry and what it is for
 ├── manifest.json         assurance, prompt digest, capture mode, runtime version
 ├── state.json            canonical current projection
 ├── events.jsonl          canonical append-only hash chain
+├── index.json            derived catalogue of tasks, commands, findings, reports, captures, blobs
+├── trace.md              derived step trace, one row per recorded event
 ├── handoff.md            derived restart document, mode 0444
+├── captures.json         capture ledger: every stored blob, its readable name, and its owner
 ├── planning/             requirements.json, graph.json, and the enhanced plan document
 ├── packets/              immutable role packets: <packet-id>/packet.md and metadata.json
 ├── commands/             aggregate command records, attempts, logs, activity
-├── evidence/             scoped artifacts, screenshots, and validation receipts
+├── blobs/                <aa>/<sha256>: the one physical home for every captured byte-blob
+├── evidence/             readable names hardlinked onto blobs/; holds no bytes of its own
 ├── reports/              submission, review, and critic report records
-├── findings/             exported open/resolved findings
+├── quarantine/           event-log fragments removed by recovery, kept byte for byte
 └── summary/              graph.json, timeline.json, metrics.json, summary.md
 ```
 
-`plan:init` creates the capsule with `prompt.md`, `manifest.json`, `state.json`, `events.jsonl` and
-the `planning/`, `commands/`, `evidence/`, `reports/` and `findings/` directories. `packets/` appears
-when the first role packet is published and `summary/` when `summary:export` runs. `handoff.md` is
+`plan:init` creates the capsule with `prompt.md`, `manifest.json`, `state.json`, `events.jsonl`,
+`README.md`, `index.json`, `trace.md` and the `planning/`, `commands/`, `blobs/`, `evidence/` and
+`reports/` directories. `captures.json` appears with the first capture, `packets/` when the first
+role packet is published, `quarantine/` when recovery removes a fragment, and `summary/` when
+`summary:export` runs. `handoff.md` is
 rewritten at every task submission, at the escalation that ends the repair budget, and at
 `run:complete`: the three points where a run changes hands. It is derived, so it is regenerated
 rather than amended, and it is never evidence of anything.

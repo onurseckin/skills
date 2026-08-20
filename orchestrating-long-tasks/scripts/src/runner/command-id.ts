@@ -9,5 +9,3 @@ export function canonicalCommandFingerprint(cwd: string, argv: readonly string[]
   const identity = JSON.stringify({ argv: [...argv], cwd: resolve(cwd) });
   return createHash("sha256").update(identity).digest("hex");
 }
-
-export const commandFingerprint = canonicalCommandFingerprint;

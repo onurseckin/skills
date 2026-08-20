@@ -64,7 +64,8 @@ bun harness.ts task:probe \
 }
 ```
 
-Both land in `.capsules/<run-id>/findings/<id>.json` and in `state.tasks.<id>.findings[]`. The
+Both land in `state.tasks.<id>.findings[]`, which is where a finding lives; `finding:get` reads
+them from there, and `index.json` catalogues them by task and status. The
 `class` field is what keeps them apart, and it is **never inferred from severity or verdict** — a
 probe demand carries `severity: minor` because it asserts nothing, not because it is unimportant.
 
@@ -125,7 +126,7 @@ does not satisfy the probe requirement on its own either.
    rejection without structured `--findings` is refused. A critic that rejects with nothing to say
    fails rather than inventing a finding.
 2. **No phantom probes.** `task:probe` needs at least one `--demand`.
-3. **Immutable traceability.** Findings live in `events.jsonl`, `state.json` and `findings/`, and the
+3. **Immutable traceability.** Findings live in `events.jsonl` and its `state.json` projection, and the
    `review-recorded` event carries `verdict`, `round`, `class` and `finding_count`, so a clean pass is
    never mislabelled in the timeline as "requested changes (0 findings)".
 4. **Mechanical resolution only.** Every close is `<finding-id>=<command-id>`, and the harness never

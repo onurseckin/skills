@@ -6,12 +6,12 @@ import { execute } from "../../../orchestrating-long-tasks/scripts/src/cli/execu
 import { formatQueueWaveBrief } from "../../../orchestrating-long-tasks/scripts/src/cli/formatters/queue-formatter.ts";
 import { resetHarnessConfigCache } from "../../../orchestrating-long-tasks/scripts/src/config/harness-config.ts";
 import {
-  nextWave,
+  readySet,
   recordTopology,
 } from "../../../orchestrating-long-tasks/scripts/src/scheduler/index.ts";
 import { schedulerState } from "./fixtures.ts";
 
-interface WaveEntryShape {
+interface ReadyEntryShape {
   task_id: string;
   label: string | null;
   recorded_wave: number | null;
@@ -82,25 +82,26 @@ async function compiledRun(name: string, maxParallel?: number): Promise<string> 
 }
 
 describe("queue:wave", () => {
-  test("hands out the whole conflict-free wave, not one task", async () => {
+  test("lists every claimable task, where queue:next names only the first", async () => {
     const run = await compiledRun("wave-batch");
 
     const next = await execute(["queue:next", "--run", run]);
     expect((next.task as { id: string }).id).toBe("t-alpha");
 
     const wave = await execute(["queue:wave", "--run", run]);
-    const entries = wave.wave as WaveEntryShape[];
+    const entries = wave.wave as ReadyEntryShape[];
     expect(entries.map((entry) => entry.task_id)).toEqual(["t-alpha", "t-beta"]);
     expect(entries[0]!.label).toBe("Label t-alpha");
     expect(entries[0]!.write_scope).toEqual(["src/alpha"]);
     expect(wave.max_parallel).toBe(4);
-    expect(String(wave.markdown)).toContain("### Dispatchable Wave: 2/4 conflict-free tasks");
+    expect(String(wave.markdown)).toContain("### Claimable Now: 2/4 conflict-free tasks");
+    expect(String(wave.markdown)).toContain("each row is independently claimable now");
   });
 
   // plan:compile records the topology, so the absent path belongs to capsules compiled before it
   // did; the state fixture stands in for one.
   test("reports an unrecorded topology as absent and never guesses a wave number", () => {
-    const selection = nextWave(schedulerState(), 4);
+    const selection = readySet(schedulerState(), 4);
 
     expect(selection.topology_source).toBe("absent");
     expect(selection.topology_revision).toBeNull();
@@ -129,7 +130,7 @@ describe("queue:wave", () => {
     const wave = await execute(["queue:wave", "--run", run]);
     expect(wave.topology_source).toBe("recorded");
     expect(wave.topology_revision).toBe(1);
-    expect((wave.wave as WaveEntryShape[]).map((entry) => entry.recorded_wave)).toEqual([1, 1]);
+    expect((wave.wave as ReadyEntryShape[]).map((entry) => entry.recorded_wave)).toEqual([1, 1]);
     expect(String(wave.markdown)).toContain("recorded at graph revision 1");
   });
 
@@ -137,7 +138,7 @@ describe("queue:wave", () => {
     const run = await compiledRun("wave-cap");
 
     const wave = await execute(["queue:wave", "--run", run, "--max-parallel", "1"]);
-    expect((wave.wave as WaveEntryShape[]).map((entry) => entry.task_id)).toEqual(["t-alpha"]);
+    expect((wave.wave as ReadyEntryShape[]).map((entry) => entry.task_id)).toEqual(["t-alpha"]);
     expect(wave.max_parallel).toBe(1);
   });
 

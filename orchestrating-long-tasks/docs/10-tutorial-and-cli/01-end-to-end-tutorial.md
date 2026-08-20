@@ -80,7 +80,8 @@ bun harness.ts plan:init --repo . --run slugger --prompt-file prompt.txt --captu
 ```
 
 The capsule now exists with `prompt.md` (mode `0444`), `manifest.json`, `state.json`, an empty
-`events.jsonl`, and the `commands/ evidence/ findings/ planning/ reports/` directories.
+`events.jsonl`, the generated `README.md`, `index.json` and `trace.md`, and the
+`blobs/ commands/ evidence/ planning/ reports/` directories.
 
 ---
 
@@ -178,19 +179,19 @@ bun harness.ts queue:wave --run .capsules/slugger
 ```
 
 ```text
-### Dispatchable Wave: 2/4 conflict-free tasks
+### Claimable Now: 2/4 conflict-free tasks
 | Task | Label | Priority | Write Scope | Planned Wave |
 | :--- | :--- | :--- | :--- | :--- |
 | `task-slug` | Slugify helper | 50 | `src/slug.ts` | 1 |
 | `task-truncate` | Truncate helper | 50 | `src/truncate` | 1 |
 
 - **Topology**: recorded at graph revision 1
-- **Dispatch**: launch all 2 agents in one batch; each claims its own task.
+- **Dispatch**: each row is independently claimable now — claim it the moment an agent is free; do not wait for the rest of this list before claiming the next one.
 ```
 
-`queue:wave` is read-only and returns the whole conflict-free wave, so a coordinator dispatches N
-agents in one batch. `queue:pop` hands out one task at a time and is what serialises an otherwise
-parallel graph.
+`queue:wave` is read-only and reports every task claimable right now, so a coordinator dispatches
+each one as an agent frees up instead of waiting for the list to be claimed as a unit. `queue:pop`
+hands out one task at a time and is the right tool for filling a single freed slot.
 
 ---
 

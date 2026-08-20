@@ -65,7 +65,8 @@ Under `.capsules/<run-id>/commands/<command-id>/`:
    each stream's path, byte count and SHA-256.
 2. **`attempt-<n>/stdout.log`** and **`attempt-<n>/stderr.log`** — the exact bytes, per attempt.
 
-A matching `evidence/<command-id>.json` file is written for the evidence index.
+No second document restates the record. `evidence:get` reads this record and the capture ledger,
+because a separate evidence file could disagree with the record and nothing would say which was true.
 
 ```text
 +-----------------------------------------------------------------------------------------------+

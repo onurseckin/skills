@@ -5,7 +5,6 @@ import { join } from "node:path";
 import { orchestratorRunCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/orchestrator-ops.ts";
 import { execute } from "../../../orchestrating-long-tasks/scripts/src/cli/execute.ts";
 import { shouldReadPromptStdin } from "../../../orchestrating-long-tasks/scripts/src/cli/prompt-input.ts";
-import { formatOrchestratorRunBrief } from "../../../orchestrating-long-tasks/scripts/src/cli/formatters/orchestrator-formatter.ts";
 import type {
   RoundExecutionInput,
   RoundExecutionResult,
@@ -65,6 +64,7 @@ describe("CLI Command: orchestrator:run Standard Execution", () => {
       const fileData = JSON.parse(readFileSync(summaryFile, "utf-8"));
       expect(fileData.baseRunId).toBe("orch-cli-test-01");
       expect(fileData.finalStatus).toBe("converged_success");
+      expect(fileData.actor).toBe("test-agent");
     } finally {
       rmSync(testDir, { recursive: true, force: true });
     }
@@ -179,6 +179,44 @@ describe("CLI Command: orchestrator:run Standard Execution", () => {
     }
   });
 
+  it("leaves the loop summary unattributed when --actor is omitted", async () => {
+    const testDir = mkdtempSync(join(tmpdir(), "cli-orch-no-actor-"));
+    try {
+      const mockExecutor: RoundExecutor = {
+        async executeRound(input: RoundExecutionInput): Promise<RoundExecutionResult> {
+          return {
+            runId: input.runId,
+            round: input.round,
+            status: "completed",
+            criticDecision: "approve",
+            tasks: [],
+            findings: [],
+            gateResults: [{ gate_id: "gate-01", command_id: "cmd-01", status: "passed" }],
+          };
+        },
+      };
+
+      await execute(
+        [
+          "orchestrator:run",
+          "--repo",
+          testDir,
+          "--prompt",
+          "Run with no attribution",
+          "--run-id",
+          "orch-no-actor",
+        ],
+        { executor: mockExecutor },
+      );
+
+      const summaryFile = join(testDir, ".capsules", "orch-no-actor-loop-summary.json");
+      const fileData = JSON.parse(readFileSync(summaryFile, "utf-8"));
+      expect(Object.hasOwn(fileData, "actor")).toBe(false);
+    } finally {
+      rmSync(testDir, { recursive: true, force: true });
+    }
+  });
+
   it("honors custom --capsules-dir and --run alias", async () => {
     const testDir = mkdtempSync(join(tmpdir(), "cli-orch-capsules-"));
     const customCapsules = join(testDir, "custom-capsule-store");
@@ -245,40 +283,9 @@ describe("CLI Command: orchestrator:run Standard Execution", () => {
     }
   });
 
-  it("identifies stdin prompt flags and formats briefs properly", () => {
+  it("identifies stdin prompt flags", () => {
     expect(shouldReadPromptStdin(["orchestrator:run", "--prompt-stdin"])).toBeTrue();
     expect(shouldReadPromptStdin(["orchestrator", "--prompt-stdin"])).toBeTrue();
     expect(shouldReadPromptStdin(["orchestrator:run", "--prompt", "Hello"])).toBeFalse();
-
-    const brief = formatOrchestratorRunBrief({
-      loopId: "loop-test-brief",
-      baseRunId: "test-brief",
-      finalStatus: "converged_success",
-      totalRoundsExecuted: 1,
-      maxRoundsConfigured: 5,
-      durationSeconds: 2.5,
-      totalFindingsSynthesized: 0,
-      gateStatus: "passed",
-      finalCriticDecision: "approve",
-      rounds: [
-        {
-          round: 1,
-          runId: "test-brief-round-1",
-          status: "completed",
-          criticDecision: "approve",
-          taskCount: 1,
-          completedTaskCount: 1,
-          openFindingsCount: 0,
-          resolvedFindingsCount: 0,
-          gateStatus: "passed",
-          gateCount: 1,
-          durationMs: 2500,
-          startedAt: new Date().toISOString(),
-        },
-      ],
-    });
-
-    expect(brief).toContain("# Autonomous Multi-Round Loop Summary: `test-brief`");
-    expect(brief).toContain("`converged_success`");
   });
 });

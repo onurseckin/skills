@@ -1210,7 +1210,7 @@ An earlier draft of this item claimed the scheduler enforces a wave barrier. **I
 
 - `workflow/gates/finish-task.ts:35` promotes a task to `ready` the moment "dependencies satisfied" —
   dependency-driven and continuous, never wave-gated.
-- `scheduler/next-wave.ts` treats a recorded wave as an ANNOTATION on the answer, not a gate; its own
+- `scheduler/ready-set.ts` treats a recorded wave as an ANNOTATION on the answer, not a gate; its own
   comment says a persisted topology "annotates the answer".
 - The only hard constraint at claim time is `ownershipConflicts` — write-scope collision — which is the
   correct constraint.
@@ -1649,7 +1649,7 @@ B13 releases those paths.
 
 ## B31 — Model and effort tier policy   `deferred by owner`
 
-Research complete and written up in `RESEARCH.md` (92 domains, 2026-08-20). **The owner has explicitly
+Research complete and written up in `model-effort-policy.md` (92 domains, 2026-08-20). **The owner has explicitly
 deferred the decision** — effort and model settings stay as they are pending further thought. Do not
 change them.
 
@@ -1739,3 +1739,111 @@ The storage contract is already correct and needs no change: `AgentGrantRecord` 
 `tokens_out` and `token_extras`, each an `Evidenced<T>`. A machine-discovered value is `derived`; an
 agent-reported one is `agent_reported`; a host-supplied one is `host_reported`. When two sources
 disagree, keep both and record the conflict rather than choosing silently.
+
+---
+
+## B33 — Verifier rule: look at the artifact, do not reason about it   `queued`
+
+**Origin: three failures of mine in one session, all the same shape.** I concluded what data was or was
+not available by reading documentation and reasoning, when a filesystem check would have settled it in two
+commands:
+
+1. Claimed a subagent cannot see its own token usage, and designed B32 around a coordinator relaying it.
+   Wrong — `~/.claude/projects/<project>/<session>/subagents/workflows/<run>/agent-<id>.jsonl` records
+   `"model"` and per-turn `"output_tokens"` per agent, on disk, already.
+2. Reported the telemetry pipeline as "~80% wired" after checking each layer separately, without checking
+   whether anything connected them. `detectHostTelemetry` had zero callers.
+3. Wrote `references/host-adapters.md` describing four hosts' mechanisms and treated documentation as
+   integration. Nothing collects anything.
+
+### The rule
+
+**A claim about what data exists, where it lives, or whether something runs must be settled by opening the
+artifact — not by reading a spec, a type, or a doc.** Where a filesystem or runtime check is possible and
+was not performed, that is itself the finding.
+
+Add to every verifier prompt:
+
+- For any claim that data is unavailable: locate the producing artifact on disk and read it. Absence must
+  be demonstrated, not inferred.
+- For any claim that a subsystem works: find the call site and the test that exercises it. "Exported and
+  imported" is not "runs"; a type that describes a thing is not the thing.
+- For any design that works AROUND a limitation: prove the limitation is real before accepting the
+  workaround. A workaround for a non-problem is worse than the problem — it ships complexity and hides
+  the simpler path.
+- Documentation describing a mechanism is evidence the mechanism is DOCUMENTED. It is not evidence it is
+  implemented, reachable, or used.
+
+### Why this belongs in the harness too
+
+This is the same standard the skill already applies to agents — a validator may not "infer success from
+file presence, test names, comments, or another agent's command output". It was never applied to claims
+about the ENVIRONMENT. Extend it: an agent asserting something about the host, the filesystem, or another
+agent must have looked.
+
+---
+
+## B34 — The real host telemetry source, found by looking   `queued` **[supersedes B32.1's design]**
+
+**Filesystem inventory, 2026-08-20.** Everything the harness needs is already on disk, written by the host,
+per agent. B32.1's "the coordinator must relay tokens because a subagent cannot see its own" was a
+workaround for a problem that does not exist. Discard it.
+
+### Claude Code — the richest source, and it is complete
+
+```
+~/.claude/projects/<project-slug>/<sessionId>/
+  <sessionId>.jsonl                                   main session transcript
+  subagents/agent-<agentId>.jsonl                     Task-tool subagent transcript
+  subagents/agent-<agentId>.meta.json                 {agentType, description, toolUseId,
+                                                       parentAgentId, spawnDepth}   <- LINEAGE
+  subagents/workflows/wf_<runId>/agent-<id>.jsonl     workflow subagent transcripts
+  subagents/workflows/wf_<runId>/journal.jsonl        {type:"started"|"result", agentId, result}
+  workflows/wf_<runId>.json                           run aggregate
+```
+
+`workflows/wf_<runId>.json` alone answers most of B15 and B32. Real observed keys: `runId`, `taskId`,
+`agentCount`, `durationMs`, `status` (`completed|failed|killed`), `defaultModel`, `totalTokens`,
+`totalToolCalls`, and `workflowProgress[]` whose per-agent entries carry:
+
+```
+{label, agentId, model:"claude-opus-5[1m]", state:"start|progress|done|error",
+ queuedAt, startedAt, lastProgressAt, attempt, lastToolName, tokens, toolCalls, durationMs, error?}
+```
+
+Per-turn, inside `agent-<id>.jsonl`:
+- `.message.model` — exact model id (`claude-opus-5`, `claude-sonnet-5`, `claude-haiku-4-5-20251001`)
+- `.effort` — reasoning effort as a string (`"high"` observed)
+- `.message.usage` — `{input_tokens, output_tokens, cache_creation_input_tokens,
+  cache_read_input_tokens, service_tier, cache_creation:{ephemeral_5m, ephemeral_1h}}`.
+  This is the per-host token accounting convention B20.3 asked for, recorded rather than assumed.
+- `.message.content[].type=="tool_use"` — `{id, name, input}`: which tools, with arguments
+- `toolUseResult` and `is_error` on the result turn — whether each call succeeded
+- first/last `timestamp` — real duration
+- `toolEndsTurn:true` — the completion marker
+
+Machine-level, in `~/.claude.json`: per-project `lastModelUsage` keyed by exact model id with
+`{inputTokens, outputTokens, cacheReadInputTokens, cacheCreationInputTokens, costUSD}` — **real recorded
+cost**, which is what gvui was previously fabricating from a rate card.
+`~/.claude/settings.json` carries `effortLevel` (this machine: `"xhigh"`).
+
+**Not persisted:** the plaintext of `thinking` blocks is empty on disk with only an opaque signature.
+Reasoning effort is recorded; reasoning content is not. Record that as a genuine limit, not a gap to fill.
+
+### What this changes
+
+- Telemetry is `harness_observed`, not `agent_reported` — the harness reads the host's own record.
+- Token counts are REAL, replacing the `bytes/4` estimator entirely for this host.
+- Lineage is real: `parentAgentId` and `spawnDepth` from `.meta.json`, so the graph's subagent tree stops
+  being inferred from edge traversal.
+- Tool usage is real: names and arguments per call, with success/failure — B15.3 satisfied for this host.
+- Cost is real and recorded, so gvui can show a true figure or nothing.
+
+### Work
+
+1. A reader per host that parses these files, failing safely when the host is not installed.
+2. Called as a HARDCODED STEP at `agent:register` / `task:submit` / `agent:release` — never a round-trip
+   to an agent (owner requirement).
+3. Reconcile with anything the agent self-reported: record both, flag disagreement, never choose silently.
+4. Same treatment for Codex, Antigravity and Cursor from their inventories — and where a host records
+   nothing, say `unknown` rather than inventing a shape.

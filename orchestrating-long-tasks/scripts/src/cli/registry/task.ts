@@ -1,4 +1,5 @@
 import {
+  taskAssignRepairerCommand,
   taskClaimCommand,
   taskHeartbeatCommand,
   taskProbeCommand,
@@ -229,5 +230,32 @@ export const TASK_COMMANDS: readonly CommandSpec[] = [
       'bun harness.ts task:reject --run .capsules/<run-id> --task task-1 --validator val-1 --token <token> --reason "Missing input validation" --severity critical --remediation "Validate the payload before the insert"',
     ],
     handler: taskRejectCommand,
+  },
+  {
+    name: "task:assign-repairer",
+    aliases: [],
+    domain: "task",
+    summary: "Replace the original implementer as a task's repairer, with a recorded reason.",
+    description:
+      "The original implementer always gets the first repair opportunity; this records the harness's own decision to hand the repair lease to someone else instead. --reason stale requires the prior repair attempt's lease to have gone stale; --reason repeated_failure requires at least two recorded repair rounds; --reason unavailable carries no precondition beyond the task already awaiting its original repairer.",
+    flags: [
+      requiredFlag("run", "string", "Capsule run root."),
+      requiredFlag("task", "string", "Task in changes_requested, awaiting its original repairer."),
+      requiredFlag("actor", "string", "Who is recording the reassignment."),
+      requiredFlag("repairer", "string", "Replacement agent id; must differ from the original."),
+      requiredFlag(
+        "reason",
+        "string",
+        "repeated_failure, stale, or unavailable; each carries its own precondition.",
+      ),
+      requiredFlag("evidence", "string", "Why the replacement is warranted."),
+    ],
+    readsStdin: false,
+    takesRemainder: false,
+    exitCodes: DEFAULT_EXIT_CODES,
+    examples: [
+      'bun harness.ts task:assign-repairer --run .capsules/<run-id> --task task-1 --actor coordinator --repairer worker-2 --reason unavailable --evidence "worker-1 released without claiming the repair lease"',
+    ],
+    handler: taskAssignRepairerCommand,
   },
 ];

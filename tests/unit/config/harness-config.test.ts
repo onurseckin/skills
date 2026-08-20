@@ -31,27 +31,23 @@ describe("harness-config", () => {
     const dir = makeTempDir();
     const config = loadHarnessConfig(dir);
     expect(config).toEqual(DEFAULT_CONFIG);
-    expect(config.min_adversarial_rejections).toBe(1);
     expect(config.max_repair_rounds).toBe(6);
     expect(config.max_branch_depth).toBe(5);
     expect(config.max_agents).toBe(100);
     expect(config.max_output_bytes).toBe(10 * 1024 * 1024);
     expect(config.default_lease_seconds).toBe(1800);
     expect(config.default_max_parallel).toBe(4);
-    expect(config.strict_validation).toBe(true);
   });
 
   test("loads settings from harness.config.json in repo root", () => {
     const dir = makeTempDir();
     const custom = {
-      min_adversarial_rejections: 4,
       max_repair_rounds: 8,
       max_branch_depth: 3,
       max_agents: 12,
       max_output_bytes: 5 * 1024 * 1024,
       default_lease_seconds: 900,
       default_max_parallel: 2,
-      strict_validation: false,
     };
     writeFileSync(join(dir, "harness.config.json"), JSON.stringify(custom));
 
@@ -63,13 +59,11 @@ describe("harness-config", () => {
     const dir = makeTempDir();
     const custom = {
       max_repair_rounds: 7,
-      strict_validation: false,
     };
     writeFileSync(join(dir, ".harness.config.json"), JSON.stringify(custom));
 
     const config = loadHarnessConfig(dir);
     expect(config.max_repair_rounds).toBe(7);
-    expect(config.strict_validation).toBe(false);
     expect(config.max_output_bytes).toBe(DEFAULT_CONFIG.max_output_bytes);
     expect(config.default_lease_seconds).toBe(DEFAULT_CONFIG.default_lease_seconds);
   });
@@ -122,7 +116,6 @@ describe("harness-config", () => {
       max_output_bytes: 100, // below 1024 minimum
       default_lease_seconds: 2, // below 5s minimum
       default_max_parallel: 0,
-      strict_validation: "not-a-boolean",
     };
     writeFileSync(join(dir, "harness.config.json"), JSON.stringify(invalidFields));
 

@@ -2,7 +2,10 @@ import { describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { detectHostIdentity } from "../../../orchestrating-long-tasks/scripts/src/summary/host-telemetry.ts";
+import {
+  detectHostIdentity,
+  detectHostTelemetry,
+} from "../../../orchestrating-long-tasks/scripts/src/summary/host-telemetry.ts";
 
 // A host's own variable name, held as a value so no product names a symbol in this suite.
 const HOST_MODEL_VARIABLE = "CLAUDE_CODE_MODEL";
@@ -85,5 +88,125 @@ describe("host identity detection", () => {
         expect(detectHostIdentity({ homeDir: home, env: {} })).toBeNull();
       });
     }
+  });
+
+  test("recognises codex from a config.toml that carries no plain string value", () => {
+    withTempHome((home) => {
+      const dir = join(home, ".codex");
+      mkdirSync(dir, { recursive: true });
+      writeFileSync(join(dir, "config.toml"), "[agents]\nmax_concurrent_threads_per_session = 4\n");
+      expect(detectHostIdentity({ homeDir: home, env: {} })?.hostTool).toBe("codex");
+    });
+  });
+});
+
+describe("host telemetry probing — the automatic, hardcoded half of the two sources", () => {
+  test("codex: reads the session concurrency ceiling and the multi_agent feature flag", () => {
+    withTempHome((home) => {
+      const dir = join(home, ".codex");
+      mkdirSync(dir, { recursive: true });
+      writeFileSync(
+        join(dir, "config.toml"),
+        "[agents]\nmax_concurrent_threads_per_session = 4\n\n[features]\nmulti_agent = true\n",
+      );
+      const probe = detectHostTelemetry("worker-1", { homeDir: home, env: {} });
+      expect(probe?.host_tool).toBe("codex");
+      expect(probe?.capabilities.concurrency_ceiling).toEqual({ value: 4, evidence_class: "derived" });
+      expect(probe?.capabilities.multi_agent_enabled).toEqual({
+        value: true,
+        evidence_class: "derived",
+      });
+      expect(probe?.capabilities.native_resume).toEqual({ value: true, evidence_class: "derived" });
+      expect(probe?.capabilities.per_agent_model_selection).toEqual({
+        value: true,
+        evidence_class: "derived",
+      });
+    });
+  });
+
+  test("codex: reads a per-agent model and reasoning effort keyed by the exact agent id", () => {
+    withTempHome((home) => {
+      const agentsDir = join(home, ".codex", "agents");
+      mkdirSync(agentsDir, { recursive: true });
+      writeFileSync(join(home, ".codex", "config.toml"), "[features]\nmulti_agent = true\n");
+      writeFileSync(join(agentsDir, "worker-7.toml"), 'model = "gpt-codex-mini"\nreasoning_effort = "high"\n');
+
+      // A different agent id has no file of its own — proving `agentId` is genuinely read, not
+      // ignored: it changes which file gets opened, not just what gets logged.
+      const other = detectHostTelemetry("worker-1", { homeDir: home, env: {} });
+      expect(other?.model).toBeUndefined();
+      expect(other?.thinking_level).toBeUndefined();
+
+      const probe = detectHostTelemetry("worker-7", { homeDir: home, env: {} });
+      expect(probe?.model).toEqual({ value: "gpt-codex-mini", evidence_class: "derived" });
+      expect(probe?.thinking_level).toEqual({ value: "high", evidence_class: "derived" });
+    });
+  });
+
+  test("codex: an unrecognised reasoning effort is left absent rather than guessed at", () => {
+    withTempHome((home) => {
+      const agentsDir = join(home, ".codex", "agents");
+      mkdirSync(agentsDir, { recursive: true });
+      writeFileSync(join(home, ".codex", "config.toml"), "[features]\nmulti_agent = false\n");
+      writeFileSync(join(agentsDir, "worker-1.toml"), 'reasoning_effort = "extreme"\n');
+      expect(detectHostTelemetry("worker-1", { homeDir: home, env: {} })?.thinking_level).toBeUndefined();
+    });
+  });
+
+  test("claude-code: nesting depth and concurrency are read only when the host actually set them", () => {
+    withTempHome((home) => {
+      const unset = detectHostTelemetry("worker-1", {
+        homeDir: home,
+        env: { [HOST_MODEL_VARIABLE]: "claude-3-7-sonnet" },
+      });
+      expect(unset?.capabilities.nesting_depth).toBeUndefined();
+      expect(unset?.capabilities.concurrency_ceiling).toBeUndefined();
+      expect(unset?.capabilities.per_agent_model_selection).toEqual({
+        value: true,
+        evidence_class: "derived",
+      });
+
+      const set = detectHostTelemetry("worker-1", {
+        homeDir: home,
+        env: {
+          [HOST_MODEL_VARIABLE]: "claude-3-7-sonnet",
+          CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH: "3",
+          CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS: "20",
+        },
+      });
+      expect(set?.capabilities.nesting_depth).toEqual({ value: 3, evidence_class: "derived" });
+      expect(set?.capabilities.concurrency_ceiling).toEqual({ value: 20, evidence_class: "derived" });
+    });
+  });
+
+  test("antigravity and cursor report only their documented capabilities, nothing invented", () => {
+    withTempHome((home) => {
+      writeHostSettings(home, { model: "Gemini 3.7 Flash (High)" });
+      const probe = detectHostTelemetry("worker-1", { homeDir: home, env: {} });
+      expect(probe?.capabilities.native_workspace_isolation).toEqual({
+        value: true,
+        evidence_class: "derived",
+      });
+      expect(probe?.capabilities.native_resume).toEqual({ value: true, evidence_class: "derived" });
+      // Neither is documented for Antigravity, so neither is reported.
+      expect(probe?.capabilities.nesting_depth).toBeUndefined();
+      expect(probe?.capabilities.concurrency_ceiling).toBeUndefined();
+    });
+    withTempHome((home) => {
+      const probe = detectHostTelemetry("worker-1", { homeDir: home, env: { CURSOR_MODEL: "gpt-4o" } });
+      expect(probe?.capabilities.nesting_depth).toEqual({ value: 2, evidence_class: "derived" });
+      expect(probe?.capabilities.concurrency_ceiling).toBeUndefined();
+    });
+  });
+
+  test("no identified host means no telemetry at all", () => {
+    withTempHome((home) => {
+      expect(detectHostTelemetry("worker-1", { homeDir: home, env: {} })).toBeNull();
+    });
+    withTempHome((home) => {
+      expect(
+        detectHostTelemetry("worker-1", { homeDir: home, env: { AI_MODEL: "in-house" } }),
+      ).toBeNull();
+    });
   });
 });
