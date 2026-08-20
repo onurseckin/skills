@@ -6,7 +6,7 @@ import { loadRun } from "../../store/index.ts";
 import { applicableGates } from "../../workflow/gates/gate-policy.ts";
 import { beginValidation } from "../../workflow/review/begin-validation.ts";
 import { formatValidationStartBrief } from "../formatters/index.ts";
-import { textFlag, type Flags } from "../options.ts";
+import { integerFlag, textFlag, type Flags } from "../options.ts";
 import { reviewPolicyFor } from "./task-review-support.ts";
 
 export async function taskValidateStartCommand(flags: Flags): Promise<Record<string, unknown>> {
@@ -24,7 +24,8 @@ export async function taskValidateStartCommand(flags: Flags): Promise<Record<str
       `--validator-domain is not a recognized validator domain: ${rawDomain}`,
     );
   }
-  const state = beginValidation(workflowPort(run), taskId, validator);
+  const leaseDuration = integerFlag(flags, "lease-duration", { minimum: 5, maximum: 86_400 });
+  const state = beginValidation(workflowPort(run), taskId, validator, undefined, leaseDuration);
   const task = state.tasks[taskId]!;
   if (typeof task.validation_token !== "string") {
     throw new HarnessError("INVALID_STATE", `validation for ${taskId} produced no token`);

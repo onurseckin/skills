@@ -236,6 +236,7 @@ describe("completion repository-byte binding", () => {
           ...completionArtifactRequirements(state),
           repository_binding: { ...repositoryBinding, content_sha256: "f".repeat(64) },
         }),
+        criticToken,
         clock,
       ),
     ).toThrow("repository bytes changed");

@@ -424,7 +424,7 @@ export async function buildRunReportCapsule(): Promise<BuiltRun> {
     summary: "Every requirement is proven by a recorded gate",
     proofs,
   });
-  await cli("run:complete", { run, actor: "coordinator-1" });
+  await cli("run:complete", { run, actor: "coordinator-1", "auth-token": criticToken });
 
   const suite = generateSummarySuite({ capsulePath: run, writeToDisk: false });
   return { repo, run, markdown: suite.markdown, failingExitCode: failing.exit_code };

@@ -1,4 +1,5 @@
 import { HarnessError } from "../../errors/harness-error.ts";
+import { tokenMatches } from "../lease/token.ts";
 import { requireText, utc } from "../task-state.ts";
 import { systemClock, type Clock, type TransactionPort } from "../types.ts";
 import {
@@ -18,9 +19,13 @@ export function completeRun(
   port: TransactionPort,
   actor: string,
   verifyArtifacts: CompletionArtifactVerifier,
+  // The token the approving critic's own review handed back (run:complete --auth-token). Sealing
+  // the run is the one act the token authorizes; nothing else has ever asked to see it.
+  authToken: string,
   clock: Clock = systemClock,
 ) {
   actor = requireText(actor, "actor");
+  authToken = requireText(authToken, "auth_token");
   const current = port.read();
   if (current.completion_result?.status === "complete") return current;
   const now = clock.now();
@@ -30,6 +35,12 @@ export function completeRun(
     );
     if (preflight.length > 0)
       throw new HarnessError("INVALID_STATE", `run is incomplete: ${preflight.join("; ")}`);
+    // completionIssues already proved completion_review exists, which is only ever recorded
+    // against a completion_critic assignment (review-issues.ts's provenanceIssues), so the
+    // assignment and its token_digest are guaranteed present here.
+    const assignment = draft.completion_critic!;
+    if (!tokenMatches(authToken, assignment.token_digest))
+      throw new HarnessError("INVALID_STATE", "completion authorization token is invalid");
     const requirements = completionArtifactRequirements(draft);
     const verification = validateCompletionArtifactVerification(
       draft,

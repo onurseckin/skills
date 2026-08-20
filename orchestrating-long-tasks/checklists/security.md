@@ -158,3 +158,165 @@ how-to-check: Check new endpoints' response headers for `Access-Control-Allow-Or
 severity: important
 sources:
   - OWASP Top 10 2021, A05:2021 (Security Misconfiguration)
+
+## SEC-AUTHN-003
+
+rule: A password or credential is checked against a rate limit or lockout policy, so an attacker cannot attempt unlimited guesses against one account
+rationale: Without a limit, a weak or common password is only a matter of time to brute-force
+how-to-check: Attempt repeated failed logins against the same account and confirm the system slows, locks, or challenges after a bounded number of attempts
+severity: important
+sources:
+  - OWASP Top 10 2021, A07:2021 (Identification and Authentication Failures)
+
+## SEC-AUTHZ-003
+
+rule: A batch or bulk operation checks authorization on every individual item in the batch, not only on the batch request as a whole
+rationale: A bulk endpoint authorized once at the top can be used to smuggle unauthorized ids into an otherwise-permitted batch
+how-to-check: Send a bulk request containing a mix of authorized and unauthorized item ids and confirm each item is checked independently
+severity: critical
+sources:
+  - OWASP API Security Top 10 2023, API1:2023 (Broken Object Level Authorization)
+
+## SEC-AUTHZ-004
+
+rule: A default deny is the fallback for an authorization check; an unrecognized role, missing permission record, or unhandled case denies access rather than falling through to allow
+rationale: A fail-open authorization check turns any bug or unhandled case in the permission logic into an access-control bypass
+how-to-check: Trace the authorization function's control flow for a path that reaches "allow" without an explicit matched grant
+severity: critical
+sources:
+  - OWASP ASVS, V4 "Access Control" — fail securely
+
+## SEC-INPUT-004
+
+rule: Deserializing untrusted input uses a schema-validating parser, not a dynamic deserializer capable of instantiating arbitrary types
+rationale: Unrestricted deserialization of attacker-controlled data is a well-known route to remote code execution in several ecosystems
+how-to-check: Grep new deserialization of request bodies for a library or pattern capable of type coercion beyond plain JSON/data values
+severity: critical
+sources:
+  - OWASP Top 10 2021, A08:2021 (Software and Data Integrity Failures)
+
+## SEC-INPUT-005
+
+rule: A size or rate limit exists on any input a client fully controls (upload size, request body size, array length, recursion depth)
+rationale: An unbounded input lets a single request exhaust memory, CPU, or storage — a denial of service that costs the attacker one request
+how-to-check: Send an oversized version of the new input (large body, huge array, deeply nested object) and confirm it is rejected rather than processed
+severity: important
+sources:
+  - OWASP API Security Top 10 2023, API4:2023 (Unrestricted Resource Consumption)
+
+## SEC-XSS-001
+
+rule: Data rendered into HTML that originated from user input is escaped or rendered through a mechanism that auto-escapes, never inserted via a raw/`dangerouslySetInnerHTML`-style sink without sanitization
+rationale: Unescaped user content rendered as HTML is the direct mechanism of stored and reflected XSS
+how-to-check: Grep the diff for a raw-HTML insertion sink and trace whether its input can contain user-supplied content
+severity: critical
+sources:
+  - OWASP Top 10 2021, A03:2021 (Injection) — Cross-Site Scripting
+
+## SEC-CSRF-001
+
+rule: A state-changing request triggered from a browser session (cookie-authenticated) is protected against cross-site request forgery — a CSRF token, `SameSite` cookie, or equivalent
+rationale: Without this, any site the user's browser visits can trigger an authenticated action on their behalf without their knowledge
+how-to-check: For a new cookie-authenticated, state-changing endpoint, confirm a CSRF defense is present and actually enforced, not merely available
+severity: important
+sources:
+  - OWASP Cheat Sheet Series, "Cross-Site Request Forgery Prevention"
+
+## SEC-SSRF-001
+
+rule: A server-side request built from a user-supplied URL validates the target against an allowlist, not merely a denylist of obviously internal hosts
+rationale: A denylist alone is bypassed by DNS rebinding, redirects, and alternate IP representations of the same forbidden target
+how-to-check: For a new outbound request whose destination comes from user input, check whether the destination is constrained to an explicit allowlist
+severity: critical
+sources:
+  - OWASP Top 10 2021, A10:2021 (Server-Side Request Forgery)
+
+## SEC-DEP-003
+
+rule: A dependency's license is compatible with the project's own before it is added, not discovered after the fact
+rationale: An incompatible license discovered post-hoc can force a late, disruptive removal of a now-load-bearing dependency
+how-to-check: Check the new dependency's declared license against the project's license policy before merging
+severity: minor
+sources:
+  - OpenChain Specification — license compliance review
+
+## SEC-DEP-004
+
+rule: A dependency is pulled from the canonical registry/source over an integrity-checked channel (lockfile hash, checksum), not an unpinned URL or an unverified mirror
+rationale: An unverified fetch is a supply-chain injection point — the dependency you audited is not provably the one that gets installed
+how-to-check: Confirm the new dependency resolves through the project's lockfile with an integrity hash, not a loose version range against an unpinned source
+severity: important
+sources:
+  - OWASP Top 10 2021, A08:2021 (Software and Data Integrity Failures)
+
+## SEC-CRYPTO-002
+
+rule: A random value used for a security purpose (token, nonce, session id, password reset code) is generated by a cryptographically secure random source, never `Math.random()` or an equivalent non-CSPRNG
+rationale: A predictable "random" value defeats the entire point of using one for a security-sensitive purpose
+how-to-check: Grep new security-token generation for `Math.random()` or another non-cryptographic RNG
+severity: critical
+sources:
+  - OWASP ASVS, V6.3 "Random Values"
+
+## SEC-CRYPTO-003
+
+rule: A comparison of two secret values (token, HMAC, password hash) uses a constant-time comparison, not `===` or a short-circuiting string compare
+rationale: A short-circuiting compare leaks timing information that lets an attacker recover a secret byte by byte
+how-to-check: Grep new secret-comparison code for `===`/`==` against a token or signature rather than a constant-time compare function
+severity: important
+sources:
+  - OWASP Cheat Sheet Series, "Authentication" — timing attack resistance
+
+## SEC-SESSION-002
+
+rule: A session cookie is marked `HttpOnly`, `Secure`, and an appropriate `SameSite` value, not left to browser defaults
+rationale: A cookie missing these flags is readable by injected script (`HttpOnly`), sendable over plaintext (`Secure`), or attachable to cross-site requests (`SameSite`)
+how-to-check: Inspect the `Set-Cookie` header for a new session cookie for all three attributes
+severity: important
+sources:
+  - OWASP Cheat Sheet Series, "Session Management"
+
+## SEC-HEADERS-002
+
+rule: A response that renders user content sets `X-Content-Type-Options: nosniff` and an appropriate `Content-Security-Policy`, rather than relying on the browser's default MIME sniffing
+rationale: MIME sniffing lets a browser reinterpret an uploaded file as executable script content the server never intended to serve as such
+how-to-check: Check new file-serving or user-content endpoints' response headers for `nosniff` and a CSP
+severity: minor
+sources:
+  - OWASP Secure Headers Project
+
+## SEC-UPLOAD-001
+
+rule: An uploaded file's type is validated by its actual content, not trusted from its filename extension or client-supplied MIME type
+rationale: A filename or client-supplied content-type is fully attacker-controlled and trivially spoofed
+how-to-check: For a new upload path, confirm the file's magic bytes/actual content are checked, not only its extension or the `Content-Type` header
+severity: important
+sources:
+  - OWASP File Upload Cheat Sheet
+
+## SEC-ERROR-001
+
+rule: An error response returned to the client does not include a stack trace, internal file path, or raw exception message from production
+rationale: A verbose error response hands an attacker exactly the internal detail they need to craft the next probe
+how-to-check: Trigger an unhandled error against the new endpoint in a production-like configuration and inspect the response body for internal detail
+severity: important
+sources:
+  - OWASP Top 10 2021, A05:2021 (Security Misconfiguration)
+
+## SEC-PRIVACY-001
+
+rule: Personally identifiable information collected or displayed is limited to what the feature actually needs, and is not logged, cached, or exported beyond that need
+rationale: PII collected "just in case" or copied into a log/cache widens the breach surface for data the feature never used
+how-to-check: For new PII-touching code, confirm each field collected is read somewhere the feature actually needs it, and check it against SEC-LOG-001
+severity: important
+sources:
+  - OWASP Top 10 2021, A01:2021 (Broken Access Control) — data minimization principle
+
+## SEC-IAC-001
+
+rule: Infrastructure or deployment configuration does not grant a service or role broader permissions than the specific actions it performs
+rationale: An over-broad service role turns a single compromised function into access across everything that role can touch
+how-to-check: Compare a new or changed IAM policy/role definition against the actual API calls the service makes
+severity: important
+sources:
+  - OWASP ASVS, V1 "Architecture, Design and Threat Modeling" — least privilege

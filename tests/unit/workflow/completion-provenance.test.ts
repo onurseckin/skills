@@ -7,6 +7,7 @@ import {
   artifactVerification,
   clock,
   completionPort,
+  criticToken,
   ObservedPort,
   packetSha,
   review,
@@ -61,7 +62,7 @@ describe("authoritative completion provenance", () => {
   test("writes a completion result with critic and derived gate provenance", () => {
     const port = completionPort();
     review(port);
-    expect(() => completeRun(port, "coordinator", () => undefined, clock)).toThrow();
+    expect(() => completeRun(port, "coordinator", () => undefined, criticToken, clock)).toThrow();
     let verifierCalled = false;
     const state = completeRun(
       port,
@@ -71,6 +72,7 @@ describe("authoritative completion provenance", () => {
         expect(locked.completion_result).toBeUndefined();
         return artifactVerification(locked);
       },
+      criticToken,
       clock,
     );
     expect(verifierCalled).toBeTrue();
@@ -95,6 +97,7 @@ describe("authoritative completion provenance", () => {
         expect(port.locked).toBeTrue();
         return artifactVerification(state);
       },
+      criticToken,
       clock,
     );
   });
@@ -112,7 +115,7 @@ describe("authoritative completion provenance", () => {
       });
     });
     expect(() =>
-      completeRun(port, "coordinator", (state) => artifactVerification(state), clock),
+      completeRun(port, "coordinator", (state) => artifactVerification(state), criticToken, clock),
     ).toThrow("running command");
   });
 
@@ -123,7 +126,30 @@ describe("authoritative completion provenance", () => {
       draft.orphan_evidence.push({ task_id: "T-1", report_sha256: "orphan" });
     });
     expect(() =>
-      completeRun(orphaned, "coordinator", (state) => artifactVerification(state), clock),
+      completeRun(
+        orphaned,
+        "coordinator",
+        (state) => artifactVerification(state),
+        criticToken,
+        clock,
+      ),
     ).toThrow();
+  });
+
+  test("refuses to seal the run without the approving critic's own token", () => {
+    const port = completionPort();
+    review(port);
+    expect(() =>
+      completeRun(port, "coordinator", (state) => artifactVerification(state), "wrong-token", clock),
+    ).toThrow("completion authorization token is invalid");
+    // The correct token still seals it - the prior call rejected the token, not the state.
+    const state = completeRun(
+      port,
+      "coordinator",
+      (locked) => artifactVerification(locked),
+      criticToken,
+      clock,
+    );
+    expect(state.completion_result?.status).toBe("complete");
   });
 });

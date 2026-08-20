@@ -1896,3 +1896,100 @@ cooperative leader exits" — reproduced directly at ambient load ~300+ on a 10-
 runs), traced to literal CPU-scheduler starvation rather than a fixable test assumption, since an
 untouched, pre-existing idle-timeout test fails the same way at the same load. Needs owner sign-off to
 accept at that load level, or a follow-up item for a wall-clock-independent readiness signal.
+
+---
+
+## B36 — B30's research landed unevenly: the coordinator's own role contract still hardcodes `invoke_subagent`, and `host-adapters.md` is spliced, not merged   `queued`
+
+**Verification pass, 2026-08-20 — opened every artifact named below directly; nothing here is inferred
+from a doc describing what should be true.** B30 (`research-in-flight`) recorded five hosts' real
+dispatch mechanisms and stated the fix plainly: "`invoke_subagent` belongs in an adapter row, never in a
+rule." That has been applied to two of the four files B30 named as offenders, and not to the other two —
+including the one file every coordinator is actually told to read as its binding contract.
+
+### B36.1 The role contract itself still fails B30.1
+
+`SKILL.md`'s own routing table sends a coordinator to `roles/coordinator.md` **+**
+`agents/coordinator.yaml`, plus `references/run-playbook.md` and `references/host-adapters.md`, before it
+does anything. Opened all four:
+
+- `orchestrating-long-tasks/agents/coordinator.yaml:103` — "Phase 2: Continuous Dispatch" gives
+  `invoke_subagent({ Subagents: [...] })` as "this is the shape of the call," unqualified, with no mention
+  that this is one host's tool name and no equivalent shown for any other host.
+- `orchestrating-long-tasks/references/run-playbook.md:75` — same block, same lack of qualification, same
+  "this is the shape of the call" framing.
+- Both are exactly the shape B30 was opened to fix: a coordinator running under Claude Code, Cursor, or
+  Codex — three of the four hosts B30.5 itself researched — is instructed, inside its own role contract,
+  to call a tool namespace that does not exist there.
+- By contrast, `orchestrating-long-tasks/docs/04-multi-agent/01-host-agnostic-architecture.md:88` already
+  gets this right: its `invoke_subagent` mention sits under a `### 1. Google Antigravity` heading,
+  correctly scoped as one host's mechanism among several sibling headings. That file was not the problem;
+  `coordinator.yaml` and `run-playbook.md` are.
+
+### B36.2 `host-adapters.md` was edited, not rewritten, and the seam shows
+
+`orchestrating-long-tasks/references/host-adapters.md` (10,075 bytes, touched 2026-08-20) now contains a
+genuinely correct "The abstract contract" section and a four-host "Adapter table" reflecting B30.5's
+research verbatim (Claude Code's `Agent` tool, Codex's `spawn_agent`, Cursor's `Task` tool, alongside
+Antigravity's `invoke_subagent`). But the document's own heading numbers prove it was spliced onto the
+pre-B30 file rather than replacing it:
+
+```
+## 1. Two-Tier Agent Architecture         <- pre-existing, Antigravity-flavoured
+## 2. Milestone-Only Notification Protocol <- pre-existing
+## The abstract contract                   <- new, unnumbered
+## Adapter table                           <- new, unnumbered
+## Native primitives worth using instead of rebuilding   <- new, unnumbered
+## Constraints that change how a run must be driven      <- new, unnumbered
+## Declaring capability, and degrading honestly           <- new, unnumbered
+## 4. Silent Worker Recovery & Heartbeats  <- pre-existing
+```
+
+Section "3" does not exist anywhere in the file — direct, visible evidence of an uncoordinated merge, not
+a red herring. This is the exact collision B30.4 flagged in advance ("Application is BLOCKED on Wave 8's
+B13, which currently owns `references/**`"): something wrote the new material into this file without
+reconciling it against the old numbering.
+
+### B36.3 The two updated docs now contradict each other
+
+`references/parity-matrix.md`'s "Tiered orchestration" row lists Claude Code's dispatch as `Native (Agent
+Teams / teammates)`. `references/host-adapters.md`'s own adapter table — written from the same B30.5
+research — lists Claude Code's dispatch as the `Agent` tool, with Agent Teams described separately, three
+sections later, as an experimental **messaging** channel (`~/.claude/teams/<team>/inboxes/<agent>.json`),
+not the dispatch mechanism. Two reference docs a coordinator is routed to in the same breath (SKILL.md's
+routing row lists both together) disagree about which tool actually starts an agent on Claude Code.
+
+### B36.4 Nothing mechanical catches any of this
+
+`tests/unit/architecture/vendor-identifiers.test.ts` and `tests/unit/health/vendors.test.ts` — the only
+two vendor-name guards in the repo — both scan `.ts` source under `orchestrating-long-tasks/scripts` and
+`tests` only. Neither reads `.yaml` or `.md`. An unqualified vendor tool name sitting in a role contract's
+prose is invisible to both, which is how this survived a full "research-in-flight" cycle undetected.
+
+### B36.5 B30.4's stated blocker is stale
+
+B30.4 says application is "BLOCKED on Wave 8's B13, which currently owns `references/**`." B13 (SKILL.md
+as an index, target under 150 lines) is still marked `queued` in this file, but
+`orchestrating-long-tasks/SKILL.md` is already 147 lines / 12,313 bytes — under B13's own target, down
+from the 604 lines / 38,537 bytes B13 measured when it was opened. Something has already reshaped
+`SKILL.md` without B13's status changing. Whoever next picks up B13 should verify current state with
+`wc -l` before treating it as unstarted work, rather than rewriting something already substantially done;
+and whoever next picks up B30 should treat the `references/**` block as at least partially lifted, since
+material was already written there despite the note.
+
+### Work to do
+
+1. Replace the bare `invoke_subagent({...})` block in `agents/coordinator.yaml` and
+   `references/run-playbook.md` with the abstract dispatch description `host-adapters.md`'s "abstract
+   contract" section already models — the tool name moves into the adapter table, out of the rule.
+2. Fix `host-adapters.md`'s heading numbers so the document reads as one artifact: either renumber
+   sections 1/2/4 to sit coherently with the new material, or drop numbering entirely now that headings
+   are descriptive.
+3. Reconcile `parity-matrix.md`'s Claude Code dispatch cell against `host-adapters.md`'s adapter table —
+   per B2/B4's own rule, one fact, one home; point one document at the other rather than keeping two
+   independently-maintained descriptions of the same mechanism.
+4. Extend the vendor-identifier check (or add a sibling check) to sweep `.md`/`.yaml` prose for an
+   unqualified vendor tool name outside an adapter table/row — the gap in B36.4 is exactly the shape of
+   defect B8.5 asks every fix to close with a structural test, not a one-line edit.
+5. Correct B30.4's blocker note and B13's status once whoever owns each has confirmed current state by
+   opening the files, not by trusting this item's account of them either.

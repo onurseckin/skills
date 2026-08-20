@@ -16,6 +16,17 @@ export interface VendorTree {
   readonly extensions?: readonly string[];
 }
 
+/**
+ * The only place in the producer tree a product name may appear as an identifier: a module that
+ * exists to speak several products' own command grammars, where a generic name would be a lie
+ * about what the rule encodes (`gate-runtime-grammar.ts`'s `denoCommand`/`pythonCommand`, one
+ * function per grammar it parses). `tests/unit/architecture/vendor-identifiers.test.ts` carries
+ * its own `SCRIPT_EXEMPTIONS` under the same reasoning; keep both lists in agreement by hand until
+ * they are unified, because a health check that flags what the test suite already excused for a
+ * documented reason is the check crying wolf, not a real finding.
+ */
+export const PRODUCT_GRAMMAR_MODULES: readonly string[] = ["src/graph/gate-runtime-grammar.ts"];
+
 function describe(entry: VendorIdentifierFinding): string {
   return entry.position === "path"
     ? `the path segment \`${entry.identifier}\` names \`${entry.vendor}\`; a file called after a product makes that product a first-class concept`

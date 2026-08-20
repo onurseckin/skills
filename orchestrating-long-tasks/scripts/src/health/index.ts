@@ -9,7 +9,7 @@ import { scanUnreadParameters } from "./parameters.ts";
 import { checkUnusedCode } from "./reachability.ts";
 import { listFiles, loadSources, type SourceFile } from "./sources.ts";
 import { checkDeclarations } from "./unenforced.ts";
-import { checkVendorIdentifiers } from "./vendors.ts";
+import { checkVendorIdentifiers, PRODUCT_GRAMMAR_MODULES } from "./vendors.ts";
 import type { HealthCheckId, HealthCheckResult, HealthReport } from "./types.ts";
 
 export const ALL_CHECKS: readonly HealthCheckId[] = [
@@ -170,7 +170,7 @@ export function runHealthCheck(
   }
   if (wants("vendor-identifiers")) {
     const vendor = checkVendorIdentifiers([
-      { label: "producer", root: layout.scriptsRoot },
+      { label: "producer", root: layout.scriptsRoot, exempt: PRODUCT_GRAMMAR_MODULES },
       ...(layout.consumerRoot === undefined
         ? []
         : [{ label: "consumer", root: join(layout.consumerRoot, "src") }]),

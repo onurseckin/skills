@@ -13,20 +13,22 @@ or ChatGPT coding agents — can resume the run without conversation history.
 to the one document your current job needs. Read your row; skip the rest. Nothing here summarises a
 document that exists — a summary is a second copy with a shorter half-life.
 
+## Primary entry point: `orchestrate`
+
+Reach for `orchestrate` before assembling this sequence by hand: pipe the user's entire message,
+byte for byte, to `--prompt-stdin` as the immutable prompt (`--prompt-file` also works). It captures
+the prompt, opens the capsule, and hands back the fixed checklist for what happens next — enhance,
+stage, compile, dispatch — bound to that run. When this skill is driving, it owns the orchestration:
+stand down the host's own todo/workflow tool for the run's duration.
+
 ## Why the harness exists
 
-- **Observability over every step.** Every action is a recorded command with an actor, an exit code
-  and an evidence class, so a run is auditable instead of merely remembered.
-- **Quality through gating.** Work is independently validated, adversarially probed, and held to real
-  command evidence before it can be called done.
-- **Attention on the problem.** The CLI absorbs the bookkeeping — leases, waves, findings, lineage —
-  so the model spends its context on the actual decisions.
-- **Commands, not conversation.** Agents call harness commands the way code calls an API:
-  deterministic, recorded, replayable.
-- **The harness never thinks.** It orchestrates and records; it never calls a model API and never
-  launches an LLM CLI. Every tool the host provides is allowed — web access, documentation lookup,
-  browsers, package managers, MCP servers, file and shell tools. Reasoning happens inside the host
-  application, under the user's own subscription.
+- **Observability over every step.** Every action is a recorded command with an actor, an exit code and an evidence class, so a run is auditable instead of merely remembered.
+- **Quality through gating.** Work is independently validated, adversarially probed, and held to real command evidence before it can be called done.
+- **Attention on the problem.** The CLI absorbs the bookkeeping — leases, waves, findings, lineage — so the model spends its context on the actual decisions.
+- **Commands, not conversation.** Agents call harness commands the way code calls an API — deterministic, recorded, replayable.
+- **The harness never thinks.** It orchestrates and records — never a model call, never an LLM CLI —
+  and reasoning happens host-side, under the user's own subscription, with every host tool allowed.
 - **No agent needs the whole skill.** Only the slice its current job requires, which is what the
   routing tables below are for.
 
@@ -86,6 +88,14 @@ advice; it is the reason this table exists.**
 
 [agents/orchestrator.yaml](agents/orchestrator.yaml) is the tier 1 meta-orchestrator persona for
 multi-round loops, and [agents/openai.yaml](agents/openai.yaml) the Codex/ChatGPT profile.
+
+A validator dispatched with `--validator-domain` carries one of five standing-checklist contracts
+instead of the base one — [roles/validator-code-quality.md](roles/validator-code-quality.md),
+[roles/validator-product.md](roles/validator-product.md),
+[roles/validator-security.md](roles/validator-security.md),
+[roles/validator-system-design.md](roles/validator-system-design.md),
+[roles/validator-ui-design.md](roles/validator-ui-design.md) — chosen by the task's write scope
+(B12). Role, tier and commands stay `validator`; only the prose and checklist differ.
 
 ## Route by phase
 

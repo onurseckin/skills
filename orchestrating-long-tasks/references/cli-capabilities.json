@@ -3,6 +3,111 @@
   "source": "orchestrating-long-tasks/scripts/src/cli/registry",
   "commands": [
     {
+      "name": "orchestrate",
+      "aliases": [],
+      "domain": "plan",
+      "summary": "The primary entry point: the user's entire prompt in, a running orchestration out.",
+      "description": "Takes the user's whole message as free text, captures it byte-for-byte as the immutable prompt (identical guarantee to plan:init), and opens the capsule. No flag is required to shape or structure the prompt; the harness's own stdin gate still needs --prompt-stdin to read piped text (or --prompt-file for a file), the same contract plan:init uses. Returns the fixed checklist for what happens next — plan:enhance, plan:add, plan:compile, queue:wave — bound to the run it just opened, so the calling agent never has to assemble that sequence by hand. It cannot run plan:enhance itself: reading the repository and deciding what the run is actually about needs a model's judgment, and the harness never calls one. --run is optional; omitted, a run id is derived from today's date and the first few words of the prompt.",
+      "flags": [
+        {
+          "name": "repo",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": ".",
+          "description": "Repository root that owns the capsule."
+        },
+        {
+          "name": "run",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Run id; interchangeable with --run-id. Derived from the prompt when omitted."
+        },
+        {
+          "name": "run-id",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Run id; interchangeable with --run. Derived from the prompt when omitted."
+        },
+        {
+          "name": "prompt-file",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "File holding the verbatim prompt bytes."
+        },
+        {
+          "name": "prompt-stdin",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Read the verbatim prompt bytes from stdin. Required to use stdin at all; the CLI never blocks reading an unredirected terminal without it."
+        },
+        {
+          "name": "capture-mode",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "How the prompt was captured; defaults to the source used."
+        },
+        {
+          "name": "source-verified",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Assert the prompt source was verified by the caller."
+        },
+        {
+          "name": "runtime-source",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Directory to pin as this run's runtime, verified and copied into runtime/. Defaults to the directory containing the currently running harness.ts."
+        },
+        {
+          "name": "no-runtime-pin",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Skip pinning a runtime even when one is available by default."
+        }
+      ],
+      "reads_stdin": true,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "printf \"%s\" \"$PROMPT\" | bun harness.ts orchestrate --repo . --prompt-stdin",
+        "bun harness.ts orchestrate --repo . --run my-feature --prompt-file prompt.txt"
+      ]
+    },
+    {
       "name": "plan:init",
       "aliases": [
         "init"
@@ -1780,10 +1885,10 @@
         {
           "name": "auth-token",
           "type": "string",
-          "required": false,
+          "required": true,
           "repeatable": false,
           "default": null,
-          "description": "Completion authorisation token."
+          "description": "The token critic:review handed back on approval; verified against the completeness critic's own record before the run can be sealed."
         }
       ],
       "reads_stdin": false,
@@ -1807,7 +1912,7 @@
         }
       ],
       "examples": [
-        "bun harness.ts run:complete --run .capsules/<run-id> --actor coordinator"
+        "bun harness.ts run:complete --run .capsules/<run-id> --actor coordinator --auth-token <token-from-critic:review>"
       ]
     },
     {
@@ -1837,9 +1942,9 @@
           "name": "repository-command-ids",
           "type": "string",
           "required": false,
-          "repeatable": false,
+          "repeatable": true,
           "default": null,
-          "description": "Command ids that bound the repository."
+          "description": "Extra authoritative command ids to add as repository evidence, alongside every run-gate command the harness auto-discovers."
         }
       ],
       "reads_stdin": false,

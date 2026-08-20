@@ -231,3 +231,228 @@ how-to-check: Grep the codebase for import sites of the touched module; compare 
 severity: minor
 sources:
   - Google Engineering Practices — Code Review, "Design"
+
+## CQ-STRUCT-003
+
+rule: A function's parameter list stays short enough to read at the call site; beyond roughly four positional parameters, group related ones into a single named options object
+rationale: A long positional parameter list forces every caller to count position rather than read intent, and is the most common source of an accidental argument swap
+how-to-check: Count the positional parameters on new/changed function signatures; four or more with no options-object grouping is the finding
+severity: minor
+sources:
+  - Clean Code (Robert C. Martin), ch. 3 "Functions" — argument count
+
+## CQ-STRUCT-004
+
+rule: A conditional favors an early return or guard clause over nesting the rest of the function inside an `if`
+rationale: Deep nesting forces the reader to hold every enclosing condition in mind to understand the innermost line
+how-to-check: Read new functions for an `if` wrapping the remaining body with no early return; confirm inverting the condition and returning early would flatten it
+severity: minor
+sources:
+  - Clean Code (Robert C. Martin), ch. 3 "Functions" — one level of abstraction
+
+## CQ-NAMING-003
+
+rule: An abbreviation in a name is either domain-standard (id, url, http) or spelled out; a project-local shorthand is not assumed to be obvious to the next reader
+rationale: An abbreviation obvious to its author is frequently opaque to the next person, and there is no compiler check to catch the ambiguity
+how-to-check: List new identifiers containing a non-standard abbreviation and confirm each is either well-known or expanded elsewhere in the file
+severity: minor
+sources:
+  - Code Complete (Steve McConnell), ch. 11 "The Power of Variable Names"
+
+## CQ-DUP-003
+
+rule: A helper duplicated across more than one file collapses to a single shared implementation once a second file needs it, not left to accumulate independent copies
+rationale: Each additional independent copy is a fork point where the next bug fix lands in only one of them
+how-to-check: Grep the tree for a near-identical function body or literal block appearing in more than one file
+severity: important
+sources:
+  - This repository's own audit finding (B8.3): a helper duplicated across three files
+
+## CQ-DEAD-003
+
+rule: A block of commented-out code is deleted, not kept "in case it's needed again"
+rationale: Version control already keeps the history; commented-out code left in the file rots silently and is never updated alongside the code around it
+how-to-check: Grep the diff for a multi-line comment block that contains syntactically valid code rather than prose
+severity: minor
+sources:
+  - Refactoring (Martin Fowler), "Dead Code"
+
+## CQ-ERR-003
+
+rule: A caught error is not re-thrown as a different, less specific type that discards the information a caller needed to handle it
+rationale: Collapsing a specific error into a generic one removes the caller's ability to distinguish "not found" from "not authorized" from "network down"
+how-to-check: For a new catch-and-rethrow, compare the caught error's type/fields against what the new thrown error preserves
+severity: important
+sources:
+  - Effective TypeScript (Dan Vanderkam) — error handling patterns
+
+## CQ-ERR-004
+
+rule: A function that can fail in a way the caller must handle says so in its return type or a documented throw, not only in an internal comment
+rationale: A failure mode invisible at the call site is a failure mode the next caller will not handle until it happens in production
+how-to-check: For a new function with an internal error path, check whether its signature or doc comment states the possible failure to a caller who has not read the implementation
+severity: minor
+sources:
+  - The Pragmatic Programmer, "Design by Contract"
+
+## CQ-TYPES-003
+
+rule: A non-null assertion (`!`) is used only where the surrounding code has already proven the value present a few lines earlier, never to silence a case that can genuinely be absent
+rationale: A non-null assertion is a promise to the compiler; a wrong promise turns a compile-time catch into a runtime crash
+how-to-check: For each new `!` assertion, find the specific prior check or invariant that guarantees non-null; absent one is the finding
+severity: important
+sources:
+  - Effective TypeScript (Dan Vanderkam), Item 9
+
+## CQ-TYPES-004
+
+rule: A value that callers must not mutate is typed `readonly` (or `ReadonlyArray`/`ReadonlyMap`), not left as a mutable type that happens not to be mutated today
+rationale: An unmarked mutable type gives every future caller silent permission to mutate shared state, whether or not the original author intended it
+how-to-check: For a new exported value handed to multiple callers, check whether its type prevents mutation or merely relies on convention
+severity: minor
+sources:
+  - Effective TypeScript (Dan Vanderkam), Item 17
+
+## CQ-TEST-004
+
+rule: Every refusal path the code can take (a thrown error, a validation rejection, an early return on an invalid state) has a test asserting it actually refuses
+rationale: A refusal is a guarantee; an untested refusal path can silently stop refusing the day a nearby edit changes its condition
+how-to-check: List the new/changed thrown errors and early-refusal branches; confirm each has a test that triggers that exact condition and asserts the refusal
+severity: important
+sources:
+  - This repository's own B9.1: negative paths are mandatory, not optional
+
+## CQ-TEST-005
+
+rule: A test that exercises a branch without asserting a specific outcome on that branch is not counted as covering it
+rationale: A test that runs code without checking what it did reports safety it does not actually provide
+how-to-check: For each new test, identify the `expect()` that would fail if the branch's behavior regressed; a test with no such assertion is the finding
+severity: important
+sources:
+  - This repository's own B9.1: coverage of scenarios, not lines
+
+## CQ-DOC-003
+
+rule: A `TODO` or `FIXME` left in the diff names an owner, a tracked issue, or a concrete condition for when it should be resolved — never a bare aspiration
+rationale: An unattributed TODO has no mechanism to ever be revisited and becomes permanent the moment it is committed
+how-to-check: Grep the diff for `TODO`/`FIXME` and confirm each is followed by an issue reference, an owner, or a stated trigger condition
+severity: minor
+sources:
+  - Google Engineering Practices — Code Review, "Follow-up work"
+
+## CQ-STYLE-003
+
+rule: A module's use of async/await versus raw Promise chaining is consistent with its own existing code, not mixed within the same function for no reason
+rationale: Mixed async styles within one function force the reader to track two different control-flow mechanisms for equivalent logic
+how-to-check: Read new functions for both `.then()` chains and `await` used side by side without a reason (e.g. genuine concurrency) for the mix
+severity: minor
+sources:
+  - Google Engineering Practices — Code Review, "Style"
+
+## CQ-GIT-003
+
+rule: A commit does not bundle an unrelated formatting-only change together with a behavioral change
+rationale: A mixed diff hides the actual behavioral change inside noise, making the commit far harder to review or revert precisely
+how-to-check: Check the commit's diff for whitespace-only or reformat-only hunks in files the commit's subject does not otherwise concern
+severity: minor
+sources:
+  - Google Engineering Practices — Code Review, "Small CLs"
+
+## CQ-PERF-003
+
+rule: A new dependency added to reach one small helper is weighed against implementing that helper directly, rather than pulling in a library for a fraction of its surface
+rationale: Every dependency is a bundle-size, install-time, and supply-chain cost paid in full for however small a part of it is actually used
+how-to-check: For a new dependency, compare what the diff actually calls against the dependency's total exported surface
+severity: minor
+sources:
+  - The Pragmatic Programmer — minimizing dependencies
+
+## CQ-PERF-004
+
+rule: A repeated membership check against a growing collection uses a data structure with the matching complexity (`Set`/`Map` for lookup) rather than a linear `Array.includes` in a hot path
+rationale: An `O(n)` lookup reads identically to an `O(1)` one at test-fixture size and only shows its cost once the collection is realistically sized
+how-to-check: Find new repeated `.includes()`/`.find()` calls against an array inside a loop; check whether the collection is built once and could be a Set/Map instead
+severity: minor
+sources:
+  - Introduction to Algorithms (Cormen, Leiserson, Rivest, Stein) — data structure selection by access pattern
+
+## CQ-CONC-001
+
+rule: State shared across concurrent code paths (async handlers, workers, in-flight requests) is not read-then-written without a guard against another path mutating it in between
+rationale: A read-modify-write with no guard is a race the moment two paths execute close enough in time, and it is invisible in a single-threaded test
+how-to-check: For new shared mutable state touched from more than one async entry point, check whether the read and the write are atomic with respect to each other
+severity: important
+sources:
+  - Designing Data-Intensive Applications (Martin Kleppmann), ch. 7 "Transactions"
+
+## CQ-CONC-002
+
+rule: A resource acquired (file handle, lock, connection, lease) is released on every exit path from the function that acquired it, including a thrown error
+rationale: A resource released only on the happy path leaks on the first exception, and the leak is invisible until the pool is exhausted
+how-to-check: For new resource-acquiring code, confirm a `finally`, `using`, or equivalent guarantees release regardless of how the function exits
+severity: important
+sources:
+  - The Pragmatic Programmer, "Resource Balancing"
+
+## CQ-IMMUT-001
+
+rule: A function does not mutate the objects or arrays passed into it unless that ownership transfer is explicit in its name or documented contract
+rationale: A caller that does not expect its argument to be mutated will use the stale, now-incorrect original after the call returns
+how-to-check: For a new function taking an object/array parameter, check whether it reassigns a property or array index without a stated mutation contract
+severity: important
+sources:
+  - Effective TypeScript (Dan Vanderkam) — avoiding hidden mutation
+
+## CQ-CONST-001
+
+rule: A literal value carrying implicit meaning (a magic number, a repeated string key) that appears more than once is named as a constant, not retyped at each site
+rationale: A magic number's meaning lives only in the author's head; a named constant documents it once and makes every use site greppable
+how-to-check: Grep the diff for a numeric or string literal appearing at two or more sites with no shared named constant
+severity: minor
+sources:
+  - Code Complete (Steve McConnell), ch. 12 "Fundamental Data Types"
+
+## CQ-EXPORT-001
+
+rule: A module exports what its callers actually need, not everything defined in the file by default
+rationale: An unnecessarily wide export surface is more of the module a caller can accidentally couple to, and more that must stay stable across a refactor
+how-to-check: For a new module, compare its exported names against what other files actually import from it
+severity: minor
+sources:
+  - A Philosophy of Software Design (John Ousterhout), "Deep Modules"
+
+## CQ-REVIEW-003
+
+rule: A finding raised outside the task's own stated scope is explicitly labeled adjacent, distinct from a finding that blocks the task itself
+rationale: An unlabeled out-of-scope finding either wrongly blocks an unrelated change or silently gets ignored because its status was never clear
+how-to-check: For each finding raised, confirm it states whether it is required for this task's requirements or is a standing-standard observation found nearby
+severity: minor
+sources:
+  - This repository's B12.1 — adjacent findings are surfaced and routed, never silently blocking
+
+## CQ-VALID-001
+
+rule: A publicly exported function validates its own inputs at the boundary rather than trusting every caller to have validated them first
+rationale: A function that trusts its caller is only as safe as the least careful caller it will ever get, and that caller arrives long after the original author is gone
+how-to-check: For a new exported function taking external or loosely-typed input, check whether it validates before acting or assumes the caller already did
+severity: minor
+sources:
+  - The Pragmatic Programmer, "Design by Contract" — defensive boundaries
+
+## CQ-API-001
+
+rule: A function's return type communicates failure explicitly (a union, a Result type, a documented throw) rather than overloading a valid value (`-1`, `null`, empty string) to mean both "success with this value" and "failure"
+rationale: An overloaded sentinel value is indistinguishable from a legitimate result the moment the valid range includes it
+how-to-check: For a new function, check whether its "not found"/"failed" case returns a value that could also occur as a legitimate success
+severity: important
+sources:
+  - Effective TypeScript (Dan Vanderkam) — avoiding ambiguous return values
+
+## CQ-INIT-001
+
+rule: An object or module's fields are fully initialized by the end of its constructor/setup, with no field left in a partially-constructed, must-call-this-method-first state
+rationale: A partially-initialized object that requires a specific follow-up call before use is a defect waiting for the one caller who does not know to make that call
+how-to-check: For a new class/module, check whether every field is set by the end of construction or whether some are only set by a separate, easy-to-forget method
+severity: minor
+sources:
+  - Effective Java (Joshua Bloch) — constructor completeness

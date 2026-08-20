@@ -24,10 +24,16 @@ const SCRIPT_EXEMPTIONS: readonly string[] = ["src/graph/gate-runtime-grammar.ts
  * `host-telemetry-probe.test.ts` is that Codex's settings live somewhere Claude Code's do not, and a
  * generically-named local would obscure which host the case covers. The env-var constants are the
  * hosts' OWN names — values we read, not concepts we coined — and renaming them would break the read.
+ *
+ * `transcript-telemetry.test.ts` and `transcript-telemetry-cli.test.ts` set and read
+ * `CLAUDE_CODE_SESSION_ID` as a literal env-var / object key, the same "host's own name" shape as
+ * the two exemptions above — the production reader keys off that exact string, so the tests must too.
  */
 const TEST_EXEMPTIONS: readonly string[] = [
   "unit/agents/host-telemetry-probe.test.ts",
   "unit/summary/host-telemetry.test.ts",
+  "unit/agents/transcript-telemetry.test.ts",
+  "unit/agents/transcript-telemetry-cli.test.ts",
 ];
 
 function describeFindings(findings: readonly VendorIdentifierFinding[]): string[] {

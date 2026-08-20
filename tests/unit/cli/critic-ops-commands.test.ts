@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { execute } from "../../../orchestrating-long-tasks/scripts/src/cli/execute.ts";
+import { loadRun } from "../../../orchestrating-long-tasks/scripts/src/store/index.ts";
 import { requirementIds, setupReadyRun } from "./critic-run-fixture.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
 
@@ -294,5 +295,56 @@ describe("CLI critic-ops commands", () => {
     expect(replan.repair_round).toBe(1);
     expect((replan.new_tasks as string[]).length).toBe(2);
     expect(String(replan.markdown)).toContain("### Plan Recompiled: Wave R1 (Graph Revision 2)");
+  });
+
+  test("--repository-command-ids widens the packet's evidence, not replaces it", async () => {
+    const { repo, run } = await setupReadyRun("critic-repo-ids-widen", roots);
+
+    // A bare inspection command, bound to no gate at all, so auto-discovery (scoped to run-gate
+    // commands) could never find it on its own - this is the case the flag exists for.
+    const bareInspect = await execute([
+      "run:exec",
+      "--run",
+      run,
+      "--actor",
+      "critic-zeta",
+      "--cwd",
+      repo,
+      "--",
+      "echo",
+      "bare-repository-inspection",
+    ]);
+    const bareId = bareInspect.command_id as string;
+
+    const start = await execute([
+      "critic:start",
+      "--run",
+      run,
+      "--critic",
+      "critic-zeta",
+      "--repository-command-ids",
+      bareId,
+    ]);
+    const packet = loadRun(run).state.packets?.[start.packet_id as string];
+    const ids = packet?.repository_command_ids ?? [];
+    expect(ids).toContain(bareId);
+    // The auto-discovered mandatory-gate command must still be present: the flag widens the
+    // evidence set, it never narrows it below what readiness already required.
+    expect(ids.length).toBeGreaterThan(1);
+  });
+
+  test("critic:start refuses a repository command id that is not authoritative evidence", async () => {
+    const { run } = await setupReadyRun("critic-repo-ids-bogus", roots);
+    await expect(
+      execute([
+        "critic:start",
+        "--run",
+        run,
+        "--critic",
+        "critic-theta",
+        "--repository-command-ids",
+        "C-does-not-exist",
+      ]),
+    ).rejects.toThrow("not authoritative repository evidence");
   });
 });

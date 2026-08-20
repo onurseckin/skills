@@ -29,8 +29,10 @@ function stringList(value: JsonValue | undefined): string[] {
     : [];
 }
 
-/** Accepts both gate spellings the capsule stores: a shell-ish string and an argv list. */
-export function gateArgv(command: JsonValue | undefined): string[] | undefined {
+/** Accepts both gate spellings the capsule stores: a shell-ish string and an argv list. Distinct
+ *  from reporting/action-types.ts's gateArgv, which builds a run:exec invocation from a GateView
+ *  rather than tokenizing a raw stored command field. */
+export function parseGateArgv(command: JsonValue | undefined): string[] | undefined {
   const parts =
     typeof command === "string"
       ? command.trim().split(/\s+/)
@@ -58,7 +60,7 @@ export function readPlanBindings(state: JsonObject): PlanBindings {
   const argvByGateId = new Map<string, string[]>();
   for (const entry of gateEntries(state)) {
     if (!isJsonObject(entry) || entry.scope !== "task") continue;
-    const argv = gateArgv(entry.command);
+    const argv = parseGateArgv(entry.command);
     if (typeof entry.id === "string" && argv !== undefined) argvByGateId.set(entry.id, argv);
   }
 
@@ -145,7 +147,10 @@ export function resolveClusterGate(bindings: PlanBindings, request: GateRequest)
   );
 }
 
-export function resolveFindingRequirement(
+/** Cluster-level twin of task-finding-input.ts's resolveFindingRequirement: that one binds a
+ *  finding to a requirement the finding's own task already owns, this one derives a requirement
+ *  for a repair cluster from the planned tasks whose scope it inherits. */
+export function resolveClusterFindingRequirement(
   bindings: PlanBindings,
   declared: string | undefined,
   findingId: string,

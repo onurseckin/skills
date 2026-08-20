@@ -38,6 +38,7 @@ function liveRepositoryBinding(run: string, expected: Readonly<RepositoryBinding
 export async function criticStartCommand(flags: Flags): Promise<Record<string, unknown>> {
   const run = textFlag(flags, "run")!;
   const critic = textFlag(flags, "critic")!;
+  const repositoryCommandIds = listFlag(flags, "repository-command-ids");
 
   // Both observations are taken before the authorisation is minted, so the readiness digest the
   // assignment records is the one the packet is later built and authorised against.
@@ -50,6 +51,7 @@ export async function criticStartCommand(flags: Flags): Promise<Record<string, u
     port: workflowPort(run),
     criticId: critic,
     token: result.token,
+    ...(repositoryCommandIds === undefined ? {} : { repositoryCommandIds }),
   });
   const tasks = Object.values(result.state.tasks);
   const satisfiedCount = tasks.filter((t) => t.status === "done").length;

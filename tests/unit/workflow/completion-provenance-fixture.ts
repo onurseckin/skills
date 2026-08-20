@@ -19,7 +19,7 @@ export const clock = at("2026-08-13T12:00:00.000Z");
 export const packetSha = "a".repeat(64);
 const integrityEvidence = [{ status: "passed", event_head: "event-sha" }];
 const integritySha = criticIntegrityDigest(integrityEvidence);
-const criticToken = "critic-token";
+export const criticToken = "critic-token";
 export const verifyRepository = () => structuredClone(repositoryBinding);
 
 export function completionPort(): TestPort {

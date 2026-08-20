@@ -102,4 +102,18 @@ describe("checklist parser", () => {
   test("resolves a checklist's path under the checklists/ root", () => {
     expect(resolveChecklistPath("code-quality")).toMatch(/checklists\/code-quality\.md$/u);
   });
+
+  // B12.3: "the checklist IS the validator's competence" and asks for "genuinely comprehensive —
+  // hundreds of items across the domains". A checklist that quietly shrank back toward a handful of
+  // items would still parse and pass every other test here, so the count itself needs its own guard
+  // (B8.5: a fix without a regression test is a fix that returns).
+  test("each domain checklist stays genuinely comprehensive, and the corpus totals hundreds of items", () => {
+    let total = 0;
+    for (const domain of VALIDATOR_DOMAINS) {
+      const count = loadChecklist(domain).items.length;
+      expect(count).toBeGreaterThanOrEqual(30);
+      total += count;
+    }
+    expect(total).toBeGreaterThanOrEqual(180);
+  });
 });

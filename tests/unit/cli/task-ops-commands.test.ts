@@ -281,4 +281,68 @@ describe("CLI task-ops commands", () => {
     expect(String(beat.markdown)).toContain(`+10 minutes (New Deadline: ${lease.expires_at})`);
     expect(String(beat.markdown)).not.toContain("+60 minutes");
   });
+
+  test("task:validate-start honors an explicit --lease-duration", async () => {
+    const { repo, run } = await setupCompiledRun("task-validate-duration", roots);
+    const claim = await execute([
+      "task:claim",
+      "--run",
+      run,
+      "--task",
+      "task-core",
+      "--agent",
+      "worker-core",
+      "--role",
+      "implementer",
+    ]);
+    await execute([
+      "run:exec",
+      "--run",
+      run,
+      "--task",
+      "task-core",
+      "--actor",
+      "worker-core",
+      "--cwd",
+      repo,
+      "--",
+      "echo",
+      "implementer-work",
+    ]);
+    await execute([
+      "task:submit",
+      "--run",
+      run,
+      "--task",
+      "task-core",
+      "--agent",
+      "worker-core",
+      "--token",
+      claim.token as string,
+      "--summary",
+      "Core tests implemented",
+      "--files-changed",
+      "tests/unit/core/impl.ts",
+    ]);
+
+    const before = Date.now();
+    const valStart = await execute([
+      "task:validate-start",
+      "--run",
+      run,
+      "--task",
+      "task-core",
+      "--validator",
+      "val-agent-1",
+      "--lease-duration",
+      "300",
+    ]);
+    const deadline = new Date(
+      (valStart.task as { validation: { deadline_at: string } }).validation.deadline_at,
+    ).valueOf();
+    // The default window is 1200s (20min); a requested 300s must land near now+300s, not the
+    // default, which is the whole difference between the flag being read and being dropped.
+    expect(deadline - before).toBeGreaterThanOrEqual(299_000);
+    expect(deadline - before).toBeLessThan(900_000);
+  });
 });

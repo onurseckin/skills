@@ -1,4 +1,5 @@
 export * from "./line-limiter.ts";
+export * from "./orchestrate-formatter.ts";
 export * from "./plan-formatter.ts";
 export * from "./queue-formatter.ts";
 export * from "./task-formatter.ts";

@@ -81,12 +81,18 @@ export const RUN_COMMANDS: readonly CommandSpec[] = [
         "string",
         "Who is completing the run. Recorded on the completion event; there is no default actor.",
       ),
-      optionalFlag("auth-token", "string", "Completion authorisation token."),
+      requiredFlag(
+        "auth-token",
+        "string",
+        "The token critic:review handed back on approval; verified against the completeness critic's own record before the run can be sealed.",
+      ),
     ],
     readsStdin: false,
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
-    examples: ["bun harness.ts run:complete --run .capsules/<run-id> --actor coordinator"],
+    examples: [
+      "bun harness.ts run:complete --run .capsules/<run-id> --actor coordinator --auth-token <token-from-critic:review>",
+    ],
     handler: runCompleteCommand,
   },
 ];

@@ -17,7 +17,17 @@ describe("an uncollected branch blocks completion", () => {
 
     expect(completionIssues(workflowPort(fixture.run).read())).toContain(blocker);
     await expect(
-      execute(["run:complete", "--run", fixture.run, "--actor", "coordinator"]),
+      execute([
+        "run:complete",
+        "--run",
+        fixture.run,
+        "--actor",
+        "coordinator",
+        // The branch blocker fires during completeRun's preflight, ahead of the token check, so
+        // an unrelated value is enough to satisfy the CLI's required-flag gate for this test.
+        "--auth-token",
+        "irrelevant-branch-blocks-first",
+      ]),
     ).rejects.toThrow(blocker);
   });
 
@@ -44,7 +54,17 @@ describe("an uncollected branch blocks completion", () => {
 
     expect(completionIssues(workflowPort(fixture.run).read())).toContain(blocker);
     await expect(
-      execute(["run:complete", "--run", fixture.run, "--actor", "coordinator"]),
+      execute([
+        "run:complete",
+        "--run",
+        fixture.run,
+        "--actor",
+        "coordinator",
+        // The branch blocker fires during completeRun's preflight, ahead of the token check, so
+        // an unrelated value is enough to satisfy the CLI's required-flag gate for this test.
+        "--auth-token",
+        "irrelevant-branch-blocks-first",
+      ]),
     ).rejects.toThrow(blocker);
   }, 20_000);
 

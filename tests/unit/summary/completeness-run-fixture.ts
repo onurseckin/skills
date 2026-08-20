@@ -412,10 +412,11 @@ async function sealRun(repo: string, run: string, issue: Issue): Promise<void> {
   const requirementIds = (
     loadRun(run).state as unknown as { requirements: { requirements: Array<{ id: string }> } }
   ).requirements.requirements.map((requirement) => requirement.id);
+  const criticToken = issue(start.token);
   await cli("critic:review", {
     "--run": run,
     "--critic": "critic-1",
-    "--token": issue(start.token),
+    "--token": criticToken,
     "--decision": "approve",
     "--summary": PLANTED.criticSummary,
     "--proofs": JSON.stringify(
@@ -437,7 +438,13 @@ async function sealRun(repo: string, run: string, issue: Issue): Promise<void> {
     "--agent": "coordinator-1",
     "--reason": "run complete",
   });
-  await cli("run:complete", { "--run": run, "--actor": "coordinator-1" });
+  // The completion critic's own token now doubles as run:complete's --auth-token (complete-run.ts
+  // checks it against the same completion_critic assignment record critic:review just verified).
+  await cli("run:complete", {
+    "--run": run,
+    "--actor": "coordinator-1",
+    "--auth-token": criticToken,
+  });
 }
 
 /**

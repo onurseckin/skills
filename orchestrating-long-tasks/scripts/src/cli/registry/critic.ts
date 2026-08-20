@@ -23,7 +23,11 @@ export const CRITIC_COMMANDS: readonly CommandSpec[] = [
     flags: [
       requiredFlag("run", "string", "Capsule run root."),
       requiredFlag("critic", "string", "Critic agent id."),
-      optionalFlag("repository-command-ids", "string", "Command ids that bound the repository."),
+      repeatableFlag(
+        "repository-command-ids",
+        "string",
+        "Extra authoritative command ids to add as repository evidence, alongside every run-gate command the harness auto-discovers.",
+      ),
     ],
     readsStdin: false,
     takesRemainder: false,

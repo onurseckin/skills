@@ -30,9 +30,10 @@ const FALLBACK_CEILING: ReadonlyMap<string, number> = new Map([
   ["orchestrating-long-tasks/scripts/src/workflow/scope-partitioner.ts", 1],
 ]);
 
-const VENDOR_CEILING: ReadonlyMap<string, number> = new Map([
-  ["producer/src/graph/gate-runtime-grammar.ts", 4],
-]);
+// Empty now that the health check's own vendor sweep carries the same PRODUCT_GRAMMAR_MODULES
+// exemption tests/unit/architecture/vendor-identifiers.test.ts already reasoned through: this file
+// speaks several products' command grammars by name on purpose, not by accident.
+const VENDOR_CEILING: ReadonlyMap<string, number> = new Map();
 
 // One sweep, shared by every bar below: loading both trees is the expensive part of the check.
 const REPORT = runHealthCheck({ ...defaultLayout(), consumerRoot: CONSUMER }, [

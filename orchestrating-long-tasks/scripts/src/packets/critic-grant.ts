@@ -20,6 +20,8 @@ export interface CriticRoleGrant {
   port: TransactionPort;
   criticId: string;
   token: string;
+  /** --repository-command-ids on critic:start. Absent means auto-discover from run-gate commands. */
+  repositoryCommandIds?: readonly string[];
 }
 
 /**
@@ -42,14 +44,32 @@ export function repositoryEvidenceCommandIds(state: WorkflowState): string[] {
     .sort();
 }
 
-function requiredRepositoryEvidence(state: WorkflowState): string[] {
-  const ids = repositoryEvidenceCommandIds(state);
-  if (ids.length === 0)
+function requiredRepositoryEvidence(
+  state: WorkflowState,
+  explicit?: readonly string[],
+): string[] {
+  const discovered = repositoryEvidenceCommandIds(state);
+  if (discovered.length === 0)
     throw new HarnessError(
       "INVALID_STATE",
       "the critic packet needs at least one authoritative run gate command as repository evidence",
     );
-  return ids;
+  // Additive, never a replacement: the discovered run-gate commands stay in the set regardless, so
+  // --repository-command-ids can only widen the critic's evidence, never narrow it below the
+  // baseline readiness already required to reach critic:start. This is what lets a caller name a
+  // bare inspection command (no gate at all) that auto-discovery, scoped to run-gate commands,
+  // structurally cannot find on its own.
+  if (explicit === undefined || explicit.length === 0) return discovered;
+  const merged = new Set(discovered);
+  for (const id of explicit) {
+    if (!authoritativeRepositoryCommand(state, id))
+      throw new HarnessError(
+        "INVALID_ARGUMENT",
+        `--repository-command-ids names a command that is not authoritative repository evidence: ${id}`,
+      );
+    merged.add(id);
+  }
+  return [...merged].sort();
 }
 
 /**
@@ -97,7 +117,9 @@ export async function publishCriticRolePacket(
     graph: structuredClone(loaded.state.graph) as JsonObject,
     plan_history: planHistory(loaded),
     integrity_evidence: [observeCapsuleIntegrity(loaded.runRoot, loaded.state.event_head)],
-    repository_evidence: { command_ids: requiredRepositoryEvidence(state) },
+    repository_evidence: {
+      command_ids: requiredRepositoryEvidence(state, grant.repositoryCommandIds),
+    },
   };
   return publishRolePacket(
     grant.runRoot,

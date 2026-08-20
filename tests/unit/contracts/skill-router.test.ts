@@ -71,7 +71,8 @@ describe("SKILL.md is a router, not a manual", () => {
     const personas = readdirSync(join(skillRoot, "agents")).filter((file) =>
       file.endsWith(".yaml"),
     );
-    expect(roles.length).toBe(9);
+    // 9 canonical roles + 5 validator-domain contracts (B12.2's taxonomy, sharing role: validator).
+    expect(roles.length).toBe(14);
     for (const role of roles) expect(skill).toContain(`roles/${role}`);
     for (const persona of personas) expect(skill).toContain(`agents/${persona}`);
   });

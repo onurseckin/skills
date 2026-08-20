@@ -149,3 +149,174 @@ how-to-check: Trigger the action under a throttled or slow-network condition and
 severity: minor
 sources:
   - Nielsen Norman Group, "Visibility of System Status" (Usability Heuristic #1); Jakob Nielsen's response-time limits (0.1/1/10 second thresholds)
+
+## PROD-FLOW-003
+
+rule: A multi-step flow shows the user's current position (step X of Y, a progress indicator) when the flow has more than two steps
+rationale: An unbounded-feeling flow reads as longer than it is and increases abandonment before the user reaches value
+how-to-check: Count the flow's steps; for three or more, confirm a position indicator is visible at each step
+severity: minor
+sources:
+  - Nielsen Norman Group, "Progress Indicators Improve Perception of Wait Time"
+
+## PROD-VALUE-003
+
+rule: Every acceptance criterion stated in the task maps to a specific, identifiable change in the diff
+rationale: A criterion with no corresponding change is either forgotten or was never actually delivered despite the task reading as complete
+how-to-check: List each acceptance criterion from the task; for each, point to the exact file/line that satisfies it
+severity: critical
+sources:
+  - This repository's own worked example (B12.1)
+
+## PROD-STATE-003
+
+rule: A loading state expected to take more than a couple of seconds shows progress or a time estimate rather than an indefinite spinner
+rationale: An indefinite spinner past a few seconds reads as frozen, and a user cannot distinguish "still working" from "stuck"
+how-to-check: Trigger the changed operation under a throttled condition and observe whether the wait state communicates progress past the two-second mark
+severity: minor
+sources:
+  - Nielsen Norman Group, "Progress Indicators Improve Perception of Wait Time"
+
+## PROD-COPY-003
+
+rule: New user-facing copy matches the product's existing tone and voice, not a noticeably different register introduced for this one flow
+rationale: A tone shift between screens reads as though two different products were stitched together
+how-to-check: Compare the new copy's formality, person (first/second), and sentence length against copy in an adjacent, established screen
+severity: minor
+sources:
+  - Nielsen Norman Group, "Consistency and Standards" (Usability Heuristic #4)
+
+## PROD-EDGE-003
+
+rule: A flow acting on a shared resource is checked for what happens when two users (or two tabs of the same user) act on it at the same time
+rationale: A flow that assumes exclusive access silently corrupts state or loses one user's change the first time it is not exclusive
+how-to-check: Open the changed flow in two sessions against the same resource and perform the action from both; confirm the result is coherent, not silently lost
+severity: important
+sources:
+  - Designing Data-Intensive Applications (Martin Kleppmann), ch. 7 "Transactions"
+
+## PROD-CONSIST-003
+
+rule: The same concept is named with the same word everywhere it appears in user-facing copy — never "delete" in one place and "remove" in another for the identical action
+rationale: Inconsistent terminology for one concept forces the user to verify two words mean the same thing instead of recognizing a pattern
+how-to-check: Grep new and existing copy for near-synonym pairs (delete/remove, cancel/dismiss, edit/update) describing the same user action
+severity: minor
+sources:
+  - Nielsen Norman Group, "Consistency and Standards" (Usability Heuristic #4)
+
+## PROD-ONBOARD-002
+
+rule: A permission or paywall gate explains why access is denied and what the user can do about it, not a bare blocked state
+rationale: An unexplained block reads as a bug and drives a support request the copy could have prevented
+how-to-check: Trigger the gated state as an unauthorized user and read the resulting message for a reason and a next step
+severity: minor
+sources:
+  - Nielsen Norman Group, "Help Users Recognize, Diagnose, and Recover from Errors" (Usability Heuristic #9)
+
+## PROD-FEEDBACK-002
+
+rule: A successful action shows a confirmation distinguishable from doing nothing — the user can tell the action actually happened without having to re-check
+rationale: An action with no visible confirmation is indistinguishable from a silent failure, and invites a duplicate attempt
+how-to-check: Trigger the changed action and confirm a distinct, positive signal (toast, state change, updated count) appears
+severity: minor
+sources:
+  - Nielsen Norman Group, "Visibility of System Status" (Usability Heuristic #1)
+
+## PROD-A11Y-001
+
+rule: The flow is completable start to finish using assistive technology (keyboard only, or a screen reader), not merely built from individually accessible components
+rationale: Individually accessible components can still compose into a flow that traps or loses a keyboard/screen-reader user between steps
+how-to-check: Walk the entire flow using only the keyboard (or a screen reader) from entry to completion, not spot-checking one screen
+severity: important
+sources:
+  - WAI-ARIA Authoring Practices Guide — composite widget and flow testing
+
+## PROD-PERM-001
+
+rule: A user is never shown an action in the UI that their permissions do not allow them to complete
+rationale: A visible-but-blocked action costs the user a wasted attempt and a confusing error, when it could simply not have been shown
+how-to-check: View the changed screen as a lower-privileged user and check for an action that is visible but fails or is hidden only after the click
+severity: minor
+sources:
+  - Nielsen Norman Group, "Match Between System and the Real World" (Usability Heuristic #2)
+
+## PROD-RECOVER-001
+
+rule: When an action fails for a reason outside the user's control (network drop, timeout, server error), the user's already-entered input is preserved, not wiped
+rationale: Losing entered input on a transient failure punishes the user for a problem they did not cause
+how-to-check: Fill a form, force a network failure on submit, and confirm the entered values remain in the fields afterward
+severity: important
+sources:
+  - Nielsen Norman Group, "User Control and Freedom" (Usability Heuristic #3)
+
+## PROD-METRIC-001
+
+rule: "Done" for the task is defined as the measurable user-facing outcome the prompt described, not merely that the code shipped and typechecks
+rationale: Code that ships without moving the actual user outcome has not delivered the value the task was asked for, whatever its test suite reports
+how-to-check: Re-state the task's outcome in one sentence about the user; confirm the diff, exercised end to end, actually produces that outcome
+severity: important
+sources:
+  - Shape Up (Ryan Singer) — defining done by the user-facing outcome
+
+## PROD-COST-001
+
+rule: An irreversible or high-impact action (bulk delete, non-refundable charge, mass notification) shows the user the scale of what it affects before it executes
+rationale: A user who cannot see the blast radius of an irreversible action cannot give informed consent to it
+how-to-check: Trigger the changed bulk/irreversible action and confirm the confirmation step states what and how much it will affect
+severity: important
+sources:
+  - Nielsen Norman Group, "User Control and Freedom" (Usability Heuristic #3)
+
+## PROD-EMPTY-001
+
+rule: A list or search result with zero matches distinguishes "nothing exists yet" from "your filter/search matched nothing," each with a different next action
+rationale: The two zero-result cases have opposite correct next steps — create the first one, or loosen the filter — and a single generic message serves neither
+how-to-check: Trigger a zero-result state via an empty dataset and again via an over-narrow filter; confirm the copy and offered action differ
+severity: minor
+sources:
+  - Nielsen Norman Group, "Empty States" guidance
+
+## PROD-INPUT-001
+
+rule: A form does not lose or reset a field's value because of an unrelated validation error elsewhere on the same form
+rationale: Wiping a correct field because a different field failed validation punishes the user for someone else's mistake on the same form
+how-to-check: Submit a form with one deliberately invalid field among several valid ones; confirm the valid fields' values survive the failed submit
+severity: important
+sources:
+  - Nielsen Norman Group, "Error Prevention" (Usability Heuristic #5)
+
+## PROD-DEFAULT-001
+
+rule: A default value or pre-filled selection matches what most users actually want, not merely what was easiest to hardcode
+rationale: A poorly chosen default is a tax every single user pays on every use of the flow
+how-to-check: For a new default/pre-selected value, confirm it matches the most common real case rather than an arbitrary first option
+severity: minor
+sources:
+  - Nielsen Norman Group, "Recognition Rather than Recall" (Usability Heuristic #6)
+
+## PROD-CROSSDEVICE-001
+
+rule: A flow that can reasonably be started on one device/session and finished on another does not strand state that only exists client-side
+rationale: A user who switches devices mid-flow because of a phone call or a crash should not lose all progress if the product otherwise supports resuming
+how-to-check: Start the flow, then reload in a fresh session before completing it; confirm meaningful progress is either resumable or clearly restarted, not silently lost
+severity: minor
+sources:
+  - web.dev, "Application State and the Back Button"
+
+## PROD-TIME-001
+
+rule: A relative or absolute time shown to the user matches their own local timezone, or explicitly states which timezone it is in
+rationale: An unlabeled time in an unexpected timezone silently causes a user to arrive late, miss a deadline, or misread a log
+how-to-check: Check new timestamp displays for either automatic local-timezone conversion or an explicit timezone label
+severity: minor
+sources:
+  - Nielsen Norman Group, "Match Between System and the Real World" (Usability Heuristic #2)
+
+## PROD-TRUST-001
+
+rule: A number shown to the user as a count, total, or measurement is accurate at the moment it is displayed, not a cached or stale value presented as current
+rationale: A visibly wrong count is one of the fastest ways a user loses trust in the rest of the product's data
+how-to-check: Trigger the underlying change (add/remove an item) and confirm the displayed count updates without requiring a manual refresh
+severity: minor
+sources:
+  - Nielsen Norman Group, "Visibility of System Status" (Usability Heuristic #1)

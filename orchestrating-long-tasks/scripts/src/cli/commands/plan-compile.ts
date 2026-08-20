@@ -16,7 +16,7 @@ import { loadRun } from "../../store/index.ts";
 import { transact } from "../../store/transaction.ts";
 import { formatPlanCompileBrief } from "../formatters/index.ts";
 import { actorFlag, boolFlag, textFlag, type Flags } from "../options.ts";
-import { gateArgv } from "./plan-replan-bindings.ts";
+import { parseGateArgv } from "./plan-replan-bindings.ts";
 
 function promptText(prompt: Uint8Array): string {
   return new TextDecoder("utf-8", { fatal: true }).decode(prompt);
@@ -27,7 +27,7 @@ export function planCompileCommand(flags: Flags): Record<string, unknown> {
   const actor = actorFlag(flags);
   // The run-completion gate is the command the whole run is finally held to; the caller declares it
   // here, because the harness has no way to know what proves this repository.
-  const completionGate = gateArgv(textFlag(flags, "completion-gate")!);
+  const completionGate = parseGateArgv(textFlag(flags, "completion-gate")!);
   if (completionGate === undefined)
     throw new HarnessError("INVALID_ARGUMENT", "--completion-gate must name a command");
   const loaded = loadRun(run);

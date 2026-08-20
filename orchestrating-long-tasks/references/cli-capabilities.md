@@ -20,6 +20,33 @@ own status in `exit_code`.
 
 ## plan
 
+### `orchestrate`
+
+The primary entry point: the user's entire prompt in, a running orchestration out.
+
+Takes the user's whole message as free text, captures it byte-for-byte as the immutable prompt (identical guarantee to plan:init), and opens the capsule. No flag is required to shape or structure the prompt; the harness's own stdin gate still needs --prompt-stdin to read piped text (or --prompt-file for a file), the same contract plan:init uses. Returns the fixed checklist for what happens next — plan:enhance, plan:add, plan:compile, queue:wave — bound to the run it just opened, so the calling agent never has to assemble that sequence by hand. It cannot run plan:enhance itself: reading the repository and deciding what the run is actually about needs a model's judgment, and the harness never calls one. --run is optional; omitted, a run id is derived from today's date and the first few words of the prompt.
+
+- **Aliases**: none
+- **Stdin**: reads stdin when `--prompt-stdin` is set
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--repo` | string | no | no | `.` | Repository root that owns the capsule. |
+| `--run` | string | no | no | - | Run id; interchangeable with --run-id. Derived from the prompt when omitted. |
+| `--run-id` | string | no | no | - | Run id; interchangeable with --run. Derived from the prompt when omitted. |
+| `--prompt-file` | string | no | no | - | File holding the verbatim prompt bytes. |
+| `--prompt-stdin` | bool | no | no | - | Read the verbatim prompt bytes from stdin. Required to use stdin at all; the CLI never blocks reading an unredirected terminal without it. |
+| `--capture-mode` | string | no | no | - | How the prompt was captured; defaults to the source used. |
+| `--source-verified` | bool | no | no | - | Assert the prompt source was verified by the caller. |
+| `--runtime-source` | string | no | no | - | Directory to pin as this run's runtime, verified and copied into runtime/. Defaults to the directory containing the currently running harness.ts. |
+| `--no-runtime-pin` | bool | no | no | - | Skip pinning a runtime even when one is available by default. |
+
+```bash
+printf "%s" "$PROMPT" | bun harness.ts orchestrate --repo . --prompt-stdin
+bun harness.ts orchestrate --repo . --run my-feature --prompt-file prompt.txt
+```
+
 ### `plan:init`
 
 Create a run capsule and capture the prompt bytes immutably.
@@ -571,10 +598,10 @@ Re-verifies the recorded command evidence and the live repository binding, then 
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `--run` | string | yes | no | - | Capsule run root. |
 | `--actor` | string | yes | no | - | Who is completing the run. Recorded on the completion event; there is no default actor. |
-| `--auth-token` | string | no | no | - | Completion authorisation token. |
+| `--auth-token` | string | yes | no | - | The token critic:review handed back on approval; verified against the completeness critic's own record before the run can be sealed. |
 
 ```bash
-bun harness.ts run:complete --run .capsules/<run-id> --actor coordinator
+bun harness.ts run:complete --run .capsules/<run-id> --actor coordinator --auth-token <token-from-critic:review>
 ```
 
 ## critic
@@ -593,7 +620,7 @@ Records a repository inspection, assigns the critic, and returns the critic toke
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `--run` | string | yes | no | - | Capsule run root. |
 | `--critic` | string | yes | no | - | Critic agent id. |
-| `--repository-command-ids` | string | no | no | - | Command ids that bound the repository. |
+| `--repository-command-ids` | string | no | yes | - | Extra authoritative command ids to add as repository evidence, alongside every run-gate command the harness auto-discovers. |
 
 ```bash
 bun harness.ts critic:start --run .capsules/<run-id> --critic critic-1

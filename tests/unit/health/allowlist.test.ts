@@ -29,9 +29,9 @@ function results(): HealthCheckResult[] {
 
 describe("the opt-out list excuses code, and every entry says why", () => {
   test("an allowance without a reason is refused", () => {
-    expect(() => assertAllowancesHaveReasons([{ key: "x", reason: "  " }])).toThrow(
-      "health allowance without a reason",
-    );
+    expect(() =>
+      assertAllowancesHaveReasons([{ check: "unused-code", key: "x", reason: "  " }]),
+    ).toThrow("health allowance without a reason");
   });
 
   test("every checked-in allowance carries a reason", () => {
@@ -41,7 +41,7 @@ describe("the opt-out list excuses code, and every entry says why", () => {
 
   test("an allowed finding is still reported, and carries the reason it was allowed", () => {
     const { checks } = applyAllowances(results(), [
-      { key: "unused-export:a.ts#one", reason: "the process entry point" },
+      { check: "unused-code", key: "unused-export:a.ts#one", reason: "the process entry point" },
     ]);
     const allowed = checks[0]?.findings.find((entry) => entry.key === "unused-export:a.ts#one");
     expect(allowed?.acknowledged).toBe("the process entry point");
@@ -50,22 +50,33 @@ describe("the opt-out list excuses code, and every entry says why", () => {
 
   test("a prefix allowance covers a family without naming each member", () => {
     const { checks } = applyAllowances(results(), [
-      { key: "unused-export:*", reason: "the whole export surface is public API here" },
+      {
+        check: "unused-code",
+        key: "unused-export:*",
+        reason: "the whole export surface is public API here",
+      },
     ]);
     expect(checks[0]?.findings.every((entry) => entry.acknowledged !== undefined)).toBe(true);
   });
 
   test("an allowance that matches nothing is itself a finding", () => {
     const { stale } = applyAllowances(results(), [
-      { key: "unused-export:gone.ts#absent", reason: "fixed long ago" },
+      { check: "unused-code", key: "unused-export:gone.ts#absent", reason: "fixed long ago" },
     ]);
     expect(stale).toHaveLength(1);
     expect(stale[0]?.detail).toContain("matches no finding");
   });
 
+  test("an allowance for a check this run never requested is not reported stale", () => {
+    const { stale } = applyAllowances(results(), [
+      { check: "vendor-identifiers", key: "vendor-identifier:x.ts#Vendor", reason: "unrelated" },
+    ]);
+    expect(stale).toEqual([]);
+  });
+
   test("an unrelated finding is untouched", () => {
     const { checks } = applyAllowances(results(), [
-      { key: "unused-export:a.ts#one", reason: "the process entry point" },
+      { check: "unused-code", key: "unused-export:a.ts#one", reason: "the process entry point" },
     ]);
     expect(checks[0]?.findings[1]?.acknowledged).toBeUndefined();
   });
@@ -75,7 +86,7 @@ describe("the rendered report separates what failed from what was allowed", () =
   const report = {
     healthy: false,
     checks: applyAllowances(results(), [
-      { key: "unused-export:a.ts#one", reason: "the process entry point" },
+      { check: "unused-code", key: "unused-export:a.ts#one", reason: "the process entry point" },
     ]).checks,
     failure_count: 1,
     advisory_count: 1,

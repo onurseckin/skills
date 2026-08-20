@@ -59,9 +59,13 @@ function verifyCompletionArtifacts(
 export function runCompleteCommand(flags: Flags): Record<string, unknown> {
   const run = textFlag(flags, "run")!;
   const actor = textFlag(flags, "actor")!;
+  const authToken = textFlag(flags, "auth-token")!;
 
-  const state = completeRun(workflowPort(run), actor, (lockedState, requirements) =>
-    verifyCompletionArtifacts(run, lockedState, requirements),
+  const state = completeRun(
+    workflowPort(run),
+    actor,
+    (lockedState, requirements) => verifyCompletionArtifacts(run, lockedState, requirements),
+    authToken,
   );
 
   try {

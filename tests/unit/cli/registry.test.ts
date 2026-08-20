@@ -9,12 +9,15 @@ import {
 import { shouldReadPromptStdin } from "../../../orchestrating-long-tasks/scripts/src/cli/prompt-input.ts";
 
 const EXPECTED_INVOCATIONS = [
+  "orchestrate",
   "plan:init",
   "init",
   "plan:enhance",
   "plan:add",
   "plan:compile",
   "plan:replan",
+  "plan:claim",
+  "plan:apply",
   "plan:status",
   "queue:next",
   "queue:list",
@@ -43,6 +46,7 @@ const EXPECTED_INVOCATIONS = [
   "evidence:screenshots",
   "orchestrator:run",
   "orchestrator",
+  "orchestrator:supervise",
   "branch:open",
   "branch:claim",
   "branch:submit",
@@ -113,9 +117,11 @@ describe("CLI command registry", () => {
 
   test("derives the prompt stdin rule from the registry", () => {
     expect(COMMAND_REGISTRY.filter((spec) => spec.readsStdin).map((spec) => spec.name)).toEqual([
+      "orchestrate",
       "plan:init",
       "orchestrator:run",
     ]);
+    expect(shouldReadPromptStdin(["orchestrate", "--prompt-stdin"])).toBeTrue();
     expect(shouldReadPromptStdin(["plan:init", "--prompt-stdin"])).toBeTrue();
     expect(shouldReadPromptStdin(["orchestrator", "--prompt-stdin"])).toBeTrue();
     expect(shouldReadPromptStdin(["run:status", "--prompt-stdin"])).toBeFalse();

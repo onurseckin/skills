@@ -111,9 +111,12 @@ export function completionActions(
   if (review?.status === "clean") {
     pushArgv(
       argv,
+      // Same token as criticReview() above: run:complete now verifies it against the same
+      // completion_critic assignment record, so it is the one credential that authorizes both.
       registryArgv(entrypoint, "run:complete", [
         ["run", runRoot],
         ["actor", COORDINATOR],
+        ["auth-token", CRITIC_TOKEN],
       ]),
     );
     return { argv, unavailable: [] };

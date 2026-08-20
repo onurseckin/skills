@@ -54,6 +54,16 @@ function validationToken(port: TestPort, validatorId: string): string {
 }
 
 describe("independent validation and repair", () => {
+  test("honors an explicit validation window and rejects an out-of-bounds one", () => {
+    const port = submitted();
+    const state = beginValidation(port, "T-1", "validator", clock, 300);
+    const deadline = new Date(state.tasks["T-1"]!.validation!.deadline_at).valueOf();
+    expect(deadline - clock.now().valueOf()).toBe(300_000);
+    expect(() => beginValidation(port, "T-1", "validator", clock, 4)).toThrow(
+      "lease_seconds must be an integer from 5 to 86400",
+    );
+  });
+
   test("requires a validator distinct from every implementer", () => {
     const port = submitted();
     expect(() => beginValidation(port, "T-1", "implementer", clock)).toThrow(

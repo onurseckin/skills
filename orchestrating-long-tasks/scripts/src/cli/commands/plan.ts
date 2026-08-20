@@ -18,7 +18,6 @@ import { recordTopology } from "../../scheduler/index.ts";
 import { initRun, loadRun } from "../../store/index.ts";
 import { transact } from "../../store/transaction.ts";
 import { ensureHarnessIgnored } from "../git-ignore.ts";
-import { gateArgv } from "./plan-replan-bindings.ts";
 import { gateBreadthWarning } from "../../graph/gate-breadth.ts";
 import {
   formatCapsuleInitBrief,

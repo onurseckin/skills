@@ -10,10 +10,10 @@ import type { TaskRecord, GateRuntime } from "../../workflow/types.ts";
 import { actorFlag, integerFlag, textFlag, type Flags } from "../options.ts";
 import { collectReplanFindings } from "./plan-replan-findings.ts";
 import {
-  gateArgv,
+  parseGateArgv,
   readPlanBindings,
+  resolveClusterFindingRequirement,
   resolveClusterGate,
-  resolveFindingRequirement,
   type GateSource,
 } from "./plan-replan-bindings.ts";
 
@@ -24,7 +24,7 @@ export function planReplanCommand(flags: Flags): Record<string, unknown> {
   const gateFlag = textFlag(flags, "gate", false);
   // An absent --gate stays absent. The gate becomes the repair task's mandatory proof, so a
   // convenient default would be recorded as a measurement of something nobody chose to run.
-  const flagGate = gateFlag === undefined ? undefined : gateArgv(gateFlag);
+  const flagGate = gateFlag === undefined ? undefined : parseGateArgv(gateFlag);
   if (gateFlag !== undefined && flagGate === undefined)
     throw new HarnessError("INVALID_ARGUMENT", "--gate must name a command");
 
@@ -58,7 +58,7 @@ export function planReplanCommand(flags: Flags): Record<string, unknown> {
       taskId: cluster.taskId,
       writeScope: cluster.writeScope,
       declared: cluster.findings
-        .map((finding) => gateArgv(finding.revalidation_gate ?? null))
+        .map((finding) => parseGateArgv(finding.revalidation_gate ?? null))
         .filter((argv): argv is string[] => argv !== undefined),
       flagGate,
     });
@@ -66,7 +66,12 @@ export function planReplanCommand(flags: Flags): Record<string, unknown> {
       cluster,
       gate,
       requirementIds: cluster.findings.map((finding) =>
-        resolveFindingRequirement(bindings, finding.requirement_id, finding.id, cluster.writeScope),
+        resolveClusterFindingRequirement(
+          bindings,
+          finding.requirement_id,
+          finding.id,
+          cluster.writeScope,
+        ),
       ),
     };
   });
