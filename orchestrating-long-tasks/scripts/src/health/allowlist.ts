@@ -115,6 +115,12 @@ export const ALLOWED_FINDINGS: readonly HealthAllowance[] = [
     reason:
       "Same shape as the already-allowed tree-digest.ts and runtime-tree.ts root-path cases: cluster.scope is always a known LCA path, and \"root\" only fires when that known path is exactly \".\" - stripped to the empty string by the slug regex - so this spells a known result as a task-id-safe slug, it does not invent one for a scope the partitioner never had.",
   },
+  {
+    key: "intent-missing:docs/planning/orchestration-overhaul/BACKLOG.md:B37:.tmp/fixture-build/build-fixture.ts",
+    check: "intent-drift",
+    reason:
+      "B37's own resolution note names this file as '(gitignored, 426 lines)' in the same sentence that cites it - it is CLAUDE.md's `.tmp/` ephemeral-scratch convention by design, produced once to drive the real harness for B37's fixture-demo verification and never meant to be checked in. Its absence from the scanned tree is the convention working, not a requirement that went unmet.",
+  },
 ];
 
 export function assertAllowancesHaveReasons(

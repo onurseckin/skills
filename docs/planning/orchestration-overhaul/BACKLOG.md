@@ -2056,7 +2056,106 @@ This is the record of what verification uncovered; each is queued as work in its
     **RESOLVED, verified 2026-08-20:** the "Conventions for this file" section's Status key now defines `` `done (<short-sha>)` `` — landed and verified by opening the artifact the named commit produced, closed against re-dispatch. Applied to B2, B5 and B13, each citing the commit (`eaabd5c`) and the specific files/tests opened to confirm it, per B33.
 
 11. No real capsule on this machine (checked gvui, skills, limo x11, memory-sync, .agents/skills) contains a branch section, a probe edge, or a tool record — so the shipped sample dataset, and any UI code that renders those, is only exercised against synthetic test fixtures, never a real recorded run. Track: regenerate/augment the shipped fixture once a real run produces branch/probe/tool data, or explicitly document that gap.
+    **RESOLVED, verified 2026-08-20 (adversarial pass on B36-fixture-real-run):** opened both ends directly, not inferred. Producer: `.tmp/fixture-build/build-fixture.ts` (gitignored, 426 lines) drives the real harness via `execute()` — `plan:init/enhance/add/compile`, `agent:register`, an interleaved `task:claim` on task-alpha then task-beta (alpha claimed 15:23:49.567Z, beta claimed 15:23:58.901Z, alpha not submitted until 15:24:03.201Z — a genuine concurrent lease window, confirmed from the raw `events.jsonl`), `run:exec`/`task:submit`, `branch:open/claim/submit/collect`, a real `task:reject` -> `task:claim --role repairer` -> resubmit -> `task:probe` -> `task:review pass` round, and `critic:start`/`critic:review`/`run:complete`. Opened the scratch capsule the run actually produced at `.tmp/fixture-build/out/repo-un4FHB/.capsules/fixture-demo/` (`state.json`, `events.jsonl`, `packets/repairer-*/packet.md`) and confirmed real resolved findings, real timestamps, and a genuine repairer role-contract packet, not synthesized JSON. Reader: the exported `gvui/public/data/graphs/fixture-demo.json` (13 nodes / 19 edges / 11 distinct edge kinds — `branch, collect, dispatch, handoff, join, probe, pushback, sequence, signoff, spawn, validation`, counted directly from the file) is loaded and asserted by `gvui/src/types/graphData.test.ts`'s "The shipped dataset" suite (edge-kind resolution, join-edge treatment, node rendering with/without a role) and by `gvui/scripts/import-capsule.test.ts`; both ran clean (`bun test src/types/graphData.test.ts scripts/import-capsule.test.ts` — 17 pass, 0 fail).
 
 12. The shipped fixture's asset URLs (screenshots) are absolute local filesystem paths under the producing machine's .capsules/ directory, which is gitignored. On any other developer's machine, or a static deploy, those thumbnails will 404 (the /api/assets?path= bridge that resolves them is dev-server-only). Track: either commit representative sample screenshots somewhere reachable, teach the importer to relativize/copy asset paths into the shipped bundle, or document the limitation where new contributors will see it.
+    **RESOLVED, verified 2026-08-20 (adversarial pass on B36-fixture-real-run):** option (b) landed — `gvui/scripts/asset-portability.ts` (198 lines, new) walks only `node.assets[]`/`node.browserTests[]`, resolves each reference (absolute, capsule-relative, or repo-relative), copies resolved bytes under a content-hash name into the shipped dataset's own portable assets directory, and rewrites the reference to a root-relative `/data/graphs/<slug>-assets/...` URL; unresolvable references are reported, never silently dropped or fabricated. Wired at `gvui/scripts/import-capsule.ts:343` (`portabilizeAssetReferences(...)`) before the dataset is written, and the importer reports the rewrite count both as a `warnings[]` entry on the return value and via `console.warn` in the CLI's `main` block (`import-capsule.ts:350-354, 399-401`) — read directly, not inferred. Reader: `gvui/scripts/import-capsule.test.ts` (new, 266 lines) exercises copy+rewrite, hash-dedup of identical bytes under different original paths, already-portable references left untouched, and the honest-failure case (a referenced file that no longer exists is reported, not fabricated a path for) — `bun test scripts/import-capsule.test.ts` passes (part of the 17/0 run cited above). Caveat left open rather than hidden: the new fixture-demo.json itself carries no `assets`/`browserTests` (confirmed by reading the file — the scenario driving it never captured a screenshot), so the shipped artifact does not exercise this path end-to-end; the mechanism is proven by direct unit test against real files instead. A future fixture revision that adds a captured screenshot would close that last gap.
 
 13. The repo-wide sweep for literal-fallback fabrication patterns (`?? 0`, `?? "pending"`, etc. — B8.5/B9.2's concern) was deliberately NOT run against the ~30 files currently mid-edit by other concurrent agents (CostTab.tsx, EdgeDetailDrawer, NodeCardFiles.tsx, and others under the provider/context-window/tool-category telemetry work). Needs a dedicated pass once that concurrent work lands.
+
+---
+
+## B38 — Findings from the second post-implementation verification pass `queued`
+
+**Scope note:** this pass prioritised the headline claims named for it — the Dual-Channel Validator on a
+UI task, role contracts refusing an ungranted command, the probe blocking a pass, branch-and-collect
+restoring a parent lease, telemetry reaching `graph.json` from a real run, the supervisor recovering —
+plus every item not tagged `queued` at the time (B1, B30, B31). Per B33, every claim below was settled by
+opening the artifact: reading the call site, running the real test, or — for the three guards checked most
+closely — deleting the guard in an `rsync`ed scratch copy under `/tmp` (never the real tree), confirming
+the test fails, and confirming `git status`/`git diff` show the real tree untouched afterward. Confirmed
+genuinely reachable, correct and guard-holding this way: role-contract command enforcement (B8.1 —
+`assertRoleMayInvoke`/`assertGrantedCommand`, wired into `cli/execute.ts` on every dispatch; deleting the
+throw failed 12/53 tests in `role-contract-enforcement.test.ts`); the probe-blocks-a-pass guard
+(`assertOpenFindingsAnswered` in `review-resolutions.ts`; deleting it failed 5/14 tests in
+`task-probe-commands.test.ts`/`probe.test.ts`, several by hang rather than a clean assertion failure — the
+guard is load-bearing enough that its absence corrupts later state, not just one check); and the
+Dual-Channel Validator Protocol (`tests/unit/validation/dual-channel-wiring.test.ts` drives the real CLI —
+`plan:init` through `task:review` — through five scenarios: full evidence pass, partial-viewport
+DOM-only-gap-filled pass, refusal on zero evidence, refusal when a sibling task's evidence is reused, and a
+non-UI task correctly left ungated; 23/23 pass, no guard-deletion needed given the negative assertions
+already check the real refusal message). B1 (proper-subset scope, `max_agents`=100 in
+`config/constants.ts`, `max_branch_depth`=5, gvui's `SECTION_AUTO_COLLAPSE_DEPTH`=2 with depth and reason
+shown in section headers, `GraphGroupingLayer.test.tsx` 6/6 pass) was independently confirmed present,
+wired and passing. B30/B36: re-opened `agents/coordinator.yaml` and `references/run-playbook.md` directly
+— B36's finding is unchanged and still accurate, `invoke_subagent({` is still hardcoded unqualified in
+both files; no new finding needed there. B31 (deferred by owner): confirmed untouched, no changes.
+
+1. **The top finding of this pass — a single unretried `git` subprocess spawn is a point of failure on
+   every role-grant's critical path, and it failed for real under this run's own concurrent-agent load.**
+   `orchestrating-long-tasks/scripts/src/packets/repository-git-command.ts`'s `createRepositoryGitCommand`
+   calls `spawnSync` once with no retry; when the spawn returns with no `status` and no `error` (observed
+   directly, not inferred — a transient resource/fork failure under heavy concurrency), it throws
+   `HarnessError("INTEGRITY", "repository Git command failed: unaccepted exit status unknown")` at line 95.
+   This sits under `recordGrantInspections` → `inspectRepository` → `inspectRepositoryGitControls` →
+   `gitDirectory`, which every `publishRolePacket` call runs (`role-grant.ts:89`) — i.e. it is on the path
+   of `task:claim`, `branch:open`, `branch:claim`, `task:validate-start` and `critic:start`, essentially
+   every role grant in the system. Reproduced directly and repeatedly on this machine while other agents in
+   this same run were active (`uptime` showed load averages ~350-365 on 10 cores, ~22 concurrent `bun`
+   processes): `bun test tests/unit/branch/budget.test.ts tests/unit/branch/scope.test.ts
+   tests/unit/agents/budget.test.ts` — 8/17 fail, all with the identical stack through
+   `repository-git-command.ts:95`; `tests/unit/branch/chain-recovery.test.ts` fails the same way (its own
+   SHORT_LEASE=5s fixture window (a test-local constant, not a production symbol) is separately tight
+   enough that a depth-3 chain's setup — 3×`branch:open`
+   + 3×`branch:claim`, each doing 2 git-spawn inspections — can outrun 5 real seconds before the intended
+   dead-agent scenario even begins). `orchestrating-long-tasks/scripts/src/runner/process-tree.ts` already
+   has the fix pattern for exactly this shape (`SNAPSHOT_SPAWN_RETRIES`, added closing B35's
+   `critic-ops-commands.test.ts` flake) — `repository-git-command.ts` was never given the same treatment.
+   This directly threatens B28's "unattended overnight run" contract and sits precisely in B27's stated
+   operating regime (many concurrent agents): a transient hiccup during a busy run currently aborts a role
+   grant outright rather than retrying. Fix: give `createRepositoryGitCommand` the same bounded-retry
+   treatment `processSnapshot` already has, and sweep for any other single-shot `spawnSync` or execSync
+   call (Node's own child_process API, not a symbol defined in this repo) reachable from a role-grant
+   or lease path.
+
+2. **B32/B34 telemetry-to-`graph.json`: the wiring is now genuinely correct and reachable, but B32.2's own
+   literal closure bar is still unmet.** Verified by reading the call sites directly: `probeAgentTelemetry`
+   (`cli/host-telemetry-probe.ts`) calls both `detectHostTelemetry` (B32.3's previously-dead-code function —
+   it now has real callers) and `readAgentTranscriptTelemetry` (B34's real Claude Code transcript reader),
+   and is itself called as a hardcoded step from `agentRegisterCommand` and `agentReleaseCommand`
+   (`cli/commands/agent-ops.ts`) and from `task-claim.ts` — never a round-trip to the agent, exactly as
+   B32.1/B34 specify. `bun test tests/unit/summary/graph-completeness-contract.test.ts` — "carries per-agent
+   telemetry and the whole grant ledger" — drives the real CLI end to end (register → report → release →
+   `summary:export`) and asserts the resulting `graph.json` node's `telemetry.tokensIn` carries
+   `evidence_class: "host_reported"`; 17/17 pass. What is still true, checked directly rather than inferred:
+   neither capsule on disk has ever exercised this end to end through a real dispatched run —
+   `skills/.capsules/2026-08-17-skills-documentation-elevation/state.json` and
+   `gvui/.capsules/2026-08-17-gvui-documentation-elevation/state.json` both lack an `agents` key entirely,
+   and both capsules' exported `summary/graph.json` have zero nodes carrying a `telemetry` field. B32.2 set
+   the bar explicitly: "Until a capsule on disk contains a populated agents ledger, treat this feature as
+   unproven regardless of test coverage." That bar is still unmet — the gap that remains is a real
+   dispatched run, not a code or test gap.
+
+3. **B28's supervisor-recovers-from-a-crash claim: verified true, but only after watching its own proof-test
+   get fixed mid-audit.** `tests/unit/orchestrator/supervisor.test.ts`'s "B28.2/B28.4: survives its own
+   death" test — the literal test for "the supervisor actually recovering" — was, at the start of this
+   audit, missing the fake `sleep` wiring every sibling `fakeTime()` usage in the same file has (it
+   destructured only `{ clock, advance }`), so both `RunSupervisor` instances fell back to real
+   `setTimeout`-based polling against a frozen fake elapsed-clock and the test hung to the runner timeout on
+   every run (reproduced 3/3 times, isolated with `-t`). This was uncommitted, in-flight work by a
+   concurrent agent in this same session, not shipped code — by the time this was traced to its root cause
+   and about to be reported, the same file had already been corrected (a `sleep` field added to both
+   instances, plus a second bug fixed alongside it — the test's own claimingDispatcher mock (a test-local
+   helper, not a production symbol) reused the
+   same agent-id counter across "process" instances, which would have made the post-recovery lease look
+   identical to the dead one by coincidence; a `label` parameter now disambiguates "dead-process" from
+   "restarted-process"). Re-run after that fix landed: `bun test tests/unit/orchestrator/supervisor.test.ts
+   tests/unit/orchestrator/supervision-tick.test.ts` — 14/14 pass, including the crash-restart scenario. No
+   action needed — recorded here only because B33 requires opening the artifact rather than trusting a
+   status, and this is the artifact having been open while it was still broken.
+
+4. Per B33, the harness's own `bun orchestrating-long-tasks/scripts/harness.ts health --consumer ../gvui
+   --all` was run as instructed (verdict: healthy, 0 failures, 438 advisories, all in the "unused code"
+   category with reasoned allowances) and correctly finds none of the above three findings — confirming the
+   task's own framing: this is a mechanical check for dead/unreachable/undeclared code, not a runtime or
+   load-sensitivity check, so a clean health run is not evidence against any of the above.

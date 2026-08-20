@@ -47,6 +47,27 @@ export interface RepositoryGitCommandDependencies {
 const nodeSpawn: RepositoryGitSpawn = (executable, argv, options) =>
   spawnSync(executable, argv, options) as RepositoryGitSpawnResult;
 
+// `git` is a plain fork+exec like `ps` (see process-tree.ts's SNAPSHOT_SPAWN_RETRIES), so under
+// severe process-table pressure the spawn itself can fail transiently (EAGAIN/ENOMEM) even though
+// nothing is wrong with git or the repository. That failure has exactly one shape: no exit status
+// AND no error object AND no stderr — the OS never got far enough to report any of the three. A
+// real git failure always sets at least one of them (a non-zero status, an ENOENT error, or a
+// message on stderr), so this check cannot mistake a genuine failure for a transient one.
+const GIT_SPAWN_TRANSIENT_RETRIES = 3;
+const GIT_SPAWN_TRANSIENT_RETRY_DELAY_MS = 20;
+
+function isTransientSpawnFailure(result: RepositoryGitSpawnResult): boolean {
+  return (
+    result.status === null &&
+    result.error === undefined &&
+    (result.stderr === null || result.stderr.byteLength === 0)
+  );
+}
+
+function delay(milliseconds: number): void {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, milliseconds);
+}
+
 function validPath(value: string): boolean {
   const entries = value.split(delimiter);
   return entries.length > 0 && entries.every((entry) => Boolean(entry) && isAbsolute(entry));
@@ -73,14 +94,24 @@ export function createRepositoryGitCommand(
   return (repo, argv, maximum, accepted = [0]) => {
     if (!preflight(repo))
       throw new HarnessError("INVALID_STATE", "repository Git metadata unavailable before command");
-    const result = spawn("git", restrictedRepositoryGitArgv(repo, argv), {
+    const spawnArgv = restrictedRepositoryGitArgv(repo, argv);
+    const spawnOptions: RepositoryGitSpawnOptions = {
       encoding: "buffer",
       env: environment,
       shell: false,
       maxBuffer: maximum + 1,
       timeout: REPOSITORY_GIT_TIMEOUT_MS,
       killSignal: "SIGKILL",
-    });
+    };
+    let result = spawn("git", spawnArgv, spawnOptions);
+    for (
+      let attempt = 0;
+      isTransientSpawnFailure(result) && attempt < GIT_SPAWN_TRANSIENT_RETRIES;
+      attempt += 1
+    ) {
+      delay(GIT_SPAWN_TRANSIENT_RETRY_DELAY_MS);
+      result = spawn("git", spawnArgv, spawnOptions);
+    }
     const bytes = result.stdout ?? Buffer.alloc(0);
     if (bytes.byteLength > maximum)
       throw new HarnessError("INTEGRITY", "repository Git command output byte limit exceeded");
