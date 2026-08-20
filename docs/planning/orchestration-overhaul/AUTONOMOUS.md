@@ -19,6 +19,24 @@ not only a cost one.
 Pass these explicitly on every `agent()` call — `model` and `effort`. Omitting them inherits the session
 model, which is Opus, which is the thing being corrected.
 
+## The rule that keeps this running
+
+**NEVER end a turn with nothing in flight.** Launch the next wave FIRST, then schedule the wakeup as a
+silent-death fallback — never the other way round, and never "the next iteration will launch it".
+
+Work in flight generates completion notifications, and those are the real wake signal. A scheduled wakeup
+with no work running is a single point of failure: if it does not fire, everything stops and nothing
+notices. This happened once — a turn ended after a commit with the next wave deferred to the wakeup, and
+the run sat idle until the owner came back and found it stopped.
+
+Order, every turn, without exception:
+1. Launch or confirm work is running.
+2. Do bookkeeping — commit, record findings, update the backlog.
+3. Schedule the wakeup last, as the fallback.
+
+If a wave lands and the backlog still holds `queued` items or health is UNHEALTHY, the next wave launches
+in the SAME turn. Assessment and planning are not a turn of their own.
+
 ## The loop
 
 1. **Observe.** Wait for running workflows to complete. Never launch work that collides with in-flight
