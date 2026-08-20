@@ -68,7 +68,7 @@ To prevent conversational context explosion and preserve interactive responsiven
 +-----------------------------------------------------------------------------------------------+
 |                                                                                               |
 |  [ Google Antigravity ]       [ Claude Code ]          [ OpenAI Codex ]      [ ChatGPT ]      |
-|    ➜ native subagents           ➜ agent teams / forks    ➜ native workers      ➜ coding agent |
+|    ➜ native subagents           ➜ the `Agent` tool       ➜ native workers      ➜ coding agent |
 |    ➜ ~/.gemini/config/skills    ➜ .claude/skills         ➜ .agents/skills      ➜ .agents/skills|
 |             │                         │                        │                    │         |
 |             └─────────────────────────┼────────────────────────┴────────────────────┘         |
@@ -91,7 +91,10 @@ To prevent conversational context explosion and preserve interactive responsiven
 ### 2. Claude Code
 
 - Discovered at `.claude/skills/orchestrating-long-tasks` or `~/.claude/skills/...`.
-- Dispatches teammates using Claude Code's agent team tools. Teammates claim disjoint write scopes; the lead coordinator validates.
+- Dispatches subagents with the native `Agent` tool; each claims a disjoint write scope and the lead
+  coordinator validates. `SendMessage` and the experimental Agent Teams file-mailbox channel are for
+  agent-to-agent messaging, not dispatch — see [`references/host-adapters.md`](../../references/host-adapters.md)'s
+  adapter table for the full, current detail.
 
 ### 3. OpenAI Codex & ChatGPT
 

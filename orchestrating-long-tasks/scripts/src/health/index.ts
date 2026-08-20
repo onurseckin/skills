@@ -9,7 +9,11 @@ import { scanUnreadParameters } from "./parameters.ts";
 import { checkUnusedCode } from "./reachability.ts";
 import { listFiles, loadSources, type SourceFile } from "./sources.ts";
 import { checkDeclarations } from "./unenforced.ts";
-import { checkVendorIdentifiers, PRODUCT_GRAMMAR_MODULES } from "./vendors.ts";
+import {
+  checkUnqualifiedDispatch,
+  checkVendorIdentifiers,
+  PRODUCT_GRAMMAR_MODULES,
+} from "./vendors.ts";
 import type { HealthCheckId, HealthCheckResult, HealthReport } from "./types.ts";
 
 export const ALL_CHECKS: readonly HealthCheckId[] = [
@@ -19,6 +23,7 @@ export const ALL_CHECKS: readonly HealthCheckId[] = [
   "intent-drift",
   "literal-fallbacks",
   "vendor-identifiers",
+  "vendor-prose",
 ];
 
 export interface HealthLayout {
@@ -185,6 +190,12 @@ export function runHealthCheck(
             ]
           : vendor.limitations,
     });
+  }
+  if (wants("vendor-prose")) {
+    // The docs and role contracts a coordinator actually reads live under the skill root, not just
+    // scriptsRoot - `agents/coordinator.yaml` and `references/run-playbook.md` are siblings of
+    // `scripts/`, not inside it, and both are exactly where this defect has regressed twice.
+    results.push(checkUnqualifiedDispatch([{ label: "skill", root: layout.skillRoot }]));
   }
 
   // The allowance list names symbols in the harness's own tree, so an entry can only be judged

@@ -1,5 +1,13 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { afterAll, afterEach, beforeAll, describe, expect, test } from "bun:test";
+import {
+  chmodSync,
+  cpSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -8,10 +16,24 @@ import { transact } from "../../../orchestrating-long-tasks/scripts/src/store/tr
 import { verifyCapsuleLayout } from "../../../orchestrating-long-tasks/scripts/src/store/layout-integrity.ts";
 import { initializePlannerPacket } from "../../../orchestrating-long-tasks/scripts/src/packets/planner-packet.ts";
 
-const scriptsRoot = fileURLToPath(
+const liveScriptsRoot = fileURLToPath(
   new URL("../../../orchestrating-long-tasks/scripts", import.meta.url),
 );
 const roots: string[] = [];
+
+// See tests/unit/packets/planner-packet.test.ts for why this is a frozen, test-owned copy rather
+// than the live tree: copyPinnedRuntime's before/after re-hash otherwise races any concurrent
+// write to the real `scripts` directory (another wave's agent, a background build).
+let scriptsRoot: string;
+
+beforeAll(() => {
+  scriptsRoot = mkdtempSync(join(tmpdir(), "layout-packets-scripts-"));
+  cpSync(liveScriptsRoot, scriptsRoot, { recursive: true });
+});
+
+afterAll(() => {
+  rmSync(scriptsRoot, { recursive: true, force: true });
+});
 
 afterEach(() => {
   for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true });

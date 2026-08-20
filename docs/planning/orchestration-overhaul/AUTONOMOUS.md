@@ -136,20 +136,28 @@ Narrow only on evidence that agents themselves are the constraint — free memor
 the top CPU consumers actually being this project's processes. Read the top five first (see above);
 twice now the honest answer was "not us".
 
-## Push is blocked in this session — do not silently retry
+## Push cadence — both repos are pushed and tracking origin; this is not a blocked state
 
-`git push` is refused by the harness permission classifier as an outward-facing action. Verified: neither
-repo has an upstream and NOTHING has ever been pushed, despite the loop reporting "push when green" for
-hours. That was a real gap — the first failure was never checked.
+**Corrected 2026-08-20 (reconciliation pass): the "blocked" framing this section used to carry was true
+once, is not true now, and must not be assumed by a fresh session reading only this file.** Verified
+directly, not inferred from an old note: both repos have `origin` configured, both are on
+`orchestration-overhaul`, and `git rev-list --left-right --count origin/orchestration-overhaul...HEAD`
+reports `0  0` in each — fully pushed, nothing ahead, nothing behind. Whatever blocked `git push` when
+this section was first written has since been resolved (a permission rule was granted, or the owner
+pushed directly); do not re-diagnose it as blocked without checking `git status --short --branch` and
+the rev-list count first, per B33 — open the artifact, don't reason from a stale doc.
 
-Until the owner grants a Bash permission rule for `git push`:
-- Keep committing at every green gate. Commits are cheap (typecheck only, ~2s) and the work is safe locally.
-- Do NOT attempt the push each cycle and let it fail quietly. State plainly in the cycle report how many
-  commits are waiting.
-- The owner can push with `!` in the prompt:
-  `!cd /Users/onurseckinsenoglu/repos/skills && git push -u origin orchestration-overhaul`
-- Note the pre-push hook runs the FULL unit suite against the working tree, so a push during an active
-  wave tests that wave's half-written state. Push between waves, not during one.
+The cadence going forward, now that push works:
+- Commit at every green gate — after each wave, and opportunistically whenever gates pass mid-wave.
+  Commits are cheap (typecheck only, a few seconds) and keep local history granular.
+- Push **between waves, never during one.** The pre-push hook runs the FULL unit suite against the
+  working tree; a push while another wave's agents are still writing tests the half-written state of
+  whichever files they haven't finished, and fails for a reason that has nothing to do with the commit
+  being pushed. Confirm no workflow is actively writing before pushing.
+- If a push ever again fails for a reason that looks like a permission or environment block rather than
+  a failing gate, say so plainly in the cycle report with the exact error, rather than silently retrying
+  or silently accumulating unpushed commits — but verify it is actually blocked (attempt it and read the
+  failure) before writing that down as the state of the world.
 
 ## Recovery
 

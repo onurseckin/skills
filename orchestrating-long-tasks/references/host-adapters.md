@@ -58,9 +58,9 @@ To keep the user's interactive thread pristine, the Background Run Coordinator c
 
 ---
 
----
+## 3. Host Adapters
 
-## The abstract contract
+### 3.1 The abstract contract
 
 Whatever the host, a coordinator needs five things. If a host cannot provide one, that is a capability
 gap to be declared, not worked around silently.
@@ -75,7 +75,7 @@ gap to be declared, not worked around silently.
 
 ---
 
-## Adapter table
+### 3.2 Adapter table
 
 | Host | Dispatch | Definitions | Messaging | Depth | Concurrency |
 |:--|:--|:--|:--|:--|:--|
@@ -86,7 +86,7 @@ gap to be declared, not worked around silently.
 
 ---
 
-## Native primitives worth using instead of rebuilding
+### 3.3 Native primitives worth using instead of rebuilding
 
 Prefer a host primitive over a hand-built equivalent. Both of these already exist and the harness should
 defer to them where available.
@@ -111,7 +111,7 @@ No host selects a model by task difficulty; if nothing declares one, the agent i
 
 ---
 
-## Constraints that change how a run must be driven
+### 3.4 Constraints that change how a run must be driven
 
 **Codex gates delegation behind an explicit instruction.** By default it will not spawn subagents unless
 the user, an `AGENTS.md`, or a skill asks for delegation. This skill is one of the sanctioned triggers,
@@ -133,7 +133,7 @@ exceptional, and rely on lease expiry to detect it.
 
 ---
 
-## Declaring capability, and degrading honestly
+### 3.5 Declaring capability, and degrading honestly
 
 Before dispatching, record what this host actually supports — nesting depth, concurrency, native workspace
 isolation, native resume, per-agent model selection, agent-to-agent messaging — through `agent:register`,

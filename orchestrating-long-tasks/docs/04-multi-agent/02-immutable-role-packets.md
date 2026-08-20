@@ -26,8 +26,13 @@ any `--`, or it is forwarded to the child process instead of read by the harness
 ## 🎭 The Nine Canonical Roles
 
 `AgentRole` is a closed vocabulary. Each role has exactly one document in
-`orchestrating-long-tasks/roles/<role>.md`, and a unit test asserts the directory holds exactly one
-per canonical role.
+`orchestrating-long-tasks/roles/<role>.md`. The `validator` role additionally carries one contract
+per standing-checklist domain (B12.2) — `roles/validator-code-quality.md`,
+`-product.md`, `-security.md`, `-system-design.md` and `-ui-design.md` — each declaring `role:
+validator` plus its own `domain:`, so every check keyed on the literal role string `"validator"`
+keeps working unchanged; a domain variant is not a separate `AgentRole` and its filename does not
+match one. A unit test asserts `roles/` holds exactly one document per canonical role, plus exactly
+one per validator domain — fourteen files total, not nine.
 
 ```text
 +-----------------------------------------------------------------------------------------------+

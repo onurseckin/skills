@@ -155,12 +155,15 @@ commands it ran itself; a requirement with no proof is recorded `unproven` and b
 
 ```bash
 bun harness.ts agent:release --run .capsules/<slug> --agent <id> --reason "<why>"
-bun harness.ts run:complete --run .capsules/<slug> --actor coordinator
+bun harness.ts run:complete --run .capsules/<slug> --actor coordinator \
+  --auth-token <token-from-critic:start>
 bun harness.ts run:status --run .capsules/<slug>
 ```
 
-Close every grant first — a completed run is terminal and refuses further mutation. Completion
-passes if and only if:
+Close every grant first — a completed run is terminal and refuses further mutation. `--auth-token` is
+mandatory: it is the same bearer token `critic:start` minted for the critic, checked against that
+assignment's own token digest rather than the critic's live grant — `critic:review` never mints or
+returns a token of its own. Completion passes if and only if:
 
 1. Zero integrity or traceability issues exist.
 2. Every prompt line is disposed and every requirement is proven with command evidence.

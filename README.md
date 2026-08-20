@@ -218,7 +218,7 @@ bun $H critic:review --run $RUN --critic critic-1 --token "$CRITIC" --decision a
 
 # 10. Close every grant BEFORE sealing: a completed run is terminal
 for a in impl-1 val-1 critic-1 coordinator-1; do bun $H agent:release --run $RUN --agent "$a" --reason "run sealed"; done
-bun $H run:complete --run $RUN --actor coordinator-1
+bun $H run:complete --run $RUN --actor coordinator-1 --auth-token "$CRITIC"
 
 # 11. Read the result
 bun $H run:status --run $RUN
@@ -227,7 +227,7 @@ bun $H summary:export --run $RUN
 bun $H doctor --run $RUN
 ```
 
-Three things in that sequence are easy to get wrong and are refused outright:
+Five things in that sequence are easy to get wrong and are refused outright:
 
 - `--format json` must come **before** any `--`, or it is passed to the child process.
 - `task:review --status pass` needs a `--resolve` for **every** open finding — probe demands and
@@ -237,6 +237,9 @@ Three things in that sequence are easy to get wrong and are refused outright:
 - Nothing in the repository may change between `critic:start` and `critic:review`, not even a scratch
   file — the authorization is bound to the bytes it inspected. Write the proofs payload outside the
   repository.
+- `run:complete --auth-token` is mandatory — it is the same token `critic:start` handed back,
+  checked against that assignment's own record rather than the critic's live grant, so releasing the
+  critic first does not invalidate it. Omitting it is refused outright, not defaulted.
 
 The [end-to-end tutorial](./orchestrating-long-tasks/docs/10-tutorial-and-cli/01-end-to-end-tutorial.md)
 runs the same flow with a branch, a real rejection and a repair round.

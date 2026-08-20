@@ -4,7 +4,8 @@ export type HealthCheckId =
   | "unenforced-declarations"
   | "intent-drift"
   | "literal-fallbacks"
-  | "vendor-identifiers";
+  | "vendor-identifiers"
+  | "vendor-prose";
 
 /**
  * A failure is code that can misbehave at run time. An advisory is surface that cannot: an exported

@@ -54,7 +54,8 @@ Close every agent grant **first**. A completed run is terminal, so a release aft
 
 ```bash
 bun harness.ts agent:release --run .capsules/<run-id> --agent <id> --reason "run sealed"
-bun harness.ts run:complete --run .capsules/<run-id> --actor coordinator
+bun harness.ts run:complete --run .capsules/<run-id> --actor coordinator \
+  --auth-token <token-from-critic:start>
 ```
 
 ```text
@@ -71,7 +72,11 @@ bun harness.ts run:complete --run .capsules/<run-id> --actor coordinator
 ```
 
 Note what the brief does **not** do with an unmeasured duration: it prints `unknown` rather than a
-plausible-looking number. `--actor` is required and has no default; the run records who sealed it.
+plausible-looking number. `--actor` and `--auth-token` are both required with no default; the run
+records who sealed it, and the token is the same bearer token `critic:start` minted, checked against
+the critic assignment's own token digest — not the critic's live grant, so releasing the critic first
+does not invalidate it; `critic:review` itself never mints or returns a token. Omitting `--auth-token`
+is refused outright: `{"ok":false,"error":{"code":"INVALID_ARGUMENT","message":"--auth-token is required"}}`.
 
 `run:complete` also regenerates the summary suite. Inspect the sealed run at any time:
 

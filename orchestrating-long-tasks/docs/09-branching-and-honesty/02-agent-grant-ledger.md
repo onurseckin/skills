@@ -52,9 +52,9 @@ That last rule is the whole point. Compare two real registrations from the tutor
 - **Tools Granted**: `Read` (uncategorised), `Write` (uncategorised), `Bash` (uncategorised) (agent_reported)
 
 #### Close The Grant:
+```
 ```bash
 bun harness.ts agent:release --run .capsules/slugger --agent impl-slug
-```
 ```
 
 ```text
@@ -66,9 +66,9 @@ bun harness.ts agent:release --run .capsules/slugger --agent impl-slug
 - **Tools Granted**: unknown
 
 #### Close The Grant:
+```
 ```bash
 bun harness.ts agent:release --run .capsules/slugger --agent impl-truncate
-```
 ```
 
 The second agent ran on the same machine, under the same harness, on the same day. Nothing was

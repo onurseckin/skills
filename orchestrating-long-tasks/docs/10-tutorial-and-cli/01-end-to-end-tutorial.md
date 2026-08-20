@@ -192,10 +192,12 @@ bun harness.ts queue:wave --run .capsules/slugger
 
 - **Topology**: recorded at graph revision 1
 - **Dispatch**: each row is independently claimable now — claim it the moment an agent is free; do not wait for the rest of this list before claiming the next one.
+```
+
+The brief also prints the claim command it just described, as its own trailing block:
 
 ```bash
 bun harness.ts task:claim --run slugger --task <TASK_ID> --agent <AGENT_ID> --role implementer
-```
 ```
 
 `queue:wave` is read-only and reports every task claimable right now, so a coordinator dispatches
@@ -227,9 +229,9 @@ bun harness.ts agent:register --run .capsules/slugger --agent impl-truncate \
 - **Tools Granted**: `Read` (uncategorised), `Write` (uncategorised), `Bash` (uncategorised) (agent_reported)
 
 #### Close The Grant:
+```
 ```bash
 bun harness.ts agent:release --run .capsules/slugger --agent impl-slug
-```
 ```
 
 ```text
@@ -241,10 +243,13 @@ bun harness.ts agent:release --run .capsules/slugger --agent impl-slug
 - **Tools Granted**: unknown
 
 #### Close The Grant:
+```
 ```bash
 bun harness.ts agent:release --run .capsules/slugger --agent impl-truncate
 ```
-```
+
+Every brief that grants or leases something ends the same way: a trailing block naming the exact
+command that undoes it.
 
 Same machine, same second. The second agent reads `unknown` because nothing was reported for it, and
 the harness will not infer a model from the machine it happens to be running on. `(agent_reported)` is

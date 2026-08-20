@@ -190,7 +190,8 @@ export function scanSourceForVendorIdentifiers(
   return findings;
 }
 
-function sourceFilesBelow(root: string, extensions: readonly string[]): string[] {
+/** Exported for reuse by vendor-prose.ts: the same walk, over `.md`/`.yaml` instead of `.ts`. */
+export function sourceFilesBelow(root: string, extensions: readonly string[]): string[] {
   const found: string[] = [];
   const walk = (directory: string): void => {
     for (const entry of readdirSync(directory, { withFileTypes: true })) {
@@ -204,7 +205,8 @@ function sourceFilesBelow(root: string, extensions: readonly string[]): string[]
   return found;
 }
 
-function isExempt(relativePath: string, exempt: readonly string[]): boolean {
+/** Exported for reuse by vendor-prose.ts: the same prefix-match exemption rule, one list per scan. */
+export function isExempt(relativePath: string, exempt: readonly string[]): boolean {
   return exempt.some((prefix) => relativePath === prefix || relativePath.startsWith(`${prefix}/`));
 }
 

@@ -75,18 +75,13 @@ Dispatch each claimable task as a pair — one implementer and its own independe
 implementer alone. One host call may carry several pairs when several tasks are claimable at once,
 but nothing waits for the call's other pairs: a validator becomes eligible the instant its own
 implementer submits. The Triad Floor and the Pairing Invariant are stated in
-[`protocol.md`](protocol.md); this is the shape of the call:
+[`protocol.md`](protocol.md).
 
-```typescript
-invoke_subagent({
-  Subagents: [
-    { Role: "Implementer 1 (Task T-01)", TypeName: "self", Prompt: "Claim and implement T-01 in $RUN..." },
-    { Role: "Validator 1 (Task T-01)", TypeName: "self", Prompt: "Adversarially audit T-01 in $RUN..." },
-    { Role: "Implementer 2 (Task T-02)", TypeName: "self", Prompt: "Claim and implement T-02 in $RUN..." },
-    { Role: "Validator 2 (Task T-02)", TypeName: "self", Prompt: "Adversarially audit T-02 in $RUN..." },
-  ],
-});
-```
+Whatever the host, dispatching one agent means the same abstract contract: start it with a role, a
+scope and a packet; learn its id so `agent:register` can bind the grant; and know when it finishes and
+what it returned. The concrete call — its name, shape and argument fields — is a per-host fact, never a
+rule: read [`host-adapters.md`](host-adapters.md)'s adapter table for the one your host actually
+exposes before dispatching anything.
 
 Register every dispatched agent before it starts work. The grant is what later ties an event actor to
 a role, a parent and a task, so the graph can say who did what without guessing:

@@ -1,5 +1,5 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { chmodSync, readdirSync } from "node:fs";
+import { afterAll, afterEach, beforeAll, describe, expect, test } from "bun:test";
+import { chmodSync, cpSync, mkdtempSync, readdirSync, rmSync } from "node:fs";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -8,9 +8,26 @@ import { initializePlannerPacket } from "../../../orchestrating-long-tasks/scrip
 import { initRun, loadRun } from "../../../orchestrating-long-tasks/scripts/src/store/index.ts";
 
 const roots: string[] = [];
-const scriptsRoot = fileURLToPath(
+const liveScriptsRoot = fileURLToPath(
   new URL("../../../orchestrating-long-tasks/scripts", import.meta.url),
 );
+
+// copyPinnedRuntime re-hashes the whole source tree before and after copying and throws if
+// anything differs in between (core/runtime-tree.ts) — by design, to catch a torn snapshot.
+// Pointing that check at the live, editable `scripts` tree made it racy against any concurrent
+// write there (another wave's agent, a background build), which is real contention but not the
+// race this test means to exercise. A private, test-owned copy frozen once up front removes the
+// exposure window entirely: nothing but this file ever touches it, so the check is deterministic.
+let scriptsRoot: string;
+
+beforeAll(() => {
+  scriptsRoot = mkdtempSync(join(tmpdir(), "planner-packet-scripts-"));
+  cpSync(liveScriptsRoot, scriptsRoot, { recursive: true });
+});
+
+afterAll(() => {
+  rmSync(scriptsRoot, { recursive: true, force: true });
+});
 
 function makeWritable(path: string): void {
   try {

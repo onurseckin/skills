@@ -4,24 +4,30 @@ Append-only. Decisions land here as they are made in conversation, and are imple
 wave so that in-flight waves are never interrupted. Each entry is written to be implementable without
 further clarification.
 
-## Status index (completion-tagging pass, 2026-08-20)
+## Status index (reconciliation pass, 2026-08-20)
 
 The loop could not tell finished work from pending work: verified-done items sat tagged `queued`
-forever, causing rework and stale blocker claims (B37 finding 10). This pass applied the convention
-below to every item that existed when it started, B1-B38, opening the artifact for each claim per B33
-rather than trusting an earlier report. B39 landed in this same working tree, concurrently, from a
-different in-flight pass while this one was running (confirmed via `git log`/`git status`: three commits
-and several other files changed underneath this pass mid-flight); it is folded into the count below at
-the `queued` tag its own author gave it, but its individual findings were not independently
-re-verified by this pass — that is separate work for whoever picks B39 up next.
+forever, causing rework and stale blocker claims (B37 finding 10). An earlier same-day
+completion-tagging pass applied the convention below to B1-B38 first, opening the artifact for each
+claim per B33 rather than trusting an earlier report; B39 and B40 landed afterward, from concurrent
+in-flight passes, each already carrying its own author's tag and findings.
+
+This pass is a second, later reconciliation: the document's own account of the code had already started
+drifting from the code itself within the same day — B36's note asserted `invoke_subagent` was "still
+hardcoded, unqualified, at `agents/coordinator.yaml:103`" after a concurrent commit had already replaced
+that block, which `grep` now confirms returns nothing there. That is the defect class this whole
+overhaul exists to remove, reproduced in the backlog's own self-description, so this pass re-opened
+every item's cited artifact again rather than trusting the previous pass's citations to still hold, and
+corrected every stale claim it found (not only B36's). See each item's own note for what changed and why
+below.
 
 | Tag | Count | Items |
 |---|---:|---|
 | `done (<sha>), verified` | 3 | B2, B5, B13 |
-| `verified` | 12 | B1, B7, B10, B11, B12, B14, B16, B23, B24, B26, B28, B34 |
-| `queued` | 23 | B3, B4, B6, B8, B9, B15, B17, B18, B19, B20, B21, B22, B25, B27, B29, B30, B32, B33, B35, B36, B37, B38, B39 |
+| `verified` | 13 | B1, B6, B7, B10, B11, B12, B14, B16, B23, B24, B26, B28, B34 |
+| `queued` | 23 | B3, B4, B8, B9, B15, B17, B18, B19, B20, B21, B22, B25, B27, B29, B30, B32, B33, B35, B36, B37, B38, B39, B40 |
 | `deferred by owner` | 1 | B31 |
-| **Total** | **39** | B1-B39 |
+| **Total** | **40** | B1-B40 |
 
 Every `verified` and `queued` tag below carries a one-line, dated status note citing the file(s),
 test(s) or command output that settled it — added by this pass, not inherited from an earlier report.
@@ -463,9 +469,36 @@ This constrains B2's target layout: optimise it for a reader first, and for the 
 
 ---
 
-## B6 — `summary.md` is a complete, sequential run report `queued`
+## B6 — `summary.md` is a complete, sequential run report `verified`
 
-**Still queued 2026-08-20 (completion-tagging pass):** `summary:export`/`summary:view` commands exist
+**Verified 2026-08-20 (reconciliation pass), correcting the earlier "still queued" note below:** a
+completeness test analogous to B3's `graph-completeness-contract.test.ts` exists for `summary.md` —
+`tests/unit/summary/markdown-run-report.test.ts`, "summary.md is a complete, sequential run report",
+whose fixture (`markdown-run-report-fixture.ts`, docstring: "One capsule driven entirely through the
+CLI, exercising every feature the report has to carry") drives a real capsule through `execute()`:
+enhanced plan, two tasks in one wave plus a third behind a dependency, a branch with two sub-agents, a
+probe, a defect pushback with a repair round, gate evidence, a non-zero-exit command, host-reported
+agent telemetry, a critic verdict and a sealed completion. `bun test
+tests/unit/summary/markdown-run-report.test.ts` — 18/18 pass — asserts, in run order, every section this
+item's own list names (prompt, enhanced plan, derived requirements, topology with parallel rationale,
+ASCII task graph with an explicit `not.toContain("\`\`\`mermaid")`, agents/sub-agents with role/parent/
+grants, the branch excursion's why/who/what-came-back, per-sub-task claim/submit timestamps, every
+command with its exit code including the failing one, probes and pushbacks in separate labelled
+sections with round numbers, gates/findings/critic verdict, and telemetry with its evidence class
+alongside an explicit `unknown` row for an agent that reported none). Reachable: the fixture calls the
+real CLI, not a stub. Does what was asked: the heading list and the assertions were checked bullet by
+bullet against this item's own requirements, not against what was convenient to build. Guard holds:
+confirmed directly rather than assumed — rsync'ed `orchestrating-long-tasks/` + `tests/` to a scratch
+copy outside the repo (never the real tree, since `summary/markdown-*.ts` is another wave's live file
+ownership), gutted `renderTopology` in `markdown-plan-sections.ts` to return `[]`, and reran the test
+there: it failed immediately ("## 5. Recorded Topology is missing from the report" plus a second,
+independent assertion failure on the same missing section), then the scratch copy was deleted and
+`git status` on the real tree confirmed untouched. This was created by an earlier, different wave
+(`tests/unit/summary/markdown-run-report-fixture.ts` first landed in commit `34f8343`, "feat: add
+validator checklists and orchestrate entry point" — a different commit from this verification), so this
+qualifies as a genuinely separate, later pass per the `verified` tag's own definition.
+
+**Previously, still queued 2026-08-20 (completion-tagging pass):** `summary:export`/`summary:view` commands exist
 (`scripts/src/cli/registry/summary.ts`) and an ASCII graph renderer exists
 (`scripts/src/summary/markdown-ascii-graph.ts`), so the shape is real. No completeness test analogous
 to B3's `graph-completeness-contract.test.ts` was found for `summary.md`, so coverage against this
@@ -1786,7 +1819,22 @@ research phase (B30.5) is complete and its findings are cited throughout this do
 phase B30.1 called for is not done — see B36, whose finding B38 independently re-confirmed unfixed the
 same day it was raised. This item does not close until B36's work item does.
 
-**Verified 2026-08-20:** `invoke_subagent` — Antigravity's tool name — appears 8 times across
+**Correction 2026-08-20 (reconciliation pass) to the "Verified" paragraph directly below — the count and
+the "no other host is named" claim are now stale, and B36 (re-checked fresh, see its own entry) shows
+the application phase is partially, not zero, done:** `grep -rn invoke_subagent` across
+`agents/coordinator.yaml`, `references/host-adapters.md`, `references/parity-matrix.md` and
+`references/run-playbook.md` today returns **7** hits, not 8 — `coordinator.yaml` no longer has any
+(B36.1's fix landed there), leaving `run-playbook.md` (1, still unqualified), `host-adapters.md` (2, both
+correctly scoped inside its own adapter table/prose) and `parity-matrix.md` (3, inside a per-host-column
+table). And the "no other host's dispatch mechanism is named anywhere" claim no longer holds:
+`parity-matrix.md`'s own header row already names "Anthropic Claude Code," "OpenAI Codex / ChatGPT" and
+"Generic subagent CLI" as columns, and `host-adapters.md`'s adapter table (see B36's entry) lists a real
+row per host — that table is genuinely correct, current work, not a stale artifact. What is still true:
+`run-playbook.md`'s bare block is unqualified rule prose (not a table cell), so a coordinator reading it
+under Codex or Cursor is still told to call a tool that does not exist there — this item's core defect
+survives even though its scope shrank. Item stays `queued`; see B36 for the itemised remainder.
+
+**Superseded paragraph, kept for the record — do not treat as current:** `invoke_subagent` — Antigravity's tool name — appears 8 times across
 `agents/coordinator.yaml`, `references/host-adapters.md`, `references/parity-matrix.md` and
 `references/run-playbook.md`. **No other host's dispatch mechanism is named anywhere in the skill.**
 `references/host-adapters.md` is 146 lines and `parity-matrix.md` 61, both written as though one
@@ -1867,9 +1915,15 @@ where one exists, degrade explicitly where a capability is missing, and SAY whic
 
 ### B30.4 Sequencing
 
-Research is running now (read-only, documentation-grounded, one agent per host). Application is BLOCKED on
-Wave 8's B13, which currently owns `references/**` — writing there now would collide. Apply the spec once
-B13 releases those paths.
+**Stale as of 2026-08-20 (flagged by B36.5, corrected in this same reconciliation pass — see B33: opening
+B13's own entry above, not trusting this paragraph, is what settles it).** The paragraph below described
+a real blocker at the time it was written, but B13 closed (`done (eaabd5c), verified`, confirmed by
+`wc -l` on `orchestrating-long-tasks/SKILL.md` today) and no longer holds `references/**`. Application of
+B30's spec is unblocked; what remains open is the work itself (B36's remaining scope), not a collision.
+
+Original text, retained for provenance: "Research is running now (read-only, documentation-grounded, one
+agent per host). Application is BLOCKED on Wave 8's B13, which currently owns `references/**` — writing
+there now would collide. Apply the spec once B13 releases those paths."
 
 
 ---
@@ -2160,7 +2214,45 @@ accept at that load level, or a follow-up item for a wall-clock-independent read
 
 ## B36 — B30's research landed unevenly: the coordinator's own role contract still hardcodes `invoke_subagent`, and `host-adapters.md` is spliced, not merged   `queued`
 
-**Re-confirmed still queued 2026-08-20 (completion-tagging pass):** grepped `invoke_subagent` in both
+**Corrected 2026-08-20 (reconciliation pass) — the note directly below is now factually wrong on
+B36.1's `coordinator.yaml` half and must not be trusted.** Opened `agents/coordinator.yaml` fresh:
+`grep -n invoke_subagent agents/coordinator.yaml` returns nothing. The "Phase 2: Continuous Dispatch"
+block B36.1 quoted has been replaced — it now reads "The concrete tool that does this — its name, call
+shape and argument fields — is a per-host fact, never a rule: read `references/host-adapters.md`'s
+adapter table for the one your host actually exposes before dispatching anything," which is exactly the
+abstraction B36's work item 1 asked for. This is the concrete instance of the drift this reconciliation
+pass exists to fix: a wave applied part of B36's fix and the backlog's own status note kept asserting
+the pre-fix state as current.
+
+**What is still genuinely true, re-checked directly rather than carried over:**
+- `references/run-playbook.md:81` still opens with a bare `invoke_subagent({ Subagents: [...] })` block
+  under "this is the shape of the call," unqualified — B36.1's `run-playbook.md` half is unfixed.
+- `references/host-adapters.md`'s heading numbers still show the same spliced seam B36.2 named:
+  `## 1. Two-Tier Agent Architecture`, `## 2. Milestone-Only Notification Protocol`, then five
+  unnumbered new sections (`## The abstract contract` through `## Declaring capability, and degrading
+  honestly`), then `## 4. Silent Worker Recovery & Heartbeats` — section "3" still does not exist
+  anywhere in the file. B36.2 is unfixed.
+- `references/parity-matrix.md`'s "Tiered orchestration" row still lists Claude Code's dispatch as
+  `Native (Agent Teams / teammates)`, while `host-adapters.md`'s own adapter table (same B30.5 research)
+  lists Claude Code's dispatch as the `Agent` tool and describes Agent Teams separately as an
+  experimental messaging channel, not the dispatch mechanism. The two docs a coordinator is routed to
+  together still disagree. B36.3 is unfixed.
+- `tests/unit/architecture/vendor-scanner.test.ts` (new since B36 was written) still explicitly asserts
+  `.md` files are out of scope — its own "files the scan does not cover are left alone" test feeds a
+  `.md` file containing `PlaywrightMetadata` and asserts zero findings. B36.4's gap is unfixed and is
+  now pinned down by name in a test, not just observed.
+- B36.5's own two asks were already correct in this file before this pass and remain correct: B13 is
+  tagged `done (eaabd5c), verified` above (not `queued`), and B30's blocker note (below) no longer claims
+  a `references/**` ownership block — both already updated by whoever picked them up, exactly as B36.5
+  asked. No further action needed on B36.5.
+
+Net: 2 of B36's 4 concrete work items (1's `coordinator.yaml` half, and 5 as inherited from B36.5) are
+done; run-playbook.md, host-adapters.md's numbering and parity-matrix.md's contradiction (work items 1's
+other half, 2 and 3) are not; work item 4 (extend the vendor check to `.md`/`.yaml`) is not. Item stays
+`queued` on that remaining scope — B30 does not close until this does (see B30).
+
+**Superseded note, re-confirmed still queued 2026-08-20 (completion-tagging pass) — kept for the
+record, not to be read as current:** grepped `invoke_subagent` in both
 named files directly, again — still hardcoded, unqualified, at `agents/coordinator.yaml:103` and
 `references/run-playbook.md:81`, exactly as B36.1 describes. Not fixed.
 
@@ -2441,6 +2533,17 @@ both files; no new finding needed there. B31 (deferred by owner): confirmed unto
 
 ## B39 — Findings from the third post-implementation verification pass   `queued`
 
+**Still queued 2026-08-20 (reconciliation pass):** the six headline re-audits below and B39's own
+"Four of six re-confirmed clean" paragraph still hold on direct re-check. Finding 1's own resolution
+note (inline below) is new since this item was written: the evidence-class mislabeling it describes is
+now fixed and structurally guarded, but the note's own second requirement — surfacing
+`telemetry_conflicts` where a human or gvui can see it — remains open, so the item stays `queued` on
+that gap. Also fixed by this pass: finding 1's own prose tripped the health check's intent-drift scan
+(a bare, unqualified citation of a gitignored path with no line numbers, the exact shape B40 finding 3
+diagnosed) — reworded to keep only the already-qualified citation two lines later; confirmed by rerunning
+`bun orchestrating-long-tasks/scripts/harness.ts health --consumer ../gvui --all` after the edit (see
+B40's own entry for the before/after).
+
 **Scope note:** re-audited the same six headline claims B38 targeted, each by driving the real CLI
 against a scratch capsule (never by reading code alone, per B33): the probe blocking an unprobed pass,
 a role contract refusing an ungranted command, the Dual-Channel Validator on a UI task, branch-and-collect
@@ -2517,7 +2620,7 @@ function's own doc comment claims. Worth a same-day-window assertion alongside i
    B33-style artifact-opening) catches. It also retroactively undercuts the one piece of evidence anyone
    might cite for B32.2's "populated agents ledger on disk" bar: `.tmp/fixture-build`'s `fixture-demo`
    capsule (B37 finding 11/12's fixture) does carry a populated `agents` ledger with `host_reported`
-   telemetry throughout — but `.tmp/fixture-build/build-fixture.ts` populates it via the exact same unverified
+   telemetry throughout — but that fixture is populated via the exact same unverified
    `--model`/`--provider`/etc. flags this finding is about
    (`.tmp/fixture-build/build-fixture.ts:115-144,209-219,377-386`, gitignored scratch, driving `execute()`
    directly), not a real host transcript. It is not evidence the honesty guarantee holds; it is a second,
@@ -2534,10 +2637,35 @@ function's own doc comment claims. Worth a same-day-window assertion alongside i
    structural test in the shape B8.5 asks for: no CLI-only telemetry value (unaccompanied by a
    corroborating derived/transcript probe) may reach the exported graph tagged `host_reported` or
    `harness_observed`.
+   **PARTIALLY RESOLVED, verified 2026-08-20 (reconciliation pass) — the mislabeling itself is fixed;
+   the conflict-visibility half is not.** Opened `grants.ts` fresh: `telemetryFields()`, `hostLevel()`,
+   `mergeTokenExtras()` and `tokenCount()` all now stamp `agent_reported` on every CLI-supplied
+   telemetry field, with an inline comment naming this finding by number ("the same `agent_reported`
+   class as `--tool` rather than `host_reported`... B39 finding 1"). Reproduced this finding's own repro
+   command against a fresh scratch capsule and got `agent_reported` back on every field this time, not
+   `host_reported`. A dedicated structural guard now exists —
+   `tests/unit/agents/telemetry-evidence-honesty.test.ts`, "B39 finding 1: a typed CLI value never earns
+   a host-verified evidence class," whose own docstring cites this finding by name — plus
+   `tests/unit/summary/graph-telemetry-honesty.test.ts` proving the same discipline holds once a value
+   reaches `graph.json`. `bun test tests/unit/agents/telemetry-evidence-honesty.test.ts
+   tests/unit/summary/graph-telemetry-honesty.test.ts` — 10/10 pass. What is still true, checked directly:
+   `telemetry_conflicts` / `TelemetryFieldConflict` still resolves to zero hits under `summary/` and
+   `reporting/` — the conflict record still reaches only the raw `agent:register`/`agent:release` JSON
+   response (as `host_telemetry_conflicts`) and the event log, never `graph.json` or `summary.md`. The
+   second half of this finding's "Work to do" is open; treat it as closed only once a disagreement is
+   visible somewhere a human or gvui actually reads, not before.
 
 ---
 
 ## B40 — Adversarial audit of the third verification pass (B39) `queued`
+
+**Still queued 2026-08-20 (reconciliation pass) — this item had no dated status note of its own before
+this edit; added one so a fresh session does not have to re-derive its state from four undated
+findings.** Findings 1, 2 and 4 stand: re-checked their cited artifacts fresh and found nothing changed.
+Finding 3's own health-check regression is now fixed — see its inline note below — but that closes only
+finding 3, not the item: this is a findings log, and it stays open on whatever its own findings still
+name as unresolved (B39's own remaining conflict-visibility gap, tracked on B39 itself, not duplicated
+here).
 
 **Scope note:** re-verified B39 itself (not the underlying overhaul) by opening the same artifacts
 independently, per B33 — never by re-reading B39's prose and trusting it.
@@ -2593,6 +2721,19 @@ independently, per B33 — never by re-reading B39's prose and trusting it.
    `intent-missing:docs/planning/orchestration-overhaul/BACKLOG.md:B39:build-fixture.ts`, or rewording
    B39's bare citation to the qualified form the existing B37 allowance already covers — is left for the
    next wave that owns `orchestrating-long-tasks/scripts/src/health/`.
+   **RESOLVED, verified 2026-08-20 (reconciliation pass):** the bare, no-directory citation this finding
+   first flagged (the token this same finding quotes above as `` `build-fixture.ts` ``) is no longer
+   present anywhere in the file in single-backtick form
+   (whoever picked this up between B40 and this pass already rewrote or removed it — not this pass's own
+   edit). This pass additionally found and fixed a second, distinct bare citation this finding did not
+   itself name: B39's own text also cited the FULL path `` `.tmp/fixture-build/build-fixture.ts` ``
+   without line numbers, which fails the same check for the same reason and was still present as of this
+   pass — reworded to keep only the already-qualified, line-numbered citation two lines later, using
+   B40's own suggested remedy (reword rather than a new allowlist entry, since this pass owns
+   `BACKLOG.md`, not `health/src/`). Reran `bun orchestrating-long-tasks/scripts/harness.ts health
+   --consumer ../gvui --all` after the edit: intent-drift failures dropped from 3 (B3, B10, and this
+   B39 entry) to 2 (B3, B10 only) — both pre-existing and out of this item's scope. Overall verdict is
+   still UNHEALTHY on those 2, not because of anything this finding named.
 4. **Minor, not a defect:** B39's report describes its own diff as "BACKLOG.md modified (98 insertions, 0
    deletions, purely additive)". True of the B39 hunk in isolation (confirmed: its diff hunk is
    `@@ -2177,3 +2260,101 @@` with zero deletions) but the file's live `git diff --numstat` at review time
