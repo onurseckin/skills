@@ -3,10 +3,8 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import {
-  DEFAULT_CONFIG,
   DEFAULT_RESOLVED_CONFIG,
   getHarnessConfig,
-  loadHarnessConfig,
   resetHarnessConfigCache,
   resolveHarnessConfig,
 } from "../../../orchestrating-long-tasks/scripts/src/config/harness-config.ts";
@@ -74,14 +72,6 @@ describe("resolved harness config", () => {
     const config = resolveHarnessConfig(repoDir, capDir);
     expect(config.min_adversarial_probes).toBe(2);
     expect(config.default_max_parallel).toBe(8);
-  });
-
-  test("keeps loadHarnessConfig on the unresolved key set, dropping the probe count", () => {
-    const dir = makeTempDir();
-    writeFileSync(join(dir, "harness.config.json"), JSON.stringify({ min_adversarial_probes: 3 }));
-    const config = loadHarnessConfig(dir);
-    expect(Object.keys(config).sort()).toEqual(Object.keys(DEFAULT_CONFIG).sort());
-    expect(config).not.toHaveProperty("min_adversarial_probes");
   });
 
   test("caches per root pair and rereads after a reset", () => {

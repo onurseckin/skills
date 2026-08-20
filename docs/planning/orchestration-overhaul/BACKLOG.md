@@ -1855,8 +1855,10 @@ Reasoning effort is recorded; reasoning content is not. Record that as a genuine
 **Observed 2026-08-20 at the Wave 9 push gate.** These pass 10/10 in isolation and fail under
 `bun test --parallel` on a loaded machine:
 
-- `tests/unit/runner/command-recorded-payload.test.ts` — "command-recorded carries the argv and the exit
-  code, not an empty payload"
+- `tests/unit/cli/honesty-sweep.test.ts` — "command-recorded carries the argv and the exit
+  code, not an empty payload" (the Wave 9 push gate note named a
+  tests/unit/runner/command-recorded-payload.test.ts that does not exist; the verifier that closed
+  this item confirmed by opening the suite that the test lives here instead)
 - `tests/unit/cli/critic-ops-commands.test.ts` — "request_changes without findings is refused rather than
   synthesized"
 - `tests/unit/cli/task-probe-commands.test.ts` — "refuses a sign-off while the recorded gate run exited
@@ -1880,3 +1882,17 @@ Also carried from Wave 8's verifier and still open:
   explicit decision.
 - Three test files exceed the cap (851, 881, 692 lines), all written by Wave 9 agents. They need splitting
   along a real seam by whoever owns that area.
+
+**Verified fix.** The three named CLI tests and the four `process.kill(pid, 0)` assertions were closed by
+adding a bounded-poll waitForProcessExit helper (`tests/unit/runner/run-command-fixture.ts`) in place of
+an instant absence check, and by fixing two deeper production races the same reproduction work surfaced:
+`settleAndTerminateAttempt` (`orchestrating-long-tasks/scripts/src/runner/attempt-failure-cleanup.ts`) now
+bounded-polls descendant/root absence instead of checking once right after SIGKILL, and `processSnapshot`
+(`orchestrating-long-tasks/scripts/src/runner/process-tree.ts`) now retries its `ps` spawn, which was the
+actual root cause of the `critic-ops-commands.test.ts` flake (an unclassified `ps` spawn failure, not a
+timing assumption in the test itself). One residual, load-only flake remains open in
+`tests/integration/runner-timeouts-retries.test.ts`'s "kills TERM-resistant descendants after a
+cooperative leader exits" — reproduced directly at ambient load ~300+ on a 10-core box (roughly 1-in-6
+runs), traced to literal CPU-scheduler starvation rather than a fixable test assumption, since an
+untouched, pre-existing idle-timeout test fails the same way at the same load. Needs owner sign-off to
+accept at that load level, or a follow-up item for a wall-clock-independent readiness signal.

@@ -5,6 +5,7 @@ import { newLeaseToken, tokenDigest, tokenMatches } from "../lease/token.ts";
 import { isLeaseSuspended } from "../lease/suspension.ts";
 import { readBranchLedger, requireBranch, requireSubTask, writeBranchLedger } from "./ledger.ts";
 import type { BranchOutcome } from "./open.ts";
+import { requireText } from "../task-state.ts";
 
 const MIN_LEASE = 5;
 const MAX_LEASE = 86_400;
@@ -93,6 +94,9 @@ export function claimSubTask(input: ClaimSubTaskInput): SubTaskOutcome {
 }
 
 export function submitSubTask(input: SubmitSubTaskInput): BranchOutcome {
+  // B21: a sub-task submission is a lifecycle transition, so its summary is required at the point
+  // the transition actually happens, not only where the CLI happens to parse flags.
+  requireText(input.summary, "summary");
   const now = input.now ?? new Date();
   let ledgerAfter: BranchRecord[] = [];
   let submitted: BranchRecord | undefined;

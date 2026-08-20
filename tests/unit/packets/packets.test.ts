@@ -4,7 +4,7 @@ import { mkdtemp, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { buildPacket } from "../../../orchestrating-long-tasks/scripts/src/packets/render-packet.ts";
-import { persistPacket } from "../../../orchestrating-long-tasks/scripts/src/packets/persist-packet.ts";
+import { createPacketBundle } from "../../../orchestrating-long-tasks/scripts/src/packets/packet-bundle.ts";
 import { tokenDigest } from "../../../orchestrating-long-tasks/scripts/src/workflow/lease/token.ts";
 import { claimTask } from "../../../orchestrating-long-tasks/scripts/src/workflow/lease/claim.ts";
 import { at, TestPort, workflowState } from "../workflow/test-port.ts";
@@ -106,8 +106,8 @@ describe("role packets", () => {
       task: undefined,
       leaseToken: undefined,
     });
-    const path = await persistPacket(root, "packet-1", packet);
+    const path = createPacketBundle(root, "packet-1", packet, false).markdownPath;
     expect(await readFile(path, "utf8")).toBe(packet.markdown);
-    await expect(persistPacket(root, "packet-1", packet)).rejects.toBeDefined();
+    expect(() => createPacketBundle(root, "packet-1", packet, false)).toThrow();
   });
 });

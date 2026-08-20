@@ -6,6 +6,7 @@ import type { HarnessEvent, Manifest } from "../contracts/capsule.ts";
 import { isJsonObject, type JsonObject } from "../contracts/json.ts";
 import { readTopology } from "../contracts/topology.ts";
 import type { WorkflowState } from "../workflow/types.ts";
+import { collectActionSteps } from "./timeline-collector.ts";
 import type {
   RunCompletionFacts,
   RunEnhancedPlanFacts,
@@ -310,6 +311,9 @@ export function buildRunFacts(input: RunFactsInput): RunFacts {
   const repository = buildRepository(input.state);
   const integrity = buildIntegrity(input.state);
   const events = (input.events ?? []).map(redactedEvent);
+  // The same chain, projected into the typed action-provenance trace (B15.1). Built from the
+  // unredacted events so target resolution sees every payload field, not the browser-safe copy.
+  const steps = input.events !== undefined ? collectActionSteps(input.events) : [];
 
   return {
     runId: input.runId,
@@ -334,6 +338,7 @@ export function buildRunFacts(input: RunFactsInput): RunFacts {
     ...(repository !== undefined ? { repository } : {}),
     ...(integrity !== undefined ? { integrity } : {}),
     ...(events.length > 0 ? { events } : {}),
+    ...(steps.length > 0 ? { steps } : {}),
     ...(manifest !== undefined ? { manifest } : {}),
     ...(completion !== undefined ? { completion } : {}),
     ...(orphans.length > 0 ? { orphanEvidence: orphans } : {}),

@@ -164,6 +164,9 @@ function branchEdges(
 
   if (subTask.status === "submitted" || subTask.status === "abandoned") {
     const abandoned = subTask.status === "abandoned";
+    // B25.4: an explicit, justified residual cycle, not the pushback loop B25.2 retired. A branch
+    // is a call, not a round — the sub-agent runs once and reports back to the exact parent node
+    // that opened it, so there is no sequence of distinct rounds here to give their own nodes to.
     edges.push(
       createEdge({
         id: `edge-collect-${branch.id}-${subTask.id}`,

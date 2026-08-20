@@ -41,11 +41,21 @@ export async function initializePlannerPacket(
       },
       evidenceSchema: evidenceSchema("planner"),
       planningWriteScope: [requirementsPath, graphPath],
-      // Only commands that exist in the registry: a packet naming a command the CLI has never had
-      // sends the planner off to invoke nothing.
+      // plan:compile reads state.planning_buffer, which this packet's write scope never touches;
+      // plan:apply is the command that actually reads the two files the planner is bound to.
       targetedCommands: [
         ["bun", harnessScript, "plan:status", "--run", loaded.runRoot],
-        ["bun", harnessScript, "plan:compile", "--run", loaded.runRoot, "--actor", plannerId],
+        [
+          "bun",
+          harnessScript,
+          "plan:apply",
+          "--run",
+          loaded.runRoot,
+          "--actor",
+          plannerId,
+          "--expected-revision",
+          "0",
+        ],
       ],
       attempt: 1,
     },

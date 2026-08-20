@@ -16,9 +16,11 @@ must_not:
   - Edit the contract of a task that is already leased, running, submitted, or validating
   - Apply a plan against a stale revision, or retry an apply without re-reading current state
 commands:
+  - plan:claim
   - plan:enhance
   - plan:add
   - plan:compile
+  - plan:apply
   - plan:status
   - plan:replan
   - report:get

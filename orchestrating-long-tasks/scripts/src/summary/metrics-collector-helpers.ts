@@ -217,6 +217,17 @@ export function computeGateTiming(
   };
 }
 
+/**
+ * A host-reported token count is real data or it is absent; there is no plausible stand-in for a
+ * count nobody measured. This sums whatever components a host actually sent and says nothing about
+ * a category it never sent, rather than presenting a guessed zero as a measurement. `undefined`
+ * means the host reported none of these fields at all.
+ */
+function sumReportedTokens(...parts: readonly (number | undefined)[]): number | undefined {
+  const known = parts.filter((part): part is number => part !== undefined);
+  return known.length === 0 ? undefined : known.reduce((total, part) => total + part, 0);
+}
+
 export function computeTaskTokens(
   task: TaskRecord,
   manifest?: Manifest,
@@ -224,15 +235,16 @@ export function computeTaskTokens(
   hostTokens?: TokenUsageDetail,
 ): TokenUsageDetail {
   if (hostTokens && !hostTokens.isEstimated) {
-    const input = hostTokens.inputTokens ?? 0;
-    const output = hostTokens.outputTokens ?? 0;
-    const reasoning = hostTokens.reasoningTokens ?? 0;
-    const cacheC = hostTokens.cacheCreationTokens ?? 0;
-    const cacheR = hostTokens.cacheReadTokens ?? 0;
-    const totalTokens = input + output + reasoning + cacheC + cacheR;
+    const totalTokens = sumReportedTokens(
+      hostTokens.inputTokens,
+      hostTokens.outputTokens,
+      hostTokens.reasoningTokens,
+      hostTokens.cacheCreationTokens,
+      hostTokens.cacheReadTokens,
+    );
     return {
-      inputTokens: input,
-      outputTokens: output,
+      ...(hostTokens.inputTokens !== undefined ? { inputTokens: hostTokens.inputTokens } : {}),
+      ...(hostTokens.outputTokens !== undefined ? { outputTokens: hostTokens.outputTokens } : {}),
       ...(hostTokens.reasoningTokens !== undefined
         ? { reasoningTokens: hostTokens.reasoningTokens }
         : {}),
@@ -242,10 +254,13 @@ export function computeTaskTokens(
       ...(hostTokens.cacheReadTokens !== undefined
         ? { cacheReadTokens: hostTokens.cacheReadTokens }
         : {}),
-      totalTokens,
+      ...(totalTokens !== undefined ? { totalTokens } : {}),
       ...(hostTokens.costUsd !== undefined ? { costUsd: hostTokens.costUsd } : {}),
       isEstimated: false,
-      evidenceClass: hostTokens.evidenceClass ?? "host_reported",
+      // The host told us this reading is real; it did not tell us which mechanism produced it, so
+      // the honest label is "unknown" - the same convention agent-telemetry.ts's evidenceClass
+      // fallback uses - never an assumed "host_reported" we did not confirm.
+      evidenceClass: hostTokens.evidenceClass ?? "unknown",
     };
   }
 
@@ -263,6 +278,10 @@ export function computeTaskTokens(
   const reasoningTokens = hostTokens?.reasoningTokens;
   const cacheCreationTokens = hostTokens?.cacheCreationTokens;
   const cacheReadTokens = hostTokens?.cacheReadTokens;
+  // inputTokens/outputTokens are already the byte-ratio guess, and the object below discloses that
+  // with isEstimated/evidenceClass; folding an optional category the host never sent in as "no
+  // contribution" does not claim a measurement for it, it just leaves this estimate's total as the
+  // sum of whatever is known - the same policy sumReportedTokens applies to the real branch above.
   const totalTokens =
     inputTokens +
     outputTokens +
@@ -290,15 +309,16 @@ export function computeGateTokens(
   hostTokens?: TokenUsageDetail,
 ): TokenUsageDetail {
   if (hostTokens && !hostTokens.isEstimated) {
-    const input = hostTokens.inputTokens ?? 0;
-    const output = hostTokens.outputTokens ?? 0;
-    const reasoning = hostTokens.reasoningTokens ?? 0;
-    const cacheC = hostTokens.cacheCreationTokens ?? 0;
-    const cacheR = hostTokens.cacheReadTokens ?? 0;
-    const totalTokens = input + output + reasoning + cacheC + cacheR;
+    const totalTokens = sumReportedTokens(
+      hostTokens.inputTokens,
+      hostTokens.outputTokens,
+      hostTokens.reasoningTokens,
+      hostTokens.cacheCreationTokens,
+      hostTokens.cacheReadTokens,
+    );
     return {
-      inputTokens: input,
-      outputTokens: output,
+      ...(hostTokens.inputTokens !== undefined ? { inputTokens: hostTokens.inputTokens } : {}),
+      ...(hostTokens.outputTokens !== undefined ? { outputTokens: hostTokens.outputTokens } : {}),
       ...(hostTokens.reasoningTokens !== undefined
         ? { reasoningTokens: hostTokens.reasoningTokens }
         : {}),
@@ -308,10 +328,12 @@ export function computeGateTokens(
       ...(hostTokens.cacheReadTokens !== undefined
         ? { cacheReadTokens: hostTokens.cacheReadTokens }
         : {}),
-      totalTokens,
+      ...(totalTokens !== undefined ? { totalTokens } : {}),
       ...(hostTokens.costUsd !== undefined ? { costUsd: hostTokens.costUsd } : {}),
       isEstimated: false,
-      evidenceClass: hostTokens.evidenceClass ?? "host_reported",
+      // See computeTaskTokens above: "unknown" is the honest label for a real reading whose source
+      // we were not told, never an assumed "host_reported".
+      evidenceClass: hostTokens.evidenceClass ?? "unknown",
     };
   }
 
@@ -327,6 +349,8 @@ export function computeGateTokens(
   const reasoningTokens = hostTokens?.reasoningTokens;
   const cacheCreationTokens = hostTokens?.cacheCreationTokens;
   const cacheReadTokens = hostTokens?.cacheReadTokens;
+  // See computeTaskTokens above: this total is already disclosed as an estimate, so folding an
+  // optional category the host never sent in as "no contribution" is a policy, not a substitution.
   const totalTokens =
     inputTokens +
     outputTokens +

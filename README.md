@@ -13,7 +13,7 @@ This repository is structured as a modular, multi-skill monorepo adhering to the
 **Durable, multi-phase, graph-scheduled task orchestration with adversarial independent validation.**
 
 - **Immutable Prompt Preservation:** Byte-for-byte SHA-256 capture before planning to eliminate scope drift and hallucinated acceptance criteria.
-- **Topological Conflict-Free Scheduling:** One scheduling authority, a recorded topology, and glob-aware write-scope isolation. `queue:wave` hands out a whole parallel wave instead of one task at a time.
+- **Topological Conflict-Free Scheduling:** One scheduling authority, a recorded topology, and glob-aware write-scope isolation. `queue:wave` is a read-only readiness query — everything claimable right now, ranked by critical depth; `queue:pop` / `task:claim` do the actual claiming, one task at a time, continuously, never as a batch to wait on.
 - **Adversarial Multi-Agent Validation:** Implementers cannot self-validate, and a repair round needs a _fresh_ validator. Every pass is held behind a mandatory adversarial **probe** — a demand for proof, not a fabricated rejection — and every open finding must be answered with a recorded command id.
 - **Execution-Time Branch & Collect:** A working agent can subdivide the work it already holds (`branch:open` … `branch:collect`) without touching the frozen plan; the parent's lease clock freezes and the file list that comes back is a real Git observation.
 - **Agent Grant Ledger:** Every dispatched subagent is registered with its role, parent and host-reported telemetry, so a run can answer who was deployed, under whom, and on what model.
@@ -29,7 +29,9 @@ This repository is structured as a modular, multi-skill monorepo adhering to the
 
 ## 🏗️ Multi-Agent Orchestration Architecture
 
-The system enforces a strict **3-Tier Hierarchy** and the **"$2N + 1$" Sizing Invariant**:
+The system enforces a strict **3-Tier Hierarchy** and a **Validation Pairing Invariant**: every
+implementer's work is independently validated, dispatched continuously up to the configured occupancy
+ceiling rather than assembled into fixed-size batches:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -42,7 +44,7 @@ The system enforces a strict **3-Tier Hierarchy** and the **"$2N + 1$" Sizing In
 │             Tier 2: Background Run Coordinator              │
 │   (Owns capsule lifecycle, planning, waves, and validation) │
 └──────────────┬───────────────────────────────┬──────────────┘
-               │                               │ Spawns in background (2N+1 Triad)
+               │                               │ Spawns in background, implementer paired with validator
                ▼                               ▼
         ┌─────────────┐                 ┌─────────────┐
         │   Tier 3:   │                 │   Tier 3:   │
@@ -64,8 +66,8 @@ Nine canonical roles exist, each with a binding capability contract in
 
 1. **Tier 1 (Main Interactive Thread)**: Dedicated exclusively to user interaction, requirement intake, and milestone delivery.
 2. **Tier 2 (Background Run Coordinator)**: Persistent manager of capsule lifecycle, prompt capture, graph compilation, concurrency waves, and run completion.
-3. **Tier 3 (Implementer & Validator Pairs)**: Dispatched concurrently via `invoke_subagent`. For every implementer modifying code in a leased `write_scope`, an independent paired validator audits the work and runs mandatory gates.
-4. **Triad Floor Invariant ($\ge 3$ Agents)**: Even for a single task ($N = 1$), 3 agents are deployed (1 Coordinator + 1 Implementer + 1 Validator). For $N$ parallel tasks, $2N + 1$ agents are deployed.
+3. **Tier 3 (Implementer & Validator Pairs)**: Dispatched concurrently through the host's own native subagent mechanism — the harness never hardcodes a vendor's dispatch tool. For every implementer modifying code in a leased `write_scope`, an independent paired validator audits the work and runs mandatory gates.
+4. **Validation Pairing Invariant, No Fixed Batch Size**: an implementer's work is always independently validated — that pairing never lapses, even for a single task. Beyond that there is no fixed implementer:validator ratio or wave arithmetic to compute: the scheduler keeps every eligible task dispatched up to the configured `max_parallel` occupancy ceiling, continuously, as slots free rather than in fixed-size batches.
 5. **Every Agent Is Registered**: Spawning happens host-side, so the run learns an agent exists only when `agent:register` records it. Model, tier, thinking level and token counts are recorded when the host reports them, and stay `unknown` when it does not.
 
 ---
@@ -163,7 +165,7 @@ bun $H plan:add --run $RUN --actor planner --id task-slug --label "Slugify helpe
 # 3. Compile. --completion-gate is mandatory and has no default.
 bun $H plan:compile --run $RUN --actor planner --completion-gate "bun test tests"
 
-# 4. See the whole dispatchable wave (read-only; queue:pop is the one-at-a-time fallback)
+# 4. See what's claimable right now (read-only; queue:pop / task:claim do the actual claiming)
 bun $H queue:wave --run $RUN
 
 # 5. Register every agent before it works

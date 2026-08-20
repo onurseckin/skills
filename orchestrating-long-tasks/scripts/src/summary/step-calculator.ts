@@ -103,6 +103,12 @@ function deriveWaves(tasks: readonly TaskRecord[]): { waves: Map<string, number>
  * `state` is the run state the topology was recorded on. Waves come from `state.topology` when it
  * covers every task; anything less falls back to the dependency-only partition, and the result says
  * which of the two the caller got.
+ *
+ * This is layout numbering, not provenance: it exists to place nodes in wave order on the graph, and
+ * a whole wave shares one step here even though its tasks ran as distinct, separately-timestamped
+ * actions. The fine-grained, monotonic, per-action sequence B15.1 asks for is a different dataset —
+ * `RunFacts.steps`, built by `collectActionSteps` in `timeline-collector.ts` straight from the
+ * append-only event chain's own `sequence` — and the two are never conflated into one counter.
  */
 export function computeExecutionSteps(tasks: TaskRecord[], state?: unknown): StepAssignments {
   const topology = state === undefined ? null : readTopology(state);

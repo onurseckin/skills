@@ -2,7 +2,10 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { classifyFailure } from "../../../orchestrating-long-tasks/scripts/src/runner/classify-failure.ts";
+import {
+  classifySignals,
+  inspectFailureText,
+} from "../../../orchestrating-long-tasks/scripts/src/runner/classify-failure.ts";
 import { ActivityRecord } from "../../../orchestrating-long-tasks/scripts/src/runner/activity-record.ts";
 import { pumpOutput } from "../../../orchestrating-long-tasks/scripts/src/runner/output-pump.ts";
 import {
@@ -10,7 +13,7 @@ import {
   reserveCommandRoot,
 } from "../../../orchestrating-long-tasks/scripts/src/runner/platform-policy.ts";
 import { signalProcessGroup } from "../../../orchestrating-long-tasks/scripts/src/runner/process-group.ts";
-import { runCommand } from "./run-command-fixture.ts";
+import { runCommand, waitForProcessExit } from "./run-command-fixture.ts";
 import type { OutputPumpOptions } from "../../../orchestrating-long-tasks/scripts/src/runner/types.ts";
 
 const fixture = join(import.meta.dir, "fixtures/command-fixture.ts");
@@ -141,7 +144,7 @@ describe("runner resource bounds", () => {
     expect(Date.now() - started).toBeLessThan(1200);
     const pid = Number(await readFile(pidPath, "utf8"));
     expect(result.record.signals_sent).toContain("SIGTERM");
-    expect(() => process.kill(pid, 0)).toThrow();
+    await waitForProcessExit(pid);
   });
 
   test("refuses unsupported platforms and reserves command IDs create-only", async () => {
@@ -158,8 +161,12 @@ describe("runner resource bounds", () => {
   });
 
   test("child text cannot spoof host interruption and hard failures remain dominant", () => {
-    expect(classifyFailure(130, "explicit host interruption", null)).toBe("unknown");
-    expect(classifyFailure(1, "tests failed\nservice unavailable", null)).toBe("test_failure");
+    expect(classifySignals(130, inspectFailureText("explicit host interruption"), null)).toBe(
+      "unknown",
+    );
+    expect(
+      classifySignals(1, inspectFailureText("tests failed\nservice unavailable"), null),
+    ).toBe("test_failure");
   });
 
   test("contains a daemon that escapes before the first ancestry snapshot", async () => {
@@ -176,7 +183,7 @@ describe("runner resource bounds", () => {
     });
     const pid = Number(await readFile(pidPath, "utf8"));
     expect(result.record.status).toBe("succeeded");
-    expect(() => process.kill(pid, 0)).toThrow();
+    await waitForProcessExit(pid);
   });
 
   test("distinguishes a vanished process group from permission refusal", () => {

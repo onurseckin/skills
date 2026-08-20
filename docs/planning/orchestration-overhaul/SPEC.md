@@ -149,7 +149,10 @@ Consumer (gvui):
 - Counters split: `task.probe_round` is separate from `task.repair_round`. A probe does NOT consume
   the repair budget, and does NOT trigger `assignReplacementRepairer`.
 - Enforcement (this is the point — today it is prose only): `task:review --status pass` FAILS when
-  `probe_round < min_adversarial_probes`. Wire `loadHarnessConfig`, which currently has zero callers.
+  `probe_round < min_adversarial_probes`. Wired via `getHarnessConfig`'s resolved config — the
+  original text here named a function called loadHarnessConfig, which does not exist in this repo:
+  the unresolved-shape loader never carried `min_adversarial_probes` at all, so it could not have
+  been the vehicle.
 - Canonical count is **1**. Every doc saying 3 is wrong and gets fixed.
 - Canonical `max_repair_rounds` is **6** (the code value). Docs saying 5 get fixed, including the two
   files that contradict themselves.

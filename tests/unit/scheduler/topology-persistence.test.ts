@@ -4,11 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execute } from "../../../orchestrating-long-tasks/scripts/src/cli/execute.ts";
 import { readTopology } from "../../../orchestrating-long-tasks/scripts/src/contracts/topology.ts";
-import {
-  computeTopology,
-  persistTopology,
-  recordTopology,
-} from "../../../orchestrating-long-tasks/scripts/src/scheduler/index.ts";
+import { recordTopology } from "../../../orchestrating-long-tasks/scripts/src/scheduler/index.ts";
 import { loadRun } from "../../../orchestrating-long-tasks/scripts/src/store/index.ts";
 
 const roots: string[] = [];
@@ -96,12 +92,11 @@ describe("topology persistence", () => {
     expect(reloaded.state.event_head).toBe((events.at(-1) as unknown as { hash: string }).hash);
   });
 
-  test("persistTopology replaces the previous record without touching other state", async () => {
+  test("recordTopology replaces the previous record without touching other state", async () => {
     const run = await compiledRun("topology-replace");
     recordTopology(run, "planner", { default_max_parallel: 4 });
 
-    const narrow = computeTopology(loadRun(run).state, { default_max_parallel: 1 });
-    persistTopology(run, "coordinator", narrow);
+    const { topology: narrow } = recordTopology(run, "coordinator", { default_max_parallel: 1 });
 
     const state = loadRun(run).state;
     expect(readTopology(state)).toEqual(narrow);

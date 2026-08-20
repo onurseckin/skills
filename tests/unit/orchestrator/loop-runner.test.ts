@@ -2,10 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import {
-  AutonomousLoopRunner,
-  runAutonomousLoop,
-} from "../../../orchestrating-long-tasks/scripts/src/orchestrator/loop-runner.ts";
+import { AutonomousLoopRunner } from "../../../orchestrating-long-tasks/scripts/src/orchestrator/loop-runner.ts";
 import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
 import type {
   CapsuleChainManifest,
@@ -42,14 +39,14 @@ describe("AutonomousLoopRunner Unit Tests", () => {
       const startRounds: number[] = [];
       const completedTelemetries: RoundTelemetry[] = [];
 
-      const summary = await runAutonomousLoop({
+      const summary = await new AutonomousLoopRunner({
         baseRunId: "run-test-r1-converge",
         repoPath: testDir,
         initialPrompt: "Implement feature X",
         executor: mockExecutor,
         onRoundStart: (round) => startRounds.push(round),
         onRoundComplete: (tel) => completedTelemetries.push(tel),
-      });
+      }).run();
 
       expect(summary.totalRoundsExecuted).toBe(1);
       expect(summary.finalStatus).toBe("converged_success");
@@ -105,13 +102,13 @@ describe("AutonomousLoopRunner Unit Tests", () => {
         },
       };
 
-      const summary = await runAutonomousLoop({
+      const summary = await new AutonomousLoopRunner({
         baseRunId: "run-gate-check",
         repoPath: testDir,
         initialPrompt: "Ensure gate verification is mandatory",
         maxRounds: 3,
         executor: failingGateExecutor,
-      });
+      }).run();
 
       expect(summary.totalRoundsExecuted).toBe(2);
       expect(summary.finalStatus).toBe("converged_success");
@@ -177,14 +174,14 @@ describe("AutonomousLoopRunner Unit Tests", () => {
       const syntheses: DefectSynthesis[] = [];
       const chainedManifests: CapsuleChainManifest[] = [];
 
-      const summary = await runAutonomousLoop({
+      const summary = await new AutonomousLoopRunner({
         baseRunId: "run-test-r2-chain",
         repoPath: testDir,
         initialPrompt: "Build streaming data pipeline",
         executor: mockExecutor,
         onDefectSynthesis: (s) => syntheses.push(s),
         onCapsuleChained: (m) => chainedManifests.push(m),
-      });
+      }).run();
 
       expect(summary.totalRoundsExecuted).toBe(2);
       expect(summary.finalStatus).toBe("converged_success");
@@ -227,13 +224,13 @@ describe("AutonomousLoopRunner Unit Tests", () => {
         },
       };
 
-      const summary = await runAutonomousLoop({
+      const summary = await new AutonomousLoopRunner({
         baseRunId: "run-test-max-rounds",
         repoPath: testDir,
         initialPrompt: "Persistent failing task",
         maxRounds: 3,
         executor: mockExecutor,
-      });
+      }).run();
 
       expect(summary.totalRoundsExecuted).toBe(3);
       expect(summary.maxRoundsConfigured).toBe(3);
@@ -294,13 +291,13 @@ describe("AutonomousLoopRunner Unit Tests", () => {
         },
       };
 
-      const summary = await runAutonomousLoop({
+      const summary = await new AutonomousLoopRunner({
         baseRunId: "run-test-fatal",
         repoPath: testDir,
         initialPrompt: "Crashing task",
         maxRounds: 5,
         executor: mockExecutor,
-      });
+      }).run();
 
       expect(summary.totalRoundsExecuted).toBe(1);
       expect(summary.finalStatus).toBe("failed");

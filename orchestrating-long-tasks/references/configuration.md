@@ -24,7 +24,7 @@ settings, and anything unset keeps its default.
 | `max_agents`             | `100`      | Grants a run may mint. `agent:register` and `branch:open` are refused once the budget is spent, rather than the run silently growing without bound.                                    |
 | `max_output_bytes`       | `10485760` | Maximum stdout/stderr captured per command execution (10 MiB).                                                                                                                        |
 | `default_lease_seconds`  | `1800`     | Default lease duration for a **branch sub-task** claim (`branch:claim`). It does not govern `task:claim` or `queue:pop`, whose lease is 1,200 seconds unless a lease flag says otherwise. |
-| `default_max_parallel`   | `4`        | Wave size cap used by `queue:wave` and the scheduler.                                                                                                                                 |
+| `default_max_parallel`   | `4`        | Occupancy ceiling used by `queue:wave` and the scheduler — a live cap on concurrent claims, not a batch size; the eligible set is dispatched continuously as slots free.               |
 
 Mandatory gate coverage and independent-validator checks are not configurable — they are enforced
 unconditionally by the graph compiler and the completion checks, not gated behind a knob.

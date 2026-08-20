@@ -66,6 +66,22 @@
           "repeatable": false,
           "default": null,
           "description": "Assert the prompt source was verified by the caller."
+        },
+        {
+          "name": "runtime-source",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Directory to pin as this run's runtime, verified and copied into runtime/. Defaults to the directory containing the currently running harness.ts."
+        },
+        {
+          "name": "no-runtime-pin",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Skip pinning a runtime even when one is available by default."
         }
       ],
       "reads_stdin": true,
@@ -460,6 +476,126 @@
       ],
       "examples": [
         "bun harness.ts plan:replan --run .capsules/<run-id> --actor coordinator --gate \"bun run typecheck\""
+      ]
+    },
+    {
+      "name": "plan:claim",
+      "aliases": [],
+      "domain": "plan",
+      "summary": "Issue a planner's role packet: the sole way a planner agent gets its contract.",
+      "description": "The planner has no task and no lease, so it cannot task:claim. This is its equivalent: it hands back the planner role contract, the immutable prompt, and the write scope (planning/requirements.json, planning/graph.json) the planner is bound to fill in before plan:apply.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root."
+        },
+        {
+          "name": "agent",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "The planner's own agent id, already agent:register'd."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts plan:claim --run .capsules/<run-id> --agent planner-1"
+      ]
+    },
+    {
+      "name": "plan:apply",
+      "aliases": [],
+      "domain": "plan",
+      "summary": "Validate and commit the requirements and graph the planner wrote to planning/.",
+      "description": "Reads requirements.json and graph.json (defaulting to planning/ inside the run), validates them against the immutable prompt, and commits them as the next graph revision. --expected-revision rejects the apply outright if the graph has moved since the planner's packet was issued, instead of silently overwriting a newer plan.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root."
+        },
+        {
+          "name": "actor",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Actor recorded on the event."
+        },
+        {
+          "name": "requirements",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Path to the requirements document. Defaults to <run>/planning/requirements.json."
+        },
+        {
+          "name": "graph",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Path to the graph document. Defaults to <run>/planning/graph.json."
+        },
+        {
+          "name": "expected-revision",
+          "type": "int",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "The graph revision this apply must be built against; the apply is refused if the run has moved past it."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts plan:apply --run .capsules/<run-id> --actor planner-1 --expected-revision 0"
       ]
     },
     {
@@ -981,6 +1117,14 @@
           "repeatable": false,
           "default": null,
           "description": "Validation window in seconds."
+        },
+        {
+          "name": "validator-domain",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "B12.2 standing checklist domain (code-quality, product, security, system-design, ui-design); binds the matching checklist into this validator's packet."
         }
       ],
       "reads_stdin": false,
@@ -1004,7 +1148,8 @@
         }
       ],
       "examples": [
-        "bun harness.ts task:validate-start --run .capsules/<run-id> --task task-1 --validator val-1"
+        "bun harness.ts task:validate-start --run .capsules/<run-id> --task task-1 --validator val-1",
+        "bun harness.ts task:validate-start --run .capsules/<run-id> --task task-1 --validator val-1 --validator-domain code-quality"
       ]
     },
     {
@@ -2545,6 +2690,110 @@
       ],
       "examples": [
         "bun harness.ts orchestrator:run --repo . --prompt \"Implement the feature\" --max-rounds 3"
+      ]
+    },
+    {
+      "name": "orchestrator:supervise",
+      "aliases": [],
+      "domain": "orchestrator",
+      "summary": "Reclaim dead agents, escalate dead-end tasks, and dispatch what's ready (B28).",
+      "description": "One reclaim-classify-dispatch pass over a run's eligible set: reclaims leases whose agent died without submitting, escalates tasks whose failures have become deterministic (B28.3) instead of retrying them forever, and reports what is safe to dispatch now versus still backing off. With a host-injected dispatcher it loops until the run reaches a terminal state; without one it performs a single pass, which is what makes it safe to drive from an external poll loop. Recovery is on by default (B28.5) - use --no-recover to disable it.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root."
+        },
+        {
+          "name": "actor",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Who is running the supervisor. Recorded on every event; there is no default actor."
+        },
+        {
+          "name": "max-parallel",
+          "type": "int",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Occupancy ceiling; falls back to the run's configured default."
+        },
+        {
+          "name": "no-recover",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Disable automatic dead-agent reclaim and escalation (on by default)."
+        },
+        {
+          "name": "grace-seconds",
+          "type": "int",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Grace period past lease expiry before reclaiming, 0-86400."
+        },
+        {
+          "name": "poll-interval-ms",
+          "type": "int",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "How often to re-tick while a dispatcher is driving the loop."
+        },
+        {
+          "name": "max-elapsed-ms",
+          "type": "int",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Per-task retry budget before a transient failure reads as deterministic (B28.3)."
+        },
+        {
+          "name": "max-total-elapsed-ms",
+          "type": "int",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Whole-run wall-clock budget before the supervisor stops and reports."
+        },
+        {
+          "name": "deterministic-repeat-threshold",
+          "type": "int",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Consecutive identical failures before they read as deterministic."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts orchestrator:supervise --run .capsules/<run-id> --actor coordinator"
       ]
     },
     {

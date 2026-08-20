@@ -163,6 +163,14 @@ function probeMatches(
   return configConfigured(homeDir, probe);
 }
 
+/** Stamped into the environment by Claude Code itself for every process it runs, unlike the
+ * `HOST_PROBES` table below which only proves a tool is INSTALLED. A machine can carry another
+ * host's config (e.g. Antigravity's `settings.json`) purely because that tool is also present,
+ * which would otherwise shadow the host actually driving this call — first in `HOST_PROBES` order
+ * wins there, with no way to tell "installed" from "running". This id is checked first because it
+ * is evidence of the latter, read by `readAgentTranscriptTelemetry` (B34) off the very same variable. */
+const SESSION_ID_ENV_VAR = "CLAUDE_CODE_SESSION_ID";
+
 /**
  * Which harness this capsule was exported under. This is a fact about the exporting machine and
  * nothing else: it deliberately returns no model, because the machine's configured model is not
@@ -172,6 +180,10 @@ function probeMatches(
 export function detectHostIdentity(options?: DetectHostIdentityOptions): HostIdentity | null {
   const env = options?.env ?? process.env;
   const homeDir = resolveHomeDir(options, env);
+
+  if (hasText(env[SESSION_ID_ENV_VAR])) {
+    return { hostTool: "claude-code", evidenceClass: "harness_observed" };
+  }
 
   for (const probe of HOST_PROBES) {
     if (probeMatches(probe, homeDir, env)) {

@@ -1,5 +1,5 @@
-import { orchestratorRunCommand } from "../commands/orchestrator-ops.ts";
-import { DEFAULT_EXIT_CODES, optionalFlag, type CommandSpec } from "./types.ts";
+import { orchestratorRunCommand, orchestratorSuperviseCommand } from "../commands/orchestrator-ops.ts";
+import { DEFAULT_EXIT_CODES, optionalFlag, requiredFlag, type CommandSpec } from "./types.ts";
 
 export const ORCHESTRATOR_COMMANDS: readonly CommandSpec[] = [
   {
@@ -31,5 +31,33 @@ export const ORCHESTRATOR_COMMANDS: readonly CommandSpec[] = [
       'bun harness.ts orchestrator:run --repo . --prompt "Implement the feature" --max-rounds 3',
     ],
     handler: orchestratorRunCommand,
+  },
+  {
+    name: "orchestrator:supervise",
+    aliases: [],
+    domain: "orchestrator",
+    summary: "Reclaim dead agents, escalate dead-end tasks, and dispatch what's ready (B28).",
+    description:
+      "One reclaim-classify-dispatch pass over a run's eligible set: reclaims leases whose agent died without submitting, escalates tasks whose failures have become deterministic (B28.3) instead of retrying them forever, and reports what is safe to dispatch now versus still backing off. With a host-injected dispatcher it loops until the run reaches a terminal state; without one it performs a single pass, which is what makes it safe to drive from an external poll loop. Recovery is on by default (B28.5) - use --no-recover to disable it.",
+    flags: [
+      requiredFlag("run", "string", "Capsule run root."),
+      requiredFlag(
+        "actor",
+        "string",
+        "Who is running the supervisor. Recorded on every event; there is no default actor.",
+      ),
+      optionalFlag("max-parallel", "int", "Occupancy ceiling; falls back to the run's configured default."),
+      optionalFlag("no-recover", "bool", "Disable automatic dead-agent reclaim and escalation (on by default)."),
+      optionalFlag("grace-seconds", "int", "Grace period past lease expiry before reclaiming, 0-86400."),
+      optionalFlag("poll-interval-ms", "int", "How often to re-tick while a dispatcher is driving the loop."),
+      optionalFlag("max-elapsed-ms", "int", "Per-task retry budget before a transient failure reads as deterministic (B28.3)."),
+      optionalFlag("max-total-elapsed-ms", "int", "Whole-run wall-clock budget before the supervisor stops and reports."),
+      optionalFlag("deterministic-repeat-threshold", "int", "Consecutive identical failures before they read as deterministic."),
+    ],
+    readsStdin: false,
+    takesRemainder: false,
+    exitCodes: DEFAULT_EXIT_CODES,
+    examples: ["bun harness.ts orchestrator:supervise --run .capsules/<run-id> --actor coordinator"],
+    handler: orchestratorSuperviseCommand,
   },
 ];

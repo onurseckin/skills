@@ -39,6 +39,8 @@ Initialises <repo>/.capsules/<run-id>, records the verbatim prompt with its sha2
 | `--prompt-stdin` | bool | no | no | - | Read the verbatim prompt bytes from stdin. |
 | `--capture-mode` | string | no | no | - | How the prompt was captured; defaults to the source used. |
 | `--source-verified` | bool | no | no | - | Assert the prompt source was verified by the caller. |
+| `--runtime-source` | string | no | no | - | Directory to pin as this run's runtime, verified and copied into runtime/. Defaults to the directory containing the currently running harness.ts. |
+| `--no-runtime-pin` | bool | no | no | - | Skip pinning a runtime even when one is available by default. |
 
 ```bash
 printf "%s" "$PROMPT" | bun harness.ts plan:init --repo . --run <run-id> --prompt-stdin
@@ -142,6 +144,47 @@ Ingests validator or critic findings, partitions them into disjoint write scopes
 
 ```bash
 bun harness.ts plan:replan --run .capsules/<run-id> --actor coordinator --gate "bun run typecheck"
+```
+
+### `plan:claim`
+
+Issue a planner's role packet: the sole way a planner agent gets its contract.
+
+The planner has no task and no lease, so it cannot task:claim. This is its equivalent: it hands back the planner role contract, the immutable prompt, and the write scope (planning/requirements.json, planning/graph.json) the planner is bound to fill in before plan:apply.
+
+- **Aliases**: none
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--run` | string | yes | no | - | Capsule run root. |
+| `--agent` | string | yes | no | - | The planner's own agent id, already agent:register'd. |
+
+```bash
+bun harness.ts plan:claim --run .capsules/<run-id> --agent planner-1
+```
+
+### `plan:apply`
+
+Validate and commit the requirements and graph the planner wrote to planning/.
+
+Reads requirements.json and graph.json (defaulting to planning/ inside the run), validates them against the immutable prompt, and commits them as the next graph revision. --expected-revision rejects the apply outright if the graph has moved since the planner's packet was issued, instead of silently overwriting a newer plan.
+
+- **Aliases**: none
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--run` | string | yes | no | - | Capsule run root. |
+| `--actor` | string | yes | no | - | Actor recorded on the event. |
+| `--requirements` | string | no | no | - | Path to the requirements document. Defaults to <run>/planning/requirements.json. |
+| `--graph` | string | no | no | - | Path to the graph document. Defaults to <run>/planning/graph.json. |
+| `--expected-revision` | int | no | no | - | The graph revision this apply must be built against; the apply is refused if the run has moved past it. |
+
+```bash
+bun harness.ts plan:apply --run .capsules/<run-id> --actor planner-1 --expected-revision 0
 ```
 
 ### `plan:status`
@@ -329,9 +372,11 @@ Assigns the validator and mints the validation token required by task:review.
 | `--task` | string | yes | no | - | Submitted task id. |
 | `--validator` | string | yes | no | - | Validator agent id. |
 | `--lease-duration` | int | no | no | - | Validation window in seconds. |
+| `--validator-domain` | string | no | no | - | B12.2 standing checklist domain (code-quality, product, security, system-design, ui-design); binds the matching checklist into this validator's packet. |
 
 ```bash
 bun harness.ts task:validate-start --run .capsules/<run-id> --task task-1 --validator val-1
+bun harness.ts task:validate-start --run .capsules/<run-id> --task task-1 --validator val-1 --validator-domain code-quality
 ```
 
 ### `task:review`
@@ -791,6 +836,32 @@ Drives plan, execute, validate and critic rounds until the critic approves or th
 
 ```bash
 bun harness.ts orchestrator:run --repo . --prompt "Implement the feature" --max-rounds 3
+```
+
+### `orchestrator:supervise`
+
+Reclaim dead agents, escalate dead-end tasks, and dispatch what's ready (B28).
+
+One reclaim-classify-dispatch pass over a run's eligible set: reclaims leases whose agent died without submitting, escalates tasks whose failures have become deterministic (B28.3) instead of retrying them forever, and reports what is safe to dispatch now versus still backing off. With a host-injected dispatcher it loops until the run reaches a terminal state; without one it performs a single pass, which is what makes it safe to drive from an external poll loop. Recovery is on by default (B28.5) - use --no-recover to disable it.
+
+- **Aliases**: none
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--run` | string | yes | no | - | Capsule run root. |
+| `--actor` | string | yes | no | - | Who is running the supervisor. Recorded on every event; there is no default actor. |
+| `--max-parallel` | int | no | no | - | Occupancy ceiling; falls back to the run's configured default. |
+| `--no-recover` | bool | no | no | - | Disable automatic dead-agent reclaim and escalation (on by default). |
+| `--grace-seconds` | int | no | no | - | Grace period past lease expiry before reclaiming, 0-86400. |
+| `--poll-interval-ms` | int | no | no | - | How often to re-tick while a dispatcher is driving the loop. |
+| `--max-elapsed-ms` | int | no | no | - | Per-task retry budget before a transient failure reads as deterministic (B28.3). |
+| `--max-total-elapsed-ms` | int | no | no | - | Whole-run wall-clock budget before the supervisor stops and reports. |
+| `--deterministic-repeat-threshold` | int | no | no | - | Consecutive identical failures before they read as deterministic. |
+
+```bash
+bun harness.ts orchestrator:supervise --run .capsules/<run-id> --actor coordinator
 ```
 
 ## branch

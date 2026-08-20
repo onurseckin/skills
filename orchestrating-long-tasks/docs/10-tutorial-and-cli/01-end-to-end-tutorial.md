@@ -172,7 +172,7 @@ Gate ids are derived from task ids: `task-slug` → `gate-slug`, plus the run-sc
 
 ---
 
-## 🌊 Step 5: Take the Whole Wave
+## 🌊 Step 5: See What's Claimable
 
 ```bash
 bun harness.ts queue:wave --run .capsules/slugger

@@ -31,6 +31,8 @@ interface Requirement {
   readonly id: string;
   readonly heading: string;
   readonly tokens: readonly string[];
+  /** The heading itself carries `deferred by owner` — see OWNER_DEFERRED below. */
+  readonly ownerDeferred: boolean;
 }
 
 const COMMAND_TOKEN = /^[a-z][a-z0-9-]*:[a-z][a-z0-9-]*$/u;
@@ -38,6 +40,14 @@ const IDENTIFIER_TOKEN = /^[A-Za-z_$][A-Za-z0-9_$]*$/u;
 const PATH_TOKEN = /^[A-Za-z0-9_@./-]+\.(?:ts|tsx|md)$/u;
 const PLACEHOLDER_TOKEN = /[<>*]/u;
 const EXTERNAL_IDENTIFIER_SET = new Set(EXTERNAL_IDENTIFIERS);
+// A requirement the owner has explicitly declined to implement (BACKLOG.md's `deferred by owner`
+// status, e.g. B31) can never gain a satisfying symbol or a test that mentions one - not because
+// the code is missing, but because writing that code was the thing the owner said not to do. Same
+// shape as an external identifier: a token this check will forever call drift unless it recognises
+// the reason. Recognised by exact phrase rather than a general status parser, because BACKLOG.md's
+// own status vocabulary is not fully standardised (`research-in-flight` exists too, and is NOT
+// exempted here - that item is still headed toward implementation, just not yet applied).
+const OWNER_DEFERRED = /`deferred by owner`\s*$/iu;
 
 function sections(text: string, level: number): Requirement[] {
   const marker = `${"#".repeat(level)} `;
@@ -49,7 +59,12 @@ function sections(text: string, level: number): Requirement[] {
     if (heading === null) return;
     const tokens = [...body.join("\n").matchAll(/`([^`\n]+)`/gu)].map((match) => match[1] ?? "");
     const id = /\b(R[0-9]+|B[0-9]+(?:\.[0-9]+)?)\b/u.exec(heading)?.[1];
-    found.push({ id: id ?? heading.slice(0, 24), heading, tokens: [...new Set(tokens)] });
+    found.push({
+      id: id ?? heading.slice(0, 24),
+      heading,
+      tokens: [...new Set(tokens)],
+      ownerDeferred: OWNER_DEFERRED.test(heading),
+    });
   };
   for (const line of lines) {
     if (line.startsWith(marker)) {
@@ -106,11 +121,18 @@ export function checkIntentDrift(input: IntentInput): HealthCheckResult {
   let external = 0;
   let externalOnly = 0;
   let requirements = 0;
+  let ownerDeferred = 0;
 
   for (const document of input.documents) {
     const text = readFileSync(document.absolute, "utf-8");
     for (const requirement of sections(text, document.headingLevel)) {
       requirements += 1;
+      if (requirement.ownerDeferred) {
+        // Not silence-by-omission: counted and disclosed below, same as an external-identifier
+        // exemption, so the gap in coverage is visible rather than discovered.
+        ownerDeferred += 1;
+        continue;
+      }
       const requirementExternal = requirement.tokens.filter((token) =>
         EXTERNAL_IDENTIFIER_SET.has(token),
       ).length;
@@ -165,6 +187,7 @@ export function checkIntentDrift(input: IntentInput): HealthCheckResult {
       `${checkable} token(s) were checkable.`,
       `${external} token(s) name another application's own identifier (see external-identifiers.ts) and were exempted rather than judged missing.`,
       `${externalOnly} requirement(s) named nothing checkable once those exemptions were applied, so this check says nothing about them either way.`,
+      `${ownerDeferred} requirement(s) are marked \`deferred by owner\` in their own heading and are excluded entirely: the owner has explicitly declined to implement them, so no code or test will ever satisfy them.`,
       ...(input.registryApplies
         ? []
         : [

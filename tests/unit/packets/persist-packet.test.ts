@@ -2,10 +2,8 @@ import { describe, expect, test } from "bun:test";
 import { mkdtempSync, realpathSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import {
-  persistPacket,
-  publishPacket,
-} from "../../../orchestrating-long-tasks/scripts/src/packets/persist-packet.ts";
+import { publishPacket } from "../../../orchestrating-long-tasks/scripts/src/packets/persist-packet.ts";
+import { createPacketBundle } from "../../../orchestrating-long-tasks/scripts/src/packets/packet-bundle.ts";
 import type { BuiltPacket } from "../../../orchestrating-long-tasks/scripts/src/packets/types.ts";
 import { TestPort, workflowState, repositoryBinding } from "../workflow/test-port.ts";
 import { tokenDigest } from "../../../orchestrating-long-tasks/scripts/src/workflow/lease/token.ts";
@@ -34,10 +32,10 @@ function createPacket(
 }
 
 describe("persist-packet", () => {
-  test("persistPacket writes bundle and returns markdown path", async () => {
+  test("createPacketBundle writes bundle and returns markdown path", () => {
     const root = realpathSync(mkdtempSync(join(tmpdir(), "persist-pkt-")));
     const packet = createPacket("implementer");
-    const path = await persistPacket(root, "bundle-1", packet);
+    const path = createPacketBundle(root, "bundle-1", packet, false).markdownPath;
     expect(path).toBe(join(root, "bundle-1", "packet.md"));
   });
 

@@ -95,6 +95,9 @@ export function partitionFindingsIntoScopes(
   }
 
   return rawClusters.map((cluster) => {
+    // cluster.scope is a known LCA path, never a missing one; "root" only fires when that path IS
+    // "." (the whole-tree scope), which strips to the empty string, so this spells a known result
+    // as a task-id-safe slug rather than inventing one for a scope the partitioner didn't have.
     const slug = cluster.scope.replace(/[^a-zA-Z0-9]/g, "-").replace(/^-+|-+$/g, "") || "root";
     const taskId = `repair-R${repairRound}-${slug}`;
     const label = `Repair Wave ${repairRound}: ${cluster.scope}`;

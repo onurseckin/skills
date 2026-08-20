@@ -18,6 +18,7 @@ import {
 } from "./parent.ts";
 import { observeRepository, type BranchObservationDependencies } from "./repository-observation.ts";
 import { assertSubScopes } from "./scope.ts";
+import { requireText } from "../task-state.ts";
 
 export interface SubTaskInput {
   id: string;
@@ -85,6 +86,10 @@ export function openBranch(input: OpenBranchInput): BranchOutcome {
   if (input.subTasks.length === 0) {
     throw new HarnessError("INVALID_ARGUMENT", "a branch needs at least one sub-task");
   }
+  // B21: the reason a branch exists is the only account of intent recorded before any sub-agent
+  // does anything, so it is required here — at the transition itself — not only by the CLI flag
+  // parser a future caller could bypass.
+  requireText(input.reason, "reason");
   const now = input.now ?? new Date();
   const branchId = `B-${randomUUID()}`;
   // Measured outside the transaction: the baseline is a reading of the worktree, not durable state.

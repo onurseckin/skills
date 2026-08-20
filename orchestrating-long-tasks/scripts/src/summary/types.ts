@@ -1,6 +1,10 @@
 import type { EvidenceClass } from "../contracts/evidence.ts";
 import type { JsonObject, JsonValue } from "../contracts/json.ts";
 import type {
+  ActionKind,
+  ActionOutcome,
+  ActionStepRecord,
+  ActionTarget,
   BadgeDetail,
   BrowserTestRun,
   BrowserTestViewport,
@@ -41,6 +45,10 @@ import type {
 } from "./graph-types.ts";
 
 export type {
+  ActionKind,
+  ActionOutcome,
+  ActionStepRecord,
+  ActionTarget,
   BadgeDetail,
   BrowserTestRun,
   BrowserTestViewport,

@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { join } from "node:path";
 import type { Manifest } from "../contracts/capsule.ts";
 import { atomicWriteBytes, atomicWriteJson, fsyncDirectory } from "../core/durable-write.ts";
+import { copyPinnedRuntime } from "../core/runtime-tree.ts";
 import { safeRepoPath } from "../core/paths.ts";
 import { sha256Bytes } from "../core/json.ts";
 import { HarnessError } from "../errors/harness-error.ts";
@@ -25,7 +26,7 @@ export function initRun(
   prompt: Uint8Array,
   captureMode: string,
   sourceVerified: boolean,
-  _options: InitRunOptions = {},
+  options: InitRunOptions = {},
 ): string {
   if (!RUN_ID_PATTERN.test(runId))
     throw new HarnessError("INVALID_ARGUMENT", "run_id must be a 1-128 character slug");
@@ -50,6 +51,17 @@ export function initRun(
       mkdirSync(join(runRoot, directory), { mode: 0o755 });
     fsyncDirectory(runRoot);
     atomicWriteBytes(join(runRoot, "prompt.md"), prompt, { mode: 0o444 });
+    // Pinning is best-effort on the caller's say-so: a run started without a runtime source (every
+    // test, and any host that has not wired one through) gets a capsule with no runtime/ at all,
+    // which the layout already treats as optional.
+    const pin =
+      options.runtimeSource === undefined
+        ? undefined
+        : copyPinnedRuntime(options.runtimeSource, join(runRoot, "runtime"), {
+            ...(options.beforeRuntimeSourceRecheck === undefined
+              ? {}
+              : { beforeSourceRecheck: options.beforeRuntimeSourceRecheck }),
+          });
     const manifest: Manifest = {
       schema: MANIFEST_SCHEMA,
       version: FORMAT_VERSION,
@@ -64,6 +76,19 @@ export function initRun(
       bun_version: Bun.version,
       bun_compatibility: BUN_COMPATIBILITY,
       runtime_version: RUNTIME_VERSION,
+      ...(pin === undefined
+        ? {}
+        : {
+            runtime_sha256: pin.digest,
+            runtime_files: pin.fileCount,
+            // The entrypoint is a claim about the copy's contents, not the destination path, so it
+            // is only recorded when the file the run would actually execute is really there —
+            // --runtime-source is caller-supplied and nothing upstream guarantees it names a
+            // harness tree.
+            ...(existsSync(join(runRoot, "runtime", "harness.ts"))
+              ? { runtime_entrypoint: "runtime/harness.ts" }
+              : {}),
+          }),
     };
     atomicWriteJson(join(runRoot, "manifest.json"), manifest);
     atomicWriteBytes(join(runRoot, "events.jsonl"), new Uint8Array());

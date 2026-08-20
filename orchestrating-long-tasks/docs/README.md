@@ -153,7 +153,7 @@ Every document in this directory includes previous/next navigation links at the 
                                                   v
 +---------------------------------------------------------------------------------------------------+
 |                          4. SCHEDULER: proposeBatch, ONE AUTHORITY                                |
-|  - queue:wave returns the WHOLE conflict-free wave (queue:pop is the one-at-a-time fallback)      |
+|  - queue:wave is read-only ranking; queue:pop claims one task at a time as agents free up         |
 |  - 6-factor ranking, greedy conflict-free packing, capped by default_max_parallel                 |
 +---------------------------------------------------------------------------------------------------+
                                                   |

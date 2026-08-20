@@ -46,12 +46,3 @@ export function classifySignals(
   if (signals.networkTransient) return "network_transient";
   return "unknown";
 }
-
-export function classifyFailure(
-  exitCode: null | number,
-  output: string,
-  timedOut: null | "idle" | "wall",
-  hostInterrupted = false,
-): FailureClass | undefined {
-  return classifySignals(exitCode, inspectFailureText(output), timedOut, hostInterrupted);
-}

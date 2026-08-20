@@ -1,4 +1,4 @@
-import type { HarnessEvent, Manifest } from "../contracts/capsule.ts";
+import type { Manifest } from "../contracts/capsule.ts";
 import type { CommandRecord } from "../contracts/commands.ts";
 import type { CompletionReview, TaskRecord } from "../workflow/types.ts";
 import { queryScreenshots } from "../reporting/screenshot-store.ts";
@@ -24,7 +24,6 @@ export type AssetScope = "all" | "critic" | "implementer" | "validator";
 
 export interface AssetMapOptions {
   runRoot?: string | undefined;
-  events?: readonly HarnessEvent[] | undefined;
   manifest?: Manifest | undefined;
   completionReview?: CompletionReview | undefined;
   scope?: AssetScope | undefined;
@@ -78,14 +77,17 @@ function screenshotAssets(
     const props = inferAssetProps(url, undefined, task);
     add({
       id: `asset-screenshot-${task.id}-${record.name.replace(/[^a-zA-Z0-9_-]/g, "_")}`,
-      type: props.type || "image",
+      // inferAssetProps always sets type and mimeType (from the extension, defaulting to image/
+      // image-png only when the extension itself is unrecognised); neither field can be falsy, so
+      // an `|| "image"` here would never run - it would just hide that fact from the reader.
+      type: props.type,
       url,
       title: props.title.startsWith("Test Snapshot:")
         ? props.title
         : `Test Snapshot: ${record.name}`,
       description: `Captured screenshot ${record.name} for task ${task.id}`,
       ...(record.timestamp ? { timestamp: record.timestamp } : {}),
-      mimeType: props.mimeType || "image/png",
+      mimeType: props.mimeType,
       ...(record.bytes !== undefined ? { sizeBytes: record.bytes } : {}),
       ...(record.actor ? { author: record.actor } : {}),
       metadata: {
@@ -116,7 +118,8 @@ export function mapRunScreenshotAssets(runRoot: string): MediaAsset[] {
     const props = inferAssetProps(url);
     assets.push({
       id: `asset-run-${record.name.replace(/[^a-zA-Z0-9_-]/g, "_")}`,
-      type: props.type || "image",
+      // See screenshotAssets above: props.type is never falsy.
+      type: props.type,
       url,
       title: props.title,
       description: `Screenshot ${record.name} recorded without a node attribution`,
@@ -179,6 +182,8 @@ export function mapMediaAssets(
   commands: CommandRecord[] = [],
   options?: AssetMapOptions | undefined,
 ): MediaAsset[] {
+  // "all" is a first-class member of AssetScope (see its own doc comment above), not a stand-in for
+  // a scope the caller forgot to record - a caller that wants everything says nothing at all.
   const scope = options?.scope ?? "all";
   const assets: MediaAsset[] = [];
   const seen = new Set<string>();

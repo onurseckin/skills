@@ -165,6 +165,9 @@ export function buildCriticAndTerminalNodes(input: CriticNodeInput): CriticNodes
     },
     ...(unattributed.length > 0 ? { assets: unattributed } : {}),
     metadata: {
+      // CompletionResult.status is the single-member literal type "complete" - its presence IS the
+      // completion, so this mirrors the node's own status ternary three lines above: a run with no
+      // completion_result has not reached that state yet, which "pending" names rather than guesses.
       status: completion?.status ?? "pending",
       ...(completion?.completed_at ? { completedAt: completion.completed_at } : {}),
       ...(unattributed.length > 0 ? { unattributedAssetCount: unattributed.length } : {}),
@@ -199,6 +202,11 @@ export function buildCriticAndTerminalNodes(input: CriticNodeInput): CriticNodes
     }),
   ];
 
+  // B25.4: an explicit, justified residual cycle, not the pushback loop B25.2 retired. The
+  // completeness critic runs once, after every task's own validator has already passed it — there
+  // is no `critic_round` counter and no second critic node to forward into, so unlike a repair
+  // round this finding has nowhere later in the graph to point at. Modelling it as a fresh node
+  // would mean inventing a round the run never recorded.
   for (const { taskId, findingIds } of gatesForCriticFindings(review, tasks)) {
     edges.push(
       createEdge({

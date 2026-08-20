@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { runAutonomousLoop } from "../../../orchestrating-long-tasks/scripts/src/orchestrator/loop-runner.ts";
+import { AutonomousLoopRunner } from "../../../orchestrating-long-tasks/scripts/src/orchestrator/loop-runner.ts";
 import {
   loopGateStatus,
   roundGateStatus,
@@ -76,13 +76,13 @@ describe("loop gate status honesty", () => {
 
   it("refuses to converge on a round that ran no gate at all", async () => {
     const summary = await withTempRepo("loop-no-gates", (dir) =>
-      runAutonomousLoop({
+      new AutonomousLoopRunner({
         baseRunId: "run-no-gates",
         repoPath: dir,
         initialPrompt: "Do the work",
         maxRounds: 1,
         executor: executorReturning(() => ({ gateResults: [] })),
-      }),
+      }).run(),
     );
 
     expect(summary.finalStatus).not.toBe("converged_success");
@@ -97,7 +97,7 @@ describe("loop gate status honesty", () => {
 
   it("reports partial when only some rounds ran a gate", async () => {
     const summary = await withTempRepo("loop-partial-gates", (dir) =>
-      runAutonomousLoop({
+      new AutonomousLoopRunner({
         baseRunId: "run-partial-gates",
         repoPath: dir,
         initialPrompt: "Do the work",
@@ -107,7 +107,7 @@ describe("loop gate status honesty", () => {
             ? { gateResults: [] }
             : { gateResults: [{ gate_id: "gate-01", command_id: "cmd-2", status: "passed" }] },
         ),
-      }),
+      }).run(),
     );
 
     expect(summary.totalRoundsExecuted).toBe(2);

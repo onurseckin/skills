@@ -2,6 +2,22 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 
 const [mode, arg] = process.argv.slice(2);
 
+/** Reads up to the first newline a piped child writes, for fixtures that must confirm a
+ * grandchild reached a specific point before racing ahead on the assumption it will get there
+ * "soon enough". */
+async function readLine(stream: ReadableStream<Uint8Array>): Promise<string> {
+  const reader = stream.getReader();
+  const decoder = new TextDecoder();
+  let buffered = "";
+  while (!buffered.includes("\n")) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buffered += decoder.decode(value, { stream: true });
+  }
+  reader.releaseLock();
+  return buffered.split("\n")[0] ?? "";
+}
+
 if (mode === "success") {
   console.log(arg ?? "ok");
 } else if (mode === "test-failure") {
@@ -65,10 +81,34 @@ if (mode === "success") {
   if (!arg) throw new Error("pid path required");
   const child = Bun.spawn({
     cmd: [process.execPath, import.meta.path, "ignore-term"],
-    stdout: "ignore",
+    stdout: "pipe",
     stderr: "ignore",
   });
   child.unref();
+  // The grandchild must confirm its SIGTERM handler is installed before this leader goes quiet
+  // and starts the harness's idle clock toward the SIGTERM it will deliver. Ticking here — rather
+  // than going straight to a blocking read — keeps this leader's own idle timer from lapsing while
+  // the grandchild is still starting up, so a slow-to-schedule grandchild delays the moment the
+  // countdown begins instead of racing it. Gambling that spawn-to-handler-registered always fits
+  // one fixed budget is exactly the kind of assumption that holds on an idle machine and breaks
+  // under CPU contention.
+  let ready: string | undefined;
+  let readyError: unknown;
+  void readLine(child.stdout).then(
+    (line) => {
+      ready = line;
+    },
+    (error: unknown) => {
+      readyError = error;
+    },
+  );
+  while (ready === undefined && readyError === undefined) {
+    console.log("waiting-for-resistant-child");
+    await Bun.sleep(15);
+  }
+  if (readyError) throw readyError;
+  if (ready !== "signal-handler-ready")
+    throw new Error(`resistant child did not confirm its signal handler (saw "${ready}")`);
   writeFileSync(arg, String(child.pid));
   console.log("resistant-child-ready");
   await new Promise(() => undefined);

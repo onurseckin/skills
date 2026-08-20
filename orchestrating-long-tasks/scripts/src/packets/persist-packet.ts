@@ -163,14 +163,6 @@ function authorize(
     throw new HarnessError("INVALID_STATE", "task packet authority changed");
 }
 
-export async function persistPacket(
-  root: string,
-  id: string,
-  packet: BuiltPacket,
-): Promise<string> {
-  return createPacketBundle(root, id, packet, false).markdownPath;
-}
-
 export async function publishPacket(
   runRoot: string,
   id: string,

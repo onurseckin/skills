@@ -15,7 +15,12 @@ import {
   recordRepositoryInspection,
   repositoryInspectionContext,
 } from "./repository-inspection.ts";
-import { loadRoleContract, type RoleContract } from "./role-contract.ts";
+import {
+  loadRoleContract,
+  loadValidatorDomainContract,
+  type RoleContract,
+  type ValidatorDomain,
+} from "./role-contract.ts";
 import type { BuiltPacket, PacketInput } from "./types.ts";
 import { validationRoundContext, VALIDATION_ROUND_KEY } from "./validation-round.ts";
 
@@ -27,6 +32,12 @@ export interface RoleGrant {
   role: AgentRole;
   agentId: string;
   token: string;
+  /**
+   * B12.2/B12.3: which standing checklist a validator's contract carries. Ignored for every other
+   * role. The coordinator states this at dispatch time — the same way it already tells the agent
+   * which task to work — never inferred from the agent's own request.
+   */
+  validatorDomain?: ValidatorDomain;
 }
 
 export interface TaskRoleGrant extends RoleGrant {
@@ -103,12 +114,21 @@ async function publish(
   grant: RoleGrant,
   bind: (state: WorkflowState) => GrantBinding,
 ): Promise<PublishedRolePacket> {
-  const contract = loadRoleContract(grant.role);
+  // A domain is only ever meaningful for the validator family; a stray field on any other role's
+  // grant is silently inert rather than an error, since the grant is what the coordinator hands out
+  // to every role and most of them never touch this field at all.
+  const contract =
+    grant.role === "validator" && grant.validatorDomain
+      ? loadValidatorDomainContract(grant.validatorDomain)
+      : loadRoleContract(grant.role);
   recordGrantInspections(grant.runRoot, grant.agentId);
   const state = grant.port.read();
   const graphRevision = state.graph_revision ?? 0;
   const { runId, context, runState } = grantContext(grant.runRoot, graphRevision);
-  const { attempt, binding, bound } = bind(state);
+  const { attempt, binding: boundBinding, bound } = bind(state);
+  const binding = grant.validatorDomain
+    ? { ...boundBinding, validator_domain: grant.validatorDomain }
+    : boundBinding;
   // A validator arriving on a later round is handed what the run already recorded about the task, so
   // its attention goes to the code rather than to rediscovering the run's own ledger.
   const round =

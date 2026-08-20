@@ -15,6 +15,7 @@ import { buildGateNode } from "./graph-generator-gate-helpers.ts";
 import { buildImplementerNode } from "./graph-generator-helpers.ts";
 import { buildValidatorNode } from "./graph-generator-validator-nodes.ts";
 import { buildTaskEdges } from "./graph-edge-factory.ts";
+import { buildArchivedRoundNodes } from "./graph-round-nodes.ts";
 import { prepareTaskContext } from "./graph-task-preparation.ts";
 import { computeExecutionSteps } from "./step-calculator.ts";
 import type { GraphDataset, GraphEdgeData, GraphNodeData, GraphSection } from "./types.ts";
@@ -79,6 +80,23 @@ export function generateGraphDataset(input: GraphGeneratorInput): GraphDataset {
       ...(runRoot !== undefined ? { runRoot } : {}),
     });
 
+    // Every rejected round the run archived gets its own implementer/validator pair, ahead of the
+    // live round's nodes below — B25.2's fix for the cyclic pushback edge. A task still on its
+    // first round has no archived rounds, so this pushes nothing and nothing here changes for it.
+    for (const round of ctx.archivedRounds) {
+      nodes.push(
+        ...buildArchivedRoundNodes({
+          task,
+          round,
+          taskName: ctx.taskName,
+          taskStep: ctx.taskStep,
+          totalRounds: ctx.totalRounds,
+          ledger,
+          ...(runRoot !== undefined ? { runRoot } : {}),
+        }),
+      );
+    }
+
     nodes.push(buildImplementerNode(ctx));
     if (ctx.validatorNodeId !== undefined) nodes.push(buildValidatorNode(ctx));
     nodes.push(buildGateNode(ctx));
@@ -97,6 +115,7 @@ export function generateGraphDataset(input: GraphGeneratorInput): GraphDataset {
         files: ctx.files,
         findings: ctx.findings,
         validatorCommands: ctx.validatorCommands,
+        archivedRounds: ctx.archivedRounds,
         isGateDone: task.status === "done" || task.status === "validated",
       }),
     );

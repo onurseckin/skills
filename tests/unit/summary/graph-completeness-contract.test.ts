@@ -179,9 +179,12 @@ describe("graph.json completeness contract", () => {
   });
 
   test("carries every changed file with the evidence class of the claim", () => {
-    expect(node("node-task-task-alpha").files).toEqual([
-      { path: "src/alpha/index.ts", mode: "write", evidence_class: "agent_reported" },
-    ]);
+    const files = node("node-task-task-alpha").files ?? [];
+    expect(files).toHaveLength(1);
+    const alpha = files[0]!;
+    expect(alpha.path).toBe("src/alpha/index.ts");
+    expect(alpha.mode).toBe("write");
+    expect(alpha.evidence_class).toBe("agent_reported");
     const region = graph.sections?.find((section) => section.id === `section-branch-${branchId}`);
     const observed = region?.files ?? [];
     expect(observed.length).toBeGreaterThan(0);
@@ -189,6 +192,25 @@ describe("graph.json completeness contract", () => {
       expect(file.evidence_class).toBe("harness_observed");
       expect(file.statusCode).toBeDefined();
     }
+  });
+
+  test("attributes the file to the report's own rationale, requirements and submission step (B15.2)", () => {
+    const alpha = (node("node-task-task-alpha").files ?? [])[0]!;
+    // The repair round's own words: the alpha task's report is overwritten on resubmission, so this
+    // is the last thing the fixture told the harness about the file, not the first.
+    expect(alpha.rationale).toBe(PLANTED.repairSummary);
+    expect(alpha.requirementIds?.length).toBeGreaterThan(0);
+    expect(alpha.step).toBeGreaterThan(0);
+    // The fixture's "work" is a command, not an edit to the file's content, so there is truly no
+    // diff to measure — `lines`/`diff` stay absent rather than reporting an empty change as real.
+    expect(alpha.diff).toBeUndefined();
+    expect(alpha.lines).toBeUndefined();
+
+    const step = graph.run?.steps?.find(
+      (entry) => entry.step === alpha.step && entry.target.taskId === "task-alpha",
+    );
+    expect(step?.rawKind).toBe("task-submitted");
+    expect(step?.evidence_class).toBe("harness_observed");
   });
 
   test("carries every recorded tool with its own evidence class", () => {

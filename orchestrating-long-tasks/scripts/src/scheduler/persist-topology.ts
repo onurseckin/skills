@@ -5,15 +5,12 @@ import { transact } from "../store/transaction.ts";
 import { computeTopology, type TopologyConfig, type TopologyInputs } from "./topology.ts";
 
 /**
- * Writes the decided topology to `state.topology` through the hash chain. Recording is a separate
- * call from deciding so a caller can show the waves it is about to commit, and so the event payload
- * carries the shape of the decision rather than the whole record twice.
+ * Writes the decided topology to `state.topology` through the hash chain. Kept as its own function,
+ * separate from `computeTopology`, so the event payload can carry the shape of the decision rather
+ * than the whole record twice — not exported, because nothing outside `recordTopology` decides a
+ * topology without also persisting it.
  */
-export function persistTopology(
-  runRoot: string,
-  actor: string,
-  topology: TopologyRecord,
-): RunState {
+function persistTopology(runRoot: string, actor: string, topology: TopologyRecord): RunState {
   return transact(
     runRoot,
     actor,

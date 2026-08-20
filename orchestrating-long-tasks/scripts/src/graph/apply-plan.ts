@@ -63,6 +63,10 @@ export async function applyPlan(
         `graph revision is ${String(graphRevision)}, expected ${expectedRevision}`,
       );
     }
+    // projectPlan requires plan_history to already be a list; a fresh capsule's initial state
+    // carries no such key, and the memory-store test fixture pre-seeding it masked that until this
+    // ran against a real store.
+    if (!Array.isArray(state.plan_history)) state.plan_history = [];
     guardPlanRevision(state, requirements, graph, dependencies);
     projectPlan(state, requirements, graph, dependencies);
   });

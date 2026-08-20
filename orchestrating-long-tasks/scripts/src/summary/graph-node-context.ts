@@ -2,6 +2,7 @@ import type { HarnessEvent, Manifest } from "../contracts/capsule.ts";
 import type { CommandRecord } from "../contracts/commands.ts";
 import type { TaskRecord } from "../workflow/types.ts";
 import type { AgentLedgerView } from "./agent-telemetry.ts";
+import type { ArchivedRoundContext } from "./graph-round-context.ts";
 import type { FileRef, MediaAsset, NodeFinding, NodeStatus } from "./types.ts";
 
 export interface TaskNodeContext {
@@ -27,6 +28,10 @@ export interface TaskNodeContext {
   implementerAssets: MediaAsset[];
   /** Assets the validator owns. The two lists never overlap. */
   validatorAssets: MediaAsset[];
+  /** Every rejected round this task lived through before the one described above, oldest first. */
+  archivedRounds: ArchivedRoundContext[];
+  /** `archivedRounds.length + 1` — the round number `taskNodeId`/`validatorNodeId` describe. */
+  totalRounds: number;
 }
 
 export function mapTaskStatus(status: string): NodeStatus {

@@ -81,3 +81,30 @@ describe("role contract frontmatter parser", () => {
     expect(contract.must_not.join("\n")).toContain("mandatory adversarial probe");
   });
 });
+
+describe("B12.2: the validator-family domain field", () => {
+  test("parses a domain scalar on the validator role and leaves it absent otherwise", () => {
+    const withDomain = parseRoleContract(
+      document(`${valid.replace("role: implementer", "role: validator")}\ndomain: code-quality`),
+      "validator-code-quality.md",
+    );
+    expect(withDomain.domain).toBe("code-quality");
+    const without = parseRoleContract(document(valid), "implementer.md");
+    expect(without.domain).toBeUndefined();
+  });
+
+  test.each([
+    [
+      "domain on a non-validator role",
+      `${valid}\ndomain: code-quality`,
+      /domain is only valid for the validator role/u,
+    ],
+    [
+      "an unrecognized domain",
+      `${valid.replace("role: implementer", "role: validator")}\ndomain: made-up`,
+      /domain is not a recognized validator domain/u,
+    ],
+  ])("rejects %s", (_case, frontmatter, expected) => {
+    expect(() => parseRoleContract(document(frontmatter), "d.md")).toThrow(expected);
+  });
+});

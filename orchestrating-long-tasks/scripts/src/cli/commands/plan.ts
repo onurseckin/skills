@@ -64,7 +64,21 @@ export async function planInitCommand(
       ? captureMode === "file" || captureMode === "stdin"
       : boolFlag(flags, "source-verified");
 
-  const runRoot = initRun(repo, runId, prompt, captureMode, sourceVerified);
+  // An explicit --runtime-source wins; otherwise the process that is running this very command
+  // pins itself, so a run started through the real CLI is reproducible without the caller having
+  // to know where the harness lives. --no-runtime-pin refuses even that default, for a throwaway
+  // run that should not pay the copy.
+  const runtimeSource =
+    textFlag(flags, "runtime-source", false) ??
+    (boolFlag(flags, "no-runtime-pin") ? undefined : context.executingRuntime);
+  const runRoot = initRun(
+    repo,
+    runId,
+    prompt,
+    captureMode,
+    sourceVerified,
+    runtimeSource === undefined ? {} : { runtimeSource },
+  );
   const manifest = loadRun(runRoot).manifest;
 
   const markdown = formatCapsuleInitBrief({
@@ -74,6 +88,9 @@ export async function planInitCommand(
     promptBytes: manifest.prompt_bytes,
     assurance: manifest.assurance,
     bunVersion: manifest.bun_version,
+    ...(manifest.runtime_sha256 === undefined || manifest.runtime_files === undefined
+      ? {}
+      : { runtimePin: { sha256: manifest.runtime_sha256, files: manifest.runtime_files } }),
   });
 
   return { markdown, run_root: runRoot, manifest, ignore_assurance };

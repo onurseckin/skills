@@ -6,6 +6,7 @@ import {
   planReplanCommand,
   planStatusCommand,
 } from "../commands/plan.ts";
+import { planApplyCommand, planClaimCommand } from "../commands/plan-apply.ts";
 import {
   DEFAULT_EXIT_CODES,
   optionalFlag,
@@ -37,6 +38,16 @@ export const PLAN_COMMANDS: readonly CommandSpec[] = [
         "source-verified",
         "bool",
         "Assert the prompt source was verified by the caller.",
+      ),
+      optionalFlag(
+        "runtime-source",
+        "string",
+        "Directory to pin as this run's runtime, verified and copied into runtime/. Defaults to the directory containing the currently running harness.ts.",
+      ),
+      optionalFlag(
+        "no-runtime-pin",
+        "bool",
+        "Skip pinning a runtime even when one is available by default.",
       ),
     ],
     readsStdin: true,
@@ -158,6 +169,57 @@ export const PLAN_COMMANDS: readonly CommandSpec[] = [
       'bun harness.ts plan:replan --run .capsules/<run-id> --actor coordinator --gate "bun run typecheck"',
     ],
     handler: planReplanCommand,
+  },
+  {
+    name: "plan:claim",
+    aliases: [],
+    domain: "plan",
+    summary: "Issue a planner's role packet: the sole way a planner agent gets its contract.",
+    description:
+      "The planner has no task and no lease, so it cannot task:claim. This is its equivalent: it hands back the planner role contract, the immutable prompt, and the write scope (planning/requirements.json, planning/graph.json) the planner is bound to fill in before plan:apply.",
+    flags: [
+      requiredFlag("run", "string", "Capsule run root."),
+      requiredFlag("agent", "string", "The planner's own agent id, already agent:register'd."),
+    ],
+    readsStdin: false,
+    takesRemainder: false,
+    exitCodes: DEFAULT_EXIT_CODES,
+    examples: ["bun harness.ts plan:claim --run .capsules/<run-id> --agent planner-1"],
+    handler: planClaimCommand,
+  },
+  {
+    name: "plan:apply",
+    aliases: [],
+    domain: "plan",
+    summary: "Validate and commit the requirements and graph the planner wrote to planning/.",
+    description:
+      "Reads requirements.json and graph.json (defaulting to planning/ inside the run), validates them against the immutable prompt, and commits them as the next graph revision. --expected-revision rejects the apply outright if the graph has moved since the planner's packet was issued, instead of silently overwriting a newer plan.",
+    flags: [
+      requiredFlag("run", "string", "Capsule run root."),
+      requiredFlag("actor", "string", "Actor recorded on the event."),
+      optionalFlag(
+        "requirements",
+        "string",
+        "Path to the requirements document. Defaults to <run>/planning/requirements.json.",
+      ),
+      optionalFlag(
+        "graph",
+        "string",
+        "Path to the graph document. Defaults to <run>/planning/graph.json.",
+      ),
+      optionalFlag(
+        "expected-revision",
+        "int",
+        "The graph revision this apply must be built against; the apply is refused if the run has moved past it.",
+      ),
+    ],
+    readsStdin: false,
+    takesRemainder: false,
+    exitCodes: DEFAULT_EXIT_CODES,
+    examples: [
+      "bun harness.ts plan:apply --run .capsules/<run-id> --actor planner-1 --expected-revision 0",
+    ],
+    handler: planApplyCommand,
   },
   {
     name: "plan:status",

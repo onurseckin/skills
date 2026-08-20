@@ -106,12 +106,18 @@ export const TASK_COMMANDS: readonly CommandSpec[] = [
       requiredFlag("task", "string", "Submitted task id."),
       requiredFlag("validator", "string", "Validator agent id."),
       optionalFlag("lease-duration", "int", "Validation window in seconds."),
+      optionalFlag(
+        "validator-domain",
+        "string",
+        "B12.2 standing checklist domain (code-quality, product, security, system-design, ui-design); binds the matching checklist into this validator's packet.",
+      ),
     ],
     readsStdin: false,
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
       "bun harness.ts task:validate-start --run .capsules/<run-id> --task task-1 --validator val-1",
+      "bun harness.ts task:validate-start --run .capsules/<run-id> --task task-1 --validator val-1 --validator-domain code-quality",
     ],
     handler: taskValidateStartCommand,
   },

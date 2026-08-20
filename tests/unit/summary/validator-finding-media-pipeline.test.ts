@@ -108,4 +108,42 @@ describe("media assets come from recorded bytes", () => {
     expect(validator[0].author).toBe("val-visual-inspector");
     expect(validator[0].metadata?.findingId).toBe("FINDING-THEME-01");
   });
+
+  test("a screenshot record with no type is typed from its own extension, not defaulted to image", () => {
+    const task = makeTask("T-media-typed", {
+      report: {
+        summary: "done",
+        // Neither object below carries a `type` field - exactly what a producer that only knows
+        // the url writes. The recording must not be reported as an "image".
+        screenshots: [{ url: "evidence/dashboard-recording.webm" }],
+      },
+      validation: {
+        validator_id: "val-visual-inspector",
+        token_digest: "tok",
+        attempt: 1,
+        started_at: "2026-08-15T19:00:00.000Z",
+        deadline_at: "2026-08-15T19:10:00.000Z",
+        verdict: "reject",
+      },
+    });
+
+    const implementer = mapMediaAssets(task, [], { scope: "implementer" });
+    expect(implementer).toHaveLength(1);
+    expect(implementer[0].type).toBe("video");
+
+    const validatorTask = makeTask("T-media-typed-val", {
+      validation: {
+        validator_id: "val-visual-inspector",
+        token_digest: "tok",
+        attempt: 1,
+        started_at: "2026-08-15T19:00:00.000Z",
+        deadline_at: "2026-08-15T19:10:00.000Z",
+        verdict: "reject",
+        screenshots: [{ url: "evidence/gate-audit.svg" }],
+      },
+    });
+    const validatorAssets = mapMediaAssets(validatorTask, [], { scope: "validator" });
+    expect(validatorAssets).toHaveLength(1);
+    expect(validatorAssets[0].type).toBe("diagram");
+  });
 });

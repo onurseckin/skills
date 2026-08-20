@@ -2,8 +2,11 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { runCommand } from "../unit/runner/run-command-fixture.ts";
-import { classifyFailure } from "../../orchestrating-long-tasks/scripts/src/runner/classify-failure.ts";
+import { runCommand, waitForProcessExit } from "../unit/runner/run-command-fixture.ts";
+import {
+  classifySignals,
+  inspectFailureText,
+} from "../../orchestrating-long-tasks/scripts/src/runner/classify-failure.ts";
 
 const fixture = join(import.meta.dir, "../unit/runner/fixtures/command-fixture.ts");
 const roots: string[] = [];
@@ -149,11 +152,15 @@ describe("watchdog and retry policy", () => {
   });
 
   test("hard failures take precedence over transient-looking output", () => {
-    expect(classifyFailure(1, "connection reset; tests failed", null)).toBe("test_failure");
-    expect(classifyFailure(1, "service unavailable; permission denied", null)).toBe(
-      "authorization",
+    expect(
+      classifySignals(1, inspectFailureText("connection reset; tests failed"), null),
+    ).toBe("test_failure");
+    expect(
+      classifySignals(1, inspectFailureText("service unavailable; permission denied"), null),
+    ).toBe("authorization");
+    expect(classifySignals(1, inspectFailureText("temporary failure"), null)).toBe(
+      "network_transient",
     );
-    expect(classifyFailure(1, "temporary failure", null)).toBe("network_transient");
   });
 
   test("preserves early hard-failure evidence beyond the bounded output tail", async () => {
@@ -206,7 +213,7 @@ describe("watchdog and retry policy", () => {
       graceMs: 50,
     });
     const pid = Number(await readFile(pidPath, "utf8"));
-    expect(() => process.kill(pid, 0)).toThrow();
+    await waitForProcessExit(pid);
   });
 
   test("kills TERM-resistant descendants after a cooperative leader exits", async () => {
@@ -223,6 +230,6 @@ describe("watchdog and retry policy", () => {
     });
     const pid = Number(await readFile(pidPath, "utf8"));
     expect(result.record.signals_sent).toEqual(["SIGTERM", "SIGKILL"]);
-    expect(() => process.kill(pid, 0)).toThrow();
+    await waitForProcessExit(pid);
   });
 });

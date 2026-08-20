@@ -275,8 +275,3 @@ export class AutonomousLoopRunner {
     return loopSummary;
   }
 }
-
-export async function runAutonomousLoop(options: LoopRunnerOptions): Promise<LoopSummary> {
-  const runner = new AutonomousLoopRunner(options);
-  return runner.run();
-}

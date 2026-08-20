@@ -46,7 +46,10 @@ export function collectReportAssets(task: TaskRecord, add: AssetSink, nextIndex:
     const object = typeof shot === "string" ? undefined : shot;
     add({
       id: object?.id || `asset-${task.id}-${nextIndex()}`,
-      type: object?.type || "image",
+      // props.type is read from the url's own extension (inferAssetProps), the same signal
+      // mimeType and description below already trust; a bare "image" default would ignore that
+      // and misreport a video or log capture as an image whenever the record omits `type`.
+      type: object?.type || props.type,
       url,
       title: object?.title || `Test Snapshot: ${url.split("/").pop()}`,
       description: object?.description || props.description,
@@ -78,7 +81,8 @@ export function collectValidationAssets(
     const object = typeof shot === "string" ? undefined : shot;
     add({
       id: object?.id || `asset-${task.id}-val-${nextIndex()}`,
-      type: object?.type || "image",
+      // See collectReportAssets above: props.type is the extension-derived signal, not a guess.
+      type: object?.type || props.type,
       url,
       title: object?.title || `Validator Snapshot: ${url.split("/").pop()}`,
       description: `Captured by validator during gate check for task ${task.id}`,
@@ -112,7 +116,9 @@ export function collectFindingAssets(
       const scopeId = context.task ? context.task.id : "critic";
       add({
         id: shot.id || `asset-${scopeId}-finding-${nextIndex()}`,
-        type: shot.type || props.type || "image",
+        // props.type is always set (inferAssetProps has no undefined case), so a trailing "image"
+        // literal here would never run - it would just hide that the real fallback is one level up.
+        type: shot.type || props.type,
         url: shot.url,
         title: shot.title || `Finding Snapshot: ${shot.url.split("/").pop()}`,
         description: shot.description || `Evidence for finding ${finding.id}`,

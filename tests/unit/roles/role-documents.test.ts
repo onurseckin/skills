@@ -7,18 +7,62 @@ import {
 } from "../../../orchestrating-long-tasks/scripts/src/contracts/packets.ts";
 import {
   loadRoleContract,
+  loadValidatorDomainContract,
   resolveRoleContractPath,
+  VALIDATOR_DOMAINS,
 } from "../../../orchestrating-long-tasks/scripts/src/packets/role-contract.ts";
 
 const rolesRoot = dirname(resolveRoleContractPath("planner"));
 
+// B12.2: a validator domain variant is not a canonical AgentRole — it declares `role: validator`
+// plus `domain:`, so every workflow check keyed on the literal role string "validator" (packet
+// isolation, token authorization, task:review acceptance) keeps working unchanged. Its filename
+// therefore does not match a member of AGENT_ROLES the way every other role document's does.
+const domainFiles = VALIDATOR_DOMAINS.map((domain) => `validator-${domain}`).sort();
+
 describe("canonical role documents", () => {
-  test("roles/ holds exactly one document per canonical role", () => {
+  test("roles/ holds exactly one document per canonical role, plus one per validator domain", () => {
     const documented = readdirSync(rolesRoot)
       .filter((entry) => entry.endsWith(".md"))
       .map((entry) => entry.slice(0, -3))
       .sort();
-    expect(documented).toEqual([...AGENT_ROLES].sort());
+    expect(documented).toEqual([...AGENT_ROLES, ...domainFiles].sort());
+  });
+
+  test("every validator domain document declares role validator and its own domain", () => {
+    for (const domain of VALIDATOR_DOMAINS) {
+      const domainContract = loadValidatorDomainContract(domain);
+      expect(domainContract.role).toBe("validator");
+      expect(domainContract.domain).toBe(domain);
+      expect(domainContract.tier).toBeGreaterThanOrEqual(1);
+      expect(domainContract.tier).toBeLessThanOrEqual(3);
+      expect(domainContract.may.length).toBeGreaterThan(0);
+      expect(domainContract.must_not.length).toBeGreaterThan(0);
+      expect(domainContract.commands.length).toBeGreaterThan(0);
+      expect(domainContract.spawns).toEqual(["sub-validator"]);
+      expect(domainContract.sha256).toMatch(/^[0-9a-f]{64}$/u);
+      expect(domainContract.checklist?.domain).toBe(domain);
+      expect(domainContract.checklist?.items.length).toBeGreaterThan(0);
+    }
+  });
+
+  test("a validator domain contract's digest changes if its checklist changes and not otherwise", () => {
+    const a = loadValidatorDomainContract("code-quality");
+    const b = loadValidatorDomainContract("code-quality");
+    expect(a.sha256).toBe(b.sha256);
+    // Every domain's combined digest is distinct — nobody accidentally shares a checklist file.
+    const digests = new Set(VALIDATOR_DOMAINS.map((d) => loadValidatorDomainContract(d).sha256));
+    expect(digests.size).toBe(VALIDATOR_DOMAINS.length);
+  });
+
+  test("the standing checklist text is embedded verbatim in the domain contract's packet text", () => {
+    for (const domain of VALIDATOR_DOMAINS) {
+      const contract = loadValidatorDomainContract(domain);
+      for (const item of contract.checklist!.items) {
+        expect(contract.text).toContain(item.id);
+        expect(contract.text).toContain(item.rule);
+      }
+    }
   });
 
   test("every role document declares a nonempty capability contract", () => {

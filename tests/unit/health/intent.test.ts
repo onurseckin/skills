@@ -149,6 +149,54 @@ describe("a token naming another application's own identifier is exempt, not mis
   });
 });
 
+describe("a requirement the owner marked deferred is excluded, not judged missing or untested", () => {
+  const result = (): ReturnType<typeof checkIntentDrift> => {
+    const root = writeTree(tempRoot("owner-deferred"), {
+      "BACKLOG.md": [
+        "## 1. B99 - a deferred decision `deferred by owner`",
+        "",
+        "- Would have named `neverWritten` and read `never-written.md`.",
+        "",
+        "## 2. B100 - research still headed toward landing `research-in-flight`",
+        "",
+        "- Names `alsoNeverWritten`.",
+      ].join("\n"),
+    });
+    return checkIntentDrift({
+      documents: [{ relative: "BACKLOG.md", absolute: join(root, "BACKLOG.md"), headingLevel: 2 }],
+      production: [],
+      tests: [],
+      paths: [],
+      registryApplies: true,
+    });
+  };
+
+  test("the deferred requirement raises no finding of either kind", () => {
+    const report = result();
+    expect(report.findings.map((entry) => entry.key)).not.toEqual(
+      expect.arrayContaining([expect.stringContaining("B99")]),
+    );
+  });
+
+  test("a requirement with a different, non-terminal status is still judged", () => {
+    const report = result();
+    expect(report.findings.map((entry) => entry.key)).toContain(
+      "intent-missing:BACKLOG.md:B100:alsoNeverWritten",
+    );
+  });
+
+  test("the exemption is counted and disclosed, not silently dropped", () => {
+    const report = result();
+    expect(report.limitations.join(" ")).toContain(
+      "1 requirement(s) are marked `deferred by owner`",
+    );
+  });
+
+  test("scanned still counts the deferred requirement", () => {
+    expect(result().scanned).toBe(2);
+  });
+});
+
 describe("a command token is not judged against a registry that does not describe the tree", () => {
   const result = (): ReturnType<typeof checkIntentDrift> => {
     const root = writeTree(tempRoot("foreign-intent"), {

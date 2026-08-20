@@ -1,5 +1,6 @@
 import type { HarnessEvent } from "../contracts/capsule.ts";
 import type { JsonValue } from "../contracts/json.ts";
+import type { ActionKind, ActionOutcome, ActionStepRecord, ActionTarget } from "./graph-types.ts";
 import type { TimelineEventRecord } from "./types.ts";
 
 interface EventDetails {
@@ -87,7 +88,9 @@ function determinePhaseAndSummary(event: HarnessEvent, promptBytes = 0): EventDe
       break;
     case "plan-task-added":
       result.phase = "planning";
-      result.summary = `Task ${taskId ?? String(p.id ?? "")} added: ${String(p.label ?? p.goal ?? "staged task")}`;
+      // Neither label nor goal is guaranteed on this payload; "staged task" would report a
+      // description nobody wrote, so an event that named neither says so instead.
+      result.summary = `Task ${taskId ?? String(p.id ?? "")} added: ${String(p.label ?? p.goal ?? "an unrecorded label")}`;
       if (taskId ?? p.id) result.task_id = taskId ?? String(p.id);
       break;
     case "plan-compiled":
@@ -124,7 +127,9 @@ function determinePhaseAndSummary(event: HarnessEvent, promptBytes = 0): EventDe
       break;
     case "task-escalated":
       result.phase = "execution";
-      result.summary = `Task ${taskId ?? "unknown"} escalated by ${event.actor}: ${String(p.reason ?? "escalation")}`;
+      // "escalation" would restate the event kind as if it were the reason the escalator gave;
+      // an event that carries no reason field says so instead of manufacturing one.
+      result.summary = `Task ${taskId ?? "unknown"} escalated by ${event.actor}: ${String(p.reason ?? "no reason recorded")}`;
       if (taskId) result.task_id = taskId;
       break;
     case "task-cancelled":
@@ -225,7 +230,9 @@ function determinePhaseAndSummary(event: HarnessEvent, promptBytes = 0): EventDe
       break;
     case "critic-reviewed":
       result.phase = "review";
-      result.summary = `Completeness critic review completed (${String(p.verdict ?? "reviewed")})`;
+      // "reviewed" would parrot the event kind back as if it were the verdict; an event that
+      // carries no verdict field says so instead of implying one was read.
+      result.summary = `Completeness critic review completed (${String(p.verdict ?? "no verdict recorded")})`;
       if (!result.validator_id && event.actor) result.validator_id = event.actor;
       break;
     case "run-completed":
@@ -256,7 +263,9 @@ export function collectTimeline(
     const record: TimelineEventRecord = {
       sequence: event.sequence ?? idx + 1,
       timestamp: event.timestamp ?? new Date().toISOString(),
-      actor: event.actor ?? "system",
+      // "unknown" is the sanctioned sentinel for a missing value; "system" would read as a real
+      // actor's name, which nothing here observed and this must not present as fact.
+      actor: event.actor ?? "unknown",
       event: event.kind ?? "unknown",
       phase: details.phase,
       summary: details.summary,
@@ -274,5 +283,194 @@ export function collectTimeline(
     if (details.severity !== undefined) record.severity = details.severity;
     if (details.validator_id !== undefined) record.validator_id = details.validator_id;
     return record;
+  });
+}
+
+/**
+ * The coarse `ActionKind` bucket for one event kind (B15.1). Deliberately independent of
+ * `determinePhaseAndSummary`'s `phase`, which groups kinds for a run's *narrative* (the markdown
+ * timeline); this groups them for provenance filtering, and the two taxonomies serve different
+ * readers. A kind this switch has never seen still gets a row — bucketed `"run"` and identified
+ * exactly by `rawKind` — never dropped for being unrecognised. Not exported: `collectActionSteps`
+ * below is the module's public entry point, and its own tests exercise every bucket through it.
+ */
+function classifyActionKind(kind: string): ActionKind {
+  switch (kind) {
+    case "command-recorded":
+    case "command-intent-recorded":
+    case "command-reconciled":
+      return "command";
+    case "agent-registered":
+    case "agent-released":
+    case "agent-reported":
+      return "agent";
+    case "task-claimed":
+    case "task-leased":
+    case "task-heartbeat":
+    case "lease-heartbeat":
+    case "lease-renewed":
+    case "lease-revoked":
+    case "lease-released":
+    case "stale-recovery":
+      return "lease";
+    case "packet-prepared":
+    case "packet-published":
+      return "packet";
+    case "review-recorded":
+    case "critic-started":
+    case "critic-reviewed":
+    case "critic-assigned":
+    case "completion-reviewed":
+    case "completion-remediated":
+    case "requirement-authority-decided":
+      return "review";
+    case "probe-recorded":
+      return "probe";
+    case "branch-opened":
+    case "branch-collected":
+    case "branch-abandoned":
+    case "branch-claimed":
+    case "branch-submitted":
+      return "branch";
+    case "gate-started":
+    case "gate-completed":
+    case "gate-attached":
+      return "gate";
+    case "plan-init":
+    case "plan-task-added":
+    case "plan-compiled":
+    case "plan-enhanced":
+    case "plan-recompiled":
+    case "topology-recorded":
+      return "plan";
+    case "task-submitted":
+    case "task-escalated":
+    case "task-cancelled":
+    case "task-finished":
+    case "tasks-unblocked":
+    case "replacement-repairer-assigned":
+    case "orphan-evidence-dispositioned":
+      return "task";
+    case "capsule-initialized":
+    case "run-completed":
+      return "run";
+    default:
+      return "run";
+  }
+}
+
+/**
+ * Every identifier the payload states, under its own name — never a guess at which one a given kind
+ * "should" carry. `nodeId` is filled in only through `resolveActionNodeId`, which only ever produces
+ * an id this module's own node builders are known to mint.
+ */
+function deriveTarget(event: HarnessEvent): ActionTarget {
+  const p = (event.payload ?? {}) as Record<string, unknown>;
+  const field = (key: string): string | undefined =>
+    typeof p[key] === "string" ? (p[key] as string) : undefined;
+  const target: ActionTarget = {
+    ...(field("task_id") !== undefined ? { taskId: field("task_id") } : {}),
+    ...(field("gate_id") !== undefined ? { gateId: field("gate_id") } : {}),
+    ...(field("branch_id") !== undefined ? { branchId: field("branch_id") } : {}),
+    ...(field("sub_task_id") !== undefined ? { subTaskId: field("sub_task_id") } : {}),
+    ...(field("agent_id") !== undefined ? { agentId: field("agent_id") } : {}),
+    ...(field("command_id") !== undefined ? { commandId: field("command_id") } : {}),
+    ...(field("packet_id") !== undefined ? { packetId: field("packet_id") } : {}),
+    ...(field("requirement_id") !== undefined ? { requirementId: field("requirement_id") } : {}),
+    ...(field("path") !== undefined ? { path: field("path") } : {}),
+  };
+  const nodeId = resolveActionNodeId(target);
+  return nodeId !== undefined ? { ...target, nodeId } : target;
+}
+
+/**
+ * The node id a target resolves to, using the exact string templates the node builders themselves
+ * use (`node-task-<id>`, `node-gate-<id>`, `node-branch-<branchId>-<subTaskId>`) — read from
+ * `graph-task-preparation.ts` and `graph-generator-branch-nodes.ts` rather than reconstructed from
+ * guesswork. A target with no known template (a packet, a finding, a bare gate id with no task) gets
+ * no node id rather than an invented one.
+ */
+function resolveActionNodeId(target: ActionTarget): string | undefined {
+  if (target.branchId !== undefined && target.subTaskId !== undefined) {
+    return `node-branch-${target.branchId}-${target.subTaskId}`;
+  }
+  if (target.taskId !== undefined) {
+    // Gate nodes are keyed by the owning task's id, not the gate's own id (there is one gate node
+    // per task), so a gate-scoped event with a task id resolves to the same node either way.
+    return target.gateId !== undefined
+      ? `node-gate-${target.taskId}`
+      : `node-task-${target.taskId}`;
+  }
+  return undefined;
+}
+
+/**
+ * The action's own outcome, derived only from a verdict, status or exit code the payload states
+ * explicitly. Every other kind defaults to `"success"`: a persisted event is not a report about the
+ * work it represents, but the fact of its own existence *is* proof the transaction that produced it
+ * committed, since `transact()` throws and appends nothing when a mutation fails. That default is a
+ * structural fact about the store, not an inference from the kind's name — which is why cancellation,
+ * abandonment and escalation kinds are not special-cased here to "failure": doing so would be reading
+ * a verdict into a label instead of the payload.
+ */
+function deriveOutcome(event: HarnessEvent): ActionOutcome {
+  const p = (event.payload ?? {}) as Record<string, unknown>;
+  switch (event.kind) {
+    case "review-recorded": {
+      if (p.verdict === "pass") return "success";
+      if (p.verdict === "reject") return "failure";
+      return "unknown";
+    }
+    case "gate-completed": {
+      const stated = p.verdict === "pass" || p.status === "pass";
+      if (stated) return "success";
+      return p.verdict !== undefined || p.status !== undefined ? "failure" : "unknown";
+    }
+    case "critic-reviewed": {
+      const verdict = typeof p.verdict === "string" ? p.verdict : undefined;
+      if (verdict === undefined) return "unknown";
+      return verdict === "clean" || verdict === "pass" ? "success" : "failure";
+    }
+    case "command-reconciled": {
+      const status = typeof p.status === "string" ? p.status : undefined;
+      if (status === undefined) return "unknown";
+      return status === "failed" || status === "error" ? "failure" : "success";
+    }
+    case "command-recorded": {
+      const exitCode = typeof p.exit_code === "number" ? p.exit_code : undefined;
+      if (exitCode === undefined) return "unknown";
+      return exitCode === 0 ? "success" : "failure";
+    }
+    default:
+      return "success";
+  }
+}
+
+/**
+ * The run's full action-provenance trace (B15.1): one row per event, in the append-only chain's own
+ * order, with the coarse kind, resolved target and honest outcome alongside the summary text
+ * `determinePhaseAndSummary` already produces for the markdown timeline. `step` is the event's own
+ * `sequence` — the chain's counter is already monotonic and gapless, so this reuses it rather than
+ * minting a second one that could drift.
+ */
+export function collectActionSteps(
+  events: readonly HarnessEvent[],
+  promptBytes = 0,
+): ActionStepRecord[] {
+  return events.map((event, idx) => {
+    const details = determinePhaseAndSummary(event, promptBytes);
+    return {
+      step: event.sequence ?? idx + 1,
+      timestamp: event.timestamp ?? new Date().toISOString(),
+      // "unknown" is the sanctioned sentinel for a missing value; "system" would read as a real
+      // actor's name, which nothing here observed and this must not present as fact.
+      actor: event.actor ?? "unknown",
+      kind: classifyActionKind(event.kind ?? ""),
+      rawKind: event.kind ?? "unknown",
+      target: deriveTarget(event),
+      outcome: deriveOutcome(event),
+      evidence_class: "harness_observed",
+      summary: details.summary,
+    };
   });
 }

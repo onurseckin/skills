@@ -220,6 +220,7 @@ describe("the probe wired into the CLI boundaries themselves, never a separate c
   const IDENTIFYING_VARS = [
     "CLAUDE_CODE_MODEL",
     "ANTHROPIC_MODEL",
+    "CLAUDE_CODE_SESSION_ID",
     "CURSOR_MODEL",
     "MODEL",
     "AI_MODEL",

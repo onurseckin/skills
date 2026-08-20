@@ -23,12 +23,10 @@ const FALLBACK_CEILING: ReadonlyMap<string, number> = new Map([
   ["orchestrating-long-tasks/scripts/src/core/runtime-tree.ts", 2],
   ["orchestrating-long-tasks/scripts/src/installer/tree-digest.ts", 1],
   ["orchestrating-long-tasks/scripts/src/orchestrator/watchdog.ts", 1],
-  ["orchestrating-long-tasks/scripts/src/summary/asset-mapper-task-sources.ts", 3],
-  ["orchestrating-long-tasks/scripts/src/summary/asset-mapper.ts", 4],
+  ["orchestrating-long-tasks/scripts/src/summary/asset-mapper.ts", 1],
   ["orchestrating-long-tasks/scripts/src/summary/graph-generator-critic-nodes.ts", 1],
-  ["orchestrating-long-tasks/scripts/src/summary/metrics-collector-helpers.ts", 19],
+  ["orchestrating-long-tasks/scripts/src/summary/metrics-collector-helpers.ts", 7],
   ["orchestrating-long-tasks/scripts/src/summary/metrics-collector.ts", 2],
-  ["orchestrating-long-tasks/scripts/src/summary/timeline-collector.ts", 4],
   ["orchestrating-long-tasks/scripts/src/workflow/scope-partitioner.ts", 1],
 ]);
 

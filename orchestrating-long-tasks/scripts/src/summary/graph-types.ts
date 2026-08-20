@@ -62,9 +62,80 @@ export type NodeStatus =
   | "skipped"
   | "cached";
 
+/**
+ * The coarse bucket every recorded action folds into (B15.1). `tool` is reserved for a host that
+ * reports individual tool invocations; nothing in this codebase's event chain does today, so no
+ * `ActionStepRecord` is ever minted with this kind — an absence `collectActionSteps` leaves as
+ * absence rather than backfilling from the aggregate `NodeTool` counts, which are a different
+ * measurement (totals, not invocations) and would misrepresent one as the other.
+ */
+export type ActionKind =
+  | "command"
+  | "file"
+  | "agent"
+  | "lease"
+  | "packet"
+  | "finding"
+  | "probe"
+  | "review"
+  | "branch"
+  | "gate"
+  | "plan"
+  | "task"
+  | "tool"
+  | "run";
+
+/**
+ * `"success"` means the harness committed the transaction that produced the action, which every
+ * persisted event satisfies by construction: `transact()` throws and appends nothing when the
+ * mutation it wraps fails. `"failure"`/`"pending"` come from an explicit verdict or status the
+ * payload stated. `"unknown"` is for an action whose substantive result the payload never states at
+ * all (an unverdicted review, say) — never a guess dressed as one of the other three.
+ */
+export type ActionOutcome = "success" | "failure" | "pending" | "unknown";
+
+/**
+ * What an action acted on, in the identifiers the harness itself recorded. `nodeId` is filled in
+ * only when the graph mints a node under that identifier using a convention this module can name
+ * (task, gate, validator, branch sub-task); everything else is left absent rather than guessed.
+ */
+export interface ActionTarget {
+  taskId?: string | undefined;
+  gateId?: string | undefined;
+  branchId?: string | undefined;
+  subTaskId?: string | undefined;
+  agentId?: string | undefined;
+  commandId?: string | undefined;
+  packetId?: string | undefined;
+  requirementId?: string | undefined;
+  path?: string | undefined;
+  nodeId?: string | undefined;
+}
+
+/**
+ * One row of the run's full action-provenance trace (B15.1): every command, file write, grant,
+ * lease, packet, finding, probe, review, branch and plan revision the append-only chain recorded,
+ * in the order the chain committed them. `step` is the event's own `sequence` — already monotonic
+ * and gapless over every transaction the run persisted — so this is a projection of the chain, not
+ * a second counter that could drift from it.
+ */
+export interface ActionStepRecord {
+  step: number;
+  timestamp: string;
+  actor: string;
+  kind: ActionKind;
+  /** The event kind exactly as the harness recorded it, for a reader who wants the raw vocabulary. */
+  rawKind: string;
+  target: ActionTarget;
+  outcome: ActionOutcome;
+  evidence_class: EvidenceClass;
+  summary: string;
+}
+
 export interface FileRef {
   path: string;
   mode?: "read" | "write" | "attach" | undefined;
+  /** A compact hunk-range summary (`"12-18,44"`), derived from the same diff as `diff`. */
   lines?: string | undefined;
   diff?: string | undefined;
   additions?: number | undefined;
@@ -78,6 +149,16 @@ export interface FileRef {
   statusCode?: string | undefined;
   /** The digest of the bytes the harness hashed, or null when the path had none to hash. */
   sha256?: string | null | undefined;
+  /**
+   * The owning task's own account of why it changed, `report.summary` carried onto every path in
+   * that report's `files_changed` — the report never splits a reason out per file, so this is the
+   * whole-changeset reason, not a claim about this path alone. Always `agent_reported`.
+   */
+  rationale?: string | undefined;
+  /** Requirement ids the owning report claimed this change set served. Always `agent_reported`. */
+  requirementIds?: string[] | undefined;
+  /** The step, from the same space as `RunFacts.steps`, whose action produced this reference. */
+  step?: number | undefined;
 }
 
 export interface IoPort {
@@ -346,6 +427,8 @@ export interface RunFacts {
   integrity?: RunIntegrityFacts | undefined;
   /** The append-only event chain, whole. It is the only ordered record of what happened when. */
   events?: JsonObject[] | undefined;
+  /** The same chain, projected into the typed, filterable action-provenance trace (B15.1). */
+  steps?: ActionStepRecord[] | undefined;
   /** The capture manifest: how the prompt was taken and what the run was initialised with. */
   manifest?: JsonObject | undefined;
   completion?: RunCompletionFacts | undefined;

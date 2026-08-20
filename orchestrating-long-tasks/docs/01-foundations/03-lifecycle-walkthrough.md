@@ -19,7 +19,7 @@ and a transition the harness will refuse to make without evidence.
                                                                    ▼
   8. PROBE & REPAIR    7. VALIDATE         6. EXECUTE          5. DISPATCH
 ┌─────────────┐     ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│ Probe demand│ <── │ Independent │ <── │ Lease, edit,│ <── │ Whole wave, │
+│ Probe demand│ <── │ Independent │ <── │ Lease, edit,│ <── │ Ready now,  │
 │ or defect   │     │ validator   │     │ branch, gate│     │ registered  │
 └─────────────┘     └─────────────┘     └─────────────┘     └─────────────┘
        │

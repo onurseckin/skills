@@ -105,7 +105,7 @@ never plaintext. A lost token is not recoverable; wait for the lease to expire, 
 | Record what reading the repo taught you | `plan:enhance`                                                                |
 | Declare a task bound to prompt lines    | `plan:add --requirement-lines`                                                |
 | Seal the plan and record the topology   | `plan:compile --completion-gate`                                              |
-| Dispatch a whole parallel wave          | `queue:wave`                                                                  |
+| See what's claimable right now          | `queue:wave` (read-only)                                                      |
 | Take one task at a time                 | `queue:next`, `queue:pop`                                                     |
 | Put a subagent in the run's ledger      | `agent:register`                                                              |
 | Lease a task under a role               | `task:claim --role`                                                           |

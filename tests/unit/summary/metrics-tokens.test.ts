@@ -193,4 +193,62 @@ describe("metrics token collector", () => {
         (estimatedGateTokens.cacheReadTokens ?? 0),
     );
   });
+
+  test("a host-reported reading with a missing component stays missing, never a guessed zero", () => {
+    const task: TaskRecord = {
+      id: "T-partial",
+      status: "done",
+      requirement_ids: ["R-partial"],
+      write_scope: ["src/p.ts"],
+      dependencies: [],
+      attempts: [],
+      history: [],
+      repair_round: 0,
+      report: { summary: "Partial host reading", files_changed: ["src/p.ts"] },
+    };
+
+    // The host confirmed this reading is real (isEstimated: false) but only sent inputTokens - the
+    // exact shape reportedTokenUsage() produces when a grant records tokens_in without tokens_out.
+    const partialHostTokens = { inputTokens: 900, isEstimated: false as const };
+
+    const taskTokens = computeTaskTokens(task, undefined, [], partialHostTokens);
+    expect(taskTokens.inputTokens).toBe(900);
+    expect(taskTokens.outputTokens).toBeUndefined();
+    expect(taskTokens.totalTokens).toBe(900);
+    expect(taskTokens.evidenceClass).toBe("unknown");
+
+    const gateTokens = computeGateTokens(task, [], partialHostTokens);
+    expect(gateTokens.inputTokens).toBe(900);
+    expect(gateTokens.outputTokens).toBeUndefined();
+    expect(gateTokens.totalTokens).toBe(900);
+    expect(gateTokens.evidenceClass).toBe("unknown");
+
+    // A host-reported evidenceClass is preserved, not overridden by the "unknown" default.
+    const labeledHostTokens = { inputTokens: 10, isEstimated: false as const, evidenceClass: "agent_reported" as const };
+    expect(computeTaskTokens(task, undefined, [], labeledHostTokens).evidenceClass).toBe(
+      "agent_reported",
+    );
+  });
+
+  test("a host-reported reading with no components at all carries no invented total", () => {
+    const task: TaskRecord = {
+      id: "T-empty",
+      status: "done",
+      requirement_ids: ["R-empty"],
+      write_scope: ["src/e.ts"],
+      dependencies: [],
+      attempts: [],
+      history: [],
+      repair_round: 0,
+      report: { summary: "Empty host reading", files_changed: ["src/e.ts"] },
+    };
+
+    const emptyHostTokens = { isEstimated: false as const, costUsd: 0.001 };
+    const tokens = computeTaskTokens(task, undefined, [], emptyHostTokens);
+    expect(tokens.inputTokens).toBeUndefined();
+    expect(tokens.outputTokens).toBeUndefined();
+    expect(tokens.totalTokens).toBeUndefined();
+    expect(tokens.costUsd).toBe(0.001);
+    expect(tokens.evidenceClass).toBe("unknown");
+  });
 });

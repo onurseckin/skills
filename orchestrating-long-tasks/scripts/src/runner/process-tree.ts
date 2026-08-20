@@ -5,21 +5,40 @@ import type { ProcessIdentity, ProcessTopology } from "./process-identity.ts";
 
 const execute = promisify(execFile);
 
+async function spawnPsSnapshot(): Promise<string> {
+  return (
+    await execute("ps", ["-axo", "pid=,ppid=,pgid="], {
+      encoding: "utf8",
+      timeout: 2_000,
+      maxBuffer: 8 * 1024 * 1024,
+      shell: false,
+    })
+  ).stdout;
+}
+
+// `ps` is a plain fork+exec, so under severe process-table pressure the spawn itself can fail
+// transiently (EAGAIN/ENOMEM) even though nothing is actually wrong with the target processes. A
+// few short retries absorbs that without masking a genuinely broken `ps` (it still hard-fails once
+// they run out) and without widening how long any single attempt is allowed to hang.
+const SNAPSHOT_SPAWN_RETRIES = 3;
+const SNAPSHOT_SPAWN_RETRY_DELAY_MS = 20;
+
 export async function processSnapshot(): Promise<Map<number, ProcessTopology>> {
-  let stdout: string;
-  try {
-    stdout = (
-      await execute("ps", ["-axo", "pid=,ppid=,pgid="], {
-        encoding: "utf8",
-        timeout: 2_000,
-        maxBuffer: 8 * 1024 * 1024,
-        shell: false,
-      })
-    ).stdout;
-  } catch (error) {
+  let stdout: string | undefined;
+  let lastError: unknown;
+  for (let attempt = 0; stdout === undefined && attempt <= SNAPSHOT_SPAWN_RETRIES; attempt += 1) {
+    try {
+      stdout = await spawnPsSnapshot();
+    } catch (error) {
+      lastError = error;
+      if (attempt < SNAPSHOT_SPAWN_RETRIES)
+        await new Promise((resolve) => setTimeout(resolve, SNAPSHOT_SPAWN_RETRY_DELAY_MS));
+    }
+  }
+  if (stdout === undefined) {
     throw new HarnessError(
       "INVALID_STATE",
-      `cannot inspect command descendants: ${error instanceof Error ? error.message : String(error)}`,
+      `cannot inspect command descendants: ${lastError instanceof Error ? lastError.message : String(lastError)}`,
     );
   }
   const processes = new Map<number, ProcessTopology>();

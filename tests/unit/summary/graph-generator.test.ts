@@ -133,8 +133,16 @@ describe("graph generator", () => {
     const two = dataset.nodes.find((node) => node.id === "node-task-T-2");
 
     // The path is the implementer's own claim, and the ref says so rather than reading as measured.
+    // `rationale` is the report's own summary, carried onto the file it explains (B15.2); this
+    // fixture builds state directly rather than through `task:submit`, so the report never states
+    // `requirement_ids` and no event log exists to attribute a step, and neither field appears.
     expect(one?.files).toEqual([
-      { path: "src/a.ts", mode: "write", evidence_class: "agent_reported" },
+      {
+        path: "src/a.ts",
+        mode: "write",
+        evidence_class: "agent_reported",
+        rationale: "Implemented A",
+      },
     ]);
     // T-2 filed no report, so it claims no changed files while keeping its scope in metadata.
     expect(two?.files).toEqual([]);

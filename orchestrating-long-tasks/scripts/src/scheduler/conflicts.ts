@@ -79,7 +79,7 @@ export function resourceConflict(left: readonly string[], right: readonly string
   return right.some((resource) => resources.has(resource));
 }
 
-export interface OwnershipTask {
+interface OwnershipTask {
   id: string;
   status?: unknown;
   write_scope: string[];

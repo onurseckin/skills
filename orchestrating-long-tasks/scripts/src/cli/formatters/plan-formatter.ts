@@ -7,6 +7,7 @@ export interface CapsuleInitParams {
   promptBytes: number;
   assurance: string;
   bunVersion?: string;
+  runtimePin?: { sha256: string; files: number };
 }
 
 export function formatCapsuleInitBrief(params: CapsuleInitParams): string {
@@ -18,6 +19,11 @@ export function formatCapsuleInitBrief(params: CapsuleInitParams): string {
     `- **Capsule Root**: \`${params.runRoot}\``,
     `- **Prompt SHA-256**: \`${params.promptSha256}\` (${params.promptBytes.toLocaleString()} bytes)`,
     `- **Assurance**: \`${params.assurance}\` | Runtime: Bun ${bunVer}`,
+    // Absent when no runtime source was available to pin: the brief says so rather than staying
+    // silent, so a reader never mistakes "not mentioned" for "not needed".
+    params.runtimePin === undefined
+      ? "- **Runtime Pin**: none — no runtime source was supplied to `plan:init`."
+      : `- **Runtime Pin**: \`${params.runtimePin.sha256}\` (${params.runtimePin.files.toLocaleString()} files, see \`runtime/\`).`,
     `- **Status**: Ready for task declarations (\`plan:add\`).`,
   ].join("\n");
   return enforceLineLimit(md, 30);
@@ -222,4 +228,36 @@ export function formatPlanReplanBrief(params: PlanReplanParams): string {
     `- **Next Step**: Dispatch parallel batch repair implementers and validators.`,
   ];
   return enforceLineLimit(lines.join("\n"), 30);
+}
+
+export interface PlanClaimParams {
+  runId: string;
+  agent: string;
+  packetId: string;
+}
+
+export function formatPlanClaimBrief(params: PlanClaimParams): string {
+  const md = [
+    `### Planner Packet Issued: ${params.runId}`,
+    `- **Agent**: \`${params.agent}\``,
+    `- **Packet**: \`${params.packetId}\``,
+    `- **Write Scope**: \`planning/requirements.json\`, \`planning/graph.json\``,
+    `- **Next Step**: Write both documents, then call \`plan:apply --expected-revision\` with the revision the packet reported.`,
+  ].join("\n");
+  return enforceLineLimit(md, 30);
+}
+
+export interface PlanApplyParams {
+  runId: string;
+  revision: number;
+  totalTasks: number;
+}
+
+export function formatPlanApplyBrief(params: PlanApplyParams): string {
+  const md = [
+    `### Plan Applied: ${params.runId} (Graph Revision ${params.revision})`,
+    `- **Total Tasks**: ${params.totalTasks}`,
+    `- **Status**: Ready for dispatch (\`queue:next\` / \`queue:wave\`).`,
+  ].join("\n");
+  return enforceLineLimit(md, 30);
 }

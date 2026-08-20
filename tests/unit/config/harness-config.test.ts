@@ -3,8 +3,8 @@ import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import {
-  DEFAULT_CONFIG,
-  loadHarnessConfig,
+  DEFAULT_RESOLVED_CONFIG,
+  resolveHarnessConfig,
 } from "../../../orchestrating-long-tasks/scripts/src/config/harness-config.ts";
 
 describe("harness-config", () => {
@@ -27,10 +27,10 @@ describe("harness-config", () => {
     tempDirs.length = 0;
   });
 
-  test("returns DEFAULT_CONFIG when no config file exists", () => {
+  test("returns DEFAULT_RESOLVED_CONFIG when no config file exists", () => {
     const dir = makeTempDir();
-    const config = loadHarnessConfig(dir);
-    expect(config).toEqual(DEFAULT_CONFIG);
+    const config = resolveHarnessConfig(dir);
+    expect(config).toEqual(DEFAULT_RESOLVED_CONFIG);
     expect(config.max_repair_rounds).toBe(6);
     expect(config.max_branch_depth).toBe(5);
     expect(config.max_agents).toBe(100);
@@ -51,8 +51,11 @@ describe("harness-config", () => {
     };
     writeFileSync(join(dir, "harness.config.json"), JSON.stringify(custom));
 
-    const config = loadHarnessConfig(dir);
-    expect(config).toEqual(custom);
+    const config = resolveHarnessConfig(dir);
+    expect(config).toEqual({
+      ...custom,
+      min_adversarial_probes: DEFAULT_RESOLVED_CONFIG.min_adversarial_probes,
+    });
   });
 
   test("loads settings from .harness.config.json when harness.config.json is absent", () => {
@@ -62,10 +65,10 @@ describe("harness-config", () => {
     };
     writeFileSync(join(dir, ".harness.config.json"), JSON.stringify(custom));
 
-    const config = loadHarnessConfig(dir);
+    const config = resolveHarnessConfig(dir);
     expect(config.max_repair_rounds).toBe(7);
-    expect(config.max_output_bytes).toBe(DEFAULT_CONFIG.max_output_bytes);
-    expect(config.default_lease_seconds).toBe(DEFAULT_CONFIG.default_lease_seconds);
+    expect(config.max_output_bytes).toBe(DEFAULT_RESOLVED_CONFIG.max_output_bytes);
+    expect(config.default_lease_seconds).toBe(DEFAULT_RESOLVED_CONFIG.default_lease_seconds);
   });
 
   test("prefers harness.config.json over .harness.config.json", () => {
@@ -73,7 +76,7 @@ describe("harness-config", () => {
     writeFileSync(join(dir, "harness.config.json"), JSON.stringify({ max_repair_rounds: 10 }));
     writeFileSync(join(dir, ".harness.config.json"), JSON.stringify({ max_repair_rounds: 3 }));
 
-    const config = loadHarnessConfig(dir);
+    const config = resolveHarnessConfig(dir);
     expect(config.max_repair_rounds).toBe(10);
   });
 
@@ -87,26 +90,26 @@ describe("harness-config", () => {
     );
     writeFileSync(join(repoDir, "harness.config.json"), JSON.stringify({ max_repair_rounds: 6 }));
 
-    const config = loadHarnessConfig(repoDir, capDir);
+    const config = resolveHarnessConfig(repoDir, capDir);
     expect(config.max_repair_rounds).toBe(6);
     expect(config.default_max_parallel).toBe(8);
-    expect(config.default_lease_seconds).toBe(DEFAULT_CONFIG.default_lease_seconds);
+    expect(config.default_lease_seconds).toBe(DEFAULT_RESOLVED_CONFIG.default_lease_seconds);
   });
 
   test("gracefully recovers from invalid JSON or non-object files", () => {
     const dir = makeTempDir();
     writeFileSync(join(dir, "harness.config.json"), "{ invalid-json }");
 
-    const config = loadHarnessConfig(dir);
-    expect(config).toEqual(DEFAULT_CONFIG);
+    const config = resolveHarnessConfig(dir);
+    expect(config).toEqual(DEFAULT_RESOLVED_CONFIG);
 
     writeFileSync(join(dir, "harness.config.json"), JSON.stringify(["not", "an", "object"]));
-    const configArray = loadHarnessConfig(dir);
-    expect(configArray).toEqual(DEFAULT_CONFIG);
+    const configArray = resolveHarnessConfig(dir);
+    expect(configArray).toEqual(DEFAULT_RESOLVED_CONFIG);
 
     writeFileSync(join(dir, "harness.config.json"), JSON.stringify(null));
-    const configNull = loadHarnessConfig(dir);
-    expect(configNull).toEqual(DEFAULT_CONFIG);
+    const configNull = resolveHarnessConfig(dir);
+    expect(configNull).toEqual(DEFAULT_RESOLVED_CONFIG);
   });
 
   test("ignores invalid field types and out-of-bounds values", () => {
@@ -119,7 +122,7 @@ describe("harness-config", () => {
     };
     writeFileSync(join(dir, "harness.config.json"), JSON.stringify(invalidFields));
 
-    const config = loadHarnessConfig(dir);
-    expect(config).toEqual(DEFAULT_CONFIG);
+    const config = resolveHarnessConfig(dir);
+    expect(config).toEqual(DEFAULT_RESOLVED_CONFIG);
   });
 });

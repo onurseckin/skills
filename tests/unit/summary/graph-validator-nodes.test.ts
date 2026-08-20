@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { generateGraphDataset } from "../../../orchestrating-long-tasks/scripts/src/summary/graph-generator.ts";
 import type { TaskRecord } from "../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
-import { makeState, makeTask } from "./graph-fixtures.ts";
+import { makeCommand, makeState, makeTask } from "./graph-fixtures.ts";
 
 function probedTask(overrides: Partial<TaskRecord> = {}): TaskRecord {
   return makeTask("T-probe", {
@@ -71,8 +71,10 @@ describe("probe and pushback are different relationships", () => {
     const probe = dataset.edges.find((edge) => edge.id === "edge-probe-T-probe");
     expect(probe?.kind).toBe("probe");
     expect(probe?.source).toBe("node-validator-T-probe");
-    expect(probe?.target).toBe("node-task-T-probe");
-    expect(probe?.isCycle).toBe(true);
+    // Forward, not a back-edge (B25.2): the demand flows into the gate the validator's own verdict
+    // already reaches, never back at the implementer it was demanded of.
+    expect(probe?.target).toBe("node-gate-T-probe");
+    expect(probe?.isCycle).toBeUndefined();
     expect(probe?.container?.title).toBe("Adversarial Probe (Round 1)");
     expect(probe?.container?.variant).toBe("cyan");
     expect(probe?.exchanges?.[0]?.type).toBe("probe");
@@ -90,7 +92,12 @@ describe("probe and pushback are different relationships", () => {
 
     const pushback = dataset.edges.find((edge) => edge.id === "edge-pushback-T-defect");
     expect(pushback?.kind).toBe("pushback");
-    expect(pushback?.source).toBe("node-gate-T-defect");
+    // Sourced from the validator that rejected it, symmetric with probe (B25.2) — no
+    // `validation_history` entry backs this round, so it forwards to the gate rather than to a
+    // round-2 node it has no evidence for.
+    expect(pushback?.source).toBe("node-validator-T-defect");
+    expect(pushback?.target).toBe("node-gate-T-defect");
+    expect(pushback?.isCycle).toBeUndefined();
     expect(pushback?.container?.variant).toBe("warning");
     expect(pushback?.exchanges?.[0]?.verdict).toBe("FAIL");
     expect(dataset.edges.some((edge) => edge.kind === "probe")).toBe(false);
@@ -129,6 +136,8 @@ describe("probe and pushback are different relationships", () => {
 
     const backtrack = dataset.edges.find((edge) => edge.kind === "backtrack");
     expect(backtrack?.id).toBe("edge-backtrack-T-stale");
+    expect(backtrack?.target).toBe("node-gate-T-stale");
+    expect(backtrack?.isCycle).toBeUndefined();
     expect(backtrack?.container?.title).toBe("Reassigned (repeated_failure)");
     expect(backtrack?.container?.detail).toBe("Repairer: worker-2");
   });
@@ -161,5 +170,106 @@ describe("validator node", () => {
     expect(validator?.io?.outputs?.some((port) => port.label === "Adversarial Probe Demands")).toBe(
       true,
     );
+  });
+});
+
+/**
+ * B25.2: a genuinely rejected-then-repaired task backed by a real `validation_history` entry gets
+ * its own round-1 node pair, distinct from the live round's — and every edge between them points
+ * forward, never back, which is the whole point of retiring the cyclic pushback edge.
+ */
+function multiRoundTask(): TaskRecord {
+  return makeTask("T-multi", {
+    status: "done",
+    repair_round: 1,
+    original_implementer: "worker-1",
+    repair_assignee: "worker-1",
+    report: { summary: "Repaired the null check", files_changed: ["src/T-multi.ts"] },
+    findings: [
+      {
+        id: "F-r1",
+        requirement_id: "REQ-T-multi",
+        severity: "critical",
+        observation: "Null pointer in handler",
+        remediation: "Add a null check",
+        revalidation: "Re-run the unit gate",
+        status: "resolved",
+        class: "defect",
+        evidence: [],
+      },
+    ],
+    validation_history: [
+      {
+        validator_id: "val-r1",
+        token_digest: "tok",
+        attempt: 1,
+        started_at: "2026-08-14T20:00:00.000Z",
+        deadline_at: "2026-08-14T20:10:00.000Z",
+        verdict: "reject",
+        checks: [{ command_id: "C-r1" }],
+      },
+    ],
+    validation: {
+      validator_id: "val-r2",
+      token_digest: "tok",
+      attempt: 2,
+      started_at: "2026-08-14T20:20:00.000Z",
+      deadline_at: "2026-08-14T20:30:00.000Z",
+      verdict: "pass",
+    },
+  });
+}
+
+describe("an archived round backed by validation_history stays acyclic", () => {
+  test("round 1 gets its own implementer/validator pair, distinct from the live round", () => {
+    const dataset = generateGraphDataset({
+      runId: "run-multi-round",
+      state: makeState([multiRoundTask()], {
+        commands: { "C-r1": makeCommand("C-r1", { task_id: "T-multi", actor: "val-r1" }) },
+      }),
+    });
+
+    const archivedImpl = dataset.nodes.find((node) => node.id === "node-task-T-multi-r1");
+    expect(archivedImpl?.kind).toBe("agent");
+    expect(archivedImpl?.status).toBe("warning");
+    expect(archivedImpl?.metadata?.round).toBe(1);
+    expect(archivedImpl?.metadata?.agentId).toBe("worker-1");
+
+    const archivedValidator = dataset.nodes.find((node) => node.id === "node-validator-T-multi-r1");
+    expect(archivedValidator?.metadata?.verdict).toBe("reject");
+    expect(archivedValidator?.scripts?.map((script) => script.commandId)).toEqual(["C-r1"]);
+
+    // The live round keeps the plain, stable id — the one an external reader already knows.
+    const live = dataset.nodes.find((node) => node.id === "node-task-T-multi");
+    expect(live?.status).toBe("success");
+    expect(live?.files?.map((file) => file.path)).toEqual(["src/T-multi.ts"]);
+  });
+
+  test("every edge between the two rounds points forward", () => {
+    const dataset = generateGraphDataset({
+      runId: "run-multi-round-edges",
+      state: makeState([multiRoundTask()], {
+        commands: { "C-r1": makeCommand("C-r1", { task_id: "T-multi", actor: "val-r1" }) },
+      }),
+    });
+
+    const handoff = dataset.edges.find((edge) => edge.id === "edge-handoff-T-multi-r1");
+    expect(handoff?.source).toBe("node-task-T-multi-r1");
+    expect(handoff?.target).toBe("node-validator-T-multi-r1");
+
+    const pushback = dataset.edges.find((edge) => edge.id === "edge-pushback-T-multi-r1");
+    expect(pushback?.source).toBe("node-validator-T-multi-r1");
+    // Forward into the live round's own node, never back at round 1.
+    expect(pushback?.target).toBe("node-task-T-multi");
+    expect(pushback?.isCycle).toBeUndefined();
+
+    const spawn = dataset.edges.find(
+      (edge) => edge.kind === "spawn" && edge.target === "node-validator-T-multi-r1",
+    );
+    expect(spawn?.source).toBe("node-orchestrator-plan");
+
+    // No edge in the whole dataset is still flagged as a back-edge for this task.
+    const taskEdges = dataset.edges.filter((edge) => edge.id.endsWith("-T-multi-r1") || edge.id.endsWith("-T-multi"));
+    expect(taskEdges.some((edge) => edge.isCycle === true)).toBe(false);
   });
 });

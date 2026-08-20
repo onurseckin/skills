@@ -1,5 +1,6 @@
 import { HarnessError } from "../../errors/harness-error.ts";
 import { workflowPort } from "../../integration/store-ports.ts";
+import { isValidatorDomain } from "../../packets/role-contract.ts";
 import { publishTaskRolePacket } from "../../packets/role-grant.ts";
 import { loadRun } from "../../store/index.ts";
 import { applicableGates } from "../../workflow/gates/gate-policy.ts";
@@ -14,6 +15,15 @@ export async function taskValidateStartCommand(flags: Flags): Promise<Record<str
     textFlag(flags, "task")!,
     textFlag(flags, "validator")!,
   ];
+  // B12.2: the domain the coordinator dispatched this agent for, when it is one of the validator
+  // family. Absent for a task-only validator, exactly as before this flag existed.
+  const rawDomain = textFlag(flags, "validator-domain", false);
+  if (rawDomain !== undefined && !isValidatorDomain(rawDomain)) {
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      `--validator-domain is not a recognized validator domain: ${rawDomain}`,
+    );
+  }
   const state = beginValidation(workflowPort(run), taskId, validator);
   const task = state.tasks[taskId]!;
   if (typeof task.validation_token !== "string") {
@@ -35,6 +45,7 @@ export async function taskValidateStartCommand(flags: Flags): Promise<Record<str
     attempt: validation.attempt,
     token,
     taskId,
+    ...(rawDomain !== undefined ? { validatorDomain: rawDomain } : {}),
   });
 
   const policy = reviewPolicyFor(loadRun(run).runRoot);

@@ -35,7 +35,7 @@ These are properties of the harness, not of the host, so they hold identically e
 | :------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------- |
 | Immutable prompt capture and integrity chain                   | `plan:init`, `doctor`                                                                               |
 | Reviewable repository reading                                  | `plan:enhance`                                                                                      |
-| Recorded topology and whole-wave dispatch                      | `plan:compile`, `queue:wave`                                                                        |
+| Recorded topology and continuous readiness dispatch            | `plan:compile`, `queue:wave`                                                                        |
 | Asymmetric branch-and-collect                                  | `branch:open`, `branch:claim`, `branch:submit`, `branch:collect`, `branch:abandon`, `branch:status` |
 | Grant ledger and lineage                                       | `agent:register`, `agent:report`, `agent:release`, `agent:list`                                     |
 | Adversarial probe, then bounded repair                         | `task:probe`, `task:reject`, `task:review`                                                          |
