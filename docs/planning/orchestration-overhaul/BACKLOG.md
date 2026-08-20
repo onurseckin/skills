@@ -1993,3 +1993,36 @@ material was already written there despite the note.
    defect B8.5 asks every fix to close with a structural test, not a one-line edit.
 5. Correct B30.4's blocker note and B13's status once whoever owns each has confirmed current state by
    opening the files, not by trusting this item's account of them either.
+
+---
+
+## B36 — Findings from the first post-implementation verification pass   `queued`
+
+**The rule worked.** A read-only pass over items marked done produced 13 findings that nothing else caught.
+This is the record of what verification uncovered; each is queued as work in its own right.
+
+1. Stale generated docs: `bun orchestrating-long-tasks/scripts/generate-cli-manifest.ts` produces a diff against the committed `references/cli-capabilities.md`/`.json` for `critic:start --repository-command-ids` (repeatable: false->true, description text differs) -- source (critic-ops.ts) was edited after the reference docs were last generated, by a different concurrent item, not this one. Also correlates with the health check's 'declared but unenforced' finding on the same flag. Regenerate and reconcile as part of whichever item owns critic-ops.ts.
+
+2. Harden health/allowlist.ts's applyAllowances(): matches() should also require allowance.check === the HealthCheckResult.check being filtered, not just an entry.key string match, so an allowance can never cross-suppress a finding in a different check category even if key formats ever collide.
+
+3. B12.2 multi-validator sizing: change task.validation from a singleton to a per-domain collection in workflow/review/begin-validation.ts and workflow/review/record-review.ts (plus contracts/workflow.ts), with completion logic requiring every applicable domain to pass before a task reaches the terminal 'validated' state, rather than the first passing validator terminating the task.
+
+4. B12.2 domain derivation: replace or supplement the optional --validator-domain CLI flag with a derivation helper that maps a task's write_scope (file extensions/paths) to the applicable validator domain(s), called from roles/coordinator.md's dispatch guidance so domain selection is a checkable rule, not agent memory.
+
+5. B12.2/B14 doc sync: update references/protocol.md's Triad Floor / Pairing Invariant section to state the Sigma(validators per task) sizing formula and drop the strict 1:1 pairing claim, so the entry-point protocol doc does not contradict the shipped design.
+
+6. B12.5 structured report shape: add checklist-coverage fields (checked-and-passed, not-applicable-with-reason, could-not-check-with-reason) to ReviewInput in workflow/review/validate-review.ts and contracts/workflow.ts, so an omitted checklist item becomes mechanically detectable instead of advisory-only prose in the role files.
+
+7. orchestrate still requires an explicit --prompt-stdin flag to read piped input, so B16's literal 'no flags to learn, no structure imposed on the user' promise is not actually met for the stdin path — confirmed by spawning the real CLI: a bare `prompt | bun harness.ts orchestrate --repo .` fails with INVALID_ARGUMENT. The gate lives in shared infra (scripts/src/cli/prompt-input.ts's shouldReadPromptStdin + harness.ts main()) used by every readsStdin command, including plan:init, whose own example already correctly includes --prompt-stdin. Needs a design decision before code changes, e.g.: (a) TTY-based auto-detection of piped/redirected stdin scoped to orchestrate only; (b) the same auto-detection applied uniformly to all readsStdin commands; (c) keep --prompt-stdin as a permanent, documented exception and drop the literal 'no flags' claim from B16/SKILL.md. tests/unit/cli/arguments.test.ts currently encodes the opt-in-flag contract, so whichever option is chosen needs that test updated deliberately, not silently. Write the 2-3 option plan and get a `go` before touching the shared gate.
+
+8. references/run-playbook.md does not mention `orchestrate` at all, even though SKILL.md's new 'Primary entry point' section points readers there for phase-by-phase detail and tells them to reach for orchestrate 'before assembling this sequence by hand.' Add a short pointer at the top of run-playbook.md so the two docs agree on which is the preferred entry point for the common case.
+
+9. Extend verifyCapsuleLayout (orchestrating-long-tasks/scripts/src/store/layout-integrity.ts) to close B2's INV-6 gap: verify packets/<id>/packet.md against the chain-recorded packet_sha256, and commands/<id>/record.json against state.commands, the same way blobNaming/captureReferences already verify blobs/ and captures.json.
+
+10. BACKLOG.md has no completion-tag convention: items verified genuinely done (B2, B5, and per B36.5's finding, B13) stay marked `queued` forever, causing rework and stale blocker claims. Decide and apply a consistent convention (a `done` tag, or removal to a changelog) so the orchestrating loop stops redispatching completed work.
+
+11. No real capsule on this machine (checked gvui, skills, limo x11, memory-sync, .agents/skills) contains a branch section, a probe edge, or a tool record — so the shipped sample dataset, and any UI code that renders those, is only exercised against synthetic test fixtures, never a real recorded run. Track: regenerate/augment the shipped fixture once a real run produces branch/probe/tool data, or explicitly document that gap.
+
+12. The shipped fixture's asset URLs (screenshots) are absolute local filesystem paths under the producing machine's .capsules/ directory, which is gitignored. On any other developer's machine, or a static deploy, those thumbnails will 404 (the /api/assets?path= bridge that resolves them is dev-server-only). Track: either commit representative sample screenshots somewhere reachable, teach the importer to relativize/copy asset paths into the shipped bundle, or document the limitation where new contributors will see it.
+
+13. The repo-wide sweep for literal-fallback fabrication patterns (`?? 0`, `?? "pending"`, etc. — B8.5/B9.2's concern) was deliberately NOT run against the ~30 files currently mid-edit by other concurrent agents (CostTab.tsx, EdgeDetailDrawer, NodeCardFiles.tsx, and others under the provider/context-window/tool-category telemetry work). Needs a dedicated pass once that concurrent work lands.
