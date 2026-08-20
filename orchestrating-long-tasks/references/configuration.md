@@ -27,6 +27,11 @@ settings, and anything unset keeps its default.
 | `default_max_parallel`   | `4`        | Occupancy ceiling used by `queue:wave` and the scheduler — a live cap on concurrent claims, not a batch size; the eligible set is dispatched continuously as slots free.               |
 | `gate_max_parallel`      | `5`        | A separate, lower ceiling for agents running mandatory gates. Gate work is local-CPU bound while reasoning is provider bound, so one number cannot govern both; this is the one derived from the machine.        |
 | `default_max_parallel_source` | `assumed_default` | Where `default_max_parallel` came from: `assumed_default` when nothing observed it, or the host signal that supplied it. Recorded so a run can say whether its concurrency was measured or guessed. |
+| `worktree_isolation`     | `false`    | B22.1: whether `plan:compile` provisions its own `harness/<run-id>` branch and git worktrees outside the repo. Off by default — nothing yet routes an implementer to work inside its assigned worktree, so turning this on only affects `task:submit`'s own commit step, not where an agent's edits land. |
+| `worktree_root`          | unset      | Directory worktrees are created under, resolved relative to the repo's parent and refused if it resolves inside the repo. Unset means a sibling `.harness-worktrees/<run-id>` directory. |
+| `branch_prefix`          | `harness/` | Prefix for the branch `plan:compile` provisions when `worktree_isolation` is on, e.g. `harness/<run-id>`. |
+| `commit_per_subphase`    | `true`     | Whether `task:submit` commits a task's write scope in its assigned worktree on submission. A no-op whenever `worktree_isolation` is off or the task drew no worktree assignment. |
+| `max_commit_lines`       | `500`      | B22.3: a sub-phase commit past this many changed lines is a warning on the result, never a refusal. |
 
 Mandatory gate coverage and independent-validator checks are not configurable — they are enforced
 unconditionally by the graph compiler and the completion checks, not gated behind a knob.

@@ -1,7 +1,8 @@
 import { mkdirSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import type { CommandRecord } from "../../contracts/commands.ts";
 import { AGENT_ROLES, isAgentRole } from "../../contracts/packets.ts";
+import { getHarnessConfig } from "../../config/harness-config.ts";
 import { HarnessError } from "../../errors/harness-error.ts";
 import { readPlanObject } from "../../graph/read-plan.ts";
 import { refreshHandoff } from "../../reporting/handoff.ts";
@@ -19,6 +20,8 @@ import { buildSubmissionReport } from "../../workflow/submission/build-report.ts
 import { observeChangedFiles } from "../../workflow/submission/observe-changes.ts";
 import { submitTask } from "../../workflow/submission/submit.ts";
 import type { TaskRecord } from "../../workflow/types.ts";
+import { commitSubphase, recordWorktreeCommit } from "../../workflow/worktree/commit.ts";
+import { findAssignedWorktree, readWorktreeLedger } from "../../workflow/worktree/ledger.ts";
 import {
   formatTaskClaimBrief,
   formatTaskHeartbeatBrief,
@@ -26,6 +29,45 @@ import {
 } from "../formatters/index.ts";
 import { probeAgentTelemetry, withHostTelemetryConflicts } from "../host-telemetry-probe.ts";
 import { integerFlag, listFlag, textFlag, type Flags } from "../options.ts";
+
+/**
+ * B22.3: commits the task's write scope in its assigned worktree once a submission is accepted.
+ * A no-op whenever worktree isolation is off (the default), the run was never provisioned, this
+ * task drew no worktree assignment, or the submission was orphan evidence rather than a real
+ * acceptance — none of those are errors, just nothing for this step to do.
+ */
+function commitSubphaseIfAssigned(
+  run: string,
+  agent: string,
+  taskId: string,
+  task: TaskRecord,
+): { warning?: string } {
+  const repoRoot = resolve(run, "..", "..");
+  const config = getHarnessConfig(repoRoot, run);
+  if (!config.worktree_isolation || !config.commit_per_subphase) return {};
+  const ledger = readWorktreeLedger(loadRun(run).state);
+  if (!ledger) return {};
+  const assigned = findAssignedWorktree(ledger, taskId);
+  if (!assigned) return {};
+  const label = typeof task.label === "string" ? task.label : taskId;
+  const outcome = commitSubphase({
+    taskId,
+    worktreeId: assigned.worktreeId,
+    worktreePath: assigned.worktreePath,
+    writeScope: task.write_scope,
+    label,
+    // Nothing on TaskRecord declares a task's change type yet (see commitSubphase's own doc
+    // comment), so this call site states its interim policy explicitly rather than leaning on a
+    // library default: every harness-made commit reads "chore:" until that gap is closed.
+    commitType: "chore",
+    maxCommitLines: config.max_commit_lines,
+  });
+  if (outcome.committed && outcome.commit) {
+    recordWorktreeCommit(run, agent, taskId, outcome.commit);
+    return outcome.warning === undefined ? {} : { warning: outcome.warning };
+  }
+  return {};
+}
 
 /**
  * The probe hardcoded into `task:claim` and `task:submit`: it only ever touches an agent that
@@ -181,6 +223,10 @@ export async function taskSubmitCommand(flags: Flags): Promise<Record<string, un
   const reportPath = `${run}/reports/${taskId}-submission.json`;
   const recordedReport = task.report ?? reportPayload;
 
+  // Orphan evidence is a dead agent's leftovers, not an accepted change: nothing to commit yet, the
+  // task is still open for whoever actually claims and finishes it.
+  const worktreeCommit = result.orphaned ? {} : commitSubphaseIfAssigned(run, agent, taskId, task);
+
   const reportsDir = join(loaded.runRoot, "reports");
   mkdirSync(reportsDir, { recursive: true });
   writeFileSync(
@@ -224,6 +270,7 @@ export async function taskSubmitCommand(flags: Flags): Promise<Record<string, un
       task,
       report_path: reportPath,
       ...(handoffPath === undefined ? {} : { handoff_path: handoffPath }),
+      ...(worktreeCommit.warning === undefined ? {} : { worktree_commit_warning: worktreeCommit.warning }),
     },
     conflicts,
   );

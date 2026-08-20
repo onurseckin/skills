@@ -17,6 +17,7 @@ import type {
 } from "./completion/types.ts";
 import type { RepositoryBinding } from "../contracts/repository.ts";
 import type { OrphanEvidenceDisposition } from "./orphan-evidence/types.ts";
+import type { WorktreeCommitRecord, WorktreeLedgerState } from "../contracts/worktree.ts";
 
 export type {
   CompletionArtifactPacket,
@@ -104,6 +105,8 @@ export interface TaskRecord extends JsonObject {
   validation_history?: ValidationAttempt[];
   findings?: Finding[];
   gate_results?: GateResult[];
+  /** B22.3: the sub-phase commit `task:submit` made in this task's assigned worktree, if any. */
+  worktree_commit?: WorktreeCommitRecord;
 }
 
 export interface RequirementRuntime extends JsonObject {
@@ -178,6 +181,8 @@ export interface WorkflowState extends JsonObject {
   completion_verification?: CompletionArtifactVerification;
   completion_result?: CompletionResult;
   completion?: CompletionEvidence;
+  /** B22: absent means worktree isolation was never provisioned for this run - not an empty ledger. */
+  worktree_ledger?: WorktreeLedgerState;
 }
 
 export interface TransactionPort {

@@ -173,7 +173,12 @@ describe("refreshAgentDerivedTelemetry — the probe at task:claim, task:submit 
     const run = await compiledCapsule(roots, "refresh-released");
     await registerCoordinator(run);
     registerWorker(run);
-    releaseAgentGrant({ runRoot: run, agentId: "worker-1", actor: "worker-1" });
+    releaseAgentGrant({
+      runRoot: run,
+      agentId: "worker-1",
+      actor: "worker-1",
+      reason: "probe-after-release check",
+    });
 
     const outcome = refreshAgentDerivedTelemetry({
       runRoot: run,
@@ -409,7 +414,15 @@ describe("the probe wired into the CLI boundaries themselves, never a separate c
     await writeFile(join(home, ".codex", "agents", "worker-1.toml"), 'model = "codex-mini"\n');
 
     await withFakeHome(home, async () => {
-      await execute(["agent:release", "--run", run, "--agent", "worker-1"]);
+      await execute([
+        "agent:release",
+        "--run",
+        run,
+        "--agent",
+        "worker-1",
+        "--reason",
+        "host telemetry probe check done",
+      ]);
     });
 
     // Released grants refuse telemetry, so the ordering inside the command is what makes this land.

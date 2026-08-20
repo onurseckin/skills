@@ -1117,7 +1117,7 @@ Marks the grant released and stamps the release time. A released agent can no lo
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `--run` | string | yes | no | - | Capsule run root. |
 | `--agent` | string | yes | no | - | Agent id holding the grant. |
-| `--reason` | string | no | no | - | Why the grant closed. |
+| `--reason` | string | yes | no | - | Why the grant closed. |
 | `--actor` | string | no | no | - | Event actor; defaults to the released agent. |
 
 ```bash

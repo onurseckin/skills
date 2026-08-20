@@ -95,6 +95,14 @@ interface:
         implementer submits, and a task from a later planning wave dispatches the moment nothing
         blocks it — never once "the wave" nominally finishes. `queue:pop` (or `task:claim`) claims one
         task atomically and is the right tool for filling a single freed slot.
+      - Dispatch width is a workload property, not one fixed ceiling (B27). `default_max_parallel`
+        bounds reasoning-stage dispatch — it waits on the provider, costs the host almost nothing, and
+        may run as wide as the host actually allows. A mandatory gate (`run:exec --gate`, run inside a
+        validator or repairer) is local-CPU-bound instead: the machine, not the provider, is what
+        thrashes. Keep the count of agents actively RUNNING their gate at once under the separate,
+        lower `gate_max_parallel` — check both with `run:status --run $RUN`, which reports occupancy
+        against each. This narrows gate concurrency specifically; it never throttles reasoning-only
+        dispatch, which stays bounded by `default_max_parallel` alone.
       - Dispatch every task the snapshot shows as claimable, one implementer and one validator per
         task, launched together so the pair is registered atomically. A single dispatch call may
         launch several pairs at once when the host allows it — that is a batching convenience, not a

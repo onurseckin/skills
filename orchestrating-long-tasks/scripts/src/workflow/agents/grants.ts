@@ -11,6 +11,7 @@ import type { JsonObject } from "../../contracts/json.ts";
 import type { AgentRole } from "../../contracts/packets.ts";
 import { HarnessError } from "../../errors/harness-error.ts";
 import { transact } from "../../store/index.ts";
+import { requireText } from "../task-state.ts";
 import {
   assertAgentBudget,
   findGrant,
@@ -72,7 +73,7 @@ export interface ReleaseAgentInput {
   runRoot: string;
   agentId: string;
   actor: string;
-  reason?: string;
+  reason: string;
   now?: Date;
 }
 
@@ -371,6 +372,10 @@ export function recordAgentReport(input: AgentReportInput): AgentGrantOutcome {
 }
 
 export function releaseAgentGrant(input: ReleaseAgentInput): AgentGrantOutcome {
+  // B21: releasing a grant terminates or closes out an agent's participation in the run, one of
+  // the transitions B21.1 names outright — refused here, at the transition itself, rather than
+  // trusting the CLI flag parser a future caller of this function could bypass.
+  requireText(input.reason, "reason");
   const releasedAt = (input.now ?? new Date()).toISOString();
   let updated: AgentGrantRecord | undefined;
   let ledgerAfter: AgentGrantRecord[] = [];
@@ -381,7 +386,7 @@ export function releaseAgentGrant(input: ReleaseAgentInput): AgentGrantOutcome {
     {
       agent_id: input.agentId,
       released_at: releasedAt,
-      ...(input.reason === undefined ? {} : { reason: input.reason }),
+      reason: input.reason,
     },
     (draft) => {
       const ledger = readAgentLedger(draft);
@@ -396,7 +401,7 @@ export function releaseAgentGrant(input: ReleaseAgentInput): AgentGrantOutcome {
         ...grant,
         status: "released",
         released_at: releasedAt,
-        ...(input.reason === undefined ? {} : { release_reason: input.reason }),
+        release_reason: input.reason,
       };
       updated = next;
       ledgerAfter = replaceGrant(ledger, next);

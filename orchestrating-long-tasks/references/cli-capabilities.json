@@ -3738,7 +3738,7 @@
         {
           "name": "reason",
           "type": "string",
-          "required": false,
+          "required": true,
           "repeatable": false,
           "default": null,
           "description": "Why the grant closed."

@@ -17,6 +17,8 @@ import { transact } from "../../store/transaction.ts";
 import { formatPlanCompileBrief } from "../formatters/index.ts";
 import { actorFlag, boolFlag, textFlag, type Flags } from "../options.ts";
 import { parseGateArgv } from "./plan-replan-bindings.ts";
+import type { AssignableTask } from "../../workflow/worktree/assign.ts";
+import { provisionWorktrees } from "../../workflow/worktree/provision.ts";
 
 function promptText(prompt: Uint8Array): string {
   return new TextDecoder("utf-8", { fatal: true }).decode(prompt);
@@ -95,7 +97,25 @@ export function planCompileCommand(flags: Flags): Record<string, unknown> {
 
   // The parallelism decision is made once, here, and recorded; the queue obeys the record instead of
   // re-deriving waves at dispatch time.
-  const { topology } = recordTopology(run, actor, getHarnessConfig(resolve(run, "..", ".."), run));
+  const repoRoot = resolve(run, "..", "..");
+  const config = getHarnessConfig(repoRoot, run);
+  const { topology } = recordTopology(run, actor, config);
+
+  // B22.1: provisioning is a no-op unless worktree_isolation is on (default off — see the config's
+  // own comment for why). When it is on, every task in the compiled topology gets a worktree slot
+  // before any agent can claim one.
+  const tasksById = new Map<string, AssignableTask>(
+    buffer.map((task) => [task.id, { write_scope: task.writeScope }]),
+  );
+  const provisioned = provisionWorktrees({
+    runRoot: run,
+    repoRoot,
+    runId: basename(run),
+    actor,
+    topology,
+    tasksById,
+    config,
+  });
 
   const markdown = formatPlanCompileBrief({
     revision: 1,
@@ -119,5 +139,6 @@ export function planCompileCommand(flags: Flags): Record<string, unknown> {
     total_tasks: buffer.length,
     warnings,
     topology,
+    ...(provisioned.enabled ? { worktree_ledger: provisioned.ledger } : {}),
   };
 }

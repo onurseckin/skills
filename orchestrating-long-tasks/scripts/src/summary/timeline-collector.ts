@@ -125,7 +125,9 @@ function determinePhaseAndSummary(event: HarnessEvent, promptBytes = 0): EventDe
       result.summary = `Task ${taskId ?? "unknown"} submitted by ${event.actor}`;
       if (taskId) result.task_id = taskId;
       break;
-    case "task-escalated":
+    // The store emits "task-escalated-by-supervisor" (escalate.ts); no code path ever emits a
+    // bare "task-escalated", so matching only the real string is what makes this case reachable.
+    case "task-escalated-by-supervisor":
       result.phase = "execution";
       // "escalation" would restate the event kind as if it were the reason the escalator gave;
       // an event that carries no reason field says so instead of manufacturing one.
@@ -137,7 +139,9 @@ function determinePhaseAndSummary(event: HarnessEvent, promptBytes = 0): EventDe
       result.summary = `Task ${taskId ?? "unknown"} cancelled`;
       if (taskId) result.task_id = taskId;
       break;
-    case "task-validation-started":
+    // The store emits "validation-started" (begin-validation.ts); "task-validation-started" is
+    // never emitted anywhere, so matching only the real string is what makes this case reachable.
+    case "validation-started":
     case "gate-started":
       result.phase = "validation";
       result.summary = `Validation started for task ${taskId ?? gateId ?? "unknown"} by ${event.actor}`;
@@ -335,6 +339,7 @@ function classifyActionKind(kind: string): ActionKind {
     case "gate-started":
     case "gate-completed":
     case "gate-attached":
+    case "validation-started":
       return "gate";
     case "plan-init":
     case "plan-task-added":
@@ -344,7 +349,7 @@ function classifyActionKind(kind: string): ActionKind {
     case "topology-recorded":
       return "plan";
     case "task-submitted":
-    case "task-escalated":
+    case "task-escalated-by-supervisor":
     case "task-cancelled":
     case "task-finished":
     case "tasks-unblocked":

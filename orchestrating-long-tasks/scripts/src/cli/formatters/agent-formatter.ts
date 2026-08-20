@@ -47,7 +47,9 @@ export function formatAgentRegisterBrief(grant: AgentGrantRecord, runId: string)
     "",
     "#### Close The Grant:",
     "```bash",
-    `bun harness.ts agent:release --run ${runId} --agent ${grant.id}`,
+    // B21: agent:release requires --reason, so the suggested follow-up command must carry one too —
+    // a copy-pasteable snippet that itself omits a required flag would fail on the operator's next run.
+    `bun harness.ts agent:release --run ${runId} --agent ${grant.id} --reason "<why>"`,
     "```",
   ].join("\n");
   return enforceLineLimit(md);

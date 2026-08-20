@@ -66,6 +66,10 @@ describe("harness-config", () => {
       min_adversarial_probes: DEFAULT_RESOLVED_CONFIG.min_adversarial_probes,
       gate_max_parallel: DEFAULT_RESOLVED_CONFIG.gate_max_parallel,
       default_max_parallel_source: "config_override",
+      worktree_isolation: DEFAULT_RESOLVED_CONFIG.worktree_isolation,
+      branch_prefix: DEFAULT_RESOLVED_CONFIG.branch_prefix,
+      commit_per_subphase: DEFAULT_RESOLVED_CONFIG.commit_per_subphase,
+      max_commit_lines: DEFAULT_RESOLVED_CONFIG.max_commit_lines,
     });
   });
 
@@ -224,5 +228,71 @@ describe("B27.2 — concurrency ceiling discovery and precedence", () => {
     });
     expect(config.default_max_parallel).toBe(40);
     expect(config.gate_max_parallel).toBe(5);
+  });
+});
+
+describe("B22.7 — worktree-isolation config knobs", () => {
+  const tempDirs: string[] = [];
+
+  function makeTempDir(): string {
+    const dir = mkdtempSync(join(tmpdir(), "harness-config-b22-test-"));
+    tempDirs.push(dir);
+    return dir;
+  }
+
+  afterEach(() => {
+    for (const dir of tempDirs) {
+      try {
+        rmSync(dir, { recursive: true, force: true });
+      } catch {
+        // cleanup ignore
+      }
+    }
+    tempDirs.length = 0;
+  });
+
+  test("defaults: isolation off, no configured root, benign defaults for the rest", () => {
+    const config = resolveHarnessConfig(makeTempDir());
+    expect(config.worktree_isolation).toBe(false);
+    expect(config.worktree_root).toBeUndefined();
+    expect(config.branch_prefix).toBe("harness/");
+    expect(config.commit_per_subphase).toBe(true);
+    expect(config.max_commit_lines).toBe(500);
+  });
+
+  test("reads every worktree knob from harness.config.json", () => {
+    const dir = makeTempDir();
+    writeFileSync(
+      join(dir, "harness.config.json"),
+      JSON.stringify({
+        worktree_isolation: true,
+        worktree_root: "../custom-worktrees",
+        branch_prefix: "wt/",
+        commit_per_subphase: false,
+        max_commit_lines: 200,
+      }),
+    );
+    const config = resolveHarnessConfig(dir);
+    expect(config.worktree_isolation).toBe(true);
+    expect(config.worktree_root).toBe("../custom-worktrees");
+    expect(config.branch_prefix).toBe("wt/");
+    expect(config.commit_per_subphase).toBe(false);
+    expect(config.max_commit_lines).toBe(200);
+  });
+
+  test("ignores wrong-typed values and keeps the default for that field alone", () => {
+    const dir = makeTempDir();
+    writeFileSync(
+      join(dir, "harness.config.json"),
+      JSON.stringify({
+        worktree_isolation: "yes",
+        branch_prefix: "",
+        max_commit_lines: 0,
+      }),
+    );
+    const config = resolveHarnessConfig(dir);
+    expect(config.worktree_isolation).toBe(false);
+    expect(config.branch_prefix).toBe("harness/");
+    expect(config.max_commit_lines).toBe(500);
   });
 });

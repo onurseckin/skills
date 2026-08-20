@@ -63,6 +63,12 @@ agent can finish and verify directly.
     that gate rather than the suite. The whole-suite run is `plan:compile --completion-gate`, and it
     runs once, at the completion barrier. A repair round re-runs the task's gate plus any gate whose
     scope the repair touched — never everything.
+11. Dispatch width is a workload property, not a fixed number. Reasoning (planning, review, doc work)
+    waits on the provider and costs the host almost nothing, so go wide, up to `default_max_parallel`
+    (the host's own discovered ceiling, never a number assumed higher than what it published). Running
+    a mandatory gate is local-CPU-bound, so throttle concurrently-gating agents to the separate, lower
+    `gate_max_parallel` instead — `run:status` reports both. Full rationale and defaults:
+    [`references/configuration.md`](references/configuration.md).
 
 ## Route by role
 
@@ -118,24 +124,18 @@ phase enforces: [`references/protocol.md`](references/protocol.md).
 - [`references/cli-capabilities.md`](references/cli-capabilities.md) — **the** command reference: every
   command, flag, stdin rule, exit code and example, generated from the command registry.
   [`references/cli-capabilities.json`](references/cli-capabilities.json) is the same manifest as data.
-- [`references/cli.md`](references/cli.md) — how to reach that manifest, and the conventions holding
-  for every command. It documents no command itself.
-- [`references/run-playbook.md`](references/run-playbook.md) — the phases in order, with the command
-  sequence for each.
+- [`references/cli.md`](references/cli.md) — how to reach that manifest, and the shared conventions.
+- [`references/run-playbook.md`](references/run-playbook.md) — the phases in order, with each command sequence.
 - [`references/protocol.md`](references/protocol.md) — non-negotiable invariants, the evidence spine,
   the lifecycle, tiered dispatch and the pairing invariant, gate grammar, state transitions.
 - [`references/state-model.md`](references/state-model.md) — run directory, task states, lease
   suspension, and the branch, agent, topology and planning ledgers.
-- [`references/host-adapters.md`](references/host-adapters.md) — the two-tier architecture and
-  main-thread isolation, host-native subagent adapters, heartbeats and recovery.
-- [`references/failure-modes.md`](references/failure-modes.md) — the failure taxonomy this design
-  exists to close, and the structural countermeasure for each.
-- [`references/parity-matrix.md`](references/parity-matrix.md) — what each host provides, and what
-  stays absent when it does not.
+- [`references/host-adapters.md`](references/host-adapters.md) — tier isolation, per-host dispatch adapters, recovery.
+- [`references/failure-modes.md`](references/failure-modes.md) — the failure taxonomy, and the countermeasure for each.
+- [`references/parity-matrix.md`](references/parity-matrix.md) — what each host provides, and what stays absent.
 - [`references/schema-examples.md`](references/schema-examples.md) — canonical shapes for
   requirements, graphs, submissions, findings, reviews, branches, grants, topology and plans.
-- [`references/configuration.md`](references/configuration.md) — `harness.config.json` keys, defaults,
-  and what each one bounds.
+- [`references/configuration.md`](references/configuration.md) — `harness.config.json` keys, defaults, and bounds.
 
 ## Before writing any command
 

@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { execute } from "../../../orchestrating-long-tasks/scripts/src/cli/execute.ts";
+import { releaseAgentGrant } from "../../../orchestrating-long-tasks/scripts/src/workflow/agents/grants.ts";
 import {
   cleanupRoots,
   compiledCapsule,
@@ -230,12 +231,62 @@ describe("agent grant lifecycle", () => {
     await expect(execute(["agent:report", "--run", run, "--agent", "worker-1"])).rejects.toThrow(
       "at least one of --tool",
     );
-    await execute(["agent:release", "--run", run, "--agent", "worker-1"]);
+    await execute([
+      "agent:release",
+      "--run",
+      run,
+      "--agent",
+      "worker-1",
+      "--reason",
+      "no evidence to report",
+    ]);
     await expect(
       execute(["agent:report", "--run", run, "--agent", "worker-1", "--tool", "Read"]),
     ).rejects.toThrow("can no longer report");
-    await expect(execute(["agent:release", "--run", run, "--agent", "worker-1"])).rejects.toThrow(
-      "already released",
-    );
+    await expect(
+      execute([
+        "agent:release",
+        "--run",
+        run,
+        "--agent",
+        "worker-1",
+        "--reason",
+        "released twice on purpose",
+      ]),
+    ).rejects.toThrow("already released");
+  });
+});
+
+// B21: releasing a grant terminates or closes out an agent's participation — exactly the kind of
+// transition B21.1 names outright — so the CLI never accepts it without a stated reason, and
+// releaseAgentGrant refuses independently so no other caller can skip the requirement either.
+describe("B21: agent:release refuses without a reason", () => {
+  test("CLI: --reason is required", async () => {
+    const run = await compiledCapsule(roots, "b21-release-cli-missing");
+    await registerCoordinator(run);
+    await registerWorker(run);
+    await expect(
+      execute(["agent:release", "--run", run, "--agent", "worker-1"]),
+    ).rejects.toThrow("--reason is required");
+  });
+
+  test("CLI: a blank --reason is refused, not accepted as empty text", async () => {
+    const run = await compiledCapsule(roots, "b21-release-cli-blank");
+    await registerCoordinator(run);
+    await registerWorker(run);
+    await expect(
+      execute(["agent:release", "--run", run, "--agent", "worker-1", "--reason", "   "]),
+    ).rejects.toThrow("--reason must have a non-blank value");
+  });
+
+  test("domain: releaseAgentGrant refuses a blank reason before touching the ledger", () => {
+    expect(() =>
+      releaseAgentGrant({
+        runRoot: "/nonexistent/run",
+        agentId: "worker-1",
+        actor: "worker-1",
+        reason: "",
+      }),
+    ).toThrow("reason must be non-blank text");
   });
 });

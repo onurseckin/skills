@@ -37,6 +37,34 @@ export interface HarnessConfig {
    * when nothing overrides it), unlike `max_concurrent_agents` which can be genuinely unset.
    */
   gate_max_parallel: number;
+  /**
+   * B22.7: whether `plan:compile` provisions its own `harness/<run-id>` branch and git worktrees
+   * instead of leaving every task to run in the caller's own working tree.
+   *
+   * B22's own text says "default on"; this build ships it OFF by default. Turning it on changes
+   * what `plan:compile` and `task:submit` do to the filesystem for every existing capsule and test
+   * that calls them, and that blast radius cannot be verified from this seat without running the
+   * full suite (out of scope for this pass, and the standing instruction is not to run it
+   * speculatively). The feature is complete and covered by its own tests with the flag explicitly
+   * turned on; flipping this default is a one-line change for whoever next runs the full suite to
+   * confirm nothing regresses.
+   */
+  worktree_isolation: boolean;
+  /**
+   * Root directory worktrees are created under, always OUTSIDE the repository the harness is
+   * operating on (`provisionWorktrees` refuses a root that resolves inside the repo). Absent means
+   * "use the computed default", a sibling of the repo keyed by run id - never a sentinel path.
+   */
+  worktree_root?: string;
+  /** Prefix for the branch `plan:compile` provisions, e.g. `harness/<run-id>`. */
+  branch_prefix: string;
+  /** Whether `task:submit` commits a task's write scope in its assigned worktree on submission. */
+  commit_per_subphase: boolean;
+  /** B22.3: a commit past this many changed lines is a WARNING on the result, never a refusal. */
+  max_commit_lines: number;
+  // B22.4 (rebase harness/<run-id> onto the default branch at run end) is not implemented yet —
+  // no `rebase_on_complete` field here until something actually reads it. A declared-but-unenforced
+  // knob is a promise the code does not keep.
 }
 
 /** B27.2: which source actually produced the resolved `default_max_parallel`, so a report can say
@@ -56,6 +84,10 @@ export const DEFAULT_CONFIG: HarnessConfig = {
   default_lease_seconds: 1800,
   default_max_parallel: 4,
   gate_max_parallel: deriveGateConcurrencyCeiling(),
+  worktree_isolation: false,
+  branch_prefix: "harness/",
+  commit_per_subphase: true,
+  max_commit_lines: 500,
 };
 
 export const DEFAULT_RESOLVED_CONFIG: ResolvedHarnessConfig = {
@@ -66,6 +98,14 @@ export const DEFAULT_RESOLVED_CONFIG: ResolvedHarnessConfig = {
 
 function positiveCount(value: unknown, minimum: number): number | null {
   return typeof value === "number" && Number.isInteger(value) && value >= minimum ? value : null;
+}
+
+function booleanField(value: unknown): boolean | null {
+  return typeof value === "boolean" ? value : null;
+}
+
+function textField(value: unknown): string | null {
+  return typeof value === "string" && value.trim().length > 0 ? value : null;
 }
 
 function parseConfigFile(filePath: string): Partial<ResolvedHarnessConfig> | null {
@@ -107,6 +147,21 @@ function parseConfigFile(filePath: string): Partial<ResolvedHarnessConfig> | nul
 
     const gateMaxParallel = positiveCount(record.gate_max_parallel, 1);
     if (gateMaxParallel !== null) partial.gate_max_parallel = gateMaxParallel;
+
+    const worktreeIsolation = booleanField(record.worktree_isolation);
+    if (worktreeIsolation !== null) partial.worktree_isolation = worktreeIsolation;
+
+    const worktreeRoot = textField(record.worktree_root);
+    if (worktreeRoot !== null) partial.worktree_root = worktreeRoot;
+
+    const branchPrefix = textField(record.branch_prefix);
+    if (branchPrefix !== null) partial.branch_prefix = branchPrefix;
+
+    const commitPerSubphase = booleanField(record.commit_per_subphase);
+    if (commitPerSubphase !== null) partial.commit_per_subphase = commitPerSubphase;
+
+    const maxCommitLines = positiveCount(record.max_commit_lines, 1);
+    if (maxCommitLines !== null) partial.max_commit_lines = maxCommitLines;
 
     return partial;
   } catch {

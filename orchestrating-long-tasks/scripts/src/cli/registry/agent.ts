@@ -129,7 +129,9 @@ export const AGENT_COMMANDS: readonly CommandSpec[] = [
     flags: [
       requiredFlag("run", "string", "Capsule run root."),
       requiredFlag("agent", "string", "Agent id holding the grant."),
-      optionalFlag("reason", "string", "Why the grant closed."),
+      // B21: releasing a grant terminates or closes out an agent's participation, one of the
+      // transitions that must not happen unobserved, so the harness refuses it without a reason.
+      requiredFlag("reason", "string", "Why the grant closed."),
       optionalFlag("actor", "string", "Event actor; defaults to the released agent."),
     ],
     readsStdin: false,

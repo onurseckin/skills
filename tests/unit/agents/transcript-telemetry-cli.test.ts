@@ -256,7 +256,15 @@ describe("the transcript probe wired into agent:register and agent:release, with
     ]);
 
     await withFakeHomeAndSession(home, "session-release", async () => {
-      await execute(["agent:release", "--run", run, "--agent", "worker-1"]);
+      await execute([
+        "agent:release",
+        "--run",
+        run,
+        "--agent",
+        "worker-1",
+        "--reason",
+        "transcript probe check done",
+      ]);
     });
 
     expect(worker(run).status).toBe("released");

@@ -54,10 +54,14 @@ carried in from the assignment.
 | Tag | Count | Items |
 |---|---:|---|
 | `done (<sha>), verified` | 3 | B2, B5, B13 |
-| `verified` | 16 | B1, B6, B7, B10, B11, B12, B14, B16, B23, B24, B26, B28, B29, B30, B34, B36 |
-| `queued` | 20 | B3, B4, B8, B9, B15, B17, B18, B19, B20, B21, B22, B25, B27, B32, B33, B35, B37, B38, B39, B40 |
+| `verified` | 17 | B1, B6, B7, B10, B11, B12, B14, B16, B19, B23, B24, B26, B28, B29, B30, B34, B36 |
+| `queued` | 19 | B3, B4, B8, B9, B15, B17, B18, B20, B21, B22, B25, B27, B32, B33, B35, B37, B38, B39, B40 |
 | `deferred by owner` | 1 | B31 |
 | **Total** | **40** | B1-B40 |
+
+**Not re-derived above; corrected in place (B19/B20 reconciliation pass):** B19 moved `queued` →
+`verified` this pass (see B19's own entry) after this table was written by the prior pass — the table
+above reflects that move rather than the stale 16/20 split the prior pass's own count left behind.
 
 Prior pass's own account, kept for provenance:
 
@@ -652,42 +656,46 @@ and `getNodeRepairRounds` is still defined separately in `ComparisonView/diffEng
 Roughly forty defects were found beyond the original brief. Most are fixed. This item covers the ones that
 are NOT, plus the policy that stops the rest from coming back.
 
-### B8.1 CRITICAL — role contracts are still not enforced
+### B8.1 RESOLVED — role contracts are enforced
 
-**Verified 2026-08-20 by direct grep, and this contradicts an earlier "done" report.**
-
-`assertPublishedTaskPacket(` has **zero call sites**. It is imported in `workflow/review/record-review.ts:9`
-and `workflow/submission/submit.ts:8` and never invoked — exactly as it was before the overhaul started.
-`publishRolePacket` still has exactly one caller (`packets/planner-packet.ts`). `task:claim` publishes no
-packet at all.
-
-Consequence: the nine capability contracts in `roles/` exist as documents but **bind nothing**. R6 asked
-for "a non-negotiable list of what each role can and cannot do". We have the list; we do not have the
-enforcement. Right now they are advisory prose — the same status as the `agents/*.yaml` text they replaced.
-
-To close:
+**Corrected 2026-08-20 (verification-pass-7): the text below (originally written 2026-08-20 03:08:44,
+commit `eaabd5cc`) described the pre-fix state and was left standing after the fix landed in the SAME
+commit, contradicting this item's own top status note two paragraphs above. Re-verified fresh by direct
+grep, not by reading either note: `assertPublishedTaskPacket(` now has two real call sites —
+`workflow/review/record-review.ts:48` and `workflow/submission/submit.ts:59` — both invoked, not merely
+imported. `publishRolePacket` has three callers (`packets/planner-packet.ts:27`,
+`packets/critic-grant.ts:124`, `packets/role-grant.ts:144`), not one. Dispatch-time enforcement is also
+live: `cli/execute.ts:33` calls `assertGrantedCommand` before every handler runs. All three "To close"
+bullets below and the cited tests are done; kept only as the historical record of what CRITICAL meant.**
 
 - Publish a role packet at `task:claim`, `task:validate-start`, `critic:start` and `branch:claim`, carrying
-  the role contract bytes and their sha256.
+  the role contract bytes and their sha256. — done.
 - **Actually invoke** `assertPublishedTaskPacket` in `submit` and `record-review`, so an agent acting
-  without a published contract is refused.
+  without a published contract is refused. — done, confirmed above.
 - Enforce the contract's `commands:` list at dispatch: a role invoking a command its contract does not
-  grant is refused with INVALID_STATE.
+  grant is refused with INVALID_STATE. — done, confirmed above.
 - Test: an implementer cannot submit without a published packet; a validator cannot invoke an
-  implementer-only command; the packet digest matches the checked-in role document.
+  implementer-only command; the packet digest matches the checked-in role document. — `tests/unit/packets/
+  role-contract-refusals.test.ts` + `role-contract-enforcement.test.ts`, 65/65 pass (re-run 2026-08-20);
+  guard-deletion on `command-authority.ts`'s `assertRoleMayInvoke` throw reproduces 12/53 failures.
 
-### B8.2 `handoff.md` is still never produced
+### B8.2 RESOLVED — `handoff.md` is produced
 
-`reporting/handoff.ts` has zero call sites (verified). The deterministic restart document — the artifact
-that makes a run resumable by a fresh agent after context loss — is documented, implemented, and never
-written. Wire it into `run:complete`, `task:submit` and the escalation path.
+**Corrected 2026-08-20 (verification-pass-7): same staleness as B8.1 — this line said "zero call sites"**
+**after real call sites already existed.** `writeHandoff` (`reporting/handoff.ts:146`) is now called from
+`cli/commands/task-reject.ts`, `run-ops.ts`, `task-claim.ts` and `task-review.ts` (confirmed by grep,
+2026-08-20). Kept only as the historical record.
 
-### B8.3 Remaining duplicate implementations
+### B8.3 Duplicate implementations — partially resolved
 
-- `resolveModelTier` still has a copy in `gvui/src/utils/htmlExporter.ts`.
+- ~~`resolveModelTier` still has a copy in `gvui/src/utils/htmlExporter.ts`~~ — **resolved**: `htmlExporter.ts`
+  now imports it from `primitives/nodes/NodeCard/nodeKinds.tsx` (confirmed 2026-08-20).
 - Two layout adapters in gvui (`engine/layout/customLayoutAdapter.ts` vs
-  `engine/layout/custom/wasmLayoutAdapter.ts`), near-identical, only one used.
-- `getNodeRepairRounds` duplicated across three gvui files.
+  `engine/layout/custom/wasmLayoutAdapter.ts`), near-identical, only one used. — still open, both files
+  exist (confirmed 2026-08-20).
+- `getNodeRepairRounds` duplicated across **two** gvui files (`components/ComparisonView/diffEngine.ts:211`
+  and `components/GraphDiff/diffEngine.ts:453`), not three as originally written — still open, corrected
+  count confirmed 2026-08-20.
   Collapse each to one implementation. A duplicated helper is where the next silent divergence starts.
 
 ### B8.4 Housekeeping
@@ -1248,13 +1256,52 @@ whenever gates pass mid-wave. Push immediately. Never bypass the hook.
 
 ---
 
-## B19 — Generic category taxonomy, vendor names as instances   `queued`
+## B19 — Generic category taxonomy, vendor names as instances   `verified`
 
-**Still queued 2026-08-20 (completion-tagging pass):** B19.4's mechanical guard is shipped and passing
-— `health/vendor-identifiers.ts` + `health/vendor-names.ts` scan both the producer and consumer trees
-with documented, specific exemptions; the health run just now reports 0 failures on that check. B19.1-
-19.3's three-layer category/instance/extras pattern for tool and telemetry types was not confirmed
-present under those names in `scripts/src/summary/graph-types.ts`.
+**Verified 2026-08-20 (B19/B20 reconciliation pass):** the prior note's "not confirmed present" was a
+false negative from checking the wrong file — same failure mode already caught once this session for
+B29/B15/B3. The three-layer pattern lives in `scripts/src/summary/graph-agent-types.ts`, which
+`graph-types.ts` re-exports wholesale (`export type { ... NodeScript, NodeTelemetry, NodeTool } from
+"./graph-agent-types.ts"`), so grepping `graph-types.ts` alone finds no `interface`, only the re-export
+line. Opened the actual file:
+- `NodeTool` — `name` (open instance), `category?: ToolCategory` (generic), `extras?:
+  Record<string, unknown>` (open bag), `evidence_class`. Exactly B19.1's three layers.
+- `NodeScript` — same shape (`category`, `tool`, `extras`, `evidence_class`, plus a per-field
+  `evidence` map), with a doc comment stating the category/tool/extras are "never anything read out
+  of the argv."
+- `BrowserTestRun` — `category`, `runner` (the open instance — Playwright/Puppeteer/Cypress/etc. are
+  values here, never a type name), `extras`, per-field `evidence`. B19.2's example is fully landed,
+  not merely "moving the right way."
+- `NodeTelemetry` — `provider`, `model`, `modelTier`, `thinkingLevel`, `contextWindow`, `tokensIn`,
+  `tokensOut` all `Evidenced<T>`; `tokenExtras` an open `Record<string, Evidenced<number>>`. The doc
+  comment on `model` states it verbatim: "exactly as the host reported it: never parsed, never
+  matched against." Confirmed no substring/`.includes()`/`.toLowerCase()` handling of a model string
+  exists anywhere in `scripts/src` (grepped for `.includes("claude`/`"opus`/`"sonnet`/etc — zero
+  hits), and `tests/unit/summary/graph-telemetry-honesty.test.ts` carries a named regression test for
+  exactly this failure mode ("a model name never becomes a tier, however large the model sounds").
+- `contracts/taxonomy.ts`'s `TOOL_CATEGORIES` matches B19.2's seed vocabulary verbatim (14 members,
+  `browser-automation` through `version-control`), with an open `ToolCategory = KnownToolCategory |
+  (string & {})` so an unrecognised category is still valid — B19.2's "start the vocabulary and keep
+  it open" is implemented literally, not approximately.
+- B19.4's guard reconfirmed still shipped and passing (`health/vendor-identifiers.ts` +
+  `health/vendor-names.ts`, 0 failures on the "Vendor names in identifier positions" health check).
+
+**The KNOWN FABRICATION named in this pass's brief — the fixture build script labelling flag-supplied
+`--model`/`--provider` as `host_reported` — is already fixed, not still true.** Read
+.tmp/fixture-build/build-fixture.ts (gitignored per B37's own note, which cites the same script with a
+line count and range — see B37 above rather than repeating an unqualified citation here, which would
+duplicate the exact false intent-drift positive B39/B40 already diagnosed and fixed this same way): it
+only ever passes
+raw CLI flags; it stamps no evidence class itself. The stamping happens in
+`workflow/agents/grants.ts`'s `telemetryFields()`/`explicitLevel()`, and both tag every CLI-supplied
+value `agent_reported` (an explicit `"unknown"` keeps the `unknown` class instead). The function carries
+a doc comment naming this exact defect as already fixed: "Stamping these `host_reported`
+unconditionally was B39 finding 1: a caller could type a nonexistent model id and have it recorded as
+though the host had attested to it." A dedicated regression suite,
+`tests/unit/agents/telemetry-evidence-honesty.test.ts` ("B39 finding 1: a typed CLI value never earns a
+host-verified evidence class"), asserts `agent:register`'s and `agent:report`'s CLI-typed telemetry
+always lands `agent_reported`, and explicitly forbids `host_reported`/`harness_observed` on that path.
+Nothing left to fix here; the fixture we ship as ground truth is honest.
 
 **Owner principle:** "standardize things as much as possible while supporting as much flexibility as
 possible." A vendor or product name must never be a first-class concept in the schema; it is a VALUE
@@ -1312,11 +1359,67 @@ is what stops the schema quietly re-acquiring a favourite tool.
 
 ## B20 — Dynamic host discovery and per-agent telemetry ingestion   `queued`
 
-**Still queued 2026-08-20 (completion-tagging pass):** B20.1-20.3 are substantially landed —
-`HOST_PROBES` in `summary/host-telemetry.ts` now has real production callers via B34's
-`host-telemetry-probe.ts`, and agent self-report is reconciled against host/machine-derived values with
-disagreement recorded (see B34/B32). B20.4's specific validator-quality metric (probe demands answered
-vs. unanswered, findings later upheld vs. withdrawn) was not found anywhere under `scripts/src/summary`.
+**Still queued 2026-08-20 (B19/B20 reconciliation pass) — B20.1-20.3 upgraded from "substantially
+landed" to fully verified; B20.4 is the one real gap and stays open, narrowed and re-scoped below.**
+
+B20.1-20.3, opened directly rather than re-derived from the prior note:
+- **Hardcoded at all four boundaries, not just register.** `cli/host-telemetry-probe.ts`'s
+  `probeAgentTelemetry` is called from `agent:register` and `agent:release`
+  (`cli/commands/agent-ops.ts:92,148`) and from `task:claim` and `task:submit`
+  (`cli/commands/task-claim.ts:36`, shared helper `probeAtTaskBoundary`) — the item's own brief asked
+  for register/submit/release; claim is a fourth call site beyond what was asked, not a gap.
+  `tests/unit/agents/host-telemetry-probe.test.ts` has a describe block named exactly for this:
+  `"the probe wired into the CLI boundaries themselves, never a separate command"`, and drives real
+  CLI calls through `execute()`, so this is reachable by B33's bar, not merely present in source.
+- **Both sources recorded, disagreement flagged, nothing silently preferred.** `agent:register`'s own
+  CLI flags are `agent_reported`; `probeAgentTelemetry` separately reads the host's config
+  (`derived`) and the agent's own transcript (`harness_observed`, B34). `telemetry-merge.ts`'s
+  `mergeDerivedField`/`mergeObservedCount` never overwrite an explicit value that disagrees — they
+  push a `TelemetryFieldConflict` (`recorded_value`, `recorded_evidence_class`, `probed_value`) instead,
+  which lands on both the transaction event (`telemetry_conflicts`) and the CLI's own response
+  (`host_telemetry_conflicts`), asserted by `host-telemetry-probe.test.ts`'s `"a flag and the host's
+  own config disagreeing is kept on both the event and the result"`.
+- **Codex's `~/.codex/config.toml` is covered, both keys named in this pass's brief.**
+  `summary/host-telemetry.ts`'s `HOST_PROBES` lists `agents`/`features`/`model` as codex evidence
+  keys, and `TELEMETRY_PROBES.codex` reads `agentsTable.max_concurrent_threads_per_session` into
+  `capabilities.concurrency_ceiling` and `featuresTable.multi_agent` into
+  `capabilities.multi_agent_enabled` by name — exactly the two fields this pass was asked to check.
+- **One documented, reasoned deviation from B20.2's literal wording, not a defect:** B20.2 as written
+  says host-supplied values earn `host_reported`; the shipped code never stamps `host_reported` on
+  anything (grepped: the class exists in `EvidenceClass` but no production call site uses it). A
+  config file being present is evidence the tool is installed/configured, not proof of what a specific
+  agent actually did, so `mergeDerivedField`'s default is `derived`, and only a transcript reading —
+  the host's own record of what actually happened — earns `harness_observed`. This reasoning is
+  documented at the call sites (`telemetry-merge.ts`'s doc comments, B34) and is stricter than the
+  letter of B20.2, not looser; noting it here so a future pass does not read `host_reported`'s absence
+  as an unfinished feature.
+- **KNOWN FABRICATION named in this pass's brief — already fixed.** See B19's entry above: flag-typed
+  `--model`/`--provider` land `agent_reported`, guarded by a named regression suite (B39 finding 1).
+
+**B20.4 — genuinely missing, and re-scoped rather than just re-flagged.** Grepped
+`scripts/src/summary/` for validatorQuality/upheld/withdrawn/probe-answer-rate: nothing — these name
+what does not exist yet, not a symbol this item is claiming to have built, so left unbackticked rather
+than repeating the exact false intent-drift positive B39/B40 already diagnosed and fixed this same way.
+`metrics-collector.ts` computes run-wide rollups only (`pushbacks_total`, `resolved_findings_total`,
+`open_findings_total`) — never per-agent, never per-validator. Two things block a same-file fix:
+1. **Ownership**: the natural home is `summary/metrics-collector.ts` (or a new, not-yet-created
+   summary/validator-quality.ts), not this item's file grant
+   (`contracts/agents.ts`, `workflow/agents/**`, `cli/host-telemetry-probe.ts`,
+   `summary/host-telemetry.ts`). Writing it there risked colliding with concurrent work already
+   observed touching `metrics-collector-helpers.ts`-adjacent files this pass.
+2. **The data model has no "withdrawn."** `contracts/workflow.ts`'s `Finding.status` is
+   `"open" | "resolved"` — grepped the whole producer tree for `withdrawn`/`overturn`/`invalidat`:
+   zero hits tied to findings. "Probe demands answered vs unanswered" is honestly computable today
+   (`class: "probe_demand"` + `status`), but "findings later confirmed vs withdrawn" as literally
+   named is not, because nothing in the review pipeline (`workflow/review/**`) ever records that a
+   validator's defect turned out to be wrong — only that it was resolved (implementer answered it) or
+   stayed open. Computing a "withdrawn" bucket today would mean inventing a proxy (e.g. "still open
+   when the task closed") and presenting it as the thing the owner asked for, which is exactly the
+   fabricated-evidence failure mode B20.4's own closing paragraph warns against. This needs an owner
+   decision on what recorded signal "withdrawn" should map to (a later validator round disagreeing? a
+   completeness-critic override? new instrumentation at reject/pass time?) before it is code, plus
+   file ownership over the review pipeline and `summary/`. Left as `queued`, scoped down to exactly
+   this, so the next pass does not have to re-derive that 20.1-20.3 are done.
 
 **Goal:** the harness learns what each agent actually is — host application, model, thinking tier, token
 counts and how that host counts tokens — by reading what the host itself publishes locally, rather than
@@ -1605,14 +1708,43 @@ work from later phases when it is genuinely independent.
 
 ---
 
-## B25 — Retire "wave". The graph is a DAG; readiness is a parent relation   `queued`
+## B25 — Retire "wave". The graph is a DAG; readiness is a parent relation   `verified`
 
-**Still queued 2026-08-20 (completion-tagging pass):** B25.1 (wave retired as an execution instruction,
-kept only as a display label) is done — same `coordinator.yaml`/`orchestrator.yaml` evidence as B24.
-B25.2 (model every repair round as its own forward-only node, no back-edges) is NOT done:
-`graph-generator-branch-nodes.ts:180` and `graph-generator-critic-nodes.ts:222` both still emit
-`isCycle: true` edges, confirmed by direct grep — the pushback/probe rejection is still a cyclic
-back-edge, not a new node per round.
+**Verified 2026-08-20 (fourth pass, correcting the completion-tagging pass's note above) — the prior
+"B25.2 is NOT done" claim was wrong, and it was wrong at the moment it was written, not because code
+changed after.** That note cited `isCycle: true` at `graph-generator-branch-nodes.ts:180` and
+`graph-generator-critic-nodes.ts:222` as evidence the pushback loop was still a cyclic back-edge. Both
+lines are real (now :186 and :222, one line drifted), but opening them directly shows each carries its
+own comment reading "B25.4: an explicit, justified residual cycle, not the pushback loop B25.2
+retired" — one is a branch's sub-agent reporting back to the exact parent node that opened it (a call,
+not a round), the other is the completeness critic's finding pointing at a gate (the critic runs once,
+has no round counter, and there is no later critic node to forward into). Neither is the repair-round
+pushback the item is actually about; the prior pass conflated B25.4's two deliberate, owner-sanctioned
+residual cycles with the thing B25.2 asked to remove.
+
+The pushback loop itself is fixed, and thoroughly: `graph-round-context.ts` (`archivedTaskNodeId`/
+`archivedValidatorNodeId`, `node-*-r${round}`), `graph-round-nodes.ts` (`buildArchivedRoundNodes`, one
+implementer+validator pair per superseded round) and `graph-edge-factory.ts`
+(`archivedRoundTransitionEdges`, `kind: "pushback"`, forward from round N's validator to round N+1's
+task node — no `isCycle` anywhere in that file) together give every repair round its own node, wired
+into `graph-generator.ts` with the comment "B25.2's fix for the cyclic pushback edge" at the exact call
+site. The probe/pushback distinction survives as the edge KIND, not direction:
+`liveRoundFeedbackEdges` sends a `probe` forward from validator to gate (never back to the
+implementer, "a probe... never punishes the implementer"), and pushback is `kind: "pushback"` forward
+into the next round's node. Tested directly: `tests/unit/summary/graph-validator-nodes.test.ts`'s
+`describe("probe and pushback are different relationships")` asserts `probe?.isCycle` and
+`pushback?.isCycle` are both `undefined` and that the two kinds never appear on the same finding class;
+`describe("an archived round backed by validation_history stays acyclic")` drives a real two-round
+rejection through `generateGraphDataset` and asserts `taskEdges.some((e) => e.isCycle === true) ===
+false`. `bun test tests/unit/summary/graph-validator-nodes.test.ts` passes (confirmed this pass, not
+carried over). B25.1 (wave retired as an execution instruction) re-confirmed by direct grep this pass:
+`SKILL.md`/`agents/*.yaml` carry zero "wave barrier" instructions; every remaining "wave" mention is
+either `queue:wave`'s own display-only readiness label (`ready-set.ts`'s `recorded_wave` field, its own
+comment: "A DISPLAY annotation only (B25)... never what a coordinator must wait for") or an explicit
+statement that no wave barrier exists (`orchestrator.yaml`: "There is no wave barrier to wait on").
+B25.3 (parallel unless proven inseparable) and B25.4 (residual cycles stay explicit and justified) are
+both demonstrated by the same code just cited, not separately artifacted. B25.5 is a meta-instruction
+about how this backlog itself gets orchestrated, not a code deliverable.
 
 **Owner's framing, and it supersedes the vocabulary in B24:** "when you are dealing with graphs, trees,
 and their nodes, the word wave doesn't mean anything for our system... what it means is a parent node and
@@ -1756,11 +1888,48 @@ reject, repair, re-validate with the same identity) and assert the refusal BY ER
 
 ## B27 — Concurrency is a workload property, not a CPU formula   `queued`
 
-**Still queued 2026-08-20 (completion-tagging pass):** B27.2's host-ceiling discovery is done —
-`summary/host-telemetry.ts` reads `CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS` as
-`SPAWN_CONCURRENCY_ENV_VAR`, confirmed by grep. B27.1's provider-bound-vs-local-bound workload
-categorization, and a separate lower ceiling specifically for gate-running agents, were not found
-written into `SKILL.md` or the agent persona files.
+**Still queued 2026-08-20 (fourth pass) — B27.2 re-confirmed landed and tested; B27.1's documented gap
+closed in this pass, but the diff is uncommitted, so the item cannot carry `verified` yet (that tag
+requires a SEPARATE later pass over landed code, not the pass that wrote it).**
+
+B27.2 is genuinely done, and more thoroughly than the prior note showed: `config/host-concurrency.ts`
+(`discoverHostConcurrencyCeiling`, `deriveGateConcurrencyCeiling`) is wired into
+`config/harness-config.ts`'s `resolveConcurrencyCeiling` — precedence is an explicit
+`default_max_parallel`/`max_concurrent_agents` in config, else host discovery, else the assumed
+default (`default_max_parallel_source` records which) — and `gate_max_parallel` (cores/2, floor 1,
+config-overridable) resolves alongside it. Both reach `cli/commands/orchestrator-ops.ts`'s
+`orchestrator:supervise`, which already reported occupancy against both ceilings with provenance
+before this pass. Directly tested: `tests/unit/config/host-concurrency.test.ts` (env-var discovery,
+null-on-silent-host, integer/positivity rejection, the halving derivation) and
+`tests/unit/config/harness-config.test.ts` (the full precedence chain via injected test seams). `bun
+test tests/unit/config/host-concurrency.test.ts tests/unit/config/harness-config.test.ts` — all pass,
+run this pass, not carried over.
+
+B27.1's two gaps were real and are now closed:
+1. **The workload categorization was written nowhere an agent reads it.** `grep -n
+   "provider-bound\|local-bound\|gate_max_parallel" SKILL.md agents/*.yaml` was empty before this pass.
+   Added as `SKILL.md` Hard Rule 11 (reasoning goes wide on the host-discovered ceiling; gate-running
+   agents throttle to the separate `gate_max_parallel`) and expanded into an actionable paragraph in
+   `agents/coordinator.yaml`'s Phase 2, since the coordinator is the agent that actually decides
+   dispatch width.
+2. **`run:status` reported occupancy against only one ceiling.** `cli/commands/run-ops.ts`'s
+   `runStatusCommand` now reports both — `occupancyCeilings()` reads `gate_max_parallel` alongside
+   `default_max_parallel`, the markdown brief states both ("occupancy slots in use (gate ceiling N)"),
+   and the JSON `occupancy` object carries `gate_max_parallel`. Honestly scoped: the harness has no way
+   to tell which active lease is mid-gate versus mid-reasoning (the same limit `RunSupervisor` already
+   documented for `orchestrator:supervise`), so this states the gate ceiling alongside occupancy rather
+   than inventing a gate-specific occupancy count nothing tracks. `tests/unit/cli/run-ops-commands.test.ts`
+   updated to match (the exact-object assertion relaxed to a partial-match one plus a type check, since
+   `gate_max_parallel` is genuinely machine-dependent when no config overrides it). `bun test
+   tests/unit/cli/run-ops-commands.test.ts` — 2/2 pass. `bun run typecheck` clean.
+
+**What's left before this can be tagged `done`/`verified`:** the diff above (`SKILL.md`,
+`agents/coordinator.yaml`, `scripts/src/cli/commands/run-ops.ts`,
+`tests/unit/cli/run-ops-commands.test.ts`) is sitting in the working tree, uncommitted, alongside
+unrelated concurrent work-in-progress from another in-flight pass (`agent-ops.ts`, `registry/agent.ts`,
+`workflow/agents/grants.ts` and their tests — not touched here, left alone per standing constraints).
+Commit this item's four files once nothing else is actively writing them, then a later pass can confirm
+per B33 and retag.
 
 **Owner's objection, and it is largely correct:** "one core can handle definitely more than one agent...
 eight at a time is blocking the higher potential. It's not forcing our computer — it's the companies
@@ -2938,6 +3107,19 @@ independently, per B33 — never by re-reading B39's prose and trusting it.
    --consumer ../gvui --all` after the edit: intent-drift failures dropped from 3 (B3, B10, and this
    B39 entry) to 2 (B3, B10 only) — both pre-existing and out of this item's scope. Overall verdict is
    still UNHEALTHY on those 2, not because of anything this finding named.
+   **This closing sentence went stale (verification-pass-7, 2026-08-20): re-run fresh, the tree no
+   longer shows B3 or B10 as intent-drift failures at all** — a later commit (`5dd3fc2`, 12:38:49,
+   nearly two hours after this note was written at 10:43:28) rewrote B3's own status-note text and
+   evidently fixed whatever in it was tripping the scanner; nobody returned to update this sentence.
+   Do not read this as "health is now clean," though: intent-drift itself is clean as of this
+   correction (re-run, 0 failures there), but the OVERALL verdict is still **UNHEALTHY** for reasons
+   entirely unrelated to B3/B10/B39 — the working tree separately carries an unrelated,
+   actively-changing, uncommitted B22 implementation under `workflow/worktree/` whose unused exports,
+   unenforced config field, and literal fallbacks currently fail three other checks. None of that is
+   B39/B40's to fix, and by nature of being uncommitted, actively-edited WIP it will not stay the same
+   failure from one run to the next either. The lesson generalizes past this one sentence: this file's
+   own health-verdict claims go stale within the same session while other agents write to the shared
+   tree — re-run `health` yourself before trusting any verdict stated here, including this one.
 4. **Minor, not a defect:** B39's report describes its own diff as "BACKLOG.md modified (98 insertions, 0
    deletions, purely additive)". True of the B39 hunk in isolation (confirmed: its diff hunk is
    `@@ -2177,3 +2260,101 @@` with zero deletions) but the file's live `git diff --numstat` at review time

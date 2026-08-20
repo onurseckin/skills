@@ -141,7 +141,9 @@ export function agentReportCommand(flags: Flags): Record<string, unknown> {
 export function agentReleaseCommand(flags: Flags): Record<string, unknown> {
   const run = textFlag(flags, "run")!;
   const agent = textFlag(flags, "agent")!;
-  const reason = textFlag(flags, "reason", false);
+  // B21: a release without a stated reason is exactly the unobserved termination the item exists
+  // to close off, so the flag is required rather than optional.
+  const reason = textFlag(flags, "reason")!;
   const actor = textFlag(flags, "actor", false) ?? agent;
   // Probed and folded in before release, while the grant is still active: a released grant refuses
   // any further telemetry, the same rule `agent:report` already enforces.
@@ -160,7 +162,7 @@ export function agentReleaseCommand(flags: Flags): Record<string, unknown> {
     runRoot: run,
     agentId: agent,
     actor,
-    ...(reason === undefined ? {} : { reason }),
+    reason,
   });
   return withHostTelemetryConflicts(
     {

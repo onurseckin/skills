@@ -46,8 +46,15 @@ describe("CLI run-ops commands", () => {
     expect(String(statBefore.markdown)).toContain("### Run Status: status-run (Phase: Planning)");
     // B24.4: idle capacity is invisible unless it is a number — occupancy must be live, not
     // inherited from a topology no compile has recorded yet.
-    expect(String(statBefore.markdown)).toContain("**Occupancy**: 0/4 occupancy slots in use.");
-    expect(statBefore.occupancy).toEqual({ active: 0, max_parallel: 4 });
+    // B27.2: the gate ceiling is reported alongside the general one, not only the number that
+    // actually gated dispatch — an operator about to dispatch gate-heavy work needs both in view.
+    expect(String(statBefore.markdown)).toContain(
+      "**Occupancy**: 0/4 occupancy slots in use (gate ceiling",
+    );
+    expect(statBefore.occupancy).toMatchObject({ active: 0, max_parallel: 4 });
+    expect(typeof (statBefore.occupancy as { gate_max_parallel: unknown }).gate_max_parallel).toBe(
+      "number",
+    );
 
     await execute([
       "plan:compile",
@@ -64,12 +71,16 @@ describe("CLI run-ops commands", () => {
     expect(String(statAfter.markdown)).toContain("task-status-1");
     // The one ready task holds no lease yet, so occupancy stays at zero even though the run is
     // now executing — occupancy counts leased/running/validating, never merely-claimable work.
-    expect(String(statAfter.markdown)).toContain("**Occupancy**: 0/4 occupancy slots in use.");
+    expect(String(statAfter.markdown)).toContain(
+      "**Occupancy**: 0/4 occupancy slots in use (gate ceiling",
+    );
 
     await execute(["queue:pop", "--run", run, "--agent", "worker-status"]);
     const statLeased = await execute(["run:status", "--run", run]);
-    expect(String(statLeased.markdown)).toContain("**Occupancy**: 1/4 occupancy slots in use.");
-    expect(statLeased.occupancy).toEqual({ active: 1, max_parallel: 4 });
+    expect(String(statLeased.markdown)).toContain(
+      "**Occupancy**: 1/4 occupancy slots in use (gate ceiling",
+    );
+    expect(statLeased.occupancy).toMatchObject({ active: 1, max_parallel: 4 });
   });
 
   test("run:exec runs monitored commands and records evidence", async () => {

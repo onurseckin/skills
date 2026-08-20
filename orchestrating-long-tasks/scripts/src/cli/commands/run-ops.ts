@@ -12,6 +12,7 @@ import { completeRun } from "../../workflow/completion/complete-run.ts";
 import { gateTally } from "../../workflow/completion/completion-state.ts";
 import type { CompletionArtifactRequirements } from "../../workflow/completion/artifact-verification.ts";
 import type { TaskRecord, WorkflowState } from "../../workflow/types.ts";
+import { readWorktreeLedger } from "../../workflow/worktree/ledger.ts";
 import {
   formatRunCompleteBrief,
   formatRunExecBrief,
@@ -26,9 +27,16 @@ import { ingestScreenshots, ingestVisualReport } from "../../reporting/screensho
 import { commandEvidenceView, commandRecordPath } from "../../reporting/command-evidence.ts";
 import { capsuleCatalogue, runStatus, type CapsuleCatalogue } from "../../reporting/status.ts";
 
-/** A run root is `<repo>/.capsules/<run-id>`, so repo config sits two levels above the capsule. */
-function runOccupancyCeiling(runRoot: string): number {
-  return getHarnessConfig(resolve(runRoot, "..", ".."), runRoot).default_max_parallel;
+/**
+ * B27.2's two ceilings, both live here because both are read once per run root. `maxParallel` binds
+ * reasoning dispatch (provider-bound, so the host's own discovered limit governs it); `gateMaxParallel`
+ * is the separate, lower, cores-derived ceiling for agents currently running mandatory gates
+ * (local-CPU-bound). A run root is `<repo>/.capsules/<run-id>`, so repo config sits two levels above
+ * the capsule.
+ */
+function occupancyCeilings(runRoot: string): { maxParallel: number; gateMaxParallel: number } {
+  const config = getHarnessConfig(resolve(runRoot, "..", ".."), runRoot);
+  return { maxParallel: config.default_max_parallel, gateMaxParallel: config.gate_max_parallel };
 }
 
 function liveRepositoryBinding(run: string) {
@@ -153,8 +161,12 @@ export function runStatusCommand(flags: Flags): Record<string, unknown> {
   const activeCount = tasks.filter(
     (t) => t.status === "leased" || t.status === "running" || t.status === "validating",
   ).length;
-  const maxParallel = runOccupancyCeiling(loaded.runRoot);
-  const occupancySummary = `${activeCount}/${maxParallel} occupancy slots in use.`;
+  const { maxParallel, gateMaxParallel } = occupancyCeilings(loaded.runRoot);
+  // B27.2: report against BOTH ceilings, not just the one that gates general dispatch — the harness
+  // has no way to tell which active lease is mid-gate versus mid-reasoning (RunSupervisor's own
+  // limit), so the gate ceiling is stated alongside occupancy rather than measured against it; an
+  // operator about to dispatch gate-heavy work still needs the lower number in view.
+  const occupancySummary = `${activeCount}/${maxParallel} occupancy slots in use (gate ceiling ${gateMaxParallel}).`;
   const markdown = formatRunStatusBrief(
     basename(run),
     phase,
@@ -172,7 +184,10 @@ export function runStatusCommand(flags: Flags): Record<string, unknown> {
     state: runStatus(run),
     detailed,
     catalogue,
-    occupancy: { active: activeCount, max_parallel: maxParallel },
+    occupancy: { active: activeCount, max_parallel: maxParallel, gate_max_parallel: gateMaxParallel },
+    // B22.6: "run:status reports live worktrees and the branch." Absent (not an empty object) when
+    // the run was never provisioned — matches readWorktreeLedger's own absence-over-invention rule.
+    ...(readWorktreeLedger(state) === null ? {} : { worktrees: readWorktreeLedger(state) }),
   };
 }
 

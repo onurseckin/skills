@@ -57,7 +57,7 @@ describe("timeline collector", () => {
       createEvent("task-claimed", { task_id: "T-1", role: "implementer" }, 1),
       createEvent("task-heartbeat", { task_id: "T-1" }, 2),
       createEvent("task-submitted", { task_id: "T-1" }, 3),
-      createEvent("task-validation-started", { task_id: "T-1" }, 4),
+      createEvent("validation-started", { task_id: "T-1" }, 4),
       createEvent(
         "review-recorded",
         {
@@ -192,7 +192,7 @@ describe("timeline collector", () => {
   test("an event missing an optional descriptive field says so, never a plausible-looking filler", () => {
     const timeline = collectTimeline([
       createEvent("plan-task-added", { id: "T-9" }, 1),
-      createEvent("task-escalated", { task_id: "T-9" }, 2),
+      createEvent("task-escalated-by-supervisor", { task_id: "T-9" }, 2),
       createEvent("critic-reviewed", {}, 3),
     ]);
 
@@ -238,6 +238,20 @@ describe("collectActionSteps", () => {
     ]);
     expect(steps[0]!.kind).toBe("run");
     expect(steps[0]!.rawKind).toBe("some-future-kind-nobody-has-written-yet");
+  });
+
+  // Regression guard: begin-validation.ts and escalate.ts emit "validation-started" and
+  // "task-escalated-by-supervisor" respectively — the only strings either code path ever produces.
+  // Matching a plausible-looking but wrong literal ("task-validation-started", "task-escalated")
+  // would silently fall through to the default "run" bucket on real fixture data without ever
+  // failing a test built only from invented event kinds, which is exactly how this drifted before.
+  test("classifies the real store-emitted validation and escalation kinds, not a guessed name", () => {
+    const steps = collectActionSteps([
+      createEvent("validation-started", { task_id: "T-1" }, 1),
+      createEvent("task-escalated-by-supervisor", { task_id: "T-1", reason: "retry_budget_exhausted" }, 2),
+    ]);
+    expect(steps[0]!.kind).toBe("gate");
+    expect(steps[1]!.kind).toBe("task");
   });
 
   test("step is the chain's own monotonic sequence, not a second counter", () => {
