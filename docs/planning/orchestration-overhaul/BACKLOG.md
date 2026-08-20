@@ -24,10 +24,16 @@ below.
 | Tag | Count | Items |
 |---|---:|---|
 | `done (<sha>), verified` | 3 | B2, B5, B13 |
-| `verified` | 13 | B1, B6, B7, B10, B11, B12, B14, B16, B23, B24, B26, B28, B34 |
-| `queued` | 23 | B3, B4, B8, B9, B15, B17, B18, B19, B20, B21, B22, B25, B27, B29, B30, B32, B33, B35, B36, B37, B38, B39, B40 |
+| `verified` | 15 | B1, B6, B7, B10, B11, B12, B14, B16, B23, B24, B26, B28, B30, B34, B36 |
+| `queued` | 21 | B3, B4, B8, B9, B15, B17, B18, B19, B20, B21, B22, B25, B27, B29, B32, B33, B35, B37, B38, B39, B40 |
 | `deferred by owner` | 1 | B31 |
 | **Total** | **40** | B1-B40 |
+
+B30 and B36 moved from `queued` to `verified` mid-pass, not at its start — see their own entries for
+why: a concurrent wave finished the remaining fix while this pass was already open, and re-checking
+before writing the count (rather than trusting the draft written minutes earlier) is what B33 asks for.
+A fresh session should still re-check anything it depends on before treating this table as current; see
+the note at the top of this section for why.
 
 Every `verified` and `queued` tag below carries a one-line, dated status note citing the file(s),
 test(s) or command output that settled it — added by this pass, not inherited from an earlier report.
@@ -1812,9 +1818,25 @@ full suite runs once per wave, at the barrier, before committing.
 
 ---
 
-## B30 — The skill is Antigravity-specific where it claims to be host-agnostic   `queued`
+## B30 — The skill is Antigravity-specific where it claims to be host-agnostic   `verified`
 
-**Still queued 2026-08-20 (completion-tagging pass, retires the `research-in-flight` tag):** the
+**Verified 2026-08-20 (reconciliation pass) — the item's own stated closing condition is now met.**
+This item's own top note (below) said plainly "this item does not close until B36's work item does."
+B36 is now tagged `verified` (see its own entry, opened fresh minutes before this one): all four of its
+work items — `coordinator.yaml`, `run-playbook.md`, `host-adapters.md`'s numbering, `parity-matrix.md`'s
+contradiction, plus the new `vendor-prose` mechanical guard against a regression — are done. B30.1 (the
+tool name belongs in an adapter row, never a rule) is exactly what that guard now enforces by construction.
+B30.2 (honest degradation) has real prose satisfying its literal ask, opened directly: `host-adapters.md:145`
+reads "No subagent mechanism at all → run single-agent, and state in the run summary that validation was
+not independent," which is B30.2's own sentence essentially verbatim — documented, though not separately
+mechanically guarded the way B30.1 now is (no test was found asserting a single-agent run's summary
+actually states this). B30.3, B30.5, B30.6 and B30.7 were already settled research, cited throughout this
+document and unchanged. Item closes on the strength of its own stated condition; B30.2's lack of a
+mechanical guard is a smaller, separate gap worth a fresh, narrowly-scoped item if it matters later — not
+a reason to hold this one open indefinitely per B37 finding 10's own lesson about that failure mode.
+
+**Still queued 2026-08-20 (completion-tagging pass, retires the `research-in-flight` tag) — superseded
+by the paragraph above, kept for the record:** the
 research phase (B30.5) is complete and its findings are cited throughout this document. The application
 phase B30.1 called for is not done — see B36, whose finding B38 independently re-confirmed unfixed the
 same day it was raised. This item does not close until B36's work item does.
@@ -2212,10 +2234,46 @@ accept at that load level, or a follow-up item for a wall-clock-independent read
 
 ---
 
-## B36 — B30's research landed unevenly: the coordinator's own role contract still hardcodes `invoke_subagent`, and `host-adapters.md` is spliced, not merged   `queued`
+## B36 — B30's research landed unevenly: the coordinator's own role contract still hardcodes `invoke_subagent`, and `host-adapters.md` is spliced, not merged   `verified`
 
-**Corrected 2026-08-20 (reconciliation pass) — the note directly below is now factually wrong on
-B36.1's `coordinator.yaml` half and must not be trusted.** Opened `agents/coordinator.yaml` fresh:
+**Verified 2026-08-20 (reconciliation pass, same day, minutes after the "Net: 2 of 4" note below —
+the situation kept moving under this pass and this is the freshest read):** a second wave of concurrent
+edits landed all three of the remaining work items while this exact item was being reconciled. Re-opened
+every artifact fresh, not trusting the "2 of 4 done" count directly below, which is now itself stale:
+
+- `references/run-playbook.md:75-84` no longer has the bare `invoke_subagent({...})` block; it now reads
+  "Whatever the host, dispatching one agent means the same abstract contract... The concrete call — its
+  name, shape and argument fields — is a per-host fact, never a rule: read `host-adapters.md`'s adapter
+  table," pointing at the same abstraction `coordinator.yaml` already carries. B36.1 fully done.
+- `references/host-adapters.md` now reads `## 3. Host Adapters` with `### 3.1` through `### 3.5` as
+  genuine subsections, coherent with the pre-existing `## 1`/`## 2`/`## 4` — the missing "3" is filled,
+  not just renumbered around. B36.2 done.
+- `references/parity-matrix.md`'s "Tiered orchestration"/"Paired continuous dispatch"/"Sub-agents for
+  branch sub-tasks" rows for Claude Code now read `Native (`Agent` tool)` / `Concurrent `Agent` tool
+  calls` / `Nested `Agent` tool calls` — matching `host-adapters.md`'s adapter table exactly instead of
+  contradicting it. B36.3 done.
+- A new mechanical check exists and is wired in: `health/vendor-prose.ts`'s
+  `scanProseForUnqualifiedDispatch`/`scanTreeForUnqualifiedDispatch`, registered as the `vendor-prose`
+  health check (`health/index.ts`, `health/types.ts`) and titled "Unqualified host-dispatch calls in docs
+  and role contracts" in the harness's own output. It sweeps `.md`/`.yaml` under the skill root — exactly
+  B36.4's ask — judging qualification by paragraph or, in Markdown, the nearest heading above it, so an
+  adapter-table row naming its host still passes while a bare "this is the shape of the call" block does
+  not. Running `bun orchestrating-long-tasks/scripts/harness.ts health --consumer ../gvui --all` just now
+  shows this check at **0 failures, 0 advisories, 1 inspected** — the whole skill root is clean.
+  `tests/unit/architecture/vendor-prose.test.ts` — including a test that reinjects "the exact two
+  regressions this item names, reproduced verbatim... from `git log -p`" and asserts the check catches
+  them — 7/7 pass, confirming the guard is load-bearing rather than vacuously green. B36.4 done.
+
+Reachable: the check is wired into `ALL_CHECKS` and runs by default, not an opt-in nobody invokes. Does
+what was asked: it names the exact defect shape (a host's dispatch call given as "the shape of the call"
+with no host named in reach) and the exact two prior regressions, not a looser proxy. Guard holds: the
+test suite itself reinjects those two regressions against scratch strings and asserts the check fails on
+them, which stands in for the delete-and-confirm-failure bar without touching the live files another wave
+was still editing. All four work items plus B36.5's inherited items are done. Item closes.
+
+**Superseded note, correct as of its own moment but stale within minutes — kept for the record, not to
+be read as current.** It was itself a correction to an even earlier note on B36.1's `coordinator.yaml`
+half, and reads from here on exactly as originally written: Opened `agents/coordinator.yaml` fresh:
 `grep -n invoke_subagent agents/coordinator.yaml` returns nothing. The "Phase 2: Continuous Dispatch"
 block B36.1 quoted has been replaced — it now reads "The concrete tool that does this — its name, call
 shape and argument fields — is a per-host fact, never a rule: read `references/host-adapters.md`'s
@@ -2582,8 +2640,8 @@ function's own doc comment claims. Worth a same-day-window assertion alongside i
    `--tokens-estimated` is passed), are free-text CLI input from whichever process calls the harness —
    there is no code path anywhere that confirms the value actually came from the host. They are still
    stamped `evidence_class: "host_reported"` unconditionally
-   (`orchestrating-long-tasks/scripts/src/workflow/agents/grants.ts:109-128` `telemetryFields()`, `:91-93`
-   `hostLevel()`, `:280` and `:285-288` `mergeTokenExtras()`/`tokenCount()`). The CLI's own help text says
+   (`orchestrating-long-tasks/scripts/src/workflow/agents/grants.ts:122-141` `telemetryFields()`, `:87-96`
+   `explicitLevel()`, `:290-301` and `:305-308` `mergeTokenExtras()`/`tokenCount()`). The CLI's own help text says
    so out loud: `bun harness.ts help agent:register` describes `--model` as "Host-reported model id,
    recorded exactly as given and never parsed." Reproduced directly against a throwaway scratch capsule
    (`.tmp/verify-pass3`, deleted after): `agent:register --agent fake-1 --role implementer --host
@@ -2638,7 +2696,10 @@ function's own doc comment claims. Worth a same-day-window assertion alongside i
    corroborating derived/transcript probe) may reach the exported graph tagged `host_reported` or
    `harness_observed`.
    **PARTIALLY RESOLVED, verified 2026-08-20 (reconciliation pass) — the mislabeling itself is fixed;
-   the conflict-visibility half is not.** Opened `grants.ts` fresh: `telemetryFields()`, `hostLevel()`,
+   the conflict-visibility half is not.** Opened `grants.ts` fresh: `telemetryFields()`, `explicitLevel()`
+   (this pass's own re-check first mistyped this as `hostLevel()`, copied from the finding text above
+   without re-reading the function signature — corrected here, per the same B33 standard this pass
+   otherwise applied: a citation is only as fresh as the artifact it was actually checked against),
    `mergeTokenExtras()` and `tokenCount()` all now stamp `agent_reported` on every CLI-supplied
    telemetry field, with an inline comment naming this finding by number ("the same `agent_reported`
    class as `--tool` rather than `host_reported`... B39 finding 1"). Reproduced this finding's own repro
@@ -2677,8 +2738,8 @@ independently, per B33 — never by re-reading B39's prose and trusting it.
    fresh capsule came back with every one of those five fields tagged `"evidence_class":"host_reported"`
    in the command's own JSON, exactly as B39 describes. Confirmed the four unconditional-stamp call sites
    by opening `orchestrating-long-tasks/scripts/src/workflow/agents/grants.ts` directly: `telemetryFields()`
-   (lines 109-128) stamps `provider`/`model`/`context_window` `host_reported` whenever the flag is merely
-   present, `hostLevel()` (91-93) does the same for `model_tier`/`thinking_level` unless the value is the
+   (lines 122-141) stamps `provider`/`model`/`context_window` `host_reported` whenever the flag is merely
+   present, `explicitLevel()` (87-96) does the same for `model_tier`/`thinking_level` unless the value is the
    literal string `"unknown"`, and the same file's `markdown-evidence-sections.ts:395` really does say
    "Nothing here is inferred from a model name, an agent id or the exporting machine" one line above data
    that contradicts it. Also confirmed `mergeDerivedField` (`telemetry-merge.ts:58-76`) keeps the explicit
