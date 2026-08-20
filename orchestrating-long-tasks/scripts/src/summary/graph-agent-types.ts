@@ -1,4 +1,4 @@
-import type { AgentModelTier, ThinkingLevel } from "../contracts/agents.ts";
+import type { AgentModelTier, TelemetryFieldConflict, ThinkingLevel } from "../contracts/agents.ts";
 import type { EvidenceClass, Evidenced } from "../contracts/evidence.ts";
 import type { JsonObject } from "../contracts/json.ts";
 import type { ToolCategory } from "../contracts/taxonomy.ts";
@@ -148,4 +148,11 @@ export interface NodeTelemetry {
   /** Counters only some providers keep, under the names those providers reported them by. */
   tokenExtras?: Record<string, Evidenced<number>> | undefined;
   grantStatus?: string | undefined;
+  /**
+   * Every disagreement a probe found against this agent's reported telemetry, with both values and
+   * both evidence classes intact — never resolved to a single winner (B39). Absent when nothing
+   * ever disagreed, not an empty array, so a node's own JSON stays silent about a check that never
+   * found anything to say.
+   */
+  telemetryConflicts?: readonly TelemetryFieldConflict[] | undefined;
 }

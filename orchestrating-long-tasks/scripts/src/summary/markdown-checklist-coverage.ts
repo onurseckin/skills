@@ -73,5 +73,5 @@ export function renderChecklistCoverage(context: ReportContext): string[] {
       ? note("No task has recorded a review yet, so no standing checklist coverage exists.")
       : context.checklistCoverage.flatMap(checklistCoverageBlock)),
   ];
-  return section("19. Standing Checklist Coverage", lines);
+  return section("20. Standing Checklist Coverage", lines);
 }

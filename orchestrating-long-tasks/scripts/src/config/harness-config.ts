@@ -62,9 +62,11 @@ export interface HarnessConfig {
   commit_per_subphase: boolean;
   /** B22.3: a commit past this many changed lines is a WARNING on the result, never a refusal. */
   max_commit_lines: number;
-  // B22.4 (rebase harness/<run-id> onto the default branch at run end) is not implemented yet —
-  // no `rebase_on_complete` field here until something actually reads it. A declared-but-unenforced
-  // knob is a promise the code does not keep.
+  /** B22.4: whether `run:complete` rebases `harness/<run-id>` onto the base branch's current tip
+   *  after merging every worktree's commits onto it. A conflict always stops the rebase regardless
+   *  of this flag; turning it off skips attempting the rebase at all, leaving the merged branch as
+   *  the run's final state. */
+  rebase_on_complete: boolean;
 }
 
 /** B27.2: which source actually produced the resolved `default_max_parallel`, so a report can say
@@ -88,6 +90,7 @@ export const DEFAULT_CONFIG: HarnessConfig = {
   branch_prefix: "harness/",
   commit_per_subphase: true,
   max_commit_lines: 500,
+  rebase_on_complete: true,
 };
 
 export const DEFAULT_RESOLVED_CONFIG: ResolvedHarnessConfig = {
@@ -163,6 +166,9 @@ function parseConfigFile(filePath: string): Partial<ResolvedHarnessConfig> | nul
     const maxCommitLines = positiveCount(record.max_commit_lines, 1);
     if (maxCommitLines !== null) partial.max_commit_lines = maxCommitLines;
 
+    const rebaseOnComplete = booleanField(record.rebase_on_complete);
+    if (rebaseOnComplete !== null) partial.rebase_on_complete = rebaseOnComplete;
+
     return partial;
   } catch {
     return null;
@@ -184,14 +190,23 @@ function resolveConcurrencyCeiling(
 ): Pick<ResolvedHarnessConfig, "default_max_parallel" | "default_max_parallel_source"> {
   const explicitParallel = repoConfig?.default_max_parallel ?? capsuleConfig?.default_max_parallel;
   if (explicitParallel !== undefined) {
-    return { default_max_parallel: explicitParallel, default_max_parallel_source: "config_override" };
+    return {
+      default_max_parallel: explicitParallel,
+      default_max_parallel_source: "config_override",
+    };
   }
   const explicitCeiling = repoConfig?.max_concurrent_agents ?? capsuleConfig?.max_concurrent_agents;
   if (explicitCeiling !== undefined) {
-    return { default_max_parallel: explicitCeiling, default_max_parallel_source: "config_override" };
+    return {
+      default_max_parallel: explicitCeiling,
+      default_max_parallel_source: "config_override",
+    };
   }
   if (discovery !== null) {
-    return { default_max_parallel: discovery.value, default_max_parallel_source: "host_discovered" };
+    return {
+      default_max_parallel: discovery.value,
+      default_max_parallel_source: "host_discovered",
+    };
   }
   return {
     default_max_parallel: DEFAULT_CONFIG.default_max_parallel,
@@ -235,7 +250,9 @@ export function resolveHarnessConfig(
   }
 
   const discovery =
-    options?.hostConcurrency !== undefined ? options.hostConcurrency : discoverHostConcurrencyCeiling();
+    options?.hostConcurrency !== undefined
+      ? options.hostConcurrency
+      : discoverHostConcurrencyCeiling();
   const concurrency = resolveConcurrencyCeiling(capsuleConfig, repoConfig, discovery);
   const gateMaxParallel =
     repoConfig?.gate_max_parallel ??

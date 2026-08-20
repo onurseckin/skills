@@ -1,7 +1,12 @@
-import type { AgentGrantRecord, AgentToolUse, ThinkingLevel } from "../../contracts/agents.ts";
+import type {
+  AgentGrantRecord,
+  AgentToolUse,
+  TelemetryFieldConflict,
+  ThinkingLevel,
+} from "../../contracts/agents.ts";
 import type { RunState } from "../../contracts/capsule.ts";
 import { evidenced, type Evidenced, type EvidenceClass } from "../../contracts/evidence.ts";
-import type { JsonObject, JsonValue } from "../../contracts/json.ts";
+import type { JsonObject } from "../../contracts/json.ts";
 import { HarnessError } from "../../errors/harness-error.ts";
 import { loadRun, transact } from "../../store/index.ts";
 import { findGrant, readAgentLedger, replaceGrant, requireGrant, writeAgentLedger } from "./ledger.ts";
@@ -28,17 +33,9 @@ export interface DerivedTelemetryInput {
   transcript?: AgentTranscriptTelemetry;
 }
 
-/**
- * Two sources named the same field and disagreed. Both values are kept — the ledger field itself
- * keeps whichever value was explicitly reported, and this record is what proves the other one
- * existed, so nothing is thrown away by picking a side.
- */
-export interface TelemetryFieldConflict extends JsonObject {
-  field: string;
-  recorded_value: JsonValue;
-  recorded_evidence_class: EvidenceClass;
-  probed_value: JsonValue;
-}
+// The type lives on the contract (`AgentGrantRecord.telemetry_conflicts` carries it to disk), not
+// here — re-exported so every existing caller of this module keeps importing it from here too.
+export type { TelemetryFieldConflict } from "../../contracts/agents.ts";
 
 export interface TelemetryProbeOutcome {
   grant: AgentGrantRecord;
@@ -70,6 +67,7 @@ export function mergeDerivedField<T extends number | string>(
       recorded_value: explicit.value,
       recorded_evidence_class: explicit.evidence_class,
       probed_value: probed,
+      probed_evidence_class: evidenceClass,
     });
   }
   return explicit;
@@ -98,6 +96,7 @@ export function mergeObservedCount(
       recorded_value: explicit.value,
       recorded_evidence_class: explicit.evidence_class,
       probed_value: observed,
+      probed_evidence_class: "harness_observed",
     });
   }
   return explicit;
@@ -200,7 +199,36 @@ export function checkParentAgentConflict(
     recorded_value: declaredParentAgentId,
     recorded_evidence_class: "agent_reported",
     probed_value: transcript.parentAgentId,
+    probed_evidence_class: "harness_observed",
   });
+}
+
+/**
+ * Conflicts accumulate on the grant across every probe that ever ran against it, at
+ * `agent:register` and every task-boundary refresh after — a disagreement `task:claim` found is
+ * still true after `task:submit` re-probes and finds the identical pair, so folding the same round
+ * in twice (e.g. a derived config value that never changes) never re-adds it (B39). Compared on
+ * every field of the record, not just `field` and the two values, because two disagreements on the
+ * same field with different evidence classes on either side are two distinct, both real, findings.
+ */
+export function appendTelemetryConflicts(
+  existing: readonly TelemetryFieldConflict[] | undefined,
+  incoming: readonly TelemetryFieldConflict[],
+): TelemetryFieldConflict[] | undefined {
+  if (incoming.length === 0) return existing === undefined ? undefined : [...existing];
+  const merged = existing === undefined ? [] : [...existing];
+  for (const conflict of incoming) {
+    const isDuplicate = merged.some(
+      (entry) =>
+        entry.field === conflict.field &&
+        entry.recorded_value === conflict.recorded_value &&
+        entry.recorded_evidence_class === conflict.recorded_evidence_class &&
+        entry.probed_value === conflict.probed_value &&
+        entry.probed_evidence_class === conflict.probed_evidence_class,
+    );
+    if (!isDuplicate) merged.push(conflict);
+  }
+  return merged;
 }
 
 /** The subset of `AgentGrantRecord` that a derived or transcript probe can ever fill or refresh. */
@@ -366,7 +394,12 @@ export function refreshAgentDerivedTelemetry(
         ledgerAfter = ledger;
         return;
       }
-      const next: AgentGrantRecord = { ...grant, ...merged };
+      const telemetryConflicts = appendTelemetryConflicts(grant.telemetry_conflicts, conflicts);
+      const next: AgentGrantRecord = {
+        ...grant,
+        ...merged,
+        ...(telemetryConflicts === undefined ? {} : { telemetry_conflicts: telemetryConflicts }),
+      };
       updated = next;
       ledgerAfter = replaceGrant(ledger, next);
       writeAgentLedger(draft, ledgerAfter);

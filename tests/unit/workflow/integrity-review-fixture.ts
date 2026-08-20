@@ -17,6 +17,7 @@ export function integrityGateIssues(entry: JsonObject): string[] {
     graph_revision: 1,
     readiness_sha256: "0".repeat(64),
     repository_binding: structuredClone(repositoryBinding),
+    summary: "whole diff verified against the run gate",
     status: "clean",
     unresolved_finding_ids: [],
     findings: [],

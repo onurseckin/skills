@@ -45,6 +45,10 @@ export interface CompletionReview extends JsonObject {
   graph_revision: number;
   readiness_sha256: string;
   repository_binding: RepositoryBinding;
+  // B21: the critic's own account of what the whole diff shows, closing out the run's final
+  // lifecycle transition. Required so this durable, hash-chained record — not only the CLI flag
+  // parser — is where the requirement actually lives.
+  summary: string;
   status: "clean" | "findings";
   unresolved_finding_ids: string[];
   findings: CompletionFinding[];

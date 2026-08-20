@@ -114,6 +114,7 @@ function findings(port: TestPort, critic: string, attempt: number, token: string
       graph_revision: 1,
       readiness_sha256: port.read().completion_critic!.readiness_sha256,
       repository_binding: structuredClone(repositoryBinding),
+      summary: `attempt ${attempt} still leaves a finding open`,
       status: "findings",
       unresolved_finding_ids: [`CF-${attempt}`],
       findings: [

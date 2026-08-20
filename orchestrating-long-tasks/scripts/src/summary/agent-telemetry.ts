@@ -57,6 +57,9 @@ export function buildNodeTelemetry(
   if (grant.token_extras && Object.keys(grant.token_extras).length > 0) {
     telemetry.tokenExtras = grant.token_extras;
   }
+  if (grant.telemetry_conflicts && grant.telemetry_conflicts.length > 0) {
+    telemetry.telemetryConflicts = grant.telemetry_conflicts;
+  }
   return telemetry;
 }
 

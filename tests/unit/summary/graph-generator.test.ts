@@ -163,4 +163,40 @@ describe("graph generator", () => {
     expect(validator?.scripts?.[0]?.durationMs).toBe(1000);
     expect(validator?.scripts?.[0]?.evidence_class).toBe("harness_observed");
   });
+
+  // B22.3: the sub-phase commit `task:submit` recorded on the task record must reach the graph
+  // node — this is the link a node in gvui uses to point at the git history it actually produced.
+  test("carries a task's worktree sub-phase commit onto its implementer node", () => {
+    const withCommit = makeTask("T-3", {
+      status: "done",
+      worktree_commit: {
+        task_id: "T-3",
+        worktree_id: "wt-0",
+        sha: "a".repeat(40),
+        subject: "chore: Task T-3",
+        changed_lines: 12,
+        over_limit: false,
+      },
+    });
+    const dataset = generateGraphDataset({
+      runId: "test-run",
+      state: makeState([withCommit]),
+      promptText: "Implement feature X",
+      commands: {},
+    });
+
+    const node = dataset.nodes.find((n) => n.id === "node-task-T-3");
+    expect(node?.metadata?.worktreeCommit).toEqual({
+      sha: "a".repeat(40),
+      subject: "chore: Task T-3",
+      changedLines: 12,
+      overLimit: false,
+    });
+  });
+
+  test("omits worktreeCommit metadata for a task worktree isolation never touched", () => {
+    const dataset = twoTaskDataset();
+    const node = dataset.nodes.find((n) => n.id === "node-task-T-1");
+    expect(node?.metadata?.worktreeCommit).toBeUndefined();
+  });
 });

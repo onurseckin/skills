@@ -56,7 +56,12 @@ function submitted(): TestPort {
 function validationToken(port: TestPort, validator: string): string {
   registerCommand(port, `C-${validator}`, validator);
   const started = beginValidation(port, "T-1", validator, clock);
-  registerTaskPacket(port, "validator", validator, started.tasks["T-1"]!.validations!.at(-1)!.attempt);
+  registerTaskPacket(
+    port,
+    "validator",
+    validator,
+    started.tasks["T-1"]!.validations!.at(-1)!.attempt,
+  );
   return started.tasks["T-1"]!.validation_token!;
 }
 
@@ -162,6 +167,7 @@ function recordFindings(port: TestPort, critic: string, attempt: number, token: 
       graph_revision: 1,
       readiness_sha256: port.read().completion_critic!.readiness_sha256,
       repository_binding: structuredClone(repositoryBinding),
+      summary: `attempt ${attempt} still leaves a finding open`,
       status: "findings",
       unresolved_finding_ids: [`CF-${attempt}`],
       findings: [

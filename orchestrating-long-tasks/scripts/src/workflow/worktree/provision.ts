@@ -5,7 +5,7 @@ import type { WorktreeLedgerState, WorktreeRecord } from "../../contracts/worktr
 import { HarnessError } from "../../errors/harness-error.ts";
 import { loadRun, transact } from "../../store/index.ts";
 import { assignWorktrees, type AssignableTask } from "./assign.ts";
-import { addWorktree, branchExists, createBranch, headSha } from "./git-ops.ts";
+import { addWorktree, branchExists, createBranch, currentBranch, headSha } from "./git-ops.ts";
 import { readWorktreeLedger, writeWorktreeLedger } from "./ledger.ts";
 
 /**
@@ -16,7 +16,8 @@ import { readWorktreeLedger, writeWorktreeLedger } from "./ledger.ts";
  */
 function resolveWorktreeRoot(repoRoot: string, configured: string | undefined): string {
   const parent = dirname(repoRoot);
-  const root = configured === undefined ? join(parent, ".harness-worktrees") : resolve(parent, configured);
+  const root =
+    configured === undefined ? join(parent, ".harness-worktrees") : resolve(parent, configured);
   const normalizedRepo = resolve(repoRoot);
   if (root === normalizedRepo || root.startsWith(normalizedRepo + sep)) {
     throw new HarnessError(
@@ -64,7 +65,11 @@ export function provisionWorktrees(input: ProvisionWorktreesInput): ProvisionWor
   const root = resolveWorktreeRoot(input.repoRoot, input.config.worktree_root);
   const harnessBranch = `${input.config.branch_prefix}${input.runId}`;
   const baseSha = existing?.base_sha ?? headSha(input.repoRoot);
-  if (!branchExists(input.repoRoot, harnessBranch)) createBranch(input.repoRoot, harnessBranch, baseSha);
+  // Read once, at first provisioning, alongside baseSha — a later call reusing the pool must not
+  // re-read HEAD's current branch, which could have moved since (the user keeps working; B22.1).
+  const baseBranch = existing?.base_branch ?? currentBranch(input.repoRoot) ?? undefined;
+  if (!branchExists(input.repoRoot, harnessBranch))
+    createBranch(input.repoRoot, harnessBranch, baseSha);
 
   const already = existing?.worktrees.length ?? 0;
   const createdAt = (input.now ?? new Date()).toISOString();
@@ -81,16 +86,19 @@ export function provisionWorktrees(input: ProvisionWorktreesInput): ProvisionWor
     newWorktrees.push({ id, path: worktreePath, branch, base_sha: baseSha, created_at: createdAt });
   }
 
-  const assignmentsChanged = JSON.stringify(existing?.assignments ?? []) !== JSON.stringify(assignments);
+  const assignmentsChanged =
+    JSON.stringify(existing?.assignments ?? []) !== JSON.stringify(assignments);
   if (newWorktrees.length === 0 && !assignmentsChanged) return { enabled: true, ledger: existing };
 
   const ledger: WorktreeLedgerState = {
     harness_branch: harnessBranch,
     base_sha: baseSha,
+    ...(baseBranch === undefined ? {} : { base_branch: baseBranch }),
     root,
     worktrees: [...(existing?.worktrees ?? []), ...newWorktrees],
     assignments,
     commits: existing?.commits ?? [],
+    ...(existing?.consolidation === undefined ? {} : { consolidation: existing.consolidation }),
   };
   transact(
     input.runRoot,

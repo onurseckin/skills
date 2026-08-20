@@ -69,6 +69,7 @@ export function generateSummarySuite(options: SummaryGenerationOptions): Summary
     timeline,
     state,
     commands: diskCommands,
+    graph,
   });
 
   const suite: SummarySuite = { timeline, metrics, graph, markdown };

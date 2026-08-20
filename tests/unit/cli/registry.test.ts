@@ -66,6 +66,7 @@ const EXPECTED_INVOCATIONS = [
   "doctor:repair",
   "recover",
   "task:release",
+  "worktree:reclaim",
 ];
 
 describe("CLI command registry", () => {

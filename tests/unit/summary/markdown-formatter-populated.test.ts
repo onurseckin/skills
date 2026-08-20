@@ -2,6 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import {
   cleanupRoots,
   emptyState,
+  populatedGraph,
   populatedRunRoot,
   populatedState,
   render,
@@ -31,7 +32,7 @@ describe("markdown report: a fully populated capsule renders every recorded fact
   });
 
   test("renders commands, tools, branch observations and validation attempts", () => {
-    const markdown = render(populatedState, { runRoot: populatedRunRoot() });
+    const markdown = render(populatedState, { runRoot: populatedRunRoot(), graph: populatedGraph });
 
     expect(markdown).toContain(
       "| `C-1` | `bun gate.ts` | `validator-1` | `task-1` | `gate-1` | succeeded | 0 | 2.0s | 12 | 0 | unknown |",
@@ -41,7 +42,18 @@ describe("markdown report: a fully populated capsule renders every recorded fact
     expect(markdown).toContain(
       "| Worktree at collect | 1 paths at 2026-08-20T00:00:06.000Z (head abc) |",
     );
-    expect(markdown).toContain("| `src/one/parser.ts` | `B-1` | harness_observed |");
+    // The branch's own Git-observed file (B15.2): no rationale or diff was read for it (this fixture
+    // hand-builds the graph rather than running a real Git diff), so step, lines and delta stay
+    // unknown rather than a guessed value.
+    expect(markdown).toContain(
+      "| `src/one/parser.ts` | `B-1` | unknown | write | unknown | unknown | harness_observed |",
+    );
+    // The task's own submitted file, enriched with a rationale and a step (B15.2).
+    expect(markdown).toContain(
+      "| `src/one/index.ts` | `task-1` | 12 | write | 1-4 | +3/-1 | harness_observed |",
+    );
+    expect(markdown).toContain("#### `src/one/index.ts` (task-1)");
+    expect(markdown).toContain("- **Why**: Implemented the parser rewrite");
     // validation_history[0] carries no domain in the fixture, so the column says so rather than
     // guessing the one domain validations[0] happens to use.
     expect(markdown).toContain("| `task-1` | 1 | unknown | `validator-1` | reject | none |");

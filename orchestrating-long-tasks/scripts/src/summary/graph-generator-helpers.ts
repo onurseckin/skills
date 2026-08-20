@@ -154,6 +154,16 @@ export function buildImplementerNode(ctx: TaskNodeContext): GraphNodeData {
       probeRounds: task.probe_round ?? 0,
       taskStatus: task.status,
       pushbackFindingIds: ctx.findings.map((finding) => finding.id),
+      ...(task.worktree_commit
+        ? {
+            worktreeCommit: {
+              sha: task.worktree_commit.sha,
+              subject: task.worktree_commit.subject,
+              changedLines: task.worktree_commit.changed_lines,
+              overLimit: task.worktree_commit.over_limit,
+            },
+          }
+        : {}),
     },
   };
 }

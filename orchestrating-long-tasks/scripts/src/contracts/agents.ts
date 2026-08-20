@@ -1,5 +1,5 @@
 import { isEvidenceClass, isEvidenced, type EvidenceClass, type Evidenced } from "./evidence.ts";
-import { isJsonObject, isSafeInteger, type JsonObject } from "./json.ts";
+import { isJsonObject, isSafeInteger, type JsonObject, type JsonValue } from "./json.ts";
 import { isAgentRole, type AgentRole } from "./packets.ts";
 import {
   isCategoryExtras,
@@ -40,6 +40,21 @@ export interface AgentToolUse extends AgentToolRef {
 }
 
 /**
+ * Two sources named the same field and disagreed. Nothing is thrown away to make room for a
+ * winner: `recorded_value` is whichever value the grant field itself kept (an explicit report
+ * always keeps the field), `probed_value` is what an independent read of the same field found
+ * instead. Both carry their own evidence class — "who said so" is exactly what makes two
+ * disagreeing numbers worth showing side by side rather than quietly picking one (B32.1, B39).
+ */
+export interface TelemetryFieldConflict extends JsonObject {
+  field: string;
+  recorded_value: JsonValue;
+  recorded_evidence_class: EvidenceClass;
+  probed_value: JsonValue;
+  probed_evidence_class: EvidenceClass;
+}
+
+/**
  * One dispatched agent and everything the run knows about it. `id` is the agent id the harness will
  * later see as an event `actor`, which is what closes the loop between a grant and the work done
  * under it. Every telemetry field is optional and stays absent unless the host supplied it.
@@ -72,6 +87,13 @@ export interface AgentGrantRecord extends JsonObject {
   token_extras?: Record<string, Evidenced<number>>;
   last_reported_at?: string;
   report_count?: number;
+  /**
+   * Every disagreement a probe ever found against an explicitly reported field, from registration
+   * onward. Accumulated, never replaced — a disagreement a later probe stops reproducing was still
+   * real at the time it was found, so it stays on the record rather than being pruned once it goes
+   * quiet (B39).
+   */
+  telemetry_conflicts?: TelemetryFieldConflict[];
 }
 
 const THINKING_LEVEL_SET = new Set<string>(THINKING_LEVELS);
@@ -133,6 +155,19 @@ function isEvidencedCounterMap(value: unknown): value is Record<string, Evidence
   return Object.values(value).every((entry) => isEvidenced(entry, isSafeInteger));
 }
 
+export function isTelemetryFieldConflict(value: unknown): value is TelemetryFieldConflict {
+  if (!isJsonObject(value)) return false;
+  if (!isNonBlankString(value.field)) return false;
+  if (value.recorded_value === undefined || value.probed_value === undefined) return false;
+  if (!isEvidenceClass(value.recorded_evidence_class)) return false;
+  if (!isEvidenceClass(value.probed_evidence_class)) return false;
+  return true;
+}
+
+function isTelemetryFieldConflictArray(value: unknown): value is TelemetryFieldConflict[] {
+  return Array.isArray(value) && value.every(isTelemetryFieldConflict);
+}
+
 export function isAgentGrantRecord(value: unknown): value is AgentGrantRecord {
   if (!isJsonObject(value)) return false;
   if (!isNonBlankString(value.id) || !isAgentRole(value.role)) return false;
@@ -155,5 +190,11 @@ export function isAgentGrantRecord(value: unknown): value is AgentGrantRecord {
   if (value.token_extras !== undefined && !isEvidencedCounterMap(value.token_extras)) return false;
   const tools = value.tools_used;
   if (tools !== undefined && !(Array.isArray(tools) && tools.every(isAgentToolUse))) return false;
+  if (
+    value.telemetry_conflicts !== undefined &&
+    !isTelemetryFieldConflictArray(value.telemetry_conflicts)
+  ) {
+    return false;
+  }
   return true;
 }

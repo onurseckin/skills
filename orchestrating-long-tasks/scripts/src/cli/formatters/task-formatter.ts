@@ -7,6 +7,9 @@ export interface TaskClaimParams {
   durationMinutes: number;
   writeScope: readonly string[];
   packetPath?: string;
+  /** B22.2's assignment reaching the claiming agent: absent means worktree isolation is off for
+   *  this run, never an unassigned slot under isolation (provisioning covers every task). */
+  worktreePath?: string | undefined;
 }
 
 export function formatTaskClaimBrief(params: TaskClaimParams): string {
@@ -17,6 +20,11 @@ export function formatTaskClaimBrief(params: TaskClaimParams): string {
     `- **Lease Token**: \`${params.token}\``,
     `- **Duration**: ${params.durationMinutes} minutes`,
     `- **Assigned Write Scope**: ${scopeStr}`,
+    ...(params.worktreePath === undefined
+      ? []
+      : [
+          `- **Isolated Worktree**: \`${params.worktreePath}\` — do all editing there, not in the shared repo checkout.`,
+        ]),
     `- **Note**: Pass \`--token ${params.token}\` to \`task:submit\`.`,
   ].join("\n");
   return enforceLineLimit(md, 30);

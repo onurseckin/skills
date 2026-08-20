@@ -28,7 +28,13 @@ import {
   readTaskChecklistCoverage,
   readTopologyRecord,
 } from "./markdown-sources.ts";
-import type { RollupMetrics, TimelineEventRecord } from "./types.ts";
+import type {
+  ActionStepRecord,
+  FileRef,
+  GraphDataset,
+  RollupMetrics,
+  TimelineEventRecord,
+} from "./types.ts";
 
 export interface ReportContextInput {
   runId: string;
@@ -39,6 +45,10 @@ export interface ReportContextInput {
   commands: Record<string, CommandRecord>;
   metrics: RollupMetrics;
   timeline: TimelineEventRecord[];
+  /** The same dataset `graph.json` carries. Line-level file provenance and the action-provenance
+   * trace (B15.1/B15.2) are read back from here rather than recomputed, so the two renderings of
+   * one run can never drift apart. */
+  graph: GraphDataset;
 }
 
 export interface ReportContext {
@@ -65,6 +75,12 @@ export interface ReportContext {
   timeline: TimelineEventRecord[];
   /** B12.5: one entry per task that has ever recorded a `task:review`, in task order. */
   checklistCoverage: TaskChecklistCoverageView[];
+  /** The run's full action-provenance trace (B15.1), read straight off `graph.run.steps`. */
+  steps: readonly ActionStepRecord[];
+  /** A task's own enriched file list (line ranges, diff, rationale, step — B15.2), keyed by task id. */
+  taskFiles: ReadonlyMap<string, readonly FileRef[]>;
+  /** A branch excursion's own Git-observed file list (B15.2), keyed by branch id. */
+  branchFiles: ReadonlyMap<string, readonly FileRef[]>;
 }
 
 function orderedTasks(state: Readonly<WorkflowState>): TaskRecord[] {
@@ -104,10 +120,44 @@ function buildWaves(topology: TopologyRecord | null, tasks: readonly TaskRecord[
   return waves;
 }
 
+/**
+ * The graph already computed each task's enriched file list (line ranges, diff, rationale, step —
+ * B15.2) while building `node-task-<id>`; this reads it back rather than recomputing it from the
+ * report a second time, so the two renderings of one run can never drift from each other. The node
+ * id template is the same one `graph-task-preparation.ts` mints, not a guess at one.
+ */
+function fileRefsByTaskId(
+  graph: GraphDataset,
+  tasks: readonly TaskRecord[],
+): ReadonlyMap<string, readonly FileRef[]> {
+  const map = new Map<string, readonly FileRef[]>();
+  for (const task of tasks) {
+    const files = graph.nodes.find((node) => node.id === `node-task-${task.id}`)?.files;
+    if (files !== undefined && files.length > 0) map.set(task.id, files);
+  }
+  return map;
+}
+
+/** Same as `fileRefsByTaskId`, for a branch excursion's own Git-observed files (B15.2), which the
+ * graph holds on its section rather than on a node — the section id template is
+ * `graph-generator-branch-nodes.ts`'s own. */
+function fileRefsByBranchId(
+  graph: GraphDataset,
+  branches: readonly BranchRecord[],
+): ReadonlyMap<string, readonly FileRef[]> {
+  const map = new Map<string, readonly FileRef[]>();
+  for (const branch of branches) {
+    const files = graph.sections?.find((entry) => entry.id === `section-branch-${branch.id}`)?.files;
+    if (files !== undefined && files.length > 0) map.set(branch.id, files);
+  }
+  return map;
+}
+
 export function buildReportContext(input: ReportContextInput): ReportContext {
   const ledger = readAgentLedgerView(input.state);
   const tasks = orderedTasks(input.state);
   const topology = readTopologyRecord(input.state);
+  const branches = readBranches(input.state);
   return {
     runId: input.runId,
     runRoot: input.runRoot,
@@ -120,7 +170,7 @@ export function buildReportContext(input: ReportContextInput): ReportContext {
     requirements: readRequirements(input.state),
     dispositions: readDispositions(input.state),
     gates: readGates(input.state),
-    branches: readBranches(input.state),
+    branches,
     agents: [...ledger.grants.values()],
     agentLedgerIssue: ledger.integrityIssue,
     commands: readCommands(input.state, input.commands),
@@ -133,5 +183,8 @@ export function buildReportContext(input: ReportContextInput): ReportContext {
       const coverage = readTaskChecklistCoverage(input.runRoot, task.id);
       return coverage === null ? [] : [coverage];
     }),
+    steps: input.graph.run?.steps ?? [],
+    taskFiles: fileRefsByTaskId(input.graph, tasks),
+    branchFiles: fileRefsByBranchId(input.graph, branches),
   };
 }

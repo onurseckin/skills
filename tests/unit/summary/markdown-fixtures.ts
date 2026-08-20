@@ -6,7 +6,7 @@ import type { JsonObject } from "../../../orchestrating-long-tasks/scripts/src/c
 import type { TaskRecord } from "../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
 import { formatSummaryMarkdown } from "../../../orchestrating-long-tasks/scripts/src/summary/markdown-formatter.ts";
 import type { MarkdownFormatterInput } from "../../../orchestrating-long-tasks/scripts/src/summary/markdown-formatter.ts";
-import type { RollupMetrics } from "../../../orchestrating-long-tasks/scripts/src/summary/types.ts";
+import type { GraphDataset, RollupMetrics } from "../../../orchestrating-long-tasks/scripts/src/summary/types.ts";
 
 const roots: string[] = [];
 
@@ -68,6 +68,10 @@ export function task(overrides: Partial<TaskRecord> & { id: string }): TaskRecor
   };
 }
 
+/** No graph was computed for this render — every section that reads `context.graph`-derived
+ * fields (files changed, action provenance) sees the same absence a real run with no events would. */
+export const emptyGraph: GraphDataset = { id: "unit-run-graph", title: "unit-run-graph", nodes: [], edges: [] };
+
 export function render(state: JsonObject, extra: Partial<MarkdownFormatterInput> = {}): string {
   return formatSummaryMarkdown({
     runId: "unit-run",
@@ -77,6 +81,7 @@ export function render(state: JsonObject, extra: Partial<MarkdownFormatterInput>
     metrics,
     timeline: [],
     commands: {},
+    graph: emptyGraph,
     ...extra,
     state: state as unknown as MarkdownFormatterInput["state"],
   });
@@ -336,6 +341,45 @@ export const populatedState: JsonObject = {
           summary: "moved",
         },
       ],
+    },
+  ],
+};
+
+/**
+ * The graph `generateGraphDataset` would have computed for `populatedState` — `task-1`'s own file
+ * on `node-task-task-1`, `B-1`'s Git-observed file on its section, in the exact id shapes
+ * `graph-task-preparation.ts`/`graph-generator-branch-nodes.ts` mint (B15.2). Built by hand rather
+ * than by running the generator, since this file's job is to fix what the *renderer* sees, not to
+ * re-prove the generator already covered by `graph-generator.test.ts`.
+ */
+export const populatedGraph: GraphDataset = {
+  id: "unit-run-graph",
+  title: "unit-run-graph",
+  nodes: [
+    {
+      id: "node-task-task-1",
+      name: "First",
+      files: [
+        {
+          path: "src/one/index.ts",
+          mode: "write",
+          evidence_class: "harness_observed",
+          lines: "1-4",
+          additions: 3,
+          deletions: 1,
+          step: 12,
+          rationale: "Implemented the parser rewrite",
+        },
+      ],
+    },
+  ],
+  edges: [],
+  sections: [
+    {
+      id: "section-branch-B-1",
+      title: "Branch of task-1",
+      nodeIds: [],
+      files: [{ path: "src/one/parser.ts", mode: "write", evidence_class: "harness_observed" }],
     },
   ],
 };

@@ -49,7 +49,7 @@ bun harness.ts task:review --help   # the same, via the --help intercept
 | branch | `branch:open`, `branch:claim`, `branch:submit`, `branch:collect`, `branch:abandon`, `branch:status` |
 | agent | `agent:register`, `agent:report`, `agent:release`, `agent:list` |
 | install | `install`, `installation-status` |
-| diagnostics | `doctor`, `recover` |
+| diagnostics | `doctor`, `recover`, `worktree:reclaim` |
 ```
 
 ---

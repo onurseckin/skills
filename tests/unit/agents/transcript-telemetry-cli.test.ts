@@ -130,6 +130,7 @@ describe("the transcript probe wired into agent:register and agent:release, with
           recorded_value: "declared-model",
           recorded_evidence_class: "agent_reported",
           probed_value: "claude-opus-5",
+          probed_evidence_class: "harness_observed",
         },
       ]);
     });
@@ -171,6 +172,7 @@ describe("the transcript probe wired into agent:register and agent:release, with
         recorded_value: "coordinator-1",
         recorded_evidence_class: "agent_reported",
         probed_value: "coordinator-2",
+        probed_evidence_class: "harness_observed",
       });
     });
 

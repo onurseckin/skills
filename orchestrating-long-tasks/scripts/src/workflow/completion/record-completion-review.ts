@@ -52,6 +52,10 @@ export function recordCompletionReview(
   if (typeof value !== "object" || value === null || Array.isArray(value))
     throw new HarnessError("INVALID_ARGUMENT", "completion review must be an object");
   const input = value as Record<string, unknown>;
+  // B21: recording the completion review is the run's final lifecycle closure, so the critic's own
+  // account of what the whole diff shows is refused here — at the transition itself — rather than
+  // trusted to a CLI flag a future caller of this function could bypass or drop before it arrives.
+  const summary = requireText(input.summary, "summary");
   const packetId =
     typeof input.packet_id === "string" && input.packet_id.trim() ? input.packet_id : "direct";
   const criticToken = requireText(input.critic_token, "critic_token");
@@ -80,112 +84,123 @@ export function recordCompletionReview(
   const repositoryIds = stringList(input.repository_command_ids, "repository_command_ids", false);
   const checks = commandChecks(input.checks);
   const now = clock.now();
-  return port.transact(criticId, "completion-reviewed", { packet_id: packetId }, (draft) => {
-    const assignment = draft.completion_critic;
-    assertCriticIndependent(draft, criticId);
-    if (
-      !assignment ||
-      assignment.critic_id !== criticId ||
-      (assignment.status !== "assigned" && assignment.status !== "packet_published") ||
-      !tokenMatches(criticToken, assignment.token_digest) ||
-      Date.parse(assignment.deadline_at) <= now.valueOf()
-    )
-      throw new HarnessError("INVALID_STATE", "completeness critic authentication is invalid");
-    const liveReadiness = completionReadinessSnapshot(draft, assignment.attempt, criticId).sha256;
-    if (readinessSha !== assignment.readiness_sha256 || liveReadiness !== readinessSha)
-      throw new HarnessError("INVALID_STATE", "completeness readiness snapshot has drifted");
-    if (
-      !sameRepositoryBinding(repositoryBinding, assignment.repository_binding) ||
-      !sameRepositoryBinding(draft.current_repository_binding, assignment.repository_binding)
-    ) {
-      throw new HarnessError("INVALID_STATE", "completion repository binding has drifted");
-    }
-    verifyRepositoryBinding(assignment.repository_binding, verifyRepository);
-    const packet = draft.packets?.[packetId];
-    if (packet) {
-      if (packetSha === undefined)
-        throw new HarnessError("INVALID_STATE", "critic review omits its published packet digest");
-      const integritySha = criticIntegrityDigest(integrity);
+  // B21.3: the step this event produces must carry the critic's own account, not just the packet
+  // id — a run reconstructed from graph.json steps alone should show what the critic actually said.
+  return port.transact(
+    criticId,
+    "completion-reviewed",
+    { packet_id: packetId, summary, status: input.status },
+    (draft) => {
+      const assignment = draft.completion_critic;
+      assertCriticIndependent(draft, criticId);
       if (
-        packet.status !== "published" ||
-        packet.role !== "completeness-critic" ||
-        packet.agent_id !== criticId ||
-        packet.task_id !== null ||
-        packet.packet_sha256 !== packetSha ||
-        packet.readiness_sha256 !== readinessSha ||
-        !sameRepositoryBinding(packet.repository_binding, repositoryBinding) ||
-        packet.graph_revision !== graphRevision ||
-        draft.graph_revision !== graphRevision ||
-        packet.integrity_evidence_sha256 !== integritySha ||
-        JSON.stringify(packet.repository_command_ids) !== JSON.stringify(repositoryIds)
+        !assignment ||
+        assignment.critic_id !== criticId ||
+        (assignment.status !== "assigned" && assignment.status !== "packet_published") ||
+        !tokenMatches(criticToken, assignment.token_digest) ||
+        Date.parse(assignment.deadline_at) <= now.valueOf()
+      )
+        throw new HarnessError("INVALID_STATE", "completeness critic authentication is invalid");
+      const liveReadiness = completionReadinessSnapshot(draft, assignment.attempt, criticId).sha256;
+      if (readinessSha !== assignment.readiness_sha256 || liveReadiness !== readinessSha)
+        throw new HarnessError("INVALID_STATE", "completeness readiness snapshot has drifted");
+      if (
+        !sameRepositoryBinding(repositoryBinding, assignment.repository_binding) ||
+        !sameRepositoryBinding(draft.current_repository_binding, assignment.repository_binding)
       ) {
+        throw new HarnessError("INVALID_STATE", "completion repository binding has drifted");
+      }
+      verifyRepositoryBinding(assignment.repository_binding, verifyRepository);
+      const packet = draft.packets?.[packetId];
+      if (packet) {
+        if (packetSha === undefined)
+          throw new HarnessError(
+            "INVALID_STATE",
+            "critic review omits its published packet digest",
+          );
+        const integritySha = criticIntegrityDigest(integrity);
+        if (
+          packet.status !== "published" ||
+          packet.role !== "completeness-critic" ||
+          packet.agent_id !== criticId ||
+          packet.task_id !== null ||
+          packet.packet_sha256 !== packetSha ||
+          packet.readiness_sha256 !== readinessSha ||
+          !sameRepositoryBinding(packet.repository_binding, repositoryBinding) ||
+          packet.graph_revision !== graphRevision ||
+          draft.graph_revision !== graphRevision ||
+          packet.integrity_evidence_sha256 !== integritySha ||
+          JSON.stringify(packet.repository_command_ids) !== JSON.stringify(repositoryIds)
+        ) {
+          throw new HarnessError(
+            "INVALID_STATE",
+            "critic review does not match its published packet",
+          );
+        }
+      }
+      for (const id of repositoryIds) {
+        if (!authoritativeRepositoryCommand(draft, id))
+          throw new HarnessError("INVALID_STATE", `critic command evidence is invalid: ${id}`);
+      }
+      for (const { command_id: id } of checks) {
+        const command = authoritativeRepositoryCommand(draft, id);
+        if (!command || command.actor !== criticId)
+          throw new HarnessError("INVALID_STATE", `critic independent check is invalid: ${id}`);
+      }
+      const assessment = parseCompletionAssessment(draft, input);
+      const unproven = assessment.requirement_proofs
+        .filter((proof) => proof.status === "unproven")
+        .map((proof) => proof.requirement_id);
+      // A clean verdict is the critic asserting the whole requirement set holds. It may not be
+      // recorded while any requirement is unproven, or the sign-off proves itself.
+      if (input.status === "clean" && unproven.length > 0)
         throw new HarnessError(
           "INVALID_STATE",
-          "critic review does not match its published packet",
+          `clean completion review leaves requirements unproven: ${unproven.join(", ")}`,
         );
-      }
-    }
-    for (const id of repositoryIds) {
-      if (!authoritativeRepositoryCommand(draft, id))
-        throw new HarnessError("INVALID_STATE", `critic command evidence is invalid: ${id}`);
-    }
-    for (const { command_id: id } of checks) {
-      const command = authoritativeRepositoryCommand(draft, id);
-      if (!command || command.actor !== criticId)
-        throw new HarnessError("INVALID_STATE", `critic independent check is invalid: ${id}`);
-    }
-    const assessment = parseCompletionAssessment(draft, input);
-    const unproven = assessment.requirement_proofs
-      .filter((proof) => proof.status === "unproven")
-      .map((proof) => proof.requirement_id);
-    // A clean verdict is the critic asserting the whole requirement set holds. It may not be
-    // recorded while any requirement is unproven, or the sign-off proves itself.
-    if (input.status === "clean" && unproven.length > 0)
-      throw new HarnessError(
-        "INVALID_STATE",
-        `clean completion review leaves requirements unproven: ${unproven.join(", ")}`,
+      for (const proof of assessment.requirement_proofs)
+        for (const evidence of proof.evidence)
+          if (evidence.kind === "command") {
+            const command = authoritativeRepositoryCommand(draft, evidence.reference);
+            if (!command || command.actor !== criticId)
+              throw new HarnessError(
+                "INVALID_STATE",
+                `requirement proof command is invalid: ${evidence.reference}`,
+              );
+          }
+      const review = {
+        critic_id: criticId,
+        packet_id: packetId,
+        ...(packetSha === undefined ? {} : { packet_sha256: packetSha }),
+        graph_revision: graphRevision as number,
+        readiness_sha256: readinessSha,
+        repository_binding: repositoryBinding,
+        summary,
+        status: input.status as "clean" | "findings",
+        ...assessment,
+        integrity_evidence: integrity,
+        repository_command_ids: repositoryIds,
+        checks,
+        reviewed_at: utc(now),
+      };
+      const recorded = {
+        ...review,
+        review_sha256: "",
+      } as CompletionReview;
+      recorded.review_sha256 = completionReviewDigest(recorded);
+      draft.completion_review = recorded;
+      draft.completion_reviews ??= [];
+      if (draft.completion_reviews.some((review) => review.packet_id === packetId))
+        throw new HarnessError("INVALID_STATE", "critic packet already has a review");
+      draft.completion_reviews.push(recorded);
+      assignment.status = "reviewed";
+      const historical = draft.completion_critic_history?.find(
+        (entry) => entry.attempt === assignment.attempt && entry.critic_id === criticId,
       );
-    for (const proof of assessment.requirement_proofs)
-      for (const evidence of proof.evidence)
-        if (evidence.kind === "command") {
-          const command = authoritativeRepositoryCommand(draft, evidence.reference);
-          if (!command || command.actor !== criticId)
-            throw new HarnessError(
-              "INVALID_STATE",
-              `requirement proof command is invalid: ${evidence.reference}`,
-            );
-        }
-    const review = {
-      critic_id: criticId,
-      packet_id: packetId,
-      ...(packetSha === undefined ? {} : { packet_sha256: packetSha }),
-      graph_revision: graphRevision as number,
-      readiness_sha256: readinessSha,
-      repository_binding: repositoryBinding,
-      status: input.status as "clean" | "findings",
-      ...assessment,
-      integrity_evidence: integrity,
-      repository_command_ids: repositoryIds,
-      checks,
-      reviewed_at: utc(now),
-    };
-    const recorded = {
-      ...review,
-      review_sha256: "",
-    } as CompletionReview;
-    recorded.review_sha256 = completionReviewDigest(recorded);
-    draft.completion_review = recorded;
-    draft.completion_reviews ??= [];
-    if (draft.completion_reviews.some((review) => review.packet_id === packetId))
-      throw new HarnessError("INVALID_STATE", "critic packet already has a review");
-    draft.completion_reviews.push(recorded);
-    assignment.status = "reviewed";
-    const historical = draft.completion_critic_history?.find(
-      (entry) => entry.attempt === assignment.attempt && entry.critic_id === criticId,
-    );
-    if (!historical)
-      throw new HarnessError("INTEGRITY", "completion critic authorization history is missing");
-    historical.status = "reviewed";
-    historical.packet_id = packetId;
-  });
+      if (!historical)
+        throw new HarnessError("INTEGRITY", "completion critic authorization history is missing");
+      historical.status = "reviewed";
+      historical.packet_id = packetId;
+    },
+  );
 }

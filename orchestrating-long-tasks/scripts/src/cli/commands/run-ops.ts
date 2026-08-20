@@ -12,7 +12,9 @@ import { completeRun } from "../../workflow/completion/complete-run.ts";
 import { gateTally } from "../../workflow/completion/completion-state.ts";
 import type { CompletionArtifactRequirements } from "../../workflow/completion/artifact-verification.ts";
 import type { TaskRecord, WorkflowState } from "../../workflow/types.ts";
+import { consolidateWorktrees, recordConsolidation } from "../../workflow/worktree/consolidate.ts";
 import { readWorktreeLedger } from "../../workflow/worktree/ledger.ts";
+import type { WorktreeConsolidationRecord } from "../../contracts/worktree.ts";
 import {
   formatRunCompleteBrief,
   formatRunExecBrief,
@@ -70,10 +72,48 @@ function verifyCompletionArtifacts(
   };
 }
 
+/**
+ * B22.4: runs once, right before a run actually completes. It has to run BEFORE `completeRun`
+ * seals the state, not after: `transact` refuses to mutate a run once `completion_result.status` is
+ * `"complete"` (the same termination guarantee B1 depends on), so recording the consolidation
+ * outcome onto the worktree ledger is only possible while the run is still open. Doing the git side
+ * of this first and the seal second is safe either way — nothing here discards work, a worktree's
+ * commits are already durable on its own branch before this ever merges them onward — so a
+ * `run:complete` call that consolidates but then fails its OWN remaining checks (a stale token, say)
+ * just leaves the branch tidied up for whichever retry actually seals it.
+ *
+ * Idempotent by the ledger's own `consolidation` field: present means this already ran, so a repeat
+ * `run:complete` call against an already-terminal run reads that and does nothing further — it never
+ * re-attempts the git side, which would fail trying to re-add a scratch worktree and re-delete
+ * branches already gone.
+ */
+function consolidateIfProvisioned(
+  run: string,
+  actor: string,
+): WorktreeConsolidationRecord | undefined {
+  const repoRoot = resolve(run, "..", "..");
+  const config = getHarnessConfig(repoRoot, run);
+  if (!config.worktree_isolation) return undefined;
+  const ledger = readWorktreeLedger(loadRun(run).state);
+  if (!ledger || ledger.consolidation !== undefined) return undefined;
+  const result = consolidateWorktrees({
+    repoRoot,
+    runId: basename(run),
+    ledger,
+    rebaseOnComplete: config.rebase_on_complete,
+  });
+  recordConsolidation(run, actor, result);
+  return result;
+}
+
 export function runCompleteCommand(flags: Flags): Record<string, unknown> {
   const run = textFlag(flags, "run")!;
   const actor = textFlag(flags, "actor")!;
   const authToken = textFlag(flags, "auth-token")!;
+
+  // B22.4: must run before `completeRun` seals the state — see `consolidateIfProvisioned`'s own
+  // comment for why the ordering is load-bearing, not incidental.
+  const consolidation = consolidateIfProvisioned(run, actor);
 
   const state = completeRun(
     workflowPort(run),
@@ -101,6 +141,19 @@ export function runCompleteCommand(flags: Flags): Record<string, unknown> {
     validationsCount: tasks.filter((t) => t.status === "done").length,
     gatesPassed: gates.green,
     totalGates: gates.total,
+    ...(consolidation === undefined
+      ? {}
+      : {
+          worktreeConsolidation: {
+            branch: consolidation.harness_branch,
+            commitCount: consolidation.commit_count,
+            rebased: consolidation.rebased,
+            diffstat: consolidation.diffstat,
+            conflicted:
+              consolidation.merge_conflict !== undefined ||
+              consolidation.rebase_conflict_paths !== undefined,
+          },
+        }),
   });
 
   return {
@@ -108,6 +161,7 @@ export function runCompleteCommand(flags: Flags): Record<string, unknown> {
     run_root: run,
     completion: state.completion_result,
     ...(handoffPath === undefined ? {} : { handoff_path: handoffPath }),
+    ...(consolidation === undefined ? {} : { worktree_consolidation: consolidation }),
   };
 }
 
@@ -184,7 +238,11 @@ export function runStatusCommand(flags: Flags): Record<string, unknown> {
     state: runStatus(run),
     detailed,
     catalogue,
-    occupancy: { active: activeCount, max_parallel: maxParallel, gate_max_parallel: gateMaxParallel },
+    occupancy: {
+      active: activeCount,
+      max_parallel: maxParallel,
+      gate_max_parallel: gateMaxParallel,
+    },
     // B22.6: "run:status reports live worktrees and the branch." Absent (not an empty object) when
     // the run was never provisioned — matches readWorktreeLedger's own absence-over-invention rule.
     ...(readWorktreeLedger(state) === null ? {} : { worktrees: readWorktreeLedger(state) }),

@@ -4402,6 +4402,54 @@
       "examples": [
         "bun harness.ts task:release --run .capsules/<run-id> --task task-1 --agent worker-1 --token <token>"
       ]
+    },
+    {
+      "name": "worktree:reclaim",
+      "aliases": [],
+      "domain": "diagnostics",
+      "summary": "Free an abandoned run's worktree directories.",
+      "description": "B22.6: removes the worktree directories a crashed or abandoned run left behind, after a human has looked and decided the run is not being resumed. The harness branch and every per-task worktree branch are left untouched — only the disposable worktree checkouts are removed. Refuses if worktree isolation is currently off for this run's config.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root."
+        },
+        {
+          "name": "actor",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Who is running the reclaim. Recorded on the event; there is no default actor."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts worktree:reclaim --run .capsules/<run-id> --actor coordinator"
+      ]
     }
   ]
 }

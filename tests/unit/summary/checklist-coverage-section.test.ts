@@ -17,7 +17,7 @@ function withReviewReport(root: string, taskId: string, checklistCoverage: unkno
 describe("summary.md: standing checklist coverage (B12.5)", () => {
   test("no task has recorded a review: the section says so, not an empty table", () => {
     const markdown = render(emptyState);
-    expect(markdown).toContain("## 19. Standing Checklist Coverage");
+    expect(markdown).toContain("## 20. Standing Checklist Coverage");
     expect(markdown).toContain(
       "No task has recorded a review yet, so no standing checklist coverage exists.",
     );
@@ -80,14 +80,14 @@ describe("summary.md: standing checklist coverage (B12.5)", () => {
     // Adjacent findings never merge into section 14's own task-scope findings table; they only
     // ever appear here, under the checklist that found them.
     expect(markdown.indexOf("## 14. Probes, Pushbacks And Repairs")).toBeLessThan(
-      markdown.indexOf("## 19. Standing Checklist Coverage"),
+      markdown.indexOf("## 20. Standing Checklist Coverage"),
     );
   });
 
   test("a task with no review report yet is simply absent from the section, not shown as empty", () => {
     const state = { ...emptyState, tasks: { "task-c": task({ id: "task-c" }) } };
     const markdown = render(state);
-    const coverageSection = markdown.slice(markdown.indexOf("## 19. Standing Checklist Coverage"));
+    const coverageSection = markdown.slice(markdown.indexOf("## 20. Standing Checklist Coverage"));
     expect(coverageSection).toContain(
       "No task has recorded a review yet, so no standing checklist coverage exists.",
     );

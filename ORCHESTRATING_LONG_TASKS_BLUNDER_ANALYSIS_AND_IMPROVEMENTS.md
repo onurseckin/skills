@@ -260,3 +260,32 @@ For reference, the proper DAG for the 486-question curriculum refactor is struct
                     Gate:  bun run check (Exit 0)
 ====================================================================================================
 ```
+
+---
+
+## 7. Recovery Telemetry & Successful Run Completion
+
+Following the user's manual interview, rate-limit reset, and health-check scheduler registration, the orchestrator successfully recovered the fine-grained DAG and executed all 14 tasks to completion:
+
+```text
+====================================================================================================
+ CAPSULE RUN SUMMARY: 2026-08-20-fine-grained-curriculum-orchestration
+====================================================================================================
+ Total Tasks:        14 / 14 Satisfied (100% Done)
+ Commands Executed:  34
+ Gates Passed:       29
+ Repair Rounds:      0
+ Whole Repo Gate:    bun run check (Exit Code: 0)
+ Completeness Critic: Approved (critic-auditor-final)
+ Run Sealed:         Yes (Sealed by coordinator)
+ Summary Exported:   .capsules/2026-08-20-fine-grained-curriculum-orchestration/summary.json
+====================================================================================================
+```
+
+### Verified Guarantees:
+1. **500-Line Limits**: All 23 domain files in `src/curriculum/mlQuestions/` strictly $\le 500$ lines.
+2. **Semantic Domain Naming**: All files use domain-semantic filenames (`linear_algebra_tensors.ts`, `vector_spaces_pca.ts`, etc.).
+3. **Type Deduplication**: Shared types imported from `src/types/dsa.ts` without duplicate declarations.
+4. **Unique Port 42000**: Docker Compose and Vite configured on 42000.
+5. **Richness Across 41 Topics**: 486+ questions, zero empty arrays across Parts A–D, contracts, variants, and guides.
+6. **Zero `any` Violations**: Verified via TypeScript and Oxlint with 0 warnings/errors.

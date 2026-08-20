@@ -157,6 +157,16 @@ export function renderCritic(context: ReportContext): string[] {
   return section("16. Completeness Critic", lines);
 }
 
+/** A conflict's recorded/probed value is a plain JSON scalar in every case this codebase produces
+ * today (a model id, a token count, an agent id), but the field is typed for any JSON value — so an
+ * object or array a future field puts there still renders instead of coming out as `[object Object]`. */
+function conflictValueText(value: unknown): string {
+  if (value === null || value === undefined) return UNKNOWN;
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  return JSON.stringify(value);
+}
+
 export function renderTelemetry(context: ReportContext): string[] {
   const perAgent = context.agents.map((agent) => [
     code(agent.id),
@@ -177,10 +187,22 @@ export function renderTelemetry(context: ReportContext): string[] {
       evidencedText(counter, (value) => value.toLocaleString()),
     ]),
   );
+  // Every field where two independent reads disagreed. Neither value is dropped to make room for a
+  // winner — both are shown, each with the evidence class it actually earned (B32.1, B39).
+  const conflictRows = context.agents.flatMap((agent) =>
+    (agent.telemetry_conflicts ?? []).map((conflict) => [
+      code(agent.id),
+      code(conflict.field),
+      conflictValueText(conflict.recorded_value),
+      conflict.recorded_evidence_class,
+      conflictValueText(conflict.probed_value),
+      conflict.probed_evidence_class,
+    ]),
+  );
   const estimate = context.metrics.estimated_tokens;
   const lines = [
     ...note(
-      "Model, tier, thinking level and token counts are only ever what a host reported through the CLI. Nothing here is inferred from a model name, an agent id or the exporting machine.",
+      "A value typed on a CLI flag (--model, --provider, --tokens-in and the rest) is agent_reported: a claim from whichever process called the harness, true only if that caller was honest. Only a value the harness itself read off the host's own configuration or transcript earns derived or harness_observed. Nothing here is ever inferred from a model name, an agent id or the exporting machine.",
     ),
     "",
     ...(perAgent.length === 0
@@ -195,6 +217,19 @@ export function renderTelemetry(context: ReportContext): string[] {
     ...(extraRows.length === 0
       ? note("No host reported a counter beyond input and output tokens.")
       : table(["Agent", "Counter", "Value"], extraRows)),
+    "",
+    "### Telemetry conflicts",
+    "",
+    ...note(
+      "Two sources disagreed about the same field. Neither value is discarded to pick a winner — both are kept, each with the evidence class it actually earned.",
+    ),
+    "",
+    ...(conflictRows.length === 0
+      ? note("No probe ever disagreed with an explicitly reported value.")
+      : table(
+          ["Agent", "Field", "Recorded value", "Recorded evidence", "Probed value", "Probed evidence"],
+          conflictRows,
+        )),
     "",
     "### Run-level token estimate",
     "",

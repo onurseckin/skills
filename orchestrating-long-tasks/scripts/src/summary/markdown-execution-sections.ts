@@ -3,6 +3,11 @@ import type { BranchRecord, BranchRepositoryObservation } from "../contracts/bra
 import { isJsonObject, type JsonObject } from "../contracts/json.ts";
 import type { TaskRecord } from "../workflow/types.ts";
 import {
+  type AttributedFileRef,
+  fileProvenanceDetails,
+  fileProvenanceTable,
+} from "./markdown-file-provenance.ts";
+import {
   UNKNOWN,
   code,
   evidencedText,
@@ -302,22 +307,25 @@ export function renderBranches(context: ReportContext): string[] {
   return section("10. Branch Excursions", context.branches.flatMap(branchBlock));
 }
 
+/**
+ * Every file any task or branch touched, with the line-level provenance the graph already computed
+ * for it (B15.2): where lines changed, the diff itself, and why. Read from `context.taskFiles` /
+ * `context.branchFiles` — which are the same `FileRef`s `graph.json` carries — rather than the raw
+ * `report.files_changed` path list, so a reader gets the full record in one place instead of a bare
+ * path here and the diff only in the export.
+ */
 export function renderFilesChanged(context: ReportContext): string[] {
-  const rows: string[][] = [];
+  const entries: AttributedFileRef[] = [];
   for (const task of context.tasks) {
-    const evidence = textOrUnknown(reportField(task, "files_changed_evidence_class"));
-    for (const path of reportStrings(task, "files_changed")) {
-      rows.push([code(path), code(task.id), evidence]);
+    for (const file of context.taskFiles.get(task.id) ?? []) {
+      entries.push({ file, reportedBy: task.id });
     }
   }
   for (const branch of context.branches) {
-    for (const path of branch.files_changed?.value ?? []) {
-      rows.push([code(path), code(branch.id), branch.files_changed?.evidence_class ?? UNKNOWN]);
+    for (const file of context.branchFiles.get(branch.id) ?? []) {
+      entries.push({ file, reportedBy: branch.id });
     }
   }
-  const body =
-    rows.length === 0
-      ? note("No agent reported a changed file and no branch observation recorded one.")
-      : table(["Path", "Reported by", "Evidence"], rows);
+  const body = [...fileProvenanceTable(entries), "", ...fileProvenanceDetails(entries)];
   return section("11. Files Changed", body);
 }

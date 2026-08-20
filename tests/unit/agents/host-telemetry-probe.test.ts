@@ -82,6 +82,7 @@ describe("registerAgentGrant merges the CLI's explicit report with a derived pro
         recorded_value: "explicit-model",
         recorded_evidence_class: "agent_reported",
         probed_value: "derived-model",
+        probed_evidence_class: "derived",
       },
     ]);
   });
@@ -152,6 +153,7 @@ describe("refreshAgentDerivedTelemetry — the probe at task:claim, task:submit 
         recorded_value: "original-model",
         recorded_evidence_class: "agent_reported",
         probed_value: "different-model",
+        probed_evidence_class: "derived",
       },
     ]);
   });
@@ -327,6 +329,7 @@ describe("the probe wired into the CLI boundaries themselves, never a separate c
           recorded_value: "relayed-model",
           recorded_evidence_class: "agent_reported",
           probed_value: "codex-mini",
+          probed_evidence_class: "derived",
         },
       ]);
     });
@@ -339,6 +342,7 @@ describe("the probe wired into the CLI boundaries themselves, never a separate c
         recorded_value: "relayed-model",
         recorded_evidence_class: "agent_reported",
         probed_value: "codex-mini",
+        probed_evidence_class: "derived",
       },
     ]);
   });

@@ -86,12 +86,23 @@ export interface RunCompleteParams {
   gatesPassed: number;
   totalGates: number;
   duration?: string | undefined;
+  /** B22.4's handoff, reported here whenever worktree isolation provisioned something for this run. */
+  worktreeConsolidation?:
+    | {
+        branch: string;
+        commitCount: number;
+        rebased: boolean;
+        diffstat: string;
+        conflicted: boolean;
+      }
+    | undefined;
 }
 
 export function formatRunCompleteBrief(params: RunCompleteParams): string {
   // No duration is recorded unless the caller measured one; the brief says so rather than
   // printing a number nothing observed.
   const durationStr = params.duration ?? "unknown";
+  const wt = params.worktreeConsolidation;
   const md = [
     `### 🎉 Run Completed Successfully: ${params.runId}`,
     `- **Capsule**: \`${params.capsulePath}\``,
@@ -99,6 +110,15 @@ export function formatRunCompleteBrief(params: RunCompleteParams): string {
     `- **Total Gates Verified**: ${params.gatesPassed}/${params.totalGates} gates green`,
     `- **Run Duration**: ${durationStr}`,
     `- **Capsule Status**: Sealed & Auditable`,
+    ...(wt === undefined
+      ? []
+      : wt.conflicted
+        ? [
+            `- **Worktree Branch**: \`${wt.branch}\` — consolidation STOPPED on a conflict; worktrees left intact for inspection, nothing force-resolved.`,
+          ]
+        : [
+            `- **Worktree Branch**: \`${wt.branch}\` (${wt.commitCount} sub-phase commits, ${wt.diffstat}${wt.rebased ? ", rebased onto the base branch" : ""}) — local only, never pushed. Review and merge, PR, or discard it yourself.`,
+          ]),
   ].join("\n");
   return enforceLineLimit(md, 30);
 }

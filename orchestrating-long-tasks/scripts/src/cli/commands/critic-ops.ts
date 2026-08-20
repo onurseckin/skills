@@ -119,6 +119,10 @@ export async function criticReviewCommand(flags: Flags): Promise<Record<string, 
     reviewPayload = await readPlanObject(reviewFile, "completion review");
     reviewPayload.critic_token = token;
     reviewPayload.integrity_evidence = [observedIntegrity];
+    // B21: --summary is mandatory on this command regardless of which branch supplies the rest of
+    // the payload; a --review file is not the critic typing its own verdict in its own words, so
+    // the flag always wins over anything a file happened to carry under the same key.
+    reviewPayload.summary = summary;
   } else {
     const port = workflowPort(run);
     const state = port.read();
@@ -172,6 +176,11 @@ export async function criticReviewCommand(flags: Flags): Promise<Record<string, 
       ...(packet ? { packet_id: packet.id, packet_sha256: packet.packet_sha256 } : {}),
       critic_token: token,
       graph_revision: graphRev,
+      // B21: the CLI flag was already required; before this the value only ever reached the side
+      // report file and the markdown brief, never the durable review the run actually completes
+      // against. Without this line `recordCompletionReview` throws for a missing summary either way,
+      // but the requirement belongs on the payload, not on an accident of which branch ran.
+      summary,
       status: isApproved ? "clean" : "findings",
       readiness_sha256: assignment.readiness_sha256,
       repository_binding: assignment.repository_binding,

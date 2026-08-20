@@ -70,6 +70,7 @@ describe("harness-config", () => {
       branch_prefix: DEFAULT_RESOLVED_CONFIG.branch_prefix,
       commit_per_subphase: DEFAULT_RESOLVED_CONFIG.commit_per_subphase,
       max_commit_lines: DEFAULT_RESOLVED_CONFIG.max_commit_lines,
+      rebase_on_complete: DEFAULT_RESOLVED_CONFIG.rebase_on_complete,
     });
   });
 

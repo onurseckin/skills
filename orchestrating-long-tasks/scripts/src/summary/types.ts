@@ -145,6 +145,12 @@ export interface NodeMetadata {
   unresolvedFindingIds?: string[] | undefined;
   residualRisks?: unknown[] | undefined;
   requirementProofs?: unknown[] | undefined;
+  /** B22.3: the sub-phase commit `task:submit` made in this task's assigned worktree, if any — the
+   *  link from a graph node to the actual git history it produced. Absent whenever worktree
+   *  isolation was off for this run, never a placeholder commit. */
+  worktreeCommit?:
+    | { sha: string; subject: string; changedLines: number; overLimit: boolean }
+    | undefined;
   [key: string]: unknown;
 }
 

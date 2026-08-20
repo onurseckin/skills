@@ -44,6 +44,7 @@ describe("summary.md is a complete, sequential run report", () => {
       "## 16. Completeness Critic",
       "## 17. Model And Token Telemetry",
       "## 18. Complete Timeline",
+      "## 19. Action Provenance Trace",
     ];
     const positions = headings.map(positionOf);
     expect(positions).toEqual([...positions].sort((left, right) => left - right));
@@ -201,5 +202,35 @@ describe("summary.md is a complete, sequential run report", () => {
       .filter((line) => /^\| \d+ \| /.test(line));
     expect(rows.length).toBeGreaterThan(40);
     expect(rows[0]).toContain("| 1 |");
+  });
+
+  test("carries each submitted file's step and reason, not only its path (B15.2)", () => {
+    const filesSection = markdown.slice(
+      positionOf("## 11. Files Changed"),
+      markdown.indexOf("## 12. Scripts And Commands"),
+    );
+    expect(filesSection).toContain("`src/alpha/parser.ts`");
+    expect(filesSection).toContain("`task-alpha`");
+    expect(filesSection).toContain("agent_reported");
+    // Every task in the fixture submits through `task:submit --summary`, which is the report's own
+    // rationale carried onto the file (there is no per-file split in the report the CLI accepts).
+    expect(filesSection).toContain("### Why each file changed, and its diff");
+    expect(filesSection).toContain("**Why**: Alpha complete");
+    expect(filesSection).toContain("**Why**: Beta validates its input now");
+    expect(filesSection).toContain("**Why**: Gamma wired");
+    // None of these paths exist on disk in the fixture's repo (the tasks only ran shell commands),
+    // so the harness could not read a diff for them — that absence must say so, not be silent.
+    expect(filesSection).toContain("No diff could be read for this path against the run's baseline.");
+  });
+
+  test("carries the run's full action-provenance trace, in the chain's own order (B15.1)", () => {
+    const provenanceSection = markdown.slice(positionOf("## 19. Action Provenance Trace"));
+    expect(provenanceSection).toContain("| Step | Timestamp | Actor | Kind | Raw event");
+    // A `task-submitted` row is classified into the `task` bucket and resolves to the task node id,
+    // not left as a bare raw event name.
+    expect(provenanceSection).toMatch(/\| \d+ \| .+ \| `worker-alpha` \| task \| `task-submitted`/);
+    expect(provenanceSection).toContain("taskId=task-alpha");
+    expect(provenanceSection).toContain("nodeId=node-task-task-alpha");
+    expect(provenanceSection).toContain("harness_observed");
   });
 });

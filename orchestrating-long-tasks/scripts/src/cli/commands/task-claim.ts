@@ -70,6 +70,25 @@ function commitSubphaseIfAssigned(
 }
 
 /**
+ * B22.2's worktree assignment only isolates anything if the claiming agent learns about it. Without
+ * this, an agent under worktree isolation has no way to discover which directory to actually work
+ * in and would silently edit the shared repo checkout instead — defeating B22.1's whole point that
+ * "the user's working tree and branch are never touched." A no-op (returns `undefined`) whenever
+ * isolation is off, the run was never provisioned, or this task drew no assignment.
+ */
+function assignedWorktreeForClaim(
+  run: string,
+  taskId: string,
+): { worktreePath: string; worktreeId: string } | undefined {
+  const repoRoot = resolve(run, "..", "..");
+  const config = getHarnessConfig(repoRoot, run);
+  if (!config.worktree_isolation) return undefined;
+  const ledger = readWorktreeLedger(loadRun(run).state);
+  if (!ledger) return undefined;
+  return findAssignedWorktree(ledger, taskId) ?? undefined;
+}
+
+/**
  * The probe hardcoded into `task:claim` and `task:submit`: it only ever touches an agent that
  * already holds an active grant, so a run that never calls `agent:register` sees no change here at
  * all — this never becomes a second way to register one.
@@ -126,6 +145,8 @@ export async function taskClaimCommand(flags: Flags): Promise<Record<string, unk
     taskId,
   });
 
+  const worktree = assignedWorktreeForClaim(run, taskId);
+
   const markdown = formatTaskClaimBrief({
     taskId,
     agent,
@@ -133,6 +154,7 @@ export async function taskClaimCommand(flags: Flags): Promise<Record<string, unk
     // The lease the transaction actually recorded, not the one the flags asked for.
     durationMinutes: Math.round(lease.duration_seconds / 60),
     writeScope: task.write_scope,
+    worktreePath: worktree?.worktreePath,
   });
 
   const conflicts = probeAtTaskBoundary(run, agent, "task:claim");
@@ -146,6 +168,9 @@ export async function taskClaimCommand(flags: Flags): Promise<Record<string, unk
       packet_id: published.record.id,
       packet_path: published.markdownPath,
       role_contract_sha256: published.packet.metadata.role_contract_sha256,
+      ...(worktree
+        ? { worktree_path: worktree.worktreePath, worktree_id: worktree.worktreeId }
+        : {}),
     },
     conflicts,
   );

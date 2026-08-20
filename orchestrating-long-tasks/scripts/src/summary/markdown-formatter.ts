@@ -20,7 +20,8 @@ import {
   renderTopology,
 } from "./markdown-plan-sections.ts";
 import { buildReportContext } from "./markdown-report-context.ts";
-import type { RollupMetrics, TimelineEventRecord } from "./types.ts";
+import { renderActionProvenance } from "./markdown-step-provenance.ts";
+import type { GraphDataset, RollupMetrics, TimelineEventRecord } from "./types.ts";
 
 export interface MarkdownFormatterInput {
   runId: string;
@@ -34,6 +35,10 @@ export interface MarkdownFormatterInput {
   state: Readonly<WorkflowState>;
   /** Command records read from the capsule, merged over the ones the projection carries. */
   commands: Record<string, CommandRecord>;
+  /** The same dataset written to `graph.json`. Line-level file provenance and the action-provenance
+   * trace (B15.1/B15.2) are rendered from here, not recomputed, so the two artifacts of one run can
+   * never disagree about what happened. */
+  graph: GraphDataset;
 }
 
 /**
@@ -64,6 +69,7 @@ export function formatSummaryMarkdown(input: MarkdownFormatterInput): string {
     ...renderCritic(context),
     ...renderTelemetry(context),
     ...renderTimeline(context),
+    ...renderActionProvenance(context),
     ...renderChecklistCoverage(context),
     "---",
     `Generated from the capsule at \`${context.runRoot}\`. Every value is labelled with the evidence that supports it.`,

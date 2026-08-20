@@ -54,10 +54,10 @@ carried in from the assignment.
 | Tag | Count | Items |
 |---|---:|---|
 | `done (<sha>), verified` | 3 | B2, B5, B13 |
-| `verified` | 19 | B1, B6, B7, B10, B11, B12, B14, B16, B19, B23, B24, B25, B26, B27, B28, B29, B30, B34, B36 |
-| `queued` | 17 | B3, B4, B8, B9, B15, B17, B18, B20, B21, B22, B32, B33, B35, B37, B38, B39, B40 |
+| `verified` | 18 | B1, B6, B7, B10, B11, B12, B14, B16, B19, B23, B24, B25, B27, B28, B29, B30, B34, B36 |
+| `queued` | 19 | B3, B4, B8, B9, B15, B17, B18, B20, B21, B22, B26, B32, B33, B35, B37, B38, B39, B40, B41 |
 | `deferred by owner` | 1 | B31 |
-| **Total** | **40** | B1-B40 |
+| **Total** | **41** | B1-B41 |
 
 **Not re-derived above; corrected in place (B19/B20 reconciliation pass):** B19 moved `queued` →
 `verified` this pass (see B19's own entry) after this table was written by the prior pass — the table
@@ -67,6 +67,20 @@ above reflects that move rather than the stale 16/20 split the prior pass's own 
 later pass than the one that wrote this table (see B25's own entry, "fourth pass") and B27 moved
 `queued` → `verified` in this pass (see B27's own entry) — both were still shown `queued` here even
 though their own section headers already carried the newer tag. The table above reflects both moves.
+
+**Corrected in place again (completion-tagging audit pass, B37 finding 10's own convention extended —
+see the status key below):** two changes, both explained where they happen rather than repeated here.
+**B26 moved `verified` → `queued`:** its own text (not a stale note, the item's live "Close the test gap
+— do this regardless" section) names a load-bearing invariant "defended by no real test," which the
+"Verified" tag's own guard-holds bar cannot survive — see B26's own entry for the correction and the
+file opened to confirm the gap is still real. This is the first tag this file's three prior reconciliation
+passes missed, because each checked whether a note's *own claim* was still true on disk without checking
+whether the note covered everything the item's *own text* still asked for — the status key gained a
+clause for exactly that gap (composite items, below). **B41 was appended**, net new, `queued` — three
+findings from a separate verifier (Wave 20, consumer-repo visual testing), recorded per this section's own
+"every queued note says specifically what remains open" rule. Before this pass: 19 `verified` / 17
+`queued` / 40 total. After: 18 `verified` / 19 `queued` / 41 total — the table above is current as of this
+edit, not either of those two numbers.
 
 Prior pass's own account, kept for provenance:
 
@@ -100,6 +114,17 @@ when both are true of the same item. `deferred by owner` — the owner explicitl
 (B31); this is not "not started" and the autonomous loop must not treat it as workable. Once tagged
 `done`, an item is closed: it does not get re-planned or re-dispatched by the autonomous loop, only
 reopened by a fresh, named finding (as B37 did for B16/B36).
+
+**Composite items carry one tag for the whole item, and that tag is the least-resolved of everything the
+item still lists.** B8, B15, B20, B32 and the findings-log items (B37-B40, B41) are all built from more
+than one claim — sub-items in B8/B15/B19-20, numbered findings in B37-B40/B41. An inline `RESOLVED` /
+`PARTIALLY RESOLVED` / "still open" marker on one sub-item or one finding closes only the thing it names;
+it never promotes the item's own top tag by itself. The item earns `done`/`verified` only once every
+sub-part and every numbered finding it lists clears that bar — one unresolved piece holds the whole item
+at `queued`, exactly as B3, B8, B15, B20, B32 and B37 (open only on finding 13) already practice. This is
+not a new tag, only the existing four applied to a container claim rather than a single one — the gap a
+container item's own tag could otherwise be closed on the strength of one resolved piece while everything
+else it lists stays open, which is exactly what had happened to B26 (see its own entry) before this pass.
 
 ---
 
@@ -1824,7 +1849,26 @@ finishes, and independent later work fills free capacity immediately (B24).
 
 ---
 
-## B26 — Enrich the validator packet: orient without anchoring   `verified`
+## B26 — Enrich the validator packet: orient without anchoring   `queued`
+
+**Corrected 2026-08-20 (completion-tagging audit pass) — the `verified` tag above did not match this
+item's own text, and no dated note had caught it.** The "Verified" note directly below is accurate as
+far as it goes: it confirms the packet-rendering half of this item
+(`render-validation-round.ts`'s "prove this holds" framing). It says nothing about this item's own
+"Close the test gap — do this regardless" section further down, which states plainly that the
+fresh-validator refusal `begin-validation.ts:22` enforces is "a load-bearing invariant asserted 12+
+times in prose, argued zero times, and defended by no real test." Re-opened
+`tests/unit/workflow/validation.test.ts` directly (237 lines) rather than trusting either account: it
+has no test that claims the same validator identity twice on one task — every repair round in the file
+(e.g. "repairs require explicit finding resolution before pass":170-212 uses `validator` then
+`validator-2`; "six rejected rounds escalate instead of succeeding":214-236 uses `validator-1` through
+`validator-6`) deliberately gives each round a fresh id, which is the opposite of the scenario this gap
+asks for — and no assertion checks a refusal by error code (`toThrow()` appears eight times in the file,
+every one of them bare). Per this file's own status key,
+`verified` requires guard holds "not a passing test alone," and per the composite-item clause added
+above, one unresolved piece a container item still lists holds the whole item at `queued`. Retags
+`verified` → `queued` on that basis; the packet-rendering confirmation below is not in question and
+stands as written.
 
 **Verified 2026-08-20 (completion-tagging pass):** `scripts/src/packets/render-validation-round.ts`
 carries the exact "prove this holds" framing this item's core rule requires (its own comment names the
@@ -3209,3 +3253,92 @@ independently, per B33 — never by re-reading B39's prose and trusting it.
    adding notes to B1-B10 — landed in the same file. Not attributable to this implementer; noted only
    because a `git status` snapshot of a file under heavy concurrent edit is stale within minutes, so
    whoever commits BACKLOG.md next should re-check it fresh rather than trust either report's numbers.
+
+---
+
+## B41 — Findings from Wave 20's visual-testing verification pass (gvui)   `queued`
+
+**Opened 2026-08-20 (completion-tagging audit pass), recording three findings a separate verifier raised
+during gvui's Wave 20 visual-testing work.** Findings 1 and 2 were reproduced directly by opening the
+named artifacts in the `gvui` repo, not by trusting the report that raised them — and then, minutes later
+in this same pass, the concurrent workstream fixing them finished, so both carry a second, dated
+confirmation below their original text rather than a rewrite of it (per this file's own rule: a note's
+substance stays; a correction is a new note on top). Finding 3 rests partly on evidence only this session
+can attest to (see its own note) and is recorded here specifically so the requirement it names does not
+depend on any one wave remembering it. **Item stays `queued`: per the composite-item clause in the status
+key above, one open finding (3) holds the whole item, even with 1 and 2 now resolved.**
+
+1. **Two consumer-repo files exceed B23's 500-line cap, and a split is visibly underway but not yet
+   wired in.** `gvui/src/testing/visual/visualMetricsCollector.ts` is 967 lines and
+   `gvui/src/testing/visual/browserVisualHarness.ts` is 588 lines (`wc -l`, confirmed 2026-08-20) — B23
+   raised the harness's own cap to 500 and `tests/unit/architecture/file-size.test.ts` enforces it in
+   this repo, but that test does not reach `gvui`, so nothing mechanical catches a consumer-side breach.
+   `gvui/src/testing/visual/boundingBoxGeometry.ts` and `gvui/src/testing/visual/textClippingDetection.ts`
+   already exist on disk, untracked (`git status --short`), each holding pure-function logic (bounding-box
+   geometry, text-clipping detection) that plainly belongs to the two oversized files' domain — but
+   grepping both oversized files for either new filename returns zero hits, so neither has been updated to
+   import from them yet. The extraction exists; the wiring that would actually shrink the two files does
+   not. Track to close: land the import/removal half of the split and confirm both files read under 500
+   lines by `wc -l`.
+   **RESOLVED, confirmed 2026-08-20 (same pass, minutes later — the working tree moved while this finding
+   was being written).** Re-opened the directory fresh rather than trusting the paragraph above:
+   `visualMetricsCollector.ts` and `browserVisualHarness.ts` no longer exist — `git status --short` shows
+   both `D`, deleted from the working tree. Nine focused modules stand in their place, every one read by
+   `wc -l` just now: `boundingBoxGeometry.ts` (233), `colorContrastAnalysis.ts` (412),
+   `domMetricsCollection.ts` (262), `stackingCollisionDetection.ts` (81), `textClippingDetection.ts` (95),
+   `visualAuditSuite.ts` (84), `visualHarnessSession.ts` (182), `visualMetricsReport.ts` (147),
+   `visualScreenshotCapture.ts` (97) — all under the 500-line cap. The two `.test.ts` files that kept the
+   old names were rewired, not orphaned: `visualMetricsCollector.test.ts` now imports
+   `./textClippingDetection` and `./stackingCollisionDetection` directly, never the deleted source file.
+   `bun test src/testing/visual/visualMetricsCollector.test.ts src/testing/visual/browserVisualHarness.test.ts`
+   — 68 pass, 0 fail, run against this exact working tree. **This is uncommitted working-tree state, not a
+   landed commit** — a concurrent workstream finished it while this finding was open; whoever commits it
+   next should re-`wc -l` and re-run the tests rather than cite this note past that commit.
+
+2. **`gvui/reports/visual-report.json` predates the scorer fix this pass was told about, and cannot settle
+   a claim about the 1920px viewport either way.** Opened the file directly rather than trusting a
+   description of it: 866,489 bytes, tracked, last touched by commit `e2588f2` ("fix: composite
+   backgrounds, exclude containment, capture every viewport"), carrying its own `"timestamp":
+   "2026-08-20T19:44:46.902Z"`. Its `viewports` object holds exactly three keys — `desktop`, `tablet`,
+   `mobile` — with no `wide-desktop` entry, even though `gvui/src/testing/visual/browserVisualHarness.ts:50`'s
+   own `VIEWPORTS` matrix defines a fourth: `{ name: "wide-desktop", width: 1920, height: 1080 }`. The
+   report's own `summary.integrityScore` and `summary.accessibilityScore` both read `0` against 584
+   recorded violations — consistent with a scorer that had not yet been corrected when this file was
+   generated. So an "absent at 1920" claim resting on this report is unobserved, not confirmed: the file
+   was never run against that viewport in the first place, and its scores are not trustworthy even for the
+   three viewports it does carry. Regenerating it (rerun the capture/audit pipeline now that finding 1's
+   sibling work and the scorer fix have landed) is what would settle the claim either way. Until then, any
+   1920-viewport finding sourced from this file is `unknown`, not absent.
+   **RESOLVED, confirmed 2026-08-20 (same pass, minutes later — same moving tree as finding 1).** Re-opened
+   the file fresh rather than trusting the paragraph above: `viewports` now carries all four keys,
+   including `wide-desktop` (`{width: 1920, height: 1080}`), and the file's own `timestamp` advanced to
+   `2026-08-20T21:17:56.784Z`. The claim this finding exists to settle is now directly answered, not merely
+   made checkable: at 1920, `overflowCount` is `0` and `integrityScore` is `100` — genuinely absent, not
+   unobserved — but `contrastViolationCount` is `19` and `accessibilityScore` is `0`, so "absent at 1920"
+   is true of layout overflow specifically and false of contrast; a claim naming just "absent at 1920"
+   without saying which category is still imprecise. **Same caveat as finding 1: this is uncommitted
+   working-tree state**, produced by the same concurrent split — re-open the file fresh once it lands
+   rather than citing this note past that commit.
+
+3. **Wave 20's own implementer report undercounted its diff and misattributed one of its own edits — the
+   durable fix is a reporting-contract requirement now carried in wave-dispatch prompts, recorded here so
+   it outlives this one wave.** `scripts/visual-capture.ts` is part of commit
+   `e2588f276a335c8e5054196c64bed638cfcb9db3` — confirmed directly via `git show --stat e2588f2`, 21 lines
+   changed in that file — but Wave 20's own implementer report did not list it among its changed files, and
+   separately credited one of its own edits to a concurrent wave rather than to itself. **Evidence class
+   check on this paragraph's own claim:** the diff/commit membership is `harness_observed` (opened directly,
+   above); that Wave 20's report specifically omitted this file and misattributed an edit is `agent_reported`
+   — relayed from this pass's own dispatch context, not confirmed by opening Wave 20's report text, which
+   this pass never had access to. Consistent with, not independent proof of, the omission claim. Grepped both repos
+   for the requirement's own text (`REPORTING CONTRACT`, `filesChanged`, `deductionsNotObserved`); it
+   exists nowhere as a committed artifact in either repo — the fix lives only in whatever constructs each
+   wave's dispatch prompt, outside version control. Direct, first-person evidence that the fix is real and
+   active: this very entry was written under a dispatch prompt carrying a section titled "REPORTING
+   CONTRACT — this is what Wave 20's verifier caught and it is now mandatory," requiring every touched file
+   listed in `filesChanged`, observed claims kept distinct from deduced ones, and `git diff`/`git diff
+   --staged` checked before crediting an edit to anyone else. That the requirement held for this entry is
+   `agent_reported` evidence that the requirement exists in this session's prompt, not proof it survives
+   into every future one — nothing on disk guards it, so a stale prompt template could silently drop it
+   again. Track to close: give the requirement a durable, checked-in home (a template or role-contract file
+   under `orchestrating-long-tasks/`) so a later pass can confirm it holds the way B33 asks — by opening an
+   artifact — rather than by trusting that each new wave's prompt still carries it by convention.

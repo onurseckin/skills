@@ -229,6 +229,7 @@ export function registerAgentGrant(input: RegisterAgentInput): AgentGrantOutcome
         granted_at: grantedAt,
         status: "active",
         ...fields,
+        ...(conflicts.length === 0 ? {} : { telemetry_conflicts: conflicts }),
       };
       minted = grant;
       ledgerAfter = [...ledger, grant];

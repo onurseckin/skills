@@ -186,9 +186,14 @@ function reviewNarration(
       return { phase: "review", summary: `Completeness critic round assigned to ${event.actor}` };
     case "completion-reviewed": {
       const packetId = textField(p, "packet_id");
+      const status = textField(p, "status");
+      // B21.3: the critic's own words, not just which packet it reviewed — this is the run's final
+      // lifecycle closure, and a step that dropped it would defeat "reconstructible from summaries
+      // alone" at the one point that matters most.
+      const reviewSummary = textField(p, "summary") ?? "no summary recorded";
       return {
         phase: "review",
-        summary: `Completion review recorded by ${event.actor}${packetId ? ` (packet ${packetId})` : ""}`,
+        summary: `Completion review recorded by ${event.actor}${packetId ? ` (packet ${packetId})` : ""}${status ? ` [${status}]` : ""}: ${reviewSummary}`,
       };
     }
     case "completion-remediated":
