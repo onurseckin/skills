@@ -5,6 +5,7 @@ import { join } from "node:path";
 import {
   raceWithTimeout,
   settleBounded,
+  settleTrackerBeforeOutcome,
 } from "../../../orchestrating-long-tasks/scripts/src/runner/attempt-support.ts";
 
 const SUPPORT = join(
@@ -87,5 +88,48 @@ if (result.record.exit_code !== 0) throw new Error("gate probe did not exit 0");
 `,
     );
     expect(elapsed).toBeLessThan(4_000);
+  });
+});
+
+describe("settleTrackerBeforeOutcome keeps the root-identity binding ahead of the failure path", () => {
+  // Regression for run-attempt.ts's `Promise.all([trackerReady, raced])`: Promise.all rejects the
+  // instant `raced` rejects, without waiting out a still-pending `trackerReady` — so an
+  // output-quota failure could reach cleanup before `attemptIntent.bindRoot` ever bound the root
+  // identity, and cleanup then withheld termination for a process it never identified. If this
+  // guarantee regresses, `bound` below observes false at the moment the rejection is caught.
+  test("waits for a slower trackerReady before surfacing an instant rejection", async () => {
+    let bound = false;
+    const trackerReady = new Promise<void>((resolve) => {
+      setTimeout(() => {
+        bound = true;
+        resolve();
+      }, 20);
+    });
+    const outcome = Promise.reject(new Error("output quota exceeded"));
+    await expect(settleTrackerBeforeOutcome(outcome, trackerReady)).rejects.toThrow(
+      "output quota exceeded",
+    );
+    expect(bound).toBe(true);
+  });
+
+  test("swallows the tracker's own rejection so the real failure reason still wins", async () => {
+    const trackerReady = Promise.reject(new Error("descendant enumeration failed"));
+    await expect(
+      settleTrackerBeforeOutcome(
+        Promise.reject(new Error("output quota exceeded")),
+        trackerReady,
+      ),
+    ).rejects.toThrow("output quota exceeded");
+  });
+
+  test("returns the outcome's resolved value once the tracker has settled", async () => {
+    let bound = false;
+    const trackerReady = Promise.resolve().then(() => {
+      bound = true;
+    });
+    expect(
+      await settleTrackerBeforeOutcome(Promise.resolve("watchdog-outcome"), trackerReady),
+    ).toBe("watchdog-outcome");
+    expect(bound).toBe(true);
   });
 });

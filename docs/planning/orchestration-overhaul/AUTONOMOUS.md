@@ -119,10 +119,19 @@ once a third repo's `tsc`, once the audio daemon — and killing agents would ha
 armed watchdog reports IDLE, OVERLOAD (load > 150 or free memory < 400 MB, naming the top three) and
 AUDIO STRAYS, so the signal usually arrives before the next cycle does.
 
-### Wave width follows the machine
+### Wave width — do not self-restrict
 
-Full width (8 workstreams) when load is normal. Half (4) while recovering. The watchdog emits RECOVERED
-when full width is safe again.
+**Agent count was never the problem.** Diagnosed twice in this run: the machine's biggest consumers were a
+third repository's `tsc` at 174%, and `coreaudiod` pegged at 105% by leaked `afplay` processes. Neither was
+caused by agents, and cutting wave width would have fixed neither.
+
+Run at the maximum the host allows — up to 20 concurrent subagents in Claude Code. The workflow runtime
+caps each RUN at `min(16, cores - 2)`, so reaching that ceiling means launching SEVERAL workflows
+concurrently on disjoint file ownership rather than one narrow one. Do that.
+
+Narrow only on evidence that agents themselves are the constraint — free memory genuinely exhausted, or
+the top CPU consumers actually being this project's processes. Read the top five first (see above);
+twice now the honest answer was "not us".
 
 ## Recovery
 

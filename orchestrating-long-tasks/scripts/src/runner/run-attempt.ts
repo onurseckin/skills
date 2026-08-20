@@ -1,7 +1,7 @@
 import { open, mkdir, type FileHandle } from "node:fs/promises";
 import { join } from "node:path";
 import { ActivityRecord } from "./activity-record.ts";
-import { settleBounded } from "./attempt-support.ts";
+import { settleBounded, settleTrackerBeforeOutcome } from "./attempt-support.ts";
 import { finalizeSuccessfulAttempt } from "./attempt-success-evidence.ts";
 import { startAttemptIntent, type AttemptIntentController } from "./attempt-intent.ts";
 import { FailureEvidence } from "./failure-evidence.ts";
@@ -127,7 +127,10 @@ export async function runAttempt(
       () => new Promise<never>(() => undefined),
       (error) => Promise.reject(error),
     );
-    const [, outcome] = await Promise.all([trackerReady, Promise.race([monitoring, pumpFailed])]);
+    const outcome = await settleTrackerBeforeOutcome(
+      Promise.race([monitoring, pumpFailed]),
+      trackerReady,
+    );
     await descendants.stop();
     try {
       attemptIntent.beginCleanupUncertain(["attempt process settlement is in progress"]);

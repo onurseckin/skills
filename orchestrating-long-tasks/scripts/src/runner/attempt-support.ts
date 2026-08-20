@@ -40,6 +40,23 @@ export async function settleBounded(
   }
 }
 
+/**
+ * `Promise.all([trackerReady, raced])` rejects the instant `raced` rejects, without waiting for
+ * `trackerReady` to settle — so a near-instant failure (e.g. the output-quota check) could reach
+ * the failure path before `attemptIntent.bindRoot` ever ran, leaving the attempt's root identity
+ * unbound and forcing cleanup to withhold termination. `.finally` always waits out a pending
+ * promise it returns, so chaining it here guarantees `trackerReady`'s binding side effect has
+ * already happened by the time `outcome` resolves or rejects — its own rejection is swallowed
+ * since only the side effect (not its result) matters here, and `outcome`'s rejection must still
+ * win so the real failure reason is preserved.
+ */
+export async function settleTrackerBeforeOutcome<T>(
+  outcome: Promise<T>,
+  trackerReady: Promise<unknown>,
+): Promise<T> {
+  return outcome.finally(() => trackerReady.catch(() => undefined));
+}
+
 export function activityMetadata(path: string, portablePath: string) {
   const bytes = readBoundedBytes(path, 1024 * 1024);
   return { path: portablePath, bytes: bytes.byteLength, sha256: sha256Bytes(bytes) };
