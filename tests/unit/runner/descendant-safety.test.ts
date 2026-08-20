@@ -1,9 +1,18 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, test } from "bun:test";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import {
   DescendantTracker,
   type ProcessIdentity,
 } from "../../../orchestrating-long-tasks/scripts/src/runner/descendant-tracker.ts";
+import {
+  MAX_POLL_DELAY_MS,
+  MIN_POLL_DELAY_MS,
+  nextPollDelayMs,
+} from "../../../orchestrating-long-tasks/scripts/src/runner/descendant-poll-policy.ts";
 import { authenticatedOwnerPids } from "../../../orchestrating-long-tasks/scripts/src/runner/pipe-ownership.ts";
+import { waitForProcessExit } from "./run-command-fixture.ts";
 
 function snapshot(...identities: ProcessIdentity[]): Map<number, ProcessIdentity> {
   return new Map(identities.map((identity) => [identity.pid, identity]));
@@ -178,4 +187,62 @@ describe("descendant termination safety", () => {
     await tracker.terminate(0);
     expect(killed).toEqual([50, 50]);
   });
+});
+
+describe("descendant poll cadence", () => {
+  test("resets to the floor the instant a new descendant is discovered", () => {
+    expect(nextPollDelayMs(160, true)).toBe(MIN_POLL_DELAY_MS);
+    expect(nextPollDelayMs(MAX_POLL_DELAY_MS, true)).toBe(MIN_POLL_DELAY_MS);
+  });
+
+  test("backs off geometrically while nothing new is found, capped at the ceiling", () => {
+    let delay = MIN_POLL_DELAY_MS;
+    const observed: number[] = [];
+    for (let index = 0; index < 8; index += 1) {
+      delay = nextPollDelayMs(delay, false);
+      observed.push(delay);
+    }
+    expect(observed).toEqual([20, 40, 80, 160, 250, 250, 250, 250]);
+    expect(Math.max(...observed)).toBeLessThanOrEqual(MAX_POLL_DELAY_MS);
+  });
+
+  test("never regresses below the floor a fresh tracker starts at", () => {
+    expect(nextPollDelayMs(MIN_POLL_DELAY_MS, false)).toBeGreaterThan(MIN_POLL_DELAY_MS);
+  });
+});
+
+describe("descendant tracking against real OS processes", () => {
+  const roots: string[] = [];
+  const fixture = join(import.meta.dir, "fixtures/command-fixture.ts");
+
+  afterEach(async () => {
+    await Promise.all(roots.splice(0).map((path) => rm(path, { recursive: true, force: true })));
+  });
+
+  // This is the guarantee the whole tracker exists for, proven against a real process tree
+  // rather than a scripted snapshot map: a plain (non-detached, non-pipe-owning) grandchild is
+  // reachable ONLY through the ancestry walk the periodic poll performs, so if the backed-off
+  // cadence introduced in this fix ever let a fork-then-quick-exit slip past unseen, this is the
+  // test that would catch it.
+  test("still catches a real descendant that outlives its immediate leader under the backed-off cadence", async () => {
+    const runRoot = await mkdtemp(join(tmpdir(), "descendant-cadence-"));
+    roots.push(runRoot);
+    const pidPath = join(runRoot, "grandchild.pid");
+    const leader = Bun.spawn({
+      cmd: [process.execPath, fixture, "spawn-then-outlive", pidPath],
+      detached: true,
+      stdout: "ignore",
+      stderr: "ignore",
+    });
+    const tracker = new DescendantTracker(leader.pid, new Set(), "real-cadence-token");
+
+    await tracker.start();
+    await leader.exited; // the leader exits deliberately while its grandchild is still running
+    await tracker.stop();
+
+    const grandchildPid = Number(await readFile(pidPath, "utf8"));
+    const signals = await tracker.terminate(50);
+    expect(signals).toContain("SIGTERM");
+    await waitForProcessExit(grandchildPid);
+  }, 10_000);
 });

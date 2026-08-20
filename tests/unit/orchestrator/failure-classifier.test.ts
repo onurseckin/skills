@@ -29,20 +29,46 @@ describe("classifyFailure (B28.3)", () => {
     expect(result.failureClass).toBe("deterministic");
   });
 
-  it("stops retrying once the identical failure repeats past the threshold", () => {
+  it("stops retrying a crashing agent once the identical crash repeats past the threshold", () => {
+    // `crash` is the one transient signal a repeat count is still allowed to demote (see the
+    // module comment): the same agent dying the same way three times in a row is evidence about
+    // the TASK, unlike the four provider/network signals covered below.
     const prior: FailureRecord[] = [
-      { signal: "timeout", detail: "host timeout after 120s", at: "2026-08-19T00:00:00.000Z" },
-      { signal: "timeout", detail: "host timeout after 120s", at: "2026-08-19T00:02:00.000Z" },
+      { signal: "crash", detail: "lease expired with no submission", at: "2026-08-19T00:00:00.000Z" },
+      { signal: "crash", detail: "lease expired with no submission", at: "2026-08-19T00:02:00.000Z" },
     ];
     const result = classifyFailure({
-      signal: "timeout",
-      detail: "host timeout after 120s",
+      signal: "crash",
+      detail: "lease expired with no submission",
       priorFailures: prior,
       now: NOW,
       deterministicRepeatThreshold: 3,
     });
     expect(result.failureClass).toBe("deterministic");
     expect(result.repeatCount).toBe(3);
+  });
+
+  it("B28.3: never stops a rate-limit/network/5xx/timeout retry on repeat count alone — only elapsed time bounds it", () => {
+    // The exact four B28.3 names as transient, each driven far past what used to be the repeat
+    // threshold (3) with the elapsed budget left untouched. If a repeat-count cap ever creeps back
+    // in for these four, this is the test that catches it.
+    for (const signal of ["rate_limit", "network", "provider_5xx", "timeout"] as const) {
+      const prior: FailureRecord[] = Array.from({ length: 49 }, (_, index) => ({
+        signal,
+        detail: "identical every time",
+        at: new Date(NOW.valueOf() - (49 - index) * 1_000).toISOString(),
+      }));
+      const result = classifyFailure({
+        signal,
+        detail: "identical every time",
+        priorFailures: prior,
+        now: NOW,
+        deterministicRepeatThreshold: 3,
+        maxElapsedMs: 4 * 60 * 60_000,
+      });
+      expect(result.failureClass).toBe("transient");
+      expect(result.repeatCount).toBe(50);
+    }
   });
 
   it("keeps retrying a transient signal that has not repeated identically", () => {

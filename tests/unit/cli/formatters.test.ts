@@ -165,6 +165,7 @@ describe("Markdown Formatters", () => {
       validator: "val-1",
       gateSummary: "all tests passed",
       reportPath: "review.json",
+      taskStatus: "validated",
     });
     expect(reviewPass.split("\n").length).toBeLessThanOrEqual(30);
 

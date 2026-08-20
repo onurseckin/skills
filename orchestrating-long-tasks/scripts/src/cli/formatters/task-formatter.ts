@@ -98,6 +98,17 @@ export interface TaskReviewPassParams {
   unblockedTasks?: readonly string[];
   reportPath: string;
   probeRounds?: number;
+  /**
+   * The task's real status after this verdict was recorded. B12.2: a domain pass only reaches the
+   * terminal `validated` status once every applicable domain has its own pass on record, so a
+   * status of anything else here means other domains are still open — the heading must say that
+   * rather than the unqualified "Validated & Satisfied" claim, which was true unconditionally back
+   * when a task carried at most one validator.
+   */
+  taskStatus: string;
+  /** Domains still without a recorded pass once this verdict lands. Omitted or empty when
+   *  `taskStatus` is already `validated`. */
+  outstandingDomains?: readonly string[];
 }
 
 export function formatTaskReviewPassBrief(params: TaskReviewPassParams): string {
@@ -105,9 +116,18 @@ export function formatTaskReviewPassBrief(params: TaskReviewPassParams): string 
     params.unblockedTasks && params.unblockedTasks.length > 0
       ? `Unblocked ${params.unblockedTasks.map((t) => `\`${t}\``).join(", ")} in queue`
       : "None";
+  const satisfied = params.taskStatus === "validated";
+  const heading = satisfied
+    ? `### Task Validated & Satisfied: ${params.taskId}`
+    : `### Domain Passed, Task Still ${params.taskStatus}: ${params.taskId}`;
   const md = [
-    `### Task Validated & Satisfied: ${params.taskId}`,
+    heading,
     `- **Validator**: \`${params.validator}\` | Verdict: ✅ PASS`,
+    ...(!satisfied && params.outstandingDomains && params.outstandingDomains.length > 0
+      ? [
+          `- **Outstanding Domains**: ${params.outstandingDomains.join(", ")} still need an independent pass before ${params.taskId} is validated`,
+        ]
+      : []),
     ...(params.probeRounds === undefined
       ? []
       : [`- **Adversarial Probes**: ${params.probeRounds} answered before sign-off`]),

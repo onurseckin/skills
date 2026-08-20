@@ -3,6 +3,7 @@ import {
   trackerDependencies,
   type TrackerDependencies,
 } from "./descendant-tracker-dependencies.ts";
+import { MIN_POLL_DELAY_MS, nextPollDelayMs } from "./descendant-poll-policy.ts";
 import {
   sameProcessIdentity,
   type ProcessIdentity,
@@ -17,7 +18,8 @@ export class DescendantTracker {
   private readonly tracked = new Map<number, ProcessIdentity>();
   private readonly protectedPids = new Set<number>();
   private readonly deliveredSignals = new Map<NodeJS.Signals, Set<string>>();
-  private timer: ReturnType<typeof setInterval> | undefined;
+  private timer: ReturnType<typeof setTimeout> | undefined;
+  private pollDelayMs = MIN_POLL_DELAY_MS;
   private active: Promise<void> | undefined;
   private failure: unknown;
   private rootIdentity: ProcessIdentity | undefined;
@@ -35,19 +37,37 @@ export class DescendantTracker {
   public async start(): Promise<ProcessIdentity | undefined> {
     await this.refresh(false, true);
     if (this.rootIdentity) {
-      this.timer = setInterval(() => void this.refresh().catch(() => undefined), 10);
-      this.timer.unref();
+      this.pollDelayMs = MIN_POLL_DELAY_MS;
+      this.scheduleNextPoll();
     }
     return this.rootIdentity ? { ...this.rootIdentity } : undefined;
   }
 
   public async stop(): Promise<void> {
-    if (this.timer) clearInterval(this.timer);
+    if (this.timer) clearTimeout(this.timer);
     this.timer = undefined;
     await this.active;
     if (this.failure) throw this.failure;
     await this.refresh(true);
     if (this.failure) throw this.failure;
+  }
+
+  // Self-reschedules only after the in-flight capture settles, so a slow `ps` under contention
+  // cannot queue more spawns behind it — the next poll is always `pollDelayMs` after the previous
+  // one FINISHED, never on a fixed wall clock regardless of how long capture took.
+  private scheduleNextPoll(): void {
+    this.timer = setTimeout(() => void this.poll(), this.pollDelayMs);
+    this.timer.unref();
+  }
+
+  private async poll(): Promise<void> {
+    const trackedBefore = this.tracked.size;
+    await this.refresh().catch(() => undefined);
+    // `stop()` may have cleared the timer while this poll's capture was in flight; honor that
+    // rather than resurrecting a loop the caller already asked to end.
+    if (this.timer === undefined) return;
+    this.pollDelayMs = nextPollDelayMs(this.pollDelayMs, this.tracked.size > trackedBefore);
+    this.scheduleNextPoll();
   }
 
   public async terminate(

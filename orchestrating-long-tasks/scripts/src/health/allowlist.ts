@@ -115,18 +115,6 @@ export const ALLOWED_FINDINGS: readonly HealthAllowance[] = [
     reason:
       "Same shape as the already-allowed tree-digest.ts and runtime-tree.ts root-path cases: cluster.scope is always a known LCA path, and \"root\" only fires when that known path is exactly \".\" - stripped to the empty string by the slug regex - so this spells a known result as a task-id-safe slug, it does not invent one for a scope the partitioner never had.",
   },
-  {
-    key: "intent-untested:docs/planning/orchestration-overhaul/BACKLOG.md:B13",
-    check: "intent-drift",
-    reason:
-      "B13's one checkable token is the path `references/cli-capabilities.md`, and tests/unit/contracts/skill-router.test.ts's \"every document path it names exists\" test proves it by reading SKILL.md, extracting every linked path with a regex, and asserting each resolves on disk - the exact requirement B13 states. It never spells the path out as a literal in its own source (it is discovered from SKILL.md's content at run time), which is the one shape this check's literal-substring scan cannot see.",
-  },
-  {
-    key: "intent-untested:docs/planning/orchestration-overhaul/BACKLOG.md:B37",
-    check: "intent-drift",
-    reason:
-      "Same shape as the already-allowed B13 entry above, and the same file: B37's one checkable token is the path `references/cli-capabilities.md`, named in its item 1 as the file `generate-cli-manifest.ts` regenerates. tests/unit/cli/manifest.test.ts proves it - more strongly than a mention would - by asserting the checked-in file's bytes equal the registry's own render, so the doc can never drift from the source of truth silently. The path there is built with `join(references, \"cli-capabilities.md\")` rather than spelled as one literal, which is the same reason this check's literal-substring scan cannot see B13's proof either.",
-  },
 ];
 
 export function assertAllowancesHaveReasons(

@@ -134,6 +134,24 @@ if (mode === "success") {
   });
   child.unref();
   writeFileSync(arg, String(child.pid));
+} else if (mode === "spawn-then-outlive") {
+  // Plain (non-detached) grandchild: it shares this leader's process group and is reachable only
+  // by ancestry, not by pipe ownership. Sleeping before exit gives a real DescendantTracker's
+  // periodic poll a window to observe "root -> this child" while this leader is still alive, so
+  // the child is already tracked by the time this leader's own exit would otherwise sever the
+  // ancestry link a snapshot-based scan depends on.
+  if (!arg) throw new Error("pid path required");
+  const child = Bun.spawn([process.execPath, import.meta.path, "hang"], {
+    stdout: "ignore",
+    stderr: "ignore",
+  });
+  // Without unref, holding this handle would itself keep this leader's event loop — and thus
+  // this leader — alive for as long as the (permanently hanging) child runs, defeating the point
+  // of the fixture.
+  child.unref();
+  writeFileSync(arg, String(child.pid));
+  await Bun.sleep(250);
+  // Exit now without waiting for or signaling the child — it must outlive this leader.
 } else {
   console.error(`unknown mode: ${mode}`);
   process.exitCode = 2;

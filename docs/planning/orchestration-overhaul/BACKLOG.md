@@ -4,7 +4,13 @@ Append-only. Decisions land here as they are made in conversation, and are imple
 wave so that in-flight waves are never interrupted. Each entry is written to be implementable without
 further clarification.
 
-Status key: `queued` — agreed, not started. `in-wave` — being implemented now. `done` — landed and verified.
+Status key: `queued` — agreed, not started. `in-wave` — being implemented now.
+`` `done (<short-sha>)` `` — landed and verified, where `<short-sha>` is the commit whose diff closed
+the item. Applying this tag requires opening the artifact the commit produced and checking it against
+the item's own requirements (B33 — look, do not infer from a commit message or an earlier status
+report); a partially-landed item stays `queued` even when related code exists. Once tagged `done`, an
+item is closed: it does not get re-planned or re-dispatched by the autonomous loop, only reopened by a
+fresh, named finding (as B37 did for B16/B36).
 
 ---
 
@@ -76,7 +82,17 @@ Legibility is a rendering concern, not an execution one.
 
 ---
 
-## B2 — Capsule storage layout: one home per fact, indexed, no duplication `queued`
+## B2 — Capsule storage layout: one home per fact, indexed, no duplication `done (eaabd5c)`
+
+**Closed 2026-08-20, per B37 finding 10.** Verified by opening the artifacts directly: `eaabd5c` (`feat!:
+rebuild orchestration harness with evidence-classed telemetry`) introduced `scripts/src/store/blobs.ts`
+(content-addressed blob storage), `scripts/src/store/capsule-index.ts` (the per-kind `index.json`
+catalogue) and `scripts/src/store/layout.ts` (the declared `CAPSULE_LAYOUT` table with a `responsibility`
+line per entry, `role` classification matching PRIMARY/DERIVED/VIEW/EXPORT, and `layout-integrity.ts`
+enforcing it). `tests/unit/store/quality-invariants.test.ts`, `capsule-integrity.test.ts` and
+`blob-store.test.ts` pass. The target layout this item specified is what is on disk today; the old
+capsule under `.capsules/2026-08-17-skills-documentation-elevation/` is the pre-rewrite shape and is
+disposable per B4, not evidence against this closure.
 
 **Origin:** the same information shows up in several places inside `.capsules/<run>/`, and the
 responsibilities of `evidence/`, `findings/`, `commands/` and `reports/` overlap. `events.jsonl`,
@@ -372,7 +388,13 @@ protecting artifacts that are cheap to regenerate, at the cost of permanent comp
 
 ---
 
-## B5 — The capsule must be legible to a human browsing it `queued`
+## B5 — The capsule must be legible to a human browsing it `done (eaabd5c)`
+
+**Closed 2026-08-20, per B37 finding 10.** Verified by opening `scripts/src/store/layout.ts` directly:
+`CAPSULE_LAYOUT` carries a `responsibility` line for every entry ("What every entry in this capsule is
+for."), grouped by lifecycle (`anchor`/`primary`/`derived`/`view`/`export`/`runtime`) rather than by
+write path, with `README.md` and `trace.md` both `createdAtInit: true` — the root-level layout note and
+the step-trace artifact this item required, landed in the same rewrite commit as B2.
 
 A person opening `.capsules/<run-id>/` should understand what lives where without reading a manual, and
 should be able to follow **the trace of steps** — what happened, in order, and what each step produced.
@@ -733,7 +755,15 @@ producing its section against real sources. Run it as its own workflow when this
 
 ---
 
-## B13 — SKILL.md is an index, not a manual `queued`
+## B13 — SKILL.md is an index, not a manual `done (eaabd5c)`
+
+**Closed 2026-08-20, per B36.5's finding and B37 finding 10.** Verified with `wc -l`/`wc -c` directly
+rather than trusting this file's own prior "still `queued`" label: `orchestrating-long-tasks/SKILL.md`
+is 149 lines / 12,706 bytes today, under the under-150-line target this item set, down from 604 lines
+measured when the item was opened. `git log` on the file shows the drop to 134 lines happened in
+`eaabd5c`, the same rewrite commit that closed B2 and B5. `tests/unit/contracts/skill-router.test.ts`
+mechanically enforces the budget (`LINE_BUDGET = 150`), the routing table, the negative-routing
+statement and the delegation-not-restatement rule going forward, so this cannot silently regress.
 
 **Measured 2026-08-20: SKILL.md is 604 lines / 38,537 bytes (~10k tokens).** It grew from 395 during this
 overhaul. Every agent in every run loads all of it before doing anything, and most of it is irrelevant to
@@ -2002,6 +2032,7 @@ material was already written there despite the note.
 This is the record of what verification uncovered; each is queued as work in its own right.
 
 1. Stale generated docs: `bun orchestrating-long-tasks/scripts/generate-cli-manifest.ts` produces a diff against the committed `references/cli-capabilities.md`/`.json` for `critic:start --repository-command-ids` (repeatable: false->true, description text differs) -- source (critic-ops.ts) was edited after the reference docs were last generated, by a different concurrent item, not this one. Also correlates with the health check's 'declared but unenforced' finding on the same flag. Regenerate and reconcile as part of whichever item owns critic-ops.ts.
+   **RESOLVED, verified 2026-08-20:** re-ran `bun orchestrating-long-tasks/scripts/generate-cli-manifest.ts` directly and it now produces zero diff against the committed `references/cli-capabilities.md`/`.json` — a later commit already regenerated them (`git log -1` on `references/cli-capabilities.json` points at `6ab09b7`, "fix: diagnose subprocess timeouts and extend validator report coverage"). `tests/unit/cli/manifest.test.ts` asserts byte-identity and passes.
 
 2. Harden health/allowlist.ts's applyAllowances(): matches() should also require allowance.check === the HealthCheckResult.check being filtered, not just an entry.key string match, so an allowance can never cross-suppress a finding in a different check category even if key formats ever collide.
 
@@ -2014,12 +2045,15 @@ This is the record of what verification uncovered; each is queued as work in its
 6. B12.5 structured report shape: add checklist-coverage fields (checked-and-passed, not-applicable-with-reason, could-not-check-with-reason) to ReviewInput in workflow/review/validate-review.ts and contracts/workflow.ts, so an omitted checklist item becomes mechanically detectable instead of advisory-only prose in the role files.
 
 7. orchestrate still requires an explicit --prompt-stdin flag to read piped input, so B16's literal 'no flags to learn, no structure imposed on the user' promise is not actually met for the stdin path — confirmed by spawning the real CLI: a bare `prompt | bun harness.ts orchestrate --repo .` fails with INVALID_ARGUMENT. The gate lives in shared infra (scripts/src/cli/prompt-input.ts's shouldReadPromptStdin + harness.ts main()) used by every readsStdin command, including plan:init, whose own example already correctly includes --prompt-stdin. Needs a design decision before code changes, e.g.: (a) TTY-based auto-detection of piped/redirected stdin scoped to orchestrate only; (b) the same auto-detection applied uniformly to all readsStdin commands; (c) keep --prompt-stdin as a permanent, documented exception and drop the literal 'no flags' claim from B16/SKILL.md. tests/unit/cli/arguments.test.ts currently encodes the opt-in-flag contract, so whichever option is chosen needs that test updated deliberately, not silently. Write the 2-3 option plan and get a `go` before touching the shared gate.
+   **RESOLVED, verified 2026-08-20:** option (a) landed — `shouldAutoReadOrchestrateStdin` in `scripts/src/cli/prompt-input.ts`, gated on `process.stdin.isTTY === true` (never on a flag) and wired into `harness.ts main()` alongside the existing `--prompt-stdin` path and B16's inline-argv capture (`extractOrchestrateInlinePrompt`). Prompt bytes still land at `prompt.md` via `capsule.ts`'s `atomicWriteBytes(..., { mode: 0o444 })`, unchanged. Confirmed by spawning the real entrypoint (not just calling `execute()`): `tests/unit/cli/orchestrate-command.test.ts` — "a bare pipe with no flags at all is read automatically" and "inline free text with no flags at all becomes the prompt" both spawn `bun harness.ts orchestrate` as a subprocess and pass; the pre-existing `--prompt-stdin` and `--repo`-collision regressions still pass alongside them. `bun test tests/unit/cli/orchestrate-command.test.ts tests/unit/cli/arguments.test.ts` — 33 pass, 0 fail.
 
 8. references/run-playbook.md does not mention `orchestrate` at all, even though SKILL.md's new 'Primary entry point' section points readers there for phase-by-phase detail and tells them to reach for orchestrate 'before assembling this sequence by hand.' Add a short pointer at the top of run-playbook.md so the two docs agree on which is the preferred entry point for the common case.
+   **RESOLVED, verified 2026-08-20:** `references/run-playbook.md` now opens with a paragraph naming `orchestrate` as the primary entry point (pointing back to SKILL.md), stating it runs Phase 1's capture-and-open for the caller and hands back the same checklist this file spells out phase by phase, and telling the reader to reach for it first. `tests/unit/contracts/skill-router.test.ts` — "the run playbook is the home for the phase-ordered command sequences" — passes.
 
 9. Extend verifyCapsuleLayout (orchestrating-long-tasks/scripts/src/store/layout-integrity.ts) to close B2's INV-6 gap: verify packets/<id>/packet.md against the chain-recorded packet_sha256, and commands/<id>/record.json against state.commands, the same way blobNaming/captureReferences already verify blobs/ and captures.json.
 
 10. BACKLOG.md has no completion-tag convention: items verified genuinely done (B2, B5, and per B36.5's finding, B13) stay marked `queued` forever, causing rework and stale blocker claims. Decide and apply a consistent convention (a `done` tag, or removal to a changelog) so the orchestrating loop stops redispatching completed work.
+    **RESOLVED, verified 2026-08-20:** the "Conventions for this file" section's Status key now defines `` `done (<short-sha>)` `` — landed and verified by opening the artifact the named commit produced, closed against re-dispatch. Applied to B2, B5 and B13, each citing the commit (`eaabd5c`) and the specific files/tests opened to confirm it, per B33.
 
 11. No real capsule on this machine (checked gvui, skills, limo x11, memory-sync, .agents/skills) contains a branch section, a probe edge, or a tool record — so the shipped sample dataset, and any UI code that renders those, is only exercised against synthetic test fixtures, never a real recorded run. Track: regenerate/augment the shipped fixture once a real run produces branch/probe/tool data, or explicitly document that gap.
 

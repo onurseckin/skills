@@ -18,20 +18,37 @@ export type FailureSignal =
 export type FailureClass = "transient" | "deterministic";
 
 /**
- * The signals a provider, host, or the supervisor's own dead-agent detector reports for reasons
- * that come and go: a rate limit clears, a network blip passes, a 5xx is the far end having a bad
- * moment, a timeout may just be load, and a crashed agent's process dying is not evidence the TASK
- * is unworkable — B28.2's whole point is that a fresh agent deserves the next attempt. Every other
- * signal — a gate that failed, an auth rejection — carries no reason to expect a retry would behave
- * differently, so it starts deterministic and only earns "transient" through this set. The repeat
- * and elapsed bounds below are what eventually stop a genuinely stuck task from either category.
+ * B28.3's own four, verbatim: "retry with exponential backoff plus jitter, **unbounded in count**
+ * but bounded in total elapsed time." A rate limit, a DNS blip, a 502 and a host timeout describe
+ * the WORLD outside the task — the far end having a bad moment — and the world does not get more
+ * broken each time the identical message repeats. So a consecutive-repeat count must never demote
+ * these to deterministic on its own; only the elapsed-time budget below may. Getting this backwards
+ * (capping retry COUNT) is exactly the failure mode B28.3 warns against: giving up on a task that
+ * would have gone through once the provider's bad moment passed, in a night that had time to spare.
  */
-const TRANSIENT_SIGNALS: ReadonlySet<FailureSignal> = new Set([
+const UNBOUNDED_COUNT_TRANSIENT_SIGNALS: ReadonlySet<FailureSignal> = new Set([
   "rate_limit",
   "network",
   "provider_5xx",
   "timeout",
-  "crash",
+]);
+
+/**
+ * `crash` is transient too — B28.2's whole point is that a fresh agent deserves the next attempt —
+ * but unlike the four above it describes the TASK's own agent dying, not the outside world. An agent
+ * dying the identical way several times in a row for the same task IS evidence about the task (a
+ * hang, a poisoned instruction, an unworkable scope), which is why this is the one transient signal
+ * a repeat count is still allowed to demote to deterministic.
+ */
+const REPEAT_BOUNDED_TRANSIENT_SIGNALS: ReadonlySet<FailureSignal> = new Set(["crash"]);
+
+/**
+ * Every other signal — a gate that failed, an auth rejection — carries no reason to expect a retry
+ * would behave differently, so it starts deterministic and only earns "transient" through this set.
+ */
+const TRANSIENT_SIGNALS: ReadonlySet<FailureSignal> = new Set([
+  ...UNBOUNDED_COUNT_TRANSIENT_SIGNALS,
+  ...REPEAT_BOUNDED_TRANSIENT_SIGNALS,
 ]);
 
 export interface FailureRecord {
@@ -97,7 +114,7 @@ export function classifyFailure(input: ClassifyInput): ClassificationResult {
       elapsedMs,
     };
   }
-  if (repeatCount >= threshold) {
+  if (REPEAT_BOUNDED_TRANSIENT_SIGNALS.has(input.signal) && repeatCount >= threshold) {
     return {
       failureClass: "deterministic",
       reason: `the same "${input.signal}" failure ("${input.detail}") repeated ${repeatCount} times in a row`,

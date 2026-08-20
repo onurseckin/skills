@@ -1,3 +1,4 @@
+import { applicableValidatorDomains } from "../../contracts/workflow.ts";
 import { readRegularFileNoFollow } from "../../core/no-follow.ts";
 import { HarnessError } from "../../errors/harness-error.ts";
 import { workflowPort } from "../../integration/store-ports.ts";
@@ -242,6 +243,18 @@ export async function taskReviewCommand(flags: Flags): Promise<Record<string, un
 
   const handoffPath = refreshHandoffOnEscalation(run, state.tasks[taskId]!.status);
   const findingId = findingObj === null ? null : String(findingObj.id);
+  const finalTask = state.tasks[taskId]!;
+  // B12.2: this verdict can be one domain of several a multi-domain task draws. The domains still
+  // without a recorded pass tell the caller whether "PASS" here means the task is actually done
+  // (`formatTaskReviewPassBrief` only claims "Validated & Satisfied" when finalTask.status agrees).
+  const passedDomains = new Set(
+    (finalTask.validations ?? [])
+      .filter((entry) => entry.verdict === "pass")
+      .map((entry) => entry.domain),
+  );
+  const outstandingDomains = applicableValidatorDomains(finalTask.write_scope).filter(
+    (domain) => !passedDomains.has(domain),
+  );
   const markdown =
     failure === undefined || findingObj === null
       ? formatTaskReviewPassBrief({
@@ -250,10 +263,12 @@ export async function taskReviewCommand(flags: Flags): Promise<Record<string, un
           // What the harness recorded for each gate, not a composed sentence. "(passed with exit
           // code 0)" asserted an exit code nothing here had read, and a task whose gate was never
           // run printed it too.
-          gateSummary: gateEvidenceSummary(state, state.tasks[taskId]!),
+          gateSummary: gateEvidenceSummary(state, finalTask),
           unblockedTasks: unblocked,
           reportPath: `${run}/reports/${taskId}-review.json`,
-          probeRounds: probeRoundsRecorded(state.tasks[taskId]!),
+          probeRounds: probeRoundsRecorded(finalTask),
+          taskStatus: finalTask.status,
+          outstandingDomains,
         })
       : formatTaskRejectBrief({
           taskId,
