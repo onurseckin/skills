@@ -64,8 +64,40 @@ function isTransientSpawnFailure(result: RepositoryGitSpawnResult): boolean {
   );
 }
 
-function delay(milliseconds: number): void {
+// Exported so other synchronous git-command call sites (repository-git-controls.ts) can retry with
+// the same primitive instead of a second copy of the same three-line spin/wait dance.
+export function synchronousDelay(milliseconds: number): void {
   Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, milliseconds);
+}
+
+// A handful of git commands print nothing but a fixed, non-empty token whenever they exit 0 (a
+// worktree probe's "true"/"false", a rev-parse's absolute path or SHA) — for those, an accepted
+// status paired with empty stdout is never a legitimate answer, only the same fork+exec scheduling
+// hazard isTransientSpawnFailure already retries on the exit-status side, surfacing here on the
+// stdout side instead. Observed directly, not inferred: repositoryWorktree below threw "repository
+// Git worktree probe returned invalid output" under real concurrent-agent load
+// (tests/unit/packets/repository-snapshot.test.ts's "inspects real git repository"), status 0 with
+// zero bytes. Callers that legitimately expect a command to print nothing on success (e.g. `git
+// diff` with no changes) must not use this — it exists only for commands with a fixed non-empty
+// success token.
+export function commandOutputRetryingEmpty(
+  repo: string,
+  argv: string[],
+  maximum: number,
+  command: RepositoryGitCommand,
+  accepted: readonly number[] = [0],
+): RepositoryGitResult {
+  const empty = (result: RepositoryGitResult) => result.bytes.toString("utf8").trim() === "";
+  let result = command(repo, argv, maximum, accepted);
+  for (
+    let attempt = 0;
+    result.status === 0 && empty(result) && attempt < GIT_SPAWN_TRANSIENT_RETRIES;
+    attempt += 1
+  ) {
+    synchronousDelay(GIT_SPAWN_TRANSIENT_RETRY_DELAY_MS);
+    result = command(repo, argv, maximum, accepted);
+  }
+  return result;
 }
 
 function validPath(value: string): boolean {
@@ -109,7 +141,7 @@ export function createRepositoryGitCommand(
       isTransientSpawnFailure(result) && attempt < GIT_SPAWN_TRANSIENT_RETRIES;
       attempt += 1
     ) {
-      delay(GIT_SPAWN_TRANSIENT_RETRY_DELAY_MS);
+      synchronousDelay(GIT_SPAWN_TRANSIENT_RETRY_DELAY_MS);
       result = spawn("git", spawnArgv, spawnOptions);
     }
     const bytes = result.stdout ?? Buffer.alloc(0);
@@ -133,7 +165,7 @@ export const repositoryGit: RepositoryGitCommand = (...input) =>
   createRepositoryGitCommand()(...input);
 
 export function repositoryWorktree(repo: string, command: RepositoryGitCommand): boolean {
-  const probe = command(repo, ["rev-parse", "--is-inside-work-tree"], 1024);
+  const probe = commandOutputRetryingEmpty(repo, ["rev-parse", "--is-inside-work-tree"], 1024, command);
   const value = probe.bytes.toString("utf8").trim();
   if (value === "true") return true;
   if (value === "false") return false;

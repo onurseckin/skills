@@ -4,40 +4,80 @@ Append-only. Decisions land here as they are made in conversation, and are imple
 wave so that in-flight waves are never interrupted. Each entry is written to be implementable without
 further clarification.
 
-## Status index (reconciliation pass, 2026-08-20)
+## Status index (reconciliation pass, 2026-08-20, third pass)
 
-The loop could not tell finished work from pending work: verified-done items sat tagged `queued`
-forever, causing rework and stale blocker claims (B37 finding 10). An earlier same-day
-completion-tagging pass applied the convention below to B1-B38 first, opening the artifact for each
-claim per B33 rather than trusting an earlier report; B39 and B40 landed afterward, from concurrent
-in-flight passes, each already carrying its own author's tag and findings.
+**This is the third same-day reconciliation, and it changes the count.** It was opened on a specific
+claim: that a concurrent pass had written into B36 that `run-playbook.md`, `host-adapters.md` and
+`parity-matrix.md` were "still unfixed." Checked mechanically first, before touching anything else —
+`grep -n invoke_subagent references/run-playbook.md` (zero hits), `grep -n '^## '
+references/host-adapters.md` (`## 1` → `## 2` → `## 3. Host Adapters` → `## 4`, no gap), `grep -n
+'Agent Teams / teammates' references/parity-matrix.md` (zero hits). All three are fixed; the claim was
+false, and the `verified` tag this file already carried on B36 was already correct (see B36's own entry
+for the fresh confirmation added there). That specific claim did not require a tag change.
 
-This pass is a second, later reconciliation: the document's own account of the code had already started
-drifting from the code itself within the same day — B36's note asserted `invoke_subagent` was "still
-hardcoded, unqualified, at `agents/coordinator.yaml:103`" after a concurrent commit had already replaced
-that block, which `grep` now confirms returns nothing there. That is the defect class this whole
-overhaul exists to remove, reproduced in the backlog's own self-description, so this pass re-opened
-every item's cited artifact again rather than trusting the previous pass's citations to still hold, and
-corrected every stale claim it found (not only B36's). See each item's own note for what changed and why
-below.
+Reconciling *every* item the way B36 was just reconciled, however, found real drift the second pass's
+own "completion-tagging pass" notes did not catch — not because the code changed after those notes were
+written, but because three of those notes were wrong at the moment they were written, having grepped
+the wrong file or an unrelated pattern:
+
+- **B29** moved `queued` → `verified`. Its note said `plan:add`'s broad-gate warning "was not found,"
+  having grepped `cli/registry/plan.ts` (the flag registry) instead of `cli/commands/plan.ts` (the
+  handler), where it has lived since the very first rewrite commit (`eaabd5c`). Confirmed reachable,
+  correct, and guard-holding this pass — see B29's own entry.
+- **B15** stays `queued` but its note is corrected: it claimed B15.1's monotonic step counter "was not
+  found," having grepped only for the word `monotonic`. `ActionStepRecord`/`collectActionSteps` (landed
+  in `4d54ac0`, hours before the note was written) implement it exactly, wired through to `graph.json`,
+  with a passing test suite. B15 stays open on genuinely remaining gaps: B15.3 is absent, and this pass's
+  own new finding — gvui's `StepScrubber.tsx` component exists but is imported nowhere, so B15.4's
+  rendering half is dead code.
+- **B3** stays `queued` but its note is corrected: it said the completeness test "proves only telemetry
+  and the grant ledger," when the same test file — in the same commit the note was written in — already
+  had 17 tests covering nearly this item's entire list, including a generic 300+-fact completeness sweep
+  with its own regression guard. B3 stays open on one specific, narrow bullet: captured-asset dimensions
+  and byte size, which no capsule on this machine has ever exercised (B37 finding 11's gap, recurring
+  here).
+
+No other item's citations were found to be wrong on direct re-check (spot-checked against current disk
+state: B4's SPEC.md sentences, B8.3's gvui duplicates, B9.1's CI workflow, B19's category pattern,
+B20.4's validator-quality metric, B21's per-transition enforcement, B22's worktree primitives, B25.2's
+`isCycle` edges, B27.1's workload vocabulary, B32.2's capsule inventory, B37 finding 13's health-check
+output — all confirmed to still read exactly as their existing notes describe). This pass did not
+re-derive B37/B38/B39/B40's own extensive findings-log content from scratch; their most recent dated
+notes were spot-checked, not fully re-audited line by line.
+
+**On the "roughly 37 items still queued" figure this pass was launched against:** it does not match
+what is on disk and was not used as a target. The mechanical count — grep `^## B` and its trailing tag —
+was 21 `queued` before this pass and is 20 after it (B29 moved to `verified`); it was never 37 at any
+point checked. Per B33, this file's own count is the one settled by opening the artifact, not the one
+carried in from the assignment.
 
 | Tag | Count | Items |
 |---|---:|---|
 | `done (<sha>), verified` | 3 | B2, B5, B13 |
-| `verified` | 15 | B1, B6, B7, B10, B11, B12, B14, B16, B23, B24, B26, B28, B30, B34, B36 |
-| `queued` | 21 | B3, B4, B8, B9, B15, B17, B18, B19, B20, B21, B22, B25, B27, B29, B32, B33, B35, B37, B38, B39, B40 |
+| `verified` | 16 | B1, B6, B7, B10, B11, B12, B14, B16, B23, B24, B26, B28, B29, B30, B34, B36 |
+| `queued` | 20 | B3, B4, B8, B9, B15, B17, B18, B19, B20, B21, B22, B25, B27, B32, B33, B35, B37, B38, B39, B40 |
 | `deferred by owner` | 1 | B31 |
 | **Total** | **40** | B1-B40 |
 
-B30 and B36 moved from `queued` to `verified` mid-pass, not at its start — see their own entries for
-why: a concurrent wave finished the remaining fix while this pass was already open, and re-checking
-before writing the count (rather than trusting the draft written minutes earlier) is what B33 asks for.
-A fresh session should still re-check anything it depends on before treating this table as current; see
-the note at the top of this section for why.
+Prior pass's own account, kept for provenance:
+
+> The loop could not tell finished work from pending work: verified-done items sat tagged `queued`
+> forever, causing rework and stale blocker claims (B37 finding 10). An earlier same-day
+> completion-tagging pass applied the convention below to B1-B38 first, opening the artifact for each
+> claim per B33 rather than trusting an earlier report; B39 and B40 landed afterward, from concurrent
+> in-flight passes, each already carrying its own author's tag and findings. A second, later
+> reconciliation re-opened every item's cited artifact again rather than trusting the previous pass's
+> citations to still hold, and corrected every stale claim it found. B30 and B36 moved from `queued` to
+> `verified` mid-pass, not at its start: a concurrent wave finished the remaining fix while that pass was
+> already open, and re-checking before writing the count (rather than trusting the draft written minutes
+> earlier) is what B33 asks for.
+
+A fresh session should still re-check anything it depends on before treating this table as current —
+that is the lesson repeated by all three passes now, not just asserted by this one.
 
 Every `verified` and `queued` tag below carries a one-line, dated status note citing the file(s),
-test(s) or command output that settled it — added by this pass, not inherited from an earlier report.
-A `queued` note says specifically what remains open, not just that the item is unfinished.
+test(s) or command output that settled it. A `queued` note says specifically what remains open, not
+just that the item is unfinished.
 
 Status key: `queued` — not started, not finished, or genuinely unclear (say why in one line; never
 guess). `` `done (<short-sha>)` `` — landed, where `<short-sha>` is the commit whose diff closed the
@@ -328,7 +368,38 @@ B at 1, cut 2 in for new runs. A v2 reader adopts `projection` wholesale when pr
 
 ## B3 — `graph.json` completeness contract `queued`
 
-**Still queued 2026-08-20 (completion-tagging pass):** `tests/unit/summary/graph-completeness-contract.test.ts`
+**Corrected 2026-08-20 (this reconciliation pass) — the note below drastically understated what the
+same test file already proved, in the same commit (`0fa50f9`) that added the note.** Opened
+`tests/unit/summary/graph-completeness-contract.test.ts` directly rather than trusting the "only
+telemetry and the grant ledger" description: it holds 17 tests, not a slice — prompt/enhanced
+plan/derived requirements; recorded topology with a rationale per task; every node's role, status, step
+and write scope, including sub-task/branch attribution; every state transition with verdict, round and
+finding class; every script with argv, cwd, exit code, duration and its **whole** stdout (asserts
+`stdoutTruncated` is `undefined` on a short log, i.e. truncation does not fire below the raised limit —
+consistent with this item's "remove wave 3's truncation" ask, not proof of an unbounded limit); every
+changed file attributed to its submission step (B15.2); every tool with its own evidence class; probe
+demands and defects with round, severity, remediation and resolution proof; per-agent telemetry and the
+whole grant ledger (correctly `agent_reported`, matching B39 finding 1's fix — this test file is
+current, not stale); branch regions with reason and collected outcome; and a **generic** completeness
+sweep — "every distinctive fact the capsule recorded reaches the graph" walks 300+ recorded values out of
+`state`/`events`/`manifest` and asserts none are missing from the serialized export, with a companion
+test that strips one field and confirms the sweep catches it ("fails when an exported fact is dropped,
+which is what makes it an alarm"). `bun test tests/unit/summary/graph-completeness-contract.test.ts` —
+17/17 pass, confirmed just now, not carried over. B38 finding 2's "neither capsule on disk has a
+populated `agents` ledger from a real dispatched run" is real but is B32's bar, not this item's; it
+does not bear on whether the exporter itself is complete.
+
+**What is genuinely still open:** the one bullet in this item's own list not exercised anywhere —
+"every captured asset, with its dimensions and byte size where known." The schema already carries it
+(`MediaAsset.sizeBytes` / `MediaAsset.dimensions` in `graph-types.ts:184-185`), but per B37 finding 11,
+no capsule on this machine has ever captured a real screenshot, so no test — including this file's
+generic 300+-fact sweep, which can only sweep what its own fixture actually recorded — has ever proven
+an asset's dimensions and byte size survive to `graph.json`. That is a narrow, specific gap, not the
+item described below. Stays `queued` on that one bullet alone; a fixture revision that captures one real
+asset (the same gap B37 finding 12 already named) would close it.
+
+**Superseded note, kept for the record — its scope claim is corrected above, do not treat as current:**
+`tests/unit/summary/graph-completeness-contract.test.ts`
 proves only per-agent telemetry and the agent grant ledger reach `graph.json` (17/17 pass, per B38
 finding 2). No test or run was found that checks the export against this item's full list — topology
 with wave rationale, every state-machine transition with verdict/round/finding-class, every finding,
@@ -988,7 +1059,37 @@ Worth stating in SKILL.md, because it explains every design decision downstream:
 
 ## B15 — Step-level action provenance: 100% visibility `queued`
 
-**Still queued 2026-08-20 (completion-tagging pass):** B15.2 has a real producer now —
+**Corrected 2026-08-20 (this reconciliation pass) — the note below's B15.1 claim was wrong the moment
+it was written: `4d54ac0` ("feat: wire step provenance, lifecycle summaries, and supervisor recovery")
+had already landed B15.1 hours before the "not found" note was added, and the note's own grep pattern
+(`monotonic`) missed the real symbol names.** Opened `orchestrating-long-tasks/scripts/src/summary/
+graph-types.ts` directly: `ActionStepRecord` (`step`, `timestamp`, `actor`, `kind`, `rawKind`, `target`,
+`outcome`, `evidence_class`, `summary`) is exactly B15.1's own field list, and its doc comment names
+B15.1 by number. `collectActionSteps` in `timeline-collector.ts` builds it from the event chain and is
+called from `graph-run-facts.ts:316`, which attaches it as `RunFacts.steps` — `GraphDataset.run` is
+typed `RunFacts`, so this reaches `graph.json`, not just an internal type. `bun test
+tests/unit/summary/timeline-collector.test.ts` — 15/15 pass, including "every recorded action kind
+reaches the trace, in the taxonomy B15.1 asks for" and "step is the chain's own monotonic sequence, not
+a second counter" (named and asserted, not inferred from the test's title). B15.2 is also confirmed live
+and load-bearing, not just present: `FileRef`'s doc comment at `graph-types.ts:160` ties its `step` field
+to the same `RunFacts.steps` space, and `graph-completeness-contract.test.ts`'s "attributes the file to
+the report's own rationale, requirements and submission step (B15.2)" passes as part of that file's
+17/17.
+
+**New finding this pass, not previously recorded — B15.4's gvui half is unreachable.** gvui ships
+`src/engine/GraphCanvas/StepScrubber.tsx` (148 lines, a real component reading `useGraphStore`'s
+`selectedStep`/`setSelectedStep`), but `grep -rl StepScrubber src` inside gvui returns only the component's
+own file — nothing imports it. This is exactly the "implemented subsystem with no call site" shape
+B8.5/B9.2 exist to catch, reproduced inside this same item. B15.3 (per-invocation tool-call visibility,
+distinct from the aggregate `node.tools` counts) was grepped for directly — the plausible names
+toolInvocation and ToolInvocationRecord, deliberately not code-quoted here since neither exists — and
+found nowhere in `scripts/src/summary`. Still absent. Item stays `queued`:
+B15.1 and B15.2 are done and reachable; B15.3 is unstarted; B15.4's data model is real but its gvui
+rendering half is dead code, which is arguably worse than "not built" because it invites trusting a
+component that never runs.
+
+**Superseded note, kept for the record — its B15.1 claim is corrected above, do not treat as current:**
+B15.2 has a real producer now —
 `scripts/src/summary/file-diff-reader.ts` populates `FileRef.lines`/`.diff`, which were previously
 declared and never written. B15.1's monotonic per-run step counter over every recorded action was not
 found under `scripts/src` (only an unrelated docstring use of the word "step"), so the two-view
@@ -1763,9 +1864,36 @@ have recovery.
 
 ---
 
-## B29 — Gates are scoped to the task; the full suite runs once, at the barrier   `queued`
+## B29 — Gates are scoped to the task; the full suite runs once, at the barrier   `verified`
 
-**Still queued 2026-08-20 (completion-tagging pass):** per-task `--gate` scoping is a real mechanism
+**Verified 2026-08-20 (this reconciliation pass) — the "not found" note directly below was wrong at
+the moment it was written, not stale since: it grepped `cli/registry/plan.ts` (the flag/help registry)
+and never opened `cli/commands/plan.ts` (the actual handler), where the feature has lived since
+`eaabd5c` — the very first rewrite commit, hours before the note was added.** Opened the real file:
+`planAddCommand` in `orchestrating-long-tasks/scripts/src/cli/commands/plan.ts:251-259` calls
+`gateBreadthWarning(gate, writeScope)` and, only once that warns, `discoverGatePaths(...)` to suggest
+real on-disk test paths for the scope — wired to the CLI through `cli/registry/plan.ts`'s
+`handler: planAddCommand`, not a parallel, unreached copy. `bun test tests/unit/graph/gate-breadth.test.ts
+tests/unit/cli/plan-commands.test.ts` — 22/22 pass, with assertions on the actual warning text
+(`toContain("whole-suite")`, `toContain("src/db")`, `toContain("--completion-gate")`), not just "does
+not throw". Guard confirmed load-bearing: in an `rsync`ed scratch copy under the scratchpad directory
+(never the real tree), neutered `gateBreadthWarning` to always return `undefined` — 1 of 16 tests in
+that file failed immediately on the missing warning text; `git status` on the real tree showed nothing
+touched afterward, and the scratch copy was deleted. The rest of the item is real too, checked directly
+rather than assumed: `SKILL.md:62` states the scoping rule in prose; every validator role file
+(`roles/validator.md` and all five `validator-*.md` domain files) carries, under `must_not`, "Run the
+whole repository's suite to verify one task; run that task's gate and the tests covering its scope"
+(B29.2); `roles/repairer.md:11` carries the matching repair-round rule (B29.2's "not everything");
+`roles/implementer.md` carries, under `may`, "Update the tests covering its write scope when its change
+alters the behaviour they assert" (B29.4) and, under `must_not`, "Run the whole repository's suite for
+incremental work; run the tests covering the files touched". B29.1 (rationale) and B29.5 (this
+overhaul's own workflow discipline) are prose/process, not code, and are already evidenced throughout
+this document's own resolution notes, which cite scoped test-file runs rather than the full suite.
+Reachable, does what the item asked, guard holds — all three of B33's bars, opened fresh rather than
+carried over from the note below.
+
+**Superseded note, kept for the record — its "not found" conclusion is corrected above, do not treat as
+current:** per-task `--gate` scoping is a real mechanism
 and `plan-replan-bindings.ts` enforces that a repair task names one gate rather than inheriting several
 silently. B29.3's specific ask — `plan:add` WARNS when a `--gate` looks like a whole-suite run while
 `--scope` is narrow, and suggests test paths derived from the scope — was not found in the `plan:add` handler
@@ -2235,6 +2363,21 @@ accept at that load level, or a follow-up item for a wall-clock-independent read
 ---
 
 ## B36 — B30's research landed unevenly: the coordinator's own role contract still hardcodes `invoke_subagent`, and `host-adapters.md` is spliced, not merged   `verified`
+
+**Re-confirmed 2026-08-20 (this reconciliation pass, opened fresh again, independent of the "verified"
+paragraph directly below).** A separate report reaching this pass claimed `run-playbook.md`,
+`host-adapters.md` and `parity-matrix.md` were "still unfixed," contradicting the tag already on this
+item. Checked mechanically, not by re-reading either account: `grep -n invoke_subagent
+references/run-playbook.md` returns **zero** hits; `grep -n '^## ' references/host-adapters.md` returns
+`## 1. Two-Tier Agent Architecture`, `## 2. Milestone-Only Notification Protocol`, `## 3. Host Adapters`,
+`## 4. Silent Worker Recovery & Heartbeats` — sequential, no gap at 3; `grep -n 'Agent Teams /
+teammates' references/parity-matrix.md` returns **zero** hits, and its Claude Code row now reads `Native
+(\`Agent\` tool)` / `Concurrent \`Agent\` tool calls` / `Nested \`Agent\` tool calls`, matching
+`host-adapters.md`'s adapter table exactly. All three claims in the "still unfixed" report are false as
+of right now; the `verified` tag below is correct and the stale claim is not this file's own current
+text — it survives only inside the "Superseded note" blocks further down, each already labelled as such.
+No tag change needed. This confirms the general pattern this reconciliation pass exists to catch: a
+report describing this item, not the item's own current text, had drifted from disk.
 
 **Verified 2026-08-20 (reconciliation pass, same day, minutes after the "Net: 2 of 4" note below —
 the situation kept moving under this pass and this is the freshest read):** a second wave of concurrent

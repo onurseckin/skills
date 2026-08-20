@@ -10,6 +10,7 @@ import {
   type RepositoryContentLimits,
   type RepositoryContentScanPolicy,
 } from "./repository-content-policy.ts";
+import { synchronousDelay } from "./repository-git-command.ts";
 
 export type { RepositoryContentLimits } from "./repository-content-policy.ts";
 
@@ -69,6 +70,36 @@ function listedPaths(
   }));
 }
 
+// A path source that shells out to git (repositoryContentPaths, the default) can transiently
+// disagree with itself between two calls microseconds apart under the same fork+exec scheduling
+// hazard repository-git-command.ts already retries elsewhere — here it surfaces as the whole
+// listing differing rather than one command's output being empty. Observed directly, not inferred:
+// tests/unit/reporting/handoff-triggers.test.ts's "sealing the run rewrites it against the
+// completed state" threw the error below under real concurrent-agent load with no write anywhere
+// between the two reads (this scan is read-only). Re-reading a few times before accepting a
+// disagreement as real keeps the check honest — a genuine concurrent write keeps disagreeing across
+// every retry and still throws exactly as before.
+const CONTENT_LISTING_SETTLE_RETRIES = 3;
+const CONTENT_LISTING_SETTLE_DELAY_MS = 20;
+
+function settledListedPaths(
+  repo: string,
+  configured: RepositoryContentScanPolicy,
+  source: RepositoryContentPathSource,
+  reference: RepositoryContentPath[],
+): RepositoryContentPath[] {
+  let candidate = listedPaths(repo, configured, source);
+  for (
+    let attempt = 0;
+    !sameJson(reference, candidate) && attempt < CONTENT_LISTING_SETTLE_RETRIES;
+    attempt += 1
+  ) {
+    synchronousDelay(CONTENT_LISTING_SETTLE_DELAY_MS);
+    candidate = listedPaths(repo, configured, source);
+  }
+  return candidate;
+}
+
 export function inspectRepositoryContent(
   repoRoot: string,
   options: RepositoryContentLimits = {},
@@ -81,11 +112,11 @@ export function inspectRepositoryContent(
     throw new HarnessError("INVALID_ARGUMENT", "repository root is not a directory");
   const before = listedPaths(repo, configured, pathSource);
   const first = scanNodes(repo, before, configured, 1, hooks);
-  const middle = listedPaths(repo, configured, pathSource);
+  const middle = settledListedPaths(repo, configured, pathSource, before);
   if (!sameJson(before, middle))
     throw new HarnessError("INTEGRITY", "repository content listing changed during scan");
   const second = scanNodes(repo, middle, configured, 2, hooks);
-  const after = listedPaths(repo, configured, pathSource);
+  const after = settledListedPaths(repo, configured, pathSource, middle);
   if (!sameJson(middle, after))
     throw new HarnessError("INTEGRITY", "repository content listing changed during scan");
   if (!sameJson(first.nodes, second.nodes))

@@ -1,7 +1,9 @@
 import type { JsonObject } from "../contracts/json.ts";
 import { sha256Bytes } from "../core/json.ts";
+import { HarnessError } from "../errors/harness-error.ts";
 import { inspectRepositoryGitControls } from "./repository-git-controls.ts";
 import {
+  commandOutputRetryingEmpty,
   createRepositoryGitCommand,
   repositoryWorktree,
   type RepositoryGitCommand,
@@ -23,11 +25,22 @@ export interface RepositoryGitIdentityDependencies {
   environment?: Readonly<NodeJS.ProcessEnv>;
 }
 
+// Status 1 legitimately means "no ref" here (unborn HEAD, detached HEAD) — that branch's empty
+// output is a real answer, never retried. Status 0 always carries a SHA or ref name, so empty
+// output paired with an accepted status can only be the fork+exec scheduling hazard
+// commandOutputRetryingEmpty already retries for elsewhere in this file's callers (see
+// repository-git-command.ts); if it is still empty once those retries are exhausted, that is not a
+// legitimate "no ref" and must not be reported as one.
 function optionalText(repo: string, argv: string[], command: RepositoryGitCommand): string | null {
-  const result = command(repo, argv, 1024, [0, 1]);
+  const result = commandOutputRetryingEmpty(repo, argv, 1024, command, [0, 1]);
   if (result.status !== 0) return null;
   const value = result.bytes.toString("utf8").trim();
-  return value === "" ? null : value;
+  if (value === "")
+    throw new HarnessError(
+      "INTEGRITY",
+      `repository Git ref probe returned an accepted status with no output: ${argv.join(" ")}`,
+    );
+  return value;
 }
 
 function digest(bytes: Buffer): { bytes: number; sha256: string } {

@@ -38,6 +38,13 @@ interface Requirement {
 const COMMAND_TOKEN = /^[a-z][a-z0-9-]*:[a-z][a-z0-9-]*$/u;
 const IDENTIFIER_TOKEN = /^[A-Za-z_$][A-Za-z0-9_$]*$/u;
 const PATH_TOKEN = /^[A-Za-z0-9_@./-]+\.(?:ts|tsx|md)$/u;
+// A path token ending `.test.ts`/`.spec.ts` names a test file, not code the test file proves. The
+// generic "proven" check below looks for the token quoted inside `input.tests` - impossible by
+// construction here (a test does not cite its own path in its own body) and, for a consumer repo's
+// test, unreachable regardless: consumer sources load into `input.production`, never `input.tests`
+// (see runHealthCheck), so the search space does not even contain it. Citing the test's own path IS
+// the requirement's proof; existing on disk is the whole bar.
+const TEST_PATH_TOKEN = /\.(?:test|spec)\.tsx?$/u;
 const PLACEHOLDER_TOKEN = /[<>*]/u;
 const EXTERNAL_IDENTIFIER_SET = new Set(EXTERNAL_IDENTIFIERS);
 // A requirement the owner has explicitly declined to implement (BACKLOG.md's `deferred by owner`
@@ -111,7 +118,13 @@ function classify(
     const written = input.production.some(
       (file) => !file.relative.endsWith("health/allowlist.ts") && file.text.includes(token),
     );
-    return { kind: "file", found: onDisk || written };
+    const isTest = TEST_PATH_TOKEN.test(token);
+    // The `written` fallback exists for a run-produced artifact (e.g. `graph.json`) that a script
+    // spells out as a literal without the file existing in the scanned tree. A test file is not
+    // that kind of artifact: its own proof is being self-proving on disk (see TEST_PATH_TOKEN
+    // above), so a bare text mention of its name in some unrelated file's comment or string - which
+    // proves nothing about the test existing or running - must not substitute for that.
+    return { kind: isTest ? "test" : "file", found: isTest ? onDisk : onDisk || written };
   }
   // A backticked lowercase word is a value the prose quotes ("pass", "derived"), not a symbol.
   if (IDENTIFIER_TOKEN.test(token) && /[A-Z]/u.test(token)) {
@@ -129,6 +142,7 @@ export function checkIntentDrift(input: IntentInput): HealthCheckResult {
   let externalOnly = 0;
   let requirements = 0;
   let ownerDeferred = 0;
+  let selfProvingTests = 0;
 
   for (const document of input.documents) {
     const text = readFileSync(document.absolute, "utf-8");
@@ -168,9 +182,18 @@ export function checkIntentDrift(input: IntentInput): HealthCheckResult {
           ),
         );
       }
-      const proven = classified.filter(
-        (entry) => entry.verdict.found && present(input.tests, entry.token),
-      );
+      const proven = classified.filter((entry) => {
+        if (!entry.verdict.found) return false;
+        // The token itself names a test file: its presence already proves the requirement is
+        // tested, so searching for it quoted inside some OTHER test would only ever fail. Counted
+        // below rather than silently short-circuited, same disclosure discipline as every other
+        // exemption in this function.
+        if (entry.verdict.kind === "test") {
+          selfProvingTests += 1;
+          return true;
+        }
+        return present(input.tests, entry.token);
+      });
       if (classified.length > 0 && proven.length === 0) {
         findings.push(
           finding(
@@ -195,6 +218,7 @@ export function checkIntentDrift(input: IntentInput): HealthCheckResult {
       `${external} token(s) name another application's own identifier (see external-identifiers.ts) and were exempted rather than judged missing.`,
       `${externalOnly} requirement(s) named nothing checkable once those exemptions were applied, so this check says nothing about them either way.`,
       `${ownerDeferred} requirement(s) are marked \`deferred by owner\` in their own heading and are excluded entirely: the owner has explicitly declined to implement them, so no code or test will ever satisfy them.`,
+      `${selfProvingTests} token(s) name a \`.test.ts\`/\`.spec.ts\` file directly; existing on disk was counted as its own proof rather than being searched for inside another test.`,
       ...(input.registryApplies
         ? []
         : [

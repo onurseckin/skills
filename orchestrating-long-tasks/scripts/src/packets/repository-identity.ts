@@ -4,11 +4,31 @@ import { canonicalJsonBytes, sha256Bytes } from "../core/json.ts";
 import { HarnessError } from "../errors/harness-error.ts";
 import { inspectRepositoryContent, type RepositoryContentLimits } from "./repository-content.ts";
 import { resolveRepositoryContentPolicy } from "./repository-content-policy.ts";
-import { inspectRepositoryGitIdentity } from "./repository-git-identity.ts";
+import {
+  inspectRepositoryGitIdentity,
+  type RepositoryGitIdentity,
+  type RepositoryGitIdentityDependencies,
+} from "./repository-git-identity.ts";
+import { synchronousDelay } from "./repository-git-command.ts";
+
+// Re-running several read-only git commands to build one identity snapshot carries the same
+// fork+exec scheduling hazard repository-git-command.ts already retries per-command elsewhere —
+// here it can surface as the whole snapshot disagreeing with itself across two calls microseconds
+// apart with no write anywhere in between (this scan is read-only). Observed directly, not
+// inferred, under real concurrent-agent load. Re-reading a few times before accepting the
+// disagreement as real keeps the check honest — a genuine concurrent write keeps disagreeing across
+// every retry and still throws exactly as before.
+const GIT_IDENTITY_SETTLE_RETRIES = 3;
+const GIT_IDENTITY_SETTLE_DELAY_MS = 20;
+
+function sameIdentity(left: RepositoryGitIdentity, right: RepositoryGitIdentity): boolean {
+  return Buffer.from(canonicalJsonBytes(left)).equals(Buffer.from(canonicalJsonBytes(right)));
+}
 
 export function inspectRepositoryBinding(
   repoRoot: string,
   options: RepositoryContentLimits = {},
+  gitDependencies: RepositoryGitIdentityDependencies = {},
 ): RepositoryBinding {
   const repo = realpathSync(repoRoot);
   if (!lstatSync(repo).isDirectory())
@@ -22,10 +42,31 @@ export function inspectRepositoryBinding(
     maximum,
     controlMaximum,
     controlTotalMaximum,
+    gitDependencies,
   );
   const content = inspectRepositoryContent(repo, options);
-  const afterGit = inspectRepositoryGitIdentity(repo, maximum, controlMaximum, controlTotalMaximum);
-  if (!Buffer.from(canonicalJsonBytes(beforeGit)).equals(Buffer.from(canonicalJsonBytes(afterGit))))
+  let afterGit = inspectRepositoryGitIdentity(
+    repo,
+    maximum,
+    controlMaximum,
+    controlTotalMaximum,
+    gitDependencies,
+  );
+  for (
+    let attempt = 0;
+    !sameIdentity(beforeGit, afterGit) && attempt < GIT_IDENTITY_SETTLE_RETRIES;
+    attempt += 1
+  ) {
+    synchronousDelay(GIT_IDENTITY_SETTLE_DELAY_MS);
+    afterGit = inspectRepositoryGitIdentity(
+      repo,
+      maximum,
+      controlMaximum,
+      controlTotalMaximum,
+      gitDependencies,
+    );
+  }
+  if (!sameIdentity(beforeGit, afterGit))
     throw new HarnessError("INTEGRITY", "repository Git identity changed during scan");
   const binding = {
     schema: "harness.repository-binding" as const,

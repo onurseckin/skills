@@ -239,6 +239,96 @@ describe("health/allowlist.ts quoting a path token is not evidence the repo uses
   });
 });
 
+describe("a token naming a test file's own path is proven by existing, not by being quoted elsewhere", () => {
+  test("a `.test.ts` token in the repo's own tests is not reported as untested", () => {
+    const root = writeTree(tempRoot("self-proving-own-tests"), {
+      "SPEC.md": [
+        "## 1. R1 - completeness",
+        "",
+        "- Proven by `tests/unit/completeness.test.ts`.",
+      ].join("\n"),
+    });
+    const testPath = join(root, "tests/unit/completeness.test.ts");
+    const report = checkIntentDrift({
+      documents: [{ relative: "SPEC.md", absolute: join(root, "SPEC.md"), headingLevel: 2 }],
+      production: [],
+      // The test file's own content never quotes its own path, so a search of `tests` for the
+      // literal token text would fail even though the file is exactly the proof R1 cites.
+      tests: [sourceOf("tests/unit/completeness.test.ts", "test('covers it', () => {});")],
+      paths: [testPath],
+      registryApplies: true,
+    });
+    expect(report.findings.map((entry) => entry.key)).not.toContain(
+      "intent-untested:SPEC.md:R1",
+    );
+    expect(report.limitations.join(" ")).toContain("1 token(s) name a `.test.ts`/`.spec.ts` file");
+  });
+
+  test("a `.test.ts` token that lives only in a consumer repo is still proven", () => {
+    // Mirrors runHealthCheck: a consumer's sources (tests included) load into `production`, never
+    // into `tests`, so `present(input.tests, token)` could never see this file even if it quoted
+    // its own path. `paths` is the only signal both repos share.
+    const root = writeTree(tempRoot("self-proving-consumer"), {
+      "SPEC.md": [
+        "## 1. R1 - renderer tolerance",
+        "",
+        "- Proven by `consumer/src/schema.test.ts`.",
+      ].join("\n"),
+    });
+    const testPath = join(root, "consumer/src/schema.test.ts");
+    const report = checkIntentDrift({
+      documents: [{ relative: "SPEC.md", absolute: join(root, "SPEC.md"), headingLevel: 2 }],
+      production: [sourceOf("consumer/src/schema.test.ts", "test('ignores junk', () => {});")],
+      tests: [],
+      paths: [testPath],
+      registryApplies: true,
+    });
+    expect(report.findings.map((entry) => entry.key)).not.toContain(
+      "intent-untested:SPEC.md:R1",
+    );
+  });
+
+  test("a non-test file token still requires a test to mention it", () => {
+    const root = writeTree(tempRoot("still-checked"), {
+      "SPEC.md": ["## 1. R1 - the ledger", "", "- Implemented in `src/ledger.ts`."].join("\n"),
+    });
+    const report = checkIntentDrift({
+      documents: [{ relative: "SPEC.md", absolute: join(root, "SPEC.md"), headingLevel: 2 }],
+      production: [sourceOf("src/ledger.ts", "export const x = 1;")],
+      tests: [],
+      paths: [join(root, "src/ledger.ts")],
+      registryApplies: true,
+    });
+    expect(report.findings.map((entry) => entry.key)).toContain("intent-untested:SPEC.md:R1");
+  });
+
+  test("a .test.ts token that only appears as text in an unrelated file is not self-proven", () => {
+    // `written` exists so a run-produced artifact (e.g. `graph.json`) can be named as a literal
+    // without existing in the scanned tree. A test file is not that kind of artifact: a comment in
+    // some other module merely spelling out a test's name proves nothing about that test existing
+    // or running, so it must not satisfy the self-proving path (guards the fix above the `isTest`
+    // branch, which intentionally excludes `written` for test-kind tokens).
+    const root = writeTree(tempRoot("phantom-test-mention"), {
+      "SPEC.md": [
+        "## 1. R1 - a requirement citing a test file that does not exist",
+        "",
+        "- Proven by `tests/unit/phantom.test.ts`.",
+      ].join("\n"),
+    });
+    const report = checkIntentDrift({
+      documents: [{ relative: "SPEC.md", absolute: join(root, "SPEC.md"), headingLevel: 2 }],
+      production: [
+        sourceOf("some/generator.ts", "// see tests/unit/phantom.test.ts for context"),
+      ],
+      tests: [],
+      // The phantom test file is deliberately absent from `paths`: it does not exist on disk.
+      paths: [join(root, "SPEC.md")],
+      registryApplies: true,
+    });
+    expect(report.findings.map((entry) => entry.key)).toContain("intent-untested:SPEC.md:R1");
+  });
+});
+
 describe("a command token is not judged against a registry that does not describe the tree", () => {
   const result = (): ReturnType<typeof checkIntentDrift> => {
     const root = writeTree(tempRoot("foreign-intent"), {
