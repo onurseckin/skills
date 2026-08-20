@@ -130,7 +130,7 @@ phase enforces: [`references/protocol.md`](references/protocol.md).
   the lifecycle, tiered dispatch and the pairing invariant, gate grammar, state transitions.
 - [`references/state-model.md`](references/state-model.md) — run directory, task states, lease
   suspension, and the branch, agent, topology and planning ledgers.
-- [`references/host-adapters.md`](references/host-adapters.md) — tier isolation, per-host dispatch adapters, recovery.
+- [`references/host-adapters.md`](references/host-adapters.md) — main-thread isolation, per-host dispatch, recovery.
 - [`references/failure-modes.md`](references/failure-modes.md) — the failure taxonomy, and the countermeasure for each.
 - [`references/parity-matrix.md`](references/parity-matrix.md) — what each host provides, and what stays absent.
 - [`references/schema-examples.md`](references/schema-examples.md) — canonical shapes for
