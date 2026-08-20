@@ -1847,3 +1847,36 @@ Reasoning effort is recorded; reasoning content is not. Record that as a genuine
 3. Reconcile with anything the agent self-reported: record both, flag disagreement, never choose silently.
 4. Same treatment for Codex, Antigravity and Cursor from their inventories — and where a host records
    nothing, say `unknown` rather than inventing a shape.
+
+---
+
+## B35 — Three more load-sensitive tests; B11.1's sweep was incomplete   `queued`
+
+**Observed 2026-08-20 at the Wave 9 push gate.** These pass 10/10 in isolation and fail under
+`bun test --parallel` on a loaded machine:
+
+- `tests/unit/runner/command-recorded-payload.test.ts` — "command-recorded carries the argv and the exit
+  code, not an empty payload"
+- `tests/unit/cli/critic-ops-commands.test.ts` — "request_changes without findings is refused rather than
+  synthesized"
+- `tests/unit/cli/task-probe-commands.test.ts` — "refuses a sign-off while the recorded gate run exited
+  non-zero"
+
+Each takes ~2.5-2.9s and drives the real CLI against a temp capsule, so the likely cause is the same class
+B11.1 fixed: a wall-clock or filesystem assumption that holds on an idle machine. B11.1 fixed two files and
+swept for `process.kill` and module-load clocks; it did not cover assertions whose timing depends on how
+long a subprocess takes to complete under contention.
+
+Fix them the way B11.1's were fixed — reproduce the failure deliberately (its verifier reconstructed the
+frozen window and demonstrated the refusal), then remove the timing assumption rather than widening a
+timeout. A widened timeout hides the race; it does not remove it.
+
+Also carried from Wave 8's verifier and still open:
+- Four `expect(() => process.kill(pid, 0)).toThrow()` assertions issued immediately after SIGTERM to a
+  non-child process (`resource-bounds.test.ts:144,179`, `runner-timeouts-retries.test.ts:209,226`).
+  Reaping is not synchronous. A bounded poll keeps the discrimination and removes the race.
+- The file-size cap counts the trailing empty element, so the effective limit is 499, not 500. Every file
+  is already calibrated to that, so correcting it silently grants one extra line everywhere — wants an
+  explicit decision.
+- Three test files exceed the cap (851, 881, 692 lines), all written by Wave 9 agents. They need splitting
+  along a real seam by whoever owns that area.

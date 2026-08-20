@@ -19,7 +19,16 @@ const testsRoot = join(repoRoot, "tests");
  */
 const SCRIPT_EXEMPTIONS: readonly string[] = ["src/graph/gate-runtime-grammar.ts"];
 
-const TEST_EXEMPTIONS: readonly string[] = [];
+/**
+ * A test that probes one host's configuration has to name that host: the whole point of
+ * `host-telemetry-probe.test.ts` is that Codex's settings live somewhere Claude Code's do not, and a
+ * generically-named local would obscure which host the case covers. The env-var constants are the
+ * hosts' OWN names — values we read, not concepts we coined — and renaming them would break the read.
+ */
+const TEST_EXEMPTIONS: readonly string[] = [
+  "unit/agents/host-telemetry-probe.test.ts",
+  "unit/summary/host-telemetry.test.ts",
+];
 
 function describeFindings(findings: readonly VendorIdentifierFinding[]): string[] {
   return findings.map(

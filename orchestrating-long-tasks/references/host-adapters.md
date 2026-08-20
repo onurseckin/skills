@@ -7,6 +7,57 @@ coordinator reads to know which mechanism it has and what that host can actually
 **A vendor tool name is a value, never a rule.** The rules below are stated against the abstract contract;
 the tool names live in the adapter table.
 
+## 1. Two-Tier Agent Architecture
+
+All supported host environments must enforce the **Two-Tier Isolation Model**:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│             Tier 1: Main Interactive Chat Session           │
+│   (Dedicated to human conversation; 0 worker tool chatter)  │
+└──────────────────────────────┬──────────────────────────────┘
+                               │ Spawns 1 Coordinator
+                               ▼
+┌─────────────────────────────────────────────────────────────┐
+│             Tier 2: Background Run Coordinator              │
+│   (Owns capsule lifecycle, planning, waves, and validation) │
+└──────────────┬───────────────┬───────────────┬──────────────┘
+               │               │               │ Spawns in background
+               ▼               ▼               ▼
+        ┌─────────────┐ ┌─────────────┐ ┌─────────────┐
+        │   Tier 3:   │ │   Tier 3:   │ │   Tier 3:   │
+        │  Worker A   │ │  Worker B   │ │  Validator  │
+        └─────────────┘ └─────────────┘ └─────────────┘
+```
+
+1. **Tier 1 (Main Interactive Thread)**:
+   - Remains 100% responsive for user chat.
+   - Spawns **exactly one** background coordinator agent.
+   - Never directly executes implementer tool loops or polls state.
+2. **Tier 2 (Background Run Coordinator)**:
+   - Owns `.capsules/<run_id>/` execution lifecycle.
+   - Equipped with subagent tools (`enable_subagent_tools: true` or native team lead capabilities).
+   - Coordinates execution waves and routes findings to workers.
+3. **Tier 3 (Worker & Validator Subagents)**:
+   - Ephemeral task executors assigned to a single disjoint `write_scope`.
+   - Report exclusively to the Background Run Coordinator in the background tree.
+
+---
+
+## 2. Milestone-Only Notification Protocol
+
+To keep the user's interactive thread pristine, the Background Run Coordinator communicates with the Tier 1 parent **only at major lifecycle milestones**:
+
+| Milestone Event                  | Notification Sent to User? | Content Delivered                                                   |
+| :------------------------------- | :------------------------- | :------------------------------------------------------------------ |
+| **Plan Compiled**                | ✅ Yes                     | Brief summary of total tasks, execution waves, and write scopes.    |
+| **Wave Completed**               | ✅ Yes                     | Confirmation of completed wave tasks and entry into validation.     |
+| **Escalation / Decision Needed** | ✅ Yes                     | Finding details if a task exhausts configured repair rounds.        |
+| **Step / Tool-Call Noise**       | ❌ No (Suppressed)         | Internal test runs, file edits, and heartbeats stay in background.  |
+| **Run Complete**                 | ✅ Yes                     | Final completeness sign-off, diff summary, and verification report. |
+
+---
+
 ---
 
 ## The abstract contract
@@ -98,3 +149,16 @@ it, and do not fail quietly.**
 - No messaging → the capsule is the only channel between agents, which it already is by design.
 
 Never emit a command the host cannot execute. A confusing failure is worse than an honest limitation.
+
+---
+
+## 4. Silent Worker Recovery & Heartbeats
+
+1. **Heartbeat Protocol**:
+   - Active workers on long-running tasks send periodic heartbeats via `bun harness.ts task:heartbeat --task <id> --token <token>`.
+2. **Crash & Hang Detection**:
+   - If an agent crashes or stops reporting past `lease_seconds`, the Coordinator runs:
+     ```bash
+     bun harness.ts recover --run <RUN> --actor coordinator
+     ```
+   - The runtime safely revokes the expired token, transitions the task back to `ready`, and re-dispatches it without human intervention.

@@ -20,13 +20,32 @@ describe("host adapters & two-tier architecture specifications", () => {
     expect(content).toContain("Milestone-Only Notification Protocol");
   });
 
-  test("documents specific native host adapters for AGY, Claude Code, and Codex", () => {
+  test("names every supported host's own dispatch mechanism, not one host's", () => {
     const content = readFileSync(hostAdaptersPath, "utf8");
 
-    expect(content).toContain("Google Antigravity (AGY / Antigravity CLI)");
-    expect(content).toContain("Anthropic Claude Code");
-    expect(content).toContain("OpenAI Codex & ChatGPT Coding Agents");
+    // A coordinator reads this to learn which mechanism it has. Naming one host's tool as though it
+    // were universal is what sent every non-Antigravity coordinator at a tool that does not exist.
+    expect(content).toContain("Claude Code");
+    expect(content).toContain("Antigravity");
+    expect(content).toContain("Codex");
+    expect(content).toContain("Cursor");
+
+    expect(content).toContain("Agent` tool");
+    expect(content).toContain("invoke_subagent");
+    expect(content).toContain("spawn_agent");
+    expect(content).toContain("Task` tool");
+
     expect(content).toContain("Silent Worker Recovery & Heartbeats");
+  });
+
+  test("states how a run degrades when a host cannot do something", () => {
+    const content = readFileSync(hostAdaptersPath, "utf8");
+
+    // A missing capability has to reach the reader. Emitting a command the host cannot run fails
+    // confusingly; staying silent about a run with no independent validator is worse.
+    expect(content).toContain("single-agent");
+    expect(content).toContain("validation was not");
+    expect(content).toContain("Never emit a command the host cannot execute");
   });
 
   test("SKILL.md routes to host-adapters.md instead of restating the tier ladder", () => {

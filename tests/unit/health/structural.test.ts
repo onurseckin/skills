@@ -20,19 +20,9 @@ const CONSUMER = new URL("../../../../gvui/", import.meta.url).pathname;
  * failure by `harness.ts health`. Lower a number as its file is cleaned; the numbers only go down.
  */
 const FALLBACK_CEILING: ReadonlyMap<string, number> = new Map([
-  ["orchestrating-long-tasks/scripts/src/cli/commands/orchestrator-ops.ts", 1],
-  ["orchestrating-long-tasks/scripts/src/cli/commands/plan.ts", 1],
-  ["orchestrating-long-tasks/scripts/src/cli/formatters/inspection-formatter.ts", 1],
   ["orchestrating-long-tasks/scripts/src/core/runtime-tree.ts", 2],
   ["orchestrating-long-tasks/scripts/src/installer/tree-digest.ts", 1],
-  ["orchestrating-long-tasks/scripts/src/orchestrator/loop-runner.ts", 1],
-  ["orchestrating-long-tasks/scripts/src/orchestrator/watchdog.ts", 3],
-  ["orchestrating-long-tasks/scripts/src/packets/render-packet.ts", 1],
-  ["orchestrating-long-tasks/scripts/src/packets/repository-git-command.ts", 1],
-  ["orchestrating-long-tasks/scripts/src/reporting/browser-run-report.ts", 1],
-  ["orchestrating-long-tasks/scripts/src/runner/attempt-cleanup-signature.ts", 1],
-  ["orchestrating-long-tasks/scripts/src/runner/attempt-execution-error.ts", 1],
-  ["orchestrating-long-tasks/scripts/src/runner/gate-path-tree.ts", 1],
+  ["orchestrating-long-tasks/scripts/src/orchestrator/watchdog.ts", 1],
   ["orchestrating-long-tasks/scripts/src/summary/asset-mapper-task-sources.ts", 3],
   ["orchestrating-long-tasks/scripts/src/summary/asset-mapper.ts", 4],
   ["orchestrating-long-tasks/scripts/src/summary/graph-generator-critic-nodes.ts", 1],
