@@ -254,7 +254,7 @@ describe("markdown report: evidence travels with every value", () => {
       },
     });
     expect(markdown).toContain(
-      "| `task-1` | unknown | `probe-1` | Prove it | open | unknown | open |",
+      "| `task-1` | unknown | `probe-1` | Prove it | minor | Answer the demand | cite a command | unknown | open | unknown | open |",
     );
     expect(markdown).toContain("| `task-1` | `defect-1` | critical | It is broken |");
   });

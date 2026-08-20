@@ -42,8 +42,10 @@ describe("markdown report: a fully populated capsule renders every recorded fact
       "| Worktree at collect | 1 paths at 2026-08-20T00:00:06.000Z (head abc) |",
     );
     expect(markdown).toContain("| `src/one/parser.ts` | `B-1` | harness_observed |");
-    expect(markdown).toContain("| `task-1` | 1 | `validator-1` | reject | none |");
-    expect(markdown).toContain("| `task-1` | 2 | `validator-2` | pass | `C-1` |");
+    // validation_history[0] carries no domain in the fixture, so the column says so rather than
+    // guessing the one domain validations[0] happens to use.
+    expect(markdown).toContain("| `task-1` | 1 | unknown | `validator-1` | reject | none |");
+    expect(markdown).toContain("| `task-1` | 2 | code-quality | `validator-2` | pass | `C-1` |");
     expect(markdown).toContain("probe_demand_answered via `C-1`");
     expect(markdown).toContain("| 900 (host_reported) | 120 (host_reported) |");
     expect(markdown).toContain(

@@ -47,6 +47,11 @@ export const ORCHESTRATOR_COMMANDS: readonly CommandSpec[] = [
         "Who is running the supervisor. Recorded on every event; there is no default actor.",
       ),
       optionalFlag("max-parallel", "int", "Occupancy ceiling; falls back to the run's configured default."),
+      optionalFlag(
+        "gate-max-parallel",
+        "int",
+        "B27.2: the separate, lower ceiling for gate-running (CPU-bound) work, reported alongside --max-parallel; falls back to the run's configured default (derived from host cores).",
+      ),
       optionalFlag("no-recover", "bool", "Disable automatic dead-agent reclaim and escalation (on by default)."),
       optionalFlag("grace-seconds", "int", "Grace period past lease expiry before reclaiming, 0-86400."),
       optionalFlag("poll-interval-ms", "int", "How often to re-tick while a dispatcher is driving the loop."),

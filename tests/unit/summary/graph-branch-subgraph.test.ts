@@ -1,4 +1,8 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, test } from "bun:test";
+import { execFileSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import type { BranchRecord } from "../../../orchestrating-long-tasks/scripts/src/contracts/branch.ts";
 import { generateGraphDataset } from "../../../orchestrating-long-tasks/scripts/src/summary/graph-generator.ts";
 import { makeCommand, makeState, makeTask } from "./graph-fixtures.ts";
@@ -158,5 +162,116 @@ describe("branch subgraphs", () => {
     const plan = dataset.nodes.find((node) => node.id === "node-orchestrator-plan");
     expect(plan?.metadata?.branchCount).toBe(1);
     expect(plan?.badges).toContainEqual({ label: "1 branches", variant: "amber" });
+  });
+});
+
+describe("branch region files carry a diff (B3/B15.2)", () => {
+  const roots: string[] = [];
+  afterEach(() => {
+    for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true });
+  });
+
+  function git(repo: string, args: string[]): void {
+    execFileSync("git", args, { cwd: repo });
+  }
+
+  /**
+   * The same run-root/baseline shape `file-diff-reader.test.ts` seeds, built here directly rather
+   * than through the CLI: a repository with one committed file, plus a `state.json` anchoring a
+   * diff reading at that commit. The branch then edits the file, so the closing observation records
+   * a real change for `enrichFileRefsWithDiffs` to find.
+   */
+  function seedRunRoot(): { repo: string; runRoot: string; head: string } {
+    const repo = mkdtempSync(join(tmpdir(), "branch-diff-"));
+    roots.push(repo);
+    git(repo, ["init", "-q"]);
+    git(repo, ["config", "user.email", "fixture@example.invalid"]);
+    git(repo, ["config", "user.name", "fixture"]);
+    mkdirSync(join(repo, "src"), { recursive: true });
+    writeFileSync(join(repo, "src", "flush.ts"), "export const flush = 1;\n");
+    git(repo, ["add", "-A"]);
+    git(repo, ["commit", "-qm", "baseline"]);
+    const head = execFileSync("git", ["rev-parse", "HEAD"], { cwd: repo })
+      .toString("utf8")
+      .trim();
+
+    const runRoot = join(repo, ".capsules", "run-1");
+    mkdirSync(runRoot, { recursive: true });
+    const digest = "d".repeat(64);
+    writeFileSync(
+      join(runRoot, "state.json"),
+      JSON.stringify({
+        baseline_repository_inspection_sha256: digest,
+        repository_inspections: {
+          [digest]: {
+            inspection_sha256: digest,
+            git: { status: "clean", head, history: null },
+          },
+        },
+      }),
+    );
+    return { repo, runRoot, head };
+  }
+
+  test("a genuinely edited path in the closing observation gets a real diff, not just a status code", () => {
+    const { repo, runRoot } = seedRunRoot();
+    writeFileSync(join(repo, "src", "flush.ts"), "export const flush = 2;\n");
+
+    const dataset = generateGraphDataset({
+      runId: "run-branch-diff",
+      state: makeState([makeTask("T-parent", { status: "branched" })], {
+        branches: [
+          branch({
+            collected_observation: {
+              observed_at: "2026-08-14T20:30:00.000Z",
+              git_available: true,
+              head: null,
+              entries: [{ path: "src/flush.ts", status_code: "M", sha256: null }],
+            },
+          }),
+        ],
+      }),
+      runRoot,
+    });
+
+    const section = dataset.sections?.find((entry) => entry.id === "section-branch-B-1");
+    const file = section?.files?.find((entry) => entry.path === "src/flush.ts");
+    expect(file).toBeDefined();
+    // The status code is the harness's own worktree reading; it stays exactly as recorded.
+    expect(file?.statusCode).toBe("M");
+    expect(file?.evidence_class).toBe("harness_observed");
+    // The diff is the missing half this test guards: without it, a branch excursion was the one
+    // changed-file listing in the whole export that never carried what actually changed.
+    expect(file?.diff).toContain("-export const flush = 1;");
+    expect(file?.diff).toContain("+export const flush = 2;");
+    expect(file?.additions).toBe(1);
+    expect(file?.deletions).toBe(1);
+    expect(file?.lines).toBe("1");
+  });
+
+  test("a path the observation names but nothing actually changed stays without a diff", () => {
+    const { runRoot } = seedRunRoot();
+
+    const dataset = generateGraphDataset({
+      runId: "run-branch-no-diff",
+      state: makeState([makeTask("T-parent", { status: "branched" })], {
+        branches: [
+          branch({
+            collected_observation: {
+              observed_at: "2026-08-14T20:30:00.000Z",
+              git_available: true,
+              head: null,
+              entries: [{ path: "src/flush.ts", status_code: "M", sha256: null }],
+            },
+          }),
+        ],
+      }),
+      runRoot,
+    });
+
+    const section = dataset.sections?.find((entry) => entry.id === "section-branch-B-1");
+    const file = section?.files?.find((entry) => entry.path === "src/flush.ts");
+    expect(file?.statusCode).toBe("M");
+    expect(file?.diff).toBeUndefined();
   });
 });

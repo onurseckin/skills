@@ -393,3 +393,66 @@ how-to-check: Trigger the changed popover from an element near each edge of the 
 severity: minor
 sources:
   - web.dev — popover positioning and viewport collision handling
+
+## UI-A11Y-008
+
+rule: A modal or dialog traps keyboard focus within it while open, and returns focus to the element that triggered it when it closes
+rationale: Focus escaping to background content behind an open modal lets a keyboard user tab into a page they cannot see is still covered, and losing the return point strands them after closing it
+how-to-check: Open the changed modal with the keyboard, tab past its last focusable element, and confirm focus wraps inside it; close it and confirm focus lands back on the trigger
+severity: important
+sources:
+  - WAI-ARIA Authoring Practices Guide — Dialog (Modal) Pattern
+
+## UI-A11Y-009
+
+rule: A component's meaning still reads correctly when the OS forced-colors/high-contrast mode overrides its custom colors — borders and outlines are not the only thing carrying a distinction that color alone conveyed
+rationale: Forced-colors mode strips custom color choices entirely; a control that relied only on a background-color difference becomes indistinguishable from its neighbors under it
+how-to-check: Enable forced-colors (or Windows High Contrast) mode and inspect the changed component for a lost distinction between states or elements
+severity: minor
+sources:
+  - WCAG 2.2, Success Criterion 1.4.11 (Non-text Contrast) — forced-colors mode guidance
+
+## UI-NAV-004
+
+rule: A page with repeated navigation before its main content offers a skip-to-content link as the first focusable element
+rationale: Without a skip link, a keyboard or screen-reader user must tab through the same navigation block on every single page before reaching what changed
+how-to-check: Load the changed page and press Tab once; confirm the first focus stop is a visible or focus-revealed skip-to-content link
+severity: minor
+sources:
+  - WCAG 2.2, Success Criterion 2.4.1 (Bypass Blocks)
+
+## UI-TABLE-001
+
+rule: A data table associates its header cells with the data cells they describe (`<th scope>`, `headers`/`id`, or the framework's equivalent), not plain unmarked cells relying on visual position alone
+rationale: A sighted user infers a cell's column and row from position; a screen-reader user hears cells one at a time and needs the header association to know what a value means
+how-to-check: Inspect the changed table's markup for header cells using `<th>`/`scope` (or an ARIA grid equivalent) rather than styled `<td>` elements
+severity: important
+sources:
+  - WCAG 2.2, Success Criterion 1.3.1 (Info and Relationships) — data table headers
+
+## UI-DRAG-001
+
+rule: A drag-and-drop interaction (reordering, moving between columns) has a single-pointer or keyboard-operable alternative that achieves the same result
+rationale: Drag gestures require precise, sustained pointer control that a motor-impaired or keyboard-only user cannot perform at all
+how-to-check: Attempt the changed drag interaction's outcome using only the keyboard (or a single tap/click sequence); confirm an equivalent path exists
+severity: important
+sources:
+  - WCAG 2.2, Success Criterion 2.5.7 (Dragging Movements)
+
+## UI-I18N-001
+
+rule: A layout holds together when its text runs in a right-to-left language, not built assuming left-to-right reading order is the only case
+rationale: A layout hard-coded to left-to-right (fixed `left`/`right` offsets instead of logical start/end properties) visually inverts incorrectly or breaks outright under RTL
+how-to-check: Switch the changed surface's direction to `rtl` and check whether icons, alignment, and reading order mirror correctly rather than staying pinned to their LTR position
+severity: minor
+sources:
+  - W3C Internationalization Activity, "Structural markup and right-to-left text in HTML"
+
+## UI-AUTH-001
+
+rule: A login or verification step does not require solving a cognitive function test (transcribing a memorized password with no paste allowed, a puzzle, a memory game) as the only path through
+rationale: Cognitive function tests as the sole authentication path exclude users with memory, language, or cognitive disabilities who could otherwise authenticate via a password manager or biometric
+how-to-check: Attempt the changed authentication step via a password manager (paste/autofill) and confirm it is not blocked; check whether a non-cognitive alternative (biometric, hardware key) exists alongside it
+severity: important
+sources:
+  - WCAG 2.2, Success Criterion 3.3.8 (Accessible Authentication — Minimum)

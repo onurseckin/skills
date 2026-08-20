@@ -1,9 +1,24 @@
-import { describe, expect, test } from "bun:test";
+import { afterAll, describe, expect, test } from "bun:test";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import {
+  discoverGatePaths,
   gateBreadthWarning,
   looksWholeSuite,
   scopeIsNarrow,
 } from "../../../orchestrating-long-tasks/scripts/src/graph/gate-breadth.ts";
+
+/** A throwaway repository tree so discovery hits real, verifiable files rather than an assumption. */
+function fixtureRepo(): string {
+  const root = mkdtempSync(join(tmpdir(), "gate-breadth-fixture-"));
+  roots.push(root);
+  return root;
+}
+const roots: string[] = [];
+afterAll(() => {
+  for (const root of roots) rmSync(root, { recursive: true, force: true });
+});
 
 describe("gate breadth", () => {
   test("a runner with no path argument discovers everything", () => {
@@ -49,5 +64,58 @@ describe("gate breadth", () => {
 
   test("stays silent when the scope really is the whole repository", () => {
     expect(gateBreadthWarning("bun test", ["."])).toBeUndefined();
+  });
+
+  test("discovers a test file co-located beside the scope it covers", () => {
+    const repo = fixtureRepo();
+    mkdirSync(join(repo, "src/db"), { recursive: true });
+    writeFileSync(join(repo, "src/db/index.ts"), "");
+    writeFileSync(join(repo, "src/db/index.test.ts"), "");
+    expect(discoverGatePaths(repo, ["src/db"])).toEqual(["src/db/index.test.ts"]);
+  });
+
+  test("discovers a co-located tests directory under any of its common names", () => {
+    const repo = fixtureRepo();
+    mkdirSync(join(repo, "src/api/__tests__"), { recursive: true });
+    expect(discoverGatePaths(repo, ["src/api"])).toEqual(["src/api/__tests__"]);
+  });
+
+  test("discovers a mirrored directory that drops the scope's own src segment", () => {
+    const repo = fixtureRepo();
+    mkdirSync(join(repo, "src/graph"), { recursive: true });
+    mkdirSync(join(repo, "tests/unit/graph"), { recursive: true });
+    expect(discoverGatePaths(repo, ["src/graph"])).toEqual(["tests/unit/graph"]);
+  });
+
+  test("discovers a same-named test file beside the mirrored location", () => {
+    const repo = fixtureRepo();
+    mkdirSync(join(repo, "src/db"), { recursive: true });
+    mkdirSync(join(repo, "tests"), { recursive: true });
+    writeFileSync(join(repo, "tests/db.test.ts"), "");
+    expect(discoverGatePaths(repo, ["src/db"])).toEqual(["tests/db.test.ts"]);
+  });
+
+  test("mirrors the scope's full path when it carries no src segment", () => {
+    const repo = fixtureRepo();
+    mkdirSync(join(repo, "packages/api"), { recursive: true });
+    mkdirSync(join(repo, "tests/unit/packages/api"), { recursive: true });
+    expect(discoverGatePaths(repo, ["packages/api"])).toEqual(["tests/unit/packages/api"]);
+  });
+
+  test("finds nothing for a scope with no test under any checked convention", () => {
+    const repo = fixtureRepo();
+    mkdirSync(join(repo, "src/lonely"), { recursive: true });
+    expect(discoverGatePaths(repo, ["src/lonely"])).toEqual([]);
+  });
+
+  test("finds nothing for a scope that does not exist on disk, and never throws", () => {
+    const repo = fixtureRepo();
+    expect(discoverGatePaths(repo, ["src/never-created"])).toEqual([]);
+  });
+
+  test("skips the repository root instead of mirroring it onto every test root", () => {
+    const repo = fixtureRepo();
+    mkdirSync(join(repo, "tests"), { recursive: true });
+    expect(discoverGatePaths(repo, ["."])).toEqual([]);
   });
 });

@@ -48,6 +48,14 @@ export interface RunSupervisorOptions {
   readonly runRoot: string;
   readonly actor: string;
   readonly maxParallel: number;
+  /**
+   * B27.2: the separate, lower ceiling for gate-running (CPU-bound) work, reported alongside
+   * `maxParallel` so occupancy is visible against both rather than only the general one. Purely
+   * informational here — `maxParallel` is still the number that actually gates dispatch, since the
+   * supervisor has no way to tell a gate-running task from a reasoning one without the host telling
+   * it. Absent when the caller supplies none, never defaulted to a guess.
+   */
+  readonly gateMaxParallel?: number;
   /** Absent: the supervisor still reclaims, escalates and reports, but dispatches nothing itself. */
   readonly dispatcher?: TaskDispatcher;
   /** B28.5: recovery is on by default. A caller must explicitly opt out, never the reverse. */
@@ -74,6 +82,8 @@ export interface SupervisorTickOutcome {
   readonly backingOff: readonly BackingOffTask[];
   readonly occupied: number;
   readonly maxParallel: number;
+  /** B27.2: reported alongside `maxParallel`, never in place of it. See the option's own doc. */
+  readonly gateMaxParallel?: number;
 }
 
 export interface SupervisionRunResult {
@@ -134,6 +144,7 @@ export class RunSupervisor {
       backingOff: selection.backingOff,
       occupied: reclaim.occupied,
       maxParallel: o.maxParallel,
+      ...(o.gateMaxParallel === undefined ? {} : { gateMaxParallel: o.gateMaxParallel }),
     };
     if (o.dispatcher !== undefined) await this.dispatchReady(outcome, loaded.events);
     return outcome;
@@ -220,7 +231,11 @@ export class RunSupervisor {
 
   private report(): MorningReport {
     const loaded = this.load();
-    return buildMorningReport(this.port.read(), loaded.events, this.clock.now());
+    const o = this.options;
+    return buildMorningReport(this.port.read(), loaded.events, this.clock.now(), {
+      maxParallel: o.maxParallel,
+      ...(o.gateMaxParallel === undefined ? {} : { gateMaxParallel: o.gateMaxParallel }),
+    });
   }
 
   /**

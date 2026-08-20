@@ -7,6 +7,7 @@ import { createEdge } from "./edge-builder.ts";
 import type { AssetRegistry } from "./graph-asset-ownership.ts";
 import { commandDurationMs, commandLogBytes } from "./graph-edge-exchanges.ts";
 import { buildNodeBrowserTests } from "./browser-tests.ts";
+import { enrichFileRefsWithDiffs } from "./file-diff-reader.ts";
 import { buildNodeScripts } from "./node-evidence.ts";
 import type {
   FileRef,
@@ -37,18 +38,23 @@ export interface BranchSubgraph {
 /**
  * What the closing Git reading saw in the worktree. The entries are the harness's own measurement,
  * so they keep their status code and digest; a branch that closed without an observation
- * contributes nothing rather than an empty change set.
+ * contributes nothing rather than an empty change set. `lines`/`diff`/`additions`/`deletions` are
+ * filled in from a real Git reading against the run's baseline (B15.2/B3), the same enrichment the
+ * implementer's own `files` list gets in `graph-task-preparation.ts` — a branch excursion edits the
+ * repository too, and without this its changes were the one file list in the export that never
+ * carried a diff.
  */
-function observedFiles(branch: BranchRecord): FileRef[] {
+function observedFiles(branch: BranchRecord, runRoot: string | undefined): FileRef[] {
   const observation = branch.collected_observation ?? branch.opened_observation;
   if (observation === undefined || !observation.git_available) return [];
-  return observation.entries.map((entry) => ({
+  const files = observation.entries.map((entry) => ({
     path: entry.path,
     mode: "write" as const,
     statusCode: entry.status_code,
     sha256: entry.sha256,
     evidence_class: "harness_observed" as const,
   }));
+  return enrichFileRefsWithDiffs(files, runRoot);
 }
 
 function subTaskStatus(subTask: BranchSubTask): NodeStatus {
@@ -230,6 +236,7 @@ export function buildBranchSubgraphs(input: BranchSubgraphInput): BranchSubgraph
       edges.push(...branchEdges(branch, subTask, parentNodeId, input.commands));
     }
 
+    const branchFiles = observedFiles(branch, input.runRoot);
     sections.push({
       id: `section-branch-${branch.id}`,
       title: `Branch of ${branch.parent_task_id}`,
@@ -244,7 +251,7 @@ export function buildBranchSubgraphs(input: BranchSubgraphInput): BranchSubgraph
         : {}),
       ...(branch.outcome_summary !== undefined ? { outcomeSummary: branch.outcome_summary } : {}),
       ...(branch.files_changed !== undefined ? { filesChanged: branch.files_changed } : {}),
-      ...(observedFiles(branch).length > 0 ? { files: observedFiles(branch) } : {}),
+      ...(branchFiles.length > 0 ? { files: branchFiles } : {}),
       nodeIds: sectionNodeIds,
     });
   }

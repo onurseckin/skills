@@ -124,8 +124,8 @@ describe("summary.md is a complete, sequential run report", () => {
     expect(markdown).toContain("### Adversarial probes");
     expect(markdown).toContain("### Pushbacks and defect findings");
     expect(markdown).toContain("| `task-beta` | 1 | 1 |");
-    expect(markdown).toContain("| `task-beta` | 1 | `validator-1` | reject |");
-    expect(markdown).toContain("| `task-beta` | 2 | `validator-2` | pass |");
+    expect(markdown).toContain("| `task-beta` | 1 | code-quality | `validator-1` | reject |");
+    expect(markdown).toContain("| `task-beta` | 2 | code-quality | `validator-2` | pass |");
   });
 
   test("reports the gates, their recorded runs and the critic's verdict", () => {
@@ -138,8 +138,11 @@ describe("summary.md is a complete, sequential run report", () => {
   });
 
   test("reports telemetry with its evidence class and unknown where nothing was reported", () => {
-    expect(markdown).toContain("test-model-l (host_reported)");
-    expect(markdown).toContain("1,200 (host_reported)");
+    // `agent:register --model` is the caller's own claim, not a host probe, so it earns
+    // agent_reported; only the harness's own transcript probe ever earns host_reported.
+    expect(markdown).toContain("test-model-l (agent_reported)");
+    // `agent:report --tokens-in` is likewise the caller's own running total.
+    expect(markdown).toContain("1,200 (agent_reported)");
     expect(markdown).toContain("| `coordinator-1` | coordinator | unknown | unknown |");
     expect(markdown).toContain("derived, estimate");
   });

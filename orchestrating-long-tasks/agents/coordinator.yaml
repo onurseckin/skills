@@ -96,19 +96,15 @@ interface:
         blocks it — never once "the wave" nominally finishes. `queue:pop` (or `task:claim`) claims one
         task atomically and is the right tool for filling a single freed slot.
       - Dispatch every task the snapshot shows as claimable, one implementer and one validator per
-        task, launched together so the pair is registered atomically. A single subagent call may
+        task, launched together so the pair is registered atomically. A single dispatch call may
         launch several pairs at once when the host allows it — that is a batching convenience, not a
-        synchronisation requirement:
-        ```typescript
-        invoke_subagent({
-          Subagents: [
-            { Role: "Implementer 1 (Task T-01)", TypeName: "self", Prompt: "Claim and implement task T-01 in run $RUN..." },
-            { Role: "Validator 1 (Task T-01)",   TypeName: "self", Prompt: "Adversarially audit task T-01 in run $RUN..." },
-            { Role: "Implementer 2 (Task T-02)", TypeName: "self", Prompt: "Claim and implement task T-02 in run $RUN..." },
-            { Role: "Validator 2 (Task T-02)",   TypeName: "self", Prompt: "Adversarially audit task T-02 in run $RUN..." }
-          ]
-        });
-        ```
+        synchronisation requirement. Whatever the host, dispatching one agent means the same five
+        things: start it with a role, a scope and a packet; learn its id; know when it finished and
+        what it returned; keep it from colliding with concurrent agents on the same files; and be able
+        to resume or replace it if it dies mid-task. The concrete tool that does this — its name, call
+        shape and argument fields — is a per-host fact, never a rule: read
+        `references/host-adapters.md`'s adapter table for the one your host actually exposes before
+        dispatching anything.
       - **Register every agent you deploy, before it starts work:**
         `agent:register --run $RUN --agent <agent-id> --role <canonical-role> --host <host> --parent-agent <your-id> --parent-task <task-id>`
         Add `--model`, `--model-tier`, `--thinking-level` and repeated `--tool` ONLY when the host

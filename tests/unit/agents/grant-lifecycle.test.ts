@@ -98,8 +98,10 @@ describe("agent grant lifecycle", () => {
       "agent_reported",
     ]);
     expect(worker?.tools_granted?.evidence_class).toBe("agent_reported");
-    expect(worker?.tokens_in).toEqual({ value: 18000, evidence_class: "host_reported" });
-    expect(worker?.model_tier).toEqual({ value: "l", evidence_class: "host_reported" });
+    // Same rule as tools above: --tokens-in and --model-tier are unverified CLI input too, not a
+    // host attestation, unless a derived/transcript probe actually corroborates them (B39 finding 1).
+    expect(worker?.tokens_in).toEqual({ value: 18000, evidence_class: "agent_reported" });
+    expect(worker?.model_tier).toEqual({ value: "l", evidence_class: "agent_reported" });
     expect(eventKinds(run).slice(-4)).toEqual([
       "agent-registered",
       "agent-reported",

@@ -24,6 +24,14 @@ export interface RetryBreakdown {
   readonly deterministicStops: number;
 }
 
+/** B27.2's own pair: the general ceiling host discovery (or an operator) set, and the separate,
+ * lower ceiling for gate-running (CPU-bound) work. Either may be absent — a report never invents a
+ * ceiling nobody configured, it just cannot show occupancy against the missing one. */
+export interface ConcurrencyCeilings {
+  readonly maxParallel?: number;
+  readonly gateMaxParallel?: number;
+}
+
 export interface MorningReport {
   readonly generatedAt: string;
   readonly completed: readonly MorningReportTask[];
@@ -35,6 +43,11 @@ export interface MorningReport {
   readonly runSpanMs?: number;
   readonly totalBackoffMs: number;
   readonly needsHuman: readonly EscalatedTaskReport[];
+  /** Leased tasks at report time. Point-in-time, not an average — the harness does not sample
+   * occupancy over the run's lifetime, so reporting an "average" would invent a measurement it never
+   * took (HONESTY). B27.2: shown against both ceilings so under-use is visible, not assumed. */
+  readonly occupiedAtReport: number;
+  readonly ceilings: ConcurrencyCeilings;
 }
 
 function taskLabel(state: WorkflowState, taskId: string): string {
@@ -93,6 +106,7 @@ export function buildMorningReport(
   state: WorkflowState,
   events: readonly DispatchLogEvent[],
   generatedAt: Date,
+  ceilings: ConcurrencyCeilings = {},
 ): MorningReport {
   const tasks = Object.values(state.tasks);
   const completed = tasks
@@ -103,6 +117,9 @@ export function buildMorningReport(
     .map((task) => escalationReport(state, task.id));
   const deadAgentsReclaimed = events.filter((event) => event.kind === DEAD_AGENT_RECLAIMED_KIND).length;
   const span = runSpanMs(events);
+  // Same predicate `runSupervisionTick` uses for its own `occupied` count (supervision-tick.ts) —
+  // a lease still held right now, independent of which ceiling it counts against.
+  const occupiedAtReport = tasks.filter((task) => task.lease !== undefined).length;
 
   return {
     generatedAt: generatedAt.toISOString(),
@@ -113,6 +130,8 @@ export function buildMorningReport(
     ...(span === undefined ? {} : { runSpanMs: span }),
     totalBackoffMs: totalBackoffMs(events),
     needsHuman: escalated,
+    occupiedAtReport,
+    ceilings,
   };
 }
 
@@ -135,5 +154,8 @@ export function formatMorningReportMarkdown(report: MorningReport, runId: string
     ...(report.retries.length === 0 ? ["  - none"] : report.retries.map(retryLine)),
     `- **Run span**: ${report.runSpanMs === undefined ? "unknown" : `${report.runSpanMs}ms`}`,
     `- **Time spent backing off**: ${report.totalBackoffMs}ms`,
+    // B27.2: occupancy against BOTH ceilings, not just the one that gated dispatch — a gate
+    // ceiling far below occupancy is exactly the "idle capacity nobody could see" B24.4 named.
+    `- **Occupancy at report time**: ${report.occupiedAtReport}/${report.ceilings.maxParallel ?? "unknown"} general ceiling, gate ceiling ${report.ceilings.gateMaxParallel ?? "unknown"}`,
   ].join("\n");
 }

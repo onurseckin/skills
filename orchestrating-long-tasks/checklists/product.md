@@ -320,3 +320,75 @@ how-to-check: Trigger the underlying change (add/remove an item) and confirm the
 severity: minor
 sources:
   - Nielsen Norman Group, "Visibility of System Status" (Usability Heuristic #1)
+
+## PROD-I18N-001
+
+rule: Layout and copy tolerate translated text running significantly longer or shorter than the source string, not sized to fit the English string exactly
+rationale: A string that fits its container in English routinely overflows, truncates, or wraps badly once translated, and this is invisible if only the source locale is ever checked
+how-to-check: Substitute the changed surface's strings with a much longer placeholder (or pseudo-localize) and confirm the layout still holds without clipping or overlap
+severity: minor
+sources:
+  - W3C Internationalization Activity, "Localization vs. Internationalization"
+
+## PROD-NOTIFY-001
+
+rule: A new notification channel (push, email, in-app) gives the user control over its frequency or lets them turn it off, rather than a fixed cadence nobody can adjust
+rationale: A user who cannot tune or disable a notification source turns it off entirely at the OS or client level, losing every future message including ones they wanted
+how-to-check: For a new notification type, confirm a settings surface exists to reduce its frequency or disable it independently of unrelated notification types
+severity: minor
+sources:
+  - Nielsen Norman Group, "Five Mistakes in Designing Mobile Push Notifications"
+
+## PROD-ANALYTICS-001
+
+rule: A new feature ships with instrumentation that can measure whether it achieved the outcome it was built for, not only that it shipped without errors
+rationale: A feature nobody instrumented cannot be shown to work or not work after launch; its evaluation degenerates into opinion instead of data
+how-to-check: For a new user-facing capability, confirm an event, metric, or log line exists that would let someone later answer "did this get used, and did it work"
+severity: minor
+sources:
+  - Lean Analytics (Alistair Croll & Benjamin Yoskovitz), "Instrumenting Your Product"
+
+## PROD-HELP-001
+
+rule: A flow complex enough to confuse a first-time user (multi-step setup, an unfamiliar concept, an irreversible choice) offers help or documentation reachable from within the flow itself
+rationale: Help that only exists in a separate support site is help the user has already abandoned the flow to go find, if they bother at all
+how-to-check: At the flow's most confusing step, check for an in-context help affordance (tooltip, link, inline explanation) rather than only a generic external help center
+severity: minor
+sources:
+  - Nielsen Norman Group, "Help and Documentation" (Usability Heuristic #10)
+
+## PROD-EXPORT-001
+
+rule: Data a user has entered or accumulated in the product can be exported in a usable format, not permanently locked inside the product's own UI
+rationale: A user who cannot get their own data out cannot trust the product with it in the first place, and loses real work the moment they need it elsewhere
+how-to-check: For a new or changed data-holding feature, confirm an export or download path exists for the data the user owns
+severity: minor
+sources:
+  - Nielsen Norman Group, "User Control and Freedom" (Usability Heuristic #3)
+
+## PROD-OFFLINE-001
+
+rule: A brief loss of connectivity mid-flow does not discard the user's in-progress input; the flow queues, retries, or clearly reports the disconnection without wiping state
+rationale: A dropped connection is common and transient; losing entered work because of it punishes the user for a problem the product could have absorbed
+how-to-check: Start the changed flow, disable the network mid-way, and confirm entered input survives and the flow recovers or clearly explains the disconnection once reconnected
+severity: important
+sources:
+  - Nielsen Norman Group, "User Control and Freedom" (Usability Heuristic #3)
+
+## PROD-CONSENT-001
+
+rule: A flow that newly collects personal data states what is being collected and why before or at the point of collection, not buried afterward in a separate policy
+rationale: Consent given without knowing what is collected is not informed consent, and a user who discovers the collection later loses trust in everything else the product tells them
+how-to-check: For a new field or permission request collecting personal data, confirm the surrounding copy states the purpose at the point of collection
+severity: important
+sources:
+  - OWASP Top 10 2021, A01:2021 (Broken Access Control) — data minimization principle; this repository's own SEC-PRIVACY-001
+
+## PROD-REENTRY-001
+
+rule: A user is not asked to re-enter information they already provided earlier in the same session or flow
+rationale: Re-asking for known information reads as the product not having listened, and costs the user time recreating what it already had
+how-to-check: Walk a multi-step flow that collects related information more than once; confirm a later step pre-fills or reuses an earlier step's answer rather than asking again
+severity: minor
+sources:
+  - WCAG 2.2, Success Criterion 3.3.7 (Redundant Entry)

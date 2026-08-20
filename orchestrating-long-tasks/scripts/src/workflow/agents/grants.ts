@@ -85,11 +85,14 @@ export interface AgentGrantOutcome {
 }
 
 /**
- * An explicit "unknown" from the host is a report that the host does not know, so it carries the
- * unknown class instead of masquerading as a host-reported fact.
+ * A tier or thinking level typed on the CLI is whatever the calling process (usually the
+ * coordinator relaying what it was told) claims — nothing here confirms it came from the host
+ * itself, so it earns the same `agent_reported` class as `--tool` rather than `host_reported`
+ * (B39 finding 1). An explicit "unknown" is the one exception: that is a claim of not knowing,
+ * not an unverified claim of fact, so it keeps the `unknown` class instead.
  */
-function hostLevel<T extends string>(value: T): Evidenced<T> {
-  return evidenced(value, value === "unknown" ? "unknown" : "host_reported");
+function explicitLevel<T extends string>(value: T): Evidenced<T> {
+  return evidenced(value, value === "unknown" ? "unknown" : "agent_reported");
 }
 
 type GrantTelemetryFields = Pick<
@@ -106,21 +109,31 @@ type GrantTelemetryFields = Pick<
   | "tools_used"
 >;
 
+/**
+ * Every one of these arrives as free-text CLI input from whichever process called the harness —
+ * indistinguishable, mechanically, from `--tool` below, which has always correctly carried
+ * `agent_reported`. Nothing here confirms the value actually came from the host; that confirmation
+ * is what `probeAgentTelemetry`'s two real sources — `detectHostTelemetry` reading the host's own
+ * config, `readAgentTranscriptTelemetry` reading its own transcript (B34) — separately earn,
+ * merged in afterward by `mergeTelemetry` below. Stamping these `host_reported` unconditionally
+ * was B39 finding 1: a caller could type a nonexistent model id and have it recorded as though the
+ * host had attested to it.
+ */
 function telemetryFields(telemetry: GrantTelemetryInput): GrantTelemetryFields {
   return {
     ...(telemetry.provider === undefined
       ? {}
-      : { provider: evidenced(telemetry.provider, "host_reported") }),
+      : { provider: evidenced(telemetry.provider, "agent_reported") }),
     ...(telemetry.model === undefined
       ? {}
-      : { model: evidenced(telemetry.model, "host_reported") }),
-    ...(telemetry.modelTier === undefined ? {} : { model_tier: hostLevel(telemetry.modelTier) }),
+      : { model: evidenced(telemetry.model, "agent_reported") }),
+    ...(telemetry.modelTier === undefined ? {} : { model_tier: explicitLevel(telemetry.modelTier) }),
     ...(telemetry.thinkingLevel === undefined
       ? {}
-      : { thinking_level: hostLevel(telemetry.thinkingLevel) }),
+      : { thinking_level: explicitLevel(telemetry.thinkingLevel) }),
     ...(telemetry.contextWindow === undefined
       ? {}
-      : { context_window: evidenced(telemetry.contextWindow, "host_reported") }),
+      : { context_window: evidenced(telemetry.contextWindow, "agent_reported") }),
     ...(telemetry.toolsGranted === undefined
       ? {}
       : { tools_granted: evidenced([...telemetry.toolsGranted], "agent_reported") }),
@@ -231,9 +244,11 @@ export function registerAgentGrant(input: RegisterAgentInput): AgentGrantOutcome
 }
 
 /**
- * Tools arrive over the CLI from the agent, not from the host runtime, so they carry the weaker
- * `agent_reported` class. Only the provider, model, tier, thinking level, context window and token
- * counts are facts the host itself hands over.
+ * Tools arrive over the CLI from the agent, not from the host runtime, so they carry the
+ * `agent_reported` class — the same class every other explicitly-reported field above now carries,
+ * since none of them are facts the host itself handed over either (B39 finding 1). Only a value
+ * `probeAgentTelemetry` actually reads off the host's own config or transcript earns `derived` or
+ * `harness_observed`.
  *
  * A tool already on the ledger keeps the moment it was first seen; a later report may still attach
  * the category and extras it did not carry the first time, because that is new information rather
@@ -266,8 +281,11 @@ function mergeTools(
 }
 
 /**
- * The counters a host keeps beyond input and output, each labelled the same way the totals are. A
- * later report replaces a counter it names and leaves every other one standing.
+ * The counters a host keeps beyond input and output, each labelled the same way the totals are —
+ * `agent_reported` for a plain `--token-extra` typed on the CLI (B39 finding 1: nothing here
+ * verifies the caller relayed it honestly), `derived` and flagged `is_estimated` only when
+ * `--tokens-estimated` says so outright. A later report replaces a counter it names and leaves
+ * every other one standing.
  */
 function mergeTokenExtras(
   existing: Record<string, Evidenced<number>> | undefined,
@@ -277,14 +295,16 @@ function mergeTokenExtras(
   if (reported === undefined || Object.keys(reported).length === 0) return existing;
   const merged: Record<string, Evidenced<number>> = { ...existing };
   for (const [name, count] of Object.entries(reported)) {
-    merged[name] = isEstimate ? estimated(count) : evidenced(count, "host_reported");
+    merged[name] = isEstimate ? estimated(count) : evidenced(count, "agent_reported");
   }
   return merged;
 }
 
+/** Same rule as `mergeTokenExtras` above: a plain `--tokens-in`/`--tokens-out` count is unverified
+ * CLI input, not a host attestation, unless a transcript probe later corroborates it. */
 function tokenCount(value: number | undefined, isEstimate: boolean): Evidenced<number> | undefined {
   if (value === undefined) return undefined;
-  return isEstimate ? estimated(value) : evidenced(value, "host_reported");
+  return isEstimate ? estimated(value) : evidenced(value, "agent_reported");
 }
 
 export function recordAgentReport(input: AgentReportInput): AgentGrantOutcome {

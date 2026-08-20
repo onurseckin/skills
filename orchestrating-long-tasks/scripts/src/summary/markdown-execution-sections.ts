@@ -1,5 +1,6 @@
 import type { AgentGrantRecord } from "../contracts/agents.ts";
 import type { BranchRecord, BranchRepositoryObservation } from "../contracts/branch.ts";
+import { isJsonObject, type JsonObject } from "../contracts/json.ts";
 import type { TaskRecord } from "../workflow/types.ts";
 import {
   UNKNOWN,
@@ -27,6 +28,25 @@ function reportStrings(task: TaskRecord, key: string): string[] {
   return Array.isArray(value)
     ? value.filter((entry): entry is string => typeof entry === "string")
     : [];
+}
+
+function reportObjects(task: TaskRecord, key: string): JsonObject[] {
+  const value = task.report?.[key];
+  return Array.isArray(value) ? value.filter(isJsonObject) : [];
+}
+
+/**
+ * `report.checks` and `report.evidence` carry `command_id`/`kind`/`path`-shaped entries by
+ * convention, never a fixed schema, so a reader gets whichever of those keys the entry actually
+ * holds rather than a table built for one implementer's field names and blank for another's.
+ */
+function reportObjectText(entry: JsonObject): string {
+  const parts: string[] = [];
+  for (const key of ["kind", "command_id", "path", "detail"]) {
+    const value = entry[key];
+    if (typeof value === "string" && value.trim().length > 0) parts.push(`${key}=${value}`);
+  }
+  return parts.length > 0 ? parts.join(" ") : JSON.stringify(entry);
 }
 
 export function renderPhases(context: ReportContext): string[] {
@@ -101,6 +121,16 @@ export function renderTaskTrajectory(context: ReportContext): string[] {
             `${joinOrUnknown(reportStrings(task, "files_changed").map(code))} (${textOrUnknown(
               reportField(task, "files_changed_evidence_class"),
             )})`,
+          ],
+          [
+            "Checks cited",
+            `${joinOrNone(reportObjects(task, "checks").map((entry) => code(reportObjectText(entry))))} (${textOrUnknown(
+              reportField(task, "checks_evidence_class"),
+            )})`,
+          ],
+          [
+            "Evidence cited",
+            joinOrNone(reportObjects(task, "evidence").map((entry) => code(reportObjectText(entry)))),
           ],
         ],
       ),
@@ -227,7 +257,18 @@ function branchBlock(branch: BranchRecord): string[] {
     ),
     "",
     ...table(
-      ["Sub-task", "Label", "Sub-agent", "Status", "Write scope", "Gate", "Reported back"],
+      [
+        "Sub-task",
+        "Label",
+        "Sub-agent",
+        "Status",
+        "Write scope",
+        "Gate",
+        "Claimed at",
+        "Submitted at",
+        "Abandoned at",
+        "Reported back",
+      ],
       branch.sub_tasks.map((subTask) => [
         code(subTask.id),
         subTask.label,
@@ -235,6 +276,9 @@ function branchBlock(branch: BranchRecord): string[] {
         subTask.status,
         joinOrUnknown(subTask.write_scope.map(code)),
         textOrUnknown(subTask.gate),
+        textOrUnknown(subTask.claimed_at),
+        textOrUnknown(subTask.submitted_at),
+        textOrUnknown(subTask.abandoned_at),
         textOrUnknown(subTask.summary),
       ]),
     ),

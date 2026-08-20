@@ -242,7 +242,10 @@ describe("graph.json completeness contract", () => {
   test("carries per-agent telemetry and the whole grant ledger", () => {
     const coordinator = graph.run?.agents?.find((grant) => grant.id === "coordinator-1");
     expect(coordinator?.model?.value).toBe(PLANTED.model);
-    expect(coordinator?.model?.evidence_class).toBe("host_reported");
+    // A `--model` typed on `agent:register` is the calling process's own claim, not something the
+    // host attested to, so it carries `agent_reported` (B39 finding 1) — only a value
+    // `probeAgentTelemetry` actually reads off the host's config or transcript earns `host_reported`.
+    expect(coordinator?.model?.evidence_class).toBe("agent_reported");
     expect(coordinator?.status).toBe("released");
     expect(coordinator?.release_reason).toBe("run complete");
 
@@ -253,7 +256,9 @@ describe("graph.json completeness contract", () => {
     const telemetry = node("node-task-task-alpha").telemetry;
     expect(telemetry?.agentId).toBe("worker-alpha");
     expect(telemetry?.tokensIn?.value).toBe(18000);
-    expect(telemetry?.tokensIn?.evidence_class).toBe("host_reported");
+    // Same rule as the coordinator's model above: a plain `--tokens-in` on `agent:report` is
+    // unverified CLI input until a transcript probe corroborates it.
+    expect(telemetry?.tokensIn?.evidence_class).toBe("agent_reported");
     // Nothing reported a tier for this agent, so the node has none rather than a guessed one.
     expect(telemetry?.modelTier).toBeUndefined();
   });

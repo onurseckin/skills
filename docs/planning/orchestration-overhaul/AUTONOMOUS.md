@@ -45,8 +45,11 @@ in the SAME turn. Assessment and planning are not a turn of their own.
    `bun orchestrating-long-tasks/scripts/harness.ts health --consumer ../gvui --all`
    Then run the gates: `bun run typecheck` and the unit suite.
 3. **Self-evaluate.** Ask what is actually missing, not what is nominally done. Check `BACKLOG.md` for
-   `queued` items. Check that anything marked done is REACHABLE — B33's rule: open the artifact, do not
-   reason about it.
+   `queued` items — its per-item status note says exactly what's still open, so read that before
+   re-deriving it. An item already tagged `verified` was independently confirmed by a SEPARATE later
+   pass against B33's three bars (reachable, does what was asked, guard holds) and does not need
+   re-checking absent a new finding; an item tagged only `done (<sha>)` still needs that check — B33's
+   rule: open the artifact, do not reason about it.
 4. **Plan.** Write the next wave from the health output and the backlog, opus/xhigh.
 5. **Implement.** Pipeline the work — never a barrier between build and verify (B24/B25). Partition by
    file ownership so agents cannot collide. Sonnet/xhigh for both sides.
@@ -155,7 +158,9 @@ twice now the honest answer was "not us".
 
 ## Where the state lives
 
-- `BACKLOG.md` — every owner decision, B1-B33, with reasoning. The authority for what to build.
+- `BACKLOG.md` — every owner decision, numbered B1 and up, with reasoning. The authority for what to
+  build. Read its status index first: `done`/`verified`/`queued`/`deferred by owner`, with counts, so
+  a fresh session gets progress at a glance instead of re-deriving it from 38+ headings.
 - `SPEC.md` — the original architecture spec. Superseded by the backlog where they conflict.
 - `model-effort-policy.md` — deferred tier research, for when the owner returns to it.
 - This file — how to keep going.

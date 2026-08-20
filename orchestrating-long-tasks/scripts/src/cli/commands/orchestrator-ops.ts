@@ -129,9 +129,17 @@ export async function orchestratorSuperviseCommand(
 ): Promise<Record<string, unknown>> {
   const run = textFlag(flags, "run")!;
   const actor = textFlag(flags, "actor")!;
-  const maxParallel =
-    integerFlag(flags, "max-parallel", { minimum: 1, maximum: 64 }) ??
-    repoConfigFor(run).default_max_parallel;
+  const maxParallelFlag = integerFlag(flags, "max-parallel", { minimum: 1, maximum: 64 });
+  const resolvedConfig = repoConfigFor(run);
+  const maxParallel = maxParallelFlag ?? resolvedConfig.default_max_parallel;
+  // B27.2: provenance for max_parallel, reported in the CLI output below — a flag beats whatever
+  // resolveHarnessConfig would have picked, so its own recorded source only applies when no flag
+  // was given (HONESTY: never label an operator-supplied number as auto-discovered).
+  const maxParallelSource = maxParallelFlag !== undefined ? "cli_flag" : resolvedConfig.default_max_parallel_source;
+  // B27.2: reported alongside maxParallel, never in place of it — see RunSupervisorOptions.
+  const gateMaxParallel =
+    integerFlag(flags, "gate-max-parallel", { minimum: 1, maximum: 64 }) ??
+    resolvedConfig.gate_max_parallel;
   // B28.5: recovery is on by default; opting out is the flag, never the reverse.
   const recoveryEnabled = !boolFlag(flags, "no-recover");
   const graceSeconds = integerFlag(flags, "grace-seconds", { minimum: 0, maximum: 86_400 });
@@ -146,6 +154,7 @@ export async function orchestratorSuperviseCommand(
     runRoot: run,
     actor,
     maxParallel,
+    gateMaxParallel,
     recoveryEnabled,
     ...(graceSeconds === undefined ? {} : { graceSeconds }),
     ...(pollIntervalMs === undefined ? {} : { pollIntervalMs }),
@@ -168,6 +177,12 @@ export async function orchestratorSuperviseCommand(
     backing_off: result.lastTick.backingOff,
     occupied: result.lastTick.occupied,
     max_parallel: result.lastTick.maxParallel,
+    // B27.2: provenance for max_parallel — an operator reading this output can tell "I passed
+    // --max-parallel" from "a human set max_concurrent_agents" from "the host published a ceiling"
+    // from "nobody said anything and this is the assumed default", never a bare unexplained number.
+    max_parallel_source: maxParallelSource,
+    max_concurrent_agents: resolvedConfig.max_concurrent_agents,
+    gate_max_parallel: result.lastTick.gateMaxParallel,
     recovery_enabled: recoveryEnabled,
     report: result.report,
   };

@@ -136,6 +136,10 @@ export function renderProbesAndPushbacks(context: ReportContext): string[] {
           numberOrUnknown(typeof finding.probe_round === "number" ? finding.probe_round : null),
           code(finding.id),
           finding.observation,
+          finding.severity,
+          finding.remediation,
+          finding.revalidation,
+          textOrUnknown(typeof finding.demanded_at === "string" ? finding.demanded_at : null),
           finding.status,
           textOrUnknown(typeof finding.resolved_by === "string" ? finding.resolved_by : null),
           resolutionText(finding),
@@ -156,9 +160,13 @@ export function renderProbesAndPushbacks(context: ReportContext): string[] {
   }
 
   const verdictRows = context.tasks.flatMap((task) =>
+    // B12.2: the domain is what makes an attempt one of several independent verdicts a task can
+    // carry at once rather than a single validator's opinion, so a row without it cannot be told
+    // apart from a different domain's attempt at the same round.
     validationAttempts(task).map((attempt) => [
       code(task.id),
       String(attempt.attempt),
+      textOrUnknown(attempt.domain),
       code(attempt.validator_id),
       textOrUnknown(attempt.verdict),
       joinOrNone((attempt.checks ?? []).map((check) => code(check.command_id))),
@@ -175,7 +183,19 @@ export function renderProbesAndPushbacks(context: ReportContext): string[] {
     ...(probeRows.length === 0
       ? note("No probe demand was recorded.")
       : table(
-          ["Task", "Probe round", "Finding", "Demand", "Status", "Answered by", "Answer"],
+          [
+            "Task",
+            "Probe round",
+            "Finding",
+            "Demand",
+            "Severity",
+            "Remediation",
+            "Revalidation",
+            "Demanded at",
+            "Status",
+            "Answered by",
+            "Answer",
+          ],
           probeRows,
         )),
     "",
@@ -212,7 +232,10 @@ export function renderProbesAndPushbacks(context: ReportContext): string[] {
     "",
     ...(verdictRows.length === 0
       ? note("No validation attempt was recorded.")
-      : table(["Task", "Attempt", "Validator", "Verdict", "Cited commands"], verdictRows)),
+      : table(
+          ["Task", "Attempt", "Domain", "Validator", "Verdict", "Cited commands"],
+          verdictRows,
+        )),
   ];
   return section("14. Probes, Pushbacks And Repairs", lines);
 }
@@ -287,6 +310,14 @@ export function renderCritic(context: ReportContext): string[] {
         ["Critic", code(textOrUnknown(authorization?.critic_id ?? review?.critic_id))],
         ["Authorisation status", textOrUnknown(authorization?.status)],
         ["Attempt", numberOrUnknown(authorization?.attempt)],
+        ["Authorised at", textOrUnknown(authorization?.started_at)],
+        ["Authorisation deadline", textOrUnknown(authorization?.deadline_at)],
+        [
+          "Critic packet",
+          authorization?.packet_id === undefined && review?.packet_id === undefined
+            ? UNKNOWN
+            : code(textOrUnknown(authorization?.packet_id ?? review?.packet_id)),
+        ],
         ["Verdict", textOrUnknown(review?.status)],
         ["Decision recorded in the report", textOrUnknown(report?.decision)],
         ["Critic summary", textOrUnknown(report?.summary)],
@@ -307,12 +338,41 @@ export function renderCritic(context: ReportContext): string[] {
     ...(proofs.length === 0
       ? note("The critic recorded no requirement proof.")
       : table(
-          ["Requirement", "Status", "Evidence"],
+          ["Requirement", "Status", "Evidence", "Observation"],
           proofs.map((proof) => [
             code(proof.requirement_id),
             proof.status,
             joinOrNone(
               proof.evidence.map((item) => `${item.kind} ${item.reference}`),
+              "; ",
+            ),
+            // The observation is the critic's own account of why the cited evidence proves the
+            // requirement; the kind/reference pair alone names what was looked at, not what it showed.
+            joinOrNone(
+              proof.evidence.map((item) => item.observation),
+              "; ",
+            ),
+          ]),
+        )),
+  );
+
+  lines.push("", "### Capsule integrity evidence", "");
+  const integrityEvidence = objectArray(review?.integrity_evidence);
+  lines.push(
+    ...(integrityEvidence.length === 0
+      ? note("The critic recorded no capsule integrity check.")
+      : table(
+          ["Kind", "Status", "Event head", "Issues"],
+          integrityEvidence.map((entry) => [
+            textOrUnknown(typeof entry.kind === "string" ? entry.kind : null),
+            textOrUnknown(typeof entry.status === "string" ? entry.status : null),
+            code(textOrUnknown(typeof entry.event_head === "string" ? entry.event_head : null)),
+            joinOrNone(
+              objectArray(entry.issues).map((issue) =>
+                `${textOrUnknown(typeof issue.code === "string" ? issue.code : null)}: ${textOrUnknown(
+                  typeof issue.message === "string" ? issue.message : null,
+                )}`,
+              ),
               "; ",
             ),
           ]),

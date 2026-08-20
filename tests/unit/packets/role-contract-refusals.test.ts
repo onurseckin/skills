@@ -40,6 +40,56 @@ describe("acting without a published contract is refused", () => {
     ).toBe("submitted");
   });
 
+  test("a repairer cannot submit without a published packet", () => {
+    // submitTask's guard reads lease.role, not a literal "implementer" — the only way to prove it
+    // actually covers repairer too is to drive a real reject-then-repair cycle and claim under that
+    // role, the same path task-state uses to route rejected work back to the original implementer.
+    const port = new TestPort(workflowState());
+    const { token: implToken } = claimTask(port, "T-1", "implementer", "implementer", { clock });
+    registerTaskPacket(port, "implementer", "implementer", 1);
+    submitTask(port, "T-1", "implementer", implToken, report, clock);
+    registerCommand(port, "C-validator", "validator");
+    const started = beginValidation(port, "T-1", "validator", clock);
+    registerTaskPacket(
+      port,
+      "validator",
+      "validator",
+      started.tasks["T-1"]!.validations!.at(-1)!.attempt,
+    );
+    recordReview(
+      port,
+      "T-1",
+      "validator",
+      {
+        verdict: "reject",
+        requirement_ids: ["R-1"],
+        checks: [{ command_id: "C-validator" }],
+        findings: [
+          {
+            id: "F-1",
+            requirement_id: "R-1",
+            severity: "important",
+            observation: "missing test",
+            evidence: [{ path: "a.ts" }],
+            remediation: "add test",
+            revalidation: "bun test",
+          },
+        ],
+        validation_token: started.tasks["T-1"]!.validation_token,
+      },
+      clock,
+    );
+    const { token: repairToken } = claimTask(port, "T-1", "implementer", "repairer", { clock });
+    expect(() => submitTask(port, "T-1", "implementer", repairToken, report, clock)).toThrow(
+      "repairer action requires a matching durably published packet",
+    );
+    registerTaskPacket(port, "repairer", "implementer", 2);
+    expect(
+      submitTask(port, "T-1", "implementer", repairToken, report, clock).state.tasks["T-1"]!
+        .status,
+    ).toBe("submitted");
+  });
+
   test("a packet published for another agent, role or attempt does not carry the submission", () => {
     for (const wrong of [
       ["implementer", "other-agent", 1],

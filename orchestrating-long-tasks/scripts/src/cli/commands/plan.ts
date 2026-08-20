@@ -1,4 +1,4 @@
-import { basename, resolve } from "node:path";
+import { basename, dirname, resolve } from "node:path";
 import { getHarnessConfig } from "../../config/harness-config.ts";
 import { isJsonObject, type JsonObject, type JsonValue } from "../../contracts/json.ts";
 import { readBoundedBytes } from "../../core/json.ts";
@@ -18,7 +18,7 @@ import { recordTopology } from "../../scheduler/index.ts";
 import { initRun, loadRun } from "../../store/index.ts";
 import { transact } from "../../store/transaction.ts";
 import { ensureHarnessIgnored } from "../git-ignore.ts";
-import { gateBreadthWarning } from "../../graph/gate-breadth.ts";
+import { discoverGatePaths, gateBreadthWarning } from "../../graph/gate-breadth.ts";
 import {
   formatCapsuleInitBrief,
   formatPlanCompileBrief,
@@ -248,6 +248,18 @@ export function planAddCommand(flags: Flags): Record<string, unknown> {
   });
 
   const breadthWarning = gateBreadthWarning(gate, writeScope);
+  // B29.3: a coordinator staring at the warning above needs a scoped gate to write instead of the
+  // whole-suite one it just got flagged for. Discovery only runs once there is a warning to act on;
+  // these are paths this repository already has on disk for the scope, never a guessed convention,
+  // so a scope with nothing found on disk yet offers nothing rather than a path that may not exist.
+  const suggestedGatePaths =
+    breadthWarning === undefined ? [] : discoverGatePaths(dirname(dirname(run)), writeScope);
+  const breadthNote =
+    breadthWarning === undefined
+      ? undefined
+      : suggestedGatePaths.length === 0
+        ? breadthWarning
+        : `${breadthWarning} This repository already has: ${suggestedGatePaths.join(", ")}.`;
   const markdown = formatTaskRegisteredBrief({
     taskId: id,
     label,
@@ -259,13 +271,12 @@ export function planAddCommand(flags: Flags): Record<string, unknown> {
   });
   return {
     markdown:
-      breadthWarning === undefined
-        ? markdown
-        : `${markdown}\n\n> **Gate breadth**: ${breadthWarning}`,
+      breadthNote === undefined ? markdown : `${markdown}\n\n> **Gate breadth**: ${breadthNote}`,
     run_root: run,
     task: newTask,
     total_tasks: totalTasks,
     ...(breadthWarning === undefined ? {} : { gate_breadth_warning: breadthWarning }),
+    ...(suggestedGatePaths.length === 0 ? {} : { suggested_gate_paths: suggestedGatePaths }),
   };
 }
 

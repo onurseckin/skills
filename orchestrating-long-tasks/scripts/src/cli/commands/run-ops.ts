@@ -1,6 +1,7 @@
 import { readFileSync, realpathSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 import type { JsonObject } from "../../contracts/json.ts";
+import { getHarnessConfig } from "../../config/harness-config.ts";
 import { HarnessError } from "../../errors/harness-error.ts";
 import { runAndRecordCommand } from "../../integration/record-command.ts";
 import { workflowPort } from "../../integration/store-ports.ts";
@@ -24,6 +25,11 @@ import { refreshHandoff } from "../../reporting/handoff.ts";
 import { ingestScreenshots, ingestVisualReport } from "../../reporting/screenshot-ingestion.ts";
 import { commandEvidenceView, commandRecordPath } from "../../reporting/command-evidence.ts";
 import { capsuleCatalogue, runStatus, type CapsuleCatalogue } from "../../reporting/status.ts";
+
+/** A run root is `<repo>/.capsules/<run-id>`, so repo config sits two levels above the capsule. */
+function runOccupancyCeiling(runRoot: string): number {
+  return getHarnessConfig(resolve(runRoot, "..", ".."), runRoot).default_max_parallel;
+}
 
 function liveRepositoryBinding(run: string) {
   const repository = dirname(dirname(loadRun(run).runRoot));
@@ -141,17 +147,33 @@ export function runStatusCommand(flags: Flags): Record<string, unknown> {
   // The catalogue is what an agent reads instead of walking the capsule: how much the run has
   // stored, and whether that count still describes where the run stands.
   const catalogue = capsuleCatalogue(loaded.runRoot);
+  // B24.4: idle capacity stayed invisible until it was a number. "Active" mirrors what the
+  // scheduler itself treats as occupying a slot — leased, running or under validation — not a
+  // count derived from the wave concept the scheduler no longer enforces.
+  const activeCount = tasks.filter(
+    (t) => t.status === "leased" || t.status === "running" || t.status === "validating",
+  ).length;
+  const maxParallel = runOccupancyCeiling(loaded.runRoot);
+  const occupancySummary = `${activeCount}/${maxParallel} occupancy slots in use.`;
   const markdown = formatRunStatusBrief(
     basename(run),
     phase,
     taskItems,
     progressSummary,
     catalogueSummary(catalogue),
+    occupancySummary,
   );
 
   // The raw workflow state carries lease token digests and other internals an agent should never
   // read back out of a status report; runStatus() is the redacted, purpose-built status view.
-  return { markdown, run_root: run, state: runStatus(run), detailed, catalogue };
+  return {
+    markdown,
+    run_root: run,
+    state: runStatus(run),
+    detailed,
+    catalogue,
+    occupancy: { active: activeCount, max_parallel: maxParallel },
+  };
 }
 
 /** One line of the catalogue. An unreadable or stale index says so rather than reporting zero. */

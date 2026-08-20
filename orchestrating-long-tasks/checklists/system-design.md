@@ -338,3 +338,75 @@ how-to-check: Grep the diff for a conditional branching on an environment name t
 severity: important
 sources:
   - The Twelve-Factor App, "Dev/prod parity"
+
+## SYS-CACHE-001
+
+rule: A cache backing correctness-sensitive data has an explicit invalidation path tied to the write that changes the underlying data, not only a TTL that happens to expire eventually
+rationale: TTL-only invalidation trades correctness for a bounded staleness window nobody chose deliberately; a write that forgets to invalidate serves wrong data until the TTL happens to catch up
+how-to-check: For a new cache in front of writable data, trace the write path for the corresponding cache invalidation or update call
+severity: important
+sources:
+  - Designing Data-Intensive Applications (Martin Kleppmann), ch. 3 "Storage and Retrieval"
+
+## SYS-SHUTDOWN-001
+
+rule: A long-running process stops accepting new work on `SIGTERM`, finishes or safely re-queues its in-flight work, and only then exits — it does not die mid-request
+rationale: A process killed mid-request drops whatever it was doing with no chance to report failure, turning an ordinary deploy or scale-down event into silent data loss
+how-to-check: Send `SIGTERM` to the changed process while it holds in-flight work and confirm that work either completes or is safely returned to the queue before the process exits
+severity: important
+sources:
+  - The Twelve-Factor App, "Disposability"
+
+## SYS-SPOF-001
+
+rule: A newly introduced single instance of a component the system cannot function without (a cache, a queue, a database) either has a redundancy/failover story, or the resulting single point of failure is explicitly stated and accepted
+rationale: An unexamined single point of failure is a design decision made by default, and the first time it fails is the first time anyone notices it was ever a decision
+how-to-check: For a new critical-path dependency, check whether a second instance or failover mechanism exists; if not, confirm the design explicitly accepts the risk rather than leaving it unstated
+severity: important
+sources:
+  - Release It! (Michael T. Nygard), "Stability Patterns"
+
+## SYS-TRACE-001
+
+rule: A request that crosses more than one service carries a correlation or trace id that is propagated, not regenerated, at every hop
+rationale: A request id that resets at each hop makes it impossible to reconstruct the full path of a single request across a distributed system during an incident
+how-to-check: For a new cross-service call, confirm the incoming correlation id is forwarded on the outbound call rather than a fresh one being generated
+severity: minor
+sources:
+  - OpenTelemetry documentation, "Distributed Tracing"
+
+## SYS-POOL-001
+
+rule: A client to a downstream service or database reuses a bounded, shared connection pool, rather than opening a new connection per call
+rationale: A connection opened per call pays setup cost on every request and has no ceiling, so a burst of traffic can exhaust the downstream's connection limit for everyone
+how-to-check: For a new client to a database or network service, confirm it is constructed once and pooled/reused rather than instantiated inside the per-request code path
+severity: important
+sources:
+  - Release It! (Michael T. Nygard), "Resource Pools"
+
+## SYS-CONSIST-001
+
+rule: A new data path's consistency model — strong or eventual — is stated explicitly, and callers are not left to assume whichever one the current implementation happens to provide
+rationale: A caller that assumes strong consistency from a path that is actually eventually consistent will ship a race condition the moment the two diverge under real load
+how-to-check: For a new read path following a write, check whether documentation or the contract states the guarantee, and verify a read immediately after a write behaves as stated
+severity: important
+sources:
+  - Designing Data-Intensive Applications (Martin Kleppmann), ch. 9 "Consistency and Consensus"
+
+## SYS-BACKUP-001
+
+rule: A newly introduced persisted data store is covered by the project's existing backup/restore process, or its exclusion from that process is an explicit, stated decision
+rationale: A data store nobody remembered to add to the backup process is invisible right up until it is the one that needs restoring
+how-to-check: For a new database, table, or persistent volume, confirm it is included in the project's backup configuration or that its omission is explicitly documented
+severity: critical
+sources:
+  - Google SRE Workbook, "Change Management" — data durability as a release requirement
+
+## SYS-QUEUE-001
+
+rule: A consumer of a queue or event topic states its delivery semantics (at-most-once, at-least-once, exactly-once) and its processing logic actually matches what it claims
+rationale: A consumer written as if delivery were exactly-once, on infrastructure that only guarantees at-least-once, silently double-processes the first time a redelivery happens
+how-to-check: Check the queue/topic's actual delivery guarantee against the consumer's handling of a redelivered message; confirm it tolerates redelivery if the guarantee allows it
+severity: important
+sources:
+  - Designing Data-Intensive Applications (Martin Kleppmann), ch. 11 "Stream Processing"

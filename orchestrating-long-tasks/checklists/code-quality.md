@@ -456,3 +456,30 @@ how-to-check: For a new class/module, check whether every field is set by the en
 severity: minor
 sources:
   - Effective Java (Joshua Bloch) — constructor completeness
+
+## CQ-TEST-006
+
+rule: A test does not depend on another test's side effects or on the order tests happen to run in; each test sets up and tears down its own state
+rationale: An order-dependent suite passes today and fails the moment a test is reordered, parallelized, or run alone, for a reason that has nothing to do with the code under test
+how-to-check: Run the new/changed test file's tests in reverse order and in isolation; a result that differs from the full-suite run is the finding
+severity: important
+sources:
+  - xUnit Test Patterns (Gerard Meszaros), "Test Independence"
+
+## CQ-COMPLEX-001
+
+rule: A function's branching complexity stays low enough to hold in working memory; a function accumulating many nested conditionals and loops is split along its natural sub-tasks
+rationale: Cyclomatic complexity counts the independent paths a reader must trace to know a function is correct, and is also the number of cases a test suite must cover to actually prove it
+how-to-check: Count a new/changed function's decision points (if/else/case/&&/||/loop); a function in the double digits with no split plan is the finding
+severity: minor
+sources:
+  - A Complexity Measure (Thomas J. McCabe, 1976); Code Complete (Steve McConnell), ch. 19 "General Control Issues"
+
+## CQ-DEBUG-001
+
+rule: A debug print or console statement added to trace down an issue is removed before the diff ships, not left in commented out or unconditionally firing
+rationale: A stray debug statement left in is noise on every future run of that code path, and nothing forces its removal once it blends in with real logging
+how-to-check: Grep the diff for `console.log`/`print`/`debugger` statements that are not routed through the project's own logging abstraction
+severity: minor
+sources:
+  - Google Engineering Practices — Code Review, "Style"

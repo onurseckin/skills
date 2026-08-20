@@ -111,9 +111,9 @@ describe("checklist parser", () => {
     let total = 0;
     for (const domain of VALIDATOR_DOMAINS) {
       const count = loadChecklist(domain).items.length;
-      expect(count).toBeGreaterThanOrEqual(30);
+      expect(count).toBeGreaterThanOrEqual(38);
       total += count;
     }
-    expect(total).toBeGreaterThanOrEqual(180);
+    expect(total).toBeGreaterThanOrEqual(225);
   });
 });

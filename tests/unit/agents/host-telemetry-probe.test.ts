@@ -75,12 +75,12 @@ describe("registerAgentGrant merges the CLI's explicit report with a derived pro
       telemetry: { model: "explicit-model" },
       derivedTelemetry: { model: "derived-model" },
     });
-    expect(outcome.grant.model).toEqual({ value: "explicit-model", evidence_class: "host_reported" });
+    expect(outcome.grant.model).toEqual({ value: "explicit-model", evidence_class: "agent_reported" });
     expect(outcome.conflicts).toEqual([
       {
         field: "model",
         recorded_value: "explicit-model",
-        recorded_evidence_class: "host_reported",
+        recorded_evidence_class: "agent_reported",
         probed_value: "derived-model",
       },
     ]);
@@ -101,7 +101,7 @@ describe("registerAgentGrant merges the CLI's explicit report with a derived pro
       telemetry: { model: "same-model" },
       derivedTelemetry: { model: "same-model" },
     });
-    expect(outcome.grant.model).toEqual({ value: "same-model", evidence_class: "host_reported" });
+    expect(outcome.grant.model).toEqual({ value: "same-model", evidence_class: "agent_reported" });
     expect(outcome.conflicts).toBeUndefined();
   });
 });
@@ -150,7 +150,7 @@ describe("refreshAgentDerivedTelemetry — the probe at task:claim, task:submit 
       {
         field: "model",
         recorded_value: "original-model",
-        recorded_evidence_class: "host_reported",
+        recorded_evidence_class: "agent_reported",
         probed_value: "different-model",
       },
     ]);
@@ -320,19 +320,19 @@ describe("the probe wired into the CLI boundaries themselves, never a separate c
         {
           field: "model",
           recorded_value: "relayed-model",
-          recorded_evidence_class: "host_reported",
+          recorded_evidence_class: "agent_reported",
           probed_value: "codex-mini",
         },
       ]);
     });
 
     // The dispatcher's relay keeps the ledger field; the probe's disagreement survives beside it.
-    expect(worker(run).model).toEqual({ value: "relayed-model", evidence_class: "host_reported" });
+    expect(worker(run).model).toEqual({ value: "relayed-model", evidence_class: "agent_reported" });
     expect(lastPayload(run, "agent-registered").telemetry_conflicts).toEqual([
       {
         field: "model",
         recorded_value: "relayed-model",
-        recorded_evidence_class: "host_reported",
+        recorded_evidence_class: "agent_reported",
         probed_value: "codex-mini",
       },
     ]);

@@ -31,7 +31,10 @@ describe("resolved harness config", () => {
   });
 
   test("defaults to one adversarial probe and six repair rounds", () => {
-    const config = resolveHarnessConfig(makeTempDir());
+    // B27.2: host discovery reads the live environment, so pin it absent here — this test is about
+    // the probe/repair-round defaults, not about what this suite's own host happens to publish.
+    // See host-concurrency.test.ts and harness-config.test.ts's "B27.2" block for that behaviour.
+    const config = resolveHarnessConfig(makeTempDir(), undefined, { hostConcurrency: null });
     expect(config).toEqual(DEFAULT_RESOLVED_CONFIG);
     expect(config.min_adversarial_probes).toBe(1);
     expect(config.max_repair_rounds).toBe(6);
@@ -54,7 +57,9 @@ describe("resolved harness config", () => {
       join(dir, "harness.config.json"),
       JSON.stringify({ min_adversarial_probes: -1, max_repair_rounds: 1.5 }),
     );
-    expect(resolveHarnessConfig(dir)).toEqual(DEFAULT_RESOLVED_CONFIG);
+    expect(resolveHarnessConfig(dir, undefined, { hostConcurrency: null })).toEqual(
+      DEFAULT_RESOLVED_CONFIG,
+    );
   });
 
   test("lets a repo layer override a capsule layer", () => {

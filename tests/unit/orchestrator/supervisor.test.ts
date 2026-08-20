@@ -112,6 +112,28 @@ describe("RunSupervisor (B28)", () => {
     expect(result.lastTick.dispatchable.map((entry) => entry.task_id)).toEqual(["t-0"]);
   });
 
+  test("B27.2: an injected gate ceiling is reported alongside the general one, on the tick and in the report", async () => {
+    const run = await compiledRun("gate-ceiling", 1);
+    const supervisor = new RunSupervisor({
+      runRoot: run,
+      actor: "supervisor",
+      maxParallel: 20,
+      gateMaxParallel: 5,
+    });
+    const result = await supervisor.run();
+    expect(result.lastTick.maxParallel).toBe(20);
+    expect(result.lastTick.gateMaxParallel).toBe(5);
+    expect(result.report.ceilings).toEqual({ maxParallel: 20, gateMaxParallel: 5 });
+  });
+
+  test("B27.2: without an injected gate ceiling, occupancy is still reported against the general one alone", async () => {
+    const run = await compiledRun("no-gate-ceiling", 1);
+    const supervisor = new RunSupervisor({ runRoot: run, actor: "supervisor", maxParallel: 4 });
+    const result = await supervisor.run();
+    expect(result.lastTick.gateMaxParallel).toBeUndefined();
+    expect(result.report.ceilings).toEqual({ maxParallel: 4 });
+  });
+
   test("B28.2: detects a dead agent without being told and reports it in the same tick", async () => {
     const run = await compiledRun("dead-agent", 1);
     const { clock, advance } = fakeTime("2026-08-19T00:00:00.000Z");

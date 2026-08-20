@@ -134,6 +134,28 @@ describe("queue:wave", () => {
     expect(String(wave.markdown)).toContain("recorded at graph revision 1");
   });
 
+  // B24/B25: the recorded wave is a planning-time annotation, never an execution barrier. A
+  // capsule whose topology split two independent tasks across waves — because compile-time
+  // capacity was narrow — must still hand back both together the moment runtime capacity allows
+  // it. A regression here would mean "wave" silently became a gate again.
+  test("a task recorded into a later wave dispatches alongside an earlier one once capacity allows it", async () => {
+    const run = await compiledRun("wave-not-a-barrier");
+    // Compile-time capacity of 1 forces the topology to record t-alpha and t-beta — mutually
+    // independent — into separate waves, purely because only one slot existed when it was decided.
+    const { topology } = recordTopology(run, "planner", { default_max_parallel: 1 });
+    expect(topology.waves.slice(0, 2)).toEqual([
+      { wave: 1, task_ids: ["t-alpha"] },
+      { wave: 2, task_ids: ["t-beta"] },
+    ]);
+
+    // Runtime capacity is wider, and nothing has claimed t-alpha yet, so both are claimable now —
+    // the recorded wave 2 on t-beta never blocks it.
+    const wave = await execute(["queue:wave", "--run", run, "--max-parallel", "4"]);
+    const entries = wave.wave as ReadyEntryShape[];
+    expect(entries.map((entry) => entry.task_id)).toEqual(["t-alpha", "t-beta"]);
+    expect(entries.map((entry) => entry.recorded_wave)).toEqual([1, 2]);
+  });
+
   test("--max-parallel overrides the configured cap", async () => {
     const run = await compiledRun("wave-cap");
 

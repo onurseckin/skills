@@ -117,6 +117,8 @@ export function formatRunStatusBrief(
   tasks: readonly RunStatusTaskItem[],
   progressSummary: string,
   catalogueSummary?: string | undefined,
+  /** Live lanes in use against the occupancy ceiling (B24.4) — absent only for an older caller. */
+  occupancySummary?: string | undefined,
 ): string {
   const headers = ["Task ID", "Label", "Write Scope", "Status", "Agent / Lock"];
   const rows = tasks.map((t) => [
@@ -132,6 +134,7 @@ export function formatRunStatusBrief(
     "",
     `**Progress**: ${progressSummary}`,
   ];
+  if (occupancySummary !== undefined) lines.push(`**Occupancy**: ${occupancySummary}`);
   if (catalogueSummary !== undefined) lines.push(`**Capsule**: ${catalogueSummary}`);
   return enforceLineLimit(lines.join("\n"), 30);
 }

@@ -20,6 +20,10 @@ export interface RequirementView {
   disposition: string | null;
   sourceLines: number[];
   instruction: string | null;
+  /** How to satisfy the requirement, distinct from `instruction`: the compiler writes the goal to
+   *  one field and the scoped how-to-implement it to this one, so a report that renders only the
+   *  former is missing the half a reader needs to act on. */
+  implementation: string | null;
   subsystem: string | null;
   risk: string | null;
   priority: number | null;
@@ -139,6 +143,7 @@ export function readRequirements(state: Readonly<WorkflowState>): RequirementVie
         disposition: textOf(entry.disposition),
         sourceLines: numbersOf(entry.source_lines),
         instruction: textOf(entry.instruction),
+        implementation: textOf(entry.implementation),
         subsystem: textOf(entry.subsystem),
         risk: textOf(entry.risk),
         priority: typeof entry.priority === "number" ? entry.priority : null,

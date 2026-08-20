@@ -128,13 +128,13 @@ describe("the transcript probe wired into agent:register and agent:release, with
         {
           field: "model",
           recorded_value: "declared-model",
-          recorded_evidence_class: "host_reported",
+          recorded_evidence_class: "agent_reported",
           probed_value: "claude-opus-5",
         },
       ]);
     });
 
-    expect(worker(run).model).toEqual({ value: "declared-model", evidence_class: "host_reported" });
+    expect(worker(run).model).toEqual({ value: "declared-model", evidence_class: "agent_reported" });
   });
 
   test("a mismatched declared parent is recorded as a conflict, never silently changed", async () => {

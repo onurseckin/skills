@@ -158,4 +158,36 @@ describe("buildMorningReport (B28.4)", () => {
     expect(markdown).toContain("Escalated (needs a human)");
     expect(markdown).toContain("Run span**: unknown");
   });
+
+  test("B27.2: reports occupancy against both the general and the gate ceiling, not just one", () => {
+    const state = workflowState();
+    state.tasks["T-1"]!.status = "leased";
+    state.tasks["T-1"]!.lease = {
+      agent_id: "agent-1",
+      role: "implementer",
+      attempt: 1,
+      token_digest: "d".repeat(64),
+      issued_at: "2026-08-19T00:00:00.000Z",
+      expires_at: "2026-08-19T01:00:00.000Z",
+      heartbeat_at: "2026-08-19T00:00:00.000Z",
+      duration_seconds: 3600,
+    };
+    const report = buildMorningReport(state, [], new Date("2026-08-19T08:00:00.000Z"), {
+      maxParallel: 20,
+      gateMaxParallel: 5,
+    });
+    expect(report.occupiedAtReport).toBe(1);
+    expect(report.ceilings).toEqual({ maxParallel: 20, gateMaxParallel: 5 });
+
+    const markdown = formatMorningReportMarkdown(report, "run-ceilings");
+    expect(markdown).toContain("Occupancy at report time**: 1/20 general ceiling, gate ceiling 5");
+  });
+
+  test("B27.2: honesty — an unreported ceiling renders as unknown, never a guessed number", () => {
+    const report = buildMorningReport(workflowState(), [], new Date("2026-08-19T08:00:00.000Z"));
+    expect(report.ceilings).toEqual({});
+    expect(report.occupiedAtReport).toBe(0);
+    const markdown = formatMorningReportMarkdown(report, "run-no-ceilings");
+    expect(markdown).toContain("Occupancy at report time**: 0/unknown general ceiling, gate ceiling unknown");
+  });
 });

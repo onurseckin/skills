@@ -46,7 +46,7 @@ function telemetryOf(run: string) {
 }
 
 describe("model telemetry keeps the generic layer, the instance and the extras apart", () => {
-  test("records provider, model and context window as the host reported them", async () => {
+  test("records provider, model and context window as the caller relayed them", async () => {
     const run = await capsuleWithWorker("telemetry-generic", [
       "--provider",
       "some-provider",
@@ -59,8 +59,10 @@ describe("model telemetry keeps the generic layer, the instance and the extras a
     ]);
 
     const grant = worker(run);
-    expect(grant.provider).toEqual({ value: "some-provider", evidence_class: "host_reported" });
-    expect(grant.context_window).toEqual({ value: 200000, evidence_class: "host_reported" });
+    // Typed on the CLI by whoever called it, not attested by the host itself, so these carry
+    // agent_reported — the same class --tool already carried before B39 finding 1 was fixed.
+    expect(grant.provider).toEqual({ value: "some-provider", evidence_class: "agent_reported" });
+    expect(grant.context_window).toEqual({ value: 200000, evidence_class: "agent_reported" });
     // Recorded exactly as reported: not split, not shortened, not matched against anything.
     expect(grant.model?.value).toBe(REPORTED_MODEL);
   });
@@ -91,8 +93,8 @@ describe("model telemetry keeps the generic layer, the instance and the extras a
     ]);
 
     expect(worker(run).token_extras).toEqual({
-      cache_read_input_tokens: { value: 91000, evidence_class: "host_reported" },
-      reasoning_output_tokens: { value: 1200, evidence_class: "host_reported" },
+      cache_read_input_tokens: { value: 91000, evidence_class: "agent_reported" },
+      reasoning_output_tokens: { value: 1200, evidence_class: "agent_reported" },
     });
   });
 
@@ -120,8 +122,8 @@ describe("model telemetry keeps the generic layer, the instance and the extras a
     ]);
 
     expect(worker(run).token_extras).toEqual({
-      cache_read: { value: 4000, evidence_class: "host_reported" },
-      tool_tokens: { value: 50, evidence_class: "host_reported" },
+      cache_read: { value: 4000, evidence_class: "agent_reported" },
+      tool_tokens: { value: 50, evidence_class: "agent_reported" },
     });
   });
 
@@ -213,7 +215,7 @@ describe("model telemetry keeps the generic layer, the instance and the extras a
 });
 
 describe("what the graph carries from the ledger", () => {
-  test("the node's telemetry carries every layer the host reported", async () => {
+  test("the node's telemetry carries every layer the caller reported", async () => {
     const run = await capsuleWithWorker("telemetry-node", [
       "--provider",
       "some-provider",
@@ -237,11 +239,11 @@ describe("what the graph carries from the ledger", () => {
     expect(telemetry.model?.value).toBe(REPORTED_MODEL);
     expect(telemetry.contextWindow?.value).toBe(200000);
     expect(telemetry.tokenExtras).toEqual({
-      cache_read: { value: 91000, evidence_class: "host_reported" },
+      cache_read: { value: 91000, evidence_class: "agent_reported" },
     });
   });
 
-  test("a node whose host reported none of it carries none of it", async () => {
+  test("a node nobody reported telemetry for carries none of it", async () => {
     const run = await capsuleWithWorker("telemetry-node-empty");
     const telemetry = telemetryOf(run)!;
     expect(telemetry.provider).toBeUndefined();

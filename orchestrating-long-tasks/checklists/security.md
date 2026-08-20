@@ -320,3 +320,84 @@ how-to-check: Compare a new or changed IAM policy/role definition against the ac
 severity: important
 sources:
   - OWASP ASVS, V1 "Architecture, Design and Threat Modeling" — least privilege
+
+## SEC-CLICKJACK-001
+
+rule: A page that must never render inside another site's frame sends `X-Frame-Options` or a `Content-Security-Policy: frame-ancestors` directive that says so
+rationale: Without a frame-denying header, an attacker can overlay invisible UI over the real page and trick a user into clicking a real action they never saw
+how-to-check: Request the changed page's response headers and confirm `X-Frame-Options` or `frame-ancestors` is present and restrictive
+severity: important
+sources:
+  - OWASP Cheat Sheet Series, "Clickjacking Defense"
+
+## SEC-REDIRECT-001
+
+rule: A redirect target that comes from user input (a `next`/`return_to` parameter, a callback URL) is checked against an allowlist of permitted destinations before the app redirects to it
+rationale: An unchecked redirect target turns a trusted domain's own link into a launchpad for a convincing phishing redirect
+how-to-check: Supply an external URL as the redirect parameter on a new redirect path and confirm the app refuses it rather than following it
+severity: important
+sources:
+  - OWASP Cheat Sheet Series, "Unvalidated Redirects and Forwards"
+
+## SEC-JWT-001
+
+rule: JWT verification pins the expected signing algorithm and key server-side and never trusts the algorithm named in the token's own header; expiry (`exp`) is enforced on every verification
+rationale: Trusting a token's self-declared algorithm lets an attacker switch to `none` or to a weaker/asymmetric-to-symmetric confusion and forge a token the server then accepts
+how-to-check: Grep new JWT verification code for the algorithm being read from the token itself rather than fixed by the verifier, and confirm expired tokens are rejected
+severity: critical
+sources:
+  - RFC 8725, "JSON Web Token Best Current Practices"
+
+## SEC-MASSASSIGN-001
+
+rule: A request body bound onto a data model allowlists the fields it accepts, rather than assigning every field the client happened to send
+rationale: A blind bind lets a client set a field it was never meant to control — a role, an owner id, a price — simply by adding it to the request body
+how-to-check: For a new endpoint binding a request body to a model, send an extra field the API never documented (e.g. `role: "admin"`) and confirm it has no effect
+severity: critical
+sources:
+  - OWASP Cheat Sheet Series, "Mass Assignment"
+
+## SEC-XXE-001
+
+rule: An XML parser processing untrusted input has external entity resolution and DTD processing disabled
+rationale: A default XML parser that resolves external entities lets crafted XML read local files, reach internal network endpoints, or exhaust memory via entity expansion
+how-to-check: Grep new XML-parsing code for the parser's DTD/external-entity settings; confirm they are explicitly disabled rather than left at the library default
+severity: critical
+sources:
+  - OWASP Cheat Sheet Series, "XML External Entity (XXE) Prevention"
+
+## SEC-HSTS-001
+
+rule: A site served exclusively over HTTPS sends `Strict-Transport-Security` with `includeSubDomains`, rather than relying on an HTTP-to-HTTPS redirect alone
+rationale: A redirect-only setup still lets the very first request over plain HTTP be intercepted before the redirect ever happens; HSTS tells the browser to skip HTTP entirely on repeat visits
+how-to-check: Request the changed site's response headers and confirm `Strict-Transport-Security` is present with a meaningful `max-age`
+severity: minor
+sources:
+  - OWASP Cheat Sheet Series, "HTTP Strict Transport Security"
+
+## SEC-TENANT-001
+
+rule: A query or write in a multi-tenant system is scoped by the acting tenant's own id resolved server-side, never by a tenant id the client merely supplied in the request
+rationale: A client-supplied tenant id is exactly as trustworthy as any other client-supplied identity field — trivially changed to read or write another tenant's data
+how-to-check: Call the changed endpoint with a valid session but a different tenant id in the request, and confirm the server ignores it in favor of the session's own tenant
+severity: critical
+sources:
+  - OWASP API Security Top 10 2023, API1:2023 (Broken Object Level Authorization) — tenant isolation as a special case
+
+## SEC-CI-001
+
+rule: A secret or token used by a CI/CD pipeline is masked in build logs, never echoed, printed, or interpolated into a log line the pipeline records
+rationale: A CI log is frequently readable by a wider audience than the production system the secret protects, and it is retained long after the run that leaked it
+how-to-check: Grep new pipeline configuration and scripts for a secret-holding variable passed to a command or echo without the CI platform's masking mechanism
+severity: important
+sources:
+  - OWASP Top 10 2021, A09:2021 (Security Logging and Monitoring Failures)
+
+## SEC-SUPPLYCHAIN-001
+
+rule: An internal or private package name is registered (or otherwise reserved) on the public registry it would collide with, so an internal-only dependency name cannot be shadowed
+rationale: Dependency confusion attacks publish a public package under an internal project's exact name at a higher version, and misconfigured installs pull the attacker's package instead
+how-to-check: For a new internally-named package, confirm the corresponding public registry name is claimed, or that the install configuration is scoped to prevent public-registry fallback
+severity: important
+sources:
+  - OWASP Top 10 2021, A08:2021 (Software and Data Integrity Failures) — dependency confusion
