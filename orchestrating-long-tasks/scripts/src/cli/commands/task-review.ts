@@ -9,6 +9,11 @@ import { tokenDigest } from "../../workflow/lease/token.ts";
 import { gateRunEvidence, probeRoundsRecorded } from "../../workflow/review/pass-preconditions.ts";
 import { recordReview } from "../../workflow/review/record-review.ts";
 import {
+  assertRoleArtifactPresent,
+  classifiesAsUiTask,
+  taskClassificationTexts,
+} from "../../workflow/review/role-evidence.ts";
+import {
   validateChecklistCoverage,
   type ChecklistCoverageReport,
 } from "../../workflow/review/validate-review.ts";
@@ -135,6 +140,14 @@ export async function taskReviewCommand(flags: Flags): Promise<Record<string, un
   if (isPass && dualChannel.isUiTask && !dualChannel.passed) {
     throw new HarnessError("INVALID_STATE", dualChannelRefusalMessage(taskId, dualChannel));
   }
+  const isUiTask = classifiesAsUiTask(
+    loaded.state as unknown as WorkflowState,
+    taskBefore,
+    dualChannel.isUiTask,
+  );
+  assertRoleArtifactPresent(taskId, isUiTask, {
+    hasArtifact: taskScreenshots.length > 0 || dualChannel.proofs.length > 0,
+  });
 
   const findingObj =
     failure === undefined
@@ -217,7 +230,10 @@ export async function taskReviewCommand(flags: Flags): Promise<Record<string, un
       .filter((entry) => entry.verdict === "pass")
       .map((entry) => entry.domain),
   );
-  const outstandingDomains = applicableValidatorDomains(finalTask.write_scope).filter(
+  const outstandingDomains = applicableValidatorDomains(
+    finalTask.write_scope,
+    taskClassificationTexts(state, finalTask),
+  ).filter(
     (domain) => !passedDomains.has(domain),
   );
   const markdown =

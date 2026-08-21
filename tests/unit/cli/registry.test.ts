@@ -34,6 +34,7 @@ const EXPECTED_INVOCATIONS = [
   "task:probe",
   "task:reject",
   "task:assign-repairer",
+  "task:abandon",
   "run:exec",
   "run:status",
   "run:complete",
@@ -72,6 +73,7 @@ const EXPECTED_INVOCATIONS = [
   "worktree:reclaim",
   "explain",
   "gate:prove",
+  "coordinator:pushback",
 ];
 
 describe("CLI command registry", () => {

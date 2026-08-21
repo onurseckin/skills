@@ -39,14 +39,14 @@ ranked by how much of the run's honesty depends on it. #23 is last by constructi
 | 1   | **CI runs a path that does not exist**                    | new       | No push has been validated since the suite moved to `tests/`. One line to fix; nothing below stays fixed without it. |
 | 2   | **Repair the integration lane**                           | Q12       | Verified broken today: 45 of 815 fail, all from two refusals that landed today without updating the fixtures.        |
 | 3   | **CI coverage floor**                                     | B9.1      | Blocked on #1 — a workflow that cannot run the suite cannot put a floor under it.                                    |
-| 4   | **R11 — file equality must be semantic**                  | Q17       | C4 and C10 both landed today and both hash raw bytes, so a formatter run now reads as a scope violation.             |
-| 5   | **R1/R2 — role output contracts, empty-evidence refusal** | Q5        | The UI-screenshot mandate fires only on the pass path, and UI-ness is still inferred from file extensions.           |
-| 6   | **`plan:review` evidentiary floor**                       | Q10       | An entire compiled plan is still approvable on zero commands and four free-text sentences.                           |
+| 4   | **R11 — file equality must be semantic** — **PARTIAL 2026-08-21** | Q17 | The shared normalisation layer landed at `store/content-normalization/` (format detection, JSON/JSONL canonicalisation, a restricted-grammar YAML canonicaliser, a string/template-literal-aware TS/JS whitespace canonicaliser, each with an honest byte-identical fallback and the method recorded — 83 tests in `tests/unit/store/content-normalization/`). One real store/** call site is wired: `capsule-index.ts:251`'s capture-ledger freshness digest now routes through `contentDigest`, proven by a test that fails without it (`tests/unit/store/capsule-index.test.ts`, "stays current when captures.json is rewritten..." — confirmed failing against the old `createHash` call before this change, passing after). Every other store/** hash (blob content-address in `blobs.ts`, packet/prompt digests in `layout-packets.ts`/`manifest.ts`) was deliberately left on byte equality: those hash markdown or content-addressed evidence inside the gitignored `.capsules/` tree, which a repo formatter never reaches, so byte equality there is already correct, not the bug this item describes. The six mechanisms below remain unwired and are all outside `store/**`: `packets/role-contract.ts:196,306,375` (contract digests, still raw `createHash`), `workflow/lease/write-scope-hash.ts:26,76` (C4, still raw `createHash`), `workflow/submission/out-of-band-drift.ts` (C10), `packets/repository-identity.ts` / `packets/repository-inspection.ts` (repository binding, via `sha256Bytes`/`canonicalJsonBytes` over parsed values rather than raw repo file bytes — not yet audited for this item), and gate:prove's falsifiability check (`workflow/review/pass-preconditions.ts` + whatever backs `gate:prove`, likely the same `hashWriteScope` as C4 — not yet traced). Whoever owns those files imports `contentDigest`/`contentEquals` from `store/content-normalization/index.ts`. |
+| 5   | **R1/R2 — role output contracts, empty-evidence refusal** — **PARTIAL 2026-08-21** | Q5 | Classification fixed: `contracts/workflow.ts`'s `applicableValidatorDomains`/`uiDomainApplies` now take requirement free text (task label, requirement `instruction`/`implementation`/`source_excerpt`/acceptance criteria) alongside write_scope, so a task whose UI mandate lives only in its words — QUEUE-5's own worked example, write_scope `["src/types/dsa.ts"]` on a task named for dual-channel UI validation — now classifies `ui-design` (`tests/unit/contracts/workflow.test.ts`, `tests/unit/workflow/review/role-evidence.test.ts`, 21 tests). The empty-evidence refusal is widened past the pass-only gate: `workflow/review/role-evidence.ts`'s `assertRoleArtifactPresent`, wired into `cli/commands/task-review.ts`, refuses ANY verdict — pass or reject — on a task classified UI-shaped by either signal (the analyzer's own write_scope/taskFiles check, or the new text signal) that carries zero screenshot/DOM-metrics artifact; today's code only gated PASS. Left open: "every role, at every node type" is not built — only `ui-design` carries a per-domain artifact-required rule; `product`/`security`/`system-design` have no analogous output contract. Also left open: the deep structural dual-channel audit (viewport/contrast findings) still runs only when the analyzer's own write_scope/taskFiles classifier agrees — a task caught solely by the new text signal gets the artifact-existence gate, not the full viewport/contrast audit, because that logic lives in `validation/dual-channel-analyzer.ts`, outside this item's owned files (`workflow/review/**`, `contracts/workflow.ts`). |
+| 6   | **`plan:review` evidentiary floor** — **RESOLVED 2026-08-21** | Q10       | Was: approvable on zero commands and four free-text sentences. Now: every verdict must also carry `--dependency-edges-reviewed` and `--gate-ids-reviewed`, checked in `recordPlanReview` (`workflow/plan-review/record-plan-review.ts:78-115,246-250`) against the real dependency edges and per-task gate ids the compiled plan actually declares — omit a real one or name a fabricated one and the review is refused (`INVALID_STATE`) before it is recorded. `tests/unit/workflow/plan-review.test.ts` (22 pass) and `tests/unit/cli/plan-validate.test.ts` (14 pass) cover the omission/fabrication/happy-path cases at both the domain and CLI layer. Caveat: `tests/integration/cli-plan-validate.test.ts`'s two `plan:review` calls (single task, zero dependency edges) now need `--gate-ids-reviewed "gate-1"` added — not edited here, per this wave's scope; owned by the integration-lane wave. |
 | 7   | **Telemetry points at the wrong reporter**                | B32 + B38 | `host_reported` is declared and never assigned; neither live capsule has an `agents` key. Absorbs B38.               |
 | 8   | **"Open the artifact, do not reason about it"**           | B33       | The rule reached 2 of 15 role contracts. Cheapest high-value item here.                                              |
 | 9   | **Transition ↔ summary bijection**                        | B21       | The per-event refusals landed; the "every transition has a summary" check was never written.                         |
 | 10  | **Per-validator quality metrics**                         | B20.4     | Quality metrics are run-wide only — never per agent, never per validator.                                            |
-| 11  | **R4 — the coordinator → validator pushback edge**        | Q6        | Every pushback edge is still validator → implementer; a coordinator cannot reject a verdict.                         |
+| 11  | **R4 — the coordinator → validator pushback edge** — **PARTIAL 2026-08-21** | Q6 | The edge now exists at the workflow layer: `workflow/review/coordinator-pushback.ts`'s `recordCoordinatorPushback` rejects a validator's own recorded pass on a `validated` task, requiring a `cause` of `procedural` (the review was not properly evidenced — task returns only to `validating`, the implementer is untouched) or `substantive` (the work is judged wrong despite the recorded pass — behaves like a validator reject: repair_round advances, original implementer reassigned, escalates once repair rounds exhaust). Wired to a new CLI command, `coordinator:pushback` (`cli/commands/coordinator-pushback.ts`, `cli/registry/coordinator.ts`), granted to the coordinator role in `roles/coordinator.md` — whose `must_not` line was narrowed from a blanket verdict-override prohibition to naming this structured, caused pushback as the sanctioned way to contest a pass. 20 tests: `tests/unit/workflow/review/coordinator-pushback.test.ts` (10, domain layer, through a real claim/submit/validate/pass round trip) and `tests/unit/cli/coordinator-pushback-command.test.ts` (4, CLI layer against a real on-disk capsule, reloaded from disk to prove persistence), plus registry and role-document tests. Left open: `graph.json` renders no `coordinator_pushback` edge kind — `summary/graph-edge-types.ts`'s `EdgeKind` union and the edge-factory that would render it live outside this item's owned files and were not touched, so the pushback is recorded and queryable on `task.coordinator_pushbacks` but not yet visible in the rendered summary. Also left open: a `substantive` pushback carries the same consequence as an ordinary validator reject rather than a distinct one; the genuinely new capability is the `procedural` path, which an ordinary validator reject cannot express at all (it never targets one specific recorded validation) — the concrete gap this item was opened on, "you did not record what you did." |
 | 12  | **Worktree isolation, three gaps**                        | B22       | Landed and wired, but defaults off, ships 2 of #2's failures, and B22.5 was never implemented.                       |
 | 13  | **`RunFacts.steps` is produced and read by nothing**      | B15       | gvui's own test says it: the harness emits step provenance and no UI consumes it.                                    |
 | 14  | **Asset dimensions and byte size**                        | B3        | The completeness contract still never asserts them.                                                                  |
@@ -203,6 +203,64 @@ changes control flow, and inside a template literal a space is data. A canonical
 eagerly turns a correctness mechanism into a blind spot — which is worse than the false positives it
 set out to fix. Prefer a conservative canonicaliser per format over a general whitespace stripper,
 and byte-equality wherever the format is unknown.
+
+### Status (2026-08-21) — layer built, one consumer wired, five still raw
+
+`store/content-normalization/` (`format.ts`, `json-canonical.ts`, `yaml-canonical.ts`,
+`typescript-whitespace.ts`, `normalize.ts`, `index.ts`) implements the design above:
+
+- **JSON/JSONL** — parses via the existing `parseJsonBytes`/`canonicalJsonBytes` in `core/json.ts`
+  and re-hashes the canonical form; per-line for JSONL, blank lines and a missing trailing newline
+  are insignificant.
+- **YAML** — a from-scratch, deliberately restricted recursive-descent parser (block and flow
+  mappings/sequences, quoted and plain scalars with null/bool/number inference on unquoted scalars
+  only). It bails to byte-equality — does not guess — on block scalars (`|`/`>`), anchors, aliases,
+  tags, document markers, tab indentation, and multi-line flow collections. Reordered keys, added
+  comments, flow-vs-block spelling of the same structure, and quote-style all canonicalise equal;
+  a real indentation change that moves a key to a different parent still compares unequal (tested).
+- **TS/JS** — a hand-written scanner that treats single/double-quoted strings, template literals
+  (including nested `${}` interpolation, scanned recursively so a nested template or object literal
+  inside the interpolation doesn't miscount braces), line/block comments, and regex literals
+  (division-vs-regex resolved by the preceding significant token, the standard heuristic) as
+  protected/verbatim spans, and outside those spans collapses indentation, trailing whitespace, and
+  repeated blank lines while **never deleting a newline that sits between two non-blank lines** —
+  the one invariant that keeps ASI-sensitive code (`return\nx` vs `return x`) from being conflated.
+  Bails to byte-equality on anything it can't confidently scan (unterminated string/template/regex/
+  comment) rather than risk a wrong answer.
+- Every path records which of `json-canonical` / `jsonl-canonical` / `yaml-canonical` /
+  `typescript-whitespace` / `byte-identical` actually applied — `contentDigest`/`contentEquals` return
+  it, not just the hash.
+
+83 tests in `tests/unit/store/content-normalization/`; `bun run typecheck` clean.
+
+**Wired:** `store/capsule-index.ts:251` — the capture-ledger freshness digest (`captureLedgerDigest`,
+feeding `indexFreshness`) now calls `contentDigest(bytes, CAPTURES_FILE)` instead of raw
+`createHash("sha256")`. Regression test:
+`tests/unit/store/capsule-index.test.ts` → `indexFreshness` → "stays current when captures.json is
+rewritten with different key order and spacing but the same content" — verified failing (reports
+`"stale"`) against the pre-change code and passing after.
+
+**Deliberately not touched:** `blobs.ts` (`copyAndHash`/`blobContentDigest`), `layout-packets.ts`
+(packet markdown digest), `manifest.ts` (prompt digest). All three hash content that lives under
+`.capsules/`, which `/.gitignore` excludes from the repository entirely — no formatter ever reaches
+it — and two of them hash markdown, which this design correctly refuses to canonicalise anyway.
+Routing them through the module would have been wiring for its own sake with no behavioural
+difference and no test able to prove it, so they were left alone rather than padded for appearance.
+
+**Still raw-byte, still outside `store/**` and this item's ownership for this wave:**
+
+| Mechanism         | File                                              | Verified still raw?                              |
+| ----------------- | -------------------------------------------------- | ------------------------------------------------- |
+| Contract digests   | `packets/role-contract.ts:196,306,375`             | Yes — `createHash("sha256")` over role/checklist `.md` bytes. |
+| C4 write-scope hash | `workflow/lease/write-scope-hash.ts:26,76`        | Yes — `createHash("sha256")` per file plus over the manifest string. |
+| C10 drift          | `workflow/submission/out-of-band-drift.ts`        | Not re-audited this pass; named in the original table. |
+| Repository binding | `packets/repository-identity.ts`, `packets/repository-inspection.ts` | Uses `sha256Bytes(canonicalJsonBytes(...))` over an already-parsed binding object, not raw repo file bytes directly — needs its own look, not assumed fixed. |
+| `gate:prove`       | `workflow/review/pass-preconditions.ts` + whatever backs `gate:prove` (likely `hashWriteScope`, shared with C4) | Not traced to a single call site this pass. |
+
+Whoever owns those files adopts `contentDigest`/`contentEquals` from
+`store/content-normalization/index.ts` directly — no further design work should be needed, the
+canonicalisers already handle `.md`/unknown formats safely by falling back to byte equality on their
+own.
 
 ## In flight
 

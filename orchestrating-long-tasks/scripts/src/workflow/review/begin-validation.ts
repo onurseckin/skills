@@ -7,6 +7,7 @@ import { HarnessError } from "../../errors/harness-error.ts";
 import { newLeaseToken, tokenDigest } from "../lease/token.ts";
 import { requireText, taskIn, transition, utc } from "../task-state.ts";
 import { systemClock, type Clock, type TransactionPort } from "../types.ts";
+import { taskClassificationTexts } from "./role-evidence.ts";
 import { openValidations } from "./validation-state.ts";
 
 const MIN_VALIDATION_WINDOW = 5;
@@ -18,8 +19,9 @@ function resolveDomain(
   writeScope: readonly string[],
   openDomains: ReadonlySet<ValidatorDomain>,
   domainInput: string | undefined,
+  requirementTexts: readonly string[],
 ): ValidatorDomain {
-  const applicable = applicableValidatorDomains(writeScope);
+  const applicable = applicableValidatorDomains(writeScope, requirementTexts);
   if (domainInput !== undefined) {
     if (!isValidatorDomain(domainInput)) {
       throw new HarnessError("INVALID_ARGUMENT", `unrecognized validator domain: ${domainInput}`);
@@ -81,7 +83,13 @@ export function beginValidation(
       throw new HarnessError("INVALID_STATE", "validator must be independent from implementers");
     }
     const openDomains = new Set(open.map((entry) => entry.domain));
-    const domain = resolveDomain(taskId, task.write_scope, openDomains, domainInput);
+    const domain = resolveDomain(
+      taskId,
+      task.write_scope,
+      openDomains,
+      domainInput,
+      taskClassificationTexts(draft, task),
+    );
     if (openDomains.has(domain)) {
       throw new HarnessError(
         "INVALID_STATE",

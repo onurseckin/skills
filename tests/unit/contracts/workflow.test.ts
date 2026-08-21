@@ -2,6 +2,8 @@ import { describe, expect, test } from "bun:test";
 import {
   applicableValidatorDomains,
   isValidatorDomain,
+  textSignalsUiDomain,
+  uiDomainApplies,
 } from "../../../orchestrating-long-tasks/scripts/src/contracts/workflow.ts";
 
 describe("isValidatorDomain", () => {
@@ -38,5 +40,42 @@ describe("applicableValidatorDomains", () => {
 
   test("adds neither for a plain backend file with no markers", () => {
     expect(applicableValidatorDomains(["src/services/auth.ts"])).toEqual(["code-quality"]);
+  });
+
+  // QUEUE-5: classification must not key on write_scope extensions alone. A real run had a task
+  // named for dual-channel UI validation declare write_scope ["src/types/dsa.ts"] — no UI
+  // extension, no UI directory marker — and its own UI mandate never fired. Requirement text (the
+  // task's own words about what it is) is the second signal that catches this.
+  test("adds ui-design from requirement text alone, when write_scope carries no UI marker", () => {
+    expect(applicableValidatorDomains(["src/types/dsa.ts"])).toEqual(["code-quality"]);
+    expect(
+      applicableValidatorDomains(["src/types/dsa.ts"], ["Verify the UI screenshot proof"]),
+    ).toEqual(["code-quality", "ui-design"]);
+  });
+
+  test("ignores empty or non-matching requirement text", () => {
+    expect(applicableValidatorDomains(["src/services/auth.ts"], [])).toEqual(["code-quality"]);
+    expect(
+      applicableValidatorDomains(["src/services/auth.ts"], ["Fix the retry backoff"]),
+    ).toEqual(["code-quality"]);
+  });
+});
+
+describe("textSignalsUiDomain", () => {
+  test("recognizes UI vocabulary case-insensitively without over-matching similar words", () => {
+    expect(textSignalsUiDomain(["Capture a SCREENSHOT of the dashboard"])).toBeTrue();
+    expect(textSignalsUiDomain(["Verify the responsive layout on mobile"])).toBeTrue();
+    expect(textSignalsUiDomain(["Run the Dual-Channel Validator Protocol"])).toBeTrue();
+    // "domain" and "custom" must not match the bare-word "dom"/"ui" markers.
+    expect(textSignalsUiDomain(["Migrate the domain model to a custom adapter"])).toBeFalse();
+    expect(textSignalsUiDomain([])).toBeFalse();
+  });
+});
+
+describe("uiDomainApplies", () => {
+  test("is a convenience wrapper equivalent to checking ui-design membership", () => {
+    expect(uiDomainApplies(["src/Button.tsx"])).toBeTrue();
+    expect(uiDomainApplies(["src/types/dsa.ts"])).toBeFalse();
+    expect(uiDomainApplies(["src/types/dsa.ts"], ["a dual-channel screenshot task"])).toBeTrue();
   });
 });

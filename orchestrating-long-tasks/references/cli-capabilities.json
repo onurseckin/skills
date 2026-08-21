@@ -648,7 +648,7 @@
       "aliases": [],
       "domain": "plan",
       "summary": "Record the plan-validator's written verdict on the compiled plan.",
-      "description": "C2: --status approved clears the plan for implementer dispatch; changes_requested is the pushback — it records structured findings (each with id, severity, observation, remediation) and blocks every implementer and repairer claim against this graph revision until a fresh compile passes a new review. The four questions (--decomposition-answer, --dependency-answer, --gate-answer, --straggler-answer) are mandatory on every verdict, pass or reject: a rubber-stamped pass that never answered them is refused. changes_requested requires --findings or --findings-file; approved must carry none.",
+      "description": "C2: --status approved clears the plan for implementer dispatch; changes_requested is the pushback — it records structured findings (each with id, severity, observation, remediation) and blocks every implementer and repairer claim against this graph revision until a fresh compile passes a new review. The four questions (--decomposition-answer, --dependency-answer, --gate-answer, --straggler-answer) are mandatory on every verdict, pass or reject: a rubber-stamped pass that never answered them is refused. Beyond prose, the verdict carries a mechanical floor: --dependency-edges-reviewed must name every dependency edge the compiled plan actually declares (exactly, not a subset) and --gate-ids-reviewed must name every per-task gate id in the plan (never the run-scoped completion gate, which is not a task gate) — omit a real one, or name one that does not exist, and the review is refused before it is recorded. changes_requested requires --findings or --findings-file; approved must carry none.",
       "flags": [
         {
           "name": "run",
@@ -745,6 +745,22 @@
           "repeatable": false,
           "default": null,
           "description": "Comma-separated command ids the validator ran as independent evidence."
+        },
+        {
+          "name": "dependency-edges-reviewed",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Comma-separated \"<from-task>:<to-task>\" pairs — must name exactly the dependency edges the compiled plan declares, no more and no fewer. Empty when the plan declares none."
+        },
+        {
+          "name": "gate-ids-reviewed",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Comma-separated gate ids — must name exactly the plan's per-task gate ids (never the run-scoped completion gate), no more and no fewer."
         }
       ],
       "reads_stdin": false,
@@ -768,8 +784,8 @@
         }
       ],
       "examples": [
-        "bun harness.ts plan:review --run .capsules/<run-id> --validator plan-val-1 --token <token> --status approved --decomposition-answer \"14 tasks match the 14 named topics\" --dependency-answer \"no dependency edges; every task is an independent root\" --gate-answer \"each gate runs only that task's own scoped test file\" --straggler-answer \"every task carries the same one-topic effort estimate\" --summary \"Decomposition matches the prompt; gates are scope-narrow\"",
-        "bun harness.ts plan:review --run .capsules/<run-id> --validator plan-val-1 --token <token> --status changes_requested --decomposition-answer \"10 topics compressed into 1 task\" --dependency-answer \"n/a\" --gate-answer \"the shared gate cannot fail per-task\" --straggler-answer \"n/a\" --summary \"Compressed decomposition; see findings\" --findings '[{\"id\":\"PV-1\",\"invariant\":\"A2-parallelism\",\"severity\":\"critical\",\"observation\":\"10 distinct topics collapsed into task-domains\",\"remediation\":\"one task per topic, each with its own scoped gate\"}]'"
+        "bun harness.ts plan:review --run .capsules/<run-id> --validator plan-val-1 --token <token> --status approved --decomposition-answer \"14 tasks match the 14 named topics\" --dependency-answer \"no dependency edges; every task is an independent root\" --gate-answer \"each gate runs only that task's own scoped test file\" --straggler-answer \"every task carries the same one-topic effort estimate\" --gate-ids-reviewed \"gate-1,gate-2,gate-3\" --summary \"Decomposition matches the prompt; gates are scope-narrow\"",
+        "bun harness.ts plan:review --run .capsules/<run-id> --validator plan-val-1 --token <token> --status changes_requested --decomposition-answer \"10 topics compressed into 1 task\" --dependency-answer \"n/a\" --gate-answer \"the shared gate cannot fail per-task\" --straggler-answer \"n/a\" --gate-ids-reviewed \"gate-1\" --summary \"Compressed decomposition; see findings\" --findings '[{\"id\":\"PV-1\",\"invariant\":\"A2-parallelism\",\"severity\":\"critical\",\"observation\":\"10 distinct topics collapsed into task-domains\",\"remediation\":\"one task per topic, each with its own scoped gate\"}]'"
       ]
     },
     {
@@ -2016,6 +2032,70 @@
       ],
       "examples": [
         "bun harness.ts task:assign-repairer --run .capsules/<run-id> --task task-1 --actor coordinator --repairer worker-2 --reason unavailable --evidence \"worker-1 released without claiming the repair lease\""
+      ]
+    },
+    {
+      "name": "task:abandon",
+      "aliases": [],
+      "domain": "task",
+      "summary": "Close an open attempt nobody submitted or released, on the coordinator's authority.",
+      "description": "The forced counterpart to task:release: it does not require the lease token, only --actor and --reason, because it exists for a coordinator to unstick a task whose attempt is open but whose agent is gone or unresponsive. The task returns to retry_ready, or to changes_requested when the abandoned attempt was a repair. Refuses if the task's most recent attempt is already closed - there is nothing left open to abandon.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root."
+        },
+        {
+          "name": "task",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Task with an open attempt."
+        },
+        {
+          "name": "actor",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Who is abandoning the attempt. Recorded on the event."
+        },
+        {
+          "name": "reason",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Why the attempt is being abandoned."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts task:abandon --run .capsules/<run-id> --task task-1 --actor coordinator --reason \"agent-1 crashed mid-attempt and will not return\""
       ]
     },
     {
@@ -4881,6 +4961,103 @@
       "examples": [
         "bun harness.ts gate:prove --run .capsules/<run-id> --task task-1 --actor coordinator",
         "bun harness.ts gate:prove --run .capsules/<run-id> --task task-1 --actor coordinator --base HEAD~1"
+      ]
+    },
+    {
+      "name": "coordinator:pushback",
+      "aliases": [],
+      "domain": "task",
+      "summary": "Reject a validator's own recorded pass, procedurally or substantively.",
+      "description": "QUEUE-6: the edge every pushback ran on was validator -> implementer; this is the missing coordinator -> validator edge, for when the validator's OWN recorded pass does not hold up. The task must currently be `validated` (every applicable domain passed, not yet finished) and must carry a recorded pass from --validator in --domain, or this refuses. `--cause procedural` means the review act itself did not meet the evidentiary bar (no evidence recorded, a required check skipped) — the implementer's work is not in question, so the task returns only to `validating` for a fresh, properly-evidenced review. `--cause substantive` means the work itself is judged wrong despite the recorded pass — that carries the same consequence a validator's own reject does: repair_round advances, the original implementer is reassigned, and the task goes to `changes_requested` (or `escalated` once repair rounds are exhausted). The disputed pass is archived into validation_history, never silently dropped, and every pushback is recorded on the task under `coordinator_pushbacks` with its cause, so a rejection for 'you did not record what you did' is expressible and auditable, not just implied by a status change.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root."
+        },
+        {
+          "name": "task",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Task carrying the standing pass being contested."
+        },
+        {
+          "name": "actor",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Coordinator agent id recorded as the author of this pushback."
+        },
+        {
+          "name": "validator",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Validator whose recorded pass is being pushed back on."
+        },
+        {
+          "name": "domain",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Validator domain the disputed pass covers, e.g. ui-design."
+        },
+        {
+          "name": "cause",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "'procedural' (the review was not properly evidenced) or 'substantive' (the work itself is wrong)."
+        },
+        {
+          "name": "observation",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "What the coordinator found wrong with the pass."
+        },
+        {
+          "name": "remediation",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "What must happen before this can pass again."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts coordinator:pushback --run .capsules/<run-id> --task task-1 --actor coordinator --validator val-1 --domain ui-design --cause procedural --observation \"pass carried zero screenshot evidence\" --remediation \"re-run the visual suite and record real evidence before passing again\"",
+        "bun harness.ts coordinator:pushback --run .capsules/<run-id> --task task-1 --actor coordinator --validator val-1 --domain code-quality --cause substantive --observation \"the recorded check output shows the gate never ran\" --remediation \"fix the gate invocation and resubmit\""
       ]
     }
   ]

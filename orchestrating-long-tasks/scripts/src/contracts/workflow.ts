@@ -35,7 +35,30 @@ const UI_DESIGN_EXTENSIONS: ReadonlySet<string> = new Set([
 const SYSTEM_DESIGN_EXTENSIONS: ReadonlySet<string> = new Set([".graphql", ".gql", ".proto"]);
 const SYSTEM_DESIGN_PATH_MARKERS: readonly string[] = ["schema", "contracts/", "migrations/"];
 
-export function applicableValidatorDomains(writeScope: readonly string[]): ValidatorDomain[] {
+const UI_TEXT_MARKERS: readonly RegExp[] = [
+  /\bui\b/i,
+  /\bux\b/i,
+  /\bscreenshots?\b/i,
+  /\bvisual(ly)?\b/i,
+  /\bfront-?end\b/i,
+  /\bviewports?\b/i,
+  /\bresponsive\b/i,
+  /\bdual-channel\b/i,
+  /\bdual channel\b/i,
+  /\bwcag\b/i,
+  /\bcontrast ratio\b/i,
+  /\baccessib(le|ility)\b/i,
+  /\bdom metrics\b/i,
+];
+
+export function textSignalsUiDomain(texts: readonly string[]): boolean {
+  return texts.some((text) => UI_TEXT_MARKERS.some((marker) => marker.test(text)));
+}
+
+export function applicableValidatorDomains(
+  writeScope: readonly string[],
+  requirementTexts: readonly string[] = [],
+): ValidatorDomain[] {
   const domains = new Set<ValidatorDomain>(["code-quality"]);
   for (const rawScope of writeScope) {
     const scope = rawScope.toLowerCase();
@@ -47,7 +70,15 @@ export function applicableValidatorDomains(writeScope: readonly string[]): Valid
     )
       domains.add("system-design");
   }
+  if (textSignalsUiDomain(requirementTexts)) domains.add("ui-design");
   return VALIDATOR_DOMAINS.filter((domain) => domains.has(domain));
+}
+
+export function uiDomainApplies(
+  writeScope: readonly string[],
+  requirementTexts: readonly string[] = [],
+): boolean {
+  return applicableValidatorDomains(writeScope, requirementTexts).includes("ui-design");
 }
 
 export type TaskStatus =
@@ -94,4 +125,23 @@ export interface GateResult extends JsonObject {
   gate_id: string;
   command_id: string;
   status: "passed";
+}
+
+export type CoordinatorPushbackCause = "procedural" | "substantive";
+
+export function isCoordinatorPushbackCause(
+  value: unknown,
+): value is CoordinatorPushbackCause {
+  return value === "procedural" || value === "substantive";
+}
+
+export interface CoordinatorPushback extends JsonObject {
+  id: string;
+  validator_id: string;
+  domain: ValidatorDomain;
+  cause: CoordinatorPushbackCause;
+  observation: string;
+  remediation: string;
+  review_round: number;
+  created_at: string;
 }

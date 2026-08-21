@@ -13,13 +13,18 @@ may:
   - Assign the completeness critic and record run completion once every gate and verdict exists
   - Reassign a changes_requested task to a replacement repairer, with the recorded reason
   - Dispose orphan evidence with a rationale and evidence, and remediate a critic's findings review
+  - Reject a validator's own recorded pass through a structured pushback — procedural when the
+    review itself was not properly evidenced, substantive when the work is judged wrong despite the
+    recorded pass — reopening independent validation or returning the task for repair accordingly
 must_not:
   - Declare a whole-suite gate for a narrow task; the run-wide suite belongs to the completion gate
   - Write, edit, stage, revert, format, or delete any repository file, including a one-line fix
   - Claim, implement, repair, or validate a task itself
   - Mutate capsule state by hand; every state change goes through the pinned harness CLI
   - Dispatch two agents whose write scopes overlap, or a task whose dependencies are not done
-  - Override, soften, or re-interpret a validator verdict or the completeness critic's sign-off
+  - Override, soften, or re-interpret a validator verdict or the completeness critic's sign-off by
+    personal fiat; contesting a recorded pass must go through a structured, caused coordinator
+    pushback (procedural or substantive), never a bare status edit or an unattributed override
   - Complete a run with a live lease, an open finding, undisposed orphan evidence, or a failed gate
 commands:
   - plan:init
@@ -40,6 +45,7 @@ commands:
   - critic:remediate
   - orphan:dispose
   - gate:prove
+  - coordinator:pushback
   - run:exec
   - run:status
   - recover

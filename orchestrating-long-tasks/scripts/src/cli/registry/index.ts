@@ -1,6 +1,7 @@
 import { AGENT_COMMANDS } from "./agent.ts";
 import { AUTHORITY_COMMANDS } from "./authority.ts";
 import { BRANCH_COMMANDS } from "./branch.ts";
+import { COORDINATOR_COMMANDS } from "./coordinator.ts";
 import { CRITIC_COMMANDS } from "./critic.ts";
 import { DIAGNOSTICS_COMMANDS } from "./diagnostics.ts";
 import { EXPLAIN_COMMANDS } from "./explain.ts";
@@ -35,6 +36,7 @@ export const COMMAND_REGISTRY: readonly CommandSpec[] = [
   ...DIAGNOSTICS_COMMANDS,
   ...EXPLAIN_COMMANDS,
   ...GATE_COMMANDS,
+  ...COORDINATOR_COMMANDS,
 ];
 
 export const COMMAND_DOMAINS: readonly CommandDomain[] = [

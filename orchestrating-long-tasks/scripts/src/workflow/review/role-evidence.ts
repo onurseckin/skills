@@ -1,0 +1,78 @@
+import { HarnessError } from "../../errors/harness-error.ts";
+import { uiDomainApplies } from "../../contracts/workflow.ts";
+import { isJsonObject, type JsonValue } from "../../contracts/json.ts";
+import type { TaskRecord, WorkflowState } from "../types.ts";
+
+function textOf(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim() !== "" ? value : undefined;
+}
+
+function acceptanceCriteriaTexts(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  const texts: string[] = [];
+  for (const item of value) {
+    if (typeof item !== "object" || item === null || Array.isArray(item)) continue;
+    const criterion = textOf((item as Record<string, unknown>).criterion);
+    if (criterion) texts.push(criterion);
+  }
+  return texts;
+}
+
+function requirementDocumentEntries(value: unknown): Record<string, JsonValue>[] {
+  if (Array.isArray(value)) return value.filter(isJsonObject);
+  if (isJsonObject(value) && Array.isArray(value.requirements))
+    return value.requirements.filter(isJsonObject);
+  return [];
+}
+
+export function taskClassificationTexts(state: WorkflowState, task: TaskRecord): string[] {
+  const texts: string[] = [];
+  const label = textOf(task.label);
+  if (label) texts.push(label);
+  const byId = new Map(
+    requirementDocumentEntries(state.requirements).map((requirement) => [
+      textOf(requirement.id),
+      requirement,
+    ]),
+  );
+  for (const id of task.requirement_ids) {
+    const requirement = byId.get(id);
+    if (!requirement) continue;
+    for (const field of ["instruction", "implementation", "source_excerpt"] as const) {
+      const text = textOf(requirement[field]);
+      if (text) texts.push(text);
+    }
+    texts.push(...acceptanceCriteriaTexts(requirement.acceptance));
+  }
+  return texts;
+}
+
+export function classifiesAsUiTask(
+  state: WorkflowState,
+  task: TaskRecord,
+  analyzerSaysUi: boolean,
+): boolean {
+  return analyzerSaysUi || uiDomainApplies(task.write_scope, taskClassificationTexts(state, task));
+}
+
+export interface RoleArtifactEvidence {
+  readonly hasArtifact: boolean;
+}
+
+export function assertRoleArtifactPresent(
+  taskId: string,
+  domainApplies: boolean,
+  evidence: RoleArtifactEvidence,
+): void {
+  if (!domainApplies) return;
+  if (evidence.hasArtifact) return;
+  throw new HarnessError(
+    "INVALID_STATE",
+    `cannot review ${taskId}: this task's UI/frontend surface requires captured artifact evidence ` +
+      `(a screenshot or DOM-metrics record) before this review can mean anything, pass or reject ` +
+      `alike; none is on record`,
+    [],
+    3,
+    `run the visual validation suite so it captures a screenshot or visual-report.json, then retry task:review for ${taskId}`,
+  );
+}
