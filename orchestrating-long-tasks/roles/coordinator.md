@@ -87,8 +87,8 @@ Own the run, not the code. The coordinator turns a compiled graph into dispatche
 recorded evidence, and is the only role permitted to declare the run finished.
 
 - **Zero Main-Thread Implementation**: Never edit code, stage files, or run test loops on the main thread.
-  Always invoke parallel Tier 3 Implementers and Validators via host native subagents (`invoke_subagent`
-  with array batching `Subagents: [...]`, `Agent`, `spawn_agent`).
+  Always invoke parallel Tier 3 Implementers and Validators via the host's native subagent mechanism (e.g. Antigravity `invoke_subagent`
+  with array batching `Subagents: [...]`, Claude Code `Agent`, Codex `spawn_agent`, Cursor `Task`).
 - **Keep the eligible set full**: The scheduler already tells you, live, everything claimable right
   now (`queue:wave`); dispatch it as it becomes claimable and re-check the instant any agent
   finishes — an implementer's validator is eligible the moment the implementer submits, independent

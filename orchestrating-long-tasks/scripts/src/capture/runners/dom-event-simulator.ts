@@ -321,7 +321,7 @@ export async function simulateDomEvent(
     }
 
     case "wait": {
-      const waitMs = event.delayMs ?? 100;
+      const waitMs = typeof event.delayMs === "number" ? event.delayMs : 100;
       if (driver.waitForTimeout) {
         await driver.waitForTimeout(waitMs);
       } else {
@@ -351,12 +351,14 @@ export function classifyLayoutShift(
     return { isExpected: true };
   }
 
-  const behavior: ExpectedShiftBehavior = event.expectedBehavior ?? "feedback_only";
+  const behavior: ExpectedShiftBehavior =
+    event.expectedBehavior !== undefined ? event.expectedBehavior : "feedback_only";
 
   // If explicit no_shift requested, any shift > 0.001 is a defect
   if (behavior === "no_shift") {
     const severity =
       shiftEntry.score > 0.1 ? "critical" : shiftEntry.score > 0.02 ? "moderate" : "minor";
+    const targetDescriptor = event.selector !== undefined ? event.selector : event.type;
     return {
       isExpected: false,
       defect: {
@@ -367,7 +369,7 @@ export function classifyLayoutShift(
         impactFraction: shiftEntry.impactFraction,
         distanceFraction: shiftEntry.distanceFraction,
         rootCauses: shiftEntry.rootCauses,
-        message: `Unexpected layout shift (score: ${shiftEntry.score.toFixed(4)}) on event '${event.type}' (${event.selector ?? "viewport"}), expected zero shift.`,
+        message: `Unexpected layout shift (score: ${shiftEntry.score.toFixed(4)}) on event '${event.type}' (${targetDescriptor}), expected zero shift.`,
         severity,
       },
     };
@@ -402,6 +404,7 @@ export function classifyLayoutShift(
   // layout should NOT shift other unrelated page elements (> 0.01 score)
   if (behavior === "feedback_only" && shiftEntry.score > 0.01) {
     const severity = shiftEntry.score > 0.1 ? "critical" : "moderate";
+    const targetDescriptor = event.selector !== undefined ? event.selector : event.type;
     return {
       isExpected: false,
       defect: {
@@ -412,7 +415,7 @@ export function classifyLayoutShift(
         impactFraction: shiftEntry.impactFraction,
         distanceFraction: shiftEntry.distanceFraction,
         rootCauses: shiftEntry.rootCauses,
-        message: `Interactive event '${event.type}' on '${event.selector ?? "element"}' triggered unexpected layout shift (score: ${shiftEntry.score.toFixed(4)}), displacing ${shiftEntry.sources.length} elements.`,
+        message: `Interactive event '${event.type}' on '${targetDescriptor}' triggered unexpected layout shift (score: ${shiftEntry.score.toFixed(4)}), displacing ${shiftEntry.sources.length} elements.`,
         severity,
       },
     };

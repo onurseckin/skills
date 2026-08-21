@@ -41,8 +41,8 @@ function createMockElement(
       left: bounds.x,
     },
     computedStyles: {
-      display: styles.display ?? "block",
-      position: styles.position ?? "static",
+      display: typeof styles.display === "string" ? styles.display : "block",
+      position: typeof styles.position === "string" ? styles.position : "static",
       zIndex: 0,
       color: "#000000",
       backgroundColor: "#ffffff",
