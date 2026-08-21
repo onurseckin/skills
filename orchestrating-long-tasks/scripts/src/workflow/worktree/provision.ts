@@ -1,7 +1,11 @@
 import { mkdirSync } from "node:fs";
 import { dirname, join, resolve, sep } from "node:path";
 import type { TopologyRecord } from "../../contracts/topology.ts";
-import type { WorktreeLedgerState, WorktreeRecord } from "../../contracts/worktree.ts";
+import type {
+  WorktreeAssignment,
+  WorktreeLedgerState,
+  WorktreeRecord,
+} from "../../contracts/worktree.ts";
 import { HarnessError } from "../../errors/harness-error.ts";
 import { loadRun, transact } from "../../store/index.ts";
 import { assignWorktrees, type AssignableTask } from "./assign.ts";
@@ -15,6 +19,21 @@ import {
   type GitRunner,
 } from "./git-ops.ts";
 import { readWorktreeLedger, writeWorktreeLedger } from "./ledger.ts";
+
+function assignmentsEqual(
+  left: readonly WorktreeAssignment[],
+  right: readonly WorktreeAssignment[],
+): boolean {
+  if (left.length !== right.length) return false;
+  return left.every((entry, index) => {
+    const other = right[index]!;
+    return (
+      entry.task_id === other.task_id &&
+      entry.worktree_id === other.worktree_id &&
+      entry.wave === other.wave
+    );
+  });
+}
 
 function resolveWorktreeRoot(repoRoot: string, configured: string | undefined): string {
   const parent = dirname(repoRoot);
@@ -79,8 +98,7 @@ export function provisionWorktrees(input: ProvisionWorktreesInput): ProvisionWor
     newWorktrees.push({ id, path: worktreePath, branch, base_sha: baseSha, created_at: createdAt });
   }
 
-  const assignmentsChanged =
-    JSON.stringify(existing?.assignments ?? []) !== JSON.stringify(assignments);
+  const assignmentsChanged = !assignmentsEqual(existing?.assignments ?? [], assignments);
   if (newWorktrees.length === 0 && !assignmentsChanged) return { enabled: true, ledger: existing };
 
   const ledger: WorktreeLedgerState = {

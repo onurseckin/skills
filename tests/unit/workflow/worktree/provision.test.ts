@@ -12,6 +12,7 @@ import type {
   GitResult,
   GitRunner,
 } from "../../../../orchestrating-long-tasks/scripts/src/workflow/worktree/git.ts";
+import { loadRun } from "../../../../orchestrating-long-tasks/scripts/src/store/index.ts";
 import { baseLedger, freshRunRoot, seedLedger } from "./store-fixture.ts";
 
 const roots: string[] = [];
@@ -220,15 +221,14 @@ describe("provisionWorktrees", () => {
     expect(addCalls[0]!.argv).toContain("harness/run-1--wt-1");
   });
 
-  // NB: `assignmentsChanged` inside provisionWorktrees compares
-  // `JSON.stringify(existing.assignments)` against a freshly computed array. `existing` was just
-  // read back through the canonical (key-sorted) JSON store, while `assignWorktrees` builds plain
-  // object literals in a fixed field order — so this stringify comparison mismatches on key order
-  // alone for any run that already has a persisted ledger, even when nothing semantically changed.
-  // The intended "nothing changed, skip the transact" fast path is therefore effectively dead once
-  // a ledger exists. This test documents the actually-reachable behaviour (git no-ops, but the
-  // function still re-persists an equivalent ledger) rather than the unreachable early return.
-  test("issues no new git worktree calls when every task already has a slot, even though it still re-persists", () => {
+  // `existing.assignments` comes back from the canonical (key-sorted) JSON store while
+  // `assignWorktrees` builds plain object literals in field order `{task_id, worktree_id, wave}` —
+  // a raw `JSON.stringify` comparison between the two would mismatch on key order alone even when
+  // nothing semantically changed. `assignmentsEqual` compares the three fields directly so this
+  // fast path stays reachable on a rerun (e.g. `plan:compile` re-invoked for the same run) once
+  // every task already has a slot: no new git calls, and no redundant re-persist of an equivalent
+  // ledger either.
+  test("skips re-persisting and issues no git worktree calls when every task already has a slot", () => {
     const runRoot = trackedRunRoot("provision-noop");
     const repoRoot = trackedDir("provision-noop-repo");
     const wtRoot = trackedDir("provision-noop-wtroot");
@@ -248,6 +248,7 @@ describe("provisionWorktrees", () => {
       assignments: [{ task_id: "t1", worktree_id: "wt-0", wave: 1 }],
     });
     seedLedger(runRoot, existing);
+    const eventsBefore = loadRun(runRoot).events.length;
     const { runner, calls } = scripted((call) => {
       if (call.argv[0] === "rev-parse" && call.argv.includes("--verify")) return ok();
       return ok();
@@ -265,5 +266,44 @@ describe("provisionWorktrees", () => {
     expect(result.ledger?.worktrees).toEqual(existing.worktrees);
     expect(result.ledger?.assignments).toEqual(existing.assignments);
     expect(calls.filter((c) => c.argv[0] === "worktree" && c.argv[1] === "add")).toHaveLength(0);
+    expect(loadRun(runRoot).events.length).toBe(eventsBefore);
+  });
+
+  test("re-persists when the topology widens even though every existing task keeps its slot", () => {
+    const runRoot = trackedRunRoot("provision-widen");
+    const repoRoot = trackedDir("provision-widen-repo");
+    const wtRoot = trackedDir("provision-widen-wtroot");
+    const existing = baseLedger({
+      harness_branch: "harness/run-1",
+      base_sha: "base-sha-000",
+      root: wtRoot,
+      worktrees: [
+        {
+          id: "wt-0",
+          path: join(wtRoot, "run-1", "wt-0"),
+          branch: "harness/run-1--wt-0",
+          base_sha: "base-sha-000",
+          created_at: "t",
+        },
+      ],
+      assignments: [{ task_id: "t1", worktree_id: "wt-0", wave: 1 }],
+    });
+    seedLedger(runRoot, existing);
+    const eventsBefore = loadRun(runRoot).events.length;
+    const { runner } = scripted((call) => {
+      if (call.argv[0] === "rev-parse" && call.argv.includes("--verify")) return ok();
+      return ok();
+    });
+    provisionWorktrees({
+      runRoot,
+      repoRoot,
+      runId: "run-1",
+      actor: "coordinator",
+      topology: topology([["t1", "t2"]]),
+      tasksById: tasks(["t1", "t2"]),
+      config: config(wtRoot),
+      runner,
+    });
+    expect(loadRun(runRoot).events.length).toBeGreaterThan(eventsBefore);
   });
 });
