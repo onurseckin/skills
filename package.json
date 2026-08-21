@@ -17,6 +17,7 @@
   "type": "module",
   "scripts": {
     "test": "bun test --timeout 30000 --parallel --no-isolate tests/unit",
+    "test:changed": "bun scripts/test-changed.ts",
     "test:coverage": "bun test --timeout 30000 --parallel --no-isolate --coverage tests/unit",
     "coverage:check": "bun orchestrating-long-tasks/scripts/harness.ts coverage:check",
     "typecheck": "tsc -p tsconfig.json --noEmit",

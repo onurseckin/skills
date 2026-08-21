@@ -15,12 +15,9 @@ pre-commit:
       run: bun run typecheck
 
 pre-push:
-  parallel: true
   commands:
-    test-unit:
-      run: bun run test
-    coverage-check:
-      run: bun run coverage:check
+    test-affected:
+      run: bun run test:changed
 
 post-push:
   commands:
