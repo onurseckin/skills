@@ -51,6 +51,7 @@ Do not create a harness for a simple answer, one-file mechanical edit, or short 
 14. Consolidation of user pushbacks and self-audits: consolidate all user pushbacks and model self-critiques into canonical documentation.
 15. Strict TypeScript and linter hygiene: zero `any` annotations, casts, or generic defaults, zero compiler/linter suppressions.
 16. Mandatory 5-Minute Supervisory Scheduler & Algorithmic DAG Optimization: Every long task, multi-phase execution, or autonomous mind loop MUST enforce a recurring 5-minute supervisory scheduler (`schedule` cron `*/5 * * * *`, systemd timer, or floor loop) and provide live ASCII DAG introspection (`dag:view`) with algorithmic parallelization recommendations to eliminate serial bottlenecks without main-thread or coordinator direct code editing.
+17. Infinite Mind Cadence, No Agent-Driven Termination & Background Finalization Isolation: Mind systems and multi-phase orchestrations MUST execute as infinite, non-stop cadence loops unless explicitly halted by the human user. Subagents and coordinators are STRICTLY FORBIDDEN from killing schedulers or terminating pulses. Finalization (git commits, pushes, release sealing, global skill syncing) MUST be executed by the dedicated Tier 1 Background Orchestrator / Tier 0 Mind Runner on its own background thread, NEVER spilled onto the main interactive thread.
 
 ## Route by role
 

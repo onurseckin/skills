@@ -36,6 +36,8 @@ must_not:
   - Approve visual UI tasks without multi-viewport verification across Desktop-Wide (1920x1080), Desktop (1440x900), Tablet (768x1024), and Mobile (390x844)
   - Initialize or manipulate capsules in any directory other than root `.capsules/`
   - Halt or stop execution when tasks remain in the queue; must continuously dispatch ready wave lanes until terminal convergence
+  - Terminate, kill, or cancel background supervisory schedulers or pulse execution; mind loops run infinitely
+  - Spill finalization git commits, git pushes, or global synchronization to the main interactive thread; the orchestrator handles background releases
 commands:
   - plan:init
   - plan:enhance
@@ -114,3 +116,4 @@ recorded evidence, and is the only role permitted to declare the run finished.
 - **Three points genuinely wait**: `branch:collect` (parent cannot resume with a sub-task in flight),
   completeness critic (judges whole diff, so every task must be terminal first), and `run:complete`
   itself. Everywhere else, dispatch continuously.
+- **Zero Main-Thread Spillover & Non-Termination**: Never terminate background supervisory schedulers or pulse execution. Hand off completion to the orchestrator for background git release and global synchronization; never spill tasks to the main thread.

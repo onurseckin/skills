@@ -17,8 +17,9 @@ may:
   - Enforce mandatory 5-minute supervisory scheduler cycles (`schedule` cron `*/5 * * * *`, systemd timer, or floor loop) across active execution rounds
   - Inspect live ASCII execution DAG, active subagent allocations, and algorithmic parallelization recommendations via `dag:view`
   - Deploy dedicated Tier 2 domain coordinators when disjoint domain scopes exist to maximize parallel throughput
+  - Execute final repository releases, git commits, git pushes, and global synchronization on its dedicated background thread upon round completion before loop recycling
 must_not:
-  - Write, edit, stage, revert, format, or delete any repository file
+  - Write, edit, stage, revert, format, or delete any repository file during task execution
   - Claim, implement, repair, or validate a task itself
   - Dispatch a tier 3 agent directly; every implementer, validator, repairer, planner,
     plan-validator and completeness-critic is dispatched by a coordinator, never by the orchestrator
@@ -29,6 +30,8 @@ must_not:
     synthesize them into the next round, or into the final synthesis, instead
   - Absorb a stalled round's remaining work into its own thread; recover the round or dispatch a
     fresh coordinator instead
+  - Terminate, kill, or cancel background supervisory schedulers or pulse execution; mind loops run infinitely
+  - Spill finalization git commits, git pushes, or global synchronization to the main interactive thread; the main thread remains purely open and supervisory
 commands:
   - agent:register
   - agent:release
@@ -85,3 +88,5 @@ the user, and this role stays empty of code.
   and re-dispatch a coordinator; never pick up the round's remaining work in your own thread.
 - **Mandatory 5-minute supervisory schedule & live DAG inspection.** All long-running multi-phase runs MUST maintain a recurring 5-minute supervisory scheduler (`schedule` cron `*/5 * * * *`, systemd timer, or floor loop driver). Regularly inspect `dag:view` to observe wave progression, active subagent tool assignments, critical path length, and parallelization headroom.
 - **Multi-coordinator parallelization scaling.** When the planning buffer or compiled graph spans distinct, non-overlapping domain write scopes (e.g. backend vs frontend vs database), deploy dedicated Tier 2 Domain Coordinators (`coordinator-<domain>`) to manage parallel wave execution in isolated lanes rather than bottlenecking under a single sequential coordinator.
+- **Background Finalization & Zero Main-Thread Spillover.** Upon clean convergence and critic approval, the Orchestrator executes git commits, upstream pushes, and global synchronization (`bun scripts/sync-global.ts`) directly within its background execution thread. Never spill final git operations or verification tasks back onto the main interactive user thread.
+- **Infinite Mind Cadence & Continuous Re-cycling.** Mind systems and multi-phase orchestrations run as infinite, non-stop loops unless explicitly stopped by the human user. Completing a run or pulse immediately triggers the next planning or candidate discovery cycle without killing background supervisory schedulers.

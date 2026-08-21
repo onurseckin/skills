@@ -69,6 +69,19 @@ describe("Mandatory 5-Minute Supervisory Scheduler Invariant & Rule 16 Contract"
     expect(content).toContain("schedule");
   });
 
+  test("SKILL.md defines Rule 17 on Infinite Mind Cadence, No Agent Termination, and Background Finalization", () => {
+    const content = readFileSync(skillPath, "utf8");
+    expect(content).toContain("17. Infinite Mind Cadence, No Agent-Driven Termination & Background Finalization Isolation");
+    expect(content).toContain("Tier 1 Background Orchestrator");
+    expect(content).toContain("main interactive thread");
+  });
+
+  test("references/host-adapters.md documents Section 5.8 for Infinite Cadence & Background Finalization", () => {
+    const content = readFileSync(hostAdaptersPath, "utf8");
+    expect(content).toContain("5.8 Infinite Mind Cadence, Zero Agent-Driven Termination & Background Finalization Isolation");
+    expect(content).toContain("Tier 1 Background Orchestrator");
+  });
+
   test("dag:view command is registered in COMMAND_REGISTRY with correct aliases", () => {
     const dagSpec = COMMAND_REGISTRY.find((spec) => spec.name === "dag:view");
     expect(dagSpec).toBeDefined();

@@ -242,5 +242,14 @@ Every host adapter implementation must enforce the following guardrails:
   - When $P < P_{\text{optimal}}$ and 2+ disjoint domains exist (e.g. backend, frontend, database, docs), scale out by deploying dedicated Tier 2 Domain Coordinators (`coordinator-<domain>`) to manage disjoint execution wave lanes independently.
   - Eliminate artificial serialization warnings (`ARTIFICIAL_SERIALIZATION_WARNING`) by decoupling soft dependencies into concurrent wave lanes.
 
+### 5.8 Infinite Mind Cadence, Zero Agent-Driven Termination & Background Finalization Isolation
+- **Anti-Pattern**: Subagents killing supervisory schedulers or terminating running pulse processes. Mind loops spilling final tasks (git commits, pushes, skill sync) to the main interactive thread upon pulse completion.
+- **Guardrail**:
+  - Mind systems and multi-phase orchestrations run as infinite, non-stop loops unless explicitly stopped by the human user.
+  - Subagents and coordinators are STRICTLY FORBIDDEN from calling `manage_task kill` on background schedulers or terminating pulse processes.
+  - All final repository release tasks (git commit, git push to upstream, and global skill sync via `bun scripts/sync-global.ts`) MUST be executed by the dedicated Tier 1 Background Orchestrator / Tier 0 Mind Runner on its own background thread.
+  - The main interactive user thread remains purely open and supervisory.
+
+
 
 
