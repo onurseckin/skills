@@ -61,11 +61,44 @@ There is no `plan.json` and no per-capsule `config.json`. The compiled graph, th
 document, the topology record, the branch ledger and the agent ledger are all keys inside
 `state.json`, because they are projections of the event chain and nothing else may write them.
 
+### 🪪 Run-Id Typing: An Identifier, Never a Path
+
+`<run-id>` looks like a filesystem path fragment, and treating it as one is a real, documented
+failure mode: a run id concatenated carelessly onto `.capsules/` can build a path like
+`.capsules/.capsules/<run-id>` the instant a caller passes in a value that already carries the
+prefix. The harness closes this with a single, narrow rule enforced in one place,
+`store/run-id.ts`'s `normalizeRunId`:
+
+1. Strip **at most one** leading `.capsules/` prefix. This exists because every read-side CLI
+   command documents `--run .capsules/<run-id>` as the value to pass, and a caller who reuses that
+   exact same string at a call site that instead expects a bare id (`plan:init`'s `--run`, or the
+   autonomous loop runner's own base run id) is following the CLI's own convention, not making a
+   mistake.
+2. Refuse anything that **still** contains a path separator afterward — checked as the literal
+   POSIX `/` character unconditionally, regardless of the host platform's own path separator, so a
+   value copied from a POSIX shell is rejected identically everywhere the harness runs.
+3. Only then is the result checked against `RUN_ID_PATTERN` (a 1–128 character slug: alphanumeric,
+   `.`, `_`, `-`) and joined onto `.capsules/` to build the real directory.
+
+The practical consequence is a real split in the CLI surface, and it is worth knowing which side of
+it a command sits on before you type `--run`:
+
+- **`plan:init`** and **`orchestrate`** take a **bare run id** (`--run my-feature`, `--run-id
+my-feature`) — they are the two commands that _build_ the capsule path, so they are the two call
+  sites `normalizeRunId` actually protects.
+- **Every other command** — `plan:add`, `plan:compile`, `task:claim`, `queue:wave`, `run:complete`,
+  and the rest — takes the **full capsule root** (`--run .capsules/my-feature`) and uses that value
+  directly as a filesystem path with no further joining. Passing a bare id to one of these is a
+  caller mistake, not a harness bug: there is nothing here to strip a prefix that was never there to
+  begin with.
+
 ---
 
 ## 🔒 The Core Storage Primitives
 
-Let's examine the four core files that guarantee data integrity across crashes and resets:
+Let's examine the primitives that guarantee data integrity across crashes and resets — the four
+files at the heart of the hash chain, plus the blob store and the derived export that build on top
+of them:
 
 ```text
 +-----------------------------------------------------------------------------------------------+
@@ -120,6 +153,11 @@ Let's examine the four core files that guarantee data integrity across crashes a
   - **Runtime Pin**: `runtime_entrypoint`, `runtime_files` and `runtime_sha256` are absent when
     `--no-runtime-pin` was passed at `plan:init`; otherwise they name the pinned copy under `runtime/`
     that this capsule stays reproducible against, independent of what the global skill later becomes.
+  - **`bun_compatibility`** is itself optional: a capsule written before this compatibility-policy
+    field existed simply carries no such key, and integrity checking treats that as an absent
+    declaration rather than a defect. Only a manifest that _does_ declare a policy is held to it, and
+    it is always checked against the Bun version actually running right now, not the one that
+    originally created the capsule.
 
 ### 2. `events.jsonl` (The Cryptographic Hash Chain)
 
@@ -188,6 +226,15 @@ branches         # the branch ledger (absent until the first branch:open)
 commands         # every recorded command
 packets          # published role-packet contracts, keyed by packet id
 orphan_evidence  # evidence that arrived without a live owner
+gate_proofs      # gate:prove verdicts, keyed by task (absent until the first gate:prove)
+worktree_ledger  # per-task worktree assignments, when worktree isolation is on
+
+# the plan-validator's own review of the compiled plan (C2) — absent on a run that never
+# dispatched one; this role is an optional adversary, not a precondition every run acquires
+plan_validation          # the live claim on the current graph revision, if one is open
+plan_validation_history  # every plan-validation assignment, in order
+plan_review              # the most recent recorded verdict
+plan_reviews             # the verdict history
 
 # the completion block, written by critic:start / critic:review / run:complete
 completion_critic          # the assigned critic and its authorization
@@ -205,10 +252,83 @@ current_repository_inspection_sha256   # digest of that inspection
 repository_inspections                 # every recorded inspection
 ```
 
-`branches`, `agents`, `topology` and `planning` are all optional: a capsule written before they
-existed simply has none, and every reader must see that absence rather than a default.
+`branches`, `agents`, `topology`, `planning`, `plan_validation`, `gate_proofs` and `worktree_ledger`
+are all optional: a capsule written before they existed simply has none, and every reader must see
+that absence rather than a default. `plan_validation` in particular is absent on the majority of
+runs — the plan-validator ([Chapter 02 §03](../02-requirements/03-authority-decisions-and-dispositions.md))
+is an adversary the coordinator can choose to dispatch, not a step every run is retroactively
+assumed to have taken.
 
 > **Important**: Agents NEVER edit `state.json` directly. `state.json` is rewritten atomically by the harness CLI only after an event has been securely appended and synced to disk.
+
+### 4. The Blob Store & Its Derived Catalogue (`blobs/`, `evidence/`, `captures.json`, `index.json`)
+
+Four more entries from the directory anatomy above deserve their own explanation, because together
+they answer "where did this exact byte sequence actually come from, and can I trust the name I'm
+looking at it under":
+
+- **`blobs/<aa>/<sha256>`** is the **one** physical home for every captured byte-blob in the
+  capsule — a screenshot, a command's stdout, a stored report. A `BlobDescriptor` (identity, size,
+  one capsule-relative path) is what every other record stores; nothing else in the capsule ever
+  holds a second copy of the raw bytes. Writing a blob is a hash-then-copy-then-name operation
+  (`copyAndHash`), deliberately in that order: hashing the source first and naming the destination
+  second would risk naming a blob for bytes that changed underneath between the two steps.
+- **`evidence/`** holds a _readable name_ for every blob, not a second copy of it — normally a
+  hardlink (`linkSync`, same inode, zero extra bytes), so a human or another tool can open
+  `evidence/screenshot-1.png` without needing to already know its SHA-256. On a filesystem that
+  cannot hardlink (crossing a filesystem boundary, or one without hardlink support at all), the
+  store falls back to an actual byte-for-byte copy rather than refusing to record the evidence at
+  all — and it says so explicitly: the view's `storage` field reads `"copy"` instead of `"hardlink"`,
+  a declared, deliberate duplication rather than a silent one.
+- **`captures.json`** is the capture ledger: one record per stored blob, naming who produced it (a
+  command id, a task id) if anyone did. A capture whose bytes match one already on file — the _exact
+  same content_, not merely a similarly-named file — is recognised as the same capture and never
+  becomes a second record under a second claimed owner; this dedup-by-content-hash rule exists
+  because the opposite (re-attributing evidence by file name or timing proximity) is precisely how a
+  single stale screenshot once ended up credited to every command in a run.
+- **`index.json`** is a wholly **derived** catalogue — deleting it loses nothing, because every fact
+  in it restates something whose one authoritative home is `state.json` or `captures.json`. What
+  makes it safe to trust without re-deriving it on every read is that it records the exact chain
+  position (`{sequence, head}`) and a digest of the capture ledger it was built from; a reader can
+  tell in one comparison whether the index is still current or has fallen behind, rather than having
+  to assume freshness or re-walk the whole capsule to check.
+
+### 5. What `summary:export` Actually Produces (`summary/`)
+
+`summary:export` is the one command that reads the whole capsule end to end and writes a
+self-contained package for a human or a browser — never a second source of truth, only a rendering
+of what `state.json` and `events.jsonl` already record. It writes four files, and the honesty rules
+that govern the rest of this document apply here with no exceptions:
+
+- **`graph.json`** — a machine-readable dataset: every node (implementer, validator, gate, critic,
+  branch sub-agent), every edge between them, and a `run` key carrying whole-run facts (the raw
+  prompt, the requirements document, a monotonic per-action step trace) that sits _beside_ `nodes`
+  and `edges` rather than embedded inside them, so a renderer that knows nothing about orchestration
+  semantics can still draw the graph correctly.
+- **`summary.md`** — the human-readable sibling of `graph.json`, built from the identical shared
+  object so the two can never disagree about what happened. Read top to bottom, it is meant to be
+  the whole run, complete on its own.
+- **`timeline.json`** and **`metrics.json`** — a per-action step trace and a rollup of counts (files
+  touched, commands run, an estimated token cost). The token estimate (`estimated_tokens`) is a
+  required field built from a byte-ratio proxy over whatever manifests and command logs the harness
+  actually has — a missing input simply contributes zero bytes rather than blocking the estimate.
+  Contrast that with `total_edge_traffic_exchanges`: there is no formula for it, only a real count
+  summed from the graph that was actually generated, so when no graph exists this field is _omitted
+  entirely_ rather than reported as a fabricated `0`.
+
+The rule that governs every field of every one of these four files is the same one this chapter has
+already used for `state.json` and `manifest.json`: a fact the capsule genuinely never recorded is
+left out of the export, so a reader can always tell "the run never recorded this" apart from "the
+exporter silently dropped it." Concretely: a command's exit code renders as the literal word
+`unknown` rather than defaulting to `0` (which would misreport "never ran" as "succeeded"); a
+screenshot nobody claimed is surfaced as explicitly unattributed evidence on the terminal node rather
+than credited to whichever agent happened to be nearby; and a file's line-level diff, when the
+harness could read one, is carried through **whole** rather than trimmed, because completeness — not
+export size — is the stated constraint on this specific artifact. The deep schema of `graph.json`
+itself, and how it differs from the plan DAG in `state.graph`, is
+[Chapter 03's](../03-graph-scheduler/01-dependency-graph-theory.md) subject, not this one; what
+matters here is that `summary/` is a derived export like `index.json`, governed by the identical
+no-fabrication discipline as everything else in this capsule.
 
 ---
 
@@ -228,6 +348,39 @@ Each command emits a compact, structured Markdown brief ($\le 30$ lines) directl
 ```
 
 Subagents parse these concise Markdown briefs without token bloat or error-prone JSON serialization.
+
+### 🧾 How a Command Actually Runs
+
+Every invocation goes through the same four ordered checks before a single line of the command's
+own logic runs, in `cli/execute.ts`'s `execute()`:
+
+1. **Resolve the command spec** from the registry, so the argument parser knows which flags this
+   specific command takes (which are repeatable, which take a value) before it even tokenizes the
+   rest of `argv`.
+2. **Reject unexpected positionals** and **missing required flags** — pure argument shape checks,
+   with no capsule read yet.
+3. **Resolve who is asking.** The harness reads a fixed, small set of identity flags — `--agent`,
+   `--validator`, `--critic`, `--actor` — and, for a handful of commands (`agent:register`,
+   `agent:report`, `agent:release`, `queue:pop`, `critic:start`), skips the flag that names the
+   _subject being acted upon_ rather than the caller (e.g. `agent:register --agent <new-id>` names
+   who is being registered, not who is registering them; the acting identity for that call has to
+   come from a different flag, `--actor`, or is absent). A blank, repeated, or malformed identity
+   flag is treated as "no identity given" here — reporting _that_ mistake precisely is left to the
+   command's own handler, which can phrase it far more specifically than a shared dispatch layer
+   ever could.
+4. **Check the resolved identity's grant against its role contract** — `assertGrantedCommand`, which
+   looks the identity up in the run's own agent grant ledger and refuses the call outright if that
+   role's contract (the same frontmatter contract described in
+   [Chapter 04 §02](../04-multi-agent/02-immutable-role-packets.md)) does not list this command among
+   what it may invoke. An identity with **no** grant at all is not refused here — nothing in this
+   check applies to it — but it is then refused by whatever command-specific authority check applies
+   downstream (a published role packet, a bearer token), so an unregistered agent still cannot act.
+
+Step 4 only fires once `--run` names a capsule that actually exists and has a `state.json` to read;
+`plan:init` itself, and any command run against a run id that doesn't exist yet, skips it entirely.
+This ordering is deliberate: a role without permission for an action never even reaches the first
+line of that action's own handler, but a plain argument mistake is always reported as exactly that,
+never disguised as an authority refusal.
 
 ---
 

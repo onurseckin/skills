@@ -36,7 +36,9 @@ under that grant".
 
 Rules the ledger enforces:
 
-- `--role` must be one of the nine canonical roles.
+- `--role` must be one of the ten canonical roles: `coordinator`, `planner`, `plan-validator`,
+  `implementer`, `repairer`, `sub-implementer`, `sub-investigator`, `sub-validator`, `validator`,
+  `completeness-critic`.
 - `--parent-agent` must already hold a grant. Omit it only for the root.
 - Model, tier, thinking level and granted tools are **optional and stay absent** when the dispatcher
   does not supply them.
@@ -55,7 +57,7 @@ That last rule is the whole point. Compare two real registrations from the tutor
 ```
 
 ```bash
-bun harness.ts agent:release --run .capsules/slugger --agent impl-slug
+bun harness.ts agent:release --run .capsules/slugger --agent impl-slug --reason "<why>"
 ```
 
 ```text
@@ -70,7 +72,7 @@ bun harness.ts agent:release --run .capsules/slugger --agent impl-slug
 ```
 
 ```bash
-bun harness.ts agent:release --run .capsules/slugger --agent impl-truncate
+bun harness.ts agent:release --run .capsules/slugger --agent impl-truncate --reason "<why>"
 ```
 
 The second agent ran on the same machine, under the same harness, on the same day. Nothing was
@@ -78,7 +80,52 @@ inferred from the exporting machine's config, and no plausible default was subst
 `unknown` because it _is_ unknown. Every field on the first block reads `agent_reported`, not
 `host_reported`: a `--model`/`--model-tier`/`--thinking-level` flag is whatever the calling process
 claims, and nothing here confirms the host itself attested to it — see
-[Evidence Classes §03](./03-evidence-classes-and-honesty.md).
+[Evidence Classes §03](./03-evidence-classes-and-honesty.md). The generated "Close The Grant" block
+always fills a literal `--reason "<why>"` placeholder rather than omitting the flag: `agent:release`
+requires a stated reason (invariant B21 — a lifecycle transition that closes out an agent's
+participation is never recorded silently), the same rule chapter 09 §01 documents for `branch:collect`
+and `branch:abandon`.
+
+### 🧑‍⚖️ The Tenth Role: `plan-validator`
+
+`plan-validator` is the newest of the ten canonical roles — the coordinator's own adversary for the
+_compiled plan itself_, dispatched once per graph revision rather than once per task (see
+[Chapter 03 §03](../03-graph-scheduler/03-plan-revision-and-freezing.md) for what its verdict does to
+`task:claim`). Registering one is identical to registering any other role — there is no separate grant
+mechanism:
+
+```bash
+bun harness.ts agent:register --run .capsules/<run-id> --agent plan-val-1 \
+  --role plan-validator --host claude-code --parent-agent coordinator-1
+```
+
+```text
+### Agent Granted: plan-val-1 (plan-validator)
+- **Under**: `coordinator-1` / no task
+- **Host**: `claude-code` · **Provider**: unknown
+- **Model**: unknown · **Tier**: unknown
+- **Thinking**: unknown · **Context Window**: unknown
+- **Tools Granted**: unknown
+
+#### Close The Grant:
+```
+
+```bash
+bun harness.ts agent:release --run .capsules/slugger --agent plan-val-1 --reason "<why>"
+```
+
+Its grant carries `/ no task` under "Under" — a plan-validator reviews the whole compiled plan, not a
+task, so `--parent-task` is never supplied for it. The one independence rule the ledger enforces for
+this role fires when a validation claim is actually opened
+(`plan:validate-start`, not at registration time): a `plan-validator` cannot be the same agent id as
+the `coordinator` or `planner` that produced the plan under review —
+
+```text
+{"ok":false,"error":{"code":"INVALID_STATE","message":"plan validator must be independent from the coordinator or planner that produced the plan","issues":[]}}
+```
+
+— the same shape of independence rule chapter 06 documents for a task-level `validator`
+(`validator must be independent from implementers`), applied to the whole plan instead of one task.
 
 ---
 

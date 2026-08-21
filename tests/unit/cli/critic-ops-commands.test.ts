@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { execute } from "../../../orchestrating-long-tasks/scripts/src/cli/execute.ts";
 import { loadRun } from "../../../orchestrating-long-tasks/scripts/src/store/index.ts";
-import { requirementIds, setupReadyRun } from "./critic-run-fixture.ts";
+import { requirementIds } from "./critic-run-fixture.ts";
+import { registerInspectionCommand, setupReadyRun } from "./critic-ready-fixture.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
 
 const roots: string[] = [];
@@ -11,19 +12,11 @@ describe("CLI critic-ops commands", () => {
   test("critic:start and critic:review approve flow", async () => {
     const { repo, run } = await setupReadyRun("critic-approve-run", roots);
 
-    const execInspect = await execute([
-      "run:exec",
-      "--run",
-      run,
-      "--actor",
-      "critic-alpha",
-      "--cwd",
-      repo,
-      "--",
-      "bun",
-      "gate-t1.ts",
-    ]);
-    const cmdId = execInspect.command_id as string;
+    // The critic's own repository-inspection command: authoritative, non-gate, observed by the
+    // critic itself. Doubles as --repository-command-ids evidence and as the proof reference
+    // below (criticReviewCommand only credits checks whose actor matches the reviewing critic).
+    const cmdId = "C-INSPECT-ALPHA";
+    registerInspectionCommand(run, repo, cmdId, "critic-alpha");
 
     const start = await execute([
       "critic:start",
@@ -65,19 +58,8 @@ describe("CLI critic-ops commands", () => {
   test("critic:review request_changes records findings", async () => {
     const { repo, run } = await setupReadyRun("critic-changes-run", roots);
 
-    const execInspect = await execute([
-      "run:exec",
-      "--run",
-      run,
-      "--actor",
-      "critic-beta",
-      "--cwd",
-      repo,
-      "--",
-      "bun",
-      "gate-t1.ts",
-    ]);
-    const cmdId = execInspect.command_id as string;
+    const cmdId = "C-INSPECT-BETA";
+    registerInspectionCommand(run, repo, cmdId, "critic-beta");
 
     const start = await execute([
       "critic:start",
@@ -122,18 +104,8 @@ describe("CLI critic-ops commands", () => {
 
   test("request_changes without findings is refused rather than synthesized", async () => {
     const { repo, run } = await setupReadyRun("critic-no-findings", roots);
-    const execInspect = await execute([
-      "run:exec",
-      "--run",
-      run,
-      "--actor",
-      "critic-delta",
-      "--cwd",
-      repo,
-      "--",
-      "bun",
-      "gate-t1.ts",
-    ]);
+    const cmdId = "C-INSPECT-DELTA";
+    registerInspectionCommand(run, repo, cmdId, "critic-delta");
     const start = await execute([
       "critic:start",
       "--run",
@@ -141,7 +113,7 @@ describe("CLI critic-ops commands", () => {
       "--critic",
       "critic-delta",
       "--repository-command-ids",
-      execInspect.command_id as string,
+      cmdId,
     ]);
 
     await expect(
@@ -163,19 +135,8 @@ describe("CLI critic-ops commands", () => {
 
   test("recorded integrity evidence is the harness's own capsule observation", async () => {
     const { repo, run } = await setupReadyRun("critic-integrity-evidence", roots);
-    const execInspect = await execute([
-      "run:exec",
-      "--run",
-      run,
-      "--actor",
-      "critic-epsilon",
-      "--cwd",
-      repo,
-      "--",
-      "bun",
-      "gate-t1.ts",
-    ]);
-    const cmdId = execInspect.command_id as string;
+    const cmdId = "C-INSPECT-EPSILON";
+    registerInspectionCommand(run, repo, cmdId, "critic-epsilon");
     const start = await execute([
       "critic:start",
       "--run",
@@ -215,19 +176,8 @@ describe("CLI critic-ops commands", () => {
   test("critic:reject records structured findings and integrates with plan:replan", async () => {
     const { repo, run } = await setupReadyRun("critic-reject-flow", roots);
 
-    const execInspect = await execute([
-      "run:exec",
-      "--run",
-      run,
-      "--actor",
-      "critic-gamma",
-      "--cwd",
-      repo,
-      "--",
-      "bun",
-      "gate-t1.ts",
-    ]);
-    const cmdId = execInspect.command_id as string;
+    const cmdId = "C-INSPECT-GAMMA";
+    registerInspectionCommand(run, repo, cmdId, "critic-gamma");
 
     const start = await execute([
       "critic:start",
@@ -299,19 +249,11 @@ describe("CLI critic-ops commands", () => {
 
     // A bare inspection command, bound to no gate at all, so auto-discovery (scoped to run-gate
     // commands) could never find it on its own - this is the case the flag exists for.
-    const bareInspect = await execute([
-      "run:exec",
-      "--run",
-      run,
-      "--actor",
-      "critic-zeta",
-      "--cwd",
-      repo,
-      "--",
+    const bareId = "C-INSPECT-ZETA";
+    registerInspectionCommand(run, repo, bareId, "critic-zeta", [
       "echo",
       "bare-repository-inspection",
     ]);
-    const bareId = bareInspect.command_id as string;
 
     const start = await execute([
       "critic:start",

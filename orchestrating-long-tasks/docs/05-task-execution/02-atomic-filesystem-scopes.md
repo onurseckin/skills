@@ -83,4 +83,80 @@ anyone knows the work will need splitting.
 
 ---
 
+## 🌳 Worktree Isolation (Opt-In)
+
+Write-scope disjointness stops two agents from touching the same _file_. It does not stop a
+repo-wide gate — a full test suite, a repo-wide lint — from failing because a **sibling** task in the
+same wave left the shared checkout mid-edit when that gate happened to run. Two disjoint write scopes
+can still share one working directory, and a gate that walks the whole tree sees everyone's half-written
+files at once.
+
+`worktree_isolation` (default **off**) closes that gap by giving each concurrently active task its own
+real `git worktree` — a separate checkout, same repository, same object store:
+
+```json
+{
+  "worktree_isolation": true,
+  "commit_per_subphase": true,
+  "max_commit_lines": 500,
+  "rebase_on_complete": true
+}
+```
+
+### How the pool is sized and named
+
+At `plan:compile` — never later, never per-claim — the harness reads the just-recorded topology and
+provisions **one worktree per task-slot in the widest wave**, then reuses that same pool round-robin
+across every later wave. Two tasks are never assigned the same slot while both could still be running,
+because every task in one wave is already scope-disjoint from every other task in that wave by
+definition. This is a deliberate reading of an ambiguous requirement: sizing the pool to concurrency
+rather than to total task count means every concurrent task still gets full isolation without paying for
+one checkout per task in the plan.
+
+Every worktree hangs off one shared, never-checked-out anchor branch, `<branch_prefix><run-id>`
+(`branch_prefix` defaults to `harness/`), created once at provisioning time. Each worktree's own branch
+is a **sibling** of that anchor — `<anchor>--wt-0`, `<anchor>--wt-1`, … — never nested under it, because
+Git's ref namespace forbids a ref and a ref-path-prefix of the same name coexisting side by side. The
+worktree directories themselves live **outside** the repository, resolved against the repo's _parent_
+directory (`worktree_root`, default `../.harness-worktrees`); a configured root that would resolve
+inside the repo is refused at provisioning time, not discovered later as a surprise.
+
+### What changes at `task:claim` and `task:submit`
+
+When isolation is on, `task:claim` looks up the task's assigned worktree and the brief names it
+explicitly:
+
+```text
+### Task Leased: task-slug
+- **Agent**: `impl-slug`
+- **Isolated Worktree**: `/Users/dev/.harness-worktrees/<run-id>/wt-1` — do all editing there, not in the shared repo checkout.
+```
+
+(That path sits beside `/Users/dev/my-repo`, the repository itself — one level up from it, per
+`worktree_root`'s default.)
+
+The write-scope content digest described above (§ Effort Evidence, next page) is hashed against **that
+worktree's** copy of the write scope, not the shared repository — hashing the shared checkout under
+isolation would make every submission read as unchanged, since the agent never touched it.
+
+If `commit_per_subphase` is also on (the default once isolation is on), `task:submit` makes one commit
+per task inside its assigned worktree — a _sub-phase_ commit, always tagged `chore:` today (nothing on
+a task record yet declares what kind of change it represents, so this is a stated interim policy, not a
+guess). A commit past `max_commit_lines` (default 500) is never refused — it is recorded with a
+**warning** on the submission result, since only a human coordinator can judge whether a large diff was
+actually warranted.
+
+### What isolation does not change
+
+Nothing about this section changes write-scope containment, the overlap-vs-containment tests, or branch
+scoping — those are enforced identically whether or not a task happens to be editing inside its own
+worktree or the shared checkout. Worktree isolation is purely about **where the bytes physically live
+while an agent edits them**; consolidating every worktree's sub-phase commits back onto one branch (and
+optionally rebasing that branch onto the base branch's tip) happens once, at `run:complete`, and a
+conflict anywhere in that pipeline stops it in place rather than resolving anything on the run's behalf
+— see Chapter 07/08 for that mechanism and for `worktree:reclaim`, the explicit, human-decided cleanup
+for an abandoned run's disposable worktree directories.
+
+---
+
 [⬅ Previous: Leasing & Heartbeats](./01-leasing-and-heartbeats.md) | [Master Table of Contents](../README.md) | [Next: Submission & Evidence Collection ➡](./03-submission-and-evidence-collection.md)

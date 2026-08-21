@@ -11,7 +11,7 @@ In a multi-agent environment, how does the harness prevent **Agent A** from subm
 The harness enforces strict access control through a **One-Time Bearer Token Security Protocol**.
 
 ```text
-[ `task:claim`, `queue:pop`, `task:validate-start`, `critic:start`, `branch:open`, `branch:claim` ]
+[ `task:claim`, `queue:pop`, `task:validate-start`, `plan:validate-start`, `critic:start`, `branch:open`, `branch:claim` ]
                         │
                         ▼
 ┌────────────────────────────────────────────────────────┐
@@ -32,8 +32,8 @@ The harness enforces strict access control through a **One-Time Bearer Token Sec
 1. **Returned Once via Process Stdout:** The plaintext token is generated using cryptographically secure random bytes (`randomBytes(32).toString("base64url")`) and emitted once in the command markdown brief.
 2. **Digest-Only Persistence:** The harness **never** writes plaintext bearer tokens to disk, state files, event logs, git history, or documentation. Only the SHA-256 digest (`token_digest`) is stored — in `state.json`, in `events.jsonl`, and in the submission, review and critic reports under `reports/`, which record `token_digest` and never the token itself.
 3. **Capability-Only Lifetime:** The token is valid only for the duration of the active lease attempt.
-4. **Mandatory Protected Mutations:** `task:heartbeat`, `task:submit`, `task:release`, `task:probe`, `task:review`, `task:reject`, `critic:review`, `critic:reject`, `branch:open`, `branch:submit`, `branch:collect` and `branch:abandon` all **require** the plaintext `--token` flag. A token whose SHA-256 does not match the recorded digest — or that belongs to a different agent — is refused with `lease identity or token is invalid`.
-5. **Three Token Families, Not One:** a _lease_ token proves you hold the write scope; a _validation_ token proves you own the current review; a _critic_ token proves you hold the completion authorisation. They are not interchangeable, and an agent holding one cannot act with another's authority. This is why a validator cannot `branch:open`: it never holds a lease token.
+4. **Mandatory Protected Mutations:** `task:heartbeat`, `task:submit`, `task:release`, `task:probe`, `task:review`, `task:reject`, `plan:review`, `critic:review`, `critic:reject`, `branch:open`, `branch:submit`, `branch:collect` and `branch:abandon` all **require** the plaintext `--token` flag. A token whose SHA-256 does not match the recorded digest — or that belongs to a different agent — is refused with `lease identity or token is invalid`.
+5. **Four Token Families, Not One:** a _lease_ token proves you hold the write scope; a _validation_ token proves you own the current task review; a _plan-validation_ token proves you hold the current plan-validator assignment for a graph revision; a _critic_ token proves you hold the completion authorisation. They are not interchangeable, and an agent holding one cannot act with another's authority. This is why a validator cannot `branch:open`: it never holds a lease token — and why a plan-validator cannot `task:review`: its token authenticates against `state.plan_validation`, a single whole-run slot, never a task's own validation attempt.
 
 ---
 
@@ -47,6 +47,14 @@ If an agent process crashes or loses its in-memory token:
 - **Task Re-Queue:** the task transitions to `retry_ready` and holds no lease.
 - **New Lease & Token:** a fresh `task:claim --role` issues a new lease and a brand-new token.
 - **One Exception:** a `branched` parent is never reaped. Its lease clock is frozen because it is blocked on children, and `task:release` refuses it until the branch is collected or abandoned.
+- **A Second, Different Exception:** a `plan-validator`'s token has _no_ automatic reap and _no_
+  release command at all. If the agent dies or loses its token before calling `plan:review`,
+  `plan:validate-start` for the same graph revision refuses with "a plan validation is already
+  active" — verified directly against the code, which only ever expires a dangling assignment when a
+  call for a _newer_ graph revision arrives, never on its own deadline passing. There is today no
+  `plan:validate-release` and no stale-recovery sweep for `state.plan_validation`, unlike every other
+  lease-shaped construct in the harness. The only observed way to free a dead plan-validator's slot is
+  to raise the graph revision via `plan:replan`.
 
 ---
 

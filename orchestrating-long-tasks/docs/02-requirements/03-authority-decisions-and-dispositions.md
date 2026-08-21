@@ -110,4 +110,110 @@ it. The line is disposed exactly once either way.
 
 ---
 
+## 🚧 A Second, Independent Gate: The Plan-Validator (C2)
+
+Everything above is about a **specific obligation** the plan should not execute without a human's
+say-so. This section is about something structurally different but philosophically identical: the
+harness modelling a gap explicitly, in a durable record, rather than trusting an agent's prose about
+it. Where `needs_authority` gates one requirement a human must decide, the **plan-validator** gates
+**the whole compiled plan**, judged by an independent adversarial agent rather than a human, before
+any implementer is dispatched against it.
+
+### Why this exists
+
+`plan:compile`'s structural audit (Chapter 02 §02, invariant C1) is mechanical: it can only ever
+catch what a static heuristic can see — repeated file counts, identical gate strings, dependency
+edges that don't cross a write-scope boundary. It has no way to judge whether a plan's _shape_
+actually matches the prompt's real intent: whether "update the ten report generators" that got
+compressed into three tasks really should have been ten, or whether a dependency edge that looks
+scope-justified is nevertheless serializing work that never needed to wait. That judgment needs
+someone who can read the plan the way a skeptical human reviewer would — which is exactly the role
+the coordinator itself cannot fill, because grading its own plan is the same conflict of interest
+Chapter 06 documents for an implementer grading its own code.
+
+### The commands
+
+```bash
+bun harness.ts plan:validate-start --run .capsules/<slug> --validator plan-val-1
+
+bun harness.ts plan:review --run .capsules/<slug> --validator plan-val-1 --token <token> \
+  --status approved \
+  --decomposition-answer "14 tasks match the 14 named topics" \
+  --dependency-answer "no dependency edges; every task is an independent root" \
+  --gate-answer "each gate runs only that task's own scoped test file" \
+  --straggler-answer "every task carries the same one-topic effort estimate" \
+  --summary "Decomposition matches the prompt; gates are scope-narrow"
+
+bun harness.ts plan:review --run .capsules/<slug> --validator plan-val-1 --token <token> \
+  --status changes_requested \
+  --decomposition-answer "10 topics compressed into 1 task" --dependency-answer "n/a" \
+  --gate-answer "the shared gate cannot fail per-task" --straggler-answer "n/a" \
+  --summary "Compressed decomposition; see findings" \
+  --findings '[{"id":"PV-1","invariant":"A2-parallelism","severity":"critical","observation":"10 distinct topics collapsed into task-domains","remediation":"one task per topic, each with its own scoped gate"}]'
+```
+
+`plan:validate-start` mirrors `task:validate-start`'s shape: it opens the validator's claim on the
+_currently compiled plan_ (revision-bound: one active assignment per graph revision, not per task,
+since the plan is a single whole-run artifact), mints a one-time bearer token, and refuses outright
+if the named validator is also the coordinator or planner that produced this exact plan
+(`assertPlanValidatorIndependent`). `plan:review` records the verdict.
+
+### Four questions, mandatory on every verdict
+
+Both a `changes_requested` and an `approved` verdict require written answers to all four
+questions — `--decomposition-answer`, `--dependency-answer`, `--gate-answer`,
+`--straggler-answer` — the same four the structural audit checks mechanically (decomposition,
+dependency justification, gate discrimination, straggler risk). This is deliberate: a pass that
+never answered them would be a rubber stamp, the exact silence this role exists to end. A
+`changes_requested` verdict additionally requires at least one structured finding — an `id`, a
+`severity`, an `observation`, and a `remediation` naming a specific, real defect in the
+decomposition, never a reflexive "round one must be rejected" with nothing concrete behind it; an
+`approved` verdict must carry **no** findings at all.
+
+### Binding to an exact plan, and detecting drift underneath it
+
+The review is bound to a digest of the compiled plan it actually judged — `plan_digest`, built from
+the projected `graph_revision`, `tasks`, `requirements` and `gates` (never from the raw graph or
+topology documents, which the run's own state projection does not carry forward verbatim).
+`plan:review` re-derives this digest at the moment it records the verdict and refuses if it no longer
+matches live state: the plan drifted underneath the validator — a fresh compile, a replan — and the
+verdict being recorded would no longer describe what is actually live. The same drift check applies
+to the graph revision itself.
+
+### The hard stop this creates
+
+A recorded `changes_requested` against the **live** graph revision is not advisory. It is a condition
+`workflow/lease/claim.ts`'s `claimTask` checks directly, on every single claim attempt, and refuses
+outright — every implementer and every repairer, for every task in the plan — until a fresh
+`plan:compile` (which mints a new graph revision) is followed by a fresh `plan:review` that passes.
+This is the one asymmetry worth naming explicitly: a task **cannot** be marked done without some
+validator having passed it, yet a plan **can** be compiled and executed with no plan-validator ever
+having looked at it at all — dispatching one is the coordinator's choice to make, not a precondition
+every run is retroactively assumed to have satisfied. `state.json` simply carries no `plan_validation`
+key on a run that never used one.
+
+### A note on identity
+
+`plan:validate-start`'s `--validator` and `plan:review`'s `--validator` are read as the **acting**
+identity, the same way `--agent` and `--critic` are on every other command — unlike, say,
+`agent:register --agent <id>`, where `--agent` names the _subject_ the coordinator is registering,
+not the coordinator calling the command. That distinction matters here because it is what lets the
+CLI's shared authority check (described in [Chapter 01 §02](../01-foundations/02-capsule-and-storage-model.md),
+under "How a Command Actually Runs") confirm that the identity actually invoking `plan:review` is a
+registered `plan-validator`, not merely a name the coordinator typed in.
+
+### Seeing it in the exported graph
+
+When a plan-validator was dispatched, `summary:export` renders one node per validation round,
+chained forward exactly the way a task's own repair rounds chain: a `changes_requested` round points
+at whichever round the coordinator brought back next via the same `pushback` edge kind a task-level
+rejection uses, and an `approved` round signs off onto the plan node with the same `signoff` kind the
+completeness critic's own clean verdict uses. Its findings live under the node's
+`metadata.planFindings`, deliberately not the ordinary `metadata.findings` field — a plan finding has
+no repairer to answer it and no command-resolution lifecycle; only a fresh compile that supersedes
+the whole round can close it. A run that never dispatched a plan-validator renders none of this at
+all: no orphaned node, no empty section, nothing to see.
+
+---
+
 [⬅ Previous: Line Disposition Algorithm](./02-line-disposition-algorithm.md) | [Master Table of Contents](../README.md) | [Next: Chapter 03 — Dependency Graph Theory ➡](../03-graph-scheduler/01-dependency-graph-theory.md)

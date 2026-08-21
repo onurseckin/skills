@@ -33,6 +33,19 @@ The CLI inspects `state.json`, re-verifies the recorded command evidence against
 └────┴─────────────────────────────┴─────────────────────────────────────┘
 ```
 
+Point 3 is stricter than "the gate exited 0" alone: `workflow/completion/completion-state.ts`'s
+`validatorProofIssues` requires, per task, that **every validator domain the task's write scope
+actually draws** (`applicableValidatorDomains` — `code-quality` always applies; `ui-design` and
+`system-design` are derived from file extensions and path signals in the write scope) has its own
+independently recorded `pass`, each carrying command evidence that is itself successful, bound to that
+task, run by that domain's own validator, and matched against one of the task's applicable gates. A
+task touching both application code and a database migration schema, for instance, needs a passing
+`code-quality` verdict **and** a passing `system-design` verdict — one domain approving is not the whole
+task approving. Point 8 is enforced the same mechanical way: `completionIssues` recomputes whether the
+live repository still matches the run gate's recorded post-command binding and the completion result's
+own recorded provenance hashes, and refuses with `"completion result provenance is stale"` the instant
+any of them has moved.
+
 Undisposed orphan evidence — a command record that arrived without a live owner, typically from an
 agent that died mid-run — also blocks completion. It is disposed explicitly, never ignored:
 

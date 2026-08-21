@@ -102,4 +102,96 @@ unsatisfied. Recording a failure and refusing to sign off on it are two differen
 
 ---
 
+## 🔬 Falsifiability: Proving a Gate Can Actually Fail (`gate:prove`)
+
+Everything above establishes that a gate _ran_ and _exited 0_. It says nothing about whether that
+command was capable of ever exiting nonzero _for this task specifically_. A real forensics run
+(`docs/planning/coordinator-conformance/FORENSICS.md`) found ten disjoint-scope tasks sharing one
+whole-repository `bun run typecheck` gate, verbatim. That command passes whether any one of those ten
+tasks did its work or nothing at all — a green gate that proves nothing about the task it is nominally
+attached to. A command that can't fail for a task isn't verifying that task; it's decoration.
+
+`gate:prove` answers one narrow, mechanical question honestly instead of trusting the gate's shape by
+eye: **does this task's own compiled gate actually fail once this task's own work is reverted?**
+
+```bash
+bun harness.ts gate:prove --run .capsules/<run-id> --task task-1 --actor coordinator
+bun harness.ts gate:prove --run .capsules/<run-id> --task task-1 --actor coordinator --base HEAD~1
+```
+
+### What it actually does
+
+```text
+┌──────────────────────────────────────────────────────────────────────┐
+│  1. Copy every tracked/not-ignored file into a throwaway scratch      │
+│     directory (`git ls-files -z --cached --others --exclude-standard`)│
+│                          │                                            │
+│                          ▼                                            │
+│  2. Inside the SCRATCH copy only: revert the task's own write scope   │
+│     back to --base (default HEAD) — files present at base are         │
+│     restored to that content; files the task created that base never │
+│     knew about are deleted                                           │
+│                          │                                            │
+│                          ▼                                            │
+│  3. Run the task's compiled gate command against the reverted copy    │
+│                          │                                            │
+│                          ▼                                            │
+│  4. falsifiable = (exit code is not null, and is not 0)               │
+└──────────────────────────────────────────────────────────────────────┘
+```
+
+The **real repository is never touched.** Every read and every write happens inside a `mkdtempSync`
+scratch directory that is `rmSync`'d, recursively, before the command returns — success, failure, or a
+thrown error alike. This is also why `gate:prove` is a **deliberate post-compile step**, never something
+`plan:compile` runs for you automatically: at compile time the task's work does not exist yet, so
+reverting it would produce a scratch copy identical to the current tree, and every verdict would
+degenerate to "not falsifiable" regardless of the gate's real quality.
+
+`gate:prove` **always exits 0**, whether the verdict comes back falsifiable or not — a negative verdict
+("this gate still passes with the task's work reverted") is exactly the real information the command
+exists to surface, not a failure of the command itself. Only a genuine setup problem throws: no
+compiled gate for the task, an empty write scope (nothing to revert), a repository with no Git history
+to revert against, or a symlink/submodule inside the write scope (unsupported — `gate:prove` only
+reverts plain files).
+
+```text
+### Gate Proof: `task-1`
+**PROVEN FALSIFIABLE**: exits 1 once `task-1`'s write scope is reverted to `HEAD`.
+- **Gate**: `bun test tests/unit/slug.test.ts`
+- **Write scope**: src/slug.ts
+- **Reverted in scratch**: 1 restored, 0 removed, of 214 files copied
+- **Duration**: 842ms
+- **Prior proof**: none recorded for this exact gate.
+```
+
+Each proof is recorded as a durable `gate-proved` event and appended to `state.gate_proofs`, keyed by
+task id and the gate's own argv. Running `gate:prove` again against the same task and the same gate
+command shows drift against the last recorded proof — a gate that used to prove falsifiable and no
+longer does is a real regression, surfaced explicitly rather than silently overwritten.
+
+### How this feeds `plan:audit`'s gate invariants
+
+Two of `plan:audit`'s six invariants exist specifically to judge whether a task's gate can
+actually discriminate its own work — both blocking, not advisory — and they consult exactly this recorded proof, via
+`graph/plan-audit.ts`'s `latestGateProof`, rather than duplicating the falsifiability check themselves:
+
+- **A3 — gate discrimination**: two tasks with disjoint write scopes sharing byte-identical gate argv
+  is refused _unless both tasks individually carry a falsifiable proof over their own current scope_ —
+  a proof for only one of the pair is not enough, since it only shows the shared command can tell that
+  task's absence from its presence, not the other's.
+- **A6 — whole-suite gate**: a task whose gate command _looks_ like it walks the whole repository (no
+  narrow, path-scoped invocation) is refused _unless_ it carries a matching falsifiable proof — an
+  actual, measured falsifiability result overrides the static "this looks too broad" heuristic.
+
+A proof only counts toward either invariant when its recorded write scope still matches the task's
+**current** declared scope — a proof taken before the task's scope changed says nothing about the scope
+it has now, and is not treated as satisfying it. `plan:compile` refuses to seal the plan while a
+blocking `plan:audit` finding stands, unless the coordinator explicitly overrides it with
+`--accept-audit "<invariant-id>:<reason>"` — naming the exact invariant and the reason, once per
+blocking invariant; there is no blanket override. The full six-invariant audit (decomposition,
+dependency justification, false barriers, straggler risk, and the two gate invariants above) is its own
+mechanism, run via `plan:audit`; this chapter only owns the part of it that is actually about gates.
+
+---
+
 [⬅ Previous: Repair Routing & Escalation](../06-validation-repair/03-repair-routing-and-escalation.md) | [Master Table of Contents](../README.md) | [Next: Completeness Critic Verification ➡](./02-completeness-critic-verification.md)

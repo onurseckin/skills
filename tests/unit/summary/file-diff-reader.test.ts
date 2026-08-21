@@ -1,54 +1,76 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { enrichFileRefsWithDiffs } from "../../../orchestrating-long-tasks/scripts/src/summary/file-diff-reader.ts";
+import type { RepositoryGitCommand } from "../../../orchestrating-long-tasks/scripts/src/packets/repository-git-command.ts";
 import type { FileRef } from "../../../orchestrating-long-tasks/scripts/src/summary/types.ts";
 
 const roots: string[] = [];
+let rootCounter = 0;
 
 afterEach(() => {
   for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true });
 });
 
-function git(repo: string, args: string[]): string {
-  return execFileSync("git", args, { cwd: repo }).toString("utf8").trim();
+/**
+ * A scratch directory unique to this file and test (name + an incrementing counter, never a
+ * random suffix), so two tests can never collide on a path under --parallel --no-isolate.
+ */
+function scratchRoot(testName: string): string {
+  rootCounter += 1;
+  const slug = testName.replace(/[^a-z0-9]+/giu, "-").toLowerCase();
+  const root = join(tmpdir(), "harness-file-diff-reader-tests", `${slug}-${rootCounter}`);
+  mkdirSync(root, { recursive: true });
+  roots.push(root);
+  return root;
 }
 
 /**
- * A repository with one baseline commit, plus a `.capsules/<run>` run root whose `state.json`
- * anchors a diff reading at that commit — the same shape `recordRepositoryInspection` writes, built
- * here directly so the test does not need the full CLI to exercise the reader.
+ * Fakes the `RepositoryGitCommand` seam `enrichFileRefsWithDiffs` already accepts, so its pure
+ * merge/parse logic (anchor resolution, hunk-range parsing, per-file independence) can be
+ * exercised without a real git subprocess. `repositoryGit`'s own subprocess correctness is
+ * covered separately in tests/unit/packets/repository-git-*.test.ts.
  */
-function seedRunRoot(): { repo: string; runRoot: string; head: string } {
-  const repo = mkdtempSync(join(tmpdir(), "file-diff-reader-"));
-  roots.push(repo);
-  git(repo, ["init", "-q"]);
-  git(repo, ["config", "user.email", "fixture@example.invalid"]);
-  git(repo, ["config", "user.name", "fixture"]);
-  mkdirSync(join(repo, "src"), { recursive: true });
-  writeFileSync(join(repo, "src", "a.ts"), "line one\nline two\nline three\n");
-  git(repo, ["add", "-A"]);
-  git(repo, ["commit", "-qm", "baseline"]);
-  const head = git(repo, ["rev-parse", "HEAD"]);
+function fixedDiffCommand(diffsByPath: ReadonlyMap<string, string>): RepositoryGitCommand {
+  return (_repo, argv) => {
+    const path = argv.at(-1);
+    if (typeof path !== "string" || !diffsByPath.has(path)) {
+      throw new Error(
+        `fixedDiffCommand: no fixture diff registered for argv ${JSON.stringify(argv)}`,
+      );
+    }
+    return { status: 0, bytes: Buffer.from(diffsByPath.get(path) as string, "utf8") };
+  };
+}
 
-  const runRoot = join(repo, ".capsules", "run-1");
+/** Fails loudly if a path that should short-circuit before reaching git calls into it anyway. */
+const throwingCommand: RepositoryGitCommand = (repo, argv) => {
+  throw new Error(`unexpected repositoryGit call: ${repo} ${argv.join(" ")}`);
+};
+
+interface RunRootFixture {
+  runRoot: string;
+  headCommit: string;
+}
+
+/**
+ * A `.capsules/<run>/state.json` whose baseline anchors a diff reading at `headCommit` — the
+ * same shape `recordRepositoryInspection` writes, built directly as a typed fixture. No real git
+ * repository is created: `enrichFileRefsWithDiffs`'s only filesystem dependency is this file,
+ * and diff content itself comes from the injected `RepositoryGitCommand`.
+ */
+function seedRunRoot(testName: string): RunRootFixture {
+  const repositoryRoot = scratchRoot(testName);
+  const runRoot = join(repositoryRoot, ".capsules", "run-1");
   mkdirSync(runRoot, { recursive: true });
+  const headCommit = "f".repeat(40);
   const digest = "d".repeat(64);
   const inspection = {
-    schema: "harness.repository-inspection",
-    version: 3,
-    phase: "baseline",
-    captured_at: "2026-08-19T00:00:00.000Z",
-    repository_root: repo,
-    repository_identity_sha256: "a".repeat(64),
-    repository_git_identity_sha256: "b".repeat(64),
-    repository_content_sha256: "c".repeat(64),
-    repository_file_count: 1,
-    repository_total_bytes: 20,
     inspection_sha256: digest,
-    git: { status: "clean", head, history: null },
+    captured_at: "2026-08-19T00:00:00.000Z",
+    phase: "baseline",
+    git: { head: headCommit },
   };
   writeFileSync(
     join(runRoot, "state.json"),
@@ -57,26 +79,51 @@ function seedRunRoot(): { repo: string; runRoot: string; head: string } {
       repository_inspections: { [digest]: inspection },
     }),
   );
-  return { repo, runRoot, head };
+  return { runRoot, headCommit };
 }
 
 function ref(path: string): FileRef {
   return { path, mode: "write", evidence_class: "agent_reported" };
 }
 
+const UNIFIED_DIFF_A = [
+  "diff --git a/src/a.ts b/src/a.ts",
+  "index 1111111..2222222 100644",
+  "--- a/src/a.ts",
+  "+++ b/src/a.ts",
+  "@@ -1,3 +1,4 @@",
+  " line one",
+  "-line two",
+  "+changed two",
+  " line three",
+  "+line four",
+  "",
+].join("\n");
+
+const UNIFIED_DIFF_B = [
+  "diff --git a/src/b.ts b/src/b.ts",
+  "index 3333333..4444444 100644",
+  "--- a/src/b.ts",
+  "+++ b/src/b.ts",
+  "@@ -1 +1 @@",
+  "-export const b = 1;",
+  "+export const b = 2;",
+  "",
+].join("\n");
+
 describe("enrichFileRefsWithDiffs", () => {
   test("a repository with no state.json at the run root passes files through unchanged", () => {
-    // A real repository exists here (unlike the "no repository on disk" case below), isolating
-    // "the anchor is missing" from "there is nothing to diff against at all".
-    const { runRoot } = seedRunRoot();
+    // The run root exists on disk (unlike the "no repository on disk" case below), isolating
+    // "the anchor is missing" from "there is nothing to diff against at all". Neither case ever
+    // reaches git, hence the throwing command.
+    const { runRoot } = seedRunRoot("no-state-json");
     rmSync(join(runRoot, "state.json"));
-    const [enriched] = enrichFileRefsWithDiffs([ref("src/a.ts")], runRoot);
+    const [enriched] = enrichFileRefsWithDiffs([ref("src/a.ts")], runRoot, throwingCommand);
     expect(enriched).toEqual(ref("src/a.ts"));
   });
 
   test("a state.json naming an inspection the registry does not hold passes files through unchanged", () => {
-    const root = mkdtempSync(join(tmpdir(), "file-diff-reader-dangling-"));
-    roots.push(root);
+    const root = scratchRoot("dangling-inspection");
     writeFileSync(
       join(root, "state.json"),
       JSON.stringify({
@@ -84,15 +131,15 @@ describe("enrichFileRefsWithDiffs", () => {
         repository_inspections: {},
       }),
     );
-    const [enriched] = enrichFileRefsWithDiffs([ref("src/a.ts")], root);
+    const [enriched] = enrichFileRefsWithDiffs([ref("src/a.ts")], root, throwingCommand);
     expect(enriched).toEqual(ref("src/a.ts"));
   });
 
-  test("populates diff, lines, additions and deletions from a real Git reading", () => {
-    const { repo, runRoot } = seedRunRoot();
-    writeFileSync(join(repo, "src", "a.ts"), "line one\nchanged two\nline three\nline four\n");
+  test("populates diff, lines, additions and deletions from an injected Git reading", () => {
+    const { runRoot } = seedRunRoot("populates-diff");
+    const command = fixedDiffCommand(new Map([["src/a.ts", UNIFIED_DIFF_A]]));
 
-    const [enriched] = enrichFileRefsWithDiffs([ref("src/a.ts")], runRoot);
+    const [enriched] = enrichFileRefsWithDiffs([ref("src/a.ts")], runRoot, command);
     expect(enriched!.diff).toContain("-line two");
     expect(enriched!.diff).toContain("+changed two");
     expect(enriched!.diff).toContain("+line four");
@@ -105,36 +152,40 @@ describe("enrichFileRefsWithDiffs", () => {
   });
 
   test("a path with no actual change stays unenriched rather than gaining an empty diff", () => {
-    const { runRoot } = seedRunRoot();
-    const [enriched] = enrichFileRefsWithDiffs([ref("src/a.ts")], runRoot);
+    const { runRoot } = seedRunRoot("no-actual-change");
+    const command = fixedDiffCommand(new Map([["src/a.ts", ""]]));
+    const [enriched] = enrichFileRefsWithDiffs([ref("src/a.ts")], runRoot, command);
     expect(enriched).toEqual(ref("src/a.ts"));
   });
 
   test("a run root with no repository on disk passes files through unchanged", () => {
-    const root = mkdtempSync(join(tmpdir(), "file-diff-reader-no-repo-"));
-    roots.push(root);
+    const root = scratchRoot("no-repo-on-disk");
     const runRoot = join(root, ".capsules", "run-1");
     mkdirSync(runRoot, { recursive: true });
-    const [enriched] = enrichFileRefsWithDiffs([ref("src/a.ts")], runRoot);
+    const [enriched] = enrichFileRefsWithDiffs([ref("src/a.ts")], runRoot, throwingCommand);
     expect(enriched).toEqual(ref("src/a.ts"));
   });
 
   test("an undefined run root passes files through unchanged", () => {
-    expect(enrichFileRefsWithDiffs([ref("src/a.ts")], undefined)).toEqual([ref("src/a.ts")]);
+    expect(enrichFileRefsWithDiffs([ref("src/a.ts")], undefined, throwingCommand)).toEqual([
+      ref("src/a.ts"),
+    ]);
   });
 
   test("an empty file list is returned as-is without touching the anchor", () => {
-    expect(enrichFileRefsWithDiffs([], "/nonexistent/run/root")).toEqual([]);
+    expect(enrichFileRefsWithDiffs([], "/nonexistent/run/root", throwingCommand)).toEqual([]);
   });
 
   test("multiple files are each diffed against the same baseline independently", () => {
-    const { repo, runRoot } = seedRunRoot();
-    writeFileSync(join(repo, "src", "b.ts"), "export const b = 1;\n");
-    git(repo, ["add", "-A"]);
-    writeFileSync(join(repo, "src", "a.ts"), "line one\nline two\nline three\nline four\n");
-    writeFileSync(join(repo, "src", "b.ts"), "export const b = 2;\n");
+    const { runRoot } = seedRunRoot("multiple-files");
+    const command = fixedDiffCommand(
+      new Map([
+        ["src/a.ts", UNIFIED_DIFF_A],
+        ["src/b.ts", UNIFIED_DIFF_B],
+      ]),
+    );
 
-    const enriched = enrichFileRefsWithDiffs([ref("src/a.ts"), ref("src/b.ts")], runRoot);
+    const enriched = enrichFileRefsWithDiffs([ref("src/a.ts"), ref("src/b.ts")], runRoot, command);
     expect(enriched[0]!.diff).toContain("+line four");
     expect(enriched[1]!.diff).toContain("+export const b = 2;");
     expect(enriched[0]!.diff).not.toContain("export const b");

@@ -1,32 +1,23 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import {
   DEFAULT_RESOLVED_CONFIG,
   getHarnessConfig,
   resetHarnessConfigCache,
   resolveHarnessConfig,
 } from "../../../orchestrating-long-tasks/scripts/src/config/harness-config.ts";
+import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("resolved harness config", () => {
-  const tempDirs: string[] = [];
-
-  function makeTempDir(): string {
-    const dir = mkdtempSync(join(tmpdir(), "resolved-config-test-"));
-    tempDirs.push(dir);
-    return dir;
+  // scratchRoot() creates and tears down each directory itself (see tests/support/README.md) —
+  // this file only still needs its own afterEach for the config-cache reset, an orthogonal
+  // per-test isolation concern scratchRoot doesn't own.
+  function makeTempDir(label: string): string {
+    return scratchRoot(import.meta.path, label);
   }
 
   afterEach(() => {
-    for (const dir of tempDirs) {
-      try {
-        rmSync(dir, { recursive: true, force: true });
-      } catch {
-        // cleanup ignore
-      }
-    }
-    tempDirs.length = 0;
     resetHarnessConfigCache();
   });
 
@@ -34,7 +25,9 @@ describe("resolved harness config", () => {
     // B27.2: host discovery reads the live environment, so pin it absent here — this test is about
     // the probe/repair-round defaults, not about what this suite's own host happens to publish.
     // See host-concurrency.test.ts and harness-config.test.ts's "B27.2" block for that behaviour.
-    const config = resolveHarnessConfig(makeTempDir(), undefined, { hostConcurrency: null });
+    const config = resolveHarnessConfig(makeTempDir("defaults"), undefined, {
+      hostConcurrency: null,
+    });
     expect(config).toEqual(DEFAULT_RESOLVED_CONFIG);
     expect(config.min_adversarial_probes).toBe(1);
     expect(config.max_repair_rounds).toBe(6);
@@ -42,7 +35,7 @@ describe("resolved harness config", () => {
   });
 
   test("reads the probe key from a config file", () => {
-    const probeDir = makeTempDir();
+    const probeDir = makeTempDir("probe-key");
     writeFileSync(
       join(probeDir, "harness.config.json"),
       JSON.stringify({ min_adversarial_probes: 3 }),
@@ -52,7 +45,7 @@ describe("resolved harness config", () => {
   });
 
   test("rejects non-integer and negative probe counts", () => {
-    const dir = makeTempDir();
+    const dir = makeTempDir("invalid-probe-count");
     writeFileSync(
       join(dir, "harness.config.json"),
       JSON.stringify({ min_adversarial_probes: -1, max_repair_rounds: 1.5 }),
@@ -63,8 +56,8 @@ describe("resolved harness config", () => {
   });
 
   test("lets a repo layer override a capsule layer", () => {
-    const repoDir = makeTempDir();
-    const capDir = makeTempDir();
+    const repoDir = makeTempDir("repo-layer");
+    const capDir = makeTempDir("capsule-layer");
     writeFileSync(
       join(capDir, "config.json"),
       JSON.stringify({ min_adversarial_probes: 4, default_max_parallel: 8 }),
@@ -80,7 +73,7 @@ describe("resolved harness config", () => {
   });
 
   test("caches per root pair and rereads after a reset", () => {
-    const dir = makeTempDir();
+    const dir = makeTempDir("cache-reset");
     writeFileSync(join(dir, "harness.config.json"), JSON.stringify({ min_adversarial_probes: 2 }));
     const first = getHarnessConfig(dir);
     expect(first.min_adversarial_probes).toBe(2);
@@ -94,7 +87,7 @@ describe("resolved harness config", () => {
   });
 
   test("hands out a frozen instance callers cannot mutate", () => {
-    const config = getHarnessConfig(makeTempDir());
+    const config = getHarnessConfig(makeTempDir("frozen-instance"));
     expect(Object.isFrozen(config)).toBeTrue();
   });
 });

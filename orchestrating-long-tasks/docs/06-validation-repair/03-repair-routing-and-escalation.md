@@ -90,6 +90,17 @@ bun harness.ts task:validate-start --run .capsules/<run-id> --task <task-id> --v
 The new validator still owes the mandatory probe, and the pass still has to `--resolve` **every** open
 finding — including the defect finding the previous round opened.
 
+If the task draws several validator domains (Chapter 06 §01's B12.2 model), every domain that was open
+when the reject landed was archived together, not just the one that rejected — so this re-dispatch
+happens once per domain the task still needs, each under its own fresh, independent validator.
+
+A round-2+ validator's packet is also, deliberately, a harder read than round 1's: everything the
+previous round concluded is stripped down to bare demands to prove, never verdicts to inherit — the
+anchoring-bias defense covered under "Context Sanitization" in
+[Chapter 06 §01](./01-adversarial-validation-philosophy.md) applies with full force to a repair round's
+revalidation, which is exactly when a validator is most tempted to skim a prior finding and
+rubber-stamp its own resolution.
+
 ---
 
 ## 🚨 Step 3: The Bounded Budget

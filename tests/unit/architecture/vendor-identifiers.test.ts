@@ -35,10 +35,10 @@ const SCRIPT_EXEMPTIONS: readonly string[] = [
  * the two exemptions above — the production reader keys off that exact string, so the tests must too.
  */
 const TEST_EXEMPTIONS: readonly string[] = [
-  "unit/agents/host-telemetry-probe.test.ts",
+  "integration/agents-host-telemetry-probe.test.ts",
   "unit/summary/host-telemetry.test.ts",
   "unit/agents/transcript-telemetry.test.ts",
-  "unit/agents/transcript-telemetry-cli.test.ts",
+  "integration/agents-transcript-telemetry-cli.test.ts",
 ];
 
 function describeFindings(findings: readonly VendorIdentifierFinding[]): string[] {

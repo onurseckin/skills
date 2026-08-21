@@ -6,17 +6,18 @@
 
 ## 🧭 The End-to-End Orchestration Lifecycle
 
-A complex request moves through ten deterministic stages. Each has defined inputs, recorded outputs,
-and a transition the harness will refuse to make without evidence.
+A complex request moves through ten deterministic stages, plus one optional adversarial check between
+Compile and Dispatch. Each has defined inputs, recorded outputs, and a transition the harness will
+refuse to make without evidence.
 
 ```text
   1. CAPTURE          2. ENHANCE          3. DECLARE           4. COMPILE
 ┌─────────────┐     ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
 │ prompt.md   │ ──> │ Agent's     │ ──> │ Tasks bound │ ──> │ Requirements│
 │ (SHA-256)   │     │ repo reading│     │ to lines    │     │ DAG + waves │
-└─────────────┘     └─────────────┘     └─────────────┘     └─────────────┘
-                                                                   │
-                                                                   ▼
+└─────────────┘     └─────────────┘     └─────────────┘     └──────┬──────┘
+                                                                    │ *
+                                                                    ▼
   8. PROBE & REPAIR    7. VALIDATE         6. EXECUTE          5. DISPATCH
 ┌─────────────┐     ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
 │ Probe demand│ <── │ Independent │ <── │ Lease, edit,│ <── │ Ready now,  │
@@ -30,6 +31,10 @@ and a transition the harness will refuse to make without evidence.
 │ sign-off    │     │ terminal OK │
 └─────────────┘     └─────────────┘
 ```
+
+`*` Between Compile and Dispatch sits an optional eleventh stage the diagram above has no numbered
+box for, because it is an adversary the coordinator opts into rather than a step every run takes:
+**Stage 4½, Plan Review** (`plan:validate-start` / `plan:review`). See below.
 
 ---
 
@@ -45,7 +50,22 @@ bun harness.ts plan:init --repo . --run <slug> --prompt-file prompt.txt --captur
 Creates `.capsules/<run-id>/` with `prompt.md` at mode `0444`, `manifest.json` bound to its SHA-256,
 an empty `events.jsonl` and `state.json`. Assurance is `source-verified` for a direct stream or file
 read, `recorded-unverified` for a transcribed copy. The command refuses if `.capsules` is not
-gitignored.
+gitignored. `--run` here is a **bare run id** — never `.capsules/<run-id>` — because this is the one
+command that builds that path; see [Chapter 01 §02](./02-capsule-and-storage-model.md), under
+"Run-Id Typing," for exactly what is and isn't accepted, and why every other stage below takes the
+full capsule root instead.
+
+There is a second, equivalent entry point: `orchestrate` takes the user's entire message as free
+text — `bun harness.ts orchestrate Add a slugify helper...`, or a piped stdin with no flags at all —
+captures it byte-for-byte with the identical guarantee as `plan:init`, and opens the capsule in one
+call. It cannot run Stage 2 for you: deciding what the repository actually contains needs a model's
+judgment, and the harness never calls one on its own. What it hands back instead is the fixed
+checklist for everything that comes after, bound to the run it just opened, so the calling agent
+never has to reconstruct that sequence from memory. A registered flag such as `--repo` or `--run`,
+if it appears _after_ the free-text prompt on the command line, is refused outright rather than
+silently folded into the captured bytes — a concrete, previously-real bug this guard exists to
+close: `orchestrate fix the bug --repo /other` used to corrupt the prompt capture with flag syntax
+the user never meant as prose, while silently discarding `--repo`'s actual effect.
 
 ### Stage 2: Enhance (`plan:enhance`)
 
@@ -67,7 +87,11 @@ bun harness.ts plan:add --run .capsules/<slug> --actor planner --id <task-id> \
 ```
 
 `--requirement-lines` binds the task to the prompt lines it implements. Without it the compiler glues
-the task to the next unclaimed non-blank line by position and warns.
+the task to the next unclaimed non-blank line by position and warns. Every `--deps <id>` also needs
+its own `--dep-reason <id>:"<why this edge exists>"` — `plan:compile` will not seal the plan while any
+edge lacks one — and a whole batch of tasks can be declared in a single call with
+`--auto-partition <glob> --gate-template "<cmd with {scope}>"` instead of one `plan:add` per task; see
+[Chapter 02 §02](../02-requirements/02-line-disposition-algorithm.md) for both in full.
 
 ### Stage 4: Compile (`plan:compile`)
 
@@ -75,9 +99,38 @@ the task to the next unclaimed non-blank line by position and warns.
 bun harness.ts plan:compile --run .capsules/<slug> --actor planner --completion-gate "bun test tests"
 ```
 
-Derives one requirement per task, disposes every non-blank prompt line, checks scope independence,
-builds the graph at revision 1, and records `state.topology` — the waves and the per-task scheduling
-decision that produced them. `--completion-gate` is mandatory and has no default.
+Before anything else, this command runs the same six-invariant structural audit `plan:audit` runs
+standalone (compressed decomposition, non-discriminating shared gates, false dependency barriers,
+wave stragglers, whole-suite task gates) and **refuses to seal the plan** on any blocking finding
+unless it was explicitly accepted with `--accept-audit "<invariant-id>:<reason>"`, once per finding —
+there is no blanket override. It then refuses separately if any dependency edge in the buffer still
+lacks its `--dep-reason` justification. Only once both checks clear does it derive one requirement
+per task, dispose every non-blank prompt line, check scope independence, build the graph at revision
+1, and record `state.topology` — the waves and the per-task scheduling decision that produced them.
+`--completion-gate` is mandatory and has no default. See [Chapter 02 §02](../02-requirements/02-line-disposition-algorithm.md),
+under "Two Checks Before a Plan Can Be Sealed," for the full mechanics of both checks, including
+exactly what each of the six invariants looks for.
+
+### Stage 4½: Plan Review (`plan:validate-start`, `plan:review`) — optional
+
+```bash
+bun harness.ts plan:validate-start --run .capsules/<slug> --validator plan-val-1
+bun harness.ts plan:review --run .capsules/<slug> --validator plan-val-1 --token <token> \
+  --status approved --decomposition-answer "..." --dependency-answer "..." \
+  --gate-answer "..." --straggler-answer "..." --summary "<verdict>"
+```
+
+The structural audit in Stage 4 is mechanical — it can only check what a static heuristic can see.
+This stage adds a second, genuinely independent check: a plan-validator agent (never the coordinator
+or planner that produced the plan) reads the compiled graph and answers, in writing, the same four
+questions every time, pass or reject — decomposition, dependency justification, gate discrimination,
+straggler risk. Unlike every other adversary in this lifecycle, it judges the _plan_, never the code,
+because there is no code yet. It is **optional**: most runs never dispatch one, and `state.json`
+simply has no `plan_validation` key when none was. But once one _is_ dispatched, its verdict is not
+advisory — a recorded `changes_requested` against the live graph revision is a hard stop
+`task:claim` enforces directly, refusing every implementer and repairer claim until a fresh compile
+brings back a passing review. See [Chapter 02 §03](../02-requirements/03-authority-decisions-and-dispositions.md),
+under "A Second, Independent Gate," for the full protocol.
 
 ### Stage 5: Dispatch (`queue:wave`, `agent:register`, `task:claim`)
 
@@ -106,6 +159,15 @@ The agent writes only inside its leased scope and heartbeats with `task:heartbea
 out to split, `branch:open` subdivides it at execution time without touching the plan revision; the
 parent's lease clock freezes until `branch:collect` or `branch:abandon`. `--summary` is mandatory on
 submit, and `files_changed` comes from a Git observation narrowed to the write scope.
+
+`task:claim` and `task:submit` each compute a sha256 content digest of every file the write scope
+currently holds on disk — not by timestamp, since a Git checkout or rebase can rewrite mtimes on
+files nobody touched, which would misreport as work that never happened. If the two digests are
+byte-identical, `task:submit` refuses the submission outright: `--no-op --reason "<why this
+legitimately needed no change>"` is the one way past that refusal, and it is only accepted when the
+scope genuinely didn't change; declaring `--no-op` against a scope that _did_ change is refused just
+as firmly, the other way round. An unexplained no-change submission is always an error, never
+silently inferred as intentional.
 
 ### Stage 7: Validate (`task:validate-start`)
 

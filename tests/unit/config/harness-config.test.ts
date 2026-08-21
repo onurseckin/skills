@@ -1,32 +1,20 @@
-import { describe, expect, test, afterEach } from "bun:test";
-import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from "node:fs";
+import { describe, expect, test } from "bun:test";
+import { writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import {
   DEFAULT_RESOLVED_CONFIG,
   resolveHarnessConfig,
 } from "../../../orchestrating-long-tasks/scripts/src/config/harness-config.ts";
+import { scratchRoot } from "../../support/scratch-root.ts";
+
+// scratchRoot() creates and tears itself down (see tests/support/README.md) — this file no longer
+// needs the tempDirs[] + makeTempDir() + afterEach trio, previously copy-pasted once per describe
+// block below with only the mkdtemp prefix differing between copies.
+function makeTempDir(label: string): string {
+  return scratchRoot(import.meta.path, label);
+}
 
 describe("harness-config", () => {
-  const tempDirs: string[] = [];
-
-  function makeTempDir(): string {
-    const dir = mkdtempSync(join(tmpdir(), "harness-config-test-"));
-    tempDirs.push(dir);
-    return dir;
-  }
-
-  afterEach(() => {
-    for (const dir of tempDirs) {
-      try {
-        rmSync(dir, { recursive: true, force: true });
-      } catch {
-        // cleanup ignore
-      }
-    }
-    tempDirs.length = 0;
-  });
-
   // Host discovery (B27.2) reads the live environment, so any test that compares a resolution
   // against DEFAULT_RESOLVED_CONFIG must pin `hostConcurrency: null` — otherwise a real host that
   // happens to publish a concurrency ceiling in whatever environment the suite runs under would
@@ -35,7 +23,7 @@ describe("harness-config", () => {
   const NO_HOST_CEILING = { hostConcurrency: null } as const;
 
   test("returns DEFAULT_RESOLVED_CONFIG when no config file exists", () => {
-    const dir = makeTempDir();
+    const dir = makeTempDir("no-config-file");
     const config = resolveHarnessConfig(dir, undefined, NO_HOST_CEILING);
     expect(config).toEqual(DEFAULT_RESOLVED_CONFIG);
     expect(config.max_repair_rounds).toBe(6);
@@ -47,7 +35,7 @@ describe("harness-config", () => {
   });
 
   test("loads settings from harness.config.json in repo root", () => {
-    const dir = makeTempDir();
+    const dir = makeTempDir("harness-config-json");
     const custom = {
       max_repair_rounds: 8,
       max_branch_depth: 3,
@@ -75,7 +63,7 @@ describe("harness-config", () => {
   });
 
   test("loads settings from .harness.config.json when harness.config.json is absent", () => {
-    const dir = makeTempDir();
+    const dir = makeTempDir("dotfile-config");
     const custom = {
       max_repair_rounds: 7,
     };
@@ -88,7 +76,7 @@ describe("harness-config", () => {
   });
 
   test("prefers harness.config.json over .harness.config.json", () => {
-    const dir = makeTempDir();
+    const dir = makeTempDir("prefers-harness-config-json");
     writeFileSync(join(dir, "harness.config.json"), JSON.stringify({ max_repair_rounds: 10 }));
     writeFileSync(join(dir, ".harness.config.json"), JSON.stringify({ max_repair_rounds: 3 }));
 
@@ -97,8 +85,8 @@ describe("harness-config", () => {
   });
 
   test("applies capsule config and merges repo config over it", () => {
-    const repoDir = makeTempDir();
-    const capDir = makeTempDir();
+    const repoDir = makeTempDir("repo-layer");
+    const capDir = makeTempDir("capsule-layer");
 
     writeFileSync(
       join(capDir, "config.json"),
@@ -113,7 +101,7 @@ describe("harness-config", () => {
   });
 
   test("gracefully recovers from invalid JSON or non-object files", () => {
-    const dir = makeTempDir();
+    const dir = makeTempDir("invalid-json-recovery");
     writeFileSync(join(dir, "harness.config.json"), "{ invalid-json }");
 
     const config = resolveHarnessConfig(dir, undefined, NO_HOST_CEILING);
@@ -129,7 +117,7 @@ describe("harness-config", () => {
   });
 
   test("ignores invalid field types and out-of-bounds values", () => {
-    const dir = makeTempDir();
+    const dir = makeTempDir("invalid-field-types");
     const invalidFields = {
       max_repair_rounds: -1,
       max_output_bytes: 100, // below 1024 minimum
@@ -144,27 +132,8 @@ describe("harness-config", () => {
 });
 
 describe("B27.2 — concurrency ceiling discovery and precedence", () => {
-  const tempDirs: string[] = [];
-
-  function makeTempDir(): string {
-    const dir = mkdtempSync(join(tmpdir(), "harness-config-b27-test-"));
-    tempDirs.push(dir);
-    return dir;
-  }
-
-  afterEach(() => {
-    for (const dir of tempDirs) {
-      try {
-        rmSync(dir, { recursive: true, force: true });
-      } catch {
-        // cleanup ignore
-      }
-    }
-    tempDirs.length = 0;
-  });
-
   test("uses a host-discovered ceiling when nothing local overrides it", () => {
-    const dir = makeTempDir();
+    const dir = makeTempDir("host-discovered-ceiling");
     const config = resolveHarnessConfig(dir, undefined, {
       hostConcurrency: { value: 20, hostTool: "claude-code" },
     });
@@ -173,7 +142,7 @@ describe("B27.2 — concurrency ceiling discovery and precedence", () => {
   });
 
   test("an explicit default_max_parallel in the repo config beats host discovery", () => {
-    const dir = makeTempDir();
+    const dir = makeTempDir("explicit-beats-host");
     writeFileSync(join(dir, "harness.config.json"), JSON.stringify({ default_max_parallel: 3 }));
     const config = resolveHarnessConfig(dir, undefined, {
       hostConcurrency: { value: 20, hostTool: "claude-code" },
@@ -183,7 +152,7 @@ describe("B27.2 — concurrency ceiling discovery and precedence", () => {
   });
 
   test("an explicit max_concurrent_agents beats host discovery but not an explicit default_max_parallel", () => {
-    const dir = makeTempDir();
+    const dir = makeTempDir("max-concurrent-agents-precedence");
     writeFileSync(join(dir, "harness.config.json"), JSON.stringify({ max_concurrent_agents: 9 }));
     const withoutParallelOverride = resolveHarnessConfig(dir, undefined, {
       hostConcurrency: { value: 20, hostTool: "codex" },
@@ -202,27 +171,27 @@ describe("B27.2 — concurrency ceiling discovery and precedence", () => {
   });
 
   test("falls back to the assumed default only when the host publishes nothing and nothing is configured", () => {
-    const dir = makeTempDir();
+    const dir = makeTempDir("assumed-default-fallback");
     const config = resolveHarnessConfig(dir, undefined, { hostConcurrency: null });
     expect(config.default_max_parallel).toBe(4);
     expect(config.default_max_parallel_source).toBe("assumed_default");
   });
 
   test("derives gate_max_parallel from cores by default — a separate, lower ceiling", () => {
-    const dir = makeTempDir();
+    const dir = makeTempDir("gate-max-parallel-default");
     const config = resolveHarnessConfig(dir, undefined, { cpuCount: 10 });
     expect(config.gate_max_parallel).toBe(5);
   });
 
   test("a configured gate_max_parallel overrides the cores-derived default", () => {
-    const dir = makeTempDir();
+    const dir = makeTempDir("gate-max-parallel-override");
     writeFileSync(join(dir, "harness.config.json"), JSON.stringify({ gate_max_parallel: 7 }));
     const config = resolveHarnessConfig(dir, undefined, { cpuCount: 10 });
     expect(config.gate_max_parallel).toBe(7);
   });
 
   test("the general ceiling and the gate ceiling resolve independently of each other", () => {
-    const dir = makeTempDir();
+    const dir = makeTempDir("independent-ceilings");
     const config = resolveHarnessConfig(dir, undefined, {
       hostConcurrency: { value: 40, hostTool: "claude-code" },
       cpuCount: 10,
@@ -233,27 +202,8 @@ describe("B27.2 — concurrency ceiling discovery and precedence", () => {
 });
 
 describe("B22.7 — worktree-isolation config knobs", () => {
-  const tempDirs: string[] = [];
-
-  function makeTempDir(): string {
-    const dir = mkdtempSync(join(tmpdir(), "harness-config-b22-test-"));
-    tempDirs.push(dir);
-    return dir;
-  }
-
-  afterEach(() => {
-    for (const dir of tempDirs) {
-      try {
-        rmSync(dir, { recursive: true, force: true });
-      } catch {
-        // cleanup ignore
-      }
-    }
-    tempDirs.length = 0;
-  });
-
   test("defaults: isolation off, no configured root, benign defaults for the rest", () => {
-    const config = resolveHarnessConfig(makeTempDir());
+    const config = resolveHarnessConfig(makeTempDir("worktree-defaults"));
     expect(config.worktree_isolation).toBe(false);
     expect(config.worktree_root).toBeUndefined();
     expect(config.branch_prefix).toBe("harness/");
@@ -262,7 +212,7 @@ describe("B22.7 — worktree-isolation config knobs", () => {
   });
 
   test("reads every worktree knob from harness.config.json", () => {
-    const dir = makeTempDir();
+    const dir = makeTempDir("worktree-knobs");
     writeFileSync(
       join(dir, "harness.config.json"),
       JSON.stringify({
@@ -282,7 +232,7 @@ describe("B22.7 — worktree-isolation config knobs", () => {
   });
 
   test("ignores wrong-typed values and keeps the default for that field alone", () => {
-    const dir = makeTempDir();
+    const dir = makeTempDir("worktree-wrong-types");
     writeFileSync(
       join(dir, "harness.config.json"),
       JSON.stringify({

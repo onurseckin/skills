@@ -1,13 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import {
-  chmodSync,
-  mkdtempSync,
-  mkdirSync,
-  realpathSync,
-  symlinkSync,
-  writeFileSync,
-} from "node:fs";
-import { tmpdir } from "node:os";
+import { chmodSync, mkdirSync, realpathSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   canonicalJsonBytes,
@@ -18,6 +10,7 @@ import {
   sha256Bytes,
 } from "../../../orchestrating-long-tasks/scripts/src/core/json.ts";
 import { safeRepoPath } from "../../../orchestrating-long-tasks/scripts/src/core/paths.ts";
+import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("canonical JSON", () => {
   test("serializes nested JSON deterministically without a newline", () => {
@@ -32,7 +25,7 @@ describe("canonical JSON", () => {
   });
 
   test("test_safe_repo_path_rejects_absolute_parent_and_symlink_escape", () => {
-    const root = mkdtempSync(join(tmpdir(), "harness-paths-"));
+    const root = scratchRoot(import.meta.path, "safe-repo-path-escape");
     const repo = join(root, "repo");
     const outside = join(root, "outside");
     mkdirSync(repo);
@@ -54,7 +47,7 @@ describe("canonical JSON", () => {
   });
 
   test("safeRepoPath validates repository directory existence and symbolics", () => {
-    const root = mkdtempSync(join(tmpdir(), "harness-paths-extra-"));
+    const root = scratchRoot(import.meta.path, "safe-repo-path-validation");
     const repo = join(root, "repo");
     mkdirSync(repo);
     const nonExistent = join(root, "missing");
@@ -85,14 +78,14 @@ describe("canonical JSON", () => {
   });
 
   test("bounded parser rejects excessive structural depth", () => {
-    const root = mkdtempSync(join(tmpdir(), "harness-json-"));
+    const root = scratchRoot(import.meta.path, "excessive-depth");
     const path = join(root, "state.json");
     writeFileSync(path, `{"nested":${"[".repeat(2000)}0${"]".repeat(2000)}}`);
     expect(() => readCanonicalObject(path, "state.json", { maxDepth: 128 })).toThrow(/depth/i);
   });
 
   test("bounded parser rejects an oversized descriptor before decoding", () => {
-    const root = mkdtempSync(join(tmpdir(), "harness-json-"));
+    const root = scratchRoot(import.meta.path, "oversized-descriptor");
     const path = join(root, "state.json");
     writeFileSync(path, JSON.stringify({ padding: "x".repeat(256) }));
     expect(() => readCanonicalObject(path, "state.json", { maxBytes: 128 })).toThrow(/size limit/i);
@@ -108,7 +101,7 @@ describe("canonical JSON", () => {
   });
 
   test("readBoundedBytes checks regular file constraint and bounded read buffer size", () => {
-    const root = mkdtempSync(join(tmpdir(), "harness-json-bounded-"));
+    const root = scratchRoot(import.meta.path, "bounded-read");
     expect(() => readBoundedBytes(root, 1024)).toThrow(/not a regular file/i);
 
     const filePath = join(root, "oversized.bin");
@@ -117,7 +110,7 @@ describe("canonical JSON", () => {
   });
 
   test("readCanonicalObject rejects non-object root and non-canonical payloads", () => {
-    const root = mkdtempSync(join(tmpdir(), "harness-json-non-obj-"));
+    const root = scratchRoot(import.meta.path, "non-canonical-payloads");
     const arrayPath = join(root, "array.json");
     writeFileSync(arrayPath, "[1,2,3]");
     expect(() => readCanonicalObject(arrayPath, "array.json")).toThrow(
@@ -157,7 +150,7 @@ describe("canonical JSON", () => {
   });
 
   test("test_manifest_and_state_use_bounded_descriptor_reads", () => {
-    const root = mkdtempSync(join(tmpdir(), "harness-json-"));
+    const root = scratchRoot(import.meta.path, "bounded-descriptor-reads");
     const path = join(root, "manifest.json");
     writeFileSync(path, '{"a":1}');
     expect(readCanonicalObject(path, "manifest.json", { maxBytes: 8 })).toEqual({ a: 1 });

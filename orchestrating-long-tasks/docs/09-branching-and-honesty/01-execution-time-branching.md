@@ -78,6 +78,44 @@ its read-only guarantee is its role contract, not a filesystem permission.
 
 ---
 
+## 📤 What `branch:open` Actually Returns
+
+Real output from the tutorial run, opening the branch shown in the diagram above:
+
+```bash
+bun harness.ts branch:open --run .capsules/slugger --parent-task task-truncate \
+  --agent impl-truncate --token "$TRUNC_TOKEN" \
+  --reason "measuring the cut point and choosing the ellipsis are separable and were slowing each other down" \
+  --sub-task S-measure  --sub-label S-measure="Cut-point measurement" --sub-scope S-measure=src/truncate/measure.ts \
+  --sub-task S-ellipsis --sub-label S-ellipsis="Ellipsis character"   --sub-scope S-ellipsis=src/truncate/ellipsis.ts
+```
+
+```text
+### Branch Opened: B-1b72a087-53c9-49bd-855e-7d8a7aa4705c
+- **Parent**: `task-truncate` held by `impl-truncate` (now branched, lease frozen)
+- **Reason**: measuring the cut point and choosing the ellipsis are separable and were slowing each other down
+- **Depth**: 1
+
+| Sub-task | Label | Status | Agent | Write Scope |
+| :--- | :--- | :--- | :--- | :--- |
+| `S-measure` | Cut-point measurement | open | unclaimed | `src/truncate/measure.ts` |
+| `S-ellipsis` | Ellipsis character | open | unclaimed | `src/truncate/ellipsis.ts` |
+
+#### Dispatch And Collect:
+```
+
+```bash
+bun harness.ts branch:claim --run .capsules/slugger --branch B-1b72a087-53c9-49bd-855e-7d8a7aa4705c --sub-task <ID> --agent <AGENT>
+bun harness.ts branch:collect --run .capsules/slugger --branch B-1b72a087-53c9-49bd-855e-7d8a7aa4705c --agent impl-truncate --token <PARENT_TOKEN> --summary "<WHAT CAME BACK>"
+```
+
+The brief itself hands back the two commands that close the loop — the same "trailing block naming the
+exact command that undoes it" convention Chapter 10's tutorial documents for every grant and lease.
+Each sub-task starts `open`/`unclaimed`: a branch declares its shape up front, and a sub-agent still has
+to be dispatched with `branch:claim` before it can submit anything.
+
+---
+
 ## ⏸️ Why the Parent's Lease Clock Freezes
 
 A parent blocked on children is not a dead agent, but it looks exactly like one to a lease reaper: it
@@ -109,7 +147,7 @@ several times.
 Real output from the tutorial run:
 
 ```text
-### Branch Collected: B-6731b09f-b80a-4674-beb7-2c28cd631c06
+### Branch Collected: B-1b72a087-53c9-49bd-855e-7d8a7aa4705c
 - **Parent**: `task-truncate` is now running with a fresh lease
 - **Reason It Branched**: measuring the cut point and choosing the ellipsis are separable and were slowing each other down
 - **Outcome**: Both halves landed; the parent now composes them.

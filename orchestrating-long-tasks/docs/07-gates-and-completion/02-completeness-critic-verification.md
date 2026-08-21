@@ -185,4 +185,124 @@ were closed, so completion's history check stops demanding a remediation that wa
 
 ---
 
+## 🪞 The Mirror-Image Adversary: Plan-Validator Pre-Flight Review
+
+Everything above is an adversary for the _finished work_ — dispatched after every task validator has
+already passed, reviewing the whole diff against the whole prompt. The **plan-validator** role is the
+same adversarial pattern turned around to face the _other_ end of the run: dispatched once per compiled
+graph revision, **before any implementer is dispatched at all**, reviewing the compiled plan itself —
+the graph, the projected tasks, the topology's own stated reasoning for where each task landed — never
+any code, because at this point no code exists yet to review.
+
+Coordinators have never had a dedicated adversary for this before. A task validator catches a bad
+_implementation_; nothing has ever told a coordinator its _decomposition_ was wrong before workers
+started burning wall-clock time executing it. A real forensics run recorded exactly this gap: a user
+had to be the plan's refusal mechanism by hand, four separate times, because nothing in the harness
+would say "no" to a plan on its own.
+
+### The lifecycle
+
+```text
+[ plan:validate-start --validator <id> ]
+        ├── refuses a validator who is the coordinator or planner that produced this plan
+        ├── one active assignment per graph revision (mirrors task:validate-start)
+        └── returns the validation token, bound to a packet carrying the compiled graph,
+            the projected requirements/tasks, and the recorded topology
+                 │
+                 ▼
+[ the validator reviews the compiled document — may run read-only run:exec checks to test
+  a specific claim, but most of the review is reading the graph and topology as compiled ]
+                 │
+                 ▼
+[ plan:review --status approved | changes_requested ]
+```
+
+```bash
+bun harness.ts plan:validate-start --run .capsules/<run-id> --validator plan-val-1
+```
+
+Independence is enforced identically to the critic's, just against a different pair of roles: a
+plan-validator that is also the coordinator or planner who authored the plan is refused outright —
+grading your own homework is exactly the failure this role exists to close.
+
+### Four mandatory questions, on every verdict — pass or reject
+
+`plan:review` requires a written answer to all four, every time, whether the verdict is
+`approved` or `changes_requested`. A pass that never answered them is a rubber stamp, and the harness
+refuses it structurally rather than trusting a coordinator's dispatch prompt to demand it:
+
+1. **Decomposition** — does the task count and shape match the entity count the prompt actually names?
+   Ten or more distinct topics compiled into fewer than five independent tasks is a compression, not a
+   simplification.
+2. **Dependencies** — for every edge in the graph, is there a real read/write relationship between the
+   two tasks it connects? An edge that exists only to serialize otherwise-parallel work is a false
+   barrier.
+3. **Gate discrimination** — could each task's mandatory gate command actually fail if that task did
+   nothing? (This is exactly Chapter 07 §01's falsifiability question, asked here as a reading exercise
+   against the compiled plan rather than measured with `gate:prove`.)
+4. **Straggler risk** — is any task's scope or declared effort large enough, relative to the rest of its
+   wave, that the wave will sit idle waiting on it?
+
+```bash
+bun harness.ts plan:review --run .capsules/<run-id> --validator plan-val-1 --token <token> \
+  --status changes_requested \
+  --decomposition-answer "10 topics compressed into 1 task" \
+  --dependency-answer "n/a" \
+  --gate-answer "the shared gate cannot fail per-task" \
+  --straggler-answer "n/a" \
+  --summary "Compressed decomposition; see findings" \
+  --findings '[{"id":"PV-1","invariant":"A2-parallelism","severity":"critical","observation":"10 distinct topics collapsed into task-domains","remediation":"one task per topic, each with its own scoped gate"}]'
+```
+
+`changes_requested` requires at least one structured finding (`id`, `severity`, `observation`,
+`remediation`, and an optional `invariant` naming which of the four questions — or one of `plan:audit`'s
+own invariant ids — it answers); `approved` may carry none. The review is also digest-bound: it embeds
+the exact compiled-plan digest (`currentPlanDigest`, built from the projected graph revision, tasks,
+requirements and gates — never the raw graph document) the validator was actually shown, and
+`plan:review` refuses to record a verdict if that digest no longer matches the live plan. A plan that
+moved underneath the validator between `plan:validate-start` and `plan:review` — a fresh compile, a
+replan — cannot be signed off as if nothing had changed.
+
+### The pushback: what `changes_requested` actually blocks
+
+This is not advisory. `task:claim` reads `state.plan_review` directly: whenever a recorded review's
+`graph_revision` still matches the run's **live** graph revision and its `status` is
+`changes_requested`, **every** `--role implementer` and `--role repairer` claim is refused outright —
+
+```text
+{"ok":false,"error":{"code":"INVALID_STATE","message":"plan validation rejected this graph revision; replan and record a passing plan:review before any implementer or repairer can claim work"}}
+```
+
+— a hard stop enforced at the one place work actually starts, not a warning a coordinator can route
+around by dispatching anyway. The only way out is a **new** graph revision followed by a **new**,
+passing `plan:review` against it; a stale rejection against a superseded revision no longer blocks
+anything.
+
+> **What "a new graph revision" honestly requires today.** The natural-sounding path — call `plan:add`
+> to fix the buffer, then `plan:compile` again — does not work: `plan:add` refuses outright once
+> `state.graph` exists (`"cannot add tasks to compiled plan"`), and that condition never reverts, for
+> the rest of the run's life, once the _first_ `plan:compile` has ever succeeded. The verified working
+> path is the **planner role's** own route: `plan:claim` (which hands back a packet bound to
+> `planning/requirements.json` and `planning/graph.json`) followed by `plan:apply
+--expected-revision <current>`, with the freshly authored `graph.json` declaring
+> `"revision": <current + 1>` — `--expected-revision` only checks that the run hasn't moved since the
+> packet was issued; the submitted graph's own `revision` field is what actually has to be exactly one
+> more than the live one, or `plan:apply` refuses it. This is the real way a graph revision advances
+> after the first compile. `plan:replan` is a different tool entirely: it only
+> ever _appends_ a disjoint repair wave driven by findings that name concrete file paths, and by default
+> reads its findings from `state.completion_review` (the completeness critic's review), not
+> `state.plan_review` — it cannot revise an existing task's scope, remove a false dependency edge, or
+> fix a bad decomposition, which is exactly what a plan-validator's rejection is usually about.
+
+### What it is not
+
+- It never touches repository files — the packet carries the compiled plan, not a write scope.
+- It is not part of the 9-point terminal completion checklist in Chapter 07 §03; it gates the _start_
+  of implementation, not the _end_ of the run.
+- `recover` does not reclaim a stale plan-validation assignment the way it reclaims a stale
+  completeness critic — see [Chapter 08 §03](../08-durability-recovery/03-stale-worker-and-torn-tail-recovery.md)
+  for exactly what that means if the validator's agent dies mid-review.
+
+---
+
 [⬅ Previous: Mandatory Gate Systems](./01-mandatory-gate-systems.md) | [Master Table of Contents](../README.md) | [Next: Mechanical Completion Engine ➡](./03-mechanical-completion-engine.md)

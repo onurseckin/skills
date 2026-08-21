@@ -98,4 +98,62 @@ derives follow the task ids: `task-auth` yields `gate-auth`, and the run-scope g
 
 ---
 
+## 🤖 Deriving Tasks From a Glob: `--auto-partition`
+
+Hand-declaring one `plan:add` call per file is how a coordinator's incentives quietly drift toward
+fewer, bigger tasks — a documented incident had a coordinator hand-roll one task per curriculum file
+instead of letting the harness derive the partition, and the plan compressed into something far more
+monolithic than the prompt actually named. `--auto-partition` is the countermeasure: the planner
+declares a glob, and the harness enumerates what actually exists on disk and derives one task per
+match, so "fewer tasks means less bookkeeping" stops being the path of least resistance.
+
+```bash
+bun harness.ts plan:add --run .capsules/<slug> --id task-topic --label "Topic bank" --actor coordinator \
+  --auto-partition "src/curriculum/mlQuestions/*.ts" --gate-template "bun test {scope}"
+```
+
+- **`--auto-partition <glob>`** is mutually exclusive with `--scope`, `--gate`, `--deps` and
+  `--dep-reason` — auto-partitioned tasks derive their scope and gate from the glob and are
+  independent roots by construction (no dependency edges, so nothing to justify).
+- **`--gate-template`** must contain the literal placeholder `{scope}`, substituted per generated
+  task with that task's own matched file (or directory) path.
+- **`--group-by file`** (the default) emits one task per matched file. **`--group-by directory`**
+  emits one task per directory that holds at least one match, with that task's write scope set to
+  the directory and every match inside it as its files.
+- Every generated task id is `<id-prefix>-<slugified-scope>` and every generated label is
+  `<label-prefix>: <scope>` — the glob author never hand-picks which files land in which task; the
+  harness derives granularity from what actually exists on disk.
+- The glob matcher is a pragmatic, non-POSIX translator: `*` and `?` never cross a `/`, and a bare
+  `**` segment matches zero or more whole path segments — `src/**/*.ts` also matches `src/a.ts`
+  directly. It walks the real repository tree, skipping `.git`, `.capsules`, `node_modules`, `.bun`,
+  `.cache`, `coverage`, `__pycache__` and any symlink, and throws rather than silently registering
+  nothing if the glob matches zero files.
+
+---
+
+## 📋 The Mandatory Topology Declaration (C6)
+
+Every dependency edge a coordinator declares by hand must carry the one-line reason it exists:
+
+```bash
+bun harness.ts plan:add --run .capsules/<slug> --id task-integration --label "Integration" \
+  --scope src/integration --gate "bun test tests/integration" --actor coordinator \
+  --deps task-db,task-cli \
+  --dep-reason "task-db:reads the schema task-db writes" \
+  --dep-reason "task-cli:reads the CLI wiring task-cli writes"
+```
+
+`plan:compile` refuses to seal the plan while any `--deps` id lacks a matching `--dep-reason` — there
+is no default and no way to declare an edge silently. The design principle is that stating _why_ an
+edge exists is what makes an unjustified barrier visible to the coordinator that just drew it; a false
+barrier can look scope-disjoint and still slip past every structural check if nothing forces the
+coordinator to say why they drew it. `plan:compile`'s brief reports the independent-root count and
+every justified edge (`"Topology Declaration": 3/5 tasks are independent roots; 2 dependency edge(s),
+all justified`). This check runs strictly after the six-invariant plan audit (`plan:compile` runs the
+audit first, then this declaration check, then builds the graph) — see [Chapter 03
+§03](./03-plan-revision-and-freezing.md) for the audit and for the plan-validator, the second,
+independent adversary that reviews the plan once it's compiled.
+
+---
+
 [⬅ Previous: Authority Decisions](../02-requirements/03-authority-decisions-and-dispositions.md) | [Master Table of Contents](../README.md) | [Next: Topological Conflict-Free Batching ➡](./02-topological-conflict-free-batching.md)

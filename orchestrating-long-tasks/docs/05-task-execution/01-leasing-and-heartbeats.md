@@ -81,6 +81,49 @@ collect or abandon the branch first.
 
 ---
 
+## 🧾 A Rejected Plan Blocks Every Claim
+
+Leasing is not the only gate `task:claim` checks. Before it looks at the task's own status at all, it
+checks the run's `plan_review` record — the verdict left by the **plan-validator**, an adversary
+scoped to the whole compiled plan rather than to one task (see Chapter 03 for how that role reviews a
+plan and records its verdict). If a plan-validator recorded `changes_requested` against the graph
+revision the run is **currently** on, `task:claim` refuses outright, for every implementer and every
+repairer, regardless of which task is being claimed:
+
+```json
+{
+  "ok": false,
+  "error": {
+    "code": "INVALID_STATE",
+    "message": "plan validation rejected this graph revision; replan and record a passing plan:review before any implementer or repairer can claim work"
+  }
+}
+```
+
+Two things make this check narrow rather than a general-purpose plan gate:
+
+- It only ever fires on an **explicit, recorded `changes_requested` verdict against the exact graph
+  revision** a claim would work under. A run that never dispatched a plan-validator at all — which is
+  most runs, since the role is optional — sees no block here; that silence is not this check's job to
+  police.
+- A superseding graph revision lifts the block on its own — nothing needs to be cleared by hand once
+  the live `graph_revision` no longer matches the one the rejection named. The only command that
+  actually raises `graph_revision` past 1 is `plan:replan` (§03 of this chapter covers it for
+  task-level repair waves) — `plan:compile` bakes a hardcoded first-revision number into every graph it
+  builds, so a second call to it fails its own revision-must-increase-by-one check rather than
+  producing an escape hatch. `plan:replan` does not read a plan-validator's `changes_requested`
+  findings automatically, though — recovering from one today means the coordinator passes that
+  review's findings back in by hand via `--findings-file`. See
+  [Chapter 03 §03](../03-graph-scheduler/03-plan-revision-and-freezing.md) for the full account of the
+  plan-validator role and exactly what raising a fresh revision over its rejection requires.
+
+This is a documented asymmetry, not an oversight: a plan can be **compiled** without any validator ever
+reviewing it (most runs work this way), but once one _has_ reviewed it and rejected it, no further work
+proceeds on that revision. The plan-validator's pushback is a hard stop a coordinator cannot route
+around by dispatching a different task.
+
+---
+
 ## 🔄 Automatic Stale Recovery
 
 If an agent host crashes, runs out of memory, or disconnects without releasing its lease, recovery is

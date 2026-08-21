@@ -120,6 +120,71 @@ does not satisfy the probe requirement on its own either.
 
 ---
 
+## 📐 Standing Checklist Coverage: A Separate Report (B12.5)
+
+A finding says "this specific thing is wrong." It never says what a validator actually _looked at_ to
+conclude the rest was fine — and an unstated gap there is the identical failure mode as a fabricated
+pass: an item nobody checked is indistinguishable, from the outside, from an item that was checked and
+found clean. B12.5 closes that gap with a second, explicit report, attached alongside the verdict but
+never gating it:
+
+```bash
+bun harness.ts task:review --run .capsules/<run-id> --task task-slug --validator val-slug --token <token> \
+  --status pass --checks C-168a1579-… --summary "All gates pass" \
+  --checklist-domain code-quality --checklist-report coverage.json
+```
+
+`--checklist-domain` and `--checklist-report` are demanded together — one without the other is a CLI
+error. Each checklist lives in this repository's `checklists/<domain>.md`, one canonical, versioned
+document per domain (`code-quality.md`, `product.md`, `security.md`, `system-design.md`,
+`ui-design.md`), every item carrying a stable, domain-prefixed id (`CQ-…`, `PROD-…`, `SEC-…`, `SYS-…`,
+`UI-…`) so a coverage report can never be checked against an invented or drifted list.
+
+`coverage.json` must account for **every single item** the named domain's checklist declares, in
+exactly one of three buckets — an item silently missing from all three is refused outright:
+
+```json
+{
+  "items": [
+    { "id": "CQ-STRUCT-001", "disposition": "checked" },
+    {
+      "id": "CQ-NAMING-002",
+      "disposition": "not_applicable",
+      "reason": "no boolean or collection names were introduced"
+    },
+    {
+      "id": "CQ-TEST-004",
+      "disposition": "could_not_check",
+      "reason": "no test harness available for this scope in this review window"
+    }
+  ],
+  "adjacent_findings": [
+    {
+      "id": "adj-1",
+      "checklist_item_id": "CQ-STRUCT-001",
+      "severity": "minor",
+      "observation": "src/legacy/parser.ts mixes two unrelated concerns, but it sits outside this task's write scope.",
+      "remediation": "Split it in a follow-up task scoped to src/legacy.",
+      "evidence": [{ "kind": "reference", "detail": "src/legacy/parser.ts:40-88" }]
+    }
+  ]
+}
+```
+
+- **`checked`** needs nothing further — the item was inspected and found to hold.
+- **`not_applicable`** and **`could_not_check`** each require a non-empty `reason`; a bare disposition
+  with no explanation is refused for the same reason a bare `--reject` with no remediation is refused.
+- **`adjacent_findings`** (B12.1) surfaces a standing-standard violation the validator noticed **outside**
+  the task's own write scope — real information for the coordinator, but it never blocks or resolves
+  anything for the task currently under review; routing it is the coordinator's decision, not this
+  command's.
+
+None of this changes whether the task passes or fails. The verdict is decided purely by the task's own
+requirements and open findings, exactly as described above; `checklist_coverage` is a report of what was
+actually inspected, filed alongside that verdict so the coverage itself is visible rather than implied.
+
+---
+
 ## 🔒 Finding Invariants
 
 1. **No phantom rejections.** A rejection without a severity and a remediation is refused; a critic
@@ -131,6 +196,10 @@ does not satisfy the probe requirement on its own either.
    never mislabelled in the timeline as "requested changes (0 findings)".
 4. **Mechanical resolution only.** Every close is `<finding-id>=<command-id>`, and the harness never
    marks one answered on a validator's behalf.
+5. **One reject archives every open domain (B12.2).** If a task carries several concurrently open
+   validations, one per domain, a reject from any single one of them archives **all** of them into
+   `validation_history` — a domain that had already recorded a pass this round does not survive a
+   sibling domain's rejection. See Chapter 06 §01 for the full multi-domain model.
 
 ---
 

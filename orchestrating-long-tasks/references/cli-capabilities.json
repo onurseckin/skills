@@ -110,7 +110,9 @@
     },
     {
       "name": "plan:init",
-      "aliases": ["init"],
+      "aliases": [
+        "init"
+      ],
       "domain": "plan",
       "summary": "Create a run capsule and capture the prompt bytes immutably.",
       "description": "Initialises <repo>/.capsules/<run-id>, records the verbatim prompt with its sha256, and ensures the capsule is gitignored.",
@@ -516,7 +518,9 @@
           "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
         }
       ],
-      "examples": ["bun harness.ts plan:audit --run .capsules/<run-id> --actor planner"]
+      "examples": [
+        "bun harness.ts plan:audit --run .capsules/<run-id> --actor planner"
+      ]
     },
     {
       "name": "plan:compile",
@@ -892,7 +896,9 @@
           "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
         }
       ],
-      "examples": ["bun harness.ts plan:claim --run .capsules/<run-id> --agent planner-1"]
+      "examples": [
+        "bun harness.ts plan:claim --run .capsules/<run-id> --agent planner-1"
+      ]
     },
     {
       "name": "plan:apply",
@@ -1002,7 +1008,9 @@
           "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
         }
       ],
-      "examples": ["bun harness.ts plan:status --run .capsules/<run-id>"]
+      "examples": [
+        "bun harness.ts plan:status --run .capsules/<run-id>"
+      ]
     },
     {
       "name": "queue:next",
@@ -1040,7 +1048,9 @@
           "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
         }
       ],
-      "examples": ["bun harness.ts queue:next --run .capsules/<run-id>"]
+      "examples": [
+        "bun harness.ts queue:next --run .capsules/<run-id>"
+      ]
     },
     {
       "name": "queue:list",
@@ -1078,7 +1088,9 @@
           "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
         }
       ],
-      "examples": ["bun harness.ts queue:list --run .capsules/<run-id>"]
+      "examples": [
+        "bun harness.ts queue:list --run .capsules/<run-id>"
+      ]
     },
     {
       "name": "queue:wave",
@@ -1124,7 +1136,9 @@
           "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
         }
       ],
-      "examples": ["bun harness.ts queue:wave --run .capsules/<run-id> --max-parallel 4"]
+      "examples": [
+        "bun harness.ts queue:wave --run .capsules/<run-id> --max-parallel 4"
+      ]
     },
     {
       "name": "queue:pop",
@@ -2144,7 +2158,9 @@
           "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
         }
       ],
-      "examples": ["bun harness.ts run:status --run .capsules/<run-id>"]
+      "examples": [
+        "bun harness.ts run:status --run .capsules/<run-id>"
+      ]
     },
     {
       "name": "run:complete",
@@ -2254,7 +2270,9 @@
           "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
         }
       ],
-      "examples": ["bun harness.ts critic:start --run .capsules/<run-id> --critic critic-1"]
+      "examples": [
+        "bun harness.ts critic:start --run .capsules/<run-id> --critic critic-1"
+      ]
     },
     {
       "name": "critic:review",
@@ -2588,7 +2606,9 @@
           "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
         }
       ],
-      "examples": ["bun harness.ts summary:export --run .capsules/<run-id>"]
+      "examples": [
+        "bun harness.ts summary:export --run .capsules/<run-id>"
+      ]
     },
     {
       "name": "summary:view",
@@ -2626,7 +2646,9 @@
           "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
         }
       ],
-      "examples": ["bun harness.ts summary:view --run .capsules/<run-id>"]
+      "examples": [
+        "bun harness.ts summary:view --run .capsules/<run-id>"
+      ]
     },
     {
       "name": "finding:get",
@@ -2680,7 +2702,9 @@
           "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
         }
       ],
-      "examples": ["bun harness.ts finding:get --run .capsules/<run-id> --id finding-task-1"]
+      "examples": [
+        "bun harness.ts finding:get --run .capsules/<run-id> --id finding-task-1"
+      ]
     },
     {
       "name": "report:get",
@@ -2790,7 +2814,9 @@
           "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
         }
       ],
-      "examples": ["bun harness.ts report:get --run .capsules/<run-id> --task task-1 --type review"]
+      "examples": [
+        "bun harness.ts report:get --run .capsules/<run-id> --task task-1 --type review"
+      ]
     },
     {
       "name": "evidence:get",
@@ -2884,7 +2910,9 @@
           "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
         }
       ],
-      "examples": ["bun harness.ts evidence:get --run .capsules/<run-id> --task task-1"]
+      "examples": [
+        "bun harness.ts evidence:get --run .capsules/<run-id> --task task-1"
+      ]
     },
     {
       "name": "evidence:screenshots",
@@ -2962,11 +2990,15 @@
           "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
         }
       ],
-      "examples": ["bun harness.ts evidence:screenshots --run .capsules/<run-id> --task task-1"]
+      "examples": [
+        "bun harness.ts evidence:screenshots --run .capsules/<run-id> --task task-1"
+      ]
     },
     {
       "name": "orchestrator:run",
-      "aliases": ["orchestrator"],
+      "aliases": [
+        "orchestrator"
+      ],
       "domain": "orchestrator",
       "summary": "Run the autonomous coordination loop over a fresh capsule.",
       "description": "Drives plan, execute, validate and critic rounds until the critic approves or the round budget is spent. The host must inject a round executor; without one the command fails with INVALID_STATE.",
@@ -4290,7 +4322,9 @@
           "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
         }
       ],
-      "examples": ["bun harness.ts install --source . --home ~ --clients claude,antigravity"]
+      "examples": [
+        "bun harness.ts install --source . --home ~ --clients claude,antigravity"
+      ]
     },
     {
       "name": "installation-status",
@@ -4344,7 +4378,9 @@
           "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
         }
       ],
-      "examples": ["bun harness.ts installation-status --source . --home ~"]
+      "examples": [
+        "bun harness.ts installation-status --source . --home ~"
+      ]
     },
     {
       "name": "health",
@@ -4480,7 +4516,9 @@
           "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
         }
       ],
-      "examples": ["bun harness.ts doctor --run .capsules/<run-id>"]
+      "examples": [
+        "bun harness.ts doctor --run .capsules/<run-id>"
+      ]
     },
     {
       "name": "doctor:repair",
@@ -4526,7 +4564,9 @@
           "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
         }
       ],
-      "examples": ["bun harness.ts doctor:repair --run .capsules/<run-id> --actor coordinator"]
+      "examples": [
+        "bun harness.ts doctor:repair --run .capsules/<run-id> --actor coordinator"
+      ]
     },
     {
       "name": "recover",
@@ -4580,7 +4620,9 @@
           "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
         }
       ],
-      "examples": ["bun harness.ts recover --run .capsules/<run-id> --actor coordinator"]
+      "examples": [
+        "bun harness.ts recover --run .capsules/<run-id> --actor coordinator"
+      ]
     },
     {
       "name": "task:release",
@@ -4690,7 +4732,9 @@
           "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
         }
       ],
-      "examples": ["bun harness.ts worktree:reclaim --run .capsules/<run-id> --actor coordinator"]
+      "examples": [
+        "bun harness.ts worktree:reclaim --run .capsules/<run-id> --actor coordinator"
+      ]
     },
     {
       "name": "gate:prove",

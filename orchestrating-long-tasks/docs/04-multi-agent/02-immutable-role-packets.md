@@ -23,35 +23,44 @@ any `--`, or it is forwarded to the child process instead of read by the harness
 
 ---
 
-## 🎭 The Nine Canonical Roles
+## 🎭 The Ten Canonical Roles
 
-`AgentRole` is a closed vocabulary. Each role has exactly one document in
-`orchestrating-long-tasks/roles/<role>.md`. The `validator` role additionally carries one contract
-per standing-checklist domain (B12.2) — `roles/validator-code-quality.md`,
+`AgentRole` is a closed vocabulary (`contracts/packets.ts`'s `AGENT_ROLES`). Each role has exactly
+one document in `orchestrating-long-tasks/roles/<role>.md`. The `validator` role additionally carries
+one contract per standing-checklist domain (B12.2) — `roles/validator-code-quality.md`,
 `-product.md`, `-security.md`, `-system-design.md` and `-ui-design.md` — each declaring `role:
 validator` plus its own `domain:`, so every check keyed on the literal role string `"validator"`
 keeps working unchanged; a domain variant is not a separate `AgentRole` and its filename does not
 match one. A unit test asserts `roles/` holds exactly one document per canonical role, plus exactly
-one per validator domain — fourteen files total, not nine.
+one per validator domain — fifteen files total, not ten.
 
 ```text
 +-----------------------------------------------------------------------------------------------+
-|                                    THE 9 CANONICAL ROLES                                      |
+|                                    THE 10 CANONICAL ROLES                                     |
 +-----------------------------------------------------------------------------------------------+
 | Tier 2                                                                                        |
 |  1. coordinator         ---> Owns the run. Never edits a repository file.                     |
 | Tier 3                                                                                        |
 |  2. planner             ---> Prompt → tasks, gates, dependencies. plan:add, plan:compile      |
-|  3. implementer         ---> task:claim --role implementer, run:exec, task:submit             |
-|  4. validator           ---> task:validate-start, task:probe, task:reject, task:review        |
-|  5. repairer            ---> task:claim --role repairer; closes findings, nothing else        |
-|  6. completeness-critic ---> critic:review / critic:reject over the whole request             |
+|  3. plan-validator      ---> The coordinator's own adversary. plan:validate-start, plan:review |
+|  4. implementer         ---> task:claim --role implementer, run:exec, task:submit             |
+|  5. validator           ---> task:validate-start, task:probe, task:reject, task:review        |
+|  6. repairer            ---> task:claim --role repairer; closes findings, nothing else        |
+|  7. completeness-critic ---> critic:review / critic:reject over the whole request             |
 | Branch children (tier 3)                                                                      |
-|  7. sub-implementer     ---> One branch sub-task, one disjoint sub-scope                      |
-|  8. sub-validator       ---> Verification hand; produces evidence, never a verdict            |
-|  9. sub-investigator    ---> Read-only diagnosis; returns a cause or an explicit unknown       |
+|  8. sub-implementer     ---> One branch sub-task, one disjoint sub-scope                      |
+|  9. sub-validator       ---> Verification hand; produces evidence, never a verdict            |
+| 10. sub-investigator    ---> Read-only diagnosis; returns a cause or an explicit unknown       |
 +-----------------------------------------------------------------------------------------------+
 ```
+
+The plan-validator is the newest of the ten and the only one that never touches a task: it reviews
+the _compiled plan itself_ — the graph, the projected requirements and tasks, and the topology's own
+reasoning for where each task landed — before a single implementer is dispatched. Its own commands,
+budgets and independence rule are covered in
+[Chapter 03 §03](../03-graph-scheduler/03-plan-revision-and-freezing.md); this chapter treats it like
+any other role for packet publication and contract enforcement, because that machinery is identical
+across all ten.
 
 ---
 
@@ -77,7 +86,7 @@ spawns:
 
 | Key        | Meaning                                             | Validation                                                                                               |
 | :--------- | :-------------------------------------------------- | :------------------------------------------------------------------------------------------------------- |
-| `role`     | One of the nine canonical roles.                    | Rejected otherwise.                                                                                      |
+| `role`     | One of the ten canonical roles.                     | Rejected otherwise.                                                                                      |
 | `tier`     | Integer 1–3.                                        | Rejected otherwise.                                                                                      |
 | `may`      | Explicit allowed actions.                           | Must be non-empty.                                                                                       |
 | `must_not` | Non-negotiable prohibitions.                        | Must be non-empty.                                                                                       |
@@ -99,8 +108,15 @@ Role packets are published at every point where an agent takes on work:
 | `task:claim --role`   | `implementer` or `repairer`                              |
 | `queue:pop`           | `implementer`                                            |
 | `task:validate-start` | `validator`                                              |
+| `plan:validate-start` | `plan-validator`                                         |
 | `critic:start`        | `completeness-critic`                                    |
 | `branch:claim --role` | `sub-implementer` / `sub-validator` / `sub-investigator` |
+
+`plan:validate-start` mints a packet that carries the compiled graph, the projected requirements and
+tasks, and the recorded topology at that revision — plus the four DESIGN.md C2 questions as explicit
+prompts, the same way a validator-domain packet carries its own standing checklist (B12.2, see
+[Chapter 06 §01](../06-validation-repair/01-adversarial-validation-philosophy.md)) — rather than
+trusting a coordinator to type them into a dispatch prompt.
 
 The packet embeds the role document's bytes verbatim and records their sha256 as
 `role_contract_sha256`, so what an agent was handed stays provable after the fact. Each of these

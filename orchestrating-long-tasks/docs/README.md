@@ -48,7 +48,7 @@ Every document in this directory includes previous/next navigation links at the 
 10. **[01. Host-Agnostic Architecture & Adapters](./04-multi-agent/01-host-agnostic-architecture.md)**
     _Tier 1 chat $\to$ Tier 2 coordinator $\to$ Tier 3 workers and their branch children; zero-dependency design; why the run only knows what the dispatcher reports._
 11. **[02. Role Contracts & Task Execution Briefs](./04-multi-agent/02-immutable-role-packets.md)**
-    _The nine canonical roles, the binding frontmatter contract, where packets are published, and the budgets every role inherits._
+    _The ten canonical roles, the binding frontmatter contract, where packets are published, and the budgets every role inherits._
 12. **[03. Bearer Token Protocol & Dispatch Security](./04-multi-agent/03-bearer-token-security.md)**
     _One-time stdout-delivered tokens, digest-only persistence including in reports, the three token families, and voluntary release._
 
@@ -112,7 +112,7 @@ Every document in this directory includes previous/next navigation links at the 
 ### [Chapter 10: Complete End-to-End Tutorial & CLI Manual](./10-tutorial-and-cli/01-end-to-end-tutorial.md)
 
 28. **[01. Complete End-to-End Tutorial](./10-tutorial-and-cli/01-end-to-end-tutorial.md)**
-    _An executed walkthrough from prompt to sealed capsule — including a branch, a real rejection, a probe, and every refusal encountered along the way._
+    _An executed walkthrough from prompt to sealed capsule — including a plan audit, an independent plan-validator round, a gate falsifiability proof, a branch, a real rejection, a probe, and every refusal encountered along the way._
 29. **[02. CLI Command Reference](./10-tutorial-and-cli/02-cli-command-reference.md)**
     _A pointer to the generated `references/cli-capabilities.md` manifest, plus the conventions that hold across the whole surface._
 30. **[03. Troubleshooting, Common Pitfalls & FAQ](./10-tutorial-and-cli/03-troubleshooting-and-faq.md)**
@@ -133,6 +133,7 @@ Every document in this directory includes previous/next navigation links at the 
 |  - prompt.md, mode 0444, SHA-256 bound  (plan:init)                                               |
 |  - events.jsonl: append-only hash chain - state.json: the only projection                         |
 |  - planning/ (plan:enhance, derived)    - harness.config.json: probes 1, repair rounds 6          |
+|  - plan:init --run takes a bare id, or one .capsules/ prefix stripped; any embedded / is refused  |
 +---------------------------------------------------------------------------------------------------+
                                                   |
                                                   v
@@ -148,6 +149,16 @@ Every document in this directory includes previous/next navigation links at the 
 |                          3. GRAPH + RECORDED TOPOLOGY (state.graph, state.topology)               |
 |  - Cycle-free depends_on DAG            - Disjoint, glob-aware write scopes                       |
 |  - Waves and per-task decisions recorded once, read by everything downstream                      |
++---------------------------------------------------------------------------------------------------+
+                                                  |
+                                                  v
++---------------------------------------------------------------------------------------------------+
+|                    3B. PLAN AUDIT + THE PLAN'S OWN ADVERSARY (plan:audit, plan-validator)         |
+|  - Six structural invariants (A1-A6) block plan:compile; override needs --accept-audit <id>:<why> |
+|  - Every --deps edge needs a one-line --dep-reason, or plan:compile refuses to seal               |
+|  - Independent plan-validator may reject the revision; claimTask hard-stops until it re-passes    |
+|  - gate:prove reverts a task's scope in a scratch copy and requires the gate to fail (proof feeds |
+|    back into A3/A6 instead of the static heuristic alone)                                         |
 +---------------------------------------------------------------------------------------------------+
                                                   |
                                                   v
@@ -178,6 +189,7 @@ Every document in this directory includes previous/next navigation links at the 
 |        |                                                                                          |
 |        v                                                                                          |
 |   task:review --status pass --resolve <finding>=<command>  (every open finding, no exceptions)    |
+|  - task:submit refuses a scope whose content digest matches claim-time, unless --no-op --reason   |
 +---------------------------------------------------------------------------------------------------+
                                                   |
                                                   v

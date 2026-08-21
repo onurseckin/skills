@@ -46,17 +46,21 @@ Three rules follow, and they are absolute:
 
 ## 🔍 Where the Label Actually Appears
 
-| Value                                           | Class                                                        | Why                                                                   |
-| :---------------------------------------------- | :----------------------------------------------------------- | :-------------------------------------------------------------------- |
-| Command `exit_code`, timings, log bytes         | `harness_observed`                                           | The runner started the process and read the descriptors.              |
-| `branch:collect` `files_changed`                | `harness_observed`                                           | A real Git reading of the worktree, diffed against the open baseline. |
-| Task submission `summary`                       | `agent_reported`                                             | The implementer's own words.                                          |
-| Branch `reason`, sub-task summaries             | `agent_reported`                                             | Why an agent chose to subdivide, in its own words.                    |
-| `plan:enhance` document, in full                | `agent_reported`                                             | The agent's reading of the repository, not a harness measurement.     |
-| Agent `model` / `model_tier` / `thinking_level` | `agent_reported`                                             | Only when the dispatcher supplied it; otherwise the field is absent.  |
-| Token counts                                    | `agent_reported`, or `derived` + `is_estimated`              | Relayed, or explicitly a guess.                                       |
-| Topology `rationale`                            | `agent_reported` when a coordinator wrote it, else `derived` | The harness's own explanation is derived, not attributed to anyone.   |
-| Probe demands                                   | `agent_reported`                                             | A demand is a validator's claim about what still needs proving.       |
+| Value                                           | Class                                                        | Why                                                                       |
+| :---------------------------------------------- | :----------------------------------------------------------- | :------------------------------------------------------------------------ |
+| Command `exit_code`, timings, log bytes         | `harness_observed`                                           | The runner started the process and read the descriptors.                  |
+| `branch:collect` `files_changed`                | `harness_observed`                                           | A real Git reading of the worktree, diffed against the open baseline.     |
+| Task submission `summary`                       | `agent_reported`                                             | The implementer's own words.                                              |
+| Branch `reason`, sub-task summaries             | `agent_reported`                                             | Why an agent chose to subdivide, in its own words.                        |
+| `plan:enhance` document, in full                | `agent_reported`                                             | The agent's reading of the repository, not a harness measurement.         |
+| Agent `model` / `model_tier` / `thinking_level` | `agent_reported`                                             | Only when the dispatcher supplied it; otherwise the field is absent.      |
+| Token counts                                    | `agent_reported`, or `derived` + `is_estimated`              | Relayed, or explicitly a guess.                                           |
+| Topology `rationale`                            | `agent_reported` when a coordinator wrote it, else `derived` | The harness's own explanation is derived, not attributed to anyone.       |
+| Probe demands                                   | `agent_reported`                                             | A demand is a validator's claim about what still needs proving.           |
+| `plan:audit` file-count findings (A1)           | `harness_observed`                                           | `expandWriteScope` actually walked the filesystem and counted.            |
+| `plan:audit` scope/pattern findings (A3-A6)     | `derived`                                                    | Computed from the plan's own declared scopes and gates, never run.        |
+| `gate:prove` falsifiability verdict             | `harness_observed`                                           | A real exit code from a real command run against a reverted scratch copy. |
+| Plan-validator's four written answers           | `agent_reported`                                             | The validator's own account, exactly like a task validator's summary.     |
 
 A concrete pair from the tutorial capsule's exported graph:
 
@@ -86,6 +90,39 @@ machine that happened to run `summary:export`.
 
 ---
 
+## 🔏 A Submission That Changed Nothing Must Say So
+
+Evidence classes label a value's _provenance_. A newer, narrower rule governs one specific value's
+_plausibility_: `task:submit` measures a sha256 digest of every byte inside the write scope, once at
+`task:claim` and again at submission, and compares them.
+
+```text
+task task-check write scope (src/existing.ts) is byte-identical to its content at claim; nothing
+was written. Submit --no-op --reason "<why>" if this task legitimately needed no change, or make
+the change its write scope requires.
+```
+
+A byte-identical scope is refused outright — not because nothing changing is inherently wrong (an
+investigation can legitimately conclude the code already does what was asked), but because an
+unexplained non-change is indistinguishable from a stamped submission that never did the work. The
+only way past the refusal is an explicit, attributed claim that nothing needed to change:
+
+```text
+### Submission Accepted: task-check
+- **Agent**: `impl-check` | Status: `submitted`
+- **Write Scope Compliance**: Passed (0 files touched within `src/existing.ts`)
+- **Diff Stats**: 0 files touched
+```
+
+`--no-op --reason "<why>"` is that claim, and it is recorded on the task record (`task.no_op`) exactly
+as given — never inferred, never defaulted. This is the same honesty principle as everything else in
+this chapter, aimed at the one failure mode the other rules cannot reach on their own: a value that
+was never fabricated because it was never _asked for_ in the first place. Both digests are only ever
+compared when the harness actually measured a real repository at both ends; a workflow-layer caller
+that never supplied one simply skips the check rather than fabricating a stand-in verdict.
+
+---
+
 ## 🧭 Legibility: What the Exported Graph Says Now
 
 `summary:export` writes `graph.json` as a `GraphDataset`. Three structural decisions make a run
@@ -107,12 +144,12 @@ node-gate-task-slug        [gate]   Gate: Slugify helper
 
 ```json
 {
-  "id": "section-branch-B-6731b09f-…",
+  "id": "section-branch-B-1b72a087-53c9-49bd-855e-7d8a7aa4705c",
   "title": "Branch of task-truncate",
   "reason": "measuring the cut point and choosing the ellipsis are separable and were slowing each other down",
   "parentNodeId": "node-task-task-truncate",
   "status": "collected",
-  "nodeIds": ["…-S-measure", "…-S-ellipsis"]
+  "nodeIds": ["node-branch-B-1b72a087-…-S-measure", "node-branch-B-1b72a087-…-S-ellipsis"]
 }
 ```
 
@@ -165,6 +202,12 @@ Alongside assets, each node carries:
 - Labelling a clean pass "requested changes" because the event payload was too thin to tell the
   difference. `review-recorded` carries `verdict`, `round`, `class` and `finding_count` precisely so a
   reader never has to guess which one it was.
+- Accepting that a gate _would_ fail on an untouched repository without anyone actually reverting the
+  work and watching it fail. `gate:prove` exists because a static heuristic can only guess; a recorded
+  `falsifiable: true` verdict is a real exit code from a real command run against a real reverted copy.
+- Recording a submission as "nothing changed" without an attributed reason. A byte-identical write
+  scope is refused unless the agent explicitly declares `--no-op --reason "<why>"` — see the previous
+  section.
 
 The negative space is the feature. A field that is missing tells you something true; a field that was
 filled in to look complete tells you nothing at all.
