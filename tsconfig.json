@@ -8,7 +8,7 @@
     "allowImportingTsExtensions": true,
     "exactOptionalPropertyTypes": true,
     "noEmit": true,
-    "types": ["node"],
+    "types": ["node", "bun"],
     "strict": true,
     "noImplicitAny": true,
     "noImplicitOverride": true,

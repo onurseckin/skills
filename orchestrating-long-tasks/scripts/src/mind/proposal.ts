@@ -497,7 +497,12 @@ export function decideProposalInState(
     throw new HarnessError("INVALID_ARGUMENT", `unknown proposal or requirement: ${targetId}`);
   }
 
-  if (candidate.status !== "needs_authority" && candidate.disposition !== "needs_authority") {
+  if (
+    candidate.status !== "needs_authority" &&
+    candidate.disposition !== "needs_authority" &&
+    candidate.status !== "open" &&
+    candidate.status !== "proposed"
+  ) {
     throw new HarnessError(
       "INVALID_STATE",
       `proposal ${String(candidate.id)} is not pending authority (status: ${String(candidate.status)})`,

@@ -27,6 +27,7 @@ export interface MindObserveResult {
   readonly count: number;
   readonly evidence_class: EvidenceClass;
   readonly observed_at: string;
+  readonly [key: string]: unknown;
 }
 
 export function formatMindObserveBrief(params: {

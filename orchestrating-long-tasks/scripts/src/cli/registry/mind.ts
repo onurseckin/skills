@@ -1,3 +1,14 @@
+import { mindAdmitCommand, mindDeclineCommand } from "../commands/mind-admit.ts";
+import { mindAuditReportCommand, mindAuditStartCommand } from "../commands/mind-audit.ts";
+import { mindCandidateCommand } from "../commands/mind-candidate.ts";
+import { mindInitCommand } from "../commands/mind-init.ts";
+import { mindObserveCommand } from "../commands/mind-observe.ts";
+import { mindPulseCloseCommand } from "../commands/mind-pulse-close.ts";
+import { mindPulseOpenCommand } from "../commands/mind-pulse-open.ts";
+import { mindQuiesceCommand } from "../commands/mind-quiesce.ts";
+import { mindRotateCommand } from "../commands/mind-rotate.ts";
+import { mindRoundCloseCommand, mindRoundOpenCommand } from "../commands/mind-round.ts";
+import { mindWakeCommand } from "../commands/mind-wake.ts";
 import { HarnessError } from "../../errors/harness-error.ts";
 import {
   DEFAULT_EXIT_CODES,
@@ -7,41 +18,22 @@ import {
   type FlagSpec,
 } from "./types.ts";
 
-export function mindInitCommand(): Record<string, unknown> {
-  throw new HarnessError("NOT_IMPLEMENTED", "mind:init handler is not implemented yet");
-}
-
-export function mindWakeCommand(): Record<string, unknown> {
-  throw new HarnessError("NOT_IMPLEMENTED", "mind:wake handler is not implemented yet");
-}
-
-export function mindPulseOpenCommand(): Record<string, unknown> {
-  throw new HarnessError("NOT_IMPLEMENTED", "mind:pulse-open handler is not implemented yet");
-}
-
-export function mindPulseCloseCommand(): Record<string, unknown> {
-  throw new HarnessError("NOT_IMPLEMENTED", "mind:pulse-close handler is not implemented yet");
-}
-
-export function mindObserveCommand(): Record<string, unknown> {
-  throw new HarnessError("NOT_IMPLEMENTED", "mind:observe handler is not implemented yet");
-}
-
-export function mindCandidateCommand(): Record<string, unknown> {
-  throw new HarnessError("NOT_IMPLEMENTED", "mind:candidate handler is not implemented yet");
-}
-
-export function mindAdmitCommand(): Record<string, unknown> {
-  throw new HarnessError("NOT_IMPLEMENTED", "mind:admit handler is not implemented yet");
-}
-
-export function mindDeclineCommand(): Record<string, unknown> {
-  throw new HarnessError("NOT_IMPLEMENTED", "mind:decline handler is not implemented yet");
-}
-
-export function mindQuiesceCommand(): Record<string, unknown> {
-  throw new HarnessError("NOT_IMPLEMENTED", "mind:quiesce handler is not implemented yet");
-}
+export {
+  mindAdmitCommand,
+  mindAuditReportCommand,
+  mindAuditStartCommand,
+  mindCandidateCommand,
+  mindDeclineCommand,
+  mindInitCommand,
+  mindObserveCommand,
+  mindPulseCloseCommand,
+  mindPulseOpenCommand,
+  mindQuiesceCommand,
+  mindRotateCommand,
+  mindRoundCloseCommand,
+  mindRoundOpenCommand,
+  mindWakeCommand,
+};
 
 export function mindEscalateCommand(): Record<string, unknown> {
   throw new HarnessError("NOT_IMPLEMENTED", "mind:escalate handler is not implemented yet");
@@ -49,26 +41,6 @@ export function mindEscalateCommand(): Record<string, unknown> {
 
 export function mindHaltCommand(): Record<string, unknown> {
   throw new HarnessError("NOT_IMPLEMENTED", "mind:halt handler is not implemented yet");
-}
-
-export function mindRoundOpenCommand(): Record<string, unknown> {
-  throw new HarnessError("NOT_IMPLEMENTED", "mind:round-open handler is not implemented yet");
-}
-
-export function mindRoundCloseCommand(): Record<string, unknown> {
-  throw new HarnessError("NOT_IMPLEMENTED", "mind:round-close handler is not implemented yet");
-}
-
-export function mindAuditStartCommand(): Record<string, unknown> {
-  throw new HarnessError("NOT_IMPLEMENTED", "mind:audit-start handler is not implemented yet");
-}
-
-export function mindAuditReportCommand(): Record<string, unknown> {
-  throw new HarnessError("NOT_IMPLEMENTED", "mind:audit-report handler is not implemented yet");
-}
-
-export function mindRotateCommand(): Record<string, unknown> {
-  throw new HarnessError("NOT_IMPLEMENTED", "mind:rotate handler is not implemented yet");
 }
 
 const charterGoalFlag: FlagSpec = {

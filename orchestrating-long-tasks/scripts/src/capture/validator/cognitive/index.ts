@@ -10,6 +10,7 @@ export * from "./fitts-law.ts";
 export * from "./hick-hyman.ts";
 export * from "./norman-recovery.ts";
 export * from "./ui-states-fsm.ts";
+export * from "./cognitive-questions.ts";
 
 export function validateCognitive(ctx: ValidationContext): PillarValidationResult {
   const defects: ValidationDefect[] = [];

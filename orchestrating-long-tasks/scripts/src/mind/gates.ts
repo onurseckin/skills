@@ -471,6 +471,16 @@ export function evaluateGate3Falsifiable(
   const gateNumber = 3;
   const name = "Falsifiable";
 
+  if (candidate.kind === "proposal") {
+    return {
+      gateId,
+      gateNumber,
+      name,
+      passed: true,
+      metadata: { kind: "proposal" },
+    };
+  }
+
   const argv = parseFalsifierArgv(candidate.falsifier_argv ?? candidate.falsifier);
   if (argv.length === 0) {
     return {

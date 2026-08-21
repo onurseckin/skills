@@ -1,5 +1,5 @@
-import { mkdirSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
 import { getHarnessConfig } from "../../config/harness-config.ts";
 import { HarnessError } from "../../errors/harness-error.ts";
 import { ingestScreenshots, ingestVisualReport } from "../../reporting/screenshot-ingestion.ts";
@@ -7,6 +7,7 @@ import { getVisualReport, queryScreenshots } from "../../reporting/screenshot-st
 import type { ScreenshotRecord } from "../../reporting/screenshot-types.ts";
 import {
   analyzeDualChannel,
+  type CompanionManifestData,
   type DualChannelAuditResult,
 } from "../../validation/dual-channel-analyzer.ts";
 import {
@@ -103,15 +104,61 @@ export function collectTaskScreenshots(
   return Array.from(uniqueMap.values());
 }
 
+export function collectCompanionManifests(
+  runRoot: string,
+  _taskId?: string,
+): CompanionManifestData[] {
+  const repoRoot = repoRootOf(runRoot);
+  const searchDirs = [
+    join(runRoot, "captures"),
+    join(runRoot, "evidence"),
+    join(repoRoot, "captures"),
+    join(repoRoot, ".captures"),
+    join(repoRoot, "test-results"),
+    join(repoRoot, "screenshots"),
+    join(repoRoot, "playwright-report"),
+  ];
+
+  const manifests: CompanionManifestData[] = [];
+  const visitedPaths = new Set<string>();
+
+  for (const dir of searchDirs) {
+    if (!existsSync(dir)) continue;
+    try {
+      const entries = readdirSync(dir, { withFileTypes: true });
+      for (const ent of entries) {
+        if (ent.isFile() && ent.name.endsWith(".manifest.json")) {
+          const fullPath = resolve(join(dir, ent.name));
+          if (visitedPaths.has(fullPath)) continue;
+          visitedPaths.add(fullPath);
+          try {
+            const raw = readFileSync(fullPath, "utf-8");
+            const parsed = JSON.parse(raw);
+            if (typeof parsed === "object" && parsed !== null) {
+              manifests.push(parsed as CompanionManifestData);
+            }
+          } catch {}
+        }
+      }
+    } catch {}
+  }
+  return manifests;
+}
+
 export function runDualChannelAudit(
   runRoot: string,
   task: TaskRecord,
   screenshots: readonly ScreenshotRecord[],
+  manifests?: readonly CompanionManifestData[],
+  options?: { readonly requireSemanticDepth?: boolean },
 ): DualChannelAuditResult {
+  const allManifests = manifests ?? collectCompanionManifests(runRoot, task.id);
   return analyzeDualChannel({
     writeScope: task.write_scope,
     domReport: adaptIngestedVisualReport(getVisualReport(runRoot, task.id)),
     screenshots: adaptScreenshotRecords(screenshots),
+    manifests: allManifests,
+    requireSemanticDepth: options?.requireSemanticDepth,
   });
 }
 

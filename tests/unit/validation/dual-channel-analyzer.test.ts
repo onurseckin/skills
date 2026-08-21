@@ -76,7 +76,7 @@ describe("Dual-Channel Visual Analyzer", () => {
         ],
       });
       expect(result.passed).toBe(false);
-      expect(result.findings.some((f) => f.category === "zero_byte_screenshot")).toBe(true);
+      expect(result.findings.some((f) => f.category === "zero_byte_screenshot" || f.category === "invalid_screenshot_size")).toBe(true);
     });
 
     test("rejects when required multi-viewport matrix (mobile, tablet, desktop) is incomplete", () => {

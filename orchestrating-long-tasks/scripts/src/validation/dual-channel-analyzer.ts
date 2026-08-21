@@ -5,10 +5,12 @@ import {
 import { extractDomViolations, type FindingAdder } from "./dom-violation-extractor.ts";
 import type {
   ClippingViolation,
+  CompanionManifestData,
   ContrastViolation,
   CrossChannelProof,
   DualChannelAuditResult,
   DualChannelInput,
+  EvaluatedCriterion,
   OrphanViolation,
   OverflowViolation,
   ScreenshotMetadata,
@@ -20,10 +22,12 @@ import type {
 
 export type {
   ClippingViolation,
+  CompanionManifestData,
   ContrastViolation,
   CrossChannelProof,
   DualChannelAuditResult,
   DualChannelInput,
+  EvaluatedCriterion,
   OrphanViolation,
   OverflowViolation,
   ScreenshotMetadata,
@@ -85,6 +89,396 @@ function domInvariantsInspected(vp: ViewportMetrics, report: VisualMetricsReport
 }
 
 const SCREENSHOT_INVARIANT = "screenshot_non_empty";
+const MANIFEST_INVARIANT = "manifest_4_pillars_certified";
+
+export interface ManifestCriteriaValidationResult {
+  readonly valid: boolean;
+  readonly evaluatedCriteriaCount: number;
+  readonly passedCriteriaCount: number;
+  readonly pillarsPresent: readonly string[];
+}
+
+export interface ValidateCompanionManifestOptions {
+  readonly requireSemanticDepth?: boolean | undefined;
+}
+
+export const SUPERFICIAL_BOILERPLATE_PATTERNS: ReadonlySet<string> = new Set([
+  "ok",
+  "pass",
+  "passed",
+  "true",
+  "yes",
+  "n/a",
+  "na",
+  "none",
+  "looks good",
+  "test passed",
+  "checked",
+  "valid",
+  "verified",
+  "all good",
+  "placeholder",
+  "tbd",
+  "as expected",
+  "no issues",
+  "done",
+  "fine",
+  "null",
+  "undefined",
+]);
+
+const METRIC_PATTERN = /\b\d+(\.\d+)?(px|%|rem|em|ms|s|B|KB|MB|Lc|fps|:\d+)?\b/i;
+
+export function validateCompanionManifestCriteria(
+  manifest: unknown,
+  addFinding: FindingAdder,
+  indexOrOptions: number | ValidateCompanionManifestOptions = 0,
+  maybeOptions?: ValidateCompanionManifestOptions,
+): ManifestCriteriaValidationResult {
+  const index = typeof indexOrOptions === "number" ? indexOrOptions : 0;
+  const options =
+    typeof indexOrOptions === "object" && indexOrOptions !== null
+      ? indexOrOptions
+      : maybeOptions;
+  const requireSemanticDepth = options?.requireSemanticDepth ?? false;
+  let hasErrors = false;
+  const reportError: FindingAdder = (category, severity, message, remediation, affectedSelector, viewport) => {
+    if (severity === "error") {
+      hasErrors = true;
+    }
+    addFinding(category, severity, message, remediation, affectedSelector, viewport);
+  };
+
+  if (typeof manifest !== "object" || manifest === null || Array.isArray(manifest)) {
+    reportError(
+      "invalid_manifest",
+      "error",
+      `Companion Manifest #${index + 1} Violation: Manifest is not a valid JSON object.`,
+      "Ensure companion manifest is a structured JSON object with metadata and evaluated criteria.",
+    );
+    return { valid: false, evaluatedCriteriaCount: 0, passedCriteriaCount: 0, pillarsPresent: [] };
+  }
+
+  const m = manifest as Record<string, unknown>;
+  const screenId =
+    typeof m.screenId === "string"
+      ? m.screenId
+      : typeof m.screen_id === "string"
+        ? m.screen_id
+        : undefined;
+  const viewport = typeof m.viewport === "string" ? m.viewport : undefined;
+  const manifestLabel =
+    screenId && viewport ? `${screenId}-${viewport}.manifest.json` : `Manifest #${index + 1}`;
+
+  if (!screenId || !viewport) {
+    reportError(
+      "invalid_manifest",
+      "error",
+      `Companion Manifest '${manifestLabel}' Violation: Missing required screenId or viewport fields.`,
+      "Companion manifests must identify screenId and viewport.",
+      undefined,
+      viewport,
+    );
+  }
+
+  // Extract criteria
+  const rawCriteria: unknown[] = [];
+  if (Array.isArray(m.criteria)) {
+    rawCriteria.push(...m.criteria);
+  } else if (Array.isArray(m.evaluatedCriteria)) {
+    rawCriteria.push(...m.evaluatedCriteria);
+  } else if (Array.isArray(m.allCriteria)) {
+    rawCriteria.push(...m.allCriteria);
+  } else if (typeof m.pillars === "object" && m.pillars !== null) {
+    const p = m.pillars as Record<string, unknown>;
+    for (const pillarKey of ["mechanical", "cognitive", "product", "ux", "custom"]) {
+      const pObj = p[pillarKey];
+      if (typeof pObj === "object" && pObj !== null) {
+        const critList =
+          (pObj as Record<string, unknown>).criteria ??
+          (pObj as Record<string, unknown>).evaluatedCriteria;
+        if (Array.isArray(critList)) {
+          rawCriteria.push(...critList);
+        }
+      }
+    }
+  }
+
+  if (rawCriteria.length === 0) {
+    reportError(
+      "missing_manifest_criteria",
+      "error",
+      `Companion Manifest '${manifestLabel}' Violation: Manifest contains no evaluated criteria records.`,
+      "Companion manifests must evaluate and record criteria across all 4 mandatory pillars: Mechanical (CRIT-MECH-*), Cognitive (CRIT-COGN-*), Product Heuristics (CRIT-PROD-*/CRIT-CUST-*), UX Ergonomics (CRIT-UX-*).",
+      undefined,
+      viewport,
+    );
+    return { valid: false, evaluatedCriteriaCount: 0, passedCriteriaCount: 0, pillarsPresent: [] };
+  }
+
+  const pillarsFound = new Set<string>();
+  let passedCount = 0;
+
+  for (let i = 0; i < rawCriteria.length; i++) {
+    const item = rawCriteria[i];
+    if (typeof item !== "object" || item === null) {
+      reportError(
+        "invalid_manifest_criterion",
+        "error",
+        `Companion Manifest '${manifestLabel}' Criterion #${i + 1} Violation: Criterion entry is not a valid object.`,
+        "Each criterion must be an object with id, pillar, passed, and details/evidence.",
+        undefined,
+        viewport,
+      );
+      continue;
+    }
+    const c = item as Record<string, unknown>;
+    const critId = typeof c.id === "string" ? c.id.trim() : `CRIT-UNKNOWN-${i + 1}`;
+    const pillar = typeof c.pillar === "string" ? c.pillar.toLowerCase() : "";
+
+    const upperId = critId.toUpperCase();
+    if (upperId.startsWith("CRIT-MECH-") || pillar === "mechanical") {
+      pillarsFound.add("mechanical");
+    } else if (upperId.startsWith("CRIT-COGN-") || pillar === "cognitive") {
+      pillarsFound.add("cognitive");
+    } else if (
+      upperId.startsWith("CRIT-PROD-") ||
+      upperId.startsWith("CRIT-CUST-") ||
+      pillar === "product" ||
+      pillar === "custom"
+    ) {
+      pillarsFound.add("product");
+    } else if (upperId.startsWith("CRIT-UX-") || pillar === "ux") {
+      pillarsFound.add("ux");
+    }
+
+    // 1. Explicit boolean passed
+    if (typeof c.passed !== "boolean") {
+      reportError(
+        "invalid_manifest_criterion",
+        "error",
+        `Companion Manifest '${manifestLabel}' Criterion '${critId}' Violation: Missing explicit boolean 'passed' property.`,
+        "Every criterion must specify an explicit boolean 'passed: true' or 'passed: false'.",
+        undefined,
+        viewport,
+      );
+    }
+
+    // 2. Details and Evidence validation
+    const detailsStr = typeof c.details === "string" ? c.details.trim() : "";
+    const evidenceStr = typeof c.evidence === "string" ? c.evidence.trim() : "";
+    const hasDetails = detailsStr.length > 0;
+    const hasEvidence = evidenceStr.length > 0;
+
+    if (!hasDetails && !hasEvidence) {
+      reportError(
+        "invalid_manifest_criterion",
+        "error",
+        `Companion Manifest '${manifestLabel}' Criterion '${critId}' Violation: Missing non-empty 'details' or 'evidence' string.`,
+        "Every criterion must provide non-empty diagnostic details or quantitative evidence.",
+        undefined,
+        viewport,
+      );
+    }
+
+    // 3. Strict Semantic Depth Audits (when requireSemanticDepth is enabled)
+    if (requireSemanticDepth) {
+      // Details audit
+      if (!hasDetails) {
+        reportError(
+          "boilerplate_evidence",
+          "error",
+          `Companion Manifest '${manifestLabel}' Criterion '${critId}' Violation: Missing or empty details.`,
+          "Provide non-empty qualitative details for the evaluated criterion.",
+          undefined,
+          viewport,
+        );
+      } else if (SUPERFICIAL_BOILERPLATE_PATTERNS.has(detailsStr.toLowerCase())) {
+        reportError(
+          "boilerplate_evidence",
+          "error",
+          `Companion Manifest '${manifestLabel}' Criterion '${critId}' Violation: Contains superficial boilerplate details: '${detailsStr}'.`,
+          "Provide non-boilerplate qualitative diagnosis for the evaluated criterion.",
+          undefined,
+          viewport,
+        );
+      } else if (detailsStr.length < 12) {
+        reportError(
+          "superficial_evidence",
+          "error",
+          `Companion Manifest '${manifestLabel}' Criterion '${critId}' Violation: Details ('${detailsStr}') is too brief (< 12 characters).`,
+          "Expand qualitative details to provide meaningful diagnosis.",
+          undefined,
+          viewport,
+        );
+      }
+
+      // Evidence audit
+      if (!hasEvidence) {
+        reportError(
+          "boilerplate_evidence",
+          "error",
+          `Companion Manifest '${manifestLabel}' Criterion '${critId}' Violation: Missing or empty evidence.`,
+          "Provide non-empty empirical proof for the evaluated criterion.",
+          undefined,
+          viewport,
+        );
+      } else if (SUPERFICIAL_BOILERPLATE_PATTERNS.has(evidenceStr.toLowerCase())) {
+        reportError(
+          "boilerplate_evidence",
+          "error",
+          `Companion Manifest '${manifestLabel}' Criterion '${critId}' Violation: Contains superficial boilerplate evidence: '${evidenceStr}'.`,
+          "Provide non-boilerplate empirical proof for the evaluated criterion.",
+          undefined,
+          viewport,
+        );
+      } else if (evidenceStr.length < 12) {
+        reportError(
+          "superficial_evidence",
+          "error",
+          `Companion Manifest '${manifestLabel}' Criterion '${critId}' Violation: Evidence ('${evidenceStr}') is too brief (< 12 characters).`,
+          "Provide detailed empirical measurement proof with specific quantitative values.",
+          undefined,
+          viewport,
+        );
+      } else if (!METRIC_PATTERN.test(evidenceStr)) {
+        reportError(
+          "missing_evidence_metrics",
+          "error",
+          `Companion Manifest '${manifestLabel}' Criterion '${critId}' Violation: Evidence lacks quantitative measurements (numbers, pixel dimensions, counts, or units).`,
+          "Include specific quantitative measurements and metric numbers in evidence.",
+          undefined,
+          viewport,
+        );
+      }
+    }
+
+    // 4. Pass verification
+    if (c.passed === true) {
+      passedCount++;
+    } else if (c.passed === false) {
+      const detailsMsg =
+        hasDetails
+          ? detailsStr
+          : hasEvidence
+            ? evidenceStr
+            : "Criterion failed";
+      reportError(
+        "manifest_criterion_failed",
+        "error",
+        `Companion Manifest '${manifestLabel}' Criterion Failed: [${critId}] ${detailsMsg}`,
+        `Remediate the underlying violation for criterion '${critId}' and re-evaluate companion manifest.`,
+        undefined,
+        viewport,
+      );
+    }
+  }
+
+  // 4 Mandatory Pillars
+  const mandatoryPillars = [
+    { key: "mechanical", label: "Mechanical Criteria (CRIT-MECH-*)" },
+    { key: "cognitive", label: "Cognitive Criteria (CRIT-COGN-*)" },
+    { key: "product", label: "Product Heuristics (CRIT-PROD-* / CRIT-CUST-*)" },
+    { key: "ux", label: "UX Ergonomics (CRIT-UX-*)" },
+  ];
+
+  for (const pillar of mandatoryPillars) {
+    if (!pillarsFound.has(pillar.key)) {
+      reportError(
+        "missing_pillar_criteria",
+        "error",
+        `Companion Manifest '${manifestLabel}' 4-Pillar Mandate Violation: Missing evaluated criteria for ${pillar.label}.`,
+        `Ensure companion manifest evaluates criteria across all 4 mandatory pillars: Mechanical (CRIT-MECH-*), Cognitive (CRIT-COGN-*), Product Heuristics (CRIT-PROD-*/CRIT-CUST-*), UX Ergonomics (CRIT-UX-*).`,
+        undefined,
+        viewport,
+      );
+    }
+  }
+
+  // 5. Cognitive Analysis Questionnaire Verification (if present)
+  if (typeof m.cognitiveAnalysis === "object" && m.cognitiveAnalysis !== null) {
+    const cog = m.cognitiveAnalysis as Record<string, unknown>;
+    if (Array.isArray(cog.questions)) {
+      for (const q of cog.questions) {
+        if (typeof q === "object" && q !== null) {
+          const qObj = q as Record<string, unknown>;
+          const qId = typeof qObj.id === "string" ? qObj.id : "Q-UNKNOWN";
+          if (qObj.passed === false) {
+            const obs = typeof qObj.observation === "string" ? qObj.observation : "Cognitive heuristic violated";
+            reportError(
+              "manifest_criterion_failed",
+              "error",
+              `Companion Manifest '${manifestLabel}' Cognitive Question Defect: [${qId}] ${obs}`,
+              `Address cognitive / ergonomic defect identified in question '${qId}'.`,
+              undefined,
+              viewport,
+            );
+          } else if (requireSemanticDepth) {
+            const obs = typeof qObj.observation === "string" ? qObj.observation.trim() : "";
+            const ev = typeof qObj.evidence === "string" ? qObj.evidence.trim() : "";
+
+            if (obs.length === 0 || SUPERFICIAL_BOILERPLATE_PATTERNS.has(obs.toLowerCase())) {
+              reportError(
+                "boilerplate_evidence",
+                "error",
+                `Companion Manifest '${manifestLabel}' Cognitive Question '${qId}' Violation: Contains boilerplate observation: '${obs}'.`,
+                "Provide detailed qualitative observation for cognitive questionnaire question.",
+                undefined,
+                viewport,
+              );
+            } else if (obs.length < 12) {
+              reportError(
+                "superficial_evidence",
+                "error",
+                `Companion Manifest '${manifestLabel}' Cognitive Question '${qId}' Violation: Observation ('${obs}') is too brief (< 12 characters).`,
+                "Expand qualitative observation for cognitive questionnaire question to articulate UX rationale.",
+                undefined,
+                viewport,
+              );
+            }
+
+            if (ev.length === 0 || SUPERFICIAL_BOILERPLATE_PATTERNS.has(ev.toLowerCase())) {
+              reportError(
+                "boilerplate_evidence",
+                "error",
+                `Companion Manifest '${manifestLabel}' Cognitive Question '${qId}' Violation: Contains boilerplate evidence: '${ev}'.`,
+                "Provide empirical proof for cognitive questionnaire question.",
+                undefined,
+                viewport,
+              );
+            } else if (ev.length < 12) {
+              reportError(
+                "superficial_evidence",
+                "error",
+                `Companion Manifest '${manifestLabel}' Cognitive Question '${qId}' Violation: Evidence ('${ev}') is too brief (< 12 characters).`,
+                "Provide detailed empirical measurement proof for cognitive questionnaire question.",
+                undefined,
+                viewport,
+              );
+            } else if (!METRIC_PATTERN.test(ev)) {
+              reportError(
+                "missing_evidence_metrics",
+                "error",
+                `Companion Manifest '${manifestLabel}' Cognitive Question '${qId}' Violation: Evidence lacks quantitative metrics: '${ev}'.`,
+                "Include quantitative metrics in cognitive questionnaire evidence.",
+                undefined,
+                viewport,
+              );
+            }
+          }
+        }
+      }
+    }
+  }
+
+  const allPillarsPresent = mandatoryPillars.every((p) => pillarsFound.has(p.key));
+  return {
+    valid: !hasErrors && allPillarsPresent && passedCount === rawCriteria.length,
+    evaluatedCriteriaCount: rawCriteria.length,
+    passedCriteriaCount: passedCount,
+    pillarsPresent: Array.from(pillarsFound),
+  };
+}
 
 export function analyzeDualChannel(input: DualChannelInput): DualChannelAuditResult {
   const allPaths = [...(input.taskFiles ?? []), ...(input.writeScope ?? [])];
@@ -128,9 +522,11 @@ export function analyzeDualChannel(input: DualChannelInput): DualChannelAuditRes
     input.domReport && input.domReport.viewports && input.domReport.viewports.length > 0,
   );
   const screenshots = input.screenshots ?? [];
+  const manifests = input.manifests ?? [];
   const hasScreenshots = screenshots.length > 0;
+  const hasManifests = manifests.length > 0;
 
-  if (!hasDomReport && !hasScreenshots) {
+  if (!hasDomReport && !hasScreenshots && !hasManifests) {
     addFinding(
       "missing_channel",
       "error",
@@ -144,21 +540,35 @@ export function analyzeDualChannel(input: DualChannelInput): DualChannelAuditRes
       findings,
       proofs: [],
       summary:
-        "Rejected: Automated UI Task Mandate requires dual-channel visual validation, but both channels are missing.",
+        "Rejected: Automated UI Task Mandate requires dual-channel visual validation, but all evidence channels are missing.",
     };
   }
 
+  // Validate screenshots: Reject < 1024 bytes
   for (const sc of screenshots) {
-    if (!sc.sizeBytes || sc.sizeBytes <= 0 || isNaN(sc.sizeBytes)) {
+    if (!sc.sizeBytes || sc.sizeBytes < 1024 || isNaN(sc.sizeBytes)) {
       addFinding(
-        "zero_byte_screenshot",
+        "invalid_screenshot_size",
         "error",
-        `Anti-Mocking Invariant Violation: Screenshot '${sc.name}' (${sc.path}) is empty (0 bytes) or stubbed.`,
-        "Ensure real browser rendering pipeline outputs valid non-empty PNG rasterizations.",
+        `Anti-Mocking Invariant Violation: Screenshot '${sc.name}' (${sc.path}) is too small (${typeof sc.sizeBytes === "number" ? sc.sizeBytes : 0} bytes < 1024 bytes) or stubbed.`,
+        "Ensure real browser rendering pipeline outputs valid non-empty PNG rasterizations (minimum 1024 bytes).",
         undefined,
         sc.viewport,
       );
     }
+  }
+
+  // Validate manifests: 4 Pillars & Criteria
+  let manifestProofsValid = false;
+  if (hasManifests) {
+    let validCount = 0;
+    for (let i = 0; i < manifests.length; i++) {
+      const res = validateCompanionManifestCriteria(manifests[i], addFinding, i, {
+        requireSemanticDepth: input.requireSemanticDepth,
+      });
+      if (res.valid) validCount++;
+    }
+    manifestProofsValid = validCount === manifests.length && manifests.length > 0;
   }
 
   const requiredVps = input.requiredViewports ?? DEFAULT_REQUIRED_VIEWPORTS;
@@ -170,10 +580,13 @@ export function analyzeDualChannel(input: DualChannelInput): DualChannelAuditRes
     }
     extractDomViolations(input.domReport, addFinding, input.subpixelTolerance);
   }
-  for (const sc of screenshots) {
-    if (sc.sizeBytes > 0 && !isNaN(sc.sizeBytes)) {
-      coveredVps.add(normalizeViewportName(sc.viewport ?? sc.name, sc.width));
-    }
+
+  const validScreenshots = screenshots.filter(
+    (s) => typeof s.sizeBytes === "number" && s.sizeBytes >= 1024 && !isNaN(s.sizeBytes),
+  );
+
+  for (const sc of validScreenshots) {
+    coveredVps.add(normalizeViewportName(sc.viewport ?? sc.name, sc.width));
   }
 
   for (const reqVp of requiredVps) {
@@ -191,7 +604,6 @@ export function analyzeDualChannel(input: DualChannelInput): DualChannelAuditRes
   }
 
   let mode: DualChannelAuditResult["mode"];
-  const validScreenshots = screenshots.filter((s) => s.sizeBytes > 0 && !isNaN(s.sizeBytes));
 
   if (hasDomReport && validScreenshots.length > 0) {
     mode = "dual_channel_corroborated";
@@ -216,11 +628,17 @@ export function analyzeDualChannel(input: DualChannelInput): DualChannelAuditRes
         (f) => f.viewport === vp.viewport && f.severity === "error",
       );
       const inspected = domInvariantsInspected(vp, input.domReport!);
+      const verifiedInvariants =
+        sc === undefined ? inspected : [...inspected, SCREENSHOT_INVARIANT];
+      if (manifestProofsValid) {
+        verifiedInvariants.push(MANIFEST_INVARIANT);
+      }
+
       proofs.push({
         viewport: vp.viewport,
         ...(sc === undefined ? {} : { screenshotPath: sc.path, screenshotSizeBytes: sc.sizeBytes }),
         domMetricsPresent: true,
-        verifiedInvariants: sc === undefined ? inspected : [...inspected, SCREENSHOT_INVARIANT],
+        verifiedInvariants,
         status: hasViolations
           ? "violation_detected"
           : sc === undefined
@@ -234,10 +652,14 @@ export function analyzeDualChannel(input: DualChannelInput): DualChannelAuditRes
       const hasViolations = findings.some(
         (f) => f.viewport === vp.viewport && f.severity === "error",
       );
+      const verifiedInvariants = domInvariantsInspected(vp, input.domReport!);
+      if (manifestProofsValid) {
+        verifiedInvariants.push(MANIFEST_INVARIANT);
+      }
       proofs.push({
         viewport: vp.viewport,
         domMetricsPresent: true,
-        verifiedInvariants: domInvariantsInspected(vp, input.domReport!),
+        verifiedInvariants,
         status: hasViolations ? "violation_detected" : "dom_only_gap_filled",
       });
     }
@@ -246,12 +668,16 @@ export function analyzeDualChannel(input: DualChannelInput): DualChannelAuditRes
     for (const sc of validScreenshots) {
       const vpName = sc.viewport ?? normalizeViewportName(sc.name, sc.width);
       const hasViolations = findings.some((f) => f.viewport === vpName && f.severity === "error");
+      const verifiedInvariants = [SCREENSHOT_INVARIANT];
+      if (manifestProofsValid) {
+        verifiedInvariants.push(MANIFEST_INVARIANT);
+      }
       proofs.push({
         viewport: vpName,
         screenshotPath: sc.path,
         domMetricsPresent: false,
         screenshotSizeBytes: sc.sizeBytes,
-        verifiedInvariants: [SCREENSHOT_INVARIANT],
+        verifiedInvariants,
         status: hasViolations ? "violation_detected" : "screenshot_only_gap_filled",
       });
     }

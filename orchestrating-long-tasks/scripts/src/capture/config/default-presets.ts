@@ -10,32 +10,24 @@ export const CANONICAL_VIEWPORTS: Readonly<Record<string, CaptureViewport>> = {
     width: 1440,
     height: 900,
     deviceScaleFactor: 1,
-    isMobile: false,
-    hasTouch: false,
   },
   "desktop-wide": {
     name: "desktop-wide",
     width: 1920,
     height: 1080,
     deviceScaleFactor: 1,
-    isMobile: false,
-    hasTouch: false,
   },
   tablet: {
     name: "tablet",
     width: 768,
     height: 1024,
     deviceScaleFactor: 2,
-    isMobile: true,
-    hasTouch: true,
   },
   mobile: {
     name: "mobile",
     width: 390,
     height: 844,
     deviceScaleFactor: 3,
-    isMobile: true,
-    hasTouch: true,
   },
 };
 

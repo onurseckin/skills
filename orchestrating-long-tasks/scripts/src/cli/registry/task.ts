@@ -189,6 +189,11 @@ export const TASK_COMMANDS: readonly CommandSpec[] = [
         "string",
         'Path to a JSON file: {"items":[{"id":"<checklist-id>","disposition":"checked|not_applicable|could_not_check","reason":"<required unless checked>"}, ...],"adjacent_findings":[{"id","checklist_item_id","severity","observation","remediation","evidence":[...]}]}. Requires --checklist-domain.',
       ),
+      optionalFlag(
+        "require-semantic-depth",
+        "bool",
+        "Enforce strict semantic depth audits on companion manifest criteria and cognitive questions.",
+      ),
     ],
     readsStdin: false,
     takesRemainder: false,

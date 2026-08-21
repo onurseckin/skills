@@ -32,6 +32,7 @@ export interface MindQuiesceResult {
   readonly digest?: QuiescentDigest | undefined;
   readonly sources: readonly QuiescentSourceObservation[];
   readonly observed_at: string;
+  readonly [key: string]: unknown;
 }
 
 export function formatMindQuiesceBrief(params: {

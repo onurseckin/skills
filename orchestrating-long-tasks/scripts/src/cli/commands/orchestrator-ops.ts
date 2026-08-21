@@ -10,8 +10,9 @@ import { RunSupervisor, type TaskDispatcher } from "../../orchestrator/superviso
 import type { RoundExecutor } from "../../orchestrator/types.ts";
 import { refreshHandoff } from "../../reporting/handoff.ts";
 import { boolFlag, integerFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
+import { DEFAULT_WATCH_INTERVAL_SECONDS } from "../registry/orchestrator.ts";
 
-export const DEFAULT_WATCH_INTERVAL_SECONDS = 30;
+export { DEFAULT_WATCH_INTERVAL_SECONDS };
 
 export interface OrchestratorCommandContext extends CommandContext {
   executor?: RoundExecutor | undefined;

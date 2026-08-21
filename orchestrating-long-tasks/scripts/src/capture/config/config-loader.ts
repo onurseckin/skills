@@ -95,6 +95,8 @@ function parseUsers(raw: unknown): Record<string, CaptureUserConfig> {
     const userObj = userRaw as Record<string, unknown>;
     const name = typeof userObj.name === "string" ? userObj.name : id;
     const role = typeof userObj.role === "string" ? userObj.role : "user";
+    const username = typeof userObj.username === "string" ? userObj.username : undefined;
+    const email = typeof userObj.email === "string" ? userObj.email : undefined;
     const password = typeof userObj.password === "string" ? userObj.password : undefined;
     const token = typeof userObj.token === "string" ? userObj.token : undefined;
     const avatarUrl = typeof userObj.avatarUrl === "string" ? userObj.avatarUrl : undefined;
@@ -111,6 +113,8 @@ function parseUsers(raw: unknown): Record<string, CaptureUserConfig> {
       id,
       name,
       role,
+      ...(username !== undefined ? { username } : {}),
+      ...(email !== undefined ? { email } : {}),
       ...(password !== undefined ? { password } : {}),
       ...(token !== undefined ? { token } : {}),
       ...(avatarUrl !== undefined ? { avatarUrl } : {}),
@@ -187,8 +191,6 @@ export function validateCaptureConfig(raw: unknown): CaptureConfig {
             width: v.width,
             height: v.height,
             deviceScaleFactor: typeof v.deviceScaleFactor === "number" ? v.deviceScaleFactor : 1,
-            isMobile: typeof v.isMobile === "boolean" ? v.isMobile : false,
-            hasTouch: typeof v.hasTouch === "boolean" ? v.hasTouch : false,
           };
         }
       }
@@ -237,10 +239,19 @@ sidebar:
   requireZeroNavbar: true
 auth:
   loginUrl: "/login"
+  usernameSelector: 'input[name="email"], input[type="email"]'
+  passwordSelector: 'input[name="password"], input[type="password"]'
+  submitSelector: 'button[type="submit"]'
+  tokenHeaderName: "Authorization"
   users:
     admin:
+      id: "admin"
       name: "Admin User"
+      email: "admin@example.test"
+      username: "admin"
+      password: "Password123!"
       role: "admin"
+      token: "mock-admin-token"
 screens:
   - id: "dashboard"
     name: "Main Dashboard"

@@ -258,3 +258,76 @@ export function mindAdmitCommand(
     falsifier_exit_observed: evaluation.falsifierExitObserved ?? null,
   };
 }
+
+export async function mindDeclineCommand(
+  flags: Flags,
+  _context?: CommandContext,
+): Promise<{
+  readonly markdown: string;
+  readonly run_root: string;
+  readonly candidate_id: string;
+  readonly actor: string;
+  readonly reason: string;
+}> {
+  const run = textFlag(flags, "run");
+  const actor = textFlag(flags, "actor");
+  const candidateId = textFlag(flags, "candidate");
+  const reason = textFlag(flags, "reason");
+
+  if (!run) throw new HarnessError("INVALID_ARGUMENT", "--run is required");
+  if (!actor) throw new HarnessError("INVALID_ARGUMENT", "--actor is required");
+  if (!candidateId) throw new HarnessError("INVALID_ARGUMENT", "--candidate is required");
+  if (!reason) throw new HarnessError("INVALID_ARGUMENT", "--reason is required");
+
+  const loaded = loadRun(run);
+  const nowIso = new Date().toISOString();
+
+  const candidates = (Array.isArray(loaded.state.candidates)
+    ? loaded.state.candidates
+    : []) as unknown as CandidateRecord[];
+  const target = candidates.find((c) => c.id === candidateId);
+  if (!target) {
+    throw new HarnessError(
+      "INVALID_STATE",
+      `candidate ${candidateId} not found in state`,
+    );
+  }
+  if (target.status !== "proposed" && target.status !== "candidate" && target.status !== undefined) {
+    throw new HarnessError(
+      "INVALID_STATE",
+      `candidate ${candidateId} is already decided (status: ${target.status})`,
+    );
+  }
+
+  transact(
+    run,
+    actor,
+    "mind-candidate-declined",
+    {
+      candidate_id: candidateId,
+      reason,
+      declined_at: nowIso,
+    },
+    (working) => {
+      const workingCandidates = (Array.isArray(working.candidates)
+        ? working.candidates
+        : []) as Record<string, unknown>[];
+      const found = workingCandidates.find((c) => c.id === candidateId);
+      if (found) {
+        found.status = "declined";
+        found.decided_at = nowIso;
+        found.decline_reason = reason;
+      }
+    },
+  );
+
+  const markdown = `### Candidate Declined: \`${candidateId}\`\n- **Actor**: \`${actor}\`\n- **Reason**: ${reason}\n`;
+
+  return {
+    markdown,
+    run_root: loaded.runRoot,
+    candidate_id: candidateId,
+    actor,
+    reason,
+  };
+}

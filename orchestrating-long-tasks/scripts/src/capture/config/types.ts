@@ -3,14 +3,14 @@ export interface CaptureViewport {
   readonly width: number;
   readonly height: number;
   readonly deviceScaleFactor?: number;
-  readonly isMobile?: boolean;
-  readonly hasTouch?: boolean;
 }
 
 export interface CaptureUserConfig {
   readonly id: string;
   readonly name: string;
   readonly role: string;
+  readonly username?: string;
+  readonly email?: string;
   readonly password?: string;
   readonly token?: string;
   readonly avatarUrl?: string;

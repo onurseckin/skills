@@ -57,6 +57,8 @@ export function classifiesAsUiTask(
 
 export interface RoleArtifactEvidence {
   readonly hasArtifact: boolean;
+  readonly screenshots?: readonly { readonly sizeBytes?: number; readonly bytes?: number; readonly name?: string }[];
+  readonly manifests?: readonly unknown[];
 }
 
 export function assertRoleArtifactPresent(
@@ -65,14 +67,38 @@ export function assertRoleArtifactPresent(
   evidence: RoleArtifactEvidence,
 ): void {
   if (!domainApplies) return;
-  if (evidence.hasArtifact) return;
-  throw new HarnessError(
-    "INVALID_STATE",
-    `cannot review ${taskId}: this task's UI/frontend surface requires captured artifact evidence ` +
-      `(a screenshot or DOM-metrics record) before this review can mean anything, pass or reject ` +
-      `alike; none is on record`,
-    [],
-    3,
-    `run the visual validation suite so it captures a screenshot or visual-report.json, then retry task:review for ${taskId}`,
-  );
+
+  const validScreenshots = (evidence.screenshots ? evidence.screenshots : []).filter((s) => {
+    const sz = typeof s.sizeBytes === "number" ? s.sizeBytes : (typeof s.bytes === "number" ? s.bytes : 0);
+    return sz >= 1024;
+  });
+
+  const hasValidArtifact =
+    evidence.hasArtifact &&
+    (evidence.screenshots === undefined ||
+      evidence.screenshots.length === 0 ||
+      validScreenshots.length > 0 ||
+      (evidence.manifests !== undefined && evidence.manifests.length > 0));
+
+  if (!hasValidArtifact) {
+    if (evidence.screenshots && evidence.screenshots.length > 0 && validScreenshots.length === 0) {
+      throw new HarnessError(
+        "INVALID_STATE",
+        `cannot review ${taskId}: this task's UI/frontend surface requires valid non-stubbed screenshot ` +
+          `evidence (>= 1024 bytes); all recorded screenshots are below 1024 bytes`,
+        [],
+        3,
+        `run real visual capture or Playwright test suite to generate valid PNG screenshots (>= 1024 bytes), then retry task:review for ${taskId}`,
+      );
+    }
+    throw new HarnessError(
+      "INVALID_STATE",
+      `cannot review ${taskId}: this task's UI/frontend surface requires captured artifact evidence ` +
+        `(a screenshot >= 1024 bytes or DOM-metrics record) before this review can mean anything, pass or reject ` +
+        `alike; none is on record`,
+      [],
+      3,
+      `run the visual validation suite so it captures a screenshot (>= 1024 bytes) or visual-report.json, then retry task:review for ${taskId}`,
+    );
+  }
 }

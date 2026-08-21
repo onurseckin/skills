@@ -6,6 +6,7 @@ import type {
   CaptureUserConfig,
   CaptureViewport,
 } from "../config/types.ts";
+import type { CognitiveAnalysisReport, EvaluatedCriterion } from "../validator/types.ts";
 
 export interface ResolvedSessionAuth {
   readonly userId: string;
@@ -117,6 +118,8 @@ export interface CompanionManifest {
     readonly visible: boolean;
     readonly width: number;
   };
+  readonly criteria?: readonly EvaluatedCriterion[] | undefined;
+  readonly cognitiveAnalysis?: CognitiveAnalysisReport | undefined;
   readonly url: string;
 }
 

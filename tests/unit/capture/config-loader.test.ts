@@ -17,8 +17,8 @@ describe("capture config loader & schema", () => {
   test("provides canonical viewports and presets", () => {
     expect(CANONICAL_VIEWPORTS.desktop.width).toBe(1440);
     expect(CANONICAL_VIEWPORTS.desktop.height).toBe(900);
-    expect(CANONICAL_VIEWPORTS.tablet.isMobile).toBe(true);
-    expect(CANONICAL_VIEWPORTS.mobile.isMobile).toBe(true);
+    expect(CANONICAL_VIEWPORTS.tablet.width).toBe(768);
+    expect(CANONICAL_VIEWPORTS.mobile.width).toBe(390);
 
     expect(DEFAULT_SIDEBAR_LAYOUT.logoPosition).toBe("top-left");
     expect(DEFAULT_SIDEBAR_LAYOUT.userProfilePosition).toBe("bottom-left");

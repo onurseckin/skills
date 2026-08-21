@@ -19,7 +19,7 @@ import {
 } from "../../workflow/review/validate-review.ts";
 import { systemClock, type TaskRecord, type WorkflowState } from "../../workflow/types.ts";
 import { formatTaskRejectBrief, formatTaskReviewPassBrief } from "../formatters/index.ts";
-import { textFlag, type Flags } from "../options.ts";
+import { boolFlag, textFlag, type Flags } from "../options.ts";
 import {
   assertNoResolutions,
   assertOpenFindingsAnswered,
@@ -32,6 +32,7 @@ import {
   resolveFindingRequirement,
 } from "./task-finding-input.ts";
 import {
+  collectCompanionManifests,
   collectTaskScreenshots,
   dualChannelRefusalMessage,
   finalizePassingTask,
@@ -135,8 +136,16 @@ export async function taskReviewCommand(flags: Flags): Promise<Record<string, un
   const resolutions = isPass ? resolutionProofs(flags, taskId, openFindings) : [];
   if (isPass) assertOpenFindingsAnswered(taskId, openFindings, resolutions);
 
+  const requireSemanticDepth = boolFlag(flags, "require-semantic-depth");
   const taskScreenshots = collectTaskScreenshots(loaded.runRoot, taskId, validator, checkIds);
-  const dualChannel = runDualChannelAudit(loaded.runRoot, taskBefore, taskScreenshots);
+  const companionManifests = collectCompanionManifests(loaded.runRoot, taskId);
+  const dualChannel = runDualChannelAudit(
+    loaded.runRoot,
+    taskBefore,
+    taskScreenshots,
+    companionManifests,
+    { requireSemanticDepth },
+  );
   if (isPass && dualChannel.isUiTask && !dualChannel.passed) {
     throw new HarnessError("INVALID_STATE", dualChannelRefusalMessage(taskId, dualChannel));
   }
@@ -146,7 +155,12 @@ export async function taskReviewCommand(flags: Flags): Promise<Record<string, un
     dualChannel.isUiTask,
   );
   assertRoleArtifactPresent(taskId, isUiTask, {
-    hasArtifact: taskScreenshots.length > 0 || dualChannel.proofs.length > 0,
+    hasArtifact:
+      taskScreenshots.some((s) => s.bytes >= 1024) ||
+      dualChannel.proofs.length > 0 ||
+      companionManifests.length > 0,
+    screenshots: taskScreenshots,
+    manifests: companionManifests,
   });
 
   const findingObj =
@@ -218,6 +232,7 @@ export async function taskReviewCommand(flags: Flags): Promise<Record<string, un
     task: state.tasks[taskId],
     screenshots: screenshotPaths,
     screenshot_records: taskScreenshots,
+    companion_manifests: companionManifests,
     dual_channel_audit: dualChannel,
   };
   const reportPath = persistReviewReport(loaded.runRoot, taskId, reportData);
@@ -263,6 +278,7 @@ export async function taskReviewCommand(flags: Flags): Promise<Record<string, un
     report_path: reportPath,
     screenshots: screenshotPaths,
     screenshot_records: taskScreenshots,
+    companion_manifests: companionManifests,
     dual_channel_audit: dualChannel,
     probe_rounds: probeRoundsRecorded(state.tasks[taskId]!),
     min_adversarial_probes: policy.minProbes,

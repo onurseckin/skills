@@ -34,6 +34,7 @@ export interface MindRoundOpenResult {
   readonly actor: string;
   readonly chain_from: string | null;
   readonly opened_at: string;
+  readonly [key: string]: unknown;
 }
 
 export interface MindRoundCloseResult {
@@ -46,6 +47,7 @@ export interface MindRoundCloseResult {
   readonly successor: string | null;
   readonly terminal_reason: string | null;
   readonly closed_at: string;
+  readonly [key: string]: unknown;
 }
 
 export function mindRoundOpenCommand(

@@ -4,7 +4,7 @@ export type ValidationVerdict = "CERTIFIED" | "DEFECTS_FOUND" | "NOT_CERTIFIED";
 
 export type DefectSeverity = "critical" | "serious" | "moderate" | "minor";
 
-export type ValidationPillar = "mechanical" | "cognitive" | "custom";
+export type ValidationPillar = "mechanical" | "cognitive" | "custom" | "product" | "ux";
 
 export type CodeRemediationFramework = "react" | "react-native" | "vue" | "svelte" | "css";
 
@@ -12,6 +12,15 @@ export interface CodeRemediation {
   readonly framework: CodeRemediationFramework;
   readonly description: string;
   readonly snippet: string;
+}
+
+export interface EvaluatedCriterion {
+  readonly id: string;
+  readonly pillar: ValidationPillar;
+  readonly name: string;
+  readonly passed: boolean;
+  readonly details: string;
+  readonly evidence: string;
 }
 
 export interface ValidationDefect {
@@ -32,6 +41,24 @@ export interface PillarValidationResult {
   readonly evaluatedCount: number;
 }
 
+export interface EvaluatedCognitiveQuestion {
+  readonly id: string;
+  readonly category: "perception" | "ergonomics" | "typography" | "resilience" | "jtbd";
+  readonly question: string;
+  readonly answered: boolean;
+  readonly passed: boolean;
+  readonly verdict: "OPTIMAL" | "ACCEPTABLE" | "DEFECT_FLAGGED";
+  readonly observation: string;
+  readonly evidence: string;
+}
+
+export interface CognitiveAnalysisReport {
+  readonly summary: string;
+  readonly questionsEvaluated: number;
+  readonly questionsPassed: number;
+  readonly questions: readonly EvaluatedCognitiveQuestion[];
+}
+
 export interface CompanionManifestV2 {
   readonly version: "2.0";
   readonly screenId: string;
@@ -43,10 +70,14 @@ export interface CompanionManifestV2 {
   readonly seriousCount: number;
   readonly moderateCount: number;
   readonly minorCount: number;
+  readonly criteria: readonly EvaluatedCriterion[];
+  readonly cognitiveAnalysis?: CognitiveAnalysisReport | undefined;
   readonly pillars: {
     readonly mechanical: PillarValidationResult;
     readonly cognitive: PillarValidationResult;
     readonly custom: PillarValidationResult;
+    readonly product?: PillarValidationResult;
+    readonly ux?: PillarValidationResult;
   };
   readonly allDefects: readonly ValidationDefect[];
   readonly remediationSummary: readonly CodeRemediation[];
@@ -123,6 +154,6 @@ export interface ValidationContext {
   readonly screenId: string;
   readonly viewport: string;
   readonly elements: readonly ElementPhysicsSnapshot[];
-  readonly sidebarConfig?: SidebarLayoutConfig;
-  readonly viewportBounds?: { readonly width: number; readonly height: number };
+  readonly sidebarConfig?: SidebarLayoutConfig | undefined;
+  readonly viewportBounds?: { readonly width: number; readonly height: number } | undefined;
 }

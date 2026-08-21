@@ -28,6 +28,7 @@ export interface MindAuditStartResult {
   readonly window_start: string;
   readonly started_at: string;
   readonly status: "in_progress";
+  readonly [key: string]: unknown;
 }
 
 export function formatMindAuditStartBrief(params: {
@@ -175,6 +176,7 @@ export interface MindAuditReportResult {
   readonly reported_at: string;
   readonly open_findings: readonly string[];
   readonly answers: readonly AuditAnswer[];
+  readonly [key: string]: unknown;
 }
 
 export function formatMindAuditReportBrief(params: {

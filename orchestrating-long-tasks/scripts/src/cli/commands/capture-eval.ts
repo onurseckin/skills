@@ -1,4 +1,4 @@
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { HarnessError } from "../../errors/harness-error.ts";
 import {
@@ -15,7 +15,7 @@ export function evaluateManifestFile(filePath: string): CompanionManifestV2 {
   }
   let loaded: unknown;
   try {
-    const raw = require("node:fs").readFileSync(resolved, "utf-8");
+    const raw = readFileSync(resolved, "utf-8");
     loaded = JSON.parse(raw);
   } catch (error) {
     throw new HarnessError(
@@ -31,7 +31,13 @@ export function evaluateManifestFile(filePath: string): CompanionManifestV2 {
   const manifestObj = loaded as Record<string, unknown>;
   const screenId = typeof manifestObj.screenId === "string" ? manifestObj.screenId : "unknown";
   const viewport = typeof manifestObj.viewport === "string" ? manifestObj.viewport : "desktop";
-  const elements = Array.isArray(manifestObj.elements) ? manifestObj.elements : [];
+  let elements = Array.isArray(manifestObj.elements) ? manifestObj.elements : [];
+  if (elements.length === 0 && typeof manifestObj.physics === "object" && manifestObj.physics !== null) {
+    const phys = manifestObj.physics as Record<string, unknown>;
+    if (Array.isArray(phys.elements)) {
+      elements = phys.elements;
+    }
+  }
 
   const context: ValidationContext = {
     screenId,
@@ -138,6 +144,8 @@ export async function captureEvalCommand(
       serious_count: e.seriousCount,
       moderate_count: e.moderateCount,
       minor_count: e.minorCount,
+      criteria: e.criteria,
+      ...(e.cognitiveAnalysis ? { cognitive_analysis: e.cognitiveAnalysis } : {}),
       remediations: e.remediationSummary,
     })),
   };

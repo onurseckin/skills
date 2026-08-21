@@ -28,7 +28,6 @@ viewports:
     name: "mobile"
     width: 375
     height: 667
-    isMobile: true
 
 sidebar:
   enabled: ${sidebar.enabled}
@@ -38,13 +37,28 @@ sidebar:
 
 auth:
   defaultUser: "admin"
+  loginUrl: "/login"
+  usernameSelector: 'input[name="email"], input[type="email"]'
+  passwordSelector: 'input[name="password"], input[type="password"]'
+  submitSelector: 'button[type="submit"]'
   tokenHeaderName: "Authorization"
   users:
     admin:
       id: "admin"
       name: "Admin User"
+      email: "admin@example.test"
+      username: "admin"
+      password: "Password123!"
       role: "admin"
       token: "mock-admin-token"
+    user:
+      id: "user"
+      name: "Standard User"
+      email: "user@example.test"
+      username: "user"
+      password: "Password123!"
+      role: "user"
+      token: "mock-user-token"
 
 screens:
   - id: "dashboard"
@@ -74,7 +88,7 @@ export function generateInitialConfigJson(presetName = "standard-dashboard"): st
       desktop: { name: "desktop", width: 1440, height: 900 },
       "desktop-wide": { name: "desktop-wide", width: 1920, height: 1080 },
       tablet: { name: "tablet", width: 768, height: 1024 },
-      mobile: { name: "mobile", width: 375, height: 667, isMobile: true },
+      mobile: { name: "mobile", width: 375, height: 667 },
     },
     sidebar: {
       enabled: sidebar.enabled,
@@ -84,9 +98,30 @@ export function generateInitialConfigJson(presetName = "standard-dashboard"): st
     },
     auth: {
       defaultUser: "admin",
+      loginUrl: "/login",
+      usernameSelector: 'input[name="email"], input[type="email"]',
+      passwordSelector: 'input[name="password"], input[type="password"]',
+      submitSelector: 'button[type="submit"]',
       tokenHeaderName: "Authorization",
       users: {
-        admin: { id: "admin", name: "Admin User", role: "admin", token: "mock-admin-token" },
+        admin: {
+          id: "admin",
+          name: "Admin User",
+          email: "admin@example.test",
+          username: "admin",
+          password: "Password123!",
+          role: "admin",
+          token: "mock-admin-token",
+        },
+        user: {
+          id: "user",
+          name: "Standard User",
+          email: "user@example.test",
+          username: "user",
+          password: "Password123!",
+          role: "user",
+          token: "mock-user-token",
+        },
       },
     },
     screens: [

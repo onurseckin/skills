@@ -18,6 +18,7 @@ export interface MindRotateCommandResult {
   readonly open_candidates_count: number;
   readonly declined_candidates_count: number;
   readonly rotated_at: string;
+  readonly [key: string]: unknown;
 }
 
 export function formatMindRotateBrief(params: {

@@ -134,6 +134,13 @@ export function recordRepositoryInspection(
     ...content,
     inspection_sha256: repositoryInspectionDigest(content),
   } as RepositoryInspection;
+  if (phase === "baseline") {
+    try {
+      return fromState(loaded.state, "baseline");
+    } catch (error) {
+      if (!(error instanceof HarnessError) || error.code !== "INVALID_STATE") throw error;
+    }
+  }
   if (phase === "current") {
     try {
       const previous = fromState(loaded.state, "current");

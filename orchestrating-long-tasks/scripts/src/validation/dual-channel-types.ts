@@ -86,13 +86,42 @@ export interface ScreenshotMetadata {
   readonly taskId?: string;
 }
 
+export interface EvaluatedCriterion {
+  readonly id: string;
+  readonly pillar?: string;
+  readonly name?: string;
+  readonly passed: boolean;
+  readonly details?: string;
+  readonly evidence?: string;
+}
+
+export interface CompanionManifestData {
+  readonly schema?: string;
+  readonly screenId?: string;
+  readonly screenName?: string;
+  readonly path?: string;
+  readonly viewport?: string;
+  readonly dimensions?: {
+    readonly width?: number;
+    readonly height?: number;
+    readonly deviceScaleFactor?: number;
+  };
+  readonly imageFile?: string;
+  readonly imageSizeBytes?: number;
+  readonly imageSha256?: string;
+  readonly criteria?: readonly EvaluatedCriterion[];
+  readonly [key: string]: unknown;
+}
+
 export interface DualChannelInput {
-  readonly taskFiles?: readonly string[];
-  readonly writeScope?: readonly string[];
+  readonly taskFiles?: readonly string[] | undefined;
+  readonly writeScope?: readonly string[] | undefined;
   readonly domReport?: VisualMetricsReport | null | undefined;
   readonly screenshots?: readonly ScreenshotMetadata[] | null | undefined;
-  readonly requiredViewports?: readonly string[];
-  readonly subpixelTolerance?: number;
+  readonly manifests?: readonly (CompanionManifestData | unknown)[] | null | undefined;
+  readonly requiredViewports?: readonly string[] | undefined;
+  readonly subpixelTolerance?: number | undefined;
+  readonly requireSemanticDepth?: boolean | undefined;
 }
 
 export interface CrossChannelProof {
@@ -114,6 +143,13 @@ export interface StructuredFinding {
   readonly category:
     | "missing_channel"
     | "zero_byte_screenshot"
+    | "invalid_screenshot_size"
+    | "missing_manifest"
+    | "invalid_manifest"
+    | "missing_manifest_criteria"
+    | "invalid_manifest_criterion"
+    | "missing_pillar_criteria"
+    | "manifest_criterion_failed"
     | "missing_viewport"
     | "overflow"
     | "clipping"
@@ -121,7 +157,11 @@ export interface StructuredFinding {
     | "contrast"
     | "orphan"
     | "render_cache"
-    | "cross_channel_mismatch";
+    | "cross_channel_mismatch"
+    | "boilerplate_evidence"
+    | "superficial_evidence"
+    | "missing_evidence_metrics"
+    | "superficial_cognitive_feedback";
   readonly message: string;
   readonly affectedSelector?: string;
   readonly viewport?: string;
