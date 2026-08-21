@@ -8,7 +8,10 @@ import { HarnessError } from "../../errors/harness-error.ts";
 import { readPlanObject } from "../../graph/read-plan.ts";
 import { refreshHandoff } from "../../reporting/handoff.ts";
 import { workflowPort } from "../../integration/store-ports.ts";
-import { repositoryGit } from "../../packets/repository-git-command.ts";
+import {
+  repositoryGit,
+  type RepositoryGitCommand,
+} from "../../packets/repository-git-command.ts";
 import { hasRepositoryGitMetadata } from "../../packets/repository-git-metadata.ts";
 import { publishTaskRolePacket } from "../../packets/role-grant.ts";
 import { loadRun } from "../../store/index.ts";
@@ -25,6 +28,7 @@ import { observeChangedFiles } from "../../workflow/submission/observe-changes.t
 import { submitTask } from "../../workflow/submission/submit.ts";
 import type { TaskRecord } from "../../workflow/types.ts";
 import { commitSubphase, recordWorktreeCommit } from "../../workflow/worktree/commit.ts";
+import type { GitRunner } from "../../workflow/worktree/git.ts";
 import { findAssignedWorktree, readWorktreeLedger } from "../../workflow/worktree/ledger.ts";
 import {
   formatTaskClaimBrief,
@@ -32,13 +36,21 @@ import {
   formatTaskSubmitBrief,
 } from "../formatters/index.ts";
 import { probeAgentTelemetry, withHostTelemetryConflicts } from "../host-telemetry-probe.ts";
-import { boolFlag, integerFlag, listFlag, textFlag, type Flags } from "../options.ts";
+import {
+  boolFlag,
+  integerFlag,
+  listFlag,
+  textFlag,
+  type CommandContext,
+  type Flags,
+} from "../options.ts";
 
 function commitSubphaseIfAssigned(
   run: string,
   agent: string,
   taskId: string,
   task: TaskRecord,
+  runner?: GitRunner,
 ): { warning?: string } {
   const repoRoot = resolve(run, "..", "..");
   const config = getHarnessConfig(repoRoot, run);
@@ -56,6 +68,7 @@ function commitSubphaseIfAssigned(
     label,
     commitType: "chore",
     maxCommitLines: config.max_commit_lines,
+    ...(runner === undefined ? {} : { runner }),
   });
   if (outcome.committed && outcome.commit) {
     recordWorktreeCommit(run, agent, taskId, outcome.commit);
@@ -82,10 +95,13 @@ function writeScopeHashBase(run: string, taskId: string, repoRoot: string): stri
 
 const CLAIMED_BASE_SHA_MAX_BYTES = 1024;
 
-function claimedBaseShaAt(repoRoot: string): Evidenced<string> | undefined {
+function claimedBaseShaAt(
+  repoRoot: string,
+  gitCommand: RepositoryGitCommand = repositoryGit,
+): Evidenced<string> | undefined {
   if (!hasRepositoryGitMetadata(repoRoot)) return undefined;
   try {
-    const result = repositoryGit(
+    const result = gitCommand(
       repoRoot,
       ["rev-parse", "--verify", "-q", "HEAD"],
       CLAIMED_BASE_SHA_MAX_BYTES,
@@ -116,7 +132,10 @@ function probeAtTaskBoundary(
   return refreshed?.conflicts === undefined ? [] : [...refreshed.conflicts];
 }
 
-export async function taskClaimCommand(flags: Flags): Promise<Record<string, unknown>> {
+export async function taskClaimCommand(
+  flags: Flags,
+  context: CommandContext & { repositoryGitCommand?: RepositoryGitCommand } = {},
+): Promise<Record<string, unknown>> {
   const run = textFlag(flags, "run")!;
   const taskId = textFlag(flags, "task")!;
   const agent = textFlag(flags, "agent")!;
@@ -136,7 +155,7 @@ export async function taskClaimCommand(flags: Flags): Promise<Record<string, unk
         "harness_observed",
       )
     : undefined;
-  const claimedBaseSha = claimedBaseShaAt(repoRoot);
+  const claimedBaseSha = claimedBaseShaAt(repoRoot, context.repositoryGitCommand);
 
   const result = claimTask(workflowPort(run), taskId, agent, role, {
     ...(leaseSeconds === undefined ? {} : { leaseSeconds }),
@@ -210,7 +229,10 @@ export function taskHeartbeatCommand(flags: Flags): Record<string, unknown> {
   return { markdown, run_root: run, task };
 }
 
-export async function taskSubmitCommand(flags: Flags): Promise<Record<string, unknown>> {
+export async function taskSubmitCommand(
+  flags: Flags,
+  context: CommandContext & { worktreeGitRunner?: GitRunner } = {},
+): Promise<Record<string, unknown>> {
   const run = textFlag(flags, "run")!;
   const taskId = textFlag(flags, "task")!;
   const agent = textFlag(flags, "agent")!;
@@ -277,7 +299,9 @@ export async function taskSubmitCommand(flags: Flags): Promise<Record<string, un
   const reportPath = `${run}/reports/${taskId}-submission.json`;
   const recordedReport = task.report ?? reportPayload;
 
-  const worktreeCommit = result.orphaned ? {} : commitSubphaseIfAssigned(run, agent, taskId, task);
+  const worktreeCommit = result.orphaned
+    ? {}
+    : commitSubphaseIfAssigned(run, agent, taskId, task, context.worktreeGitRunner);
 
   const reportsDir = join(loaded.runRoot, "reports");
   mkdirSync(reportsDir, { recursive: true });

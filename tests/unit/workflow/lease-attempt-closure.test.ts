@@ -128,4 +128,31 @@ describe("abandonAttempt", () => {
       abandonAttempt(port, "T-1", "supervisor", "second reason", at("2026-08-19T00:01:00.000Z")),
     ).toThrow("no open attempt");
   });
+
+  test("interrupts open validations and returns a validating task straight to submitted", () => {
+    const state = workflowState();
+    Object.assign(state.tasks["T-1"]!, {
+      status: "validating",
+      validations: [
+        {
+          validator_id: "validator-1",
+          domain: "code-quality",
+          token_digest: "digest",
+          attempt: 1,
+          started_at: start.now().toISOString(),
+          deadline_at: "2026-08-19T00:05:00.000Z",
+        },
+      ],
+    });
+    const port = new TestPort(state);
+    const result = abandonAttempt(port, "T-1", "coordinator", "requirement dropped", start);
+    const task = result.tasks["T-1"]!;
+    expect(task.status).toBe("submitted");
+    expect(task.validations).toBeUndefined();
+    expect(task.history.at(-1)).toMatchObject({
+      from: "validating",
+      to: "submitted",
+      reason: "validation abandoned: requirement dropped",
+    });
+  });
 });

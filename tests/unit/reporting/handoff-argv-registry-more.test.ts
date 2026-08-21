@@ -11,6 +11,15 @@ import { initRun, transact } from "../../../orchestrating-long-tasks/scripts/src
 import { commandRecord } from "../workflow/test-port.ts";
 import { dispatchFailures, handoffArgv } from "./dispatchable.ts";
 import { STATUSES } from "./handoff-statuses.ts";
+import {
+  argvForShape,
+  argvForStatus,
+  capsule,
+  preplanCapsule,
+  roots,
+  SHAPES,
+  sharedRoots,
+} from "./handoff-argv-registry.test.ts";
 
 const REPORTING = fileURLToPath(
   new URL("../../../orchestrating-long-tasks/scripts/src/reporting/", import.meta.url),

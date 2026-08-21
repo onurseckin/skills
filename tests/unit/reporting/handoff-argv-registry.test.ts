@@ -106,7 +106,7 @@ describe("every command the restart document can name", () => {
   });
 });
 
-const roots: string[] = [];
+export const roots: string[] = [];
 
 afterEach(async () =>
   Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true }))),
@@ -116,7 +116,7 @@ afterEach(async () =>
  * that each need its rendered argv: the fixtures are read-only after construction, so rebuilding
  * one per consumer would triple the real disk I/O for no behavioural difference. Torn down once,
  * after every consumer has had its turn. */
-const sharedRoots: string[] = [];
+export const sharedRoots: string[] = [];
 
 afterAll(async () =>
   Promise.all(sharedRoots.splice(0).map((root) => rm(root, { recursive: true, force: true }))),
@@ -207,74 +207,76 @@ const COMPLETION_REVIEW = {
   review_sha256: "c".repeat(64),
 };
 
-/** A critic whose window is still open: an expired one is stale evidence, and a run with stale
- * evidence is handed `recover` and nothing else, which is a different document entirely. */
-const critic = (status: string) => ({
+const critic = (status: "assigned" | "reviewed") => ({
   critic_id: "critic-1",
-  attempt: 1,
-  status,
+  packet_id: "P-critic",
   started_at: "2026-08-13T12:00:00.000Z",
   deadline_at: ahead(),
+  status: status === "assigned" ? ("packet_published" as const) : ("review_recorded" as const),
+  token_digest: "a".repeat(64),
   readiness_sha256: "a".repeat(64),
-  repository_binding: structuredClone(REPOSITORY_BINDING),
+  repository_binding: REPOSITORY_BINDING,
+  attempt: 1,
 });
 
-function task(status: string): Record<string, unknown> {
-  return {
-    id: "task-1",
-    status,
-    requirement_ids: ["R-1"],
-    dependencies: [],
-    write_scope: ["src/**"],
-    attempts: [],
-    history: [],
-    repair_round: 0,
-    probe_round: 0,
-    ...(HELD.has(status)
-      ? { lease: { agent_id: "worker-1", role: "implementer", attempt: 1, expires_at: ahead() } }
-      : {}),
-    ...(status === "validating"
-      ? {
-          validations: [
-            { validator_id: "val-1", domain: "code-quality", attempt: 1, deadline_at: ahead() },
-          ],
-        }
-      : {}),
-  };
-}
-
-/**
- * A capsule holding one task in the given status, with a branch, a grant, both gate scopes and a
- * topology in place, so the document has every section's worth of argv to print rather than the
- * subset a bare capsule reaches. `mutate` shapes the parts a status alone cannot reach.
- */
-async function capsule(
+export async function capsule(
   name: string,
   status: string,
   mutate: (state: RunState) => void = () => {},
   sink: string[] = roots,
-) {
+): Promise<string> {
   const repo = await mkdtemp(join(tmpdir(), `harness-argv-${name}-`));
   sink.push(repo);
-  const run = initRun(
-    repo,
-    `argv-${name}`,
-    new TextEncoder().encode("Ship the parser"),
-    "file",
-    true,
-  );
+  const run = initRun(repo, `argv-${name}`, new TextEncoder().encode("Ship it"), "file", true);
   transact(run, "planner", "plan-applied", {}, (state: RunState) => {
-    state.graph = {
-      revision: 1,
-      gates: [structuredClone(TASK_GATE), structuredClone(RUN_GATE)],
-    };
-    state.requirements = {
-      requirements: [{ id: "R-1", disposition: "actionable", status: "planned", evidence: [] }],
-    };
-    state.tasks = { "task-1": task(status) };
-    state.branches = [structuredClone(BRANCH)];
-    state.agents = [structuredClone(AGENT)];
     state.topology = structuredClone(TOPOLOGY);
+    state.graph = { revision: 1, gates: [TASK_GATE, RUN_GATE] };
+    state.requirements = { requirements: [{ id: "R-1", text: "Ship it" }] };
+    state.agents = [structuredClone(AGENT)];
+    state.tasks = {
+      "task-1": {
+        id: "task-1",
+        label: "Fix the parser",
+        requirement_ids: ["R-1"],
+        status: status as unknown,
+        priority: 50,
+        probe_round: 0,
+        repair_round: 0,
+        write_scope: ["src/parser"],
+        validation_history: [],
+        history: [],
+        ...(HELD.has(status)
+          ? {
+              lease: {
+                agent_id: "worker-1",
+                role: "implementer",
+                token_digest: "a".repeat(64),
+                write_scope: ["src/parser"],
+                resource_scope: [],
+                issued_at: "2026-08-13T12:00:00.000Z",
+                heartbeat_at: "2026-08-13T12:00:00.000Z",
+                expires_at: ahead(),
+                attempt: 1,
+                duration_seconds: 1200,
+              },
+            }
+          : {}),
+        ...(status === "validating"
+          ? {
+              validations: [
+                {
+                  validator_id: "val-1",
+                  domain: "code-quality",
+                  token_digest: "b".repeat(64),
+                  started_at: "2026-08-13T12:00:00.000Z",
+                  deadline_at: ahead(),
+                  attempt: 1,
+                },
+              ],
+            }
+          : {}),
+      },
+    };
     mutate(state);
   });
   return run;
@@ -288,7 +290,7 @@ const runGate = () =>
 
 /** The shapes a status alone does not reach: an unclaimed branch, a collectable one, and each stop
  * on the way from "every task is done" to a sealed capsule. */
-const SHAPES: [name: string, status: string, mutate: (state: RunState) => void][] = [
+export const SHAPES: [name: string, status: string, mutate: (state: RunState) => void][] = [
   [
     "branch-unclaimed",
     "branched",
@@ -300,6 +302,27 @@ const SHAPES: [name: string, status: string, mutate: (state: RunState) => void][
           ...structuredClone(BRANCH),
           sub_tasks: [
             { id: "S-1", label: "Fix the parser", write_scope: ["src/parser"], status: "open" },
+          ],
+        },
+      ];
+    },
+  ],
+  [
+    "branch-claimed",
+    "branched",
+    (state) => {
+      state.branches = [
+        {
+          ...structuredClone(BRANCH),
+          status: "open",
+          sub_tasks: [
+            {
+              id: "S-1",
+              label: "Fix the parser",
+              write_scope: ["src/parser"],
+              status: "claimed",
+              agent_id: "sub-1",
+            },
           ],
         },
       ];
@@ -364,7 +387,7 @@ const SHAPES: [name: string, status: string, mutate: (state: RunState) => void][
 ];
 
 /** A capsule that was initialised and never compiled: the path `renderPreplanHandoff` serves. */
-async function preplanCapsule(name: string, sink: string[] = roots): Promise<string> {
+export async function preplanCapsule(name: string, sink: string[] = roots): Promise<string> {
   const repo = await mkdtemp(join(tmpdir(), `harness-argv-preplan-${name}-`));
   sink.push(repo);
   return initRun(repo, `argv-preplan-${name}`, new TextEncoder().encode("Ship it"), "file", true);
@@ -376,7 +399,7 @@ async function preplanCapsule(name: string, sink: string[] = roots): Promise<str
 const statusArgv = new Map<string, string[][]>();
 const shapeArgv = new Map<string, string[][]>();
 
-async function argvForStatus(status: string): Promise<string[][]> {
+export async function argvForStatus(status: string): Promise<string[][]> {
   const cached = statusArgv.get(status);
   if (cached !== undefined) return cached;
   const argv = handoffArgv(renderHandoff(await capsule(status, status, () => {}, sharedRoots)));
@@ -384,7 +407,7 @@ async function argvForStatus(status: string): Promise<string[][]> {
   return argv;
 }
 
-async function argvForShape(
+export async function argvForShape(
   name: string,
   status: string,
   mutate: (state: RunState) => void,

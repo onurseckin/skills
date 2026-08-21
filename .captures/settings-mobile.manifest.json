@@ -12,7 +12,7 @@
   "imageFile": "settings-mobile.png",
   "imageSizeBytes": 67,
   "imageSha256": "546436b1b7e7da79f6b5eaed377d10c869faae8417760a49cc6daa2bbcc036aa",
-  "capturedAt": "2026-08-21T09:49:41.652Z",
+  "capturedAt": "2026-08-21T09:52:27.510Z",
   "authRole": "admin",
   "physics": {
     "viewport": {
@@ -27,7 +27,7 @@
     "elements": [],
     "layoutOverflows": [],
     "textClippings": [],
-    "capturedAt": "2026-08-21T09:49:41.652Z"
+    "capturedAt": "2026-08-21T09:52:27.510Z"
   },
   "url": "http://localhost:3000/settings"
 }

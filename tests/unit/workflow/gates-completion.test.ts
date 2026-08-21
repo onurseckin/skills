@@ -43,6 +43,68 @@ describe("gates and completion", () => {
     expect(port.read().tasks["T-1"]!.status).toBe("validated");
   });
 
+  test("refuses to finish a task that is not validated or gating", () => {
+    const port = new TestPort(workflowState());
+    expect(() => finishTask(port, "T-1", "coordinator", clock)).toThrow(
+      /only validated or gating tasks can finish/,
+    );
+  });
+
+  test("refuses to finish a validated task with no passing review and report", () => {
+    const state = workflowState();
+    state.tasks["T-1"]!.status = "validated";
+    const port = new TestPort(state);
+    expect(() => finishTask(port, "T-1", "coordinator", clock)).toThrow(
+      /task lacks a passing review and report/,
+    );
+  });
+
+  test("refuses to finish a task carrying an open finding", () => {
+    const port = validatedPort();
+    attachGateResult(port, "T-1", "G-1", "C-1", "coordinator", clock);
+    const state = port.read();
+    state.tasks["T-1"]!.findings = [
+      {
+        id: "F-1",
+        requirement_id: "R-1",
+        severity: "important",
+        observation: "bug",
+        evidence: [{ path: "a" }],
+        remediation: "fix",
+        revalidation: "test",
+        status: "open",
+      },
+    ];
+    const dirty = new TestPort(state);
+    expect(() => finishTask(dirty, "T-1", "coordinator", clock)).toThrow(
+      /task has open findings/,
+    );
+  });
+
+  test("promotes a dependent proposed task to ready once its dependency finishes", () => {
+    const port = validatedPort();
+    attachGateResult(port, "T-1", "G-1", "C-1", "coordinator", clock);
+    port.transact("test", "add-dependent", {}, (state) => {
+      state.tasks["T-2"] = {
+        id: "T-2",
+        status: "proposed",
+        requirement_ids: ["R-1"],
+        write_scope: ["src/owned-2"],
+        dependencies: ["T-1"],
+        attempts: [],
+        history: [],
+        repair_round: 0,
+      };
+    });
+    const done = finishTask(port, "T-1", "coordinator", clock);
+    expect(done.tasks["T-2"]!.status).toBe("ready");
+    expect(done.tasks["T-2"]!.history.at(-1)).toMatchObject({
+      from: "proposed",
+      to: "ready",
+      reason: "dependencies satisfied",
+    });
+  });
+
   test("binds a successful matching command and finishes mechanically", () => {
     const port = validatedPort();
     const gated = attachGateResult(port, "T-1", "G-1", "C-1", "coordinator", clock);
@@ -200,6 +262,13 @@ describe("gates and completion", () => {
     expect(done.requirements[0]!.evidence).toEqual(["task:T-1"]);
   });
 
+  test("refuses to attach a gate result to a task that is not validated or gating", () => {
+    const port = new TestPort(workflowState());
+    expect(() => attachGateResult(port, "T-1", "G-1", "C-1", "coordinator", clock)).toThrow(
+      /task must be validated before gating/,
+    );
+  });
+
   test("rejects mismatched, failed, and conflicting gate records", () => {
     const port = validatedPort();
     const state = port.read();
@@ -208,6 +277,17 @@ describe("gates and completion", () => {
     expect(() => attachGateResult(bad, "T-1", "G-1", "C-1", "coordinator", clock)).toThrow();
     attachGateResult(port, "T-1", "G-1", "C-1", "coordinator", clock);
     expect(() => attachGateResult(port, "T-1", "G-1", "missing", "coordinator", clock)).toThrow();
+  });
+
+  test("refuses to overwrite an already-attached gate result with a different command", () => {
+    const port = validatedPort();
+    attachGateResult(port, "T-1", "G-1", "C-1", "coordinator", clock);
+    const state = port.read();
+    state.commands["C-2"] = commandRecord("C-2", { task_id: "T-1", gate_id: "G-1" });
+    const dirty = new TestPort(state);
+    expect(() => attachGateResult(dirty, "T-1", "G-1", "C-2", "coordinator", clock)).toThrow(
+      /gate result cannot be overwritten/,
+    );
   });
 
   test("completion reports unfinished, open, live, and unsatisfied state", () => {
