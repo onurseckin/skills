@@ -18,6 +18,7 @@ import { runDoctor } from "../../reporting/doctor.ts";
 import { installedRuntimeFreshness } from "../../installer/runtime-freshness.ts";
 import { validateSkillSource } from "../../installer/source-validation.ts";
 import { getHarnessConfig } from "../../config/harness-config.ts";
+import { resolveCharterPath } from "../charter.ts";
 import { writeLastPulse } from "../last-pulse.ts";
 
 export interface RescueLaneOptions {
@@ -204,7 +205,10 @@ export async function executeRescueLane(
     typeof charterRecord.source_path === "string"
       ? charterRecord.source_path
       : "docs/mind/CHARTER.md";
-  const charterFullPath = resolve(repoRoot, charterSourceRel);
+  const charterRepoRoots = Array.isArray(charterRecord.repo_roots)
+    ? (charterRecord.repo_roots.filter((r): r is string => typeof r === "string"))
+    : undefined;
+  const charterFullPath = resolveCharterPath(repoRoot, charterSourceRel, charterRepoRoots);
 
   let charterStatus: "ok" | "DRIFTED" | "missing" = "missing";
   let charterSha: string | null = null;

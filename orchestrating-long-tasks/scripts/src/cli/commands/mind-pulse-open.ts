@@ -4,7 +4,7 @@ import { dirname, resolve } from "node:path";
 import type { JsonObject } from "../../contracts/json.ts";
 import { HarnessError } from "../../errors/harness-error.ts";
 import { checkDailyBudget, parseNowMs, rollDayKeyIfNeeded } from "../../mind/budget.ts";
-import { DEFAULT_MIND_BUDGET } from "../../mind/charter.ts";
+import { DEFAULT_MIND_BUDGET, resolveCharterPath } from "../../mind/charter.ts";
 import { loadRun } from "../../store/load.ts";
 import { transact } from "../../store/transaction.ts";
 import { findGrant, readAgentLedger } from "../../workflow/agents/ledger.ts";
@@ -116,7 +116,10 @@ export function mindPulseOpenCommand(
   const charterRecord = (mindState.charter ?? {}) as Record<string, unknown>;
   const charterSourceRel =
     typeof charterRecord.source_path === "string" ? charterRecord.source_path : "docs/mind/CHARTER.md";
-  const charterFullPath = resolve(repoRoot, charterSourceRel);
+  const charterRepoRoots = Array.isArray(charterRecord.repo_roots)
+    ? (charterRecord.repo_roots.filter((r): r is string => typeof r === "string"))
+    : undefined;
+  const charterFullPath = resolveCharterPath(repoRoot, charterSourceRel, charterRepoRoots);
 
   if (!existsSync(charterFullPath) || !lstatSync(charterFullPath).isFile()) {
     throw new HarnessError(

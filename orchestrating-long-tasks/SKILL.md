@@ -9,72 +9,48 @@ Turn a large prompt into a durable, graph-scheduled, independently validated run
 coordination lives under `.capsules/<run>/`, so any supported host — Claude Code, Antigravity, Codex
 or ChatGPT coding agents — can resume the run without conversation history.
 
-**This file is an index, not a manual.** It carries the rules that bind every agent, then routes you
-to the one document your current job needs. Read your row; skip the rest. Nothing here summarises a
-document that exists — a summary is a second copy with a shorter half-life.
+**This file is an index, not a manual.** It binds every agent, then routes you to the document your current job needs.
 
 ## Primary entry point: `orchestrate`
 
 Reach for `orchestrate` before assembling this sequence by hand: everything after the command name
-is the prompt, byte for byte, no flags to learn — a bare piped stdin is read automatically too
-(`--prompt-stdin`/`--prompt-file` still work for a caller that also needs `--repo`/`--run`). It opens
-the capsule and hands back one fixed step: register and dispatch a Tier 1 orchestrator; everything
-after — enhance, stage, compile, dispatch — is its job. Stand down the host's own todo/workflow tool.
+is the prompt, byte for byte, no flags to learn — bare piped stdin is read automatically too
+(`--prompt-stdin`/`--prompt-file` still work for `--repo`/`--run`). It opens the capsule and hands back
+one fixed step: register and dispatch a Tier 1 orchestrator; everything after is its job. Stand down host todo tools.
 
 ## Why the harness exists
 
-- **Observability over every step.** Every action is a recorded command with an actor, an exit code and an evidence class, so a run is auditable instead of merely remembered.
-- **Quality through gating.** Work is independently validated, adversarially probed, and held to real command evidence before it can be called done.
-- **Attention on the problem.** The CLI absorbs the bookkeeping — leases, waves, findings, lineage — so the model spends its context on the actual decisions.
-- **Commands, not conversation.** Agents call harness commands the way code calls an API — deterministic, recorded, replayable.
-- **The harness never thinks.** It orchestrates and records — never a model call, never an LLM CLI — and reasoning happens host-side, under the user's own subscription, with every host tool allowed.
-- **No agent needs the whole skill.** Only the slice its current job requires, which is what the routing tables below are for.
+- **Observability over every step.** Every action is a recorded command with an actor, exit code, and evidence class.
+- **Quality through gating.** Work is independently validated, adversarially probed, and held to real command evidence.
+- **Attention on the problem.** The CLI absorbs bookkeeping — leases, waves, findings, lineage — for maximum focus.
+- **Commands, not conversation.** Agents call harness commands the way code calls an API — deterministic and replayable.
+- **The harness never thinks.** It orchestrates and records; reasoning happens host-side with every host tool allowed.
+- **No agent needs the whole skill.** Only the slice its current job requires, via the routing tables below.
 
 ## When to use
 
-Use this skill when the prompt carries many instructions, files, phases or acceptance criteria; when
-two or more lanes can run concurrently; when the work needs adversarial review, repair loops or
-mandatory gates; when it may outlive one context window, process or client; when repository changes
-must be isolated among agents; or when hangs and stale workers need deterministic recovery.
-
-Do not create a harness for a simple answer, a one-file mechanical edit, or a short diagnostic one
-agent can finish and verify directly.
+Use when the prompt carries many instructions, files, phases or criteria; when lanes run concurrently;
+when work needs adversarial review, repair loops or mandatory gates; or when stale workers need recovery.
+Do not create a harness for a simple answer, one-file mechanical edit, or short single-agent diagnostic.
 
 ## Hard rules
 
 1. Preserve the user's complete prompt as immutable bytes before summarizing or planning it.
 2. Never treat agent prose as authoritative state or proof.
-3. Never let an implementer validate its own work or feed its report into a validator packet, and
-   never dispatch an implementer without its paired independent validator, eligible the instant that
-   implementer submits — the Triad Floor and the pairing invariant are specified in
-   [`references/protocol.md`](references/protocol.md).
-4. Never dispatch overlapping write scopes in parallel.
-5. Never mutate a run with an unauthenticated external tool; every mutation goes through the harness CLI.
-6. Never call a model API or launch an LLM CLI. Dispatch only through the host's native subagent mechanism (Antigravity: `invoke_subagent`, Claude Code: `Agent`, Codex: `spawn_agent`, Cursor: `Task`). The Coordinator MUST dispatch Tier 3 implementers and validators via these native tools and is STRICTLY FORBIDDEN from editing code or implementing tasks itself.
-7. Never announce completion while the runtime reports a blocker.
-8. Never present an invented value as a fact. A value nobody measured or reported is absent, and
-   absent renders as "unknown". An estimate carries `evidence_class: "derived"` and `is_estimated: true`.
-9. Describe mandatory gate evidence only as `trusted_host_observed_v1` — never as hermetic, sealed, sandboxed or reproducible. The restricted Git seam, and what repository discovery rejects before status, are specified in [`references/protocol.md`](references/protocol.md).
-10. Scope a task's `--gate` to the tests covering that task's write scope, and have its validator run
-    that gate rather than the suite. The whole-suite run is `plan:compile --completion-gate`, and it
-    runs once, at the completion barrier. A repair round re-runs the task's gate plus any gate whose
-    scope the repair touched — never everything.
-11. Dispatch width is a workload property, not a fixed number. Reasoning (planning, review, doc work)
-    waits on the provider and costs the host almost nothing, so go wide, up to `default_max_parallel`
-    (the host's own discovered ceiling, never a number assumed higher than what it published). Running
-    a mandatory gate is local-CPU-bound, so throttle concurrently-gating agents to the separate, lower
-    `gate_max_parallel` instead — `run:status` reports both. Full rationale and defaults:
-    [`references/configuration.md`](references/configuration.md).
+3. Never let an implementer validate its own work or feed its report into a validator packet (Triad Floor in [`references/protocol.md`](references/protocol.md)).
+4. Never dispatch overlapping write scopes in parallel. Never mutate a run without the authenticated harness CLI.
+5. Never call a model API or launch an LLM CLI. The Coordinator MUST dispatch Tier 3 implementers and validators via host native subagents (Antigravity: `invoke_subagent`, Claude Code: `Agent`, Codex: `spawn_agent`, Cursor: `Task`) using parallel batch arrays (`Subagents: [...]`) and is STRICTLY FORBIDDEN from editing code, running test loops, or implementing tasks directly on the main thread.
+6. Never announce completion while the runtime reports a blocker. Never invent values (absent is "unknown").
+7. Describe mandatory gate evidence only as `trusted_host_observed_v1`. Scope task `--gate` to touched files.
+8. Enforce 4-Tier Viewport Resolution Matrix for UI tasks: Desktop-Wide (1920x1080), Desktop (1440x900), Tablet (768x1024), Mobile (390x844). Omitting desktop-wide resolution is a mandatory rejection.
+9. Require quantitative proofs over superficial prose: exit codes, DOM metrics, APCA Lc, screenshots (>=1024B) under `--require-semantic-depth`.
+10. Maintain continuous non-stop loops: auto-chain phases without human intervention; use host timers/schedules (`schedule`) and `pulse.sh` floor loops (`|| true`).
+11. Repository root `.capsules/` invariant: capsules MUST ALWAYS live at the active Git repo root (`<repo-root>/.capsules/`).
+12. Throttle CPU gates to `gate_max_parallel`; reasoners scale to `default_max_parallel` ([`references/configuration.md`](references/configuration.md)).
 
 ## Route by role
 
-Every agent holds exactly one role, and `roles/<role>.md` is its binding contract: what it `may` do,
-what it `must_not` do, the exact commands it may invoke, and the roles it may branch into.
-`task:claim --role` is checked against it — `implementer` for a ready or retry-ready task, `repairer`
-for one in `changes_requested` — and a mismatch is refused.
-
-Load your contract, your persona, and the reference in your row. **The "Never read" column is not
-advice; it is the reason this table exists.**
+Every agent holds exactly one role; `roles/<role>.md` is its binding contract. Load your contract, persona, and reference.
 
 | Role (tier)               | Contract + persona                                                                                            | Read for the job                                                                               | Never read                                                                  |
 | :------------------------ | :------------------------------------------------------------------------------------------------------------ | :--------------------------------------------------------------------------------------------- | :-------------------------------------------------------------------------- |
@@ -92,58 +68,33 @@ advice; it is the reason this table exists.**
 | `sub-validator` (3)       | [roles/sub-validator.md](roles/sub-validator.md)                                                              | Playbook Phase 4 only                                                                          | Verdict commands — it gathers evidence and issues no verdict                |
 | `sub-investigator` (3)    | [roles/sub-investigator.md](roles/sub-investigator.md)                                                        | Playbook Phase 4 only                                                                          | Anything that mutates; it reproduces, bisects and reports                   |
 
-[agents/openai.yaml](agents/openai.yaml) is the Codex/ChatGPT profile.
-A validator dispatched with `--validator-domain` carries one of five standing-checklist contracts
-instead of the base one — [roles/validator-code-quality.md](roles/validator-code-quality.md),
-[roles/validator-product.md](roles/validator-product.md),
-[roles/validator-security.md](roles/validator-security.md),
-[roles/validator-system-design.md](roles/validator-system-design.md),
-[roles/validator-ui-design.md](roles/validator-ui-design.md) — chosen by the task's write scope
-(B12). Role, tier and commands stay `validator`; only the prose and checklist differ.
+[agents/openai.yaml](agents/openai.yaml) is the Codex/ChatGPT profile. Validator domain contracts:
+[roles/validator-code-quality.md](roles/validator-code-quality.md), [roles/validator-product.md](roles/validator-product.md), [roles/validator-security.md](roles/validator-security.md), [roles/validator-system-design.md](roles/validator-system-design.md), [roles/validator-ui-design.md](roles/validator-ui-design.md) (B12).
 
-## Route by phase
+## Route by phase & references
 
-Full command sequences: [`references/run-playbook.md`](references/run-playbook.md). The rules each
-phase enforces: [`references/protocol.md`](references/protocol.md).
+Command sequences: [`references/run-playbook.md`](references/run-playbook.md); rules: [`references/protocol.md`](references/protocol.md).
+- **Plan**: `plan:init`, `plan:enhance`, `plan:add` (use `--auto-partition <glob>`, [`references/topology-exemplar.md`](references/topology-exemplar.md)), `plan:compile`, [`references/schema-examples.md`](references/schema-examples.md).
+- **Dispatch**: `queue:wave`, `agent:register`, [`references/host-adapters.md`](references/host-adapters.md).
+- **Execute**: `task:claim`, `run:exec`, `task:submit`, `task:release`, [`references/parity-matrix.md`](references/parity-matrix.md).
+- **Branch**: `branch:open`, `branch:claim`, `branch:submit`, `branch:collect`, [`references/state-model.md`](references/state-model.md).
+- **Validate**: `task:validate-start`, `task:probe`, `task:reject`, `task:review`, [`references/failure-modes.md`](references/failure-modes.md).
+- **Replan & Seal**: `critic:reject`, `plan:replan`, `critic:start`, `critic:review`, `run:complete`.
+- **Recover & Inspect**: `recover`, `doctor`, `summary:export`, `summary:view`, [`references/cli.md`](references/cli.md), [`references/cli-capabilities.md`](references/cli-capabilities.md) ([`references/cli-capabilities.json`](references/cli-capabilities.json)).
 
-| Phase                       | Commands                                                          | Read before acting                                                    |
-| :-------------------------- | :---------------------------------------------------------------- | :-------------------------------------------------------------------- |
-| Capture, enhance, plan      | `plan:init`, `plan:enhance`, `plan:add`, `plan:compile`           | Playbook Phase 1, [schema-examples.md](references/schema-examples.md) |
-| Dispatch continuously       | `queue:wave`, `agent:register`                                    | Playbook Phase 2, [host-adapters.md](references/host-adapters.md)     |
-| Implement                   | `task:claim`, `run:exec`, `task:submit`, `task:release`           | Playbook Phase 3 + your role contract                                 |
-| Subdivide at execution time | `branch:open`, `branch:claim`, `branch:submit`, `branch:collect`  | Playbook Phase 4, [state-model.md](references/state-model.md)         |
-| Validate                    | `task:validate-start`, `task:probe`, `task:reject`, `task:review` | Playbook Phase 5, [agents/validator.yaml](agents/validator.yaml)      |
-| Replan after findings       | `critic:reject`, `plan:replan`                                    | [protocol.md](references/protocol.md) fan-back section                |
-| Seal                        | `critic:start`, `critic:review`, `run:complete`                   | Playbook Phase 6                                                      |
-| Recover, report             | `recover`, `doctor`, `summary:export`, `summary:view`             | Playbook Phase 7, [failure-modes.md](references/failure-modes.md)     |
+## Critical Anti-Patterns & Operational Guardrails
 
-**Give the planner the topology, don't ask for it.** Rejected: 3 nodes, 1 real lane. Compiled: 14 nodes, 12 independent roots. `plan:add --auto-partition <glob>` derives that split from files actually on disk instead of a coordinator inventing granularity; `plan:compile` then refuses to seal any dependency edge lacking its own `--dep-reason`. Matched pair and full walkthrough: [`references/topology-exemplar.md`](references/topology-exemplar.md).
-
-## Reference index
-
-- [`references/cli-capabilities.md`](references/cli-capabilities.md) — **the** command reference: every
-  command, flag, stdin rule, exit code and example, generated from the command registry.
-  [`references/cli-capabilities.json`](references/cli-capabilities.json) is the same manifest as data.
-- [`references/cli.md`](references/cli.md) — how to reach that manifest, and the shared conventions.
-- [`references/run-playbook.md`](references/run-playbook.md) — the phases in order, with each command sequence.
-- [`references/protocol.md`](references/protocol.md) — non-negotiable invariants, the evidence spine,
-  the lifecycle, tiered dispatch and the pairing invariant, gate grammar, state transitions.
-- [`references/state-model.md`](references/state-model.md) — run directory, task states, lease
-  suspension, and the branch, agent, topology and planning ledgers.
-- [`references/host-adapters.md`](references/host-adapters.md) — main-thread isolation, per-host dispatch, recovery.
-- [`references/failure-modes.md`](references/failure-modes.md) — the failure taxonomy, and the countermeasure for each.
-- [`references/parity-matrix.md`](references/parity-matrix.md) — what each host provides, and what stays absent.
-- [`references/schema-examples.md`](references/schema-examples.md) — canonical shapes for
-  requirements, graphs, submissions, findings, reviews, branches, grants, topology and plans.
-- [`references/configuration.md`](references/configuration.md) — `harness.config.json` keys, defaults, and bounds.
+- **Main-Thread Fallback**: Never edit files or run tests on main thread. Main thread only dispatches parallel Tier 3 subagents.
+- **Viewport Omission**: Never test single viewport. Visual UI tasks require all 4: Desktop-Wide (1920x1080), Desktop (1440x900), Tablet (768x1024), Mobile (390x844).
+- **Superficial Audits**: Never pass on qualitative praise. Reviews require quantitative metrics, APCA Lc, and screenshots (>=1024B).
+- **Scheduler Halts**: Never stop between phases. Maintain continuous autonomous pulses via schedules/crons and floor loops.
+- **Nested Capsules**: Never nest `.capsules/` in subdirectories; always anchor to local repo root `<repo-root>/.capsules/`.
 
 ## Before writing any command
 
-Check the flag exists in [`references/cli-capabilities.json`](references/cli-capabilities.json), or
-ask the harness live:
+Check flags in [`references/cli-capabilities.json`](references/cli-capabilities.json) or ask the harness live:
 
 ```bash
 bun orchestrating-long-tasks/scripts/harness.ts help <command>
 ```
-
-A flag that is not in the registry does not exist, however plausible it reads. A command refused with an error code explains itself: `explain --code <CODE>` (add `--command <name>` to narrow it) instead of reading harness source.
+Explain errors: `explain --code <CODE>` (or `--command <name>`).

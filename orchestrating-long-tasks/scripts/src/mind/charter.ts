@@ -1,4 +1,6 @@
 import { createHash } from "node:crypto";
+import { existsSync, lstatSync } from "node:fs";
+import { resolve } from "node:path";
 import { HarnessError } from "../errors/harness-error.ts";
 
 export interface CharterGoal {
@@ -346,4 +348,23 @@ export function parseCharter(markdown: string): ParsedCharter {
     rawText: markdown,
     sha256,
   };
+}
+
+export function resolveCharterPath(
+  repoRoot: string,
+  charterSourceRel: string,
+  charterRepoRoots?: readonly string[],
+): string {
+  const candidates = [
+    resolve(repoRoot, charterSourceRel),
+    ...(charterRepoRoots ? charterRepoRoots.map((r) => resolve(r, charterSourceRel)) : []),
+    resolve(repoRoot, charterSourceRel.replace(/^(\.\.\/)+/, "")),
+    resolve(repoRoot, "docs", charterSourceRel.split("/").pop() ?? ""),
+  ];
+  for (const candidate of candidates) {
+    if (existsSync(candidate) && lstatSync(candidate).isFile()) {
+      return candidate;
+    }
+  }
+  return resolve(repoRoot, charterSourceRel);
 }

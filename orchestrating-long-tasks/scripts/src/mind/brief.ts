@@ -5,6 +5,7 @@ import { enforceLineLimit } from "../cli/formatters/line-limiter.ts";
 import { installedRuntimeFreshness } from "../installer/runtime-freshness.ts";
 import { validateSkillSource } from "../installer/source-validation.ts";
 import { loadRun, verifyIntegrity } from "../store/index.ts";
+import { resolveCharterPath } from "./charter.ts";
 import { reconcileLastPulse } from "./last-pulse.ts";
 
 export type MindMode = "work" | "idle" | "paused" | "halted";
@@ -325,7 +326,10 @@ export async function buildWakeBrief(
   // 1. Check Charter
   const charterSourceRel =
     typeof charterRecord.source_path === "string" ? charterRecord.source_path : "docs/mind/CHARTER.md";
-  const charterFullPath = resolve(repoRoot, charterSourceRel);
+  const charterRepoRoots = Array.isArray(charterRecord.repo_roots)
+    ? (charterRecord.repo_roots.filter((r): r is string => typeof r === "string"))
+    : undefined;
+  const charterFullPath = resolveCharterPath(repoRoot, charterSourceRel, charterRepoRoots);
   let charterStatus: CharterStatus = "missing";
   let charterSha: string | null = null;
 
