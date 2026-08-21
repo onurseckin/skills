@@ -6,12 +6,21 @@ its cost.
 
 **Subject:** `orchestrating-long-tasks` at `/Users/onurseckinsenoglu/repos/skills`, read 2026-08-21.
 
+**This document is the design. The specification is `README.md`, `CONTRACTS.md`,
+`VERIFICATION.md` and `PHASE-0.md` … `PHASE-6.md` in this directory.** Read those to implement;
+read this one when a specification line seems arbitrary. Where the two disagree, the specification
+wins — it was written against the tree as it stands, and it records the decisions §14.1 left open.
+
 **Companion documents that this one builds on and does not repeat:**
-`../coordinator-conformance/FORENSICS.md` (the evidence), `DESIGN.md` (the six refusals),
-`RAILS.md` (the weak-model principle), `CHANNEL.md` (the CLI as sole medium),
-`SUPERVISION.md` (the session supervisor), `QUEUE.md` (the ranked backlog),
+`../coordinator-conformance/FORENSICS.md` (the evidence),
+`../coordinator-conformance/DESIGN.md` (the six refusals),
+`../coordinator-conformance/RAILS.md` (the weak-model principle),
+`../coordinator-conformance/CHANNEL.md` (the CLI as sole medium),
+`../coordinator-conformance/SUPERVISION.md` (the session supervisor),
+`../coordinator-conformance/QUEUE.md` (the ranked backlog),
+`../coordinator-conformance/DELEGATION-AUDIT.md` (guarantees G1-G7),
 `../orchestration-overhaul/AUTONOMOUS.md` (the current autonomous operating procedure),
-`model-effort-policy.md` (the deferred model decision).
+`../orchestration-overhaul/model-effort-policy.md` (the deferred model decision).
 
 ---
 
