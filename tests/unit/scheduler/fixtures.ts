@@ -96,6 +96,57 @@ export function schedulerState(): Record<string, unknown> {
 }
 
 /**
+ * The same three-task, one-dependency shape `plan:init` + `plan:add` + `plan:compile` produce for
+ * `t-alpha` (independent), `t-beta` (independent), `t-gamma` (depends on `t-alpha`) — built directly
+ * so queue-command tests can seed a capsule with one `transact` instead of driving the CLI.
+ */
+export function queueCapsuleState(): Record<string, unknown> {
+  const tasks = [
+    task("t-alpha", "src/alpha", { created: 1 }),
+    task("t-beta", "src/beta", { created: 2 }),
+    task("t-gamma", "src/gamma", { created: 3 }),
+  ].map((entry) => ({ ...entry, label: `Label ${entry.id as string}` }));
+  const graph = {
+    schema: "harness.graph",
+    version: 1,
+    revision: 1,
+    nodes: [
+      { id: "requirement-1", type: "requirement", label: "R-001", requirement_id: "R-001" },
+      { id: "artifact-all", type: "artifact", label: "All output" },
+      ...tasks,
+    ],
+    edges: [{ source: "t-gamma", target: "t-alpha", type: "depends_on" }],
+    gates: [
+      {
+        id: "gate-one",
+        command: ["bun", "test"],
+        cwd: ".",
+        scope: "task",
+        requirement_ids: ["R-001"],
+        mandatory: true,
+      },
+    ],
+  };
+  const dependencySets = dependencyMap(graph);
+  return {
+    graph,
+    requirements: {
+      schema: "harness.requirements",
+      version: 1,
+      prompt_sha256: "0".repeat(64),
+      requirements: [{ id: "R-001", disposition: "actionable", dependencies: [] }],
+      dispositions: [],
+    },
+    tasks: Object.fromEntries(
+      tasks.map((item) => [
+        item.id,
+        { ...item, dependencies: [...(dependencySets.get(item.id as string) ?? [])] },
+      ]),
+    ),
+  };
+}
+
+/**
  * Four tasks that separate the three topology reasons: `t-beta-sub` is only serialized by a write
  * scope nested inside `t-beta`, and `t-gamma` only by its dependency on `t-alpha`.
  */

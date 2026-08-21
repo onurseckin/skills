@@ -27,6 +27,7 @@ export interface CollectBranchInput {
   summary: string;
   now?: Date;
   observation?: BranchObservationDependencies;
+  transact?: typeof transact;
 }
 
 export interface AbandonBranchInput {
@@ -37,6 +38,7 @@ export interface AbandonBranchInput {
   actor: string;
   reason: string;
   now?: Date;
+  transact?: typeof transact;
 }
 
 function assertOpen(branch: BranchRecord): void {
@@ -60,7 +62,8 @@ export function collectBranch(input: CollectBranchInput): BranchOutcome {
   const observed = observeRepository(input.repoRoot, now, input.observation ?? {});
   let collected: BranchRecord | undefined;
   let ledgerAfter: BranchRecord[] = [];
-  const state = transact(
+  const run = input.transact ?? transact;
+  const state = run(
     input.runRoot,
     input.actor,
     "branch-collected",
@@ -115,7 +118,8 @@ export function abandonBranch(input: AbandonBranchInput): BranchOutcome {
   const now = input.now ?? new Date();
   let abandoned: BranchRecord | undefined;
   let ledgerAfter: BranchRecord[] = [];
-  const state = transact(
+  const run = input.transact ?? transact;
+  const state = run(
     input.runRoot,
     input.actor,
     "branch-abandoned",

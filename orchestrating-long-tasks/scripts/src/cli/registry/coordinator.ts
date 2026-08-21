@@ -25,9 +25,17 @@ export const COORDINATOR_COMMANDS: readonly CommandSpec[] = [
     flags: [
       requiredFlag("run", "string", "Capsule run root."),
       requiredFlag("task", "string", "Task carrying the standing pass being contested."),
-      requiredFlag("actor", "string", "Coordinator agent id recorded as the author of this pushback."),
+      requiredFlag(
+        "actor",
+        "string",
+        "Coordinator agent id recorded as the author of this pushback.",
+      ),
       requiredFlag("validator", "string", "Validator whose recorded pass is being pushed back on."),
-      requiredFlag("domain", "string", "Validator domain the disputed pass covers, e.g. ui-design."),
+      requiredFlag(
+        "domain",
+        "string",
+        "Validator domain the disputed pass covers, e.g. ui-design.",
+      ),
       requiredFlag(
         "cause",
         "string",

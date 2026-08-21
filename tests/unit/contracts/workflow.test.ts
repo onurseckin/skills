@@ -55,9 +55,9 @@ describe("applicableValidatorDomains", () => {
 
   test("ignores empty or non-matching requirement text", () => {
     expect(applicableValidatorDomains(["src/services/auth.ts"], [])).toEqual(["code-quality"]);
-    expect(
-      applicableValidatorDomains(["src/services/auth.ts"], ["Fix the retry backoff"]),
-    ).toEqual(["code-quality"]);
+    expect(applicableValidatorDomains(["src/services/auth.ts"], ["Fix the retry backoff"])).toEqual(
+      ["code-quality"],
+    );
   });
 });
 

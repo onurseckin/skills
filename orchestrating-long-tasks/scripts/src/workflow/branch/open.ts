@@ -40,6 +40,7 @@ export interface OpenBranchInput {
   maxAgents: number;
   now?: Date;
   observation?: BranchObservationDependencies;
+  transact?: typeof transact;
 }
 
 export interface BranchOutcome {
@@ -96,7 +97,8 @@ export function openBranch(input: OpenBranchInput): BranchOutcome {
   );
   let opened: BranchRecord | undefined;
   let ledgerAfter: BranchRecord[] = [];
-  const state = transact(
+  const run = input.transact ?? transact;
+  const state = run(
     input.runRoot,
     input.actor,
     "branch-opened",

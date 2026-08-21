@@ -153,9 +153,7 @@ describe("recordCoordinatorPushback", () => {
     expect(task.repair_assignee).toBeUndefined();
     // The disputed pass is archived, not left standing as an open validation.
     expect(task.validations ?? []).toHaveLength(0);
-    expect((task.validation_history ?? []).some((v) => v.validator_id === validatorId)).toBe(
-      true,
-    );
+    expect((task.validation_history ?? []).some((v) => v.validator_id === validatorId)).toBe(true);
     const pushbacks = task.coordinator_pushbacks as { cause: string; validator_id: string }[];
     expect(pushbacks).toHaveLength(1);
     expect(pushbacks[0]!.cause).toBe("procedural");

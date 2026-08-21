@@ -233,9 +233,7 @@ export async function taskReviewCommand(flags: Flags): Promise<Record<string, un
   const outstandingDomains = applicableValidatorDomains(
     finalTask.write_scope,
     taskClassificationTexts(state, finalTask),
-  ).filter(
-    (domain) => !passedDomains.has(domain),
-  );
+  ).filter((domain) => !passedDomains.has(domain));
   const markdown =
     failure === undefined || findingObj === null
       ? formatTaskReviewPassBrief({

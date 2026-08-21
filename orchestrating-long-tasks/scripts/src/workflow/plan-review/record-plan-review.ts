@@ -53,10 +53,7 @@ function dependencyEdgesReviewedFrom(value: unknown): PlanDependencyEdge[] {
   });
   const keys = edges.map(edgeKey);
   if (new Set(keys).size !== keys.length)
-    throw new HarnessError(
-      "INVALID_ARGUMENT",
-      "dependency_edges_reviewed must be duplicate-free",
-    );
+    throw new HarnessError("INVALID_ARGUMENT", "dependency_edges_reviewed must be duplicate-free");
   return edges;
 }
 

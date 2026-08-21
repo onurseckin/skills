@@ -13,7 +13,7 @@
     "skills"
   ],
   "license": "MIT",
-  "author": "Onur Se\u00e7kin \u015eeno\u011flu",
+  "author": "Onur Seçkin Şenoğlu",
   "type": "module",
   "scripts": {
     "test": "bun test --timeout 30000 --parallel --no-isolate tests/unit",

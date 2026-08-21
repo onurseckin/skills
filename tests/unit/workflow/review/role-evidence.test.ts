@@ -4,7 +4,10 @@ import {
   classifiesAsUiTask,
   taskClassificationTexts,
 } from "../../../../orchestrating-long-tasks/scripts/src/workflow/review/role-evidence.ts";
-import type { TaskRecord, WorkflowState } from "../../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
+import type {
+  TaskRecord,
+  WorkflowState,
+} from "../../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
 
 function task(overrides: Partial<TaskRecord> = {}): TaskRecord {
   return {
@@ -116,15 +119,11 @@ describe("classifiesAsUiTask", () => {
 
 describe("assertRoleArtifactPresent", () => {
   test("does nothing when the domain does not apply, artifact or not", () => {
-    expect(() =>
-      assertRoleArtifactPresent("task-1", false, { hasArtifact: false }),
-    ).not.toThrow();
+    expect(() => assertRoleArtifactPresent("task-1", false, { hasArtifact: false })).not.toThrow();
   });
 
   test("does nothing when the domain applies and an artifact is on record", () => {
-    expect(() =>
-      assertRoleArtifactPresent("task-1", true, { hasArtifact: true }),
-    ).not.toThrow();
+    expect(() => assertRoleArtifactPresent("task-1", true, { hasArtifact: true })).not.toThrow();
   });
 
   // The widening QUEUE-5 asked for: this refusal does not take a verdict parameter at all, so a

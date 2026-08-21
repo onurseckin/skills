@@ -6,6 +6,7 @@ import type {
   WorktreeLedgerState,
   WorktreeRecord,
 } from "../../contracts/worktree.ts";
+import type { RunState } from "../../contracts/capsule.ts";
 import { HarnessError } from "../../errors/harness-error.ts";
 import { loadRun, transact } from "../../store/index.ts";
 import { assignWorktrees, type AssignableTask } from "./assign.ts";
@@ -65,6 +66,8 @@ export interface ProvisionWorktreesInput {
   config: ProvisionWorktreesConfig;
   now?: Date;
   runner?: GitRunner;
+  loadState?: (runRoot: string) => RunState;
+  transact?: typeof transact;
 }
 
 export interface ProvisionWorktreesResult {
@@ -75,7 +78,8 @@ export interface ProvisionWorktreesResult {
 export function provisionWorktrees(input: ProvisionWorktreesInput): ProvisionWorktreesResult {
   if (!input.config.worktree_isolation) return { enabled: false, ledger: null };
   const runner = input.runner ?? runGit;
-  const existing = readWorktreeLedger(loadRun(input.runRoot).state);
+  const loadState = input.loadState ?? ((runRoot: string) => loadRun(runRoot).state);
+  const existing = readWorktreeLedger(loadState(input.runRoot));
   const { assignments, worktreeCount } = assignWorktrees(input.topology, input.tasksById);
   if (worktreeCount === 0) return { enabled: true, ledger: existing };
 
@@ -111,7 +115,8 @@ export function provisionWorktrees(input: ProvisionWorktreesInput): ProvisionWor
     commits: existing?.commits ?? [],
     ...(existing?.consolidation === undefined ? {} : { consolidation: existing.consolidation }),
   };
-  transact(
+  const run = input.transact ?? transact;
+  run(
     input.runRoot,
     input.actor,
     "worktrees-provisioned",

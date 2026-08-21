@@ -37,13 +37,13 @@ const SCRIPT_EXEMPTIONS: readonly string[] = [
 
 /**
  * A test that probes one host's configuration has to name that host: the whole point of
- * `host-telemetry-probe.test.ts` is that Codex's settings live somewhere Claude Code's do not, and a
+ * `host-telemetry.test.ts` is that Codex's settings live somewhere Claude Code's do not, and a
  * generically-named local would obscure which host the case covers. The env-var constants are the
  * hosts' OWN names — values we read, not concepts we coined — and renaming them would break the read.
  *
- * `transcript-telemetry.test.ts` and `transcript-telemetry-cli.test.ts` set and read
- * `CLAUDE_CODE_SESSION_ID` as a literal env-var / object key, the same "host's own name" shape as
- * the two exemptions above — the production reader keys off that exact string, so the tests must too.
+ * `transcript-telemetry.test.ts` sets and reads `CLAUDE_CODE_SESSION_ID` as a literal env-var /
+ * object key, the same "host's own name" shape as the exemption above — the production reader keys
+ * off that exact string, so the test must too.
  *
  * The four installer test files below all hit the identical shape one level removed: `client-links.ts`
  * types its link map as `Record<"antigravity" | "claude", string>` (`clientLinkPaths()`), and
@@ -55,7 +55,7 @@ const SCRIPT_EXEMPTIONS: readonly string[] = [
  * cannot be renamed without breaking the read. `client-links.test.ts` additionally assigns one such
  * read to a local (`antigravityLink`) inside the test that asserts an earlier-applied plan rolls back
  * when a later plan for a *different* named host fails; the local documents which host's path the
- * assertion is about, the same role `codexHome()` already plays in the exempted probe test above.
+ * assertion is about.
  * - unit/cli/install-ops-command.test.ts: reads `links.claude` off the CLI's own status output.
  * - unit/installer/install.test.ts: reads `clientLinkPaths(...).claude` to assert install/rollback.
  * - unit/installer/installation-status.test.ts: reads `status.links.<client>` for every client in
@@ -68,13 +68,11 @@ const SCRIPT_EXEMPTIONS: readonly string[] = [
  *   It also assigns several of those reads to locals named `claude`/`antigravity`
  *   (`const claude = report.roots.find((entry) => entry.kind === "claude")!`) so an assertion a few
  *   lines later can say which host's root it is checking — the same documenting role
- *   `antigravityLink` and `codexHome()` already play in the exemptions above, not a coined concept.
+ *   `antigravityLink` already plays in the exemption above, not a coined concept.
  */
 const TEST_EXEMPTIONS: readonly string[] = [
-  "integration/agents-host-telemetry-probe.test.ts",
   "unit/summary/host-telemetry.test.ts",
   "unit/agents/transcript-telemetry.test.ts",
-  "integration/agents-transcript-telemetry-cli.test.ts",
   "unit/cli/install-ops-command.test.ts",
   "unit/installer/install.test.ts",
   "unit/installer/installation-status.test.ts",

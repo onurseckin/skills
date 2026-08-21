@@ -1,7 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { mkdir, mkdtemp, rm } from "node:fs/promises";
-import { realpathSync } from "node:fs";
-import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import {
@@ -15,6 +13,11 @@ afterEach(async () =>
   Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true }))),
 );
 
+const exitCode = (status: number) => () => ({ status, bytes: Buffer.alloc(0) });
+const throwingGitCommand = () => {
+  throw new Error("git exec failure");
+};
+
 describe("doctor diagnostics and gitignore policy", () => {
   test("ignoredByGit answers true, false, or unknown and never guesses", async () => {
     const repo = await mkdtemp(join(tmpdir(), "harness-git-doc-"));
@@ -25,15 +28,11 @@ describe("doctor diagnostics and gitignore policy", () => {
     expect(ignoredByGit(runRoot)).toBeNull();
 
     await mkdir(join(repo, ".git"));
-    const exitCode = (status: number) => () => ({ status, bytes: Buffer.alloc(0) });
     expect(ignoredByGit(runRoot, exitCode(0))).toBe(true);
     expect(ignoredByGit(runRoot, exitCode(1))).toBe(false);
 
     // A probe that could not run is unknown, not "tracked".
-    const mockThrow = () => {
-      throw new Error("git exec failure");
-    };
-    expect(ignoredByGit(runRoot, mockThrow)).toBeNull();
+    expect(ignoredByGit(runRoot, throwingGitCommand)).toBeNull();
   });
 
   test("runDoctor collects command, packet, and workflow issues", async () => {
@@ -88,10 +87,11 @@ describe("doctor diagnostics and gitignore policy", () => {
   });
 
   test("runDoctor flags run capsule when not gitignored", async () => {
-    const repo = realpathSync(await mkdtemp(join(tmpdir(), "harness-doc-unignored-")));
+    const repo = await mkdtemp(join(tmpdir(), "harness-doc-unignored-"));
     roots.push(repo);
-    // A real repository, so `check-ignore` returns a real answer instead of failing the probe.
-    spawnSync("git", ["init", "--quiet"], { cwd: repo });
+    // A `.git` entry present, and an injected probe answering "not ignored" the way a fresh
+    // repository with no matching gitignore rule would.
+    await mkdir(join(repo, ".git"));
     const runRoot = initRun(
       repo,
       "unignored-run",
@@ -99,7 +99,7 @@ describe("doctor diagnostics and gitignore policy", () => {
       "file",
       true,
     );
-    const report = await runDoctor(runRoot);
+    const report = await runDoctor(runRoot, {}, exitCode(1));
     expect(report.gitignored).toBe(false);
     expect(report.issues).toContain("run capsule is not gitignored");
   });
@@ -116,7 +116,7 @@ describe("doctor diagnostics and gitignore policy", () => {
       "file",
       true,
     );
-    const report = await runDoctor(runRoot);
+    const report = await runDoctor(runRoot, {}, throwingGitCommand);
     expect(report.gitignored).toBeNull();
     expect(report.issues).not.toContain("run capsule is not gitignored");
   });

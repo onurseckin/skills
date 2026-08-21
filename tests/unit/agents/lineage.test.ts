@@ -1,54 +1,51 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { execute } from "../../../orchestrating-long-tasks/scripts/src/cli/execute.ts";
+import { describe, expect, test } from "bun:test";
+import { agentListCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/agent-ops.ts";
+import type { AgentRole } from "../../../orchestrating-long-tasks/scripts/src/contracts/packets.ts";
+import {
+  registerAgentGrant,
+  releaseAgentGrant,
+} from "../../../orchestrating-long-tasks/scripts/src/workflow/agents/grants.ts";
 import { knownTaskIds } from "../../../orchestrating-long-tasks/scripts/src/workflow/agents/ledger.ts";
 import {
   ancestorChain,
   childrenOf,
   taskLineage,
 } from "../../../orchestrating-long-tasks/scripts/src/workflow/agents/lineage.ts";
-import { cleanupRoots, compiledCapsule, ledgerOf, registerCoordinator } from "./fixture.ts";
+import { ledgerOf, registerCoordinator, seededRun } from "./fixture.ts";
 
-const roots: string[] = [];
-
-afterEach(() => cleanupRoots(roots));
-
-async function register(
+function register(
   run: string,
   agent: string,
-  role: string,
+  role: AgentRole,
   parentAgent: string,
   parentTask: string,
-): Promise<void> {
-  await execute([
-    "agent:register",
-    "--run",
-    run,
-    "--agent",
-    agent,
-    "--role",
+): void {
+  registerAgentGrant({
+    runRoot: run,
+    agentId: agent,
     role,
-    "--host",
-    "claude-code",
-    "--parent-agent",
-    parentAgent,
-    "--parent-task",
-    parentTask,
-  ]);
+    parentAgentId: parentAgent,
+    parentTaskId: parentTask,
+    host: "claude-code",
+    actor: parentAgent,
+    maxAgents: 50,
+    telemetry: {},
+  });
 }
 
-async function deployedRun(name: string): Promise<string> {
-  const run = await compiledCapsule(roots, name);
-  await registerCoordinator(run);
-  await register(run, "impl-1", "implementer", "coordinator-1", "task-1");
-  await register(run, "val-1", "validator", "coordinator-1", "task-1");
-  await register(run, "sub-1", "sub-investigator", "impl-1", "task-1");
-  await register(run, "impl-2", "implementer", "coordinator-1", "task-2");
+function deployedRun(name: string): string {
+  const run = seededRun(import.meta.path, name);
+  registerCoordinator(run);
+  register(run, "impl-1", "implementer", "coordinator-1", "task-1");
+  register(run, "val-1", "validator", "coordinator-1", "task-1");
+  register(run, "sub-1", "sub-investigator", "impl-1", "task-1");
+  register(run, "impl-2", "implementer", "coordinator-1", "task-2");
   return run;
 }
 
 describe("agent lineage", () => {
-  test("answers who worked a task and under whom", async () => {
-    const run = await deployedRun("lineage-task");
+  test("answers who worked a task and under whom", () => {
+    const run = deployedRun("lineage-task");
     const ledger = ledgerOf(run);
 
     const lineage = taskLineage(ledger, "task-1");
@@ -66,39 +63,36 @@ describe("agent lineage", () => {
     ]);
   });
 
-  test("serves the lineage and the roster through agent:list", async () => {
-    const run = await deployedRun("lineage-cli");
+  test("serves the lineage and the roster through agent:list", () => {
+    const run = deployedRun("lineage-cli");
 
-    const lineage = await execute(["agent:list", "--run", run, "--task", "task-1"]);
+    const lineage = agentListCommand({ run, task: "task-1" });
     expect(String(lineage.markdown)).toContain("### Task Lineage: task-1");
     expect(String(lineage.markdown)).toContain("`impl-1` ← `coordinator-1`");
 
-    const roster = await execute(["agent:list", "--run", run]);
+    const roster = agentListCommand({ run });
     expect(roster.active_grants).toBe(5);
     expect(roster.released_grants).toBe(0);
     expect(String(roster.markdown)).toContain("### Deployed Agents");
 
-    await execute([
-      "agent:release",
-      "--run",
-      run,
-      "--agent",
-      "sub-1",
-      "--reason",
-      "lineage check done",
-    ]);
-    const afterRelease = await execute(["agent:list", "--run", run]);
+    releaseAgentGrant({
+      runRoot: run,
+      agentId: "sub-1",
+      actor: "coordinator-1",
+      reason: "lineage check done",
+    });
+    const afterRelease = agentListCommand({ run });
     expect(afterRelease.active_grants).toBe(4);
     expect(String(afterRelease.markdown)).not.toContain("`sub-1`");
-    const withReleased = await execute(["agent:list", "--run", run, "--all"]);
+    const withReleased = agentListCommand({ run, all: true });
     expect(String(withReleased.markdown)).toContain("`sub-1`");
   });
 
-  test("reports an empty lineage rather than guessing at one", async () => {
-    const run = await compiledCapsule(roots, "lineage-empty");
-    const lineage = await execute(["agent:list", "--run", run, "--task", "task-1"]);
+  test("reports an empty lineage rather than guessing at one", () => {
+    const run = seededRun(import.meta.path, "lineage-empty");
+    const lineage = agentListCommand({ run, task: "task-1" });
     expect(String(lineage.markdown)).toContain("none registered against this task");
-    const roster = await execute(["agent:list", "--run", run]);
+    const roster = agentListCommand({ run });
     expect(roster.active_grants).toBe(0);
   });
 

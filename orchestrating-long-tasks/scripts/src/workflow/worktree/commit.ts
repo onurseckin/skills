@@ -98,8 +98,9 @@ export function recordWorktreeCommit(
   actor: string,
   taskId: string,
   commit: WorktreeCommitRecord,
+  transactFn: typeof transact = transact,
 ): void {
-  transact(
+  transactFn(
     runRoot,
     actor,
     "worktree-subphase-committed",

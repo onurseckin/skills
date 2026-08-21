@@ -1,46 +1,38 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { describe, expect, test } from "bun:test";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { commandLayout } from "../../../orchestrating-long-tasks/scripts/src/store/layout-commands.ts";
+import { scratchRoot as makeScratchRoot } from "../../support/scratch-root.ts";
 
-const roots: string[] = [];
-
-afterEach(() => {
-  for (const root of roots.splice(0)) rmSync(root, { force: true, recursive: true });
-});
-
-function scratchRoot(): string {
-  const root = mkdtempSync(join(tmpdir(), "store-layout-commands-"));
-  roots.push(root);
-  return root;
+function scratchRoot(label: string): string {
+  return makeScratchRoot(import.meta.path, label);
 }
 
 describe("commandLayout", () => {
   test("returns no issues when state.commands is absent or not an object", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("returns-no-issues-when-state-commands-is-absent-or");
     expect(commandLayout(root, undefined)).toEqual([]);
     expect(commandLayout(root, { commands: "not-an-object" })).toEqual([]);
   });
 
   test("skips non-object command entries", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("skips-non-object-command-entries");
     expect(commandLayout(root, { commands: { "C-1": "not-an-object" } })).toEqual([]);
   });
 
   test("reports COMMAND_ID for an id unsafe to address on disk", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("reports-command-id-for-an-id-unsafe-to-address-on-");
     const found = commandLayout(root, { commands: { "not safe/id": {} } });
     expect(found).toEqual([expect.objectContaining({ code: "COMMAND_ID" })]);
   });
 
   test("returns no issues when the record has no declared record_path", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("returns-no-issues-when-the-record-has-no-declared-");
     expect(commandLayout(root, { commands: { "C-1": { status: "succeeded" } } })).toEqual([]);
   });
 
   test("reports COMMAND_PATH when the declared record_path points outside the command's own directory", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("reports-command-path-when-the-declared-record-path");
     const found = commandLayout(root, {
       commands: { "C-1": { record_path: "commands/C-2/record.json" } },
     });
@@ -48,7 +40,7 @@ describe("commandLayout", () => {
   });
 
   test("returns no issues when the declared record file does not exist on disk yet", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("returns-no-issues-when-the-declared-record-file-do");
     const found = commandLayout(root, {
       commands: { "C-1": { record_path: "commands/C-1/record.json" } },
     });
@@ -56,7 +48,7 @@ describe("commandLayout", () => {
   });
 
   test("returns no issues when status is missing or not a terminal status", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("returns-no-issues-when-status-is-missing-or-not-a-");
     mkdirSync(join(root, "commands", "C-1"), { recursive: true });
     writeFileSync(join(root, "commands", "C-1", "record.json"), "{}");
     expect(
@@ -70,7 +62,7 @@ describe("commandLayout", () => {
   });
 
   test("reports COMMAND_RECORD_CONTENT when the on-disk record no longer matches the declared state", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("reports-command-record-content-when-the-on-disk-re");
     mkdirSync(join(root, "commands", "C-1"), { recursive: true });
     writeFileSync(
       join(root, "commands", "C-1", "record.json"),
@@ -83,7 +75,7 @@ describe("commandLayout", () => {
 
   test("returns no issues for each terminal status when the on-disk record matches exactly", () => {
     for (const status of ["succeeded", "failed", "timed_out"]) {
-      const root = scratchRoot();
+      const root = scratchRoot("returns-no-issues-for-each-terminal-status-when-th");
       mkdirSync(join(root, "commands", "C-1"), { recursive: true });
       const record = { record_path: "commands/C-1/record.json", status };
       writeFileSync(join(root, "commands", "C-1", "record.json"), JSON.stringify(record));
@@ -92,7 +84,7 @@ describe("commandLayout", () => {
   });
 
   test("reports COMMAND_UNREADABLE when the on-disk record cannot be read as canonical JSON", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("reports-command-unreadable-when-the-on-disk-record");
     mkdirSync(join(root, "commands", "C-1"), { recursive: true });
     writeFileSync(join(root, "commands", "C-1", "record.json"), "not json");
     const record = { record_path: "commands/C-1/record.json", status: "succeeded" };
@@ -101,7 +93,7 @@ describe("commandLayout", () => {
   });
 
   test("checks every declared command independently", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("checks-every-declared-command-independently");
     const found = commandLayout(root, {
       commands: {
         "C-1": { record_path: "commands/C-2/record.json" },

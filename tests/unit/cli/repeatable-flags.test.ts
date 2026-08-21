@@ -1,4 +1,6 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, test } from "bun:test";
+import { mkdtemp, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   flagPositions,
@@ -17,6 +19,10 @@ import {
   repeatableFlag,
   requiredFlag,
 } from "../../../orchestrating-long-tasks/scripts/src/cli/registry/index.ts";
+import { cleanupRoots } from "./full-lifecycle-fixture.ts";
+
+const roots: string[] = [];
+afterEach(async () => cleanupRoots(roots));
 
 const ENHANCE_FLAGS = [
   requiredFlag("run", "string", "Capsule run root."),
@@ -142,12 +148,23 @@ describe("registry-driven required flags", () => {
   });
 
   test("dispatches a real invocation against an existing capsule", async () => {
-    const capsule = join(import.meta.dir, "..", "..", "..", ".capsules");
-    const result = await execute([
-      "run:status",
+    // Built fresh rather than borrowed from a capsule this harness left lying around in the
+    // repo: that ambient state isn't ours to depend on and can disappear or grow out from under
+    // this test.
+    const repo = await mkdtemp(join(tmpdir(), "repeatable-flags-run-status-"));
+    roots.push(repo);
+    const promptPath = join(repo, "prompt.txt");
+    await writeFile(promptPath, "Just enough to dispatch run:status against.");
+    const init = await execute([
+      "plan:init",
+      "--repo",
+      repo,
       "--run",
-      join(capsule, "2026-08-17-skills-documentation-elevation"),
+      "dispatch-check",
+      "--prompt-file",
+      promptPath,
     ]);
+    const result = await execute(["run:status", "--run", init.run_root as string]);
     expect(typeof result.markdown).toBe("string");
   });
 });

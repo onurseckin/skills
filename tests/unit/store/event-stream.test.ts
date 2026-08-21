@@ -1,6 +1,5 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { describe, expect, test } from "bun:test";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type {
   HarnessEvent,
@@ -11,17 +10,10 @@ import {
   sha256Bytes,
 } from "../../../orchestrating-long-tasks/scripts/src/core/json.ts";
 import { validateEventChain } from "../../../orchestrating-long-tasks/scripts/src/store/event-stream.ts";
+import { scratchRoot as makeScratchRoot } from "../../support/scratch-root.ts";
 
-const roots: string[] = [];
-
-afterEach(() => {
-  for (const root of roots.splice(0)) rmSync(root, { force: true, recursive: true });
-});
-
-function scratchRoot(): string {
-  const root = mkdtempSync(join(tmpdir(), "store-event-stream-"));
-  roots.push(root);
-  return root;
+function scratchRoot(label: string): string {
+  return makeScratchRoot(import.meta.path, label);
 }
 
 const IDENTITY = { runId: "run-1", capsuleId: "c".repeat(32) };
@@ -79,7 +71,7 @@ function eventsPath(root: string): string {
 
 describe("validateEventChain", () => {
   test("accepts an empty file and returns the initial state with no events", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("accepts-an-empty-file-and-returns-the-initial-stat");
     const path = eventsPath(root);
     writeFileSync(path, "");
     const result = validateEventChain(path, IDENTITY);
@@ -90,7 +82,7 @@ describe("validateEventChain", () => {
   });
 
   test("accepts a single valid event and chains a second event onto its hash", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("accepts-a-single-valid-event-and-chains-a-second-e");
     const path = eventsPath(root);
     const first = makeEvent({}, 1, null);
     const second = makeEvent({ previous_hash: first.hash }, 2, first.hash);
@@ -103,7 +95,7 @@ describe("validateEventChain", () => {
   });
 
   test("reports EVENT_COUNT and stops once the configured maxEventCount is exceeded", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("reports-event-count-and-stops-once-the-configured-");
     const path = eventsPath(root);
     const first = makeEvent({}, 1, null);
     const second = makeEvent({ previous_hash: first.hash }, 2, first.hash);
@@ -113,7 +105,7 @@ describe("validateEventChain", () => {
   });
 
   test("reports EVENT_SIZE for an oversized line and skips parsing it", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("reports-event-size-for-an-oversized-line-and-skips");
     const path = eventsPath(root);
     const first = makeEvent({}, 1, null);
     writeEvents(path, [first]);
@@ -123,7 +115,7 @@ describe("validateEventChain", () => {
   });
 
   test("reports EVENT_TORN for an unterminated final line when reportTorn is true, and carries tornTail", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("reports-event-torn-for-an-unterminated-final-line-");
     const path = eventsPath(root);
     writeFileSync(path, '{"schema":"harness.event"}');
     const result = validateEventChain(path, IDENTITY, {}, true);
@@ -132,7 +124,7 @@ describe("validateEventChain", () => {
   });
 
   test("omits the EVENT_TORN issue but still reports the torn tail when reportTorn is false", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("omits-the-event-torn-issue-but-still-reports-the-t");
     const path = eventsPath(root);
     writeFileSync(path, '{"schema":"harness.event"}');
     const result = validateEventChain(path, IDENTITY, {}, false);
@@ -141,7 +133,7 @@ describe("validateEventChain", () => {
   });
 
   test("reports EVENT_JSON for a line that is not valid JSON", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("reports-event-json-for-a-line-that-is-not-valid-js");
     const path = eventsPath(root);
     writeFileSync(path, "not json at all\n");
     const result = validateEventChain(path, IDENTITY);
@@ -149,7 +141,7 @@ describe("validateEventChain", () => {
   });
 
   test("reports EVENT_JSON when a line parses to a JSON array instead of an object", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("reports-event-json-when-a-line-parses-to-a-json-ar");
     const path = eventsPath(root);
     writeFileSync(path, "[1,2,3]\n");
     const result = validateEventChain(path, IDENTITY);
@@ -157,7 +149,7 @@ describe("validateEventChain", () => {
   });
 
   test("reports EVENT_CANONICAL when the stored line is not canonical JSON for its own content", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("reports-event-canonical-when-the-stored-line-is-no");
     const path = eventsPath(root);
     const event = makeEvent({}, 1, null);
     writeFileSync(path, `${JSON.stringify(event)}\n`);
@@ -166,13 +158,13 @@ describe("validateEventChain", () => {
   });
 
   test("reports EVENT_SCHEMA for a wrong schema or version", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("reports-event-schema-for-a-wrong-schema-or-version");
     const path = eventsPath(root);
     writeEvents(path, [makeEvent({ schema: "wrong" as never }, 1, null)]);
     let result = validateEventChain(path, IDENTITY);
     expect(result.issues.some((i) => i.code === "EVENT_SCHEMA")).toBe(true);
 
-    const root2 = scratchRoot();
+    const root2 = scratchRoot("reports-event-schema-for-a-wrong-schema-or-version-root2");
     const path2 = eventsPath(root2);
     writeEvents(path2, [makeEvent({ version: 2 }, 1, null)]);
     result = validateEventChain(path2, IDENTITY);
@@ -180,13 +172,13 @@ describe("validateEventChain", () => {
   });
 
   test("reports EVENT_RUN_ID and EVENT_CAPSULE_ID when identity fields disagree", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("reports-event-run-id-and-event-capsule-id-when-ide");
     const path = eventsPath(root);
     writeEvents(path, [makeEvent({ run_id: "different-run" }, 1, null)]);
     let result = validateEventChain(path, IDENTITY);
     expect(result.issues.some((i) => i.code === "EVENT_RUN_ID")).toBe(true);
 
-    const root2 = scratchRoot();
+    const root2 = scratchRoot("reports-event-run-id-and-event-capsule-id-when-ide-root2");
     const path2 = eventsPath(root2);
     writeEvents(path2, [makeEvent({ capsule_id: "d".repeat(32) }, 1, null)]);
     result = validateEventChain(path2, IDENTITY);
@@ -194,13 +186,13 @@ describe("validateEventChain", () => {
   });
 
   test("reports EVENT_SEQUENCE and EVENT_REVISION when they diverge from the expected counter", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("reports-event-sequence-and-event-revision-when-the");
     const path = eventsPath(root);
     writeEvents(path, [makeEvent({ sequence: 5 }, 1, null)]);
     let result = validateEventChain(path, IDENTITY);
     expect(result.issues.some((i) => i.code === "EVENT_SEQUENCE")).toBe(true);
 
-    const root2 = scratchRoot();
+    const root2 = scratchRoot("reports-event-sequence-and-event-revision-when-the-root2");
     const path2 = eventsPath(root2);
     writeEvents(path2, [makeEvent({ revision: 5 }, 1, null)]);
     result = validateEventChain(path2, IDENTITY);
@@ -208,7 +200,7 @@ describe("validateEventChain", () => {
   });
 
   test("reports EVENT_CHAIN when previous_hash does not match the running chain head", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("reports-event-chain-when-previous-hash-does-not-ma");
     const path = eventsPath(root);
     writeEvents(path, [makeEvent({ previous_hash: "b".repeat(64) }, 1, null)]);
     const result = validateEventChain(path, IDENTITY);
@@ -216,13 +208,13 @@ describe("validateEventChain", () => {
   });
 
   test("reports EVENT_ACTOR and EVENT_KIND for blank actor or kind", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("reports-event-actor-and-event-kind-for-blank-actor");
     const path = eventsPath(root);
     writeEvents(path, [makeEvent({ actor: "   " }, 1, null)]);
     let result = validateEventChain(path, IDENTITY);
     expect(result.issues.some((i) => i.code === "EVENT_ACTOR")).toBe(true);
 
-    const root2 = scratchRoot();
+    const root2 = scratchRoot("reports-event-actor-and-event-kind-for-blank-actor-root2");
     const path2 = eventsPath(root2);
     writeEvents(path2, [makeEvent({ kind: "" }, 1, null)]);
     result = validateEventChain(path2, IDENTITY);
@@ -230,7 +222,7 @@ describe("validateEventChain", () => {
   });
 
   test("reports EVENT_PAYLOAD when the payload is not an object", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("reports-event-payload-when-the-payload-is-not-an-o");
     const path = eventsPath(root);
     writeEvents(path, [makeEvent({ payload: "not-an-object" as never }, 1, null)]);
     const result = validateEventChain(path, IDENTITY);
@@ -238,13 +230,13 @@ describe("validateEventChain", () => {
   });
 
   test("reports EVENT_TIME for a non-UTC or unparseable timestamp", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("reports-event-time-for-a-non-utc-or-unparseable-ti");
     const path = eventsPath(root);
     writeEvents(path, [makeEvent({ timestamp: "2026-08-20T00:00:00.000+02:00" }, 1, null)]);
     let result = validateEventChain(path, IDENTITY);
     expect(result.issues.some((i) => i.code === "EVENT_TIME")).toBe(true);
 
-    const root2 = scratchRoot();
+    const root2 = scratchRoot("reports-event-time-for-a-non-utc-or-unparseable-ti-root2");
     const path2 = eventsPath(root2);
     writeEvents(path2, [makeEvent({ timestamp: "not-a-timestampZ" }, 1, null)]);
     result = validateEventChain(path2, IDENTITY);
@@ -252,7 +244,7 @@ describe("validateEventChain", () => {
   });
 
   test("propagates projection validation issues via EVENT_PROJECTION", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("propagates-projection-validation-issues-via-event-");
     const path = eventsPath(root);
     writeEvents(path, [
       makeEvent({ projection: { ...projectionFor(1), schema: "wrong" as never } }, 1, null),
@@ -262,7 +254,7 @@ describe("validateEventChain", () => {
   });
 
   test("reports EVENT_HASH when the hash is not a lowercase sha256 string", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("reports-event-hash-when-the-hash-is-not-a-lowercas");
     const path = eventsPath(root);
     writeEvents(path, [makeEvent({ hash: "not-a-hash" }, 1, null)]);
     const result = validateEventChain(path, IDENTITY);
@@ -270,7 +262,7 @@ describe("validateEventChain", () => {
   });
 
   test("reports EVENT_HASH when the hash does not match the event's own content", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("reports-event-hash-when-the-hash-does-not-match-th");
     const path = eventsPath(root);
     writeEvents(path, [makeEvent({ hash: "f".repeat(64) }, 1, null)]);
     const result = validateEventChain(path, IDENTITY);
@@ -278,7 +270,7 @@ describe("validateEventChain", () => {
   });
 
   test("does not advance the chain or collect the event when any issue was found on that line", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("does-not-advance-the-chain-or-collect-the-event-wh");
     const path = eventsPath(root);
     const bad = makeEvent({ actor: "" }, 1, null);
     const followsBad = makeEvent({ sequence: 2, revision: 2, previous_hash: null }, 2, null);
@@ -289,7 +281,7 @@ describe("validateEventChain", () => {
   });
 
   test("does not collect events into the returned array when collectEvents is false", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("does-not-collect-events-into-the-returned-array-wh");
     const path = eventsPath(root);
     writeEvents(path, [makeEvent({}, 1, null)]);
     const result = validateEventChain(path, IDENTITY, {}, true, false);
@@ -298,7 +290,7 @@ describe("validateEventChain", () => {
   });
 
   test("reports EVENT_READ when the underlying file cannot be streamed at all", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("reports-event-read-when-the-underlying-file-cannot");
     const directoryAsPath = join(root, "a-directory");
     mkdirSync(directoryAsPath);
     const result = validateEventChain(directoryAsPath, IDENTITY);
@@ -306,7 +298,7 @@ describe("validateEventChain", () => {
   });
 
   test("reconstructs finalState by replaying patch events forward from a checkpoint", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("reconstructs-finalstate-by-replaying-patch-events-");
     const path = eventsPath(root);
     const checkpointProjection = {
       schema: "harness.state",
@@ -345,7 +337,7 @@ describe("validateEventChain", () => {
   });
 
   test("a later checkpoint overrides everything accumulated by patches before it", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("a-later-checkpoint-overrides-everything-accumulate");
     const path = eventsPath(root);
     const first = makeEvent(
       { projection: null, projection_patch: [{ op: "set", path: ["counter"], value: 1 }] },
@@ -367,7 +359,7 @@ describe("validateEventChain", () => {
   });
 
   test("reports EVENT_PROJECTION_PATCH when a patch-only event carries a malformed patch", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("reports-event-projection-patch-when-a-patch-only-e");
     const path = eventsPath(root);
     writeEvents(path, [
       makeEvent({ projection: null, projection_patch: "not-an-array" as never }, 1, null),
@@ -377,7 +369,7 @@ describe("validateEventChain", () => {
   });
 
   test("reports EVENT_PROJECTION when an event carries neither a checkpoint projection nor a patch", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("reports-event-projection-when-an-event-carries-nei");
     const path = eventsPath(root);
     writeEvents(path, [makeEvent({ projection: null }, 1, null)]);
     const result = validateEventChain(path, IDENTITY);
@@ -385,7 +377,7 @@ describe("validateEventChain", () => {
   });
 
   test("reports EVENT_PROJECTION when an event carries both a checkpoint projection and a patch", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("reports-event-projection-when-an-event-carries-bot");
     const path = eventsPath(root);
     writeEvents(path, [
       makeEvent({ projection_patch: [{ op: "set", path: ["counter"], value: 1 }] }, 1, null),

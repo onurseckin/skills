@@ -3,6 +3,7 @@ import { mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execute } from "../../../orchestrating-long-tasks/scripts/src/cli/execute.ts";
+import { criticReviewCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/critic-ops.ts";
 import { loadRun } from "../../../orchestrating-long-tasks/scripts/src/store/index.ts";
 import { requirementIds } from "./critic-run-fixture.ts";
 import { registerInspectionCommand, setupReadyRun } from "./critic-ready-fixture.ts";
@@ -291,32 +292,16 @@ describe("CLI critic-ops commands", () => {
   });
 
   test("critic:review rejects a decision that is neither approve nor request_changes", async () => {
-    const { repo, run } = await setupReadyRun("critic-review-bad-decision", roots);
-    const cmdId = "C-INSPECT-BAD-DECISION";
-    registerInspectionCommand(run, repo, cmdId, "critic-iota");
-    const start = await execute([
-      "critic:start",
-      "--run",
-      run,
-      "--critic",
-      "critic-iota",
-      "--repository-command-ids",
-      cmdId,
-    ]);
+    // criticReviewCommand checks --decision before it ever opens the run root, so this needs no
+    // ready run, no critic:start, no capsule at all.
     await expect(
-      execute([
-        "critic:review",
-        "--run",
-        run,
-        "--critic",
-        "critic-iota",
-        "--token",
-        start.token as string,
-        "--decision",
-        "abstain",
-        "--summary",
-        "Not a real decision",
-      ]),
+      criticReviewCommand({
+        run: "unused",
+        critic: "critic-iota",
+        token: "unused-token",
+        decision: "abstain",
+        summary: "Not a real decision",
+      }),
     ).rejects.toThrow("--decision must be approve or request_changes");
   });
 

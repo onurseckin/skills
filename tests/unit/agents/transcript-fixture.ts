@@ -1,6 +1,6 @@
-import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { scratchRoot } from "../../support/scratch-root.ts";
 
 /** One assistant turn carrying real usage and, optionally, a tool call. */
 export function assistantLine(opts: {
@@ -66,8 +66,6 @@ export async function writeDirectTranscript(
   }
 }
 
-export async function mktemp(roots: string[]): Promise<string> {
-  const home = await mkdtemp(join(tmpdir(), "transcript-telemetry-"));
-  roots.push(home);
-  return home;
+export function mktemp(callerPath: string, label: string): string {
+  return scratchRoot(callerPath, label);
 }

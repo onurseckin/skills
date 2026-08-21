@@ -46,9 +46,10 @@ export function ignoredByGit(
 export async function runDoctor(
   runRoot: string,
   options: DoctorOptions = {},
+  gitCommand: RepositoryGitCommand = repositoryGit,
 ): Promise<Record<string, unknown>> {
   const integrityIssues = [...verifyIntegrity(runRoot), ...verifyCapsuleDeep(runRoot)];
-  const gitignored = ignoredByGit(runRoot);
+  const gitignored = ignoredByGit(runRoot, gitCommand);
   const bunSupported = versionAtLeast(Bun.version, MINIMUM_BUN_VERSION);
   const loaded = integrityIssues.length === 0 ? loadRun(runRoot) : undefined;
   const commandIssues = loaded

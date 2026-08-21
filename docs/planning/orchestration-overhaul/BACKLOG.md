@@ -568,7 +568,7 @@ fixed, and one prior "known example" turned out to be a false positive on inspec
    with the owner-decision text under `## 10. Compatibility and verification`.
 2. A real, repo-wide dual-read pattern the prior passes' greps didn't catch because it's gated behind an
    `as unknown as` cast rather than a bare `??`: `state.gates ?? (state as unknown as { graph?: { gates?:
-   ... } }).graph?.gates ?? []`, and the same shape for `graph_revision`. Found in 10 call sites across 6
+... } }).graph?.gates ?? []`, and the same shape for `graph_revision`. Found in 10 call sites across 6
    files — `workflow/gates/gate-policy.ts:22`, `workflow/gates/finish-task.ts:51`,
    `workflow/completion/readiness-snapshot.ts:53,86`, `workflow/completion/repository-evidence.ts:23`,
    `workflow/completion/completion-state.ts:32,81`, `workflow/completion/readiness-issues.ts:85,108`,
@@ -587,7 +587,7 @@ fixed, and one prior "known example" turned out to be a false positive on inspec
    under `graph.gates`, never flattened), forced through an unsafe cast instead of going through
    `workflowPort(run).read()`. With the dead fallback gone this crashed `queue:next` for real
    (`tests/unit/cli/queue-run-summary.test.ts`, both `queue:next` cases, `TypeError: undefined is not an
-   object (evaluating 'state.gates.filter')`). Fixed at the root: `queueNextCommand` now calls
+object (evaluating 'state.gates.filter')`). Fixed at the root: `queueNextCommand` now calls
    `workflowPort(run).read()` to get a properly-flattened state, instead of casting the raw draft.
    `queuePopCommand`'s matching `result.state as unknown as WorkflowState` was already safe (`result` comes
    from `claimTask(workflowPort(run), ...)`, whose `state` is already a real `WorkflowState`) but carried
@@ -886,7 +886,7 @@ the prior pass's citations:
    `fallbacks.test.ts` + `reachability.test.ts` are clean (25/25), `manifest.test.ts` is clean (4/4), but
    `vendor-identifiers.test.ts` has 3 of 6 tests failing this moment, because a different, concurrent,
    uncommitted, untracked change — `orchestrating-long-tasks/scripts/src/store/content-normalization/
-   typescript-whitespace.ts`, created today between 00:40 and 00:48, a module outside B8's ownership and
+typescript-whitespace.ts`, created today between 00:40 and 00:48, a module outside B8's ownership and
    not part of this item's scope — names the vendor product "TypeScript" in its own filename and exported
    function (`canonicalizeTypeScriptWhitespace`) without adding itself to the test's `SCRIPT_EXEMPTIONS`
    list. This is the check doing exactly its job on an in-flight file, not a defect in the policy or its
@@ -1080,7 +1080,7 @@ stays open on B9.1 alone.
 
 **2026-08-21 (B9 owner pass) — false positive closed, coverage re-measured, item stays `queued`.**
 
-*The `store/index.ts` false positive is fixed*, commit `be9b91a`. Root cause, found by tracing
+_The `store/index.ts` false positive is fixed_, commit `be9b91a`. Root cause, found by tracing
 `usageIndex` in `reachability.ts`: `usage.importedModules.add(binding.from)` only ran inside the
 `binding.imported === "*"` branch, so a **named** import (`import { loadRun } from "../store/index.ts"`)
 never registered the barrel file itself as production-imported — only `resolveOrigin`'s resolved
@@ -1096,7 +1096,7 @@ only:barrel.ts", ...]` present, exactly the false-positive shape; unstashed and 
 anywhere in the output (`grep -n "store/index"` on the report is empty). This closes QUEUE.md #17 and
 this item's own first defect.
 
-*B9.1 coverage, re-measured from scratch* (the "roughly 83% funcs / 84% lines" figure this item was
+_B9.1 coverage, re-measured from scratch_ (the "roughly 83% funcs / 84% lines" figure this item was
 dispatched with does not match current disk state — do not carry it forward). Ran
 `bun test --coverage --timeout 30000 tests/unit` directly: **`All files` — 97.88% funcs / 98.19% lines**,
 3935 pass / 10 fail / 3945 total in that run. The 10 failures are not in any file this item owns
@@ -1437,12 +1437,13 @@ Worth stating in SKILL.md, because it explains every design decision downstream:
 completeness gap; B15.3/B15.4 unchanged and out of this slice's scope.** This pass owned only
 `scripts/src/summary/markdown-*.ts` and `tests/unit/summary/markdown-*.test.ts` — the `summary.md`
 rendering layer, not the producers that fill `graph.json` or gvui. Opened every file directly:
+
 - `markdown-step-provenance.ts`'s `renderActionProvenance` (B15.1) and `markdown-file-provenance.ts`'s
   `fileProvenanceTable`/`fileProvenanceDetails` (B15.2) are both wired into `markdown-formatter.ts` —
   imported at lines 15 and 28, invoked at lines 58 and 66 — and both render the exact `GraphDataset`
-  the run produced, not a second derivation of it. Confirmed by *running*, not reading, the tests: `bun
-  test tests/unit/summary/markdown-step-provenance.test.ts tests/unit/summary/
-  markdown-file-provenance.test.ts` — 15/15 pass (before this pass's own additions), and the three
+  the run produced, not a second derivation of it. Confirmed by _running_, not reading, the tests: `bun
+test tests/unit/summary/markdown-step-provenance.test.ts tests/unit/summary/
+markdown-file-provenance.test.ts` — 15/15 pass (before this pass's own additions), and the three
   sibling-owned integration tests that exercise this end to end all still pass:
   `summary-markdown-provenance-wiring.test.ts` (1/1), `summary-file-provenance-wiring.test.ts` (2/2),
   `summary-markdown-run-report.test.ts`'s full-capsule fixture (23/23 across all three files together).
@@ -1463,8 +1464,8 @@ rendering layer, not the producers that fill `graph.json` or gvui. Opened every 
   Markdown carries both new lines — it fails if the call site is ever removed. Three further unit
   tests in `markdown-file-provenance.test.ts` cover the string/`null`/absent-field cases on the
   renderer directly. `bun test tests/unit/summary/markdown-file-provenance.test.ts tests/unit/summary/
-  markdown-formatter.test.ts tests/unit/summary/markdown-formatter-populated.test.ts tests/unit/
-  summary/markdown-formatter-topology.test.ts tests/unit/summary/markdown-step-provenance.test.ts` —
+markdown-formatter.test.ts tests/unit/summary/markdown-formatter-populated.test.ts tests/unit/
+summary/markdown-formatter-topology.test.ts tests/unit/summary/markdown-step-provenance.test.ts` —
   47/47 pass. Re-ran the three integration tests above, unmodified, after the change — still 23/23
   pass, so nothing pinned to the file table's row shape broke. `bun run typecheck` — clean for every
   file this pass touched (one pre-existing, unrelated error remains in
@@ -1487,6 +1488,7 @@ unstarted and B15.4's gvui consumer is still dead code, both outside `markdown-*
 citations; B15.2's cited test currently ERRORS for an unrelated reason; B15.4's gap is real and
 broader than the note below states.** Opened every file cited below directly rather than trusting the
 prior pass's line numbers, which had already drifted:
+
 - `ActionStepRecord` at `graph-types.ts:97-107` still matches B15.1's field list exactly, but it carries
   **no doc comment** naming B15.1 — checked lines 80-97 directly, nothing there. `collectActionSteps` is
   called from `graph-run-facts.ts:274` (not `:316`) and reaches `RunFacts.steps` at line 299. `FileRef.step`
@@ -1497,7 +1499,7 @@ prior pass's line numbers, which had already drifted:
   100%), including both named tests quoted below, confirmed by name via `grep`.
 - `tests/integration/summary-graph-completeness-contract.test.ts` — re-run fresh: **0 pass, 1 fail**,
   not 17/17. `beforeAll` throws before any of the 17 tests execute: `HarnessError: cannot pass
-  task-alpha: no recorded falsifiable gate:prove proof for gate-alpha`, thrown from
+task-alpha: no recorded falsifiable gate:prove proof for gate-alpha`, thrown from
   `assertGateProofFalsifiable` (`workflow/review/pass-preconditions.ts:141`), reached through
   `completeness-run-fixture.ts`'s `runAlpha`. This is a same-day regression from the HEAD commit
   (`6256159`, "make refusals prescriptive, evidence falsifiable, and runtime freshness observable"),
@@ -1816,7 +1818,7 @@ files). Nothing here required a code change.**
   from a live transcript, not a synthetic fixture.
 - **B20.4 — investigated again, confirmed still genuinely out of this pass's reach, not reflexively
   re-flagged.** `grep -rn "validatorQuality\|probe-answer-rate\|withdrawn\|overturn" scripts/src/summary/
-  scripts/src/workflow/review/` — zero hits, matching every prior pass. This item's own file grant this
+scripts/src/workflow/review/` — zero hits, matching every prior pass. This item's own file grant this
   pass (`summary/host-telemetry*.ts`, `workflow/agents/**`) still does not include
   `summary/metrics-collector.ts` or `workflow/review/**`, which is where a per-validator quality metric
   would have to live, and the underlying data-model question (what recorded signal should "withdrawn"
@@ -2001,7 +2003,7 @@ hold against current code.
 Stays `queued` regardless, on a gap the above does not touch: B21.2's third bullet, "the completeness
 critic checks the chain is unbroken end to end: every recorded transition has its summary, every summary
 has its transition," has no implementation anywhere. Read `begin-completeness-critic.ts` and
-`record-completion-review.ts` in full — both check that the critic's *own* summary is present, neither
+`record-completion-review.ts` in full — both check that the critic's _own_ summary is present, neither
 walks the run's other transitions to confirm each one it made carries one. `agent:release` also only
 enforces a bare `--reason` string, not B21.1's fuller structured-summary contents (what changed, what was
 verified, what remains open, telemetry) the way `task:submit`'s `report` object does — a real, narrower
@@ -2013,7 +2015,7 @@ which walks every recorded transition this item names and checks both directions
 has its summary, and no summary exists without its transition: a branch `collected`/`abandoned`
 with no `outcome_summary`, a sub-task `submitted` with no `summary` (and the reverse: either field
 present without the matching status), an agent grant `released` with no `release_reason` (and the
-reverse), a task submission report with no `summary`, and a repair hand-off to a *different* agent
+reverse), a task submission report with no `summary`, and a repair hand-off to a _different_ agent
 (`repair_assignee !== original_implementer`) with a `replacement_reason` but no
 `replacement_evidence`. It is wired into `completionReadinessIssues`
 (`workflow/completion/readiness-issues.ts:123`) — the exact gate `beginCompletenessCritic` already
@@ -2145,7 +2147,7 @@ Three real gaps keep it `queued` regardless — this is not a rubber-stamp to `v
    this pass." The feature exists; the item's own stated default does not hold yet.
 2. **Two of the feature's own integration tests fail right now, discovered this pass, not previously
    known:** `bun test tests/integration/workflow-worktree-run-complete-consolidation.test.ts
-   tests/integration/workflow-worktree-provision.test.ts` → **4 pass, 2 fail.** Both failures are the
+tests/integration/workflow-worktree-provision.test.ts` → **4 pass, 2 fail.** Both failures are the
    worktree fixtures colliding with unrelated, later-landed same-day work: the consolidation test now hits
    `"no recorded falsifiable gate:prove proof for gate-t1"` (from commit `6256159`, "feat: make refusals
    prescriptive, evidence falsifiable, and runtime freshness observable") and the provision test now hits
@@ -3022,7 +3024,7 @@ B32.1 half-fixed and half re-scoped as a spec question rather than a code defect
   section now states plainly that the harness already reads the agent's own host transcript
   automatically at every boundary, and that `agent:report` is only for a fact that automatic read
   cannot see. No test references the old wording (`grep -rn "If your host reports tool usage"
-  tests/ orchestrating-long-tasks/` — zero hits before or after), so nothing else needed updating.
+tests/ orchestrating-long-tasks/` — zero hits before or after), so nothing else needed updating.
 - **B32.1, second half — investigated in depth, NOT changed, and the closure bar itself is now disputed
   rather than silently deferred.** The mechanical check ("`host_reported` never appears in production
   code") still reads true today. But renaming the transcript-derived `harness_observed` stamps in
@@ -3703,7 +3705,7 @@ re-checked from scratch this pass, tree-side, not by trusting the notes above �
 
 - Findings 2-9, 11, 12 (8 findings): each `RESOLVED` note re-verified directly against the cited
   file/line/test today. `health/allowlist.ts:140` still reads `if (allowance.check !== check) return
-  false;`. `contracts/workflow.ts`/`begin-validation.ts` still derive the domain via
+false;`. `contracts/workflow.ts`/`begin-validation.ts` still derive the domain via
   `applicableValidatorDomains`/`resolveDomain`. `references/protocol.md:295` still states "Σ(validators
   per task)...". `references/run-playbook.md` still opens with the `orchestrate`-first pointer.
   `store/layout-integrity.ts`'s `verifyCapsuleLayout` still calls `packetLayout`/`commandLayout`.
@@ -3712,9 +3714,9 @@ re-checked from scratch this pass, tree-side, not by trusting the notes above �
   `fixture-demo.json` still carries 13 nodes / 19 edges / the same 11 edge kinds, and
   `gvui/scripts/asset-portability.ts` + its `import-capsule.ts:343` call site are both still present.
   Re-ran the actual test files rather than trusting the prior pass's counts: `bun test
-  tests/unit/workflow/review/multi-domain-validation.test.ts
-  tests/unit/workflow/review/checklist-coverage.test.ts` (19 pass), `bun test
-  tests/unit/cli/orchestrate-command.test.ts tests/unit/cli/arguments.test.ts` (38 pass — grown from
+tests/unit/workflow/review/multi-domain-validation.test.ts
+tests/unit/workflow/review/checklist-coverage.test.ts` (19 pass), `bun test
+tests/unit/cli/orchestrate-command.test.ts tests/unit/cli/arguments.test.ts` (38 pass — grown from
   the 33 the 2026-08-20 note cited, still 0 fail), `bun test tests/unit/store/layout-integrity.test.ts`
   (35 pass), and in `gvui`, `bun test src/types/graphData.test.ts scripts/import-capsule.test.ts` (17
   pass, matching the prior note exactly). None of B37's own cited test paths were touched by the
@@ -3723,7 +3725,7 @@ re-checked from scratch this pass, tree-side, not by trusting the notes above �
 - Finding 1 (stale generated docs): re-ran `bun orchestrating-long-tasks/scripts/generate-cli-manifest.ts`
   against the committed tree — HEAD (`c5fccfb`) is unchanged since `6256159` last regenerated it, and
   running the generator against a clean checkout still produces zero diff. Note for whoever reads this
-  next: the live working tree *right now* is mid-edit by concurrent siblings touching exactly the files
+  next: the live working tree _right now_ is mid-edit by concurrent siblings touching exactly the files
   this finding is about (`critic-ops.ts`, `plan-validate.ts`, `task-ops.ts`, `registry/plan.ts`,
   `registry/task.ts`, a new `task:abandon` command, a new `coordinator:pushback` command), so running
   the generator against the dirty working copy right now does produce a diff again. That is expected
@@ -3742,7 +3744,7 @@ re-checked from scratch this pass, tree-side, not by trusting the notes above �
   above carries it, and this very item is being kept `queued` by that same rule rather than closed on
   the strength of its 12 resolved findings. Genuinely resolved.
 - Finding 13 (still open): re-ran the real command myself, not the prior pass's transcript — `bun
-  orchestrating-long-tasks/scripts/harness.ts health --consumer ../gvui --all` — and its "Literal
+orchestrating-long-tasks/scripts/harness.ts health --consumer ../gvui --all` — and its "Literal
   fallbacks" section's "Cannot check" list still reads, verbatim, "The consumer repository was not
   swept for fallbacks; only the harness source was." Confirmed unchanged from the 2026-08-20 note.
   Tracked as QUEUE.md #20.
@@ -3816,8 +3818,7 @@ note below.
   rather than trusting B32's note: `state.json`'s `agents` array has 2 entries (`coordinator-1`,
   `aa49f062714f34399`); the implementer entry carries `tokens_in`/`tokens_out`/`tools_used`/`token_extras`
   all stamped `evidence_class: "harness_observed"`; and `summary/summary.md` renders "Agents granted | 2"
-  (line 34) plus the tool-usage table (lines 178-180) and the harness's own evidence-class footnote (line
-  221) — exactly the rendering this finding's own bar demanded. The gap this finding named (no capsule with
+  (line 34) plus the tool-usage table (lines 178-180) and the harness's own evidence-class footnote (line 221) — exactly the rendering this finding's own bar demanded. The gap this finding named (no capsule with
   a populated `agents` ledger from a real dispatched run) no longer exists.
 - **Finding 3 (supervisor crash-recovery test) — unchanged, still no action needed.** Re-ran
   `tests/unit/orchestrator/supervisor.test.ts tests/unit/orchestrator/supervision-tick.test.ts` anyway —

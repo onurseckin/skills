@@ -1,5 +1,4 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { rmSync } from "node:fs";
+import { describe, expect, test } from "bun:test";
 import {
   abandonBranch,
   collectBranch,
@@ -7,25 +6,14 @@ import {
 import { readBranchLedger } from "../../../../orchestrating-long-tasks/scripts/src/workflow/branch/ledger.ts";
 import { tokenDigest } from "../../../../orchestrating-long-tasks/scripts/src/workflow/lease/token.ts";
 import { branchRecord, subTask } from "./fixture.ts";
-import { freshRunRoot, seedBranchLedger, seedTask } from "./store-fixture.ts";
-
-const roots: string[] = [];
-afterEach(() => {
-  for (const root of roots.splice(0)) rmSync(root, { force: true, recursive: true });
-});
-
-function trackedRunRoot(prefix: string): string {
-  const run = freshRunRoot(prefix);
-  roots.push(run.split("/.capsules/")[0]!);
-  return run;
-}
+import { FakeRunStore, seedBranchLedger, seedTask } from "./fake-transact.ts";
 
 const TOKEN = "a-valid-token";
 const NOW = new Date("2026-08-19T01:00:00.000Z");
 const NO_GIT = { hasGitMetadata: () => false };
 
-function seedBranchedTask(runRoot: string, overrides: Record<string, unknown> = {}): void {
-  seedTask(runRoot, "T-1", {
+function seedBranchedTask(store: FakeRunStore, overrides: Record<string, unknown> = {}): void {
+  seedTask(store, "T-1", {
     status: "branched",
     write_scope: ["src/pkg"],
     lease: {
@@ -44,10 +32,10 @@ function seedBranchedTask(runRoot: string, overrides: Record<string, unknown> = 
 }
 
 describe("collectBranch", () => {
-  function baseInput(runRoot: string, overrides: Record<string, unknown> = {}) {
+  function baseInput(store: FakeRunStore, overrides: Record<string, unknown> = {}) {
     return {
-      runRoot,
-      repoRoot: runRoot,
+      runRoot: store.runRoot,
+      repoRoot: process.cwd(),
       branchId: "B-1",
       agentId: "agent-1",
       token: TOKEN,
@@ -55,36 +43,37 @@ describe("collectBranch", () => {
       summary: "all done",
       now: NOW,
       observation: NO_GIT,
+      transact: store.transact,
       ...overrides,
     };
   }
 
   test("rejects a blank summary", () => {
-    const runRoot = trackedRunRoot("collect-blank-summary");
-    expect(() => collectBranch(baseInput(runRoot, { summary: "  " }))).toThrow(
+    const store = new FakeRunStore();
+    expect(() => collectBranch(baseInput(store, { summary: "  " }))).toThrow(
       /summary must be non-blank text/,
     );
   });
 
   test("rejects collecting a branch that is not open", () => {
-    const runRoot = trackedRunRoot("collect-not-open");
-    seedBranchLedger(runRoot, [branchRecord({ id: "B-1", status: "collected" })]);
-    expect(() => collectBranch(baseInput(runRoot))).toThrow(/branch B-1 is collected, not open/);
+    const store = new FakeRunStore();
+    seedBranchLedger(store, [branchRecord({ id: "B-1", status: "collected" })]);
+    expect(() => collectBranch(baseInput(store))).toThrow(/branch B-1 is collected, not open/);
   });
 
   test("rejects collecting a branch that belongs to a different parent agent", () => {
-    const runRoot = trackedRunRoot("collect-wrong-agent");
-    seedBranchLedger(runRoot, [
+    const store = new FakeRunStore();
+    seedBranchLedger(store, [
       branchRecord({ id: "B-1", status: "open", parent_agent_id: "someone-else" }),
     ]);
-    expect(() => collectBranch(baseInput(runRoot))).toThrow(
+    expect(() => collectBranch(baseInput(store))).toThrow(
       /branch B-1 belongs to someone-else, not agent-1/,
     );
   });
 
   test("rejects collecting while any sub-task is still non-terminal", () => {
-    const runRoot = trackedRunRoot("collect-pending");
-    seedBranchLedger(runRoot, [
+    const store = new FakeRunStore();
+    seedBranchLedger(store, [
       branchRecord({
         id: "B-1",
         status: "open",
@@ -94,15 +83,15 @@ describe("collectBranch", () => {
         ],
       }),
     ]);
-    expect(() => collectBranch(baseInput(runRoot))).toThrow(
+    expect(() => collectBranch(baseInput(store))).toThrow(
       /branch B-1 still has non-terminal sub-tasks: ST-1 \(claimed\), ST-2 \(open\)/,
     );
   });
 
   test("rejects collecting when the parent task is not in the branched state", () => {
-    const runRoot = trackedRunRoot("collect-parent-not-branched");
-    seedTask(runRoot, "T-1", { status: "running" });
-    seedBranchLedger(runRoot, [
+    const store = new FakeRunStore();
+    seedTask(store, "T-1", { status: "running" });
+    seedBranchLedger(store, [
       branchRecord({
         id: "B-1",
         status: "open",
@@ -110,13 +99,13 @@ describe("collectBranch", () => {
         sub_tasks: [subTask({ status: "submitted" })],
       }),
     ]);
-    expect(() => collectBranch(baseInput(runRoot))).toThrow(/T-1 is running, not branched/);
+    expect(() => collectBranch(baseInput(store))).toThrow(/T-1 is running, not branched/);
   });
 
   test("rejects collecting with an invalid lease token", () => {
-    const runRoot = trackedRunRoot("collect-bad-token");
-    seedBranchedTask(runRoot);
-    seedBranchLedger(runRoot, [
+    const store = new FakeRunStore();
+    seedBranchedTask(store);
+    seedBranchLedger(store, [
       branchRecord({
         id: "B-1",
         status: "open",
@@ -124,15 +113,15 @@ describe("collectBranch", () => {
         sub_tasks: [subTask({ status: "submitted" })],
       }),
     ]);
-    expect(() => collectBranch(baseInput(runRoot, { token: "wrong" }))).toThrow(
+    expect(() => collectBranch(baseInput(store, { token: "wrong" }))).toThrow(
       /lease identity or token is invalid/,
     );
   });
 
   test("collects a branch with no recorded baseline observation: files_changed stays unset", () => {
-    const runRoot = trackedRunRoot("collect-no-baseline");
-    seedBranchedTask(runRoot);
-    seedBranchLedger(runRoot, [
+    const store = new FakeRunStore();
+    seedBranchedTask(store);
+    seedBranchLedger(store, [
       branchRecord({
         id: "B-1",
         status: "open",
@@ -140,7 +129,7 @@ describe("collectBranch", () => {
         sub_tasks: [subTask({ status: "submitted" })],
       }),
     ]);
-    const outcome = collectBranch(baseInput(runRoot));
+    const outcome = collectBranch(baseInput(store));
     expect(outcome.branch.status).toBe("collected");
     expect(outcome.branch.files_changed).toBeUndefined();
     expect(outcome.branch.outcome_summary).toBe("all done");
@@ -153,9 +142,9 @@ describe("collectBranch", () => {
   });
 
   test("collects a branch with a recorded baseline: computes and evidences the changed files", () => {
-    const runRoot = trackedRunRoot("collect-with-baseline");
-    seedBranchedTask(runRoot);
-    seedBranchLedger(runRoot, [
+    const store = new FakeRunStore();
+    seedBranchedTask(store);
+    seedBranchLedger(store, [
       branchRecord({
         id: "B-1",
         status: "open",
@@ -169,7 +158,7 @@ describe("collectBranch", () => {
         },
       }),
     ]);
-    const outcome = collectBranch(baseInput(runRoot));
+    const outcome = collectBranch(baseInput(store));
     expect(outcome.branch.collected_observation).toEqual({
       observed_at: NOW.toISOString(),
       git_available: false,
@@ -183,62 +172,63 @@ describe("collectBranch", () => {
 });
 
 describe("abandonBranch", () => {
-  function baseInput(runRoot: string, overrides: Record<string, unknown> = {}) {
+  function baseInput(store: FakeRunStore, overrides: Record<string, unknown> = {}) {
     return {
-      runRoot,
+      runRoot: store.runRoot,
       branchId: "B-1",
       agentId: "agent-1",
       token: TOKEN,
       actor: "agent-1",
       reason: "no longer needed",
       now: NOW,
+      transact: store.transact,
       ...overrides,
     };
   }
 
   test("rejects a blank reason", () => {
-    const runRoot = trackedRunRoot("abandon-blank-reason");
-    expect(() => abandonBranch(baseInput(runRoot, { reason: "  " }))).toThrow(
+    const store = new FakeRunStore();
+    expect(() => abandonBranch(baseInput(store, { reason: "  " }))).toThrow(
       /reason must be non-blank text/,
     );
   });
 
   test("rejects abandoning a branch that is not open", () => {
-    const runRoot = trackedRunRoot("abandon-not-open");
-    seedBranchLedger(runRoot, [branchRecord({ id: "B-1", status: "abandoned" })]);
-    expect(() => abandonBranch(baseInput(runRoot))).toThrow(/branch B-1 is abandoned, not open/);
+    const store = new FakeRunStore();
+    seedBranchLedger(store, [branchRecord({ id: "B-1", status: "abandoned" })]);
+    expect(() => abandonBranch(baseInput(store))).toThrow(/branch B-1 is abandoned, not open/);
   });
 
   test("rejects abandoning a branch that belongs to a different parent agent", () => {
-    const runRoot = trackedRunRoot("abandon-wrong-agent");
-    seedBranchLedger(runRoot, [
+    const store = new FakeRunStore();
+    seedBranchLedger(store, [
       branchRecord({ id: "B-1", status: "open", parent_agent_id: "someone-else" }),
     ]);
-    expect(() => abandonBranch(baseInput(runRoot))).toThrow(
+    expect(() => abandonBranch(baseInput(store))).toThrow(
       /branch B-1 belongs to someone-else, not agent-1/,
     );
   });
 
   test("rejects abandoning when the parent task is not in the branched state", () => {
-    const runRoot = trackedRunRoot("abandon-parent-not-branched");
-    seedTask(runRoot, "T-1", { status: "running" });
-    seedBranchLedger(runRoot, [branchRecord({ id: "B-1", status: "open", parent_task_id: "T-1" })]);
-    expect(() => abandonBranch(baseInput(runRoot))).toThrow(/T-1 is running, not branched/);
+    const store = new FakeRunStore();
+    seedTask(store, "T-1", { status: "running" });
+    seedBranchLedger(store, [branchRecord({ id: "B-1", status: "open", parent_task_id: "T-1" })]);
+    expect(() => abandonBranch(baseInput(store))).toThrow(/T-1 is running, not branched/);
   });
 
   test("rejects abandoning with an invalid lease token", () => {
-    const runRoot = trackedRunRoot("abandon-bad-token");
-    seedBranchedTask(runRoot);
-    seedBranchLedger(runRoot, [branchRecord({ id: "B-1", status: "open", parent_task_id: "T-1" })]);
-    expect(() => abandonBranch(baseInput(runRoot, { token: "wrong" }))).toThrow(
+    const store = new FakeRunStore();
+    seedBranchedTask(store);
+    seedBranchLedger(store, [branchRecord({ id: "B-1", status: "open", parent_task_id: "T-1" })]);
+    expect(() => abandonBranch(baseInput(store, { token: "wrong" }))).toThrow(
       /lease identity or token is invalid/,
     );
   });
 
   test("rejects abandoning while a sub-task itself has an open branch (status branched)", () => {
-    const runRoot = trackedRunRoot("abandon-nested-branch");
-    seedBranchedTask(runRoot);
-    seedBranchLedger(runRoot, [
+    const store = new FakeRunStore();
+    seedBranchedTask(store);
+    seedBranchLedger(store, [
       branchRecord({
         id: "B-1",
         status: "open",
@@ -246,15 +236,15 @@ describe("abandonBranch", () => {
         sub_tasks: [subTask({ id: "ST-1", status: "branched" })],
       }),
     ]);
-    expect(() => abandonBranch(baseInput(runRoot))).toThrow(
+    expect(() => abandonBranch(baseInput(store))).toThrow(
       /sub-task ST-1 has an open branch of its own; collect or abandon it first/,
     );
   });
 
   test("abandons open sub-tasks, leaves already-terminal ones alone, and resumes the parent", () => {
-    const runRoot = trackedRunRoot("abandon-happy");
-    seedBranchedTask(runRoot);
-    seedBranchLedger(runRoot, [
+    const store = new FakeRunStore();
+    seedBranchedTask(store);
+    seedBranchLedger(store, [
       branchRecord({
         id: "B-1",
         status: "open",
@@ -276,7 +266,7 @@ describe("abandonBranch", () => {
         ],
       }),
     ]);
-    const outcome = abandonBranch(baseInput(runRoot));
+    const outcome = abandonBranch(baseInput(store));
     expect(outcome.branch.status).toBe("abandoned");
     expect(outcome.branch.outcome_summary).toBe("no longer needed");
     const byId = new Map(outcome.branch.sub_tasks.map((st) => [st.id, st]));

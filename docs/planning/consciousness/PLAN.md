@@ -49,8 +49,8 @@ with no top-level `await`. Module evaluation therefore finishes immediately, the
 only remaining scheduled work, nothing holds the event loop, and Bun exits 0. Two minimal repros
 confirm it:
 
-| repro                                              | result                                    |
-| :------------------------------------------------- | :---------------------------------------- |
+| repro                                                | result                                    |
+| :--------------------------------------------------- | :---------------------------------------- |
 | floating `main()` + **unrefd** timer (harness shape) | prints tick 1, exits in **18 ms**, code 0 |
 | floating `main()` + **refd** timer                   | prints tick 1 **and** tick 2, 3019 ms     |
 
@@ -117,7 +117,7 @@ Four tiers, each of which may only deploy the tier below it:
 
 - **Tier 0 — Consciousness.** One per repository, long-lived, never edits a file. Owns the charter
   binding, the pulse ledger, the candidate ledger, budgets and the escalation channel. Decides
-  *whether there is anything worth doing* and *what kind of thing it is*.
+  _whether there is anything worth doing_ and _what kind of thing it is_.
 - **Tier 1 — Orchestrator.** One per objective. Owns a chain of rounds against one objective; never
   edits a file. This is what `agents/orchestrator.yaml` already describes as the tier 1
   meta-orchestrator, given its own contract instead of borrowing the coordinator's.
@@ -131,13 +131,13 @@ Stating this precisely is most of the value of the document.
 - **It is not a running process.** Nothing stays resident. Between pulses there is no Consciousness,
   only a capsule. Anything that must survive a pulse boundary is written down, or it does not exist.
 - **It is not a scheduler.** It does not implement time. It consumes wake-ups from whatever the host
-  can offer, and its only scheduling responsibility is to *arm the next one before it stops*.
+  can offer, and its only scheduling responsibility is to _arm the next one before it stops_.
 - **It is not an autonomous product manager.** It cannot decide what the application is for. That
   lives in an owner-written charter it is structurally forbidden to modify, checked by digest on
   every pulse.
 - **It is not a source of new features.** Novelty enters only as a **proposal** that the owner must
   grant before a single task is planned. An infinite loop that is allowed to invent its own
-  objectives will invent them; the discipline is that it may only ever *propose*.
+  objectives will invent them; the discipline is that it may only ever _propose_.
 - **It is not "AI that improves itself".** It may not install, upgrade or edit its own runtime. That
   is on the never-unattended list (§11.3), because a system that can rewrite its own guard rails has
   no guard rails.
@@ -164,50 +164,50 @@ Everything in this section was opened. This is the inventory the design is allow
 
 ### 2.1 Correct, load-bearing, and reusable as-is
 
-| Mechanism                                       | Where                                                    | Why it matters to Consciousness                                                                                        |
-| :---------------------------------------------- | :------------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------- |
-| Re-entrant supervision tick                     | `orchestrator/supervision-tick.ts`                       | The pulse's recovery half. Pure function of state + clock; safe to call from cron.                                     |
-| Single-tick-without-dispatcher                  | `orchestrator/supervisor.ts:233-234`                     | `dispatcher === undefined` → `stopReason: "single_tick"`. The externally driven mode already exists.                   |
-| Time-based stale recovery                       | `workflow/lease/recover-stale.ts`                        | Complete and correct: expired leases → `retry_ready`/`changes_requested`, interrupted validations, branch subtasks, critics. |
-| Dead-agent reclaim + event                      | `orchestrator/dead-agent-detector.ts`                    | Emits `supervisor-dead-agent-reclaimed` so reclaims are countable, not inferred.                                       |
-| Failure classifier                              | `orchestrator/failure-classifier.ts`                     | `rate_limit`/`network`/`provider_5xx`/`timeout` transient and unbounded in count, bounded in elapsed time (4 h default). Exponential backoff with jitter. |
-| Morning report                                  | `orchestrator/morning-report.ts`                         | Completed / escalated / awaiting-repair / dead-agents-reclaimed / retries / run span / backoff / occupancy. Verified rendering against a real capsule. |
-| Revision guard                                  | `graph/revision-guard.ts`                                | Frozen requirement contract, mutable interior; revision must increase by exactly one. The shape §8 copies one level up. |
-| Role-contract command authority                 | `packets/command-authority.ts` + `cli/execute.ts:29`     | The CLI refuses a command the acting agent's role contract does not list. **This is the rail Consciousness extends.**  |
-| Evidence spine                                  | `references/protocol.md:23-36`                           | `harness_observed` / `agent_reported` / `host_reported` / `derived` / `unknown`. Absent stays absent.                   |
-| Per-agent telemetry ledger                      | `contracts/agents.ts:AgentGrantRecord`                   | `model`, `model_tier`, `thinking_level`, `context_window`, `tokens_in/out` — each `Evidenced<T>`. The substrate for §10. |
-| Host capability probe                           | `summary/host-telemetry.ts:HostCapabilities`             | `nesting_depth`, `concurrency_ceiling`, `native_workspace_isolation`, `native_resume`, `per_agent_model_selection`, `multi_agent_enabled`. |
-| Legal-move computation                          | `reporting/next-actions.ts` + `task-actions.ts`          | Produces fully-formed argv per task state, including `task:validate-start` for a submitted task with a placeholder validator id. |
-| Handoff document                                | `reporting/handoff.ts`                                   | Waves, grants, branches, tasks, requirements, open findings, gates, packets, orphan evidence, completion blockers, recent events, **exact next argv**. Written 0444. |
-| Event chain + checkpointing                     | `store/event-append.ts`                                  | Append-only hash chain; full projection every 20th event, patches between; fsync then rename.                          |
-| Torn-tail repair                                | `doctor:repair`                                          | Re-derives `state.json` from the chain's last complete event, quarantining the fragment.                               |
-| Capsule chaining                                | `orchestrator/capsule-chainer.ts`                        | Carries forward unresolved findings, unsatisfied requirements and `previousEventHead` into a successor capsule.        |
-| Defect synthesis                                | `orchestrator/defect-synthesizer.ts`                     | Turns a round's open findings, critic decision and failed gates into the next round's prompt.                          |
-| `plan:audit` at compile                         | `plan:compile` refuses on blocking findings              | A1/A3/A4/A5/A6 blocking, per-invariant `--accept-audit` overrides. A2 honestly reported `not_evaluated`.               |
-| `--auto-partition`                              | `plan:add`                                               | The harness enumerates a glob and emits one task per file with a derived gate. Removes granularity from a weak planner's hands. |
-| No-op refusal                                   | `task:submit` (C4)                                       | Byte-identical scope at claim and submit is refused unless `--no-op --reason`.                                         |
-| Restricted git                                  | `core/restricted-git.ts`                                 | A git gate argv may only be `diff --check` / `diff --cached --check`. Hooks, external diff and pagers disabled.        |
-| Authority pause                                 | `authority:decide` + `needs_authority` disposition       | A requirement stays non-executable until a human grants it. **This is the mechanism §7.4 uses for novelty.**            |
-| Health checks                                   | `health/index.ts:ALL_CHECKS`                             | 7 mechanical checks including `intent-drift`, which compares owner-written intent documents against production code and tests. |
-| Install drift detection                         | `installer/runtime-freshness.ts`                         | Digest + runtime version per install root; `assertInstalledRuntimeFresh` throws `INTEGRITY` on drift. Called from `plan:init`. |
-| Branch-and-collect                              | six `branch:*` commands                                  | Proper-subset write scopes guarantee termination. Built, never used.                                                   |
-| Kernel-lock durability                          | `references/state-model.md:298-303`                      | POSIX `flock` on the lock inode is authoritative; temp → fsync → rename → dir fsync.                                    |
+| Mechanism                       | Where                                                | Why it matters to Consciousness                                                                                                                                      |
+| :------------------------------ | :--------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Re-entrant supervision tick     | `orchestrator/supervision-tick.ts`                   | The pulse's recovery half. Pure function of state + clock; safe to call from cron.                                                                                   |
+| Single-tick-without-dispatcher  | `orchestrator/supervisor.ts:233-234`                 | `dispatcher === undefined` → `stopReason: "single_tick"`. The externally driven mode already exists.                                                                 |
+| Time-based stale recovery       | `workflow/lease/recover-stale.ts`                    | Complete and correct: expired leases → `retry_ready`/`changes_requested`, interrupted validations, branch subtasks, critics.                                         |
+| Dead-agent reclaim + event      | `orchestrator/dead-agent-detector.ts`                | Emits `supervisor-dead-agent-reclaimed` so reclaims are countable, not inferred.                                                                                     |
+| Failure classifier              | `orchestrator/failure-classifier.ts`                 | `rate_limit`/`network`/`provider_5xx`/`timeout` transient and unbounded in count, bounded in elapsed time (4 h default). Exponential backoff with jitter.            |
+| Morning report                  | `orchestrator/morning-report.ts`                     | Completed / escalated / awaiting-repair / dead-agents-reclaimed / retries / run span / backoff / occupancy. Verified rendering against a real capsule.               |
+| Revision guard                  | `graph/revision-guard.ts`                            | Frozen requirement contract, mutable interior; revision must increase by exactly one. The shape §8 copies one level up.                                              |
+| Role-contract command authority | `packets/command-authority.ts` + `cli/execute.ts:29` | The CLI refuses a command the acting agent's role contract does not list. **This is the rail Consciousness extends.**                                                |
+| Evidence spine                  | `references/protocol.md:23-36`                       | `harness_observed` / `agent_reported` / `host_reported` / `derived` / `unknown`. Absent stays absent.                                                                |
+| Per-agent telemetry ledger      | `contracts/agents.ts:AgentGrantRecord`               | `model`, `model_tier`, `thinking_level`, `context_window`, `tokens_in/out` — each `Evidenced<T>`. The substrate for §10.                                             |
+| Host capability probe           | `summary/host-telemetry.ts:HostCapabilities`         | `nesting_depth`, `concurrency_ceiling`, `native_workspace_isolation`, `native_resume`, `per_agent_model_selection`, `multi_agent_enabled`.                           |
+| Legal-move computation          | `reporting/next-actions.ts` + `task-actions.ts`      | Produces fully-formed argv per task state, including `task:validate-start` for a submitted task with a placeholder validator id.                                     |
+| Handoff document                | `reporting/handoff.ts`                               | Waves, grants, branches, tasks, requirements, open findings, gates, packets, orphan evidence, completion blockers, recent events, **exact next argv**. Written 0444. |
+| Event chain + checkpointing     | `store/event-append.ts`                              | Append-only hash chain; full projection every 20th event, patches between; fsync then rename.                                                                        |
+| Torn-tail repair                | `doctor:repair`                                      | Re-derives `state.json` from the chain's last complete event, quarantining the fragment.                                                                             |
+| Capsule chaining                | `orchestrator/capsule-chainer.ts`                    | Carries forward unresolved findings, unsatisfied requirements and `previousEventHead` into a successor capsule.                                                      |
+| Defect synthesis                | `orchestrator/defect-synthesizer.ts`                 | Turns a round's open findings, critic decision and failed gates into the next round's prompt.                                                                        |
+| `plan:audit` at compile         | `plan:compile` refuses on blocking findings          | A1/A3/A4/A5/A6 blocking, per-invariant `--accept-audit` overrides. A2 honestly reported `not_evaluated`.                                                             |
+| `--auto-partition`              | `plan:add`                                           | The harness enumerates a glob and emits one task per file with a derived gate. Removes granularity from a weak planner's hands.                                      |
+| No-op refusal                   | `task:submit` (C4)                                   | Byte-identical scope at claim and submit is refused unless `--no-op --reason`.                                                                                       |
+| Restricted git                  | `core/restricted-git.ts`                             | A git gate argv may only be `diff --check` / `diff --cached --check`. Hooks, external diff and pagers disabled.                                                      |
+| Authority pause                 | `authority:decide` + `needs_authority` disposition   | A requirement stays non-executable until a human grants it. **This is the mechanism §7.4 uses for novelty.**                                                         |
+| Health checks                   | `health/index.ts:ALL_CHECKS`                         | 7 mechanical checks including `intent-drift`, which compares owner-written intent documents against production code and tests.                                       |
+| Install drift detection         | `installer/runtime-freshness.ts`                     | Digest + runtime version per install root; `assertInstalledRuntimeFresh` throws `INTEGRITY` on drift. Called from `plan:init`.                                       |
+| Branch-and-collect              | six `branch:*` commands                              | Proper-subset write scopes guarantee termination. Built, never used.                                                                                                 |
+| Kernel-lock durability          | `references/state-model.md:298-303`                  | POSIX `flock` on the lock inode is authoritative; temp → fsync → rename → dir fsync.                                                                                 |
 
 ### 2.2 Exists but is not wired — the specific gaps this plan must cross
 
-| Gap                                                        | Evidence                                                                                                                 |
-| :--------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------- |
-| `orchestrator:run` cannot run                              | `cli/commands/orchestrator-ops.ts:76-80` throws `INVALID_STATE` without an injected executor; `grep -rn executor` finds **no injector anywhere in the tree**. The multi-round loop is a library class with no host binding. |
-| `--watch` is broken                                        | §0.1.                                                                                                                    |
-| Nothing runs on a timer                                    | The only `setInterval` in the tree is `orchestrator/watchdog.ts:271`, an in-memory `Map` of monitors owned by a live `AutonomousLoopRunner`. It never touches a lease and dies with its process. |
-| `handoff.md` is refreshed at four points only              | `run:complete`, `task:claim`, and `task:reject`/`task:review` **when the result is `escalated`**. After a `task:submit`, after `recover`, after a supervision tick, it is stale. |
-| No command renders the handoff                             | The manifest has no command containing "handoff". It is a write side effect with no reader.                              |
-| `nextActions` is not surfaced from `run:status`            | `runStatus()` (`reporting/status.ts:60`) never calls it. `CHANNEL.md` R6 already asks for this.                           |
-| `queue:wave` cannot see validation work                    | `scheduler/propose-batch.ts:26` — `DISPATCHABLE_STATUSES = {proposed, ready, retry_ready}`. A `submitted` task awaiting a validator is invisible to the wave *and* to the morning report. |
-| Runtime freshness is checked at `plan:init` only           | `cli/commands/plan.ts:73`. A run already open never re-checks.                                                            |
-| `host_reported` is defined and never assigned              | `references/protocol.md:31`. Model/effort arrive as CLI input and are `agent_reported`.                                    |
-| The plan interior has never moved                          | Both capsules in this repo: `graph.revision = 1`, `plan_history = []`. Also true of the six capsules in the brief.        |
-| Branch-and-collect has never run                           | Confirmed by the same survey.                                                                                            |
+| Gap                                              | Evidence                                                                                                                                                                                                                    |
+| :----------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `orchestrator:run` cannot run                    | `cli/commands/orchestrator-ops.ts:76-80` throws `INVALID_STATE` without an injected executor; `grep -rn executor` finds **no injector anywhere in the tree**. The multi-round loop is a library class with no host binding. |
+| `--watch` is broken                              | §0.1.                                                                                                                                                                                                                       |
+| Nothing runs on a timer                          | The only `setInterval` in the tree is `orchestrator/watchdog.ts:271`, an in-memory `Map` of monitors owned by a live `AutonomousLoopRunner`. It never touches a lease and dies with its process.                            |
+| `handoff.md` is refreshed at four points only    | `run:complete`, `task:claim`, and `task:reject`/`task:review` **when the result is `escalated`**. After a `task:submit`, after `recover`, after a supervision tick, it is stale.                                            |
+| No command renders the handoff                   | The manifest has no command containing "handoff". It is a write side effect with no reader.                                                                                                                                 |
+| `nextActions` is not surfaced from `run:status`  | `runStatus()` (`reporting/status.ts:60`) never calls it. `CHANNEL.md` R6 already asks for this.                                                                                                                             |
+| `queue:wave` cannot see validation work          | `scheduler/propose-batch.ts:26` — `DISPATCHABLE_STATUSES = {proposed, ready, retry_ready}`. A `submitted` task awaiting a validator is invisible to the wave _and_ to the morning report.                                   |
+| Runtime freshness is checked at `plan:init` only | `cli/commands/plan.ts:73`. A run already open never re-checks.                                                                                                                                                              |
+| `host_reported` is defined and never assigned    | `references/protocol.md:31`. Model/effort arrive as CLI input and are `agent_reported`.                                                                                                                                     |
+| The plan interior has never moved                | Both capsules in this repo: `graph.revision = 1`, `plan_history = []`. Also true of the six capsules in the brief.                                                                                                          |
+| Branch-and-collect has never run                 | Confirmed by the same survey.                                                                                                                                                                                               |
 
 ### 2.3 What the host actually offers for scheduling — checked, not assumed
 
@@ -280,12 +280,12 @@ routine, or the container in §5.3.
    deployed by tier 0 on its own cadence: consciousness-auditor  (see §12.2)
 ```
 
-**The rule that makes the hierarchy real rather than decorative:** *a tier may deploy only the tier
-directly beneath it.* Consciousness never dispatches an implementer. If it wants code written it
+**The rule that makes the hierarchy real rather than decorative:** _a tier may deploy only the tier
+directly beneath it._ Consciousness never dispatches an implementer. If it wants code written it
 deploys an orchestrator, which deploys a coordinator, which pairs an implementer with a validator.
 Every skip is a refusal, enforced by the `spawns:` list in the role contract.
 
-Why the indirection is worth its cost: each tier is the thing that *bounds* the tier below. An
+Why the indirection is worth its cost: each tier is the thing that _bounds_ the tier below. An
 orchestrator bounds rounds; a coordinator bounds waves and repair budget; a validator bounds
 "done". Collapse a tier and you delete a bound.
 
@@ -406,8 +406,8 @@ spawns:
   - coordinator
 ```
 
-The tier 1 contract exists so that `roles/coordinator.md` can stop saying *"This contract covers both
-drivers: the tier 2 coordinator that owns one run, and the tier 1 loop runner that chains runs."*
+The tier 1 contract exists so that `roles/coordinator.md` can stop saying _"This contract covers both
+drivers: the tier 2 coordinator that owns one run, and the tier 1 loop runner that chains runs."_
 One document describing two roles is precisely how a weak model ends up doing the wrong one.
 
 #### `roles/consciousness-auditor.md` (new, tier 1)
@@ -417,12 +417,12 @@ the repository; never reads Consciousness's own narrative. Full contract in §12
 
 ### 3.3 Where the scheduler lives — and why it is not an agent
 
-The brief says: *"When Consciousness deploys orchestrators it should also deploy a scheduler, or give
-specific scheduler responsibilities to the orchestrators."*
+The brief says: _"When Consciousness deploys orchestrators it should also deploy a scheduler, or give
+specific scheduler responsibilities to the orchestrators."_
 
 **The scheduler is not an agent.** Spending a model call to decide "wait 15 minutes" is the most
 expensive possible implementation of `sleep`, and an agent that must stay resident to keep time is
-the exact thing that dies with the session. The scheduler is a *mechanism* outside the model
+the exact thing that dies with the session. The scheduler is a _mechanism_ outside the model
 entirely (§5).
 
 What is real, and what the owner's sentence is actually asking for, is the **scheduling
@@ -433,9 +433,9 @@ responsibility**, and it is an obligation on the pulse rather than a person:
 > `charter-drift`). A pulse that can do neither closes with outcome `unarmed` and fires a push
 > notification, because an unarmed pulse is the end of the mind.
 
-This is `AUTONOMOUS.md`'s hardest-won rule — *"NEVER end a turn with nothing in flight… this happened
+This is `AUTONOMOUS.md`'s hardest-won rule — _"NEVER end a turn with nothing in flight… this happened
 once, a turn ended after a commit with the next wave deferred to the wakeup, and the run sat idle
-until the owner came back and found it stopped"* — turned from a paragraph of exhortation into a
+until the owner came back and found it stopped"_ — turned from a paragraph of exhortation into a
 refusal at the CLI door.
 
 Tier 1 gets a narrower version of the same obligation: an orchestrator may not close a round without
@@ -447,15 +447,15 @@ Nothing new. `packets/render-packet.ts` already stamps `role_contract_sha256` in
 packet, so a tier-0 or tier-1 packet is the existing mechanism with a new contract file. What
 Consciousness adds to a tier-1 packet:
 
-| Field                | Class            | Source                                                          |
-| :------------------- | :--------------- | :--------------------------------------------------------------- |
-| `objective`          | `agent_reported` | The admitted candidate's statement                              |
-| `witness_command_id` | `harness_observed` | The recorded command that proved the defect exists            |
-| `charter_goal_ids`   | `harness_observed` | Which charter goals admitted it                               |
-| `round_budget`       | `derived`        | From the remaining pulse/day budget                             |
-| `wall_clock_budget`  | `derived`        | Same                                                            |
-| `profile`            | `agent_reported` | Abstract profile name only — never a model string (§10)         |
-| `prohibitions`       | `harness_observed` | The charter's never-unattended list, copied verbatim          |
+| Field                | Class              | Source                                                  |
+| :------------------- | :----------------- | :------------------------------------------------------ |
+| `objective`          | `agent_reported`   | The admitted candidate's statement                      |
+| `witness_command_id` | `harness_observed` | The recorded command that proved the defect exists      |
+| `charter_goal_ids`   | `harness_observed` | Which charter goals admitted it                         |
+| `round_budget`       | `derived`          | From the remaining pulse/day budget                     |
+| `wall_clock_budget`  | `derived`          | Same                                                    |
+| `profile`            | `agent_reported`   | Abstract profile name only — never a model string (§10) |
+| `prohibitions`       | `harness_observed` | The charter's never-unattended list, copied verbatim    |
 
 ---
 
@@ -533,19 +533,19 @@ Depth comes from many pulses, not from one long one.
 A pulse ends — always, exactly once — with `mind:pulse-close --outcome <o>`, where the outcome is one
 of:
 
-| Outcome         | Meaning                                                          | Arms next? |
-| :-------------- | :--------------------------------------------------------------- | :--------- |
-| `rescued`       | Recovery acted; the ledger names what it reclaimed               | yes        |
-| `repaired`      | Work dispatched against an existing finding, gate or escalation  | yes        |
-| `advanced`      | Work dispatched against an existing plan                         | yes        |
-| `discovered`    | A candidate was admitted and an orchestrator deployed            | yes        |
-| `proposed`      | Novelty recorded as a `needs_authority` proposal for the owner    | yes        |
-| `quiescent`     | Every source checked, nothing worth doing — with the evidence    | yes, longer |
-| `deferred`      | Budget, quiet hours, or another pulse held the lock              | yes, later |
-| `paused`        | Quota pressure observed; nothing killed, everything resumable    | yes, much longer |
-| `escalated`     | Something needs the owner; push sent                             | yes        |
-| `halted`        | Charter drift, unrepairable integrity, auditor halt, owner stop  | **no**     |
-| `unarmed`       | The pulse could not arm a successor                              | **no** — pages |
+| Outcome      | Meaning                                                         | Arms next?       |
+| :----------- | :-------------------------------------------------------------- | :--------------- |
+| `rescued`    | Recovery acted; the ledger names what it reclaimed              | yes              |
+| `repaired`   | Work dispatched against an existing finding, gate or escalation | yes              |
+| `advanced`   | Work dispatched against an existing plan                        | yes              |
+| `discovered` | A candidate was admitted and an orchestrator deployed           | yes              |
+| `proposed`   | Novelty recorded as a `needs_authority` proposal for the owner  | yes              |
+| `quiescent`  | Every source checked, nothing worth doing — with the evidence   | yes, longer      |
+| `deferred`   | Budget, quiet hours, or another pulse held the lock             | yes, later       |
+| `paused`     | Quota pressure observed; nothing killed, everything resumable   | yes, much longer |
+| `escalated`  | Something needs the owner; push sent                            | yes              |
+| `halted`     | Charter drift, unrepairable integrity, auditor halt, owner stop | **no**           |
+| `unarmed`    | The pulse could not arm a successor                             | **no** — pages   |
 
 A pulse also ends when its **deadline** passes. Every pulse writes `deadline_at` at open. A pulse
 found open past its deadline by the next wake is reclaimed exactly the way an expired lease is —
@@ -598,26 +598,26 @@ The seam itself is one file the driver executes and one command the pulse begins
 
 `pulse.sh` contains no intelligence. It is a lock, an invocation and a trap. It must be under 40
 lines, and every line of it must be dry-run on the target machine before it is armed — because
-`SUPERVISION.md` records the cost of not doing that: *"an earlier watchdog in this project used
+`SUPERVISION.md` records the cost of not doing that: _"an earlier watchdog in this project used
 `find -newermt '-8 minutes'`; this machine's `find` is `bfs`, which rejects that syntax, so the check
-returned nothing and reported IDLE for an hour while two dozen agents were writing."*
+returned nothing and reported IDLE for an hour while two dozen agents were writing."_
 
 ### 5.2 Per host
 
-| Host                | Mechanism that satisfies FIRE                                        | SERIALISE                                             | SURVIVE                                     | Honest verdict                                                                                     |
-| :------------------ | :------------------------------------------------------------------- | :---------------------------------------------------- | :------------------------------------------ | :-------------------------------------------------------------------------------------------------- |
-| **Claude Code (in-session)** | `CronCreate` recurring, off-minute (e.g. `*/17 * * * *`)      | Cron fires only while the REPL is idle → natural serialisation | **No.** Session-only; auto-expires after 7 days | Good for a night at the keyboard. Not "timeless". Re-arm on every session start.               |
-| **Claude Code (event-driven)** | `Monitor` with a poll script emitting one line per due pulse | Script-side lock                                       | **No.** Dies with the session                | Best for reacting to a *change* (a capsule file moving) rather than to the clock.                  |
-| **Claude Code (durable)** | `RemoteTrigger` routine on a cron schedule                        | Server-side                                            | **Yes** — survives the local session         | The only durable Claude Code option. Runs in the cloud, so the repo and capsule must be reachable there. |
-| **Antigravity**     | Its own scheduler; `invoke_subagent` for the pulse agent              | `pulse.sh` flock                                       | Per its scheduler's own persistence          | The brief reports these as "somewhat stable". Verify before trusting; do not assume.               |
-| **Codex**           | `spawn_agent` from an OS-level timer; no native scheduler documented  | `pulse.sh` flock                                       | OS-level                                     | Multi-agent is feature-flagged — `codex features list` before designing around it.                 |
-| **Cursor**          | `Task` from an OS-level timer                                         | `pulse.sh` flock                                       | OS-level                                     | Cannot nest twice, so tier 3 sub-agents are unavailable there.                                     |
-| **Bare container**  | `systemd` timer, or `cron`, or a supervised `while` loop              | `flock` in `pulse.sh`                                  | **Yes**                                      | The reference implementation. §5.3.                                                                |
+| Host                           | Mechanism that satisfies FIRE                                        | SERIALISE                                                      | SURVIVE                                         | Honest verdict                                                                                           |
+| :----------------------------- | :------------------------------------------------------------------- | :------------------------------------------------------------- | :---------------------------------------------- | :------------------------------------------------------------------------------------------------------- |
+| **Claude Code (in-session)**   | `CronCreate` recurring, off-minute (e.g. `*/17 * * * *`)             | Cron fires only while the REPL is idle → natural serialisation | **No.** Session-only; auto-expires after 7 days | Good for a night at the keyboard. Not "timeless". Re-arm on every session start.                         |
+| **Claude Code (event-driven)** | `Monitor` with a poll script emitting one line per due pulse         | Script-side lock                                               | **No.** Dies with the session                   | Best for reacting to a _change_ (a capsule file moving) rather than to the clock.                        |
+| **Claude Code (durable)**      | `RemoteTrigger` routine on a cron schedule                           | Server-side                                                    | **Yes** — survives the local session            | The only durable Claude Code option. Runs in the cloud, so the repo and capsule must be reachable there. |
+| **Antigravity**                | Its own scheduler; `invoke_subagent` for the pulse agent             | `pulse.sh` flock                                               | Per its scheduler's own persistence             | The brief reports these as "somewhat stable". Verify before trusting; do not assume.                     |
+| **Codex**                      | `spawn_agent` from an OS-level timer; no native scheduler documented | `pulse.sh` flock                                               | OS-level                                        | Multi-agent is feature-flagged — `codex features list` before designing around it.                       |
+| **Cursor**                     | `Task` from an OS-level timer                                        | `pulse.sh` flock                                               | OS-level                                        | Cannot nest twice, so tier 3 sub-agents are unavailable there.                                           |
+| **Bare container**             | `systemd` timer, or `cron`, or a supervised `while` loop             | `flock` in `pulse.sh`                                          | **Yes**                                         | The reference implementation. §5.3.                                                                      |
 
 Two facts worth stating loudly because they will otherwise be assumed away:
 
 - **In-session cron is idle-gated.** A pulse that takes twelve minutes of model time delays the next
-  fire. That is a *feature* — it prevents overlap — but it means the armed interval is a floor, not a
+  fire. That is a _feature_ — it prevents overlap — but it means the armed interval is a floor, not a
   period, and the ledger must record the actual gap rather than the intended one.
 - **Session-only means session-only.** A design that promises overnight autonomy on a laptop under
   in-session cron is promising something the tool's own documentation denies.
@@ -675,7 +675,7 @@ while :; do /opt/mind/pulse.sh /srv/repo/.capsules/mind-1 || true; sleep 900; do
 
 run under any supervisor that restarts it (systemd, tmux + a restart wrapper, `supervisord`). It
 satisfies all four obligations. It is worse than the timer only in that a machine reboot loses it
-unless the supervisor is itself persistent — which is exactly what `Restart=always` on the *wrapper*
+unless the supervisor is itself persistent — which is exactly what `Restart=always` on the _wrapper_
 (not on the pulse) provides.
 
 ### 5.4 Single-writer, by construction
@@ -702,7 +702,7 @@ From the measured race in §0.3, the rules are:
 bun harness.ts mind:wake --mind .capsules/mind-1
 ```
 
-Read-only. No mutation, no lock beyond a shared read. It is the only thing a pulse is *required* to
+Read-only. No mutation, no lock beyond a shared read. It is the only thing a pulse is _required_ to
 read, and it must be affordable for a small model with a small context.
 
 **Tier A — the brief. Always returned. Target ≤ 1 KB / ~300 tokens.**
@@ -740,17 +740,17 @@ orphan evidence, completion blockers, recent events and the exact next argv. Not
 the reader.
 
 **Tier C — the raw capsule.** Only ever reached through `explain --code <CODE>` or a named artifact.
-The rule from `CHANNEL.md` holds: *a model should never have to read this skill's internals to use
-it correctly.*
+The rule from `CHANNEL.md` holds: _a model should never have to read this skill's internals to use
+it correctly._
 
 ### 6.2 Cost, measured
 
-| Call                                            | Bytes | Wall  |
-| :---------------------------------------------- | ----: | ----: |
-| `run:status` markdown, 1-task capsule           |   476 | ~0.1s |
-| `run:status` markdown, 3-task capsule           |   801 | ~0.1s |
-| `run:status --format json`, 1-task capsule      | 5,428 | ~0.1s |
-| `orchestrator:supervise` single tick (markdown) |   ~600 | ~0.15s |
+| Call                                            | Bytes |   Wall |
+| :---------------------------------------------- | ----: | -----: |
+| `run:status` markdown, 1-task capsule           |   476 |  ~0.1s |
+| `run:status` markdown, 3-task capsule           |   801 |  ~0.1s |
+| `run:status --format json`, 1-task capsule      | 5,428 |  ~0.1s |
+| `orchestrator:supervise` single tick (markdown) |  ~600 | ~0.15s |
 
 The markdown briefs are bounded by `cli/formatters/line-limiter.ts` at 30 lines, so they do **not**
 scale with task count — a 200-task run still returns 30 lines. That bound is why a Tier A brief of
@@ -763,18 +763,18 @@ the brief is wrong, not the model.
 
 ### 6.3 What has to be built, and what merely has to be wired
 
-| Piece                                     | State today                                   | Work                                                              |
-| :---------------------------------------- | :-------------------------------------------- | :---------------------------------------------------------------- |
-| Per-run status, occupancy, phase          | exists (`run:status`)                         | call it                                                           |
-| Escalations, retries, dead agents, backoff| exists (`buildMorningReport`)                 | call it                                                           |
-| Live leases and grants                    | exists (`agent:list`, task `lease`)           | call it                                                           |
-| Legal next argv                           | exists (`nextActions`) but is **unreachable from `run:status`** | surface it — `CHANNEL.md` R6 already asks for this |
-| Handoff render on demand                  | write-only side effect, **no reader command** | add `--run` mode to `mind:wake`; refresh after `task:submit` and after a tick |
-| Charter digest check                      | does not exist                                | new (§8)                                                          |
-| Runtime freshness at pulse time           | exists but only fires at `plan:init`          | call `assertInstalledRuntimeFresh` from `mind:wake`                |
-| Budget accounting                         | does not exist                                | new (§11)                                                         |
-| Driver-lateness (`GAP`)                   | does not exist                                | trivial: `now − last_pulse.closed_at` vs armed interval            |
-| Lane selection                            | does not exist                                | new — but it is a pure function of the numbers above, so it is derivable and **must be derived, never asked for** |
+| Piece                                      | State today                                                     | Work                                                                                                              |
+| :----------------------------------------- | :-------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------- |
+| Per-run status, occupancy, phase           | exists (`run:status`)                                           | call it                                                                                                           |
+| Escalations, retries, dead agents, backoff | exists (`buildMorningReport`)                                   | call it                                                                                                           |
+| Live leases and grants                     | exists (`agent:list`, task `lease`)                             | call it                                                                                                           |
+| Legal next argv                            | exists (`nextActions`) but is **unreachable from `run:status`** | surface it — `CHANNEL.md` R6 already asks for this                                                                |
+| Handoff render on demand                   | write-only side effect, **no reader command**                   | add `--run` mode to `mind:wake`; refresh after `task:submit` and after a tick                                     |
+| Charter digest check                       | does not exist                                                  | new (§8)                                                                                                          |
+| Runtime freshness at pulse time            | exists but only fires at `plan:init`                            | call `assertInstalledRuntimeFresh` from `mind:wake`                                                               |
+| Budget accounting                          | does not exist                                                  | new (§11)                                                                                                         |
+| Driver-lateness (`GAP`)                    | does not exist                                                  | trivial: `now − last_pulse.closed_at` vs armed interval                                                           |
+| Lane selection                             | does not exist                                                  | new — but it is a pure function of the numbers above, so it is derivable and **must be derived, never asked for** |
 
 That table is the real scope of the wake-up contract: **most of it already exists and is not
 plumbed.** This is the plan's cheapest, highest-value work.
@@ -793,12 +793,12 @@ The hardest question in the brief, and the one where an infinite loop most relia
 
 This is the single structural device that makes busywork hard. It does not ask the model to be
 disciplined; it removes the input channel through which undisciplined work arrives. There is no
-source that emits *"it would be nice if…"*, so `mind:candidate` refuses a candidate without
+source that emits _"it would be nice if…"_, so `mind:candidate` refuses a candidate without
 `--witness <command-id>`, and refuses a witness whose recorded exit code and output do not actually
 contain the cited defect.
 
 It is the same move `gate:prove` makes for gates, and `task:submit --no-op` makes for effort: convert
-a claim into a mechanically checkable fact. `RAILS.md` calls it *Prove*.
+a claim into a mechanically checkable fact. `RAILS.md` calls it _Prove_.
 
 ### 7.2 The ten legitimate sources
 
@@ -835,21 +835,21 @@ is covered" a claim capable of being false.
 
 `mind:admit` refuses unless all six pass, and records which one failed when it refuses.
 
-| # | Gate                | Question                                                                            | Decided by                                                        |
-| - | :------------------ | :---------------------------------------------------------------------------------- | :---------------------------------------------------------------- |
-| 1 | **Witnessed**       | Is there a recorded command whose output shows this defect?                         | harness: the command record exists and its output matches         |
-| 2 | **In charter**      | Does a charter goal id admit it? Does any non-goal exclude it?                      | harness: goal id must be cited and must exist in the pinned charter |
-| 3 | **Falsifiable**     | Is there a command that fails now and would pass if this were fixed?                | agent declares it; harness **runs it now and requires non-zero**  |
-| 4 | **Scoped**          | Is the write scope narrow, disjoint from every live lease, inside the charter's repo roots? | harness: `scopeConflict` + charter roots                   |
-| 5 | **Affordable**      | Does the remaining budget cover the declared round budget?                          | harness: arithmetic on the budget ledger                          |
-| 6 | **Not a duplicate** | Is there an open candidate, a live task, or a *declined* candidate with the same witness class and scope? | harness: candidate ledger lookup                |
+| #   | Gate                | Question                                                                                                  | Decided by                                                          |
+| --- | :------------------ | :-------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------ |
+| 1   | **Witnessed**       | Is there a recorded command whose output shows this defect?                                               | harness: the command record exists and its output matches           |
+| 2   | **In charter**      | Does a charter goal id admit it? Does any non-goal exclude it?                                            | harness: goal id must be cited and must exist in the pinned charter |
+| 3   | **Falsifiable**     | Is there a command that fails now and would pass if this were fixed?                                      | agent declares it; harness **runs it now and requires non-zero**    |
+| 4   | **Scoped**          | Is the write scope narrow, disjoint from every live lease, inside the charter's repo roots?               | harness: `scopeConflict` + charter roots                            |
+| 5   | **Affordable**      | Does the remaining budget cover the declared round budget?                                                | harness: arithmetic on the budget ledger                            |
+| 6   | **Not a duplicate** | Is there an open candidate, a live task, or a _declined_ candidate with the same witness class and scope? | harness: candidate ledger lookup                                    |
 
 Gate 3 is the load-bearing one and it is the direct ancestor of `gate:prove`. A candidate whose
-"failing command" already exits 0 is not a defect; it is a wish. Requiring the harness to *run* it
+"failing command" already exits 0 is not a defect; it is a wish. Requiring the harness to _run_ it
 during admission — not merely to record that the agent named it — is what stops a weak model from
 naming a plausible command it never executed.
 
-Gate 6 with the "*declined*" clause is what stops the loop from re-proposing the same rejected idea
+Gate 6 with the "_declined_" clause is what stops the loop from re-proposing the same rejected idea
 every night forever. A declined candidate is remembered.
 
 ### 7.4 Novelty: proposal, not adoption
@@ -881,8 +881,8 @@ it redefine the product:
 ```
 
 This reuses `authority:decide` and the `needs_authority` disposition exactly as built, including
-`nextActions`'s existing line: *"requirement X is paused for an authority decision and no registry
-command records one; every task bound to it stays undispatched."* Consciousness is not granted
+`nextActions`'s existing line: _"requirement X is paused for an authority decision and no registry
+command records one; every task bound to it stays undispatched."_ Consciousness is not granted
 `authority:decide`. It cannot approve its own ideas. That is the whole design.
 
 **A cap on proposals.** At most **one open proposal per N pulses** (charter-configured, suggested 24
@@ -895,8 +895,8 @@ discipline was meant to prevent.
 > Idling is a first-class outcome with its own record, not a failure to find work.
 
 `mind:quiesce` records a **quiescent pulse**: the sources checked, the command id each returned, the
-count each returned, and the resulting interval. It is a positive statement — *"I checked ten places
-and all ten were clean"* — and it is the most valuable line in the ledger, because it is the one a
+count each returned, and the resulting interval. It is a positive statement — _"I checked ten places
+and all ten were clean"_ — and it is the most valuable line in the ledger, because it is the one a
 human can use to decide whether the system is healthy or merely asleep.
 
 Consequences of quiescence:
@@ -908,7 +908,7 @@ Consequences of quiescence:
   going at the capped interval.
 - The interval **resets to the charter's base** the moment any source returns non-empty.
 
-That is exactly the `SUPERVISION.md` shape (*"progress resets the backoff"*), and exactly the
+That is exactly the `SUPERVISION.md` shape (_"progress resets the backoff"_), and exactly the
 `failure-classifier` shape (bounded backoff with a ceiling), applied to attention rather than to
 retries.
 
@@ -916,18 +916,18 @@ retries.
 
 Naming the failures makes the rules checkable.
 
-| Busywork shape                              | What blocks it                                                             |
-| :------------------------------------------ | :-------------------------------------------------------------------------- |
-| "Improve error messages in `foo.ts`"        | Gate 1 — no witness                                                        |
-| "Add tests for coverage"                    | Gate 3 — name the command that fails now; a coverage floor that already passes is not a defect |
-| "Refactor for readability"                  | Gates 1 and 3                                                              |
-| "Add a feature users would like"            | Gate 2 unless a charter goal admits it; otherwise it is a proposal          |
-| Re-proposing last night's declined idea     | Gate 6 remembers declines                                                  |
-| Fixing the same drift finding twice         | Gate 6 duplicate-scope check                                               |
-| A dozen shallow tasks to look productive    | One lane per pulse; round budget in the packet                             |
-| Rewriting the goal to match what it did     | The charter guard (§8); Consciousness holds no write on the charter         |
-| "≥5 validator pushbacks" quota-filled work  | **No prompt anywhere states a target count.** §12.4                        |
-| Churning a file to make the mtime move      | `task:submit`'s C4 no-op refusal                                           |
+| Busywork shape                             | What blocks it                                                                                 |
+| :----------------------------------------- | :--------------------------------------------------------------------------------------------- |
+| "Improve error messages in `foo.ts`"       | Gate 1 — no witness                                                                            |
+| "Add tests for coverage"                   | Gate 3 — name the command that fails now; a coverage floor that already passes is not a defect |
+| "Refactor for readability"                 | Gates 1 and 3                                                                                  |
+| "Add a feature users would like"           | Gate 2 unless a charter goal admits it; otherwise it is a proposal                             |
+| Re-proposing last night's declined idea    | Gate 6 remembers declines                                                                      |
+| Fixing the same drift finding twice        | Gate 6 duplicate-scope check                                                                   |
+| A dozen shallow tasks to look productive   | One lane per pulse; round budget in the packet                                                 |
+| Rewriting the goal to match what it did    | The charter guard (§8); Consciousness holds no write on the charter                            |
+| "≥5 validator pushbacks" quota-filled work | **No prompt anywhere states a target count.** §12.4                                            |
+| Churning a file to make the mtime move     | `task:submit`'s C4 no-op refusal                                                               |
 
 ---
 
@@ -936,7 +936,7 @@ Naming the failures makes the rules checkable.
 ### 8.1 What it is
 
 One owner-written file at a charter path named in the mind manifest — suggested
-`docs/consciousness/CHARTER.md`. It is the answer to *"what does this application actually want"*, and
+`docs/consciousness/CHARTER.md`. It is the answer to _"what does this application actually want"_, and
 it is the only thing standing between an infinite loop and a redefined product.
 
 ```
@@ -953,8 +953,8 @@ CHARTER.md
 └── open_questions  the owner's own unresolved decisions — a legitimate discovery source
 ```
 
-`stability` is what turns the owner's phrase *"is the app stable according to all the validation
-guidelines"* into something mechanical: a list of commands and expected exits, run by the harness,
+`stability` is what turns the owner's phrase _"is the app stable according to all the validation
+guidelines"_ into something mechanical: a list of commands and expected exits, run by the harness,
 recorded with evidence. Not a feeling.
 
 ### 8.2 The charter guard
@@ -981,7 +981,7 @@ Enforcement, in the order it fires:
    re-pin — it is **`HALT`**: the pulse stops, escalates, and does not arm. The owner re-pins with
    an explicit command that records who changed what and why.
 3. **`mind:admit` gate 2** requires a cited goal id that exists in the pinned charter. A candidate
-   citing a goal that is not there is refused with the list of goals that *are*.
+   citing a goal that is not there is refused with the list of goals that _are_.
 4. **Consciousness holds no command that writes the charter**, and its `must_not` says so. Since
    `assertGrantedCommand` refuses out-of-contract commands at the CLI door, this is a rail for every
    harness path — but note the honest limit in §11.4: it is not a rail for a shell.
@@ -989,8 +989,8 @@ Enforcement, in the order it fires:
 ### 8.3 Why the halt is right, and what it costs
 
 A charter change is the one event where "keep going" is unambiguously wrong. If the owner edited it,
-Consciousness must re-read a *different* document than the one it has been serving, and no automatic
-reconciliation is safe. If something *else* edited it, that is a security event.
+Consciousness must re-read a _different_ document than the one it has been serving, and no automatic
+reconciliation is safe. If something _else_ edited it, that is a security event.
 
 The cost is real and should be stated: **the owner will trip this by editing the charter and
 forgetting to re-pin, and will find the mind halted in the morning.** Mitigations: the halt escalates
@@ -1094,9 +1094,9 @@ At the pulse level:
   resumable when tokens refresh.
 - Progress clears the multiplier.
 
-The "in an error record" clause is not a detail. `SUPERVISION.md` records the exact failure: *"A naive
+The "in an error record" clause is not a detail. `SUPERVISION.md` records the exact failure: _"A naive
 scan for quota terms matched 473 agent transcripts — because agents were reading
-`failure-classifier.ts`, whose source text contains `RESOURCE_EXHAUSTED` and `rate_limit`."* The
+`failure-classifier.ts`, whose source text contains `RESOURCE_EXHAUSTED` and `rate_limit`."_ The
 detector must match a structured field, never a substring of prose. In this design that means the
 pulse reports a quota signal through `mind:pulse-close --signal rate_limit`, and the harness records
 it as a typed value — it never greps anything.
@@ -1107,8 +1107,8 @@ it as a typed value — it never greps anything.
 
 ### 10.1 The rule that governs everything else
 
-This project's standing rule — *never assume model names, tiers or thinking levels; record only
-observed values* — and the owner's wish for "best decisions on sub-agent, model and thinking level"
+This project's standing rule — _never assume model names, tiers or thinking levels; record only
+observed values_ — and the owner's wish for "best decisions on sub-agent, model and thinking level"
 reconcile in one move:
 
 > **The policy names abstract profiles. The owner binds profiles to concrete values. The harness
@@ -1146,7 +1146,7 @@ reconcile in one move:
    └─────────────────────────────────────────────────────────────────────────┘
 ```
 
-Step 3 is what keeps the skill honest: a model name is a *value the owner observed on their host*,
+Step 3 is what keeps the skill honest: a model name is a _value the owner observed on their host_,
 so it lives in the owner's config, exactly as `model-effort-policy.md` records the owner's own 2026-08-20
 decision table rather than the skill encoding it.
 
@@ -1168,7 +1168,7 @@ The shape that evidence supports, and which this design adopts as its default bi
 inherited, effort as the per-role dial.** Highest effort for adversarial verification and
 architecture; middle for implementation against a clear spec; lowest for mechanical work.
 
-Because the owner's decision is deferred, the *skill* ships with every profile **unbound** — i.e.
+Because the owner's decision is deferred, the _skill_ ships with every profile **unbound** — i.e.
 inherit everything — and the first thing a new deployment does is bind them. An unbound deployment
 works; it is simply not optimised, and its ledger says so.
 
@@ -1177,14 +1177,14 @@ works; it is simply not optimised, and its ledger says so.
 The tempting feature is "learn which profile works best". The honest version:
 
 - The data already exists: `AgentGrantRecord` carries `model`/`thinking_level` per agent, and
-  `task:review` records verdicts per task. Joining them gives *observed* pass-rate, repair-round
+  `task:review` records verdicts per task. Joining them gives _observed_ pass-rate, repair-round
   count and wall-clock per profile.
 - **Do not adapt until the join has enough observations to mean anything.** Suggested floor: 30
   completed implementer/validator pairs per profile, per repository. Below that, report the numbers
   and change nothing.
 - When it does adapt, it adapts **one dial, one step, and records the change as a decision with the
   evidence** — never a silent re-tuning.
-- It may never adapt *itself* upward into a more expensive profile without an owner decision. That is
+- It may never adapt _itself_ upward into a more expensive profile without an owner decision. That is
   a budget change, and budgets belong to the charter.
 
 This is the most speculative section of the plan and should be the last thing built. §14 lists it as
@@ -1198,17 +1198,17 @@ a risk.
 
 Lives in the charter, enforced at the CLI door, reported in every wake brief.
 
-| Key                   | Suggested default | Enforced by                                                   |
-| :-------------------- | :---------------- | :------------------------------------------------------------ |
-| `pulses_per_day`      | 96 (15 min)       | `mind:pulse-open` refuses past the count; outcome `deferred`   |
-| `wall_clock_per_day`  | 6 h               | Same, summed from pulse durations                              |
-| `max_agents_in_flight`| 8                 | `mind:admit` gate 5; also `max_agents` (100) caps grants/run    |
-| `max_rounds_per_objective` | 3            | Orchestrator packet; `AutonomousLoopRunner` caps at 10 anyway   |
-| `base_interval`       | 15 min            | Armed by default                                               |
-| `max_interval`        | 4 h               | Ceiling on quiescent backoff                                   |
-| `quiet_hours`         | none              | `mind:pulse-open` → `deferred`                                 |
-| `max_open_proposals`  | 5                 | `mind:candidate --kind proposal` refuses past it               |
-| `pulse_deadline`      | 20 min            | Dead-pulse reclaim (§9.3)                                      |
+| Key                        | Suggested default | Enforced by                                                   |
+| :------------------------- | :---------------- | :------------------------------------------------------------ |
+| `pulses_per_day`           | 96 (15 min)       | `mind:pulse-open` refuses past the count; outcome `deferred`  |
+| `wall_clock_per_day`       | 6 h               | Same, summed from pulse durations                             |
+| `max_agents_in_flight`     | 8                 | `mind:admit` gate 5; also `max_agents` (100) caps grants/run  |
+| `max_rounds_per_objective` | 3                 | Orchestrator packet; `AutonomousLoopRunner` caps at 10 anyway |
+| `base_interval`            | 15 min            | Armed by default                                              |
+| `max_interval`             | 4 h               | Ceiling on quiescent backoff                                  |
+| `quiet_hours`              | none              | `mind:pulse-open` → `deferred`                                |
+| `max_open_proposals`       | 5                 | `mind:candidate --kind proposal` refuses past it              |
+| `pulse_deadline`           | 20 min            | Dead-pulse reclaim (§9.3)                                     |
 
 Every one of these is a **refusal**, not a warning. A budget that logs a warning and proceeds is not a
 budget.
@@ -1332,8 +1332,21 @@ must_not:
   - Audit a period in which it acted as orchestrator, coordinator, implementer or validator
   - Approve while any pulse in the window is unaccounted for
   - Edit any repository file, the charter, or any ledger
-commands: [mind:audit-report, mind:halt, run:status, doctor, health, finding:get,
-           report:get, evidence:get, summary:view, run:exec, agent:register, agent:release]
+commands:
+  [
+    mind:audit-report,
+    mind:halt,
+    run:status,
+    doctor,
+    health,
+    finding:get,
+    report:get,
+    evidence:get,
+    summary:view,
+    run:exec,
+    agent:register,
+    agent:release,
+  ]
 spawns: []
 ```
 
@@ -1345,10 +1358,10 @@ Its questionnaire is fixed, and every answer must cite a command id:
 4. Is the trailing value series consistent with the work the ledger claims?
 5. Did anything change outside a declared write scope? (out-of-band drift)
 6. Did any pulse take an action on the never-unattended list?
-7. What did the mind *decline* to do, and does the reason survive re-reading?
+7. What did the mind _decline_ to do, and does the reason survive re-reading?
 8. Did the charter digest change without an owner decision?
 
-Its verdict is consumed by the *next* pulse, which cannot proceed past `WAKE` while an audit finding
+Its verdict is consumed by the _next_ pulse, which cannot proceed past `WAKE` while an audit finding
 is open. A `halt` verdict stops the mind.
 
 **4. The owner digest.** Periodic, human-readable, built on `formatMorningReportMarkdown`'s existing
@@ -1357,7 +1370,7 @@ shape. It must contain one section nothing else contains: **"What I would have d
 notices the mind drifting, long before any metric does.
 
 **5. The counterfactual re-admission test.** Cheap and unusually effective: periodically, take a
-*previously admitted* candidate and re-run the admission test with a fresh agent that has no memory of
+_previously admitted_ candidate and re-run the admission test with a fresh agent that has no memory of
 the adoption. If it would not be admitted now, that is a finding — either the defect was already
 fixed, or it was never real. This directly attacks the failure where a system rationalises work it
 has already started.
@@ -1368,17 +1381,17 @@ has already started.
 - **Pulse count, agents deployed, commands run, tokens spent.** Activity is not value; §11.2 exists
   precisely to keep these out of the numerator.
 - **"All gates green."** Green from one lane is failure mode 8. The charter's `stability` block must
-  name *every* lane that matters — unit and integration and typecheck and lint — because *"the unit
+  name _every_ lane that matters — unit and integration and typecheck and lint — because _"the unit
   lane passed while the integration lane sat at 45 failures and CI had never run the real tests since
-  the repo's first commit."*
+  the repo's first commit."_
 
 ### 12.4 No prompt-dictated quotas — anywhere
 
-Failure mode 10 in one line: *a run asked for ">=5 validator pushbacks" produced exactly 5.*
+Failure mode 10 in one line: _a run asked for ">=5 validator pushbacks" produced exactly 5._
 
 Therefore **no prompt, packet, role contract or brief produced by this design may ever state a target
-count for candidates, findings, probes, proposals or tasks.** Only *ceilings* (a maximum, refused when
-exceeded) and *floors that are structural rather than numeric* (every implementer has a validator;
+count for candidates, findings, probes, proposals or tasks.** Only _ceilings_ (a maximum, refused when
+exceeded) and _floors that are structural rather than numeric_ (every implementer has a validator;
 every pass records at least the configured adversarial probe round). Zero candidates is a correct and
 common answer, and the design must make it comfortable to give.
 
@@ -1388,12 +1401,12 @@ common answer, and the design must make it comfortable to give.
 
 ### 13.0 Phase 0 — make the ground trustworthy (half a day)
 
-| Deliverable                                                                                       | Built by                    | Validation                                                                              |
-| :------------------------------------------------------------------------------------------------ | :-------------------------- | :--------------------------------------------------------------------------------------- |
-| Fix `--watch`'s silent exit: drop the `unref`, or `await main()` at the top level of `harness.ts`  | 1 implementer + 1 validator | A test that runs `--watch --interval 1` under a stop signal and asserts **≥ 2 ticks** and non-empty stdout. The current code passes no such test because none exists. |
-| Add an error subcode so `INTEGRITY:STATE_PROJECTION` is distinguishable from other integrity failures | same pair                | Concurrency test: N simultaneous ticks; every failure carries the subcode                |
-| Surface `nextActions` from `run:status` (`CHANNEL.md` R6)                                          | 1 implementer + 1 validator | `run:status` on a mid-flight capsule returns the argv `handoff.md` returns               |
-| Refresh `handoff.md` after `task:submit` and after a supervision tick                              | same pair                   | Submit a task, assert `handoff.md` mtime and content moved                               |
+| Deliverable                                                                                           | Built by                    | Validation                                                                                                                                                            |
+| :---------------------------------------------------------------------------------------------------- | :-------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Fix `--watch`'s silent exit: drop the `unref`, or `await main()` at the top level of `harness.ts`     | 1 implementer + 1 validator | A test that runs `--watch --interval 1` under a stop signal and asserts **≥ 2 ticks** and non-empty stdout. The current code passes no such test because none exists. |
+| Add an error subcode so `INTEGRITY:STATE_PROJECTION` is distinguishable from other integrity failures | same pair                   | Concurrency test: N simultaneous ticks; every failure carries the subcode                                                                                             |
+| Surface `nextActions` from `run:status` (`CHANNEL.md` R6)                                             | 1 implementer + 1 validator | `run:status` on a mid-flight capsule returns the argv `handoff.md` returns                                                                                            |
+| Refresh `handoff.md` after `task:submit` and after a supervision tick                                 | same pair                   | Submit a task, assert `handoff.md` mtime and content moved                                                                                                            |
 
 Phase 0 is not Consciousness. It is the difference between building on rock and building on the
 `--watch` bug.
@@ -1452,11 +1465,11 @@ a nice-to-have.
 
 Validation, and this is the phase whose validation matters most:
 
-- **A negative suite.** Twenty candidate submissions that *must* be refused — no witness, stale
+- **A negative suite.** Twenty candidate submissions that _must_ be refused — no witness, stale
   witness, witness that exits 0, non-existent charter goal, overlapping scope, over budget, duplicate
-  of an open candidate, duplicate of a *declined* candidate, proposal past the cap. Each asserts the
+  of an open candidate, duplicate of a _declined_ candidate, proposal past the cap. Each asserts the
   specific gate that refused and the repair command that came with the refusal.
-- **A week of shadow running.** Discovery on, adoption off: it records what it *would* have admitted.
+- **A week of shadow running.** Discovery on, adoption off: it records what it _would_ have admitted.
   The owner reads a week of that and says how much of it was worth doing. That number is the honest
   measure of whether the discipline works, and it costs almost nothing to obtain.
 
@@ -1505,15 +1518,15 @@ happened.
 
 ### 13.7 Who builds what
 
-| Phase | Agents                                                                              | Why                                                                 |
-| :---- | :---------------------------------------------------------------------------------- | :------------------------------------------------------------------ |
-| 0     | 2 implementer/validator pairs, parallel (disjoint scopes)                           | Two independent one-file fixes                                      |
-| 1     | 1 planner · 1 plan-validator · 3 implementer/validator pairs · 1 completeness critic | The commands, the driver and the role contract are disjoint scopes  |
-| 2     | 1 planner · 4 pairs · 1 critic                                                      | The deliberate-damage suite is its own lane and its own scope        |
-| 3     | 1 planner · 1 plan-validator · 5 pairs · 1 critic                                   | Ten sources partition cleanly — a natural `plan:add --auto-partition` case |
-| 4     | 1 planner · 3 pairs · 1 critic                                                      | Contracts, chaining and the arming rail                             |
-| 5     | 1 planner · 3 pairs · 1 critic + **a different agent for the auditor's own tests**   | The auditor must not be tested by whoever wrote it                   |
-| 6     | 1 pair + the owner                                                                  | Infrastructure needs credentials only the owner holds                |
+| Phase | Agents                                                                               | Why                                                                        |
+| :---- | :----------------------------------------------------------------------------------- | :------------------------------------------------------------------------- |
+| 0     | 2 implementer/validator pairs, parallel (disjoint scopes)                            | Two independent one-file fixes                                             |
+| 1     | 1 planner · 1 plan-validator · 3 implementer/validator pairs · 1 completeness critic | The commands, the driver and the role contract are disjoint scopes         |
+| 2     | 1 planner · 4 pairs · 1 critic                                                       | The deliberate-damage suite is its own lane and its own scope              |
+| 3     | 1 planner · 1 plan-validator · 5 pairs · 1 critic                                    | Ten sources partition cleanly — a natural `plan:add --auto-partition` case |
+| 4     | 1 planner · 3 pairs · 1 critic                                                       | Contracts, chaining and the arming rail                                    |
+| 5     | 1 planner · 3 pairs · 1 critic + **a different agent for the auditor's own tests**   | The auditor must not be tested by whoever wrote it                         |
+| 6     | 1 pair + the owner                                                                   | Infrastructure needs credentials only the owner holds                      |
 
 Effort profiles per §10: `deliberate` for planning and adversarial review, `default` for
 implementation, `adversarial` for validators and critics — bound by the owner, never named in the
@@ -1543,7 +1556,7 @@ Stated plainly, including the ones I could not resolve.
    constantly — but the system is called CONSCIOUSNESS and `consciousness:*` is the consistent name.
    I chose `mind:` for typing cost and flagged it; **the owner should decide.**
 2. **Where the mind capsule lives.** `.capsules/mind-<gen>/` reuses everything but is gitignored, so
-   it does not travel and is not backed up. A `.mind/` directory that *is* committed would travel and
+   it does not travel and is not backed up. A `.mind/` directory that _is_ committed would travel and
    would give the owner a diffable history of the mind's decisions — at the cost of committing a
    growing event log to git. Unresolved; it depends on whether the owner wants the mind's history in
    the repository.
@@ -1569,24 +1582,24 @@ Stated plainly, including the ones I could not resolve.
 
 ### 14.2 Risks, and what each would cost
 
-| Risk                                                                                          | Likelihood | Cost if it happens                                                     | Mitigation in this plan                                       |
-| :-------------------------------------------------------------------------------------------- | :--------- | :---------------------------------------------------------------------- | :------------------------------------------------------------- |
-| The pulse produces plausible-looking busywork anyway                                          | medium     | Money, and a repository slowly worsened by well-intentioned churn       | Witness rule, six gates, one lane, shadow week, auditor        |
-| The mind capsule hits the 100k-event ceiling unnoticed                                        | **high** if not built | Hard `INVALID_STATE`; the mind stops and nothing says why      | §0.2 rotation, in Phase 6 — but it should be earlier if pulses are frequent |
-| The driver dies and nothing notices                                                           | high       | Silent months of nothing                                                | `last_pulse.json` + **external** check. Nothing inside a dead system reports its own death |
-| A weak model routes around a refusal by editing files directly                                | medium     | Unrecorded changes; the ledger becomes fiction                          | Every refusal carries its repair argv (`RAILS.md` #1); out-of-band drift detection is a discovery source |
-| Charter halt fires on an innocent owner edit                                                  | **high**   | A wasted night                                                          | Immediate push notification, one-line re-pin command in the message |
-| Two drivers armed at once (e.g. cron *and* an in-session loop)                                 | medium     | The measured `INTEGRITY` race, repeatedly                               | `flock -n` exits 0 rather than queueing; single-writer rule    |
-| Overnight token burn on a repo that was already clean                                         | medium     | Money for nothing                                                       | Quiescent backoff to a 4 h ceiling; value-per-pulse throttle; budget refusals |
-| The auditor becomes a rubber stamp, exactly as the 29/29 validator passes did                 | medium     | The top-level check silently stops checking                             | Planted-defect suite; fixed questionnaire; every answer cites a command id |
-| Gates are weak, so Consciousness certifies weak work faster                                   | **high** in most repos | Confident wrongness at scale                                | The charter must name every lane; `gate:prove`; §12.3          |
-| A container with push credentials pushes something at 4 a.m.                                  | low but severe | Real damage to a shared branch                                      | No push remote on the box (§11.4) — a capability removed, not a rule added |
-| Small models mis-execute the *judgement* steps (admission, proposals)                         | **high**   | Bad candidates admitted, good ones declined                             | Every judgement step is structurally bounded — a witness or nothing; the auditor re-tests admissions |
+| Risk                                                                          | Likelihood             | Cost if it happens                                                | Mitigation in this plan                                                                                  |
+| :---------------------------------------------------------------------------- | :--------------------- | :---------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------- |
+| The pulse produces plausible-looking busywork anyway                          | medium                 | Money, and a repository slowly worsened by well-intentioned churn | Witness rule, six gates, one lane, shadow week, auditor                                                  |
+| The mind capsule hits the 100k-event ceiling unnoticed                        | **high** if not built  | Hard `INVALID_STATE`; the mind stops and nothing says why         | §0.2 rotation, in Phase 6 — but it should be earlier if pulses are frequent                              |
+| The driver dies and nothing notices                                           | high                   | Silent months of nothing                                          | `last_pulse.json` + **external** check. Nothing inside a dead system reports its own death               |
+| A weak model routes around a refusal by editing files directly                | medium                 | Unrecorded changes; the ledger becomes fiction                    | Every refusal carries its repair argv (`RAILS.md` #1); out-of-band drift detection is a discovery source |
+| Charter halt fires on an innocent owner edit                                  | **high**               | A wasted night                                                    | Immediate push notification, one-line re-pin command in the message                                      |
+| Two drivers armed at once (e.g. cron _and_ an in-session loop)                | medium                 | The measured `INTEGRITY` race, repeatedly                         | `flock -n` exits 0 rather than queueing; single-writer rule                                              |
+| Overnight token burn on a repo that was already clean                         | medium                 | Money for nothing                                                 | Quiescent backoff to a 4 h ceiling; value-per-pulse throttle; budget refusals                            |
+| The auditor becomes a rubber stamp, exactly as the 29/29 validator passes did | medium                 | The top-level check silently stops checking                       | Planted-defect suite; fixed questionnaire; every answer cites a command id                               |
+| Gates are weak, so Consciousness certifies weak work faster                   | **high** in most repos | Confident wrongness at scale                                      | The charter must name every lane; `gate:prove`; §12.3                                                    |
+| A container with push credentials pushes something at 4 a.m.                  | low but severe         | Real damage to a shared branch                                    | No push remote on the box (§11.4) — a capability removed, not a rule added                               |
+| Small models mis-execute the _judgement_ steps (admission, proposals)         | **high**               | Bad candidates admitted, good ones declined                       | Every judgement step is structurally bounded — a witness or nothing; the auditor re-tests admissions     |
 
 ### 14.3 The part of the vision that is not achievable yet, and why
 
 - **"Always running, timeless" on a laptop.** Not achievable under an in-session scheduler:
-  `CronCreate` is explicitly session-only, in-memory, idle-gated and 7-day-capped. What *is*
+  `CronCreate` is explicitly session-only, in-memory, idle-gated and 7-day-capped. What _is_
   achievable, and is genuinely valuable, is **perfect resumption**: the mind picks up exactly where it
   stopped whenever a session opens, because the capsule is the mind. On a container with systemd, or
   through a durable cloud routine, "always running" becomes true.
@@ -1594,39 +1607,39 @@ Stated plainly, including the ones I could not resolve.
   executor, which does not exist anywhere in the tree. Rounds are achievable pulse-by-pulse today.
 - **Genuine self-improvement of its own runtime.** Deliberately out of scope. A system that may edit
   its own contracts and reinstall its own runtime has no contracts and no runtime.
-- **"Best decisions on model and thinking level."** Achievable as *policy plumbing* now; achievable as
-  *learned adaptation* only after enough observations exist, and only from `agent_reported` data until
+- **"Best decisions on model and thinking level."** Achievable as _policy plumbing_ now; achievable as
+  _learned adaptation_ only after enough observations exist, and only from `agent_reported` data until
   something assigns `host_reported`. Do not promise the second.
 
 ---
 
 ## 15. Appendix — proposed command surface
 
-Every command below is new. Each is small, and each exists because a weak model needs a *command*
-rather than a *convention*. Costs are relative implementation effort.
+Every command below is new. Each is small, and each exists because a weak model needs a _command_
+rather than a _convention_. Costs are relative implementation effort.
 
-| Command             | Reads / writes                                | Refuses when                                                      | Cost |
-| :------------------ | :-------------------------------------------- | :----------------------------------------------------------------- | :--- |
-| `mind:init`         | creates mind capsule, pins charter + runtime  | charter missing/unreadable; capsule exists                        | S    |
-| `mind:wake`         | read-only brief (`--run` for handoff depth)   | never — but reports HALT conditions                               | M    |
-| `mind:pulse-open`   | opens a pulse, sets deadline                  | a live pulse is open; budget spent; quiet hours                   | S    |
-| `mind:pulse-close`  | closes with outcome, arm, witness             | pulse id mismatch; no outcome; **no arm and no terminal reason**   | S    |
-| `mind:observe`      | records a source result + command id          | command id not in any capsule's records                           | S    |
-| `mind:candidate`    | records a candidate + witness                 | no witness (unless `--kind proposal`); proposal cap reached       | M    |
-| `mind:admit`        | runs the six gates, adopts on pass            | any gate fails — returns which one, with the repair argv          | L    |
-| `mind:decline`      | records a decline + reason                    | candidate unknown; already decided                                | S    |
-| `mind:quiesce`      | records a quiescent pulse + sources           | any source returned non-empty                                     | S    |
-| `mind:escalate`     | records + notifies                            | no reason given                                                   | S    |
-| `mind:halt`         | halts, does not arm                           | no reason given                                                   | S    |
-| `mind:round-open`   | chains a round capsule (tier 1)               | prior round has a live lease or open attempt; round budget spent  | M    |
-| `mind:round-close`  | closes a round + successor or reason          | round not terminal; no successor and no reason                    | M    |
-| `mind:audit-start`  | mints the auditor grant                       | an audit is already open                                          | S    |
-| `mind:audit-report` | records the questionnaire + verdict           | any answer lacks a command id                                     | M    |
+| Command             | Reads / writes                               | Refuses when                                                     | Cost |
+| :------------------ | :------------------------------------------- | :--------------------------------------------------------------- | :--- |
+| `mind:init`         | creates mind capsule, pins charter + runtime | charter missing/unreadable; capsule exists                       | S    |
+| `mind:wake`         | read-only brief (`--run` for handoff depth)  | never — but reports HALT conditions                              | M    |
+| `mind:pulse-open`   | opens a pulse, sets deadline                 | a live pulse is open; budget spent; quiet hours                  | S    |
+| `mind:pulse-close`  | closes with outcome, arm, witness            | pulse id mismatch; no outcome; **no arm and no terminal reason** | S    |
+| `mind:observe`      | records a source result + command id         | command id not in any capsule's records                          | S    |
+| `mind:candidate`    | records a candidate + witness                | no witness (unless `--kind proposal`); proposal cap reached      | M    |
+| `mind:admit`        | runs the six gates, adopts on pass           | any gate fails — returns which one, with the repair argv         | L    |
+| `mind:decline`      | records a decline + reason                   | candidate unknown; already decided                               | S    |
+| `mind:quiesce`      | records a quiescent pulse + sources          | any source returned non-empty                                    | S    |
+| `mind:escalate`     | records + notifies                           | no reason given                                                  | S    |
+| `mind:halt`         | halts, does not arm                          | no reason given                                                  | S    |
+| `mind:round-open`   | chains a round capsule (tier 1)              | prior round has a live lease or open attempt; round budget spent | M    |
+| `mind:round-close`  | closes a round + successor or reason         | round not terminal; no successor and no reason                   | M    |
+| `mind:audit-start`  | mints the auditor grant                      | an audit is already open                                         | S    |
+| `mind:audit-report` | records the questionnaire + verdict          | any answer lacks a command id                                    | M    |
 
 Cross-cutting requirements for all of them, taken from what this project has already learned:
 
-- **Every refusal carries the exact argv that would satisfy it.** `RAILS.md`: *"a refusal without a
-  prescribed repair is a defect"* — a refused weak model does not re-plan, it leaves the harness.
+- **Every refusal carries the exact argv that would satisfy it.** `RAILS.md`: _"a refusal without a
+  prescribed repair is a defect"_ — a refused weak model does not re-plan, it leaves the harness.
 - **Every markdown brief obeys the 30-line limit** (`enforceLineLimit`), so a pulse's orientation
   cannot grow without bound.
 - **Every recorded value carries its evidence class**, and absent renders as `unknown`.

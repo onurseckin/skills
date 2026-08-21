@@ -1,6 +1,5 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { describe, expect, test } from "bun:test";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import type {
   Manifest,
@@ -18,21 +17,10 @@ import {
   cloneObject,
   initialState,
 } from "../../../orchestrating-long-tasks/scripts/src/store/state.ts";
+import { scratchRoot } from "../../support/scratch-root.ts";
 
-const roots: string[] = [];
-
-afterEach(() => {
-  for (const root of roots.splice(0)) rmSync(root, { force: true, recursive: true });
-});
-
-function scratchRoot(): string {
-  const root = mkdtempSync(join(tmpdir(), "store-event-append-"));
-  roots.push(root);
-  return root;
-}
-
-function freshRun(): { runRoot: string; manifest: Manifest } {
-  const repo = scratchRoot();
+function freshRun(label: string): { runRoot: string; manifest: Manifest } {
+  const repo = scratchRoot(import.meta.path, label);
   const runRoot = initRun(repo, "append-run", new TextEncoder().encode("prompt"), "file", true);
   return { runRoot, manifest: loadRun(runRoot).manifest };
 }
@@ -47,7 +35,7 @@ function eventObjects(runRoot: string): JsonObject[] {
 
 describe("appendProjectionEvent checkpoints", () => {
   test("stores a patch (not a full projection) between checkpoints, and a full projection at the interval boundary", () => {
-    const { runRoot, manifest } = freshRun();
+    const { runRoot, manifest } = freshRun("checkpoint-interval");
     let current: RunState = initialState();
     for (let index = 1; index <= CHECKPOINT_INTERVAL; index += 1) {
       const draft = { ...cloneObject(current), counter: index } as RunState;
@@ -76,7 +64,7 @@ describe("appendProjectionEvent checkpoints", () => {
   });
 
   test("forces a full checkpoint the moment the projected state turns terminal, even off the interval", () => {
-    const { runRoot, manifest } = freshRun();
+    const { runRoot, manifest } = freshRun("terminal-forces-checkpoint");
     const current = initialState();
     const draft = {
       ...cloneObject(current),
@@ -99,7 +87,7 @@ describe("appendProjectionEvent checkpoints", () => {
   });
 
   test("a patch encodes exactly the business fields that changed, added, and removed", () => {
-    const { runRoot, manifest } = freshRun();
+    const { runRoot, manifest } = freshRun("patch-business-fields");
     const seedDraft = {
       ...cloneObject(initialState()),
       agents: { a1: { status: "idle" } },

@@ -97,8 +97,9 @@ export function recordConsolidation(
   runRoot: string,
   actor: string,
   result: WorktreeConsolidationRecord,
+  transactFn: typeof transact = transact,
 ): void {
-  transact(
+  transactFn(
     runRoot,
     actor,
     "worktrees-consolidated",

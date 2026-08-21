@@ -1,36 +1,28 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { chmodSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { describe, expect, test } from "bun:test";
+import { chmodSync, mkdirSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { reportsLayout } from "../../../orchestrating-long-tasks/scripts/src/store/layout-reports.ts";
+import { scratchRoot as makeScratchRoot } from "../../support/scratch-root.ts";
 
-const roots: string[] = [];
-
-afterEach(() => {
-  for (const root of roots.splice(0)) rmSync(root, { force: true, recursive: true });
-});
-
-function scratchRoot(): string {
-  const root = mkdtempSync(join(tmpdir(), "store-layout-reports-"));
-  roots.push(root);
-  return root;
+function scratchRoot(label: string): string {
+  return makeScratchRoot(import.meta.path, label);
 }
 
 describe("reportsLayout", () => {
   test("returns no issues when reports/ does not exist", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("returns-no-issues-when-reports-does-not-exist");
     expect(reportsLayout(root, undefined)).toEqual([]);
   });
 
   test("returns REPORT_UNREADABLE when reports/ exists but is not a directory", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("returns-report-unreadable-when-reports-exists-but-");
     writeFileSync(join(root, "reports"), "not a directory");
     const found = reportsLayout(root, undefined);
     expect(found).toEqual([expect.objectContaining({ code: "REPORT_UNREADABLE" })]);
   });
 
   test("ignores dotfiles and subdirectories inside reports/", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("ignores-dotfiles-and-subdirectories-inside-reports");
     mkdirSync(join(root, "reports"));
     writeFileSync(join(root, "reports", ".hidden"), "ignored");
     mkdirSync(join(root, "reports", "a-subdirectory"));
@@ -38,14 +30,14 @@ describe("reportsLayout", () => {
   });
 
   test("accepts the fixed critic-review.json name unconditionally", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("accepts-the-fixed-critic-review-json-name-uncondit");
     mkdirSync(join(root, "reports"));
     writeFileSync(join(root, "reports", "critic-review.json"), "{}");
     expect(reportsLayout(root, undefined)).toEqual([]);
   });
 
   test("accepts report names matching submission, review, and probe-NN shapes and attributes them to a known task", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("accepts-report-names-matching-submission-review-an");
     mkdirSync(join(root, "reports"));
     writeFileSync(join(root, "reports", "T-1-submission.json"), "{}");
     writeFileSync(join(root, "reports", "T-1-review.json"), "{}");
@@ -55,7 +47,7 @@ describe("reportsLayout", () => {
   });
 
   test("reports REPORT_UNDECLARED for a name that matches no known report shape", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("reports-report-undeclared-for-a-name-that-matches-");
     mkdirSync(join(root, "reports"));
     writeFileSync(join(root, "reports", "random-file.json"), "{}");
     const found = reportsLayout(root, undefined);
@@ -63,7 +55,7 @@ describe("reportsLayout", () => {
   });
 
   test("reports REPORT_UNDECLARED when the report names a task the run does not know about", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("reports-report-undeclared-when-the-report-names-a-");
     mkdirSync(join(root, "reports"));
     writeFileSync(join(root, "reports", "T-unknown-submission.json"), "{}");
     const state = { tasks: { "T-1": {} } };
@@ -72,7 +64,7 @@ describe("reportsLayout", () => {
   });
 
   test("accepts any owner when state.tasks is absent, since ownership cannot be checked", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("accepts-any-owner-when-state-tasks-is-absent-since");
     mkdirSync(join(root, "reports"));
     writeFileSync(join(root, "reports", "T-anything-submission.json"), "{}");
     expect(reportsLayout(root, undefined)).toEqual([]);
@@ -80,7 +72,7 @@ describe("reportsLayout", () => {
   });
 
   test("falls through to the other kind when lstat on a listed entry itself fails", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("falls-through-to-the-other-kind-when-lstat-on-a-li");
     const reportsDir = join(root, "reports");
     mkdirSync(reportsDir);
     writeFileSync(join(reportsDir, "T-1-submission.json"), "{}");
@@ -96,7 +88,7 @@ describe("reportsLayout", () => {
   });
 
   test("reports REPORT_UNDECLARED for a directory entry that is neither a file nor a directory", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("reports-report-undeclared-for-a-directory-entry-th");
     mkdirSync(join(root, "reports"));
     symlinkSync(join(root, "reports", "missing-target"), join(root, "reports", "broken-link.json"));
     const found = reportsLayout(root, undefined);

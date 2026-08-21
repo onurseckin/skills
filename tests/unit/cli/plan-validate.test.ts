@@ -3,6 +3,7 @@ import { mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execute } from "../../../orchestrating-long-tasks/scripts/src/cli/execute.ts";
+import { planReviewCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/plan-validate.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
 import { setupCompiledRun } from "./task-ops-fixture.ts";
 
@@ -59,85 +60,53 @@ describe("plan:validate-start", () => {
 
 describe("plan:review", () => {
   test("--status must be approved or changes_requested", async () => {
-    const { run } = await setupCompiledRun("plan-review-bad-status", roots);
-    const started = await execute([
-      "plan:validate-start",
-      "--run",
-      run,
-      "--validator",
-      "plan-val-1",
-    ]);
+    // planReviewCommand checks --status before it ever opens the run root, so no capsule, no
+    // plan:validate-start, no real token is needed to reach this refusal.
     await expect(
-      execute([
-        "plan:review",
-        "--run",
-        run,
-        "--validator",
-        "plan-val-1",
-        "--token",
-        started.token as string,
-        "--status",
-        "maybe",
-        "--summary",
-        "x",
-        ...passAnswers(),
-      ]),
+      planReviewCommand({
+        run: "unused",
+        validator: "plan-val-1",
+        token: "unused-token",
+        status: "maybe",
+        summary: "x",
+      }),
     ).rejects.toThrow(/--status must be approved or changes_requested/);
   });
 
   test("an approved verdict cannot carry findings", async () => {
-    const { run } = await setupCompiledRun("plan-review-approved-findings", roots);
-    const started = await execute([
-      "plan:validate-start",
-      "--run",
-      run,
-      "--validator",
-      "plan-val-1",
-    ]);
+    // The findings/status cross-check also runs before loadRun; the four mandatory answers are
+    // only required to be non-blank at this point, not verified against a real plan yet.
     await expect(
-      execute([
-        "plan:review",
-        "--run",
-        run,
-        "--validator",
-        "plan-val-1",
-        "--token",
-        started.token as string,
-        "--status",
-        "approved",
-        "--summary",
-        "Looks good",
-        ...passAnswers(),
-        "--findings",
-        JSON.stringify([{ id: "PV-1", severity: "critical", observation: "x", remediation: "y" }]),
-      ]),
+      planReviewCommand({
+        run: "unused",
+        validator: "plan-val-1",
+        token: "unused-token",
+        status: "approved",
+        summary: "Looks good",
+        "decomposition-answer": "n/a",
+        "dependency-answer": "n/a",
+        "gate-answer": "n/a",
+        "straggler-answer": "n/a",
+        findings: JSON.stringify([
+          { id: "PV-1", severity: "critical", observation: "x", remediation: "y" },
+        ]),
+      }),
     ).rejects.toThrow(/cannot carry findings/);
   });
 
   test("changes_requested requires --findings or --findings-file", async () => {
-    const { run } = await setupCompiledRun("plan-review-missing-findings", roots);
-    const started = await execute([
-      "plan:validate-start",
-      "--run",
-      run,
-      "--validator",
-      "plan-val-1",
-    ]);
     await expect(
-      execute([
-        "plan:review",
-        "--run",
-        run,
-        "--validator",
-        "plan-val-1",
-        "--token",
-        started.token as string,
-        "--status",
-        "changes_requested",
-        "--summary",
-        "Needs work",
-        ...passAnswers(),
-      ]),
+      planReviewCommand({
+        run: "unused",
+        validator: "plan-val-1",
+        token: "unused-token",
+        status: "changes_requested",
+        summary: "Needs work",
+        "decomposition-answer": "n/a",
+        "dependency-answer": "n/a",
+        "gate-answer": "n/a",
+        "straggler-answer": "n/a",
+      }),
     ).rejects.toThrow(/requires --findings or --findings-file/);
   });
 
@@ -207,60 +176,37 @@ describe("plan:review", () => {
   });
 
   test("an unreadable --findings-file is refused with the underlying error", async () => {
-    const { run } = await setupCompiledRun("plan-review-findings-file-missing", roots);
-    const started = await execute([
-      "plan:validate-start",
-      "--run",
-      run,
-      "--validator",
-      "plan-val-1",
-    ]);
+    // Findings are read from disk before loadRun; the file doesn't need to live in any capsule.
     await expect(
-      execute([
-        "plan:review",
-        "--run",
-        run,
-        "--validator",
-        "plan-val-1",
-        "--token",
-        started.token as string,
-        "--status",
-        "changes_requested",
-        "--summary",
-        "See attached findings",
-        ...passAnswers(),
-        "--findings-file",
-        "/does/not/exist/findings.json",
-      ]),
+      planReviewCommand({
+        run: "unused",
+        validator: "plan-val-1",
+        token: "unused-token",
+        status: "changes_requested",
+        summary: "See attached findings",
+        "decomposition-answer": "n/a",
+        "dependency-answer": "n/a",
+        "gate-answer": "n/a",
+        "straggler-answer": "n/a",
+        "findings-file": "/does/not/exist/findings.json",
+      }),
     ).rejects.toThrow(/cannot read --findings-file/);
   });
 
   test("malformed inline --findings JSON is refused", async () => {
-    const { run } = await setupCompiledRun("plan-review-findings-malformed", roots);
-    const started = await execute([
-      "plan:validate-start",
-      "--run",
-      run,
-      "--validator",
-      "plan-val-1",
-    ]);
     await expect(
-      execute([
-        "plan:review",
-        "--run",
-        run,
-        "--validator",
-        "plan-val-1",
-        "--token",
-        started.token as string,
-        "--status",
-        "changes_requested",
-        "--summary",
-        "Bad findings JSON",
-        ...passAnswers(),
-        "--findings",
-        "{ not valid json",
-      ]),
+      planReviewCommand({
+        run: "unused",
+        validator: "plan-val-1",
+        token: "unused-token",
+        status: "changes_requested",
+        summary: "Bad findings JSON",
+        "decomposition-answer": "n/a",
+        "dependency-answer": "n/a",
+        "gate-answer": "n/a",
+        "straggler-answer": "n/a",
+        findings: "{ not valid json",
+      }),
     ).rejects.toThrow(/--findings is not valid JSON/);
   });
 

@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { BranchRecord } from "../../../orchestrating-long-tasks/scripts/src/contracts/branch.ts";
+import type { RepositoryGitCommand } from "../../../orchestrating-long-tasks/scripts/src/packets/repository-git-command.ts";
 import { generateGraphDataset } from "../../../orchestrating-long-tasks/scripts/src/summary/graph-generator.ts";
 import { makeCommand, makeState, makeTask } from "./graph-fixtures.ts";
 
@@ -188,29 +188,40 @@ describe("branch region files carry a diff (B3/B15.2)", () => {
     for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true });
   });
 
-  function git(repo: string, args: string[]): void {
-    execFileSync("git", args, { cwd: repo });
+  const HEAD_COMMIT = "f".repeat(40);
+  const FLUSH_DIFF = [
+    "diff --git a/src/flush.ts b/src/flush.ts",
+    "index aaaaaaa..bbbbbbb 100644",
+    "--- a/src/flush.ts",
+    "+++ b/src/flush.ts",
+    "@@ -1 +1 @@",
+    "-export const flush = 1;",
+    "+export const flush = 2;",
+    "",
+  ].join("\n");
+
+  /**
+   * `enrichFileRefsWithDiffs` takes an injectable `RepositoryGitCommand`; a fake standing in for a
+   * real `git diff` spawn removes the only real-process dependency this suite otherwise has. It
+   * answers by the path argv carries (the last element), independent of the repository root arg.
+   */
+  function fakeGitCommand(diffByPath: ReadonlyMap<string, string>): RepositoryGitCommand {
+    return (_repositoryRoot, argv) => {
+      const path = argv.at(-1) ?? "";
+      const text = diffByPath.get(path) ?? "";
+      return { status: 0, bytes: Buffer.from(text, "utf8") };
+    };
   }
 
   /**
-   * The same run-root/baseline shape `file-diff-reader.test.ts` seeds, built here directly rather
-   * than through the CLI: a repository with one committed file, plus a `state.json` anchoring a
-   * diff reading at that commit. The branch then edits the file, so the closing observation records
-   * a real change for `enrichFileRefsWithDiffs` to find.
+   * The only real I/O `enrichFileRefsWithDiffs` needs is `state.json`, its designed on-disk anchor
+   * for the diff's base commit; that alone is worth a scratch root. The `git diff` it then runs is
+   * faked above, so no repository, commit, or subprocess is ever created.
    */
-  function seedRunRoot(): { repo: string; runRoot: string; head: string } {
-    const repo = mkdtempSync(join(tmpdir(), "branch-diff-"));
-    roots.push(repo);
-    git(repo, ["init", "-q"]);
-    git(repo, ["config", "user.email", "fixture@example.invalid"]);
-    git(repo, ["config", "user.name", "fixture"]);
-    mkdirSync(join(repo, "src"), { recursive: true });
-    writeFileSync(join(repo, "src", "flush.ts"), "export const flush = 1;\n");
-    git(repo, ["add", "-A"]);
-    git(repo, ["commit", "-qm", "baseline"]);
-    const head = execFileSync("git", ["rev-parse", "HEAD"], { cwd: repo }).toString("utf8").trim();
-
-    const runRoot = join(repo, ".capsules", "run-1");
+  function seedRunRoot(): string {
+    const root = mkdtempSync(join(tmpdir(), "branch-diff-"));
+    roots.push(root);
+    const runRoot = join(root, ".capsules", "run-1");
     mkdirSync(runRoot, { recursive: true });
     const digest = "d".repeat(64);
     writeFileSync(
@@ -220,17 +231,16 @@ describe("branch region files carry a diff (B3/B15.2)", () => {
         repository_inspections: {
           [digest]: {
             inspection_sha256: digest,
-            git: { status: "clean", head, history: null },
+            git: { status: "clean", head: HEAD_COMMIT, history: null },
           },
         },
       }),
     );
-    return { repo, runRoot, head };
+    return runRoot;
   }
 
   test("a genuinely edited path in the closing observation gets a real diff, not just a status code", () => {
-    const { repo, runRoot } = seedRunRoot();
-    writeFileSync(join(repo, "src", "flush.ts"), "export const flush = 2;\n");
+    const runRoot = seedRunRoot();
 
     const dataset = generateGraphDataset({
       runId: "run-branch-diff",
@@ -247,6 +257,7 @@ describe("branch region files carry a diff (B3/B15.2)", () => {
         ],
       }),
       runRoot,
+      gitCommand: fakeGitCommand(new Map([["src/flush.ts", FLUSH_DIFF]])),
     });
 
     const section = dataset.sections?.find((entry) => entry.id === "section-branch-B-1");
@@ -265,7 +276,7 @@ describe("branch region files carry a diff (B3/B15.2)", () => {
   });
 
   test("a path the observation names but nothing actually changed stays without a diff", () => {
-    const { runRoot } = seedRunRoot();
+    const runRoot = seedRunRoot();
 
     const dataset = generateGraphDataset({
       runId: "run-branch-no-diff",
@@ -282,6 +293,7 @@ describe("branch region files carry a diff (B3/B15.2)", () => {
         ],
       }),
       runRoot,
+      gitCommand: fakeGitCommand(new Map()),
     });
 
     const section = dataset.sections?.find((entry) => entry.id === "section-branch-B-1");

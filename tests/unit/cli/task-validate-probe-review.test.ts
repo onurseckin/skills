@@ -1,5 +1,10 @@
 import { afterEach, describe, expect, test } from "bun:test";
+import { mkdtemp } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { execute } from "../../../orchestrating-long-tasks/scripts/src/cli/execute.ts";
+import { taskReviewCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/task-review.ts";
+import { taskValidateStartCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/task-validation-start.ts";
 import { loadChecklist } from "../../../orchestrating-long-tasks/scripts/src/packets/role-contract.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
 import {
@@ -20,63 +25,15 @@ afterEach(async () => cleanupRoots(roots));
 
 describe("task:validate-start", () => {
   test("refuses an unrecognised --validator-domain", async () => {
-    const { repo, run } = await setupRun("validate-start-bad-domain", roots);
-    const claim = await execute([
-      "task:claim",
-      "--run",
-      run,
-      "--task",
-      TASK_ID,
-      "--agent",
-      "worker-1",
-      "--role",
-      "implementer",
-    ]);
-    await Bun.write(
-      `${repo}/${CHANGED_FILE}`,
-      "export const probed = true;\nexport const x = 1;\n",
-    );
-    await execute([
-      "run:exec",
-      "--run",
-      run,
-      "--task",
-      TASK_ID,
-      "--actor",
-      "worker-1",
-      "--cwd",
-      repo,
-      "--",
-      "echo",
-      "implementer-work",
-    ]);
-    await execute([
-      "task:submit",
-      "--run",
-      run,
-      "--task",
-      TASK_ID,
-      "--agent",
-      "worker-1",
-      "--token",
-      claim.token as string,
-      "--files-changed",
-      CHANGED_FILE,
-      "--summary",
-      "did the work",
-    ]);
+    // The domain check runs before the command ever opens the run root, so no capsule is needed
+    // to exercise it — see taskValidateStartCommand, which validates --validator-domain first.
     await expect(
-      execute([
-        "task:validate-start",
-        "--run",
-        run,
-        "--task",
-        TASK_ID,
-        "--validator",
-        VALIDATOR,
-        "--validator-domain",
-        "not-a-domain",
-      ]),
+      taskValidateStartCommand({
+        run: "unused",
+        task: TASK_ID,
+        validator: VALIDATOR,
+        "validator-domain": "not-a-domain",
+      }),
     ).rejects.toThrow(/not a recognized validator domain/);
   });
 
@@ -208,49 +165,35 @@ describe("task:review", () => {
   });
 
   test("--status fail requires --summary/--severity/--remediation and refuses --resolve on a fail", async () => {
-    const { repo, run } = await setupRun("review-fail-required-fields", roots);
-    const validation = await claimSubmitValidate(repo, run);
-    const gateCmd = await runGate(repo, run, "gate-core.ts");
-
+    // Both refusals happen inside taskReviewCommand before it ever opens the run root
+    // (assertNoResolutions / failingVerdictInput run ahead of loadRun), so they need no capsule.
     await expect(
-      execute([
-        "task:review",
-        "--run",
-        run,
-        "--task",
-        TASK_ID,
-        "--validator",
-        VALIDATOR,
-        "--token",
-        validation.token as string,
-        "--status",
-        "fail",
-      ]),
+      taskReviewCommand({
+        run: "unused",
+        task: TASK_ID,
+        validator: VALIDATOR,
+        token: "unused-token",
+        status: "fail",
+      }),
     ).rejects.toThrow(/--summary is required for a failing verdict/);
 
     await expect(
-      execute([
-        "task:review",
-        "--run",
-        run,
-        "--task",
-        TASK_ID,
-        "--validator",
-        VALIDATOR,
-        "--token",
-        validation.token as string,
-        "--status",
-        "fail",
-        "--summary",
-        "it is broken",
-        "--severity",
-        "critical",
-        "--remediation",
-        "fix it",
-        "--resolve",
-        "finding-x=cmd-1",
-      ]),
+      taskReviewCommand({
+        run: "unused",
+        task: TASK_ID,
+        validator: VALIDATOR,
+        token: "unused-token",
+        status: "fail",
+        summary: "it is broken",
+        severity: "critical",
+        remediation: "fix it",
+        resolve: "finding-x=cmd-1",
+      }),
     ).rejects.toThrow(/applies to a passing verdict only/);
+
+    const { repo, run } = await setupRun("review-fail-required-fields", roots);
+    const validation = await claimSubmitValidate(repo, run);
+    const gateCmd = await runGate(repo, run, "gate-core.ts");
 
     const failed = await execute([
       "task:review",
@@ -279,95 +222,73 @@ describe("task:review", () => {
   });
 
   test("--status must be pass or fail", async () => {
-    const { repo, run } = await setupRun("review-bad-status", roots);
-    const validation = await claimSubmitValidate(repo, run);
+    // Pure flag validation ahead of loadRun — no task, no capsule required to reach it.
     await expect(
-      execute([
-        "task:review",
-        "--run",
-        run,
-        "--task",
-        TASK_ID,
-        "--validator",
-        VALIDATOR,
-        "--token",
-        validation.token as string,
-        "--status",
-        "maybe",
-      ]),
+      taskReviewCommand({
+        run: "unused",
+        task: TASK_ID,
+        validator: VALIDATOR,
+        token: "unused-token",
+        status: "maybe",
+      }),
     ).rejects.toThrow(/--status must be pass or fail/);
   });
 
   test("--checklist-domain and --checklist-report must be given together, and the domain must be recognised", async () => {
-    const { repo, run } = await setupRun("review-checklist-flags", roots);
-    const validation = await claimSubmitValidate(repo, run);
-    const gateCmd = await runGate(repo, run, "gate-core.ts");
-    const probed = await recordProbe(run, validation.token as string, "Prove it");
-
+    // resolveChecklistCoverage runs before loadRun, so neither assertion needs a capsule.
     await expect(
-      execute([
-        ...reviewPass(
-          run,
-          validation.token as string,
-          gateCmd,
-          answeredBy(probed.finding_ids, gateCmd),
-        ),
-        "--checklist-domain",
-        "code-quality",
-      ]),
+      taskReviewCommand({
+        run: "unused",
+        task: TASK_ID,
+        validator: VALIDATOR,
+        token: "unused-token",
+        status: "pass",
+        "checklist-domain": "code-quality",
+      }),
     ).rejects.toThrow(/must be given together/);
 
     await expect(
-      execute([
-        ...reviewPass(
-          run,
-          validation.token as string,
-          gateCmd,
-          answeredBy(probed.finding_ids, gateCmd),
-        ),
-        "--checklist-domain",
-        "not-a-real-domain",
-        "--checklist-report",
-        `${repo}/coverage.json`,
-      ]),
+      taskReviewCommand({
+        run: "unused",
+        task: TASK_ID,
+        validator: VALIDATOR,
+        token: "unused-token",
+        status: "pass",
+        "checklist-domain": "not-a-real-domain",
+        "checklist-report": "/does-not-matter/coverage.json",
+      }),
     ).rejects.toThrow(/not a recognized validator domain/);
   });
 
   test("--checklist-report that cannot be read, and one that is not valid JSON, are both refused", async () => {
-    const { repo, run } = await setupRun("review-checklist-report-errors", roots);
-    const validation = await claimSubmitValidate(repo, run);
-    const gateCmd = await runGate(repo, run, "gate-core.ts");
-    const probed = await recordProbe(run, validation.token as string, "Prove it");
-
+    // Both refusals also run before loadRun; only the malformed-JSON case needs a real file on
+    // disk (to prove it was actually read), so this needs a lone scratch file, not a capsule.
     await expect(
-      execute([
-        ...reviewPass(
-          run,
-          validation.token as string,
-          gateCmd,
-          answeredBy(probed.finding_ids, gateCmd),
-        ),
-        "--checklist-domain",
-        "code-quality",
-        "--checklist-report",
-        `${repo}/does-not-exist.json`,
-      ]),
+      taskReviewCommand({
+        run: "unused",
+        task: TASK_ID,
+        validator: VALIDATOR,
+        token: "unused-token",
+        status: "pass",
+        "checklist-domain": "code-quality",
+        "checklist-report": "/definitely/does/not/exist-xyz.json",
+      }),
     ).rejects.toThrow(/--checklist-report is unreadable/);
 
-    await Bun.write(`${repo}/malformed.json`, "{ not valid json");
+    const scratchDir = await mkdtemp(join(tmpdir(), "harness-checklist-report-"));
+    roots.push(scratchDir);
+    const malformedPath = join(scratchDir, "malformed.json");
+    await Bun.write(malformedPath, "{ not valid json");
     await expect(
-      execute([
-        ...reviewPass(
-          run,
-          validation.token as string,
-          gateCmd,
-          answeredBy(probed.finding_ids, gateCmd),
-        ),
-        "--checklist-domain",
-        "code-quality",
-        "--checklist-report",
-        `${repo}/malformed.json`,
-      ]),
+      taskReviewCommand({
+        run: "unused",
+        task: TASK_ID,
+        validator: VALIDATOR,
+        token: "unused-token",
+        status: "pass",
+        "checklist-domain": "code-quality",
+        "checklist-report": malformedPath,
+      }),
     ).rejects.toThrow(/--checklist-report is not valid JSON/);
   });
 

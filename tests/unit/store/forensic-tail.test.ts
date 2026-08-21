@@ -1,33 +1,16 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import {
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  readdirSync,
-  rmSync,
-  statSync,
-  writeFileSync,
-} from "node:fs";
-import { tmpdir } from "node:os";
+import { describe, expect, test } from "bun:test";
+import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { quarantineAndTruncateTail } from "../../../orchestrating-long-tasks/scripts/src/store/forensic-tail.ts";
+import { scratchRoot as makeScratchRoot } from "../../support/scratch-root.ts";
 
-const roots: string[] = [];
-
-afterEach(() => {
-  for (const root of roots.splice(0)) rmSync(root, { force: true, recursive: true });
-});
-
-function scratchRoot(): string {
-  const root = mkdtempSync(join(tmpdir(), "store-forensic-tail-"));
-  roots.push(root);
-  return root;
+function scratchRoot(label: string): string {
+  return makeScratchRoot(import.meta.path, label);
 }
 
 describe("quarantineAndTruncateTail", () => {
   test("moves the torn suffix into a quarantine fragment and truncates the source to the complete prefix", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("moves-the-torn-suffix-into-a-quarantine-fragment-a");
     const eventsPath = join(root, "events.jsonl");
     writeFileSync(eventsPath, "complete-line\npartial-tail-fragment");
     const quarantine = join(root, "quarantine");
@@ -42,7 +25,7 @@ describe("quarantineAndTruncateTail", () => {
   });
 
   test("quarantines the entire file when completeBytes is zero", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("quarantines-the-entire-file-when-completebytes-is-");
     const eventsPath = join(root, "events.jsonl");
     writeFileSync(eventsPath, "all-of-this-is-torn");
     const quarantine = join(root, "quarantine");
@@ -53,7 +36,7 @@ describe("quarantineAndTruncateTail", () => {
   });
 
   test("makes the quarantined fragment read-only", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("makes-the-quarantined-fragment-read-only");
     const eventsPath = join(root, "events.jsonl");
     writeFileSync(eventsPath, "line\ntorn");
     const quarantine = join(root, "quarantine");
@@ -64,7 +47,7 @@ describe("quarantineAndTruncateTail", () => {
   });
 
   test("throws and leaves no temporary file behind when the source is not a regular file", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("throws-and-leaves-no-temporary-file-behind-when-th");
     const eventsPath = join(root, "a-directory");
     mkdirSync(eventsPath);
     const quarantine = join(root, "quarantine");
@@ -76,7 +59,7 @@ describe("quarantineAndTruncateTail", () => {
   });
 
   test("throws and cleans up the temporary file when copying fails after it was already created", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("throws-and-cleans-up-the-temporary-file-when-copyi");
     const eventsPath = join(root, "events.jsonl");
     writeFileSync(eventsPath, "content");
     // A quarantine directory that does not exist lets openSync(temporary, ...) fail with ENOENT

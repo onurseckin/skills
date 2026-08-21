@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { tmpdir } from "node:os";
 import { execute } from "../../../orchestrating-long-tasks/scripts/src/cli/execute.ts";
 import {
   COMMAND_DOMAINS,
@@ -85,8 +86,13 @@ describe("CLI command registry", () => {
 
   test("dispatches every registered invocation", async () => {
     for (const invocation of commandInvocations()) {
-      // Every command rejects on an empty flag set, but never as an unknown command.
-      const failure = await execute([invocation]).then(
+      // Every command rejects on an empty flag set, but never as an unknown command. `health`
+      // alone declares no required flags, so left alone it would actually run its real,
+      // multi-second structural scan against this harness's own source tree; pointing --scripts
+      // at a plain directory makes it fail its own fast "no src directory" check instead, which
+      // is still a rejection and still not "unknown command".
+      const argv = invocation === "health" ? [invocation, "--scripts", tmpdir()] : [invocation];
+      const failure = await execute(argv).then(
         () => new Error("resolved"),
         (error: unknown) => error,
       );

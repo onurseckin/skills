@@ -1,19 +1,11 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { describe, expect, test } from "bun:test";
+import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { streamEventLines } from "../../../orchestrating-long-tasks/scripts/src/store/event-lines.ts";
+import { scratchRoot as makeScratchRoot } from "../../support/scratch-root.ts";
 
-const roots: string[] = [];
-
-afterEach(() => {
-  for (const root of roots.splice(0)) rmSync(root, { force: true, recursive: true });
-});
-
-function scratchRoot(): string {
-  const root = mkdtempSync(join(tmpdir(), "store-event-lines-"));
-  roots.push(root);
-  return root;
+function scratchRoot(label: string): string {
+  return makeScratchRoot(import.meta.path, label);
 }
 
 function collect(path: string, maximum: number, maximumTotal: number) {
@@ -22,14 +14,14 @@ function collect(path: string, maximum: number, maximumTotal: number) {
 
 describe("streamEventLines", () => {
   test("yields nothing for an empty file", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("yields-nothing-for-an-empty-file");
     const path = join(root, "events.jsonl");
     writeFileSync(path, "");
     expect(collect(path, 1024, 1024)).toEqual([]);
   });
 
   test("yields one terminated line per newline-delimited record", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("yields-one-terminated-line-per-newline-delimited-r");
     const path = join(root, "events.jsonl");
     writeFileSync(path, "line-one\nline-two\n");
     const lines = collect(path, 1024, 1024);
@@ -42,7 +34,7 @@ describe("streamEventLines", () => {
   });
 
   test("yields a final unterminated line when the file has no trailing newline", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("yields-a-final-unterminated-line-when-the-file-has");
     const path = join(root, "events.jsonl");
     writeFileSync(path, "complete\npartial-tail");
     const lines = collect(path, 1024, 1024);
@@ -52,7 +44,7 @@ describe("streamEventLines", () => {
   });
 
   test("marks a line oversized and truncates its stored content once it exceeds the per-line maximum", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("marks-a-line-oversized-and-truncates-its-stored-co");
     const path = join(root, "events.jsonl");
     writeFileSync(path, `${"x".repeat(20)}\nnext\n`);
     const lines = collect(path, 5, 1024);
@@ -62,7 +54,7 @@ describe("streamEventLines", () => {
   });
 
   test("marks an oversized line even when the available budget is already exhausted at zero", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("marks-an-oversized-line-even-when-the-available-bu");
     const path = join(root, "events.jsonl");
     writeFileSync(path, `${"x".repeat(70_000)}\n`);
     const lines = collect(path, 5, 1024 * 1024);
@@ -71,19 +63,19 @@ describe("streamEventLines", () => {
   });
 
   test("throws when the file's total size exceeds the maximumTotal budget", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("throws-when-the-file-s-total-size-exceeds-the-maxi");
     const path = join(root, "events.jsonl");
     writeFileSync(path, "x".repeat(100));
     expect(() => collect(path, 1024, 10)).toThrow(/event log size exceeds limit/);
   });
 
   test("throws when the path is not a regular file", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("throws-when-the-path-is-not-a-regular-file");
     expect(() => collect(root, 1024, 1024)).toThrow(/not a regular file/);
   });
 
   test("handles a line that spans more than one internal read buffer", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("handles-a-line-that-spans-more-than-one-internal-r");
     const path = join(root, "events.jsonl");
     const long = "y".repeat(64 * 1024 + 200);
     writeFileSync(path, `${long}\nshort\n`);

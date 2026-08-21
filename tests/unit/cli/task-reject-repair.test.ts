@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { execute } from "../../../orchestrating-long-tasks/scripts/src/cli/execute.ts";
+import { taskAssignRepairerCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/task-assign-repairer.ts";
+import { taskRejectCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/task-reject.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
 import { claimSubmitValidateAndReject, setupCompiledRun } from "./file-persistence-fixture.ts";
 
@@ -23,7 +25,21 @@ describe("task:reject", () => {
     expect(rejected.finding_id).toBeDefined();
   });
 
-  test("--finding is accepted as an alias for --remediation, and either is required", async () => {
+  test("--remediation (or its --finding alias) is required", async () => {
+    // taskRejectCommand checks this before it ever opens the run root, so no capsule is needed.
+    await expect(
+      taskRejectCommand({
+        run: "unused",
+        task: "task-core",
+        validator: "val-1",
+        token: "unused-token",
+        reason: "broken",
+        severity: "critical",
+      }),
+    ).rejects.toThrow(/--remediation is required/);
+  });
+
+  test("--finding is accepted as an alias for --remediation", async () => {
     const { repo, run } = await setupCompiledRun("reject-remediation-alias", roots);
     const claim = await execute([
       "task:claim",
@@ -76,24 +92,6 @@ describe("task:reject", () => {
       "val-1",
     ]);
 
-    await expect(
-      execute([
-        "task:reject",
-        "--run",
-        run,
-        "--task",
-        "task-core",
-        "--validator",
-        "val-1",
-        "--token",
-        val.token as string,
-        "--reason",
-        "broken",
-        "--severity",
-        "critical",
-      ]),
-    ).rejects.toThrow(/--remediation is required/);
-
     const gateCmd = await execute([
       "run:exec",
       "--run",
@@ -135,75 +133,17 @@ describe("task:reject", () => {
   });
 
   test("refuses an unrecognised --severity", async () => {
-    const { repo, run } = await setupCompiledRun("reject-bad-severity", roots);
-    const claim = await execute([
-      "task:claim",
-      "--run",
-      run,
-      "--task",
-      "task-core",
-      "--agent",
-      "worker-1",
-      "--role",
-      "implementer",
-    ]);
-    await Bun.write(`${repo}/tests/unit/core/impl.ts`, "export const x = 3;\n");
-    await execute([
-      "run:exec",
-      "--run",
-      run,
-      "--task",
-      "task-core",
-      "--actor",
-      "worker-1",
-      "--cwd",
-      repo,
-      "--",
-      "echo",
-      "implementer-work",
-    ]);
-    await execute([
-      "task:submit",
-      "--run",
-      run,
-      "--task",
-      "task-core",
-      "--agent",
-      "worker-1",
-      "--token",
-      claim.token as string,
-      "--files-changed",
-      "tests/unit/core/impl.ts",
-      "--summary",
-      "did the work",
-    ]);
-    const val = await execute([
-      "task:validate-start",
-      "--run",
-      run,
-      "--task",
-      "task-core",
-      "--validator",
-      "val-1",
-    ]);
+    // parseSeverity runs before loadRun in taskRejectCommand, so no capsule is needed to reach it.
     await expect(
-      execute([
-        "task:reject",
-        "--run",
-        run,
-        "--task",
-        "task-core",
-        "--validator",
-        "val-1",
-        "--token",
-        val.token as string,
-        "--reason",
-        "broken",
-        "--severity",
-        "urgent",
-        "--remediation",
-        "fix",
-      ]),
+      taskRejectCommand({
+        run: "unused",
+        task: "task-core",
+        validator: "val-1",
+        token: "unused-token",
+        reason: "broken",
+        severity: "urgent",
+        remediation: "fix",
+      }),
     ).rejects.toThrow(/--severity must be one of/);
   });
 
@@ -264,34 +204,19 @@ describe("task:assign-repairer", () => {
     expect(String(reassigned.markdown)).toContain("worker-2");
   });
 
-  test("refuses an unrecognised --reason", async () => {
-    const { repo, run } = await setupCompiledRun("repairer-bad-reason", roots);
-    await claimSubmitValidateAndReject({
-      run,
-      repo,
-      taskId: "task-core",
-      agent: "worker-1",
-      validator: "val-1",
-      reason: "defect",
-      remediation: "fix it",
-    });
-    await expect(
-      execute([
-        "task:assign-repairer",
-        "--run",
-        run,
-        "--task",
-        "task-core",
-        "--actor",
-        "coordinator",
-        "--repairer",
-        "worker-2",
-        "--reason",
-        "bored",
-        "--evidence",
-        "no reason at all",
-      ]),
-    ).rejects.toThrow(/--reason must be one of/);
+  test("refuses an unrecognised --reason", () => {
+    // replacementReason() runs before taskAssignRepairerCommand ever opens the run root, so a
+    // rejected task's actual repair state is irrelevant here — no capsule needed.
+    expect(() =>
+      taskAssignRepairerCommand({
+        run: "unused",
+        task: "task-core",
+        actor: "coordinator",
+        repairer: "worker-2",
+        reason: "bored",
+        evidence: "no reason at all",
+      }),
+    ).toThrow(/--reason must be one of/);
   });
 
   test("--reason repeated_failure requires at least two recorded repair rounds", async () => {

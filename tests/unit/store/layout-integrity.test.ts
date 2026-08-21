@@ -1,14 +1,5 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import {
-  chmodSync,
-  linkSync,
-  mkdirSync,
-  mkdtempSync,
-  rmSync,
-  symlinkSync,
-  writeFileSync,
-} from "node:fs";
-import { tmpdir } from "node:os";
+import { describe, expect, test } from "bun:test";
+import { chmodSync, linkSync, mkdirSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { sha256Bytes } from "../../../orchestrating-long-tasks/scripts/src/core/json.ts";
 import { putBlobFile } from "../../../orchestrating-long-tasks/scripts/src/store/blobs.ts";
@@ -18,39 +9,32 @@ import {
   verifyCapsuleDeep,
   verifyCapsuleLayout,
 } from "../../../orchestrating-long-tasks/scripts/src/store/layout-integrity.ts";
+import { scratchRoot as makeScratchRoot } from "../../support/scratch-root.ts";
 
-const roots: string[] = [];
-
-afterEach(() => {
-  for (const root of roots.splice(0)) rmSync(root, { force: true, recursive: true });
-});
-
-function scratchRoot(): string {
-  const root = mkdtempSync(join(tmpdir(), "store-layout-integrity-"));
-  roots.push(root);
-  return root;
+function scratchRoot(label: string): string {
+  return makeScratchRoot(import.meta.path, label);
 }
 
 describe("verifyCapsuleLayout", () => {
   test("returns no issues for a completely empty run root with no state.json", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("returns-no-issues-for-a-completely-empty-run-root-");
     expect(verifyCapsuleLayout(root)).toEqual([]);
   });
 
   test("returns no issues when state.json is present but unparseable, treating state as absent", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("returns-no-issues-when-state-json-is-present-but-u");
     writeFileSync(join(root, "state.json"), "not json");
     expect(verifyCapsuleLayout(root)).toEqual([]);
   });
 
   test("returns no issues when state.json parses to a non-object", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("returns-no-issues-when-state-json-parses-to-a-non-");
     writeFileSync(join(root, "state.json"), JSON.stringify([1, 2]));
     expect(verifyCapsuleLayout(root)).toEqual([]);
   });
 
   test("combines issues from blob naming, capture references, packets, commands and reports", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("combines-issues-from-blob-naming-capture-reference");
     mkdirSync(join(root, "blobs", "zz"), { recursive: true });
     writeFileSync(join(root, "blobs", "zz", "not-a-sha"), "x");
     const found = verifyCapsuleLayout(root);
@@ -60,12 +44,12 @@ describe("verifyCapsuleLayout", () => {
 
 describe("undeclaredEntries", () => {
   test("returns no issues for an empty run root", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("returns-no-issues-for-an-empty-run-root");
     expect(undeclaredEntries(root)).toEqual([]);
   });
 
   test("ignores dotfiles and every declared capsule entry", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("ignores-dotfiles-and-every-declared-capsule-entry");
     writeFileSync(join(root, ".hidden"), "x");
     writeFileSync(join(root, "manifest.json"), "{}");
     mkdirSync(join(root, "blobs"));
@@ -73,14 +57,14 @@ describe("undeclaredEntries", () => {
   });
 
   test("reports LAYOUT_UNDECLARED for an entry not part of the declared capsule layout", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("reports-layout-undeclared-for-an-entry-not-part-of");
     writeFileSync(join(root, "mystery-file.txt"), "x");
     const found = undeclaredEntries(root);
     expect(found).toEqual([expect.objectContaining({ code: "LAYOUT_UNDECLARED" })]);
   });
 
   test("reports LAYOUT_UNREADABLE when the capsule root itself cannot be listed", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("reports-layout-unreadable-when-the-capsule-root-it");
     const capsule = join(root, "capsule");
     mkdirSync(capsule);
     chmodSync(capsule, 0o000);
@@ -95,18 +79,18 @@ describe("undeclaredEntries", () => {
 
 describe("blob naming (via verifyCapsuleLayout)", () => {
   test("returns no issues when blobs/ does not exist", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("returns-no-issues-when-blobs-does-not-exist");
     expect(verifyCapsuleLayout(root).some((i) => i.code.startsWith("BLOB"))).toBe(false);
   });
 
   test("ignores dotfiles at the shard level", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("ignores-dotfiles-at-the-shard-level");
     mkdirSync(join(root, "blobs", ".hidden-shard"), { recursive: true });
     expect(verifyCapsuleLayout(root).some((i) => i.code.startsWith("BLOB"))).toBe(false);
   });
 
   test("reports BLOB_UNREADABLE when blobs/ itself cannot be listed", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("reports-blob-unreadable-when-blobs-itself-cannot-b");
     const blobsDir = join(root, "blobs");
     mkdirSync(blobsDir);
     chmodSync(blobsDir, 0o000);
@@ -119,7 +103,7 @@ describe("blob naming (via verifyCapsuleLayout)", () => {
   });
 
   test("reports BLOB_LAYOUT when a shard entry is not itself a directory", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("reports-blob-layout-when-a-shard-entry-is-not-itse");
     mkdirSync(join(root, "blobs"));
     writeFileSync(join(root, "blobs", "not-a-shard"), "x");
     const found = verifyCapsuleLayout(root);
@@ -127,7 +111,7 @@ describe("blob naming (via verifyCapsuleLayout)", () => {
   });
 
   test("reports BLOB_UNREADABLE for a shard directory that cannot be listed", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("reports-blob-unreadable-for-a-shard-directory-that");
     const shardDir = join(root, "blobs", "aa");
     mkdirSync(shardDir, { recursive: true });
     chmodSync(shardDir, 0o000);
@@ -140,7 +124,7 @@ describe("blob naming (via verifyCapsuleLayout)", () => {
   });
 
   test("reports BLOB_NAME for an entry not named by a sha256, and skips dotfiles", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("reports-blob-name-for-an-entry-not-named-by-a-sha2");
     const shardDir = join(root, "blobs", "aa");
     mkdirSync(shardDir, { recursive: true });
     writeFileSync(join(shardDir, ".hidden"), "x");
@@ -150,7 +134,7 @@ describe("blob naming (via verifyCapsuleLayout)", () => {
   });
 
   test("reports BLOB_SHARD when a properly named blob sits under the wrong shard prefix", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("reports-blob-shard-when-a-properly-named-blob-sits");
     const digest = "b".repeat(64);
     const wrongShard = join(root, "blobs", "zz");
     mkdirSync(wrongShard, { recursive: true });
@@ -160,7 +144,7 @@ describe("blob naming (via verifyCapsuleLayout)", () => {
   });
 
   test("reports BLOB_KIND when the blob entry is a directory rather than a regular file", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("reports-blob-kind-when-the-blob-entry-is-a-directo");
     const digest = "c".repeat(64);
     mkdirSync(join(root, "blobs", "cc", digest), { recursive: true });
     const found = verifyCapsuleLayout(root);
@@ -168,7 +152,7 @@ describe("blob naming (via verifyCapsuleLayout)", () => {
   });
 
   test("reports BLOB_MODE when the blob file is writable", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("reports-blob-mode-when-the-blob-file-is-writable");
     const source = join(root, "source.txt");
     writeFileSync(source, "content");
     const put = putBlobFile(root, source);
@@ -178,7 +162,7 @@ describe("blob naming (via verifyCapsuleLayout)", () => {
   });
 
   test("reports BLOB_UNREADABLE for a blob entry whose own stat fails, such as a dangling symlink", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("reports-blob-unreadable-for-a-blob-entry-whose-own");
     const digest = "d".repeat(64);
     const shardDir = join(root, "blobs", "dd");
     mkdirSync(shardDir, { recursive: true });
@@ -188,7 +172,7 @@ describe("blob naming (via verifyCapsuleLayout)", () => {
   });
 
   test("reports BLOB_UNREADABLE when a blob entry's own lstat fails despite the shard listing succeeding", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("reports-blob-unreadable-when-a-blob-entry-s-own-ls");
     const digest = "a".repeat(64);
     const shardDir = join(root, "blobs", "aa");
     mkdirSync(shardDir, { recursive: true });
@@ -225,12 +209,12 @@ function writeCaptures(root: string, captures: unknown[]): void {
 
 describe("capture references (via verifyCapsuleLayout)", () => {
   test("returns no issues when captures.json does not exist", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("returns-no-issues-when-captures-json-does-not-exis");
     expect(verifyCapsuleLayout(root)).toEqual([]);
   });
 
   test("reports CAPTURE_DIGEST when the capture's sha256 is 64 characters but not valid lowercase hex", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("reports-capture-digest-when-the-capture-s-sha256-i");
     // readCaptures already drops anything whose sha256 isn't exactly 64 characters, so only a
     // 64-character non-hex string reaches captureReferences' own SHA256_PATTERN check.
     writeCaptures(root, [captureFixture({ sha256: "g".repeat(64) })]);
@@ -239,14 +223,14 @@ describe("capture references (via verifyCapsuleLayout)", () => {
   });
 
   test("reports CAPTURE_BLOB_PATH when blob_path does not match the sha256's own content address", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("reports-capture-blob-path-when-blob-path-does-not-");
     writeCaptures(root, [captureFixture({ blob_path: "blobs/00/wrong" })]);
     const found = verifyCapsuleLayout(root);
     expect(found.some((i) => i.code === "CAPTURE_BLOB_PATH")).toBe(true);
   });
 
   test("reports CAPTURE_BLOB_MISSING and CAPTURE_VIEW_MISSING when neither file exists", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("reports-capture-blob-missing-and-capture-view-miss");
     writeCaptures(root, [captureFixture()]);
     const found = verifyCapsuleLayout(root);
     expect(found.map((i) => i.code).sort()).toEqual([
@@ -256,7 +240,7 @@ describe("capture references (via verifyCapsuleLayout)", () => {
   });
 
   test("reports no divergence issue for a hardlinked capture whose view still shares the blob's inode", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("reports-no-divergence-issue-for-a-hardlinked-captu");
     const digest = "e".repeat(64);
     const blobDir = join(root, "blobs", "ee");
     mkdirSync(blobDir, { recursive: true });
@@ -270,7 +254,7 @@ describe("capture references (via verifyCapsuleLayout)", () => {
   });
 
   test("reports CAPTURE_VIEW_DIVERGED for a hardlinked capture whose view is no longer the same inode", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("reports-capture-view-diverged-for-a-hardlinked-cap");
     const digest = "e".repeat(64);
     const blobDir = join(root, "blobs", "ee");
     mkdirSync(blobDir, { recursive: true });
@@ -283,7 +267,7 @@ describe("capture references (via verifyCapsuleLayout)", () => {
   });
 
   test("accepts a copy-storage capture whose view content still hashes to the recorded digest", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("accepts-a-copy-storage-capture-whose-view-content-");
     const digest = sha256Bytes(new TextEncoder().encode("copied bytes"));
     const blobDir = join(root, "blobs", digest.slice(0, 2));
     mkdirSync(blobDir, { recursive: true });
@@ -301,7 +285,7 @@ describe("capture references (via verifyCapsuleLayout)", () => {
   });
 
   test("reports CAPTURE_VIEW_DIVERGED for a copy-storage capture whose view content has since changed", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("reports-capture-view-diverged-for-a-copy-storage-c");
     const digest = sha256Bytes(new TextEncoder().encode("original bytes"));
     const blobDir = join(root, "blobs", digest.slice(0, 2));
     mkdirSync(blobDir, { recursive: true });
@@ -320,7 +304,7 @@ describe("capture references (via verifyCapsuleLayout)", () => {
   });
 
   test("reports CAPTURE_UNREADABLE for a copy-storage capture whose view file cannot be read", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("reports-capture-unreadable-for-a-copy-storage-capt");
     const digest = "e".repeat(64);
     const blobDir = join(root, "blobs", "ee");
     mkdirSync(blobDir, { recursive: true });
@@ -334,7 +318,7 @@ describe("capture references (via verifyCapsuleLayout)", () => {
   });
 
   test("reports CAPTURE_STORAGE for an unrecognized storage mode when both files are present", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("reports-capture-storage-for-an-unrecognized-storag");
     const digest = "e".repeat(64);
     const blobDir = join(root, "blobs", "ee");
     mkdirSync(blobDir, { recursive: true });
@@ -349,7 +333,7 @@ describe("capture references (via verifyCapsuleLayout)", () => {
   });
 
   test("reports CAPTURE_NAME_REUSED when two captures claim the same view path", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("reports-capture-name-reused-when-two-captures-clai");
     writeCaptures(root, [
       captureFixture({ sha256: "1".repeat(64) }),
       captureFixture({ sha256: "2".repeat(64) }),
@@ -361,7 +345,7 @@ describe("capture references (via verifyCapsuleLayout)", () => {
 
 describe("verifyCapsuleDeep", () => {
   test("combines undeclared entries and blob content verification", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("combines-undeclared-entries-and-blob-content-verif");
     writeFileSync(join(root, "mystery.txt"), "x");
     const found = verifyCapsuleDeep(root);
     expect(found.some((i) => i.code === "LAYOUT_UNDECLARED")).toBe(true);
@@ -370,12 +354,12 @@ describe("verifyCapsuleDeep", () => {
 
 describe("verifyBlobContents", () => {
   test("returns no issues when there are no blobs", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("returns-no-issues-when-there-are-no-blobs");
     expect(verifyBlobContents(root)).toEqual([]);
   });
 
   test("returns no issues when every stored blob's content still hashes to its own name", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("returns-no-issues-when-every-stored-blob-s-content");
     const source = join(root, "source.txt");
     writeFileSync(source, "authentic bytes");
     putBlobFile(root, source);
@@ -383,7 +367,7 @@ describe("verifyBlobContents", () => {
   });
 
   test("reports BLOB_CONTENT when a stored blob's bytes no longer match its own digest name", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("reports-blob-content-when-a-stored-blob-s-bytes-no");
     const source = join(root, "source.txt");
     writeFileSync(source, "authentic bytes");
     const put = putBlobFile(root, source);
@@ -394,7 +378,7 @@ describe("verifyBlobContents", () => {
   });
 
   test("reports BLOB_UNREADABLE when a listed blob cannot actually be opened", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("reports-blob-unreadable-when-a-listed-blob-cannot-");
     const digest = "f".repeat(64);
     const shardDir = join(root, "blobs", "ff");
     mkdirSync(shardDir, { recursive: true });

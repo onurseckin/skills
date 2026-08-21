@@ -1,7 +1,4 @@
 import { describe, expect, it } from "bun:test";
-import { mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { AutonomousLoopRunner } from "../../../orchestrating-long-tasks/scripts/src/orchestrator/loop-runner.ts";
 import {
   loopGateStatus,
@@ -13,6 +10,7 @@ import type {
   RoundExecutor,
   RoundTelemetry,
 } from "../../../orchestrating-long-tasks/scripts/src/orchestrator/types.ts";
+import { scratchRoot } from "../../support/scratch-root.ts";
 
 function telemetry(round: number, gateStatus: RoundTelemetry["gateStatus"]): RoundTelemetry {
   return {
@@ -50,13 +48,9 @@ function executorReturning(
   };
 }
 
-async function withTempRepo<T>(name: string, body: (dir: string) => Promise<T>): Promise<T> {
-  const dir = mkdtempSync(join(tmpdir(), `${name}-`));
-  try {
-    return await body(dir);
-  } finally {
-    rmSync(dir, { recursive: true, force: true });
-  }
+function withTempRepo<T>(name: string, body: (dir: string) => Promise<T>): Promise<T> {
+  const dir = scratchRoot(import.meta.path, name);
+  return body(dir);
 }
 
 describe("loop gate status honesty", () => {

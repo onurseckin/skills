@@ -32,8 +32,9 @@ export function recordReclaim(
   runRoot: string,
   actor: string,
   result: ReclaimWorktreesResult,
+  transactFn: typeof transact = transact,
 ): void {
-  transact(
+  transactFn(
     runRoot,
     actor,
     "worktrees-reclaimed",

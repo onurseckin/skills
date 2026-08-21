@@ -1,6 +1,10 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { execute } from "../../../orchestrating-long-tasks/scripts/src/cli/execute.ts";
 import {
+  branchClaimCommand,
+  branchOpenCommand,
+} from "../../../orchestrating-long-tasks/scripts/src/cli/commands/branch-ops.ts";
+import {
   branchCapsule,
   branchChain,
   branchesOf,
@@ -63,96 +67,69 @@ describe("branch:open", () => {
     expect(branch.sub_tasks.map((s) => s.id)).toEqual(["S-1", "S-2"]);
   });
 
-  // One shared fixture: every case below fails argument parsing before a branch is ever opened,
-  // so the parent lease is never touched and the same run root is reusable across all of them.
-  test("validates sub-task argument pairing before opening anything", async () => {
+  test("validates sub-task argument pairing before opening anything", () => {
+    // branchOpenCommand builds its sub-task list (subTaskInputs) before it ever reads the parent
+    // lease or the repo's harness config, so every one of these throws on flags alone — no branch,
+    // no repo, no capsule needed to reach any of them.
+    const base = {
+      run: "unused",
+      repo: "unused",
+      "parent-task": "task-1",
+      agent: "worker-1",
+      token: "unused-token",
+    };
+
+    expect(() =>
+      branchOpenCommand({
+        ...base,
+        reason: "malformed pair",
+        "sub-task": "S-1",
+        "sub-label": "S-1-no-equals",
+        "sub-scope": "S-1=src/one/parser",
+      }),
+    ).toThrow("--sub-label must be given as <sub-task-id>=<value>");
+
+    expect(() =>
+      branchOpenCommand({
+        ...base,
+        reason: "undeclared sub-task",
+        "sub-task": "S-1",
+        "sub-label": "S-1=Fix the parser",
+        "sub-scope": ["S-1=src/one/parser", "S-2=src/one/lexer"],
+      }),
+    ).toThrow("--sub-scope names undeclared sub-task S-2");
+
+    expect(() =>
+      branchOpenCommand({
+        ...base,
+        reason: "missing label",
+        "sub-task": "S-1",
+        "sub-scope": "S-1=src/one/parser",
+      }),
+    ).toThrow("sub-task S-1 has no --sub-label");
+
+    expect(() =>
+      branchOpenCommand({
+        ...base,
+        reason: "missing scope",
+        "sub-task": "S-1",
+        "sub-label": "S-1=Fix the parser",
+      }),
+    ).toThrow("sub-task S-1 has no --sub-scope");
+
+    expect(() =>
+      branchOpenCommand({
+        ...base,
+        reason: "two labels",
+        "sub-task": "S-1",
+        "sub-label": ["S-1=First label", "S-1=Second label"],
+        "sub-scope": "S-1=src/one/parser",
+      }),
+    ).toThrow("sub-task S-1 has more than one --sub-label");
+  });
+
+  test("a well-formed open still succeeds after argument errors, proving they never touch the lease", async () => {
     const fixture = await withFixture("branch-open-argument-errors");
-    const base = [
-      "branch:open",
-      "--run",
-      fixture.run,
-      "--repo",
-      fixture.repo,
-      "--parent-task",
-      "task-1",
-      "--agent",
-      "worker-1",
-      "--token",
-      fixture.token,
-    ];
-
-    await expect(
-      execute([
-        ...base,
-        "--reason",
-        "malformed pair",
-        "--sub-task",
-        "S-1",
-        "--sub-label",
-        "S-1-no-equals",
-        "--sub-scope",
-        "S-1=src/one/parser",
-      ]),
-    ).rejects.toThrow("--sub-label must be given as <sub-task-id>=<value>");
-
-    await expect(
-      execute([
-        ...base,
-        "--reason",
-        "undeclared sub-task",
-        "--sub-task",
-        "S-1",
-        "--sub-label",
-        "S-1=Fix the parser",
-        "--sub-scope",
-        "S-1=src/one/parser",
-        "--sub-scope",
-        "S-2=src/one/lexer",
-      ]),
-    ).rejects.toThrow("--sub-scope names undeclared sub-task S-2");
-
-    await expect(
-      execute([
-        ...base,
-        "--reason",
-        "missing label",
-        "--sub-task",
-        "S-1",
-        "--sub-scope",
-        "S-1=src/one/parser",
-      ]),
-    ).rejects.toThrow("sub-task S-1 has no --sub-label");
-
-    await expect(
-      execute([
-        ...base,
-        "--reason",
-        "missing scope",
-        "--sub-task",
-        "S-1",
-        "--sub-label",
-        "S-1=Fix the parser",
-      ]),
-    ).rejects.toThrow("sub-task S-1 has no --sub-scope");
-
-    await expect(
-      execute([
-        ...base,
-        "--reason",
-        "two labels",
-        "--sub-task",
-        "S-1",
-        "--sub-label",
-        "S-1=First label",
-        "--sub-label",
-        "S-1=Second label",
-        "--sub-scope",
-        "S-1=src/one/parser",
-      ]),
-    ).rejects.toThrow("sub-task S-1 has more than one --sub-label");
-
-    // The parent lease survived every rejected attempt above untouched, so a well-formed open
-    // still succeeds against the same fixture afterward.
     const opened = await openBranchVia(fixture);
     expect(opened.branch_id).toBeString();
   });
@@ -187,25 +164,19 @@ describe("branch:claim", () => {
   });
 
   test("rejects a branch role outside the sub-agent role set, and a role that is not a role at all", async () => {
-    const fixture = await withFixture("branch-claim-bad-role");
-    const opened = await openBranchVia(fixture);
-    const base = [
-      "branch:claim",
-      "--run",
-      fixture.run,
-      "--repo",
-      fixture.repo,
-      "--branch",
-      String(opened.branch_id),
-      "--sub-task",
-      "S-1",
-      "--agent",
-      "sub-1",
-    ];
-    await expect(execute([...base, "--role", "coordinator"])).rejects.toThrow(
+    // branchClaimCommand checks --role (branchRoleFlag) before it leases anything, so this needs
+    // no branch, no repo, no capsule at all — just a flag set with a bad role.
+    const base = {
+      run: "unused",
+      repo: "unused",
+      branch: "unused-branch",
+      "sub-task": "S-1",
+      agent: "sub-1",
+    };
+    await expect(branchClaimCommand({ ...base, role: "coordinator" })).rejects.toThrow(
       "--role must be one of",
     );
-    await expect(execute([...base, "--role", "not-a-real-role"])).rejects.toThrow(
+    await expect(branchClaimCommand({ ...base, role: "not-a-real-role" })).rejects.toThrow(
       "--role must be one of",
     );
   });

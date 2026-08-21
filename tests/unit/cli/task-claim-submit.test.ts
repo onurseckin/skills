@@ -1,5 +1,9 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { execute } from "../../../orchestrating-long-tasks/scripts/src/cli/execute.ts";
+import {
+  taskClaimCommand,
+  taskSubmitCommand,
+} from "../../../orchestrating-long-tasks/scripts/src/cli/commands/task-claim.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
 import { TASK_ID, claimSubmitValidate, setupRun } from "./probe-fixture.ts";
 
@@ -7,22 +11,20 @@ const roots: string[] = [];
 afterEach(async () => cleanupRoots(roots));
 
 describe("task:claim / task:heartbeat / task:submit", () => {
-  test("claims a ready task, echoes the lease token, and refuses an unrecognised --role", async () => {
-    const { run } = await setupRun("claim-basic", roots);
+  test("refuses an unrecognised --role", async () => {
+    // taskClaimCommand checks --role before it ever opens the run root, so no capsule is needed.
     await expect(
-      execute([
-        "task:claim",
-        "--run",
-        run,
-        "--task",
-        TASK_ID,
-        "--agent",
-        "worker-1",
-        "--role",
-        "reviewer",
-      ]),
+      taskClaimCommand({
+        run: "unused",
+        task: TASK_ID,
+        agent: "worker-1",
+        role: "reviewer",
+      }),
     ).rejects.toThrow(/--role must be one of/);
+  });
 
+  test("claims a ready task and echoes the lease token", async () => {
+    const { run } = await setupRun("claim-basic", roots);
     const claim = await execute([
       "task:claim",
       "--run",
@@ -67,113 +69,58 @@ describe("task:claim / task:heartbeat / task:submit", () => {
   });
 
   test("task:submit refuses combining --report with --files-changed/--evidence/--summary", async () => {
+    // The report/summary conflict check runs right after loadRun's own-task lookup, before any
+    // check on lease/claim state, so the task never needs to actually be claimed first.
     const { repo, run } = await setupRun("submit-report-conflict", roots);
-    const claim = await execute([
-      "task:claim",
-      "--run",
-      run,
-      "--task",
-      TASK_ID,
-      "--agent",
-      "worker-1",
-      "--role",
-      "implementer",
-    ]);
     const reportPath = `${repo}/report.json`;
     await Bun.write(reportPath, JSON.stringify({ summary: "x", files_changed: [], checks: [] }));
     await expect(
-      execute([
-        "task:submit",
-        "--run",
+      taskSubmitCommand({
         run,
-        "--task",
-        TASK_ID,
-        "--agent",
-        "worker-1",
-        "--token",
-        claim.token as string,
-        "--report",
-        reportPath,
-        "--summary",
-        "also inline",
-      ]),
+        task: TASK_ID,
+        agent: "worker-1",
+        token: "unused-token",
+        report: reportPath,
+        summary: "also inline",
+      }),
     ).rejects.toThrow(/cannot be combined with --files-changed/);
   });
 
   test("task:submit requires --summary when no --report is given", async () => {
     const { run } = await setupRun("submit-no-summary", roots);
-    const claim = await execute([
-      "task:claim",
-      "--run",
-      run,
-      "--task",
-      TASK_ID,
-      "--agent",
-      "worker-1",
-      "--role",
-      "implementer",
-    ]);
     await expect(
-      execute([
-        "task:submit",
-        "--run",
+      taskSubmitCommand({
         run,
-        "--task",
-        TASK_ID,
-        "--agent",
-        "worker-1",
-        "--token",
-        claim.token as string,
-      ]),
+        task: TASK_ID,
+        agent: "worker-1",
+        token: "unused-token",
+      }),
     ).rejects.toThrow(/--summary is required/);
   });
 
   test("--no-op requires --reason, and --reason is meaningless without --no-op", async () => {
-    const { run } = await setupRun("submit-noop-flags", roots);
-    const claim = await execute([
-      "task:claim",
-      "--run",
-      run,
-      "--task",
-      TASK_ID,
-      "--agent",
-      "worker-1",
-      "--role",
-      "implementer",
-    ]);
+    // Both refusals run before taskSubmitCommand ever opens the run root, so neither needs a
+    // capsule, let alone a claimed task.
     await expect(
-      execute([
-        "task:submit",
-        "--run",
-        run,
-        "--task",
-        TASK_ID,
-        "--agent",
-        "worker-1",
-        "--token",
-        claim.token as string,
-        "--summary",
-        "no change needed",
-        "--no-op",
-      ]),
+      taskSubmitCommand({
+        run: "unused",
+        task: TASK_ID,
+        agent: "worker-1",
+        token: "unused-token",
+        summary: "no change needed",
+        "no-op": true,
+      }),
     ).rejects.toThrow(/--no-op requires --reason/);
 
     await expect(
-      execute([
-        "task:submit",
-        "--run",
-        run,
-        "--task",
-        TASK_ID,
-        "--agent",
-        "worker-1",
-        "--token",
-        claim.token as string,
-        "--summary",
-        "irrelevant",
-        "--reason",
-        "orphan reason",
-      ]),
+      taskSubmitCommand({
+        run: "unused",
+        task: TASK_ID,
+        agent: "worker-1",
+        token: "unused-token",
+        summary: "irrelevant",
+        reason: "orphan reason",
+      }),
     ).rejects.toThrow(/--reason only applies together with --no-op/);
   });
 

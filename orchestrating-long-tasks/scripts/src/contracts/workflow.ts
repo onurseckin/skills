@@ -129,9 +129,7 @@ export interface GateResult extends JsonObject {
 
 export type CoordinatorPushbackCause = "procedural" | "substantive";
 
-export function isCoordinatorPushbackCause(
-  value: unknown,
-): value is CoordinatorPushbackCause {
+export function isCoordinatorPushbackCause(value: unknown): value is CoordinatorPushbackCause {
   return value === "procedural" || value === "substantive";
 }
 

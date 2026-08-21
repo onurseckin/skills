@@ -7,24 +7,17 @@ import {
   recordConsolidation,
 } from "../../../../orchestrating-long-tasks/scripts/src/workflow/worktree/consolidate.ts";
 import { readWorktreeLedger } from "../../../../orchestrating-long-tasks/scripts/src/workflow/worktree/ledger.ts";
-import { loadRun } from "../../../../orchestrating-long-tasks/scripts/src/store/index.ts";
 import type {
   GitResult,
   GitRunner,
 } from "../../../../orchestrating-long-tasks/scripts/src/workflow/worktree/git.ts";
 import type { WorktreeLedgerState } from "../../../../orchestrating-long-tasks/scripts/src/contracts/worktree.ts";
-import { baseLedger, freshRunRoot, seedLedger } from "./store-fixture.ts";
+import { FakeRunStore, baseLedger, seedLedger } from "./fake-transact.ts";
 
 const roots: string[] = [];
 afterEach(() => {
   for (const root of roots.splice(0)) rmSync(root, { force: true, recursive: true });
 });
-
-function trackedRunRoot(prefix: string): string {
-  const run = freshRunRoot(prefix);
-  roots.push(run.split("/.capsules/")[0]!);
-  return run;
-}
 
 function trackedDir(prefix: string): string {
   const dir = mkdtempSync(join(tmpdir(), `harness-${prefix}-`));
@@ -272,14 +265,14 @@ describe("consolidateWorktrees", () => {
 
 describe("recordConsolidation", () => {
   test("drops the removed worktrees and stores the consolidation record on the ledger", () => {
-    const runRoot = trackedRunRoot("consolidate-record");
+    const store = new FakeRunStore();
     const ledger = baseLedger({
       worktrees: [
         { id: "wt-0", path: "/wt/wt-0", branch: "b0", base_sha: "s", created_at: "t" },
         { id: "wt-1", path: "/wt/wt-1", branch: "b1", base_sha: "s", created_at: "t" },
       ],
     });
-    seedLedger(runRoot, ledger);
+    seedLedger(store, ledger);
     const consolidation = {
       harness_branch: ledger.harness_branch,
       merged_worktree_ids: ["wt-0"],
@@ -289,25 +282,30 @@ describe("recordConsolidation", () => {
       diffstat: "1 file changed",
       consolidated_at: "2026-08-19T00:00:00.000Z",
     };
-    recordConsolidation(runRoot, "tester", consolidation);
-    const state = loadRun(runRoot).state;
+    recordConsolidation(store.runRoot, "tester", consolidation, store.transact);
+    const state = store.read();
     const stored = readWorktreeLedger(state)!;
     expect(stored.worktrees).toEqual([]);
     expect(stored.consolidation).toEqual(consolidation);
   });
 
   test("throws INVALID_STATE when there is no worktree ledger to consolidate against", () => {
-    const runRoot = trackedRunRoot("consolidate-record-no-ledger");
+    const store = new FakeRunStore();
     expect(() =>
-      recordConsolidation(runRoot, "tester", {
-        harness_branch: "h",
-        merged_worktree_ids: [],
-        rebased: false,
-        removed_worktree_ids: [],
-        commit_count: 0,
-        diffstat: "0 files changed",
-        consolidated_at: "2026-08-19T00:00:00.000Z",
-      }),
+      recordConsolidation(
+        store.runRoot,
+        "tester",
+        {
+          harness_branch: "h",
+          merged_worktree_ids: [],
+          rebased: false,
+          removed_worktree_ids: [],
+          commit_count: 0,
+          diffstat: "0 files changed",
+          consolidated_at: "2026-08-19T00:00:00.000Z",
+        },
+        store.transact,
+      ),
     ).toThrow(/no worktree ledger to consolidate/);
   });
 });

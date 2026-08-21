@@ -13,7 +13,14 @@ very thing the skill exists to automate — waves launched by hand, checked by h
 every 120s, and writes `supervisor-state.json` each pass:
 
 ```json
-{"checked_at":"…","active":2,"stalled":"","quota_pressure":"","progress":"wf_x:3done:303s …","backoff":120}
+{
+  "checked_at": "…",
+  "active": 2,
+  "stalled": "",
+  "quota_pressure": "",
+  "progress": "wf_x:3done:303s …",
+  "backoff": 120
+}
 ```
 
 It exits — waking the main thread — only when every tracked workflow has gone quiet. While work is
@@ -21,12 +28,12 @@ progressing it says nothing, so a quiet log means healthy rather than dead.
 
 ## The rules it follows
 
-**Quota pressure pauses; it never terminates.** On a rate-limit shape inside an *error* record it
+**Quota pressure pauses; it never terminates.** On a rate-limit shape inside an _error_ record it
 doubles its interval (capped at 1800s) and keeps waiting. Nothing is killed, so every agent's work
 stays resumable when tokens refresh. This is the owner's explicit requirement and it matches what the
 harness itself already does — `orchestrator/failure-classifier.ts` classes `rate_limit` as
-**transient** and retries with exponential backoff plus jitter, *unbounded in count but bounded in
-total elapsed time*, precisely because giving up on a task that would have succeeded is the worse
+**transient** and retries with exponential backoff plus jitter, _unbounded in count but bounded in
+total elapsed time_, precisely because giving up on a task that would have succeeded is the worse
 failure.
 
 **Progress resets the backoff.** Pressure that clears returns the loop to its base interval rather
@@ -48,7 +55,7 @@ here was dry-run first, on this machine, and two real bugs were caught that way:
 emitting `0\n0` and corrupting the JSON, and completed workflows being misreported as stalled.
 
 **Distinguish a signal from its mention.** A naive scan for quota terms matched 473 agent transcripts
-— because agents were *reading* `failure-classifier.ts`, whose source text contains
+— because agents were _reading_ `failure-classifier.ts`, whose source text contains
 `RESOURCE_EXHAUSTED` and `rate_limit`. The supervisor only matches those shapes inside an actual
 `"type":"error"` record. Counting mentions instead of occurrences is how a monitor invents an
 emergency.

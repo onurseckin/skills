@@ -102,6 +102,13 @@ describe("attempt-failure-cleanup", () => {
     expect(res.descendantsAbsent).toBe(true);
     expect(res.exitCode).toBe(0);
 
+    let elapsedMs = 0;
+    const fakeClock = {
+      now: () => elapsedMs,
+      wait: async (ms: number) => {
+        elapsedMs += ms * 24;
+      },
+    };
     await expect(
       settleAndTerminateAttempt(
         { pid: 999999, exited: Promise.resolve(0) } as never,
@@ -111,6 +118,7 @@ describe("attempt-failure-cleanup", () => {
         { timeout: true, code: null, interrupted: false },
         [],
         () => undefined,
+        fakeClock,
       ),
     ).rejects.toThrow("attempt process absence was not proven");
   });

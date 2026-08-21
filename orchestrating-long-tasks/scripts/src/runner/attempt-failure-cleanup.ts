@@ -72,6 +72,16 @@ export function startAttemptPumpsAndMonitoring(
   return { allPumps, monitoring };
 }
 
+export interface SettleClock {
+  now: () => number;
+  wait: (milliseconds: number) => Promise<void>;
+}
+
+const realSettleClock: SettleClock = {
+  now: () => Date.now(),
+  wait: (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
+};
+
 export async function settleAndTerminateAttempt(
   child: ReturnType<BunSpawnApi["spawn"]>,
   descendants: DescendantTracker,
@@ -80,6 +90,7 @@ export async function settleAndTerminateAttempt(
   outcome: WatchdogOutcome,
   processGroupSignals: NodeJS.Signals[],
   recordSignal: (signal: NodeJS.Signals) => void,
+  clock: SettleClock = realSettleClock,
 ): Promise<{ descendantsAbsent: boolean; rootProof: boolean; exitCode: number | null }> {
   if ((outcome.timeout || outcome.interrupted) && !rootIdentity) {
     throw new Error(
@@ -107,9 +118,9 @@ export async function settleAndTerminateAttempt(
   };
   let descendantsAbsent = await descendants.proveAbsent();
   let rootProof = probeRoot();
-  const provenDeadline = Date.now() + 1_000;
-  while (!(descendantsAbsent && (!needsRootProof || rootProof)) && Date.now() < provenDeadline) {
-    await new Promise((resolve) => setTimeout(resolve, 25));
+  const provenDeadline = clock.now() + 1_000;
+  while (!(descendantsAbsent && (!needsRootProof || rootProof)) && clock.now() < provenDeadline) {
+    await clock.wait(25);
     descendantsAbsent = await descendants.proveAbsent();
     rootProof = probeRoot();
   }

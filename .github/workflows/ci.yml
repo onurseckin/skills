@@ -36,6 +36,5 @@ jobs:
       - name: Unit tests
         run: bun run test
 
-
       - name: Format check
         run: bunx oxfmt --check .

@@ -1,5 +1,4 @@
 import { describe, expect, test } from "bun:test";
-import { join } from "node:path";
 import {
   appendGateProof,
   type GateProofRecord,
@@ -15,8 +14,6 @@ import { recordProbe } from "../../../../orchestrating-long-tasks/scripts/src/wo
 import { recordReview } from "../../../../orchestrating-long-tasks/scripts/src/workflow/review/record-review.ts";
 import { claimTask } from "../../../../orchestrating-long-tasks/scripts/src/workflow/lease/claim.ts";
 import { submitTask } from "../../../../orchestrating-long-tasks/scripts/src/workflow/submission/submit.ts";
-import { loadRun } from "../../../../orchestrating-long-tasks/scripts/src/store/index.ts";
-import type { TaskRecord } from "../../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
 import {
   at,
   commandRecord,
@@ -334,11 +331,8 @@ describe("the adversarial probe is not a rejection", () => {
     expect(port.read().tasks["T-1"]!.status).toBe("escalated");
   });
 
-  test("a capsule written before probes existed still parses and counts zero probes", () => {
-    const runRoot = join(process.cwd(), ".capsules", "2026-08-17-skills-documentation-elevation");
-    const loaded = loadRun(runRoot);
-    const tasks = loaded.state.tasks as Record<string, TaskRecord>;
-    const task = tasks["task-1"]!;
+  test("a task record from before probes existed still parses and counts zero probes", () => {
+    const task = workflowState().tasks["T-1"]!;
     expect(task.probe_round).toBeUndefined();
     expect(probeRoundsRecorded(task)).toBe(0);
   });

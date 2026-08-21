@@ -185,8 +185,9 @@ export class OrchestratorWatchdog {
         monitorId,
         actionTaken: this.autoWakeAction,
         attempt: 0,
-        succeeded: false,
-        message: `Monitor not found: ${monitorId}`,
+        outcome: "monitor_not_found",
+        dispatched: false,
+        message: `Monitor not found: ${monitorId}; no wake request was recorded.`,
       };
     }
 
@@ -201,7 +202,7 @@ export class OrchestratorWatchdog {
         agentId: monitor.agentId,
         taskId: monitor.taskId,
         runId: monitor.runId,
-        details: `Max wake attempts (${this.maxWakeRetries}) exceeded. Escalating to human/coordinator. Reason: ${reason ?? "unknown"}`,
+        details: `Max wake attempts (${this.maxWakeRetries}) exceeded. Escalating for a human or coordinator to act on; the harness dispatched nothing. Reason: ${reason ?? "unknown"}`,
         attempt: monitor.wakeAttempts,
       });
 
@@ -209,8 +210,9 @@ export class OrchestratorWatchdog {
         monitorId,
         actionTaken: "escalate",
         attempt: monitor.wakeAttempts,
-        succeeded: false,
-        message: `Max wake attempts exceeded for monitor ${monitorId}; escalated.`,
+        outcome: "escalated",
+        dispatched: false,
+        message: `Max wake attempts exceeded for monitor ${monitorId}; escalation was recorded for a human or coordinator to act on. No agent was dispatched.`,
       };
     }
 
@@ -221,7 +223,7 @@ export class OrchestratorWatchdog {
       agentId: monitor.agentId,
       taskId: monitor.taskId,
       runId: monitor.runId,
-      details: `Auto-wake attempt ${monitor.wakeAttempts}/${this.maxWakeRetries} via action "${this.autoWakeAction}". Reason: ${reason ?? "unknown"}`,
+      details: `Wake request recorded for monitor ${monitorId} (attempt ${monitor.wakeAttempts}/${this.maxWakeRetries}, action "${this.autoWakeAction}"). No agent was dispatched; the harness cannot make model calls, only a host-side driver reading this event can act on it. Reason: ${reason ?? "unknown"}`,
       attempt: monitor.wakeAttempts,
     });
 
@@ -229,8 +231,9 @@ export class OrchestratorWatchdog {
       monitorId,
       actionTaken: this.autoWakeAction,
       attempt: monitor.wakeAttempts,
-      succeeded: true,
-      message: `Auto-wake triggered successfully via ${this.autoWakeAction}`,
+      outcome: "wake_recorded",
+      dispatched: false,
+      message: `Wake request recorded for monitor ${monitorId} via action "${this.autoWakeAction}". No agent was dispatched; a host-side driver must read this event and act on it.`,
     };
   }
 

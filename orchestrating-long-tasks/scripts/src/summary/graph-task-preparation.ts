@@ -48,6 +48,7 @@ function changedFiles(
   task: TaskRecord,
   events: readonly HarnessEvent[] | undefined,
   runRoot: string | undefined,
+  gitCommand: RepositoryGitCommand | undefined,
 ): FileRef[] {
   const reported = task.report?.files_changed;
   if (!Array.isArray(reported)) return [];
@@ -66,7 +67,7 @@ function changedFiles(
       ...(requirementIds !== undefined && requirementIds.length > 0 ? { requirementIds } : {}),
       ...(step !== undefined ? { step } : {}),
     }));
-  return enrichFileRefsWithDiffs(files, runRoot);
+  return enrichFileRefsWithDiffs(files, runRoot, gitCommand);
 }
 
 export function prepareTaskContext(input: TaskPreparationInput): TaskNodeContext {
@@ -104,7 +105,7 @@ export function prepareTaskContext(input: TaskPreparationInput): TaskNodeContext
     taskStep: input.taskStep,
     gateStep: input.taskStep + 1,
     taskWave: input.taskWave,
-    files: changedFiles(task, input.events, input.runRoot),
+    files: changedFiles(task, input.events, input.runRoot, input.gitCommand),
     findings,
     implementerCommands: partition.implementer,
     validatorCommands: partition.validator,

@@ -1,5 +1,4 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { rmSync } from "node:fs";
+import { describe, expect, test } from "bun:test";
 import {
   claimSubTask,
   submitSubTask,
@@ -7,72 +6,65 @@ import {
 import { readBranchLedger } from "../../../../orchestrating-long-tasks/scripts/src/workflow/branch/ledger.ts";
 import { tokenDigest } from "../../../../orchestrating-long-tasks/scripts/src/workflow/lease/token.ts";
 import { branchRecord, subTask } from "./fixture.ts";
-import { freshRunRoot, seedBranchLedger } from "./store-fixture.ts";
-
-const roots: string[] = [];
-afterEach(() => {
-  for (const root of roots.splice(0)) rmSync(root, { force: true, recursive: true });
-});
-
-function trackedRunRoot(prefix: string): string {
-  const run = freshRunRoot(prefix);
-  roots.push(run.split("/.capsules/")[0]!);
-  return run;
-}
+import { FakeRunStore, seedBranchLedger } from "./fake-transact.ts";
 
 describe("claimSubTask", () => {
   test("rejects a lease duration outside the 5s-86400s window", () => {
-    const runRoot = trackedRunRoot("claim-bad-lease");
+    const store = new FakeRunStore();
     expect(() =>
       claimSubTask({
-        runRoot,
+        runRoot: store.runRoot,
         branchId: "B-1",
         subTaskId: "ST-1",
         agentId: "a",
         actor: "a",
         leaseSeconds: 1,
+        transact: store.transact,
       }),
     ).toThrow(/lease_seconds must be an integer from 5 to 86400/);
     expect(() =>
       claimSubTask({
-        runRoot,
+        runRoot: store.runRoot,
         branchId: "B-1",
         subTaskId: "ST-1",
         agentId: "a",
         actor: "a",
         leaseSeconds: 100_000,
+        transact: store.transact,
       }),
     ).toThrow(/lease_seconds must be an integer from 5 to 86400/);
     expect(() =>
       claimSubTask({
-        runRoot,
+        runRoot: store.runRoot,
         branchId: "B-1",
         subTaskId: "ST-1",
         agentId: "a",
         actor: "a",
         leaseSeconds: 5.5,
+        transact: store.transact,
       }),
     ).toThrow(/lease_seconds must be an integer from 5 to 86400/);
   });
 
   test("rejects claiming on a branch that is not open (collecting/collected/abandoned)", () => {
-    const runRoot = trackedRunRoot("claim-not-open");
-    seedBranchLedger(runRoot, [branchRecord({ id: "B-1", status: "collecting" })]);
+    const store = new FakeRunStore();
+    seedBranchLedger(store, [branchRecord({ id: "B-1", status: "collecting" })]);
     expect(() =>
       claimSubTask({
-        runRoot,
+        runRoot: store.runRoot,
         branchId: "B-1",
         subTaskId: "ST-1",
         agentId: "a",
         actor: "a",
         leaseSeconds: 60,
+        transact: store.transact,
       }),
     ).toThrow(/branch B-1 is collecting, not open/);
   });
 
   test("rejects claiming a sub-task that is not open", () => {
-    const runRoot = trackedRunRoot("claim-not-open-subtask");
-    seedBranchLedger(runRoot, [
+    const store = new FakeRunStore();
+    seedBranchLedger(store, [
       branchRecord({
         id: "B-1",
         status: "open",
@@ -81,19 +73,20 @@ describe("claimSubTask", () => {
     ]);
     expect(() =>
       claimSubTask({
-        runRoot,
+        runRoot: store.runRoot,
         branchId: "B-1",
         subTaskId: "ST-1",
         agentId: "a",
         actor: "a",
         leaseSeconds: 60,
+        transact: store.transact,
       }),
     ).toThrow(/sub-task ST-1 is claimed and cannot be claimed/);
   });
 
   test("claims an open sub-task, issuing a lease and token that can be verified against the stored digest", () => {
-    const runRoot = trackedRunRoot("claim-happy");
-    seedBranchLedger(runRoot, [
+    const store = new FakeRunStore();
+    seedBranchLedger(store, [
       branchRecord({
         id: "B-1",
         status: "open",
@@ -102,13 +95,14 @@ describe("claimSubTask", () => {
     ]);
     const now = new Date("2026-08-19T00:00:00.000Z");
     const outcome = claimSubTask({
-      runRoot,
+      runRoot: store.runRoot,
       branchId: "B-1",
       subTaskId: "ST-1",
       agentId: "agent-1",
       actor: "agent-1",
       leaseSeconds: 600,
       now,
+      transact: store.transact,
     });
     expect(outcome.token).toBeTruthy();
     expect(outcome.branch.id).toBe("B-1");
@@ -122,39 +116,41 @@ describe("claimSubTask", () => {
 
 describe("submitSubTask", () => {
   test("rejects a blank summary", () => {
-    const runRoot = trackedRunRoot("submit-blank-summary");
+    const store = new FakeRunStore();
     expect(() =>
       submitSubTask({
-        runRoot,
+        runRoot: store.runRoot,
         branchId: "B-1",
         subTaskId: "ST-1",
         agentId: "a",
         token: "tok",
         actor: "a",
         summary: "  ",
+        transact: store.transact,
       }),
     ).toThrow(/summary must be non-blank text/);
   });
 
   test("rejects submitting on a branch that is not open", () => {
-    const runRoot = trackedRunRoot("submit-not-open");
-    seedBranchLedger(runRoot, [branchRecord({ id: "B-1", status: "collected" })]);
+    const store = new FakeRunStore();
+    seedBranchLedger(store, [branchRecord({ id: "B-1", status: "collected" })]);
     expect(() =>
       submitSubTask({
-        runRoot,
+        runRoot: store.runRoot,
         branchId: "B-1",
         subTaskId: "ST-1",
         agentId: "a",
         token: "tok",
         actor: "a",
         summary: "done",
+        transact: store.transact,
       }),
     ).toThrow(/branch B-1 is collected, not open/);
   });
 
   test("rejects submitting a sub-task that is not claimed or holds no lease", () => {
-    const runRoot = trackedRunRoot("submit-not-claimed");
-    seedBranchLedger(runRoot, [
+    const store = new FakeRunStore();
+    seedBranchLedger(store, [
       branchRecord({
         id: "B-1",
         status: "open",
@@ -163,21 +159,22 @@ describe("submitSubTask", () => {
     ]);
     expect(() =>
       submitSubTask({
-        runRoot,
+        runRoot: store.runRoot,
         branchId: "B-1",
         subTaskId: "ST-1",
         agentId: "a",
         token: "tok",
         actor: "a",
         summary: "done",
+        transact: store.transact,
       }),
     ).toThrow(/sub-task ST-1 is open and holds no submittable lease/);
   });
 
   test("rejects a mismatched agent id or token", () => {
-    const runRoot = trackedRunRoot("submit-bad-token");
+    const store = new FakeRunStore();
     const token = "correct-token";
-    seedBranchLedger(runRoot, [
+    seedBranchLedger(store, [
       branchRecord({
         id: "B-1",
         status: "open",
@@ -199,32 +196,34 @@ describe("submitSubTask", () => {
     ]);
     expect(() =>
       submitSubTask({
-        runRoot,
+        runRoot: store.runRoot,
         branchId: "B-1",
         subTaskId: "ST-1",
         agentId: "agent-2",
         token,
         actor: "a",
         summary: "done",
+        transact: store.transact,
       }),
     ).toThrow(/lease identity or token is invalid/);
     expect(() =>
       submitSubTask({
-        runRoot,
+        runRoot: store.runRoot,
         branchId: "B-1",
         subTaskId: "ST-1",
         agentId: "agent-1",
         token: "wrong",
         actor: "a",
         summary: "done",
+        transact: store.transact,
       }),
     ).toThrow(/lease identity or token is invalid/);
   });
 
   test("rejects submitting once the (non-suspended) lease has expired", () => {
-    const runRoot = trackedRunRoot("submit-expired");
+    const store = new FakeRunStore();
     const token = "correct-token";
-    seedBranchLedger(runRoot, [
+    seedBranchLedger(store, [
       branchRecord({
         id: "B-1",
         status: "open",
@@ -246,7 +245,7 @@ describe("submitSubTask", () => {
     ]);
     expect(() =>
       submitSubTask({
-        runRoot,
+        runRoot: store.runRoot,
         branchId: "B-1",
         subTaskId: "ST-1",
         agentId: "agent-1",
@@ -254,14 +253,15 @@ describe("submitSubTask", () => {
         actor: "a",
         summary: "done",
         now: new Date("2026-08-19T01:00:00.000Z"),
+        transact: store.transact,
       }),
     ).toThrow(/lease has expired/);
   });
 
   test("submits a claimed sub-task, clearing the lease and recording the summary", () => {
-    const runRoot = trackedRunRoot("submit-happy");
+    const store = new FakeRunStore();
     const token = "correct-token";
-    seedBranchLedger(runRoot, [
+    seedBranchLedger(store, [
       branchRecord({
         id: "B-1",
         status: "open",
@@ -283,7 +283,7 @@ describe("submitSubTask", () => {
     ]);
     const now = new Date("2026-08-19T00:30:00.000Z");
     const outcome = submitSubTask({
-      runRoot,
+      runRoot: store.runRoot,
       branchId: "B-1",
       subTaskId: "ST-1",
       agentId: "agent-1",
@@ -291,6 +291,7 @@ describe("submitSubTask", () => {
       actor: "agent-1",
       summary: "did the thing",
       now,
+      transact: store.transact,
     });
     const st = outcome.ledger[0]!.sub_tasks[0]!;
     expect(st.status).toBe("submitted");
@@ -302,9 +303,9 @@ describe("submitSubTask", () => {
   });
 
   test("accepts submitting against a suspended (clock-paused) lease even past its recorded expiry", () => {
-    const runRoot = trackedRunRoot("submit-suspended");
+    const store = new FakeRunStore();
     const token = "correct-token";
-    seedBranchLedger(runRoot, [
+    seedBranchLedger(store, [
       branchRecord({
         id: "B-1",
         status: "open",
@@ -326,7 +327,7 @@ describe("submitSubTask", () => {
       }),
     ]);
     const outcome = submitSubTask({
-      runRoot,
+      runRoot: store.runRoot,
       branchId: "B-1",
       subTaskId: "ST-1",
       agentId: "agent-1",
@@ -334,6 +335,7 @@ describe("submitSubTask", () => {
       actor: "agent-1",
       summary: "still fine",
       now: new Date("2026-08-19T02:00:00.000Z"),
+      transact: store.transact,
     });
     expect(outcome.ledger[0]!.sub_tasks[0]!.status).toBe("submitted");
   });

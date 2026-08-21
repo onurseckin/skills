@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import {
   isAgentGrantRecord,
   isTelemetryFieldConflict,
@@ -9,11 +9,7 @@ import {
   registerAgentGrant,
 } from "../../../orchestrating-long-tasks/scripts/src/workflow/agents/grants.ts";
 import { appendTelemetryConflicts } from "../../../orchestrating-long-tasks/scripts/src/workflow/agents/telemetry-merge.ts";
-import { cleanupRoots, compiledCapsule, ledgerOf, registerCoordinator } from "./fixture.ts";
-
-const roots: string[] = [];
-
-afterEach(() => cleanupRoots(roots));
+import { ledgerOf, registerCoordinator, seededRun } from "./fixture.ts";
 
 function worker(run: string) {
   return ledgerOf(run).find((grant) => grant.id === "worker-1")!;
@@ -28,9 +24,9 @@ function worker(run: string) {
  * summary.md) could ever see it.
  */
 describe("telemetry conflicts persist on the grant record, not just the transaction result", () => {
-  test("registerAgentGrant attaches conflicts to the minted grant, both evidence classes intact", async () => {
-    const run = await compiledCapsule(roots, "conflict-on-mint");
-    await registerCoordinator(run);
+  test("registerAgentGrant attaches conflicts to the minted grant, both evidence classes intact", () => {
+    const run = seededRun(import.meta.path, "conflict-on-mint");
+    registerCoordinator(run);
     registerAgentGrant({
       runRoot: run,
       agentId: "worker-1",
@@ -57,9 +53,9 @@ describe("telemetry conflicts persist on the grant record, not just the transact
     ]);
   });
 
-  test("a grant with no disagreement carries no telemetry_conflicts field at all", async () => {
-    const run = await compiledCapsule(roots, "conflict-none");
-    await registerCoordinator(run);
+  test("a grant with no disagreement carries no telemetry_conflicts field at all", () => {
+    const run = seededRun(import.meta.path, "conflict-none");
+    registerCoordinator(run);
     registerAgentGrant({
       runRoot: run,
       agentId: "worker-1",
@@ -76,9 +72,9 @@ describe("telemetry conflicts persist on the grant record, not just the transact
     expect(worker(run).telemetry_conflicts).toBeUndefined();
   });
 
-  test("conflicts found at different boundaries accumulate on the same grant", async () => {
-    const run = await compiledCapsule(roots, "conflict-accumulate");
-    await registerCoordinator(run);
+  test("conflicts found at different boundaries accumulate on the same grant", () => {
+    const run = seededRun(import.meta.path, "conflict-accumulate");
+    registerCoordinator(run);
     // context_window is reported explicitly up front so every later probe that disagrees with it
     // is a genuine conflict, not just a probe filling a field nobody had reported yet.
     registerAgentGrant({
@@ -124,9 +120,9 @@ describe("telemetry conflicts persist on the grant record, not just the transact
     expect(contextConflicts.map((entry) => entry.probed_value).sort()).toEqual([5000, 9000]);
   });
 
-  test("re-probing the identical disagreement never duplicates the conflict entry", async () => {
-    const run = await compiledCapsule(roots, "conflict-dedupe");
-    await registerCoordinator(run);
+  test("re-probing the identical disagreement never duplicates the conflict entry", () => {
+    const run = seededRun(import.meta.path, "conflict-dedupe");
+    registerCoordinator(run);
     registerAgentGrant({
       runRoot: run,
       agentId: "worker-1",

@@ -11,9 +11,9 @@ import {
   workflowState,
 } from "../workflow/test-port.ts";
 
-// The "a granted role cannot invoke a command its contract withholds" cases (real CLI, real
-// capsules) live in tests/integration/packets-role-contract-refusals.test.ts; this file keeps the
-// in-memory domain-level cases only.
+// The "a granted role cannot invoke a command its contract withholds" cases are covered directly
+// against assertRoleMayInvoke in role-contract-enforcement.test.ts; this file keeps the in-memory
+// domain-level cases only (a packet published for the wrong role/agent/attempt/action).
 
 const clock = at("2026-08-13T12:00:00.000Z");
 const report = {

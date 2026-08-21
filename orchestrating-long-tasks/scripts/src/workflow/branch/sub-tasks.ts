@@ -18,6 +18,7 @@ export interface ClaimSubTaskInput {
   actor: string;
   leaseSeconds: number;
   now?: Date;
+  transact?: typeof transact;
 }
 
 export interface SubTaskOutcome extends BranchOutcome {
@@ -33,6 +34,7 @@ export interface SubmitSubTaskInput {
   actor: string;
   summary: string;
   now?: Date;
+  transact?: typeof transact;
 }
 
 function assertCollectable(branch: BranchRecord): void {
@@ -53,7 +55,8 @@ export function claimSubTask(input: ClaimSubTaskInput): SubTaskOutcome {
   const token = newLeaseToken();
   let ledgerAfter: BranchRecord[] = [];
   let claimed: BranchRecord | undefined;
-  const state = transact(
+  const run = input.transact ?? transact;
+  const state = run(
     input.runRoot,
     input.actor,
     "branch-claimed",
@@ -98,7 +101,8 @@ export function submitSubTask(input: SubmitSubTaskInput): BranchOutcome {
   const now = input.now ?? new Date();
   let ledgerAfter: BranchRecord[] = [];
   let submitted: BranchRecord | undefined;
-  const state = transact(
+  const run = input.transact ?? transact;
+  const state = run(
     input.runRoot,
     input.actor,
     "branch-submitted",

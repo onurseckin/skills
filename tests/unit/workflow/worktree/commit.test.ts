@@ -1,28 +1,15 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { rmSync } from "node:fs";
+import { describe, expect, test } from "bun:test";
 import {
   commitSubphase,
   recordWorktreeCommit,
 } from "../../../../orchestrating-long-tasks/scripts/src/workflow/worktree/commit.ts";
 import { readWorktreeLedger } from "../../../../orchestrating-long-tasks/scripts/src/workflow/worktree/ledger.ts";
-import { loadRun } from "../../../../orchestrating-long-tasks/scripts/src/store/index.ts";
 import type {
   GitResult,
   GitRunner,
 } from "../../../../orchestrating-long-tasks/scripts/src/workflow/worktree/git.ts";
 import type { WorktreeCommitRecord } from "../../../../orchestrating-long-tasks/scripts/src/contracts/worktree.ts";
-import { baseLedger, freshRunRoot, seedLedger, seedTask } from "./store-fixture.ts";
-
-const roots: string[] = [];
-afterEach(() => {
-  for (const root of roots.splice(0)) rmSync(root, { force: true, recursive: true });
-});
-
-function trackedRunRoot(prefix: string): string {
-  const run = freshRunRoot(prefix);
-  roots.push(run.split("/.capsules/")[0]!);
-  return run;
-}
+import { FakeRunStore, baseLedger, seedLedger, seedTask } from "./fake-transact.ts";
 
 type Call = { cwd: string; argv: readonly string[] };
 
@@ -197,9 +184,9 @@ describe("commitSubphase", () => {
 
 describe("recordWorktreeCommit", () => {
   test("appends the commit to the ledger and stamps it onto the task", () => {
-    const runRoot = trackedRunRoot("commit-record");
-    seedLedger(runRoot, baseLedger());
-    seedTask(runRoot, "T-1");
+    const store = new FakeRunStore();
+    seedLedger(store, baseLedger());
+    seedTask(store, "T-1");
     const commit: WorktreeCommitRecord = {
       task_id: "T-1",
       worktree_id: "wt-0",
@@ -209,8 +196,8 @@ describe("recordWorktreeCommit", () => {
       over_limit: false,
       committed_at: "2026-08-19T00:00:00.000Z",
     };
-    recordWorktreeCommit(runRoot, "tester", "T-1", commit);
-    const state = loadRun(runRoot).state;
+    recordWorktreeCommit(store.runRoot, "tester", "T-1", commit, store.transact);
+    const state = store.read();
     const ledger = readWorktreeLedger(state)!;
     expect(ledger.commits).toEqual([commit]);
     expect(
@@ -220,8 +207,8 @@ describe("recordWorktreeCommit", () => {
   });
 
   test("throws INVALID_STATE when there is no worktree ledger to record against", () => {
-    const runRoot = trackedRunRoot("commit-no-ledger");
-    seedTask(runRoot, "T-1");
+    const store = new FakeRunStore();
+    seedTask(store, "T-1");
     const commit: WorktreeCommitRecord = {
       task_id: "T-1",
       worktree_id: "wt-0",
@@ -231,14 +218,14 @@ describe("recordWorktreeCommit", () => {
       over_limit: false,
       committed_at: "2026-08-19T00:00:00.000Z",
     };
-    expect(() => recordWorktreeCommit(runRoot, "tester", "T-1", commit)).toThrow(
-      /no worktree ledger to record a commit against/,
-    );
+    expect(() =>
+      recordWorktreeCommit(store.runRoot, "tester", "T-1", commit, store.transact),
+    ).toThrow(/no worktree ledger to record a commit against/);
   });
 
   test("throws INVALID_ARGUMENT when the task is unknown", () => {
-    const runRoot = trackedRunRoot("commit-unknown-task");
-    seedLedger(runRoot, baseLedger());
+    const store = new FakeRunStore();
+    seedLedger(store, baseLedger());
     const commit: WorktreeCommitRecord = {
       task_id: "T-ghost",
       worktree_id: "wt-0",
@@ -248,8 +235,8 @@ describe("recordWorktreeCommit", () => {
       over_limit: false,
       committed_at: "2026-08-19T00:00:00.000Z",
     };
-    expect(() => recordWorktreeCommit(runRoot, "tester", "T-ghost", commit)).toThrow(
-      /unknown task T-ghost/,
-    );
+    expect(() =>
+      recordWorktreeCommit(store.runRoot, "tester", "T-ghost", commit, store.transact),
+    ).toThrow(/unknown task T-ghost/);
   });
 });

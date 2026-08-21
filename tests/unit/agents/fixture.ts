@@ -1,72 +1,29 @@
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { mkdirSync } from "node:fs";
 import { join } from "node:path";
-import { execute } from "../../../orchestrating-long-tasks/scripts/src/cli/execute.ts";
 import type { JsonObject } from "../../../orchestrating-long-tasks/scripts/src/contracts/json.ts";
-import { loadRun } from "../../../orchestrating-long-tasks/scripts/src/store/index.ts";
+import {
+  initRun,
+  loadRun,
+  transact,
+} from "../../../orchestrating-long-tasks/scripts/src/store/index.ts";
+import { registerAgentGrant } from "../../../orchestrating-long-tasks/scripts/src/workflow/agents/grants.ts";
 import { readAgentLedger } from "../../../orchestrating-long-tasks/scripts/src/workflow/agents/ledger.ts";
+import { scratchRoot } from "../../support/scratch-root.ts";
 
-export async function cleanupRoots(roots: string[]): Promise<void> {
-  await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
-}
-
-/** A compiled capsule with `task-1` and `task-2`, which is the minimum a grant can bind to. */
-export async function compiledCapsule(
-  roots: string[],
-  name: string,
-  config: Record<string, number> = {},
-): Promise<string> {
-  const repo = await mkdtemp(join(tmpdir(), `harness-${name}-`));
-  roots.push(repo);
-  if (Object.keys(config).length > 0) {
-    // Written before the first command runs: the resolved config is cached per root pair.
-    await writeFile(join(repo, "harness.config.json"), JSON.stringify(config));
-  }
-  const prompt = join(repo, "prompt.txt");
-  await writeFile(prompt, "Build the thing.\nCover the thing with tests.\n");
-  const init = await execute([
-    "plan:init",
-    "--repo",
-    repo,
-    "--run-id",
-    name,
-    "--prompt-file",
-    prompt,
-  ]);
-  const run = String(init.run_root);
-  // A3-gate-discrimination (graph/plan-audit.ts) refuses two disjoint-scope tasks sharing one gate
-  // command: a gate that can't fail when its own task did nothing proves neither task's work. Each
-  // task below gets a gate that names a test file inside its own write scope, so task-1's gate
-  // cannot be satisfied by task-2's work or vice versa.
-  for (const [id, scope, gate] of [
-    ["task-1", "src/one", "bun test tests/unit/one.test.ts"],
-    ["task-2", "src/two", "bun test tests/unit/two.test.ts"],
-  ]) {
-    await execute([
-      "plan:add",
-      "--run",
-      run,
-      "--id",
-      id!,
-      "--label",
-      `Thing ${id}`,
-      "--scope",
-      scope!,
-      "--gate",
-      gate!,
-      "--actor",
-      "coordinator",
-    ]);
-  }
-  await execute([
-    "plan:compile",
-    "--run",
-    run,
-    "--actor",
-    "planner",
-    "--completion-gate",
-    "bun test tests",
-  ]);
+/**
+ * A run with `task-1` and `task-2` seeded directly into state — the minimum a grant can bind to.
+ * Seeded via `transact` rather than the `plan:init`/`plan:add`/`plan:compile` CLI trio: grant
+ * registration only ever reads `state.tasks` (see `requireKnownTask` in workflow/agents/grants.ts),
+ * so the gates/requirements/graph machinery a real compiled plan carries is irrelevant here.
+ */
+export function seededRun(callerPath: string, label: string): string {
+  const root = scratchRoot(callerPath, label);
+  const repo = join(root, "repo");
+  mkdirSync(repo);
+  const run = initRun(repo, label, new TextEncoder().encode("Build the thing.\n"), "file", true);
+  transact(run, "test-setup", "seed-graph", {}, (draft) => {
+    draft.tasks = { "task-1": { id: "task-1" }, "task-2": { id: "task-2" } };
+  });
   return run;
 }
 
@@ -86,16 +43,16 @@ export function lastPayload(run: string, kind: string): JsonObject {
   return last.payload;
 }
 
-export async function registerCoordinator(run: string, id = "coordinator-1"): Promise<void> {
-  await execute([
-    "agent:register",
-    "--run",
-    run,
-    "--agent",
-    id,
-    "--role",
-    "coordinator",
-    "--host",
-    "claude-code",
-  ]);
+export function registerCoordinator(run: string, id = "coordinator-1"): void {
+  registerAgentGrant({
+    runRoot: run,
+    agentId: id,
+    role: "coordinator",
+    parentAgentId: null,
+    parentTaskId: null,
+    host: "claude-code",
+    actor: id,
+    maxAgents: 50,
+    telemetry: {},
+  });
 }

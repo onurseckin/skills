@@ -1,6 +1,7 @@
 import type { BranchRecord, BranchSubTask } from "../contracts/branch.ts";
 import type { HarnessEvent, Manifest } from "../contracts/capsule.ts";
 import type { CommandRecord } from "../contracts/commands.ts";
+import type { RepositoryGitCommand } from "../packets/repository-git-command.ts";
 import { buildNodeTelemetry, buildNodeTools, type AgentLedgerView } from "./agent-telemetry.ts";
 import { mapMediaAssets } from "./asset-mapper.ts";
 import { createEdge } from "./edge-builder.ts";
@@ -27,6 +28,7 @@ export interface BranchSubgraphInput {
   events?: readonly HarnessEvent[] | undefined;
   manifest?: Manifest | undefined;
   runRoot?: string | undefined;
+  gitCommand?: RepositoryGitCommand | undefined;
 }
 
 export interface BranchSubgraph {
@@ -35,7 +37,11 @@ export interface BranchSubgraph {
   sections: GraphSection[];
 }
 
-function observedFiles(branch: BranchRecord, runRoot: string | undefined): FileRef[] {
+function observedFiles(
+  branch: BranchRecord,
+  runRoot: string | undefined,
+  gitCommand: RepositoryGitCommand | undefined,
+): FileRef[] {
   const observation = branch.collected_observation ?? branch.opened_observation;
   if (observation === undefined || !observation.git_available) return [];
   const files = observation.entries.map((entry) => ({
@@ -45,7 +51,7 @@ function observedFiles(branch: BranchRecord, runRoot: string | undefined): FileR
     sha256: entry.sha256,
     evidence_class: "harness_observed" as const,
   }));
-  return enrichFileRefsWithDiffs(files, runRoot);
+  return enrichFileRefsWithDiffs(files, runRoot, gitCommand);
 }
 
 function subTaskStatus(subTask: BranchSubTask): NodeStatus {
@@ -220,7 +226,7 @@ export function buildBranchSubgraphs(input: BranchSubgraphInput): BranchSubgraph
       edges.push(...branchEdges(branch, subTask, parentNodeId, input.commands));
     }
 
-    const branchFiles = observedFiles(branch, input.runRoot);
+    const branchFiles = observedFiles(branch, input.runRoot, input.gitCommand);
     sections.push({
       id: `section-branch-${branch.id}`,
       title: `Branch of ${branch.parent_task_id}`,

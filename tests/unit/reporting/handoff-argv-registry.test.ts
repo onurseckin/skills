@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterAll, afterEach, describe, expect, test } from "bun:test";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -109,6 +109,16 @@ const roots: string[] = [];
 
 afterEach(async () =>
   Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true }))),
+);
+
+/** Every status and shape capsule is built once and reused across the three describe blocks below
+ * that each need its rendered argv: the fixtures are read-only after construction, so rebuilding
+ * one per consumer would triple the real disk I/O for no behavioural difference. Torn down once,
+ * after every consumer has had its turn. */
+const sharedRoots: string[] = [];
+
+afterAll(async () =>
+  Promise.all(sharedRoots.splice(0).map((root) => rm(root, { recursive: true, force: true }))),
 );
 
 /** Far enough ahead that no lease or validation window in these fixtures reads as expired: an
@@ -237,9 +247,14 @@ function task(status: string): Record<string, unknown> {
  * topology in place, so the document has every section's worth of argv to print rather than the
  * subset a bare capsule reaches. `mutate` shapes the parts a status alone cannot reach.
  */
-async function capsule(name: string, status: string, mutate: (state: RunState) => void = () => {}) {
+async function capsule(
+  name: string,
+  status: string,
+  mutate: (state: RunState) => void = () => {},
+  sink: string[] = roots,
+) {
   const repo = await mkdtemp(join(tmpdir(), `harness-argv-${name}-`));
-  roots.push(repo);
+  sink.push(repo);
   const run = initRun(
     repo,
     `argv-${name}`,
@@ -366,22 +381,48 @@ const SHAPES: [name: string, status: string, mutate: (state: RunState) => void][
 ];
 
 /** A capsule that was initialised and never compiled: the path `renderPreplanHandoff` serves. */
-async function preplanCapsule(name: string): Promise<string> {
+async function preplanCapsule(name: string, sink: string[] = roots): Promise<string> {
   const repo = await mkdtemp(join(tmpdir(), `harness-argv-preplan-${name}-`));
-  roots.push(repo);
+  sink.push(repo);
   return initRun(repo, `argv-preplan-${name}`, new TextEncoder().encode("Ship it"), "file", true);
+}
+
+/** Every status the STATUSES table names, and every named shape, renders exactly one capsule: the
+ * three test blocks below all need the same rendered argv, so the fixture is built once here and
+ * shared rather than rebuilt per consumer. */
+const statusArgv = new Map<string, string[][]>();
+const shapeArgv = new Map<string, string[][]>();
+
+async function argvForStatus(status: string): Promise<string[][]> {
+  const cached = statusArgv.get(status);
+  if (cached !== undefined) return cached;
+  const argv = handoffArgv(renderHandoff(await capsule(status, status, () => {}, sharedRoots)));
+  statusArgv.set(status, argv);
+  return argv;
+}
+
+async function argvForShape(
+  name: string,
+  status: string,
+  mutate: (state: RunState) => void,
+): Promise<string[][]> {
+  const cached = shapeArgv.get(name);
+  if (cached !== undefined) return cached;
+  const argv = handoffArgv(renderHandoff(await capsule(name, status, mutate, sharedRoots)));
+  shapeArgv.set(name, argv);
+  return argv;
 }
 
 describe("every argv line the rendered document prints", () => {
   test.each(STATUSES)("dispatches from a capsule whose task is %s", async (status) => {
-    const argv = handoffArgv(renderHandoff(await capsule(status, status)));
+    const argv = await argvForStatus(status);
 
     expect(argv.length).toBeGreaterThan(0);
     expect(dispatchFailures(argv)).toEqual([]);
   });
 
   test.each(SHAPES)("dispatches from a capsule shaped as %s", async (name, status, mutate) => {
-    const argv = handoffArgv(renderHandoff(await capsule(name, status, mutate)));
+    const argv = await argvForShape(name, status, mutate);
 
     expect(argv.length).toBeGreaterThan(0);
     expect(dispatchFailures(argv)).toEqual([]);
@@ -389,20 +430,15 @@ describe("every argv line the rendered document prints", () => {
 
   test("across every shape names the whole lifecycle, and nothing the scan did not predict", async () => {
     const named = new Set<string>();
-    const walked: [string, string, (state: RunState) => void][] = [
-      ...STATUSES.map(
-        (status) => [status, status, () => {}] as [string, string, (state: RunState) => void],
-      ),
-      ...SHAPES,
-    ];
-    for (const [name, status, mutate] of walked) {
-      for (const argv of handoffArgv(renderHandoff(await capsule(name, status, mutate)))) {
-        named.add(argv[2]!);
-      }
+    for (const status of STATUSES) {
+      for (const argv of await argvForStatus(status)) named.add(argv[2]!);
+    }
+    for (const [name, status, mutate] of SHAPES) {
+      for (const argv of await argvForShape(name, status, mutate)) named.add(argv[2]!);
     }
     // The pre-plan document is a second renderer with its own command list, so a walk that skipped
     // it would leave the whole path out of an uncompiled capsule unchecked.
-    for (const argv of handoffArgv(renderHandoff(await preplanCapsule("union")))) {
+    for (const argv of handoffArgv(renderHandoff(await preplanCapsule("union", sharedRoots)))) {
       named.add(argv[2]!);
     }
 

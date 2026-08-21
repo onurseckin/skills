@@ -7,23 +7,16 @@ import {
   recordReclaim,
 } from "../../../../orchestrating-long-tasks/scripts/src/workflow/worktree/reclaim.ts";
 import { readWorktreeLedger } from "../../../../orchestrating-long-tasks/scripts/src/workflow/worktree/ledger.ts";
-import { loadRun } from "../../../../orchestrating-long-tasks/scripts/src/store/index.ts";
 import type {
   GitResult,
   GitRunner,
 } from "../../../../orchestrating-long-tasks/scripts/src/workflow/worktree/git.ts";
-import { baseLedger, freshRunRoot, seedLedger } from "./store-fixture.ts";
+import { FakeRunStore, baseLedger, seedLedger } from "./fake-transact.ts";
 
 const roots: string[] = [];
 afterEach(() => {
   for (const root of roots.splice(0)) rmSync(root, { force: true, recursive: true });
 });
-
-function trackedRunRoot(prefix: string): string {
-  const run = freshRunRoot(prefix);
-  roots.push(run.split("/.capsules/")[0]!);
-  return run;
-}
 
 function trackedDir(prefix: string): string {
   const dir = mkdtempSync(join(tmpdir(), `harness-${prefix}-`));
@@ -90,24 +83,24 @@ describe("reclaimOrphanedWorktrees", () => {
 
 describe("recordReclaim", () => {
   test("drops the reclaimed worktrees from the ledger", () => {
-    const runRoot = trackedRunRoot("reclaim-record");
+    const store = new FakeRunStore();
     const ledger = baseLedger({
       worktrees: [
         { id: "wt-0", path: "/repo/wt-0", branch: "b0", base_sha: "s", created_at: "t" },
         { id: "wt-1", path: "/repo/wt-1", branch: "b1", base_sha: "s", created_at: "t" },
       ],
     });
-    seedLedger(runRoot, ledger);
-    recordReclaim(runRoot, "tester", { reclaimed_worktree_ids: ["wt-0"] });
-    const state = loadRun(runRoot).state;
+    seedLedger(store, ledger);
+    recordReclaim(store.runRoot, "tester", { reclaimed_worktree_ids: ["wt-0"] }, store.transact);
+    const state = store.read();
     const remaining = readWorktreeLedger(state)!;
     expect(remaining.worktrees.map((w) => w.id)).toEqual(["wt-1"]);
   });
 
   test("throws INVALID_STATE when there is no worktree ledger to reclaim against", () => {
-    const runRoot = trackedRunRoot("reclaim-record-no-ledger");
-    expect(() => recordReclaim(runRoot, "tester", { reclaimed_worktree_ids: [] })).toThrow(
-      /no worktree ledger to reclaim/,
-    );
+    const store = new FakeRunStore();
+    expect(() =>
+      recordReclaim(store.runRoot, "tester", { reclaimed_worktree_ids: [] }, store.transact),
+    ).toThrow(/no worktree ledger to reclaim/);
   });
 });

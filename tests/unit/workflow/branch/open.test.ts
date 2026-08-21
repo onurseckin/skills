@@ -1,28 +1,16 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { rmSync } from "node:fs";
+import { describe, expect, test } from "bun:test";
 import { openBranch } from "../../../../orchestrating-long-tasks/scripts/src/workflow/branch/open.ts";
 import { readBranchLedger } from "../../../../orchestrating-long-tasks/scripts/src/workflow/branch/ledger.ts";
 import { tokenDigest } from "../../../../orchestrating-long-tasks/scripts/src/workflow/lease/token.ts";
 import { branchRecord, subTask } from "./fixture.ts";
-import { freshRunRoot, seedBranchLedger, seedTask } from "./store-fixture.ts";
-
-const roots: string[] = [];
-afterEach(() => {
-  for (const root of roots.splice(0)) rmSync(root, { force: true, recursive: true });
-});
-
-function trackedRunRoot(prefix: string): string {
-  const run = freshRunRoot(prefix);
-  roots.push(run.split("/.capsules/")[0]!);
-  return run;
-}
+import { FakeRunStore, seedBranchLedger, seedTask } from "./fake-transact.ts";
 
 const TOKEN = "a-valid-token";
 const NOW = new Date("2026-08-19T00:30:00.000Z");
 const NO_GIT = { hasGitMetadata: () => false };
 
-function seedLeasedTask(runRoot: string, overrides: Record<string, unknown> = {}): void {
-  seedTask(runRoot, "T-1", {
+function seedLeasedTask(store: FakeRunStore, overrides: Record<string, unknown> = {}): void {
+  seedTask(store, "T-1", {
     status: "running",
     write_scope: ["src/pkg"],
     lease: {
@@ -39,10 +27,10 @@ function seedLeasedTask(runRoot: string, overrides: Record<string, unknown> = {}
   });
 }
 
-function baseInput(runRoot: string, repoRoot: string, overrides: Record<string, unknown> = {}) {
+function baseInput(store: FakeRunStore, overrides: Record<string, unknown> = {}) {
   return {
-    runRoot,
-    repoRoot,
+    runRoot: store.runRoot,
+    repoRoot: process.cwd(),
     parentTaskId: "T-1",
     agentId: "agent-1",
     token: TOKEN,
@@ -53,63 +41,62 @@ function baseInput(runRoot: string, repoRoot: string, overrides: Record<string, 
     maxAgents: 10,
     now: NOW,
     observation: NO_GIT,
+    transact: store.transact,
     ...overrides,
   };
 }
 
 describe("openBranch", () => {
   test("rejects an empty list of sub-tasks", () => {
-    const runRoot = trackedRunRoot("open-empty");
-    expect(() => openBranch(baseInput(runRoot, runRoot, { subTasks: [] }))).toThrow(
+    const store = new FakeRunStore();
+    expect(() => openBranch(baseInput(store, { subTasks: [] }))).toThrow(
       /a branch needs at least one sub-task/,
     );
   });
 
   test("rejects a blank reason", () => {
-    const runRoot = trackedRunRoot("open-blank-reason");
-    expect(() => openBranch(baseInput(runRoot, runRoot, { reason: "   " }))).toThrow(
+    const store = new FakeRunStore();
+    expect(() => openBranch(baseInput(store, { reason: "   " }))).toThrow(
       /reason must be non-blank text/,
     );
   });
 
   test("rejects opening against a parent task that is not leased or running", () => {
-    const runRoot = trackedRunRoot("open-not-working");
-    seedLeasedTask(runRoot, { status: "done" });
-    expect(() => openBranch(baseInput(runRoot, runRoot))).toThrow(
-      /task T-1 is done and cannot open a branch/,
-    );
+    const store = new FakeRunStore();
+    seedLeasedTask(store, { status: "done" });
+    expect(() => openBranch(baseInput(store))).toThrow(/task T-1 is done and cannot open a branch/);
   });
 
   test("rejects an invalid lease token", () => {
-    const runRoot = trackedRunRoot("open-bad-token");
-    seedLeasedTask(runRoot);
-    expect(() => openBranch(baseInput(runRoot, runRoot, { token: "wrong-token" }))).toThrow(
+    const store = new FakeRunStore();
+    seedLeasedTask(store);
+    expect(() => openBranch(baseInput(store, { token: "wrong-token" }))).toThrow(
       /lease identity or token is invalid/,
     );
   });
 
   test("rejects a branch that would trip the max depth escalation threshold", () => {
-    const runRoot = trackedRunRoot("open-max-depth");
-    seedLeasedTask(runRoot);
-    expect(() => openBranch(baseInput(runRoot, runRoot, { maxDepth: 0 }))).toThrow(
+    const store = new FakeRunStore();
+    seedLeasedTask(store);
+    expect(() => openBranch(baseInput(store, { maxDepth: 0 }))).toThrow(
       /branch depth 1 trips the max_branch_depth escalation threshold of 0/,
     );
   });
 
   test("rejects a branch that would exceed the max_agents budget", () => {
-    const runRoot = trackedRunRoot("open-max-agents");
-    seedLeasedTask(runRoot);
-    expect(() => openBranch(baseInput(runRoot, runRoot, { maxAgents: 0 }))).toThrow(
+    const store = new FakeRunStore();
+    seedLeasedTask(store);
+    expect(() => openBranch(baseInput(store, { maxAgents: 0 }))).toThrow(
       /max_agents budget of 0 is exhausted/,
     );
   });
 
   test("rejects duplicate sub-task ids within the same open call", () => {
-    const runRoot = trackedRunRoot("open-dup-ids");
-    seedLeasedTask(runRoot);
+    const store = new FakeRunStore();
+    seedLeasedTask(store);
     expect(() =>
       openBranch(
-        baseInput(runRoot, runRoot, {
+        baseInput(store, {
           subTasks: [
             { id: "ST-1", label: "a", writeScope: ["src/pkg/a.ts"] },
             { id: "ST-1", label: "b", writeScope: ["src/pkg/b.ts"] },
@@ -120,31 +107,29 @@ describe("openBranch", () => {
   });
 
   test("rejects a sub-task id that collides with an existing plan task", () => {
-    const runRoot = trackedRunRoot("open-collide-task");
-    seedLeasedTask(runRoot);
-    seedTask(runRoot, "ST-1");
-    expect(() => openBranch(baseInput(runRoot, runRoot))).toThrow(
+    const store = new FakeRunStore();
+    seedLeasedTask(store);
+    seedTask(store, "ST-1");
+    expect(() => openBranch(baseInput(store))).toThrow(
       /sub-task id ST-1 collides with a plan task/,
     );
   });
 
   test("rejects a sub-task id already claimed by another branch", () => {
-    const runRoot = trackedRunRoot("open-id-in-use");
-    seedLeasedTask(runRoot);
-    seedBranchLedger(runRoot, [
+    const store = new FakeRunStore();
+    seedLeasedTask(store);
+    seedBranchLedger(store, [
       branchRecord({ id: "B-other", sub_tasks: [subTask({ id: "ST-1" })] }),
     ]);
-    expect(() => openBranch(baseInput(runRoot, runRoot))).toThrow(
-      /sub-task id ST-1 is already in use/,
-    );
+    expect(() => openBranch(baseInput(store))).toThrow(/sub-task id ST-1 is already in use/);
   });
 
   test("rejects a sub-task write scope that escapes the parent's scope", () => {
-    const runRoot = trackedRunRoot("open-bad-scope");
-    seedLeasedTask(runRoot);
+    const store = new FakeRunStore();
+    seedLeasedTask(store);
     expect(() =>
       openBranch(
-        baseInput(runRoot, runRoot, {
+        baseInput(store, {
           subTasks: [{ id: "ST-1", label: "a", writeScope: ["src/other/a.ts"] }],
         }),
       ),
@@ -152,10 +137,10 @@ describe("openBranch", () => {
   });
 
   test("opens a branch: suspends the parent lease, records the observation baseline, and persists the ledger", () => {
-    const runRoot = trackedRunRoot("open-happy");
-    seedLeasedTask(runRoot);
+    const store = new FakeRunStore();
+    seedLeasedTask(store);
     const outcome = openBranch(
-      baseInput(runRoot, runRoot, {
+      baseInput(store, {
         subTasks: [
           {
             id: "ST-1",
@@ -198,8 +183,8 @@ describe("openBranch", () => {
   });
 
   test("throws INVALID_STATE when there is nothing at all for the parent id to resolve against", () => {
-    const runRoot = trackedRunRoot("open-unknown-parent");
-    expect(() => openBranch(baseInput(runRoot, runRoot, { parentTaskId: "ghost" }))).toThrow(
+    const store = new FakeRunStore();
+    expect(() => openBranch(baseInput(store, { parentTaskId: "ghost" }))).toThrow(
       /unknown parent ghost/,
     );
   });

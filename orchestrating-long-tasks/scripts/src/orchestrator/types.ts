@@ -78,11 +78,14 @@ export interface HealthCheckResult {
   readonly monitors: readonly MonitorState[];
 }
 
+export type WakeRequestOutcome = "wake_recorded" | "escalated" | "monitor_not_found";
+
 export interface AutoWakeResult {
   readonly monitorId: string;
   readonly actionTaken: AutoWakeAction;
   readonly attempt: number;
-  readonly succeeded: boolean;
+  readonly outcome: WakeRequestOutcome;
+  readonly dispatched: false;
   readonly message: string;
 }
 

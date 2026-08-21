@@ -1,19 +1,16 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import {
   chmodSync,
   lstatSync,
   mkdirSync,
-  mkdtempSync,
   readFileSync,
   readdirSync,
-  rmSync,
   statSync,
   symlinkSync,
   truncateSync,
   writeFileSync,
 } from "node:fs";
 import { createHash } from "node:crypto";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
 import {
@@ -25,17 +22,10 @@ import {
   putBlobFile,
   type ViewLinker,
 } from "../../../orchestrating-long-tasks/scripts/src/store/blobs.ts";
+import { scratchRoot as makeScratchRoot } from "../../support/scratch-root.ts";
 
-const roots: string[] = [];
-
-afterEach(() => {
-  for (const root of roots.splice(0)) rmSync(root, { force: true, recursive: true });
-});
-
-function scratchRoot(): string {
-  const root = mkdtempSync(join(tmpdir(), "store-blobs-"));
-  roots.push(root);
-  return root;
+function scratchRoot(label: string): string {
+  return makeScratchRoot(import.meta.path, label);
 }
 
 function sha256Of(content: string): string {
@@ -56,7 +46,7 @@ describe("blobRelativePath", () => {
 
 describe("putBlobFile", () => {
   test("stores new content under its content address and reports created=true", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("stores-new-content-under-its-content-address-and-r");
     const source = join(root, "source.txt");
     writeFileSync(source, "hello world");
     const result = putBlobFile(root, source);
@@ -69,7 +59,7 @@ describe("putBlobFile", () => {
   });
 
   test("reports created=false and keeps the existing blob when content is already stored", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("reports-created-false-and-keeps-the-existing-blob-");
     const source = join(root, "source.txt");
     writeFileSync(source, "same content");
     const first = putBlobFile(root, source);
@@ -80,7 +70,7 @@ describe("putBlobFile", () => {
   });
 
   test("throws and leaves no staging file behind when the source is not a regular file", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("throws-and-leaves-no-staging-file-behind-when-the-");
     const directoryAsSource = join(root, "a-directory");
     mkdirSync(directoryAsSource);
     expect(() => putBlobFile(root, directoryAsSource)).toThrow(/not a regular file/);
@@ -89,7 +79,7 @@ describe("putBlobFile", () => {
   });
 
   test("throws when the source's reported size exceeds the blob byte limit, without reading it", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("throws-when-the-source-s-reported-size-exceeds-the");
     const source = join(root, "huge.bin");
     writeFileSync(source, "x");
     truncateSync(source, MAX_BLOB_BYTES + 10);
@@ -108,7 +98,7 @@ describe("linkBlobIntoView", () => {
   }
 
   test("rejects an unsafe view name", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("rejects-an-unsafe-view-name");
     const blob = storeBlob(root, "content");
     expect(() => linkBlobIntoView(root, blob, "evidence", "")).toThrow(/unsafe view name/);
     expect(() => linkBlobIntoView(root, blob, "evidence", "a/b")).toThrow(/unsafe view name/);
@@ -117,7 +107,7 @@ describe("linkBlobIntoView", () => {
   });
 
   test("throws when the referenced blob is not actually stored in the capsule", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("throws-when-the-referenced-blob-is-not-actually-st");
     const phantom = { sha256: "c".repeat(64), bytes: 1, path: blobRelativePath("c".repeat(64)) };
     expect(() => linkBlobIntoView(root, phantom, "evidence", "name.png")).toThrow(
       /is not stored in this capsule/,
@@ -125,7 +115,7 @@ describe("linkBlobIntoView", () => {
   });
 
   test("hardlinks by default, producing a file that shares the same inode as the blob", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("hardlinks-by-default-producing-a-file-that-shares-");
     const blob = storeBlob(root, "shared bytes");
     const view = linkBlobIntoView(root, blob, "evidence", "name.png");
     expect(view.storage).toBe("hardlink");
@@ -135,7 +125,7 @@ describe("linkBlobIntoView", () => {
   });
 
   test("returns the existing hardlink view unchanged when it already points at the same blob", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("returns-the-existing-hardlink-view-unchanged-when-");
     const blob = storeBlob(root, "idempotent bytes");
     const first = linkBlobIntoView(root, blob, "evidence", "name.png");
     const second = linkBlobIntoView(root, blob, "evidence", "name.png");
@@ -143,7 +133,7 @@ describe("linkBlobIntoView", () => {
   });
 
   test("replaces a stale view file that points at different content before relinking", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("replaces-a-stale-view-file-that-points-at-differen");
     const blobA = storeBlob(root, "content-a");
     const blobB = storeBlob(root, "content-b");
     linkBlobIntoView(root, blobA, "evidence", "name.png");
@@ -154,7 +144,7 @@ describe("linkBlobIntoView", () => {
   });
 
   test("falls back to a read-only copy when the injected linker fails to hardlink", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("falls-back-to-a-read-only-copy-when-the-injected-l");
     const blob = storeBlob(root, "cross-device bytes");
     const failingLinker: ViewLinker = {
       link: () => {
@@ -171,12 +161,12 @@ describe("linkBlobIntoView", () => {
 
 describe("listBlobs", () => {
   test("returns an empty list when the blobs/ directory does not exist", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("returns-an-empty-list-when-the-blobs-directory-doe");
     expect(listBlobs(root)).toEqual([]);
   });
 
   test("lists stored blobs sorted by digest, skipping dotfiles and malformed entries", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("lists-stored-blobs-sorted-by-digest-skipping-dotfi");
     const source = join(root, "source.txt");
     writeFileSync(source, "list me");
     const put = putBlobFile(root, source);
@@ -189,7 +179,7 @@ describe("listBlobs", () => {
   });
 
   test("skips a shard entry that is not a directory and a dotfile shard", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("skips-a-shard-entry-that-is-not-a-directory-and-a-");
     mkdirSync(join(root, "blobs"));
     writeFileSync(join(root, "blobs", "not-a-shard-dir"), "ignored");
     mkdirSync(join(root, "blobs", ".hidden-shard"));
@@ -197,7 +187,7 @@ describe("listBlobs", () => {
   });
 
   test("sorts multiple stored blobs by their digest", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("sorts-multiple-stored-blobs-by-their-digest");
     const first = putBlobFile(
       root,
       (() => {
@@ -221,7 +211,7 @@ describe("listBlobs", () => {
   });
 
   test("skips a shard directory that cannot be listed", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("skips-a-shard-directory-that-cannot-be-listed");
     const shardDir = join(root, "blobs", "aa");
     mkdirSync(shardDir, { recursive: true });
     chmodSync(shardDir, 0o000);
@@ -233,7 +223,7 @@ describe("listBlobs", () => {
   });
 
   test("skips a blob entry whose stat fails, such as a dangling symlink", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("skips-a-blob-entry-whose-stat-fails-such-as-a-dang");
     const source = join(root, "source.txt");
     writeFileSync(source, "content");
     const put = putBlobFile(root, source);
@@ -247,7 +237,7 @@ describe("listBlobs", () => {
 
 describe("blobContentDigest", () => {
   test("returns the sha256 digest of a stored blob's actual bytes", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("returns-the-sha256-digest-of-a-stored-blob-s-actua");
     const source = join(root, "source.txt");
     writeFileSync(source, "digest me");
     const put = putBlobFile(root, source);
@@ -255,12 +245,12 @@ describe("blobContentDigest", () => {
   });
 
   test("returns undefined when the blob file does not exist", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("returns-undefined-when-the-blob-file-does-not-exis");
     expect(blobContentDigest(root, "d".repeat(64))).toBeUndefined();
   });
 
   test("returns undefined when the blob path is not a regular file", () => {
-    const root = scratchRoot();
+    const root = scratchRoot("returns-undefined-when-the-blob-path-is-not-a-regu");
     const digest = "e".repeat(64);
     const shardDir = join(root, "blobs", digest.slice(0, 2));
     mkdirSync(join(shardDir, digest), { recursive: true });

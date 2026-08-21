@@ -12,19 +12,12 @@ import type {
   GitResult,
   GitRunner,
 } from "../../../../orchestrating-long-tasks/scripts/src/workflow/worktree/git.ts";
-import { loadRun } from "../../../../orchestrating-long-tasks/scripts/src/store/index.ts";
-import { baseLedger, freshRunRoot, seedLedger } from "./store-fixture.ts";
+import { FakeRunStore, baseLedger, seedLedger } from "./fake-transact.ts";
 
 const roots: string[] = [];
 afterEach(() => {
   for (const root of roots.splice(0)) rmSync(root, { force: true, recursive: true });
 });
-
-function trackedRunRoot(prefix: string): string {
-  const run = freshRunRoot(prefix);
-  roots.push(run.split("/.capsules/")[0]!);
-  return run;
-}
 
 function trackedDir(prefix: string): string {
   const dir = mkdtempSync(join(tmpdir(), `harness-${prefix}-`));
@@ -89,12 +82,12 @@ describe("provisionWorktrees", () => {
   });
 
   test("returns enabled with a null ledger when the topology has no tasks to place", () => {
-    const runRoot = trackedRunRoot("provision-empty");
+    const store = new FakeRunStore();
     const repoRoot = trackedDir("provision-empty-repo");
     const wtRoot = trackedDir("provision-empty-wtroot");
     const { runner } = scripted(() => ok());
     const result = provisionWorktrees({
-      runRoot,
+      runRoot: store.runRoot,
       repoRoot,
       runId: "run-1",
       actor: "coordinator",
@@ -102,17 +95,19 @@ describe("provisionWorktrees", () => {
       tasksById: tasks([]),
       config: config(wtRoot),
       runner,
+      loadState: store.loadState,
+      transact: store.transact,
     });
     expect(result).toEqual({ enabled: true, ledger: null });
   });
 
   test("throws PATH_SAFETY when the configured worktree root resolves inside the repo", () => {
-    const runRoot = trackedRunRoot("provision-unsafe");
+    const store = new FakeRunStore();
     const repoRoot = trackedDir("provision-unsafe-repo");
     const { runner } = scripted(() => ok());
     expect(() =>
       provisionWorktrees({
-        runRoot,
+        runRoot: store.runRoot,
         repoRoot,
         runId: "run-1",
         actor: "coordinator",
@@ -120,12 +115,14 @@ describe("provisionWorktrees", () => {
         tasksById: tasks(["t1"]),
         config: config(join(repoRoot, "inside")),
         runner,
+        loadState: store.loadState,
+        transact: store.transact,
       }),
     ).toThrow(/resolves inside the repository/);
   });
 
   test("creates the harness branch and one worktree per task, persisting a new ledger", () => {
-    const runRoot = trackedRunRoot("provision-happy");
+    const store = new FakeRunStore();
     const repoRoot = trackedDir("provision-happy-repo");
     const wtRoot = trackedDir("provision-happy-wtroot");
     const { runner, calls } = scripted((call) => {
@@ -136,7 +133,7 @@ describe("provisionWorktrees", () => {
       return ok();
     });
     const result = provisionWorktrees({
-      runRoot,
+      runRoot: store.runRoot,
       repoRoot,
       runId: "run-1",
       actor: "coordinator",
@@ -145,6 +142,8 @@ describe("provisionWorktrees", () => {
       config: config(wtRoot),
       now: new Date("2026-08-19T00:00:00.000Z"),
       runner,
+      loadState: store.loadState,
+      transact: store.transact,
     });
     expect(result.enabled).toBe(true);
     expect(result.ledger?.harness_branch).toBe("harness/run-1");
@@ -158,7 +157,7 @@ describe("provisionWorktrees", () => {
   });
 
   test("does not recreate the harness branch when it already exists", () => {
-    const runRoot = trackedRunRoot("provision-branch-exists");
+    const store = new FakeRunStore();
     const repoRoot = trackedDir("provision-branch-exists-repo");
     const wtRoot = trackedDir("provision-branch-exists-wtroot");
     const { runner, calls } = scripted((call) => {
@@ -168,7 +167,7 @@ describe("provisionWorktrees", () => {
       return ok();
     });
     provisionWorktrees({
-      runRoot,
+      runRoot: store.runRoot,
       repoRoot,
       runId: "run-1",
       actor: "coordinator",
@@ -176,16 +175,18 @@ describe("provisionWorktrees", () => {
       tasksById: tasks(["t1"]),
       config: config(wtRoot),
       runner,
+      loadState: store.loadState,
+      transact: store.transact,
     });
     expect(calls.some((c) => c.argv[0] === "branch" && c.argv[1] === "harness/run-1")).toBe(false);
   });
 
   test("extends an existing ledger with only the additional worktrees a wider wave needs", () => {
-    const runRoot = trackedRunRoot("provision-extend");
+    const store = new FakeRunStore();
     const repoRoot = trackedDir("provision-extend-repo");
     const wtRoot = trackedDir("provision-extend-wtroot");
     seedLedger(
-      runRoot,
+      store,
       baseLedger({
         harness_branch: "harness/run-1",
         base_sha: "base-sha-000",
@@ -206,7 +207,7 @@ describe("provisionWorktrees", () => {
       return ok();
     });
     const result = provisionWorktrees({
-      runRoot,
+      runRoot: store.runRoot,
       repoRoot,
       runId: "run-1",
       actor: "coordinator",
@@ -214,6 +215,8 @@ describe("provisionWorktrees", () => {
       tasksById: tasks(["t1", "t2"]),
       config: config(wtRoot),
       runner,
+      loadState: store.loadState,
+      transact: store.transact,
     });
     expect(result.ledger?.worktrees.map((w) => w.id)).toEqual(["wt-0", "wt-1"]);
     const addCalls = calls.filter((c) => c.argv[0] === "worktree" && c.argv[1] === "add");
@@ -229,7 +232,7 @@ describe("provisionWorktrees", () => {
   // every task already has a slot: no new git calls, and no redundant re-persist of an equivalent
   // ledger either.
   test("skips re-persisting and issues no git worktree calls when every task already has a slot", () => {
-    const runRoot = trackedRunRoot("provision-noop");
+    const store = new FakeRunStore();
     const repoRoot = trackedDir("provision-noop-repo");
     const wtRoot = trackedDir("provision-noop-wtroot");
     const existing = baseLedger({
@@ -247,14 +250,14 @@ describe("provisionWorktrees", () => {
       ],
       assignments: [{ task_id: "t1", worktree_id: "wt-0", wave: 1 }],
     });
-    seedLedger(runRoot, existing);
-    const eventsBefore = loadRun(runRoot).events.length;
+    seedLedger(store, existing);
+    const eventsBefore = store.events.length;
     const { runner, calls } = scripted((call) => {
       if (call.argv[0] === "rev-parse" && call.argv.includes("--verify")) return ok();
       return ok();
     });
     const result = provisionWorktrees({
-      runRoot,
+      runRoot: store.runRoot,
       repoRoot,
       runId: "run-1",
       actor: "coordinator",
@@ -262,15 +265,17 @@ describe("provisionWorktrees", () => {
       tasksById: tasks(["t1"]),
       config: config(wtRoot),
       runner,
+      loadState: store.loadState,
+      transact: store.transact,
     });
     expect(result.ledger?.worktrees).toEqual(existing.worktrees);
     expect(result.ledger?.assignments).toEqual(existing.assignments);
     expect(calls.filter((c) => c.argv[0] === "worktree" && c.argv[1] === "add")).toHaveLength(0);
-    expect(loadRun(runRoot).events.length).toBe(eventsBefore);
+    expect(store.events.length).toBe(eventsBefore);
   });
 
   test("re-persists when the topology widens even though every existing task keeps its slot", () => {
-    const runRoot = trackedRunRoot("provision-widen");
+    const store = new FakeRunStore();
     const repoRoot = trackedDir("provision-widen-repo");
     const wtRoot = trackedDir("provision-widen-wtroot");
     const existing = baseLedger({
@@ -288,14 +293,14 @@ describe("provisionWorktrees", () => {
       ],
       assignments: [{ task_id: "t1", worktree_id: "wt-0", wave: 1 }],
     });
-    seedLedger(runRoot, existing);
-    const eventsBefore = loadRun(runRoot).events.length;
+    seedLedger(store, existing);
+    const eventsBefore = store.events.length;
     const { runner } = scripted((call) => {
       if (call.argv[0] === "rev-parse" && call.argv.includes("--verify")) return ok();
       return ok();
     });
     provisionWorktrees({
-      runRoot,
+      runRoot: store.runRoot,
       repoRoot,
       runId: "run-1",
       actor: "coordinator",
@@ -303,7 +308,9 @@ describe("provisionWorktrees", () => {
       tasksById: tasks(["t1", "t2"]),
       config: config(wtRoot),
       runner,
+      loadState: store.loadState,
+      transact: store.transact,
     });
-    expect(loadRun(runRoot).events.length).toBeGreaterThan(eventsBefore);
+    expect(store.events.length).toBeGreaterThan(eventsBefore);
   });
 });

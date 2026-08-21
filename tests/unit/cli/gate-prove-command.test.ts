@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execute } from "../../../orchestrating-long-tasks/scripts/src/cli/execute.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
+import { setupCompiledRun } from "./task-ops-fixture.ts";
 
 const gitRoots: string[] = [];
 afterAll(() => {
@@ -150,7 +151,10 @@ describe("gate:prove (command layer)", () => {
   });
 
   test("rejects an unknown task id", async () => {
-    const { run } = await compiledSingleTaskRun("unknown-task", "test -f feature.ts");
+    // gateProveCommand's "unknown task" check runs right after loadRun, before it ever touches
+    // Git — any compiled run will do, so this uses the plain-directory fixture instead of a real
+    // Git repository.
+    const { run } = await setupCompiledRun("gate-prove-unknown-task", roots);
     await expect(
       execute([
         "gate:prove",

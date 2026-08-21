@@ -1,7 +1,5 @@
 import { describe, expect, test } from "bun:test";
 import { computeExecutionSteps } from "../../../orchestrating-long-tasks/scripts/src/summary/step-calculator.ts";
-import { join } from "node:path";
-import { loadRun } from "../../../orchestrating-long-tasks/scripts/src/store/index.ts";
 import type { TaskRecord } from "../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
 
 function createTask(id: string, dependencies: string[] = []): TaskRecord {
@@ -146,16 +144,15 @@ describe("step calculator topology source", () => {
   });
 
   test("a capsule recorded before topology existed derives its waves", () => {
-    const capsule = join(
-      import.meta.dir,
-      "..",
-      "..",
-      "..",
-      ".capsules",
-      "2026-08-17-skills-documentation-elevation",
-    );
-    const state = loadRun(capsule).state;
-    const tasks = Object.values(state.tasks as Record<string, TaskRecord>);
+    // The exact task graph (three tasks, a strict dependency chain, no `topology` key) a real
+    // pre-topology capsule on this machine once recorded — hand-built here rather than loaded from
+    // that `.capsules/` directory, which is gitignored scratch and absent on a fresh checkout or CI.
+    const tasks = [
+      createTask("task-1"),
+      createTask("task-2", ["task-1"]),
+      createTask("task-3", ["task-2"]),
+    ];
+    const state = { tasks: Object.fromEntries(tasks.map((task) => [task.id, task])) };
 
     const steps = computeExecutionSteps(tasks, state);
     expect(steps.taskWaves.get("task-1")).toBe(1);

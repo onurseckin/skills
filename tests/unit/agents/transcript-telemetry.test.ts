@@ -1,18 +1,13 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { readAgentTranscriptTelemetry } from "../../../orchestrating-long-tasks/scripts/src/workflow/agents/transcript-telemetry.ts";
-import { cleanupRoots } from "./fixture.ts";
 import {
   assistantLine,
   mktemp,
   toolResultLine,
   writeDirectTranscript,
 } from "./transcript-fixture.ts";
-
-const roots: string[] = [];
-
-afterEach(() => cleanupRoots(roots));
 
 describe("readAgentTranscriptTelemetry — fail-safe absence", () => {
   test("no session id in the environment reads as no evidence, not an error", () => {
@@ -29,8 +24,8 @@ describe("readAgentTranscriptTelemetry — fail-safe absence", () => {
     ).toBeNull();
   });
 
-  test("a session id with no matching project directory reads as no evidence", async () => {
-    const home = await mktemp(roots);
+  test("a session id with no matching project directory reads as no evidence", () => {
+    const home = mktemp(import.meta.path, "ghost-project");
     expect(
       readAgentTranscriptTelemetry("agent-x", {
         homeDir: home,
@@ -40,7 +35,7 @@ describe("readAgentTranscriptTelemetry — fail-safe absence", () => {
   });
 
   test("a real session with no file for this exact agent id reads as no evidence", async () => {
-    const home = await mktemp(roots);
+    const home = mktemp(import.meta.path, "session-a");
     await writeDirectTranscript(home, "session-a", "agent-known", [
       assistantLine({ timestamp: "2026-08-20T10:00:00.000Z", model: "claude-sonnet-5" }),
     ]);
@@ -55,7 +50,7 @@ describe("readAgentTranscriptTelemetry — fail-safe absence", () => {
 
 describe("readAgentTranscriptTelemetry — a direct Task-tool subagent transcript", () => {
   test("real model, effort, token totals and tool success/failure are read off the transcript", async () => {
-    const home = await mktemp(roots);
+    const home = mktemp(import.meta.path, "session-b");
     await writeDirectTranscript(
       home,
       "session-b",
@@ -116,7 +111,7 @@ describe("readAgentTranscriptTelemetry — a direct Task-tool subagent transcrip
   });
 
   test("a missing meta file still yields the transcript's own numbers", async () => {
-    const home = await mktemp(roots);
+    const home = mktemp(import.meta.path, "session-c");
     await writeDirectTranscript(home, "session-c", "agent-2", [
       assistantLine({
         timestamp: "2026-08-20T10:00:00.000Z",
@@ -134,7 +129,7 @@ describe("readAgentTranscriptTelemetry — a direct Task-tool subagent transcrip
   });
 
   test("a nested subagent's meta names its parent, and it survives the read", async () => {
-    const home = await mktemp(roots);
+    const home = mktemp(import.meta.path, "session-d");
     await writeDirectTranscript(
       home,
       "session-d",
@@ -151,7 +146,7 @@ describe("readAgentTranscriptTelemetry — a direct Task-tool subagent transcrip
   });
 
   test("a malformed meta file is ignored, not thrown — the transcript's own numbers still come through", async () => {
-    const home = await mktemp(roots);
+    const home = mktemp(import.meta.path, "session-bad-meta");
     await writeDirectTranscript(home, "session-bad-meta", "agent-5", [
       assistantLine({ timestamp: "2026-08-20T10:00:00.000Z", model: "claude-sonnet-5" }),
     ]);
@@ -178,7 +173,7 @@ describe("readAgentTranscriptTelemetry — a direct Task-tool subagent transcrip
   });
 
   test("tallies the ephemeral 5m and 1h cache-creation buckets separately from the flat total", async () => {
-    const home = await mktemp(roots);
+    const home = mktemp(import.meta.path, "session-cache-buckets");
     const line = JSON.stringify({
       type: "assistant",
       timestamp: "2026-08-20T10:00:00.000Z",
@@ -205,7 +200,7 @@ describe("readAgentTranscriptTelemetry — a direct Task-tool subagent transcrip
   });
 
   test("a malformed run-aggregate file is skipped, not thrown, leaving runContext undefined", async () => {
-    const home = await mktemp(roots);
+    const home = mktemp(import.meta.path, "session-bad-run");
     await writeDirectTranscript(home, "session-bad-run", "agent-7", [
       assistantLine({ timestamp: "2026-08-20T10:00:00.000Z", model: "claude-sonnet-5" }),
     ]);
@@ -286,7 +281,7 @@ describe("readAgentTranscriptTelemetry — a Workflow-tool subagent, with its ru
   }
 
   test("the run aggregate's defaultModel and totals ride along as run context", async () => {
-    const home = await mktemp(roots);
+    const home = mktemp(import.meta.path, "session-e");
     await writeWorkflowTranscript(home, "session-e", "wf_test1", "agent-4");
     const result = readAgentTranscriptTelemetry("agent-4", {
       homeDir: home,

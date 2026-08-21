@@ -58,11 +58,13 @@ describe("repository-snapshot", () => {
 
   test("inspects real git repository", () => {
     const repo = realpathSync(mkdtempSync(join(tmpdir(), "repo-snap-git-")));
-    // inspectRepositoryBinding() (called unconditionally inside inspectRepository) performs its
-    // own real Git identity/control inspection with no dependency injection reaching it from
-    // here, so a genuine `.git` directory from `git init` is the only way to reach the
-    // git-available branch. The command fake below covers every probe this module's own `run()`
-    // helper issues (status/head/branch/log/version), so no further real Git process runs.
+    // inspectRepositoryBinding() (called unconditionally inside inspectRepository) does its own
+    // real Git identity/control/content-listing inspection with no dependency injection reaching
+    // it from here — repository-content-paths.ts's gitRepository() helper even hardcodes the real
+    // `repositoryGit` command directly, with no override parameter at all. A genuine `.git`
+    // directory from `git init` is therefore the only way to reach the git-available branch. The
+    // command fake below covers every probe this module's own `run()` helper issues
+    // (status/head/branch/log/version), so no further real Git process runs beyond that one init.
     Bun.spawnSync(["git", "init", "-q", repo]);
     const head = "a".repeat(40);
     const command: RepositoryGitCommand = (_repo, argv) => {

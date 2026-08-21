@@ -2,6 +2,7 @@ import type { BranchRecord } from "../contracts/branch.ts";
 import type { HarnessEvent, Manifest } from "../contracts/capsule.ts";
 import type { CommandRecord } from "../contracts/commands.ts";
 import { isJsonObject } from "../contracts/json.ts";
+import type { RepositoryGitCommand } from "../packets/repository-git-command.ts";
 import { readBranchLedger } from "../workflow/branch/ledger.ts";
 import type { TaskRecord, WorkflowState } from "../workflow/types.ts";
 import { readAgentLedgerView } from "./agent-telemetry.ts";
@@ -29,6 +30,7 @@ export interface GraphGeneratorInput {
   events?: readonly HarnessEvent[];
   manifest?: Manifest;
   runRoot?: string;
+  gitCommand?: RepositoryGitCommand;
 }
 
 function readBranches(state: Readonly<WorkflowState>): BranchRecord[] {
@@ -41,7 +43,7 @@ function readBranches(state: Readonly<WorkflowState>): BranchRecord[] {
 }
 
 export function generateGraphDataset(input: GraphGeneratorInput): GraphDataset {
-  const { runId, state, promptText = "", events, manifest, runRoot } = input;
+  const { runId, state, promptText = "", events, manifest, runRoot, gitCommand } = input;
   const tasks = Object.values(state.tasks ?? {}) as TaskRecord[];
   const commands = Object.values({
     ...(state.commands ?? {}),
@@ -81,6 +83,7 @@ export function generateGraphDataset(input: GraphGeneratorInput): GraphDataset {
       ...(events !== undefined ? { events } : {}),
       ...(manifest !== undefined ? { manifest } : {}),
       ...(runRoot !== undefined ? { runRoot } : {}),
+      ...(gitCommand !== undefined ? { gitCommand } : {}),
     });
 
     for (const round of ctx.archivedRounds) {
@@ -130,6 +133,7 @@ export function generateGraphDataset(input: GraphGeneratorInput): GraphDataset {
     ...(events !== undefined ? { events } : {}),
     ...(manifest !== undefined ? { manifest } : {}),
     ...(runRoot !== undefined ? { runRoot } : {}),
+    ...(gitCommand !== undefined ? { gitCommand } : {}),
   });
   nodes.push(...subgraphs.nodes);
   edges.push(...subgraphs.edges);

@@ -133,7 +133,7 @@ describe("OrchestratorWatchdog Unit Tests", () => {
     expect(events[0]?.type).toBe("recovered");
   });
 
-  it("triggers auto-wake and bounds retries before escalation", () => {
+  it("triggers auto-wake and bounds retries before escalation, never claiming a dispatch that never happened", () => {
     const watchdog = new OrchestratorWatchdog({
       maxWakeRetries: 2,
       autoWakeAction: "nudge",
@@ -146,20 +146,23 @@ describe("OrchestratorWatchdog Unit Tests", () => {
     watchdog.on("auto_wake", (e) => wakeEvents.push(e));
     watchdog.on("escalated", (e) => escalateEvents.push(e));
 
-    // Attempt 1
+    // Attempt 1: a wake request is recorded, but the harness never dispatches anyone itself.
     const res1 = watchdog.triggerAutoWake("mon-wake", "Stall 1");
-    expect(res1.succeeded).toBe(true);
+    expect(res1.outcome).toBe("wake_recorded");
+    expect(res1.dispatched).toBe(false);
     expect(res1.attempt).toBe(1);
     expect(res1.actionTaken).toBe("nudge");
 
     // Attempt 2
     const res2 = watchdog.triggerAutoWake("mon-wake", "Stall 2");
-    expect(res2.succeeded).toBe(true);
+    expect(res2.outcome).toBe("wake_recorded");
+    expect(res2.dispatched).toBe(false);
     expect(res2.attempt).toBe(2);
 
-    // Attempt 3 (exceeds maxWakeRetries = 2 -> escalates)
+    // Attempt 3 (exceeds maxWakeRetries = 2 -> escalates; still no dispatch)
     const res3 = watchdog.triggerAutoWake("mon-wake", "Stall 3");
-    expect(res3.succeeded).toBe(false);
+    expect(res3.outcome).toBe("escalated");
+    expect(res3.dispatched).toBe(false);
     expect(res3.attempt).toBe(3);
     expect(res3.actionTaken).toBe("escalate");
 
@@ -169,7 +172,8 @@ describe("OrchestratorWatchdog Unit Tests", () => {
 
     // Non-existent monitor
     const unknownRes = watchdog.triggerAutoWake("unknown-id");
-    expect(unknownRes.succeeded).toBe(false);
+    expect(unknownRes.outcome).toBe("monitor_not_found");
+    expect(unknownRes.dispatched).toBe(false);
   });
 
   it("escalates via background polling interval when maxWakeRetries is reached", async () => {
@@ -243,5 +247,21 @@ describe("OrchestratorWatchdog Unit Tests", () => {
     unsubscribe();
     watchdog.triggerAutoWake("mon-wild", "Testing unsubscribe");
     expect(allEvents.length).toBe(1);
+  });
+
+  it("D5: triggerAutoWake reports what actually happened, never a fabricated dispatch", () => {
+    const watchdog = new OrchestratorWatchdog({ autoWakeAction: "restart_agent" });
+    watchdog.registerMonitor("mon-honest", { agentId: "agent-honest" });
+
+    const result = watchdog.triggerAutoWake("mon-honest", "Simulated stall");
+
+    // The harness never makes a model call; only a host-side driver could actually dispatch an
+    // agent. `dispatched` is typed as the literal `false` so no future edit can make this claim true
+    // without the compiler flagging it.
+    expect(result.dispatched).toBe(false);
+    expect(result.outcome).toBe("wake_recorded");
+    expect(Object.hasOwn(result, "succeeded")).toBeFalse();
+    expect(result.message).not.toMatch(/triggered successfully/i);
+    expect(result.message).toMatch(/recorded/i);
   });
 });
