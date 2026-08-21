@@ -75,11 +75,11 @@ describe("dependencyData", () => {
       { source: "task-1", target: "task-1", type: "depends_on" },
     ];
     const { issues } = dependencyData(nodes, edges);
-    expect(issues).toContain("depends_on edges must connect two tasks");
-    expect(issues).toContain("task task-1 cannot depend on itself");
+    expect(issues).toContain("depends_on edge task-1 --deps missing must connect two tasks");
+    expect(issues).toContain("task task-1 cannot depend on itself; drop task-1 --deps task-1");
   });
 
-  test("flags a dependency cycle", () => {
+  test("flags a dependency cycle and names the participating tasks, edges, and a break", () => {
     const nodes = [
       { id: "task-1", type: "task" },
       { id: "task-2", type: "task" },
@@ -89,7 +89,45 @@ describe("dependencyData", () => {
       { source: "task-2", target: "task-1", type: "depends_on" },
     ];
     const { issues } = dependencyData(nodes, edges);
-    expect(issues).toContain("depends_on edges contain an execution cycle");
+    expect(issues).toContain(
+      "task-1 --deps task-2 and task-2 --deps task-1 form a cycle; drop task-1 --deps task-2 to break it",
+    );
+  });
+
+  test("flags a longer cycle by walking prerequisites back to the first repeat", () => {
+    const nodes = [
+      { id: "task-1", type: "task" },
+      { id: "task-2", type: "task" },
+      { id: "task-3", type: "task" },
+    ];
+    const edges = [
+      { source: "task-1", target: "task-2", type: "depends_on" },
+      { source: "task-2", target: "task-3", type: "depends_on" },
+      { source: "task-3", target: "task-1", type: "depends_on" },
+    ];
+    const { issues } = dependencyData(nodes, edges);
+    expect(issues).toContain(
+      "task-1 --deps task-2, task-2 --deps task-3, and task-3 --deps task-1 form a cycle; " +
+        "drop task-1 --deps task-2 to break it",
+    );
+  });
+
+  test("names only the cycle itself, not a task merely blocked behind it", () => {
+    const nodes = [
+      { id: "task-1", type: "task" },
+      { id: "task-2", type: "task" },
+      { id: "task-3", type: "task" },
+    ];
+    const edges = [
+      { source: "task-1", target: "task-2", type: "depends_on" },
+      { source: "task-2", target: "task-1", type: "depends_on" },
+      { source: "task-3", target: "task-1", type: "depends_on" },
+    ];
+    const { issues } = dependencyData(nodes, edges);
+    expect(issues).toContain(
+      "task-1 --deps task-2 and task-2 --deps task-1 form a cycle; drop task-1 --deps task-2 to break it",
+    );
+    expect(issues.some((issue) => issue.includes("task-3"))).toBe(false);
   });
 });
 

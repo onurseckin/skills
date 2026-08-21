@@ -30,6 +30,49 @@ export function topologicalOrder(dependencies: ReadonlyMap<string, ReadonlySet<s
   return order;
 }
 
+function describeEndpoint(value: unknown): string {
+  return typeof value === "string" ? value : (JSON.stringify(value) ?? "undefined");
+}
+
+function joinWithAnd(items: readonly string[]): string {
+  if (items.length === 1) return items[0]!;
+  if (items.length === 2) return `${items[0]} and ${items[1]}`;
+  return `${items.slice(0, -1).join(", ")}, and ${items[items.length - 1]}`;
+}
+
+// topologicalOrder's Kahn's-algorithm pass already knows which nodes never reached in-degree
+// zero — that unresolved set is the cycle (plus anything blocked behind it). Every unresolved
+// node has at least one unresolved prerequisite, or it would have been dequeued; walking
+// prerequisites deterministically from the lexicographically-first unresolved node must
+// therefore revisit a node within |unresolved| steps, which is the cycle itself.
+function describeCycle(
+  dependencies: ReadonlyMap<string, ReadonlySet<string>>,
+  order: readonly string[],
+): string {
+  const resolved = new Set(order);
+  const unresolved = new Set([...dependencies.keys()].filter((id) => !resolved.has(id)));
+  const start = [...unresolved].sort()[0]!;
+  const path = [start];
+  const positionOf = new Map([[start, 0]]);
+  let current = start;
+  for (;;) {
+    const next = [...(dependencies.get(current) ?? [])]
+      .filter((id) => unresolved.has(id))
+      .sort()[0]!;
+    const seenAt = positionOf.get(next);
+    if (seenAt !== undefined) {
+      const cycle = path.slice(seenAt);
+      const cycleEdges = cycle.map(
+        (id, index) => `${id} --deps ${cycle[(index + 1) % cycle.length]}`,
+      );
+      return `${joinWithAnd(cycleEdges)} form a cycle; drop ${cycleEdges[0]} to break it`;
+    }
+    positionOf.set(next, path.length);
+    path.push(next);
+    current = next;
+  }
+}
+
 export function dependencyData(
   nodes: readonly Record<string, unknown>[],
   edges: readonly Record<string, unknown>[],
@@ -50,12 +93,16 @@ export function dependencyData(
       !taskIds.has(source) ||
       !taskIds.has(target)
     ) {
-      issues.push("depends_on edges must connect two tasks");
-    } else if (source === target) issues.push(`task ${source} cannot depend on itself`);
-    else dependencies.get(source)!.add(target);
+      issues.push(
+        `depends_on edge ${describeEndpoint(source)} --deps ${describeEndpoint(target)} must connect two tasks`,
+      );
+    } else if (source === target) {
+      issues.push(`task ${source} cannot depend on itself; drop ${source} --deps ${target}`);
+    } else dependencies.get(source)!.add(target);
   }
-  if (topologicalOrder(dependencies).length !== dependencies.size) {
-    issues.push("depends_on edges contain an execution cycle");
+  const order = topologicalOrder(dependencies);
+  if (order.length !== dependencies.size) {
+    issues.push(describeCycle(dependencies, order));
   }
   return { dependencies, issues };
 }
