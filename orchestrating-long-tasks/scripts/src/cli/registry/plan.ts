@@ -395,10 +395,15 @@ export const PLAN_COMMANDS: readonly CommandSpec[] = [
     domain: "plan",
     summary: "Issue a planner's role packet: the sole way a planner agent gets its contract.",
     description:
-      "The planner has no task and no lease, so it cannot task:claim. This is its equivalent: it hands back the planner role contract, the immutable prompt, and the write scope (planning/requirements.json, planning/graph.json) the planner is bound to fill in before plan:apply.",
+      "The planner has no task and no lease, so it cannot task:claim. This is its equivalent: it hands back the planner role contract, the immutable prompt, and the write scope (planning/requirements.json, planning/graph.json) the planner is bound to fill in before plan:apply. The packet's prescribed plan:apply command is pre-filled with --expected-revision at the run's live graph revision, so it succeeds on a run that has already compiled a graph, not only on a brand-new one.",
     flags: [
       requiredFlag("run", "string", "Capsule run root."),
       requiredFlag("agent", "string", "The planner's own agent id, already agent:register'd."),
+      optionalFlag(
+        "expected-revision",
+        "int",
+        "The graph revision the caller believes is live; the claim is refused if the run has moved past it. Omitted, the packet is issued at whatever revision is actually live.",
+      ),
     ],
     readsStdin: false,
     takesRemainder: false,

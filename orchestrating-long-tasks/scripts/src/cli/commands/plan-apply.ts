@@ -32,7 +32,8 @@ function capsulePlanningStore(runRoot: string): PlanningStore {
 export async function planClaimCommand(flags: Flags): Promise<Record<string, unknown>> {
   const run = textFlag(flags, "run")!;
   const agent = textFlag(flags, "agent")!;
-  const published = await initializePlannerPacket(run, agent);
+  const expectedRevision = integerFlag(flags, "expected-revision", { minimum: 0 }) ?? undefined;
+  const published = await initializePlannerPacket(run, agent, expectedRevision);
   const markdown = formatPlanClaimBrief({
     runId: basename(run),
     agent,

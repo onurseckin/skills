@@ -1,5 +1,6 @@
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { HarnessError } from "../errors/harness-error.ts";
 import { loadRun } from "../store/index.ts";
 import { requireText } from "../workflow/task-state.ts";
 import type { PublishedPacket } from "./persist-packet.ts";
@@ -15,11 +16,20 @@ import {
 export async function initializePlannerPacket(
   runRoot: string,
   plannerId: string,
+  expectedRevision?: number,
 ): Promise<PublishedPacket & { packet: BuiltPacket }> {
   plannerId = requireText(plannerId, "planner_id");
   recordRepositoryInspection(runRoot, plannerId, "baseline");
   const loaded = loadRun(runRoot);
   const port = preplanPacketPort(loaded.runRoot);
+  const liveRevision = port.read().graph_revision ?? 0;
+  if (expectedRevision !== undefined && expectedRevision !== liveRevision) {
+    throw new HarnessError(
+      "INVALID_STATE",
+      `graph revision is ${String(liveRevision)}, expected ${expectedRevision}`,
+    );
+  }
+  const revision = expectedRevision ?? liveRevision;
   const context = repositoryInspectionContext(loaded.state, false);
   const requirementsPath = join(loaded.runRoot, "planning", "requirements.json");
   const graphPath = join(loaded.runRoot, "planning", "graph.json");
@@ -29,7 +39,7 @@ export async function initializePlannerPacket(
     "planner-0",
     {
       runId: loaded.manifest.run_id,
-      graphRevision: 0,
+      graphRevision: revision,
       role: "planner",
       agentId: plannerId,
       state: port.read(),
@@ -37,7 +47,7 @@ export async function initializePlannerPacket(
         original_prompt: new TextDecoder("utf-8", { fatal: true }).decode(loaded.prompt),
         capture_manifest: structuredClone(loaded.manifest),
         ...context,
-        expected_revision: 0,
+        expected_revision: revision,
       },
       evidenceSchema: evidenceSchema("planner"),
       planningWriteScope: [requirementsPath, graphPath],
@@ -52,7 +62,7 @@ export async function initializePlannerPacket(
           "--actor",
           plannerId,
           "--expected-revision",
-          "0",
+          String(revision),
         ],
       ],
       attempt: 1,
