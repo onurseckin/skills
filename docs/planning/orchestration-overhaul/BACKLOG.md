@@ -3014,7 +3014,51 @@ disagree, keep both and record the conflict rather than choosing silently.
 
 ---
 
-## B33 — Verifier rule: look at the artifact, do not reason about it `queued`
+## B33 — Verifier rule: look at the artifact, do not reason about it `done (bf42a7f)`
+
+**Closed 2026-08-21 (scoped to `roles/**`, `agents/**` and the packets that carry them):** re-checked
+the prior pass's count directly with `grep -c "B33" roles/*.md agents/*.yaml` before touching anything,
+rather than trusting it — it was still accurate: 2 of the 9 validating-role documents
+(`validator-security.md`, `validator-ui-design.md`) carried the rule, 0 of the matching personas did.
+Extended it to the remaining 7 validating-role contracts and their personas, both a `must_not`/`may`
+clause (an enforceable prohibition) and a prose bullet naming what the artifact is for that role, each
+citing `(B33)`:
+
+- `roles/validator.md` (the base contract every non-domain validator grant loads —
+  `packets/role-grant.ts:94`'s `loadRoleContract(grant.role)` fallback when no `--validator-domain` is
+  set) plus its three still-missing domain siblings, `validator-code-quality.md`,
+  `validator-product.md`, `validator-system-design.md`.
+- `roles/sub-validator.md`, `roles/plan-validator.md`, `roles/completeness-critic.md` — the three
+  validating roles the prior pass's count never named at all, so this pass's own recount (`grep -c`
+  above) is what actually established they too were missing it, not an assumption carried over.
+- The matching personas the same recount showed at 0: `agents/validator.yaml`,
+  `agents/plan-validator.yaml`, `agents/critic.yaml` — SKILL.md's own role table (lines 78-87) documents
+  these as the second half of each validating role's binding instructions, dispatched alongside the
+  `roles/*.md` contract, so the rule was still reachable-but-absent at the point an agent is actually
+  configured, not only in the packet it reads once claimed.
+
+Verified after landing, not assumed: `grep -c "B33" roles/*.md agents/*.yaml` now shows all 9 validating
+role files and all 3 matching personas citing it (previously 2 and 0); `bun test
+tests/unit/roles/role-documents.test.ts tests/unit/roles/agent-personas.test.ts
+tests/unit/packets/role-contract.test.ts tests/unit/packets/role-contract-binding.test.ts
+tests/unit/packets/role-contract-enforcement.test.ts tests/unit/packets/role-contract-loader.test.ts
+tests/unit/packets/role-contract-refusals.test.ts tests/unit/packets/role-authorization.test.ts
+tests/unit/packets/role-grant.test.ts tests/unit/packets/validator-domain-contract.test.ts
+tests/unit/health/unenforced.test.ts tests/unit/workflow/review/checklist-coverage.test.ts` — 163 pass, 0
+fail (digests are computed from file bytes at load time in every one of these, never hardcoded, so
+editing the prose does not need a matching test-value update); `bun run typecheck` clean. Landed in
+`bf42a7f`.
+
+**Deliberately not touched, and why this is not a partial close:** `coordinator.md`, `implementer.md`,
+`planner.md`, `repairer.md`, `sub-implementer.md`, `sub-investigator.md` and their personas still carry
+no `(B33)` citation. The item's own text scopes the obligation to "every validating role," not every
+role — these six never issue a verdict, a probe, or a finding, so there is no validating claim in their
+contracts for the rule to bind. The prior pass's note additionally named "the implementer/critic/
+coordinator contracts" as missing it; `completeness-critic.md` (the "critic" contract) is now covered
+above, and `implementer.md`/`coordinator.md` are excluded on the same non-validating-role reasoning, not
+overlooked. A future item extending the rule to non-validating roles (e.g. "an agent asserting something
+about the host, filesystem, or another agent must have looked," B33's own closing paragraph) would be a
+distinct, broader ask than this one.
 
 **Still queued 2026-08-20 (completion-tagging pass):** the rule is demonstrably the operating principle
 behind this document's own verification passes — every finding in B36-B38, and this pass's own tags,
