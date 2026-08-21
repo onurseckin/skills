@@ -400,7 +400,7 @@ B at 1, cut 2 in for new runs. A v2 reader adopts `projection` wholesale when pr
 
 ---
 
-## B3 — `graph.json` completeness contract `queued`
+## B3 — `graph.json` completeness contract `verified`
 
 **Corrected 2026-08-20 (this reconciliation pass) — the note below drastically understated what the
 same test file already proved, in the same commit (`0fa50f9`) that added the note.** Opened
@@ -453,6 +453,57 @@ finding, not fixed here (the fixture is a test file, out of scope for this pass)
 item stays open on is unaffected by that regression and was re-confirmed directly: grepping the (now
 relocated) test file for `sizeBytes`/`dimensions` still returns zero hits, so asset dimensions and byte
 size are still never asserted anywhere.
+
+**Closed 2026-08-21 (B3 owner pass, files owned by this item only) — the one bullet the note above
+left open is now proven with a real captured file, not a schema-only claim.** Added
+`tests/unit/summary/graph-asset-completeness.test.ts` (new file, 6 tests, all driven through
+`generateGraphDataset` — the same top-level exporter, not a shortcut around it). A real PNG is written
+to a temp `runRoot` and referenced from every asset-collection entry point this item's own files
+own: `task.report.screenshots` (implementer node), `task.validations[].screenshots` (validator node),
+a finding's own `screenshots` (validator node, with `screenshotAssetIds` still resolving to it), a
+`store/captures.ts` `recordCaptures` entry attributed to the validator, and an unattributed capture
+that lands on `node-terminal-complete` via `mapRunScreenshotAssets`. Each test asserts the exported
+`MediaAsset.sizeBytes` and `.dimensions` match the real file — 1440x900, 1024x768, 640x480, 1280x720
+and 320x240 respectively, read from an actual `IHDR` chunk and `lstatSync` size, never a fixture
+literal standing in for a measurement. The capture-record test also settles a provenance question:
+the harness-recorded `bytes` field wins over re-measurement (asserted `sizeBytes` is the deliberately
+mismatched recorded value `999999`, not the real 72-byte file), while `dimensions` — which a capture
+record never carries — still comes from reading the real file, because that is its only source. A
+sixth test covers this item's own work-item #4: a screenshot path that resolves to no file on disk
+keeps `sizeBytes` and `dimensions` `undefined`, never a guessed value.
+
+`bun test tests/unit/summary/graph-asset-completeness.test.ts` — 6/6 pass, run just now. Reverse-
+verified the tests are load-bearing, not vacuous: temporarily changed `graph-generator-helpers.ts`'s
+`buildImplementerNode` to build `assets` from `[]` instead of `ctx.implementerAssets`, reran — 2 of
+the 6 failed exactly as expected (`sizeBytes`/`dimensions` read `undefined` where a real number was
+expected), then reverted; `git diff` on that file is empty again. `bun run typecheck` (from
+`orchestrating-long-tasks/scripts`) is clean. `bun test tests/unit/summary/graph-*.test.ts` —
+112/112 pass across 14 files (the 13 that existed before this pass, plus this one).
+
+The wiring underneath needed no change and was already correct: `MediaAsset.sizeBytes` /
+`.dimensions` (`graph-types.ts:144-145`), `measureAssets` (`asset-measure.ts` — not one of this
+item's owned files, reads real PNG/GIF/BMP headers plus `lstatSync` byte size), and its three call
+sites inside files this item does own — `graph-task-preparation.ts:86,89`,
+`graph-generator-critic-nodes.ts:69,130`, `graph-generator-branch-nodes.ts:70` — already threaded
+`runRoot` through correctly. What was missing was only proof; this closes it. No other bullet in the
+contract list needed a code change: the prior notes on this item already walked all of them against
+`tests/unit/summary/graph-completeness-contract.test.ts`'s 17 tests before it was relocated. Moving
+`queued` → `verified`.
+
+**Orthogonal, not this item's scope, flagged rather than fixed:** running the broader completeness-
+contract suite this same session — `bun test tests/integration/summary-graph-completeness-contract
+.test.ts` — now shows 14/17 pass, not the 17/17 the previous note expected once `gate:prove` was
+added. `git status` shows `tests/unit/summary/completeness-run-fixture.ts` with uncommitted edits and
+a `gate:prove` call already present at line 99 — a sibling wave appears to be mid-repair on that
+fixture right now, consistent with this session's brief that the integration lane is under separate
+repair. The 3 current failures are unrelated to this item's asset bullet: one is a credential leak
+(`HARNESS_INTERNAL_OWNERSHIP_TOKEN` appearing in the serialized graph) and one is the sweep test's own
+precondition failing to find a topology rationale string it expects to strip; neither names
+`sizeBytes` or `dimensions`, and `grep -c 'sizeBytes\|dimensions'
+tests/integration/summary-graph-completeness-contract.test.ts` is `0` — that file still never
+exercises this item's bullet even after today's fixture repair, so this item's proof of it now lives
+entirely in the new unit file above. Left for whoever owns `tests/integration/**` and the rest of the
+integration-lane repair; not touched here per this session's instruction not to edit that directory.
 
 **Superseded note, kept for the record — its scope claim is corrected above, do not treat as current:**
 `tests/unit/summary/graph-completeness-contract.test.ts`
@@ -1196,6 +1247,56 @@ Worth stating in SKILL.md, because it explains every design decision downstream:
 
 ## B15 — Step-level action provenance: 100% visibility `queued`
 
+**Reconciled 2026-08-21 — markdown-rendering slice of B15.1/B15.2 verified live and closed a real
+completeness gap; B15.3/B15.4 unchanged and out of this slice's scope.** This pass owned only
+`scripts/src/summary/markdown-*.ts` and `tests/unit/summary/markdown-*.test.ts` — the `summary.md`
+rendering layer, not the producers that fill `graph.json` or gvui. Opened every file directly:
+- `markdown-step-provenance.ts`'s `renderActionProvenance` (B15.1) and `markdown-file-provenance.ts`'s
+  `fileProvenanceTable`/`fileProvenanceDetails` (B15.2) are both wired into `markdown-formatter.ts` —
+  imported at lines 15 and 28, invoked at lines 58 and 66 — and both render the exact `GraphDataset`
+  the run produced, not a second derivation of it. Confirmed by *running*, not reading, the tests: `bun
+  test tests/unit/summary/markdown-step-provenance.test.ts tests/unit/summary/
+  markdown-file-provenance.test.ts` — 15/15 pass (before this pass's own additions), and the three
+  sibling-owned integration tests that exercise this end to end all still pass:
+  `summary-markdown-provenance-wiring.test.ts` (1/1), `summary-file-provenance-wiring.test.ts` (2/2),
+  `summary-markdown-run-report.test.ts`'s full-capsule fixture (23/23 across all three files together).
+- **New finding, fixed in this pass:** `FileRef.statusCode`/`.sha256` are real harness-observed fields —
+  populated for every branch-observed file by `graph-generator-branch-nodes.ts:44-45`
+  (`statusCode: entry.status_code`, `sha256: entry.sha256`), and asserted present by
+  `summary-graph-completeness-contract.test.ts`'s own "carries every changed file with the evidence
+  class of the claim" test (still passing today) — but neither field ever reached `summary.md`;
+  `fileProvenanceTable`/`fileProvenanceDetails` read neither one. Exactly this project's own signature
+  defect: real data on one side, no renderer on the other. Fixed: `markdown-file-provenance.ts` now
+  emits a "Git status"/"Content hash" pair for any file carrying a `statusCode` (a fact task-reported
+  files never have, only branch observations do), rendering a `null` hash as an explicit "no content to
+  hash" (the harness looked; there was nothing to hash) rather than `unknown` (the harness never
+  looked) — B15's own "unknown-with-an-evidence-class, never a guess" rule applied to the one field
+  that had been silently skipping it. Proven end to end within this slice by a new test in
+  `markdown-formatter.test.ts` ("a node's file carries statusCode/sha256 from graph.json into the
+  Files Changed detail block") that builds a real `GraphDataset` node and asserts the rendered
+  Markdown carries both new lines — it fails if the call site is ever removed. Three further unit
+  tests in `markdown-file-provenance.test.ts` cover the string/`null`/absent-field cases on the
+  renderer directly. `bun test tests/unit/summary/markdown-file-provenance.test.ts tests/unit/summary/
+  markdown-formatter.test.ts tests/unit/summary/markdown-formatter-populated.test.ts tests/unit/
+  summary/markdown-formatter-topology.test.ts tests/unit/summary/markdown-step-provenance.test.ts` —
+  47/47 pass. Re-ran the three integration tests above, unmodified, after the change — still 23/23
+  pass, so nothing pinned to the file table's row shape broke. `bun run typecheck` — clean for every
+  file this pass touched (one pre-existing, unrelated error remains in
+  `workflow/plan-review/record-plan-review.ts`, outside this item and outside this pass's edits).
+- **Observed, not this slice's to fix:** `summary-graph-completeness-contract.test.ts` is mid-repair by
+  another wave (per the note below). Re-run fresh today it is 14 pass/3 fail — a different failure
+  shape than the `beforeAll` throw recorded below (`beforeAll` now succeeds; the B15.2-named test
+  itself now fails because `alpha.diff` is `undefined` at its line 212, and a separate, unrelated
+  credential-leak assertion fails at line 165). Neither failure is in `markdown-*.ts`; both are in the
+  producer/fixture layer this item does not own, so left untouched here.
+- B15.3 (`toolInvocation`/`ToolInvocationRecord`) and B15.4's gvui consumer remain exactly as the note
+  below describes — nothing to render in `markdown-*.ts` for a data shape (B15.3) that does not exist
+  yet upstream, and gvui is a different repo/language entirely (B15.4).
+
+Net for the markdown-rendering slice: B15.1 and B15.2 now render every field their upstream types
+carry, including the one gap found and closed this pass. B15 as a whole stays `queued` — B15.3 is
+unstarted and B15.4's gvui consumer is still dead code, both outside `markdown-*.ts`.
+
 **Reconciled 2026-08-20 (fourth pass, same day) — B15.1/B15.2 re-confirmed live with corrected
 citations; B15.2's cited test currently ERRORS for an unrelated reason; B15.4's gap is real and
 broader than the note below states.** Opened every file cited below directly rather than trusting the
@@ -1506,6 +1607,47 @@ is what stops the schema quietly re-acquiring a favourite tool.
 
 ## B20 — Dynamic host discovery and per-agent telemetry ingestion `queued`
 
+**Re-confirmed 2026-08-21 (B32/B20 ownership pass) — B20.1-20.3 re-verified against current
+`summary/host-telemetry.ts` and `workflow/agents/**` by direct read, and against a real, on-disk run
+(see B32.2's fresh note above; same evidence answers both items since B32 and B20 live in the same
+files). Nothing here required a code change.**
+
+- **B20.1 (data-driven discovery, not a hardcoded vendor list):** `HOST_PROBES` and `TELEMETRY_PROBES`
+  in `summary/host-telemetry.ts` key entirely on vendor-name string values (`"antigravity"`,
+  `"claude-code"`, `"codex"`, `"cursor"`), never a TypeScript union or enum — confirmed by reading the
+  file directly, not by re-trusting the prior note.
+- **B20.2 (per-agent self-report is the authority; disagreement recorded, not silently resolved):**
+  unchanged and re-verified — `telemetry-merge.ts`'s `mergeDerivedField`/`mergeObservedCount` never
+  overwrite an explicit value that disagrees with a probed one; they push a `TelemetryFieldConflict`
+  instead, surfaced on both the transaction event and the CLI response. Exercised for real this pass
+  (not just by the existing test suite): the real proof run in B32.2's note registered a live agent with
+  transcript data already present, and every field landed with its correct evidence class, no field
+  silently overwritten.
+- **B20.3 (accounting convention recorded, not just the number):** unchanged — `token_extras` keeps
+  provider-named counters (`cache_creation_input_tokens`, `cache_read_input_tokens`, the two
+  `cache_creation_ephemeral_*` keys) verbatim under their host-reported names rather than collapsing
+  them into one number. The real run in B32.2's note produced exactly these four extras keys straight
+  from a live transcript, not a synthetic fixture.
+- **B20.4 — investigated again, confirmed still genuinely out of this pass's reach, not reflexively
+  re-flagged.** `grep -rn "validatorQuality\|probe-answer-rate\|withdrawn\|overturn" scripts/src/summary/
+  scripts/src/workflow/review/` — zero hits, matching every prior pass. This item's own file grant this
+  pass (`summary/host-telemetry*.ts`, `workflow/agents/**`) still does not include
+  `summary/metrics-collector.ts` or `workflow/review/**`, which is where a per-validator quality metric
+  would have to live, and the underlying data-model question (what recorded signal should "withdrawn"
+  or "overturned" map to?) is still unanswered anywhere in the codebase. Left `queued`, unchanged, for
+  whoever owns that file pair plus an owner decision on the data model — not attempted here to avoid
+  the exact fabricated-proxy failure mode this sub-item's own text warns against.
+- **On this pass's own briefing about "three install roots" (`~/.agents/skills`,
+  `~/.gemini/config/skills`, `~/.claude/skills`) and two of them shipping docs with no scripts:**
+  checked directly (`ls`/`find` against all three on this machine) and confirmed true, but this is
+  QUEUE.md's R10 ("Runtime freshness must cover every install root") — a different, already-tracked
+  item about the harness's OWN installed-copy staleness, not about B20's subject (discovering which
+  AGENT HOST applications — Claude Code, Codex, Antigravity, Cursor — are installed). `host-telemetry.ts`
+  already reads its per-host config through an array of candidate `configPaths` per probe, not a single
+  hardcoded path, so B20.1's own "not assuming a single root" concern already holds for agent-host
+  discovery specifically. Noted here so a future pass does not conflate the two; no B20 code changed on
+  account of it.
+
 **Re-confirmed 2026-08-20 (fourth pass, same day) — the note below still holds; one citation had
 already moved.** Re-ran every check in the note rather than trusting it: `probeAgentTelemetry` call
 sites are real but at slightly different lines now (`agent-ops.ts:90,142`, not `:92,148`;
@@ -1678,6 +1820,38 @@ walks the run's other transitions to confirm each one it made carries one. `agen
 enforces a bare `--reason` string, not B21.1's fuller structured-summary contents (what changed, what was
 verified, what remains open, telemetry) the way `task:submit`'s `report` object does — a real, narrower
 gap than the old note described, worth naming precisely rather than folding back into "not done."
+
+**Updated 2026-08-21 — B21.2's third bullet is now implemented and wired.**
+`workflow/completion/transition-summary-issues.ts` (new) exports `transitionSummaryIssues(state)`,
+which walks every recorded transition this item names and checks both directions — the transition
+has its summary, and no summary exists without its transition: a branch `collected`/`abandoned`
+with no `outcome_summary`, a sub-task `submitted` with no `summary` (and the reverse: either field
+present without the matching status), an agent grant `released` with no `release_reason` (and the
+reverse), a task submission report with no `summary`, and a repair hand-off to a *different* agent
+(`repair_assignee !== original_implementer`) with a `replacement_reason` but no
+`replacement_evidence`. It is wired into `completionReadinessIssues`
+(`workflow/completion/readiness-issues.ts:123`) — the exact gate `beginCompletenessCritic` already
+refuses the critic assignment on when non-empty — so a broken chain now blocks completion before a
+critic can even start, not just at the critic's own review. Proven, not asserted: 16 direct-unit
+cases in `tests/unit/workflow/completion/transition-summary-issues.test.ts` plus a wiring test in
+`tests/unit/workflow/completion/readiness-issues.test.ts` ("refuses completion readiness when a
+collected branch has no recorded outcome summary") that was hand-verified to fail when the
+`readiness-issues.ts` call site is commented out, then passes again once restored. `bun run
+typecheck` and both files' own test runs are clean (117 pass, 0 fail across
+`tests/unit/workflow/completion/`).
+
+Stays `queued` regardless — this closes one specific bullet, not the item. Three gaps remain,
+untouched by this pass on purpose (each sits outside `workflow/completion/**`, this pass's owned
+surface): (1) B21.1's "terminates" transition has no reachable CLI command at all —
+`abandonAttempt` (`workflow/lease/abandon.ts`) is the only writer of a terminate-with-reason record
+and nothing calls it (tracked separately as coordinator-conformance QUEUE-16, not this item); (2)
+`agent:release` (`workflow/agents/grants.ts`) still only enforces a bare `--reason` string, not
+B21.1's fuller structured-summary contents (what changed, what was verified, what remains open,
+telemetry) the way `task:submit`'s `report` object does; (3) B21.3 ("summaries... carried into
+`graph.json`... and rendered in... `summary.md`") was not re-verified this pass for whether these
+five specific summary fields (branch outcome, sub-task summary, release reason, replacement
+evidence) actually reach the rendered graph and report, only that the completeness gate now checks
+their presence in the workflow state itself.
 
 **Previously (completion-tagging pass), now corrected above:** enforcement is confirmed only at the branch
 lifecycle — `workflow/branch/open.ts`, `collect.ts` and `sub-tasks.ts` all carry explicit `// B21:`
@@ -2625,6 +2799,70 @@ Headline for whoever picks this up:
 
 ## B32 — Telemetry is wired but unproven, and points at the wrong reporter `queued`
 
+**Still queued 2026-08-21 (B32/B20 ownership pass) — B32.2 closed for real, B32.3 confirmed fully wired,
+B32.1 half-fixed and half re-scoped as a spec question rather than a code defect.** Owned this pass:
+`summary/host-telemetry*.ts` and `workflow/agents/**`.
+
+- **B32.2 — CLOSED with a real, on-disk run, not a unit test.** Ran the actual CLI end to end against
+  this repo: `plan:init`/`plan:add`/`plan:compile`, then `agent:register` for a coordinator and for a
+  real, currently-active sibling subagent (`aa49f062714f34399`, one of this exact wave's own workers,
+  found live under `~/.claude/projects/-Users-onurseckinsenoglu-repos/<session>/subagents/workflows/wf_4d2a801f-866/`),
+  then `agent:report`, `agent:release` (twice, once per agent) and `summary:export`. Nothing was typed
+  in — `agent:register` alone pulled real `harness_observed` telemetry straight off that sibling's own
+  transcript (model `claude-sonnet-5`, tokens, tool calls), and the re-probe at `agent:release` picked
+  up the count growing between calls, proving the read is live, not cached. The capsule is left on disk
+  at `.capsules/b32-b20-telemetry-proof-2026-08-21/` (gitignored, harmless to keep) as the durable
+  evidence this item's own bar demands: `state.json` has `'agents' in state == True` with two grants,
+  and `summary/graph.json` / `summary/summary.md` both render the ledger — `summary.md:34` shows
+  `Agents granted | 2`, `summary.md:146` shows the released grant row, `summary.md:160,178-180` show the
+  tool-usage table, and `summary.md:221` renders the harness's own honesty footnote verbatim: "Only a
+  value the harness itself read off the host's own configuration or transcript earns derived or
+  harness_observed." Command-by-command output and every path cited above were read directly, not
+  assumed.
+- **B32.3 — now fully wired at all four boundaries; the earlier "task:submit still missing" note is
+  stale.** Read `cli/commands/task-claim.ts` in full: `taskSubmitCommand` calls
+  `probeAtTaskBoundary(run, agent, "task:submit")` at line 311, exactly mirroring `task:claim`'s call at
+  line 173. All four boundaries (`agent:register`, `task:claim`, `task:submit`, `agent:release`) call
+  the probe. One real, narrower gap remains: no test drives `task:submit` through a real `execute()` CLI
+  call while asserting the probe fired (the existing `tests/integration/agents-host-telemetry-probe.test.ts`
+  proves `task:claim` this way but exercises `task:submit`'s boundary only via a direct
+  `refreshAgentDerivedTelemetry({ boundary: "task:submit" })` call, not through `taskSubmitCommand`
+  itself) — a real gap under B33's own standard, but the fix lives in `cli/commands/task-claim.ts` and
+  its test, outside this item's file grant (`summary/host-telemetry*.ts`, `workflow/agents/**`); flagged
+  for whoever owns that file rather than fixed here.
+- **B32.1, first half — fixed.** `agents/worker.yaml`'s "### Telemetry" section (previously lines
+  126-128) told the dispatched subagent to relay its own tokens "if your host reports tool usage or
+  token counts," naming no destination — exactly the defect this sub-item describes. Rewritten: the
+  section now states plainly that the harness already reads the agent's own host transcript
+  automatically at every boundary, and that `agent:report` is only for a fact that automatic read
+  cannot see. No test references the old wording (`grep -rn "If your host reports tool usage"
+  tests/ orchestrating-long-tasks/` — zero hits before or after), so nothing else needed updating.
+- **B32.1, second half — investigated in depth, NOT changed, and the closure bar itself is now disputed
+  rather than silently deferred.** The mechanical check ("`host_reported` never appears in production
+  code") still reads true today. But renaming the transcript-derived `harness_observed` stamps in
+  `workflow/agents/telemetry-merge.ts` to `host_reported` — the only reading of "wrong reporter" that
+  would make that check pass — was tried on paper and rejected after opening the actual evidence: B34
+  (itself `verified`) explicitly chose `harness_observed` by name for this exact data ("Telemetry is
+  `harness_observed`, not `agent_reported` — the harness reads the host's own record"); four passing
+  test files assert it by name, including `tests/integration/agents-transcript-telemetry-cli.test.ts`'s
+  own test titles ("agent:register folds in real model, tokens and tool calls as harness_observed"); and
+  this pass's own real run (B32.2 above) rendered the harness's own explanatory footnote into
+  `summary.md:221` confirming `harness_observed` is the intended label for a transcript read, not
+  `host_reported`. Renaming would break tests under `tests/integration/**`, which this pass's brief
+  forbids editing (a sibling wave owns that lane) — confirmed by direct read of
+  `agents-transcript-telemetry-cli.test.ts`, not inferred. Net: the "coordinator relays the dispatch
+  result via a CLI flag" fix this sub-item's body text originally asked for is also independently
+  wrong — a CLI flag value can never honestly be `host_reported` (it is unverified input from whichever
+  process called the harness), which is exactly what B34 superseded it with. **What's actually left
+  open is a spec question, not a known-but-undone fix: should anything ever earn `host_reported`, and if
+  so what — or was that evidence class premised on a design (CLI-relayed dispatch results) that turned
+  out to be wrong, in which case the class is legitimately unused by design and B32.1's literal grep
+  should stop being treated as a defect.** Left for an owner decision rather than guessed at unilaterally.
+
+Composite-item rule: the above closes B32.2 and B32.3 outright and half of B32.1 (worker.yaml); the
+other half of B32.1 is a live spec question, so the item as a whole stays `queued`, narrowed to exactly
+that one open question.
+
 **Still queued 2026-08-20 (reconciliation pass) — re-confirmed directly, and B32.3's own note below now
 corrects a claim ("ZERO production callers") that was wrong at the time this top note was last written.**
 `probeAgentTelemetry` is real and wired (`detectHostTelemetry` + `readAgentTranscriptTelemetry`, called
@@ -2868,6 +3106,33 @@ Reasoning effort is recorded; reasoning content is not. Record that as a genuine
 ---
 
 ## B35 — Three more load-sensitive tests; B11.1's sweep was incomplete `queued`
+
+**Scoped re-check 2026-08-21 (seventh pass, file-ownership scoped to `tests/unit/**` only — nothing
+changed, but the scope itself is now the finding).** Assigned to fix "the specific test files B35
+names, under `tests/unit/**`." Re-verified fresh with `find`, not by trusting the sixth-pass note's
+prose: every test file this item ever named — `cli-honesty-sweep`, `cli-critic-ops-commands`,
+`cli-task-probe-commands`, `runner-resource-bounds`, `runner-timeouts-retries`, `store-runtime-pin` —
+has zero matches anywhere under `tests/unit/` and exactly one match each under `tests/integration/`,
+confirming the sixth-pass account still holds and the lane-split is total, not partial. The sole
+B35-named file still physically inside `tests/unit/**`, `tests/unit/packets/planner-packet.test.ts`,
+was opened and run directly (`bun test tests/unit/packets/planner-packet.test.ts` — 5 pass, 0 fail,
+154ms): it is the 48-line trimmed file the sixth pass already described, carries no `scriptsRoot` and
+no timing-dependent assertion, and is not the file that ever held the race (that assertion lives in
+`store-runtime-pin.test.ts`, itself already relocated to `tests/integration/`). Also re-opened
+`orchestrating-long-tasks/scripts/src/runner/process-group.ts` directly: `wait(graceMs)` at lines
+80/84/88 is still the identical bare `setTimeout`-based race the sixth pass cited — unchanged, still
+awaiting the owner's pick of the three options below, and it is production source, not a test file, so
+it sits outside `tests/unit/**` regardless of sign-off status.
+
+Net effect of the scoping: **there is no file left under `tests/unit/**` for a `tests/unit/**`-scoped
+pass to change.** Every load-sensitivity fix this item ever asked for was already made (bounded-poll
+`waitForProcessExit`, the `processSnapshot` `ps`-retry, the frozen-copy/injected-hook determinism in
+`planner-packet.test.ts`/`store-runtime-pin.test.ts`) before the same-day lane split moved the fixed
+files out of `tests/unit/` — so this pass changed nothing, on purpose, rather than reaching into
+`tests/integration/**` (a sibling wave's repair-in-progress lane) or making the owner's grace-race
+design choice unasked. The item stays `queued` on exactly the same two things the sixth pass left open,
+neither of which a `tests/unit/**`-scoped pass can touch: the `process-group.ts` owner decision, and the
+one residual load-only flake, now living in `tests/integration/runner-timeouts-retries.test.ts`.
 
 **Still queued 2026-08-20 (reconciliation pass, sixth pass — paths corrected, substance unchanged).**
 Every file this item names below still exists and still passes exactly as described, but a same-day
