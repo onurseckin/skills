@@ -56,3 +56,101 @@ floor, and partial write-scope truthfulness — using code that already exists a
 - PASS is the most heavily guarded transition in the codebase, not the least.
 - The `converged_success` fabrication came from the harness's own `defaultExecuteRound`, not from an
   agent. The source tree has already deleted that path; the installed build has not.
+
+---
+
+## R7–R10: the context-burn defect (added 2026-08-20)
+
+### The observation
+
+A live trace of a small model starting a run on another repository:
+
+```
+harness.ts --help                          ← correct
+harness.ts help                            ← correct
+Read harness.ts                            ← defect
+Read src/cli/execute.ts                    ← defect
+Read SKILL.md  (from ~/.gemini/...)
+Read agents/coordinator.yaml
+harness.ts plan:init --run capture-nextgen-expansion
+Read src/cli/commands/plan.ts              ← defect (after plan:add failed)
+harness.ts plan:add ...                    ← failed
+Read src/cli/commands/plan.ts              ← defect (again)
+harness.ts plan:add --run .capsules/...    ← succeeded, having learned the form from source
+harness.ts plan:compile                    ← failed
+Read graph/compiler.ts                     ← defect
+Read graph/validate-graph.ts               ← defect
+Read graph/validate-gates.ts               ← defect
+Read graph/gate-command-policy.ts   (×2)   ← defect
+Read graph/gate-runtime-grammar.ts  (×2)   ← defect
+```
+
+Roughly 100k tokens of harness source consumed before any task work began, and the cost scales with
+the size of the skill rather than the size of the user's job.
+
+### The mechanism, and why the model is not at fault
+
+The pattern is exact: **the model reads source only after a command fails.** It runs the command, gets
+an error, cannot act on the error, and goes to the source to derive what the harness wanted. Reading
+`plan.ts` is how it discovered that `--run` takes the `.capsules/<id>` form; reading the four gate
+files is how it tried to discover what gate command would be accepted.
+
+This is the same root cause `RAILS.md` already identified for a different symptom:
+
+> A refusal without a prescribed repair is a defect. A weak model refused with no path forward does
+> not re-plan.
+
+There it went *around* the harness by editing files directly. Here it goes *into* the harness by
+reading its source. One cause, two symptoms.
+
+Note what is NOT the problem: `harness.ts help plan:add` already emits a complete, excellent contract —
+every flag, type, requirement, default, mutual exclusion, and worked examples. Better help would not
+have prevented this, because the model already ran `help` twice at the start. The gap is entirely in
+what happens when a command is *refused*.
+
+Verified: grepping the source for any error carrying a suggested next command returns essentially
+nothing. Errors state what was rejected; none state what to run instead.
+
+### R7 — Errors prescribe, they never merely diagnose
+
+Every refusal carries three parts, and the third is currently missing everywhere:
+
+| part | today | required |
+|---|---|---|
+| **what** was rejected | yes | yes |
+| **why** — the rule violated | partly | yes |
+| **fix** — the literal argv to run instead, fully formed with real ids | **no** | **yes** |
+
+Where the harness can compute the fix it must. A gate rejection is the clearest case: `discoverGatePaths`
+(`graph/gate-breadth.ts`) already enumerates real on-disk paths for a write scope and is already used
+to suggest them elsewhere. A scope-gate refusal should end with the exact `plan:add` line that would
+be accepted, not a description of the rule it broke.
+
+### R8 — State the prohibition where it is read, and give the alternative
+
+`SKILL.md` already carries a "Never read" column, but the running agent loaded a 395-line SKILL.md from
+a stale install that predates it. So the prohibition must also live where a failing agent is
+guaranteed to look: **in the error itself**. Every error footer carries one line — never read the
+harness source; run `harness.ts help <command>` or `harness.ts explain <code>`.
+
+### R9 — `harness.ts explain <error-code>`
+
+A command that expands any error code into its full rule, its rationale, and its remedy. This gives a
+refused model a *command to run* in place of a *file to read*, which is the substitution the whole
+item exists to make.
+
+### R10 — Runtime freshness must cover every install root
+
+Three install roots exist on this machine, all dated 2026-08-19, all carrying the superseded 395-line
+SKILL.md:
+
+```
+~/.agents/skills/orchestrating-long-tasks          395L SKILL.md, 327 .ts
+~/.gemini/config/skills/orchestrating-long-tasks   395L SKILL.md,   0 .ts
+~/.claude/skills/orchestrating-long-tasks          395L SKILL.md,   0 .ts
+repo                                               148L SKILL.md, 510 .ts
+```
+
+Two of them ship documentation with no scripts, which is how the trace ended up reading `SKILL.md`
+from `.gemini` while executing `harness.ts` from `.agents` — **two different roots, independently
+stale, with nothing able to notice.** C11 must digest and report every root it can find, not one.
