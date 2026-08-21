@@ -167,10 +167,27 @@ const planValidatorReview: JsonObject = {
   checks: [{ command_id: "<plan-validator-owned independent command id>" }],
 };
 
+const mindRecord: JsonObject = {
+  pulse_id: "<pulse id>",
+  started_at: "<iso-8601>",
+  closed_at: "<iso-8601>",
+  outcome: "nominal|quiescent|paused|escalated|halted",
+  candidates: [{ id: "<candidate id>" }],
+};
+
+const mindAuditorRecord: JsonObject = {
+  audit_id: "<audit id>",
+  window: "<window start iso-8601>",
+  verdict: "approved|changes_requested|halt",
+  answers: [{ question_id: "<q1-q8>", command_id: "<command id>", verdict: "pass|fail|finding|clean" }],
+};
+
 const ROLE_CONTRACTS: Readonly<Record<AgentRole, JsonObject>> = {
   "completeness-critic": criticReview,
   coordinator: coordinationRecord,
   implementer: taskSubmission,
+  mind: mindRecord,
+  "mind-auditor": mindAuditorRecord,
   orchestrator: loopSynthesisRecord,
   "plan-validator": planValidatorReview,
   planner: plannerDocuments,

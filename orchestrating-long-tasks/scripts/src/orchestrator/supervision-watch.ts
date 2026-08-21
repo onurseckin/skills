@@ -41,9 +41,6 @@ function defaultSleep(ms: number, signal: AbortSignal | undefined): Promise<void
       return;
     }
     const timer = setTimeout(resolve, ms);
-    if (typeof timer === "object" && timer !== null && "unref" in timer) {
-      (timer as { unref: () => void }).unref();
-    }
     signal?.addEventListener(
       "abort",
       () => {

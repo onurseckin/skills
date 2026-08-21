@@ -5327,6 +5327,1070 @@
         "bun harness.ts capture:eval --manifest .captures/dashboard-desktop.manifest.json",
         "bun harness.ts capture:eval --manifest-dir .captures --strict"
       ]
+    },
+    {
+      "name": "mind:init",
+      "aliases": [],
+      "domain": "mind",
+      "summary": "Initialize a mind capsule from an owner charter.",
+      "description": "Validates the markdown charter file per CONTRACTS.md §7, creates the mind capsule (mind-gen-<generation>), pins the charter digest into manifest.json, seeds the state projection, and writes the initial last_pulse.json.",
+      "flags": [
+        {
+          "name": "repo",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Repository root the mind serves."
+        },
+        {
+          "name": "charter",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Path to the owner's charter file."
+        },
+        {
+          "name": "actor",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Recorded on mind-initialized."
+        },
+        {
+          "name": "mind-id",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": "mind-gen-1",
+          "description": "Mind capsule run id; defaults to mind-gen-1."
+        },
+        {
+          "name": "capsules-dir",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Override .capsules/ directory location."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts mind:init --repo . --charter docs/mind/CHARTER.md --actor owner"
+      ]
+    },
+    {
+      "name": "mind:wake",
+      "aliases": [],
+      "domain": "mind",
+      "summary": "Produce the Tier A orientation brief and reclaim expired pulses.",
+      "description": "Inspects the mind capsule state and budget, reclaims any open pulse past its deadline via mind-pulse-reclaimed, and outputs the Tier A orientation brief ending in prescribed next actions.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "The mind capsule root."
+        },
+        {
+          "name": "actor",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Recorded only if the call reclaims a dead pulse."
+        },
+        {
+          "name": "depth",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": "brief",
+          "description": "Orientation depth: brief (default) or run."
+        },
+        {
+          "name": "target-run",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "With --depth run, the run capsule whose handoff to render."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts mind:wake --run .capsules/mind-gen-1"
+      ]
+    },
+    {
+      "name": "mind:pulse-open",
+      "aliases": [],
+      "domain": "mind",
+      "summary": "Open an active mind pulse under budget constraints.",
+      "description": "Opens a new pulse cycle, validating budget headroom, daily pulse and wall-clock caps, quiet hours, and charter digest consistency before appending mind-pulse-opened.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "The mind capsule root."
+        },
+        {
+          "name": "actor",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "The tier-0 agent id."
+        },
+        {
+          "name": "host",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Host runtime as reported."
+        },
+        {
+          "name": "driver",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Driver identity as reported."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts mind:pulse-open --run .capsules/mind-gen-1 --actor mind-1 --host antigravity --driver bash-loop"
+      ]
+    },
+    {
+      "name": "mind:pulse-close",
+      "aliases": [],
+      "domain": "mind",
+      "summary": "Close an active mind pulse with an outcome, value score, and next-pulse arm.",
+      "description": "Closes the open pulse, calculates value delivered, enforces the arming rail (requiring --arm or --terminal-reason), appends mind-pulse-closed, and updates last_pulse.json.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "The mind capsule root."
+        },
+        {
+          "name": "actor",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Must match the opening actor."
+        },
+        {
+          "name": "pulse",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Pulse id; must match the open pulse."
+        },
+        {
+          "name": "outcome",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "One of the eleven outcomes in PLAN.md §4.3."
+        },
+        {
+          "name": "arm",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Duration for the next wake, e.g. 15m."
+        },
+        {
+          "name": "arm-mechanism",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "How it was armed, as reported."
+        },
+        {
+          "name": "terminal-reason",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Required when --arm is absent and the outcome is not terminal."
+        },
+        {
+          "name": "witness",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Command id evidencing the work this pulse did."
+        },
+        {
+          "name": "signal",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Typed signal, e.g. rate_limit; never inferred from prose."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts mind:pulse-close --run .capsules/mind-gen-1 --actor mind-1 --pulse pulse-1 --outcome quiescent --arm 15m --arm-mechanism systemd-timer"
+      ]
+    },
+    {
+      "name": "mind:observe",
+      "aliases": [],
+      "domain": "mind",
+      "summary": "Record a discovery source scan count evidenced by a command record.",
+      "description": "Records an observation from one of the ten discovery sources evidenced by a recorded command id, appending mind-observed.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "The mind capsule root."
+        },
+        {
+          "name": "actor",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Acting agent."
+        },
+        {
+          "name": "source",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "One of the ten source ids in PLAN.md §7.2."
+        },
+        {
+          "name": "command-id",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "The recorded command whose output this is."
+        },
+        {
+          "name": "count",
+          "type": "int",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "How many items that source returned."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts mind:observe --run .capsules/mind-gen-1 --actor mind-1 --source intent-drift --command-id cmd-41 --count 0"
+      ]
+    },
+    {
+      "name": "mind:candidate",
+      "aliases": [],
+      "domain": "mind",
+      "summary": "Record a discovery candidate (defect or proposal).",
+      "description": "Proposes a defect or proposal candidate. Defects require a witness command record and falsifier argv. Validates charter goal alignment and write scope before recording mind-candidate-opened.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "The mind capsule root."
+        },
+        {
+          "name": "actor",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Acting agent."
+        },
+        {
+          "name": "kind",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Candidate kind: defect or proposal."
+        },
+        {
+          "name": "statement",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "One line statement, recorded agent_reported."
+        },
+        {
+          "name": "witness",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Command id evidencing the defect; required unless --kind proposal."
+        },
+        {
+          "name": "charter-goal",
+          "type": "string",
+          "required": true,
+          "repeatable": true,
+          "default": null,
+          "description": "Goal ids from the pinned charter; repeat for multiple."
+        },
+        {
+          "name": "falsifier",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Argv that fails now and would pass if fixed (defects only)."
+        },
+        {
+          "name": "write-scope",
+          "type": "string",
+          "required": true,
+          "repeatable": true,
+          "default": null,
+          "description": "Paths the work would touch; repeat for multiple."
+        },
+        {
+          "name": "rationale",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Proposals only."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts mind:candidate --run .capsules/mind-gen-1 --actor mind-1 --kind defect --statement \"typecheck fails\" --witness cmd-123 --charter-goal G1 --falsifier \"bun run typecheck\" --write-scope orchestrating-long-tasks/scripts/src/health/"
+      ]
+    },
+    {
+      "name": "mind:admit",
+      "aliases": [],
+      "domain": "mind",
+      "summary": "Run admission gates on a candidate and admit it.",
+      "description": "Runs the six admission gates (falsifier verification, scope disjointness, charter alignment, etc.) in order and admits the candidate, appending mind-candidate-admitted.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "The mind capsule root."
+        },
+        {
+          "name": "actor",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Acting agent."
+        },
+        {
+          "name": "candidate",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Candidate id."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts mind:admit --run .capsules/mind-gen-1 --actor mind-1 --candidate cand-12"
+      ]
+    },
+    {
+      "name": "mind:decline",
+      "aliases": [],
+      "domain": "mind",
+      "summary": "Permanently decline a candidate with a recorded reason.",
+      "description": "Marks a candidate permanently declined with a recorded reason and gate failure attribution, appending mind-candidate-declined.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "The mind capsule root."
+        },
+        {
+          "name": "actor",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Acting agent."
+        },
+        {
+          "name": "candidate",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Candidate id."
+        },
+        {
+          "name": "reason",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Reason why candidate was declined."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts mind:decline --run .capsules/mind-gen-1 --actor mind-1 --candidate cand-12 --reason \"scope overlaps active lease\""
+      ]
+    },
+    {
+      "name": "mind:quiesce",
+      "aliases": [],
+      "domain": "mind",
+      "summary": "Record a verified quiescent observation across all ten discovery sources.",
+      "description": "Records that all ten discovery sources were scanned and found clean with zero items, appending mind-quiesced.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "The mind capsule root."
+        },
+        {
+          "name": "actor",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Acting agent."
+        },
+        {
+          "name": "source",
+          "type": "string",
+          "required": true,
+          "repeatable": true,
+          "default": null,
+          "description": "Source scan result as <source>:<command-id>:<count>; repeat for each of the ten sources."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts mind:quiesce --run .capsules/mind-gen-1 --actor mind-1 --source intent-drift:cmd-1:0 --source unassigned-todos:cmd-2:0"
+      ]
+    },
+    {
+      "name": "mind:escalate",
+      "aliases": [],
+      "domain": "mind",
+      "summary": "Record an escalation and append to escalation log.",
+      "description": "Records an escalation event in the hash chain and appends the escalation reason to escalation.md.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "The mind capsule root."
+        },
+        {
+          "name": "actor",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Acting agent."
+        },
+        {
+          "name": "reason",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Reason for escalation."
+        },
+        {
+          "name": "severity",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Severity of escalation."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts mind:escalate --run .capsules/mind-gen-1 --actor mind-1 --reason \"budget exhausted unexpectedly\""
+      ]
+    },
+    {
+      "name": "mind:halt",
+      "aliases": [],
+      "domain": "mind",
+      "summary": "Halt mind pulse execution and suppress successor arming.",
+      "description": "Halts the mind run, suppresses further autonomous pulse arming, records mind-halted, and updates last_pulse.json with next_wake_at set to null.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "The mind capsule root."
+        },
+        {
+          "name": "actor",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Acting agent."
+        },
+        {
+          "name": "reason",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Reason for halting."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts mind:halt --run .capsules/mind-gen-1 --actor mind-1 --reason \"critical safety check failure\""
+      ]
+    },
+    {
+      "name": "mind:round-open",
+      "aliases": [],
+      "domain": "mind",
+      "summary": "Open a multi-pulse round for an objective.",
+      "description": "Opens a new execution round for an objective in Phase 4, linking the round to its target capsule and appending mind-round-opened.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "The mind capsule root."
+        },
+        {
+          "name": "actor",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Acting agent."
+        },
+        {
+          "name": "objective",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Objective id."
+        },
+        {
+          "name": "round",
+          "type": "int",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Round index."
+        },
+        {
+          "name": "target-run",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Chained-from capsule run id."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts mind:round-open --run .capsules/mind-gen-1 --actor mind-1 --objective obj-1 --round 1"
+      ]
+    },
+    {
+      "name": "mind:round-close",
+      "aliases": [],
+      "domain": "mind",
+      "summary": "Close a multi-pulse round for an objective.",
+      "description": "Closes an active execution round for an objective in Phase 4, recording successor objective or terminal reason, appending mind-round-closed.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "The mind capsule root."
+        },
+        {
+          "name": "actor",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Acting agent."
+        },
+        {
+          "name": "objective",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Objective id."
+        },
+        {
+          "name": "round",
+          "type": "int",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Round index."
+        },
+        {
+          "name": "terminal-reason",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Reason if round terminates without successor."
+        },
+        {
+          "name": "successor-run",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Successor capsule run id."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts mind:round-close --run .capsules/mind-gen-1 --actor mind-1 --objective obj-1 --round 1 --terminal-reason \"objective completed\""
+      ]
+    },
+    {
+      "name": "mind:audit-start",
+      "aliases": [],
+      "domain": "mind",
+      "summary": "Start an independent audit cycle over recent pulses.",
+      "description": "Initiates an independent audit cycle in Phase 5, recording window start time and auditor identity, appending mind-audit-started.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "The mind capsule root."
+        },
+        {
+          "name": "actor",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Auditor agent id."
+        },
+        {
+          "name": "audit-id",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Audit id."
+        },
+        {
+          "name": "window-start",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Window start timestamp (ISO8601)."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts mind:audit-start --run .capsules/mind-gen-1 --actor auditor-1 --audit-id audit-1 --window-start 2026-08-21T00:00:00Z"
+      ]
+    },
+    {
+      "name": "mind:audit-report",
+      "aliases": [],
+      "domain": "mind",
+      "summary": "Submit findings and verdict for an audit cycle.",
+      "description": "Records the eight audit answers with supporting command ids and overall verdict in Phase 5, appending mind-audit-reported.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "The mind capsule root."
+        },
+        {
+          "name": "actor",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Auditor agent id."
+        },
+        {
+          "name": "audit-id",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Audit id."
+        },
+        {
+          "name": "verdict",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Audit verdict: approved or failed."
+        },
+        {
+          "name": "answer",
+          "type": "string",
+          "required": true,
+          "repeatable": true,
+          "default": null,
+          "description": "One of eight audit question answers as <question-id>:<command-id>:<verdict>; repeat for all eight."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts mind:audit-report --run .capsules/mind-gen-1 --actor auditor-1 --audit-id audit-1 --verdict approved --answer Q1:cmd-10:pass"
+      ]
     }
   ]
 }

@@ -2,11 +2,13 @@ import { spawnSync } from "node:child_process";
 import {
   chmodSync,
   copyFileSync,
+  existsSync,
   lstatSync,
   mkdirSync,
   mkdtempSync,
   readdirSync,
   rmSync,
+  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -83,6 +85,14 @@ function copyIntoScratch(repoRoot: string, scratchRoot: string, files: readonly 
     copyFileSync(from, to);
     chmodSync(to, stat.mode & 0o777);
     count += 1;
+  }
+  const nm = join(repoRoot, "node_modules");
+  if (existsSync(nm)) {
+    try {
+      symlinkSync(nm, join(scratchRoot, "node_modules"), "dir");
+    } catch {
+      // ignore
+    }
   }
   return count;
 }
@@ -201,11 +211,13 @@ const GATE_ENV_PASSTHROUGH = [
 ] as const;
 
 function gateEnvironment(source: NodeJS.ProcessEnv): Record<string, string> {
-  const env: Record<string, string> = { GIT_TERMINAL_PROMPT: "0" };
-  for (const key of GATE_ENV_PASSTHROUGH) {
-    const value = source[key];
-    if (value !== undefined && value !== "") env[key] = value;
-  }
+  const env: Record<string, string> = {
+    ...(source as Record<string, string>),
+    GIT_TERMINAL_PROMPT: "0",
+    CI: "1",
+    TERM: "dumb",
+    FORCE_COLOR: "0",
+  };
   return env;
 }
 
@@ -238,6 +250,22 @@ function tail(text: string): string {
 export interface GateProveDependencies {
   git?: RepositoryGitCommand;
   spawn?: GateSpawn;
+}
+
+function effectiveRevertScope(
+  writeScope: readonly string[],
+  gateArgv: readonly string[],
+): readonly string[] {
+  const isTestCommand =
+    gateArgv.length >= 2 &&
+    ((gateArgv[0] === "bun" && gateArgv[1] === "test") ||
+      gateArgv[0] === "vitest" ||
+      gateArgv[0] === "jest" ||
+      gateArgv[0] === "pytest");
+  if (!isTestCommand) return writeScope;
+  const gateTestPaths = new Set(gateArgv.slice(1).map(normalizeScopePath));
+  const filtered = writeScope.filter((raw) => !gateTestPaths.has(normalizeScopePath(raw)));
+  return filtered.length > 0 ? filtered : writeScope;
 }
 
 export function proveGateFalsifiable(
@@ -275,11 +303,12 @@ export function proveGateFalsifiable(
       );
     }
     const copiedFileCount = copyIntoScratch(repoRoot, scratchRoot, files);
+    const revertScope = effectiveRevertScope(input.writeScope, input.gateArgv);
     const { restoredPaths, deletedPaths } = revertWriteScope(
       repoRoot,
       scratchRoot,
       base,
-      input.writeScope,
+      revertScope,
       git,
     );
     const startedAt = Date.now();

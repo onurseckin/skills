@@ -68,6 +68,11 @@ export interface RunFiles {
   state: RunState;
   events: readonly HarnessEvent[];
 }
-
 export type StateMutator = (draft: RunState) => void;
-export type IntegrityIssue = { code: string; message: string; path?: string; detail?: JsonValue };
+export type IntegrityIssue = {
+  code: string;
+  subcode?: string;
+  message: string;
+  path?: string;
+  detail?: JsonValue;
+};

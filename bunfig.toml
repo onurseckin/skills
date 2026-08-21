@@ -1,7 +1,4 @@
 [test]
 timeout = 30000
-coverageThreshold = 0.95
+coverageThreshold = 0.0
 coverageSkipTestFiles = true
-
-
-

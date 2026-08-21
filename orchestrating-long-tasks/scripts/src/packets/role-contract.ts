@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { isAgentRole, type AgentRole } from "../contracts/packets.ts";
@@ -11,6 +12,7 @@ import { readRegularFileNoFollow } from "../core/no-follow.ts";
 import { HarnessError } from "../errors/harness-error.ts";
 
 const ROLES_ROOT = fileURLToPath(new URL("../../../roles", import.meta.url));
+const SCRIPTS_SRC_ROLES_ROOT = fileURLToPath(new URL("../roles", import.meta.url));
 const CHECKLISTS_ROOT = fileURLToPath(new URL("../../../checklists", import.meta.url));
 const LIST_FIELDS = ["may", "must_not", "commands", "spawns"] as const;
 const KEY_LINE = /^([a-z][a-z_-]*):(?:[ \t]+(.*))?$/u;
@@ -165,8 +167,8 @@ export function parseRoleContract(bytes: Uint8Array, source: string): RoleContra
   const rawTier = frontmatter.scalars.get("tier");
   if (rawTier === undefined) invalid("role contract", source, "missing key: tier");
   const tier = /^\d+$/u.test(rawTier) ? Number(rawTier) : Number.NaN;
-  if (!Number.isSafeInteger(tier) || tier < 1 || tier > 3)
-    invalid("role contract", source, `tier must be an integer from 1 to 3: ${rawTier}`);
+  if (!Number.isSafeInteger(tier) || tier < 0 || tier > 3)
+    invalid("role contract", source, `tier must be an integer from 0 to 3: ${rawTier}`);
   const rawDomain = frontmatter.scalars.get("domain");
   let domain: ValidatorDomain | undefined;
   if (rawDomain !== undefined) {
@@ -198,6 +200,8 @@ export function parseRoleContract(bytes: Uint8Array, source: string): RoleContra
 }
 
 export function resolveRoleContractPath(role: AgentRole): string {
+  const srcPath = join(SCRIPTS_SRC_ROLES_ROOT, `${role}.md`);
+  if (existsSync(srcPath)) return srcPath;
   return join(ROLES_ROOT, `${role}.md`);
 }
 

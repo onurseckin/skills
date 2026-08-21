@@ -69,7 +69,7 @@ describe("canonical role documents", () => {
     for (const role of AGENT_ROLES) {
       const contract = loadRoleContract(role);
       expect(contract.role).toBe(role);
-      expect(contract.tier).toBeGreaterThanOrEqual(1);
+      expect(contract.tier).toBeGreaterThanOrEqual(0);
       expect(contract.tier).toBeLessThanOrEqual(3);
       expect(contract.may.length).toBeGreaterThan(0);
       expect(contract.must_not.length).toBeGreaterThan(0);

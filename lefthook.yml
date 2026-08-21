@@ -18,8 +18,6 @@ pre-push:
   commands:
     test-affected:
       run: bun run test:changed
+    sync-local:
+      run: bun run sync:local
 
-post-push:
-  commands:
-    skill-update:
-      run: bun run skill:update

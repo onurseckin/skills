@@ -8,6 +8,7 @@ import { formatMorningReportMarkdown } from "../../orchestrator/morning-report.t
 import { runSupervisionWatch } from "../../orchestrator/supervision-watch.ts";
 import { RunSupervisor, type TaskDispatcher } from "../../orchestrator/supervisor.ts";
 import type { RoundExecutor } from "../../orchestrator/types.ts";
+import { refreshHandoff } from "../../reporting/handoff.ts";
 import { boolFlag, integerFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
 
 export const DEFAULT_WATCH_INTERVAL_SECONDS = 30;
@@ -162,6 +163,8 @@ async function runOrchestratorSuperviseWatch(
       ...(context.sleep === undefined ? {} : { sleep: context.sleep }),
     });
 
+    const handoffPath = refreshHandoff(input.run);
+
     return {
       markdown: formatMorningReportMarkdown(result.report, input.run),
       run_root: input.run,
@@ -179,6 +182,7 @@ async function runOrchestratorSuperviseWatch(
       watch: true,
       interval_seconds: input.intervalSeconds,
       report: result.report,
+      ...(handoffPath === undefined ? {} : { handoff_path: handoffPath }),
     };
   } finally {
     process.off("SIGINT", stopOnProcessSignal);
@@ -248,6 +252,7 @@ export async function orchestratorSuperviseCommand(
   });
 
   const result = await supervisor.run();
+  const handoffPath = refreshHandoff(run);
 
   return {
     markdown: formatMorningReportMarkdown(result.report, run),
@@ -267,5 +272,8 @@ export async function orchestratorSuperviseCommand(
     recovery_enabled: recoveryEnabled,
     watch: false,
     report: result.report,
+    ...(handoffPath === undefined ? {} : { handoff_path: handoffPath }),
   };
 }
+
+export { orchestratorSuperviseCommand as orchestratorTickCommand };

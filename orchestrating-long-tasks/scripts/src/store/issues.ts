@@ -1,8 +1,20 @@
 import type { IntegrityIssue } from "../contracts/capsule.ts";
 import { HarnessError } from "../errors/harness-error.ts";
 
-export function issue(code: string, message: string, path?: string): IntegrityIssue {
-  return path === undefined ? { code, message } : { code, message, path };
+export function issue(
+  code: string,
+  message: string,
+  path?: string,
+  subcode?: string,
+): IntegrityIssue {
+  const result: IntegrityIssue = { code, message };
+  if (path !== undefined) {
+    result.path = path;
+  }
+  if (subcode !== undefined) {
+    result.subcode = subcode;
+  }
+  return result;
 }
 
 export function throwIntegrity(issues: readonly IntegrityIssue[]): never {

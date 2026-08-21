@@ -1608,3 +1608,333 @@ Performs strict binary certification across mechanical, cognitive, custom, and s
 bun harness.ts capture:eval --manifest .captures/dashboard-desktop.manifest.json
 bun harness.ts capture:eval --manifest-dir .captures --strict
 ```
+
+## mind
+
+### `mind:init`
+
+Initialize a mind capsule from an owner charter.
+
+Validates the markdown charter file per CONTRACTS.md §7, creates the mind capsule (mind-gen-<generation>), pins the charter digest into manifest.json, seeds the state projection, and writes the initial last_pulse.json.
+
+- **Aliases**: none
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--repo` | string | yes | no | - | Repository root the mind serves. |
+| `--charter` | string | yes | no | - | Path to the owner's charter file. |
+| `--actor` | string | yes | no | - | Recorded on mind-initialized. |
+| `--mind-id` | string | no | no | `mind-gen-1` | Mind capsule run id; defaults to mind-gen-1. |
+| `--capsules-dir` | string | no | no | - | Override .capsules/ directory location. |
+
+```bash
+bun harness.ts mind:init --repo . --charter docs/mind/CHARTER.md --actor owner
+```
+
+### `mind:wake`
+
+Produce the Tier A orientation brief and reclaim expired pulses.
+
+Inspects the mind capsule state and budget, reclaims any open pulse past its deadline via mind-pulse-reclaimed, and outputs the Tier A orientation brief ending in prescribed next actions.
+
+- **Aliases**: none
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--run` | string | yes | no | - | The mind capsule root. |
+| `--actor` | string | no | no | - | Recorded only if the call reclaims a dead pulse. |
+| `--depth` | string | no | no | `brief` | Orientation depth: brief (default) or run. |
+| `--target-run` | string | no | no | - | With --depth run, the run capsule whose handoff to render. |
+
+```bash
+bun harness.ts mind:wake --run .capsules/mind-gen-1
+```
+
+### `mind:pulse-open`
+
+Open an active mind pulse under budget constraints.
+
+Opens a new pulse cycle, validating budget headroom, daily pulse and wall-clock caps, quiet hours, and charter digest consistency before appending mind-pulse-opened.
+
+- **Aliases**: none
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--run` | string | yes | no | - | The mind capsule root. |
+| `--actor` | string | yes | no | - | The tier-0 agent id. |
+| `--host` | string | yes | no | - | Host runtime as reported. |
+| `--driver` | string | yes | no | - | Driver identity as reported. |
+
+```bash
+bun harness.ts mind:pulse-open --run .capsules/mind-gen-1 --actor mind-1 --host antigravity --driver bash-loop
+```
+
+### `mind:pulse-close`
+
+Close an active mind pulse with an outcome, value score, and next-pulse arm.
+
+Closes the open pulse, calculates value delivered, enforces the arming rail (requiring --arm or --terminal-reason), appends mind-pulse-closed, and updates last_pulse.json.
+
+- **Aliases**: none
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--run` | string | yes | no | - | The mind capsule root. |
+| `--actor` | string | yes | no | - | Must match the opening actor. |
+| `--pulse` | string | yes | no | - | Pulse id; must match the open pulse. |
+| `--outcome` | string | yes | no | - | One of the eleven outcomes in PLAN.md §4.3. |
+| `--arm` | string | no | no | - | Duration for the next wake, e.g. 15m. |
+| `--arm-mechanism` | string | no | no | - | How it was armed, as reported. |
+| `--terminal-reason` | string | no | no | - | Required when --arm is absent and the outcome is not terminal. |
+| `--witness` | string | no | no | - | Command id evidencing the work this pulse did. |
+| `--signal` | string | no | no | - | Typed signal, e.g. rate_limit; never inferred from prose. |
+
+```bash
+bun harness.ts mind:pulse-close --run .capsules/mind-gen-1 --actor mind-1 --pulse pulse-1 --outcome quiescent --arm 15m --arm-mechanism systemd-timer
+```
+
+### `mind:observe`
+
+Record a discovery source scan count evidenced by a command record.
+
+Records an observation from one of the ten discovery sources evidenced by a recorded command id, appending mind-observed.
+
+- **Aliases**: none
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--run` | string | yes | no | - | The mind capsule root. |
+| `--actor` | string | yes | no | - | Acting agent. |
+| `--source` | string | yes | no | - | One of the ten source ids in PLAN.md §7.2. |
+| `--command-id` | string | yes | no | - | The recorded command whose output this is. |
+| `--count` | int | yes | no | - | How many items that source returned. |
+
+```bash
+bun harness.ts mind:observe --run .capsules/mind-gen-1 --actor mind-1 --source intent-drift --command-id cmd-41 --count 0
+```
+
+### `mind:candidate`
+
+Record a discovery candidate (defect or proposal).
+
+Proposes a defect or proposal candidate. Defects require a witness command record and falsifier argv. Validates charter goal alignment and write scope before recording mind-candidate-opened.
+
+- **Aliases**: none
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--run` | string | yes | no | - | The mind capsule root. |
+| `--actor` | string | yes | no | - | Acting agent. |
+| `--kind` | string | yes | no | - | Candidate kind: defect or proposal. |
+| `--statement` | string | yes | no | - | One line statement, recorded agent_reported. |
+| `--witness` | string | no | no | - | Command id evidencing the defect; required unless --kind proposal. |
+| `--charter-goal` | string | yes | yes | - | Goal ids from the pinned charter; repeat for multiple. |
+| `--falsifier` | string | no | no | - | Argv that fails now and would pass if fixed (defects only). |
+| `--write-scope` | string | yes | yes | - | Paths the work would touch; repeat for multiple. |
+| `--rationale` | string | no | no | - | Proposals only. |
+
+```bash
+bun harness.ts mind:candidate --run .capsules/mind-gen-1 --actor mind-1 --kind defect --statement "typecheck fails" --witness cmd-123 --charter-goal G1 --falsifier "bun run typecheck" --write-scope orchestrating-long-tasks/scripts/src/health/
+```
+
+### `mind:admit`
+
+Run admission gates on a candidate and admit it.
+
+Runs the six admission gates (falsifier verification, scope disjointness, charter alignment, etc.) in order and admits the candidate, appending mind-candidate-admitted.
+
+- **Aliases**: none
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--run` | string | yes | no | - | The mind capsule root. |
+| `--actor` | string | yes | no | - | Acting agent. |
+| `--candidate` | string | yes | no | - | Candidate id. |
+
+```bash
+bun harness.ts mind:admit --run .capsules/mind-gen-1 --actor mind-1 --candidate cand-12
+```
+
+### `mind:decline`
+
+Permanently decline a candidate with a recorded reason.
+
+Marks a candidate permanently declined with a recorded reason and gate failure attribution, appending mind-candidate-declined.
+
+- **Aliases**: none
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--run` | string | yes | no | - | The mind capsule root. |
+| `--actor` | string | yes | no | - | Acting agent. |
+| `--candidate` | string | yes | no | - | Candidate id. |
+| `--reason` | string | yes | no | - | Reason why candidate was declined. |
+
+```bash
+bun harness.ts mind:decline --run .capsules/mind-gen-1 --actor mind-1 --candidate cand-12 --reason "scope overlaps active lease"
+```
+
+### `mind:quiesce`
+
+Record a verified quiescent observation across all ten discovery sources.
+
+Records that all ten discovery sources were scanned and found clean with zero items, appending mind-quiesced.
+
+- **Aliases**: none
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--run` | string | yes | no | - | The mind capsule root. |
+| `--actor` | string | yes | no | - | Acting agent. |
+| `--source` | string | yes | yes | - | Source scan result as <source>:<command-id>:<count>; repeat for each of the ten sources. |
+
+```bash
+bun harness.ts mind:quiesce --run .capsules/mind-gen-1 --actor mind-1 --source intent-drift:cmd-1:0 --source unassigned-todos:cmd-2:0
+```
+
+### `mind:escalate`
+
+Record an escalation and append to escalation log.
+
+Records an escalation event in the hash chain and appends the escalation reason to escalation.md.
+
+- **Aliases**: none
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--run` | string | yes | no | - | The mind capsule root. |
+| `--actor` | string | yes | no | - | Acting agent. |
+| `--reason` | string | yes | no | - | Reason for escalation. |
+| `--severity` | string | no | no | - | Severity of escalation. |
+
+```bash
+bun harness.ts mind:escalate --run .capsules/mind-gen-1 --actor mind-1 --reason "budget exhausted unexpectedly"
+```
+
+### `mind:halt`
+
+Halt mind pulse execution and suppress successor arming.
+
+Halts the mind run, suppresses further autonomous pulse arming, records mind-halted, and updates last_pulse.json with next_wake_at set to null.
+
+- **Aliases**: none
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--run` | string | yes | no | - | The mind capsule root. |
+| `--actor` | string | yes | no | - | Acting agent. |
+| `--reason` | string | yes | no | - | Reason for halting. |
+
+```bash
+bun harness.ts mind:halt --run .capsules/mind-gen-1 --actor mind-1 --reason "critical safety check failure"
+```
+
+### `mind:round-open`
+
+Open a multi-pulse round for an objective.
+
+Opens a new execution round for an objective in Phase 4, linking the round to its target capsule and appending mind-round-opened.
+
+- **Aliases**: none
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--run` | string | yes | no | - | The mind capsule root. |
+| `--actor` | string | yes | no | - | Acting agent. |
+| `--objective` | string | yes | no | - | Objective id. |
+| `--round` | int | yes | no | - | Round index. |
+| `--target-run` | string | no | no | - | Chained-from capsule run id. |
+
+```bash
+bun harness.ts mind:round-open --run .capsules/mind-gen-1 --actor mind-1 --objective obj-1 --round 1
+```
+
+### `mind:round-close`
+
+Close a multi-pulse round for an objective.
+
+Closes an active execution round for an objective in Phase 4, recording successor objective or terminal reason, appending mind-round-closed.
+
+- **Aliases**: none
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--run` | string | yes | no | - | The mind capsule root. |
+| `--actor` | string | yes | no | - | Acting agent. |
+| `--objective` | string | yes | no | - | Objective id. |
+| `--round` | int | yes | no | - | Round index. |
+| `--terminal-reason` | string | no | no | - | Reason if round terminates without successor. |
+| `--successor-run` | string | no | no | - | Successor capsule run id. |
+
+```bash
+bun harness.ts mind:round-close --run .capsules/mind-gen-1 --actor mind-1 --objective obj-1 --round 1 --terminal-reason "objective completed"
+```
+
+### `mind:audit-start`
+
+Start an independent audit cycle over recent pulses.
+
+Initiates an independent audit cycle in Phase 5, recording window start time and auditor identity, appending mind-audit-started.
+
+- **Aliases**: none
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--run` | string | yes | no | - | The mind capsule root. |
+| `--actor` | string | yes | no | - | Auditor agent id. |
+| `--audit-id` | string | yes | no | - | Audit id. |
+| `--window-start` | string | yes | no | - | Window start timestamp (ISO8601). |
+
+```bash
+bun harness.ts mind:audit-start --run .capsules/mind-gen-1 --actor auditor-1 --audit-id audit-1 --window-start 2026-08-21T00:00:00Z
+```
+
+### `mind:audit-report`
+
+Submit findings and verdict for an audit cycle.
+
+Records the eight audit answers with supporting command ids and overall verdict in Phase 5, appending mind-audit-reported.
+
+- **Aliases**: none
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--run` | string | yes | no | - | The mind capsule root. |
+| `--actor` | string | yes | no | - | Auditor agent id. |
+| `--audit-id` | string | yes | no | - | Audit id. |
+| `--verdict` | string | yes | no | - | Audit verdict: approved or failed. |
+| `--answer` | string | yes | yes | - | One of eight audit question answers as <question-id>:<command-id>:<verdict>; repeat for all eight. |
+
+```bash
+bun harness.ts mind:audit-report --run .capsules/mind-gen-1 --actor auditor-1 --audit-id audit-1 --verdict approved --answer Q1:cmd-10:pass
+```

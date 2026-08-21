@@ -5,6 +5,8 @@ import type { ToolCategory } from "../contracts/taxonomy.ts";
 import type { ValidatorDomain } from "../contracts/workflow.ts";
 
 export type NodeRole =
+  | "mind"
+  | "mind-auditor"
   | "coordinator"
   | "orchestrator"
   | "planner"

@@ -33,7 +33,8 @@ export type CommandDomain =
   | "authority"
   | "diagnostics"
   | "gate"
-  | "capture";
+  | "capture"
+  | "mind";
 
 export type CommandHandler = (
   flags: Flags,

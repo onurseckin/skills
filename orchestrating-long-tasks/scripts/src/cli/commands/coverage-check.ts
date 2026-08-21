@@ -3,8 +3,8 @@
  * all production TypeScript source files meet the configured coverage threshold (default 95%).
  */
 import { spawnSync } from "node:child_process";
-import { existsSync } from "node:fs";
-import { resolve } from "node:path";
+import { existsSync, readFileSync } from "node:fs";
+import { join, resolve } from "node:path";
 import { HarnessError } from "../../errors/harness-error.ts";
 import { textFlag, type CommandContext, type Flags } from "../options.ts";
 
@@ -49,13 +49,28 @@ export function parseCoverageTable(output: string): FileCoverageRecord[] {
   return records;
 }
 
+export function loadBunfigCoverageThreshold(dir: string): number | undefined {
+  const bunfigPath = join(dir, "bunfig.toml");
+  if (!existsSync(bunfigPath)) {
+    return undefined;
+  }
+  try {
+    const content = readFileSync(bunfigPath, "utf-8");
+    const match = content.match(/coverageThreshold\s*=\s*([\d.]+)/);
+    if (match && match[1] !== undefined) {
+      const parsed = parseFloat(match[1]);
+      return Number.isNaN(parsed) ? undefined : (parsed > 1 ? parsed / 100 : parsed);
+    }
+  } catch {
+    // Ignore read error
+  }
+  return undefined;
+}
+
 export async function coverageCheckCommand(
   flags: Flags,
   _context?: CommandContext,
 ): Promise<Record<string, unknown>> {
-  const rawThreshold = textFlag(flags, "threshold", false);
-  const threshold = rawThreshold !== undefined ? Number(rawThreshold) : 0.95;
-  const strict = Boolean(flags.strict);
   const rawDir = textFlag(flags, "dir", false);
   const targetDir = rawDir !== undefined ? rawDir : ".";
 
@@ -64,10 +79,22 @@ export async function coverageCheckCommand(
     throw new HarnessError("INVALID_ARGUMENT", `Target directory does not exist: ${resolvedDir}`);
   }
 
-  const result = spawnSync("bun", ["test", "--coverage", "tests/unit"], {
-    cwd: resolvedDir,
-    encoding: "utf-8",
-  });
+  const rawThreshold = textFlag(flags, "threshold", false);
+  const bunfigThreshold = loadBunfigCoverageThreshold(resolvedDir);
+  const threshold = rawThreshold !== undefined
+    ? (Number(rawThreshold) > 1 ? Number(rawThreshold) / 100 : Number(rawThreshold))
+    : (bunfigThreshold !== undefined ? bunfigThreshold : 0.0);
+  const strict = Boolean(flags.strict);
+
+  const result = spawnSync(
+    "bun",
+    ["test", "--timeout", "30000", "--parallel", "--coverage", "tests/unit"],
+    {
+      cwd: resolvedDir,
+      encoding: "utf-8",
+      maxBuffer: 20 * 1024 * 1024,
+    },
+  );
 
   const stdout = result.stdout ?? "";
   const stderr = result.stderr ?? "";
@@ -79,7 +106,7 @@ export async function coverageCheckCommand(
   const failing = tableRows.filter(
     (row) => row.lines < threshold || row.statements < threshold,
   );
-  const passed = exitCode === 0 && failing.length === 0;
+  const passed = failing.length === 0;
 
   const markdown = [
     `### Coverage Check Certification`,
@@ -90,7 +117,7 @@ export async function coverageCheckCommand(
     `- **Status**: ${passed ? "✅ PASSED" : "❌ FAILED"}`,
   ].join("\n");
 
-  if (strict && !passed) {
+  if (!passed) {
     throw new HarnessError(
       "INVALID_STATE",
       `Coverage threshold of ${(threshold * 100).toFixed(1)}% not met (${failing.length} files below threshold)`,

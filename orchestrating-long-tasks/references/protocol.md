@@ -37,12 +37,13 @@ model, tier or thinking level is inferred from the machine that exported the run
 
 ## Canonical roles
 
-Eleven roles, each with a capability contract in `roles/<role>.md` declaring `may`, `must_not`, the
+Thirteen roles, each with a capability contract in `roles/<role>.md` declaring `may`, `must_not`, the
 exact commands it may invoke, and the roles it may branch into:
 
 | Tier       | Roles                                                                                      |
-| :--------- | :------------------------------------------------------------------------------------------ |
-| 1          | `orchestrator`                                                                              |
+| :--------- | :----------------------------------------------------------------------------------------- |
+| 0          | `mind`                                                                                     |
+| 1          | `orchestrator`, `mind-auditor`                                                              |
 | 2          | `coordinator`                                                                                |
 | 3          | `planner`, `plan-validator`, `implementer`, `validator`, `repairer`, `completeness-critic` |
 | 3 (branch) | `sub-implementer`, `sub-validator`, `sub-investigator`                                      |
