@@ -1,5 +1,4 @@
 # UI design checklist
-
 Domain: ui-design
 
 Drawn whenever a task's write scope touches a UI surface (B12.2): a `.tsx`, `.css`, `.html` or
@@ -15,8 +14,7 @@ rationale: An off-scale value is invisible in isolation and becomes a visible se
 how-to-check: Grep the diff's styles for numeric literals not present in the token scale (e.g. `13px`, `7px` in an 4/8-based scale)
 severity: minor
 sources:
-
-- Refactoring UI (Adam Wathan & Steve Schoger), "Working with a Type Scale" and spacing chapters
+  - Refactoring UI (Adam Wathan & Steve Schoger), "Working with a Type Scale" and spacing chapters
 
 ## UI-LAYOUT-002
 
@@ -25,8 +23,7 @@ rationale: A layout that only degrades gracefully at desktop width regularly bre
 how-to-check: Check the changed component's CSS for fixed widths or `nowrap` without a corresponding narrow-viewport rule
 severity: important
 sources:
-
-- web.dev, "Responsive Web Design Basics"
+  - web.dev, "Responsive Web Design Basics"
 
 ## UI-TYPE-001
 
@@ -35,8 +32,7 @@ rationale: This is the owner's own worked example: an inconsistent text size nob
 how-to-check: Compare the new or touched element's font-size/font-weight against its nearest sibling in the same component
 severity: important
 sources:
-
-- Refactoring UI (Adam Wathan & Steve Schoger), "Establish a Type Scale"
+  - Refactoring UI (Adam Wathan & Steve Schoger), "Establish a Type Scale"
 
 ## UI-TYPE-002
 
@@ -45,8 +41,7 @@ rationale: Text below the legibility floor or lines that run too wide both cost 
 how-to-check: Check computed font-size against the platform floor (16px web body text as a common baseline) and measure line length at the container's max width
 severity: minor
 sources:
-
-- WCAG 2.2, Success Criterion 1.4.4 (Resize Text); typography convention on line length (~45–75 characters)
+  - WCAG 2.2, Success Criterion 1.4.4 (Resize Text); typography convention on line length (~45–75 characters)
 
 ## UI-COLOR-001
 
@@ -55,8 +50,7 @@ rationale: Contrast below the threshold is unreadable for a meaningful share of 
 how-to-check: Compute the contrast ratio between the element's resolved foreground and background colors; compare against the threshold for its text size
 severity: important
 sources:
-
-- WCAG 2.2, Success Criterion 1.4.3 (Contrast Minimum) and 1.4.11 (Non-text Contrast)
+  - WCAG 2.2, Success Criterion 1.4.3 (Contrast Minimum) and 1.4.11 (Non-text Contrast)
 
 ## UI-COLOR-002
 
@@ -65,8 +59,7 @@ rationale: Color-only signaling is invisible to colorblind users and to anyone i
 how-to-check: For each state that changes only a color, confirm an accompanying icon, text label, or border-style change exists
 severity: important
 sources:
-
-- WCAG 2.2, Success Criterion 1.4.1 (Use of Color)
+  - WCAG 2.2, Success Criterion 1.4.1 (Use of Color)
 
 ## UI-SPACE-001
 
@@ -75,8 +68,7 @@ rationale: A target below this size increases mis-taps disproportionately for us
 how-to-check: Measure the touched control's rendered bounding box, including padding, against the 24x24 floor
 severity: important
 sources:
-
-- WCAG 2.2, Success Criterion 2.5.8 (Target Size Minimum)
+  - WCAG 2.2, Success Criterion 2.5.8 (Target Size Minimum)
 
 ## UI-SPACE-002
 
@@ -85,8 +77,7 @@ rationale: Spacing is the primary way a layout communicates grouping before a us
 how-to-check: Compare the gap within a logical group against the gap to the next group; the within-group gap should be visibly smaller
 severity: minor
 sources:
-
-- Refactoring UI (Adam Wathan & Steve Schoger), "The Power of Proximity"
+  - Refactoring UI (Adam Wathan & Steve Schoger), "The Power of Proximity"
 
 ## UI-RESP-001
 
@@ -95,8 +86,7 @@ rationale: A single oversized media element breaks the whole page's responsivene
 how-to-check: Grep the diff's new media elements for a missing max-width constraint
 severity: minor
 sources:
-
-- web.dev, "Responsive Images"
+  - web.dev, "Responsive Images"
 
 ## UI-RESP-002
 
@@ -105,8 +95,7 @@ rationale: A page-level horizontal scrollbar hides content off both edges and is
 how-to-check: At the narrowest supported viewport, check whether `document.body` or the page root has horizontal overflow rather than the specific wide element
 severity: important
 sources:
-
-- web.dev, "Avoid Horizontal Scrolling"
+  - web.dev, "Avoid Horizontal Scrolling"
 
 ## UI-MOTION-001
 
@@ -115,8 +104,7 @@ rationale: Motion-triggered vestibular symptoms are a real accessibility harm, n
 how-to-check: Grep the diff's CSS/JS for new `@keyframes`, `transition`, or animation libraries and confirm a reduced-motion branch exists
 severity: minor
 sources:
-
-- WCAG 2.2, Success Criterion 2.3.3 (Animation from Interactions)
+  - WCAG 2.2, Success Criterion 2.3.3 (Animation from Interactions)
 
 ## UI-MOTION-002
 
@@ -125,8 +113,7 @@ rationale: Inconsistent motion timing is felt even when it cannot be easily name
 how-to-check: Compare new `transition-duration`/`animation-duration` values against the system's documented motion tokens
 severity: minor
 sources:
-
-- Material Design, "Motion — Duration and Easing"
+  - Material Design, "Motion — Duration and Easing"
 
 ## UI-A11Y-001
 
@@ -135,8 +122,7 @@ rationale: A mouse-only interaction excludes keyboard and switch-device users en
 how-to-check: Tab through the changed surface; confirm every clickable element receives focus in a sensible order and shows a visible focus ring
 severity: critical
 sources:
-
-- WCAG 2.2, Success Criterion 2.1.1 (Keyboard) and 2.4.7 (Focus Visible)
+  - WCAG 2.2, Success Criterion 2.1.1 (Keyboard) and 2.4.7 (Focus Visible)
 
 ## UI-A11Y-002
 
@@ -145,8 +131,7 @@ rationale: A screen reader announces nothing useful for an unlabeled icon, so th
 how-to-check: Grep new icon-only buttons and images for a missing `aria-label`/`alt` attribute
 severity: important
 sources:
-
-- WCAG 2.2, Success Criterion 4.1.2 (Name, Role, Value); WAI-ARIA Authoring Practices Guide
+  - WCAG 2.2, Success Criterion 4.1.2 (Name, Role, Value); WAI-ARIA Authoring Practices Guide
 
 ## UI-A11Y-003
 
@@ -155,8 +140,7 @@ rationale: A hand-rolled widget that looks right visually routinely omits the `r
 how-to-check: Compare the new widget's markup and keyboard handling against the corresponding APG pattern for that widget type
 severity: important
 sources:
-
-- WAI-ARIA Authoring Practices Guide (APG)
+  - WAI-ARIA Authoring Practices Guide (APG)
 
 ## UI-FORM-001
 
@@ -165,8 +149,7 @@ rationale: Placeholder text disappears the moment the user types, and is not rel
 how-to-check: Grep new form fields for a `<label for>`/`aria-labelledby` association; flag any field with only a `placeholder`
 severity: important
 sources:
-
-- WCAG 2.2, Success Criterion 1.3.1 (Info and Relationships); WAI-ARIA Authoring Practices Guide
+  - WCAG 2.2, Success Criterion 1.3.1 (Info and Relationships); WAI-ARIA Authoring Practices Guide
 
 ## UI-FORM-002
 
@@ -175,8 +158,7 @@ rationale: A generic top-of-page "there were errors" message forces the user to 
 how-to-check: Trigger a validation failure on the changed form; confirm the message text is field-specific and lives near the field, with `aria-describedby` or a live region wiring it to assistive tech
 severity: important
 sources:
-
-- WCAG 2.2, Success Criterion 3.3.1 (Error Identification) and 3.3.3 (Error Suggestion)
+  - WCAG 2.2, Success Criterion 3.3.1 (Error Identification) and 3.3.3 (Error Suggestion)
 
 ## UI-STATE-001
 
@@ -185,8 +167,7 @@ rationale: The states nobody designed are the ones users hit first in production
 how-to-check: For a new or touched data-driven view, exercise each of the four states directly (throttle network, force an error, return zero rows)
 severity: important
 sources:
-
-- Nielsen Norman Group, "Visibility of System Status" (Usability Heuristic #1)
+  - Nielsen Norman Group, "Visibility of System Status" (Usability Heuristic #1)
 
 ## UI-STATE-002
 
@@ -195,8 +176,7 @@ rationale: An accidental single click destroying unrecoverable work is a severe,
 how-to-check: For every new destructive action, confirm a confirmation step or an undo window exists
 severity: important
 sources:
-
-- Nielsen Norman Group, "User Control and Freedom" (Usability Heuristic #3)
+  - Nielsen Norman Group, "User Control and Freedom" (Usability Heuristic #3)
 
 ## UI-NAV-001
 
@@ -205,8 +185,7 @@ rationale: Without an active-state indicator, a user who navigates away and back
 how-to-check: Compare the navigation element's styling for the current route against its styling for other routes
 severity: minor
 sources:
-
-- Nielsen Norman Group, "Visibility of System Status" (Usability Heuristic #1)
+  - Nielsen Norman Group, "Visibility of System Status" (Usability Heuristic #1)
 
 ## UI-NAV-002
 
@@ -215,8 +194,7 @@ rationale: A view that only works when arrived at via in-app click breaks the mo
 how-to-check: Reload the changed route directly and use browser back/forward; confirm state is not lost or the page does not error
 severity: minor
 sources:
-
-- web.dev, "Application State and the Back Button"
+  - web.dev, "Application State and the Back Button"
 
 ## UI-DARK-001
 
@@ -225,8 +203,7 @@ rationale: A color tuned by eye in one theme is very often illegible or jarring 
 how-to-check: Toggle the theme (or check `prefers-color-scheme`) and inspect the new component in both states
 severity: important
 sources:
-
-- web.dev, "prefers-color-scheme: Hello Darkness, My Old Friend"
+  - web.dev, "prefers-color-scheme: Hello Darkness, My Old Friend"
 
 ## UI-LAYOUT-003
 
@@ -235,8 +212,7 @@ rationale: An arbitrary alignment choice for one instance of a repeated pattern 
 how-to-check: Compare the new layout's alignment properties against the nearest existing instance of the same layout pattern
 severity: minor
 sources:
-
-- Refactoring UI (Adam Wathan & Steve Schoger) — layout and alignment
+  - Refactoring UI (Adam Wathan & Steve Schoger) — layout and alignment
 
 ## UI-LAYOUT-004
 
@@ -245,8 +221,7 @@ rationale: Silent clipping without truncation styling loses content the user nev
 how-to-check: Fill the changed container with unusually long content and check whether it grows, shows a visible truncation affordance (ellipsis, "show more"), or silently cuts off
 severity: minor
 sources:
-
-- Refactoring UI (Adam Wathan & Steve Schoger)
+  - Refactoring UI (Adam Wathan & Steve Schoger)
 
 ## UI-TYPE-003
 
@@ -255,8 +230,7 @@ rationale: A skipped heading level breaks both the visual scan pattern and the d
 how-to-check: List the new surface's heading levels in document order and confirm no level is skipped
 severity: minor
 sources:
-
-- WCAG 2.2, Success Criterion 1.3.1 (Info and Relationships) — heading structure
+  - WCAG 2.2, Success Criterion 1.3.1 (Info and Relationships) — heading structure
 
 ## UI-TYPE-004
 
@@ -265,8 +239,7 @@ rationale: Tight line height measurably reduces reading comprehension and speed,
 how-to-check: Compute the ratio of `line-height` to `font-size` for new body-text blocks
 severity: minor
 sources:
-
-- WCAG 2.2, Success Criterion 1.4.8 (Visual Presentation) — line spacing guidance
+  - WCAG 2.2, Success Criterion 1.4.8 (Visual Presentation) — line spacing guidance
 
 ## UI-COLOR-003
 
@@ -275,8 +248,7 @@ rationale: A color chosen for aesthetics rather than contrast frequently fails t
 how-to-check: For each new use of a low-contrast color, confirm it is purely decorative and not the sole carrier of state or required information
 severity: minor
 sources:
-
-- WCAG 2.2, Success Criterion 1.4.1 (Use of Color)
+  - WCAG 2.2, Success Criterion 1.4.1 (Use of Color)
 
 ## UI-SPACE-003
 
@@ -285,8 +257,7 @@ rationale: A fixed padding value on a scaled-up variant produces a cramped or lo
 how-to-check: Compare the padding-to-size ratio across the component's declared size variants
 severity: minor
 sources:
-
-- Refactoring UI (Adam Wathan & Steve Schoger)
+  - Refactoring UI (Adam Wathan & Steve Schoger)
 
 ## UI-RESP-003
 
@@ -295,8 +266,7 @@ rationale: Touch has no hover state, so a hover-only affordance is simply absent
 how-to-check: For a new hover-triggered UI element, confirm an equivalent tap/focus-triggered path exists
 severity: important
 sources:
-
-- WCAG 2.2, Success Criterion 2.1.1 (Keyboard) and general touch-target guidance
+  - WCAG 2.2, Success Criterion 2.1.1 (Keyboard) and general touch-target guidance
 
 ## UI-RESP-004
 
@@ -305,8 +275,7 @@ rationale: A layout can work at both breakpoint extremes and still break at an i
 how-to-check: Resize the changed surface continuously across the supported range, not only jumping between the smallest and largest breakpoint
 severity: minor
 sources:
-
-- web.dev, "Responsive Web Design Basics"
+  - web.dev, "Responsive Web Design Basics"
 
 ## UI-MOTION-003
 
@@ -315,8 +284,7 @@ rationale: An animation still running after its operation finished reads as the 
 how-to-check: Trigger the changed operation to completion and confirm its animation stops at or shortly after that point, not continuing on a fixed loop
 severity: minor
 sources:
-
-- Nielsen Norman Group, "Visibility of System Status" (Usability Heuristic #1)
+  - Nielsen Norman Group, "Visibility of System Status" (Usability Heuristic #1)
 
 ## UI-A11Y-004
 
@@ -325,8 +293,7 @@ rationale: A visually-obvious status change is invisible to a screen reader user
 how-to-check: Trigger the changed status update with a screen reader running and confirm it is announced without manual navigation to the message
 severity: important
 sources:
-
-- WAI-ARIA Authoring Practices Guide — live regions
+  - WAI-ARIA Authoring Practices Guide — live regions
 
 ## UI-A11Y-005
 
@@ -335,8 +302,7 @@ rationale: `alt="image"` or an empty alt on a meaningful image gives a screen re
 how-to-check: Read each new meaningful image's alt text and confirm it states the image's actual informational content, not a generic label
 severity: important
 sources:
-
-- WCAG 2.2, Success Criterion 1.1.1 (Non-text Content)
+  - WCAG 2.2, Success Criterion 1.1.1 (Non-text Content)
 
 ## UI-A11Y-006
 
@@ -345,8 +311,7 @@ rationale: A mismatched visual and DOM order means keyboard and screen-reader us
 how-to-check: Tab through the changed surface while watching focus move, and compare the sequence against the visual left-to-right, top-to-bottom reading order
 severity: important
 sources:
-
-- WCAG 2.2, Success Criterion 1.3.2 (Meaningful Sequence)
+  - WCAG 2.2, Success Criterion 1.3.2 (Meaningful Sequence)
 
 ## UI-A11Y-007
 
@@ -355,8 +320,7 @@ rationale: Users with low vision routinely rely on browser zoom, and a layout th
 how-to-check: Set browser zoom to 200% on the changed surface and check for clipped, overlapping, or unreachable content
 severity: important
 sources:
-
-- WCAG 2.2, Success Criterion 1.4.4 (Resize Text)
+  - WCAG 2.2, Success Criterion 1.4.4 (Resize Text)
 
 ## UI-FORM-003
 
@@ -365,8 +329,7 @@ rationale: Discovering the required format only after a rejected submission wast
 how-to-check: Read the field's label/hint text for a stated format expectation before triggering a validation error
 severity: minor
 sources:
-
-- Nielsen Norman Group, "Error Prevention" (Usability Heuristic #5)
+  - Nielsen Norman Group, "Error Prevention" (Usability Heuristic #5)
 
 ## UI-FORM-004
 
@@ -375,8 +338,7 @@ rationale: A disabled control with no explanation is a dead end the user cannot 
 how-to-check: Reach the disabled state of the changed submit control and check for a visible reason near it
 severity: minor
 sources:
-
-- Nielsen Norman Group, "Visibility of System Status" (Usability Heuristic #1)
+  - Nielsen Norman Group, "Visibility of System Status" (Usability Heuristic #1)
 
 ## UI-STATE-003
 
@@ -385,8 +347,7 @@ rationale: A skeleton that does not resemble the eventual content causes a visib
 how-to-check: Compare the skeleton's block shapes and proportions against the loaded content's actual layout
 severity: minor
 sources:
-
-- web.dev — perceived performance and layout stability (Cumulative Layout Shift)
+  - web.dev — perceived performance and layout stability (Cumulative Layout Shift)
 
 ## UI-STATE-004
 
@@ -395,8 +356,7 @@ rationale: Visually identical disabled and loading states leave the user unable 
 how-to-check: Compare the component's disabled, loading, and default states side by side for a visibly distinct treatment
 severity: minor
 sources:
-
-- Nielsen Norman Group, "Visibility of System Status" (Usability Heuristic #1)
+  - Nielsen Norman Group, "Visibility of System Status" (Usability Heuristic #1)
 
 ## UI-NAV-003
 
@@ -405,8 +365,7 @@ rationale: A "back" that discards the user's prior filtering/scroll state makes 
 how-to-check: Apply a filter or scroll on a list view, drill into a detail, then navigate back and confirm the filter/scroll state is preserved
 severity: minor
 sources:
-
-- Nielsen Norman Group, "User Control and Freedom" (Usability Heuristic #3)
+  - Nielsen Norman Group, "User Control and Freedom" (Usability Heuristic #3)
 
 ## UI-ICON-001
 
@@ -415,8 +374,7 @@ rationale: A novel icon for a common action forces every user to learn a symbol 
 how-to-check: Compare a new icon's meaning against the icon already used for the same action elsewhere in the product or against widely recognized conventions
 severity: minor
 sources:
-
-- Nielsen Norman Group, "Standard Icons" guidance
+  - Nielsen Norman Group, "Standard Icons" guidance
 
 ## UI-DARK-002
 
@@ -425,8 +383,7 @@ rationale: A white-background screenshot or a low-contrast illustration can beco
 how-to-check: Toggle the theme and inspect the new embedded image's contrast and legibility against its actual surrounding background in both states
 severity: minor
 sources:
-
-- web.dev, "prefers-color-scheme: Hello Darkness, My Old Friend"
+  - web.dev, "prefers-color-scheme: Hello Darkness, My Old Friend"
 
 ## UI-OVERFLOW-001
 
@@ -435,8 +392,7 @@ rationale: A popover that renders off-screen or behind another fixed element is 
 how-to-check: Trigger the changed popover from an element near each edge of the viewport and confirm it repositions to stay visible
 severity: minor
 sources:
-
-- web.dev — popover positioning and viewport collision handling
+  - web.dev — popover positioning and viewport collision handling
 
 ## UI-A11Y-008
 
@@ -445,8 +401,7 @@ rationale: Focus escaping to background content behind an open modal lets a keyb
 how-to-check: Open the changed modal with the keyboard, tab past its last focusable element, and confirm focus wraps inside it; close it and confirm focus lands back on the trigger
 severity: important
 sources:
-
-- WAI-ARIA Authoring Practices Guide — Dialog (Modal) Pattern
+  - WAI-ARIA Authoring Practices Guide — Dialog (Modal) Pattern
 
 ## UI-A11Y-009
 
@@ -455,8 +410,7 @@ rationale: Forced-colors mode strips custom color choices entirely; a control th
 how-to-check: Enable forced-colors (or Windows High Contrast) mode and inspect the changed component for a lost distinction between states or elements
 severity: minor
 sources:
-
-- WCAG 2.2, Success Criterion 1.4.11 (Non-text Contrast) — forced-colors mode guidance
+  - WCAG 2.2, Success Criterion 1.4.11 (Non-text Contrast) — forced-colors mode guidance
 
 ## UI-NAV-004
 
@@ -465,8 +419,7 @@ rationale: Without a skip link, a keyboard or screen-reader user must tab throug
 how-to-check: Load the changed page and press Tab once; confirm the first focus stop is a visible or focus-revealed skip-to-content link
 severity: minor
 sources:
-
-- WCAG 2.2, Success Criterion 2.4.1 (Bypass Blocks)
+  - WCAG 2.2, Success Criterion 2.4.1 (Bypass Blocks)
 
 ## UI-TABLE-001
 
@@ -475,8 +428,7 @@ rationale: A sighted user infers a cell's column and row from position; a screen
 how-to-check: Inspect the changed table's markup for header cells using `<th>`/`scope` (or an ARIA grid equivalent) rather than styled `<td>` elements
 severity: important
 sources:
-
-- WCAG 2.2, Success Criterion 1.3.1 (Info and Relationships) — data table headers
+  - WCAG 2.2, Success Criterion 1.3.1 (Info and Relationships) — data table headers
 
 ## UI-DRAG-001
 
@@ -485,8 +437,7 @@ rationale: Drag gestures require precise, sustained pointer control that a motor
 how-to-check: Attempt the changed drag interaction's outcome using only the keyboard (or a single tap/click sequence); confirm an equivalent path exists
 severity: important
 sources:
-
-- WCAG 2.2, Success Criterion 2.5.7 (Dragging Movements)
+  - WCAG 2.2, Success Criterion 2.5.7 (Dragging Movements)
 
 ## UI-I18N-001
 
@@ -495,8 +446,7 @@ rationale: A layout hard-coded to left-to-right (fixed `left`/`right` offsets in
 how-to-check: Switch the changed surface's direction to `rtl` and check whether icons, alignment, and reading order mirror correctly rather than staying pinned to their LTR position
 severity: minor
 sources:
-
-- W3C Internationalization Activity, "Structural markup and right-to-left text in HTML"
+  - W3C Internationalization Activity, "Structural markup and right-to-left text in HTML"
 
 ## UI-AUTH-001
 
@@ -505,5 +455,4 @@ rationale: Cognitive function tests as the sole authentication path exclude user
 how-to-check: Attempt the changed authentication step via a password manager (paste/autofill) and confirm it is not blocked; check whether a non-cognitive alternative (biometric, hardware key) exists alongside it
 severity: important
 sources:
-
-- WCAG 2.2, Success Criterion 3.3.8 (Accessible Authentication — Minimum)
+  - WCAG 2.2, Success Criterion 3.3.8 (Accessible Authentication — Minimum)

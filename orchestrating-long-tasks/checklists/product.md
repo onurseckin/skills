@@ -1,5 +1,4 @@
 # Product value checklist
-
 Domain: product
 
 Judges whether a change delivers the user-visible value the prompt actually asked for, whether the
@@ -14,8 +13,7 @@ rationale: A correct implementation reachable only through a test harness delive
 how-to-check: Trace the path from the actual UI action, CLI invocation, or API call a user makes through to the changed code
 severity: important
 sources:
-
-- Shape Up (Ryan Singer), "Hill Charts" — chapter on defining done by the user-facing outcome
+  - Shape Up (Ryan Singer), "Hill Charts" — chapter on defining done by the user-facing outcome
 
 ## PROD-FLOW-002
 
@@ -24,8 +22,7 @@ rationale: A flow that only moves forward punishes an ordinary mistake with a fu
 how-to-check: Walk the flow forward, then attempt to go back one step and change an earlier input; confirm later, unrelated state survives
 severity: important
 sources:
-
-- Nielsen Norman Group, "User Control and Freedom" (Usability Heuristic #3)
+  - Nielsen Norman Group, "User Control and Freedom" (Usability Heuristic #3)
 
 ## PROD-VALUE-001
 
@@ -34,8 +31,7 @@ rationale: Both over-delivery and under-delivery break trust in what "done" mean
 how-to-check: Re-read the original ask sentence by sentence against the diff; each clause should map to a specific change, with nothing extra unaccounted for
 severity: critical
 sources:
-
-- This repository's own worked example (B12.1): checking only the stated task is necessary but not sufficient
+  - This repository's own worked example (B12.1): checking only the stated task is necessary but not sufficient
 
 ## PROD-VALUE-002
 
@@ -44,8 +40,7 @@ rationale: A capability that looks unused from the removal site alone can still 
 how-to-check: Grep the wider codebase and any generated exports/APIs for references to the removed capability before treating removal as safe
 severity: important
 sources:
-
-- This repository's B33 (wire vs delete) — the same discipline applies to product-level capabilities
+  - This repository's B33 (wire vs delete) — the same discipline applies to product-level capabilities
 
 ## PROD-STATE-001
 
@@ -54,8 +49,7 @@ rationale: An unexplained blank screen reads as broken, not as "nothing here yet
 how-to-check: Force the zero-data condition and read the resulting screen as a first-time user would
 severity: minor
 sources:
-
-- Nielsen Norman Group, "Empty States" guidance
+  - Nielsen Norman Group, "Empty States" guidance
 
 ## PROD-STATE-002
 
@@ -64,8 +58,7 @@ rationale: A blanket failure message on a partial success hides real progress an
 how-to-check: Force a partial failure (e.g. one of several parallel requests erroring) and confirm the UI attributes success/failure per item
 severity: important
 sources:
-
-- Nielsen Norman Group, "Visibility of System Status" (Usability Heuristic #1)
+  - Nielsen Norman Group, "Visibility of System Status" (Usability Heuristic #1)
 
 ## PROD-COPY-001
 
@@ -74,8 +67,7 @@ rationale: A user-facing error naming an internal entity ("Foo record constraint
 how-to-check: Read every new or changed user-facing string for internal type names, error codes, or implementation vocabulary
 severity: minor
 sources:
-
-- Nielsen Norman Group, "Match Between System and the Real World" (Usability Heuristic #2)
+  - Nielsen Norman Group, "Match Between System and the Real World" (Usability Heuristic #2)
 
 ## PROD-COPY-002
 
@@ -84,8 +76,7 @@ rationale: "Something went wrong" gives the user no path forward and generates a
 how-to-check: Read every new error string against the three parts: what, why, next step
 severity: important
 sources:
-
-- Nielsen Norman Group, "Help Users Recognize, Diagnose, and Recover from Errors" (Usability Heuristic #9)
+  - Nielsen Norman Group, "Help Users Recognize, Diagnose, and Recover from Errors" (Usability Heuristic #9)
 
 ## PROD-EDGE-001
 
@@ -94,8 +85,7 @@ rationale: Boundary conditions are where off-by-one and truncation defects live,
 how-to-check: Exercise the changed flow with zero, one, and the stated maximum number of the relevant entity
 severity: important
 sources:
-
-- The Pragmatic Programmer, "Programming by Coincidence" — boundary-condition testing
+  - The Pragmatic Programmer, "Programming by Coincidence" — boundary-condition testing
 
 ## PROD-EDGE-002
 
@@ -104,8 +94,7 @@ rationale: A flow that only works for a freshly seeded fixture regularly breaks 
 how-to-check: Run the changed flow against a representative existing dataset or account state, not only the test fixture
 severity: important
 sources:
-
-- Continuous Delivery (Humble & Farley) — backward-compatibility testing against production-shaped data
+  - Continuous Delivery (Humble & Farley) — backward-compatibility testing against production-shaped data
 
 ## PROD-CONSIST-001
 
@@ -114,8 +103,7 @@ rationale: An unannounced inconsistency forces the user to relearn a pattern the
 how-to-check: Compare the new flow's key interactions against the nearest existing comparable flow
 severity: minor
 sources:
-
-- Nielsen Norman Group, "Consistency and Standards" (Usability Heuristic #4)
+  - Nielsen Norman Group, "Consistency and Standards" (Usability Heuristic #4)
 
 ## PROD-CONSIST-002
 
@@ -124,8 +112,7 @@ rationale: A shared component changed for one caller's benefit can silently brea
 how-to-check: Grep for other usages of the touched shared component and confirm none of them relied on the changed behaviour
 severity: important
 sources:
-
-- This repository's own worked example (B12.1) — a change's effects extend past the task's stated target
+  - This repository's own worked example (B12.1) — a change's effects extend past the task's stated target
 
 ## PROD-ONBOARD-001
 
@@ -134,8 +121,7 @@ rationale: A feature only the author knows exists delivers value to nobody until
 how-to-check: Without prior knowledge of the change, attempt to find and use the new capability from the product's normal navigation
 severity: minor
 sources:
-
-- Nielsen Norman Group, "Recognition Rather than Recall" (Usability Heuristic #6)
+  - Nielsen Norman Group, "Recognition Rather than Recall" (Usability Heuristic #6)
 
 ## PROD-SCOPE-001
 
@@ -144,8 +130,7 @@ rationale: An incomplete flag implementation is a shipped bug waiting for the fl
 how-to-check: Exercise the flow with the flag both enabled and disabled; diff the disabled-state behaviour against the pre-change baseline
 severity: important
 sources:
-
-- Continuous Delivery (Humble & Farley) — feature-flag testing discipline
+  - Continuous Delivery (Humble & Farley) — feature-flag testing discipline
 
 ## PROD-SCOPE-002
 
@@ -154,8 +139,7 @@ rationale: A rollout that is easy to ship but impossible to cleanly revert conve
 how-to-check: Confirm what the previous version of the code would do if pointed at data or state the new version produced
 severity: important
 sources:
-
-- Google SRE Workbook, "Change Management" — safe rollback as a release requirement
+  - Google SRE Workbook, "Change Management" — safe rollback as a release requirement
 
 ## PROD-FEEDBACK-001
 
@@ -164,8 +148,7 @@ rationale: Silence after an action reads as "nothing happened" and invites a dup
 how-to-check: Trigger the action under a throttled or slow-network condition and observe whether feedback appears before the result does
 severity: minor
 sources:
-
-- Nielsen Norman Group, "Visibility of System Status" (Usability Heuristic #1); Jakob Nielsen's response-time limits (0.1/1/10 second thresholds)
+  - Nielsen Norman Group, "Visibility of System Status" (Usability Heuristic #1); Jakob Nielsen's response-time limits (0.1/1/10 second thresholds)
 
 ## PROD-FLOW-003
 
@@ -174,8 +157,7 @@ rationale: An unbounded-feeling flow reads as longer than it is and increases ab
 how-to-check: Count the flow's steps; for three or more, confirm a position indicator is visible at each step
 severity: minor
 sources:
-
-- Nielsen Norman Group, "Progress Indicators Improve Perception of Wait Time"
+  - Nielsen Norman Group, "Progress Indicators Improve Perception of Wait Time"
 
 ## PROD-VALUE-003
 
@@ -184,8 +166,7 @@ rationale: A criterion with no corresponding change is either forgotten or was n
 how-to-check: List each acceptance criterion from the task; for each, point to the exact file/line that satisfies it
 severity: critical
 sources:
-
-- This repository's own worked example (B12.1)
+  - This repository's own worked example (B12.1)
 
 ## PROD-STATE-003
 
@@ -194,8 +175,7 @@ rationale: An indefinite spinner past a few seconds reads as frozen, and a user 
 how-to-check: Trigger the changed operation under a throttled condition and observe whether the wait state communicates progress past the two-second mark
 severity: minor
 sources:
-
-- Nielsen Norman Group, "Progress Indicators Improve Perception of Wait Time"
+  - Nielsen Norman Group, "Progress Indicators Improve Perception of Wait Time"
 
 ## PROD-COPY-003
 
@@ -204,8 +184,7 @@ rationale: A tone shift between screens reads as though two different products w
 how-to-check: Compare the new copy's formality, person (first/second), and sentence length against copy in an adjacent, established screen
 severity: minor
 sources:
-
-- Nielsen Norman Group, "Consistency and Standards" (Usability Heuristic #4)
+  - Nielsen Norman Group, "Consistency and Standards" (Usability Heuristic #4)
 
 ## PROD-EDGE-003
 
@@ -214,8 +193,7 @@ rationale: A flow that assumes exclusive access silently corrupts state or loses
 how-to-check: Open the changed flow in two sessions against the same resource and perform the action from both; confirm the result is coherent, not silently lost
 severity: important
 sources:
-
-- Designing Data-Intensive Applications (Martin Kleppmann), ch. 7 "Transactions"
+  - Designing Data-Intensive Applications (Martin Kleppmann), ch. 7 "Transactions"
 
 ## PROD-CONSIST-003
 
@@ -224,8 +202,7 @@ rationale: Inconsistent terminology for one concept forces the user to verify tw
 how-to-check: Grep new and existing copy for near-synonym pairs (delete/remove, cancel/dismiss, edit/update) describing the same user action
 severity: minor
 sources:
-
-- Nielsen Norman Group, "Consistency and Standards" (Usability Heuristic #4)
+  - Nielsen Norman Group, "Consistency and Standards" (Usability Heuristic #4)
 
 ## PROD-ONBOARD-002
 
@@ -234,8 +211,7 @@ rationale: An unexplained block reads as a bug and drives a support request the 
 how-to-check: Trigger the gated state as an unauthorized user and read the resulting message for a reason and a next step
 severity: minor
 sources:
-
-- Nielsen Norman Group, "Help Users Recognize, Diagnose, and Recover from Errors" (Usability Heuristic #9)
+  - Nielsen Norman Group, "Help Users Recognize, Diagnose, and Recover from Errors" (Usability Heuristic #9)
 
 ## PROD-FEEDBACK-002
 
@@ -244,8 +220,7 @@ rationale: An action with no visible confirmation is indistinguishable from a si
 how-to-check: Trigger the changed action and confirm a distinct, positive signal (toast, state change, updated count) appears
 severity: minor
 sources:
-
-- Nielsen Norman Group, "Visibility of System Status" (Usability Heuristic #1)
+  - Nielsen Norman Group, "Visibility of System Status" (Usability Heuristic #1)
 
 ## PROD-A11Y-001
 
@@ -254,8 +229,7 @@ rationale: Individually accessible components can still compose into a flow that
 how-to-check: Walk the entire flow using only the keyboard (or a screen reader) from entry to completion, not spot-checking one screen
 severity: important
 sources:
-
-- WAI-ARIA Authoring Practices Guide — composite widget and flow testing
+  - WAI-ARIA Authoring Practices Guide — composite widget and flow testing
 
 ## PROD-PERM-001
 
@@ -264,8 +238,7 @@ rationale: A visible-but-blocked action costs the user a wasted attempt and a co
 how-to-check: View the changed screen as a lower-privileged user and check for an action that is visible but fails or is hidden only after the click
 severity: minor
 sources:
-
-- Nielsen Norman Group, "Match Between System and the Real World" (Usability Heuristic #2)
+  - Nielsen Norman Group, "Match Between System and the Real World" (Usability Heuristic #2)
 
 ## PROD-RECOVER-001
 
@@ -274,8 +247,7 @@ rationale: Losing entered input on a transient failure punishes the user for a p
 how-to-check: Fill a form, force a network failure on submit, and confirm the entered values remain in the fields afterward
 severity: important
 sources:
-
-- Nielsen Norman Group, "User Control and Freedom" (Usability Heuristic #3)
+  - Nielsen Norman Group, "User Control and Freedom" (Usability Heuristic #3)
 
 ## PROD-METRIC-001
 
@@ -284,8 +256,7 @@ rationale: Code that ships without moving the actual user outcome has not delive
 how-to-check: Re-state the task's outcome in one sentence about the user; confirm the diff, exercised end to end, actually produces that outcome
 severity: important
 sources:
-
-- Shape Up (Ryan Singer) — defining done by the user-facing outcome
+  - Shape Up (Ryan Singer) — defining done by the user-facing outcome
 
 ## PROD-COST-001
 
@@ -294,8 +265,7 @@ rationale: A user who cannot see the blast radius of an irreversible action cann
 how-to-check: Trigger the changed bulk/irreversible action and confirm the confirmation step states what and how much it will affect
 severity: important
 sources:
-
-- Nielsen Norman Group, "User Control and Freedom" (Usability Heuristic #3)
+  - Nielsen Norman Group, "User Control and Freedom" (Usability Heuristic #3)
 
 ## PROD-EMPTY-001
 
@@ -304,8 +274,7 @@ rationale: The two zero-result cases have opposite correct next steps — create
 how-to-check: Trigger a zero-result state via an empty dataset and again via an over-narrow filter; confirm the copy and offered action differ
 severity: minor
 sources:
-
-- Nielsen Norman Group, "Empty States" guidance
+  - Nielsen Norman Group, "Empty States" guidance
 
 ## PROD-INPUT-001
 
@@ -314,8 +283,7 @@ rationale: Wiping a correct field because a different field failed validation pu
 how-to-check: Submit a form with one deliberately invalid field among several valid ones; confirm the valid fields' values survive the failed submit
 severity: important
 sources:
-
-- Nielsen Norman Group, "Error Prevention" (Usability Heuristic #5)
+  - Nielsen Norman Group, "Error Prevention" (Usability Heuristic #5)
 
 ## PROD-DEFAULT-001
 
@@ -324,8 +292,7 @@ rationale: A poorly chosen default is a tax every single user pays on every use 
 how-to-check: For a new default/pre-selected value, confirm it matches the most common real case rather than an arbitrary first option
 severity: minor
 sources:
-
-- Nielsen Norman Group, "Recognition Rather than Recall" (Usability Heuristic #6)
+  - Nielsen Norman Group, "Recognition Rather than Recall" (Usability Heuristic #6)
 
 ## PROD-CROSSDEVICE-001
 
@@ -334,8 +301,7 @@ rationale: A user who switches devices mid-flow because of a phone call or a cra
 how-to-check: Start the flow, then reload in a fresh session before completing it; confirm meaningful progress is either resumable or clearly restarted, not silently lost
 severity: minor
 sources:
-
-- web.dev, "Application State and the Back Button"
+  - web.dev, "Application State and the Back Button"
 
 ## PROD-TIME-001
 
@@ -344,8 +310,7 @@ rationale: An unlabeled time in an unexpected timezone silently causes a user to
 how-to-check: Check new timestamp displays for either automatic local-timezone conversion or an explicit timezone label
 severity: minor
 sources:
-
-- Nielsen Norman Group, "Match Between System and the Real World" (Usability Heuristic #2)
+  - Nielsen Norman Group, "Match Between System and the Real World" (Usability Heuristic #2)
 
 ## PROD-TRUST-001
 
@@ -354,8 +319,7 @@ rationale: A visibly wrong count is one of the fastest ways a user loses trust i
 how-to-check: Trigger the underlying change (add/remove an item) and confirm the displayed count updates without requiring a manual refresh
 severity: minor
 sources:
-
-- Nielsen Norman Group, "Visibility of System Status" (Usability Heuristic #1)
+  - Nielsen Norman Group, "Visibility of System Status" (Usability Heuristic #1)
 
 ## PROD-I18N-001
 
@@ -364,8 +328,7 @@ rationale: A string that fits its container in English routinely overflows, trun
 how-to-check: Substitute the changed surface's strings with a much longer placeholder (or pseudo-localize) and confirm the layout still holds without clipping or overlap
 severity: minor
 sources:
-
-- W3C Internationalization Activity, "Localization vs. Internationalization"
+  - W3C Internationalization Activity, "Localization vs. Internationalization"
 
 ## PROD-NOTIFY-001
 
@@ -374,8 +337,7 @@ rationale: A user who cannot tune or disable a notification source turns it off 
 how-to-check: For a new notification type, confirm a settings surface exists to reduce its frequency or disable it independently of unrelated notification types
 severity: minor
 sources:
-
-- Nielsen Norman Group, "Five Mistakes in Designing Mobile Push Notifications"
+  - Nielsen Norman Group, "Five Mistakes in Designing Mobile Push Notifications"
 
 ## PROD-ANALYTICS-001
 
@@ -384,8 +346,7 @@ rationale: A feature nobody instrumented cannot be shown to work or not work aft
 how-to-check: For a new user-facing capability, confirm an event, metric, or log line exists that would let someone later answer "did this get used, and did it work"
 severity: minor
 sources:
-
-- Lean Analytics (Alistair Croll & Benjamin Yoskovitz), "Instrumenting Your Product"
+  - Lean Analytics (Alistair Croll & Benjamin Yoskovitz), "Instrumenting Your Product"
 
 ## PROD-HELP-001
 
@@ -394,8 +355,7 @@ rationale: Help that only exists in a separate support site is help the user has
 how-to-check: At the flow's most confusing step, check for an in-context help affordance (tooltip, link, inline explanation) rather than only a generic external help center
 severity: minor
 sources:
-
-- Nielsen Norman Group, "Help and Documentation" (Usability Heuristic #10)
+  - Nielsen Norman Group, "Help and Documentation" (Usability Heuristic #10)
 
 ## PROD-EXPORT-001
 
@@ -404,8 +364,7 @@ rationale: A user who cannot get their own data out cannot trust the product wit
 how-to-check: For a new or changed data-holding feature, confirm an export or download path exists for the data the user owns
 severity: minor
 sources:
-
-- Nielsen Norman Group, "User Control and Freedom" (Usability Heuristic #3)
+  - Nielsen Norman Group, "User Control and Freedom" (Usability Heuristic #3)
 
 ## PROD-OFFLINE-001
 
@@ -414,8 +373,7 @@ rationale: A dropped connection is common and transient; losing entered work bec
 how-to-check: Start the changed flow, disable the network mid-way, and confirm entered input survives and the flow recovers or clearly explains the disconnection once reconnected
 severity: important
 sources:
-
-- Nielsen Norman Group, "User Control and Freedom" (Usability Heuristic #3)
+  - Nielsen Norman Group, "User Control and Freedom" (Usability Heuristic #3)
 
 ## PROD-CONSENT-001
 
@@ -424,8 +382,7 @@ rationale: Consent given without knowing what is collected is not informed conse
 how-to-check: For a new field or permission request collecting personal data, confirm the surrounding copy states the purpose at the point of collection
 severity: important
 sources:
-
-- OWASP Top 10 2021, A01:2021 (Broken Access Control) — data minimization principle; this repository's own SEC-PRIVACY-001
+  - OWASP Top 10 2021, A01:2021 (Broken Access Control) — data minimization principle; this repository's own SEC-PRIVACY-001
 
 ## PROD-REENTRY-001
 
@@ -434,5 +391,4 @@ rationale: Re-asking for known information reads as the product not having liste
 how-to-check: Walk a multi-step flow that collects related information more than once; confirm a later step pre-fills or reuses an earlier step's answer rather than asking again
 severity: minor
 sources:
-
-- WCAG 2.2, Success Criterion 3.3.7 (Redundant Entry)
+  - WCAG 2.2, Success Criterion 3.3.7 (Redundant Entry)

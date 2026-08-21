@@ -1,5 +1,4 @@
 # Code quality checklist
-
 Domain: code-quality
 
 Every task draws this checklist (B12.2): whatever else a change touches, it is also code, and this
@@ -14,9 +13,8 @@ rationale: Mixed concerns are what make a later, unrelated diff touch code it do
 how-to-check: Read the diff's file list against its stated summary; a file with no plausible link to the summary is a smell
 severity: important
 sources:
-
-- Clean Code (Robert C. Martin), ch. 3 "Functions"
-- Google Engineering Practices — Code Review, "Design"
+  - Clean Code (Robert C. Martin), ch. 3 "Functions"
+  - Google Engineering Practices — Code Review, "Design"
 
 ## CQ-STRUCT-002
 
@@ -25,8 +23,7 @@ rationale: Speculative generality adds indirection a reader must trace through f
 how-to-check: For every new interface, base class or plugin point, find the second caller in the same diff; absent one, flag it
 severity: minor
 sources:
-
-- YAGNI (Extreme Programming principle)
+  - YAGNI (Extreme Programming principle)
 
 ## CQ-NAMING-001
 
@@ -35,8 +32,7 @@ rationale: An implementation detail in a name (`v2`, `newHelper`, `tmpFix`) outl
 how-to-check: Grep the diff for `temp`, `tmp`, `new`, `old`, `v2`, `fixed`, `helper` in identifiers; each is a candidate rename
 severity: minor
 sources:
-
-- Clean Code (Robert C. Martin), ch. 2 "Meaningful Names"
+  - Clean Code (Robert C. Martin), ch. 2 "Meaningful Names"
 
 ## CQ-NAMING-002
 
@@ -45,8 +41,7 @@ rationale: A name that does not match its type forces the reader to hold a trans
 how-to-check: Scan new declarations for a `boolean` typed without an `is`/`has`/`can` prefix, or an array typed with a singular name
 severity: minor
 sources:
-
-- Clean Code (Robert C. Martin), ch. 2 "Meaningful Names"
+  - Clean Code (Robert C. Martin), ch. 2 "Meaningful Names"
 
 ## CQ-DUP-001
 
@@ -55,8 +50,7 @@ rationale: Premature extraction on the first duplicate often guesses the wrong s
 how-to-check: Diff the new code against the two nearest existing call sites doing the same thing; three near-identical bodies is the threshold
 severity: important
 sources:
-
-- Refactoring (Martin Fowler), "Rule of Three"
+  - Refactoring (Martin Fowler), "Rule of Three"
 
 ## CQ-DUP-002
 
@@ -65,8 +59,7 @@ rationale: A retyped literal drifts silently the day one copy is edited and the 
 how-to-check: Grep the touched files and their neighbors for the same literal value or string outside the new declaration
 severity: important
 sources:
-
-- The Pragmatic Programmer, "DRY — Don't Repeat Yourself"
+  - The Pragmatic Programmer, "DRY — Don't Repeat Yourself"
 
 ## CQ-DEAD-001
 
@@ -75,8 +68,7 @@ rationale: An unreachable export typechecks and tests green while doing nothing 
 how-to-check: Grep the whole tree for the export's name; a hit count of one (its own definition) or two (definition plus its unit test) is unreachable
 severity: critical
 sources:
-
-- This repository's B33 (wire vs delete)
+  - This repository's B33 (wire vs delete)
 
 ## CQ-DEAD-002
 
@@ -85,8 +77,7 @@ rationale: A fixture nothing references is not evidence of anything; a stale moc
 how-to-check: For every deletion, grep the removed symbol's name across `tests/` and config files for leftover references
 severity: minor
 sources:
-
-- Refactoring (Martin Fowler), "Dead Code"
+  - Refactoring (Martin Fowler), "Dead Code"
 
 ## CQ-ERR-001
 
@@ -95,8 +86,7 @@ rationale: A swallowed error erases the one signal that would have shown the fai
 how-to-check: Grep the diff for `catch` blocks with an empty or comment-only body
 severity: critical
 sources:
-
-- Google Engineering Practices — Code Review, "Error Handling"
+  - Google Engineering Practices — Code Review, "Error Handling"
 
 ## CQ-ERR-002
 
@@ -105,8 +95,7 @@ rationale: "Invalid input" sends the next debugger back to the repro step this m
 how-to-check: Read every new thrown error's message string; confirm it embeds the offending value or path
 severity: minor
 sources:
-
-- The Pragmatic Programmer, "Design by Contract"
+  - The Pragmatic Programmer, "Design by Contract"
 
 ## CQ-TYPES-001
 
@@ -115,8 +104,7 @@ rationale: A cast through `any` deletes the compiler's ability to catch every fu
 how-to-check: Grep the diff for `any`, `as any`, `<any>`, `Record<string, any>`, and unchecked casts on parsed JSON
 severity: critical
 sources:
-
-- TypeScript Handbook, "unknown vs any"
+  - TypeScript Handbook, "unknown vs any"
 
 ## CQ-TYPES-002
 
@@ -125,8 +113,7 @@ rationale: A non-exhaustive switch silently does nothing for a variant added nex
 how-to-check: For a new switch over a closed union, confirm a `default` branch assigns the remaining value to a `never`-typed variable
 severity: important
 sources:
-
-- Effective TypeScript (Dan Vanderkam), Item 9
+  - Effective TypeScript (Dan Vanderkam), Item 9
 
 ## CQ-TEST-001
 
@@ -135,8 +122,7 @@ rationale: A test that pins history rather than behaviour blocks the next legiti
 how-to-check: Read new test descriptions and comments for phrases like "used to", "after the migration", "previously"
 severity: important
 sources:
-
-- This repository's standing instruction against tests referencing past state
+  - This repository's standing instruction against tests referencing past state
 
 ## CQ-TEST-002
 
@@ -145,8 +131,7 @@ rationale: A fix without a red-then-green test is unverified that it fixes the r
 how-to-check: Check out the diff's parent commit, apply only the new test, and confirm it fails before the fix lands
 severity: important
 sources:
-
-- Test-Driven Development by Example (Kent Beck)
+  - Test-Driven Development by Example (Kent Beck)
 
 ## CQ-TEST-003
 
@@ -155,8 +140,7 @@ rationale: A test that always passes regardless of correctness is worse than no 
 how-to-check: For each new test, identify the specific expect() that would fail if the implementation were reverted; a missing one is the finding
 severity: important
 sources:
-
-- Google Engineering Practices — Code Review, "Tests"
+  - Google Engineering Practices — Code Review, "Tests"
 
 ## CQ-DOC-001
 
@@ -165,8 +149,7 @@ rationale: A restated comment drifts from the code the moment either changes and
 how-to-check: For each new comment, delete it mentally and ask whether the line below is still just as clear; if so, flag it
 severity: minor
 sources:
-
-- Clean Code (Robert C. Martin), ch. 4 "Comments"
+  - Clean Code (Robert C. Martin), ch. 4 "Comments"
 
 ## CQ-DOC-002
 
@@ -175,8 +158,7 @@ rationale: A contract documented only where it happens to be obeyed today is inv
 how-to-check: For an exported function taking a token, handle or lease, confirm its doc comment states who releases it and when
 severity: minor
 sources:
-
-- The Pragmatic Programmer, "Design by Contract"
+  - The Pragmatic Programmer, "Design by Contract"
 
 ## CQ-STYLE-001
 
@@ -185,8 +167,7 @@ rationale: A file that reads like it came from a different project raises the co
 how-to-check: Diff the new file's import block and top-level structure against two existing files in the same directory
 severity: minor
 sources:
-
-- Google Engineering Practices — Code Review, "Style"
+  - Google Engineering Practices — Code Review, "Style"
 
 ## CQ-STYLE-002
 
@@ -195,8 +176,7 @@ rationale: A file past the cap is a signal the module is doing more than one job
 how-to-check: `wc -l` every touched file; a file over the stated cap with no split plan is the finding
 severity: minor
 sources:
-
-- This repository's standing 500-line cap
+  - This repository's standing 500-line cap
 
 ## CQ-GIT-001
 
@@ -205,8 +185,7 @@ rationale: A commit history that follows one grammar is the only reason `git log
 how-to-check: Read the subject line against the approved prefix list and the character count
 severity: minor
 sources:
-
-- Conventional Commits v1.0.0
+  - Conventional Commits v1.0.0
 
 ## CQ-GIT-002
 
@@ -215,8 +194,7 @@ rationale: A suppression comment is a promise the underlying defect was accepted
 how-to-check: Grep the diff for `@ts-ignore`, `@ts-expect-error`, `@ts-nocheck`, `eslint-disable`, `oxlint-disable`, `v8 ignore`
 severity: critical
 sources:
-
-- This repository's standing prohibition on suppression comments
+  - This repository's standing prohibition on suppression comments
 
 ## CQ-PERF-001
 
@@ -225,8 +203,7 @@ rationale: An N+1 pattern is invisible at small N in a test fixture and becomes 
 how-to-check: Grep new loop bodies for `await`, `fetch`, `query`, or `exec` calls whose argument varies per iteration
 severity: important
 sources:
-
-- Database Internals (Alex Petrov), ch. on query patterns
+  - Database Internals (Alex Petrov), ch. on query patterns
 
 ## CQ-PERF-002
 
@@ -235,8 +212,7 @@ rationale: Work hoisted out of a loop is a one-line change; work left inside it 
 how-to-check: Read each loop body for a subexpression that does not reference the loop variable
 severity: minor
 sources:
-
-- Google Engineering Practices — Code Review, "Design"
+  - Google Engineering Practices — Code Review, "Design"
 
 ## CQ-REVIEW-001
 
@@ -245,8 +221,7 @@ rationale: "This could be cleaner" gives the author nothing to act on; a reprodu
 how-to-check: For every finding raised, confirm it names a specific input or state that produces a specific wrong output
 severity: minor
 sources:
-
-- Google Engineering Practices — How to Do a Code Review
+  - Google Engineering Practices — How to Do a Code Review
 
 ## CQ-REVIEW-002
 
@@ -255,8 +230,7 @@ rationale: A shared module's blast radius is invisible from its own diff; the au
 how-to-check: Grep the codebase for import sites of the touched module; compare the count against what the summary claims to have considered
 severity: minor
 sources:
-
-- Google Engineering Practices — Code Review, "Design"
+  - Google Engineering Practices — Code Review, "Design"
 
 ## CQ-STRUCT-003
 
@@ -265,8 +239,7 @@ rationale: A long positional parameter list forces every caller to count positio
 how-to-check: Count the positional parameters on new/changed function signatures; four or more with no options-object grouping is the finding
 severity: minor
 sources:
-
-- Clean Code (Robert C. Martin), ch. 3 "Functions" — argument count
+  - Clean Code (Robert C. Martin), ch. 3 "Functions" — argument count
 
 ## CQ-STRUCT-004
 
@@ -275,8 +248,7 @@ rationale: Deep nesting forces the reader to hold every enclosing condition in m
 how-to-check: Read new functions for an `if` wrapping the remaining body with no early return; confirm inverting the condition and returning early would flatten it
 severity: minor
 sources:
-
-- Clean Code (Robert C. Martin), ch. 3 "Functions" — one level of abstraction
+  - Clean Code (Robert C. Martin), ch. 3 "Functions" — one level of abstraction
 
 ## CQ-NAMING-003
 
@@ -285,8 +257,7 @@ rationale: An abbreviation obvious to its author is frequently opaque to the nex
 how-to-check: List new identifiers containing a non-standard abbreviation and confirm each is either well-known or expanded elsewhere in the file
 severity: minor
 sources:
-
-- Code Complete (Steve McConnell), ch. 11 "The Power of Variable Names"
+  - Code Complete (Steve McConnell), ch. 11 "The Power of Variable Names"
 
 ## CQ-DUP-003
 
@@ -295,8 +266,7 @@ rationale: Each additional independent copy is a fork point where the next bug f
 how-to-check: Grep the tree for a near-identical function body or literal block appearing in more than one file
 severity: important
 sources:
-
-- This repository's own audit finding (B8.3): a helper duplicated across three files
+  - This repository's own audit finding (B8.3): a helper duplicated across three files
 
 ## CQ-DEAD-003
 
@@ -305,8 +275,7 @@ rationale: Version control already keeps the history; commented-out code left in
 how-to-check: Grep the diff for a multi-line comment block that contains syntactically valid code rather than prose
 severity: minor
 sources:
-
-- Refactoring (Martin Fowler), "Dead Code"
+  - Refactoring (Martin Fowler), "Dead Code"
 
 ## CQ-ERR-003
 
@@ -315,8 +284,7 @@ rationale: Collapsing a specific error into a generic one removes the caller's a
 how-to-check: For a new catch-and-rethrow, compare the caught error's type/fields against what the new thrown error preserves
 severity: important
 sources:
-
-- Effective TypeScript (Dan Vanderkam) — error handling patterns
+  - Effective TypeScript (Dan Vanderkam) — error handling patterns
 
 ## CQ-ERR-004
 
@@ -325,8 +293,7 @@ rationale: A failure mode invisible at the call site is a failure mode the next 
 how-to-check: For a new function with an internal error path, check whether its signature or doc comment states the possible failure to a caller who has not read the implementation
 severity: minor
 sources:
-
-- The Pragmatic Programmer, "Design by Contract"
+  - The Pragmatic Programmer, "Design by Contract"
 
 ## CQ-TYPES-003
 
@@ -335,8 +302,7 @@ rationale: A non-null assertion is a promise to the compiler; a wrong promise tu
 how-to-check: For each new `!` assertion, find the specific prior check or invariant that guarantees non-null; absent one is the finding
 severity: important
 sources:
-
-- Effective TypeScript (Dan Vanderkam), Item 9
+  - Effective TypeScript (Dan Vanderkam), Item 9
 
 ## CQ-TYPES-004
 
@@ -345,8 +311,7 @@ rationale: An unmarked mutable type gives every future caller silent permission 
 how-to-check: For a new exported value handed to multiple callers, check whether its type prevents mutation or merely relies on convention
 severity: minor
 sources:
-
-- Effective TypeScript (Dan Vanderkam), Item 17
+  - Effective TypeScript (Dan Vanderkam), Item 17
 
 ## CQ-TEST-004
 
@@ -355,8 +320,7 @@ rationale: A refusal is a guarantee; an untested refusal path can silently stop 
 how-to-check: List the new/changed thrown errors and early-refusal branches; confirm each has a test that triggers that exact condition and asserts the refusal
 severity: important
 sources:
-
-- This repository's own B9.1: negative paths are mandatory, not optional
+  - This repository's own B9.1: negative paths are mandatory, not optional
 
 ## CQ-TEST-005
 
@@ -365,8 +329,7 @@ rationale: A test that runs code without checking what it did reports safety it 
 how-to-check: For each new test, identify the `expect()` that would fail if the branch's behavior regressed; a test with no such assertion is the finding
 severity: important
 sources:
-
-- This repository's own B9.1: coverage of scenarios, not lines
+  - This repository's own B9.1: coverage of scenarios, not lines
 
 ## CQ-DOC-003
 
@@ -375,8 +338,7 @@ rationale: An unattributed TODO has no mechanism to ever be revisited and become
 how-to-check: Grep the diff for `TODO`/`FIXME` and confirm each is followed by an issue reference, an owner, or a stated trigger condition
 severity: minor
 sources:
-
-- Google Engineering Practices — Code Review, "Follow-up work"
+  - Google Engineering Practices — Code Review, "Follow-up work"
 
 ## CQ-STYLE-003
 
@@ -385,8 +347,7 @@ rationale: Mixed async styles within one function force the reader to track two 
 how-to-check: Read new functions for both `.then()` chains and `await` used side by side without a reason (e.g. genuine concurrency) for the mix
 severity: minor
 sources:
-
-- Google Engineering Practices — Code Review, "Style"
+  - Google Engineering Practices — Code Review, "Style"
 
 ## CQ-GIT-003
 
@@ -395,8 +356,7 @@ rationale: A mixed diff hides the actual behavioral change inside noise, making 
 how-to-check: Check the commit's diff for whitespace-only or reformat-only hunks in files the commit's subject does not otherwise concern
 severity: minor
 sources:
-
-- Google Engineering Practices — Code Review, "Small CLs"
+  - Google Engineering Practices — Code Review, "Small CLs"
 
 ## CQ-PERF-003
 
@@ -405,8 +365,7 @@ rationale: Every dependency is a bundle-size, install-time, and supply-chain cos
 how-to-check: For a new dependency, compare what the diff actually calls against the dependency's total exported surface
 severity: minor
 sources:
-
-- The Pragmatic Programmer — minimizing dependencies
+  - The Pragmatic Programmer — minimizing dependencies
 
 ## CQ-PERF-004
 
@@ -415,8 +374,7 @@ rationale: An `O(n)` lookup reads identically to an `O(1)` one at test-fixture s
 how-to-check: Find new repeated `.includes()`/`.find()` calls against an array inside a loop; check whether the collection is built once and could be a Set/Map instead
 severity: minor
 sources:
-
-- Introduction to Algorithms (Cormen, Leiserson, Rivest, Stein) — data structure selection by access pattern
+  - Introduction to Algorithms (Cormen, Leiserson, Rivest, Stein) — data structure selection by access pattern
 
 ## CQ-CONC-001
 
@@ -425,8 +383,7 @@ rationale: A read-modify-write with no guard is a race the moment two paths exec
 how-to-check: For new shared mutable state touched from more than one async entry point, check whether the read and the write are atomic with respect to each other
 severity: important
 sources:
-
-- Designing Data-Intensive Applications (Martin Kleppmann), ch. 7 "Transactions"
+  - Designing Data-Intensive Applications (Martin Kleppmann), ch. 7 "Transactions"
 
 ## CQ-CONC-002
 
@@ -435,8 +392,7 @@ rationale: A resource released only on the happy path leaks on the first excepti
 how-to-check: For new resource-acquiring code, confirm a `finally`, `using`, or equivalent guarantees release regardless of how the function exits
 severity: important
 sources:
-
-- The Pragmatic Programmer, "Resource Balancing"
+  - The Pragmatic Programmer, "Resource Balancing"
 
 ## CQ-IMMUT-001
 
@@ -445,8 +401,7 @@ rationale: A caller that does not expect its argument to be mutated will use the
 how-to-check: For a new function taking an object/array parameter, check whether it reassigns a property or array index without a stated mutation contract
 severity: important
 sources:
-
-- Effective TypeScript (Dan Vanderkam) — avoiding hidden mutation
+  - Effective TypeScript (Dan Vanderkam) — avoiding hidden mutation
 
 ## CQ-CONST-001
 
@@ -455,8 +410,7 @@ rationale: A magic number's meaning lives only in the author's head; a named con
 how-to-check: Grep the diff for a numeric or string literal appearing at two or more sites with no shared named constant
 severity: minor
 sources:
-
-- Code Complete (Steve McConnell), ch. 12 "Fundamental Data Types"
+  - Code Complete (Steve McConnell), ch. 12 "Fundamental Data Types"
 
 ## CQ-EXPORT-001
 
@@ -465,8 +419,7 @@ rationale: An unnecessarily wide export surface is more of the module a caller c
 how-to-check: For a new module, compare its exported names against what other files actually import from it
 severity: minor
 sources:
-
-- A Philosophy of Software Design (John Ousterhout), "Deep Modules"
+  - A Philosophy of Software Design (John Ousterhout), "Deep Modules"
 
 ## CQ-REVIEW-003
 
@@ -475,8 +428,7 @@ rationale: An unlabeled out-of-scope finding either wrongly blocks an unrelated 
 how-to-check: For each finding raised, confirm it states whether it is required for this task's requirements or is a standing-standard observation found nearby
 severity: minor
 sources:
-
-- This repository's B12.1 — adjacent findings are surfaced and routed, never silently blocking
+  - This repository's B12.1 — adjacent findings are surfaced and routed, never silently blocking
 
 ## CQ-VALID-001
 
@@ -485,8 +437,7 @@ rationale: A function that trusts its caller is only as safe as the least carefu
 how-to-check: For a new exported function taking external or loosely-typed input, check whether it validates before acting or assumes the caller already did
 severity: minor
 sources:
-
-- The Pragmatic Programmer, "Design by Contract" — defensive boundaries
+  - The Pragmatic Programmer, "Design by Contract" — defensive boundaries
 
 ## CQ-API-001
 
@@ -495,8 +446,7 @@ rationale: An overloaded sentinel value is indistinguishable from a legitimate r
 how-to-check: For a new function, check whether its "not found"/"failed" case returns a value that could also occur as a legitimate success
 severity: important
 sources:
-
-- Effective TypeScript (Dan Vanderkam) — avoiding ambiguous return values
+  - Effective TypeScript (Dan Vanderkam) — avoiding ambiguous return values
 
 ## CQ-INIT-001
 
@@ -505,8 +455,7 @@ rationale: A partially-initialized object that requires a specific follow-up cal
 how-to-check: For a new class/module, check whether every field is set by the end of construction or whether some are only set by a separate, easy-to-forget method
 severity: minor
 sources:
-
-- Effective Java (Joshua Bloch) — constructor completeness
+  - Effective Java (Joshua Bloch) — constructor completeness
 
 ## CQ-TEST-006
 
@@ -515,8 +464,7 @@ rationale: An order-dependent suite passes today and fails the moment a test is 
 how-to-check: Run the new/changed test file's tests in reverse order and in isolation; a result that differs from the full-suite run is the finding
 severity: important
 sources:
-
-- xUnit Test Patterns (Gerard Meszaros), "Test Independence"
+  - xUnit Test Patterns (Gerard Meszaros), "Test Independence"
 
 ## CQ-COMPLEX-001
 
@@ -525,8 +473,7 @@ rationale: Cyclomatic complexity counts the independent paths a reader must trac
 how-to-check: Count a new/changed function's decision points (if/else/case/&&/||/loop); a function in the double digits with no split plan is the finding
 severity: minor
 sources:
-
-- A Complexity Measure (Thomas J. McCabe, 1976); Code Complete (Steve McConnell), ch. 19 "General Control Issues"
+  - A Complexity Measure (Thomas J. McCabe, 1976); Code Complete (Steve McConnell), ch. 19 "General Control Issues"
 
 ## CQ-DEBUG-001
 
@@ -535,5 +482,4 @@ rationale: A stray debug statement left in is noise on every future run of that 
 how-to-check: Grep the diff for `console.log`/`print`/`debugger` statements that are not routed through the project's own logging abstraction
 severity: minor
 sources:
-
-- Google Engineering Practices — Code Review, "Style"
+  - Google Engineering Practices — Code Review, "Style"

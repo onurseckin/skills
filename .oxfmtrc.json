@@ -1,3 +1,9 @@
 {
-  "ignorePatterns": ["**/node_modules/**", "**/dist/**", "bun.lock"]
+  "ignorePatterns": [
+    "**/node_modules/**",
+    "**/dist/**",
+    "bun.lock",
+    "orchestrating-long-tasks/checklists/**",
+    "orchestrating-long-tasks/roles/**"
+  ]
 }

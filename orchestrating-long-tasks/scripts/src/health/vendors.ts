@@ -15,7 +15,10 @@ export interface VendorTree {
   readonly extensions?: readonly string[];
 }
 
-export const PRODUCT_GRAMMAR_MODULES: readonly string[] = ["src/graph/gate-runtime-grammar.ts"];
+export const PRODUCT_GRAMMAR_MODULES: readonly string[] = [
+  "src/graph/gate-runtime-grammar.ts",
+  "src/summary/host-telemetry.ts",
+];
 
 function describe(entry: VendorIdentifierFinding): string {
   return entry.position === "path"

@@ -1,5 +1,4 @@
 # System design checklist
-
 Domain: system-design
 
 Drawn whenever a task's write scope touches a schema, a public contract, a boundary between
@@ -14,8 +13,7 @@ rationale: A deep import couples the caller to implementation details the module
 how-to-check: Grep new imports for paths reaching past a module's declared public entry point (e.g. into an `internal/` or unexported file)
 severity: important
 sources:
-
-- A Philosophy of Software Design (John Ousterhout), "Deep Modules"
+  - A Philosophy of Software Design (John Ousterhout), "Deep Modules"
 
 ## SYS-BOUND-002
 
@@ -24,8 +22,7 @@ rationale: A dependency cycle makes both modules impossible to reason about, tes
 how-to-check: Trace the new import against the existing dependency graph for a path back to the importing module
 severity: important
 sources:
-
-- A Philosophy of Software Design (John Ousterhout), "Modular Design"
+  - A Philosophy of Software Design (John Ousterhout), "Modular Design"
 
 ## SYS-CONTRACT-001
 
@@ -34,8 +31,7 @@ rationale: A silently repurposed field breaks every caller that was correctly re
 how-to-check: Diff the API schema before and after; flag any changed field type, removed field, or meaning change on an existing field
 severity: critical
 sources:
-
-- Microsoft REST API Guidelines, "Versioning"; Semantic Versioning 2.0.0
+  - Microsoft REST API Guidelines, "Versioning"; Semantic Versioning 2.0.0
 
 ## SYS-CONTRACT-002
 
@@ -44,8 +40,7 @@ rationale: A caller can only build correctly on what the contract states; an imp
 how-to-check: For a new or changed public function handling retries or concurrent calls, compare its doc comment's claims against a direct test of that behaviour
 severity: important
 sources:
-
-- Designing Data-Intensive Applications (Martin Kleppmann), ch. 9 "Consistency and Consensus"
+  - Designing Data-Intensive Applications (Martin Kleppmann), ch. 9 "Consistency and Consensus"
 
 ## SYS-DATA-001
 
@@ -54,8 +49,7 @@ rationale: Two writers to the same data race on invariants neither one alone can
 how-to-check: For a new write path, check whether the same table/collection/field already has a writer elsewhere in the codebase
 severity: important
 sources:
-
-- Designing Data-Intensive Applications (Martin Kleppmann), ch. 1 "Reliable, Scalable, and Maintainable Applications"
+  - Designing Data-Intensive Applications (Martin Kleppmann), ch. 1 "Reliable, Scalable, and Maintainable Applications"
 
 ## SYS-DATA-002
 
@@ -64,8 +58,7 @@ rationale: An unstated staleness assumption becomes a correctness bug the first 
 how-to-check: For a new cache or derived field, find where it is invalidated or refreshed and confirm the interval matches what callers assume
 severity: important
 sources:
-
-- Designing Data-Intensive Applications (Martin Kleppmann), ch. 11 "Stream Processing"
+  - Designing Data-Intensive Applications (Martin Kleppmann), ch. 11 "Stream Processing"
 
 ## SYS-FAIL-001
 
@@ -74,8 +67,7 @@ rationale: An unbounded wait on a dependency turns that dependency's outage into
 how-to-check: Grep new network/subprocess calls for an explicit timeout parameter
 severity: critical
 sources:
-
-- Release It! (Michael T. Nygard), "Stability Patterns" — timeouts
+  - Release It! (Michael T. Nygard), "Stability Patterns" — timeouts
 
 ## SYS-FAIL-002
 
@@ -84,8 +76,7 @@ rationale: A non-idempotent retry after a timeout (where the first attempt may h
 how-to-check: For a new retry path around a write or side-effecting call, confirm the operation is naturally idempotent or is keyed
 severity: critical
 sources:
-
-- Designing Data-Intensive Applications (Martin Kleppmann), ch. 8 "The Trouble with Distributed Systems"
+  - Designing Data-Intensive Applications (Martin Kleppmann), ch. 8 "The Trouble with Distributed Systems"
 
 ## SYS-FAIL-003
 
@@ -94,8 +85,7 @@ rationale: A tight retry loop against a struggling dependency is the classic way
 how-to-check: Check new retry logic for exponential (or otherwise increasing) backoff and a cap on total attempts
 severity: important
 sources:
-
-- Release It! (Michael T. Nygard), "Circuit Breaker"
+  - Release It! (Michael T. Nygard), "Circuit Breaker"
 
 ## SYS-MIGR-001
 
@@ -104,8 +94,7 @@ rationale: A single-step rename breaks every in-flight process still running the
 how-to-check: For a rename or removal in a schema diff, confirm it is the contract step of a prior expand step, not a single combined change
 severity: critical
 sources:
-
-- Refactoring Databases (Scott Ambler & Pramod Sadalage), "Expand-Contract Pattern"
+  - Refactoring Databases (Scott Ambler & Pramod Sadalage), "Expand-Contract Pattern"
 
 ## SYS-MIGR-002
 
@@ -114,8 +103,7 @@ rationale: An irreversible migration that fails partway through under load has n
 how-to-check: Check whether the migration ships a `down` step; if not, confirm the change's own notes state why reversal is unsafe or unnecessary
 severity: important
 sources:
-
-- Refactoring Databases (Scott Ambler & Pramod Sadalage)
+  - Refactoring Databases (Scott Ambler & Pramod Sadalage)
 
 ## SYS-MIGR-003
 
@@ -124,8 +112,7 @@ rationale: A single blocking migration on a hot table is an outage with extra st
 how-to-check: For a migration touching a table over the project's stated size threshold, confirm it is batched or uses an online-migration mechanism
 severity: important
 sources:
-
-- Designing Data-Intensive Applications (Martin Kleppmann), ch. 3 "Storage and Retrieval"
+  - Designing Data-Intensive Applications (Martin Kleppmann), ch. 3 "Storage and Retrieval"
 
 ## SYS-COUPLE-001
 
@@ -134,8 +121,7 @@ rationale: Assuming independent deployability for coupled components is how a ro
 how-to-check: For a change spanning two deployable units, confirm the diff either deploys them together or maintains compatibility across the gap
 severity: important
 sources:
-
-- Google SRE Workbook, "Change Management"
+  - Google SRE Workbook, "Change Management"
 
 ## SYS-COUPLE-002
 
@@ -144,8 +130,7 @@ rationale: A silent breaking change in a shared library surfaces as a mystery fa
 how-to-check: For a shared library change, grep the monorepo (or check the package registry) for consumers and confirm each is accounted for
 severity: important
 sources:
-
-- Semantic Versioning 2.0.0
+  - Semantic Versioning 2.0.0
 
 ## SYS-OBS-001
 
@@ -154,8 +139,7 @@ rationale: A failure mode with no signal is a failure mode nobody can respond to
 how-to-check: For new error-handling branches, confirm the branch emits a log, metric, or alert distinguishable from the success path
 severity: important
 sources:
-
-- Google SRE Book, ch. 6 "Monitoring Distributed Systems"
+  - Google SRE Book, ch. 6 "Monitoring Distributed Systems"
 
 ## SYS-OBS-002
 
@@ -164,8 +148,7 @@ rationale: A log line with no correlating id is unusable during an incident; one
 how-to-check: Read new log statements for a correlation identifier and check them against SEC-LOG-001 for sensitive values
 severity: minor
 sources:
-
-- Google SRE Book, ch. 6 "Monitoring Distributed Systems"
+  - Google SRE Book, ch. 6 "Monitoring Distributed Systems"
 
 ## SYS-CONFIG-001
 
@@ -174,8 +157,7 @@ rationale: A hard-coded environment-specific value silently breaks the next envi
 how-to-check: Grep new code for hard-coded hostnames, ports, or environment-specific literals; grep new config fields for a reader outside the config module
 severity: important
 sources:
-
-- The Twelve-Factor App, "Config"
+  - The Twelve-Factor App, "Config"
 
 ## SYS-SCALE-001
 
@@ -184,8 +166,7 @@ rationale: Every unbounded collection was small once; the ones that matter are t
 how-to-check: For a new list-returning query or in-memory collection, check for a limit, cursor, or pagination parameter
 severity: important
 sources:
-
-- Designing Data-Intensive Applications (Martin Kleppmann), ch. 6 "Partitioning"
+  - Designing Data-Intensive Applications (Martin Kleppmann), ch. 6 "Partitioning"
 
 ## SYS-BOUND-003
 
@@ -194,8 +175,7 @@ rationale: Passing a live handle across a boundary couples the receiving module 
 how-to-check: Check new cross-module calls for a parameter type that is the sender's internal connection/entity type rather than a plain data shape
 severity: important
 sources:
-
-- Domain-Driven Design (Eric Evans) — bounded contexts and anti-corruption layers
+  - Domain-Driven Design (Eric Evans) — bounded contexts and anti-corruption layers
 
 ## SYS-CONTRACT-003
 
@@ -204,8 +184,7 @@ rationale: A same-release breaking change gives a consumer no chance to migrate 
 how-to-check: For a removed or incompatibly changed public field/endpoint, check whether a prior deprecation was announced and a window elapsed
 severity: important
 sources:
-
-- Microsoft REST API Guidelines, "Versioning" — deprecation policy
+  - Microsoft REST API Guidelines, "Versioning" — deprecation policy
 
 ## SYS-DATA-003
 
@@ -214,8 +193,7 @@ rationale: An optional type on a value that is actually always present forces ev
 how-to-check: For a new or changed schema field, confirm every write path that should populate it actually does, and every read path handles the case it does not, matching the declared optionality
 severity: minor
 sources:
-
-- Designing Data-Intensive Applications (Martin Kleppmann), ch. 4 "Encoding and Evolution"
+  - Designing Data-Intensive Applications (Martin Kleppmann), ch. 4 "Encoding and Evolution"
 
 ## SYS-DATA-004
 
@@ -224,8 +202,7 @@ rationale: An inconsistently-applied delete produces a "ghost" record that behav
 how-to-check: For a new delete path, grep readers of the same table/collection for one that does not apply the same delete/soft-delete filter
 severity: important
 sources:
-
-- Designing Data-Intensive Applications (Martin Kleppmann), ch. 1 "Reliable, Scalable, and Maintainable Applications"
+  - Designing Data-Intensive Applications (Martin Kleppmann), ch. 1 "Reliable, Scalable, and Maintainable Applications"
 
 ## SYS-FAIL-004
 
@@ -234,8 +211,7 @@ rationale: Treating every dependency as equally critical turns a minor, non-esse
 how-to-check: For a new call to a non-critical dependency, check what the caller does when it is unavailable — a full failure versus a defined degraded path
 severity: important
 sources:
-
-- Release It! (Michael T. Nygard), "Bulkheads"
+  - Release It! (Michael T. Nygard), "Bulkheads"
 
 ## SYS-FAIL-005
 
@@ -244,8 +220,7 @@ rationale: A silently dropped failed job loses work with no signal; an infinitel
 how-to-check: For a new job processor, confirm a maximum retry count and a terminal failed state exist and are observable
 severity: important
 sources:
-
-- Designing Data-Intensive Applications (Martin Kleppmann), ch. 11 "Stream Processing"
+  - Designing Data-Intensive Applications (Martin Kleppmann), ch. 11 "Stream Processing"
 
 ## SYS-MIGR-004
 
@@ -254,8 +229,7 @@ rationale: A migration that runs instantly on a hundred fixture rows can lock or
 how-to-check: Run or estimate the migration's cost against the actual table's current row count and index shape before it ships
 severity: important
 sources:
-
-- Refactoring Databases (Scott Ambler & Pramod Sadalage)
+  - Refactoring Databases (Scott Ambler & Pramod Sadalage)
 
 ## SYS-COUPLE-003
 
@@ -264,8 +238,7 @@ rationale: A direct read of another component's storage couples both to a schema
 how-to-check: For new cross-component data access, confirm it goes through the owning component's interface rather than a shared table/file read directly
 severity: important
 sources:
-
-- A Philosophy of Software Design (John Ousterhout), "Modular Design"
+  - A Philosophy of Software Design (John Ousterhout), "Modular Design"
 
 ## SYS-COUPLE-004
 
@@ -274,8 +247,7 @@ rationale: A deep synchronous chain composes every link's failure rate and laten
 how-to-check: For a new synchronous call added to an existing chain, count the resulting depth and check whether an async/eventual alternative was considered
 severity: minor
 sources:
-
-- Release It! (Michael T. Nygard), "Stability Patterns"
+  - Release It! (Michael T. Nygard), "Stability Patterns"
 
 ## SYS-OBS-003
 
@@ -284,8 +256,7 @@ rationale: An operation with no status visibility forces the caller (or an opera
 how-to-check: For a new async job/workflow, confirm a status-check mechanism (endpoint, query, dashboard) exists and reflects the operation's real state
 severity: minor
 sources:
-
-- Google SRE Book, ch. 6 "Monitoring Distributed Systems"
+  - Google SRE Book, ch. 6 "Monitoring Distributed Systems"
 
 ## SYS-OBS-004
 
@@ -294,8 +265,7 @@ rationale: An unchecked invariant that quietly breaks produces a much harder bug
 how-to-check: For a new invariant the design relies on, confirm a check, constraint, or assertion enforces it rather than the code merely assuming it
 severity: important
 sources:
-
-- The Pragmatic Programmer, "Design by Contract" — assertions
+  - The Pragmatic Programmer, "Design by Contract" — assertions
 
 ## SYS-CONFIG-002
 
@@ -304,8 +274,7 @@ rationale: A config value with no default turns an omission into a startup failu
 how-to-check: For a new config field, check whether a default exists and whether its absence is handled explicitly (fail fast) rather than silently
 severity: minor
 sources:
-
-- The Twelve-Factor App, "Config"
+  - The Twelve-Factor App, "Config"
 
 ## SYS-SCALE-002
 
@@ -314,8 +283,7 @@ rationale: An unbounded per-request resource is a slow leak under normal load an
 how-to-check: For new per-request resource allocation, check whether it is pooled/reused or has an explicit cap under concurrent load
 severity: important
 sources:
-
-- Release It! (Michael T. Nygard), "Resource Pools"
+  - Release It! (Michael T. Nygard), "Resource Pools"
 
 ## SYS-SCALE-003
 
@@ -324,8 +292,7 @@ rationale: A query without a matching index degrades from constant-ish to linear
 how-to-check: For a new query with a `WHERE`/filter clause, check whether the filtered column(s) are covered by an existing or new index
 severity: important
 sources:
-
-- Designing Data-Intensive Applications (Martin Kleppmann), ch. 3 "Storage and Retrieval"
+  - Designing Data-Intensive Applications (Martin Kleppmann), ch. 3 "Storage and Retrieval"
 
 ## SYS-VERS-001
 
@@ -334,8 +301,7 @@ rationale: A rolling deployment means old and new code process the same stream s
 how-to-check: For a new event/message field, confirm an old reader ignores it safely and a new reader tolerates its absence from an old-format message
 severity: critical
 sources:
-
-- Designing Data-Intensive Applications (Martin Kleppmann), ch. 4 "Encoding and Evolution"
+  - Designing Data-Intensive Applications (Martin Kleppmann), ch. 4 "Encoding and Evolution"
 
 ## SYS-IDEMP-001
 
@@ -344,8 +310,7 @@ rationale: At-least-once delivery is the norm for webhooks and distributed messa
 how-to-check: Send the same external event twice with the same idempotency key/id and confirm the effect is applied once
 severity: important
 sources:
-
-- Designing Data-Intensive Applications (Martin Kleppmann), ch. 8 "The Trouble with Distributed Systems"
+  - Designing Data-Intensive Applications (Martin Kleppmann), ch. 8 "The Trouble with Distributed Systems"
 
 ## SYS-CAP-001
 
@@ -354,8 +319,7 @@ rationale: A capability documented but not enforced is exactly as strong as the 
 how-to-check: For a new or changed capability boundary, confirm a runtime check refuses the disallowed action rather than only a comment or doc describing it
 severity: critical
 sources:
-
-- This repository's own audit finding (B8.1) — role contracts unenforced
+  - This repository's own audit finding (B8.1) — role contracts unenforced
 
 ## SYS-BACKPRESSURE-001
 
@@ -364,8 +328,7 @@ rationale: An unbounded buffer between a fast producer and a slow consumer conve
 how-to-check: For a new producer/consumer pairing, check whether the queue between them has a bound and a defined behavior when full
 severity: important
 sources:
-
-- Designing Data-Intensive Applications (Martin Kleppmann), ch. 11 "Stream Processing"
+  - Designing Data-Intensive Applications (Martin Kleppmann), ch. 11 "Stream Processing"
 
 ## SYS-ENV-001
 
@@ -374,8 +337,7 @@ rationale: Logic that only runs in production is logic that has never actually b
 how-to-check: Grep the diff for a conditional branching on an environment name that changes behavior rather than a config value
 severity: important
 sources:
-
-- The Twelve-Factor App, "Dev/prod parity"
+  - The Twelve-Factor App, "Dev/prod parity"
 
 ## SYS-CACHE-001
 
@@ -384,8 +346,7 @@ rationale: TTL-only invalidation trades correctness for a bounded staleness wind
 how-to-check: For a new cache in front of writable data, trace the write path for the corresponding cache invalidation or update call
 severity: important
 sources:
-
-- Designing Data-Intensive Applications (Martin Kleppmann), ch. 3 "Storage and Retrieval"
+  - Designing Data-Intensive Applications (Martin Kleppmann), ch. 3 "Storage and Retrieval"
 
 ## SYS-SHUTDOWN-001
 
@@ -394,8 +355,7 @@ rationale: A process killed mid-request drops whatever it was doing with no chan
 how-to-check: Send `SIGTERM` to the changed process while it holds in-flight work and confirm that work either completes or is safely returned to the queue before the process exits
 severity: important
 sources:
-
-- The Twelve-Factor App, "Disposability"
+  - The Twelve-Factor App, "Disposability"
 
 ## SYS-SPOF-001
 
@@ -404,8 +364,7 @@ rationale: An unexamined single point of failure is a design decision made by de
 how-to-check: For a new critical-path dependency, check whether a second instance or failover mechanism exists; if not, confirm the design explicitly accepts the risk rather than leaving it unstated
 severity: important
 sources:
-
-- Release It! (Michael T. Nygard), "Stability Patterns"
+  - Release It! (Michael T. Nygard), "Stability Patterns"
 
 ## SYS-TRACE-001
 
@@ -414,8 +373,7 @@ rationale: A request id that resets at each hop makes it impossible to reconstru
 how-to-check: For a new cross-service call, confirm the incoming correlation id is forwarded on the outbound call rather than a fresh one being generated
 severity: minor
 sources:
-
-- OpenTelemetry documentation, "Distributed Tracing"
+  - OpenTelemetry documentation, "Distributed Tracing"
 
 ## SYS-POOL-001
 
@@ -424,8 +382,7 @@ rationale: A connection opened per call pays setup cost on every request and has
 how-to-check: For a new client to a database or network service, confirm it is constructed once and pooled/reused rather than instantiated inside the per-request code path
 severity: important
 sources:
-
-- Release It! (Michael T. Nygard), "Resource Pools"
+  - Release It! (Michael T. Nygard), "Resource Pools"
 
 ## SYS-CONSIST-001
 
@@ -434,8 +391,7 @@ rationale: A caller that assumes strong consistency from a path that is actually
 how-to-check: For a new read path following a write, check whether documentation or the contract states the guarantee, and verify a read immediately after a write behaves as stated
 severity: important
 sources:
-
-- Designing Data-Intensive Applications (Martin Kleppmann), ch. 9 "Consistency and Consensus"
+  - Designing Data-Intensive Applications (Martin Kleppmann), ch. 9 "Consistency and Consensus"
 
 ## SYS-BACKUP-001
 
@@ -444,8 +400,7 @@ rationale: A data store nobody remembered to add to the backup process is invisi
 how-to-check: For a new database, table, or persistent volume, confirm it is included in the project's backup configuration or that its omission is explicitly documented
 severity: critical
 sources:
-
-- Google SRE Workbook, "Change Management" — data durability as a release requirement
+  - Google SRE Workbook, "Change Management" — data durability as a release requirement
 
 ## SYS-QUEUE-001
 
@@ -454,5 +409,4 @@ rationale: A consumer written as if delivery were exactly-once, on infrastructur
 how-to-check: Check the queue/topic's actual delivery guarantee against the consumer's handling of a redelivered message; confirm it tolerates redelivery if the guarantee allows it
 severity: important
 sources:
-
-- Designing Data-Intensive Applications (Martin Kleppmann), ch. 11 "Stream Processing"
+  - Designing Data-Intensive Applications (Martin Kleppmann), ch. 11 "Stream Processing"

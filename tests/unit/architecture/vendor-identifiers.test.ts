@@ -13,11 +13,16 @@ const scriptsRoot = join(repoRoot, "orchestrating-long-tasks/scripts");
 const testsRoot = join(repoRoot, "tests");
 
 /**
- * The only place a product may name a symbol: a module that exists to speak several products' own
- * command grammars, where a generic name would be a lie about what the rule encodes. Every entry is
+ * The only places a product may name a symbol: modules that exist to speak several products' own
+ * grammars and identities, where a generic name would be a lie about what the rule encodes.
+ * `host-telemetry.ts` keys TELEMETRY_PROBES by each host's own tool name and looks it up as
+ * `TELEMETRY_PROBES[identity.hostTool]`, so the key IS the value; renaming it breaks the lookup. Every entry is
  * a deliberate decision, and an entry pointing at a file that no longer exists fails the suite.
  */
-const SCRIPT_EXEMPTIONS: readonly string[] = ["src/graph/gate-runtime-grammar.ts"];
+const SCRIPT_EXEMPTIONS: readonly string[] = [
+  "src/graph/gate-runtime-grammar.ts",
+  "src/summary/host-telemetry.ts",
+];
 
 /**
  * A test that probes one host's configuration has to name that host: the whole point of
