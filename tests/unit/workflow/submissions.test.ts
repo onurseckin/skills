@@ -1,6 +1,9 @@
 import { describe, expect, test } from "bun:test";
+import type { RepositoryGitCommand } from "../../../orchestrating-long-tasks/scripts/src/packets/repository-git-command.ts";
 import { claimTask } from "../../../orchestrating-long-tasks/scripts/src/workflow/lease/claim.ts";
 import { submitTask } from "../../../orchestrating-long-tasks/scripts/src/workflow/submission/submit.ts";
+import type { WorkflowState } from "../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
+import { inspection } from "../packets/inspection-fixture.ts";
 import { at, registerTaskPacket, TestPort, workflowState } from "./test-port.ts";
 
 const start = at("2026-08-13T12:00:00.000Z");
@@ -11,6 +14,18 @@ const report = {
   checks: [{ command: "bun test", status: "passed", evidence: "command:C-1" }],
   evidence: [{ kind: "diff", path: "src/owned/a.ts" }],
 };
+
+function stateWithBaseline(): WorkflowState {
+  const state = workflowState();
+  const baseline = inspection("baseline");
+  state.baseline_repository_inspection_sha256 = baseline.inspection_sha256;
+  state.repository_inspections = { [baseline.inspection_sha256]: baseline };
+  return state;
+}
+
+const gitReturning =
+  (...lines: string[]): RepositoryGitCommand =>
+  () => ({ status: 0, bytes: Buffer.from(lines.join("\n"), "utf8") });
 
 describe("workflow submissions", () => {
   test("accepts scoped evidence under a current lease", () => {
@@ -101,5 +116,51 @@ describe("workflow submissions", () => {
       submitTask(port, "T-1", "agent", "wrong", report, at("2026-08-13T12:00:06.000Z")),
     ).toThrow();
     expect(port.read().orphan_evidence).toEqual([]);
+  });
+
+  // C10: write_scope is declared, never enforced elsewhere in the submission path — this is the
+  // backstop that subtracts the union of every task's write_scope from the repository's baseline
+  // diff and surfaces whatever remains as a capsule finding, which readiness-issues.ts already
+  // treats as an open-finding completion blocker.
+  test("C10: surfaces an open finding when the repository drifted outside every declared write_scope", () => {
+    const port = new TestPort(stateWithBaseline());
+    const { token } = claimTask(port, "T-1", "agent", "implementer", { clock: start });
+    registerTaskPacket(port, "implementer", "agent", 1);
+    const git = gitReturning("src/owned/a.ts", "unrelated/rogue.json");
+    const result = submitTask(
+      port,
+      "T-1",
+      "agent",
+      token,
+      report,
+      at("2026-08-13T12:01:00.000Z"),
+      {},
+      git,
+    );
+    expect(result.state.tasks["T-1"]!.status).toBe("submitted");
+    const findings = result.state.tasks["T-1"]!.findings ?? [];
+    expect(findings).toHaveLength(1);
+    expect(findings[0]!.status).toBe("open");
+    expect(findings[0]!.severity).toBe("critical");
+    expect(findings[0]!.observation).toContain("unrelated/rogue.json");
+    expect(findings[0]!.observation).not.toContain("src/owned/a.ts");
+  });
+
+  test("C10: no finding is raised when every changed path is covered by a declared write_scope", () => {
+    const port = new TestPort(stateWithBaseline());
+    const { token } = claimTask(port, "T-1", "agent", "implementer", { clock: start });
+    registerTaskPacket(port, "implementer", "agent", 1);
+    const git = gitReturning("src/owned/a.ts", "src/owned/nested/b.ts");
+    const result = submitTask(
+      port,
+      "T-1",
+      "agent",
+      token,
+      report,
+      at("2026-08-13T12:01:00.000Z"),
+      {},
+      git,
+    );
+    expect(result.state.tasks["T-1"]!.findings ?? []).toEqual([]);
   });
 });

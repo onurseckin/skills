@@ -1,16 +1,33 @@
 import { createHash } from "node:crypto";
 import { HarnessError } from "../../errors/harness-error.ts";
 import type { Evidenced } from "../../contracts/evidence.ts";
+import type { Finding } from "../../contracts/workflow.ts";
 import type { JsonObject } from "../../contracts/json.ts";
+import { repositoryGit, type RepositoryGitCommand } from "../../packets/repository-git-command.ts";
 import { tokenMatches } from "../lease/token.ts";
 import { jsonCopy, requireText, taskIn, transition, utc } from "../task-state.ts";
 import { systemClock, type Clock, type TransactionPort } from "../types.ts";
+import { outOfBandPaths } from "./out-of-band-drift.ts";
 import { validateReport } from "./validate-report.ts";
 import { assertPublishedTaskPacket } from "../packet-authority.ts";
 
 export interface EffortEvidenceOptions {
   currentWriteScopeContentHash?: Evidenced<string>;
   noOp?: { reason: string };
+}
+
+function outOfBandFinding(taskId: string, requirementId: string, paths: readonly string[]): Finding {
+  const id = `out-of-band-${createHash("sha256").update(paths.join("\n")).digest("hex").slice(0, 16)}`;
+  return {
+    id,
+    requirement_id: requirementId,
+    severity: "critical",
+    observation: `repository drift outside every declared task write_scope: ${paths.join(", ")}`,
+    evidence: [{ kind: "out_of_band_paths", paths: [...paths] }],
+    remediation: `extend a task's write_scope to cover the drifted paths, or revert the out-of-scope change, before ${taskId} can complete`,
+    revalidation: `re-run task:submit for ${taskId} once the working tree matches the union of every declared write_scope`,
+    status: "open",
+  };
 }
 
 export function submitTask(
@@ -21,6 +38,7 @@ export function submitTask(
   reportValue: unknown,
   clock: Clock = systemClock,
   effortEvidence: EffortEvidenceOptions = {},
+  git: RepositoryGitCommand = repositoryGit,
 ): { state: ReturnType<TransactionPort["read"]>; orphaned: boolean } {
   agentId = requireText(agentId, "agent_id");
   const now = clock.now();
@@ -86,6 +104,14 @@ export function submitTask(
           at: utc(now),
         };
       }
+    }
+
+    const drift = outOfBandPaths(draft, now, git);
+    if (drift.length > 0) {
+      const finding = outOfBandFinding(taskId, task.requirement_ids[0] ?? "", drift);
+      task.findings ??= [];
+      if (!task.findings.some((existing) => existing.id === finding.id))
+        task.findings.push(finding);
     }
 
     task.report = report;
