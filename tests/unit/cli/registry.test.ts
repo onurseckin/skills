@@ -100,11 +100,13 @@ describe("CLI command registry", () => {
           ? [invocation, "--scripts", tmpdir()]
           : invocation === "coverage:check"
             ? [invocation, "--dir", `${tmpdir()}/nonexistent-${Date.now()}`]
-            : invocation === "capture:run"
-              ? [invocation, "--config", `${tmpdir()}/nonexistent-${Date.now()}.yaml`]
-              : invocation === "capture:eval"
-                ? [invocation, "--manifest", `${tmpdir()}/nonexistent-${Date.now()}.json`]
-                : [invocation];
+            : invocation === "capture:init"
+              ? [invocation, "--config-dir", `${tmpdir()}/nonexistent-${Date.now()}`]
+              : invocation === "capture:run"
+                ? [invocation, "--config", `${tmpdir()}/nonexistent-${Date.now()}.yaml`]
+                : invocation === "capture:eval"
+                  ? [invocation, "--manifest", `${tmpdir()}/nonexistent-${Date.now()}.json`]
+                  : [invocation];
       const failure = await execute(argv).then(
         () => new Error("resolved"),
         (error: unknown) => error,

@@ -125,16 +125,13 @@ interface:
         task, launched together so the pair is registered atomically.
         
         **MANDATORY HOST DISPATCH EXECUTION**:
-        You MUST call your host application's native subagent tool to launch Tier 3 agents:
-        - **Antigravity CLI**: Call `invoke_subagent` tool:
-          `invoke_subagent({ Subagents: [{ TypeName: "self", Role: "Implementer: <task_id>", Prompt: "<task-prompt>", Workspace: "inherit" }] })`
-        - **Claude Code**: Call `Agent` tool:
-          `Agent({ agent_type: "implementer", prompt: "<task-prompt>" })`
-        - **OpenAI Codex**: Call `spawn_agent` tool:
-          `spawn_agent({ agent_type: "implementer", task: "<task-prompt>" })`
-        - **Cursor**: Call `Task` tool.
+        You MUST call your host application's native subagent tool (see `references/host-adapters.md`):
+        - Under **Antigravity CLI**: Dispatch via the `invoke_subagent` tool with `TypeName: "self"`.
+        - Under **Claude Code**: Dispatch via the `Agent` tool.
+        - Under **OpenAI Codex**: Dispatch via the `spawn_agent` tool (`multi_agent_v1`).
+        - Under **Cursor**: Dispatch via the `Task` tool.
 
-        YOU MUST NEVER WRITE CODE, EDIT FILES, OR RUN GATES YOURSELF. EVERY TASK MUST BE DISPATCHED VIA YOUR HOST'S NATIVE TOOL ABOVE.
+        YOU MUST NEVER WRITE CODE, EDIT REPO FILES, OR RUN TASK GATES YOURSELF. EVERY TASK MUST BE DISPATCHED VIA YOUR HOST'S NATIVE TOOL ABOVE.
       - **Register every agent you deploy, before it starts work:**
         `agent:register --run $RUN --agent <agent-id> --role <canonical-role> --host <host> --parent-agent <your-id> --parent-task <task-id>`
         Add `--model`, `--model-tier`, `--thinking-level` and repeated `--tool` ONLY when the host
