@@ -232,7 +232,7 @@ Every host adapter implementation must enforce the following guardrails:
 - **Anti-Pattern**: Schedulers running unmonitored without active wake intervals, or serializing parallelizable tasks due to lack of topological introspection. Coordinators editing codebase files directly instead of orchestrating.
 - **Guardrail**:
   - Enforce mandatory 5-minute supervisory scheduler registration (`schedule` cron `*/5 * * * *` or timer `DurationSeconds=300`) across all multi-phase runs.
-  - Use `dag:view` (alias: `graph:ascii`) to inspect live ASCII execution trees, track subagent lease occupancy, and surface algorithmic parallelization opportunities (e.g. disjoint write scopes artificially serialized).
+  - Use `dag:view` (alias: graph:ascii) to inspect live ASCII execution trees, track subagent lease occupancy, and surface algorithmic parallelization opportunities (e.g. disjoint write scopes artificially serialized).
   - Coordinators must strictly orchestrate and NEVER write, edit, or test code directly.
 
 ### 5.7 Multi-Coordinator Scaling & Algorithmic DAG Parallelization

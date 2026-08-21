@@ -479,7 +479,7 @@ export function renderAsciiDag(
       lines.push(`│ │  Status: ${badge}${agentStr}${attemptStr}${parallelTag}`);
 
       if (detailed || task.writeScope.length > 0) {
-        const scopes = task.writeScope.join(", ") || "(none)";
+        const scopes = task.writeScope.length > 0 ? task.writeScope.join(", ") : "none";
         lines.push(`│ │  Scope:  ${scopes}`);
       }
 
@@ -723,7 +723,7 @@ export function dagViewCommand(
   } else {
     depMap = new Map();
     for (const item of planningBuffer) {
-      depMap.set(item.id, new Set(item.deps ?? []));
+      depMap.set(item.id, new Set(Array.isArray(item.deps) ? item.deps : []));
     }
   }
 
@@ -746,7 +746,8 @@ export function dagViewCommand(
   if (isCompiled) {
     for (const [id, t] of Object.entries(taskMap)) {
       const status = typeof t.status === "string" ? t.status : "proposed";
-      statusCounts[status] = (statusCounts[status] ?? 0) + 1;
+      const currentCount = statusCounts[status];
+      statusCounts[status] = typeof currentCount === "number" ? currentCount + 1 : 1;
 
       const label = typeof t.label === "string" ? t.label : id;
       const priority = typeof t.priority === "number" ? t.priority : 50;
@@ -760,7 +761,12 @@ export function dagViewCommand(
       const effort = typeof t.effort === "number" ? t.effort : 1;
 
       const matchingAgent = activeAgents.find((a) => a.id === assignedAgent);
-      const assignedTool = matchingAgent?.tool ?? (assignedAgent ? "write_file" : null);
+      const assignedTool =
+        typeof matchingAgent?.tool === "string"
+          ? matchingAgent.tool
+          : typeof assignedAgent === "string"
+            ? "write_file"
+            : null;
 
       nodeSummaries.push({
         id,
@@ -775,14 +781,15 @@ export function dagViewCommand(
         assignedTool,
         attempt,
         wave: 1,
-        criticalDepth: criticalDepthMap.get(id) ?? 0,
-        descendantCount: descendantsMap.get(id) ?? 0,
+        criticalDepth: criticalDepthMap.has(id) ? (criticalDepthMap.get(id) as number) : 0,
+        descendantCount: descendantsMap.has(id) ? (descendantsMap.get(id) as number) : 0,
         effort,
       });
     }
   } else {
     for (const item of planningBuffer) {
-      statusCounts["draft"] = (statusCounts["draft"] ?? 0) + 1;
+      const draftCount = statusCounts["draft"];
+      statusCounts["draft"] = typeof draftCount === "number" ? draftCount + 1 : 1;
       const gateStr =
         typeof item.gate === "string"
           ? item.gate
@@ -797,13 +804,17 @@ export function dagViewCommand(
         writeScope: item.writeScope,
         resourceScope: [],
         gate: gateStr,
-        dependencies: item.deps ?? [],
+        dependencies: Array.isArray(item.deps) ? item.deps : [],
         assignedAgent: null,
         assignedTool: null,
         attempt: null,
         wave: 1,
-        criticalDepth: criticalDepthMap.get(item.id) ?? 0,
-        descendantCount: descendantsMap.get(item.id) ?? 0,
+        criticalDepth: criticalDepthMap.has(item.id)
+          ? (criticalDepthMap.get(item.id) as number)
+          : 0,
+        descendantCount: descendantsMap.has(item.id)
+          ? (descendantsMap.get(item.id) as number)
+          : 0,
         effort: typeof item.effort === "number" ? item.effort : 1,
         depReasons: item.depReasons,
       });
@@ -813,7 +824,7 @@ export function dagViewCommand(
   const { waveMap, maxWave } = computeTopologicalWaves(nodeSummaries, depMap);
   const updatedNodes = nodeSummaries.map((node) => ({
     ...node,
-    wave: waveMap.get(node.id) ?? 1,
+    wave: waveMap.has(node.id) ? (waveMap.get(node.id) as number) : 1,
   }));
 
   const waveGroups: { wave: number; tasks: DagNodeSummary[] }[] = [];
@@ -844,7 +855,10 @@ export function dagViewCommand(
   const recommendations = analyzeParallelization(updatedNodes, depMap, maxParallel);
   const asciiDag = renderAsciiDag(waveGroups, detailed, dependencyForensics);
 
-  const totalWork = updatedNodes.reduce((acc, t) => acc + (t.effort ?? 1), 0);
+  const totalWork = updatedNodes.reduce(
+    (acc, t) => acc + (typeof t.effort === "number" ? t.effort : 1),
+    0,
+  );
   const span = Math.max(1, maxCriticalPath);
   const parallelismFactor = span > 0 ? Number((totalWork / span).toFixed(2)) : 0;
   const optimalConcurrency = Math.min(
