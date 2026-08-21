@@ -19,7 +19,7 @@ export const CHANGED_FILE = "tests/unit/core/probe-target.ts";
 export async function setupRun(
   name: string,
   roots: string[],
-  config?: Record<string, number>,
+  config?: Record<string, boolean | number | string>,
 ): Promise<{ repo: string; run: string }> {
   const repo = realpathSync(await mkdtemp(join(tmpdir(), `harness-probe-${name}-`)));
   roots.push(repo);

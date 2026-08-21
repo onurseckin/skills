@@ -83,6 +83,19 @@ describe("the lexical scan separates code from what only looks like code", () =>
     expect(scanned.code).toContain("after");
   });
 
+  test("a regex following a keyword like return is recognized, not read as division", () => {
+    const scanned = scanSource("function f() { return /a\\/b/u.test(x); }");
+    expect(scanned.comments).toHaveLength(0);
+    expect(scanned.code).toContain("test(x)");
+  });
+
+  test("an unterminated block comment still ends at the end of the file rather than looping", () => {
+    const scanned = scanSource("const kept = 1;\n/* never closes");
+    expect(scanned.code).toContain("kept");
+    expect(scanned.comments).toHaveLength(1);
+    expect(scanned.comments[0]?.block).toBe(true);
+  });
+
   test("lineOf clamps to the text it was given", () => {
     expect(lineOf("a\nb", 999)).toBe(2);
     expect(lineOf("", 0)).toBe(1);

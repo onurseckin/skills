@@ -4480,6 +4480,63 @@
       ]
     },
     {
+      "name": "coverage:check",
+      "aliases": [],
+      "domain": "diagnostics",
+      "summary": "Audit repository test coverage against strict 95% threshold.",
+      "description": "Runs bun test with coverage collection, parses per-file metrics across lines, statements, functions, and branches, and enforces the minimum 95% threshold.",
+      "flags": [
+        {
+          "name": "threshold",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": "0.95",
+          "description": "Minimum coverage threshold fraction, default 0.95."
+        },
+        {
+          "name": "dir",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Target repository directory to run coverage check in."
+        },
+        {
+          "name": "strict",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Exit nonzero when coverage is below threshold."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts coverage:check",
+        "bun harness.ts coverage:check --threshold 0.95 --strict"
+      ]
+    },
+    {
       "name": "health",
       "aliases": [],
       "domain": "diagnostics",

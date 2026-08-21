@@ -58,6 +58,30 @@ describe("a flag the handler never reads is accepted and dropped", () => {
   });
 });
 
+describe("a flag read through an imported helper is not mistaken for unread", () => {
+  const keys = keysFor(
+    { "roles/.keep": "" },
+    {
+      "handler.ts": [
+        'import { HOME_FLAG } from "./flag-names.ts";',
+        "export function doctorCommand(flags: Record<string, string>): string {",
+        "  void HOME_FLAG;",
+        '  return flags["run"] ?? "";',
+        "}",
+      ].join("\n"),
+      "flag-names.ts": ['export const HOME_FLAG = "home";'].join("\n"),
+    },
+  );
+
+  test("the flag named only inside the imported module is not reported unread", () => {
+    expect(keys).not.toContain("unread-flag:doctor:home");
+  });
+
+  test("a flag neither the handler nor its import mentions is still reported", () => {
+    expect(keys).toContain("unread-flag:doctor:source");
+  });
+});
+
 describe("a config knob nothing reads is a promise the harness does not keep", () => {
   const CONFIG = [
     "export interface HarnessConfig {",

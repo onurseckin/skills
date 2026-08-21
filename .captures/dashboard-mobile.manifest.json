@@ -12,7 +12,7 @@
   "imageFile": "dashboard-mobile.png",
   "imageSizeBytes": 67,
   "imageSha256": "546436b1b7e7da79f6b5eaed377d10c869faae8417760a49cc6daa2bbcc036aa",
-  "capturedAt": "2026-08-21T09:52:27.509Z",
+  "capturedAt": "2026-08-21T10:15:30.860Z",
   "physics": {
     "viewport": {
       "width": 375,
@@ -26,7 +26,7 @@
     "elements": [],
     "layoutOverflows": [],
     "textClippings": [],
-    "capturedAt": "2026-08-21T09:52:27.509Z"
+    "capturedAt": "2026-08-21T10:15:30.860Z"
   },
   "url": "http://localhost:3000/"
 }

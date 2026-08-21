@@ -47,6 +47,23 @@ describe("submission report construction", () => {
     expect(report.checks_evidence_class).toBe("harness_observed");
   });
 
+  test("falls back to every matching observed command, sorted by id", () => {
+    const report = buildSubmissionReport({
+      task: task(),
+      agentId: "agent-1",
+      summary: "implemented",
+      declaredFiles: ["src/owned/auth.ts"],
+      observedFiles: null,
+      commands: {
+        "C-2": commandRecord("C-2", { actor: "agent-1" }),
+        "C-1": commandRecord("C-1", { actor: "agent-1" }),
+      },
+    });
+
+    expect(report.checks).toEqual([{ command_id: "C-1" }, { command_id: "C-2" }]);
+    expect(report.checks_evidence_class).toBe("harness_observed");
+  });
+
   test("falls back to the Git observation narrowed to the write scope", () => {
     const report = buildSubmissionReport({
       task: task(),
@@ -111,6 +128,36 @@ describe("submission report construction", () => {
         commands: { "C-9": commandRecord("C-9", { actor: "agent-1", task_id: "T-2" }) },
       }),
     ).toThrow("belongs to task T-2");
+  });
+
+  test("accepts declared command ids that belong to this task and labels them agent_reported", () => {
+    const report = buildSubmissionReport({
+      task: task(),
+      agentId: "agent-1",
+      summary: "implemented",
+      declaredFiles: ["src/owned/auth.ts"],
+      declaredCommandIds: ["C-1"],
+      observedFiles: null,
+      commands: { "C-1": commandRecord("C-1", { actor: "agent-1" }) },
+    });
+
+    expect(report.checks).toEqual([{ command_id: "C-1" }]);
+    expect(report.checks_evidence_class).toBe("agent_reported");
+  });
+
+  test("accepts a declared command id shared across tasks when its task_id is null", () => {
+    const report = buildSubmissionReport({
+      task: task(),
+      agentId: "agent-1",
+      summary: "implemented",
+      declaredFiles: ["src/owned/auth.ts"],
+      declaredCommandIds: ["C-RUN"],
+      observedFiles: null,
+      commands: { "C-RUN": commandRecord("C-RUN", { actor: "coordinator", task_id: null }) },
+    });
+
+    expect(report.checks).toEqual([{ command_id: "C-RUN" }]);
+    expect(report.checks_evidence_class).toBe("agent_reported");
   });
 
   test("evidence points at the durable record path of each check command", () => {

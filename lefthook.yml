@@ -5,7 +5,8 @@
 # pre-push because it takes far longer, and because a suite run against a working tree that several
 # agents are editing concurrently reports their transient state rather than the commit's.
 #
-# Push is the boundary that matters: nothing reaches a remote without the full suite passing.
+# Push is the boundary that matters: nothing reaches a remote without the full suite passing
+# and strict 95% coverage threshold verified across all production TypeScript modules.
 
 pre-commit:
   parallel: true
@@ -18,6 +19,8 @@ pre-push:
   commands:
     test-unit:
       run: bun run test
+    coverage-check:
+      run: bun run coverage:check
 
 post-push:
   commands:

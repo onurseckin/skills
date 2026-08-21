@@ -1369,6 +1369,27 @@ bun harness.ts installation-status --source . --home ~
 
 ## diagnostics
 
+### `coverage:check`
+
+Audit repository test coverage against strict 95% threshold.
+
+Runs bun test with coverage collection, parses per-file metrics across lines, statements, functions, and branches, and enforces the minimum 95% threshold.
+
+- **Aliases**: none
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--threshold` | string | no | no | `0.95` | Minimum coverage threshold fraction, default 0.95. |
+| `--dir` | string | no | no | - | Target repository directory to run coverage check in. |
+| `--strict` | bool | no | no | - | Exit nonzero when coverage is below threshold. |
+
+```bash
+bun harness.ts coverage:check
+bun harness.ts coverage:check --threshold 0.95 --strict
+```
+
 ### `health`
 
 Check whether the code still does what the requirements said.

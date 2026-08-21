@@ -60,6 +60,7 @@ commands:
   - evidence:screenshots
   - branch:status
   - doctor
+  - doctor:repair
   - agent:register
   - agent:report
   - agent:release

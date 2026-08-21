@@ -14,6 +14,18 @@ function chunkStream(chunks: string[]): ReadableStream<Uint8Array> {
   });
 }
 
+function chunkStreamWithFailingCancel(chunks: string[]): ReadableStream<Uint8Array> {
+  const encoder = new TextEncoder();
+  return new ReadableStream<Uint8Array>({
+    start(controller) {
+      for (const chunk of chunks) controller.enqueue(encoder.encode(chunk));
+    },
+    cancel() {
+      throw new Error("underlying source refused to cancel");
+    },
+  });
+}
+
 interface RecordingFile {
   handle: FileHandle;
   written: Buffer;
@@ -123,5 +135,23 @@ describe("pumpOutput", () => {
     await expect(pending).rejects.toThrow("command output collection aborted");
     // The second chunk is never reached because the abort check runs before the next read.
     expect(seen).toEqual(["first"]);
+  });
+
+  test("swallows a cancel rejection raised by the underlying source when aborting mid-stream", async () => {
+    const file = recordingFile();
+    const controller = new AbortController();
+    const pending = pumpOutput(
+      chunkStreamWithFailingCancel(["first", "second"]),
+      file.handle,
+      "path",
+      (text) => {
+        if (text === "first") controller.abort();
+      },
+      { signal: controller.signal },
+    );
+    // The abort listener calls `reader.cancel()`, which rejects because this stream's own
+    // `cancel()` throws; that rejection must be swallowed rather than crashing the pump or
+    // producing an unhandled rejection, and the pump still surfaces its own abort error.
+    await expect(pending).rejects.toThrow("command output collection aborted");
   });
 });

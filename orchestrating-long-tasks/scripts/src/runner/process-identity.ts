@@ -12,10 +12,13 @@ export interface ProcessIdentity extends ProcessTopology {
   birth: string;
 }
 
-export function readProcessIdentity(pid: number): ProcessIdentity | undefined {
+export function readProcessIdentity(
+  pid: number,
+  platform: string = process.platform,
+): ProcessIdentity | undefined {
   if (!Number.isSafeInteger(pid) || pid <= 1) return undefined;
-  if (process.platform === "darwin") return darwinProcessIdentity(pid);
-  if (process.platform === "linux") return linuxProcessIdentity(pid);
+  if (platform === "darwin") return darwinProcessIdentity(pid);
+  if (platform === "linux") return linuxProcessIdentity(pid);
   throw new HarnessError("UNSUPPORTED_PLATFORM", "strong process identity is unavailable");
 }
 

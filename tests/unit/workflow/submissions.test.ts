@@ -108,6 +108,18 @@ describe("workflow submissions", () => {
     expect(JSON.stringify(result.state.orphan_evidence)).not.toContain(token);
   });
 
+  test("refuses a submission once the task has drifted away from leased or running", () => {
+    const port = new TestPort(workflowState());
+    const { token } = claimTask(port, "T-1", "agent", "implementer", { clock: start });
+    registerTaskPacket(port, "implementer", "agent", 1);
+    port.transact("test", "status-drift", {}, (draft) => {
+      draft.tasks["T-1"]!.status = "validating";
+    });
+    expect(() =>
+      submitTask(port, "T-1", "agent", token, report, at("2026-08-13T12:01:00.000Z")),
+    ).toThrow(/task is not accepting a submission/);
+  });
+
   test("wrong tokens create no orphan evidence", () => {
     const port = new TestPort(workflowState());
     claimTask(port, "T-1", "agent", "implementer", { leaseSeconds: 5, clock: start });
@@ -144,6 +156,40 @@ describe("workflow submissions", () => {
     expect(findings[0]!.severity).toBe("critical");
     expect(findings[0]!.observation).toContain("unrelated/rogue.json");
     expect(findings[0]!.observation).not.toContain("src/owned/a.ts");
+  });
+
+  test("C10: an out-of-band finding is appended alongside a pre-existing finding, not in place of it", () => {
+    const state = stateWithBaseline();
+    state.tasks["T-1"]!.findings = [
+      {
+        id: "F-existing",
+        requirement_id: "R-1",
+        severity: "important",
+        observation: "unrelated review finding",
+        evidence: [{ path: "a" }],
+        remediation: "fix",
+        revalidation: "test",
+        status: "open",
+      },
+    ];
+    const port = new TestPort(state);
+    const { token } = claimTask(port, "T-1", "agent", "implementer", { clock: start });
+    registerTaskPacket(port, "implementer", "agent", 1);
+    const git = gitReturning("src/owned/a.ts", "unrelated/rogue.json");
+    const result = submitTask(
+      port,
+      "T-1",
+      "agent",
+      token,
+      report,
+      at("2026-08-13T12:01:00.000Z"),
+      {},
+      git,
+    );
+    const findings = result.state.tasks["T-1"]!.findings ?? [];
+    expect(findings).toHaveLength(2);
+    expect(findings[0]!.id).toBe("F-existing");
+    expect(findings.some((finding) => finding.observation.includes("unrelated/rogue.json"))).toBeTrue();
   });
 
   test("C10: no finding is raised when every changed path is covered by a declared write_scope", () => {

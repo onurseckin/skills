@@ -1,3 +1,4 @@
+import { coverageCheckCommand } from "../commands/coverage-check.ts";
 import {
   doctorCommand,
   healthCommand,
@@ -15,6 +16,27 @@ import {
 } from "./types.ts";
 
 export const DIAGNOSTICS_COMMANDS: readonly CommandSpec[] = [
+  {
+    name: "coverage:check",
+    aliases: [],
+    domain: "diagnostics",
+    summary: "Audit repository test coverage against strict 95% threshold.",
+    description:
+      "Runs bun test with coverage collection, parses per-file metrics across lines, statements, functions, and branches, and enforces the minimum 95% threshold.",
+    flags: [
+      optionalFlag("threshold", "string", "Minimum coverage threshold fraction, default 0.95.", "0.95"),
+      optionalFlag("dir", "string", "Target repository directory to run coverage check in."),
+      optionalFlag("strict", "bool", "Exit nonzero when coverage is below threshold."),
+    ],
+    readsStdin: false,
+    takesRemainder: false,
+    exitCodes: DEFAULT_EXIT_CODES,
+    examples: [
+      "bun harness.ts coverage:check",
+      "bun harness.ts coverage:check --threshold 0.95 --strict",
+    ],
+    handler: coverageCheckCommand,
+  },
   {
     name: "health",
     aliases: [],

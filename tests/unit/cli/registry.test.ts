@@ -66,6 +66,7 @@ const EXPECTED_INVOCATIONS = [
   "authority:decide",
   "install",
   "installation-status",
+  "coverage:check",
   "health",
   "doctor",
   "doctor:repair",
@@ -94,7 +95,12 @@ describe("CLI command registry", () => {
       // multi-second structural scan against this harness's own source tree; pointing --scripts
       // at a plain directory makes it fail its own fast "no src directory" check instead, which
       // is still a rejection and still not "unknown command".
-      const argv = invocation === "health" ? [invocation, "--scripts", tmpdir()] : [invocation];
+      const argv =
+        invocation === "health"
+          ? [invocation, "--scripts", tmpdir()]
+          : invocation === "coverage:check"
+            ? [invocation, "--dir", `${tmpdir()}/nonexistent-${Date.now()}`]
+            : [invocation];
       const failure = await execute(argv).then(
         () => new Error("resolved"),
         (error: unknown) => error,
