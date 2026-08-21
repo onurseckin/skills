@@ -68,6 +68,74 @@ were implemented before being queued, so they are recorded here for completeness
 | **Projection checkpointing** | `events.jsonl` measured at 4,613,371 bytes over 66 events; the `projection` field is 103.7% of that by JSON size. Real event content totals ~17KB — the signal is 0.4% of the file. Replaced with periodic checkpoints plus replay. |
 | **Unclosed attempts** | Three of four tasks in the `limo` run reached `done` holding an implementation attempt with `started_at` and no `submitted_at`. A terminal transition now refuses while an attempt is open; abandonment is an explicit attributed state. |
 
+## R11 — File equality must be semantic, not byte-level (added 2026-08-20)
+
+### The requirement
+
+> "If a formatter runs and a row/column alignment changes, or it gets some additional spacing, that
+> should not be registered as a different file. File equality should be handled by the content of the
+> code — parsed and trimmed — so that additional spacing or alignment changes are not considered a
+> difference."
+
+The skill should not need to intervene in a repository's own formatting setup. It should be
+*indifferent* to formatting instead.
+
+### It has already caused two real failures, both today, both in this repository
+
+**1. Digested checklists.** `bun run format` (bare `oxfmt`, no path restriction) re-indented list
+items in `orchestrating-long-tasks/checklists/*.md` — `  - ` became `- `, plus blank lines. A
+`git diff --word-diff` showed **zero word-level changes**. Five contract-digest tests failed, because
+those files' bytes are hashed into validator domain contracts.
+
+**2. The generated CLI manifest.** The same command reformatted
+`references/cli-capabilities.md`, producing **484 insertions and 485 deletions** with no semantic
+change, and breaking the freshness test that compares the checked-in file against the registry
+render. This silently failed three consecutive pushes before the cause was found.
+
+Both were worked around by adding ignore patterns to `.oxfmtrc.json`. That is a patch on one
+formatter in one repository — it does not generalise to a consumer repo the skill is dropped into.
+
+### Where byte-equality is currently load-bearing
+
+Every one of these would report a false difference after a formatter run:
+
+| Mechanism | What it hashes |
+|---|---|
+| contract digests | role and checklist document bytes |
+| `prompt_sha256` | the immutable prompt |
+| C4 write-scope content hash | the declared scope at claim vs submit |
+| C10 drift detection | working tree vs the union of declared scopes |
+| repository binding / inspection | `current_repository_inspection_sha256` |
+| `gate:prove` | a reverted scratch copy against the working tree |
+
+C4 and C10 are the dangerous pair. A repo-wide format run between claim and submit would read as
+"this task wrote the whole repository", and a format run inside a scope would read as work where none
+happened.
+
+### Design direction
+
+Introduce one content-normalisation layer that every hash and comparison routes through, with a
+canonicaliser per known format and an honest fallback:
+
+- **JSON / JSONL** — parse, canonicalise key order and whitespace, hash the canonical form.
+- **YAML** — parse and canonicalise.
+- **TS / JS** — normalise whitespace outside string and template literals. Do NOT attempt to run the
+  consumer's formatter; that couples the harness to a toolchain it does not own.
+- **Everything else** — byte equality, unchanged.
+
+**Record which normalisation was applied.** "Equal under JSON canonicalisation" and "byte-identical"
+are different claims and the evidence spine already has the vocabulary to say so. Collapsing them
+would be the same dishonesty this project keeps removing.
+
+### The trap to avoid
+
+Normalisation must never hide a real change. Whitespace is semantic in more places than it looks:
+Markdown list indentation changes nesting, YAML indentation changes structure, Python indentation
+changes control flow, and inside a template literal a space is data. A canonicaliser that trims too
+eagerly turns a correctness mechanism into a blind spot — which is worse than the false positives it
+set out to fix. Prefer a conservative canonicaliser per format over a general whitespace stripper,
+and byte-equality wherever the format is unknown.
+
 ## In flight
 
 - **test-lane** — clear the last 10 unit failures, then classify every slow test by nature (not speed)
