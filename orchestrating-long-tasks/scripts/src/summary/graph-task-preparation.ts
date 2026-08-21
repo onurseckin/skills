@@ -1,5 +1,6 @@
 import type { HarnessEvent, Manifest } from "../contracts/capsule.ts";
 import type { CommandRecord } from "../contracts/commands.ts";
+import type { RepositoryGitCommand } from "../packets/repository-git-command.ts";
 import type { TaskRecord } from "../workflow/types.ts";
 import type { AgentLedgerView } from "./agent-telemetry.ts";
 import { mapFindingDetails, mapMediaAssets, type AssetMapOptions } from "./asset-mapper.ts";
@@ -24,6 +25,7 @@ export interface TaskPreparationInput {
   events?: readonly HarnessEvent[] | undefined;
   manifest?: Manifest | undefined;
   runRoot?: string | undefined;
+  gitCommand?: RepositoryGitCommand | undefined;
 }
 
 function taskSubmittedStep(

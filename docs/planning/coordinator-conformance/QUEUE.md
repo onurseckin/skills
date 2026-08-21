@@ -37,7 +37,6 @@ ranked by how much of the run's honesty depends on it. #23 is last by constructi
 | #   | Item                                                      | Source    | Why it is still here                                                                                                 |
 | --- | --------------------------------------------------------- | --------- | -------------------------------------------------------------------------------------------------------------------- |
 | 1   | **CI runs a path that does not exist**                    | new       | No push has been validated since the suite moved to `tests/`. One line to fix; nothing below stays fixed without it. |
-| 2   | **Repair the integration lane**                           | Q12       | Verified broken today: 45 of 815 fail, all from two refusals that landed today without updating the fixtures.        |
 | 3   | **CI coverage floor**                                     | B9.1      | Blocked on #1 — a workflow that cannot run the suite cannot put a floor under it.                                    |
 | 4   | **R11 — file equality must be semantic** — **PARTIAL 2026-08-21** | Q17 | The shared normalisation layer landed at `store/content-normalization/` (format detection, JSON/JSONL canonicalisation, a restricted-grammar YAML canonicaliser, a string/template-literal-aware TS/JS whitespace canonicaliser, each with an honest byte-identical fallback and the method recorded — 83 tests in `tests/unit/store/content-normalization/`). One real store/** call site is wired: `capsule-index.ts:251`'s capture-ledger freshness digest now routes through `contentDigest`, proven by a test that fails without it (`tests/unit/store/capsule-index.test.ts`, "stays current when captures.json is rewritten..." — confirmed failing against the old `createHash` call before this change, passing after). Every other store/** hash (blob content-address in `blobs.ts`, packet/prompt digests in `layout-packets.ts`/`manifest.ts`) was deliberately left on byte equality: those hash markdown or content-addressed evidence inside the gitignored `.capsules/` tree, which a repo formatter never reaches, so byte equality there is already correct, not the bug this item describes. The six mechanisms below remain unwired and are all outside `store/**`: `packets/role-contract.ts:196,306,375` (contract digests, still raw `createHash`), `workflow/lease/write-scope-hash.ts:26,76` (C4, still raw `createHash`), `workflow/submission/out-of-band-drift.ts` (C10), `packets/repository-identity.ts` / `packets/repository-inspection.ts` (repository binding, via `sha256Bytes`/`canonicalJsonBytes` over parsed values rather than raw repo file bytes — not yet audited for this item), and gate:prove's falsifiability check (`workflow/review/pass-preconditions.ts` + whatever backs `gate:prove`, likely the same `hashWriteScope` as C4 — not yet traced). Whoever owns those files imports `contentDigest`/`contentEquals` from `store/content-normalization/index.ts`. |
 | 5   | **R1/R2 — role output contracts, empty-evidence refusal** — **PARTIAL 2026-08-21** | Q5 | Classification fixed: `contracts/workflow.ts`'s `applicableValidatorDomains`/`uiDomainApplies` now take requirement free text (task label, requirement `instruction`/`implementation`/`source_excerpt`/acceptance criteria) alongside write_scope, so a task whose UI mandate lives only in its words — QUEUE-5's own worked example, write_scope `["src/types/dsa.ts"]` on a task named for dual-channel UI validation — now classifies `ui-design` (`tests/unit/contracts/workflow.test.ts`, `tests/unit/workflow/review/role-evidence.test.ts`, 21 tests). The empty-evidence refusal is widened past the pass-only gate: `workflow/review/role-evidence.ts`'s `assertRoleArtifactPresent`, wired into `cli/commands/task-review.ts`, refuses ANY verdict — pass or reject — on a task classified UI-shaped by either signal (the analyzer's own write_scope/taskFiles check, or the new text signal) that carries zero screenshot/DOM-metrics artifact; today's code only gated PASS. Left open: "every role, at every node type" is not built — only `ui-design` carries a per-domain artifact-required rule; `product`/`security`/`system-design` have no analogous output contract. Also left open: the deep structural dual-channel audit (viewport/contrast findings) still runs only when the analyzer's own write_scope/taskFiles classifier agrees — a task caught solely by the new text signal gets the artifact-existence gate, not the full viewport/contrast audit, because that logic lives in `validation/dual-channel-analyzer.ts`, outside this item's owned files (`workflow/review/**`, `contracts/workflow.ts`). |
@@ -396,3 +395,32 @@ repo                                               148L SKILL.md, 510 .ts
 Two of them ship documentation with no scripts, which is how the trace ended up reading `SKILL.md`
 from `.gemini` while executing `harness.ts` from `.agents` — **two different roots, independently
 stale, with nothing able to notice.** C11 must digest and report every root it can find, not one.
+
+## Struck by owner decision, 2026-08-21
+
+**"Repair the integration lane" (was ranked #2, Q12) — DELETED, not deferred.**
+
+It described 45 of 815 integration tests failing, all from two correct mechanisms that landed the same
+day (`assertGateProofFalsifiable` and the requirements fold-refusal) meeting fixtures written before
+them. There is nothing left to repair: the owner deleted `tests/integration` in its entirety
+(commit `db6a07b`, 149 files) and collapsed the project to a single lane.
+
+His reasoning, in his words:
+
+> "Unit tests shouldn't do the job of the actual code directly itself. It should just test its
+> behaviour — the actual code already runs, we don't need to reinvent the wheel. Integration tests
+> here are not important. If all of them are converted as unit tests, or if they already have unit
+> test alternatives, that should be enough. The regular one-run test should directly run the unit
+> test, so we no longer need the unit/integration separation."
+
+Consequences recorded so the trade is visible rather than forgotten:
+- `package.json` now exposes one script — `test` -> `bun test --parallel --no-isolate tests/unit`.
+  `test:unit`, `test:integration`, `test:integrations` and `test:all` are gone.
+- CI and the lefthook pre-push hook both run that single lane.
+- The lane is being converted so unit tests mock their dependencies instead of driving the real CLI,
+  spawning subprocesses, shelling to git, or building capsules on disk. Target: near-100% coverage,
+  whole lane under 60 seconds.
+- **What is lost:** the only place the harness was exercised against a real filesystem, real git and
+  real subprocesses. The `health` check and real capsule runs cover part of that surface; nothing
+  covers the rest. Stated once, accepted by the owner, recorded here so it is a known trade rather
+  than a later surprise.
