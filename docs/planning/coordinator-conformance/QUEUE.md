@@ -20,31 +20,83 @@ rules that apply to every wave.
 
 ## Ranked backlog
 
-Ordering reasoning: nothing else is observable until the installed runtime matches the source, so C11
-precedes everything. C3b then does triple duty — gate discrimination, the validation evidentiary
-floor, and partial write-scope truthfulness — using code that already exists and is already correct.
+Reconciled 2026-08-20. Every row below was checked against current code by opening the file or
+running the command it cites. Twelve rows that were tagged **in flight** are gone: their waves
+landed and were verified wired, not merely written. Four items were deleted outright. Four new
+defects found during the pass are folded into the ranking and carry their evidence below the table.
 
-| #   | Item                                                                    | Status        | Why here                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| --- | ----------------------------------------------------------------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | **C11 — installed-runtime freshness**                                   | **in flight** | All five live capsules show `plan-audited=0`, `gate-proved=0`. Both trees report `RUNTIME_VERSION "0.1.0"` so nothing can detect drift. `installer/installation-status.ts` + `identity.ts:48` already digest the source tree; call them from `orchestrate`/`plan:init`, not only from `doctor`. Installing the current build also delivers the 429/backoff handling and the dual-channel UI refusal, both of which already exist and neither of which is installed. |
-| 2   | **C3b — `gate:prove` at `task:review`**, `base` = sha recorded at claim | **in flight** | At compile there is no work to revert, so the proof is incoherent there. At review all three inputs exist: a sealed gate, real work, a baseline. Make a `falsifiable: true` proof a precondition beside `assertProbeSatisfied`. Closes gate discrimination, the validation gap, and — because reverting a _declared_ scope leaves out-of-scope work standing — partially enforces scope truthfulness.                                                               |
-| 3   | **C10 — out-of-band edit detection**                                    | **in flight** | `write_scope` is declared, never enforced: `build-report.ts:34-38` discards the harness's own observation when the agent declares a list. `packets/round-repository-delta.ts:62-70` already runs the exact `git diff`; add `--name-only`, subtract the union of scopes, surface the remainder. ~40 lines on existing machinery.                                                                                                                                     |
-| 4   | **The heartbeat**                                                       | **in flight** | `recoverStale` is correct and deliberately re-entrant, but the only `setInterval` in the tree is the watchdog and it never touches a lease. `supervisor.ts:255-257` returns `single_tick` without a dispatcher. **No role contract grants `orchestrator:run` or `orchestrator:supervise`.** Without this, nothing recovers while the operator is away.                                                                                                              |
-| 5   | **R1/R2 — role output contracts and the empty-evidence refusal**        | queued        | Per-role required output shape, checked at the CLI boundary. A UI validator needs screenshots _regardless of verdict_. Where substance cannot be judged, require an artifact (a command record, a file with non-zero bytes, a hash) rather than a sentence.                                                                                                                                                                                                         |
-| 6   | **R4 — the coordinator → validator pushback edge**                      | queued        | All pushback today flows validator → implementer. The edge that would have caught the UI failure does not exist. Needs its own edge kind in `graph.json`. Two causes must be expressible: substantive (the work is wrong) and procedural (it was not registered, or registered wrongly).                                                                                                                                                                            |
-| 7   | **Make `plan:apply` reachable**                                         | **in flight** | The frozen-goal growth path is the best-designed code in the subsystem (`revision-guard.ts:75-83` refuses a requirement-contract change while leaving task addition unrestricted) and it is unreachable: `packets/planner-packet.ts:32,40,57` hardcodes revision 0, and `plan:apply` is absent from `roles/coordinator.md`.                                                                                                                                         |
-| 8   | **A2 — replace the permanent stub**                                     | **in flight** | `auditPlan` always emits A2 as `not_evaluated`, so a one-task plan whose scope names a not-yet-existing directory compiles with zero findings — the exact forensics shape. Its stated excuse (no entity count available) is refuted by `requirements/compiler.ts:44-49`, which already computes `nonBlankLineIndices` from the immutable prompt.                                                                                                                    |
-| 9   | **A3 — compare gate structure, not bytes**                              | **in flight** | `plan-audit.ts:129` is exact string equality, so appending `--scope=t0` manufactures fake discrimination. Compare `(executable, subcommand, target set)`.                                                                                                                                                                                                                                                                                                           |
-| 10  | **`plan:review` evidentiary floor**                                     | queued        | `approved` legally carries zero commands by design, so an entire compiled plan is approvable on four free-text sentences — materially weaker than `task:review`.                                                                                                                                                                                                                                                                                                    |
-| 11  | **Data-model unification**                                              | **in flight** | `screenshots` is a lossy projection of `screenshot_records` (`reporting/command-evidence.ts:21-22`). `inspection-formatter.ts:61` reads `status ?? verdict ?? decision ?? "unknown"` — three names for one concept plus a fabricated literal. The alias is banned; delete it.                                                                                                                                                                                       |
-| 12  | **Audit the 16 integration tests**                                      | queued        | Nothing currently gates on `tests/integration`, so their correctness is unverified.                                                                                                                                                                                                                                                                                                                                                                                 |
-| 13  | **R7 — errors prescribe, never merely diagnose**                        | **in flight** | Four attempts to run `plan:init`; a small model burned ~100k tokens reading source because refusals name the condition, not the repair.                                                                                                                                                                                                                                                                                                                             |
-| 14  | **R8 — never-read-source footer on every error**                        | **in flight** | The prohibition must live where a failing agent looks.                                                                                                                                                                                                                                                                                                                                                                                                              |
-| 15  | **R9 — `harness.ts explain <code>`**                                    | **in flight** | Gives a refused model a command to run instead of a file to read.                                                                                                                                                                                                                                                                                                                                                                                                   |
-| 16  | **R10 — freshness across every install root**                           | **in flight** | Three roots exist; two ship docs with zero scripts.                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| 17  | **R11 — semantic file equality, formatting is never a difference**      | queued        | A formatter run must not read as a changed file. Already broke digests and the generated manifest today. Load-bearing for C4 and C10, which hash bytes. See the R11 section below.                                                                                                                                                                                                                                                                                  |
+**Ordering reasoning.** The gate comes first: CI has been dead long enough that a whole test lane
+rotted behind it, so #1-#3 restore the ability to notice anything at all. #4-#6 are the evidentiary
+floor — R11 is promoted above the rest because C4 and C10 both landed today and both hash raw bytes,
+which makes a formatter run indistinguishable from a scope violation. Everything below that is
+ranked by how much of the run's honesty depends on it. #23 is last by construction.
 
-## Reconciliation protocol (added 2026-08-20)
+`Source` says where the evidence lives: `Q<n>` is this file's own numbering before reconciliation,
+`B<n>` is a section in `../orchestration-overhaul/BACKLOG.md`, `new` is this pass.
+
+| #   | Item                                                      | Source    | Why it is still here                                                                                                 |
+| --- | --------------------------------------------------------- | --------- | -------------------------------------------------------------------------------------------------------------------- |
+| 1   | **CI runs a path that does not exist**                    | new       | No push has been validated since the suite moved to `tests/`. One line to fix; nothing below stays fixed without it. |
+| 2   | **Repair the integration lane**                           | Q12       | Verified broken today: 45 of 815 fail, all from two refusals that landed today without updating the fixtures.        |
+| 3   | **CI coverage floor**                                     | B9.1      | Blocked on #1 — a workflow that cannot run the suite cannot put a floor under it.                                    |
+| 4   | **R11 — file equality must be semantic**                  | Q17       | C4 and C10 both landed today and both hash raw bytes, so a formatter run now reads as a scope violation.             |
+| 5   | **R1/R2 — role output contracts, empty-evidence refusal** | Q5        | The UI-screenshot mandate fires only on the pass path, and UI-ness is still inferred from file extensions.           |
+| 6   | **`plan:review` evidentiary floor**                       | Q10       | An entire compiled plan is still approvable on zero commands and four free-text sentences.                           |
+| 7   | **Telemetry points at the wrong reporter**                | B32 + B38 | `host_reported` is declared and never assigned; neither live capsule has an `agents` key. Absorbs B38.               |
+| 8   | **"Open the artifact, do not reason about it"**           | B33       | The rule reached 2 of 15 role contracts. Cheapest high-value item here.                                              |
+| 9   | **Transition ↔ summary bijection**                        | B21       | The per-event refusals landed; the "every transition has a summary" check was never written.                         |
+| 10  | **Per-validator quality metrics**                         | B20.4     | Quality metrics are run-wide only — never per agent, never per validator.                                            |
+| 11  | **R4 — the coordinator → validator pushback edge**        | Q6        | Every pushback edge is still validator → implementer; a coordinator cannot reject a verdict.                         |
+| 12  | **Worktree isolation, three gaps**                        | B22       | Landed and wired, but defaults off, ships 2 of #2's failures, and B22.5 was never implemented.                       |
+| 13  | **`RunFacts.steps` is produced and read by nothing**      | B15       | gvui's own test says it: the harness emits step provenance and no UI consumes it.                                    |
+| 14  | **Asset dimensions and byte size**                        | B3        | The completeness contract still never asserts them.                                                                  |
+| 15  | **Strike two sentences from `SPEC.md`**                   | B4        | Code is done; only the two backward-compatibility sentences survive. Two-line deletion.                              |
+| 16  | **`abandonAttempt` is unreachable**                       | new       | Fully implemented, zero call sites — and a live error message tells operators to call it.                            |
+| 17  | **The health tool has a false positive**                  | new       | Reports `store/index.ts` as unimported when 45 production modules import it.                                         |
+| 18  | **`BACKLOG.md` citation drift**                           | new       | Intent drift is at 35 failures, up from 26 — this pass's own notes quoted the old paths.                             |
+| 19  | **gvui duplication**                                      | B8.3      | `wasmLayoutAdapter` is unimported; `getNodeRepairRounds` is duplicated verbatim in two diff engines.                 |
+| 20  | **Sweep the consumer for literal fallbacks**              | B37 (13)  | Health output still says verbatim that the consumer was never swept.                                                 |
+| 21  | **The reporting contract has no durable home**            | B41 (3)   | It exists in no committed file in either repo.                                                                       |
+| 22  | **`process-group.ts` grace race**                         | B35       | Survives only on the owner decision it names: the grace wait is still a bare `setTimeout` race.                      |
+| 23  | **The final audit gate**                                  | B17       | Last by construction; its precondition — everything else done — is still false.                                      |
+
+### The four new items, with their evidence
+
+These have no section anywhere else, so their evidence lives here.
+
+**#1 — CI runs a path that does not exist.** `.github/workflows/ci.yml:23` is
+`run: bun test orchestrating-long-tasks/scripts/tests`. That directory does not exist and, per
+`git log`, never has — the suite has always lived at repo-root `tests/`. Running the exact CI
+invocation locally exits 1 with _"The following filters did not match any test files"_. Because the
+step fails, the `Typecheck` step at line 26 never runs either. **GitHub-side CI has been reporting
+failure on every push regardless of code correctness, and has validated nothing.** This is the
+single cause behind #2, #3 and #18: three separate kinds of rot accumulated behind a gate that was
+never closed.
+
+**#16 — `abandonAttempt` is unreachable.** `workflow/lease/abandon.ts:6` exports a complete,
+transactional `abandonAttempt` — it closes the attempt, deletes the lease and transitions the task.
+`grep` finds exactly two mentions in the whole tree: its own definition, and
+`workflow/lease/attempt-state.ts:39`, which throws a `HarnessError` reading _"…or call
+abandonAttempt to close it explicitly before the task can \<verb\>"_. No CLI command invokes it
+under any name; `branch:abandon` is a different mechanism. An operator who does exactly what the
+harness tells them to do cannot comply. Either give it a command or stop naming it in the error.
+
+**#17 — the health tool has a false positive.** `harness.ts health --all` reports
+`src/store/index.ts` as _"no production module imports anything from it; only tests do, so the
+subsystem it implements never runs"_. `grep -rln 'store/index\.ts"' src/` returns **45** production
+files, including `reporting/status.ts`, `reporting/doctor.ts` and `integration/record-command.ts`.
+The same check reports `test:unit` and `test:integration` as missing commands when both are
+`package.json` scripts. This matters more than an ordinary bug: the health tool is currently the
+**only** working gate, and a gate that cries wolf gets ignored. The other unused-code failure it
+reports in the same breath — `workflow/lease/abandon.ts` — is #16 and is genuinely real.
+
+**#18 — `BACKLOG.md` citation drift.** Commits `a214752` and `5869023` moved roughly two dozen test
+files from `tests/unit/**` into flat `tests/integration/*` names without updating the citations that
+pointed at them. Intent drift now reports **35 failures**, up from 26 before this pass — the
+reconciliation notes themselves quoted the old paths while explaining the moves, which added nine.
+Affected: B1, B2, B3, B6, B15, B17, B19, B20, B22, B27, B34, B35, B37, B38.
+
+## Reconciliation protocol
 
 **Before working any queued item, first establish that it is still real.** Open the files it cites,
 run the commands it cites, and decide: still real / already fixed / obsolete. Delete the obsolete
@@ -53,14 +105,25 @@ ones from this file rather than leaving them tagged.
 Run reconciliation as its own pass, after a wave lands and the repo is stable — never interleaved
 with implementation, because a tree mid-edit cannot answer "is this still true".
 
-This exists because stale entries cause rework. `BACKLOG.md`'s own B37 records the same failure:
-_"items verified genuinely done stay marked `queued` forever, causing rework and stale blocker
-claims."_ As of today, 19 of that file's 41 items are tagged `queued` and an unknown number are
-already satisfied.
+**Verify the wiring, not the existence of code.** Three times in one day an agent reported a fix that
+was real code joined to nothing: `gate:prove` was built but never called, the dual-channel analyzer
+shipped but was never imported, and five gvui validator roles were unreachable because the producer
+emitted a different shape. A symbol that exists is not a symbol that runs.
 
-**Next reconciliation is owed against:** the uncovered items below (5, 6, 10, 12, 17) and all 19
-`queued` items in `../orchestration-overhaul/BACKLOG.md` — B3, B4, B8, B9, B15, B17, B18, B20, B21,
-B22, B26, B32, B33, B35, B37, B38, B39, B40, B41.
+### The 2026-08-20 pass
+
+24 items were reconciled against current code. 20 survived, 4 were deleted, 4 new defects were found.
+Twelve `in flight` rows were verified landed and cleared. Deletions, with cause:
+
+| Item    | Verdict       | Cause                                                                                                                                      |
+| ------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| **B26** | already fixed | `tests/unit/workflow/validator-independence.test.ts` drives the exact cycle it asked for, asserting by error code. Retagged `verified`.    |
+| **B39** | already fixed | `grants.ts` stamps every CLI-supplied field `agent_reported`; conflict surfacing reaches `markdown-formatter.ts` and `graph-generator.ts`. |
+| **B18** | obsolete      | Its own text withdrew B18.2 in favour of B22 — and B22's worktree module is now implemented and wired.                                     |
+| **B40** | obsolete      | It existed only to audit B39. With B39 fixed, it tracks nothing.                                                                           |
+
+**Owed next:** re-reconcile after #1 and #2 land, because a green CI changes what "verified" means
+for every row above.
 
 ## Landed in the harness-honesty wave, not previously recorded here
 
@@ -143,9 +206,24 @@ and byte-equality wherever the format is unknown.
 
 ## In flight
 
-- **test-lane** — clear the last 10 unit failures, then classify every slow test by nature (not speed)
-  and rewrite or move accordingly, under a deterministic isolation contract.
-- **hygiene-and-docs** — root cleanup, comment audit across all 20 source directories, docs rewrite.
+Nothing. The `test-lane` and `hygiene-and-docs` waves landed, along with C3b, C10, C11, the
+heartbeat, `plan:apply` reachability, A2, A3, the data-model unification and R7-R10. Each was
+verified wired, not merely present:
+
+| Landed                 | Verified by                                                                                                                                                                            |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| C11 installed-runtime  | `assertInstalledRuntimeFresh` imported and called in `cli/commands/plan.ts:12`; all three roots enumerated in `installer/runtime-freshness.ts` (covers R10).                           |
+| C3b `gate:prove`       | `assertGateProofFalsifiable` called at `workflow/review/record-review.ts:98`.                                                                                                          |
+| C10 out-of-band drift  | `outOfBandPaths` called at `workflow/submission/submit.ts:113`.                                                                                                                        |
+| The heartbeat          | `orchestrator:supervise` registered and granted in `roles/coordinator.md:46`; `orchestrator-ops.ts` → `supervision-watch` → `supervision-tick` → `reclaimDeadAgents` → `recoverStale`. |
+| `plan:apply` reachable | Granted at `roles/coordinator.md:30`; `packets/planner-packet.ts:25` reads the live revision instead of hardcoding 0.                                                                  |
+| A2 parallelism         | Grounded on `A2_PROMPT_LINE_THRESHOLD` and independent-root count; `not_evaluated` is now the ambiguous case, not the only case.                                                       |
+| A3 gate structure      | `sameGateSignature` compares `(executable, subcommand, targets)`; the string equality is gone.                                                                                         |
+| Data-model unification | The `screenshots` alias is gone from `reporting/command-evidence.ts`; `inspection-formatter.ts` no longer exists.                                                                      |
+| R7 / R8 / R9           | `HarnessError.fix` at `errors/harness-error.ts:10`; the never-read-source footer at `errors/normalize-error.ts:12`; `explain` registered at `cli/registry/explain.ts:6`.               |
+
+Unit lane at the time of writing: `bun run test:unit` → **3905 pass, 0 fail** across 464 files.
+The integration lane is a different story — see #2.
 
 ## Settled, do not re-litigate
 
@@ -161,7 +239,11 @@ and byte-equality wherever the format is unknown.
 
 ---
 
-## R7–R10: the context-burn defect (added 2026-08-20)
+## R7–R10: the context-burn defect (added 2026-08-20) — **landed 2026-08-20**
+
+> Kept as the design record for work that has shipped. R7's `fix` field, R8's footer, R9's
+> `explain` command and R10's three-root freshness are all wired; see the In flight table above
+> for the call sites. Nothing below is outstanding.
 
 ### The observation
 

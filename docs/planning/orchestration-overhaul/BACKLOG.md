@@ -134,7 +134,7 @@ else it lists stays open, which is exactly what had happened to B26 (see its own
 note. `MAX_AGENTS = 100` and `MAX_BRANCH_DEPTH = 5` in
 `orchestrating-long-tasks/scripts/src/config/constants.ts` (B1.2/B1.3); gvui's
 `SECTION_AUTO_COLLAPSE_DEPTH = 2` in `src/engine/GraphCanvas/sectionKinds.ts` (B1.5); running
-`tests/unit/branch/chain-recovery.test.ts` directly now passes 3/3 (B1.4) — it was flaky under load
+`tests/integration/branch-chain-recovery.test.ts` directly now passes 3/3 (B1.4) — it was flaky under load
 before B38 finding 1's git-spawn retry fix landed (commit `0a5a630`), and now is not.
 
 **Origin:** the depth cap of 2 was arbitrary. It constrained the wrong dimension — sibling count is
@@ -210,8 +210,8 @@ rebuild orchestration harness with evidence-classed telemetry`) introduced `scri
 (content-addressed blob storage), `scripts/src/store/capsule-index.ts` (the per-kind `index.json`
 catalogue) and `scripts/src/store/layout.ts` (the declared `CAPSULE_LAYOUT` table with a `responsibility`
 line per entry, `role` classification matching PRIMARY/DERIVED/VIEW/EXPORT, and `layout-integrity.ts`
-enforcing it). `tests/unit/store/quality-invariants.test.ts`, `capsule-integrity.test.ts` and
-`blob-store.test.ts` pass. The target layout this item specified is what is on disk today; the old
+enforcing it). `tests/integration/store-quality-invariants.test.ts`, `store-capsule-integrity.test.ts` and
+`store-blob-store.test.ts` pass. The target layout this item specified is what is on disk today; the old
 capsule under `.capsules/2026-08-17-skills-documentation-elevation/` is the pre-rewrite shape and is
 disposable per B4, not evidence against this closure.
 
@@ -432,6 +432,28 @@ an asset's dimensions and byte size survive to `graph.json`. That is a narrow, s
 item described below. Stays `queued` on that one bullet alone; a fixture revision that captures one real
 asset (the same gap B37 finding 12 already named) would close it.
 
+**Re-verified 2026-08-20 (reconciliation pass, gate:prove regression found) — the file itself has moved
+again, and running it fresh does not reproduce "17/17 pass" right now.** `tests/unit/summary/
+graph-completeness-contract.test.ts` no longer exists; the same 17 tests now live at
+`tests/integration/summary-graph-completeness-contract.test.ts` (relocated by `5869023`, "split the
+lane by nature and cut unit runtime from 85s to 13s" — confirmed by `git log --oneline -- '*graph-
+completeness*'`). Running it — `bun test tests/integration/summary-graph-completeness-contract.test.ts`
+— fails outright: `0 pass, 1 fail`. Cause: the shared setup in `tests/unit/summary/
+completeness-run-fixture.ts` drives `task:review` on `task-alpha` without ever calling `gate:prove`
+first, and the latest commit on main (`6256159`, "make refusals prescriptive, evidence falsifiable...")
+added `assertGateProofFalsifiable` as a hard precondition on every review pass
+(`pass-preconditions.ts:130-144`) — the review now throws `INVALID_STATE: no recorded falsifiable
+gate:prove proof for gate-alpha`. The same fixture backs `tests/integration/
+summary-topology-capsules.test.ts` and `tests/integration/reporting-handoff-triggers.test.ts`, which
+fail the same way (confirmed: 7 pass / 2 fail across those two files). This is a test-fixture
+regression, not new evidence that the exporter itself broke — `6256159` never touched the summary/export
+code this item is about — but it does mean "17/17 pass, confirmed just now" is presently false and the
+contract is unprovable via this suite until the fixture calls `gate:prove`. Reported separately as a new
+finding, not fixed here (the fixture is a test file, out of scope for this pass). The narrow gap this
+item stays open on is unaffected by that regression and was re-confirmed directly: grepping the (now
+relocated) test file for `sizeBytes`/`dimensions` still returns zero hits, so asset dimensions and byte
+size are still never asserted anywhere.
+
 **Superseded note, kept for the record — its scope claim is corrected above, do not treat as current:**
 `tests/unit/summary/graph-completeness-contract.test.ts`
 proves only per-agent telemetry and the agent grant ledger reach `graph.json` (17/17 pass, per B38
@@ -493,6 +515,16 @@ exists anywhere under `scripts/src`. But `docs/planning/orchestration-overhaul/S
 reads, verbatim, "Existing capsules must keep loading... gvui reads new canonical fields with a
 tolerant fallback to the legacy ones" — the exact two sentences this item names and orders struck.
 That correction was never applied.
+
+**Re-verified 2026-08-20 (reconciliation pass):** every claim above still holds today, re-run fresh
+rather than trusted. `SPEC.md:236-237` still reads exactly those two sentences, unchanged (`grep -n
+"Existing capsules must keep loading\|tolerant fallback to the legacy" docs/planning/
+orchestration-overhaul/SPEC.md` → lines 236 and 237, same text). Re-grepped both repos for the
+fallback shapes and for `layout_version`: zero hits in skills' `orchestrating-long-tasks/scripts/src`
+or in gvui's `src`. `resolveModelTier` (`gvui/src/primitives/nodes/NodeCard/nodeKinds.tsx:411`) reads
+only `node.telemetry?.modelTier?.value ?? node.hostAgent?.tier` — no legacy flat-field path, confirmed
+by reading the function body directly. Item stays open on the SPEC.md text alone; the code side of this
+item is fully done.
 
 **Owner decision, and it overrides SPEC.md §10 and parts of B2 and B3.** There is no versioning system,
 no dual-mode reader, no legacy fallback, no migration path. The code always reads and writes the current
@@ -583,14 +615,14 @@ This constrains B2's target layout: optimise it for a reader first, and for the 
 ## B6 — `summary.md` is a complete, sequential run report `verified`
 
 **Verified 2026-08-20 (reconciliation pass), correcting the earlier "still queued" note below:** a
-completeness test analogous to B3's `graph-completeness-contract.test.ts` exists for `summary.md` —
-`tests/unit/summary/markdown-run-report.test.ts`, "summary.md is a complete, sequential run report",
+completeness test analogous to B3's `summary-graph-completeness-contract.test.ts` exists for `summary.md` —
+`tests/integration/summary-markdown-run-report.test.ts`, "summary.md is a complete, sequential run report",
 whose fixture (`markdown-run-report-fixture.ts`, docstring: "One capsule driven entirely through the
 CLI, exercising every feature the report has to carry") drives a real capsule through `execute()`:
 enhanced plan, two tasks in one wave plus a third behind a dependency, a branch with two sub-agents, a
 probe, a defect pushback with a repair round, gate evidence, a non-zero-exit command, host-reported
 agent telemetry, a critic verdict and a sealed completion. `bun test
-tests/unit/summary/markdown-run-report.test.ts` — 18/18 pass — asserts, in run order, every section this
+tests/integration/summary-markdown-run-report.test.ts` — 18/18 pass — asserts, in run order, every section this
 item's own list names (prompt, enhanced plan, derived requirements, topology with parallel rationale,
 ASCII task graph with an explicit `not.toContain("\`\`\`mermaid")`, agents/sub-agents with role/parent/
 grants, the branch excursion's why/who/what-came-back, per-sub-task claim/submit timestamps, every
@@ -612,7 +644,7 @@ qualifies as a genuinely separate, later pass per the `verified` tag's own defin
 **Previously, still queued 2026-08-20 (completion-tagging pass):** `summary:export`/`summary:view` commands exist
 (`scripts/src/cli/registry/summary.ts`) and an ASCII graph renderer exists
 (`scripts/src/summary/markdown-ascii-graph.ts`), so the shape is real. No completeness test analogous
-to B3's `graph-completeness-contract.test.ts` was found for `summary.md`, so coverage against this
+to B3's `summary-graph-completeness-contract.test.ts` was found for `summary.md`, so coverage against this
 item's own list (branch excursions, probe/pushback distinguished, gates/findings/critic verdict,
 telemetry with evidence class) is unconfirmed either way.
 
@@ -683,6 +715,22 @@ imports it), but `customLayoutAdapter.ts`/`custom/wasmLayoutAdapter.ts` are stil
 and `getNodeRepairRounds` is still defined separately in `ComparisonView/diffEngine.ts` and
 `GraphDiff/diffEngine.ts`. Item stays open on that gap.
 
+**Re-verified 2026-08-20 (reconciliation pass):** B8.1/B8.2/B8.3/B8.4 re-checked fresh, not read from the
+notes below. B8.1's call sites moved a couple of lines since last confirmed — `record-review.ts:52` and
+`submit.ts:86` (not `:48`/`:59`), `cli/execute.ts:29` (not `:33`) — but both are still live, unconditional
+calls; `publishRolePacket` now has **four** callers, not three (`planner-packet.ts:37`,
+`plan-validator-grant.ts:48`, `role-grant.ts:114`, `critic-grant.ts:100` — a `plan-validator-grant.ts`
+caller was added since the cited note). `bun test tests/unit/packets/role-contract-refusals.test.ts
+tests/unit/packets/role-contract-enforcement.test.ts` → 63 pass, 0 fail (not 65 — some tests were
+consolidated, still comprehensive). B8.2's `writeHandoff` is called indirectly through
+`refreshHandoff`/`refreshHandoffOnEscalation` wrappers, confirmed by grep in all four cited command files
+— still genuinely wired. B8.3's two open gaps are unchanged, exact same lines (`diffEngine.ts:211` and
+`:453`), and `wasmLayoutAdapter.ts` is confirmed even more clearly dead than stated: nothing outside its
+own module and its own test imports it, not even through the `custom/index.ts` barrel that re-exports it.
+B8.4's first two housekeeping bullets are confirmed done (`bun run format:check` clean, stale script gone)
+— see B8.4 below for the `.lock/` bullet, now also resolved. B8.5's four structural tests, listed as an ask
+below, all now exist and are wired into `bun harness.ts health` — see the note under B8.5.
+
 Roughly forty defects were found beyond the original brief. Most are fixed. This item covers the ones that
 are NOT, plus the policy that stops the rest from coming back.
 
@@ -733,9 +781,18 @@ role-contract-refusals.test.ts` + `role-contract-enforcement.test.ts`, 65/65 pas
 - Four gvui source files fail `bun run format:check`.
 - `orchestrating-long-tasks/scripts/package.json` declares `bun test tests` against a path with no tests;
   the real suite is at the repo root. Fix or delete.
-- `.lock/` lives inside the capsule, indistinguishable from durable state (also covered by B2).
+- ~~`.lock/` lives inside the capsule, indistinguishable from durable state (also covered by B2).~~ —
+  **resolved**: run locks now live beside the capsule, not inside it. `store/layout.ts`'s
+  `LOCKS_DIRECTORY = ".locks"` is joined against `dirname(runRoot)` in `platform/observer.ts:30` —
+  `join(dirname(runRoot), LOCKS_DIRECTORY, basename(runRoot))` — landing at `.capsules/.locks/<run-id>/`,
+  a sibling of `.capsules/<run-id>/`, not a child of it. `layout.ts`'s own generated README says so too:
+  "Run locks are not stored here. They live beside the capsules in `.capsules/.locks/`, because
+  coordination state is not durable state." Confirmed 2026-08-20 by reading both files directly.
 - Confirm the `run:exec` ~5.2 s post-exit stall is genuinely fixed; it was assigned but the fix was never
-  independently confirmed.
+  independently confirmed. **Still unconfirmed** — not settled this pass either; tracing it requires
+  driving a real `run:exec` through the CLI and timing the process exit, which this pass did not do.
+  Settling it needs someone to actually run `bun harness.ts run:exec ...` end to end and time the gap
+  between the child process exiting and the command returning.
 
 ### B8.5 THE POLICY — a fix without a regression test is a fix that returns
 
@@ -764,6 +821,22 @@ Each deserves a **structural test**, not a one-line fix:
 Ship these before the overhaul is called done. Without them the audit's value decays the moment attention
 moves elsewhere.
 
+**Resolved 2026-08-20 (reconciliation pass) — all four structural tests asked for above now exist and are
+wired into the one tool, not scattered fixes.** `tests/unit/health/fallbacks.test.ts` exercises
+`checkLiteralFallbacks` against exactly the example shapes named above (`?? "src/index.ts"`, `?? "pending"`,
+`|| "agent"`). `tests/unit/architecture/vendor-identifiers.test.ts` exercises `scanTreeForVendorIdentifiers`
+against `VENDOR_NAMES`, sweeping both the skills and gvui trees. `tests/unit/cli/manifest.test.ts` plus
+`orchestrating-long-tasks/scripts/src/health/unenforced.ts`'s `documented-command-missing` check extend the
+manifest-freshness idea exactly as asked: every `harness.ts <command>` invocation named in any scanned doc
+is checked against `commandInvocations()` from the real `COMMAND_REGISTRY`. `tests/unit/health/
+reachability.test.ts` exercises `checkUnusedCode`, the reachability sweep. All four are wired as real
+checks inside `ALL_CHECKS` in `orchestrating-long-tasks/scripts/src/health/index.ts` (`unused-code`,
+`literal-fallbacks`, `vendor-identifiers`, `unenforced-declarations`), not orphaned fixtures — confirmed by
+running `bun test tests/unit/health/fallbacks.test.ts tests/unit/health/reachability.test.ts tests/unit/
+architecture/vendor-identifiers.test.ts tests/unit/cli/manifest.test.ts` (34 pass, 0 fail) and by reading
+`health/index.ts`'s import list directly. This is the same tool B9.2 asks for below — see B9 for its
+current live output, which is not clean.
+
 ---
 
 ## B9 — Coverage and semantic health check `queued`
@@ -774,6 +847,32 @@ verdict healthy, 0 failures, 438 advisories, and the four checks it reports (unu
 declared-but-unenforced, intent drift) are exactly the four B9.2 asked for. B9.1's CI-enforced coverage
 floor was not found: `.github/workflows/ci.yml` runs `bun test` + `bun run typecheck` only, no
 `--coverage` step and no threshold anywhere in the repo.
+
+**Re-run 2026-08-20 (reconciliation pass) — same command, materially different result; do not read "0
+failures" as current.** Ran `bun orchestrating-long-tasks/scripts/harness.ts health --consumer ../gvui
+--all` fresh: **verdict UNHEALTHY, 28 failures, 507 advisories, 21 allowed, 7 checks run** (not 0
+failures / 438 advisories — the codebase moved under the tool between that note and this one). B9.2's
+own deliverable — a command that exists, runs on demand, and covers at least the four required checks
+plus three more (literal-fallbacks, vendor-identifiers, an unqualified-dispatch check) — is still real and
+still done; what changed is what the tool is finding, not whether it runs. Breaking down the 28: 26 are
+`intent-drift` failures, all of the shape "BACKLOG.md item `B<n>` names a test file that is not present
+in the scanned source" — fallout from the test-lane-split commits (`a214752`, `5869023`) that moved
+roughly two dozen tests from `tests/unit/...` into flat `tests/integration/...` files without updating
+their citations. B3 is one of them (see B3's own entry, corrected above); the rest — B1, B2, B6, B15, B19,
+B20, B27, B34, B35, B38, B39, B40 — are not owned by this item and are reported separately rather than
+touched here. The other 2 are `unused-code` failures, and they split one true positive from one false
+positive: `orchestrating-long-tasks/scripts/src/workflow/lease/abandon.ts` is genuinely dead — grepped for
+every production import of `abandonAttempt`/`lease/abandon` and found none, yet `attempt-state.ts:39`'s
+own `HarnessError` message tells an operator to "call abandonAttempt to close it explicitly," a command
+that does not exist anywhere in `cli/registry` — reported separately as a new finding, exactly the "B8.5
+class 6" shape this item's own B9.2 §1 describes. `orchestrating-long-tasks/scripts/src/store/index.ts` is
+a **false positive** in the health tool itself: grepped for `from ".*/store/index"` and found 40+
+production importers (`reporting/status.ts`, `cli/commands/task-claim.ts`, `cli/commands/run-ops.ts`, and
+many more), so "no production module imports anything from it" is factually wrong — a bug in the
+reachability check's own module resolution, also reported separately, not fixed here (source is out of
+scope for this pass). None of this changes B9's own verdict: B9.1 stays unmet (see below, now with
+sharper evidence), and B9.2's tool is real, runs, and — bug aside — is doing real, current work; the item
+stays open on B9.1 alone.
 
 ### B9.1 Coverage bar
 
@@ -1097,7 +1196,57 @@ Worth stating in SKILL.md, because it explains every design decision downstream:
 
 ## B15 — Step-level action provenance: 100% visibility `queued`
 
-**Corrected 2026-08-20 (this reconciliation pass) — the note below's B15.1 claim was wrong the moment
+**Reconciled 2026-08-20 (fourth pass, same day) — B15.1/B15.2 re-confirmed live with corrected
+citations; B15.2's cited test currently ERRORS for an unrelated reason; B15.4's gap is real and
+broader than the note below states.** Opened every file cited below directly rather than trusting the
+prior pass's line numbers, which had already drifted:
+- `ActionStepRecord` at `graph-types.ts:97-107` still matches B15.1's field list exactly, but it carries
+  **no doc comment** naming B15.1 — checked lines 80-97 directly, nothing there. `collectActionSteps` is
+  called from `graph-run-facts.ts:274` (not `:316`) and reaches `RunFacts.steps` at line 299. `FileRef.step`
+  lives at `graph-types.ts:119` (not `:160`, which is now mid-`Finding` interface) and also carries no
+  doc comment tying it to B15.2 — both doc-comment claims in the note below do not hold up against the
+  file on disk today; the underlying wiring they described is still real, the citations were not.
+- `bun test tests/unit/summary/timeline-collector.test.ts` — **24 pass, 0 fail** (grown from 15, still
+  100%), including both named tests quoted below, confirmed by name via `grep`.
+- `tests/integration/summary-graph-completeness-contract.test.ts` — re-run fresh: **0 pass, 1 fail**,
+  not 17/17. `beforeAll` throws before any of the 17 tests execute: `HarnessError: cannot pass
+  task-alpha: no recorded falsifiable gate:prove proof for gate-alpha`, thrown from
+  `assertGateProofFalsifiable` (`workflow/review/pass-preconditions.ts:141`), reached through
+  `completeness-run-fixture.ts`'s `runAlpha`. This is a same-day regression from the HEAD commit
+  (`6256159`, "make refusals prescriptive, evidence falsifiable, and runtime freshness observable"),
+  which added the falsifiable-proof requirement to `task:review` but never updated the shared fixture
+  to call `gate:prove` first. It is unrelated to B15's own code and reproduces identically in a second
+  dependent file (`summary-topology-capsules.test.ts`, same stack trace). **Reported as a new,
+  standalone defect below — not fixed here, not this item's fault, but it means B15.2's "attributes the
+  file to the report's own rationale, requirements and submission step (B15.2)" test cannot currently be
+  observed passing by anyone**, even though the code path it targets (`FileRef.rationale`/`.step`) is
+  untouched and was passing before today's last commit.
+- **B15.4's gap is bigger than "one dead component."** gvui's own test suite says so directly —
+  `src/testing/currentSkillExport.test.tsx`'s comment: "nothing in gvui's ingest drops or breaks on
+  `run`, but nothing in gvui's UI reads it either — see... 'RunFacts is unconsumed'" (test passes, 9/9,
+  confirming `run.steps` round-trips through ingest untouched and unread). Beyond the previously-noted
+  `StepScrubber.tsx` (still orphaned, still only self-referenced), there is a SECOND, more complete
+  step-scrubbing component with the same problem: `engine/GraphCanvas/GraphPlaybackOverlay.tsx` (play/
+  pause, prev/next, step highlighting, all wired to `useGraphStore`) is imported nowhere outside its own
+  test file either — `GraphCanvas/index.tsx` renders neither overlay. The one step-filter UI that IS
+  wired and reachable (`StepsDropdown.tsx`, via `CanvasToolbar` → `AppContent`) filters on
+  `GraphNodeData.step`, which the generator still assigns as the old coarse per-task/wave number
+  (`ctx.taskStep`, `ctx.gateStep`, `steps.criticStep` — grepped `graph-generator-*.ts` directly, no
+  assignment from the new `ActionStepRecord` sequence anywhere). So today gvui has a reachable step
+  filter, but it is not the B15.1 fine-grained one — the fine-grained data arrives in every export and
+  is read by nothing.
+- B15.3 re-confirmed absent: `toolInvocation`/`ToolInvocationRecord` still nowhere under
+  `scripts/src/summary`, and `classifyActionKind` in `timeline-collector.ts` (the function that produces
+  every `ActionStepRecord.kind`) has no branch that ever returns `"tool"` — the taxonomy has the slot,
+  nothing populates it.
+
+Net: B15.1 done and reachable, B15.2 done and reachable (its regression-guard test is temporarily
+unable to run for a reason outside this item), B15.3 unstarted, B15.4 partially real (data model, one
+unrelated coarse-grained filter UI) and partially unreached (the fine-grained trace has no consumer in
+gvui at all). Stays `queued`.
+
+**Superseded note, kept for the record — corrected above, do not treat as current:** the note below's
+B15.1 claim was wrong the moment
 it was written: `4d54ac0` ("feat: wire step provenance, lifecycle summaries, and supervisor recovery")
 had already landed B15.1 hours before the "not found" note was added, and the note's own grep pattern
 (`monotonic`) missed the real symbol names.** Opened `orchestrating-long-tasks/scripts/src/summary/
@@ -1110,7 +1259,7 @@ tests/unit/summary/timeline-collector.test.ts` — 15/15 pass, including "every 
 reaches the trace, in the taxonomy B15.1 asks for" and "step is the chain's own monotonic sequence, not
 a second counter" (named and asserted, not inferred from the test's title). B15.2 is also confirmed live
 and load-bearing, not just present: `FileRef`'s doc comment at `graph-types.ts:160` ties its `step` field
-to the same `RunFacts.steps` space, and `graph-completeness-contract.test.ts`'s "attributes the file to
+to the same `RunFacts.steps` space, and `summary-graph-completeness-contract.test.ts`'s "attributes the file to
 the report's own rationale, requirements and submission step (B15.2)" passes as part of that file's
 17/17.
 
@@ -1209,6 +1358,20 @@ imposed on the user.
 
 ## B17 — Final audit gate before the overhaul is called done `queued`
 
+**Re-confirmed 2026-08-20 (fourth pass, same day), and the gap is wider than the note below states.**
+This item's own precondition — the overhaul being finished — still is not true: gvui's HEAD commit
+(`045b380`, "render every validator domain as its own distinct node") landed at 23:31 tonight, minutes
+before this pass started. Checked the actual staleness directly rather than only searching for output
+files: `crates/gvui/target/debug` (the Rust build/test artifacts) has not been touched since 2026-08-15
+18:35, and `find crates/gvui/src -name "*.rs" -newer crates/gvui/target/debug/.cargo-lock` returns 3
+files — the Rust source has changed since the last time `cargo test` ran, so step 4 has not merely "not
+run today," it predates the current engine source by five days. `src/engine/layout/custom/wasm_pkg` WAS
+rebuilt at 23:11 tonight (an ordinary `build:wasm` compile, not a test), but that is still 20 minutes
+before the latest renderer commit — nothing has even compiled against the current HEAD, let alone
+audited it. No `bun run audit` report, no `bun run test:visual` capture output, and no cargo test
+results exist anywhere on disk for the current tree. Still queued, correctly — this is a gate that runs
+once, at the actual end, and the actual end has not arrived yet.
+
 **Still queued 2026-08-20 (completion-tagging pass):** no evidence found that any of this item's 8
 steps have been run since the overhaul began — no layout-audit output, no visual-regression run, no
 Cargo test output, and no real end-to-end `/orchestrate` run through an actual dispatched host agent
@@ -1236,53 +1399,6 @@ Run everything, and treat a regression against the pre-overhaul baseline as a bl
    branch sections, probe edges, scripts, tools and state transitions.
 8. **Stability comparison against the pre-overhaul baseline** — layout metrics, render timings, quality
    gate counts. "As stable as before" is a measurement, not an impression.
-
----
-
-## B18 — Commit per completed sub-task, not per wave `queued`
-
-**Still queued 2026-08-20 (completion-tagging pass):** B18.2, this item's central design, is withdrawn
-in its own text and superseded by B22 — which is confirmed not implemented (see B22). B18.4's cadence
-("commit whenever the tree is green") matches observed practice in `git log`, but that is process
-followed for this overhaul's own work, not the harness feature this item describes.
-
-**Owner requirement:** when a sub-task finishes, the repo should already be commit-ready and committed;
-when the whole wave finishes, commit and push again. Do not accumulate a wave's worth of work uncommitted.
-
-### B18.1 The obstacle, stated honestly
-
-Wave 7 ran five agents concurrently in ONE working tree. Per-agent commits were not possible there, for a
-reason worth writing down:
-
-- File ownership between agents IS disjoint, so `git add <owned paths>` would stage only the finishing
-  agent's work correctly.
-- But the repo's `lefthook` pre-commit hook runs `typecheck` + the FULL unit suite, and those run against
-  the **working tree**, not the index. Another agent's half-written file fails the gate no matter what is
-  staged. Observed exactly this: 1425 pass / 2 fail, the failures being another agent mid-edit.
-
-So per-agent commits require either isolation or a narrower gate. Do not "solve" it with `--no-verify` —
-that discards the only thing keeping broken commits out (see B11).
-
-### B18.2 WITHDRAWN, then SUPERSEDED BY B22
-
-**See B22.** The owner revisited this and specified a worktree-isolated design that answers the
-objection below: the harness never touches the user's branch or working tree, so it imposes no VCS policy
-on the repository the user is actually sitting in.
-
-Original objection, kept because it still constrains B22:
-
-A harness-level commit feature (committing a task's write_scope at `task:submit`) was proposed and is
-**retracted**. Git workflow stays outside the harness: it would couple orchestration to one VCS policy,
-force opinions about staging, hooks, branches and push targets onto every consumer, and complicate a
-system whose value is flexibility. The harness records what happened; it does not manage the repository.
-
-If commit provenance is wanted later, the honest seam is the opposite direction: let a commit sha be
-RECORDED against a task when the caller supplies one, never created by the harness.
-
-### B18.4 Cadence for THIS overhaul (scope: this chat and its agents only)
-
-Commit at every point the tree is green, not only at wave boundaries: after each wave, and opportunistically
-whenever gates pass mid-wave. Push immediately. Never bypass the hook.
 
 ---
 
@@ -1329,7 +1445,7 @@ value `agent_reported` (an explicit `"unknown"` keeps the `unknown` class instea
 a doc comment naming this exact defect as already fixed: "Stamping these `host_reported`
 unconditionally was B39 finding 1: a caller could type a nonexistent model id and have it recorded as
 though the host had attested to it." A dedicated regression suite,
-`tests/unit/agents/telemetry-evidence-honesty.test.ts` ("B39 finding 1: a typed CLI value never earns a
+`tests/integration/agents-telemetry-evidence-honesty.test.ts` ("B39 finding 1: a typed CLI value never earns a
 host-verified evidence class"), asserts `agent:register`'s and `agent:report`'s CLI-typed telemetry
 always lands `agent_reported`, and explicitly forbids `host_reported`/`harness_observed` on that path.
 Nothing left to fix here; the fixture we ship as ground truth is honest.
@@ -1390,6 +1506,29 @@ is what stops the schema quietly re-acquiring a favourite tool.
 
 ## B20 — Dynamic host discovery and per-agent telemetry ingestion `queued`
 
+**Re-confirmed 2026-08-20 (fourth pass, same day) — the note below still holds; one citation had
+already moved.** Re-ran every check in the note rather than trusting it: `probeAgentTelemetry` call
+sites are real but at slightly different lines now (`agent-ops.ts:90,142`, not `:92,148`;
+`task-claim.ts` imports it at line 34 and defines `probeAtTaskBoundary` at line 102, calling it at
+`:173` for `task:claim` and `:311` for `task:submit`). The cited test file has moved entirely —
+tests/unit/agents/host-telemetry-probe.test.ts no longer exists; the same suite now lives at
+`tests/integration/agents-host-telemetry-probe.test.ts` (moved by the same test-lane-split commit,
+`5869023`, that relocated several other files this pass also had to chase down). Both named checks the
+note cites are still there and still pass: `grep` confirms `describe("the probe wired into the CLI
+boundaries themselves, never a separate command"` and `test("a flag and the host's own config
+disagreeing is kept on both the event and the result"`, and `bun test
+tests/integration/agents-host-telemetry-probe.test.ts` — **13 pass, 0 fail**. `host-telemetry.ts`'s
+codex probe still reads `agentsTable.max_concurrent_threads_per_session` into `concurrency_ceiling` and
+`featuresTable.multi_agent` into `multi_agent_enabled`, confirmed by opening the file directly.
+`"host_reported"` still appears only in `contracts/evidence.ts`'s type/list declarations — zero
+production call sites stamp it, matching the note's documented deviation. B20.4 re-confirmed still
+open: `grep -rn "validatorQuality\|probe-answer-rate" scripts/src/summary/` — zero hits;
+`metrics-collector.ts` still computes exactly three run-wide rollups
+(`pushbacks_total`/`resolved_findings_total`/`open_findings_total`) and nothing per-agent or
+per-validator; `contracts/workflow.ts`'s `Finding.status` is still exactly `"open" | "resolved"`, and
+`workflow/review/` still has no `withdrawn`/`overturn`/`invalidat` hits. Nothing has changed here since
+the note below was written; it stays accurate on the merits, only its file:line pointers needed fixing.
+
 **Still queued 2026-08-20 (B19/B20 reconciliation pass) — B20.1-20.3 upgraded from "substantially
 landed" to fully verified; B20.4 is the one real gap and stays open, narrowed and re-scoped below.**
 
@@ -1400,7 +1539,7 @@ B20.1-20.3, opened directly rather than re-derived from the prior note:
   (`cli/commands/agent-ops.ts:92,148`) and from `task:claim` and `task:submit`
   (`cli/commands/task-claim.ts:36`, shared helper `probeAtTaskBoundary`) — the item's own brief asked
   for register/submit/release; claim is a fourth call site beyond what was asked, not a gap.
-  `tests/unit/agents/host-telemetry-probe.test.ts` has a describe block named exactly for this:
+  `tests/integration/agents-host-telemetry-probe.test.ts` has a describe block named exactly for this:
   `"the probe wired into the CLI boundaries themselves, never a separate command"`, and drives real
   CLI calls through `execute()`, so this is reachable by B33's bar, not merely present in source.
 - **Both sources recorded, disagreement flagged, nothing silently preferred.** `agent:register`'s own
@@ -1409,7 +1548,7 @@ B20.1-20.3, opened directly rather than re-derived from the prior note:
   `mergeDerivedField`/`mergeObservedCount` never overwrite an explicit value that disagrees — they
   push a `TelemetryFieldConflict` (`recorded_value`, `recorded_evidence_class`, `probed_value`) instead,
   which lands on both the transaction event (`telemetry_conflicts`) and the CLI's own response
-  (`host_telemetry_conflicts`), asserted by `host-telemetry-probe.test.ts`'s `"a flag and the host's
+  (`host_telemetry_conflicts`), asserted by `agents-host-telemetry-probe.test.ts`'s `"a flag and the host's
 own config disagreeing is kept on both the event and the result"`.
 - **Codex's `~/.codex/config.toml` is covered, both keys named in this pass's brief.**
   `summary/host-telemetry.ts`'s `HOST_PROBES` lists `agents`/`features`/`model` as codex evidence
@@ -1517,7 +1656,30 @@ subsystem than anywhere else in the system.
 
 ## B21 — Mandatory lifecycle summaries: nothing happens unobserved `queued`
 
-**Still queued 2026-08-20 (completion-tagging pass):** enforcement is confirmed only at the branch
+**Corrected 2026-08-20 (reconciliation pass) — the note directly below is stale on two counts, checked
+directly rather than trusted.** First, its citation: `grep -rn "B21" orchestrating-long-tasks/scripts/src`
+now returns nothing — `open.ts`, `collect.ts` and `sub-tasks.ts` no longer carry `// B21:` comments (they
+still `requireText` a summary/reason, the comments were just dropped in a later edit), so that pointer is
+stale. Second, and more substantively, its claim: `grep -rn "B21" tests/` turns up real enforcement the
+note missed entirely — `validate-report.ts:29` (`requireText(report.summary, "report.summary")`) is what
+`submitTask` calls, proven directly by `tests/unit/workflow/submissions.test.ts:65`
+("B21.2: refuses submission with no summary..."); `agent:release` refuses a blank `--reason`
+(`tests/integration/agents-grant-lifecycle.test.ts:263`, "B21: agent:release refuses without a reason");
+and the completion review itself now refuses without a summary before touching the store
+(`record-completion-review.ts:55`, `tests/unit/workflow/completion-review-summary.test.ts`). So the
+note's specific claim — "no equivalent requirement was found at task:submit or agent:release" — does not
+hold against current code.
+
+Stays `queued` regardless, on a gap the above does not touch: B21.2's third bullet, "the completeness
+critic checks the chain is unbroken end to end: every recorded transition has its summary, every summary
+has its transition," has no implementation anywhere. Read `begin-completeness-critic.ts` and
+`record-completion-review.ts` in full — both check that the critic's *own* summary is present, neither
+walks the run's other transitions to confirm each one it made carries one. `agent:release` also only
+enforces a bare `--reason` string, not B21.1's fuller structured-summary contents (what changed, what was
+verified, what remains open, telemetry) the way `task:submit`'s `report` object does — a real, narrower
+gap than the old note described, worth naming precisely rather than folding back into "not done."
+
+**Previously (completion-tagging pass), now corrected above:** enforcement is confirmed only at the branch
 lifecycle — `workflow/branch/open.ts`, `collect.ts` and `sub-tasks.ts` all carry explicit `// B21:`
 comments requiring a summary at that transition. No equivalent requirement was found at `task:submit`
 or `agent:release`, so "nothing happens unobserved" does not yet hold end to end across every
@@ -1557,7 +1719,87 @@ test of whether visibility is genuinely 100%.
 
 ## B22 — Worktree-isolated git management (supersedes B18.2) `queued`
 
-**Still queued 2026-08-20 (completion-tagging pass):** not started. Grepped `scripts/src` for
+**Corrected 2026-08-20 (reconciliation pass) — the note below ("not started... none exist") is
+flatly wrong against current disk state; re-grepping the exact terms it names finds the opposite.**
+`grep -rln worktree orchestrating-long-tasks/scripts/src` returns 25 files, not zero: a full
+`workflow/worktree/` module (`provision.ts`, `assign.ts`, `commit.ts`, `consolidate.ts`, `reclaim.ts`,
+`ledger.ts`, `git.ts`, `git-ops.ts`), a `contracts/worktree.ts`, a `cli/commands/worktree-ops.ts` (the
+reclaim command, B22.6), and live call sites in `plan-compile.ts` (provisioning, B22.1),
+`task-claim.ts` (commit-per-subphase, B22.3) and `run-ops.ts` (consolidation, B22.4). `harness-config.ts`
+declares every B22.7 field (`worktree_isolation`, `worktree_root`, `branch_prefix`,
+`commit_per_subphase`, `max_commit_lines: 500`, `rebase_on_complete`). `run:status` returns a
+`worktrees` block from `readWorktreeLedger(state)` when a ledger exists (B22.6). None of this existed
+when the note below was written — this is real, substantial, later work, not a stale citation.
+
+Confirmed reachable, not just present: `bun test tests/unit/workflow/worktree tests/unit/contracts/worktree.test.ts tests/unit/cli/worktree-ops.test.ts` plus the five passing `tests/integration/workflow-worktree-*` files together run 103 tests, 0 fail.
+
+**Re-verified 2026-08-21 (worktree-module pass, scope: `workflow/worktree/**` and its unit tests only).**
+Re-read every file in `workflow/worktree/` end to end against this item's text, then grepped every export
+against the rest of `scripts/src` to check the wiring claim directly rather than trust the prior note:
+`assignWorktrees`, `provisionWorktrees`, `commitSubphase`/`recordWorktreeCommit`,
+`consolidateWorktrees`/`recordConsolidation`, `reclaimOrphanedWorktrees`/`recordReclaim`, and
+`readWorktreeLedger`/`findAssignedWorktree` each have a real production call site outside the module
+(`plan-compile.ts`, `task-claim.ts`, `run-ops.ts`, `worktree-ops.ts`) — none of this project's signature
+"built and never called" defect is present here. `bun test tests/unit/workflow/worktree
+tests/unit/contracts/worktree.test.ts tests/unit/cli/worktree-ops.test.ts` and `tsc --noEmit` both clean
+before any change was made.
+
+One genuine bug found and fixed in-place (`provision.ts`, in scope): the "nothing changed, skip the
+re-persist" fast path compared `existing.assignments` (read back through the canonical, key-sorted JSON
+store) against a freshly built array via raw `JSON.stringify`, which mismatches on key order alone for
+any run with a persisted ledger — the fast path was therefore dead on every second `plan:compile` call
+against the same run, silently re-writing an equivalent `worktrees-provisioned` transaction every time.
+Replaced the stringify comparison with a field-by-field `assignmentsEqual` helper; the previously-dead
+path is now reachable and covered by a new test (`skips re-persisting and issues no git worktree calls
+when every task already has a slot`, asserting the event count is unchanged) alongside a sibling test
+proving the "something really changed" branch still re-persists
+(`re-persists when the topology widens...`). 87 unit tests pass, 0 fail; `tsc --noEmit` clean.
+
+Also checked and left alone (in scope, not a defect): `commitSubphase`'s `over_limit`/`warning`
+computation in `commit.ts` is correct and already exercised by name against B22.3's own 500-line
+default. Everything else in the module — glob/directory pathspec conversion, merge/rebase conflict
+handling and abort, reclaim's exists-on-disk check, the ledger's most-recent-assignment lookup — was
+re-read and matches its own tests; nothing rewritten there.
+
+Re-ran the two integration failures this item's own text cites, without editing `tests/integration/**`
+(out of this pass's ownership; ledger reads only): `tests/integration/workflow-worktree-provision.test.ts`
+now passes in full (5/5) — fixed by whichever sibling pass most recently repaired the integration lane.
+`tests/integration/workflow-worktree-run-complete-consolidation.test.ts` still fails its one test on the
+same cited cause, unchanged: `sealSingleTaskRun`'s helper never calls `gate:prove`, so
+`assertGateProofFalsifiable` refuses the review. Gap #2 below is corrected from "2 fail" to "1 fail,"
+otherwise unresolved and still not this pass's to fix.
+
+Gaps #1 and #3 below are unchanged and, on this seat's own file ownership
+(`workflow/worktree/**` and its unit tests only), **not fixable from here**: #1 lives in
+`config/harness-config.ts` (outside `workflow/worktree/`), and #3 lives in `workflow/completion/`
+(also outside `workflow/worktree/`). Re-grepped `workflow/completion/` again this pass for "commit
+hygiene", "oversized commit", "max_commit_lines" — still no hits, confirming #3 is still real. Building
+either fix here, unwired into a caller I do not own, would repeat the exact defect this pass is supposed
+to guard against, so both stay open for whichever seat owns those directories.
+
+Three real gaps keep it `queued` regardless — this is not a rubber-stamp to `verified`:
+
+1. **Shipped off.** `DEFAULT_CONFIG.worktree_isolation = false` in `harness-config.ts:59`, against this
+   item's explicit "default on." The code's own comment at line 24-34 says why honestly: flipping the
+   default touches every existing capsule/test and "cannot be verified from this seat... out of scope for
+   this pass." The feature exists; the item's own stated default does not hold yet.
+2. **Two of the feature's own integration tests fail right now, discovered this pass, not previously
+   known:** `bun test tests/integration/workflow-worktree-run-complete-consolidation.test.ts
+   tests/integration/workflow-worktree-provision.test.ts` → **4 pass, 2 fail.** Both failures are the
+   worktree fixtures colliding with unrelated, later-landed same-day work: the consolidation test now hits
+   `"no recorded falsifiable gate:prove proof for gate-t1"` (from commit `6256159`, "feat: make refusals
+   prescriptive, evidence falsifiable, and runtime freshness observable") and the provision test now hits
+   `"task t3 has no prompt line to bind to... pass --requirement-lines"` (from commit `4fc4a2e`, "fix:
+   refuse to fold unbound tasks into shared requirements") — the worktree fixtures were never updated for
+   either newer, stricter precondition. Neither failure is in the stated "3905 unit tests, 0 fail" baseline:
+   that count is `tests/unit` only (`package.json`'s `test`/`test:unit` script); these two live under
+   `tests/integration`, run by the separate `test:integration` script. Reported as a new item below —
+   left unfixed per this pass's own instructions (no source/test edits).
+3. **B22.5 (commit hygiene verified by the completeness critic) has no implementation.** Grepped
+   `workflow/completion/` for "commit hygiene", "oversized commit", "max_commit_lines" — no hits. The
+   critic checks nothing about commit count, message quality, or size against `max_commit_lines`.
+
+**Previously (completion-tagging pass), now corrected above:** not started. Grepped `scripts/src` for
 `worktree_isolation`, `harness/<run-id>`, `git worktree add` and `worktree_root` — none exist. The only
 "worktree" hits anywhere in the tree are the ordinary git working-tree concept in `git-ignore.ts` and
 `contracts/branch.ts`'s doc comments, unrelated to this item's provisioning/rebase/cleanup design.
@@ -1855,15 +2097,33 @@ finishes, and independent later work fills free capacity immediately (B24).
 
 ---
 
-## B26 — Enrich the validator packet: orient without anchoring `queued`
+## B26 — Enrich the validator packet: orient without anchoring `verified`
 
-**Corrected 2026-08-20 (completion-tagging audit pass) — the `verified` tag above did not match this
-item's own text, and no dated note had caught it.** The "Verified" note directly below is accurate as
-far as it goes: it confirms the packet-rendering half of this item
-(`render-validation-round.ts`'s "prove this holds" framing). It says nothing about this item's own
-"Close the test gap — do this regardless" section further down, which states plainly that the
-fresh-validator refusal `begin-validation.ts:22` enforces is "a load-bearing invariant asserted 12+
-times in prose, argued zero times, and defended by no real test." Re-opened
+**Verified 2026-08-20 (reconciliation pass) — retags `queued` → `verified`; the test gap the note directly
+below named is now closed, checked by opening the actual file rather than trusting the claim either way.**
+`tests/unit/workflow/validator-independence.test.ts` did not exist when that note was written and is not
+`tests/unit/workflow/validation.test.ts` (a different file) — its `git log` shows it last touched in
+commit `a214752` ("test: give every fixture a discriminating gate and clear the unit lane"), landed today.
+Read it in full: its first test, "the validator of round 1 is refused round 2 of the same task," drives
+exactly the cycle the note below demanded — claim, submit, `validator-r1` rejects round 1, a repairer
+claims and submits round 2, `validator-r1` attempts round 2 validation on the SAME task and is refused —
+and asserts the refusal **by error code**, not a bare throw: `expect(refused.code).toBe("INVALID_STATE")`
+plus the exact message, via a `refusal()` helper that unwraps a `HarnessError` and fails the test outright
+if the call does not throw at all. `bun test tests/unit/workflow/validator-independence.test.ts` — 4/4
+pass, confirmed just now. The packet-rendering half this item also requires was re-checked too, not just
+carried over: `render-validation-round.ts` still renders a `"### Prove these hold"` section (the field
+is now named `prove_these_hold`; same "prove it holds" framing the note below quotes, wording shifted
+since) and `grep -in concluded render-validation-round.ts` returns nothing — the anti-anchoring rule the
+item's "one rule" section requires still holds. Both halves of this composite item now clear the
+`verified` bar; retagging accordingly.
+
+**Superseded note, kept for provenance — the gap it named is now closed above, do not treat as current:**
+the `verified` tag this section briefly carried did not match this item's own text, and no dated note had
+caught it. The "Verified" note directly below is accurate as far as it goes: it confirms the
+packet-rendering half of this item (`render-validation-round.ts`'s "prove this holds" framing). It says
+nothing about this item's own "Close the test gap — do this regardless" section further down, which states
+plainly that the fresh-validator refusal `begin-validation.ts:22` enforces is "a load-bearing invariant
+asserted 12+ times in prose, argued zero times, and defended by no real test." Re-opened
 `tests/unit/workflow/validation.test.ts` directly (237 lines) rather than trusting either account: it
 has no test that claims the same validator identity twice on one task — every repair round in the file
 (e.g. "repairs require explicit finding resolution before pass":170-212 uses `validator` then
@@ -1946,7 +2206,7 @@ reject, repair, re-validate with the same identity) and assert the refusal BY ER
 **Verified 2026-08-20 (fifth pass) — the only blocker the fourth pass recorded, an uncommitted diff, is
 gone: `git status --short` is clean and `git rev-list --left-right --count
 origin/orchestration-overhaul...HEAD` reports `0  0`.** `git log` confirms the four files it named
-(`SKILL.md`, `agents/coordinator.yaml`, `cli/commands/run-ops.ts`, `tests/unit/cli/run-ops-commands.test.ts`)
+(`SKILL.md`, `agents/coordinator.yaml`, `cli/commands/run-ops.ts`, `tests/integration/cli-run-ops-commands.test.ts`)
 landed in `85e832d` and `b70d1ae`. Re-ran B33's three-bar check fresh rather than trusting the prior tag:
 
 - **Reachable and correct, read directly, not re-derived from the note:** `SKILL.md` Hard Rule 11 and
@@ -1963,7 +2223,7 @@ landed in `85e832d` and `b70d1ae`. Re-ran B33's three-bar check fresh rather tha
   honest signal, retry past it rather than pre-guessing a ceiling." No new code needed; this is legitimate
   reuse across two backlog items describing the same mechanism from different angles.
 - **Guard holds:** `bun test tests/unit/config/host-concurrency.test.ts
-tests/unit/config/harness-config.test.ts tests/unit/cli/run-ops-commands.test.ts` — 35 pass, 0 fail, run
+tests/unit/config/harness-config.test.ts tests/integration/cli-run-ops-commands.test.ts` — 35 pass, 0 fail, run
   this pass, not carried over.
 
 No code or doc changes were needed this pass — the fourth pass's implementation was already correct and
@@ -2005,14 +2265,14 @@ B27.1's two gaps were real and are now closed:
    and the JSON `occupancy` object carries `gate_max_parallel`. Honestly scoped: the harness has no way
    to tell which active lease is mid-gate versus mid-reasoning (the same limit `RunSupervisor` already
    documented for `orchestrator:supervise`), so this states the gate ceiling alongside occupancy rather
-   than inventing a gate-specific occupancy count nothing tracks. `tests/unit/cli/run-ops-commands.test.ts`
+   than inventing a gate-specific occupancy count nothing tracks. `tests/integration/cli-run-ops-commands.test.ts`
    updated to match (the exact-object assertion relaxed to a partial-match one plus a type check, since
    `gate_max_parallel` is genuinely machine-dependent when no config overrides it). `bun test
-tests/unit/cli/run-ops-commands.test.ts` — 2/2 pass. `bun run typecheck` clean.
+tests/integration/cli-run-ops-commands.test.ts` — 2/2 pass. `bun run typecheck` clean.
 
 **What's left before this can be tagged `done`/`verified`:** the diff above (`SKILL.md`,
 `agents/coordinator.yaml`, `scripts/src/cli/commands/run-ops.ts`,
-`tests/unit/cli/run-ops-commands.test.ts`) is sitting in the working tree, uncommitted, alongside
+`tests/integration/cli-run-ops-commands.test.ts`) is sitting in the working tree, uncommitted, alongside
 unrelated concurrent work-in-progress from another in-flight pass (`agent-ops.ts`, `registry/agent.ts`,
 `workflow/agents/grants.ts` and their tests — not touched here, left alone per standing constraints).
 Commit this item's four files once nothing else is actively writing them, then a later pass can confirm
@@ -2365,11 +2625,29 @@ Headline for whoever picks this up:
 
 ## B32 — Telemetry is wired but unproven, and points at the wrong reporter `queued`
 
-**Still queued 2026-08-20 (completion-tagging pass):** B38 finding 2 already states this precisely and
-this pass found nothing to change it — the wiring is correct and reachable (`probeAgentTelemetry` calls
-both `detectHostTelemetry` and `readAgentTranscriptTelemetry`, hardcoded into `agent:register`/
-`agent:release`/`task:claim`), but B32.2's own closure bar — a capsule on disk with a populated `agents`
-ledger from a real dispatched run — is still unmet; both capsules on disk still lack an `agents` key.
+**Still queued 2026-08-20 (reconciliation pass) — re-confirmed directly, and B32.3's own note below now
+corrects a claim ("ZERO production callers") that was wrong at the time this top note was last written.**
+`probeAgentTelemetry` is real and wired (`detectHostTelemetry` + `readAgentTranscriptTelemetry`, called
+from `agent:register`/`agent:release`/`task:claim` — see B32.3's own corrected entry for the full
+re-verification, 69/69 tests passing). But two closure bars this item itself sets are still unmet, checked
+just now: **B32.1** — `grep -rn '"host_reported"' scripts/src --include="*.ts"` shows the evidence class
+declared in `contracts/evidence.ts` and nowhere else; no production code ever assigns it, so the
+coordinator-records-from-the-dispatch-result fix this sub-item specifically asks for does not exist, and
+`agents/worker.yaml:126-128` still carries the same subagent-conditional self-report instruction the
+sub-item criticizes. **B32.2** — read both capsules' `state.json` directly rather than trusting the prior
+claim: `.capsules/2026-08-17-skills-documentation-elevation/state.json` (this repo) and
+`gvui/.capsules/2026-08-17-gvui-documentation-elevation/state.json` (the consumer) — neither parses with
+an `agents` key present (`'agents' in state` is `False` for both). Per this item's own text, "until a
+capsule on disk contains a populated agents ledger, treat this feature as unproven regardless of test
+coverage" — so it stays `queued` on B32.1 and B32.2 even though B32.3 has moved substantially since the
+note below was written.
+
+**Previously (completion-tagging pass), now partly corrected by B32.3's own entry below:** B38 finding 2
+already states this precisely and this pass found nothing to change it — the wiring is correct and
+reachable (`probeAgentTelemetry` calls both `detectHostTelemetry` and `readAgentTranscriptTelemetry`,
+hardcoded into `agent:register`/`agent:release`/`task:claim`), but B32.2's own closure bar — a capsule on
+disk with a populated `agents` ledger from a real dispatched run — is still unmet; both capsules on disk
+still lack an `agents` key.
 
 **Verified 2026-08-20.** The pipeline exists: `agent:register` / `agent:report` / `agent:release` /
 `agent:list` are registered; `state.agents` stores grants; `summary/agent-telemetry.ts` reads the ledger;
@@ -2411,8 +2689,30 @@ treat this feature as unproven regardless of test coverage.
 
 ### B32.3 Host config probing is dead code, and the CLI never does it automatically
 
-**Verified 2026-08-20 and this corrects an earlier, rosier report of mine.**
+**Corrected 2026-08-20 (reconciliation pass) — every claim in the note directly below is now false,
+checked by re-running the exact greps it describes rather than trusting either the "dead code" report or
+the top-of-item summary that repeated it.** `grep -rn "probeAgentTelemetry\|detectHostTelemetry"
+scripts/src --include="*.ts"` (excluding tests) now shows real, non-test call sites at
+`cli/commands/agent-ops.ts:90` (`agentRegisterCommand`), `:142` (`agentReleaseCommand`) and
+`cli/commands/task-claim.ts:107` — three of the note's four named boundaries wired, `task:submit` still
+missing (a real, narrower gap than "zero callers"). Gap 2 is also closed: `agent-ops.ts` calls
+`withHostTelemetryConflicts(...)` at both register and release, backed by a real `TelemetryFieldConflict`
+type and merge logic in `workflow/agents/grants.ts` (`telemetry_conflicts` recorded on the grant when
+sources disagree) — both sources ARE now recorded and compared, not one silently unused. Gap 3 is closed:
+`TELEMETRY_PROBES.codex` in `host-telemetry.ts` reads `~/.codex/config.toml` AND
+`~/.codex/agents/<agentId>.toml`, extracting model, provider, reasoning_effort→thinking_level,
+`max_concurrent_threads_per_session` and `features.multi_agent` — Codex is no longer absent. Gap 4 is
+closed: every `TELEMETRY_PROBES` entry (codex, claude-code, antigravity, cursor) now returns a
+`capabilities` object — `nesting_depth`, `concurrency_ceiling`, `native_workspace_isolation`,
+`native_resume`, `per_agent_model_selection`, `multi_agent_enabled`, each `Evidenced<T>` — exactly what
+B30.7 needs. All backed by passing tests, run directly: `bun test
+tests/integration/agents-host-telemetry-probe.test.ts tests/unit/agents/telemetry-conflict-surfacing.test.ts
+tests/unit/agents/telemetry-merge.test.ts tests/unit/summary/telemetry-conflict-surfacing.test.ts
+tests/unit/summary/host-telemetry.test.ts` → **69 pass, 0 fail.** This sub-item is effectively resolved
+bar the missing `task:submit` boundary; it does not, on its own, move B32's overall tag — B32.1 and B32.2
+below are still open and the composite-item rule holds the whole item at the least-resolved piece.
 
+**Superseded note, kept for provenance — every gap it lists is closed above, do not treat as current:**
 `summary/host-telemetry.ts` contains a `HOST_PROBES` registry that reads the host's own config from the
 user's home directory. It has **ZERO production callers.** Its only mention anywhere in `scripts/src` is
 inside `health/parameters.ts`, which cites it as an example of a function whose parameter is never read —
@@ -2498,7 +2798,7 @@ agent must have looked.
 `tests/unit/agents/transcript-telemetry.test.ts` (524 lines). B38 finding 2 independently confirms
 `readAgentTranscriptTelemetry` is called from real production call sites
 (`cli/host-telemetry-probe.ts`, wired into `agent-ops.ts` and `task-claim.ts`), not merely defined —
-`graph-completeness-contract.test.ts` asserts the resulting node's `telemetry.tokensIn` carries
+`summary-graph-completeness-contract.test.ts` asserts the resulting node's `telemetry.tokensIn` carries
 `evidence_class: "host_reported"`, 17/17 pass.
 
 **Filesystem inventory, 2026-08-20.** Everything the harness needs is already on disk, written by the host,
@@ -2569,11 +2869,44 @@ Reasoning effort is recorded; reasoning content is not. Record that as a genuine
 
 ## B35 — Three more load-sensitive tests; B11.1's sweep was incomplete `queued`
 
+**Still queued 2026-08-20 (reconciliation pass, sixth pass — paths corrected, substance unchanged).**
+Every file this item names below still exists and still passes exactly as described, but a same-day
+lane-split commit (`5869023`, "test: split the lane by nature and cut unit runtime from 85s to 13s")
+moved every one of them from `tests/unit/` into `tests/integration/` under new names — verified by
+opening each at its new path, not by trusting the old citation: tests/unit/cli/honesty-sweep.test.ts
+-> `tests/integration/cli-honesty-sweep.test.ts`; critic-ops-commands.test.ts ->
+`tests/integration/cli-critic-ops-commands.test.ts`; task-probe-commands.test.ts ->
+`tests/integration/cli-task-probe-commands.test.ts`; tests/unit/runner/resource-bounds.test.ts ->
+`tests/integration/runner-resource-bounds.test.ts` (the `waitForProcessExit` calls are still at lines
+147/186, unchanged); `runner-timeouts-retries.test.ts` -> `tests/integration/runner-timeouts-retries.test.ts`
+(still at lines 216/233 and 209/226); tests/unit/store/runtime-pin.test.ts ->
+`tests/integration/store-runtime-pin.test.ts` (the cited assertion is still its own line 89, word for
+word). `tests/unit/packets/planner-packet.test.ts` itself was NOT just moved: it now holds a smaller,
+48-line file covering only `initializePlannerPacket`'s basic contract, with no `scriptsRoot` in it
+anywhere (`grep -c scriptsRoot` -> 0); the frozen-copy race-fix comment this item describes lives at
+`tests/integration/packets-planner-packet.test.ts` instead (confirmed by opening it: the same
+`liveScriptsRoot`/`beforeAll`-frozen-copy comment is there, just renamed and relocated). Re-ran the
+corrected set directly — `bun test tests/integration/cli-honesty-sweep.test.ts
+tests/integration/cli-critic-ops-commands.test.ts tests/integration/cli-task-probe-commands.test.ts
+tests/integration/runner-resource-bounds.test.ts tests/integration/runner-timeouts-retries.test.ts
+tests/integration/store-runtime-pin.test.ts tests/unit/packets/planner-packet.test.ts` — every test this
+item names by its own quoted title still passes; the `process.kill`/`waitForProcessExit` sites and the
+runtime-pin race assertion are all still fixed as described. The wall-clock grace race this item stays
+open on is also unchanged, read directly just now: `runner/process-group.ts`'s `wait(graceMs)` (lines
+80/84/88) is still the same bare `setTimeout`-based race, so the owner design decision below is still
+live and still nobody's called it. **Separately, and not this item's own claim:** the same corrected
+files also surfaced 11 unrelated, currently-real failures in `cli-honesty-sweep.test.ts`/
+`cli-critic-ops-commands.test.ts`/`cli-task-probe-commands.test.ts` from a newer, same-day requirement
+(`assertGateProofFalsifiable`) that the shared integration fixture was never updated to satisfy — filed
+as a new item alongside this reconciliation pass, not a defect in what B35 itself claims.
+
 **Still queued 2026-08-20 (fifth pass, re-confirmed fresh, nothing changed).** Independently re-opened
 every file this item and the prior pass name, rather than trusting either note:
 
-- `tests/unit/cli/honesty-sweep.test.ts` (360 lines), `critic-ops-commands.test.ts` (350),
-  `task-probe-commands.test.ts` (155) — all under the 495-line working cap, no `.skip`/`.todo` markers.
+- tests/unit/cli/honesty-sweep.test.ts (360 lines), critic-ops-commands.test.ts (350),
+  task-probe-commands.test.ts (155) — all under the 495-line working cap, no `.skip`/`.todo` markers
+  (paths as they existed at this pass, before the same-day `5869023` lane-split moved them; see the
+  sixth-pass note above for their current locations).
 - All four `process.kill(pid, 0)` sites (`resource-bounds.test.ts:147,186`,
   `runner-timeouts-retries.test.ts:216,233`) now go through the bounded-poll helper exported by
   `tests/unit/runner/run-command-fixture.ts`, not an instant absence check.
@@ -2587,7 +2920,7 @@ every file this item and the prior pass name, rather than trusting either note:
   `planner-packet.test.ts` is the file whose own comment (lines 15-20) explains why and how it was made
   deterministic — a private, frozen-once-in-setup copy of the scripts tree (`scriptsRoot`) that nothing
   but the test file itself ever touches, closing the exposure window entirely rather than tolerating it.
-  `runtime-pin.test.ts`'s own version of the same assertion is likewise not a race at all: it uses an
+  runtime-pin.test.ts's own version of the same assertion is likewise not a race at all: it uses an
   injected `beforeRuntimeSourceRecheck` hook to deterministically mutate the source file inside the
   copy-then-recheck window on demand, never relying on real timing. Both were already fixed before this
   pass; there is no remaining flaky race under either file. `bun test
@@ -2622,14 +2955,16 @@ on that one sub-item rather than being silently resolved either by a code change
 **Observed 2026-08-20 at the Wave 9 push gate.** These pass 10/10 in isolation and fail under
 `bun test --parallel` on a loaded machine:
 
-- `tests/unit/cli/honesty-sweep.test.ts` — "command-recorded carries the argv and the exit
+- tests/unit/cli/honesty-sweep.test.ts — "command-recorded carries the argv and the exit
   code, not an empty payload" (the Wave 9 push gate note named a
   tests/unit/runner/command-recorded-payload.test.ts that does not exist; the verifier that closed
   this item confirmed by opening the suite that the test lives here instead)
-- `tests/unit/cli/critic-ops-commands.test.ts` — "request_changes without findings is refused rather than
+- tests/unit/cli/critic-ops-commands.test.ts — "request_changes without findings is refused rather than
   synthesized"
-- `tests/unit/cli/task-probe-commands.test.ts` — "refuses a sign-off while the recorded gate run exited
+- tests/unit/cli/task-probe-commands.test.ts — "refuses a sign-off while the recorded gate run exited
   non-zero"
+  (paths as of the Wave 9 push gate; all three moved to `tests/integration/` under the `5869023`
+  lane-split — see the sixth-pass note above for their current locations)
 
 Each takes ~2.5-2.9s and drives the real CLI against a temp capsule, so the likely cause is the same class
 B11.1 fixed: a wall-clock or filesystem assumption that holds on an idle machine. B11.1 fixed two files and
@@ -2657,7 +2992,7 @@ an instant absence check, and by fixing two deeper production races the same rep
 `settleAndTerminateAttempt` (`orchestrating-long-tasks/scripts/src/runner/attempt-failure-cleanup.ts`) now
 bounded-polls descendant/root absence instead of checking once right after SIGKILL, and `processSnapshot`
 (`orchestrating-long-tasks/scripts/src/runner/process-tree.ts`) now retries its `ps` spawn, which was the
-actual root cause of the `critic-ops-commands.test.ts` flake (an unclassified `ps` spawn failure, not a
+actual root cause of the critic-ops-commands.test.ts flake (an unclassified `ps` spawn failure, not a
 timing assumption in the test itself). One residual, load-only flake remains open in
 `tests/integration/runner-timeouts-retries.test.ts`'s "kills TERM-resistant descendants after a
 cooperative leader exits" — reproduced directly at ambient load ~300+ on a 10-core box (roughly 1-in-6
@@ -2917,6 +3252,45 @@ This is the record of what verification uncovered; each is queued as work in its
 
 ## B38 — Findings from the second post-implementation verification pass `queued`
 
+**Still queued 2026-08-20 (reconciliation pass): independently re-run, item's own verdict holds, one
+citation set corrected.** Finding 1: re-ran `tests/unit/packets/repository-git-spawn-retry.test.ts`
+directly — 6/6 pass — and read `repository-git-command.ts` directly: `GIT_SPAWN_TRANSIENT_RETRIES`/
+`GIT_SPAWN_TRANSIENT_RETRY_DELAY_MS` and the retry loop are still exactly as described (lines 50-51,
+76, 123, 126). Finding 2: opened both named capsules' `state.json` directly, just now —
+`skills/.capsules/2026-08-17-skills-documentation-elevation/` and
+`gvui/.capsules/2026-08-17-gvui-documentation-elevation/` are still the only two capsules on either
+machine, and neither has ever grown an `agents` key (checked the literal key set of both files: absent
+in both). B32.2's bar is still unmet for the same reason it was unmet when this was written — no new
+dispatched run has happened since. Item correctly stays open on this. Finding 3: re-ran
+`tests/unit/orchestrator/supervisor.test.ts tests/unit/orchestrator/supervision-tick.test.ts` — now
+19/19 pass (grew from the cited 14/14 as the same-day `6256159` commit added more cases to both files);
+no regression, still no action needed. Finding 4 is a point-in-time confirmatory note and is now stale
+on its own numbers (the health check reports differently today — see the new item filed alongside this
+pass) but that does not reopen this finding, which only ever claimed the three findings above were
+mechanically invisible to that check, which remains true. **Path correction (same `5869023` lane-split
+commit that moved B35's citations):** the scope note's `bun test tests/unit/branch/budget.test.ts
+tests/unit/branch/scope.test.ts tests/unit/agents/budget.test.ts` moved to
+`tests/integration/branch-budget.test.ts tests/unit/branch/scope.test.ts
+tests/integration/agents-budget.test.ts` (`scope.test.ts` alone did not move), and
+tests/unit/branch/chain-recovery.test.ts — the file with the `SHORT_LEASE=5s` fixture this finding
+names — is now `tests/integration/branch-chain-recovery.test.ts` (confirmed by grepping `SHORT_LEASE`:
+present in the integration path, absent from `tests/unit/workflow/branch/chain-recovery.test.ts`, a
+different, unrelated file that now sits at the old directory's new home). Re-ran the corrected set at
+today's near-idle load (~6-8, not the ~350-365 this finding reproduced under): 17/17 pass, consistent
+with the fix being real and the original failure being genuinely load-gated, not something this pass can
+independently reproduce. **Separately, and not this item's own claim:** re-running the full
+`tests/integration` lane surfaced 45 failing tests (of 815) from two same-day requirements
+(`assertGateProofFalsifiable` in `pass-preconditions.ts`, `unboundTasksRefusal` in
+`requirements/compiler.ts`) that the shared integration fixtures were never updated to satisfy —
+including this item's own headline Dual-Channel Validator Protocol evidence
+(`tests/integration/validation-dual-channel-wiring.test.ts`, now 1/5 passing, not the 23/23 this item
+cites) and the integration-level supervisor-recovery test
+(`tests/integration/orchestrator-supervisor.test.ts`, 2 failures, both in `plan:compile` setup before the
+recovery logic under test ever runs). The supervisor's actual recovery mechanism is unaffected — the
+unit-level `supervisor.test.ts` re-run above exercises it directly and still passes 19/19 — so this does
+not reopen finding 3, but the integration-lane regression is real and current; filed as a new item rather
+than fixed here.
+
 **Still queued 2026-08-20 (completion-tagging pass):** finding 1 was fixed in the same commit that
 recorded it (`0a5a630`) and now carries its own inline `RESOLVED` note (added by a concurrent pass on
 this same file, commit `f23050d`, while this tagging pass was in progress) — re-confirmed here by
@@ -2936,9 +3310,9 @@ genuinely reachable, correct and guard-holding this way: role-contract command e
 `assertRoleMayInvoke`/`assertGrantedCommand`, wired into `cli/execute.ts` on every dispatch; deleting the
 throw failed 12/53 tests in `role-contract-enforcement.test.ts`); the probe-blocks-a-pass guard
 (`assertOpenFindingsAnswered` in `review-resolutions.ts`; deleting it failed 5/14 tests in
-`task-probe-commands.test.ts`/`probe.test.ts`, several by hang rather than a clean assertion failure — the
+task-probe-commands.test.ts/`probe.test.ts`, several by hang rather than a clean assertion failure — the
 guard is load-bearing enough that its absence corrupts later state, not just one check); and the
-Dual-Channel Validator Protocol (`tests/unit/validation/dual-channel-wiring.test.ts` drives the real CLI —
+Dual-Channel Validator Protocol (tests/unit/validation/dual-channel-wiring.test.ts drives the real CLI —
 `plan:init` through `task:review` — through five scenarios: full evidence pass, partial-viewport
 DOM-only-gap-filled pass, refusal on zero evidence, refusal when a sibling task's evidence is reused, and a
 non-UI task correctly left ungated; 23/23 pass, no guard-deletion needed given the negative assertions
@@ -2962,13 +3336,13 @@ both files; no new finding needed there. B31 (deferred by owner): confirmed unto
    this same run were active (`uptime` showed load averages ~350-365 on 10 cores, ~22 concurrent `bun`
    processes): `bun test tests/unit/branch/budget.test.ts tests/unit/branch/scope.test.ts
 tests/unit/agents/budget.test.ts` — 8/17 fail, all with the identical stack through
-   `repository-git-command.ts:95`; `tests/unit/branch/chain-recovery.test.ts` fails the same way (its own
+   `repository-git-command.ts:95`; tests/unit/branch/chain-recovery.test.ts fails the same way (its own
    SHORT_LEASE=5s fixture window (a test-local constant, not a production symbol) is separately tight
    enough that a depth-3 chain's setup — 3×`branch:open`
    - 3×`branch:claim`, each doing 2 git-spawn inspections — can outrun 5 real seconds before the intended
      dead-agent scenario even begins). `orchestrating-long-tasks/scripts/src/runner/process-tree.ts` already
      has the fix pattern for exactly this shape (`SNAPSHOT_SPAWN_RETRIES`, added closing B35's
-     `critic-ops-commands.test.ts` flake) — `repository-git-command.ts` was never given the same treatment.
+     critic-ops-commands.test.ts flake) — `repository-git-command.ts` was never given the same treatment.
      This directly threatens B28's "unattended overnight run" contract and sits precisely in B27's stated
      operating regime (many concurrent agents): a transient hiccup during a busy run currently aborts a role
      grant outright rather than retrying. Fix: give `createRepositoryGitCommand` the same bounded-retry
@@ -3038,233 +3412,6 @@ tests/unit/orchestrator/supervision-tick.test.ts` — 14/14 pass, including the 
 
 ---
 
-## B39 — Findings from the third post-implementation verification pass `queued`
-
-**Still queued 2026-08-20 (reconciliation pass):** the six headline re-audits below and B39's own
-"Four of six re-confirmed clean" paragraph still hold on direct re-check. Finding 1's own resolution
-note (inline below) is new since this item was written: the evidence-class mislabeling it describes is
-now fixed and structurally guarded, but the note's own second requirement — surfacing
-`telemetry_conflicts` where a human or gvui can see it — remains open, so the item stays `queued` on
-that gap. Also fixed by this pass: finding 1's own prose tripped the health check's intent-drift scan
-(a bare, unqualified citation of a gitignored path with no line numbers, the exact shape B40 finding 3
-diagnosed) — reworded to keep only the already-qualified citation two lines later; confirmed by rerunning
-`bun orchestrating-long-tasks/scripts/harness.ts health --consumer ../gvui --all` after the edit (see
-B40's own entry for the before/after).
-
-**Scope note:** re-audited the same six headline claims B38 targeted, each by driving the real CLI
-against a scratch capsule (never by reading code alone, per B33): the probe blocking an unprobed pass,
-a role contract refusing an ungranted command, the Dual-Channel Validator on a UI task, branch-and-collect
-suspending and restoring the parent's lease, telemetry reaching `graph.json` with a correct
-`evidence_class`, and the supervisor reclaiming a killed agent's lease. `git log` confirms this session's
-own concurrent in-flight work landed three more commits since B38 was written
-(`4a573ca`/`4d54ac0`/`1f302d2`/`7358837`/`6ab09b7`/`b6d3f96`/`ecb5536`/`0a5a630`/`d01d8e5`), so nothing
-below assumes B38's snapshot is still current; each claim was re-opened fresh.
-
-**Four of six re-confirmed clean, one with a new caveat, one genuinely broken.** Probe-blocks-a-pass,
-role-contract enforcement, the Dual-Channel Validator and the supervisor's crash recovery all still pass
-their real-CLI test suites with no regression (`bun test tests/unit/packets/role-contract-enforcement.test.ts
-tests/unit/cli/task-probe-commands.test.ts tests/unit/workflow/review/probe.test.ts
-tests/unit/validation/dual-channel-wiring.test.ts tests/unit/orchestrator/supervisor.test.ts
-tests/unit/orchestrator/supervision-tick.test.ts` — 86 pass, 0 fail). B38's own top finding (the unretried
-`git` spawn on the role-grant path) is confirmed already fixed — `repository-git-command.ts` now carries
-`GIT_SPAWN_TRANSIENT_RETRIES = 3`, landed in one of the commits above; no new finding needed there.
-Branch-and-collect lease suspension (claim 4) had never actually had its guard deleted anywhere in the
-record — B38's confirmation of "B1" covered scope/budget, not this specific mechanism — so this pass did
-it: rsync'ed `orchestrating-long-tasks/` + `tests/` to a scratch copy outside the repo, deleted the
-`suspendLease`/`restoreLease` calls inside `suspendParent`/`resumeParent`
-(`orchestrating-long-tasks/scripts/src/workflow/branch/parent.ts:144,155`), and reran
-`tests/unit/branch/suspension.test.ts`: 2 of 3 tests fail immediately (the frozen-clock heartbeat refusal
-and the "branched parent doesn't read as expired" check), confirming the guard is real and load-bearing.
-The real tree was never touched (`git status` clean before and after); the scratch copy was deleted
-afterward. One gap in that same test file, minor: its third case ("still reports a genuinely expired
-lease once the branch is collected") checks the restored lease 24 hours past collection — long enough
-that it would read as expired whether or not `resumeParent` actually granted a fresh full-duration
-window, so it doesn't independently prove the "fresh window, not the frozen remainder" property the
-function's own doc comment claims. Worth a same-day-window assertion alongside it, not a rewrite.
-
-1. **Telemetry reaches `graph.json`, but a large share of it carries a fabricated `evidence_class` —
-   the harness will stamp `host_reported` on a value nobody ever verified, and this is easy to prove by
-   just typing one.** `agent:register`'s `--provider`/`--model`/`--model-tier`/`--thinking-level`/
-   `--context-window` flags, and `agent:report`'s `--tokens-in`/`--tokens-out`/`--token-extra` (unless
-   `--tokens-estimated` is passed), are free-text CLI input from whichever process calls the harness —
-   there is no code path anywhere that confirms the value actually came from the host. They are still
-   stamped `evidence_class: "host_reported"` unconditionally
-   (`orchestrating-long-tasks/scripts/src/workflow/agents/grants.ts:122-141` `telemetryFields()`, `:87-96`
-   `explicitLevel()`, `:290-301` and `:305-308` `mergeTokenExtras()`/`tokenCount()`). The CLI's own help text says
-   so out loud: `bun harness.ts help agent:register` describes `--model` as "Host-reported model id,
-   recorded exactly as given and never parsed." Reproduced directly against a throwaway scratch capsule
-   (`.tmp/verify-pass3`, deleted after): `agent:register --agent fake-1 --role implementer --host
-claude-code --parent-agent coord-1 --provider totally-fake-provider --model
-this-model-does-not-exist-v99 --model-tier l --thinking-level high --context-window 999999` — a string
-   with zero possible host backing — comes back with every one of those fields tagged `(host_reported)` in
-   the command's own markdown brief, and `summary:export` carries the identical fabricated values with
-   `evidence_class: "host_reported"` into both `summary/graph.json`'s `run.agents[]` array and
-   `summary.md` §17's telemetry table — directly beneath that section's own header sentence, "Model, tier,
-   thinking level and token counts are only ever what a host reported through the CLI. Nothing here is
-   inferred from a model name, an agent id or the exporting machine." That sentence is not true of the
-   data sitting one line below it. Contrast with `--tool`, the one flag on the same command that carries
-   the same "typed on the CLI" provenance and is correctly labelled `agent_reported`
-   (`grants.ts:124-126`) — the codebase already knows how to make this distinction and simply does not
-   apply it to the other eight fields. The evidence-class table itself says why it should:
-   `docs/09-branching-and-honesty/03-evidence-classes-and-honesty.md:18` defines `agent_reported` as "an
-   agent said so through the CLI; true only if the agent was honest" — a description that fits
-   `--model`/`--provider`/etc. exactly, while its own definition of `host_reported` two lines below ("the
-   host runtime told us") is what the _separate_, legitimate B34 mechanism (`derivedTelemetry` /
-   `probeAgentTelemetry`, reading the host's actual config and transcript files, called as a hardcoded
-   step and never round-tripped through a flag) earns, correctly, elsewhere in the same file. When both
-   channels exist and disagree, `applyDerivedTelemetry`'s `mergeDerivedField`
-   (`orchestrating-long-tasks/scripts/src/workflow/agents/telemetry-merge.ts:58-76`) keeps the explicit
-   (possibly fabricated) value and only appends a `TelemetryFieldConflict` — and that conflict record
-   never reaches a deliverable: grepping `summary/` and `reporting/` for `telemetry_conflicts` /
-   `TelemetryFieldConflict` finds it read only inside `cli/host-telemetry-probe.ts`, which folds it into
-   the raw JSON response of the `agent:register`/`agent:release` call itself (as `host_telemetry_conflicts`)
-   and nowhere else — not `graph.json`, not `summary.md`, not `metrics.json`. So even the "record both,
-   flag disagreement" safety net B32.1/B34 explicitly required exists in the event log and a one-shot CLI
-   response, never in anything a human or gvui actually reads. This is invisible to the mechanical health
-   check by construction — today's `health --all` run shows 0 failures across every category, including
-   "declared but unenforced" and the literal-fallback sweep, because a wrongly-labelled-but-present value
-   is not a dead-code, unused-knob or `?? literal` shape; it is a semantic honesty defect only a human (or
-   B33-style artifact-opening) catches. It also retroactively undercuts the one piece of evidence anyone
-   might cite for B32.2's "populated agents ledger on disk" bar: `.tmp/fixture-build`'s `fixture-demo`
-   capsule (B37 finding 11/12's fixture) does carry a populated `agents` ledger with `host_reported`
-   telemetry throughout — but that fixture is populated via the exact same unverified
-   `--model`/`--provider`/etc. flags this finding is about
-   (`.tmp/fixture-build/build-fixture.ts:115-144,209-219,377-386`, gitignored scratch, driving `execute()`
-   directly), not a real host transcript. It is not evidence the honesty guarantee holds; it is a second,
-   independent demonstration of the same gap. B32.2's bar therefore cannot be met by any capsule, real
-   dispatch or otherwise, until this is fixed — a "real dispatched run" would still show `host_reported`
-   telemetry it never earned, indistinguishable from what a fabricated one shows today.
-   **Work to do:** reclassify the explicit-flag channel to `agent_reported` by default (matching
-   `tools_granted`'s existing treatment), reserving `host_reported`/`harness_observed` for what
-   `derivedTelemetry`/the transcript probe actually observed; or, if the CLI flags are meant to stay a
-   legitimate host-relay channel for hosts B34 hasn't reached yet, gate the `host_reported` label on an
-   actual corroborating probe and downgrade to `agent_reported` when none exists. Either way, surface
-   `telemetry_conflicts` in `graph.json` and `summary.md` rather than only in the raw command response and
-   the event log — a disagreement nobody can see is not "recorded," per B32.1's own requirement. Add a
-   structural test in the shape B8.5 asks for: no CLI-only telemetry value (unaccompanied by a
-   corroborating derived/transcript probe) may reach the exported graph tagged `host_reported` or
-   `harness_observed`.
-   **PARTIALLY RESOLVED, verified 2026-08-20 (reconciliation pass) — the mislabeling itself is fixed;
-   the conflict-visibility half is not.** Opened `grants.ts` fresh: `telemetryFields()`, `explicitLevel()`
-   (this pass's own re-check first mistyped this as `hostLevel()`, copied from the finding text above
-   without re-reading the function signature — corrected here, per the same B33 standard this pass
-   otherwise applied: a citation is only as fresh as the artifact it was actually checked against),
-   `mergeTokenExtras()` and `tokenCount()` all now stamp `agent_reported` on every CLI-supplied
-   telemetry field, with an inline comment naming this finding by number ("the same `agent_reported`
-   class as `--tool` rather than `host_reported`... B39 finding 1"). Reproduced this finding's own repro
-   command against a fresh scratch capsule and got `agent_reported` back on every field this time, not
-   `host_reported`. A dedicated structural guard now exists —
-   `tests/unit/agents/telemetry-evidence-honesty.test.ts`, "B39 finding 1: a typed CLI value never earns
-   a host-verified evidence class," whose own docstring cites this finding by name — plus
-   `tests/unit/summary/graph-telemetry-honesty.test.ts` proving the same discipline holds once a value
-   reaches `graph.json`. `bun test tests/unit/agents/telemetry-evidence-honesty.test.ts
-tests/unit/summary/graph-telemetry-honesty.test.ts` — 10/10 pass. What is still true, checked directly:
-   `telemetry_conflicts` / `TelemetryFieldConflict` still resolves to zero hits under `summary/` and
-   `reporting/` — the conflict record still reaches only the raw `agent:register`/`agent:release` JSON
-   response (as `host_telemetry_conflicts`) and the event log, never `graph.json` or `summary.md`. The
-   second half of this finding's "Work to do" is open; treat it as closed only once a disagreement is
-   visible somewhere a human or gvui actually reads, not before.
-
----
-
-## B40 — Adversarial audit of the third verification pass (B39) `queued`
-
-**Still queued 2026-08-20 (reconciliation pass) — this item had no dated status note of its own before
-this edit; added one so a fresh session does not have to re-derive its state from four undated
-findings.** Findings 1, 2 and 4 stand: re-checked their cited artifacts fresh and found nothing changed.
-Finding 3's own health-check regression is now fixed — see its inline note below — but that closes only
-finding 3, not the item: this is a findings log, and it stays open on whatever its own findings still
-name as unresolved (B39's own remaining conflict-visibility gap, tracked on B39 itself, not duplicated
-here).
-
-**Scope note:** re-verified B39 itself (not the underlying overhaul) by opening the same artifacts
-independently, per B33 — never by re-reading B39's prose and trusting it.
-
-1. **B39's central finding holds and is worse in practice than the prose alone shows.** Reproduced live
-   rather than re-reading the diagnosis: `agent:register --run <scratch> --agent fake-audit-1 --role
-implementer --host claude-code --parent-agent coord-1 --provider totally-fake-provider --model
-this-model-does-not-exist-v99 --model-tier l --thinking-level high --context-window 999999` against a
-   fresh capsule came back with every one of those five fields tagged `"evidence_class":"host_reported"`
-   in the command's own JSON, exactly as B39 describes. Confirmed the four unconditional-stamp call sites
-   by opening `orchestrating-long-tasks/scripts/src/workflow/agents/grants.ts` directly: `telemetryFields()`
-   (lines 122-141) stamps `provider`/`model`/`context_window` `host_reported` whenever the flag is merely
-   present, `explicitLevel()` (87-96) does the same for `model_tier`/`thinking_level` unless the value is the
-   literal string `"unknown"`, and the same file's `markdown-evidence-sections.ts:395` really does say
-   "Nothing here is inferred from a model name, an agent id or the exporting machine" one line above data
-   that contradicts it. Also confirmed `mergeDerivedField` (`telemetry-merge.ts:58-76`) keeps the explicit
-   value on conflict and only pushes to `conflicts`, and that neither `summary/` nor `reporting/` contains
-   the string `telemetry_conflicts` or `TelemetryFieldConflict` anywhere (`grep -rl` across both, empty) —
-   both exactly as B39 states. B39's own citations (file, line ranges, quoted help text, quoted doc
-   sentence) all matched the live source byte-for-byte on inspection; nothing in this finding was
-   fabricated, defaulted, or inferred from a name.
-2. **The four "re-confirmed clean" claims and the guard-deletion for branch-suspend/restore both check out.**
-   `bun test tests/unit/packets/role-contract-enforcement.test.ts tests/unit/cli/task-probe-commands.test.ts
-tests/unit/workflow/review/probe.test.ts tests/unit/validation/dual-channel-wiring.test.ts
-tests/unit/orchestrator/supervisor.test.ts tests/unit/orchestrator/supervision-tick.test.ts
-tests/unit/branch/suspension.test.ts` — 89 pass, 0 fail (86 from the six headline files plus 3 from
-   `suspension.test.ts`, matching B39's separately-reported 86/0 for the six and its guard-deletion note
-   for the seventh). `parent.ts:144` and `:155` do call `suspendLease`/`restoreLease` inside
-   `suspendParent`/`resumeParent` exactly where B39 cites them. `repository-git-command.ts` does define
-   `GIT_SPAWN_TRANSIENT_RETRIES = 3`. B39's own minor caveat — that `suspension.test.ts`'s third case checks
-   the restored lease 24h past collection, which reads as expired whether or not a fresh window was granted
-   — is accurate on rereading the test file directly; it is a real, correctly-scoped gap, not a fabricated
-   one. `bun run typecheck` — clean, no output.
-3. **The defect this pass actually found: B39's own text broke the health check it claims stayed clean.**
-   `bun orchestrating-long-tasks/scripts/harness.ts health --consumer ../gvui --all`, run fresh just now,
-   reports **UNHEALTHY, 4 failures** — not the "HEALTHY, 0 failures... across both repos" B39's own
-   verification output claims. One of the four is `docs/planning/orchestration-overhaul/BACKLOG.md - B39
-names the file \`build-fixture.ts\`, which is not present in the scanned source`, and it is caused by
-B39's own prose, not by concurrent edits elsewhere in the file: B39 cites the bare filename
-`` `build-fixture.ts` `` (no directory) in the middle of item 1's fourth paragraph, separately from its
-correctly-allowed full-path citation `` `.tmp/fixture-build/build-fixture.ts:115-144,209-219,377-386` ``
-two lines later. `health/allowlist.ts:118-123`carries exactly one intent-drift allowance, keyed to
-B37's own exact citation string for that path (with no trailing line numbers) under requirement id`B37` — it does not, and by its exact-match design (`allowlist.ts:141-143`, no wildcard on this entry)
-cannot, cover a same-file citation made under a different requirement id or in a different textual
-form (this paragraph avoids repeating that bare citation verbatim for exactly that reason). The
-other three failures (B3, B10, B12) predate this pass and are not this item's to fix, but B39's own
-contributed failure was not caught before B39's report claimed a clean run. This is a self-contained
-check: adding B39's text alone to a clean baseline reproduces the failure regardless of any other
-concurrent edit to the file, so it cannot be attributed to "in-flight work" elsewhere.
-**Not fixed by this pass:** the read-only/append-only scope given for this audit permits appending to
-this file but not editing code, so the fix — either a new `health/allowlist.ts`entry keyed to`intent-missing:docs/planning/orchestration-overhaul/BACKLOG.md:B39:build-fixture.ts`, or rewording
-B39's bare citation to the qualified form the existing B37 allowance already covers — is left for the
-next wave that owns `orchestrating-long-tasks/scripts/src/health/`.
-**RESOLVED, verified 2026-08-20 (reconciliation pass):** the bare, no-directory citation this finding
-first flagged (the token this same finding quotes above as `` `build-fixture.ts` ``) is no longer
-present anywhere in the file in single-backtick form
-(whoever picked this up between B40 and this pass already rewrote or removed it — not this pass's own
-edit). This pass additionally found and fixed a second, distinct bare citation this finding did not
-itself name: B39's own text also cited the FULL path `` `.tmp/fixture-build/build-fixture.ts` ``
-without line numbers, which fails the same check for the same reason and was still present as of this
-pass — reworded to keep only the already-qualified, line-numbered citation two lines later, using
-B40's own suggested remedy (reword rather than a new allowlist entry, since this pass owns `BACKLOG.md`, not `health/src/`). Reran `bun orchestrating-long-tasks/scripts/harness.ts health
-   --consumer ../gvui --all` after the edit: intent-drift failures dropped from 3 (B3, B10, and this
-B39 entry) to 2 (B3, B10 only) — both pre-existing and out of this item's scope. Overall verdict is
-still UNHEALTHY on those 2, not because of anything this finding named.
-**This closing sentence went stale (verification-pass-7, 2026-08-20): re-run fresh, the tree no
-longer shows B3 or B10 as intent-drift failures at all** — a later commit (`5dd3fc2`, 12:38:49,
-nearly two hours after this note was written at 10:43:28) rewrote B3's own status-note text and
-evidently fixed whatever in it was tripping the scanner; nobody returned to update this sentence.
-Do not read this as "health is now clean," though: intent-drift itself is clean as of this
-correction (re-run, 0 failures there), but the OVERALL verdict is still **UNHEALTHY** for reasons
-entirely unrelated to B3/B10/B39 — the working tree separately carries an unrelated,
-actively-changing, uncommitted B22 implementation under `workflow/worktree/`whose unused exports,
-unenforced config field, and literal fallbacks currently fail three other checks. None of that is
-B39/B40's to fix, and by nature of being uncommitted, actively-edited WIP it will not stay the same
-failure from one run to the next either. The lesson generalizes past this one sentence: this file's
-own health-verdict claims go stale within the same session while other agents write to the shared
-tree — re-run`health` yourself before trusting any verdict stated here, including this one.
-4. **Minor, not a defect:** B39's report describes its own diff as "BACKLOG.md modified (98 insertions, 0
-   deletions, purely additive)". True of the B39 hunk in isolation (confirmed: its diff hunk is
-   `@@ -2177,3 +2260,101 @@` with zero deletions) but the file's live `git diff --numstat` at review time
-   read far larger (179 insertions / 11 deletions and climbing across the session) because unrelated,
-   concurrent, uncommitted edits — a separate "completion-tagging pass" rewriting the Status index and
-   adding notes to B1-B10 — landed in the same file. Not attributable to this implementer; noted only
-   because a `git status` snapshot of a file under heavy concurrent edit is stale within minutes, so
-   whoever commits BACKLOG.md next should re-check it fresh rather than trust either report's numbers.
-
----
-
 ## B41 — Findings from Wave 20's visual-testing verification pass (gvui) `queued`
 
 **Opened 2026-08-20 (completion-tagging audit pass), recording three findings a separate verifier raised
@@ -3276,6 +3423,28 @@ substance stays; a correction is a new note on top). Finding 3 rests partly on e
 can attest to (see its own note) and is recorded here specifically so the requirement it names does not
 depend on any one wave remembering it. **Item stays `queued`: per the composite-item clause in the status
 key above, one open finding (3) holds the whole item, even with 1 and 2 now resolved.**
+
+**Still queued 2026-08-20 (reconciliation pass) — findings 1 and 2's own "uncommitted working-tree state"
+caveat no longer applies; finding 3's gap is still real and unresolved.** Re-verified all three in gvui
+directly rather than trusting the notes below. Findings 1 and 2: `git status --short` in gvui is now clean
+(nothing uncommitted) and `git log --oneline -1 -- src/testing/visual/boundingBoxGeometry.ts
+src/testing/visual/visualHarnessSession.ts` plus `git log --diff-filter=D --oneline -- src/testing/visual/visualMetricsCollector.ts src/testing/visual/browserVisualHarness.ts`
+both point to the same landed commit, `5e20110` ("feat: render the plan-validator role the skill now
+emits") — the split and the regenerated `visual-report.json` are no longer WIP, they are committed. Re-ran
+`wc -l` on all nine modules against that commit and got the identical nine numbers finding 1's resolution
+already lists (233/412/262/81/95/84/182/147/97, all under 500); `bun test
+src/testing/visual/visualMetricsCollector.test.ts src/testing/visual/browserVisualHarness.test.ts` — 68
+pass, 0 fail, unchanged. Re-opened `reports/visual-report.json` directly: still carries all four viewport
+keys including `wide-desktop`, `timestamp` still `2026-08-20T21:17:56.784Z`, and the `wide-desktop` entry
+still reads `overflowCount: 0`, `integrityScore: 100`, `contrastViolationCount: 19`,
+`accessibilityScore: 0` byte-for-byte as finding 2's resolution states — now backed by a commit, not a
+snapshot of a moving tree. Finding 3: `grep -rn "REPORTING CONTRACT\|filesChanged\|deductionsNotObserved"`
+across both `skills` and `gvui` (excluding this BACKLOG.md file itself) still returns nothing — the
+requirement finding 3 asks to give "a durable, checked-in home" has not been added to any role-contract
+file, template or doc under `orchestrating-long-tasks/roles/` or elsewhere; it still lives only in
+whatever constructs a wave's dispatch prompt, outside version control, exactly as finding 3 describes.
+This is the one open finding still holding the item at `queued`; findings 1 and 2 need no further
+action.
 
 1. **Two consumer-repo files exceed B23's 500-line cap, and a split is visibly underway but not yet
    wired in.** gvui/src/testing/visual/visualMetricsCollector.ts was 967 lines and
