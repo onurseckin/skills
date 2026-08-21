@@ -20,6 +20,10 @@ function gateText(gate: TaskDeclaration["gate"]): string {
   return typeof gate === "string" ? gate : gate.join(" ");
 }
 
+function promptText(prompt: Uint8Array): string {
+  return new TextDecoder("utf-8", { fatal: true }).decode(prompt);
+}
+
 function auditTasksFromBuffer(buffer: readonly TaskDeclaration[]): AuditTaskInput[] {
   return buffer.map((t) => ({
     taskId: t.id,
@@ -65,10 +69,11 @@ export function recordPlanAudit(
   actor: string,
   buffer: readonly TaskDeclaration[],
   state: JsonObject,
+  prompt = "",
 ): { result: PlanAuditResult; revision: number } {
   const repoRoot = resolve(run, "..", "..");
   const tasks = auditTasksFromBuffer(buffer);
-  const result = auditPlan(repoRoot, tasks, state);
+  const result = auditPlan(repoRoot, tasks, state, prompt);
   let revision = 1;
   transact(
     run,
@@ -117,7 +122,13 @@ export function planAuditCommand(flags: Flags): Record<string, unknown> {
   if (buffer.length === 0)
     throw new HarnessError("INVALID_STATE", "cannot audit empty planning buffer");
 
-  const { result, revision } = recordPlanAudit(run, actor, buffer, loaded.state);
+  const { result, revision } = recordPlanAudit(
+    run,
+    actor,
+    buffer,
+    loaded.state,
+    promptText(loaded.prompt),
+  );
   const blocking = blockingFindings(result);
   const markdown = formatPlanAuditBrief({
     runId: loaded.manifest.run_id,

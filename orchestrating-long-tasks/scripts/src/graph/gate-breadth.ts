@@ -2,7 +2,7 @@ import { existsSync, readdirSync, statSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { commandIsWeak } from "./gate-command-policy.ts";
 
-function namesATarget(token: string): boolean {
+export function namesATarget(token: string): boolean {
   if (token.startsWith("-")) return false;
   return token.includes("/") || token.includes(".") || token.includes("*");
 }

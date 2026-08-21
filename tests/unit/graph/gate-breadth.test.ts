@@ -6,6 +6,7 @@ import {
   discoverGatePaths,
   gateBreadthWarning,
   looksWholeSuite,
+  namesATarget,
   scopeIsNarrow,
 } from "../../../orchestrating-long-tasks/scripts/src/graph/gate-breadth.ts";
 
@@ -133,5 +134,22 @@ describe("gate breadth", () => {
     const repo = fixtureRepo();
     mkdirSync(join(repo, "tests"), { recursive: true });
     expect(discoverGatePaths(repo, ["."])).toEqual([]);
+  });
+
+  // namesATarget is exported for graph/plan-audit.ts's A3-gate-discrimination structural gate
+  // comparison (executable, subcommand, targets) — a flag must never count as a target.
+  describe("namesATarget", () => {
+    test("a path or glob token names a target", () => {
+      expect(namesATarget("src/db")).toBe(true);
+      expect(namesATarget("tests/db.test.ts")).toBe(true);
+      expect(namesATarget("*.ts")).toBe(true);
+    });
+
+    test("a bare word or a flag does not name a target", () => {
+      expect(namesATarget("typecheck")).toBe(false);
+      expect(namesATarget("run")).toBe(false);
+      expect(namesATarget("--scope=t1")).toBe(false);
+      expect(namesATarget("--watch")).toBe(false);
+    });
   });
 });

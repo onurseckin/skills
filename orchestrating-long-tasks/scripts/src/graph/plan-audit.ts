@@ -1,6 +1,7 @@
 import type { EvidenceClass } from "../contracts/evidence.ts";
 import type { JsonObject } from "../contracts/json.ts";
-import { looksWholeSuite } from "./gate-breadth.ts";
+import { promptLines } from "../requirements/prompt-lines.ts";
+import { looksWholeSuite, namesATarget } from "./gate-breadth.ts";
 import { latestGateProof } from "./gate-proof.ts";
 import {
   analyzeScopeIndependence,
@@ -96,12 +97,45 @@ function auditGranularity(repoRoot: string, tasks: readonly AuditTaskInput[]): A
     });
 }
 
-function normalizeGateArgv(gate: string): string {
-  return gate.trim().split(/\s+/u).filter(Boolean).join(" ");
-}
-
 function gateArgvTokens(gate: string): string[] {
   return gate.trim().split(/\s+/u).filter(Boolean);
+}
+
+/** What actually distinguishes one gate from another for A3's purposes: the executable, the
+ *  non-flag/non-target words that select a subcommand, and the set of targets it names. A flag
+ *  changes none of those — `--scope=t1` selects nothing `namesATarget` would recognize as a
+ *  target, so two gates that differ only by such a flag still prove exactly the same thing. */
+interface GateSignature {
+  executable: string;
+  subcommand: readonly string[];
+  targets: readonly string[];
+}
+
+function gateSignature(gate: string): GateSignature {
+  const tokens = gateArgvTokens(gate);
+  const executable = tokens[0] ?? "";
+  const subcommand: string[] = [];
+  const targets = new Set<string>();
+  for (const token of tokens.slice(1)) {
+    if (token.startsWith("-")) continue;
+    if (namesATarget(token)) targets.add(token);
+    else subcommand.push(token);
+  }
+  return { executable, subcommand, targets: [...targets].sort() };
+}
+
+function sameSequence(a: readonly string[], b: readonly string[]): boolean {
+  return a.length === b.length && a.every((value, index) => value === b[index]);
+}
+
+function sameGateSignature(gateA: string, gateB: string): boolean {
+  const a = gateSignature(gateA);
+  const b = gateSignature(gateB);
+  return (
+    a.executable === b.executable &&
+    sameSequence(a.subcommand, b.subcommand) &&
+    sameSequence(a.targets, b.targets)
+  );
 }
 
 function provenFalsifiable(
@@ -127,7 +161,6 @@ function auditGateDiscrimination(
   const normalized = tasks.map((t) => ({
     taskId: t.taskId,
     scope: t.writeScope.map(normalizeScopePath),
-    gate: normalizeGateArgv(t.gate),
     rawGate: t.gate,
     rawScope: t.writeScope,
   }));
@@ -136,7 +169,7 @@ function auditGateDiscrimination(
     for (let j = i + 1; j < normalized.length; j++) {
       const a = normalized[i]!;
       const b = normalized[j]!;
-      if (a.gate !== b.gate) continue;
+      if (!sameGateSignature(a.rawGate, b.rawGate)) continue;
       if (checkScopeOverlap(a.scope, b.scope).hasOverlap) continue;
       if (
         provenFalsifiable(runState, a.taskId, a.rawGate, a.rawScope) &&
@@ -144,12 +177,17 @@ function auditGateDiscrimination(
       ) {
         continue;
       }
+      const gateDescription =
+        a.rawGate === b.rawGate
+          ? `the identical gate \`${a.rawGate}\``
+          : `structurally identical gates \`${a.rawGate}\` and \`${b.rawGate}\` (same executable, ` +
+            `subcommand, and targets — the difference proves nothing)`;
       findings.push(
         finding(
           "A3-gate-discrimination",
           "blocking",
-          `tasks ${a.taskId} and ${b.taskId} have disjoint write scopes but the identical gate ` +
-            `\`${a.rawGate}\` — it passes whether either task did its work or nothing at all.`,
+          `tasks ${a.taskId} and ${b.taskId} have disjoint write scopes but ${gateDescription} — ` +
+            `it passes whether either task did its work or nothing at all.`,
           [a.taskId, b.taskId],
           "derived",
         ),
@@ -231,25 +269,70 @@ function auditWholeSuiteGate(
     );
 }
 
+// A2 cannot honestly count "distinct entities the prompt names" — that's an NLP guess this harness
+// refuses to fabricate. But it does have a real, mechanical signal: requirements/compiler.ts already
+// counts the prompt's non-blank lines (nonBlankLineIndices) from the immutable prompt to drive
+// requirement binding, so the same count is available here as a countable fact, not a guess. A low
+// line count says nothing (a two-line prompt legitimately compiles to one task), so A2 only fires
+// when the ratio is unambiguous: the DESIGN.md thresholds (>=10 named things, <5 independent roots),
+// read against line count instead of entity count. Below that, the signal is too weak to support a
+// confident verdict either way, so the plan stays not_evaluated rather than being waved through clean.
+const A2_PROMPT_LINE_THRESHOLD = 10;
+const A2_MIN_INDEPENDENT_ROOTS = 5;
+
 const A2_NOT_EVALUATED_REASON =
-  "A2-parallelism needs a grounded count of distinct entities the prompt names. Deriving that " +
-  "automatically would mean an NLP heuristic guessing a number nobody asked for, which this " +
-  "harness refuses to fabricate; and no explicit, coordinator-declared entity count is collected " +
-  "anywhere in this plan for it to compare against. Not evaluated.";
+  "A2-parallelism has no grounded way to count the prompt's true distinct entities without an NLP " +
+  "heuristic guessing a number nobody asked for, which this harness refuses to fabricate. It does " +
+  `compare the prompt's non-blank line count — a countable fact already computed for requirement ` +
+  `binding, not a guess — against the plan's independent-root count, but only fires once that signal ` +
+  `is unambiguous (>= ${A2_PROMPT_LINE_THRESHOLD} prompt lines against < ${A2_MIN_INDEPENDENT_ROOTS} ` +
+  "independent roots). Below that threshold the signal is too weak to support a confident verdict " +
+  "either way, so this plan is not evaluated.";
+
+function auditParallelism(
+  tasks: readonly AuditTaskInput[],
+  prompt: string,
+): { finding: AuditFinding | undefined; notEvaluated: boolean } {
+  const promptLineCount = promptLines(prompt).filter((line) => line.trim().length > 0).length;
+  const independentRoots = tasks.filter((t) => t.deps.length === 0).length;
+  if (promptLineCount < A2_PROMPT_LINE_THRESHOLD || independentRoots >= A2_MIN_INDEPENDENT_ROOTS) {
+    return { finding: undefined, notEvaluated: true };
+  }
+  const taskIds = tasks.map((t) => t.taskId);
+  return {
+    finding: finding(
+      "A2-parallelism",
+      "blocking",
+      `the prompt carries ${promptLineCount} non-blank lines — a countable fact, not a guess — while ` +
+        `the plan has only ${independentRoots} independent root${independentRoots === 1 ? "" : "s"} ` +
+        `among ${taskIds.length} task${taskIds.length === 1 ? "" : "s"}. This line-count-vs-root-count ` +
+        `proxy does not claim to know the prompt's true entity count; it only fires on compression ` +
+        `this flagrant. Split the plan or justify why so few roots cover this much prompt.`,
+      taskIds,
+      "derived",
+    ),
+    notEvaluated: false,
+  };
+}
 
 export function auditPlan(
   repoRoot: string,
   tasks: readonly AuditTaskInput[],
   runState: JsonObject = {},
+  prompt = "",
 ): PlanAuditResult {
+  const parallelism = auditParallelism(tasks, prompt);
   const findings = [
     ...auditGranularity(repoRoot, tasks),
+    ...(parallelism.finding ? [parallelism.finding] : []),
     ...auditGateDiscrimination(tasks, runState),
     ...auditFalseBarriersAndStragglers(tasks),
     ...auditWholeSuiteGate(tasks, runState),
   ];
   return {
     findings,
-    not_evaluated: [{ invariant: "A2-parallelism", reason: A2_NOT_EVALUATED_REASON }],
+    not_evaluated: parallelism.notEvaluated
+      ? [{ invariant: "A2-parallelism", reason: A2_NOT_EVALUATED_REASON }]
+      : [],
   };
 }

@@ -55,7 +55,7 @@ export function planCompileCommand(flags: Flags): Record<string, unknown> {
   }
 
   const acceptances = (listFlag(flags, "accept-audit") ?? []).map(parseAuditAcceptance);
-  const { result: auditResult } = recordPlanAudit(run, actor, buffer, loaded.state);
+  const { result: auditResult } = recordPlanAudit(run, actor, buffer, loaded.state, prompt);
   const blocking = blockingFindings(auditResult);
   const blockingInvariants = new Set(blocking.map((f) => f.invariant));
   for (const acceptance of acceptances) {
