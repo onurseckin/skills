@@ -7,6 +7,7 @@ export class HarnessError extends Error {
     message: string,
     public readonly issues: readonly JsonValue[] = [],
     public readonly exitCode = code === "LOCK_TIMEOUT" ? 4 : code === "NOT_IMPLEMENTED" ? 70 : 3,
+    public readonly fix?: string,
   ) {
     super(message);
     this.name = "HarnessError";

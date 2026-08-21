@@ -1,5 +1,5 @@
 import { HarnessError } from "../errors/harness-error.ts";
-import type { FlagValue, FlagValues } from "./arguments.ts";
+import { suggestFlag, type FlagValue, type FlagValues } from "./arguments.ts";
 
 export type Flags = Readonly<Record<string, FlagValues>>;
 
@@ -24,7 +24,17 @@ export interface CommandContext {
 export function assertFlags(flags: Flags, allowed: readonly string[]): void {
   const permitted = new Set(allowed);
   const unknown = Object.keys(flags).filter((name) => !permitted.has(name));
-  if (unknown.length) throw new HarnessError("INVALID_ARGUMENT", `unknown option: --${unknown[0]}`);
+  if (unknown.length === 0) return;
+  const target = unknown[0]!;
+  const suggestion = suggestFlag(target, allowed);
+  const hint = suggestion === undefined ? "" : `; did you mean ${suggestion.text}?`;
+  throw new HarnessError(
+    "INVALID_ARGUMENT",
+    `unknown option: --${target}${hint}`,
+    [],
+    undefined,
+    suggestion === undefined ? undefined : `replace --${target} with ${suggestion.text}`,
+  );
 }
 
 export function textFlag(flags: Flags, name: string, required = true): string | undefined {

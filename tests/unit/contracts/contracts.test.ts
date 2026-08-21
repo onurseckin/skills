@@ -21,6 +21,26 @@ describe("shared contracts", () => {
       code: "INVALID_STATE",
       message: "not ready",
       issues: [{ task: "T-1" }],
+      footer:
+        "never read the harness source; run `harness.ts help <command>` or `harness.ts explain INVALID_STATE`.",
+    });
+  });
+
+  test("carries an optional fix through to the rendered error", () => {
+    const error = new HarnessError(
+      "INVALID_ARGUMENT",
+      "unknown option: --prompt",
+      [],
+      undefined,
+      "replace --prompt with --prompt-file or --prompt-stdin",
+    );
+    expect(normalizeError(error)).toEqual({
+      code: "INVALID_ARGUMENT",
+      message: "unknown option: --prompt",
+      issues: [],
+      fix: "replace --prompt with --prompt-file or --prompt-stdin",
+      footer:
+        "never read the harness source; run `harness.ts help <command>` or `harness.ts explain INVALID_ARGUMENT`.",
     });
   });
 
@@ -29,6 +49,8 @@ describe("shared contracts", () => {
       code: "INTERNAL",
       message: "boom",
       issues: [],
+      footer:
+        "never read the harness source; run `harness.ts help <command>` or `harness.ts explain INTERNAL`.",
     });
   });
 
@@ -37,11 +59,15 @@ describe("shared contracts", () => {
       code: "INTERNAL",
       message: "Unknown internal failure",
       issues: [],
+      footer:
+        "never read the harness source; run `harness.ts help <command>` or `harness.ts explain INTERNAL`.",
     });
     expect(normalizeError(undefined)).toEqual({
       code: "INTERNAL",
       message: "Unknown internal failure",
       issues: [],
+      footer:
+        "never read the harness source; run `harness.ts help <command>` or `harness.ts explain INTERNAL`.",
     });
   });
 });
