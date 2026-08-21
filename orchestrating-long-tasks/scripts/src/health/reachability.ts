@@ -32,9 +32,9 @@ function usageIndex(
   for (const record of modules.values()) {
     for (const binding of record.imports) {
       if (!production.has(binding.from)) continue;
+      usage.importedModules.add(binding.from);
       if (binding.imported === "*") {
         namespaces.add(binding.from);
-        usage.importedModules.add(binding.from);
         continue;
       }
       const origin = resolveOrigin(production, { module: binding.from, name: binding.imported });

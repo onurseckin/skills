@@ -103,6 +103,30 @@ describe("unused code is reported by what reaches it, not by what mentions it", 
   });
 });
 
+describe("a pure re-export barrel used by production through named imports", () => {
+  test("is not reported test-only just because one test happens to import it with `*`", () => {
+    const tree = loadTree("named-barrel", {
+      "entry.ts": [
+        'import { real } from "./barrel.ts";',
+        "export function main(): number {",
+        "  return real();",
+        "}",
+      ].join("\n"),
+      "barrel.ts": 'export { real } from "./impl.ts";',
+      "impl.ts": "export function real(): number {\n  return 9;\n}",
+    });
+    const tests = loadTree("named-barrel-tests", {
+      "barrel.test.ts": `import * as barrelNs from "${join(tree.root, "barrel.ts")}";\nbarrelNs.real();`,
+    });
+    const findings = checkUnusedCode({
+      production: tree.modules,
+      entryPoints: [join(tree.root, "entry.ts")],
+      tests: buildModules(tests.files),
+    }).findings;
+    expect(findings.map((entry) => entry.key)).not.toContain("module-test-only:barrel.ts");
+  });
+});
+
 describe("a namespace import hides which member was used, and the check says so", () => {
   test("every export of a namespace-imported module is left alone", () => {
     const tree = loadTree("namespace", {
