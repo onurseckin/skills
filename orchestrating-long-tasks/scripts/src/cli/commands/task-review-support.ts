@@ -60,28 +60,27 @@ export function collectTaskScreenshots(
 ): ScreenshotRecord[] {
   const repoRoot = repoRootOf(runRoot);
 
+  const searchDirs = [
+    join(repoRoot, "test-results"),
+    join(repoRoot, "screenshots"),
+    join(repoRoot, "playwright-report"),
+    join(repoRoot, "captures"),
+    join(runRoot, "evidence"),
+    join(runRoot, "captures"),
+  ];
+
   ingestScreenshots({
     runRoot,
     taskId,
     actor: validator,
-    searchDirs: [
-      repoRoot,
-      join(repoRoot, "test-results"),
-      join(repoRoot, "screenshots"),
-      join(repoRoot, "playwright-report"),
-    ],
+    searchDirs,
   });
 
   ingestVisualReport({
     runRoot,
     taskId,
     actor: validator,
-    searchDirs: [
-      repoRoot,
-      join(repoRoot, "test-results"),
-      join(repoRoot, "screenshots"),
-      join(repoRoot, "playwright-report"),
-    ],
+    searchDirs,
   });
 
   const directScreenshots = queryScreenshots(runRoot, { taskId });
