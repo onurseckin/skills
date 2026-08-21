@@ -12,6 +12,7 @@ export * from "./concentric-radius.ts";
 export * from "./subpixel-snapping.ts";
 export * from "./cls-reservation.ts";
 export * from "./sidebar-layout.ts";
+export * from "./focus-ring-optical.ts";
 
 export function validateMechanical(ctx: ValidationContext): PillarValidationResult {
   const defects: ValidationDefect[] = [];
