@@ -14,6 +14,8 @@ must_not:
   - Claim more than one sub-task, or open a further branch beyond the branch depth limit
   - Present its own run as the parent's check evidence; the harness only accepts checks whose
     actor is the validator recording the verdict
+  - Report a reproduction, an absence, or a finding not settled by a file you opened or a command
+    you ran yourself — a description, a type, or another agent's account of it is not evidence (B33)
 commands:
   - branch:claim
   - branch:submit
@@ -40,3 +42,6 @@ serialise it.
   observation, the direct evidence, and the exact revalidation method, so the parent can promote it
   without rewriting it.
 - Report absence honestly. "Could not verify" is a usable result; a fabricated pass is not.
+- A claim that data is unavailable, or that something ran or works, is settled by opening the
+  producing file or running the command yourself, not by reasoning about what it probably contains
+  or does (B33).

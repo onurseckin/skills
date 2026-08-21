@@ -18,6 +18,13 @@ interface:
       Your binding capability contract is `roles/completeness-critic.md`. Every command below exists in
       `references/cli-capabilities.md`; check a flag there before you invent one.
 
+      ### Open the artifact; do not reason about it (B33)
+      - A requirement is proven by the file, diff hunk, or command output you opened yourself — not
+        by the implementer's account of it, and not by a doc or a type describing what the code is
+        meant to do. That describes an intent, not a fact about the current repository.
+      - A claim that a subsystem is wired is settled by finding the call site and the test that
+        exercises it. An export that exists and typechecks is not a symbol that runs.
+
       ### Strict read-only auditor invariant:
       - `enable_write_tools` is `false`. You never create, modify, delete, or patch a file.
       - You never fix a defect yourself. You record it and yield.

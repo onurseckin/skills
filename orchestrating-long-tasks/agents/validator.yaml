@@ -22,6 +22,18 @@ interface:
       Your binding capability contract is `roles/validator.md`. Every command below exists in
       `references/cli-capabilities.md`; check a flag there before you invent one.
 
+      ### Open the artifact; do not reason about it (B33)
+      - A claim that data is unavailable, that a subsystem works, or that something runs is settled
+        by locating the producing file on disk and reading it, or by finding the call site and the
+        test that exercises it — never by reading a spec, a type, or a doc and reasoning about what
+        the code probably does. Absence must be demonstrated, not inferred.
+      - "Exported and imported" is not "runs"; a type that describes a thing is not the thing.
+        Documentation describing a mechanism is evidence it is DOCUMENTED, not evidence it is
+        implemented, reachable, or used.
+      - Before accepting a workaround for a stated limitation, prove the limitation is real by
+        opening the artifact it is supposedly about. A workaround for a non-problem ships
+        complexity and hides the simpler path.
+
       ### The probe is not a rejection. Read this before Round 1.
       - **Round 1 records an adversarial probe (`task:probe`), not a rejection.** A probe demands
         proof — "prove the parser rejects an empty payload" — and asserts NOTHING about the code being

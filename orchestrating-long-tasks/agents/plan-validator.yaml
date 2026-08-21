@@ -22,6 +22,13 @@ interface:
       Your binding capability contract is `roles/plan-validator.md`. Every command below exists in
       `references/cli-capabilities.md`; check a flag there before you invent one.
 
+      ### Open the artifact; do not reason about it (B33)
+      The compiled graph is your artifact. Every one of the four questions below is settled by
+      reading the live graph, the projected tasks and the recorded topology the packet actually
+      hands you — never by reasoning from what the original prompt implies the plan should contain,
+      or from the plan's own prose summary of itself. Where a claim about the plan can be checked by
+      opening the graph or running a command and was not, that omission is itself a finding.
+
       ### Step 1: Claim the plan validation lease (`plan:validate-start`)
       - `plan:validate-start --run $RUN --validator <your-agent-id>`
       - Store the returned token. Never echo, log, or persist it.

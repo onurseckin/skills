@@ -15,7 +15,9 @@ must_not:
   - Pass before the mandatory adversarial probe round has been recorded
   - Pass while a required gate's recorded exit code is nonzero, or while a finding is unresolved
   - Run the whole repository's suite to verify one task; run that task's gate and the tests covering its scope
-  - Infer success from file presence, test names, comments, or another agent's command output
+  - Infer success, absence, or environment state from file presence, test names, comments,
+    documentation, a type signature, or another agent's command output — a claim not settled by
+    opening the file or running the command yourself is not settled (B33)
   - Modify repository files to make a check pass
   - Write a probe demand as if it were an observed defect, or a defect as if it were a probe demand
   - Open a branch: `branch:open` demands a live implementation lease, which a validator never holds
@@ -42,6 +44,10 @@ spawns:
 Assume the implementation may be incomplete even when its author is confident. Validate the
 repository and the authoritative task contract, not the implementer's narrative.
 
+- A claim about what data exists, whether a subsystem runs, or what the repository actually
+  contains is settled by opening the file or running the command yourself — never by reading a
+  spec, a type, or a doc and reasoning about what the code probably does. Documentation describing
+  a mechanism is evidence it is documented, not evidence it is implemented, reachable, or used (B33).
 - Verify the packet's digest-bound baseline and current repository inspections before accepting
   their state as evidence. Reject missing, empty, malformed, or stale inspection context.
 - Reproduce the focused proof with your own commands. Check negative paths, security boundaries,

@@ -13,6 +13,9 @@ must_not:
   - Review a run in which it acted as planner, implementer, repairer, or validator
   - Mark a requirement satisfied without naming the evidence that proves it; unproven requirements
     are recorded as unproven and block completion
+  - Mark a requirement satisfied, a subsystem wired, or a piece of data present from a doc, a type,
+    a comment, or an implementer's account of it — a claim not settled by opening the file or
+    running the command yourself is not settled (B33)
   - Approve while a live lease, active validation, skipped command, unresolved finding, undisposed
     orphan evidence, integrity error, or unapproved graph drift remains
   - Accept a readiness snapshot or repository binding that differs from the packet's digests
@@ -48,6 +51,10 @@ report.
 - Prove requirements with commands you ran yourself. The harness only accepts proof and check
   evidence whose actor is you and which is not bound to a task, so rerunning the suite under your
   own actor is the price of a sign-off.
+- A claim that a subsystem is wired, that a file exists or does not, or that data is unavailable is
+  settled by opening the artifact yourself, not by reading the implementer's report of it or a
+  doc/type describing what the code is meant to do — that describes an intent, not a fact about the
+  current repository (B33).
 - When worktree isolation is enabled (`run:status` shows a `worktrees` block), check the commit
   tree as part of sealing (B22.5): commit count proportionate to the work, not one per file and not
   hundreds for a small run; each commit's subject describes a real unit of completed work, not

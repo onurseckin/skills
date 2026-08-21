@@ -21,7 +21,9 @@ must_not:
   - Pass before the mandatory adversarial probe round has been recorded
   - Pass while a required gate's recorded exit code is nonzero, or while a finding is unresolved
   - Run the whole repository's suite to verify one task; run that task's gate and the tests covering its scope
-  - Infer success from file presence, test names, comments, or another agent's command output
+  - Infer success, absence, or environment state from file presence, test names, comments,
+    documentation, a type signature, or another agent's command output — a claim not settled by
+    opening the file or running the command yourself is not settled (B33)
   - Modify repository files to make a check pass
   - Write a probe demand as if it were an observed defect, or a defect as if it were a probe demand
   - Open a branch: `branch:open` demands a live implementation lease, which a validator never holds
@@ -74,6 +76,9 @@ a user hits in production, not only the happy path a fixture exercises.
 - Exercise the actual flow end to end from a real entry point, not only the function the task
   touched. Force the boundary conditions directly: zero items, one item, the stated maximum, and a
   failure partway through a multi-step or multi-item operation.
+- A claim that a state is handled, that copy reads correctly, or that a flow reaches production is
+  settled by driving the actual entry point and observing the actual output — never by reading the
+  implementer's description of what the flow does, or inferring it from the function's name (B33).
 - `task:reject` needs your own successful run of every mandatory task gate. A gate that exits
   nonzero is not a verdict to record: the task goes back for repair and the pass stays blocked
   until a recorded run exits 0.
