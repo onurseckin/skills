@@ -2,6 +2,7 @@ import type { AgentModelTier, TelemetryFieldConflict, ThinkingLevel } from "../c
 import type { EvidenceClass, Evidenced } from "../contracts/evidence.ts";
 import type { JsonObject } from "../contracts/json.ts";
 import type { ToolCategory } from "../contracts/taxonomy.ts";
+import type { ValidatorDomain } from "../contracts/workflow.ts";
 
 export type NodeRole =
   | "coordinator"
@@ -14,6 +15,8 @@ export type NodeRole =
   | "sub-implementer"
   | "sub-validator"
   | "sub-investigator";
+
+export type NodeValidatorDomain = ValidatorDomain | "unknown";
 
 export interface NodeScript {
   commandId: string;

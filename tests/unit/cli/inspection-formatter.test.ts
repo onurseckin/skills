@@ -80,7 +80,7 @@ describe("formatReportBrief", () => {
       "**Status / Verdict**: `reject`",
     );
     expect(formatReportBrief({ report: {}, path: "r.json" })).toContain(
-      "**Status / Verdict**: `unknown`",
+      "**Status / Verdict**: not recorded",
     );
   });
 
@@ -173,7 +173,7 @@ describe("formatEvidenceBrief", () => {
         duration_ms: 1234,
         actor: "worker-1",
         argv: ["bun", "test"],
-        screenshots: ["a.png"],
+        screenshot_records: [{ path: "a.png" }],
       },
       path: "commands/C-1",
     });
@@ -194,9 +194,9 @@ describe("formatEvidenceBrief", () => {
     expect(brief).toContain("**Actor**: `unknown`");
   });
 
-  test("ignores an argv or screenshots field that is not an array", () => {
+  test("ignores an argv or screenshot_records field that is not an array", () => {
     const brief = formatEvidenceBrief({
-      evidence: { argv: "not-an-array", screenshots: "not-an-array" },
+      evidence: { argv: "not-an-array", screenshot_records: "not-an-array" },
       path: "x",
     });
     expect(brief).toContain("**Command**: ``");
@@ -218,7 +218,7 @@ describe("formatEvidenceListBrief", () => {
           command_id: "C-1",
           exit_code: 0,
           argv: [Array.from({ length: 10 }, () => "arg").join(" ")],
-          screenshots: ["a.png"],
+          screenshot_records: [{ path: "a.png" }],
         },
         { command_id: "C-2", exit_code: 1, argv: ["short"] },
       ],

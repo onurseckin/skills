@@ -1,6 +1,7 @@
 import type { WorkflowState } from "../workflow/types.ts";
 import { DEAD_AGENT_RECLAIMED_KIND } from "./dead-agent-detector.ts";
 import { DISPATCH_OUTCOME_KIND, type DispatchLogEvent } from "./dispatch-log.ts";
+import { changesRequestedTasks, type ChangesRequestedTask } from "./supervision-tick.ts";
 
 export interface MorningReportTask {
   readonly taskId: string;
@@ -28,6 +29,7 @@ export interface MorningReport {
   readonly generatedAt: string;
   readonly completed: readonly MorningReportTask[];
   readonly escalated: readonly EscalatedTaskReport[];
+  readonly changesRequested: readonly ChangesRequestedTask[];
   readonly deadAgentsReclaimed: number;
   readonly retries: readonly RetryBreakdown[];
   readonly runSpanMs?: number;
@@ -102,6 +104,7 @@ export function buildMorningReport(
   const escalated = tasks
     .filter((task) => task.status === "escalated")
     .map((task) => escalationReport(state, task.id));
+  const changesRequested = changesRequestedTasks(state);
   const deadAgentsReclaimed = events.filter(
     (event) => event.kind === DEAD_AGENT_RECLAIMED_KIND,
   ).length;
@@ -112,6 +115,7 @@ export function buildMorningReport(
     generatedAt: generatedAt.toISOString(),
     completed,
     escalated,
+    changesRequested,
     deadAgentsReclaimed,
     retries: retryBreakdown(events),
     ...(span === undefined ? {} : { runSpanMs: span }),
@@ -136,6 +140,8 @@ export function formatMorningReportMarkdown(report: MorningReport, runId: string
     ...report.completed.map((task) => `  - \`${task.taskId}\` ${task.label}`),
     `- **Escalated (needs a human)**: ${report.escalated.length}`,
     ...report.escalated.map((task) => `  - \`${task.taskId}\`: ${task.reason} — ${task.evidence}`),
+    `- **Awaiting repair (changes_requested)**: ${report.changesRequested.length}`,
+    ...report.changesRequested.map((task) => `  - \`${task.taskId}\`: ${task.reason}`),
     `- **Dead agents reclaimed**: ${report.deadAgentsReclaimed}`,
     "- **Retries**:",
     ...(report.retries.length === 0 ? ["  - none"] : report.retries.map(retryLine)),

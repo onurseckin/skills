@@ -172,6 +172,45 @@ describe("gate:prove (command layer)", () => {
   // matching task-scope gate entry; --scope always yields a non-empty write scope), so they were
   // not reachable through any compiled state this suite could construct; see summary findings.
 
+  test("defaults --base to the sha task:claim recorded, not HEAD, once the task's own work has landed", async () => {
+    const { repo, run } = await compiledSingleTaskRun("claimed-base", "test -f feature.ts");
+    const shaAtClaim = spawnSync("git", ["rev-parse", "HEAD"], {
+      cwd: repo,
+      encoding: "utf8",
+    }).stdout.trim();
+
+    await execute([
+      "task:claim",
+      "--run",
+      run,
+      "--task",
+      "task-1",
+      "--agent",
+      "worker-1",
+      "--role",
+      "implementer",
+    ]);
+
+    // Simulate the task's own work landing on HEAD before gate:prove ever runs (worktree isolation
+    // with commit-per-subphase does exactly this) — the incoherence C3b exists to close: reverting
+    // to a stale "HEAD" default would be a no-op here, since feature.ts is already committed.
+    writeFileSync(join(repo, "feature.ts"), "export const x = 1;\n");
+    git(repo, ["add", "-A"]);
+    git(repo, ["commit", "--quiet", "-m", "feature landed"]);
+
+    const result = await execute([
+      "gate:prove",
+      "--run",
+      run,
+      "--task",
+      "task-1",
+      "--actor",
+      "coordinator",
+    ]);
+    expect(result.base).toBe(shaAtClaim);
+    expect(result.falsifiable).toBe(true);
+  });
+
   test("accepts an explicit --base ref and an integer --timeout-ms / --max-files", async () => {
     const { repo, run } = await compiledSingleTaskRun("explicit-base", "test -f feature.ts");
     writeFileSync(join(repo, "feature.ts"), "export const x = 1;\n");

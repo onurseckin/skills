@@ -1,6 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import { claimTask } from "../../../orchestrating-long-tasks/scripts/src/workflow/lease/claim.ts";
-import { runSupervisionTick } from "../../../orchestrating-long-tasks/scripts/src/orchestrator/supervision-tick.ts";
+import {
+  changesRequestedTasks,
+  runSupervisionTick,
+} from "../../../orchestrating-long-tasks/scripts/src/orchestrator/supervision-tick.ts";
 import { TestPort, workflowState } from "../workflow/test-port.ts";
 
 function twoTaskState() {
@@ -141,5 +144,95 @@ describe("runSupervisionTick (B28.2/B28.3 — reclaim and escalate)", () => {
     });
     expect(tick.reclaimed).toEqual([]);
     expect(tick.state.tasks["T-1"]!.lease).toBeDefined();
+  });
+
+  test("surfaces a rejected task the reclaim/escalate pass never touches, so it stops being invisible", () => {
+    const state = workflowState();
+    state.tasks["T-1"]!.status = "changes_requested";
+    state.tasks["T-1"]!.original_implementer = "impl-1";
+    state.tasks["T-1"]!.repair_assignee = "impl-1";
+    state.tasks["T-1"]!.history.push({
+      at: "2026-08-19T00:00:00.000Z",
+      actor: "validator-1",
+      from: "validating",
+      to: "changes_requested",
+      reason: "missing error handling on the empty-input path",
+      attempt: 1,
+    });
+    const port = new TestPort(state);
+
+    const tick = runSupervisionTick(port, "supervisor", {
+      clock: { now: () => new Date("2026-08-19T00:01:00.000Z") },
+    });
+
+    expect(tick.changesRequested).toEqual([
+      {
+        taskId: "T-1",
+        reason: "missing error handling on the empty-input path",
+        originalImplementer: "impl-1",
+        repairAssignee: "impl-1",
+      },
+    ]);
+    // No lease, no stale streak — reclaim and escalation both pass over it untouched.
+    expect(tick.reclaimed).toEqual([]);
+    expect(tick.escalatedNow).toEqual([]);
+    expect(tick.state.tasks["T-1"]!.status).toBe("changes_requested");
+  });
+});
+
+describe("changesRequestedTasks", () => {
+  test("reads the most recent changes_requested transition, not an earlier one from a prior repair round", () => {
+    const state = workflowState();
+    state.tasks["T-1"]!.status = "changes_requested";
+    state.tasks["T-1"]!.history.push(
+      {
+        at: "2026-08-19T00:00:00.000Z",
+        actor: "validator-1",
+        from: "validating",
+        to: "changes_requested",
+        reason: "first round: missing tests",
+        attempt: 1,
+      },
+      {
+        at: "2026-08-19T00:10:00.000Z",
+        actor: "repairer-1",
+        from: "changes_requested",
+        to: "leased",
+        reason: "repair claimed",
+        attempt: 2,
+      },
+      {
+        at: "2026-08-19T00:20:00.000Z",
+        actor: "validator-1",
+        from: "validating",
+        to: "changes_requested",
+        reason: "second round: still missing an edge case",
+        attempt: 2,
+      },
+    );
+    expect(changesRequestedTasks(state)).toEqual([
+      { taskId: "T-1", reason: "second round: still missing an edge case" },
+    ]);
+  });
+
+  test("honesty: no recorded transition reports unknown, never a guess", () => {
+    const state = workflowState();
+    state.tasks["T-1"]!.status = "changes_requested";
+    expect(changesRequestedTasks(state)).toEqual([{ taskId: "T-1", reason: "unknown" }]);
+  });
+
+  test("omits original_implementer and repair_assignee entirely when the task never recorded them", () => {
+    const state = workflowState();
+    state.tasks["T-1"]!.status = "changes_requested";
+    const [entry] = changesRequestedTasks(state);
+    expect(entry).toEqual({ taskId: "T-1", reason: "unknown" });
+    expect(Object.hasOwn(entry!, "originalImplementer")).toBeFalse();
+    expect(Object.hasOwn(entry!, "repairAssignee")).toBeFalse();
+  });
+
+  test("a task in any other status is left out entirely", () => {
+    const state = workflowState();
+    state.tasks["T-1"]!.status = "ready";
+    expect(changesRequestedTasks(state)).toEqual([]);
   });
 });

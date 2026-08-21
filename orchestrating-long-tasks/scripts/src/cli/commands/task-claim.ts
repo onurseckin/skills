@@ -2,12 +2,14 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import type { CommandRecord } from "../../contracts/commands.ts";
 import { AGENT_ROLES, isAgentRole } from "../../contracts/packets.ts";
-import { evidenced } from "../../contracts/evidence.ts";
+import { evidenced, type Evidenced } from "../../contracts/evidence.ts";
 import { getHarnessConfig } from "../../config/harness-config.ts";
 import { HarnessError } from "../../errors/harness-error.ts";
 import { readPlanObject } from "../../graph/read-plan.ts";
 import { refreshHandoff } from "../../reporting/handoff.ts";
 import { workflowPort } from "../../integration/store-ports.ts";
+import { repositoryGit } from "../../packets/repository-git-command.ts";
+import { hasRepositoryGitMetadata } from "../../packets/repository-git-metadata.ts";
 import { publishTaskRolePacket } from "../../packets/role-grant.ts";
 import { loadRun } from "../../store/index.ts";
 import {
@@ -52,9 +54,6 @@ function commitSubphaseIfAssigned(
     worktreePath: assigned.worktreePath,
     writeScope: task.write_scope,
     label,
-    // Nothing on TaskRecord declares a task's change type yet (see commitSubphase's own doc
-    // comment), so this call site states its interim policy explicitly rather than leaning on a
-    // library default: every harness-made commit reads "chore:" until that gap is closed.
     commitType: "chore",
     maxCommitLines: config.max_commit_lines,
   });
@@ -79,6 +78,25 @@ function assignedWorktreeForClaim(
 
 function writeScopeHashBase(run: string, taskId: string, repoRoot: string): string {
   return assignedWorktreeForClaim(run, taskId)?.worktreePath ?? repoRoot;
+}
+
+const CLAIMED_BASE_SHA_MAX_BYTES = 1024;
+
+function claimedBaseShaAt(repoRoot: string): Evidenced<string> | undefined {
+  if (!hasRepositoryGitMetadata(repoRoot)) return undefined;
+  try {
+    const result = repositoryGit(
+      repoRoot,
+      ["rev-parse", "--verify", "-q", "HEAD"],
+      CLAIMED_BASE_SHA_MAX_BYTES,
+      [0, 1],
+    );
+    if (result.status !== 0) return undefined;
+    const sha = result.bytes.toString("utf8").trim();
+    return sha === "" ? undefined : evidenced(sha, "harness_observed");
+  } catch {
+    return undefined;
+  }
 }
 
 function probeAtTaskBoundary(
@@ -118,9 +136,11 @@ export async function taskClaimCommand(flags: Flags): Promise<Record<string, unk
         "harness_observed",
       )
     : undefined;
+  const claimedBaseSha = claimedBaseShaAt(repoRoot);
 
   const result = claimTask(workflowPort(run), taskId, agent, role, {
     ...(leaseSeconds === undefined ? {} : { leaseSeconds }),
+    ...(claimedBaseSha === undefined ? {} : { claimedBaseSha }),
     ...(writeScopeContentHash === undefined ? {} : { writeScopeContentHash }),
   });
 

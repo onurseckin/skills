@@ -18,9 +18,20 @@ const testsRoot = join(repoRoot, "tests");
  * `host-telemetry.ts` keys TELEMETRY_PROBES by each host's own tool name and looks it up as
  * `TELEMETRY_PROBES[identity.hostTool]`, so the key IS the value; renaming it breaks the lookup. Every entry is
  * a deliberate decision, and an entry pointing at a file that no longer exists fails the suite.
+ *
+ * `runtime-freshness.ts` hits the identical shape one level removed, same as the installer test
+ * files below: `candidateRoots()` reads `clients.claude` and `clients.antigravity` off
+ * `clientLinkPaths(home)`'s host-keyed record to build the list of install roots to check for
+ * drift. Those are real install-root identities (`.claude/skills/...`, `.gemini/config/skills/...`),
+ * not concepts this file coined — it is addressing each host's own install directory, the same
+ * distinction `gate-runtime-grammar.ts` and `host-telemetry.ts` already draw. The `InstallRootKind`
+ * union and the `kind: "claude"` / `kind: "antigravity"` literals it produces are quoted strings,
+ * invisible to this scan; only the bare `.claude` / `.antigravity` property reads are in scope, and
+ * those cannot be renamed without breaking the lookup.
  */
 const SCRIPT_EXEMPTIONS: readonly string[] = [
   "src/graph/gate-runtime-grammar.ts",
+  "src/installer/runtime-freshness.ts",
   "src/summary/host-telemetry.ts",
 ];
 
@@ -52,6 +63,12 @@ const SCRIPT_EXEMPTIONS: readonly string[] = [
  * - unit/installer/client-links.test.ts: reads `clientLinkPaths(...).claude` /`.antigravity` and
  *   `plan.client`/`paths.claude` throughout, since `preflightClientLinks`/`applyClientLinks` are
  *   exercised per host by construction.
+ * - unit/installer/runtime-freshness.test.ts: reads `clientLinkPaths(home).claude`/`.antigravity`
+ *   to plant fixtures at the real link path, the same property-read shape as the four files above.
+ *   It also assigns several of those reads to locals named `claude`/`antigravity`
+ *   (`const claude = report.roots.find((entry) => entry.kind === "claude")!`) so an assertion a few
+ *   lines later can say which host's root it is checking — the same documenting role
+ *   `antigravityLink` and `codexHome()` already play in the exemptions above, not a coined concept.
  */
 const TEST_EXEMPTIONS: readonly string[] = [
   "integration/agents-host-telemetry-probe.test.ts",
@@ -62,6 +79,7 @@ const TEST_EXEMPTIONS: readonly string[] = [
   "unit/installer/install.test.ts",
   "unit/installer/installation-status.test.ts",
   "unit/installer/client-links.test.ts",
+  "unit/installer/runtime-freshness.test.ts",
 ];
 
 function describeFindings(findings: readonly VendorIdentifierFinding[]): string[] {

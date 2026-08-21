@@ -47,14 +47,20 @@ describe("commandEvidenceView", () => {
     expect(view.command_id).toBe("C-1");
     expect(view.path).toBe("commands/C-1");
     expect(view.exit_code).toBe(0);
-    expect(view.screenshots).toEqual(["evidence/screenshots/shot.png"]);
-    expect((view.screenshot_records as unknown[]).length).toBe(1);
+    const records = view.screenshot_records as { path: string }[];
+    expect(records.length).toBe(1);
+    expect(records[0]?.path).toBe("evidence/screenshots/shot.png");
   });
 
-  test("a command with no screenshots gets empty evidence arrays, not omitted ones", () => {
+  test("carries only the full screenshot records, not a redundant path-only projection", () => {
+    const root = runRoot();
+    const view = commandEvidenceView(root, {}, "C-3");
+    expect("screenshots" in view).toBe(false);
+  });
+
+  test("a command with no screenshots gets an empty evidence array, not an omitted one", () => {
     const root = runRoot();
     const view = commandEvidenceView(root, {}, "C-2");
-    expect(view.screenshots).toEqual([]);
     expect(view.screenshot_records).toEqual([]);
   });
 });

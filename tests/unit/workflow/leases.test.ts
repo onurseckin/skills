@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { evidenced } from "../../../orchestrating-long-tasks/scripts/src/contracts/evidence.ts";
 import { claimTask } from "../../../orchestrating-long-tasks/scripts/src/workflow/lease/claim.ts";
 import { heartbeat } from "../../../orchestrating-long-tasks/scripts/src/workflow/lease/heartbeat.ts";
 import { recoverStale } from "../../../orchestrating-long-tasks/scripts/src/workflow/lease/recover-stale.ts";
@@ -15,6 +16,24 @@ describe("workflow leases", () => {
     expect(lease.token_digest).not.toBe(first.token);
     expect(first.state.tasks["T-1"]!.original_implementer).toBe("agent-a");
     expect(() => claimTask(port, "T-1", "agent-b", "implementer", { clock: start })).toThrow();
+  });
+
+  test("records the claimed base sha onto the new attempt, not the lease", () => {
+    const port = new TestPort(workflowState());
+    const claimedBaseSha = evidenced("deadbeef", "harness_observed");
+    const { state } = claimTask(port, "T-1", "agent-a", "implementer", {
+      clock: start,
+      claimedBaseSha,
+    });
+    const attempt = state.tasks["T-1"]!.attempts.at(-1)!;
+    expect(attempt.claimed_base_sha).toEqual(claimedBaseSha);
+    expect(state.tasks["T-1"]!.lease).not.toHaveProperty("claimed_base_sha");
+  });
+
+  test("omitting the claimed base sha leaves the attempt without one", () => {
+    const port = new TestPort(workflowState());
+    const { state } = claimTask(port, "T-1", "agent-a", "implementer", { clock: start });
+    expect(state.tasks["T-1"]!.attempts.at(-1)!.claimed_base_sha).toBeUndefined();
   });
 
   test("requires completed dependencies", () => {

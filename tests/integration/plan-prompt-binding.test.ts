@@ -30,7 +30,12 @@ async function initialisedRun(name: string): Promise<string> {
   return init.run_root as string;
 }
 
-function addTask(run: string, id: string, lines?: string): Promise<Record<string, unknown>> {
+function addTask(
+  run: string,
+  id: string,
+  lines?: string,
+  criteria?: string,
+): Promise<Record<string, unknown>> {
   return execute([
     "plan:add",
     "--run",
@@ -46,6 +51,7 @@ function addTask(run: string, id: string, lines?: string): Promise<Record<string
     "--actor",
     "planner",
     ...(lines === undefined ? [] : ["--requirement-lines", lines]),
+    ...(criteria === undefined ? [] : ["--criteria", criteria]),
   ]);
 }
 
@@ -96,8 +102,8 @@ describe("plan:add --requirement-lines", () => {
 describe("plan:compile", () => {
   test("warns in the brief when positional gluing fires, and stays silent when it does not", async () => {
     const run = await initialisedRun("compile-warn");
-    await addTask(run, "task-a", "3-4");
-    await addTask(run, "task-b");
+    await addTask(run, "task-a", "3-4", "Store subscribes to the drawer state");
+    await addTask(run, "task-b", undefined, "Fixture ships with the drawer wired");
 
     const compiled = await execute([
       "plan:compile",
@@ -114,8 +120,8 @@ describe("plan:compile", () => {
     expect(String(compiled.markdown)).toContain("⚠️ [PROMPT BINDING]: task task-b was glued");
 
     const bound = await initialisedRun("compile-bound");
-    await addTask(bound, "task-a", "1");
-    await addTask(bound, "task-b", "3-4");
+    await addTask(bound, "task-a", "1", "Drawer rebuild lands with a passing gate");
+    await addTask(bound, "task-b", "3-4", "Store and fixture wiring lands with a passing gate");
     const clean = await execute([
       "plan:compile",
       "--run",

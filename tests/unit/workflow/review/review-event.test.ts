@@ -1,10 +1,21 @@
 import { describe, expect, test } from "bun:test";
+import {
+  appendGateProof,
+  type GateProofRecord,
+} from "../../../../orchestrating-long-tasks/scripts/src/graph/gate-proof.ts";
 import { beginValidation } from "../../../../orchestrating-long-tasks/scripts/src/workflow/review/begin-validation.ts";
 import { recordProbe } from "../../../../orchestrating-long-tasks/scripts/src/workflow/review/record-probe.ts";
 import { recordReview } from "../../../../orchestrating-long-tasks/scripts/src/workflow/review/record-review.ts";
 import { claimTask } from "../../../../orchestrating-long-tasks/scripts/src/workflow/lease/claim.ts";
 import { submitTask } from "../../../../orchestrating-long-tasks/scripts/src/workflow/submission/submit.ts";
-import { at, registerCommand, registerTaskPacket, TestPort, workflowState } from "../test-port.ts";
+import {
+  at,
+  registerCommand,
+  registerTaskPacket,
+  TEST_GATE_ARGV,
+  TestPort,
+  workflowState,
+} from "../test-port.ts";
 
 const clock = at("2026-08-19T09:00:00.000Z");
 
@@ -90,6 +101,23 @@ function answer(validator: string, findingId: string, method: string) {
   return { finding_id: findingId, method, evidence: [{ command_id: `C-${validator}` }] };
 }
 
+function seedFalsifiableProof(port: TestPort): void {
+  const record: GateProofRecord = {
+    task_id: "T-1",
+    gate_argv: [...TEST_GATE_ARGV],
+    write_scope: ["src/owned"],
+    base: "HEAD",
+    falsifiable: true,
+    exit_code: 1,
+    timed_out: false,
+    proved_at: "2026-08-19T09:00:00.000Z",
+    actor: "coordinator",
+  };
+  port.transact("coordinator", "gate-proved", { task_id: "T-1" }, (draft) =>
+    appendGateProof(draft, record),
+  );
+}
+
 function repaired(port: TestPort, attempt: number): void {
   const { token } = claimTask(port, "T-1", "implementer", "repairer", { clock });
   registerTaskPacket(port, "repairer", "implementer", attempt);
@@ -114,6 +142,7 @@ describe("the review-recorded payload describes the verdict it records", () => {
     const port = submitted();
     const token = validationToken(port, "validator");
     recordProbe(port, "T-1", "validator", { validation_token: token, findings: [demand] }, clock);
+    seedFalsifiableProof(port);
     recordReview(
       port,
       "T-1",
@@ -154,6 +183,7 @@ describe("the review-recorded payload describes the verdict it records", () => {
 
     const token = validationToken(port, "validator-2");
     recordProbe(port, "T-1", "validator-2", { validation_token: token, findings: [demand] }, clock);
+    seedFalsifiableProof(port);
     recordReview(
       port,
       "T-1",

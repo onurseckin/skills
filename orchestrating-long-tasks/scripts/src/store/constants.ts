@@ -16,6 +16,12 @@ export const RESERVED_STATE_KEYS = [
   "event_head",
 ] as const;
 
+export const CHECKPOINT_INTERVAL = 20;
+
+export function isCheckpointSequence(sequence: number): boolean {
+  return sequence % CHECKPOINT_INTERVAL === 0;
+}
+
 export interface StoreLimits {
   maxJsonBytes?: number;
   maxEventBytes?: number;

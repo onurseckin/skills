@@ -31,7 +31,11 @@ export function topologicalOrder(dependencies: ReadonlyMap<string, ReadonlySet<s
 }
 
 function describeEndpoint(value: unknown): string {
-  return typeof value === "string" ? value : (JSON.stringify(value) ?? "undefined");
+  if (typeof value === "string") return value;
+  if (value === undefined) return "<missing>";
+  const serialized = JSON.stringify(value);
+  if (serialized !== undefined) return serialized;
+  return `<unserializable ${typeof value}>`;
 }
 
 function joinWithAnd(items: readonly string[]): string {
@@ -40,11 +44,6 @@ function joinWithAnd(items: readonly string[]): string {
   return `${items.slice(0, -1).join(", ")}, and ${items[items.length - 1]}`;
 }
 
-// topologicalOrder's Kahn's-algorithm pass already knows which nodes never reached in-degree
-// zero — that unresolved set is the cycle (plus anything blocked behind it). Every unresolved
-// node has at least one unresolved prerequisite, or it would have been dequeued; walking
-// prerequisites deterministically from the lexicographically-first unresolved node must
-// therefore revisit a node within |unresolved| steps, which is the cycle itself.
 function describeCycle(
   dependencies: ReadonlyMap<string, ReadonlySet<string>>,
   order: readonly string[],

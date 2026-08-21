@@ -6,22 +6,12 @@ import { withRunLock } from "../platform/run-lock.ts";
 import { RESERVED_STATE_KEYS, type StoreLimits, limits } from "./constants.ts";
 import { appendProjectionEvent } from "./event-append.ts";
 import { loadRunProjection } from "./load.ts";
-import { cloneObject } from "./state.ts";
+import { cloneObject, isTerminalState } from "./state.ts";
 
 function nonblank(value: string, name: string): string {
   if (typeof value !== "string" || !value.trim())
     throw new HarnessError("INVALID_ARGUMENT", `${name} must be a non-blank string`);
   return value;
-}
-
-function isTerminal(state: RunState): boolean {
-  const result = state.completion_result;
-  return (
-    typeof result === "object" &&
-    result !== null &&
-    !Array.isArray(result) &&
-    result.status === "complete"
-  );
 }
 
 export function transact(
@@ -43,7 +33,7 @@ export function transact(
   return withRunLock(runRoot, () => {
     const loaded = loadRunProjection(runRoot, options);
     const current = loaded.state;
-    if (isTerminal(current))
+    if (isTerminalState(current))
       throw new HarnessError("INVALID_STATE", "completed runs are terminal and cannot be mutated");
     const working = cloneObject(current);
     mutate(working);

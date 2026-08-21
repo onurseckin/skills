@@ -1,8 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import {
+  CAPSULE_ID_PATTERN,
+  CHECKPOINT_INTERVAL,
   RUN_ID_PATTERN,
   SHA256_PATTERN,
-  CAPSULE_ID_PATTERN,
+  isCheckpointSequence,
   limits,
 } from "../../../orchestrating-long-tasks/scripts/src/store/constants.ts";
 
@@ -51,5 +53,18 @@ describe("SHA256_PATTERN and CAPSULE_ID_PATTERN", () => {
     expect(SHA256_PATTERN.test("A".repeat(64))).toBe(false);
     expect(SHA256_PATTERN.test("a".repeat(63))).toBe(false);
     expect(CAPSULE_ID_PATTERN.test("a".repeat(31))).toBe(false);
+  });
+});
+
+describe("isCheckpointSequence", () => {
+  test("is true on every multiple of CHECKPOINT_INTERVAL", () => {
+    expect(isCheckpointSequence(CHECKPOINT_INTERVAL)).toBe(true);
+    expect(isCheckpointSequence(CHECKPOINT_INTERVAL * 2)).toBe(true);
+  });
+
+  test("is false for every sequence between checkpoints", () => {
+    expect(isCheckpointSequence(1)).toBe(false);
+    expect(isCheckpointSequence(CHECKPOINT_INTERVAL - 1)).toBe(false);
+    expect(isCheckpointSequence(CHECKPOINT_INTERVAL + 1)).toBe(false);
   });
 });

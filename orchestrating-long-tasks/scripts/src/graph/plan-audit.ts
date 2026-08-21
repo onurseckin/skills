@@ -101,10 +101,6 @@ function gateArgvTokens(gate: string): string[] {
   return gate.trim().split(/\s+/u).filter(Boolean);
 }
 
-/** What actually distinguishes one gate from another for A3's purposes: the executable, the
- *  non-flag/non-target words that select a subcommand, and the set of targets it names. A flag
- *  changes none of those — `--scope=t1` selects nothing `namesATarget` would recognize as a
- *  target, so two gates that differ only by such a flag still prove exactly the same thing. */
 interface GateSignature {
   executable: string;
   subcommand: readonly string[];
@@ -269,14 +265,6 @@ function auditWholeSuiteGate(
     );
 }
 
-// A2 cannot honestly count "distinct entities the prompt names" — that's an NLP guess this harness
-// refuses to fabricate. But it does have a real, mechanical signal: requirements/compiler.ts already
-// counts the prompt's non-blank lines (nonBlankLineIndices) from the immutable prompt to drive
-// requirement binding, so the same count is available here as a countable fact, not a guess. A low
-// line count says nothing (a two-line prompt legitimately compiles to one task), so A2 only fires
-// when the ratio is unambiguous: the DESIGN.md thresholds (>=10 named things, <5 independent roots),
-// read against line count instead of entity count. Below that, the signal is too weak to support a
-// confident verdict either way, so the plan stays not_evaluated rather than being waved through clean.
 const A2_PROMPT_LINE_THRESHOLD = 10;
 const A2_MIN_INDEPENDENT_ROOTS = 5;
 

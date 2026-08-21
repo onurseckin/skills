@@ -143,7 +143,7 @@ export function buildImplementerNode(ctx: TaskNodeContext): GraphNodeData {
     metrics,
     io: { inputs: io.inputs, outputs: io.outputs },
     metadata: {
-      role: "implementer",
+      ...(telemetry?.role ? { role: telemetry.role } : {}),
       ...(agentId ? { agentId } : {}),
       writeScope: task.write_scope,
       repairRounds: task.repair_round ?? 0,

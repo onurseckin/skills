@@ -4,6 +4,7 @@ import type { JsonObject, JsonValue } from "../../contracts/json.ts";
 import { HarnessError } from "../../errors/harness-error.ts";
 import { commandEvidenceView, commandRecordPath } from "../../reporting/command-evidence.ts";
 import { queryScreenshots } from "../../reporting/screenshot-store.ts";
+import type { ScreenshotRecord } from "../../reporting/screenshot-types.ts";
 import { loadRun } from "../../store/index.ts";
 import {
   formatEvidenceBrief,
@@ -189,7 +190,7 @@ export function evidenceGetCommand(flags: Flags): Record<string, unknown> {
       command_id: wanted,
       evidence,
       path,
-      screenshots: evidence.screenshots,
+      screenshots: (evidence.screenshot_records as ScreenshotRecord[]).map((record) => record.path),
       screenshot_records: evidence.screenshot_records,
     };
   }

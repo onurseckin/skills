@@ -203,8 +203,6 @@ export function finalizePassingTask(
   state: WorkflowState,
   port?: TransactionPort,
 ): WorkflowState {
-  // Only built when the caller (production code) omits `port`; tests inject their own
-  // TestPort here and this constructor call is skipped entirely.
   const activePort = port ?? workflowPort(run);
   let curState = state;
   const currentTask = curState.tasks[taskId];

@@ -33,6 +33,7 @@ import type {
   NodeStatus,
   NodeTelemetry,
   NodeTool,
+  NodeValidatorDomain,
   PayloadKind,
   RunCompletionFacts,
   RunEnhancedPlanFacts,
@@ -76,6 +77,7 @@ export type {
   NodeStatus,
   NodeTelemetry,
   NodeTool,
+  NodeValidatorDomain,
   PayloadKind,
   RunCompletionFacts,
   RunEnhancedPlanFacts,
@@ -128,6 +130,7 @@ export interface NodeMetadata {
   findings?: NodeFinding[] | undefined;
   writeScope?: string[] | undefined;
   validatorId?: string | undefined;
+  validatorDomain?: NodeValidatorDomain | undefined;
   repairRounds?: number | undefined;
   probeRounds?: number | undefined;
   validationHistory?: unknown[] | undefined;

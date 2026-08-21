@@ -27,6 +27,7 @@ import { ingestBrowserRun } from "../../reporting/browser-run-ingestion.ts";
 import { refreshHandoff } from "../../reporting/handoff.ts";
 import { ingestScreenshots, ingestVisualReport } from "../../reporting/screenshot-ingestion.ts";
 import { commandEvidenceView, commandRecordPath } from "../../reporting/command-evidence.ts";
+import type { ScreenshotRecord } from "../../reporting/screenshot-types.ts";
 import { capsuleCatalogue, runStatus, type CapsuleCatalogue } from "../../reporting/status.ts";
 
 function occupancyCeilings(runRoot: string): { maxParallel: number; gateMaxParallel: number } {
@@ -328,7 +329,9 @@ export async function runExecCommand(
     record.id,
   );
   const evidencePath = join(loaded.runRoot, commandRecordPath(record.id));
-  const screenshotPaths = evidencePayload.screenshots as string[];
+  const screenshotPaths = (evidencePayload.screenshot_records as ScreenshotRecord[]).map(
+    (shot) => shot.path,
+  );
 
   const markdown = formatRunExecBrief({
     commandStr,

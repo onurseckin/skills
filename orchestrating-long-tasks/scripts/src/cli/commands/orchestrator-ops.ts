@@ -5,13 +5,18 @@ import { readBoundedBytes } from "../../core/json.ts";
 import { HarnessError } from "../../errors/harness-error.ts";
 import { AutonomousLoopRunner } from "../../orchestrator/loop-runner.ts";
 import { formatMorningReportMarkdown } from "../../orchestrator/morning-report.ts";
+import { runSupervisionWatch } from "../../orchestrator/supervision-watch.ts";
 import { RunSupervisor, type TaskDispatcher } from "../../orchestrator/supervisor.ts";
 import type { RoundExecutor } from "../../orchestrator/types.ts";
 import { boolFlag, integerFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
 
+export const DEFAULT_WATCH_INTERVAL_SECONDS = 30;
+
 export interface OrchestratorCommandContext extends CommandContext {
   executor?: RoundExecutor | undefined;
   dispatcher?: TaskDispatcher | undefined;
+  signal?: AbortSignal | undefined;
+  sleep?: ((ms: number) => Promise<void>) | undefined;
 }
 
 export async function orchestratorRunCommand(
@@ -112,6 +117,76 @@ function repoConfigFor(runRoot: string): ReturnType<typeof getHarnessConfig> {
   return getHarnessConfig(resolve(runRoot, "..", ".."), runRoot);
 }
 
+interface SuperviseWatchInput {
+  readonly run: string;
+  readonly actor: string;
+  readonly intervalSeconds: number;
+  readonly recoveryEnabled: boolean;
+  readonly maxParallel: number;
+  readonly maxParallelSource: string;
+  readonly maxConcurrentAgents?: number;
+  readonly gateMaxParallel: number;
+  readonly graceSeconds?: number;
+  readonly maxElapsedMsPerTask?: number;
+  readonly deterministicRepeatThreshold?: number;
+}
+
+async function runOrchestratorSuperviseWatch(
+  context: OrchestratorCommandContext,
+  input: SuperviseWatchInput,
+): Promise<Record<string, unknown>> {
+  const controller = new AbortController();
+  const forwardHostStop = (): void => controller.abort();
+  context.signal?.addEventListener("abort", forwardHostStop, { once: true });
+  if (context.signal?.aborted === true) controller.abort();
+  const stopOnProcessSignal = (): void => controller.abort();
+  process.once("SIGINT", stopOnProcessSignal);
+  process.once("SIGTERM", stopOnProcessSignal);
+
+  try {
+    const result = await runSupervisionWatch({
+      runRoot: input.run,
+      actor: input.actor,
+      intervalMs: input.intervalSeconds * 1_000,
+      recoveryEnabled: input.recoveryEnabled,
+      maxParallel: input.maxParallel,
+      gateMaxParallel: input.gateMaxParallel,
+      signal: controller.signal,
+      ...(input.graceSeconds === undefined ? {} : { graceSeconds: input.graceSeconds }),
+      ...(input.maxElapsedMsPerTask === undefined
+        ? {}
+        : { maxElapsedMsPerTask: input.maxElapsedMsPerTask }),
+      ...(input.deterministicRepeatThreshold === undefined
+        ? {}
+        : { deterministicRepeatThreshold: input.deterministicRepeatThreshold }),
+      ...(context.sleep === undefined ? {} : { sleep: context.sleep }),
+    });
+
+    return {
+      markdown: formatMorningReportMarkdown(result.report, input.run),
+      run_root: input.run,
+      stop_reason: result.stopReason,
+      ticks: result.ticks,
+      reclaimed: result.lastTick.reclaimed,
+      escalated_now: result.lastTick.escalatedNow,
+      changes_requested: result.lastTick.changesRequested,
+      occupied: result.lastTick.occupied,
+      max_parallel: input.maxParallel,
+      max_parallel_source: input.maxParallelSource,
+      max_concurrent_agents: input.maxConcurrentAgents,
+      gate_max_parallel: input.gateMaxParallel,
+      recovery_enabled: input.recoveryEnabled,
+      watch: true,
+      interval_seconds: input.intervalSeconds,
+      report: result.report,
+    };
+  } finally {
+    process.off("SIGINT", stopOnProcessSignal);
+    process.off("SIGTERM", stopOnProcessSignal);
+    context.signal?.removeEventListener("abort", forwardHostStop);
+  }
+}
+
 export async function orchestratorSuperviseCommand(
   flags: Flags,
   context: OrchestratorCommandContext = {},
@@ -134,6 +209,29 @@ export async function orchestratorSuperviseCommand(
   const deterministicRepeatThreshold = integerFlag(flags, "deterministic-repeat-threshold", {
     minimum: 1,
   });
+  const watch = boolFlag(flags, "watch");
+  const intervalSecondsFlag = integerFlag(flags, "interval", { minimum: 1 });
+  if (intervalSecondsFlag !== undefined && !watch) {
+    throw new HarnessError("INVALID_ARGUMENT", "--interval only applies with --watch");
+  }
+
+  if (watch) {
+    return runOrchestratorSuperviseWatch(context, {
+      run,
+      actor,
+      intervalSeconds: intervalSecondsFlag ?? DEFAULT_WATCH_INTERVAL_SECONDS,
+      recoveryEnabled,
+      maxParallel,
+      maxParallelSource,
+      gateMaxParallel,
+      ...(resolvedConfig.max_concurrent_agents === undefined
+        ? {}
+        : { maxConcurrentAgents: resolvedConfig.max_concurrent_agents }),
+      ...(graceSeconds === undefined ? {} : { graceSeconds }),
+      ...(maxElapsedMsPerTask === undefined ? {} : { maxElapsedMsPerTask }),
+      ...(deterministicRepeatThreshold === undefined ? {} : { deterministicRepeatThreshold }),
+    });
+  }
 
   const supervisor = new RunSupervisor({
     runRoot: run,
@@ -158,6 +256,7 @@ export async function orchestratorSuperviseCommand(
     ticks: result.ticks,
     reclaimed: result.lastTick.reclaimed,
     escalated_now: result.lastTick.escalatedNow,
+    changes_requested: result.lastTick.changesRequested,
     dispatchable: result.lastTick.dispatchable,
     backing_off: result.lastTick.backingOff,
     occupied: result.lastTick.occupied,
@@ -166,6 +265,7 @@ export async function orchestratorSuperviseCommand(
     max_concurrent_agents: resolvedConfig.max_concurrent_agents,
     gate_max_parallel: result.lastTick.gateMaxParallel,
     recovery_enabled: recoveryEnabled,
+    watch: false,
     report: result.report,
   };
 }

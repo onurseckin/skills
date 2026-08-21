@@ -17,6 +17,7 @@ import type {
   CompletionReview,
 } from "./completion/types.ts";
 import type { RepositoryBinding } from "../contracts/repository.ts";
+import type { GateProofRecord } from "../graph/gate-proof.ts";
 import type { OrphanEvidenceDisposition } from "./orphan-evidence/types.ts";
 import type { WorktreeCommitRecord, WorktreeLedgerState } from "../contracts/worktree.ts";
 import type { PlanFinding, PlanReview, PlanValidationAuthorization } from "./plan-review/types.ts";
@@ -183,6 +184,7 @@ export interface WorkflowState extends JsonObject {
   plan_validation_history?: PlanValidationAuthorization[];
   plan_review?: PlanReview;
   plan_reviews?: PlanReview[];
+  gate_proofs?: GateProofRecord[];
 }
 
 export interface TransactionPort {

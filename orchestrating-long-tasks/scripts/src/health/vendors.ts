@@ -17,6 +17,7 @@ export interface VendorTree {
 
 export const PRODUCT_GRAMMAR_MODULES: readonly string[] = [
   "src/graph/gate-runtime-grammar.ts",
+  "src/installer/runtime-freshness.ts",
   "src/summary/host-telemetry.ts",
 ];
 

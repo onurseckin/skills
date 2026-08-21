@@ -1,5 +1,13 @@
 import { enforceLineLimit } from "./line-limiter.ts";
 
+function screenshotRecordPath(record: unknown): string {
+  if (typeof record === "object" && record !== null && "path" in record) {
+    const path = (record as { path: unknown }).path;
+    if (typeof path === "string") return path;
+  }
+  return String(record);
+}
+
 export interface FindingBriefParams {
   finding: Record<string, unknown>;
   path: string;
@@ -56,12 +64,16 @@ export interface ReportBriefParams {
 export function formatReportBrief(params: ReportBriefParams): string {
   const r = params.report;
   const name = params.name ?? "unknown";
-  const status = String(r.status ?? r.verdict ?? r.decision ?? "unknown");
+  const rawStatus = r.status ?? r.verdict ?? r.decision;
+  const statusLine =
+    rawStatus === undefined
+      ? "- **Status / Verdict**: not recorded"
+      : `- **Status / Verdict**: \`${String(rawStatus)}\``;
   const summary = String(r.summary ?? "No summary provided");
   const screenshots = Array.isArray(r.screenshots) ? r.screenshots : [];
   const lines = [
     `### Report: \`${name}\``,
-    `- **Status / Verdict**: \`${status}\``,
+    statusLine,
     `- **Summary**: ${summary}`,
     `- **Path**: \`${params.path}\``,
   ];
@@ -112,7 +124,7 @@ export function formatEvidenceBrief(params: EvidenceBriefParams): string {
   const dur = typeof e.duration_ms === "number" ? `${e.duration_ms}ms` : "N/A";
   const actor = String(e.actor ?? "unknown");
   const argv = Array.isArray(e.argv) ? e.argv.map(String).join(" ") : "";
-  const screenshots = Array.isArray(e.screenshots) ? e.screenshots : [];
+  const screenshots = Array.isArray(e.screenshot_records) ? e.screenshot_records : [];
   const lines = [
     `### Evidence: \`${cmdId}\``,
     `- **Command**: \`${argv}\``,
@@ -122,7 +134,7 @@ export function formatEvidenceBrief(params: EvidenceBriefParams): string {
   if (screenshots.length > 0 || params.showScreenshots) {
     lines.push(`- **Screenshots**: ${screenshots.length} captured`);
     for (const s of screenshots.slice(0, 5)) {
-      lines.push(`  - \`${String(s)}\``);
+      lines.push(`  - \`${screenshotRecordPath(s)}\``);
     }
   }
   return enforceLineLimit(lines.join("\n"), 30);
@@ -143,7 +155,7 @@ export function formatEvidenceListBrief(params: EvidenceListParams): string {
       const id = String(e.command_id ?? e.id ?? "unknown");
       const code = String(e.exit_code ?? "unknown");
       const argv = Array.isArray(e.argv) ? e.argv.map(String).join(" ").slice(0, 50) : "";
-      const sCount = Array.isArray(e.screenshots) ? e.screenshots.length : 0;
+      const sCount = Array.isArray(e.screenshot_records) ? e.screenshot_records.length : 0;
       const sSuffix = params.showScreenshots || sCount > 0 ? ` (${sCount} screenshots)` : "";
       lines.push(`- **\`${id}\`** (exit: \`${code}\`${sSuffix}): \`${argv}\``);
     }

@@ -70,6 +70,7 @@ function workflowState(value: Record<string, unknown>): WorkflowState {
     "plan_validation_history",
     "plan_review",
     "plan_reviews",
+    "gate_proofs",
   ] as const) {
     const entry = value[field];
     if (entry !== undefined) {
@@ -105,6 +106,7 @@ function mergeWorkflow(draft: Record<string, unknown>, workflow: WorkflowState):
     "plan_validation_history",
     "plan_review",
     "plan_reviews",
+    "gate_proofs",
   ] as const) {
     const entry = workflow[field];
     if (entry === undefined) delete draft[field];

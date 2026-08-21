@@ -13,6 +13,7 @@ export interface ClaimOptions {
   leaseSeconds?: number;
   clock?: Clock;
   writeScopeContentHash?: Evidenced<string>;
+  claimedBaseSha?: Evidenced<string>;
 }
 
 export function claimTask(
@@ -95,6 +96,7 @@ export function claimTask(
       role,
       started_at: utc(now),
       kind: repair ? "repair" : "implementation",
+      ...(options.claimedBaseSha === undefined ? {} : { claimed_base_sha: options.claimedBaseSha }),
     });
     task.original_implementer ??= agentId;
     transition(task, "leased", agentId, now, repair ? "repair claimed" : "implementation claimed");

@@ -11,7 +11,6 @@ export function commandEvidenceView(
     ...command,
     command_id: commandId,
     path: `commands/${commandId}`,
-    screenshots: screenshots.map((record) => record.path),
     screenshot_records: screenshots,
   };
 }

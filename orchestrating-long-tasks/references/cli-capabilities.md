@@ -254,7 +254,7 @@ bun harness.ts plan:replan --run .capsules/<run-id> --actor coordinator --gate "
 
 Issue a planner's role packet: the sole way a planner agent gets its contract.
 
-The planner has no task and no lease, so it cannot task:claim. This is its equivalent: it hands back the planner role contract, the immutable prompt, and the write scope (planning/requirements.json, planning/graph.json) the planner is bound to fill in before plan:apply.
+The planner has no task and no lease, so it cannot task:claim. This is its equivalent: it hands back the planner role contract, the immutable prompt, and the write scope (planning/requirements.json, planning/graph.json) the planner is bound to fill in before plan:apply. The packet's prescribed plan:apply command is pre-filled with --expected-revision at the run's live graph revision, so it succeeds on a run that has already compiled a graph, not only on a brand-new one.
 
 - **Aliases**: none
 - **Stdin**: not read
@@ -264,6 +264,7 @@ The planner has no task and no lease, so it cannot task:claim. This is its equiv
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `--run` | string | yes | no | - | Capsule run root. |
 | `--agent` | string | yes | no | - | The planner's own agent id, already agent:register'd. |
+| `--expected-revision` | int | no | no | - | The graph revision the caller believes is live; the claim is refused if the run has moved past it. Omitted, the packet is issued at whatever revision is actually live. |
 
 ```bash
 bun harness.ts plan:claim --run .capsules/<run-id> --agent planner-1
@@ -951,7 +952,7 @@ bun harness.ts orchestrator:run --repo . --prompt "Implement the feature" --max-
 
 Reclaim dead agents, escalate dead-end tasks, and dispatch what's ready (B28).
 
-One reclaim-classify-dispatch pass over a run's eligible set: reclaims leases whose agent died without submitting, escalates tasks whose failures have become deterministic (B28.3) instead of retrying them forever, and reports what is safe to dispatch now versus still backing off. With a host-injected dispatcher it loops until the run reaches a terminal state; without one it performs a single pass, which is what makes it safe to drive from an external poll loop. Recovery is on by default (B28.5) - use --no-recover to disable it.
+One reclaim-classify-dispatch pass over a run's eligible set: reclaims leases whose agent died without submitting, escalates tasks whose failures have become deterministic (B28.3) instead of retrying them forever, and reports what is safe to dispatch now versus still backing off. With a host-injected dispatcher it loops until the run reaches a terminal state; without one it performs a single pass, which is what makes it safe to drive from an external poll loop. Recovery is on by default (B28.5) - use --no-recover to disable it. --watch turns this into the poll loop itself: it re-runs the reclaim/escalate heartbeat every --interval seconds until the run goes terminal or the process gets an explicit stop (Ctrl-C / SIGTERM), surfacing changes_requested tasks awaiting a repairer alongside the escalated ones so a rejected task is never silently invisible.
 
 - **Aliases**: none
 - **Stdin**: not read
@@ -969,9 +970,12 @@ One reclaim-classify-dispatch pass over a run's eligible set: reclaims leases wh
 | `--max-elapsed-ms` | int | no | no | - | Per-task retry budget before a transient failure reads as deterministic (B28.3). |
 | `--max-total-elapsed-ms` | int | no | no | - | Whole-run wall-clock budget before the supervisor stops and reports. |
 | `--deterministic-repeat-threshold` | int | no | no | - | Consecutive identical failures before they read as deterministic. |
+| `--watch` | bool | no | no | - | Run unattended: re-tick the reclaim/escalate heartbeat every --interval seconds until the run is terminal or the process gets an explicit stop (Ctrl-C / SIGTERM). Ignores any host-injected dispatcher - this is the recovery heartbeat, not a dispatch loop. |
+| `--interval` | int | no | no | `30` | Seconds between heartbeat ticks in --watch mode; refused without --watch. |
 
 ```bash
 bun harness.ts orchestrator:supervise --run .capsules/<run-id> --actor coordinator
+bun harness.ts orchestrator:supervise --run .capsules/<run-id> --actor coordinator --watch --interval 30
 ```
 
 ## branch
@@ -1419,6 +1423,26 @@ B22.6: removes the worktree directories a crashed or abandoned run left behind, 
 bun harness.ts worktree:reclaim --run .capsules/<run-id> --actor coordinator
 ```
 
+### `explain`
+
+Explain a HarnessError code: the rule it enforces, common causes and the remedy for each.
+
+Answers a refused command with a command instead of a file to read. --code is one of the ErrorCode values a HarnessError actually carries (INTEGRITY, INVALID_ARGUMENT, INVALID_STATE, LOCK_TIMEOUT, NOT_IMPLEMENTED, PATH_SAFETY, UNSUPPORTED_PLATFORM); case-insensitive. Every cause is grounded in real throw sites in this build, cited by file and line, plus a live count of how many places in the current source tree still throw that code. --command narrows further: it dynamically scans that command's own implementation file for direct throws of --code and reports the exact lines and messages, rather than a canned guess about which command hits which cause.
+
+- **Aliases**: none
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--code` | string | yes | no | - | HarnessError code to explain: INTEGRITY, INVALID_ARGUMENT, INVALID_STATE, LOCK_TIMEOUT, NOT_IMPLEMENTED, PATH_SAFETY, or UNSUPPORTED_PLATFORM. Case-insensitive. |
+| `--command` | string | no | no | - | CLI command name (e.g. task:claim) to narrow the explanation to that command's own direct throw sites. |
+
+```bash
+bun harness.ts explain --code INTEGRITY
+bun harness.ts explain --code INVALID_STATE --command task:claim
+```
+
 ## gate
 
 ### `gate:prove`
@@ -1436,7 +1460,7 @@ Copies the repository's tracked and not-ignored files into a throwaway directory
 | `--run` | string | yes | no | - | Capsule run root. |
 | `--task` | string | yes | no | - | Compiled task id whose gate is being proved. |
 | `--actor` | string | yes | no | - | Actor recorded on the event. |
-| `--base` | string | no | no | `HEAD` | Git ref the task's write scope is reverted to before the gate runs. |
+| `--base` | string | no | no | `the claimed base sha, else HEAD` | Git ref the task's write scope is reverted to before the gate runs. Defaults to the sha task:claim recorded on the task's latest attempt, so the revert lands before that attempt's own commits; falls back to HEAD only when no such sha was recorded. |
 | `--timeout-ms` | int | no | no | - | Wall-clock budget for the gate command against the scratch copy; default 300000. |
 | `--max-files` | int | no | no | - | Refuses to copy a tree larger than this many tracked/untracked files, so an unexpectedly huge repository fails loudly instead of proving slowly; default 50000. |
 

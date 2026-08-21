@@ -1,6 +1,6 @@
 import type { RunState } from "../contracts/capsule.ts";
 import type { JsonObject } from "../contracts/json.ts";
-import { FORMAT_VERSION, STATE_SCHEMA } from "./constants.ts";
+import { FORMAT_VERSION, RESERVED_STATE_KEYS, STATE_SCHEMA } from "./constants.ts";
 
 export { sameJson } from "../core/json.ts";
 
@@ -16,4 +16,24 @@ export function initialState(): RunState {
 
 export function cloneObject<T extends JsonObject>(value: T): T {
   return structuredClone(value);
+}
+
+export function businessFields(state: JsonObject): JsonObject {
+  const reserved: readonly string[] = RESERVED_STATE_KEYS;
+  const result: JsonObject = {};
+  for (const key of Object.keys(state)) {
+    if (reserved.includes(key)) continue;
+    result[key] = state[key]!;
+  }
+  return result;
+}
+
+export function isTerminalState(state: RunState): boolean {
+  const result = state.completion_result;
+  return (
+    typeof result === "object" &&
+    result !== null &&
+    !Array.isArray(result) &&
+    result.status === "complete"
+  );
 }

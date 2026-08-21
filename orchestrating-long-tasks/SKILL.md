@@ -145,4 +145,4 @@ ask the harness live:
 bun orchestrating-long-tasks/scripts/harness.ts help <command>
 ```
 
-A flag that is not in the registry does not exist, however plausible it reads.
+A flag that is not in the registry does not exist, however plausible it reads. A command refused with an error code explains itself: `explain --code <CODE>` (add `--command <name>` to narrow it) instead of reading harness source.

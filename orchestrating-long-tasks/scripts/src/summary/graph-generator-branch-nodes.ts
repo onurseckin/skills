@@ -101,6 +101,7 @@ function buildSubTaskNode(
     ...(browserTests.length > 0 ? { browserTests } : {}),
     ...(assets.length > 0 ? { assets } : {}),
     metadata: {
+      ...(telemetry?.role ? { role: telemetry.role } : {}),
       branchId: branch.id,
       branchReason: branch.reason,
       subTaskId: subTask.id,

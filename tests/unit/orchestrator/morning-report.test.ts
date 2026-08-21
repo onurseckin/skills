@@ -36,6 +36,31 @@ describe("buildMorningReport (B28.4)", () => {
     expect(report.escalated).toEqual([{ taskId: "T-1", reason: "unknown", evidence: "unknown" }]);
   });
 
+  test("lists a task awaiting repair alongside the reason it was rejected", () => {
+    const state = workflowState();
+    state.tasks["T-1"]!.status = "changes_requested";
+    state.tasks["T-1"]!.original_implementer = "impl-1";
+    state.tasks["T-1"]!.history.push({
+      at: "2026-08-19T00:00:00.000Z",
+      actor: "validator-1",
+      from: "validating",
+      to: "changes_requested",
+      reason: "the new branch has no test coverage",
+      attempt: 1,
+    });
+    const report = buildMorningReport(state, [], new Date("2026-08-19T08:00:00.000Z"));
+    expect(report.changesRequested).toEqual([
+      {
+        taskId: "T-1",
+        reason: "the new branch has no test coverage",
+        originalImplementer: "impl-1",
+      },
+    ]);
+    const markdown = formatMorningReportMarkdown(report, "run-changes-requested");
+    expect(markdown).toContain("Awaiting repair (changes_requested)**: 1");
+    expect(markdown).toContain("T-1`: the new branch has no test coverage");
+  });
+
   test("counts dead-agent reclaims and retry outcomes from the durable event trail", () => {
     const events: DispatchLogEvent[] = [
       {

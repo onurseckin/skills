@@ -191,5 +191,88 @@ describe("orchestrator:supervise", () => {
     );
     expect(result.recovery_enabled).toBe(false);
     expect(result.gate_max_parallel).toBe(2);
+    expect(result.watch).toBe(false);
+  });
+
+  test("without --watch, --interval is refused outright rather than silently ignored", async () => {
+    const { run } = await setupCompiledRun("supervise-interval-without-watch", roots);
+    await expect(
+      execute(
+        ["orchestrator:supervise", "--run", run, "--actor", "coordinator", "--interval", "5"],
+        {},
+      ),
+    ).rejects.toThrow("--interval only applies with --watch");
+  });
+});
+
+describe("orchestrator:supervise --watch", () => {
+  test("re-ticks on the host's injected sleep/signal until told to stop, instead of returning after one pass", async () => {
+    const { run } = await setupCompiledRun("supervise-watch-stopped", roots);
+    const controller = new AbortController();
+    let sleepCalls = 0;
+    const context: OrchestratorCommandContext = {
+      signal: controller.signal,
+      sleep: async () => {
+        sleepCalls += 1;
+        controller.abort();
+      },
+    };
+
+    const result = await execute(
+      [
+        "orchestrator:supervise",
+        "--run",
+        run,
+        "--actor",
+        "coordinator",
+        "--watch",
+        "--interval",
+        "1",
+      ],
+      context,
+    );
+
+    expect(result.watch).toBe(true);
+    expect(result.stop_reason).toBe("stopped");
+    expect(result.interval_seconds).toBe(1);
+    expect(result.ticks).toBe(1);
+    expect(sleepCalls).toBe(1);
+    expect(Array.isArray(result.changes_requested)).toBe(true);
+    expect(String(result.markdown).length).toBeGreaterThan(0);
+  });
+
+  test("defaults the tick interval to 30 seconds when --interval is omitted", async () => {
+    const { run } = await setupCompiledRun("supervise-watch-default-interval", roots);
+    const controller = new AbortController();
+    controller.abort();
+    const context: OrchestratorCommandContext = {
+      signal: controller.signal,
+      sleep: async () => {},
+    };
+
+    const result = await execute(
+      ["orchestrator:supervise", "--run", run, "--actor", "coordinator", "--watch"],
+      context,
+    );
+
+    expect(result.interval_seconds).toBe(30);
+    expect(result.stop_reason).toBe("stopped");
+    expect(result.ticks).toBe(1);
+  });
+
+  test("cleans up its SIGINT/SIGTERM listeners once the watch loop returns", async () => {
+    const { run } = await setupCompiledRun("supervise-watch-listener-cleanup", roots);
+    const sigintBefore = process.listenerCount("SIGINT");
+    const sigtermBefore = process.listenerCount("SIGTERM");
+    const controller = new AbortController();
+    controller.abort();
+
+    await execute(["orchestrator:supervise", "--run", run, "--actor", "coordinator", "--watch"], {
+      signal: controller.signal,
+      sleep: async () => {},
+    } satisfies OrchestratorCommandContext);
+
+    expect(process.listenerCount("SIGINT")).toBe(sigintBefore);
+    expect(process.listenerCount("SIGTERM")).toBe(sigtermBefore);
   });
 });

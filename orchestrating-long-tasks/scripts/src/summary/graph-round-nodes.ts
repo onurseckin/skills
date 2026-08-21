@@ -40,7 +40,7 @@ function archivedImplementerNode(input: ArchivedRoundNodesInput): GraphNodeData 
     scripts: [],
     files: [],
     metadata: {
-      role: "implementer",
+      ...(telemetry?.role ? { role: telemetry.role } : {}),
       round: round.round,
       totalRounds,
       supersededByRound: round.round + 1,
@@ -53,10 +53,11 @@ function archivedValidatorNode(input: ArchivedRoundNodesInput): GraphNodeData {
   const { round, taskStep, totalRounds, ledger, runRoot } = input;
   const telemetry = buildNodeTelemetry(round.validatorId, ledger);
   const tools = buildNodeTools(round.validatorId, ledger);
+  const domainLabel = round.validatorDomain ?? "unknown";
 
   return {
     id: round.validatorNodeId,
-    name: `Validator: ${round.validatorId}`,
+    name: `Validator (${domainLabel}): ${round.validatorId}`,
     description: `Independent verification, round ${round.round} of ${totalRounds}. Rejected.`,
     kind: "agent" as NodeKind,
     status: "warning",
@@ -72,6 +73,7 @@ function archivedValidatorNode(input: ArchivedRoundNodesInput): GraphNodeData {
     scripts: buildNodeScripts(round.commands, runRoot),
     metadata: {
       role: "validator",
+      validatorDomain: domainLabel,
       round: round.round,
       totalRounds,
       verdict: "reject",

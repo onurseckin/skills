@@ -26,6 +26,8 @@ commands:
   - plan:enhance
   - plan:add
   - plan:compile
+  - plan:claim
+  - plan:apply
   - plan:replan
   - plan:status
   - queue:next
@@ -41,6 +43,7 @@ commands:
   - run:exec
   - run:status
   - recover
+  - orchestrator:supervise
   - run:complete
   - summary:export
   - summary:view

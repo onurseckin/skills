@@ -73,11 +73,16 @@ mis-scoped plans.
 3. For each task, in declaration order:
      a. Declared lines?  → use them.
      b. Otherwise        → take the next unclaimed, undeclared line by POSITION, and WARN.
-     c. No line left     → fold this task's gate and criterion into the requirement that already
-                           claims the fallback line, and WARN. If there is none, fail INTEGRITY.
-4. Mint one requirement per task: id `req-<task-id minus the "task-" prefix>`, disposition
-   `actionable`, status `planned`, acceptance criteria derived from the task's gate.
-5. Dispose every non-blank line: `requirement` if claimed, `context` if not.
+     c. No line left     → collect this task's id as unbindable and move on to the next task.
+4. Once every task has been walked, if any task was collected as unbindable, the whole compile
+   refuses: one INTEGRITY error naming every unbindable task, prescribing --requirement-lines.
+   Nothing is minted and nothing is disposed — a task that cannot bind is never folded into another
+   task's requirement, it stops the compile outright.
+5. Mint one requirement per (bound) task: id `req-<task-id minus the "task-" prefix>`, disposition
+   `actionable`, status `planned`. A task that declared `--criteria` gets those as its acceptance
+   criteria; a task that did not gets the gate itself as its sole criterion, and the compiler WARNS
+   about it — see "The Gate-as-Acceptance Warning" below.
+6. Dispose every non-blank line: `requirement` if claimed, `context` if not.
 ```
 
 The positional fallback is a convenience with teeth. Its warning says so:
@@ -87,12 +92,24 @@ task task-2 was glued to prompt line 4 by position, not by declaration; pass
 --requirement-lines to bind it to the lines it actually implements
 ```
 
-And when there are more tasks than prompt lines:
+And when there are more tasks than prompt lines, the compiler does **not** fold the surplus task
+into whatever requirement already claims the last line. It keeps walking the rest of the tasks,
+collects every one that ran out of lines, and — only once the whole buffer has been walked — refuses
+the compile with a single INTEGRITY error naming all of them:
 
 ```text
-task task-9 had no unclaimed prompt line; its gate was folded into requirement req-1.
-Bind it with --requirement-lines to give it a requirement of its own
+{"ok":false,"error":{"code":"INTEGRITY","message":"task task-9 has no prompt line to bind to and cannot be folded into another requirement; pass --requirement-lines to bind it to the lines it actually implements"}}
 ```
+
+More than one unbindable task is named in the same refusal, not one error per task:
+
+```text
+{"ok":false,"error":{"code":"INTEGRITY","message":"tasks task-8, task-9 have no prompt line to bind to and cannot be folded into another requirement; pass --requirement-lines to bind each one to the lines it actually implements"}}
+```
+
+Nothing is minted for _any_ task while this refusal is live, bound tasks included — the whole compile
+is one atomic step, not "mint what you can and refuse the rest." Rerun with `--requirement-lines` on
+every named task once the prompt actually has (or is edited to have) a line for each of them.
 
 **Bind your lines.** A task glued to the wrong line proves the wrong obligation, and the critic will
 happily certify the mismatch because every mechanical check passes.
@@ -172,6 +189,27 @@ The default acceptance criterion the compiler writes is exactly the gate:
 
 That is why a task with a weak gate produces a weak requirement. The gate is not a formality attached
 to the requirement — for a derived requirement, the gate _is_ the acceptance criterion.
+
+### The Gate-as-Acceptance Warning
+
+Falling back to the gate is legal, but never silent. Any task that reaches minting without a declared
+`--criteria` — regardless of whether it bound its lines explicitly or fell to the positional fallback
+above — produces its own warning, independent of the positional-fallback warning:
+
+```text
+task task-slug's requirement req-slug has no declared acceptance criteria; its own gate passing is
+the only proof of done, which is unfalsifiable — pass --criteria to give it real acceptance criteria
+```
+
+It fires per task, not per plan: a task with declared lines but no `--criteria` gets only this
+warning; a task with neither declared lines nor `--criteria` gets both this one and the
+positional-fallback warning; a task with both declared lines and `--criteria` gets neither. This is a
+warning, not a refusal — the requirement is still minted, with the gate as its sole criterion — but
+it lands in the same `warnings` array `plan:compile` returns, and the `plan:compile` brief prints it
+under the identical `⚠️ [PROMPT BINDING]:` line prefix as a positional-fallback warning; the formatter
+does not distinguish a warning's origin, only that it's a warning. Read the message body, not the
+prefix, to tell which kind fired. Give the task real `--criteria` — something a reviewer can check
+independently of the gate rerunning green — to avoid it.
 
 ---
 

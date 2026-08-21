@@ -4,7 +4,12 @@ import { computeGateTiming, computeGateTokens } from "./metrics-collector.ts";
 import { buildNodeBrowserTests } from "./browser-tests.ts";
 import { buildNodeScripts } from "./node-evidence.ts";
 import { earliestOpenValidation } from "../workflow/review/validation-state.ts";
+import { isValidatorDomain, type ValidatorDomain } from "../contracts/workflow.ts";
 import type { BadgeDetail, GraphNodeData, IoPort, NodeKind, NodeMetrics } from "./types.ts";
+
+function resolvedValidatorDomain(rawDomain: unknown): ValidatorDomain | undefined {
+  return typeof rawDomain === "string" && isValidatorDomain(rawDomain) ? rawDomain : undefined;
+}
 
 function validatorBadge(ctx: TaskNodeContext): BadgeDetail {
   const { task } = ctx;
@@ -104,6 +109,8 @@ export function buildValidatorNode(ctx: TaskNodeContext): GraphNodeData {
   const browserTests = buildNodeBrowserTests(validatorCommands, ctx.runRoot);
   const io = validatorIo(ctx);
   const openValidation = earliestOpenValidation(task);
+  const domain = resolvedValidatorDomain(openValidation?.domain);
+  const domainLabel = domain ?? "unknown";
   const plan = openValidation?.plan;
   const description =
     typeof plan === "string" && plan.trim().length > 0
@@ -112,7 +119,9 @@ export function buildValidatorNode(ctx: TaskNodeContext): GraphNodeData {
 
   return {
     id: nodeId,
-    name: validatorId ? `Validator: ${validatorId}` : `Validator: ${ctx.taskName}`,
+    name: validatorId
+      ? `Validator (${domainLabel}): ${validatorId}`
+      : `Validator (${domainLabel}): ${ctx.taskName}`,
     description,
     kind: "agent" as NodeKind,
     status: mapGateStatus(task),
@@ -128,6 +137,7 @@ export function buildValidatorNode(ctx: TaskNodeContext): GraphNodeData {
     io: { inputs: io.inputs, outputs: io.outputs },
     metadata: {
       role: "validator",
+      validatorDomain: domainLabel,
       ...(validatorId ? { agentId: validatorId, validatorId } : {}),
       findings: ctx.findings,
       repairRounds: task.repair_round ?? 0,

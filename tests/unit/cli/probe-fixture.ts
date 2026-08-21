@@ -2,7 +2,14 @@ import { realpathSync } from "node:fs";
 import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { readPlanBindings } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/plan-replan-bindings.ts";
 import { execute } from "../../../orchestrating-long-tasks/scripts/src/cli/execute.ts";
+import {
+  appendGateProof,
+  type GateProofRecord,
+} from "../../../orchestrating-long-tasks/scripts/src/graph/gate-proof.ts";
+import { loadRun } from "../../../orchestrating-long-tasks/scripts/src/store/index.ts";
+import { transact } from "../../../orchestrating-long-tasks/scripts/src/store/transaction.ts";
 
 export const TASK_ID = "task-core";
 export const VALIDATOR = "val-1";
@@ -151,6 +158,32 @@ export async function runGate(
     script,
   ]);
   return executed.command_id as string;
+}
+
+/** C3b: a passing review now requires a recorded falsifiable `gate:prove` proof for the task's
+ *  compiled task-scope gate. These fixture repos are plain temp directories, not real Git
+ *  repositories, so the real `gate:prove` CLI (which reverts a task's write scope against Git
+ *  history to check the gate actually fails without the work) cannot run against them — seed the
+ *  same `gate_proofs` record it would have appended instead. */
+export function seedGateProof(run: string, taskId: string, actor = "coordinator"): void {
+  const binding = readPlanBindings(loadRun(run).state).tasks.find((task) => task.id === taskId);
+  if (!binding || binding.gate === undefined) {
+    throw new Error(`seedGateProof: ${taskId} has no compiled task-scope gate to prove`);
+  }
+  const record: GateProofRecord = {
+    task_id: taskId,
+    gate_argv: [...binding.gate],
+    write_scope: [...binding.writeScope],
+    base: "HEAD",
+    falsifiable: true,
+    exit_code: 1,
+    timed_out: false,
+    proved_at: new Date().toISOString(),
+    actor,
+  };
+  transact(run, actor, "gate-proved", { task_id: taskId }, (draft) =>
+    appendGateProof(draft, record),
+  );
 }
 
 export async function recordProbe(

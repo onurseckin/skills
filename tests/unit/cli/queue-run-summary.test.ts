@@ -15,6 +15,7 @@ import {
   runGate,
   recordProbe,
   answeredBy,
+  seedGateProof,
 } from "./probe-fixture.ts";
 import { setupRun as setupSingleTaskRun } from "./probe-fixture.ts";
 import { transact } from "../../../orchestrating-long-tasks/scripts/src/store/transaction.ts";
@@ -278,6 +279,7 @@ describe("run:status", () => {
     const validation = await claimSubmitValidate(repo, run);
     const gateCmd = await runGate(repo, run, "gate-core.ts");
     const probed = await recordProbe(run, validation.token as string, "Prove it");
+    seedGateProof(run, TASK_ID);
     await execute(
       reviewPass(run, validation.token as string, gateCmd, answeredBy(probed.finding_ids, gateCmd)),
     );

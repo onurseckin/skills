@@ -3,9 +3,10 @@ import type { JsonObject } from "../contracts/json.ts";
 import { canonicalJsonBytes, parseJsonBytes, sha256Bytes } from "../core/json.ts";
 import { EVENT_SCHEMA, FORMAT_VERSION, type StoreLimits, limits } from "./constants.ts";
 import { streamEventLines } from "./event-lines.ts";
-import { exactInteger, validateProjection } from "./event-validation.ts";
+import { exactInteger, validateProjectionField } from "./event-validation.ts";
 import { issue } from "./issues.ts";
-import { initialState } from "./state.ts";
+import { applyProjectionPatch } from "./projection-patch.ts";
+import { businessFields, initialState } from "./state.ts";
 
 export interface ChainResult {
   events: readonly HarnessEvent[];
@@ -29,6 +30,7 @@ export function validateEventChain(
   let expected = 1;
   let previous: string | null = null;
   let finalState = initialState();
+  let business: JsonObject = {};
   let eventCount = 0;
   let completeBytes = 0;
   let tornTail: Uint8Array | undefined;
@@ -146,7 +148,15 @@ export function validateEventChain(
         !Number.isFinite(Date.parse(event.timestamp))
       )
         found.push(issue("EVENT_TIME", `event line ${line.index} timestamp is not UTC`, path));
-      found.push(...validateProjection(event.projection, expected, expected, line.index));
+      found.push(
+        ...validateProjectionField(
+          event.projection,
+          event.projection_patch,
+          expected,
+          expected,
+          line.index,
+        ),
+      );
       const hash = event.hash;
       if (typeof hash !== "string" || !/^[0-9a-f]{64}$/.test(hash))
         found.push(
@@ -164,11 +174,21 @@ export function validateEventChain(
           );
       }
       if (found.length === before) {
+        business =
+          event.projection !== null && event.projection !== undefined
+            ? businessFields(event.projection)
+            : applyProjectionPatch(business, event.projection_patch ?? []);
         if (collectEvents) events.push(event);
         eventCount += 1;
         previous = hash;
         expected += 1;
-        finalState = { ...structuredClone(event.projection), event_head: hash };
+        finalState = {
+          ...initialState(),
+          ...business,
+          revision: event.revision,
+          event_sequence: event.sequence,
+          event_head: hash,
+        };
       }
     }
   } catch (error) {

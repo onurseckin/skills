@@ -69,7 +69,8 @@ describe("graph generator", () => {
     const validator = dataset.nodes.find((node) => node.id === "node-validator-T-1");
     expect(validator?.kind).toBe("agent");
     expect(validator?.metadata?.role).toBe("validator");
-    expect(validator?.name).toBe("Validator: val-1");
+    expect(validator?.metadata?.validatorDomain).toBe("code-quality");
+    expect(validator?.name).toBe("Validator (code-quality): val-1");
 
     // T-2 never entered validation, so it has no validator node rather than an empty one.
     expect(ids).not.toContain("node-validator-T-2");

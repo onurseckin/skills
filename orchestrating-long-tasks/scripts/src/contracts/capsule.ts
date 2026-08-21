@@ -31,6 +31,19 @@ export interface RunState extends JsonObject {
   event_head: null | string;
 }
 
+export interface ProjectionPatchSet extends JsonObject {
+  op: "set";
+  path: string[];
+  value: JsonValue;
+}
+
+export interface ProjectionPatchUnset extends JsonObject {
+  op: "unset";
+  path: string[];
+}
+
+export type ProjectionPatchOp = ProjectionPatchSet | ProjectionPatchUnset;
+
 export interface HarnessEvent extends JsonObject {
   schema: "harness.event";
   version: number;
@@ -43,7 +56,8 @@ export interface HarnessEvent extends JsonObject {
   kind: string;
   payload: JsonObject;
   previous_hash: null | string;
-  projection: RunState;
+  projection: RunState | null;
+  projection_patch?: ProjectionPatchOp[] | null;
   hash: string;
 }
 

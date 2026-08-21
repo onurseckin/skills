@@ -3,6 +3,7 @@ import { AUTHORITY_COMMANDS } from "./authority.ts";
 import { BRANCH_COMMANDS } from "./branch.ts";
 import { CRITIC_COMMANDS } from "./critic.ts";
 import { DIAGNOSTICS_COMMANDS } from "./diagnostics.ts";
+import { EXPLAIN_COMMANDS } from "./explain.ts";
 import { GATE_COMMANDS } from "./gate.ts";
 import { INSPECTION_COMMANDS } from "./inspection.ts";
 import { INSTALL_COMMANDS } from "./install.ts";
@@ -32,6 +33,7 @@ export const COMMAND_REGISTRY: readonly CommandSpec[] = [
   ...AUTHORITY_COMMANDS,
   ...INSTALL_COMMANDS,
   ...DIAGNOSTICS_COMMANDS,
+  ...EXPLAIN_COMMANDS,
   ...GATE_COMMANDS,
 ];
 

@@ -1,4 +1,5 @@
 import {
+  DEFAULT_WATCH_INTERVAL_SECONDS,
   orchestratorRunCommand,
   orchestratorSuperviseCommand,
 } from "../commands/orchestrator-ops.ts";
@@ -41,7 +42,7 @@ export const ORCHESTRATOR_COMMANDS: readonly CommandSpec[] = [
     domain: "orchestrator",
     summary: "Reclaim dead agents, escalate dead-end tasks, and dispatch what's ready (B28).",
     description:
-      "One reclaim-classify-dispatch pass over a run's eligible set: reclaims leases whose agent died without submitting, escalates tasks whose failures have become deterministic (B28.3) instead of retrying them forever, and reports what is safe to dispatch now versus still backing off. With a host-injected dispatcher it loops until the run reaches a terminal state; without one it performs a single pass, which is what makes it safe to drive from an external poll loop. Recovery is on by default (B28.5) - use --no-recover to disable it.",
+      "One reclaim-classify-dispatch pass over a run's eligible set: reclaims leases whose agent died without submitting, escalates tasks whose failures have become deterministic (B28.3) instead of retrying them forever, and reports what is safe to dispatch now versus still backing off. With a host-injected dispatcher it loops until the run reaches a terminal state; without one it performs a single pass, which is what makes it safe to drive from an external poll loop. Recovery is on by default (B28.5) - use --no-recover to disable it. --watch turns this into the poll loop itself: it re-runs the reclaim/escalate heartbeat every --interval seconds until the run goes terminal or the process gets an explicit stop (Ctrl-C / SIGTERM), surfacing changes_requested tasks awaiting a repairer alongside the escalated ones so a rejected task is never silently invisible.",
     flags: [
       requiredFlag("run", "string", "Capsule run root."),
       requiredFlag(
@@ -89,12 +90,24 @@ export const ORCHESTRATOR_COMMANDS: readonly CommandSpec[] = [
         "int",
         "Consecutive identical failures before they read as deterministic.",
       ),
+      optionalFlag(
+        "watch",
+        "bool",
+        "Run unattended: re-tick the reclaim/escalate heartbeat every --interval seconds until the run is terminal or the process gets an explicit stop (Ctrl-C / SIGTERM). Ignores any host-injected dispatcher - this is the recovery heartbeat, not a dispatch loop.",
+      ),
+      optionalFlag(
+        "interval",
+        "int",
+        "Seconds between heartbeat ticks in --watch mode; refused without --watch.",
+        DEFAULT_WATCH_INTERVAL_SECONDS,
+      ),
     ],
     readsStdin: false,
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
       "bun harness.ts orchestrator:supervise --run .capsules/<run-id> --actor coordinator",
+      "bun harness.ts orchestrator:supervise --run .capsules/<run-id> --actor coordinator --watch --interval 30",
     ],
     handler: orchestratorSuperviseCommand,
   },

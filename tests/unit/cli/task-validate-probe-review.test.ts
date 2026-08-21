@@ -11,6 +11,7 @@ import {
   recordProbe,
   reviewPass,
   runGate,
+  seedGateProof,
   setupRun,
 } from "./probe-fixture.ts";
 
@@ -193,6 +194,7 @@ describe("task:review", () => {
     );
 
     const probed = await recordProbe(run, validation.token as string, "Prove it works");
+    seedGateProof(run, TASK_ID);
     await expect(execute(reviewPass(run, validation.token as string, gateCmd))).rejects.toThrow(
       /open finding/,
     );
@@ -374,6 +376,7 @@ describe("task:review", () => {
     const validation = await claimSubmitValidate(repo, run);
     const gateCmd = await runGate(repo, run, "gate-core.ts");
     const probed = await recordProbe(run, validation.token as string, "Prove it");
+    seedGateProof(run, TASK_ID);
 
     const passed = await execute([
       "task:review",
@@ -401,6 +404,7 @@ describe("task:review", () => {
     const validation = await claimSubmitValidate(repo, run);
     const gateCmd = await runGate(repo, run, "gate-core.ts");
     const probed = await recordProbe(run, validation.token as string, "Prove it");
+    seedGateProof(run, TASK_ID);
     const coveragePath = `${repo}/coverage.json`;
     const checklist = loadChecklist("code-quality");
     await Bun.write(

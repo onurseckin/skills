@@ -16,8 +16,10 @@ export const GATE_COMMANDS: readonly CommandSpec[] = [
       optionalFlag(
         "base",
         "string",
-        "Git ref the task's write scope is reverted to before the gate runs.",
-        "HEAD",
+        "Git ref the task's write scope is reverted to before the gate runs. Defaults to the sha " +
+          "task:claim recorded on the task's latest attempt, so the revert lands before that " +
+          "attempt's own commits; falls back to HEAD only when no such sha was recorded.",
+        "the claimed base sha, else HEAD",
       ),
       optionalFlag(
         "timeout-ms",

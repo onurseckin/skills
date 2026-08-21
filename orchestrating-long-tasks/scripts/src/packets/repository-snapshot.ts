@@ -34,7 +34,6 @@ const conventions = [
 
 export interface RepositorySnapshotDependencies {
   command?: RepositoryGitCommand;
-  /** Overrides the 20,000-entry traversal ceiling; exists so tests can trip it cheaply. */
   maxDirectoryEntries?: number;
 }
 

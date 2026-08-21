@@ -2,6 +2,8 @@ import { describe, expect, test } from "bun:test";
 import {
   exactInteger,
   validateProjection,
+  validateProjectionField,
+  validateProjectionPatch,
 } from "../../../orchestrating-long-tasks/scripts/src/store/event-validation.ts";
 
 describe("exactInteger", () => {
@@ -64,5 +66,109 @@ describe("validateProjection", () => {
         entry.message.includes("sequence does not match"),
       ),
     ).toBe(true);
+  });
+});
+
+describe("validateProjectionPatch", () => {
+  test("returns no issues for a well-formed patch of set and unset ops", () => {
+    expect(
+      validateProjectionPatch(
+        [
+          { op: "set", path: ["agents", "a1", "status"], value: "busy" },
+          { op: "unset", path: ["stale"] },
+        ],
+        7,
+      ),
+    ).toEqual([]);
+  });
+
+  test("flags a non-array patch with a single issue naming the line index", () => {
+    const found = validateProjectionPatch("not-an-array", 7);
+    expect(found).toHaveLength(1);
+    expect(found[0]).toMatchObject({ code: "EVENT_PROJECTION_PATCH" });
+    expect(found[0]?.message).toContain("event line 7");
+  });
+
+  test("flags a patch entry that is not an object", () => {
+    const found = validateProjectionPatch(["not-an-object"], 1);
+    expect(found.some((entry) => entry.message.includes("patch op 0 must be an object"))).toBe(
+      true,
+    );
+  });
+
+  test("flags a patch entry with an invalid op", () => {
+    const found = validateProjectionPatch([{ op: "replace", path: ["a"] }], 1);
+    expect(found.some((entry) => entry.message.includes("invalid op"))).toBe(true);
+  });
+
+  test("flags a patch entry whose path is missing, empty, or contains a non-string segment", () => {
+    expect(
+      validateProjectionPatch([{ op: "set", value: 1 }], 1).some((entry) =>
+        entry.message.includes("invalid path"),
+      ),
+    ).toBe(true);
+    expect(
+      validateProjectionPatch([{ op: "set", path: [], value: 1 }], 1).some((entry) =>
+        entry.message.includes("invalid path"),
+      ),
+    ).toBe(true);
+    expect(
+      validateProjectionPatch([{ op: "set", path: [1], value: 1 }], 1).some((entry) =>
+        entry.message.includes("invalid path"),
+      ),
+    ).toBe(true);
+  });
+
+  test("flags a set op that is missing its value, even when the path is valid", () => {
+    const found = validateProjectionPatch([{ op: "set", path: ["a"] }], 1);
+    expect(found.some((entry) => entry.message.includes("missing a value"))).toBe(true);
+  });
+
+  test("does not require a value on an unset op", () => {
+    expect(validateProjectionPatch([{ op: "unset", path: ["a"] }], 1)).toEqual([]);
+  });
+
+  test("flags a patch op whose path touches a reserved state field", () => {
+    const found = validateProjectionPatch([{ op: "unset", path: ["event_sequence"] }], 1);
+    expect(found.some((entry) => entry.message.includes("touches reserved field"))).toBe(true);
+  });
+});
+
+describe("validateProjectionField", () => {
+  const patch = [{ op: "set" as const, path: ["a"], value: 1 }];
+  const projection = { schema: "harness.state", version: 1, revision: 3, event_sequence: 3 };
+
+  test("validates a checkpoint projection when only projection is present", () => {
+    expect(validateProjectionField(projection, null, 3, 3, 1)).toEqual([]);
+  });
+
+  test("validates a patch when only projection_patch is present", () => {
+    expect(validateProjectionField(null, patch, 3, 3, 1)).toEqual([]);
+  });
+
+  test("treats an absent (undefined) projection_patch the same as null", () => {
+    expect(validateProjectionField(projection, undefined, 3, 3, 1)).toEqual([]);
+  });
+
+  test("flags an event that carries neither a projection nor a patch", () => {
+    const found = validateProjectionField(null, null, 3, 3, 1);
+    expect(found).toHaveLength(1);
+    expect(found[0]?.message).toContain("must carry a checkpoint projection or a patch");
+  });
+
+  test("flags an event that carries both a projection and a patch", () => {
+    const found = validateProjectionField(projection, patch, 3, 3, 1);
+    expect(found).toHaveLength(1);
+    expect(found[0]?.message).toContain("must not carry both");
+  });
+
+  test("propagates the underlying projection issue when only projection is malformed", () => {
+    const found = validateProjectionField({ ...projection, schema: "wrong" }, null, 3, 3, 1);
+    expect(found.some((entry) => entry.code === "EVENT_PROJECTION")).toBe(true);
+  });
+
+  test("propagates the underlying patch issue when only projection_patch is malformed", () => {
+    const found = validateProjectionField(null, "not-an-array", 3, 3, 1);
+    expect(found.some((entry) => entry.code === "EVENT_PROJECTION_PATCH")).toBe(true);
   });
 });

@@ -8,6 +8,7 @@ import {
   sha256Bytes,
 } from "../../orchestrating-long-tasks/scripts/src/core/json.ts";
 import { initRun } from "../../orchestrating-long-tasks/scripts/src/store/capsule.ts";
+import { CHECKPOINT_INTERVAL } from "../../orchestrating-long-tasks/scripts/src/store/constants.ts";
 import { loadRun } from "../../orchestrating-long-tasks/scripts/src/store/load.ts";
 import { recoverProjection } from "../../orchestrating-long-tasks/scripts/src/store/recovery.ts";
 import { transact } from "../../orchestrating-long-tasks/scripts/src/store/transaction.ts";
@@ -55,7 +56,11 @@ describe("event stream and recovery", () => {
     for (const event of events) {
       const { hash, ...content } = event;
       expect(hash).toBe(sha256Bytes(canonicalJsonBytes(content)));
-      expect("event_head" in (event.projection as JsonObject)).toBeFalse();
+      // Neither event lands on a checkpoint boundary this early, so both carry a patch
+      // (not a full projection) and a stored projection would never even have the
+      // chance to circularly embed event_head.
+      expect(event.projection).toBeNull();
+      expect(Array.isArray(event.projection_patch)).toBe(true);
     }
     expect(first.event_head).toBe(events[0]!.hash);
     expect(second.event_head).toBe(events[1]!.hash);
@@ -103,8 +108,11 @@ describe("event stream and recovery", () => {
 
   test("test_projection_shape_rejects_boolean_revision_even_with_valid_hash", () => {
     const run = init();
+    // completion_result forces a checkpoint even though sequence 1 is off the interval,
+    // so this single event carries a full projection to corrupt.
     transact(run, "worker", "record", {}, (state) => {
       state.valid = true;
+      state.completion_result = { status: "complete" };
     });
     const event = eventObjects(run)[0]!;
     (event.projection as JsonObject).revision = true;
@@ -188,5 +196,37 @@ describe("event stream and recovery", () => {
     writeFileSync(join(run, "events.jsonl"), "{not-json}\n");
     expect(messages(verifyIntegrity(run))).toMatch(/event line.*JSON/i);
     expect(() => recoverProjection(run, "recovery-agent")).toThrow(/integrity/i);
+  });
+
+  test("recovers the exact final state across multiple checkpoints when state.json is truncated mid-write", () => {
+    const run = init();
+    const total = CHECKPOINT_INTERVAL * 2 + 5;
+    let expected: JsonObject | undefined;
+    for (let index = 1; index <= total; index += 1) {
+      expected = transact(run, "worker", "step", { index }, (state) => {
+        const counters = (state as { counters?: Record<string, number> }).counters ?? {};
+        (state as { counters: Record<string, number> }).counters = {
+          ...counters,
+          [`c${index}`]: index,
+        };
+      }) as unknown as JsonObject;
+    }
+    const events = eventObjects(run);
+    expect(events).toHaveLength(total);
+    const checkpointCount = events.filter((event) => event.projection !== null).length;
+    expect(checkpointCount).toBeGreaterThan(0);
+    expect(checkpointCount).toBeLessThan(total);
+
+    const statePath = join(run, "state.json");
+    const fullBytes = readFileSync(statePath);
+    writeFileSync(statePath, fullBytes.subarray(0, Math.floor(fullBytes.length / 2)));
+    expect(messages(verifyIntegrity(run))).toMatch(/state/i);
+
+    const recovered = recoverProjection(run, "recovery-agent");
+    expect(recovered.event_sequence).toBe(total + 1);
+    expect((recovered as unknown as { counters: Record<string, number> }).counters).toEqual(
+      (expected as unknown as { counters: Record<string, number> }).counters,
+    );
+    expect(verifyIntegrity(run)).toEqual([]);
   });
 });

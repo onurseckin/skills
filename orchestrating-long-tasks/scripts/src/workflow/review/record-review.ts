@@ -7,7 +7,12 @@ import { validateReview } from "./validate-review.ts";
 import { tokenMatches } from "../lease/token.ts";
 import { assertValidatorCommands } from "./command-evidence.ts";
 import { assertPublishedTaskPacket } from "../packet-authority.ts";
-import { assertGatesNotFailing, assertProbeSatisfied } from "./pass-preconditions.ts";
+import { findingFalsifiabilityVerdict } from "./finding-falsifiability.ts";
+import {
+  assertGateProofFalsifiable,
+  assertGatesNotFailing,
+  assertProbeSatisfied,
+} from "./pass-preconditions.ts";
 import { readReviewShape, reviewRecordedPayload } from "./review-event.ts";
 import {
   archiveOpenValidations,
@@ -90,6 +95,7 @@ export function recordReview(
     }
     assertProbeSatisfied(task, minProbes);
     assertGatesNotFailing(draft, task);
+    assertGateProofFalsifiable(draft, task);
     const open = (task.findings ?? []).filter((finding) => finding.status === "open");
     const resolved = new Map(
       (review.resolved_findings ?? []).map((proof) => [proof.finding_id, proof]),
@@ -100,6 +106,7 @@ export function recordReview(
     ) {
       throw new HarnessError("INVALID_STATE", "passing review must resolve every open finding");
     }
+    const falsifiability = findingFalsifiabilityVerdict(draft, task);
     for (const finding of open) {
       const proof = resolved.get(finding.id)!;
       Object.assign(finding, {
@@ -107,6 +114,7 @@ export function recordReview(
         resolved_at: utc(now),
         resolved_by: validatorId,
         revalidation_proof: { method: proof.method, evidence: proof.evidence },
+        falsifiability,
       });
     }
     if (everyApplicableDomainPassed(task)) {

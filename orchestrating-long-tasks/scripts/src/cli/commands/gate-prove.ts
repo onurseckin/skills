@@ -1,4 +1,6 @@
 import { resolve } from "node:path";
+import { isEvidenced } from "../../contracts/evidence.ts";
+import { isJsonObject, type JsonObject } from "../../contracts/json.ts";
 import {
   appendGateProof,
   DEFAULT_BASE_REF,
@@ -12,15 +14,28 @@ import { enforceLineLimit } from "../formatters/line-limiter.ts";
 import { actorFlag, integerFlag, textFlag, type Flags } from "../options.ts";
 import { readPlanBindings } from "./plan-replan-bindings.ts";
 
+function claimedBaseShaFor(state: JsonObject, taskId: string): string | undefined {
+  if (!isJsonObject(state.tasks)) return undefined;
+  const task = state.tasks[taskId];
+  if (!isJsonObject(task) || !Array.isArray(task.attempts)) return undefined;
+  const attempt = task.attempts.at(-1);
+  if (!isJsonObject(attempt)) return undefined;
+  const sha = attempt.claimed_base_sha;
+  return isEvidenced(sha, (candidate): candidate is string => typeof candidate === "string")
+    ? sha.value
+    : undefined;
+}
+
 export function gateProveCommand(flags: Flags): Record<string, unknown> {
   const run = textFlag(flags, "run")!;
   const taskId = textFlag(flags, "task")!;
   const actor = actorFlag(flags);
-  const base = textFlag(flags, "base", false) ?? DEFAULT_BASE_REF;
+  const explicitBase = textFlag(flags, "base", false);
   const wallTimeoutMs = integerFlag(flags, "timeout-ms", { minimum: 1_000 });
   const maxFiles = integerFlag(flags, "max-files", { minimum: 1 });
 
   const loaded = loadRun(run);
+  const base = explicitBase ?? claimedBaseShaFor(loaded.state, taskId) ?? DEFAULT_BASE_REF;
   const binding = readPlanBindings(loaded.state).tasks.find((task) => task.id === taskId);
   if (!binding) throw new HarnessError("INVALID_ARGUMENT", `unknown task ${taskId}`);
   if (binding.gate === undefined) {

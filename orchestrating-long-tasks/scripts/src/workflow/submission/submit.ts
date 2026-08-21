@@ -16,7 +16,11 @@ export interface EffortEvidenceOptions {
   noOp?: { reason: string };
 }
 
-function outOfBandFinding(taskId: string, requirementId: string, paths: readonly string[]): Finding {
+function outOfBandFinding(
+  taskId: string,
+  requirementId: string,
+  paths: readonly string[],
+): Finding {
   const id = `out-of-band-${createHash("sha256").update(paths.join("\n")).digest("hex").slice(0, 16)}`;
   return {
     id,

@@ -5,9 +5,15 @@ import { atomicWriteJson } from "../core/durable-write.ts";
 import { canonicalJsonBytes, normalizeJson, sha256Bytes } from "../core/json.ts";
 import { HarnessError } from "../errors/harness-error.ts";
 import { writeIndex } from "./capsule-index.ts";
-import { EVENT_SCHEMA, FORMAT_VERSION, type StoreLimits } from "./constants.ts";
+import {
+  EVENT_SCHEMA,
+  FORMAT_VERSION,
+  isCheckpointSequence,
+  type StoreLimits,
+} from "./constants.ts";
 import { runFilePath } from "./paths.ts";
-import { cloneObject } from "./state.ts";
+import { diffProjection } from "./projection-patch.ts";
+import { businessFields, cloneObject, isTerminalState } from "./state.ts";
 import { appendTraceStep } from "./trace.ts";
 
 function append(path: string, data: Uint8Array): void {
@@ -47,6 +53,7 @@ export function appendProjectionEvent(
   const projection = normalized as RunState;
   if (canonicalJsonBytes(projection).byteLength > configured.maxJsonBytes)
     throw new HarnessError("INVALID_STATE", "state exceeds size limit");
+  const checkpoint = isCheckpointSequence(sequence) || isTerminalState(projection);
   const content: JsonObject = {
     schema: EVENT_SCHEMA,
     version: FORMAT_VERSION,
@@ -59,7 +66,10 @@ export function appendProjectionEvent(
     kind,
     payload,
     previous_hash: current.event_head,
-    projection,
+    projection: checkpoint ? projection : null,
+    projection_patch: checkpoint
+      ? null
+      : diffProjection(businessFields(current), businessFields(projection)),
   };
   const event = {
     ...content,

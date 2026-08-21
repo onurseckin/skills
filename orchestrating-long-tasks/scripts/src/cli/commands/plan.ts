@@ -9,6 +9,7 @@ import { projectPlan } from "../../graph/project-plan.ts";
 import { guardPlanRevision } from "../../graph/revision-guard.ts";
 import { analyzeScopeIndependence } from "../../graph/scope-analyzer.ts";
 import { dependencyData } from "../../graph/topology.ts";
+import { assertInstalledRuntimeFresh } from "../../installer/runtime-freshness.ts";
 import {
   compileRequirementsFromPrompt,
   type TaskDeclaration,
@@ -68,6 +69,9 @@ export async function planInitCommand(
   const runtimeSource =
     textFlag(flags, "runtime-source", false) ??
     (boolFlag(flags, "no-runtime-pin") ? undefined : context.executingRuntime);
+  if (runtimeSource !== undefined && runtimeSource === context.executingRuntime) {
+    await assertInstalledRuntimeFresh(runtimeSource);
+  }
   const runRoot = initRun(
     repo,
     runId,

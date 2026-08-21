@@ -1,5 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import { join } from "node:path";
+import {
+  appendGateProof,
+  type GateProofRecord,
+} from "../../../../orchestrating-long-tasks/scripts/src/graph/gate-proof.ts";
 import { assignReplacementRepairer } from "../../../../orchestrating-long-tasks/scripts/src/workflow/review/assign-repairer.ts";
 import { beginValidation } from "../../../../orchestrating-long-tasks/scripts/src/workflow/review/begin-validation.ts";
 import { isProbeDemand } from "../../../../orchestrating-long-tasks/scripts/src/workflow/review/finding-class.ts";
@@ -18,9 +22,28 @@ import {
   commandRecord,
   registerCommand,
   registerTaskPacket,
+  TEST_GATE_ARGV,
   TestPort,
   workflowState,
 } from "../test-port.ts";
+
+function seedFalsifiableProof(port: TestPort, overrides: Partial<GateProofRecord> = {}): void {
+  const record: GateProofRecord = {
+    task_id: "T-1",
+    gate_argv: [...TEST_GATE_ARGV],
+    write_scope: ["src/owned"],
+    base: "HEAD",
+    falsifiable: true,
+    exit_code: 1,
+    timed_out: false,
+    proved_at: "2026-08-13T12:00:00.000Z",
+    actor: "coordinator",
+    ...overrides,
+  };
+  port.transact("coordinator", "gate-proved", { task_id: "T-1" }, (draft) =>
+    appendGateProof(draft, record),
+  );
+}
 
 const clock = at("2026-08-13T12:00:00.000Z");
 
@@ -129,6 +152,7 @@ describe("the adversarial probe is not a rejection", () => {
     ).toThrow(/0 adversarial probe\(s\) recorded, 1 required/);
 
     recordProbe(port, "T-1", "validator", { validation_token: token, findings: [demand] }, clock);
+    seedFalsifiableProof(port);
     expect(() =>
       recordReview(port, "T-1", "validator", passPayload("validator", token), clock, 6, 1),
     ).toThrow(/resolve every open finding/);
@@ -194,6 +218,7 @@ describe("the adversarial probe is not a rejection", () => {
     });
     const token = validationToken(port, "validator");
     recordProbe(port, "T-1", "validator", { validation_token: token, findings: [demand] }, clock);
+    seedFalsifiableProof(port);
     const state = recordReview(
       port,
       "T-1",

@@ -51,6 +51,7 @@ export type {
   NodeScript,
   NodeTelemetry,
   NodeTool,
+  NodeValidatorDomain,
 } from "./graph-agent-types.ts";
 
 export type NodeStatus =

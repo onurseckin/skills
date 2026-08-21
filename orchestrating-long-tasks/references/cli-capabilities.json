@@ -857,7 +857,7 @@
       "aliases": [],
       "domain": "plan",
       "summary": "Issue a planner's role packet: the sole way a planner agent gets its contract.",
-      "description": "The planner has no task and no lease, so it cannot task:claim. This is its equivalent: it hands back the planner role contract, the immutable prompt, and the write scope (planning/requirements.json, planning/graph.json) the planner is bound to fill in before plan:apply.",
+      "description": "The planner has no task and no lease, so it cannot task:claim. This is its equivalent: it hands back the planner role contract, the immutable prompt, and the write scope (planning/requirements.json, planning/graph.json) the planner is bound to fill in before plan:apply. The packet's prescribed plan:apply command is pre-filled with --expected-revision at the run's live graph revision, so it succeeds on a run that has already compiled a graph, not only on a brand-new one.",
       "flags": [
         {
           "name": "run",
@@ -874,6 +874,14 @@
           "repeatable": false,
           "default": null,
           "description": "The planner's own agent id, already agent:register'd."
+        },
+        {
+          "name": "expected-revision",
+          "type": "int",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "The graph revision the caller believes is live; the claim is refused if the run has moved past it. Omitted, the packet is issued at whatever revision is actually live."
         }
       ],
       "reads_stdin": false,
@@ -3097,7 +3105,7 @@
       "aliases": [],
       "domain": "orchestrator",
       "summary": "Reclaim dead agents, escalate dead-end tasks, and dispatch what's ready (B28).",
-      "description": "One reclaim-classify-dispatch pass over a run's eligible set: reclaims leases whose agent died without submitting, escalates tasks whose failures have become deterministic (B28.3) instead of retrying them forever, and reports what is safe to dispatch now versus still backing off. With a host-injected dispatcher it loops until the run reaches a terminal state; without one it performs a single pass, which is what makes it safe to drive from an external poll loop. Recovery is on by default (B28.5) - use --no-recover to disable it.",
+      "description": "One reclaim-classify-dispatch pass over a run's eligible set: reclaims leases whose agent died without submitting, escalates tasks whose failures have become deterministic (B28.3) instead of retrying them forever, and reports what is safe to dispatch now versus still backing off. With a host-injected dispatcher it loops until the run reaches a terminal state; without one it performs a single pass, which is what makes it safe to drive from an external poll loop. Recovery is on by default (B28.5) - use --no-recover to disable it. --watch turns this into the poll loop itself: it re-runs the reclaim/escalate heartbeat every --interval seconds until the run goes terminal or the process gets an explicit stop (Ctrl-C / SIGTERM), surfacing changes_requested tasks awaiting a repairer alongside the escalated ones so a rejected task is never silently invisible.",
       "flags": [
         {
           "name": "run",
@@ -3178,6 +3186,22 @@
           "repeatable": false,
           "default": null,
           "description": "Consecutive identical failures before they read as deterministic."
+        },
+        {
+          "name": "watch",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Run unattended: re-tick the reclaim/escalate heartbeat every --interval seconds until the run is terminal or the process gets an explicit stop (Ctrl-C / SIGTERM). Ignores any host-injected dispatcher - this is the recovery heartbeat, not a dispatch loop."
+        },
+        {
+          "name": "interval",
+          "type": "int",
+          "required": false,
+          "repeatable": false,
+          "default": 30,
+          "description": "Seconds between heartbeat ticks in --watch mode; refused without --watch."
         }
       ],
       "reads_stdin": false,
@@ -3201,7 +3225,8 @@
         }
       ],
       "examples": [
-        "bun harness.ts orchestrator:supervise --run .capsules/<run-id> --actor coordinator"
+        "bun harness.ts orchestrator:supervise --run .capsules/<run-id> --actor coordinator",
+        "bun harness.ts orchestrator:supervise --run .capsules/<run-id> --actor coordinator --watch --interval 30"
       ]
     },
     {
@@ -4729,6 +4754,55 @@
       ]
     },
     {
+      "name": "explain",
+      "aliases": [],
+      "domain": "diagnostics",
+      "summary": "Explain a HarnessError code: the rule it enforces, common causes and the remedy for each.",
+      "description": "Answers a refused command with a command instead of a file to read. --code is one of the ErrorCode values a HarnessError actually carries (INTEGRITY, INVALID_ARGUMENT, INVALID_STATE, LOCK_TIMEOUT, NOT_IMPLEMENTED, PATH_SAFETY, UNSUPPORTED_PLATFORM); case-insensitive. Every cause is grounded in real throw sites in this build, cited by file and line, plus a live count of how many places in the current source tree still throw that code. --command narrows further: it dynamically scans that command's own implementation file for direct throws of --code and reports the exact lines and messages, rather than a canned guess about which command hits which cause.",
+      "flags": [
+        {
+          "name": "code",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "HarnessError code to explain: INTEGRITY, INVALID_ARGUMENT, INVALID_STATE, LOCK_TIMEOUT, NOT_IMPLEMENTED, PATH_SAFETY, or UNSUPPORTED_PLATFORM. Case-insensitive."
+        },
+        {
+          "name": "command",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "CLI command name (e.g. task:claim) to narrow the explanation to that command's own direct throw sites."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts explain --code INTEGRITY",
+        "bun harness.ts explain --code INVALID_STATE --command task:claim"
+      ]
+    },
+    {
       "name": "gate:prove",
       "aliases": [],
       "domain": "gate",
@@ -4764,8 +4838,8 @@
           "type": "string",
           "required": false,
           "repeatable": false,
-          "default": "HEAD",
-          "description": "Git ref the task's write scope is reverted to before the gate runs."
+          "default": "the claimed base sha, else HEAD",
+          "description": "Git ref the task's write scope is reverted to before the gate runs. Defaults to the sha task:claim recorded on the task's latest attempt, so the revert lands before that attempt's own commits; falls back to HEAD only when no such sha was recorded."
         },
         {
           "name": "timeout-ms",

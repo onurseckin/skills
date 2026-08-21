@@ -1,11 +1,22 @@
 import { describe, expect, test } from "bun:test";
 import { applicableValidatorDomains } from "../../../../orchestrating-long-tasks/scripts/src/contracts/workflow.ts";
+import {
+  appendGateProof,
+  type GateProofRecord,
+} from "../../../../orchestrating-long-tasks/scripts/src/graph/gate-proof.ts";
 import { claimTask } from "../../../../orchestrating-long-tasks/scripts/src/workflow/lease/claim.ts";
 import { beginValidation } from "../../../../orchestrating-long-tasks/scripts/src/workflow/review/begin-validation.ts";
 import { recordReview } from "../../../../orchestrating-long-tasks/scripts/src/workflow/review/record-review.ts";
 import { everyApplicableDomainPassed } from "../../../../orchestrating-long-tasks/scripts/src/workflow/review/validation-state.ts";
 import { submitTask } from "../../../../orchestrating-long-tasks/scripts/src/workflow/submission/submit.ts";
-import { at, registerCommand, registerTaskPacket, TestPort, workflowState } from "../test-port.ts";
+import {
+  at,
+  registerCommand,
+  registerTaskPacket,
+  TEST_GATE_ARGV,
+  TestPort,
+  workflowState,
+} from "../test-port.ts";
 
 // B12.2's own worked example, exercised concurrently rather than in isolation: `.tsx` draws
 // `ui-design`, `.graphql` draws `system-design`, and every task draws `code-quality`
@@ -55,6 +66,23 @@ const rejectPayload = (validatorId: string, findingId: string) => ({
     },
   ],
 });
+
+function seedFalsifiableProof(port: TestPort): void {
+  const record: GateProofRecord = {
+    task_id: "T-1",
+    gate_argv: [...TEST_GATE_ARGV],
+    write_scope: MULTI_DOMAIN_SCOPE,
+    base: "HEAD",
+    falsifiable: true,
+    exit_code: 1,
+    timed_out: false,
+    proved_at: "2026-08-13T12:00:00.000Z",
+    actor: "coordinator",
+  };
+  port.transact("coordinator", "gate-proved", { task_id: "T-1" }, (draft) =>
+    appendGateProof(draft, record),
+  );
+}
 
 /** Opens a validation and returns its bearer token, registering the command its own review cites. */
 function openValidation(port: TestPort, validatorId: string, domain?: string): string {
@@ -140,6 +168,7 @@ describe("B12.2: per-domain validation collection", () => {
     const tokenA = openValidation(port, "validator-a"); // code-quality
     const tokenB = openValidation(port, "validator-b"); // system-design
     const tokenC = openValidation(port, "validator-c"); // ui-design
+    seedFalsifiableProof(port);
 
     let state = recordReview(
       port,

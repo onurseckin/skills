@@ -304,4 +304,93 @@ describe("validateEventChain", () => {
     const result = validateEventChain(directoryAsPath, IDENTITY);
     expect(result.issues.some((i) => i.code === "EVENT_READ")).toBe(true);
   });
+
+  test("reconstructs finalState by replaying patch events forward from a checkpoint", () => {
+    const root = scratchRoot();
+    const path = eventsPath(root);
+    const checkpointProjection = {
+      schema: "harness.state",
+      version: 1,
+      revision: 1,
+      event_sequence: 1,
+      counter: 5,
+    } as RunState;
+    const first = makeEvent({ projection: checkpointProjection }, 1, null);
+    const second = makeEvent(
+      { projection: null, projection_patch: [{ op: "set", path: ["counter"], value: 6 }] },
+      2,
+      first.hash,
+    );
+    const third = makeEvent(
+      {
+        projection: null,
+        projection_patch: [{ op: "set", path: ["nested", "flag"], value: true }],
+      },
+      3,
+      second.hash,
+    );
+    writeEvents(path, [first, second, third]);
+    const result = validateEventChain(path, IDENTITY);
+    expect(result.issues).toEqual([]);
+    expect(result.eventCount).toBe(3);
+    expect(result.finalState).toEqual({
+      schema: "harness.state",
+      version: 1,
+      revision: 3,
+      event_sequence: 3,
+      event_head: third.hash,
+      counter: 6,
+      nested: { flag: true },
+    });
+  });
+
+  test("a later checkpoint overrides everything accumulated by patches before it", () => {
+    const root = scratchRoot();
+    const path = eventsPath(root);
+    const first = makeEvent(
+      { projection: null, projection_patch: [{ op: "set", path: ["counter"], value: 1 }] },
+      1,
+      null,
+    );
+    const secondProjection = {
+      schema: "harness.state",
+      version: 1,
+      revision: 2,
+      event_sequence: 2,
+      counter: 99,
+    } as RunState;
+    const second = makeEvent({ projection: secondProjection }, 2, first.hash);
+    writeEvents(path, [first, second]);
+    const result = validateEventChain(path, IDENTITY);
+    expect(result.issues).toEqual([]);
+    expect(result.finalState.counter).toBe(99);
+  });
+
+  test("reports EVENT_PROJECTION_PATCH when a patch-only event carries a malformed patch", () => {
+    const root = scratchRoot();
+    const path = eventsPath(root);
+    writeEvents(path, [
+      makeEvent({ projection: null, projection_patch: "not-an-array" as never }, 1, null),
+    ]);
+    const result = validateEventChain(path, IDENTITY);
+    expect(result.issues.some((i) => i.code === "EVENT_PROJECTION_PATCH")).toBe(true);
+  });
+
+  test("reports EVENT_PROJECTION when an event carries neither a checkpoint projection nor a patch", () => {
+    const root = scratchRoot();
+    const path = eventsPath(root);
+    writeEvents(path, [makeEvent({ projection: null }, 1, null)]);
+    const result = validateEventChain(path, IDENTITY);
+    expect(result.issues.some((i) => i.code === "EVENT_PROJECTION")).toBe(true);
+  });
+
+  test("reports EVENT_PROJECTION when an event carries both a checkpoint projection and a patch", () => {
+    const root = scratchRoot();
+    const path = eventsPath(root);
+    writeEvents(path, [
+      makeEvent({ projection_patch: [{ op: "set", path: ["counter"], value: 1 }] }, 1, null),
+    ]);
+    const result = validateEventChain(path, IDENTITY);
+    expect(result.issues.some((i) => i.code === "EVENT_PROJECTION")).toBe(true);
+  });
 });

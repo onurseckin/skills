@@ -70,6 +70,7 @@ const EXPECTED_INVOCATIONS = [
   "recover",
   "task:release",
   "worktree:reclaim",
+  "explain",
   "gate:prove",
 ];
 

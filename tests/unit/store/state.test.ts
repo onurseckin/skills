@@ -1,7 +1,10 @@
 import { describe, expect, test } from "bun:test";
+import type { RunState } from "../../../orchestrating-long-tasks/scripts/src/contracts/capsule.ts";
 import {
+  businessFields,
   cloneObject,
   initialState,
+  isTerminalState,
   sameJson,
 } from "../../../orchestrating-long-tasks/scripts/src/store/state.ts";
 
@@ -46,5 +49,45 @@ describe("sameJson (re-exported from core/json)", () => {
 
   test("treats differing values as unequal", () => {
     expect(sameJson({ a: 1 }, { a: 2 })).toBe(false);
+  });
+});
+
+describe("businessFields", () => {
+  test("strips every reserved key, leaving only caller-defined fields", () => {
+    const state = { ...initialState(), tasks: { "T-1": {} }, phase: "implementation" };
+    expect(businessFields(state)).toEqual({ tasks: { "T-1": {} }, phase: "implementation" });
+  });
+
+  test("returns an empty object for a state with no business fields", () => {
+    expect(businessFields(initialState())).toEqual({});
+  });
+});
+
+describe("isTerminalState", () => {
+  test('is true only when completion_result.status is exactly "complete"', () => {
+    const state = {
+      ...initialState(),
+      completion_result: { status: "complete" },
+    } as unknown as RunState;
+    expect(isTerminalState(state)).toBe(true);
+  });
+
+  test("is false when completion_result is absent, non-object, or has a different status", () => {
+    expect(isTerminalState(initialState())).toBe(false);
+    expect(
+      isTerminalState({ ...initialState(), completion_result: "complete" } as unknown as RunState),
+    ).toBe(false);
+    expect(
+      isTerminalState({
+        ...initialState(),
+        completion_result: { status: "in_progress" },
+      } as unknown as RunState),
+    ).toBe(false);
+    expect(
+      isTerminalState({
+        ...initialState(),
+        completion_result: ["complete"],
+      } as unknown as RunState),
+    ).toBe(false);
   });
 });

@@ -1,6 +1,9 @@
 import type { CommandRecord, CommandStatus } from "../../contracts/commands.ts";
+import { isEvidenced } from "../../contracts/evidence.ts";
 import { HarnessError } from "../../errors/harness-error.ts";
-import { applicableGates } from "../gates/gate-policy.ts";
+import { latestGateProof, type GateProofRecord } from "../../graph/gate-proof.ts";
+import { normalizeScopePath } from "../../graph/scope-analyzer.ts";
+import { applicableGates, commandArgv } from "../gates/gate-policy.ts";
 import type { TaskRecord, WorkflowState } from "../types.ts";
 
 export interface FailingGateRun {
@@ -88,5 +91,57 @@ export function assertProbeSatisfied(task: TaskRecord, minProbes: number): void 
   throw new HarnessError(
     "INVALID_STATE",
     `cannot pass ${task.id}: ${recorded} adversarial probe(s) recorded, ${minProbes} required; run task:probe first`,
+  );
+}
+
+export function claimedBaseSha(task: TaskRecord): string | undefined {
+  const attempt = task.attempts.at(-1);
+  const sha = attempt?.claimed_base_sha;
+  return isEvidenced(sha, (candidate): candidate is string => typeof candidate === "string")
+    ? sha.value
+    : undefined;
+}
+
+function sameWriteScope(a: readonly string[], b: readonly string[]): boolean {
+  const left = [...a].map(normalizeScopePath).sort();
+  const right = [...b].map(normalizeScopePath).sort();
+  return left.length === right.length && left.every((path, index) => path === right[index]);
+}
+
+export interface GateFalsifiabilityStatus {
+  gate_id: string;
+  gate_argv: string[];
+  proven: boolean;
+  proof?: GateProofRecord;
+}
+
+export function gateFalsifiabilityStatuses(
+  state: WorkflowState,
+  task: TaskRecord,
+): GateFalsifiabilityStatus[] {
+  const expectedBase = claimedBaseSha(task);
+  return applicableGates(state, task).map((gate) => {
+    const argv = commandArgv(gate.command);
+    const proof = latestGateProof(state, task.id, argv);
+    const proven =
+      proof !== undefined &&
+      proof.falsifiable &&
+      sameWriteScope(proof.write_scope, task.write_scope) &&
+      (expectedBase === undefined || proof.base === expectedBase);
+    return { gate_id: gate.id, gate_argv: argv, proven, ...(proof ? { proof } : {}) };
+  });
+}
+
+export function assertGateProofFalsifiable(state: WorkflowState, task: TaskRecord): void {
+  const unproven = gateFalsifiabilityStatuses(state, task).filter((status) => !status.proven);
+  if (unproven.length === 0) return;
+  const detail = unproven
+    .map((status) => `${status.gate_id} (\`${status.gate_argv.join(" ")}\`)`)
+    .join(", ");
+  throw new HarnessError(
+    "INVALID_STATE",
+    `cannot pass ${task.id}: no recorded falsifiable gate:prove proof for ${detail}; run ` +
+      `\`gate:prove --run <run> --task ${task.id} --actor <actor>\` and record a falsifiable ` +
+      `proof against this attempt's claimed base before this review can pass`,
   );
 }

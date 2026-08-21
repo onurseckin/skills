@@ -87,9 +87,11 @@ describe("pre-overhaul capsules still export", () => {
     // validation_history's only entry is a rejection, so it is round 1 archived (B25.2) — the
     // identity lives at that round's own node, never duplicated onto the live id, since this
     // capsule records no live `validation` for the task to have actually gone through again.
-    expect(dataset.nodes.find((node) => node.id === "node-validator-task-1-r1")?.name).toBe(
-      "Validator: validator-1",
-    );
+    const archivedValidator = dataset.nodes.find((node) => node.id === "node-validator-task-1-r1");
+    // This capsule predates ValidationAttempt.domain entirely — the export says so explicitly
+    // rather than silently omitting it or guessing at a plausible domain.
+    expect(archivedValidator?.name).toBe("Validator (unknown): validator-1");
+    expect(archivedValidator?.metadata?.validatorDomain).toBe("unknown");
     expect(dataset.nodes.find((node) => node.id === "node-validator-task-1")).toBeUndefined();
     expect(dataset.sections).toEqual([]);
     expect(dataset.edges.some((edge) => edge.kind === "probe")).toBe(false);

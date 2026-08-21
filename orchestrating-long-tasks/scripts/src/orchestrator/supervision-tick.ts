@@ -24,9 +24,17 @@ export interface EscalationRecord {
   readonly evidence: string;
 }
 
+export interface ChangesRequestedTask {
+  readonly taskId: string;
+  readonly reason: string;
+  readonly originalImplementer?: string;
+  readonly repairAssignee?: string;
+}
+
 export interface SupervisionTickResult {
   readonly reclaimed: readonly DeadAgentEvent[];
   readonly escalatedNow: readonly EscalationRecord[];
+  readonly changesRequested: readonly ChangesRequestedTask[];
   readonly state: WorkflowState;
   readonly occupied: number;
 }
@@ -89,6 +97,30 @@ function escalateDeterministicallyDeadTasks(
   return { state: current, escalated };
 }
 
+export function changesRequestedTasks(state: WorkflowState): readonly ChangesRequestedTask[] {
+  const tasks: ChangesRequestedTask[] = [];
+  for (const task of Object.values(state.tasks)) {
+    if (task.status !== "changes_requested") continue;
+    let reason = "unknown";
+    for (let index = task.history.length - 1; index >= 0; index--) {
+      const entry = task.history[index]!;
+      if (entry.to === "changes_requested") {
+        reason = entry.reason;
+        break;
+      }
+    }
+    tasks.push({
+      taskId: task.id,
+      reason,
+      ...(task.original_implementer === undefined
+        ? {}
+        : { originalImplementer: task.original_implementer }),
+      ...(task.repair_assignee === undefined ? {} : { repairAssignee: task.repair_assignee }),
+    });
+  }
+  return tasks;
+}
+
 export function runSupervisionTick(
   port: TransactionPort,
   actor: string,
@@ -115,6 +147,7 @@ export function runSupervisionTick(
   }
 
   const occupied = Object.values(state.tasks).filter((task) => task.lease !== undefined).length;
+  const changesRequested = changesRequestedTasks(state);
 
-  return { reclaimed, escalatedNow, state, occupied };
+  return { reclaimed, escalatedNow, changesRequested, state, occupied };
 }

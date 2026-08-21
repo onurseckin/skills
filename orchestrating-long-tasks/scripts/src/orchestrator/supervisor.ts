@@ -1,6 +1,6 @@
 import { workflowPort } from "../integration/store-ports.ts";
 import { loadRun } from "../store/index.ts";
-import { systemClock, type Clock, type WorkflowState } from "../workflow/types.ts";
+import { systemClock, type Clock } from "../workflow/types.ts";
 import { escalateTask } from "../workflow/lease/escalate.ts";
 import { HarnessError } from "../errors/harness-error.ts";
 import { selectDispatchable, type BackingOffTask } from "./dispatch-selection.ts";
@@ -16,7 +16,12 @@ import {
   type FailureSignal,
 } from "./failure-classifier.ts";
 import { buildMorningReport, type MorningReport } from "./morning-report.ts";
-import { runSupervisionTick, type EscalationRecord } from "./supervision-tick.ts";
+import { isRunTerminal } from "./run-terminal.ts";
+import {
+  runSupervisionTick,
+  type ChangesRequestedTask,
+  type EscalationRecord,
+} from "./supervision-tick.ts";
 import type { ReadyEntry } from "../scheduler/index.ts";
 import type { DeadAgentEvent } from "./dead-agent-detector.ts";
 
@@ -67,6 +72,7 @@ export interface RunSupervisorOptions {
 export interface SupervisorTickOutcome {
   readonly reclaimed: readonly DeadAgentEvent[];
   readonly escalatedNow: readonly EscalationRecord[];
+  readonly changesRequested: readonly ChangesRequestedTask[];
   readonly dispatchable: readonly ReadyEntry[];
   readonly backingOff: readonly BackingOffTask[];
   readonly occupied: number;
@@ -83,15 +89,6 @@ export interface SupervisionRunResult {
 
 const DEFAULT_POLL_INTERVAL_MS = 15_000;
 const DEFAULT_MAX_TOTAL_ELAPSED_MS = 8 * 60 * 60_000;
-
-function isRunTerminal(state: WorkflowState): boolean {
-  if (state.completion_result !== undefined) return true;
-  const tasks = Object.values(state.tasks);
-  return (
-    tasks.length > 0 &&
-    tasks.every((task) => ["done", "cancelled", "escalated"].includes(task.status))
-  );
-}
 
 export class RunSupervisor {
   private readonly port: ReturnType<typeof workflowPort>;
@@ -127,6 +124,7 @@ export class RunSupervisor {
     const outcome: SupervisorTickOutcome = {
       reclaimed: reclaim.reclaimed,
       escalatedNow: reclaim.escalatedNow,
+      changesRequested: reclaim.changesRequested,
       dispatchable: selection.dispatchable,
       backingOff: selection.backingOff,
       occupied: reclaim.occupied,
