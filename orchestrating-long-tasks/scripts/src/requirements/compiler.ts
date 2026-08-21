@@ -32,6 +32,20 @@ function gateText(task: TaskDeclaration): string {
   return typeof task.gate === "string" ? task.gate : task.gate.join(" ");
 }
 
+function hasAcceptanceCriteria(
+  task: TaskDeclaration,
+): task is TaskDeclaration & { criteria: readonly string[] } {
+  return Array.isArray(task.criteria) && task.criteria.length > 0;
+}
+
+function unboundTasksRefusal(taskIds: readonly string[]): HarnessError {
+  const message =
+    taskIds.length === 1
+      ? `task ${taskIds[0]} has no prompt line to bind to and cannot be folded into another requirement; pass --requirement-lines to bind it to the lines it actually implements`
+      : `tasks ${taskIds.join(", ")} have no prompt line to bind to and cannot be folded into another requirement; pass --requirement-lines to bind each one to the lines it actually implements`;
+  return new HarnessError("INTEGRITY", message);
+}
+
 export function compileRequirementsFromPrompt(
   prompt: string,
   tasks: readonly TaskDeclaration[],
@@ -54,6 +68,7 @@ export function compileRequirementsFromPrompt(
   const requirementIdsByTask = new Map<string, string[]>();
   const warnings: string[] = [];
   const claims = new Map<number, string[]>();
+  const unboundTaskIds: string[] = [];
 
   const declared = new Set<number>();
   for (const task of tasks) for (const line of task.requirementLines ?? []) declared.add(line);
@@ -61,7 +76,7 @@ export function compileRequirementsFromPrompt(
   const nextPositionalLine = (): number | undefined =>
     nonBlankLineIndices.find((line) => !declared.has(line) && !claims.has(line));
 
-  tasks.forEach((task, taskIdx) => {
+  tasks.forEach((task) => {
     const explicit = task.requirementLines ?? [];
     const assignedLines = explicit.length > 0 ? [...explicit] : [];
     if (assignedLines.length === 0) {
@@ -75,34 +90,7 @@ export function compileRequirementsFromPrompt(
     }
 
     if (assignedLines.length === 0) {
-      const fallbackLine = nonBlankLineIndices[taskIdx % nonBlankLineIndices.length]!;
-      const existingReqId = claims.get(fallbackLine)?.[0];
-      if (existingReqId === undefined) {
-        throw new HarnessError(
-          "INTEGRITY",
-          `task ${task.id} has no prompt line to bind to and no requirement to fold into`,
-        );
-      }
-      warnings.push(
-        `task ${task.id} had no unclaimed prompt line; its gate was folded into requirement ${existingReqId}. Bind it with --requirement-lines to give it a requirement of its own`,
-      );
-      const existingReq = atomicRequirements.find((r) => r.id === existingReqId);
-      if (existingReq && Array.isArray(existingReq.acceptance)) {
-        const critIdx = existingReq.acceptance.length + 1;
-        (existingReq.acceptance as Record<string, unknown>[]).push({
-          id: `crit-${existingReqId}-${critIdx}`,
-          criterion:
-            task.criteria?.[0] ?? `Task gate \`${gateText(task)}\` passes with exit code 0`,
-          evidence: [`Gate execution output for \`${task.id}\``],
-        });
-        if (Array.isArray(existingReq.candidate_gates)) {
-          (existingReq.candidate_gates as Record<string, unknown>[]).push({
-            argv: gateArgvOf(task),
-            cwd: ".",
-          });
-        }
-      }
-      requirementIdsByTask.set(task.id, [existingReqId]);
+      unboundTaskIds.push(task.id);
       return;
     }
 
@@ -113,10 +101,14 @@ export function compileRequirementsFromPrompt(
 
     const excerpt = assignedLines.map((line) => lines[line - 1]!).join("\n");
 
-    const criteriaList =
-      task.criteria && task.criteria.length > 0
-        ? task.criteria
-        : [`Task gate \`${gateText(task)}\` passes with exit code 0`];
+    if (!hasAcceptanceCriteria(task)) {
+      warnings.push(
+        `task ${task.id}'s requirement ${reqId} has no declared acceptance criteria; its own gate passing is the only proof of done, which is unfalsifiable — pass --criteria to give it real acceptance criteria`,
+      );
+    }
+    const criteriaList = hasAcceptanceCriteria(task)
+      ? task.criteria
+      : [`Task gate \`${gateText(task)}\` passes with exit code 0`];
 
     const acceptance = criteriaList.map((crit, critIdx) => ({
       id: `crit-${reqId}-${critIdx + 1}`,
@@ -144,6 +136,10 @@ export function compileRequirementsFromPrompt(
     atomicRequirements.push(reqObj);
     requirementIdsByTask.set(task.id, [reqId]);
   });
+
+  if (unboundTaskIds.length > 0) {
+    throw unboundTasksRefusal(unboundTaskIds);
+  }
 
   const dispositions: Record<string, unknown>[] = [];
   for (const lineNum of nonBlankLineIndices) {

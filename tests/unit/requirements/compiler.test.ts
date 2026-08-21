@@ -45,11 +45,11 @@ describe("Requirements and Graph Compilers", () => {
     ).toThrow("prompt must contain at least one non-blank line");
   });
 
-  test("a task with no declared line and nothing already claimed for its fallback line cannot bind", () => {
+  test("a task with no declared line and no positional line left refuses instead of folding", () => {
     // Only one nonblank line exists, and task-1 explicitly reserves it via --requirement-lines,
     // so when task-0 (declared first, but with no explicit line of its own) reaches for it, the
-    // line is already excluded as "declared elsewhere" yet nothing has actually claimed it yet:
-    // there is no earlier requirement task-0 could fold its gate into.
+    // line is already excluded as "declared elsewhere". Folding task-0's gate into task-1's
+    // requirement would manufacture an unfalsifiable requirement, so the compiler refuses instead.
     expect(() =>
       compileRequirementsFromPrompt("Only line", [
         { id: "task-0", label: "Task 0", writeScope: ["a"], gate: "g0" },
@@ -61,7 +61,9 @@ describe("Requirements and Graph Compilers", () => {
           requirementLines: [1],
         },
       ]),
-    ).toThrow("task task-0 has no prompt line to bind to and no requirement to fold into");
+    ).toThrow(
+      "task task-0 has no prompt line to bind to and cannot be folded into another requirement; pass --requirement-lines to bind it to the lines it actually implements",
+    );
   });
 
   test("refuses to emit a requirement its own validator would reject", () => {

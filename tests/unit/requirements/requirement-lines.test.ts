@@ -66,7 +66,9 @@ describe("prompt binding in the requirements compiler", () => {
     expect(requirements[0]!.source_excerpt).toBe(
       "Wire the store\nRender the tabs\nShip the fixture",
     );
-    expect(result.warnings).toEqual([]);
+    expect(result.warnings).toEqual([
+      "task task-a's requirement req-a has no declared acceptance criteria; its own gate passing is the only proof of done, which is unfalsifiable — pass --criteria to give it real acceptance criteria",
+    ]);
   });
 
   test("positional gluing still happens without a binding, and warns", () => {
@@ -76,7 +78,9 @@ describe("prompt binding in the requirements compiler", () => {
     expect(requirements.map((entry) => entry.source_lines)).toEqual([[1], [3]]);
     expect(result.warnings).toEqual([
       "task task-a was glued to prompt line 1 by position, not by declaration; pass --requirement-lines to bind it to the lines it actually implements",
+      "task task-a's requirement req-a has no declared acceptance criteria; its own gate passing is the only proof of done, which is unfalsifiable — pass --criteria to give it real acceptance criteria",
       "task task-b was glued to prompt line 3 by position, not by declaration; pass --requirement-lines to bind it to the lines it actually implements",
+      "task task-b's requirement req-b has no declared acceptance criteria; its own gate passing is the only proof of done, which is unfalsifiable — pass --criteria to give it real acceptance criteria",
     ]);
   });
 
@@ -110,12 +114,69 @@ describe("prompt binding in the requirements compiler", () => {
     expect(dispositions.find((entry) => entry.line === 1)).toMatchObject({ kind: "context" });
   });
 
-  test("a task with no line left to claim is folded into an existing requirement, and warns", () => {
-    const result = compileRequirementsFromPrompt("Only one line", [task("task-a"), task("task-b")]);
-
-    expect(result.requirementIdsByTask.get("task-b")).toEqual(["req-a"]);
-    expect(result.warnings).toContain(
-      "task task-b had no unclaimed prompt line; its gate was folded into requirement req-a. Bind it with --requirement-lines to give it a requirement of its own",
+  test("a task with no line left to claim refuses instead of folding into an existing requirement", () => {
+    expect(() =>
+      compileRequirementsFromPrompt("Only one line", [task("task-a"), task("task-b")]),
+    ).toThrow(
+      "task task-b has no prompt line to bind to and cannot be folded into another requirement; pass --requirement-lines to bind it to the lines it actually implements",
     );
+  });
+
+  test("the fold refuses and names every unbindable task, not just the first", () => {
+    expect(() =>
+      compileRequirementsFromPrompt("Only one line", [
+        task("task-a"),
+        task("task-b"),
+        task("task-c"),
+        task("task-d"),
+      ]),
+    ).toThrow(
+      "tasks task-b, task-c, task-d have no prompt line to bind to and cannot be folded into another requirement; pass --requirement-lines to bind each one to the lines it actually implements",
+    );
+  });
+
+  test("a single task against a single-line prompt still compiles positionally, with a warning", () => {
+    const result = compileRequirementsFromPrompt("Only one line", [task("task-a")]);
+
+    const requirements = result.requirementsDocument.requirements as Record<string, unknown>[];
+    expect(requirements).toHaveLength(1);
+    expect(requirements[0]!.source_lines).toEqual([1]);
+    expect(result.warnings).toEqual([
+      "task task-a was glued to prompt line 1 by position, not by declaration; pass --requirement-lines to bind it to the lines it actually implements",
+      "task task-a's requirement req-a has no declared acceptance criteria; its own gate passing is the only proof of done, which is unfalsifiable — pass --criteria to give it real acceptance criteria",
+    ]);
+  });
+});
+
+describe("gate-as-acceptance fallback in the requirements compiler", () => {
+  test("a task without --criteria falls back to gate-as-acceptance, and warns loudly", () => {
+    const result = compileRequirementsFromPrompt(PROMPT, [task("task-a", [1])]);
+
+    const requirements = result.requirementsDocument.requirements as Record<string, unknown>[];
+    const acceptance = requirements[0]!.acceptance as Record<string, unknown>[];
+    expect(acceptance[0]!.criterion).toBe(
+      "Task gate `bun test tests/task-a` passes with exit code 0",
+    );
+    expect(result.warnings).toEqual([
+      "task task-a's requirement req-a has no declared acceptance criteria; its own gate passing is the only proof of done, which is unfalsifiable — pass --criteria to give it real acceptance criteria",
+    ]);
+  });
+
+  test("--criteria suppresses the gate-as-acceptance warning", () => {
+    const result = compileRequirementsFromPrompt(PROMPT, [
+      {
+        id: "task-a",
+        label: "Label task-a",
+        writeScope: ["src/task-a"],
+        gate: "bun test tests/task-a",
+        requirementLines: [1],
+        criteria: ["The drawer opens on click"],
+      },
+    ]);
+
+    expect(result.warnings).toEqual([]);
+    const requirements = result.requirementsDocument.requirements as Record<string, unknown>[];
+    const acceptance = requirements[0]!.acceptance as Record<string, unknown>[];
+    expect(acceptance[0]!.criterion).toBe("The drawer opens on click");
   });
 });
