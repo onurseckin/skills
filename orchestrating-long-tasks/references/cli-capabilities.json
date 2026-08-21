@@ -1037,6 +1037,91 @@
       ]
     },
     {
+      "name": "dag:view",
+      "aliases": [
+        "graph:ascii",
+        "status:dag"
+      ],
+      "domain": "plan",
+      "summary": "Render live ASCII execution DAG, active subagent allocations, and algorithmic parallelization recommendations.",
+      "description": "Inspects compiled graph or planning buffer DAG topology, computes critical path depth, tracks active subagent leases, and generates algorithmic parallelization recommendations.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root. Defaults to current repository .capsules/ when omitted."
+        },
+        {
+          "name": "run-id",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Alias of --run."
+        },
+        {
+          "name": "repo",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": ".",
+          "description": "Repository root to search for .capsules/."
+        },
+        {
+          "name": "detailed",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Render full write scopes, gate commands, and dependency lists."
+        },
+        {
+          "name": "recommendations",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Highlight algorithmic parallelization opportunities."
+        },
+        {
+          "name": "all",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Do not truncate output lines."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts dag:view --run .capsules/<run-id>",
+        "bun harness.ts graph:ascii --run .capsules/<run-id> --detailed",
+        "bun harness.ts dag:view --detailed --recommendations"
+      ]
+    },
+    {
       "name": "queue:next",
       "aliases": [],
       "domain": "queue",

@@ -369,7 +369,14 @@ describe("Optical Ring Snapping & Concentric Geometry Matrix Validator", () => {
     });
 
     it("evaluates comprehensive matrix across diverse geometry test vectors", () => {
-      const testMatrix = [
+      const testMatrix: readonly {
+        readonly inner: number;
+        readonly outer: number;
+        readonly pad: number;
+        readonly tol: number;
+        readonly expectedClass: NestedCornerClassification;
+        readonly expectedConcentric: boolean;
+      }[] = [
         { inner: 4, outer: 8, pad: 4, tol: 1.0, expectedClass: "concentric", expectedConcentric: true },
         { inner: 8, outer: 16, pad: 8, tol: 1.0, expectedClass: "concentric", expectedConcentric: true },
         { inner: 16, outer: 32, pad: 16, tol: 1.0, expectedClass: "concentric", expectedConcentric: true },

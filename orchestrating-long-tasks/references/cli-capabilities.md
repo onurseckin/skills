@@ -312,6 +312,31 @@ Reports every buffered task with its scope, gate and dependencies.
 bun harness.ts plan:status --run .capsules/<run-id>
 ```
 
+### `dag:view`
+
+Render live ASCII execution DAG, active subagent allocations, and algorithmic parallelization recommendations.
+
+Inspects compiled graph or planning buffer DAG topology, computes critical path depth, tracks active subagent leases, and generates algorithmic parallelization recommendations.
+
+- **Aliases**: `graph:ascii`, `status:dag`
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--run` | string | no | no | - | Capsule run root. Defaults to current repository .capsules/ when omitted. |
+| `--run-id` | string | no | no | - | Alias of --run. |
+| `--repo` | string | no | no | `.` | Repository root to search for .capsules/. |
+| `--detailed` | bool | no | no | - | Render full write scopes, gate commands, and dependency lists. |
+| `--recommendations` | bool | no | no | - | Highlight algorithmic parallelization opportunities. |
+| `--all` | bool | no | no | - | Do not truncate output lines. |
+
+```bash
+bun harness.ts dag:view --run .capsules/<run-id>
+bun harness.ts graph:ascii --run .capsules/<run-id> --detailed
+bun harness.ts dag:view --detailed --recommendations
+```
+
 ## queue
 
 ### `queue:next`

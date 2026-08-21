@@ -10,6 +10,7 @@ import { planApplyCommand, planClaimCommand } from "../commands/plan-apply.ts";
 import { planAuditCommand } from "../commands/plan-audit.ts";
 import { planReviewCommand, planValidateStartCommand } from "../commands/plan-validate.ts";
 import { orchestrateCommand } from "../commands/orchestrate.ts";
+import { dagViewCommand } from "../commands/dag-view.ts";
 import {
   DEFAULT_EXIT_CODES,
   optionalFlag,
@@ -467,5 +468,42 @@ export const PLAN_COMMANDS: readonly CommandSpec[] = [
     exitCodes: DEFAULT_EXIT_CODES,
     examples: ["bun harness.ts plan:status --run .capsules/<run-id>"],
     handler: planStatusCommand,
+  },
+  {
+    name: "dag:view",
+    aliases: ["graph:ascii", "status:dag"],
+    domain: "plan",
+    summary: "Render live ASCII execution DAG, active subagent allocations, and algorithmic parallelization recommendations.",
+    description:
+      "Inspects compiled graph or planning buffer DAG topology, computes critical path depth, tracks active subagent leases, and generates algorithmic parallelization recommendations.",
+    flags: [
+      optionalFlag(
+        "run",
+        "string",
+        "Capsule run root. Defaults to current repository .capsules/ when omitted.",
+      ),
+      optionalFlag("run-id", "string", "Alias of --run."),
+      optionalFlag("repo", "string", "Repository root to search for .capsules/.", "."),
+      optionalFlag(
+        "detailed",
+        "bool",
+        "Render full write scopes, gate commands, and dependency lists.",
+      ),
+      optionalFlag(
+        "recommendations",
+        "bool",
+        "Highlight algorithmic parallelization opportunities.",
+      ),
+      optionalFlag("all", "bool", "Do not truncate output lines."),
+    ],
+    readsStdin: false,
+    takesRemainder: false,
+    exitCodes: DEFAULT_EXIT_CODES,
+    examples: [
+      "bun harness.ts dag:view --run .capsules/<run-id>",
+      "bun harness.ts graph:ascii --run .capsules/<run-id> --detailed",
+      "bun harness.ts dag:view --detailed --recommendations",
+    ],
+    handler: dagViewCommand,
   },
 ];

@@ -19,6 +19,8 @@ may:
     recorded pass — reopening independent validation or returning the task for repair accordingly
   - Enforce the 4-tier Viewport Resolution Matrix (Desktop-Wide 1920x1080, Desktop 1440x900, Tablet 768x1024, Mobile 390x844) on UI tasks
   - Enforce quantitative validation metrics (DOM bounds, APCA Lc, screenshot byte proofs > 1024B) via `--require-semantic-depth`
+  - Enforce mandatory 5-minute supervisory scheduler cycles across active task waves
+  - Inspect live ASCII execution DAG, active subagent allocations, and algorithmic parallelization recommendations via dag:view
 must_not:
   - Declare a whole-suite gate for a narrow task; the run-wide suite belongs to the completion gate
   - Write, edit, stage, revert, format, or delete any repository file, including a one-line fix
@@ -43,6 +45,7 @@ commands:
   - plan:apply
   - plan:replan
   - plan:status
+  - dag:view
   - queue:next
   - queue:wave
   - queue:list
@@ -94,6 +97,8 @@ recorded evidence, and is the only role permitted to declare the run finished.
   finishes — an implementer's validator is eligible the moment the implementer submits, independent
   of every other task. Waiting for a batch to complete before dispatching the next eligible task is
   what leaves idle capacity on the table.
+- **Mandatory 5-minute supervisory schedule & ASCII DAG optimization**: Enforces recurring 5-minute supervisory scheduler cycles (`schedule` cron `*/5 * * * *`, systemd timer, or `pulse.sh`) across long tasks, and inspects live ASCII execution DAGs, subagent tool allocations, and parallelization bottlenecks via `dag:view`.
+- **Multi-Coordinator Parallelization & Domain Splitting**: Identifies disjoint domain write scopes from `dag:view` parallelization analysis. When tasks span isolated subsystems (e.g. backend vs frontend vs database), coordinate with the Tier 1 Orchestrator to instantiate dedicated parallel domain coordinators or partition wave dispatches into isolated concurrent lanes (`Workspace: "branch"` or `"share"`).
 - **4-Tier Multi-Viewport Enforcement**: For all UI tasks, verify that validation reports cover
   Desktop-Wide (1920x1080), Desktop (1440x900), Tablet (768x1024), and Mobile (390x844). Push back
   on any review that evaluates only mobile or default dimensions.

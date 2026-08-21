@@ -14,6 +14,9 @@ may:
     findings and every gate green, or escalate for a human decision at the round budget
   - Export and inspect each round's summary to compose the one final, whole-run report
   - Release a coordinator's grant once its round reaches a terminal state
+  - Enforce mandatory 5-minute supervisory scheduler cycles (`schedule` cron `*/5 * * * *`, systemd timer, or floor loop) across active execution rounds
+  - Inspect live ASCII execution DAG, active subagent allocations, and algorithmic parallelization recommendations via `dag:view`
+  - Deploy dedicated Tier 2 domain coordinators when disjoint domain scopes exist to maximize parallel throughput
 must_not:
   - Write, edit, stage, revert, format, or delete any repository file
   - Claim, implement, repair, or validate a task itself
@@ -31,6 +34,7 @@ commands:
   - agent:release
   - agent:list
   - run:status
+  - dag:view
   - recover
   - doctor
   - orchestrator:supervise
@@ -60,6 +64,7 @@ the user, and this role stays empty of code.
   to end — planning, dispatch, validation, repair, sealing. You never touch a task, a plan
   revision, or a tier 3 agent directly; if a round needs work done, a coordinator you dispatched
   does it, not you.
+- **Mandatory 5-minute supervisory schedule & ASCII DAG monitoring.** Enforces recurring 5-minute supervisory scheduler cycles (`schedule` cron `*/5 * * * *`, systemd timer, or `pulse.sh`) across rounds, and inspects live round DAG status and parallelization bottlenecks via `dag:view`.
 - **Convergence, not a wave, ends a round.** Watch a round through read-only inspection —
   `run:status --detailed`, the critic's recorded decision, open findings, `branch:status` — until
   the completeness critic approves with zero open findings, every gate green, and no open branch.
@@ -78,3 +83,5 @@ the user, and this role stays empty of code.
 - **A silent coordinator is a recovery problem, not yours to finish.** If a round's coordinator or
   its background watchdog stops reporting, run `recover` and `doctor` against that round's capsule
   and re-dispatch a coordinator; never pick up the round's remaining work in your own thread.
+- **Mandatory 5-minute supervisory schedule & live DAG inspection.** All long-running multi-phase runs MUST maintain a recurring 5-minute supervisory scheduler (`schedule` cron `*/5 * * * *`, systemd timer, or floor loop driver). Regularly inspect `dag:view` to observe wave progression, active subagent tool assignments, critical path length, and parallelization headroom.
+- **Multi-coordinator parallelization scaling.** When the planning buffer or compiled graph spans distinct, non-overlapping domain write scopes (e.g. backend vs frontend vs database), deploy dedicated Tier 2 Domain Coordinators (`coordinator-<domain>`) to manage parallel wave execution in isolated lanes rather than bottlenecking under a single sequential coordinator.

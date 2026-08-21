@@ -47,6 +47,10 @@ Do not create a harness for a simple answer, one-file mechanical edit, or short 
 10. Maintain continuous non-stop loops: auto-chain phases without human intervention; use host timers/schedules (`schedule`) and `pulse.sh` floor loops (`|| true`).
 11. Repository root `.capsules/` invariant: capsules MUST ALWAYS live at the active Git repo root (`<repo-root>/.capsules/`).
 12. Throttle CPU gates to `gate_max_parallel`; reasoners scale to `default_max_parallel` ([`references/configuration.md`](references/configuration.md)).
+13. Scratch workspace isolation: use native host workspace isolation (`Workspace: "branch"` or `"share"`) or git worktrees for disk-mutating concurrent runs.
+14. Consolidation of user pushbacks and self-audits: consolidate all user pushbacks and model self-critiques into canonical documentation.
+15. Strict TypeScript and linter hygiene: zero `any` annotations, casts, or generic defaults, zero compiler/linter suppressions.
+16. Mandatory 5-Minute Supervisory Scheduler & Algorithmic DAG Optimization: Every long task, multi-phase execution, or autonomous mind loop MUST enforce a recurring 5-minute supervisory scheduler (`schedule` cron `*/5 * * * *`, systemd timer, or floor loop) and provide live ASCII DAG introspection (`dag:view`) with algorithmic parallelization recommendations to eliminate serial bottlenecks without main-thread or coordinator direct code editing.
 
 ## Route by role
 
@@ -74,17 +78,20 @@ Every agent holds exactly one role; `roles/<role>.md` is its binding contract. L
 ## Route by phase & references
 
 Command sequences: [`references/run-playbook.md`](references/run-playbook.md); rules: [`references/protocol.md`](references/protocol.md).
-- **Plan**: `plan:init`, `plan:enhance`, `plan:add` (use `--auto-partition <glob>`, [`references/topology-exemplar.md`](references/topology-exemplar.md)), `plan:compile`, [`references/schema-examples.md`](references/schema-examples.md).
+- **Plan**: `plan:init`, `plan:enhance`, `plan:add` (use `--auto-partition <glob>`, [`references/topology-exemplar.md`](references/topology-exemplar.md)), `plan:compile`, `dag:view`, [`references/schema-examples.md`](references/schema-examples.md).
 - **Dispatch**: `queue:wave`, `agent:register`, [`references/host-adapters.md`](references/host-adapters.md) (main-thread isolation, per-host dispatch).
 - **Execute**: `task:claim`, `run:exec`, `task:submit`, `task:release`, [`references/parity-matrix.md`](references/parity-matrix.md).
 - **Branch**: `branch:open`, `branch:claim`, `branch:submit`, `branch:collect`, [`references/state-model.md`](references/state-model.md).
 - **Validate**: `task:validate-start`, `task:probe`, `task:reject`, `task:review`, [`references/failure-modes.md`](references/failure-modes.md).
 - **Replan & Seal**: `critic:reject`, `plan:replan`, `critic:start`, `critic:review`, `run:complete`.
-- **Recover & Inspect**: `recover`, `doctor`, `summary:export`, `summary:view`, [`references/cli.md`](references/cli.md), [`references/cli-capabilities.md`](references/cli-capabilities.md) ([`references/cli-capabilities.json`](references/cli-capabilities.json)).
+- **Recover & Inspect**: `recover`, `doctor`, `summary:export`, `summary:view`, `dag:view`, [`references/cli.md`](references/cli.md), [`references/cli-capabilities.md`](references/cli-capabilities.md) ([`references/cli-capabilities.json`](references/cli-capabilities.json)).
 
 ## Critical Anti-Patterns & Operational Guardrails
 
 - **Main-Thread Fallback**: Never edit files or run tests on main thread. Main thread only dispatches parallel Tier 3 subagents.
+- **Missing Supervisory Schedule / Silent Task Halts**: Never leave background tasks unmonitored or terminate schedulers on idle ticks. Always register a 5-minute supervisory cron/timer (`schedule` or systemd).
+- **Sequential Execution Simulation**: Never serialize disjoint tasks when parallel wave subagents can be dispatched. Inspect and optimize the DAG via `dag:view`.
+- **Coordinator Code Pollution**: Never let coordinators or supervisors write code directly.
 - **Viewport Omission**: Never test single viewport. Visual UI tasks require all 4: Desktop-Wide (1920x1080), Desktop (1440x900), Tablet (768x1024), Mobile (390x844).
 - **Superficial Audits**: Never pass on qualitative praise. Reviews require quantitative metrics, APCA Lc, and screenshots (>=1024B).
 - **Scheduler Halts**: Never stop between phases. Maintain continuous autonomous pulses via schedules/crons and floor loops.
