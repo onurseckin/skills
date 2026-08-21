@@ -118,6 +118,20 @@ const coordinationRecord: JsonObject = {
   evidence: [{ path: "<durable evidence path>" }],
 };
 
+const loopSynthesisRecord: JsonObject = {
+  summary: "<nonempty summary>",
+  dispatched_coordinators: ["<coordinator agent id registered through agent:register>"],
+  rounds: [
+    {
+      round: "<round number>",
+      run_id: "<that round's own capsule run id>",
+      outcome: "clean_convergence|escalated",
+    },
+  ],
+  checks: [{ command_id: "<run:status or doctor command id inspected>" }],
+  evidence: [{ path: "<durable evidence path>" }],
+};
+
 const plannerDocuments: JsonObject = {
   requirements_path: "<validated requirements JSON path>",
   graph_path: "<validated graph JSON path>",
@@ -157,6 +171,7 @@ const ROLE_CONTRACTS: Readonly<Record<AgentRole, JsonObject>> = {
   "completeness-critic": criticReview,
   coordinator: coordinationRecord,
   implementer: taskSubmission,
+  orchestrator: loopSynthesisRecord,
   "plan-validator": planValidatorReview,
   planner: plannerDocuments,
   repairer: taskSubmission,

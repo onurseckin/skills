@@ -49,7 +49,9 @@ export function recoverStale(
       }
       if (task.status === "validating" && task.validations) {
         const stillOpen = task.validations.filter(
-          (entry) => entry.verdict !== undefined || Date.parse(entry.deadline_at) > now.valueOf(),
+          (entry) =>
+            (entry.verdict === "pass" || entry.verdict === "reject") ||
+            Date.parse(entry.deadline_at) > now.valueOf(),
         );
         if (stillOpen.length !== task.validations.length) {
           if (stillOpen.length > 0) task.validations = stillOpen;

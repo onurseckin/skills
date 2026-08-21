@@ -115,10 +115,18 @@ describe("orchestrate", () => {
 
     const markdown = String(result.markdown);
     expect(markdown).toContain("### Orchestration Opened:");
-    expect(markdown).toContain("plan:enhance");
-    expect(markdown).toContain("plan:add");
-    expect(markdown).toContain("plan:compile");
-    expect(markdown).toContain("queue:wave");
+    // The brief hands the caller exactly one step — dispatch an orchestrator — and never tells the
+    // main thread to read the repository or drive planning commands itself (that was the bug: a
+    // main thread with no orchestrator to hand off to fell back to doing the work in place).
+    expect(markdown).toContain("Tier 1 orchestrator");
+    expect(markdown).toContain("roles/orchestrator.md");
+    expect(markdown).toContain("agents/orchestrator.yaml");
+    expect(markdown).toContain("Tier 2 coordinator");
+    expect(markdown).not.toContain("Read the repository yourself");
+    expect(markdown).not.toContain("plan:enhance");
+    expect(markdown).not.toContain("plan:add");
+    expect(markdown).not.toContain("plan:compile");
+    expect(markdown).not.toContain("queue:wave");
   });
 
   test("honours an explicit --run instead of deriving one", async () => {

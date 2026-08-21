@@ -6,6 +6,7 @@ import type { ValidatorDomain } from "../contracts/workflow.ts";
 
 export type NodeRole =
   | "coordinator"
+  | "orchestrator"
   | "planner"
   | "implementer"
   | "validator"

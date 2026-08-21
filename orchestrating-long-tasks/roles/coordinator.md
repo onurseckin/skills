@@ -40,6 +40,7 @@ commands:
   - queue:list
   - queue:pop
   - task:release
+  - task:abandon
   - task:assign-repairer
   - critic:start
   - critic:remediate

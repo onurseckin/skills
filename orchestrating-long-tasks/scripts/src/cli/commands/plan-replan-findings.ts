@@ -59,10 +59,13 @@ function findingFrom(value: unknown, index: number): FindingDetail {
     file_paths: filePaths(record),
     observation,
     remediation: text(record.remediation) ?? UNREPORTED_REMEDIATION,
-    // Every recorded finding schema (CompletionFinding, Finding) names this field `revalidation`;
-    // that is the one name read here so a critic's or validator's recorded gate command is never
-    // silently discarded in favor of a field the recording pipelines never write.
-    revalidation_gate: text(record.revalidation),
+    // Two legitimate producers, two names: an operator's ad hoc --findings/--findings-file JSON
+    // documents itself as `revalidation_gate` (see plan:replan's --gate help text), while every
+    // recorded finding schema (CompletionFinding, Finding) names the same thing `revalidation` —
+    // and defect-synthesizer.ts's normalizeFindingToDetail already treats `revalidation` as the
+    // schema's source of truth for this field. Reading only `revalidation_gate` here meant a
+    // critic's or validator's recorded gate command was silently discarded; read both.
+    revalidation_gate: text(record.revalidation_gate) ?? text(record.revalidation),
   };
 }
 

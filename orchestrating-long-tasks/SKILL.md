@@ -18,8 +18,8 @@ document that exists — a summary is a second copy with a shorter half-life.
 Reach for `orchestrate` before assembling this sequence by hand: everything after the command name
 is the prompt, byte for byte, no flags to learn — a bare piped stdin is read automatically too
 (`--prompt-stdin`/`--prompt-file` still work for a caller that also needs `--repo`/`--run`). It opens
-the capsule and hands back the fixed checklist for what's next — enhance, stage, compile, dispatch.
-When this skill is driving, it owns the orchestration: stand down the host's own todo/workflow tool.
+the capsule and hands back one fixed step: register and dispatch a Tier 1 orchestrator; everything
+after — enhance, stage, compile, dispatch — is its job. Stand down the host's own todo/workflow tool.
 
 ## Why the harness exists
 
@@ -78,6 +78,7 @@ advice; it is the reason this table exists.**
 
 | Role (tier)               | Contract + persona                                                                                            | Read for the job                                                                               | Never read                                                                  |
 | :------------------------ | :------------------------------------------------------------------------------------------------------------ | :--------------------------------------------------------------------------------------------- | :-------------------------------------------------------------------------- |
+| `orchestrator` (1)        | [roles/orchestrator.md](roles/orchestrator.md) + [agents/orchestrator.yaml](agents/orchestrator.yaml)         | [host-adapters.md](references/host-adapters.md), [protocol.md](references/protocol.md)         | Any task-level phase; it never claims, implements or replans directly      |
 | `coordinator` (2)         | [roles/coordinator.md](roles/coordinator.md) + [agents/coordinator.yaml](agents/coordinator.yaml)             | [run-playbook.md](references/run-playbook.md), [host-adapters.md](references/host-adapters.md) | Validator and critic protocols; it may not judge or write code              |
 | `planner` (3)             | [roles/planner.md](roles/planner.md)                                                                          | [schema-examples.md](references/schema-examples.md), playbook Phase 1                          | Anything about validation, branches or sealing                              |
 | `plan-validator` (3)      | [roles/plan-validator.md](roles/plan-validator.md) + [agents/plan-validator.yaml](agents/plan-validator.yaml) | Playbook Phase 1; reviews the compiled graph before any implementer dispatches                 | Implementer reports, task-level findings — it judges the plan, not the code |
@@ -89,8 +90,7 @@ advice; it is the reason this table exists.**
 | `sub-validator` (3)       | [roles/sub-validator.md](roles/sub-validator.md)                                                              | Playbook Phase 4 only                                                                          | Verdict commands — it gathers evidence and issues no verdict                |
 | `sub-investigator` (3)    | [roles/sub-investigator.md](roles/sub-investigator.md)                                                        | Playbook Phase 4 only                                                                          | Anything that mutates; it reproduces, bisects and reports                   |
 
-[agents/orchestrator.yaml](agents/orchestrator.yaml) is the tier 1 meta-orchestrator persona for
-multi-round loops, and [agents/openai.yaml](agents/openai.yaml) the Codex/ChatGPT profile.
+[agents/openai.yaml](agents/openai.yaml) is the Codex/ChatGPT profile.
 
 A validator dispatched with `--validator-domain` carries one of five standing-checklist contracts
 instead of the base one — [roles/validator-code-quality.md](roles/validator-code-quality.md),

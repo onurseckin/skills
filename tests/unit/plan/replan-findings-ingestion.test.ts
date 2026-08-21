@@ -72,4 +72,93 @@ describe("plan:replan findings ingestion reports only what the reporter declared
     });
     expect(findings.map((entry) => entry.severity)).toEqual(["minor"]);
   });
+
+  // The critic pipeline (workflow/completion/review-input.ts) and the task-reject pipeline
+  // (Finding, contracts/workflow.ts) both name this field `revalidation` — never `revalidation_gate`,
+  // a name only an ad hoc --findings/--findings-file payload uses. Reading only the latter here
+  // meant a recorded critic or validator gate command was silently discarded and plan:replan
+  // refused with "no finding declared revalidation_gate", forcing a human to supply --gate by hand.
+  test("a recorded finding's `revalidation` field resolves the repair gate on its own", () => {
+    const findings = collectReplanFindings({
+      inline: undefined,
+      file: undefined,
+      readFile: () => {
+        throw new Error("no file was named");
+      },
+      recorded: { findings: [{ ...DECLARED, revalidation: "bun gate-t1.ts" }] },
+    });
+    expect(findings[0]!.revalidation_gate).toBe("bun gate-t1.ts");
+  });
+
+  // task:reject records its finding on the task itself (state.tasks[id].findings), never on
+  // state.completion_review — a validator's rejection has no critic in the loop at all. Without
+  // routing state.tasks here, that finding is structurally invisible to plan:replan no matter how
+  // long it stays open.
+  describe("validator findings recorded via task:reject", () => {
+    const OPEN_TASK_FINDING = {
+      id: "F-VALIDATOR-01",
+      requirement_id: "R-9",
+      severity: "important",
+      observation: "Validator rejected: missing null check",
+      remediation: "Add the null check",
+      revalidation: "bun gate-t1.ts",
+      status: "open",
+    };
+
+    test("an open task finding is picked up when nothing else is supplied", () => {
+      const findings = collectReplanFindings({
+        inline: undefined,
+        file: undefined,
+        readFile: () => {
+          throw new Error("no file was named");
+        },
+        recorded: undefined,
+        tasks: { "task-1": { findings: [OPEN_TASK_FINDING] } },
+      });
+      expect(findings).toHaveLength(1);
+      expect(findings[0]!.id).toBe("F-VALIDATOR-01");
+      expect(findings[0]!.revalidation_gate).toBe("bun gate-t1.ts");
+    });
+
+    test("a resolved task finding is excluded — only status: open is replan fodder", () => {
+      const findings = collectReplanFindings({
+        inline: undefined,
+        file: undefined,
+        readFile: () => {
+          throw new Error("no file was named");
+        },
+        recorded: undefined,
+        tasks: {
+          "task-1": { findings: [{ ...OPEN_TASK_FINDING, status: "resolved" }] },
+        },
+      });
+      expect(findings).toEqual([]);
+    });
+
+    test("critic-recorded findings and open task findings combine into one pool", () => {
+      const findings = collectReplanFindings({
+        inline: undefined,
+        file: undefined,
+        readFile: () => {
+          throw new Error("no file was named");
+        },
+        recorded: { findings: [{ ...DECLARED, severity: "minor" }] },
+        tasks: { "task-2": { findings: [OPEN_TASK_FINDING] } },
+      });
+      expect(findings.map((f) => f.id)).toEqual(["F-01", "F-VALIDATOR-01"]);
+    });
+
+    test("tolerates a missing, non-object, or task-less tasks value", () => {
+      const readFile = (): string => {
+        throw new Error("no file was named");
+      };
+      const base = { inline: undefined, file: undefined, readFile, recorded: undefined } as const;
+      expect(collectReplanFindings(base)).toEqual([]);
+      expect(collectReplanFindings({ ...base, tasks: "not-an-object" })).toEqual([]);
+      expect(collectReplanFindings({ ...base, tasks: { "task-1": "not-an-object" } })).toEqual([]);
+      expect(
+        collectReplanFindings({ ...base, tasks: { "task-1": { findings: "not-an-array" } } }),
+      ).toEqual([]);
+    });
+  });
 });

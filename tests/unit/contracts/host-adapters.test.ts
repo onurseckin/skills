@@ -9,15 +9,28 @@ describe("host adapters & two-tier architecture specifications", () => {
   const skillPath = join(root, "orchestrating-long-tasks/SKILL.md");
   const cliDocPath = join(root, "orchestrating-long-tasks/references/cli.md");
 
-  test("host-adapters.md exists and documents all tier-1, tier-2, and tier-3 isolation rules", () => {
+  test("host-adapters.md exists and documents tier-0 through tier-3 isolation rules", () => {
     expect(existsSync(hostAdaptersPath)).toBe(true);
     const content = readFileSync(hostAdaptersPath, "utf8");
 
-    expect(content).toContain("Two-Tier Agent Architecture");
-    expect(content).toContain("Tier 1: Main Interactive Chat Session");
+    expect(content).toContain("Tiered Agent Architecture");
+    expect(content).toContain("Tier 0: Main Interactive Chat Session");
+    expect(content).toContain("Tier 1: Background Loop Orchestrator");
     expect(content).toContain("Tier 2: Background Run Coordinator");
     expect(content).toContain("Tier 3:");
     expect(content).toContain("Milestone-Only Notification Protocol");
+  });
+
+  // D4: the main thread has to have something to hand off to. Tier 0 spawns exactly one
+  // orchestrator and nothing else; the orchestrator, not the main thread, is what dispatches a
+  // coordinator per round.
+  test("tier 0 hands off to exactly one orchestrator, never straight to a coordinator or worker", () => {
+    const content = readFileSync(hostAdaptersPath, "utf8");
+
+    expect(content).toContain("Spawns **exactly one** background orchestrator agent");
+    expect(content).toContain("roles/orchestrator.md");
+    expect(content).toContain("agents/orchestrator.yaml");
+    expect(content).not.toContain("Spawns **exactly one** background coordinator agent");
   });
 
   test("names every supported host's own dispatch mechanism, not one host's", () => {

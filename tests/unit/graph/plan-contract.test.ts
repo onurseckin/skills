@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
   executionActive,
+  gateContractActive,
   producedArtifacts,
   requirementContract,
   taskContract,
@@ -134,5 +135,34 @@ describe("executionActive", () => {
       "persisted task status must be non-blank text",
     );
     expect(() => executionActive(42)).toThrow("persisted task status must be non-blank text");
+  });
+});
+
+describe("gateContractActive", () => {
+  test("is true for every in-flight status executionActive also calls active", () => {
+    expect(gateContractActive("running")).toBe(true);
+    expect(gateContractActive("validating")).toBe(true);
+    expect(gateContractActive("changes_requested")).toBe(true);
+  });
+
+  test("is false for done, unlike executionActive — a finished task may still gain sibling gates", () => {
+    // A done task's own gate results are already recorded; taskGates() selects by requirement
+    // overlap, so a repair task inheriting the same requirement legitimately adds a new gate that
+    // taskGates() then also attributes to the done task. gateContractActive exists precisely so
+    // guardPlanRevision does not mistake that growth for a retroactive change.
+    expect(executionActive("done")).toBe(true);
+    expect(gateContractActive("done")).toBe(false);
+  });
+
+  test("is false for plannable statuses, same as executionActive", () => {
+    expect(gateContractActive("proposed")).toBe(false);
+    expect(gateContractActive("ready")).toBe(false);
+  });
+
+  test("throws on a blank or non-string persisted status, delegating to executionActive", () => {
+    expect(() => gateContractActive("")).toThrow("persisted task status must be non-blank text");
+    expect(() => gateContractActive(undefined)).toThrow(
+      "persisted task status must be non-blank text",
+    );
   });
 });

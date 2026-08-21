@@ -11,7 +11,8 @@ describe("Orchestrator YAML Specification Unit Tests", () => {
     expect(existsSync(yamlPath)).toBe(true);
 
     const content = readFileSync(yamlPath, "utf-8");
-    expect(content).toContain('role: "coordinator"');
+    expect(content).toContain('role: "orchestrator"');
+    expect(content).toContain('role_contract: "roles/orchestrator.md"');
     expect(content).toContain("tier: 1");
     expect(content).toContain('display_name: "Meta-Orchestrator & Loop Runner"');
     expect(content).toContain("enable_subagent_tools: true");

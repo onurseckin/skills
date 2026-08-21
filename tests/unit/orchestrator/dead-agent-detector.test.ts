@@ -1,15 +1,25 @@
 import { describe, expect, test } from "bun:test";
 import { claimTask } from "../../../orchestrating-long-tasks/scripts/src/workflow/lease/claim.ts";
 import { heartbeat } from "../../../orchestrating-long-tasks/scripts/src/workflow/lease/heartbeat.ts";
+import { beginValidation } from "../../../orchestrating-long-tasks/scripts/src/workflow/review/begin-validation.ts";
+import { submitTask } from "../../../orchestrating-long-tasks/scripts/src/workflow/submission/submit.ts";
 import type { BranchLease } from "../../../orchestrating-long-tasks/scripts/src/contracts/branch.ts";
 import {
   DEAD_AGENT_RECLAIMED_KIND,
   reclaimDeadAgents,
 } from "../../../orchestrating-long-tasks/scripts/src/orchestrator/dead-agent-detector.ts";
-import { at, TestPort, workflowState } from "../workflow/test-port.ts";
+import { at, registerTaskPacket, TestPort, workflowState } from "../workflow/test-port.ts";
+import { completionPort } from "../workflow/completion-provenance-fixture.ts";
 
 const start = at("2026-08-19T00:00:00.000Z");
 const later = at("2026-08-19T01:00:00.000Z");
+const report = {
+  summary: "implemented",
+  requirement_ids: ["R-1"],
+  files_changed: ["src/owned/a.ts"],
+  checks: [{ command: "bun test", status: "passed" }],
+  evidence: [{ kind: "diff", path: "src/owned/a.ts" }],
+};
 
 describe("reclaimDeadAgents (B28.2 — detect a dead agent without being told)", () => {
   test("reports nothing when there is nothing stale", () => {
@@ -131,5 +141,115 @@ describe("reclaimDeadAgents (B28.2 — detect a dead agent without being told)",
       reason: "expired_lease_no_submission",
       newStatus: "open",
     });
+  });
+});
+
+describe("reclaimDeadAgents — a validator that dies mid-validation (D1: the task itself holds no lease)", () => {
+  function submittedForValidation(port: TestPort): void {
+    const { token } = claimTask(port, "T-1", "agent-a", "implementer", { clock: start });
+    registerTaskPacket(port, "implementer", "agent-a", 1);
+    submitTask(port, "T-1", "agent-a", token, report, start);
+  }
+
+  test("names a validator whose validation deadline lapsed with no verdict recorded", () => {
+    const port = new TestPort(workflowState());
+    submittedForValidation(port);
+    beginValidation(port, "T-1", "validator-dead", start, 5);
+    expect(port.read().tasks["T-1"]!.lease).toBeUndefined();
+    expect(port.read().tasks["T-1"]!.status).toBe("validating");
+
+    const result = reclaimDeadAgents(port, "supervisor", at("2026-08-19T00:00:36.000Z"), {
+      graceSeconds: 30,
+    });
+    expect(result.events).toEqual([
+      {
+        kind: "validation",
+        taskId: "T-1",
+        agentId: "validator-dead",
+        reason: "expired_lease_no_submission",
+        newStatus: "submitted",
+      },
+    ]);
+    expect(result.state.tasks["T-1"]!.validations).toBeUndefined();
+    expect(result.state.tasks["T-1"]!.status).toBe("submitted");
+  });
+
+  test("does not report a validation whose deadline has not passed", () => {
+    const port = new TestPort(workflowState());
+    submittedForValidation(port);
+    beginValidation(port, "T-1", "validator-alive", start, 1_200);
+    const result = reclaimDeadAgents(port, "supervisor", at("2026-08-19T00:00:10.000Z"), {
+      graceSeconds: 30,
+    });
+    expect(result.events).toEqual([]);
+  });
+
+  test("names only the validator that died while a second domain's validation stays open", () => {
+    const state = workflowState();
+    state.tasks["T-1"]!.write_scope = ["src/owned/a.tsx"];
+    const port = new TestPort(state);
+    const tsxReport = { ...report, files_changed: ["src/owned/a.tsx"] };
+    const { token } = claimTask(port, "T-1", "agent-a", "implementer", { clock: start });
+    registerTaskPacket(port, "implementer", "agent-a", 1);
+    submitTask(port, "T-1", "agent-a", token, tsxReport, start);
+    beginValidation(port, "T-1", "validator-dead", start, 5, "code-quality");
+    beginValidation(port, "T-1", "validator-alive", start, 1_200, "ui-design");
+
+    const result = reclaimDeadAgents(port, "supervisor", at("2026-08-19T00:00:36.000Z"), {
+      graceSeconds: 30,
+    });
+    expect(result.events).toEqual([
+      {
+        kind: "validation",
+        taskId: "T-1",
+        agentId: "validator-dead",
+        reason: "expired_lease_no_submission",
+        newStatus: "validating",
+      },
+    ]);
+    expect(result.state.tasks["T-1"]!.status).toBe("validating");
+    expect(
+      result.state.tasks["T-1"]!.validations!.some(
+        (validation) => validation.validator_id === "validator-alive",
+      ),
+    ).toBeTrue();
+  });
+});
+
+describe("reclaimDeadAgents — a completeness critic that dies mid-review (D1)", () => {
+  test("names a critic whose review deadline lapsed with no review recorded", () => {
+    const port = completionPort();
+    expect(port.read().completion_critic?.status).toBe("packet_published");
+
+    const result = reclaimDeadAgents(port, "supervisor", at("2026-08-13T13:00:31.000Z"), {
+      graceSeconds: 30,
+    });
+    expect(result.events).toEqual([
+      {
+        kind: "completeness-critic",
+        agentId: "critic",
+        reason: "expired_lease_no_submission",
+        newStatus: "expired",
+      },
+    ]);
+    expect(result.state.completion_critic?.status).toBe("expired");
+    expect(result.state.completion_critic_history?.at(-1)?.status).toBe("expired");
+  });
+
+  test("does not report a critic whose review deadline has not passed", () => {
+    const port = completionPort();
+    const result = reclaimDeadAgents(port, "supervisor", at("2026-08-13T12:30:00.000Z"), {
+      graceSeconds: 30,
+    });
+    expect(result.events).toEqual([]);
+  });
+
+  test("does not re-report a critic that was already reclaimed on an earlier tick", () => {
+    const port = completionPort();
+    reclaimDeadAgents(port, "supervisor", at("2026-08-13T13:00:31.000Z"), { graceSeconds: 30 });
+    const second = reclaimDeadAgents(port, "supervisor", at("2026-08-13T14:00:00.000Z"), {
+      graceSeconds: 30,
+    });
+    expect(second.events).toEqual([]);
   });
 });

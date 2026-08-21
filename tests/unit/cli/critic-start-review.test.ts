@@ -203,7 +203,7 @@ describe("CLI critic-ops commands", () => {
         file_paths: ["src/components/EdgeDetailDrawer/EdgeDrawer.tsx"],
         observation: "Missing toggle callback causing TS2322",
         remediation: "Add onToggle prop",
-        revalidation: "bun x tsc -b",
+        revalidation: "bun gate-t1.ts",
       },
       {
         id: "F-LAYOUT-01",
@@ -234,18 +234,36 @@ describe("CLI critic-ops commands", () => {
     expect(reject.findings_count).toBe(2);
     expect(String(reject.markdown)).toContain("CHANGES REQUESTED (Findings Recorded)");
 
-    // Coordinator now triggers plan:replan directly reading recorded findings. Both findings
-    // inherit task-1's own requirement (the single-task fixture's only one), and task-1 is already
-    // "done" by the time the completeness critic can even start (critic:start's own readiness gate
-    // demands every task be done first) — so guardPlanRevision (graph/revision-guard.ts) correctly
-    // refuses rather than silently expand what task-1's already-active gate set was verified
-    // against. This is the exact refusal plan-replan.test.ts's "refuses rather than silently
-    // corrupting state when a repair gate would retroactively change an already-active task's gate
-    // set" documents and exercises directly; this test confirms the same rail holds reached through
-    // the real critic:reject → plan:replan CLI path a coordinator actually drives.
-    await expect(
-      execute(["plan:replan", "--run", run, "--actor", "coordinator", "--gate", "bun gate-t1.ts"]),
-    ).rejects.toThrow(/plan revision cannot change active task task-1 gates/);
+    // Coordinator now triggers plan:replan directly reading recorded findings — no --gate flag,
+    // proving each finding's own recorded `revalidation` command (fixed: plan-replan-findings.ts
+    // used to read the never-written `revalidation_gate` name and silently drop it) resolves the
+    // repair gate on its own. Both findings inherit task-1's own requirement (the single-task
+    // fixture's only one), and task-1 is already "done" by the time the completeness critic can
+    // even start (critic:start's own readiness gate demands every task be done first). Their
+    // non-overlapping file paths partition into two disjoint repair tasks, each adding its own new
+    // task-scoped gate under that shared requirement — which taskGates() (requirement-overlap
+    // selection) now also attributes to task-1. guardPlanRevision tolerates that growth for a done
+    // task (graph/plan-contract.ts's gateContractActive) while still freezing task-1's own contract,
+    // so the repair tasks land as claimable work instead of a refusal a human has to work around.
+    const replanned = await execute(["plan:replan", "--run", run, "--actor", "coordinator"]);
+    expect(replanned.revision).toBe(2);
+    const newTaskIds = replanned.new_tasks as string[];
+    expect(newTaskIds).toHaveLength(2);
+    expect(newTaskIds).toEqual(
+      expect.arrayContaining([
+        "repair-R1-src-components-EdgeDetailDrawer",
+        "repair-R1-src-engine-layout",
+      ]),
+    );
+
+    // Claimable, not merely present: queue:next must surface one of them, and queue:list must
+    // show both ready — this is "visible in queue:next" without a human passing --gate by hand.
+    const next = await execute(["queue:next", "--run", run]);
+    expect(newTaskIds).toContain((next.task as { id: string }).id);
+
+    const list = await execute(["queue:list", "--run", run]);
+    const ready = (list.partitions as { ready: string[] }).ready;
+    for (const id of newTaskIds) expect(ready).toContain(id);
   });
 
   test("--repository-command-ids widens the packet's evidence, not replaces it", async () => {

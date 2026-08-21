@@ -55,6 +55,10 @@ running the command it cites. Twelve rows that were tagged **in flight** are gon
 landed and were verified wired, not merely written. Four items were deleted outright. Four new
 defects found during the pass are folded into the ranking and carry their evidence below the table.
 
+**Settled again 2026-08-21** (see "Count, settled 2026-08-21" at the top of this file): rows #1, #6,
+#16 and #17 were independently re-verified rather than taken on the audit's word, and D1-D5 were
+folded in as five new ranked rows from `DELEGATION-AUDIT.md`.
+
 **Ordering reasoning.** The gate comes first: CI has been dead long enough that a whole test lane
 rotted behind it, so #1-#3 restore the ability to notice anything at all. #4-#6 are the evidentiary
 floor — R11 is promoted above the rest because C4 and C10 both landed today and both hash raw bytes,
@@ -531,6 +535,10 @@ Consequences recorded so the trade is visible rather than forgotten:
 
 ## D1–D5: the delegation defect (audited 2026-08-21)
 
+**Now folded into the ranked backlog table above as rows D1-D5**, positioned immediately after the
+evidentiary floor (#4-#6) and before #7, per the "Ordering reasoning" note there. This section stays
+as the detailed evidence record those table rows point back to — it is not a duplicate track.
+
 Full evidence, with every command's real output, in [`DELEGATION-AUDIT.md`](DELEGATION-AUDIT.md).
 Opened on the owner's report that the final verification phase submits its report **to the main
 thread**, which then implements the findings itself. The report is accurate. Six of seven guarantees
@@ -582,10 +590,12 @@ Ranked by how badly the absence hurts:
 vendor-name exclusion list. Every handoff is pull-based. Any fix for D1/D3 has to be a durable
 obligation a coordinator discovers by polling, not a message the harness sends.
 
-**Already done, confirmed during this audit** (three ranked rows above are stale):
+**Already done, confirmed during this audit, then independently re-verified during this settling pass**
+(three ranked rows above the evidentiary floor were stale and are now corrected in the table itself —
+see the "Count, settled 2026-08-21" section at the top of this file for the full re-verification):
 
-| Row     | Now                                                                                                                                                                  |
-| ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **#1**  | Fixed. `.github/workflows/ci.yml:32-36` runs `bun run typecheck` then `bun run test`, and `package.json:19` is `bun test … tests/unit`. The dead path is gone.       |
-| **#16** | Fixed. `cli/commands/task-abandon.ts:2,12` imports and calls `abandonAttempt`; `task:abandon` is registered at `cli/registry/task.ts:290`.                           |
-| **#17** | Fixed. `harness health --all` now reports **1** unused-code failure, and it is `harness.ts:27`, the allowed process entry point. `store/index.ts` no longer appears. |
+| Row     | Now                                                                                                                                                                       |
+| ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **#1**  | Fixed. `.github/workflows/ci.yml:32-36` runs `bun run typecheck` then `bun run test`, and `package.json:19` is `bun test … tests/unit`. The dead path is gone.              |
+| **#16** | Fixed. `cli/commands/task-abandon.ts:2,12` imports and calls `abandonAttempt`; `task:abandon` is registered at `cli/registry/task.ts:290`.                                  |
+| **#17** | Fixed, **with one correction**. `store/index.ts` is confirmed gone from `harness health --all`'s output. But re-running it live today shows the single unused-code failure is `store/content-normalization/normalize.ts:79`'s `contentEquals` (genuinely unused in production — only its own test calls it), not `harness.ts:27` as this row originally said; `harness.ts:27` is correctly one of the 4 **allowed** entries, not the failure. Not a health-tool bug — it is row #4 (R11) still being PARTIAL, showing up exactly where it should. |

@@ -1,27 +1,35 @@
 # Host adapters — how each application dispatches and coordinates agents
 
 The harness never calls a language model. Every agent is spawned by the host application you are running
-inside, using that application's own mechanism, under your own subscription. This file is what a
-coordinator reads to know which mechanism it has and what that host can actually do.
+inside, using that application's own mechanism, under your own subscription. This file is what an
+orchestrator or coordinator reads to know which mechanism it has and what that host can actually do.
 
 **A vendor tool name is a value, never a rule.** The rules below are stated against the abstract contract;
 the tool names live in the adapter table.
 
-## 1. Two-Tier Agent Architecture
+## 1. Tiered Agent Architecture
 
-All supported host environments must enforce the **Two-Tier Isolation Model**:
+All supported host environments must enforce the **Tiered Isolation Model**. The main thread hands off
+to exactly one agent — an orchestrator — and stops; the orchestrator hands off to exactly one
+coordinator per round; only the coordinator ever touches task-level work:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│             Tier 1: Main Interactive Chat Session           │
-│   (Dedicated to human conversation; 0 worker tool chatter)  │
-└──────────────────────────────┬──────────────────────────────┘
-                               │ Spawns 1 Coordinator
+│             Tier 0: Main Interactive Chat Session            │
+│   (Dedicated to human conversation; 0 worker tool chatter)   │
+└──────────────────────────────┬───────────────────────────────┘
+                               │ Spawns 1 Orchestrator
                                ▼
 ┌─────────────────────────────────────────────────────────────┐
-│             Tier 2: Background Run Coordinator              │
-│   (Owns capsule lifecycle, planning, waves, and validation) │
-└──────────────┬───────────────┬───────────────┬──────────────┘
+│           Tier 1: Background Loop Orchestrator                │
+│ (Owns the round scheduler; chains capsules; final synthesis)  │
+└──────────────────────────────┬───────────────────────────────┘
+                               │ Spawns 1 Coordinator per round
+                               ▼
+┌─────────────────────────────────────────────────────────────┐
+│             Tier 2: Background Run Coordinator               │
+│   (Owns capsule lifecycle, planning, waves, and validation)  │
+└──────────────┬───────────────┬───────────────┬───────────────┘
                │               │               │ Spawns in background
                ▼               ▼               ▼
         ┌─────────────┐ ┌─────────────┐ ┌─────────────┐
@@ -30,14 +38,25 @@ All supported host environments must enforce the **Two-Tier Isolation Model**:
         └─────────────┘ └─────────────┘ └─────────────┘
 ```
 
-1. **Tier 1 (Main Interactive Thread)**:
+0. **Tier 0 (Main Interactive Thread)**:
    - Remains 100% responsive for user chat.
-   - Spawns **exactly one** background coordinator agent.
+   - Spawns **exactly one** background orchestrator agent, then stops — it never reads the
+     repository, stages a plan, or dispatches a coordinator or worker itself. See `orchestrate`'s
+     brief in `SKILL.md`: dispatching that one orchestrator is the whole of Tier 0's job.
    - Never directly executes implementer tool loops or polls state.
+1. **Tier 1 (Background Loop Orchestrator)**:
+   - Owns the round scheduler: chains capsule state across rounds, synthesizes a round's unresolved
+     findings into the next round's prompt, and declares clean convergence or escalates at the round
+     budget.
+   - Spawns **exactly one** Tier 2 coordinator per round, and never a Tier 3 agent directly.
+   - Composes the one finished report from every round's summary; a coordinator's or critic's
+     findings are synthesized into the next round, never bubbled to Tier 0 as an unresolved report.
+   - Full contract: `roles/orchestrator.md`; persona: `agents/orchestrator.yaml`.
 2. **Tier 2 (Background Run Coordinator)**:
-   - Owns `.capsules/<run_id>/` execution lifecycle.
+   - Owns `.capsules/<run_id>/` execution lifecycle for one round.
    - Equipped with subagent tools (`enable_subagent_tools: true` or native team lead capabilities).
-   - Coordinates execution waves and routes findings to workers.
+   - Coordinates execution waves and routes findings to workers; reports its round's milestones to
+     the Tier 1 orchestrator that dispatched it.
 3. **Tier 3 (Worker & Validator Subagents)**:
    - Ephemeral task executors assigned to a single disjoint `write_scope`.
    - Report exclusively to the Background Run Coordinator in the background tree.
@@ -46,15 +65,23 @@ All supported host environments must enforce the **Two-Tier Isolation Model**:
 
 ## 2. Milestone-Only Notification Protocol
 
-To keep the user's interactive thread pristine, the Background Run Coordinator communicates with the Tier 1 parent **only at major lifecycle milestones**:
+Milestones climb the ladder one tier at a time; nothing skips a tier. The Background Run Coordinator
+notifies the **Tier 1 orchestrator** that dispatched it, never the user directly:
 
-| Milestone Event                  | Notification Sent to User? | Content Delivered                                                   |
-| :------------------------------- | :------------------------- | :------------------------------------------------------------------ |
-| **Plan Compiled**                | ✅ Yes                     | Brief summary of total tasks, execution waves, and write scopes.    |
-| **Wave Completed**               | ✅ Yes                     | Confirmation of completed wave tasks and entry into validation.     |
-| **Escalation / Decision Needed** | ✅ Yes                     | Finding details if a task exhausts configured repair rounds.        |
-| **Step / Tool-Call Noise**       | ❌ No (Suppressed)         | Internal test runs, file edits, and heartbeats stay in background.  |
-| **Run Complete**                 | ✅ Yes                     | Final completeness sign-off, diff summary, and verification report. |
+| Milestone Event                  | Notification Sent to Orchestrator? | Content Delivered                                                   |
+| :-------------------------------- | :---------------------------------- | :------------------------------------------------------------------ |
+| **Plan Compiled**                | ✅ Yes                              | Brief summary of total tasks, execution waves, and write scopes.    |
+| **Wave Completed**               | ✅ Yes                              | Confirmation of completed wave tasks and entry into validation.     |
+| **Escalation / Decision Needed** | ✅ Yes                              | Finding details if a task exhausts configured repair rounds.        |
+| **Step / Tool-Call Noise**       | ❌ No (Suppressed)                  | Internal test runs, file edits, and heartbeats stay in background.  |
+| **Run Complete**                 | ✅ Yes                              | Final completeness sign-off, diff summary, and verification report. |
+
+The orchestrator does not relay each of those to the user. It absorbs every round's milestones —
+including a coordinator's or critic's findings — and forwards to the **Tier 0 main thread** only its
+own, whole-loop milestones: a round advanced (with the synthesized reason why), an escalation the
+round budget could not resolve, or the loop's one finished report. A per-round detail that reaches the
+orchestrator either becomes fuel for the next round or is folded into that final report; it is never
+handed to Tier 0 as a raw, unresolved finding for the main thread to act on itself.
 
 ---
 
@@ -62,8 +89,8 @@ To keep the user's interactive thread pristine, the Background Run Coordinator c
 
 ### 3.1 The abstract contract
 
-Whatever the host, a coordinator needs five things. If a host cannot provide one, that is a capability
-gap to be declared, not worked around silently.
+Whatever the host, an orchestrator or coordinator needs five things. If a host cannot provide one, that
+is a capability gap to be declared, not worked around silently.
 
 | Need           | What it means                                                |
 | :------------- | :----------------------------------------------------------- |
@@ -162,3 +189,7 @@ Never emit a command the host cannot execute. A confusing failure is worse than 
      bun harness.ts recover --run <RUN> --actor coordinator
      ```
    - The runtime safely revokes the expired token, transitions the task back to `ready`, and re-dispatches it without human intervention.
+3. **A silent coordinator, one tier up**: if a round's whole Tier 2 coordinator stops reporting, the
+   Tier 1 orchestrator runs the same `recover`/`doctor` pair against that round's capsule and
+   re-dispatches a fresh coordinator against it. It never absorbs the round's remaining work into its
+   own thread while it waits.

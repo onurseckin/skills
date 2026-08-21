@@ -37,14 +37,19 @@ model, tier or thinking level is inferred from the machine that exported the run
 
 ## Canonical roles
 
-Nine roles, each with a capability contract in `roles/<role>.md` declaring `may`, `must_not`, the
+Eleven roles, each with a capability contract in `roles/<role>.md` declaring `may`, `must_not`, the
 exact commands it may invoke, and the roles it may branch into:
 
-| Tier       | Roles                                                                    |
-| :--------- | :----------------------------------------------------------------------- |
-| 2          | `coordinator`                                                            |
-| 3          | `planner`, `implementer`, `validator`, `repairer`, `completeness-critic` |
-| 3 (branch) | `sub-implementer`, `sub-validator`, `sub-investigator`                   |
+| Tier       | Roles                                                                                      |
+| :--------- | :------------------------------------------------------------------------------------------ |
+| 1          | `orchestrator`                                                                              |
+| 2          | `coordinator`                                                                                |
+| 3          | `planner`, `plan-validator`, `implementer`, `validator`, `repairer`, `completeness-critic` |
+| 3 (branch) | `sub-implementer`, `sub-validator`, `sub-investigator`                                      |
+
+The orchestrator sits above every run: it dispatches exactly one coordinator per round and never a
+tier 3 agent directly, and it is the only role the main thread (tier 0, outside this table — it never
+registers a role) ever dispatches. See `roles/orchestrator.md` and `references/host-adapters.md`.
 
 `task:claim --role` names the contract the agent is bound to for the whole lease: `implementer` for
 a ready or retry-ready task, `repairer` for one in `changes_requested`. A mismatch is refused.
@@ -260,8 +265,11 @@ can continue with no conversational context.
 ## Tiered dispatch, the Triad Floor, and the Pairing Invariant
 
 ```text
-[Tier 1: Main Interactive Thread] (User interaction only)
-               │ (Spawns exactly 1 child)
+[Tier 0: Main Interactive Thread] (User interaction only)
+               │ (Spawns exactly 1 child: the orchestrator)
+               ▼
+[Tier 1: Background Loop Orchestrator] (Round scheduler, capsule chaining, final synthesis)
+               │ (Spawns exactly 1 coordinator per round)
                ▼
 [Tier 2: Background Run Coordinator] (Capsule, graph, topology, leases, lease lifecycle)
                │ (Dispatches each task the instant it becomes claimable)
@@ -300,19 +308,29 @@ agent that owns the branch.
    compute. Dispatch whatever is claimable up to the occupancy ceiling (`default_max_parallel`), and
    refill the instant a slot frees.
 5. **Every dispatch is registered**: one `agent:register` per subagent, before it starts work.
+6. **The orchestrator sits above the floor, not inside it**: the Triad Floor and the Σ formula count
+   one run's coordinator, implementers and validators — never the tier 1 orchestrator that dispatched
+   that coordinator. The orchestrator dispatches a coordinator per round and never a tier 3 agent
+   directly; a round's own agent count is unaffected by how many rounds the loop has run.
 
 ### Isolation boundaries
 
-1. **Main Thread Isolation**: Tier 1 is dedicated to user dialogue and milestone notifications. It
-   never runs worker tools, edits files, or polls background tasks, and spawns exactly one child.
-2. **Coordinator Mediation (Tier 2)**: the coordinator holds capsule ownership, manages lease tokens,
+1. **Main Thread Isolation (Tier 0)**: Tier 0 is dedicated to user dialogue and whole-loop milestone
+   notifications. It never runs worker tools, edits files, or polls background tasks, and spawns
+   exactly one child: the orchestrator.
+2. **Orchestrator Mediation (Tier 1)**: the orchestrator owns the round scheduler, chains capsule
+   state across rounds, and synthesizes a coordinator's or critic's findings into the next round's
+   prompt instead of bubbling them to Tier 0. It spawns exactly one coordinator per round and
+   composes the one finished, whole-run report itself.
+3. **Coordinator Mediation (Tier 2)**: the coordinator holds capsule ownership, manages lease tokens,
    compiles graph revisions, and dispatches continuously. It emits milestone summaries to Tier 1.
-3. **Leaf Isolation (Tier 3)**: implementers and validators report exclusively to the coordinator,
-   never to Tier 1 and never to each other. Sub-agents report to the agent that branched them.
-4. **Token & Lease Isolation**: lease, validation and critic tokens are non-transferable, tied to a
+4. **Leaf Isolation (Tier 3)**: implementers and validators report exclusively to the coordinator,
+   never to Tier 0, never to Tier 1, and never to each other. Sub-agents report to the agent that
+   branched them.
+5. **Token & Lease Isolation**: lease, validation and critic tokens are non-transferable, tied to a
    specific agent id and deadline, handed over the native channel, and never written to shared files.
    Reports persist digests only.
-5. **Write Scope Isolation**: every implementer holds a normalized, disjoint `write_scope`;
+6. **Write Scope Isolation**: every implementer holds a normalized, disjoint `write_scope`;
    overlapping scopes are refused by the scheduler and by `branch:open` alike.
 
 The exhaustive `may` / `must_not` lists are in `roles/<role>.md`; those documents bind, not this

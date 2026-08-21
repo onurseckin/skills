@@ -43,6 +43,17 @@ describe("generated evidence schemas", () => {
     expect(schema.waves).toBeArray();
   });
 
+  test("gives the orchestrator a round-lineage schema, not a task or wave schema", () => {
+    const schema = evidenceSchema("orchestrator");
+    expect(schema).not.toHaveProperty("files_changed");
+    expect(schema).not.toHaveProperty("waves");
+    expect(schema.dispatched_coordinators).toEqual([
+      "<coordinator agent id registered through agent:register>",
+    ]);
+    expect(schema.rounds).toBeArray();
+    expect(schema).not.toEqual(evidenceSchema("coordinator"));
+  });
+
   test("gives sub-validator the validator contract and planner the planning contract", () => {
     expect(evidenceSchema("sub-validator")).toEqual(evidenceSchema("validator"));
     expect(evidenceSchema("planner").requirements_path).toBe("<validated requirements JSON path>");
