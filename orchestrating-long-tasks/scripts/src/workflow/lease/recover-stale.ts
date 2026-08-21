@@ -3,6 +3,7 @@ import { recoverBranchSubTasks } from "../branch/recover.ts";
 import { isLeaseSuspended } from "./suspension.ts";
 import { taskIn, transition, utc } from "../task-state.ts";
 import { systemClock, type Clock, type TransactionPort } from "../types.ts";
+import { closeAttemptAsAbandoned } from "./attempt-state.ts";
 
 export interface RecoveryOptions {
   graceSeconds?: number;
@@ -27,15 +28,22 @@ export function recoverStale(
         !isLeaseSuspended(task.lease) &&
         Date.parse(task.lease.expires_at) + graceSeconds * 1_000 <= now.valueOf()
       ) {
-        const repair = task.attempts.at(-1)?.kind === "repair";
         const attempt = task.attempts.at(-1);
-        if (attempt)
+        const repair = attempt?.kind === "repair";
+        if (attempt) {
           Object.assign(attempt, {
             stale_at: utc(now),
             result: "stale",
             expired_agent_id: task.lease.agent_id,
             expired_token_digest: task.lease.token_digest,
           });
+          closeAttemptAsAbandoned(
+            attempt,
+            actor,
+            "lease expired and reclaimed by stale recovery",
+            now,
+          );
+        }
         delete task.lease;
         transition(task, repair ? "changes_requested" : "retry_ready", actor, now, "lease expired");
       }

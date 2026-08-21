@@ -54,4 +54,28 @@ describe("escalateTask (B28.3)", () => {
       escalateTask(port, "T-1", "supervisor", "deterministic_failure", "  ", start),
     ).toThrow();
   });
+
+  test("refuses to escalate a task carrying an open attempt", () => {
+    const state = workflowState();
+    state.tasks["T-1"]!.status = "retry_ready";
+    state.tasks["T-1"]!.attempts.push({
+      attempt: 1,
+      agent_id: "agent-a",
+      role: "implementer",
+      kind: "implementation",
+      started_at: start.now().toISOString(),
+    });
+    const port = new TestPort(state);
+    expect(() =>
+      escalateTask(
+        port,
+        "T-1",
+        "supervisor",
+        "deterministic_failure",
+        "same gate failed 3x",
+        start,
+      ),
+    ).toThrow("open attempt");
+    expect(port.read().tasks["T-1"]!.status).toBe("retry_ready");
+  });
 });

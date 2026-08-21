@@ -3,6 +3,7 @@ import { taskIn, transition } from "../task-state.ts";
 import { systemClock, type Clock, type TransactionPort } from "../types.ts";
 import { applicableGates, taskHasPassedGate } from "./gate-policy.ts";
 import { requirementExecutionState } from "../authority/index.ts";
+import { assertAttemptsClosed } from "../lease/attempt-state.ts";
 import { everyApplicableDomainPassed } from "../review/validation-state.ts";
 
 export function finishTask(
@@ -17,6 +18,7 @@ export function finishTask(
     if (task.status !== "validated" && task.status !== "gating") {
       throw new HarnessError("INVALID_STATE", "only validated or gating tasks can finish");
     }
+    assertAttemptsClosed(task, "finish");
     if (!task.report || !everyApplicableDomainPassed(task)) {
       throw new HarnessError("INVALID_STATE", "task lacks a passing review and report");
     }

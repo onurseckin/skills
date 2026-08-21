@@ -1,6 +1,7 @@
 import { HarnessError } from "../../errors/harness-error.ts";
 import { requireText, taskIn, transition, utc } from "../task-state.ts";
 import { systemClock, type Clock, type TransactionPort } from "../types.ts";
+import { closeAttemptAsAbandoned } from "./attempt-state.ts";
 import { tokenMatches } from "./token.ts";
 
 export function releaseLease(
@@ -24,9 +25,12 @@ export function releaseLease(
     if (!["leased", "running"].includes(task.status)) {
       throw new HarnessError("INVALID_STATE", "task does not hold a releasable lease");
     }
-    const repair = task.attempts.at(-1)?.kind === "repair";
     const attempt = task.attempts.at(-1);
-    if (attempt) Object.assign(attempt, { released_at: utc(now), result: "released" });
+    const repair = attempt?.kind === "repair";
+    if (attempt) {
+      Object.assign(attempt, { released_at: utc(now), result: "released" });
+      closeAttemptAsAbandoned(attempt, agentId, "voluntary lease release", now);
+    }
     delete task.lease;
     transition(task, repair ? "changes_requested" : "retry_ready", agentId, now, "lease released");
   });

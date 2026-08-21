@@ -5,6 +5,7 @@ import { finishTask } from "../../../orchestrating-long-tasks/scripts/src/workfl
 import { makeAuthorityDecisionRecord } from "../../../orchestrating-long-tasks/scripts/src/workflow/authority/decision-record.ts";
 import { applicableGates } from "../../../orchestrating-long-tasks/scripts/src/workflow/gates/gate-policy.ts";
 import { validateGraph } from "../../../orchestrating-long-tasks/scripts/src/graph/validate-graph.ts";
+import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
 import { workflowState, TestPort, at, commandRecord } from "./test-port.ts";
 
 const clock = at("2026-08-13T12:00:00.000Z");
@@ -50,6 +51,34 @@ describe("gates and completion", () => {
     expect(done.tasks["T-1"]!.status).toBe("done");
     expect(done.requirements[0]!.status).toBe("satisfied");
     expect(completionIssues(port.read())).toContain("authoritative completion review is missing");
+  });
+
+  test("refuses to finish a task with an open attempt and prescribes the fix", () => {
+    const port = validatedPort();
+    const gated = attachGateResult(port, "T-1", "G-1", "C-1", "coordinator", clock);
+    expect(gated.tasks["T-1"]!.status).toBe("gating");
+    const state = port.read();
+    state.tasks["T-1"]!.attempts.push({
+      attempt: 1,
+      agent_id: "agent-a",
+      role: "implementer",
+      kind: "implementation",
+      started_at: clock.now().toISOString(),
+    });
+    const dirty = new TestPort(state);
+    let caught: unknown;
+    try {
+      finishTask(dirty, "T-1", "coordinator", clock);
+    } catch (error) {
+      caught = error;
+    }
+    expect(caught).toBeInstanceOf(HarnessError);
+    const error = caught as HarnessError;
+    expect(error.code).toBe("INVALID_STATE");
+    expect(error.message).toContain("open attempt 1 by agent-a (implementer)");
+    expect(error.message).toContain("submit it, run recoverStale to reclaim an expired lease");
+    expect(error.message).toContain("call abandonAttempt to close it explicitly");
+    expect(dirty.read().tasks["T-1"]!.status).toBe("gating");
   });
 
   test("does not fabricate satisfaction evidence for a declined mixed obligation", () => {

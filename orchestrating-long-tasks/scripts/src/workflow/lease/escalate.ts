@@ -1,6 +1,7 @@
 import { HarnessError } from "../../errors/harness-error.ts";
 import { requireText, taskIn, transition, utc } from "../task-state.ts";
 import { systemClock, type Clock, type TransactionPort } from "../types.ts";
+import { assertAttemptsClosed } from "./attempt-state.ts";
 
 export type SupervisorEscalationReason =
   | "deterministic_failure"
@@ -43,6 +44,7 @@ export function escalateTask(
           `task ${taskId} in status ${task.status} is not something the supervisor can escalate`,
         );
       }
+      assertAttemptsClosed(task, "be escalated");
       task.escalation_reason = reason;
       task.escalation_evidence = evidence;
       task.escalation_at = utc(now);
