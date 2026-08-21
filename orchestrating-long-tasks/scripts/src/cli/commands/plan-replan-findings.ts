@@ -6,6 +6,8 @@ export interface ReplanFindingsInput {
   readonly file: string | undefined;
   readonly readFile: (path: string) => string;
   readonly recorded: unknown;
+  /** state.tasks — open findings a validator recorded via task:reject also become replan input. */
+  readonly tasks?: unknown;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -57,7 +59,10 @@ function findingFrom(value: unknown, index: number): FindingDetail {
     file_paths: filePaths(record),
     observation,
     remediation: text(record.remediation) ?? UNREPORTED_REMEDIATION,
-    revalidation_gate: text(record.revalidation_gate),
+    // Every recorded finding schema (CompletionFinding, Finding) names this field `revalidation`;
+    // that is the one name read here so a critic's or validator's recorded gate command is never
+    // silently discarded in favor of a field the recording pipelines never write.
+    revalidation_gate: text(record.revalidation),
   };
 }
 
@@ -80,6 +85,22 @@ function parsePayload(content: string): FindingDetail[] {
   return list.map(findingFrom);
 }
 
+// task:reject records its finding on the task itself (state.tasks[id].findings), not on
+// state.completion_review — a validator never gets a chance to route through the critic's
+// recording path at all. Without this, a validator's rejection is structurally invisible to
+// plan:replan no matter how long it stays open.
+function openTaskFindings(tasks: unknown): Record<string, unknown>[] {
+  if (!isRecord(tasks)) return [];
+  const findings: Record<string, unknown>[] = [];
+  for (const task of Object.values(tasks)) {
+    if (!isRecord(task) || !Array.isArray(task.findings)) continue;
+    for (const finding of task.findings) {
+      if (isRecord(finding) && finding.status === "open") findings.push(finding);
+    }
+  }
+  return findings;
+}
+
 export function collectReplanFindings(input: ReplanFindingsInput): FindingDetail[] {
   let content = input.inline;
   if (!content && input.file) {
@@ -95,6 +116,7 @@ export function collectReplanFindings(input: ReplanFindingsInput): FindingDetail
   }
 
   const review = input.recorded;
-  const recorded = isRecord(review) && Array.isArray(review.findings) ? review.findings : [];
-  return recorded.map(findingFrom);
+  const recordedCritic = isRecord(review) && Array.isArray(review.findings) ? review.findings : [];
+  const recordedTask = openTaskFindings(input.tasks);
+  return [...recordedCritic, ...recordedTask].map(findingFrom);
 }

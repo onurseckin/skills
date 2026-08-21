@@ -2,6 +2,7 @@ import { HarnessError } from "../errors/harness-error.ts";
 import { isInteger, isRecord } from "../requirements/predicates.ts";
 import {
   executionActive,
+  gateContractActive,
   producedArtifacts,
   requirementContract,
   sameJson,
@@ -131,7 +132,10 @@ export function guardPlanRevision(
         `plan revision cannot change active task ${taskId} contract`,
       );
     }
-    if (!sameJson(taskGates(state.graph, oldTask), taskGates(graph, newTasks.get(taskId)!))) {
+    if (
+      gateContractActive(runtimeValue.status) &&
+      !sameJson(taskGates(state.graph, oldTask), taskGates(graph, newTasks.get(taskId)!))
+    ) {
       throw new HarnessError(
         "INVALID_STATE",
         `plan revision cannot change active task ${taskId} gates`,

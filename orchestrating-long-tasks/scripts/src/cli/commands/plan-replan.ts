@@ -43,6 +43,7 @@ export function planReplanCommand(flags: Flags): Record<string, unknown> {
     file: textFlag(flags, "findings-file", false),
     readFile: (path) => readFileSync(path, "utf-8"),
     recorded: state.completion_review,
+    tasks: state.tasks,
   });
   if (findingsToPartition.length === 0)
     throw new HarnessError("INVALID_STATE", "no findings available for replanning");
