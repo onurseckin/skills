@@ -101,9 +101,9 @@ describe("CLI command registry", () => {
           : invocation === "coverage:check"
             ? [invocation, "--dir", `${tmpdir()}/nonexistent-${Date.now()}`]
             : invocation === "capture:init"
-              ? [invocation, "--config-dir", `${tmpdir()}/nonexistent-${Date.now()}`]
+              ? [invocation, "--config-dir", `${tmpdir()}/init-out-${Date.now()}`]
               : invocation === "capture:run"
-                ? [invocation, "--config", `${tmpdir()}/nonexistent-${Date.now()}.yaml`]
+                ? [invocation, "--out-dir", `${tmpdir()}/capture-out-${Date.now()}`]
                 : invocation === "capture:eval"
                   ? [invocation, "--manifest", `${tmpdir()}/nonexistent-${Date.now()}.json`]
                   : [invocation];
