@@ -6,6 +6,7 @@ import { requireText, utc } from "../task-state.ts";
 import {
   systemClock,
   type Clock,
+  type PlanDependencyEdge,
   type PlanFinding,
   type PlanReview,
   type TransactionPort,
@@ -17,13 +18,100 @@ function stringId(value: unknown, index: number, field: string): string {
   return requireText(value, `${field}[${index}]`);
 }
 
+function duplicateFreeIds(ids: readonly string[], field: string): void {
+  if (new Set(ids).size !== ids.length)
+    throw new HarnessError("INVALID_ARGUMENT", `${field} must be duplicate-free`);
+}
+
 function optionalCommandIds(value: unknown): string[] {
   if (value === undefined) return [];
   if (!Array.isArray(value)) throw new HarnessError("INVALID_ARGUMENT", "checks must be an array");
   const ids = value.map((entry, index) => stringId(entry, index, "checks"));
-  if (new Set(ids).size !== ids.length)
-    throw new HarnessError("INVALID_ARGUMENT", "checks must be duplicate-free");
+  duplicateFreeIds(ids, "checks");
   return ids;
+}
+
+function edgeKey(edge: { from: string; to: string }): string {
+  return `${edge.from}->${edge.to}`;
+}
+
+function dependencyEdgesReviewedFrom(value: unknown): PlanDependencyEdge[] {
+  if (value === undefined) return [];
+  if (!Array.isArray(value))
+    throw new HarnessError("INVALID_ARGUMENT", "dependency_edges_reviewed must be an array");
+  const edges = value.map((raw, index) => {
+    if (typeof raw !== "object" || raw === null || Array.isArray(raw))
+      throw new HarnessError(
+        "INVALID_ARGUMENT",
+        `dependency_edges_reviewed[${index}] must be an object`,
+      );
+    const entry = raw as Record<string, unknown>;
+    return {
+      from: requireText(entry.from, `dependency_edges_reviewed[${index}].from`),
+      to: requireText(entry.to, `dependency_edges_reviewed[${index}].to`),
+    };
+  });
+  const keys = edges.map(edgeKey);
+  if (new Set(keys).size !== keys.length)
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      "dependency_edges_reviewed must be duplicate-free",
+    );
+  return edges;
+}
+
+function gateIdsReviewedFrom(value: unknown): string[] {
+  if (value === undefined) return [];
+  if (!Array.isArray(value))
+    throw new HarnessError("INVALID_ARGUMENT", "gate_ids_reviewed must be an array");
+  const ids = value.map((entry, index) => stringId(entry, index, "gate_ids_reviewed"));
+  duplicateFreeIds(ids, "gate_ids_reviewed");
+  return ids;
+}
+
+function realDependencyEdges(state: WorkflowState): PlanDependencyEdge[] {
+  return Object.values(state.tasks).flatMap((task) =>
+    task.dependencies.map((dep) => ({ from: task.id, to: dep })),
+  );
+}
+
+function assertDependencyEdgeCoverage(
+  real: readonly PlanDependencyEdge[],
+  claimed: readonly PlanDependencyEdge[],
+): void {
+  const realKeys = new Set(real.map(edgeKey));
+  const claimedKeys = new Set(claimed.map(edgeKey));
+  const missing = real.filter((edge) => !claimedKeys.has(edgeKey(edge)));
+  if (missing.length > 0)
+    throw new HarnessError(
+      "INVALID_STATE",
+      `dependency_edges_reviewed omits real edges the compiled plan declares: ` +
+        `${missing.map((e) => `${e.from}->${e.to}`).join(", ")}`,
+    );
+  const unknown = claimed.filter((edge) => !realKeys.has(edgeKey(edge)));
+  if (unknown.length > 0)
+    throw new HarnessError(
+      "INVALID_STATE",
+      `dependency_edges_reviewed names edges the compiled plan does not declare: ` +
+        `${unknown.map((e) => `${e.from}->${e.to}`).join(", ")}`,
+    );
+}
+
+function assertGateCoverage(real: readonly string[], claimed: readonly string[]): void {
+  const claimedSet = new Set(claimed);
+  const missing = real.filter((id) => !claimedSet.has(id));
+  if (missing.length > 0)
+    throw new HarnessError(
+      "INVALID_STATE",
+      `gate_ids_reviewed omits mandatory gates from the compiled plan: ${missing.join(", ")}`,
+    );
+  const realSet = new Set(real);
+  const unknown = claimed.filter((id) => !realSet.has(id));
+  if (unknown.length > 0)
+    throw new HarnessError(
+      "INVALID_STATE",
+      `gate_ids_reviewed names gates the compiled plan does not declare: ${unknown.join(", ")}`,
+    );
 }
 
 function findingsFrom(value: unknown): PlanFinding[] {
@@ -101,6 +189,8 @@ export function recordPlanReview(
       "changes_requested requires at least one finding naming a defect in the plan",
     );
   const checkIds = optionalCommandIds(input.checks);
+  const dependencyEdgesReviewed = dependencyEdgesReviewedFrom(input.dependency_edges_reviewed);
+  const gateIdsReviewed = gateIdsReviewedFrom(input.gate_ids_reviewed);
   const now = clock.now();
 
   return port.transact(
@@ -153,6 +243,11 @@ export function recordPlanReview(
         if (!command || command.actor !== validatorId)
           throw new HarnessError("INVALID_STATE", `plan validator check is invalid: ${id}`);
       }
+      assertDependencyEdgeCoverage(realDependencyEdges(draft), dependencyEdgesReviewed);
+      assertGateCoverage(
+        draft.gates.filter((gate) => gate.scope === "task").map((gate) => gate.id),
+        gateIdsReviewed,
+      );
       const review = {
         validator_id: validatorId,
         packet_id: packetId,
@@ -166,6 +261,8 @@ export function recordPlanReview(
         gate_answer: gateAnswer,
         straggler_answer: stragglerAnswer,
         findings,
+        dependency_edges_reviewed: dependencyEdgesReviewed,
+        gate_ids_reviewed: gateIdsReviewed,
         checks: checkIds.map((command_id) => ({ command_id })),
         reviewed_at: utc(now),
       };

@@ -366,6 +366,8 @@ export interface PlanReviewParams {
   graphRevision: number;
   findingsCount: number;
   summary: string;
+  dependencyEdgesReviewed: number;
+  gateIdsReviewed: number;
 }
 
 export function formatPlanReviewBrief(params: PlanReviewParams): string {
@@ -374,6 +376,7 @@ export function formatPlanReviewBrief(params: PlanReviewParams): string {
     `### Plan Validation ${approved ? "Approved" : "Rejected"}: ${params.runId} (Graph Revision ${params.graphRevision})`,
     `- **Validator**: \`${params.validator}\``,
     `- **Summary**: ${params.summary}`,
+    `- **Coverage**: ${params.dependencyEdgesReviewed} dependency edge(s) and ${params.gateIdsReviewed} gate(s) named, verified against the compiled plan.`,
     approved
       ? "- **Dispatch**: implementers and repairers may now claim tasks under this graph revision."
       : `- **Findings**: ${params.findingsCount} — every implementer and repairer claim against graph revision ${params.graphRevision} is refused until a fresh compile passes plan:review.`,

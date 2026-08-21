@@ -19,6 +19,17 @@ function linesDelta(file: FileRef): string {
   return `+${file.additions ?? 0}/-${file.deletions ?? 0}`;
 }
 
+function gitObservationLines(file: FileRef): string[] {
+  if (file.statusCode === undefined) return [];
+  const hash =
+    file.sha256 === null
+      ? "no content to hash — the path carries no readable file at this status"
+      : file.sha256 === undefined
+        ? UNKNOWN
+        : code(file.sha256);
+  return [`- **Git status**: ${code(file.statusCode)}`, `- **Content hash**: ${hash}`];
+}
+
 export function fileProvenanceTable(entries: readonly AttributedFileRef[]): string[] {
   if (entries.length === 0) {
     return note("No agent reported a changed file and no branch observation recorded one.");
@@ -39,7 +50,10 @@ export function fileProvenanceTable(entries: readonly AttributedFileRef[]): stri
 
 export function fileProvenanceDetails(entries: readonly AttributedFileRef[]): string[] {
   const withDetail = entries.filter(
-    (entry) => entry.file.rationale !== undefined || entry.file.diff !== undefined,
+    (entry) =>
+      entry.file.rationale !== undefined ||
+      entry.file.diff !== undefined ||
+      entry.file.statusCode !== undefined,
   );
   if (withDetail.length === 0) return [];
   const lines: string[] = ["### Why each file changed, and its diff", ""];
@@ -49,6 +63,7 @@ export function fileProvenanceDetails(entries: readonly AttributedFileRef[]): st
     if (file.requirementIds !== undefined && file.requirementIds.length > 0) {
       lines.push(`- **Requirements served**: ${joinOrNone(file.requirementIds.map(code))}`);
     }
+    lines.push(...gitObservationLines(file));
     lines.push("");
     lines.push(
       ...(file.diff !== undefined

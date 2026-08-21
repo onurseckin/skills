@@ -22,7 +22,12 @@ import type { OrphanEvidenceDisposition } from "./orphan-evidence/types.ts";
 import type { WorktreeCommitRecord, WorktreeLedgerState } from "../contracts/worktree.ts";
 import type { PlanFinding, PlanReview, PlanValidationAuthorization } from "./plan-review/types.ts";
 
-export type { PlanFinding, PlanReview, PlanValidationAuthorization } from "./plan-review/types.ts";
+export type {
+  PlanDependencyEdge,
+  PlanFinding,
+  PlanReview,
+  PlanValidationAuthorization,
+} from "./plan-review/types.ts";
 
 export type {
   CompletionArtifactPacket,

@@ -1,4 +1,5 @@
 import {
+  taskAbandonCommand,
   taskAssignRepairerCommand,
   taskClaimCommand,
   taskHeartbeatCommand,
@@ -284,5 +285,26 @@ export const TASK_COMMANDS: readonly CommandSpec[] = [
       'bun harness.ts task:assign-repairer --run .capsules/<run-id> --task task-1 --actor coordinator --repairer worker-2 --reason unavailable --evidence "worker-1 released without claiming the repair lease"',
     ],
     handler: taskAssignRepairerCommand,
+  },
+  {
+    name: "task:abandon",
+    aliases: [],
+    domain: "task",
+    summary: "Close an open attempt nobody submitted or released, on the coordinator's authority.",
+    description:
+      "The forced counterpart to task:release: it does not require the lease token, only --actor and --reason, because it exists for a coordinator to unstick a task whose attempt is open but whose agent is gone or unresponsive. The task returns to retry_ready, or to changes_requested when the abandoned attempt was a repair. Refuses if the task's most recent attempt is already closed - there is nothing left open to abandon.",
+    flags: [
+      requiredFlag("run", "string", "Capsule run root."),
+      requiredFlag("task", "string", "Task with an open attempt."),
+      requiredFlag("actor", "string", "Who is abandoning the attempt. Recorded on the event."),
+      requiredFlag("reason", "string", "Why the attempt is being abandoned."),
+    ],
+    readsStdin: false,
+    takesRemainder: false,
+    exitCodes: DEFAULT_EXIT_CODES,
+    examples: [
+      'bun harness.ts task:abandon --run .capsules/<run-id> --task task-1 --actor coordinator --reason "agent-1 crashed mid-attempt and will not return"',
+    ],
+    handler: taskAbandonCommand,
   },
 ];

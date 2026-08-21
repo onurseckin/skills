@@ -114,8 +114,14 @@ bun harness.ts plan:review --run .capsules/<slug> --validator plan-val-1 --token
   --dependency-answer "no dependency edges; every task is an independent root" \
   --gate-answer "each gate runs only that task's own scoped test file" \
   --straggler-answer "every task carries the same one-topic effort estimate" \
+  --dependency-edges-reviewed "" --gate-ids-reviewed "gate-1,gate-2,...,gate-14" \
   --summary "Decomposition matches the prompt; gates are scope-narrow"
 ```
+
+Prose is not the whole floor: `--dependency-edges-reviewed` and `--gate-ids-reviewed` must each name
+exactly the dependency edges and per-task gate ids the compiled plan declares, or the review is
+refused before it is recorded — the same mechanical check the audit runs, now asked of the verdict
+that vouches for it.
 
 The plan-validator is **optional** — `state.plan_validation` is absent on any run that never
 dispatches one, and nothing forces a coordinator to. But once dispatched, its verdict is not

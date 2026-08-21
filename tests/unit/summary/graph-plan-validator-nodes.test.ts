@@ -35,6 +35,8 @@ function review(overrides: Partial<PlanReview> = {}): PlanReview {
     gate_answer: "c",
     straggler_answer: "d",
     findings: [],
+    dependency_edges_reviewed: [],
+    gate_ids_reviewed: [],
     checks: [],
     reviewed_at: "2026-08-19T12:05:00.000Z",
     review_sha256: "sha",

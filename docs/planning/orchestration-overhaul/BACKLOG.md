@@ -557,7 +557,71 @@ browser, and then solve it in the renderer rather than by discarding data at exp
 
 ---
 
-## B4 — No backward compatibility anywhere. Latest layout only. `queued`
+## B4 — No backward compatibility anywhere. Latest layout only. `done (skills side), gvui unverified`
+
+**Closed on the skills side 2026-08-21 (repo-wide B4 audit):** two things were still wrong, both now
+fixed, and one prior "known example" turned out to be a false positive on inspection.
+
+1. `SPEC.md:236-237` — the exact two sentences this item ordered struck ("Existing capsules must keep
+   loading... gvui reads new canonical fields with a tolerant fallback to the legacy ones") were still
+   there, verbatim, through two prior "still queued" passes that only grepped code. Struck and replaced
+   with the owner-decision text under `## 10. Compatibility and verification`.
+2. A real, repo-wide dual-read pattern the prior passes' greps didn't catch because it's gated behind an
+   `as unknown as` cast rather than a bare `??`: `state.gates ?? (state as unknown as { graph?: { gates?:
+   ... } }).graph?.gates ?? []`, and the same shape for `graph_revision`. Found in 10 call sites across 6
+   files — `workflow/gates/gate-policy.ts:22`, `workflow/gates/finish-task.ts:51`,
+   `workflow/completion/readiness-snapshot.ts:53,86`, `workflow/completion/repository-evidence.ts:23`,
+   `workflow/completion/completion-state.ts:32,81`, `workflow/completion/readiness-issues.ts:85,108`,
+   `cli/commands/critic-ops.ts:151`. Traced every constructor of `WorkflowState`
+   (`integration/store-ports.ts`'s `workflowState()`/`mergeWorkflow()`, `packets/preplan-port.ts`'s
+   `view()`) and confirmed `.gates` is a required, always-populated field on the type — the nested
+   `graph?.gates` branch was dead on every legitimately-typed `WorkflowState`. Deleted the fallback in
+   all 10 sites, keeping only the canonical `state.gates` / `state.graph_revision` read (the
+   `readiness-issues.ts` revision line keeps its `?? state.revision` tail — that's a different, real
+   field, the run's own transactional revision counter, not a renamed spelling of `graph_revision`).
+   No test in `tests/unit` constructs a `WorkflowState` fixture via the nested `graph.gates` shape (all
+   use `state.gates.push(...)` directly), confirming the branch was unexercised.
+3. Removing the fallback surfaced a real, separate bug the fallback had been silently papering over:
+   `cli/commands/queue.ts` called `mandatoryGateCommands(loaded.state as unknown as WorkflowState, ...)`
+   in `queueNextCommand` — `loaded.state` is the **raw, unconverted** persisted draft (gates still nested
+   under `graph.gates`, never flattened), forced through an unsafe cast instead of going through
+   `workflowPort(run).read()`. With the dead fallback gone this crashed `queue:next` for real
+   (`tests/unit/cli/queue-run-summary.test.ts`, both `queue:next` cases, `TypeError: undefined is not an
+   object (evaluating 'state.gates.filter')`). Fixed at the root: `queueNextCommand` now calls
+   `workflowPort(run).read()` to get a properly-flattened state, instead of casting the raw draft.
+   `queuePopCommand`'s matching `result.state as unknown as WorkflowState` was already safe (`result` comes
+   from `claimTask(workflowPort(run), ...)`, whose `state` is already a real `WorkflowState`) but carried
+   the same needless cast; simplified to `mandatoryGateCommands(result.state, task)` for the same reason
+   B4 asks the reader to read the canonical shape, not paper over a mismatch with a cast.
+4. Verified the item's own cited "known live example",
+   `cli/formatters/inspection-formatter.ts:67`'s `r.status ?? r.verdict ?? r.decision` — **this is not
+   the anti-pattern and was left as-is.** Traced every producer that writes into `reports/*.json`:
+   `<task>-review.json` (task-review.ts) writes both `status` ("pass"/"fail") and `verdict`
+   ("pass"/"reject") together, unconditionally, in the same object, from the same commit that introduced
+   the file — not a rename. `critic-review.json` (critic-ops.ts) writes only `decision`
+   ("approve"/"request_changes"). `<task>-probe-NN.json` (task-probe.ts) writes only `verdict: "probe"`.
+   `<task>-submission.json` (task-claim.ts) writes none of the three. `formatReportBrief` is a generic
+   viewer over whichever of these four current, live, differently-shaped report files the caller points
+   it at — `status`/`verdict`/`decision` are not three spellings of one field, they're three different
+   fields from three different current producers. Deleting any leg would make `report:get` blind to a
+   real report type (exactly the loss this item's own text warns against), so left untouched.
+5. Re-confirmed the prior passes' clean findings still hold: no `?? node.mediaAssets` / `?? node.screenshots`
+   / `?? metadata.assets`, no `layout_version` concept, nothing matching `legacy`/`deprecated`/`shim`/
+   `migrat(ed|ion)` as a compatibility artifact anywhere under `orchestrating-long-tasks/scripts/src`.
+
+**Verification:** `bun run typecheck` clean. Targeted tests for every touched file plus every test that
+exercises `applicableGates`/`gateTally`/`mandatoryRunGateCommands`/`commandIsSuccessfulGate`/
+`authoritativeRepositoryCommand`/`completionReadinessIssues`/`completionReadinessSnapshot`/
+`criticReviewCommand`/`queueNextCommand`/`queuePopCommand`/`formatReportBrief` — 149 pass, 0 fail across
+20 files, run individually and combined (not the full lane, per instructions).
+
+**Left open: the gvui side.** `resolveModelTier` and `gvui/scripts/import-capsule.ts` are cited in this
+item as already-clean (2026-08-20 reconciliation pass, reading gvui source directly), but gvui is a
+separate repository not present in this working tree — it could not be re-verified or touched from here.
+Regenerating the two `.capsules/` entries and `gvui/public/data/graphs/*.json` per this item's "Remove
+from code already written" list is also out of reach from this repo alone. Status reflects the skills
+side only; whoever owns the gvui checkout should re-run this item's gvui-side checks before calling B4
+fully closed.
 
 **Still queued 2026-08-20 (completion-tagging pass):** the code-level retraction is real — grepped both
 repos for `?? node.mediaAssets` / `?? metadata.assets` / `?? node.screenshots` and found none, no
@@ -782,6 +846,54 @@ B8.4's first two housekeeping bullets are confirmed done (`bun run format:check`
 — see B8.4 below for the `.lock/` bullet, now also resolved. B8.5's four structural tests, listed as an ask
 below, all now exist and are wired into `bun harness.ts health` — see the note under B8.5.
 
+**Triaged 2026-08-21 (B8 container-item pass, all four sub-items re-checked fresh against disk, not read
+from the notes above):** B8.1 and B8.2 hold exactly as the 2026-08-20 reconciliation pass found them — same
+call sites (`submit.ts:86`, `record-review.ts:52`, `execute.ts:29`, four `publishRolePacket` callers at
+`planner-packet.ts:37`/`plan-validator-grant.ts:48`/`role-grant.ts:114`/`critic-grant.ts:100`), same
+`refreshHandoff`/`refreshHandoffOnEscalation` wiring in all four command files (line numbers drift with
+concurrent edits elsewhere in those files — `task-reject.ts:103`, `run-ops.ts:109`, `task-claim.ts:310`,
+`task-review.ts:229` today — but every call is still live and unconditional), `bun test tests/unit/packets/
+role-contract-refusals.test.ts tests/unit/packets/role-contract-enforcement.test.ts` still 63 pass, 0 fail.
+Both stay closed. What genuinely remains, after re-checking each open claim directly rather than trusting
+the prior pass's citations:
+
+1. **B8.3's two gvui duplicates are still open, unchanged, same lines** (`ComparisonView/diffEngine.ts:211`
+   and `GraphDiff/diffEngine.ts:453` for `getNodeRepairRounds`; `customLayoutAdapter.ts` and
+   `custom/wasmLayoutAdapter.ts` both still exist as separate files, `wasmLayoutAdapter.ts` still reachable
+   only from its own test and other tests' dynamic `import()`s, never from production code, not even through
+   the `custom/index.ts` barrel that re-exports it). This is the one real code gap this item still holds,
+   and it lives entirely in gvui, a separate repository from this one.
+2. **B8.4's `run:exec` stall claim, attempted directly for the first time today.** Built a disposable,
+   gitignored scratch capsule (`.capsules/b8-triage-timing-check`, deleted after) and drove `run:exec`
+   through the real CLI twice: once bare (`bun -e 'console.log("hi"); process.exit(0)'`, no `--task`/
+   `--gate`) and once against a real compiled task's real gate (`--task task-1 --gate gate-1`, gate command
+   `bun test tests/unit/health/fallbacks.test.ts`). Wall-clock via the shell's own `time`: 0.26s and 1.20s
+   respectively — no multi-second gap observed between the child process finishing and the harness command
+   returning either time. This is not a byte-for-byte reproduction of whatever specific command or
+   concurrency state originally produced "~5.2s" (that detail was never recorded), so it cannot certify the
+   exact original report closed — but it is the first time anyone actually ran the ask instead of leaving it
+   unconfirmed, and it found nothing. Separately, `ecb5536` ("perf: back off descendant polling and bound
+   process snapshots", landed 2026-08-20) replaced `DescendantTracker`'s fixed 10ms `setInterval` `ps`-spawn
+   loop — which ran for an attempt's entire lifetime, unref'd but still real subprocess overhead — with a
+   geometric backoff capped at 250ms; that is real, relevant infrastructure work but it targets a different
+   symptom (poll-storm overhead during execution) than the one this bullet names (a gap after exit), so it
+   does not by itself certify this bullet closed. Recommendation: close this bullet unless someone can name
+   the specific scenario that produced 5.2s — two direct attempts (this one and the last pass's absence of
+   one) have now found no stall.
+3. **B8.5's four structural tests are still correctly wired** (`ALL_CHECKS` in `health/index.ts` still lists
+   `unused-code`, `unenforced-declarations`, `literal-fallbacks`, `vendor-identifiers`, unchanged). Their
+   live pass count right now is not the "34 pass, 0 fail" the 2026-08-20 note recorded, though:
+   `fallbacks.test.ts` + `reachability.test.ts` are clean (25/25), `manifest.test.ts` is clean (4/4), but
+   `vendor-identifiers.test.ts` has 3 of 6 tests failing this moment, because a different, concurrent,
+   uncommitted, untracked change — `orchestrating-long-tasks/scripts/src/store/content-normalization/
+   typescript-whitespace.ts`, created today between 00:40 and 00:48, a module outside B8's ownership and
+   not part of this item's scope — names the vendor product "TypeScript" in its own filename and exported
+   function (`canonicalizeTypeScriptWhitespace`) without adding itself to the test's `SCRIPT_EXEMPTIONS`
+   list. This is the check doing exactly its job on an in-flight file, not a defect in the policy or its
+   wiring; it is flagged here only because "genuinely remains" has to reflect what the suite reports right
+   now, not what it reported yesterday. Whoever lands that module should add its own exemption (or rename
+   away from the vendor word) as part of landing it — not a B8 action item.
+
 Roughly forty defects were found beyond the original brief. Most are fixed. This item covers the ones that
 are NOT, plus the policy that stops the rest from coming back.
 
@@ -827,6 +939,15 @@ role-contract-refusals.test.ts` + `role-contract-enforcement.test.ts`, 65/65 pas
   count confirmed 2026-08-20.
   Collapse each to one implementation. A duplicated helper is where the next silent divergence starts.
 
+**Re-confirmed 2026-08-21 (B8 triage pass): both gaps still open, exact same lines, nothing changed.**
+`wasmLayoutAdapter.ts` grep-confirmed reachable only from `custom/wasmLayoutAdapter.test.ts` and four other
+test files' dynamic `import()`s (`types/exampleGraphs.test.ts`, `testing/currentSkillExport.test.tsx`,
+`testing/unknownFields.test.tsx`, `testing/foreignDataset.test.tsx`), plus `engine/layout/
+invertedTransforms.test.ts`'s static import — every reference is a test, none is production code, and
+grepping for anything outside `src` importing the `custom/index.ts` barrel that re-exports it still finds
+nothing. Genuinely still the item's one open code gap, and it is gvui-only — out of scope for this repo's
+wave.
+
 ### B8.4 Housekeeping
 
 - Four gvui source files fail `bun run format:check`.
@@ -844,6 +965,23 @@ role-contract-refusals.test.ts` + `role-contract-enforcement.test.ts`, 65/65 pas
   driving a real `run:exec` through the CLI and timing the process exit, which this pass did not do.
   Settling it needs someone to actually run `bun harness.ts run:exec ...` end to end and time the gap
   between the child process exiting and the command returning.
+
+**Attempted directly 2026-08-21 (B8 triage pass) — first time anyone has actually run this ask.** Built a
+scratch capsule under `.capsules/b8-triage-timing-check` (disposable, gitignored, deleted after) via
+`plan:init`/`plan:add`/`plan:compile`/`task:claim`, then ran `run:exec` twice through the real CLI, timed
+with the shell's own `time`: once bare (no `--task`/`--gate`, `bun -e 'console.log("hi");
+process.exit(0)'`) — 0.26s real; once against the compiled task's real gate (`--task task-1 --gate gate-1`,
+gate command `bun test tests/unit/health/fallbacks.test.ts`) — 1.20s real. Neither run showed a multi-second
+gap between the child exiting and the command returning. This is not the exact original repro (the command
+and concurrency conditions that produced "~5.2s" were never recorded, so an exact match isn't possible), so
+it cannot certify the original number as explained — but it is a real, direct attempt with a real result,
+which is more than this bullet has ever had. A separate, adjacent perf fix landed since the last check
+(`ecb5536`, "perf: back off descendant polling and bound process snapshots") — it replaced
+`DescendantTracker`'s fixed-10ms `setInterval` `ps`-spawn loop (running for an attempt's entire lifetime)
+with a geometric backoff capped at 250ms, but that targets poll-storm overhead during execution, not
+specifically a post-exit gap, so it's relevant context, not a certified fix for this exact bullet.
+Recommend closing this bullet as not reproducible under real conditions, unless whoever assigned "~5.2s"
+can name the specific scenario.
 
 ### B8.5 THE POLICY — a fix without a regression test is a fix that returns
 
@@ -887,6 +1025,21 @@ running `bun test tests/unit/health/fallbacks.test.ts tests/unit/health/reachabi
 architecture/vendor-identifiers.test.ts tests/unit/cli/manifest.test.ts` (34 pass, 0 fail) and by reading
 `health/index.ts`'s import list directly. This is the same tool B9.2 asks for below — see B9 for its
 current live output, which is not clean.
+
+**Live status re-checked 2026-08-21 (B8 triage pass): wiring unchanged, pass count is not 34/0 right now.**
+`ALL_CHECKS` still lists all four checks, unchanged. Running the same four files fresh: `fallbacks.test.ts`
+and `reachability.test.ts` together are 25 pass, 0 fail. `manifest.test.ts` alone is 4 pass, 0 fail (this
+one was transiently failing mid-pass while a concurrent commit was regenerating `references/
+cli-capabilities.md`/`.json`, and cleared on its own once that commit landed — a live-repo timing artifact,
+not a defect). `vendor-identifiers.test.ts` alone is 3 pass, 3 fail, all three failures traced to one
+cause: a different agent's concurrent, uncommitted, untracked module (`orchestrating-long-tasks/scripts/
+src/store/content-normalization/typescript-whitespace.ts`, created today, not part of B8's scope) names the
+vendor product "TypeScript" in its own filename and an exported function
+(`canonicalizeTypeScriptWhitespace`) without adding itself to the test's `SCRIPT_EXEMPTIONS` list. The
+check is correctly catching an unreviewed file before commit, not malfunctioning — but "genuinely remains"
+has to reflect the number the suite reports right now, so the accurate current figure across the four
+files is 32 pass, 3 fail, not 34/0, until that module either adds its own exemption or is committed with
+one already in place. Not a B8 action item.
 
 ---
 
@@ -3544,6 +3697,59 @@ still open: the health run's own "Literal fallbacks" section states outright "th
 was not swept for fallbacks; only the harness source was" — confirmed directly, the sweep has still
 never been extended to gvui.
 
+**Still queued 2026-08-21 (triage pass, B37 itself):** every one of the 13 findings re-opened and
+re-checked from scratch this pass, tree-side, not by trusting the notes above — same verdict as
+2026-08-20 on all 13, so the item's own tag stays `queued`.
+
+- Findings 2-9, 11, 12 (8 findings): each `RESOLVED` note re-verified directly against the cited
+  file/line/test today. `health/allowlist.ts:140` still reads `if (allowance.check !== check) return
+  false;`. `contracts/workflow.ts`/`begin-validation.ts` still derive the domain via
+  `applicableValidatorDomains`/`resolveDomain`. `references/protocol.md:295` still states "Σ(validators
+  per task)...". `references/run-playbook.md` still opens with the `orchestrate`-first pointer.
+  `store/layout-integrity.ts`'s `verifyCapsuleLayout` still calls `packetLayout`/`commandLayout`.
+  `scripts/src/cli/prompt-input.ts`'s `shouldAutoReadOrchestrateStdin` still gates on
+  `process.stdin.isTTY === true` and is still wired into `harness.ts main()`. `gvui`'s
+  `fixture-demo.json` still carries 13 nodes / 19 edges / the same 11 edge kinds, and
+  `gvui/scripts/asset-portability.ts` + its `import-capsule.ts:343` call site are both still present.
+  Re-ran the actual test files rather than trusting the prior pass's counts: `bun test
+  tests/unit/workflow/review/multi-domain-validation.test.ts
+  tests/unit/workflow/review/checklist-coverage.test.ts` (19 pass), `bun test
+  tests/unit/cli/orchestrate-command.test.ts tests/unit/cli/arguments.test.ts` (38 pass — grown from
+  the 33 the 2026-08-20 note cited, still 0 fail), `bun test tests/unit/store/layout-integrity.test.ts`
+  (35 pass), and in `gvui`, `bun test src/types/graphData.test.ts scripts/import-capsule.test.ts` (17
+  pass, matching the prior note exactly). None of B37's own cited test paths were touched by the
+  `tests/unit/**` → `tests/integration/*` rename QUEUE.md's item #18 flags — checked each path exists
+  at the location the note names it.
+- Finding 1 (stale generated docs): re-ran `bun orchestrating-long-tasks/scripts/generate-cli-manifest.ts`
+  against the committed tree — HEAD (`c5fccfb`) is unchanged since `6256159` last regenerated it, and
+  running the generator against a clean checkout still produces zero diff. Note for whoever reads this
+  next: the live working tree *right now* is mid-edit by concurrent siblings touching exactly the files
+  this finding is about (`critic-ops.ts`, `plan-validate.ts`, `task-ops.ts`, `registry/plan.ts`,
+  `registry/task.ts`, a new `task:abandon` command, a new `coordinator:pushback` command), so running
+  the generator against the dirty working copy right now does produce a diff again. That is expected
+  concurrent-development churn, not a reopened finding — this item's own original text already assigns
+  the regeneration to "whichever item owns critic-ops.ts", and the two generated files were left
+  untouched here (reverted back to HEAD after the check, `git status` confirms clean).
+- Finding 10 (the irony finding, re-checked with particular care): the "Conventions for this file"
+  section does now define the Status key precisely as the resolution note describes —
+  `` `done (<short-sha>)` ``, `verified`, their composition, `deferred by owner`, and — the part that
+  answers this finding's actual complaint — an explicit rule that "once tagged `done`, an item is
+  closed: it does not get re-planned or re-dispatched by the autonomous loop, only reopened by a fresh,
+  named finding," plus a composite-item rule stating a container's tag is "the least-resolved of
+  everything the item still lists," naming B37 itself as a live example of that rule ("open only on
+  finding 13"). This is not just a claim: the convention is visibly in force throughout the file — every
+  `queued`/`done (<sha>)`/`done (<sha>), verified`/`verified` tag read directly off `grep -n "^## B"`
+  above carries it, and this very item is being kept `queued` by that same rule rather than closed on
+  the strength of its 12 resolved findings. Genuinely resolved.
+- Finding 13 (still open): re-ran the real command myself, not the prior pass's transcript — `bun
+  orchestrating-long-tasks/scripts/harness.ts health --consumer ../gvui --all` — and its "Literal
+  fallbacks" section's "Cannot check" list still reads, verbatim, "The consumer repository was not
+  swept for fallbacks; only the harness source was." Confirmed unchanged from the 2026-08-20 note.
+  Tracked as QUEUE.md #20.
+
+**Net for this pass: 12/13 fixed, 1/13 (finding 13) still real, 0/13 obsolete.** No fix applied here —
+this item's owner is triage-only per its own dispatch note.
+
 **The rule worked.** A read-only pass over items marked done produced 13 findings that nothing else caught.
 This is the record of what verification uncovered; each is queued as work in its own right.
 
@@ -3592,7 +3798,43 @@ This is the record of what verification uncovered; each is queued as work in its
 
 ---
 
-## B38 — Findings from the second post-implementation verification pass `queued`
+## B38 — Findings from the second post-implementation verification pass `verified`
+
+**RESOLVED 2026-08-21 (B38 closing triage pass) — all four findings now clear; item moves `queued` ->
+`verified`.** Independently re-verified each of the four findings on disk today, not inherited from any
+note below.
+
+- **Finding 1 (git-spawn retry) — unregressed.** `git log --oneline -- .../repository-git-command.ts`
+  shows the file last touched by `0a5a630` ("test: prove supervisor recovery and transient retry
+  classification"); it still reads exactly as the existing `RESOLVED` note below describes
+  (`GIT_SPAWN_TRANSIENT_RETRIES`/`GIT_SPAWN_TRANSIENT_RETRY_DELAY_MS` at lines 50-51, the retry loop at
+  76/123/126). `bun test tests/unit/packets/repository-git-spawn-retry.test.ts` — 6/6 pass, run just now.
+  Fixed, stays fixed.
+- **Finding 2 (B32.2's own closure bar) — now fixed, superseding this item's "stays open on finding 2"
+  line below.** B32's own 2026-08-21 entry ("B32/B20 ownership pass") closed B32.2 with a real dispatched
+  run, leaving a capsule on disk at `.capsules/b32-b20-telemetry-proof-2026-08-21/`. Opened it directly
+  rather than trusting B32's note: `state.json`'s `agents` array has 2 entries (`coordinator-1`,
+  `aa49f062714f34399`); the implementer entry carries `tokens_in`/`tokens_out`/`tools_used`/`token_extras`
+  all stamped `evidence_class: "harness_observed"`; and `summary/summary.md` renders "Agents granted | 2"
+  (line 34) plus the tool-usage table (lines 178-180) and the harness's own evidence-class footnote (line
+  221) — exactly the rendering this finding's own bar demanded. The gap this finding named (no capsule with
+  a populated `agents` ledger from a real dispatched run) no longer exists.
+- **Finding 3 (supervisor crash-recovery test) — unchanged, still no action needed.** Re-ran
+  `tests/unit/orchestrator/supervisor.test.ts tests/unit/orchestrator/supervision-tick.test.ts` anyway —
+  19/19 pass, same count already recorded below.
+- **Finding 4 (health-check confirmatory note) — unchanged.** Not an actionable finding; nothing to close.
+
+**Cross-check for duplicate findings, against B37 and B8 specifically, per this triage's own brief:** no
+match. Neither `createRepositoryGitCommand`/`GIT_SPAWN_TRANSIENT_RETRIES` (finding 1) nor the supervisor
+crash-recovery test (finding 3) appears anywhere in B37's or B8's text (grepped both sections directly).
+The one real duplicate found is finding 2 against **B32.2** itself — the same gap tracked twice under two
+ids. `coordinator-conformance/QUEUE.md` row 7 ("Telemetry points at the wrong reporter" | `B32 + B38` |
+"Absorbs B38") already recognized this and merged the two for that document's own ranking; this note is
+the matching closure on the BACKLOG.md side. No other cross-item duplicate found for this item's four
+findings.
+
+With all four findings settled and none reopened, this item meets the composite-item bar (every sub-part
+clears) — `queued` -> `verified`.
 
 **Still queued 2026-08-20 (reconciliation pass): independently re-run, item's own verdict holds, one
 citation set corrected.** Finding 1: re-ran `tests/unit/packets/repository-git-spawn-retry.test.ts`

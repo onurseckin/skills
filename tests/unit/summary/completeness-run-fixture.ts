@@ -1,48 +1,19 @@
-import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { execute } from "../../../orchestrating-long-tasks/scripts/src/cli/execute.ts";
-import { loadRun } from "../../../orchestrating-long-tasks/scripts/src/store/index.ts";
+import { runAlpha, runBeta, sealRun } from "./completeness-run-phases.ts";
+import {
+  cli,
+  git,
+  PLANTED,
+  RUN_GATE,
+  TASK_GATE_ALPHA,
+  TASK_GATE_BETA,
+  text,
+} from "./completeness-run-support.ts";
+import type { Issue } from "./completeness-run-support.ts";
 
-/** Sentences the fixture plants so a completeness assertion has something distinctive to look for. */
-export const PLANTED = {
-  promptAlpha: "Rewrite the alpha parser so it accepts the new grammar",
-  promptBeta: "Harden the beta writer against partial flushes",
-  planSummary: "Two independent subsystems need work",
-  planObservation: "the alpha parser has no grammar tests",
-  planTodo: "add grammar fixtures for the empty payload",
-  planRisk: "the beta flush path is untested",
-  planQuestion: "is a partial flush observable from outside",
-  planSource: "src/alpha/index.ts",
-  rejectReason: "Grammar fixture for the empty payload is missing",
-  rejectRemediation: "Add a fixture that exercises the empty payload",
-  probeAlpha: "Prove the parser rejects an empty payload",
-  probeBeta: "Prove a partial flush cannot lose the tail",
-  repairSummary: "Empty payload fixture added and exercised",
-  branchReason: "the flush path needs its own investigation before the writer can change",
-  subTaskLabel: "Investigate the flush path",
-  subTaskSummary: "A partial flush reproduces under a short buffer",
-  collectSummary: "Flush path understood; the writer change is unblocked",
-  criticSummary: "Every requirement is proven by a recorded gate",
-  model: "fixture-model-large",
-} as const;
-
-/**
- * A gate has to perform substantive verification, and it has to be genuinely tied to the one task's
- * own write scope: A3-gate-discrimination (`graph/plan-audit.ts`) refuses a plan where two tasks with
- * disjoint write scopes share byte-identical gate argv, because such a gate passes whether either
- * task did its work or nothing at all. `git diff --check` is whole-repo by construction — the grammar
- * `graph/gate-tool-grammar.ts` accepts for it takes no path operand at all — so it cannot be split
- * into two per-task variants; it is reserved for `RUN_GATE` below, which runs once at the run level
- * and is never compared against a task gate. Each task instead gets its own `test -f <path-in-its-own-
- * scope>`: a real binary spawn (no language runtime, so this stays cheap enough for the unit suite)
- * whose one operand is that task's own scope path, so the two tasks can never collide on argv the way
- * a shared `git diff --check` did.
- */
-const TASK_GATE_ALPHA = ["test", "-f", "src/alpha/index.ts"];
-const TASK_GATE_BETA = ["test", "-f", "src/beta/index.ts"];
-const RUN_GATE = ["git", "diff", "--cached", "--check"];
+export { PLANTED } from "./completeness-run-support.ts";
 
 export interface CompletenessRun {
   repo: string;
@@ -52,54 +23,27 @@ export interface CompletenessRun {
   tokens: string[];
 }
 
-type FlagValue = readonly string[] | string | undefined;
-type Issue = (value: unknown) => string;
-
-function text(value: unknown): string {
-  if (typeof value !== "string") throw new Error(`expected a string, got ${typeof value}`);
-  return value;
-}
-
-/** `{ "--task": "task-alpha" }` reads as the command line it becomes; a repeated flag takes a list. */
-async function cli(
-  command: string,
-  flags: Readonly<Record<string, FlagValue>>,
-  remainder: readonly string[] = [],
-): Promise<Record<string, unknown>> {
-  const argv: string[] = [command];
-  for (const [name, value] of Object.entries(flags)) {
-    if (value === undefined) continue;
-    for (const entry of typeof value === "string" ? [value] : value) argv.push(name, entry);
-  }
-  if (remainder.length > 0) argv.push("--", ...remainder);
-  return execute(argv);
-}
-
-function openFindingIds(run: string, taskId: string): string[] {
-  const state = loadRun(run).state as unknown as {
-    tasks: Record<string, { findings?: Array<{ id: string; status: string }> }>;
-  };
-  return (state.tasks[taskId]?.findings ?? [])
-    .filter((finding) => finding.status === "open")
-    .map((finding) => finding.id);
-}
-
-function resolutions(run: string, taskId: string, commandId: string): string[] {
-  return openFindingIds(run, taskId).map((id) => `${id}=${commandId}`);
-}
-
+/**
+ * alpha's file is committed here, with the exact content the B15.2 completeness contract later
+ * diffs against (`summary-graph-completeness-contract.test.ts`'s "attributes the file..." asserts
+ * a real `-export const alpha = 1;` / `+export const alpha = 2;` hunk against this run's baseline
+ * inspection, which is pinned to this commit). beta's file is deliberately left off it — written
+ * to the working tree only after the commit below — because nothing ever asks for a beta diff, so
+ * its `test -f src/beta/index.ts` gate is free to use the simpler "absent at every claimed base"
+ * shape the comment on `retireAlphaBaseline` (in `completeness-run-phases.ts`) explains for alpha.
+ */
 function seedRepository(): string {
   const repo = mkdtempSync(join(tmpdir(), "graph-completeness-"));
-  execFileSync("git", ["init", "-q"], { cwd: repo });
-  execFileSync("git", ["config", "user.email", "fixture@example.invalid"], { cwd: repo });
-  execFileSync("git", ["config", "user.name", "fixture"], { cwd: repo });
+  git(repo, ["init", "-q"]);
+  git(repo, ["config", "user.email", "fixture@example.invalid"]);
+  git(repo, ["config", "user.name", "fixture"]);
   mkdirSync(join(repo, "src", "alpha"), { recursive: true });
   mkdirSync(join(repo, "src", "beta"), { recursive: true });
-  writeFileSync(join(repo, "src", "alpha", "index.ts"), "export const alpha = 1;\n");
-  writeFileSync(join(repo, "src", "beta", "index.ts"), "export const beta = 1;\n");
   writeFileSync(join(repo, ".gitignore"), ".capsules/\n");
-  execFileSync("git", ["add", "-A"], { cwd: repo });
-  execFileSync("git", ["commit", "-qm", "baseline"], { cwd: repo });
+  writeFileSync(join(repo, "src", "alpha", "index.ts"), "export const alpha = 1;\n");
+  git(repo, ["add", "-A"]);
+  git(repo, ["commit", "-qm", "baseline"]);
+  writeFileSync(join(repo, "src", "beta", "index.ts"), "export const beta = 1;\n");
   return repo;
 }
 
@@ -167,300 +111,6 @@ async function grantAgents(run: string): Promise<void> {
     "--tool": "Edit",
     "--tokens-in": "18000",
     "--tokens-out": "2400",
-  });
-}
-
-/** A rejection with a real defect, then a repair round, then a probe answered on the way to pass. */
-async function runAlpha(repo: string, run: string, issue: Issue): Promise<void> {
-  const claim = await cli("task:claim", {
-    "--run": run,
-    "--task": "task-alpha",
-    "--agent": "worker-alpha",
-    "--role": "implementer",
-  });
-  const work = await cli(
-    "run:exec",
-    { "--run": run, "--task": "task-alpha", "--actor": "worker-alpha", "--cwd": repo },
-    ["echo", "alpha-implementation"],
-  );
-  // C4: task:submit refuses a submission whose write scope is byte-identical to its content at
-  // claim; seedRepository wrote this file before the task was even planned, let alone claimed.
-  writeFileSync(join(repo, "src", "alpha", "index.ts"), "export const alpha = 2;\n");
-  await cli("task:submit", {
-    "--run": run,
-    "--task": "task-alpha",
-    "--agent": "worker-alpha",
-    "--token": issue(claim.token),
-    "--summary": "Alpha parser rewritten against the new grammar",
-    "--files-changed": "src/alpha/index.ts",
-    "--evidence": text(work.command_id),
-  });
-
-  const firstReview = await cli("task:validate-start", {
-    "--run": run,
-    "--task": "task-alpha",
-    "--validator": "val-alpha",
-  });
-  const firstGate = await cli(
-    "run:exec",
-    {
-      "--run": run,
-      "--task": "task-alpha",
-      "--gate": "gate-alpha",
-      "--actor": "val-alpha",
-      "--cwd": repo,
-    },
-    TASK_GATE_ALPHA,
-  );
-  await cli("task:reject", {
-    "--run": run,
-    "--task": "task-alpha",
-    "--validator": "val-alpha",
-    "--token": issue(firstReview.token),
-    "--evidence": text(firstGate.command_id),
-    "--reason": PLANTED.rejectReason,
-    "--severity": "important",
-    "--remediation": PLANTED.rejectRemediation,
-  });
-
-  const repair = await cli("task:claim", {
-    "--run": run,
-    "--task": "task-alpha",
-    "--agent": "worker-alpha",
-    "--role": "repairer",
-  });
-  const repairWork = await cli(
-    "run:exec",
-    { "--run": run, "--task": "task-alpha", "--actor": "worker-alpha", "--cwd": repo },
-    ["echo", "alpha-repair"],
-  );
-  // C4: the repair claim's baseline is round 1's already-changed content, so the repair needs its
-  // own further change to avoid a byte-identical resubmission.
-  writeFileSync(
-    join(repo, "src", "alpha", "index.ts"),
-    "export const alpha = 2;\nexport const alphaFixture = true;\n",
-  );
-  await cli("task:submit", {
-    "--run": run,
-    "--task": "task-alpha",
-    "--agent": "worker-alpha",
-    "--token": issue(repair.token),
-    "--summary": PLANTED.repairSummary,
-    "--files-changed": "src/alpha/index.ts",
-    "--evidence": text(repairWork.command_id),
-  });
-
-  // A second round needs a second validator: the harness refuses one that already reviewed the task.
-  const secondReview = await cli("task:validate-start", {
-    "--run": run,
-    "--task": "task-alpha",
-    "--validator": "val-alpha-2",
-  });
-  const reviewToken = issue(secondReview.token);
-  const secondGate = await cli(
-    "run:exec",
-    {
-      "--run": run,
-      "--task": "task-alpha",
-      "--gate": "gate-alpha",
-      "--actor": "val-alpha-2",
-      "--cwd": repo,
-    },
-    TASK_GATE_ALPHA,
-  );
-  await cli("task:probe", {
-    "--run": run,
-    "--task": "task-alpha",
-    "--validator": "val-alpha-2",
-    "--token": reviewToken,
-    "--demand": PLANTED.probeAlpha,
-  });
-  await cli("task:review", {
-    "--run": run,
-    "--task": "task-alpha",
-    "--validator": "val-alpha-2",
-    "--token": reviewToken,
-    "--status": "pass",
-    "--evidence": text(secondGate.command_id),
-    "--resolve": resolutions(run, "task-alpha", text(secondGate.command_id)),
-    "--summary": "Alpha verified after the repair round",
-  });
-}
-
-/** A branch excursion that collects, then a probe answered on the way to pass. */
-async function runBeta(repo: string, run: string, issue: Issue): Promise<string> {
-  const claim = await cli("task:claim", {
-    "--run": run,
-    "--task": "task-beta",
-    "--agent": "worker-beta",
-    "--role": "implementer",
-  });
-  const parentToken = issue(claim.token);
-  const branch = await cli("branch:open", {
-    "--run": run,
-    "--parent-task": "task-beta",
-    "--agent": "worker-beta",
-    "--token": parentToken,
-    "--reason": PLANTED.branchReason,
-    "--sub-task": "S-1",
-    "--sub-label": `S-1=${PLANTED.subTaskLabel}`,
-    "--sub-scope": "S-1=src/beta/index.ts",
-    "--repo": repo,
-  });
-  const branchId = text(branch.branch_id);
-  await cli("agent:register", {
-    "--run": run,
-    "--agent": "sub-beta-1",
-    "--role": "sub-investigator",
-    "--host": "fixture-host",
-    "--parent-agent": "worker-beta",
-    "--parent-task": "S-1",
-  });
-  const subClaim = await cli("branch:claim", {
-    "--run": run,
-    "--branch": branchId,
-    "--sub-task": "S-1",
-    "--agent": "sub-beta-1",
-    "--role": "sub-investigator",
-    "--repo": repo,
-  });
-  await cli("run:exec", { "--run": run, "--task": "S-1", "--actor": "sub-beta-1", "--cwd": repo }, [
-    "echo",
-    "flush-investigation",
-  ]);
-  // A real edit inside the branch window, so the collect-time Git reading has something to observe.
-  writeFileSync(join(repo, "src", "beta", "index.ts"), "export const beta = 2;\n");
-  await cli("branch:submit", {
-    "--run": run,
-    "--branch": branchId,
-    "--sub-task": "S-1",
-    "--agent": "sub-beta-1",
-    "--token": issue(subClaim.token),
-    "--summary": PLANTED.subTaskSummary,
-  });
-  await cli("branch:collect", {
-    "--run": run,
-    "--branch": branchId,
-    "--agent": "worker-beta",
-    "--token": parentToken,
-    "--summary": PLANTED.collectSummary,
-    "--repo": repo,
-  });
-  await cli("agent:release", {
-    "--run": run,
-    "--agent": "sub-beta-1",
-    "--reason": "S-1 submitted",
-  });
-
-  const work = await cli(
-    "run:exec",
-    { "--run": run, "--task": "task-beta", "--actor": "worker-beta", "--cwd": repo },
-    ["echo", "beta-implementation"],
-  );
-  await cli("task:submit", {
-    "--run": run,
-    "--task": "task-beta",
-    "--agent": "worker-beta",
-    "--token": parentToken,
-    "--summary": "Beta writer hardened against partial flushes",
-    "--files-changed": "src/beta/index.ts",
-    "--evidence": text(work.command_id),
-  });
-  const review = await cli("task:validate-start", {
-    "--run": run,
-    "--task": "task-beta",
-    "--validator": "val-beta",
-  });
-  const reviewToken = issue(review.token);
-  const gate = await cli(
-    "run:exec",
-    {
-      "--run": run,
-      "--task": "task-beta",
-      "--gate": "gate-beta",
-      "--actor": "val-beta",
-      "--cwd": repo,
-    },
-    TASK_GATE_BETA,
-  );
-  await cli("task:probe", {
-    "--run": run,
-    "--task": "task-beta",
-    "--validator": "val-beta",
-    "--token": reviewToken,
-    "--demand": PLANTED.probeBeta,
-  });
-  await cli("task:review", {
-    "--run": run,
-    "--task": "task-beta",
-    "--validator": "val-beta",
-    "--token": reviewToken,
-    "--status": "pass",
-    "--evidence": text(gate.command_id),
-    "--resolve": resolutions(run, "task-beta", text(gate.command_id)),
-    "--summary": "Beta verified",
-  });
-  return branchId;
-}
-
-/** The whole-run gate, the critic's sign-off over every requirement, and the seal. */
-async function sealRun(repo: string, run: string, issue: Issue): Promise<void> {
-  await cli(
-    "run:exec",
-    { "--run": run, "--gate": "gate-run-completion", "--actor": "coordinator-1", "--cwd": repo },
-    RUN_GATE,
-  );
-  await cli("agent:register", {
-    "--run": run,
-    "--agent": "critic-1",
-    "--role": "completeness-critic",
-    "--host": "fixture-host",
-    "--parent-agent": "coordinator-1",
-  });
-  const inspect = await cli("run:exec", { "--run": run, "--actor": "critic-1", "--cwd": repo }, [
-    "echo",
-    "critic-inspection",
-  ]);
-  const start = await cli("critic:start", {
-    "--run": run,
-    "--critic": "critic-1",
-    "--repository-command-ids": text(inspect.command_id),
-  });
-  const requirementIds = (
-    loadRun(run).state as unknown as { requirements: { requirements: Array<{ id: string }> } }
-  ).requirements.requirements.map((requirement) => requirement.id);
-  const criticToken = issue(start.token);
-  await cli("critic:review", {
-    "--run": run,
-    "--critic": "critic-1",
-    "--token": criticToken,
-    "--decision": "approve",
-    "--summary": PLANTED.criticSummary,
-    "--proofs": JSON.stringify(
-      requirementIds.map((id) => ({
-        requirement_id: id,
-        status: "satisfied",
-        evidence: [
-          {
-            kind: "command",
-            reference: text(inspect.command_id),
-            observation: "the completion gate passed",
-          },
-        ],
-      })),
-    ),
-  });
-  await cli("agent:release", {
-    "--run": run,
-    "--agent": "coordinator-1",
-    "--reason": "run complete",
-  });
-  // The completion critic's own token now doubles as run:complete's --auth-token (complete-run.ts
-  // checks it against the same completion_critic assignment record critic:review just verified).
-  await cli("run:complete", {
-    "--run": run,
-    "--actor": "coordinator-1",
-    "--auth-token": criticToken,
   });
 }
 

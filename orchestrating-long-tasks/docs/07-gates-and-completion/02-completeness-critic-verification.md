@@ -250,9 +250,14 @@ bun harness.ts plan:review --run .capsules/<run-id> --validator plan-val-1 --tok
   --dependency-answer "n/a" \
   --gate-answer "the shared gate cannot fail per-task" \
   --straggler-answer "n/a" \
+  --dependency-edges-reviewed "" --gate-ids-reviewed "gate-1" \
   --summary "Compressed decomposition; see findings" \
   --findings '[{"id":"PV-1","invariant":"A2-parallelism","severity":"critical","observation":"10 distinct topics collapsed into task-domains","remediation":"one task per topic, each with its own scoped gate"}]'
 ```
+
+Prose is not the whole floor: `--dependency-edges-reviewed` and `--gate-ids-reviewed` must each name
+exactly the dependency edges and per-task gate ids the compiled plan declares — no fewer (a skipped
+one) and no more (a fabricated one) — or the review is refused before it is recorded.
 
 `changes_requested` requires at least one structured finding (`id`, `severity`, `observation`,
 `remediation`, and an optional `invariant` naming which of the four questions — or one of `plan:audit`'s

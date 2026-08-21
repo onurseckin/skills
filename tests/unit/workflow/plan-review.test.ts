@@ -16,6 +16,32 @@ function compiledPort(): TestPort {
   return new TestPort(state);
 }
 
+/** A compiled two-task plan carrying one real dependency edge, T-2 -> T-1. */
+function compiledPortWithDependency(): TestPort {
+  const port = compiledPort();
+  port.transact("test", "task-added", {}, (draft) => {
+    draft.tasks["T-2"] = {
+      id: "T-2",
+      status: "blocked",
+      requirement_ids: ["R-1"],
+      write_scope: ["src/owned-2"],
+      dependencies: ["T-1"],
+      attempts: [],
+      history: [],
+      repair_round: 0,
+    };
+    draft.gates.push({
+      id: "G-2",
+      command: ["bun", "test", "tests/unit/t2.test.ts"],
+      cwd: ".",
+      scope: "task",
+      requirement_ids: ["R-1"],
+      mandatory: true,
+    });
+  });
+  return port;
+}
+
 function registerAgent(port: TestPort, id: string, role: string): void {
   port.transact("test", "agent-registered", { agent_id: id }, (draft) => {
     const agents = (draft as unknown as { agents?: unknown[] }).agents ?? [];
@@ -39,6 +65,8 @@ const fourAnswers = {
   dependency_answer: "No dependency edges exist.",
   gate_answer: "The gate runs only this task's own scoped test file.",
   straggler_answer: "There is only one task; no wave to strand.",
+  dependency_edges_reviewed: [],
+  gate_ids_reviewed: ["G-1"],
 };
 
 describe("beginPlanValidation", () => {
@@ -263,6 +291,117 @@ describe("recordPlanReview", () => {
       ),
     ).toThrow();
   });
+
+  test("an approval omitting a real gate id is refused", () => {
+    const port = compiledPort();
+    const opened = beginPlanValidation(port, "plan-val-1", { clock });
+    expect(() =>
+      recordPlanReview(
+        port,
+        "plan-val-1",
+        {
+          validator_token: opened.token,
+          graph_revision: 1,
+          plan_digest: opened.state.plan_validation!.plan_digest,
+          status: "approved",
+          summary: "Sound.",
+          ...fourAnswers,
+          gate_ids_reviewed: [],
+        },
+        clock,
+      ),
+    ).toThrow(/gate_ids_reviewed omits mandatory gates/);
+  });
+
+  test("an approval naming a gate id the plan does not declare is refused", () => {
+    const port = compiledPort();
+    const opened = beginPlanValidation(port, "plan-val-1", { clock });
+    expect(() =>
+      recordPlanReview(
+        port,
+        "plan-val-1",
+        {
+          validator_token: opened.token,
+          graph_revision: 1,
+          plan_digest: opened.state.plan_validation!.plan_digest,
+          status: "approved",
+          summary: "Sound.",
+          ...fourAnswers,
+          gate_ids_reviewed: ["G-1", "G-does-not-exist"],
+        },
+        clock,
+      ),
+    ).toThrow(/gate_ids_reviewed names gates the compiled plan does not declare/);
+  });
+
+  test("an approval omitting a real dependency edge is refused", () => {
+    const port = compiledPortWithDependency();
+    const opened = beginPlanValidation(port, "plan-val-1", { clock });
+    expect(() =>
+      recordPlanReview(
+        port,
+        "plan-val-1",
+        {
+          validator_token: opened.token,
+          graph_revision: 1,
+          plan_digest: opened.state.plan_validation!.plan_digest,
+          status: "approved",
+          summary: "Sound.",
+          ...fourAnswers,
+          gate_ids_reviewed: ["G-1", "G-2"],
+          dependency_edges_reviewed: [],
+        },
+        clock,
+      ),
+    ).toThrow(/dependency_edges_reviewed omits real edges/);
+  });
+
+  test("an approval naming a dependency edge the plan does not declare is refused", () => {
+    const port = compiledPortWithDependency();
+    const opened = beginPlanValidation(port, "plan-val-1", { clock });
+    expect(() =>
+      recordPlanReview(
+        port,
+        "plan-val-1",
+        {
+          validator_token: opened.token,
+          graph_revision: 1,
+          plan_digest: opened.state.plan_validation!.plan_digest,
+          status: "approved",
+          summary: "Sound.",
+          ...fourAnswers,
+          gate_ids_reviewed: ["G-1", "G-2"],
+          dependency_edges_reviewed: [
+            { from: "T-2", to: "T-1" },
+            { from: "T-2", to: "T-does-not-exist" },
+          ],
+        },
+        clock,
+      ),
+    ).toThrow(/dependency_edges_reviewed names edges the compiled plan does not declare/);
+  });
+
+  test("an approval naming exactly the real dependency edges and gates is recorded", () => {
+    const port = compiledPortWithDependency();
+    const opened = beginPlanValidation(port, "plan-val-1", { clock });
+    const state = recordPlanReview(
+      port,
+      "plan-val-1",
+      {
+        validator_token: opened.token,
+        graph_revision: 1,
+        plan_digest: opened.state.plan_validation!.plan_digest,
+        status: "approved",
+        summary: "Sound.",
+        ...fourAnswers,
+        gate_ids_reviewed: ["G-2", "G-1"],
+        dependency_edges_reviewed: [{ from: "T-2", to: "T-1" }],
+      },
+      clock,
+    );
+    expect(state.plan_review?.dependency_edges_reviewed).toEqual([{ from: "T-2", to: "T-1" }]);
+    expect(state.plan_review?.gate_ids_reviewed).toEqual(["G-2", "G-1"]);
+  });
 });
 
 describe("claimTask refuses a rejected plan revision", () => {
@@ -281,6 +420,8 @@ describe("claimTask refuses a rejected plan revision", () => {
         gate_answer: "c",
         straggler_answer: "d",
         findings: [{ id: "PV-1", severity: "critical", observation: "x", remediation: "y" }],
+        dependency_edges_reviewed: [],
+        gate_ids_reviewed: ["G-1"],
         checks: [],
         reviewed_at: clock.now().toISOString(),
         review_sha256: "z",
@@ -306,6 +447,8 @@ describe("claimTask refuses a rejected plan revision", () => {
         gate_answer: "c",
         straggler_answer: "d",
         findings: [{ id: "PV-1", severity: "critical", observation: "x", remediation: "y" }],
+        dependency_edges_reviewed: [],
+        gate_ids_reviewed: ["G-1"],
         checks: [],
         reviewed_at: clock.now().toISOString(),
         review_sha256: "z",
@@ -331,6 +474,8 @@ describe("claimTask refuses a rejected plan revision", () => {
         gate_answer: "c",
         straggler_answer: "d",
         findings: [],
+        dependency_edges_reviewed: [],
+        gate_ids_reviewed: ["G-1"],
         checks: [],
         reviewed_at: clock.now().toISOString(),
         review_sha256: "z",

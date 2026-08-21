@@ -8,6 +8,11 @@ export interface PlanFinding extends JsonObject {
   remediation: string;
 }
 
+export interface PlanDependencyEdge extends JsonObject {
+  from: string;
+  to: string;
+}
+
 export interface PlanValidationAuthorization extends JsonObject {
   validator_id: string;
   token_digest: string;
@@ -33,6 +38,8 @@ export interface PlanReview extends JsonObject {
   gate_answer: string;
   straggler_answer: string;
   findings: PlanFinding[];
+  dependency_edges_reviewed: PlanDependencyEdge[];
+  gate_ids_reviewed: string[];
   checks: { command_id: string }[];
   reviewed_at: string;
   review_sha256: string;

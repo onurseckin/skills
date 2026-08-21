@@ -142,12 +142,15 @@ bun harness.ts plan:review --run .capsules/<slug> --validator plan-val-1 --token
   --dependency-answer "no dependency edges; every task is an independent root" \
   --gate-answer "each gate runs only that task's own scoped test file" \
   --straggler-answer "every task carries the same one-topic effort estimate" \
+  --dependency-edges-reviewed "" \
+  --gate-ids-reviewed "gate-1,gate-2,...,gate-14" \
   --summary "Decomposition matches the prompt; gates are scope-narrow"
 
 bun harness.ts plan:review --run .capsules/<slug> --validator plan-val-1 --token <token> \
   --status changes_requested \
   --decomposition-answer "10 topics compressed into 1 task" --dependency-answer "n/a" \
   --gate-answer "the shared gate cannot fail per-task" --straggler-answer "n/a" \
+  --dependency-edges-reviewed "" --gate-ids-reviewed "gate-1" \
   --summary "Compressed decomposition; see findings" \
   --findings '[{"id":"PV-1","invariant":"A2-parallelism","severity":"critical","observation":"10 distinct topics collapsed into task-domains","remediation":"one task per topic, each with its own scoped gate"}]'
 ```
@@ -169,6 +172,14 @@ never answered them would be a rubber stamp, the exact silence this role exists 
 `severity`, an `observation`, and a `remediation` naming a specific, real defect in the
 decomposition, never a reflexive "round one must be rejected" with nothing concrete behind it; an
 `approved` verdict must carry **no** findings at all.
+
+Prose alone was the entire floor until `--dependency-edges-reviewed` and `--gate-ids-reviewed`
+closed it: every verdict must also name, exactly, the dependency edges and the per-task gate ids the
+compiled plan actually declares (never the run-scoped completion gate, which is not a task gate).
+`recordPlanReview` computes the real edge and gate-id sets from the same projected `tasks`/`gates`
+the digest is built from and refuses the review — before it is recorded — if the named set omits a
+real one or names one that does not exist. A validator can no longer answer "no dependency edges" in
+prose while the graph carries one, or approve without having enumerated a single gate.
 
 ### Binding to an exact plan, and detecting drift underneath it
 

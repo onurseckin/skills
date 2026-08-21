@@ -3,6 +3,7 @@ import { mkdirSync, mkdtempSync, realpathSync, symlinkSync, writeFileSync } from
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { inspectRepository } from "../../../orchestrating-long-tasks/scripts/src/packets/repository-snapshot.ts";
+import type { RepositoryGitCommand } from "../../../orchestrating-long-tasks/scripts/src/packets/repository-git-command.ts";
 
 describe("repository-snapshot", () => {
   test("inspects a non-git directory with instructions and conventions", () => {
@@ -57,15 +58,30 @@ describe("repository-snapshot", () => {
 
   test("inspects real git repository", () => {
     const repo = realpathSync(mkdtempSync(join(tmpdir(), "repo-snap-git-")));
-    Bun.spawnSync(["git", "init", repo]);
-    Bun.spawnSync(["git", "-C", repo, "config", "user.name", "Test"]);
-    Bun.spawnSync(["git", "-C", repo, "config", "user.email", "test@example.com"]);
-
+    mkdirSync(join(repo, ".git"));
     writeFileSync(join(repo, "file.txt"), "hello");
-    Bun.spawnSync(["git", "-C", repo, "add", "file.txt"]);
-    Bun.spawnSync(["git", "-C", repo, "commit", "-m", "init"]);
+    const head = "a".repeat(40);
+    const command: RepositoryGitCommand = (_repo, argv) => {
+      const bytes = (text: string) => Buffer.from(text);
+      switch (argv[0]) {
+        case "status":
+          return { status: 0, bytes: bytes("# branch.oid " + head + "\n") };
+        case "rev-parse":
+          return { status: 0, bytes: bytes(head + "\n") };
+        case "branch":
+          return { status: 0, bytes: bytes("main\n") };
+        case "log":
+          return { status: 0, bytes: bytes("abc1234 init\n") };
+        case "--version":
+          return { status: 0, bytes: bytes("git version 2.42.0\n") };
+        default:
+          throw new Error(`unexpected git invocation: ${argv.join(" ")}`);
+      }
+    };
 
-    const snapshot = inspectRepository(repo, "current", new Date("2026-08-14T00:00:00.000Z"));
+    const snapshot = inspectRepository(repo, "current", new Date("2026-08-14T00:00:00.000Z"), {
+      command,
+    });
     expect(snapshot.git.available).toBe(true);
     if (snapshot.git.available) {
       expect(snapshot.git.head).toMatch(/^[0-9a-f]{40}$/);

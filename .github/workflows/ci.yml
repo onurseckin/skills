@@ -19,8 +19,23 @@ jobs:
         with:
           bun-version: latest
 
-      - name: Run Tests
-        run: bun test orchestrating-long-tasks/scripts/tests
+      - name: Cache Bun install cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
 
       - name: Typecheck
         run: bun run typecheck
+
+      - name: Unit tests
+        run: bun run test
+
+
+      - name: Format check
+        run: bunx oxfmt --check .

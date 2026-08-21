@@ -13,15 +13,11 @@
     "skills"
   ],
   "license": "MIT",
-  "author": "Onur Seçkin Şenoğlu",
+  "author": "Onur Se\u00e7kin \u015eeno\u011flu",
   "type": "module",
   "scripts": {
     "test": "bun test --timeout 30000 --parallel --no-isolate tests/unit",
-    "test:unit": "bun test --timeout 30000 --parallel --no-isolate tests/unit",
-    "test:integration": "bun test --timeout 30000 tests/integration",
-    "test:integrations": "bun test --timeout 30000 tests/integration",
-    "test:all": "bun run test:unit && bun run test:integration",
-    "test:coverage": "bun test --timeout 30000 --coverage tests/unit",
+    "test:coverage": "bun test --timeout 30000 --parallel --no-isolate --coverage tests/unit",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "format": "oxfmt",
     "skill:update": "npx skills update orchestrating-long-tasks -g -y"

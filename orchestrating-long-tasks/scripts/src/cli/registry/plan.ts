@@ -314,7 +314,7 @@ export const PLAN_COMMANDS: readonly CommandSpec[] = [
     domain: "plan",
     summary: "Record the plan-validator's written verdict on the compiled plan.",
     description:
-      "C2: --status approved clears the plan for implementer dispatch; changes_requested is the pushback — it records structured findings (each with id, severity, observation, remediation) and blocks every implementer and repairer claim against this graph revision until a fresh compile passes a new review. The four questions (--decomposition-answer, --dependency-answer, --gate-answer, --straggler-answer) are mandatory on every verdict, pass or reject: a rubber-stamped pass that never answered them is refused. changes_requested requires --findings or --findings-file; approved must carry none.",
+      "C2: --status approved clears the plan for implementer dispatch; changes_requested is the pushback — it records structured findings (each with id, severity, observation, remediation) and blocks every implementer and repairer claim against this graph revision until a fresh compile passes a new review. The four questions (--decomposition-answer, --dependency-answer, --gate-answer, --straggler-answer) are mandatory on every verdict, pass or reject: a rubber-stamped pass that never answered them is refused. Beyond prose, the verdict carries a mechanical floor: --dependency-edges-reviewed must name every dependency edge the compiled plan actually declares (exactly, not a subset) and --gate-ids-reviewed must name every per-task gate id in the plan (never the run-scoped completion gate, which is not a task gate) — omit a real one, or name one that does not exist, and the review is refused before it is recorded. changes_requested requires --findings or --findings-file; approved must carry none.",
     flags: [
       requiredFlag("run", "string", "Capsule run root."),
       requiredFlag("validator", "string", "Plan-validator agent id."),
@@ -352,13 +352,23 @@ export const PLAN_COMMANDS: readonly CommandSpec[] = [
         "string",
         "Comma-separated command ids the validator ran as independent evidence.",
       ),
+      optionalFlag(
+        "dependency-edges-reviewed",
+        "string",
+        'Comma-separated "<from-task>:<to-task>" pairs — must name exactly the dependency edges the compiled plan declares, no more and no fewer. Empty when the plan declares none.',
+      ),
+      optionalFlag(
+        "gate-ids-reviewed",
+        "string",
+        "Comma-separated gate ids — must name exactly the plan's per-task gate ids (never the run-scoped completion gate), no more and no fewer.",
+      ),
     ],
     readsStdin: false,
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
-      'bun harness.ts plan:review --run .capsules/<run-id> --validator plan-val-1 --token <token> --status approved --decomposition-answer "14 tasks match the 14 named topics" --dependency-answer "no dependency edges; every task is an independent root" --gate-answer "each gate runs only that task\'s own scoped test file" --straggler-answer "every task carries the same one-topic effort estimate" --summary "Decomposition matches the prompt; gates are scope-narrow"',
-      'bun harness.ts plan:review --run .capsules/<run-id> --validator plan-val-1 --token <token> --status changes_requested --decomposition-answer "10 topics compressed into 1 task" --dependency-answer "n/a" --gate-answer "the shared gate cannot fail per-task" --straggler-answer "n/a" --summary "Compressed decomposition; see findings" --findings \'[{"id":"PV-1","invariant":"A2-parallelism","severity":"critical","observation":"10 distinct topics collapsed into task-domains","remediation":"one task per topic, each with its own scoped gate"}]\'',
+      'bun harness.ts plan:review --run .capsules/<run-id> --validator plan-val-1 --token <token> --status approved --decomposition-answer "14 tasks match the 14 named topics" --dependency-answer "no dependency edges; every task is an independent root" --gate-answer "each gate runs only that task\'s own scoped test file" --straggler-answer "every task carries the same one-topic effort estimate" --gate-ids-reviewed "gate-1,gate-2,gate-3" --summary "Decomposition matches the prompt; gates are scope-narrow"',
+      'bun harness.ts plan:review --run .capsules/<run-id> --validator plan-val-1 --token <token> --status changes_requested --decomposition-answer "10 topics compressed into 1 task" --dependency-answer "n/a" --gate-answer "the shared gate cannot fail per-task" --straggler-answer "n/a" --gate-ids-reviewed "gate-1" --summary "Compressed decomposition; see findings" --findings \'[{"id":"PV-1","invariant":"A2-parallelism","severity":"critical","observation":"10 distinct topics collapsed into task-domains","remediation":"one task per topic, each with its own scoped gate"}]\'',
     ],
     handler: planReviewCommand,
   },

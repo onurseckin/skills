@@ -80,10 +80,7 @@ export function completionReadinessIssues(state: WorkflowState): string[] {
   } catch {
     issues.push("current repository binding is missing or invalid");
   }
-  const graphRevision =
-    state.graph_revision ??
-    (state as unknown as { graph?: { revision?: number } }).graph?.revision ??
-    state.revision;
+  const graphRevision = state.graph_revision ?? state.revision;
   if (!Number.isSafeInteger(graphRevision) || Number(graphRevision) < 1)
     issues.push("graph revision is invalid");
   for (const command of Object.values(state.commands))
@@ -103,11 +100,7 @@ export function completionReadinessIssues(state: WorkflowState): string[] {
     if (requirement.evidence.length === 0)
       issues.push(`requirement ${requirement.id} has no evidence`);
   }
-  const runGates = (
-    state.gates ??
-    (state as unknown as { graph?: { gates?: typeof state.gates } }).graph?.gates ??
-    []
-  ).filter((gate) => gate.scope === "run" && gate.mandatory);
+  const runGates = state.gates.filter((gate) => gate.scope === "run" && gate.mandatory);
   if (runGates.length === 0) issues.push("run has no mandatory run gate");
   for (const gate of runGates) {
     const command = Object.values(state.commands).find(

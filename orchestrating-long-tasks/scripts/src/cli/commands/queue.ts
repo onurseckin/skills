@@ -44,7 +44,7 @@ export function queueNextCommand(flags: Flags): Record<string, unknown> {
   }
 
   const highest = readyTasks[0]!;
-  const gates = mandatoryGateCommands(loaded.state as unknown as WorkflowState, highest);
+  const gates = mandatoryGateCommands(workflowPort(run).read(), highest);
 
   const markdown = formatQueueNextBrief({
     taskId: highest.id,
@@ -187,7 +187,7 @@ export async function queuePopCommand(flags: Flags): Promise<Record<string, unkn
     deadlineMinutes: Math.round(lease.duration_seconds / 60),
     expiresAt: lease.expires_at,
     writeScope: task.write_scope,
-    gates: mandatoryGateCommands(result.state as unknown as WorkflowState, task),
+    gates: mandatoryGateCommands(result.state, task),
   });
 
   return {

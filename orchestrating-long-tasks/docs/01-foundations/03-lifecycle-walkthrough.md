@@ -117,7 +117,8 @@ exactly what each of the six invariants looks for.
 bun harness.ts plan:validate-start --run .capsules/<slug> --validator plan-val-1
 bun harness.ts plan:review --run .capsules/<slug> --validator plan-val-1 --token <token> \
   --status approved --decomposition-answer "..." --dependency-answer "..." \
-  --gate-answer "..." --straggler-answer "..." --summary "<verdict>"
+  --gate-answer "..." --straggler-answer "..." \
+  --dependency-edges-reviewed "..." --gate-ids-reviewed "..." --summary "<verdict>"
 ```
 
 The structural audit in Stage 4 is mechanical — it can only check what a static heuristic can see.

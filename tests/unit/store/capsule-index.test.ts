@@ -336,6 +336,30 @@ describe("indexFreshness", () => {
     writeFileSync(join(root, "captures.json"), JSON.stringify({ captures: [] }));
     expect(indexFreshness(root, index)).toBe("stale");
   });
+
+  test("stays current when captures.json is rewritten with different key order and spacing but the same content", () => {
+    const root = scratchRoot();
+    const state = baseState({ event_sequence: 0, event_head: null });
+    writeFileSync(join(root, "state.json"), JSON.stringify(state));
+    const ledger = {
+      schema: "harness.captures",
+      version: 1,
+      captures: [],
+      updated_at: "2026-01-01T00:00:00.000Z",
+    };
+    writeFileSync(join(root, "captures.json"), JSON.stringify(ledger, null, 2));
+    const index = buildIndex(root, state, "run");
+    writeFileSync(
+      join(root, "captures.json"),
+      JSON.stringify({
+        updated_at: ledger.updated_at,
+        captures: ledger.captures,
+        version: ledger.version,
+        schema: ledger.schema,
+      }),
+    );
+    expect(indexFreshness(root, index)).toBe("current");
+  });
 });
 
 describe("refreshIndex", () => {

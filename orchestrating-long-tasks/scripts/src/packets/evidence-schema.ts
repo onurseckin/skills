@@ -134,6 +134,13 @@ const planValidatorReview: JsonObject = {
   dependency_answer: "<is every dependency edge justified by a real read/write relationship>",
   gate_answer: "<can each gate actually fail if its task does nothing>",
   straggler_answer: "<will any task's scope make one agent straggle while the rest idle>",
+  dependency_edges_reviewed: [
+    {
+      from: "<depending task id — exactly every edge the compiled plan declares, or empty if none>",
+      to: "<dependency task id>",
+    },
+  ],
+  gate_ids_reviewed: ["<exactly every per-task gate id the compiled plan declares>"],
   findings: [
     {
       id: "<stable finding id>",

@@ -361,6 +361,7 @@ bun harness.ts plan:review --run .capsules/slugger --validator plan-val-1 --toke
   --dependency-answer "no dependency edges; both tasks are independent roots" \
   --gate-answer "each gate runs only that task's own scoped test file, which fails on an unimplemented src/" \
   --straggler-answer "both tasks carry one helper each; no effort estimate suggests a straggler" \
+  --dependency-edges-reviewed "" --gate-ids-reviewed "gate-slug,gate-truncate" \
   --summary "Decomposition matches the two named helpers; both gates are scope-narrow and independent."
 ```
 
@@ -368,6 +369,7 @@ bun harness.ts plan:review --run .capsules/slugger --validator plan-val-1 --toke
 ### Plan Validation Approved: .capsules/slugger (Graph Revision 1)
 - **Validator**: `plan-val-1`
 - **Summary**: Decomposition matches the two named helpers; both gates are scope-narrow and independent.
+- **Coverage**: 0 dependency edge(s) and 2 gate(s) named, verified against the compiled plan.
 - **Dispatch**: implementers and repairers may now claim tasks under this graph revision.
 - **Next Step**: proceed to Phase 2 continuous dispatch.
 ```
@@ -385,6 +387,7 @@ bun harness.ts plan:review --run .capsules/audit-demo --validator plan-val-1 --t
   --dependency-answer "n/a, no dependency edges" \
   --gate-answer "the gate runs the whole repo typecheck, which the coordinator overrode via --accept-audit rather than fixing" \
   --straggler-answer "n/a, single task" \
+  --dependency-edges-reviewed "" --gate-ids-reviewed "gate-widget" \
   --summary "Gate breadth override was accepted without narrowing the gate; still not falsifiable evidence this task's own work is what's proven." \
   --findings '[{"id":"PV-1","invariant":"A6-whole-suite-gate","severity":"important","observation":"task-widget gate bun run typecheck still runs the whole repository even after the audit override","remediation":"narrow the gate to a command scoped to src/widget.ts, or prove falsifiability with gate:prove before accepting the override"}]'
 ```
@@ -393,6 +396,7 @@ bun harness.ts plan:review --run .capsules/audit-demo --validator plan-val-1 --t
 ### Plan Validation Rejected: .capsules/audit-demo (Graph Revision 1)
 - **Validator**: `plan-val-1`
 - **Summary**: Gate breadth override was accepted without narrowing the gate; still not falsifiable evidence this task's own work is what's proven.
+- **Coverage**: 0 dependency edge(s) and 1 gate(s) named, verified against the compiled plan.
 - **Findings**: 1 — every implementer and repairer claim against graph revision 1 is refused until a fresh compile passes plan:review.
 - **Next Step**: replan (plan:add / plan:compile) and dispatch a fresh plan-validator against the new revision.
 ```

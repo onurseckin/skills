@@ -197,7 +197,7 @@ function buildReports(runRoot: string | undefined): RunReportFacts[] | undefined
 }
 
 function redactedEvent(event: HarnessEvent): JsonObject {
-  const { projection: _projection, ...rest } = event;
+  const { projection: _projection, projection_patch: _projectionPatch, ...rest } = event;
   return rest;
 }
 

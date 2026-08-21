@@ -77,7 +77,7 @@ describe("gates and completion", () => {
     expect(error.code).toBe("INVALID_STATE");
     expect(error.message).toContain("open attempt 1 by agent-a (implementer)");
     expect(error.message).toContain("submit it, run recoverStale to reclaim an expired lease");
-    expect(error.message).toContain("call abandonAttempt to close it explicitly");
+    expect(error.message).toContain("run task:abandon to close it explicitly");
     expect(dirty.read().tasks["T-1"]!.status).toBe("gating");
   });
 

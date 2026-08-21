@@ -35,7 +35,7 @@ export function assertAttemptsClosed(task: TaskRecord, verb: string): void {
   throw new HarnessError(
     "INVALID_STATE",
     `task ${task.id} has an open ${describeAttempt(open)} that was never submitted or ` +
-      `abandoned; submit it, run recoverStale to reclaim an expired lease, or call ` +
-      `abandonAttempt to close it explicitly before the task can ${verb}`,
+      `abandoned; submit it, run recoverStale to reclaim an expired lease, or run ` +
+      `task:abandon to close it explicitly before the task can ${verb}`,
   );
 }

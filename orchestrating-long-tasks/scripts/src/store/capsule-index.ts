@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import type { Manifest, RunState } from "../contracts/capsule.ts";
@@ -6,7 +5,8 @@ import type { JsonObject, JsonValue } from "../contracts/json.ts";
 import { atomicWriteBytes } from "../core/durable-write.ts";
 import { HarnessError } from "../errors/harness-error.ts";
 import { listBlobs } from "./blobs.ts";
-import { capturesPath, readCaptures, type CaptureKind } from "./captures.ts";
+import { capturesPath, readCaptures, type CaptureKind, CAPTURES_FILE } from "./captures.ts";
+import { contentDigest } from "./content-normalization/index.ts";
 import { runFilePath } from "./paths.ts";
 
 const INDEX_FILE = "index.json";
@@ -248,9 +248,7 @@ function indexReports(runRoot: string, taskIds: readonly string[]): IndexReport[
 
 function captureLedgerDigest(runRoot: string): string | null {
   try {
-    return createHash("sha256")
-      .update(readFileSync(capturesPath(runRoot)))
-      .digest("hex");
+    return contentDigest(readFileSync(capturesPath(runRoot)), CAPTURES_FILE).sha256;
   } catch {
     return null;
   }

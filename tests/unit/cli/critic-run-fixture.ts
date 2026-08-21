@@ -1,4 +1,5 @@
 import { expect } from "bun:test";
+import { execFileSync } from "node:child_process";
 import { readFileSync, realpathSync } from "node:fs";
 import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -13,11 +14,27 @@ export async function setupReadyRun(name: string, roots: string[]) {
   await writeFile(promptPath, "Single task run");
   await mkdir(join(repo, "tests/t1"), { recursive: true });
   await mkdir(join(repo, "tests"), { recursive: true });
-  await writeFile(join(repo, "gate-t1.ts"), "console.log('gate-t1');\n");
+  // C3b: gate:prove reverts task-1's write scope back to the sha task:claim recorded as its base
+  // and reruns the compiled gate there, so the gate has to actually notice a reversion instead of
+  // printing a fixed line unconditionally. `tests/t1/impl.ts` (seeded further down, only after the
+  // baseline commit below, so it is not part of it) is what the task's own work produces; reverting
+  // task-1's scope to the baseline makes that file disappear and the gate genuinely fail.
+  await writeFile(
+    join(repo, "gate-t1.ts"),
+    "const fs = require('node:fs');\n" +
+      "if (!fs.existsSync('tests/t1/impl.ts')) { console.error('tests/t1/impl.ts is missing'); process.exit(1); }\n" +
+      "console.log('gate-t1');\n",
+  );
   await writeFile(
     join(repo, "tests/run.test.ts"),
     "import { test } from 'bun:test'; test('all', () => {});\n",
   );
+  await writeFile(join(repo, ".gitignore"), ".capsules/\n");
+  execFileSync("git", ["init", "-q"], { cwd: repo });
+  execFileSync("git", ["config", "user.email", "fixture@example.invalid"], { cwd: repo });
+  execFileSync("git", ["config", "user.name", "fixture"], { cwd: repo });
+  execFileSync("git", ["add", "-A"], { cwd: repo });
+  execFileSync("git", ["commit", "-qm", "baseline"], { cwd: repo });
 
   const init = await execute([
     "plan:init",
@@ -143,6 +160,8 @@ export async function setupReadyRun(name: string, roots: string[]) {
     "--demand",
     "Prove the gate exercises the changed branch",
   ]);
+
+  await execute(["gate:prove", "--run", run, "--task", "task-1", "--actor", "coordinator"]);
 
   await execute([
     "task:review",

@@ -233,8 +233,9 @@ Consumer (gvui):
 
 ## 10. Compatibility and verification
 
-- Existing capsules must keep loading. All new state keys are optional; all new graph fields are
-  additive; gvui reads new canonical fields with a tolerant fallback to the legacy ones.
+- No backward compatibility (B4, owner decision): there is no versioning system, no dual-mode
+  reader, no legacy fallback. The code always reads and writes the current shape; old capsules are
+  disposable and get regenerated, not adapted.
 - `events.jsonl` is an append-only hash chain: payload enrichment is forward-only, never backfilled.
 - Regenerate the shipped gvui fixture dataset at the end so it exercises the new schema.
 - Gates: `bun run typecheck` and `bun test tests/unit` in skills; `bun x tsc -b` and `bun test src/`

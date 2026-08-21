@@ -2,7 +2,10 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { CommandRecord } from "../../../orchestrating-long-tasks/scripts/src/contracts/commands.ts";
-import type { TimelineEventRecord } from "../../../orchestrating-long-tasks/scripts/src/summary/types.ts";
+import type {
+  GraphDataset,
+  TimelineEventRecord,
+} from "../../../orchestrating-long-tasks/scripts/src/summary/types.ts";
 import { cleanupRoots, emptyState, metrics, render, task, tempRoot } from "./markdown-fixtures.ts";
 
 afterEach(cleanupRoots);
@@ -160,5 +163,40 @@ describe("markdown report: the critic's own capsule integrity checks render as a
       `| event_log | verified | \`${"h".repeat(64)}\` | gap: sequence 4 to 6 missing |`,
     );
     expect(section).toContain("| manifest | unknown | `unknown` | none |");
+  });
+});
+
+describe("markdown report: a file's Git observation reaches the report end to end (B15.2)", () => {
+  test("a node's file carries statusCode/sha256 from graph.json into the Files Changed detail block", () => {
+    const graph: GraphDataset = {
+      id: "g",
+      title: "g",
+      nodes: [
+        {
+          id: "node-task-task-a",
+          name: "task-a",
+          files: [
+            {
+              path: "src/a.ts",
+              mode: "write",
+              statusCode: "M",
+              sha256: "e".repeat(64),
+              evidence_class: "harness_observed",
+            },
+          ],
+        },
+      ],
+      edges: [],
+    };
+    const markdown = render(
+      { ...emptyState, tasks: { "task-a": task({ id: "task-a", status: "done" }) } },
+      { graph },
+    );
+    const filesSection = markdown.slice(
+      markdown.indexOf("## 11. Files Changed"),
+      markdown.indexOf("## 12. Scripts And Commands"),
+    );
+    expect(filesSection).toContain("- **Git status**: `M`");
+    expect(filesSection).toContain(`- **Content hash**: \`${"e".repeat(64)}\``);
   });
 });

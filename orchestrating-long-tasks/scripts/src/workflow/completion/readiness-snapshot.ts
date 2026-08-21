@@ -48,11 +48,7 @@ export function completionReadinessSnapshot(
     graph_revision: state.graph_revision ?? null,
     tasks: sortedValues(Object.values(state.tasks)),
     requirements: sortedValues(state.requirements),
-    gates: sortedValues(
-      state.gates ??
-        (state as unknown as { graph?: { gates?: typeof state.gates } }).graph?.gates ??
-        [],
-    ),
+    gates: sortedValues(state.gates),
     commands,
     packets,
     orphan_evidence: state.orphan_evidence,
@@ -81,11 +77,7 @@ export function commandIsSuccessfulGate(
   taskId: string | null,
 ): boolean {
   const command = commandId ? state.commands[commandId] : undefined;
-  const gates =
-    state.gates ??
-    (state as unknown as { graph?: { gates?: typeof state.gates } }).graph?.gates ??
-    [];
-  const gate = gates.find((entry) => entry.id === gateId);
+  const gate = state.gates.find((entry) => entry.id === gateId);
   return Boolean(
     command &&
     gate &&

@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { execute } from "../../../orchestrating-long-tasks/scripts/src/cli/execute.ts";
+import { seedGateProof } from "./probe-fixture.ts";
 
 export function createMockScreenshot(
   dir: string,
@@ -166,6 +167,11 @@ export async function advanceRunToCritic(
   const { valToken } = await submitAndStartValidation({ run, repo, taskId, worker, validator });
   const gateCmd = await runGateExec(run, repo, taskId, validator);
   const demands = await recordMandatoryProbe(run, taskId, validator, valToken);
+  // C3b: a passing review now requires a recorded falsifiable gate:prove proof for the task's
+  // compiled task-scope gate. This fixture's repo is a plain temp directory, not a real Git
+  // repository (see probe-fixture.ts's seedGateProof for why), so the real `gate:prove` CLI cannot
+  // run against it — seed the same gate_proofs record it would have appended instead.
+  seedGateProof(run, taskId);
   await execute([
     "task:review",
     "--run",

@@ -32,6 +32,28 @@ function readFindingsFile(path: string): string {
   }
 }
 
+function commaSeparated(raw: string | undefined): string[] {
+  return raw === undefined || raw.trim() === ""
+    ? []
+    : raw
+        .split(",")
+        .map((entry) => entry.trim())
+        .filter(Boolean);
+}
+
+function readDependencyEdgesReviewed(raw: string | undefined): { from: string; to: string }[] {
+  return commaSeparated(raw).map((pair) => {
+    const sep = pair.indexOf(":");
+    if (sep <= 0 || sep === pair.length - 1) {
+      throw new HarnessError(
+        "INVALID_ARGUMENT",
+        `--dependency-edges-reviewed entries must be "<from>:<to>", got "${pair}"`,
+      );
+    }
+    return { from: pair.slice(0, sep).trim(), to: pair.slice(sep + 1).trim() };
+  });
+}
+
 export async function planValidateStartCommand(flags: Flags): Promise<Record<string, unknown>> {
   const run = textFlag(flags, "run")!;
   const validator = textFlag(flags, "validator")!;
@@ -104,14 +126,11 @@ export async function planReviewCommand(flags: Flags): Promise<Record<string, un
     );
   }
   const findings = status === "approved" ? [] : readFindingsInput(findingsRaw, findingsFile);
-  const checks = textFlag(flags, "checks", false);
-  const checkIds =
-    checks === undefined || checks.trim() === ""
-      ? []
-      : checks
-          .split(",")
-          .map((id) => id.trim())
-          .filter(Boolean);
+  const checkIds = commaSeparated(textFlag(flags, "checks", false));
+  const dependencyEdgesReviewed = readDependencyEdgesReviewed(
+    textFlag(flags, "dependency-edges-reviewed", false),
+  );
+  const gateIdsReviewed = commaSeparated(textFlag(flags, "gate-ids-reviewed", false));
 
   const state0 = workflowPort(run).read();
   const assignment = state0.plan_validation;
@@ -131,6 +150,8 @@ export async function planReviewCommand(flags: Flags): Promise<Record<string, un
     straggler_answer: stragglerAnswer,
     findings,
     checks: checkIds,
+    dependency_edges_reviewed: dependencyEdgesReviewed,
+    gate_ids_reviewed: gateIdsReviewed,
     ...(packet ? { packet_id: packet.id, packet_sha256: packet.packet_sha256 } : {}),
   };
 
@@ -147,6 +168,8 @@ export async function planReviewCommand(flags: Flags): Promise<Record<string, un
     graphRevision: review.graph_revision,
     findingsCount: review.findings.length,
     summary: review.summary,
+    dependencyEdgesReviewed: review.dependency_edges_reviewed.length,
+    gateIdsReviewed: review.gate_ids_reviewed.length,
   });
 
   return {

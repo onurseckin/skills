@@ -45,7 +45,16 @@ export async function worktreeCapsule(
   git(repo, ["config", "user.email", "harness@example.test"]);
   git(repo, ["config", "user.name", "Harness Test"]);
   await writeFile(join(repo, ".gitignore"), ".capsules/\nprompt.txt\nharness.config.json\n");
-  await writeFile(join(repo, "prompt.txt"), "Build the thing.\nCover the thing with tests.\n");
+  // The requirements compiler (C3b sibling: it now refuses to fold a task with no prompt line of
+  // its own into another task's requirement) binds each task positionally to its own non-blank
+  // prompt line unless a caller declares --requirement-lines. addTask never declares one, so the
+  // prompt needs at least as many non-blank lines as the largest task count any worktree test adds
+  // to one capsule; a handful of spare generic lines keeps that true without every caller having to
+  // know the compiler's binding rule.
+  await writeFile(
+    join(repo, "prompt.txt"),
+    "Build the thing.\nCover the thing with tests.\nHandle the edge cases.\nWire up the remaining pieces.\nDocument the behavior.\nClean up after the change.\n",
+  );
   await writeFile(join(repo, "one.txt"), "one\n");
   await writeFile(join(repo, "two.txt"), "two\n");
   git(repo, ["add", ".gitignore", "one.txt", "two.txt"]);

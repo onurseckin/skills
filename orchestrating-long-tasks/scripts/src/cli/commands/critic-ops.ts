@@ -146,9 +146,7 @@ export async function criticReviewCommand(flags: Flags): Promise<Record<string, 
 
     const proofs = parseRawProofs(proofsRaw, proofsFile);
 
-    const graphRev =
-      state.graph_revision ??
-      (state as unknown as { graph?: { revision?: number } }).graph?.revision;
+    const graphRev = state.graph_revision;
 
     const packet = assignment.packet_id ? state.packets?.[assignment.packet_id] : undefined;
 

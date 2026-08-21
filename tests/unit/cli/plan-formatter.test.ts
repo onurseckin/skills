@@ -346,11 +346,14 @@ describe("formatPlanReviewBrief", () => {
       graphRevision: 2,
       findingsCount: 0,
       summary: "matches the prompt",
+      dependencyEdgesReviewed: 1,
+      gateIdsReviewed: 2,
     });
 
     expect(brief).toContain("### Plan Validation Approved: run-1 (Graph Revision 2)");
     expect(brief).toContain("implementers and repairers may now claim tasks");
     expect(brief).toContain("proceed to Phase 2 continuous dispatch.");
+    expect(brief).toContain("**Coverage**: 1 dependency edge(s) and 2 gate(s) named");
   });
 
   test("changes requested blocks every claim against this revision until a fresh compile", () => {
@@ -361,6 +364,8 @@ describe("formatPlanReviewBrief", () => {
       graphRevision: 2,
       findingsCount: 3,
       summary: "dependency edge unjustified",
+      dependencyEdgesReviewed: 0,
+      gateIdsReviewed: 1,
     });
 
     expect(brief).toContain("### Plan Validation Rejected: run-1 (Graph Revision 2)");

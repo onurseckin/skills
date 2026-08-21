@@ -55,13 +55,31 @@ export interface BuiltRun {
 export async function buildRunReportCapsule(): Promise<BuiltRun> {
   const repo = mkdtempSync(join(tmpdir(), "harness-b6-"));
   mkdirSync(join(repo, "src"), { recursive: true });
-  writeFileSync(join(repo, "gate.ts"), "console.log('gate ok');\n");
+  // C3b: gate:prove reverts a task's write scope back to the sha task:claim recorded as its base
+  // and reruns the compiled gate there. `gate.ts` has to actually notice that reversion instead of
+  // printing 'gate ok' unconditionally, or a passing review could never carry a genuine falsifiable
+  // proof: each task's declared file only exists because that task's own work wrote it (seeded
+  // below, after the baseline commit, so none of them are part of it), so reverting the scope back
+  // to the baseline makes the named file disappear and the gate genuinely fail.
+  writeFileSync(
+    join(repo, "gate.ts"),
+    [
+      "const fs = require('node:fs');",
+      "const target = { alpha: 'src/alpha/parser.ts', beta: 'src/beta/index.ts', gamma: 'src/alpha/gamma/index.ts' }[process.argv[2]];",
+      "if (target && !fs.existsSync(target)) { console.error(target + ' is missing'); process.exit(1); }",
+      "console.log('gate ok');",
+    ].join("\n"),
+  );
   writeFileSync(join(repo, ".gitignore"), ".capsules/\n");
   writeFileSync(
     join(repo, "prompt.txt"),
     "Build the alpha subsystem.\nBuild the beta subsystem.\nWire gamma onto alpha.\n",
   );
   Bun.spawnSync(["git", "init", "-q"], { cwd: repo });
+  Bun.spawnSync(["git", "config", "user.email", "fixture@example.invalid"], { cwd: repo });
+  Bun.spawnSync(["git", "config", "user.name", "fixture"], { cwd: repo });
+  Bun.spawnSync(["git", "add", "-A"], { cwd: repo });
+  Bun.spawnSync(["git", "commit", "-qm", "baseline"], { cwd: repo });
 
   const init = await cli("plan:init", {
     repo,
@@ -276,6 +294,7 @@ export async function buildRunReportCapsule(): Promise<BuiltRun> {
     token: alphaValidation,
     demand: "Prove the lexer rejects an empty payload",
   });
+  await cli("gate:prove", { run, task: "task-alpha", actor: "coordinator-1" });
   await cli("task:review", {
     run,
     task: "task-alpha",
@@ -360,6 +379,7 @@ export async function buildRunReportCapsule(): Promise<BuiltRun> {
     token: betaRevalidation,
     demand: "Prove the insert rejects an empty payload",
   });
+  await cli("gate:prove", { run, task: "task-beta", actor: "coordinator-1" });
   await cli("task:review", {
     run,
     task: "task-beta",
@@ -419,6 +439,7 @@ export async function buildRunReportCapsule(): Promise<BuiltRun> {
     token: gammaValidation,
     demand: "Prove gamma fails when alpha is reverted",
   });
+  await cli("gate:prove", { run, task: "task-gamma", actor: "coordinator-1" });
   await cli("task:review", {
     run,
     task: "task-gamma",

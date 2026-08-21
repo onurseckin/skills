@@ -117,4 +117,39 @@ describe("fileProvenanceDetails (B15.2 why and diff)", () => {
     expect(lines).not.toContain("src/bare.ts");
     expect(lines).toContain("src/a.ts");
   });
+
+  test("a branch-observed file with neither rationale nor diff still earns a block for its Git status and hash", () => {
+    const entry: AttributedFileRef = {
+      reportedBy: "branch-1",
+      file: { path: "src/moved.ts", statusCode: "M", sha256: "f".repeat(64) },
+    };
+    const lines = fileProvenanceDetails([entry]).join("\n");
+    expect(lines).toContain("#### `src/moved.ts` (branch-1)");
+    expect(lines).toContain("- **Why**: unknown");
+    expect(lines).toContain(`- **Git status**: \`M\``);
+    expect(lines).toContain(`- **Content hash**: \`${"f".repeat(64)}\``);
+  });
+
+  test("a deleted path's null hash says no content was observed, never unknown or a fabricated digest", () => {
+    const entry: AttributedFileRef = {
+      reportedBy: "branch-1",
+      file: { path: "src/gone.ts", statusCode: "D", sha256: null },
+    };
+    const lines = fileProvenanceDetails([entry]).join("\n");
+    expect(lines).toContain("- **Git status**: `D`");
+    expect(lines).toContain(
+      "- **Content hash**: no content to hash — the path carries no readable file at this status",
+    );
+    expect(lines).not.toContain("**Content hash**: unknown");
+  });
+
+  test("a status code with no hash field at all renders the hash as unknown, not blank", () => {
+    const entry: AttributedFileRef = {
+      reportedBy: "branch-1",
+      file: { path: "src/partial.ts", statusCode: "A" },
+    };
+    const lines = fileProvenanceDetails([entry]).join("\n");
+    expect(lines).toContain("- **Git status**: `A`");
+    expect(lines).toContain("- **Content hash**: unknown");
+  });
 });
