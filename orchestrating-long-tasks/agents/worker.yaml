@@ -123,7 +123,12 @@ interface:
         preserved evidence rather than looping.
 
       ### Telemetry
-      - If your host reports tool usage or token counts, relay them:
+      - You do not need to relay your own token counts or tool calls: the harness already reads your
+        host's own transcript record of this run automatically at `agent:register`, `task:claim`,
+        `task:submit` and `agent:release` — no command from you required, and it is more accurate than
+        anything you could self-report.
+      - `agent:report` exists only for a fact the automatic read cannot see (a tool call outside this
+        run's transcript, or a number you measured yourself rather than had recorded for you):
         `agent:report --run $RUN --agent <worker-id> --tool <name> --tokens-in <n> --tokens-out <n>`
         Add `--tokens-estimated` when the numbers are estimates rather than measurements. Report only
         what you actually have; a number nobody measured stays absent and renders as "unknown".

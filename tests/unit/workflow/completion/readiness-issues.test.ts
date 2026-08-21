@@ -1,5 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { completionReadinessIssues } from "../../../../orchestrating-long-tasks/scripts/src/workflow/completion/readiness-issues.ts";
+import { BRANCH_LEDGER_KEY } from "../../../../orchestrating-long-tasks/scripts/src/workflow/branch/ledger.ts";
+import { branchRecord } from "../branch/fixture.ts";
 import { workflowState } from "../test-port.ts";
 
 describe("completionReadinessIssues: requirements shapes beyond a plain array", () => {
@@ -26,6 +28,18 @@ describe("completionReadinessIssues: repository binding validity", () => {
     delete state.current_repository_binding;
     expect(completionReadinessIssues(state)).toContain(
       "current repository binding is missing or invalid",
+    );
+  });
+});
+
+describe("completionReadinessIssues: transition summary chain (B21.2)", () => {
+  test("refuses completion readiness when a collected branch has no recorded outcome summary", () => {
+    const state = workflowState();
+    (state as unknown as Record<string, unknown>)[BRANCH_LEDGER_KEY] = [
+      branchRecord({ status: "collected" }),
+    ];
+    expect(completionReadinessIssues(state)).toContain(
+      "branch B-1 is collected with no recorded outcome summary",
     );
   });
 });

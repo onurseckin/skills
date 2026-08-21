@@ -10,6 +10,7 @@ import { validationForDomain } from "../review/validation-state.ts";
 import { authoritativeRepositoryCommand } from "./repository-evidence.ts";
 import { commandIsSuccessfulGate } from "./readiness-snapshot.ts";
 import { currentRepositoryBinding } from "./repository-binding.ts";
+import { transitionSummaryIssues } from "./transition-summary-issues.ts";
 
 function extractRequirements(state: WorkflowState): readonly RequirementRuntime[] {
   const raw = state.requirements as unknown;
@@ -119,6 +120,7 @@ export function completionReadinessIssues(state: WorkflowState): string[] {
   }
   issues.push(...orphanEvidenceIssues(state));
   issues.push(...openBranchIssues(state));
+  issues.push(...transitionSummaryIssues(state));
   for (const id of Object.values(state.commands)
     .filter((entry) => entry.task_id === null && entry.gate_id === null)
     .map(({ id }) => id))
