@@ -3,3 +3,5 @@ docs/
 documentation/
 *.log
 .DS_Store
+.capsules
+.capsules/

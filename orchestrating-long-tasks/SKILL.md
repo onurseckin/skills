@@ -75,7 +75,7 @@ Every agent holds exactly one role; `roles/<role>.md` is its binding contract. L
 
 Command sequences: [`references/run-playbook.md`](references/run-playbook.md); rules: [`references/protocol.md`](references/protocol.md).
 - **Plan**: `plan:init`, `plan:enhance`, `plan:add` (use `--auto-partition <glob>`, [`references/topology-exemplar.md`](references/topology-exemplar.md)), `plan:compile`, [`references/schema-examples.md`](references/schema-examples.md).
-- **Dispatch**: `queue:wave`, `agent:register`, [`references/host-adapters.md`](references/host-adapters.md).
+- **Dispatch**: `queue:wave`, `agent:register`, [`references/host-adapters.md`](references/host-adapters.md) (main-thread isolation, per-host dispatch).
 - **Execute**: `task:claim`, `run:exec`, `task:submit`, `task:release`, [`references/parity-matrix.md`](references/parity-matrix.md).
 - **Branch**: `branch:open`, `branch:claim`, `branch:submit`, `branch:collect`, [`references/state-model.md`](references/state-model.md).
 - **Validate**: `task:validate-start`, `task:probe`, `task:reject`, `task:review`, [`references/failure-modes.md`](references/failure-modes.md).

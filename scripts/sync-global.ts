@@ -32,8 +32,18 @@ for (const entry of ENTRIES) {
   const srcPath = join(SOURCE, entry);
   const dstPath = join(TARGET, entry);
   if (existsSync(srcPath)) {
-    cpSync(srcPath, dstPath, { recursive: true });
+    cpSync(srcPath, dstPath, {
+      recursive: true,
+      filter: (src) => !src.includes(".capsules"),
+    });
   }
 }
 
+// Clean up any stale nested .capsules if present in target
+const nestedTargetCapsules = join(TARGET, "scripts", ".capsules");
+if (existsSync(nestedTargetCapsules)) {
+  rmSync(nestedTargetCapsules, { recursive: true, force: true });
+}
+
 console.log("✓ Global skill sync complete: ~/.agents/skills/orchestrating-long-tasks is up to date and isolated from working tree edits.");
+

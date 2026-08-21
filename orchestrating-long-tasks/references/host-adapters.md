@@ -193,3 +193,38 @@ Never emit a command the host cannot execute. A confusing failure is worse than 
    Tier 1 orchestrator runs the same `recover`/`doctor` pair against that round's capsule and
    re-dispatches a fresh coordinator against it. It never absorbs the round's remaining work into its
    own thread while it waits.
+
+---
+
+## 5. Anti-Patterns & Operational Guardrails
+
+Every host adapter implementation must enforce the following guardrails:
+
+### 5.1 Main-Thread Execution Fallback & Parallel Batching
+- **Anti-Pattern**: Coordinator or Orchestrator attempting to edit code, write fixes, or run task tests directly in the main interactive chat thread.
+- **Guardrail**: Main thread acts solely as a wake-up dispatcher. Tier 2 Coordinators must dispatch Tier 3 Implementers and Validators via host-native subagent tools (`invoke_subagent` in Antigravity, `Agent` in Claude Code, `spawn_agent` in Codex). When ready tasks exist, dispatch the full wave in a single tool call array (`Subagents: [...]`) rather than serializing dispatches across turns.
+
+### 5.2 4-Tier Multi-Viewport Resolution Matrix
+- **Anti-Pattern**: Visual UI reviews testing only mobile viewports or omitting desktop-wide displays.
+- **Guardrail**: Visual surfaces must be evaluated against all four classified viewports:
+  - `Desktop-Wide`: 1920x1080 (16:9 widescreen layout, large data tables, multi-column navigation)
+  - `Desktop`: 1440x900 (standard desktop layout, sidebars, expanded dialogs)
+  - `Tablet`: 768x1024 (adaptive navigation, portrait/landscape split)
+  - `Mobile`: 390x844 (stacked single-column layout, bottom sheets, >= 44x44px touch targets)
+  Single-viewport reviews or omitting Desktop-Wide 1920x1080 are grounds for mandatory validation rejection.
+
+### 5.3 Quantitative Proof Mandates & Anti-Boilerplate Verification
+- **Anti-Pattern**: Validators approving tasks with superficial prose praise ("Code looks good") without live commands or DOM measurements.
+- **Guardrail**: Task reviews must carry authoritative command exit codes (0), stdout snapshots, APCA lightness contrast (`Lc >= 60` body, `Lc >= 45` large text), exact bounding client rects, and screenshot files (>= 1024 bytes). Under `--require-semantic-depth`, boilerplate or unmeasured reviews are rejected.
+
+### 5.4 Resilient Schedulers, Watchdog Protocols & Floor Loops
+- **Anti-Pattern**: Schedulers terminating when hitting an idle tick or requiring human intervention between execution phases.
+- **Guardrail**: Maintain continuous non-stop autonomous loops:
+  - Register background cron schedules (`schedule` tool with `CronExpression="*/5 * * * *"`, systemd timers).
+  - Use shell floor loop drivers (`pulse.sh`) with error isolation (`|| true`) to ensure crashed pulses do not terminate the loop.
+  - Automatically chain subsequent phases upon completion without halting for user confirmation.
+
+### 5.5 Repository Root Capsule Resolution Protocol
+- **Anti-Pattern**: Writing `.capsules` into subdirectories (e.g. `scripts/.capsules`) when invoked from a nested directory.
+- **Guardrail**: All harness storage MUST resolve to `<repo-root>/.capsules/` at the active local Git repository root.
+

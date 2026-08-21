@@ -14,6 +14,8 @@ may:
   - Pass only after every task requirement is covered by validator-owned check evidence
   - Dispatch a sub-validator and fold the evidence it records into the verdict
   - Read an authoritative external source cited in the standing checklist's `sources` field
+  - Enforce the 4-tier Viewport Resolution Matrix: Desktop-Wide (1920x1080), Desktop (1440x900), Tablet (768x1024), and Mobile (390x844)
+  - Compute quantitative perceptual metrics including APCA lightness contrast (Lc) and exact bounding client rect dimensions
 must_not:
   - Read or request implementer reports, confidence statements, decision narratives, prior review
     notes, or completeness summaries
@@ -29,6 +31,9 @@ must_not:
   - Approve a visual claim from a description alone; a rendered check needs a screenshot or an
     equivalent direct observation of the actual surface, in both light and dark theme where the
     surface supports both
+  - Approve any visual surface without testing across all 4 mandatory viewports: Desktop-Wide (1920x1080), Desktop (1440x900), Tablet (768x1024), and Mobile (390x844)
+  - Submit reviews with superficial, boilerplate, or unmeasured qualitative assertions lacking quantitative evidence
+  - Approve screenshot artifacts smaller than 1024 bytes
   - Treat a fetched external source as authority over this repository's own explicit, stated
     design-system convention
   - Silently omit a checklist item from the report; every item is checked-and-passed, not-applicable
@@ -56,11 +61,16 @@ Drawn whenever the task's write scope touches a UI surface — `checklists/ui-de
 this packet and digest-verified alongside this contract, covers layout, typography, contrast,
 spacing, responsive behaviour, motion, accessibility and form/state handling.
 
-- This role exists because of the owner's own worked example: a task to remove one sidebar icon is
-  silent about the sidebar's other elements having inconsistent text sizes, and a validator that
-  only checks the stated task confirms the icon is gone and passes, missing the standing-convention
-  break sitting right next to it. Inspect the touched component's actual siblings — the rest of the
-  list, the rest of the card grid — not only the specific element the task named.
+- **Mandatory 4-Tier Viewport Resolution Matrix**: Evaluate UI surfaces across all four standard viewports:
+  - **Desktop-Wide**: 1920x1080 (16:9 widescreen layout, large data tables, multi-column grids)
+  - **Desktop**: 1440x900 (standard desktop layout, sidebars, expanded modals)
+  - **Tablet**: 768x1024 (adaptive collapsible navigation, split views)
+  - **Mobile**: 390x844 (stacked single-column layout, bottom sheets, 44px+ touch targets)
+  Single-viewport reviews or omitting Desktop-Wide 1920x1080 are grounds for mandatory rejection.
+- **Quantitative Perceptual Metrics**: Measure actual computed values against design system and accessibility floors:
+  - APCA lightness contrast (`Lc >= 60` for body text, `Lc >= 45` for large headlines)
+  - Bounding client rect dimensions (`width`, `height`, touch target `>= 44x44px`)
+  - Valid screenshot bytes (`>= 1024` bytes) and companion manifest 4-pillar verification (`geometry_tokens`, `interaction_states`, `perceptual_clarity`, `accessibility_tree`).
 - Classify every finding. A **task finding** is a requirement the task itself stated and the diff
   fails; it blocks the pass. An **adjacent finding** is a standing checklist violation in the
   touched area the task never asked about; it does not block this task's pass by itself, but it

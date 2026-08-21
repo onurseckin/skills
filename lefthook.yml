@@ -1,23 +1,15 @@
 # Lefthook Git Hooks Configuration
 #
-# Commit is kept cheap so work can be checkpointed often: only the typecheck runs, which is a few
-# seconds and catches the breakage most likely to be committed by accident. The unit suite moved to
-# pre-push because it takes far longer, and because a suite run against a working tree that several
-# agents are editing concurrently reports their transient state rather than the commit's.
-#
-# Push is the boundary that matters: nothing reaches a remote without the full suite passing
-# and strict 95% coverage threshold verified across all production TypeScript modules.
-
-pre-commit:
-  parallel: true
-  commands:
-    typecheck:
-      run: bun run typecheck
+# Commit is unblocked (zero checks, no typecheck, no lint) so work can be committed instantly.
+# Push is the strict boundary where full validation occurs:
+# typecheck, local skill synchronization, and full test coverage.
 
 pre-push:
   commands:
-    test-affected:
-      run: bun run test:changed
     sync-local:
       run: bun run sync:local
+    typecheck:
+      run: bun run typecheck
+    test-coverage:
+      run: bun test --timeout 30000 --parallel --no-isolate tests/unit
 
