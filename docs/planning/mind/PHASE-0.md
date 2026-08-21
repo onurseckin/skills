@@ -5,7 +5,7 @@
 Repair the four defects that would make every later phase's evidence unreliable, and resolve the
 coverage gate, so that Phase 1 builds on a harness whose monitor does not lie.
 
-Phase 0 is not Consciousness. It ships no `mind:*` command and no role. It is the difference between
+Phase 0 is not the mind. It ships no `mind:*` command and no role. It is the difference between
 building on rock and building on the `--watch` bug.
 
 ## 2. Preconditions

@@ -4,7 +4,7 @@
 
 Let the mind cause code to be written — **without ever writing any**, and without collapsing a tier.
 
-Consciousness deploys a tier-1 orchestrator for one admitted candidate; the orchestrator deploys a
+The mind deploys a tier-1 orchestrator for one admitted candidate; the orchestrator deploys a
 tier-2 coordinator; the coordinator runs the existing pipeline. Every skip is a refusal.
 
 ## 2. Preconditions
@@ -67,14 +67,14 @@ unresolved findings, asserted against the chainer's own output.
 
 ### W4.3 — Deployment, and the tier rule
 
-**Files:** `roles/consciousness.md` (upgrade from observe-only), `mind/deploy.ts` (new).
+**Files:** `roles/mind.md` (upgrade from observe-only), `mind/deploy.ts` (new).
 
 Grant `spawns: [orchestrator]` and the deployment commands. The rule that makes the hierarchy real
 rather than decorative:
 
 > **A tier may deploy only the tier directly beneath it.**
 
-Consciousness never dispatches an implementer. If it wants code written it deploys an orchestrator,
+The mind never dispatches an implementer. If it wants code written it deploys an orchestrator,
 which deploys a coordinator, which pairs an implementer with a validator. Every skip is a refusal,
 enforced by the `spawns:` list in the role contract.
 
@@ -95,7 +95,7 @@ already stamps `role_contract_sha256`:
 | `profile`            | agent_reported   | abstract profile name only — never a model name|
 | `prohibitions`       | harness_observed | the charter's never-unattended list, verbatim  |
 
-**Acceptance:** a test that a consciousness grant may not register an implementer, a validator, a
+**Acceptance:** a test that a mind grant may not register an implementer, a validator, a
 planner or a coordinator; a test that an orchestrator grant may not register an implementer; a test
 that the packet contains no model name, tier or thinking level.
 
@@ -109,7 +109,7 @@ Per D9 and `PLAN.md` §10: role → **abstract profile** in the skill; profile �
 **owner file** the skill does not contain; the harness records what was actually reported.
 
 ```
-consciousness → deliberate     implementer      → default
+mind → deliberate     implementer      → default
 orchestrator  → deliberate     validator/critic → adversarial
 coordinator   → default        sub-investigator → cheap_bulk
 planner       → deliberate
@@ -164,13 +164,13 @@ has **never yet achieved in a real run**:
 | :--------------------------------------------------------- | :--------------------------------------------------------- |
 | Overwriting the shipped `roles/orchestrator.md`            | Commit `8318e5d`'s prose disappears from the diff          |
 | Building `orchestrator:run`'s executor                     | Host dispatch code inside `scripts/src/` — see D8          |
-| Consciousness dispatching a coordinator "just this once"   | A `spawns` list with more than one entry                   |
+| The mind dispatching a coordinator "just this once"   | A `spawns` list with more than one entry                   |
 | An objective statement edited between rounds               | Convergence claimed for a goal nobody set                  |
 | A model name appearing in a packet                         | The grep test fails — and the ledger becomes a fiction     |
 | Declaring done without checking file mtimes                | The forensic failure, reproduced exactly                   |
 
 ## 7. Rollback
 
-Revert `spawns` to `[]` in `roles/consciousness.md` and the mind falls back to a Phase 3 system:
+Revert `spawns` to `[]` in `roles/mind.md` and the mind falls back to a Phase 3 system:
 discovery and proposals, no deployment. Round capsules already created are ordinary capsules and are
 sealed or abandoned through the existing commands.

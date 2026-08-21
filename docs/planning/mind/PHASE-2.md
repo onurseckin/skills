@@ -12,7 +12,7 @@ take, and an escalation digest a human reads at breakfast.
 
 ```sh
 bun run typecheck && bun run test && bun run test:coverage    # 0
-bun harness.ts mind:wake --run .capsules/mind-1               # a real brief, under 2 KB
+bun harness.ts mind:wake --run .capsules/mind-gen-1               # a real brief, under 2 KB
 ```
 
 And the Phase 1 overnight experiment passed all five bars, with the result written into

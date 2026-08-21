@@ -1,4 +1,4 @@
-# CONSCIOUSNESS — a self-orchestrating role system driven by an external pulse
+# MIND — a self-orchestrating role system driven by an external pulse
 
 **Status:** design plan. No code written. Every claim about what exists was checked by opening the
 file or running the command; every claim about what should exist is marked as a proposal and carries
@@ -80,7 +80,7 @@ the thing the re-entrant design deliberately avoided. Fix it for honesty; do not
 `store/constants.ts:limits()` caps a capsule at **100,000 events** and **256 MiB** of event log, and
 `store/event-append.ts:45-46` throws `INVALID_STATE` when the count is exceeded. At a conservative
 20 events per pulse and a 15-minute pulse — 96 pulses a day, 1,920 events a day — a single
-consciousness capsule hits the ceiling in **about 52 days**.
+mind capsule hits the ceiling in **about 52 days**.
 
 "Timeless" therefore cannot mean one infinite capsule. It has to mean **generational rotation**: a
 mind capsule is sealed and chained to a successor that carries forward the charter digest, the open
@@ -106,7 +106,7 @@ it rather than inventing a second one.
 
 ### 1.1 The concept
 
-CONSCIOUSNESS is a **role, a capsule shape, and a pulse protocol** — not a daemon, not a new engine,
+MIND is a **role, a capsule shape, and a pulse protocol** — not a daemon, not a new engine,
 and not a process that stays alive.
 
 The harness never calls a model. It never will: that is invariant 6 in `SKILL.md`. So an "always
@@ -118,13 +118,13 @@ reaches the same answer a continuously-running process would have."
 
 So:
 
-> **Consciousness is the discipline that makes an arbitrary number of disconnected wake-ups behave
+> **the mind is the discipline that makes an arbitrary number of disconnected wake-ups behave
 > like one continuous mind.** The continuity lives in the capsule, not in a process. The scheduler
 > supplies time. The host supplies thought. The harness supplies memory, refusal and evidence.
 
 Four tiers, each of which may only deploy the tier below it:
 
-- **Tier 0 — Consciousness.** One per repository, long-lived, never edits a file. Owns the charter
+- **Tier 0 — the mind.** One per repository, long-lived, never edits a file. Owns the charter
   binding, the pulse ledger, the candidate ledger, budgets and the escalation channel. Decides
   _whether there is anything worth doing_ and _what kind of thing it is_.
 - **Tier 1 — Orchestrator.** One per objective. Owns a chain of rounds against one objective; never
@@ -137,7 +137,7 @@ Four tiers, each of which may only deploy the tier below it:
 
 Stating this precisely is most of the value of the document.
 
-- **It is not a running process.** Nothing stays resident. Between pulses there is no Consciousness,
+- **It is not a running process.** Nothing stays resident. Between pulses there is no the mind,
   only a capsule. Anything that must survive a pulse boundary is written down, or it does not exist.
 - **It is not a scheduler.** It does not implement time. It consumes wake-ups from whatever the host
   can offer, and its only scheduling responsibility is to _arm the next one before it stops_.
@@ -151,7 +151,7 @@ Stating this precisely is most of the value of the document.
   is on the never-unattended list (§11.3), because a system that can rewrite its own guard rails has
   no guard rails.
 - **It is not a substitute for CI, tests or review.** It is a consumer of those signals. If the gates
-  are weak, Consciousness will faithfully certify weak work, faster and more often. §12 exists
+  are weak, the mind will faithfully certify weak work, faster and more often. §12 exists
   because of this.
 - **It is not free.** Every pulse costs tokens whether or not it does anything. §11 is the answer to
   "what stops it from burning money at 3 a.m. producing busywork" and it is the section most likely
@@ -173,7 +173,7 @@ Everything in this section was opened. This is the inventory the design is allow
 
 ### 2.1 Correct, load-bearing, and reusable as-is
 
-| Mechanism                       | Where                                                | Why it matters to Consciousness                                                                                                                                      |
+| Mechanism                       | Where                                                | Why it matters to the mind                                                                                                                                      |
 | :------------------------------ | :--------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Re-entrant supervision tick     | `orchestrator/supervision-tick.ts`                   | The pulse's recovery half. Pure function of state + clock; safe to call from cron.                                                                                   |
 | Single-tick-without-dispatcher  | `orchestrator/supervisor.ts:233-234`                 | `dispatcher === undefined` → `stopReason: "single_tick"`. The externally driven mode already exists.                                                                 |
@@ -182,7 +182,7 @@ Everything in this section was opened. This is the inventory the design is allow
 | Failure classifier              | `orchestrator/failure-classifier.ts`                 | `rate_limit`/`network`/`provider_5xx`/`timeout` transient and unbounded in count, bounded in elapsed time (4 h default). Exponential backoff with jitter.            |
 | Morning report                  | `orchestrator/morning-report.ts`                     | Completed / escalated / awaiting-repair / dead-agents-reclaimed / retries / run span / backoff / occupancy. Verified rendering against a real capsule.               |
 | Revision guard                  | `graph/revision-guard.ts`                            | Frozen requirement contract, mutable interior; revision must increase by exactly one. The shape §8 copies one level up.                                              |
-| Role-contract command authority | `packets/command-authority.ts` + `cli/execute.ts:29` | The CLI refuses a command the acting agent's role contract does not list. **This is the rail Consciousness extends.**                                                |
+| Role-contract command authority | `packets/command-authority.ts` + `cli/execute.ts:29` | The CLI refuses a command the acting agent's role contract does not list. **This is the rail the mind extends.**                                                |
 | Evidence spine                  | `references/protocol.md:23-36`                       | `harness_observed` / `agent_reported` / `host_reported` / `derived` / `unknown`. Absent stays absent.                                                                |
 | Per-agent telemetry ledger      | `contracts/agents.ts:AgentGrantRecord`               | `model`, `model_tier`, `thinking_level`, `context_window`, `tokens_in/out` — each `Evidenced<T>`. The substrate for §10.                                             |
 | Host capability probe           | `summary/host-telemetry.ts:HostCapabilities`         | `nesting_depth`, `concurrency_ceiling`, `native_workspace_isolation`, `native_resume`, `per_agent_model_selection`, `multi_agent_enabled`.                           |
@@ -258,8 +258,8 @@ routine, or the container in §5.3.
       ═══════════════════ charter sha256, pinned in the mind manifest ═════════════
                                          │
    external driver                ┌──────▼─────────────────────────┐
-   cron │ systemd │ routine ─fire─►  TIER 0   CONSCIOUSNESS        │  one per repo
-   Monitor │ shell while          │  .capsules/mind-<gen>/         │  long-lived
+   cron │ systemd │ routine ─fire─►  TIER 0   MIND                 │  one per repo
+   Monitor │ shell while          │  .capsules/mind-gen-<n>/       │  long-lived
         ◄──────────arm───────────  │  never edits a repository file │  never dispatches tier 3
                                   └──────┬─────────────────────────┘
                                          │  0..N per pulse, one per objective
@@ -286,11 +286,11 @@ routine, or the container in §5.3.
                       └──────────────────────┘      └──────────────────────────┘
 
    also deployed by tier 2, unchanged:  planner · plan-validator · repairer · completeness-critic
-   deployed by tier 0 on its own cadence: consciousness-auditor  (see §12.2)
+   deployed by tier 0 on its own cadence: mind-auditor  (see §12.2)
 ```
 
 **The rule that makes the hierarchy real rather than decorative:** _a tier may deploy only the tier
-directly beneath it._ Consciousness never dispatches an implementer. If it wants code written it
+directly beneath it._ The mind never dispatches an implementer. If it wants code written it
 deploys an orchestrator, which deploys a coordinator, which pairs an implementer with a validator.
 Every skip is a refusal, enforced by the `spawns:` list in the role contract.
 
@@ -304,10 +304,10 @@ Same frontmatter schema as the fifteen that exist (`role`, `tier`, `may`, `must_
 `spawns`), because `packets/role-contract.ts` parses that shape and `packets/command-authority.ts`
 enforces the `commands` list at `cli/execute.ts:29`.
 
-#### `roles/consciousness.md` (new, tier 0)
+#### `roles/mind.md` (new, tier 0)
 
 ```yaml
-role: consciousness
+role: mind
 tier: 0
 may:
   - Open, verify and rotate the mind capsule, and pin the charter digest into its manifest
@@ -363,11 +363,11 @@ commands:
   - agent:release
 spawns:
   - orchestrator
-  - consciousness-auditor
+  - mind-auditor
 ```
 
 Note what is deliberately absent: every `plan:*`, every `task:*`, `run:exec`, `run:complete`,
-`critic:*`, `queue:pop`, `authority:decide`. Consciousness cannot plan, cannot execute a gate,
+`critic:*`, `queue:pop`, `authority:decide`. The mind cannot plan, cannot execute a gate,
 cannot seal a run, and — critically — **cannot grant its own authority requests**. `authority:decide`
 belongs to the owner alone.
 
@@ -419,14 +419,14 @@ The tier 1 contract exists so that `roles/coordinator.md` can stop saying _"This
 drivers: the tier 2 coordinator that owns one run, and the tier 1 loop runner that chains runs."_
 One document describing two roles is precisely how a weak model ends up doing the wrong one.
 
-#### `roles/consciousness-auditor.md` (new, tier 1)
+#### `roles/mind-auditor.md` (new, tier 1)
 
 Symmetric to `completeness-critic`, one level up. Reads the pulse ledger, the candidate ledger and
-the repository; never reads Consciousness's own narrative. Full contract in §12.2.
+the repository; never reads the mind's own narrative. Full contract in §12.2.
 
 ### 3.3 Where the scheduler lives — and why it is not an agent
 
-The brief says: _"When Consciousness deploys orchestrators it should also deploy a scheduler, or give
+The brief says: _"When the mind deploys orchestrators it should also deploy a scheduler, or give
 specific scheduler responsibilities to the orchestrators."_
 
 **The scheduler is not an agent.** Spending a model call to decide "wait 15 minutes" is the most
@@ -454,7 +454,7 @@ recording either the next round it opened or why the chain ended.
 
 Nothing new. `packets/render-packet.ts` already stamps `role_contract_sha256` into a published
 packet, so a tier-0 or tier-1 packet is the existing mechanism with a new contract file. What
-Consciousness adds to a tier-1 packet:
+The mind adds to a tier-1 packet:
 
 | Field                | Class              | Source                                                  |
 | :------------------- | :----------------- | :------------------------------------------------------ |
@@ -600,7 +600,7 @@ The seam itself is one file the driver executes and one command the pulse begins
   driver  ──►  scripts/pulse.sh <mind-capsule>   ──►  host invokes the tier-0 agent
                      │                                        │
                      │ 1. acquire the pulse lock (flock)      │  the agent's FIRST action:
-                     │ 2. refuse if a pulse is open & alive   │  bun harness.ts mind:wake --mind <c>
+                     │ 2. refuse if a pulse is open & alive   │  bun harness.ts mind:wake --run <c>
                      │ 3. hand the host the wake brief        │  … then ONE lane … then
                      │ 4. release the lock on exit, always    │  bun harness.ts mind:pulse-close …
 ```
@@ -638,9 +638,9 @@ The case the owner cares most about: a Hetzner box, no CLI host, running forever
 ```
   ┌────────────────────────────────────────────────────────────────────────┐
   │  systemd                                                               │
-  │   ├── consciousness.timer     OnUnitInactiveSec=15min, Persistent=yes  │
-  │   └── consciousness.service   Type=oneshot                             │
-  │         ExecStart=/opt/mind/pulse.sh /srv/repo/.capsules/mind-1        │
+  │   ├── mind.timer     OnUnitInactiveSec=15min, Persistent=yes           │
+  │   └── mind.service   Type=oneshot                                      │
+  │         ExecStart=/opt/mind/pulse.sh /srv/repo/.capsules/mind-gen-1    │
   │         TimeoutStartSec=<pulse deadline + slack>                       │
   │         Restart=no          ← a failed pulse must NOT hot-loop         │
   └───────────────────────────┬────────────────────────────────────────────┘
@@ -648,14 +648,14 @@ The case the owner cares most about: a Hetzner box, no CLI host, running forever
   ┌────────────────────────────────────────────────────────────────────────┐
   │  pulse.sh                                                              │
   │   flock -n /srv/repo/.capsules/.locks/mind.pulse  || exit 0            │
-  │   bun harness.ts mind:wake --mind $MIND  > $BRIEF                      │
+  │   bun harness.ts mind:wake --run $MIND  > $BRIEF                       │
   │   <host CLI> --non-interactive --prompt-file $BRIEF                    │
   │   trap 'bun harness.ts mind:pulse-close --outcome unarmed …' EXIT      │
   └───────────────────────────┬────────────────────────────────────────────┘
                               ▼
   ┌────────────────────────────────────────────────────────────────────────┐
   │  liveness, for something OUTSIDE the box to check                      │
-  │   .capsules/mind-1/last_pulse.json   { at, outcome, next_wake_at }     │
+  │   .capsules/mind-gen-1/last_pulse.json   { at, outcome, next_wake_at } │
   │   a 20-line uptime check reads it; stale ⇒ page the owner              │
   └────────────────────────────────────────────────────────────────────────┘
 ```
@@ -679,7 +679,7 @@ Three container-specific facts, one of them measured here:
 **The honest floor.** The minimum viable driver on a machine with nothing installed is:
 
 ```sh
-while :; do /opt/mind/pulse.sh /srv/repo/.capsules/mind-1 || true; sleep 900; done
+while :; do /opt/mind/pulse.sh /srv/repo/.capsules/mind-gen-1 || true; sleep 900; done
 ```
 
 run under any supervisor that restarts it (systemd, tmux + a restart wrapper, `supervisord`). It
@@ -693,7 +693,7 @@ From the measured race in §0.3, the rules are:
 
 1. **One pulse per mind capsule at a time**, enforced by `flock -n` in `pulse.sh` — a second driver
    exits 0 immediately rather than queueing, so a slow pulse never accumulates a backlog.
-2. **One writer per run capsule at a time.** If Consciousness runs a supervision tick against a run
+2. **One writer per run capsule at a time.** If the mind runs a supervision tick against a run
    whose coordinator is live, they race. So: a tick is only taken against a run with **no live
    coordinator grant** — which `agent:list` answers — or when the coordinator's grant has expired.
 3. **`INTEGRITY` + `STATE_PROJECTION` is retryable exactly once**, then reported. Every other
@@ -708,7 +708,7 @@ From the measured race in §0.3, the rules are:
 ### 6.1 One command, three tiers of depth
 
 ```
-bun harness.ts mind:wake --mind .capsules/mind-1
+bun harness.ts mind:wake --run .capsules/mind-gen-1
 ```
 
 Read-only. No mutation, no lock beyond a shared read. It is the only thing a pulse is _required_ to
@@ -734,8 +734,8 @@ HEALTH    intent-drift 35 · unused-code 2 · unenforced 4        (last run 41m 
 
 LANE      rescue          (rescue | repair | advance | discover | quiesce)
 NEXT      bun harness.ts orchestrator:supervise --run .capsules/gvui-auth-hardening \
-            --actor consciousness-1
-THEN      bun harness.ts mind:pulse-close --mind .capsules/mind-1 --outcome rescued \
+            --actor mind-1
+THEN      bun harness.ts mind:pulse-close --run .capsules/mind-gen-1 --outcome rescued \
             --witness <command-id> --arm 15m
 ```
 
@@ -834,7 +834,7 @@ Each is a real command in this repository today.
 **Deliberately not a source: the model's own idea.** Novelty has exactly one door (§7.4).
 
 Note the anti-circularity property, which is failure mode 6 answered directly: sources 1 and 10
-compare code against **owner-written documents Consciousness cannot edit**. `health/intent.ts`
+compare code against **owner-written documents the mind cannot edit**. `health/intent.ts`
 already parses backticked tokens out of headings in intent documents and checks whether each named
 command, identifier and path exists in production and in tests. Requirements are not derived from the
 plan; they are derived from a document with a different author. That is what makes "every requirement
@@ -891,7 +891,7 @@ it redefine the product:
 
 This reuses `authority:decide` and the `needs_authority` disposition exactly as built, including
 `nextActions`'s existing line: _"requirement X is paused for an authority decision and no registry
-command records one; every task bound to it stays undispatched."_ Consciousness is not granted
+command records one; every task bound to it stays undispatched."_ the mind is not granted
 `authority:decide`. It cannot approve its own ideas. That is the whole design.
 
 **A cap on proposals.** At most **one open proposal per N pulses** (charter-configured, suggested 24
@@ -912,7 +912,7 @@ Consequences of quiescence:
 
 - The wake interval **multiplies** (suggested ×1.5, capped at the charter's `max_interval`, suggested
   4 hours). Consecutive quiescence is cheap by construction.
-- After K consecutive quiescent pulses (suggested 8), Consciousness sends **one** digest — not a
+- After K consecutive quiescent pulses (suggested 8), the mind sends **one** digest — not a
   page — saying "the repository has been clean for K pulses; here is what I check". Then it keeps
   going at the capped interval.
 - The interval **resets to the charter's base** the moment any source returns non-empty.
@@ -934,7 +934,7 @@ Naming the failures makes the rules checkable.
 | Re-proposing last night's declined idea    | Gate 6 remembers declines                                                                      |
 | Fixing the same drift finding twice        | Gate 6 duplicate-scope check                                                                   |
 | A dozen shallow tasks to look productive   | One lane per pulse; round budget in the packet                                                 |
-| Rewriting the goal to match what it did    | The charter guard (§8); Consciousness holds no write on the charter                            |
+| Rewriting the goal to match what it did    | The charter guard (§8); the mind holds no write on the charter                            |
 | "≥5 validator pushbacks" quota-filled work | **No prompt anywhere states a target count.** §12.4                                            |
 | Churning a file to make the mtime move     | `task:submit`'s C4 no-op refusal                                                               |
 
@@ -945,7 +945,7 @@ Naming the failures makes the rules checkable.
 ### 8.1 What it is
 
 One owner-written file at a charter path named in the mind manifest — suggested
-`docs/consciousness/CHARTER.md`. It is the answer to _"what does this application actually want"_, and
+`docs/mind/CHARTER.md`. It is the answer to _"what does this application actually want"_, and
 it is the only thing standing between an infinite loop and a redefined product.
 
 ```
@@ -991,14 +991,14 @@ Enforcement, in the order it fires:
    an explicit command that records who changed what and why.
 3. **`mind:admit` gate 2** requires a cited goal id that exists in the pinned charter. A candidate
    citing a goal that is not there is refused with the list of goals that _are_.
-4. **Consciousness holds no command that writes the charter**, and its `must_not` says so. Since
+4. **The mind holds no command that writes the charter**, and its `must_not` says so. Since
    `assertGrantedCommand` refuses out-of-contract commands at the CLI door, this is a rail for every
    harness path — but note the honest limit in §11.4: it is not a rail for a shell.
 
 ### 8.3 Why the halt is right, and what it costs
 
 A charter change is the one event where "keep going" is unambiguously wrong. If the owner edited it,
-Consciousness must re-read a _different_ document than the one it has been serving, and no automatic
+The mind must re-read a _different_ document than the one it has been serving, and no automatic
 reconciliation is safe. If something _else_ edited it, that is a security event.
 
 The cost is real and should be stated: **the owner will trip this by editing the charter and
@@ -1045,7 +1045,7 @@ Every rung is an existing command except where marked NEW.
    │                                                doctor:repair --run … then     │
    │                                                escalate if still failing      │
    └──────────────────────────────────────────────────────────────────────────────┘
-   ┌── 1 ── per live run: orchestrator:supervise --run <r> --actor consciousness ──┐
+   ┌── 1 ── per live run: orchestrator:supervise --run <r> --actor mind ──┐
    │        reclaims expired leases · escalates deterministic dead ends ·          │
    │        surfaces changes_requested · returns the morning report                │
    └──────────────────────────────────────────────────────────────────────────────┘
@@ -1133,7 +1133,7 @@ reconcile in one move:
    │               ── exists today in summary/host-telemetry.ts               │
    ├─────────────────────────────────────────────────────────────────────────┤
    │ 2. RESOLVE    role → abstract profile      (in the skill, no names)      │
-   │                 consciousness      → deliberate                          │
+   │                 mind               → deliberate                          │
    │                 orchestrator       → deliberate                          │
    │                 coordinator        → default                             │
    │                 planner            → deliberate                          │
@@ -1142,7 +1142,7 @@ reconcile in one move:
    │                 sub-investigator   → cheap_bulk                          │
    ├─────────────────────────────────────────────────────────────────────────┤
    │ 3. BIND       profile → concrete           (owner file, never the skill) │
-   │                 consciousness.profiles.json, e.g.                        │
+   │                 mind.profiles.json, e.g.                                 │
    │                 { "adversarial": { "effort": "<value the host accepts>" } }
    │               UNBOUND PROFILE ⇒ INHERIT ⇒ recorded as `unknown`          │
    ├─────────────────────────────────────────────────────────────────────────┤
@@ -1283,7 +1283,7 @@ require a prohibition to be lifted; any finding whose remediation is "change the
 
 **The CLI door constrains harness commands. It does not constrain a shell.**
 
-`assertGrantedCommand` refuses `plan:compile` from a consciousness grant. It cannot refuse
+`assertGrantedCommand` refuses `plan:compile` from a mind grant. It cannot refuse
 `rm -rf /`, because that is not a harness command. A tier-3 agent with a Bash tool can do anything the
 OS user can do, and this is true today for every existing role too.
 
@@ -1303,12 +1303,12 @@ capability it does not have. That single decision is worth more than every prohi
 
 ---
 
-## 12. How Consciousness itself is validated
+## 12. How the mind itself is validated
 
 ### 12.1 The tautology, one level up
 
 Failure mode 6 says: if the plan generates the requirements, "every requirement is covered" proves
-nothing. One level up: if Consciousness generates its own objectives and grades its own outcomes,
+nothing. One level up: if the mind generates its own objectives and grades its own outcomes,
 "the system is healthy" proves nothing.
 
 Five independent checks, in increasing cost.
@@ -1320,24 +1320,24 @@ mismatch halts. §8.
 
 **2. `intent-drift` compares code to owner documents.** `health/intent.ts` parses backticked tokens
 from headings in intent documents and checks each named command, identifier and path against
-production and test sources. Consciousness cannot edit those documents. This is a mechanical oracle
+production and test sources. The mind cannot edit those documents. This is a mechanical oracle
 with an external author — the single most valuable existing property for this section.
 
-**3. The `consciousness-auditor` — a critic for the mind.** Tier 1, dispatched by Consciousness but
+**3. The `mind-auditor` — a critic for the mind.** Tier 1, dispatched by the mind but
 structurally independent, on a cadence the charter sets (suggested: every 24 h or every 50 pulses,
 whichever first).
 
 ```yaml
-role: consciousness-auditor
+role: mind-auditor
 tier: 1
 may:
   - Read the pulse ledger, the candidate ledger, every capsule, and the repository
   - Run its own independent commands against the repository
   - Re-run the admission test against candidates that were already admitted
   - Record findings that block, or approve with an explicit residual-risk list
-  - Halt Consciousness
+  - Halt the mind
 must_not:
-  - Read Consciousness's own narrative, rationale prose, or self-assessment
+  - Read the mind's own narrative, rationale prose, or self-assessment
   - Audit a period in which it acted as orchestrator, coordinator, implementer or validator
   - Approve while any pulse in the window is unaccounted for
   - Edit any repository file, the charter, or any ledger
@@ -1386,7 +1386,7 @@ has already started.
 
 ### 12.3 What is deliberately not a validation
 
-- **Consciousness's own summary of its night.** It is `agent_reported` and proves nothing.
+- **The mind's own summary of its night.** It is `agent_reported` and proves nothing.
 - **Pulse count, agents deployed, commands run, tokens spent.** Activity is not value; §11.2 exists
   precisely to keep these out of the numerator.
 - **"All gates green."** Green from one lane is failure mode 8. The charter's `stability` block must
@@ -1417,7 +1417,7 @@ common answer, and the design must make it comfortable to give.
 | Surface `nextActions` from `run:status` (`CHANNEL.md` R6)                                             | 1 implementer + 1 validator | `run:status` on a mid-flight capsule returns the argv `handoff.md` returns                                                                                            |
 | Refresh `handoff.md` after `task:submit` and after a supervision tick                                 | same pair                   | Submit a task, assert `handoff.md` mtime and content moved                                                                                                            |
 
-Phase 0 is not Consciousness. It is the difference between building on rock and building on the
+Phase 0 is not the mind. It is the difference between building on rock and building on the
 `--watch` bug.
 
 ### 13.1 Phase 1 — Pulse Zero: the cheapest thing that proves the idea
@@ -1429,7 +1429,7 @@ Deliverables:
 - `CHARTER.md` for this repository, written by the owner.
 - `mind:init`, `mind:wake`, `mind:pulse-open`, `mind:pulse-close` — four commands, reusing the
   existing store (events, projection, flock, integrity) so crash-safety and `doctor` come free.
-- `roles/consciousness.md`, in the **observe-only** variant: `commands` limited to the four above
+- `roles/mind.md`, in the **observe-only** variant: `commands` limited to the four above
   plus the read-only diagnostics. No `spawns`.
 - `scripts/pulse.sh` — lock, invoke, trap, release. Under 40 lines. Every construct dry-run on the
   target machine first.
@@ -1486,7 +1486,7 @@ Validation, and this is the phase whose validation matters most:
 
 - `roles/orchestrator.md`; split the dual-role paragraph out of `roles/coordinator.md`.
 - `mind:round-open` / `mind:round-close`, built on `chainCapsules`.
-- Consciousness deploys a tier-1 orchestrator for one admitted candidate; the orchestrator deploys a
+- The mind deploys a tier-1 orchestrator for one admitted candidate; the orchestrator deploys a
   coordinator; the coordinator runs the existing pipeline.
 - The arming rail at tier 1 (a round may not close without a successor or a reason).
 
@@ -1502,7 +1502,7 @@ a pulse closes it and chains the next. Slower per round, and it survives everyth
 
 ### 13.5 Phase 5 — audit and economics
 
-- `consciousness-auditor` role and `mind:audit-start` / `mind:audit-report`.
+- `mind-auditor` role and `mind:audit-start` / `mind:audit-report`.
 - Value-per-pulse accounting and the throttle.
 - Budget refusals.
 - The owner digest, including "What I would have done without asking".
@@ -1517,7 +1517,7 @@ not been tested; this is `gate:prove`'s logic applied to the auditor itself.
 
 - systemd timer + service, `Persistent=yes`, `Restart=no` on the pulse.
 - Persistent volume for `.capsules/`, and a backup, because `.capsules/` is gitignored.
-- Mind capsule rotation at the event ceiling (§0.2), using `chainCapsules`.
+- The mind capsule rotation at the event ceiling (§0.2), using `chainCapsules`.
 - A clone with **no push remote** (§11.4).
 - External liveness: something off-box reads `last_pulse.json` and pages if it is stale.
 
@@ -1562,9 +1562,9 @@ Stated plainly, including the ones I could not resolve.
 ### 14.1 Unresolved
 
 1. **Command namespace.** `mind:*` is short — which matters, because a weak model retypes these
-   constantly — but the system is called CONSCIOUSNESS and `consciousness:*` is the consistent name.
+   constantly — but the system is called MIND and `mind:*` is the consistent name.
    I chose `mind:` for typing cost and flagged it; **the owner should decide.**
-2. **Where the mind capsule lives.** `.capsules/mind-<gen>/` reuses everything but is gitignored, so
+2. **Where the mind capsule lives.** `.capsules/mind-gen-<n>/` reuses everything but is gitignored, so
    it does not travel and is not backed up. A `.mind/` directory that _is_ committed would travel and
    would give the owner a diffable history of the mind's decisions — at the cost of committing a
    growing event log to git. Unresolved; it depends on whether the owner wants the mind's history in
@@ -1575,7 +1575,7 @@ Stated plainly, including the ones I could not resolve.
    have not designed one.
 4. **What exactly counts as "the app is stable"?** I made it the charter's `stability` block — a list
    of commands and expected exits — but who writes that list for a repository nobody has instrumented?
-   The first honest answer for many repos is "there is no such list yet", and Consciousness's first
+   The first honest answer for many repos is "there is no such list yet", and the mind's first
    proposal should probably be to create one.
 5. **Should a quiescent mind ever propose spontaneously?** §7.4 caps proposals. But a mind that only
    ever proposes when a source fires will never propose anything genuinely new, since novelty by
@@ -1601,7 +1601,7 @@ Stated plainly, including the ones I could not resolve.
 | Two drivers armed at once (e.g. cron _and_ an in-session loop)                | medium                 | The measured `INTEGRITY` race, repeatedly                         | `flock -n` exits 0 rather than queueing; single-writer rule                                              |
 | Overnight token burn on a repo that was already clean                         | medium                 | Money for nothing                                                 | Quiescent backoff to a 4 h ceiling; value-per-pulse throttle; budget refusals                            |
 | The auditor becomes a rubber stamp, exactly as the 29/29 validator passes did | medium                 | The top-level check silently stops checking                       | Planted-defect suite; fixed questionnaire; every answer cites a command id                               |
-| Gates are weak, so Consciousness certifies weak work faster                   | **high** in most repos | Confident wrongness at scale                                      | The charter must name every lane; `gate:prove`; §12.3                                                    |
+| Gates are weak, so the mind certifies weak work faster                   | **high** in most repos | Confident wrongness at scale                                      | The charter must name every lane; `gate:prove`; §12.3                                                    |
 | A container with push credentials pushes something at 4 a.m.                  | low but severe         | Real damage to a shared branch                                    | No push remote on the box (§11.4) — a capability removed, not a rule added                               |
 | Small models mis-execute the _judgement_ steps (admission, proposals)         | **high**               | Bad candidates admitted, good ones declined                       | Every judgement step is structurally bounded — a witness or nothing; the auditor re-tests admissions     |
 

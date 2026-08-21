@@ -64,7 +64,7 @@ validator's own gate run, which is `harness_observed`. That is why it counts.
 **Deliberately not a source: the model's own idea.** Novelty has exactly one door (W3.4).
 
 Note the anti-circularity property, which answers the tautology directly: sources 1 and 10 compare
-code against **owner-written documents Consciousness cannot edit**. `health/intent.ts` parses
+code against **owner-written documents the mind cannot edit**. `health/intent.ts` parses
 backticked tokens out of headings and checks whether each named command, identifier and path exists
 in production and in tests. Requirements are not derived from the plan; they are derived from a
 document with a different author. That is what makes "every requirement is covered" a claim capable
@@ -128,7 +128,7 @@ proposal carries `witness: owner-decision` explicitly.
 ```
 
 This reuses `authority:decide` and the `needs_authority` disposition exactly as built.
-**Consciousness is not granted `authority:decide`.** It cannot approve its own ideas. That is the
+**The mind is not granted `authority:decide`.** It cannot approve its own ideas. That is the
 whole design.
 
 **The cap.** At most one open proposal per N pulses (charter-configured, suggested 24 hours) and a
@@ -138,7 +138,7 @@ to prevent.
 
 **Acceptance:** a proposal without a witness is accepted; a proposal past the cap is refused; a
 granted proposal still faces gates 2–6; a declined proposal is refused re-proposal by gate 6;
-`authority:decide` invoked with a consciousness grant is refused by the role contract.
+`authority:decide` invoked with a mind grant is refused by the role contract.
 
 ---
 
@@ -179,7 +179,7 @@ is not a runnable command · write scope outside `repo_roots` · write scope ove
 write scope overlapping another open candidate · over the agent budget · over the wall-clock budget ·
 duplicate of an open candidate · duplicate of a **declined** candidate · proposal past the cap ·
 proposal with a witness flag (a proposal is defined by having none) · admission while a pulse is not
-open · admission by an actor with no consciousness grant.
+open · admission by an actor with no mind grant.
 
 ### 4.2 The busywork catalogue, as tests
 

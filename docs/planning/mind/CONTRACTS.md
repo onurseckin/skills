@@ -18,7 +18,7 @@ Everything below was checked against the tree. Line references are to
 | Argument         | Value                                                             |
 | :--------------- | :---------------------------------------------------------------- |
 | `repoRoot`       | `--repo`, realpath'd by `initRun`                                 |
-| `runId`          | `mind-<generation>`, default `mind-1` — matches `RUN_ID_PATTERN`  |
+| `runId`          | `mind-gen-<generation>`, default `mind-gen-1` — matches `RUN_ID_PATTERN` |
 | `prompt`         | the charter file's bytes, read with `readRegularFileNoFollow`     |
 | `captureMode`    | `"file"`                                                          |
 | `sourceVerified` | `true` — `captureAssurance` requires it for any non-verbatim mode |
@@ -29,7 +29,7 @@ The capsule that results is indistinguishable from a run capsule to `doctor`, `d
 ### 1.2 Layout
 
 ```
-.capsules/mind-1/
+.capsules/mind-gen-1/
 ├── manifest.json      prompt_sha256 IS the charter digest        (0444 semantics enforced)
 ├── prompt.md          the charter, byte-identical, mode 0444
 ├── state.json         the projection described in §1.3
@@ -52,13 +52,13 @@ Everything below is a business field, mutated only inside a `transact` callback
     "generation": 1,
     "opened_at": "<iso8601>",
     "charter": {
-      "source_path": "docs/consciousness/CHARTER.md",
+      "source_path": "docs/mind/CHARTER.md",
       "pinned_sha256": "<hex>",
       "goals": ["G1", "G2"],
       "repo_roots": ["orchestrating-long-tasks/", "docs/"],
       "evidence_class": "harness_observed"
     },
-    "previous_generation": { "run_id": "mind-0", "event_head": "<hex>", "sealed_at": "<iso8601>" }
+    "previous_generation": { "run_id": "mind-gen-0", "event_head": "<hex>", "sealed_at": "<iso8601>" }
   },
 
   "budget": {
@@ -85,7 +85,7 @@ Everything below is a business field, mutated only inside a `transact` callback
       "deadline_at": "<iso8601>",
       "host": "<host id as reported>",
       "driver": "<driver id as reported>",
-      "actor": "consciousness-1"
+      "actor": "mind-1"
     },
     "last": {
       "pulse_id": "pulse-1283",
@@ -276,7 +276,7 @@ must be a registered agent in that capsule for the role contract to bind (§6).
 | `repo`          | string | yes | Repository root the mind serves                    |
 | `charter`       | string | yes | Path to the owner's charter file                   |
 | `actor`         | string | yes | Recorded on `mind-initialized`                     |
-| `mind-id`       | string | no  | Default `mind-1`                                   |
+| `mind-id`       | string | no  | Default `mind-gen-1`                                   |
 | `capsules-dir`  | string | no  | Override `.capsules/`                              |
 
 Refuses when: the charter is missing, unreadable, empty, or not a regular file; the capsule already
@@ -287,7 +287,7 @@ pinned digest.
 
 | Flag            | Type   | Req | Meaning                                                     |
 | :-------------- | :----- | :-- | :----------------------------------------------------------- |
-| `run`           | string | yes | Mind capsule root                                            |
+| `run`           | string | yes | the mind capsule root                                            |
 | `actor`         | string | no  | Recorded only if the call reclaims a dead pulse              |
 | `depth`         | string | no  | `brief` (default) or `run`                                   |
 | `target-run`    | string | no  | With `--depth run`, the run capsule whose handoff to render  |
@@ -303,7 +303,7 @@ literal word `unknown` — ending in `NEXT` and `THEN` argv.
 
 | Flag       | Type   | Req | Meaning                                  |
 | :--------- | :----- | :-- | :---------------------------------------- |
-| `run`      | string | yes | Mind capsule root                        |
+| `run`      | string | yes | the mind capsule root                        |
 | `actor`    | string | yes | The tier-0 agent id                      |
 | `host`     | string | yes | Host runtime as reported                 |
 | `driver`   | string | yes | Driver identity as reported              |
@@ -317,7 +317,7 @@ outcome the pulse should record instead (`deferred`, `halted`) and the argv to r
 
 | Flag          | Type   | Req | Meaning                                                            |
 | :------------ | :----- | :-- | :------------------------------------------------------------------ |
-| `run`         | string | yes | Mind capsule root                                                   |
+| `run`         | string | yes | the mind capsule root                                                   |
 | `actor`       | string | yes | Must match the opening actor                                        |
 | `pulse`       | string | yes | Pulse id; must match the open pulse                                 |
 | `outcome`     | string | yes | One of the eleven outcomes in `PLAN.md` §4.3                        |
@@ -338,7 +338,7 @@ from a number the agent supplies.
 
 | Flag         | Type   | Req | Meaning                                       |
 | :----------- | :----- | :-- | :--------------------------------------------- |
-| `run`        | string | yes | Mind capsule root                             |
+| `run`        | string | yes | the mind capsule root                             |
 | `actor`      | string | yes | Acting agent                                  |
 | `source`     | string | yes | One of the ten source ids in `PLAN.md` §7.2   |
 | `command-id` | string | yes | The recorded command whose output this is     |
@@ -352,7 +352,7 @@ claim.
 
 | Flag             | Type   | Req | Meaning                                                    |
 | :--------------- | :----- | :-- | :---------------------------------------------------------- |
-| `run`            | string | yes | Mind capsule root                                           |
+| `run`            | string | yes | the mind capsule root                                           |
 | `actor`          | string | yes | Acting agent                                                |
 | `kind`           | string | yes | `defect` or `proposal`                                      |
 | `statement`      | string | yes | One line, recorded `agent_reported`                         |
@@ -369,7 +369,7 @@ Refuses a defect without a witness; a proposal past `max_open_proposals`; any ca
 
 | Flag        | Type   | Req | Meaning                    |
 | :---------- | :----- | :-- | :-------------------------- |
-| `run`       | string | yes | Mind capsule root          |
+| `run`       | string | yes | the mind capsule root          |
 | `actor`     | string | yes | Acting agent               |
 | `candidate` | string | yes | Candidate id               |
 
@@ -408,9 +408,9 @@ writes `last_pulse.json` with `next_wake_at: null`.
 4. and the agent id appears in that capsule's agent ledger with a role.
 
 Therefore: **the first thing a pulse does after `mind:wake` is `agent:register`** against the mind
-capsule with `--role consciousness`. Without that registration every `mind:*` command runs
+capsule with `--role mind`. Without that registration every `mind:*` command runs
 ungoverned. Phase 1 makes this a refusal — `mind:pulse-open` requires a registered acting agent whose
-role is `consciousness` — so the rail cannot be skipped by omission.
+role is `mind` — so the rail cannot be skipped by omission.
 
 ---
 

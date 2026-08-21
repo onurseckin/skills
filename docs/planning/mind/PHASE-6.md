@@ -21,12 +21,12 @@ routine. That is what this phase builds. Everything before it works without it.
 
 ### W6.1 — The timer and the service
 
-**Files:** `deploy/consciousness.timer`, `deploy/consciousness.service` (new).
+**Files:** `deploy/mind.timer`, `deploy/mind.service` (new).
 
 ```
-consciousness.timer     OnUnitInactiveSec=15min   Persistent=yes
-consciousness.service   Type=oneshot
-                        ExecStart=/opt/mind/pulse.sh /srv/repo/.capsules/mind-1
+mind.timer     OnUnitInactiveSec=15min   Persistent=yes
+mind.service   Type=oneshot
+                        ExecStart=/opt/mind/pulse.sh /srv/repo/.capsules/mind-gen-1
                         TimeoutStartSec=<pulse deadline + slack>
                         Restart=no
 ```
@@ -42,7 +42,7 @@ Two settings are load-bearing and must not be "tidied up":
 The honest floor, for a machine with nothing installed:
 
 ```sh
-while :; do /opt/mind/pulse.sh /srv/repo/.capsules/mind-1 || true; sleep 900; done
+while :; do /opt/mind/pulse.sh /srv/repo/.capsules/mind-gen-1 || true; sleep 900; done
 ```
 
 under any supervisor that restarts **the wrapper** (never the pulse). It satisfies all four driver
@@ -113,7 +113,7 @@ The real safety bound is a stack of three and this plan must not pretend it is o
 3. **The harness rails** — excellent at what they cover (state, evidence, contracts, scopes) and
    irrelevant to what they do not.
 
-`assertGrantedCommand` refuses `plan:compile` from a consciousness grant. It cannot refuse
+`assertGrantedCommand` refuses `plan:compile` from a mind grant. It cannot refuse
 `rm -rf /`, because that is not a harness command. **The CLI door constrains harness commands. It
 does not constrain a shell.** This has always been true of every existing role too.
 
@@ -126,7 +126,7 @@ git layer, not at a policy layer.
 
 **Files:** a ~20-line uptime check, running **off the box**.
 
-It reads `.capsules/mind-1/last_pulse.json` and pages the owner when it is stale.
+It reads `.capsules/mind-gen-1/last_pulse.json` and pages the owner when it is stale.
 
 > Nothing inside a dead system can report that it is dead.
 

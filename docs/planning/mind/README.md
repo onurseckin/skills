@@ -1,9 +1,49 @@
-# CONSCIOUSNESS — implementation index
+# MIND — implementation index
 
 `PLAN.md` is the design. **This directory is the specification.** The design argues for the system;
 the specification tells an implementer what to type. An agent that has read only `PLAN.md` will
 invent the contracts it needs — flag names, event kinds, state keys, file paths — and two agents
 inventing in parallel will invent differently. Read the specification.
+
+## Start here
+
+**The first agent picks up `PHASE-0.md`, work item W0.5.** Nothing else may start until that one
+lands, because W0.5 decides whether every later change is landing on a green gate or a red one.
+
+Dispatch order, and what may run at the same time:
+
+| Wave | Who                          | Picks up                        | Parallel? |
+| :--- | :--------------------------- | :------------------------------ | :-------- |
+| 1    | one implementer + validator  | `PHASE-0.md` W0.5               | no — it gates the rest |
+| 2    | pair A                       | `PHASE-0.md` W0.1 + W0.2        | yes, with pair B |
+| 2    | pair B                       | `PHASE-0.md` W0.3 + W0.4        | yes, with pair A |
+| 3    | **the owner**                | write `docs/mind/CHARTER.md`    | blocks Phase 1 entirely |
+| 4    | one pair                     | `PHASE-1.md` W1.1 then W1.2     | no — everything imports them |
+| 5    | three pairs                  | `PHASE-1.md` W1.3, W1.4, W1.5+W1.6 | yes, disjoint files |
+| 6    | one pair                     | `PHASE-1.md` W1.7 (`pulse.sh`)  | yes, with wave 5 |
+| 7    | **the owner**                | the overnight experiment, `PHASE-1.md` §5 | it decides whether Phase 2 happens |
+
+After that, one phase at a time, in numerical order. Phases 5 and 6 may run concurrently with each
+other; nothing else may.
+
+**What to hand an implementer**, verbatim:
+
+> Read `docs/planning/mind/README.md`, then `CONTRACTS.md`, then `VERIFICATION.md`, then
+> `PHASE-<n>.md`. Implement work item `W<n>.<m>` and nothing else. Write its acceptance test first,
+> run it, watch it fail, then make it pass. Do not invent a flag, event kind, state key or file path
+> that `CONTRACTS.md` does not name — if you need one, add it to `CONTRACTS.md` in the same change.
+> Do not read a later phase file.
+
+**What to hand a validator:** the same four documents, the work item, and nothing the implementer
+wrote about what it did.
+
+Two standing rules for whoever dispatches:
+
+- **A phase's exit criteria are run by an agent that implemented none of its work items.** Nobody
+  grades their own phase.
+- **A work item is not done until its test fails without the change.** Stash it, run it, watch it go
+  red, restore. This project has already shipped a monitor that exits 0 having done nothing, and a
+  run where 11 tasks passed validation without a file being written.
 
 ## Reading order
 
@@ -37,14 +77,20 @@ Each decision is reversible by editing this section and the phase that implement
 reversible by an implementer mid-task, and an implementer that disagrees records a finding rather
 than diverging.
 
-### D1 — The namespace is `mind:`
+### D1 — Everything is called `mind`
 
-Domain string `"mind"`, commands `mind:init`, `mind:wake`, and so on. Chosen over `consciousness:`
-because a weak model retypes these constantly and every character is a chance to mistype. The
-*system* is called Consciousness; the *command namespace* is `mind:`. `roles/consciousness.md`
-keeps the long name because a role is typed once per grant.
+The system is **the mind**. The command domain is `"mind"` and every command is `mind:init`,
+`mind:wake`, `mind:pulse-open` and so on. The tier-0 role is `mind` at `roles/mind.md`; its auditor
+is `mind-auditor` at `roles/mind-auditor.md`. The source directory is `scripts/src/mind/`.
 
-### D2 — The mind capsule is a real capsule at `.capsules/mind-<generation>/`
+One word, everywhere, four characters long. A weak model retypes these constantly and every extra
+character is a chance to mistype; a system that calls itself one thing in its prose and another in
+its argv is a system that gets one of them wrong.
+
+`PLAN.md` was written when the system was called Consciousness. It has been renamed throughout; if
+you find the old word anywhere, it is a leftover and should be corrected in place.
+
+### D2 — The mind capsule is a real capsule at `.capsules/mind-gen-<n>/`
 
 It is created by `initRun` (`store/capsule.ts:24`) exactly like a run capsule. This buys, with zero
 new code: the kernel lock (`platform/run-lock.ts`), the append-only hash chain
@@ -54,6 +100,11 @@ repair via `doctor:repair`, integrity verification, and the capsule index.
 Consequence, stated so nobody is surprised by it: `.capsules/` is gitignored (`.gitignore:18`). The
 mind does not travel with the repository and is not backed up by pushing. Phase 6 owns that problem
 and it is the single most likely way a remote deployment silently loses its history.
+
+**Capsule ids versus agent ids.** The capsule is `mind-gen-<n>` — `.capsules/mind-gen-1`,
+`.capsules/mind-gen-2` after a rotation — and the tier-0 *agent* is `mind-1`, `mind-2` by the same
+convention every other role uses. They are deliberately different strings so that a brief, a lock
+path and an `--actor` can never be confused for one another.
 
 Rejected alternative: a committed `.mind/` directory. It would need either a second store
 implementation or a `.gitignore` exception, and it commits a monotonically growing event log to Git
@@ -69,7 +120,7 @@ This is not a convenience. It means the charter pin already exists and is alread
 - `manifest.prompt_sha256` **is** the pinned charter digest.
 - `prompt.md` is written `0o444` and `checkManifest` (`store/manifest.ts:42-55`) already refuses a
   capsule whose `prompt.md` is writable or whose bytes no longer hash to the manifest.
-- "Consciousness may not edit the charter" is therefore not a rule an agent could break. It is a
+- "the mind may not edit the charter" is therefore not a rule an agent could break. It is a
   file mode and a hash, checked on every load.
 
 Drift detection at `mind:wake` is then one comparison: re-hash the file at
@@ -83,13 +134,13 @@ named `run`, and returns silently — granting everything — when it is absent.
 took `--mind` instead would pass its role contract unchecked while *appearing* to be governed by
 one. That is the exact capability-versus-rail failure this whole project exists to prevent.
 
-So: `--run .capsules/mind-1`. If someone later wants `--mind` as an ergonomic alias, it is a
+So: `--run .capsules/mind-gen-1`. If someone later wants `--mind` as an ergonomic alias, it is a
 deliberate task that extends `command-authority.ts` in the same change, with a test that proves an
 out-of-contract command is still refused through the alias.
 
 ### D5 — Tier 0 requires widening the role-contract tier bound
 
-`packets/role-contract.ts:168` refuses any tier outside 1–3. `roles/consciousness.md` declares
+`packets/role-contract.ts:168` refuses any tier outside 1–3. `roles/mind.md` declares
 `tier: 0`. Phase 1 widens the bound to 0–3 and updates `tests/unit/roles/role-documents.test.ts:72-73`.
 `tier` is not used for enforcement anywhere in `src/` — it is a declared fact — so the change is
 small, but it is a change, and it is a work item rather than a surprise an implementer discovers.

@@ -6,7 +6,7 @@ Make the mind checkable by something it does not control, and make its cost boun
 rather than by intentions.
 
 Failure mode 6 says: if the plan generates the requirements, "every requirement is covered" proves
-nothing. One level up: **if Consciousness generates its own objectives and grades its own outcomes,
+nothing. One level up: **if the mind generates its own objectives and grades its own outcomes,
 "the system is healthy" proves nothing.** This phase is the answer.
 
 ## 2. Preconditions
@@ -18,25 +18,25 @@ properties recorded in `PHASE-4.md` §5.
 
 ---
 
-### W5.1 — The `consciousness-auditor` role
+### W5.1 — The `mind-auditor` role
 
-**Files:** `roles/consciousness-auditor.md`, `contracts/packets.ts` (union + array, per D6),
+**Files:** `roles/mind-auditor.md`, `contracts/packets.ts` (union + array, per D6),
 `references/protocol.md`.
 
-Tier 1, dispatched by Consciousness but structurally independent — a completeness critic for the
+Tier 1, dispatched by the mind but structurally independent — a completeness critic for the
 mind, one level up. Contract per `PLAN.md` §12.2:
 
 ```yaml
-role: consciousness-auditor
+role: mind-auditor
 tier: 1
 may:
   - Read the pulse ledger, the candidate ledger, every capsule, and the repository
   - Run its own independent commands against the repository
   - Re-run the admission test against candidates that were already admitted
   - Record findings that block, or approve with an explicit residual-risk list
-  - Halt Consciousness
+  - Halt the mind
 must_not:
-  - Read Consciousness's own narrative, rationale prose, or self-assessment
+  - Read the mind's own narrative, rationale prose, or self-assessment
   - Audit a period in which it acted as orchestrator, coordinator, implementer or validator
   - Approve while any pulse in the window is unaccounted for
   - Edit any repository file, the charter, or any ledger
@@ -179,7 +179,7 @@ unchecked checker.
 
 ### 4.3 What is deliberately not a validation
 
-- Consciousness's own summary of its night — `agent_reported`, and it is the thing being checked.
+- The mind's own summary of its night — `agent_reported`, and it is the thing being checked.
 - Pulse count, agents deployed, commands run, tokens spent — activity is not value.
 - "All gates green" from one lane — the charter's `stability` block must name every lane that
   matters, because the unit lane once passed while the integration lane sat at 45 failures.

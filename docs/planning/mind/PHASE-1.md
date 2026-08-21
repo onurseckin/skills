@@ -16,7 +16,7 @@ bun run typecheck && bun run test && bun run test:coverage    # all 0 — Phase 
 
 Plus one thing no agent may do for the owner:
 
-**`docs/consciousness/CHARTER.md` must exist, written by the owner.** Its shape is specified in
+**`docs/mind/CHARTER.md` must exist, written by the owner.** Its shape is specified in
 `CONTRACTS.md` §7. An agent may draft a skeleton with empty sections; it may not write the identity,
 the goals, the non-goals or the repo roots. The charter is the only ground truth with a different
 author, and every anti-drift property in this design descends from that (`PLAN.md` §12.1).
@@ -30,18 +30,18 @@ and may run in parallel once the substrate exists. W1.7 is the driver and is the
 
 ### W1.1 — Role plumbing
 
-**Files:** `contracts/packets.ts`, `packets/role-contract.ts`, `roles/consciousness.md`,
+**Files:** `contracts/packets.ts`, `packets/role-contract.ts`, `roles/mind.md`,
 `references/protocol.md`, `tests/unit/roles/role-documents.test.ts`.
 
 1. Widen the tier bound at `packets/role-contract.ts:168` from `1..3` to `0..3`, and update the
    assertions at `tests/unit/roles/role-documents.test.ts:72-73`. `tier` is not used for enforcement
    anywhere in `src/` — it is a declared fact — so this is small, but it is required: a `tier: 0`
    contract is refused today (D5).
-2. Add `"consciousness"` to the `AgentRole` union (`contracts/packets.ts:3-14`) **and** to
+2. Add `"mind"` to the `AgentRole` union (`contracts/packets.ts:3-14`) **and** to
    `AGENT_ROLES` (`:16-28`). Adding the document alone fails
    `tests/unit/roles/role-documents.test.ts:24-30`, which asserts the directory matches the array
    exactly (D6).
-3. Write `roles/consciousness.md` in the **observe-only variant**: `tier: 0`, the `may`/`must_not`
+3. Write `roles/mind.md` in the **observe-only variant**: `tier: 0`, the `may`/`must_not`
    lists from `PLAN.md` §3.2, but `commands` limited to `mind:init`, `mind:wake`, `mind:pulse-open`,
    `mind:pulse-close`, `mind:escalate`, `mind:halt`, plus the read-only diagnostics (`run:status`,
    `doctor`, `health`, `agent:list`, `installation-status`, `explain`) and the agent lifecycle
@@ -49,7 +49,7 @@ and may run in parallel once the substrate exists. W1.7 is the driver and is the
 4. Correct the role count sentence at `references/protocol.md:40`, which already says "Eleven roles"
    against sixteen documents.
 
-**Acceptance:** `loadRoleContract("consciousness")` returns a contract with `tier === 0` and an
+**Acceptance:** `loadRoleContract("mind")` returns a contract with `tier === 0` and an
 empty `spawns`; the roles-directory parity test passes; a test asserts the contract grants no
 `plan:*`, no `task:*`, no `run:exec`, no `run:complete` and no `authority:decide`.
 
@@ -150,7 +150,7 @@ mechanical property rather than a promise.
 
 Flags and refusals per `CONTRACTS.md` §5.3. Additional requirements:
 
-- **Requires a registered acting agent whose role is `consciousness`** in this capsule's ledger.
+- **Requires a registered acting agent whose role is `mind`** in this capsule's ledger.
   This is what makes the role rail bind at all: `assertGrantedCommand` returns silently when the
   actor holds no grant (`CONTRACTS.md` §6). Refusing here converts an omission into a stop.
 - Records `deadline_at = opened_at + budget.pulse_deadline_ms`.
@@ -267,7 +267,7 @@ Pulse Zero that cannot survive a night.
 | Likely mistake                                                | The tell                                                    |
 | :------------------------------------------------------------ | :----------------------------------------------------------- |
 | Inventing a `--mind` flag                                     | Role enforcement silently stops applying (D4)                |
-| Adding `roles/consciousness.md` without touching `AGENT_ROLES`| The roles parity test fails                                  |
+| Adding `roles/mind.md` without touching `AGENT_ROLES`| The roles parity test fails                                  |
 | `tier: 0` without widening the bound                          | `loadRoleContract` throws at parse                           |
 | Hand-editing `cli-capabilities.md`                            | The digest test fails, or a bare `oxfmt` rewrites 485 lines  |
 | Making `mind:wake` refuse on a HALT condition                 | A halted mind can no longer explain itself                   |
@@ -279,7 +279,7 @@ Pulse Zero that cannot survive a night.
 
 ## 7. Rollback and recorded results
 
-Rollback: revert the commits and delete `.capsules/mind-*`. Nothing outside `.capsules/` and the six
+Rollback: revert the commits and delete `.capsules/mind-gen-*`. Nothing outside `.capsules/` and the six
 source files above is touched, and no run capsule is affected.
 
 To be filled in by the implementing agents before the phase is declared done:
