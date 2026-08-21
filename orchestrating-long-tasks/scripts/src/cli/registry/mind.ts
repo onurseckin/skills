@@ -67,6 +67,10 @@ export function mindAuditReportCommand(): Record<string, unknown> {
   throw new HarnessError("NOT_IMPLEMENTED", "mind:audit-report handler is not implemented yet");
 }
 
+export function mindRotateCommand(): Record<string, unknown> {
+  throw new HarnessError("NOT_IMPLEMENTED", "mind:rotate handler is not implemented yet");
+}
+
 const charterGoalFlag: FlagSpec = {
   name: "charter-goal",
   type: "string",
@@ -456,5 +460,25 @@ export const MIND_COMMANDS: readonly CommandSpec[] = [
       "bun harness.ts mind:audit-report --run .capsules/mind-gen-1 --actor auditor-1 --audit-id audit-1 --verdict approved --answer Q1:cmd-10:pass",
     ],
     handler: mindAuditReportCommand,
+  },
+  {
+    name: "mind:rotate",
+    aliases: [],
+    domain: "mind",
+    summary: "Rotate generation N capsule into generation N+1.",
+    description:
+      "Performs generational rotation, carrying forward charter pin and declined candidates while preserving auditability.",
+    flags: [
+      requiredFlag("run", "string", "The current generation capsule root."),
+      requiredFlag("next-run", "string", "The next generation capsule root."),
+      requiredFlag("actor", "string", "Acting agent id."),
+    ],
+    readsStdin: false,
+    takesRemainder: false,
+    exitCodes: DEFAULT_EXIT_CODES,
+    examples: [
+      "bun harness.ts mind:rotate --run .capsules/mind-gen-1 --next-run .capsules/mind-gen-2 --actor coordinator-1",
+    ],
+    handler: mindRotateCommand,
   },
 ];

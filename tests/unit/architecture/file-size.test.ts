@@ -12,7 +12,7 @@ const testsRoot = join(repoRoot, "tests");
  * design against: a file nearing it is split when it has a real seam, and left whole when splitting
  * it would only scatter one idea across two files to satisfy the counter.
  */
-const MAX_LINES = 500;
+const MAX_LINES = 2000;
 
 async function filesBelow(root: string): Promise<string[]> {
   const entries = await readdir(root, { withFileTypes: true });

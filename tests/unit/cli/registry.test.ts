@@ -79,6 +79,22 @@ const EXPECTED_INVOCATIONS = [
   "capture:init",
   "capture:run",
   "capture:eval",
+  "mind:init",
+  "mind:wake",
+  "mind:pulse-open",
+  "mind:pulse-close",
+  "mind:observe",
+  "mind:candidate",
+  "mind:admit",
+  "mind:decline",
+  "mind:quiesce",
+  "mind:escalate",
+  "mind:halt",
+  "mind:round-open",
+  "mind:round-close",
+  "mind:audit-start",
+  "mind:audit-report",
+  "mind:rotate",
 ];
 
 describe("CLI command registry", () => {

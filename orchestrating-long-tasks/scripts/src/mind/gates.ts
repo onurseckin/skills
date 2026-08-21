@@ -626,6 +626,17 @@ export function evaluateGate5Affordable(
   const gateNumber = 5;
   const name = "Affordable";
 
+  if (!candidate || !candidate.id) {
+    return {
+      gateId,
+      gateNumber,
+      name,
+      passed: false,
+      reason: "candidate id is missing",
+      repairArgv: `bun harness.ts mind:observe --run ${context.runRoot}`,
+    };
+  }
+
   const mindState = (context.state.mind ?? {}) as Record<string, unknown>;
   const budget = (context.state.budget ?? mindState.budget ?? DEFAULT_MIND_BUDGET) as Record<string, unknown>;
 

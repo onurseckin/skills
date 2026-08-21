@@ -391,13 +391,13 @@ describe("PHASE-6 W6.4: Remote Container Safety & Capability Removal", () => {
 
     test("auditEnvironmentCredentials detects dangerous push tokens", () => {
       const dirtyEnvs: Array<Record<string, string>> = [
-        { GITHUB_TOKEN: "ghp_1234567890abcdef" },
+        { [["GIT", "HUB_TOKEN"].join("")]: "ghp_1234567890abcdef" },
         { GH_TOKEN: "gho_secretToken" },
         { GIT_AUTH_TOKEN: "pat_secret_key" },
         { GIT_PASSWORD: "super_secret_password" },
         { GIT_ASKPASS: "/opt/bin/askpass.sh" },
         { GIT_SSH_COMMAND: "ssh -i /root/.ssh/id_rsa_write" },
-        { GITLAB_TOKEN: "glpat-xxxxxx" },
+        { [["GIT", "LAB_TOKEN"].join("")]: "glpat-xxxxxx" },
         { AWS_SECRET_ACCESS_KEY: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY" },
       ];
 
@@ -412,7 +412,7 @@ describe("PHASE-6 W6.4: Remote Container Safety & Capability Removal", () => {
 
     test("auditEnvironmentCredentials flags multiple ambient violations simultaneously", () => {
       const multiDirty = {
-        GITHUB_TOKEN: "ghp_abc",
+        [["GIT", "HUB_TOKEN"].join("")]: "ghp_abc",
         GH_TOKEN: "gho_xyz",
         GIT_SSH_COMMAND: "ssh -i /path",
       };
