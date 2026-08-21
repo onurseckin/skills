@@ -10,6 +10,7 @@ import { renderHandoff } from "../../../orchestrating-long-tasks/scripts/src/rep
 import { initRun, transact } from "../../../orchestrating-long-tasks/scripts/src/store/index.ts";
 import { commandRecord } from "../workflow/test-port.ts";
 import { dispatchFailures, handoffArgv } from "./dispatchable.ts";
+import { STATUSES } from "./handoff-statuses.ts";
 
 const REPORTING = fileURLToPath(
   new URL("../../../orchestrating-long-tasks/scripts/src/reporting/", import.meta.url),
@@ -280,24 +281,6 @@ async function capsule(
 }
 
 /** Every status `contracts/workflow.ts` declares a task can be sitting in when a run is picked up. */
-const STATUSES = [
-  "proposed",
-  "ready",
-  "retry_ready",
-  "changes_requested",
-  "leased",
-  "running",
-  "submitted",
-  "validating",
-  "validated",
-  "gating",
-  "branched",
-  "escalated",
-  "blocked",
-  "cancelled",
-  "stale",
-  "done",
-];
 
 /** The run gate's own recorded success, so completion moves past the gates to the critic. */
 const runGate = () =>

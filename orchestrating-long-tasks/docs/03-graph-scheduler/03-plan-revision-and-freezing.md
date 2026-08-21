@@ -241,3 +241,18 @@ rather than as spend.
 ---
 
 [⬅ Previous: Topological Conflict-Free Batching](./02-topological-conflict-free-batching.md) | [Master Table of Contents](../README.md) | [Next: Chapter 04 — Host-Agnostic Architecture ➡](../04-multi-agent/01-host-agnostic-architecture.md)
+
+## Why a finished task's gate set is not frozen
+
+A revision may add a gate that lands on a task already `done`, and that is correct rather than a
+violation.
+
+`taskGates()` selects gates by **requirement-id overlap, not task identity**. So when a repair task
+legitimately inherits a done task's requirement, the new task-scoped gate it brings is attributed to
+the done task as well. That growth is how a critic's or validator's finding becomes a claimable repair
+task — it is not a retroactive change to what the done task was verified against.
+
+Its own gate *results* are already recorded and cannot be revisited. Only tasks still in flight need
+their gate set frozen against revision, which is what `gateContractActive` expresses: execution-active
+and not `done`. The task's *contract* — write scope, dependencies, produces — stays frozen for a done
+task, so its definition still cannot be silently rewritten.

@@ -95,12 +95,6 @@ export function executionActive(status: unknown): boolean {
   return !PLANNABLE_TASK_STATUSES.has(status);
 }
 
-// A done task's own gate results are already recorded and cannot be revisited, but taskGates()
-// selects by requirement-id overlap, not task identity: a repair task legitimately inheriting a
-// done task's requirement adds a new task-scoped gate that taskGates() then attributes to the
-// done task too. That growth is how a critic/validator finding becomes a claimable repair task,
-// not a retroactive change to what the done task was verified against, so only tasks still in
-// flight need their gate set frozen against revision.
 export function gateContractActive(status: unknown): boolean {
   return executionActive(status) && status !== "done";
 }

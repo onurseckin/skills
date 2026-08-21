@@ -15,7 +15,7 @@ const PASSTHROUGH = [
   "GNUPGHOME",
 ] as const;
 
-function worktreeGitEnvironment(source: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+export function worktreeGitEnvironment(source: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
   const environment: NodeJS.ProcessEnv = {
     GIT_TERMINAL_PROMPT: "0",
     GIT_PAGER: "cat",
@@ -36,24 +36,54 @@ export interface GitResult {
 
 export type GitRunner = (cwd: string, argv: readonly string[]) => GitResult;
 
-export const runGit: GitRunner = (cwd, argv) => {
-  const result = spawnSync("git", [...argv], {
-    cwd,
-    env: worktreeGitEnvironment(process.env),
-    encoding: "utf8",
-    shell: false,
-    timeout: WORKTREE_GIT_TIMEOUT_MS,
-    killSignal: "SIGKILL",
-    maxBuffer: 16 * 1024 * 1024,
-  });
-  if (result.error) {
-    throw new HarnessError(
-      "INTEGRITY",
-      `git ${argv[0] ?? ""} failed to start: ${result.error.message}`,
-    );
-  }
-  return { status: result.status ?? -1, stdout: result.stdout ?? "", stderr: result.stderr ?? "" };
-};
+interface GitSpawnOptions {
+  cwd: string;
+  env: NodeJS.ProcessEnv;
+  encoding: "utf8";
+  shell: false;
+  timeout: number;
+  killSignal: "SIGKILL";
+  maxBuffer: number;
+}
+
+interface GitSpawnResult {
+  status: number | null;
+  stdout: string | undefined;
+  stderr: string | undefined;
+  error?: Error;
+}
+
+export type GitSpawn = (command: string, args: string[], options: GitSpawnOptions) => GitSpawnResult;
+
+const nodeGitSpawn: GitSpawn = (command, args, options) =>
+  spawnSync(command, args, options) as GitSpawnResult;
+
+export function createGitRunner(spawn: GitSpawn = nodeGitSpawn): GitRunner {
+  return (cwd, argv) => {
+    const result = spawn("git", [...argv], {
+      cwd,
+      env: worktreeGitEnvironment(process.env),
+      encoding: "utf8",
+      shell: false,
+      timeout: WORKTREE_GIT_TIMEOUT_MS,
+      killSignal: "SIGKILL",
+      maxBuffer: 16 * 1024 * 1024,
+    });
+    if (result.error) {
+      throw new HarnessError(
+        "INTEGRITY",
+        `git ${argv[0] ?? ""} failed to start: ${result.error.message}`,
+      );
+    }
+    return {
+      status: result.status ?? -1,
+      stdout: result.stdout ?? "",
+      stderr: result.stderr ?? "",
+    };
+  };
+}
+
+export const runGit: GitRunner = createGitRunner();
 
 export function git(cwd: string, argv: readonly string[], runner: GitRunner = runGit): string {
   const result = runner(cwd, argv);

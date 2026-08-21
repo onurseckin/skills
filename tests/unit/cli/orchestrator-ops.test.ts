@@ -260,6 +260,27 @@ describe("orchestrator:supervise --watch", () => {
     expect(result.ticks).toBe(1);
   });
 
+  test("a real SIGTERM delivered mid-watch stops the loop, with no host --signal involved", async () => {
+    // No context.signal is supplied here: the only way this loop can be told to stop is its own
+    // internal SIGTERM listener, so ticks===1/stop_reason==='stopped' proves that path fired.
+    const { run } = await setupCompiledRun("supervise-watch-sigterm", roots);
+    const sigtermBefore = process.listenerCount("SIGTERM");
+    const context: OrchestratorCommandContext = {
+      sleep: async () => {
+        process.emit("SIGTERM");
+      },
+    };
+
+    const result = await execute(
+      ["orchestrator:supervise", "--run", run, "--actor", "coordinator", "--watch", "--interval", "1"],
+      context,
+    );
+
+    expect(result.stop_reason).toBe("stopped");
+    expect(result.ticks).toBe(1);
+    expect(process.listenerCount("SIGTERM")).toBe(sigtermBefore);
+  });
+
   test("cleans up its SIGINT/SIGTERM listeners once the watch loop returns", async () => {
     const { run } = await setupCompiledRun("supervise-watch-listener-cleanup", roots);
     const sigintBefore = process.listenerCount("SIGINT");

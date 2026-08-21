@@ -19,12 +19,14 @@ async function spawnPsSnapshot(): Promise<string> {
 const SNAPSHOT_SPAWN_RETRIES = 3;
 const SNAPSHOT_SPAWN_RETRY_DELAY_MS = 20;
 
-export async function processSnapshot(): Promise<Map<number, ProcessTopology>> {
+export async function processSnapshot(
+  spawnSnapshot: () => Promise<string> = spawnPsSnapshot,
+): Promise<Map<number, ProcessTopology>> {
   let stdout: string | undefined;
   let lastError: unknown;
   for (let attempt = 0; stdout === undefined && attempt <= SNAPSHOT_SPAWN_RETRIES; attempt += 1) {
     try {
-      stdout = await spawnPsSnapshot();
+      stdout = await spawnSnapshot();
     } catch (error) {
       lastError = error;
       if (attempt < SNAPSHOT_SPAWN_RETRIES)

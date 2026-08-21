@@ -1,0 +1,32 @@
+{
+  "schema": "companion.manifest.v1",
+  "screenId": "dashboard",
+  "screenName": "Main Dashboard",
+  "path": "/",
+  "viewport": "desktop",
+  "dimensions": {
+    "width": 1440,
+    "height": 900,
+    "deviceScaleFactor": 1
+  },
+  "imageFile": "dashboard-desktop.png",
+  "imageSizeBytes": 67,
+  "imageSha256": "546436b1b7e7da79f6b5eaed377d10c869faae8417760a49cc6daa2bbcc036aa",
+  "capturedAt": "2026-08-21T09:49:41.651Z",
+  "physics": {
+    "viewport": {
+      "width": 1440,
+      "height": 900,
+      "deviceScaleFactor": 1
+    },
+    "scrollPosition": {
+      "x": 0,
+      "y": 0
+    },
+    "elements": [],
+    "layoutOverflows": [],
+    "textClippings": [],
+    "capturedAt": "2026-08-21T09:49:41.651Z"
+  },
+  "url": "http://localhost:3000/"
+}

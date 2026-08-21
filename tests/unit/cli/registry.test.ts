@@ -75,6 +75,9 @@ const EXPECTED_INVOCATIONS = [
   "explain",
   "gate:prove",
   "coordinator:pushback",
+  "capture:init",
+  "capture:run",
+  "capture:eval",
 ];
 
 describe("CLI command registry", () => {

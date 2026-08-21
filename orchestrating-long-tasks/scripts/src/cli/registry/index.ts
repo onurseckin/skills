@@ -1,6 +1,7 @@
 import { AGENT_COMMANDS } from "./agent.ts";
 import { AUTHORITY_COMMANDS } from "./authority.ts";
 import { BRANCH_COMMANDS } from "./branch.ts";
+import { CAPTURE_COMMANDS } from "./capture.ts";
 import { COORDINATOR_COMMANDS } from "./coordinator.ts";
 import { CRITIC_COMMANDS } from "./critic.ts";
 import { DIAGNOSTICS_COMMANDS } from "./diagnostics.ts";
@@ -37,6 +38,7 @@ export const COMMAND_REGISTRY: readonly CommandSpec[] = [
   ...EXPLAIN_COMMANDS,
   ...GATE_COMMANDS,
   ...COORDINATOR_COMMANDS,
+  ...CAPTURE_COMMANDS,
 ];
 
 export const COMMAND_DOMAINS: readonly CommandDomain[] = [
@@ -55,6 +57,7 @@ export const COMMAND_DOMAINS: readonly CommandDomain[] = [
   "install",
   "diagnostics",
   "gate",
+  "capture",
 ];
 
 const BY_INVOCATION: ReadonlyMap<string, CommandSpec> = (() => {

@@ -1,21 +1,12 @@
 import { describe, expect, test } from "bun:test";
-import { join } from "node:path";
 import { loadRun } from "../../../orchestrating-long-tasks/scripts/src/store/index.ts";
 import { readBranchLedger } from "../../../orchestrating-long-tasks/scripts/src/workflow/branch/ledger.ts";
 import { openBranchIssues } from "../../../orchestrating-long-tasks/scripts/src/workflow/branch/completion-blockers.ts";
-
-const capsule = join(
-  import.meta.dir,
-  "..",
-  "..",
-  "..",
-  ".capsules",
-  "2026-08-17-skills-documentation-elevation",
-);
+import { legacyPreLedgerCapsule } from "../../support/legacy-capsule-fixture.ts";
 
 describe("branch ledger compatibility", () => {
   test("a capsule written before branching existed still loads and reads as empty", () => {
-    const loaded = loadRun(capsule);
+    const loaded = loadRun(legacyPreLedgerCapsule(import.meta.path));
     expect(loaded.state.branches).toBeUndefined();
     expect(readBranchLedger(loaded.state)).toEqual([]);
     expect(openBranchIssues(loaded.state)).toEqual([]);

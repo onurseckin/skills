@@ -15,9 +15,9 @@ const MAX_TOKEN_SCAN_PROCESSES = 65_536;
 const MAX_PROCESS_ENVIRONMENT_BYTES = 4 * 1024 * 1024;
 const MAX_TOKEN_SCAN_BYTES = 64 * 1024 * 1024;
 
-function processIds(): number[] {
+function processIds(root: string): number[] {
   try {
-    const pids = readdirSync("/proc")
+    const pids = readdirSync(root)
       .filter((name) => /^\d+$/u.test(name))
       .map(Number);
     if (pids.length > MAX_TOKEN_SCAN_PROCESSES)
@@ -33,9 +33,9 @@ function sameIdentity(left: ProcessIdentity | undefined, right: ProcessIdentity 
   return Boolean(left && right && left.pid === right.pid && left.birth === right.birth);
 }
 
-function sameUser(pid: number): boolean | undefined {
+function sameUser(pid: number, root: string): boolean | undefined {
   try {
-    return statSync(`/proc/${pid}`).uid === process.getuid!();
+    return statSync(`${root}/${pid}`).uid === process.getuid!();
   } catch (error) {
     const code = (error as NodeJS.ErrnoException).code;
     if (code === "ENOENT" || code === "ESRCH") return undefined;
@@ -46,8 +46,8 @@ function sameUser(pid: number): boolean | undefined {
   }
 }
 
-function boundedEnvironment(pid: number, budget: { bytes: number }): Buffer {
-  const descriptor = openSync(`/proc/${pid}/environ`, "r");
+function boundedEnvironment(pid: number, budget: { bytes: number }, root: string): Buffer {
+  const descriptor = openSync(`${root}/${pid}/environ`, "r");
   try {
     const chunks: Buffer[] = [];
     let processBytes = 0;
@@ -67,9 +67,9 @@ function boundedEnvironment(pid: number, budget: { bytes: number }): Buffer {
   }
 }
 
-export function linuxPipeHandles(pid: number): Set<bigint> {
+export function linuxPipeHandles(pid: number, root = "/proc"): Set<bigint> {
   const handles = new Set<bigint>();
-  const directory = `/proc/${pid}/fd`;
+  const directory = `${root}/${pid}/fd`;
   let descriptors: string[];
   try {
     descriptors = readdirSync(directory);
@@ -85,31 +85,31 @@ export function linuxPipeHandles(pid: number): Set<bigint> {
   return handles;
 }
 
-export function linuxPipeOwners(anchors: ReadonlySet<bigint>): Set<number> {
+export function linuxPipeOwners(anchors: ReadonlySet<bigint>, root = "/proc"): Set<number> {
   const owners = new Set<number>();
-  for (const pid of processIds()) {
+  for (const pid of processIds(root)) {
     if (pid === process.pid) continue;
-    if ([...linuxPipeHandles(pid)].some((handle) => anchors.has(handle))) owners.add(pid);
+    if ([...linuxPipeHandles(pid, root)].some((handle) => anchors.has(handle))) owners.add(pid);
   }
   return owners;
 }
 
-export function linuxTokenOwnerIdentities(token: string): ProcessIdentity[] {
+export function linuxTokenOwnerIdentities(token: string, root = "/proc"): ProcessIdentity[] {
   if (!token) return [];
   const marker = Buffer.from(`${OWNERSHIP_ENV}=${token}\0`);
   const owners: ProcessIdentity[] = [];
   const budget = { bytes: 0 };
-  for (const pid of processIds()) {
+  for (const pid of processIds(root)) {
     if (pid === process.pid) continue;
-    const ownedByUser = sameUser(pid);
+    const ownedByUser = sameUser(pid, root);
     if (ownedByUser !== true) continue;
-    const before = linuxProcessIdentity(pid);
+    const before = linuxProcessIdentity(pid, root);
     if (!before) continue;
     let environment: Buffer;
     try {
-      environment = boundedEnvironment(pid, budget);
+      environment = boundedEnvironment(pid, budget, root);
     } catch (error) {
-      const after = linuxProcessIdentity(pid);
+      const after = linuxProcessIdentity(pid, root);
       if (!after) continue;
       if (!sameIdentity(before, after))
         throw new HarnessError(
@@ -122,7 +122,7 @@ export function linuxTokenOwnerIdentities(token: string): ProcessIdentity[] {
         `cannot inspect ownership token for live process ${pid}`,
       );
     }
-    const after = linuxProcessIdentity(pid);
+    const after = linuxProcessIdentity(pid, root);
     if (!after) continue;
     if (!sameIdentity(before, after))
       throw new HarnessError(
@@ -136,10 +136,11 @@ export function linuxTokenOwnerIdentities(token: string): ProcessIdentity[] {
 
 export function linuxProcessIdentity(
   pid: number,
+  root = "/proc",
 ): { pid: number; parent: number; group: number; birth: string } | undefined {
   let stat: string;
   try {
-    stat = readFileSync(`/proc/${pid}/stat`, "utf8");
+    stat = readFileSync(`${root}/${pid}/stat`, "utf8");
   } catch {
     return undefined;
   }

@@ -1,0 +1,18 @@
+export const STATUSES = [
+  "proposed",
+  "ready",
+  "retry_ready",
+  "changes_requested",
+  "leased",
+  "running",
+  "submitted",
+  "validating",
+  "validated",
+  "gating",
+  "branched",
+  "escalated",
+  "blocked",
+  "cancelled",
+  "stale",
+  "done",
+];

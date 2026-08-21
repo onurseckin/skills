@@ -6,7 +6,7 @@ export interface ReplanFindingsInput {
   readonly file: string | undefined;
   readonly readFile: (path: string) => string;
   readonly recorded: unknown;
-  /** state.tasks — open findings a validator recorded via task:reject also become replan input. */
+
   readonly tasks?: unknown;
 }
 
@@ -59,12 +59,6 @@ function findingFrom(value: unknown, index: number): FindingDetail {
     file_paths: filePaths(record),
     observation,
     remediation: text(record.remediation) ?? UNREPORTED_REMEDIATION,
-    // Two legitimate producers, two names: an operator's ad hoc --findings/--findings-file JSON
-    // documents itself as `revalidation_gate` (see plan:replan's --gate help text), while every
-    // recorded finding schema (CompletionFinding, Finding) names the same thing `revalidation` —
-    // and defect-synthesizer.ts's normalizeFindingToDetail already treats `revalidation` as the
-    // schema's source of truth for this field. Reading only `revalidation_gate` here meant a
-    // critic's or validator's recorded gate command was silently discarded; read both.
     revalidation_gate: text(record.revalidation_gate) ?? text(record.revalidation),
   };
 }
@@ -88,10 +82,6 @@ function parsePayload(content: string): FindingDetail[] {
   return list.map(findingFrom);
 }
 
-// task:reject records its finding on the task itself (state.tasks[id].findings), not on
-// state.completion_review — a validator never gets a chance to route through the critic's
-// recording path at all. Without this, a validator's rejection is structurally invisible to
-// plan:replan no matter how long it stays open.
 function openTaskFindings(tasks: unknown): Record<string, unknown>[] {
   if (!isRecord(tasks)) return [];
   const findings: Record<string, unknown>[] = [];

@@ -59,6 +59,20 @@ describe("workflow leases", () => {
     expect(state.tasks["T-1"]!.lease!.expires_at).toBe("2026-08-13T12:00:15.000Z");
   });
 
+  test("refuses a heartbeat while the lease clock is suspended for an open branch", () => {
+    const port = new TestPort(workflowState());
+    const { token } = claimTask(port, "T-1", "agent-a", "implementer", {
+      leaseSeconds: 10,
+      clock: start,
+    });
+    port.transact("coordinator", "suspend-for-test", {}, (draft) => {
+      draft.tasks["T-1"]!.lease!.suspended_at = start.now().toISOString();
+    });
+    expect(() => heartbeat(port, "T-1", "agent-a", token, at("2026-08-13T12:00:05.000Z"))).toThrow(
+      /lease clock is suspended while a branch is open/,
+    );
+  });
+
   test("stale normal work becomes retry ready", () => {
     const port = new TestPort(workflowState());
     claimTask(port, "T-1", "agent-a", "implementer", { leaseSeconds: 5, clock: start });

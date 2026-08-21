@@ -10,6 +10,7 @@ import {
   transact,
 } from "../../../orchestrating-long-tasks/scripts/src/store/index.ts";
 import { queueCapsuleState } from "./fixtures.ts";
+import { legacyPreLedgerCapsule } from "../../support/legacy-capsule-fixture.ts";
 
 const roots: string[] = [];
 afterEach(() => {
@@ -76,15 +77,7 @@ describe("topology persistence", () => {
   });
 
   test("capsules written before topology existed still load and report no record", () => {
-    const capsule = join(
-      import.meta.dir,
-      "..",
-      "..",
-      "..",
-      ".capsules",
-      "2026-08-17-skills-documentation-elevation",
-    );
-    const loaded = loadRun(capsule);
+    const loaded = loadRun(legacyPreLedgerCapsule(import.meta.path));
 
     expect(loaded.manifest.schema).toBe("harness.manifest");
     expect(Object.keys(loaded.state.tasks as Record<string, unknown>)).toHaveLength(3);

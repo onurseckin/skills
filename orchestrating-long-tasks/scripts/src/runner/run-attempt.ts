@@ -29,6 +29,7 @@ export async function runAttempt(
   commandId: string,
   commandRoot: string,
   attemptSigner: CommandSigningCapability,
+  spawnApi: BunSpawnApi = Bun as unknown as BunSpawnApi,
 ): Promise<AttemptResult> {
   const attemptDir = join(commandRoot, `attempt-${attempt}`);
   await mkdir(attemptDir, { recursive: false, mode: 0o700 });
@@ -77,7 +78,7 @@ export async function runAttempt(
       evidence.ingest(text);
       activityRecord!.output(channel, bytes);
     };
-    const runtime = Bun as unknown as BunSpawnApi;
+    const runtime = spawnApi;
     const pipeBaseline = runnerPipeHandles();
     const ownershipToken = options.environment[OWNERSHIP_ENV];
     if (!ownershipToken) throw new Error("command ownership token is missing");

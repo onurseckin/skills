@@ -1,0 +1,54 @@
+# Universal UI Capture & Validation Configuration
+version: "1.0"
+baseUrl: "http://localhost:3000"
+
+viewports:
+  desktop:
+    name: "desktop"
+    width: 1440
+    height: 900
+  desktop-wide:
+    name: "desktop-wide"
+    width: 1920
+    height: 1080
+  tablet:
+    name: "tablet"
+    width: 768
+    height: 1024
+  mobile:
+    name: "mobile"
+    width: 375
+    height: 667
+    isMobile: true
+
+sidebar:
+  enabled: true
+  requireZeroNavbar: true
+  logoPosition: "top-left"
+  userProfilePosition: "bottom-left"
+
+auth:
+  defaultUser: "admin"
+  tokenHeaderName: "Authorization"
+  users:
+    admin:
+      id: "admin"
+      name: "Admin User"
+      role: "admin"
+      token: "mock-admin-token"
+
+screens:
+  - id: "dashboard"
+    name: "Main Dashboard"
+    path: "/"
+    viewports:
+      - "desktop"
+      - "tablet"
+      - "mobile"
+  - id: "settings"
+    name: "Settings Page"
+    path: "/settings"
+    auth: "admin"
+    viewports:
+      - "desktop"
+      - "mobile"

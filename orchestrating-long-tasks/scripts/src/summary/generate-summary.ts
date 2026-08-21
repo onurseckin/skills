@@ -9,7 +9,7 @@ import { generateGraphDataset } from "./graph-generator.ts";
 import { formatSummaryMarkdown } from "./markdown-formatter.ts";
 import type { SummaryGenerationOptions, SummarySuite } from "./types.ts";
 
-function loadCommandsFromDir(commandsDir: string): Record<string, CommandRecord> {
+export function loadCommandsFromDir(commandsDir: string): Record<string, CommandRecord> {
   const result: Record<string, CommandRecord> = {};
   if (!existsSync(commandsDir)) return result;
 
@@ -31,9 +31,12 @@ function loadCommandsFromDir(commandsDir: string): Record<string, CommandRecord>
   return result;
 }
 
-export function generateSummarySuite(options: SummaryGenerationOptions): SummarySuite {
+export function generateSummarySuite(
+  options: SummaryGenerationOptions,
+  readRun: typeof loadRun = loadRun,
+): SummarySuite {
   const { capsulePath, outDir, writeToDisk = true } = options;
-  const loaded = loadRun(capsulePath);
+  const loaded = readRun(capsulePath);
   const runId = loaded.manifest.run_id || basename(loaded.runRoot);
 
   const promptText = loaded.prompt ? new TextDecoder().decode(loaded.prompt) : "";

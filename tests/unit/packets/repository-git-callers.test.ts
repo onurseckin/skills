@@ -79,6 +79,21 @@ describe("restricted repository Git callers", () => {
       });
   });
 
+  test("ensureHarnessIgnored throws when .capsules is not gitignored", () => {
+    const repo = mkdtempSync(join(tmpdir(), "restricted-git-callers-not-ignored-"));
+    roots.push(repo);
+    mkdirSync(join(repo, ".git"));
+    const command = createRepositoryGitCommand(environment, (_executable, argv) => ({
+      status: argv.includes("check-ignore") ? 1 : 0,
+      stdout: Buffer.from(argv.includes("--is-inside-work-tree") ? "true\n" : ""),
+      stderr: Buffer.alloc(0),
+    }));
+
+    expect(() => ensureHarnessIgnored(repo, command)).toThrow(
+      /\.capsules must be gitignored before initializing a run/,
+    );
+  });
+
   test("contains no direct production Git spawn outside the shared seam", () => {
     const scriptsRoot = join(
       import.meta.dir,

@@ -160,3 +160,22 @@ gate to inherit. There is no default, because a repair task without a gate canno
 ---
 
 [⬅ Previous: Structured Finding Schema](./02-structured-finding-schema.md) | [Master Table of Contents](../README.md) | [Next: Chapter 07 — Gate Systems ➡](../07-gates-and-completion/01-mandatory-gate-systems.md)
+
+## Two producers, two spellings, one field
+
+A finding's revalidation command reaches `plan:replan` under two different names, and both are
+legitimate.
+
+An operator's ad hoc `--findings` / `--findings-file` JSON documents itself as `revalidation_gate`
+(see `plan:replan`'s `--gate` help text). Every *recorded* finding schema — `CompletionFinding` and
+`Finding` — names the same thing `revalidation`, and `defect-synthesizer.ts` already treats
+`revalidation` as the schema's source of truth. Reading only `revalidation_gate` silently discarded
+the gate command a critic or validator had recorded, which is what made a finding unable to become a
+repair task without a human passing `--gate` by hand. Both spellings are read.
+
+## Validator findings live on the task, not the review
+
+`task:reject` records its finding on the task itself (`state.tasks[id].findings`), never on
+`state.completion_review` — a validator has no path through the critic's recording route. Collecting
+replan input from the completion review alone therefore made a validator's rejection structurally
+invisible to `plan:replan`, no matter how long it stayed open. Both sources are collected.

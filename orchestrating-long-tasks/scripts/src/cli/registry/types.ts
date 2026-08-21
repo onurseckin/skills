@@ -32,7 +32,8 @@ export type CommandDomain =
   | "orphan"
   | "authority"
   | "diagnostics"
-  | "gate";
+  | "gate"
+  | "capture";
 
 export type CommandHandler = (
   flags: Flags,

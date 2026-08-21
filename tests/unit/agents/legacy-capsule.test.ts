@@ -1,21 +1,12 @@
 import { describe, expect, test } from "bun:test";
-import { join } from "node:path";
 import { loadRun } from "../../../orchestrating-long-tasks/scripts/src/store/index.ts";
 import { readAgentLedger } from "../../../orchestrating-long-tasks/scripts/src/workflow/agents/ledger.ts";
 import { taskLineage } from "../../../orchestrating-long-tasks/scripts/src/workflow/agents/lineage.ts";
-
-const capsule = join(
-  import.meta.dir,
-  "..",
-  "..",
-  "..",
-  ".capsules",
-  "2026-08-17-skills-documentation-elevation",
-);
+import { legacyPreLedgerCapsule } from "../../support/legacy-capsule-fixture.ts";
 
 describe("agent ledger compatibility", () => {
   test("a capsule written before the ledger existed still loads and reads as empty", () => {
-    const loaded = loadRun(capsule);
+    const loaded = loadRun(legacyPreLedgerCapsule(import.meta.path));
     expect(loaded.state.agents).toBeUndefined();
     expect(readAgentLedger(loaded.state)).toEqual([]);
     expect(taskLineage(readAgentLedger(loaded.state), "task-1").agents).toEqual([]);

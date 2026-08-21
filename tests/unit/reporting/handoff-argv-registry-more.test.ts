@@ -10,6 +10,7 @@ import { renderHandoff } from "../../../orchestrating-long-tasks/scripts/src/rep
 import { initRun, transact } from "../../../orchestrating-long-tasks/scripts/src/store/index.ts";
 import { commandRecord } from "../workflow/test-port.ts";
 import { dispatchFailures, handoffArgv } from "./dispatchable.ts";
+import { STATUSES } from "./handoff-statuses.ts";
 
 const REPORTING = fileURLToPath(
   new URL("../../../orchestrating-long-tasks/scripts/src/reporting/", import.meta.url),

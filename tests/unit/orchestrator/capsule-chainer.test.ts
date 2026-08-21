@@ -114,6 +114,69 @@ describe("Capsule Chainer Unit Tests", () => {
     }).toThrow(HarnessError);
   });
 
+  it("folds defect-synthesis findings into carryover, deduping against state and each other", () => {
+    const testDir = scratchRoot(import.meta.path, "defect-synthesis-carryover");
+    const sourceCapsule = join(testDir, "run-1");
+    const targetCapsule = join(testDir, "run-2");
+    mkdirSync(sourceCapsule, { recursive: true });
+
+    writeFileSync(
+      join(sourceCapsule, "state.json"),
+      JSON.stringify({
+        schema: "harness.state",
+        version: 1,
+        revision: 1,
+        event_sequence: 1,
+        event_head: "sha256-event-1",
+        requirements: [{ id: "req-01", status: "planned" }],
+        tasks: {
+          "task-01": {
+            id: "task-01",
+            status: "changes_requested",
+            findings: [{ id: "f-already-open", status: "open" }],
+          },
+        },
+      }),
+    );
+
+    const chainManifest = chainCapsules({
+      sourceRunId: "run-1",
+      targetRunId: "run-2",
+      sourceCapsulePath: sourceCapsule,
+      targetCapsulePath: targetCapsule,
+      roundNumber: 2,
+      defectSynthesis: {
+        roundNumber: 2,
+        priorRunId: "run-1",
+        originalPrompt: "build the thing",
+        gateFailures: ["G-1"],
+        synthesizedPrompt: "fix the thing",
+        affectedFiles: ["src/thing.ts"],
+        unresolvedFindings: [
+          {
+            id: "f-already-open",
+            requirement_id: "req-01",
+            severity: "important",
+            file_paths: ["src/thing.ts"],
+            observation: "already tracked from state.json",
+            remediation: "n/a",
+          },
+          {
+            id: "f-new-from-critic",
+            requirement_id: "req-02",
+            severity: "critical",
+            file_paths: ["src/other.ts"],
+            observation: "critic found a new defect this round",
+            remediation: "fix it",
+          },
+        ],
+      },
+    });
+
+    expect(chainManifest.unresolvedFindingIds).toEqual(["f-already-open", "f-new-from-critic"]);
+    expect(chainManifest.carryoverRequirements).toEqual(["req-01", "req-02"]);
+  });
+
   it("refuses an unreadable source state instead of chaining an empty carryover", () => {
     const testDir = scratchRoot(import.meta.path, "bad-state");
     const sourceCapsule = join(testDir, "run-bad-state");

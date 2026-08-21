@@ -5059,6 +5059,217 @@
         "bun harness.ts coordinator:pushback --run .capsules/<run-id> --task task-1 --actor coordinator --validator val-1 --domain ui-design --cause procedural --observation \"pass carried zero screenshot evidence\" --remediation \"re-run the visual suite and record real evidence before passing again\"",
         "bun harness.ts coordinator:pushback --run .capsules/<run-id> --task task-1 --actor coordinator --validator val-1 --domain code-quality --cause substantive --observation \"the recorded check output shows the gate never ran\" --remediation \"fix the gate invocation and resubmit\""
       ]
+    },
+    {
+      "name": "capture:init",
+      "aliases": [],
+      "domain": "capture",
+      "summary": "Initialize standard capture configuration in repository.",
+      "description": "Generates .capture.yaml or .capture.json with standard presets, default viewports, authentication settings, and example screen targets.",
+      "flags": [
+        {
+          "name": "config-dir",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Directory to create the configuration file in."
+        },
+        {
+          "name": "format",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": "yaml",
+          "description": "Configuration format: yaml or json (default: yaml)."
+        },
+        {
+          "name": "preset",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": "standard-dashboard",
+          "description": "Preset template: standard-dashboard, marketing-site, mobile-app, full-matrix."
+        },
+        {
+          "name": "force",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Overwrite existing configuration file if present."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts capture:init",
+        "bun harness.ts capture:init --format json --preset standard-dashboard"
+      ]
+    },
+    {
+      "name": "capture:run",
+      "aliases": [],
+      "domain": "capture",
+      "summary": "Execute multi-viewport UI capture and companion manifest persistence.",
+      "description": "Dispatches Playwright or simulated runner across configured screens and viewports, generating screenshots and 1-to-1 companion manifest JSON records.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root for artifact and screenshot ledger ingestion."
+        },
+        {
+          "name": "config",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Explicit path to .capture.yaml or .capture.json."
+        },
+        {
+          "name": "config-dir",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Directory containing capture configuration."
+        },
+        {
+          "name": "screen",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Filter execution to a specific screen ID."
+        },
+        {
+          "name": "viewport",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Filter execution to a specific viewport name."
+        },
+        {
+          "name": "out-dir",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Explicit output directory for captures and manifests."
+        },
+        {
+          "name": "actor",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Actor recorded in ledger captures (default: capture-runner)."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts capture:run --config .capture.yaml",
+        "bun harness.ts capture:run --run .capsules/<run-id> --screen dashboard --viewport desktop"
+      ]
+    },
+    {
+      "name": "capture:eval",
+      "aliases": [],
+      "domain": "capture",
+      "summary": "Evaluate companion manifests against 4-pillar validation engines.",
+      "description": "Performs strict binary certification across mechanical, cognitive, custom, and synthesis pillars with 0 numeric scores.",
+      "flags": [
+        {
+          "name": "manifest",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Path to single .manifest.json companion file."
+        },
+        {
+          "name": "manifest-dir",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Directory containing .manifest.json companion files."
+        },
+        {
+          "name": "strict",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Exit non-zero (exit code 3) if any defects are found."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts capture:eval --manifest .captures/dashboard-desktop.manifest.json",
+        "bun harness.ts capture:eval --manifest-dir .captures --strict"
+      ]
     }
   ]
 }

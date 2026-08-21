@@ -1,7 +1,11 @@
 import type { FindingDetail, MediaAsset, NodeFinding } from "./types.ts";
 
 export class AssetRegistry {
-  private readonly idByUrl = new Map<string, string>();
+  private readonly idByUrl: Map<string, string>;
+
+  constructor() {
+    this.idByUrl = new Map<string, string>();
+  }
 
   claim(candidates: readonly MediaAsset[]): MediaAsset[] {
     const owned: MediaAsset[] = [];

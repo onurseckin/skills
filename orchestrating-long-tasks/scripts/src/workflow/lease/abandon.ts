@@ -15,6 +15,11 @@ export function abandonAttempt(
   const now = clock.now();
   return port.transact(actor, "attempt-abandoned", { task_id: taskId, reason }, (draft) => {
     const task = taskIn(draft, taskId);
+    if (task.status === "validating") {
+      delete task.validations;
+      transition(task, "submitted", actor, now, `validation abandoned: ${reason}`);
+      return;
+    }
     const attempt = task.attempts.at(-1);
     if (!attempt || !isAttemptOpen(attempt)) {
       throw new HarnessError("INVALID_STATE", `task ${taskId} has no open attempt to abandon`);
