@@ -117,6 +117,12 @@ export const CAPSULE_LAYOUT: readonly LayoutEntry[] = [
     responsibility: "The pinned copy of the harness code that is executing this run.",
     createdAtInit: false,
   },
+  {
+    name: "last_pulse.json",
+    role: "runtime",
+    responsibility: "The latest pulse execution status and next wake timestamp.",
+    createdAtInit: false,
+  },
 ];
 
 export const LOCKS_DIRECTORY = ".locks";
