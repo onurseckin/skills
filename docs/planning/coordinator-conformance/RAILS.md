@@ -11,21 +11,21 @@ sensible thing to do and because two orchestrators often run at once. **The idea
 the design target. The weak-model case is.** A harness that produces good runs only when the operator
 is already smart has not automated anything — it has relocated the intelligence requirement.
 
-So the bar is: *a model that does not understand the architecture, cannot hold the whole plan in
+So the bar is: _a model that does not understand the architecture, cannot hold the whole plan in
 context, and will take the locally cheapest action at every step, must still produce a well-formed,
-parallel, evidenced run.*
+parallel, evidenced run._
 
 ## The distinction that matters: a capability is not a rail
 
 Everything the real failure needed already existed.
 
-| What was needed | What exists | Why it did not help |
-|---|---|---|
-| fine-grained decomposition | `scopeIsNarrow`, `discoverGatePaths` | advisory |
-| no artificial serialization | disjoint-scope detection, `SerializationWarning` | advisory |
-| scoped gates | `looksWholeSuite`, `gateBreadthWarning` | advisory |
-| a growing graph | `plan:apply` + `revision-guard` | unreachable (packet hardcodes revision 0) |
-| worker subdivision | `branch:*`, six registered commands | never routed to |
+| What was needed             | What exists                                      | Why it did not help                       |
+| --------------------------- | ------------------------------------------------ | ----------------------------------------- |
+| fine-grained decomposition  | `scopeIsNarrow`, `discoverGatePaths`             | advisory                                  |
+| no artificial serialization | disjoint-scope detection, `SerializationWarning` | advisory                                  |
+| scoped gates                | `looksWholeSuite`, `gateBreadthWarning`          | advisory                                  |
+| a growing graph             | `plan:apply` + `revision-guard`                  | unreachable (packet hardcodes revision 0) |
+| worker subdivision          | `branch:*`, six registered commands              | never routed to                           |
 
 Not one of these is missing. Every one is a **capability** — available to an operator who knows it
 exists, is optional, and is therefore invisible to a weak model. A weak model does not explore a
@@ -46,7 +46,7 @@ already populated with real ids — not a description of what to do, the literal
 
 The seed of this exists: `reporting/task-actions.ts` builds `outstandingGateRuns` and
 `validationActions` as real argv. It must become universal and mandatory rather than partial:
-from any state, `run:status` answers *"what are my legal moves right now"* exhaustively.
+from any state, `run:status` answers _"what are my legal moves right now"_ exhaustively.
 
 Corollary — **a refusal without a prescribed repair is a defect.** This is where `DESIGN.md` was
 wrong. It specified blocking invariants but not what a refused planner does next. A weak model
@@ -60,7 +60,7 @@ Anything the harness can compute, the model must not be asked to invent.
 
 - Gate for a scope: `discoverGatePaths` already finds real on-disk paths. Offer the narrowest gate.
 - Partition of a directory: enumerate the files; emit one task each.
-- Dependency necessity: the harness knows scope overlap. The model declares *intent*; the harness
+- Dependency necessity: the harness knows scope overlap. The model declares _intent_; the harness
   decides whether an edge is warranted.
 - Effort/priority/order fields: derived, never asked for.
 
@@ -77,7 +77,7 @@ A weak model's self-report is not evidence. Where a claim is mechanically checka
 ### 4. Elicit-then-falsify — force a structured claim, then check it against computable truth
 
 This is the systematic self-evaluation the owner asked for, and it is stronger than asking a model to
-"reflect", which a weak model does badly. Do not ask for an opinion; demand a *number* the harness can
+"reflect", which a weak model does badly. Do not ask for an opinion; demand a _number_ the harness can
 verify.
 
 At `plan:compile` the planner must declare:
@@ -111,16 +111,16 @@ These do not conflict once the boundary is drawn in the right place:
 
 > **The harness constrains HOW. It never constrains WHAT.**
 
-| Hard line (process) | Free (content) |
-|---|---|
+| Hard line (process)                                          | Free (content)                            |
+| ------------------------------------------------------------ | ----------------------------------------- |
 | must go through the CLI; unexplained tree drift is a finding | any implementation the worker judges best |
-| every edge must carry a justification | any topology that can be justified |
-| a gate must be provably falsifiable | any command that passes the proof |
-| work must occur inside the lease window | any approach taken inside it |
-| plan growth goes through the revision guard | any nodes the goal admits |
-| the goal/requirement contract is immutable | the entire interior is mutable |
+| every edge must carry a justification                        | any topology that can be justified        |
+| a gate must be provably falsifiable                          | any command that passes the proof         |
+| work must occur inside the lease window                      | any approach taken inside it              |
+| plan growth goes through the revision guard                  | any nodes the goal admits                 |
+| the goal/requirement contract is immutable                   | the entire interior is mutable            |
 
-Rigidity about process is what *buys* freedom of content: because the requirement contract cannot be
+Rigidity about process is what _buys_ freedom of content: because the requirement contract cannot be
 edited, the interior can be opened up safely. The frozen goal is what makes the fluid middle
 affordable — `revision-guard.ts:75-83` already encodes exactly this and is the best-designed code in
 the subsystem.

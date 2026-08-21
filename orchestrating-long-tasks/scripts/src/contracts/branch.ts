@@ -1,13 +1,8 @@
 import { isEvidenced, type Evidenced } from "./evidence.ts";
 import { isJsonObject, isSafeInteger, type JsonObject } from "./json.ts";
 
-/** A branch is open until every sub-task is terminal and the parent has collected the result. */
 export type BranchStatus = "abandoned" | "collected" | "collecting" | "open";
 
-/**
- * `branched` is the sub-task mirror of the task status: the sub-agent opened a nested branch of its
- * own and its lease is frozen until that branch collects. It is deliberately not terminal.
- */
 export type BranchSubTaskStatus = "abandoned" | "branched" | "claimed" | "open" | "submitted";
 
 export const BRANCH_STATUSES: readonly BranchStatus[] = [
@@ -25,7 +20,6 @@ export const BRANCH_SUB_TASK_STATUSES: readonly BranchSubTaskStatus[] = [
   "abandoned",
 ];
 
-/** Terminal for collection purposes: the sub-agent is done, either with work or with giving up. */
 export const TERMINAL_SUB_TASK_STATUSES: readonly BranchSubTaskStatus[] = [
   "submitted",
   "abandoned",
@@ -40,7 +34,6 @@ export interface BranchLease extends JsonObject {
   suspended_at?: string;
 }
 
-/** What a dead sub-agent left behind, so a reclaimed sub-task still shows who held it. */
 export interface BranchLeaseRecovery extends JsonObject {
   recovered_at: string;
   expired_agent_id: string;
@@ -62,18 +55,12 @@ export interface BranchSubTask extends JsonObject {
   recovery?: BranchLeaseRecovery;
 }
 
-/** One path the harness saw in the worktree, with the bytes it hashed. */
 export interface BranchRepositoryEntry extends JsonObject {
   path: string;
   status_code: string;
   sha256: null | string;
 }
 
-/**
- * A worktree reading taken through the repository Git seam. `git_available: false` means the
- * harness could not measure anything, which stays absent downstream instead of becoming an empty
- * change set.
- */
 export interface BranchRepositoryObservation extends JsonObject {
   observed_at: string;
   git_available: boolean;

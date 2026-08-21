@@ -104,7 +104,11 @@ export const CRITIC_COMMANDS: readonly CommandSpec[] = [
         "string",
         "Answer a finding: <finding-id>=<command-id>[,<command-id>].",
       ),
-      repeatableFlag("resolution-method", "string", "How a finding was answered: <finding-id>=<method>."),
+      repeatableFlag(
+        "resolution-method",
+        "string",
+        "How a finding was answered: <finding-id>=<method>.",
+      ),
     ],
     readsStdin: false,
     takesRemainder: false,

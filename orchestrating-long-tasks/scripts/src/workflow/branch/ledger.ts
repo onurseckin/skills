@@ -4,11 +4,6 @@ import { HarnessError } from "../../errors/harness-error.ts";
 
 export const BRANCH_LEDGER_KEY = "branches";
 
-/**
- * A capsule written before branching existed carries no `branches` key, which is an empty ledger
- * rather than a defect. A present-but-malformed key can only come from a hand-edited state file, so
- * it fails as an integrity problem instead of being silently repaired.
- */
 export function readBranchLedger(state: JsonObject): BranchRecord[] {
   const raw = state[BRANCH_LEDGER_KEY];
   if (raw === undefined) return [];
@@ -53,7 +48,6 @@ export interface SubTaskLocation {
   subTask: BranchSubTask;
 }
 
-/** Sub-task ids are unique across the ledger because openBranch refuses a colliding id. */
 export function locateSubTask(
   ledger: readonly BranchRecord[],
   subTaskId: string,

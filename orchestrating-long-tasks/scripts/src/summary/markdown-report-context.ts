@@ -45,9 +45,6 @@ export interface ReportContextInput {
   commands: Record<string, CommandRecord>;
   metrics: RollupMetrics;
   timeline: TimelineEventRecord[];
-  /** The same dataset `graph.json` carries. Line-level file provenance and the action-provenance
-   * trace (B15.1/B15.2) are read back from here rather than recomputed, so the two renderings of
-   * one run can never drift apart. */
   graph: GraphDataset;
 }
 
@@ -65,7 +62,6 @@ export interface ReportContext {
   gates: GateView[];
   branches: BranchRecord[];
   agents: AgentGrantRecord[];
-  /** Set when the grant ledger could not be read; the roster is then empty for a stated reason. */
   agentLedgerIssue: string | undefined;
   commands: CommandView[];
   topology: TopologyRecord | null;
@@ -73,13 +69,9 @@ export interface ReportContext {
   waves: AsciiWave[];
   metrics: RollupMetrics;
   timeline: TimelineEventRecord[];
-  /** B12.5: one entry per task that has ever recorded a `task:review`, in task order. */
   checklistCoverage: TaskChecklistCoverageView[];
-  /** The run's full action-provenance trace (B15.1), read straight off `graph.run.steps`. */
   steps: readonly ActionStepRecord[];
-  /** A task's own enriched file list (line ranges, diff, rationale, step — B15.2), keyed by task id. */
   taskFiles: ReadonlyMap<string, readonly FileRef[]>;
-  /** A branch excursion's own Git-observed file list (B15.2), keyed by branch id. */
   branchFiles: ReadonlyMap<string, readonly FileRef[]>;
 }
 
@@ -104,10 +96,6 @@ function orderedTasks(state: Readonly<WorkflowState>): TaskRecord[] {
   return ordered;
 }
 
-/**
- * Waves come from the recorded topology. A task the topology never placed is grouped under an
- * explicitly unknown wave instead of being folded into a neighbouring one.
- */
 function buildWaves(topology: TopologyRecord | null, tasks: readonly TaskRecord[]): AsciiWave[] {
   const placed = new Set<string>();
   const waves: AsciiWave[] = [];
@@ -120,12 +108,6 @@ function buildWaves(topology: TopologyRecord | null, tasks: readonly TaskRecord[
   return waves;
 }
 
-/**
- * The graph already computed each task's enriched file list (line ranges, diff, rationale, step —
- * B15.2) while building `node-task-<id>`; this reads it back rather than recomputing it from the
- * report a second time, so the two renderings of one run can never drift from each other. The node
- * id template is the same one `graph-task-preparation.ts` mints, not a guess at one.
- */
 function fileRefsByTaskId(
   graph: GraphDataset,
   tasks: readonly TaskRecord[],
@@ -138,16 +120,15 @@ function fileRefsByTaskId(
   return map;
 }
 
-/** Same as `fileRefsByTaskId`, for a branch excursion's own Git-observed files (B15.2), which the
- * graph holds on its section rather than on a node — the section id template is
- * `graph-generator-branch-nodes.ts`'s own. */
 function fileRefsByBranchId(
   graph: GraphDataset,
   branches: readonly BranchRecord[],
 ): ReadonlyMap<string, readonly FileRef[]> {
   const map = new Map<string, readonly FileRef[]>();
   for (const branch of branches) {
-    const files = graph.sections?.find((entry) => entry.id === `section-branch-${branch.id}`)?.files;
+    const files = graph.sections?.find(
+      (entry) => entry.id === `section-branch-${branch.id}`,
+    )?.files;
     if (files !== undefined && files.length > 0) map.set(branch.id, files);
   }
   return map;

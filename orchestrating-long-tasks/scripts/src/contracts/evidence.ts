@@ -15,11 +15,6 @@ export const EVIDENCE_CLASSES: readonly EvidenceClass[] = [
 
 const EVIDENCE_CLASS_NAMES = new Set<string>(EVIDENCE_CLASSES);
 
-/**
- * Declared as an object type, not an interface, so it keeps an implicit index signature and stays
- * assignable to `JsonObject` whenever `T` is JSON-safe; state, event and graph writers persist these
- * values directly.
- */
 export type Evidenced<T> = {
   value: T;
   evidence_class: EvidenceClass;
@@ -45,7 +40,6 @@ export function evidenced<T>(value: T, evidenceClass: EvidenceClass): Evidenced<
   return { value, evidence_class: evidenceClass };
 }
 
-/** Estimates are always derived and always flagged, so no caller can mint an unflagged guess. */
 export function estimated<T>(value: T): Evidenced<T> {
   return { value, evidence_class: "derived", is_estimated: true };
 }

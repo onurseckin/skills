@@ -28,21 +28,16 @@ export const ALL_CHECKS: readonly HealthCheckId[] = [
 
 export interface HealthLayout {
   readonly repoRoot: string;
-  /** Directory holding `roles/`, `references/` and `SKILL.md`. */
   readonly skillRoot: string;
-  /** Directory holding `harness.ts` and `src/`. */
   readonly scriptsRoot: string;
-  /** Absent when the checkout carries no suite; the checks that need one are then skipped. */
   readonly testsRoot?: string;
   readonly documents: readonly IntentDocument[];
-  /** The consumer repository, when the caller pointed at one. */
   readonly consumerRoot?: string;
 }
 
 const PLANNING_DIRECTORY = "docs/planning/orchestration-overhaul";
 const REQUIREMENT_DOCUMENTS = ["SPEC.md", "BACKLOG.md"];
 
-/** The scripts directory this module was loaded from, so the check works from any cwd. */
 function selfScriptsRoot(): string {
   return resolve(dirname(new URL(import.meta.url).pathname), "..", "..");
 }
@@ -65,12 +60,10 @@ export function defaultLayout(scriptsRoot: string = selfScriptsRoot()): HealthLa
   };
 }
 
-/** Ambient declaration files are consumed by the compiler, never imported. */
 function isModule(file: SourceFile): boolean {
   return !file.path.endsWith(".d.ts");
 }
 
-/** Anything at the top of `scripts/` is a program someone runs; everything else is reached from one. */
 function entryPoints(scriptsRoot: string): string[] {
   return listFiles(scriptsRoot, [".ts"]).filter(
     (path) => dirname(path) === resolve(scriptsRoot) && !path.endsWith(".d.ts"),
@@ -100,9 +93,6 @@ export function runHealthCheck(
   const results: HealthCheckResult[] = [];
   const skipped: Skip[] = [];
   const wants = (check: HealthCheckId): boolean => requested.includes(check);
-  // The registry, the allowance list and the role-contract parser all belong to the harness this
-  // process is running. Judging some other checkout against them reports differences between two
-  // trees rather than defects in the scanned one.
   const ownTree = resolve(layout.scriptsRoot) === selfScriptsRoot();
 
   if (wants("unused-code")) {
@@ -192,14 +182,9 @@ export function runHealthCheck(
     });
   }
   if (wants("vendor-prose")) {
-    // The docs and role contracts a coordinator actually reads live under the skill root, not just
-    // scriptsRoot - `agents/coordinator.yaml` and `references/run-playbook.md` are siblings of
-    // `scripts/`, not inside it, and both are exactly where this defect has regressed twice.
     results.push(checkUnqualifiedDispatch([{ label: "skill", root: layout.skillRoot }]));
   }
 
-  // The allowance list names symbols in the harness's own tree, so an entry can only be judged
-  // stale against that tree: elsewhere every entry would read as excusing code that is "gone".
   const { checks, stale } = applyAllowances(results);
   const withStale = checks.map((result) =>
     result.check === "unused-code"

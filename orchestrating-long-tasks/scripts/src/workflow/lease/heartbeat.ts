@@ -19,8 +19,6 @@ export function heartbeat(
     if (!lease || lease.agent_id !== agentId || !tokenMatches(token, lease.token_digest)) {
       throw new HarnessError("INVALID_STATE", "lease identity or token is invalid");
     }
-    // A suspended clock cannot be wound forward: the holder is blocked on a branch, the lease is
-    // already protected from recovery, and extending the frozen expiry would erase the freeze.
     if (isLeaseSuspended(lease)) {
       throw new HarnessError(
         "INVALID_STATE",

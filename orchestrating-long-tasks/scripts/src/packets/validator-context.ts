@@ -24,8 +24,6 @@ const VALIDATOR_ALLOWED = new Set([
   "mapped_requirements",
   "original_prompt",
   "task_contract",
-  // What the run already recorded about this task on earlier rounds: diffs, commands and the
-  // demands still standing. Facts and demands only — the conclusions are stripped where it is built.
   "validation_round",
 ]);
 

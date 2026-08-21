@@ -52,9 +52,6 @@ export class DescendantTracker {
     if (this.failure) throw this.failure;
   }
 
-  // Self-reschedules only after the in-flight capture settles, so a slow `ps` under contention
-  // cannot queue more spawns behind it — the next poll is always `pollDelayMs` after the previous
-  // one FINISHED, never on a fixed wall clock regardless of how long capture took.
   private scheduleNextPoll(): void {
     this.timer = setTimeout(() => void this.poll(), this.pollDelayMs);
     this.timer.unref();
@@ -63,8 +60,6 @@ export class DescendantTracker {
   private async poll(): Promise<void> {
     const trackedBefore = this.tracked.size;
     await this.refresh().catch(() => undefined);
-    // `stop()` may have cleared the timer while this poll's capture was in flight; honor that
-    // rather than resurrecting a loop the caller already asked to end.
     if (this.timer === undefined) return;
     this.pollDelayMs = nextPollDelayMs(this.pollDelayMs, this.tracked.size > trackedBefore);
     this.scheduleNextPoll();

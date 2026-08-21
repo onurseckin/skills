@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { existsSync, readFileSync, rmSync, statSync } from "node:fs";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execute } from "../../../orchestrating-long-tasks/scripts/src/cli/execute.ts";
@@ -88,6 +88,10 @@ async function capsule(name: string, config?: Record<string, number>) {
 }
 
 async function submit(run: string, token: string) {
+  // C4: task:submit refuses a submission whose write scope is byte-identical to its content at
+  // claim; this fixture builds its capsule by hand and never puts anything under `src` at all.
+  await mkdir(join(run, "..", "..", "src"), { recursive: true });
+  await writeFile(join(run, "..", "..", "src", "parser.ts"), "export const parsed = true;\n");
   return execute([
     "task:submit",
     "--run",

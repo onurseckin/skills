@@ -80,9 +80,7 @@ export function linuxPipeHandles(pid: number): Set<bigint> {
     try {
       const match = /^pipe:\[(\d+)\]$/u.exec(readlinkSync(`${directory}/${descriptor}`));
       if (match) handles.add(BigInt(match[1]!));
-    } catch {
-      // A process may close a descriptor while its snapshot is being read.
-    }
+    } catch {}
   }
   return handles;
 }

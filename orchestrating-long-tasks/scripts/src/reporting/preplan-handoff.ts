@@ -1,11 +1,6 @@
 import type { RunFiles } from "../contracts/capsule.ts";
 import { registryArgv } from "./registry-argv.ts";
 
-/**
- * The path out of an uncompiled run: read the buffer, check the capsule, add the remaining tasks,
- * then compile. Every entry is resolved through the registry before it is printed, so the handoff
- * cannot name a command the CLI does not implement.
- */
 const PREPLAN_NEXT_COMMANDS: readonly string[] = [
   "plan:status",
   "doctor",

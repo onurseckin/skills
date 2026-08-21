@@ -7,9 +7,7 @@ export interface AgentLineageNode {
   parent_agent_id: null | string;
   parent_task_id: null | string;
   status: AgentGrantStatus;
-  /** Hops of delegation below the shallowest agent working the task; that agent is 0. */
   depth: number;
-  /** Parent chain up to the root grant, nearest first. */
   ancestors: string[];
 }
 
@@ -18,10 +16,6 @@ export interface TaskLineage {
   agents: AgentLineageNode[];
 }
 
-/**
- * Walks parents to the root. A hand-edited ledger could describe a cycle, so the walk stops on a
- * repeat instead of hanging.
- */
 export function ancestorChain(ledger: readonly AgentGrantRecord[], agentId: string): string[] {
   const byId = new Map(ledger.map((grant) => [grant.id, grant]));
   const chain: string[] = [];
@@ -58,18 +52,11 @@ function lineageNode(
   };
 }
 
-/**
- * Who worked a task and under whom: the agents dispatched directly onto it, then everything they
- * dispatched in turn. A descendant counts as having worked the task because its authority runs
- * through the agent that holds the task, whatever id its own grant binds to.
- */
 export function taskLineage(ledger: readonly AgentGrantRecord[], taskId: string): TaskLineage {
   const agents: AgentLineageNode[] = [];
   const visited = new Set<string>();
   const direct = ledger.filter((grant) => grant.parent_task_id === taskId);
   const directIds = new Set(direct.map((grant) => grant.id));
-  // An agent bound to the task whose dispatcher is also bound to it is not a root of this lineage:
-  // it is reached as that dispatcher's child, which is what keeps depth meaning hops of delegation.
   let frontier = direct.filter(
     (grant) => grant.parent_agent_id === null || !directIds.has(grant.parent_agent_id),
   );

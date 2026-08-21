@@ -5,19 +5,8 @@ import { diffAnchor, type DiffAnchor } from "../packets/round-repository-delta.t
 import { repositoryGit, type RepositoryGitCommand } from "../packets/repository-git-command.ts";
 import type { FileRef } from "./graph-types.ts";
 
-/**
- * Per-path ceiling for a single file's diff. Smaller than the whole-repository ceiling in
- * `round-repository-delta.ts` because a single path never legitimately produces megabytes of output;
- * a path that does is a signal something is wrong, not a diff worth carrying whole.
- */
 const DIFF_PATH_CEILING_BYTES = 1 * 1024 * 1024;
 
-/**
- * The run's baseline repository inspection, read straight off `state.json` on disk. Reads the file
- * itself rather than taking a loaded `RunState`, because callers here (`changedFiles` for one task)
- * run once per task and the caller already holds only a `runRoot`; the anchor is identical for every
- * task in the same run, so `resolveDiffAnchor` below memoizes it instead of re-parsing per task.
- */
 function readStateBaseline(runRoot: string): DiffAnchor | undefined {
   let raw: string;
   try {
@@ -42,11 +31,6 @@ function readStateBaseline(runRoot: string): DiffAnchor | undefined {
 
 const anchorCache = new Map<string, DiffAnchor | undefined>();
 
-/**
- * Memoized per run root: every task in one export shares the same baseline anchor. Not exported —
- * `enrichFileRefsWithDiffs` below is the module's one public entry point, and its own tests exercise
- * this indirectly through every anchor-resolution outcome (present, absent, dangling digest).
- */
 function resolveDiffAnchor(runRoot: string): DiffAnchor | undefined {
   if (!anchorCache.has(runRoot)) anchorCache.set(runRoot, readStateBaseline(runRoot));
   return anchorCache.get(runRoot);
@@ -59,7 +43,6 @@ interface ParsedDiff {
   deletions: number;
 }
 
-/** Hunk headers (`@@ -a,b +c,d @@`) collapsed into the compact range list `FileRef.lines` carries. */
 function parseHunkRanges(diffText: string): string {
   const ranges: string[] = [];
   for (const line of diffText.split("\n")) {
@@ -83,11 +66,6 @@ function countChanges(diffText: string): { additions: number; deletions: number 
   return { additions, deletions };
 }
 
-/**
- * The real diff for one path against the run's baseline, or `undefined` when Git, the baseline or a
- * change to this specific path is unavailable. Never a fabricated diff, and never zeroed-out counts
- * standing in for "nothing changed": a path this cannot measure stays unenriched.
- */
 function readPathDiff(
   repositoryRoot: string,
   headCommit: string,
@@ -110,14 +88,6 @@ function readPathDiff(
   return { diff: text, lines: parseHunkRanges(text), additions, deletions };
 }
 
-/**
- * Populates `FileRef.lines`/`.diff`/`.additions`/`.deletions` from a real Git diff against the run's
- * baseline inspection (B15.2). `evidence_class` is left exactly as the caller set it: it describes how
- * the *path* came to be listed (an implementer's claim, a Git status reading), and a fresh diff reading
- * of already-listed content does not change who made that claim. A ref this cannot measure — no
- * baseline commit, no repository on disk, Git unavailable, or no change to that specific path — passes
- * through exactly as given rather than gaining a misleading empty diff.
- */
 export function enrichFileRefsWithDiffs(
   files: readonly FileRef[],
   runRoot: string | undefined,
@@ -131,9 +101,6 @@ export function enrichFileRefsWithDiffs(
   return files.map((file) => {
     const parsed = readPathDiff(repositoryRoot, headCommit, file.path, command);
     if (parsed === undefined) return file;
-    // `evidence_class` describes how the *path* came to be listed (an implementer's claim, or a Git
-    // status reading); the diff content added here does not change that provenance, so it is left
-    // exactly as the caller set it rather than overwritten to "harness_observed" wholesale.
     return {
       ...file,
       diff: parsed.diff,

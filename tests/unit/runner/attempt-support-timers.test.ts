@@ -115,10 +115,7 @@ describe("settleTrackerBeforeOutcome keeps the root-identity binding ahead of th
   test("swallows the tracker's own rejection so the real failure reason still wins", async () => {
     const trackerReady = Promise.reject(new Error("descendant enumeration failed"));
     await expect(
-      settleTrackerBeforeOutcome(
-        Promise.reject(new Error("output quota exceeded")),
-        trackerReady,
-      ),
+      settleTrackerBeforeOutcome(Promise.reject(new Error("output quota exceeded")), trackerReady),
     ).rejects.toThrow("output quota exceeded");
   });
 

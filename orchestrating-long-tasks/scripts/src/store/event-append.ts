@@ -81,12 +81,6 @@ export function appendProjectionEvent(
   return cloneObject(next);
 }
 
-/**
- * The trace and the catalogue are caches over an event that is already committed, so failing to
- * write one is not a failure of the transaction. The cost of that tolerance is bounded: the index
- * records the head it was built at, so a reader detects the staleness in a single comparison
- * instead of assuming it away.
- */
 function refreshDerived(
   runRoot: string,
   manifest: Manifest,

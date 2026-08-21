@@ -29,12 +29,6 @@ function dispatchable(task: ScheduledTask): boolean {
   return DISPATCHABLE_STATUSES.has(String(task.status));
 }
 
-/**
- * `retry_ready` survives `hasActiveOwnership` because a released task still blocks a *claim* until
- * someone takes it. For scheduling it holds no lease and no agent, so counting it as an occupant
- * would let two conflicting released tasks veto each other and leave the wave permanently empty.
- * Conflicts between candidates are resolved by the batch loop instead.
- */
 function occupiesScope(task: ScheduledTask): boolean {
   return hasActiveOwnership(task.status) && !dispatchable(task);
 }

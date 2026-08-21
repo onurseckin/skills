@@ -4,7 +4,6 @@ import { finding, type HealthFinding } from "./types.ts";
 
 const FUNCTION_HEADER = /\bfunction\s*\*?\s*([A-Za-z0-9_$]+)\s*(?:<[^>(]*>)?\s*\(/gu;
 
-/** Index of the character after the `)` that closes the parameter list opened at `open`. */
 function matchingParen(text: string, open: number): number {
   let depth = 0;
   for (let index = open; index < text.length; index += 1) {
@@ -18,18 +17,12 @@ function matchingParen(text: string, open: number): number {
   return -1;
 }
 
-/**
- * The `{` that opens the body, not the one that opens a return type. `): Array<{ id: string }> {`
- * has two, and reading the wrong one made every parameter look unread.
- */
 function bodyStart(text: string, afterParams: number): number {
   let depth = 0;
   let previous = "";
   let beforePrevious = "";
   for (let index = afterParams + 1; index < text.length; index += 1) {
     const char = text[index] ?? "";
-    // `>` closes a generic return type, so it cannot be tested as a character: only the pair `=>`
-    // continues a type into the next `{`.
     const continues =
       previous !== "" && ("|&<,(:".includes(previous) || `${beforePrevious}${previous}` === "=>");
     if (char === "{" && depth === 0 && !continues) return index;
@@ -58,10 +51,6 @@ function bodyRange(text: string, afterParams: number): { start: number; end: num
   return null;
 }
 
-/**
- * Top-level commas only: a parameter's own type may contain commas of its own. The `>` of an arrow
- * type is masked first, because counting it as a closing bracket unbalanced every callback type.
- */
 function splitParameters(list: string): string[] {
   const masked = list.replace(/=>/gu, "==");
   const parts: string[] = [];
@@ -82,7 +71,6 @@ function splitParameters(list: string): string[] {
   return parts;
 }
 
-/** Index of the bracket closing the pattern that starts at index 0. */
 function closingBracket(pattern: string): number {
   const open = pattern[0] ?? "";
   const close = open === "{" ? "}" : "]";
@@ -97,13 +85,10 @@ function closingBracket(pattern: string): number {
   return pattern.length;
 }
 
-/** The names a parameter binds. A destructured parameter binds each of its properties. */
 function boundNames(parameter: string): string[] {
   const withoutDefault = parameter.split("=")[0] ?? "";
   const trimmed = withoutDefault.replace(/^\s*(?:readonly\s+)?\.\.\./u, "").trim();
   if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
-    // The pattern's own closing bracket, not the last one in the parameter: the type annotation
-    // that follows it has brackets of its own.
     const inner = trimmed.slice(1, closingBracket(trimmed));
     return splitParameters(inner)
       .map((entry) => (entry.includes(":") ? (entry.split(":")[1] ?? "") : entry).trim())
@@ -113,11 +98,6 @@ function boundNames(parameter: string): string[] {
   return /^[A-Za-z_$][A-Za-z0-9_$]*$/u.test(name) ? [name] : [];
 }
 
-/**
- * B9.2 asks for parameters that are never read: a function that accepts something specific, ignores
- * it, and returns an answer that is therefore about something else. A leading underscore is the
- * language's own way of saying the parameter is there for position only.
- */
 export function scanUnreadParameters(file: SourceFile): HealthFinding[] {
   const view = file.scan.identifiers;
   const findings: HealthFinding[] = [];

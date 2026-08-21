@@ -1,10 +1,5 @@
 import type { EvidenceClass } from "../contracts/evidence.ts";
 
-/**
- * The full relationship vocabulary the graph speaks. `probe` and `pushback` are deliberately
- * separate kinds: a probe demands proof and costs the implementer nothing, a pushback asserts a
- * defect. Rendering them identically is what made every probed task look rejected.
- */
 export type EdgeKind =
   | "backtrack"
   | "branch"
@@ -77,10 +72,6 @@ export interface ExchangeFinding {
   round?: number | undefined;
 }
 
-/**
- * One recorded message along an edge. Every field is either copied from a record or absent; there
- * is no synthesized token count and no second copy of the payload under an alias.
- */
 export interface EdgeExchange {
   id: string;
   timestamp?: string | undefined;
@@ -97,10 +88,6 @@ export interface EdgeExchange {
   evidence_class: EvidenceClass;
 }
 
-/**
- * Measured traffic only. The block is omitted entirely when the run recorded nothing about an
- * edge, because an empty measurement is information and an invented one is not.
- */
 export interface EdgeTrafficDetail {
   evidence_class: EvidenceClass;
   messagesCount?: number | undefined;
@@ -120,7 +107,6 @@ export interface GraphEdgeData {
   stepNumber?: number | string | undefined;
   badge?: BadgeDetail | undefined;
   container?: EdgeContainerDetail | undefined;
-  /** Per-edge accent so the renderer stops borrowing the source node's colour. */
   accent?: string | undefined;
   weight?: number | undefined;
   minLen?: number | undefined;

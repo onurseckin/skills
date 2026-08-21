@@ -103,7 +103,9 @@ describe("summary.md renders the same file and step provenance graph.json carrie
       markdown.indexOf("## 11. Files Changed"),
       markdown.indexOf("## 12. Scripts And Commands"),
     );
-    expect(filesSection).toContain("| `src/a.ts` | `T-1` | 9 | write | 1 | +1/-1 | agent_reported |");
+    expect(filesSection).toContain(
+      "| `src/a.ts` | `T-1` | 9 | write | 1 | +1/-1 | agent_reported |",
+    );
     expect(filesSection).toContain("#### `src/a.ts` (T-1)");
     expect(filesSection).toContain("- **Why**: Bumped the constant for the new grammar");
     expect(filesSection).toContain("- **Requirements served**: `REQ-1`");

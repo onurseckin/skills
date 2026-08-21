@@ -21,14 +21,14 @@ recorded in the capsule as an event rather than printed and lost.
 
 `plan:compile` calls the audit and refuses to seal on any `blocking` verdict. Invariants:
 
-| id | invariant | verdict |
-|---|---|---|
-| `A1-granularity` | a task's `write_scope` expands to > 3 files while the plan touches ≥ 5 | blocking |
-| `A2-parallelism` | prompt names ≥ 10 distinct entities but the plan has < 5 independent roots | blocking |
-| `A3-gate-discrimination` | two disjoint tasks carry an identical gate argv | blocking |
-| `A4-false-barrier` | a dependency edge whose child reads nothing the parent writes | blocking |
-| `A5-straggler` | a task's effort estimate > 3× the median of its readiness layer | advisory + justification |
-| `A6-whole-suite-gate` | a task gate is a whole-repo command (`looksWholeSuite`) | blocking |
+| id                       | invariant                                                                  | verdict                  |
+| ------------------------ | -------------------------------------------------------------------------- | ------------------------ |
+| `A1-granularity`         | a task's `write_scope` expands to > 3 files while the plan touches ≥ 5     | blocking                 |
+| `A2-parallelism`         | prompt names ≥ 10 distinct entities but the plan has < 5 independent roots | blocking                 |
+| `A3-gate-discrimination` | two disjoint tasks carry an identical gate argv                            | blocking                 |
+| `A4-false-barrier`       | a dependency edge whose child reads nothing the parent writes              | blocking                 |
+| `A5-straggler`           | a task's effort estimate > 3× the median of its readiness layer            | advisory + justification |
+| `A6-whole-suite-gate`    | a task gate is a whole-repo command (`looksWholeSuite`)                    | blocking                 |
 
 A6 is the one that would have caught the DSA run on its own: ten tasks, one `bun run typecheck`.
 
@@ -61,8 +61,8 @@ guards: **revert the task's write scope in a scratch copy and require the gate t
 A gate that still passes with the task's work removed is not a gate for that task, and `plan:compile`
 refuses it under A3/A6.
 
-This is the mechanism that converts "satisfied" from *the repo still compiles* into *this task's work
-is present*.
+This is the mechanism that converts "satisfied" from _the repo still compiles_ into _this task's work
+is present_.
 
 ## C4 — effort evidence: refuse a submission that changed nothing
 
@@ -89,7 +89,7 @@ the thing it is bad at. So supply it:
   granularity; it declares intent and the harness derives the decomposition. This is the post-mortem's
   Proposal 2, and it is the single highest-leverage item for weak planners.
 - **A mandatory topology declaration** at `plan:compile`: independent-root count, and a one-line
-  justification per dependency edge. Forcing the planner to *state* why an edge exists is what makes
+  justification per dependency edge. Forcing the planner to _state_ why an edge exists is what makes
   an unjustified barrier visible — to the planner itself, at the moment it is inventing one.
 - **A worked exemplar at the point of use**, in `SKILL.md`'s planning route rather than a reference
   file: the DSA case as a matched pair — the 3-node waterfall that was rejected beside the 14-node DAG
@@ -99,7 +99,7 @@ the thing it is bad at. So supply it:
 
 ## Ordering
 
-C3 and C4 are the load-bearing pair: they make the *evidence* real, so everything downstream can
+C3 and C4 are the load-bearing pair: they make the _evidence_ real, so everything downstream can
 trust "done". C1 is what turns existing analysis into enforcement. C2 gives the plan an adversary.
 C6 is what stops the refusals from becoming a loop the planner cannot exit. C5 is a small correctness
 fix carried along.

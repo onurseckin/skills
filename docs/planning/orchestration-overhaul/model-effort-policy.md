@@ -31,7 +31,7 @@ Codex is the one host where per-agent selection is a first-class spawn parameter
 ## Thinking and effort are different dials
 
 - **Extended thinking on/off** inherits from the session and has **no per-subagent setting**.
-- **Reasoning effort** *does* have one: `effort: low|medium|high|xhigh|max` in Claude Code frontmatter,
+- **Reasoning effort** _does_ have one: `effort: low|medium|high|xhigh|max` in Claude Code frontmatter,
   `reasoning_effort` on a Codex spawn.
 
 ## The evidence (Anthropic's own measurements, July-August 2026)

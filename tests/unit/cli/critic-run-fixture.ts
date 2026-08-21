@@ -68,6 +68,9 @@ export async function setupReadyRun(name: string, roots: string[]) {
     "implementer",
   ]);
   const token = claim.token as string;
+  // C4: task:submit refuses a submission whose write scope is byte-identical to its content at
+  // claim, so the declared file has to actually exist and differ before it is claimed as changed.
+  await writeFile(join(repo, "tests/t1/impl.ts"), "export const implemented = true;\n");
   // A submission is only accepted against recorded evidence, so the implementer runs its own
   // command before it submits.
   await execute([

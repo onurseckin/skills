@@ -43,7 +43,12 @@ function submitted(commands = {}) {
 
 function token(port: TestPort, validator: string): string {
   const state = beginValidation(port, "T-1", validator, clock);
-  registerTaskPacket(port, "validator", validator, state.tasks["T-1"]!.validations!.at(-1)!.attempt);
+  registerTaskPacket(
+    port,
+    "validator",
+    validator,
+    state.tasks["T-1"]!.validations!.at(-1)!.attempt,
+  );
   return state.tasks["T-1"]!.validation_token as string;
 }
 

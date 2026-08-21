@@ -5,13 +5,23 @@ import { schedulerState } from "../scheduler/fixtures.ts";
 
 describe("selectDispatchable (B28.3 — what is safe to dispatch right now)", () => {
   test("with no capacity, nothing is selected regardless of what is ready", () => {
-    const selection = selectDispatchable(schedulerState(), [], 0, new Date("2026-08-19T00:00:00.000Z"));
+    const selection = selectDispatchable(
+      schedulerState(),
+      [],
+      0,
+      new Date("2026-08-19T00:00:00.000Z"),
+    );
     expect(selection.dispatchable).toEqual([]);
     expect(selection.backingOff).toEqual([]);
   });
 
   test("with capacity and no backoff history, the top-ranked ready task is dispatchable", () => {
-    const selection = selectDispatchable(schedulerState(), [], 1, new Date("2026-08-19T00:00:00.000Z"));
+    const selection = selectDispatchable(
+      schedulerState(),
+      [],
+      1,
+      new Date("2026-08-19T00:00:00.000Z"),
+    );
     expect(selection.dispatchable.map((entry) => entry.task_id)).toEqual(["priority"]);
     expect(selection.backingOff).toEqual([]);
   });
@@ -24,9 +34,16 @@ describe("selectDispatchable (B28.3 — what is safe to dispatch right now)", ()
         timestamp: "2026-08-19T00:00:00.000Z",
       },
     ];
-    const selection = selectDispatchable(schedulerState(), events, 1, new Date("2026-08-19T00:05:00.000Z"));
+    const selection = selectDispatchable(
+      schedulerState(),
+      events,
+      1,
+      new Date("2026-08-19T00:05:00.000Z"),
+    );
     expect(selection.dispatchable).toEqual([]);
-    expect(selection.backingOff).toEqual([{ taskId: "priority", retryAt: "2026-08-19T00:10:00.000Z" }]);
+    expect(selection.backingOff).toEqual([
+      { taskId: "priority", retryAt: "2026-08-19T00:10:00.000Z" },
+    ]);
   });
 
   test("becomes dispatchable again once the backoff clock has passed", () => {
@@ -37,7 +54,12 @@ describe("selectDispatchable (B28.3 — what is safe to dispatch right now)", ()
         timestamp: "2026-08-19T00:00:00.000Z",
       },
     ];
-    const selection = selectDispatchable(schedulerState(), events, 1, new Date("2026-08-19T00:15:00.000Z"));
+    const selection = selectDispatchable(
+      schedulerState(),
+      events,
+      1,
+      new Date("2026-08-19T00:15:00.000Z"),
+    );
     expect(selection.dispatchable.map((entry) => entry.task_id)).toEqual(["priority"]);
     expect(selection.backingOff).toEqual([]);
   });

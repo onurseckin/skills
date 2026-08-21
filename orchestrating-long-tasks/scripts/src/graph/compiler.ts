@@ -12,9 +12,6 @@ export function compileGraphDocument(
   requirementsDocument: Record<string, unknown>,
   requirementIdsByTask: ReadonlyMap<string, readonly string[]>,
   revision = 1,
-  // The run-completion gate is mandatory for the whole run, so its command has to be the one the
-  // caller chose. Nothing here knows what proves this repository, and a guessed command would be
-  // written into state.gates as if someone had decided it.
   completionGate: readonly string[] = [],
 ): CompiledGraphResult {
   if (completionGate.length === 0) {

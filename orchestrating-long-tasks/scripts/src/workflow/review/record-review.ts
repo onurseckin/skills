@@ -9,7 +9,11 @@ import { assertValidatorCommands } from "./command-evidence.ts";
 import { assertPublishedTaskPacket } from "../packet-authority.ts";
 import { assertGatesNotFailing, assertProbeSatisfied } from "./pass-preconditions.ts";
 import { readReviewShape, reviewRecordedPayload } from "./review-event.ts";
-import { archiveOpenValidations, everyApplicableDomainPassed, validationForValidator } from "./validation-state.ts";
+import {
+  archiveOpenValidations,
+  everyApplicableDomainPassed,
+  validationForValidator,
+} from "./validation-state.ts";
 
 export function recordReview(
   port: TransactionPort,
@@ -18,13 +22,9 @@ export function recordReview(
   reviewValue: unknown,
   clock: Clock = systemClock,
   maxRepairRounds: number = MAX_REPAIR_ROUNDS,
-  // The probe budget lives in harness config on disk, which only the command boundary can resolve.
-  // An unstated budget enforces nothing here rather than guessing what the run requires.
   minProbes = 0,
 ) {
   const now = clock.now();
-  // The store seals the event payload before the mutation runs, so the enriched payload is built
-  // from the state the caller is acting on and re-checked against the draft inside the lock.
   const payload = reviewRecordedPayload(
     taskId,
     taskIn(port.read(), taskId),
@@ -32,7 +32,8 @@ export function recordReview(
   );
   return port.transact(validatorId, "review-recorded", payload, (draft) => {
     const task = taskIn(draft, taskId);
-    const mine = task.status === "validating" ? validationForValidator(task, validatorId) : undefined;
+    const mine =
+      task.status === "validating" ? validationForValidator(task, validatorId) : undefined;
     if (!mine) {
       throw new HarnessError("INVALID_STATE", "validator does not own the current validation");
     }
@@ -43,8 +44,6 @@ export function recordReview(
     if (!tokenMatches(validationToken, mine.token_digest)) {
       throw new HarnessError("INVALID_STATE", "validator authentication token is invalid");
     }
-    // A verdict is the strongest authority in the run. It is only accepted from a validator the
-    // harness durably handed a validator contract to, so a token alone cannot buy one.
     assertPublishedTaskPacket(draft, taskId, "validator", validatorId, mine.attempt);
     const review = validateReview(task, reviewValue);
     const sealed = reviewRecordedPayload(taskId, task, {
@@ -52,8 +51,6 @@ export function recordReview(
       findings: review.findings,
       resolvedIds: (review.resolved_findings ?? []).map((proof) => proof.finding_id),
     });
-    // Both payloads come from one builder, so a textual difference means the task moved between the
-    // read and the lock and the sealed payload would misreport this verdict.
     if (JSON.stringify(sealed) !== JSON.stringify(payload)) {
       throw new HarnessError("INVALID_STATE", "the review changed while it was being recorded");
     }
@@ -88,8 +85,6 @@ export function recordReview(
         now,
         exhausted ? "repair rounds exhausted" : "validator requested changes",
       );
-      // B12.2: a reject from any one domain ends the round for every domain — the others still
-      // mid-flight lose their slot along with the one that rejected (see validation-state.ts).
       archiveOpenValidations(task);
       return;
     }
@@ -114,10 +109,6 @@ export function recordReview(
         revalidation_proof: { method: proof.method, evidence: proof.evidence },
       });
     }
-    // B12.2: the task passes only once every domain its write scope drew has its own pass on
-    // record — the first domain to pass no longer terminates a task other domains still owe a
-    // verdict on. `mine` stays in `task.validations` either way, carrying this domain's settled
-    // result until the round itself is archived (a later reject) or the task finishes.
     if (everyApplicableDomainPassed(task)) {
       transition(task, "validated", validatorId, now, "independent validation passed");
     }

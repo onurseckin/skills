@@ -1,13 +1,3 @@
-/**
- * A lexical pass over TypeScript source. The health checks need three views of the same bytes:
- * the code with comments removed but literals intact (fallback patterns live inside literals),
- * the code with literal contents blanked too (so an identifier match cannot come from a string),
- * and the comments on their own (a commented-out block is a finding, not noise).
- *
- * Offsets are preserved: every consumed character produces exactly one output character, so a
- * character index into either view is a character index into the original file.
- */
-
 export interface CommentRecord {
   readonly line: number;
   readonly text: string;
@@ -15,18 +5,11 @@ export interface CommentRecord {
 }
 
 export interface ScannedSource {
-  /** Comments blanked, string and template contents kept. */
   readonly code: string;
-  /** Comments and literal contents both blanked; only identifiers and punctuation survive. */
   readonly identifiers: string;
   readonly comments: readonly CommentRecord[];
 }
 
-/**
- * `<` is deliberately absent: in TSX, `</close>` follows one, and reading that slash as the start of
- * a regular expression swallowed the rest of the element - which is how string contents in a .tsx
- * file ended up being scanned as identifiers.
- */
 const REGEX_PRECEDING = new Set("(,=:[!&|?{};+-*%^~>".split(""));
 const REGEX_KEYWORDS = new Set([
   "return",
@@ -47,10 +30,6 @@ function blank(char: string): string {
   return char === "\n" ? "\n" : " ";
 }
 
-/**
- * `/` opens a regular expression only where a value cannot already be complete. Reading it as
- * division everywhere would swallow the rest of the file at the first `/\//u`.
- */
 function opensRegex(code: readonly string[], index: number): boolean {
   let cursor = index - 1;
   while (cursor >= 0 && /\s/u.test(code[cursor] ?? "")) cursor -= 1;
@@ -77,7 +56,6 @@ class Emitter {
     this.identifiers.push(char);
   }
 
-  /** Kept in `code`, blanked in `identifiers`: literal text is data, never a reference. */
   literal(char: string): void {
     this.code.push(char);
     this.identifiers.push(blank(char));
@@ -166,7 +144,6 @@ function consumeRegex(text: string, cursor: Cursor, emit: Emitter): void {
   }
 }
 
-/** Template literals nest code inside `${}`; the interpolations are code and must stay readable. */
 function consumeTemplate(text: string, cursor: Cursor, emit: Emitter, depth: number): void {
   emit.keep("`");
   cursor.index += 1;
@@ -196,7 +173,6 @@ function consumeTemplate(text: string, cursor: Cursor, emit: Emitter, depth: num
   }
 }
 
-/** Scans code until the file ends, or until the `}` closing an interpolation at `depth > 0`. */
 function scanRegion(
   text: string,
   cursor: Cursor,
@@ -245,7 +221,6 @@ export function scanSource(text: string): ScannedSource {
   return { code: emit.code.join(""), identifiers: emit.identifiers.join(""), comments };
 }
 
-/** 1-based line number for a character offset into any of the three views. */
 export function lineOf(text: string, offset: number): number {
   let line = 1;
   for (let index = 0; index < offset && index < text.length; index += 1) {

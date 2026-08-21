@@ -24,7 +24,6 @@ export interface CommandOptions {
   actor: string;
   taskId?: string;
   gateId?: string;
-  /** What the caller declared this command to be; nothing is inferred from the argv. */
   toolCategory?: string;
   tool?: string;
   toolExtras?: Record<string, string>;

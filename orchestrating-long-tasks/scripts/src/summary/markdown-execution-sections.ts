@@ -40,11 +40,6 @@ function reportObjects(task: TaskRecord, key: string): JsonObject[] {
   return Array.isArray(value) ? value.filter(isJsonObject) : [];
 }
 
-/**
- * `report.checks` and `report.evidence` carry `command_id`/`kind`/`path`-shaped entries by
- * convention, never a fixed schema, so a reader gets whichever of those keys the entry actually
- * holds rather than a table built for one implementer's field names and blank for another's.
- */
 function reportObjectText(entry: JsonObject): string {
   const parts: string[] = [];
   for (const key of ["kind", "command_id", "path", "detail"]) {
@@ -135,7 +130,9 @@ export function renderTaskTrajectory(context: ReportContext): string[] {
           ],
           [
             "Evidence cited",
-            joinOrNone(reportObjects(task, "evidence").map((entry) => code(reportObjectText(entry)))),
+            joinOrNone(
+              reportObjects(task, "evidence").map((entry) => code(reportObjectText(entry))),
+            ),
           ],
         ],
       ),
@@ -307,13 +304,6 @@ export function renderBranches(context: ReportContext): string[] {
   return section("10. Branch Excursions", context.branches.flatMap(branchBlock));
 }
 
-/**
- * Every file any task or branch touched, with the line-level provenance the graph already computed
- * for it (B15.2): where lines changed, the diff itself, and why. Read from `context.taskFiles` /
- * `context.branchFiles` — which are the same `FileRef`s `graph.json` carries — rather than the raw
- * `report.files_changed` path list, so a reader gets the full record in one place instead of a bare
- * path here and the diff only in the export.
- */
 export function renderFilesChanged(context: ReportContext): string[] {
   const entries: AttributedFileRef[] = [];
   for (const task of context.tasks) {

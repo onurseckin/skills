@@ -11,6 +11,7 @@ import { buildRunFacts } from "./graph-run-facts.ts";
 import { buildNodeScripts } from "./node-evidence.ts";
 import { buildPromptAndPlanNodes } from "./graph-generator-core-nodes.ts";
 import { buildCriticAndTerminalNodes } from "./graph-generator-critic-nodes.ts";
+import { buildPlanValidatorNodes } from "./graph-generator-plan-validator-nodes.ts";
 import { buildGateNode } from "./graph-generator-gate-helpers.ts";
 import { buildImplementerNode } from "./graph-generator-helpers.ts";
 import { buildValidatorNode } from "./graph-generator-validator-nodes.ts";
@@ -30,7 +31,6 @@ export interface GraphGeneratorInput {
   runRoot?: string;
 }
 
-/** A branch ledger that cannot be read yields no branch nodes rather than invented ones. */
 function readBranches(state: Readonly<WorkflowState>): BranchRecord[] {
   if (!isJsonObject(state)) return [];
   try {
@@ -48,7 +48,6 @@ export function generateGraphDataset(input: GraphGeneratorInput): GraphDataset {
     ...(input.commands ?? {}),
   } as Record<string, CommandRecord>);
 
-  // The recorded topology is the authority on what ran together; deriving waves is the fallback.
   const steps = computeExecutionSteps(tasks, state);
   const ledger = readAgentLedgerView(state);
   const registry = new AssetRegistry();
@@ -67,6 +66,10 @@ export function generateGraphDataset(input: GraphGeneratorInput): GraphDataset {
   nodes.push(core.promptNode, core.planNode);
   edges.push(core.promptPlanEdge);
 
+  const planValidation = buildPlanValidatorNodes({ state });
+  nodes.push(...planValidation.nodes);
+  edges.push(...planValidation.edges);
+
   for (const task of tasks) {
     const ctx = prepareTaskContext({
       task,
@@ -80,9 +83,6 @@ export function generateGraphDataset(input: GraphGeneratorInput): GraphDataset {
       ...(runRoot !== undefined ? { runRoot } : {}),
     });
 
-    // Every rejected round the run archived gets its own implementer/validator pair, ahead of the
-    // live round's nodes below — B25.2's fix for the cyclic pushback edge. A task still on its
-    // first round has no archived rounds, so this pushes nothing and nothing here changes for it.
     for (const round of ctx.archivedRounds) {
       nodes.push(
         ...buildArchivedRoundNodes({
@@ -149,9 +149,6 @@ export function generateGraphDataset(input: GraphGeneratorInput): GraphDataset {
   nodes.push(critic.criticNode, critic.terminalNode);
   edges.push(...critic.edges);
 
-  // A run gate belongs to no task and to no agent's node, so without this it reached the export
-  // through nothing at all. The terminal node carries what nobody claimed, labelled for what it is
-  // rather than attributed to an agent that did not run it.
   const claimed = new Set<string>();
   for (const node of nodes) for (const script of node.scripts ?? []) claimed.add(script.commandId);
   const unclaimed = commands.filter((command) => !claimed.has(command.id));

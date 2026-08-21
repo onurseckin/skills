@@ -7,11 +7,6 @@ import { transition } from "../task-state.ts";
 import type { TaskRecord } from "../types.ts";
 import { locateSubTask } from "./ledger.ts";
 
-/**
- * A branch hangs off whatever the working agent currently holds: a plan task for the first level,
- * or another branch's sub-task once a sub-agent subdivides again. Both carry a lease, a write scope
- * and a depth, which is everything the branch rules need.
- */
 export type BranchParent =
   | { kind: "task"; id: string; task: TaskRecord; writeScope: string[]; depth: number }
   | {
@@ -85,11 +80,6 @@ function parentLease(parent: BranchParent): JsonObject {
   return lease;
 }
 
-/**
- * The token proves the caller is the agent currently doing the work. A suspended lease still
- * authenticates — that is how the parent of an open branch collects it — but an expired one does
- * not, because the run has already handed the work to someone else.
- */
 export function assertParentLease(
   parent: BranchParent,
   agentId: string,

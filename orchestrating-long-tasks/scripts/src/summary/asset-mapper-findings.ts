@@ -14,11 +14,6 @@ export interface FindingDetailsOptions {
   runRoot?: string | undefined;
 }
 
-/**
- * A recorded resolution proof. The harness stores its evidence as `{command_id}` objects, so
- * stringifying the array turned every command id into "[object Object]" and destroyed the only
- * link between a resolved finding and the command that answered it.
- */
 function readProof(value: unknown): { method: string; evidence: string[] } | undefined {
   if (typeof value !== "object" || value === null || Array.isArray(value)) return undefined;
   const proof = value as Record<string, unknown>;
@@ -33,7 +28,6 @@ function readProof(value: unknown): { method: string; evidence: string[] } | und
       if (typeof commandId === "string") evidence.push(commandId);
     }
   }
-  // "unstated" is what the record says when it carries no method, not a method invented for it.
   return { method: typeof proof.method === "string" ? proof.method : "unstated", evidence };
 }
 
@@ -120,8 +114,6 @@ export function mapFindingDetails(
         ? targetFilesRaw.filter((p): p is string => typeof p === "string")
         : undefined;
 
-      // A write scope is the ground a task was allowed to touch. It is not a list of changes anyone
-      // objected to, so it never stands in for one.
       const opposedChanges =
         typeof f.opposed_changes === "string"
           ? f.opposed_changes
@@ -231,14 +223,7 @@ export function mapFindingDetails(
         ...(extractedScreenshots.length > 0 ? { screenshots: extractedScreenshots } : {}),
       });
     }
-
-    // A rejection in validation_history says a verdict happened, not what the validator found. The
-    // finding it filed is in task.findings; if there is none, there is nothing to show, and a
-    // stand-in graded "important" over the task's own write scope is an objection nobody made.
   }
-
-  // `review-recorded` carries a verdict, not a defect. Synthesising a finding out of it invented an
-  // id, a severity and an observation the validator never wrote.
 
   if (options?.completionReview) {
     const cr = options.completionReview;

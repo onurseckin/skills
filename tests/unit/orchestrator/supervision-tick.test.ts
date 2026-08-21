@@ -16,13 +16,22 @@ function twoTaskState() {
 describe("runSupervisionTick (B28.2/B28.3 — reclaim and escalate)", () => {
   test("detects a dead agent without being told and returns its task to the eligible pool", () => {
     const port = new TestPort(workflowState());
-    claimTask(port, "T-1", "agent-a", "implementer", { leaseSeconds: 5, clock: { now: () => new Date("2026-08-19T00:00:00.000Z") } });
+    claimTask(port, "T-1", "agent-a", "implementer", {
+      leaseSeconds: 5,
+      clock: { now: () => new Date("2026-08-19T00:00:00.000Z") },
+    });
     const tick = runSupervisionTick(port, "supervisor", {
       graceSeconds: 0,
       clock: { now: () => new Date("2026-08-19T00:01:00.000Z") },
     });
     expect(tick.reclaimed).toEqual([
-      { kind: "task-lease", taskId: "T-1", agentId: "agent-a", reason: "expired_lease_no_submission", newStatus: "retry_ready" },
+      {
+        kind: "task-lease",
+        taskId: "T-1",
+        agentId: "agent-a",
+        reason: "expired_lease_no_submission",
+        newStatus: "retry_ready",
+      },
     ]);
     expect(tick.state.tasks["T-1"]!.status).toBe("retry_ready");
     expect(tick.escalatedNow).toEqual([]);
@@ -35,7 +44,10 @@ describe("runSupervisionTick (B28.2/B28.3 — reclaim and escalate)", () => {
     let now = new Date("2026-08-19T00:00:00.000Z");
     let tick;
     for (let round = 0; round < 3; round++) {
-      claimTask(port, "T-1", `agent-${round}`, "implementer", { leaseSeconds: 5, clock: { now: () => now } });
+      claimTask(port, "T-1", `agent-${round}`, "implementer", {
+        leaseSeconds: 5,
+        clock: { now: () => now },
+      });
       now = new Date(now.valueOf() + 60_000);
       tick = runSupervisionTick(port, "supervisor", {
         graceSeconds: 0,
@@ -57,7 +69,10 @@ describe("runSupervisionTick (B28.2/B28.3 — reclaim and escalate)", () => {
     let now = new Date("2026-08-19T00:00:00.000Z");
     let tick;
     for (let round = 0; round < 2; round++) {
-      claimTask(port, "T-1", `agent-${round}`, "implementer", { leaseSeconds: 5, clock: { now: () => now } });
+      claimTask(port, "T-1", `agent-${round}`, "implementer", {
+        leaseSeconds: 5,
+        clock: { now: () => now },
+      });
       now = new Date(now.valueOf() + 60_000);
       tick = runSupervisionTick(port, "supervisor", {
         graceSeconds: 0,
@@ -71,7 +86,10 @@ describe("runSupervisionTick (B28.2/B28.3 — reclaim and escalate)", () => {
 
   test("counts a live lease against occupancy without touching it", () => {
     const port = new TestPort(workflowState());
-    claimTask(port, "T-1", "agent-a", "implementer", { leaseSeconds: 3_600, clock: { now: () => new Date("2026-08-19T00:00:00.000Z") } });
+    claimTask(port, "T-1", "agent-a", "implementer", {
+      leaseSeconds: 3_600,
+      clock: { now: () => new Date("2026-08-19T00:00:00.000Z") },
+    });
     const tick = runSupervisionTick(port, "supervisor", {
       clock: { now: () => new Date("2026-08-19T00:01:00.000Z") },
     });
@@ -82,7 +100,10 @@ describe("runSupervisionTick (B28.2/B28.3 — reclaim and escalate)", () => {
 
   test("B28.5: recovery is on by default and opting out skips both reclaim and escalation", () => {
     const port = new TestPort(workflowState());
-    claimTask(port, "T-1", "agent-a", "implementer", { leaseSeconds: 5, clock: { now: () => new Date("2026-08-19T00:00:00.000Z") } });
+    claimTask(port, "T-1", "agent-a", "implementer", {
+      leaseSeconds: 5,
+      clock: { now: () => new Date("2026-08-19T00:00:00.000Z") },
+    });
     const tick = runSupervisionTick(port, "supervisor", {
       recoveryEnabled: false,
       clock: { now: () => new Date("2026-08-19T00:01:00.000Z") },

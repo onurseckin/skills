@@ -8,12 +8,6 @@ export interface OrchestrateBriefParams {
   readonly runIdWasDerived: boolean;
 }
 
-/**
- * The brief IS the "opening sequence" contract B16 asks for: the harness cannot read the repo or
- * decompose the work itself (R9 — it never calls a model), so this hands the calling agent the
- * fixed next-step checklist, bound to the run `orchestrate` just opened, instead of leaving it to
- * reconstruct the sequence from the playbook by hand.
- */
 export function formatOrchestrateBrief(params: OrchestrateBriefParams): string {
   const md = [
     `### Orchestration Opened: ${params.runId}`,
@@ -30,7 +24,7 @@ export function formatOrchestrateBrief(params: OrchestrateBriefParams): string {
       `(\`--run ${params.runRoot}\`). The harness invents nothing here; every field is your claim.`,
     "2. Register each task with `plan:add`, one disjoint write scope per task, bound to the",
     "   prompt lines it implements.",
-    "3. `plan:compile --completion-gate \"<the whole-run gate>\"` — this also records the topology",
+    '3. `plan:compile --completion-gate "<the whole-run gate>"` — this also records the topology',
     "   every later reader uses instead of re-deriving parallelism.",
     "4. `queue:wave` to see what is claimable, then register and dispatch an implementer paired",
     "   with its own independent validator for every claimable task. Never one without the other.",

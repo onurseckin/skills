@@ -26,8 +26,7 @@ export interface ClientLinkHooks {
   beforePublish?(plan: ClientLinkPlan): Promise<void> | void;
   beforeRollback?(plan: ClientLinkPlan): Promise<void> | void;
 }
-// Each client is a value of the client vocabulary, keyed in as data. A product that names a key
-// directly is a product this module is built around, which is what the taxonomy rule forbids.
+
 const CLIENT_UNDER_HOME_DIRECTORY = "claude" as const;
 const CLIENT_UNDER_CONFIG_DIRECTORY = "antigravity" as const;
 

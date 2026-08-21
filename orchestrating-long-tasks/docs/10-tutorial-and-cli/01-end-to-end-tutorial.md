@@ -230,6 +230,7 @@ bun harness.ts agent:register --run .capsules/slugger --agent impl-truncate \
 
 #### Close The Grant:
 ```
+
 ```bash
 bun harness.ts agent:release --run .capsules/slugger --agent impl-slug
 ```
@@ -244,6 +245,7 @@ bun harness.ts agent:release --run .capsules/slugger --agent impl-slug
 
 #### Close The Grant:
 ```
+
 ```bash
 bun harness.ts agent:release --run .capsules/slugger --agent impl-truncate
 ```

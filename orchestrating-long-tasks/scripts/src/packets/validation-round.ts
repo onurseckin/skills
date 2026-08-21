@@ -7,16 +7,13 @@ import type { RepositoryGitCommand } from "./repository-git-command.ts";
 import { taskCommandEvidence, type RecordedCommand } from "./round-commands.ts";
 import { anchoredDiff, diffAnchor, type DiffAnchor } from "./round-repository-delta.ts";
 
-/** Where the round-N record sits in a validator's authoritative context. */
 export const VALIDATION_ROUND_KEY = "validation_round";
 
 export interface ValidationRoundInput {
   runRoot: string;
-  /** The capsule state, which holds the registry of every repository inspection the run recorded. */
   runState: RunState;
   state: WorkflowState;
   task: TaskRecord;
-  /** The grant context, read for the baseline and current inspections it already carries. */
   context: JsonObject;
   now?: Date;
   git?: RepositoryGitCommand;
@@ -40,16 +37,10 @@ function inspection(context: JsonObject, key: string): JsonObject | undefined {
   return isJsonObject(value) ? value : undefined;
 }
 
-/** The last moment the task left validation: where the previous round stopped looking. */
 function previousRoundEnd(task: TaskRecord): string | undefined {
   return [...task.history].reverse().find((entry) => entry.from === "validating")?.at;
 }
 
-/**
- * The newest inspection the run recorded at or before an instant. Inspections are recorded whenever
- * a grant is handed out, so the one taken during the previous round is the repository as that round
- * saw it — a recorded observation, never a reconstruction.
- */
 function inspectionAtOrBefore(runState: RunState, instant: string): JsonObject | undefined {
   const registry = runState.repository_inspections;
   if (!isJsonObject(registry)) return undefined;
@@ -124,14 +115,7 @@ function repositoryDelta(input: ValidationRoundInput, boundary: string | undefin
   };
 }
 
-/**
- * What the run has already recorded about this task, assembled for the validator arriving on a later
- * round. Round 1 has no previous round to carry, so it is handed nothing extra and its packet is the
- * packet it always was.
- */
 export function validationRoundContext(input: ValidationRoundInput): ValidationRound | undefined {
-  // Every domain open this round shares one attempt number (B12.2), so any open entry names it;
-  // absent one (nothing open yet, or everything already archived) it is the round about to start.
   const round = input.task.validations?.[0]?.attempt ?? input.task.repair_round + 1;
   if (round <= 1) return undefined;
   const previous = input.task.validation_history?.at(-1);

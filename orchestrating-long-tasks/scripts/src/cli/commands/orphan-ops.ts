@@ -3,11 +3,6 @@ import { dispositionOrphanEvidence } from "../../workflow/orphan-evidence/dispos
 import { enforceLineLimit } from "../formatters/line-limiter.ts";
 import { listFlag, textFlag, type Flags } from "../options.ts";
 
-/**
- * Undisposed orphan evidence blocks completion (see completionIssues). Disposing it is a
- * coordinator judgement call, never a silent drop: a rationale and command evidence are mandatory,
- * matching every other terminal recorded decision in the harness.
- */
 export function orphanDisposeCommand(flags: Flags): Record<string, unknown> {
   const run = textFlag(flags, "run")!;
   const actor = textFlag(flags, "actor")!;

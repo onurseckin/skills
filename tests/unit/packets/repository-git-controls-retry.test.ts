@@ -53,7 +53,10 @@ function fixture(): string {
 }
 
 /** Forces the first `emptyTimes` calls whose argv matches `needle` to return accepted-but-empty. */
-function flakyCommand(match: (argv: string[]) => boolean, emptyTimes: number): {
+function flakyCommand(
+  match: (argv: string[]) => boolean,
+  emptyTimes: number,
+): {
   command: RepositoryGitCommand;
   matchedCalls: () => number;
 } {

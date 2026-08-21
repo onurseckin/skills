@@ -99,9 +99,6 @@ export function checkManifest(runRoot: string, options: StoreLimits = {}): Manif
   if (typeof manifest.runtime_version === "string" && !manifest.runtime_version.trim()) {
     found.push(issue("RUNTIME_VERSION", "manifest.json runtime version must be non-blank"));
   }
-  // A capsule written before this policy existed carries no `bun_compatibility` at all, which is an
-  // absent key rather than a defect (state-model.md); only a capsule that DOES declare a policy is
-  // held to it, against the bun actually running now rather than the one that created it.
   if (manifest.bun_compatibility !== undefined) {
     if (typeof manifest.bun_version !== "string" || !manifest.bun_version.trim()) {
       found.push(
@@ -110,7 +107,9 @@ export function checkManifest(runRoot: string, options: StoreLimits = {}): Manif
           "manifest.json bun_version must be non-blank when a compatibility policy is recorded",
         ),
       );
-    } else if (!compatibleBunVersion(manifest.bun_version, Bun.version, manifest.bun_compatibility)) {
+    } else if (
+      !compatibleBunVersion(manifest.bun_version, Bun.version, manifest.bun_compatibility)
+    ) {
       found.push(
         issue(
           "BUN_COMPATIBILITY",

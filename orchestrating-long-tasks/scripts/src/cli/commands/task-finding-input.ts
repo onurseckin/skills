@@ -2,7 +2,6 @@ import { HarnessError } from "../../errors/harness-error.ts";
 import type { TaskRecord } from "../../workflow/types.ts";
 import { textFlag, type Flags } from "../options.ts";
 
-/** No requirement is invented: a finding binds to a requirement the task actually owns, or fails. */
 export function resolveFindingRequirement(task: TaskRecord, explicit: string | undefined): string {
   if (explicit !== undefined) {
     if (!task.requirement_ids.includes(explicit)) {
@@ -39,8 +38,6 @@ export interface ProbeDemandParams {
   revalidation?: string | undefined;
 }
 
-// A demand asserts no defect, so it takes the lowest severity the finding contract allows; what
-// separates it from a defect is `class`, never severity.
 const PROBE_SEVERITY = "minor";
 const PROBE_REMEDIATION =
   "Answer the demand with evidence, or record a defect with task:reject if it does not hold.";
@@ -51,7 +48,6 @@ export function buildProbeDemand(params: ProbeDemandParams): Record<string, unkn
     class: "probe_demand",
     requirement_id: params.requirementId,
     severity: PROBE_SEVERITY,
-    // Cited commands are harness-observed; a bare demand is the validator's own words and says so.
     evidence:
       params.commandIds.length > 0
         ? params.commandIds.map((id) => ({
@@ -88,10 +84,6 @@ export interface FailingVerdictInput {
   revalidation?: string | undefined;
 }
 
-/**
- * The three things only the validator knows about a defect. None of them has a stand-in: a
- * generated severity or remediation would be filed as the validator's own finding.
- */
 export function failingVerdictInput(flags: Flags): FailingVerdictInput {
   const observation = textFlag(flags, "summary", false);
   if (observation === undefined) {
@@ -132,7 +124,6 @@ export interface ReviewFindingParams {
   checkIds: string[];
   summary: string;
   remediation: string;
-  /** How the fix is to be proven. Derived from the task when the validator names nothing. */
   revalidation?: string | undefined;
 }
 
@@ -154,16 +145,10 @@ export function buildReviewFinding(params: ReviewFindingParams): Record<string, 
         : [{ kind: "failure", detail: params.summary }],
     observation: params.summary,
     remediation: params.remediation,
-    // The finding contract demands a revalidation instruction. When the validator names none, the
-    // task's own gate is the only instruction the harness can derive without inventing a method.
     revalidation: params.revalidation ?? `Run gate tests for ${params.taskId}`,
   };
 }
 
-/**
- * Findings are numbered by the round that produced them, so a repair round and a probe round that
- * both file findings never collide on an id.
- */
 export function nextFindingRound(task: TaskRecord): number {
   return Math.max((task.repair_round ?? 0) + 1, (task.findings ?? []).length + 1);
 }

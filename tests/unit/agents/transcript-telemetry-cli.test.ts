@@ -8,7 +8,12 @@ import {
   ledgerOf,
   registerCoordinator,
 } from "./fixture.ts";
-import { assistantLine, mktemp, toolResultLine, writeDirectTranscript } from "./transcript-fixture.ts";
+import {
+  assistantLine,
+  mktemp,
+  toolResultLine,
+  writeDirectTranscript,
+} from "./transcript-fixture.ts";
 
 const roots: string[] = [];
 
@@ -56,7 +61,11 @@ describe("the transcript probe wired into agent:register and agent:release, with
           toolUseId: "toolu_a",
           toolName: "Read",
         }),
-        toolResultLine({ timestamp: "2026-08-20T10:00:01.000Z", toolUseId: "toolu_a", isError: false }),
+        toolResultLine({
+          timestamp: "2026-08-20T10:00:01.000Z",
+          toolUseId: "toolu_a",
+          isError: false,
+        }),
       ],
       { agentType: "general-purpose", spawnDepth: 1 },
     );
@@ -135,7 +144,10 @@ describe("the transcript probe wired into agent:register and agent:release, with
       ]);
     });
 
-    expect(worker(run).model).toEqual({ value: "declared-model", evidence_class: "agent_reported" });
+    expect(worker(run).model).toEqual({
+      value: "declared-model",
+      evidence_class: "agent_reported",
+    });
   });
 
   test("a mismatched declared parent is recorded as a conflict, never silently changed", async () => {

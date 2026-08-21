@@ -4,7 +4,6 @@ import type { JsonValue } from "../contracts/json.ts";
 import { topologyWavesByTask, type TopologyRecord } from "../contracts/topology.ts";
 import type { TaskView } from "./action-types.ts";
 
-/** Absent telemetry is reported as absent. A grant nobody described gets no invented description. */
 const UNKNOWN = "unknown";
 
 function evidencedValue(entry: Evidenced<JsonValue> | undefined): JsonValue {
@@ -16,12 +15,6 @@ function evidencedValue(entry: Evidenced<JsonValue> | undefined): JsonValue {
   };
 }
 
-/**
- * Which wave the run is actually in, read off the recorded topology rather than re-derived: the
- * lowest wave that still holds an unfinished task. A capsule with no recorded topology has no wave
- * to report, and says so — the alternative is a wave number computed from a different algorithm
- * than the one that dispatched the work.
- */
 export function liveWaveLine(topology: TopologyRecord | null, tasks: readonly TaskView[]): string {
   if (topology === null) {
     return `Live wave: ${UNKNOWN} (no topology recorded; plan:compile records one)`;
@@ -57,11 +50,6 @@ export function topologyRows(
   );
 }
 
-/**
- * The grant ledger as a fresh agent needs it: who is still holding a grant, under what role, and
- * what the host reported about each one. Released grants stay listed because they still count
- * against the run's agent budget.
- */
 export function agentRows(agents: readonly AgentGrantRecord[]): string[] {
   if (agents.length === 0) return ["no agent grants recorded"];
   return [...agents]

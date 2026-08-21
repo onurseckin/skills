@@ -11,10 +11,6 @@ function section(title: string, body: readonly string[]): string[] {
   return [`## ${title}`, "", ...body, ""];
 }
 
-/**
- * The review document a human actually opens. It leads with what the enhancement is and is not,
- * because the one way this file can do damage is by being mistaken for the prompt.
- */
 export function renderEnhancedPlanMarkdown(document: EnhancedPlanDocument): string {
   const todos =
     document.todos.length === 0

@@ -54,7 +54,7 @@ Three rules follow, and they are absolute:
 | Branch `reason`, sub-task summaries             | `agent_reported`                                             | Why an agent chose to subdivide, in its own words.                    |
 | `plan:enhance` document, in full                | `agent_reported`                                             | The agent's reading of the repository, not a harness measurement.     |
 | Agent `model` / `model_tier` / `thinking_level` | `agent_reported`                                             | Only when the dispatcher supplied it; otherwise the field is absent.  |
-| Token counts                                    | `agent_reported`, or `derived` + `is_estimated`               | Relayed, or explicitly a guess.                                       |
+| Token counts                                    | `agent_reported`, or `derived` + `is_estimated`              | Relayed, or explicitly a guess.                                       |
 | Topology `rationale`                            | `agent_reported` when a coordinator wrote it, else `derived` | The harness's own explanation is derived, not attributed to anyone.   |
 | Probe demands                                   | `agent_reported`                                             | A demand is a validator's claim about what still needs proving.       |
 

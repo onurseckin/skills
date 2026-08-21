@@ -56,9 +56,10 @@ describe("B39 finding 1: a typed CLI value never earns a host-verified evidence 
     };
     for (const [field, value] of Object.entries(fields)) {
       expect(value, `${field} was never recorded`).toBeDefined();
-      expect(forbidden.has(value!.evidence_class), `${field} carries ${value!.evidence_class}`).toBe(
-        false,
-      );
+      expect(
+        forbidden.has(value!.evidence_class),
+        `${field} carries ${value!.evidence_class}`,
+      ).toBe(false);
       expect(value!.evidence_class).toBe("agent_reported");
     }
   });

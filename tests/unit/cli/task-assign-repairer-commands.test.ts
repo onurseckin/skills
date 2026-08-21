@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { execute } from "../../../orchestrating-long-tasks/scripts/src/cli/execute.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
-import { setupCompiledRun } from "./task-ops-fixture.ts";
+import { markCoreImplemented, setupCompiledRun } from "./task-ops-fixture.ts";
 
 const roots: string[] = [];
 afterEach(async () => cleanupRoots(roots));
@@ -23,6 +23,7 @@ describe("task:assign-repairer", () => {
     ]);
     const workerToken = claim.token as string;
 
+    await markCoreImplemented(repo);
     await execute([
       "run:exec",
       "--run",
@@ -172,6 +173,7 @@ describe("task:assign-repairer", () => {
       "implementer",
     ]);
     const workerToken = claim.token as string;
+    await markCoreImplemented(repo);
     await execute([
       "run:exec",
       "--run",

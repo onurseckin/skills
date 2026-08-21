@@ -30,7 +30,8 @@ describe("summary.md: standing checklist coverage (B12.5)", () => {
     const root = tempRoot();
     withReviewReport(root, "task-a", {
       applicable: false,
-      reason: "no --checklist-domain was named for this review; no standing checklist coverage applies",
+      reason:
+        "no --checklist-domain was named for this review; no standing checklist coverage applies",
     });
     const state = { ...emptyState, tasks: { "task-a": task({ id: "task-a" }) } };
 
@@ -49,8 +50,16 @@ describe("summary.md: standing checklist coverage (B12.5)", () => {
       domain: "code-quality",
       items: [
         { id: "CQ-STRUCT-001", disposition: "checked" },
-        { id: "CQ-STRUCT-002", disposition: "not_applicable", reason: "no new abstraction was introduced" },
-        { id: "CQ-NAMING-001", disposition: "could_not_check", reason: "the linter did not run in this sandbox" },
+        {
+          id: "CQ-STRUCT-002",
+          disposition: "not_applicable",
+          reason: "no new abstraction was introduced",
+        },
+        {
+          id: "CQ-NAMING-001",
+          disposition: "could_not_check",
+          reason: "the linter did not run in this sandbox",
+        },
       ],
       adjacent_findings: [
         {

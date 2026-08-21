@@ -96,15 +96,9 @@ export interface TokenUsageDetail {
   totalTokens?: number | undefined;
   costUsd?: number | undefined;
   isEstimated?: boolean | undefined;
-  /** "host_reported" for a real count, "derived" for the byte-ratio estimate. */
   evidenceClass?: EvidenceClass | undefined;
 }
 
-/**
- * Which harness the run was exported under. It says nothing about any individual agent's model.
- * `hostTool` is an open string: every host is an instance in the detector's table, never a member
- * of a type, so recognising a new one takes a row of data and no change here.
- */
 export interface HostIdentity {
   hostTool: string;
   evidenceClass: EvidenceClass;
@@ -145,9 +139,6 @@ export interface NodeMetadata {
   unresolvedFindingIds?: string[] | undefined;
   residualRisks?: unknown[] | undefined;
   requirementProofs?: unknown[] | undefined;
-  /** B22.3: the sub-phase commit `task:submit` made in this task's assigned worktree, if any — the
-   *  link from a graph node to the actual git history it produced. Absent whenever worktree
-   *  isolation was off for this run, never a placeholder commit. */
   worktreeCommit?:
     | { sha: string; subject: string; changedLines: number; overLimit: boolean }
     | undefined;
@@ -210,7 +201,6 @@ export interface RollupMetrics extends JsonObject {
   resolved_findings_total: number;
   open_findings_total: number;
   total_media_assets: number;
-  /** Exchanges the emitted graph actually carries. Absent when no graph was generated. */
   total_edge_traffic_exchanges?: number;
   wall_duration_ms: number;
   active_command_duration_ms: number;

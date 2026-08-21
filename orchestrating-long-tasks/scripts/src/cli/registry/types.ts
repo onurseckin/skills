@@ -31,9 +31,9 @@ export type CommandDomain =
   | "branch"
   | "orphan"
   | "authority"
-  | "diagnostics";
+  | "diagnostics"
+  | "gate";
 
-// Remainder is the argv tail after `--`; only commands declaring takesRemainder ever receive one.
 export type CommandHandler = (
   flags: Flags,
   context: CommandContext,
@@ -69,12 +69,10 @@ export function requiredFlag(name: string, type: FlagType, description: string):
   return { name, type, required: true, repeatable: false, description };
 }
 
-// Repeatable flags parse to an ordered list; read them with listFlag, never textFlag.
 export function repeatableFlag(name: string, type: FlagType, description: string): FlagSpec {
   return { name, type, required: false, repeatable: true, description };
 }
 
-// What the parser needs from a spec: which flags carry a value and which may be given more than once.
 export function flagShapes(flags: readonly FlagSpec[]): FlagShapes {
   const shapes = new Map<string, FlagShape>();
   for (const flag of flags) {

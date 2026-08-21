@@ -4,7 +4,10 @@ import { getHarnessConfig } from "../../config/harness-config.ts";
 import { ingestScreenshots, ingestVisualReport } from "../../reporting/screenshot-ingestion.ts";
 import { getVisualReport, queryScreenshots } from "../../reporting/screenshot-store.ts";
 import type { ScreenshotRecord } from "../../reporting/screenshot-types.ts";
-import { analyzeDualChannel, type DualChannelAuditResult } from "../../validation/dual-channel-analyzer.ts";
+import {
+  analyzeDualChannel,
+  type DualChannelAuditResult,
+} from "../../validation/dual-channel-analyzer.ts";
 import {
   adaptIngestedVisualReport,
   adaptScreenshotRecords,
@@ -15,7 +18,6 @@ import { applicableGates } from "../../workflow/gates/gate-policy.ts";
 import { workflowPort } from "../../integration/store-ports.ts";
 import type { TaskRecord, WorkflowState } from "../../workflow/types.ts";
 
-/** The run root is `<repo>/.capsules/<run-id>`; both layers of config are keyed off that pair. */
 export function repoRootOf(runRoot: string): string {
   return dirname(dirname(runRoot));
 }
@@ -100,16 +102,6 @@ export function collectTaskScreenshots(
   return Array.from(uniqueMap.values());
 }
 
-/**
- * Runs the Dual-Channel Validator Protocol the skill mandates for UI tasks against evidence the run
- * actually recorded: the ingested `visual-report.json` (DOM channel) and the screenshots collected
- * for this task (visual channel). Reads `task.write_scope`, the lease the run itself granted, rather
- * than a file list a caller could shape to dodge the mandate.
- *
- * Both channels are read scoped to this task. The run-wide latest report would let a UI task clear
- * the mandate on a sibling task's capture, which is the misattribution the capture ledger records
- * ownership to prevent.
- */
 export function runDualChannelAudit(
   runRoot: string,
   task: TaskRecord,
@@ -122,10 +114,6 @@ export function runDualChannelAudit(
   });
 }
 
-/**
- * The sentence a refused pass carries: which findings the mandate turned up, not just that it did.
- * `task:review` reads this to refuse a UI pass that lacks corroborated dual-channel evidence.
- */
 export function dualChannelRefusalMessage(taskId: string, audit: DualChannelAuditResult): string {
   const errors = audit.findings.filter((f) => f.severity === "error");
   const detail = errors.map((f) => `${f.id} [${f.category}] ${f.message}`).join("; ");
@@ -140,7 +128,6 @@ export function persistProbeReport(
 ): string {
   const reportsDir = join(runRoot, "reports");
   mkdirSync(reportsDir, { recursive: true });
-  // Probe rounds are numbered so a later round never overwrites the demand history of an earlier one.
   const reportPath = join(reportsDir, `${taskId}-probe-${String(round).padStart(2, "0")}.json`);
   writeFileSync(reportPath, JSON.stringify(reportData, null, 2), "utf-8");
   return reportPath;
@@ -195,10 +182,6 @@ export function resolveCheckIds(
     .map((c) => c.id);
 }
 
-/**
- * Only a command the runner bound to this gate proves it. An unbound run proves whatever it ran,
- * which is not the same thing as the gate the plan made mandatory, however alike the two look.
- */
 export function gateProofCommand(
   commands: Readonly<Record<string, { gate_id: string | null }>>,
   gateId: string,

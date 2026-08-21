@@ -8,12 +8,6 @@ import { assignWorktrees, type AssignableTask } from "./assign.ts";
 import { addWorktree, branchExists, createBranch, currentBranch, headSha } from "./git-ops.ts";
 import { readWorktreeLedger, writeWorktreeLedger } from "./ledger.ts";
 
-/**
- * `worktree_root` is a caller-supplied path resolved relative to the repo's PARENT, never the repo
- * itself — a relative value like `.harness-worktrees` is meant to sit beside the repo, not inside
- * it. B22.1: worktrees "must never appear inside the repo the user is working in", so a resolved
- * root that lands inside `repoRoot` is refused outright rather than silently redirected.
- */
 function resolveWorktreeRoot(repoRoot: string, configured: string | undefined): string {
   const parent = dirname(repoRoot);
   const root =
@@ -50,12 +44,6 @@ export interface ProvisionWorktreesResult {
   ledger: WorktreeLedgerState | null;
 }
 
-/**
- * B22.1/B22.2: creates the run's `harness/<run-id>` branch (a plain ref, never checked out — the
- * repo's own HEAD and working tree are never touched) and enough worktrees to give every task in
- * the topology's widest wave its own isolated directory, reusing them round-robin across waves.
- * Idempotent: a second call against the same topology provisions nothing new and skips the write.
- */
 export function provisionWorktrees(input: ProvisionWorktreesInput): ProvisionWorktreesResult {
   if (!input.config.worktree_isolation) return { enabled: false, ledger: null };
   const existing = readWorktreeLedger(loadRun(input.runRoot).state);
@@ -65,8 +53,6 @@ export function provisionWorktrees(input: ProvisionWorktreesInput): ProvisionWor
   const root = resolveWorktreeRoot(input.repoRoot, input.config.worktree_root);
   const harnessBranch = `${input.config.branch_prefix}${input.runId}`;
   const baseSha = existing?.base_sha ?? headSha(input.repoRoot);
-  // Read once, at first provisioning, alongside baseSha — a later call reusing the pool must not
-  // re-read HEAD's current branch, which could have moved since (the user keeps working; B22.1).
   const baseBranch = existing?.base_branch ?? currentBranch(input.repoRoot) ?? undefined;
   if (!branchExists(input.repoRoot, harnessBranch))
     createBranch(input.repoRoot, harnessBranch, baseSha);
@@ -77,9 +63,6 @@ export function provisionWorktrees(input: ProvisionWorktreesInput): ProvisionWor
   if (already < worktreeCount) mkdirSync(join(root, input.runId), { recursive: true });
   for (let index = already; index < worktreeCount; index += 1) {
     const id = `wt-${index}`;
-    // Git refs are a path hierarchy: `refs/heads/<harnessBranch>` and `refs/heads/<harnessBranch>/x`
-    // cannot coexist (one is a leaf, the other wants that leaf as a directory). `--` keeps every
-    // worktree's own branch a sibling of the anchor ref rather than nesting under it.
     const branch = `${harnessBranch}--${id}`;
     const worktreePath = join(root, input.runId, id);
     addWorktree(input.repoRoot, worktreePath, branch, baseSha);

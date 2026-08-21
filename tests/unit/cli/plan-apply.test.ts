@@ -44,7 +44,7 @@ describe("plan:apply commits the plan the planner wrote to planning/", () => {
     });
 
     expect(result.revision).toBe(1);
-    expect((result.markdown as string)).toContain("Graph Revision 1");
+    expect(result.markdown as string).toContain("Graph Revision 1");
     const state = loadRun(runRoot).state;
     expect((state.graph as { revision: number }).revision).toBe(1);
     expect(Object.keys(state.tasks as Record<string, unknown>).length).toBeGreaterThan(0);

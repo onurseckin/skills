@@ -6,7 +6,6 @@ import type {
   GraphEdgeData,
 } from "./types.ts";
 
-/** Accent per relationship kind. A colour is presentation, so it is the one thing not measured. */
 const ACCENT_BY_KIND: Partial<Record<EdgeKind, string>> = {
   backtrack: "#f97316",
   branch: "#a855f7",
@@ -25,7 +24,6 @@ const ACCENT_BY_KIND: Partial<Record<EdgeKind, string>> = {
   validation: "#8b5cf6",
 };
 
-/** Only values the run actually recorded. Anything unknown is left out, never defaulted. */
 export interface ObservedTraffic {
   bytes?: number | undefined;
   durationMs?: number | undefined;

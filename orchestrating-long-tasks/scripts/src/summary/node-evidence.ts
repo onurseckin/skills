@@ -7,25 +7,13 @@ import { isJsonObject, type JsonObject } from "../contracts/json.ts";
 import type { TaskRecord } from "../workflow/types.ts";
 import type { NodeScript, NodeStateTransition } from "./types.ts";
 
-/**
- * The ceiling on a single log read. It is a memory guard, not an editorial one: the visualizer gets
- * only this file, so a log clipped to keep the export small is a log nobody can ever read back.
- * Anything short of a file large enough to exhaust the exporting process is carried whole, and the
- * one case that is not says so through `truncated`.
- */
 export const LOG_READ_CEILING_BYTES = 64 * 1024 * 1024;
 
 export interface LogRead {
   text: string;
-  /** True only when the file was larger than the ceiling, so the text below is its tail. */
   truncated: boolean;
 }
 
-/**
- * Reads a recorded log file whole. The runner writes `logs.stdout = {path, bytes, sha256}` and never
- * a `stdout` string, which is why the output used to be permanently absent. Nothing is returned when
- * the file is gone: an unreadable log is not an empty log.
- */
 export function readLog(
   logPath: string | undefined,
   runRoot?: string,
@@ -49,14 +37,11 @@ export function readLog(
     if (fd !== undefined) {
       try {
         closeSync(fd);
-      } catch {
-        // The bytes already read stand regardless of how the handle closes.
-      }
+      } catch {}
     }
   }
 }
 
-/** The log text alone, for callers that only scan it. */
 export function readLogText(logPath: string | undefined, runRoot?: string): string | undefined {
   return readLog(logPath, runRoot)?.text;
 }
@@ -69,11 +54,6 @@ function durationMs(startedAt?: string | null, finishedAt?: string | null): numb
   return end - start;
 }
 
-/**
- * What the caller declared this command to be, carried through with the label that says an agent
- * said so rather than that the harness measured it. Nothing is read out of the argv, so a command
- * nobody described carries no category and no tool at all.
- */
 function declaredTool(command: CommandRecord): Partial<NodeScript> {
   const evidence: Record<string, EvidenceClass> = {};
   if (command.tool_category !== undefined) evidence.category = "agent_reported";
@@ -88,20 +68,11 @@ function declaredTool(command: CommandRecord): Partial<NodeScript> {
   };
 }
 
-/**
- * The whole command record minus the child environment. Everything else the runner recorded travels
- * with the script; the environment does not, because it carries the live ownership token the runner
- * mints for the attempt.
- */
 function redactedRecord(command: CommandRecord): JsonObject {
   const { environment: _environment, ...rest } = command;
   return rest;
 }
 
-/**
- * Every other field here was measured by the harness while it ran the command, and every field the
- * record carries is exported: the visualizer has no second source to consult for a dropped one.
- */
 export function buildNodeScripts(
   commands: readonly CommandRecord[],
   runRoot?: string,
@@ -155,11 +126,6 @@ export interface TaskCommandPartition {
   validator: CommandRecord[];
 }
 
-/**
- * A command belongs to the node whose agent ran it. Gate commands and anything run by the agent the
- * task recorded as its validator belong to the validator, so the two nodes stop showing each other's
- * work. An actor named "validator" is not the validator; only the recorded id settles that.
- */
 export function partitionTaskCommands(
   commands: readonly CommandRecord[],
   validatorId?: string,
@@ -175,10 +141,6 @@ export function partitionTaskCommands(
   return { implementer, validator };
 }
 
-/**
- * A command is the critic's when the run authorised that agent as the critic. Neither the actor's
- * name nor a gate id that happens to contain "critic" is evidence of the authorisation.
- */
 export function isCriticCommand(command: CommandRecord, criticIds: ReadonlySet<string>): boolean {
   return criticIds.has(command.actor);
 }
@@ -203,11 +165,6 @@ interface ReviewSignal {
   isProbe: boolean;
 }
 
-/**
- * The class of the findings an event names, read off the task's own findings. This is a lookup, not
- * a guess: the ids come from the event and the class comes from the record they point at. Findings
- * that disagree, or ids the task no longer holds, leave the class absent.
- */
 function classOfReferencedFindings(task: TaskRecord, ids: unknown): string | undefined {
   if (!Array.isArray(ids) || ids.length === 0) return undefined;
   const byId = new Map((task.findings ?? []).map((finding) => [finding.id, finding]));
@@ -242,11 +199,6 @@ function reviewSignalsFor(task: TaskRecord, events: readonly HarnessEvent[]): Re
   return signals;
 }
 
-/**
- * The recorded task state machine. Transitions come from `task.history`; a review or probe event
- * that carries the enriched payload lends its verdict, round and finding class to the transition it
- * caused. Capsules written before that enrichment simply contribute nothing extra.
- */
 export function buildStateTransitions(
   task: TaskRecord,
   events: readonly HarnessEvent[] = [],
@@ -262,13 +214,10 @@ export function buildStateTransitions(
     evidence_class: "harness_observed",
   }));
 
-  // Only the transitions read from `task.history` can be claimed by a review; the probe entries
-  // appended below are synthesized here and have no event of their own to absorb.
   const historyCount = transitions.length;
   const claimed = new Set<number>();
   for (const signal of signals) {
     if (signal.isProbe) {
-      // A probe leaves the task in `validating`; the move it records is the round, not the status.
       transitions.push({
         at: signal.timestamp,
         actor: signal.actor,
@@ -284,11 +233,6 @@ export function buildStateTransitions(
       });
       continue;
     }
-    // The verdict and the move it caused are written in one transaction but carry no shared id, so
-    // they are paired by the validator that made both and then by proximity in time. An earlier rule
-    // took the first transition stamped at or after the event, which mislabelled a later
-    // validator's pass with an earlier validator's rejection whenever the event lagged its own
-    // transition by a millisecond.
     const at = Date.parse(signal.timestamp);
     let index = -1;
     let closest = Number.POSITIVE_INFINITY;
@@ -308,9 +252,6 @@ export function buildStateTransitions(
     if (!transition) continue;
     if (signal.verdict !== undefined) transition.verdict = signal.verdict;
     if (signal.round !== undefined) transition.round = signal.round;
-    // A pass carries the class of the findings it CLOSED, which is not the class that caused the
-    // move; stamping it here made a pass that closed a probe demand read as a probe. The closing
-    // class is still exported, on the event that states it.
     if (signal.findingClass !== undefined && signal.verdict !== "pass") {
       transition.findingClass = signal.findingClass;
     }

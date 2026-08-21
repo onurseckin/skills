@@ -4,11 +4,6 @@ import { HarnessError } from "../../errors/harness-error.ts";
 
 export const WORKTREE_LEDGER_KEY = "worktree_ledger";
 
-/**
- * A capsule provisioned before B22 (or with `worktree_isolation` off) carries no ledger key, which
- * is "never provisioned" rather than an empty one — callers that need to tell the two apart read
- * `state[WORKTREE_LEDGER_KEY]` directly instead of going through this function.
- */
 export function readWorktreeLedger(state: JsonObject): WorktreeLedgerState | null {
   const raw = state[WORKTREE_LEDGER_KEY];
   if (raw === undefined) return null;

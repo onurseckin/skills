@@ -26,11 +26,6 @@ export interface TaskPreparationInput {
   runRoot?: string | undefined;
 }
 
-/**
- * The step of this task's own submission, in the same space as `RunFacts.steps` (B15.2): the highest
- * `sequence` among this task's `task-submitted` events. A task the chain never saw submit gets no
- * step rather than one borrowed from a different task's round.
- */
 function taskSubmittedStep(
   taskId: string,
   events: readonly HarnessEvent[] | undefined,
@@ -47,13 +42,6 @@ function taskSubmittedStep(
   return latest;
 }
 
-/**
- * Only files the implementer reported as changed. The write scope is what it was allowed to touch,
- * not what it touched, so it stays in metadata instead of masquerading as a change set. The path
- * list itself is stamped `agent_reported` because nothing here opened the repository to produce it;
- * `lines`/`diff` are filled in separately from a real Git reading (B15.2), which does not change that
- * the *listing* is still the implementer's own claim.
- */
 function changedFiles(
   task: TaskRecord,
   events: readonly HarnessEvent[] | undefined,
@@ -79,28 +67,14 @@ function changedFiles(
   return enrichFileRefsWithDiffs(files, runRoot);
 }
 
-/**
- * Resolves one task into the context every node builder shares. Asset ownership is settled here, in
- * emission order, so each node receives only the evidence it produced and the finding projection
- * can point at ids that really exist somewhere in the dataset.
- */
 export function prepareTaskContext(input: TaskPreparationInput): TaskNodeContext {
   const { task, registry } = input;
   const validatorId = resolveValidatorId(task);
-  // A live validator node exists only while the state machine still holds a live `validations`
-  // entry (B12.2). On reject, record-review.ts archives every open entry into `validation_history`,
-  // which computeArchivedRounds already turns into that round's own node pair below — so falling
-  // back to a historical identity here, as `validatorId` alone would, draws the same validator
-  // twice: once honestly as the archived round, once as a phantom "live" node whose handoff and
-  // verdict edges never actually happened for whatever round is now in progress.
   const hasValidator = task.validations !== undefined && task.validations.length > 0;
   const taskCommands = input.commands.filter((command) => command.task_id === task.id);
   const partition = partitionTaskCommands(taskCommands, validatorId);
 
   const implementerId = resolveImplementerId(task);
-  // AssetMapOptions has no events field: nothing in the asset pipeline reads an event stream to
-  // date an asset, and inferring a capture time from a nearby event would be a guess wearing the
-  // shape of a measurement, exactly what collectReportAssets et al. already refuse to do.
   const options: AssetMapOptions = {
     ...(input.manifest !== undefined ? { manifest: input.manifest } : {}),
     ...(input.runRoot !== undefined ? { runRoot: input.runRoot } : {}),

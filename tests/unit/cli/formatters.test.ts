@@ -77,6 +77,7 @@ describe("Markdown Formatters", () => {
           { wave: 2, taskIds: ["t3"] },
         ],
       },
+      topologyDeclaration: { independentRoots: 2, edgeCount: 1 },
       collisions: 0,
       requirementsCount: 3,
       runId: "run-1",

@@ -9,11 +9,6 @@ export interface RecoveredSubTask {
   expired_agent_id: string;
 }
 
-/**
- * Reclaims sub-tasks whose sub-agent died holding the lease. Without this the branch can never
- * collect — every sub-task must be terminal — and the parent stays frozen forever, which is exactly
- * how a dead sub-agent used to block a run. A reclaimed sub-task returns to `open` for a fresh claim.
- */
 export function recoverBranchSubTasks(
   draft: JsonObject,
   now: Date,

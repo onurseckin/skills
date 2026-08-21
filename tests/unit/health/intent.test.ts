@@ -204,11 +204,9 @@ describe("health/allowlist.ts quoting a path token is not evidence the repo uses
   // unnecessary - self-cancelling the moment someone tries to use it.
   const result = (production: Parameters<typeof checkIntentDrift>[0]["production"]) => {
     const root = writeTree(tempRoot("allowlist-self-reference"), {
-      "SPEC.md": [
-        "## 1. R1 - a produced artifact",
-        "",
-        "- Produces `.tmp/scratch/build.ts`.",
-      ].join("\n"),
+      "SPEC.md": ["## 1. R1 - a produced artifact", "", "- Produces `.tmp/scratch/build.ts`."].join(
+        "\n",
+      ),
     });
     return checkIntentDrift({
       documents: [{ relative: "SPEC.md", absolute: join(root, "SPEC.md"), headingLevel: 2 }],
@@ -221,10 +219,7 @@ describe("health/allowlist.ts quoting a path token is not evidence the repo uses
 
   test("the token appearing only inside health/allowlist.ts still reads as missing", () => {
     const report = result([
-      sourceOf(
-        "health/allowlist.ts",
-        'key: "intent-missing:SPEC.md:R1:.tmp/scratch/build.ts",',
-      ),
+      sourceOf("health/allowlist.ts", 'key: "intent-missing:SPEC.md:R1:.tmp/scratch/build.ts",'),
     ]);
     expect(report.findings.map((entry) => entry.key)).toContain(
       "intent-missing:SPEC.md:R1:.tmp/scratch/build.ts",
@@ -258,9 +253,7 @@ describe("a token naming a test file's own path is proven by existing, not by be
       paths: [testPath],
       registryApplies: true,
     });
-    expect(report.findings.map((entry) => entry.key)).not.toContain(
-      "intent-untested:SPEC.md:R1",
-    );
+    expect(report.findings.map((entry) => entry.key)).not.toContain("intent-untested:SPEC.md:R1");
     expect(report.limitations.join(" ")).toContain("1 token(s) name a `.test.ts`/`.spec.ts` file");
   });
 
@@ -283,9 +276,7 @@ describe("a token naming a test file's own path is proven by existing, not by be
       paths: [testPath],
       registryApplies: true,
     });
-    expect(report.findings.map((entry) => entry.key)).not.toContain(
-      "intent-untested:SPEC.md:R1",
-    );
+    expect(report.findings.map((entry) => entry.key)).not.toContain("intent-untested:SPEC.md:R1");
   });
 
   test("a non-test file token still requires a test to mention it", () => {
@@ -317,9 +308,7 @@ describe("a token naming a test file's own path is proven by existing, not by be
     });
     const report = checkIntentDrift({
       documents: [{ relative: "SPEC.md", absolute: join(root, "SPEC.md"), headingLevel: 2 }],
-      production: [
-        sourceOf("some/generator.ts", "// see tests/unit/phantom.test.ts for context"),
-      ],
+      production: [sourceOf("some/generator.ts", "// see tests/unit/phantom.test.ts for context")],
       tests: [],
       // The phantom test file is deliberately absent from `paths`: it does not exist on disk.
       paths: [join(root, "SPEC.md")],

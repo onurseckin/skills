@@ -13,24 +13,23 @@ export interface SubmissionReportInputs {
   readonly declaredCommandIds?: readonly string[] | undefined;
   readonly observedFiles: readonly string[] | null;
   readonly commands: Readonly<Record<string, CommandRecord>>;
+  readonly allowEmptyFiles?: boolean;
 }
 
 function resolveFiles(inputs: SubmissionReportInputs): {
   files: string[];
   evidenceClass: EvidenceClass;
 } {
-  // The declared list wins when it is given: the harness sees every in-scope working-tree change,
-  // but it cannot attribute one to this agent, and an agent that names its files is the stronger
-  // claim. Nothing is substituted when both sources are silent.
   if (inputs.declaredFiles && inputs.declaredFiles.length > 0)
     return { files: [...inputs.declaredFiles], evidenceClass: "agent_reported" };
   const observed = (inputs.observedFiles ?? []).filter((path) =>
     pathAllowed(path, inputs.task.write_scope),
   );
   if (observed.length === 0) {
+    if (inputs.allowEmptyFiles) return { files: [], evidenceClass: "agent_reported" };
     throw new HarnessError(
       "INVALID_STATE",
-      `cannot determine files_changed for ${inputs.task.id}: no working-tree change inside the task write scope was observed; pass --files-changed or --report`,
+      `cannot determine files_changed for ${inputs.task.id}: no working-tree change inside the task write scope was observed; pass --files-changed or --report, or --no-op if none was needed`,
     );
   }
   return { files: observed, evidenceClass: "harness_observed" };
@@ -70,11 +69,6 @@ function resolveChecks(inputs: SubmissionReportInputs): {
   return { commands: observed, evidenceClass: "harness_observed" };
 }
 
-/**
- * Assembles the submission report out of recorded facts only. Every field either comes from a
- * command the harness ran, a path Git reported, or an explicit agent declaration, and the absence
- * of all three is an error rather than a filler value.
- */
 export function buildSubmissionReport(inputs: SubmissionReportInputs): JsonObject {
   const { files, evidenceClass: filesClass } = resolveFiles(inputs);
   const { commands, evidenceClass: checksClass } = resolveChecks(inputs);

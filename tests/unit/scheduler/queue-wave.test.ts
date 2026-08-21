@@ -67,6 +67,10 @@ async function compiledRun(name: string, maxParallel?: number): Promise<string> 
       "--actor",
       "planner",
       ...(declaration.deps.length > 0 ? ["--deps", declaration.deps.join(",")] : []),
+      ...declaration.deps.flatMap((dep) => [
+        "--dep-reason",
+        `${dep}:fixture-declared ordering dependency`,
+      ]),
     ]);
   }
   await execute([
@@ -77,6 +81,8 @@ async function compiledRun(name: string, maxParallel?: number): Promise<string> 
     "planner",
     "--completion-gate",
     "bun test tests",
+    "--accept-audit",
+    "A4-false-barrier:t-gamma's ordering is this fixture's whole point, not a real read/write relationship",
   ]);
   return run;
 }

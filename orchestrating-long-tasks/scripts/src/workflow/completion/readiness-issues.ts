@@ -40,8 +40,6 @@ function taskIssues(state: WorkflowState): string[] {
     if (task.lease) issues.push(`task ${task.id} has a live lease`);
     if (!task.report) issues.push(`task ${task.id} lacks a submission report`);
     const gates = applicableGates(state, task);
-    // B12.2: a task passes only once every domain its write scope draws has its own recorded pass,
-    // so completion checks each domain's approval independently rather than a single verdict.
     for (const domain of applicableValidatorDomains(task.write_scope)) {
       const validation = validationForDomain(task, domain);
       if (validation?.verdict !== "pass")

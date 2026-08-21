@@ -1,12 +1,11 @@
 import { recoverStale, type RecoveryOptions } from "../workflow/lease/recover-stale.ts";
-import { systemClock, type Clock, type TransactionPort, type WorkflowState } from "../workflow/types.ts";
+import {
+  systemClock,
+  type Clock,
+  type TransactionPort,
+  type WorkflowState,
+} from "../workflow/types.ts";
 
-/**
- * A dead agent, discovered without anyone telling the supervisor about it (B28.2): the lease it held
- * expired and nothing ever submitted against it. `recoverStale` already does the reclaiming; this
- * module turns its before/after effect into a structured record a supervisor can act on and a
- * morning report (B28.4) can list by name.
- */
 export interface DeadAgentEvent {
   readonly kind: "task-lease" | "branch-sub-lease";
   readonly taskId: string;
@@ -20,12 +19,6 @@ export interface DeadAgentReclaimResult {
   readonly state: WorkflowState;
 }
 
-/**
- * The morning report (B28.4) needs a cumulative count across the whole run, including reclaims from
- * a supervisor that has since died and restarted. Diffing before/after only tells the CURRENT
- * process what it just found, so each reclaim is also recorded as its own event — the durable trail
- * a report reads back later, independent of which process was running when it happened.
- */
 export const DEAD_AGENT_RECLAIMED_KIND = "supervisor-dead-agent-reclaimed";
 
 function leasedTaskAgents(state: WorkflowState): Map<string, string> {
@@ -46,11 +39,6 @@ function leasedSubTaskIds(state: WorkflowState): Set<string> {
   return ids;
 }
 
-/**
- * Reclaims every stale lease and branch sub-lease in one pass and reports exactly which agents were
- * found dead, so a supervisor can decide what to do with each freed task instead of only knowing the
- * aggregate count. Safe to call on a schedule: a run with nothing stale returns an empty list.
- */
 export function reclaimDeadAgents(
   port: TransactionPort,
   actor: string,
@@ -94,10 +82,7 @@ export function reclaimDeadAgents(
         ...(event.agentId === undefined ? {} : { agent_id: event.agentId }),
         new_status: event.newStatus,
       },
-      () => {
-        // Intentional no-op: recoverStale already applied the state change above. This call exists
-        // only to leave a durable, per-agent record of it on the chain (see the constant's comment).
-      },
+      () => {},
     );
   }
   return { events, state };

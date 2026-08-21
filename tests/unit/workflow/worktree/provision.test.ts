@@ -26,12 +26,17 @@ describe("provisionWorktrees (via plan:compile)", () => {
     await addTask(fixture, "t2", "src/b");
     const result = await compile(fixture);
 
-    expect(git(fixture.repo, ["branch", "--list", `harness/${basename(fixture.run)}`]).trim()).not.toBe("");
+    expect(
+      git(fixture.repo, ["branch", "--list", `harness/${basename(fixture.run)}`]).trim(),
+    ).not.toBe("");
     // The harness branch is a plain ref, never checked out — the repo's own HEAD is untouched.
     expect(git(fixture.repo, ["rev-parse", "--abbrev-ref", "HEAD"]).trim()).toBe("main");
     expect(git(fixture.repo, ["status", "--short"]).trim()).toBe("");
 
-    const ledger = result.worktree_ledger as { worktrees: { path: string }[]; assignments: unknown[] };
+    const ledger = result.worktree_ledger as {
+      worktrees: { path: string }[];
+      assignments: unknown[];
+    };
     expect(ledger.worktrees.length).toBe(2);
     for (const worktree of ledger.worktrees) {
       expect(existsSync(worktree.path)).toBe(true);
@@ -48,9 +53,14 @@ describe("provisionWorktrees (via plan:compile)", () => {
     const fixture = await worktreeCapsule(roots, "provision-reuse");
     await addTask(fixture, "t1", "src/a");
     await addTask(fixture, "t2", "src/b");
-    await addTask(fixture, "t3", "src/c", "t1");
+    // t3's scope nests inside t1's (src/a/sub vs src/a) so the dependency is scope-justified —
+    // A4-false-barrier rightly refuses a declared ordering dependency between disjoint scopes.
+    await addTask(fixture, "t3", "src/a/sub", "t1");
     const result = await compile(fixture);
-    const ledger = result.worktree_ledger as { worktrees: unknown[]; assignments: { worktree_id: string }[] };
+    const ledger = result.worktree_ledger as {
+      worktrees: unknown[];
+      assignments: { worktree_id: string }[];
+    };
     expect(ledger.worktrees.length).toBe(2);
     expect(ledger.assignments.at(-1)?.worktree_id).toBe("wt-0");
   });
@@ -88,7 +98,12 @@ describe("provisionWorktrees (via plan:compile)", () => {
         repoRoot: fixture.repo,
         runId: basename(fixture.run),
         actor: "test",
-        topology: { revision: 1, max_parallel: 4, decisions: [], waves: [{ wave: 1, task_ids: ["t1"] }] },
+        topology: {
+          revision: 1,
+          max_parallel: 4,
+          decisions: [],
+          waves: [{ wave: 1, task_ids: ["t1"] }],
+        },
         tasksById: new Map([["t1", { write_scope: ["src/a"] }]]),
         config: { worktree_isolation: true, worktree_root: insideRepo, branch_prefix: "harness/" },
       }),
@@ -99,7 +114,9 @@ describe("provisionWorktrees (via plan:compile)", () => {
   });
 
   test("worktree_isolation off (the default) provisions nothing", async () => {
-    const fixture = await worktreeCapsule(roots, "provision-disabled", { worktree_isolation: false });
+    const fixture = await worktreeCapsule(roots, "provision-disabled", {
+      worktree_isolation: false,
+    });
     await addTask(fixture, "t1", "src/a");
     const result = await compile(fixture);
     expect(result.worktree_ledger).toBeUndefined();

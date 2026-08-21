@@ -265,9 +265,9 @@ describe("B21: agent:release refuses without a reason", () => {
     const run = await compiledCapsule(roots, "b21-release-cli-missing");
     await registerCoordinator(run);
     await registerWorker(run);
-    await expect(
-      execute(["agent:release", "--run", run, "--agent", "worker-1"]),
-    ).rejects.toThrow("--reason is required");
+    await expect(execute(["agent:release", "--run", run, "--agent", "worker-1"])).rejects.toThrow(
+      "--reason is required",
+    );
   });
 
   test("CLI: a blank --reason is refused, not accepted as empty text", async () => {

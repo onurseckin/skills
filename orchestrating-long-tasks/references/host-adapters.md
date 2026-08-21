@@ -65,24 +65,24 @@ To keep the user's interactive thread pristine, the Background Run Coordinator c
 Whatever the host, a coordinator needs five things. If a host cannot provide one, that is a capability
 gap to be declared, not worked around silently.
 
-| Need | What it means |
-|:--|:--|
-| **Dispatch** | Start an agent with a role, a scope, and a packet |
-| **Identity** | Learn the agent's id, so `agent:register` can bind the grant |
-| **Completion** | Know when it finished and what it returned |
-| **Isolation** | Keep concurrent agents from colliding on the same files |
-| **Recovery** | Resume or replace an agent that died mid-task |
+| Need           | What it means                                                |
+| :------------- | :----------------------------------------------------------- |
+| **Dispatch**   | Start an agent with a role, a scope, and a packet            |
+| **Identity**   | Learn the agent's id, so `agent:register` can bind the grant |
+| **Completion** | Know when it finished and what it returned                   |
+| **Isolation**  | Keep concurrent agents from colliding on the same files      |
+| **Recovery**   | Resume or replace an agent that died mid-task                |
 
 ---
 
 ### 3.2 Adapter table
 
-| Host | Dispatch | Definitions | Messaging | Depth | Concurrency |
-|:--|:--|:--|:--|:--|:--|
-| **Claude Code** | `Agent` tool | `.claude/agents/*.md` (YAML frontmatter) | `SendMessage` (v2.1.206+); experimental Agent Teams use file mailboxes at `~/.claude/teams/<team>/inboxes/<agent>.json` | 3 (`CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH`) | 20 (`CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS`) |
-| **Antigravity** (CLI + IDE) | `invoke_subagent` | custom agents with `subagent: true`; `define_subagent` for transient ones | none documented | not documented | not documented |
-| **Codex** | `collaboration` group `multi_agent_v1`, tool `spawn_agent` | TOML in `~/.codex/agents/` or `.codex/agents/` | `send_message`, `followup_task`, `send_input`, `wait_agent`, `interrupt_agent`, `list_agents`, `resume_agent`, `close_agent` | hierarchical task paths from `/root` | `agents.max_concurrent_threads_per_session` in `~/.codex/config.toml` |
-| **Cursor** (CLI + IDE) | `Task` tool (SDK policy name `"task"`) | — | none documented | main agent and its DIRECT subagents may spawn; a subagent's subagent may not (since 2.5) | no documented limit |
+| Host                        | Dispatch                                                   | Definitions                                                               | Messaging                                                                                                                    | Depth                                                                                    | Concurrency                                                           |
+| :-------------------------- | :--------------------------------------------------------- | :------------------------------------------------------------------------ | :--------------------------------------------------------------------------------------------------------------------------- | :--------------------------------------------------------------------------------------- | :-------------------------------------------------------------------- |
+| **Claude Code**             | `Agent` tool                                               | `.claude/agents/*.md` (YAML frontmatter)                                  | `SendMessage` (v2.1.206+); experimental Agent Teams use file mailboxes at `~/.claude/teams/<team>/inboxes/<agent>.json`      | 3 (`CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH`)                                               | 20 (`CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS`)                           |
+| **Antigravity** (CLI + IDE) | `invoke_subagent`                                          | custom agents with `subagent: true`; `define_subagent` for transient ones | none documented                                                                                                              | not documented                                                                           | not documented                                                        |
+| **Codex**                   | `collaboration` group `multi_agent_v1`, tool `spawn_agent` | TOML in `~/.codex/agents/` or `.codex/agents/`                            | `send_message`, `followup_task`, `send_input`, `wait_agent`, `interrupt_agent`, `list_agents`, `resume_agent`, `close_agent` | hierarchical task paths from `/root`                                                     | `agents.max_concurrent_threads_per_session` in `~/.codex/config.toml` |
+| **Cursor** (CLI + IDE)      | `Task` tool (SDK policy name `"task"`)                     | —                                                                         | none documented                                                                                                              | main agent and its DIRECT subagents may spawn; a subagent's subagent may not (since 2.5) | no documented limit                                                   |
 
 ---
 

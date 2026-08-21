@@ -29,13 +29,6 @@ import { ingestScreenshots, ingestVisualReport } from "../../reporting/screensho
 import { commandEvidenceView, commandRecordPath } from "../../reporting/command-evidence.ts";
 import { capsuleCatalogue, runStatus, type CapsuleCatalogue } from "../../reporting/status.ts";
 
-/**
- * B27.2's two ceilings, both live here because both are read once per run root. `maxParallel` binds
- * reasoning dispatch (provider-bound, so the host's own discovered limit governs it); `gateMaxParallel`
- * is the separate, lower, cores-derived ceiling for agents currently running mandatory gates
- * (local-CPU-bound). A run root is `<repo>/.capsules/<run-id>`, so repo config sits two levels above
- * the capsule.
- */
 function occupancyCeilings(runRoot: string): { maxParallel: number; gateMaxParallel: number } {
   const config = getHarnessConfig(resolve(runRoot, "..", ".."), runRoot);
   return { maxParallel: config.default_max_parallel, gateMaxParallel: config.gate_max_parallel };
@@ -72,21 +65,6 @@ function verifyCompletionArtifacts(
   };
 }
 
-/**
- * B22.4: runs once, right before a run actually completes. It has to run BEFORE `completeRun`
- * seals the state, not after: `transact` refuses to mutate a run once `completion_result.status` is
- * `"complete"` (the same termination guarantee B1 depends on), so recording the consolidation
- * outcome onto the worktree ledger is only possible while the run is still open. Doing the git side
- * of this first and the seal second is safe either way — nothing here discards work, a worktree's
- * commits are already durable on its own branch before this ever merges them onward — so a
- * `run:complete` call that consolidates but then fails its OWN remaining checks (a stale token, say)
- * just leaves the branch tidied up for whichever retry actually seals it.
- *
- * Idempotent by the ledger's own `consolidation` field: present means this already ran, so a repeat
- * `run:complete` call against an already-terminal run reads that and does nothing further — it never
- * re-attempts the git side, which would fail trying to re-add a scratch worktree and re-delete
- * branches already gone.
- */
 function consolidateIfProvisioned(
   run: string,
   actor: string,
@@ -111,8 +89,6 @@ export function runCompleteCommand(flags: Flags): Record<string, unknown> {
   const actor = textFlag(flags, "actor")!;
   const authToken = textFlag(flags, "auth-token")!;
 
-  // B22.4: must run before `completeRun` seals the state — see `consolidateIfProvisioned`'s own
-  // comment for why the ordering is load-bearing, not incidental.
   const consolidation = consolidateIfProvisioned(run, actor);
 
   const state = completeRun(
@@ -126,13 +102,9 @@ export function runCompleteCommand(flags: Flags): Record<string, unknown> {
     generateSummarySuite({ capsulePath: run, writeToDisk: true });
   } catch {}
 
-  // The restart document is regenerated against the sealed state, so a reader of the finished
-  // capsule sees the run as it ended rather than as it looked at the last submission.
   const handoffPath = refreshHandoff(run);
 
   const tasks = Object.values(state.tasks);
-  // Gate counts come from the gate ledger. Counting exit-zero commands against the requirement
-  // total put two numbers under a heading neither of them measured.
   const gates = gateTally(state);
   const markdown = formatRunCompleteBrief({
     runId: basename(run),
@@ -206,20 +178,11 @@ export function runStatusCommand(flags: Flags): Record<string, unknown> {
   const completionResult = state.completion_result as { status: string } | undefined;
   const phase =
     completionResult?.status === "complete" ? "Completed" : state.graph ? "Executing" : "Planning";
-  // The catalogue is what an agent reads instead of walking the capsule: how much the run has
-  // stored, and whether that count still describes where the run stands.
   const catalogue = capsuleCatalogue(loaded.runRoot);
-  // B24.4: idle capacity stayed invisible until it was a number. "Active" mirrors what the
-  // scheduler itself treats as occupying a slot — leased, running or under validation — not a
-  // count derived from the wave concept the scheduler no longer enforces.
   const activeCount = tasks.filter(
     (t) => t.status === "leased" || t.status === "running" || t.status === "validating",
   ).length;
   const { maxParallel, gateMaxParallel } = occupancyCeilings(loaded.runRoot);
-  // B27.2: report against BOTH ceilings, not just the one that gates general dispatch — the harness
-  // has no way to tell which active lease is mid-gate versus mid-reasoning (RunSupervisor's own
-  // limit), so the gate ceiling is stated alongside occupancy rather than measured against it; an
-  // operator about to dispatch gate-heavy work still needs the lower number in view.
   const occupancySummary = `${activeCount}/${maxParallel} occupancy slots in use (gate ceiling ${gateMaxParallel}).`;
   const markdown = formatRunStatusBrief(
     basename(run),
@@ -230,8 +193,6 @@ export function runStatusCommand(flags: Flags): Record<string, unknown> {
     occupancySummary,
   );
 
-  // The raw workflow state carries lease token digests and other internals an agent should never
-  // read back out of a status report; runStatus() is the redacted, purpose-built status view.
   return {
     markdown,
     run_root: run,
@@ -243,13 +204,10 @@ export function runStatusCommand(flags: Flags): Record<string, unknown> {
       max_parallel: maxParallel,
       gate_max_parallel: gateMaxParallel,
     },
-    // B22.6: "run:status reports live worktrees and the branch." Absent (not an empty object) when
-    // the run was never provisioned — matches readWorktreeLedger's own absence-over-invention rule.
     ...(readWorktreeLedger(state) === null ? {} : { worktrees: readWorktreeLedger(state) }),
   };
 }
 
-/** One line of the catalogue. An unreadable or stale index says so rather than reporting zero. */
 function catalogueSummary(catalogue: CapsuleCatalogue): string {
   if (!catalogue.available || catalogue.counts === undefined)
     return "catalogue unreadable (index.json); counts unknown";
@@ -288,15 +246,10 @@ export async function runExecCommand(
     ...(gate ? { gateId: gate } : {}),
     ...declared,
   };
-  // The durable intent/reconcile protocol records the command as "running" before it spawns and
-  // reconciles it to a terminal record afterward, so a crash mid-command leaves recoverable evidence
-  // instead of a run that silently forgot it was ever attempted (B28's unattended recovery contract).
   const result = await runAndRecordCommand(loaded.runRoot, cmdOpts);
 
   const record = result.record;
   const commandStr = argv.join(" ");
-  // A command the runner could not collect an exit code for did not exit 0, and one whose clock
-  // never closed took no measured time. Both stay unknown all the way to the brief.
   const exitCode = record.exit_code;
   const durationMs =
     record.started_at && record.finished_at
@@ -326,8 +279,6 @@ export async function runExecCommand(
     } catch {}
   }
 
-  // The command's own clock bounds what it may claim to have captured: a file that already existed
-  // when the command started was not produced by it.
   ingestScreenshots({
     runRoot: loaded.runRoot,
     commandId: record.id,
@@ -350,8 +301,6 @@ export async function runExecCommand(
     startedAt: record.started_at,
   });
 
-  // A browser or visual suite leaves a report behind; that report, plus the harness's own clock and
-  // exit status, is the whole of what the run is allowed to claim about the browser it drove.
   const browserRun = ingestBrowserRun({
     runRoot: loaded.runRoot,
     commandId: record.id,
@@ -365,8 +314,6 @@ export async function runExecCommand(
     exitCode,
   });
 
-  // The command record is the evidence. It is already durable under commands/<id>/ and already
-  // bound to the event chain, so nothing here writes a second document describing the same run.
   const evidencePayload = commandEvidenceView(
     loaded.runRoot,
     record as unknown as JsonObject,

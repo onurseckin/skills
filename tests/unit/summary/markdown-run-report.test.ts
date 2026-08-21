@@ -220,7 +220,9 @@ describe("summary.md is a complete, sequential run report", () => {
     expect(filesSection).toContain("**Why**: Gamma wired");
     // None of these paths exist on disk in the fixture's repo (the tasks only ran shell commands),
     // so the harness could not read a diff for them — that absence must say so, not be silent.
-    expect(filesSection).toContain("No diff could be read for this path against the run's baseline.");
+    expect(filesSection).toContain(
+      "No diff could be read for this path against the run's baseline.",
+    );
   });
 
   test("carries the run's full action-provenance trace, in the chain's own order (B15.1)", () => {

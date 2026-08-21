@@ -24,13 +24,13 @@
 
 Every value the system reports is labelled with how it was learned:
 
-| Class              | Meaning                                                                         |
-| :----------------- | :------------------------------------------------------------------------------ |
-| `harness_observed` | The harness measured it: exit codes, byte counts, Git diffs, wall clock.        |
-| `agent_reported`   | An agent said so through the CLI. True only if the agent was honest.            |
+| Class              | Meaning                                                                                                                                                                                                         |
+| :----------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `harness_observed` | The harness measured it: exit codes, byte counts, Git diffs, wall clock.                                                                                                                                        |
+| `agent_reported`   | An agent said so through the CLI. True only if the agent was honest.                                                                                                                                            |
 | `host_reported`    | Defined for a host attestation the harness independently verified; no current code path assigns it — model id, tier, thinking level and token usage all arrive as CLI input and carry `agent_reported` instead. |
-| `derived`          | Computed from other recorded values, such as wave numbers or estimates.         |
-| `unknown`          | Not available. It must render as "unknown", never as a neutral-looking default. |
+| `derived`          | Computed from other recorded values, such as wave numbers or estimates.                                                                                                                                         |
+| `unknown`          | Not available. It must render as "unknown", never as a neutral-looking default.                                                                                                                                 |
 
 Estimates carry `evidence_class: "derived"` **and** `is_estimated: true`. Nothing about an agent's
 model, tier or thinking level is inferred from the machine that exported the run.
@@ -286,13 +286,13 @@ agent that owns the branch.
    domain, the common case.
 2. **Pairing Invariant, not strict 1:1**: an Implementer is never dispatched alone — every task
    draws at least one independent Validator, becoming eligible the instant that implementer submits.
-   But a task's write scope can draw *more than one* validator domain (B12.2's derivation — every
+   But a task's write scope can draw _more than one_ validator domain (B12.2's derivation — every
    task draws `code-quality`; a task touching `.tsx`/`.css` also draws `ui-design`; one touching a
    schema or a public contract also draws `system-design`), and the coordinator dispatches one
    validator per applicable domain. The task reaches `validated` only once every domain it drew has
    independently passed — the pairing is guaranteed, the ratio is not fixed at one.
 3. **Sizing is Σ, not 2N+1**: total agents deployed is `1 coordinator + N implementers +
-   Σ(validators per task)`, where each task contributes as many validators as it has applicable
+Σ(validators per task)`, where each task contributes as many validators as it has applicable
    domains (at least one). A single-domain run collapses back to the familiar `2N+1`; a run with
    multi-domain tasks costs more agents for richer validation, bounded by `max_agents` (the run's
    total-agent budget, independent of this formula).
@@ -398,29 +398,29 @@ triggers dynamic graph recompilation and parallel repair rounds:
 
 ## Formal state transitions
 
-| Current state           | Trigger / command                   | Next state               | Required conditions & invariant checks                                                          |
-| :---------------------- | :---------------------------------- | :----------------------- | :---------------------------------------------------------------------------------------------- |
-| `proposed`              | `plan:compile`                      | `ready`                  | Disjoint write scopes validated; atomic requirements mapped; topology recorded.                 |
-| `ready` / `retry_ready` | `task:claim --role implementer`     | `leased`                 | Dependencies done; lease token minted; deadline bound.                                          |
-| `leased`                | `task:heartbeat`                    | `running`                | Valid lease token; expiry moved forward by the lease's own duration.                            |
-| `leased` / `running`    | `branch:open`                       | `branched`               | Live parent token; sub-scopes inside the parent and disjoint; lease clock suspended.            |
-| `branched`              | `branch:collect` / `branch:abandon` | `running`                | Every sub-task terminal (collect); lease restored with a fresh window.                          |
-| `leased` / `running`    | `task:submit`                       | `submitted`              | Valid token; write scope unviolated; summary and changed files present.                         |
-| `leased` / `running`    | `task:release`                      | `retry_ready`            | Live token; `changes_requested` instead when the attempt was a repair.                          |
-| any leased state        | `recover` (lease expired)           | `retry_ready`            | Past expiry plus grace; suspended leases exempt; repair attempts return to `changes_requested`. |
-| `submitted`             | `task:validate-start`               | `validating`             | Independent validator assigned; implementer prose stripped from the packet.                     |
-| `validating`            | `task:probe`                        | `validating`             | `probe_round` +1; `repair_round` untouched; demands recorded as open findings.                  |
-| `validating`            | `task:reject` / `--status fail`     | `changes_requested`      | Validator-authored severity, observation and remediation; `repair_round` +1.                    |
-| `changes_requested`     | `task:claim --role repairer`        | `leased`                 | Claimant is the recorded repair assignee; bounded by `max_repair_rounds`.                       |
-| `changes_requested`     | `task:reject` at the budget         | `escalated`              | `repair_round` reached `max_repair_rounds`; handoff preserved.                                  |
-| `validating`            | `task:review --status pass`         | `validated`              | Probe budget met; no failing gate run; every open finding `--resolve`d.                         |
-| `validated`             | mandatory gate attachment           | `gating`                 | Gate argv fingerprint, task and gate ids match the contract; bindings match.                    |
-| `gating`                | all mandatory gates attached        | `done`                   | Review passed and every applicable mandatory gate satisfied.                                    |
-| `done` (all tasks)      | `critic:start`                      | critic assigned          | Fresh repository inspection recorded; critic token minted.                                      |
-| critic assigned         | `critic:reject`                     | completion blocked       | Structured findings recorded; completion halted.                                                |
-| completion blocked      | `plan:replan`                       | `ready` (revision $R$)   | Revision $R \to R+1$; findings partitioned into disjoint repair scopes.                         |
-| critic assigned         | `critic:review --decision approve`  | critic approved          | Every requirement proved; no requirement left `unproven`.                                       |
-| critic approved         | `run:complete`                      | completed                | Zero blockers, no open branch, live repository binding matches every gate. Sealed.              |
+| Current state           | Trigger / command                   | Next state             | Required conditions & invariant checks                                                          |
+| :---------------------- | :---------------------------------- | :--------------------- | :---------------------------------------------------------------------------------------------- |
+| `proposed`              | `plan:compile`                      | `ready`                | Disjoint write scopes validated; atomic requirements mapped; topology recorded.                 |
+| `ready` / `retry_ready` | `task:claim --role implementer`     | `leased`               | Dependencies done; lease token minted; deadline bound.                                          |
+| `leased`                | `task:heartbeat`                    | `running`              | Valid lease token; expiry moved forward by the lease's own duration.                            |
+| `leased` / `running`    | `branch:open`                       | `branched`             | Live parent token; sub-scopes inside the parent and disjoint; lease clock suspended.            |
+| `branched`              | `branch:collect` / `branch:abandon` | `running`              | Every sub-task terminal (collect); lease restored with a fresh window.                          |
+| `leased` / `running`    | `task:submit`                       | `submitted`            | Valid token; write scope unviolated; summary and changed files present.                         |
+| `leased` / `running`    | `task:release`                      | `retry_ready`          | Live token; `changes_requested` instead when the attempt was a repair.                          |
+| any leased state        | `recover` (lease expired)           | `retry_ready`          | Past expiry plus grace; suspended leases exempt; repair attempts return to `changes_requested`. |
+| `submitted`             | `task:validate-start`               | `validating`           | Independent validator assigned; implementer prose stripped from the packet.                     |
+| `validating`            | `task:probe`                        | `validating`           | `probe_round` +1; `repair_round` untouched; demands recorded as open findings.                  |
+| `validating`            | `task:reject` / `--status fail`     | `changes_requested`    | Validator-authored severity, observation and remediation; `repair_round` +1.                    |
+| `changes_requested`     | `task:claim --role repairer`        | `leased`               | Claimant is the recorded repair assignee; bounded by `max_repair_rounds`.                       |
+| `changes_requested`     | `task:reject` at the budget         | `escalated`            | `repair_round` reached `max_repair_rounds`; handoff preserved.                                  |
+| `validating`            | `task:review --status pass`         | `validated`            | Probe budget met; no failing gate run; every open finding `--resolve`d.                         |
+| `validated`             | mandatory gate attachment           | `gating`               | Gate argv fingerprint, task and gate ids match the contract; bindings match.                    |
+| `gating`                | all mandatory gates attached        | `done`                 | Review passed and every applicable mandatory gate satisfied.                                    |
+| `done` (all tasks)      | `critic:start`                      | critic assigned        | Fresh repository inspection recorded; critic token minted.                                      |
+| critic assigned         | `critic:reject`                     | completion blocked     | Structured findings recorded; completion halted.                                                |
+| completion blocked      | `plan:replan`                       | `ready` (revision $R$) | Revision $R \to R+1$; findings partitioned into disjoint repair scopes.                         |
+| critic assigned         | `critic:review --decision approve`  | critic approved        | Every requirement proved; no requirement left `unproven`.                                       |
+| critic approved         | `run:complete`                      | completed              | Zero blockers, no open branch, live repository binding matches every gate. Sealed.              |
 
 ---
 

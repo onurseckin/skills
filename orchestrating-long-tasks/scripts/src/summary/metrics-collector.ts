@@ -39,7 +39,6 @@ export interface MetricsInput {
   state: Readonly<WorkflowState>;
   events: readonly HarnessEvent[];
   commands?: Record<string, CommandRecord>;
-  /** The dataset this run produced, so exchange counts come from emitted edges, not a formula. */
   graph?: GraphDataset;
 }
 
@@ -48,10 +47,6 @@ function computeTokenEstimations(
   tasks: TaskRecord[],
   commands: CommandRecord[],
 ): TokenEstimation {
-  // estimated_tokens is a run-wide byte-ratio guess by construction (RollupMetrics carries it as
-  // a required field, unlike total_edge_traffic_exchanges below which is omitted outright when
-  // unknown); a manifest or a command log missing from this proxy contributes 0 bytes to that
-  // guess rather than the guess claiming a real measurement it doesn't have.
   const promptBytes = manifest?.prompt_bytes ?? 0;
   let stdoutBytes = 0;
   for (const cmd of commands) {
@@ -156,8 +151,6 @@ export function collectMetrics(input: MetricsInput): RollupMetrics {
     if (Array.isArray(rawReport?.screenshots)) totalMediaAssets += rawReport.screenshots.length;
   }
 
-  // Counted from the emitted edges. There is no per-edge token measurement anywhere in the run, so
-  // no token volume is reported at all rather than a plausible-looking arithmetic stand-in.
   const totalEdgeTrafficExchanges = input.graph?.edges.reduce(
     (total, edge) => total + (edge.exchanges?.length ?? 0),
     0,

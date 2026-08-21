@@ -2,11 +2,6 @@ import type { WorkflowState } from "../workflow/types.ts";
 import { DEAD_AGENT_RECLAIMED_KIND } from "./dead-agent-detector.ts";
 import { DISPATCH_OUTCOME_KIND, type DispatchLogEvent } from "./dispatch-log.ts";
 
-/**
- * B28.4's contract: "what completed, what escalated and why, what was retried and how often, where
- * the time went, what needs a human" — answerable without reading logs. Every field here is read
- * back from what the harness already recorded; nothing is estimated or inferred from a task's name.
- */
 export interface MorningReportTask {
   readonly taskId: string;
   readonly label: string;
@@ -24,9 +19,6 @@ export interface RetryBreakdown {
   readonly deterministicStops: number;
 }
 
-/** B27.2's own pair: the general ceiling host discovery (or an operator) set, and the separate,
- * lower ceiling for gate-running (CPU-bound) work. Either may be absent — a report never invents a
- * ceiling nobody configured, it just cannot show occupancy against the missing one. */
 export interface ConcurrencyCeilings {
   readonly maxParallel?: number;
   readonly gateMaxParallel?: number;
@@ -35,17 +27,12 @@ export interface ConcurrencyCeilings {
 export interface MorningReport {
   readonly generatedAt: string;
   readonly completed: readonly MorningReportTask[];
-  /** Same list as `needsHuman`, kept as its own field so "escalated" reads as a fact, not a request. */
   readonly escalated: readonly EscalatedTaskReport[];
   readonly deadAgentsReclaimed: number;
   readonly retries: readonly RetryBreakdown[];
-  /** Absent (never zero) when the run recorded no events to measure a span from. */
   readonly runSpanMs?: number;
   readonly totalBackoffMs: number;
   readonly needsHuman: readonly EscalatedTaskReport[];
-  /** Leased tasks at report time. Point-in-time, not an average — the harness does not sample
-   * occupancy over the run's lifetime, so reporting an "average" would invent a measurement it never
-   * took (HONESTY). B27.2: shown against both ceilings so under-use is visible, not assumed. */
   readonly occupiedAtReport: number;
   readonly ceilings: ConcurrencyCeilings;
 }
@@ -115,10 +102,10 @@ export function buildMorningReport(
   const escalated = tasks
     .filter((task) => task.status === "escalated")
     .map((task) => escalationReport(state, task.id));
-  const deadAgentsReclaimed = events.filter((event) => event.kind === DEAD_AGENT_RECLAIMED_KIND).length;
+  const deadAgentsReclaimed = events.filter(
+    (event) => event.kind === DEAD_AGENT_RECLAIMED_KIND,
+  ).length;
   const span = runSpanMs(events);
-  // Same predicate `runSupervisionTick` uses for its own `occupied` count (supervision-tick.ts) —
-  // a lease still held right now, independent of which ceiling it counts against.
   const occupiedAtReport = tasks.filter((task) => task.lease !== undefined).length;
 
   return {
@@ -154,8 +141,6 @@ export function formatMorningReportMarkdown(report: MorningReport, runId: string
     ...(report.retries.length === 0 ? ["  - none"] : report.retries.map(retryLine)),
     `- **Run span**: ${report.runSpanMs === undefined ? "unknown" : `${report.runSpanMs}ms`}`,
     `- **Time spent backing off**: ${report.totalBackoffMs}ms`,
-    // B27.2: occupancy against BOTH ceilings, not just the one that gated dispatch — a gate
-    // ceiling far below occupancy is exactly the "idle capacity nobody could see" B24.4 named.
     `- **Occupancy at report time**: ${report.occupiedAtReport}/${report.ceilings.maxParallel ?? "unknown"} general ceiling, gate ceiling ${report.ceilings.gateMaxParallel ?? "unknown"}`,
   ].join("\n");
 }

@@ -75,7 +75,9 @@ describe("the exact two regressions this check exists to catch", () => {
       "        ```",
     ].join("\n");
     const findings = scanProseForUnqualifiedDispatch(source, "coordinator.yaml", false);
-    expect(findings).toEqual([{ file: "coordinator.yaml", line: 8, term: "invoke_subagent", host: "antigravity" }]);
+    expect(findings).toEqual([
+      { file: "coordinator.yaml", line: 8, term: "invoke_subagent", host: "antigravity" },
+    ]);
   });
 
   test("run-playbook.md's regression: the identical bare call under a host-agnostic phase heading", () => {
@@ -95,7 +97,9 @@ describe("the exact two regressions this check exists to catch", () => {
       "```",
     ].join("\n");
     const findings = scanProseForUnqualifiedDispatch(source, "run-playbook.md", true);
-    expect(findings).toEqual([{ file: "run-playbook.md", line: 8, term: "invoke_subagent", host: "antigravity" }]);
+    expect(findings).toEqual([
+      { file: "run-playbook.md", line: 8, term: "invoke_subagent", host: "antigravity" },
+    ]);
   });
 
   test("restored: references/host-adapters.md, read directly off disk, names every host it uses", () => {

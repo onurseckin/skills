@@ -35,15 +35,6 @@ export interface BranchSubgraph {
   sections: GraphSection[];
 }
 
-/**
- * What the closing Git reading saw in the worktree. The entries are the harness's own measurement,
- * so they keep their status code and digest; a branch that closed without an observation
- * contributes nothing rather than an empty change set. `lines`/`diff`/`additions`/`deletions` are
- * filled in from a real Git reading against the run's baseline (B15.2/B3), the same enrichment the
- * implementer's own `files` list gets in `graph-task-preparation.ts` — a branch excursion edits the
- * repository too, and without this its changes were the one file list in the export that never
- * carried a diff.
- */
 function observedFiles(branch: BranchRecord, runRoot: string | undefined): FileRef[] {
   const observation = branch.collected_observation ?? branch.opened_observation;
   if (observation === undefined || !observation.git_available) return [];
@@ -88,7 +79,6 @@ function buildSubTaskNode(
   return {
     id: subTaskNodeId(branch, subTask),
     name: subTask.label,
-    // The reason travels with the node so the graph answers "why is this here?" on its own.
     description: `Sub-task of ${branch.parent_task_id}. Branch reason: ${branch.reason}`,
     kind: "agent" as NodeKind,
     status: subTaskStatus(subTask),
@@ -170,9 +160,6 @@ function branchEdges(
 
   if (subTask.status === "submitted" || subTask.status === "abandoned") {
     const abandoned = subTask.status === "abandoned";
-    // B25.4: an explicit, justified residual cycle, not the pushback loop B25.2 retired. A branch
-    // is a call, not a round — the sub-agent runs once and reports back to the exact parent node
-    // that opened it, so there is no sequence of distinct rounds here to give their own nodes to.
     edges.push(
       createEdge({
         id: `edge-collect-${branch.id}-${subTask.id}`,
@@ -212,10 +199,6 @@ function branchEdges(
   return edges;
 }
 
-/**
- * The asymmetry the plan cannot express: a branch is discovered while a task runs, so it becomes a
- * region of its own with one node per sub-agent, grouped by a section that carries the reason.
- */
 export function buildBranchSubgraphs(input: BranchSubgraphInput): BranchSubgraph {
   const nodes: GraphNodeData[] = [];
   const edges: GraphEdgeData[] = [];

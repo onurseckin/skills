@@ -11,8 +11,6 @@ import { runFilePath } from "./paths.ts";
 import { cloneObject } from "./state.ts";
 import { limits } from "./constants.ts";
 
-/** A torn tail is unique evidence of a corruption, so it gets a home of its own rather than a
- * corner of the evidence view, which holds no facts. */
 function quarantineDirectory(runRoot: string): string {
   const path = runFilePath(runRoot, "quarantine");
   mkdirSync(path, { recursive: true, mode: 0o755 });

@@ -59,7 +59,10 @@ describe("task:submit input handling", () => {
   });
 
   test("--evidence is consumed and bound to the recorded command", async () => {
-    const { run, token, commandId } = await claimed("submit-inputs-evidence");
+    const { repo, run, token, commandId } = await claimed("submit-inputs-evidence");
+    // C4: task:submit refuses a submission whose write scope is byte-identical to its content at
+    // claim, so the declared file has to actually exist and differ before it is claimed as changed.
+    await writeFile(join(repo, "tests/unit/core/impl.ts"), "export const implemented = true;\n");
     const result = await execute([
       "task:submit",
       "--run",
@@ -148,6 +151,12 @@ describe("task:submit input handling", () => {
 
   test("--report supplies the whole submission and is actually used", async () => {
     const { repo, run, token, commandId } = await claimed("submit-inputs-report");
+    // C4: task:submit refuses a submission whose write scope is byte-identical to its content at
+    // claim, so the file the report below claims as changed has to actually exist and differ.
+    await writeFile(
+      join(repo, "tests/unit/core/from-report.ts"),
+      "export const fromReport = true;\n",
+    );
     const reportPath = join(repo, "submission.json");
     await writeFile(
       reportPath,

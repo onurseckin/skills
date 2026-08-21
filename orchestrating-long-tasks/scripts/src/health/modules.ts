@@ -14,10 +14,8 @@ export type ExportKind =
   | "reexport";
 
 export interface ImportBinding {
-  /** The name as the exporting module spells it; `*` for a namespace import. */
   readonly imported: string;
   readonly local: string;
-  /** Absolute path when the specifier resolves inside the tree, else the raw specifier. */
   readonly from: string;
   readonly line: number;
 }
@@ -26,7 +24,6 @@ export interface ExportRecord {
   readonly name: string;
   readonly kind: ExportKind;
   readonly line: number;
-  /** Set when the export forwards another module's symbol. */
   readonly origin?: { readonly module: string; readonly name: string };
 }
 
@@ -36,15 +33,12 @@ export interface ModuleRecord {
   readonly source: SourceFile;
   readonly imports: readonly ImportBinding[];
   readonly exports: readonly ExportRecord[];
-  /** Resolved modules pulled in wholesale by `export * from`. */
   readonly starReexports: readonly string[];
 }
 
 function resolveSpecifier(fromFile: string, specifier: string): string {
   if (!specifier.startsWith(".")) return specifier;
   const base = resolve(dirname(fromFile), specifier);
-  // A directory is not a module: `./folder` means `./folder/index.ts`, and stopping at the
-  // directory would leave the import pointing at a key no module has.
   for (const candidate of [base, `${base}.ts`, resolve(base, "index.ts")]) {
     if (statSync(candidate, { throwIfNoEntry: false })?.isFile() === true) return candidate;
   }
@@ -158,10 +152,6 @@ export interface SymbolRef {
   readonly name: string;
 }
 
-/**
- * Follows `export { x } from` and `export * from` back to the module that declares the symbol, so a
- * barrel does not read as a consumer of everything it forwards.
- */
 export function resolveOrigin(
   modules: ReadonlyMap<string, ModuleRecord>,
   ref: SymbolRef,

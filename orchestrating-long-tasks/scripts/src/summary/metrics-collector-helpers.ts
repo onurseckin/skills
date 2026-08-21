@@ -5,11 +5,6 @@ import { resolveValidatorId } from "./graph-node-context.ts";
 import { partitionTaskCommands } from "./node-evidence.ts";
 import type { TimingBreakdown, TokenUsageDetail } from "./types.ts";
 
-/**
- * The commands that count as validation for a task: gate runs, plus whatever the agent the task
- * recorded as its validator ran. An actor named "val" is a name, not a role, so no metric here is
- * built out of one.
- */
 function validationCommands(task: TaskRecord, taskCmds: readonly CommandRecord[]): CommandRecord[] {
   return partitionTaskCommands(taskCmds, resolveValidatorId(task)).validator;
 }
@@ -217,12 +212,6 @@ export function computeGateTiming(
   };
 }
 
-/**
- * A host-reported token count is real data or it is absent; there is no plausible stand-in for a
- * count nobody measured. This sums whatever components a host actually sent and says nothing about
- * a category it never sent, rather than presenting a guessed zero as a measurement. `undefined`
- * means the host reported none of these fields at all.
- */
 function sumReportedTokens(...parts: readonly (number | undefined)[]): number | undefined {
   const known = parts.filter((part): part is number => part !== undefined);
   return known.length === 0 ? undefined : known.reduce((total, part) => total + part, 0);
@@ -257,14 +246,10 @@ export function computeTaskTokens(
       ...(totalTokens !== undefined ? { totalTokens } : {}),
       ...(hostTokens.costUsd !== undefined ? { costUsd: hostTokens.costUsd } : {}),
       isEstimated: false,
-      // The host told us this reading is real; it did not tell us which mechanism produced it, so
-      // the honest label is "unknown" - the same convention agent-telemetry.ts's evidenceClass
-      // fallback uses - never an assumed "host_reported" we did not confirm.
       evidenceClass: hostTokens.evidenceClass ?? "unknown",
     };
   }
 
-  // A missing manifest contributes nothing to the estimate rather than a stand-in prompt size.
   const promptBytes = manifest?.prompt_bytes ?? 0;
   let cmdStdoutBytes = 0;
   for (const cmd of taskCmds)
@@ -278,10 +263,6 @@ export function computeTaskTokens(
   const reasoningTokens = hostTokens?.reasoningTokens;
   const cacheCreationTokens = hostTokens?.cacheCreationTokens;
   const cacheReadTokens = hostTokens?.cacheReadTokens;
-  // inputTokens/outputTokens are already the byte-ratio guess, and the object below discloses that
-  // with isEstimated/evidenceClass; folding an optional category the host never sent in as "no
-  // contribution" does not claim a measurement for it, it just leaves this estimate's total as the
-  // sum of whatever is known - the same policy sumReportedTokens applies to the real branch above.
   const totalTokens =
     inputTokens +
     outputTokens +
@@ -298,7 +279,6 @@ export function computeTaskTokens(
     totalTokens,
     ...(hostTokens?.costUsd !== undefined ? { costUsd: hostTokens.costUsd } : {}),
     isEstimated: true,
-    // A byte-ratio guess is never presented as a measurement.
     evidenceClass: "derived",
   };
 }
@@ -331,8 +311,6 @@ export function computeGateTokens(
       ...(totalTokens !== undefined ? { totalTokens } : {}),
       ...(hostTokens.costUsd !== undefined ? { costUsd: hostTokens.costUsd } : {}),
       isEstimated: false,
-      // See computeTaskTokens above: "unknown" is the honest label for a real reading whose source
-      // we were not told, never an assumed "host_reported".
       evidenceClass: hostTokens.evidenceClass ?? "unknown",
     };
   }
@@ -349,8 +327,6 @@ export function computeGateTokens(
   const reasoningTokens = hostTokens?.reasoningTokens;
   const cacheCreationTokens = hostTokens?.cacheCreationTokens;
   const cacheReadTokens = hostTokens?.cacheReadTokens;
-  // See computeTaskTokens above: this total is already disclosed as an estimate, so folding an
-  // optional category the host never sent in as "no contribution" is a policy, not a substitution.
   const totalTokens =
     inputTokens +
     outputTokens +
@@ -367,7 +343,6 @@ export function computeGateTokens(
     totalTokens,
     ...(hostTokens?.costUsd !== undefined ? { costUsd: hostTokens.costUsd } : {}),
     isEstimated: true,
-    // A byte-ratio guess is never presented as a measurement.
     evidenceClass: "derived",
   };
 }

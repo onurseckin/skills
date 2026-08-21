@@ -41,8 +41,6 @@ export async function initializePlannerPacket(
       },
       evidenceSchema: evidenceSchema("planner"),
       planningWriteScope: [requirementsPath, graphPath],
-      // plan:compile reads state.planning_buffer, which this packet's write scope never touches;
-      // plan:apply is the command that actually reads the two files the planner is bound to.
       targetedCommands: [
         ["bun", harnessScript, "plan:status", "--run", loaded.runRoot],
         [

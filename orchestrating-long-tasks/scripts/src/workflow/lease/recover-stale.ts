@@ -22,7 +22,6 @@ export function recoverStale(
   return port.transact(actor, "stale-recovery", { now: utc(now) }, (draft) => {
     for (const taskId of Object.keys(draft.tasks).sort()) {
       const task = taskIn(draft, taskId);
-      // A branched parent is alive but blocked on its children, so its frozen lease is not stale.
       if (
         task.lease &&
         !isLeaseSuspended(task.lease) &&
@@ -40,10 +39,6 @@ export function recoverStale(
         delete task.lease;
         transition(task, repair ? "changes_requested" : "retry_ready", actor, now, "lease expired");
       }
-      // B12.2: several domains can be validating at once. Only an attempt still awaiting a verdict
-      // can go stale — a domain that already recorded one is settled, however old its deadline —
-      // and pruning it frees just that domain's slot; the task only falls back to "submitted" once
-      // nothing at all is left open, the same as a single validator going stale always did.
       if (task.status === "validating" && task.validations) {
         const stillOpen = task.validations.filter(
           (entry) => entry.verdict !== undefined || Date.parse(entry.deadline_at) > now.valueOf(),
@@ -57,8 +52,6 @@ export function recoverStale(
         }
       }
     }
-    // Leaves first: reclaiming a dead sub-agent re-opens work, which is what tells the level above
-    // it that it is still needed rather than stuck behind a corpse.
     recoverBranchSubTasks(draft, now, graceSeconds * 1_000);
     recoverSuspendedChains(draft, actor, now, graceSeconds * 1_000);
     const critic = draft.completion_critic;

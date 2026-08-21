@@ -35,7 +35,6 @@ export function formatFindingsListBrief(params: FindingsListParams): string {
   } else {
     for (const f of params.findings.slice(0, 10)) {
       const id = String(f.id ?? "unknown");
-      // A finding that recorded no severity has none; "info" would read as a graded judgement.
       const sev = String(f.severity ?? "unknown");
       const obs = String(f.observation ?? f.message ?? "").slice(0, 60);
       lines.push(`- **\`${id}\`** [\`${sev}\`]: ${obs}`);
@@ -56,7 +55,6 @@ export interface ReportBriefParams {
 
 export function formatReportBrief(params: ReportBriefParams): string {
   const r = params.report;
-  // "Report" would read as a real title; an omitted name is genuinely unknown, not generic.
   const name = params.name ?? "unknown";
   const status = String(r.status ?? r.verdict ?? r.decision ?? "unknown");
   const summary = String(r.summary ?? "No summary provided");
@@ -110,7 +108,6 @@ export interface EvidenceBriefParams {
 export function formatEvidenceBrief(params: EvidenceBriefParams): string {
   const e = params.evidence;
   const cmdId = String(e.command_id ?? e.id ?? "unknown");
-  // An unrecorded exit code is not a zero; a reader would take the zero for a success.
   const code = String(e.exit_code ?? "unknown");
   const dur = typeof e.duration_ms === "number" ? `${e.duration_ms}ms` : "N/A";
   const actor = String(e.actor ?? "unknown");

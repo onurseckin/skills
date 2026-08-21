@@ -20,23 +20,6 @@ function packetMetadataDisagrees(metadata: JsonRecord, record: JsonRecord): bool
   );
 }
 
-/**
- * `markdown_path` and `metadata_path` are required fields of every real `PacketRecord`
- * (`workflow/types.ts`), always set by `packetRecord()` from the id the bundle was written under. A
- * state entry missing either is not a packet the harness ever published through that path — most
- * often a minimal fixture built directly on `state.packets` for a test unrelated to publication — so
- * it makes no disk claim this check can verify, and is skipped.
- *
- * A published packet's bundle is written by `createPacketBundle` as a temp-directory-then-rename: it
- * is either absent or complete and exact, never partial (`packets/packet-bundle.ts`). That is what
- * makes a content check safe here whenever the bundle exists — unlike a command's record.json,
- * nothing rewrites a packet bundle after it lands.
- *
- * Existence itself is only required once the chain says the packet is `published`. The
- * `packet-prepared` event that first names an id in state always lands before the bundle is written
- * (`packets/persist-packet.ts`), so a `preparing` packet with no bundle yet is an ordinary,
- * recoverable gap between those two steps, not tampering.
- */
 function packetBundleIssues(runRoot: string, id: string, record: JsonRecord): IntegrityIssue[] {
   if (!PACKET_ID_PATTERN.test(id))
     return [issue("PACKET_ID", `packet id is not safe to address: ${id}`, "packets")];
@@ -67,7 +50,9 @@ function packetBundleIssues(runRoot: string, id: string, record: JsonRecord): In
   try {
     names = readdirSync(bundleDir).sort();
   } catch (error) {
-    found.push(issue("PACKET_UNREADABLE", `packets/${id} is unreadable: ${String(error)}`, bundleDir));
+    found.push(
+      issue("PACKET_UNREADABLE", `packets/${id} is unreadable: ${String(error)}`, bundleDir),
+    );
     return found;
   }
   if (names.join("\n") !== "metadata.json\npacket.md")
@@ -84,16 +69,30 @@ function packetBundleIssues(runRoot: string, id: string, record: JsonRecord): In
     const recordedDigest = text(record.packet_sha256);
     if (recordedDigest === undefined)
       found.push(
-        issue("PACKET_DIGEST", `packet ${id} has no recorded digest to check against`, markdownPath),
+        issue(
+          "PACKET_DIGEST",
+          `packet ${id} has no recorded digest to check against`,
+          markdownPath,
+        ),
       );
     else if (sha256Bytes(markdown) !== recordedDigest)
       found.push(
-        issue("PACKET_CONTENT", `packet ${id} markdown no longer matches its recorded digest`, markdownPath),
+        issue(
+          "PACKET_CONTENT",
+          `packet ${id} markdown no longer matches its recorded digest`,
+          markdownPath,
+        ),
       );
     if ((statSync(markdownPath).mode & 0o222) !== 0)
       found.push(issue("PACKET_MODE", `packet ${id} markdown is writable`, markdownPath));
   } catch (error) {
-    found.push(issue("PACKET_UNREADABLE", `packet ${id} markdown is unreadable: ${String(error)}`, markdownPath));
+    found.push(
+      issue(
+        "PACKET_UNREADABLE",
+        `packet ${id} markdown is unreadable: ${String(error)}`,
+        markdownPath,
+      ),
+    );
   }
   const metadataPath = join(bundleDir, "metadata.json");
   try {
@@ -103,18 +102,24 @@ function packetBundleIssues(runRoot: string, id: string, record: JsonRecord): In
     });
     if (packetMetadataDisagrees(metadata, record))
       found.push(
-        issue("PACKET_METADATA", `packet ${id} metadata disagrees with the recorded packet`, metadataPath),
+        issue(
+          "PACKET_METADATA",
+          `packet ${id} metadata disagrees with the recorded packet`,
+          metadataPath,
+        ),
       );
   } catch (error) {
-    found.push(issue("PACKET_UNREADABLE", `packet ${id} metadata is unreadable: ${String(error)}`, metadataPath));
+    found.push(
+      issue(
+        "PACKET_UNREADABLE",
+        `packet ${id} metadata is unreadable: ${String(error)}`,
+        metadataPath,
+      ),
+    );
   }
   return found;
 }
 
-/**
- * `packets/<id>/packet.md` checked against the chain-recorded `packet_sha256`, plus its metadata,
- * plus any bundle on disk that state does not name.
- */
 export function packetLayout(runRoot: string, state: JsonRecord | undefined): IntegrityIssue[] {
   const found: IntegrityIssue[] = [];
   const declared = isRecord(state?.packets) ? (state.packets as JsonRecord) : {};

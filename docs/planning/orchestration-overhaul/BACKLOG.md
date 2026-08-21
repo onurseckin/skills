@@ -15,7 +15,7 @@ references/host-adapters.md` (`## 1` → `## 2` → `## 3. Host Adapters` → `#
 false, and the `verified` tag this file already carried on B36 was already correct (see B36's own entry
 for the fresh confirmation added there). That specific claim did not require a tag change.
 
-Reconciling *every* item the way B36 was just reconciled, however, found real drift the second pass's
+Reconciling _every_ item the way B36 was just reconciled, however, found real drift the second pass's
 own "completion-tagging pass" notes did not catch — not because the code changed after those notes were
 written, but because three of those notes were wrong at the moment they were written, having grepped
 the wrong file or an unrelated pattern:
@@ -51,13 +51,13 @@ was 21 `queued` before this pass and is 20 after it (B29 moved to `verified`); i
 point checked. Per B33, this file's own count is the one settled by opening the artifact, not the one
 carried in from the assignment.
 
-| Tag | Count | Items |
-|---|---:|---|
-| `done (<sha>), verified` | 3 | B2, B5, B13 |
-| `verified` | 18 | B1, B6, B7, B10, B11, B12, B14, B16, B19, B23, B24, B25, B27, B28, B29, B30, B34, B36 |
-| `queued` | 19 | B3, B4, B8, B9, B15, B17, B18, B20, B21, B22, B26, B32, B33, B35, B37, B38, B39, B40, B41 |
-| `deferred by owner` | 1 | B31 |
-| **Total** | **41** | B1-B41 |
+| Tag                      |  Count | Items                                                                                     |
+| ------------------------ | -----: | ----------------------------------------------------------------------------------------- |
+| `done (<sha>), verified` |      3 | B2, B5, B13                                                                               |
+| `verified`               |     18 | B1, B6, B7, B10, B11, B12, B14, B16, B19, B23, B24, B25, B27, B28, B29, B30, B34, B36     |
+| `queued`                 |     19 | B3, B4, B8, B9, B15, B17, B18, B20, B21, B22, B26, B32, B33, B35, B37, B38, B39, B40, B41 |
+| `deferred by owner`      |      1 | B31                                                                                       |
+| **Total**                | **41** | B1-B41                                                                                    |
 
 **Not re-derived above; corrected in place (B19/B20 reconciliation pass):** B19 moved `queued` →
 `verified` this pass (see B19's own entry) after this table was written by the prior pass — the table
@@ -74,8 +74,8 @@ see the status key below):** two changes, both explained where they happen rathe
 — do this regardless" section) names a load-bearing invariant "defended by no real test," which the
 "Verified" tag's own guard-holds bar cannot survive — see B26's own entry for the correction and the
 file opened to confirm the gap is still real. This is the first tag this file's three prior reconciliation
-passes missed, because each checked whether a note's *own claim* was still true on disk without checking
-whether the note covered everything the item's *own text* still asked for — the status key gained a
+passes missed, because each checked whether a note's _own claim_ was still true on disk without checking
+whether the note covered everything the item's _own text_ still asked for — the status key gained a
 clause for exactly that gap (composite items, below). **B41 was appended**, net new, `queued` — three
 findings from a separate verifier (Wave 20, consumer-repo visual testing), recorded per this section's own
 "every queued note says specifically what remains open" rule. Before this pass: 19 `verified` / 17
@@ -596,16 +596,16 @@ ASCII task graph with an explicit `not.toContain("\`\`\`mermaid")`, agents/sub-a
 grants, the branch excursion's why/who/what-came-back, per-sub-task claim/submit timestamps, every
 command with its exit code including the failing one, probes and pushbacks in separate labelled
 sections with round numbers, gates/findings/critic verdict, and telemetry with its evidence class
-alongside an explicit `unknown` row for an agent that reported none). Reachable: the fixture calls the
+alongside an explicit `unknown`row for an agent that reported none). Reachable: the fixture calls the
 real CLI, not a stub. Does what was asked: the heading list and the assertions were checked bullet by
 bullet against this item's own requirements, not against what was convenient to build. Guard holds:
-confirmed directly rather than assumed — rsync'ed `orchestrating-long-tasks/` + `tests/` to a scratch
-copy outside the repo (never the real tree, since `summary/markdown-*.ts` is another wave's live file
-ownership), gutted `renderTopology` in `markdown-plan-sections.ts` to return `[]`, and reran the test
+confirmed directly rather than assumed — rsync'ed`orchestrating-long-tasks/`+`tests/`to a scratch
+copy outside the repo (never the real tree, since`summary/markdown-*.ts`is another wave's live file
+ownership), gutted`renderTopology`in`markdown-plan-sections.ts`to return`[]`, and reran the test
 there: it failed immediately ("## 5. Recorded Topology is missing from the report" plus a second,
 independent assertion failure on the same missing section), then the scratch copy was deleted and
 `git status` on the real tree confirmed untouched. This was created by an earlier, different wave
-(`tests/unit/summary/markdown-run-report-fixture.ts` first landed in commit `34f8343`, "feat: add
+(`tests/unit/summary/markdown-run-report-fixture.ts`first landed in commit`34f8343`, "feat: add
 validator checklists and orchestrate entry point" — a different commit from this verification), so this
 qualifies as a genuinely separate, later pass per the `verified` tag's own definition.
 
@@ -706,7 +706,7 @@ bullets below and the cited tests are done; kept only as the historical record o
   grant is refused with INVALID_STATE. — done, confirmed above.
 - Test: an implementer cannot submit without a published packet; a validator cannot invoke an
   implementer-only command; the packet digest matches the checked-in role document. — `tests/unit/packets/
-  role-contract-refusals.test.ts` + `role-contract-enforcement.test.ts`, 65/65 pass (re-run 2026-08-20);
+role-contract-refusals.test.ts` + `role-contract-enforcement.test.ts`, 65/65 pass (re-run 2026-08-20);
   guard-deletion on `command-authority.ts`'s `assertRoleMayInvoke` throw reproduces 12/53 failures.
 
 ### B8.2 RESOLVED — `handoff.md` is produced
@@ -1239,7 +1239,7 @@ Run everything, and treat a regression against the pre-overhaul baseline as a bl
 
 ---
 
-## B18 — Commit per completed sub-task, not per wave   `queued`
+## B18 — Commit per completed sub-task, not per wave `queued`
 
 **Still queued 2026-08-20 (completion-tagging pass):** B18.2, this item's central design, is withdrawn
 in its own text and superseded by B22 — which is confirmed not implemented (see B22). B18.4's cadence
@@ -1286,7 +1286,7 @@ whenever gates pass mid-wave. Push immediately. Never bypass the hook.
 
 ---
 
-## B19 — Generic category taxonomy, vendor names as instances   `verified`
+## B19 — Generic category taxonomy, vendor names as instances `verified`
 
 **Verified 2026-08-20 (B19/B20 reconciliation pass):** the prior note's "not confirmed present" was a
 false negative from checking the wrong file — same failure mode already caught once this session for
@@ -1294,8 +1294,9 @@ B29/B15/B3. The three-layer pattern lives in `scripts/src/summary/graph-agent-ty
 `graph-types.ts` re-exports wholesale (`export type { ... NodeScript, NodeTelemetry, NodeTool } from
 "./graph-agent-types.ts"`), so grepping `graph-types.ts` alone finds no `interface`, only the re-export
 line. Opened the actual file:
+
 - `NodeTool` — `name` (open instance), `category?: ToolCategory` (generic), `extras?:
-  Record<string, unknown>` (open bag), `evidence_class`. Exactly B19.1's three layers.
+Record<string, unknown>` (open bag), `evidence_class`. Exactly B19.1's three layers.
 - `NodeScript` — same shape (`category`, `tool`, `extras`, `evidence_class`, plus a per-field
   `evidence` map), with a doc comment stating the category/tool/extras are "never anything read out
   of the argv."
@@ -1311,7 +1312,7 @@ line. Opened the actual file:
   exactly this failure mode ("a model name never becomes a tier, however large the model sounds").
 - `contracts/taxonomy.ts`'s `TOOL_CATEGORIES` matches B19.2's seed vocabulary verbatim (14 members,
   `browser-automation` through `version-control`), with an open `ToolCategory = KnownToolCategory |
-  (string & {})` so an unrecognised category is still valid — B19.2's "start the vocabulary and keep
+(string & {})` so an unrecognised category is still valid — B19.2's "start the vocabulary and keep
   it open" is implemented literally, not approximately.
 - B19.4's guard reconfirmed still shipped and passing (`health/vendor-identifiers.ts` +
   `health/vendor-names.ts`, 0 failures on the "Vendor names in identifier positions" health check).
@@ -1387,12 +1388,13 @@ is what stops the schema quietly re-acquiring a favourite tool.
 
 ---
 
-## B20 — Dynamic host discovery and per-agent telemetry ingestion   `queued`
+## B20 — Dynamic host discovery and per-agent telemetry ingestion `queued`
 
 **Still queued 2026-08-20 (B19/B20 reconciliation pass) — B20.1-20.3 upgraded from "substantially
 landed" to fully verified; B20.4 is the one real gap and stays open, narrowed and re-scoped below.**
 
 B20.1-20.3, opened directly rather than re-derived from the prior note:
+
 - **Hardcoded at all four boundaries, not just register.** `cli/host-telemetry-probe.ts`'s
   `probeAgentTelemetry` is called from `agent:register` and `agent:release`
   (`cli/commands/agent-ops.ts:92,148`) and from `task:claim` and `task:submit`
@@ -1408,7 +1410,7 @@ B20.1-20.3, opened directly rather than re-derived from the prior note:
   push a `TelemetryFieldConflict` (`recorded_value`, `recorded_evidence_class`, `probed_value`) instead,
   which lands on both the transaction event (`telemetry_conflicts`) and the CLI's own response
   (`host_telemetry_conflicts`), asserted by `host-telemetry-probe.test.ts`'s `"a flag and the host's
-  own config disagreeing is kept on both the event and the result"`.
+own config disagreeing is kept on both the event and the result"`.
 - **Codex's `~/.codex/config.toml` is covered, both keys named in this pass's brief.**
   `summary/host-telemetry.ts`'s `HOST_PROBES` lists `agents`/`features`/`model` as codex evidence
   keys, and `TELEMETRY_PROBES.codex` reads `agentsTable.max_concurrent_threads_per_session` into
@@ -1432,6 +1434,7 @@ what does not exist yet, not a symbol this item is claiming to have built, so le
 than repeating the exact false intent-drift positive B39/B40 already diagnosed and fixed this same way.
 `metrics-collector.ts` computes run-wide rollups only (`pushbacks_total`, `resolved_findings_total`,
 `open_findings_total`) — never per-agent, never per-validator. Two things block a same-file fix:
+
 1. **Ownership**: the natural home is `summary/metrics-collector.ts` (or a new, not-yet-created
    summary/validator-quality.ts), not this item's file grant
    (`contracts/agents.ts`, `workflow/agents/**`, `cli/host-telemetry-probe.ts`,
@@ -1512,7 +1515,7 @@ subsystem than anywhere else in the system.
 
 ---
 
-## B21 — Mandatory lifecycle summaries: nothing happens unobserved   `queued`
+## B21 — Mandatory lifecycle summaries: nothing happens unobserved `queued`
 
 **Still queued 2026-08-20 (completion-tagging pass):** enforcement is confirmed only at the branch
 lifecycle — `workflow/branch/open.ts`, `collect.ts` and `sub-tasks.ts` all carry explicit `// B21:`
@@ -1552,7 +1555,7 @@ test of whether visibility is genuinely 100%.
 
 ---
 
-## B22 — Worktree-isolated git management (supersedes B18.2)   `queued`
+## B22 — Worktree-isolated git management (supersedes B18.2) `queued`
 
 **Still queued 2026-08-20 (completion-tagging pass):** not started. Grepped `scripts/src` for
 `worktree_isolation`, `harness/<run-id>`, `git worktree add` and `worktree_root` — none exist. The only
@@ -1600,6 +1603,7 @@ The scheduler already computes conflict-free waves from disjoint write scopes �
 ### B22.4 Consolidation and handoff
 
 When the run completes:
+
 1. Merge every worktree's commits onto the single `harness/<run-id>` branch.
 2. **Rebase that branch onto the latest default branch** so the user receives something that applies
    cleanly. If the rebase conflicts, STOP, leave the branch unrebased, and report the conflicting paths.
@@ -1612,11 +1616,12 @@ When the run completes:
 ### B22.5 Commit hygiene is verified, not assumed
 
 The completeness critic checks the commit tree as part of sealing:
+
 - commit count is proportionate to the work — not one per file, not 500 for a small run;
 - each commit's message describes a real unit of completed work;
 - commits map sensibly onto tasks and their write scopes;
 - oversized commits are flagged with their line counts.
-A run that produces an incoherent commit history has not finished cleanly, even if every gate passed.
+  A run that produces an incoherent commit history has not finished cleanly, even if every gate passed.
 
 ### B22.6 Failure and abandonment
 
@@ -1634,7 +1639,7 @@ A run that produces an incoherent commit history has not finished cleanly, even 
 
 ---
 
-## B23 — Raise the production file-size cap to 500 lines   `verified`
+## B23 — Raise the production file-size cap to 500 lines `verified`
 
 **Verified 2026-08-20 (completion-tagging pass):** `tests/unit/architecture/file-size.test.ts` declares
 `MAX_LINES = 500`, and the largest test file in the repo today (`validation-round-context.test.ts`) is
@@ -1654,7 +1659,7 @@ split made to satisfy a number rather than to clarify a seam (`task-review.ts` a
 
 ---
 
-## B24 — Continuous dispatch: waves are a planning concept, not a barrier   `verified`
+## B24 — Continuous dispatch: waves are a planning concept, not a barrier `verified`
 
 **Verified 2026-08-20 (completion-tagging pass):** `agents/coordinator.yaml` now documents `queue:wave`
 as "a read-only readiness snapshot — every task whose dependencies are done and [whose] write scope is
@@ -1688,7 +1693,7 @@ completes").
 
 So the state machine already permits continuous dispatch; the coordinator is simply told not to use it.
 That makes this a much cheaper fix than a scheduler rewrite — and it means a wave is already what it
-should be: the output of a *planning* computation, not a synchronisation requirement. A task in wave N+1 whose dependencies
+should be: the output of a _planning_ computation, not a synchronisation requirement. A task in wave N+1 whose dependencies
 are already satisfied, and whose write scope collides with nothing currently leased, has no reason to wait
 for an unrelated slow task in wave N.
 
@@ -1718,10 +1723,11 @@ together. They stop being an execution rule.
 ### B24.3 Where a barrier is genuinely required
 
 Keep a barrier only where the semantics demand one, and say so explicitly at each site:
+
 - before the completeness critic (it judges the whole diff, so all task work must be terminal);
 - at `branch:collect` (the parent needs every sub-task terminal before it resumes);
 - before `run:complete`.
-Everywhere else, continuous dispatch.
+  Everywhere else, continuous dispatch.
 
 ### B24.4 Report occupancy so the waste is visible
 
@@ -1738,7 +1744,7 @@ work from later phases when it is genuinely independent.
 
 ---
 
-## B25 — Retire "wave". The graph is a DAG; readiness is a parent relation   `verified`
+## B25 — Retire "wave". The graph is a DAG; readiness is a parent relation `verified`
 
 **Verified 2026-08-20 (fourth pass, correcting the completion-tagging pass's note above) — the prior
 "B25.2 is NOT done" claim was wrong, and it was wrong at the moment it was written, not because code
@@ -1849,7 +1855,7 @@ finishes, and independent later work fills free capacity immediately (B24).
 
 ---
 
-## B26 — Enrich the validator packet: orient without anchoring   `queued`
+## B26 — Enrich the validator packet: orient without anchoring `queued`
 
 **Corrected 2026-08-20 (completion-tagging audit pass) — the `verified` tag above did not match this
 item's own text, and no dated note had caught it.** The "Verified" note directly below is accurate as
@@ -1935,7 +1941,7 @@ reject, repair, re-validate with the same identity) and assert the refusal BY ER
 
 ---
 
-## B27 — Concurrency is a workload property, not a CPU formula   `verified`
+## B27 — Concurrency is a workload property, not a CPU formula `verified`
 
 **Verified 2026-08-20 (fifth pass) — the only blocker the fourth pass recorded, an uncommitted diff, is
 gone: `git status --short` is clean and `git rev-list --left-right --count
@@ -1957,7 +1963,7 @@ landed in `85e832d` and `b70d1ae`. Re-ran B33's three-bar check fresh rather tha
   honest signal, retry past it rather than pre-guessing a ceiling." No new code needed; this is legitimate
   reuse across two backlog items describing the same mechanism from different angles.
 - **Guard holds:** `bun test tests/unit/config/host-concurrency.test.ts
-  tests/unit/config/harness-config.test.ts tests/unit/cli/run-ops-commands.test.ts` — 35 pass, 0 fail, run
+tests/unit/config/harness-config.test.ts tests/unit/cli/run-ops-commands.test.ts` — 35 pass, 0 fail, run
   this pass, not carried over.
 
 No code or doc changes were needed this pass — the fourth pass's implementation was already correct and
@@ -1986,8 +1992,9 @@ test tests/unit/config/host-concurrency.test.ts tests/unit/config/harness-config
 run this pass, not carried over.
 
 B27.1's two gaps were real and are now closed:
+
 1. **The workload categorization was written nowhere an agent reads it.** `grep -n
-   "provider-bound\|local-bound\|gate_max_parallel" SKILL.md agents/*.yaml` was empty before this pass.
+"provider-bound\|local-bound\|gate_max_parallel" SKILL.md agents/*.yaml` was empty before this pass.
    Added as `SKILL.md` Hard Rule 11 (reasoning goes wide on the host-discovered ceiling; gate-running
    agents throttle to the separate `gate_max_parallel`) and expanded into an actionable paragraph in
    `agents/coordinator.yaml`'s Phase 2, since the coordinator is the agent that actually decides
@@ -2001,7 +2008,7 @@ B27.1's two gaps were real and are now closed:
    than inventing a gate-specific occupancy count nothing tracks. `tests/unit/cli/run-ops-commands.test.ts`
    updated to match (the exact-object assertion relaxed to a partial-match one plus a type check, since
    `gate_max_parallel` is genuinely machine-dependent when no config overrides it). `bun test
-   tests/unit/cli/run-ops-commands.test.ts` — 2/2 pass. `bun run typecheck` clean.
+tests/unit/cli/run-ops-commands.test.ts` — 2/2 pass. `bun run typecheck` clean.
 
 **What's left before this can be tagged `done`/`verified`:** the diff above (`SKILL.md`,
 `agents/coordinator.yaml`, `scripts/src/cli/commands/run-ops.ts`,
@@ -2034,6 +2041,7 @@ mixed                              → bounded by the heavy fraction
 ### B27.2 Discover the ceiling, do not assume it
 
 The skill must not hardcode a number:
+
 - Read the host's declared concurrency limit where it publishes one (B20's discovery registry is the
   place). Claude Code documents a default of 20 via `CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS`; other hosts
   differ; some publish nothing.
@@ -2052,7 +2060,7 @@ run finish sooner rather than idling under a conservative constant.
 
 ---
 
-## B28 — Autonomous supervision: crash recovery and unattended long runs   `verified`
+## B28 — Autonomous supervision: crash recovery and unattended long runs `verified`
 
 **Verified 2026-08-20 (completion-tagging pass):** confirmed via B38 finding 3's own account — after a
 same-session fix to the test's fake-clock wiring (not this item's own code),
@@ -2115,7 +2123,7 @@ have recovery.
 
 ---
 
-## B29 — Gates are scoped to the task; the full suite runs once, at the barrier   `verified`
+## B29 — Gates are scoped to the task; the full suite runs once, at the barrier `verified`
 
 **Verified 2026-08-20 (this reconciliation pass) — the "not found" note directly below was wrong at
 the moment it was written, not stale since: it grepped `cli/registry/plan.ts` (the flag/help registry)
@@ -2197,7 +2205,7 @@ full suite runs once per wave, at the barrier, before committing.
 
 ---
 
-## B30 — The skill is Antigravity-specific where it claims to be host-agnostic   `verified`
+## B30 — The skill is Antigravity-specific where it claims to be host-agnostic `verified`
 
 **Verified 2026-08-20 (reconciliation pass) — the item's own stated closing condition is now met.**
 This item's own top note (below) said plainly "this item does not close until B36's work item does."
@@ -2247,7 +2255,7 @@ that does not exist there. The skill's claim of host-agnosticism is currently fa
 ### B30.1 The contract must be abstract; the tool name is a value
 
 Per B19: a vendor name is a VALUE, never a first-class concept. The skill expresses the abstract need —
-*dispatch an agent with role R, scope S, and this packet; learn its identity; know when it finishes* —
+_dispatch an agent with role R, scope S, and this packet; learn its identity; know when it finishes_ —
 and an adapter maps that onto each host. `invoke_subagent` belongs in an adapter row, never in a rule.
 
 ### B30.2 Honest degradation is a requirement, not a fallback
@@ -2269,12 +2277,12 @@ design that assumes running agents can be re-instructed must account for that.
 
 Verified against official docs AND by running `strings` on the Antigravity and Codex binaries:
 
-| Host | Dispatch |
-|---|---|
-| Claude Code | `Agent` tool (renamed from `Task` in v2.1.63); definitions in `.claude/agents/*.md` |
-| Antigravity | `invoke_subagent` — the skill is CORRECT here, and only here |
-| Cursor | `Task` tool; SDK policy string `"task"` |
-| Codex | `collaboration` namespace, tool `spawn_agent` (group `multi_agent_v1`) |
+| Host           | Dispatch                                                                                                                                                             |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Claude Code    | `Agent` tool (renamed from `Task` in v2.1.63); definitions in `.claude/agents/*.md`                                                                                  |
+| Antigravity    | `invoke_subagent` — the skill is CORRECT here, and only here                                                                                                         |
+| Cursor         | `Task` tool; SDK policy string `"task"`                                                                                                                              |
+| Codex          | `collaboration` namespace, tool `spawn_agent` (group `multi_agent_v1`)                                                                                               |
 | ~~Gemini CLI~~ | **OUT OF SCOPE** — the open-source google-gemini/gemini-cli is unmaintained; owner decision 2026-08-20. Antigravity CLI and IDE are the Google surfaces that matter. |
 
 **Findings that change the design:**
@@ -2303,8 +2311,8 @@ Verified against official docs AND by running `strings` on the Antigravity and C
 
 ### B30.6 A shipped reliability warning against the skill's core pattern
 
-Antigravity's own binary contains: *"do not use other subagents like `research` or `self` since they may
-hang, unless the user specifically requests it."* The skill mandates `TypeName: "self"` for EVERY
+Antigravity's own binary contains: _"do not use other subagents like `research` or `self` since they may
+hang, unless the user specifically requests it."_ The skill mandates `TypeName: "self"` for EVERY
 implementer and validator. The guidance is context-scoped rather than absolute, but it warns against
 precisely the pattern the skill universalises. Investigate before continuing to mandate it.
 
@@ -2326,10 +2334,9 @@ Original text, retained for provenance: "Research is running now (read-only, doc
 agent per host). Application is BLOCKED on Wave 8's B13, which currently owns `references/**` — writing
 there now would collide. Apply the spec once B13 releases those paths."
 
-
 ---
 
-## B31 — Model and effort tier policy   `deferred by owner`
+## B31 — Model and effort tier policy `deferred by owner`
 
 **Re-confirmed 2026-08-20 (completion-tagging pass):** B38's own scope note re-checked this item and
 found it untouched, no changes — consistent with the owner's explicit deferral below. Left as
@@ -2340,6 +2347,7 @@ deferred the decision** — effort and model settings stay as they are pending f
 change them.
 
 Headline for whoever picks this up:
+
 - No host auto-selects a model by task difficulty. Claude Code resolution is env > per-call > frontmatter
   > session default, with no complexity input. Auto-routing is an open feature request, not a feature.
 - **Effort, not model tier, is the lever.** Anthropic's own Jul-Aug 2026 numbers: `medium` matched
@@ -2355,7 +2363,7 @@ Headline for whoever picks this up:
 
 ---
 
-## B32 — Telemetry is wired but unproven, and points at the wrong reporter   `queued`
+## B32 — Telemetry is wired but unproven, and points at the wrong reporter `queued`
 
 **Still queued 2026-08-20 (completion-tagging pass):** B38 finding 2 already states this precisely and
 this pass found nothing to change it — the wiring is correct and reachable (`probeAgentTelemetry` calls
@@ -2384,6 +2392,7 @@ self-report as an additional, clearly-labelled `agent_reported` source for hosts
 record both when both exist rather than silently preferring one.
 
 Per host, name where the number actually comes from:
+
 - **Claude Code** — the Agent tool result; `total_cost_usd` includes subagent cost. Budget caps exist
   (`maxBudgetUsd` / `max_budget_usd`, terminating with `error_max_budget_usd`).
 - **Codex** — `spawn_agent` records an OTel span `codex.multi_agent.spawn`; agents are addressable by task
@@ -2434,7 +2443,7 @@ disagree, keep both and record the conflict rather than choosing silently.
 
 ---
 
-## B33 — Verifier rule: look at the artifact, do not reason about it   `queued`
+## B33 — Verifier rule: look at the artifact, do not reason about it `queued`
 
 **Still queued 2026-08-20 (completion-tagging pass):** the rule is demonstrably the operating principle
 behind this document's own verification passes — every finding in B36-B38, and this pass's own tags,
@@ -2482,7 +2491,7 @@ agent must have looked.
 
 ---
 
-## B34 — The real host telemetry source, found by looking   `verified` **[supersedes B32.1's design]**
+## B34 — The real host telemetry source, found by looking `verified` **[supersedes B32.1's design]**
 
 **Verified 2026-08-20 (completion-tagging pass):** landed in commit `4a573ca` —
 `workflow/agents/transcript-telemetry.ts` (373 lines) plus
@@ -2519,10 +2528,11 @@ workaround for a problem that does not exist. Discard it.
 ```
 
 Per-turn, inside `agent-<id>.jsonl`:
+
 - `.message.model` — exact model id (`claude-opus-5`, `claude-sonnet-5`, `claude-haiku-4-5-20251001`)
 - `.effort` — reasoning effort as a string (`"high"` observed)
 - `.message.usage` — `{input_tokens, output_tokens, cache_creation_input_tokens,
-  cache_read_input_tokens, service_tier, cache_creation:{ephemeral_5m, ephemeral_1h}}`.
+cache_read_input_tokens, service_tier, cache_creation:{ephemeral_5m, ephemeral_1h}}`.
   This is the per-host token accounting convention B20.3 asked for, recorded rather than assumed.
 - `.message.content[].type=="tool_use"` — `{id, name, input}`: which tools, with arguments
 - `toolUseResult` and `is_error` on the result turn — whether each call succeeded
@@ -2557,7 +2567,7 @@ Reasoning effort is recorded; reasoning content is not. Record that as a genuine
 
 ---
 
-## B35 — Three more load-sensitive tests; B11.1's sweep was incomplete   `queued`
+## B35 — Three more load-sensitive tests; B11.1's sweep was incomplete `queued`
 
 **Still queued 2026-08-20 (fifth pass, re-confirmed fresh, nothing changed).** Independently re-opened
 every file this item and the prior pass name, rather than trusting either note:
@@ -2581,10 +2591,10 @@ every file this item and the prior pass name, rather than trusting either note:
   injected `beforeRuntimeSourceRecheck` hook to deterministically mutate the source file inside the
   copy-then-recheck window on demand, never relying on real timing. Both were already fixed before this
   pass; there is no remaining flaky race under either file. `bun test
-  tests/unit/cli/honesty-sweep.test.ts tests/unit/cli/critic-ops-commands.test.ts
-  tests/unit/cli/task-probe-commands.test.ts tests/unit/runner/resource-bounds.test.ts
-  tests/integration/runner-timeouts-retries.test.ts tests/unit/store/runtime-pin.test.ts
-  tests/unit/packets/planner-packet.test.ts` — 54 pass, 0 fail, run this pass.
+tests/unit/cli/honesty-sweep.test.ts tests/unit/cli/critic-ops-commands.test.ts
+tests/unit/cli/task-probe-commands.test.ts tests/unit/runner/resource-bounds.test.ts
+tests/integration/runner-timeouts-retries.test.ts tests/unit/store/runtime-pin.test.ts
+tests/unit/packets/planner-packet.test.ts` — 54 pass, 0 fail, run this pass.
 
 **What actually keeps this item open, and why it was not touched this pass:** the one residual,
 load-only flake in `runner-timeouts-retries.test.ts`'s "kills TERM-resistant descendants after a
@@ -2631,6 +2641,7 @@ frozen window and demonstrated the refusal), then remove the timing assumption r
 timeout. A widened timeout hides the race; it does not remove it.
 
 Also carried from Wave 8's verifier and still open:
+
 - Four `expect(() => process.kill(pid, 0)).toThrow()` assertions issued immediately after SIGTERM to a
   non-child process (`resource-bounds.test.ts:144,179`, `runner-timeouts-retries.test.ts:209,226`).
   Reaping is not synchronous. A bounded poll keeps the discrimination and removes the race.
@@ -2656,7 +2667,7 @@ accept at that load level, or a follow-up item for a wall-clock-independent read
 
 ---
 
-## B36 — B30's research landed unevenly: the coordinator's own role contract still hardcodes `invoke_subagent`, and `host-adapters.md` is spliced, not merged   `verified`
+## B36 — B30's research landed unevenly: the coordinator's own role contract still hardcodes `invoke_subagent`, and `host-adapters.md` is spliced, not merged `verified`
 
 **Re-confirmed 2026-08-20 (this reconciliation pass, opened fresh again, independent of the "verified"
 paragraph directly below).** A separate report reaching this pass claimed `run-playbook.md`,
@@ -2666,7 +2677,7 @@ references/run-playbook.md` returns **zero** hits; `grep -n '^## ' references/ho
 `## 1. Two-Tier Agent Architecture`, `## 2. Milestone-Only Notification Protocol`, `## 3. Host Adapters`,
 `## 4. Silent Worker Recovery & Heartbeats` — sequential, no gap at 3; `grep -n 'Agent Teams /
 teammates' references/parity-matrix.md` returns **zero** hits, and its Claude Code row now reads `Native
-(\`Agent\` tool)` / `Concurrent \`Agent\` tool calls` / `Nested \`Agent\` tool calls`, matching
+(\`Agent\` tool)`/`Concurrent \`Agent\` tool calls`/`Nested \`Agent\` tool calls`, matching
 `host-adapters.md`'s adapter table exactly. All three claims in the "still unfixed" report are false as
 of right now; the `verified` tag below is correct and the stale claim is not this file's own current
 text — it survives only inside the "Superseded note" blocks further down, each already labelled as such.
@@ -2687,7 +2698,7 @@ every artifact fresh, not trusting the "2 of 4 done" count directly below, which
   not just renumbered around. B36.2 done.
 - `references/parity-matrix.md`'s "Tiered orchestration"/"Paired continuous dispatch"/"Sub-agents for
   branch sub-tasks" rows for Claude Code now read `Native (`Agent` tool)` / `Concurrent `Agent` tool
-  calls` / `Nested `Agent` tool calls` — matching `host-adapters.md`'s adapter table exactly instead of
+calls` / `Nested `Agent` tool calls` — matching `host-adapters.md`'s adapter table exactly instead of
   contradicting it. B36.3 done.
 - A new mechanical check exists and is wired in: `health/vendor-prose.ts`'s
   `scanProseForUnqualifiedDispatch`/`scanTreeForUnqualifiedDispatch`, registered as the `vendor-prose`
@@ -2720,12 +2731,13 @@ pass exists to fix: a wave applied part of B36's fix and the backlog's own statu
 the pre-fix state as current.
 
 **What is still genuinely true, re-checked directly rather than carried over:**
+
 - `references/run-playbook.md:81` still opens with a bare `invoke_subagent({ Subagents: [...] })` block
   under "this is the shape of the call," unqualified — B36.1's `run-playbook.md` half is unfixed.
 - `references/host-adapters.md`'s heading numbers still show the same spliced seam B36.2 named:
   `## 1. Two-Tier Agent Architecture`, `## 2. Milestone-Only Notification Protocol`, then five
   unnumbered new sections (`## The abstract contract` through `## Declaring capability, and degrading
-  honestly`), then `## 4. Silent Worker Recovery & Heartbeats` — section "3" still does not exist
+honestly`), then `## 4. Silent Worker Recovery & Heartbeats` — section "3" still does not exist
   anywhere in the file. B36.2 is unfixed.
 - `references/parity-matrix.md`'s "Tiered orchestration" row still lists Claude Code's dispatch as
   `Native (Agent Teams / teammates)`, while `host-adapters.md`'s own adapter table (same B30.5 research)
@@ -2846,7 +2858,7 @@ material was already written there despite the note.
 
 ---
 
-## B37 — Findings from the first post-implementation verification pass   `queued`
+## B37 — Findings from the first post-implementation verification pass `queued`
 
 **Still queued 2026-08-20 (completion-tagging pass):** 12 of the 13 findings below are now resolved —
 this pass independently re-confirmed and dated findings 2, 3, 4, 5, 6 and 9, which were fixed but never
@@ -2949,38 +2961,38 @@ both files; no new finding needed there. B31 (deferred by owner): confirmed unto
    every role grant in the system. Reproduced directly and repeatedly on this machine while other agents in
    this same run were active (`uptime` showed load averages ~350-365 on 10 cores, ~22 concurrent `bun`
    processes): `bun test tests/unit/branch/budget.test.ts tests/unit/branch/scope.test.ts
-   tests/unit/agents/budget.test.ts` — 8/17 fail, all with the identical stack through
+tests/unit/agents/budget.test.ts` — 8/17 fail, all with the identical stack through
    `repository-git-command.ts:95`; `tests/unit/branch/chain-recovery.test.ts` fails the same way (its own
    SHORT_LEASE=5s fixture window (a test-local constant, not a production symbol) is separately tight
    enough that a depth-3 chain's setup — 3×`branch:open`
-   + 3×`branch:claim`, each doing 2 git-spawn inspections — can outrun 5 real seconds before the intended
-   dead-agent scenario even begins). `orchestrating-long-tasks/scripts/src/runner/process-tree.ts` already
-   has the fix pattern for exactly this shape (`SNAPSHOT_SPAWN_RETRIES`, added closing B35's
-   `critic-ops-commands.test.ts` flake) — `repository-git-command.ts` was never given the same treatment.
-   This directly threatens B28's "unattended overnight run" contract and sits precisely in B27's stated
-   operating regime (many concurrent agents): a transient hiccup during a busy run currently aborts a role
-   grant outright rather than retrying. Fix: give `createRepositoryGitCommand` the same bounded-retry
-   treatment `processSnapshot` already has, and sweep for any other single-shot `spawnSync` or execSync
-   call (Node's own child_process API, not a symbol defined in this repo) reachable from a role-grant
-   or lease path.
-   **RESOLVED, verified 2026-08-20:** `createRepositoryGitCommand` (`repository-git-command.ts:106-114`)
-   now retries on the exact `isTransientSpawnFailure` shape (status===null, error===undefined, empty/absent
-   stderr) up to `GIT_SPAWN_TRANSIENT_RETRIES`=3 times with a `GIT_SPAWN_TRANSIENT_RETRY_DELAY_MS`=20ms
-   delay between attempts, the same bounded-retry shape `process-tree.ts`'s `SNAPSHOT_SPAWN_RETRIES`
-   already uses for `ps`; a real git failure (non-zero status, an error object, or any stderr text) is
-   still never retried. `tests/unit/packets/repository-git-spawn-retry.test.ts` (new, 6 tests) proves both
-   directions: `bun test tests/unit/packets/repository-git-spawn-retry.test.ts` — 6 pass, 0 fail. Guard
-   confirmed load-bearing per B33/B38's own method — reverted the retry loop to a single `spawn` call in an
-   `rsync`ed scratch copy under `/tmp` (never the real tree): 2/6 tests failed (the retry-then-succeed case
-   and the bounded-give-up case), then discarded the copy and confirmed `git status` on the real tree showed
-   no changes. Sweep for other single-shot `spawnSync` or execSync calls (Node's own child_process API, not
-   a symbol defined in this repo) reachable from a role-grant or lease path: a grep across
-   `orchestrating-long-tasks/scripts/src` for both names (excluding tests) matches only this one call site;
-   `process-tree.ts` uses async `execFile` with its own `SNAPSHOT_SPAWN_RETRIES`, not a synchronous spawn,
-   so no other unretried single-shot spawn exists on that path. `bun run typecheck` passes clean. The
-   harness's own health check now reports the intent-drift check at 0 failures (the finding this item names
-   is gone; B37's own separately-tracked allowance in `health/allowlist.ts` is unaffected by this note);
-   overall verdict healthy, 0 failures repo-wide.
+   - 3×`branch:claim`, each doing 2 git-spawn inspections — can outrun 5 real seconds before the intended
+     dead-agent scenario even begins). `orchestrating-long-tasks/scripts/src/runner/process-tree.ts` already
+     has the fix pattern for exactly this shape (`SNAPSHOT_SPAWN_RETRIES`, added closing B35's
+     `critic-ops-commands.test.ts` flake) — `repository-git-command.ts` was never given the same treatment.
+     This directly threatens B28's "unattended overnight run" contract and sits precisely in B27's stated
+     operating regime (many concurrent agents): a transient hiccup during a busy run currently aborts a role
+     grant outright rather than retrying. Fix: give `createRepositoryGitCommand` the same bounded-retry
+     treatment `processSnapshot` already has, and sweep for any other single-shot `spawnSync` or execSync
+     call (Node's own child_process API, not a symbol defined in this repo) reachable from a role-grant
+     or lease path.
+     **RESOLVED, verified 2026-08-20:** `createRepositoryGitCommand` (`repository-git-command.ts:106-114`)
+     now retries on the exact `isTransientSpawnFailure` shape (status===null, error===undefined, empty/absent
+     stderr) up to `GIT_SPAWN_TRANSIENT_RETRIES`=3 times with a `GIT_SPAWN_TRANSIENT_RETRY_DELAY_MS`=20ms
+     delay between attempts, the same bounded-retry shape `process-tree.ts`'s `SNAPSHOT_SPAWN_RETRIES`
+     already uses for `ps`; a real git failure (non-zero status, an error object, or any stderr text) is
+     still never retried. `tests/unit/packets/repository-git-spawn-retry.test.ts` (new, 6 tests) proves both
+     directions: `bun test tests/unit/packets/repository-git-spawn-retry.test.ts` — 6 pass, 0 fail. Guard
+     confirmed load-bearing per B33/B38's own method — reverted the retry loop to a single `spawn` call in an
+     `rsync`ed scratch copy under `/tmp` (never the real tree): 2/6 tests failed (the retry-then-succeed case
+     and the bounded-give-up case), then discarded the copy and confirmed `git status` on the real tree showed
+     no changes. Sweep for other single-shot `spawnSync` or execSync calls (Node's own child_process API, not
+     a symbol defined in this repo) reachable from a role-grant or lease path: a grep across
+     `orchestrating-long-tasks/scripts/src` for both names (excluding tests) matches only this one call site;
+     `process-tree.ts` uses async `execFile` with its own `SNAPSHOT_SPAWN_RETRIES`, not a synchronous spawn,
+     so no other unretried single-shot spawn exists on that path. `bun run typecheck` passes clean. The
+     harness's own health check now reports the intent-drift check at 0 failures (the finding this item names
+     is gone; B37's own separately-tracked allowance in `health/allowlist.ts` is unaffected by this note);
+     overall verdict healthy, 0 failures repo-wide.
 
 2. **B32/B34 telemetry-to-`graph.json`: the wiring is now genuinely correct and reachable, but B32.2's own
    literal closure bar is still unmet.** Verified by reading the call sites directly: `probeAgentTelemetry`
@@ -3014,19 +3026,19 @@ both files; no new finding needed there. B31 (deferred by owner): confirmed unto
    same agent-id counter across "process" instances, which would have made the post-recovery lease look
    identical to the dead one by coincidence; a `label` parameter now disambiguates "dead-process" from
    "restarted-process"). Re-run after that fix landed: `bun test tests/unit/orchestrator/supervisor.test.ts
-   tests/unit/orchestrator/supervision-tick.test.ts` — 14/14 pass, including the crash-restart scenario. No
+tests/unit/orchestrator/supervision-tick.test.ts` — 14/14 pass, including the crash-restart scenario. No
    action needed — recorded here only because B33 requires opening the artifact rather than trusting a
    status, and this is the artifact having been open while it was still broken.
 
 4. Per B33, the harness's own `bun orchestrating-long-tasks/scripts/harness.ts health --consumer ../gvui
-   --all` was run as instructed (verdict: healthy, 0 failures, 438 advisories, all in the "unused code"
+--all` was run as instructed (verdict: healthy, 0 failures, 438 advisories, all in the "unused code"
    category with reasoned allowances) and correctly finds none of the above three findings — confirming the
    task's own framing: this is a mechanical check for dead/unreachable/undeclared code, not a runtime or
    load-sensitivity check, so a clean health run is not evidence against any of the above.
 
 ---
 
-## B39 — Findings from the third post-implementation verification pass   `queued`
+## B39 — Findings from the third post-implementation verification pass `queued`
 
 **Still queued 2026-08-20 (reconciliation pass):** the six headline re-audits below and B39's own
 "Four of six re-confirmed clean" paragraph still hold on direct re-check. Finding 1's own resolution
@@ -3082,8 +3094,8 @@ function's own doc comment claims. Worth a same-day-window assertion alongside i
    so out loud: `bun harness.ts help agent:register` describes `--model` as "Host-reported model id,
    recorded exactly as given and never parsed." Reproduced directly against a throwaway scratch capsule
    (`.tmp/verify-pass3`, deleted after): `agent:register --agent fake-1 --role implementer --host
-   claude-code --parent-agent coord-1 --provider totally-fake-provider --model
-   this-model-does-not-exist-v99 --model-tier l --thinking-level high --context-window 999999` — a string
+claude-code --parent-agent coord-1 --provider totally-fake-provider --model
+this-model-does-not-exist-v99 --model-tier l --thinking-level high --context-window 999999` — a string
    with zero possible host backing — comes back with every one of those fields tagged `(host_reported)` in
    the command's own markdown brief, and `summary:export` carries the identical fabricated values with
    `evidence_class: "host_reported"` into both `summary/graph.json`'s `run.agents[]` array and
@@ -3097,7 +3109,7 @@ function's own doc comment claims. Worth a same-day-window assertion alongside i
    `docs/09-branching-and-honesty/03-evidence-classes-and-honesty.md:18` defines `agent_reported` as "an
    agent said so through the CLI; true only if the agent was honest" — a description that fits
    `--model`/`--provider`/etc. exactly, while its own definition of `host_reported` two lines below ("the
-   host runtime told us") is what the *separate*, legitimate B34 mechanism (`derivedTelemetry` /
+   host runtime told us") is what the _separate_, legitimate B34 mechanism (`derivedTelemetry` /
    `probeAgentTelemetry`, reading the host's actual config and transcript files, called as a hardcoded
    step and never round-tripped through a flag) earns, correctly, elsewhere in the same file. When both
    channels exist and disagree, `applyDerivedTelemetry`'s `mergeDerivedField`
@@ -3146,7 +3158,7 @@ function's own doc comment claims. Worth a same-day-window assertion alongside i
    a host-verified evidence class," whose own docstring cites this finding by name — plus
    `tests/unit/summary/graph-telemetry-honesty.test.ts` proving the same discipline holds once a value
    reaches `graph.json`. `bun test tests/unit/agents/telemetry-evidence-honesty.test.ts
-   tests/unit/summary/graph-telemetry-honesty.test.ts` — 10/10 pass. What is still true, checked directly:
+tests/unit/summary/graph-telemetry-honesty.test.ts` — 10/10 pass. What is still true, checked directly:
    `telemetry_conflicts` / `TelemetryFieldConflict` still resolves to zero hits under `summary/` and
    `reporting/` — the conflict record still reaches only the raw `agent:register`/`agent:release` JSON
    response (as `host_telemetry_conflicts`) and the event log, never `graph.json` or `summary.md`. The
@@ -3170,8 +3182,8 @@ independently, per B33 — never by re-reading B39's prose and trusting it.
 
 1. **B39's central finding holds and is worse in practice than the prose alone shows.** Reproduced live
    rather than re-reading the diagnosis: `agent:register --run <scratch> --agent fake-audit-1 --role
-   implementer --host claude-code --parent-agent coord-1 --provider totally-fake-provider --model
-   this-model-does-not-exist-v99 --model-tier l --thinking-level high --context-window 999999` against a
+implementer --host claude-code --parent-agent coord-1 --provider totally-fake-provider --model
+this-model-does-not-exist-v99 --model-tier l --thinking-level high --context-window 999999` against a
    fresh capsule came back with every one of those five fields tagged `"evidence_class":"host_reported"`
    in the command's own JSON, exactly as B39 describes. Confirmed the four unconditional-stamp call sites
    by opening `orchestrating-long-tasks/scripts/src/workflow/agents/grants.ts` directly: `telemetryFields()`
@@ -3187,9 +3199,9 @@ independently, per B33 — never by re-reading B39's prose and trusting it.
    fabricated, defaulted, or inferred from a name.
 2. **The four "re-confirmed clean" claims and the guard-deletion for branch-suspend/restore both check out.**
    `bun test tests/unit/packets/role-contract-enforcement.test.ts tests/unit/cli/task-probe-commands.test.ts
-   tests/unit/workflow/review/probe.test.ts tests/unit/validation/dual-channel-wiring.test.ts
-   tests/unit/orchestrator/supervisor.test.ts tests/unit/orchestrator/supervision-tick.test.ts
-   tests/unit/branch/suspension.test.ts` — 89 pass, 0 fail (86 from the six headline files plus 3 from
+tests/unit/workflow/review/probe.test.ts tests/unit/validation/dual-channel-wiring.test.ts
+tests/unit/orchestrator/supervisor.test.ts tests/unit/orchestrator/supervision-tick.test.ts
+tests/unit/branch/suspension.test.ts` — 89 pass, 0 fail (86 from the six headline files plus 3 from
    `suspension.test.ts`, matching B39's separately-reported 86/0 for the six and its guard-deletion note
    for the seventh). `parent.ts:144` and `:155` do call `suspendLease`/`restoreLease` inside
    `suspendParent`/`resumeParent` exactly where B39 cites them. `repository-git-command.ts` does define
@@ -3201,50 +3213,47 @@ independently, per B33 — never by re-reading B39's prose and trusting it.
    `bun orchestrating-long-tasks/scripts/harness.ts health --consumer ../gvui --all`, run fresh just now,
    reports **UNHEALTHY, 4 failures** — not the "HEALTHY, 0 failures... across both repos" B39's own
    verification output claims. One of the four is `docs/planning/orchestration-overhaul/BACKLOG.md - B39
-   names the file \`build-fixture.ts\`, which is not present in the scanned source`, and it is caused by
-   B39's own prose, not by concurrent edits elsewhere in the file: B39 cites the bare filename
-   `` `build-fixture.ts` `` (no directory) in the middle of item 1's fourth paragraph, separately from its
-   correctly-allowed full-path citation `` `.tmp/fixture-build/build-fixture.ts:115-144,209-219,377-386` ``
-   two lines later. `health/allowlist.ts:118-123` carries exactly one intent-drift allowance, keyed to
-   B37's own exact citation string for that path (with no trailing line numbers) under requirement id
-   `B37` — it does not, and by its exact-match design (`allowlist.ts:141-143`, no wildcard on this entry)
-   cannot, cover a same-file citation made under a different requirement id or in a different textual
-   form (this paragraph avoids repeating that bare citation verbatim for exactly that reason). The
-   other three failures (B3, B10, B12) predate this pass and are not this item's to fix, but B39's own
-   contributed failure was not caught before B39's report claimed a clean run. This is a self-contained
-   check: adding B39's text alone to a clean baseline reproduces the failure regardless of any other
-   concurrent edit to the file, so it cannot be attributed to "in-flight work" elsewhere.
-   **Not fixed by this pass:** the read-only/append-only scope given for this audit permits appending to
-   this file but not editing code, so the fix — either a new `health/allowlist.ts` entry keyed to
-   `intent-missing:docs/planning/orchestration-overhaul/BACKLOG.md:B39:build-fixture.ts`, or rewording
-   B39's bare citation to the qualified form the existing B37 allowance already covers — is left for the
-   next wave that owns `orchestrating-long-tasks/scripts/src/health/`.
-   **RESOLVED, verified 2026-08-20 (reconciliation pass):** the bare, no-directory citation this finding
-   first flagged (the token this same finding quotes above as `` `build-fixture.ts` ``) is no longer
-   present anywhere in the file in single-backtick form
-   (whoever picked this up between B40 and this pass already rewrote or removed it — not this pass's own
-   edit). This pass additionally found and fixed a second, distinct bare citation this finding did not
-   itself name: B39's own text also cited the FULL path `` `.tmp/fixture-build/build-fixture.ts` ``
-   without line numbers, which fails the same check for the same reason and was still present as of this
-   pass — reworded to keep only the already-qualified, line-numbered citation two lines later, using
-   B40's own suggested remedy (reword rather than a new allowlist entry, since this pass owns
-   `BACKLOG.md`, not `health/src/`). Reran `bun orchestrating-long-tasks/scripts/harness.ts health
+names the file \`build-fixture.ts\`, which is not present in the scanned source`, and it is caused by
+B39's own prose, not by concurrent edits elsewhere in the file: B39 cites the bare filename
+`` `build-fixture.ts` `` (no directory) in the middle of item 1's fourth paragraph, separately from its
+correctly-allowed full-path citation `` `.tmp/fixture-build/build-fixture.ts:115-144,209-219,377-386` ``
+two lines later. `health/allowlist.ts:118-123`carries exactly one intent-drift allowance, keyed to
+B37's own exact citation string for that path (with no trailing line numbers) under requirement id`B37` — it does not, and by its exact-match design (`allowlist.ts:141-143`, no wildcard on this entry)
+cannot, cover a same-file citation made under a different requirement id or in a different textual
+form (this paragraph avoids repeating that bare citation verbatim for exactly that reason). The
+other three failures (B3, B10, B12) predate this pass and are not this item's to fix, but B39's own
+contributed failure was not caught before B39's report claimed a clean run. This is a self-contained
+check: adding B39's text alone to a clean baseline reproduces the failure regardless of any other
+concurrent edit to the file, so it cannot be attributed to "in-flight work" elsewhere.
+**Not fixed by this pass:** the read-only/append-only scope given for this audit permits appending to
+this file but not editing code, so the fix — either a new `health/allowlist.ts`entry keyed to`intent-missing:docs/planning/orchestration-overhaul/BACKLOG.md:B39:build-fixture.ts`, or rewording
+B39's bare citation to the qualified form the existing B37 allowance already covers — is left for the
+next wave that owns `orchestrating-long-tasks/scripts/src/health/`.
+**RESOLVED, verified 2026-08-20 (reconciliation pass):** the bare, no-directory citation this finding
+first flagged (the token this same finding quotes above as `` `build-fixture.ts` ``) is no longer
+present anywhere in the file in single-backtick form
+(whoever picked this up between B40 and this pass already rewrote or removed it — not this pass's own
+edit). This pass additionally found and fixed a second, distinct bare citation this finding did not
+itself name: B39's own text also cited the FULL path `` `.tmp/fixture-build/build-fixture.ts` ``
+without line numbers, which fails the same check for the same reason and was still present as of this
+pass — reworded to keep only the already-qualified, line-numbered citation two lines later, using
+B40's own suggested remedy (reword rather than a new allowlist entry, since this pass owns `BACKLOG.md`, not `health/src/`). Reran `bun orchestrating-long-tasks/scripts/harness.ts health
    --consumer ../gvui --all` after the edit: intent-drift failures dropped from 3 (B3, B10, and this
-   B39 entry) to 2 (B3, B10 only) — both pre-existing and out of this item's scope. Overall verdict is
-   still UNHEALTHY on those 2, not because of anything this finding named.
-   **This closing sentence went stale (verification-pass-7, 2026-08-20): re-run fresh, the tree no
-   longer shows B3 or B10 as intent-drift failures at all** — a later commit (`5dd3fc2`, 12:38:49,
-   nearly two hours after this note was written at 10:43:28) rewrote B3's own status-note text and
-   evidently fixed whatever in it was tripping the scanner; nobody returned to update this sentence.
-   Do not read this as "health is now clean," though: intent-drift itself is clean as of this
-   correction (re-run, 0 failures there), but the OVERALL verdict is still **UNHEALTHY** for reasons
-   entirely unrelated to B3/B10/B39 — the working tree separately carries an unrelated,
-   actively-changing, uncommitted B22 implementation under `workflow/worktree/` whose unused exports,
-   unenforced config field, and literal fallbacks currently fail three other checks. None of that is
-   B39/B40's to fix, and by nature of being uncommitted, actively-edited WIP it will not stay the same
-   failure from one run to the next either. The lesson generalizes past this one sentence: this file's
-   own health-verdict claims go stale within the same session while other agents write to the shared
-   tree — re-run `health` yourself before trusting any verdict stated here, including this one.
+B39 entry) to 2 (B3, B10 only) — both pre-existing and out of this item's scope. Overall verdict is
+still UNHEALTHY on those 2, not because of anything this finding named.
+**This closing sentence went stale (verification-pass-7, 2026-08-20): re-run fresh, the tree no
+longer shows B3 or B10 as intent-drift failures at all** — a later commit (`5dd3fc2`, 12:38:49,
+nearly two hours after this note was written at 10:43:28) rewrote B3's own status-note text and
+evidently fixed whatever in it was tripping the scanner; nobody returned to update this sentence.
+Do not read this as "health is now clean," though: intent-drift itself is clean as of this
+correction (re-run, 0 failures there), but the OVERALL verdict is still **UNHEALTHY** for reasons
+entirely unrelated to B3/B10/B39 — the working tree separately carries an unrelated,
+actively-changing, uncommitted B22 implementation under `workflow/worktree/`whose unused exports,
+unenforced config field, and literal fallbacks currently fail three other checks. None of that is
+B39/B40's to fix, and by nature of being uncommitted, actively-edited WIP it will not stay the same
+failure from one run to the next either. The lesson generalizes past this one sentence: this file's
+own health-verdict claims go stale within the same session while other agents write to the shared
+tree — re-run`health` yourself before trusting any verdict stated here, including this one.
 4. **Minor, not a defect:** B39's report describes its own diff as "BACKLOG.md modified (98 insertions, 0
    deletions, purely additive)". True of the B39 hunk in isolation (confirmed: its diff hunk is
    `@@ -2177,3 +2260,101 @@` with zero deletions) but the file's live `git diff --numstat` at review time
@@ -3256,7 +3265,7 @@ independently, per B33 — never by re-reading B39's prose and trusting it.
 
 ---
 
-## B41 — Findings from Wave 20's visual-testing verification pass (gvui)   `queued`
+## B41 — Findings from Wave 20's visual-testing verification pass (gvui) `queued`
 
 **Opened 2026-08-20 (completion-tagging audit pass), recording three findings a separate verifier raised
 during gvui's Wave 20 visual-testing work.** Findings 1 and 2 were reproduced directly by opening the
@@ -3269,8 +3278,9 @@ depend on any one wave remembering it. **Item stays `queued`: per the composite-
 key above, one open finding (3) holds the whole item, even with 1 and 2 now resolved.**
 
 1. **Two consumer-repo files exceed B23's 500-line cap, and a split is visibly underway but not yet
-   wired in.** `gvui/src/testing/visual/visualMetricsCollector.ts` is 967 lines and
-   `gvui/src/testing/visual/browserVisualHarness.ts` is 588 lines (`wc -l`, confirmed 2026-08-20) — B23
+   wired in.** gvui/src/testing/visual/visualMetricsCollector.ts was 967 lines and
+   gvui/src/testing/visual/browserVisualHarness.ts was 588 lines (`wc -l`, confirmed 2026-08-20) — both
+   paths since deleted, see this finding's own resolution below — B23
    raised the harness's own cap to 500 and `tests/unit/architecture/file-size.test.ts` enforces it in
    this repo, but that test does not reach `gvui`, so nothing mechanical catches a consumer-side breach.
    `gvui/src/testing/visual/boundingBoxGeometry.ts` and `gvui/src/testing/visual/textClippingDetection.ts`
@@ -3282,12 +3292,12 @@ key above, one open finding (3) holds the whole item, even with 1 and 2 now reso
    lines by `wc -l`.
    **RESOLVED, confirmed 2026-08-20 (same pass, minutes later — the working tree moved while this finding
    was being written).** Re-opened the directory fresh rather than trusting the paragraph above:
-   `visualMetricsCollector.ts` and `browserVisualHarness.ts` no longer exist — `git status --short` shows
+   visualMetricsCollector.ts and browserVisualHarness.ts no longer exist — `git status --short` shows
    both `D`, deleted from the working tree. Nine focused modules stand in their place, every one read by
    `wc -l` just now: `boundingBoxGeometry.ts` (233), `colorContrastAnalysis.ts` (412),
    `domMetricsCollection.ts` (262), `stackingCollisionDetection.ts` (81), `textClippingDetection.ts` (95),
    `visualAuditSuite.ts` (84), `visualHarnessSession.ts` (182), `visualMetricsReport.ts` (147),
-   `visualScreenshotCapture.ts` (97) — all under the 500-line cap. The two `.test.ts` files that kept the
+   `visualScreenshotCapture.ts` (97) — all under the 500-line cap. The two test files that kept the
    old names were rewired, not orphaned: `visualMetricsCollector.test.ts` now imports
    `./textClippingDetection` and `./stackingCollisionDetection` directly, never the deleted source file.
    `bun test src/testing/visual/visualMetricsCollector.test.ts src/testing/visual/browserVisualHarness.test.ts`
@@ -3299,9 +3309,10 @@ key above, one open finding (3) holds the whole item, even with 1 and 2 now reso
    a claim about the 1920px viewport either way.** Opened the file directly rather than trusting a
    description of it: 866,489 bytes, tracked, last touched by commit `e2588f2` ("fix: composite
    backgrounds, exclude containment, capture every viewport"), carrying its own `"timestamp":
-   "2026-08-20T19:44:46.902Z"`. Its `viewports` object holds exactly three keys — `desktop`, `tablet`,
-   `mobile` — with no `wide-desktop` entry, even though `gvui/src/testing/visual/browserVisualHarness.ts:50`'s
-   own `VIEWPORTS` matrix defines a fourth: `{ name: "wide-desktop", width: 1920, height: 1080 }`. The
+"2026-08-20T19:44:46.902Z"`. Its `viewports` object holds exactly three keys — `desktop`, `tablet`,
+   `mobile` — with no `wide-desktop` entry, even though gvui/src/testing/visual/browserVisualHarness.ts:50's
+   own viewport matrix (that file's own successor, `visualHarnessSession.ts`'s `STANDARD_VIEWPORTS`,
+   confirmed 2026-08-20 — see finding 1's resolution above) defines a fourth: `{ name: "wide-desktop", width: 1920, height: 1080 }`. The
    report's own `summary.integrityScore` and `summary.accessibilityScore` both read `0` against 584
    recorded violations — consistent with a scorer that had not yet been corrected when this file was
    generated. So an "absent at 1920" claim resting on this report is unobserved, not confirmed: the file
@@ -3330,13 +3341,15 @@ key above, one open finding (3) holds the whole item, even with 1 and 2 now reso
    above); that Wave 20's report specifically omitted this file and misattributed an edit is `agent_reported`
    — relayed from this pass's own dispatch context, not confirmed by opening Wave 20's report text, which
    this pass never had access to. Consistent with, not independent proof of, the omission claim. Grepped both repos
-   for the requirement's own text (`REPORTING CONTRACT`, `filesChanged`, `deductionsNotObserved`); it
+   for the requirement's own text (`REPORTING CONTRACT`, `filesChanged`, and deductionsNotObserved — the
+   last of those a field of the dispatching workflow's own report schema, not a repository symbol, so
+   the grep was for its name in prose/config, never for a source-level declaration); it
    exists nowhere as a committed artifact in either repo — the fix lives only in whatever constructs each
    wave's dispatch prompt, outside version control. Direct, first-person evidence that the fix is real and
    active: this very entry was written under a dispatch prompt carrying a section titled "REPORTING
    CONTRACT — this is what Wave 20's verifier caught and it is now mandatory," requiring every touched file
    listed in `filesChanged`, observed claims kept distinct from deduced ones, and `git diff`/`git diff
-   --staged` checked before crediting an edit to anyone else. That the requirement held for this entry is
+--staged` checked before crediting an edit to anyone else. That the requirement held for this entry is
    `agent_reported` evidence that the requirement exists in this session's prompt, not proof it survives
    into every future one — nothing on disk guards it, so a stale prompt template could silently drop it
    again. Track to close: give the requirement a durable, checked-in home (a template or role-contract file

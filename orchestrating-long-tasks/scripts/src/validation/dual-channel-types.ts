@@ -23,7 +23,6 @@ export interface StackingViolation {
   readonly topElementSelector: string;
   readonly bottomElementSelector: string;
   readonly viewport: string;
-  /** Absent when the source recorded no z-index for that element; never copied from the other one. */
   readonly topZIndex?: number | string;
   readonly bottomZIndex?: number | string;
   readonly collisionArea?: number;
@@ -51,7 +50,6 @@ export interface OrphanViolation {
 
 export interface ViewportMetrics {
   readonly viewport: string;
-  /** Absent when the source report defined no dimensions for this viewport. */
   readonly width?: number;
   readonly height?: number;
   readonly subpixelTolerance?: number;
@@ -99,11 +97,9 @@ export interface DualChannelInput {
 
 export interface CrossChannelProof {
   readonly viewport: string;
-  /** Both absent unless a capture was matched to this viewport; no stand-in path, no 0-byte size. */
   readonly screenshotPath?: string;
   readonly screenshotSizeBytes?: number;
   readonly domMetricsPresent: boolean;
-  /** Only what the supplied evidence let the audit actually inspect for this viewport. */
   readonly verifiedInvariants: readonly string[];
   readonly status:
     | "corroborated"

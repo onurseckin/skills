@@ -58,6 +58,8 @@ describe("CLI queue commands", () => {
       "bun test tests/cli",
       "--deps",
       "task-core",
+      "--dep-reason",
+      "task-core:CLI tests read the core module task-core writes",
       "--priority",
       "50",
       "--actor",
@@ -72,6 +74,8 @@ describe("CLI queue commands", () => {
       "planner",
       "--completion-gate",
       "bun test tests",
+      "--accept-audit",
+      "A4-false-barrier:this fixture orders CLI tests behind core tests on purpose, not a real read/write relationship",
     ]);
 
     const next1 = await execute(["queue:next", "--run", run]);

@@ -20,7 +20,6 @@ function taskView(task: TaskRecord): JsonObject {
     lease_expires_at: task.lease?.expires_at ?? null,
     original_implementer: task.original_implementer ?? null,
     repair_assignee: task.repair_assignee ?? null,
-    // B12.2: at most one open attempt per domain, so a task can carry several at once.
     validation: validations.map((validation) => ({
       validator_id: validation.validator_id,
       domain: validation.domain,
@@ -35,17 +34,10 @@ function taskView(task: TaskRecord): JsonObject {
     gate_results: structuredClone(task.gate_results ?? []),
     report_recorded: task.report !== undefined,
     repair_round: task.repair_round,
-    // A probe is a demand for proof, not a repair round, so the two counts are reported apart: a
-    // pass is refused while the probe count is short of the configured minimum.
     probe_round: task.probe_round ?? 0,
   };
 }
 
-/**
- * What a fresh agent needs to see about a branch: who opened it, why, and where each sub-task got
- * to. `files_changed` is the harness's own git observation at collect time and stays absent until
- * there is one, because an empty change set and an unmeasured one are different answers.
- */
 function branchView(branch: BranchRecord): JsonObject {
   return {
     id: branch.id,
@@ -74,13 +66,9 @@ function staleEvidence(state: WorkflowState, now: Date): string[] {
     .flatMap((task) => {
       const issues: string[] = [];
       const lease = task.lease;
-      // A branched parent's clock is frozen, so its lease is not stale however old the stamp looks;
-      // reporting it as expired would contradict the recovery that deliberately leaves it alone.
       if (lease && !isLeaseSuspended(lease) && Date.parse(lease.expires_at) <= current)
         issues.push(`task ${task.id} lease expired at ${lease.expires_at}`);
       if (task.status === "validating") {
-        // A domain that already recorded a verdict is done, not stale, however old its deadline —
-        // only an attempt still awaiting one can expire (mirrors recover-stale.ts's own rule).
         for (const validation of task.validations ?? []) {
           if (validation.verdict === undefined && Date.parse(validation.deadline_at) <= current)
             issues.push(

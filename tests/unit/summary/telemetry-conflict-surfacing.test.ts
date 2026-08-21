@@ -64,7 +64,9 @@ describe("graph.json surfaces telemetry_conflicts", () => {
   });
 
   test("a grant with no disagreement carries no telemetryConflicts field, on the node or the ledger", () => {
-    const grants = [makeGrant("worker-1", { model: { value: "m", evidence_class: "agent_reported" } })];
+    const grants = [
+      makeGrant("worker-1", { model: { value: "m", evidence_class: "agent_reported" } }),
+    ];
     const dataset = generateGraphDataset({
       runId: "run-no-conflict",
       state: makeState([leasedTask("worker-1")], { agents: grants }),

@@ -142,7 +142,10 @@ describe("graph.json completeness contract", () => {
     expect(new Set(scripts.map((script) => script.commandId))).toEqual(new Set(recorded));
 
     const gate = scripts.find((script) => script.gateId === "gate-alpha");
-    expect(gate?.argv).toEqual(["git", "diff", "--check"]);
+    // A3-gate-discrimination (`graph/plan-audit.ts`) refuses two disjoint-scope tasks sharing one
+    // gate command; the fixture's alpha and beta tasks each get their own `test -f <own-scope-file>`
+    // instead of a shared `git diff --check`, so this is alpha's own argv, not a generic gate.
+    expect(gate?.argv).toEqual(["test", "-f", "src/alpha/index.ts"]);
     expect(gate?.cwd?.length).toBeGreaterThan(0);
     expect(gate?.exitCode).toBe(0);
     expect(gate?.durationMs).toBeGreaterThanOrEqual(0);
@@ -201,10 +204,19 @@ describe("graph.json completeness contract", () => {
     expect(alpha.rationale).toBe(PLANTED.repairSummary);
     expect(alpha.requirementIds?.length).toBeGreaterThan(0);
     expect(alpha.step).toBeGreaterThan(0);
-    // The fixture's "work" is a command, not an edit to the file's content, so there is truly no
-    // diff to measure — `lines`/`diff` stay absent rather than reporting an empty change as real.
-    expect(alpha.diff).toBeUndefined();
-    expect(alpha.lines).toBeUndefined();
+    // C4: task:submit refuses a byte-identical resubmission, so the fixture's repair round writes a
+    // real second change to the file's content — a real diff against the run's baseline commit now
+    // exists to measure, and `enrichFileRefsWithDiffs` (file-diff-reader.ts) reads it off disk rather
+    // than reporting an empty change as real. Hunk/content lines are asserted rather than the whole
+    // diff text so this does not pin down git's own hash-abbreviation formatting.
+    expect(alpha.diff).toContain("--- a/src/alpha/index.ts");
+    expect(alpha.diff).toContain("+++ b/src/alpha/index.ts");
+    expect(alpha.diff).toContain("-export const alpha = 1;");
+    expect(alpha.diff).toContain("+export const alpha = 2;");
+    expect(alpha.diff).toContain("+export const alphaFixture = true;");
+    expect(alpha.lines).toBe("1-2");
+    expect(alpha.additions).toBe(2);
+    expect(alpha.deletions).toBe(1);
 
     const step = graph.run?.steps?.find(
       (entry) => entry.step === alpha.step && entry.target.taskId === "task-alpha",

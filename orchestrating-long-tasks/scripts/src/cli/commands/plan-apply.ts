@@ -8,18 +8,10 @@ import { transact } from "../../store/transaction.ts";
 import { formatPlanApplyBrief, formatPlanClaimBrief } from "../formatters/index.ts";
 import { actorFlag, integerFlag, textFlag, type Flags } from "../options.ts";
 
-/**
- * Bridges the durable capsule store to the store-agnostic shape `applyPlan` was written against.
- * `applyPlan`'s own mutation callback is always synchronous (guardPlanRevision + projectPlan run
- * inline); the check below turns a future async mutation into a loud failure instead of a silently
- * dropped one.
- */
 function capsulePlanningStore(runRoot: string): PlanningStore {
   return {
     async load() {
       const loaded = loadRun(runRoot);
-      // RunState is a JsonObject; PlanningStore was written against the untyped shape apply-plan's
-      // validators expect, so this is a structural widening, not a lossy cast.
       return { prompt: loaded.prompt, state: loaded.state as unknown as Record<string, unknown> };
     },
     async transact(actor, kind, payload, mutation) {
@@ -37,11 +29,6 @@ function capsulePlanningStore(runRoot: string): PlanningStore {
   };
 }
 
-/**
- * The planner's own entry point: it has no task and no lease, so there is nothing for it to
- * `task:claim`. This is the sole caller that turns the packet-issuing code in packets/planner-packet
- * into something a real run reaches.
- */
 export async function planClaimCommand(flags: Flags): Promise<Record<string, unknown>> {
   const run = textFlag(flags, "run")!;
   const agent = textFlag(flags, "agent")!;
@@ -60,11 +47,6 @@ export async function planClaimCommand(flags: Flags): Promise<Record<string, unk
   };
 }
 
-/**
- * Applies the requirements and graph the planner wrote to planning/, against the graph revision
- * the planner's own packet told it to expect. This is the only code that enforces that check —
- * without it, a planner working from a stale packet can silently overwrite a newer plan.
- */
 export async function planApplyCommand(flags: Flags): Promise<Record<string, unknown>> {
   const run = textFlag(flags, "run")!;
   const actor = actorFlag(flags);

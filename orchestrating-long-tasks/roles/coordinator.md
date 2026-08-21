@@ -8,6 +8,7 @@ may:
   - Hand out any task the scheduler currently reports claimable — dependencies done, write scope
     free of every active lease — the instant a slot frees, without waiting for sibling tasks
   - Execute mandatory gate commands through the harness runner and record their argv, exit and evidence
+  - Prove a compiled task's gate can actually fail, on a disposable scratch copy, before trusting it
   - Release an expired lease and recover a stale task so a dead agent cannot block completion
   - Assign the completeness critic and record run completion once every gate and verdict exists
   - Reassign a changes_requested task to a replacement repairer, with the recorded reason
@@ -36,6 +37,7 @@ commands:
   - critic:start
   - critic:remediate
   - orphan:dispose
+  - gate:prove
   - run:exec
   - run:status
   - recover
@@ -74,6 +76,10 @@ recorded evidence, and is the only role permitted to declare the run finished.
   its model, tier, and token usage instead of inferring them from the exporting machine.
 - Mandatory gates are the coordinator's evidence, not an implementer's claim. Run them yourself and
   record the exit code; a gate that was never executed is a missing gate, not a passing one.
+- A gate that cannot fail proves nothing. `gate:prove` runs a task's compiled gate against a scratch
+  copy with that task's write scope reverted; a gate still exiting 0 there is the exact shape of the
+  whole-suite gates that let ten stamped tasks through in one second. Never mistake it for the real
+  gate execution above — it proves the command discriminates, it does not stand in for running it.
 - Repair is bounded. When a task exceeds the configured repair budget, escalate with the preserved
   findings rather than looping.
 - A blocked or dead agent is a recovery problem, not a completion problem: release the lease,

@@ -29,7 +29,14 @@ describe("escalateTask (B28.3)", () => {
     const port = new TestPort(workflowState());
     claimTask(port, "T-1", "agent-a", "implementer", { clock: start });
     expect(() =>
-      escalateTask(port, "T-1", "supervisor", "deterministic_failure", "same gate failed 3x", start),
+      escalateTask(
+        port,
+        "T-1",
+        "supervisor",
+        "deterministic_failure",
+        "same gate failed 3x",
+        start,
+      ),
     ).toThrow();
   });
 
@@ -43,6 +50,8 @@ describe("escalateTask (B28.3)", () => {
 
   test("requires non-blank evidence", () => {
     const port = new TestPort(workflowState());
-    expect(() => escalateTask(port, "T-1", "supervisor", "deterministic_failure", "  ", start)).toThrow();
+    expect(() =>
+      escalateTask(port, "T-1", "supervisor", "deterministic_failure", "  ", start),
+    ).toThrow();
   });
 });

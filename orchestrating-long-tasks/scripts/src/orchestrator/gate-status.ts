@@ -5,10 +5,6 @@ import type {
   RoundTelemetry,
 } from "./types.ts";
 
-/**
- * A round that ran no gate proves nothing. It is recorded as `not_run` rather than folded into
- * `passed`, because an empty result set is an absence of evidence, not evidence of success.
- */
 export function roundGateStatus(gateResults: readonly RoundGateResult[]): GateRoundStatus {
   if (gateResults.length === 0) return "not_run";
   return gateResults.every((gate) => gate.status === "passed") ? "passed" : "failed";

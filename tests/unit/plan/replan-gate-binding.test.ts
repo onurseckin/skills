@@ -61,7 +61,11 @@ function repairTask(run: string, taskId: string): TaskRecord {
 
 function repairGate(run: string, taskId: string): GateRuntime {
   const state = loadRun(run).state;
-  const gates = Array.isArray(state.gates) ? state.gates : [];
+  // Gates live at graph.gates — where applicableGates (workflow/gates/gate-policy.ts) actually
+  // looks on a raw, un-projected state — not a top-level `gates` field the workflow layer never
+  // populates on the raw store (only workflowState() synthesizes that view, from graph.gates).
+  const graph = isJsonObject(state.graph) ? state.graph : undefined;
+  const gates = Array.isArray(graph?.gates) ? graph.gates : [];
   const gate = gates.find((entry) => isJsonObject(entry) && entry.id === `gate-${taskId}`);
   expect(gate).toBeDefined();
   return gate as GateRuntime;

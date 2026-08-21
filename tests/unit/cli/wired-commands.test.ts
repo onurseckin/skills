@@ -69,21 +69,18 @@ describe("doctor:repair", () => {
   test("quarantines a crash-torn event tail and restores a usable capsule", async () => {
     const run = await compiledCapsule("repair-run");
     // Simulates a crash mid-append: a fragment with no closing brace or trailing newline, exactly
-    // what an interrupted write leaves behind.
+    // what an interrupted write leaves behind. compiledCapsule's plan:compile now records its own
+    // C1 six-invariant audit verdict as a "plan-audited" event ahead of "plan-compiled" (see
+    // plan-compile.ts), so the torn fragment lands after 4 real events (task-added, audited,
+    // compiled, topology-recorded), not 3 — line 5, not line 4.
     await appendFile(join(run, "events.jsonl"), '{"schema":"harness.event","sequence":99');
 
     const broken = await execute(["doctor", "--run", run]);
     expect(broken.integrity_issues).not.toEqual([]);
-    expect(broken.issues).toContain("EVENT_TORN: events.jsonl has a torn final fragment at line 4");
+    expect(broken.issues).toContain("EVENT_TORN: events.jsonl has a torn final fragment at line 5");
     await expect(execute(["queue:list", "--run", run])).rejects.toThrow();
 
-    const repaired = await execute([
-      "doctor:repair",
-      "--run",
-      run,
-      "--actor",
-      "coordinator",
-    ]);
+    const repaired = await execute(["doctor:repair", "--run", run, "--actor", "coordinator"]);
     expect(repaired.quarantined_torn_tail).toBeTrue();
     expect(String(repaired.markdown)).toContain("### Projection Repaired");
 

@@ -56,6 +56,8 @@ export async function setupCompiledRun(name: string, roots: string[]) {
     "bun gate-sec.ts",
     "--deps",
     "task-core",
+    "--dep-reason",
+    "task-core:secondary tests read the fixtures task-core writes",
     "--actor",
     "planner",
   ]);
@@ -68,6 +70,15 @@ export async function setupCompiledRun(name: string, roots: string[]) {
     "planner",
     "--completion-gate",
     "bun test tests",
+    "--accept-audit",
+    "A4-false-barrier:fixture orders lease/submission flows through task-sec on purpose, not a real read/write relationship",
   ]);
   return { repo, run };
+}
+
+// C4: task:submit refuses a submission whose write scope is byte-identical to its content at claim,
+// so every fixture that goes on to declare task-core as changed has to actually change it first.
+export async function markCoreImplemented(repo: string): Promise<void> {
+  await mkdir(join(repo, "tests/unit/core"), { recursive: true });
+  await writeFile(join(repo, "tests/unit/core/impl.ts"), "export const implemented = true;\n");
 }

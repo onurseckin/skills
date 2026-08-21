@@ -6,6 +6,7 @@ import { readAgentLedger } from "../workflow/agents/ledger.ts";
 import { locateSubTask, readBranchLedger } from "../workflow/branch/ledger.ts";
 import { tokenMatches } from "../workflow/lease/token.ts";
 import { assertCriticIndependent } from "../workflow/completion/critic-identity.ts";
+import { assertPlanValidatorIndependent } from "../workflow/plan-review/identity.ts";
 import type { Clock, PacketRecord, TransactionPort, WorkflowState } from "../workflow/types.ts";
 import { systemClock } from "../workflow/types.ts";
 import { createPacketBundle, verifyPacketBundle } from "./packet-bundle.ts";
@@ -24,18 +25,13 @@ export interface PublishedPacket {
   metadataPath: string;
   record: PacketRecord;
 }
-// Roles that work under a task lease. A branch sub-agent holds the same kind of lease as the
-// implementer it was split off from, so it is authorised the same way and cannot publish without one.
 const TASK_LEASE_ROLES: ReadonlySet<AgentRole> = new Set([
   "implementer",
   "repairer",
   "sub-implementer",
   "sub-investigator",
 ]);
-// Roles that work under the independent validation authority rather than the task lease.
 const TASK_VALIDATION_ROLES: ReadonlySet<AgentRole> = new Set(["sub-validator", "validator"]);
-// Roles a branch dispatches into. Their binding may be a branch sub-task, which never enters
-// `state.tasks`, so it is authorised against the branch ledger instead.
 const BRANCH_ROLES: ReadonlySet<AgentRole> = new Set([
   "sub-implementer",
   "sub-investigator",
@@ -104,12 +100,24 @@ function authorizeRunLevel(
       );
     return;
   }
+  if (role === "plan-validator") {
+    const validation = state.plan_validation;
+    assertPlanValidatorIndependent(state, agent);
+    if (
+      !validation ||
+      validation.validator_id !== agent ||
+      validation.attempt !== attempt ||
+      Date.parse(validation.deadline_at) <= now.valueOf() ||
+      !["assigned", "packet_published"].includes(validation.status) ||
+      !tokenMatches(auth.token, validation.token_digest)
+    )
+      throw new HarnessError("INVALID_STATE", "plan validator authority changed");
+    return;
+  }
   if (role === "coordinator") {
     requireActiveGrant(state, agent, role);
     return;
   }
-  // planner: a planner packet is minted to bootstrap the run, before any grant ledger or graph
-  // revision exists, so the null task binding above is the whole of its authority.
 }
 
 function authorize(
@@ -142,8 +150,6 @@ function authorize(
   }
   const task = bound;
   if (TASK_VALIDATION_ROLES.has(role)) {
-    // B12.2: a task can carry several open validations, one per domain — find the one this agent's
-    // own attempt belongs to rather than assuming a single slot.
     const validation = (task.validations ?? []).find(
       (entry) => entry.validator_id === agent && entry.attempt === attempt,
     );
@@ -235,6 +241,17 @@ export async function publishPacket(
         );
         if (!historical)
           throw new HarnessError("INTEGRITY", "completion critic authorization history is missing");
+        historical.status = "packet_published";
+        historical.packet_id = id;
+      }
+      if (record.role === "plan-validator") {
+        draft.plan_validation!.status = "packet_published";
+        draft.plan_validation!.packet_id = id;
+        const historical = draft.plan_validation_history?.find(
+          (entry) => entry.attempt === record.attempt && entry.validator_id === record.agent_id,
+        );
+        if (!historical)
+          throw new HarnessError("INTEGRITY", "plan validation authorization history is missing");
         historical.status = "packet_published";
         historical.packet_id = id;
       }

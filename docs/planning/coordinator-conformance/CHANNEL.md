@@ -12,7 +12,7 @@ the earlier documents where they treated reporting as a by-product rather than a
 
 The purpose is precise: a language model should not have to read this skill's internals to use it
 correctly. It needs to know which commands exist and what arguments they take. Everything else —
-coordination, hand-off, evidence, state, history — happens *through* those commands. The CLI is not a
+coordination, hand-off, evidence, state, history — happens _through_ those commands. The CLI is not a
 convenience wrapper over a state file. It is the only door.
 
 Two consequences follow immediately, and neither is currently enforced:
@@ -20,7 +20,7 @@ Two consequences follow immediately, and neither is currently enforced:
 1. **No model may edit a capsule JSON directly.** Gaps in the record are filled by running a command,
    never by writing a file. A model that hand-edits `state.json` has left the system.
 2. **Registration is non-negotiable.** Thinking, approach, topology, implementation choice — all free.
-   *Recording what you did* — never free. Every action, positive or negative, is registered.
+   _Recording what you did_ — never free. Every action, positive or negative, is registered.
 
 `RAILS.md` framed this as "the harness constrains HOW, never WHAT". That holds, but it understated the
 reporting half. Restated correctly:
@@ -35,18 +35,19 @@ its purpose is to let a human understand what actually happened. A success that 
 hole in that product exactly as much as a failure that goes unrecorded.
 
 So a validator that finds nothing wrong is not finished. It still owes:
+
 - a feedback analysis to its coordinator, and
 - a state-machine transition that lands in history.
 
 Measured reality, across six live capsules (30 tasks, 29 reviews):
 
-| | |
-|---|---|
-| Verdict `pass` | 29 (100%) |
-| Rejects, findings, probes, repair rounds | 0, 0, 0, 0 |
-| Screenshots on any review | 0 |
-| Checks per review | exactly 1, every time |
-| Distinct gate commands | 4, all repo-wide: `typecheck` ×19, `check` ×4, `compose:check` ×3, `audit:catalog` ×3 |
+|                                          |                                                                                       |
+| ---------------------------------------- | ------------------------------------------------------------------------------------- |
+| Verdict `pass`                           | 29 (100%)                                                                             |
+| Rejects, findings, probes, repair rounds | 0, 0, 0, 0                                                                            |
+| Screenshots on any review                | 0                                                                                     |
+| Checks per review                        | exactly 1, every time                                                                 |
+| Distinct gate commands                   | 4, all repo-wide: `typecheck` ×19, `check` ×4, `compose:check` ×3, `audit:catalog` ×3 |
 
 Twenty-nine passes and not one carries information a reader could learn anything from. The pushback
 loop has never once executed. That is the product failing, not merely the enforcement failing.
@@ -62,10 +63,10 @@ The owner's own example is the sharpest one:
 > A UI validator must produce screenshots. **Regardless of verdict.** There is no such thing as a UI
 > review, passing or failing, with an empty screenshot set.
 
-Today, `cli/commands/task-review.ts:157-158` refuses a UI *pass* with no dual-channel evidence. That is
+Today, `cli/commands/task-review.ts:157-158` refuses a UI _pass_ with no dual-channel evidence. That is
 the right mechanism, and it must be widened in two directions:
 
-- **to the negative path** — a UI *reject* also requires the screenshots that justify it;
+- **to the negative path** — a UI _reject_ also requires the screenshots that justify it;
 - **to every role** — implementer, validator, plan-validator, critic, coordinator each get a contract.
 
 Classification must not depend on `write_scope` extensions alone. In the real incident, the task
@@ -80,7 +81,7 @@ harness refuses, and says why.
 Generalised: **for every role contract, an output that satisfies the shape while carrying no
 information is refused at the boundary.** This is the one place a shape check is not enough, because
 `requireText` cannot tell an observation from a placeholder. Where substance cannot be judged, require
-an *artifact* instead of a sentence — a command record, a file on disk with a non-zero byte count, a
+an _artifact_ instead of a sentence — a command record, a file on disk with a non-zero byte count, a
 hash. The existing dual-channel check already does this correctly: it verifies a sha256-keyed
 screenshot store with `sizeBytes > 0`, rather than counting entries in a model-authored JSON array.
 
@@ -105,9 +106,10 @@ validator → implementer. The coordinator → validator edge does not exist, an
 that would have caught the UI failure. Add it, with its own edge kind in `graph.json`.
 
 Two distinct pushback causes, both needed:
+
 - **substantive** — the work is wrong;
 - **procedural** — the work may be fine but it was not registered, or was registered wrongly.
-  *"You did not record what you did"* is a legitimate, and currently impossible, rejection.
+  _"You did not record what you did"_ is a legitimate, and currently impossible, rejection.
 
 ## R5 — Every shape change of the graph is registered
 
@@ -125,7 +127,7 @@ command returns the legal next moves as fully-formed argv with real ids, plus wh
 what is currently blocking. `reporting/next-actions.ts` already computes much of this and is not
 surfaced from `run:status`. Wire it.
 
-This is what makes the rest affordable for a small model: it never has to *derive* the protocol, only
+This is what makes the rest affordable for a small model: it never has to _derive_ the protocol, only
 execute the move it is handed.
 
 ## What this changes about enforcement

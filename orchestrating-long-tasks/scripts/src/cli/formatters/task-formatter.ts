@@ -7,8 +7,6 @@ export interface TaskClaimParams {
   durationMinutes: number;
   writeScope: readonly string[];
   packetPath?: string;
-  /** B22.2's assignment reaching the claiming agent: absent means worktree isolation is off for
-   *  this run, never an unassigned slot under isolation (provisioning covers every task). */
   worktreePath?: string | undefined;
 }
 
@@ -106,18 +104,7 @@ export interface TaskReviewPassParams {
   unblockedTasks?: readonly string[];
   reportPath: string;
   probeRounds?: number;
-  /**
-   * The task's real status after this verdict was recorded. B12.2: `recordReview` only moves a task
-   * out of `validating` once every applicable domain has its own pass on record (see
-   * `everyApplicableDomainPassed`) — a pass verdict that leaves the task still `validating` means at
-   * least one other domain is still open, and the heading must say that rather than the unqualified
-   * "Validated & Satisfied" claim, which was true unconditionally back when a task carried at most
-   * one validator. Any other status (`validated`, `gating`, `done`) means this verdict was the one
-   * that cleared the last open domain.
-   */
   taskStatus: string;
-  /** Domains still without a recorded pass once this verdict lands. Omitted or empty once
-   *  `taskStatus` has moved past `validating`. */
   outstandingDomains?: readonly string[];
 }
 
@@ -153,13 +140,10 @@ export interface TaskRejectParams {
   validator: string;
   findingId: string;
   issue: string;
-  /** The status the transaction actually left the task in, e.g. changes_requested or escalated. */
   status: string;
 }
 
 export function formatTaskRejectBrief(params: TaskRejectParams): string {
-  // The brief quotes the recorded status. "Returned to queue" was a sentence about a state the
-  // task may never have reached: an exhausted repair budget escalates instead.
   const actionStr = `Task recorded as \`${params.status}\`.`;
   const md = [
     `### Task Rejected: ${params.taskId}`,

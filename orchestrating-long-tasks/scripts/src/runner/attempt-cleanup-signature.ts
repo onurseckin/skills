@@ -123,8 +123,6 @@ export function payloadOf(
 }
 
 export function boundedReason(value: string): string {
-  // An empty reason is an unrecorded one. Naming a cause the caller never gave would sign a
-  // disposition asserting why cleanup ended, so the signed payload records the absence instead.
   const reason = value || "unrecorded cleanup outcome";
   let low = 0;
   let high = reason.length;

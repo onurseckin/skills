@@ -106,8 +106,6 @@ export function inferAssetProps(url: string, cmd?: CommandRecord, task?: TaskRec
       break;
   }
 
-  // A gate command is a recorded validation, and the task record names its own validator. An actor
-  // called "val" is a name, not a role, so nothing here reads one out of the actor string.
   const validatorId = task === undefined ? undefined : resolveValidatorId(task);
   const isVal =
     Boolean(cmd?.gate_id) ||
@@ -119,9 +117,6 @@ export function inferAssetProps(url: string, cmd?: CommandRecord, task?: TaskRec
       ? `Captured during test execution for command ${cmd.id}`
       : `Evidence captured for task ${task ? task.id : "run"}`;
 
-  // Nothing here opens the file, so nothing here knows its pixel size or its byte count. What the
-  // extension supports is a type and a mime type; a resolution and a size would be guesses wearing
-  // the shape of a measurement.
   return {
     type,
     mimeType,

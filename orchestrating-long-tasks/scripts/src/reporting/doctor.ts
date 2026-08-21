@@ -30,11 +30,6 @@ function versionAtLeast(actual: string, minimum: string): boolean {
   return true;
 }
 
-/**
- * `null` means the question could not be answered — either the directory is not a repository or the
- * `check-ignore` probe itself failed. A failed probe is not evidence that the capsule is tracked, so
- * it must not collapse into `false`, which the caller reports as a policy violation.
- */
 export function ignoredByGit(
   runRoot: string,
   command: RepositoryGitCommand = repositoryGit,
@@ -52,11 +47,7 @@ export async function runDoctor(
   runRoot: string,
   options: DoctorOptions = {},
 ): Promise<Record<string, unknown>> {
-  // The deep pass belongs here rather than on the load path: it re-reads every stored byte, and a
-  // stray file at the capsule root is worth reporting without refusing to read the run.
   const integrityIssues = [...verifyIntegrity(runRoot), ...verifyCapsuleDeep(runRoot)];
-  // Unknown is reported as unknown: a probe that could not run leaves the field null rather than
-  // asserting the capsule is either ignored or tracked.
   const gitignored = ignoredByGit(runRoot);
   const bunSupported = versionAtLeast(Bun.version, MINIMUM_BUN_VERSION);
   const loaded = integrityIssues.length === 0 ? loadRun(runRoot) : undefined;

@@ -93,6 +93,13 @@ export async function claimSubmitValidate(
     "bun",
     "gate-core.ts",
   ]);
+  // C4: task:submit refuses a submission whose write scope is byte-identical to its content at
+  // claim. setupRun already wrote CHANGED_FILE before the task was even claimed, so the implementer
+  // has to actually change it here, not merely declare it.
+  await writeFile(
+    join(repo, CHANGED_FILE),
+    "export const probed = true;\nexport const implemented = true;\n",
+  );
   await execute([
     "task:submit",
     "--run",

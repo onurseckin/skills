@@ -22,7 +22,6 @@ export async function taskProbeCommand(flags: Flags): Promise<Record<string, unk
   ];
   const demands = listFlag(flags, "demand", true)!;
   const revalidation = textFlag(flags, "revalidation", false);
-  // Only explicitly cited commands become evidence: a probe must not vacuum up unrelated runs.
   const citedEvidence = textFlag(flags, "evidence", false);
   const commandIds = citedEvidence
     ? citedEvidence

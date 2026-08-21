@@ -10,7 +10,6 @@ export function transferredFiles(files: readonly FileRef[]): ExchangeTransferred
   return files.map((file) => ({ path: file.path, ...(file.mode ? { mode: file.mode } : {}) }));
 }
 
-/** Bytes the harness hashed for a command's logs. Commands with no log record contribute none. */
 export function commandLogBytes(commands: readonly CommandRecord[]): number | undefined {
   let total = 0;
   let seen = false;
@@ -43,7 +42,6 @@ export function commandDurationMs(commands: readonly CommandRecord[]): number | 
   return seen ? total : undefined;
 }
 
-/** The recorded submission payload, measured on the report the implementer actually filed. */
 export function reportBytes(task: TaskRecord): number | undefined {
   return task.report ? JSON.stringify(task.report).length : undefined;
 }
@@ -85,10 +83,6 @@ export function submissionExchange(
   };
 }
 
-// B12.2: several domains can be open at once, each with its own verdict. PASS only once every
-// applicable domain has one; a still-open probe reads as PROBE; the reject case is read from
-// `task.status` because record-review.ts archives a rejecting round's entries the instant it
-// records the reject, so a live "reject" verdict is never actually observable here.
 function verdictOf(task: TaskRecord): "PASS" | "FAIL" | "PROBE" | undefined {
   const validations = task.validations ?? [];
   if (validations.length > 0 && everyApplicableDomainPassed(task)) return "PASS";
@@ -158,10 +152,6 @@ export function findingExchanges(
   return findings.map((finding, index) => findingExchange(finding, taskId, index, type));
 }
 
-/**
- * A gate that has not decided yet has no verdict. Reporting one as FAIL would turn "still running"
- * into "failed", which is the kind of default this producer exists to avoid.
- */
 function gateVerdictOf(task: TaskRecord): "PASS" | "FAIL" | undefined {
   if (task.status === "done" || task.status === "validated") return "PASS";
   if (task.status === "cancelled" || task.status === "escalated") return "FAIL";

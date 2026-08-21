@@ -10,8 +10,6 @@ export interface CompletionEvidenceItem extends JsonObject {
 
 export interface CompletionRequirementProof extends JsonObject {
   requirement_id: string;
-  // `unproven` is what the harness records for a requirement the critic never proved. It is never
-  // something a critic can claim, and it blocks completion.
   status: "satisfied" | "out_of_scope" | "unproven";
   evidence: CompletionEvidenceItem[];
 }
@@ -39,15 +37,10 @@ export interface CompletionResidualRisk extends JsonObject {
 export interface CompletionReview extends JsonObject {
   critic_id: string;
   packet_id: string;
-  // Absent when the review was recorded without a published critic packet; a review that has no
-  // packet carries no packet digest rather than an empty-string stand-in.
   packet_sha256?: string;
   graph_revision: number;
   readiness_sha256: string;
   repository_binding: RepositoryBinding;
-  // B21: the critic's own account of what the whole diff shows, closing out the run's final
-  // lifecycle transition. Required so this durable, hash-chained record — not only the CLI flag
-  // parser — is where the requirement actually lives.
   summary: string;
   status: "clean" | "findings";
   unresolved_finding_ids: string[];

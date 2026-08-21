@@ -11,13 +11,6 @@ import {
 } from "./repository-git-identity.ts";
 import { synchronousDelay } from "./repository-git-command.ts";
 
-// Re-running several read-only git commands to build one identity snapshot carries the same
-// fork+exec scheduling hazard repository-git-command.ts already retries per-command elsewhere —
-// here it can surface as the whole snapshot disagreeing with itself across two calls microseconds
-// apart with no write anywhere in between (this scan is read-only). Observed directly, not
-// inferred, under real concurrent-agent load. Re-reading a few times before accepting the
-// disagreement as real keeps the check honest — a genuine concurrent write keeps disagreeing across
-// every retry and still throws exactly as before.
 const GIT_IDENTITY_SETTLE_RETRIES = 3;
 const GIT_IDENTITY_SETTLE_DELAY_MS = 20;
 

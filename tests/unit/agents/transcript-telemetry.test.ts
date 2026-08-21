@@ -3,7 +3,12 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { readAgentTranscriptTelemetry } from "../../../orchestrating-long-tasks/scripts/src/workflow/agents/transcript-telemetry.ts";
 import { cleanupRoots } from "./fixture.ts";
-import { assistantLine, mktemp, toolResultLine, writeDirectTranscript } from "./transcript-fixture.ts";
+import {
+  assistantLine,
+  mktemp,
+  toolResultLine,
+  writeDirectTranscript,
+} from "./transcript-fixture.ts";
 
 const roots: string[] = [];
 
@@ -11,7 +16,9 @@ afterEach(() => cleanupRoots(roots));
 
 describe("readAgentTranscriptTelemetry — fail-safe absence", () => {
   test("no session id in the environment reads as no evidence, not an error", () => {
-    expect(readAgentTranscriptTelemetry("agent-x", { homeDir: "/nonexistent", env: {} })).toBeNull();
+    expect(
+      readAgentTranscriptTelemetry("agent-x", { homeDir: "/nonexistent", env: {} }),
+    ).toBeNull();
   });
 
   test("a session id with no matching project directory reads as no evidence", async () => {
@@ -56,7 +63,11 @@ describe("readAgentTranscriptTelemetry — a direct Task-tool subagent transcrip
           toolUseId: "toolu_1",
           toolName: "Bash",
         }),
-        toolResultLine({ timestamp: "2026-08-20T10:00:01.000Z", toolUseId: "toolu_1", isError: false }),
+        toolResultLine({
+          timestamp: "2026-08-20T10:00:01.000Z",
+          toolUseId: "toolu_1",
+          isError: false,
+        }),
         assistantLine({
           timestamp: "2026-08-20T10:00:02.000Z",
           model: "claude-sonnet-5",
@@ -99,7 +110,11 @@ describe("readAgentTranscriptTelemetry — a direct Task-tool subagent transcrip
   test("a missing meta file still yields the transcript's own numbers", async () => {
     const home = await mktemp(roots);
     await writeDirectTranscript(home, "session-c", "agent-2", [
-      assistantLine({ timestamp: "2026-08-20T10:00:00.000Z", model: "claude-opus-5", inputTokens: 1 }),
+      assistantLine({
+        timestamp: "2026-08-20T10:00:00.000Z",
+        model: "claude-opus-5",
+        inputTokens: 1,
+      }),
     ]);
     const result = readAgentTranscriptTelemetry("agent-2", {
       homeDir: home,
@@ -159,7 +174,14 @@ describe("readAgentTranscriptTelemetry — a Workflow-tool subagent, with its ru
       join(runDir, `agent-${agentId}.meta.json`),
       JSON.stringify({ agentType: "workflow-subagent", spawnDepth: 1 }),
     );
-    const workflowsDir = join(homeDir, ".claude", "projects", "some-project", sessionId, "workflows");
+    const workflowsDir = join(
+      homeDir,
+      ".claude",
+      "projects",
+      "some-project",
+      sessionId,
+      "workflows",
+    );
     await mkdir(workflowsDir, { recursive: true });
     await writeFile(
       join(workflowsDir, `${runId}.json`),

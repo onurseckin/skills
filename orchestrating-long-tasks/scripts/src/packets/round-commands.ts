@@ -3,11 +3,6 @@ import type { JsonObject } from "../contracts/json.ts";
 import { readLog } from "../summary/node-evidence.ts";
 import type { WorkflowState } from "../workflow/types.ts";
 
-/**
- * How much of one recorded stream a packet carries. The bytes are the run's own record, so the
- * ceiling is a size guard rather than an editorial one, and the tail is kept because a failing
- * command says why at the end.
- */
 export const COMMAND_OUTPUT_CEILING_BYTES = 32 * 1024;
 
 export interface RecordedStream extends JsonObject {
@@ -29,10 +24,6 @@ export interface RecordedCommand extends JsonObject {
   stderr?: RecordedStream;
 }
 
-/**
- * The logs of the attempt that decided the command. The runner writes the deciding attempt's paths
- * to the record itself; a record that predates that is read from its last attempt instead.
- */
 function logsOf(
   command: CommandRecord,
 ): { stdout: CommandLogMetadata; stderr: CommandLogMetadata } | undefined {
@@ -48,11 +39,6 @@ function stream(
   return read ? { text: read.text, truncated: read.truncated } : undefined;
 }
 
-/**
- * Every command this run recorded against the task, with the output read back from the bytes on
- * disk rather than re-derived from anything. A log the capsule no longer holds stays absent: an
- * unreadable log is not an empty one, and a validator that sees no `stdout` knows only that.
- */
 export function taskCommandEvidence(
   runRoot: string,
   state: WorkflowState,

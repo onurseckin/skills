@@ -61,8 +61,6 @@ export const RUNTIME_TASK_FIELDS = new Set([
   "review",
   "status",
   "submission",
-  // B12.2: `validation` (singleton) became `validations` (one open attempt per domain) — the old
-  // key here would have silently stopped carrying live validation state across a plan revision.
   "validations",
   "validation_history",
   "validator_id",

@@ -55,10 +55,6 @@ function gateIo(ctx: TaskNodeContext): { inputs: IoPort[]; outputs: IoPort[] } {
   };
 }
 
-/**
- * The gate is a decision, not an agent. It holds the recorded gate results and references the
- * findings by id; the evidence itself stays on the node whose agent produced it.
- */
 export function buildGateNode(ctx: TaskNodeContext): GraphNodeData {
   const { task, findings } = ctx;
   const badge = gateBadge(ctx);
@@ -87,7 +83,6 @@ export function buildGateNode(ctx: TaskNodeContext): GraphNodeData {
       openFindingIds: findings.filter((f) => f.status !== "resolved").map((f) => f.id),
       ...(ctx.validatorNodeId ? { validatorNodeId: ctx.validatorNodeId } : {}),
       ...(ctx.validatorId ? { validatorId: ctx.validatorId } : {}),
-      // Without a validator node the findings have no author node to live on, so the gate keeps them.
       ...(ctx.validatorNodeId === undefined ? { findings } : {}),
     },
   };

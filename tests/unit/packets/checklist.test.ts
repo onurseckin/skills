@@ -65,10 +65,16 @@ describe("checklist parser", () => {
     ["missing domain line", encoder.encode(`# Title\n\nIntro\n\n${item()}`)],
     ["unrecognized domain", document([item()], "made-up-domain")],
     ["no items", encoder.encode("# Title\nDomain: code-quality\n\nJust prose, no items.\n")],
-    ["malformed id (lowercase)", document(["## cq-struct-001\n" + item().split("\n").slice(1).join("\n")])],
+    [
+      "malformed id (lowercase)",
+      document(["## cq-struct-001\n" + item().split("\n").slice(1).join("\n")]),
+    ],
     ["id missing the domain prefix", document([item("UI-STRUCT-001")])],
     ["duplicate id", document([item("CQ-STRUCT-001"), item("CQ-STRUCT-001")])],
-    ["missing a required field", document([item("CQ-STRUCT-001", {}).replace("\nseverity: important", "")])],
+    [
+      "missing a required field",
+      document([item("CQ-STRUCT-001", {}).replace("\nseverity: important", "")]),
+    ],
     [
       "unknown field",
       encoder.encode(

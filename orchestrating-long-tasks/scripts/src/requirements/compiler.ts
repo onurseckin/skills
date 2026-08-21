@@ -9,11 +9,11 @@ export interface TaskDeclaration {
   writeScope: readonly string[];
   gate: string | readonly string[];
   deps?: readonly string[] | undefined;
+  depReasons?: Readonly<Record<string, string>> | undefined;
   goal?: string | undefined;
   criteria?: readonly string[] | undefined;
   priority?: number | undefined;
   effort?: number | undefined;
-  /** Ascending prompt lines the task was explicitly declared against; absent means positional. */
   requirementLines?: readonly number[] | undefined;
 }
 
@@ -21,7 +21,6 @@ export interface CompiledRequirementsResult {
   requirementsDocument: Record<string, unknown>;
   atomicRequirements: Record<string, unknown>[];
   requirementIdsByTask: Map<string, string[]>;
-  /** Every place a task's prompt binding was guessed rather than declared. */
   warnings: string[];
 }
 
@@ -54,12 +53,8 @@ export function compileRequirementsFromPrompt(
   const atomicRequirements: Record<string, unknown>[] = [];
   const requirementIdsByTask = new Map<string, string[]>();
   const warnings: string[] = [];
-  // Every requirement claiming a line, in declaration order; a line may carry more than one once
-  // tasks bind explicitly, and the dispositions below have to name all of them.
   const claims = new Map<number, string[]>();
 
-  // Declared lines are withheld from the positional sweep before it starts, so a task that named
-  // its lines cannot lose them to an earlier task that named none.
   const declared = new Set<number>();
   for (const task of tasks) for (const line of task.requirementLines ?? []) declared.add(line);
 
@@ -80,8 +75,6 @@ export function compileRequirementsFromPrompt(
     }
 
     if (assignedLines.length === 0) {
-      // More tasks than prompt lines: the task gets no requirement of its own, so its gate is
-      // folded into one that already exists rather than a line being reused as if it were free.
       const fallbackLine = nonBlankLineIndices[taskIdx % nonBlankLineIndices.length]!;
       const existingReqId = claims.get(fallbackLine)?.[0];
       if (existingReqId === undefined) {

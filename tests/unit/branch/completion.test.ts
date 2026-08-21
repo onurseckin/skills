@@ -120,7 +120,9 @@ describe("an uncollected branch blocks completion", () => {
     ]);
 
     expect(
-      completionIssues(workflowPort(fixture.run).read()).filter((issue) => issue.startsWith("branch ")),
+      completionIssues(workflowPort(fixture.run).read()).filter((issue) =>
+        issue.startsWith("branch "),
+      ),
     ).toEqual([]);
   });
 

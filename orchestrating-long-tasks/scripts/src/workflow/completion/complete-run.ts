@@ -19,8 +19,6 @@ export function completeRun(
   port: TransactionPort,
   actor: string,
   verifyArtifacts: CompletionArtifactVerifier,
-  // The token the approving critic's own review handed back (run:complete --auth-token). Sealing
-  // the run is the one act the token authorizes; nothing else has ever asked to see it.
   authToken: string,
   clock: Clock = systemClock,
 ) {
@@ -35,9 +33,6 @@ export function completeRun(
     );
     if (preflight.length > 0)
       throw new HarnessError("INVALID_STATE", `run is incomplete: ${preflight.join("; ")}`);
-    // completionIssues already proved completion_review exists, which is only ever recorded
-    // against a completion_critic assignment (review-issues.ts's provenanceIssues), so the
-    // assignment and its token_digest are guaranteed present here.
     const assignment = draft.completion_critic!;
     if (!tokenMatches(authToken, assignment.token_digest))
       throw new HarnessError("INVALID_STATE", "completion authorization token is invalid");

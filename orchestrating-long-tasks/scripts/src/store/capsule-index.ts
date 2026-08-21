@@ -12,15 +12,6 @@ import { runFilePath } from "./paths.ts";
 const INDEX_FILE = "index.json";
 const INDEX_SCHEMA = "harness.index";
 
-/**
- * The catalogue. It answers the questions an agent asks constantly — the findings open on a task,
- * the screenshots a command produced, what the validator said in round two — from one small file,
- * without walking the event chain and without loading any record body.
- *
- * It is DERIVED: every entry restates something whose one home is elsewhere, and deleting the file
- * loses nothing. `index_of_event` is what makes that safe to rely on — an index built at a
- * different head than the run currently sits at is stale, and says so in O(1).
- */
 export interface CapsuleIndex {
   schema: typeof INDEX_SCHEMA;
   version: number;
@@ -28,11 +19,6 @@ export interface CapsuleIndex {
   run_id: string;
   generated_at: string;
   index_of_event: { sequence: number; head: string | null };
-  /**
-   * The capture ledger this catalogue was built from, digested. The ledger is written outside the
-   * event chain, so the event head alone cannot tell a reader whether the capture and blob
-   * catalogues are still true. Null when the run has captured nothing.
-   */
   index_of_captures: string | null;
   tasks: IndexTask[];
   commands: IndexCommand[];
@@ -54,7 +40,6 @@ export interface IndexTask {
 
 export interface IndexCommand {
   id: string;
-  /** Capsule-relative directory holding the record, its attempts and its logs. */
   path: string;
   status?: string | undefined;
   exit_code?: number | undefined;
@@ -78,7 +63,6 @@ export interface IndexReport {
   path: string;
   bytes: number;
   task_id?: string | undefined;
-  /** The round this document recorded, when the file name numbers it. */
   round?: number | undefined;
 }
 
@@ -96,7 +80,6 @@ export interface IndexBlob {
   sha256: string;
   bytes: number;
   path: string;
-  /** How many recorded captures point at these bytes. */
   references: number;
 }
 
@@ -156,8 +139,6 @@ function indexTasks(state: RunState): { tasks: IndexTask[]; findings: IndexFindi
         ...optional("status", status),
       });
     }
-    // B12.2: `task.validation` (singleton) became `task.validations` (one entry per domain); merge
-    // every open domain's checks so a multi-domain task's command evidence is not silently dropped.
     const checks = Array.isArray(task.validations)
       ? task.validations.flatMap((entry) =>
           isObject(entry) ? stringListOfCommandProofs(entry.checks) : [],
@@ -229,7 +210,6 @@ function indexPackets(state: RunState): IndexPacket[] {
   return found;
 }
 
-/** `<task>-probe-03.json` is round three. A name that does not number itself carries no round. */
 const ROUND_IN_NAME = /-(?<kind>probe|review|submission)-(?<round>\d+)\.json$/u;
 
 function indexReports(runRoot: string, taskIds: readonly string[]): IndexReport[] {
@@ -266,7 +246,6 @@ function indexReports(runRoot: string, taskIds: readonly string[]): IndexReport[
   return found;
 }
 
-/** The ledger's bytes as they stand, so a catalogue built from them can be checked against them. */
 function captureLedgerDigest(runRoot: string): string | null {
   try {
     return createHash("sha256")
@@ -277,7 +256,6 @@ function captureLedgerDigest(runRoot: string): string | null {
   }
 }
 
-/** Builds the catalogue for the state given. Reads no event; every input is a file it names. */
 export function buildIndex(runRoot: string, state: RunState, runId: string): CapsuleIndex {
   const { tasks, findings } = indexTasks(state);
   const captures = readCaptures(runRoot);
@@ -320,7 +298,6 @@ export function buildIndex(runRoot: string, state: RunState, runId: string): Cap
 
 export function writeIndex(runRoot: string, state: RunState, runId?: string): CapsuleIndex {
   const index = buildIndex(runRoot, state, runId ?? manifestRunId(runRoot));
-  // Indented rather than canonical: a person opens this file to find their way around a capsule.
   atomicWriteBytes(
     join(runRoot, INDEX_FILE),
     new TextEncoder().encode(`${JSON.stringify(index, null, 2)}\n`),
@@ -358,10 +335,6 @@ function parsedIndex(value: unknown): CapsuleIndex | undefined {
   return candidate as unknown as CapsuleIndex;
 }
 
-/**
- * The catalogue and the capsule's identity, and nothing else. This is the read an agent does dozens
- * of times a session: no chain walk, no projection, no record bodies.
- */
 export function loadIndex(runRoot: string): LoadedIndex {
   let manifest: Manifest;
   try {
@@ -380,14 +353,6 @@ export function loadIndex(runRoot: string): LoadedIndex {
   return { runRoot, manifest, index };
 }
 
-/**
- * Whether the catalogue describes where the run currently stands. `unknown` when the projection
- * head cannot be read: an index that might be stale is never reported as current.
- *
- * Both inputs are checked. The event chain moves the tasks, commands and packets; the capture
- * ledger moves the captures and blobs, and it is written outside the chain — so a catalogue built
- * at the current head can still be counting an older set of captures.
- */
 export function indexFreshness(runRoot: string, index: CapsuleIndex): IndexFreshness {
   let state: unknown;
   try {
@@ -405,14 +370,6 @@ export function indexFreshness(runRoot: string, index: CapsuleIndex): IndexFresh
   return index.index_of_captures === captureLedgerDigest(runRoot) ? "current" : "stale";
 }
 
-/**
- * Rebuilds the catalogue against the projection already on disk, for a writer that changed what
- * the capsule holds without appending an event. Ingestion is the case: the capture ledger is not
- * chain-bound, so nothing else would bring the capture and blob catalogues back into agreement.
- *
- * Tolerant of failure for the same reason the post-commit refresh is: the catalogue is a cache over
- * facts that are already durable, and `index_of_captures` keeps the resulting staleness detectable.
- */
 export function refreshIndex(runRoot: string): void {
   try {
     const state = JSON.parse(readFileSync(runFilePath(runRoot, "state.json"), "utf-8")) as RunState;

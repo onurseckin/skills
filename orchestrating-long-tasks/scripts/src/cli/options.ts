@@ -3,7 +3,6 @@ import type { FlagValue, FlagValues } from "./arguments.ts";
 
 export type Flags = Readonly<Record<string, FlagValues>>;
 
-// Array.isArray widens a readonly tuple to any[], so the multi-occurrence check is hand-rolled.
 function occurrences(value: FlagValues): readonly FlagValue[] {
   return typeof value === "string" || value === true ? [value] : value;
 }
@@ -12,17 +11,13 @@ function isMulti(value: FlagValues): boolean {
   return typeof value !== "string" && value !== true;
 }
 
-// A plain index read resolves an absent `--constructor` to Object.prototype.constructor, so an
-// unsupplied flag would look supplied; only own keys count as given.
 function given(flags: Flags, name: string): FlagValues | undefined {
   return Object.hasOwn(flags, name) ? flags[name] : undefined;
 }
 
 export interface CommandContext {
   stdin?: Uint8Array;
-  /** Directory the currently-running harness.ts lives in — the source `plan:init` pins for a run. */
   executingRuntime?: string;
-  /** `orchestrate`'s bare form: the free-text prompt typed after the command name, joined by spaces. */
   inlinePrompt?: string;
 }
 
@@ -35,8 +30,6 @@ export function assertFlags(flags: Flags, allowed: readonly string[]): void {
 export function textFlag(flags: Flags, name: string, required = true): string | undefined {
   const value = given(flags, name);
   if (value === undefined && !required) return undefined;
-  // A repeatable flag parses to a list even when given once; reading it as a scalar would silently
-  // drop occurrences, so it is a hard error rather than a quiet first-wins.
   if (value !== undefined && isMulti(value)) {
     throw new HarnessError("INVALID_ARGUMENT", `--${name} is repeatable; read it as a list`);
   }
@@ -46,8 +39,6 @@ export function textFlag(flags: Flags, name: string, required = true): string | 
   return value;
 }
 
-// Repeatable flags: every occurrence, in the order given. A bare occurrence carries no text, so it
-// is rejected instead of being recorded as an empty entry.
 export function listFlag(
   flags: Flags,
   name: string,

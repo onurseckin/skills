@@ -2,7 +2,12 @@ import type { Manifest } from "../contracts/capsule.ts";
 import type { CommandRecord } from "../contracts/commands.ts";
 import type { WorkflowState } from "../workflow/types.ts";
 import { renderChecklistCoverage } from "./markdown-checklist-coverage.ts";
-import { renderGates, renderProbesAndPushbacks, renderScripts, renderTools } from "./markdown-evidence-sections.ts";
+import {
+  renderGates,
+  renderProbesAndPushbacks,
+  renderScripts,
+  renderTools,
+} from "./markdown-evidence-sections.ts";
 import { renderCritic, renderTelemetry, renderTimeline } from "./markdown-run-sections.ts";
 import {
   renderAgents,
@@ -25,27 +30,16 @@ import type { GraphDataset, RollupMetrics, TimelineEventRecord } from "./types.t
 
 export interface MarkdownFormatterInput {
   runId: string;
-  /** Capsule root, so the report can quote the planning and review artifacts the run wrote. */
   runRoot: string;
   manifest: Manifest;
-  /** The verbatim prompt bytes, decoded. The report quotes them rather than paraphrasing. */
   promptText: string;
   metrics: RollupMetrics;
   timeline: TimelineEventRecord[];
   state: Readonly<WorkflowState>;
-  /** Command records read from the capsule, merged over the ones the projection carries. */
   commands: Record<string, CommandRecord>;
-  /** The same dataset written to `graph.json`. Line-level file provenance and the action-provenance
-   * trace (B15.1/B15.2) are rendered from here, not recomputed, so the two artifacts of one run can
-   * never disagree about what happened. */
   graph: GraphDataset;
 }
 
-/**
- * The human-readable sibling of `graph.json`: read top to bottom it is the whole run, in run order,
- * complete on its own. Anything the run did not record renders as unknown rather than as a default,
- * so a reader can tell the difference between a zero and a silence.
- */
 export function formatSummaryMarkdown(input: MarkdownFormatterInput): string {
   const context = buildReportContext(input);
   const lines: string[] = [

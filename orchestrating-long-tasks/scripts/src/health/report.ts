@@ -27,9 +27,7 @@ function section(result: HealthCheckResult, listed: number): string[] {
     ...(failures.length > shown.length
       ? [`- _... ${failures.length - shown.length} more failure(s); use --all_`]
       : []),
-    // Allowances are few by design, and an allowance nobody reads is an allowance nobody revisits.
     ...allowed.map(line),
-    // Advisories are surface, not behaviour: they are counted always and listed on request.
     ...(listed === Number.MAX_SAFE_INTEGER ? advisories.map(line) : []),
     "- **Cannot check**:",
     ...result.limitations.map((text) => `  - ${text}`),

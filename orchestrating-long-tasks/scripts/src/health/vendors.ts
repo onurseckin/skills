@@ -5,30 +5,16 @@ import {
   type VendorIdentifierFinding,
 } from "./vendor-identifiers.ts";
 import { HOST_DISPATCH_TERMS, VENDOR_NAMES } from "./vendor-names.ts";
-import {
-  scanTreeForUnqualifiedDispatch,
-  type UnqualifiedDispatchFinding,
-} from "./vendor-prose.ts";
+import { scanTreeForUnqualifiedDispatch, type UnqualifiedDispatchFinding } from "./vendor-prose.ts";
 import { finding, type HealthCheckResult, type HealthFinding } from "./types.ts";
 
 export interface VendorTree {
-  /** How the tree is named in the report. */
   readonly label: string;
   readonly root: string;
-  /** Root-relative paths whose whole job is to speak one product's protocol. */
   readonly exempt?: readonly string[];
   readonly extensions?: readonly string[];
 }
 
-/**
- * The only place in the producer tree a product name may appear as an identifier: a module that
- * exists to speak several products' own command grammars, where a generic name would be a lie
- * about what the rule encodes (`gate-runtime-grammar.ts`'s `denoCommand`/`pythonCommand`, one
- * function per grammar it parses). `tests/unit/architecture/vendor-identifiers.test.ts` carries
- * its own `SCRIPT_EXEMPTIONS` under the same reasoning; keep both lists in agreement by hand until
- * they are unified, because a health check that flags what the test suite already excused for a
- * documented reason is the check crying wolf, not a real finding.
- */
 export const PRODUCT_GRAMMAR_MODULES: readonly string[] = ["src/graph/gate-runtime-grammar.ts"];
 
 function describe(entry: VendorIdentifierFinding): string {
@@ -37,11 +23,6 @@ function describe(entry: VendorIdentifierFinding): string {
     : `\`${entry.identifier}\` carries the vendor name \`${entry.vendor}\`; the schema names categories, and vendors are values inside them`;
 }
 
-/**
- * B19.4, over both repositories. The scan itself lives in `vendor-identifiers.ts`; this wraps it as
- * a health check rather than repeating it, because a second implementation of the same rule is how
- * the two copies start disagreeing.
- */
 export function checkVendorIdentifiers(trees: readonly VendorTree[]): HealthCheckResult {
   const findings: HealthFinding[] = [];
   const seen = new Set<string>();
@@ -67,8 +48,6 @@ export function checkVendorIdentifiers(trees: readonly VendorTree[]): HealthChec
       const key = `vendor-identifier:${tree.label}:${entry.file}:${entry.identifier}`;
       if (seen.has(key)) continue;
       seen.add(key);
-      // A path finding is about the file's name, not a line inside it; rendering it as `:0` would
-      // point the reader at a location that does not exist.
       findings.push(
         finding(
           "vendor-identifiers",
@@ -105,10 +84,8 @@ export function checkVendorIdentifiers(trees: readonly VendorTree[]): HealthChec
 }
 
 export interface ProseTree {
-  /** How the tree is named in the report. */
   readonly label: string;
   readonly root: string;
-  /** Root-relative paths a reason excuses from the sweep. */
   readonly exempt?: readonly string[];
   readonly extensions?: readonly string[];
 }
@@ -117,12 +94,6 @@ function describeDispatch(entry: UnqualifiedDispatchFinding): string {
   return `\`${entry.term}\` is ${entry.host}'s own dispatch call, given here with no word nearby saying so; a coordinator running under a different host would be told to call a tool that does not exist there`;
 }
 
-/**
- * The prose half of "a vendor name is a value, never a concept": `vendor-identifiers.ts` catches
- * the defect in `.ts` source, this catches it in the documents a coordinator actually reads -
- * `agents/coordinator.yaml` and `references/run-playbook.md` both regressed to a bare
- * `invoke_subagent({...})` presented as universal, and neither is `.ts`.
- */
 export function checkUnqualifiedDispatch(trees: readonly ProseTree[]): HealthCheckResult {
   const findings: HealthFinding[] = [];
   const scannedTrees: string[] = [];

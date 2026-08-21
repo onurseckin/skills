@@ -16,11 +16,6 @@ export interface TopologyWave extends JsonObject {
   task_ids: string[];
 }
 
-/**
- * One task's slot in the recorded plan. `rationale` is `agent_reported` only when a coordinator
- * supplied the sentence; the harness's own explanation is `derived`. There is no third source, so a
- * decision never carries prose nobody wrote.
- */
 export interface TopologyDecision extends JsonObject {
   task_id: string;
   wave: number;
@@ -75,10 +70,6 @@ export function isTopologyRecord(value: unknown): value is TopologyRecord {
   );
 }
 
-/**
- * The single place that decides whether a capsule has a recorded topology. Capsules written before
- * topology existed simply have none, and every reader has to see that absence rather than a default.
- */
 export function readTopology(state: unknown): TopologyRecord | null {
   if (!isJsonObject(state)) return null;
   const topology = state.topology;

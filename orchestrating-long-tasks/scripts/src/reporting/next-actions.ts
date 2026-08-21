@@ -17,7 +17,6 @@ import { taskActions } from "./task-actions.ts";
 
 const DISPATCHABLE = new Set(["ready", "proposed", "retry_ready"]);
 
-/** Read-only commands that orient a fresh agent before it changes anything. */
 function orientation(
   entrypoint: string,
   runRoot: string,
@@ -51,11 +50,6 @@ function pausedRequirementIds(view: JsonObject): Set<string> {
   );
 }
 
-/**
- * Every command a fresh agent could run right now, resolved through the command registry, plus the
- * steps this run needs that no command performs. The two halves are reported together because a
- * handoff that lists only the runnable half reads as if nothing else were outstanding.
- */
 export function nextActions(
   runRoot: string,
   entrypoint: string,
@@ -66,8 +60,6 @@ export function nextActions(
   const argv = orientation(entrypoint, runRoot, agents, branches);
   const staleEvidence = Array.isArray(view.stale_evidence) ? view.stale_evidence : [];
   if (staleEvidence.length > 0) {
-    // Recovery comes first: every other action authenticates with a lease the harness has already
-    // stopped honouring, so naming them here would hand out argv that is refused on arrival.
     pushArgv(
       argv,
       registryArgv(entrypoint, "recover", [

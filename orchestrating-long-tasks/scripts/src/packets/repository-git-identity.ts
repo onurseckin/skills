@@ -25,12 +25,6 @@ export interface RepositoryGitIdentityDependencies {
   environment?: Readonly<NodeJS.ProcessEnv>;
 }
 
-// Status 1 legitimately means "no ref" here (unborn HEAD, detached HEAD) — that branch's empty
-// output is a real answer, never retried. Status 0 always carries a SHA or ref name, so empty
-// output paired with an accepted status can only be the fork+exec scheduling hazard
-// commandOutputRetryingEmpty already retries for elsewhere in this file's callers (see
-// repository-git-command.ts); if it is still empty once those retries are exhausted, that is not a
-// legitimate "no ref" and must not be reported as one.
 function optionalText(repo: string, argv: string[], command: RepositoryGitCommand): string | null {
   const result = commandOutputRetryingEmpty(repo, argv, 1024, command, [0, 1]);
   if (result.status !== 0) return null;

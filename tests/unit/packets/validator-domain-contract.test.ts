@@ -151,7 +151,11 @@ describe("B12.3: delivery of a validator domain's standing checklist through its
       ...withNarrative.authoritativeContext,
       implementer_confidence: "very confident, definitely correct",
     } as typeof withNarrative.authoritativeContext;
-    const packet = buildPacket({ ...withNarrative, role: "validator", roleContract: domainContract });
+    const packet = buildPacket({
+      ...withNarrative,
+      role: "validator",
+      roleContract: domainContract,
+    });
     expect(packet.markdown).not.toContain("very confident, definitely correct");
   });
 

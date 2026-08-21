@@ -52,13 +52,23 @@ describe("validateChecklistCoverage", () => {
   test("rejects not_applicable and could_not_check without a reason", () => {
     const items = fullyChecked();
     items[0] = { id: ids[0]!, disposition: "not_applicable" };
-    expect(() => validateChecklistCoverage(DOMAIN, { items })).toThrow(/reason must be non-blank text/);
+    expect(() => validateChecklistCoverage(DOMAIN, { items })).toThrow(
+      /reason must be non-blank text/,
+    );
   });
 
   test("accepts not_applicable and could_not_check when each carries a reason, and carries the reason through", () => {
     const items = fullyChecked();
-    items[0] = { id: ids[0]!, disposition: "not_applicable", reason: "no such surface exists in this diff" };
-    items[1] = { id: ids[1]!, disposition: "could_not_check", reason: "the tool this item needs is unavailable in this sandbox" };
+    items[0] = {
+      id: ids[0]!,
+      disposition: "not_applicable",
+      reason: "no such surface exists in this diff",
+    };
+    items[1] = {
+      id: ids[1]!,
+      disposition: "could_not_check",
+      reason: "the tool this item needs is unavailable in this sandbox",
+    };
     const result = validateChecklistCoverage(DOMAIN, { items });
     expect(result.items[0]).toEqual({
       id: ids[0]!,
@@ -160,8 +170,12 @@ describe("validateChecklistCoverage", () => {
   });
 
   test("rejects a value that is not an object", () => {
-    expect(() => validateChecklistCoverage(DOMAIN, [])).toThrow(/checklist coverage must be an object/);
-    expect(() => validateChecklistCoverage(DOMAIN, "nope")).toThrow(/checklist coverage must be an object/);
+    expect(() => validateChecklistCoverage(DOMAIN, [])).toThrow(
+      /checklist coverage must be an object/,
+    );
+    expect(() => validateChecklistCoverage(DOMAIN, "nope")).toThrow(
+      /checklist coverage must be an object/,
+    );
   });
 
   test("rejects items that is not an array", () => {

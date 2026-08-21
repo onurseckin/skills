@@ -1,14 +1,18 @@
-import { UNKNOWN, code, joinOrNone, note, section, table, textOrUnknown } from "./markdown-primitives.ts";
+import {
+  UNKNOWN,
+  code,
+  joinOrNone,
+  note,
+  section,
+  table,
+  textOrUnknown,
+} from "./markdown-primitives.ts";
 import type { ReportContext } from "./markdown-report-context.ts";
 import type { TaskChecklistCoverageView } from "./markdown-sources.ts";
 
 function checklistCoverageBlock(coverage: TaskChecklistCoverageView): string[] {
   const heading = [`### ${coverage.taskId}`, ""];
   if (!coverage.applicable) {
-    // `resolveChecklistCoverage` (task-review.ts) always writes a real reason on this branch, so
-    // this only fires against a hand-edited or corrupted report file. It renders `unknown` rather
-    // than the harness's own stock sentence so a reader can't mistake a damaged record for the
-    // ordinary "no checklist was named" case.
     return [...heading, ...note(coverage.reason ?? UNKNOWN), ""];
   }
   const checked = coverage.items.filter((item) => item.disposition === "checked");
@@ -56,13 +60,6 @@ function checklistCoverageBlock(coverage: TaskChecklistCoverageView): string[] {
   ];
 }
 
-/**
- * B12.5: what a validator's standing checklist actually covered, per task — separate from the
- * task's own pass/fail finding (section 14, "Probes, Pushbacks And Repairs"). A task with no
- * coverage recorded says so in the validator's own stated reason rather than rendering an empty
- * table indistinguishable from a checklist that came back clean (B33: an omission and a fabricated
- * pass are the same failure mode).
- */
 export function renderChecklistCoverage(context: ReportContext): string[] {
   const lines = [
     ...note(

@@ -10,11 +10,6 @@ export interface StepAssignments {
   maxStep: number;
   criticStep: number;
   terminalStep: number;
-  /**
-   * "recorded" when every wave came from `state.topology`. The fallback is flagged as an estimate
-   * because it partitions on dependencies alone and cannot see the write-scope conflicts the
-   * scheduler serializes on, so its waves are wider than the run could ever have executed.
-   */
   waveSource: Evidenced<WaveSource>;
   topologyRevision: number | null;
 }
@@ -53,7 +48,6 @@ function deriveWaves(tasks: readonly TaskRecord[]): { waves: Map<string, number>
   }
 
   let currentWave = tasks.filter((t) => t.dependencies.length === 0).map((t) => t.id);
-  // If tasks are non-empty but all have dependencies (cycle or unresolved), pick all tasks
   if (currentWave.length === 0 && tasks.length > 0) {
     currentWave = tasks.map((t) => t.id);
   }
@@ -78,7 +72,6 @@ function deriveWaves(tasks: readonly TaskRecord[]): { waves: Map<string, number>
       }
     }
 
-    // Handle any unreachable / orphan tasks not yet processed
     if (nextWave.length === 0 && processed.size < tasks.length) {
       nextWave.push(...tasks.filter((t) => !processed.has(t.id)).map((t) => t.id));
     }
@@ -92,24 +85,6 @@ function deriveWaves(tasks: readonly TaskRecord[]): { waves: Map<string, number>
   return { waves: taskWaves, count: waveNum };
 }
 
-/**
- * Computes deterministic execution steps from the wave partitioning.
- * Step 1: Prompt & Plan
- * Wave W Tasks: Step 2*W
- * Wave W Gates: Step 2*W + 1
- * Critic: Step 2*W_max + 2
- * Terminal: Step 2*W_max + 3
- *
- * `state` is the run state the topology was recorded on. Waves come from `state.topology` when it
- * covers every task; anything less falls back to the dependency-only partition, and the result says
- * which of the two the caller got.
- *
- * This is layout numbering, not provenance: it exists to place nodes in wave order on the graph, and
- * a whole wave shares one step here even though its tasks ran as distinct, separately-timestamped
- * actions. The fine-grained, monotonic, per-action sequence B15.1 asks for is a different dataset —
- * `RunFacts.steps`, built by `collectActionSteps` in `timeline-collector.ts` straight from the
- * append-only event chain's own `sequence` — and the two are never conflated into one counter.
- */
 export function computeExecutionSteps(tasks: TaskRecord[], state?: unknown): StepAssignments {
   const topology = state === undefined ? null : readTopology(state);
   if (topology !== null) {

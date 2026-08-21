@@ -4,7 +4,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execute } from "../../../orchestrating-long-tasks/scripts/src/cli/execute.ts";
 import { workflowPort } from "../../../orchestrating-long-tasks/scripts/src/integration/store-ports.ts";
-import type { TransactionPort, Clock } from "../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
+import type {
+  TransactionPort,
+  Clock,
+} from "../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
 import { claimTask } from "../../../orchestrating-long-tasks/scripts/src/workflow/lease/claim.ts";
 import { heartbeat } from "../../../orchestrating-long-tasks/scripts/src/workflow/lease/heartbeat.ts";
 import {
@@ -26,7 +29,15 @@ async function compiledRun(name: string, count: number): Promise<string> {
   const promptPath = join(repo, "prompt.txt");
   await writeFile(promptPath, "Supervise this");
 
-  const init = await execute(["plan:init", "--repo", repo, "--run", `${name}-run`, "--prompt-file", promptPath]);
+  const init = await execute([
+    "plan:init",
+    "--repo",
+    repo,
+    "--run",
+    `${name}-run`,
+    "--prompt-file",
+    promptPath,
+  ]);
   const run = init.run_root as string;
 
   for (let index = 0; index < count; index++) {
@@ -46,7 +57,15 @@ async function compiledRun(name: string, count: number): Promise<string> {
       "planner",
     ]);
   }
-  await execute(["plan:compile", "--run", run, "--actor", "planner", "--completion-gate", "bun test tests"]);
+  await execute([
+    "plan:compile",
+    "--run",
+    run,
+    "--actor",
+    "planner",
+    "--completion-gate",
+    "bun test tests",
+  ]);
   return run;
 }
 
@@ -148,7 +167,13 @@ describe("RunSupervisor (B28)", () => {
     });
     const result = await supervisor.run();
     expect(result.lastTick.reclaimed).toEqual([
-      { kind: "task-lease", taskId: "t-0", agentId: "agent-dead", reason: "expired_lease_no_submission", newStatus: "retry_ready" },
+      {
+        kind: "task-lease",
+        taskId: "t-0",
+        agentId: "agent-dead",
+        reason: "expired_lease_no_submission",
+        newStatus: "retry_ready",
+      },
     ]);
     expect(result.report.deadAgentsReclaimed).toBe(1);
   });
@@ -184,7 +209,8 @@ describe("RunSupervisor (B28)", () => {
     const dispatcher: TaskDispatcher = {
       async dispatch(): Promise<TaskDispatchResult> {
         attempts += 1;
-        if (attempts === 1) return { status: "failed", failure: { signal: "rate_limit", detail: "429" } };
+        if (attempts === 1)
+          return { status: "failed", failure: { signal: "rate_limit", detail: "429" } };
         return { status: "dispatched", agentId: "agent-2" };
       },
     };
@@ -202,7 +228,9 @@ describe("RunSupervisor (B28)", () => {
     });
     const result = await supervisor.run();
     expect(attempts).toBeGreaterThanOrEqual(2);
-    expect(result.report.retries).toEqual([{ taskId: "t-0", transientRetries: 1, deterministicStops: 0 }]);
+    expect(result.report.retries).toEqual([
+      { taskId: "t-0", transientRetries: 1, deterministicStops: 0 },
+    ]);
   });
 
   test("B28.3: a deterministic dispatch failure escalates the task and the run moves on to other eligible work", async () => {
@@ -210,7 +238,10 @@ describe("RunSupervisor (B28)", () => {
     const dispatcher: TaskDispatcher = {
       async dispatch(input): Promise<TaskDispatchResult> {
         if (input.taskId === "t-0") {
-          return { status: "failed", failure: { signal: "gate_failure", detail: "bun run typecheck exited 2" } };
+          return {
+            status: "failed",
+            failure: { signal: "gate_failure", detail: "bun run typecheck exited 2" },
+          };
         }
         return { status: "dispatched", agentId: "agent-for-t-1" };
       },
@@ -252,7 +283,7 @@ describe("RunSupervisor (B28)", () => {
     expect(result.report.deadAgentsReclaimed).toBe(0);
   });
 
-  test("B28.2: a grant whose heartbeat lapsed is exactly \"returned without its required summary\" — reclaimed with no explicit crash signal", async () => {
+  test('B28.2: a grant whose heartbeat lapsed is exactly "returned without its required summary" — reclaimed with no explicit crash signal', async () => {
     const run = await compiledRun("heartbeat-lapse", 1);
     const port = workflowPort(run);
     const { clock, advance } = fakeTime("2026-08-19T00:00:00.000Z");

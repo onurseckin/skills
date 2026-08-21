@@ -26,11 +26,6 @@ function sameDirectory(observer: Observer): boolean {
   }
 }
 
-/**
- * Who currently holds the run lock. This is coordination state, not durable state, so it lives
- * beside the capsules rather than inside one — a capsule should contain only what the run recorded,
- * and a reader browsing it should not have to tell a lock apart from evidence.
- */
 export function observerDirectory(runRoot: string): string {
   return join(dirname(runRoot), LOCKS_DIRECTORY, basename(runRoot));
 }
@@ -80,7 +75,5 @@ export function clearObserver(observer: Observer): void {
   try {
     rmSync(ownerPath);
     fsyncDirectory(observer.path);
-  } catch {
-    /* observer cleanup is best effort */
-  }
+  } catch {}
 }

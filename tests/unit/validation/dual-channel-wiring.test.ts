@@ -180,6 +180,13 @@ async function claimSubmitValidate(repo: string, run: string): Promise<string> {
     "bun",
     "gate-ui.ts",
   ]);
+  // C4: task:submit refuses a submission whose write scope is byte-identical to its content at
+  // claim. setupUiRun already wrote CHANGED_FILE before the task was claimed, so the implementer
+  // has to actually change it here, not merely declare it.
+  await writeFile(
+    join(repo, CHANGED_FILE),
+    "export const Button = () => null; // responsive overflow fixed\n",
+  );
   await execute([
     "task:submit",
     "--run",
@@ -426,6 +433,9 @@ describe("Dual-Channel Validator Protocol wiring", () => {
       "bun",
       "gate-backend.ts",
     ]);
+    // C4: task:submit refuses a submission whose write scope is byte-identical to its content at
+    // claim; the file above was written during setup, before the task was even claimed.
+    await writeFile(join(repo, "src/backend/queue.ts"), "export const retries = 5;\n");
     await execute([
       "task:submit",
       "--run",

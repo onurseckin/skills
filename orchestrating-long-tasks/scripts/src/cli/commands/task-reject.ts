@@ -28,8 +28,6 @@ export async function taskRejectCommand(flags: Flags): Promise<Record<string, un
     textFlag(flags, "token")!,
     textFlag(flags, "reason")!,
   ];
-  // The remediation is the validator's instruction, not a restatement of the defect: echoing the
-  // reason back under the remediation label would file the observation as the fix.
   const remediation = textFlag(flags, "remediation", false) ?? textFlag(flags, "finding", false);
   if (remediation === undefined) {
     throw new HarnessError(
@@ -89,7 +87,6 @@ export async function taskRejectCommand(flags: Flags): Promise<Record<string, un
   const reportData = {
     task_id: taskId,
     validator,
-    // The bearer token stays out of the report; the digest is enough to verify which token signed it.
     token_digest: tokenDigest(token),
     status: "fail",
     verdict: "reject",

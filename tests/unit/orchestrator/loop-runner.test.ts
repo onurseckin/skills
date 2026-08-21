@@ -306,6 +306,60 @@ describe("AutonomousLoopRunner Unit Tests", () => {
     }
   });
 
+  it("normalizes a .capsules/-prefixed baseRunId instead of double-joining it (FORENSICS §2.5)", async () => {
+    // Every other CLI command documents `--run .capsules/<run-id>` as the value to pass. A caller
+    // that reuses that same value as --run-id here previously produced a nested
+    // `.capsules/.capsules/<run-id>` capsule and a `loopId` of `loop-.capsules/<run-id>` — see
+    // docs/planning/coordinator-conformance/FORENSICS.md §2.5.
+    const testDir = mkdtempSync(join(tmpdir(), "loop-runner-prefixed-"));
+    try {
+      const mockExecutor: RoundExecutor = {
+        async executeRound(input: RoundExecutionInput): Promise<RoundExecutionResult> {
+          return {
+            runId: input.runId,
+            round: input.round,
+            status: "completed",
+            criticDecision: "approve",
+            tasks: [{ id: "task-01", status: "done", writeScope: ["src/"] }],
+            findings: [],
+            gateResults: [{ gate_id: "gate-01", command_id: "cmd-1", status: "passed" }],
+            summary: "Converged.",
+          };
+        },
+      };
+
+      const runner = new AutonomousLoopRunner({
+        baseRunId: ".capsules/2026-08-20-fine-grained-curriculum-orchestration",
+        repoPath: testDir,
+        initialPrompt: "Implement the curriculum",
+        executor: mockExecutor,
+      });
+
+      expect(runner.baseRunId).toBe("2026-08-20-fine-grained-curriculum-orchestration");
+      expect(
+        runner.getCapsulePath("2026-08-20-fine-grained-curriculum-orchestration-round-1"),
+      ).toBe(
+        join(testDir, ".capsules", "2026-08-20-fine-grained-curriculum-orchestration-round-1"),
+      );
+
+      const summary = await runner.run();
+
+      expect(summary.baseRunId).toBe("2026-08-20-fine-grained-curriculum-orchestration");
+      expect(summary.loopId).toBe("loop-2026-08-20-fine-grained-curriculum-orchestration");
+      expect(summary.loopId).not.toContain(".capsules");
+
+      const persistedSummary = join(
+        testDir,
+        ".capsules",
+        "2026-08-20-fine-grained-curriculum-orchestration-loop-summary.json",
+      );
+      expect(existsSync(persistedSummary)).toBe(true);
+      expect(existsSync(join(testDir, ".capsules", ".capsules"))).toBe(false);
+    } finally {
+      rmSync(testDir, { recursive: true, force: true });
+    }
+  });
+
   it("validates required options and throws HarnessError INVALID_ARGUMENT", () => {
     expect(
       () => new AutonomousLoopRunner({ baseRunId: "", repoPath: "/tmp", initialPrompt: "Prompt" }),

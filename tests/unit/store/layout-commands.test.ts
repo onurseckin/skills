@@ -97,7 +97,13 @@ describe("commands/<id>/record.json is checked against the terminal command stat
     roots.push(root);
     const repo = join(root, "repo");
     mkdirSync(repo);
-    const run = initRun(repo, "layout-commands-minimal", new TextEncoder().encode("prompt"), "file", true);
+    const run = initRun(
+      repo,
+      "layout-commands-minimal",
+      new TextEncoder().encode("prompt"),
+      "file",
+      true,
+    );
     transact(run, "coordinator", "plan-compiled", {}, (draft) => {
       draft.commands = { "C-1": { id: "C-1", status: "succeeded", exit_code: 0, task_id: "T-1" } };
     });

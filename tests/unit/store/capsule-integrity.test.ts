@@ -79,6 +79,15 @@ describe("run capsule and integrity", () => {
     ).toThrow(/kind/i);
   });
 
+  test("accepts the .capsules/-prefixed form every other command documents for --run, and rejects a double-prefixed one (C5)", () => {
+    const root = repo();
+    const run = init(root, ".capsules/run-prefixed", bytes("prompt"));
+    expect(run).toBe(join(realpathSync(root), ".capsules/run-prefixed"));
+    expect(loadRun(run).manifest.run_id).toBe("run-prefixed");
+    expect(() => init(root, ".capsules/.capsules/run-nested")).toThrow(/run_id/i);
+    expect(existsSync(join(realpathSync(root), ".capsules/.capsules"))).toBeFalse();
+  });
+
   test("test_deep_state_json_is_reported_as_integrity_error", () => {
     const run = init();
     writeFileSync(join(run, "state.json"), `{"nested":${"[".repeat(2000)}0${"]".repeat(2000)}}`);

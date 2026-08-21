@@ -2,16 +2,10 @@ import { readFileSync, statSync } from "node:fs";
 import type { CategoryExtras } from "../contracts/taxonomy.ts";
 import type { BrowserRunViewport, NamedBrowserRunViewport } from "./browser-run-types.ts";
 
-/** A report larger than this is not read at all; a truncated parse would invent a shape. */
 export const MAX_BROWSER_REPORT_BYTES = 8 * 1024 * 1024;
 
-/**
- * What a runner said about its own execution. Every field is what the report file declared — the
- * harness measured none of it, so a caller must label all of it as reported rather than observed.
- */
 export interface BrowserReportFacts {
   sourcePath: string;
-  /** Top-level scalars the generic fields have no home for, under the names the report used. */
   extras?: CategoryExtras | undefined;
   runner?: string | undefined;
   testFile?: string | undefined;
@@ -42,16 +36,11 @@ function viewportOf(value: unknown): BrowserRunViewport | undefined {
   return { width, height };
 }
 
-/** The single value the whole report agreed on, or nothing: picking one of several would be a guess. */
 function unanimous(values: readonly string[]): string | undefined {
   const distinct = Array.from(new Set(values));
   return distinct.length === 1 ? distinct[0] : undefined;
 }
 
-/**
- * One viewport when the run used exactly one, otherwise the named list. A run that exercised three
- * viewports has no single viewport, and naming one of them would misreport the other two.
- */
 function splitViewports(named: readonly NamedBrowserRunViewport[]): {
   viewport?: BrowserRunViewport | undefined;
   viewports?: NamedBrowserRunViewport[] | undefined;
@@ -117,8 +106,6 @@ function projectFacts(config: unknown): {
     if (browser) browsers.push(browser);
     const viewport = use ? viewportOf(use.viewport) : undefined;
     if (viewport) {
-      // Every field here is what the report declared (see file header); "project" would read as
-      // a real name the config gave when neither project.name nor a browser name were present.
       named.push({ ...viewport, name: text(project, "name") ?? browser ?? "unknown" });
     }
   }
@@ -126,10 +113,6 @@ function projectFacts(config: unknown): {
   return { ...(browser === undefined ? {} : { browser }), named };
 }
 
-/**
- * A report whose shape matches the runner JSON convention: a `suites` array plus the config that
- * produced it. The shape is what identifies it — the file's own name proves nothing about the tool.
- */
 function runnerReportFacts(
   parsed: Record<string, unknown>,
   sourcePath: string,
@@ -158,10 +141,6 @@ function runnerReportFacts(
   };
 }
 
-/**
- * The visual metrics report the repository's own visual suite writes: named viewports, and a
- * metadata block where a runner may name itself, the browser it drove and the file it ran.
- */
 function visualReportFacts(
   parsed: Record<string, unknown>,
   sourcePath: string,
@@ -190,7 +169,6 @@ function visualReportFacts(
   };
 }
 
-/** The generic fields a report is read into; anything else it declared is an extra. */
 const MAPPED_REPORT_KEYS: ReadonlySet<string> = new Set([
   "runner",
   "status",
@@ -207,14 +185,8 @@ const MAPPED_REPORT_KEYS: ReadonlySet<string> = new Set([
   "metadata",
 ]);
 
-/** An extras bag stays small enough that a report cannot bloat the capsule through it. */
 const MAX_REPORT_EXTRAS = 32;
 
-/**
- * Whatever else the report declared at its top level, kept verbatim under its own name. Only
- * scalars are taken: a nested structure belongs to a shape this reader does not claim to
- * understand, and copying it would assert a meaning nobody reported.
- */
 function reportExtras(parsed: Record<string, unknown>): CategoryExtras | undefined {
   const extras: CategoryExtras = {};
   for (const [key, value] of Object.entries(parsed)) {
@@ -231,11 +203,6 @@ function hasFacts(facts: BrowserReportFacts): boolean {
   return Object.keys(facts).some((key) => key !== "sourcePath" && key !== "extras");
 }
 
-/**
- * Reads one candidate report. Returns nothing when the file cannot be read, does not parse, is not
- * a shape this understands, or carried no fact at all — an empty record would assert a browser run
- * the harness has no evidence of.
- */
 export function readBrowserRunReport(path: string): BrowserReportFacts | undefined {
   let raw: string;
   try {

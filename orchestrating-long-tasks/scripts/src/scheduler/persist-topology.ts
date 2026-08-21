@@ -4,12 +4,6 @@ import { loadRun } from "../store/load.ts";
 import { transact } from "../store/transaction.ts";
 import { computeTopology, type TopologyConfig, type TopologyInputs } from "./topology.ts";
 
-/**
- * Writes the decided topology to `state.topology` through the hash chain. Kept as its own function,
- * separate from `computeTopology`, so the event payload can carry the shape of the decision rather
- * than the whole record twice — not exported, because nothing outside `recordTopology` decides a
- * topology without also persisting it.
- */
 function persistTopology(runRoot: string, actor: string, topology: TopologyRecord): RunState {
   return transact(
     runRoot,
@@ -27,7 +21,6 @@ function persistTopology(runRoot: string, actor: string, topology: TopologyRecor
   );
 }
 
-/** Decide-then-record against the capsule on disk; this is what `plan:compile` calls. */
 export function recordTopology(
   runRoot: string,
   actor: string,

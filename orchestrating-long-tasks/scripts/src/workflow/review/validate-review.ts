@@ -28,9 +28,7 @@ export interface RevalidationProof extends JsonObject {
 }
 
 export interface FindingClassRule {
-  /** Every finding must declare exactly this class. */
   readonly required?: FindingClass;
-  /** This class may not appear, whatever the finding says. */
   readonly forbidden?: FindingClass;
 }
 
@@ -87,10 +85,6 @@ function assertFindingClass(finding: Finding, id: string, rule: FindingClassRule
   }
 }
 
-/**
- * Shared by rejections and probes: both push findings onto the task, so both must prove the finding
- * is substantive, uniquely identified and bound to a requirement the task actually owns.
- */
 export function validateFindings(task: TaskRecord, value: unknown, rule: FindingClassRule): void {
   if (!Array.isArray(value)) {
     throw new HarnessError("INVALID_ARGUMENT", "findings must be an array");
@@ -162,17 +156,6 @@ export function validateReview(task: TaskRecord, value: unknown): ReviewInput {
   } as ReviewInput);
 }
 
-// --- B12.5: checklist coverage -------------------------------------------------------------
-//
-// A validator report states, separately from the task's own pass/fail finding: every standing
-// checklist item it checked and passed, every item it found not applicable (with why), every item
-// it could not check (with why), and any standing-standard violation it found outside the task's
-// own write scope (an "adjacent" finding — B12.1). None of this gates the task's verdict; a task
-// passes or fails on its own requirements exactly as before. This is the report showing what was
-// actually inspected, so B33's rule applies here as much as anywhere: an item silently missing from
-// every bucket is the same failure mode as a fabricated pass.
-
-/** One standing-checklist item's disposition for this review (B12.5). */
 export type ChecklistDisposition = "checked" | "not_applicable" | "could_not_check";
 
 const CHECKLIST_DISPOSITIONS = new Set<string>(["checked", "not_applicable", "could_not_check"]);
@@ -182,17 +165,11 @@ function isChecklistDisposition(value: unknown): value is ChecklistDisposition {
 }
 
 export interface ChecklistCoverageEntry extends JsonObject {
-  /** The checklist item's own id, e.g. `CQ-STRUCT-001` (B12.3). */
   id: string;
   disposition: ChecklistDisposition;
-  /** Required for every disposition but `checked`: the reason an item was skipped is itself part
-   *  of the coverage, not an optional footnote. */
   reason?: string;
 }
 
-/** A standing-standard violation found outside the task's own write scope (B12.1). It informs the
- *  coordinator and does not gate this task's verdict — routing it to repair or the backlog is a
- *  decision for whoever reads the report, not this validation step. */
 export interface AdjacentFinding extends JsonObject {
   id: string;
   checklist_item_id: string;
@@ -215,7 +192,10 @@ function validateCoverageEntry(
   seen: Set<string>,
 ): ChecklistCoverageEntry {
   if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
-    throw new HarnessError("INVALID_ARGUMENT", `checklist_coverage.items[${index}] must be an object`);
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      `checklist_coverage.items[${index}] must be an object`,
+    );
   }
   const entry = raw as Record<string, unknown>;
   const id = requireText(entry.id, `checklist_coverage.items[${index}].id`);
@@ -226,7 +206,10 @@ function validateCoverageEntry(
     );
   }
   if (seen.has(id)) {
-    throw new HarnessError("INVALID_ARGUMENT", `checklist_coverage.items reports ${id} more than once`);
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      `checklist_coverage.items reports ${id} more than once`,
+    );
   }
   seen.add(id);
   if (!isChecklistDisposition(entry.disposition)) {
@@ -276,14 +259,6 @@ function validateAdjacentFinding(
   });
 }
 
-/**
- * B12.5's coverage requirement: every item the domain's standing checklist declares must land in
- * exactly one disposition bucket, so the report shows what was actually inspected rather than
- * implying full coverage from whatever subset a validator happened to list. `domain` selects which
- * checklist governs — the same closed set `task:validate-start --validator-domain` draws from
- * (B12.2) — so a coverage report is always checked against a real, versioned document, never a
- * list of items a caller invented for the occasion.
- */
 export function validateChecklistCoverage(
   domain: ValidatorDomain,
   value: unknown,

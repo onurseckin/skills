@@ -78,7 +78,15 @@ describe("agent lineage", () => {
     expect(roster.released_grants).toBe(0);
     expect(String(roster.markdown)).toContain("### Deployed Agents");
 
-    await execute(["agent:release", "--run", run, "--agent", "sub-1", "--reason", "lineage check done"]);
+    await execute([
+      "agent:release",
+      "--run",
+      run,
+      "--agent",
+      "sub-1",
+      "--reason",
+      "lineage check done",
+    ]);
     const afterRelease = await execute(["agent:list", "--run", run]);
     expect(afterRelease.active_grants).toBe(4);
     expect(String(afterRelease.markdown)).not.toContain("`sub-1`");

@@ -27,10 +27,8 @@ When this skill is driving, it owns the orchestration: stand down the host's own
 - **Quality through gating.** Work is independently validated, adversarially probed, and held to real command evidence before it can be called done.
 - **Attention on the problem.** The CLI absorbs the bookkeeping — leases, waves, findings, lineage — so the model spends its context on the actual decisions.
 - **Commands, not conversation.** Agents call harness commands the way code calls an API — deterministic, recorded, replayable.
-- **The harness never thinks.** It orchestrates and records — never a model call, never an LLM CLI —
-  and reasoning happens host-side, under the user's own subscription, with every host tool allowed.
-- **No agent needs the whole skill.** Only the slice its current job requires, which is what the
-  routing tables below are for.
+- **The harness never thinks.** It orchestrates and records — never a model call, never an LLM CLI — and reasoning happens host-side, under the user's own subscription, with every host tool allowed.
+- **No agent needs the whole skill.** Only the slice its current job requires, which is what the routing tables below are for.
 
 ## When to use
 
@@ -56,9 +54,7 @@ agent can finish and verify directly.
 7. Never announce completion while the runtime reports a blocker.
 8. Never present an invented value as a fact. A value nobody measured or reported is absent, and
    absent renders as "unknown". An estimate carries `evidence_class: "derived"` and `is_estimated: true`.
-9. Describe mandatory gate evidence only as `trusted_host_observed_v1` — never as hermetic, sealed,
-   sandboxed or reproducible. The restricted Git seam, and what repository discovery rejects before
-   status, are specified in [`references/protocol.md`](references/protocol.md).
+9. Describe mandatory gate evidence only as `trusted_host_observed_v1` — never as hermetic, sealed, sandboxed or reproducible. The restricted Git seam, and what repository discovery rejects before status, are specified in [`references/protocol.md`](references/protocol.md).
 10. Scope a task's `--gate` to the tests covering that task's write scope, and have its validator run
     that gate rather than the suite. The whole-suite run is `plan:compile --completion-gate`, and it
     runs once, at the completion barrier. A repair round re-runs the task's gate plus any gate whose
@@ -80,17 +76,18 @@ for one in `changes_requested` — and a mismatch is refused.
 Load your contract, your persona, and the reference in your row. **The "Never read" column is not
 advice; it is the reason this table exists.**
 
-| Role (tier)              | Contract + persona                                                                   | Read for the job                                                          | Never read                                                        |
-| :----------------------- | :----------------------------------------------------------------------------------- | :------------------------------------------------------------------------ | :---------------------------------------------------------------- |
-| `coordinator` (2)        | [roles/coordinator.md](roles/coordinator.md) + [agents/coordinator.yaml](agents/coordinator.yaml) | [run-playbook.md](references/run-playbook.md), [host-adapters.md](references/host-adapters.md) | Validator and critic protocols; it may not judge or write code    |
-| `planner` (3)            | [roles/planner.md](roles/planner.md)                                                 | [schema-examples.md](references/schema-examples.md), playbook Phase 1     | Anything about validation, branches or sealing                    |
-| `implementer` (3)        | [roles/implementer.md](roles/implementer.md) + [agents/worker.yaml](agents/worker.yaml) | Playbook Phases 3–4                                                       | `agents/validator.yaml`, `agents/critic.yaml`, the critic protocol |
-| `repairer` (3)           | [roles/repairer.md](roles/repairer.md) + [agents/worker.yaml](agents/worker.yaml)    | The open findings (`finding:get`), then playbook Phase 3                  | Validator persona; a repairer never grades its own repair         |
-| `validator` (3)          | [roles/validator.md](roles/validator.md) + [agents/validator.yaml](agents/validator.yaml) | Playbook Phase 5; the persona carries the dual-channel UI mandate         | Implementer prose and prior reviews — the packet strips them      |
-| `completeness-critic` (3) | [roles/completeness-critic.md](roles/completeness-critic.md) + [agents/critic.yaml](agents/critic.yaml) | Playbook Phase 6, [schema-examples.md](references/schema-examples.md)     | Implementer reports; the critic judges the diff, not the story    |
-| `sub-implementer` (3)    | [roles/sub-implementer.md](roles/sub-implementer.md)                                 | Playbook Phase 4 only                                                     | The parent task's plan, review and gate documents                 |
-| `sub-validator` (3)      | [roles/sub-validator.md](roles/sub-validator.md)                                     | Playbook Phase 4 only                                                     | Verdict commands — it gathers evidence and issues no verdict      |
-| `sub-investigator` (3)   | [roles/sub-investigator.md](roles/sub-investigator.md)                                | Playbook Phase 4 only                                                     | Anything that mutates; it reproduces, bisects and reports         |
+| Role (tier)               | Contract + persona                                                                                            | Read for the job                                                                               | Never read                                                                  |
+| :------------------------ | :------------------------------------------------------------------------------------------------------------ | :--------------------------------------------------------------------------------------------- | :-------------------------------------------------------------------------- |
+| `coordinator` (2)         | [roles/coordinator.md](roles/coordinator.md) + [agents/coordinator.yaml](agents/coordinator.yaml)             | [run-playbook.md](references/run-playbook.md), [host-adapters.md](references/host-adapters.md) | Validator and critic protocols; it may not judge or write code              |
+| `planner` (3)             | [roles/planner.md](roles/planner.md)                                                                          | [schema-examples.md](references/schema-examples.md), playbook Phase 1                          | Anything about validation, branches or sealing                              |
+| `plan-validator` (3)      | [roles/plan-validator.md](roles/plan-validator.md) + [agents/plan-validator.yaml](agents/plan-validator.yaml) | Playbook Phase 1; reviews the compiled graph before any implementer dispatches                 | Implementer reports, task-level findings — it judges the plan, not the code |
+| `implementer` (3)         | [roles/implementer.md](roles/implementer.md) + [agents/worker.yaml](agents/worker.yaml)                       | Playbook Phases 3–4                                                                            | `agents/validator.yaml`, `agents/critic.yaml`, the critic protocol          |
+| `repairer` (3)            | [roles/repairer.md](roles/repairer.md) + [agents/worker.yaml](agents/worker.yaml)                             | The open findings (`finding:get`), then playbook Phase 3                                       | Validator persona; a repairer never grades its own repair                   |
+| `validator` (3)           | [roles/validator.md](roles/validator.md) + [agents/validator.yaml](agents/validator.yaml)                     | Playbook Phase 5; the persona carries the dual-channel UI mandate                              | Implementer prose and prior reviews — the packet strips them                |
+| `completeness-critic` (3) | [roles/completeness-critic.md](roles/completeness-critic.md) + [agents/critic.yaml](agents/critic.yaml)       | Playbook Phase 6, [schema-examples.md](references/schema-examples.md)                          | Implementer reports; the critic judges the diff, not the story              |
+| `sub-implementer` (3)     | [roles/sub-implementer.md](roles/sub-implementer.md)                                                          | Playbook Phase 4 only                                                                          | The parent task's plan, review and gate documents                           |
+| `sub-validator` (3)       | [roles/sub-validator.md](roles/sub-validator.md)                                                              | Playbook Phase 4 only                                                                          | Verdict commands — it gathers evidence and issues no verdict                |
+| `sub-investigator` (3)    | [roles/sub-investigator.md](roles/sub-investigator.md)                                                        | Playbook Phase 4 only                                                                          | Anything that mutates; it reproduces, bisects and reports                   |
 
 [agents/orchestrator.yaml](agents/orchestrator.yaml) is the tier 1 meta-orchestrator persona for
 multi-round loops, and [agents/openai.yaml](agents/openai.yaml) the Codex/ChatGPT profile.
@@ -108,16 +105,18 @@ instead of the base one — [roles/validator-code-quality.md](roles/validator-co
 Full command sequences: [`references/run-playbook.md`](references/run-playbook.md). The rules each
 phase enforces: [`references/protocol.md`](references/protocol.md).
 
-| Phase                      | Commands                                                    | Read before acting                                                   |
-| :------------------------- | :---------------------------------------------------------- | :------------------------------------------------------------------- |
-| Capture, enhance, plan     | `plan:init`, `plan:enhance`, `plan:add`, `plan:compile`     | Playbook Phase 1, [schema-examples.md](references/schema-examples.md) |
-| Dispatch continuously      | `queue:wave`, `agent:register`                              | Playbook Phase 2, [host-adapters.md](references/host-adapters.md)     |
-| Implement                  | `task:claim`, `run:exec`, `task:submit`, `task:release`     | Playbook Phase 3 + your role contract                                 |
-| Subdivide at execution time | `branch:open`, `branch:claim`, `branch:submit`, `branch:collect` | Playbook Phase 4, [state-model.md](references/state-model.md)     |
-| Validate                   | `task:validate-start`, `task:probe`, `task:reject`, `task:review` | Playbook Phase 5, [agents/validator.yaml](agents/validator.yaml) |
-| Replan after findings      | `critic:reject`, `plan:replan`                              | [protocol.md](references/protocol.md) fan-back section                |
-| Seal                       | `critic:start`, `critic:review`, `run:complete`             | Playbook Phase 6                                                      |
-| Recover, report            | `recover`, `doctor`, `summary:export`, `summary:view`       | Playbook Phase 7, [failure-modes.md](references/failure-modes.md)     |
+| Phase                       | Commands                                                          | Read before acting                                                    |
+| :-------------------------- | :---------------------------------------------------------------- | :-------------------------------------------------------------------- |
+| Capture, enhance, plan      | `plan:init`, `plan:enhance`, `plan:add`, `plan:compile`           | Playbook Phase 1, [schema-examples.md](references/schema-examples.md) |
+| Dispatch continuously       | `queue:wave`, `agent:register`                                    | Playbook Phase 2, [host-adapters.md](references/host-adapters.md)     |
+| Implement                   | `task:claim`, `run:exec`, `task:submit`, `task:release`           | Playbook Phase 3 + your role contract                                 |
+| Subdivide at execution time | `branch:open`, `branch:claim`, `branch:submit`, `branch:collect`  | Playbook Phase 4, [state-model.md](references/state-model.md)         |
+| Validate                    | `task:validate-start`, `task:probe`, `task:reject`, `task:review` | Playbook Phase 5, [agents/validator.yaml](agents/validator.yaml)      |
+| Replan after findings       | `critic:reject`, `plan:replan`                                    | [protocol.md](references/protocol.md) fan-back section                |
+| Seal                        | `critic:start`, `critic:review`, `run:complete`                   | Playbook Phase 6                                                      |
+| Recover, report             | `recover`, `doctor`, `summary:export`, `summary:view`             | Playbook Phase 7, [failure-modes.md](references/failure-modes.md)     |
+
+**Give the planner the topology, don't ask for it.** Rejected: 3 nodes, 1 real lane. Compiled: 14 nodes, 12 independent roots. `plan:add --auto-partition <glob>` derives that split from files actually on disk instead of a coordinator inventing granularity; `plan:compile` then refuses to seal any dependency edge lacking its own `--dep-reason`. Matched pair and full walkthrough: [`references/topology-exemplar.md`](references/topology-exemplar.md).
 
 ## Reference index
 

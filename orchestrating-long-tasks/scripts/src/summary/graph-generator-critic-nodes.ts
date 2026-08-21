@@ -28,7 +28,6 @@ export interface CriticNodes {
   edges: GraphEdgeData[];
 }
 
-/** Gates the critic's own findings point back at, resolved through the recorded requirement ids. */
 function gatesForCriticFindings(
   review: WorkflowState["completion_review"],
   tasks: readonly TaskRecord[],
@@ -46,7 +45,6 @@ function gatesForCriticFindings(
   return [...byTask].map(([taskId, findingIds]) => ({ taskId, findingIds }));
 }
 
-/** Every agent the run authorised as a completeness critic, current and expired. */
 function recordedCriticIds(state: Readonly<WorkflowState>): ReadonlySet<string> {
   const ids = new Set<string>();
   if (state.completion_critic) ids.add(state.completion_critic.critic_id);
@@ -61,16 +59,12 @@ export function buildCriticAndTerminalNodes(input: CriticNodeInput): CriticNodes
   const review = state.completion_review;
   const criticIds = recordedCriticIds(state);
   const criticCommands = input.commands.filter((command) => isCriticCommand(command, criticIds));
-  // The run's review events belong to the validators that raised them, so they are deliberately not
-  // passed here: reading them would let the critic republish another node's findings as its own.
   const options = {
     ...(review !== undefined ? { completionReview: review } : {}),
     ...(input.manifest !== undefined ? { manifest: input.manifest } : {}),
     ...(input.runRoot !== undefined ? { runRoot: input.runRoot } : {}),
   };
 
-  // `task` stays undefined on purpose here, and the mapper no longer treats that as "every
-  // screenshot in the run": the critic only owns evidence the critic itself recorded.
   const assets = registry.claim(
     mapMediaAssets(undefined, criticCommands, { ...options, scope: "critic" }),
   );
@@ -133,7 +127,6 @@ export function buildCriticAndTerminalNodes(input: CriticNodeInput): CriticNodes
   };
 
   const completion = state.completion_result;
-  // Whatever no node claimed lands here, labelled for what it is rather than attributed to an agent.
   const unattributed = input.runRoot ? registry.claim(mapRunScreenshotAssets(input.runRoot)) : [];
   const terminalNode: GraphNodeData = {
     id: "node-terminal-complete",
@@ -165,9 +158,6 @@ export function buildCriticAndTerminalNodes(input: CriticNodeInput): CriticNodes
     },
     ...(unattributed.length > 0 ? { assets: unattributed } : {}),
     metadata: {
-      // CompletionResult.status is the single-member literal type "complete" - its presence IS the
-      // completion, so this mirrors the node's own status ternary three lines above: a run with no
-      // completion_result has not reached that state yet, which "pending" names rather than guesses.
       status: completion?.status ?? "pending",
       ...(completion?.completed_at ? { completedAt: completion.completed_at } : {}),
       ...(unattributed.length > 0 ? { unattributedAssetCount: unattributed.length } : {}),
@@ -202,11 +192,6 @@ export function buildCriticAndTerminalNodes(input: CriticNodeInput): CriticNodes
     }),
   ];
 
-  // B25.4: an explicit, justified residual cycle, not the pushback loop B25.2 retired. The
-  // completeness critic runs once, after every task's own validator has already passed it — there
-  // is no `critic_round` counter and no second critic node to forward into, so unlike a repair
-  // round this finding has nowhere later in the graph to point at. Modelling it as a fresh node
-  // would mean inventing a round the run never recorded.
   for (const { taskId, findingIds } of gatesForCriticFindings(review, tasks)) {
     edges.push(
       createEdge({

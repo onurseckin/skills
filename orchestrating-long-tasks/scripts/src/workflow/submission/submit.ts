@@ -1,11 +1,17 @@
 import { createHash } from "node:crypto";
 import { HarnessError } from "../../errors/harness-error.ts";
+import type { Evidenced } from "../../contracts/evidence.ts";
 import type { JsonObject } from "../../contracts/json.ts";
 import { tokenMatches } from "../lease/token.ts";
 import { jsonCopy, requireText, taskIn, transition, utc } from "../task-state.ts";
 import { systemClock, type Clock, type TransactionPort } from "../types.ts";
 import { validateReport } from "./validate-report.ts";
 import { assertPublishedTaskPacket } from "../packet-authority.ts";
+
+export interface EffortEvidenceOptions {
+  currentWriteScopeContentHash?: Evidenced<string>;
+  noOp?: { reason: string };
+}
 
 export function submitTask(
   port: TransactionPort,
@@ -14,11 +20,14 @@ export function submitTask(
   token: string,
   reportValue: unknown,
   clock: Clock = systemClock,
+  effortEvidence: EffortEvidenceOptions = {},
 ): { state: ReturnType<TransactionPort["read"]>; orphaned: boolean } {
   agentId = requireText(agentId, "agent_id");
   const now = clock.now();
   let orphaned = false;
-  const state = port.transact(agentId, "task-submitted", { task_id: taskId }, (draft) => {
+  const payload: JsonObject = { task_id: taskId };
+  if (effortEvidence.noOp) payload.no_op_reason = effortEvidence.noOp.reason;
+  const state = port.transact(agentId, "task-submitted", payload, (draft) => {
     const task = taskIn(draft, taskId);
     const lease = task.lease;
     const expiredAttempt = [...task.attempts]
@@ -52,11 +61,33 @@ export function submitTask(
     if (!["leased", "running"].includes(task.status)) {
       throw new HarnessError("INVALID_STATE", "task is not accepting a submission");
     }
-    // The packet is the agent's copy of its role contract; without a published one nothing binds the
-    // submitter to the capabilities it is claiming, so the submission is refused rather than trusted.
-    // Orphan evidence above is deliberately exempt: preserving a dead agent's work is not an act of
-    // authority, and refusing it would destroy the only record of what that agent did.
     assertPublishedTaskPacket(draft, taskId, lease.role, agentId, lease.attempt);
+
+    const claimedHash = lease.write_scope_content_hash;
+    const submittedHash = effortEvidence.currentWriteScopeContentHash;
+    if (claimedHash !== undefined && submittedHash !== undefined) {
+      const unchanged = claimedHash.value === submittedHash.value;
+      if (unchanged && !effortEvidence.noOp) {
+        throw new HarnessError(
+          "INVALID_STATE",
+          `task ${taskId} write scope (${task.write_scope.join(", ")}) is byte-identical to its content at claim; nothing was written. Submit --no-op --reason "<why>" if this task legitimately needed no change, or make the change its write scope requires.`,
+        );
+      }
+      if (!unchanged && effortEvidence.noOp) {
+        throw new HarnessError(
+          "INVALID_ARGUMENT",
+          `task ${taskId} write scope changed since claim; --no-op is only for a submission that changed nothing`,
+        );
+      }
+      if (unchanged && effortEvidence.noOp) {
+        task.no_op = {
+          reason: requireText(effortEvidence.noOp.reason, "no_op reason"),
+          declared_by: agentId,
+          at: utc(now),
+        };
+      }
+    }
+
     task.report = report;
     delete task.lease;
     const latestAttempt = task.attempts.at(-1);

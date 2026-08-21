@@ -59,7 +59,6 @@ export function buildPromptAndPlanNodes(input: CoreNodeInput): CoreNodes {
     badge: { text: `${tasks.length} Tasks`, variant: "info", icon: "IconHierarchy2" },
     badges: [
       {
-        // The label says where the waves came from, so a derived partition never reads as recorded.
         label:
           steps.waveSource.value === "recorded"
             ? `${waveCount} recorded waves`

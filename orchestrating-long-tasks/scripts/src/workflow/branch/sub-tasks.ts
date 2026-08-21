@@ -94,8 +94,6 @@ export function claimSubTask(input: ClaimSubTaskInput): SubTaskOutcome {
 }
 
 export function submitSubTask(input: SubmitSubTaskInput): BranchOutcome {
-  // B21: a sub-task submission is a lifecycle transition, so its summary is required at the point
-  // the transition actually happens, not only where the CLI happens to parse flags.
   requireText(input.summary, "summary");
   const now = input.now ?? new Date();
   let ledgerAfter: BranchRecord[] = [];

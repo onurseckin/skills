@@ -51,7 +51,6 @@ export interface RegisterAgentInput {
   actor: string;
   maxAgents: number;
   telemetry: GrantTelemetryInput;
-  /** The host's own config, probed automatically at the CLI boundary rather than asked of the agent. */
   derivedTelemetry?: DerivedTelemetryInput;
   now?: Date;
 }
@@ -63,7 +62,6 @@ export interface AgentReportInput {
   tools: readonly AgentToolRef[];
   tokensIn?: number;
   tokensOut?: number;
-  /** Provider-specific counters keyed by the name the caller reported them under. */
   tokenExtras?: Readonly<Record<string, number>>;
   tokensEstimated: boolean;
   now?: Date;
@@ -81,17 +79,9 @@ export interface AgentGrantOutcome {
   grant: AgentGrantRecord;
   ledger: AgentGrantRecord[];
   state: RunState;
-  /** Present only where a derived probe ran alongside an explicit report and the two disagreed. */
   conflicts?: readonly TelemetryFieldConflict[];
 }
 
-/**
- * A tier or thinking level typed on the CLI is whatever the calling process (usually the
- * coordinator relaying what it was told) claims — nothing here confirms it came from the host
- * itself, so it earns the same `agent_reported` class as `--tool` rather than `host_reported`
- * (B39 finding 1). An explicit "unknown" is the one exception: that is a claim of not knowing,
- * not an unverified claim of fact, so it keeps the `unknown` class instead.
- */
 function explicitLevel<T extends string>(value: T): Evidenced<T> {
   return evidenced(value, value === "unknown" ? "unknown" : "agent_reported");
 }
@@ -110,16 +100,6 @@ type GrantTelemetryFields = Pick<
   | "tools_used"
 >;
 
-/**
- * Every one of these arrives as free-text CLI input from whichever process called the harness —
- * indistinguishable, mechanically, from `--tool` below, which has always correctly carried
- * `agent_reported`. Nothing here confirms the value actually came from the host; that confirmation
- * is what `probeAgentTelemetry`'s two real sources — `detectHostTelemetry` reading the host's own
- * config, `readAgentTranscriptTelemetry` reading its own transcript (B34) — separately earn,
- * merged in afterward by `mergeTelemetry` below. Stamping these `host_reported` unconditionally
- * was B39 finding 1: a caller could type a nonexistent model id and have it recorded as though the
- * host had attested to it.
- */
 function telemetryFields(telemetry: GrantTelemetryInput): GrantTelemetryFields {
   return {
     ...(telemetry.provider === undefined
@@ -128,7 +108,9 @@ function telemetryFields(telemetry: GrantTelemetryInput): GrantTelemetryFields {
     ...(telemetry.model === undefined
       ? {}
       : { model: evidenced(telemetry.model, "agent_reported") }),
-    ...(telemetry.modelTier === undefined ? {} : { model_tier: explicitLevel(telemetry.modelTier) }),
+    ...(telemetry.modelTier === undefined
+      ? {}
+      : { model_tier: explicitLevel(telemetry.modelTier) }),
     ...(telemetry.thinkingLevel === undefined
       ? {}
       : { thinking_level: explicitLevel(telemetry.thinkingLevel) }),
@@ -141,11 +123,6 @@ function telemetryFields(telemetry: GrantTelemetryInput): GrantTelemetryFields {
   };
 }
 
-/**
- * Folds a derived host-config probe and a transcript read into the explicitly reported telemetry.
- * Model tier is deliberately untouched: nothing legitimately infers a tier from a model string, so
- * neither probe ever carries one and there is no field here to merge it into.
- */
 function mergeTelemetry(
   telemetry: GrantTelemetryInput,
   derived: DerivedTelemetryInput | undefined,
@@ -213,12 +190,8 @@ export function registerAgentGrant(input: RegisterAgentInput): AgentGrantOutcome
           `agent ${input.agentId} already holds a grant in this run`,
         );
       }
-      // Lineage only closes if the parent is already on the ledger, so an unregistered parent is
-      // refused rather than recorded as a dangling reference.
       if (input.parentAgentId !== null) requireGrant(ledger, input.parentAgentId);
       requireKnownTask(draft, input.parentTaskId);
-      // Last, so a duplicate id or a dangling parent is still named for what it is when the run is
-      // sitting on the budget line.
       assertAgentBudget(ledger, 1, input.maxAgents);
       const grant: AgentGrantRecord = {
         id: input.agentId,
@@ -245,17 +218,6 @@ export function registerAgentGrant(input: RegisterAgentInput): AgentGrantOutcome
   };
 }
 
-/**
- * Tools arrive over the CLI from the agent, not from the host runtime, so they carry the
- * `agent_reported` class — the same class every other explicitly-reported field above now carries,
- * since none of them are facts the host itself handed over either (B39 finding 1). Only a value
- * `probeAgentTelemetry` actually reads off the host's own config or transcript earns `derived` or
- * `harness_observed`.
- *
- * A tool already on the ledger keeps the moment it was first seen; a later report may still attach
- * the category and extras it did not carry the first time, because that is new information rather
- * than a correction.
- */
 function mergeTools(
   existing: readonly AgentToolUse[],
   reported: readonly AgentToolRef[],
@@ -282,13 +244,6 @@ function mergeTools(
   return merged;
 }
 
-/**
- * The counters a host keeps beyond input and output, each labelled the same way the totals are —
- * `agent_reported` for a plain `--token-extra` typed on the CLI (B39 finding 1: nothing here
- * verifies the caller relayed it honestly), `derived` and flagged `is_estimated` only when
- * `--tokens-estimated` says so outright. A later report replaces a counter it names and leaves
- * every other one standing.
- */
 function mergeTokenExtras(
   existing: Record<string, Evidenced<number>> | undefined,
   reported: Readonly<Record<string, number>> | undefined,
@@ -302,8 +257,6 @@ function mergeTokenExtras(
   return merged;
 }
 
-/** Same rule as `mergeTokenExtras` above: a plain `--tokens-in`/`--tokens-out` count is unverified
- * CLI input, not a host attestation, unless a transcript probe later corroborates it. */
 function tokenCount(value: number | undefined, isEstimate: boolean): Evidenced<number> | undefined {
   if (value === undefined) return undefined;
   return isEstimate ? estimated(value) : evidenced(value, "agent_reported");
@@ -373,9 +326,6 @@ export function recordAgentReport(input: AgentReportInput): AgentGrantOutcome {
 }
 
 export function releaseAgentGrant(input: ReleaseAgentInput): AgentGrantOutcome {
-  // B21: releasing a grant terminates or closes out an agent's participation in the run, one of
-  // the transitions B21.1 names outright — refused here, at the transition itself, rather than
-  // trusting the CLI flag parser a future caller of this function could bypass.
   requireText(input.reason, "reason");
   const releasedAt = (input.now ?? new Date()).toISOString();
   let updated: AgentGrantRecord | undefined;

@@ -25,13 +25,9 @@ export interface TaskNodeContext {
   manifest?: Manifest | undefined;
   runRoot?: string | undefined;
   ledger: AgentLedgerView;
-  /** Assets this task's implementer owns, already deduplicated against the rest of the dataset. */
   implementerAssets: MediaAsset[];
-  /** Assets the validator owns. The two lists never overlap. */
   validatorAssets: MediaAsset[];
-  /** Every rejected round this task lived through before the one described above, oldest first. */
   archivedRounds: ArchivedRoundContext[];
-  /** `archivedRounds.length + 1` — the round number `taskNodeId`/`validatorNodeId` describe. */
   totalRounds: number;
 }
 
@@ -59,9 +55,6 @@ export function mapGateStatus(task: TaskRecord): NodeStatus {
   return "pending";
 }
 
-// B12.2: several domains can be open at once; the earliest-started one is the representative
-// identity for the single validator-node-per-round shape this graph still draws (see
-// graph-task-preparation.ts's own note on why the fallback below is deliberately narrower).
 export function resolveValidatorId(task: TaskRecord): string | undefined {
   const open = earliestOpenValidation(task);
   if (open?.validator_id) return open.validator_id;
@@ -72,7 +65,6 @@ export function resolveValidatorId(task: TaskRecord): string | undefined {
   return undefined;
 }
 
-/** The identity a node's work should be attributed to, or nothing when the run never recorded one. */
 export function resolveImplementerId(task: TaskRecord): string | undefined {
   return task.lease?.agent_id ?? task.repair_assignee ?? task.original_implementer;
 }

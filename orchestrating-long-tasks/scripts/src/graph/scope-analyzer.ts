@@ -40,7 +40,6 @@ export function normalizeScopePath(path: string): string {
   return normalized;
 }
 
-/** The deeper pattern names the collision: it is the one whose files the broader scope swallows. */
 function moreSpecific(left: string, right: string): string {
   const depth = left.split("/").length - right.split("/").length;
   if (depth !== 0) return depth > 0 ? left : right;
@@ -60,8 +59,6 @@ export function checkScopeOverlap(
       if (a === b) {
         return { hasOverlap: true, conflictingPath: a, relation: "exact_match" };
       }
-      // Detection is `scopeConflict`, the same predicate the scheduler serializes on, so plan time
-      // and run time cannot disagree about which declarations collide.
       if (scopeConflict([a], [b])) {
         return { hasOverlap: true, conflictingPath: moreSpecific(a, b), relation: "parent_child" };
       }

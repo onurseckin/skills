@@ -3,9 +3,7 @@ import { join, relative, resolve } from "node:path";
 import { scanSource, type ScannedSource } from "./scanner.ts";
 
 export interface SourceFile {
-  /** Absolute path. */
   readonly path: string;
-  /** Path relative to the root the sweep started from, always with forward slashes. */
   readonly relative: string;
   readonly text: string;
   readonly scan: ScannedSource;

@@ -70,15 +70,6 @@ function listedPaths(
   }));
 }
 
-// A path source that shells out to git (repositoryContentPaths, the default) can transiently
-// disagree with itself between two calls microseconds apart under the same fork+exec scheduling
-// hazard repository-git-command.ts already retries elsewhere — here it surfaces as the whole
-// listing differing rather than one command's output being empty. Observed directly, not inferred:
-// tests/unit/reporting/handoff-triggers.test.ts's "sealing the run rewrites it against the
-// completed state" threw the error below under real concurrent-agent load with no write anywhere
-// between the two reads (this scan is read-only). Re-reading a few times before accepting a
-// disagreement as real keeps the check honest — a genuine concurrent write keeps disagreeing across
-// every retry and still throws exactly as before.
 const CONTENT_LISTING_SETTLE_RETRIES = 3;
 const CONTENT_LISTING_SETTLE_DELAY_MS = 20;
 

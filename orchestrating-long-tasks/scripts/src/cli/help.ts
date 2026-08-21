@@ -14,10 +14,6 @@ export interface HelpRequest {
   readonly command: string | null;
 }
 
-// `--help` cannot survive parseArguments (it rejects a leading dash), so the request is recognised
-// from raw argv before parsing. Anything after a bare `--` belongs to a child command, and a
-// `--help` standing in value position (`plan:add --label --help`) is a label, not a help request —
-// hence the flag-position walk rather than a plain includes().
 export function helpRequest(argv: readonly string[]): HelpRequest | null {
   const boundary = argv.indexOf("--");
   const scanned = boundary === -1 ? argv : argv.slice(0, boundary);

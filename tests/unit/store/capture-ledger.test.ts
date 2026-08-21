@@ -9,7 +9,10 @@ import {
   type CaptureRecord,
 } from "../../../orchestrating-long-tasks/scripts/src/store/captures.ts";
 import { verifyCapsuleLayout } from "../../../orchestrating-long-tasks/scripts/src/store/layout-integrity.ts";
-import { linkBlobIntoView, putBlobFile } from "../../../orchestrating-long-tasks/scripts/src/store/blobs.ts";
+import {
+  linkBlobIntoView,
+  putBlobFile,
+} from "../../../orchestrating-long-tasks/scripts/src/store/blobs.ts";
 
 const roots: string[] = [];
 
@@ -168,7 +171,12 @@ describe("the capture ledger is the one home for capture attribution", () => {
     // second file would no longer count as well-formed.
     const view = linkBlobIntoView(root, blob, "evidence/screenshots", "shot.png");
     recordCaptures(root, [
-      capture({ sha256: blob.sha256, blob_path: blob.path, path: view.view_path, storage: view.storage }),
+      capture({
+        sha256: blob.sha256,
+        blob_path: blob.path,
+        path: view.view_path,
+        storage: view.storage,
+      }),
     ]);
 
     expect(verifyCapsuleLayout(root)).toEqual([]);
@@ -181,7 +189,12 @@ describe("the capture ledger is the one home for capture attribution", () => {
     const blob = putBlobFile(root, join(root, "source", "shot.png"));
     const view = linkBlobIntoView(root, blob, "evidence/screenshots", "shot.png");
     recordCaptures(root, [
-      capture({ sha256: blob.sha256, blob_path: blob.path, path: view.view_path, storage: "hardlink" }),
+      capture({
+        sha256: blob.sha256,
+        blob_path: blob.path,
+        path: view.view_path,
+        storage: "hardlink",
+      }),
     ]);
     // Break the link: replacing the linked file (not editing it in place, which would edit the
     // blob too — they share an inode) leaves the same bytes at a different inode than the blob.

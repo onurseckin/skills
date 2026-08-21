@@ -74,8 +74,6 @@ export function renderCritic(context: ReportContext): string[] {
               proof.evidence.map((item) => `${item.kind} ${item.reference}`),
               "; ",
             ),
-            // The observation is the critic's own account of why the cited evidence proves the
-            // requirement; the kind/reference pair alone names what was looked at, not what it showed.
             joinOrNone(
               proof.evidence.map((item) => item.observation),
               "; ",
@@ -96,10 +94,11 @@ export function renderCritic(context: ReportContext): string[] {
             textOrUnknown(typeof entry.status === "string" ? entry.status : null),
             code(textOrUnknown(typeof entry.event_head === "string" ? entry.event_head : null)),
             joinOrNone(
-              objectArray(entry.issues).map((issue) =>
-                `${textOrUnknown(typeof issue.code === "string" ? issue.code : null)}: ${textOrUnknown(
-                  typeof issue.message === "string" ? issue.message : null,
-                )}`,
+              objectArray(entry.issues).map(
+                (issue) =>
+                  `${textOrUnknown(typeof issue.code === "string" ? issue.code : null)}: ${textOrUnknown(
+                    typeof issue.message === "string" ? issue.message : null,
+                  )}`,
               ),
               "; ",
             ),
@@ -157,9 +156,6 @@ export function renderCritic(context: ReportContext): string[] {
   return section("16. Completeness Critic", lines);
 }
 
-/** A conflict's recorded/probed value is a plain JSON scalar in every case this codebase produces
- * today (a model id, a token count, an agent id), but the field is typed for any JSON value — so an
- * object or array a future field puts there still renders instead of coming out as `[object Object]`. */
 function conflictValueText(value: unknown): string {
   if (value === null || value === undefined) return UNKNOWN;
   if (typeof value === "string") return value;
@@ -178,8 +174,6 @@ export function renderTelemetry(context: ReportContext): string[] {
     evidencedText(agent.tokens_in, (value) => value.toLocaleString()),
     evidencedText(agent.tokens_out, (value) => value.toLocaleString()),
   ]);
-  // Counters only some hosts keep, under the names those hosts used. A run whose host counts
-  // nothing unusual simply has no rows here.
   const extraRows = context.agents.flatMap((agent) =>
     Object.entries(agent.token_extras ?? {}).map(([name, counter]) => [
       code(agent.id),
@@ -187,8 +181,6 @@ export function renderTelemetry(context: ReportContext): string[] {
       evidencedText(counter, (value) => value.toLocaleString()),
     ]),
   );
-  // Every field where two independent reads disagreed. Neither value is dropped to make room for a
-  // winner — both are shown, each with the evidence class it actually earned (B32.1, B39).
   const conflictRows = context.agents.flatMap((agent) =>
     (agent.telemetry_conflicts ?? []).map((conflict) => [
       code(agent.id),
@@ -227,7 +219,14 @@ export function renderTelemetry(context: ReportContext): string[] {
     ...(conflictRows.length === 0
       ? note("No probe ever disagreed with an explicitly reported value.")
       : table(
-          ["Agent", "Field", "Recorded value", "Recorded evidence", "Probed value", "Probed evidence"],
+          [
+            "Agent",
+            "Field",
+            "Recorded value",
+            "Recorded evidence",
+            "Probed value",
+            "Probed evidence",
+          ],
           conflictRows,
         )),
     "",

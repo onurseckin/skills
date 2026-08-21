@@ -18,17 +18,11 @@ export function validateProbe(value: unknown): ProbeInput {
   }
   const probe = value as Record<string, unknown>;
   if (!Array.isArray(probe.findings) || probe.findings.length === 0) {
-    // The whole point of the probe is the demand it carries; an empty probe would be a ritual.
     throw new HarnessError("INVALID_ARGUMENT", "a probe requires at least one demand");
   }
   return jsonCopy({ findings: probe.findings } as ProbeInput);
 }
 
-/**
- * An adversarial probe demands proof; it does not claim a defect. The task therefore stays in
- * `validating` under the same validator, `repair_round` is untouched, and the demands are closed
- * later by the revalidation proof any passing review already has to supply.
- */
 export function recordProbe(
   port: TransactionPort,
   taskId: string,
@@ -39,7 +33,6 @@ export function recordProbe(
   const now = clock.now();
   const round = probeRoundsRecorded(taskIn(port.read(), taskId)) + 1;
   const probe = validateProbe(probeValue);
-  // Ids are read for the event payload before the transaction opens, so they are checked here too.
   const findingIds = probe.findings.map((finding) => requireText(finding.id, "finding.id"));
   return port.transact(
     validatorId,
@@ -47,7 +40,8 @@ export function recordProbe(
     { task_id: taskId, round, finding_ids: findingIds },
     (draft) => {
       const task = taskIn(draft, taskId);
-      const mine = task.status === "validating" ? validationForValidator(task, validatorId) : undefined;
+      const mine =
+        task.status === "validating" ? validationForValidator(task, validatorId) : undefined;
       if (!mine) {
         throw new HarnessError("INVALID_STATE", "validator does not own the current validation");
       }

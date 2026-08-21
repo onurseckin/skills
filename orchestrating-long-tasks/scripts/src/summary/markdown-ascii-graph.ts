@@ -24,7 +24,6 @@ export interface AsciiTask {
 }
 
 export interface AsciiWave {
-  /** `null` when no topology recorded the task; the drawing says so instead of inventing a wave. */
   wave: number | null;
   taskIds: string[];
 }
@@ -62,11 +61,6 @@ function drawBranches(branches: readonly AsciiBranch[], indent: string): string[
   return lines;
 }
 
-/**
- * The run's shape as a terminal reader sees it: waves top to bottom, every task of one wave under
- * that wave's header, branch excursions hanging off the task that opened them. Deliberately ASCII
- * and deliberately in the document — a diagram that needs a renderer is not a report.
- */
 export function renderTaskGraphAscii(input: AsciiGraphInput): string[] {
   const tasks = new Map(input.tasks.map((task) => [task.id, task]));
   if (input.tasks.length === 0) return ["(no tasks were compiled into this run)"];

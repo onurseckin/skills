@@ -29,11 +29,19 @@ export const PLANTED = {
 } as const;
 
 /**
- * A gate has to perform substantive verification, and the restricted diff check is the cheapest
- * command that qualifies. Spawning a language runtime per gate is what made this fixture too slow
- * to live in the unit suite.
+ * A gate has to perform substantive verification, and it has to be genuinely tied to the one task's
+ * own write scope: A3-gate-discrimination (`graph/plan-audit.ts`) refuses a plan where two tasks with
+ * disjoint write scopes share byte-identical gate argv, because such a gate passes whether either
+ * task did its work or nothing at all. `git diff --check` is whole-repo by construction — the grammar
+ * `graph/gate-tool-grammar.ts` accepts for it takes no path operand at all — so it cannot be split
+ * into two per-task variants; it is reserved for `RUN_GATE` below, which runs once at the run level
+ * and is never compared against a task gate. Each task instead gets its own `test -f <path-in-its-own-
+ * scope>`: a real binary spawn (no language runtime, so this stays cheap enough for the unit suite)
+ * whose one operand is that task's own scope path, so the two tasks can never collide on argv the way
+ * a shared `git diff --check` did.
  */
-const TASK_GATE = ["git", "diff", "--check"];
+const TASK_GATE_ALPHA = ["test", "-f", "src/alpha/index.ts"];
+const TASK_GATE_BETA = ["test", "-f", "src/beta/index.ts"];
 const RUN_GATE = ["git", "diff", "--cached", "--check"];
 
 export interface CompletenessRun {
@@ -106,16 +114,16 @@ async function plan(run: string): Promise<void> {
     "--open-question": PLANTED.planQuestion,
     "--source": PLANTED.planSource,
   });
-  for (const [id, label, scope, line] of [
-    ["task-alpha", "Alpha parser", "src/alpha", "1"],
-    ["task-beta", "Beta writer", "src/beta", "2"],
+  for (const [id, label, scope, line, gate] of [
+    ["task-alpha", "Alpha parser", "src/alpha", "1", TASK_GATE_ALPHA],
+    ["task-beta", "Beta writer", "src/beta", "2", TASK_GATE_BETA],
   ] as const) {
     await cli("plan:add", {
       "--run": run,
       "--id": id,
       "--label": label,
       "--scope": scope,
-      "--gate": TASK_GATE.join(" "),
+      "--gate": gate.join(" "),
       "--actor": "coordinator-1",
       "--requirement-lines": line,
     });
@@ -175,6 +183,9 @@ async function runAlpha(repo: string, run: string, issue: Issue): Promise<void> 
     { "--run": run, "--task": "task-alpha", "--actor": "worker-alpha", "--cwd": repo },
     ["echo", "alpha-implementation"],
   );
+  // C4: task:submit refuses a submission whose write scope is byte-identical to its content at
+  // claim; seedRepository wrote this file before the task was even planned, let alone claimed.
+  writeFileSync(join(repo, "src", "alpha", "index.ts"), "export const alpha = 2;\n");
   await cli("task:submit", {
     "--run": run,
     "--task": "task-alpha",
@@ -199,7 +210,7 @@ async function runAlpha(repo: string, run: string, issue: Issue): Promise<void> 
       "--actor": "val-alpha",
       "--cwd": repo,
     },
-    TASK_GATE,
+    TASK_GATE_ALPHA,
   );
   await cli("task:reject", {
     "--run": run,
@@ -222,6 +233,12 @@ async function runAlpha(repo: string, run: string, issue: Issue): Promise<void> 
     "run:exec",
     { "--run": run, "--task": "task-alpha", "--actor": "worker-alpha", "--cwd": repo },
     ["echo", "alpha-repair"],
+  );
+  // C4: the repair claim's baseline is round 1's already-changed content, so the repair needs its
+  // own further change to avoid a byte-identical resubmission.
+  writeFileSync(
+    join(repo, "src", "alpha", "index.ts"),
+    "export const alpha = 2;\nexport const alphaFixture = true;\n",
   );
   await cli("task:submit", {
     "--run": run,
@@ -249,7 +266,7 @@ async function runAlpha(repo: string, run: string, issue: Issue): Promise<void> 
       "--actor": "val-alpha-2",
       "--cwd": repo,
     },
-    TASK_GATE,
+    TASK_GATE_ALPHA,
   );
   await cli("task:probe", {
     "--run": run,
@@ -364,7 +381,7 @@ async function runBeta(repo: string, run: string, issue: Issue): Promise<string>
       "--actor": "val-beta",
       "--cwd": repo,
     },
-    TASK_GATE,
+    TASK_GATE_BETA,
   );
   await cli("task:probe", {
     "--run": run,

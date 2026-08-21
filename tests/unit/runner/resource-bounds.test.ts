@@ -164,9 +164,9 @@ describe("runner resource bounds", () => {
     expect(classifySignals(130, inspectFailureText("explicit host interruption"), null)).toBe(
       "unknown",
     );
-    expect(
-      classifySignals(1, inspectFailureText("tests failed\nservice unavailable"), null),
-    ).toBe("test_failure");
+    expect(classifySignals(1, inspectFailureText("tests failed\nservice unavailable"), null)).toBe(
+      "test_failure",
+    );
   });
 
   test("contains a daemon that escapes before the first ancestry snapshot", async () => {

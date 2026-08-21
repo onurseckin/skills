@@ -2,8 +2,6 @@ import { isJsonObject, type JsonObject, type JsonValue } from "../../contracts/j
 import { HarnessError } from "../../errors/harness-error.ts";
 import { checkScopeOverlap } from "../../graph/scope-analyzer.ts";
 
-/** Where a repair task's revalidation gate came from. There is no fourth option: an unresolved
- *  gate is an error, never a guess, because the gate becomes the task's mandatory proof. */
 export type GateSource = "flag" | "finding" | "parent_task";
 
 export interface PlannedTaskBinding {
@@ -29,9 +27,6 @@ function stringList(value: JsonValue | undefined): string[] {
     : [];
 }
 
-/** Accepts both gate spellings the capsule stores: a shell-ish string and an argv list. Distinct
- *  from reporting/action-types.ts's gateArgv, which builds a run:exec invocation from a GateView
- *  rather than tokenizing a raw stored command field. */
 export function parseGateArgv(command: JsonValue | undefined): string[] | undefined {
   const parts =
     typeof command === "string"
@@ -49,9 +44,6 @@ function gateEntries(state: JsonObject): readonly JsonValue[] {
   return graph !== undefined && Array.isArray(graph.gates) ? graph.gates : [];
 }
 
-/** The graph compiler mints task gate ids as `gate-<task id minus its `task-` prefix>`; repair
- *  waves mint `gate-<task id>`. Both spellings are checked so an inherited gate is a real lookup
- *  rather than a scan for something that merely looks related. */
 function gateIdCandidates(taskId: string): readonly string[] {
   return [`gate-${taskId.replace(/^task-?/, "")}`, `gate-${taskId}`];
 }
@@ -91,7 +83,6 @@ export function readPlanBindings(state: JsonObject): PlanBindings {
   return { tasks, requirementIds };
 }
 
-/** Planned tasks whose write scope the repair cluster lands inside. */
 export function parentTasks(
   bindings: PlanBindings,
   writeScope: readonly string[],
@@ -111,7 +102,6 @@ function distinctArgv(candidates: readonly (readonly string[])[]): string[][] {
 export interface GateRequest {
   readonly taskId: string;
   readonly writeScope: readonly string[];
-  /** Gates the findings declared for themselves, already parsed into argv. */
   readonly declared: readonly (readonly string[])[];
   readonly flagGate: readonly string[] | undefined;
 }
@@ -147,9 +137,6 @@ export function resolveClusterGate(bindings: PlanBindings, request: GateRequest)
   );
 }
 
-/** Cluster-level twin of task-finding-input.ts's resolveFindingRequirement: that one binds a
- *  finding to a requirement the finding's own task already owns, this one derives a requirement
- *  for a repair cluster from the planned tasks whose scope it inherits. */
 export function resolveClusterFindingRequirement(
   bindings: PlanBindings,
   declared: string | undefined,

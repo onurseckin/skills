@@ -39,7 +39,6 @@ export function generateSummarySuite(options: SummaryGenerationOptions): Summary
   const promptText = loaded.prompt ? new TextDecoder().decode(loaded.prompt) : "";
   const commandsDir = join(loaded.runRoot, "commands");
   const diskCommands = loadCommandsFromDir(commandsDir);
-  // Bridge store projection RunState to WorkflowState contract
   const state = loaded.state as unknown as WorkflowState;
 
   const timeline = collectTimeline(loaded.events, loaded.manifest.prompt_bytes);

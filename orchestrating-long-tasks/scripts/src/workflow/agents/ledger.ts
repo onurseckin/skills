@@ -4,11 +4,6 @@ import { HarnessError } from "../../errors/harness-error.ts";
 
 export const AGENT_LEDGER_KEY = "agents";
 
-/**
- * Capsules written before the ledger existed carry no `agents` key at all; that is an empty ledger,
- * not a defect. A key that is present but malformed can only come from a hand-edited state file, so
- * it is an integrity failure rather than something to repair silently.
- */
 export function readAgentLedger(state: JsonObject): AgentGrantRecord[] {
   const raw = state[AGENT_LEDGER_KEY];
   if (raw === undefined) return [];
@@ -55,12 +50,6 @@ export function replaceGrant(
   return ledger.map((grant) => (grant.id === updated.id ? updated : grant));
 }
 
-/**
- * The run-wide cost control. Every grant ever issued counts, released ones included, because the
- * budget is on agents deployed rather than agents alive; breadth and depth are charged identically,
- * which is what the old depth cap failed to do. Refused, never silently truncated: the coordinator
- * has to see that the run ran out of budget and decide what to do about it.
- */
 export function assertAgentBudget(
   ledger: readonly AgentGrantRecord[],
   additional: number,
@@ -73,11 +62,6 @@ export function assertAgentBudget(
   );
 }
 
-/**
- * Task ids a grant may bind to. Branch sub-tasks are execution-time subdivisions that never enter
- * `state.tasks`, so a sub-agent dispatched onto one is still bindable; anything else is refused
- * rather than recorded as a reference to a task that does not exist.
- */
 export function knownTaskIds(state: JsonObject): Set<string> {
   const ids = new Set<string>();
   const tasks = state.tasks;

@@ -33,12 +33,6 @@ function evidenceItems(value: unknown, requirementId: string): CompletionEvidenc
   });
 }
 
-/**
- * Parses critic-supplied requirement proofs. Nothing is defaulted: a malformed payload is an error
- * rather than a proof, because the alternative is a sign-off the critic never wrote. Returns the
- * proofs the critic actually supplied; requirements it left out stay absent and are recorded
- * `unproven` downstream.
- */
 export function parseRawProofs(
   proofsRaw: string | undefined,
   proofsFile: string | undefined,

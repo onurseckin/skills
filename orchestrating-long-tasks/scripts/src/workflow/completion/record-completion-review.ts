@@ -52,16 +52,11 @@ export function recordCompletionReview(
   if (typeof value !== "object" || value === null || Array.isArray(value))
     throw new HarnessError("INVALID_ARGUMENT", "completion review must be an object");
   const input = value as Record<string, unknown>;
-  // B21: recording the completion review is the run's final lifecycle closure, so the critic's own
-  // account of what the whole diff shows is refused here — at the transition itself — rather than
-  // trusted to a CLI flag a future caller of this function could bypass or drop before it arrives.
   const summary = requireText(input.summary, "summary");
   const packetId =
     typeof input.packet_id === "string" && input.packet_id.trim() ? input.packet_id : "direct";
   const criticToken = requireText(input.critic_token, "critic_token");
   const packetSha = input.packet_sha256;
-  // A review without a published packet carries no digest at all; an empty string would read as a
-  // recorded value that happens to be blank.
   if (
     packetSha !== undefined &&
     (typeof packetSha !== "string" || !/^[0-9a-f]{64}$/u.test(packetSha))
@@ -84,8 +79,6 @@ export function recordCompletionReview(
   const repositoryIds = stringList(input.repository_command_ids, "repository_command_ids", false);
   const checks = commandChecks(input.checks);
   const now = clock.now();
-  // B21.3: the step this event produces must carry the critic's own account, not just the packet
-  // id — a run reconstructed from graph.json steps alone should show what the critic actually said.
   return port.transact(
     criticId,
     "completion-reviewed",
@@ -151,8 +144,6 @@ export function recordCompletionReview(
       const unproven = assessment.requirement_proofs
         .filter((proof) => proof.status === "unproven")
         .map((proof) => proof.requirement_id);
-      // A clean verdict is the critic asserting the whole requirement set holds. It may not be
-      // recorded while any requirement is unproven, or the sign-off proves itself.
       if (input.status === "clean" && unproven.length > 0)
         throw new HarnessError(
           "INVALID_STATE",

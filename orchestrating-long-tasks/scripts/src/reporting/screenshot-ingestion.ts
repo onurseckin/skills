@@ -32,16 +32,6 @@ function mtimeIso(path: string): string | undefined {
   }
 }
 
-/**
- * A file the command did not write while it was running is not that command's output. No upper
- * bound: a process may flush its last file after it exits, and dropping those would lose real
- * evidence to guard against a defect the lower bound already closes.
- *
- * A caller that names no window is claiming no execution at all — a task-level scan of the
- * repository, not a command that ran. It has nothing to have produced the file with, so the scan
- * is not evidence of authorship. That is different from a window the harness recorded but cannot
- * parse, where a command demonstrably ran and only the clock reading is lost.
- */
 function writtenDuringRun(path: string, startedAt: string | null | undefined): boolean {
   if (startedAt === undefined || startedAt === null || startedAt.length === 0) return false;
   const start = Date.parse(startedAt);
@@ -53,18 +43,6 @@ function writtenDuringRun(path: string, startedAt: string | null | undefined): b
   }
 }
 
-/**
- * Whether this capture may be recorded as the caller's work.
- *
- * Three things are evidence of that, and nothing else is: the caller named the path, the command
- * printed the path itself, or the file was written while the command was running. A stale image
- * sitting at the repository root satisfies none of them, so it is still stored — the bytes are real
- * — but it is recorded unattributed rather than credited to whichever command scanned it first.
- * Crediting it is what put one image on every command in a run.
- *
- * A scan that ran no command satisfies none of them either, so a task-level sweep of the repository
- * records what it finds without claiming it.
- */
 function attributable(
   path: string,
   named: ReadonlySet<string>,
@@ -74,11 +52,6 @@ function attributable(
   return named.has(path) || cited.has(path) || writtenDuringRun(path, startedAt);
 }
 
-/**
- * A readable name for the blob. Content that already has a name keeps it; a different image landing
- * on a taken name is disambiguated by its own digest rather than by the id of whatever command
- * happened to ingest it — that prefixing is what defeated the old dedupe guard.
- */
 function viewName(original: string, sha256: string, takenNames: ReadonlySet<string>): string {
   const base = sanitizeFilename(basename(original));
   if (!takenNames.has(base)) return base;
@@ -99,13 +72,6 @@ function ownership(options: {
   };
 }
 
-/**
- * Stores every newly captured image once and gives it a readable name.
- *
- * The dedupe guard is content: bytes already in the ledger are the same capture, so a later sighting
- * of an unchanged file adds no record and no bytes. The returned records are the ones this call
- * newly recorded, which is why a repeated scan returns nothing rather than a second copy.
- */
 export function ingestScreenshots(options: ScreenshotIngestOptions): ScreenshotRecord[] {
   const { runRoot, searchDirs = [], stdout, stderr, explicitPaths, startedAt } = options;
 
@@ -165,16 +131,10 @@ export function ingestScreenshots(options: ScreenshotIngestOptions): ScreenshotR
     });
   }
 
-  // The catalogue counts captures but is not chain-bound, so nothing else brings it back into
-  // agreement with a ledger that just grew.
   if (recordCaptures(runRoot, ingested)) refreshIndex(runRoot);
   return ingested;
 }
 
-/**
- * Stores the visual report exactly as it was written and returns what it says. The bytes on disk are
- * the capture; the parsed shape is a reading of it, and is not written back as a second copy.
- */
 export function ingestVisualReport(options: VisualReportIngestOptions): VisualMetricsReport | null {
   const { runRoot, searchDirs = [], stdout, stderr, explicitPaths, startedAt } = options;
 

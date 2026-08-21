@@ -28,7 +28,6 @@ export interface TaskEdgeFactoryParams {
   files: FileRef[];
   findings: NodeFinding[];
   validatorCommands: readonly CommandRecord[];
-  /** Every rejected round the run archived, oldest first. Empty for a task still on round 1. */
   archivedRounds: readonly ArchivedRoundContext[];
   isGateDone: boolean;
 }
@@ -37,7 +36,6 @@ function isProbeDemand(finding: NodeFinding): boolean {
   return finding.class === "probe_demand";
 }
 
-/** Round 1's own node id, whether that round was archived or is still the live one. */
 function round1TaskNodeId(params: TaskEdgeFactoryParams): string {
   return params.archivedRounds[0]?.taskNodeId ?? params.taskNodeId;
 }
@@ -58,9 +56,6 @@ function dispatchEdge(params: TaskEdgeFactoryParams): GraphEdgeData {
   });
 }
 
-/** One spawn edge per round that has a validator: every archived round always did, and the live
- *  round does whenever it has been assigned one. Each is spawned by the coordinator, never by the
- *  implementer it audits. */
 function validatorSpawnEdges(params: TaskEdgeFactoryParams): GraphEdgeData[] {
   const { task, validatorNodeId, validatorId, gateStep, archivedRounds } = params;
   const edges: GraphEdgeData[] = archivedRounds.map((round) =>
@@ -117,8 +112,6 @@ function validatorSpawnEdges(params: TaskEdgeFactoryParams): GraphEdgeData[] {
   return edges;
 }
 
-/** Every archived round's own hand-off to its own validator, mirroring `submissionEdges` below but
- *  for a round that is no longer the live one. */
 function archivedHandoffEdges(params: TaskEdgeFactoryParams): GraphEdgeData[] {
   return params.archivedRounds.map((round) =>
     createEdge({
@@ -135,9 +128,6 @@ function archivedHandoffEdges(params: TaskEdgeFactoryParams): GraphEdgeData[] {
   );
 }
 
-/** With a validator the work is handed to it; without one the submission reaches the gate directly.
- *  Always describes the live/current round — an archived round's own hand-off is built separately,
- *  above, since it never reaches this task's shared gate. */
 function submissionEdges(params: TaskEdgeFactoryParams): GraphEdgeData[] {
   const { task, taskNodeId, gateNodeId, validatorNodeId, taskStep, gateStep, files } = params;
   const detail = files.length > 0 ? `${files.length} files changed` : "Diff submission";
@@ -198,14 +188,6 @@ function submissionEdges(params: TaskEdgeFactoryParams): GraphEdgeData[] {
   ];
 }
 
-/**
- * The chain of rejections, each pointing forward at whichever round followed it — another archived
- * round when one exists, otherwise the live round. Every source here happened strictly before its
- * target, so none of this can ever close a cycle (B25.2). Only the last transition — the one that
- * produced the round the run is still on — carries the finding detail and a possible reassignment;
- * an earlier, fully-superseded round has nothing beyond the fact of its own rejection, because that
- * is all `validation_history` kept once it was superseded.
- */
 function archivedRoundTransitionEdges(params: TaskEdgeFactoryParams): GraphEdgeData[] {
   const { task, taskNodeId, archivedRounds, findings, taskStep, gateStep } = params;
   const edges: GraphEdgeData[] = [];
@@ -244,7 +226,9 @@ function archivedRoundTransitionEdges(params: TaskEdgeFactoryParams): GraphEdgeD
           kind: "backtrack",
           stepNumber: `${taskStep} -> ${gateStep}`,
           title: `Reassigned (${task.replacement_reason})`,
-          detail: task.repair_assignee ? `Repairer: ${task.repair_assignee}` : "Implementer replaced",
+          detail: task.repair_assignee
+            ? `Repairer: ${task.repair_assignee}`
+            : "Implementer replaced",
           variant: "error",
           icon: "IconRotate",
         }),
@@ -255,17 +239,9 @@ function archivedRoundTransitionEdges(params: TaskEdgeFactoryParams): GraphEdgeD
   return edges;
 }
 
-/**
- * A probe is a demand for proof and never punishes the implementer, so it leaves the live round's
- * validator and forwards into the gate — the same downstream node its own verdict already reaches
- * via `submissionEdges`'s "Records Verdict" edge — rather than looping back to the implementer it
- * demanded proof from. A pushback with no archived round behind it (an older capsule, or
- * `repair_round` moved without a `validation_history` entry to back it) forwards the same way: the
- * live fields still say the round was rejected, so it is still shown, just with nowhere later to
- * point at beyond the gate that will carry the task's status regardless.
- */
 function liveRoundFeedbackEdges(params: TaskEdgeFactoryParams): GraphEdgeData[] {
-  const { task, gateNodeId, validatorNodeId, taskStep, gateStep, findings, archivedRounds } = params;
+  const { task, gateNodeId, validatorNodeId, taskStep, gateStep, findings, archivedRounds } =
+    params;
   const edges: GraphEdgeData[] = [];
   const source = validatorNodeId ?? gateNodeId;
 
@@ -298,7 +274,9 @@ function liveRoundFeedbackEdges(params: TaskEdgeFactoryParams): GraphEdgeData[] 
           kind: "backtrack",
           stepNumber: `${taskStep} -> ${gateStep}`,
           title: `Reassigned (${task.replacement_reason})`,
-          detail: task.repair_assignee ? `Repairer: ${task.repair_assignee}` : "Implementer replaced",
+          detail: task.repair_assignee
+            ? `Repairer: ${task.repair_assignee}`
+            : "Implementer replaced",
           variant: "error",
           icon: "IconRotate",
         }),

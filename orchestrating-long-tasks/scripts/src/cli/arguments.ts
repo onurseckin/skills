@@ -1,8 +1,6 @@
 import { HarnessError } from "../errors/harness-error.ts";
 
 export type FlagValue = string | true;
-// A repeatable flag always lands as an ordered list, even for a single occurrence, so callers never
-// have to branch on arity.
 export type FlagValues = FlagValue | readonly FlagValue[];
 
 export interface FlagShape {
@@ -18,8 +16,6 @@ export interface ParsedArguments {
   remainder: string[];
 }
 
-// Without registry shapes the parser cannot know which flags carry a value; these are the ones every
-// command shares, so a missing value is still caught for an unregistered invocation.
 const ALWAYS_VALUED: readonly string[] = ["run", "repo", "task", "actor"];
 
 const FLAG_NAME = /^[a-z][a-z0-9-]*$/;
@@ -29,9 +25,6 @@ function takesValue(name: string, shapes: FlagShapes | undefined): boolean {
   return shape === undefined ? ALWAYS_VALUED.includes(name) : shape.takesValue;
 }
 
-// A token starting with `--` is normally the next flag. It is only swallowed as a value when the
-// registry says the current flag carries one AND the token is not itself a flag of this command,
-// which is what lets `--label --help` mean a label of "--help" rather than a help request.
 function consumesFollowing(
   name: string,
   following: string | undefined,
@@ -84,8 +77,6 @@ export function parseArguments(argv: readonly string[], shapes?: FlagShapes): Pa
   return { command, flags: { ...singles, ...repeats }, remainder };
 }
 
-// The flag names a token walk would actually treat as flags, used to tell a real `--help` from one
-// standing in value position. Positionals are ignored here; parseArguments is what rejects them.
 export function flagPositions(tokens: readonly string[], shapes?: FlagShapes): string[] {
   const names: string[] = [];
   for (let index = 0; index < tokens.length; index += 1) {

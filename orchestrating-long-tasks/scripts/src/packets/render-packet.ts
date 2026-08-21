@@ -25,17 +25,10 @@ function jsonSection(title: string, value: unknown): string {
   return section(title, `\`\`\`json\n${JSON.stringify(value, null, 2)}\n\`\`\``);
 }
 
-/**
- * A read-only branch role's contract forbids touching repository files, so its sub-task paths are
- * handed over as the resources it is scoped to rather than as a write scope the contract denies in
- * the very same packet.
- */
 const READ_ONLY_BRANCH_ROLES: ReadonlySet<string> = new Set(["sub-investigator", "sub-validator"]);
 const VALIDATION_ROLES: ReadonlySet<string> = new Set(["sub-validator", "validator"]);
 
 function roleContext(input: PacketInput): JsonObject {
-  // A sub-validator inherits the validator's isolation: it is dispatched to verify, so implementer
-  // narrative would contaminate its findings exactly as it would the parent's.
   if (VALIDATION_ROLES.has(input.role)) return isolateValidatorContext(input.authoritativeContext);
   if (input.role === "completeness-critic") return criticContext(input);
   return structuredClone(input.authoritativeContext);
@@ -45,8 +38,6 @@ function taskContract(input: PacketInput): JsonObject | null {
   const bound = input.task ?? input.subTask;
   if (!bound) return null;
   const contract = structuredClone(bound) as JsonObject;
-  // A validator's copy of the contract keeps every fact of the task and none of the last round's
-  // conclusions: the findings it recorded arrive as the demands they carry, not as verdicts.
   return VALIDATION_ROLES.has(input.role)
     ? validatorTaskContract(excludeValidatorContamination(contract), input.task)
     : contract;
@@ -78,8 +69,6 @@ export function buildPacket(input: PacketInput): BuiltPacket {
   if (input.role !== "planner") validateRepositoryInspectionPair(input.authoritativeContext);
   const context = roleContext(input);
   const common = verifyCommonInstructions(input.commonInstructions);
-  // null genuinely means "no task or sub-task" — the packet is for the run as a whole, not a
-  // missing id standing in for one that exists.
   const taskId = input.task?.id ?? input.subTask?.id ?? null;
   const requirementIds = input.task?.requirement_ids ?? [];
   const mappedRequirements = input.state.requirements.filter((requirement) =>
@@ -98,8 +87,6 @@ export function buildPacket(input: PacketInput): BuiltPacket {
     task_id: taskId,
     attempt: input.attempt,
     requirement_ids: requirementIds,
-    // What the packet withheld, named: the prose exclusions and the conclusion-bearing fields a
-    // validation role never receives.
     excluded_fields: VALIDATION_ROLES.has(input.role)
       ? [...new Set([...VALIDATOR_EXCLUSIONS, ...CONCLUSION_EXCLUSIONS])].sort()
       : [],
@@ -118,15 +105,11 @@ export function buildPacket(input: PacketInput): BuiltPacket {
         }
       : {}),
   };
-  // The round-N record is lifted out of the context so it is rendered as demands and measurements
-  // rather than dumped as a JSON blob a reader would scan as one more set of prior conclusions.
   const { [VALIDATION_ROUND_KEY]: validationRound, ...remainingContext } = context;
   const sections = [
     `# ${input.role} packet`,
     section(
       "Identity",
-      // A null taskId is the absence of a task, not an unknown one: this packet was issued at run
-      // level, so the line reports no task rather than naming one the packet never carried.
       `Run: ${input.runId}\nTask: ${taskId ?? "none - run-level packet"}\nAttempt: ${input.attempt}`,
     ),
     section("Role contract", roleContract.text),

@@ -91,8 +91,6 @@ function requirementProofs(state: WorkflowState, value: unknown): CompletionRequ
       evidence: evidenceItems(proof.evidence, `proof ${id}`),
     });
   }
-  // A requirement the critic did not prove is recorded as unproven rather than dropped or assumed:
-  // the review stays a complete map of the requirement set, and the gap blocks completion.
   const proofs = [...byId.keys()].map(
     (id) => supplied.get(id) ?? { requirement_id: id, status: "unproven" as const, evidence: [] },
   );

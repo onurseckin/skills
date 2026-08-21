@@ -8,7 +8,6 @@ import {
   type ExitCodeSpec,
 } from "./types.ts";
 
-// run:exec reports the child exit code in the record; the CLI itself still exits 0 on a failing gate.
 const EXEC_EXIT_CODES: readonly ExitCodeSpec[] = [
   { code: 0, meaning: "SUCCESS - the command ran; read exit_code for the child's own result" },
   ...DEFAULT_EXIT_CODES.slice(1),

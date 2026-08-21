@@ -4,11 +4,6 @@ import { findingClassOf, type FindingClass } from "../../workflow/review/finding
 import type { RevalidationProof } from "../../workflow/review/validate-review.ts";
 import { listFlag, type Flags } from "../options.ts";
 
-/**
- * How an answer is labelled once the validator has named the finding and cited the command that
- * answers it. The label restates the finding's own class; it never stands in for the naming, which
- * only the validator can do.
- */
 const METHOD_BY_CLASS: Record<FindingClass, string> = {
   defect: "verification_passed",
   probe_demand: "probe_demand_answered",
@@ -34,11 +29,6 @@ function methodFor(finding: Finding, explicit: string | undefined): string {
   return METHOD_BY_CLASS[declared];
 }
 
-/**
- * A probe demand asks the implementation to prove something and a defect asks it to be fixed;
- * neither is answered by the harness noticing that some validator command happened to succeed. The
- * validator names the finding and the command that answers it, or the finding stays open.
- */
 export function resolutionProofs(
   flags: Flags,
   taskId: string,
@@ -85,7 +75,6 @@ export function resolutionProofs(
   });
 }
 
-/** A rejection records a finding; it closes none, so an answer given with one is a mistake. */
 export function assertNoResolutions(flags: Flags): void {
   const given = [
     ...(listFlag(flags, "resolve") ?? []),

@@ -9,32 +9,25 @@ import { evidenced, type Evidenced, type EvidenceClass } from "../../contracts/e
 import type { JsonObject } from "../../contracts/json.ts";
 import { HarnessError } from "../../errors/harness-error.ts";
 import { loadRun, transact } from "../../store/index.ts";
-import { findGrant, readAgentLedger, replaceGrant, requireGrant, writeAgentLedger } from "./ledger.ts";
+import {
+  findGrant,
+  readAgentLedger,
+  replaceGrant,
+  requireGrant,
+  writeAgentLedger,
+} from "./ledger.ts";
 import type { AgentTranscriptTelemetry, TranscriptToolCall } from "./transcript-telemetry.ts";
 
-/**
- * The host's own on-disk configuration for one agent, read automatically rather than reported by a
- * flag. `capabilities` is an open bag because it names facts about the host itself (nesting depth,
- * concurrency, native primitives) that the grant record has no field for and does not need one for —
- * they are audit context, not part of the agent's contract.
- */
 export interface DerivedTelemetryInput {
-  /** The host runtime the values below were read off, which need not be the one the dispatcher
-   * declared for the agent; recording it keeps a capability from being read as the declared host's. */
   hostTool?: string;
   provider?: string;
   model?: string;
   thinkingLevel?: ThinkingLevel;
   contextWindow?: number;
   capabilities?: JsonObject;
-  /** Ground truth read off the host's own transcript of this agent (B34) — distinct from the fields
-   * above, which come from a static config file. This is `harness_observed`, not `derived`: it is
-   * what the host recorded actually happening, not a setting that merely implies it. */
   transcript?: AgentTranscriptTelemetry;
 }
 
-// The type lives on the contract (`AgentGrantRecord.telemetry_conflicts` carries it to disk), not
-// here — re-exported so every existing caller of this module keeps importing it from here too.
 export type { TelemetryFieldConflict } from "../../contracts/agents.ts";
 
 export interface TelemetryProbeOutcome {
@@ -44,14 +37,6 @@ export interface TelemetryProbeOutcome {
   conflicts?: readonly TelemetryFieldConflict[];
 }
 
-/**
- * One field, two candidate sources. An explicit report always keeps the ledger's field — that is
- * what the field has always meant, a claim someone stood behind — but a probed value that disagrees
- * is never dropped silently: it goes into `conflicts` instead of overwriting anything. A probed
- * value only ever fills a field that has no explicit report at all, and does so tagged with
- * whichever evidence class its source earns — `derived` for a config file, `harness_observed` for a
- * transcript the host itself wrote.
- */
 export function mergeDerivedField<T extends number | string>(
   explicit: Evidenced<T> | undefined,
   probed: T | undefined,
@@ -73,13 +58,6 @@ export function mergeDerivedField<T extends number | string>(
   return explicit;
 }
 
-/**
- * A count read off a transcript is a running total, not a one-time report: re-probing the same
- * agent later is expected to see it grow, so a `harness_observed` value is refreshed in place on
- * every read rather than being treated as a fixed fact that a later reading might "conflict" with.
- * An explicit, non-estimated report from the host is the one thing this never overwrites — a
- * disagreement with THAT is recorded, never silently replaced.
- */
 export function mergeObservedCount(
   explicit: Evidenced<number> | undefined,
   observed: number | undefined,
@@ -87,7 +65,11 @@ export function mergeObservedCount(
   conflicts: TelemetryFieldConflict[],
 ): Evidenced<number> | undefined {
   if (observed === undefined) return explicit;
-  if (explicit === undefined || explicit.is_estimated === true || explicit.evidence_class === "harness_observed") {
+  if (
+    explicit === undefined ||
+    explicit.is_estimated === true ||
+    explicit.evidence_class === "harness_observed"
+  ) {
     return evidenced(observed, "harness_observed");
   }
   if (explicit.value !== observed) {
@@ -102,12 +84,6 @@ export function mergeObservedCount(
   return explicit;
 }
 
-/**
- * Same refresh-in-place policy as `mergeObservedCount`, per counter. Disagreement on an individual
- * extra is not tracked as a `TelemetryFieldConflict` — a host can report a dozen cache/reasoning
- * counters, and flagging every one that drifts from a transcript reading would bury the conflicts
- * that matter (provider, model, the totals) under noise about counters nothing else consumes.
- */
 export function mergeObservedExtras(
   existing: Record<string, Evidenced<number>> | undefined,
   observed: Readonly<Record<string, number>> | undefined,
@@ -116,19 +92,17 @@ export function mergeObservedExtras(
   const merged: Record<string, Evidenced<number>> = { ...existing };
   for (const [name, count] of Object.entries(observed)) {
     const current = merged[name];
-    if (current === undefined || current.is_estimated === true || current.evidence_class === "harness_observed") {
+    if (
+      current === undefined ||
+      current.is_estimated === true ||
+      current.evidence_class === "harness_observed"
+    ) {
       merged[name] = evidenced(count, "harness_observed");
     }
   }
   return merged;
 }
 
-/**
- * Tool usage read straight off the transcript, tagged `harness_observed` rather than the
- * `agent_reported` class a CLI `--tool` flag earns — the two evidence classes coexist per tool name
- * because a self-report and a transcript read can both exist for the very same call. Call and
- * failure counts are running totals refreshed on every read, matching `mergeObservedCount` above.
- */
 export function mergeObservedTools(
   existing: readonly AgentToolUse[] | undefined,
   observed: readonly TranscriptToolCall[] | undefined,
@@ -144,7 +118,12 @@ export function mergeObservedTools(
     );
     const extras = { calls: tool.calls, failures: tool.failures };
     if (index === -1) {
-      merged.push({ name: tool.name, extras, evidence_class: "harness_observed", first_reported_at: at });
+      merged.push({
+        name: tool.name,
+        extras,
+        evidence_class: "harness_observed",
+        first_reported_at: at,
+      });
       continue;
     }
     const previous = merged[index]!;
@@ -153,11 +132,6 @@ export function mergeObservedTools(
   return merged;
 }
 
-/**
- * Audit context for the event log: what a transcript read found beyond the fields the grant record
- * has room for — lineage the ledger cannot express (spawn depth has no field) and the run this agent
- * was dispatched inside, kept beside the event rather than lost because the schema has no slot.
- */
 export interface TranscriptAuditContext extends JsonObject {
   source_path: string;
   agent_type?: string;
@@ -181,12 +155,6 @@ export function transcriptAuditContext(
   };
 }
 
-/**
- * The grant declares its parent at registration time and the field is a plain string, not an
- * `Evidenced<T>` — there is no slot on the record itself to hold a second, disagreeing value. The
- * transcript's own lineage is still never dropped: a disagreement becomes a `TelemetryFieldConflict`
- * exactly like any other field, even though nothing here overwrites the declared parent.
- */
 export function checkParentAgentConflict(
   declaredParentAgentId: string | null,
   transcript: AgentTranscriptTelemetry | undefined,
@@ -203,14 +171,6 @@ export function checkParentAgentConflict(
   });
 }
 
-/**
- * Conflicts accumulate on the grant across every probe that ever ran against it, at
- * `agent:register` and every task-boundary refresh after — a disagreement `task:claim` found is
- * still true after `task:submit` re-probes and finds the identical pair, so folding the same round
- * in twice (e.g. a derived config value that never changes) never re-adds it (B39). Compared on
- * every field of the record, not just `field` and the two values, because two disagreements on the
- * same field with different evidence classes on either side are two distinct, both real, findings.
- */
 export function appendTelemetryConflicts(
   existing: readonly TelemetryFieldConflict[] | undefined,
   incoming: readonly TelemetryFieldConflict[],
@@ -231,7 +191,6 @@ export function appendTelemetryConflicts(
   return merged;
 }
 
-/** The subset of `AgentGrantRecord` that a derived or transcript probe can ever fill or refresh. */
 export type MergeableTelemetryFields = Pick<
   AgentGrantRecord,
   | "provider"
@@ -244,11 +203,6 @@ export type MergeableTelemetryFields = Pick<
   | "tools_used"
 >;
 
-/**
- * One merge pass shared by `agent:register` and every task-boundary refresh: transcript evidence is
- * folded in first (§`mergeDerivedField`'s doc), config-file evidence second, and only what actually
- * changes appears in the returned object — callers spread the result over their base to update it.
- */
 export function applyDerivedTelemetry(
   base: MergeableTelemetryFields,
   derived: DerivedTelemetryInput | undefined,
@@ -285,7 +239,12 @@ export function applyDerivedTelemetry(
     conflicts,
   );
   const tokensIn = mergeObservedCount(base.tokens_in, transcript?.tokensIn, "tokens_in", conflicts);
-  const tokensOut = mergeObservedCount(base.tokens_out, transcript?.tokensOut, "tokens_out", conflicts);
+  const tokensOut = mergeObservedCount(
+    base.tokens_out,
+    transcript?.tokensOut,
+    "tokens_out",
+    conflicts,
+  );
   const tokenExtras = mergeObservedExtras(base.token_extras, transcript?.tokenExtras);
   const toolsUsed = mergeObservedTools(base.tools_used, transcript?.tools, observedAt);
   return {
@@ -325,20 +284,11 @@ export interface RefreshAgentTelemetryInput {
   runRoot: string;
   agentId: string;
   actor: string;
-  /** Which CLI boundary triggered this probe, recorded so the audit trail says where it ran. */
   boundary: string;
   derived: DerivedTelemetryInput;
   now?: Date;
 }
 
-/**
- * The probe that runs automatically at `task:claim`, `task:submit` and `agent:release` — never a
- * separate command, never a round-trip to the agent. It only ever touches a grant that already
- * exists and is still active: an agent that never registered, or one already released, has nothing
- * on the ledger to attach a probe to, so this returns `null` rather than manufacturing one. A call
- * that finds nothing new and no conflict writes no event at all, so a run that never drifts stays
- * quiet instead of gaining one telemetry event per task boundary.
- */
 export function refreshAgentDerivedTelemetry(
   input: RefreshAgentTelemetryInput,
 ): TelemetryProbeOutcome | null {
@@ -389,7 +339,6 @@ export function refreshAgentDerivedTelemetry(
       const ledger = readAgentLedger(draft);
       const grant = requireGrant(ledger, input.agentId);
       if (grant.status === "released") {
-        // Released between the read above and this lock; nothing left to attach the probe to.
         updated = grant;
         ledgerAfter = ledger;
         return;

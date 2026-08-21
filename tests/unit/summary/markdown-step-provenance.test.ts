@@ -110,7 +110,9 @@ describe("summary.md: action provenance trace (B15.1)", () => {
       },
     ]);
     const markdown = render(emptyState, { graph });
-    expect(markdown).toMatch(/\| review \| `review-recorded` \| taskId=T-1 \| unknown \| harness_observed \|/);
+    expect(markdown).toMatch(
+      /\| review \| `review-recorded` \| taskId=T-1 \| unknown \| harness_observed \|/,
+    );
   });
 
   test("steps render in the chain's own order, not resorted", () => {

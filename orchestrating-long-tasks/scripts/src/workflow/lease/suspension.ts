@@ -1,11 +1,6 @@
 import type { JsonObject } from "../../contracts/json.ts";
 import { HarnessError } from "../../errors/harness-error.ts";
 
-/**
- * A lease whose holder is blocked on children must not be reaped: the parent is alive, it is simply
- * not the one doing the work. Suspension freezes the clock by stamping the moment it stopped, and
- * every expiry check consults `isLeaseSuspended` before treating a lease as stale.
- */
 export const LEASE_SUSPENDED_AT = "suspended_at";
 
 export function isLeaseSuspended(lease: JsonObject): boolean {
@@ -19,10 +14,6 @@ export function suspendLease(lease: JsonObject, at: Date): void {
   lease[LEASE_SUSPENDED_AT] = at.toISOString();
 }
 
-/**
- * Restores the clock with a fresh window rather than the remainder that was left when it froze: the
- * holder is being handed the work back and needs a full lease to finish it.
- */
 export function restoreLease(lease: JsonObject, at: Date, durationSeconds: number): void {
   if (!isLeaseSuspended(lease)) {
     throw new HarnessError("INVALID_STATE", "lease clock is not suspended");

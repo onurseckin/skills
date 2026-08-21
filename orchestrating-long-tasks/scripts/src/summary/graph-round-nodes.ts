@@ -14,12 +14,6 @@ export interface ArchivedRoundNodesInput {
   runRoot?: string | undefined;
 }
 
-/**
- * Round 1's implementer is the one prior identity the state machine keeps a direct field for
- * (`original_implementer`). A later superseded round had its own repairer too, but the run only
- * retains the most recent `repair_assignee`, so an earlier round's identity is absent rather than
- * borrowed from a round it was not.
- */
 function archivedImplementerAgentId(task: TaskRecord, round: number): string | undefined {
   return round === 1 ? task.original_implementer : undefined;
 }
@@ -37,7 +31,11 @@ function archivedImplementerNode(input: ArchivedRoundNodesInput): GraphNodeData 
     status: "warning",
     step: taskStep,
     stepLabel: `Round ${round.round}`,
-    badge: { text: `Superseded (Round ${round.round})`, variant: "warning", icon: "IconAlertTriangle" },
+    badge: {
+      text: `Superseded (Round ${round.round})`,
+      variant: "warning",
+      icon: "IconAlertTriangle",
+    },
     ...(telemetry ? { telemetry } : {}),
     scripts: [],
     files: [],
@@ -64,7 +62,11 @@ function archivedValidatorNode(input: ArchivedRoundNodesInput): GraphNodeData {
     status: "warning",
     step: taskStep,
     stepLabel: `Verification (Round ${round.round})`,
-    badge: { text: `Rejected (Round ${round.round})`, variant: "warning", icon: "IconAlertTriangle" },
+    badge: {
+      text: `Rejected (Round ${round.round})`,
+      variant: "warning",
+      icon: "IconAlertTriangle",
+    },
     ...(telemetry ? { telemetry } : {}),
     ...(tools.length > 0 ? { tools } : {}),
     scripts: buildNodeScripts(round.commands, runRoot),
@@ -82,12 +84,6 @@ function archivedValidatorNode(input: ArchivedRoundNodesInput): GraphNodeData {
   };
 }
 
-/**
- * Every superseded round gets its own implementer/validator pair, distinct from the live task's
- * ids. Their evidence is deliberately thin — no commands beyond what that round's validator cited,
- * no identity beyond what the state machine still records — because a fuller node here would mean
- * inventing evidence the run never kept once the round was superseded.
- */
 export function buildArchivedRoundNodes(input: ArchivedRoundNodesInput): GraphNodeData[] {
   return [archivedImplementerNode(input), archivedValidatorNode(input)];
 }

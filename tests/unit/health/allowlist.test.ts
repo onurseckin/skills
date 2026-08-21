@@ -161,8 +161,16 @@ describe("the opt-out list excuses code, and every entry says why", () => {
       },
     ];
     const { checks, stale } = applyAllowances(twoChecks, [
-      { check: "unused-code", key: collidingKey, reason: "genuinely excuses the unused-code finding" },
-      { check: "literal-fallbacks", key: collidingKey, reason: "stale: nothing under this check matches" },
+      {
+        check: "unused-code",
+        key: collidingKey,
+        reason: "genuinely excuses the unused-code finding",
+      },
+      {
+        check: "literal-fallbacks",
+        key: collidingKey,
+        reason: "stale: nothing under this check matches",
+      },
     ]);
     expect(checks[0]?.findings[0]?.acknowledged).toBe("genuinely excuses the unused-code finding");
     expect(stale).toHaveLength(1);

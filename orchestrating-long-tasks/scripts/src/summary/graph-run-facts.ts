@@ -49,7 +49,6 @@ function count(record: JsonObject, key: string): number | undefined {
   return typeof value === "number" && Number.isFinite(value) ? value : undefined;
 }
 
-/** A map keyed by digest, read for its values. An array is accepted for the same reason. */
 function inspectionsIn(value: unknown): JsonObject[] {
   if (Array.isArray(value)) return value.filter(isJsonObject);
   return isJsonObject(value) ? Object.values(value).filter(isJsonObject) : [];
@@ -59,7 +58,6 @@ function object(value: unknown): JsonObject | undefined {
   return isJsonObject(value) ? value : undefined;
 }
 
-/** A capsule file read for its contents. An unreadable file leaves the field absent, not empty. */
 function readCapsuleText(runRoot: string | undefined, relative: string): string | undefined {
   if (runRoot === undefined) return undefined;
   try {
@@ -81,11 +79,6 @@ function readCapsuleJson(runRoot: string | undefined, relative: string): JsonObj
   }
 }
 
-/**
- * The prompt, whole. `prompt_bytes` from the manifest is the harness's own count of the file it
- * captured; the length recomputed here would only restate what was decoded, so the manifest wins
- * when it has one.
- */
 function buildPrompt(input: RunFactsInput): RunPromptFacts {
   const manifest = input.manifest as unknown as JsonObject | undefined;
   const recordedBytes = manifest === undefined ? undefined : count(manifest, "prompt_bytes");
@@ -100,11 +93,6 @@ function buildPrompt(input: RunFactsInput): RunPromptFacts {
   };
 }
 
-/**
- * The enhanced plan is only ever a claim: the harness wrote and hashed the bytes, but an agent
- * supplied every sentence in them. That is why the whole record is stamped `agent_reported` even
- * though the digests beside it are measurements.
- */
 function buildEnhancedPlan(input: RunFactsInput): RunEnhancedPlanFacts | undefined {
   const planning = object((input.state as unknown as JsonObject).planning);
   const entry = planning === undefined ? undefined : object(planning.enhanced_plan);
@@ -142,11 +130,6 @@ function buildEnhancedPlan(input: RunFactsInput): RunEnhancedPlanFacts | undefin
   };
 }
 
-/**
- * `state.requirements` holds the compiled document, not a bare list: the requirements and the line
- * dispositions that produced them travel together, because a requirement without the prompt line it
- * came from cannot be traced back to anything.
- */
 function buildRequirements(state: Readonly<WorkflowState>): RunRequirementFacts | undefined {
   const document = object((state as unknown as JsonObject).requirements);
   if (document === undefined) return undefined;
@@ -161,7 +144,6 @@ function buildRequirements(state: Readonly<WorkflowState>): RunRequirementFacts 
       : {}),
     requirements,
     dispositions,
-    // Compiled from the prompt by the harness, which is a derivation, not an observation of work.
     evidence_class: "derived",
   };
 }
@@ -195,12 +177,6 @@ function buildCompletion(state: Readonly<WorkflowState>): RunCompletionFacts | u
   return Object.keys(facts).length > 0 ? facts : undefined;
 }
 
-/**
- * The submission, review, probe and critic reports the harness wrote to `reports/`. They are the one
- * home of several facts — a validator's verdict summary among them — so an export without them
- * cannot show what a reviewer actually said. Bearer tokens are already stored as digests, so the
- * documents travel as written.
- */
 function buildReports(runRoot: string | undefined): RunReportFacts[] | undefined {
   if (runRoot === undefined) return undefined;
   let names: string[];
@@ -220,19 +196,11 @@ function buildReports(runRoot: string | undefined): RunReportFacts[] | undefined
   return reports.length > 0 ? reports : undefined;
 }
 
-/**
- * One event of the append-only chain. The chain is the only ordered record of what happened when,
- * so it travels whole apart from `projection`: that field is a full state snapshot taken at every
- * event, which would repeat the final state once per event and would carry each command's child
- * environment — the live ownership token included — into a file meant for a browser. The state it
- * snapshots is exported once, in full, everywhere else in this object.
- */
 function redactedEvent(event: HarnessEvent): JsonObject {
   const { projection: _projection, ...rest } = event;
   return rest;
 }
 
-/** Which repository the run was bound to, and every reading the harness took of it. */
 function buildRepository(state: Readonly<WorkflowState>): RunRepositoryFacts | undefined {
   const raw = state as unknown as JsonObject;
   const facts: RunRepositoryFacts = {
@@ -248,7 +216,6 @@ function buildRepository(state: Readonly<WorkflowState>): RunRepositoryFacts | u
     ...(text(raw, "current_repository_inspection_sha256") !== undefined
       ? { currentInspectionSha256: text(raw, "current_repository_inspection_sha256") }
       : {}),
-    // The inspections are stored under their own digests, so the values are the readings.
     ...(inspectionsIn(raw.repository_inspections).length > 0
       ? { inspections: inspectionsIn(raw.repository_inspections) }
       : {}),
@@ -257,7 +224,6 @@ function buildRepository(state: Readonly<WorkflowState>): RunRepositoryFacts | u
   return Object.keys(facts).length > 1 ? facts : undefined;
 }
 
-/** Where the event chain stood when this export was taken. */
 function buildIntegrity(state: Readonly<WorkflowState>): RunIntegrityFacts | undefined {
   const raw = state as unknown as JsonObject;
   const eventHead = raw.event_head;
@@ -277,18 +243,12 @@ function buildIntegrity(state: Readonly<WorkflowState>): RunIntegrityFacts | und
   return Object.keys(facts).length > 1 ? facts : undefined;
 }
 
-/** Gate definitions live on the compiled plan graph, which is where the gate nodes get their ids. */
 function buildGates(state: Readonly<WorkflowState>): JsonObject[] | undefined {
   const graph = object((state as unknown as JsonObject).graph);
   const gates = graph === undefined ? [] : objectsIn(graph.gates);
   return gates.length > 0 ? gates : undefined;
 }
 
-/**
- * Everything the run recorded that belongs to no single node. Nothing here is computed from a name
- * or a shape: a fact the capsule does not hold is simply left out, so a reader can tell "the run
- * never recorded this" from "the exporter dropped it".
- */
 export function buildRunFacts(input: RunFactsInput): RunFacts {
   const manifest = input.manifest as unknown as JsonObject | undefined;
   const taskOrder = stringsIn((input.state as unknown as JsonObject).task_order);
@@ -311,8 +271,6 @@ export function buildRunFacts(input: RunFactsInput): RunFacts {
   const repository = buildRepository(input.state);
   const integrity = buildIntegrity(input.state);
   const events = (input.events ?? []).map(redactedEvent);
-  // The same chain, projected into the typed action-provenance trace (B15.1). Built from the
-  // unredacted events so target resolution sees every payload field, not the browser-safe copy.
   const steps = input.events !== undefined ? collectActionSteps(input.events) : [];
 
   return {

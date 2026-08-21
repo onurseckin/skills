@@ -1,23 +1,9 @@
-/**
- * The declared shape of a capsule.
- *
- * Grouping is by lifecycle — who owns a fact and how long it lives — not by which code path happens
- * to write it. `role` is that lifecycle: a PRIMARY entry is the only copy of a fact and losing it
- * loses the fact; a DERIVED entry is a cache that may be deleted and rebuilt; a VIEW holds no bytes
- * of its own; an EXPORT is the one place repetition is deliberate.
- *
- * `responsibility` is the one line B5 demands. A directory whose line is hard to write is a
- * directory that should not exist, so the line is a design check, not documentation.
- */
-
 export type LayoutRole = "anchor" | "primary" | "derived" | "view" | "export" | "runtime";
 
 export interface LayoutEntry {
-  /** Path relative to the capsule root. A trailing "/" marks a directory. */
   readonly name: string;
   readonly role: LayoutRole;
   readonly responsibility: string;
-  /** Created by initRun. Everything else appears when the run first produces it. */
   readonly createdAtInit: boolean;
 }
 
@@ -133,7 +119,6 @@ export const CAPSULE_LAYOUT: readonly LayoutEntry[] = [
   },
 ];
 
-/** Directory that holds run locks, a sibling of the capsules rather than a member of one. */
 export const LOCKS_DIRECTORY = ".locks";
 
 const DECLARED = new Set(CAPSULE_LAYOUT.map((entry) => entry.name.replace(/\/$/u, "")));
@@ -166,7 +151,6 @@ const ROLE_MEANING: readonly string[] = [
   "- **RUNTIME** — a pinned, verified copy of the code executing this run, not a fact about it.",
 ];
 
-/** The layout note B5 asks for: one line per entry, generated from the declaration above. */
 export function renderLayoutReadme(runId: string): string {
   const width = Math.max(...CAPSULE_LAYOUT.map((entry) => entry.name.length));
   const rows = CAPSULE_LAYOUT.map(

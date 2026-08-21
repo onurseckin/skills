@@ -1,23 +1,16 @@
 import { escalateTask, type SupervisorEscalationReason } from "../workflow/lease/escalate.ts";
 import { HarnessError } from "../errors/harness-error.ts";
-import { systemClock, type Clock, type TransactionPort, type WorkflowState } from "../workflow/types.ts";
+import {
+  systemClock,
+  type Clock,
+  type TransactionPort,
+  type WorkflowState,
+} from "../workflow/types.ts";
 import type { TaskRecord } from "../workflow/types.ts";
 import { reclaimDeadAgents, type DeadAgentEvent } from "./dead-agent-detector.ts";
 import { classifyFailure, type FailureRecord } from "./failure-classifier.ts";
 
-/**
- * The reclaim-and-escalate half of B28.2's supervisor loop: reclaim whatever died without being
- * told, and give up on whatever has clearly stopped being retriable (B28.3). Deliberately stateless
- * beyond the capsule itself — every input is either read fresh from the run or passed in by the
- * caller — so calling it again after a crash reaches the same answer a continuously-running process
- * would have (B28.2's "survives its own death").
- *
- * What is READY to dispatch is a separate question (`dispatch-selection.ts`): the scheduler needs
- * the full capsule's dependency graph, which this function's `TransactionPort` — deliberately scoped
- * to the narrower `WorkflowState` used for lease mutations — does not carry.
- */
 export interface SupervisionTickConfig {
-  /** B28.5: recovery is on by default. A caller must explicitly opt out, never the reverse. */
   readonly recoveryEnabled?: boolean;
   readonly graceSeconds?: number;
   readonly deterministicRepeatThreshold?: number;
@@ -44,29 +37,22 @@ interface StaleStreak {
   readonly current?: FailureRecord;
 }
 
-/**
- * The trailing run of dead-agent attempts at the tail of a task's history: consecutive attempts
- * `recoverStale` marked `stale_at` with no `submitted_at` after them. A voluntary release or a
- * still-active attempt breaks the run, because neither is evidence the task itself is unworkable.
- */
 function staleStreak(task: TaskRecord): StaleStreak {
   const streak: FailureRecord[] = [];
   for (let index = task.attempts.length - 1; index >= 0; index--) {
     const attempt = task.attempts[index]!;
     if (typeof attempt.stale_at !== "string") break;
-    streak.unshift({ signal: "crash", detail: "lease expired with no submission", at: attempt.stale_at });
+    streak.unshift({
+      signal: "crash",
+      detail: "lease expired with no submission",
+      at: attempt.stale_at,
+    });
   }
   if (streak.length === 0) return { count: 0, history: [] };
   const current = streak.at(-1)!;
   return { count: streak.length, history: streak.slice(0, -1), current };
 }
 
-/**
- * Escalates every task whose dead-agent streak has crossed into deterministic territory. A task
- * some other actor already moved out of an escalatable status (a concurrent human action, or an
- * earlier tick) is skipped rather than treated as a crash: the classifier's verdict about a task's
- * *history* does not override a state change the task has already undergone.
- */
 function escalateDeterministicallyDeadTasks(
   port: TransactionPort,
   actor: string,

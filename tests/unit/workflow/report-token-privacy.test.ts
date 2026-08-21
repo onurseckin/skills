@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { execute } from "../../../orchestrating-long-tasks/scripts/src/cli/execute.ts";
 import { tokenDigest } from "../../../orchestrating-long-tasks/scripts/src/workflow/lease/token.ts";
@@ -29,6 +29,10 @@ describe("bearer tokens in persisted reports", () => {
     ]);
     const workerToken = claim.token as string;
 
+    // C4: task:submit refuses a submission whose write scope is byte-identical to its content at
+    // claim, so the declared file has to actually exist and differ before it is claimed as changed.
+    mkdirSync(join(repo, "tests/unit/core"), { recursive: true });
+    writeFileSync(join(repo, "tests/unit/core/impl.ts"), "export const implemented = true;\n");
     await execute([
       "run:exec",
       "--run",
@@ -79,6 +83,10 @@ describe("bearer tokens in persisted reports", () => {
       "--role",
       "implementer",
     ]);
+    // C4: task:submit refuses a submission whose write scope is byte-identical to its content at
+    // claim, so the declared file has to actually exist and differ before it is claimed as changed.
+    mkdirSync(join(repo, "tests/unit/core"), { recursive: true });
+    writeFileSync(join(repo, "tests/unit/core/impl.ts"), "export const implemented = true;\n");
     await execute([
       "run:exec",
       "--run",

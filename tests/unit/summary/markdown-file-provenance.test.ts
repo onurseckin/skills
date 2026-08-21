@@ -42,7 +42,9 @@ describe("fileProvenanceTable (B15.2 overview)", () => {
       file: { path: "src/b.ts", evidence_class: "agent_reported" },
     };
     const rows = fileProvenanceTable([entry]);
-    expect(rows).toContain("| `src/b.ts` | `task-1` | unknown | unknown | unknown | unknown | agent_reported |");
+    expect(rows).toContain(
+      "| `src/b.ts` | `task-1` | unknown | unknown | unknown | unknown | agent_reported |",
+    );
   });
 
   test("additions of zero still render, distinct from unknown", () => {
@@ -51,7 +53,9 @@ describe("fileProvenanceTable (B15.2 overview)", () => {
       file: { path: "src/c.ts", additions: 0, deletions: 4 },
     };
     const rows = fileProvenanceTable([entry]);
-    expect(rows).toContain("| `src/c.ts` | `branch-1` | unknown | unknown | unknown | +0/-4 | unknown |");
+    expect(rows).toContain(
+      "| `src/c.ts` | `branch-1` | unknown | unknown | unknown | +0/-4 | unknown |",
+    );
   });
 });
 
@@ -65,7 +69,8 @@ describe("fileProvenanceDetails (B15.2 why and diff)", () => {
   });
 
   test("a file with a rationale and a diff carries both, the diff whole and unfenced-by-its-own-content", () => {
-    const diff = "--- a/src/a.ts\n+++ b/src/a.ts\n@@ -1 +1 @@\n-export const a = 1;\n+export const a = 2;";
+    const diff =
+      "--- a/src/a.ts\n+++ b/src/a.ts\n@@ -1 +1 @@\n-export const a = 1;\n+export const a = 2;";
     const entry: AttributedFileRef = {
       reportedBy: "task-1",
       file: {

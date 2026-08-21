@@ -1,11 +1,19 @@
-import { basename } from "node:path";
+import { basename, resolve } from "node:path";
 import { readFileSync } from "node:fs";
+import { getHarnessConfig } from "../../config/harness-config.ts";
 import { HarnessError } from "../../errors/harness-error.ts";
+import { dependencyMap } from "../../graph/dependency-map.ts";
+import { normalizeScopePath } from "../../graph/scope-analyzer.ts";
+import { projectPlan } from "../../graph/project-plan.ts";
+import { guardPlanRevision } from "../../graph/revision-guard.ts";
+import { isRecord } from "../../requirements/predicates.ts";
+import { recordTopology } from "../../scheduler/index.ts";
 import { loadRun } from "../../store/index.ts";
 import { transact } from "../../store/transaction.ts";
 import { formatPlanReplanBrief } from "../formatters/index.ts";
 import { partitionFindingsIntoScopes } from "../../workflow/scope-partitioner.ts";
 import { utc } from "../../workflow/task-state.ts";
+import type { Finding } from "../../contracts/workflow.ts";
 import type { TaskRecord, GateRuntime } from "../../workflow/types.ts";
 import { actorFlag, integerFlag, textFlag, type Flags } from "../options.ts";
 import { collectReplanFindings } from "./plan-replan-findings.ts";
@@ -22,8 +30,6 @@ export function planReplanCommand(flags: Flags): Record<string, unknown> {
   const actor = actorFlag(flags);
   const roundFlag = integerFlag(flags, "round");
   const gateFlag = textFlag(flags, "gate", false);
-  // An absent --gate stays absent. The gate becomes the repair task's mandatory proof, so a
-  // convenient default would be recorded as a measurement of something nobody chose to run.
   const flagGate = gateFlag === undefined ? undefined : parseGateArgv(gateFlag);
   if (gateFlag !== undefined && flagGate === undefined)
     throw new HarnessError("INVALID_ARGUMENT", "--gate must name a command");
@@ -51,8 +57,6 @@ export function planReplanCommand(flags: Flags): Record<string, unknown> {
   if (clusters.length === 0)
     throw new HarnessError("INVALID_STATE", "scope partitioner generated 0 clusters");
 
-  // Both bindings resolve before the transaction: a cluster the harness cannot bind to a real gate
-  // and a real requirement must abort the replan rather than reach state carrying a stand-in.
   const resolved = clusters.map((cluster) => {
     const gate = resolveClusterGate(bindings, {
       taskId: cluster.taskId,
@@ -76,7 +80,11 @@ export function planReplanCommand(flags: Flags): Record<string, unknown> {
     };
   });
 
-  const currentRev = (state.graph_revision as number | undefined) ?? 1;
+  const priorGraphRevision =
+    isRecord(state.graph) && typeof state.graph.revision === "number"
+      ? state.graph.revision
+      : undefined;
+  const currentRev = (state.graph_revision as number | undefined) ?? priorGraphRevision ?? 1;
   const nextRev = currentRev + 1;
 
   let totalTasksCount = 0;
@@ -91,6 +99,13 @@ export function planReplanCommand(flags: Flags): Record<string, unknown> {
       repair_round: repairRound,
     },
     (draft) => {
+      if (!isRecord(draft.graph)) {
+        throw new HarnessError(
+          "INVALID_STATE",
+          "plan:replan requires a compiled plan; run plan:compile first",
+        );
+      }
+
       draft.plan_history ??= [];
       (draft.plan_history as Record<string, unknown>[]).push({
         revision: currentRev,
@@ -98,54 +113,104 @@ export function planReplanCommand(flags: Flags): Record<string, unknown> {
         archived_at: utc(new Date()),
       });
 
-      draft.tasks ??= {};
-      const draftTasks = draft.tasks as Record<string, TaskRecord>;
+      const newGraph = structuredClone(draft.graph) as Record<string, unknown>;
+      const nodes = newGraph.nodes as Record<string, unknown>[];
+      const edges = newGraph.edges as Record<string, unknown>[];
+      const gates = ((newGraph.gates as GateRuntime[] | undefined) ?? []) as GateRuntime[];
+      newGraph.gates = gates;
+
+      let createdOrder = nodes.reduce((max, node) => {
+        return node.type === "task" && typeof node.created_order === "number"
+          ? Math.max(max, node.created_order)
+          : max;
+      }, 0);
 
       for (const { cluster, gate, requirementIds } of resolved) {
-        const revalidation = gate.argv.join(" ");
-        draftTasks[cluster.taskId] = {
-          id: cluster.taskId,
-          status: "ready",
-          requirement_ids: [...new Set(requirementIds)],
-          write_scope: [...cluster.writeScope],
-          dependencies: [],
-          attempts: [],
-          history: [
-            {
-              at: utc(new Date()),
-              actor,
-              from: "proposed",
-              to: "ready",
-              reason: `Injected in Repair Wave ${repairRound}`,
-              attempt: 1,
-            },
-          ],
-          repair_round: repairRound,
-          findings: cluster.findings.map((finding, index) => ({
-            id: finding.id,
-            requirement_id: requirementIds[index]!,
-            severity: finding.severity === "suggestion" ? "minor" : finding.severity,
-            observation: finding.observation,
-            evidence: [],
-            remediation: finding.remediation,
-            revalidation,
-            status: "open",
-          })),
-        };
+        createdOrder += 1;
+        const taskId = cluster.taskId;
+        const artifactId = `artifact-${taskId}`;
+        const uniqueRequirementIds = [...new Set(requirementIds)];
 
-        draft.gates ??= [];
-        const gateList = draft.gates as GateRuntime[];
-        const gateId = `gate-${cluster.taskId}`;
-        if (!gateList.some((g) => g.id === gateId)) {
-          gateList.push({
+        nodes.push({
+          id: artifactId,
+          type: "artifact",
+          label: `Artifact for ${cluster.label}`,
+        });
+        nodes.push({
+          id: taskId,
+          type: "task",
+          label: cluster.label,
+          requirement_ids: uniqueRequirementIds,
+          write_scope: cluster.writeScope.map(normalizeScopePath),
+          resource_scope: [],
+          artifact_ids: [artifactId],
+          status: "ready",
+          priority: 50,
+          effort: cluster.effort,
+          created_order: createdOrder,
+        });
+        edges.push({ source: taskId, target: artifactId, type: "produces" });
+
+        const gateId = `gate-${taskId}`;
+        if (!gates.some((g) => g.id === gateId)) {
+          gates.push({
             id: gateId,
             command: [...gate.argv],
             cwd: ".",
             scope: "task",
-            requirement_ids: draftTasks[cluster.taskId]!.requirement_ids,
+            requirement_ids: uniqueRequirementIds,
             mandatory: true,
           });
         }
+      }
+
+      newGraph.revision = nextRev;
+
+      const dependencies = dependencyMap(newGraph);
+      guardPlanRevision(
+        draft as unknown as Record<string, unknown>,
+        draft.requirements as Record<string, unknown>,
+        newGraph,
+        dependencies,
+      );
+      projectPlan(
+        draft as unknown as Record<string, unknown>,
+        draft.requirements as Record<string, unknown>,
+        newGraph,
+        dependencies,
+      );
+
+      const draftTasks = draft.tasks as Record<string, TaskRecord>;
+      for (const { cluster, gate, requirementIds } of resolved) {
+        const revalidation = gate.argv.join(" ");
+        const task = draftTasks[cluster.taskId];
+        if (!task) {
+          throw new HarnessError(
+            "INTEGRITY",
+            `projected plan is missing repair task ${cluster.taskId}`,
+          );
+        }
+        task.repair_round = repairRound;
+        task.history = [
+          {
+            at: utc(new Date()),
+            actor,
+            from: "proposed",
+            to: "ready",
+            reason: `Injected in Repair Wave ${repairRound}`,
+            attempt: 1,
+          },
+        ];
+        task.findings = cluster.findings.map((finding, index): Finding => ({
+          id: finding.id,
+          requirement_id: requirementIds[index]!,
+          severity: finding.severity === "suggestion" ? "minor" : finding.severity,
+          observation: finding.observation,
+          evidence: [],
+          remediation: finding.remediation,
+          revalidation,
+          status: "open",
+        }));
       }
 
       if (draft.completion_critic) {
@@ -163,6 +228,10 @@ export function planReplanCommand(flags: Flags): Record<string, unknown> {
       totalTasksCount = Object.keys(draftTasks).length;
     },
   );
+
+  const repoRoot = resolve(run, "..", "..");
+  const config = getHarnessConfig(repoRoot, run);
+  recordTopology(run, actor, config);
 
   const markdown = formatPlanReplanBrief({
     revision: nextRev,

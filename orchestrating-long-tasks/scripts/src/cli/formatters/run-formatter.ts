@@ -17,8 +17,6 @@ export function formatCriticStartBrief(params: CriticStartParams): string {
     `- **Critic**: \`${params.critic}\``,
     `- **Critic Token**: \`${params.token}\``,
     `- **Scope Under Review**: ${params.tasksSatisfied}/${params.totalTasks} tasks satisfied | ${params.reqsEvidenced}/${params.totalReqs} requirements evidenced`,
-    // An empty list is stated as such: the run declares no mandatory run gate, which is a fact
-    // the critic needs, not a gate command to be guessed at.
     params.finalGates.length === 0
       ? `- **Mandatory Final Gate**: none declared by this run`
       : `- **Mandatory Final Gate**: ${params.finalGates.map((gate) => `\`${gate}\``).join(", ")}`,
@@ -86,7 +84,6 @@ export interface RunCompleteParams {
   gatesPassed: number;
   totalGates: number;
   duration?: string | undefined;
-  /** B22.4's handoff, reported here whenever worktree isolation provisioned something for this run. */
   worktreeConsolidation?:
     | {
         branch: string;
@@ -99,8 +96,6 @@ export interface RunCompleteParams {
 }
 
 export function formatRunCompleteBrief(params: RunCompleteParams): string {
-  // No duration is recorded unless the caller measured one; the brief says so rather than
-  // printing a number nothing observed.
   const durationStr = params.duration ?? "unknown";
   const wt = params.worktreeConsolidation;
   const md = [
@@ -137,7 +132,6 @@ export function formatRunStatusBrief(
   tasks: readonly RunStatusTaskItem[],
   progressSummary: string,
   catalogueSummary?: string | undefined,
-  /** Live lanes in use against the occupancy ceiling (B24.4) — absent only for an older caller. */
   occupancySummary?: string | undefined,
 ): string {
   const headers = ["Task ID", "Label", "Write Scope", "Status", "Agent / Lock"];
@@ -161,7 +155,6 @@ export function formatRunStatusBrief(
 
 export interface RunExecParams {
   commandStr: string;
-  /** null when the runner never collected one; an uncollected code is not a success. */
   exitCode: number | null;
   durationSeconds?: number | undefined;
   outputSummary: string;

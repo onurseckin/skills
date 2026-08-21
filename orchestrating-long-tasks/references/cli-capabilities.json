@@ -110,9 +110,7 @@
     },
     {
       "name": "plan:init",
-      "aliases": [
-        "init"
-      ],
+      "aliases": ["init"],
       "domain": "plan",
       "summary": "Create a run capsule and capture the prompt bytes immutably.",
       "description": "Initialises <repo>/.capsules/<run-id>, records the verbatim prompt with its sha256, and ensures the capsule is gitignored.",
@@ -316,7 +314,7 @@
       "aliases": [],
       "domain": "plan",
       "summary": "Register a task declaration in the planning buffer.",
-      "description": "Appends one task to the uncompiled planning buffer. Rejected once the plan has been compiled.",
+      "description": "Appends one task to the uncompiled planning buffer. Rejected once the plan has been compiled. --scope and --gate are required for a single task declaration; omit both and pass --auto-partition instead to have the harness enumerate a glob on disk and register one task per match (or per --group-by directory) in one call, each with its own gate derived from --gate-template. Every declared --deps id needs a matching --dep-reason before plan:compile will seal the plan (C6's mandatory edge justification).",
       "flags": [
         {
           "name": "run",
@@ -332,7 +330,7 @@
           "required": true,
           "repeatable": false,
           "default": null,
-          "description": "Task id, unique within the buffer."
+          "description": "Task id, unique within the buffer. In --auto-partition mode this is the id prefix every generated task id is built from."
         },
         {
           "name": "label",
@@ -340,23 +338,23 @@
           "required": true,
           "repeatable": false,
           "default": null,
-          "description": "Human label for the task."
+          "description": "Human label for the task. In --auto-partition mode this is the label prefix for every generated task."
         },
         {
           "name": "scope",
           "type": "string",
-          "required": true,
+          "required": false,
           "repeatable": false,
           "default": null,
-          "description": "Comma-separated write scope paths."
+          "description": "Comma-separated write scope paths. Required unless --auto-partition is set; refused together with it."
         },
         {
           "name": "gate",
           "type": "string",
-          "required": true,
+          "required": false,
           "repeatable": false,
           "default": null,
-          "description": "Verification command that proves the task."
+          "description": "Verification command that proves the task. Required unless --auto-partition is set; refused together with it."
         },
         {
           "name": "actor",
@@ -372,7 +370,15 @@
           "required": false,
           "repeatable": false,
           "default": null,
-          "description": "Comma-separated ids this task depends on."
+          "description": "Comma-separated ids this task depends on. Refused together with --auto-partition."
+        },
+        {
+          "name": "dep-reason",
+          "type": "string",
+          "required": false,
+          "repeatable": true,
+          "default": null,
+          "description": "One dependency's justification as \"<dep-id>:<why this edge exists>\". plan:compile refuses to seal while any --deps id lacks a matching --dep-reason. Refused together with --auto-partition."
         },
         {
           "name": "goal",
@@ -413,6 +419,30 @@
           "repeatable": false,
           "default": null,
           "description": "Prompt lines this task implements, e.g. \"3-5,8\". Without it the compiler glues the task to a prompt line by position and warns."
+        },
+        {
+          "name": "auto-partition",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "A glob the harness enumerates on disk (relative to the repository root); emits one task per matched file, or per --group-by directory. Mutually exclusive with --scope, --gate, --deps and --dep-reason."
+        },
+        {
+          "name": "gate-template",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Command template for --auto-partition; must contain the literal placeholder {scope}, substituted per generated task with that task's own file or directory path. Required together with --auto-partition."
+        },
+        {
+          "name": "group-by",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": "file",
+          "description": "file (default) or directory: whether --auto-partition emits one task per matched file or one task per directory holding matches."
         }
       ],
       "reads_stdin": false,
@@ -437,15 +467,63 @@
       ],
       "examples": [
         "bun harness.ts plan:add --run .capsules/<run-id> --id task-1 --label \"Database schema\" --scope \"src/db\" --gate \"bun test tests/db.test.ts\" --actor coordinator",
-        "bun harness.ts plan:add --run .capsules/<run-id> --id task-2 --label \"CLI wiring\" --scope \"src/cli\" --gate \"bun test tests/unit/cli\" --actor coordinator --requirement-lines \"3-5\""
+        "bun harness.ts plan:add --run .capsules/<run-id> --id task-2 --label \"CLI wiring\" --scope \"src/cli\" --gate \"bun test tests/unit/cli\" --actor coordinator --requirement-lines \"3-5\"",
+        "bun harness.ts plan:add --run .capsules/<run-id> --id task-3 --label \"Integration\" --scope \"src/integration\" --gate \"bun test tests/integration\" --actor coordinator --deps task-1,task-2 --dep-reason \"task-1:reads the schema task-1 writes\" --dep-reason \"task-2:reads the CLI wiring task-2 writes\"",
+        "bun harness.ts plan:add --run .capsules/<run-id> --id task-topic --label \"Topic bank\" --actor coordinator --auto-partition \"src/curriculum/mlQuestions/*.ts\" --gate-template \"bun test {scope}\""
       ]
+    },
+    {
+      "name": "plan:audit",
+      "aliases": [],
+      "domain": "plan",
+      "summary": "Audit the planning buffer against the six topology invariants and record the verdict.",
+      "description": "Runs A1-granularity, A3-gate-discrimination, A4-false-barrier, A5-straggler and A6-whole-suite-gate against the current planning buffer and records the verdict as a plan-audited event, whatever the outcome. A2-parallelism has no grounded entity count to compare against anywhere in this plan and is reported under not_evaluated rather than guessed. plan:compile runs the same audit and refuses to seal the plan on any blocking finding whose invariant was not accepted with --accept-audit; this command lets a coordinator see the verdict before attempting a compile.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root."
+        },
+        {
+          "name": "actor",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Actor recorded on the event."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": ["bun harness.ts plan:audit --run .capsules/<run-id> --actor planner"]
     },
     {
       "name": "plan:compile",
       "aliases": [],
       "domain": "plan",
       "summary": "Compile the planning buffer into requirements, the DAG, and revision 1.",
-      "description": "Checks scope independence, derives requirements from the prompt lines, builds the graph, and commits graph revision 1. The mandatory run-completion gate is whatever --completion-gate declares; the compiler has no default for it and refuses to invent one.",
+      "description": "Checks scope independence, derives requirements from the prompt lines, builds the graph, and commits graph revision 1. The mandatory run-completion gate is whatever --completion-gate declares; the compiler has no default for it and refuses to invent one. Also refuses to seal while any dependency edge in the buffer lacks the one-line justification `plan:add --dep-reason` records for it (C6's topology declaration) — the independent-root count and every justified edge are reported on the brief. Before any of that, runs plan:audit's six invariants and refuses to seal on any blocking finding: pass --accept-audit \"<invariant-id>:<reason>\" once per blocking invariant to record an explicit, attributed override and proceed anyway. There is no blanket override — every blocking invariant needs its own acceptance naming who accepted it and why.",
       "flags": [
         {
           "name": "run",
@@ -472,12 +550,12 @@
           "description": "Command the whole run is finally held to, e.g. \"bun test tests/unit\". Recorded as the mandatory run-scope gate; there is no default."
         },
         {
-          "name": "strict-parallel",
-          "type": "bool",
+          "name": "accept-audit",
+          "type": "string",
           "required": false,
-          "repeatable": false,
+          "repeatable": true,
           "default": null,
-          "description": "Treat serialization advisories as failures."
+          "description": "Accept one blocking plan:audit invariant so compilation may proceed: \"<invariant-id>:<reason>\". Repeatable; every blocking invariant needs its own acceptance, and an invariant the audit did not raise as blocking is refused rather than silently accepted. Never a blanket override."
         }
       ],
       "reads_stdin": false,
@@ -501,7 +579,193 @@
         }
       ],
       "examples": [
-        "bun harness.ts plan:compile --run .capsules/<run-id> --actor planner --completion-gate \"bun test tests/unit\""
+        "bun harness.ts plan:compile --run .capsules/<run-id> --actor planner --completion-gate \"bun test tests/unit\"",
+        "bun harness.ts plan:compile --run .capsules/<run-id> --actor planner --completion-gate \"bun test tests/unit\" --accept-audit \"A3-gate-discrimination:task-a and task-b legitimately share the shared-fixture regression test\""
+      ]
+    },
+    {
+      "name": "plan:validate-start",
+      "aliases": [],
+      "domain": "plan",
+      "summary": "Assign the plan-validator and mint the token required by plan:review.",
+      "description": "C2: opens the plan-validator's claim on the currently compiled plan (the projected tasks, requirements and gates at this graph revision, delivered via the packet) — one active assignment per graph revision, mirroring task:validate-start. The validator must be independent from the coordinator or planner that produced the plan. Dispatch this, and get a passing plan:review, before dispatching any implementer: a recorded plan:review --status changes_requested against the live graph revision is a hard stop that claimTask enforces directly, not a warning a coordinator can route around.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root."
+        },
+        {
+          "name": "validator",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Plan-validator agent id."
+        },
+        {
+          "name": "lease-duration",
+          "type": "int",
+          "required": false,
+          "repeatable": false,
+          "default": 1200,
+          "description": "Seconds until the validation window expires (5-86400)."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts plan:validate-start --run .capsules/<run-id> --validator plan-val-1"
+      ]
+    },
+    {
+      "name": "plan:review",
+      "aliases": [],
+      "domain": "plan",
+      "summary": "Record the plan-validator's written verdict on the compiled plan.",
+      "description": "C2: --status approved clears the plan for implementer dispatch; changes_requested is the pushback — it records structured findings (each with id, severity, observation, remediation) and blocks every implementer and repairer claim against this graph revision until a fresh compile passes a new review. The four questions (--decomposition-answer, --dependency-answer, --gate-answer, --straggler-answer) are mandatory on every verdict, pass or reject: a rubber-stamped pass that never answered them is refused. changes_requested requires --findings or --findings-file; approved must carry none.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root."
+        },
+        {
+          "name": "validator",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Plan-validator agent id."
+        },
+        {
+          "name": "token",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Plan validation token."
+        },
+        {
+          "name": "status",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "approved or changes_requested."
+        },
+        {
+          "name": "summary",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Verdict summary in the validator's own words."
+        },
+        {
+          "name": "decomposition-answer",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Does the decomposition match the work's entity count, or did it compress?"
+        },
+        {
+          "name": "dependency-answer",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Is every dependency edge justified by a real read/write relationship?"
+        },
+        {
+          "name": "gate-answer",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Can each gate actually fail if its task does nothing?"
+        },
+        {
+          "name": "straggler-answer",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Will any task's scope make one agent straggle while the rest idle?"
+        },
+        {
+          "name": "findings",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Inline JSON findings payload (array of {id, severity, observation, remediation})."
+        },
+        {
+          "name": "findings-file",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Path to a JSON findings payload."
+        },
+        {
+          "name": "checks",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Comma-separated command ids the validator ran as independent evidence."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts plan:review --run .capsules/<run-id> --validator plan-val-1 --token <token> --status approved --decomposition-answer \"14 tasks match the 14 named topics\" --dependency-answer \"no dependency edges; every task is an independent root\" --gate-answer \"each gate runs only that task's own scoped test file\" --straggler-answer \"every task carries the same one-topic effort estimate\" --summary \"Decomposition matches the prompt; gates are scope-narrow\"",
+        "bun harness.ts plan:review --run .capsules/<run-id> --validator plan-val-1 --token <token> --status changes_requested --decomposition-answer \"10 topics compressed into 1 task\" --dependency-answer \"n/a\" --gate-answer \"the shared gate cannot fail per-task\" --straggler-answer \"n/a\" --summary \"Compressed decomposition; see findings\" --findings '[{\"id\":\"PV-1\",\"invariant\":\"A2-parallelism\",\"severity\":\"critical\",\"observation\":\"10 distinct topics collapsed into task-domains\",\"remediation\":\"one task per topic, each with its own scoped gate\"}]'"
       ]
     },
     {
@@ -628,9 +892,7 @@
           "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
         }
       ],
-      "examples": [
-        "bun harness.ts plan:claim --run .capsules/<run-id> --agent planner-1"
-      ]
+      "examples": ["bun harness.ts plan:claim --run .capsules/<run-id> --agent planner-1"]
     },
     {
       "name": "plan:apply",
@@ -740,9 +1002,7 @@
           "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
         }
       ],
-      "examples": [
-        "bun harness.ts plan:status --run .capsules/<run-id>"
-      ]
+      "examples": ["bun harness.ts plan:status --run .capsules/<run-id>"]
     },
     {
       "name": "queue:next",
@@ -780,9 +1040,7 @@
           "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
         }
       ],
-      "examples": [
-        "bun harness.ts queue:next --run .capsules/<run-id>"
-      ]
+      "examples": ["bun harness.ts queue:next --run .capsules/<run-id>"]
     },
     {
       "name": "queue:list",
@@ -820,9 +1078,7 @@
           "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
         }
       ],
-      "examples": [
-        "bun harness.ts queue:list --run .capsules/<run-id>"
-      ]
+      "examples": ["bun harness.ts queue:list --run .capsules/<run-id>"]
     },
     {
       "name": "queue:wave",
@@ -868,9 +1124,7 @@
           "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
         }
       ],
-      "examples": [
-        "bun harness.ts queue:wave --run .capsules/<run-id> --max-parallel 4"
-      ]
+      "examples": ["bun harness.ts queue:wave --run .capsules/<run-id> --max-parallel 4"]
     },
     {
       "name": "queue:pop",
@@ -1062,7 +1316,7 @@
           "required": false,
           "repeatable": false,
           "default": 1800,
-          "description": "Extension in seconds (60-86400)."
+          "description": "Range-checked (60-86400) but not yet applied: the lease is always renewed by its own originally-claimed duration, regardless of this value."
         }
       ],
       "reads_stdin": false,
@@ -1094,7 +1348,7 @@
       "aliases": [],
       "domain": "task",
       "summary": "Submit completed task work for validation.",
-      "description": "Records the submission report, audits write-scope compliance, and moves the task to submitted. --summary is mandatory unless --report supplies the whole report; nothing is substituted for it. files_changed comes from --files-changed when given, otherwise from the Git working-tree observation narrowed to the write scope; checks come from --evidence when given, otherwise from the agent's recorded commands. The command fails when neither source yields anything.",
+      "description": "Records the submission report, audits write-scope compliance, and moves the task to submitted. --summary is mandatory unless --report supplies the whole report; nothing is substituted for it. files_changed comes from --files-changed when given, otherwise from the Git working-tree observation narrowed to the write scope; checks come from --evidence when given, otherwise from the agent's recorded commands. The command fails when neither source yields anything. C4: a content digest of the write scope is compared against the one task:claim recorded; a submission whose scope is byte-identical to its content at claim is refused unless --no-op --reason states why nothing needed to change — an unexplained no-change submission is an error, never inferred as intentional.",
       "flags": [
         {
           "name": "run",
@@ -1159,6 +1413,22 @@
           "repeatable": false,
           "default": null,
           "description": "Path to a complete submission report payload."
+        },
+        {
+          "name": "no-op",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Declares the write scope legitimately needed no change. Requires --reason; refused if the scope actually changed since claim."
+        },
+        {
+          "name": "reason",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Why --no-op is true. Required with --no-op, and meaningless without it."
         }
       ],
       "reads_stdin": false,
@@ -1182,7 +1452,8 @@
         }
       ],
       "examples": [
-        "bun harness.ts task:submit --run .capsules/<run-id> --task task-1 --agent worker-1 --token <token> --summary \"Implemented user auth\""
+        "bun harness.ts task:submit --run .capsules/<run-id> --task task-1 --agent worker-1 --token <token> --summary \"Implemented user auth\"",
+        "bun harness.ts task:submit --run .capsules/<run-id> --task task-1 --agent worker-1 --token <token> --summary \"Investigated; no code change was needed\" --no-op --reason \"task-0 already fixed the same defect\""
       ]
     },
     {
@@ -1873,9 +2144,7 @@
           "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
         }
       ],
-      "examples": [
-        "bun harness.ts run:status --run .capsules/<run-id>"
-      ]
+      "examples": ["bun harness.ts run:status --run .capsules/<run-id>"]
     },
     {
       "name": "run:complete",
@@ -1985,9 +2254,7 @@
           "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
         }
       ],
-      "examples": [
-        "bun harness.ts critic:start --run .capsules/<run-id> --critic critic-1"
-      ]
+      "examples": ["bun harness.ts critic:start --run .capsules/<run-id> --critic critic-1"]
     },
     {
       "name": "critic:review",
@@ -2321,9 +2588,7 @@
           "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
         }
       ],
-      "examples": [
-        "bun harness.ts summary:export --run .capsules/<run-id>"
-      ]
+      "examples": ["bun harness.ts summary:export --run .capsules/<run-id>"]
     },
     {
       "name": "summary:view",
@@ -2361,9 +2626,7 @@
           "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
         }
       ],
-      "examples": [
-        "bun harness.ts summary:view --run .capsules/<run-id>"
-      ]
+      "examples": ["bun harness.ts summary:view --run .capsules/<run-id>"]
     },
     {
       "name": "finding:get",
@@ -2417,9 +2680,7 @@
           "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
         }
       ],
-      "examples": [
-        "bun harness.ts finding:get --run .capsules/<run-id> --id finding-task-1"
-      ]
+      "examples": ["bun harness.ts finding:get --run .capsules/<run-id> --id finding-task-1"]
     },
     {
       "name": "report:get",
@@ -2529,9 +2790,7 @@
           "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
         }
       ],
-      "examples": [
-        "bun harness.ts report:get --run .capsules/<run-id> --task task-1 --type review"
-      ]
+      "examples": ["bun harness.ts report:get --run .capsules/<run-id> --task task-1 --type review"]
     },
     {
       "name": "evidence:get",
@@ -2625,9 +2884,7 @@
           "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
         }
       ],
-      "examples": [
-        "bun harness.ts evidence:get --run .capsules/<run-id> --task task-1"
-      ]
+      "examples": ["bun harness.ts evidence:get --run .capsules/<run-id> --task task-1"]
     },
     {
       "name": "evidence:screenshots",
@@ -2705,15 +2962,11 @@
           "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
         }
       ],
-      "examples": [
-        "bun harness.ts evidence:screenshots --run .capsules/<run-id> --task task-1"
-      ]
+      "examples": ["bun harness.ts evidence:screenshots --run .capsules/<run-id> --task task-1"]
     },
     {
       "name": "orchestrator:run",
-      "aliases": [
-        "orchestrator"
-      ],
+      "aliases": ["orchestrator"],
       "domain": "orchestrator",
       "summary": "Run the autonomous coordination loop over a fresh capsule.",
       "description": "Drives plan, execute, validate and critic rounds until the critic approves or the round budget is spent. The host must inject a round executor; without one the command fails with INVALID_STATE.",
@@ -4037,9 +4290,7 @@
           "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
         }
       ],
-      "examples": [
-        "bun harness.ts install --source . --home ~ --clients claude,antigravity"
-      ]
+      "examples": ["bun harness.ts install --source . --home ~ --clients claude,antigravity"]
     },
     {
       "name": "installation-status",
@@ -4093,9 +4344,7 @@
           "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
         }
       ],
-      "examples": [
-        "bun harness.ts installation-status --source . --home ~"
-      ]
+      "examples": ["bun harness.ts installation-status --source . --home ~"]
     },
     {
       "name": "health",
@@ -4231,9 +4480,7 @@
           "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
         }
       ],
-      "examples": [
-        "bun harness.ts doctor --run .capsules/<run-id>"
-      ]
+      "examples": ["bun harness.ts doctor --run .capsules/<run-id>"]
     },
     {
       "name": "doctor:repair",
@@ -4279,9 +4526,7 @@
           "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
         }
       ],
-      "examples": [
-        "bun harness.ts doctor:repair --run .capsules/<run-id> --actor coordinator"
-      ]
+      "examples": ["bun harness.ts doctor:repair --run .capsules/<run-id> --actor coordinator"]
     },
     {
       "name": "recover",
@@ -4335,9 +4580,7 @@
           "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
         }
       ],
-      "examples": [
-        "bun harness.ts recover --run .capsules/<run-id> --actor coordinator"
-      ]
+      "examples": ["bun harness.ts recover --run .capsules/<run-id> --actor coordinator"]
     },
     {
       "name": "task:release",
@@ -4447,8 +4690,87 @@
           "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
         }
       ],
+      "examples": ["bun harness.ts worktree:reclaim --run .capsules/<run-id> --actor coordinator"]
+    },
+    {
+      "name": "gate:prove",
+      "aliases": [],
+      "domain": "gate",
+      "summary": "Prove a compiled task's gate can actually fail, on a disposable scratch copy.",
+      "description": "Copies the repository's tracked and not-ignored files into a throwaway directory, reverts the task's write scope there back to --base (default HEAD), and runs the task's compiled gate against that reverted copy. Falsifiable means the gate exits non-zero once the task's own work is gone — the property this project's own forensics found missing (docs/planning/coordinator-conformance/FORENSICS.md, DESIGN.md's C3): ten tasks sharing one whole-repo `bun run typecheck` gate that passed whether the task did its work or nothing at all. Only runs post-compile, against a task's already-compiled gate and write scope — at plan:compile time the task's work does not exist yet, so reverting it would yield a scratch copy identical to the current tree, and every verdict would degenerate to 'not falsifiable'; gate:prove is a deliberate later step, not something plan:compile runs for you. The verdict is recorded as a gate-proved capsule event via `appendGateProof`, readable back by graph/plan-audit.ts's `auditPlan` through `latestGateProof` when a caller supplies the run's state: A3-gate-discrimination and A6-whole-suite-gate treat a matching falsifiable:true proof as satisfying the invariant instead of refusing on the static heuristic alone. It never touches the real repository, since every read and write happens inside the scratch copy, deleted before this command returns. Exits 0 whether the verdict is falsifiable or not — a negative verdict is real information for the audit to act on, not a gate:prove failure; only a setup problem (no compiled gate for the task, no Git history to revert against, an unreadable repository) throws.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root."
+        },
+        {
+          "name": "task",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Compiled task id whose gate is being proved."
+        },
+        {
+          "name": "actor",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Actor recorded on the event."
+        },
+        {
+          "name": "base",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": "HEAD",
+          "description": "Git ref the task's write scope is reverted to before the gate runs."
+        },
+        {
+          "name": "timeout-ms",
+          "type": "int",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Wall-clock budget for the gate command against the scratch copy; default 300000."
+        },
+        {
+          "name": "max-files",
+          "type": "int",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Refuses to copy a tree larger than this many tracked/untracked files, so an unexpectedly huge repository fails loudly instead of proving slowly; default 50000."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
       "examples": [
-        "bun harness.ts worktree:reclaim --run .capsules/<run-id> --actor coordinator"
+        "bun harness.ts gate:prove --run .capsules/<run-id> --task task-1 --actor coordinator",
+        "bun harness.ts gate:prove --run .capsules/<run-id> --task task-1 --actor coordinator --base HEAD~1"
       ]
     }
   ]

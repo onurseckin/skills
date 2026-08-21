@@ -80,21 +80,47 @@ export async function buildRunReportCapsule(): Promise<BuiltRun> {
     "open-question": "Which grammar version applies",
     source: "src/alpha.ts",
   });
-  const declarations: readonly (readonly [string, string, string, string, string | null])[] = [
-    ["task-alpha", "Alpha subsystem", "src/alpha", "1", null],
-    ["task-beta", "Beta subsystem", "src/beta", "2", null],
-    ["task-gamma", "Gamma wiring", "src/gamma", "3", "task-alpha"],
+  // C1/A3: a task gate must genuinely discriminate its own task — two disjoint-scope tasks sharing
+  // byte-identical gate argv is exactly the defect A3-gate-discrimination refuses to compile, so each
+  // task below gets `gate.ts` invoked with its own name as an argument rather than one shared literal.
+  // C1/A4: gamma's dependency on alpha is only a real barrier if gamma's write scope actually touches
+  // something alpha's scope writes; nesting gamma's scope inside alpha's ("wire gamma onto alpha")
+  // gives the edge a grounded scope reason instead of a false one, and doubles as A3's own escape
+  // hatch for this pair (a parent/child scope is not "disjoint", so it never needed a distinct gate).
+  const declarations: readonly (readonly [
+    string,
+    string,
+    string,
+    string,
+    string,
+    (readonly [string, string])[],
+  ])[] = [
+    ["task-alpha", "Alpha subsystem", "src/alpha", "1", "bun gate.ts alpha", []],
+    ["task-beta", "Beta subsystem", "src/beta", "2", "bun gate.ts beta", []],
+    [
+      "task-gamma",
+      "Gamma wiring",
+      "src/alpha/gamma",
+      "3",
+      "bun gate.ts gamma",
+      [["task-alpha", "wires onto the alpha module task-alpha's own scope writes"]],
+    ],
   ];
-  for (const [id, label, scope, lines, deps] of declarations) {
+  for (const [id, label, scope, lines, gate, deps] of declarations) {
     await cli("plan:add", {
       run,
       id,
       label,
       scope,
-      gate: "bun gate.ts",
+      gate,
       actor: "planner-1",
       "requirement-lines": lines,
-      ...(deps === null ? {} : { deps }),
+      ...(deps.length === 0
+        ? {}
+        : {
+            deps: deps.map(([depId]) => depId),
+            "dep-reason": deps.map(([depId, reason]) => `${depId}:${reason}`),
+          }),
     });
   }
   await cli("plan:compile", {
@@ -220,6 +246,10 @@ export async function buildRunReportCapsule(): Promise<BuiltRun> {
     "process.exit(3)",
   ]);
 
+  // C4: task:submit refuses a submission whose write scope is byte-identical to its content at
+  // claim, so every declared file below has to actually exist and differ, not merely be named.
+  mkdirSync(join(repo, "src", "alpha"), { recursive: true });
+  writeFileSync(join(repo, "src", "alpha", "parser.ts"), "export const parser = true;\n");
   await cli("task:submit", {
     run,
     task: "task-alpha",
@@ -236,7 +266,7 @@ export async function buildRunReportCapsule(): Promise<BuiltRun> {
     await cli(
       "run:exec",
       { run, task: "task-alpha", gate: "gate-alpha", actor: "validator-1", cwd: repo },
-      ["bun", "gate.ts"],
+      ["bun", "gate.ts", "alpha"],
     ),
   );
   const alphaProbe = await cli("task:probe", {
@@ -264,6 +294,8 @@ export async function buildRunReportCapsule(): Promise<BuiltRun> {
       "console.log('beta work')",
     ]),
   );
+  mkdirSync(join(repo, "src", "beta"), { recursive: true });
+  writeFileSync(join(repo, "src", "beta", "index.ts"), "export const beta = 1;\n");
   await cli("task:submit", {
     run,
     task: "task-beta",
@@ -280,7 +312,7 @@ export async function buildRunReportCapsule(): Promise<BuiltRun> {
     await cli(
       "run:exec",
       { run, task: "task-beta", gate: "gate-beta", actor: "validator-1", cwd: repo },
-      ["bun", "gate.ts"],
+      ["bun", "gate.ts", "beta"],
     ),
   );
   const rejection = await cli("task:reject", {
@@ -295,6 +327,12 @@ export async function buildRunReportCapsule(): Promise<BuiltRun> {
   });
   const repairToken = token(
     await cli("task:claim", { run, task: "task-beta", agent: "worker-beta", role: "repairer" }),
+  );
+  // C4: the repair claim's baseline is round 1's already-changed content, so the repair needs a
+  // further change of its own to avoid resubmitting the exact bytes round 1 left behind.
+  writeFileSync(
+    join(repo, "src", "beta", "index.ts"),
+    "export const beta = 1;\nexport const betaValidatesInput = true;\n",
   );
   await cli("task:submit", {
     run,
@@ -312,7 +350,7 @@ export async function buildRunReportCapsule(): Promise<BuiltRun> {
     await cli(
       "run:exec",
       { run, task: "task-beta", gate: "gate-beta", actor: "validator-2", cwd: repo },
-      ["bun", "gate.ts"],
+      ["bun", "gate.ts", "beta"],
     ),
   );
   const betaProbe = await cli("task:probe", {
@@ -351,13 +389,17 @@ export async function buildRunReportCapsule(): Promise<BuiltRun> {
       "console.log('gamma work')",
     ]),
   );
+  // Gamma's write scope is nested inside alpha's ("src/alpha/gamma") so its dependency on task-alpha
+  // has a real scope reason instead of a false barrier — see the `declarations` comment above.
+  mkdirSync(join(repo, "src", "alpha", "gamma"), { recursive: true });
+  writeFileSync(join(repo, "src", "alpha", "gamma", "index.ts"), "export const gamma = true;\n");
   await cli("task:submit", {
     run,
     task: "task-gamma",
     agent: "worker-gamma",
     token: gammaToken,
     summary: "Gamma wired",
-    "files-changed": "src/gamma/index.ts",
+    "files-changed": "src/alpha/gamma/index.ts",
     evidence: gammaWork,
   });
   const gammaValidation = token(
@@ -367,7 +409,7 @@ export async function buildRunReportCapsule(): Promise<BuiltRun> {
     await cli(
       "run:exec",
       { run, task: "task-gamma", gate: "gate-gamma", actor: "validator-1", cwd: repo },
-      ["bun", "gate.ts"],
+      ["bun", "gate.ts", "gamma"],
     ),
   );
   const gammaProbe = await cli("task:probe", {

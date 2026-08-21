@@ -1,7 +1,6 @@
 import { isJsonObject, type JsonObject, type JsonValue } from "../contracts/json.ts";
 import { assertNoConclusions } from "./prior-round-demands.ts";
 
-/** A fence longer than any backtick run inside the text, so recorded output cannot break the page. */
 function fenced(text: string, language: string): string {
   const longest = [...text.matchAll(/`+/gu)].reduce(
     (width, run) => Math.max(width, run[0].length),
@@ -19,12 +18,6 @@ function text(value: JsonValue | undefined): string {
   return typeof value === "string" ? value : "";
 }
 
-/**
- * A demand as a demand. The recorded finding is rendered as the check it asks for and nothing else,
- * because the sentence "prove this holds" points the validator at the code while "an earlier round
- * concluded X" hands it a verdict to defend or dismiss. The difference is the whole rule, so it is
- * made here, in the rendering, and not asked for in prose the agent may read past.
- */
 function demandLines(demands: JsonObject[]): string {
   if (demands.length === 0) return "No demand from an earlier round stands on the record.";
   return demands
@@ -73,12 +66,6 @@ function endpoint(pair: JsonValue | undefined, side: string): string {
   return isJsonObject(pair) ? JSON.stringify(pair[side] ?? null) : "null";
 }
 
-/**
- * What the two inspections themselves recorded about the repository. A diff is anchored to a commit,
- * so when no commit was made between the rounds the delta reads exactly like the full diff; these
- * digests and counts were measured at each inspection and are the only line here that separates
- * "nothing changed since the previous round" from "the anchor commit has not moved".
- */
 function recordedChangeLine(change: JsonValue | undefined): string {
   if (!isJsonObject(change)) return "";
   const digest =
@@ -107,11 +94,6 @@ function diffBlock(title: string, diff: JsonValue | undefined): string {
   return `${header}${argv}${truncated}\n${body.trim() === "" ? "No tracked file differs from that commit." : fenced(body, "diff")}`;
 }
 
-/**
- * The round-N record, rendered. Every section is either something the run measured or something an
- * earlier round demanded; the refusal below is what keeps it that way when a caller hands over a
- * context that was built somewhere else.
- */
 export function renderValidationRound(round: JsonObject): string {
   assertNoConclusions(round, "validation_round");
   const previous = isJsonObject(round.previous_round) ? round.previous_round : {};

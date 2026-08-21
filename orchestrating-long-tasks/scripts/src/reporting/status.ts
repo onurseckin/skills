@@ -25,7 +25,6 @@ export interface CatalogueCounts {
 }
 
 export interface CapsuleCatalogue {
-  /** False when the catalogue could not be read at all, in which case it counts nothing. */
   available: boolean;
   freshness: IndexFreshness;
   index_of_event?: { sequence: number; head: string | null } | undefined;
@@ -33,11 +32,6 @@ export interface CapsuleCatalogue {
   stored_bytes?: number | undefined;
 }
 
-/**
- * The catalogue as an operator sees it: what the capsule holds, and whether the catalogue still
- * describes where the run stands. A catalogue that might be stale is reported as unknown rather
- * than presented as current, and one that cannot be read counts nothing rather than counting zero.
- */
 export function capsuleCatalogue(runRoot: string): CapsuleCatalogue {
   let index;
   try {

@@ -119,11 +119,6 @@ export interface CommandRecord extends JsonObject {
   attempt_signing_public_key: string;
   record_path: string;
   actor: string;
-  /**
-   * What the caller declared this command to be: a generic category, the instance that ran it, and
-   * whatever else about it does not generalise. Declared, never read out of the argv — inferring a
-   * tool from a command line is exactly the guess this schema refuses to make.
-   */
   tool_category?: ToolCategory;
   tool?: string;
   tool_extras?: CategoryExtras;

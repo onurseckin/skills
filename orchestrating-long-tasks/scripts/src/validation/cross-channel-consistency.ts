@@ -22,7 +22,6 @@ export function normalizeViewportName(name?: string, width?: number): string {
   return "unknown";
 }
 
-/** Renders a dimension pair the source may not carry, so an unrecorded size never prints as `0`. */
 function dimensionText(width?: number, height?: number): string {
   if (typeof width !== "number" || typeof height !== "number") return "dimensions unknown";
   return `${width}x${height}`;
@@ -54,8 +53,6 @@ export function validateCrossChannelConsistency(
       );
       continue;
     }
-    // A dimension the source never recorded is not a discrepancy; only two recorded dimensions can
-    // disagree. Comparing against a stand-in would report a mismatch nobody measured.
     if (
       typeof sc.width !== "number" ||
       typeof sc.height !== "number" ||

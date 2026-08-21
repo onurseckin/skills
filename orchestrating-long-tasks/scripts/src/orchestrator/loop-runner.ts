@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../errors/harness-error.ts";
+import { normalizeRunId } from "../store/run-id.ts";
 import { OrchestratorWatchdog } from "./watchdog.ts";
 import { synthesizeNextRoundPrompt } from "./defect-synthesizer.ts";
 import { chainCapsules } from "./capsule-chainer.ts";
@@ -56,7 +57,7 @@ export class AutonomousLoopRunner {
       AutonomousLoopRunner.MAX_ALLOWED_ROUNDS,
       Math.max(1, requestedMax),
     );
-    this.baseRunId = options.baseRunId.trim();
+    this.baseRunId = normalizeRunId(options.baseRunId);
     this.repoPath = options.repoPath.trim();
     this.initialPrompt = options.initialPrompt;
     this.capsulesDir = options.capsulesDir ?? join(this.repoPath, ".capsules");
@@ -93,9 +94,6 @@ export class AutonomousLoopRunner {
   }
 
   public async run(): Promise<LoopSummary> {
-    // Without an injected executor nothing can execute a round. Reporting a synthetic approved
-    // round here would write a signed summary claiming work that never happened, so the loop
-    // refuses to start instead.
     const executor = this.executor;
     if (!executor)
       throw new HarnessError(
@@ -189,8 +187,6 @@ export class AutonomousLoopRunner {
         roundTelemetryList.push(telemetry);
         this.onRoundComplete?.(telemetry);
 
-        // Convergence demands gates that actually ran and passed. A round with no gate result has
-        // proven nothing, so it can never seal the loop as a success.
         if (
           result.status === "completed" &&
           isApprovedByCritic &&
@@ -264,8 +260,6 @@ export class AutonomousLoopRunner {
       gateStatus,
       finalCriticDecision: lastCriticDecision,
       finalMarkdownSummary: markdownSummary,
-      // Attribution is recorded only when the caller supplied one: an unattributed loop leaves the
-      // field off rather than crediting the run to a name nobody gave.
       ...(this.actor === undefined ? {} : { actor: this.actor }),
     };
 

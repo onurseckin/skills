@@ -15,18 +15,9 @@ import type { ScheduledTask } from "./rank.ts";
 export type TopologyConfig = Readonly<Pick<ResolvedHarnessConfig, "default_max_parallel">>;
 
 export interface TopologyInputs {
-  /**
-   * Coordinator-authored explanation per task id. Recorded verbatim as `agent_reported`; a task with
-   * no entry keeps the harness's own `derived` sentence rather than borrowing someone else's.
-   */
   rationales?: Readonly<Record<string, string>>;
 }
 
-/**
- * Each clause names only the tasks that actually caused it. A task can be both depended on and
- * scope-overlapping, so folding `serialized_after` into one sentence would report scope neighbours
- * as dependencies the graph never declared.
- */
 function derivedRationale(
   wave: number,
   prerequisites: readonly string[],
@@ -51,12 +42,6 @@ function conflicting(left: ScheduledTask, right: ScheduledTask): boolean {
   );
 }
 
-/**
- * Replays `proposeBatch` wave by wave against a working copy so the recorded plan and the runtime
- * queue answer "what may run together" with the same code. Tasks the scheduler can never make
- * eligible — paused authority, unsatisfiable dependencies — drop out of the record entirely; giving
- * them a wave number would be an invention, and the loop must still terminate.
- */
 export function computeTopology(
   state: unknown,
   config: TopologyConfig,
@@ -100,8 +85,6 @@ export function computeTopology(
       const overlaps = [...assigned]
         .filter(([, entry]) => conflicting(task, entry.task))
         .map(([id]) => id);
-      // Precedence is strongest-constraint-first: a dependency would serialize the task even if the
-      // scopes were disjoint, so it names the reason whenever both hold.
       const reason: TopologyReason =
         prerequisites.length > 0
           ? "dependency"

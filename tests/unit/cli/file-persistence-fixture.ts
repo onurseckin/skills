@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { realpathSync } from "node:fs";
 import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -81,6 +82,15 @@ export async function claimSubmitValidateAndReject(options: {
     "--role",
     options.role ?? "implementer",
   ]);
+  // C4: task:submit refuses a submission whose write scope is byte-identical to its content at
+  // claim, so the declared file below has to actually change every round — a random marker rather
+  // than a value derived from taskId/agent, since this same pair repairs the same task more than
+  // once in the multi-round fixture and each round must differ from the one before it.
+  await mkdir(join(options.repo, "tests/unit/core"), { recursive: true });
+  await writeFile(
+    join(options.repo, "tests/unit/core/impl.ts"),
+    `export const implemented = "${randomUUID()}";\n`,
+  );
   // A submission is only accepted against recorded evidence, so the implementer runs its own
   // command before it submits.
   await execute([

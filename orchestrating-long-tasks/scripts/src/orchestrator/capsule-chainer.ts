@@ -31,7 +31,6 @@ export function chainCapsules(options: ChainCapsulesOptions): CapsuleChainManife
     );
   }
 
-  // Read source manifest
   const sourceManifestPath = join(sourceCapsulePath, "manifest.json");
   let previousEventHead: string | null = null;
   const carryoverRequirements: string[] = [];
@@ -49,7 +48,6 @@ export function chainCapsules(options: ChainCapsulesOptions): CapsuleChainManife
     }
   }
 
-  // Read source state to extract open requirements and event head
   const sourceStatePath = join(sourceCapsulePath, "state.json");
   if (existsSync(sourceStatePath)) {
     try {
@@ -77,8 +75,6 @@ export function chainCapsules(options: ChainCapsulesOptions): CapsuleChainManife
         }
       }
     } catch (err: unknown) {
-      // Swallowing this would chain a round onto an unreadable capsule and report zero carryover
-      // requirements and zero unresolved findings, which is a clean slate the harness never saw.
       throw new HarnessError(
         "INTEGRITY",
         `Corrupt source state at ${sourceStatePath}: ${err instanceof Error ? err.message : String(err)}`,
@@ -86,7 +82,6 @@ export function chainCapsules(options: ChainCapsulesOptions): CapsuleChainManife
     }
   }
 
-  // If defect synthesis provided additional unresolved findings, add them
   if (defectSynthesis && defectSynthesis.unresolvedFindings) {
     for (const f of defectSynthesis.unresolvedFindings) {
       if (!unresolvedFindingIds.includes(f.id)) {
@@ -98,7 +93,6 @@ export function chainCapsules(options: ChainCapsulesOptions): CapsuleChainManife
     }
   }
 
-  // Ensure target capsule directory exists
   if (!existsSync(targetCapsulePath)) {
     mkdirSync(targetCapsulePath, { recursive: true });
   }

@@ -11,11 +11,6 @@ function asRecord(value: unknown): Record<string, unknown> | undefined {
     : undefined;
 }
 
-// Dimensions, byte counts and capture times are only recorded when the source that captured the
-// asset reported them. Nothing here opens the file or watched it being written, so an absent
-// measurement stays absent rather than becoming the moment the summary happened to run.
-
-/** Evidence the implementer filed with its own report. */
 export function collectReportAssets(task: TaskRecord, add: AssetSink, nextIndex: IndexProvider) {
   const report = asRecord(task.report);
   if (Array.isArray(report?.media_assets)) {
@@ -46,9 +41,6 @@ export function collectReportAssets(task: TaskRecord, add: AssetSink, nextIndex:
     const object = typeof shot === "string" ? undefined : shot;
     add({
       id: object?.id || `asset-${task.id}-${nextIndex()}`,
-      // props.type is read from the url's own extension (inferAssetProps), the same signal
-      // mimeType and description below already trust; a bare "image" default would ignore that
-      // and misreport a video or log capture as an image whenever the record omits `type`.
       type: object?.type || props.type,
       url,
       title: object?.title || `Test Snapshot: ${url.split("/").pop()}`,
@@ -65,14 +57,11 @@ export function collectReportAssets(task: TaskRecord, add: AssetSink, nextIndex:
   }
 }
 
-/** Evidence the validator captured while it was checking the submission. */
 export function collectValidationAssets(
   task: TaskRecord,
   add: AssetSink,
   nextIndex: IndexProvider,
 ): void {
-  // B12.2: one entry per domain, so every open domain's own screenshots are collected — not just a
-  // single representative validator's.
   for (const entry of task.validations ?? []) {
     const validation = asRecord(entry);
     if (!Array.isArray(validation?.screenshots)) continue;
@@ -84,7 +73,6 @@ export function collectValidationAssets(
       const object = typeof shot === "string" ? undefined : shot;
       add({
         id: object?.id || `asset-${task.id}-val-${nextIndex()}`,
-        // See collectReportAssets above: props.type is the extension-derived signal, not a guess.
         type: object?.type || props.type,
         url,
         title: object?.title || `Validator Snapshot: ${url.split("/").pop()}`,
@@ -120,8 +108,6 @@ export function collectFindingAssets(
       const scopeId = context.task ? context.task.id : "critic";
       add({
         id: shot.id || `asset-${scopeId}-finding-${nextIndex()}`,
-        // props.type is always set (inferAssetProps has no undefined case), so a trailing "image"
-        // literal here would never run - it would just hide that the real fallback is one level up.
         type: shot.type || props.type,
         url: shot.url,
         title: shot.title || `Finding Snapshot: ${shot.url.split("/").pop()}`,
@@ -143,7 +129,6 @@ export function collectFindingAssets(
   }
 }
 
-/** Integrity evidence the critic itself recorded on the completion review. */
 export function collectCriticEvidenceAssets(
   review: CompletionReview,
   add: AssetSink,

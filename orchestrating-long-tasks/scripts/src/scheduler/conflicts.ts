@@ -1,13 +1,7 @@
-/**
- * True when two segment patterns can spell the same literal segment. `*` stands for any run of
- * characters inside the segment, so `*.ts` and `foo.ts` collide. Comparing sub-segment globs as
- * opaque strings misses that collision, and a missed collision hands two agents the same file.
- */
 function segmentsIntersect(left: string, right: string): boolean {
   if (!left.includes("*") && !right.includes("*")) return left === right;
   const leftLength = left.length;
   const rightLength = right.length;
-  // reachable[i][j]: the suffixes left[i..] and right[j..] can still spell one common remainder.
   const reachable: boolean[][] = Array.from({ length: leftLength + 1 }, () =>
     new Array<boolean>(rightLength + 1).fill(false),
   );
@@ -20,8 +14,6 @@ function segmentsIntersect(left: string, right: string): boolean {
     for (let j = rightLength - 1; j >= 0; j--) {
       const leftChar = left[i]!;
       const rightChar = right[j]!;
-      // A `*` either stops here or swallows one character of the common remainder, which the other
-      // side still has to spell — consecutive stars collapse through the same two branches.
       if (leftChar === "*") {
         reachable[i]![j] = reachable[i + 1]![j]! || reachable[i]![j + 1]!;
       } else if (rightChar === "*") {
@@ -34,17 +26,9 @@ function segmentsIntersect(left: string, right: string): boolean {
   return reachable[0]![0]!;
 }
 
-/**
- * True when two scope patterns can name the same path. Exhausting either pattern is a conflict
- * because a scope covers everything beneath it: `src/a` owns `src/a/b`. A whole `**` segment absorbs
- * any number of remaining segments, so `docs/**` conflicts with `docs/concepts/**` — the glob form
- * real capsules actually write. Every other segment pair goes through the sub-segment matcher.
- */
 function patternsOverlap(left: readonly string[], right: readonly string[]): boolean {
   const leftCount = left.length;
   const rightCount = right.length;
-  // Filled back-to-front: overlap[i][j] only depends on longer suffixes, so a `**` on either side
-  // can branch between absorbing a segment and matching nothing without re-entrant recursion.
   const overlap: boolean[][] = Array.from({ length: leftCount + 1 }, () =>
     new Array<boolean>(rightCount + 1).fill(true),
   );

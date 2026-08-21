@@ -7,6 +7,8 @@ import {
   planStatusCommand,
 } from "../commands/plan.ts";
 import { planApplyCommand, planClaimCommand } from "../commands/plan-apply.ts";
+import { planAuditCommand } from "../commands/plan-audit.ts";
+import { planReviewCommand, planValidateStartCommand } from "../commands/plan-validate.ts";
 import { orchestrateCommand } from "../commands/orchestrate.ts";
 import {
   DEFAULT_EXIT_CODES,
@@ -150,15 +152,45 @@ export const PLAN_COMMANDS: readonly CommandSpec[] = [
     domain: "plan",
     summary: "Register a task declaration in the planning buffer.",
     description:
-      "Appends one task to the uncompiled planning buffer. Rejected once the plan has been compiled.",
+      "Appends one task to the uncompiled planning buffer. Rejected once the plan has been compiled. " +
+      "--scope and --gate are required for a single task declaration; omit both and pass " +
+      "--auto-partition instead to have the harness enumerate a glob on disk and register one task " +
+      "per match (or per --group-by directory) in one call, each with its own gate derived from " +
+      "--gate-template. Every declared --deps id needs a matching --dep-reason before plan:compile " +
+      "will seal the plan (C6's mandatory edge justification).",
     flags: [
       requiredFlag("run", "string", "Capsule run root."),
-      requiredFlag("id", "string", "Task id, unique within the buffer."),
-      requiredFlag("label", "string", "Human label for the task."),
-      requiredFlag("scope", "string", "Comma-separated write scope paths."),
-      requiredFlag("gate", "string", "Verification command that proves the task."),
+      requiredFlag(
+        "id",
+        "string",
+        "Task id, unique within the buffer. In --auto-partition mode this is the id prefix every generated task id is built from.",
+      ),
+      requiredFlag(
+        "label",
+        "string",
+        "Human label for the task. In --auto-partition mode this is the label prefix for every generated task.",
+      ),
+      optionalFlag(
+        "scope",
+        "string",
+        "Comma-separated write scope paths. Required unless --auto-partition is set; refused together with it.",
+      ),
+      optionalFlag(
+        "gate",
+        "string",
+        "Verification command that proves the task. Required unless --auto-partition is set; refused together with it.",
+      ),
       requiredFlag("actor", "string", "Actor recorded on the event."),
-      optionalFlag("deps", "string", "Comma-separated ids this task depends on."),
+      optionalFlag(
+        "deps",
+        "string",
+        "Comma-separated ids this task depends on. Refused together with --auto-partition.",
+      ),
+      repeatableFlag(
+        "dep-reason",
+        "string",
+        'One dependency\'s justification as "<dep-id>:<why this edge exists>". plan:compile refuses to seal while any --deps id lacks a matching --dep-reason. Refused together with --auto-partition.',
+      ),
       optionalFlag("goal", "string", "Goal statement for the task."),
       optionalFlag("criteria", "string", "Semicolon-separated acceptance criteria."),
       optionalFlag("priority", "int", "Scheduling priority; higher runs earlier."),
@@ -168,6 +200,22 @@ export const PLAN_COMMANDS: readonly CommandSpec[] = [
         "string",
         'Prompt lines this task implements, e.g. "3-5,8". Without it the compiler glues the task to a prompt line by position and warns.',
       ),
+      optionalFlag(
+        "auto-partition",
+        "string",
+        "A glob the harness enumerates on disk (relative to the repository root); emits one task per matched file, or per --group-by directory. Mutually exclusive with --scope, --gate, --deps and --dep-reason.",
+      ),
+      optionalFlag(
+        "gate-template",
+        "string",
+        "Command template for --auto-partition; must contain the literal placeholder {scope}, substituted per generated task with that task's own file or directory path. Required together with --auto-partition.",
+      ),
+      optionalFlag(
+        "group-by",
+        "string",
+        "file (default) or directory: whether --auto-partition emits one task per matched file or one task per directory holding matches.",
+        "file",
+      ),
     ],
     readsStdin: false,
     takesRemainder: false,
@@ -175,8 +223,33 @@ export const PLAN_COMMANDS: readonly CommandSpec[] = [
     examples: [
       'bun harness.ts plan:add --run .capsules/<run-id> --id task-1 --label "Database schema" --scope "src/db" --gate "bun test tests/db.test.ts" --actor coordinator',
       'bun harness.ts plan:add --run .capsules/<run-id> --id task-2 --label "CLI wiring" --scope "src/cli" --gate "bun test tests/unit/cli" --actor coordinator --requirement-lines "3-5"',
+      'bun harness.ts plan:add --run .capsules/<run-id> --id task-3 --label "Integration" --scope "src/integration" --gate "bun test tests/integration" --actor coordinator --deps task-1,task-2 --dep-reason "task-1:reads the schema task-1 writes" --dep-reason "task-2:reads the CLI wiring task-2 writes"',
+      'bun harness.ts plan:add --run .capsules/<run-id> --id task-topic --label "Topic bank" --actor coordinator --auto-partition "src/curriculum/mlQuestions/*.ts" --gate-template "bun test {scope}"',
     ],
     handler: planAddCommand,
+  },
+  {
+    name: "plan:audit",
+    aliases: [],
+    domain: "plan",
+    summary:
+      "Audit the planning buffer against the six topology invariants and record the verdict.",
+    description:
+      "Runs A1-granularity, A3-gate-discrimination, A4-false-barrier, A5-straggler and A6-whole-suite-gate " +
+      "against the current planning buffer and records the verdict as a plan-audited event, whatever the " +
+      "outcome. A2-parallelism has no grounded entity count to compare against anywhere in this plan and " +
+      "is reported under not_evaluated rather than guessed. plan:compile runs the same audit and refuses " +
+      "to seal the plan on any blocking finding whose invariant was not accepted with --accept-audit; " +
+      "this command lets a coordinator see the verdict before attempting a compile.",
+    flags: [
+      requiredFlag("run", "string", "Capsule run root."),
+      requiredFlag("actor", "string", "Actor recorded on the event."),
+    ],
+    readsStdin: false,
+    takesRemainder: false,
+    exitCodes: DEFAULT_EXIT_CODES,
+    examples: ["bun harness.ts plan:audit --run .capsules/<run-id> --actor planner"],
+    handler: planAuditCommand,
   },
   {
     name: "plan:compile",
@@ -184,7 +257,7 @@ export const PLAN_COMMANDS: readonly CommandSpec[] = [
     domain: "plan",
     summary: "Compile the planning buffer into requirements, the DAG, and revision 1.",
     description:
-      "Checks scope independence, derives requirements from the prompt lines, builds the graph, and commits graph revision 1. The mandatory run-completion gate is whatever --completion-gate declares; the compiler has no default for it and refuses to invent one.",
+      "Checks scope independence, derives requirements from the prompt lines, builds the graph, and commits graph revision 1. The mandatory run-completion gate is whatever --completion-gate declares; the compiler has no default for it and refuses to invent one. Also refuses to seal while any dependency edge in the buffer lacks the one-line justification `plan:add --dep-reason` records for it (C6's topology declaration) — the independent-root count and every justified edge are reported on the brief. Before any of that, runs plan:audit's six invariants and refuses to seal on any blocking finding: pass --accept-audit \"<invariant-id>:<reason>\" once per blocking invariant to record an explicit, attributed override and proceed anyway. There is no blanket override — every blocking invariant needs its own acceptance naming who accepted it and why.",
     flags: [
       requiredFlag("run", "string", "Capsule run root."),
       requiredFlag("actor", "string", "Actor recorded on the event."),
@@ -193,15 +266,101 @@ export const PLAN_COMMANDS: readonly CommandSpec[] = [
         "string",
         'Command the whole run is finally held to, e.g. "bun test tests/unit". Recorded as the mandatory run-scope gate; there is no default.',
       ),
-      optionalFlag("strict-parallel", "bool", "Treat serialization advisories as failures."),
+      repeatableFlag(
+        "accept-audit",
+        "string",
+        'Accept one blocking plan:audit invariant so compilation may proceed: "<invariant-id>:<reason>". ' +
+          "Repeatable; every blocking invariant needs its own acceptance, and an invariant the audit did " +
+          "not raise as blocking is refused rather than silently accepted. Never a blanket override.",
+      ),
     ],
     readsStdin: false,
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
       'bun harness.ts plan:compile --run .capsules/<run-id> --actor planner --completion-gate "bun test tests/unit"',
+      'bun harness.ts plan:compile --run .capsules/<run-id> --actor planner --completion-gate "bun test tests/unit" --accept-audit "A3-gate-discrimination:task-a and task-b legitimately share the shared-fixture regression test"',
     ],
     handler: planCompileCommand,
+  },
+  {
+    name: "plan:validate-start",
+    aliases: [],
+    domain: "plan",
+    summary: "Assign the plan-validator and mint the token required by plan:review.",
+    description:
+      "C2: opens the plan-validator's claim on the currently compiled plan (the projected tasks, requirements and gates at this graph revision, delivered via the packet) — one active assignment per graph revision, mirroring task:validate-start. The validator must be independent from the coordinator or planner that produced the plan. Dispatch this, and get a passing plan:review, before dispatching any implementer: a recorded plan:review --status changes_requested against the live graph revision is a hard stop that claimTask enforces directly, not a warning a coordinator can route around.",
+    flags: [
+      requiredFlag("run", "string", "Capsule run root."),
+      requiredFlag("validator", "string", "Plan-validator agent id."),
+      optionalFlag(
+        "lease-duration",
+        "int",
+        "Seconds until the validation window expires (5-86400).",
+        1_200,
+      ),
+    ],
+    readsStdin: false,
+    takesRemainder: false,
+    exitCodes: DEFAULT_EXIT_CODES,
+    examples: [
+      "bun harness.ts plan:validate-start --run .capsules/<run-id> --validator plan-val-1",
+    ],
+    handler: planValidateStartCommand,
+  },
+  {
+    name: "plan:review",
+    aliases: [],
+    domain: "plan",
+    summary: "Record the plan-validator's written verdict on the compiled plan.",
+    description:
+      "C2: --status approved clears the plan for implementer dispatch; changes_requested is the pushback — it records structured findings (each with id, severity, observation, remediation) and blocks every implementer and repairer claim against this graph revision until a fresh compile passes a new review. The four questions (--decomposition-answer, --dependency-answer, --gate-answer, --straggler-answer) are mandatory on every verdict, pass or reject: a rubber-stamped pass that never answered them is refused. changes_requested requires --findings or --findings-file; approved must carry none.",
+    flags: [
+      requiredFlag("run", "string", "Capsule run root."),
+      requiredFlag("validator", "string", "Plan-validator agent id."),
+      requiredFlag("token", "string", "Plan validation token."),
+      requiredFlag("status", "string", "approved or changes_requested."),
+      requiredFlag("summary", "string", "Verdict summary in the validator's own words."),
+      requiredFlag(
+        "decomposition-answer",
+        "string",
+        "Does the decomposition match the work's entity count, or did it compress?",
+      ),
+      requiredFlag(
+        "dependency-answer",
+        "string",
+        "Is every dependency edge justified by a real read/write relationship?",
+      ),
+      requiredFlag(
+        "gate-answer",
+        "string",
+        "Can each gate actually fail if its task does nothing?",
+      ),
+      requiredFlag(
+        "straggler-answer",
+        "string",
+        "Will any task's scope make one agent straggle while the rest idle?",
+      ),
+      optionalFlag(
+        "findings",
+        "string",
+        "Inline JSON findings payload (array of {id, severity, observation, remediation}).",
+      ),
+      optionalFlag("findings-file", "string", "Path to a JSON findings payload."),
+      optionalFlag(
+        "checks",
+        "string",
+        "Comma-separated command ids the validator ran as independent evidence.",
+      ),
+    ],
+    readsStdin: false,
+    takesRemainder: false,
+    exitCodes: DEFAULT_EXIT_CODES,
+    examples: [
+      'bun harness.ts plan:review --run .capsules/<run-id> --validator plan-val-1 --token <token> --status approved --decomposition-answer "14 tasks match the 14 named topics" --dependency-answer "no dependency edges; every task is an independent root" --gate-answer "each gate runs only that task\'s own scoped test file" --straggler-answer "every task carries the same one-topic effort estimate" --summary "Decomposition matches the prompt; gates are scope-narrow"',
+      'bun harness.ts plan:review --run .capsules/<run-id> --validator plan-val-1 --token <token> --status changes_requested --decomposition-answer "10 topics compressed into 1 task" --dependency-answer "n/a" --gate-answer "the shared gate cannot fail per-task" --straggler-answer "n/a" --summary "Compressed decomposition; see findings" --findings \'[{"id":"PV-1","invariant":"A2-parallelism","severity":"critical","observation":"10 distinct topics collapsed into task-domains","remediation":"one task per topic, each with its own scoped gate"}]\'',
+    ],
+    handler: planReviewCommand,
   },
   {
     name: "plan:replan",

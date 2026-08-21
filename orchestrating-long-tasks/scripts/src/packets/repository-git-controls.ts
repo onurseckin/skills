@@ -24,16 +24,6 @@ function sameStat(left: FileStat, right: FileStat): boolean {
   return identity(left) === identity(right);
 }
 
-// `rev-parse --absolute-git-dir` / `--git-common-dir` / `--git-path config.worktree` always print a
-// non-empty line when git succeeds — preflightRepositoryGitMetadata already confirmed the `.git`
-// metadata exists a moment earlier, so there is no legitimate way for an accepted exit status to
-// pair with empty output here. Observed directly, not inferred: two real runs
-// (tests/unit/branch/completion.test.ts's "stops blocking once the branch is collected" and
-// tests/unit/reporting/handoff-triggers.test.ts's "sealing the run rewrites it against the completed
-// state") threw the "path is invalid" error below under real concurrent-agent load, each with an
-// accepted status and empty bytes — commandOutputRetryingEmpty (repository-git-command.ts) absorbs
-// that the same way it does for repositoryWorktree's own probe: output still empty after its bounded
-// retries throws exactly as before.
 function rawPathOutput(
   repo: string,
   argv: string[],

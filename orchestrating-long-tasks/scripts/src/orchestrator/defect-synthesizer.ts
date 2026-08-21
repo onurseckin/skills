@@ -3,10 +3,6 @@ import type { FindingDetail } from "../workflow/scope-partitioner.ts";
 import type { Finding } from "../contracts/workflow.ts";
 import type { DefectSynthesis, CriticDecision, RoundGateResult } from "./types.ts";
 
-/**
- * A finding carrying the provenance of its file list. Paths a finding declared are facts; paths
- * recovered from its prose are inference, and the synthesized prompt says which it is reading.
- */
 export interface NormalizedFinding extends FindingDetail {
   readonly file_paths_evidence_class: EvidenceClass;
 }
@@ -44,7 +40,6 @@ export function normalizeFindingToDetail(finding: Finding | FindingDetail): Norm
     };
   }
 
-  // Finding from contract
   const f = finding as Finding;
   const inferredFiles: string[] = [];
   const pathRegex = /(?:src|tests|skills|lib|packages|app)\/[a-zA-Z0-9_./-]+\.[a-zA-Z0-9]+/g;
@@ -57,7 +52,6 @@ export function normalizeFindingToDetail(finding: Finding | FindingDetail): Norm
       }
     }
   }
-  // No path in the text means no path is known. The repository root is not a stand-in for one.
   return {
     id: f.id,
     requirement_id: f.requirement_id,
@@ -108,7 +102,6 @@ export function synthesizeNextRoundPrompt(input: SynthesizeDefectsInput): Defect
     gateFailures = [],
   } = input;
 
-  // Deduplicate findings by id, merging affected file paths
   const dedupedMap = new Map<string, NormalizedFinding>();
   for (const rawFinding of findings) {
     if (rawFinding && typeof rawFinding.id === "string" && rawFinding.id.length > 0) {
@@ -118,7 +111,6 @@ export function synthesizeNextRoundPrompt(input: SynthesizeDefectsInput): Defect
         const mergedFiles = Array.from(
           new Set([...existing.file_paths, ...normalized.file_paths]),
         ).sort();
-        // A union that absorbed an inferred path is itself inference, so the weaker class wins.
         dedupedMap.set(normalized.id, {
           ...normalized,
           file_paths: mergedFiles,
@@ -135,7 +127,6 @@ export function synthesizeNextRoundPrompt(input: SynthesizeDefectsInput): Defect
 
   const normalizedFindings = Array.from(dedupedMap.values());
 
-  // Collect all unique affected files
   const affectedFilesSet = new Set<string>();
   for (const f of normalizedFindings) {
     for (const p of f.file_paths) {
@@ -144,7 +135,6 @@ export function synthesizeNextRoundPrompt(input: SynthesizeDefectsInput): Defect
   }
   const affectedFiles = Array.from(affectedFilesSet).sort();
 
-  // Group findings by severity
   const critical = normalizedFindings.filter((f) => f.severity === "critical");
   const important = normalizedFindings.filter((f) => f.severity === "important");
   const minor = normalizedFindings.filter(

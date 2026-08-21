@@ -17,15 +17,10 @@ import {
 } from "../formatters/index.ts";
 import { integerFlag, textFlag, type Flags } from "../options.ts";
 
-/** A run root is `<repo>/.capsules/<run-id>`, so repo config sits two levels above the capsule. */
 function runConfig(runRoot: string): ReturnType<typeof getHarnessConfig> {
   return getHarnessConfig(resolve(runRoot, "..", ".."), runRoot);
 }
 
-/**
- * The gate a task is actually held to is the one the plan compiled for it. Composing a plausible
- * `bun test <scope>` here would hand the agent a command the harness will not accept as proof.
- */
 function mandatoryGateCommands(state: WorkflowState, task: TaskRecord): string[] {
   return applicableGates(state, task).map((gate) => commandArgv(gate.command).join(" "));
 }
@@ -97,13 +92,6 @@ export function queueListCommand(flags: Flags): Record<string, unknown> {
   return { markdown, run_root: run, partitions, max_parallel: maxParallel };
 }
 
-/**
- * `queue:wave` is the readiness query B25 asks for: every task claimable right now — dependencies
- * done, write scope free of every active lease — ranked by critical depth. It is read-only and
- * exists for display and planning, never as an execution instruction; a coordinator keeping its
- * eligible set full re-runs this (or claims one at a time with `queue:pop` / `task:claim`) every
- * time a slot frees, and never waits for the rest of one call's answer to be dispatched.
- */
 export function queueWaveCommand(flags: Flags): Record<string, unknown> {
   const run = textFlag(flags, "run")!;
   const maxParallel =
@@ -182,8 +170,6 @@ export async function queuePopCommand(flags: Flags): Promise<Record<string, unkn
   if (!lease)
     throw new HarnessError("INTEGRITY", `pop of ${highest.id} left the task without a lease`);
 
-  // A pop is a claim by another name, so it hands over the same pair: the lease token and the
-  // published contract the work is bounded by.
   const published = await publishTaskRolePacket({
     runRoot: run,
     port: workflowPort(run),
@@ -198,7 +184,6 @@ export async function queuePopCommand(flags: Flags): Promise<Record<string, unkn
     taskId: highest.id,
     agent,
     token: result.token,
-    // The lease the transaction recorded, not the one the flags asked for.
     deadlineMinutes: Math.round(lease.duration_seconds / 60),
     expiresAt: lease.expires_at,
     writeScope: task.write_scope,

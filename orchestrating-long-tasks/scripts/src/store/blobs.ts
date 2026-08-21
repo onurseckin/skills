@@ -24,40 +24,25 @@ import { fsyncDirectory } from "../core/durable-write.ts";
 import { HarnessError } from "../errors/harness-error.ts";
 import { SHA256_PATTERN } from "./constants.ts";
 
-/** Refuses a capture larger than this rather than pulling an unbounded file through the harness. */
 export const MAX_BLOB_BYTES = 256 * 1024 * 1024;
 
 const BLOBS_DIRECTORY = "blobs";
 const COPY_BUFFER_BYTES = 64 * 1024;
 
-/**
- * A blob as it is referenced from everywhere else: identity, size and the one path it lives at.
- * Records store this, never the bytes.
- */
 export interface BlobDescriptor {
   sha256: string;
   bytes: number;
-  /** Capsule-relative, so a record stays valid when the capsule is moved or copied. */
   path: string;
 }
 
 export interface BlobPutResult extends BlobDescriptor {
-  /** False when the content was already stored — the second capture of an image writes nothing. */
   created: boolean;
 }
 
-/**
- * How a name-addressed view entry reaches its blob. `hardlink` is the invariant: one set of bytes,
- * two names. `copy` is the documented escape hatch — `linkSync` fails across filesystems and on
- * filesystems without hardlinks, and refusing to record the evidence at all would be worse than
- * spending the bytes. A record that says `copy` is declaring that the duplication was forced.
- */
 export type ViewStorage = "hardlink" | "copy";
 
 export interface ViewLink extends BlobDescriptor {
-  /** The readable file name inside the view directory. */
   name: string;
-  /** Capsule-relative path of the readable name. */
   view_path: string;
   storage: ViewStorage;
 }
@@ -75,10 +60,6 @@ function blobPath(runRoot: string, sha256: string): string {
   return join(runRoot, blobRelativePath(sha256));
 }
 
-/**
- * Hashes and copies in a single pass, then names the file after what was actually copied. Hashing
- * the source first and copying second would name a blob for bytes that may have changed underneath.
- */
 function copyAndHash(sourcePath: string, temporaryPath: string): { sha256: string; bytes: number } {
   const source = openSync(sourcePath, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
   let destination: number | undefined;
@@ -121,7 +102,6 @@ function copyAndHash(sourcePath: string, temporaryPath: string): { sha256: strin
   }
 }
 
-/** Stores a file's bytes under their digest. Storing the same content again writes nothing. */
 export function putBlobFile(runRoot: string, sourcePath: string): BlobPutResult {
   const staging = join(runRoot, BLOBS_DIRECTORY);
   mkdirSync(staging, { recursive: true, mode: 0o755 });
@@ -156,20 +136,12 @@ function sameInode(left: string, right: string): boolean {
   }
 }
 
-/**
- * How a readable name is attached to a blob. Injectable so the fallback path — the one that only
- * happens on a filesystem without hardlinks — is reachable in a test rather than only in the field.
- */
 export interface ViewLinker {
   link(source: string, target: string): void;
 }
 
 const hardlink: ViewLinker = { link: linkSync };
 
-/**
- * Gives a blob a readable name inside a view directory. The bytes are not copied where the
- * filesystem supports hardlinks; where it does not, the fallback is taken and recorded as such.
- */
 export function linkBlobIntoView(
   runRoot: string,
   blob: BlobDescriptor,
@@ -196,9 +168,6 @@ export function linkBlobIntoView(
     linker.link(source, target);
     storage = "hardlink";
   } catch {
-    // The escape hatch for INV-3: a filesystem that refuses a hardlink still has to keep the
-    // evidence, so the bytes are copied and the record says so. A capture marked `copy` is the one
-    // place duplication is allowed, and it is declared rather than silent.
     copyFileSync(source, target);
     chmodSync(target, 0o444);
     storage = "copy";
@@ -207,7 +176,6 @@ export function linkBlobIntoView(
   return { ...blob, name, view_path: viewPath, storage };
 }
 
-/** Every stored blob, discovered from the fan-out rather than from any record that claims one. */
 export function listBlobs(runRoot: string): BlobDescriptor[] {
   const root = join(runRoot, BLOBS_DIRECTORY);
   if (!existsSync(root)) return [];
@@ -238,7 +206,6 @@ export function listBlobs(runRoot: string): BlobDescriptor[] {
   return found.sort((left, right) => (left.sha256 < right.sha256 ? -1 : 1));
 }
 
-/** The digest of the bytes actually on disk, for verifying a blob still is what it claims to be. */
 export function blobContentDigest(runRoot: string, sha256: string): string | undefined {
   const path = blobPath(runRoot, sha256);
   let descriptor: number;

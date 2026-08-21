@@ -45,19 +45,14 @@ export function extractFindingScreenshots(
       typeof rawObj?.description === "string" && rawObj.description.trim().length > 0
         ? rawObj.description.trim()
         : `Screenshot evidence for finding ${findingId}`;
-    // "validator" is a job title, not an agent id. When nobody recorded who captured the shot the
-    // asset carries no author at all.
     const assetAuthor =
       typeof rawObj?.author === "string" && rawObj.author.trim().length > 0
         ? rawObj.author.trim()
         : author;
-    // The moment the summary ran is not the moment the screenshot was taken.
     const assetTimestamp =
       typeof rawObj?.timestamp === "string" && rawObj.timestamp.trim().length > 0
         ? rawObj.timestamp.trim()
         : timestamp;
-    // Both are measurements of a file this module never opens: recorded when the capture reported
-    // them, absent otherwise.
     const dimensions =
       rawObj?.dimensions &&
       typeof rawObj.dimensions === "object" &&

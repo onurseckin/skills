@@ -40,12 +40,6 @@ function filePaths(record: Record<string, unknown>): string[] | undefined {
   return paths.length > 0 ? paths.map((entry) => entry.trim()) : undefined;
 }
 
-/**
- * Reads the critic's own findings payload. Every field of a defect claim — what is wrong, which
- * requirement it breaks, how severe it is, what fixes it and how the fix is revalidated — must come
- * from the critic. Nothing here supplies a value the critic left out; a gap is an argument error,
- * because a fabricated remediation would enter the hash chain as the critic's own words.
- */
 export function parseRawFindings(
   findingsRaw: string | undefined,
   findingsFile: string | undefined,
@@ -96,9 +90,6 @@ export function parseRawFindings(
       severity: severity as CompletionFinding["severity"],
       observation,
       ...(paths ? { file_paths: paths } : {}),
-      // Evidence the critic cited is carried through as it was written. When it cited none, the
-      // finding is the critic's own assertion and is labelled as exactly that — it is not dressed
-      // up as a reference to state the critic never pointed at.
       evidence: suppliedEvidence(record) ?? [
         { kind: "critic_assertion", evidence_class: "agent_reported", observation },
       ],

@@ -5,12 +5,12 @@ context loss: a fresh session should be able to read only this file plus `BACKLO
 
 ## Model and effort policy (owner decision, 2026-08-20)
 
-| Role | Model | Effort |
-|:--|:--|:--|
-| Planning, architecture, large orchestration, plan writing | **opus** | **xhigh** |
-| Implementers | **sonnet** | **xhigh** |
-| Verifiers / validators | **sonnet** | **xhigh** |
-| Final synthesis and adversarial design review | **opus** | **xhigh** |
+| Role                                                      | Model      | Effort    |
+| :-------------------------------------------------------- | :--------- | :-------- |
+| Planning, architecture, large orchestration, plan writing | **opus**   | **xhigh** |
+| Implementers                                              | **sonnet** | **xhigh** |
+| Verifiers / validators                                    | **sonnet** | **xhigh** |
+| Final synthesis and adversarial design review             | **opus**   | **xhigh** |
 
 Rationale from the owner: running everything on Opus at high effort makes waves take hours the work does
 not need, and slow feedback lets wrong conclusions sit unchallenged. Speed is a correctness property here,
@@ -30,6 +30,7 @@ notices. This happened once — a turn ended after a commit with the next wave d
 the run sat idle until the owner came back and found it stopped.
 
 Order, every turn, without exception:
+
 1. Launch or confirm work is running.
 2. Do bookkeeping — commit, record findings, update the backlog.
 3. Schedule the wakeup last, as the fallback.
@@ -148,6 +149,7 @@ pushed directly); do not re-diagnose it as blocked without checking `git status 
 the rev-list count first, per B33 — open the artifact, don't reason from a stale doc.
 
 The cadence going forward, now that push works:
+
 - Commit at every green gate — after each wave, and opportunistically whenever gates pass mid-wave.
   Commits are cheap (typecheck only, a few seconds) and keep local history granular.
 - Push **between waves, never during one.** The pre-push hook runs the FULL unit suite against the

@@ -64,8 +64,6 @@ function thinkingFlag(flags: Flags): ThinkingLevel | undefined {
   return level;
 }
 
-// Telemetry the host did not supply stays out of the record entirely; there is no default provider,
-// model, tier, thinking level, context window or toolset to fall back on.
 function telemetryFlags(flags: Flags): GrantTelemetryInput {
   const provider = textFlag(flags, "provider", false);
   const model = textFlag(flags, "model", false);
@@ -98,8 +96,6 @@ export function agentRegisterCommand(flags: Flags): Record<string, unknown> {
     parentTaskId: parentTask,
     host: textFlag(flags, "host")!,
     actor,
-    // The capsule lives at <repo>/.capsules/<run-id>, so the budget is read from the repo the run
-    // belongs to rather than whatever directory the dispatcher happened to be standing in.
     maxAgents: getHarnessConfig(dirname(dirname(run)), run).max_agents,
     telemetry: telemetryFlags(flags),
     ...(Object.keys(derivedTelemetry).length === 0 ? {} : { derivedTelemetry }),
@@ -141,12 +137,8 @@ export function agentReportCommand(flags: Flags): Record<string, unknown> {
 export function agentReleaseCommand(flags: Flags): Record<string, unknown> {
   const run = textFlag(flags, "run")!;
   const agent = textFlag(flags, "agent")!;
-  // B21: a release without a stated reason is exactly the unobserved termination the item exists
-  // to close off, so the flag is required rather than optional.
   const reason = textFlag(flags, "reason")!;
   const actor = textFlag(flags, "actor", false) ?? agent;
-  // Probed and folded in before release, while the grant is still active: a released grant refuses
-  // any further telemetry, the same rule `agent:report` already enforces.
   const derivedTelemetry = probeAgentTelemetry(agent);
   const refreshed =
     Object.keys(derivedTelemetry).length === 0

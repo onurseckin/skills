@@ -5,8 +5,6 @@ import { publishPacket } from "./persist-packet.ts";
 import { buildPacketFromPinnedRuntime } from "./render-packet.ts";
 import type { BuiltPacket, PacketInput } from "./types.ts";
 
-// Single entry point for handing a role its packet: the role contract and the pinned common
-// instructions are resolved here so no dispatch site can publish a packet without them.
 export async function publishRolePacket(
   runRoot: string,
   packetId: string,

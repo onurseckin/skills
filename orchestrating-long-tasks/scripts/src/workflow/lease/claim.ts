@@ -1,4 +1,5 @@
 import { HarnessError } from "../../errors/harness-error.ts";
+import type { Evidenced } from "../../contracts/evidence.ts";
 import { newLeaseToken, tokenDigest } from "./token.ts";
 import { requireText, taskIn, transition, utc } from "../task-state.ts";
 import { systemClock, type Clock, type TransactionPort } from "../types.ts";
@@ -11,6 +12,7 @@ const MAX_LEASE = 86_400;
 export interface ClaimOptions {
   leaseSeconds?: number;
   clock?: Clock;
+  writeScopeContentHash?: Evidenced<string>;
 }
 
 export function claimTask(
@@ -42,6 +44,14 @@ export function claimTask(
     }
     if (repair && task.repair_assignee !== agentId) {
       throw new HarnessError("INVALID_STATE", "repair must return to the assigned implementer");
+    }
+    const review = draft.plan_review;
+    const liveRevision = draft.graph_revision ?? 1;
+    if (review && review.graph_revision === liveRevision && review.status === "changes_requested") {
+      throw new HarnessError(
+        "INVALID_STATE",
+        "plan validation rejected this graph revision; replan and record a passing plan:review before any implementer or repairer can claim work",
+      );
     }
     if (task.dependencies.some((id) => draft.tasks[id]?.status !== "done")) {
       throw new HarnessError("INVALID_STATE", "task dependencies are not done");
@@ -75,6 +85,9 @@ export function claimTask(
       duration_seconds: seconds,
       write_scope: [...task.write_scope],
       resource_scope: [...(task.resource_scope ?? [])],
+      ...(options.writeScopeContentHash === undefined
+        ? {}
+        : { write_scope_content_hash: options.writeScopeContentHash }),
     };
     task.attempts.push({
       attempt,

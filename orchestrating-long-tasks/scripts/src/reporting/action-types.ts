@@ -11,8 +11,6 @@ export interface TaskView {
   repair_assignee: string | null;
   original_implementer: string | null;
   gate_results: { gate_id: string; command_id: string }[];
-  // B12.2: at most one open attempt per domain, so a task can list several while it waits on more
-  // than one validator.
   validation: { validator_id: string; attempt: number; domain: string }[];
   open_finding_ids: string[];
   probe_round: number;
@@ -51,10 +49,8 @@ export interface BranchView {
   sub_tasks: BranchSubTaskView[];
 }
 
-/** What a set of next actions can and cannot offer, kept together so neither half is lost. */
 export interface NextActions {
   argv: string[][];
-  /** A step the run needs that no registry command performs, stated instead of invented. */
   unavailable: string[];
 }
 
@@ -65,16 +61,11 @@ export function mergeActions(...parts: readonly NextActions[]): NextActions {
   };
 }
 
-/**
- * Bearer tokens are minted once and never persisted, so the handoff can only say which command
- * hands one out. Printing anything else here would either leak a secret or invent one.
- */
 export const LEASE_TOKEN = placeholder("lease-token-returned-by:task:claim");
 export const VALIDATION_TOKEN = placeholder("validation-token-returned-by:task:validate-start");
 export const CRITIC_TOKEN = placeholder("critic-token-returned-by:critic:start");
 export const SUB_TASK_TOKEN = placeholder("sub-task-token-returned-by:branch:claim");
 
-/** The run root is `<repo>/.capsules/<run-id>`; a gate's cwd is relative to that repository. */
 export function repositoryOf(runRoot: string): string {
   return dirname(dirname(runRoot));
 }

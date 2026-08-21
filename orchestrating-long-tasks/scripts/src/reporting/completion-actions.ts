@@ -17,13 +17,6 @@ function criticStart(entrypoint: string, runRoot: string): string[] | undefined 
   ]);
 }
 
-/**
- * A completion review carries the critic's own checks, and those are read off the commands the
- * critic itself recorded — a review by a critic that ran nothing is refused outright. So the run
- * gates are named again under the critic's actor before the verdict, and only until one of its
- * commands has actually landed; otherwise the handoff would hand a fresh critic a command that
- * cannot succeed on arrival.
- */
 function criticChecks(
   entrypoint: string,
   runRoot: string,
@@ -52,12 +45,6 @@ function criticReview(entrypoint: string, runRoot: string, criticId: string): st
   ]);
 }
 
-/**
- * Everything between "every task is done" and a sealed capsule, in the order the harness enforces:
- * orphan evidence first, then the run gates, then the completeness critic, then completion itself.
- * Two of those steps have no registry command at all, and saying so is the only honest report: a
- * fabricated invocation would send a fresh agent to a command that does not exist.
- */
 export function completionActions(
   entrypoint: string,
   runRoot: string,
@@ -111,8 +98,6 @@ export function completionActions(
   if (review?.status === "clean") {
     pushArgv(
       argv,
-      // Same token as criticReview() above: run:complete now verifies it against the same
-      // completion_critic assignment record, so it is the one credential that authorizes both.
       registryArgv(entrypoint, "run:complete", [
         ["run", runRoot],
         ["actor", COORDINATOR],

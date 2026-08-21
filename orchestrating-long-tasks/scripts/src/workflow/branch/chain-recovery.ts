@@ -18,11 +18,6 @@ export interface ReclaimedChainLink {
   dead_agent_id: string;
 }
 
-/**
- * The last moment anyone moved the branch forward. Recovery times the parent's window from here
- * rather than from the frozen lease clock, and a reclaimed sub-task counts: re-opening work hands
- * the level above a fresh window to dispatch into it before it is judged dead in turn.
- */
 function lastActivityAt(branch: BranchRecord): number {
   let latest = Date.parse(branch.opened_at);
   for (const subTask of branch.sub_tasks) {
@@ -41,10 +36,6 @@ function lastActivityAt(branch: BranchRecord): number {
   return latest;
 }
 
-/**
- * Work still running below the parent. A sub-task nobody has claimed is not work in progress — it
- * is the parent's job to dispatch into it, which is exactly what a dead parent stops doing.
- */
 function hasActiveWork(branch: BranchRecord, now: Date, graceMs: number): boolean {
   return branch.sub_tasks.some((subTask) => {
     if (subTask.status === "branched") return true;
@@ -53,10 +44,6 @@ function hasActiveWork(branch: BranchRecord, now: Date, graceMs: number): boolea
   });
 }
 
-/**
- * Recovery is the last thing that should break, so a branch whose parent is missing entirely is
- * skipped rather than thrown on: the rest of the chain can still be reclaimed.
- */
 function findParent(
   draft: JsonObject,
   ledger: readonly BranchRecord[],
@@ -84,11 +71,6 @@ function closeBranch(branch: BranchRecord, now: Date, reason: string): void {
   branch.outcome_summary = reason;
 }
 
-/**
- * The parent goes back to where a fresh agent can pick it up. A plan task returns to the queue the
- * same way an expired lease does; a sub-task returns to `open` so its own parent can dispatch into
- * it again, which is what stops a death mid-chain from freezing every level above it.
- */
 function reclaimParent(parent: BranchParent, actor: string, now: Date, reason: string): void {
   const lease = parentLease(parent);
   if (parent.kind === "sub_task") {
@@ -120,14 +102,6 @@ function reclaimParent(parent: BranchParent, actor: string, now: Date, reason: s
   transition(task, repair ? "changes_requested" : "retry_ready", actor, now, reason);
 }
 
-/**
- * Walks the suspended-lease chain from the inside out. A frozen lease is exempt from expiry only
- * while the branch beneath it is moving; once that branch has gone quiet for longer than the
- * parent's own lease window, the parent is the one who stopped, so its level is reclaimed and its
- * branch closed. Each pass reclaims the deepest stopped level and gives the level above a fresh
- * window, so repeated recovery walks a dead chain all the way to the top without reaping a parent
- * whose children are still working.
- */
 export function recoverSuspendedChains(
   draft: JsonObject,
   actor: string,

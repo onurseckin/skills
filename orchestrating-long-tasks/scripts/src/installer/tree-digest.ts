@@ -112,8 +112,6 @@ export async function treeEntries(
   let total = 0;
   while (pending.length > 0) {
     const path = pending.pop()!;
-    // "." is the identity path for the root entry itself, not a stand-in for an unknown
-    // relative path: relative(root, root) genuinely returns "".
     const rel = relative(root, path).split(sep).join("/") || ".";
     if (ignore.has(rel)) continue;
     const before = lstatSync(path, { bigint: true });

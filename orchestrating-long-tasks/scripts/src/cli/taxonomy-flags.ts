@@ -4,10 +4,6 @@ import { TOOL_CATEGORIES } from "../contracts/taxonomy.ts";
 import { HarnessError } from "../errors/harness-error.ts";
 import { listFlag, textFlag, type Flags } from "./options.ts";
 
-/**
- * The seed vocabulary as the CLI advertises it, so the flag documentation and the shipped manifest
- * can never drift from the vocabulary the code actually carries.
- */
 export const CATEGORY_FLAG_HELP = `Generic category of the tool, e.g. ${TOOL_CATEGORIES.join(", ")}. Any other value is recorded as given.`;
 
 function splitOnce(value: string, separator: string): [string, string] | undefined {
@@ -29,10 +25,6 @@ function requireSplit(
   return [parts[0].trim(), parts[1].trim()];
 }
 
-/**
- * `--tool-extra <tool>:<key>=<value>`. Everything after the first `=` is the value, recorded as the
- * literal text the reporter supplied; the harness never interprets it.
- */
 function parseToolExtras(flags: Flags): Map<string, CategoryExtras> {
   const extras = new Map<string, CategoryExtras>();
   for (const entry of listFlag(flags, "tool-extra") ?? []) {
@@ -51,10 +43,6 @@ function parseToolExtras(flags: Flags): Map<string, CategoryExtras> {
   return extras;
 }
 
-/**
- * `--tool <name>` or `--tool <name>=<category>`, plus any `--tool-extra` naming the same tool. A
- * tool given without a category has none: the harness never reads a category out of a tool's name.
- */
 export function toolRefFlags(flags: Flags): readonly AgentToolRef[] | undefined {
   const declared = listFlag(flags, "tool");
   const extras = parseToolExtras(flags);
@@ -78,8 +66,6 @@ export function toolRefFlags(flags: Flags): readonly AgentToolRef[] | undefined 
     } else {
       ref = { name: entry.trim() };
     }
-    // Two declarations of one tool disagree about it, and keeping the later one would record a
-    // contradiction as a settled fact while the category it overwrote goes unmentioned.
     if (refs.has(ref.name)) {
       throw new HarnessError(
         "INVALID_ARGUMENT",
@@ -102,7 +88,6 @@ export function toolRefFlags(flags: Flags): readonly AgentToolRef[] | undefined 
   return [...refs.values()];
 }
 
-/** `--token-extra <name>=<count>`. Counters a host keeps under names only it uses. */
 export function tokenExtraFlags(flags: Flags): Record<string, number> | undefined {
   const declared = listFlag(flags, "token-extra");
   if (declared === undefined) return undefined;
@@ -127,18 +112,12 @@ export function tokenExtraFlags(flags: Flags): Record<string, number> | undefine
   return counters;
 }
 
-/** What a recorded command declared about the tool it invoked. */
 export interface DeclaredCommandTool {
   tool?: string;
   toolCategory?: string;
   toolExtras?: Record<string, string>;
 }
 
-/**
- * `--tool`, `--tool-category` and any `--tool-extra <key>=<value>` on a command the harness runs.
- * Extras describe the tool, so naming one without naming the tool is refused rather than filed
- * against a command whose tool nobody stated.
- */
 export function declaredToolFlags(flags: Flags): DeclaredCommandTool {
   const tool = textFlag(flags, "tool", false);
   const toolCategory = textFlag(flags, "tool-category", false);

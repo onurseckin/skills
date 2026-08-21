@@ -33,7 +33,13 @@ function commitRepository(repo: string): void {
   }
 }
 
-async function work(run: string, repo: string, agent: string, role: string): Promise<void> {
+async function work(
+  run: string,
+  repo: string,
+  agent: string,
+  role: string,
+  content: string,
+): Promise<void> {
   const claim = await execute([
     "task:claim",
     "--run",
@@ -45,6 +51,10 @@ async function work(run: string, repo: string, agent: string, role: string): Pro
     "--role",
     role,
   ]);
+  // C4: task:submit refuses a submission whose write scope is byte-identical to its content at
+  // claim, so the change has to land here — between the claim above and the submit below, not
+  // before either round starts — for the claim-time digest to differ from the submit-time one.
+  writeFileSync(join(repo, CHANGED_FILE), content);
   const check = await execute([
     "run:exec",
     "--run",
@@ -115,7 +125,7 @@ describe("a later round's validator packet carries the run's own record", () => 
   test("round 1 is unchanged and round 2 arrives oriented", async () => {
     const { repo, run } = await setupRun("packet-round-two", roots);
     commitRepository(repo);
-    await work(run, repo, "worker-core", "implementer");
+    await work(run, repo, "worker-core", "implementer", "export const implemented = true;\n");
     const firstToken = await validate(run, "val-1");
     expect(publishedFor(run, "val-1").markdown).not.toContain("## Round ");
 
@@ -140,8 +150,7 @@ describe("a later round's validator packet carries the run's own record", () => 
       REMEDIATION,
     ]);
     // The repair the second round has to judge.
-    writeFileSync(join(repo, CHANGED_FILE), REPAIRED);
-    await work(run, repo, "worker-core", "repairer");
+    await work(run, repo, "worker-core", "repairer", REPAIRED);
     await validate(run, "val-2");
 
     const { markdown, record } = publishedFor(run, "val-2");

@@ -5,25 +5,16 @@ import type { SourceFile } from "./sources.ts";
 import { finding, type HealthCheckResult, type HealthFinding } from "./types.ts";
 
 export interface IntentDocument {
-  /** Repo-relative path, used in finding keys. */
   readonly relative: string;
   readonly absolute: string;
-  /** Heading level that starts a requirement, e.g. 2 for `## R5 - ...`. */
   readonly headingLevel: number;
 }
 
 export interface IntentInput {
   readonly documents: readonly IntentDocument[];
-  /** Every production file of every repo in scope, so a requirement may be met on either side. */
   readonly production: readonly SourceFile[];
   readonly tests: readonly SourceFile[];
-  /** Every file path in the scanned repos, used to resolve a file token by suffix. */
   readonly paths: readonly string[];
-  /**
-   * Whether the command registry linked into this process is the one the documents describe. When
-   * it is not, a command token names a registry this check cannot see, so it is counted as
-   * unclassifiable rather than declared missing.
-   */
   readonly registryApplies: boolean;
 }
 
@@ -31,29 +22,15 @@ interface Requirement {
   readonly id: string;
   readonly heading: string;
   readonly tokens: readonly string[];
-  /** The heading itself carries `deferred by owner` — see OWNER_DEFERRED below. */
   readonly ownerDeferred: boolean;
 }
 
 const COMMAND_TOKEN = /^[a-z][a-z0-9-]*:[a-z][a-z0-9-]*$/u;
 const IDENTIFIER_TOKEN = /^[A-Za-z_$][A-Za-z0-9_$]*$/u;
 const PATH_TOKEN = /^[A-Za-z0-9_@./-]+\.(?:ts|tsx|md)$/u;
-// A path token ending `.test.ts`/`.spec.ts` names a test file, not code the test file proves. The
-// generic "proven" check below looks for the token quoted inside `input.tests` - impossible by
-// construction here (a test does not cite its own path in its own body) and, for a consumer repo's
-// test, unreachable regardless: consumer sources load into `input.production`, never `input.tests`
-// (see runHealthCheck), so the search space does not even contain it. Citing the test's own path IS
-// the requirement's proof; existing on disk is the whole bar.
 const TEST_PATH_TOKEN = /\.(?:test|spec)\.tsx?$/u;
 const PLACEHOLDER_TOKEN = /[<>*]/u;
 const EXTERNAL_IDENTIFIER_SET = new Set(EXTERNAL_IDENTIFIERS);
-// A requirement the owner has explicitly declined to implement (BACKLOG.md's `deferred by owner`
-// status, e.g. B31) can never gain a satisfying symbol or a test that mentions one - not because
-// the code is missing, but because writing that code was the thing the owner said not to do. Same
-// shape as an external identifier: a token this check will forever call drift unless it recognises
-// the reason. Recognised by exact phrase rather than a general status parser, because BACKLOG.md's
-// own status vocabulary is not fully standardised (`research-in-flight` exists too, and is NOT
-// exempted here - that item is still headed toward implementation, just not yet applied).
 const OWNER_DEFERRED = /`deferred by owner`\s*$/iu;
 
 function sections(text: string, level: number): Requirement[] {
@@ -97,36 +74,18 @@ function classify(
   invocations: ReadonlySet<string>,
 ): { kind: string; found: boolean } | null {
   if (PLACEHOLDER_TOKEN.test(token)) return null;
-  // A requirement doc may cite another application's own tool, env var or parameter name to reason
-  // about host behaviour (B27, B30, B32 research). That name will never appear in this repo's
-  // source or tests - it belongs to the host, not to us - so it is excluded rather than judged
-  // missing. See external-identifiers.ts for what qualifies and why.
   if (EXTERNAL_IDENTIFIER_SET.has(token)) return null;
   if (COMMAND_TOKEN.test(token)) {
     return input.registryApplies ? { kind: "command", found: invocations.has(token) } : null;
   }
-  // Documents name a file by the tail of its path, so the token is matched as a path suffix rather
-  // than resolved from a root. A name that matches no file may still name an artifact the run
-  // produces, in which case the writer spells it out as a literal - that counts as present.
   if (PATH_TOKEN.test(token)) {
     const onDisk = input.paths.some((path) => path.endsWith(`/${token}`));
-    // health/allowlist.ts is excluded from this scan on purpose: its entries quote a finding's own
-    // key back at this exact check to suppress it, so any path token this check is looking for
-    // would trivially "match" the moment someone allowlisted it - a self-cancelling loop where
-    // adding the allowance makes the check say the allowance is unnecessary. Its content is a
-    // record of what this check found, never evidence that the repository uses the artifact.
     const written = input.production.some(
       (file) => !file.relative.endsWith("health/allowlist.ts") && file.text.includes(token),
     );
     const isTest = TEST_PATH_TOKEN.test(token);
-    // The `written` fallback exists for a run-produced artifact (e.g. `graph.json`) that a script
-    // spells out as a literal without the file existing in the scanned tree. A test file is not
-    // that kind of artifact: its own proof is being self-proving on disk (see TEST_PATH_TOKEN
-    // above), so a bare text mention of its name in some unrelated file's comment or string - which
-    // proves nothing about the test existing or running - must not substitute for that.
     return { kind: isTest ? "test" : "file", found: isTest ? onDisk : onDisk || written };
   }
-  // A backticked lowercase word is a value the prose quotes ("pass", "derived"), not a symbol.
   if (IDENTIFIER_TOKEN.test(token) && /[A-Z]/u.test(token)) {
     return { kind: "symbol", found: present(input.production, token) };
   }
@@ -149,8 +108,6 @@ export function checkIntentDrift(input: IntentInput): HealthCheckResult {
     for (const requirement of sections(text, document.headingLevel)) {
       requirements += 1;
       if (requirement.ownerDeferred) {
-        // Not silence-by-omission: counted and disclosed below, same as an external-identifier
-        // exemption, so the gap in coverage is visible rather than discovered.
         ownerDeferred += 1;
         continue;
       }
@@ -166,10 +123,6 @@ export function checkIntentDrift(input: IntentInput): HealthCheckResult {
         );
       unclassified += requirement.tokens.length - classified.length - requirementExternal;
       checkable += classified.length;
-      // An exemption that removes a requirement's LAST checkable token silences it entirely: with
-      // nothing classified there is no missing-symbol finding and no untested finding either. That
-      // is the one way this list can hide a real gap, so the count is reported rather than left to
-      // be discovered.
       if (classified.length === 0 && requirementExternal > 0) externalOnly += 1;
       const missing = classified.filter((entry) => !entry.verdict.found);
       for (const entry of missing) {
@@ -184,10 +137,6 @@ export function checkIntentDrift(input: IntentInput): HealthCheckResult {
       }
       const proven = classified.filter((entry) => {
         if (!entry.verdict.found) return false;
-        // The token itself names a test file: its presence already proves the requirement is
-        // tested, so searching for it quoted inside some OTHER test would only ever fail. Counted
-        // below rather than silently short-circuited, same disclosure discipline as every other
-        // exemption in this function.
         if (entry.verdict.kind === "test") {
           selfProvingTests += 1;
           return true;

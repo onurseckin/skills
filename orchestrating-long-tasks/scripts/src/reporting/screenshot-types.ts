@@ -35,7 +35,6 @@ export interface StackingViolation {
 }
 
 export interface VisualMetricsReport {
-  /** When the report says it was produced. Absent when the file carried no timestamp of its own. */
   timestamp?: string | undefined;
   viewports: Record<string, ViewportMetrics>;
   layoutOverflows: OverflowViolation[];
@@ -44,17 +43,8 @@ export interface VisualMetricsReport {
   metadata?: Record<string, unknown> | undefined;
 }
 
-/**
- * A screenshot is a capture like any other: its bytes live once in `blobs/`, `path` is the readable
- * name that links to them, and the ledger in `captures.json` is the one home for the record.
- */
 export type ScreenshotRecord = CaptureRecord;
 
-/**
- * `startedAt` bounds attribution. A file that already existed when the command started was not
- * produced by it, and claiming it would attribute one stale image to every command in the run.
- * Paths the caller names explicitly, and paths the command printed, are the command's own claim.
- */
 export interface ScreenshotIngestOptions {
   runRoot: string;
   commandId?: string | undefined;

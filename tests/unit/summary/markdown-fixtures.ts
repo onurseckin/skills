@@ -6,7 +6,10 @@ import type { JsonObject } from "../../../orchestrating-long-tasks/scripts/src/c
 import type { TaskRecord } from "../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
 import { formatSummaryMarkdown } from "../../../orchestrating-long-tasks/scripts/src/summary/markdown-formatter.ts";
 import type { MarkdownFormatterInput } from "../../../orchestrating-long-tasks/scripts/src/summary/markdown-formatter.ts";
-import type { GraphDataset, RollupMetrics } from "../../../orchestrating-long-tasks/scripts/src/summary/types.ts";
+import type {
+  GraphDataset,
+  RollupMetrics,
+} from "../../../orchestrating-long-tasks/scripts/src/summary/types.ts";
 
 const roots: string[] = [];
 
@@ -70,7 +73,12 @@ export function task(overrides: Partial<TaskRecord> & { id: string }): TaskRecor
 
 /** No graph was computed for this render — every section that reads `context.graph`-derived
  * fields (files changed, action provenance) sees the same absence a real run with no events would. */
-export const emptyGraph: GraphDataset = { id: "unit-run-graph", title: "unit-run-graph", nodes: [], edges: [] };
+export const emptyGraph: GraphDataset = {
+  id: "unit-run-graph",
+  title: "unit-run-graph",
+  nodes: [],
+  edges: [],
+};
 
 export function render(state: JsonObject, extra: Partial<MarkdownFormatterInput> = {}): string {
   return formatSummaryMarkdown({

@@ -25,9 +25,7 @@ export function resolvePathExecutable(argument: string, pathValue: string): stri
     try {
       const metadata = statSync(candidate);
       if (metadata.isFile() && (metadata.mode & 0o111) !== 0) return realpathSync(candidate);
-    } catch {
-      // Continue through PATH candidates.
-    }
+    } catch {}
   }
   throw new HarnessError("PATH_SAFETY", `gate executable is not resolvable: ${argument}`);
 }

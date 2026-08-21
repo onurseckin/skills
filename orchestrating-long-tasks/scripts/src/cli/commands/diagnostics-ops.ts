@@ -40,8 +40,6 @@ export async function doctorCommand(flags: Flags): Promise<Record<string, unknow
   return { ...report, markdown: formatDoctorBrief(run, report) };
 }
 
-// A field the report never produced must read as "unknown"; rendering it as "no" or "undefined"
-// would present an absent measurement as a measured one.
 function ternary(value: unknown, whenTrue: string, whenFalse: string): string {
   if (value === true) return whenTrue;
   if (value === false) return whenFalse;
@@ -71,7 +69,6 @@ export function formatDoctorBrief(run: string, report: Record<string, unknown>):
   return enforceLineLimit(lines.join("\n"));
 }
 
-/** Sub-task ids a branch is still holding a live sub-lease for, before and after recovery. */
 function leasedSubTasks(state: WorkflowState): string[] {
   return (state.branches ?? [])
     .flatMap((branch) => branch.sub_tasks)
@@ -117,12 +114,6 @@ export function recoverCommand(flags: Flags): Record<string, unknown> {
   };
 }
 
-/**
- * `doctor` only reports a torn tail or a state/event mismatch; this is the repair. It re-derives
- * `state.json` from the event chain's valid prefix and quarantines whatever a crash left dangling
- * off the end, so a run interrupted mid-write can resume instead of every later command throwing on
- * the same integrity check `doctor` just used to diagnose it.
- */
 export function repairProjectionCommand(flags: Flags): Record<string, unknown> {
   const run = textFlag(flags, "run")!;
   const actor = textFlag(flags, "actor")!;
@@ -143,10 +134,6 @@ export function repairProjectionCommand(flags: Flags): Record<string, unknown> {
   };
 }
 
-/**
- * The manual counterpart to `recover`: an agent that knows it is walking away hands the lease back
- * instead of leaving the task frozen until the clock runs out.
- */
 export function taskReleaseCommand(flags: Flags): Record<string, unknown> {
   const run = textFlag(flags, "run")!;
   const taskId = textFlag(flags, "task")!;
@@ -190,10 +177,6 @@ function requestedChecks(flags: Flags): readonly HealthCheckId[] {
   return requested.filter(isCheckId);
 }
 
-/**
- * The semantic health check (B9.2). It reads the tree it is pointed at rather than any capsule: the
- * question is whether the code does what the requirements said, which no run can answer.
- */
 export function healthCommand(flags: Flags): Record<string, unknown> {
   const scripts = existingDirectory(flags, "scripts");
   const consumer = existingDirectory(flags, "consumer");

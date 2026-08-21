@@ -2,17 +2,10 @@ import { normalizeScopePath } from "../../graph/scope-analyzer.ts";
 import { scopeConflict } from "../../scheduler/conflicts.ts";
 import { HarnessError } from "../../errors/harness-error.ts";
 
-/**
- * True when every literal path `inner` can name is also named by `outer`. Containment is stricter
- * than the scheduler's overlap test: two scopes can collide without either owning the other, and a
- * sub-agent may only be handed authority its parent already holds.
- */
 function segmentContains(outer: string, inner: string): boolean {
   if (outer === inner) return true;
   if (outer === "*" || outer === "**") return true;
   if (!outer.includes("*")) return false;
-  // A glob on both sides is only provably contained when the patterns are identical, so anything
-  // less obvious is refused rather than approved on a guess.
   if (inner.includes("*")) return false;
   const pattern = new RegExp(
     `^${outer
@@ -25,8 +18,6 @@ function segmentContains(outer: string, inner: string): boolean {
 }
 
 function patternContains(outer: readonly string[], inner: readonly string[]): boolean {
-  // A scope owns everything beneath it, so an exhausted outer pattern still covers the deeper inner
-  // path; an exhausted inner pattern means the inner scope reaches above the outer one.
   if (outer.length === 0) return true;
   if (inner.length === 0) return false;
   const [outerHead, ...outerTail] = outer;
@@ -49,12 +40,6 @@ export function scopeContains(outer: readonly string[], inner: readonly string[]
   );
 }
 
-/**
- * The termination guarantee. A branch may only be handed authority the parent already holds *and*
- * strictly less of it, so every hop down a chain removes at least one path the parent could name.
- * Path sets are finite, so no chain of branches can run forever and no agent can branch sideways
- * into the scope it already holds.
- */
 export function scopeStrictlyContains(outer: readonly string[], inner: readonly string[]): boolean {
   return scopeContains(outer, inner) && !scopeContains(inner, outer);
 }
@@ -64,11 +49,6 @@ export interface ScopedSubTask {
   readonly write_scope: readonly string[];
 }
 
-/**
- * Three guarantees the branch ledger depends on: a sub-agent never writes outside the authority its
- * parent holds, it always writes strictly less than its parent, and two siblings never hold the same
- * file. All three are rejections, never repairs.
- */
 export function assertSubScopes(
   parentScope: readonly string[],
   subTasks: readonly ScopedSubTask[],

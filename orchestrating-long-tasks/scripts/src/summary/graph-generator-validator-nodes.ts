@@ -76,10 +76,6 @@ function validatorIo(ctx: TaskNodeContext): { inputs: IoPort[]; outputs: IoPort[
   return { inputs, outputs };
 }
 
-/**
- * The validator is an agent with its own commands, findings and grant — not a property of the gate
- * it feeds. Fusing the two is what made the implementer→validator→gate chain unreadable.
- */
 export function buildValidatorNode(ctx: TaskNodeContext): GraphNodeData {
   const { task, validatorId, validatorCommands, ledger } = ctx;
   const nodeId = ctx.validatorNodeId ?? `node-validator-${task.id}`;

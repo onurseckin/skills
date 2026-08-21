@@ -224,7 +224,11 @@ describe("metrics token collector", () => {
     expect(gateTokens.evidenceClass).toBe("unknown");
 
     // A host-reported evidenceClass is preserved, not overridden by the "unknown" default.
-    const labeledHostTokens = { inputTokens: 10, isEstimated: false as const, evidenceClass: "agent_reported" as const };
+    const labeledHostTokens = {
+      inputTokens: 10,
+      isEstimated: false as const,
+      evidenceClass: "agent_reported" as const,
+    };
     expect(computeTaskTokens(task, undefined, [], labeledHostTokens).evidenceClass).toBe(
       "agent_reported",
     );

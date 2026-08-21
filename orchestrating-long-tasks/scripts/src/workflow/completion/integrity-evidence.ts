@@ -10,13 +10,6 @@ export interface CapsuleIntegrityEvidence extends JsonObject {
   issues: { code: string; message: string }[];
 }
 
-/**
- * Runs the capsule integrity check and reports what it found. `passed` means the manifest, the
- * event hash chain and the state projection were all verified clean here and now — it is never
- * asserted on the critic's behalf, and a failing check is recorded as `failed` so completion
- * blocks on it. Deliberately free of timestamps: the evidence is a function of the capsule bytes
- * alone, so an independently published critic packet can digest the identical object.
- */
 export function observeCapsuleIntegrity(
   runRoot: string,
   eventHead: string | null,

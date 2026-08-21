@@ -107,13 +107,13 @@ export const ALLOWED_FINDINGS: readonly HealthAllowance[] = [
     key: "string-fallback:orchestrating-long-tasks/scripts/src/summary/graph-generator-critic-nodes.ts:completion?.status:pending",
     check: "literal-fallbacks",
     reason:
-      "CompletionResult.status is a single-member literal type (\"complete\"); its only content is whether the field exists at all. This mirrors the terminal node's own status ternary (completion?.status === \"complete\" ? \"success\" : \"pending\") three lines above it, unflagged only because a ternary is not `??` - both name the same two-state lifecycle, not a value substituted for one the run failed to record.",
+      'CompletionResult.status is a single-member literal type ("complete"); its only content is whether the field exists at all. This mirrors the terminal node\'s own status ternary (completion?.status === "complete" ? "success" : "pending") three lines above it, unflagged only because a ternary is not `??` - both name the same two-state lifecycle, not a value substituted for one the run failed to record.',
   },
   {
     key: "string-fallback:orchestrating-long-tasks/scripts/src/workflow/scope-partitioner.ts:):root",
     check: "literal-fallbacks",
     reason:
-      "Same shape as the already-allowed tree-digest.ts and runtime-tree.ts root-path cases: cluster.scope is always a known LCA path, and \"root\" only fires when that known path is exactly \".\" - stripped to the empty string by the slug regex - so this spells a known result as a task-id-safe slug, it does not invent one for a scope the partitioner never had.",
+      'Same shape as the already-allowed tree-digest.ts and runtime-tree.ts root-path cases: cluster.scope is always a known LCA path, and "root" only fires when that known path is exactly "." - stripped to the empty string by the slug regex - so this spells a known result as a task-id-safe slug, it does not invent one for a scope the partitioner never had.',
   },
   {
     key: "intent-missing:docs/planning/orchestration-overhaul/BACKLOG.md:B37:.tmp/fixture-build/build-fixture.ts",
@@ -176,7 +176,10 @@ export function applyAllowances(
   // anything either way, so it is silently skipped rather than reported stale - staleness is only
   // meaningful for a check this call actually looked at.
   const stale = allowances
-    .filter((allowance) => requested.has(allowance.check) && !used.has(usedKey(allowance.check, allowance.key)))
+    .filter(
+      (allowance) =>
+        requested.has(allowance.check) && !used.has(usedKey(allowance.check, allowance.key)),
+    )
     .map((allowance) =>
       finding(
         "unused-code",

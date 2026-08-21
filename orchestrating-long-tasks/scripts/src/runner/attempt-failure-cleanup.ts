@@ -105,11 +105,6 @@ export async function settleAndTerminateAttempt(
       return false;
     }
   };
-  // SIGKILL is unblockable but not instantaneous: the kernel still has to schedule the target's
-  // exit and this process's next snapshot before either shows up as absent. A single check right
-  // after the signal races that scheduling gap under CPU contention, so this polls a short bounded
-  // window instead of trusting the first read — a merely slow reap should not be reported the same
-  // as a process that never died.
   let descendantsAbsent = await descendants.proveAbsent();
   let rootProof = probeRoot();
   const provenDeadline = Date.now() + 1_000;

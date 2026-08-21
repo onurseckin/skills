@@ -20,13 +20,6 @@ function isObject(value: JsonValue | undefined): value is JsonObject {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-/**
- * Every finding recorded by the run, read from the state projection.
- *
- * A finding has one home. It is raised into `state.tasks[].findings` or, for the completeness
- * critic, into `state.completion_review.findings`, and both are bound to the event chain. A second
- * copy on disk could disagree with the chain and there would be no way to tell which one was true.
- */
 function recordedFindings(state: JsonObject): Record<string, unknown>[] {
   const found: Record<string, unknown>[] = [];
   const tasks = state.tasks;

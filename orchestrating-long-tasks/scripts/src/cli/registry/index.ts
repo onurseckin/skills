@@ -3,6 +3,7 @@ import { AUTHORITY_COMMANDS } from "./authority.ts";
 import { BRANCH_COMMANDS } from "./branch.ts";
 import { CRITIC_COMMANDS } from "./critic.ts";
 import { DIAGNOSTICS_COMMANDS } from "./diagnostics.ts";
+import { GATE_COMMANDS } from "./gate.ts";
 import { INSPECTION_COMMANDS } from "./inspection.ts";
 import { INSTALL_COMMANDS } from "./install.ts";
 import { ORCHESTRATOR_COMMANDS } from "./orchestrator.ts";
@@ -31,6 +32,7 @@ export const COMMAND_REGISTRY: readonly CommandSpec[] = [
   ...AUTHORITY_COMMANDS,
   ...INSTALL_COMMANDS,
   ...DIAGNOSTICS_COMMANDS,
+  ...GATE_COMMANDS,
 ];
 
 export const COMMAND_DOMAINS: readonly CommandDomain[] = [
@@ -48,9 +50,9 @@ export const COMMAND_DOMAINS: readonly CommandDomain[] = [
   "authority",
   "install",
   "diagnostics",
+  "gate",
 ];
 
-// Built once: a duplicate name or alias is a registry defect, not a user error.
 const BY_INVOCATION: ReadonlyMap<string, CommandSpec> = (() => {
   const index = new Map<string, CommandSpec>();
   for (const spec of COMMAND_REGISTRY) {

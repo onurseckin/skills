@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { execute } from "../../../orchestrating-long-tasks/scripts/src/cli/execute.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
-import { setupCompiledRun } from "./task-ops-fixture.ts";
+import { markCoreImplemented, setupCompiledRun } from "./task-ops-fixture.ts";
 
 const roots: string[] = [];
 afterEach(async () => cleanupRoots(roots));
@@ -40,6 +40,7 @@ describe("CLI task-ops commands", () => {
     ]);
     expect(String(hb.markdown)).toContain("### Heartbeat Acknowledged: task-core");
 
+    await markCoreImplemented(repo);
     // A submission is only accepted against recorded evidence, so the implementer runs its own
     // command before it submits.
     await execute([
@@ -162,6 +163,7 @@ describe("CLI task-ops commands", () => {
     ]);
     const workerToken = claim.token as string;
 
+    await markCoreImplemented(repo);
     // A submission is only accepted against recorded evidence, so the implementer runs its own
     // command before it submits.
     await execute([
@@ -295,6 +297,7 @@ describe("CLI task-ops commands", () => {
       "--role",
       "implementer",
     ]);
+    await markCoreImplemented(repo);
     await execute([
       "run:exec",
       "--run",
@@ -338,9 +341,7 @@ describe("CLI task-ops commands", () => {
       "300",
     ]);
     const deadline = new Date(
-      (
-        valStart.task as { validations: { deadline_at: string }[] }
-      ).validations[0]!.deadline_at,
+      (valStart.task as { validations: { deadline_at: string }[] }).validations[0]!.deadline_at,
     ).valueOf();
     // The default window is 1200s (20min); a requested 300s must land near now+300s, not the
     // default, which is the whole difference between the flag being read and being dropped.

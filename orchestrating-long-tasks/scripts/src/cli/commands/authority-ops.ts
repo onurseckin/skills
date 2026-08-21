@@ -4,11 +4,6 @@ import { HarnessError } from "../../errors/harness-error.ts";
 import { enforceLineLimit } from "../formatters/line-limiter.ts";
 import { textFlag, type Flags } from "../options.ts";
 
-/**
- * The one place a `needs_authority` requirement gets settled. Granting makes it an ordinary
- * actionable requirement; declining disposes it and, with it, every task that exists only to serve
- * it — neither happens silently, and both are permanent (see recordAuthorityDecision).
- */
 export function authorityDecideCommand(flags: Flags): Record<string, unknown> {
   const run = textFlag(flags, "run")!;
   const requirementId = textFlag(flags, "requirement")!;

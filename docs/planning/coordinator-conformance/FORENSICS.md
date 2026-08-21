@@ -18,7 +18,7 @@ direction.
 ## 2. What the post-mortem got wrong
 
 Its Section 7 ("Recovery Telemetry & Successful Run Completion") reports the fine-grained rerun as a
-clean success: *"14 / 14 Satisfied (100% Done)"*. The capsule does not support that claim.
+clean success: _"14 / 14 Satisfied (100% Done)"_. The capsule does not support that claim.
 
 ### 2.1 Eleven tasks were claimed and submitted inside one second
 
@@ -54,7 +54,7 @@ same second. That is the state machine being **stamped**, not driven.
   `12:56:09`. **No commit exists inside the run window.**
 - `git status`: 5 modified tracked files, all ports/types work, none of the 24 domain banks.
 
-The real curriculum work happened in the *earlier* coarse runs and was already committed before the
+The real curriculum work happened in the _earlier_ coarse runs and was already committed before the
 fine-grained plan was compiled. The 14-task DAG was a **retroactive re-enactment of finished work**.
 
 ### 2.3 Every domain gate was the same repo-wide command
@@ -104,8 +104,8 @@ gates, probes, validators, critics. Nothing attaches to the **plan**.
 `plan-compile.ts` throws on exactly two substantive conditions: an empty planning buffer, and a
 missing `--completion-gate`. Every topology quality signal is advisory:
 
-- `graph/gate-breadth.ts` exports `gateBreadthWarning` — a *warning*
-- `graph/scope-analyzer.ts` exports `SerializationWarning`, `ConcurrencyWave` — *warnings*
+- `graph/gate-breadth.ts` exports `gateBreadthWarning` — a _warning_
+- `graph/scope-analyzer.ts` exports `SerializationWarning`, `ConcurrencyWave` — _warnings_
 - `plan:compile` collects them into a `warnings` array and prints it
 
 So the analysis a good plan needs **already exists and already runs**. It just cannot say no. A
@@ -118,7 +118,7 @@ outside the skill. The user had to be the refusal mechanism, four times, by hand
 ### Why small models fail here specifically
 
 A weaker planner optimises for the objective it can see. Fewer tasks means less bookkeeping, fewer
-ids to track, fewer chances to violate a schema it half-understands. Waterfall is the *safe-looking*
+ids to track, fewer chances to violate a schema it half-understands. Waterfall is the _safe-looking_
 choice. Parallel decomposition costs more up-front reasoning and its payoff — wall-clock time — is
 invisible from inside a single planning turn. Absent a hard refusal, coarse-and-sequential is the
 rational local optimum. The fix is therefore structural, not exhortative: **make the coarse plan

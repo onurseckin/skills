@@ -5,7 +5,6 @@ import type { NodeTelemetry, NodeTool, TokenUsageDetail } from "./types.ts";
 
 export interface AgentLedgerView {
   grants: Map<string, AgentGrantRecord>;
-  /** Set when `state.agents` was present but unreadable; the run then has no agent telemetry. */
   integrityIssue?: string;
 }
 
@@ -18,7 +17,6 @@ export function readAgentLedgerView(state: unknown): AgentLedgerView {
     }
     return { grants };
   } catch (error) {
-    // A malformed ledger is reported, never repaired into plausible-looking telemetry.
     return {
       grants: new Map(),
       integrityIssue: error instanceof Error ? error.message : "state.agents is unreadable",
@@ -26,10 +24,6 @@ export function readAgentLedgerView(state: unknown): AgentLedgerView {
   }
 }
 
-/**
- * Everything the run actually knows about one agent. A missing grant yields `undefined` and a
- * missing field stays missing, so a node never shows a model nobody reported.
- */
 export function buildNodeTelemetry(
   agentId: string | undefined,
   view: AgentLedgerView,
@@ -44,11 +38,8 @@ export function buildNodeTelemetry(
     host: grant.host,
     grantStatus: grant.status,
   };
-  // A provider is what the host named, never a prefix taken off the model string.
   if (grant.provider) telemetry.provider = grant.provider;
   if (grant.model) telemetry.model = grant.model;
-  // A tier is only what the host reported. A model name is not evidence of a tier, so a grant that
-  // carries a model but no tier leaves the tier absent rather than classifying the string.
   if (grant.model_tier) telemetry.modelTier = grant.model_tier;
   if (grant.thinking_level) telemetry.thinkingLevel = grant.thinking_level;
   if (grant.context_window) telemetry.contextWindow = grant.context_window;
@@ -63,7 +54,6 @@ export function buildNodeTelemetry(
   return telemetry;
 }
 
-/** Tools the ledger recorded for an agent. Nothing is inferred from the commands it ran. */
 export function buildNodeTools(agentId: string | undefined, view: AgentLedgerView): NodeTool[] {
   if (!agentId) return [];
   const grant = view.grants.get(agentId);
@@ -95,11 +85,6 @@ export function buildNodeTools(agentId: string | undefined, view: AgentLedgerVie
   return tools;
 }
 
-/**
- * Host-reported token counts for an agent, or `undefined`. The byte-ratio estimate lives in
- * `computeTaskTokens`; this function never produces one, so a caller cannot mistake an estimate for
- * a measurement.
- */
 export function reportedTokenUsage(
   agentId: string | undefined,
   view: AgentLedgerView,

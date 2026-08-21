@@ -71,8 +71,6 @@ export function createPacketBundle(
     });
     fsyncDirectory(temporary);
     renameSync(temporary, final);
-    // Files stay read-only and digest-bound; keep the bundle owner-writable so the run capsule can
-    // be removed through ordinary supported cleanup without a recursive chmod repair.
     chmodSync(final, 0o755);
     fsyncDirectory(final);
     fsyncDirectory(root);

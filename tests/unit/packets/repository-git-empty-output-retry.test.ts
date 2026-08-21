@@ -94,7 +94,9 @@ describe("inspectRepositoryGitIdentity's HEAD probes absorb the same hazard", ()
     const repo = fixture();
     const { command, matchedCalls } = flakyCommand(isHeadVerify, 2);
 
-    const identity = inspectRepositoryGitIdentity(repo, 1_048_576, 1_048_576, 1_048_576, { command });
+    const identity = inspectRepositoryGitIdentity(repo, 1_048_576, 1_048_576, 1_048_576, {
+      command,
+    });
 
     expect(identity.head_oid).toMatch(/^[0-9a-f]{40}$/);
     expect(matchedCalls()).toBe(3);
@@ -121,7 +123,9 @@ describe("inspectRepositoryGitIdentity's HEAD probes absorb the same hazard", ()
       return repositoryGit(r, argv, maximum, accepted);
     };
 
-    const identity = inspectRepositoryGitIdentity(repo, 1_048_576, 1_048_576, 1_048_576, { command });
+    const identity = inspectRepositoryGitIdentity(repo, 1_048_576, 1_048_576, 1_048_576, {
+      command,
+    });
 
     expect(identity.head_ref).toBeNull();
     expect(calls).toBe(1); // a real "doesn't apply" answer is never mistaken for the empty-output hazard

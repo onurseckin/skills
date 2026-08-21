@@ -10,17 +10,12 @@ export interface FailingGateRun {
   exit_code: number | null;
 }
 
-/**
- * A run that is still going has no verdict yet, so it is not evidence of a red gate. Only a settled
- * run counts against a sign-off.
- */
 function isFailedRun(command: CommandRecord): boolean {
   if (command.status === "failed" || command.status === "timed_out") return true;
   return command.exit_code !== null && command.exit_code !== 0;
 }
 
 function latestRun(commands: CommandRecord[]): CommandRecord | undefined {
-  // Later runs supersede earlier ones: a gate that failed and was then fixed and re-run is green.
   return commands.reduce<CommandRecord | undefined>((latest, command) => {
     if (!latest) return command;
     return Date.parse(command.started_at) >= Date.parse(latest.started_at) ? command : latest;
@@ -29,15 +24,9 @@ function latestRun(commands: CommandRecord[]): CommandRecord | undefined {
 
 export interface GateRunEvidence {
   gate_id: string;
-  /** The latest recorded run of this gate, or undefined when the gate was never run. */
   run?: FailingGateRun | undefined;
 }
 
-/**
- * What the harness recorded for each gate the task must satisfy. A gate with no run is reported as
- * having none: an absent record is not a green one, and a reader of the brief must be able to tell
- * the two apart.
- */
 export function gateRunEvidence(state: WorkflowState, task: TaskRecord): GateRunEvidence[] {
   const commands = Object.values(state.commands ?? {});
   return applicableGates(state, task).map((gate) => {
@@ -57,11 +46,6 @@ export function gateRunEvidence(state: WorkflowState, task: TaskRecord): GateRun
   });
 }
 
-/**
- * The gates the task must satisfy, judged by what the harness actually recorded rather than by what
- * the validator chose to cite. `run:exec` exits 0 even when the gate it ran exits non-zero, so
- * without this the run record is the only place the failure survives.
- */
 export function failingGateRuns(state: WorkflowState, task: TaskRecord): FailingGateRun[] {
   const commands = Object.values(state.commands ?? {});
   const failing: FailingGateRun[] = [];
@@ -98,10 +82,6 @@ export function probeRoundsRecorded(task: TaskRecord): number {
   return typeof task.probe_round === "number" ? task.probe_round : 0;
 }
 
-/**
- * The adversarial probe is a precondition of sign-off, not a rejection: the validator must have
- * demanded proof at least `minProbes` times before a pass is credible.
- */
 export function assertProbeSatisfied(task: TaskRecord, minProbes: number): void {
   const recorded = probeRoundsRecorded(task);
   if (recorded >= minProbes) return;

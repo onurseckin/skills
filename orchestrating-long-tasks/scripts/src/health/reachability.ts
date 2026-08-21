@@ -2,11 +2,8 @@ import { advisory, finding, type HealthCheckResult, type HealthFinding } from ".
 import { resolveOrigin, type ModuleRecord } from "./modules.ts";
 
 export interface ReachabilityInput {
-  /** Every production module, keyed by absolute path. */
   readonly production: ReadonlyMap<string, ModuleRecord>;
-  /** Modules the runtime is entered through: the CLI entry point and the standalone scripts. */
   readonly entryPoints: readonly string[];
-  /** Test modules. They prove behaviour; they are not callers. */
   readonly tests: ReadonlyMap<string, ModuleRecord>;
 }
 
@@ -17,9 +14,7 @@ const LIMITATIONS: readonly string[] = [
 ];
 
 interface Usage {
-  /** consumer modules, keyed by `<origin module>#<symbol>`. */
   readonly consumers: Map<string, Set<string>>;
-  /** Modules some other module imports at least one symbol from, after barrels are resolved. */
   readonly importedModules: Set<string>;
   readonly namespaces: Set<string>;
 }
@@ -50,7 +45,6 @@ function usageIndex(
       if (existing === undefined) consumers.set(key, new Set([record.relative]));
       else existing.add(record.relative);
     }
-    // A barrel forwarding a symbol is not a caller, but the module it forwards from is reached.
     for (const entry of record.exports) {
       if (entry.origin === undefined) continue;
       const origin = resolveOrigin(production, entry.origin);
@@ -60,7 +54,6 @@ function usageIndex(
   }
 }
 
-/** Modules reachable from an entry point by following static imports and re-exports. */
 function reachableModules(
   production: ReadonlyMap<string, ModuleRecord>,
   entryPoints: readonly string[],
@@ -116,8 +109,6 @@ export function checkUnusedCode(input: ReachabilityInput): HealthCheckResult {
       continue;
     }
     if (production.namespaces.has(record.path)) continue;
-    // Reached through a barrel while no production module imports a symbol from it: the
-    // subsystem is compiled, tested, and never invoked. This is the shape the audit kept finding.
     if (
       !entries.has(record.path) &&
       !production.importedModules.has(record.path) &&
@@ -144,8 +135,6 @@ export function checkUnusedCode(input: ReachabilityInput): HealthCheckResult {
           : local
             ? `exported ${entry.kind} referenced only inside its own module; the export surface is unused`
             : `exported ${entry.kind} has no importer anywhere`;
-      // A type carries no behaviour, and a symbol its own module still calls is surface to tidy
-      // rather than a subsystem nothing runs. Both are reported; neither decides the verdict.
       const build = TYPE_ONLY_KINDS.has(entry.kind) || local ? advisory : finding;
       findings.push(
         build(

@@ -1,7 +1,6 @@
 import { existsSync, readdirSync, statSync } from "node:fs";
 import { basename, isAbsolute, join, resolve } from "node:path";
 
-/** Where runners leave their machine-readable report. Discovery only; nothing is read from a name. */
 const RESULT_DIR_NAMES = ["test-results", "playwright-report", "e2e-results", "cypress/results"];
 
 const REPORT_FILE_NAMES = new Set([
@@ -48,7 +47,6 @@ function addIfReport(candidate: string, baseDir: string | undefined, into: Set<s
   } catch {}
 }
 
-/** Report paths a command printed. A path only counts when the file it names is really there. */
 export function extractBrowserReportsFromText(text: string, baseDir?: string): string[] {
   if (!text) return [];
   const pattern = /[a-zA-Z0-9_\-.\/\\~]*\.json/gi;
@@ -61,10 +59,6 @@ export function extractBrowserReportsFromText(text: string, baseDir?: string): s
   return Array.from(found);
 }
 
-/**
- * Every runner report reachable from this command: the paths the caller named, the ones the command
- * printed, and the conventional result directories under each search root.
- */
 export function findBrowserReportCandidates(
   searchDirs: readonly string[],
   stdout?: string,

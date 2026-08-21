@@ -12,11 +12,6 @@ import { isRecord, type JsonRecord } from "./layout-json.ts";
 import { packetLayout } from "./layout-packets.ts";
 import { reportsLayout } from "./layout-reports.ts";
 
-/**
- * A tolerant, best-effort read: state.json's own integrity — readable, canonical, equal to the
- * chain projection — is verified separately by `verifyIntegrity`. A failure here yields no packet,
- * command or report findings rather than a second, differently-worded report of the same corruption.
- */
 function readState(runRoot: string): JsonRecord | undefined {
   try {
     const parsed: unknown = JSON.parse(readFileSync(join(runRoot, "state.json"), "utf-8"));
@@ -26,16 +21,6 @@ function readState(runRoot: string): JsonRecord | undefined {
   }
 }
 
-/**
- * Integrity beyond the four files the chain binds directly.
- *
- * The chain proves the prompt, the manifest, the event log and the projection. Everything else the
- * run wrote — blobs, the readable names that point at them, the capture ledger, packet bundles,
- * command records and validation reports — was unverified and silently tolerated if altered, which
- * is as much an integrity gap as a duplicated one. These checks are structural and cheap enough to
- * run on every load: they read the small per-record documents a run produces (packet.md, a command's
- * record.json), never the large captured logs and screenshots a deep pass re-hashes.
- */
 export function verifyCapsuleLayout(runRoot: string): IntegrityIssue[] {
   const state = readState(runRoot);
   return [
@@ -47,17 +32,10 @@ export function verifyCapsuleLayout(runRoot: string): IntegrityIssue[] {
   ];
 }
 
-/**
- * The checks a load does not pay for: every stored byte re-hashed, and every entry at the capsule
- * root matched against the declared layout. Both are reported rather than enforced on load — a
- * stray file someone dropped into a capsule is worth telling an operator about, but it is not a
- * reason to refuse to read the run.
- */
 export function verifyCapsuleDeep(runRoot: string): IntegrityIssue[] {
   return [...undeclaredEntries(runRoot), ...verifyBlobContents(runRoot)];
 }
 
-/** Anything at the capsule root the layout does not declare is unexplained, so it is reported. */
 export function undeclaredEntries(runRoot: string): IntegrityIssue[] {
   let names: string[];
   try {
@@ -67,7 +45,6 @@ export function undeclaredEntries(runRoot: string): IntegrityIssue[] {
   }
   const found: IntegrityIssue[] = [];
   for (const name of names) {
-    // A dot-prefixed name is an in-flight temporary from an atomic write, not a capsule entry.
     if (name.startsWith(".")) continue;
     if (isDeclaredCapsuleEntry(name)) continue;
     found.push(
@@ -77,7 +54,6 @@ export function undeclaredEntries(runRoot: string): IntegrityIssue[] {
   return found;
 }
 
-/** A blob's file name is its content identity, so a name that is not a digest proves nothing. */
 function blobNaming(runRoot: string): IntegrityIssue[] {
   const root = join(runRoot, "blobs");
   if (!existsSync(root)) return [];
@@ -141,15 +117,6 @@ function sameInode(left: string, right: string): boolean {
   }
 }
 
-/**
- * `hardlink` storage means the view and the blob are the same inode by construction — a view that no
- * longer shares it was replaced independently of the blob, and an existence check alone would miss
- * that entirely, since the replacement still "exists". `copy` is the documented fallback for
- * filesystems without hardlinks, so its only available invariant is content: the bytes still have to
- * hash to what the ledger recorded. Ingestion always writes the blob and the view before the ledger
- * entry that names them (`reporting/screenshot-ingestion.ts`), so by the time a capture is in the
- * ledger both files are already settled — there is no in-flight window to race here.
- */
 function captureViewDivergenceIssues(
   capture: CaptureRecord,
   blobPath: string,
@@ -189,11 +156,14 @@ function captureViewDivergenceIssues(
     }
   }
   return [
-    issue("CAPTURE_STORAGE", `capture ${capture.name} has an unrecognized storage mode`, capture.path),
+    issue(
+      "CAPTURE_STORAGE",
+      `capture ${capture.name} has an unrecognized storage mode`,
+      capture.path,
+    ),
   ];
 }
 
-/** Every recorded capture must still point at bytes that exist, and at the name it claims. */
 function captureReferences(runRoot: string): IntegrityIssue[] {
   const found: IntegrityIssue[] = [];
   const seenNames = new Set<string>();
@@ -225,7 +195,9 @@ function captureReferences(runRoot: string): IntegrityIssue[] {
         ),
       );
     if (!viewPresent)
-      found.push(issue("CAPTURE_VIEW_MISSING", `capture ${capture.name} has no readable name`, capture.path));
+      found.push(
+        issue("CAPTURE_VIEW_MISSING", `capture ${capture.name} has no readable name`, capture.path),
+      );
     if (blobPresent && viewPresent)
       found.push(...captureViewDivergenceIssues(capture, blobPath, viewPath));
     if (seenNames.has(capture.path))
@@ -235,11 +207,6 @@ function captureReferences(runRoot: string): IntegrityIssue[] {
   return found;
 }
 
-/**
- * Re-reads every stored blob and checks it still hashes to its own name. Separate from the load
- * path because it costs a full read of every captured byte, which is exactly what a capsule holds
- * most of.
- */
 export function verifyBlobContents(runRoot: string): IntegrityIssue[] {
   const found: IntegrityIssue[] = [];
   for (const blob of listBlobs(runRoot)) {

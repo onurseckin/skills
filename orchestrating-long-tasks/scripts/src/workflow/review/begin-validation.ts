@@ -1,4 +1,8 @@
-import { applicableValidatorDomains, isValidatorDomain, type ValidatorDomain } from "../../contracts/workflow.ts";
+import {
+  applicableValidatorDomains,
+  isValidatorDomain,
+  type ValidatorDomain,
+} from "../../contracts/workflow.ts";
 import { HarnessError } from "../../errors/harness-error.ts";
 import { newLeaseToken, tokenDigest } from "../lease/token.ts";
 import { requireText, taskIn, transition, utc } from "../task-state.ts";
@@ -9,13 +13,6 @@ const MIN_VALIDATION_WINDOW = 5;
 const MAX_VALIDATION_WINDOW = 86_400;
 const DEFAULT_VALIDATION_WINDOW = 1_200;
 
-/**
- * B12.2: which domain this validator opens. An explicit `domainInput` must be one the task's write
- * scope actually draws (`applicableValidatorDomains`) — a validator dispatched for a domain the task
- * never touches is a caller mistake, not a legitimate broadening. Omitted, the domain is DERIVED:
- * the first applicable domain nobody has an open attempt against yet, so a coordinator dispatching
- * one validator per applicable domain never has to remember `--validator-domain` for any of them.
- */
 function resolveDomain(
   taskId: string,
   writeScope: readonly string[],
@@ -50,11 +47,7 @@ export function beginValidation(
   taskId: string,
   validatorId: string,
   clock: Clock = systemClock,
-  // Seconds until the validation deadline; --lease-duration on task:validate-start. Bounds mirror
-  // claimTask's ClaimOptions.leaseSeconds, the implementer-side equivalent of this same window.
   leaseSeconds?: number,
-  // B12.2: --validator-domain on task:validate-start. Undefined derives the domain from the task's
-  // write scope instead (see resolveDomain above).
   domainInput?: string,
 ) {
   validatorId = requireText(validatorId, "validator_id");
@@ -74,8 +67,6 @@ export function beginValidation(
   const token = newLeaseToken();
   const state = port.transact(validatorId, "validation-started", { task_id: taskId }, (draft) => {
     const task = taskIn(draft, taskId);
-    // Multiple domain validators share a task's `validating` window (B12.2): the first opens it,
-    // every later domain joins the window already open rather than being refused as "not submitted".
     if (task.status !== "submitted" && task.status !== "validating") {
       throw new HarnessError("INVALID_STATE", "task is not submitted");
     }

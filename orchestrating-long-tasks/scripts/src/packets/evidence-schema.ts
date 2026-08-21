@@ -90,8 +90,6 @@ const criticReview: JsonObject = {
   ],
 };
 
-// A read-only branch child has an empty write scope by contract, so its report names what it read
-// and what it reproduced; asking it for files_changed would demand a change it may not make.
 const investigationReport: JsonObject = {
   summary: "<nonempty summary>",
   requirement_ids: ["<every mapped requirement id exactly once>"],
@@ -112,7 +110,6 @@ const investigationReport: JsonObject = {
   evidence: [{ path: "<durable evidence path>" }],
 };
 
-// The coordinator never edits the repository; its evidence is what it dispatched, ran and recorded.
 const coordinationRecord: JsonObject = {
   summary: "<nonempty summary>",
   dispatched_agents: ["<agent id registered through agent:register>"],
@@ -127,12 +124,33 @@ const plannerDocuments: JsonObject = {
   validation: [{ command: ["bun", "<pinned-runtime>", "validate"], status: "passed" }],
 };
 
-// Exhaustive by construction: a new canonical role cannot compile until its contract is chosen,
-// which is what stops a read-only role from being handed a schema that demands file changes.
+const planValidatorReview: JsonObject = {
+  validator_token: "<host-delivered>",
+  graph_revision: "<this packet graph revision>",
+  plan_digest: "<this packet plan digest>",
+  status: "approved|changes_requested",
+  decomposition_answer:
+    "<does the decomposition match the work's entity count, or did it compress>",
+  dependency_answer: "<is every dependency edge justified by a real read/write relationship>",
+  gate_answer: "<can each gate actually fail if its task does nothing>",
+  straggler_answer: "<will any task's scope make one agent straggle while the rest idle>",
+  findings: [
+    {
+      id: "<stable finding id>",
+      invariant: "<which of the four questions, or audit invariant, this answers>",
+      severity: "critical|important|minor",
+      observation: "<precise nonempty observation about the plan>",
+      remediation: "<what replanning would need to fix>",
+    },
+  ],
+  checks: [{ command_id: "<plan-validator-owned independent command id>" }],
+};
+
 const ROLE_CONTRACTS: Readonly<Record<AgentRole, JsonObject>> = {
   "completeness-critic": criticReview,
   coordinator: coordinationRecord,
   implementer: taskSubmission,
+  "plan-validator": planValidatorReview,
   planner: plannerDocuments,
   repairer: taskSubmission,
   "sub-implementer": taskSubmission,

@@ -1,23 +1,5 @@
 import type { HarnessEvent } from "../contracts/capsule.ts";
 
-/**
- * Narration for event kinds `determinePhaseAndSummary` (`timeline-collector.ts`) has no dedicated
- * case for. Before this module existed, every one of these fell to the fully generic
- * `Event <kind> recorded by <actor>` — technically a step (B15.1's "nothing happens off the record"
- * held), but a step whose own text threw away the payload's real content. Measured against the real
- * fixture capsule from a throwaway harness-driven run (B37's fixture-demo verification;
- * gitignored per CLAUDE.md's `.tmp/` scratch convention, so its own path is deliberately not
- * quoted here as one literal token): 42 of 78 recorded steps carried that
- * generic text, which is exactly what defeats B21.3's "reconstructible from summaries alone" bar for a
- * branch excursion, an agent registration or release, or a probe demand.
- *
- * Each case reads only fields the producing transaction actually put on the event payload (verified
- * against `workflow/branch/open.ts`, `collect.ts`, `sub-tasks.ts`, `workflow/agents/grants.ts` and the
- * other emitters directly, not guessed from a plausible name) and falls back to an explicit
- * "no <field> recorded" phrase, never a fabricated one, when a payload the harness itself did not
- * carry that detail on.
- */
-
 interface EventNarration {
   phase: string;
   summary: string;
@@ -67,6 +49,23 @@ function planNarration(
       return {
         phase: "planning",
         summary: `Topology recorded by ${event.actor}: ${waves ?? "an unrecorded number of"} wave(s) over ${tasks ?? "an unrecorded number of"} task(s)`,
+      };
+    }
+    case "plan-audited": {
+      const blocking = numberField(p, "blocking_count") ?? 0;
+      const tasks = numberField(p, "task_count");
+      const scope = tasks === undefined ? "" : ` across ${tasks} task(s)`;
+      return {
+        phase: "planning",
+        summary: `Plan audited by ${event.actor}: ${blocking} blocking finding(s)${scope}`,
+      };
+    }
+    case "plan-audit-accepted": {
+      const invariant = textField(p, "invariant") ?? "an unrecorded invariant";
+      const reason = textField(p, "reason") ?? "no reason recorded";
+      return {
+        phase: "planning",
+        summary: `Audit override recorded by ${event.actor} for ${invariant}: ${reason}`,
       };
     }
     default:
@@ -187,9 +186,6 @@ function reviewNarration(
     case "completion-reviewed": {
       const packetId = textField(p, "packet_id");
       const status = textField(p, "status");
-      // B21.3: the critic's own words, not just which packet it reviewed — this is the run's final
-      // lifecycle closure, and a step that dropped it would defeat "reconstructible from summaries
-      // alone" at the one point that matters most.
       const reviewSummary = textField(p, "summary") ?? "no summary recorded";
       return {
         phase: "review",
@@ -255,12 +251,6 @@ function systemNarration(
   }
 }
 
-/**
- * The real narration for an event kind `determinePhaseAndSummary`'s own switch has no case for, or
- * `undefined` for a kind genuinely nobody has named yet — which keeps the fully generic fallback text
- * alive for the future-kind case, exactly as `collectActionSteps`'s "never dropped, never a crash"
- * guarantee already promises.
- */
 export function narrateUnclassifiedEvent(event: HarnessEvent): EventNarration | undefined {
   const p = (event.payload ?? {}) as Record<string, unknown>;
   return (

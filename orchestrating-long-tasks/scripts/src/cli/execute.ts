@@ -9,8 +9,6 @@ export async function execute(
   argv: readonly string[],
   context: CommandContext = {},
 ): Promise<JsonObject> {
-  // The spec is resolved before parsing because the parser needs its flag shapes to know which
-  // flags carry values and which may repeat.
   const spec = findCommand(argv[0] ?? "");
   const parsed = parseArguments(argv, spec === undefined ? undefined : flagShapes(spec.flags));
   if (!spec) throw new HarnessError("INVALID_ARGUMENT", `unknown command: ${parsed.command}`);
@@ -28,8 +26,6 @@ export async function execute(
     (flag) => flag.required && !Object.hasOwn(parsed.flags, flag.name),
   );
   if (missing) throw new HarnessError("INVALID_ARGUMENT", `--${missing.name} is required`);
-  // The capability contract is checked before the handler runs, so a role never takes the first
-  // step of an action its document does not grant.
   assertGrantedCommand(spec, parsed.flags);
   return (await spec.handler(parsed.flags, context, parsed.remainder)) as JsonObject;
 }

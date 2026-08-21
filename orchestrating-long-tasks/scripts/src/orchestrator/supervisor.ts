@@ -4,19 +4,22 @@ import { systemClock, type Clock, type WorkflowState } from "../workflow/types.t
 import { escalateTask } from "../workflow/lease/escalate.ts";
 import { HarnessError } from "../errors/harness-error.ts";
 import { selectDispatchable, type BackingOffTask } from "./dispatch-selection.ts";
-import { recordDispatchOutcome, readDispatchHistory, type DispatchLogEvent } from "./dispatch-log.ts";
-import { classifyFailure, nextBackoffDelayMs, type BackoffConfig, type FailureSignal } from "./failure-classifier.ts";
+import {
+  recordDispatchOutcome,
+  readDispatchHistory,
+  type DispatchLogEvent,
+} from "./dispatch-log.ts";
+import {
+  classifyFailure,
+  nextBackoffDelayMs,
+  type BackoffConfig,
+  type FailureSignal,
+} from "./failure-classifier.ts";
 import { buildMorningReport, type MorningReport } from "./morning-report.ts";
 import { runSupervisionTick, type EscalationRecord } from "./supervision-tick.ts";
 import type { ReadyEntry } from "../scheduler/index.ts";
 import type { DeadAgentEvent } from "./dead-agent-detector.ts";
 
-/**
- * What dispatching a task actually means is host work (spawning and running a real agent, R9/B14):
- * the harness never does it itself. `RunSupervisor` drives the decision loop and hands each
- * dispatchable task to whatever the host injects here, exactly the seam `AutonomousLoopRunner`
- * already uses for round execution.
- */
 export interface TaskDispatchInput {
   readonly taskId: string;
   readonly writeScope: readonly string[];
@@ -48,33 +51,19 @@ export interface RunSupervisorOptions {
   readonly runRoot: string;
   readonly actor: string;
   readonly maxParallel: number;
-  /**
-   * B27.2: the separate, lower ceiling for gate-running (CPU-bound) work, reported alongside
-   * `maxParallel` so occupancy is visible against both rather than only the general one. Purely
-   * informational here — `maxParallel` is still the number that actually gates dispatch, since the
-   * supervisor has no way to tell a gate-running task from a reasoning one without the host telling
-   * it. Absent when the caller supplies none, never defaulted to a guess.
-   */
   readonly gateMaxParallel?: number;
-  /** Absent: the supervisor still reclaims, escalates and reports, but dispatches nothing itself. */
   readonly dispatcher?: TaskDispatcher;
-  /** B28.5: recovery is on by default. A caller must explicitly opt out, never the reverse. */
   readonly recoveryEnabled?: boolean;
   readonly graceSeconds?: number;
   readonly deterministicRepeatThreshold?: number;
-  /** Per-task retry elapsed budget (B28.3). Assumed default: see `failure-classifier.ts`. */
   readonly maxElapsedMsPerTask?: number;
   readonly backoff?: BackoffConfig;
-  /** How often to re-tick while waiting for a dispatcher's work to land. Assumed, not measured. */
   readonly pollIntervalMs?: number;
-  /** The whole run's wall-clock budget — "the entire night" (B28's own framing). Assumed. */
   readonly maxTotalElapsedMs?: number;
   readonly clock?: Clock;
-  /** Injectable so tests never actually wait. */
   readonly sleep?: (ms: number) => Promise<void>;
 }
 
-/** One combined reclaim-escalate-dispatch pass, folding both halves of `supervision-tick.ts` back together. */
 export interface SupervisorTickOutcome {
   readonly reclaimed: readonly DeadAgentEvent[];
   readonly escalatedNow: readonly EscalationRecord[];
@@ -82,7 +71,6 @@ export interface SupervisorTickOutcome {
   readonly backingOff: readonly BackingOffTask[];
   readonly occupied: number;
   readonly maxParallel: number;
-  /** B27.2: reported alongside `maxParallel`, never in place of it. See the option's own doc. */
   readonly gateMaxParallel?: number;
 }
 
@@ -99,7 +87,10 @@ const DEFAULT_MAX_TOTAL_ELAPSED_MS = 8 * 60 * 60_000;
 function isRunTerminal(state: WorkflowState): boolean {
   if (state.completion_result !== undefined) return true;
   const tasks = Object.values(state.tasks);
-  return tasks.length > 0 && tasks.every((task) => ["done", "cancelled", "escalated"].includes(task.status));
+  return (
+    tasks.length > 0 &&
+    tasks.every((task) => ["done", "cancelled", "escalated"].includes(task.status))
+  );
 }
 
 export class RunSupervisor {
@@ -113,12 +104,10 @@ export class RunSupervisor {
     this.sleepFn = options.sleep ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
   }
 
-  /** Both halves the module comment in `supervision-tick.ts` describes: `.state` and `.events`. */
   private load(): ReturnType<typeof loadRun> {
     return loadRun(this.options.runRoot);
   }
 
-  /** One reclaim-escalate-dispatch pass. Safe to call repeatedly and safe to call after a restart. */
   private async tick(): Promise<SupervisorTickOutcome> {
     const o = this.options;
     const reclaim = runSupervisionTick(this.port, o.actor, {
@@ -131,8 +120,6 @@ export class RunSupervisor {
       ...(o.maxElapsedMsPerTask === undefined ? {} : { maxElapsedMs: o.maxElapsedMsPerTask }),
     });
 
-    // Fresh load, taken AFTER the reclaim/escalation mutations above, so a task just escalated
-    // cannot still read as ready.
     const loaded = this.load();
     const freeSlots = Math.max(0, o.maxParallel - reclaim.occupied);
     const selection = selectDispatchable(loaded.state, loaded.events, freeSlots, this.clock.now());
@@ -180,8 +167,6 @@ export class RunSupervisor {
     events: readonly DispatchLogEvent[],
   ): void {
     const now = this.clock.now();
-    // "unknown" for both: the dispatcher reported a bare failure with no structured reason, and
-    // that absence is the fact worth recording — never a guessed explanation standing in for it.
     const signal = failure?.signal ?? "unknown";
     const detail = failure?.detail ?? "unknown";
     const history = readDispatchHistory(events, taskId);
@@ -238,11 +223,6 @@ export class RunSupervisor {
     });
   }
 
-  /**
-   * Drives ticks to a terminal state (B28.2). Without a dispatcher this performs exactly one tick —
-   * there is nothing to wait on — which is also what makes the command safe to run from an external
-   * poll loop (cron, a shell `while`) instead of holding a process open all night.
-   */
   public async run(): Promise<SupervisionRunResult> {
     const startedAt = this.clock.now().valueOf();
     const maxTotalElapsedMs = this.options.maxTotalElapsedMs ?? DEFAULT_MAX_TOTAL_ELAPSED_MS;
@@ -262,7 +242,12 @@ export class RunSupervisor {
         return { stopReason: "terminal", ticks, lastTick: last, report: this.report() };
       }
       if (this.clock.now().valueOf() - startedAt >= maxTotalElapsedMs) {
-        return { stopReason: "elapsed_budget_exhausted", ticks, lastTick: last, report: this.report() };
+        return {
+          stopReason: "elapsed_budget_exhausted",
+          ticks,
+          lastTick: last,
+          report: this.report(),
+        };
       }
       const stuck =
         last.dispatchable.length === 0 && last.occupied === 0 && last.backingOff.length === 0;

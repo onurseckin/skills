@@ -23,10 +23,8 @@ export type LoopExecutionStatus =
 
 export type CriticDecision = "approve" | "request_changes" | "rejected" | "escalated";
 
-/** A round either ran gates that all passed, ran gates that did not, or ran none at all. */
 export type GateRoundStatus = "passed" | "failed" | "not_run";
 
-/** `partial` is the loop-level shape a single round cannot have: some rounds ran gates, some did not. */
 export type GateOverallStatus = GateRoundStatus | "partial";
 
 export type AutoWakeAction = "nudge" | "reclaim_lease" | "restart_agent" | "escalate";
@@ -144,7 +142,6 @@ export interface LoopSummary {
   readonly gateStatus: GateOverallStatus;
   readonly finalCriticDecision?: CriticDecision | undefined;
   readonly finalMarkdownSummary: string;
-  /** Absent when the loop was started without an attributed actor; never filled with a stand-in. */
   readonly actor?: string | undefined;
 }
 
@@ -159,12 +156,6 @@ export interface RoundExecutionInput {
   readonly priorDefects?: DefectSynthesis | undefined;
 }
 
-/**
- * A gate outcome as an injected round executor reports it. It is deliberately not the state
- * ledger's `GateResult`, whose `status` is the literal `"passed"` because `attachGateResult`
- * refuses to record anything else — a round executor is reporting what a gate did, including
- * failing, so its status must be able to say so.
- */
 export interface RoundGateResult {
   readonly gate_id: string;
   readonly command_id: string;
@@ -196,7 +187,7 @@ export interface LoopRunnerOptions {
   readonly baseRunId: string;
   readonly repoPath: string;
   readonly initialPrompt: string;
-  readonly maxRounds?: number | undefined; // Default 10, max 10
+  readonly maxRounds?: number | undefined;
   readonly capsulesDir?: string | undefined;
   readonly harnessCli?: string | undefined;
   readonly actor?: string | undefined;

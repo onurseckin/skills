@@ -7,6 +7,7 @@ import type {
   TaskStatus,
   ValidatorDomain,
 } from "../contracts/workflow.ts";
+import type { Evidenced } from "../contracts/evidence.ts";
 import type { JsonObject, JsonValue } from "../contracts/json.ts";
 import type {
   CompletionArtifactVerification,
@@ -18,6 +19,9 @@ import type {
 import type { RepositoryBinding } from "../contracts/repository.ts";
 import type { OrphanEvidenceDisposition } from "./orphan-evidence/types.ts";
 import type { WorktreeCommitRecord, WorktreeLedgerState } from "../contracts/worktree.ts";
+import type { PlanFinding, PlanReview, PlanValidationAuthorization } from "./plan-review/types.ts";
+
+export type { PlanFinding, PlanReview, PlanValidationAuthorization } from "./plan-review/types.ts";
 
 export type {
   CompletionArtifactPacket,
@@ -33,10 +37,11 @@ export type {
   CompletionReview,
 } from "./completion/types.ts";
 export type { OrphanEvidenceDisposition } from "./orphan-evidence/types.ts";
-// B12.2: the validator-domain type and its derivation live in contracts/workflow.ts (see that
-// file's own comment for why); re-exported here so callers that already import task/workflow types
-// from this module do not need a second import path for them.
-export { applicableValidatorDomains, isValidatorDomain, VALIDATOR_DOMAINS } from "../contracts/workflow.ts";
+export {
+  applicableValidatorDomains,
+  isValidatorDomain,
+  VALIDATOR_DOMAINS,
+} from "../contracts/workflow.ts";
 export type { ValidatorDomain } from "../contracts/workflow.ts";
 
 export interface TaskHistory extends JsonObject {
@@ -50,10 +55,6 @@ export interface TaskHistory extends JsonObject {
 
 export interface ValidationAttempt extends JsonObject {
   validator_id: string;
-  /** B12.2: which validator-family domain this attempt belongs to — explicit or derived from the
-   *  task's write scope (`applicableValidatorDomains`), never left implicit, so a task's per-domain
-   *  collection (`TaskRecord.validations`) can be keyed and completion can require every applicable
-   *  domain to pass rather than the first one. */
   domain: ValidatorDomain;
   token_digest: string;
   attempt: number;
@@ -71,6 +72,13 @@ export interface CommandProof extends JsonObject {
 export interface ScopedLease extends Lease {
   write_scope: string[];
   resource_scope: string[];
+  write_scope_content_hash?: Evidenced<string>;
+}
+
+export interface TaskNoOpDeclaration extends JsonObject {
+  reason: string;
+  declared_by: string;
+  at: string;
 }
 
 export interface TaskRecord extends JsonObject {
@@ -90,23 +98,12 @@ export interface TaskRecord extends JsonObject {
   replacement_evidence?: string;
   lease?: ScopedLease;
   report?: JsonObject;
-  /**
-   * B12.2: the task's currently OPEN validation attempts, at most one per domain (`begin-validation`
-   * enforces that), one entry per domain the task's write scope drew (or was explicitly assigned).
-   * A domain's entry stays here after it records a pass — the task's terminal `validated` transition
-   * requires every applicable domain to have one — so this is not merely "in flight" work; it also
-   * carries the settled record for a domain that finished before its siblings. A reject from any one
-   * domain archives every open entry into `validation_history` and clears this collection, ending
-   * the round for every domain the same way a single validator's reject always ended it (B36 finding
-   * #3). Was a singleton `validation?: ValidationAttempt`; renamed on the shape change so every call
-   * site had to be looked at rather than silently compiling against the old assumption.
-   */
   validations?: ValidationAttempt[];
   validation_history?: ValidationAttempt[];
   findings?: Finding[];
   gate_results?: GateResult[];
-  /** B22.3: the sub-phase commit `task:submit` made in this task's assigned worktree, if any. */
   worktree_commit?: WorktreeCommitRecord;
+  no_op?: TaskNoOpDeclaration;
 }
 
 export interface RequirementRuntime extends JsonObject {
@@ -181,8 +178,11 @@ export interface WorkflowState extends JsonObject {
   completion_verification?: CompletionArtifactVerification;
   completion_result?: CompletionResult;
   completion?: CompletionEvidence;
-  /** B22: absent means worktree isolation was never provisioned for this run - not an empty ledger. */
   worktree_ledger?: WorktreeLedgerState;
+  plan_validation?: PlanValidationAuthorization;
+  plan_validation_history?: PlanValidationAuthorization[];
+  plan_review?: PlanReview;
+  plan_reviews?: PlanReview[];
 }
 
 export interface TransactionPort {

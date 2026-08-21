@@ -2,23 +2,14 @@ import { lineOf } from "./scanner.ts";
 import type { SourceFile } from "./sources.ts";
 import { finding, type HealthCheckResult, type HealthFinding } from "./types.ts";
 
-/**
- * B8.5 defect class 1: a plausible literal substituted for missing data. `?? "pending"` and
- * `|| "agent"` both report a value nobody measured. Rendering absence as absence is fine, so the
- * markers below are the vocabulary a fallback may legitimately reach for.
- */
 const ABSENCE_MARKER = /^(?:no|none|not|unknown|unavailable|unrecorded)\b/u;
 
-/** A whole literal that is nothing but a placeholder glyph. */
 const ABSENCE_GLYPHS: ReadonlySet<string> = new Set(["-", "--", "\u2014", "?", "n/a"]);
 
-/** Decorations a brief wraps a marker in. `\`none\`` and `**none**` still say "none". */
 const DECORATION = /[`*_"']/gu;
 
-/** The same admission made mid-phrase: "an unrecorded time" still reports absence. */
 const ABSENCE_PHRASE = /\b(?:unknown|unrecorded|unavailable|not recorded|not applicable)\b/u;
 
-/** `<AGENT>` in an example command line is a placeholder the reader fills in, not a claimed value. */
 const PLACEHOLDER = /^<[^>]*>$/u;
 
 function declaresAbsence(literal: string): boolean {
@@ -29,10 +20,6 @@ function declaresAbsence(literal: string): boolean {
   return ABSENCE_MARKER.test(stripped) || ABSENCE_PHRASE.test(stripped);
 }
 
-/**
- * Left-hand names whose value is a measurement: defaulting one to 0 reports a reading we lack.
- * A bound or a knob is excluded - `maxBytes ?? 64 * 1024` states a policy, it does not report one.
- */
 const MEASUREMENT_WORDS: readonly string[] = [
   "exit",
   "code",

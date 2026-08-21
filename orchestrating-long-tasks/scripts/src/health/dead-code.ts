@@ -3,15 +3,12 @@ import type { ModuleRecord } from "./modules.ts";
 import type { SourceFile } from "./sources.ts";
 import { finding, type HealthCheckResult, type HealthFinding } from "./types.ts";
 
-/** A comment line that is not prose but a statement someone stopped running. */
 const CODE_SHAPED =
   /^(?:const|let|var|if|for|while|switch|return|await|import|export|function|class|throw|try)\b.*[;{]$|^[A-Za-z0-9_$.]+\([^)]*\);$|^\}\s*(?:else\b.*)?[;{]?$/u;
 
-/** B4: a branch kept for a shape that no longer exists. The words are how such branches announce themselves. */
 const SUPERSEDED_WORDS =
   /\b(?:legacy|deprecated|back[- ]?compat(?:ibility)?|older format|old format)\b/iu;
 
-/** The same words inside an identifier: `legacyShape` announces the branch just as loudly. */
 const SUPERSEDED_IDENTIFIER = /[A-Za-z0-9_$]*(?:legacy|deprecated|backcompat)[A-Za-z0-9_$]*/iu;
 
 function commentedOutCode(file: SourceFile): HealthFinding[] {
@@ -66,7 +63,6 @@ function supersededBranches(file: SourceFile): HealthFinding[] {
   return findings;
 }
 
-/** B8.3: the same helper implemented in two places is where the next silent divergence starts. */
 function duplicateHelpers(modules: ReadonlyMap<string, ModuleRecord>): HealthFinding[] {
   const byName = new Map<string, ModuleRecord[]>();
   for (const record of modules.values()) {

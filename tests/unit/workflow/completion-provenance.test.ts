@@ -140,7 +140,13 @@ describe("authoritative completion provenance", () => {
     const port = completionPort();
     review(port);
     expect(() =>
-      completeRun(port, "coordinator", (state) => artifactVerification(state), "wrong-token", clock),
+      completeRun(
+        port,
+        "coordinator",
+        (state) => artifactVerification(state),
+        "wrong-token",
+        clock,
+      ),
     ).toThrow("completion authorization token is invalid");
     // The correct token still seals it - the prior call rejected the token, not the state.
     const state = completeRun(

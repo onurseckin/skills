@@ -14,28 +14,12 @@ import {
 
 export interface HarnessConfig {
   max_repair_rounds: number;
-  /**
-   * Escalation tripwire on branch nesting. Chains terminate because every branch must strictly
-   * narrow its parent's write scope, so this number bounds nothing structural: it is the depth past
-   * which subdividing reads as a mis-scoped task that a human should look at.
-   */
   max_branch_depth: number;
-  /** Total agent grants a run may issue, counted across every depth of the lineage. */
   max_agents: number;
   max_output_bytes: number;
   default_lease_seconds: number;
   default_max_parallel: number;
-  /**
-   * B27.2's explicit escape hatch: an operator-set ceiling that beats host discovery. Genuinely
-   * absent (not present at all, never a sentinel number) means "use what the host allows" - see
-   * `resolveConcurrencyCeiling` for the precedence this participates in.
-   */
   max_concurrent_agents?: number;
-  /**
-   * B27.2: the separate, lower ceiling for gate-running (CPU-bound) agents - the local machine, not
-   * the provider, is the constraint there. Always resolved to a concrete number (derived from cores
-   * when nothing overrides it), unlike `max_concurrent_agents` which can be genuinely unset.
-   */
   gate_max_parallel: number;
   /**
    * B22.7: whether `plan:compile` provisions its own `harness/<run-id>` branch and git worktrees
@@ -50,27 +34,13 @@ export interface HarnessConfig {
    * confirm nothing regresses.
    */
   worktree_isolation: boolean;
-  /**
-   * Root directory worktrees are created under, always OUTSIDE the repository the harness is
-   * operating on (`provisionWorktrees` refuses a root that resolves inside the repo). Absent means
-   * "use the computed default", a sibling of the repo keyed by run id - never a sentinel path.
-   */
   worktree_root?: string;
-  /** Prefix for the branch `plan:compile` provisions, e.g. `harness/<run-id>`. */
   branch_prefix: string;
-  /** Whether `task:submit` commits a task's write scope in its assigned worktree on submission. */
   commit_per_subphase: boolean;
-  /** B22.3: a commit past this many changed lines is a WARNING on the result, never a refusal. */
   max_commit_lines: number;
-  /** B22.4: whether `run:complete` rebases `harness/<run-id>` onto the base branch's current tip
-   *  after merging every worktree's commits onto it. A conflict always stops the rebase regardless
-   *  of this flag; turning it off skips attempting the rebase at all, leaving the merged branch as
-   *  the run's final state. */
   rebase_on_complete: boolean;
 }
 
-/** B27.2: which source actually produced the resolved `default_max_parallel`, so a report can say
- * why rather than presenting a number with no provenance (HONESTY: never an invented fact). */
 export type ConcurrencyCeilingSource = "config_override" | "host_discovered" | "assumed_default";
 
 export interface ResolvedHarnessConfig extends HarnessConfig {
@@ -175,14 +145,6 @@ function parseConfigFile(filePath: string): Partial<ResolvedHarnessConfig> | nul
   }
 }
 
-/**
- * B27.2's precedence for the general concurrency ceiling: an explicit `default_max_parallel` or
- * `max_concurrent_agents` in either config file (repo beats capsule, unchanged from every other
- * knob's rule) always wins because a human said a specific number on purpose. Only when NEITHER
- * config file said anything does host discovery get to speak, and only when the host published
- * nothing either does the hardcoded constant apply - the harness must not hardcode a number ahead
- * of a real answer, but it also must not invent one when no real answer exists.
- */
 function resolveConcurrencyCeiling(
   capsuleConfig: Partial<ResolvedHarnessConfig> | null,
   repoConfig: Partial<ResolvedHarnessConfig> | null,
@@ -215,10 +177,7 @@ function resolveConcurrencyCeiling(
 }
 
 export interface ResolveHarnessConfigOptions {
-  /** Test seam: stand in for what `discoverHostConcurrencyCeiling` would have found, without
-   * touching real env vars or disk. Distinct from "found nothing" (`null`) via `undefined`. */
   readonly hostConcurrency?: HostConcurrencyCeiling | null;
-  /** Test seam: stand in for the host's core count driving `gate_max_parallel`'s default. */
   readonly cpuCount?: number;
 }
 
@@ -274,11 +233,6 @@ function cacheKey(repoRoot: string, capsuleRoot: string | undefined): string {
   return `${repoRoot}\u0000${capsuleRoot ?? ""}`;
 }
 
-/**
- * Command-path accessor: config lives on disk but is read once per root pair, so call sites can ask
- * for a knob wherever they need it instead of threading a config object through every signature.
- * Frozen because the cached instance is shared.
- */
 export function getHarnessConfig(
   repoRoot?: string,
   capsuleRoot?: string,

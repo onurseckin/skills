@@ -12,12 +12,12 @@ export const ORPHAN_COMMANDS: readonly CommandSpec[] = [
     flags: [
       requiredFlag("run", "string", "Capsule run root."),
       requiredFlag("actor", "string", "Who is recording the disposition."),
-      requiredFlag("orphan-sha256", "string", "Digest of the orphan evidence, from doctor's issues."),
       requiredFlag(
-        "disposition",
+        "orphan-sha256",
         "string",
-        "ignored_non_authoritative, rejected, or superseded.",
+        "Digest of the orphan evidence, from doctor's issues.",
       ),
+      requiredFlag("disposition", "string", "ignored_non_authoritative, rejected, or superseded."),
       requiredFlag("rationale", "string", "Why this disposition is correct."),
       repeatableFlag("evidence", "string", "Command id supporting the disposition; repeat per id."),
     ],

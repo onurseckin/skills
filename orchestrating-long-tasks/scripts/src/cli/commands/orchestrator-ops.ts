@@ -11,7 +11,6 @@ import { boolFlag, integerFlag, textFlag, type CommandContext, type Flags } from
 
 export interface OrchestratorCommandContext extends CommandContext {
   executor?: RoundExecutor | undefined;
-  /** B28.2: absent, the command still reclaims and reports but dispatches nothing itself. */
   dispatcher?: TaskDispatcher | undefined;
 }
 
@@ -69,8 +68,6 @@ export async function orchestratorRunCommand(
     );
   }
 
-  // Rounds are executed by the host, never by the harness. Without an injected executor there is
-  // nothing to report, so the command refuses rather than writing a summary for work never done.
   if (context.executor === undefined) {
     throw new HarnessError(
       "INVALID_STATE",
@@ -111,18 +108,10 @@ export async function orchestratorRunCommand(
   };
 }
 
-/** A run root is `<repo>/.capsules/<run-id>`, so repo config sits two levels above the capsule. */
 function repoConfigFor(runRoot: string): ReturnType<typeof getHarnessConfig> {
   return getHarnessConfig(resolve(runRoot, "..", ".."), runRoot);
 }
 
-/**
- * B28's unattended supervision: reclaims dead agents, escalates tasks that have clearly stopped
- * being retriable (B28.3), and — when the host injects a dispatcher — drives ready tasks to
- * completion until the run reaches a terminal state. Without a dispatcher it performs exactly one
- * pass and returns, which is what makes it safe to drive from an external poll loop instead of a
- * process the caller has to keep alive.
- */
 export async function orchestratorSuperviseCommand(
   flags: Flags,
   context: OrchestratorCommandContext = {},
@@ -132,15 +121,11 @@ export async function orchestratorSuperviseCommand(
   const maxParallelFlag = integerFlag(flags, "max-parallel", { minimum: 1, maximum: 64 });
   const resolvedConfig = repoConfigFor(run);
   const maxParallel = maxParallelFlag ?? resolvedConfig.default_max_parallel;
-  // B27.2: provenance for max_parallel, reported in the CLI output below — a flag beats whatever
-  // resolveHarnessConfig would have picked, so its own recorded source only applies when no flag
-  // was given (HONESTY: never label an operator-supplied number as auto-discovered).
-  const maxParallelSource = maxParallelFlag !== undefined ? "cli_flag" : resolvedConfig.default_max_parallel_source;
-  // B27.2: reported alongside maxParallel, never in place of it — see RunSupervisorOptions.
+  const maxParallelSource =
+    maxParallelFlag !== undefined ? "cli_flag" : resolvedConfig.default_max_parallel_source;
   const gateMaxParallel =
     integerFlag(flags, "gate-max-parallel", { minimum: 1, maximum: 64 }) ??
     resolvedConfig.gate_max_parallel;
-  // B28.5: recovery is on by default; opting out is the flag, never the reverse.
   const recoveryEnabled = !boolFlag(flags, "no-recover");
   const graceSeconds = integerFlag(flags, "grace-seconds", { minimum: 0, maximum: 86_400 });
   const pollIntervalMs = integerFlag(flags, "poll-interval-ms", { minimum: 100 });
@@ -177,9 +162,6 @@ export async function orchestratorSuperviseCommand(
     backing_off: result.lastTick.backingOff,
     occupied: result.lastTick.occupied,
     max_parallel: result.lastTick.maxParallel,
-    // B27.2: provenance for max_parallel — an operator reading this output can tell "I passed
-    // --max-parallel" from "a human set max_concurrent_agents" from "the host published a ceiling"
-    // from "nobody said anything and this is the assumed default", never a bare unexplained number.
     max_parallel_source: maxParallelSource,
     max_concurrent_agents: resolvedConfig.max_concurrent_agents,
     gate_max_parallel: result.lastTick.gateMaxParallel,

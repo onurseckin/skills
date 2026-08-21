@@ -4,20 +4,12 @@ import { isKnownToolCategory } from "../../contracts/taxonomy.ts";
 import type { TaskLineage } from "../../workflow/agents/lineage.ts";
 import { enforceLineLimit, formatTable } from "./line-limiter.ts";
 
-/**
- * Missing telemetry renders as the literal "unknown". Nothing here may substitute a neutral-looking
- * default, and every present value shows the class of evidence behind it.
- */
 function cell(value: Evidenced<number | string> | undefined): string {
   if (value === undefined) return "unknown";
   const estimate = value.is_estimated === true ? ", estimated" : "";
   return `\`${String(value.value)}\` (${value.evidence_class}${estimate})`;
 }
 
-/**
- * A tool with the category it was filed under. A category outside the seed vocabulary is shown as
- * given and marked, never dropped and never corrected into a familiar one.
- */
 function toolCell(tool: AgentToolRef): string {
   if (tool.category === undefined) return `\`${tool.name}\` (uncategorised)`;
   const marker = isKnownToolCategory(tool.category) ? "" : ", unrecognised category";
@@ -47,8 +39,6 @@ export function formatAgentRegisterBrief(grant: AgentGrantRecord, runId: string)
     "",
     "#### Close The Grant:",
     "```bash",
-    // B21: agent:release requires --reason, so the suggested follow-up command must carry one too —
-    // a copy-pasteable snippet that itself omits a required flag would fail on the operator's next run.
     `bun harness.ts agent:release --run ${runId} --agent ${grant.id} --reason "<why>"`,
     "```",
   ].join("\n");

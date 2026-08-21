@@ -20,7 +20,11 @@ describe("buildMorningReport (B28.4)", () => {
     const report = buildMorningReport(state, [], new Date("2026-08-19T08:00:00.000Z"));
     expect(report.completed.map((task) => task.taskId)).toEqual(["T-1"]);
     expect(report.escalated).toEqual([
-      { taskId: "T-2", reason: "retry_budget_exhausted", evidence: "3 consecutive lease(s) expired with no submission" },
+      {
+        taskId: "T-2",
+        reason: "retry_budget_exhausted",
+        evidence: "3 consecutive lease(s) expired with no submission",
+      },
     ]);
     expect(report.needsHuman).toBe(report.escalated);
   });
@@ -34,8 +38,16 @@ describe("buildMorningReport (B28.4)", () => {
 
   test("counts dead-agent reclaims and retry outcomes from the durable event trail", () => {
     const events: DispatchLogEvent[] = [
-      { kind: "supervisor-dead-agent-reclaimed", payload: { task_id: "T-1" }, timestamp: "2026-08-19T00:00:00.000Z" },
-      { kind: "supervisor-dead-agent-reclaimed", payload: { task_id: "T-2" }, timestamp: "2026-08-19T01:00:00.000Z" },
+      {
+        kind: "supervisor-dead-agent-reclaimed",
+        payload: { task_id: "T-1" },
+        timestamp: "2026-08-19T00:00:00.000Z",
+      },
+      {
+        kind: "supervisor-dead-agent-reclaimed",
+        payload: { task_id: "T-2" },
+        timestamp: "2026-08-19T01:00:00.000Z",
+      },
       {
         kind: "supervisor-dispatch-outcome",
         payload: { task_id: "T-1", outcome: "failed", failure_class: "transient" },
@@ -47,7 +59,11 @@ describe("buildMorningReport (B28.4)", () => {
         timestamp: "2026-08-19T00:06:00.000Z",
       },
     ];
-    const report = buildMorningReport(workflowState(), events, new Date("2026-08-19T08:00:00.000Z"));
+    const report = buildMorningReport(
+      workflowState(),
+      events,
+      new Date("2026-08-19T08:00:00.000Z"),
+    );
     expect(report.deadAgentsReclaimed).toBe(2);
     expect(report.retries).toEqual([{ taskId: "T-1", transientRetries: 1, deterministicStops: 1 }]);
   });
@@ -70,7 +86,11 @@ describe("buildMorningReport (B28.4)", () => {
         timestamp: "2026-08-19T00:01:00.000Z",
       },
     ];
-    const report = buildMorningReport(workflowState(), events, new Date("2026-08-19T08:00:00.000Z"));
+    const report = buildMorningReport(
+      workflowState(),
+      events,
+      new Date("2026-08-19T08:00:00.000Z"),
+    );
     expect(report.totalBackoffMs).toBe(10_000 + 20_000);
   });
 
@@ -87,10 +107,15 @@ describe("buildMorningReport (B28.4)", () => {
       id: "T-3",
       status: "escalated",
       escalation_reason: "deterministic_failure",
-      escalation_evidence: '"gate_failure" carries no reason to expect a retry would behave differently (dispatch attempt 1)',
+      escalation_evidence:
+        '"gate_failure" carries no reason to expect a retry would behave differently (dispatch attempt 1)',
     };
     const events: DispatchLogEvent[] = [
-      { kind: "supervisor-dead-agent-reclaimed", payload: { task_id: "T-2" }, timestamp: "2026-08-19T00:00:00.000Z" },
+      {
+        kind: "supervisor-dead-agent-reclaimed",
+        payload: { task_id: "T-2" },
+        timestamp: "2026-08-19T00:00:00.000Z",
+      },
       {
         kind: "supervisor-dispatch-outcome",
         payload: {
@@ -126,7 +151,8 @@ describe("buildMorningReport (B28.4)", () => {
       {
         taskId: "T-3",
         reason: "deterministic_failure",
-        evidence: '"gate_failure" carries no reason to expect a retry would behave differently (dispatch attempt 1)',
+        evidence:
+          '"gate_failure" carries no reason to expect a retry would behave differently (dispatch attempt 1)',
       },
     ]);
     expect(report.needsHuman).toEqual(report.escalated);
@@ -188,6 +214,8 @@ describe("buildMorningReport (B28.4)", () => {
     expect(report.ceilings).toEqual({});
     expect(report.occupiedAtReport).toBe(0);
     const markdown = formatMorningReportMarkdown(report, "run-no-ceilings");
-    expect(markdown).toContain("Occupancy at report time**: 0/unknown general ceiling, gate ceiling unknown");
+    expect(markdown).toContain(
+      "Occupancy at report time**: 0/unknown general ceiling, gate ceiling unknown",
+    );
   });
 });

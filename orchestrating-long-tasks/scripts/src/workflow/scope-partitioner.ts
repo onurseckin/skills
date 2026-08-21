@@ -66,7 +66,6 @@ export function partitionFindingsIntoScopes(
     }
   }
 
-  // Iterative merge for parent/child or overlapping scopes
   let changed = true;
   while (changed) {
     changed = false;
@@ -95,16 +94,11 @@ export function partitionFindingsIntoScopes(
   }
 
   return rawClusters.map((cluster) => {
-    // cluster.scope is a known LCA path, never a missing one; "root" only fires when that path IS
-    // "." (the whole-tree scope), which strips to the empty string, so this spells a known result
-    // as a task-id-safe slug rather than inventing one for a scope the partitioner didn't have.
     const slug = cluster.scope.replace(/[^a-zA-Z0-9]/g, "-").replace(/^-+|-+$/g, "") || "root";
     const taskId = `repair-R${repairRound}-${slug}`;
     const label = `Repair Wave ${repairRound}: ${cluster.scope}`;
     const effort = Math.min(5, Math.max(1, cluster.findings.length + 1));
 
-    // No gate is minted here: partitioning knows which files a repair touches, not which command
-    // proves the repair. The caller resolves that from the run and refuses when nothing declares it.
     return {
       taskId,
       label,

@@ -1,4 +1,6 @@
 import { describe, expect, test } from "bun:test";
+import { writeFile } from "node:fs/promises";
+import { join } from "node:path";
 import { execute } from "../../../orchestrating-long-tasks/scripts/src/cli/execute.ts";
 import { workflowPort } from "../../../orchestrating-long-tasks/scripts/src/integration/store-ports.ts";
 import {
@@ -81,6 +83,13 @@ describe("every authority grant hands over a role contract", () => {
       "bun",
       "gate-core.ts",
     ]);
+    // C4: task:submit refuses a submission whose write scope is byte-identical to its content at
+    // claim. probe-fixture's setupRun already wrote this file before the task was claimed, so the
+    // implementer has to actually change it here, not merely declare it.
+    await writeFile(
+      join(repo, "tests/unit/core/probe-target.ts"),
+      "export const probed = true;\nexport const implemented = true;\n",
+    );
     await execute([
       "task:submit",
       "--run",

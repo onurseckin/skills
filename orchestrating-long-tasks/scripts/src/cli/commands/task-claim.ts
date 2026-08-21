@@ -2,6 +2,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import type { CommandRecord } from "../../contracts/commands.ts";
 import { AGENT_ROLES, isAgentRole } from "../../contracts/packets.ts";
+import { evidenced } from "../../contracts/evidence.ts";
 import { getHarnessConfig } from "../../config/harness-config.ts";
 import { HarnessError } from "../../errors/harness-error.ts";
 import { readPlanObject } from "../../graph/read-plan.ts";
@@ -16,6 +17,7 @@ import {
 import { claimTask } from "../../workflow/lease/claim.ts";
 import { heartbeat } from "../../workflow/lease/heartbeat.ts";
 import { tokenDigest } from "../../workflow/lease/token.ts";
+import { hashWriteScope } from "../../workflow/lease/write-scope-hash.ts";
 import { buildSubmissionReport } from "../../workflow/submission/build-report.ts";
 import { observeChangedFiles } from "../../workflow/submission/observe-changes.ts";
 import { submitTask } from "../../workflow/submission/submit.ts";
@@ -28,14 +30,8 @@ import {
   formatTaskSubmitBrief,
 } from "../formatters/index.ts";
 import { probeAgentTelemetry, withHostTelemetryConflicts } from "../host-telemetry-probe.ts";
-import { integerFlag, listFlag, textFlag, type Flags } from "../options.ts";
+import { boolFlag, integerFlag, listFlag, textFlag, type Flags } from "../options.ts";
 
-/**
- * B22.3: commits the task's write scope in its assigned worktree once a submission is accepted.
- * A no-op whenever worktree isolation is off (the default), the run was never provisioned, this
- * task drew no worktree assignment, or the submission was orphan evidence rather than a real
- * acceptance — none of those are errors, just nothing for this step to do.
- */
 function commitSubphaseIfAssigned(
   run: string,
   agent: string,
@@ -69,13 +65,6 @@ function commitSubphaseIfAssigned(
   return {};
 }
 
-/**
- * B22.2's worktree assignment only isolates anything if the claiming agent learns about it. Without
- * this, an agent under worktree isolation has no way to discover which directory to actually work
- * in and would silently edit the shared repo checkout instead — defeating B22.1's whole point that
- * "the user's working tree and branch are never touched." A no-op (returns `undefined`) whenever
- * isolation is off, the run was never provisioned, or this task drew no assignment.
- */
 function assignedWorktreeForClaim(
   run: string,
   taskId: string,
@@ -88,12 +77,15 @@ function assignedWorktreeForClaim(
   return findAssignedWorktree(ledger, taskId) ?? undefined;
 }
 
-/**
- * The probe hardcoded into `task:claim` and `task:submit`: it only ever touches an agent that
- * already holds an active grant, so a run that never calls `agent:register` sees no change here at
- * all — this never becomes a second way to register one.
- */
-function probeAtTaskBoundary(run: string, agent: string, boundary: string): TelemetryFieldConflict[] {
+function writeScopeHashBase(run: string, taskId: string, repoRoot: string): string {
+  return assignedWorktreeForClaim(run, taskId)?.worktreePath ?? repoRoot;
+}
+
+function probeAtTaskBoundary(
+  run: string,
+  agent: string,
+  boundary: string,
+): TelemetryFieldConflict[] {
   const derived = probeAgentTelemetry(agent);
   if (Object.keys(derived).length === 0) return [];
   const refreshed = refreshAgentDerivedTelemetry({
@@ -110,8 +102,6 @@ export async function taskClaimCommand(flags: Flags): Promise<Record<string, unk
   const run = textFlag(flags, "run")!;
   const taskId = textFlag(flags, "task")!;
   const agent = textFlag(flags, "agent")!;
-  // The role is a capability contract, not a formality: defaulting it would bind an agent to a
-  // contract nobody chose for it.
   const role = textFlag(flags, "role")!;
   if (!isAgentRole(role)) {
     throw new HarnessError("INVALID_ARGUMENT", `--role must be one of ${AGENT_ROLES.join(", ")}`);
@@ -120,21 +110,25 @@ export async function taskClaimCommand(flags: Flags): Promise<Record<string, unk
     integerFlag(flags, "lease-duration", { minimum: 5, maximum: 86_400 }) ??
     integerFlag(flags, "lease-seconds", { minimum: 5, maximum: 86_400 });
 
-  const result = claimTask(
-    workflowPort(run),
-    taskId,
-    agent,
-    role,
-    leaseSeconds === undefined ? {} : { leaseSeconds },
-  );
+  const repoRoot = resolve(run, "..", "..");
+  const taskBeforeClaim = workflowPort(run).read().tasks[taskId];
+  const writeScopeContentHash = taskBeforeClaim
+    ? evidenced(
+        hashWriteScope(writeScopeHashBase(run, taskId, repoRoot), taskBeforeClaim.write_scope),
+        "harness_observed",
+      )
+    : undefined;
+
+  const result = claimTask(workflowPort(run), taskId, agent, role, {
+    ...(leaseSeconds === undefined ? {} : { leaseSeconds }),
+    ...(writeScopeContentHash === undefined ? {} : { writeScopeContentHash }),
+  });
 
   const task = result.state.tasks[taskId]!;
   const lease = task.lease;
   if (!lease)
     throw new HarnessError("INTEGRITY", `claim of ${taskId} left the task without a lease`);
 
-  // The lease is the authority; the packet is the contract that authority is bounded by. They are
-  // handed over together so no agent can hold one without the other.
   const published = await publishTaskRolePacket({
     runRoot: run,
     port: workflowPort(run),
@@ -151,7 +145,6 @@ export async function taskClaimCommand(flags: Flags): Promise<Record<string, unk
     taskId,
     agent,
     token: result.token,
-    // The lease the transaction actually recorded, not the one the flags asked for.
     durationMinutes: Math.round(lease.duration_seconds / 60),
     writeScope: task.write_scope,
     worktreePath: worktree?.worktreePath,
@@ -181,8 +174,6 @@ export function taskHeartbeatCommand(flags: Flags): Record<string, unknown> {
   const taskId = textFlag(flags, "task")!;
   const agent = textFlag(flags, "agent")!;
   const token = textFlag(flags, "token")!;
-  // --extend is range-checked here, but the renewal length is the lease's own recorded duration:
-  // the brief reports the extension the lease actually received, never the one that was asked for.
   integerFlag(flags, "extend", { minimum: 60, maximum: 86_400 });
 
   const state = heartbeat(workflowPort(run), taskId, agent, token);
@@ -209,6 +200,17 @@ export async function taskSubmitCommand(flags: Flags): Promise<Record<string, un
   const reportFile = textFlag(flags, "report", false);
   const declaredFiles = listFlag(flags, "files-changed");
   const declaredCommandIds = listFlag(flags, "evidence");
+  const noOp = boolFlag(flags, "no-op");
+  const noOpReason = textFlag(flags, "reason", false);
+  if (noOp && noOpReason === undefined) {
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      '--no-op requires --reason "<why this needed no change>"',
+    );
+  }
+  if (!noOp && noOpReason !== undefined) {
+    throw new HarnessError("INVALID_ARGUMENT", "--reason only applies together with --no-op");
+  }
 
   const loaded = loadRun(run);
   const allTasks = (loaded.state.tasks ?? {}) as Record<string, TaskRecord>;
@@ -221,8 +223,6 @@ export async function taskSubmitCommand(flags: Flags): Promise<Record<string, un
       "--report carries the whole submission; it cannot be combined with --files-changed, --evidence or --summary",
     );
   }
-  // The summary is the agent's own account of what it changed. There is no honest stand-in for it,
-  // so an absent summary is refused instead of filled with a sentence the agent never wrote.
   if (reportFile === undefined && summary === undefined) {
     throw new HarnessError(
       "INVALID_ARGUMENT",
@@ -241,15 +241,23 @@ export async function taskSubmitCommand(flags: Flags): Promise<Record<string, un
           declaredCommandIds,
           observedFiles: observeChangedFiles(dirname(dirname(loaded.runRoot))),
           commands: (loaded.state.commands ?? {}) as Record<string, CommandRecord>,
+          allowEmptyFiles: noOp,
         });
 
-  const result = submitTask(workflowPort(run), taskId, agent, token, reportPayload);
+  const submitRepoRoot = resolve(run, "..", "..");
+  const currentWriteScopeContentHash = evidenced(
+    hashWriteScope(writeScopeHashBase(run, taskId, submitRepoRoot), taskBefore.write_scope),
+    "harness_observed",
+  );
+
+  const result = submitTask(workflowPort(run), taskId, agent, token, reportPayload, undefined, {
+    currentWriteScopeContentHash,
+    ...(noOp ? { noOp: { reason: noOpReason! } } : {}),
+  });
   const task = result.state.tasks[taskId]!;
   const reportPath = `${run}/reports/${taskId}-submission.json`;
   const recordedReport = task.report ?? reportPayload;
 
-  // Orphan evidence is a dead agent's leftovers, not an accepted change: nothing to commit yet, the
-  // task is still open for whoever actually claims and finishes it.
   const worktreeCommit = result.orphaned ? {} : commitSubphaseIfAssigned(run, agent, taskId, task);
 
   const reportsDir = join(loaded.runRoot, "reports");
@@ -260,8 +268,6 @@ export async function taskSubmitCommand(flags: Flags): Promise<Record<string, un
       {
         task_id: taskId,
         agent,
-        // The bearer token never reaches disk; verification compares digests, so a digest is all a
-        // reader of this capsule needs to tie the report to the lease.
         token_digest: tokenDigest(token),
         summary: recordedReport.summary,
         created_at: new Date().toISOString(),
@@ -282,8 +288,6 @@ export async function taskSubmitCommand(flags: Flags): Promise<Record<string, un
     reportPath,
   });
 
-  // A submission is the point where the work leaves one agent's head, so the restart document is
-  // rewritten here: whatever happens to that agent next, the run is resumable from the capsule.
   const handoffPath = refreshHandoff(run);
   const conflicts = probeAtTaskBoundary(run, agent, "task:submit");
 
@@ -295,7 +299,9 @@ export async function taskSubmitCommand(flags: Flags): Promise<Record<string, un
       task,
       report_path: reportPath,
       ...(handoffPath === undefined ? {} : { handoff_path: handoffPath }),
-      ...(worktreeCommit.warning === undefined ? {} : { worktree_commit_warning: worktreeCommit.warning }),
+      ...(worktreeCommit.warning === undefined
+        ? {}
+        : { worktree_commit_warning: worktreeCommit.warning }),
     },
     conflicts,
   );

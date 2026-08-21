@@ -8,16 +8,8 @@ import type { ModuleRecord } from "./modules.ts";
 import { finding, type HealthCheckResult, type HealthFinding } from "./types.ts";
 
 export interface DeclarationInput {
-  /** Production modules, keyed by absolute path. */
   readonly production: ReadonlyMap<string, ModuleRecord>;
-  /** Skill root: the directory holding `roles/`, `references/` and `SKILL.md`. */
   readonly skillRoot: string;
-  /**
-   * Whether the scanned tree is the harness this process is running. The registry, the role
-   * vocabulary and the contract parser are the ones linked into THIS process; comparing another
-   * checkout's handlers, contracts and docs against them reports differences between two trees, not
-   * defects in the scanned one. When false those three sub-checks do not run.
-   */
   readonly registryApplies: boolean;
 }
 
@@ -33,11 +25,6 @@ function moduleDeclaring(
   return undefined;
 }
 
-/**
- * R7's `--evidence`/`--report` defect: the flags were allow-listed by the parser and then never
- * read, so a caller's evidence went into the process and nowhere else. A declared flag whose name
- * appears in neither the handler's module nor the modules it imports is that same shape.
- */
 function unreadFlags(production: ReadonlyMap<string, ModuleRecord>): HealthFinding[] {
   const findings: HealthFinding[] = [];
   for (const spec of COMMAND_REGISTRY) {
@@ -77,7 +64,6 @@ function unreadFlags(production: ReadonlyMap<string, ModuleRecord>): HealthFindi
 
 const CONFIG_MODULE = "config/harness-config.ts";
 
-/** A knob nothing reads is a promise the harness does not keep. */
 function unreadConfigFields(production: ReadonlyMap<string, ModuleRecord>): HealthFinding[] {
   const config = [...production.values()].find((record) => record.relative.endsWith(CONFIG_MODULE));
   if (config === undefined) return [];
@@ -102,7 +88,6 @@ function unreadConfigFields(production: ReadonlyMap<string, ModuleRecord>): Heal
 
 const FRONTMATTER_COMMANDS = /\ncommands:\n((?:\s*-\s*[^\n]+\n)+)/u;
 
-/** B8.1: a contract that grants a command the CLI does not have binds nothing. */
 function roleContracts(skillRoot: string): HealthFinding[] {
   const invocations = new Set(commandInvocations());
   const roles = new Set<string>(AGENT_ROLES);
@@ -121,8 +106,6 @@ function roleContracts(skillRoot: string): HealthFinding[] {
         ),
       );
     }
-    // The parser the harness actually binds with. A contract it refuses to read grants nothing, no
-    // matter how well-formed the document looks to a reader.
     try {
       parseRoleContract(new TextEncoder().encode(text), relative);
     } catch (error) {
@@ -155,7 +138,6 @@ function roleContracts(skillRoot: string): HealthFinding[] {
 
 const DOC_INVOCATION = /harness\.ts\s+([a-z][a-z0-9-]*(?::[a-z][a-z0-9-]*)?)/gu;
 
-/** B8.5 class 5: documentation asserting a command that does not exist. */
 function documentedCommands(skillRoot: string): HealthFinding[] {
   const invocations = new Set(commandInvocations());
   const findings: HealthFinding[] = [];

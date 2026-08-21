@@ -11,12 +11,6 @@ import { workflowView } from "./workflow-view.ts";
 import { renderPreplanHandoff } from "./preplan-handoff.ts";
 import { trustedHostEvidence, trustedHostLimitations } from "../contracts/trusted-host.ts";
 
-/**
- * The harness this code is part of, which `references/protocol.md` names as the entrypoint every
- * run command goes through. A capsule carries no runtime of its own — `CAPSULE_LAYOUT` declares no
- * `runtime/` and nothing creates one — so a path built under the run root would be a file the
- * reader cannot execute, on the one section of this document that exists to be pasted.
- */
 const ENTRYPOINT = fileURLToPath(new URL("../../harness.ts", import.meta.url));
 
 function jsonRows(values: unknown[]): string[] {
@@ -46,8 +40,6 @@ export function renderHandoff(runRoot: string): string {
   const tasks = view.tasks as unknown as TaskView[];
   const requirements = view.requirements as unknown[];
   const branches = view.branches as unknown[];
-  // Agent grants and topology live outside the workflow projection, so they are read from the
-  // capsule state the document is already holding rather than through a second load.
   const agents = readAgentLedger(loaded.state);
   const topology = readTopology(loaded.state);
   const findings = tasks.flatMap((task) =>
@@ -64,9 +56,6 @@ export function renderHandoff(runRoot: string): string {
     `Assurance: ${loaded.manifest.assurance}`,
     `Prompt SHA-256: ${loaded.manifest.prompt_sha256}`,
     `State revision: ${loaded.state.revision}`,
-    // No fallback: `workflowView` above refuses a graph without a valid revision, so this line is
-    // only ever reached with one the capsule recorded. A stand-in here would be a number nobody
-    // wrote, on the one field a fresh agent uses to tell which plan it is looking at.
     `Graph revision: ${String(graph.revision)}`,
     liveWaveLine(topology, tasks),
     "Authentication: Packet files contain no bearer tokens. Use the host-only secret returned once by the authority command; if it was lost, wait for that authority deadline, then run recover --grace-seconds 0.",
@@ -149,12 +138,6 @@ export function writeHandoff(runRoot: string): string {
   return path;
 }
 
-/**
- * The restart document is derived, so a failure to regenerate it must not fail the command that
- * changed the state: the capsule is already durable by the time this runs, and refusing the write
- * would report a completed transition as an error. The path is returned only when it was written,
- * so a caller never claims a document that is not there.
- */
 export function refreshHandoff(runRoot: string): string | undefined {
   try {
     return writeHandoff(runRoot);
@@ -163,11 +146,6 @@ export function refreshHandoff(runRoot: string): string | undefined {
   }
 }
 
-/**
- * Escalation is where the automated path stops: the repair budget is spent and a fresh reader has
- * to take the run over. That reader is exactly who the restart document is for, so it is rewritten
- * at the moment the task escalates rather than at whatever command happens to run next.
- */
 export function refreshHandoffOnEscalation(runRoot: string, status: string): string | undefined {
   return status === "escalated" ? refreshHandoff(runRoot) : undefined;
 }

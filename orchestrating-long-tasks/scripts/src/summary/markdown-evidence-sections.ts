@@ -28,7 +28,6 @@ function durationOf(command: CommandView): string {
   return formatDuration(finished - started);
 }
 
-/** A command that never reported an exit code did not exit 0; it exited unknown. */
 function exitCodeOf(command: CommandView): string {
   return command.exitCode === null ? String(UNKNOWN) : String(command.exitCode);
 }
@@ -120,7 +119,6 @@ function resolutionText(finding: Finding): string {
   return `${method} via ${joinOrUnknown(evidence.map(code))}`;
 }
 
-// B12.2: one entry per domain now open, alongside every archived round's entries.
 function validationAttempts(task: TaskRecord): ValidationAttempt[] {
   return [...(task.validation_history ?? []), ...(task.validations ?? [])];
 }
@@ -160,9 +158,6 @@ export function renderProbesAndPushbacks(context: ReportContext): string[] {
   }
 
   const verdictRows = context.tasks.flatMap((task) =>
-    // B12.2: the domain is what makes an attempt one of several independent verdicts a task can
-    // carry at once rather than a single validator's opinion, so a row without it cannot be told
-    // apart from a different domain's attempt at the same round.
     validationAttempts(task).map((attempt) => [
       code(task.id),
       String(attempt.attempt),

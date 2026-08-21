@@ -1,9 +1,3 @@
-/**
- * Bridges what the harness actually ingests (`reporting/screenshot-types.ts`, the flat shape a
- * `visual-report.json` file and the capture ledger produce) into the richer per-viewport shape the
- * dual-channel analyzer reasons over. The analyzer's shape predates any real producer for it; this
- * is the one place that turns real evidence into its input rather than inventing evidence to match.
- */
 import type { CaptureRecord } from "../store/captures.ts";
 import type {
   ClippingViolation as IngestedClippingViolation,
@@ -11,8 +5,6 @@ import type {
   StackingViolation as IngestedStackingViolation,
   VisualMetricsReport as IngestedVisualReport,
 } from "../reporting/screenshot-types.ts";
-// Imported through the analyzer's own re-export, its public surface for these shapes, rather than
-// reaching past it into `dual-channel-types.ts` directly.
 import type {
   ClippingViolation,
   OverflowViolation,
@@ -22,7 +14,6 @@ import type {
   VisualMetricsReport,
 } from "./dual-channel-analyzer.ts";
 
-/** Where an ingested violation names no viewport of its own, or names one the report never defined. */
 const UNSPECIFIED_VIEWPORT = "unspecified";
 
 function bucketKey(viewport: string | undefined, known: ReadonlySet<string>): string {
@@ -56,12 +47,6 @@ function adaptOverflow(ov: IngestedOverflowViolation, viewport: string): Overflo
   };
 }
 
-/**
- * The ingested schema records a clipping violation's content size as `scrollWidth`/`clientWidth`
- * (the same field names the overflow record uses), not `scrollHeight`/`clientHeight`. That is the
- * ingestion contract as it stands, so the mapping carries the numbers through under the analyzer's
- * expected names rather than inventing a height nobody measured.
- */
 function adaptClipping(cv: IngestedClippingViolation, viewport: string): ClippingViolation {
   const selector = cv.selector ?? cv.element;
   return {
@@ -82,9 +67,6 @@ function adaptStacking(sv: IngestedStackingViolation, viewport: string): Stackin
       : sv.elements.length >= 2
         ? sv.elements
         : [sv.elements[0] ?? "unknown element", "unknown element"];
-  // The ingested record carries one `zIndex` for the collision and never says which of the two
-  // elements it belongs to, so neither slot is filled: copying it into both would state a z-index
-  // for an element nothing measured. The raw report is persisted alongside the audit either way.
   return {
     topElementSelector: topSelector ?? "unknown element",
     bottomElementSelector: bottomSelector ?? "unknown element",
@@ -94,16 +76,6 @@ function adaptStacking(sv: IngestedStackingViolation, viewport: string): Stackin
   };
 }
 
-/**
- * Converts the flat report the ingestion pipeline actually stores into the per-viewport shape
- * `analyzeDualChannel` audits. Violation categories the ingested schema has no field for at all
- * (contrast ratios, origin-orphan coordinates, render-cache resets) are left absent rather than
- * defaulted, so the analyzer reports what it was given, never what was guessed on its behalf.
- *
- * The three categories the schema does carry are always named, empty or not: the analyzer reads an
- * empty array as "inspected, nothing found" and an absent one as "never inspected", and that
- * distinction is what keeps a proof from claiming a check the evidence never supported.
- */
 export function adaptIngestedVisualReport(
   report: IngestedVisualReport | null,
 ): VisualMetricsReport | null {
@@ -135,8 +107,6 @@ export function adaptIngestedVisualReport(
     );
     return {
       viewport: name,
-      // A bucket the report defined no dimensions for keeps none; `0x0` would be a size nobody
-      // measured, and the consistency check would then read it as a malformed dimension.
       ...(dims === undefined ? {} : { width: dims.width, height: dims.height }),
       overflowViolations,
       clippingViolations,
@@ -150,11 +120,6 @@ export function adaptIngestedVisualReport(
   };
 }
 
-/**
- * Screenshot capture records carry no recorded viewport or pixel dimensions of their own; the
- * analyzer resolves a screenshot's viewport from its file name (`normalizeViewportName` falls back
- * to `name` when `viewport` is absent), which is genuinely what the capture ledger has.
- */
 export function adaptScreenshotRecords(records: readonly CaptureRecord[]): ScreenshotMetadata[] {
   return records.map((record) => ({
     name: record.name,

@@ -55,9 +55,9 @@ describe("the run-completion gate is declared, never invented", () => {
   });
 });
 
-describe("--strict-parallel does what it says", () => {
-  test("a serialization advisory is fatal when the caller asked for it", async () => {
-    const repo = realpathSync(await mkdtemp(join(tmpdir(), "harness-strict-parallel-")));
+describe("A4-false-barrier blocks an unjustified dependency by default", () => {
+  async function planWithUnjustifiedBarrier(runId: string): Promise<string> {
+    const repo = realpathSync(await mkdtemp(join(tmpdir(), "harness-false-barrier-")));
     roots.push(repo);
     const promptPath = join(repo, "prompt.txt");
     await writeFile(promptPath, "First goal\n\nSecond goal");
@@ -66,7 +66,7 @@ describe("--strict-parallel does what it says", () => {
       "--repo",
       repo,
       "--run",
-      "strict-parallel",
+      runId,
       "--prompt-file",
       promptPath,
     ]);
@@ -90,11 +90,17 @@ describe("--strict-parallel does what it says", () => {
         "--actor",
         "planner",
         ...(deps.length === 0 ? [] : ["--deps", deps.join(",")]),
+        ...deps.flatMap((dep) => ["--dep-reason", `${dep}:fixture-declared ordering dependency`]),
       ]);
     }
+    return run;
+  }
 
-    // task-b is serialized behind task-a for no scope reason. The flag promised that such an
-    // advisory is fatal, and was never read.
+  // task-b is serialized behind task-a for no scope reason — the exact shape plan:audit's
+  // A4-false-barrier invariant exists to catch. Unlike the old --strict-parallel flag (opt-in,
+  // and previously accepted without ever being read), this is fatal with no flag at all.
+  test("plan:compile refuses to seal with no flag needed", async () => {
+    const run = await planWithUnjustifiedBarrier("false-barrier-refused");
     await expect(
       execute([
         "plan:compile",
@@ -104,9 +110,49 @@ describe("--strict-parallel does what it says", () => {
         "planner",
         "--completion-gate",
         "bun test tests",
-        "--strict-parallel",
       ]),
-    ).rejects.toThrow("serialization advisories are fatal");
+    ).rejects.toThrow("A4-false-barrier");
+  });
+
+  test("--accept-audit records an attributed override and lets the seal proceed", async () => {
+    const run = await planWithUnjustifiedBarrier("false-barrier-accepted");
+    const compiled = await execute([
+      "plan:compile",
+      "--run",
+      run,
+      "--actor",
+      "planner",
+      "--completion-gate",
+      "bun test tests",
+      "--accept-audit",
+      "A4-false-barrier:task-b intentionally waits for task-a's rollout order",
+    ]);
+    expect(compiled.revision).toBe(1);
+    const audit = compiled.audit as { blocking_count: number; accepted: { invariant: string }[] };
+    expect(audit.blocking_count).toBe(1);
+    expect(audit.accepted).toEqual([
+      {
+        invariant: "A4-false-barrier",
+        reason: "task-b intentionally waits for task-a's rollout order",
+      },
+    ]);
+  });
+
+  test("--accept-audit for an invariant the audit did not raise is refused, not silently accepted", async () => {
+    const run = await planWithUnjustifiedBarrier("false-barrier-wrong-accept");
+    await expect(
+      execute([
+        "plan:compile",
+        "--run",
+        run,
+        "--actor",
+        "planner",
+        "--completion-gate",
+        "bun test tests",
+        "--accept-audit",
+        "A6-whole-suite-gate:not what actually blocked this plan",
+      ]),
+    ).rejects.toThrow("which the audit did not raise as blocking");
   });
 });
 

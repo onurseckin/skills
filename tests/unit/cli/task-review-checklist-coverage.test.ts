@@ -59,7 +59,8 @@ describe("task:review checklist coverage (B12.5)", () => {
     const review = await execute(baseArgv(run, token, gateCmd));
     expect(review.checklist_coverage).toEqual({
       applicable: false,
-      reason: "no --checklist-domain was named for this review; no standing checklist coverage applies",
+      reason:
+        "no --checklist-domain was named for this review; no standing checklist coverage applies",
     });
   });
 
@@ -115,7 +116,10 @@ describe("task:review checklist coverage (B12.5)", () => {
     const reportPath = writeReport(repo, "coverage.json", {
       items: fullCoverage({
         [ids[0]!]: { disposition: "not_applicable", reason: "no such surface in this diff" },
-        [ids[1]!]: { disposition: "could_not_check", reason: "the linter this item needs did not run" },
+        [ids[1]!]: {
+          disposition: "could_not_check",
+          reason: "the linter this item needs did not run",
+        },
       }),
       adjacent_findings: [
         {

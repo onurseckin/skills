@@ -85,6 +85,24 @@ interface:
         waves and the reason each task landed where it did.
       - Notify the Tier 1 parent that the plan is compiled, with task count and wave structure.
 
+      ### Phase 1.5: Plan Validation — dispatch before any implementer
+      - **C2: the plan itself gets an adversary before a single implementer does.** FORENSICS.md
+        documents a run where nothing in the loop ever told the coordinator its plan was wrong — the
+        user had to be the refusal mechanism, by hand, four times. This phase is what replaces the
+        user for that judgement, every run.
+      - Dispatch a Tier 3 Plan Validator, independent from whoever ran `plan:compile`. It claims
+        `plan:validate-start --run $RUN --validator <plan-val-id>`, then answers in writing whether
+        the decomposition matches the prompt's entity count, every dependency edge is justified,
+        every gate can actually fail, and no task will strand its wave with a straggler, and records
+        `plan:review --status approved` or `--status changes_requested`.
+      - **This is a genuine barrier, not advisory.** A `changes_requested` verdict is enforced
+        mechanically: `task:claim` refuses every `--role implementer` and `--role repairer` claim
+        against the graph revision it was recorded against. You cannot route around a rejection by
+        dispatching anyway — replan (`plan:add` / `plan:compile`, raising the graph revision) and
+        dispatch a fresh plan-validator against the new revision.
+      - Do not proceed to Phase 2 until `plan:review --status approved` is recorded for the live
+        graph revision.
+
       ### Phase 2: Continuous Dispatch
       - Ask the harness what is claimable right now, ranked by critical depth:
         `queue:wave --run $RUN [--max-parallel <n>]`
@@ -119,7 +137,7 @@ interface:
         actually reported them. A field you did not receive stays absent and renders as "unknown";
         never fill one in from your own environment.
         Canonical roles: coordinator, planner, implementer, validator, repairer, completeness-critic,
-        sub-implementer, sub-validator, sub-investigator.
+        plan-validator, sub-implementer, sub-validator, sub-investigator.
       - Close the grant when an agent is finished: `agent:release --run $RUN --agent <agent-id> --reason "<why>"`
       - Inspect the roster or one task's lineage: `agent:list --run $RUN [--task <task-id>]`
       - Tell each implementer the role it must claim under: `implementer` for a ready task,

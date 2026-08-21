@@ -19,7 +19,6 @@ function sameSubTask(left: BranchSubTask, right: BranchSubTask): boolean {
   return Buffer.from(canonicalJsonBytes(left)).equals(Buffer.from(canonicalJsonBytes(right)));
 }
 
-/** The roles a branch dispatches into. Each holds a sub-task lease, never a plan-task lease. */
 const BRANCH_ROLES: readonly string[] = ["sub-implementer", "sub-investigator", "sub-validator"];
 
 export type PacketAuthenticationInput = Pick<
@@ -94,8 +93,6 @@ export function authenticatePacketIdentity(
     throw new HarnessError("INVALID_STATE", "packet task is not the authoritative task state");
   }
   if (input.role === "validator") {
-    // B12.2: a task can carry several open validations, one per domain — find the one this agent's
-    // own attempt belongs to rather than assuming a single slot.
     const validation = (authoritative.validations ?? []).find(
       (entry) => entry.validator_id === input.agentId && entry.attempt === input.attempt,
     );

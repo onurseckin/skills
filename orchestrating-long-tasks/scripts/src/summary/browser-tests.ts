@@ -4,7 +4,6 @@ import { queryBrowserRuns } from "../reporting/browser-run-store.ts";
 import type { BrowserRunRecord } from "../reporting/browser-run-types.ts";
 import type { BrowserTestRun } from "./types.ts";
 
-/** The capsule records a run in the field names it stores; the graph reads them in its own. */
 const GRAPH_FIELD_BY_RECORD_FIELD: Readonly<Record<string, string>> = {
   category: "category",
   extras: "extras",
@@ -47,10 +46,6 @@ function toBrowserTestRun(record: BrowserRunRecord): BrowserTestRun {
   };
 }
 
-/**
- * The browser runs these commands drove, in command order. Ownership is the recorded command id and
- * nothing else, so a node carries a run only when its own agent ran the command that produced it.
- */
 export function buildNodeBrowserTests(
   commands: readonly CommandRecord[],
   runRoot?: string,

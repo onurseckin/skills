@@ -33,13 +33,7 @@ describe("assignWorktrees", () => {
       ["t2", { write_scope: ["src/b"] }],
       ["t3", { write_scope: ["src/a"] }], // same scope as t1 — fine, they never run concurrently
     ]);
-    const { assignments, worktreeCount } = assignWorktrees(
-      topology([
-        ["t1", "t2"],
-        ["t3"],
-      ]),
-      tasks,
-    );
+    const { assignments, worktreeCount } = assignWorktrees(topology([["t1", "t2"], ["t3"]]), tasks);
     expect(worktreeCount).toBe(2);
     expect(assignments).toEqual([
       { task_id: "t1", worktree_id: "wt-0", wave: 1 },
@@ -53,11 +47,7 @@ describe("assignWorktrees", () => {
       Array.from({ length: 6 }, (_, i) => [`t${i}`, { write_scope: [`src/${i}`] }] as const),
     );
     const { assignments } = assignWorktrees(
-      topology([
-        ["t0", "t1", "t2"],
-        ["t3", "t4"],
-        ["t5"],
-      ]),
+      topology([["t0", "t1", "t2"], ["t3", "t4"], ["t5"]]),
       tasks,
     );
     const byWave = new Map<number, string[]>();

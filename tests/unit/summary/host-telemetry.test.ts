@@ -111,7 +111,10 @@ describe("host telemetry probing — the automatic, hardcoded half of the two so
       );
       const probe = detectHostTelemetry("worker-1", { homeDir: home, env: {} });
       expect(probe?.host_tool).toBe("codex");
-      expect(probe?.capabilities.concurrency_ceiling).toEqual({ value: 4, evidence_class: "derived" });
+      expect(probe?.capabilities.concurrency_ceiling).toEqual({
+        value: 4,
+        evidence_class: "derived",
+      });
       expect(probe?.capabilities.multi_agent_enabled).toEqual({
         value: true,
         evidence_class: "derived",
@@ -129,7 +132,10 @@ describe("host telemetry probing — the automatic, hardcoded half of the two so
       const agentsDir = join(home, ".codex", "agents");
       mkdirSync(agentsDir, { recursive: true });
       writeFileSync(join(home, ".codex", "config.toml"), "[features]\nmulti_agent = true\n");
-      writeFileSync(join(agentsDir, "worker-7.toml"), 'model = "gpt-codex-mini"\nreasoning_effort = "high"\n');
+      writeFileSync(
+        join(agentsDir, "worker-7.toml"),
+        'model = "gpt-codex-mini"\nreasoning_effort = "high"\n',
+      );
 
       // A different agent id has no file of its own — proving `agentId` is genuinely read, not
       // ignored: it changes which file gets opened, not just what gets logged.
@@ -149,7 +155,9 @@ describe("host telemetry probing — the automatic, hardcoded half of the two so
       mkdirSync(agentsDir, { recursive: true });
       writeFileSync(join(home, ".codex", "config.toml"), "[features]\nmulti_agent = false\n");
       writeFileSync(join(agentsDir, "worker-1.toml"), 'reasoning_effort = "extreme"\n');
-      expect(detectHostTelemetry("worker-1", { homeDir: home, env: {} })?.thinking_level).toBeUndefined();
+      expect(
+        detectHostTelemetry("worker-1", { homeDir: home, env: {} })?.thinking_level,
+      ).toBeUndefined();
     });
   });
 
@@ -175,7 +183,10 @@ describe("host telemetry probing — the automatic, hardcoded half of the two so
         },
       });
       expect(set?.capabilities.nesting_depth).toEqual({ value: 3, evidence_class: "derived" });
-      expect(set?.capabilities.concurrency_ceiling).toEqual({ value: 20, evidence_class: "derived" });
+      expect(set?.capabilities.concurrency_ceiling).toEqual({
+        value: 20,
+        evidence_class: "derived",
+      });
     });
   });
 
@@ -193,7 +204,10 @@ describe("host telemetry probing — the automatic, hardcoded half of the two so
       expect(probe?.capabilities.concurrency_ceiling).toBeUndefined();
     });
     withTempHome((home) => {
-      const probe = detectHostTelemetry("worker-1", { homeDir: home, env: { CURSOR_MODEL: "gpt-4o" } });
+      const probe = detectHostTelemetry("worker-1", {
+        homeDir: home,
+        env: { CURSOR_MODEL: "gpt-4o" },
+      });
       expect(probe?.capabilities.nesting_depth).toEqual({ value: 2, evidence_class: "derived" });
       expect(probe?.capabilities.concurrency_ceiling).toBeUndefined();
     });

@@ -11,7 +11,6 @@ function subTaskRows(branch: BranchRecord): string[][] {
   ]);
 }
 
-/** Never renders an absent measurement as an empty change set; unmeasured says so. */
 function filesCell(branch: BranchRecord): string {
   const files = branch.files_changed;
   if (files === undefined) return "unknown (no repository observation)";

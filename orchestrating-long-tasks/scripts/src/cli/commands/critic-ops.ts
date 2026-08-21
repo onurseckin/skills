@@ -40,12 +40,8 @@ export async function criticStartCommand(flags: Flags): Promise<Record<string, u
   const critic = textFlag(flags, "critic")!;
   const repositoryCommandIds = listFlag(flags, "repository-command-ids");
 
-  // Both observations are taken before the authorisation is minted, so the readiness digest the
-  // assignment records is the one the packet is later built and authorised against.
   recordGrantInspections(run, critic);
   const result = beginCompletenessCritic(workflowPort(run), critic);
-  // The critic's contract is published with its authority: a review can only be recorded by an
-  // agent the harness durably handed the critic contract to.
   const published = await publishCriticRolePacket({
     runRoot: run,
     port: workflowPort(run),
@@ -60,8 +56,6 @@ export async function criticStartCommand(flags: Flags): Promise<Record<string, u
     (r) => r.status === "satisfied" || r.evidence.length > 0,
   ).length;
 
-  // The mandatory final gate is whatever the compiled plan declares. Naming a command the run
-  // never registered would send the critic to prove something the harness will not accept.
   const finalGates = result.state.gates
     .filter((gate) => gate.scope === "run" && gate.mandatory)
     .map((gate) => (Array.isArray(gate.command) ? gate.command.join(" ") : gate.command));
@@ -106,9 +100,6 @@ export async function criticReviewCommand(flags: Flags): Promise<Record<string, 
   let reviewPayload: Record<string, unknown>;
   const isApproved = decision === "approve";
 
-  // Capsule integrity is the harness's own measurement of the chain it wrote. Whichever way the
-  // verdict arrives, the observation is taken here and overrides whatever the payload claims: a
-  // file that certifies its own capsule proves nothing.
   const capsuleNow = loadRun(run);
   const observedIntegrity = observeCapsuleIntegrity(
     capsuleNow.runRoot,
@@ -119,9 +110,6 @@ export async function criticReviewCommand(flags: Flags): Promise<Record<string, 
     reviewPayload = await readPlanObject(reviewFile, "completion review");
     reviewPayload.critic_token = token;
     reviewPayload.integrity_evidence = [observedIntegrity];
-    // B21: --summary is mandatory on this command regardless of which branch supplies the rest of
-    // the payload; a --review file is not the critic typing its own verdict in its own words, so
-    // the flag always wins over anything a file happened to carry under the same key.
     reviewPayload.summary = summary;
   } else {
     const port = workflowPort(run);
@@ -131,8 +119,6 @@ export async function criticReviewCommand(flags: Flags): Promise<Record<string, 
       throw new HarnessError("INVALID_STATE", "no completeness critic assignment found");
     }
 
-    // A rejection is a claim about specific defects. The harness will not compose one on the
-    // critic's behalf, so request_changes without a findings payload is refused outright.
     let findingsList: CompletionFinding[] = [];
     if (isApproved) {
       if (findingsRaw !== undefined || findingsFile !== undefined)
@@ -158,8 +144,6 @@ export async function criticReviewCommand(flags: Flags): Promise<Record<string, 
       .filter((c) => c.actor === critic && c.exit_code === 0)
       .map((c) => ({ command_id: c.id }));
 
-    // Only proofs the critic actually wrote. Requirements it left out are recorded `unproven` by
-    // the review parser and block completion; nothing here manufactures a sign-off.
     const proofs = parseRawProofs(proofsRaw, proofsFile);
 
     const graphRev =
@@ -168,18 +152,12 @@ export async function criticReviewCommand(flags: Flags): Promise<Record<string, 
 
     const packet = assignment.packet_id ? state.packets?.[assignment.packet_id] : undefined;
 
-    // The packet named the repository evidence this critic was handed. The review answers with that
-    // exact list rather than recomputing one that may have drifted since the packet was published.
     const repoCmds = packet?.repository_command_ids ?? repositoryEvidenceCommandIds(state);
 
     reviewPayload = {
       ...(packet ? { packet_id: packet.id, packet_sha256: packet.packet_sha256 } : {}),
       critic_token: token,
       graph_revision: graphRev,
-      // B21: the CLI flag was already required; before this the value only ever reached the side
-      // report file and the markdown brief, never the durable review the run actually completes
-      // against. Without this line `recordCompletionReview` throws for a missing summary either way,
-      // but the requirement belongs on the payload, not on an accident of which branch ran.
       summary,
       status: isApproved ? "clean" : "findings",
       readiness_sha256: assignment.readiness_sha256,
@@ -202,15 +180,12 @@ export async function criticReviewCommand(flags: Flags): Promise<Record<string, 
   const recordedReview = state.completion_review;
   const findings = recordedReview?.findings ?? [];
 
-  // Persist critic report to <run>/reports/critic-review.json
   const reportsDir = join(loaded.runRoot, "reports");
   mkdirSync(reportsDir, { recursive: true });
   const reportPath = join(reportsDir, "critic-review.json");
   const runScreenshots = queryScreenshots(loaded.runRoot);
   const reportData = {
     critic,
-    // The critic token is a live bearer credential; only its digest is durable, and the recorded
-    // review is used verbatim so no in-memory payload carrying the token can reach the capsule.
     critic_token_digest: tokenDigest(token),
     decision,
     summary,
@@ -285,12 +260,6 @@ function splitFindingPair(entry: string, flag: string): [string, string] {
   return [entry.slice(0, index), entry.slice(index + 1)];
 }
 
-/**
- * Every completion review ever recorded with status "findings" stays in history and blocks
- * completion (see completionHistoryIssues) until it carries a remediation naming exactly its own
- * finding ids. plan:replan is how the repair work itself gets scheduled; this is the harness's
- * record that the work closed the loop, whether it ran through plan:replan or was fixed directly.
- */
 export function criticRemediateCommand(flags: Flags): Record<string, unknown> {
   const run = textFlag(flags, "run")!;
   const actor = textFlag(flags, "actor")!;

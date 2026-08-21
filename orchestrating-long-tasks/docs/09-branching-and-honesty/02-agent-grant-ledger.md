@@ -53,6 +53,7 @@ That last rule is the whole point. Compare two real registrations from the tutor
 
 #### Close The Grant:
 ```
+
 ```bash
 bun harness.ts agent:release --run .capsules/slugger --agent impl-slug
 ```
@@ -67,6 +68,7 @@ bun harness.ts agent:release --run .capsules/slugger --agent impl-slug
 
 #### Close The Grant:
 ```
+
 ```bash
 bun harness.ts agent:release --run .capsules/slugger --agent impl-truncate
 ```
@@ -139,16 +141,16 @@ which is what the table above used after the run had closed every grant.
 
 `state.agents` is an array of grant records:
 
-| Field                                     | Evidence class                                 | Notes                                                |
-| :---------------------------------------- | :--------------------------------------------- | :--------------------------------------------------- |
-| `id`, `role`, `host`, `granted_at`        | harness                                        | Always present.                                      |
-| `parent_agent_id`, `parent_task_id`       | harness                                        | `null` for the root.                                 |
-| `status`, `released_at`, `release_reason` | harness                                        | `active` or `released`.                              |
-| `model`, `model_tier`, `thinking_level`   | `agent_reported`                               | Optional. Absent unless the dispatcher supplied it.  |
-| `tools_granted`                           | `agent_reported`                               | Optional; what the dispatcher relayed.               |
-| `tools_used[]`                            | per-entry `evidence_class`                     | Each tool carries its own class and first-seen time. |
-| `tokens_in`, `tokens_out`                 | `agent_reported`, or `derived` + `is_estimated`| Optional.                                            |
-| `report_count`, `last_reported_at`        | harness                                        | Optional.                                            |
+| Field                                     | Evidence class                                  | Notes                                                |
+| :---------------------------------------- | :---------------------------------------------- | :--------------------------------------------------- |
+| `id`, `role`, `host`, `granted_at`        | harness                                         | Always present.                                      |
+| `parent_agent_id`, `parent_task_id`       | harness                                         | `null` for the root.                                 |
+| `status`, `released_at`, `release_reason` | harness                                         | `active` or `released`.                              |
+| `model`, `model_tier`, `thinking_level`   | `agent_reported`                                | Optional. Absent unless the dispatcher supplied it.  |
+| `tools_granted`                           | `agent_reported`                                | Optional; what the dispatcher relayed.               |
+| `tools_used[]`                            | per-entry `evidence_class`                      | Each tool carries its own class and first-seen time. |
+| `tokens_in`, `tokens_out`                 | `agent_reported`, or `derived` + `is_estimated` | Optional.                                            |
+| `report_count`, `last_reported_at`        | harness                                         | Optional.                                            |
 
 The three events are `agent-registered`, `agent-reported`, `agent-released`.
 

@@ -17,10 +17,6 @@ function replacementReason(flags: Flags): ReplacementReason {
   return reason as ReplacementReason;
 }
 
-/**
- * The original implementer gets the first repair opportunity always; a replacement is only ever
- * the harness's own recorded decision, never an agent choosing its own repairer.
- */
 export function taskAssignRepairerCommand(flags: Flags): Record<string, unknown> {
   const run = textFlag(flags, "run")!;
   const taskId = textFlag(flags, "task")!;

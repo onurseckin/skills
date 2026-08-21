@@ -20,19 +20,8 @@ const CONTINUATION_LINE = /^[ \t]+(\S.*)$/u;
 type ListField = (typeof LIST_FIELDS)[number];
 type DocumentKind = "role contract" | "checklist";
 
-/**
- * B12.2: the validator family. Every domain shares the base `validator` role's tier, commands and
- * every workflow check keyed on the literal role string "validator" (packet isolation, token
- * authorization, `task:review` acceptance) — none of that is touched. Only the role prose and the
- * standing checklist a domain contract carries differ, via `loadValidatorDomainContract` below.
- *
- * The type, roster and guard themselves live in `contracts/workflow.ts` now (the state machine needs
- * them to key a task's per-domain validation collection); re-exported here so every existing caller
- * of this module keeps working unchanged.
- */
 export { isValidatorDomain, VALIDATOR_DOMAINS, type ValidatorDomain };
 
-/** Stable ID prefix per domain, enforced on every checklist item so a copy-pasted ID cannot drift. */
 const DOMAIN_ID_PREFIX: Readonly<Record<ValidatorDomain, string>> = {
   "code-quality": "CQ",
   product: "PROD",
@@ -48,9 +37,7 @@ export interface RoleContract {
   must_not: readonly string[];
   commands: readonly string[];
   spawns: readonly AgentRole[];
-  /** Present only on a validator-family domain variant; see `loadValidatorDomainContract`. */
   domain?: ValidatorDomain;
-  /** Present only on a validator-family domain variant; the standing checklist folded into `text`. */
   checklist?: Checklist;
   text: string;
   bytes: Uint8Array;
@@ -58,7 +45,6 @@ export interface RoleContract {
 }
 
 export interface ChecklistItem {
-  /** Stable, citable in a finding — e.g. `UI-TYPO-014` (B12.3). */
   id: string;
   rule: string;
   rationale: string;
@@ -85,12 +71,6 @@ interface ParsedFrontmatter {
   lists: Map<string, string[]>;
 }
 
-/**
- * The shared key/value + block-list grammar behind both a role contract's frontmatter and a
- * checklist item's body: `key: value`, `key:` followed by indented `- entries` (wrappable across
- * lines), or `key: []` for an explicitly empty list. `listFields` names which keys open a list
- * rather than take a scalar, so the same reader serves both document shapes without duplicating it.
- */
 function readFrontmatter(
   lines: readonly string[],
   source: string,
@@ -144,8 +124,10 @@ function readFrontmatter(
 function requireList(frontmatter: ParsedFrontmatter, field: ListField, source: string): string[] {
   const values = frontmatter.lists.get(field);
   if (!values) invalid("role contract", source, `missing key: ${field}`);
-  if (new Set(values).size !== values.length) invalid("role contract", source, `duplicate ${field} entry`);
-  if (field !== "spawns" && values.length === 0) invalid("role contract", source, `${field} must not be empty`);
+  if (new Set(values).size !== values.length)
+    invalid("role contract", source, `duplicate ${field} entry`);
+  if (field !== "spawns" && values.length === 0)
+    invalid("role contract", source, `${field} must not be empty`);
   return values;
 }
 
@@ -157,10 +139,16 @@ export function parseRoleContract(bytes: Uint8Array, source: string): RoleContra
     invalid("role contract", source, "document is not valid UTF-8");
   }
   const lines = text.split("\n");
-  if (lines[0] !== "---") invalid("role contract", source, "document does not open with a frontmatter fence");
+  if (lines[0] !== "---")
+    invalid("role contract", source, "document does not open with a frontmatter fence");
   const end = lines.indexOf("---", 1);
   if (end === -1) invalid("role contract", source, "frontmatter fence is unterminated");
-  const frontmatter = readFrontmatter(lines.slice(1, end), source, new Set(LIST_FIELDS), "role contract");
+  const frontmatter = readFrontmatter(
+    lines.slice(1, end),
+    source,
+    new Set(LIST_FIELDS),
+    "role contract",
+  );
   const body = lines
     .slice(end + 1)
     .join("\n")
@@ -172,18 +160,16 @@ export function parseRoleContract(bytes: Uint8Array, source: string): RoleContra
   if (unknown.length > 0) invalid("role contract", source, `unknown key: ${unknown.join(", ")}`);
   const role = frontmatter.scalars.get("role");
   if (role === undefined) invalid("role contract", source, "missing key: role");
-  if (!isAgentRole(role)) invalid("role contract", source, `role is not a canonical agent role: ${role}`);
+  if (!isAgentRole(role))
+    invalid("role contract", source, `role is not a canonical agent role: ${role}`);
   const rawTier = frontmatter.scalars.get("tier");
   if (rawTier === undefined) invalid("role contract", source, "missing key: tier");
-  // Number() would silently accept 0x3, 3.0 and 3e0; the tier is a written digit, not an expression.
   const tier = /^\d+$/u.test(rawTier) ? Number(rawTier) : Number.NaN;
   if (!Number.isSafeInteger(tier) || tier < 1 || tier > 3)
     invalid("role contract", source, `tier must be an integer from 1 to 3: ${rawTier}`);
   const rawDomain = frontmatter.scalars.get("domain");
   let domain: ValidatorDomain | undefined;
   if (rawDomain !== undefined) {
-    // The domain concept only exists to select a validator's standing checklist (B12.2); it never
-    // widens or narrows a non-validator's contract.
     if (role !== "validator")
       invalid("role contract", source, `domain is only valid for the validator role: ${rawDomain}`);
     if (!isValidatorDomain(rawDomain))
@@ -192,7 +178,8 @@ export function parseRoleContract(bytes: Uint8Array, source: string): RoleContra
   }
   const spawns: AgentRole[] = [];
   for (const spawned of requireList(frontmatter, "spawns", source)) {
-    if (!isAgentRole(spawned)) invalid("role contract", source, `spawns names an unknown role: ${spawned}`);
+    if (!isAgentRole(spawned))
+      invalid("role contract", source, `spawns names an unknown role: ${spawned}`);
     if (spawned === role) invalid("role contract", source, "a role may not spawn itself");
     spawns.push(spawned);
   }
@@ -234,12 +221,6 @@ const CHECKLIST_SEVERITIES = new Set(["critical", "important", "minor"]);
 const CHECKLIST_ID = /^[A-Z]{2,6}-[A-Z][A-Z0-9]*-[0-9]{3}$/u;
 const CHECKLIST_DOMAIN_LINE = /^Domain: ([a-z-]+)$/u;
 
-/**
- * `checklists/<domain>.md`: an H1 title, a `Domain: <slug>` line, optional intro prose, then one or
- * more `## <ID>` items each carrying exactly `rule`, `rationale`, `how-to-check`, `severity` and a
- * nonempty `sources` list (B12.3). The same key/value grammar as a role contract's frontmatter, so
- * one reader (`readFrontmatter`) parses both.
- */
 export function parseChecklist(bytes: Uint8Array, source: string): Checklist {
   let text: string;
   try {
@@ -254,7 +235,8 @@ export function parseChecklist(bytes: Uint8Array, source: string): Checklist {
   const domainMatch = CHECKLIST_DOMAIN_LINE.exec(lines[1] ?? "");
   if (!domainMatch) invalid("checklist", source, "second line must be `Domain: <slug>`");
   const rawDomain = domainMatch[1]!;
-  if (!isValidatorDomain(rawDomain)) invalid("checklist", source, `unrecognized domain: ${rawDomain}`);
+  if (!isValidatorDomain(rawDomain))
+    invalid("checklist", source, `unrecognized domain: ${rawDomain}`);
   const domain = rawDomain;
   const expectedPrefix = `${DOMAIN_ID_PREFIX[domain]}-`;
 
@@ -262,16 +244,22 @@ export function parseChecklist(bytes: Uint8Array, source: string): Checklist {
   for (let index = 0; index < lines.length; index += 1) {
     if (/^## /u.test(lines[index]!)) headingIndices.push(index);
   }
-  if (headingIndices.length === 0) invalid("checklist", source, "document declares no checklist items");
+  if (headingIndices.length === 0)
+    invalid("checklist", source, "document declares no checklist items");
 
   const seenIds = new Set<string>();
   const items: ChecklistItem[] = [];
   for (const [position, start] of headingIndices.entries()) {
     const end = position + 1 < headingIndices.length ? headingIndices[position + 1]! : lines.length;
     const id = lines[start]!.slice(3).trim();
-    if (!CHECKLIST_ID.test(id)) invalid("checklist", source, `item id does not match the checklist id format: ${id}`);
+    if (!CHECKLIST_ID.test(id))
+      invalid("checklist", source, `item id does not match the checklist id format: ${id}`);
     if (!id.startsWith(expectedPrefix))
-      invalid("checklist", source, `item id ${id} does not carry the ${domain} prefix ${expectedPrefix}`);
+      invalid(
+        "checklist",
+        source,
+        `item id ${id} does not carry the ${domain} prefix ${expectedPrefix}`,
+      );
     if (seenIds.has(id)) invalid("checklist", source, `duplicate item id: ${id}`);
     seenIds.add(id);
     const { scalars, lists } = readFrontmatter(
@@ -283,14 +271,20 @@ export function parseChecklist(bytes: Uint8Array, source: string): Checklist {
     const unknown = [...scalars.keys()].filter(
       (key) => !(CHECKLIST_ITEM_SCALAR_FIELDS as readonly string[]).includes(key),
     );
-    if (unknown.length > 0) invalid("checklist", source, `${id}: unknown key: ${unknown.join(", ")}`);
+    if (unknown.length > 0)
+      invalid("checklist", source, `${id}: unknown key: ${unknown.join(", ")}`);
     for (const field of CHECKLIST_ITEM_SCALAR_FIELDS)
       if (!scalars.has(field)) invalid("checklist", source, `${id}: missing key: ${field}`);
     const severity = scalars.get("severity")!;
     if (!CHECKLIST_SEVERITIES.has(severity))
-      invalid("checklist", source, `${id}: severity must be critical, important or minor: ${severity}`);
+      invalid(
+        "checklist",
+        source,
+        `${id}: severity must be critical, important or minor: ${severity}`,
+      );
     const sources = lists.get("sources");
-    if (!sources || sources.length === 0) invalid("checklist", source, `${id}: sources must not be empty`);
+    if (!sources || sources.length === 0)
+      invalid("checklist", source, `${id}: sources must not be empty`);
     items.push({
       id,
       rule: scalars.get("rule")!,
@@ -300,7 +294,14 @@ export function parseChecklist(bytes: Uint8Array, source: string): Checklist {
       sources,
     });
   }
-  return { domain, title, items, text, bytes, sha256: createHash("sha256").update(bytes).digest("hex") };
+  return {
+    domain,
+    title,
+    items,
+    text,
+    bytes,
+    sha256: createHash("sha256").update(bytes).digest("hex"),
+  };
 }
 
 export function resolveChecklistPath(domain: ValidatorDomain): string {
@@ -325,16 +326,6 @@ export function resolveValidatorDomainContractPath(domain: ValidatorDomain): str
   return join(ROLES_ROOT, `validator-${domain}.md`);
 }
 
-/**
- * B12.3's delivery requirement: the checklist reaches the validator through its role packet, bound
- * and digest-verified, not re-typed into a prompt. A domain contract is loaded here, folded together
- * with its standing checklist into one `text`/`sha256` pair, and handed to `buildPacket` as an
- * explicit `roleContract` override — `render-packet.ts` already embeds whatever `RoleContract` it is
- * given and binds `role_contract_sha256` to its digest, so no packet-rendering code changes: this
- * function is the entire delivery mechanism. `role` stays "validator" throughout (see the module
- * comment), so every existing validator-keyed check — packet isolation, token authorization,
- * `task:review` acceptance — keeps working unchanged for a domain-scoped agent.
- */
 export function loadValidatorDomainContract(domain: ValidatorDomain): RoleContract {
   const path = resolveValidatorDomainContractPath(domain);
   let bytes: Uint8Array;
@@ -345,7 +336,10 @@ export function loadValidatorDomainContract(domain: ValidatorDomain): RoleContra
   }
   const contract = parseRoleContract(bytes, `validator-${domain}.md`);
   if (contract.role !== "validator")
-    throw new HarnessError("INTEGRITY", `validator domain contract ${path} declares role ${contract.role}`);
+    throw new HarnessError(
+      "INTEGRITY",
+      `validator domain contract ${path} declares role ${contract.role}`,
+    );
   if (contract.domain !== domain)
     throw new HarnessError(
       "INTEGRITY",

@@ -47,12 +47,6 @@ export interface RepositoryGitCommandDependencies {
 const nodeSpawn: RepositoryGitSpawn = (executable, argv, options) =>
   spawnSync(executable, argv, options) as RepositoryGitSpawnResult;
 
-// `git` is a plain fork+exec like `ps` (see process-tree.ts's SNAPSHOT_SPAWN_RETRIES), so under
-// severe process-table pressure the spawn itself can fail transiently (EAGAIN/ENOMEM) even though
-// nothing is wrong with git or the repository. That failure has exactly one shape: no exit status
-// AND no error object AND no stderr — the OS never got far enough to report any of the three. A
-// real git failure always sets at least one of them (a non-zero status, an ENOENT error, or a
-// message on stderr), so this check cannot mistake a genuine failure for a transient one.
 const GIT_SPAWN_TRANSIENT_RETRIES = 3;
 const GIT_SPAWN_TRANSIENT_RETRY_DELAY_MS = 20;
 
@@ -64,22 +58,10 @@ function isTransientSpawnFailure(result: RepositoryGitSpawnResult): boolean {
   );
 }
 
-// Exported so other synchronous git-command call sites (repository-git-controls.ts) can retry with
-// the same primitive instead of a second copy of the same three-line spin/wait dance.
 export function synchronousDelay(milliseconds: number): void {
   Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, milliseconds);
 }
 
-// A handful of git commands print nothing but a fixed, non-empty token whenever they exit 0 (a
-// worktree probe's "true"/"false", a rev-parse's absolute path or SHA) — for those, an accepted
-// status paired with empty stdout is never a legitimate answer, only the same fork+exec scheduling
-// hazard isTransientSpawnFailure already retries on the exit-status side, surfacing here on the
-// stdout side instead. Observed directly, not inferred: repositoryWorktree below threw "repository
-// Git worktree probe returned invalid output" under real concurrent-agent load
-// (tests/unit/packets/repository-snapshot.test.ts's "inspects real git repository"), status 0 with
-// zero bytes. Callers that legitimately expect a command to print nothing on success (e.g. `git
-// diff` with no changes) must not use this — it exists only for commands with a fixed non-empty
-// success token.
 export function commandOutputRetryingEmpty(
   repo: string,
   argv: string[],
@@ -150,11 +132,11 @@ export function createRepositoryGitCommand(
     if ((result.error as NodeJS.ErrnoException | undefined)?.code === "ETIMEDOUT")
       throw new HarnessError("INVALID_STATE", "repository Git command timed out");
     if (result.error || !accepted.includes(result.status ?? -1)) {
-      // No plausible-sounding placeholder when stderr and error are both empty: report the exit
-      // status actually observed rather than inventing a cause the command never gave us.
       const detail =
         result.stderr?.toString("utf8").trim() ||
-        (result.error ? String(result.error) : `unaccepted exit status ${result.status ?? "unknown"}`);
+        (result.error
+          ? String(result.error)
+          : `unaccepted exit status ${result.status ?? "unknown"}`);
       throw new HarnessError("INTEGRITY", `repository Git command failed: ${detail}`);
     }
     return { status: result.status, bytes };
@@ -165,7 +147,12 @@ export const repositoryGit: RepositoryGitCommand = (...input) =>
   createRepositoryGitCommand()(...input);
 
 export function repositoryWorktree(repo: string, command: RepositoryGitCommand): boolean {
-  const probe = commandOutputRetryingEmpty(repo, ["rev-parse", "--is-inside-work-tree"], 1024, command);
+  const probe = commandOutputRetryingEmpty(
+    repo,
+    ["rev-parse", "--is-inside-work-tree"],
+    1024,
+    command,
+  );
   const value = probe.bytes.toString("utf8").trim();
   if (value === "true") return true;
   if (value === "false") return false;

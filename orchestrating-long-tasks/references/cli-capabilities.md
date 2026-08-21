@@ -8,12 +8,12 @@ Output is a markdown brief of at most 30 lines; `--format json` returns the stru
 
 ## Exit codes
 
-| Code | Meaning |
-| :--- | :--- |
-| `0` | SUCCESS - markdown brief on stdout, or JSON when --format json is set |
-| `3` | INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed |
-| `4` | LOCK_TIMEOUT - the capsule lock was still held at the deadline |
-| `70` | NOT_IMPLEMENTED, or an unexpected failure the harness did not classify |
+| Code | Meaning                                                                                                                 |
+| :--- | :---------------------------------------------------------------------------------------------------------------------- |
+| `0`  | SUCCESS - markdown brief on stdout, or JSON when --format json is set                                                   |
+| `3`  | INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed |
+| `4`  | LOCK_TIMEOUT - the capsule lock was still held at the deadline                                                          |
+| `70` | NOT_IMPLEMENTED, or an unexpected failure the harness did not classify                                                  |
 
 `run:exec` is the one exception: it exits 0 whenever the child ran at all, and reports the child's
 own status in `exit_code`.
@@ -30,17 +30,17 @@ Takes the user's whole message as free text and captures it byte-for-byte as the
 - **Stdin**: reads stdin when `--prompt-stdin` is set
 - **Arguments after `--`**: rejected
 
-| Flag | Type | Required | Repeatable | Default | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `--repo` | string | no | no | `.` | Repository root that owns the capsule. |
-| `--run` | string | no | no | - | Run id; interchangeable with --run-id. Derived from the prompt when omitted. |
-| `--run-id` | string | no | no | - | Run id; interchangeable with --run. Derived from the prompt when omitted. |
-| `--prompt-file` | string | no | no | - | File holding the verbatim prompt bytes. |
-| `--prompt-stdin` | bool | no | no | - | Read the verbatim prompt bytes from stdin explicitly. Not required for a real pipe: a bare `orchestrate` with nothing else after it already reads stdin when it is not an interactive terminal. This flag exists for a caller that wants the read to fail loudly instead of silently falling through when stdin turns out not to be piped. |
-| `--capture-mode` | string | no | no | - | How the prompt was captured; defaults to argv, file or stdin, whichever was actually used. |
-| `--source-verified` | bool | no | no | - | Assert the prompt source was verified by the caller. |
-| `--runtime-source` | string | no | no | - | Directory to pin as this run's runtime, verified and copied into runtime/. Defaults to the directory containing the currently running harness.ts. |
-| `--no-runtime-pin` | bool | no | no | - | Skip pinning a runtime even when one is available by default. |
+| Flag                | Type   | Required | Repeatable | Default | Description                                                                                                                                                                                                                                                                                                                                |
+| :------------------ | :----- | :------- | :--------- | :------ | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--repo`            | string | no       | no         | `.`     | Repository root that owns the capsule.                                                                                                                                                                                                                                                                                                     |
+| `--run`             | string | no       | no         | -       | Run id; interchangeable with --run-id. Derived from the prompt when omitted.                                                                                                                                                                                                                                                               |
+| `--run-id`          | string | no       | no         | -       | Run id; interchangeable with --run. Derived from the prompt when omitted.                                                                                                                                                                                                                                                                  |
+| `--prompt-file`     | string | no       | no         | -       | File holding the verbatim prompt bytes.                                                                                                                                                                                                                                                                                                    |
+| `--prompt-stdin`    | bool   | no       | no         | -       | Read the verbatim prompt bytes from stdin explicitly. Not required for a real pipe: a bare `orchestrate` with nothing else after it already reads stdin when it is not an interactive terminal. This flag exists for a caller that wants the read to fail loudly instead of silently falling through when stdin turns out not to be piped. |
+| `--capture-mode`    | string | no       | no         | -       | How the prompt was captured; defaults to argv, file or stdin, whichever was actually used.                                                                                                                                                                                                                                                 |
+| `--source-verified` | bool   | no       | no         | -       | Assert the prompt source was verified by the caller.                                                                                                                                                                                                                                                                                       |
+| `--runtime-source`  | string | no       | no         | -       | Directory to pin as this run's runtime, verified and copied into runtime/. Defaults to the directory containing the currently running harness.ts.                                                                                                                                                                                          |
+| `--no-runtime-pin`  | bool   | no       | no         | -       | Skip pinning a runtime even when one is available by default.                                                                                                                                                                                                                                                                              |
 
 ```bash
 bun harness.ts orchestrate Add a slugify helper that lowercases text and collapses punctuation.
@@ -58,17 +58,17 @@ Initialises <repo>/.capsules/<run-id>, records the verbatim prompt with its sha2
 - **Stdin**: reads stdin when `--prompt-stdin` is set
 - **Arguments after `--`**: rejected
 
-| Flag | Type | Required | Repeatable | Default | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `--run` | string | no | no | - | Run id; interchangeable with --run-id. |
-| `--run-id` | string | no | no | - | Run id; interchangeable with --run. |
-| `--repo` | string | no | no | `.` | Repository root that owns the capsule. |
-| `--prompt-file` | string | no | no | - | File holding the verbatim prompt bytes. |
-| `--prompt-stdin` | bool | no | no | - | Read the verbatim prompt bytes from stdin. |
-| `--capture-mode` | string | no | no | - | How the prompt was captured; defaults to the source used. |
-| `--source-verified` | bool | no | no | - | Assert the prompt source was verified by the caller. |
-| `--runtime-source` | string | no | no | - | Directory to pin as this run's runtime, verified and copied into runtime/. Defaults to the directory containing the currently running harness.ts. |
-| `--no-runtime-pin` | bool | no | no | - | Skip pinning a runtime even when one is available by default. |
+| Flag                | Type   | Required | Repeatable | Default | Description                                                                                                                                       |
+| :------------------ | :----- | :------- | :--------- | :------ | :------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `--run`             | string | no       | no         | -       | Run id; interchangeable with --run-id.                                                                                                            |
+| `--run-id`          | string | no       | no         | -       | Run id; interchangeable with --run.                                                                                                               |
+| `--repo`            | string | no       | no         | `.`     | Repository root that owns the capsule.                                                                                                            |
+| `--prompt-file`     | string | no       | no         | -       | File holding the verbatim prompt bytes.                                                                                                           |
+| `--prompt-stdin`    | bool   | no       | no         | -       | Read the verbatim prompt bytes from stdin.                                                                                                        |
+| `--capture-mode`    | string | no       | no         | -       | How the prompt was captured; defaults to the source used.                                                                                         |
+| `--source-verified` | bool   | no       | no         | -       | Assert the prompt source was verified by the caller.                                                                                              |
+| `--runtime-source`  | string | no       | no         | -       | Directory to pin as this run's runtime, verified and copied into runtime/. Defaults to the directory containing the currently running harness.ts. |
+| `--no-runtime-pin`  | bool   | no       | no         | -       | Skip pinning a runtime even when one is available by default.                                                                                     |
 
 ```bash
 printf "%s" "$PROMPT" | bun harness.ts plan:init --repo . --run <run-id> --prompt-stdin
@@ -85,16 +85,16 @@ Writes planning/enhanced-plan.md and planning/enhanced-plan.json read-only and r
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
-| Flag | Type | Required | Repeatable | Default | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `--run` | string | yes | no | - | Capsule run root. |
-| `--actor` | string | yes | no | - | Actor recorded on the event. |
-| `--summary` | string | no | no | - | The enhanced brief: what this run is actually about. |
-| `--observation` | string | no | yes | - | Something the agent found in the repository. |
-| `--todo` | string | no | yes | - | One organised to-do item, in the order to do it. |
-| `--risk` | string | no | yes | - | A risk the agent identified. |
-| `--open-question` | string | no | yes | - | A question the agent could not answer. |
-| `--source` | string | no | yes | - | A file the agent actually read. |
+| Flag              | Type   | Required | Repeatable | Default | Description                                          |
+| :---------------- | :----- | :------- | :--------- | :------ | :--------------------------------------------------- |
+| `--run`           | string | yes      | no         | -       | Capsule run root.                                    |
+| `--actor`         | string | yes      | no         | -       | Actor recorded on the event.                         |
+| `--summary`       | string | no       | no         | -       | The enhanced brief: what this run is actually about. |
+| `--observation`   | string | no       | yes        | -       | Something the agent found in the repository.         |
+| `--todo`          | string | no       | yes        | -       | One organised to-do item, in the order to do it.     |
+| `--risk`          | string | no       | yes        | -       | A risk the agent identified.                         |
+| `--open-question` | string | no       | yes        | -       | A question the agent could not answer.               |
+| `--source`        | string | no       | yes        | -       | A file the agent actually read.                      |
 
 ```bash
 bun harness.ts plan:enhance --run .capsules/<run-id> --actor planner --summary "Wire the drawer to the graph store" --todo "Add the state machine tab" --todo "Delete the legacy asset writes" --risk "Fixture dataset predates the new schema" --source src/graph/store.ts
@@ -104,51 +104,127 @@ bun harness.ts plan:enhance --run .capsules/<run-id> --actor planner --summary "
 
 Register a task declaration in the planning buffer.
 
-Appends one task to the uncompiled planning buffer. Rejected once the plan has been compiled.
+Appends one task to the uncompiled planning buffer. Rejected once the plan has been compiled. --scope and --gate are required for a single task declaration; omit both and pass --auto-partition instead to have the harness enumerate a glob on disk and register one task per match (or per --group-by directory) in one call, each with its own gate derived from --gate-template. Every declared --deps id needs a matching --dep-reason before plan:compile will seal the plan (C6's mandatory edge justification).
 
 - **Aliases**: none
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
-| Flag | Type | Required | Repeatable | Default | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `--run` | string | yes | no | - | Capsule run root. |
-| `--id` | string | yes | no | - | Task id, unique within the buffer. |
-| `--label` | string | yes | no | - | Human label for the task. |
-| `--scope` | string | yes | no | - | Comma-separated write scope paths. |
-| `--gate` | string | yes | no | - | Verification command that proves the task. |
-| `--actor` | string | yes | no | - | Actor recorded on the event. |
-| `--deps` | string | no | no | - | Comma-separated ids this task depends on. |
-| `--goal` | string | no | no | - | Goal statement for the task. |
-| `--criteria` | string | no | no | - | Semicolon-separated acceptance criteria. |
-| `--priority` | int | no | no | - | Scheduling priority; higher runs earlier. |
-| `--effort` | int | no | no | - | Relative effort estimate. |
-| `--requirement-lines` | string | no | no | - | Prompt lines this task implements, e.g. "3-5,8". Without it the compiler glues the task to a prompt line by position and warns. |
+| Flag                  | Type   | Required | Repeatable | Default | Description                                                                                                                                                                                               |
+| :-------------------- | :----- | :------- | :--------- | :------ | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--run`               | string | yes      | no         | -       | Capsule run root.                                                                                                                                                                                         |
+| `--id`                | string | yes      | no         | -       | Task id, unique within the buffer. In --auto-partition mode this is the id prefix every generated task id is built from.                                                                                  |
+| `--label`             | string | yes      | no         | -       | Human label for the task. In --auto-partition mode this is the label prefix for every generated task.                                                                                                     |
+| `--scope`             | string | no       | no         | -       | Comma-separated write scope paths. Required unless --auto-partition is set; refused together with it.                                                                                                     |
+| `--gate`              | string | no       | no         | -       | Verification command that proves the task. Required unless --auto-partition is set; refused together with it.                                                                                             |
+| `--actor`             | string | yes      | no         | -       | Actor recorded on the event.                                                                                                                                                                              |
+| `--deps`              | string | no       | no         | -       | Comma-separated ids this task depends on. Refused together with --auto-partition.                                                                                                                         |
+| `--dep-reason`        | string | no       | yes        | -       | One dependency's justification as "<dep-id>:<why this edge exists>". plan:compile refuses to seal while any --deps id lacks a matching --dep-reason. Refused together with --auto-partition.              |
+| `--goal`              | string | no       | no         | -       | Goal statement for the task.                                                                                                                                                                              |
+| `--criteria`          | string | no       | no         | -       | Semicolon-separated acceptance criteria.                                                                                                                                                                  |
+| `--priority`          | int    | no       | no         | -       | Scheduling priority; higher runs earlier.                                                                                                                                                                 |
+| `--effort`            | int    | no       | no         | -       | Relative effort estimate.                                                                                                                                                                                 |
+| `--requirement-lines` | string | no       | no         | -       | Prompt lines this task implements, e.g. "3-5,8". Without it the compiler glues the task to a prompt line by position and warns.                                                                           |
+| `--auto-partition`    | string | no       | no         | -       | A glob the harness enumerates on disk (relative to the repository root); emits one task per matched file, or per --group-by directory. Mutually exclusive with --scope, --gate, --deps and --dep-reason.  |
+| `--gate-template`     | string | no       | no         | -       | Command template for --auto-partition; must contain the literal placeholder {scope}, substituted per generated task with that task's own file or directory path. Required together with --auto-partition. |
+| `--group-by`          | string | no       | no         | `file`  | file (default) or directory: whether --auto-partition emits one task per matched file or one task per directory holding matches.                                                                          |
 
 ```bash
 bun harness.ts plan:add --run .capsules/<run-id> --id task-1 --label "Database schema" --scope "src/db" --gate "bun test tests/db.test.ts" --actor coordinator
 bun harness.ts plan:add --run .capsules/<run-id> --id task-2 --label "CLI wiring" --scope "src/cli" --gate "bun test tests/unit/cli" --actor coordinator --requirement-lines "3-5"
+bun harness.ts plan:add --run .capsules/<run-id> --id task-3 --label "Integration" --scope "src/integration" --gate "bun test tests/integration" --actor coordinator --deps task-1,task-2 --dep-reason "task-1:reads the schema task-1 writes" --dep-reason "task-2:reads the CLI wiring task-2 writes"
+bun harness.ts plan:add --run .capsules/<run-id> --id task-topic --label "Topic bank" --actor coordinator --auto-partition "src/curriculum/mlQuestions/*.ts" --gate-template "bun test {scope}"
+```
+
+### `plan:audit`
+
+Audit the planning buffer against the six topology invariants and record the verdict.
+
+Runs A1-granularity, A3-gate-discrimination, A4-false-barrier, A5-straggler and A6-whole-suite-gate against the current planning buffer and records the verdict as a plan-audited event, whatever the outcome. A2-parallelism has no grounded entity count to compare against anywhere in this plan and is reported under not_evaluated rather than guessed. plan:compile runs the same audit and refuses to seal the plan on any blocking finding whose invariant was not accepted with --accept-audit; this command lets a coordinator see the verdict before attempting a compile.
+
+- **Aliases**: none
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag      | Type   | Required | Repeatable | Default | Description                  |
+| :-------- | :----- | :------- | :--------- | :------ | :--------------------------- |
+| `--run`   | string | yes      | no         | -       | Capsule run root.            |
+| `--actor` | string | yes      | no         | -       | Actor recorded on the event. |
+
+```bash
+bun harness.ts plan:audit --run .capsules/<run-id> --actor planner
 ```
 
 ### `plan:compile`
 
 Compile the planning buffer into requirements, the DAG, and revision 1.
 
-Checks scope independence, derives requirements from the prompt lines, builds the graph, and commits graph revision 1. The mandatory run-completion gate is whatever --completion-gate declares; the compiler has no default for it and refuses to invent one.
+Checks scope independence, derives requirements from the prompt lines, builds the graph, and commits graph revision 1. The mandatory run-completion gate is whatever --completion-gate declares; the compiler has no default for it and refuses to invent one. Also refuses to seal while any dependency edge in the buffer lacks the one-line justification `plan:add --dep-reason` records for it (C6's topology declaration) — the independent-root count and every justified edge are reported on the brief. Before any of that, runs plan:audit's six invariants and refuses to seal on any blocking finding: pass --accept-audit "<invariant-id>:<reason>" once per blocking invariant to record an explicit, attributed override and proceed anyway. There is no blanket override — every blocking invariant needs its own acceptance naming who accepted it and why.
 
 - **Aliases**: none
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
-| Flag | Type | Required | Repeatable | Default | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `--run` | string | yes | no | - | Capsule run root. |
-| `--actor` | string | yes | no | - | Actor recorded on the event. |
-| `--completion-gate` | string | yes | no | - | Command the whole run is finally held to, e.g. "bun test tests/unit". Recorded as the mandatory run-scope gate; there is no default. |
-| `--strict-parallel` | bool | no | no | - | Treat serialization advisories as failures. |
+| Flag                | Type   | Required | Repeatable | Default | Description                                                                                                                                                                                                                                                                             |
+| :------------------ | :----- | :------- | :--------- | :------ | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--run`             | string | yes      | no         | -       | Capsule run root.                                                                                                                                                                                                                                                                       |
+| `--actor`           | string | yes      | no         | -       | Actor recorded on the event.                                                                                                                                                                                                                                                            |
+| `--completion-gate` | string | yes      | no         | -       | Command the whole run is finally held to, e.g. "bun test tests/unit". Recorded as the mandatory run-scope gate; there is no default.                                                                                                                                                    |
+| `--accept-audit`    | string | no       | yes        | -       | Accept one blocking plan:audit invariant so compilation may proceed: "<invariant-id>:<reason>". Repeatable; every blocking invariant needs its own acceptance, and an invariant the audit did not raise as blocking is refused rather than silently accepted. Never a blanket override. |
 
 ```bash
 bun harness.ts plan:compile --run .capsules/<run-id> --actor planner --completion-gate "bun test tests/unit"
+bun harness.ts plan:compile --run .capsules/<run-id> --actor planner --completion-gate "bun test tests/unit" --accept-audit "A3-gate-discrimination:task-a and task-b legitimately share the shared-fixture regression test"
+```
+
+### `plan:validate-start`
+
+Assign the plan-validator and mint the token required by plan:review.
+
+C2: opens the plan-validator's claim on the currently compiled plan (the projected tasks, requirements and gates at this graph revision, delivered via the packet) — one active assignment per graph revision, mirroring task:validate-start. The validator must be independent from the coordinator or planner that produced the plan. Dispatch this, and get a passing plan:review, before dispatching any implementer: a recorded plan:review --status changes_requested against the live graph revision is a hard stop that claimTask enforces directly, not a warning a coordinator can route around.
+
+- **Aliases**: none
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag               | Type   | Required | Repeatable | Default | Description                                            |
+| :----------------- | :----- | :------- | :--------- | :------ | :----------------------------------------------------- |
+| `--run`            | string | yes      | no         | -       | Capsule run root.                                      |
+| `--validator`      | string | yes      | no         | -       | Plan-validator agent id.                               |
+| `--lease-duration` | int    | no       | no         | `1200`  | Seconds until the validation window expires (5-86400). |
+
+```bash
+bun harness.ts plan:validate-start --run .capsules/<run-id> --validator plan-val-1
+```
+
+### `plan:review`
+
+Record the plan-validator's written verdict on the compiled plan.
+
+C2: --status approved clears the plan for implementer dispatch; changes_requested is the pushback — it records structured findings (each with id, severity, observation, remediation) and blocks every implementer and repairer claim against this graph revision until a fresh compile passes a new review. The four questions (--decomposition-answer, --dependency-answer, --gate-answer, --straggler-answer) are mandatory on every verdict, pass or reject: a rubber-stamped pass that never answered them is refused. changes_requested requires --findings or --findings-file; approved must carry none.
+
+- **Aliases**: none
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag                     | Type   | Required | Repeatable | Default | Description                                                                       |
+| :----------------------- | :----- | :------- | :--------- | :------ | :-------------------------------------------------------------------------------- |
+| `--run`                  | string | yes      | no         | -       | Capsule run root.                                                                 |
+| `--validator`            | string | yes      | no         | -       | Plan-validator agent id.                                                          |
+| `--token`                | string | yes      | no         | -       | Plan validation token.                                                            |
+| `--status`               | string | yes      | no         | -       | approved or changes_requested.                                                    |
+| `--summary`              | string | yes      | no         | -       | Verdict summary in the validator's own words.                                     |
+| `--decomposition-answer` | string | yes      | no         | -       | Does the decomposition match the work's entity count, or did it compress?         |
+| `--dependency-answer`    | string | yes      | no         | -       | Is every dependency edge justified by a real read/write relationship?             |
+| `--gate-answer`          | string | yes      | no         | -       | Can each gate actually fail if its task does nothing?                             |
+| `--straggler-answer`     | string | yes      | no         | -       | Will any task's scope make one agent straggle while the rest idle?                |
+| `--findings`             | string | no       | no         | -       | Inline JSON findings payload (array of {id, severity, observation, remediation}). |
+| `--findings-file`        | string | no       | no         | -       | Path to a JSON findings payload.                                                  |
+| `--checks`               | string | no       | no         | -       | Comma-separated command ids the validator ran as independent evidence.            |
+
+```bash
+bun harness.ts plan:review --run .capsules/<run-id> --validator plan-val-1 --token <token> --status approved --decomposition-answer "14 tasks match the 14 named topics" --dependency-answer "no dependency edges; every task is an independent root" --gate-answer "each gate runs only that task's own scoped test file" --straggler-answer "every task carries the same one-topic effort estimate" --summary "Decomposition matches the prompt; gates are scope-narrow"
+bun harness.ts plan:review --run .capsules/<run-id> --validator plan-val-1 --token <token> --status changes_requested --decomposition-answer "10 topics compressed into 1 task" --dependency-answer "n/a" --gate-answer "the shared gate cannot fail per-task" --straggler-answer "n/a" --summary "Compressed decomposition; see findings" --findings '[{"id":"PV-1","invariant":"A2-parallelism","severity":"critical","observation":"10 distinct topics collapsed into task-domains","remediation":"one task per topic, each with its own scoped gate"}]'
 ```
 
 ### `plan:replan`
@@ -161,14 +237,14 @@ Ingests validator or critic findings, partitions them into disjoint write scopes
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
-| Flag | Type | Required | Repeatable | Default | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `--run` | string | yes | no | - | Capsule run root. |
-| `--actor` | string | yes | no | - | Actor recorded on the event. |
-| `--findings` | string | no | no | - | Inline JSON findings payload. |
-| `--findings-file` | string | no | no | - | Path to a JSON findings payload. |
-| `--round` | int | no | no | - | Explicit repair round number. |
-| `--gate` | string | no | no | - | Revalidation gate for generated repair tasks. Omit only when the findings declare revalidation_gate or the planned task covering the scope has a gate to inherit; there is no default. |
+| Flag              | Type   | Required | Repeatable | Default | Description                                                                                                                                                                            |
+| :---------------- | :----- | :------- | :--------- | :------ | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--run`           | string | yes      | no         | -       | Capsule run root.                                                                                                                                                                      |
+| `--actor`         | string | yes      | no         | -       | Actor recorded on the event.                                                                                                                                                           |
+| `--findings`      | string | no       | no         | -       | Inline JSON findings payload.                                                                                                                                                          |
+| `--findings-file` | string | no       | no         | -       | Path to a JSON findings payload.                                                                                                                                                       |
+| `--round`         | int    | no       | no         | -       | Explicit repair round number.                                                                                                                                                          |
+| `--gate`          | string | no       | no         | -       | Revalidation gate for generated repair tasks. Omit only when the findings declare revalidation_gate or the planned task covering the scope has a gate to inherit; there is no default. |
 
 ```bash
 bun harness.ts plan:replan --run .capsules/<run-id> --actor coordinator --gate "bun run typecheck"
@@ -184,10 +260,10 @@ The planner has no task and no lease, so it cannot task:claim. This is its equiv
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
-| Flag | Type | Required | Repeatable | Default | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `--run` | string | yes | no | - | Capsule run root. |
-| `--agent` | string | yes | no | - | The planner's own agent id, already agent:register'd. |
+| Flag      | Type   | Required | Repeatable | Default | Description                                           |
+| :-------- | :----- | :------- | :--------- | :------ | :---------------------------------------------------- |
+| `--run`   | string | yes      | no         | -       | Capsule run root.                                     |
+| `--agent` | string | yes      | no         | -       | The planner's own agent id, already agent:register'd. |
 
 ```bash
 bun harness.ts plan:claim --run .capsules/<run-id> --agent planner-1
@@ -203,13 +279,13 @@ Reads requirements.json and graph.json (defaulting to planning/ inside the run),
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
-| Flag | Type | Required | Repeatable | Default | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `--run` | string | yes | no | - | Capsule run root. |
-| `--actor` | string | yes | no | - | Actor recorded on the event. |
-| `--requirements` | string | no | no | - | Path to the requirements document. Defaults to <run>/planning/requirements.json. |
-| `--graph` | string | no | no | - | Path to the graph document. Defaults to <run>/planning/graph.json. |
-| `--expected-revision` | int | no | no | - | The graph revision this apply must be built against; the apply is refused if the run has moved past it. |
+| Flag                  | Type   | Required | Repeatable | Default | Description                                                                                             |
+| :-------------------- | :----- | :------- | :--------- | :------ | :------------------------------------------------------------------------------------------------------ |
+| `--run`               | string | yes      | no         | -       | Capsule run root.                                                                                       |
+| `--actor`             | string | yes      | no         | -       | Actor recorded on the event.                                                                            |
+| `--requirements`      | string | no       | no         | -       | Path to the requirements document. Defaults to <run>/planning/requirements.json.                        |
+| `--graph`             | string | no       | no         | -       | Path to the graph document. Defaults to <run>/planning/graph.json.                                      |
+| `--expected-revision` | int    | no       | no         | -       | The graph revision this apply must be built against; the apply is refused if the run has moved past it. |
 
 ```bash
 bun harness.ts plan:apply --run .capsules/<run-id> --actor planner-1 --expected-revision 0
@@ -225,9 +301,9 @@ Reports every buffered task with its scope, gate and dependencies.
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
-| Flag | Type | Required | Repeatable | Default | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `--run` | string | yes | no | - | Capsule run root. |
+| Flag    | Type   | Required | Repeatable | Default | Description       |
+| :------ | :----- | :------- | :--------- | :------ | :---------------- |
+| `--run` | string | yes      | no         | -       | Capsule run root. |
 
 ```bash
 bun harness.ts plan:status --run .capsules/<run-id>
@@ -245,9 +321,9 @@ Reads the queue and reports the task a coordinator would dispatch next.
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
-| Flag | Type | Required | Repeatable | Default | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `--run` | string | yes | no | - | Capsule run root. |
+| Flag    | Type   | Required | Repeatable | Default | Description       |
+| :------ | :----- | :------- | :--------- | :------ | :---------------- |
+| `--run` | string | yes      | no         | -       | Capsule run root. |
 
 ```bash
 bun harness.ts queue:next --run .capsules/<run-id>
@@ -263,9 +339,9 @@ Groups tasks into ready, leased, validating, blocked and satisfied partitions wi
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
-| Flag | Type | Required | Repeatable | Default | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `--run` | string | yes | no | - | Capsule run root. |
+| Flag    | Type   | Required | Repeatable | Default | Description       |
+| :------ | :----- | :------- | :--------- | :------ | :---------------- |
+| `--run` | string | yes      | no         | -       | Capsule run root. |
 
 ```bash
 bun harness.ts queue:list --run .capsules/<run-id>
@@ -281,10 +357,10 @@ The readiness query: runs the scheduler over live task state and returns every t
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
-| Flag | Type | Required | Repeatable | Default | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `--run` | string | yes | no | - | Capsule run root. |
-| `--max-parallel` | int | no | no | - | Occupancy ceiling for this query; defaults to the configured default_max_parallel. |
+| Flag             | Type   | Required | Repeatable | Default | Description                                                                        |
+| :--------------- | :----- | :------- | :--------- | :------ | :--------------------------------------------------------------------------------- |
+| `--run`          | string | yes      | no         | -       | Capsule run root.                                                                  |
+| `--max-parallel` | int    | no       | no         | -       | Occupancy ceiling for this query; defaults to the configured default_max_parallel. |
 
 ```bash
 bun harness.ts queue:wave --run .capsules/<run-id> --max-parallel 4
@@ -300,12 +376,12 @@ Atomically leases the next ready task to an agent. Fails when no task is ready r
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
-| Flag | Type | Required | Repeatable | Default | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `--run` | string | yes | no | - | Capsule run root. |
-| `--agent` | string | yes | no | - | Agent id receiving the lease. |
-| `--lease-duration` | int | no | no | - | Lease length in seconds (5-86400). |
-| `--lease-seconds` | int | no | no | `1200` | Alias of --lease-duration. |
+| Flag               | Type   | Required | Repeatable | Default | Description                        |
+| :----------------- | :----- | :------- | :--------- | :------ | :--------------------------------- |
+| `--run`            | string | yes      | no         | -       | Capsule run root.                  |
+| `--agent`          | string | yes      | no         | -       | Agent id receiving the lease.      |
+| `--lease-duration` | int    | no       | no         | -       | Lease length in seconds (5-86400). |
+| `--lease-seconds`  | int    | no       | no         | `1200`  | Alias of --lease-duration.         |
 
 ```bash
 bun harness.ts queue:pop --run .capsules/<run-id> --agent worker-1 --lease-seconds 1800
@@ -323,14 +399,14 @@ Transitions the task to leased and returns the bearer token the agent must echo 
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
-| Flag | Type | Required | Repeatable | Default | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `--run` | string | yes | no | - | Capsule run root. |
-| `--task` | string | yes | no | - | Task id to claim. |
-| `--agent` | string | yes | no | - | Agent id receiving the lease. |
-| `--role` | string | yes | no | - | Role contract the agent claims under: implementer for a ready task, repairer for one in changes_requested. |
-| `--lease-duration` | int | no | no | - | Lease length in seconds (5-86400). |
-| `--lease-seconds` | int | no | no | `1200` | Alias of --lease-duration. |
+| Flag               | Type   | Required | Repeatable | Default | Description                                                                                                |
+| :----------------- | :----- | :------- | :--------- | :------ | :--------------------------------------------------------------------------------------------------------- |
+| `--run`            | string | yes      | no         | -       | Capsule run root.                                                                                          |
+| `--task`           | string | yes      | no         | -       | Task id to claim.                                                                                          |
+| `--agent`          | string | yes      | no         | -       | Agent id receiving the lease.                                                                              |
+| `--role`           | string | yes      | no         | -       | Role contract the agent claims under: implementer for a ready task, repairer for one in changes_requested. |
+| `--lease-duration` | int    | no       | no         | -       | Lease length in seconds (5-86400).                                                                         |
+| `--lease-seconds`  | int    | no       | no         | `1200`  | Alias of --lease-duration.                                                                                 |
 
 ```bash
 bun harness.ts task:claim --run .capsules/<run-id> --task task-1 --agent worker-1 --role implementer
@@ -347,13 +423,13 @@ Requires the lease token; a stale or foreign token is refused.
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
-| Flag | Type | Required | Repeatable | Default | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `--run` | string | yes | no | - | Capsule run root. |
-| `--task` | string | yes | no | - | Leased task id. |
-| `--agent` | string | yes | no | - | Agent holding the lease. |
-| `--token` | string | yes | no | - | Lease bearer token. |
-| `--extend` | int | no | no | `1800` | Extension in seconds (60-86400). |
+| Flag       | Type   | Required | Repeatable | Default | Description                                                                                                                                 |
+| :--------- | :----- | :------- | :--------- | :------ | :------------------------------------------------------------------------------------------------------------------------------------------ |
+| `--run`    | string | yes      | no         | -       | Capsule run root.                                                                                                                           |
+| `--task`   | string | yes      | no         | -       | Leased task id.                                                                                                                             |
+| `--agent`  | string | yes      | no         | -       | Agent holding the lease.                                                                                                                    |
+| `--token`  | string | yes      | no         | -       | Lease bearer token.                                                                                                                         |
+| `--extend` | int    | no       | no         | `1800`  | Range-checked (60-86400) but not yet applied: the lease is always renewed by its own originally-claimed duration, regardless of this value. |
 
 ```bash
 bun harness.ts task:heartbeat --run .capsules/<run-id> --task task-1 --agent worker-1 --token <token>
@@ -363,25 +439,28 @@ bun harness.ts task:heartbeat --run .capsules/<run-id> --task task-1 --agent wor
 
 Submit completed task work for validation.
 
-Records the submission report, audits write-scope compliance, and moves the task to submitted. --summary is mandatory unless --report supplies the whole report; nothing is substituted for it. files_changed comes from --files-changed when given, otherwise from the Git working-tree observation narrowed to the write scope; checks come from --evidence when given, otherwise from the agent's recorded commands. The command fails when neither source yields anything.
+Records the submission report, audits write-scope compliance, and moves the task to submitted. --summary is mandatory unless --report supplies the whole report; nothing is substituted for it. files_changed comes from --files-changed when given, otherwise from the Git working-tree observation narrowed to the write scope; checks come from --evidence when given, otherwise from the agent's recorded commands. The command fails when neither source yields anything. C4: a content digest of the write scope is compared against the one task:claim recorded; a submission whose scope is byte-identical to its content at claim is refused unless --no-op --reason states why nothing needed to change — an unexplained no-change submission is an error, never inferred as intentional.
 
 - **Aliases**: none
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
-| Flag | Type | Required | Repeatable | Default | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `--run` | string | yes | no | - | Capsule run root. |
-| `--task` | string | yes | no | - | Leased task id. |
-| `--agent` | string | yes | no | - | Agent holding the lease. |
-| `--token` | string | yes | no | - | Lease bearer token. |
-| `--summary` | string | no | no | - | What the agent changed. Required unless --report carries the summary. |
-| `--evidence` | string | no | yes | - | Recorded command id proving the work. |
-| `--files-changed` | string | no | yes | - | Repository-relative path the agent changed. |
-| `--report` | string | no | no | - | Path to a complete submission report payload. |
+| Flag              | Type   | Required | Repeatable | Default | Description                                                                                                                   |
+| :---------------- | :----- | :------- | :--------- | :------ | :---------------------------------------------------------------------------------------------------------------------------- |
+| `--run`           | string | yes      | no         | -       | Capsule run root.                                                                                                             |
+| `--task`          | string | yes      | no         | -       | Leased task id.                                                                                                               |
+| `--agent`         | string | yes      | no         | -       | Agent holding the lease.                                                                                                      |
+| `--token`         | string | yes      | no         | -       | Lease bearer token.                                                                                                           |
+| `--summary`       | string | no       | no         | -       | What the agent changed. Required unless --report carries the summary.                                                         |
+| `--evidence`      | string | no       | yes        | -       | Recorded command id proving the work.                                                                                         |
+| `--files-changed` | string | no       | yes        | -       | Repository-relative path the agent changed.                                                                                   |
+| `--report`        | string | no       | no         | -       | Path to a complete submission report payload.                                                                                 |
+| `--no-op`         | bool   | no       | no         | -       | Declares the write scope legitimately needed no change. Requires --reason; refused if the scope actually changed since claim. |
+| `--reason`        | string | no       | no         | -       | Why --no-op is true. Required with --no-op, and meaningless without it.                                                       |
 
 ```bash
 bun harness.ts task:submit --run .capsules/<run-id> --task task-1 --agent worker-1 --token <token> --summary "Implemented user auth"
+bun harness.ts task:submit --run .capsules/<run-id> --task task-1 --agent worker-1 --token <token> --summary "Investigated; no code change was needed" --no-op --reason "task-0 already fixed the same defect"
 ```
 
 ### `task:validate-start`
@@ -394,13 +473,13 @@ Assigns the validator and mints the validation token required by task:review.
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
-| Flag | Type | Required | Repeatable | Default | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `--run` | string | yes | no | - | Capsule run root. |
-| `--task` | string | yes | no | - | Submitted task id. |
-| `--validator` | string | yes | no | - | Validator agent id. |
-| `--lease-duration` | int | no | no | - | Validation window in seconds. |
-| `--validator-domain` | string | no | no | - | B12.2 standing checklist domain (code-quality, product, security, system-design, ui-design); binds the matching checklist into this validator's packet. Omitted, the domain is DERIVED from the task's write scope (code-quality always applies; ui-design/system-design follow file extension and path signals) — the first applicable domain nobody has an open validation against yet. A task can carry several open validations at once, one per applicable domain; it reaches validated only once every one of them has passed. |
+| Flag                 | Type   | Required | Repeatable | Default | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| :------------------- | :----- | :------- | :--------- | :------ | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--run`              | string | yes      | no         | -       | Capsule run root.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `--task`             | string | yes      | no         | -       | Submitted task id.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `--validator`        | string | yes      | no         | -       | Validator agent id.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| `--lease-duration`   | int    | no       | no         | -       | Validation window in seconds.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| `--validator-domain` | string | no       | no         | -       | B12.2 standing checklist domain (code-quality, product, security, system-design, ui-design); binds the matching checklist into this validator's packet. Omitted, the domain is DERIVED from the task's write scope (code-quality always applies; ui-design/system-design follow file extension and path signals) — the first applicable domain nobody has an open validation against yet. A task can carry several open validations at once, one per applicable domain; it reaches validated only once every one of them has passed. |
 
 ```bash
 bun harness.ts task:validate-start --run .capsules/<run-id> --task task-1 --validator val-1
@@ -417,25 +496,25 @@ Record a validator verdict with its gate evidence.
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
-| Flag | Type | Required | Repeatable | Default | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `--run` | string | yes | no | - | Capsule run root. |
-| `--task` | string | yes | no | - | Task under validation. |
-| `--validator` | string | yes | no | - | Validator agent id. |
-| `--token` | string | yes | no | - | Validation token. |
-| `--status` | string | yes | no | - | pass or fail. |
-| `--summary` | string | no | no | - | Verdict summary; with --status fail this is the defect the validator observed and is required. |
-| `--severity` | string | no | no | - | critical, important or minor. Required with --status fail; there is no default severity. |
-| `--remediation` | string | no | no | - | What would fix the defect. Required with --status fail; the harness writes no remediation of its own. |
-| `--revalidation` | string | no | no | - | How the fix is to be proven. Without it the finding cites the task's own gate. |
-| `--evidence` | string | no | no | - | Comma-separated command ids proving the verdict. |
-| `--checks` | string | no | no | - | Alias of --evidence. |
-| `--finding-id` | string | no | no | - | Explicit finding id for a failing verdict. |
-| `--requirement` | string | no | no | - | Requirement a failing verdict binds its finding to. |
-| `--resolve` | string | no | yes | - | Answer an open finding: <finding-id>=<command-id>[,<command-id>]. |
-| `--resolution-method` | string | no | yes | - | How a finding was answered: <finding-id>=<method>; defaults to the finding's class. |
-| `--checklist-domain` | string | no | no | - | B12.5: the standing checklist (code-quality, product, security, system-design, ui-design) this review reports coverage against. Requires --checklist-report; every item in that domain's checklist must be accounted for. |
-| `--checklist-report` | string | no | no | - | Path to a JSON file: {"items":[{"id":"<checklist-id>","disposition":"checked|not_applicable|could_not_check","reason":"<required unless checked>"}, ...],"adjacent_findings":[{"id","checklist_item_id","severity","observation","remediation","evidence":[...]}]}. Requires --checklist-domain. |
+| Flag                  | Type   | Required | Repeatable | Default | Description                                                                                                                                                                                                               |
+| :-------------------- | :----- | :------- | :--------- | :------ | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `--run`               | string | yes      | no         | -       | Capsule run root.                                                                                                                                                                                                         |
+| `--task`              | string | yes      | no         | -       | Task under validation.                                                                                                                                                                                                    |
+| `--validator`         | string | yes      | no         | -       | Validator agent id.                                                                                                                                                                                                       |
+| `--token`             | string | yes      | no         | -       | Validation token.                                                                                                                                                                                                         |
+| `--status`            | string | yes      | no         | -       | pass or fail.                                                                                                                                                                                                             |
+| `--summary`           | string | no       | no         | -       | Verdict summary; with --status fail this is the defect the validator observed and is required.                                                                                                                            |
+| `--severity`          | string | no       | no         | -       | critical, important or minor. Required with --status fail; there is no default severity.                                                                                                                                  |
+| `--remediation`       | string | no       | no         | -       | What would fix the defect. Required with --status fail; the harness writes no remediation of its own.                                                                                                                     |
+| `--revalidation`      | string | no       | no         | -       | How the fix is to be proven. Without it the finding cites the task's own gate.                                                                                                                                            |
+| `--evidence`          | string | no       | no         | -       | Comma-separated command ids proving the verdict.                                                                                                                                                                          |
+| `--checks`            | string | no       | no         | -       | Alias of --evidence.                                                                                                                                                                                                      |
+| `--finding-id`        | string | no       | no         | -       | Explicit finding id for a failing verdict.                                                                                                                                                                                |
+| `--requirement`       | string | no       | no         | -       | Requirement a failing verdict binds its finding to.                                                                                                                                                                       |
+| `--resolve`           | string | no       | yes        | -       | Answer an open finding: <finding-id>=<command-id>[,<command-id>].                                                                                                                                                         |
+| `--resolution-method` | string | no       | yes        | -       | How a finding was answered: <finding-id>=<method>; defaults to the finding's class.                                                                                                                                       |
+| `--checklist-domain`  | string | no       | no         | -       | B12.5: the standing checklist (code-quality, product, security, system-design, ui-design) this review reports coverage against. Requires --checklist-report; every item in that domain's checklist must be accounted for. |
+| `--checklist-report`  | string | no       | no         | -       | Path to a JSON file: {"items":[{"id":"<checklist-id>","disposition":"checked                                                                                                                                              | not_applicable | could_not_check","reason":"<required unless checked>"}, ...],"adjacent_findings":[{"id","checklist_item_id","severity","observation","remediation","evidence":[...]}]}. Requires --checklist-domain. |
 
 ```bash
 bun harness.ts task:review --run .capsules/<run-id> --task task-1 --validator val-1 --token <token> --status pass --checks C-123 --summary "All gates pass"
@@ -454,16 +533,16 @@ Each --demand becomes a probe_demand finding on the task. The task stays in vali
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
-| Flag | Type | Required | Repeatable | Default | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `--run` | string | yes | no | - | Capsule run root. |
-| `--task` | string | yes | no | - | Task under validation. |
-| `--validator` | string | yes | no | - | Validator agent id. |
-| `--token` | string | yes | no | - | Validation token. |
-| `--demand` | string | no | yes | - | What the implementation must prove; repeat per demand. |
-| `--requirement` | string | no | no | - | Requirement the demands bind to. |
-| `--revalidation` | string | no | no | - | How each demand is to be answered. |
-| `--evidence` | string | no | no | - | Comma-separated command ids the demands cite. |
+| Flag             | Type   | Required | Repeatable | Default | Description                                            |
+| :--------------- | :----- | :------- | :--------- | :------ | :----------------------------------------------------- |
+| `--run`          | string | yes      | no         | -       | Capsule run root.                                      |
+| `--task`         | string | yes      | no         | -       | Task under validation.                                 |
+| `--validator`    | string | yes      | no         | -       | Validator agent id.                                    |
+| `--token`        | string | yes      | no         | -       | Validation token.                                      |
+| `--demand`       | string | no       | yes        | -       | What the implementation must prove; repeat per demand. |
+| `--requirement`  | string | no       | no         | -       | Requirement the demands bind to.                       |
+| `--revalidation` | string | no       | no         | -       | How each demand is to be answered.                     |
+| `--evidence`     | string | no       | no         | -       | Comma-separated command ids the demands cite.          |
 
 ```bash
 bun harness.ts task:probe --run .capsules/<run-id> --task task-1 --validator val-1 --token <token> --demand "Prove the parser rejects an empty payload"
@@ -479,20 +558,20 @@ Records the validator's finding and returns the task to the implementer. The sev
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
-| Flag | Type | Required | Repeatable | Default | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `--run` | string | yes | no | - | Capsule run root. |
-| `--task` | string | yes | no | - | Task under validation. |
-| `--validator` | string | yes | no | - | Validator agent id. |
-| `--token` | string | yes | no | - | Validation token. |
-| `--reason` | string | yes | no | - | What is defective. |
-| `--severity` | string | yes | no | - | critical, important or minor. |
-| `--remediation` | string | no | no | - | What would fix the defect. Required unless --finding carries it. |
-| `--finding` | string | no | no | - | Alias of --remediation. |
-| `--finding-id` | string | no | no | - | Explicit finding id. |
-| `--evidence` | string | no | no | - | Comma-separated command ids proving the defect. |
-| `--checks` | string | no | no | - | Alias of --evidence. |
-| `--requirement` | string | no | no | - | Requirement the finding binds to. |
+| Flag            | Type   | Required | Repeatable | Default | Description                                                      |
+| :-------------- | :----- | :------- | :--------- | :------ | :--------------------------------------------------------------- |
+| `--run`         | string | yes      | no         | -       | Capsule run root.                                                |
+| `--task`        | string | yes      | no         | -       | Task under validation.                                           |
+| `--validator`   | string | yes      | no         | -       | Validator agent id.                                              |
+| `--token`       | string | yes      | no         | -       | Validation token.                                                |
+| `--reason`      | string | yes      | no         | -       | What is defective.                                               |
+| `--severity`    | string | yes      | no         | -       | critical, important or minor.                                    |
+| `--remediation` | string | no       | no         | -       | What would fix the defect. Required unless --finding carries it. |
+| `--finding`     | string | no       | no         | -       | Alias of --remediation.                                          |
+| `--finding-id`  | string | no       | no         | -       | Explicit finding id.                                             |
+| `--evidence`    | string | no       | no         | -       | Comma-separated command ids proving the defect.                  |
+| `--checks`      | string | no       | no         | -       | Alias of --evidence.                                             |
+| `--requirement` | string | no       | no         | -       | Requirement the finding binds to.                                |
 
 ```bash
 bun harness.ts task:reject --run .capsules/<run-id> --task task-1 --validator val-1 --token <token> --reason "Missing input validation" --severity critical --remediation "Validate the payload before the insert"
@@ -508,14 +587,14 @@ The original implementer always gets the first repair opportunity; this records 
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
-| Flag | Type | Required | Repeatable | Default | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `--run` | string | yes | no | - | Capsule run root. |
-| `--task` | string | yes | no | - | Task in changes_requested, awaiting its original repairer. |
-| `--actor` | string | yes | no | - | Who is recording the reassignment. |
-| `--repairer` | string | yes | no | - | Replacement agent id; must differ from the original. |
-| `--reason` | string | yes | no | - | repeated_failure, stale, or unavailable; each carries its own precondition. |
-| `--evidence` | string | yes | no | - | Why the replacement is warranted. |
+| Flag         | Type   | Required | Repeatable | Default | Description                                                                 |
+| :----------- | :----- | :------- | :--------- | :------ | :-------------------------------------------------------------------------- |
+| `--run`      | string | yes      | no         | -       | Capsule run root.                                                           |
+| `--task`     | string | yes      | no         | -       | Task in changes_requested, awaiting its original repairer.                  |
+| `--actor`    | string | yes      | no         | -       | Who is recording the reassignment.                                          |
+| `--repairer` | string | yes      | no         | -       | Replacement agent id; must differ from the original.                        |
+| `--reason`   | string | yes      | no         | -       | repeated_failure, stale, or unavailable; each carries its own precondition. |
+| `--evidence` | string | yes      | no         | -       | Why the replacement is warranted.                                           |
 
 ```bash
 bun harness.ts task:assign-repairer --run .capsules/<run-id> --task task-1 --actor coordinator --repairer worker-2 --reason unavailable --evidence "worker-1 released without claiming the repair lease"
@@ -531,12 +610,12 @@ The voluntary counterpart to `recover`. Requires the live lease token; the task 
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
-| Flag | Type | Required | Repeatable | Default | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `--run` | string | yes | no | - | Capsule run root. |
-| `--task` | string | yes | no | - | Leased task id. |
-| `--agent` | string | yes | no | - | Agent holding the lease. |
-| `--token` | string | yes | no | - | Lease bearer token. |
+| Flag      | Type   | Required | Repeatable | Default | Description              |
+| :-------- | :----- | :------- | :--------- | :------ | :----------------------- |
+| `--run`   | string | yes      | no         | -       | Capsule run root.        |
+| `--task`  | string | yes      | no         | -       | Leased task id.          |
+| `--agent` | string | yes      | no         | -       | Agent holding the lease. |
+| `--token` | string | yes      | no         | -       | Lease bearer token.      |
 
 ```bash
 bun harness.ts task:release --run .capsules/<run-id> --task task-1 --agent worker-1 --token <token>
@@ -554,16 +633,16 @@ Captures argv, cwd, timestamps, exit code and log bytes into the capsule, then i
 - **Stdin**: not read
 - **Arguments after `--`**: forwarded to the child process
 
-| Flag | Type | Required | Repeatable | Default | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `--run` | string | yes | no | - | Capsule run root. |
-| `--task` | string | no | no | - | Task the command belongs to. |
-| `--gate` | string | no | no | - | Gate id the command proves. |
-| `--cwd` | string | no | no | - | Working directory; falls back to the repository root. |
-| `--actor` | string | yes | no | - | Who is running the command. Recorded on the command and its event; there is no default actor. |
-| `--tool-category` | string | no | no | - | Generic category of the tool, e.g. browser-automation, build, database, documentation, file-edit, formatter, http-client, linter, package-manager, search, shell, test-runner, type-checker, version-control. Any other value is recorded as given. |
-| `--tool` | string | no | no | - | The tool this command invoked, named as you name it. |
-| `--tool-extra` | string | no | yes | - | One tool-specific fact about this command as <key>=<value>, kept verbatim under the reported name. |
+| Flag              | Type   | Required | Repeatable | Default | Description                                                                                                                                                                                                                                         |
+| :---------------- | :----- | :------- | :--------- | :------ | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--run`           | string | yes      | no         | -       | Capsule run root.                                                                                                                                                                                                                                   |
+| `--task`          | string | no       | no         | -       | Task the command belongs to.                                                                                                                                                                                                                        |
+| `--gate`          | string | no       | no         | -       | Gate id the command proves.                                                                                                                                                                                                                         |
+| `--cwd`           | string | no       | no         | -       | Working directory; falls back to the repository root.                                                                                                                                                                                               |
+| `--actor`         | string | yes      | no         | -       | Who is running the command. Recorded on the command and its event; there is no default actor.                                                                                                                                                       |
+| `--tool-category` | string | no       | no         | -       | Generic category of the tool, e.g. browser-automation, build, database, documentation, file-edit, formatter, http-client, linter, package-manager, search, shell, test-runner, type-checker, version-control. Any other value is recorded as given. |
+| `--tool`          | string | no       | no         | -       | The tool this command invoked, named as you name it.                                                                                                                                                                                                |
+| `--tool-extra`    | string | no       | yes        | -       | One tool-specific fact about this command as <key>=<value>, kept verbatim under the reported name.                                                                                                                                                  |
 
 ```bash
 bun harness.ts run:exec --run .capsules/<run-id> --task task-1 --gate gate-1 --actor val-1 --tool-category test-runner --tool bun-test -- bun test tests/unit/auth.test.ts
@@ -579,10 +658,10 @@ Reads the capsule without mutating it and renders the execution table.
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
-| Flag | Type | Required | Repeatable | Default | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `--run` | string | yes | no | - | Capsule run root. |
-| `--detailed` | bool | no | no | - | Include the raw state in the JSON result. |
+| Flag         | Type   | Required | Repeatable | Default | Description                               |
+| :----------- | :----- | :------- | :--------- | :------ | :---------------------------------------- |
+| `--run`      | string | yes      | no         | -       | Capsule run root.                         |
+| `--detailed` | bool   | no       | no         | -       | Include the raw state in the JSON result. |
 
 ```bash
 bun harness.ts run:status --run .capsules/<run-id>
@@ -598,11 +677,11 @@ Re-verifies the recorded command evidence and the live repository binding, then 
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
-| Flag | Type | Required | Repeatable | Default | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `--run` | string | yes | no | - | Capsule run root. |
-| `--actor` | string | yes | no | - | Who is completing the run. Recorded on the completion event; there is no default actor. |
-| `--auth-token` | string | yes | no | - | The token critic:review handed back on approval; verified against the completeness critic's own record before the run can be sealed. |
+| Flag           | Type   | Required | Repeatable | Default | Description                                                                                                                          |
+| :------------- | :----- | :------- | :--------- | :------ | :----------------------------------------------------------------------------------------------------------------------------------- |
+| `--run`        | string | yes      | no         | -       | Capsule run root.                                                                                                                    |
+| `--actor`      | string | yes      | no         | -       | Who is completing the run. Recorded on the completion event; there is no default actor.                                              |
+| `--auth-token` | string | yes      | no         | -       | The token critic:review handed back on approval; verified against the completeness critic's own record before the run can be sealed. |
 
 ```bash
 bun harness.ts run:complete --run .capsules/<run-id> --actor coordinator --auth-token <token-from-critic:review>
@@ -620,11 +699,11 @@ Records a repository inspection, assigns the critic, and returns the critic toke
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
-| Flag | Type | Required | Repeatable | Default | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `--run` | string | yes | no | - | Capsule run root. |
-| `--critic` | string | yes | no | - | Critic agent id. |
-| `--repository-command-ids` | string | no | yes | - | Extra authoritative command ids to add as repository evidence, alongside every run-gate command the harness auto-discovers. |
+| Flag                       | Type   | Required | Repeatable | Default | Description                                                                                                                 |
+| :------------------------- | :----- | :------- | :--------- | :------ | :-------------------------------------------------------------------------------------------------------------------------- |
+| `--run`                    | string | yes      | no         | -       | Capsule run root.                                                                                                           |
+| `--critic`                 | string | yes      | no         | -       | Critic agent id.                                                                                                            |
+| `--repository-command-ids` | string | no       | yes        | -       | Extra authoritative command ids to add as repository evidence, alongside every run-gate command the harness auto-discovers. |
 
 ```bash
 bun harness.ts critic:start --run .capsules/<run-id> --critic critic-1
@@ -640,18 +719,18 @@ Record the completeness verdict over the whole repository diff.
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
-| Flag | Type | Required | Repeatable | Default | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `--run` | string | yes | no | - | Capsule run root. |
-| `--critic` | string | yes | no | - | Critic agent id. |
-| `--token` | string | yes | no | - | Critic token. |
-| `--decision` | string | yes | no | - | approve or request_changes. |
-| `--summary` | string | yes | no | - | Verdict summary in the critic's own words. |
-| `--findings` | string | no | no | - | Inline JSON findings payload. |
-| `--findings-file` | string | no | no | - | Path to a JSON findings payload. |
-| `--proofs` | string | no | no | - | Inline JSON requirement_proofs payload. |
-| `--proofs-file` | string | no | no | - | Path to a JSON requirement_proofs payload. |
-| `--review` | string | no | no | - | Path to a complete review payload. |
+| Flag              | Type   | Required | Repeatable | Default | Description                                |
+| :---------------- | :----- | :------- | :--------- | :------ | :----------------------------------------- |
+| `--run`           | string | yes      | no         | -       | Capsule run root.                          |
+| `--critic`        | string | yes      | no         | -       | Critic agent id.                           |
+| `--token`         | string | yes      | no         | -       | Critic token.                              |
+| `--decision`      | string | yes      | no         | -       | approve or request_changes.                |
+| `--summary`       | string | yes      | no         | -       | Verdict summary in the critic's own words. |
+| `--findings`      | string | no       | no         | -       | Inline JSON findings payload.              |
+| `--findings-file` | string | no       | no         | -       | Path to a JSON findings payload.           |
+| `--proofs`        | string | no       | no         | -       | Inline JSON requirement_proofs payload.    |
+| `--proofs-file`   | string | no       | no         | -       | Path to a JSON requirement_proofs payload. |
+| `--review`        | string | no       | no         | -       | Path to a complete review payload.         |
 
 ```bash
 bun harness.ts critic:review --run .capsules/<run-id> --critic critic-1 --token <token> --decision approve --proofs-file proofs.json --summary "Whole diff verified"
@@ -667,17 +746,17 @@ Equivalent to critic:review --decision request_changes with a rejection brief. S
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
-| Flag | Type | Required | Repeatable | Default | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `--run` | string | yes | no | - | Capsule run root. |
-| `--critic` | string | yes | no | - | Critic agent id. |
-| `--token` | string | yes | no | - | Critic token. |
-| `--summary` | string | yes | no | - | Rejection summary in the critic's own words. |
-| `--findings` | string | no | no | - | Inline JSON findings payload. |
-| `--findings-file` | string | no | no | - | Path to a JSON findings payload. |
-| `--proofs` | string | no | no | - | Inline JSON requirement_proofs payload. |
-| `--proofs-file` | string | no | no | - | Path to a JSON requirement_proofs payload. |
-| `--review` | string | no | no | - | Path to a complete review payload. |
+| Flag              | Type   | Required | Repeatable | Default | Description                                  |
+| :---------------- | :----- | :------- | :--------- | :------ | :------------------------------------------- |
+| `--run`           | string | yes      | no         | -       | Capsule run root.                            |
+| `--critic`        | string | yes      | no         | -       | Critic agent id.                             |
+| `--token`         | string | yes      | no         | -       | Critic token.                                |
+| `--summary`       | string | yes      | no         | -       | Rejection summary in the critic's own words. |
+| `--findings`      | string | no       | no         | -       | Inline JSON findings payload.                |
+| `--findings-file` | string | no       | no         | -       | Path to a JSON findings payload.             |
+| `--proofs`        | string | no       | no         | -       | Inline JSON requirement_proofs payload.      |
+| `--proofs-file`   | string | no       | no         | -       | Path to a JSON requirement_proofs payload.   |
+| `--review`        | string | no       | no         | -       | Path to a complete review payload.           |
 
 ```bash
 bun harness.ts critic:reject --run .capsules/<run-id> --critic critic-1 --token <token> --summary "Missing error boundary" --findings '[{"id":"F-01","requirement_id":"req-1","severity":"critical","observation":"No error boundary around the render tree","remediation":"Wrap the tree in an error boundary","revalidation":"bun test tests/render"}]'
@@ -693,13 +772,13 @@ Every review recorded with status findings stays in history and blocks completio
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
-| Flag | Type | Required | Repeatable | Default | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `--run` | string | yes | no | - | Capsule run root. |
-| `--actor` | string | yes | no | - | Who is recording the remediation. |
-| `--review-sha256` | string | no | no | - | Digest of the review being remediated. |
-| `--resolve` | string | no | yes | - | Answer a finding: <finding-id>=<command-id>[,<command-id>]. |
-| `--resolution-method` | string | no | yes | - | How a finding was answered: <finding-id>=<method>. |
+| Flag                  | Type   | Required | Repeatable | Default | Description                                                 |
+| :-------------------- | :----- | :------- | :--------- | :------ | :---------------------------------------------------------- |
+| `--run`               | string | yes      | no         | -       | Capsule run root.                                           |
+| `--actor`             | string | yes      | no         | -       | Who is recording the remediation.                           |
+| `--review-sha256`     | string | no       | no         | -       | Digest of the review being remediated.                      |
+| `--resolve`           | string | no       | yes        | -       | Answer a finding: <finding-id>=<command-id>[,<command-id>]. |
+| `--resolution-method` | string | no       | yes        | -       | How a finding was answered: <finding-id>=<method>.          |
 
 ```bash
 bun harness.ts critic:remediate --run .capsules/<run-id> --actor coordinator --resolve CF-1=C-fix-1 --resolution-method CF-1="focused repair and verification"
@@ -717,10 +796,10 @@ Generates the summary suite under <run>/summary and, with --out, an additional r
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
-| Flag | Type | Required | Repeatable | Default | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `--run` | string | yes | no | - | Capsule run root. |
-| `--out` | string | no | no | - | Directory for the viewer registry export. |
+| Flag    | Type   | Required | Repeatable | Default | Description                               |
+| :------ | :----- | :------- | :--------- | :------ | :---------------------------------------- |
+| `--run` | string | yes      | no         | -       | Capsule run root.                         |
+| `--out` | string | no       | no         | -       | Directory for the viewer registry export. |
 
 ```bash
 bun harness.ts summary:export --run .capsules/<run-id>
@@ -736,9 +815,9 @@ Generates the same suite in memory and returns only the markdown brief.
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
-| Flag | Type | Required | Repeatable | Default | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `--run` | string | yes | no | - | Capsule run root. |
+| Flag    | Type   | Required | Repeatable | Default | Description       |
+| :------ | :----- | :------- | :--------- | :------ | :---------------- |
+| `--run` | string | yes      | no         | -       | Capsule run root. |
 
 ```bash
 bun harness.ts summary:view --run .capsules/<run-id>
@@ -756,11 +835,11 @@ Without an id the whole findings directory is listed.
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
-| Flag | Type | Required | Repeatable | Default | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `--run` | string | yes | no | - | Capsule run root. |
-| `--id` | string | no | no | - | Finding id or file name. |
-| `--finding` | string | no | no | - | Alias of --id. |
+| Flag        | Type   | Required | Repeatable | Default | Description              |
+| :---------- | :----- | :------- | :--------- | :------ | :----------------------- |
+| `--run`     | string | yes      | no         | -       | Capsule run root.        |
+| `--id`      | string | no       | no         | -       | Finding id or file name. |
+| `--finding` | string | no       | no         | -       | Alias of --id.           |
 
 ```bash
 bun harness.ts finding:get --run .capsules/<run-id> --id finding-task-1
@@ -776,18 +855,18 @@ With --task the review report is preferred and the submission is used as the fal
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
-| Flag | Type | Required | Repeatable | Default | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `--run` | string | yes | no | - | Capsule run root. |
-| `--task` | string | no | no | - | Task whose report is wanted. |
-| `--critic` | bool | no | no | - | Read the critic review report. |
-| `--submission` | bool | no | no | - | Force the submission report. |
-| `--review` | bool | no | no | - | Force the review report. |
-| `--type` | string | no | no | - | submission, review or critic. |
-| `--stage` | string | no | no | - | Alias of --type. |
-| `--report` | string | no | no | - | Explicit report file name. |
-| `--id` | string | no | no | - | Alias of --report. |
-| `--screenshots` | bool | no | no | - | Include screenshot records. |
+| Flag            | Type   | Required | Repeatable | Default | Description                    |
+| :-------------- | :----- | :------- | :--------- | :------ | :----------------------------- |
+| `--run`         | string | yes      | no         | -       | Capsule run root.              |
+| `--task`        | string | no       | no         | -       | Task whose report is wanted.   |
+| `--critic`      | bool   | no       | no         | -       | Read the critic review report. |
+| `--submission`  | bool   | no       | no         | -       | Force the submission report.   |
+| `--review`      | bool   | no       | no         | -       | Force the review report.       |
+| `--type`        | string | no       | no         | -       | submission, review or critic.  |
+| `--stage`       | string | no       | no         | -       | Alias of --type.               |
+| `--report`      | string | no       | no         | -       | Explicit report file name.     |
+| `--id`          | string | no       | no         | -       | Alias of --report.             |
+| `--screenshots` | bool   | no       | no         | -       | Include screenshot records.    |
 
 ```bash
 bun harness.ts report:get --run .capsules/<run-id> --task task-1 --type review
@@ -803,16 +882,16 @@ Filters the evidence directory by command id, task, gate or actor.
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
-| Flag | Type | Required | Repeatable | Default | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `--run` | string | yes | no | - | Capsule run root. |
-| `--command` | string | no | no | - | Command id. |
-| `--id` | string | no | no | - | Alias of --command. |
-| `--cmd` | string | no | no | - | Alias of --command. |
-| `--task` | string | no | no | - | Filter by task id. |
-| `--gate` | string | no | no | - | Filter by gate id. |
-| `--actor` | string | no | no | - | Filter by actor. |
-| `--screenshots` | bool | no | no | - | Include screenshot records. |
+| Flag            | Type   | Required | Repeatable | Default | Description                 |
+| :-------------- | :----- | :------- | :--------- | :------ | :-------------------------- |
+| `--run`         | string | yes      | no         | -       | Capsule run root.           |
+| `--command`     | string | no       | no         | -       | Command id.                 |
+| `--id`          | string | no       | no         | -       | Alias of --command.         |
+| `--cmd`         | string | no       | no         | -       | Alias of --command.         |
+| `--task`        | string | no       | no         | -       | Filter by task id.          |
+| `--gate`        | string | no       | no         | -       | Filter by gate id.          |
+| `--actor`       | string | no       | no         | -       | Filter by actor.            |
+| `--screenshots` | bool   | no       | no         | -       | Include screenshot records. |
 
 ```bash
 bun harness.ts evidence:get --run .capsules/<run-id> --task task-1
@@ -828,14 +907,14 @@ Queries the screenshot store rather than the evidence files.
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
-| Flag | Type | Required | Repeatable | Default | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `--run` | string | yes | no | - | Capsule run root. |
-| `--task` | string | no | no | - | Filter by task id. |
-| `--command` | string | no | no | - | Filter by command id. |
-| `--cmd` | string | no | no | - | Alias of --command. |
-| `--id` | string | no | no | - | Alias of --command. |
-| `--actor` | string | no | no | - | Filter by actor. |
+| Flag        | Type   | Required | Repeatable | Default | Description           |
+| :---------- | :----- | :------- | :--------- | :------ | :-------------------- |
+| `--run`     | string | yes      | no         | -       | Capsule run root.     |
+| `--task`    | string | no       | no         | -       | Filter by task id.    |
+| `--command` | string | no       | no         | -       | Filter by command id. |
+| `--cmd`     | string | no       | no         | -       | Alias of --command.   |
+| `--id`      | string | no       | no         | -       | Alias of --command.   |
+| `--actor`   | string | no       | no         | -       | Filter by actor.      |
 
 ```bash
 bun harness.ts evidence:screenshots --run .capsules/<run-id> --task task-1
@@ -853,17 +932,17 @@ Drives plan, execute, validate and critic rounds until the critic approves or th
 - **Stdin**: reads stdin when `--prompt-stdin` is set
 - **Arguments after `--`**: rejected
 
-| Flag | Type | Required | Repeatable | Default | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `--repo` | string | no | no | - | Repository root; falls back to the current directory. |
-| `--prompt` | string | no | no | - | Inline prompt text. |
-| `--prompt-file` | string | no | no | - | File holding the prompt. |
-| `--prompt-stdin` | bool | no | no | - | Read the prompt from stdin. |
-| `--run-id` | string | no | no | - | Base run id for the generated capsules. |
-| `--run` | string | no | no | - | Alias of --run-id. |
-| `--capsules-dir` | string | no | no | - | Directory that holds the capsules. |
-| `--max-rounds` | int | no | no | `10` | Round budget, clamped to 1-10. |
-| `--actor` | string | no | no | - | Actor recorded on the loop summary; omitted leaves the loop unattributed. |
+| Flag             | Type   | Required | Repeatable | Default | Description                                                               |
+| :--------------- | :----- | :------- | :--------- | :------ | :------------------------------------------------------------------------ |
+| `--repo`         | string | no       | no         | -       | Repository root; falls back to the current directory.                     |
+| `--prompt`       | string | no       | no         | -       | Inline prompt text.                                                       |
+| `--prompt-file`  | string | no       | no         | -       | File holding the prompt.                                                  |
+| `--prompt-stdin` | bool   | no       | no         | -       | Read the prompt from stdin.                                               |
+| `--run-id`       | string | no       | no         | -       | Base run id for the generated capsules.                                   |
+| `--run`          | string | no       | no         | -       | Alias of --run-id.                                                        |
+| `--capsules-dir` | string | no       | no         | -       | Directory that holds the capsules.                                        |
+| `--max-rounds`   | int    | no       | no         | `10`    | Round budget, clamped to 1-10.                                            |
+| `--actor`        | string | no       | no         | -       | Actor recorded on the loop summary; omitted leaves the loop unattributed. |
 
 ```bash
 bun harness.ts orchestrator:run --repo . --prompt "Implement the feature" --max-rounds 3
@@ -879,18 +958,18 @@ One reclaim-classify-dispatch pass over a run's eligible set: reclaims leases wh
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
-| Flag | Type | Required | Repeatable | Default | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `--run` | string | yes | no | - | Capsule run root. |
-| `--actor` | string | yes | no | - | Who is running the supervisor. Recorded on every event; there is no default actor. |
-| `--max-parallel` | int | no | no | - | Occupancy ceiling; falls back to the run's configured default. |
-| `--gate-max-parallel` | int | no | no | - | B27.2: the separate, lower ceiling for gate-running (CPU-bound) work, reported alongside --max-parallel; falls back to the run's configured default (derived from host cores). |
-| `--no-recover` | bool | no | no | - | Disable automatic dead-agent reclaim and escalation (on by default). |
-| `--grace-seconds` | int | no | no | - | Grace period past lease expiry before reclaiming, 0-86400. |
-| `--poll-interval-ms` | int | no | no | - | How often to re-tick while a dispatcher is driving the loop. |
-| `--max-elapsed-ms` | int | no | no | - | Per-task retry budget before a transient failure reads as deterministic (B28.3). |
-| `--max-total-elapsed-ms` | int | no | no | - | Whole-run wall-clock budget before the supervisor stops and reports. |
-| `--deterministic-repeat-threshold` | int | no | no | - | Consecutive identical failures before they read as deterministic. |
+| Flag                               | Type   | Required | Repeatable | Default | Description                                                                                                                                                                    |
+| :--------------------------------- | :----- | :------- | :--------- | :------ | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--run`                            | string | yes      | no         | -       | Capsule run root.                                                                                                                                                              |
+| `--actor`                          | string | yes      | no         | -       | Who is running the supervisor. Recorded on every event; there is no default actor.                                                                                             |
+| `--max-parallel`                   | int    | no       | no         | -       | Occupancy ceiling; falls back to the run's configured default.                                                                                                                 |
+| `--gate-max-parallel`              | int    | no       | no         | -       | B27.2: the separate, lower ceiling for gate-running (CPU-bound) work, reported alongside --max-parallel; falls back to the run's configured default (derived from host cores). |
+| `--no-recover`                     | bool   | no       | no         | -       | Disable automatic dead-agent reclaim and escalation (on by default).                                                                                                           |
+| `--grace-seconds`                  | int    | no       | no         | -       | Grace period past lease expiry before reclaiming, 0-86400.                                                                                                                     |
+| `--poll-interval-ms`               | int    | no       | no         | -       | How often to re-tick while a dispatcher is driving the loop.                                                                                                                   |
+| `--max-elapsed-ms`                 | int    | no       | no         | -       | Per-task retry budget before a transient failure reads as deterministic (B28.3).                                                                                               |
+| `--max-total-elapsed-ms`           | int    | no       | no         | -       | Whole-run wall-clock budget before the supervisor stops and reports.                                                                                                           |
+| `--deterministic-repeat-threshold` | int    | no       | no         | -       | Consecutive identical failures before they read as deterministic.                                                                                                              |
 
 ```bash
 bun harness.ts orchestrator:supervise --run .capsules/<run-id> --actor coordinator
@@ -908,19 +987,19 @@ A branch is an execution-time subdivision, never a plan task, so it never touche
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
-| Flag | Type | Required | Repeatable | Default | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `--run` | string | yes | no | - | Capsule run root. |
-| `--parent-task` | string | yes | no | - | Plan task or sub-task the branch hangs off. |
-| `--agent` | string | yes | no | - | Agent holding the parent lease. |
-| `--token` | string | yes | no | - | Parent lease bearer token. |
-| `--reason` | string | yes | no | - | Why the work had to be subdivided. |
-| `--sub-task` | string | no | yes | - | Sub-task id; repeat the flag for each sub-task. |
-| `--sub-label` | string | no | yes | - | `<sub-task-id>=<label>`; one per sub-task. |
-| `--sub-scope` | string | no | yes | - | `<sub-task-id>=<path>`; repeat for each path. |
-| `--sub-gate` | string | no | yes | - | `<sub-task-id>=<command>`; optional revalidation gate. |
-| `--repo` | string | no | no | - | Repository root observed through Git; falls back to the current directory. |
-| `--actor` | string | no | no | - | Event actor; defaults to the acting agent. |
+| Flag            | Type   | Required | Repeatable | Default | Description                                                                |
+| :-------------- | :----- | :------- | :--------- | :------ | :------------------------------------------------------------------------- |
+| `--run`         | string | yes      | no         | -       | Capsule run root.                                                          |
+| `--parent-task` | string | yes      | no         | -       | Plan task or sub-task the branch hangs off.                                |
+| `--agent`       | string | yes      | no         | -       | Agent holding the parent lease.                                            |
+| `--token`       | string | yes      | no         | -       | Parent lease bearer token.                                                 |
+| `--reason`      | string | yes      | no         | -       | Why the work had to be subdivided.                                         |
+| `--sub-task`    | string | no       | yes        | -       | Sub-task id; repeat the flag for each sub-task.                            |
+| `--sub-label`   | string | no       | yes        | -       | `<sub-task-id>=<label>`; one per sub-task.                                 |
+| `--sub-scope`   | string | no       | yes        | -       | `<sub-task-id>=<path>`; repeat for each path.                              |
+| `--sub-gate`    | string | no       | yes        | -       | `<sub-task-id>=<command>`; optional revalidation gate.                     |
+| `--repo`        | string | no       | no         | -       | Repository root observed through Git; falls back to the current directory. |
+| `--actor`       | string | no       | no         | -       | Event actor; defaults to the acting agent.                                 |
 
 ```bash
 bun harness.ts branch:open --run .capsules/<run-id> --parent-task task-1 --agent worker-1 --token <token> --reason "parser rewrite blocks the API change" --sub-task S-1 --sub-label S-1="Fix the parser" --sub-scope S-1=src/one/parser
@@ -936,16 +1015,16 @@ Returns the bearer token the sub-agent echoes back to branch:submit. The lease e
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
-| Flag | Type | Required | Repeatable | Default | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `--run` | string | yes | no | - | Capsule run root. |
-| `--branch` | string | yes | no | - | Branch id returned by branch:open. |
-| `--sub-task` | string | yes | no | - | Sub-task id to claim. |
-| `--agent` | string | yes | no | - | Sub-agent receiving the lease. |
-| `--role` | string | yes | no | - | Branch role the sub-agent works under: sub-implementer, sub-investigator or sub-validator. |
-| `--lease-seconds` | int | no | no | - | Lease length in seconds (5-86400). |
-| `--repo` | string | no | no | - | Repository root observed through Git; falls back to the current directory. |
-| `--actor` | string | no | no | - | Event actor; defaults to the acting agent. |
+| Flag              | Type   | Required | Repeatable | Default | Description                                                                                |
+| :---------------- | :----- | :------- | :--------- | :------ | :----------------------------------------------------------------------------------------- |
+| `--run`           | string | yes      | no         | -       | Capsule run root.                                                                          |
+| `--branch`        | string | yes      | no         | -       | Branch id returned by branch:open.                                                         |
+| `--sub-task`      | string | yes      | no         | -       | Sub-task id to claim.                                                                      |
+| `--agent`         | string | yes      | no         | -       | Sub-agent receiving the lease.                                                             |
+| `--role`          | string | yes      | no         | -       | Branch role the sub-agent works under: sub-implementer, sub-investigator or sub-validator. |
+| `--lease-seconds` | int    | no       | no         | -       | Lease length in seconds (5-86400).                                                         |
+| `--repo`          | string | no       | no         | -       | Repository root observed through Git; falls back to the current directory.                 |
+| `--actor`         | string | no       | no         | -       | Event actor; defaults to the acting agent.                                                 |
 
 ```bash
 bun harness.ts branch:claim --run .capsules/<run-id> --branch B-<uuid> --sub-task S-1 --agent sub-1 --role sub-implementer
@@ -961,15 +1040,15 @@ Records what the sub-agent reports it did and releases the sub-lease. The summar
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
-| Flag | Type | Required | Repeatable | Default | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `--run` | string | yes | no | - | Capsule run root. |
-| `--branch` | string | yes | no | - | Branch id returned by branch:open. |
-| `--sub-task` | string | yes | no | - | Sub-task id being submitted. |
-| `--agent` | string | yes | no | - | Sub-agent holding the sub-lease. |
-| `--token` | string | yes | no | - | Sub-lease bearer token. |
-| `--summary` | string | yes | no | - | What the sub-agent changed. |
-| `--actor` | string | no | no | - | Event actor; defaults to the acting agent. |
+| Flag         | Type   | Required | Repeatable | Default | Description                                |
+| :----------- | :----- | :------- | :--------- | :------ | :----------------------------------------- |
+| `--run`      | string | yes      | no         | -       | Capsule run root.                          |
+| `--branch`   | string | yes      | no         | -       | Branch id returned by branch:open.         |
+| `--sub-task` | string | yes      | no         | -       | Sub-task id being submitted.               |
+| `--agent`    | string | yes      | no         | -       | Sub-agent holding the sub-lease.           |
+| `--token`    | string | yes      | no         | -       | Sub-lease bearer token.                    |
+| `--summary`  | string | yes      | no         | -       | What the sub-agent changed.                |
+| `--actor`    | string | no       | no         | -       | Event actor; defaults to the acting agent. |
 
 ```bash
 bun harness.ts branch:submit --run .capsules/<run-id> --branch B-<uuid> --sub-task S-1 --agent sub-1 --token <token> --summary "Parser accepts the new grammar"
@@ -985,15 +1064,15 @@ Refuses while any sub-task is still live. Records a real Git observation of the 
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
-| Flag | Type | Required | Repeatable | Default | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `--run` | string | yes | no | - | Capsule run root. |
-| `--branch` | string | yes | no | - | Branch id returned by branch:open. |
-| `--agent` | string | yes | no | - | Parent agent that opened the branch. |
-| `--token` | string | yes | no | - | Parent lease bearer token. |
-| `--summary` | string | yes | no | - | What came back from the sub-agents. |
-| `--repo` | string | no | no | - | Repository root observed through Git; falls back to the current directory. |
-| `--actor` | string | no | no | - | Event actor; defaults to the acting agent. |
+| Flag        | Type   | Required | Repeatable | Default | Description                                                                |
+| :---------- | :----- | :------- | :--------- | :------ | :------------------------------------------------------------------------- |
+| `--run`     | string | yes      | no         | -       | Capsule run root.                                                          |
+| `--branch`  | string | yes      | no         | -       | Branch id returned by branch:open.                                         |
+| `--agent`   | string | yes      | no         | -       | Parent agent that opened the branch.                                       |
+| `--token`   | string | yes      | no         | -       | Parent lease bearer token.                                                 |
+| `--summary` | string | yes      | no         | -       | What came back from the sub-agents.                                        |
+| `--repo`    | string | no       | no         | -       | Repository root observed through Git; falls back to the current directory. |
+| `--actor`   | string | no       | no         | -       | Event actor; defaults to the acting agent.                                 |
 
 ```bash
 bun harness.ts branch:collect --run .capsules/<run-id> --branch B-<uuid> --agent worker-1 --token <token> --summary "Parser fixed; API change unblocked"
@@ -1009,14 +1088,14 @@ The failure path. Every non-terminal sub-task is marked abandoned and its lease 
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
-| Flag | Type | Required | Repeatable | Default | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `--run` | string | yes | no | - | Capsule run root. |
-| `--branch` | string | yes | no | - | Branch id returned by branch:open. |
-| `--agent` | string | yes | no | - | Parent agent that opened the branch. |
-| `--token` | string | yes | no | - | Parent lease bearer token. |
-| `--reason` | string | yes | no | - | Why the branch is being given up. |
-| `--actor` | string | no | no | - | Event actor; defaults to the acting agent. |
+| Flag       | Type   | Required | Repeatable | Default | Description                                |
+| :--------- | :----- | :------- | :--------- | :------ | :----------------------------------------- |
+| `--run`    | string | yes      | no         | -       | Capsule run root.                          |
+| `--branch` | string | yes      | no         | -       | Branch id returned by branch:open.         |
+| `--agent`  | string | yes      | no         | -       | Parent agent that opened the branch.       |
+| `--token`  | string | yes      | no         | -       | Parent lease bearer token.                 |
+| `--reason` | string | yes      | no         | -       | Why the branch is being given up.          |
+| `--actor`  | string | no       | no         | -       | Event actor; defaults to the acting agent. |
 
 ```bash
 bun harness.ts branch:abandon --run .capsules/<run-id> --branch B-<uuid> --agent worker-1 --token <token> --reason "sub-agent could not reproduce the failure"
@@ -1032,12 +1111,12 @@ Lists open branches by default with the reason each one was opened. --all includ
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
-| Flag | Type | Required | Repeatable | Default | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `--run` | string | yes | no | - | Capsule run root. |
-| `--branch` | string | no | no | - | Show only this branch. |
-| `--task` | string | no | no | - | Show only branches under this parent. |
-| `--all` | bool | no | no | - | Include collected and abandoned branches. |
+| Flag       | Type   | Required | Repeatable | Default | Description                               |
+| :--------- | :----- | :------- | :--------- | :------ | :---------------------------------------- |
+| `--run`    | string | yes      | no         | -       | Capsule run root.                         |
+| `--branch` | string | no       | no         | -       | Show only this branch.                    |
+| `--task`   | string | no       | no         | -       | Show only branches under this parent.     |
+| `--all`    | bool   | no       | no         | -       | Include collected and abandoned branches. |
 
 ```bash
 bun harness.ts branch:status --run .capsules/<run-id>
@@ -1056,22 +1135,22 @@ Spawning happens host-side; this is how the run learns a subagent exists, who de
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
-| Flag | Type | Required | Repeatable | Default | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `--run` | string | yes | no | - | Capsule run root. |
-| `--agent` | string | yes | no | - | Agent id of the dispatched subagent. |
-| `--role` | string | yes | no | - | Canonical role the agent is granted. |
-| `--host` | string | yes | no | - | Host runtime that spawned the agent. |
-| `--parent-agent` | string | no | no | - | Agent id that dispatched it; omit for the root. |
-| `--parent-task` | string | no | no | - | Task or branch sub-task the agent is dispatched onto. |
-| `--actor` | string | no | no | - | Event actor; defaults to the parent agent, else the agent. |
-| `--provider` | string | no | no | - | Provider serving the model, as the caller relays it (agent_reported). |
-| `--model` | string | no | no | - | Model id as the caller relays it, recorded exactly as given and never parsed (agent_reported). |
-| `--model-tier` | string | no | no | - | Tier as the caller relays it: xs, s, m, l or unknown (agent_reported unless unknown). |
-| `--thinking-level` | string | no | no | - | Level as the caller relays it: low, medium, high or unknown (agent_reported unless unknown). |
-| `--context-window` | int | no | no | - | Context window in tokens, as the caller relays it (agent_reported). |
-| `--tool` | string | no | yes | - | One tool as <name> or <name>=<category>; repeat the flag for each tool. Generic category of the tool, e.g. browser-automation, build, database, documentation, file-edit, formatter, http-client, linter, package-manager, search, shell, test-runner, type-checker, version-control. Any other value is recorded as given. A tool given without a category has none recorded. |
-| `--tool-extra` | string | no | yes | - | One tool-specific fact as <tool>:<key>=<value>, kept verbatim under the reported name. The tool must also be given with --tool. |
+| Flag               | Type   | Required | Repeatable | Default | Description                                                                                                                                                                                                                                                                                                                                                                    |
+| :----------------- | :----- | :------- | :--------- | :------ | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--run`            | string | yes      | no         | -       | Capsule run root.                                                                                                                                                                                                                                                                                                                                                              |
+| `--agent`          | string | yes      | no         | -       | Agent id of the dispatched subagent.                                                                                                                                                                                                                                                                                                                                           |
+| `--role`           | string | yes      | no         | -       | Canonical role the agent is granted.                                                                                                                                                                                                                                                                                                                                           |
+| `--host`           | string | yes      | no         | -       | Host runtime that spawned the agent.                                                                                                                                                                                                                                                                                                                                           |
+| `--parent-agent`   | string | no       | no         | -       | Agent id that dispatched it; omit for the root.                                                                                                                                                                                                                                                                                                                                |
+| `--parent-task`    | string | no       | no         | -       | Task or branch sub-task the agent is dispatched onto.                                                                                                                                                                                                                                                                                                                          |
+| `--actor`          | string | no       | no         | -       | Event actor; defaults to the parent agent, else the agent.                                                                                                                                                                                                                                                                                                                     |
+| `--provider`       | string | no       | no         | -       | Provider serving the model, as the caller relays it (agent_reported).                                                                                                                                                                                                                                                                                                          |
+| `--model`          | string | no       | no         | -       | Model id as the caller relays it, recorded exactly as given and never parsed (agent_reported).                                                                                                                                                                                                                                                                                 |
+| `--model-tier`     | string | no       | no         | -       | Tier as the caller relays it: xs, s, m, l or unknown (agent_reported unless unknown).                                                                                                                                                                                                                                                                                          |
+| `--thinking-level` | string | no       | no         | -       | Level as the caller relays it: low, medium, high or unknown (agent_reported unless unknown).                                                                                                                                                                                                                                                                                   |
+| `--context-window` | int    | no       | no         | -       | Context window in tokens, as the caller relays it (agent_reported).                                                                                                                                                                                                                                                                                                            |
+| `--tool`           | string | no       | yes        | -       | One tool as <name> or <name>=<category>; repeat the flag for each tool. Generic category of the tool, e.g. browser-automation, build, database, documentation, file-edit, formatter, http-client, linter, package-manager, search, shell, test-runner, type-checker, version-control. Any other value is recorded as given. A tool given without a category has none recorded. |
+| `--tool-extra`     | string | no       | yes        | -       | One tool-specific fact as <tool>:<key>=<value>, kept verbatim under the reported name. The tool must also be given with --tool.                                                                                                                                                                                                                                                |
 
 ```bash
 bun harness.ts agent:register --run .capsules/<run-id> --agent worker-1 --role implementer --host claude-code --parent-agent coordinator-1 --parent-task task-1 --tool Bash=shell --tool-extra Bash:shell=zsh
@@ -1087,17 +1166,17 @@ Token counts are the caller's running totals and replace the previous ones, tagg
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
-| Flag | Type | Required | Repeatable | Default | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `--run` | string | yes | no | - | Capsule run root. |
-| `--agent` | string | yes | no | - | Agent id holding the grant. |
-| `--tool` | string | no | yes | - | One tool as <name> or <name>=<category>; repeat the flag for each tool. Generic category of the tool, e.g. browser-automation, build, database, documentation, file-edit, formatter, http-client, linter, package-manager, search, shell, test-runner, type-checker, version-control. Any other value is recorded as given. A tool given without a category has none recorded. |
-| `--tool-extra` | string | no | yes | - | One tool-specific fact as <tool>:<key>=<value>, kept verbatim under the reported name. The tool must also be given with --tool. |
-| `--tokens-in` | int | no | no | - | Input tokens consumed so far, as the caller reports it. |
-| `--tokens-out` | int | no | no | - | Output tokens produced so far, as the caller reports it. |
-| `--token-extra` | string | no | yes | - | One provider-specific counter as <name>=<count>, kept under the name the caller reported it by. |
-| `--tokens-estimated` | bool | no | no | - | Record the counts as estimates, not measurements. |
-| `--actor` | string | no | no | - | Event actor; defaults to the reporting agent. |
+| Flag                 | Type   | Required | Repeatable | Default | Description                                                                                                                                                                                                                                                                                                                                                                    |
+| :------------------- | :----- | :------- | :--------- | :------ | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--run`              | string | yes      | no         | -       | Capsule run root.                                                                                                                                                                                                                                                                                                                                                              |
+| `--agent`            | string | yes      | no         | -       | Agent id holding the grant.                                                                                                                                                                                                                                                                                                                                                    |
+| `--tool`             | string | no       | yes        | -       | One tool as <name> or <name>=<category>; repeat the flag for each tool. Generic category of the tool, e.g. browser-automation, build, database, documentation, file-edit, formatter, http-client, linter, package-manager, search, shell, test-runner, type-checker, version-control. Any other value is recorded as given. A tool given without a category has none recorded. |
+| `--tool-extra`       | string | no       | yes        | -       | One tool-specific fact as <tool>:<key>=<value>, kept verbatim under the reported name. The tool must also be given with --tool.                                                                                                                                                                                                                                                |
+| `--tokens-in`        | int    | no       | no         | -       | Input tokens consumed so far, as the caller reports it.                                                                                                                                                                                                                                                                                                                        |
+| `--tokens-out`       | int    | no       | no         | -       | Output tokens produced so far, as the caller reports it.                                                                                                                                                                                                                                                                                                                       |
+| `--token-extra`      | string | no       | yes        | -       | One provider-specific counter as <name>=<count>, kept under the name the caller reported it by.                                                                                                                                                                                                                                                                                |
+| `--tokens-estimated` | bool   | no       | no         | -       | Record the counts as estimates, not measurements.                                                                                                                                                                                                                                                                                                                              |
+| `--actor`            | string | no       | no         | -       | Event actor; defaults to the reporting agent.                                                                                                                                                                                                                                                                                                                                  |
 
 ```bash
 bun harness.ts agent:report --run .capsules/<run-id> --agent worker-1 --tool Read=file-edit --tool Grep=search --tokens-in 18000 --tokens-out 2400 --token-extra cache_read_input_tokens=91000
@@ -1113,12 +1192,12 @@ Marks the grant released and stamps the release time. A released agent can no lo
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
-| Flag | Type | Required | Repeatable | Default | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `--run` | string | yes | no | - | Capsule run root. |
-| `--agent` | string | yes | no | - | Agent id holding the grant. |
-| `--reason` | string | yes | no | - | Why the grant closed. |
-| `--actor` | string | no | no | - | Event actor; defaults to the released agent. |
+| Flag       | Type   | Required | Repeatable | Default | Description                                  |
+| :--------- | :----- | :------- | :--------- | :------ | :------------------------------------------- |
+| `--run`    | string | yes      | no         | -       | Capsule run root.                            |
+| `--agent`  | string | yes      | no         | -       | Agent id holding the grant.                  |
+| `--reason` | string | yes      | no         | -       | Why the grant closed.                        |
+| `--actor`  | string | no       | no         | -       | Event actor; defaults to the released agent. |
 
 ```bash
 bun harness.ts agent:release --run .capsules/<run-id> --agent worker-1 --reason "task-1 submitted"
@@ -1134,11 +1213,11 @@ Without flags it lists active grants with whatever telemetry was recorded, each 
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
-| Flag | Type | Required | Repeatable | Default | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `--run` | string | yes | no | - | Capsule run root. |
-| `--task` | string | no | no | - | Report the lineage of this task instead of the roster. |
-| `--all` | bool | no | no | - | Include released grants. |
+| Flag     | Type   | Required | Repeatable | Default | Description                                            |
+| :------- | :----- | :------- | :--------- | :------ | :----------------------------------------------------- |
+| `--run`  | string | yes      | no         | -       | Capsule run root.                                      |
+| `--task` | string | no       | no         | -       | Report the lineage of this task instead of the roster. |
+| `--all`  | bool   | no       | no         | -       | Include released grants.                               |
 
 ```bash
 bun harness.ts agent:list --run .capsules/<run-id>
@@ -1157,14 +1236,14 @@ Orphan evidence — typically a durable command record left behind by an agent t
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
-| Flag | Type | Required | Repeatable | Default | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `--run` | string | yes | no | - | Capsule run root. |
-| `--actor` | string | yes | no | - | Who is recording the disposition. |
-| `--orphan-sha256` | string | yes | no | - | Digest of the orphan evidence, from doctor's issues. |
-| `--disposition` | string | yes | no | - | ignored_non_authoritative, rejected, or superseded. |
-| `--rationale` | string | yes | no | - | Why this disposition is correct. |
-| `--evidence` | string | no | yes | - | Command id supporting the disposition; repeat per id. |
+| Flag              | Type   | Required | Repeatable | Default | Description                                           |
+| :---------------- | :----- | :------- | :--------- | :------ | :---------------------------------------------------- |
+| `--run`           | string | yes      | no         | -       | Capsule run root.                                     |
+| `--actor`         | string | yes      | no         | -       | Who is recording the disposition.                     |
+| `--orphan-sha256` | string | yes      | no         | -       | Digest of the orphan evidence, from doctor's issues.  |
+| `--disposition`   | string | yes      | no         | -       | ignored_non_authoritative, rejected, or superseded.   |
+| `--rationale`     | string | yes      | no         | -       | Why this disposition is correct.                      |
+| `--evidence`      | string | no       | yes        | -       | Command id supporting the disposition; repeat per id. |
 
 ```bash
 bun harness.ts orphan:dispose --run .capsules/<run-id> --actor coordinator --orphan-sha256 <sha> --disposition ignored_non_authoritative --rationale "agent worker-3 died before submitting; the command it ran is not authoritative for any task" --evidence C-abc123
@@ -1182,13 +1261,13 @@ A requirement disposed needs_authority holds every task built on it non-executab
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
-| Flag | Type | Required | Repeatable | Default | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `--run` | string | yes | no | - | Capsule run root. |
-| `--requirement` | string | yes | no | - | Requirement id, currently disposed needs_authority. |
-| `--actor` | string | yes | no | - | Who is making the decision. |
-| `--decision` | string | yes | no | - | grant or decline. |
-| `--rationale` | string | yes | no | - | Why this decision is correct. |
+| Flag            | Type   | Required | Repeatable | Default | Description                                         |
+| :-------------- | :----- | :------- | :--------- | :------ | :-------------------------------------------------- |
+| `--run`         | string | yes      | no         | -       | Capsule run root.                                   |
+| `--requirement` | string | yes      | no         | -       | Requirement id, currently disposed needs_authority. |
+| `--actor`       | string | yes      | no         | -       | Who is making the decision.                         |
+| `--decision`    | string | yes      | no         | -       | grant or decline.                                   |
+| `--rationale`   | string | yes      | no         | -       | Why this decision is correct.                       |
 
 ```bash
 bun harness.ts authority:decide --run .capsules/<run-id> --requirement req-prod-deploy --actor coordinator --decision grant --rationale "Human approved the production deploy in the review thread"
@@ -1206,11 +1285,11 @@ Copies the validated source tree to <home>/.agents/skills and publishes a symlin
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
-| Flag | Type | Required | Repeatable | Default | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `--source` | string | yes | no | - | Skill source directory to install. |
-| `--home` | string | yes | no | - | Home directory that receives the release. |
-| `--clients` | string | yes | no | - | Comma-separated clients: antigravity, claude, codex, chatgpt. |
+| Flag        | Type   | Required | Repeatable | Default | Description                                                   |
+| :---------- | :----- | :------- | :--------- | :------ | :------------------------------------------------------------ |
+| `--source`  | string | yes      | no         | -       | Skill source directory to install.                            |
+| `--home`    | string | yes      | no         | -       | Home directory that receives the release.                     |
+| `--clients` | string | yes      | no         | -       | Comma-separated clients: antigravity, claude, codex, chatgpt. |
 
 ```bash
 bun harness.ts install --source . --home ~ --clients claude,antigravity
@@ -1226,11 +1305,11 @@ Compares the installed tree digest against the source, then checks every client 
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
-| Flag | Type | Required | Repeatable | Default | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `--source` | string | yes | no | - | Skill source directory to compare against. |
-| `--home` | string | yes | no | - | Home directory holding the release. |
-| `--clients` | string | no | no | - | Comma-separated clients; defaults to the installed manifest. |
+| Flag        | Type   | Required | Repeatable | Default | Description                                                  |
+| :---------- | :----- | :------- | :--------- | :------ | :----------------------------------------------------------- |
+| `--source`  | string | yes      | no         | -       | Skill source directory to compare against.                   |
+| `--home`    | string | yes      | no         | -       | Home directory holding the release.                          |
+| `--clients` | string | no       | no         | -       | Comma-separated clients; defaults to the installed manifest. |
 
 ```bash
 bun harness.ts installation-status --source . --home ~
@@ -1248,13 +1327,13 @@ Reports unused exports and unreachable modules, dead or superseded code, declare
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
-| Flag | Type | Required | Repeatable | Default | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `--scripts` | string | no | no | - | Harness scripts root to inspect. Defaults to the running harness. |
-| `--consumer` | string | no | no | - | Consumer repository root. Without it the vendor-name sweep covers one repo, and says so. |
-| `--check` | string | no | yes | - | Restrict the run to named checks. |
-| `--all` | bool | no | no | - | List every failure instead of the first five per check, and every advisory alongside them. |
-| `--strict` | bool | no | no | - | Exit nonzero when the report is unhealthy. |
+| Flag         | Type   | Required | Repeatable | Default | Description                                                                                |
+| :----------- | :----- | :------- | :--------- | :------ | :----------------------------------------------------------------------------------------- |
+| `--scripts`  | string | no       | no         | -       | Harness scripts root to inspect. Defaults to the running harness.                          |
+| `--consumer` | string | no       | no         | -       | Consumer repository root. Without it the vendor-name sweep covers one repo, and says so.   |
+| `--check`    | string | no       | yes        | -       | Restrict the run to named checks.                                                          |
+| `--all`      | bool   | no       | no         | -       | List every failure instead of the first five per check, and every advisory alongside them. |
+| `--strict`   | bool   | no       | no         | -       | Exit nonzero when the report is unhealthy.                                                 |
 
 ```bash
 bun harness.ts health
@@ -1272,12 +1351,12 @@ Re-hashes the event chain, re-verifies every recorded command, reports workflow 
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
-| Flag | Type | Required | Repeatable | Default | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `--run` | string | yes | no | - | Capsule run root. |
-| `--source` | string | no | no | - | Skill source directory for the installation check. |
-| `--home` | string | no | no | - | Home directory for the installation check. |
-| `--clients` | string | no | no | - | Comma-separated clients for the installation check. |
+| Flag        | Type   | Required | Repeatable | Default | Description                                         |
+| :---------- | :----- | :------- | :--------- | :------ | :-------------------------------------------------- |
+| `--run`     | string | yes      | no         | -       | Capsule run root.                                   |
+| `--source`  | string | no       | no         | -       | Skill source directory for the installation check.  |
+| `--home`    | string | no       | no         | -       | Home directory for the installation check.          |
+| `--clients` | string | no       | no         | -       | Comma-separated clients for the installation check. |
 
 ```bash
 bun harness.ts doctor --run .capsules/<run-id>
@@ -1293,10 +1372,10 @@ The repair counterpart to `doctor`: `doctor` only reports a torn tail or a state
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
-| Flag | Type | Required | Repeatable | Default | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `--run` | string | yes | no | - | Capsule run root. |
-| `--actor` | string | yes | no | - | Who is running the repair. Recorded on the event; there is no default actor. |
+| Flag      | Type   | Required | Repeatable | Default | Description                                                                  |
+| :-------- | :----- | :------- | :--------- | :------ | :--------------------------------------------------------------------------- |
+| `--run`   | string | yes      | no         | -       | Capsule run root.                                                            |
+| `--actor` | string | yes      | no         | -       | Who is running the repair. Recorded on the event; there is no default actor. |
 
 ```bash
 bun harness.ts doctor:repair --run .capsules/<run-id> --actor coordinator
@@ -1312,11 +1391,11 @@ Returns tasks whose lease expired to retry_ready (or changes_requested after a r
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
-| Flag | Type | Required | Repeatable | Default | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `--run` | string | yes | no | - | Capsule run root. |
-| `--actor` | string | yes | no | - | Who is running the recovery. Recorded on the event; there is no default actor. |
-| `--grace-seconds` | int | no | no | `30` | Grace period past expiry, 0-86400. |
+| Flag              | Type   | Required | Repeatable | Default | Description                                                                    |
+| :---------------- | :----- | :------- | :--------- | :------ | :----------------------------------------------------------------------------- |
+| `--run`           | string | yes      | no         | -       | Capsule run root.                                                              |
+| `--actor`         | string | yes      | no         | -       | Who is running the recovery. Recorded on the event; there is no default actor. |
+| `--grace-seconds` | int    | no       | no         | `30`    | Grace period past expiry, 0-86400.                                             |
 
 ```bash
 bun harness.ts recover --run .capsules/<run-id> --actor coordinator
@@ -1332,11 +1411,37 @@ B22.6: removes the worktree directories a crashed or abandoned run left behind, 
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
-| Flag | Type | Required | Repeatable | Default | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `--run` | string | yes | no | - | Capsule run root. |
-| `--actor` | string | yes | no | - | Who is running the reclaim. Recorded on the event; there is no default actor. |
+| Flag      | Type   | Required | Repeatable | Default | Description                                                                   |
+| :-------- | :----- | :------- | :--------- | :------ | :---------------------------------------------------------------------------- |
+| `--run`   | string | yes      | no         | -       | Capsule run root.                                                             |
+| `--actor` | string | yes      | no         | -       | Who is running the reclaim. Recorded on the event; there is no default actor. |
 
 ```bash
 bun harness.ts worktree:reclaim --run .capsules/<run-id> --actor coordinator
+```
+
+## gate
+
+### `gate:prove`
+
+Prove a compiled task's gate can actually fail, on a disposable scratch copy.
+
+Copies the repository's tracked and not-ignored files into a throwaway directory, reverts the task's write scope there back to --base (default HEAD), and runs the task's compiled gate against that reverted copy. Falsifiable means the gate exits non-zero once the task's own work is gone — the property this project's own forensics found missing (docs/planning/coordinator-conformance/FORENSICS.md, DESIGN.md's C3): ten tasks sharing one whole-repo `bun run typecheck` gate that passed whether the task did its work or nothing at all. Only runs post-compile, against a task's already-compiled gate and write scope — at plan:compile time the task's work does not exist yet, so reverting it would yield a scratch copy identical to the current tree, and every verdict would degenerate to 'not falsifiable'; gate:prove is a deliberate later step, not something plan:compile runs for you. The verdict is recorded as a gate-proved capsule event via `appendGateProof`, readable back by graph/plan-audit.ts's `auditPlan` through `latestGateProof` when a caller supplies the run's state: A3-gate-discrimination and A6-whole-suite-gate treat a matching falsifiable:true proof as satisfying the invariant instead of refusing on the static heuristic alone. It never touches the real repository, since every read and write happens inside the scratch copy, deleted before this command returns. Exits 0 whether the verdict is falsifiable or not — a negative verdict is real information for the audit to act on, not a gate:prove failure; only a setup problem (no compiled gate for the task, no Git history to revert against, an unreadable repository) throws.
+
+- **Aliases**: none
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag           | Type   | Required | Repeatable | Default | Description                                                                                                                                                     |
+| :------------- | :----- | :------- | :--------- | :------ | :-------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--run`        | string | yes      | no         | -       | Capsule run root.                                                                                                                                               |
+| `--task`       | string | yes      | no         | -       | Compiled task id whose gate is being proved.                                                                                                                    |
+| `--actor`      | string | yes      | no         | -       | Actor recorded on the event.                                                                                                                                    |
+| `--base`       | string | no       | no         | `HEAD`  | Git ref the task's write scope is reverted to before the gate runs.                                                                                             |
+| `--timeout-ms` | int    | no       | no         | -       | Wall-clock budget for the gate command against the scratch copy; default 300000.                                                                                |
+| `--max-files`  | int    | no       | no         | -       | Refuses to copy a tree larger than this many tracked/untracked files, so an unexpectedly huge repository fails loudly instead of proving slowly; default 50000. |
+
+```bash
+bun harness.ts gate:prove --run .capsules/<run-id> --task task-1 --actor coordinator
+bun harness.ts gate:prove --run .capsules/<run-id> --task task-1 --actor coordinator --base HEAD~1
 ```

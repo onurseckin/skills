@@ -4,11 +4,6 @@ import type { BrowserRunQueryOptions, BrowserRunRecord } from "./browser-run-typ
 
 const BROWSER_RUN_FILE = "browser-run.json";
 
-/**
- * A browser run is something a command did, so it lives in that command's directory — the single
- * owner of every execution fact. Re-running a command replaces its file: the newest execution is
- * the one that happened.
- */
 export function browserRunPath(runRoot: string, commandId: string): string {
   return join(runRoot, "commands", commandId, BROWSER_RUN_FILE);
 }
@@ -17,7 +12,6 @@ function isRecordValue(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-/** A stored entry only counts once it names the command that produced it. */
 function storedRun(value: unknown): BrowserRunRecord | undefined {
   if (!isRecordValue(value)) return undefined;
   const commandId = value.command_id;
@@ -44,10 +38,6 @@ export function writeBrowserRunRecord(runRoot: string, record: BrowserRunRecord)
   } catch {}
 }
 
-/**
- * Runs matching the recorded ids. Ownership comes from the command directory the record sits in;
- * a run is never matched to a node because a path or an actor name looked related.
- */
 export function queryBrowserRuns(
   runRoot: string,
   options: BrowserRunQueryOptions = {},

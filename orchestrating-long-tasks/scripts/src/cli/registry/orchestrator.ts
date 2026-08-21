@@ -1,4 +1,7 @@
-import { orchestratorRunCommand, orchestratorSuperviseCommand } from "../commands/orchestrator-ops.ts";
+import {
+  orchestratorRunCommand,
+  orchestratorSuperviseCommand,
+} from "../commands/orchestrator-ops.ts";
 import { DEFAULT_EXIT_CODES, optionalFlag, requiredFlag, type CommandSpec } from "./types.ts";
 
 export const ORCHESTRATOR_COMMANDS: readonly CommandSpec[] = [
@@ -46,23 +49,53 @@ export const ORCHESTRATOR_COMMANDS: readonly CommandSpec[] = [
         "string",
         "Who is running the supervisor. Recorded on every event; there is no default actor.",
       ),
-      optionalFlag("max-parallel", "int", "Occupancy ceiling; falls back to the run's configured default."),
+      optionalFlag(
+        "max-parallel",
+        "int",
+        "Occupancy ceiling; falls back to the run's configured default.",
+      ),
       optionalFlag(
         "gate-max-parallel",
         "int",
         "B27.2: the separate, lower ceiling for gate-running (CPU-bound) work, reported alongside --max-parallel; falls back to the run's configured default (derived from host cores).",
       ),
-      optionalFlag("no-recover", "bool", "Disable automatic dead-agent reclaim and escalation (on by default)."),
-      optionalFlag("grace-seconds", "int", "Grace period past lease expiry before reclaiming, 0-86400."),
-      optionalFlag("poll-interval-ms", "int", "How often to re-tick while a dispatcher is driving the loop."),
-      optionalFlag("max-elapsed-ms", "int", "Per-task retry budget before a transient failure reads as deterministic (B28.3)."),
-      optionalFlag("max-total-elapsed-ms", "int", "Whole-run wall-clock budget before the supervisor stops and reports."),
-      optionalFlag("deterministic-repeat-threshold", "int", "Consecutive identical failures before they read as deterministic."),
+      optionalFlag(
+        "no-recover",
+        "bool",
+        "Disable automatic dead-agent reclaim and escalation (on by default).",
+      ),
+      optionalFlag(
+        "grace-seconds",
+        "int",
+        "Grace period past lease expiry before reclaiming, 0-86400.",
+      ),
+      optionalFlag(
+        "poll-interval-ms",
+        "int",
+        "How often to re-tick while a dispatcher is driving the loop.",
+      ),
+      optionalFlag(
+        "max-elapsed-ms",
+        "int",
+        "Per-task retry budget before a transient failure reads as deterministic (B28.3).",
+      ),
+      optionalFlag(
+        "max-total-elapsed-ms",
+        "int",
+        "Whole-run wall-clock budget before the supervisor stops and reports.",
+      ),
+      optionalFlag(
+        "deterministic-repeat-threshold",
+        "int",
+        "Consecutive identical failures before they read as deterministic.",
+      ),
     ],
     readsStdin: false,
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
-    examples: ["bun harness.ts orchestrator:supervise --run .capsules/<run-id> --actor coordinator"],
+    examples: [
+      "bun harness.ts orchestrator:supervise --run .capsules/<run-id> --actor coordinator",
+    ],
     handler: orchestratorSuperviseCommand,
   },
 ];

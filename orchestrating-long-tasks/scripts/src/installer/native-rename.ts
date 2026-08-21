@@ -32,9 +32,7 @@ function candidates(): string[] {
   let maps = "";
   try {
     maps = readFileSync("/proc/self/maps", "utf8");
-  } catch {
-    // Fall through to known libc locations.
-  }
+  } catch {}
   const loaded = [...maps.matchAll(/\s(\/\S*\/libc(?:-[^/\s]+)?\.so(?:\.\d+)*)\s*$/gm)].map(
     (match) => match[1]!,
   );

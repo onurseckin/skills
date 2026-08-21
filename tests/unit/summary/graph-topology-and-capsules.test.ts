@@ -1,11 +1,10 @@
-import { describe, expect, test } from "bun:test";
-import { readdirSync } from "node:fs";
-import { join } from "node:path";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { rmSync } from "node:fs";
 import { generateSummarySuite } from "../../../orchestrating-long-tasks/scripts/src/summary/generate-summary.ts";
 import { generateGraphDataset } from "../../../orchestrating-long-tasks/scripts/src/summary/graph-generator.ts";
 import { assetUrlCounts, makeState, makeTask } from "./graph-fixtures.ts";
-
-const capsulesRoot = join(import.meta.dir, "..", "..", "..", ".capsules");
+import { buildCompletenessRun } from "./completeness-run-fixture.ts";
+import { buildRunReportCapsule } from "./markdown-run-report-fixture.ts";
 
 function topology(waves: Array<{ wave: number; task_ids: string[] }>) {
   return {
@@ -67,21 +66,52 @@ describe("recorded topology drives the graph", () => {
 });
 
 describe("pre-overhaul capsules still export", () => {
-  const capsules = readdirSync(capsulesRoot, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => join(capsulesRoot, entry.name));
+  /**
+   * This used to `readdirSync` the repository's own live `.capsules/` root and treat whatever it
+   * found as "the checked-in capsules" — but that directory is gitignored scratch (see
+   * `.gitignore`), shared with every orchestration run this machine has going, including the one
+   * driving this very session. A capsule mid-write there (a `.locks/` entry held, a `state.json`
+   * half-flushed) made the test's result depend on what else happened to be running, not on
+   * anything this test controlled — load-sensitive, not protective. The fixed set below is built
+   * fresh through the harness's own CLI into a throwaway repo nothing else touches, so it is exactly
+   * as deterministic as any other fixture in this directory while still exercising the thing the
+   * old version actually cared about: a *real*, disk-backed capsule directory (state.json, a
+   * commands/ ledger, findings/, evidence/) rather than the in-memory `state` object the legacy test
+   * below builds by hand.
+   */
+  const CAPSULE_BUILD_TIMEOUT_MS = 300_000;
 
-  test("every checked-in capsule exports a graph with singly-owned assets", () => {
-    expect(capsules.length).toBeGreaterThan(0);
-    for (const capsulePath of capsules) {
-      const suite = generateSummarySuite({ capsulePath, writeToDisk: false });
-      expect(suite.graph.nodes.length).toBeGreaterThan(0);
-      expect(suite.graph.edges.length).toBeGreaterThan(0);
-      for (const [url, count] of assetUrlCounts(suite.graph)) {
-        expect(`${url}:${count}`).toBe(`${url}:1`);
-      }
-      expect(JSON.stringify(suite.graph)).not.toContain('"mediaAssets"');
-    }
+  describe("a fixed set of freshly built, disk-backed capsules", () => {
+    let capsules: string[] = [];
+    const roots: string[] = [];
+
+    beforeAll(async () => {
+      const completeness = await buildCompletenessRun("topology-capsule-completeness");
+      const runReport = await buildRunReportCapsule();
+      roots.push(completeness.repo, runReport.repo);
+      capsules = [completeness.run, runReport.run];
+    }, CAPSULE_BUILD_TIMEOUT_MS);
+
+    afterAll(() => {
+      for (const root of roots) rmSync(root, { recursive: true, force: true });
+    });
+
+    test(
+      "every checked-in capsule exports a graph with singly-owned assets",
+      () => {
+        expect(capsules.length).toBeGreaterThan(0);
+        for (const capsulePath of capsules) {
+          const suite = generateSummarySuite({ capsulePath, writeToDisk: false });
+          expect(suite.graph.nodes.length).toBeGreaterThan(0);
+          expect(suite.graph.edges.length).toBeGreaterThan(0);
+          for (const [url, count] of assetUrlCounts(suite.graph)) {
+            expect(`${url}:${count}`).toBe(`${url}:1`);
+          }
+          expect(JSON.stringify(suite.graph)).not.toContain('"mediaAssets"');
+        }
+      },
+      CAPSULE_BUILD_TIMEOUT_MS,
+    );
   });
 
   test("a state written before probes, branches, grants and topology existed still exports", () => {

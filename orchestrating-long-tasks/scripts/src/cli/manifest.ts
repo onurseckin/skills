@@ -38,7 +38,6 @@ export interface CapabilityManifest {
   commands: CommandManifest[];
 }
 
-// The manifest carries no timestamp: a freshness test compares it byte for byte with this render.
 export function capabilityManifest(): CapabilityManifest {
   return {
     schema: MANIFEST_SCHEMA,

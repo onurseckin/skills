@@ -8,16 +8,6 @@ import type {
   VisualMetricsReport,
 } from "./screenshot-types.ts";
 
-/**
- * The most recently captured visual report, read from its one stored copy.
- *
- * The ledger is the only source consulted. Scanning the capsule for a file that looks like a report
- * would resurrect a copy the run never recorded, and there is no honest owner to attach it to.
- *
- * Naming a task narrows the search to reports the ingestion attributed to that task. Ingestion
- * records `task_id` only on a report a command actually produced, so a caller that must not accept
- * another node's evidence - or a stale file nobody's command wrote - passes the task it is judging.
- */
 export function getVisualReport(runRoot: string, taskId?: string): VisualMetricsReport | null {
   const reports = readCaptures(runRoot).filter(
     (record) =>
@@ -35,11 +25,6 @@ export function getVisualReport(runRoot: string, taskId?: string): VisualMetrics
   }
 }
 
-/**
- * Screenshots matching the recorded ids. Ownership comes from the ids the ingestion recorded: a file
- * whose name happens to contain a task or command id is not evidence that the command scoped to that
- * node produced it, and matching on the name is how one node ends up carrying another's evidence.
- */
 export function queryScreenshots(
   runRoot: string,
   options: ScreenshotQueryOptions = {},

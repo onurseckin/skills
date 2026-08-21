@@ -6,13 +6,6 @@ import type {
   VisualMetricsReport,
 } from "./screenshot-types.ts";
 
-/**
- * Reads a captured visual report. One reader for both the ingestion and the query side, so what a
- * report is taken to say cannot depend on which of them happened to open the file.
- *
- * `fallbackTimestamp` is the file's own mtime. It is used only when the report carries no timestamp
- * of its own: the moment something read the file is not the moment the report was produced.
- */
 export function normalizeVisualReport(
   parsed: unknown,
   fallbackTimestamp: string | undefined,

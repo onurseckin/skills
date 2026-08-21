@@ -280,21 +280,18 @@ describe("CLI critic-ops commands", () => {
     expect(reject.findings_count).toBe(2);
     expect(String(reject.markdown)).toContain("CHANGES REQUESTED (Findings Recorded)");
 
-    // Coordinator now triggers plan:replan directly reading recorded findings
-    const replan = await execute([
-      "plan:replan",
-      "--run",
-      run,
-      "--actor",
-      "coordinator",
-      "--gate",
-      "bun gate-t1.ts",
-    ]);
-
-    expect(replan.revision).toBe(2);
-    expect(replan.repair_round).toBe(1);
-    expect((replan.new_tasks as string[]).length).toBe(2);
-    expect(String(replan.markdown)).toContain("### Plan Recompiled: Wave R1 (Graph Revision 2)");
+    // Coordinator now triggers plan:replan directly reading recorded findings. Both findings
+    // inherit task-1's own requirement (the single-task fixture's only one), and task-1 is already
+    // "done" by the time the completeness critic can even start (critic:start's own readiness gate
+    // demands every task be done first) — so guardPlanRevision (graph/revision-guard.ts) correctly
+    // refuses rather than silently expand what task-1's already-active gate set was verified
+    // against. This is the exact refusal plan-replan.test.ts's "refuses rather than silently
+    // corrupting state when a repair gate would retroactively change an already-active task's gate
+    // set" documents and exercises directly; this test confirms the same rail holds reached through
+    // the real critic:reject → plan:replan CLI path a coordinator actually drives.
+    await expect(
+      execute(["plan:replan", "--run", run, "--actor", "coordinator", "--gate", "bun gate-t1.ts"]),
+    ).rejects.toThrow(/plan revision cannot change active task task-1 gates/);
   });
 
   test("--repository-command-ids widens the packet's evidence, not replaces it", async () => {

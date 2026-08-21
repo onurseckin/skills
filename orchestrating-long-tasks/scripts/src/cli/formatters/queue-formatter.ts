@@ -7,13 +7,11 @@ export interface QueueNextParams {
   priority: number;
   goal?: string;
   writeScope: readonly string[];
-  /** The mandatory gates the plan compiled for this task; empty when it declared none. */
   gates: readonly string[];
   packetPath?: string;
   runId: string;
 }
 
-// A task whose plan declared no gate has none to quote; naming one would invent the proof.
 function gateList(gates: readonly string[]): string {
   return gates.length === 0 ? "`none declared`" : gates.map((gate) => `\`${gate}\``).join(", ");
 }

@@ -16,10 +16,6 @@ async function spawnPsSnapshot(): Promise<string> {
   ).stdout;
 }
 
-// `ps` is a plain fork+exec, so under severe process-table pressure the spawn itself can fail
-// transiently (EAGAIN/ENOMEM) even though nothing is actually wrong with the target processes. A
-// few short retries absorbs that without masking a genuinely broken `ps` (it still hard-fails once
-// they run out) and without widening how long any single attempt is allowed to hang.
 const SNAPSHOT_SPAWN_RETRIES = 3;
 const SNAPSHOT_SPAWN_RETRY_DELAY_MS = 20;
 

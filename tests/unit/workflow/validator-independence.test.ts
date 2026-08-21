@@ -50,7 +50,12 @@ function startValidation(port: TestPort, validator: string): string {
   const state = beginValidation(port, "T-1", validator, clock);
   const token = state.tasks["T-1"]!.validation_token;
   if (typeof token !== "string") throw new TypeError("validation token missing");
-  registerTaskPacket(port, "validator", validator, state.tasks["T-1"]!.validations!.at(-1)!.attempt);
+  registerTaskPacket(
+    port,
+    "validator",
+    validator,
+    state.tasks["T-1"]!.validations!.at(-1)!.attempt,
+  );
   return token;
 }
 

@@ -26,6 +26,8 @@ describe("gate breadth", () => {
     expect(looksWholeSuite("bun run test:unit")).toBe(true);
     expect(looksWholeSuite("cargo test")).toBe(true);
     expect(looksWholeSuite("pytest")).toBe(true);
+    expect(looksWholeSuite("vitest")).toBe(true);
+    expect(looksWholeSuite("jest")).toBe(true);
   });
 
   test("a runner pointed at a target is scoped", () => {
@@ -38,8 +40,22 @@ describe("gate breadth", () => {
     expect(looksWholeSuite("bun test --timeout 30000")).toBe(true);
   });
 
-  test("a command that runs no tests is not a suite", () => {
-    expect(looksWholeSuite("bun run typecheck")).toBe(false);
+  // A6: measured against 29 real task gates from six live capsule runs, the old verb allowlist
+  // (test/check/spec/vitest/jest/pytest/cargo) caught 4 of 29 and missed the four commands that
+  // actually gated those runs — `bun run typecheck` alone gated 19 of the 29. None of the four is a
+  // "test" by name; all four are target-free, whole-repository commands and must be caught by the
+  // same principle that catches a bare `vitest`, not by adding four more words to a list that will
+  // always be one tool behind.
+  test("a strong, target-free verification command is a whole-suite gate whatever verb it uses", () => {
+    expect(looksWholeSuite("bun run typecheck")).toBe(true);
+    expect(looksWholeSuite("bun run compose:check")).toBe(true);
+    expect(looksWholeSuite("bun run audit:catalog")).toBe(true);
+    expect(looksWholeSuite("bun run lint")).toBe(true);
+  });
+
+  test("a command that isn't a real check at all is not a whole-suite gate", () => {
+    expect(looksWholeSuite("echo done")).toBe(false);
+    expect(looksWholeSuite("true")).toBe(false);
     expect(looksWholeSuite("./deploy.sh")).toBe(false);
   });
 

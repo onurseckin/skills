@@ -24,20 +24,6 @@ export interface ConsolidateWorktreesInput {
   now?: Date;
 }
 
-/**
- * B22.4: merges every worktree branch's sub-phase commits onto the shared `harness_branch`, then
- * (when configured and a base branch is known) rebases it onto that branch's current tip, then
- * removes every worktree the run created. All of this runs in a scratch worktree of its own,
- * checked out to `harness_branch` for the duration — never the user's working tree, and never a
- * per-task worktree still pending its own merge.
- *
- * A conflict anywhere in this pipeline (merging one worktree's branch, or the final rebase) stops
- * the whole thing right there: whatever merged cleanly before it stays merged and committed, nothing
- * already merged is undone, and no worktree is removed. That is B22.4.2's "STOP, leave the branch
- * [...], report the conflicting paths. Never force, never resolve conflicts on the user's behalf"
- * applied to both conflict shapes this pipeline can hit, not only the rebase it names explicitly —
- * the same rule, extended by the same reasoning, to the merge step B22.4.2's text is silent on.
- */
 export function consolidateWorktrees(
   input: ConsolidateWorktreesInput,
 ): WorktreeConsolidationRecord {
@@ -75,7 +61,6 @@ export function consolidateWorktrees(
   const canRebase =
     mergeConflict === undefined && input.rebaseOnComplete && ledger.base_branch !== undefined;
   if (canRebase) {
-    // canRebase already proved base_branch is defined; the `!` states that, it does not guess it.
     const outcome = rebaseOnto(scratchPath, ledger.base_branch!, runner);
     if (outcome === null) rebased = true;
     else rebaseConflictPaths = outcome.conflictPaths;
@@ -92,9 +77,6 @@ export function consolidateWorktrees(
       removedWorktreeIds.push(worktree.id);
     }
   }
-  // The scratch worktree is this function's own scaffolding, never part of the report — it is
-  // removed either way. Leaving it behind on a conflict would be exactly the leftover B22.4.3
-  // refuses, even though the per-task worktrees deliberately stay for inspection in that case.
   removeWorktree(repoRoot, scratchPath, runner);
 
   return {
@@ -111,11 +93,6 @@ export function consolidateWorktrees(
   };
 }
 
-/**
- * Persists the outcome onto the ledger. Worktrees `consolidateWorktrees` actually removed are
- * dropped from `worktrees` so `run:status` and `worktree:reclaim` stop treating them as live; a
- * conflicted run leaves the list untouched, since nothing was removed on disk either.
- */
 export function recordConsolidation(
   runRoot: string,
   actor: string,

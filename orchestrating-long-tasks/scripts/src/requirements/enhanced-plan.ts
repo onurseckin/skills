@@ -13,11 +13,6 @@ export const PLANNING_DIRECTORY = "planning";
 export const ENHANCED_PLAN_MARKDOWN_FILE = "enhanced-plan.md";
 export const ENHANCED_PLAN_JSON_FILE = "enhanced-plan.json";
 
-/**
- * The harness never reads the repository for this document and never asks a model anything: every
- * entry arrived through a flag, so the strongest thing that can be said about it is that an agent
- * claimed it.
- */
 const REPORTED: EvidenceClass = "agent_reported";
 
 export interface EnhancedPlanTodo extends JsonObject {
@@ -30,7 +25,6 @@ export interface EnhancedPlanDocument extends JsonObject {
   schema: string;
   version: number;
   run_id: string;
-  /** The raw prompt this enhancement was written against; the prompt stays the requirement source. */
   prompt_sha256: string;
   derived_from: string;
   authoritative: boolean;
@@ -78,8 +72,6 @@ export function buildEnhancedPlan(input: EnhancedPlanInput): EnhancedPlanDocumen
     text,
     evidence_class: REPORTED,
   }));
-  // Sources alone say only that files were opened. Refusing an otherwise empty enhancement is the
-  // one place a plausible-looking document could be minted from nothing.
   if (
     input.summary === undefined &&
     observations.length === 0 &&
@@ -112,17 +104,10 @@ export function buildEnhancedPlan(input: EnhancedPlanInput): EnhancedPlanDocumen
   };
 }
 
-/**
- * Both artifacts are written read-only: the enhancement is a dated claim about what an agent found,
- * and a later round that wants to say something different re-runs the command rather than editing
- * the record. The digests returned are of the bytes that actually reached disk, so the state entry
- * describing them is a harness observation rather than a restatement of the input.
- */
 export function writeEnhancedPlan(
   runRoot: string,
   document: EnhancedPlanDocument,
 ): EnhancedPlanArtifacts {
-  // Capsules initialised before planning/ was part of initRun still have to accept an enhancement.
   mkdirSync(join(runRoot, PLANNING_DIRECTORY), { recursive: true, mode: 0o755 });
   const jsonRelative = join(PLANNING_DIRECTORY, ENHANCED_PLAN_JSON_FILE);
   const markdownRelative = join(PLANNING_DIRECTORY, ENHANCED_PLAN_MARKDOWN_FILE);

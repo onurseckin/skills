@@ -20,9 +20,6 @@ export interface RequirementView {
   disposition: string | null;
   sourceLines: number[];
   instruction: string | null;
-  /** How to satisfy the requirement, distinct from `instruction`: the compiler writes the goal to
-   *  one field and the scoped how-to-implement it to this one, so a report that renders only the
-   *  former is missing the half a reader needs to act on. */
   implementation: string | null;
   subsystem: string | null;
   risk: string | null;
@@ -47,11 +44,6 @@ export interface GateView {
   requirementIds: string[];
 }
 
-/**
- * One command as the report needs it. Every field is separately optional because a projection copy
- * and a disk record can disagree about what they carry, and a field neither of them holds has to
- * reach the page as unknown rather than as a plausible default.
- */
 export interface CommandView {
   id: string;
   argv: string[];
@@ -64,11 +56,9 @@ export interface CommandView {
   finishedAt: string | null;
   stdoutBytes: number | null;
   stderrBytes: number | null;
-  /** `null` when the record kept no attempt list; the report will not claim a single attempt. */
   attempts: number | null;
 }
 
-/** One entry of the enhanced plan with the evidence label its writer recorded against it. */
 export interface PlanEntryView {
   text: string;
   evidenceClass: EvidenceClass;
@@ -87,7 +77,6 @@ export interface EnhancedPlanView {
   sources: PlanEntryView[];
 }
 
-/** What the critic wrote in its own words. It lives in the report file, never in the projection. */
 export interface CriticReportView {
   decision: string | null;
   summary: string | null;
@@ -115,17 +104,10 @@ function objectsOf(value: JsonValue | undefined): JsonObject[] {
 }
 
 function stateValue(state: Readonly<WorkflowState>, key: string): JsonValue | undefined {
-  // The projection carries keys the WorkflowState contract does not declare, so the report reaches
-  // them through the JSON shape the capsule actually persists.
   const record: Readonly<JsonObject> = state;
   return record[key];
 }
 
-/**
- * `state.requirements` is written by the plan projection as the whole requirement document, while
- * the workflow contract types it as the runtime array. Both shapes are read so a requirement is
- * never dropped on the way to the page.
- */
 export function readRequirements(state: Readonly<WorkflowState>): RequirementView[] {
   const raw = stateValue(state, "requirements");
   const entries = Array.isArray(raw)
@@ -172,7 +154,6 @@ export function readDispositions(state: Readonly<WorkflowState>): DispositionVie
   }));
 }
 
-/** Gates live on the compiled graph; the run-scope completion gate is one of them. */
 export function readGates(state: Readonly<WorkflowState>): GateView[] {
   const graph = stateValue(state, "graph");
   const fromGraph = isJsonObject(graph) ? objectsOf(graph.gates) : [];
@@ -195,13 +176,11 @@ export function readGates(state: Readonly<WorkflowState>): GateView[] {
   return gates;
 }
 
-/** A malformed branch entry is skipped rather than rendered as a half-known excursion. */
 export function readBranches(state: Readonly<WorkflowState>): BranchRecord[] {
   const raw = stateValue(state, "branches");
   return Array.isArray(raw) ? raw.filter(isBranchRecord) : [];
 }
 
-/** The compiled plan's revision. It lives on the graph the projection wrote. */
 export function readGraphRevision(state: Readonly<WorkflowState>): number | null {
   const direct = stateValue(state, "graph_revision");
   if (typeof direct === "number") return direct;
@@ -233,7 +212,6 @@ function commandView(id: string, record: JsonObject): CommandView {
   };
 }
 
-/** Disk records win over the projection copy: they are the ones carrying attempt-level evidence. */
 export function readCommands(
   state: Readonly<WorkflowState>,
   fromDisk: Record<string, CommandRecord>,
@@ -256,7 +234,6 @@ function parseJsonFile(path: string): JsonValue | null {
   try {
     return JSON.parse(readFileSync(path, "utf-8")) as JsonValue;
   } catch {
-    // An artifact we cannot parse tells the report nothing, and nothing is what it will say.
     return null;
   }
 }
@@ -267,7 +244,6 @@ function planEntry(value: JsonValue | undefined, prefix?: string): PlanEntryView
   if (text === null) return null;
   return {
     text: prefix === undefined ? text : `${prefix}: ${text}`,
-    // An entry whose writer recorded no evidence class carries none, not the class of its neighbour.
     evidenceClass: isEvidenceClass(value.evidence_class) ? value.evidence_class : "unknown",
   };
 }
@@ -280,11 +256,6 @@ function planEntries(value: JsonValue | undefined, prefixKey?: string): PlanEntr
   });
 }
 
-/**
- * The enhanced plan document itself, not the digest entry state keeps. A file whose schema does not
- * match is ignored, and every entry inside it is read defensively: a half-written document loses the
- * entries nobody can read rather than putting `undefined` on the page.
- */
 export function readEnhancedPlan(runRoot: string): EnhancedPlanView | null {
   const parsed = parseJsonFile(join(runRoot, PLANNING_DIRECTORY, ENHANCED_PLAN_JSON_FILE));
   if (!isJsonObject(parsed) || parsed.schema !== ENHANCED_PLAN_SCHEMA) return null;
@@ -312,12 +283,6 @@ export function readCriticReport(runRoot: string): CriticReportView | null {
   };
 }
 
-// --- B12.5: checklist coverage, read back from `reports/<task>-review.json` -------------------
-//
-// `task_scope_findings` duplicates `task.findings`, which the report already renders elsewhere
-// (probes and pushbacks), so only the standing-checklist coverage — the part with no other home in
-// `WorkflowState` — is read back here.
-
 export interface ChecklistCoverageItemView {
   id: string;
   disposition: "checked" | "not_applicable" | "could_not_check";
@@ -335,25 +300,38 @@ export interface AdjacentFindingView {
 export interface TaskChecklistCoverageView {
   taskId: string;
   applicable: boolean;
-  /** Why coverage does not apply; null once `applicable` is true. */
   reason: string | null;
   domain: string | null;
   items: ChecklistCoverageItemView[];
   adjacentFindings: AdjacentFindingView[];
 }
 
-function checklistDisposition(value: JsonValue | undefined): ChecklistCoverageItemView["disposition"] | null {
-  return value === "checked" || value === "not_applicable" || value === "could_not_check" ? value : null;
+function checklistDisposition(
+  value: JsonValue | undefined,
+): ChecklistCoverageItemView["disposition"] | null {
+  return value === "checked" || value === "not_applicable" || value === "could_not_check"
+    ? value
+    : null;
 }
 
 function checklistSeverity(value: JsonValue | undefined): AdjacentFindingView["severity"] | null {
   return value === "critical" || value === "important" || value === "minor" ? value : null;
 }
 
-function checklistCoverageView(taskId: string, raw: JsonValue | undefined): TaskChecklistCoverageView | null {
+function checklistCoverageView(
+  taskId: string,
+  raw: JsonValue | undefined,
+): TaskChecklistCoverageView | null {
   if (!isJsonObject(raw)) return null;
   if (raw.applicable === false) {
-    return { taskId, applicable: false, reason: textOf(raw.reason), domain: null, items: [], adjacentFindings: [] };
+    return {
+      taskId,
+      applicable: false,
+      reason: textOf(raw.reason),
+      domain: null,
+      items: [],
+      adjacentFindings: [],
+    };
   }
   if (raw.applicable !== true) return null;
   const items = objectsOf(raw.items).flatMap((entry) => {
@@ -368,19 +346,30 @@ function checklistCoverageView(taskId: string, raw: JsonValue | undefined): Task
     const severity = checklistSeverity(entry.severity);
     const observation = textOf(entry.observation);
     const remediation = textOf(entry.remediation);
-    if (id === null || checklistItemId === null || severity === null || observation === null || remediation === null)
+    if (
+      id === null ||
+      checklistItemId === null ||
+      severity === null ||
+      observation === null ||
+      remediation === null
+    )
       return [];
     return [{ id, checklistItemId, severity, observation, remediation }];
   });
-  return { taskId, applicable: true, reason: null, domain: textOf(raw.domain), items, adjacentFindings };
+  return {
+    taskId,
+    applicable: true,
+    reason: null,
+    domain: textOf(raw.domain),
+    items,
+    adjacentFindings,
+  };
 }
 
-/**
- * `task:review` overwrites `<task>-review.json` on every call, so this reads whichever verdict is
- * current for the task — the same single-latest-report shape every other reader of this file
- * assumes (there is no per-round history for it, unlike the round-numbered probe reports).
- */
-export function readTaskChecklistCoverage(runRoot: string, taskId: string): TaskChecklistCoverageView | null {
+export function readTaskChecklistCoverage(
+  runRoot: string,
+  taskId: string,
+): TaskChecklistCoverageView | null {
   const parsed = parseJsonFile(join(runRoot, "reports", `${taskId}-review.json`));
   if (!isJsonObject(parsed)) return null;
   return checklistCoverageView(taskId, parsed.checklist_coverage);

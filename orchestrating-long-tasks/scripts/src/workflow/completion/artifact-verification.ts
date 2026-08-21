@@ -27,7 +27,6 @@ export function completionArtifactRequirements(
 ): CompletionArtifactRequirements {
   const commands = new Set<string>();
   for (const task of Object.values(state.tasks)) {
-    // B12.2: one entry per domain, so every open domain's checks count as artifact evidence.
     for (const validation of task.validations ?? [])
       for (const check of validation.checks ?? []) commands.add(check.command_id);
     for (const result of task.gate_results ?? []) commands.add(result.command_id);

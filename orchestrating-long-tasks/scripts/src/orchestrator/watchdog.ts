@@ -36,7 +36,6 @@ export class OrchestratorWatchdog {
     this.wallClockTimeoutMs = config.wallClockTimeoutMs ?? 3_600_000;
     this.pollIntervalMs = config.pollIntervalMs ?? 1_000;
     this.maxWakeRetries = config.maxWakeRetries ?? 3;
-    // Config default alongside its sibling timeouts above, not a substitute for a missing value.
     this.autoWakeAction = config.autoWakeAction ?? "nudge";
   }
 
@@ -253,9 +252,7 @@ export class OrchestratorWatchdog {
       for (const listener of specific) {
         try {
           listener(event);
-        } catch {
-          // Guard listener exceptions
-        }
+        } catch {}
       }
     }
     const wildcard = this.listeners.get("*");
@@ -263,9 +260,7 @@ export class OrchestratorWatchdog {
       for (const listener of wildcard) {
         try {
           listener(event);
-        } catch {
-          // Guard listener exceptions
-        }
+        } catch {}
       }
     }
   }
@@ -283,7 +278,6 @@ export class OrchestratorWatchdog {
         }
       }
     }, this.pollIntervalMs);
-    // Unref timer so node/bun process can exit cleanly
     if (typeof this.timer === "object" && this.timer !== null && "unref" in this.timer) {
       (this.timer as { unref: () => void }).unref();
     }

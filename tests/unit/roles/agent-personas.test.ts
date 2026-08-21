@@ -49,7 +49,8 @@ describe("agent personas", () => {
     const yamlFiles = readdirSync(agentsRoot).filter((entry) => entry.endsWith(".yaml"));
     const mdFiles = readdirSync(rolesRoot).filter((entry) => entry.endsWith(".md"));
     const offenders: string[] = [];
-    for (const file of yamlFiles) if (persona(file).includes("invoke_subagent(")) offenders.push(file);
+    for (const file of yamlFiles)
+      if (persona(file).includes("invoke_subagent(")) offenders.push(file);
     for (const file of mdFiles) {
       const text = readFileSync(join(rolesRoot, file), "utf8");
       if (text.includes("invoke_subagent(")) offenders.push(file);

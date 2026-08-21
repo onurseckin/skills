@@ -75,7 +75,10 @@ describe("registerAgentGrant merges the CLI's explicit report with a derived pro
       telemetry: { model: "explicit-model" },
       derivedTelemetry: { model: "derived-model" },
     });
-    expect(outcome.grant.model).toEqual({ value: "explicit-model", evidence_class: "agent_reported" });
+    expect(outcome.grant.model).toEqual({
+      value: "explicit-model",
+      evidence_class: "agent_reported",
+    });
     expect(outcome.conflicts).toEqual([
       {
         field: "model",
@@ -302,7 +305,10 @@ describe("the probe wired into the CLI boundaries themselves, never a separate c
   test("a flag and the host's own config disagreeing is kept on both the event and the result", async () => {
     const run = await compiledCapsule(roots, "cli-wiring-conflict");
     await registerCoordinator(run);
-    const home = await codexHome("telemetry-cli-home-conflict-", "[features]\nmulti_agent = true\n");
+    const home = await codexHome(
+      "telemetry-cli-home-conflict-",
+      "[features]\nmulti_agent = true\n",
+    );
     await writeFile(join(home, ".codex", "agents", "worker-1.toml"), 'model = "codex-mini"\n');
 
     await withFakeHome(home, async () => {

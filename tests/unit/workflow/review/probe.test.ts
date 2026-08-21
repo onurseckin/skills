@@ -67,7 +67,12 @@ function submitted(commands: Record<string, ReturnType<typeof commandRecord>> = 
 function validationToken(port: TestPort, validator: string): string {
   registerCommand(port, `C-${validator}`, validator);
   const state = beginValidation(port, "T-1", validator, clock);
-  registerTaskPacket(port, "validator", validator, state.tasks["T-1"]!.validations!.at(-1)!.attempt);
+  registerTaskPacket(
+    port,
+    "validator",
+    validator,
+    state.tasks["T-1"]!.validations!.at(-1)!.attempt,
+  );
   const token = state.tasks["T-1"]!.validation_token;
   if (typeof token !== "string") throw new TypeError("validation token missing");
   return token;

@@ -1,29 +1,19 @@
 import { isJsonObject, isSafeInteger, type JsonObject } from "./json.ts";
 
-/**
- * One git worktree the harness provisioned for a run. Never inside the repository being worked on
- * (B22.1) — `path` is always outside it, verified at provisioning time, not merely assumed here.
- */
 export interface WorktreeRecord extends JsonObject {
-  /** Stable index within the run, e.g. `wt-0`. Also the pool slot `assignWorktrees` reuses. */
   id: string;
   path: string;
-  /** The worktree's own branch, e.g. `harness/<run-id>--wt-0` — a sibling of the shared
-   *  `harness/<run-id>` ref, never a path nested under it (git's ref namespace forbids a ref and a
-   *  ref-path-prefix of the same name coexisting), and never checked out anywhere else. */
   branch: string;
   base_sha: string;
   created_at: string;
 }
 
-/** Which worktree a task ran in, and in which wave — the provenance B22.2 asks for. */
 export interface WorktreeAssignment extends JsonObject {
   task_id: string;
   worktree_id: string;
   wave: number;
 }
 
-/** One sub-phase commit, B22.3. `over_limit` is a warning flag, never a refusal. */
 export interface WorktreeCommitRecord extends JsonObject {
   task_id: string;
   worktree_id: string;
@@ -34,61 +24,33 @@ export interface WorktreeCommitRecord extends JsonObject {
   committed_at: string;
 }
 
-/** The worktree and branch a merge conflict happened in, and the paths it touched — named (rather
- *  than inlined at each use) so `isMergeConflict`'s predicate return type is a plain identifier: an
- *  inline `value is { ... }` return type opens a brace of its own right after `is`, which reads to
- *  the unread-parameter scanner as the function body and hides every real read of `value` inside it. */
 export interface WorktreeMergeConflict extends JsonObject {
   worktree_id: string;
   branch: string;
   paths: string[];
 }
 
-/**
- * B22.4's outcome. A conflict (merge or rebase) is not an error here — the run still completed —
- * so this is a report of what consolidation actually did, not a pass/fail flag. `rebased: false`
- * with `rebase_conflict_paths` set means exactly what B22.4.2 asks for: STOP, leave the branch
- * unrebased, name the paths, never resolve on the user's behalf. The same STOP applies to a merge
- * conflict between two worktree branches (not named in B22.4's own text, but the same rule the
- * rebase step states explicitly) — `merge_conflict` carries that case instead.
- */
 export interface WorktreeConsolidationRecord extends JsonObject {
   harness_branch: string;
-  /** Worktree ids whose commits were merged onto `harness_branch` before any conflict stopped it. */
   merged_worktree_ids: string[];
   merge_conflict?: WorktreeMergeConflict;
   rebased: boolean;
   rebase_target?: string;
   rebase_conflict_paths?: string[];
-  /** Worktree directories actually removed. Empty whenever a merge conflict stopped consolidation
-   *  before cleanup — B22.6's "cleanup is explicit, never implicit on failure" extends to a
-   *  consolidation that did not finish cleanly, not only to a crash. */
   removed_worktree_ids: string[];
   commit_count: number;
   diffstat: string;
   consolidated_at: string;
 }
 
-/**
- * Persisted at `state.worktree_ledger`. `harness_branch` is the shared anchor ref every worktree's
- * own branch is created from and merges back into at run completion (B22.4) — never checked out
- * anywhere itself during the run, so it never collides with a worktree's own branch; consolidation
- * is the one point that legitimately checks it out, in the harness's own scratch space.
- */
 export interface WorktreeLedgerState extends JsonObject {
   harness_branch: string;
   base_sha: string;
-  /** The branch HEAD pointed at when this run was provisioned, e.g. `main` — B22.4's rebase target
-   *  ("the latest default branch"). Absent means HEAD was detached at provisioning, so there is
-   *  nothing to rebase onto; consolidation skips the rebase step rather than inventing a branch. */
   base_branch?: string;
   root: string;
   worktrees: WorktreeRecord[];
   assignments: WorktreeAssignment[];
   commits: WorktreeCommitRecord[];
-  /** Set once B22.4 consolidation has run to completion (merge + optional rebase + cleanup, no
-   *  conflict left open). Absent, not `false` — a run that never reached `run:complete`, and a run
-   *  that reached it but stopped on a conflict, look the same here: neither is "done". */
   consolidation?: WorktreeConsolidationRecord;
 }
 

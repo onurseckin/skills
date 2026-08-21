@@ -46,10 +46,6 @@ function only(values: string[] | undefined, id: string, flag: string): string | 
   return values[0];
 }
 
-/**
- * Sub-tasks are declared field by field so nothing is inferred: a sub-task without a label or a
- * write scope is rejected rather than given a generated one.
- */
 function subTaskInputs(flags: Flags): SubTaskInput[] {
   const ids = listFlag(flags, "sub-task", true)!;
   const labels = groupPairs(listFlag(flags, "sub-label") ?? [], "sub-label");
@@ -84,7 +80,6 @@ function config(run: string, repo: string) {
   return getHarnessConfig(repo, run);
 }
 
-/** A branch dispatches into these three and nothing else; every other contract needs a plan task. */
 const BRANCH_ROLES: readonly AgentRole[] = ["sub-implementer", "sub-investigator", "sub-validator"];
 
 function branchRoleFlag(flags: Flags): AgentRole {
@@ -136,8 +131,6 @@ export async function branchClaimCommand(flags: Flags): Promise<Record<string, u
       config(run, repo).default_lease_seconds,
   });
   const subTask = requireSubTask(outcome.branch, subTaskId);
-  // A sub-agent is dispatched with the same pairing every other agent gets: the lease token that
-  // grants it work and the published contract that bounds what the work may be.
   const published = await publishSubTaskRolePacket({
     runRoot: run,
     port: workflowPort(run),
@@ -179,7 +172,6 @@ export function branchSubmitCommand(flags: Flags): Record<string, unknown> {
   };
 }
 
-/** The parent is either a plan task or another branch's sub-task; both report a status. */
 function parentStatus(state: RunState, branch: BranchRecord): string {
   const tasks = state.tasks;
   if (isJsonObject(tasks)) {

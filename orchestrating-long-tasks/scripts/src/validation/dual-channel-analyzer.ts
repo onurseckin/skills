@@ -71,12 +71,6 @@ export function isUiScope(paths: readonly string[]): boolean {
 
 const DEFAULT_REQUIRED_VIEWPORTS = ["mobile", "tablet", "desktop"] as const;
 
-/**
- * The invariants the supplied evidence let this audit actually inspect for one viewport. A category
- * the report carries no field for was never examined, so naming it here would sign off on a check
- * that never ran. An empty array means "inspected, nothing found"; an absent one means "not
- * inspected", and only the first earns its name in a proof.
- */
 function domInvariantsInspected(vp: ViewportMetrics, report: VisualMetricsReport): string[] {
   const inspected: string[] = [];
   if (vp.overflowViolations) inspected.push("no_overflow");
@@ -90,7 +84,6 @@ function domInvariantsInspected(vp: ViewportMetrics, report: VisualMetricsReport
   return inspected;
 }
 
-/** All the visual channel establishes on its own: the capture exists and carries bytes. */
 const SCREENSHOT_INVARIANT = "screenshot_non_empty";
 
 export function analyzeDualChannel(input: DualChannelInput): DualChannelAuditResult {
@@ -216,8 +209,6 @@ export function analyzeDualChannel(input: DualChannelInput): DualChannelAuditRes
 
     for (const vp of input.domReport!.viewports) {
       const norm = normalizeViewportName(vp.viewport, vp.width);
-      // A viewport with no capture of its own is proven by the DOM channel alone. Falling back to
-      // another viewport's screenshot filed one capture as proof for a viewport it never rendered.
       const sc = validScreenshots.find(
         (s) => normalizeViewportName(s.viewport ?? s.name, s.width) === norm,
       );
@@ -243,8 +234,6 @@ export function analyzeDualChannel(input: DualChannelInput): DualChannelAuditRes
       const hasViolations = findings.some(
         (f) => f.viewport === vp.viewport && f.severity === "error",
       );
-      // No capture was matched, so the proof carries no path and no size rather than a sentinel
-      // path and a 0-byte reading for a screenshot that does not exist.
       proofs.push({
         viewport: vp.viewport,
         domMetricsPresent: true,

@@ -22,7 +22,6 @@ export interface BranchObservationDependencies {
   hasGitMetadata?: (repo: string) => boolean;
 }
 
-/** Field counts a porcelain v2 record carries before its path, keyed by the record's leading token. */
 const PATH_OFFSET: Readonly<Record<string, number>> = { "1": 8, "2": 9, u: 10 };
 
 function digestFile(path: string): null | string {
@@ -31,7 +30,6 @@ function digestFile(path: string): null | string {
     if (!lstatSync(path).isFile()) return null;
     descriptor = openSync(path, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
   } catch {
-    // A path Git reported but the harness cannot read is recorded as unmeasured, never as unchanged.
     return null;
   }
   try {
@@ -62,7 +60,6 @@ function parseStatusLine(repo: string, line: string): BranchRepositoryEntry | nu
   if (offset === undefined) return null;
   const fields = line.split(" ");
   const statusCode = fields[1] ?? kind;
-  // Paths may contain spaces, and a rename record appends the original path after a tab.
   const path = fields.slice(offset).join(" ").split("\t")[0] ?? "";
   return path === ""
     ? null
@@ -74,10 +71,6 @@ function text(command: RepositoryGitCommand, repo: string, argv: string[], accep
   return { ok: result.status === 0, stdout: result.bytes.toString("utf8").trim() };
 }
 
-/**
- * Reads what the worktree looks like right now through the repository Git seam. Nothing here
- * guesses: without Git metadata the observation records that it measured nothing.
- */
 export function observeRepository(
   repoRoot: string,
   at: Date,
@@ -117,12 +110,6 @@ function digests(observation: BranchRepositoryObservation): Map<string, null | s
   return new Map(observation.entries.map((entry) => [entry.path, entry.sha256]));
 }
 
-/**
- * Paths whose bytes differ between the two readings, plus whatever landed in commits made inside the
- * branch window. It is a measurement of the window, not an attribution to a particular agent: work
- * the parent did before opening is already in the baseline, and a change reverted before collect
- * leaves no trace to observe.
- */
 export function observedFilesChanged(
   before: BranchRepositoryObservation,
   after: BranchRepositoryObservation,

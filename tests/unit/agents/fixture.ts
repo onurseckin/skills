@@ -34,9 +34,13 @@ export async function compiledCapsule(
     prompt,
   ]);
   const run = String(init.run_root);
-  for (const [id, scope] of [
-    ["task-1", "src/one"],
-    ["task-2", "src/two"],
+  // A3-gate-discrimination (graph/plan-audit.ts) refuses two disjoint-scope tasks sharing one gate
+  // command: a gate that can't fail when its own task did nothing proves neither task's work. Each
+  // task below gets a gate that names a test file inside its own write scope, so task-1's gate
+  // cannot be satisfied by task-2's work or vice versa.
+  for (const [id, scope, gate] of [
+    ["task-1", "src/one", "bun test tests/unit/one.test.ts"],
+    ["task-2", "src/two", "bun test tests/unit/two.test.ts"],
   ]) {
     await execute([
       "plan:add",
@@ -49,7 +53,7 @@ export async function compiledCapsule(
       "--scope",
       scope!,
       "--gate",
-      "bun test tests/unit/thing.test.ts",
+      gate!,
       "--actor",
       "coordinator",
     ]);

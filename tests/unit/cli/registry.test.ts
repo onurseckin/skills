@@ -14,7 +14,10 @@ const EXPECTED_INVOCATIONS = [
   "init",
   "plan:enhance",
   "plan:add",
+  "plan:audit",
   "plan:compile",
+  "plan:validate-start",
+  "plan:review",
   "plan:replan",
   "plan:claim",
   "plan:apply",
@@ -67,6 +70,7 @@ const EXPECTED_INVOCATIONS = [
   "recover",
   "task:release",
   "worktree:reclaim",
+  "gate:prove",
 ];
 
 describe("CLI command registry", () => {

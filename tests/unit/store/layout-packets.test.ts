@@ -115,7 +115,13 @@ describe("packet.md is checked against the chain-recorded packet_sha256", () => 
     roots.push(root);
     const repo = join(root, "repo");
     mkdirSync(repo);
-    const run = initRun(repo, "run-packet-minimal", new TextEncoder().encode("prompt"), "file", true);
+    const run = initRun(
+      repo,
+      "run-packet-minimal",
+      new TextEncoder().encode("prompt"),
+      "file",
+      true,
+    );
     transact(run, "coordinator", "lifecycle-seeded", {}, (draft) => {
       draft.packets = { "P-1": { id: "P-1", status: "published", role: "planner" } };
     });

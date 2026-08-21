@@ -191,9 +191,7 @@ describe("branch region files carry a diff (B3/B15.2)", () => {
     writeFileSync(join(repo, "src", "flush.ts"), "export const flush = 1;\n");
     git(repo, ["add", "-A"]);
     git(repo, ["commit", "-qm", "baseline"]);
-    const head = execFileSync("git", ["rev-parse", "HEAD"], { cwd: repo })
-      .toString("utf8")
-      .trim();
+    const head = execFileSync("git", ["rev-parse", "HEAD"], { cwd: repo }).toString("utf8").trim();
 
     const runRoot = join(repo, ".capsules", "run-1");
     mkdirSync(runRoot, { recursive: true });

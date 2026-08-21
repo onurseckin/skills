@@ -34,8 +34,16 @@ describe("classifyFailure (B28.3)", () => {
     // module comment): the same agent dying the same way three times in a row is evidence about
     // the TASK, unlike the four provider/network signals covered below.
     const prior: FailureRecord[] = [
-      { signal: "crash", detail: "lease expired with no submission", at: "2026-08-19T00:00:00.000Z" },
-      { signal: "crash", detail: "lease expired with no submission", at: "2026-08-19T00:02:00.000Z" },
+      {
+        signal: "crash",
+        detail: "lease expired with no submission",
+        at: "2026-08-19T00:00:00.000Z",
+      },
+      {
+        signal: "crash",
+        detail: "lease expired with no submission",
+        at: "2026-08-19T00:02:00.000Z",
+      },
     ];
     const result = classifyFailure({
       signal: "crash",
@@ -127,7 +135,11 @@ describe("nextBackoffDelayMs", () => {
 
   it("respects the maximum delay cap regardless of how large the repeat count grows", () => {
     const alwaysOne = () => 1;
-    const delay = nextBackoffDelayMs(20, { initialDelayMs: 1_000, maxDelayMs: 30_000, random: alwaysOne });
+    const delay = nextBackoffDelayMs(20, {
+      initialDelayMs: 1_000,
+      maxDelayMs: 30_000,
+      random: alwaysOne,
+    });
     expect(delay).toBe(30_000);
   });
 

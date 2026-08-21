@@ -29,10 +29,6 @@ function implementerBadge(ctx: TaskNodeContext): BadgeDetail | undefined {
   return undefined;
 }
 
-/**
- * How this task actually got here, which the terminal status alone cannot say: a task that passed
- * after two repairs and a probe reads differently from one that passed first time.
- */
 function historyBadges(ctx: TaskNodeContext): GraphNodeData["badges"] {
   const badges: NonNullable<GraphNodeData["badges"]> = [];
   const repairs = ctx.task.repair_round ?? 0;

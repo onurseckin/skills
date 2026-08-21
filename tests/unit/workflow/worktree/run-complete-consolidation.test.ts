@@ -17,6 +17,22 @@ function git(repo: string, argv: readonly string[]): string {
  *  depending on a test file this fixture never wrote. */
 const GATE = "git diff --check";
 
+/**
+ * t1's own declared gate. The bare `git diff --check` GATE above is a genuine whole-repo command
+ * with no path-like operand, so A6-whole-suite-gate (graph/plan-audit.ts) correctly refuses it as
+ * a task gate: the task's write scope is src/a specifically, and a task gate must prove its own
+ * scope, not the whole tree. `test -f <path>` is the file-predicate shape gate-argv-policy.ts's
+ * FILE_PREDICATES already recognises as substantive rather than weak, and the path it names is
+ * `src/a/SEED_FILE`, seeded into the base repo below so the check keeps GATE's own trick: it exits
+ * 0 against `fixture.repo` whether or not the task's real work (written only into the isolated
+ * worktree) ever lands there. The declared gate and the command actually run for gate evidence
+ * further down must be byte-identical argv — commandMatchesGate compares a fingerprint of the two
+ * — so both reference this same file. The completion gate stays GATE (whole-repo) on purpose:
+ * that is exactly what --completion-gate is for, and A6 only ever looks at task gates.
+ */
+const SEED_FILE = "src/a/seed.txt";
+const TASK_GATE = `test -f ${SEED_FILE}`;
+
 const roots: string[] = [];
 afterEach(() => cleanupRoots(roots));
 
@@ -25,6 +41,9 @@ afterEach(() => cleanupRoots(roots));
  * entry point a real coordinator uses — not only exercised directly against `consolidateWorktrees`.
  */
 async function sealSingleTaskRun(fixture: WorktreeFixture): Promise<string> {
+  await Bun.write(`${fixture.repo}/${SEED_FILE}`, "seed\n");
+  git(fixture.repo, ["add", SEED_FILE]);
+  git(fixture.repo, ["commit", "--quiet", "-m", "seed src/a"]);
   await execute([
     "plan:add",
     "--run",
@@ -36,7 +55,7 @@ async function sealSingleTaskRun(fixture: WorktreeFixture): Promise<string> {
     "--scope",
     "src/a",
     "--gate",
-    GATE,
+    TASK_GATE,
     "--actor",
     "coordinator",
   ]);
@@ -106,9 +125,9 @@ async function sealSingleTaskRun(fixture: WorktreeFixture): Promise<string> {
     "--cwd",
     fixture.repo,
     "--",
-    "git",
-    "diff",
-    "--check",
+    "test",
+    "-f",
+    SEED_FILE,
   ]);
   const probe = await execute([
     "task:probe",

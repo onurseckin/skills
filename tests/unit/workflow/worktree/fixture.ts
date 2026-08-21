@@ -64,12 +64,24 @@ export async function worktreeCapsule(
   return { repo, run };
 }
 
+/**
+ * A3-gate-discrimination refuses two disjoint-scope tasks sharing byte-identical gate argv (it
+ * proves neither task actually ran). Deriving the gate's path segment from the task's own write
+ * scope keeps every task's gate genuinely its own — two tasks only ever collide here if they also
+ * share a scope, in which case they are not disjoint and the rail does not apply to them anyway.
+ */
+function gateForScope(scope: string): string {
+  const slug = scope.split("/").filter(Boolean).join("-");
+  return `bun test tests/unit/thing-${slug}.test.ts`;
+}
+
 export async function addTask(
   fixture: WorktreeFixture,
   id: string,
   scope: string,
   deps?: string,
 ): Promise<void> {
+  const depIds = deps === undefined ? [] : deps.split(",").filter(Boolean);
   await execute([
     "plan:add",
     "--run",
@@ -81,10 +93,11 @@ export async function addTask(
     "--scope",
     scope,
     "--gate",
-    "bun test tests/unit/thing.test.ts",
+    gateForScope(scope),
     "--actor",
     "coordinator",
-    ...(deps === undefined ? [] : ["--deps", deps]),
+    ...(depIds.length === 0 ? [] : ["--deps", deps as string]),
+    ...depIds.flatMap((dep) => ["--dep-reason", `${dep}:fixture-declared ordering dependency`]),
   ]);
 }
 

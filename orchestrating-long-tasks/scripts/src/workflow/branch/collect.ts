@@ -55,9 +55,6 @@ function assertParentAgent(branch: BranchRecord, agentId: string): void {
 }
 
 export function collectBranch(input: CollectBranchInput): BranchOutcome {
-  // B21: collecting a branch closes out everything its sub-agents did, so the harness refuses the
-  // transition here — at the point it actually happens — rather than trusting a caller upstream to
-  // have enforced it.
   requireText(input.summary, "summary");
   const now = input.now ?? new Date();
   const observed = observeRepository(input.repoRoot, now, input.observation ?? {});
@@ -90,8 +87,6 @@ export function collectBranch(input: CollectBranchInput): BranchOutcome {
       const parent = resolveBranchParent(draft, ledger, branch.parent_task_id);
       assertParentBranched(parent);
       assertParentLease(parent, input.agentId, input.token, now);
-      // Absent when the harness could not read the repository: an unmeasured branch records no
-      // file list at all rather than an empty one that reads as "nothing changed".
       const files = branch.opened_observation
         ? observedFilesChanged(
             branch.opened_observation,
@@ -116,8 +111,6 @@ export function collectBranch(input: CollectBranchInput): BranchOutcome {
 }
 
 export function abandonBranch(input: AbandonBranchInput): BranchOutcome {
-  // B21: abandonment is a termination, and a termination without a stated reason is exactly the
-  // unobserved step B21 exists to close off.
   requireText(input.reason, "reason");
   const now = input.now ?? new Date();
   let abandoned: BranchRecord | undefined;

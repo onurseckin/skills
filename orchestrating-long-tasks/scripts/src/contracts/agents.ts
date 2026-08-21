@@ -8,26 +8,16 @@ import {
   type ToolCategory,
 } from "./taxonomy.ts";
 
-/**
- * A thinking budget the host actually knows about. "unknown" is a reportable answer — a host that
- * cannot see the budget says so explicitly instead of the ledger picking a plausible level.
- */
 export type ThinkingLevel = "high" | "low" | "medium" | "unknown";
 
 export const THINKING_LEVELS: readonly ThinkingLevel[] = ["low", "medium", "high", "unknown"];
 
-/** Mirrors the graph's `ModelTier` vocabulary, plus the explicit "the host did not know" answer. */
 export type AgentModelTier = "l" | "m" | "s" | "unknown" | "xs";
 
 export const AGENT_MODEL_TIERS: readonly AgentModelTier[] = ["xs", "s", "m", "l", "unknown"];
 
 export type AgentGrantStatus = "active" | "released";
 
-/**
- * A tool as its reporter named it, filed under the generic category they declared for it. The name
- * is an open instance string and the category is the vocabulary; neither is ever read out of the
- * other, so a tool nobody categorised keeps its name and simply has no category.
- */
 export interface AgentToolRef extends JsonObject {
   name: string;
   category?: ToolCategory;
@@ -39,13 +29,6 @@ export interface AgentToolUse extends AgentToolRef {
   first_reported_at: string;
 }
 
-/**
- * Two sources named the same field and disagreed. Nothing is thrown away to make room for a
- * winner: `recorded_value` is whichever value the grant field itself kept (an explicit report
- * always keeps the field), `probed_value` is what an independent read of the same field found
- * instead. Both carry their own evidence class — "who said so" is exactly what makes two
- * disagreeing numbers worth showing side by side rather than quietly picking one (B32.1, B39).
- */
 export interface TelemetryFieldConflict extends JsonObject {
   field: string;
   recorded_value: JsonValue;
@@ -54,11 +37,6 @@ export interface TelemetryFieldConflict extends JsonObject {
   probed_evidence_class: EvidenceClass;
 }
 
-/**
- * One dispatched agent and everything the run knows about it. `id` is the agent id the harness will
- * later see as an event `actor`, which is what closes the loop between a grant and the work done
- * under it. Every telemetry field is optional and stays absent unless the host supplied it.
- */
 export interface AgentGrantRecord extends JsonObject {
   id: string;
   role: AgentRole;
@@ -69,9 +47,7 @@ export interface AgentGrantRecord extends JsonObject {
   status: AgentGrantStatus;
   released_at?: string;
   release_reason?: string;
-  /** Who serves the model, as the host named it. Never read out of the model string. */
   provider?: Evidenced<string>;
-  /** The model id exactly as the host reported it: never parsed, normalised or matched against. */
   model?: Evidenced<string>;
   model_tier?: Evidenced<AgentModelTier>;
   thinking_level?: Evidenced<ThinkingLevel>;
@@ -80,19 +56,9 @@ export interface AgentGrantRecord extends JsonObject {
   tools_used?: AgentToolUse[];
   tokens_in?: Evidenced<number>;
   tokens_out?: Evidenced<number>;
-  /**
-   * Counters only some providers keep — cache reads, reasoning tokens, tool tokens — under the
-   * names their host reported them by, so a host counting something unusual loses nothing.
-   */
   token_extras?: Record<string, Evidenced<number>>;
   last_reported_at?: string;
   report_count?: number;
-  /**
-   * Every disagreement a probe ever found against an explicitly reported field, from registration
-   * onward. Accumulated, never replaced — a disagreement a later probe stops reproducing was still
-   * real at the time it was found, so it stays on the record rather than being pruned once it goes
-   * quiet (B39).
-   */
   telemetry_conflicts?: TelemetryFieldConflict[];
 }
 

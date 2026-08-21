@@ -86,13 +86,9 @@ export function openBranch(input: OpenBranchInput): BranchOutcome {
   if (input.subTasks.length === 0) {
     throw new HarnessError("INVALID_ARGUMENT", "a branch needs at least one sub-task");
   }
-  // B21: the reason a branch exists is the only account of intent recorded before any sub-agent
-  // does anything, so it is required here — at the transition itself — not only by the CLI flag
-  // parser a future caller could bypass.
   requireText(input.reason, "reason");
   const now = input.now ?? new Date();
   const branchId = `B-${randomUUID()}`;
-  // Measured outside the transaction: the baseline is a reading of the worktree, not durable state.
   const baseline: BranchRepositoryObservation = observeRepository(
     input.repoRoot,
     now,
@@ -118,17 +114,12 @@ export function openBranch(input: OpenBranchInput): BranchOutcome {
       assertParentWorking(parent);
       assertParentLease(parent, input.agentId, input.token, now);
       const depth = parent.depth + 1;
-      // Not a structural bound — the proper-subset rule is what makes chains terminate. Crossing
-      // this line means the work has been subdivided further than any plan should need, so it is
-      // handed to the human instead of being retried at another depth.
       if (depth > input.maxDepth) {
         throw new HarnessError(
           "INVALID_STATE",
           `branch depth ${depth} trips the max_branch_depth escalation threshold of ${input.maxDepth}: subdividing ${input.parentTaskId} again means the original scoping was wrong, so escalate to the human rather than branching deeper`,
         );
       }
-      // A branch is a promise to deploy one sub-agent per sub-task, so the whole branch is charged
-      // against the run budget up front rather than failing halfway through dispatch.
       assertAgentBudget(readAgentLedger(draft), input.subTasks.length, input.maxAgents);
       assertFreshIds(draft, ledger, input.subTasks);
       assertSubScopes(

@@ -6,8 +6,8 @@ recording the result.
 
 ## Dispatch and isolation
 
-| Capability                          |       Google Antigravity       |            Anthropic Claude Code            |   OpenAI Codex / ChatGPT   |    Generic subagent CLI    |
-| :---------------------------------- | :-----------------------------: | :------------------------------------------------: | :------------------------: | :------------------------: |
+| Capability                          |       Google Antigravity       |               Anthropic Claude Code               |   OpenAI Codex / ChatGPT   |    Generic subagent CLI    |
+| :---------------------------------- | :----------------------------: | :-----------------------------------------------: | :------------------------: | :------------------------: |
 | **Tiered orchestration**            |   Native (`invoke_subagent`)   |               Native (`Agent` tool)               | Native (subagent dispatch) | Scripted fork / subprocess |
 | **Paired continuous dispatch**      | One `invoke_subagent` per pair |           Concurrent `Agent` tool calls           |        Batch runner        |        Process pool        |
 | **Sub-agents for branch sub-tasks** |    Nested `invoke_subagent`    |             Nested `Agent` tool calls             |      Nested dispatch       |       Nested process       |

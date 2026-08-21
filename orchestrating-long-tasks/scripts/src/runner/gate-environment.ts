@@ -4,8 +4,6 @@ import { HarnessError } from "../errors/harness-error.ts";
 import { OWNERSHIP_ENV } from "./pipe-ownership.ts";
 
 const PASSTHROUGH = ["LANG", "LC_ALL", "LC_CTYPE", "PATH", "TMPDIR", "TZ"] as const;
-// The tools' own variable names, listed as pairs so they stay data this map carries rather than
-// symbols this module is built around.
 const TOOL_OVERRIDES: ReadonlyArray<readonly [string, string]> = [
   ["GOENV", "off"],
   ["NPM_CONFIG_GLOBALCONFIG", "/dev/null"],

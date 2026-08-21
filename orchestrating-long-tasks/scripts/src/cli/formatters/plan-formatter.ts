@@ -1,3 +1,4 @@
+import type { AuditFinding, AuditNotEvaluated } from "../../graph/plan-audit.ts";
 import { enforceLineLimit, formatTable } from "./line-limiter.ts";
 
 export interface CapsuleInitParams {
@@ -11,16 +12,12 @@ export interface CapsuleInitParams {
 }
 
 export function formatCapsuleInitBrief(params: CapsuleInitParams): string {
-  // A missing runtime version is reported as missing; naming a version nobody measured would make
-  // the capsule look reproducible against a runtime it may never have run on.
   const bunVer = params.bunVersion ?? "unknown";
   const md = [
     `### Capsule Initialized: ${params.runId}`,
     `- **Capsule Root**: \`${params.runRoot}\``,
     `- **Prompt SHA-256**: \`${params.promptSha256}\` (${params.promptBytes.toLocaleString()} bytes)`,
     `- **Assurance**: \`${params.assurance}\` | Runtime: Bun ${bunVer}`,
-    // Absent when no runtime source was available to pin: the brief says so rather than staying
-    // silent, so a reader never mistakes "not mentioned" for "not needed".
     params.runtimePin === undefined
       ? "- **Runtime Pin**: none — no runtime source was supplied to `plan:init`."
       : `- **Runtime Pin**: \`${params.runtimePin.sha256}\` (${params.runtimePin.files.toLocaleString()} files, see \`runtime/\`).`,
@@ -98,17 +95,28 @@ export interface PlanCompileTopology {
   waves: { wave: number; taskIds: readonly string[] }[];
 }
 
+export interface PlanCompileTopologyDeclaration {
+  independentRoots: number;
+  edgeCount: number;
+}
+
+export interface PlanCompileAuditAcceptance {
+  invariant: string;
+  reason: string;
+}
+
 export interface PlanCompileParams {
   revision: number;
   totalTasks: number;
-  /** The topology the command just recorded. The brief reports that record and nothing else, so the
-   *  parallelisation the caller reads is the one the queue will hand out. */
   topology: PlanCompileTopology;
+  topologyDeclaration: PlanCompileTopologyDeclaration;
   collisions: number;
   requirementsCount: number;
   runId: string;
   advisories?: string[];
   warnings?: string[];
+  auditAccepted?: PlanCompileAuditAcceptance[];
+  auditNotEvaluated?: string[];
 }
 
 export function formatPlanCompileBrief(params: PlanCompileParams): string {
@@ -144,6 +152,9 @@ export function formatPlanCompileBrief(params: PlanCompileParams): string {
   lines.push(
     `- **Requirements Covered**: ${params.requirementsCount}/${params.requirementsCount} atomic obligations mapped`,
   );
+  lines.push(
+    `- **Topology Declaration**: ${params.topologyDeclaration.independentRoots}/${params.totalTasks} tasks are independent roots; ${params.topologyDeclaration.edgeCount} dependency edge(s), all justified`,
+  );
 
   if (params.advisories && params.advisories.length > 0) {
     for (const adv of params.advisories) {
@@ -153,6 +164,14 @@ export function formatPlanCompileBrief(params: PlanCompileParams): string {
 
   for (const warning of params.warnings ?? []) {
     lines.push(`- ⚠️ [PROMPT BINDING]: ${warning}`);
+  }
+
+  for (const accepted of params.auditAccepted ?? []) {
+    lines.push(`- ✅ [AUDIT OVERRIDE]: ${accepted.invariant} accepted — ${accepted.reason}`);
+  }
+
+  for (const note of params.auditNotEvaluated ?? []) {
+    lines.push(`- ℹ️ [AUDIT NOT EVALUATED]: ${note}`);
   }
 
   lines.push(
@@ -258,6 +277,107 @@ export function formatPlanApplyBrief(params: PlanApplyParams): string {
     `### Plan Applied: ${params.runId} (Graph Revision ${params.revision})`,
     `- **Total Tasks**: ${params.totalTasks}`,
     `- **Status**: Ready for dispatch (\`queue:next\` / \`queue:wave\`).`,
+  ].join("\n");
+  return enforceLineLimit(md, 30);
+}
+
+export interface AutoPartitionParams {
+  glob: string;
+  groupBy: "file" | "directory";
+  taskIds: readonly string[];
+  totalTasks: number;
+  breadthWarnings: readonly string[];
+}
+
+export function formatAutoPartitionBrief(params: AutoPartitionParams): string {
+  const taskList = params.taskIds.map((id) => `\`${id}\``).join(", ");
+  const md = [
+    `### Auto-Partitioned: ${params.taskIds.length} tasks from \`${params.glob}\``,
+    `- **Grouping**: one task per ${params.groupBy}`,
+    `- **Generated Tasks**: ${taskList}`,
+    `- **Dependencies**: none — auto-partitioned tasks are independent roots by construction`,
+    `- **Plan Size**: ${params.totalTasks} tasks registered. Run \`plan:compile\` when finished adding tasks.`,
+    ...params.breadthWarnings.map((warning) => `- ⚠️ **Gate breadth**: ${warning}`),
+  ].join("\n");
+  return enforceLineLimit(md, 30);
+}
+
+export interface PlanAuditBriefParams {
+  runId: string;
+  revision: number;
+  findings: readonly AuditFinding[];
+  notEvaluated: readonly AuditNotEvaluated[];
+}
+
+const AUDIT_SEVERITY_MARK: Record<AuditFinding["severity"], string> = {
+  blocking: "🛑 [BLOCKING]",
+  advisory: "⚠️ [ADVISORY]",
+};
+
+export function formatPlanAuditBrief(params: PlanAuditBriefParams): string {
+  const blocking = params.findings.filter((f) => f.severity === "blocking");
+  const lines = [
+    `### Plan Audit: ${params.runId} (audit revision ${params.revision})`,
+    `- **Findings**: ${params.findings.length} (${blocking.length} blocking, ${params.findings.length - blocking.length} advisory)`,
+  ];
+
+  if (params.findings.length === 0) {
+    lines.push("- **Result**: no invariant violations found in the current planning buffer");
+  }
+  for (const f of params.findings) {
+    lines.push(`- ${AUDIT_SEVERITY_MARK[f.severity]} \`${f.invariant}\`: ${f.message}`);
+  }
+  for (const n of params.notEvaluated) {
+    lines.push(`- ℹ️ [NOT EVALUATED] \`${n.invariant}\`: ${n.reason}`);
+  }
+
+  lines.push(
+    blocking.length === 0
+      ? "- **Next Step**: `plan:compile` may seal this plan; no blocking invariant is outstanding."
+      : "- **Next Step**: fix the plan, or seal it anyway with `plan:compile --accept-audit <id>:<reason>` naming each blocking invariant above and why.",
+  );
+  return enforceLineLimit(lines.join("\n"), 30);
+}
+
+export interface PlanValidateStartParams {
+  runId: string;
+  validator: string;
+  token: string;
+  graphRevision: number;
+  totalTasks: number;
+}
+
+export function formatPlanValidateStartBrief(params: PlanValidateStartParams): string {
+  const md = [
+    `### Plan Validation Opened: ${params.runId} (Graph Revision ${params.graphRevision})`,
+    `- **Validator**: \`${params.validator}\``,
+    `- **Token**: \`${params.token}\` (bearer credential — never log or persist it)`,
+    `- **Under Review**: ${params.totalTasks} compiled tasks`,
+    `- **Answer in writing**: does the decomposition match the prompt's entity count; is every dependency edge justified by a read/write relationship; can each gate fail if its task does nothing; will any task's scope leave one agent straggling.`,
+    `- **Next Step**: \`plan:review --status approved\` or \`--status changes_requested\` with the four answers.`,
+  ].join("\n");
+  return enforceLineLimit(md, 30);
+}
+
+export interface PlanReviewParams {
+  runId: string;
+  validator: string;
+  status: "approved" | "changes_requested";
+  graphRevision: number;
+  findingsCount: number;
+  summary: string;
+}
+
+export function formatPlanReviewBrief(params: PlanReviewParams): string {
+  const approved = params.status === "approved";
+  const md = [
+    `### Plan Validation ${approved ? "Approved" : "Rejected"}: ${params.runId} (Graph Revision ${params.graphRevision})`,
+    `- **Validator**: \`${params.validator}\``,
+    `- **Summary**: ${params.summary}`,
+    approved
+      ? "- **Dispatch**: implementers and repairers may now claim tasks under this graph revision."
+      : `- **Findings**: ${params.findingsCount} — every implementer and repairer claim against graph revision ${params.graphRevision} is refused until a fresh compile passes plan:review.`,
+    `- **Next Step**: ${approved ? "proceed to Phase 2 continuous dispatch." : "replan (plan:add / plan:compile) and dispatch a fresh plan-validator against the new revision."}`,
   ].join("\n");
   return enforceLineLimit(md, 30);
 }

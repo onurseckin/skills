@@ -63,16 +63,10 @@ function taskGatePassed(state: WorkflowState, task: TaskRecord, gate: GateRuntim
 }
 
 export interface GateTally {
-  /** Gates the plan made mandatory: every applicable task gate plus every mandatory run gate. */
   total: number;
-  /** Of those, the ones with an authoritative passing command bound to them. */
   green: number;
 }
 
-/**
- * Counts gates, and only gates. A brief that reports command exit codes or requirement totals under
- * a gate heading is reporting two numbers that are not gate counts.
- */
 export function gateTally(state: WorkflowState): GateTally {
   let total = 0;
   let green = 0;
@@ -95,8 +89,6 @@ export function gateTally(state: WorkflowState): GateTally {
   return { total, green };
 }
 
-// B12.2: a task passes only once every domain its write scope draws has its own recorded pass, so
-// completion checks each domain's approval independently rather than a single verdict.
 function validatorProofIssues(state: WorkflowState, task: TaskRecord): string[] {
   const gates = applicableGates(state, task);
   return applicableValidatorDomains(task.write_scope).flatMap((domain) => {

@@ -96,9 +96,9 @@ describe("orphan:dispose", () => {
       evidenceCommand.command_id as string,
     ]);
     expect(String(disposed.markdown)).toContain("### Orphan Evidence Dispositioned");
-    expect(
-      (disposed.disposition as { disposition: string }).disposition,
-    ).toBe("ignored_non_authoritative");
+    expect((disposed.disposition as { disposition: string }).disposition).toBe(
+      "ignored_non_authoritative",
+    );
 
     const doctorAfter = await execute(["doctor", "--run", run]);
     expect(doctorAfter.issues).not.toContain(`orphan evidence is open: ${orphanSha}`);

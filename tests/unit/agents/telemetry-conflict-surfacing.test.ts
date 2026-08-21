@@ -194,7 +194,10 @@ describe("appendTelemetryConflicts", () => {
   test("two evidence-class pairs on the same field are both kept as distinct findings", () => {
     // The host's config said one thing at task:claim (`derived`) and the transcript said something
     // else by agent:release (`harness_observed`) — two different sources, two different findings.
-    const laterProbe: TelemetryFieldConflict = { ...conflictA, probed_evidence_class: "harness_observed" };
+    const laterProbe: TelemetryFieldConflict = {
+      ...conflictA,
+      probed_evidence_class: "harness_observed",
+    };
     expect(appendTelemetryConflicts([conflictA], [laterProbe])).toEqual([conflictA, laterProbe]);
   });
 });

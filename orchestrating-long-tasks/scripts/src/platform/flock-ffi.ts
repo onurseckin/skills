@@ -35,9 +35,7 @@ function libraryCandidates(): string[] {
     let maps = "";
     try {
       maps = readFileSync("/proc/self/maps", "utf8");
-    } catch {
-      // Candidate fallbacks below remain valid when procfs is unavailable.
-    }
+    } catch {}
     return linuxLibcCandidates(process.arch, maps);
   }
   throw new HarnessError(

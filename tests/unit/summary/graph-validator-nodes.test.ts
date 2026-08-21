@@ -281,7 +281,9 @@ describe("an archived round backed by validation_history stays acyclic", () => {
     expect(spawn?.source).toBe("node-orchestrator-plan");
 
     // No edge in the whole dataset is still flagged as a back-edge for this task.
-    const taskEdges = dataset.edges.filter((edge) => edge.id.endsWith("-T-multi-r1") || edge.id.endsWith("-T-multi"));
+    const taskEdges = dataset.edges.filter(
+      (edge) => edge.id.endsWith("-T-multi-r1") || edge.id.endsWith("-T-multi"),
+    );
     expect(taskEdges.some((edge) => edge.isCycle === true)).toBe(false);
   });
 });

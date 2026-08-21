@@ -152,9 +152,9 @@ describe("watchdog and retry policy", () => {
   });
 
   test("hard failures take precedence over transient-looking output", () => {
-    expect(
-      classifySignals(1, inspectFailureText("connection reset; tests failed"), null),
-    ).toBe("test_failure");
+    expect(classifySignals(1, inspectFailureText("connection reset; tests failed"), null)).toBe(
+      "test_failure",
+    );
     expect(
       classifySignals(1, inspectFailureText("service unavailable; permission denied"), null),
     ).toBe("authorization");

@@ -158,8 +158,6 @@ export function renderRequirements(context: ReportContext): string[] {
     "",
     "### How each requirement is to be implemented",
     "",
-    // `instruction` is the goal a requirement states; `implementation` is the scoped how-to a reader
-    // needs to act on it. The two are written to separate fields and neither substitutes the other.
     ...table(
       ["Requirement", "Implementation"],
       context.requirements.map((requirement) => [
