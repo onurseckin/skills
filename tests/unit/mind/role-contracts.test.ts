@@ -16,8 +16,8 @@ import {
 
 describe("Phase 4 Role Contracts Reconciliation", () => {
   test("scope role contract source files exist and contain valid frontmatter", () => {
-    const orchestratorPath = resolve("orchestrating-long-tasks/scripts/src/roles/orchestrator.md");
-    const coordinatorPath = resolve("orchestrating-long-tasks/scripts/src/roles/coordinator.md");
+    const orchestratorPath = resolveRoleContractPath("orchestrator");
+    const coordinatorPath = resolveRoleContractPath("coordinator");
 
     expect(existsSync(orchestratorPath)).toBe(true);
     expect(existsSync(coordinatorPath)).toBe(true);

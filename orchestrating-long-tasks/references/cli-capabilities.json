@@ -6391,6 +6391,62 @@
       "examples": [
         "bun harness.ts mind:audit-report --run .capsules/mind-gen-1 --actor auditor-1 --audit-id audit-1 --verdict approved --answer Q1:cmd-10:pass"
       ]
+    },
+    {
+      "name": "mind:rotate",
+      "aliases": [],
+      "domain": "mind",
+      "summary": "Rotate generation N capsule into generation N+1.",
+      "description": "Performs generational rotation, carrying forward charter pin and declined candidates while preserving auditability.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "The current generation capsule root."
+        },
+        {
+          "name": "next-run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "The next generation capsule root."
+        },
+        {
+          "name": "actor",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Acting agent id."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts mind:rotate --run .capsules/mind-gen-1 --next-run .capsules/mind-gen-2 --actor coordinator-1"
+      ]
     }
   ]
 }

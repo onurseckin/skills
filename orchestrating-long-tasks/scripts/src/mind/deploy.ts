@@ -498,14 +498,6 @@ export function createTier1DeployInputFromCandidate(
   };
 }
 
-/**
- * Loads the mind role contract from the local repository roles directory or local scripts src directory.
- */
 export function loadMindContract(): RoleContract {
-  const localPath = fileURLToPath(new URL("../roles/mind.md", import.meta.url));
-  if (existsSync(localPath)) {
-    const bytes = readFileSync(localPath);
-    return parseRoleContract(bytes, "roles/mind.md");
-  }
   return loadRoleContract("mind");
 }

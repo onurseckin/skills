@@ -1938,3 +1938,23 @@ Records the eight audit answers with supporting command ids and overall verdict 
 ```bash
 bun harness.ts mind:audit-report --run .capsules/mind-gen-1 --actor auditor-1 --audit-id audit-1 --verdict approved --answer Q1:cmd-10:pass
 ```
+
+### `mind:rotate`
+
+Rotate generation N capsule into generation N+1.
+
+Performs generational rotation, carrying forward charter pin and declined candidates while preserving auditability.
+
+- **Aliases**: none
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--run` | string | yes | no | - | The current generation capsule root. |
+| `--next-run` | string | yes | no | - | The next generation capsule root. |
+| `--actor` | string | yes | no | - | Acting agent id. |
+
+```bash
+bun harness.ts mind:rotate --run .capsules/mind-gen-1 --next-run .capsules/mind-gen-2 --actor coordinator-1
+```
