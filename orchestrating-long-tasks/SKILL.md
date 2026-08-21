@@ -50,7 +50,7 @@ agent can finish and verify directly.
    [`references/protocol.md`](references/protocol.md).
 4. Never dispatch overlapping write scopes in parallel.
 5. Never mutate a run with an unauthenticated external tool; every mutation goes through the harness CLI.
-6. Never call a model API or launch an LLM CLI. Dispatch only through the host's native subagent mechanism.
+6. Never call a model API or launch an LLM CLI. Dispatch only through the host's native subagent mechanism (Antigravity: `invoke_subagent`, Claude Code: `Agent`, Codex: `spawn_agent`, Cursor: `Task`). The Coordinator MUST dispatch Tier 3 implementers and validators via these native tools and is STRICTLY FORBIDDEN from editing code or implementing tasks itself.
 7. Never announce completion while the runtime reports a blocker.
 8. Never present an invented value as a fact. A value nobody measured or reported is absent, and
    absent renders as "unknown". An estimate carries `evidence_class: "derived"` and `is_estimated: true`.
