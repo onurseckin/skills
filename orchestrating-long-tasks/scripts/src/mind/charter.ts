@@ -355,11 +355,12 @@ export function resolveCharterPath(
   charterSourceRel: string,
   charterRepoRoots?: readonly string[],
 ): string {
+  const filename = charterSourceRel.split("/").pop();
   const candidates = [
     resolve(repoRoot, charterSourceRel),
     ...(charterRepoRoots ? charterRepoRoots.map((r) => resolve(r, charterSourceRel)) : []),
     resolve(repoRoot, charterSourceRel.replace(/^(\.\.\/)+/, "")),
-    resolve(repoRoot, "docs", charterSourceRel.split("/").pop() ?? ""),
+    ...(filename ? [resolve(repoRoot, "docs", filename)] : []),
   ];
   for (const candidate of candidates) {
     if (existsSync(candidate) && lstatSync(candidate).isFile()) {
