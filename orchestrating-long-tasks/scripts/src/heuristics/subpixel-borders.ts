@@ -2,20 +2,22 @@
  * @file subpixel-borders.ts
  * Subpixel Border Alignment & Hairline Artifact Detector
  *
- * Implements fractional DPR scale evaluation (1.25x, 1.5x, 1.75x, 2.0x, 2.25x, 2.5x, 3.0x),
+ * Implements device pixel ratio (DPR 1x, 1.5x, 2x, 3x) scaling, fractional subpixel coordinate normalization,
  * border physical rasterization analysis, transform translation subpixel smearing,
- * and rounding error jitter detection.
+ * anti-aliasing edge contrast verification, and subpixel drift evaluation.
  */
+
+import type { ElementPhysicsSnapshot } from "../capture/validator/types.ts";
 
 export const CANONICAL_FRACTIONAL_DPR_SCALES: readonly number[] = [
   1.0, 1.25, 1.5, 1.75, 2.0, 2.25, 2.5, 3.0,
 ];
 
 export interface SubpixelBorderWidths {
-  readonly top?: number;
-  readonly right?: number;
-  readonly bottom?: number;
-  readonly left?: number;
+  readonly top?: number | undefined;
+  readonly right?: number | undefined;
+  readonly bottom?: number | undefined;
+  readonly left?: number | undefined;
 }
 
 export interface SubpixelElementBounds {
@@ -28,9 +30,11 @@ export interface SubpixelElementBounds {
 export interface SubpixelElementInput {
   readonly selector: string;
   readonly bounds: SubpixelElementBounds;
-  readonly borderWidth?: SubpixelBorderWidths | number;
-  readonly transform?: string;
-  readonly dprScales?: readonly number[];
+  readonly borderWidth?: SubpixelBorderWidths | number | undefined;
+  readonly transform?: string | undefined;
+  readonly dpr?: number | undefined;
+  readonly devicePixelRatio?: number | undefined;
+  readonly dprScales?: readonly number[] | undefined;
 }
 
 export interface SubpixelBorderDefect {
@@ -43,7 +47,7 @@ export interface SubpixelBorderDefect {
   readonly severity: "critical" | "serious" | "moderate" | "minor";
   readonly elementSelector: string;
   readonly message: string;
-  readonly metadata?: Readonly<Record<string, string | number | boolean>>;
+  readonly metadata?: Readonly<Record<string, string | number | boolean>> | undefined;
 }
 
 export interface DprEvaluation {
@@ -75,6 +79,56 @@ export interface SubpixelBorderAnalysisResult {
   readonly remediations: readonly string[];
 }
 
+export interface AntiAliasingEdgeContrastResult {
+  readonly dpr: number;
+  readonly physicalWidth: number;
+  readonly fractionalCoverage: number;
+  readonly isCrisp: boolean;
+  readonly edgeContrastFactor: number;
+  readonly roundingError: number;
+  readonly defect?: SubpixelBorderDefect | undefined;
+}
+
+export interface SubpixelDriftEvaluation {
+  readonly dpr: number;
+  readonly physicalWidth: number;
+  readonly isCrisp: boolean;
+  readonly roundingError: number;
+  readonly isAntiAliasedBlur: boolean;
+  readonly edgeContrastFactor: number;
+  readonly snappedCssWidth: number;
+}
+
+export interface SubpixelDriftResult {
+  readonly cssWidth: number;
+  readonly isCrispOnAllDprs: boolean;
+  readonly crispDprs: readonly number[];
+  readonly blurredDprs: readonly number[];
+  readonly evaluations: readonly SubpixelDriftEvaluation[];
+  readonly worstCaseRoundingError: number;
+  readonly worstCaseDpr: number;
+  readonly recommendedCssWidth: number;
+  readonly defects: readonly SubpixelBorderDefect[];
+}
+
+export interface EdgeContrastEvaluation {
+  readonly cssWidth: number;
+  readonly dpr: number;
+  readonly physicalWidth: number;
+  readonly roundingError: number;
+  readonly nominalContrastRatio: number;
+  readonly effectiveContrastRatio: number;
+  readonly contrastDegradationPct: number;
+  readonly isCrisp: boolean;
+  readonly passesContrastThreshold: boolean;
+}
+
+export interface SubpixelValidationOptions {
+  readonly dpr?: number | undefined;
+  readonly devicePixelRatio?: number | undefined;
+  readonly dprScales?: readonly number[] | undefined;
+}
+
 /**
  * Calculate distance from nearest integer physical pixel.
  */
@@ -82,6 +136,198 @@ export function getPhysicalRoundingError(val: number, dpr: number): number {
   const physical = val * dpr;
   const nearest = Math.round(physical);
   return Math.abs(physical - nearest);
+}
+
+/**
+ * Snap CSS pixel values or bounding box coordinates to the nearest physical device pixel boundary.
+ */
+export function snapToDevicePixels(input: number, dpr: number): number;
+export function snapToDevicePixels(input: SubpixelElementBounds, dpr: number): SubpixelElementBounds;
+export function snapToDevicePixels(
+  input: number | SubpixelElementBounds,
+  dpr: number,
+): number | SubpixelElementBounds {
+  if (dpr <= 0 || !isFinite(dpr)) return input;
+  if (typeof input === "number") {
+    return Math.round(input * dpr) / dpr;
+  }
+  return {
+    x: Math.round(input.x * dpr) / dpr,
+    y: Math.round(input.y * dpr) / dpr,
+    width: Math.round(input.width * dpr) / dpr,
+    height: Math.round(input.height * dpr) / dpr,
+  };
+}
+
+/**
+ * Evaluates physical raster edge contrast and subpixel anti-aliasing attenuation for a border edge.
+ */
+export function evaluateAntiAliasingEdgeContrast(
+  borderWidthCss: number,
+  dpr: number,
+  selector = "border-edge",
+): AntiAliasingEdgeContrastResult {
+  const physicalWidth = borderWidthCss * dpr;
+  const nearestInteger = Math.round(physicalWidth);
+  const roundingError = Math.abs(physicalWidth - nearestInteger);
+  const isCrisp = roundingError <= 0.08;
+
+  let edgeContrastFactor: number;
+  if (physicalWidth <= 0) {
+    edgeContrastFactor = 0;
+  } else if (physicalWidth < 1) {
+    edgeContrastFactor = physicalWidth;
+  } else {
+    edgeContrastFactor = roundingError === 0 ? 1.0 : Math.max(0.1, 1.0 - roundingError * 0.5);
+  }
+
+  let defect: SubpixelBorderDefect | undefined;
+  if (!isCrisp && borderWidthCss > 0) {
+    defect = {
+      id: `subpixel-edge-contrast-${selector}-${dpr}`,
+      category: "subpixel-hairline-blur",
+      severity: physicalWidth < 1 ? "moderate" : "minor",
+      elementSelector: selector,
+      message: `Subpixel border width ${borderWidthCss}px yields fractional physical thickness ${physicalWidth.toFixed(2)}px at ${dpr}x DPR (edge contrast factor: ${edgeContrastFactor.toFixed(2)}, rounding error: ${roundingError.toFixed(3)}px).`,
+      metadata: {
+        dpr,
+        borderWidthCss,
+        physicalWidth: Number(physicalWidth.toFixed(2)),
+        edgeContrastFactor: Number(edgeContrastFactor.toFixed(2)),
+        roundingError: Number(roundingError.toFixed(3)),
+      },
+    };
+  }
+
+  return {
+    dpr,
+    physicalWidth: Number(physicalWidth.toFixed(4)),
+    fractionalCoverage: physicalWidth < 1 ? Number(physicalWidth.toFixed(4)) : Number((physicalWidth % 1 || 1).toFixed(4)),
+    isCrisp,
+    edgeContrastFactor: Number(edgeContrastFactor.toFixed(4)),
+    roundingError: Number(roundingError.toFixed(4)),
+    defect,
+  };
+}
+
+/**
+ * Evaluates edge contrast degradation from fractional rasterization.
+ */
+export function evaluateEdgeContrast(
+  cssWidth: number,
+  dpr: number,
+  nominalContrastRatio = 4.5,
+  minThreshold = 3.0,
+): EdgeContrastEvaluation {
+  const physicalWidth = cssWidth * dpr;
+  const nearest = Math.round(physicalWidth);
+  const roundingError = Math.abs(physicalWidth - nearest);
+  const contrastFactor = Math.max(0.2, 1 - roundingError * 1.2);
+  const effectiveContrastRatio = Number((nominalContrastRatio * contrastFactor).toFixed(2));
+  const contrastDegradationPct = Number(((1 - effectiveContrastRatio / nominalContrastRatio) * 100).toFixed(1));
+  const isCrisp = roundingError <= 0.05;
+  const passesContrastThreshold = effectiveContrastRatio >= minThreshold;
+
+  return {
+    cssWidth,
+    dpr,
+    physicalWidth: Number(physicalWidth.toFixed(3)),
+    roundingError: Number(roundingError.toFixed(3)),
+    nominalContrastRatio,
+    effectiveContrastRatio,
+    contrastDegradationPct,
+    isCrisp,
+    passesContrastThreshold,
+  };
+}
+
+/**
+ * Evaluates subpixel drift across DPR scales (1x, 1.5x, 2x, 3x) detecting fractional widths
+ * that cause anti-aliasing blur on 1x displays vs crisp rendering on 2x/3x displays.
+ */
+export function evaluateSubpixelDrift(
+  borderWidthCss: number,
+  dprScales: readonly number[] = [1.0, 1.5, 2.0, 3.0],
+  selector = "border-edge",
+): SubpixelDriftResult {
+  const crispDprs: number[] = [];
+  const blurredDprs: number[] = [];
+  const evaluations: SubpixelDriftEvaluation[] = [];
+  const defects: SubpixelBorderDefect[] = [];
+  let worstCaseRoundingError = 0;
+  let worstCaseDpr = dprScales[0] ?? 1.0;
+
+  for (const dpr of dprScales) {
+    const physicalWidth = borderWidthCss * dpr;
+    const nearestInteger = Math.round(physicalWidth);
+    const roundingError = Math.abs(physicalWidth - nearestInteger);
+    const isCrisp = roundingError <= 0.05;
+    const isAntiAliasedBlur = !isCrisp;
+
+    let edgeContrastFactor: number;
+    if (physicalWidth <= 0) {
+      edgeContrastFactor = 0;
+    } else if (physicalWidth < 1) {
+      edgeContrastFactor = physicalWidth;
+    } else {
+      edgeContrastFactor = roundingError === 0 ? 1.0 : Math.max(0.1, 1.0 - roundingError * 0.5);
+    }
+
+    const snappedCssWidth = snapToDevicePixels(borderWidthCss, dpr);
+
+    evaluations.push({
+      dpr,
+      physicalWidth: Number(physicalWidth.toFixed(4)),
+      isCrisp,
+      roundingError: Number(roundingError.toFixed(4)),
+      isAntiAliasedBlur,
+      edgeContrastFactor: Number(edgeContrastFactor.toFixed(4)),
+      snappedCssWidth,
+    });
+
+    if (isCrisp) {
+      crispDprs.push(dpr);
+    } else {
+      blurredDprs.push(dpr);
+    }
+
+    if (roundingError > worstCaseRoundingError) {
+      worstCaseRoundingError = roundingError;
+      worstCaseDpr = dpr;
+    }
+
+    if (isAntiAliasedBlur && borderWidthCss > 0) {
+      defects.push({
+        id: `subpixel-drift-${selector}-${borderWidthCss}-${dpr}`,
+        category: "subpixel-hairline-blur",
+        severity: physicalWidth < 1 ? "moderate" : "minor",
+        elementSelector: selector,
+        message: `Fractional border width ${borderWidthCss}px yields fractional physical thickness ${physicalWidth.toFixed(2)}px at ${dpr}x DPR causing anti-aliasing blur (rounding error: ${roundingError.toFixed(3)}px).`,
+        metadata: {
+          dpr,
+          borderWidthCss,
+          physicalWidth: Number(physicalWidth.toFixed(2)),
+          edgeContrastFactor: Number(edgeContrastFactor.toFixed(2)),
+          roundingError: Number(roundingError.toFixed(3)),
+        },
+      });
+    }
+  }
+
+  const isCrispOnAllDprs = blurredDprs.length === 0;
+  const recommendedCssWidth = borderWidthCss > 0 ? snapToDevicePixels(borderWidthCss, 1.0) || 1.0 : 0;
+
+  return {
+    cssWidth: borderWidthCss,
+    isCrispOnAllDprs,
+    crispDprs,
+    blurredDprs,
+    evaluations,
+    worstCaseRoundingError: Number(worstCaseRoundingError.toFixed(4)),
+    worstCaseDpr,
+    recommendedCssWidth,
+    defects,
+  };
 }
 
 /**
@@ -170,15 +416,32 @@ export function normalizeBorderWidths(
  */
 export function validateSubpixelBorders(
   input: SubpixelElementInput | readonly SubpixelElementInput[],
+  options?: SubpixelValidationOptions,
 ): SubpixelBorderAnalysisResult {
   const elements = Array.isArray(input) ? input : [input];
   const defects: SubpixelBorderDefect[] = [];
   const remediations: string[] = [];
 
-  const dprScales =
-    elements[0]?.dprScales && elements[0].dprScales.length > 0
-      ? elements[0].dprScales
-      : CANONICAL_FRACTIONAL_DPR_SCALES;
+  const firstInput = elements[0];
+  const optionDprs =
+    options?.dprScales && options.dprScales.length > 0
+      ? options.dprScales
+      : options?.devicePixelRatio !== undefined
+        ? [options.devicePixelRatio]
+        : options?.dpr !== undefined
+          ? [options.dpr]
+          : undefined;
+
+  const elementDprs =
+    firstInput?.dprScales && firstInput.dprScales.length > 0
+      ? firstInput.dprScales
+      : firstInput?.devicePixelRatio !== undefined
+        ? [firstInput.devicePixelRatio]
+        : firstInput?.dpr !== undefined
+          ? [firstInput.dpr]
+          : undefined;
+
+  const dprScales = optionDprs ?? elementDprs ?? CANONICAL_FRACTIONAL_DPR_SCALES;
 
   const dprEvaluations: DprEvaluation[] = [];
   let worstCaseDpr = dprScales[0] ?? 1.0;
@@ -226,7 +489,6 @@ export function validateSubpixelBorders(
           dprArtifacts.push(artifactMsg);
         }
 
-        // Add defect if not already reported for this element
         const defectId = `subpixel-border-hairline-${el.selector}-${dpr}`;
         if (!defects.some((d) => d.id === defectId)) {
           defects.push({
@@ -262,7 +524,7 @@ export function validateSubpixelBorders(
         }
       }
 
-      // Check transform translation smearing (e.g. translate(-50%, -50%) on odd dimensions or fractional translations)
+      // Check transform translation smearing
       if ((trans.x !== 0 || trans.y !== 0) && (xErr > 0.1 || yErr > 0.1)) {
         const transformDefectId = `subpixel-transform-smear-${el.selector}-${dpr}`;
         if (!defects.some((d) => d.id === transformDefectId)) {
@@ -354,3 +616,31 @@ export function validateSubpixelBorders(
     remediations,
   };
 }
+
+/**
+ * Validates element physics snapshots against subpixel device pixel alignment.
+ */
+export function validateElementSubpixelPhysics(
+  element: ElementPhysicsSnapshot,
+  dprOrScales: number | readonly number[] = 1.0,
+): SubpixelBorderAnalysisResult {
+  const dprScales = typeof dprOrScales === "number" ? [dprOrScales] : dprOrScales;
+  const input: SubpixelElementInput = {
+    selector: element.selector,
+    bounds: {
+      x: element.bounds.x,
+      y: element.bounds.y,
+      width: element.bounds.width,
+      height: element.bounds.height,
+    },
+    transform: element.computedStyles?.transform,
+    dprScales,
+  };
+  return validateSubpixelBorders(input);
+}
+
+/**
+ * Alias for validateElementSubpixelPhysics.
+ */
+export const evaluateElementSubpixelPhysics = validateElementSubpixelPhysics;
+

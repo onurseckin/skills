@@ -26,20 +26,37 @@ import {
 } from "./modal-focus-traps.ts";
 import {
   CANONICAL_FRACTIONAL_DPR_SCALES,
+  evaluateAntiAliasingEdgeContrast,
+  evaluateEdgeContrast,
+  evaluateElementSubpixelPhysics,
+  evaluateSubpixelDrift,
   getPhysicalRoundingError,
   normalizeBorderWidths,
   parseTransformTranslations,
+  snapToDevicePixels,
+  validateElementSubpixelPhysics,
   validateSubpixelBorders,
+  type AntiAliasingEdgeContrastResult,
+  type EdgeContrastEvaluation,
+  type SubpixelBorderWidths,
+  type SubpixelDriftResult,
+  type SubpixelElementBounds,
+  type SubpixelElementInput,
 } from "./subpixel-borders.ts";
 import {
   auditCriterionSemanticDepth,
   auditManifestSemanticDepth,
   auditSingleViewportManifest,
   CANONICAL_VIEWPORTS,
+  CANONICAL_VIEWPORT_SPECS,
+  computePhysicalViewportMetrics,
   MANDATORY_PILLARS,
   normalizePillar,
+  synthesizeDprAwareCompanionManifest,
   verifyMultiViewportManifests,
+  type CanonicalViewportSpec,
   type MultiViewportBundleInput,
+  type PhysicalViewportMetrics,
   type ScreenshotArtifact,
 } from "./multi-viewport-manifest.ts";
 import {
@@ -479,6 +496,382 @@ describe("Extended Heuristics: Subpixel Borders & Hairline Artifacts", () => {
     const norm = normalizeBorderWidths(1);
     expect(norm).toEqual({ top: 1, right: 1, bottom: 1, left: 1 });
   });
+
+  it("evaluates snapToDevicePixels scalar and coordinate snapping across 1x, 1.5x, 2x, and 3x DPR scales", () => {
+    // 1.0x DPR (Standard display)
+    expect(snapToDevicePixels(0.5, 1.0)).toBe(1.0);
+    expect(snapToDevicePixels(0.2, 1.0)).toBe(0.0);
+    expect(snapToDevicePixels(10.6, 1.0)).toBe(11.0);
+    expect(snapToDevicePixels(10.4, 1.0)).toBe(10.0);
+
+    // 1.5x DPR (150% fractional scaling)
+    expect(snapToDevicePixels(0.3333, 1.5)).toBeCloseTo(0, 4);
+    expect(snapToDevicePixels(0.6667, 1.5)).toBeCloseTo(2 / 3, 3);
+    expect(snapToDevicePixels(1.3333, 1.5)).toBeCloseTo(4 / 3, 3);
+    expect(snapToDevicePixels(2.0, 1.5)).toBe(2.0);
+
+    // 2.0x DPR (Retina)
+    expect(snapToDevicePixels(0.25, 2.0)).toBe(0.5);
+    expect(snapToDevicePixels(0.5, 2.0)).toBe(0.5);
+    expect(snapToDevicePixels(0.75, 2.0)).toBe(1.0);
+    expect(snapToDevicePixels(12.25, 2.0)).toBe(12.5);
+    expect(snapToDevicePixels(12.5, 2.0)).toBe(12.5);
+
+    // 3.0x DPR (Super Retina Mobile)
+    expect(snapToDevicePixels(0.1667, 3.0)).toBeCloseTo(1 / 3, 3);
+    expect(snapToDevicePixels(0.3333, 3.0)).toBeCloseTo(1 / 3, 3);
+    expect(snapToDevicePixels(0.6667, 3.0)).toBeCloseTo(2 / 3, 3);
+    expect(snapToDevicePixels(1.0, 3.0)).toBe(1.0);
+    expect(snapToDevicePixels(1.3333, 3.0)).toBeCloseTo(4 / 3, 3);
+
+    // Degenerate DPR fallback
+    expect(snapToDevicePixels(15.75, 0)).toBe(15.75);
+    expect(snapToDevicePixels(15.75, -2)).toBe(15.75);
+
+    // SubpixelElementBounds snapping at 2.0x DPR
+    const rawBounds2x: SubpixelElementBounds = { x: 10.25, y: 20.75, width: 100.33, height: 50.66 };
+    const snappedBounds2x = snapToDevicePixels(rawBounds2x, 2.0);
+    expect(snappedBounds2x).toEqual({ x: 10.5, y: 21.0, width: 100.5, height: 50.5 });
+
+    // SubpixelElementBounds snapping at 3.0x DPR
+    const rawBounds3x: SubpixelElementBounds = { x: 10.1, y: 20.2, width: 100.1, height: 50.2 };
+    const snappedBounds3x = snapToDevicePixels(rawBounds3x, 3.0);
+    expect(snappedBounds3x.x).toBe(10.0);
+    expect(snappedBounds3x.y).toBeCloseTo(61 / 3, 3);
+    expect(snappedBounds3x.width).toBe(100.0);
+    expect(snappedBounds3x.height).toBeCloseTo(151 / 3, 3);
+  });
+
+  it("evaluates fractional CSS border widths (0.5px, 0.75px, 1.33px) detecting blurry vs crisp borders across DPR scales", () => {
+    // 0.5px border: blurry at 1x, 1.5x, 3x; crisp at 2x (Retina)
+    const border05 = validateSubpixelBorders({
+      selector: ".hairline-05",
+      bounds: { x: 0, y: 0, width: 120, height: 60 },
+      borderWidth: 0.5,
+      dprScales: [1.0, 1.5, 2.0, 3.0],
+    });
+
+    expect(border05.isCompliant).toBe(false);
+    expect(border05.dprEvaluations[0]?.isAligned).toBe(false); // 1.0x: 0.5px phys (blurry)
+    expect(border05.dprEvaluations[1]?.isAligned).toBe(false); // 1.5x: 0.75px phys (blurry)
+    expect(border05.dprEvaluations[2]?.isAligned).toBe(true);  // 2.0x: 1.0px phys (crisp)
+    expect(border05.dprEvaluations[3]?.isAligned).toBe(false); // 3.0x: 1.5px phys (blurry)
+
+    // 0.75px border: blurry at 1x, 1.5x, 2x, 3x; crisp at 4x
+    const border075 = validateSubpixelBorders({
+      selector: ".border-075",
+      bounds: { x: 0, y: 0, width: 120, height: 60 },
+      borderWidth: 0.75,
+      dprScales: [1.0, 1.5, 2.0, 3.0, 4.0],
+    });
+
+    expect(border075.dprEvaluations[0]?.isAligned).toBe(false); // 1.0x: 0.75 phys
+    expect(border075.dprEvaluations[1]?.isAligned).toBe(false); // 1.5x: 1.125 phys
+    expect(border075.dprEvaluations[2]?.isAligned).toBe(false); // 2.0x: 1.5 phys
+    expect(border075.dprEvaluations[3]?.isAligned).toBe(false); // 3.0x: 2.25 phys
+    expect(border075.dprEvaluations[4]?.isAligned).toBe(true);  // 4.0x: 3.0 phys (crisp)
+
+    // 1.3333px (4/3 px) border: crisp at 1.5x and 3.0x; blurry at 1.0x and 2.0x
+    const border133 = validateSubpixelBorders({
+      selector: ".border-133",
+      bounds: { x: 0, y: 0, width: 120, height: 60 },
+      borderWidth: 4 / 3,
+      dprScales: [1.0, 1.5, 2.0, 3.0],
+    });
+
+    expect(border133.dprEvaluations[0]?.isAligned).toBe(false); // 1.0x: 1.33 phys (blurry)
+    expect(border133.dprEvaluations[1]?.isAligned).toBe(true);  // 1.5x: 2.0 phys (crisp)
+    expect(border133.dprEvaluations[2]?.isAligned).toBe(false); // 2.0x: 2.67 phys (blurry)
+    expect(border133.dprEvaluations[3]?.isAligned).toBe(true);  // 3.0x: 4.0 phys (crisp)
+
+    // 0.3333px (1/3 px) hairline: crisp at 3.0x (Super Retina); blurry at 1.0x and 2.0x
+    const border033 = validateSubpixelBorders({
+      selector: ".hairline-retina-033",
+      bounds: { x: 0, y: 0, width: 120, height: 60 },
+      borderWidth: 1 / 3,
+      dprScales: [1.0, 2.0, 3.0],
+    });
+
+    expect(border033.dprEvaluations[0]?.isAligned).toBe(false); // 1.0x: 0.33 phys (blurry)
+    expect(border033.dprEvaluations[1]?.isAligned).toBe(false); // 2.0x: 0.67 phys (blurry)
+    expect(border033.dprEvaluations[2]?.isAligned).toBe(true);  // 3.0x: 1.0 phys (crisp)
+  });
+
+  it("evaluates asymmetric fractional CSS border widths across diverse DPR values", () => {
+    const asymmetricInput: SubpixelElementInput = {
+      selector: ".card-asymmetric",
+      bounds: { x: 20, y: 20, width: 240, height: 160 },
+      borderWidth: { top: 0.5, right: 1.0, bottom: 0.5, left: 1.0 },
+      dprScales: [1.0, 2.0],
+    };
+
+    // At 2.0x DPR: top=1.0px, right=2.0px, bottom=1.0px, left=2.0px (all integer physical pixels)
+    const result2x = validateSubpixelBorders({ ...asymmetricInput, dprScales: [2.0] });
+    expect(result2x.isCompliant).toBe(true);
+    expect(result2x.defects.length).toBe(0);
+
+    // At 1.0x DPR: top=0.5px (blurry), right=1.0px (crisp), bottom=0.5px (blurry), left=1.0px (crisp)
+    const result1x = validateSubpixelBorders({ ...asymmetricInput, dprScales: [1.0] });
+    expect(result1x.isCompliant).toBe(false);
+    expect(result1x.defects.some((d) => d.category === "subpixel-hairline-blur")).toBe(true);
+  });
+
+  it("verifies anti-aliasing edge contrast, fractional coverage, and hairline attenuation with evaluateAntiAliasingEdgeContrast", () => {
+    // Sub-1px physical width: 0.5px at 1.0x DPR -> physicalWidth 0.5, edgeContrastFactor 0.5 (hairline fading defect)
+    const contrast05_1x = evaluateAntiAliasingEdgeContrast(0.5, 1.0, ".sub-pixel-hairline");
+    expect(contrast05_1x.isCrisp).toBe(false);
+    expect(contrast05_1x.physicalWidth).toBe(0.5);
+    expect(contrast05_1x.edgeContrastFactor).toBe(0.5);
+    expect(contrast05_1x.roundingError).toBe(0.5);
+    expect(contrast05_1x.defect).toBeDefined();
+    expect(contrast05_1x.defect?.severity).toBe("moderate");
+
+    // 0.5px at 2.0x DPR (Retina) -> physicalWidth 1.0, edgeContrastFactor 1.0 (crisp edge)
+    const contrast05_2x = evaluateAntiAliasingEdgeContrast(0.5, 2.0, ".sub-pixel-hairline");
+    expect(contrast05_2x.isCrisp).toBe(true);
+    expect(contrast05_2x.physicalWidth).toBe(1.0);
+    expect(contrast05_2x.edgeContrastFactor).toBe(1.0);
+    expect(contrast05_2x.roundingError).toBe(0.0);
+    expect(contrast05_2x.defect).toBeUndefined();
+
+    // 1/3 px at 3.0x DPR (Super Retina) -> physicalWidth 1.0, edgeContrastFactor 1.0 (crisp edge)
+    const contrast033_3x = evaluateAntiAliasingEdgeContrast(1 / 3, 3.0, ".retina-hairline");
+    expect(contrast033_3x.isCrisp).toBe(true);
+    expect(contrast033_3x.physicalWidth).toBe(1.0);
+    expect(contrast033_3x.edgeContrastFactor).toBe(1.0);
+    expect(contrast033_3x.roundingError).toBe(0.0);
+
+    // 0.25px at 1.0x DPR -> physicalWidth 0.25, edgeContrastFactor 0.25
+    const contrast025_1x = evaluateAntiAliasingEdgeContrast(0.25, 1.0);
+    expect(contrast025_1x.isCrisp).toBe(false);
+    expect(contrast025_1x.physicalWidth).toBe(0.25);
+    expect(contrast025_1x.edgeContrastFactor).toBe(0.25);
+
+    // 1.5px at 1.0x DPR -> physicalWidth 1.5, roundingError 0.5, edgeContrastFactor 0.75
+    const contrast15_1x = evaluateAntiAliasingEdgeContrast(1.5, 1.0);
+    expect(contrast15_1x.isCrisp).toBe(false);
+    expect(contrast15_1x.physicalWidth).toBe(1.5);
+    expect(contrast15_1x.roundingError).toBe(0.5);
+    expect(contrast15_1x.edgeContrastFactor).toBe(0.75);
+    expect(contrast15_1x.defect?.severity).toBe("minor");
+
+    // 0px border -> edgeContrastFactor 0, isCrisp true
+    const contrast0 = evaluateAntiAliasingEdgeContrast(0, 2.0);
+    expect(contrast0.isCrisp).toBe(true);
+    expect(contrast0.edgeContrastFactor).toBe(0);
+    expect(contrast0.defect).toBeUndefined();
+  });
+
+  it("verifies multi-viewport DPR variations (Desktop-wide @ 1x/2x, Mobile @ 3x Super Retina) on composite UI trees", () => {
+    // Scenario A: Desktop-wide standard DPI (1920x1080 @ 1.0x DPR)
+    const desktop1xElements: readonly SubpixelElementInput[] = [
+      {
+        selector: "header.nav-bar",
+        bounds: { x: 0, y: 0, width: 1920, height: 64 },
+        borderWidth: { bottom: 1 }, // 1px border is crisp at 1.0x
+      },
+      {
+        selector: "div.hero-card",
+        bounds: { x: 240, y: 96, width: 1440, height: 480 },
+        borderWidth: 2, // 2px border is crisp at 1.0x
+      },
+      {
+        selector: "div.blurry-card",
+        bounds: { x: 240, y: 600, width: 400, height: 200 },
+        borderWidth: 0.5, // 0.5px hairline blurs at 1.0x
+      },
+      {
+        selector: "dialog.centered-modal",
+        bounds: { x: 732.5, y: 300, width: 455, height: 300 }, // Centered offset 732.5px blurs at 1.0x
+        borderWidth: 1,
+      },
+    ];
+
+    const desktop1xAnalysis = validateSubpixelBorders(
+      desktop1xElements.map((el) => ({ ...el, dprScales: [1.0] })),
+    );
+    expect(desktop1xAnalysis.isCompliant).toBe(false);
+    expect(desktop1xAnalysis.defects.some((d) => d.elementSelector === "div.blurry-card")).toBe(true);
+    expect(desktop1xAnalysis.defects.some((d) => d.elementSelector === "dialog.centered-modal")).toBe(true);
+
+    // Scenario B: Desktop-wide Retina (2560x1440 @ 2.0x DPR)
+    const desktop2xElements: readonly SubpixelElementInput[] = [
+      {
+        selector: "header.nav-bar",
+        bounds: { x: 0, y: 0, width: 2560, height: 80 },
+        borderWidth: { bottom: 0.5 }, // 0.5px hairline resolves to 1.0 physical pixel at 2.0x (crisp!)
+      },
+      {
+        selector: "div.retina-card",
+        bounds: { x: 200, y: 120, width: 1000, height: 600 },
+        borderWidth: 0.5, // 0.5px border is crisp at 2.0x
+      },
+      {
+        selector: "div.odd-centered-modal",
+        bounds: { x: 500, y: 200, width: 350, height: 250 },
+        borderWidth: 1.0,
+        transform: "translate(-50%, -50%)", // -175px translation (integer physical at 2x)
+      },
+    ];
+
+    const desktop2xAnalysis = validateSubpixelBorders(
+      desktop2xElements.map((el) => ({ ...el, dprScales: [2.0] })),
+    );
+    expect(desktop2xAnalysis.isCompliant).toBe(true);
+    expect(desktop2xAnalysis.defects.length).toBe(0);
+
+    // Scenario C: Mobile Super Retina (390x844 @ 3.0x DPR)
+    const mobile3xElements: readonly SubpixelElementInput[] = [
+      {
+        selector: "header.mobile-header",
+        bounds: { x: 0, y: 0, width: 390, height: 44 },
+        borderWidth: { bottom: 1 / 3 }, // 0.3333px bottom divider resolves to 1.0 physical pixel at 3.0x (crisp!)
+      },
+      {
+        selector: "span.pill-badge",
+        bounds: { x: 16, y: 60, width: 80, height: 24 },
+        borderWidth: 2 / 3, // 0.6667px border resolves to 2.0 physical pixels at 3.0x (crisp!)
+      },
+      {
+        selector: "div.mobile-card",
+        bounds: { x: 16, y: 100, width: 358, height: 200 },
+        borderWidth: 1.0, // 1px border resolves to 3.0 physical pixels at 3.0x (crisp!)
+      },
+      {
+        selector: "div.flawed-mobile-card",
+        bounds: { x: 16, y: 320, width: 358, height: 200 },
+        borderWidth: 0.5, // 0.5px border resolves to 1.5 physical pixels at 3.0x (blurry!)
+      },
+    ];
+
+    const mobile3xAnalysis = validateSubpixelBorders(
+      mobile3xElements.map((el) => ({ ...el, dprScales: [3.0] })),
+    );
+    expect(mobile3xAnalysis.isCompliant).toBe(false);
+    expect(mobile3xAnalysis.defects.length).toBe(1);
+    expect(mobile3xAnalysis.defects[0]?.elementSelector).toBe("div.flawed-mobile-card");
+    expect(mobile3xAnalysis.defects[0]?.category).toBe("subpixel-hairline-blur");
+
+    // Scenario D: Full Multi-Viewport DPR Spectrum Matrix Analysis
+    const universalComponent: SubpixelElementInput = {
+      selector: "div.responsive-shell",
+      bounds: { x: 0, y: 0, width: 300, height: 200 },
+      borderWidth: 1.0,
+      dprScales: [1.0, 1.5, 2.0, 3.0],
+    };
+
+    const universalAnalysis = validateSubpixelBorders(universalComponent);
+    expect(universalAnalysis.evaluatedDprs).toEqual([1.0, 1.5, 2.0, 3.0]);
+    expect(universalAnalysis.worstCaseDpr).toBe(1.5); // 1.0px * 1.5 = 1.5 physical px (max error 0.5)
+    expect(universalAnalysis.maxRoundingErrorAcrossDprs).toBe(0.5);
+    expect(universalAnalysis.dprEvaluations.length).toBe(4);
+    expect(universalAnalysis.remediations.length).toBeGreaterThan(0);
+  });
+
+  it("evaluates subpixel drift across DPR scales with evaluateSubpixelDrift detecting fractional blur vs crisp rendering", () => {
+    // 0.5px border: crisp at 2.0x, blurred at 1.0x, 1.5x, 3.0x
+    const drift05 = evaluateSubpixelDrift(0.5, [1.0, 1.5, 2.0, 3.0]);
+    expect(drift05.cssWidth).toBe(0.5);
+    expect(drift05.isCrispOnAllDprs).toBe(false);
+    expect(drift05.crispDprs).toEqual([2.0]);
+    expect(drift05.blurredDprs).toEqual([1.0, 1.5, 3.0]);
+    expect(drift05.recommendedCssWidth).toBe(1.0);
+    expect(drift05.worstCaseRoundingError).toBe(0.5);
+    expect(drift05.defects.length).toBe(3);
+
+    // 0.3333px border (1/3 px): crisp at 3.0x (Super Retina), blurred at 1.0x and 2.0x
+    const drift033 = evaluateSubpixelDrift(1 / 3, [1.0, 2.0, 3.0]);
+    expect(drift033.isCrispOnAllDprs).toBe(false);
+    expect(drift033.crispDprs).toEqual([3.0]);
+    expect(drift033.blurredDprs).toEqual([1.0, 2.0]);
+    expect(drift033.recommendedCssWidth).toBe(1.0);
+
+    // 1.0px border: crisp across integer DPRs [1.0, 2.0, 3.0]
+    const drift10 = evaluateSubpixelDrift(1.0, [1.0, 2.0, 3.0]);
+    expect(drift10.isCrispOnAllDprs).toBe(true);
+    expect(drift10.crispDprs).toEqual([1.0, 2.0, 3.0]);
+    expect(drift10.blurredDprs).toEqual([]);
+    expect(drift10.defects.length).toBe(0);
+
+    // 4/3 px (1.3333px) border: crisp at 1.5x and 3.0x, blurred at 1.0x and 2.0x
+    const drift133 = evaluateSubpixelDrift(4 / 3, [1.0, 1.5, 2.0, 3.0]);
+    expect(drift133.crispDprs).toEqual([1.5, 3.0]);
+    expect(drift133.blurredDprs).toEqual([1.0, 2.0]);
+  });
+
+  it("evaluates edge contrast degradation and nominal vs effective contrast with evaluateEdgeContrast", () => {
+    // Crisp 1.0px at 1.0x DPR -> no degradation, passes contrast threshold
+    const crispContrast = evaluateEdgeContrast(1.0, 1.0, 4.5, 3.0);
+    expect(crispContrast.isCrisp).toBe(true);
+    expect(crispContrast.roundingError).toBe(0);
+    expect(crispContrast.effectiveContrastRatio).toBe(4.5);
+    expect(crispContrast.contrastDegradationPct).toBe(0);
+    expect(crispContrast.passesContrastThreshold).toBe(true);
+
+    // Fractional 0.5px at 1.0x DPR -> rounding error 0.5, contrast degraded
+    const blurredContrast = evaluateEdgeContrast(0.5, 1.0, 4.5, 3.0);
+    expect(blurredContrast.isCrisp).toBe(false);
+    expect(blurredContrast.roundingError).toBe(0.5);
+    expect(blurredContrast.effectiveContrastRatio).toBeLessThan(4.5);
+    expect(blurredContrast.contrastDegradationPct).toBeGreaterThan(0);
+
+    // Crisp 0.5px at 2.0x DPR (Retina) -> physical 1.0px, no degradation
+    const retinaContrast = evaluateEdgeContrast(0.5, 2.0, 4.5, 3.0);
+    expect(retinaContrast.isCrisp).toBe(true);
+    expect(retinaContrast.roundingError).toBe(0);
+    expect(retinaContrast.effectiveContrastRatio).toBe(4.5);
+  });
+
+  it("evaluates ElementPhysicsSnapshot bounds and transforms with validateElementSubpixelPhysics and evaluateElementSubpixelPhysics", () => {
+    const cleanElement: ElementPhysicsSnapshot = {
+      selector: "button.submit-btn",
+      tagName: "BUTTON",
+      bounds: { x: 100, y: 200, width: 120, height: 48 },
+    };
+
+    const cleanResult = validateElementSubpixelPhysics(cleanElement, 2.0);
+    expect(cleanResult.isCompliant).toBe(true);
+    expect(cleanResult.defects.length).toBe(0);
+
+    const jitterElement: ElementPhysicsSnapshot = {
+      selector: "div.jittery-box",
+      tagName: "DIV",
+      bounds: { x: 10.33, y: 20.67, width: 99.45, height: 49.88 },
+      computedStyles: {
+        transform: "translate(0.5px, 0.5px)",
+      },
+    };
+
+    const jitterResult = evaluateElementSubpixelPhysics(jitterElement, 1.0);
+    expect(jitterResult.isCompliant).toBe(false);
+    expect(jitterResult.defects.length).toBeGreaterThan(0);
+  });
+
+  it("supports devicePixelRatio parameter and validation options in validateSubpixelBorders", () => {
+    // Single devicePixelRatio property in input
+    const singleDprInput: SubpixelElementInput = {
+      selector: "header.app-bar",
+      bounds: { x: 0, y: 0, width: 390, height: 50 },
+      borderWidth: 1 / 3,
+      devicePixelRatio: 3.0,
+    };
+
+    const singleResult = validateSubpixelBorders(singleDprInput);
+    expect(singleResult.evaluatedDprs).toEqual([3.0]);
+    expect(singleResult.isCompliant).toBe(true);
+
+    // Override via SubpixelValidationOptions
+    const optionsResult = validateSubpixelBorders(
+      {
+        selector: "div.card",
+        bounds: { x: 0, y: 0, width: 200, height: 100 },
+        borderWidth: 0.5,
+      },
+      { devicePixelRatio: 2.0 },
+    );
+    expect(optionsResult.evaluatedDprs).toEqual([2.0]);
+    expect(optionsResult.isCompliant).toBe(true);
+  });
 });
 
 describe("Extended Heuristics: Multi-Viewport Manifest & 4 Pillars Hierarchy", () => {
@@ -651,6 +1044,127 @@ describe("Extended Heuristics: Multi-Viewport Manifest & 4 Pillars Hierarchy", (
     expect(normalizePillar("ux_ergonomics")).toBe("ux");
     expect(normalizePillar("ux-ergonomics")).toBe("ux");
     expect(normalizePillar("unknown")).toBeNull();
+  });
+
+  it("evaluates CANONICAL_VIEWPORT_SPECS and computePhysicalViewportMetrics across all canonical viewports and DPR scales", () => {
+    // 1. desktop-wide (1920x1080 @ 1x / 2x)
+    const wide1x = computePhysicalViewportMetrics("desktop-wide", 1.0);
+    expect(wide1x.cssWidth).toBe(1920);
+    expect(wide1x.cssHeight).toBe(1080);
+    expect(wide1x.dpr).toBe(1.0);
+    expect(wide1x.physicalWidth).toBe(1920);
+    expect(wide1x.physicalHeight).toBe(1080);
+    expect(wide1x.totalPhysicalPixels).toBe(1920 * 1080);
+    expect(wide1x.isRetinaOrHiDpi).toBe(false);
+
+    const wide2x = computePhysicalViewportMetrics("desktop-wide", 2.0);
+    expect(wide2x.physicalWidth).toBe(3840);
+    expect(wide2x.physicalHeight).toBe(2160);
+    expect(wide2x.totalPhysicalPixels).toBe(3840 * 2160);
+    expect(wide2x.isRetinaOrHiDpi).toBe(true);
+
+    // 2. desktop (1440x900 @ 1x / 2x)
+    const desk1x = computePhysicalViewportMetrics("desktop", 1.0);
+    expect(desk1x.cssWidth).toBe(1440);
+    expect(desk1x.cssHeight).toBe(900);
+    expect(desk1x.physicalWidth).toBe(1440);
+    expect(desk1x.physicalHeight).toBe(900);
+
+    const desk2x = computePhysicalViewportMetrics("desktop", 2.0);
+    expect(desk2x.physicalWidth).toBe(2880);
+    expect(desk2x.physicalHeight).toBe(1800);
+    expect(desk2x.isRetinaOrHiDpi).toBe(true);
+
+    // 3. tablet (768x1024 @ 2x)
+    const tablet2x = computePhysicalViewportMetrics("tablet");
+    expect(tablet2x.cssWidth).toBe(768);
+    expect(tablet2x.cssHeight).toBe(1024);
+    expect(tablet2x.dpr).toBe(2.0);
+    expect(tablet2x.physicalWidth).toBe(1536);
+    expect(tablet2x.physicalHeight).toBe(2048);
+    expect(tablet2x.isRetinaOrHiDpi).toBe(true);
+
+    // 4. mobile (390x844 @ 3x Super Retina)
+    const mobile3x = computePhysicalViewportMetrics("mobile");
+    expect(mobile3x.cssWidth).toBe(390);
+    expect(mobile3x.cssHeight).toBe(844);
+    expect(mobile3x.dpr).toBe(3.0);
+    expect(mobile3x.physicalWidth).toBe(1170);
+    expect(mobile3x.physicalHeight).toBe(2532);
+    expect(mobile3x.isRetinaOrHiDpi).toBe(true);
+  });
+
+  it("synthesizes DPR-aware companion manifest with synthesizeDprAwareCompanionManifest", () => {
+    for (const vp of CANONICAL_VIEWPORTS) {
+      const manifest = synthesizeDprAwareCompanionManifest(vp);
+      expect(manifest.verdict).toBe("CERTIFIED");
+      expect(manifest.viewport).toBe(vp);
+      expect(manifest.criteria.length).toBeGreaterThanOrEqual(4);
+      expect(manifest.criteria.every((c) => c.passed)).toBe(true);
+      expect(manifest.pillars.mechanical.passed).toBe(true);
+      expect(manifest.pillars.cognitive.passed).toBe(true);
+      expect(manifest.pillars.product?.passed).toBe(true);
+      expect(manifest.pillars.ux?.passed).toBe(true);
+
+      const audit = auditSingleViewportManifest(vp, manifest, {
+        viewport: vp,
+        sizeBytes: 4096,
+      });
+      expect(audit.passed).toBe(true);
+      expect(audit.physicalMetrics).toBeDefined();
+      expect(audit.dpr).toBe(CANONICAL_VIEWPORT_SPECS[vp].defaultDpr);
+    }
+  });
+
+  it("verifies multi-viewport bundle with DPR overrides and per-entry DPR settings", () => {
+    const input: MultiViewportBundleInput = {
+      entries: [
+        {
+          viewport: "desktop-wide",
+          manifest: synthesizeDprAwareCompanionManifest("desktop-wide", { dpr: 2.0 }),
+          screenshot: { viewport: "desktop-wide", sizeBytes: 20000, dpr: 2.0 },
+          devicePixelRatio: 2.0,
+        },
+        {
+          viewport: "desktop",
+          manifest: synthesizeDprAwareCompanionManifest("desktop", { dpr: 1.0 }),
+          screenshot: { viewport: "desktop", sizeBytes: 15000, dpr: 1.0 },
+          devicePixelRatio: 1.0,
+        },
+        {
+          viewport: "tablet",
+          manifest: synthesizeDprAwareCompanionManifest("tablet", { dpr: 2.0 }),
+          screenshot: { viewport: "tablet", sizeBytes: 12000, dpr: 2.0 },
+          devicePixelRatio: 2.0,
+        },
+        {
+          viewport: "mobile",
+          manifest: synthesizeDprAwareCompanionManifest("mobile", { dpr: 3.0 }),
+          screenshot: { viewport: "mobile", sizeBytes: 10000, dpr: 3.0 },
+          devicePixelRatio: 3.0,
+        },
+      ],
+      dprOverrides: {
+        "desktop-wide": 2.0,
+        desktop: 1.0,
+        tablet: 2.0,
+        mobile: 3.0,
+      },
+    };
+
+    const result = verifyMultiViewportManifests(input);
+    expect(result.passed).toBe(true);
+    expect(result.verifiedViewports.length).toBe(4);
+
+    const mobileAudit = result.viewportAudits.find((a) => a.viewport === "mobile");
+    const tabletAudit = result.viewportAudits.find((a) => a.viewport === "tablet");
+    const desktopAudit = result.viewportAudits.find((a) => a.viewport === "desktop");
+    const desktopWideAudit = result.viewportAudits.find((a) => a.viewport === "desktop-wide");
+
+    expect(desktopWideAudit?.physicalMetrics?.physicalWidth).toBe(3840);
+    expect(desktopAudit?.physicalMetrics?.physicalWidth).toBe(1440);
+    expect(tabletAudit?.physicalMetrics?.physicalWidth).toBe(1536);
+    expect(mobileAudit?.physicalMetrics?.physicalWidth).toBe(1170);
   });
 });
 
@@ -878,8 +1392,13 @@ describe("Static Invariant Verification: Zero TypeScript any & Zero Suppressions
 
       const invalidLines = lines.filter((line, idx) => {
         // If auditing this test file itself, ignore lines inside the invariant test block
-        if (filePath.endsWith("heuristics-edge-cases.test.ts") && idx >= 845) {
-          return false;
+        if (filePath.endsWith("heuristics-edge-cases.test.ts")) {
+          const invariantBlockIdx = lines.findIndex((l) =>
+            l.includes("describe(\"Static Invariant Verification"),
+          );
+          if (invariantBlockIdx !== -1 && idx >= invariantBlockIdx) {
+            return false;
+          }
         }
         return (
           forbiddenAnyForms.some((token) => line.includes(token)) ||
