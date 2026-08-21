@@ -230,6 +230,20 @@ describe("Round 3: Finding Screenshots & Evidence Extraction", () => {
     expect(gifShot?.mimeType).toBe("image/gif");
   });
 
+  test("falls back from a screenshot object's url, to its path, to its reference", () => {
+    const finding = {
+      id: "F-URL-FALLBACK",
+      screenshots: [{ path: "evidence/screenshots/from-path.png" }],
+      screenshot: { reference: "evidence/screenshots/from-reference.png" },
+    };
+
+    const extracted = extractFindingScreenshots(finding, "F-URL-FALLBACK");
+    expect(extracted.map((shot) => shot.url)).toEqual([
+      "evidence/screenshots/from-path.png",
+      "evidence/screenshots/from-reference.png",
+    ]);
+  });
+
   test("normalizes MIME types for every supported image extension and measures no dimensions", () => {
     const extensions = [
       { ext: "png", expectedMime: "image/png" },

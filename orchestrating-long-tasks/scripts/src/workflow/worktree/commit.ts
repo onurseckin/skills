@@ -2,7 +2,7 @@ import { isJsonObject } from "../../contracts/json.ts";
 import type { WorktreeCommitRecord } from "../../contracts/worktree.ts";
 import { HarnessError } from "../../errors/harness-error.ts";
 import { transact } from "../../store/index.ts";
-import { commitChangedLines, stageAndCommit } from "./git-ops.ts";
+import { commitChangedLines, runGit, stageAndCommit, type GitRunner } from "./git-ops.ts";
 import { readWorktreeLedger, writeWorktreeLedger } from "./ledger.ts";
 
 const CONVENTIONAL_COMMIT_TYPES = new Set([
@@ -47,6 +47,7 @@ export interface CommitSubphaseInput {
   commitType: string;
   maxCommitLines: number;
   now?: Date;
+  runner?: GitRunner;
 }
 
 export interface CommitSubphaseOutcome {
@@ -66,10 +67,11 @@ export function commitSubphase(input: CommitSubphaseInput): CommitSubphaseOutcom
   if (input.writeScope.length === 0) {
     throw new HarnessError("INVALID_ARGUMENT", `task ${input.taskId} has no write scope to commit`);
   }
+  const runner = input.runner ?? runGit;
   const subject = buildSubject(commitType, input.label);
-  const sha = stageAndCommit(input.worktreePath, input.writeScope.map(toPathspec), subject);
+  const sha = stageAndCommit(input.worktreePath, input.writeScope.map(toPathspec), subject, runner);
   if (sha === null) return { committed: false };
-  const changedLines = commitChangedLines(input.worktreePath, sha);
+  const changedLines = commitChangedLines(input.worktreePath, sha, runner);
   const overLimit = changedLines > input.maxCommitLines;
   const commit: WorktreeCommitRecord = {
     task_id: input.taskId,

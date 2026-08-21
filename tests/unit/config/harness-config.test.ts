@@ -100,6 +100,16 @@ describe("harness-config", () => {
     expect(config.default_lease_seconds).toBe(DEFAULT_RESOLVED_CONFIG.default_lease_seconds);
   });
 
+  test("falls back to capsule harness.config.json when capsule config.json is absent", () => {
+    const repoDir = makeTempDir("repo-layer-capsule-fallback");
+    const capDir = makeTempDir("capsule-layer-fallback");
+
+    writeFileSync(join(capDir, "harness.config.json"), JSON.stringify({ max_repair_rounds: 9 }));
+
+    const config = resolveHarnessConfig(repoDir, capDir, NO_HOST_CEILING);
+    expect(config.max_repair_rounds).toBe(9);
+  });
+
   test("gracefully recovers from invalid JSON or non-object files", () => {
     const dir = makeTempDir("invalid-json-recovery");
     writeFileSync(join(dir, "harness.config.json"), "{ invalid-json }");

@@ -6,12 +6,19 @@ import { join } from "node:path";
 import {
   appendGateProof,
   latestGateProof,
+  nodeSpawnGate,
   proveGateFalsifiable,
   readGateProofs,
   type GateProofRecord,
+  type GateSpawn,
 } from "../../../orchestrating-long-tasks/scripts/src/graph/gate-proof.ts";
 import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
 import type { JsonObject } from "../../../orchestrating-long-tasks/scripts/src/contracts/json.ts";
+import type {
+  RepositoryGitCommand,
+  RepositoryGitResult,
+} from "../../../orchestrating-long-tasks/scripts/src/packets/repository-git-command.ts";
+import { scratchRoot } from "../../support/scratch-root.ts";
 
 const roots: string[] = [];
 afterAll(() => {
@@ -163,6 +170,94 @@ describe("proveGateFalsifiable", () => {
         maxFiles: 0,
       }),
     ).toThrow(HarnessError);
+  });
+});
+
+/** A directory carrying only a real `.git` marker — `hasRepositoryGitMetadata` only needs that
+ *  directory to exist; every actual `git` invocation is intercepted by the fake below instead. */
+function repoWithoutRealGit(label: string): string {
+  const repo = scratchRoot(import.meta.path, label);
+  mkdirSync(join(repo, ".git"));
+  return repo;
+}
+
+/** Scripts `repositoryGit` by argv[0] (ls-files / ls-tree / show), the three subcommands
+ *  `proveGateFalsifiable` issues. Lets these tests reach branches that depend on exact Git
+ *  plumbing output (an untracked scope, a nested directory, an unsupported blob mode) without
+ *  spawning a real `git` process — the injected `GateProveDependencies.git` seam exists for
+ *  exactly this. */
+function fakeGit(script: Record<string, RepositoryGitResult>): RepositoryGitCommand {
+  return (_repo, argv) => {
+    const verb = argv[0] ?? "";
+    const scripted = script[verb];
+    if (!scripted) throw new Error(`fakeGit: no script for ${argv.join(" ")}`);
+    return scripted;
+  };
+}
+
+const noopSpawn: GateSpawn = () => ({ status: 0, stdout: "", stderr: "", timedOut: false });
+
+describe("proveGateFalsifiable with a scripted git dependency", () => {
+  test("a write-scope entry absent from both history and the working tree restores nothing", () => {
+    const repo = repoWithoutRealGit("ghost-scope");
+    const git = fakeGit({
+      "ls-files": { status: 0, bytes: Buffer.from("") },
+      "ls-tree": { status: 0, bytes: Buffer.from("") },
+    });
+    const result = proveGateFalsifiable(
+      { repoRoot: repo, writeScope: ["never-existed"], gateArgv: ["true"] },
+      { git, spawn: noopSpawn },
+    );
+    expect(result.restoredPaths).toEqual([]);
+    expect(result.deletedPaths).toEqual([]);
+  });
+
+  test("reverting a directory walks into a nested subdirectory to delete a file the base never had", () => {
+    const repo = repoWithoutRealGit("nested-scope");
+    mkdirSync(join(repo, "src/db/nested"), { recursive: true });
+    writeFileSync(join(repo, "src/db/index.ts"), "export const a = 2;\n");
+    writeFileSync(join(repo, "src/db/nested/deep.ts"), "export const b = 1;\n");
+    const git = fakeGit({
+      "ls-files": {
+        status: 0,
+        bytes: Buffer.from("src/db/index.ts\0src/db/nested/deep.ts\0"),
+      },
+      // At the base commit only index.ts existed; nested/deep.ts is new.
+      "ls-tree": { status: 0, bytes: Buffer.from("100644 blob abc123\tsrc/db/index.ts\n") },
+      show: { status: 0, bytes: Buffer.from("export const a = 1;\n") },
+    });
+    const result = proveGateFalsifiable(
+      { repoRoot: repo, writeScope: ["src/db"], gateArgv: ["true"] },
+      { git, spawn: noopSpawn },
+    );
+    expect(result.restoredPaths).toEqual(["src/db/index.ts"]);
+    expect(result.deletedPaths).toEqual(["src/db/nested/deep.ts"]);
+  });
+
+  test("refuses to revert a symlink or submodule recorded in the write scope", () => {
+    const repo = repoWithoutRealGit("unsupported-blob-mode");
+    const git = fakeGit({
+      "ls-files": { status: 0, bytes: Buffer.from("") },
+      "ls-tree": { status: 0, bytes: Buffer.from("120000 blob abc123\tsrc/link\n") },
+    });
+    expect(() =>
+      proveGateFalsifiable(
+        { repoRoot: repo, writeScope: ["src/link"], gateArgv: ["true"] },
+        { git, spawn: noopSpawn },
+      ),
+    ).toThrow(/symlink or submodule/);
+  });
+});
+
+describe("nodeSpawnGate", () => {
+  test("surfaces a process that never started as a HarnessError, not a raw spawn error", () => {
+    const cwd = scratchRoot(import.meta.path, "missing-binary");
+    expect(() => nodeSpawnGate(["definitely-not-a-real-binary-8f3c2b"], cwd, 5_000)).toThrow(
+      HarnessError,
+    );
+    expect(() => nodeSpawnGate(["definitely-not-a-real-binary-8f3c2b"], cwd, 5_000)).toThrow(
+      "gate command failed to start",
+    );
   });
 });
 

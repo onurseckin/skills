@@ -98,9 +98,12 @@ export function runCompleteCommand(flags: Flags): Record<string, unknown> {
     authToken,
   );
 
+  let summaryWarning: string | undefined;
   try {
     generateSummarySuite({ capsulePath: run, writeToDisk: true });
-  } catch {}
+  } catch (error) {
+    summaryWarning = error instanceof Error ? error.message : String(error);
+  }
 
   const handoffPath = refreshHandoff(run);
 
@@ -134,6 +137,7 @@ export function runCompleteCommand(flags: Flags): Record<string, unknown> {
     completion: state.completion_result,
     ...(handoffPath === undefined ? {} : { handoff_path: handoffPath }),
     ...(consolidation === undefined ? {} : { worktree_consolidation: consolidation }),
+    ...(summaryWarning === undefined ? {} : { summary_warning: summaryWarning }),
   };
 }
 
@@ -271,12 +275,16 @@ export async function runExecCommand(
       if (lastAttempt.stdoutPath) {
         stdoutStr = readFileSync(lastAttempt.stdoutPath, "utf-8");
       }
-    } catch {}
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+    }
     try {
       if (lastAttempt.stderrPath) {
         stderrStr = readFileSync(lastAttempt.stderrPath, "utf-8");
       }
-    } catch {}
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+    }
   }
 
   ingestScreenshots({

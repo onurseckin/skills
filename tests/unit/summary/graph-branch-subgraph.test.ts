@@ -157,6 +157,23 @@ describe("branch subgraphs", () => {
     );
   });
 
+  test("a sub-task that has not yet been claimed renders as pending", () => {
+    const dataset = datasetWithBranch(
+      branch({
+        sub_tasks: [
+          {
+            id: "B-1-unclaimed",
+            label: "Not yet picked up",
+            write_scope: ["src/db/unclaimed.ts"],
+            status: "open",
+          },
+        ],
+      }),
+    );
+    const node = dataset.nodes.find((entry) => entry.id === "node-branch-B-1-B-1-unclaimed");
+    expect(node?.status).toBe("pending");
+  });
+
   test("counts branches on the plan node", () => {
     const dataset = datasetWithBranch();
     const plan = dataset.nodes.find((node) => node.id === "node-orchestrator-plan");

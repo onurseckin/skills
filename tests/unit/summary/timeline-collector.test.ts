@@ -201,6 +201,40 @@ describe("timeline collector", () => {
     expect(timeline[2]!.summary).toBe("Completeness critic review completed (no verdict recorded)");
   });
 
+  test("lease-renewed and lease-revoked each name the task the lease belongs to", () => {
+    const timeline = collectTimeline([
+      createEvent("lease-renewed", { task_id: "T-1" }, 1),
+      createEvent("lease-revoked", { task_id: "T-1" }, 2),
+    ]);
+    expect(timeline[0]!.phase).toBe("execution");
+    expect(timeline[0]!.summary).toBe("Lease renewed for task T-1 by test-actor");
+    expect(timeline[0]!.task_id).toBe("T-1");
+    expect(timeline[1]!.summary).toBe("Lease revoked for task T-1");
+    expect(timeline[1]!.task_id).toBe("T-1");
+  });
+
+  test("command-intent-recorded and command-reconciled each state the command's own progress", () => {
+    const timeline = collectTimeline([
+      createEvent("command-intent-recorded", { task_id: "T-1", command_id: "C-1" }, 1),
+      createEvent("command-reconciled", { command_id: "C-1", status: "succeeded" }, 2),
+      createEvent("command-reconciled", { command_id: "C-2" }, 3),
+      // No task_id on either: phase falls to "system" rather than "execution".
+      createEvent("command-intent-recorded", { command_id: "C-3" }, 4),
+    ]);
+    expect(timeline[0]!.phase).toBe("execution");
+    expect(timeline[0]!.summary).toBe("Command C-1 started");
+    expect(timeline[0]!.command_id).toBe("C-1");
+    expect(timeline[1]!.summary).toBe("Command C-1 finished (succeeded)");
+    expect(timeline[2]!.summary).toBe("Command C-2 reconciled");
+    expect(timeline[3]!.phase).toBe("system");
+  });
+
+  test("tasks-unblocked states a fixed, self-explanatory summary", () => {
+    const [entry] = collectTimeline([createEvent("tasks-unblocked", {}, 1)]);
+    expect(entry!.phase).toBe("execution");
+    expect(entry!.summary).toBe("Downstream tasks unblocked and marked ready");
+  });
+
   // Regression guard for the wiring itself, not just `step-event-summaries.ts` in isolation: a
   // real fixture run (`.tmp/fixture-build/build-fixture.ts`) had 42 of 78 recorded steps fall to
   // the fully generic `Event <kind> recorded by <actor>` before this case existed, which is what
@@ -380,5 +414,44 @@ describe("collectActionSteps", () => {
       createEvent("task-cancelled", { task_id: "T-1" }, 2),
     ]);
     expect(steps.every((step) => step.outcome === "success")).toBe(true);
+  });
+
+  test("gate-started buckets as a gate action, and plan-init/plan-audit-accepted as plan actions", () => {
+    const steps = collectActionSteps([
+      createEvent("gate-started", { task_id: "T-1" }, 1),
+      createEvent("plan-init", {}, 2),
+      createEvent("plan-audit-accepted", { invariant: "x" }, 3),
+    ]);
+    expect(steps.map((step) => step.kind)).toEqual(["gate", "plan", "plan"]);
+  });
+
+  test("gate-completed's outcome reads verdict or status, and is unknown when neither is stated", () => {
+    const steps = collectActionSteps([
+      createEvent("gate-completed", { task_id: "T-1", verdict: "pass" }, 1),
+      createEvent("gate-completed", { task_id: "T-1", status: "pass" }, 2),
+      createEvent("gate-completed", { task_id: "T-1", verdict: "reject" }, 3),
+      createEvent("gate-completed", { task_id: "T-1" }, 4),
+    ]);
+    expect(steps.map((step) => step.outcome)).toEqual(["success", "success", "failure", "unknown"]);
+  });
+
+  test("critic-reviewed's outcome treats clean and pass as success, anything else stated as failure", () => {
+    const steps = collectActionSteps([
+      createEvent("critic-reviewed", { verdict: "clean" }, 1),
+      createEvent("critic-reviewed", { verdict: "pass" }, 2),
+      createEvent("critic-reviewed", { verdict: "findings" }, 3),
+      createEvent("critic-reviewed", {}, 4),
+    ]);
+    expect(steps.map((step) => step.outcome)).toEqual(["success", "success", "failure", "unknown"]);
+  });
+
+  test("command-reconciled's outcome treats failed and error as failure, anything else stated as success", () => {
+    const steps = collectActionSteps([
+      createEvent("command-reconciled", { command_id: "C-1", status: "failed" }, 1),
+      createEvent("command-reconciled", { command_id: "C-2", status: "error" }, 2),
+      createEvent("command-reconciled", { command_id: "C-3", status: "succeeded" }, 3),
+      createEvent("command-reconciled", { command_id: "C-4" }, 4),
+    ]);
+    expect(steps.map((step) => step.outcome)).toEqual(["failure", "failure", "success", "unknown"]);
   });
 });

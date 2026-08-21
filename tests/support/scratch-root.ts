@@ -43,19 +43,16 @@ function shortDigest(value: string): string {
   return createHash("sha256").update(value).digest("hex").slice(0, 10);
 }
 
-// Bun evaluates a module fresh for every test FILE that imports it — even under --no-isolate,
-// which only skips re-evaluation BETWEEN tests inside the same file. So this state (the counter
-// map, the pending-roots list, and the afterEach registration below) is scoped to exactly the one
-// file that imported scratchRoot, and can never observe another file's labels, counters, or
-// cleanup. See tests/unit/support/scratch-root.test.ts's "module scoping" case for a proof.
+// Under `bun test --no-isolate` *without* `--parallel`, every test file in the run can share this
+// one module evaluation — the whole suite's counters and, formerly, a single shared roots array
+// and one top-of-file `afterEach` all lived here. That single hook attaches to whichever file's
+// collection phase happened to trigger this module's first evaluation, so every *other* file
+// sharing it never got a working teardown at all: exactly the leak
+// tests/unit/support/scratch-root.test.ts's "the previous test's root is already gone" case
+// caught. `callsPerKey` alone is still safe to share (it's keyed by the caller's own relative
+// path, so two files never collide on it); cleanup can't be, so scratchRoot() registers its own
+// afterEach per call below instead of relying on one hook shared module-wide.
 const callsPerKey = new Map<string, number>();
-const rootsThisFile: string[] = [];
-
-afterEach(() => {
-  for (const root of rootsThisFile.splice(0)) {
-    rmSync(root, { recursive: true, force: true });
-  }
-});
 
 /**
  * Returns a scratch directory that is:
@@ -67,8 +64,12 @@ afterEach(() => {
  *  - clean: force-removed before creation, so even a directory a prior *crashed* run left behind
  *    at the same deterministic path (killed before its afterEach ran) can't leak stale content
  *    into this test — the one thing mkdtemp's random suffix used to give for free.
- *  - self-cleaning: torn down automatically in this file's own `afterEach`. Callers never write
- *    their own roots array or cleanup hook.
+ *  - self-cleaning: this call registers its own one-shot `afterEach` for this one root before
+ *    returning it. Callers never write their own roots array or cleanup hook. Registering fresh
+ *    per call (rather than once, at module load, into a shared array) is deliberate: a hook
+ *    `bun:test` attaches while a test is already running is scoped to that test alone, so it's
+ *    the only registration style that stays correct even when this module is evaluated once and
+ *    shared by several test files — see the comment above `callsPerKey` for why that matters here.
  *
  * `callerPath` must be `import.meta.path` taken from the CALLING test file, not this module — that
  * namespaces the root by real, unambiguous file identity instead of a hand-typed prefix that could
@@ -89,6 +90,8 @@ export function scratchRoot(callerPath: string, label: string): string {
   const root = join(SCRATCH_BASE, dirName);
   rmSync(root, { recursive: true, force: true });
   mkdirSync(root, { recursive: true });
-  rootsThisFile.push(root);
+  afterEach(() => {
+    rmSync(root, { recursive: true, force: true });
+  });
   return root;
 }

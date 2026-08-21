@@ -1,5 +1,5 @@
 import { afterAll, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -63,6 +63,19 @@ describe("expandScopeEntry", () => {
     const repo = fixtureRepo();
     mkdirSync(join(repo, "src/empty"), { recursive: true });
     expect(expandScopeEntry(repo, "src/empty")).toEqual(["src/empty"]);
+  });
+
+  test("an unreadable nested directory is skipped rather than crashing the walk", () => {
+    const repo = fixtureRepo();
+    mkdirSync(join(repo, "src/db/locked"), { recursive: true });
+    writeFileSync(join(repo, "src/db/index.ts"), "");
+    writeFileSync(join(repo, "src/db/locked/hidden.ts"), "");
+    chmodSync(join(repo, "src/db/locked"), 0o000);
+    try {
+      expect(expandScopeEntry(repo, "src/db")).toEqual(["src/db/index.ts"]);
+    } finally {
+      chmodSync(join(repo, "src/db/locked"), 0o755);
+    }
   });
 
   test("root-like entries are never walked", () => {

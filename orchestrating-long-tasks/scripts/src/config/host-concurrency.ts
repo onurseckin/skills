@@ -20,21 +20,31 @@ export function discoverHostConcurrencyCeiling(
   return { value, hostTool: probe.host_tool };
 }
 
-function safeParallelism(): number {
+export interface ParallelismProbes {
+  readonly availableParallelism?: () => number;
+  readonly cpuCount?: () => number;
+}
+
+function safeParallelism(probes: ParallelismProbes = {}): number {
+  const probeAvailableParallelism = probes.availableParallelism ?? availableParallelism;
   try {
-    if (typeof availableParallelism === "function") {
-      const detected = availableParallelism();
+    if (typeof probeAvailableParallelism === "function") {
+      const detected = probeAvailableParallelism();
       if (Number.isInteger(detected) && detected >= 1) return detected;
     }
   } catch {}
+  const probeCpuCount = probes.cpuCount ?? (() => cpus().length);
   try {
-    const count = cpus().length;
+    const count = probeCpuCount();
     if (Number.isInteger(count) && count >= 1) return count;
   } catch {}
   return 1;
 }
 
-export function deriveGateConcurrencyCeiling(cpuCount?: number): number {
-  const cores = cpuCount ?? safeParallelism();
+export function deriveGateConcurrencyCeiling(
+  cpuCount?: number,
+  probes?: ParallelismProbes,
+): number {
+  const cores = cpuCount ?? safeParallelism(probes);
   return Math.max(1, Math.floor(cores / 2));
 }

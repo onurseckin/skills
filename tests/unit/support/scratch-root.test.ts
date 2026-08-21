@@ -112,6 +112,13 @@ describe("scratchRoot across real process boundaries", () => {
     return line.slice(marker.length);
   }
 
+  function extractAll(stdout: string, marker: string): string[] {
+    return stdout
+      .split("\n")
+      .filter((entry) => entry.startsWith(marker))
+      .map((entry) => entry.slice(marker.length));
+  }
+
   test("two independent processes derive the identical path and each tears down on its own", async () => {
     const first = await runFixture("print-scratch-root.fixture.ts");
     expect(first.exitCode).toBe(0);
@@ -145,5 +152,35 @@ describe("scratchRoot across real process boundaries", () => {
     // Reused the exact same path as a crashed run's leftover, yet reports no stale marker: proof
     // scratchRoot() force-removed it before handing the directory back.
     expect(extract(second.stdout, "STALE_MARKER_PRESENT::")).toBe("false");
+  }, 15000);
+
+  // Regression coverage for the leak this module's cleanup used to have: a single top-of-file
+  // `afterEach`, registered once at module load, only ever attached to whichever file's
+  // collection phase happened to trigger that one evaluation. `bun test --no-isolate` *without*
+  // `--parallel` is the one mode that genuinely shares one module instance across different test
+  // files (proven by spawning two distinct files below in that exact mode, not simulated
+  // in-process) — so it's the only way to falsify "every importing file gets its own working
+  // teardown," which per-call afterEach registration (see scratchRoot()'s own doc comment) fixes
+  // for good, independent of whichever file happened to import the module first.
+  test("two different files sharing one module instance each still tear down their own root", async () => {
+    const child = Bun.spawn(
+      [
+        "bun",
+        "test",
+        "--no-isolate",
+        join(FIXTURES_DIR, "print-scratch-root.fixture.ts"),
+        join(FIXTURES_DIR, "print-scratch-root-second.fixture.ts"),
+      ],
+      { stdout: "pipe", stderr: "pipe" },
+    );
+    const [exitCode, stdout] = await Promise.all([child.exited, new Response(child.stdout).text()]);
+    expect(exitCode).toBe(0);
+    const paths = extractAll(stdout, "SCRATCH_ROOT::");
+    expect(paths).toHaveLength(2);
+    expect(paths[0]).not.toBe(paths[1]);
+    for (const path of paths) {
+      spawnedRoots.push(path);
+      expect(existsSync(path)).toBe(false);
+    }
   }, 15000);
 });

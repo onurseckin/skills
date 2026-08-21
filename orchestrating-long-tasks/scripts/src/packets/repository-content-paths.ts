@@ -32,6 +32,7 @@ function directoryPaths(
   repo: string,
   maximum: number,
   policy: Readonly<RepositoryContentScanPolicy>,
+  maxEntries: number = MAX_DIRECTORY_ENTRIES,
 ): RepositoryContentPath[] {
   const found: RepositoryContentPath[] = [];
   const pending = [repo];
@@ -50,7 +51,7 @@ function directoryPaths(
         },
         closeSync: () => opened.closeSync(),
       },
-      MAX_DIRECTORY_ENTRIES - visited,
+      maxEntries - visited,
       () => new HarnessError("INTEGRITY", "repository content traversal limit exceeded"),
       Buffer.compare,
     );
@@ -80,11 +81,12 @@ export function repositoryContentPaths(
   repo: string,
   maximum: number,
   policy: Readonly<RepositoryContentLimits> = DEFAULT_REPOSITORY_CONTENT_POLICY,
+  maxEntries: number = MAX_DIRECTORY_ENTRIES,
 ): RepositoryContentPath[] {
   const configured = resolveRepositoryContentPolicy(policy);
   const values = gitRepository(repo)
     ? gitRepositoryPaths(repo, maximum, configured)
-    : directoryPaths(repo, maximum, configured);
+    : directoryPaths(repo, maximum, configured, maxEntries);
   const paths = values
     .map(({ path, index }) => ({ path: validateRepositoryContentPath(path, configured), index }))
     .filter(({ path }) => !excluded(path))

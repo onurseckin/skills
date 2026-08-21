@@ -32,6 +32,21 @@ describe("canonical common packet instructions", () => {
     expect(() =>
       verifyCommonInstructions({ bytes: new Uint8Array([0]), sha256: "invalid" }),
     ).toThrow();
+    // A lone UTF-8 continuation byte is never valid on its own — TextDecoder's fatal mode
+    // rejects it, distinct from the digest-mismatch throw exercised just above.
+    expect(() =>
+      verifyCommonInstructions({ bytes: new Uint8Array([0x80]), sha256: "irrelevant" }),
+    ).toThrow("common instructions are not valid UTF-8");
+  });
+
+  test("rejects common instructions that decode to nothing but whitespace", () => {
+    const bytes = new TextEncoder().encode("   \n\t  ");
+    expect(() =>
+      verifyCommonInstructions({
+        bytes,
+        sha256: "0".repeat(64), // wrong on purpose: the emptiness check must fire first
+      }),
+    ).toThrow("common instructions must not be empty");
   });
 
   test("constructs production packets embedding canonical instructions", async () => {

@@ -201,11 +201,14 @@ export function resolveRoleContractPath(role: AgentRole): string {
   return join(ROLES_ROOT, `${role}.md`);
 }
 
-export function loadRoleContract(role: AgentRole): RoleContract {
+export function loadRoleContract(
+  role: AgentRole,
+  read: (path: string) => Uint8Array = readRegularFileNoFollow,
+): RoleContract {
   const path = resolveRoleContractPath(role);
   let bytes: Uint8Array;
   try {
-    bytes = readRegularFileNoFollow(path);
+    bytes = read(path);
   } catch (error) {
     throw new HarnessError("INTEGRITY", `role contract is unreadable: ${path}: ${String(error)}`);
   }
@@ -308,11 +311,14 @@ export function resolveChecklistPath(domain: ValidatorDomain): string {
   return join(CHECKLISTS_ROOT, `${domain}.md`);
 }
 
-export function loadChecklist(domain: ValidatorDomain): Checklist {
+export function loadChecklist(
+  domain: ValidatorDomain,
+  read: (path: string) => Uint8Array = readRegularFileNoFollow,
+): Checklist {
   const path = resolveChecklistPath(domain);
   let bytes: Uint8Array;
   try {
-    bytes = readRegularFileNoFollow(path);
+    bytes = read(path);
   } catch (error) {
     throw new HarnessError("INTEGRITY", `checklist is unreadable: ${path}: ${String(error)}`);
   }
@@ -326,11 +332,14 @@ export function resolveValidatorDomainContractPath(domain: ValidatorDomain): str
   return join(ROLES_ROOT, `validator-${domain}.md`);
 }
 
-export function loadValidatorDomainContract(domain: ValidatorDomain): RoleContract {
+export function loadValidatorDomainContract(
+  domain: ValidatorDomain,
+  read: (path: string) => Uint8Array = readRegularFileNoFollow,
+): RoleContract {
   const path = resolveValidatorDomainContractPath(domain);
   let bytes: Uint8Array;
   try {
-    bytes = readRegularFileNoFollow(path);
+    bytes = read(path);
   } catch (error) {
     throw new HarnessError("INTEGRITY", `role contract is unreadable: ${path}: ${String(error)}`);
   }
@@ -345,7 +354,7 @@ export function loadValidatorDomainContract(domain: ValidatorDomain): RoleContra
       "INTEGRITY",
       `validator domain contract ${path} declares domain ${contract.domain ?? "none"}`,
     );
-  const checklist = loadChecklist(domain);
+  const checklist = loadChecklist(domain, read);
   const text = `${contract.text.trimEnd()}\n\n## Standing checklist: ${checklist.title}\n\n${checklist.text.trim()}\n`;
   const bytes_ = Buffer.concat([
     Buffer.from(contract.bytes),

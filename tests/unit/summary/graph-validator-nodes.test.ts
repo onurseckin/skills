@@ -167,6 +167,29 @@ describe("validator node", () => {
     expect(validator?.badge?.text).toBe("Pushback: 1 Finding");
   });
 
+  test("a validation still in flight, with no verdict recorded yet, reads as auditing", () => {
+    const inFlight = makeTask("T-auditing", {
+      status: "validating",
+      validations: [
+        {
+          validator_id: "val-live",
+          domain: "code-quality",
+          token_digest: "tok",
+          attempt: 1,
+          started_at: "2026-08-14T20:00:00.000Z",
+          deadline_at: "2026-08-14T20:10:00.000Z",
+        },
+      ],
+    });
+    const dataset = generateGraphDataset({
+      runId: "run-auditing",
+      state: makeState([inFlight]),
+    });
+    const validator = dataset.nodes.find((node) => node.id === "node-validator-T-auditing");
+
+    expect(validator?.badge).toEqual({ text: "Auditing", variant: "info", icon: "IconShield" });
+  });
+
   test("announces the probe round on its badge and outputs", () => {
     const dataset = generateGraphDataset({
       runId: "run-validator-probe",
@@ -187,7 +210,7 @@ describe("validator node", () => {
  * its own round-1 node pair, distinct from the live round's — and every edge between them points
  * forward, never back, which is the whole point of retiring the cyclic pushback edge.
  */
-function multiRoundTask(): TaskRecord {
+function multiRoundTask(overrides: Partial<TaskRecord> = {}): TaskRecord {
   return makeTask("T-multi", {
     status: "done",
     repair_round: 1,
@@ -229,6 +252,7 @@ function multiRoundTask(): TaskRecord {
         verdict: "pass",
       },
     ],
+    ...overrides,
   });
 }
 
@@ -285,5 +309,24 @@ describe("an archived round backed by validation_history stays acyclic", () => {
       (edge) => edge.id.endsWith("-T-multi-r1") || edge.id.endsWith("-T-multi"),
     );
     expect(taskEdges.some((edge) => edge.isCycle === true)).toBe(false);
+  });
+
+  test("a replacement decided after an archived round backtracks from that round, not the live one", () => {
+    const dataset = generateGraphDataset({
+      runId: "run-multi-round-backtrack",
+      state: makeState(
+        [multiRoundTask({ replacement_reason: "repeated_failure", repair_assignee: "worker-2" })],
+        { commands: { "C-r1": makeCommand("C-r1", { task_id: "T-multi", actor: "val-r1" }) } },
+      ),
+    });
+
+    const backtrack = dataset.edges.find((edge) => edge.id === "edge-backtrack-T-multi");
+    expect(backtrack?.source).toBe("node-validator-T-multi-r1");
+    expect(backtrack?.target).toBe("node-task-T-multi");
+    expect(backtrack?.container?.title).toBe("Reassigned (repeated_failure)");
+    expect(backtrack?.container?.detail).toBe("Repairer: worker-2");
+    // The plain live-round backtrack path only fires when there is no archived round; here there
+    // is one, so it must not also emit its own competing edge under the same id.
+    expect(dataset.edges.filter((edge) => edge.kind === "backtrack")).toHaveLength(1);
   });
 });

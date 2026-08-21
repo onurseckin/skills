@@ -164,6 +164,25 @@ describe("repository Git availability controls", () => {
     expect(opened).toBeFalse();
   });
 
+  test("rejects a linked-worktree pointer file whose bytes are not valid UTF-8", () => {
+    const root = mkdtempSync(join(tmpdir(), "repository-linked-badutf8-"));
+    roots.push(root);
+    mkdirSync(join(root, "worktree"));
+    mkdirSync(join(root, "metadata"));
+    const repo = realpathSync(join(root, "worktree"));
+    const gitDir = realpathSync(join(root, "metadata"));
+    const pointer = join(repo, ".git");
+    writeFileSync(
+      pointer,
+      Buffer.concat([
+        Buffer.from(`gitdir: ${gitDir}`),
+        Buffer.from([0x80, 0x81]),
+        Buffer.from("\n"),
+      ]),
+    );
+    expect(() => preflightRepositoryGitMetadata(repo)).toThrow(/worktree Git file is not UTF-8/i);
+  });
+
   test("uses a finite timeout and reports timeout as operational invalid state", () => {
     const repo = repository();
     const calls: string[] = [];

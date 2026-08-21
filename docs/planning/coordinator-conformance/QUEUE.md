@@ -100,13 +100,13 @@ This is the same root cause `RAILS.md` already identified for a different sympto
 > A refusal without a prescribed repair is a defect. A weak model refused with no path forward does
 > not re-plan.
 
-There it went *around* the harness by editing files directly. Here it goes *into* the harness by
+There it went _around_ the harness by editing files directly. Here it goes _into_ the harness by
 reading its source. One cause, two symptoms.
 
 Note what is NOT the problem: `harness.ts help plan:add` already emits a complete, excellent contract —
 every flag, type, requirement, default, mutual exclusion, and worked examples. Better help would not
 have prevented this, because the model already ran `help` twice at the start. The gap is entirely in
-what happens when a command is *refused*.
+what happens when a command is _refused_.
 
 Verified: grepping the source for any error carrying a suggested next command returns essentially
 nothing. Errors state what was rejected; none state what to run instead.
@@ -115,11 +115,11 @@ nothing. Errors state what was rejected; none state what to run instead.
 
 Every refusal carries three parts, and the third is currently missing everywhere:
 
-| part | today | required |
-|---|---|---|
-| **what** was rejected | yes | yes |
-| **why** — the rule violated | partly | yes |
-| **fix** — the literal argv to run instead, fully formed with real ids | **no** | **yes** |
+| part                                                                  | today  | required |
+| --------------------------------------------------------------------- | ------ | -------- |
+| **what** was rejected                                                 | yes    | yes      |
+| **why** — the rule violated                                           | partly | yes      |
+| **fix** — the literal argv to run instead, fully formed with real ids | **no** | **yes**  |
 
 Where the harness can compute the fix it must. A gate rejection is the clearest case: `discoverGatePaths`
 (`graph/gate-breadth.ts`) already enumerates real on-disk paths for a write scope and is already used
@@ -136,7 +136,7 @@ harness source; run `harness.ts help <command>` or `harness.ts explain <code>`.
 ### R9 — `harness.ts explain <error-code>`
 
 A command that expands any error code into its full rule, its rationale, and its remedy. This gives a
-refused model a *command to run* in place of a *file to read*, which is the substitution the whole
+refused model a _command to run_ in place of a _file to read_, which is the substitution the whole
 item exists to make.
 
 ### R10 — Runtime freshness must cover every install root

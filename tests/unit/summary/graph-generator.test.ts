@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { generateGraphDataset } from "../../../orchestrating-long-tasks/scripts/src/summary/graph-generator.ts";
-import { makeCommand, makeState, makeTask } from "./graph-fixtures.ts";
+import { makeCommand, makeEvent, makeState, makeTask } from "./graph-fixtures.ts";
 
 function twoTaskDataset() {
   const task1 = makeTask("T-1", {
@@ -91,6 +91,16 @@ describe("graph generator", () => {
     expect(twoTaskDataset().sections).toEqual([]);
   });
 
+  test("a malformed branch ledger is treated as no branches rather than throwing", () => {
+    const state = {
+      ...makeState([makeTask("T-1")]),
+      branches: "not-an-array",
+    } as unknown as ReturnType<typeof makeState>;
+
+    const dataset = generateGraphDataset({ runId: "run-bad-branches", state });
+    expect(dataset.sections).toEqual([]);
+  });
+
   test("routes the implementer to the gate through the validator", () => {
     const dataset = twoTaskDataset();
     const kindOf = (id: string) => dataset.edges.find((edge) => edge.id === id)?.kind;
@@ -150,6 +160,44 @@ describe("graph generator", () => {
     // T-2 filed no report, so it claims no changed files while keeping its scope in metadata.
     expect(two?.files).toEqual([]);
     expect(two?.metadata?.writeScope).toEqual(["src/T-2.ts"]);
+  });
+
+  test("attributes a changed file to the step of the latest matching task-submitted event", () => {
+    const task = makeTask("T-1", {
+      status: "done",
+      report: { summary: "Implemented A", files_changed: ["src/a.ts"] },
+    });
+    const events = [
+      makeEvent("task-submitted", 3, "2026-08-14T20:00:03.000Z", "worker-1", { task_id: "T-1" }),
+      // A different task's own submission never attributes a step to T-1's file.
+      makeEvent("task-submitted", 5, "2026-08-14T20:00:05.000Z", "worker-2", { task_id: "T-2" }),
+      // A resubmission after repair: the latest sequence for T-1 wins over the earlier one.
+      makeEvent("task-submitted", 9, "2026-08-14T20:00:09.000Z", "worker-1", { task_id: "T-1" }),
+    ];
+
+    const dataset = generateGraphDataset({
+      runId: "run-file-step",
+      state: makeState([task]),
+      events,
+    });
+
+    const file = dataset.nodes.find((node) => node.id === "node-task-T-1")?.files?.[0];
+    expect(file?.step).toBe(9);
+  });
+
+  test("carries the report's own requirement ids onto a changed file, dropping any non-string entry", () => {
+    const task = makeTask("T-1", {
+      status: "done",
+      report: {
+        summary: "Implemented A",
+        files_changed: ["src/a.ts"],
+        requirement_ids: ["REQ-T-1", 7, "REQ-EXTRA"],
+      },
+    });
+
+    const dataset = generateGraphDataset({ runId: "run-req-ids", state: makeState([task]) });
+    const file = dataset.nodes.find((node) => node.id === "node-task-T-1")?.files?.[0];
+    expect(file?.requirementIds).toEqual(["REQ-T-1", "REQ-EXTRA"]);
   });
 
   test("keeps validator commands off the implementer node", () => {

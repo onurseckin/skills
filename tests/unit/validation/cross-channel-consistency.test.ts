@@ -1,0 +1,69 @@
+import { describe, expect, test } from "bun:test";
+import {
+  normalizeViewportName,
+  validateCrossChannelConsistency,
+} from "../../../orchestrating-long-tasks/scripts/src/validation/cross-channel-consistency.ts";
+import type {
+  ScreenshotMetadata,
+  VisualMetricsReport,
+} from "../../../orchestrating-long-tasks/scripts/src/validation/dual-channel-types.ts";
+
+describe("normalizeViewportName", () => {
+  test("falls back to width-based classification when the name is blank or absent", () => {
+    expect(normalizeViewportName("", 375)).toBe("mobile");
+    expect(normalizeViewportName("   ", 800)).toBe("tablet");
+    expect(normalizeViewportName(undefined, 1920)).toBe("desktop");
+    expect(normalizeViewportName(undefined, 3000)).toBe("ultrawide");
+  });
+
+  test("gives up as 'unknown' when neither a name nor a usable width is available", () => {
+    expect(normalizeViewportName(undefined, undefined)).toBe("unknown");
+    expect(normalizeViewportName("", Number.NaN)).toBe("unknown");
+    expect(normalizeViewportName("   ", -10)).toBe("unknown");
+  });
+});
+
+describe("validateCrossChannelConsistency", () => {
+  test("flags a DOM-reported viewport with no matching screenshot, dimensions unknown", () => {
+    const domReport: VisualMetricsReport = {
+      viewports: [{ viewport: "mobile" }],
+    };
+    const consistency = validateCrossChannelConsistency(domReport, []);
+    expect(consistency.consistent).toBe(false);
+    expect(consistency.discrepancies).toHaveLength(1);
+    expect(consistency.discrepancies[0]).toContain("dimensions unknown");
+    expect(consistency.discrepancies[0]).toContain("no matching screenshot was captured");
+  });
+
+  test("flags a captured screenshot whose viewport has no DOM metrics counterpart", () => {
+    const domReport: VisualMetricsReport = { viewports: [] };
+    const screenshots: ScreenshotMetadata[] = [
+      { name: "tablet.png", path: "/screens/tablet.png", viewport: "tablet", sizeBytes: 100 },
+    ];
+    const consistency = validateCrossChannelConsistency(domReport, screenshots);
+    expect(consistency.consistent).toBe(false);
+    expect(consistency.discrepancies).toEqual([
+      "Screenshot captured for viewport 'tablet' but DOM metrics report lacks corresponding viewport metrics",
+    ]);
+  });
+
+  test("is consistent when every DOM viewport has a same-sized matching screenshot", () => {
+    const domReport: VisualMetricsReport = {
+      viewports: [{ viewport: "desktop", width: 1280, height: 800 }],
+    };
+    const screenshots: ScreenshotMetadata[] = [
+      {
+        name: "desktop.png",
+        path: "/screens/desktop.png",
+        viewport: "desktop",
+        width: 1280,
+        height: 800,
+        sizeBytes: 500,
+      },
+    ];
+    expect(validateCrossChannelConsistency(domReport, screenshots)).toEqual({
+      consistent: true,
+      discrepancies: [],
+    });
+  });
+});

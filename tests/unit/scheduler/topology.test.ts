@@ -112,6 +112,27 @@ describe("computeTopology", () => {
     );
   });
 
+  test("re-validates tasks after cloning, in case a live getter changed shape mid-call", () => {
+    // computeTopology re-checks `tasks` on the *cloned* state (line 68), not only on the
+    // original — structuredClone re-reads every own property, so a stateful `tasks` getter that
+    // was a valid record when first inspected (line 57) can still hand back something else by
+    // the time the clone captures it. A plain object literal can never do this; only a getter
+    // can, which is exactly the gap the second check exists to close.
+    const base = topologyState();
+    let reads = 0;
+    const state = {
+      graph: base.graph,
+      requirements: base.requirements,
+      get tasks() {
+        reads += 1;
+        return reads === 1 ? base.tasks : ["not", "a", "record"];
+      },
+    };
+    expect(() => computeTopology(state, { default_max_parallel: 4 })).toThrow(
+      "a plan must be applied before topology is recorded",
+    );
+  });
+
   test("a retry_ready task is dispatchable again without conflicting with itself", () => {
     const state = topologyState();
     const tasks = state.tasks as Record<string, Record<string, unknown>>;

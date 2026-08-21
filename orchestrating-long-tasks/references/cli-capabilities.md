@@ -429,7 +429,6 @@ Requires the lease token; a stale or foreign token is refused.
 | `--task` | string | yes | no | - | Leased task id. |
 | `--agent` | string | yes | no | - | Agent holding the lease. |
 | `--token` | string | yes | no | - | Lease bearer token. |
-| `--extend` | int | no | no | `1800` | Range-checked (60-86400) but not yet applied: the lease is always renewed by its own originally-claimed duration, regardless of this value. |
 
 ```bash
 bun harness.ts task:heartbeat --run .capsules/<run-id> --task task-1 --agent worker-1 --token <token>

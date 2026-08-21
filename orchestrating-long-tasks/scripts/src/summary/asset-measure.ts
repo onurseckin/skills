@@ -25,7 +25,7 @@ function capsuleFile(runRoot: string, url: string): string | undefined {
   }
 }
 
-function readHeader(path: string): { header: Buffer; size: number } | undefined {
+export function readHeader(path: string): { header: Buffer; size: number } | undefined {
   let fd: number | undefined;
   try {
     fd = openSync(path, "r");

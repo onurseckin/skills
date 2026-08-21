@@ -23,4 +23,25 @@ describe("shared contracts", () => {
       issues: [{ task: "T-1" }],
     });
   });
+
+  test("normalizes a plain Error to INTERNAL with an empty issues list", () => {
+    expect(normalizeError(new TypeError("boom"))).toEqual({
+      code: "INTERNAL",
+      message: "boom",
+      issues: [],
+    });
+  });
+
+  test("normalizes a thrown non-Error value to a generic internal failure", () => {
+    expect(normalizeError("string thrown")).toEqual({
+      code: "INTERNAL",
+      message: "Unknown internal failure",
+      issues: [],
+    });
+    expect(normalizeError(undefined)).toEqual({
+      code: "INTERNAL",
+      message: "Unknown internal failure",
+      issues: [],
+    });
+  });
 });

@@ -105,6 +105,15 @@ describe("the grant record carries the whole telemetry taxonomy", () => {
     expect(isAgentGrantRecord(grant({ token_extras: ["cache_read"] }))).toBeFalse();
   });
 
+  test("refuses a last_reported_at that is not a string", () => {
+    expect(isAgentGrantRecord(grant({ last_reported_at: 12345 }))).toBeFalse();
+  });
+
+  test("refuses a released_at or release_reason that is not a string", () => {
+    expect(isAgentGrantRecord(grant({ released_at: 12345 }))).toBeFalse();
+    expect(isAgentGrantRecord(grant({ release_reason: 12345 }))).toBeFalse();
+  });
+
   test("refuses a granted toolset that is still a bare list of names", () => {
     expect(
       isAgentGrantRecord(

@@ -49,6 +49,11 @@ const throwingCommand: RepositoryGitCommand = (repo, argv) => {
   throw new Error(`unexpected repositoryGit call: ${repo} ${argv.join(" ")}`);
 };
 
+/** Simulates a real git failure (e.g. the path never existed at that commit) once invoked. */
+const failingDiffCommand: RepositoryGitCommand = () => {
+  throw new Error("git diff exited with status 128");
+};
+
 interface RunRootFixture {
   runRoot: string;
   headCommit: string;
@@ -119,6 +124,19 @@ describe("enrichFileRefsWithDiffs", () => {
     const { runRoot } = seedRunRoot("no-state-json");
     rmSync(join(runRoot, "state.json"));
     const [enriched] = enrichFileRefsWithDiffs([ref("src/a.ts")], runRoot, throwingCommand);
+    expect(enriched).toEqual(ref("src/a.ts"));
+  });
+
+  test("a state.json that is not valid JSON passes files through unchanged", () => {
+    const root = scratchRoot("malformed-state-json");
+    writeFileSync(join(root, "state.json"), "{ not json");
+    const [enriched] = enrichFileRefsWithDiffs([ref("src/a.ts")], root, throwingCommand);
+    expect(enriched).toEqual(ref("src/a.ts"));
+  });
+
+  test("a git command that fails leaves the file unenriched rather than throwing", () => {
+    const { runRoot } = seedRunRoot("failing-git-command");
+    const [enriched] = enrichFileRefsWithDiffs([ref("src/a.ts")], runRoot, failingDiffCommand);
     expect(enriched).toEqual(ref("src/a.ts"));
   });
 

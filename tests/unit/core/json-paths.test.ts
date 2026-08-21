@@ -38,6 +38,10 @@ describe("canonical JSON", () => {
       "",
       ".",
       "escape/future/file",
+      // Resolves (lexically, without following any symlink or literal "..") to the repo root
+      // itself — no absolute path, no ".." path segment, yet it still escapes the "must be
+      // *inside* the root" contract, exercising the empty-relative-path branch on its own.
+      "./",
     ]) {
       expect(() => safeRepoPath(repo, unsafe)).toThrow();
     }

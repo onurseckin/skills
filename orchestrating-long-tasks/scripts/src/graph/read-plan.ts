@@ -8,6 +8,8 @@ import { isRecord } from "../requirements/predicates.ts";
 export interface ReadPlanOptions {
   maxBytes?: number;
   noFollowFlag?: number;
+  lstat?: (path: string, options: { bigint: true }) => Promise<BigIntStats>;
+  open?: (path: string, flags: number) => Promise<FileHandle>;
 }
 
 function identity(stats: BigIntStats): string {
@@ -32,13 +34,15 @@ export async function readPlanObject(
   options: ReadPlanOptions = {},
 ): Promise<Record<string, unknown>> {
   const maxBytes = options.maxBytes ?? MAX_JSON_FILE_BYTES;
+  const doLstat = options.lstat ?? lstat;
+  const doOpen = options.open ?? open;
   let handle: FileHandle | undefined;
   try {
     if (!Number.isSafeInteger(maxBytes) || maxBytes < 1) throw new Error("invalid size bound");
-    const before = await lstat(path, { bigint: true });
+    const before = await doLstat(path, { bigint: true });
     if (before.isSymbolicLink() || !before.isFile()) throw new Error("not a regular file");
     const noFollow = options.noFollowFlag ?? constants.O_NOFOLLOW ?? 0;
-    handle = await open(path, constants.O_RDONLY | noFollow);
+    handle = await doOpen(path, constants.O_RDONLY | noFollow);
     const openedBefore = await handle.stat({ bigint: true });
     if (!openedBefore.isFile() || identity(before) !== identity(openedBefore)) {
       throw new Error("path changed while it was opened");
@@ -46,7 +50,7 @@ export async function readPlanObject(
     if (openedBefore.size > BigInt(maxBytes)) throw new Error(`exceeds ${maxBytes} byte limit`);
     const bytes = await boundedRead(handle, Number(openedBefore.size));
     const openedAfter = await handle.stat({ bigint: true });
-    const after = await lstat(path, { bigint: true });
+    const after = await doLstat(path, { bigint: true });
     if (
       after.isSymbolicLink() ||
       identity(openedBefore) !== identity(openedAfter) ||

@@ -1323,14 +1323,6 @@
           "repeatable": false,
           "default": null,
           "description": "Lease bearer token."
-        },
-        {
-          "name": "extend",
-          "type": "int",
-          "required": false,
-          "repeatable": false,
-          "default": 1800,
-          "description": "Range-checked (60-86400) but not yet applied: the lease is always renewed by its own originally-claimed duration, regardless of this value."
         }
       ],
       "reads_stdin": false,

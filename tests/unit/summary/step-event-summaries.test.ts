@@ -165,4 +165,121 @@ describe("narrateUnclassifiedEvent", () => {
       "Task an unrecorded task reassigned to an unrecorded agent by coordinator-1: no reason recorded",
     );
   });
+
+  test("plan-recompiled names its repair round and how many new tasks it produced", () => {
+    expect(
+      narrateUnclassifiedEvent(
+        createEvent(
+          "plan-recompiled",
+          { new_tasks: ["T-9", "T-10"], repair_round: 2 },
+          "coordinator-1",
+        ),
+      )?.summary,
+    ).toBe("Plan recompiled by coordinator-1 for repair round 2: 2 new task(s)");
+    // With neither field, the round clause drops out and the count reads as zero, not a guess.
+    expect(
+      narrateUnclassifiedEvent(createEvent("plan-recompiled", {}, "coordinator-1"))?.summary,
+    ).toBe("Plan recompiled by coordinator-1: 0 new task(s)");
+  });
+
+  test("plan-audited counts blocking findings, and plan-audit-accepted names the overridden invariant", () => {
+    const audited = narrateUnclassifiedEvent(
+      createEvent("plan-audited", { blocking_count: 2, task_count: 4 }, "auditor-1"),
+    );
+    expect(audited?.phase).toBe("planning");
+    expect(audited?.summary).toBe(
+      "Plan audited by auditor-1: 2 blocking finding(s) across 4 task(s)",
+    );
+    expect(narrateUnclassifiedEvent(createEvent("plan-audited", {}, "auditor-1"))?.summary).toBe(
+      "Plan audited by auditor-1: 0 blocking finding(s)",
+    );
+
+    expect(
+      narrateUnclassifiedEvent(
+        createEvent(
+          "plan-audit-accepted",
+          { invariant: "no-orphan-tasks", reason: "the orphan is a genuine no-op" },
+          "coordinator-1",
+        ),
+      )?.summary,
+    ).toBe(
+      "Audit override recorded by coordinator-1 for no-orphan-tasks: the orphan is a genuine no-op",
+    );
+  });
+
+  test("critic-assigned, completion-reviewed and completion-remediated each name the critic's own record", () => {
+    expect(narrateUnclassifiedEvent(createEvent("critic-assigned", {}, "critic-1"))?.summary).toBe(
+      "Completeness critic round assigned to critic-1",
+    );
+
+    const reviewed = narrateUnclassifiedEvent(
+      createEvent(
+        "completion-reviewed",
+        { packet_id: "P-1", status: "findings", summary: "two residual risks accepted" },
+        "critic-1",
+      ),
+    );
+    expect(reviewed?.phase).toBe("review");
+    expect(reviewed?.summary).toBe(
+      "Completion review recorded by critic-1 (packet P-1) [findings]: two residual risks accepted",
+    );
+    // Without a packet id or status, both bracketed clauses drop rather than rendering empty.
+    expect(
+      narrateUnclassifiedEvent(createEvent("completion-reviewed", {}, "critic-1"))?.summary,
+    ).toBe("Completion review recorded by critic-1: no summary recorded");
+
+    expect(
+      narrateUnclassifiedEvent(createEvent("completion-remediated", {}, "coordinator-1"))?.summary,
+    ).toBe("Completion remediation recorded by coordinator-1");
+  });
+
+  test("requirement-authority-decided names the requirement and the decision reached", () => {
+    const narrated = narrateUnclassifiedEvent(
+      createEvent(
+        "requirement-authority-decided",
+        { requirement_id: "REQ-1", decision: "waived" },
+        "coordinator-1",
+      ),
+    );
+    expect(narrated?.phase).toBe("review");
+    expect(narrated?.summary).toBe("Requirement REQ-1 authority decision by coordinator-1: waived");
+  });
+
+  test("repository-inspected, lease-heartbeat, lease-released and stale-recovery each state their own moment", () => {
+    expect(
+      narrateUnclassifiedEvent(
+        createEvent("repository-inspected", { phase: "baseline" }, "coordinator-1"),
+      )?.summary,
+    ).toBe("Repository inspected (baseline) by coordinator-1");
+
+    expect(
+      narrateUnclassifiedEvent(createEvent("lease-heartbeat", { task_id: "T-1" }, "worker-1"))
+        ?.summary,
+    ).toBe("Lease for task T-1 heartbeat recorded by worker-1");
+    expect(
+      narrateUnclassifiedEvent(createEvent("lease-released", { task_id: "T-1" }, "worker-1"))
+        ?.summary,
+    ).toBe("Lease for task T-1 released by worker-1");
+
+    expect(
+      narrateUnclassifiedEvent(createEvent("stale-recovery", {}, "coordinator-1"))?.summary,
+    ).toBe("Stale lease recovery run by coordinator-1");
+  });
+
+  test("orphan-evidence-dispositioned names the orphan's own digest, truncated, when one was recorded", () => {
+    const withSha = narrateUnclassifiedEvent(
+      createEvent(
+        "orphan-evidence-dispositioned",
+        { orphan_sha256: "abcdef0123456789fedcba9876543210" },
+        "coordinator-1",
+      ),
+    );
+    expect(withSha?.summary).toBe(
+      "Orphan evidence disposition recorded by coordinator-1 (abcdef012345)",
+    );
+    expect(
+      narrateUnclassifiedEvent(createEvent("orphan-evidence-dispositioned", {}, "coordinator-1"))
+        ?.summary,
+    ).toBe("Orphan evidence disposition recorded by coordinator-1");
+  });
 });

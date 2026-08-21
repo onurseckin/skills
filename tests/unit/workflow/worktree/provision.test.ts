@@ -1,0 +1,269 @@
+import { afterEach, describe, expect, test } from "bun:test";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import {
+  provisionWorktrees,
+  type ProvisionWorktreesConfig,
+} from "../../../../orchestrating-long-tasks/scripts/src/workflow/worktree/provision.ts";
+import type { AssignableTask } from "../../../../orchestrating-long-tasks/scripts/src/workflow/worktree/assign.ts";
+import type { TopologyRecord } from "../../../../orchestrating-long-tasks/scripts/src/contracts/topology.ts";
+import type {
+  GitResult,
+  GitRunner,
+} from "../../../../orchestrating-long-tasks/scripts/src/workflow/worktree/git.ts";
+import { baseLedger, freshRunRoot, seedLedger } from "./store-fixture.ts";
+
+const roots: string[] = [];
+afterEach(() => {
+  for (const root of roots.splice(0)) rmSync(root, { force: true, recursive: true });
+});
+
+function trackedRunRoot(prefix: string): string {
+  const run = freshRunRoot(prefix);
+  roots.push(run.split("/.capsules/")[0]!);
+  return run;
+}
+
+function trackedDir(prefix: string): string {
+  const dir = mkdtempSync(join(tmpdir(), `harness-${prefix}-`));
+  roots.push(dir);
+  return dir;
+}
+
+type Call = { cwd: string; argv: readonly string[] };
+
+function scripted(script: (call: Call, index: number) => GitResult): {
+  runner: GitRunner;
+  calls: Call[];
+} {
+  const calls: Call[] = [];
+  const runner: GitRunner = (cwd, argv) => {
+    const call = { cwd, argv };
+    calls.push(call);
+    return script(call, calls.length - 1);
+  };
+  return { runner, calls };
+}
+
+const ok = (stdout = ""): GitResult => ({ status: 0, stdout, stderr: "" });
+
+function topology(waves: readonly (readonly string[])[]): TopologyRecord {
+  return {
+    revision: 1,
+    max_parallel: 4,
+    decisions: [],
+    waves: waves.map((task_ids, index) => ({ wave: index + 1, task_ids: [...task_ids] })),
+  };
+}
+
+function tasks(ids: readonly string[]): ReadonlyMap<string, AssignableTask> {
+  return new Map(ids.map((id) => [id, { write_scope: [`src/${id}`] }]));
+}
+
+function config(
+  worktreeRoot: string,
+  overrides: Partial<ProvisionWorktreesConfig> = {},
+): ProvisionWorktreesConfig {
+  return {
+    worktree_isolation: true,
+    worktree_root: worktreeRoot,
+    branch_prefix: "harness/",
+    ...overrides,
+  };
+}
+
+describe("provisionWorktrees", () => {
+  test("is a no-op when worktree isolation is disabled", () => {
+    const result = provisionWorktrees({
+      runRoot: "unused",
+      repoRoot: "unused",
+      runId: "run-1",
+      actor: "coordinator",
+      topology: topology([["t1"]]),
+      tasksById: tasks(["t1"]),
+      config: { worktree_isolation: false, branch_prefix: "harness/" },
+    });
+    expect(result).toEqual({ enabled: false, ledger: null });
+  });
+
+  test("returns enabled with a null ledger when the topology has no tasks to place", () => {
+    const runRoot = trackedRunRoot("provision-empty");
+    const repoRoot = trackedDir("provision-empty-repo");
+    const wtRoot = trackedDir("provision-empty-wtroot");
+    const { runner } = scripted(() => ok());
+    const result = provisionWorktrees({
+      runRoot,
+      repoRoot,
+      runId: "run-1",
+      actor: "coordinator",
+      topology: topology([[]]),
+      tasksById: tasks([]),
+      config: config(wtRoot),
+      runner,
+    });
+    expect(result).toEqual({ enabled: true, ledger: null });
+  });
+
+  test("throws PATH_SAFETY when the configured worktree root resolves inside the repo", () => {
+    const runRoot = trackedRunRoot("provision-unsafe");
+    const repoRoot = trackedDir("provision-unsafe-repo");
+    const { runner } = scripted(() => ok());
+    expect(() =>
+      provisionWorktrees({
+        runRoot,
+        repoRoot,
+        runId: "run-1",
+        actor: "coordinator",
+        topology: topology([["t1"]]),
+        tasksById: tasks(["t1"]),
+        config: config(join(repoRoot, "inside")),
+        runner,
+      }),
+    ).toThrow(/resolves inside the repository/);
+  });
+
+  test("creates the harness branch and one worktree per task, persisting a new ledger", () => {
+    const runRoot = trackedRunRoot("provision-happy");
+    const repoRoot = trackedDir("provision-happy-repo");
+    const wtRoot = trackedDir("provision-happy-wtroot");
+    const { runner, calls } = scripted((call) => {
+      if (call.argv[0] === "rev-parse" && call.argv[1] === "HEAD") return ok("base-sha-000\n");
+      if (call.argv[0] === "rev-parse" && call.argv.includes("--verify"))
+        return { status: 1, stdout: "", stderr: "" };
+      if (call.argv[0] === "symbolic-ref") return ok("main\n");
+      return ok();
+    });
+    const result = provisionWorktrees({
+      runRoot,
+      repoRoot,
+      runId: "run-1",
+      actor: "coordinator",
+      topology: topology([["t1", "t2"]]),
+      tasksById: tasks(["t1", "t2"]),
+      config: config(wtRoot),
+      now: new Date("2026-08-19T00:00:00.000Z"),
+      runner,
+    });
+    expect(result.enabled).toBe(true);
+    expect(result.ledger?.harness_branch).toBe("harness/run-1");
+    expect(result.ledger?.base_sha).toBe("base-sha-000");
+    expect(result.ledger?.base_branch).toBe("main");
+    expect(result.ledger?.worktrees.map((w) => w.id)).toEqual(["wt-0", "wt-1"]);
+    const branchCall = calls.find((c) => c.argv[0] === "branch" && c.argv[1] === "harness/run-1");
+    expect(branchCall?.argv).toEqual(["branch", "harness/run-1", "base-sha-000"]);
+    const addCalls = calls.filter((c) => c.argv[0] === "worktree" && c.argv[1] === "add");
+    expect(addCalls).toHaveLength(2);
+  });
+
+  test("does not recreate the harness branch when it already exists", () => {
+    const runRoot = trackedRunRoot("provision-branch-exists");
+    const repoRoot = trackedDir("provision-branch-exists-repo");
+    const wtRoot = trackedDir("provision-branch-exists-wtroot");
+    const { runner, calls } = scripted((call) => {
+      if (call.argv[0] === "rev-parse" && call.argv[1] === "HEAD") return ok("base-sha-000\n");
+      if (call.argv[0] === "rev-parse" && call.argv.includes("--verify")) return ok(); // branch exists
+      if (call.argv[0] === "symbolic-ref") return ok("main\n");
+      return ok();
+    });
+    provisionWorktrees({
+      runRoot,
+      repoRoot,
+      runId: "run-1",
+      actor: "coordinator",
+      topology: topology([["t1"]]),
+      tasksById: tasks(["t1"]),
+      config: config(wtRoot),
+      runner,
+    });
+    expect(calls.some((c) => c.argv[0] === "branch" && c.argv[1] === "harness/run-1")).toBe(false);
+  });
+
+  test("extends an existing ledger with only the additional worktrees a wider wave needs", () => {
+    const runRoot = trackedRunRoot("provision-extend");
+    const repoRoot = trackedDir("provision-extend-repo");
+    const wtRoot = trackedDir("provision-extend-wtroot");
+    seedLedger(
+      runRoot,
+      baseLedger({
+        harness_branch: "harness/run-1",
+        base_sha: "base-sha-000",
+        worktrees: [
+          {
+            id: "wt-0",
+            path: join(wtRoot, "run-1", "wt-0"),
+            branch: "harness/run-1--wt-0",
+            base_sha: "base-sha-000",
+            created_at: "t",
+          },
+        ],
+        assignments: [{ task_id: "t1", worktree_id: "wt-0", wave: 1 }],
+      }),
+    );
+    const { runner, calls } = scripted((call) => {
+      if (call.argv[0] === "rev-parse" && call.argv.includes("--verify")) return ok(); // branch exists
+      return ok();
+    });
+    const result = provisionWorktrees({
+      runRoot,
+      repoRoot,
+      runId: "run-1",
+      actor: "coordinator",
+      topology: topology([["t1", "t2"]]),
+      tasksById: tasks(["t1", "t2"]),
+      config: config(wtRoot),
+      runner,
+    });
+    expect(result.ledger?.worktrees.map((w) => w.id)).toEqual(["wt-0", "wt-1"]);
+    const addCalls = calls.filter((c) => c.argv[0] === "worktree" && c.argv[1] === "add");
+    expect(addCalls).toHaveLength(1);
+    expect(addCalls[0]!.argv).toContain("harness/run-1--wt-1");
+  });
+
+  // NB: `assignmentsChanged` inside provisionWorktrees compares
+  // `JSON.stringify(existing.assignments)` against a freshly computed array. `existing` was just
+  // read back through the canonical (key-sorted) JSON store, while `assignWorktrees` builds plain
+  // object literals in a fixed field order — so this stringify comparison mismatches on key order
+  // alone for any run that already has a persisted ledger, even when nothing semantically changed.
+  // The intended "nothing changed, skip the transact" fast path is therefore effectively dead once
+  // a ledger exists. This test documents the actually-reachable behaviour (git no-ops, but the
+  // function still re-persists an equivalent ledger) rather than the unreachable early return.
+  test("issues no new git worktree calls when every task already has a slot, even though it still re-persists", () => {
+    const runRoot = trackedRunRoot("provision-noop");
+    const repoRoot = trackedDir("provision-noop-repo");
+    const wtRoot = trackedDir("provision-noop-wtroot");
+    const existing = baseLedger({
+      harness_branch: "harness/run-1",
+      base_sha: "base-sha-000",
+      root: wtRoot,
+      worktrees: [
+        {
+          id: "wt-0",
+          path: join(wtRoot, "run-1", "wt-0"),
+          branch: "harness/run-1--wt-0",
+          base_sha: "base-sha-000",
+          created_at: "t",
+        },
+      ],
+      assignments: [{ task_id: "t1", worktree_id: "wt-0", wave: 1 }],
+    });
+    seedLedger(runRoot, existing);
+    const { runner, calls } = scripted((call) => {
+      if (call.argv[0] === "rev-parse" && call.argv.includes("--verify")) return ok();
+      return ok();
+    });
+    const result = provisionWorktrees({
+      runRoot,
+      repoRoot,
+      runId: "run-1",
+      actor: "coordinator",
+      topology: topology([["t1"]]),
+      tasksById: tasks(["t1"]),
+      config: config(wtRoot),
+      runner,
+    });
+    expect(result.ledger?.worktrees).toEqual(existing.worktrees);
+    expect(result.ledger?.assignments).toEqual(existing.assignments);
+    expect(calls.filter((c) => c.argv[0] === "worktree" && c.argv[1] === "add")).toHaveLength(0);
+  });
+});

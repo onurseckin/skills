@@ -29,19 +29,16 @@ export function linuxLibcCandidates(architecture: string, mapsText = ""): string
   ]);
 }
 
-function libraryCandidates(): string[] {
-  if (process.platform === "darwin") return ["/usr/lib/libSystem.B.dylib"];
-  if (process.platform === "linux") {
+export function libraryCandidates(platform: NodeJS.Platform = process.platform): string[] {
+  if (platform === "darwin") return ["/usr/lib/libSystem.B.dylib"];
+  if (platform === "linux") {
     let maps = "";
     try {
       maps = readFileSync("/proc/self/maps", "utf8");
     } catch {}
     return linuxLibcCandidates(process.arch, maps);
   }
-  throw new HarnessError(
-    "UNSUPPORTED_PLATFORM",
-    `inode-bound flock is unsupported on ${process.platform}`,
-  );
+  throw new HarnessError("UNSUPPORTED_PLATFORM", `inode-bound flock is unsupported on ${platform}`);
 }
 
 type NativeFunction = (...arguments_: number[]) => number | bigint;

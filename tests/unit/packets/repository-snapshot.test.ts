@@ -42,6 +42,19 @@ describe("repository-snapshot", () => {
     ).toThrow("repository root is not a directory");
   });
 
+  test("rejects a directory whose entry count exceeds an injected traversal ceiling", () => {
+    const repo = realpathSync(mkdtempSync(join(tmpdir(), "repo-snap-limit-")));
+    writeFileSync(join(repo, "a.txt"), "a");
+    writeFileSync(join(repo, "b.txt"), "b");
+    writeFileSync(join(repo, "c.txt"), "c");
+
+    expect(() =>
+      inspectRepository(repo, "baseline", new Date("2026-08-14T00:00:00.000Z"), {
+        maxDirectoryEntries: 2,
+      }),
+    ).toThrow("repository inspection file limit exceeded");
+  });
+
   test("inspects real git repository", () => {
     const repo = realpathSync(mkdtempSync(join(tmpdir(), "repo-snap-git-")));
     Bun.spawnSync(["git", "init", repo]);

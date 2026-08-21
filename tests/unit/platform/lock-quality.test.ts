@@ -1,13 +1,27 @@
 import { describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import {
+  closeSync,
+  constants,
+  mkdirSync,
+  mkdtempSync,
+  openSync,
+  renameSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
+  libraryCandidates,
   linuxLibcCandidates,
   releaseFlock,
   tryExclusiveFlock,
 } from "../../../orchestrating-long-tasks/scripts/src/platform/flock-ffi.ts";
 import { withRunLock } from "../../../orchestrating-long-tasks/scripts/src/platform/run-lock.ts";
+import {
+  clearObserver,
+  publishObserver,
+} from "../../../orchestrating-long-tasks/scripts/src/platform/observer.ts";
 
 const lockModule = new URL(
   "../../../orchestrating-long-tasks/scripts/src/platform/run-lock.ts",
@@ -25,6 +39,15 @@ describe("run-lock quality invariants", () => {
   test("distinguishes invalid flock errors from lock contention", () => {
     expect(() => tryExclusiveFlock(-1)).toThrow(/flock|errno/i);
     expect(() => releaseFlock(-1)).toThrow(/flock release failed with errno/i);
+  });
+
+  test("libraryCandidates resolves per-platform: darwin's single dylib, Linux's libc search, others unsupported", () => {
+    expect(libraryCandidates("darwin")).toEqual(["/usr/lib/libSystem.B.dylib"]);
+    // On a real Linux host /proc/self/maps would list the loaded libc; here it fails to read (this
+    // host isn't Linux), exercising the same empty-maps fallback linuxLibcCandidates("") covers
+    // directly below, but through the platform dispatch rather than calling it directly.
+    expect(libraryCandidates("linux").length).toBeGreaterThan(0);
+    expect(() => libraryCandidates("win32")).toThrow(/unsupported on win32/i);
   });
 
   test("Linux libc discovery includes loaded, glibc, and musl locations", () => {
@@ -71,6 +94,37 @@ describe("run-lock quality invariants", () => {
         rmSync(run, { recursive: true, force: true });
       }),
     ).toThrow(/run root disappeared while locked/i);
+  });
+
+  test("withRunLock times out (and its delay() retry loop runs) when another holder already has the lock", () => {
+    const run = runRoot();
+    const holderFd = openSync(
+      run,
+      constants.O_RDONLY | (constants.O_DIRECTORY ?? 0) | (constants.O_NOFOLLOW ?? 0),
+    );
+    expect(tryExclusiveFlock(holderFd)).toBeTrue();
+    try {
+      expect(() => withRunLock(run, () => {}, { timeoutMs: 40, retryMs: 5 })).toThrow(
+        /timed out after 40ms waiting for run lock/i,
+      );
+    } finally {
+      releaseFlock(holderFd);
+      closeSync(holderFd);
+    }
+  });
+
+  test("clearObserver is a no-op once the whole observer directory has vanished", () => {
+    const run = runRoot();
+    const observer = publishObserver(run);
+    rmSync(observer.path, { recursive: true, force: true });
+    expect(() => clearObserver(observer)).not.toThrow();
+  });
+
+  test("clearObserver is a no-op when the directory survives but owner.json itself is gone", () => {
+    const run = runRoot();
+    const observer = publishObserver(run);
+    rmSync(join(observer.path, "owner.json"));
+    expect(() => clearObserver(observer)).not.toThrow();
   });
 
   test("a waiter rejects pathname replacement instead of mutating the new directory", async () => {

@@ -254,5 +254,27 @@ describe("Dual-Channel Visual Analyzer", () => {
       expect(result.proofs.every((p) => p.status === "corroborated")).toBe(true);
       expect(result.findings).toHaveLength(0);
     });
+
+    test("surfaces a cross_channel_mismatch finding for each DOM/screenshot dimension discrepancy", () => {
+      const mismatchedScreenshots: typeof validScreenshots = [
+        { ...validScreenshots[0]!, width: 400 },
+        validScreenshots[1]!,
+        validScreenshots[2]!,
+      ];
+
+      const result = analyzeDualChannel({
+        taskFiles: ["src/components/Navbar.tsx"],
+        domReport: cleanDomReport,
+        screenshots: mismatchedScreenshots,
+      });
+
+      expect(result.mode).toBe("dual_channel_corroborated");
+      const mismatchFindings = result.findings.filter(
+        (f) => f.category === "cross_channel_mismatch",
+      );
+      expect(mismatchFindings).toHaveLength(1);
+      expect(mismatchFindings[0]?.message).toContain("Cross-Channel Discrepancy");
+      expect(mismatchFindings[0]?.message).toContain("Dimension mismatch for viewport 'mobile'");
+    });
   });
 });

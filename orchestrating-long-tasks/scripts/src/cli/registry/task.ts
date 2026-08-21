@@ -56,12 +56,6 @@ export const TASK_COMMANDS: readonly CommandSpec[] = [
       requiredFlag("task", "string", "Leased task id."),
       requiredFlag("agent", "string", "Agent holding the lease."),
       requiredFlag("token", "string", "Lease bearer token."),
-      optionalFlag(
-        "extend",
-        "int",
-        "Range-checked (60-86400) but not yet applied: the lease is always renewed by its own originally-claimed duration, regardless of this value.",
-        1800,
-      ),
     ],
     readsStdin: false,
     takesRemainder: false,

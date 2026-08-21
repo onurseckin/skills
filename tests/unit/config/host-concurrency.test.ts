@@ -90,4 +90,40 @@ describe("deriveGateConcurrencyCeiling (B27.2 — a separate, lower ceiling for 
     expect(Number.isInteger(derived)).toBeTrue();
     expect(derived).toBeGreaterThanOrEqual(1);
   });
+
+  test("falls back to cpuCount() when availableParallelism() is unusable", () => {
+    const throwing = deriveGateConcurrencyCeiling(undefined, {
+      availableParallelism: () => {
+        throw new Error("unavailable on this host");
+      },
+      cpuCount: () => 8,
+    });
+    expect(throwing).toBe(4);
+
+    const nonInteger = deriveGateConcurrencyCeiling(undefined, {
+      availableParallelism: () => 3.5,
+      cpuCount: () => 6,
+    });
+    expect(nonInteger).toBe(3);
+  });
+
+  test("falls back to the real cpus() count when only availableParallelism is overridden", () => {
+    const derived = deriveGateConcurrencyCeiling(undefined, {
+      availableParallelism: () => {
+        throw new Error("unavailable on this host");
+      },
+    });
+    expect(Number.isInteger(derived)).toBeTrue();
+    expect(derived).toBeGreaterThanOrEqual(1);
+  });
+
+  test("returns exactly one lane when every core probe fails or is unusable", () => {
+    const derived = deriveGateConcurrencyCeiling(undefined, {
+      availableParallelism: () => 0,
+      cpuCount: () => {
+        throw new Error("cpus() unavailable");
+      },
+    });
+    expect(derived).toBe(1);
+  });
 });

@@ -1,6 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { getHarnessConfig } from "../../config/harness-config.ts";
+import { HarnessError } from "../../errors/harness-error.ts";
 import { ingestScreenshots, ingestVisualReport } from "../../reporting/screenshot-ingestion.ts";
 import { getVisualReport, queryScreenshots } from "../../reporting/screenshot-store.ts";
 import type { ScreenshotRecord } from "../../reporting/screenshot-types.ts";
@@ -16,7 +17,7 @@ import { attachGateResult } from "../../workflow/gates/attach-result.ts";
 import { finishTask } from "../../workflow/gates/finish-task.ts";
 import { applicableGates } from "../../workflow/gates/gate-policy.ts";
 import { workflowPort } from "../../integration/store-ports.ts";
-import type { TaskRecord, WorkflowState } from "../../workflow/types.ts";
+import type { TaskRecord, TransactionPort, WorkflowState } from "../../workflow/types.ts";
 
 export function repoRootOf(runRoot: string): string {
   return dirname(dirname(runRoot));
@@ -190,13 +191,21 @@ export function gateProofCommand(
   return checkIds.find((id) => commands[id]?.gate_id === gateId);
 }
 
+function isExpectedConcurrentFinalizeRace(error: unknown): boolean {
+  return error instanceof HarnessError && error.code === "INVALID_STATE";
+}
+
 export function finalizePassingTask(
   run: string,
   taskId: string,
   validator: string,
   checkIds: string[],
   state: WorkflowState,
+  port?: TransactionPort,
 ): WorkflowState {
+  // Only built when the caller (production code) omits `port`; tests inject their own
+  // TestPort here and this constructor call is skipped entirely.
+  const activePort = port ?? workflowPort(run);
   let curState = state;
   const currentTask = curState.tasks[taskId];
   if (currentTask) {
@@ -204,13 +213,17 @@ export function finalizePassingTask(
       const matchingCmd = gateProofCommand(curState.commands, gate.id, checkIds);
       if (matchingCmd) {
         try {
-          curState = attachGateResult(workflowPort(run), taskId, gate.id, matchingCmd, validator);
-        } catch {}
+          curState = attachGateResult(activePort, taskId, gate.id, matchingCmd, validator);
+        } catch (error) {
+          if (!isExpectedConcurrentFinalizeRace(error)) throw error;
+        }
       }
     }
     try {
-      curState = finishTask(workflowPort(run), taskId, validator);
-    } catch {}
+      curState = finishTask(activePort, taskId, validator);
+    } catch (error) {
+      if (!isExpectedConcurrentFinalizeRace(error)) throw error;
+    }
   }
   return curState;
 }

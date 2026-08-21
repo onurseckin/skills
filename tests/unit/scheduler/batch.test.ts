@@ -21,6 +21,14 @@ describe("scheduler batches", () => {
     ]);
   });
 
+  test("refuses to schedule before a plan (graph and tasks) has been applied", () => {
+    expect(() => proposeBatch({})).toThrow(/plan must be applied/i);
+    expect(() => proposeBatch({ graph: {} })).toThrow(/plan must be applied/i);
+    expect(() => proposeBatch({ graph: {}, tasks: "not-a-record" })).toThrow(
+      /plan must be applied/i,
+    );
+  });
+
   test("batch honors dependencies max parallel and deep copy safety", () => {
     const state = schedulerState();
     const tasks = state.tasks as Record<string, Record<string, unknown>>;

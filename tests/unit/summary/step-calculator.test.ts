@@ -128,6 +128,23 @@ describe("step calculator topology source", () => {
     expect(steps.taskWaves.get("T-B")).toBe(1);
   });
 
+  test("a dependency cycle with no zero-dependency task starts every task in wave 1", () => {
+    const tasks = [createTask("T-A", ["T-B"]), createTask("T-B", ["T-A"])];
+
+    const steps = computeExecutionSteps(tasks);
+    expect(steps.taskWaves.get("T-A")).toBe(1);
+    expect(steps.taskWaves.get("T-B")).toBe(1);
+    expect(steps.waveSource.is_estimated).toBeTrue();
+  });
+
+  test("a task depending on an id absent from the task list is deferred to a later wave", () => {
+    const tasks = [createTask("T-A"), createTask("T-C", ["T-ghost"])];
+
+    const steps = computeExecutionSteps(tasks);
+    expect(steps.taskWaves.get("T-A")).toBe(1);
+    expect(steps.taskWaves.get("T-C")).toBe(2);
+  });
+
   test("a capsule recorded before topology existed derives its waves", () => {
     const capsule = join(
       import.meta.dir,

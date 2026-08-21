@@ -71,6 +71,26 @@ describe("recordDispatchOutcome / readDispatchHistory (B28.3 durable backoff boo
     expect(history.failures[0]?.signal).toBe("timeout");
   });
 
+  test("records the classification alongside the failure when the caller supplies one", () => {
+    const port = new TestPort(workflowState());
+    recordDispatchOutcome(port, "supervisor", {
+      taskId: "T-1",
+      outcome: "failed",
+      failure: { signal: "crash", detail: "lease expired" },
+      classification: {
+        failureClass: "deterministic",
+        reason: "3rd identical failure",
+        repeatCount: 3,
+        elapsedMs: 120_000,
+      },
+    });
+    expect(port.events[0]?.payload).toMatchObject({
+      failure_class: "deterministic",
+      classification_reason: "3rd identical failure",
+      repeat_count: 3,
+    });
+  });
+
   test("ignores events belonging to a different task", () => {
     const port = new TestPort(workflowState());
     recordDispatchOutcome(port, "supervisor", {

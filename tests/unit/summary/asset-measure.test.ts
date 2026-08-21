@@ -1,10 +1,11 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   measureAssets,
   measureCapsuleAsset,
+  readHeader,
 } from "../../../orchestrating-long-tasks/scripts/src/summary/asset-measure.ts";
 import type { MediaAsset } from "../../../orchestrating-long-tasks/scripts/src/summary/types.ts";
 
@@ -126,6 +127,21 @@ describe("measuring an asset the capsule still holds", () => {
   test("refuses a directory, which is not an asset", () => {
     const root = runRoot();
     expect(measureCapsuleAsset(root, "evidence")).toBeUndefined();
+  });
+
+  test("reports nothing when the file passes containment checks but cannot be opened", () => {
+    const root = runRoot();
+    const target = join(root, "evidence", "locked.png");
+    writeFileSync(target, png(4, 4));
+    chmodSync(target, 0o000);
+
+    // Permission loss alone denies capsuleFile's own realpath containment check before
+    // readHeader ever runs, so this covers readHeader's own open failure directly.
+    try {
+      expect(readHeader(target)).toBeUndefined();
+    } finally {
+      chmodSync(target, 0o644);
+    }
   });
 });
 

@@ -4,6 +4,8 @@
     "**/dist/**",
     "bun.lock",
     "orchestrating-long-tasks/checklists/**",
-    "orchestrating-long-tasks/roles/**"
+    "orchestrating-long-tasks/roles/**",
+    "orchestrating-long-tasks/references/cli-capabilities.md",
+    "orchestrating-long-tasks/references/cli-capabilities.json"
   ]
 }

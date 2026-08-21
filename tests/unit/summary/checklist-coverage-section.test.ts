@@ -93,6 +93,27 @@ describe("summary.md: standing checklist coverage (B12.5)", () => {
     );
   });
 
+  test("an item whose disposition is not one of the three known values is dropped, not miscounted", () => {
+    const root = tempRoot();
+    withReviewReport(root, "task-d", {
+      applicable: true,
+      domain: "code-quality",
+      items: [
+        { id: "CQ-STRUCT-001", disposition: "checked" },
+        { id: "CQ-STRUCT-003", disposition: "in_progress" },
+      ],
+    });
+    const state = { ...emptyState, tasks: { "task-d": task({ id: "task-d" }) } };
+
+    const markdown = render(state, { runRoot: root });
+
+    expect(markdown).toContain("### task-d");
+    expect(markdown).toContain("Checked and passed: `CQ-STRUCT-001`");
+    expect(markdown).not.toContain("CQ-STRUCT-003");
+    // The unknown-disposition item never counted at all, so the total is 1, not 2.
+    expect(markdown).toContain("of 1 total.");
+  });
+
   test("a task with no review report yet is simply absent from the section, not shown as empty", () => {
     const state = { ...emptyState, tasks: { "task-c": task({ id: "task-c" }) } };
     const markdown = render(state);

@@ -21,6 +21,14 @@ describe("readAgentTranscriptTelemetry — fail-safe absence", () => {
     ).toBeNull();
   });
 
+  test("falls back to the real OS home directory when neither an explicit homeDir nor $HOME is given", () => {
+    // Exercises resolveHomeDir's own fallback to node:os homedir() — deterministic and side-effect
+    // free, since a real machine's actual home directory will not have a "ghost-session" project.
+    expect(
+      readAgentTranscriptTelemetry("agent-x", { env: { CLAUDE_CODE_SESSION_ID: "ghost-session" } }),
+    ).toBeNull();
+  });
+
   test("a session id with no matching project directory reads as no evidence", async () => {
     const home = await mktemp(roots);
     expect(
@@ -140,6 +148,84 @@ describe("readAgentTranscriptTelemetry — a direct Task-tool subagent transcrip
     });
     expect(result?.parentAgentId).toBe("agent-parent");
     expect(result?.spawnDepth).toBe(2);
+  });
+
+  test("a malformed meta file is ignored, not thrown — the transcript's own numbers still come through", async () => {
+    const home = await mktemp(roots);
+    await writeDirectTranscript(home, "session-bad-meta", "agent-5", [
+      assistantLine({ timestamp: "2026-08-20T10:00:00.000Z", model: "claude-sonnet-5" }),
+    ]);
+    // writeDirectTranscript names files "agent-${agentId}.jsonl" — since agentId is itself
+    // "agent-5" here, the file on disk is "agent-agent-5.*", matching the other tests' pattern.
+    const metaPath = join(
+      home,
+      ".claude",
+      "projects",
+      "some-project",
+      "session-bad-meta",
+      "subagents",
+      "agent-agent-5.meta.json",
+    );
+    await writeFile(metaPath, "{ not valid json");
+
+    const result = readAgentTranscriptTelemetry("agent-5", {
+      homeDir: home,
+      env: { CLAUDE_CODE_SESSION_ID: "session-bad-meta" },
+    });
+    expect(result?.model).toBe("claude-sonnet-5");
+    expect(result?.agentType).toBeUndefined();
+    expect(result?.spawnDepth).toBeUndefined();
+  });
+
+  test("tallies the ephemeral 5m and 1h cache-creation buckets separately from the flat total", async () => {
+    const home = await mktemp(roots);
+    const line = JSON.stringify({
+      type: "assistant",
+      timestamp: "2026-08-20T10:00:00.000Z",
+      message: {
+        model: "claude-sonnet-5",
+        content: [],
+        usage: {
+          input_tokens: 10,
+          output_tokens: 5,
+          cache_creation: { ephemeral_5m_input_tokens: 7, ephemeral_1h_input_tokens: 3 },
+        },
+      },
+    });
+    await writeDirectTranscript(home, "session-cache-buckets", "agent-6", [line]);
+
+    const result = readAgentTranscriptTelemetry("agent-6", {
+      homeDir: home,
+      env: { CLAUDE_CODE_SESSION_ID: "session-cache-buckets" },
+    });
+    expect(result?.tokenExtras).toEqual({
+      cache_creation_ephemeral_5m_input_tokens: 7,
+      cache_creation_ephemeral_1h_input_tokens: 3,
+    });
+  });
+
+  test("a malformed run-aggregate file is skipped, not thrown, leaving runContext undefined", async () => {
+    const home = await mktemp(roots);
+    await writeDirectTranscript(home, "session-bad-run", "agent-7", [
+      assistantLine({ timestamp: "2026-08-20T10:00:00.000Z", model: "claude-sonnet-5" }),
+    ]);
+    const workflowsDir = join(
+      home,
+      ".claude",
+      "projects",
+      "some-project",
+      "session-bad-run",
+      "workflows",
+    );
+    await mkdir(workflowsDir, { recursive: true });
+    await writeFile(join(workflowsDir, "wf_bad.json"), "{ not valid json");
+
+    const result = readAgentTranscriptTelemetry("agent-7", {
+      homeDir: home,
+      env: { CLAUDE_CODE_SESSION_ID: "session-bad-run" },
+    });
+    expect(result?.model).toBe("claude-sonnet-5");
+    expect(result?.runContext).toBeUndefined();
   });
 });
 

@@ -34,6 +34,8 @@ const conventions = [
 
 export interface RepositorySnapshotDependencies {
   command?: RepositoryGitCommand;
+  /** Overrides the 20,000-entry traversal ceiling; exists so tests can trip it cheaply. */
+  maxDirectoryEntries?: number;
 }
 
 function run(
@@ -51,7 +53,10 @@ function pathRecord(repo: string, path: string): JsonObject {
   return { path: relative(repo, path).split(sep).join("/"), sha256: sha256Bytes(bytes) };
 }
 
-function repositoryFiles(repo: string): { instructions: JsonObject[]; conventions: JsonObject[] } {
+function repositoryFiles(
+  repo: string,
+  maxEntries: number = 20_000,
+): { instructions: JsonObject[]; conventions: JsonObject[] } {
   const foundInstructions: JsonObject[] = [];
   const foundConventions: JsonObject[] = [];
   const pending = [repo];
@@ -61,7 +66,7 @@ function repositoryFiles(repo: string): { instructions: JsonObject[]; convention
     const opened = opendirSync(directory);
     const entries = collectBoundedDirectoryEntries(
       opened,
-      20_000 - visited,
+      maxEntries - visited,
       () => new Error("repository inspection file limit exceeded"),
       (left, right) => (left.name < right.name ? -1 : left.name > right.name ? 1 : 0),
     );
@@ -111,7 +116,7 @@ export function inspectRepository(
   const branch = available ? run(repo, ["branch", "--show-current"], command) : null;
   const history = head?.ok ? run(repo, ["log", "-5", "--oneline", "--decorate=no"], command) : null;
   const gitVersion = available ? run(repo, ["--version"], command) : null;
-  const files = repositoryFiles(repo);
+  const files = repositoryFiles(repo, dependencies.maxDirectoryEntries);
   return {
     schema: "harness.repository-inspection" as const,
     version: 3,

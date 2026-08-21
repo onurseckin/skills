@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
+import { chmodSync } from "node:fs";
 import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -82,6 +83,19 @@ describe("enumerateGlobMatches", () => {
 
     expect(enumerateGlobMatches(repo, "**/*.ts")).toEqual([]);
   });
+
+  test("an unreadable subdirectory is skipped rather than crashing the walk", async () => {
+    const repo = await fixtureRepo("locked");
+    await mkdir(join(repo, "src/locked"), { recursive: true });
+    await writeFile(join(repo, "src/allowed.ts"), "export {};\n");
+    await writeFile(join(repo, "src/locked/hidden.ts"), "export {};\n");
+    chmodSync(join(repo, "src/locked"), 0o000);
+    try {
+      expect(enumerateGlobMatches(repo, "**/*.ts")).toEqual(["src/allowed.ts"]);
+    } finally {
+      chmodSync(join(repo, "src/locked"), 0o755);
+    }
+  });
 });
 
 describe("partitionByGlob", () => {
@@ -127,5 +141,10 @@ describe("partitionByGlob", () => {
 describe("slugifyScope", () => {
   test("replaces non-alphanumeric runs with a single hyphen and trims the ends", () => {
     expect(slugifyScope("src/domains/linear-algebra.ts")).toBe("src-domains-linear-algebra-ts");
+  });
+
+  test("refuses a scope with no alphanumeric characters rather than emitting a blank task id", () => {
+    expect(() => slugifyScope("...")).toThrow("has no usable characters for a task id");
+    expect(() => slugifyScope("///")).toThrow("has no usable characters for a task id");
   });
 });

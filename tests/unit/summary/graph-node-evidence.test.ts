@@ -230,6 +230,109 @@ describe("state transitions", () => {
     expect(review?.findingCount).toBe(0);
   });
 
+  test("derives the finding class from the referenced findings when the payload omits it", () => {
+    const withFindings = makeTask("T-1", {
+      status: "changes_requested",
+      findings: [
+        {
+          id: "F-1",
+          requirement_id: "REQ-T-1",
+          severity: "important",
+          observation: "Missing null check",
+          remediation: "Add a guard",
+          revalidation: "Re-run the gate",
+          status: "open",
+          class: "defect",
+          evidence: [],
+        },
+        {
+          id: "F-2",
+          requirement_id: "REQ-T-1",
+          severity: "important",
+          observation: "Missing null check elsewhere",
+          remediation: "Add a guard",
+          revalidation: "Re-run the gate",
+          status: "open",
+          class: "defect",
+          evidence: [],
+        },
+      ],
+      history: [
+        {
+          at: "2026-08-14T20:20:00.000Z",
+          actor: "val-1",
+          from: "validating",
+          to: "changes_requested",
+          reason: "review",
+          attempt: 1,
+        },
+      ],
+    });
+    const events = [
+      makeEvent("review-recorded", 1, "2026-08-14T20:20:00.000Z", "val-1", {
+        task_id: "T-1",
+        verdict: "reject",
+        finding_ids: ["F-1", "F-2"],
+      }),
+    ];
+    const review = buildStateTransitions(withFindings, events).find(
+      (entry) => entry.to === "changes_requested",
+    );
+    // Every referenced finding shares the same class, so the review inherits it.
+    expect(review?.findingClass).toBe("defect");
+  });
+
+  test("declines to guess a finding class when the referenced findings disagree", () => {
+    const mixedFindings = makeTask("T-1", {
+      status: "changes_requested",
+      findings: [
+        {
+          id: "F-1",
+          requirement_id: "REQ-T-1",
+          severity: "important",
+          observation: "Missing null check",
+          remediation: "Add a guard",
+          revalidation: "Re-run the gate",
+          status: "open",
+          class: "defect",
+          evidence: [],
+        },
+        {
+          id: "F-2",
+          requirement_id: "REQ-T-1",
+          severity: "minor",
+          observation: "Prove the retry path",
+          remediation: "Record a command demonstrating it",
+          revalidation: "Re-run the gate",
+          status: "open",
+          class: "probe_demand",
+          evidence: [],
+        },
+      ],
+      history: [
+        {
+          at: "2026-08-14T20:20:00.000Z",
+          actor: "val-1",
+          from: "validating",
+          to: "changes_requested",
+          reason: "review",
+          attempt: 1,
+        },
+      ],
+    });
+    const events = [
+      makeEvent("review-recorded", 1, "2026-08-14T20:20:00.000Z", "val-1", {
+        task_id: "T-1",
+        verdict: "reject",
+        finding_ids: ["F-1", "F-2"],
+      }),
+    ];
+    const review = buildStateTransitions(mixedFindings, events).find(
+      (entry) => entry.to === "changes_requested",
+    );
+    expect(review?.findingClass).toBeUndefined();
+  });
+
   test("tolerate a capsule whose review events carry only a task id", () => {
     const events = [
       makeEvent("review-recorded", 1, "2026-08-14T20:20:00.000Z", "val-1", { task_id: "T-1" }),

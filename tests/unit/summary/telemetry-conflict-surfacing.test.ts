@@ -113,6 +113,38 @@ describe("summary.md renders a Telemetry conflicts table in section 17", () => {
     expect(section).not.toContain("only ever what a host reported through the CLI");
   });
 
+  test("renders a numeric or boolean conflict value as plain text, not JSON", () => {
+    const numericConflict: TelemetryFieldConflict = {
+      field: "context_window",
+      recorded_value: 200000,
+      recorded_evidence_class: "agent_reported",
+      probed_value: true,
+      probed_evidence_class: "derived",
+    };
+    const state = {
+      ...emptyState,
+      agents: [
+        {
+          id: "worker-1",
+          role: "implementer",
+          parent_agent_id: null,
+          parent_task_id: null,
+          host: "claude-code",
+          granted_at: "2026-08-20T00:00:00.000Z",
+          status: "active",
+          telemetry_conflicts: [numericConflict],
+        },
+      ],
+    };
+    const markdown = render(state);
+    cleanupRoots();
+
+    const section = markdown.slice(markdown.indexOf("## 17. Model And Token Telemetry"));
+    expect(section).toContain(
+      "| `worker-1` | `context_window` | 200000 | agent_reported | true | derived |",
+    );
+  });
+
   test("renders the explicit no-conflict note when no probe ever disagreed", () => {
     const markdown = render(emptyState);
     cleanupRoots();

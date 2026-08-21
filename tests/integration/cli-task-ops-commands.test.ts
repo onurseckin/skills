@@ -35,8 +35,6 @@ describe("CLI task-ops commands", () => {
       "worker-core",
       "--token",
       workerToken,
-      "--extend",
-      "1800",
     ]);
     expect(String(hb.markdown)).toContain("### Heartbeat Acknowledged: task-core");
 
@@ -273,15 +271,47 @@ describe("CLI task-ops commands", () => {
       "worker-core",
       "--token",
       claim.token as string,
-      "--extend",
-      "3600",
     ]);
 
     const lease = (beat.task as { lease: { expires_at: string } }).lease;
-    // The lease is renewed for its own recorded duration, so the brief must quote that renewal and
-    // the real expiry rather than the hour that was requested.
+    // A heartbeat has no per-call override: the lease renews only for its own recorded duration.
     expect(String(beat.markdown)).toContain(`+10 minutes (New Deadline: ${lease.expires_at})`);
-    expect(String(beat.markdown)).not.toContain("+60 minutes");
+  });
+
+  test("task:heartbeat refuses --extend: a lease's duration can't be overridden per beat", async () => {
+    const { run } = await setupCompiledRun("task-heartbeat-no-extend", roots);
+    const claim = await execute([
+      "task:claim",
+      "--run",
+      run,
+      "--task",
+      "task-core",
+      "--agent",
+      "worker-core",
+      "--role",
+      "implementer",
+      "--lease-duration",
+      "600",
+    ]);
+
+    // --extend used to be accepted, range-checked, and then silently discarded — the lease was
+    // always renewed by its own claimed duration regardless of what was passed. Rather than keep
+    // validating a value that does nothing, the flag is gone; this pins that removal.
+    await expect(
+      execute([
+        "task:heartbeat",
+        "--run",
+        run,
+        "--task",
+        "task-core",
+        "--agent",
+        "worker-core",
+        "--token",
+        claim.token as string,
+        "--extend",
+        "3600",
+      ]),
+    ).rejects.toThrow("unknown option: --extend");
   });
 
   test("task:validate-start honors an explicit --lease-duration", async () => {

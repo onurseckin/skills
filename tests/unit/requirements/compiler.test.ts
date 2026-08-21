@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { compileRequirementsFromPrompt } from "../../../orchestrating-long-tasks/scripts/src/requirements/compiler.ts";
 import { compileGraphDocument } from "../../../orchestrating-long-tasks/scripts/src/graph/compiler.ts";
+import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
 
 describe("Requirements and Graph Compilers", () => {
   test("compileRequirementsFromPrompt generates valid requirements covering all lines", () => {
@@ -44,6 +45,36 @@ describe("Requirements and Graph Compilers", () => {
     ).toThrow("prompt must contain at least one non-blank line");
   });
 
+  test("a task with no declared line and nothing already claimed for its fallback line cannot bind", () => {
+    // Only one nonblank line exists, and task-1 explicitly reserves it via --requirement-lines,
+    // so when task-0 (declared first, but with no explicit line of its own) reaches for it, the
+    // line is already excluded as "declared elsewhere" yet nothing has actually claimed it yet:
+    // there is no earlier requirement task-0 could fold its gate into.
+    expect(() =>
+      compileRequirementsFromPrompt("Only line", [
+        { id: "task-0", label: "Task 0", writeScope: ["a"], gate: "g0" },
+        {
+          id: "task-1",
+          label: "Task 1",
+          writeScope: ["b"],
+          gate: "g1",
+          requirementLines: [1],
+        },
+      ]),
+    ).toThrow("task task-0 has no prompt line to bind to and no requirement to fold into");
+  });
+
+  test("refuses to emit a requirement its own validator would reject", () => {
+    // A blank label and no goal produce a blank `instruction` field, which validateRequirements
+    // rejects; compileRequirementsFromPrompt must surface that as a failure of its own rather than
+    // handing back a document nothing downstream would accept.
+    expect(() =>
+      compileRequirementsFromPrompt("Only line", [
+        { id: "task-1", label: "", writeScope: ["a"], gate: "g" },
+      ]),
+    ).toThrow(/^compiled requirements failed validation: /);
+  });
+
   test("compileGraphDocument compiles a valid graph matching requirements", () => {
     const prompt = "Goal 1\n\nGoal 2";
     const tasks = [
@@ -78,5 +109,39 @@ describe("Requirements and Graph Compilers", () => {
     const gates = graphResult.graphDocument.gates as Record<string, unknown>[];
     expect(gates.some((g) => g.scope === "run" && g.mandatory === true)).toBe(true);
     expect(gates.some((g) => g.scope === "task" && g.id === "gate-1")).toBe(true);
+  });
+
+  test("compileGraphDocument refuses to compile without a declared run-completion gate", () => {
+    const prompt = "Goal 1";
+    const tasks = [
+      { id: "task-1", label: "Task 1", writeScope: ["src/a"], gate: "bun test tests/a" },
+    ];
+    const reqResult = compileRequirementsFromPrompt(prompt, tasks);
+    expect(() =>
+      compileGraphDocument(tasks, reqResult.requirementsDocument, reqResult.requirementIdsByTask),
+    ).toThrow(HarnessError);
+    expect(() =>
+      compileGraphDocument(tasks, reqResult.requirementsDocument, reqResult.requirementIdsByTask),
+    ).toThrow("the mandatory run-completion gate needs a declared command");
+  });
+
+  test("compileGraphDocument refuses to emit a graph its own validator would reject", () => {
+    // An absolute write scope survives compileGraphDocument's own normalization unchanged (it
+    // only normalizes relative path syntax), so the defensive validateGraph call at the end must
+    // be the one that catches it.
+    const prompt = "Goal 1";
+    const tasks = [
+      { id: "task-1", label: "Task 1", writeScope: ["/etc"], gate: "bun test tests/a" },
+    ];
+    const reqResult = compileRequirementsFromPrompt(prompt, tasks);
+    expect(() =>
+      compileGraphDocument(
+        tasks,
+        reqResult.requirementsDocument,
+        reqResult.requirementIdsByTask,
+        1,
+        ["bun", "test", "tests"],
+      ),
+    ).toThrow(/^compiled graph failed validation: /);
   });
 });

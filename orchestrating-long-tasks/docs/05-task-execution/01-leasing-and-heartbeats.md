@@ -47,9 +47,10 @@ bun harness.ts task:heartbeat \
 ### Heartbeat Rules:
 
 1. **Authenticated:** Must provide the valid bearer token matching `token_digest`.
-2. **Bounded Extension:** `--extend` is range-checked (60–86400 seconds), and the renewal the lease
-   actually receives is its own recorded duration. The brief reports what was granted, never what was
-   asked for.
+2. **Fixed-Duration Renewal:** Every heartbeat moves the deadline forward by the lease's own
+   recorded duration — the one set at `task:claim` — and by nothing else. There is no flag to
+   request a different renewal length per beat; if the work needs more time per heartbeat, claim
+   with a longer `--lease-duration` up front instead.
 3. **State Logging:** Records `heartbeat_at` in `state.json` and appends a `lease-heartbeat` event.
 
 ---

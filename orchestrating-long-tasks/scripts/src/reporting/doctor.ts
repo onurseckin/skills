@@ -20,7 +20,7 @@ export interface DoctorOptions {
   };
 }
 
-function versionAtLeast(actual: string, minimum: string): boolean {
+export function versionAtLeast(actual: string, minimum: string): boolean {
   const left = actual.split(".").map(Number);
   const right = minimum.split(".").map(Number);
   for (let index = 0; index < Math.max(left.length, right.length); index += 1) {

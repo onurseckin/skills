@@ -5,7 +5,15 @@ import type { WorktreeLedgerState, WorktreeRecord } from "../../contracts/worktr
 import { HarnessError } from "../../errors/harness-error.ts";
 import { loadRun, transact } from "../../store/index.ts";
 import { assignWorktrees, type AssignableTask } from "./assign.ts";
-import { addWorktree, branchExists, createBranch, currentBranch, headSha } from "./git-ops.ts";
+import {
+  addWorktree,
+  branchExists,
+  createBranch,
+  currentBranch,
+  headSha,
+  runGit,
+  type GitRunner,
+} from "./git-ops.ts";
 import { readWorktreeLedger, writeWorktreeLedger } from "./ledger.ts";
 
 function resolveWorktreeRoot(repoRoot: string, configured: string | undefined): string {
@@ -37,6 +45,7 @@ export interface ProvisionWorktreesInput {
   tasksById: ReadonlyMap<string, AssignableTask>;
   config: ProvisionWorktreesConfig;
   now?: Date;
+  runner?: GitRunner;
 }
 
 export interface ProvisionWorktreesResult {
@@ -46,16 +55,17 @@ export interface ProvisionWorktreesResult {
 
 export function provisionWorktrees(input: ProvisionWorktreesInput): ProvisionWorktreesResult {
   if (!input.config.worktree_isolation) return { enabled: false, ledger: null };
+  const runner = input.runner ?? runGit;
   const existing = readWorktreeLedger(loadRun(input.runRoot).state);
   const { assignments, worktreeCount } = assignWorktrees(input.topology, input.tasksById);
   if (worktreeCount === 0) return { enabled: true, ledger: existing };
 
   const root = resolveWorktreeRoot(input.repoRoot, input.config.worktree_root);
   const harnessBranch = `${input.config.branch_prefix}${input.runId}`;
-  const baseSha = existing?.base_sha ?? headSha(input.repoRoot);
-  const baseBranch = existing?.base_branch ?? currentBranch(input.repoRoot) ?? undefined;
-  if (!branchExists(input.repoRoot, harnessBranch))
-    createBranch(input.repoRoot, harnessBranch, baseSha);
+  const baseSha = existing?.base_sha ?? headSha(input.repoRoot, runner);
+  const baseBranch = existing?.base_branch ?? currentBranch(input.repoRoot, runner) ?? undefined;
+  if (!branchExists(input.repoRoot, harnessBranch, runner))
+    createBranch(input.repoRoot, harnessBranch, baseSha, runner);
 
   const already = existing?.worktrees.length ?? 0;
   const createdAt = (input.now ?? new Date()).toISOString();
@@ -65,7 +75,7 @@ export function provisionWorktrees(input: ProvisionWorktreesInput): ProvisionWor
     const id = `wt-${index}`;
     const branch = `${harnessBranch}--${id}`;
     const worktreePath = join(root, input.runId, id);
-    addWorktree(input.repoRoot, worktreePath, branch, baseSha);
+    addWorktree(input.repoRoot, worktreePath, branch, baseSha, runner);
     newWorktrees.push({ id, path: worktreePath, branch, base_sha: baseSha, created_at: createdAt });
   }
 

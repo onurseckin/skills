@@ -1,5 +1,13 @@
 import { describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, realpathSync, symlinkSync, writeFileSync } from "node:fs";
+import {
+  chmodSync,
+  mkdirSync,
+  mkdtempSync,
+  realpathSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { inspectRepositoryNode } from "../../../orchestrating-long-tasks/scripts/src/packets/repository-content-node.ts";
@@ -74,5 +82,34 @@ describe("repository-content-node", () => {
         },
       }),
     ).toThrow("repository content scan was unstable");
+  });
+
+  test("re-throws a non-ENOENT error from stat'ing the leaf itself", () => {
+    // A top-level entry has no tracked ancestors (fromRoot.split(sep).slice(0, -1) is empty),
+    // so revoking search permission on the repo root between ancestor capture and the leaf's
+    // own lstat isn't caught by verifyRepositoryAncestors — it surfaces as an EACCES from
+    // lstatSync(identity.path) itself, the one non-ENOENT path through that catch block.
+    const repoRoot = realpathSync(mkdtempSync(join(tmpdir(), "repo-node-")));
+    writeFileSync(join(repoRoot, "file.txt"), "hello");
+    try {
+      expect(() =>
+        inspectRepositoryNode(repoRoot, { path: "file.txt", index: [] }, 1024, {
+          afterAncestorCapture: () => chmodSync(repoRoot, 0o000),
+        }),
+      ).toThrow(/EACCES/);
+    } finally {
+      chmodSync(repoRoot, 0o755);
+    }
+  });
+
+  test("treats a file removed after ancestor capture as missing rather than an error", () => {
+    const repoRoot = realpathSync(mkdtempSync(join(tmpdir(), "repo-node-")));
+    const filePath = join(repoRoot, "vanishing.txt");
+    writeFileSync(filePath, "will be removed before its own stat");
+
+    const node = inspectRepositoryNode(repoRoot, { path: "vanishing.txt", index: [] }, 1024, {
+      afterAncestorCapture: () => rmSync(filePath),
+    });
+    expect(node.node_type).toBe("missing");
   });
 });

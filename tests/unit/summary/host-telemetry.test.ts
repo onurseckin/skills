@@ -98,6 +98,45 @@ describe("host identity detection", () => {
       expect(detectHostIdentity({ homeDir: home, env: {} })?.hostTool).toBe("codex");
     });
   });
+
+  test("treats a config.toml that fails to parse as no identity at all", () => {
+    withTempHome((home) => {
+      const dir = join(home, ".codex");
+      mkdirSync(dir, { recursive: true });
+      // An unclosed table header: genuinely invalid TOML, not merely an odd-but-parseable shape.
+      writeFileSync(join(dir, "config.toml"), "[agents\nmax_concurrent_threads_per_session = 4\n");
+      expect(detectHostIdentity({ homeDir: home, env: {} })).toBeNull();
+    });
+  });
+
+  test("falls back to $USERPROFILE when $HOME is unset, as on Windows", () => {
+    withTempHome((home) => {
+      writeHostSettings(home, { model: "Gemini 3.7 Flash (High)" });
+      // No `homeDir` option and no HOME in this explicit env: only USERPROFILE names the machine's
+      // home directory, the Windows convention resolveHomeDir falls back to.
+      expect(detectHostIdentity({ env: { USERPROFILE: home } })?.hostTool).toBe("antigravity");
+    });
+  });
+
+  test("falls back to the OS-reported home directory when neither env var is set", () => {
+    // Every existing test above pins `homeDir` explicitly; none exercises the branch where
+    // resolveHomeDir must call node:os's own homedir(). The session-id env var short-circuits
+    // identity resolution regardless of what the real machine's homedir() returns, so this stays
+    // deterministic while still exercising that fallback call.
+    expect(detectHostIdentity({ env: { CLAUDE_CODE_SESSION_ID: "sess-1" } })).toEqual({
+      hostTool: "claude-code",
+      evidenceClass: "harness_observed",
+    });
+  });
+
+  test("a config path that is a directory, not a file, is read as absent rather than throwing", () => {
+    withTempHome((home) => {
+      // existsSync is true for a directory too; readFileSync on it throws EISDIR, which is the
+      // failure readConfig's own catch exists to absorb.
+      mkdirSync(join(home, ".gemini", "antigravity-cli", "settings.json"), { recursive: true });
+      expect(detectHostIdentity({ homeDir: home, env: {} })).toBeNull();
+    });
+  });
 });
 
 describe("host telemetry probing — the automatic, hardcoded half of the two sources", () => {
@@ -187,6 +226,58 @@ describe("host telemetry probing — the automatic, hardcoded half of the two so
         value: 20,
         evidence_class: "derived",
       });
+    });
+  });
+
+  test("claude-code: reads the current project's last model usage, keyed by its exact cwd", () => {
+    withTempHome((home) => {
+      writeFileSync(
+        join(home, ".claude.json"),
+        JSON.stringify({
+          projects: {
+            "/repo/one": { lastModelUsage: { "claude-sonnet-5": { total_tokens: 42 } } },
+            "/repo/two": { lastModelUsage: {} },
+          },
+        }),
+      );
+
+      const matched = detectHostTelemetry("worker-1", {
+        homeDir: home,
+        env: { [HOST_MODEL_VARIABLE]: "claude-3-7-sonnet" },
+        cwd: "/repo/one",
+      });
+      expect(matched?.last_model_usage).toEqual({
+        value: { "claude-sonnet-5": { total_tokens: 42 } },
+        evidence_class: "derived",
+      });
+
+      // An empty lastModelUsage object carries no evidence, so it is dropped rather than reported.
+      const empty = detectHostTelemetry("worker-1", {
+        homeDir: home,
+        env: { [HOST_MODEL_VARIABLE]: "claude-3-7-sonnet" },
+        cwd: "/repo/two",
+      });
+      expect(empty?.last_model_usage).toBeUndefined();
+
+      // A cwd the projects map never recorded is absent, not an empty guess.
+      const unknownCwd = detectHostTelemetry("worker-1", {
+        homeDir: home,
+        env: { [HOST_MODEL_VARIABLE]: "claude-3-7-sonnet" },
+        cwd: "/repo/three",
+      });
+      expect(unknownCwd?.last_model_usage).toBeUndefined();
+    });
+  });
+
+  test("claude-code: a .claude.json whose projects field is not an object is read as no usage", () => {
+    withTempHome((home) => {
+      writeFileSync(join(home, ".claude.json"), JSON.stringify({ projects: "not-an-object" }));
+      const probe = detectHostTelemetry("worker-1", {
+        homeDir: home,
+        env: { [HOST_MODEL_VARIABLE]: "claude-3-7-sonnet" },
+        cwd: "/repo/one",
+      });
+      expect(probe?.last_model_usage).toBeUndefined();
     });
   });
 

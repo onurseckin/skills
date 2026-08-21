@@ -1,4 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
+import { mkdtemp, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { execute } from "../../../orchestrating-long-tasks/scripts/src/cli/execute.ts";
 import { loadRun } from "../../../orchestrating-long-tasks/scripts/src/store/index.ts";
 import { requirementIds } from "./critic-run-fixture.ts";
@@ -285,5 +288,190 @@ describe("CLI critic-ops commands", () => {
         "C-does-not-exist",
       ]),
     ).rejects.toThrow("not authoritative repository evidence");
+  });
+
+  test("critic:review rejects a decision that is neither approve nor request_changes", async () => {
+    const { repo, run } = await setupReadyRun("critic-review-bad-decision", roots);
+    const cmdId = "C-INSPECT-BAD-DECISION";
+    registerInspectionCommand(run, repo, cmdId, "critic-iota");
+    const start = await execute([
+      "critic:start",
+      "--run",
+      run,
+      "--critic",
+      "critic-iota",
+      "--repository-command-ids",
+      cmdId,
+    ]);
+    await expect(
+      execute([
+        "critic:review",
+        "--run",
+        run,
+        "--critic",
+        "critic-iota",
+        "--token",
+        start.token as string,
+        "--decision",
+        "abstain",
+        "--summary",
+        "Not a real decision",
+      ]),
+    ).rejects.toThrow("--decision must be approve or request_changes");
+  });
+
+  test("critic:review refuses --findings on an approve decision", async () => {
+    const { repo, run } = await setupReadyRun("critic-review-approve-findings", roots);
+    const cmdId = "C-INSPECT-APPROVE-FINDINGS";
+    registerInspectionCommand(run, repo, cmdId, "critic-kappa");
+    const start = await execute([
+      "critic:start",
+      "--run",
+      run,
+      "--critic",
+      "critic-kappa",
+      "--repository-command-ids",
+      cmdId,
+    ]);
+    await expect(
+      execute([
+        "critic:review",
+        "--run",
+        run,
+        "--critic",
+        "critic-kappa",
+        "--token",
+        start.token as string,
+        "--decision",
+        "approve",
+        "--findings",
+        "[]",
+        "--summary",
+        "Approve should never carry findings",
+      ]),
+    ).rejects.toThrow("--decision approve cannot carry findings");
+  });
+
+  test("critic:review rejects a request_changes whose --findings parses to an empty list", async () => {
+    const { repo, run } = await setupReadyRun("critic-review-empty-findings", roots);
+    const cmdId = "C-INSPECT-EMPTY-FINDINGS";
+    registerInspectionCommand(run, repo, cmdId, "critic-lambda");
+    const start = await execute([
+      "critic:start",
+      "--run",
+      run,
+      "--critic",
+      "critic-lambda",
+      "--repository-command-ids",
+      cmdId,
+    ]);
+    await expect(
+      execute([
+        "critic:review",
+        "--run",
+        run,
+        "--critic",
+        "critic-lambda",
+        "--token",
+        start.token as string,
+        "--decision",
+        "request_changes",
+        "--findings",
+        "[]",
+        "--summary",
+        "No actual findings named",
+      ]),
+    ).rejects.toThrow("--decision request_changes requires at least one finding");
+  });
+
+  test("critic:review refuses when no completeness critic assignment is recorded", async () => {
+    const { run } = await setupReadyRun("critic-review-no-assignment", roots);
+    await expect(
+      execute([
+        "critic:review",
+        "--run",
+        run,
+        "--critic",
+        "critic-never-started",
+        "--token",
+        "fake-token",
+        "--decision",
+        "approve",
+        "--summary",
+        "No critic:start was ever run",
+      ]),
+    ).rejects.toThrow("no completeness critic assignment found");
+  });
+
+  test("critic:review --review loads the payload from a file, stamping its own measured integrity", async () => {
+    const { repo, run } = await setupReadyRun("critic-review-file", roots);
+    const cmdId = "C-INSPECT-REVIEW-FILE";
+    registerInspectionCommand(run, repo, cmdId, "critic-file");
+    const start = await execute([
+      "critic:start",
+      "--run",
+      run,
+      "--critic",
+      "critic-file",
+      "--repository-command-ids",
+      cmdId,
+    ]);
+    const assignment = start.critic as {
+      readiness_sha256: string;
+      repository_binding: Record<string, unknown>;
+    };
+    const evidence = [{ kind: "command", reference: cmdId, observation: "gate covers it" }];
+    const reviewRoot = await mkdtemp(join(tmpdir(), "harness-critic-review-file-"));
+    roots.push(reviewRoot);
+    const reviewPath = join(reviewRoot, "completion-review.json");
+    await writeFile(
+      reviewPath,
+      JSON.stringify({
+        graph_revision: 1,
+        status: "clean",
+        readiness_sha256: assignment.readiness_sha256,
+        repository_binding: assignment.repository_binding,
+        // The file asserts a clean capsule; critic:review measures its own integrity evidence
+        // instead of trusting this declared one, which is exactly what this test checks.
+        integrity_evidence: [{ kind: "capsule_integrity", status: "passed", issues: [] }],
+        repository_command_ids: [cmdId],
+        checks: [{ command_id: cmdId }],
+        findings: [],
+        unresolved_finding_ids: [],
+        requirement_proofs: requirementIds(run).map((id) => ({
+          requirement_id: id,
+          status: "satisfied",
+          evidence,
+        })),
+        residual_risks: [],
+      }),
+    );
+
+    const review = await execute([
+      "critic:review",
+      "--run",
+      run,
+      "--critic",
+      "critic-file",
+      "--token",
+      start.token as string,
+      "--decision",
+      "approve",
+      "--review",
+      reviewPath,
+      "--summary",
+      "Whole diff verified against the run gate",
+    ]);
+    expect(review.summary).toBe("Whole diff verified against the run gate");
+    const recorded = review.completion_review as {
+      critic_token: string;
+      integrity_evidence: Record<string, unknown>[];
+    };
+    expect(recorded.integrity_evidence).toHaveLength(1);
+    expect(recorded.integrity_evidence[0]).toMatchObject({
+      kind: "capsule_integrity",
+      evidence_class: "harness_observed",
+      status: "passed",
+    });
   });
 });

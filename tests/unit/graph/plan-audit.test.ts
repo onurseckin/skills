@@ -8,8 +8,10 @@ import {
   type GateProofRecord,
 } from "../../../orchestrating-long-tasks/scripts/src/graph/gate-proof.ts";
 import {
+  advisoryFindings,
   AUDIT_INVARIANT_IDS,
   auditPlan,
+  blockingFindings,
   isAuditInvariantId,
   type AuditTaskInput,
 } from "../../../orchestrating-long-tasks/scripts/src/graph/plan-audit.ts";
@@ -375,5 +377,29 @@ describe("A6-whole-suite-gate", () => {
       expect(finding).toBeDefined();
       expect(finding?.severity).toBe("blocking");
     });
+  });
+});
+
+describe("blockingFindings and advisoryFindings", () => {
+  test("partition a mixed result by severity without touching the other bucket", () => {
+    // A3 is blocking (identical gate over disjoint scopes); A5 is advisory (one huge straggler in
+    // a wave) — together they exercise both severities in one auditPlan call.
+    const result = auditPlan(fixtureRepo(), [
+      task({ taskId: "task-d1", writeScope: ["src/d1"], gate: "bun run typecheck", effort: 1 }),
+      task({ taskId: "task-d2", writeScope: ["src/d2"], gate: "bun run typecheck", effort: 1 }),
+      task({ taskId: "task-huge", writeScope: ["src/huge"], effort: 10 }),
+    ]);
+    expect(blockingFindings(result).every((f) => f.severity === "blocking")).toBe(true);
+    expect(blockingFindings(result).some((f) => f.invariant === "A3-gate-discrimination")).toBe(
+      true,
+    );
+    expect(advisoryFindings(result).every((f) => f.severity === "advisory")).toBe(true);
+    expect(advisoryFindings(result).some((f) => f.invariant === "A5-straggler")).toBe(true);
+  });
+
+  test("both return an empty list for a plan with no findings", () => {
+    const result = auditPlan(fixtureRepo(), [task({ taskId: "task-a", writeScope: ["src/a"] })]);
+    expect(blockingFindings(result)).toEqual([]);
+    expect(advisoryFindings(result)).toEqual([]);
   });
 });

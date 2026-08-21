@@ -174,7 +174,6 @@ export function taskHeartbeatCommand(flags: Flags): Record<string, unknown> {
   const taskId = textFlag(flags, "task")!;
   const agent = textFlag(flags, "agent")!;
   const token = textFlag(flags, "token")!;
-  integerFlag(flags, "extend", { minimum: 60, maximum: 86_400 });
 
   const state = heartbeat(workflowPort(run), taskId, agent, token);
   const task = state.tasks[taskId]!;

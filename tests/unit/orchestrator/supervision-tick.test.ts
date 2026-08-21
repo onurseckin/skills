@@ -64,6 +64,37 @@ describe("runSupervisionTick (B28.2/B28.3 — reclaim and escalate)", () => {
     expect(tick!.state.tasks["T-2"]!.status).toBe("ready");
   });
 
+  test("re-evaluating an already-escalated task's stale streak swallows the resulting INVALID_STATE instead of throwing", () => {
+    const state = twoTaskState();
+    const port = new TestPort(state);
+    let now = new Date("2026-08-19T00:00:00.000Z");
+    for (let round = 0; round < 3; round++) {
+      claimTask(port, "T-1", `agent-${round}`, "implementer", {
+        leaseSeconds: 5,
+        clock: { now: () => now },
+      });
+      now = new Date(now.valueOf() + 60_000);
+      runSupervisionTick(port, "supervisor", {
+        graceSeconds: 0,
+        deterministicRepeatThreshold: 3,
+        clock: { now: () => now },
+      });
+    }
+    expect(port.read().tasks["T-1"]!.status).toBe("escalated");
+
+    // T-1 is already escalated and holds no lease, so its stale streak from before still reads as
+    // "dead" here too — escalateTask itself now refuses ("escalated" is not an escalatable status),
+    // and the tick has to absorb that INVALID_STATE rather than let it propagate.
+    now = new Date(now.valueOf() + 60_000);
+    const again = runSupervisionTick(port, "supervisor", {
+      graceSeconds: 0,
+      deterministicRepeatThreshold: 3,
+      clock: { now: () => now },
+    });
+    expect(again.escalatedNow).toEqual([]);
+    expect(port.read().tasks["T-1"]!.status).toBe("escalated");
+  });
+
   test("does not escalate on the second dead agent when the threshold has not been reached", () => {
     const port = new TestPort(workflowState());
     let now = new Date("2026-08-19T00:00:00.000Z");

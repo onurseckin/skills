@@ -33,12 +33,35 @@ const SCRIPT_EXEMPTIONS: readonly string[] = [
  * `transcript-telemetry.test.ts` and `transcript-telemetry-cli.test.ts` set and read
  * `CLAUDE_CODE_SESSION_ID` as a literal env-var / object key, the same "host's own name" shape as
  * the two exemptions above — the production reader keys off that exact string, so the tests must too.
+ *
+ * The four installer test files below all hit the identical shape one level removed: `client-links.ts`
+ * types its link map as `Record<"antigravity" | "claude", string>` (`clientLinkPaths()`), and
+ * `installation-status.ts` builds `status.links` off that same union plus production's own
+ * `CLIENT_NAMES` ("antigravity" | "chatgpt" | "claude" | "codex"). Those keys are real install-root
+ * identities — `.claude/skills/...`, `.gemini/config/skills/...` — not names the tests coined, and
+ * reading one back is a plain property access (`clientLinkPaths(home).claude`,
+ * `status.links.antigravity`): the key IS the value, exactly the `host-telemetry.ts` shape, so it
+ * cannot be renamed without breaking the read. `client-links.test.ts` additionally assigns one such
+ * read to a local (`antigravityLink`) inside the test that asserts an earlier-applied plan rolls back
+ * when a later plan for a *different* named host fails; the local documents which host's path the
+ * assertion is about, the same role `codexHome()` already plays in the exempted probe test above.
+ * - unit/cli/install-ops-command.test.ts: reads `links.claude` off the CLI's own status output.
+ * - unit/installer/install.test.ts: reads `clientLinkPaths(...).claude` to assert install/rollback.
+ * - unit/installer/installation-status.test.ts: reads `status.links.<client>` for every client in
+ *   `CLIENT_NAMES`, plus `clientLinkPaths(...).claude` to plant fixtures at the real link path.
+ * - unit/installer/client-links.test.ts: reads `clientLinkPaths(...).claude` /`.antigravity` and
+ *   `plan.client`/`paths.claude` throughout, since `preflightClientLinks`/`applyClientLinks` are
+ *   exercised per host by construction.
  */
 const TEST_EXEMPTIONS: readonly string[] = [
   "integration/agents-host-telemetry-probe.test.ts",
   "unit/summary/host-telemetry.test.ts",
   "unit/agents/transcript-telemetry.test.ts",
   "integration/agents-transcript-telemetry-cli.test.ts",
+  "unit/cli/install-ops-command.test.ts",
+  "unit/installer/install.test.ts",
+  "unit/installer/installation-status.test.ts",
+  "unit/installer/client-links.test.ts",
 ];
 
 function describeFindings(findings: readonly VendorIdentifierFinding[]): string[] {
