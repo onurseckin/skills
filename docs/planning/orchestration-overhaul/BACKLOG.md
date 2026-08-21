@@ -925,6 +925,39 @@ scope for this pass). None of this changes B9's own verdict: B9.1 stays unmet (s
 sharper evidence), and B9.2's tool is real, runs, and — bug aside — is doing real, current work; the item
 stays open on B9.1 alone.
 
+**2026-08-21 (B9 owner pass) — false positive closed, coverage re-measured, item stays `queued`.**
+
+*The `store/index.ts` false positive is fixed*, commit `be9b91a`. Root cause, found by tracing
+`usageIndex` in `reachability.ts`: `usage.importedModules.add(binding.from)` only ran inside the
+`binding.imported === "*"` branch, so a **named** import (`import { loadRun } from "../store/index.ts"`)
+never registered the barrel file itself as production-imported — only `resolveOrigin`'s resolved
+target did, which for a pure re-export barrel is the file the barrel forwards to, not the barrel. Any
+barrel file imported everywhere by name (`store/index.ts` has 59 such import edges from 40+ production
+files, reconfirmed by direct script) could therefore read as production-untouched. The one-line fix
+hoists that `add` above the namespace check so a direct import registers regardless of import style or
+re-export depth. Regression test added: `tests/unit/health/reachability.test.ts` → "a pure re-export
+barrel used by production through named imports" — verified to actually guard the fix, not just pass
+with it: stashed `reachability.ts` alone, re-ran the file, and the new test failed with `["module-test-
+only:barrel.ts", ...]` present, exactly the false-positive shape; unstashed and it passes again. Re-ran
+`bun harness.ts health --all` against the live tree after committing: `store/index.ts` no longer appears
+anywhere in the output (`grep -n "store/index"` on the report is empty). This closes QUEUE.md #17 and
+this item's own first defect.
+
+*B9.1 coverage, re-measured from scratch* (the "roughly 83% funcs / 84% lines" figure this item was
+dispatched with does not match current disk state — do not carry it forward). Ran
+`bun test --coverage --timeout 30000 tests/unit` directly: **`All files` — 97.88% funcs / 98.19% lines**,
+3935 pass / 10 fail / 3945 total in that run. The 10 failures are not in any file this item owns
+(`health/**`, `tests/unit/health/**`) and were not introduced by this pass's own commit — they trace to
+other agents' in-flight, uncommitted work landing in this shared, non-worktree checkout while this
+measurement ran (`tests/unit/architecture/vendor-identifiers.test.ts`, `tests/unit/architecture/file-
+size.test.ts`, `tests/unit/cli/*` task:review cases, a `run:status` case, and `tests/unit/workflow/legacy-
+capsule-completion.test.ts` — none under this item's file ownership, reported here rather than touched).
+The CI-enforced floor B9.1 also asks for is still absent — `.github/workflows/ci.yml` still runs no
+`--coverage` step and sets no threshold — and stays unmet because that file is outside this item's owned
+paths (`health/**` only); it is QUEUE.md #3, blocked on QUEUE #1, and is that item's to close. **B9 stays
+`queued`** on B9.1's CI floor alone: B9.2 remains real, wired, and running (reconfirmed this pass), and
+its one known defect is now fixed and guarded.
+
 ### B9.1 Coverage bar
 
 Every new implementation in this overhaul must reach **as close to 100% as the code honestly allows**
