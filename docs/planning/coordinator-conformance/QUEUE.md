@@ -39,6 +39,35 @@ floor, and partial write-scope truthfulness — using code that already exists a
 | 11  | **Data-model unification**                                              | queued | `screenshots` is a lossy projection of `screenshot_records` (`reporting/command-evidence.ts:21-22`). `inspection-formatter.ts:61` reads `status ?? verdict ?? decision ?? "unknown"` — three names for one concept plus a fabricated literal. The alias is banned; delete it.                                                                                                                                                                                       |
 | 12  | **Audit the 16 integration tests**                                      | queued | Nothing currently gates on `tests/integration`, so their correctness is unverified.                                                                                                                                                                                                                                                                                                                                                                                 |
 
+## Reconciliation protocol (added 2026-08-20)
+
+**Before working any queued item, first establish that it is still real.** Open the files it cites,
+run the commands it cites, and decide: still real / already fixed / obsolete. Delete the obsolete
+ones from this file rather than leaving them tagged.
+
+Run reconciliation as its own pass, after a wave lands and the repo is stable — never interleaved
+with implementation, because a tree mid-edit cannot answer "is this still true".
+
+This exists because stale entries cause rework. `BACKLOG.md`'s own B37 records the same failure:
+*"items verified genuinely done stay marked `queued` forever, causing rework and stale blocker
+claims."* As of today, 19 of that file's 41 items are tagged `queued` and an unknown number are
+already satisfied.
+
+**Next reconciliation is owed against:** the 4 uncovered items below (5, 6, 10, 12) and all 19
+`queued` items in `../orchestration-overhaul/BACKLOG.md` — B3, B4, B8, B9, B15, B17, B18, B20, B21,
+B22, B26, B32, B33, B35, B37, B38, B39, B40, B41.
+
+## Landed in the harness-honesty wave, not previously recorded here
+
+Three defects found by forensics on the `limo` capsule and discussed directly with the owner. They
+were implemented before being queued, so they are recorded here for completeness:
+
+| Item | Evidence |
+|---|---|
+| **Requirement fold refuses** | A 487-byte single-line prompt naming ~13 concerns produced ONE requirement carrying FOUR acceptance criteria, each "Task gate `<X>` passes with exit code 0". `compiler.ts` folds surplus tasks into the first requirement via `nonBlankLineIndices[taskIdx % length]`. The harness already warned; the warning is now a refusal. Gate-as-acceptance (the silent third fallback) now warns loudly, and becomes conditional on a falsifiability proof once C3b lands. |
+| **Projection checkpointing** | `events.jsonl` measured at 4,613,371 bytes over 66 events; the `projection` field is 103.7% of that by JSON size. Real event content totals ~17KB — the signal is 0.4% of the file. Replaced with periodic checkpoints plus replay. |
+| **Unclosed attempts** | Three of four tasks in the `limo` run reached `done` holding an implementation attempt with `started_at` and no `submitted_at`. A terminal transition now refuses while an attempt is open; abandonment is an explicit attributed state. |
+
 ## In flight
 
 - **test-lane** — clear the last 10 unit failures, then classify every slow test by nature (not speed)
