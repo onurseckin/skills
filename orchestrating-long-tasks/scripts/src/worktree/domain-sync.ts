@@ -39,7 +39,7 @@ export const CONVENTIONAL_COMMIT_TYPES = new Set([
   "migration",
 ]);
 
-export interface DomainWorktreeConfig extends JsonObject {
+export interface DomainWorktreeConfig {
   domain: string;
   worktreeId: string;
   worktreePath: string;
@@ -48,12 +48,12 @@ export interface DomainWorktreeConfig extends JsonObject {
   headSha: string;
   createdAt: string;
   status: "active" | "syncing" | "synced" | "conflict" | "reclaimed";
-  lastSyncedSha?: string;
-  lastSyncedAt?: string;
+  lastSyncedSha?: string | undefined;
+  lastSyncedAt?: string | undefined;
   assignedTaskIds: string[];
 }
 
-export interface DomainCommitRecord extends JsonObject {
+export interface DomainCommitRecord {
   taskId: string;
   domain: string;
   worktreeId: string;
@@ -63,10 +63,10 @@ export interface DomainCommitRecord extends JsonObject {
   overLimit: boolean;
   committedAt: string;
   pushed: boolean;
-  pushedAt?: string;
+  pushedAt?: string | undefined;
 }
 
-export interface DomainSyncConflict extends JsonObject {
+export interface DomainSyncConflict {
   domain: string;
   worktreeId: string;
   branch: string;
@@ -74,18 +74,18 @@ export interface DomainSyncConflict extends JsonObject {
   reason: string;
 }
 
-export interface DomainSyncResult extends JsonObject {
+export interface DomainSyncResult {
   domain: string;
   synced: boolean;
   targetBranch: string;
   sourceBranch: string;
   commitsSynced: number;
-  syncedSha?: string;
-  conflict?: DomainSyncConflict;
+  syncedSha?: string | undefined;
+  conflict?: DomainSyncConflict | undefined;
   syncedAt: string;
 }
 
-export interface GlobalSyncSummary extends JsonObject {
+export interface GlobalSyncSummary {
   harnessBranch: string;
   syncedDomains: string[];
   failedDomains: string[];
@@ -93,21 +93,21 @@ export interface GlobalSyncSummary extends JsonObject {
   conflicts: DomainSyncConflict[];
   diffstat: string;
   rebased: boolean;
-  rebaseTarget?: string;
-  rebaseConflictPaths?: string[];
+  rebaseTarget?: string | undefined;
+  rebaseConflictPaths?: string[] | undefined;
   consolidatedAt: string;
   scopeIsolated: boolean;
 }
 
-export interface DomainLedgerState extends JsonObject {
+export interface DomainLedgerState {
   harnessBranch: string;
   baseSha: string;
-  baseBranch?: string;
+  baseBranch?: string | undefined;
   root: string;
   domains: Record<string, DomainWorktreeConfig>;
   commits: DomainCommitRecord[];
   syncHistory: DomainSyncResult[];
-  globalSyncSummary?: GlobalSyncSummary;
+  globalSyncSummary?: GlobalSyncSummary | undefined;
 }
 
 export interface DomainCommitPushInput {
@@ -117,19 +117,19 @@ export interface DomainCommitPushInput {
   worktreePath: string;
   writeScope: readonly string[];
   label: string;
-  commitType?: string;
-  maxCommitLines?: number;
-  pushOnCommit?: boolean;
-  modifiedPaths?: readonly string[];
-  now?: Date;
-  runner?: GitRunner;
+  commitType?: string | undefined;
+  maxCommitLines?: number | undefined;
+  pushOnCommit?: boolean | undefined;
+  modifiedPaths?: readonly string[] | undefined;
+  now?: Date | undefined;
+  runner?: GitRunner | undefined;
 }
 
 export interface DomainCommitPushOutcome {
   committed: boolean;
   pushed: boolean;
-  commit?: DomainCommitRecord;
-  warning?: string;
+  commit?: DomainCommitRecord | undefined;
+  warning?: string | undefined;
 }
 
 export interface SyncDomainInput {
@@ -137,26 +137,26 @@ export interface SyncDomainInput {
   runId: string;
   domain: string;
   ledger: DomainLedgerState;
-  runner?: GitRunner;
-  now?: Date;
+  runner?: GitRunner | undefined;
+  now?: Date | undefined;
 }
 
 export interface SyncGlobalToDomainInput {
   repoRoot: string;
   domain: string;
   ledger: DomainLedgerState;
-  rebase?: boolean;
-  runner?: GitRunner;
-  now?: Date;
+  rebase?: boolean | undefined;
+  runner?: GitRunner | undefined;
+  now?: Date | undefined;
 }
 
 export interface SyncAllDomainsInput {
   repoRoot: string;
   runId: string;
   ledger: DomainLedgerState;
-  rebaseOnComplete?: boolean;
-  runner?: GitRunner;
-  now?: Date;
+  rebaseOnComplete?: boolean | undefined;
+  runner?: GitRunner | undefined;
+  now?: Date | undefined;
 }
 
 export interface DomainScopeEntry {
@@ -615,7 +615,11 @@ export function assertDomainIsolation(domains: readonly DomainScopeEntry[]): voi
     throw new HarnessError(
       "ROLE_CONFINEMENT_VIOLATION",
       `Multi-domain write scope collision detected: ${details}. Concurrently active domains must be strictly disjoint.`,
-      [{ conflicts: check.conflicts }],
+      check.conflicts.map((c) => ({
+        domainA: c.domainA,
+        domainB: c.domainB,
+        overlappingScope: c.overlappingScope,
+      })),
       3,
       "Ensure all concurrently dispatched domains have mutually exclusive write scopes.",
     );
@@ -657,7 +661,7 @@ export function recordDomainCommit(
       ledger.commits.push(commit);
 
       if (isJsonObject(draft.tasks) && isJsonObject(draft.tasks[taskId])) {
-        draft.tasks[taskId].domain_commit = commit;
+        draft.tasks[taskId].domain_commit = commit as unknown as JsonObject;
       }
     },
   );

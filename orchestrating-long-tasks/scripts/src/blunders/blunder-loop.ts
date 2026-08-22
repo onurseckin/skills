@@ -113,10 +113,16 @@ export interface BlunderLoopMetrics {
   readonly loopStatus: "idle" | "running" | "paused" | "stopped";
 }
 
+interface QueuedTaskEntry<TResult = unknown> {
+  readonly task: DomainExecutionTask<TResult>;
+  readonly resolve: (result: DomainTaskResult<TResult>) => void;
+  readonly reject: (error: unknown) => void;
+}
+
 export class ContinuousBlunderFeedbackLoop {
   private readonly options: BlunderLoopOptions;
   private readonly deduplicator: LiveBlunderDeduplicator;
-  private readonly taskQueues = new Map<string, Array<DomainExecutionTask<unknown>>>();
+  private readonly taskQueues = new Map<string, Array<QueuedTaskEntry<unknown>>>();
   private readonly domainActiveWorkers = new Map<string, number>();
   private readonly domainStats = new Map<
     string,
@@ -176,48 +182,17 @@ export class ContinuousBlunderFeedbackLoop {
     }
 
     const domain = task.domain.trim().toLowerCase();
-    const maxPerDomain = this.options.maxConcurrentPerDomain ?? 4;
-    const maxParallelDomains = this.options.maxParallelDomains ?? 8;
 
-    const currentDomainWorkers = this.domainActiveWorkers.get(domain) ?? 0;
-    const totalActiveDomains = Array.from(this.domainActiveWorkers.values()).filter((w) => w > 0).length;
-
-    if (
-      currentDomainWorkers >= maxPerDomain ||
-      (currentDomainWorkers === 0 && totalActiveDomains >= maxParallelDomains) ||
-      this.status === "paused"
-    ) {
+    if (!this.canRunDomainTask(domain)) {
       return new Promise<DomainTaskResult<TResult>>((resolve, reject) => {
         const queue = this.taskQueues.get(domain) ?? [];
-        const queuedTask: DomainExecutionTask<TResult> = {
-          ...task,
-          execute: async (ctx: DomainExecutionContext): Promise<TResult> => {
-            try {
-              const res = await task.execute(ctx);
-              return res;
-            } catch (err: unknown) {
-              throw err;
-            }
-          },
+        const entry: QueuedTaskEntry<TResult> = {
+          task,
+          resolve,
+          reject,
         };
-        queue.push(queuedTask as DomainExecutionTask<unknown>);
+        queue.push(entry as QueuedTaskEntry<unknown>);
         this.taskQueues.set(domain, queue);
-
-        const checkPump = (): void => {
-          if (this.status === "stopped") {
-            reject(new Error(`Task ${task.id} cancelled: loop stopped while queued`));
-            return;
-          }
-          if (this.canRunDomainTask(domain)) {
-            const popped = queue.shift();
-            if (popped) {
-              this.executeTaskInternal(popped as DomainExecutionTask<TResult>).then(resolve, reject);
-              return;
-            }
-          }
-          setTimeout(checkPump, 20);
-        };
-        checkPump();
       });
     }
 
@@ -339,6 +314,11 @@ export class ContinuousBlunderFeedbackLoop {
 
   public stop(): void {
     this.status = "stopped";
+    for (const queue of this.taskQueues.values()) {
+      for (const entry of queue) {
+        entry.reject(new Error(`Task ${entry.task.id} cancelled: ContinuousBlunderFeedbackLoop stopped`));
+      }
+    }
     this.taskQueues.clear();
   }
 
@@ -418,9 +398,12 @@ export class ContinuousBlunderFeedbackLoop {
 
     for (const [domain, queue] of this.taskQueues.entries()) {
       while (queue.length > 0 && this.canRunDomainTask(domain)) {
-        const task = queue.shift();
-        if (task) {
-          void this.executeTaskInternal(task);
+        const entry = queue.shift();
+        if (entry) {
+          this.executeTaskInternal(entry.task).then(
+            (res) => entry.resolve(res),
+            (err: unknown) => entry.reject(err),
+          );
         }
       }
     }
@@ -467,13 +450,16 @@ export class ContinuousBlunderFeedbackLoop {
     };
 
     const startTime = Date.now();
-    let retryCount = 0;
+    let retriesAttempted = 0;
     const retryLimit = task.retryLimit ?? 0;
     let finalResult: TResult | undefined;
     let finalError: unknown | undefined;
     let finalStatus: DomainExecutionStatus = "failed";
 
-    while (retryCount <= retryLimit) {
+    for (let attempt = 0; attempt <= retryLimit; attempt += 1) {
+      if (attempt > 0) {
+        retriesAttempted += 1;
+      }
       try {
         const result = await Promise.race([task.execute(context), timeoutPromise]);
         finalResult = result;
@@ -498,7 +484,7 @@ export class ContinuousBlunderFeedbackLoop {
 
         const errorMessage = err instanceof Error ? err.message : String(err);
         const autoBlunder: BlunderRecordInput = {
-          id: `blunder-exec-${task.id}-${retryCount}`,
+          id: `blunder-exec-${task.id}-${attempt}`,
           type: "task_execution_failure",
           severity: "warning",
           category: categorizeBlunder({ type: "task_execution_failure", observation: errorMessage }),
@@ -507,9 +493,8 @@ export class ContinuousBlunderFeedbackLoop {
         };
         capturedBlunders.push(this.recordBlunder(autoBlunder, domain, task.id));
 
-        retryCount += 1;
-        if (retryCount <= retryLimit && !abortController.signal.aborted) {
-          await new Promise((r) => setTimeout(r, 50));
+        if (attempt < retryLimit && !abortController.signal.aborted) {
+          await new Promise((r) => setTimeout(r, 20));
         }
       }
     }
@@ -550,7 +535,7 @@ export class ContinuousBlunderFeedbackLoop {
       error: finalError,
       durationMs,
       blundersCaptured: capturedBlunders,
-      retryCount: Math.max(0, retryCount - 1),
+      retryCount: retriesAttempted,
       timestamp: new Date().toISOString(),
     };
 

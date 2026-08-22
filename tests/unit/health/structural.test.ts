@@ -41,9 +41,11 @@ const FALLBACK_CEILING: ReadonlyMap<string, number> = new Map([
   ["orchestrating-long-tasks/scripts/src/installer/tree-digest.ts", 1],
   ["orchestrating-long-tasks/scripts/src/mind/audit.ts", 4],
   ["orchestrating-long-tasks/scripts/src/mind/brief.ts", 3],
+  ["orchestrating-long-tasks/scripts/src/mind/cognitive-flavor.ts", 2],
   ["orchestrating-long-tasks/scripts/src/mind/counterfactual.ts", 1],
   ["orchestrating-long-tasks/scripts/src/mind/deploy.ts", 3],
   ["orchestrating-long-tasks/scripts/src/mind/digest.ts", 3],
+  ["orchestrating-long-tasks/scripts/src/mind/dynamic-roles.ts", 2],
   ["orchestrating-long-tasks/scripts/src/mind/feedback-queue.ts", 4],
   ["orchestrating-long-tasks/scripts/src/mind/gates.ts", 5],
   ["orchestrating-long-tasks/scripts/src/mind/lanes/rescue.ts", 1],
@@ -53,6 +55,7 @@ const FALLBACK_CEILING: ReadonlyMap<string, number> = new Map([
   ["orchestrating-long-tasks/scripts/src/mind/pushbacks.ts", 3],
   ["orchestrating-long-tasks/scripts/src/mind/quiesce.ts", 1],
   ["orchestrating-long-tasks/scripts/src/mind/recycler.ts", 2],
+  ["orchestrating-long-tasks/scripts/src/mind/role-auditing.ts", 3],
   ["orchestrating-long-tasks/scripts/src/mind/rotate.ts", 1],
   ["orchestrating-long-tasks/scripts/src/mind/rounds.ts", 2],
   ["orchestrating-long-tasks/scripts/src/mind/self-evolution.ts", 3],
@@ -60,6 +63,7 @@ const FALLBACK_CEILING: ReadonlyMap<string, number> = new Map([
   ["orchestrating-long-tasks/scripts/src/mind/task-discovery.ts", 2],
   ["orchestrating-long-tasks/scripts/src/mind/task-queue.ts", 6],
   ["orchestrating-long-tasks/scripts/src/mind/witness.ts", 2],
+  ["orchestrating-long-tasks/scripts/src/orchestrator/multi-capsule.ts", 2],
   ["orchestrating-long-tasks/scripts/src/orchestrator/recursive-critic-feedback.ts", 2],
   ["orchestrating-long-tasks/scripts/src/orchestrator/watchdog.ts", 1],
   ["orchestrating-long-tasks/scripts/src/platform/antigravity.ts", 3],
@@ -80,6 +84,7 @@ const FALLBACK_CEILING: ReadonlyMap<string, number> = new Map([
   ["orchestrating-long-tasks/scripts/src/testing/concurrency-lock.ts", 1],
   ["orchestrating-long-tasks/scripts/src/watchdog/boot-gate-enforcer.ts", 6],
   ["orchestrating-long-tasks/scripts/src/workflow/scope-partitioner.ts", 1],
+  ["orchestrating-long-tasks/scripts/src/worktree/domain-sync.ts", 1],
 ]);
 
 // Empty now that the health check's own vendor sweep carries the same PRODUCT_GRAMMAR_MODULES

@@ -90,7 +90,7 @@ export interface MultiCapsuleOrchestratorOptions {
   readonly onAntiSequentialityViolation?: ((violation: AntiSequentialityViolation) => void) | undefined;
 }
 
-export interface MultiCapsuleSummary extends JsonObject {
+export interface MultiCapsuleSummary {
   totalCapsules: number;
   convergedCount: number;
   failedCount: number;
