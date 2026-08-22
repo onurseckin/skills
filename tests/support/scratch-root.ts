@@ -86,7 +86,7 @@ export function scratchRoot(callerPath: string, label: string): string {
   const key = `${fileTag}::${label}`;
   const call = (callsPerKey.get(key) ?? 0) + 1;
   callsPerKey.set(key, call);
-  const dirName = `${fileTag}--${slug(label)}--${call}--${shortDigest(key)}`;
+  const dirName = `${fileTag}--${slug(label)}--p${process.pid}--${call}--${shortDigest(key)}`;
   const root = join(SCRATCH_BASE, dirName);
   rmSync(root, { recursive: true, force: true });
   mkdirSync(root, { recursive: true });
