@@ -29,7 +29,7 @@ import { verifyIntegrity } from "../../../orchestrating-long-tasks/scripts/src/s
 import { loadRun } from "../../../orchestrating-long-tasks/scripts/src/store/load.ts";
 import { transact } from "../../../orchestrating-long-tasks/scripts/src/store/transaction.ts";
 import { scratchRoot as makeScratchRoot } from "../../support/scratch-root.ts";
-import { auditRemoteUrls, isPushTargetInert } from "./remote-safety.test.ts";
+import { auditRemoteUrls, isPushTargetInert } from "../../support/remote-safety.ts";
 
 function scratchRoot(label: string): string {
   return makeScratchRoot(import.meta.path, label);
@@ -1011,6 +1011,7 @@ describe("PHASE-6 72-Hour Soak and Failure Injection Test Suite", () => {
           GIT_CONFIG_GLOBAL: "/dev/null",
           GIT_CONFIG_NOSYSTEM: "1",
           GIT_TERMINAL_PROMPT: "0",
+          GIT_SSH_COMMAND: "false",
         },
         stdout: "pipe",
         stderr: "pipe",

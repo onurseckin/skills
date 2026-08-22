@@ -84,12 +84,12 @@ echo "  \"artifacts\": [" >> "$TMP_MANIFEST"
 FIRST=true
 while IFS= read -r -d '' file; do
   REL_PATH="${file#"$CAPSULE_PATH"/}"
-  if [[ "$REL_PATH" == .locks/* ]] || [[ "$REL_PATH" == .locks ]]; then
+  if [[ "$REL_PATH" == .locks/* ]] || [[ "$REL_PATH" == .locks ]] || [[ ! -f "$file" ]]; then
     continue
   fi
   SHA="$(hash_file "$file")"
   MODE="$(file_mode "$file")"
-  SIZE="$(wc -c < "$file" | tr -d ' ')"
+  SIZE="$(wc -c < "$file" 2>/dev/null | tr -d ' ' || echo 0)"
 
   if [ "$FIRST" = true ]; then
     FIRST=false
