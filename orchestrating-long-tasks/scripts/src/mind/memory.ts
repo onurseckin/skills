@@ -998,7 +998,107 @@ export function indexReportDocuments(capsulesDir: string, explicitRun?: string):
 }
 
 /**
- * Indexes all memory artifacts (charter, blunders, capsules, decisions, reports) into an integrated MemoryIndex.
+ * Indexes archived objectives and candidate records from ARCHIVED_OBJECTIVES.jsonl.
+ */
+export function indexArchivedObjectiveDocuments(
+  capsulesDir: string,
+  explicitRun?: string,
+): MemoryDocument[] {
+  const documents: MemoryDocument[] = [];
+  const filesToScan: Array<{ capsule: string; filePath: string }> = [];
+
+  const rootArchived = join(capsulesDir, "ARCHIVED_OBJECTIVES.jsonl");
+  if (existsSync(rootArchived)) {
+    filesToScan.push({ capsule: "capsules-root", filePath: rootArchived });
+  }
+
+  if (existsSync(capsulesDir)) {
+    try {
+      const entries = readdirSync(capsulesDir, { withFileTypes: true });
+      for (let i = 0; i < entries.length; i += 1) {
+        const entry = entries[i];
+        if (entry !== undefined && entry.isDirectory() && !entry.name.startsWith(".")) {
+          const capArchivedUpper = join(capsulesDir, entry.name, "ARCHIVED_OBJECTIVES.jsonl");
+          if (existsSync(capArchivedUpper)) {
+            filesToScan.push({ capsule: entry.name, filePath: capArchivedUpper });
+          }
+          const capArchivedLower = join(capsulesDir, entry.name, "archived_objectives.jsonl");
+          if (existsSync(capArchivedLower) && capArchivedLower !== capArchivedUpper) {
+            filesToScan.push({ capsule: entry.name, filePath: capArchivedLower });
+          }
+        }
+      }
+    } catch {
+      // Non-fatal
+    }
+  }
+
+  if (explicitRun !== undefined) {
+    const explicitUpper = join(resolve(explicitRun), "ARCHIVED_OBJECTIVES.jsonl");
+    if (existsSync(explicitUpper)) {
+      filesToScan.push({ capsule: basename(resolve(explicitRun)), filePath: explicitUpper });
+    }
+    const explicitLower = join(resolve(explicitRun), "archived_objectives.jsonl");
+    if (existsSync(explicitLower) && explicitLower !== explicitUpper) {
+      filesToScan.push({ capsule: basename(resolve(explicitRun)), filePath: explicitLower });
+    }
+  }
+
+  for (let i = 0; i < filesToScan.length; i += 1) {
+    const item = filesToScan[i];
+    if (item === undefined) continue;
+    try {
+      const content = readFileSync(item.filePath, "utf-8");
+      const lines = content.split("\n");
+      for (let j = 0; j < lines.length; j += 1) {
+        const line = lines[j];
+        if (line === undefined || !line.trim()) continue;
+        try {
+          const parsed = JSON.parse(line.trim()) as Record<string, unknown>;
+          if (typeof parsed["id"] === "string") {
+            const statement = typeof parsed["statement"] === "string" ? parsed["statement"] : "";
+            const result = typeof parsed["result"] === "string" ? parsed["result"] : "completed";
+            const gen = typeof parsed["generation"] === "number" ? parsed["generation"] : 1;
+            const completedAt = typeof parsed["completed_at"] === "string" ? parsed["completed_at"] : "";
+            const type = typeof parsed["type"] === "string" ? parsed["type"] : "objective";
+
+            const searchableContent = `${parsed["id"]} ${type} ${statement} gen-${gen} ${result} ${completedAt}`;
+            const snippet = `[GEN ${gen} | ${result.toUpperCase()}] (${type}) ${statement}`;
+
+            documents.push(
+              createMemoryDocument({
+                id: `archived-${parsed["id"]}`,
+                kind: "decision",
+                title: `Archived ${type.toUpperCase()} [${parsed["id"]}] (Gen ${gen})`,
+                capsule_id: item.capsule !== "capsules-root" ? item.capsule : null,
+                source_path: item.filePath,
+                content: searchableContent,
+                snippet,
+                metadata: {
+                  archived_id: parsed["id"],
+                  type,
+                  generation: gen,
+                  result,
+                  completed_at: completedAt,
+                  capsule: item.capsule,
+                },
+              }),
+            );
+          }
+        } catch {
+          // Ignore
+        }
+      }
+    } catch {
+      // Ignore
+    }
+  }
+
+  return documents;
+}
+
+/**
+ * Indexes all memory artifacts (charter, blunders, capsules, decisions, reports, archived objectives) into an integrated MemoryIndex.
  */
 export function indexAllMemory(options: IndexMemoryOptions = {}): MemoryIndex {
   const repoRoot = options.repoRoot !== undefined ? resolve(options.repoRoot) : process.cwd();
@@ -1011,10 +1111,11 @@ export function indexAllMemory(options: IndexMemoryOptions = {}): MemoryIndex {
   const capsuleDocs = indexCapsuleDocuments(capsulesDir, runRoot);
   const decisionDocs = indexDecisionDocuments(capsulesDir, runRoot);
   const reportDocs = indexReportDocuments(capsulesDir, runRoot);
+  const archivedDocs = indexArchivedObjectiveDocuments(capsulesDir, runRoot);
 
   const documentMap = new Map<string, MemoryDocument>();
 
-  const allLists = [charterDocs, blunderDocs, capsuleDocs, decisionDocs, reportDocs];
+  const allLists = [charterDocs, blunderDocs, capsuleDocs, decisionDocs, reportDocs, archivedDocs];
   for (let i = 0; i < allLists.length; i += 1) {
     const list = allLists[i];
     if (list === undefined) continue;

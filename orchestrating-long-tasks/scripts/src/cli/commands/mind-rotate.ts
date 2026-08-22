@@ -17,6 +17,7 @@ export interface MindRotateCommandResult {
   readonly carried_candidates_count: number;
   readonly open_candidates_count: number;
   readonly declined_candidates_count: number;
+  readonly archived_count: number;
   readonly rotated_at: string;
   readonly [key: string]: unknown;
 }
@@ -32,6 +33,7 @@ export function formatMindRotateBrief(params: {
   readonly carriedCandidatesCount: number;
   readonly openCandidatesCount: number;
   readonly declinedCandidatesCount: number;
+  readonly archivedCount?: number | undefined;
   readonly previousEventHead: string | null;
   readonly rotatedAt: string;
 }): string {
@@ -42,9 +44,16 @@ export function formatMindRotateBrief(params: {
     `- **Charter SHA-256**: \`${params.charterSha256}\` (pinned across boundary)`,
     `- **Pulse Counter**: ${params.pulseCounter} (preserved)`,
     `- **Candidates Carried Forward**: ${params.carriedCandidatesCount} (${params.openCandidatesCount} open/admitted, ${params.declinedCandidatesCount} declined)`,
+  ];
+  if (params.archivedCount !== undefined && params.archivedCount > 0) {
+    lines.push(
+      `- **Generational State Archival**: ${params.archivedCount} items pruned (<= Gen ${params.sourceGeneration - 2}) and archived to \`ARCHIVED_OBJECTIVES.jsonl\``,
+    );
+  }
+  lines.push(
     `- **Previous Event Head**: \`${params.previousEventHead ?? "none"}\``,
     `- **Status**: Successor ready for wake (\`mind:wake --run ${params.targetRunRoot}\`).`,
-  ];
+  );
   return enforceLineLimit(lines.join("\n"), 30);
 }
 
@@ -77,6 +86,7 @@ export function mindRotateCommand(
     carriedCandidatesCount: result.carriedCandidates.length,
     openCandidatesCount: result.openCandidatesCount,
     declinedCandidatesCount: result.declinedCandidatesCount,
+    archivedCount: result.archivedCount,
     previousEventHead: result.previousEventHead,
     rotatedAt: result.rotatedAt,
   });
@@ -96,6 +106,7 @@ export function mindRotateCommand(
     carried_candidates_count: result.carriedCandidates.length,
     open_candidates_count: result.openCandidatesCount,
     declined_candidates_count: result.declinedCandidatesCount,
+    archived_count: result.archivedCount,
     rotated_at: result.rotatedAt,
   };
 }

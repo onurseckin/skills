@@ -4,3 +4,8 @@ export * from "./dom-violation-extractor.ts";
 export * from "./cross-channel-consistency.ts";
 export * from "./report-adapter.ts";
 export * from "./evidence-paths.ts";
+export * from "./anti-mock-types.ts";
+export * from "./ast-linter.ts";
+export * from "./assertion-floor.ts";
+export * from "./mutation-gate.ts";
+export * from "./anti-mock-engine.ts";

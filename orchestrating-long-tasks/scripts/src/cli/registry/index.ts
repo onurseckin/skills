@@ -18,7 +18,12 @@ import { REPORTING_COMMANDS } from "./reporting.ts";
 import { RUN_COMMANDS } from "./run.ts";
 import { SUMMARY_COMMANDS } from "./summary.ts";
 import { TASK_COMMANDS } from "./task.ts";
-import type { CommandDomain, CommandSpec } from "./types.ts";
+import {
+  isInternalCommand,
+  isPrimaryCommand,
+  type CommandDomain,
+  type CommandSpec,
+} from "./types.ts";
 
 export * from "./types.ts";
 
@@ -83,4 +88,16 @@ export function findCommand(invocation: string): CommandSpec | undefined {
 
 export function commandInvocations(): readonly string[] {
   return [...BY_INVOCATION.keys()];
+}
+
+export const PRIMARY_COMMANDS: readonly CommandSpec[] = COMMAND_REGISTRY.filter(isPrimaryCommand);
+
+export const INTERNAL_COMMANDS: readonly CommandSpec[] = COMMAND_REGISTRY.filter(isInternalCommand);
+
+export function getPrimaryCommands(): readonly CommandSpec[] {
+  return PRIMARY_COMMANDS;
+}
+
+export function getInternalCommands(): readonly CommandSpec[] {
+  return INTERNAL_COMMANDS;
 }

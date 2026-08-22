@@ -8,7 +8,12 @@ import { chainCapsules } from "../orchestrator/capsule-chainer.ts";
 import { initRun, loadRun } from "../store/index.ts";
 import { transact } from "../store/transaction.ts";
 import { DEFAULT_MIND_BUDGET } from "./charter.ts";
+import {
+  pruneAndArchiveGenerationalState,
+  type ArchivedObjectiveRecord,
+} from "./archival.ts";
 import type { CandidateRecord } from "./gates.ts";
+import type { ObjectiveRecord } from "./rounds.ts";
 
 export interface RotateMindOptions {
   readonly sourceRunRoot: string;
@@ -33,6 +38,9 @@ export interface RotateMindResult {
   readonly carriedCandidates: readonly CandidateRecord[];
   readonly openCandidatesCount: number;
   readonly declinedCandidatesCount: number;
+  readonly archivedRecords: readonly ArchivedObjectiveRecord[];
+  readonly archivedCount: number;
+  readonly carriedObjectives: readonly ObjectiveRecord[];
   readonly rotatedAt: string;
 }
 
@@ -214,14 +222,21 @@ export function rotateMindGeneration(options: RotateMindOptions): RotateMindResu
     roundNumber: targetGeneration,
   });
 
-  // 3. Prepare carried candidates, budget, and pulse state
-  const sourceCandidates = (
-    Array.isArray(sourceState.candidates) ? sourceState.candidates : []
-  ) as readonly CandidateRecord[];
+  // 3. Generational state pruning and archival:
+  // Completed objectives / candidates / tasks older than 2 generations (generation <= current - 2)
+  // are pruned from active memory state and archived durably to ARCHIVED_OBJECTIVES.jsonl.
+  // Recent items (within last 2 generations) and active items remain in the carried state.
+  const archivalResult = pruneAndArchiveGenerationalState({
+    sourceState,
+    sourceGeneration,
+    capsulesDir: capsulesParent,
+    sourceRunRoot: realSourceRunRoot,
+    targetRunRoot: initializedTargetRoot,
+    nowIso,
+  });
 
-  const carriedCandidates = sourceCandidates.filter(
-    (c) => c.status === "opened" || c.status === "admitted" || c.status === "declined",
-  );
+  const carriedCandidates = archivalResult.carriedCandidates;
+  const carriedObjectives = archivalResult.carriedObjectives;
   const openCandidatesCount = carriedCandidates.filter(
     (c) => c.status === "opened" || c.status === "admitted",
   ).length;
@@ -298,6 +313,7 @@ export function rotateMindGeneration(options: RotateMindOptions): RotateMindResu
 
       state.observations = [] as unknown as JsonValue;
       state.candidates = carriedCandidates as unknown as JsonValue;
+      state.objectives = carriedObjectives as unknown as JsonValue;
       state.escalations = [] as unknown as JsonValue;
       state.audit = {
         last_started_at: null,
@@ -328,6 +344,9 @@ export function rotateMindGeneration(options: RotateMindOptions): RotateMindResu
     carriedCandidates,
     openCandidatesCount,
     declinedCandidatesCount,
+    archivedRecords: archivalResult.archivedRecords,
+    archivedCount: archivalResult.archivedCount,
+    carriedObjectives,
     rotatedAt: nowIso,
   };
 }

@@ -34,6 +34,25 @@ import { readySet, type ReadySetSelection } from "./ready-set.ts";
 import { computeWorkSpanMetrics } from "./dynamic-topology.ts";
 import type { ScheduledTask } from "./rank.ts";
 import {
+  classifyTaskDomain,
+  derivePrimaryValidatorDomain,
+  dispatchMultiDomainValidators,
+  evaluateMultiDomainBatch,
+  isMultiDomainDispatchEligible,
+  MULTI_DOMAIN_PARALLELISM_THRESHOLD,
+  proposeMultiDomainWave,
+  resolveParallelismFactor,
+  type MultiDomainBatchOptions,
+  type MultiDomainBatchResult,
+  type MultiDomainBlockedTaskInfo,
+  type MultiDomainTaskDispatch,
+  type MultiDomainValidatorDispatchOptions,
+  type MultiDomainValidatorDispatchResult,
+  type MultiDomainWaveOptions,
+  type MultiDomainWaveResult,
+  type TaskDomain,
+} from "./multi-domain-dispatch.ts";
+import {
   auditBehavioralHealth,
   runDoctor,
   type BehavioralFinding,
@@ -1803,6 +1822,40 @@ export class SchedulerEngine {
     };
   }
 
+  public evaluateMultiDomainBatch(
+    state: unknown,
+    options: MultiDomainBatchOptions = {},
+  ): MultiDomainBatchResult {
+    const limit = options.maxParallel !== undefined ? options.maxParallel : this.maxParallel;
+    return evaluateMultiDomainBatch(state, {
+      ...options,
+      maxParallel: limit,
+    });
+  }
+
+  public dispatchMultiDomainValidators(
+    state: unknown,
+    options: MultiDomainValidatorDispatchOptions = {},
+  ): MultiDomainValidatorDispatchResult {
+    const limit = options.maxParallel !== undefined ? options.maxParallel : this.maxParallel;
+    return dispatchMultiDomainValidators(state, {
+      ...options,
+      maxParallel: limit,
+    });
+  }
+
+  public proposeMultiDomainWave(
+    state: unknown,
+    options: MultiDomainWaveOptions = {},
+  ): MultiDomainWaveResult {
+    const limit = options.maxParallel !== undefined ? options.maxParallel : this.maxParallel;
+    return proposeMultiDomainWave(state, {
+      clock: this.clock,
+      ...options,
+      maxParallel: limit,
+    });
+  }
+
   public registerSupervisoryHeartbeat(agentId: string = "scheduler-engine"): WatchdogRecord {
     const result = registerWatchdog(
       {
@@ -1817,3 +1870,24 @@ export class SchedulerEngine {
     return result.watchdog;
   }
 }
+
+export {
+  classifyTaskDomain,
+  derivePrimaryValidatorDomain,
+  dispatchMultiDomainValidators,
+  evaluateMultiDomainBatch,
+  isMultiDomainDispatchEligible,
+  MULTI_DOMAIN_PARALLELISM_THRESHOLD,
+  proposeMultiDomainWave,
+  resolveParallelismFactor,
+  type MultiDomainBatchOptions,
+  type MultiDomainBatchResult,
+  type MultiDomainBlockedTaskInfo,
+  type MultiDomainTaskDispatch,
+  type MultiDomainValidatorDispatchOptions,
+  type MultiDomainValidatorDispatchResult,
+  type MultiDomainWaveOptions,
+  type MultiDomainWaveResult,
+  type TaskDomain,
+};
+

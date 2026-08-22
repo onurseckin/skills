@@ -29,7 +29,9 @@ export async function main(argv: readonly string[]): Promise<void> {
   const format = stripOutputFormat(argv);
   const help = helpRequest(format.argv);
   if (help !== null) {
-    process.stdout.write(`${renderHelp(help.command)}\n`);
+    process.stdout.write(
+      `${renderHelp(help.command, help.internal !== undefined ? { internal: help.internal } : undefined)}\n`,
+    );
     return;
   }
   // B16's bare form: an inline free-text prompt is pulled out of argv before execute() ever sees

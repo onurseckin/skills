@@ -6,6 +6,8 @@ export const COORDINATOR_COMMANDS: readonly CommandSpec[] = [
     name: "coordinator:pushback",
     aliases: [],
     domain: "task",
+    tier: "internal",
+    internal: true,
     summary: "Reject a validator's own recorded pass, procedurally or substantively.",
     description:
       "QUEUE-6: the edge every pushback ran on was validator -> implementer; this is the missing " +

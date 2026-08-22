@@ -35,6 +35,8 @@ export const AGENT_COMMANDS: readonly CommandSpec[] = [
     name: "agent:register",
     aliases: [],
     domain: "agent",
+    tier: "internal",
+    internal: true,
     summary: "Record a dispatched subagent and mint its grant.",
     description:
       "Spawning happens host-side; this is how the run learns a subagent exists, who deployed it and under which task. Model, tier, thinking level and toolset below are whatever the dispatcher relays — recorded only when supplied, tagged agent_reported, and left absent otherwise. The harness separately probes the host's own config and transcript for the same fields automatically; only that probe ever earns host_reported/derived/harness_observed. The parent agent must already hold a grant.",
@@ -90,6 +92,8 @@ export const AGENT_COMMANDS: readonly CommandSpec[] = [
     name: "agent:report",
     aliases: [],
     domain: "agent",
+    tier: "internal",
+    internal: true,
     summary: "Ingest the caller's own report of tool usage and token counts mid-flight.",
     description:
       "Token counts are the caller's running totals and replace the previous ones, tagged agent_reported; --tokens-estimated marks them derived estimates instead. The harness separately probes the host's own transcript for real counts (B34), which is what actually earns harness_observed. At least one of --tool, --tokens-in, --tokens-out or --token-extra is required.",
@@ -123,6 +127,8 @@ export const AGENT_COMMANDS: readonly CommandSpec[] = [
     name: "agent:release",
     aliases: [],
     domain: "agent",
+    tier: "internal",
+    internal: true,
     summary: "Close a subagent's grant.",
     description:
       "Marks the grant released and stamps the release time. A released agent can no longer report.",
@@ -144,6 +150,8 @@ export const AGENT_COMMANDS: readonly CommandSpec[] = [
     name: "agent:list",
     aliases: [],
     domain: "agent",
+    tier: "internal",
+    internal: true,
     summary: "Show who is deployed, or the lineage of one task.",
     description:
       "Without flags it lists active grants with whatever telemetry was recorded, each field labelled with the evidence class it actually earned. --task answers who worked a task and under whom, including the agents those agents dispatched.",

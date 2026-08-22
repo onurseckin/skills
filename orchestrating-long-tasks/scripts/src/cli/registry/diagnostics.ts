@@ -21,6 +21,8 @@ export const DIAGNOSTICS_COMMANDS: readonly CommandSpec[] = [
     name: "blunder:audit",
     aliases: [],
     domain: "diagnostics",
+    tier: "internal",
+    internal: true,
     summary: "Audit, deduplicate, and auto-admit blunders across capsules.",
     description:
       "Discovers blunders.jsonl files across .capsules/ and active run, deduplicates entries, displays an ASCII summary matrix, and optionally auto-admits candidate remediations.",
@@ -50,6 +52,8 @@ export const DIAGNOSTICS_COMMANDS: readonly CommandSpec[] = [
     name: "coverage:check",
     aliases: [],
     domain: "diagnostics",
+    tier: "internal",
+    internal: true,
     summary: "Audit repository test coverage against strict 95% threshold.",
     description:
       "Runs bun test with coverage collection, parses per-file metrics across lines, statements, functions, and branches, and enforces the minimum 95% threshold.",
@@ -76,6 +80,8 @@ export const DIAGNOSTICS_COMMANDS: readonly CommandSpec[] = [
     name: "health",
     aliases: [],
     domain: "diagnostics",
+    tier: "internal",
+    internal: true,
     summary: "Check whether the code still does what the requirements said.",
     description:
       "Reports unused exports and unreachable modules, dead or superseded code, declared behaviour nothing enforces, requirements with no code or no test, literal fallbacks that substitute a plausible value for a missing one, and vendor names in identifier positions. Every check prints what it cannot see. Unlike `doctor` it reads a source tree, not a capsule.",
@@ -112,6 +118,8 @@ export const DIAGNOSTICS_COMMANDS: readonly CommandSpec[] = [
     name: "doctor",
     aliases: [],
     domain: "diagnostics",
+    tier: "primary",
+    internal: false,
     summary: "Verify capsule integrity, command evidence and the runtime.",
     description:
       "Re-hashes the event chain, re-verifies every recorded command, reports workflow blockers and, with --source and --home, the installation state.",
@@ -131,6 +139,8 @@ export const DIAGNOSTICS_COMMANDS: readonly CommandSpec[] = [
     name: "doctor:repair",
     aliases: [],
     domain: "diagnostics",
+    tier: "primary",
+    internal: false,
     summary: "Re-derive state.json from the event chain after a crash tears the log's tail.",
     description:
       "The repair counterpart to `doctor`: `doctor` only reports a torn tail or a state/event mismatch. This re-derives state.json from the event chain's last complete event, quarantining any torn final fragment under quarantine/ instead of discarding it, and records a projection-recovered event. Refuses if the manifest or prompt itself is corrupt - that is an integrity failure, not something to repair silently.",
@@ -152,6 +162,8 @@ export const DIAGNOSTICS_COMMANDS: readonly CommandSpec[] = [
     name: "recover",
     aliases: [],
     domain: "diagnostics",
+    tier: "internal",
+    internal: true,
     summary: "Release expired leases and interrupted validations.",
     description:
       "Returns tasks whose lease expired to retry_ready (or changes_requested after a repair attempt), reopens interrupted validations, reclaims branch sub-tasks whose sub-agent died, and expires a stale completeness critic. A branched parent's frozen lease is never reaped: it is blocked on children, not gone.",
@@ -174,6 +186,8 @@ export const DIAGNOSTICS_COMMANDS: readonly CommandSpec[] = [
     name: "task:release",
     aliases: [],
     domain: "task",
+    tier: "primary",
+    internal: false,
     summary: "Hand a live lease back without waiting for it to expire.",
     description:
       "The voluntary counterpart to `recover`. Requires the live lease token; the task returns to retry_ready, or to changes_requested when the released attempt was a repair. A branched task cannot be released - collect or abandon the branch first.",
@@ -195,6 +209,8 @@ export const DIAGNOSTICS_COMMANDS: readonly CommandSpec[] = [
     name: "worktree:reclaim",
     aliases: [],
     domain: "diagnostics",
+    tier: "internal",
+    internal: true,
     summary: "Free an abandoned run's worktree directories.",
     description:
       "B22.6: removes the worktree directories a crashed or abandoned run left behind, after a human has looked and decided the run is not being resumed. The harness branch and every per-task worktree branch are left untouched — only the disposable worktree checkouts are removed. Refuses if worktree isolation is currently off for this run's config.",

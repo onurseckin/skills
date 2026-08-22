@@ -17,6 +17,19 @@ export interface ExitCodeSpec {
   readonly meaning: string;
 }
 
+export const PRIMARY_VERBS = [
+  "plan",
+  "queue",
+  "task",
+  "run",
+  "doctor",
+  "mind",
+] as const;
+
+export type PrimaryVerb = (typeof PRIMARY_VERBS)[number];
+
+export type CommandTier = "primary" | "internal";
+
 export type CommandDomain =
   | "plan"
   | "queue"
@@ -35,7 +48,8 @@ export type CommandDomain =
   | "reporting"
   | "gate"
   | "capture"
-  | "mind";
+  | "mind"
+  | "doctor";
 
 export type CommandHandler = (
   flags: Flags,
@@ -47,6 +61,8 @@ export interface CommandSpec {
   readonly name: string;
   readonly aliases: readonly string[];
   readonly domain: CommandDomain;
+  readonly tier?: CommandTier;
+  readonly internal?: boolean;
   readonly summary: string;
   readonly description: string;
   readonly flags: readonly FlagSpec[];
@@ -55,6 +71,24 @@ export interface CommandSpec {
   readonly exitCodes: readonly ExitCodeSpec[];
   readonly examples: readonly string[];
   readonly handler: CommandHandler;
+}
+
+export function isInternalCommand(spec: CommandSpec): boolean {
+  if (spec.internal !== undefined) return spec.internal;
+  if (spec.tier !== undefined) return spec.tier === "internal";
+  if (spec.domain === "doctor" || spec.name === "doctor" || spec.name.startsWith("doctor:")) {
+    return false;
+  }
+  const isPrimary = (PRIMARY_VERBS as readonly string[]).includes(spec.domain);
+  return !isPrimary;
+}
+
+export function isPrimaryCommand(spec: CommandSpec): boolean {
+  return !isInternalCommand(spec);
+}
+
+export function commandTier(spec: CommandSpec): CommandTier {
+  return isInternalCommand(spec) ? "internal" : "primary";
 }
 
 export const DEFAULT_EXIT_CODES: readonly ExitCodeSpec[] = [

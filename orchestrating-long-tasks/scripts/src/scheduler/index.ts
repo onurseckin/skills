@@ -108,3 +108,23 @@ export {
   type RouteCriticFeedbackOptions,
   type RouteCriticFeedbackResult,
 } from "./critic-feedback.ts";
+export {
+  classifyTaskDomain,
+  derivePrimaryValidatorDomain,
+  dispatchMultiDomainValidators,
+  evaluateMultiDomainBatch,
+  isMultiDomainDispatchEligible,
+  MULTI_DOMAIN_PARALLELISM_THRESHOLD,
+  proposeMultiDomainWave,
+  resolveParallelismFactor,
+  type MultiDomainBatchOptions,
+  type MultiDomainBatchResult,
+  type MultiDomainBlockedTaskInfo,
+  type MultiDomainTaskDispatch,
+  type MultiDomainValidatorDispatchOptions,
+  type MultiDomainValidatorDispatchResult,
+  type MultiDomainWaveOptions,
+  type MultiDomainWaveResult,
+  type TaskDomain,
+} from "./multi-domain-dispatch.ts";
+

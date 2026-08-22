@@ -98,6 +98,44 @@ export interface WatchdogTickReport {
   readonly health: WatchdogHealthAuditReport;
 }
 
+export type AdaptiveAdjustmentReason =
+  | "initial"
+  | "activity_burst"
+  | "idle_backoff"
+  | "manual_reset"
+  | "event_wakeup";
+
+export interface AdaptiveTimerConfig {
+  readonly enabled?: boolean | undefined;
+  readonly minIntervalMs?: number | undefined;
+  readonly maxIntervalMs?: number | undefined;
+  readonly backoffFactor?: number | undefined;
+  readonly activityBoost?: number | undefined;
+  readonly initialIntervalMs?: number | undefined;
+}
+
+export interface AdaptiveTimerState {
+  readonly enabled: boolean;
+  readonly currentIntervalMs: number;
+  readonly minIntervalMs: number;
+  readonly maxIntervalMs: number;
+  readonly backoffFactor: number;
+  readonly activityBoost: number;
+  readonly lastAdjustmentReason: AdaptiveAdjustmentReason;
+  readonly lastAdjustedAt: string;
+}
+
+export interface ReactiveEvent {
+  readonly type: string;
+  readonly source?: string | undefined;
+  readonly taskId?: string | null | undefined;
+  readonly agentId?: string | null | undefined;
+  readonly timestamp?: string | number | Date | undefined;
+  readonly payload?: Readonly<Record<string, unknown>> | undefined;
+}
+
+export type ReactiveWakeupTrigger = string | ReactiveEvent;
+
 export type WatchdogEvent =
   | { readonly type: "tick"; readonly report: WatchdogTickReport }
   | { readonly type: "health_audit"; readonly report: WatchdogHealthAuditReport }
@@ -120,9 +158,25 @@ export type WatchdogEvent =
   | {
       readonly type: "critical_violation";
       readonly finding: WatchdogFinding;
+    }
+  | {
+      readonly type: "reactive_wakeup";
+      readonly trigger: ReactiveEvent;
+      readonly tickReport: WatchdogTickReport;
+    }
+  | {
+      readonly type: "interval_adjusted";
+      readonly previousIntervalMs: number;
+      readonly newIntervalMs: number;
+      readonly reason: AdaptiveAdjustmentReason;
+      readonly state: AdaptiveTimerState;
+    }
+  | {
+      readonly type: "event_notified";
+      readonly event: ReactiveEvent;
     };
 
-export type WatchdogEventListener = (event: WatchdogEvent) => void;
+export type WatchdogEventListener = (event: WatchdogEvent | ReactiveEvent) => void | Promise<void>;
 
 export interface AutonomicWatchdogConfig {
   readonly heartbeatIntervalMs?: number | undefined;
@@ -138,4 +192,11 @@ export interface AutonomicWatchdogConfig {
   readonly onHeartbeat?: ((tick: WatchdogTickReport) => void | Promise<void>) | undefined;
   readonly onHealthAudit?: ((audit: WatchdogHealthAuditReport) => void | Promise<void>) | undefined;
   readonly onViolation?: ((finding: WatchdogFinding) => void | Promise<void>) | undefined;
+  readonly onReactiveWakeup?: ((trigger: ReactiveEvent, tick: WatchdogTickReport) => void | Promise<void>) | undefined;
+  readonly onIntervalAdjusted?: ((state: AdaptiveTimerState) => void | Promise<void>) | undefined;
+  readonly adaptive?: boolean | AdaptiveTimerConfig | undefined;
+  readonly minIntervalMs?: number | undefined;
+  readonly maxIntervalMs?: number | undefined;
+  readonly backoffFactor?: number | undefined;
+  readonly activityBoost?: number | undefined;
 }

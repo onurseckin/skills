@@ -42,11 +42,19 @@ describe("CLI help", () => {
     const lines = overview.split("\n");
     expect(lines.length).toBeLessThanOrEqual(30);
     expect(lines[0]).toBe("### Harness CLI");
-    for (const domain of ["plan", "queue", "task", "run", "critic", "install", "diagnostics"]) {
+    for (const domain of ["plan", "queue", "task", "run", "doctor", "mind"]) {
       expect(overview).toContain(`| ${domain} |`);
     }
     expect(overview).toContain("`plan:compile`");
     expect(overview).toContain("bun harness.ts help <command>");
+
+    const internalOverview = renderHelp(null, { internal: true });
+    const internalLines = internalOverview.split("\n");
+    expect(internalLines.length).toBeLessThanOrEqual(30);
+    expect(internalLines[0]).toBe("### Harness CLI (Internal Tier)");
+    for (const domain of ["agent", "authority", "branch", "critic", "diagnostics", "install"]) {
+      expect(internalOverview).toContain(`| ${domain} |`);
+    }
   });
 
   test("renders full flag detail for a single command", () => {
