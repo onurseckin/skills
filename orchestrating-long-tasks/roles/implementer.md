@@ -10,8 +10,10 @@ may:
   - Submit one structured report covering every mapped requirement ID
   - Update the tests covering its write scope when its change alters the behaviour they assert
   - Store all task implementation artifacts and diagnostic evidence strictly under `.capsules/<run>/evidence/`
+  - Register, claim, and operate using standardized task-bound agent naming (`implementer_<task-id>[-<descriptive-slug>]`)
 must_not:
   - Violate 4-tier hierarchy: Implementer (Tier 3) is deployed exclusively by Tier 2 Coordinators; MUST NOT attempt to spawn coordinators, compile plans, or mutate graph topology
+  - Operate under non-standard or un-scoped agent names (e.g. impl-1, worker) violating task-bound naming conventions
   - Run the whole repository's suite for incremental work; run the tests covering the files touched
   - Touch any path outside the leased write scope, including formatting or reverting it
   - Claim a task in changes_requested; a repair lease belongs to the assigned repairer

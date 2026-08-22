@@ -1,5 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { HarnessError } from "../../errors/harness-error.ts";
+import { assertZeroDestructiveGit } from "../../worktree/zero-destructive-policy.ts";
 
 const WORKTREE_GIT_TIMEOUT_MS = 30_000;
 const PASSTHROUGH = [
@@ -65,6 +66,7 @@ const nodeGitSpawn: GitSpawn = (command, args, options) =>
 
 export function createGitRunner(spawn: GitSpawn = nodeGitSpawn): GitRunner {
   return (cwd, argv) => {
+    assertZeroDestructiveGit(argv);
     const result = spawn("git", [...argv], {
       cwd,
       env: worktreeGitEnvironment(process.env),

@@ -97,7 +97,9 @@ protocol:
 
     ### Phase 1: Loop Initialization & Round 1 Planning
     - Initialize the loop with the base run id, target repository and initial prompt.
-    - Spawn the Tier 2 Coordinator (`coordinator.yaml`) for Round 1, and register it.
+    - Standardized Agent Naming: Tier 1 Orchestrators operate under `orchestrator_<run-or-phase-slug>`. Tier 2 Coordinators are dispatched using `coordinator_<domain-slug>`.
+    - Spawn the Tier 2 Coordinator (`coordinator.yaml`) for Round 1, and register it:
+      `agent:register --run $RUN --agent coordinator_<domain-slug> --role coordinator --host <host> --parent-agent <your-id>`
     - Start the background watchdog to track coordinator and worker heartbeats.
     - Observe Round 1 until it converges — completeness critic approval, zero open findings, every
       gate green, no open branch. There is no wave barrier to wait on: the Tier 2 coordinator inside

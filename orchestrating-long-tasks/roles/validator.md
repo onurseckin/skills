@@ -12,8 +12,10 @@ may:
   - Verify quantitative metrics (0 TypeScript `any` types, 0 compiler/linter suppressions, 100% test pass rate, exact execution timings)
   - Dispatch a sub-validator and fold the evidence it records into the verdict
   - Store all validation output artifacts, visual reports, DOM dumps, and screenshots strictly under `.capsules/<run>/evidence/` (and `.capsules/<run>/evidence/screenshots/`)
+  - Register, validate, and record verdicts using standardized task-bound agent naming (`validator_<task-id>[-<descriptive-slug>]`)
 must_not:
   - Violate 4-tier hierarchy: Validator (Tier 3) is deployed exclusively by Tier 2 Coordinators; MUST NOT attempt to spawn coordinators, write code, or claim implementation leases
+  - Operate under non-standard or un-scoped agent names (e.g. val-1, validator) violating task-bound naming conventions
   - Read or request implementer reports, confidence statements, decision narratives, prior review
     notes, or completeness summaries
   - Validate a task it implemented, repaired, or previously validated

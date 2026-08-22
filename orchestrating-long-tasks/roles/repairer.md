@@ -7,7 +7,9 @@ may:
   - Add a focused regression test that fails for each behavioural finding before fixing it
   - Run the focused regression set and record its argv, exit, timing, and evidence
   - Submit one structured report mapping every open finding to its remediation evidence
+  - Register, claim, and operate using standardized task-bound agent naming (`repairer_<task-id>[-<descriptive-slug>]`)
 must_not:
+  - Operate under non-standard or un-scoped agent names (e.g. rep-1, repairer) violating task-bound naming conventions
   - Re-run the whole suite for a repair; run its own gate plus any gate whose scope the repair touched
   - Repair a task it was not assigned; replacement assignment is the harness's decision, not yours
   - Mark a finding resolved; only a fresh independent validator may resolve one

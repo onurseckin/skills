@@ -7,6 +7,7 @@ import {
   loadUnifiedAgentModel,
   normalizeRoleName,
 } from "./manifest-parser.ts";
+import { validateAgentNamingConvention } from "./thread-identifier.ts";
 
 export type ChecklistItemStatus =
   | "pending"
@@ -32,7 +33,8 @@ export type DecisionProtocolId =
   | "scepticism_quantitative_proof"
   | "strict_tier_hierarchy"
   | "infinite_pulse_cadence"
-  | "dual_channel_validation";
+  | "dual_channel_validation"
+  | "standardized_agent_naming";
 
 export interface DecisionProtocolDefinition {
   readonly id: DecisionProtocolId;
@@ -166,6 +168,21 @@ export const DECISION_PROTOCOLS: Readonly<Record<DecisionProtocolId, DecisionPro
       "Mandate both DOM metrics and visual screenshots for every UI/frontend file modification.",
     applicableTiers: [2, 3],
   },
+  standardized_agent_naming: {
+    id: "standardized_agent_naming",
+    name: "Standardized Task & Phase Agent Naming Convention",
+    summary:
+      "All agents enforce standard role-prefixed IDs: Tier 3 uses task-bound names (<role>_<task-id>[-<slug>]), Tier 1/2 uses phase/domain-bound names (<role>_<domain-or-phase-slug>).",
+    formulaOrRule: "Tier 3: <role>_<task-id>[-<slug>] | Tier 1/2: <role>_<phase-or-domain-slug>",
+    keyInvariants: [
+      "Tier 3 Implementers and Validators embed assigned task ID in agent name (e.g. implementer_task-p47-autonomic-watchdog, validator_task-p47-autonomic-watchdog).",
+      "Tier 1 Orchestrators and Tier 2 Coordinators embed run, phase, or domain slug (e.g. orchestrator_wave-2-foundations, coordinator_domain-cli-tools).",
+      "Standardized names provide clear observability and unambiguous lineage across transcripts, CLI logs, and reports.",
+    ],
+    operationalGuidance:
+      "Register and dispatch all agents with standardized IDs according to role tier and scope binding.",
+    applicableTiers: [0, 1, 2, 3],
+  },
 };
 
 // ---------------------------------------------------------------------------
@@ -258,6 +275,15 @@ export const STANDING_CHECKLIST_DEFINITIONS: readonly ChecklistItemDefinition[] 
     protocolKey: "supervisor_zero_file_edit",
     targetRoles: ["orchestrator"],
   },
+  {
+    id: "RESP-ORCH-005",
+    category: "governance",
+    title: "Phase/Domain-Bound Standardized Agent Naming",
+    mandate: "Register and dispatch Tier 2 Coordinators using standardized domain/phase-bound names (coordinator_<domain-slug>).",
+    verificationCriteria: "Dispatched coordinators use standardized coordinator_<slug> identifiers.",
+    protocolKey: "standardized_agent_naming",
+    targetRoles: ["orchestrator"],
+  },
 
   // Coordinator / Tier 2 Checklists
   {
@@ -323,6 +349,15 @@ export const STANDING_CHECKLIST_DEFINITIONS: readonly ChecklistItemDefinition[] 
     protocolKey: "anti_batching_continuous_dispatch",
     targetRoles: ["coordinator"],
   },
+  {
+    id: "RESP-COORD-008",
+    category: "governance",
+    title: "Task-Bound Standardized Agent Naming & Observability",
+    mandate: "Dispatch Tier 3 Implementers and Validators using standardized task-bound names (implementer_<task-id>-<slug>, validator_<task-id>-<slug>).",
+    verificationCriteria: "All dispatched Tier 3 worker IDs follow standardized <role>_<task-id>-<slug> conventions.",
+    protocolKey: "standardized_agent_naming",
+    targetRoles: ["coordinator"],
+  },
 
   // Implementer / Repairer / Tier 3 Checklists
   {
@@ -361,6 +396,15 @@ export const STANDING_CHECKLIST_DEFINITIONS: readonly ChecklistItemDefinition[] 
     protocolKey: "strict_tier_hierarchy",
     targetRoles: ["implementer", "repairer", "worker", "sub-implementer"],
   },
+  {
+    id: "RESP-IMPL-005",
+    category: "governance",
+    title: "Task-Bound Standard Implementer Naming",
+    mandate: "Register and claim leases using standardized task-bound agent ID (implementer_<task-id>-<slug>).",
+    verificationCriteria: "Agent ID conforms to standardized implementer_<task-id>-<slug> pattern.",
+    protocolKey: "standardized_agent_naming",
+    targetRoles: ["implementer", "repairer", "worker", "sub-implementer"],
+  },
 
   // Validator / Tier 3 Checklists
   {
@@ -388,6 +432,15 @@ export const STANDING_CHECKLIST_DEFINITIONS: readonly ChecklistItemDefinition[] 
     mandate: "Inspect repository directly using independent gate proofs; ignore implementer confidence claims.",
     verificationCriteria: "All checks executed independently via `run:exec` on validator thread.",
     protocolKey: "scepticism_quantitative_proof",
+    targetRoles: ["validator", "validator-code-quality", "validator-product", "validator-security", "validator-system-design", "validator-ui-design", "sub-validator"],
+  },
+  {
+    id: "RESP-VAL-004",
+    category: "governance",
+    title: "Task-Bound Standard Validator Naming",
+    mandate: "Register and perform validation using standardized task-bound agent ID (validator_<task-id>-<slug>).",
+    verificationCriteria: "Validator agent ID conforms to standardized validator_<task-id>-<slug> pattern.",
+    protocolKey: "standardized_agent_naming",
     targetRoles: ["validator", "validator-code-quality", "validator-product", "validator-security", "validator-system-design", "validator-ui-design", "sub-validator"],
   },
 ];
@@ -732,6 +785,28 @@ export function evaluateSupervisoryState(
     );
   }
 
+  // 11. Invariant: Standardized Agent Naming Convention
+  if (context.agentId) {
+    const namingValidation = validateAgentNamingConvention(context.agentId, role, tier);
+    if (!namingValidation.valid) {
+      violations.push({
+        code: "UNSTANDARDIZED_AGENT_ID_BREACH",
+        rule: "All agents must use standardized role-prefixed and scope-bound IDs.",
+        severity: "high",
+        message: `Agent ID '${context.agentId}' violates standardized naming: ${namingValidation.reason ?? "Invalid format"}.`,
+        correctiveDirective: namingValidation.recommendedAgentId
+          ? `Adopt recommended standardized agent ID: ${namingValidation.recommendedAgentId}`
+          : "Adopt standardized agent ID (<role>_<task-id>-<slug> for Tier 3, <role>_<slug> for Tier 1/2).",
+        evidence: { agentId: context.agentId, reasons: namingValidation.reason ? [namingValidation.reason] : [] },
+      });
+      correctiveDirectives.push(
+        namingValidation.recommendedAgentId
+          ? `Adopt recommended standardized agent ID: ${namingValidation.recommendedAgentId}`
+          : "Adopt standardized agent ID conventions.",
+      );
+    }
+  }
+
   // Map violations to checklist items
   for (const def of relevantChecklists) {
     const matchingViolation = violations.find(
@@ -885,15 +960,24 @@ export function constructSupervisoryPersonaReminder(
   const id = `persona-reminder-${role}-tick${tickNumber}-${nowMs.toString(36)}`;
 
   // Evaluate active state
-  const evalContext: SupervisoryReminderEvaluationContext = options.context ?? {
-    role,
-    agentId: options.agentId,
-    runId: options.runId,
-    pulseId: options.pulseId,
-    tickNumber,
-    cadenceMs,
-    now: nowMs,
-  };
+  const evalContext: SupervisoryReminderEvaluationContext = options.context
+    ? {
+        ...options.context,
+        agentId: options.context.agentId ?? options.agentId,
+        role: options.context.role ?? role,
+        tickNumber: options.context.tickNumber ?? tickNumber,
+        cadenceMs: options.context.cadenceMs ?? cadenceMs,
+        now: options.context.now ?? nowMs,
+      }
+    : {
+        role,
+        agentId: options.agentId,
+        runId: options.runId,
+        pulseId: options.pulseId,
+        tickNumber,
+        cadenceMs,
+        now: nowMs,
+      };
 
   const evaluation = evaluateSupervisoryState(evalContext, unifiedModel);
 

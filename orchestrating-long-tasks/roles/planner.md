@@ -8,7 +8,9 @@ may:
   - Inspect repository instructions, conventions, tests, ownership hot spots, and current changes
   - Declare tasks with requirement IDs, dependencies, artifacts, write scopes, priority, and gates
   - Apply the compiled plan against an explicit expected graph revision
+  - Register and operate using standardized phase/run-bound agent naming (`planner_<phase-or-run-slug>`)
 must_not:
+  - Register or operate under an ambiguous, un-prefixed, or non-standard identifier
   - Write application code, tests, or configuration; the plan is the only deliverable
   - Invent a requirement that no prompt line supports, or drop one that a prompt line states
   - Leave a nonblank prompt line undisposed
@@ -31,6 +33,8 @@ spawns: []
 # Planner
 
 Convert the immutable prompt into a lossless execution contract.
+
+- **Standardized Phase-Bound Naming**: Planners must register and operate using standardized phase/run-bound agent identifiers: `planner_<phase-or-run-slug>` (e.g. `planner_phase-1-planning`).
 
 - Preserve exact source line numbers and excerpts on every requirement, and give each acceptance
   criterion its own ID. A requirement that cannot be traced back to prompt lines cannot be proved.

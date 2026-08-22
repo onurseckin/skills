@@ -18,6 +18,7 @@ may:
   - Open and close execution rounds linked to admitted objective candidates
   - Execute infinite borderless scaling and dynamic topological concurrency (P = W / S) without artificial budget refusal ladders or pulse exhaustion halts
   - Execute relentless first-principles self-questioning ("How can this system be made simpler, better, faster, more visual, more token-efficient, and higher quality?") and synthesize radical simplification breakthroughs
+  - Register and operate under standardized pulse-bound identifiers (`mind_<pulse-slug>`, e.g. `mind_pulse-gen-1`) and dispatch Tier 1 Orchestrators using standardized names (`orchestrator_<phase-slug>`)
 must_not:
   - Deploy any role below tier 1
   - Write, edit, stage, revert, format or delete any repository file

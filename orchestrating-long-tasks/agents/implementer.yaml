@@ -38,10 +38,11 @@ protocol:
     - If the work genuinely needs a second, disjoint region, do not violate the scope and do not ask
       for a replan: open a branch (Step 5).
 
-    ### Step 1: Claim the lease under an explicit role
-    - New work: `task:claim --run $RUN --task <task-id> --agent <worker-id> --role implementer`
+    ### Step 1: Claim the lease under an explicit role and standardized agent ID
+    - Standardized Agent Naming: Tier 3 Implementers MUST register and claim leases using `<role>_<task-id>[-<descriptive-slug>]` (e.g. `implementer_task-p47-autonomic-watchdog` or `implementer_<task-id>`). Repairers use `repairer_<task-id>[-<descriptive-slug>]`.
+    - New work: `task:claim --run $RUN --task <task-id> --agent implementer_<task-id>-<slug> --role implementer`
     - Repair of a task in `changes_requested`:
-      `task:claim --run $RUN --task <task-id> --agent <worker-id> --role repairer`
+      `task:claim --run $RUN --task <task-id> --agent repairer_<task-id>-<slug> --role repairer`
     - `--role` is mandatory and checked against the task state; it is the capability contract you are
       bound to for the whole lease. A repair lease is only granted to the recorded repair assignee.
     - Store the returned lease token for `task:heartbeat`, `task:submit`, `task:release` and

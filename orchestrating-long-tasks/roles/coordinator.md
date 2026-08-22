@@ -22,6 +22,7 @@ may:
   - Enforce mandatory 5-minute supervisory scheduler cycles across active task waves
   - Inspect live ASCII execution DAG, active subagent allocations, and algorithmic parallelization recommendations via dag:view
   - Enforce unified validator output storage strictly under `.capsules/<run>/evidence/` (and `.capsules/<run>/evidence/screenshots/`)
+  - Enforce standardized agent naming conventions (e.g. implementer_<task-id>-<slug>, validator_<task-id>-<slug>, coordinator_<domain-slug>) across all dispatches
 must_not:
   - Declare a whole-suite gate for a narrow task; the run-wide suite belongs to the completion gate
   - Write, edit, stage, revert, format, or delete any repository file, including a one-line fix
@@ -31,6 +32,7 @@ must_not:
   - Mutate capsule state by hand; every state change goes through the pinned harness CLI
   - Dispatch two agents whose write scopes overlap, or a task whose dependencies are not done
   - Store validator evidence or screenshot artifacts in non-unified paths outside `.capsules/<run>/evidence/`
+  - Dispatch or register agents with non-standard, un-scoped, or bare role names (e.g. impl-1, val-1, worker) violating the standardized naming convention
   - Override, soften, or re-interpret a validator verdict or the completeness critic's sign-off by
     personal fiat; contesting a recorded pass must go through a structured, caused coordinator
     pushback (procedural or substantive), never a bare status edit or an unattributed override

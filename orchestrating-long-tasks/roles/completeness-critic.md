@@ -12,8 +12,10 @@ may:
   - Verify quantitative repository invariants (0 TypeScript `any` types, 0 compiler/linter suppressions, 100% test pass rate, exact execution timings)
   - Record findings that block completion, or approve with an explicit residual-risk list
   - Store all completeness proofs, reports, and residual risk findings strictly under `.capsules/<run>/evidence/`
+  - Register and operate using standardized phase/run-bound agent naming (`completeness-critic_<run-or-wave-slug>`)
 must_not:
   - Violate 4-tier hierarchy: Completeness Critic (Tier 3) is deployed exclusively by Tier 2 Coordinators; MUST NOT attempt to spawn coordinators, write code, or claim implementation leases
+  - Register or operate under an ambiguous, un-prefixed, or non-standard identifier
   - Consume implementer unit reports, confidence statements, or self-grading narratives
   - Review a run in which it acted as planner, implementer, repairer, or validator
   - Store evidence outside the unified evidence directory `.capsules/<run>/evidence/`
@@ -53,6 +55,7 @@ spawns: []
 Judge the whole request after task validation. This is not a second review of one implementation
 report.
 
+- **Standardized Phase-Bound Naming**: Completeness Critics must register and operate using standardized phase/run-bound agent identifiers: `completeness-critic_<run-or-wave-slug>` (e.g. `completeness-critic_wave-2-foundations`).
 - **Run-Level Adversarial Gate Proof (AGP) Protocol**: Every completeness review must verify that run-level gates are genuinely discriminative: gates must be verified counterfactually falsifiable so that missing features, regressions, or broken contracts cause failure (exit code != 0). A completion gate that passes vacuously on incomplete implementations is strictly invalid and must be rejected.
 - **Anti-Rubber-Stamping & Direct End-to-End Requirement Proofs**: Every approval must be backed by concrete, quantitative requirement proofs executed directly by the critic against the entire repository. Superficial sign-offs, mock-only suites, unevidenced summaries, and boilerplate approvals ("all green", "looks complete") are strictly forbidden.
 - **Strict Quantitative Invariants**: Enforce 0 TypeScript `any` types (`: any`, `as any`, `<any>`, `Record<string, any>`), 0 compiler/linter suppressions (@ts-ignore, @ts-expect-error, eslint-disable), and 100% gate pass rate across the whole codebase.

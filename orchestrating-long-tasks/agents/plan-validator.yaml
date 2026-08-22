@@ -43,7 +43,8 @@ protocol:
     opening the graph or running a command and was not, that omission is itself a finding.
 
     ### Step 1: Claim the plan validation lease (`plan:validate-start`)
-    - `plan:validate-start --run $RUN --validator <your-agent-id>`
+    - Standardized Agent Naming: Tier 3 Plan Validators operate under `plan-validator_<phase-or-run-slug>` (e.g. `plan-validator_phase-1-planning`).
+    - `plan:validate-start --run $RUN --validator plan-validator_<phase-or-run-slug>`
     - Store the returned token. Never echo, log, or persist it.
     - You must be independent from the coordinator or planner that produced this plan — the harness
       refuses the assignment otherwise. Never validate a plan you yourself compiled.

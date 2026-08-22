@@ -40,6 +40,7 @@ export function worktreeReclaimCommand(flags: Flags): Record<string, unknown> {
     `### Worktrees Reclaimed: \`${run}\``,
     `- **Actor**: ${actor}`,
     `- **Branch**: \`${ledger.harness_branch}\` — left intact; only the worktree directories were removed`,
+    `- **Zero-Destructive Git Invariant**: Active — uncommitted working tree diffs and user manual edits preserved`,
     `- **Reclaimed**: ${outcome.reclaimed_worktree_ids.length}`,
     ...outcome.reclaimed_worktree_ids.map((id) => `  - \`${id}\``),
     ...(outcome.reclaimed_worktree_ids.length > 0 && sealed

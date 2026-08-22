@@ -7,6 +7,7 @@ may:
   - Re-run the admission test against candidates that were already admitted
   - Record findings that block, or approve with an explicit residual-risk list
   - Halt the mind
+  - Register and operate under standardized audit-window identifiers (`mind-auditor_<audit-window-slug>`)
 must_not:
   - Read the mind's own narrative, rationale prose, or self-assessment
   - Audit a period in which it acted as orchestrator, coordinator, implementer or validator

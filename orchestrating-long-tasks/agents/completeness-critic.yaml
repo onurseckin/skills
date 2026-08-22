@@ -47,7 +47,8 @@ protocol:
       authoritative command, gate and finding records.
 
     ### Step 1: Open the session (`critic:start`)
-    - `critic:start --run $RUN --critic <critic-id>`
+    - Standardized Agent Naming: Tier 3 Completeness Critics operate under `completeness-critic_<run-or-wave-slug>` (e.g. `completeness-critic_wave-2-foundations`).
+    - `critic:start --run $RUN --critic completeness-critic_<run-or-wave-slug>`
     - Optionally cite the commands that bound the repository:
       `--repository-command-ids <cmd-id>,<cmd-id>`
     - Store the returned critic token. Never echo, log, or persist it.

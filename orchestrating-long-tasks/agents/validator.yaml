@@ -85,7 +85,8 @@ protocol:
       6. **Canvas Reset Action Invariant**: Reset (or `R`) must purge cached layout geometry for the active dataset, not merely reset zoom/pan.
 
     ### Step 1: Claim the validation lease (`task:validate-start`)
-    - `task:validate-start --run $RUN --task <task-id> --validator <val-agent>`
+    - Standardized Agent Naming: Tier 3 Validators MUST register and validate using `<role>_<task-id>[-<descriptive-slug>]` (e.g. `validator_task-p47-autonomic-watchdog` or `validator_<task-id>`) or domain-specific forms (e.g. `validator-code-quality_<task-id>-<slug>`).
+    - `task:validate-start --run $RUN --task <task-id> --validator validator_<task-id>-<slug>`
     - Store the returned validation token. Never echo, log, or persist it.
     - Inspect the allowlisted context: prompt requirements, acceptance criteria, write scope, files
       changed, and the physical git diff. Implementer prose and confidence claims are stripped by

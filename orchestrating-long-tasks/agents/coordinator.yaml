@@ -147,8 +147,10 @@ protocol:
       - Under **Cursor**: Dispatch via the `Task` tool.
 
       YOU MUST NEVER WRITE CODE, EDIT REPO FILES, OR RUN TASK GATES YOURSELF. EVERY TASK MUST BE DISPATCHED VIA YOUR HOST'S NATIVE TOOL ABOVE.
-    - **Register every agent you deploy, before it starts work:**
-      `agent:register --run $RUN --agent <agent-id> --role <canonical-role> --host <host> --parent-agent <your-id> --parent-task <task-id>`
+    - **Register every agent you deploy with standardized naming, before it starts work:**
+      - Standardized Agent Naming: Tier 2 Coordinators use `coordinator_<domain-slug>`. Tier 3 workers use `<role>_<task-id>[-<descriptive-slug>]` (e.g. `implementer_<task-id>-<slug>`, `validator_<task-id>-<slug>`, `repairer_<task-id>-<slug>`).
+      - Registration command:
+        `agent:register --run $RUN --agent <role>_<task-id>-<slug> --role <canonical-role> --host <host> --parent-agent <your-id> --parent-task <task-id>`
       Add `--model`, `--model-tier`, `--thinking-level` and repeated `--tool` ONLY when the host
       actually reported them. A field you did not receive stays absent and renders as "unknown";
       never fill one in from your own environment.

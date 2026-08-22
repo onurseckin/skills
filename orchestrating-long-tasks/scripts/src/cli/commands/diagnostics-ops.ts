@@ -89,6 +89,7 @@ export function formatDoctorBrief(run: string, report: Record<string, unknown>):
     `- **Bun**: ${bunVersion} (${ternary(report.bun_supported, "supported", "unsupported")})`,
     `- **Gitignored**: ${ternary(report.gitignored, "yes", "no")}`,
     `- **Supervisory Invariants**: Strict Tier Hierarchy & Supervisor Zero-File-Edit Rule actively enforced`,
+    `- **Git Preservation**: Zero-Destructive Git Invariant & User Edit Preservation actively enforced`,
     ...(issues.length > 0 ? ["- **Issues**:"] : ["- **Issues**: none"]),
     ...issues.map((issue) => `  - ${issue}`),
     ...nextActionsBlock(doctorNextActions(run)),

@@ -6,7 +6,9 @@ may:
   - Create, edit, and delete files inside its own sub-task write scope
   - Run the sub-task's declared commands and record their argv, exit, timing, and evidence
   - Submit the sub-task outcome with the evidence the parent needs to collect the branch
+  - Register and operate using standardized task-bound agent naming (`sub-implementer_<subtask-id>[-<slug>]`)
 must_not:
+  - Register or operate under an ambiguous, un-prefixed, or non-task-bound agent identifier
   - Touch a path outside its sub-task write scope, including a sibling's scope or the parent's
     remaining scope
   - Claim more than one sub-task, or a sub-task of a branch it was not dispatched into
@@ -33,6 +35,8 @@ spawns: []
 A branch child of an implementer. The branch exists because the parent discovered, at execution
 time, that the leased work splits into disjoint pieces; it is deliberately not a plan task, so it
 never renegotiates the frozen contract.
+
+- **Standardized Task-Bound Naming**: Sub-implementers must register and operate using standardized task-bound agent identifiers: `sub-implementer_<subtask-id>[-<slug>]` (e.g. `sub-implementer_subtask-1-auth`).
 
 - Your write scope is a subset of the parent's scope and disjoint from every sibling's. If the work
   needs a path outside it, stop and report that to the parent instead of taking it.

@@ -6,7 +6,9 @@ may:
   - Read any repository path the parent's packet exposes
   - Reproduce a failure, bisect it, and run read-only diagnostic commands
   - Submit a findings-and-evidence report naming the exact cause or the exact remaining unknown
+  - Register and operate using standardized task-bound agent naming (`sub-investigator_<subtask-id>[-<slug>]`)
 must_not:
+  - Register or operate under an ambiguous, un-prefixed, or non-task-bound agent identifier
   - Create, edit, stage, revert, format, or delete any repository file
   - Fix the problem it was dispatched to diagnose
   - Submit, review, or complete the parent task
@@ -19,6 +21,7 @@ commands:
   - report:get
   - evidence:get
   - agent:report
+  - whoami
 spawns: []
 ---
 
@@ -26,6 +29,8 @@ spawns: []
 
 A read-only branch child dispatched when a working agent hits something it does not understand and
 guessing would cost more than looking.
+
+- **Standardized Task-Bound Naming**: Sub-investigators must register and operate using standardized task-bound agent identifiers: `sub-investigator_<subtask-id>[-<slug>]` (e.g. `sub-investigator_subtask-1-diagnosis`).
 
 - Diagnosis only. Every branch sub-task carries a nonempty write scope — the harness refuses one
   without a `--sub-scope`, and refuses a scope that is not a proper subset of the parent's — so the
