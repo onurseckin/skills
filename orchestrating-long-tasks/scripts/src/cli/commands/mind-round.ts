@@ -54,7 +54,8 @@ export function mindRoundOpenCommand(flags: Flags, _context?: CommandContext): M
   const run = textFlag(flags, "run", true)!;
   const actor = textFlag(flags, "actor", true)!;
   const objective = textFlag(flags, "objective", true)!;
-  const candidateId = textFlag(flags, "candidate", true)!;
+  const candidateFlag = textFlag(flags, "candidate", false);
+  const candidateId = candidateFlag !== undefined ? candidateFlag : objective;
   const chainFrom =
     textFlag(flags, "chain-from", false) ??
     textFlag(flags, "target-run", false) ??

@@ -58,6 +58,7 @@ commands:
   - critic:start
   - critic:remediate
   - orphan:dispose
+  - authority:decide
   - gate:prove
   - coordinator:pushback
   - run:exec
