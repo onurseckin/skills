@@ -27,7 +27,8 @@ export function mandatoryRunGateCommands(
   issues: string[] = [],
 ): { [gateId: string]: string } {
   const result: { [gateId: string]: string } = {};
-  const gates = state.gates.filter((gate) => gate.scope === "run" && gate.mandatory);
+  const rawGates = state.gates ?? (state as unknown as { graph?: { gates?: GateRuntime[] } }).graph?.gates ?? [];
+  const gates = rawGates.filter((gate) => gate.scope === "run" && gate.mandatory);
   if (gates.length === 0) issues.push("run has no mandatory run gate");
   for (const gate of gates) {
     const commands = Object.values(state.commands)
@@ -77,7 +78,8 @@ export function gateTally(state: WorkflowState): GateTally {
       if (taskGatePassed(state, task, gate)) green += 1;
     }
   }
-  const runGates = state.gates.filter((gate) => gate.scope === "run" && gate.mandatory);
+  const rawGates = state.gates ?? (state as unknown as { graph?: { gates?: GateRuntime[] } }).graph?.gates ?? [];
+  const runGates = rawGates.filter((gate) => gate.scope === "run" && gate.mandatory);
   const proven = mandatoryRunGateCommands(state);
   for (const gate of runGates) {
     total += 1;
