@@ -964,10 +964,10 @@ export function enrichHarnessEvent(
   timezone?: string,
 ): HarnessEvent & { readonly dual_time: DualTimeRecord } {
   const eventTime = getDualTime(event.timestamp, timezone);
-  return {
+  return ({
     ...event,
-    dual_time: eventTime,
-  } as unknown as HarnessEvent & { readonly dual_time: DualTimeRecord };
+    dual_time: eventTime as unknown as JsonValue,
+  } as unknown) as HarnessEvent & { readonly dual_time: DualTimeRecord };
 }
 
 /**

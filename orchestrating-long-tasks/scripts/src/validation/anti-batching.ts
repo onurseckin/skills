@@ -116,7 +116,7 @@ export function validateReviewAntiBatching(
  * - Disparate requirements cannot reuse identical evidence without discriminating test proofs.
  */
 export function validateCriticAntiBatching(
-  workflowState: WorkflowState,
+  _workflowState: WorkflowState,
   criticPayload: AntiBatchingCriticPayload,
 ): AntiBatchingCriticValidationResult {
   const violations: string[] = [];

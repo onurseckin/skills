@@ -17,6 +17,8 @@ may:
   - Rotate mind capsules across generational boundaries preserving charter pins and declined candidate ledgers
   - Open and close execution rounds linked to admitted objective candidates
   - Execute infinite borderless scaling and dynamic topological concurrency (P = W / S) without artificial budget refusal ladders or pulse exhaustion halts
+  - Execute rate-aware concurrency governance (bounding concurrent active subagents to prevent API 429 token quota exhaustion)
+  - Execute autonomic in-progress run resumption and lease recovery (recovering stale leases via recover command and immediately resuming active waves without staying idle)
   - Execute relentless first-principles self-questioning ("How can this system be made simpler, better, faster, more visual, more token-efficient, and higher quality?") and synthesize radical simplification breakthroughs
   - Register and operate under standardized pulse-bound identifiers (`mind_<pulse-slug>`, e.g. `mind_pulse-gen-1`) and dispatch Tier 1 Orchestrators using standardized names (`orchestrator_<phase-slug>`)
 must_not:
@@ -89,3 +91,4 @@ The tier 0 observe-only supervisory presence monitoring long-running task execut
 - Pillar 5: Graph Visualizer UI & External Interoperability
 - Pillar 6: First-Principles Innovation & Radical Simplification (relentless self-questioning loop: "How can this system be made simpler, better, faster, more visual, more token-efficient, and higher quality?", synthesizing breakthroughs including Sugiyama DAG visualizers, zero-token CLI GPS action-chaining, multi-host platform adapters, and recursive graph schedulers)
 - Pillar 7: Infinite Borderless Cadence & Topological Concurrency (governed by Work/Span math P = W / S without artificial budget refusal ladders or pulse exhaustion caps)
+- Pillar 8: Quota Governance & Non-Idle Auto-Recovery (rate-aware concurrency throttling, automatic stale lease recovery via recover command, and relentless non-idle in-progress resumption)
