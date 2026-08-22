@@ -315,12 +315,18 @@ function updateFeedbackQueueItems(
             | string
             | readonly string[]
             | undefined) ??
-          parsed["assertions"];
+          (typeof parsed["assertions"] === "number" ||
+          typeof parsed["assertions"] === "string" ||
+          Array.isArray(parsed["assertions"])
+            ? (parsed["assertions"] as number | string | readonly string[])
+            : undefined);
         const runtimeMs =
           record.runtime_ms ??
           (record.metadata?.["runtime_ms"] as number | string | undefined) ??
           (record.metadata?.["runtime"] as number | string | undefined) ??
-          parsed["runtime_ms"];
+          (typeof parsed["runtime_ms"] === "number" || typeof parsed["runtime_ms"] === "string"
+            ? (parsed["runtime_ms"] as number | string)
+            : undefined);
         const commitSha =
           record.commit_sha ??
           (record.metadata?.["commit_sha"] as string | undefined) ??

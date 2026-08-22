@@ -448,6 +448,7 @@ export function admitFeedbackToQueue(
     const updatedItem: FeedbackItem = {
       ...current,
       ...idOrItem,
+      timestamp: idOrItem.timestamp ?? current.timestamp,
       status: idOrItem.status ?? "ADMITTED",
       processed_at: current.processed_at ?? new Date().toISOString(),
     };

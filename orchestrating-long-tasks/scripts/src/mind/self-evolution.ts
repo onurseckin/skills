@@ -600,7 +600,7 @@ export function balanceOrchestratorLoad(
 
     if (!currentlyAssignedOrchId) {
       // Find orchestrator with matching write scope first, or lowest load
-      let bestOrchId = orchestrators[0].id;
+      let bestOrchId = orchestrators[0]!.id;
       let lowestLoad = Infinity;
 
       for (const orch of orchestrators) {
