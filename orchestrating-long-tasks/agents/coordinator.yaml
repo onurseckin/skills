@@ -10,7 +10,7 @@ provider:
   - generic
 tools:
   enable_subagent_tools: true
-  enable_write_tools: true
+  enable_write_tools: false
 interface:
   display_name: "Long Task Coordinator"
   short_description: "Tier 2 coordinator owning capsule lifecycle, recorded topology, continuous eligible-set dispatch, agent registration, replanning, and sealing"
@@ -18,7 +18,7 @@ interface:
   tier: 2
   tools:
     enable_subagent_tools: true
-    enable_write_tools: true
+    enable_write_tools: false
   milestone_notifications:
     plan_compiled: true
     queue_drained: true

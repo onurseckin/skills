@@ -89,6 +89,10 @@ export const TERMINAL_PULSE_OUTCOMES: ReadonlySet<string> = new Set([
   "completed",
 ]);
 
+export function isMindRole(role: string): boolean {
+  return role === "mind" || role.startsWith("mind-");
+}
+
 export function isCoordinatorRole(role: string): boolean {
   return role === "coordinator" || role.startsWith("coordinator-") || role.startsWith("coord-");
 }
@@ -838,7 +842,7 @@ export function auditSupervisorCodeContamination(
   // 1. Audit Grants & Tool Usage for Supervisors
   for (const grant of grants) {
     const role = grant.role;
-    if (!isOrchestratorRole(role) && !isCoordinatorRole(role)) continue;
+    if (!isOrchestratorRole(role) && !isCoordinatorRole(role) && !isMindRole(role)) continue;
     const tier = roleToTier(role);
 
     for (const tool of (grant.tools_used ?? []) as readonly AgentToolUse[]) {
@@ -865,7 +869,7 @@ export function auditSupervisorCodeContamination(
   // 2. Audit Command History for Supervisors
   for (const cmd of commands) {
     const role = roleMap.get(cmd.actor) ?? inferRole(cmd.actor, roleMap, {});
-    if (!isOrchestratorRole(role) && !isCoordinatorRole(role)) continue;
+    if (!isOrchestratorRole(role) && !isCoordinatorRole(role) && !isMindRole(role)) continue;
     const tier = roleToTier(role);
 
     const isEditTool = cmd.tool !== undefined && CODE_EDIT_TOOLS.has(cmd.tool);
@@ -922,14 +926,18 @@ export function auditSupervisorCodeContamination(
     const agentRole =
       roleMap.get(task.lease.agent_id) ?? inferRole(task.lease.agent_id, roleMap, {});
     const isSup =
+      isMindRole(leaseRole) ||
       isOrchestratorRole(leaseRole) ||
       isCoordinatorRole(leaseRole) ||
+      isMindRole(agentRole) ||
       isOrchestratorRole(agentRole) ||
       isCoordinatorRole(agentRole);
 
     if (isSup) {
       const effectiveRole =
-        isOrchestratorRole(leaseRole) || isOrchestratorRole(agentRole)
+        isMindRole(leaseRole) || isMindRole(agentRole)
+          ? "mind"
+          : isOrchestratorRole(leaseRole) || isOrchestratorRole(agentRole)
           ? "orchestrator"
           : "coordinator";
       const tier = roleToTier(effectiveRole);
@@ -963,7 +971,7 @@ export function auditSupervisorCodeContamination(
         if (diffActor) {
           const actorRole =
             diffRole ?? roleMap.get(diffActor) ?? inferRole(diffActor, roleMap, {});
-          if (isOrchestratorRole(actorRole) || isCoordinatorRole(actorRole)) {
+          if (isMindRole(actorRole) || isOrchestratorRole(actorRole) || isCoordinatorRole(actorRole)) {
             const tier = roleToTier(actorRole);
             resultFindings.push({
               agent_id: diffActor,
@@ -996,6 +1004,7 @@ export function auditSupervisorCodeContamination(
 export function auditTierConfinement(
   capsuleRoot: string,
   state?: RunState | JsonObject | null,
+  gitDiffs?: readonly (string | GitDiffRecord)[],
 ): TierConfinementFinding[] {
   let resolvedState: JsonObject | null = isJsonObject(state) ? (state as JsonObject) : null;
   let loadedEvents: JsonObject[] = [];
@@ -1046,7 +1055,7 @@ export function auditTierConfinement(
   auditOrchestratorConfinement(roleMap, grants, commands, tasks, findings);
   auditImplementerConfinement(roleMap, tasks, commands, loadedEvents, findings);
   auditPulseTerminationConfinement(roleMap, resolvedState, commands, findings);
-  auditSupervisorCodeContamination(roleMap, grants, commands, tasks, undefined, findings);
+  auditSupervisorCodeContamination(roleMap, grants, commands, tasks, gitDiffs, findings);
 
   return deduplicateFindings(findings);
 }

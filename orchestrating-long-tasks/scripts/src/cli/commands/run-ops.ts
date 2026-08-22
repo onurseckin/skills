@@ -1,3 +1,4 @@
+import { executePhaseCompletionSyncAndCommit } from "../../workflow/completion/auto-sync-and-commit.ts";
 import { readFileSync, realpathSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 import type { JsonObject } from "../../contracts/json.ts";
@@ -114,6 +115,19 @@ export function runCompleteCommand(flags: Flags): Record<string, unknown> {
 
   const tasks = Object.values(state.tasks);
   const gates = gateTally(state);
+  // Execute automatic local skill sync, git commit, and git push on run completion
+  let autoSyncCommitResult: unknown;
+  try {
+    const repoRoot = dirname(dirname(run));
+    autoSyncCommitResult = executePhaseCompletionSyncAndCommit({
+      phaseName: "run:complete",
+      runId: basename(run),
+      repoRoot,
+    });
+  } catch (err) {
+    // Non-blocking
+  }
+
   const markdown = formatRunCompleteBrief({
     runId: basename(run),
     capsulePath: run,
@@ -143,6 +157,7 @@ export function runCompleteCommand(flags: Flags): Record<string, unknown> {
     ...(handoffPath === undefined ? {} : { handoff_path: handoffPath }),
     ...(consolidation === undefined ? {} : { worktree_consolidation: consolidation }),
     ...(summaryWarning === undefined ? {} : { summary_warning: summaryWarning }),
+    ...(autoSyncCommitResult === undefined ? {} : { auto_sync_commit: autoSyncCommitResult }),
   };
 }
 

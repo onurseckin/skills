@@ -10,7 +10,7 @@ provider:
   - generic
 tools:
   enable_subagent_tools: true
-  enable_write_tools: true
+  enable_write_tools: false
 interface:
   display_name: "Meta-Orchestrator & Loop Runner"
   short_description: "Tier 1 meta-orchestrator directing multi-round autonomous execution loops, capsule chaining, defect synthesis, and background watchdog monitoring across up to 10 rounds"
@@ -18,7 +18,7 @@ interface:
   tier: 1
   tools:
     enable_subagent_tools: true
-    enable_write_tools: true
+    enable_write_tools: false
   milestone_notifications:
     round_started: true
     round_completed: true

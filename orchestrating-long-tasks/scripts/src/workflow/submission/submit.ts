@@ -10,6 +10,13 @@ import { systemClock, type Clock, type TransactionPort } from "../types.ts";
 import { outOfBandPaths } from "./out-of-band-drift.ts";
 import { validateReport } from "./validate-report.ts";
 import { assertPublishedTaskPacket } from "../packet-authority.ts";
+import {
+  auditTierConfinement,
+  assertSupervisorRoleConfinement,
+  isCoordinatorRole,
+  isOrchestratorRole,
+  isMindRole,
+} from "../../doctor/tier-confinement.ts";
 
 export interface EffortEvidenceOptions {
   currentWriteScopeContentHash?: Evidenced<string>;
@@ -64,6 +71,19 @@ export function submitTask(
     if (!current && !expiredAttempt) {
       throw new HarnessError("INVALID_STATE", "lease identity or token is invalid");
     }
+
+    if (
+      isOrchestratorRole(agentId) ||
+      isCoordinatorRole(agentId) ||
+      isMindRole(agentId) ||
+      (lease && (isOrchestratorRole(lease.role) || isCoordinatorRole(lease.role) || isMindRole(lease.role)))
+    ) {
+      throw new HarnessError(
+        "ROLE_CONFINEMENT_VIOLATION",
+        `Supervisors (agent: ${agentId}, role: ${lease?.role ?? "supervisor"}) are mechanically confined from submitting implementation tasks. Implementation submissions are restricted to Tier 3 Implementers.`,
+      );
+    }
+
     const report = validateReport(task, reportValue);
     if (expiredAttempt || (lease && Date.parse(lease.expires_at) <= now.valueOf())) {
       const canonical = JSON.stringify(report);
@@ -84,6 +104,24 @@ export function submitTask(
       throw new HarnessError("INVALID_STATE", "task is not accepting a submission");
     }
     assertPublishedTaskPacket(draft, taskId, lease.role, agentId, lease.attempt);
+
+    const confinementFindings = auditTierConfinement("", draft as unknown as JsonObject);
+    assertSupervisorRoleConfinement(confinementFindings);
+
+    const criticalTaskFindings = confinementFindings.filter(
+      (f) =>
+        f.severity === "critical" &&
+        (f.agent_id === agentId || (f.evidence && f.evidence.task_id === taskId)),
+    );
+    if (criticalTaskFindings.length > 0) {
+      const details = criticalTaskFindings
+        .map((f) => `[${f.violation_type}] ${f.observation}`)
+        .join("; ");
+      throw new HarnessError(
+        "ROLE_CONFINEMENT_VIOLATION",
+        `Tier confinement violation detected during task submission for ${taskId}: ${details}`,
+      );
+    }
 
     const claimedHash = lease.write_scope_content_hash;
     const submittedHash = effortEvidence.currentWriteScopeContentHash;

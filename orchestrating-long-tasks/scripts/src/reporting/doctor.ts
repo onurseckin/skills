@@ -20,6 +20,15 @@ import {
   type BehavioralViolationType,
 } from "./behavioral-auditor.ts";
 import {
+  auditTierConfinement,
+  summarizeTierConfinement,
+  assertSupervisorRoleConfinement,
+  type TierConfinementFinding,
+  type TierConfinementSummary,
+  type TierViolationSeverity,
+  type TierViolationType,
+} from "../doctor/tier-confinement.ts";
+import {
   evaluateSocraticSelfQuestioning,
   formatSocraticAuditSection,
   type SocraticAuditReport,
@@ -33,6 +42,13 @@ export {
   type BehavioralFinding,
   type BehavioralSeverity,
   type BehavioralViolationType,
+  auditTierConfinement,
+  summarizeTierConfinement,
+  assertSupervisorRoleConfinement,
+  type TierConfinementFinding,
+  type TierConfinementSummary,
+  type TierViolationSeverity,
+  type TierViolationType,
   evaluateSocraticSelfQuestioning,
   formatSocraticAuditSection,
   type SocraticAuditReport,
@@ -78,10 +94,12 @@ export function formatDoctorReport(params: {
   bunSupported: boolean;
   gitignored: boolean | null;
   issues: readonly string[];
-  behavioralFindings: readonly BehavioralFinding[];
+  behavioralFindings?: readonly BehavioralFinding[] | readonly TierConfinementFinding[];
+  tierConfinementFindings?: readonly TierConfinementFinding[];
   socraticReport?: SocraticAuditReport | undefined;
 }): string {
   const issues = params.issues;
+  const findings = (params.tierConfinementFindings ?? params.behavioralFindings ?? []) as unknown as readonly BehavioralFinding[];
   const lines = [
     `### Capsule Doctor: \`${params.runRoot}\``,
     `- **Healthy**: ${params.healthy ? "yes" : "no"}`,
@@ -92,7 +110,7 @@ export function formatDoctorReport(params: {
     ...(issues.length > 0 ? ["- **Issues**:"] : ["- **Issues**: none"]),
     ...issues.map((issue) => `  - ${issue}`),
     "",
-    formatBehavioralRoleHealthSection(params.behavioralFindings),
+    formatBehavioralRoleHealthSection(findings),
     "",
     ...(params.socraticReport ? [formatSocraticAuditSection(params.socraticReport)] : []),
   ];
@@ -133,10 +151,26 @@ export async function runDoctor(
     : undefined;
   const installationIssues = (installation?.issues ?? []).map((issue) => `installation: ${issue}`);
 
-  const behavioralFindings = loaded ? auditBehavioralHealth(runRoot, loaded.state) : [];
-  const behavioralIssues = behavioralFindings.map(
-    (f) => `behavioral [${f.severity}] (${f.role}/${f.agent_id}): ${f.observation}`,
-  );
+  let gitDiffs: string[] | undefined = undefined;
+  const repository = dirname(dirname(runRoot));
+  if (existsSync(join(repository, ".git"))) {
+    try {
+      const diffOutput = gitCommand(repository, ["diff", "--name-only"], 1024 * 64, [0]);
+      if (diffOutput.status === 0) {
+        const text = new TextDecoder().decode(diffOutput.bytes);
+        gitDiffs = text.split("\n").map((s) => s.trim()).filter((s) => s.length > 0);
+      }
+    } catch {
+      // Graceful fallback if git probe fails
+    }
+  }
+
+  const tierFindings = loaded ? auditTierConfinement(runRoot, loaded.state, gitDiffs) : [];
+  const tierSummary = summarizeTierConfinement(tierFindings);
+  const tierIssues = tierSummary.issues;
+
+  const behavioralFindings = tierFindings;
+  const behavioralIssues = tierIssues;
 
   const socraticReport = evaluateSocraticSelfQuestioning(
     runRoot,
@@ -151,7 +185,7 @@ export async function runDoctor(
     ...commandIssues,
     ...packetIssues,
     ...workflowIssues,
-    ...behavioralIssues,
+    ...tierIssues,
     ...socraticIssues,
     ...installationIssues,
   ];
@@ -166,6 +200,7 @@ export async function runDoctor(
     gitignored,
     issues,
     behavioralFindings,
+    tierConfinementFindings: tierFindings,
     socraticReport,
   });
 
@@ -183,6 +218,8 @@ export async function runDoctor(
     workflow_issues: workflowIssues,
     behavioral_findings: behavioralFindings,
     behavioral_issues: behavioralIssues,
+    tier_confinement_findings: tierFindings,
+    tier_confinement_issues: tierIssues,
     socratic_audit: socraticReport,
     socratic_issues: socraticIssues,
     installation: installation ?? null,
