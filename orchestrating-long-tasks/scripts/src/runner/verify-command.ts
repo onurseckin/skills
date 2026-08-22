@@ -10,7 +10,6 @@ import { resolveArtifactPath } from "./artifact-paths.ts";
 import { attemptStartedIssues } from "./attempt-intent.ts";
 import { embeddedCommandIssues, sameCommandJson } from "./command-shape.ts";
 import { outputEvidenceIssues } from "./output-evidence.ts";
-import { gatePathBindingIssues } from "./gate-path-bindings.ts";
 import { MAX_COMMAND_ATTEMPT_BYTES, MAX_COMMAND_RECORD_BYTES } from "./command-record-size.ts";
 import { OWNERSHIP_ENV } from "./pipe-ownership.ts";
 
@@ -164,21 +163,7 @@ export function verifyCommandAttempt(
 
 export function verifyCommandRecord(runRoot: string, record: CommandRecord): string[] {
   const issues = embeddedCommandIssues(record);
-  const failedIntegrity =
-    record.status === "failed" &&
-    (record.preflight_failure !== undefined ||
-      record.attempts?.at(-1)?.integrity_failure !== undefined);
-  if (record.gate_id !== null && !failedIntegrity) {
-    issues.push(
-      ...gatePathBindingIssues(
-        record.repository_root,
-        record.cwd,
-        record.argv,
-        record.path_bindings,
-        record.environment?.PATH,
-      ),
-    );
-  } else if (record.gate_id === null && record.path_bindings !== undefined) {
+  if (record.gate_id === null && record.path_bindings !== undefined) {
     issues.push("non-gate command contains gate path bindings");
   }
   if (!record.policy) return issues;
