@@ -20,6 +20,8 @@ export function recoverGateAttempt(
     attempt = {
       ...attempt,
       status: "failed",
+      timeout_kind: null,
+      failure_class: "evidence_failure",
       gate_finalized_at: now().toISOString(),
       repository_after: structuredClone(inspectRepository(intent.repository_root)),
       integrity_failure: attempt.integrity_failure ?? POST_INTERRUPTED,
@@ -28,7 +30,13 @@ export function recoverGateAttempt(
     attempt.integrity_failure === undefined &&
     !sameRepositoryObservation(intent.repository_before!, attempt.repository_after)
   ) {
-    attempt = { ...attempt, status: "failed", integrity_failure: REPOSITORY_DRIFT };
+    attempt = {
+      ...attempt,
+      status: "failed",
+      timeout_kind: null,
+      failure_class: "evidence_failure",
+      integrity_failure: REPOSITORY_DRIFT,
+    };
   }
   if (attempt !== candidate) {
     assertCommandAttemptSize(attempt);
