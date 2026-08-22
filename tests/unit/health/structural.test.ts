@@ -75,6 +75,7 @@ const FALLBACK_CEILING: ReadonlyMap<string, number> = new Map([
   ["orchestrating-long-tasks/scripts/src/reporting/dag-view.ts", 2],
   ["orchestrating-long-tasks/scripts/src/reporting/living-tracer.ts", 5],
   ["orchestrating-long-tasks/scripts/src/reporting/sugiyama-dag.ts", 6],
+  ["orchestrating-long-tasks/scripts/src/reporting/time-telemetry.ts", 1],
   ["orchestrating-long-tasks/scripts/src/scheduler/core-engine.ts", 2],
   ["orchestrating-long-tasks/scripts/src/scheduler/dynamic-topology.ts", 1],
   ["orchestrating-long-tasks/scripts/src/summary/asset-mapper.ts", 1],
