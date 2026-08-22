@@ -64,7 +64,9 @@ describe("Dynamic Role Cheat-Sheets Engine", () => {
     });
 
     test("fails gracefully on non-existent roles directory", () => {
-      expect(() => listAvailableRoles("/non/existent/roles/dir")).toThrow(/roles directory does not exist/);
+      expect(() => listAvailableRoles("/non/existent/roles/dir")).toThrow(
+        /roles directory does not exist/,
+      );
     });
   });
 
@@ -121,21 +123,33 @@ describe("Dynamic Role Cheat-Sheets Engine", () => {
       expect(sheet.role).toBe("validator");
       expect(sheet.domain).toBe("code-quality");
       expect(sheet.grantedCommands).toContain("task:review");
-      expect(sheet.authorityRules.some((r) => r.toLowerCase().includes("anti-boundary-leak"))).toBe(true);
+      expect(sheet.authorityRules.some((r) => r.toLowerCase().includes("anti-boundary-leak"))).toBe(
+        true,
+      );
     });
 
     test("reflects anti-boundary-leak rule in validator and completeness-critic cheat sheets", () => {
       const validatorSheet = generateRoleCheatSheet("validator");
-      expect(validatorSheet.authorityRules.some((r) => r.toLowerCase().includes("anti-boundary-leak"))).toBe(true);
-      expect(validatorSheet.invariants.some((inv) => inv.toLowerCase().includes("anti-boundary-leak"))).toBe(true);
+      expect(
+        validatorSheet.authorityRules.some((r) => r.toLowerCase().includes("anti-boundary-leak")),
+      ).toBe(true);
+      expect(
+        validatorSheet.invariants.some((inv) => inv.toLowerCase().includes("anti-boundary-leak")),
+      ).toBe(true);
 
       const criticSheet = generateRoleCheatSheet("completeness-critic");
-      expect(criticSheet.authorityRules.some((r) => r.toLowerCase().includes("anti-boundary-leak"))).toBe(true);
-      expect(criticSheet.invariants.some((inv) => inv.toLowerCase().includes("anti-boundary-leak"))).toBe(true);
+      expect(
+        criticSheet.authorityRules.some((r) => r.toLowerCase().includes("anti-boundary-leak")),
+      ).toBe(true);
+      expect(
+        criticSheet.invariants.some((inv) => inv.toLowerCase().includes("anti-boundary-leak")),
+      ).toBe(true);
     });
 
     test("throws when role contract does not exist", () => {
-      expect(() => generateRoleCheatSheet("non-existent-role-xyz")).toThrow(/role contract not found/);
+      expect(() => generateRoleCheatSheet("non-existent-role-xyz")).toThrow(
+        /role contract not found/,
+      );
     });
   });
 
@@ -216,7 +230,7 @@ describe("Dynamic Role Cheat-Sheets Engine", () => {
       });
 
       expect(typeof res.total_roles).toBe("number");
-      expect((res.total_roles as number)).toBeGreaterThan(5);
+      expect(res.total_roles as number).toBeGreaterThan(5);
       expect(Array.isArray(res.roles)).toBe(true);
       expect(typeof res.markdown).toBe("string");
       expect(res.markdown).toContain("System Role Catalog");
@@ -227,7 +241,7 @@ describe("Dynamic Role Cheat-Sheets Engine", () => {
       const res = await roleCheatSheetCommand({});
 
       expect(typeof res.total_roles).toBe("number");
-      expect((res.total_roles as number)).toBeGreaterThan(5);
+      expect(res.total_roles as number).toBeGreaterThan(5);
       expect(Array.isArray(res.roles)).toBe(true);
       expect(typeof res.markdown).toBe("string");
       expect(res.markdown).toContain("Available Role Contracts");

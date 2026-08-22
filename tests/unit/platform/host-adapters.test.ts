@@ -89,7 +89,9 @@ describe("Host Adapters Architecture — Mechanical-First, Cognitive-Fallback", 
 
       expect(res.mode).toBe("cognitive_fallback");
       expect(res.provider).toBe("antigravity");
-      expect(res.prompt).toContain("[AUTHORITATIVE SUBAGENT DISPATCH DIRECTIVE — ANTIGRAVITY HOST]");
+      expect(res.prompt).toContain(
+        "[AUTHORITATIVE SUBAGENT DISPATCH DIRECTIVE — ANTIGRAVITY HOST]",
+      );
       expect(res.prompt).toContain("agent:register");
       expect(res.prompt).toContain("task:claim");
       expect(res.prompt).toContain("task:submit");
@@ -232,6 +234,10 @@ describe("Host Adapters Architecture — Mechanical-First, Cognitive-Fallback", 
   });
 
   test("getHostAdapter throws INVALID_ARGUMENT on unknown host provider", () => {
-    expect(() => getHostAdapter("unknown-host" as unknown as import("../../../orchestrating-long-tasks/scripts/src/platform/index.ts").HostProvider)).toThrow(/Unsupported host provider/);
+    expect(() =>
+      getHostAdapter(
+        "unknown-host" as unknown as import("../../../orchestrating-long-tasks/scripts/src/platform/index.ts").HostProvider,
+      ),
+    ).toThrow(/Unsupported host provider/);
   });
 });

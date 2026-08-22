@@ -1,6 +1,15 @@
 import { HarnessError } from "../errors/harness-error.ts";
-import { heartbeatWatchdog, registerWatchdog, type WatchdogRecord } from "../authority/watchdog-manager.ts";
-import { systemClock, type Clock, type TransactionPort, type WorkflowState } from "../workflow/types.ts";
+import {
+  heartbeatWatchdog,
+  registerWatchdog,
+  type WatchdogRecord,
+} from "../authority/watchdog-manager.ts";
+import {
+  systemClock,
+  type Clock,
+  type TransactionPort,
+  type WorkflowState,
+} from "../workflow/types.ts";
 import {
   auditGraphHealth,
   recoverStaleTasks,
@@ -140,7 +149,9 @@ export function executePulseTick(
     const tasks = Object.values(statePostRecovery.tasks ?? {});
     const workflowCompleted =
       tasks.length > 0 &&
-      tasks.every((t) => t.status === "done" || t.status === "validated" || t.status === "cancelled");
+      tasks.every(
+        (t) => t.status === "done" || t.status === "validated" || t.status === "cancelled",
+      );
 
     return {
       tickNumber,
@@ -190,7 +201,8 @@ export async function runPulseLoop(
   let totalDispatched = 0;
   let lastTickResult: PulseTickResult | undefined = undefined;
   const errors: string[] = [];
-  let stoppedReason: "max_ticks_reached" | "workflow_completed" | "aborted" | "error" = "max_ticks_reached";
+  let stoppedReason: "max_ticks_reached" | "workflow_completed" | "aborted" | "error" =
+    "max_ticks_reached";
 
   // Register watchdog for the loop session
   let watchdog: WatchdogRecord | undefined = undefined;

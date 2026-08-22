@@ -24,9 +24,16 @@ import {
   isSubstantivePushback,
   validatePushbackEvidence,
 } from "../../../orchestrating-long-tasks/scripts/src/task/pushback.ts";
-import type { TaskRecord, TransactionPort, WorkflowState } from "../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
+import type {
+  TaskRecord,
+  TransactionPort,
+  WorkflowState,
+} from "../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
 
-function createMockPortWithValidatedTask(taskId: string = "task-1"): { port: TransactionPort; state: WorkflowState } {
+function createMockPortWithValidatedTask(taskId: string = "task-1"): {
+  port: TransactionPort;
+  state: WorkflowState;
+} {
   const state: WorkflowState = {
     tasks: {
       [taskId]: {
@@ -53,7 +60,16 @@ function createMockPortWithValidatedTask(taskId: string = "task-1"): { port: Tra
       },
     },
     requirements: [{ id: "R-001", status: "planned", evidence: [] }],
-    gates: [{ id: "gate-1", command: "bun test", cwd: ".", scope: "task", requirement_ids: ["R-001"], mandatory: true }],
+    gates: [
+      {
+        id: "gate-1",
+        command: "bun test",
+        cwd: ".",
+        scope: "task",
+        requirement_ids: ["R-001"],
+        mandatory: true,
+      },
+    ],
     commands: {},
     orphan_evidence: [],
   };
@@ -167,24 +183,21 @@ describe("Coordinator Pushback Execution Logic", () => {
   test("validatePushbackEvidence enforces non-blank observation and remediation", () => {
     expect(() => validatePushbackEvidence("procedural", "", "remedy")).toThrow(/observation/);
     expect(() => validatePushbackEvidence("substantive", "obs", "")).toThrow(/remediation/);
-    expect(() => validatePushbackEvidence("invalid" as unknown as "procedural", "obs", "rem")).toThrow(/cause/);
+    expect(() =>
+      validatePushbackEvidence("invalid" as unknown as "procedural", "obs", "rem"),
+    ).toThrow(/cause/);
   });
 
   test("procedural pushback reopens validation and changes status to validating", () => {
     const { port, state } = createMockPortWithValidatedTask("task-1");
 
-    const updated = executeCoordinatorPushback(
-      port,
-      "task-1",
-      "coord-1",
-      {
-        validatorId: "val-1",
-        domain: "code-quality",
-        cause: "procedural",
-        observation: "Missing required automated test runner artifacts.",
-        remediation: "Re-run validation with comprehensive coverage evidence.",
-      },
-    );
+    const updated = executeCoordinatorPushback(port, "task-1", "coord-1", {
+      validatorId: "val-1",
+      domain: "code-quality",
+      cause: "procedural",
+      observation: "Missing required automated test runner artifacts.",
+      remediation: "Re-run validation with comprehensive coverage evidence.",
+    });
 
     const task = updated.tasks["task-1"]!;
     expect(task.status).toBe("validating");
@@ -251,6 +264,8 @@ describe("Coordinator Pushback Execution Logic", () => {
     expect(report.hasUnfulfilledDemands).toBeTrue();
     expect(report.totalUnfulfilled).toBeGreaterThan(0);
 
-    expect(() => assertPushbackSafety(state as unknown as Record<string, unknown>)).toThrow(/unfulfilled.*demand/i);
+    expect(() => assertPushbackSafety(state as unknown as Record<string, unknown>)).toThrow(
+      /unfulfilled.*demand/i,
+    );
   });
 });

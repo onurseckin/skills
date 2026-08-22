@@ -22,7 +22,11 @@ describe("Documentation Separation & Boundary Invariant Unit Tests", () => {
   it("verifies root docs/ directory contains strictly repository-wide skill collection guidelines and human educational docs", () => {
     expect(existsSync(rootDocsDir)).toBe(true);
 
-    const allowedEntries = new Set(["README.md", "SKILL_COLLECTION_GUIDELINES.md", "orchestrating-long-tasks"]);
+    const allowedEntries = new Set([
+      "README.md",
+      "SKILL_COLLECTION_GUIDELINES.md",
+      "orchestrating-long-tasks",
+    ]);
     const entries = readdirSync(rootDocsDir);
     expect(entries.length).toBeGreaterThan(0);
 

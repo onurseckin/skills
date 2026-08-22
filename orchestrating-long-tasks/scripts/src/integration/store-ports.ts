@@ -26,10 +26,7 @@ function workflowState(value: Record<string, unknown>): WorkflowState {
       ? (value.tasks as Record<string, Record<string, unknown>>)
       : {};
   const tasks = Object.fromEntries(
-    Object.entries(tasksValue).map(([id, task]) => [
-      id,
-      taskRecord(task),
-    ]),
+    Object.entries(tasksValue).map(([id, task]) => [id, taskRecord(task)]),
   );
   let requirements: RequirementRuntime[] = [];
   if (
@@ -47,11 +44,7 @@ function workflowState(value: Record<string, unknown>): WorkflowState {
   }
   let gates: GateRuntime[] = [];
   let graphRevision: number | undefined = undefined;
-  if (
-    typeof value.graph === "object" &&
-    value.graph !== null &&
-    !Array.isArray(value.graph)
-  ) {
+  if (typeof value.graph === "object" && value.graph !== null && !Array.isArray(value.graph)) {
     const graph = value.graph as Record<string, unknown>;
     if (!Number.isSafeInteger(graph.revision) || (graph.revision as number) < 1) {
       throw new TypeError("workflow requires a valid graph revision");
@@ -117,11 +110,7 @@ function mergeWorkflow(draft: Record<string, unknown>, workflow: WorkflowState):
   } else if (workflow.requirements.length > 0) {
     draft.requirements = { requirements: workflow.requirements };
   }
-  if (
-    typeof draft.graph === "object" &&
-    draft.graph !== null &&
-    !Array.isArray(draft.graph)
-  ) {
+  if (typeof draft.graph === "object" && draft.graph !== null && !Array.isArray(draft.graph)) {
     const graph = draft.graph as Record<string, unknown>;
     graph.gates = workflow.gates;
     if (workflow.graph_revision !== undefined) {

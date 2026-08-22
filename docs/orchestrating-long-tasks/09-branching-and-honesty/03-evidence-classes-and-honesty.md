@@ -32,7 +32,7 @@ read automatically rather than typed — `derived`, because it is a setting that
 ran) and `readAgentTranscriptTelemetry` (the host's own transcript of the agent — `harness_observed`,
 because it is what the host recorded actually happening). Either one only ever fills a field with no
 explicit report already on it; a value that disagrees with an explicit report is never silently
-substituted, it is recorded as a conflict instead. `model_tier` is never probed at all: nothing
+substituted, it is recorded as a conflict in `telemetry_conflicts` instead. `model_tier` is never probed at all: nothing
 legitimately infers a tier from a model string.
 
 Three rules follow, and they are absolute:
@@ -41,6 +41,7 @@ Three rules follow, and they are absolute:
 2. **Estimates are flagged twice**: `evidence_class: "derived"` _and_ `is_estimated: true`. A number
    that is a guess cannot be mistaken for one that was counted.
 3. **Unknown renders as "unknown"**, never as a neutral-looking default that reads like a fact.
+4. **Dual-Time Telemetry is strictly paired**: Every observation pairs monotonic `sequence` (for race-free total causal order) with an ISO8601 wall-clock `timestamp` (for SLA and duration measurement). Disagreements are retained in `telemetry_conflicts`.
 
 ---
 

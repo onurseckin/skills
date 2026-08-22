@@ -8,10 +8,10 @@
 
 There is exactly one description of the CLI surface, and it is **generated from the command registry**:
 
-- **[`references/cli-capabilities.md`](../../references/cli-capabilities.md)** — every command, with its
+- **[`references/cli-capabilities.md`](../../../orchestrating-long-tasks/references/cli-capabilities.md)** — every command, with its
   aliases, flags (type, required, repeatable, default), stdin rule, remainder rule, exit codes and
   runnable examples.
-- **[`references/cli-capabilities.json`](../../references/cli-capabilities.json)** — the same content
+- **[`references/cli-capabilities.json`](../../../orchestrating-long-tasks/references/cli-capabilities.json)** — the same content
   as data, for anything that needs to check a command or flag mechanically.
 
 Both are rendered by `scripts/generate-cli-manifest.ts` from `src/cli/registry/`, and a unit test
@@ -41,6 +41,7 @@ bun harness.ts task:review --help   # the same, via the --help intercept
 | plan | `orchestrate`, `plan:init`, `plan:enhance`, `plan:add`, `plan:audit`, `plan:compile`, `plan:validate-start`, `plan:review`, `plan:replan`, `plan:claim`, `plan:apply`, `plan:status` |
 | queue | `queue:next`, `queue:list`, `queue:wave`, `queue:pop` |
 | task | `task:claim`, `task:heartbeat`, `task:submit`, `task:validate-start`, `task:review`, `task:probe`, `task:reject`, `task:assign-repairer`, `task:release` |
+| reporting | `report:dag`, `report:graph`, `report:graph-json`, `report:health`, `report:leases`, `report:decisions`, `report:summary`, `report:task`, `stream:events`, `dag:render` (`graph:sugiyama`), `dag:trace` (`trace:dag`) |
 | run | `run:exec`, `run:status`, `run:complete` |
 | critic | `critic:start`, `critic:review`, `critic:reject`, `critic:remediate` |
 | summary | `summary:export`, `summary:view` |
@@ -48,8 +49,8 @@ bun harness.ts task:review --help   # the same, via the --help intercept
 | orchestrator | `orchestrator:run`, `orchestrator:supervise` |
 | branch | `branch:open`, `branch:claim`, `branch:submit`, `branch:collect`, `branch:abandon`, `branch:status` |
 | agent | `agent:register`, `agent:report`, `agent:release`, `agent:list` |
+| authority | `authority:decide`, `whoami`, `role:cheat-sheet`, `watchdog:status`, `watchdog:cleanup`, `watchdog:phase-cleanup`, `watchdog:verify`, `watchdog:probe` |
 | orphan | `orphan:dispose` |
-| authority | `authority:decide` |
 | install | `install`, `installation-status` |
 | diagnostics | `health`, `doctor`, `doctor:repair`, `recover`, `worktree:reclaim` |
 | gate | `gate:prove` |
@@ -112,34 +113,39 @@ or use `recover`.
 
 ## 🗺️ Which Command, When
 
-| You want to…                               | Command                                                                                                                  |
-| :----------------------------------------- | :----------------------------------------------------------------------------------------------------------------------- |
-| Freeze the prompt and open a capsule       | `plan:init`                                                                                                              |
-| Record what reading the repo taught you    | `plan:enhance`                                                                                                           |
-| Declare a task bound to prompt lines       | `plan:add --requirement-lines`                                                                                           |
-| Declare one task per matched file on disk  | `plan:add --auto-partition --gate-template`                                                                              |
-| Justify a dependency edge before it seals  | `plan:add --deps --dep-reason`                                                                                           |
-| Check the plan's own structural invariants | `plan:audit`                                                                                                             |
-| Seal the plan and record the topology      | `plan:compile --completion-gate` (runs `plan:audit` itself; `--accept-audit <id>:<reason>` overrides a blocking finding) |
-| Dispatch the plan's own adversary          | `plan:validate-start`, `plan:review --status approved` (or `changes_requested --findings`)                               |
-| Prove a compiled gate can actually fail    | `gate:prove --task`                                                                                                      |
-| See what's claimable right now             | `queue:wave` (read-only)                                                                                                 |
-| Take one task at a time                    | `queue:next`, `queue:pop`                                                                                                |
-| Put a subagent in the run's ledger         | `agent:register`                                                                                                         |
-| Lease a task under a role                  | `task:claim --role`                                                                                                      |
-| Run a gate and record the evidence         | `run:exec … -- <argv>`                                                                                                   |
-| Hand work back for validation              | `task:submit --summary`                                                                                                  |
-| Declare a submission that changed nothing  | `task:submit --no-op --reason` (refused without one if the scope is byte-identical to claim time)                        |
-| Subdivide work you already hold            | `branch:open` … `branch:collect`                                                                                         |
-| Demand proof without accusing              | `task:probe --demand`                                                                                                    |
-| Record an observed defect                  | `task:reject --severity --remediation`                                                                                   |
-| Sign off                                   | `task:review --status pass --resolve <finding>=<command>`                                                                |
-| Audit the whole request                    | `critic:start`, `critic:review --proofs-file`                                                                            |
-| Seal the run                               | `run:complete`                                                                                                           |
-| See who did what                           | `agent:list`, `run:status`, `branch:status`                                                                              |
-| Read the artefacts                         | `summary:view`, `summary:export`, `finding:get`, `report:get`, `evidence:get`                                            |
-| Clean up after a dead agent                | `task:release`, `recover`                                                                                                |
-| Check the capsule                          | `doctor`                                                                                                                 |
+| You want to…                                    | Command                                                                                                                  |
+| :---------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------- |
+| Freeze the prompt and open a capsule            | `plan:init`                                                                                                              |
+| Record what reading the repo taught you         | `plan:enhance`                                                                                                           |
+| Declare a task bound to prompt lines            | `plan:add --requirement-lines`                                                                                           |
+| Declare one task per matched file on disk       | `plan:add --auto-partition --gate-template`                                                                              |
+| Justify a dependency edge before it seals       | `plan:add --deps --dep-reason`                                                                                           |
+| Check the plan's own structural invariants      | `plan:audit`                                                                                                             |
+| Seal the plan and record the topology           | `plan:compile --completion-gate` (runs `plan:audit` itself; `--accept-audit <id>:<reason>` overrides a blocking finding) |
+| Render Sugiyama hierarchical DAG layout         | `dag:render` (alias `graph:sugiyama`)                                                                                    |
+| Trace living step timeline and dynamic branches | `dag:trace` (alias `trace:dag`, `stream:trace`)                                                                          |
+| Dispatch the plan's own adversary               | `plan:validate-start`, `plan:review --status approved` (or `changes_requested --findings`)                               |
+| Prove a compiled gate can actually fail         | `gate:prove --task`                                                                                                      |
+| See what's claimable right now                  | `queue:wave` (read-only)                                                                                                 |
+| Take one task at a time                         | `queue:next`, `queue:pop`                                                                                                |
+| Put a subagent in the run's ledger              | `agent:register`                                                                                                         |
+| Lease a task under a role                       | `task:claim --role`                                                                                                      |
+| Run a gate and record the evidence              | `run:exec … -- <argv>`                                                                                                   |
+| Hand work back for validation                   | `task:submit --summary`                                                                                                  |
+| Declare a submission that changed nothing       | `task:submit --no-op --reason` (refused without one if the scope is byte-identical to claim time)                        |
+| Subdivide work you already hold                 | `branch:open` … `branch:collect`                                                                                         |
+| Demand proof without accusing                   | `task:probe --demand`                                                                                                    |
+| Record an observed defect                       | `task:reject --severity --remediation`                                                                                   |
+| Sign off                                        | `task:review --status pass --resolve <finding>=<command>`                                                                |
+| Audit the whole request                         | `critic:start`, `critic:review --proofs-file`                                                                            |
+| Inspect thread tier and identity                | `whoami`, `role:cheat-sheet`                                                                                             |
+| Audit supervisory watchdog health               | `watchdog:status`, `watchdog:verify`, `watchdog:probe`                                                                   |
+| Clean up stale or legacy phase monitors         | `watchdog:cleanup`, `watchdog:phase-cleanup`                                                                             |
+| Seal the run                                    | `run:complete`                                                                                                           |
+| See who did what                                | `agent:list`, `run:status`, `branch:status`                                                                              |
+| Read the artefacts                              | `summary:view`, `summary:export`, `finding:get`, `report:get`, `evidence:get`                                            |
+| Clean up after a dead agent                     | `task:release`, `recover`                                                                                                |
+| Check the capsule                               | `doctor`                                                                                                                 |
 
 ---
 

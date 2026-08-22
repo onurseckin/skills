@@ -50,12 +50,12 @@ export interface HierarchicalDecisionResult {
 }
 
 export const HIERARCHICAL_TIERS: Readonly<Record<AgentRoleHierarchy, number>> = {
-  "mind": 0,
-  "coordinator": 1,
-  "orchestrator": 1,
-  "implementer": 2,
-  "repairer": 2,
-  "validator": 3,
+  mind: 0,
+  coordinator: 1,
+  orchestrator: 1,
+  implementer: 2,
+  repairer: 2,
+  validator: 3,
   "plan-validator": 3,
   "completeness-critic": 4,
 };
@@ -75,8 +75,15 @@ export function evaluateHierarchicalDecision(
       hierarchicalTier: tier,
       role,
       action,
-      reason: "Coordinators and Orchestrators are prohibited from writing code directly; work must be dispatched to implementers or repairers",
-      nextPermittedActions: ["plan_compile", "claim_task", "reclaim_lease", "escalate", "abandon_task"],
+      reason:
+        "Coordinators and Orchestrators are prohibited from writing code directly; work must be dispatched to implementers or repairers",
+      nextPermittedActions: [
+        "plan_compile",
+        "claim_task",
+        "reclaim_lease",
+        "escalate",
+        "abandon_task",
+      ],
     };
   }
 
@@ -117,7 +124,10 @@ export function evaluateHierarchicalDecision(
   }
 
   // Rule D4: Validators cannot review tasks they personally implemented (independence)
-  if (role === "validator" && (action === "validate_start" || action === "record_review" || action === "record_probe")) {
+  if (
+    role === "validator" &&
+    (action === "validate_start" || action === "record_review" || action === "record_probe")
+  ) {
     if (targetTaskId && state) {
       const task = state.tasks[targetTaskId];
       if (task && (task.original_implementer === actor || task.repair_assignee === actor)) {
@@ -138,7 +148,8 @@ export function evaluateHierarchicalDecision(
   if (role === "completeness-critic" && (action === "critic_start" || action === "critic_review")) {
     if (state) {
       const activeTasks = Object.values(state.tasks).filter(
-        (t) => t.status === "running" || t.status === "validating" || t.status === "changes_requested",
+        (t) =>
+          t.status === "running" || t.status === "validating" || t.status === "changes_requested",
       );
       if (activeTasks.length > 0) {
         return {
@@ -155,26 +166,30 @@ export function evaluateHierarchicalDecision(
   }
 
   // Rule D6: Implementers/Repairers cannot record validation reviews or completeness reviews
-  if ((role === "implementer" || role === "repairer") && (action === "record_review" || action === "critic_review")) {
+  if (
+    (role === "implementer" || role === "repairer") &&
+    (action === "record_review" || action === "critic_review")
+  ) {
     return {
       allowed: false,
       ruleId: "DOM-06-WORKER-NO-SELF-REVIEW",
       hierarchicalTier: tier,
       role,
       action,
-      reason: "Implementers and Repairers cannot perform validation reviews or completeness reviews",
+      reason:
+        "Implementers and Repairers cannot perform validation reviews or completeness reviews",
       nextPermittedActions: ["submit_task"],
     };
   }
 
   // Permitted mapping
   const permittedActionsMap: Record<AgentRoleHierarchy, HierarchicalAction[]> = {
-    "mind": ["plan_compile", "escalate"],
-    "coordinator": ["plan_compile", "escalate", "abandon_task", "reclaim_lease"],
-    "orchestrator": ["plan_compile", "escalate", "abandon_task", "reclaim_lease"],
-    "implementer": ["claim_task", "submit_task", "write_code"],
-    "repairer": ["claim_task", "submit_task", "write_code"],
-    "validator": ["validate_start", "record_review", "record_probe"],
+    mind: ["plan_compile", "escalate"],
+    coordinator: ["plan_compile", "escalate", "abandon_task", "reclaim_lease"],
+    orchestrator: ["plan_compile", "escalate", "abandon_task", "reclaim_lease"],
+    implementer: ["claim_task", "submit_task", "write_code"],
+    repairer: ["claim_task", "submit_task", "write_code"],
+    validator: ["validate_start", "record_review", "record_probe"],
     "plan-validator": ["validate_start", "record_review"],
     "completeness-critic": ["critic_start", "critic_review"],
   };

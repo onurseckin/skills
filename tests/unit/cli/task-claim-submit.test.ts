@@ -31,7 +31,9 @@ describe("task:claim / task:heartbeat / task:submit", () => {
         agent: "val-agent-1",
         role: "validator",
       }),
-    ).rejects.toThrow(/cannot claim code implementation tasks: critics and validators are strictly prohibited from claiming code write leases/);
+    ).rejects.toThrow(
+      /cannot claim code implementation tasks: critics and validators are strictly prohibited from claiming code write leases/,
+    );
 
     await expect(
       taskClaimCommand({
@@ -40,7 +42,9 @@ describe("task:claim / task:heartbeat / task:submit", () => {
         agent: "critic-agent-1",
         role: "completeness-critic",
       }),
-    ).rejects.toThrow(/cannot claim code implementation tasks: critics and validators are strictly prohibited from claiming code write leases/);
+    ).rejects.toThrow(
+      /cannot claim code implementation tasks: critics and validators are strictly prohibited from claiming code write leases/,
+    );
 
     await expect(
       taskClaimCommand({

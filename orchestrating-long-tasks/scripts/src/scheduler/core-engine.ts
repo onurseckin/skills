@@ -4,7 +4,13 @@ import { HarnessError } from "../errors/harness-error.ts";
 import { dependencyMap } from "../graph/dependency-map.ts";
 import { graphParts } from "../graph/parts.ts";
 import { dependencyData, topologicalOrder, type DependencyMap } from "../graph/topology.ts";
-import { isIdentifier, isInteger, isNonblank, isRecord, isRepoRelativePath } from "../requirements/predicates.ts";
+import {
+  isIdentifier,
+  isInteger,
+  isNonblank,
+  isRecord,
+  isRepoRelativePath,
+} from "../requirements/predicates.ts";
 import {
   cleanupStaleWatchdogs,
   loadWatchdogStore,
@@ -14,7 +20,13 @@ import {
   type WatchdogStatus,
 } from "../authority/watchdog-manager.ts";
 import { transition, utc } from "../workflow/task-state.ts";
-import { systemClock, type Clock, type TaskRecord, type TransactionPort, type WorkflowState } from "../workflow/types.ts";
+import {
+  systemClock,
+  type Clock,
+  type TaskRecord,
+  type TransactionPort,
+  type WorkflowState,
+} from "../workflow/types.ts";
 import { hasActiveOwnership, resourceConflict, scopeConflict } from "./conflicts.ts";
 import { evaluateHierarchicalDecision, type AgentRoleHierarchy } from "./decision-tree.ts";
 import { proposeBatch } from "./propose-batch.ts";
@@ -34,7 +46,12 @@ import { verifyIntegrity } from "../store/index.ts";
 // ============================================================================
 
 export interface GraphHealthIssue {
-  readonly probe: "orphaned_tasks" | "stale_leases" | "circular_dependencies" | "gate_coverage" | "scope_collisions";
+  readonly probe:
+    | "orphaned_tasks"
+    | "stale_leases"
+    | "circular_dependencies"
+    | "gate_coverage"
+    | "scope_collisions";
   readonly severity: "critical" | "warning" | "info";
   readonly message: string;
   readonly entityIds: readonly string[];
@@ -322,7 +339,11 @@ export function probeOrphanedTasks(state: unknown): OrphanedTasksProbeResult {
       if (isRecord(node) && node.type === "task" && typeof node.id === "string") {
         graphTaskIds.add(node.id);
       }
-      if (isRecord(node) && node.type === "requirement" && typeof node.requirement_id === "string") {
+      if (
+        isRecord(node) &&
+        node.type === "requirement" &&
+        typeof node.requirement_id === "string"
+      ) {
         knownRequirementIds.add(node.requirement_id);
       }
     }
@@ -341,11 +362,16 @@ export function probeOrphanedTasks(state: unknown): OrphanedTasksProbeResult {
       unmappedRequirementTaskIds.push(taskId);
       details.push(`Task '${taskId}' has no mapped requirement_ids.`);
     } else {
-      const invalidReqs = reqIds.filter((id) => typeof id !== "string" || (knownRequirementIds.size > 0 && !knownRequirementIds.has(id)));
+      const invalidReqs = reqIds.filter(
+        (id) =>
+          typeof id !== "string" || (knownRequirementIds.size > 0 && !knownRequirementIds.has(id)),
+      );
       if (invalidReqs.length > 0) {
         orphanedTaskIds.push(taskId);
         unmappedRequirementTaskIds.push(taskId);
-        details.push(`Task '${taskId}' references unknown requirements: [${invalidReqs.join(", ")}].`);
+        details.push(
+          `Task '${taskId}' references unknown requirements: [${invalidReqs.join(", ")}].`,
+        );
       }
     }
 
@@ -409,7 +435,8 @@ export function probeStaleLeases(
         const issuedAtStr = typeof lease.issued_at === "string" ? lease.issued_at : "";
         const agentId = typeof lease.agent_id === "string" ? lease.agent_id : "unknown";
         const role = typeof lease.role === "string" ? lease.role : "unknown";
-        const durationSeconds = typeof lease.duration_seconds === "number" ? lease.duration_seconds : 300;
+        const durationSeconds =
+          typeof lease.duration_seconds === "number" ? lease.duration_seconds : 300;
 
         const expiresAtMs = expiresAtStr ? parseTimestamp(expiresAtStr) : 0;
         const heartbeatAtMs = heartbeatAtStr ? parseTimestamp(heartbeatAtStr) : 0;
@@ -615,7 +642,8 @@ export function probeGateCoverageViolations(state: unknown): GateCoverageProbeRe
     }
 
     const cmd = gate.command;
-    const isCmdValid = isNonblank(cmd) || (Array.isArray(cmd) && cmd.length > 0 && cmd.every(isNonblank));
+    const isCmdValid =
+      isNonblank(cmd) || (Array.isArray(cmd) && cmd.length > 0 && cmd.every(isNonblank));
     if (!isCmdValid) {
       invalidGates.push(`Gate '${gateId}' has empty or non-blank command`);
     } else if (typeof cmd === "string" && NOOP_COMMANDS.has(cmd.trim().toLowerCase())) {
@@ -623,11 +651,15 @@ export function probeGateCoverageViolations(state: unknown): GateCoverageProbeRe
     }
 
     if (gate.cwd !== undefined && !isRepoRelativePath(gate.cwd, true)) {
-      invalidGates.push(`Gate '${gateId}' cwd '${String(gate.cwd)}' is not a normalized relative path`);
+      invalidGates.push(
+        `Gate '${gateId}' cwd '${String(gate.cwd)}' is not a normalized relative path`,
+      );
     }
 
     if (gate.scope !== "task" && gate.scope !== "run") {
-      invalidGates.push(`Gate '${gateId}' has invalid scope '${String(gate.scope)}' (must be 'task' or 'run')`);
+      invalidGates.push(
+        `Gate '${gateId}' has invalid scope '${String(gate.scope)}' (must be 'task' or 'run')`,
+      );
     }
 
     const reqIds = Array.isArray(gate.requirement_ids) ? gate.requirement_ids : [];
@@ -663,7 +695,9 @@ export function probeGateCoverageViolations(state: unknown): GateCoverageProbeRe
           }
           if (!tasksWithoutGateCoverage.includes(taskId)) {
             tasksWithoutGateCoverage.push(taskId);
-            details.push(`Task '${taskId}' requirement '${req}' is not covered by any task gate or mandatory run gate.`);
+            details.push(
+              `Task '${taskId}' requirement '${req}' is not covered by any task gate or mandatory run gate.`,
+            );
           }
         }
       }
@@ -715,7 +749,9 @@ export function probeScopeCollisionHazards(state: unknown): ScopeCollisionProbeR
       id: taskId,
       status: typeof rawTask.status === "string" ? rawTask.status : "unknown",
       writeScope: Array.isArray(rawTask.write_scope) ? (rawTask.write_scope as string[]) : [],
-      resourceScope: Array.isArray(rawTask.resource_scope) ? (rawTask.resource_scope as string[]) : [],
+      resourceScope: Array.isArray(rawTask.resource_scope)
+        ? (rawTask.resource_scope as string[])
+        : [],
     });
   }
 
@@ -731,7 +767,8 @@ export function probeScopeCollisionHazards(state: unknown): ScopeCollisionProbeR
       const resConflict = resourceConflict(left.resourceScope, right.resourceScope);
 
       if (writeConflict || resConflict) {
-        const conflictType = writeConflict && resConflict ? "both" : writeConflict ? "write_scope" : "resource_scope";
+        const conflictType =
+          writeConflict && resConflict ? "both" : writeConflict ? "write_scope" : "resource_scope";
         const hazard: ScopeCollisionHazard = {
           leftTaskId: left.id,
           rightTaskId: right.id,
@@ -912,47 +949,56 @@ export function recoverStaleTasks(
   const recoveredTasks: TaskRecoveryRecord[] = [];
   const details: string[] = [];
 
-  port.transact(actor, "scheduler-stale-tasks-recovery", { timestamp: new Date(nowMs).toISOString() }, (draft) => {
-    const currentState = draft;
-    const staleProbe = probeStaleLeases(
-      currentState,
-      options.timeoutMs !== undefined ? { now: nowMs, timeoutMs: options.timeoutMs } : { now: nowMs },
-    );
+  port.transact(
+    actor,
+    "scheduler-stale-tasks-recovery",
+    { timestamp: new Date(nowMs).toISOString() },
+    (draft) => {
+      const currentState = draft;
+      const staleProbe = probeStaleLeases(
+        currentState,
+        options.timeoutMs !== undefined
+          ? { now: nowMs, timeoutMs: options.timeoutMs }
+          : { now: nowMs },
+      );
 
-    for (const staleInfo of staleProbe.staleLeases) {
-      const task = draft.tasks[staleInfo.taskId];
-      if (!task) continue;
+      for (const staleInfo of staleProbe.staleLeases) {
+        const task = draft.tasks[staleInfo.taskId];
+        if (!task) continue;
 
-      if (!Array.isArray(task.history)) {
-        task.history = [];
+        if (!Array.isArray(task.history)) {
+          task.history = [];
+        }
+        if (!Array.isArray(task.attempts)) {
+          task.attempts = [];
+        }
+
+        const fromStatus = task.status;
+        const currentRound = typeof task.repair_round === "number" ? task.repair_round : 0;
+        const targetStatus: TaskStatus = currentRound < maxRepairRounds ? "retry_ready" : "stale";
+        const reason = `Automated recovery: lease expired for agent '${staleInfo.agentId}' (${staleInfo.reason})`;
+
+        transition(task, targetStatus, actor, new Date(nowMs), reason);
+        task.replacement_reason = "stale";
+        task.replacement_evidence = reason;
+        delete task.lease;
+
+        const record: TaskRecoveryRecord = {
+          taskId: staleInfo.taskId,
+          fromStatus,
+          toStatus: targetStatus,
+          agentId: staleInfo.agentId,
+          reason,
+          attempt: task.attempts.length,
+          recoveredAt: new Date(nowMs).toISOString(),
+        };
+        recoveredTasks.push(record);
+        details.push(
+          `Task '${staleInfo.taskId}' transitioned from ${fromStatus} -> ${targetStatus}.`,
+        );
       }
-      if (!Array.isArray(task.attempts)) {
-        task.attempts = [];
-      }
-
-      const fromStatus = task.status;
-      const currentRound = typeof task.repair_round === "number" ? task.repair_round : 0;
-      const targetStatus: TaskStatus = currentRound < maxRepairRounds ? "retry_ready" : "stale";
-      const reason = `Automated recovery: lease expired for agent '${staleInfo.agentId}' (${staleInfo.reason})`;
-
-      transition(task, targetStatus, actor, new Date(nowMs), reason);
-      task.replacement_reason = "stale";
-      task.replacement_evidence = reason;
-      delete task.lease;
-
-      const record: TaskRecoveryRecord = {
-        taskId: staleInfo.taskId,
-        fromStatus,
-        toStatus: targetStatus,
-        agentId: staleInfo.agentId,
-        reason,
-        attempt: task.attempts.length,
-        recoveredAt: new Date(nowMs).toISOString(),
-      };
-      recoveredTasks.push(record);
-      details.push(`Task '${staleInfo.taskId}' transitioned from ${fromStatus} -> ${targetStatus}.`);
-    }
-  });
+    },
+  );
 
   return {
     recoveredCount: recoveredTasks.length,
@@ -992,13 +1038,18 @@ export function probeWorkSpanParallelizationHealth(state: unknown): WorkSpanHeal
 
   const tasks = Object.values(state.tasks).filter(isRecord);
   const totalTasks = tasks.length;
-  const completedTasks = tasks.filter((t) => t.status === "done" || t.status === "validated").length;
-  const activeTasks = tasks.filter((t) => t.status === "running" || t.status === "leased" || t.status === "validating").length;
+  const completedTasks = tasks.filter(
+    (t) => t.status === "done" || t.status === "validated",
+  ).length;
+  const activeTasks = tasks.filter(
+    (t) => t.status === "running" || t.status === "leased" || t.status === "validating",
+  ).length;
   const readyTasks = tasks.filter((t) => t.status === "ready" || t.status === "retry_ready").length;
 
   let criticalPathLength = 1;
   let dynamicTopologyWaveCount = 1;
-  let workParallelismRatio = totalTasks > 0 ? (totalTasks - completedTasks) / Math.max(1, criticalPathLength) : 1;
+  let workParallelismRatio =
+    totalTasks > 0 ? (totalTasks - completedTasks) / Math.max(1, criticalPathLength) : 1;
   let spanUtilizationRatio = 1;
 
   if (isRecord(state.graph)) {
@@ -1013,7 +1064,9 @@ export function probeWorkSpanParallelizationHealth(state: unknown): WorkSpanHeal
               priority: typeof t.priority === "number" ? t.priority : 0,
               created_order: typeof t.created_order === "number" ? t.created_order : 0,
               effort: typeof t.effort === "number" ? t.effort : 1,
-              requirement_ids: Array.isArray(t.requirement_ids) ? (t.requirement_ids as string[]) : [],
+              requirement_ids: Array.isArray(t.requirement_ids)
+                ? (t.requirement_ids as string[])
+                : [],
               resource_scope: Array.isArray(t.resource_scope) ? (t.resource_scope as string[]) : [],
               write_scope: Array.isArray(t.write_scope) ? (t.write_scope as string[]) : [],
             });
@@ -1023,10 +1076,13 @@ export function probeWorkSpanParallelizationHealth(state: unknown): WorkSpanHeal
       const metrics = computeWorkSpanMetrics(depMap, scheduledTasks);
       criticalPathLength = Math.max(1, metrics.criticalPath.length);
       workParallelismRatio = metrics.parallelismFactor;
-      spanUtilizationRatio = metrics.span > 0 ? Number((metrics.work / metrics.span).toFixed(2)) : 1;
+      spanUtilizationRatio =
+        metrics.span > 0 ? Number((metrics.work / metrics.span).toFixed(2)) : 1;
       dynamicTopologyWaveCount = metrics.minWaves;
       if (metrics.parallelismFactor < 1.0 && totalTasks > 3 && completedTasks < totalTasks) {
-        activeBottlenecks.push(`Critical path length (${metrics.criticalPath.length}) restricts parallelism ratio to ${metrics.parallelismFactor.toFixed(2)}.`);
+        activeBottlenecks.push(
+          `Critical path length (${metrics.criticalPath.length}) restricts parallelism ratio to ${metrics.parallelismFactor.toFixed(2)}.`,
+        );
       }
     } catch {
       // Fallback
@@ -1043,7 +1099,9 @@ export function probeWorkSpanParallelizationHealth(state: unknown): WorkSpanHeal
 
   const passed = activeBottlenecks.length === 0;
   if (passed) {
-    details.push(`Work/Span parallelization is healthy: parallelism ratio ${workParallelismRatio.toFixed(2)}, span utilization ${(spanUtilizationRatio * 100).toFixed(0)}%.`);
+    details.push(
+      `Work/Span parallelization is healthy: parallelism ratio ${workParallelismRatio.toFixed(2)}, span utilization ${(spanUtilizationRatio * 100).toFixed(0)}%.`,
+    );
   } else {
     details.push(...activeBottlenecks);
   }
@@ -1115,7 +1173,9 @@ export function probePlanEnhancementNeeds(state: unknown): PlanEnhancementAudit 
         }
       }
       if (rawTask.status === "changes_requested" || rawTask.status === "stale") {
-        suggestedEnhancements.push(`Task '${String(rawTask.id)}' in '${String(rawTask.status)}' status requires repair or replan enhancement.`);
+        suggestedEnhancements.push(
+          `Task '${String(rawTask.id)}' in '${String(rawTask.status)}' status requires repair or replan enhancement.`,
+        );
       }
     }
   }
@@ -1133,7 +1193,9 @@ export function probePlanEnhancementNeeds(state: unknown): PlanEnhancementAudit 
       (c) => isRecord(c) && c.status === "proposed",
     ).length;
     if (pendingCandidateCount > 0) {
-      suggestedEnhancements.push(`${pendingCandidateCount} proposed mind candidate(s) pending admission.`);
+      suggestedEnhancements.push(
+        `${pendingCandidateCount} proposed mind candidate(s) pending admission.`,
+      );
     }
   }
 
@@ -1141,7 +1203,9 @@ export function probePlanEnhancementNeeds(state: unknown): PlanEnhancementAudit 
   const passed = !needsReplanning;
 
   if (passed) {
-    details.push(`Plan is coherent and complete (${totalRequirements} requirements fully covered, 0 pending enhancement blockers).`);
+    details.push(
+      `Plan is coherent and complete (${totalRequirements} requirements fully covered, 0 pending enhancement blockers).`,
+    );
   } else {
     details.push(...suggestedEnhancements);
   }
@@ -1195,7 +1259,9 @@ export function probeAgentRegistryAccuracy(state: unknown): AgentRegistryAccurac
   }
 
   const totalRegistered = registeredGrants.size;
-  const totalActiveGrants = Array.from(registeredGrants.values()).filter((g) => g.status === "active").length;
+  const totalActiveGrants = Array.from(registeredGrants.values()).filter(
+    (g) => g.status === "active",
+  ).length;
 
   let totalActiveLeases = 0;
 
@@ -1205,34 +1271,47 @@ export function probeAgentRegistryAccuracy(state: unknown): AgentRegistryAccurac
       const status = String(rawTask.status);
       if (["leased", "running", "validating"].includes(status) && isRecord(rawTask.lease)) {
         totalActiveLeases++;
-        const leaseAgentId = typeof rawTask.lease.agent_id === "string" ? rawTask.lease.agent_id : "unknown";
+        const leaseAgentId =
+          typeof rawTask.lease.agent_id === "string" ? rawTask.lease.agent_id : "unknown";
         const leaseRole = typeof rawTask.lease.role === "string" ? rawTask.lease.role : "unknown";
 
         const registered = registeredGrants.get(leaseAgentId);
         if (!registered) {
           unmappedLeaseAgents.push(leaseAgentId);
           ghostAgentIds.push(leaseAgentId);
-          details.push(`Task '${taskId}' lease held by unregistered ghost agent '${leaseAgentId}'.`);
+          details.push(
+            `Task '${taskId}' lease held by unregistered ghost agent '${leaseAgentId}'.`,
+          );
         } else {
           if (registered.status !== "active") {
             unmappedLeaseAgents.push(leaseAgentId);
-            details.push(`Task '${taskId}' lease held by released/inactive agent '${leaseAgentId}'.`);
+            details.push(
+              `Task '${taskId}' lease held by released/inactive agent '${leaseAgentId}'.`,
+            );
           }
           if (registered.role !== leaseRole) {
             mismatchedRoleAgents.push(leaseAgentId);
-            details.push(`Task '${taskId}' lease role '${leaseRole}' mismatches registered grant role '${registered.role}' for agent '${leaseAgentId}'.`);
+            details.push(
+              `Task '${taskId}' lease role '${leaseRole}' mismatches registered grant role '${registered.role}' for agent '${leaseAgentId}'.`,
+            );
           }
         }
       }
     }
   }
 
-  const totalViolations = unmappedLeaseAgents.length + mismatchedRoleAgents.length + ghostAgentIds.length;
+  const totalViolations =
+    unmappedLeaseAgents.length + mismatchedRoleAgents.length + ghostAgentIds.length;
   const passed = totalViolations === 0;
-  const accuracyPercentage = totalActiveLeases > 0 ? Math.max(0, Math.round(((totalActiveLeases - totalViolations) / totalActiveLeases) * 100)) : 100;
+  const accuracyPercentage =
+    totalActiveLeases > 0
+      ? Math.max(0, Math.round(((totalActiveLeases - totalViolations) / totalActiveLeases) * 100))
+      : 100;
 
   if (passed) {
-    details.push(`Agent registry has 100% accuracy: ${totalActiveGrants} active grants, ${totalActiveLeases} active leases verified with zero role mismatches.`);
+    details.push(
+      `Agent registry has 100% accuracy: ${totalActiveGrants} active grants, ${totalActiveLeases} active leases verified with zero role mismatches.`,
+    );
   }
 
   return {
@@ -1252,7 +1331,10 @@ export function probeAgentRegistryAccuracy(state: unknown): AgentRegistryAccurac
  * Probe (d): Strict Role Boundary Adherence
  * Audits role confinement and tier compliance with zero tolerance.
  */
-export function probeRoleBoundaryAdherence(state: unknown, runRoot?: string): RoleBoundaryAdherenceAudit {
+export function probeRoleBoundaryAdherence(
+  state: unknown,
+  runRoot?: string,
+): RoleBoundaryAdherenceAudit {
   const details: string[] = [];
   const hierarchicalViolations: string[] = [];
   const tierConfinementViolations: string[] = [];
@@ -1281,7 +1363,10 @@ export function probeRoleBoundaryAdherence(state: unknown, runRoot?: string): Ro
           const vMsg = `Task '${taskId}' in validating status held by non-validator role '${leaseRole}'.`;
           hierarchicalViolations.push(vMsg);
           details.push(vMsg);
-        } else if ((taskStatus === "leased" || taskStatus === "running") && leaseRole !== "implementer") {
+        } else if (
+          (taskStatus === "leased" || taskStatus === "running") &&
+          leaseRole !== "implementer"
+        ) {
           const vMsg = `Task '${taskId}' in ${taskStatus} status held by non-implementer role '${leaseRole}'.`;
           hierarchicalViolations.push(vMsg);
           details.push(vMsg);
@@ -1292,7 +1377,9 @@ export function probeRoleBoundaryAdherence(state: unknown, runRoot?: string): Ro
 
   const passed = hierarchicalViolations.length === 0 && tierConfinementViolations.length === 0;
   if (passed) {
-    details.push("All active agents and tasks strictly adhere to hierarchical tier confinement and role boundaries.");
+    details.push(
+      "All active agents and tasks strictly adhere to hierarchical tier confinement and role boundaries.",
+    );
   }
 
   return {
@@ -1320,7 +1407,9 @@ export function probeDoctorErrorResolution(
     for (const issue of issues) {
       unresolvedErrors.push(issue);
       details.push(issue);
-      repairRecommendations.push(`Run 'bun harness.ts doctor:repair --run ${runRoot ?? "."}' or resolve: ${issue}`);
+      repairRecommendations.push(
+        `Run 'bun harness.ts doctor:repair --run ${runRoot ?? "."}' or resolve: ${issue}`,
+      );
     }
   } else if (runRoot !== undefined) {
     try {
@@ -1535,9 +1624,10 @@ export async function assertDoctorGatePassed(
   const issues = Array.isArray(docResult.issues) ? (docResult.issues as string[]) : [];
 
   if (!healthy || behavioralFindings.length > 0 || issues.length > 0) {
-    const errorPrefix = behavioralFindings.length > 0
-      ? "DOCTOR GATE VIOLATION (Zero-Tolerance Boundary Auditing): Role confinement or behavioral policy breached"
-      : "DOCTOR GATE REJECTION: System doctor discovered unresolved capsule failures";
+    const errorPrefix =
+      behavioralFindings.length > 0
+        ? "DOCTOR GATE VIOLATION (Zero-Tolerance Boundary Auditing): Role confinement or behavioral policy breached"
+        : "DOCTOR GATE REJECTION: System doctor discovered unresolved capsule failures";
 
     const fullMessage = `${errorPrefix}:\n${issues.map((i) => `  - ${i}`).join("\n")}`;
 
@@ -1587,7 +1677,10 @@ export class SchedulerEngine {
 
   public auditSupervisory5Point(
     state: unknown,
-    options: { runRoot?: string | undefined; doctorResult?: Record<string, unknown> | undefined } = {},
+    options: {
+      runRoot?: string | undefined;
+      doctorResult?: Record<string, unknown> | undefined;
+    } = {},
   ): Supervisory5PointHealthReport {
     return auditSupervisory5PointHealth(state, {
       runRoot: options.runRoot,
@@ -1598,7 +1691,10 @@ export class SchedulerEngine {
 
   public dispatchTopLeaderProbe(
     state: unknown,
-    options: { runRoot?: string | undefined; doctorResult?: Record<string, unknown> | undefined } = {},
+    options: {
+      runRoot?: string | undefined;
+      doctorResult?: Record<string, unknown> | undefined;
+    } = {},
   ): SupervisoryProbeDispatchResult {
     return dispatchSupervisoryHealthProbe(state, {
       runRoot: options.runRoot,
@@ -1623,10 +1719,7 @@ export class SchedulerEngine {
 
   public recoverStale(port: TransactionPort): TaskRecoveryResult {
     // 1. Cleanup stale store watchdogs
-    cleanupStaleWatchdogs(
-      { now: this.clock.now(), maxAgeMs: this.timeoutMs },
-      this.watchdogTarget,
-    );
+    cleanupStaleWatchdogs({ now: this.clock.now(), maxAgeMs: this.timeoutMs }, this.watchdogTarget);
 
     // 2. Recover stale tasks in workflow state
     return recoverStaleTasks(port, {
@@ -1637,12 +1730,18 @@ export class SchedulerEngine {
     });
   }
 
-  public evaluateReadyBatch(state: unknown, maxParallel?: number | null | undefined): ReadySetSelection {
+  public evaluateReadyBatch(
+    state: unknown,
+    maxParallel?: number | null | undefined,
+  ): ReadySetSelection {
     const limit = maxParallel !== undefined ? maxParallel : this.maxParallel;
     return readySet(state, limit ?? 10);
   }
 
-  public evaluateWave(state: unknown, maxParallel?: number | null | undefined): ScheduledWaveResult {
+  public evaluateWave(
+    state: unknown,
+    maxParallel?: number | null | undefined,
+  ): ScheduledWaveResult {
     const limit = maxParallel !== undefined ? maxParallel : this.maxParallel;
     const batch = proposeBatch(state, limit);
     const readySelection = readySet(state, limit ?? 10);
@@ -1664,7 +1763,9 @@ export class SchedulerEngine {
     const blockedTasks: BlockedTaskInfo[] = [];
 
     if (isRecord(state) && isRecord(state.tasks)) {
-      const deps = isRecord(state.graph) ? dependencyMap(state.graph) : new Map<string, Set<string>>();
+      const deps = isRecord(state.graph)
+        ? dependencyMap(state.graph)
+        : new Map<string, Set<string>>();
       const doneSet = new Set<string>();
 
       for (const [id, rawTask] of Object.entries(state.tasks)) {

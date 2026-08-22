@@ -59,7 +59,8 @@ function retryBreakdown(events: readonly DispatchLogEvent[] = []): RetryBreakdow
   const safeEvents = events ?? [];
   const byTask = new Map<string, { transient: number; deterministic: number }>();
   for (const event of safeEvents) {
-    if (!event || event.kind !== DISPATCH_OUTCOME_KIND || event.payload?.outcome !== "failed") continue;
+    if (!event || event.kind !== DISPATCH_OUTCOME_KIND || event.payload?.outcome !== "failed")
+      continue;
     const taskId = event.payload?.task_id;
     if (typeof taskId !== "string") continue;
     const entry = byTask.get(taskId) ?? { transient: 0, deterministic: 0 };

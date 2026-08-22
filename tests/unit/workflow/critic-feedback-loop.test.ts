@@ -7,11 +7,17 @@ import {
 } from "../../../orchestrating-long-tasks/scripts/src/workflow/completion/critic-feedback-loop.ts";
 import type { Finding } from "../../../orchestrating-long-tasks/scripts/src/contracts/workflow.ts";
 import type { CompletionReview } from "../../../orchestrating-long-tasks/scripts/src/workflow/completion/types.ts";
-import type { TaskRecord, WorkflowState } from "../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
+import type {
+  TaskRecord,
+  WorkflowState,
+} from "../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
 import { TestPort, repositoryBinding, workflowState } from "./test-port.ts";
 
 describe("Closed-Loop Recursive Critic Feedback Mechanics", () => {
-  function makeReview(findings: Partial<Finding>[] = [], status: "clean" | "findings" = "findings"): CompletionReview {
+  function makeReview(
+    findings: Partial<Finding>[] = [],
+    status: "clean" | "findings" = "findings",
+  ): CompletionReview {
     return {
       critic_id: "critic-agent-1",
       packet_id: "packet-1",

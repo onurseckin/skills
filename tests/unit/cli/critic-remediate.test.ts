@@ -283,7 +283,9 @@ describe("critic:remediate", () => {
     };
     expect(remediation.review_sha256).toBe(reviewSha);
     expect(remediation.resolutions[0]!.finding_id).toBe(findingId);
-    expect(remediation.resolutions[0]!.method).toContain("dedicated repairer executed unit test fix");
+    expect(remediation.resolutions[0]!.method).toContain(
+      "dedicated repairer executed unit test fix",
+    );
     expect(remediation.resolutions[0]!.command_ids).toEqual(["C-FIX"]);
     expect(String(result.markdown)).toContain("Next Step");
     expect(String(result.markdown)).toContain("critic:start");

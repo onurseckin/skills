@@ -246,9 +246,7 @@ export function loadWatchdogStore(target?: string): WatchdogStore {
                 ? entry.heartbeat_cadence_ms
                 : DEFAULT_HEARTBEAT_CADENCE_MS,
             timeout_ms:
-              typeof entry.timeout_ms === "number"
-                ? entry.timeout_ms
-                : DEFAULT_WATCHDOG_TIMEOUT_MS,
+              typeof entry.timeout_ms === "number" ? entry.timeout_ms : DEFAULT_WATCHDOG_TIMEOUT_MS,
             status,
             terminated_at: typeof entry.terminated_at === "string" ? entry.terminated_at : null,
             termination_reason:
@@ -525,7 +523,10 @@ export function listWatchdogs(
   });
 }
 
-export function cleanupStaleWatchdogs(options: CleanupOptions = {}, target?: string): CleanupResult {
+export function cleanupStaleWatchdogs(
+  options: CleanupOptions = {},
+  target?: string,
+): CleanupResult {
   const nowMs = parseTimestamp(options.now);
   const nowIso = new Date(nowMs).toISOString();
   const currentStore = loadWatchdogStore(target);

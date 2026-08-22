@@ -19,9 +19,7 @@ import {
   validateQuiescentScan,
   type QuiescentSourceObservation,
 } from "../../../orchestrating-long-tasks/scripts/src/mind/quiesce.ts";
-import {
-  MIND_DISCOVERY_SOURCES,
-} from "../../../orchestrating-long-tasks/scripts/src/mind/sources.ts";
+import { MIND_DISCOVERY_SOURCES } from "../../../orchestrating-long-tasks/scripts/src/mind/sources.ts";
 import { initRun } from "../../../orchestrating-long-tasks/scripts/src/store/capsule.ts";
 import { verifyIntegrity } from "../../../orchestrating-long-tasks/scripts/src/store/integrity.ts";
 import { loadRun } from "../../../orchestrating-long-tasks/scripts/src/store/load.ts";

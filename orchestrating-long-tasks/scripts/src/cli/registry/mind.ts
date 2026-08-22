@@ -1,4 +1,8 @@
-import { feedbackDrainCommand, feedbackIngestCommand, feedbackListCommand } from "../commands/feedback-ops.ts";
+import {
+  feedbackDrainCommand,
+  feedbackIngestCommand,
+  feedbackListCommand,
+} from "../commands/feedback-ops.ts";
 import { memoryQueryCommand } from "../commands/memory-ops.ts";
 import { mindAdmitCommand, mindDeclineCommand } from "../commands/mind-admit.ts";
 import { mindAuditReportCommand, mindAuditStartCommand } from "../commands/mind-audit.ts";
@@ -493,11 +497,20 @@ export const MIND_COMMANDS: readonly CommandSpec[] = [
     aliases: ["feedback:query", "feedback:status"],
     domain: "mind",
     summary: "List, search, and inspect items in .capsules/FEEDBACK_QUEUE.jsonl.",
-    description: "Queries the persistent file-backed feedback queue, returning priority-ranked items and status statistics.",
+    description:
+      "Queries the persistent file-backed feedback queue, returning priority-ranked items and status statistics.",
     flags: [
       optionalFlag("queue-file", "string", "Custom path to FEEDBACK_QUEUE.jsonl."),
-      optionalFlag("status", "string", "Filter by status: PENDING, ADMITTED, PROCESSED, COMPLETED, DECLINED."),
-      optionalFlag("category", "string", "Filter by category: DOCUMENTATION, AGENT_CONTRACTS, CLI_TOOLING, etc."),
+      optionalFlag(
+        "status",
+        "string",
+        "Filter by status: PENDING, ADMITTED, PROCESSED, COMPLETED, DECLINED.",
+      ),
+      optionalFlag(
+        "category",
+        "string",
+        "Filter by category: DOCUMENTATION, AGENT_CONTRACTS, CLI_TOOLING, etc.",
+      ),
       optionalFlag("limit", "int", "Maximum number of items to return (default: 20)."),
     ],
     readsStdin: false,
@@ -514,13 +527,22 @@ export const MIND_COMMANDS: readonly CommandSpec[] = [
     aliases: ["feedback:add"],
     domain: "mind",
     summary: "Ingest a new user feedback or architectural directive into the queue.",
-    description: "Appends a structured feedback item to .capsules/FEEDBACK_QUEUE.jsonl for autonomous Mind intake.",
+    description:
+      "Appends a structured feedback item to .capsules/FEEDBACK_QUEUE.jsonl for autonomous Mind intake.",
     flags: [
       requiredFlag("id", "string", "Unique feedback item identifier."),
       requiredFlag("title", "string", "Human-readable summary title."),
       requiredFlag("content", "string", "Detailed feedback or directive content."),
-      optionalFlag("priority", "string", "Priority: CRITICAL_USER_FEEDBACK, HIGH_ARCHITECTURAL_FEATURE, USER_DIRECTIVE, NORMAL, LOW."),
-      optionalFlag("category", "string", "Category: DOCUMENTATION, AGENT_CONTRACTS, CLI_TOOLING, WATCHDOG, SCALING, ARCHITECTURE, CORE_ENGINE."),
+      optionalFlag(
+        "priority",
+        "string",
+        "Priority: CRITICAL_USER_FEEDBACK, HIGH_ARCHITECTURAL_FEATURE, USER_DIRECTIVE, NORMAL, LOW.",
+      ),
+      optionalFlag(
+        "category",
+        "string",
+        "Category: DOCUMENTATION, AGENT_CONTRACTS, CLI_TOOLING, WATCHDOG, SCALING, ARCHITECTURE, CORE_ENGINE.",
+      ),
       optionalFlag("queue-file", "string", "Custom path to FEEDBACK_QUEUE.jsonl."),
     ],
     readsStdin: false,
@@ -538,7 +560,11 @@ export const MIND_COMMANDS: readonly CommandSpec[] = [
     summary: "Drain and mark pending feedback items as processed or admitted.",
     description: "Selects pending items from FEEDBACK_QUEUE.jsonl and transitions their status.",
     flags: [
-      optionalFlag("mark-as", "string", "Status to transition to: PROCESSED, ADMITTED, DECLINED, COMPLETED (default: PROCESSED)."),
+      optionalFlag(
+        "mark-as",
+        "string",
+        "Status to transition to: PROCESSED, ADMITTED, DECLINED, COMPLETED (default: PROCESSED).",
+      ),
       optionalFlag("limit", "int", "Maximum items to drain."),
       optionalFlag("category", "string", "Filter category to drain."),
       optionalFlag("queue-file", "string", "Custom path to FEEDBACK_QUEUE.jsonl."),
@@ -546,9 +572,7 @@ export const MIND_COMMANDS: readonly CommandSpec[] = [
     readsStdin: false,
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
-    examples: [
-      "bun harness.ts feedback:drain --mark-as ADMITTED --limit 5",
-    ],
+    examples: ["bun harness.ts feedback:drain --mark-as ADMITTED --limit 5"],
     handler: feedbackDrainCommand,
   },
   {
@@ -556,7 +580,8 @@ export const MIND_COMMANDS: readonly CommandSpec[] = [
     aliases: ["task:synthesize"],
     domain: "mind",
     summary: "Autonomously synthesize self-evolution tasks or plan from feedback queue.",
-    description: "Smart task planner: prioritizes feedback intake, or synthesizes autonomic self-evolution tasks on empty queue.",
+    description:
+      "Smart task planner: prioritizes feedback intake, or synthesizes autonomic self-evolution tasks on empty queue.",
     flags: [
       optionalFlag("capsules-dir", "string", "Capsules root directory."),
       optionalFlag("max-tasks", "int", "Maximum tasks to generate (default: 5)."),
@@ -565,10 +590,7 @@ export const MIND_COMMANDS: readonly CommandSpec[] = [
     readsStdin: false,
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
-    examples: [
-      "bun harness.ts smart-task:plan",
-      "bun harness.ts smart-task:plan --max-tasks 3",
-    ],
+    examples: ["bun harness.ts smart-task:plan", "bun harness.ts smart-task:plan --max-tasks 3"],
     handler: smartTaskSynthesizeCommand,
   },
   {
@@ -576,7 +598,8 @@ export const MIND_COMMANDS: readonly CommandSpec[] = [
     aliases: ["smart-task:expand"],
     domain: "mind",
     summary: "Ingest and enhance an external prompt into a gate-verifiable task plan.",
-    description: "Expands an external prompt into a structured task with write scope and mandatory gate.",
+    description:
+      "Expands an external prompt into a structured task with write scope and mandatory gate.",
     flags: [
       requiredFlag("prompt", "string", "External prompt or task description."),
       optionalFlag("id", "string", "Custom task ID."),

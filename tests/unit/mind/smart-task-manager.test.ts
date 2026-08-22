@@ -3,8 +3,12 @@ import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node
 import { join } from "node:path";
 import {
   compileSmartTasksToWavePlan,
+  detectScopeCollisions,
   expandExternalPromptToPlan,
   expandExternalPromptToWavePlan,
+  partitionIntoDisjointWaves,
+  planEnhance,
+  planEnhanceToWavePlan,
   runAutonomousDualIntakeCycle,
   synthesizeAutonomousTasks,
   type SmartTaskPlan,
@@ -125,10 +129,13 @@ describe("Smart Task Manager & Autonomous Synthesizer", () => {
   });
 
   it("expands an external prompt into a structured task plan", () => {
-    const plan = expandExternalPromptToPlan("Implement real-time metrics telemetry\nDetailed prompt description", {
-      baseId: "task-metrics-1",
-      charterGoals: ["G1", "G2"],
-    });
+    const plan = expandExternalPromptToPlan(
+      "Implement real-time metrics telemetry\nDetailed prompt description",
+      {
+        baseId: "task-metrics-1",
+        charterGoals: ["G1", "G2"],
+      },
+    );
 
     expect(plan.id).toBe("task-metrics-1");
     expect(plan.label).toBe("Implement real-time metrics telemetry");
@@ -247,6 +254,138 @@ describe("Smart Task Manager & Autonomous Synthesizer", () => {
     expect(cycle3.mode).toBe("Queue_Active");
     expect(cycle3.enqueued_tasks.length).toBe(0);
     teardown();
+  });
+
+  it("planEnhance creates structured plan from FeedbackItem with correct write scope and tier", () => {
+    const plan = planEnhance({
+      id: "fb-contract-1",
+      title: "Update Agent Role Contracts",
+      content: "Ensure coordinator and implementer contracts align",
+      priority: "HIGH_ARCHITECTURAL_FEATURE",
+      category: "AGENT_CONTRACTS",
+      status: "PENDING",
+    });
+
+    expect(plan.id).toBe("task-fb-contract-1");
+    expect(plan.label).toBe("Update Agent Role Contracts");
+    expect(plan.priority).toBe("HIGH");
+    expect(plan.write_scope).toContain("orchestrating-long-tasks/agents/");
+    expect(plan.source_type).toBe("plan_enhancement");
+    expect(plan.assigned_tier).toBe("Tier_2_Coordinator");
+  });
+
+  it("detectScopeCollisions flags overlapping write scopes accurately", () => {
+    const tasks: SmartTaskPlan[] = [
+      {
+        id: "task-1",
+        label: "Task 1",
+        write_scope: ["src/shared.ts", "src/module-a.ts"],
+        gate: "bun test",
+        charter_goals: ["G1"],
+        acceptance_criteria: [],
+        dependencies: [],
+        source_type: "direct_prompt",
+        rationale: "r1",
+      },
+      {
+        id: "task-2",
+        label: "Task 2",
+        write_scope: ["src/shared.ts", "src/module-b.ts"],
+        gate: "bun test",
+        charter_goals: ["G1"],
+        acceptance_criteria: [],
+        dependencies: [],
+        source_type: "direct_prompt",
+        rationale: "r2",
+      },
+      {
+        id: "task-3",
+        label: "Task 3",
+        write_scope: ["src/unique.ts"],
+        gate: "bun test",
+        charter_goals: ["G1"],
+        acceptance_criteria: [],
+        dependencies: [],
+        source_type: "direct_prompt",
+        rationale: "r3",
+      },
+    ];
+
+    const collisions = detectScopeCollisions(tasks);
+    expect(collisions.length).toBe(1);
+    expect(collisions[0]!.scope).toBe("src/shared.ts");
+    expect(collisions[0]!.task_ids).toEqual(["task-1", "task-2"]);
+  });
+
+  it("partitionIntoDisjointWaves splits colliding tasks into distinct consecutive waves", () => {
+    const tasks: SmartTaskPlan[] = [
+      {
+        id: "t1",
+        label: "Task 1",
+        write_scope: ["src/shared.ts"],
+        gate: "bun test",
+        charter_goals: ["G1"],
+        acceptance_criteria: [],
+        dependencies: [],
+        source_type: "direct_prompt",
+        rationale: "r1",
+      },
+      {
+        id: "t2",
+        label: "Task 2",
+        write_scope: ["src/shared.ts"], // Collides with t1
+        gate: "bun test",
+        charter_goals: ["G1"],
+        acceptance_criteria: [],
+        dependencies: [],
+        source_type: "direct_prompt",
+        rationale: "r2",
+      },
+      {
+        id: "t3",
+        label: "Task 3",
+        write_scope: ["src/independent.ts"],
+        gate: "bun test",
+        charter_goals: ["G1"],
+        acceptance_criteria: [],
+        dependencies: [],
+        source_type: "direct_prompt",
+        rationale: "r3",
+      },
+    ];
+
+    const waveResult = partitionIntoDisjointWaves(tasks);
+    expect(waveResult.total_tasks).toBe(3);
+    // t1 and t3 can be in wave 1, but colliding t2 must be pushed to wave 2
+    expect(waveResult.total_waves).toBe(2);
+    expect(waveResult.waves[0]!.task_ids).toEqual(["t1", "t3"]);
+    expect(waveResult.waves[1]!.task_ids).toEqual(["t2"]);
+  });
+
+  it("planEnhanceToWavePlan expands multiple feedbacks into disjoint waves", () => {
+    const feedbacks = [
+      {
+        id: "fb-1",
+        title: "CLI Tooling Enhancement",
+        content: "Add options",
+        priority: "NORMAL" as const,
+        category: "CLI_TOOLING" as const,
+        status: "PENDING" as const,
+      },
+      {
+        id: "fb-2",
+        title: "CLI Tooling Part 2",
+        content: "Add formatting",
+        priority: "NORMAL" as const,
+        category: "CLI_TOOLING" as const,
+        status: "PENDING" as const,
+      },
+    ];
+
+    const result = planEnhanceToWavePlan(feedbacks, { baseIdPrefix: "fb-test" });
+    expect(result.total_tasks).toBe(2);
+    expect(result.waves.length).toBeGreaterThanOrEqual(1);
+    expect(result.waves[0]!.tasks[0]!.id).toContain("fb-test-1");
   });
 });
 
@@ -389,8 +528,10 @@ describe("Static Invariant Verification: Zero TypeScript any & Zero Suppressions
       "/Users/onurseckinsenoglu/repos/skills/tests/unit/mind/smart-task-manager.test.ts",
     ];
 
-    const anyPattern = /:\s*any\b|as\s+any\b|<any>/;
-    const suppressionPattern = /@ts-ignore|@ts-expect-error|@ts-nocheck|eslint-disable|oxlint-disable/;
+    const anyPattern = new RegExp(":\\s*any\\b|as\\s+any\\b|<any>");
+    const suppressionPattern = new RegExp(
+      ["@ts" + "-ignore", "@ts" + "-expect-error", "@ts" + "-nocheck", "eslint" + "-disable", "oxlint" + "-disable"].join("|"),
+    );
 
     for (const filePath of filesToAudit) {
       const content = readFileSync(filePath, "utf-8");

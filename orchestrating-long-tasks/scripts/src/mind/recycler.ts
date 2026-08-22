@@ -4,11 +4,7 @@ import { HarnessError } from "../errors/harness-error.ts";
 import { loadRun } from "../store/load.ts";
 import { transact } from "../store/transaction.ts";
 import { DEFAULT_MIND_BUDGET } from "./charter.ts";
-import {
-  drainPendingFeedbacks,
-  readFeedbackQueue,
-  type FeedbackItem,
-} from "./feedback-queue.ts";
+import { drainPendingFeedbacks, readFeedbackQueue, type FeedbackItem } from "./feedback-queue.ts";
 import type { CandidateRecord } from "./gates.ts";
 import { getAllProposals, type MindProposal } from "./proposal.ts";
 import { rotateMindGeneration, type RotateMindResult } from "./rotate.ts";
@@ -493,9 +489,7 @@ export function drainAndAdmitFeedbackCandidates(
 ): DrainAndAdmitResult {
   const { runRoot, actor } = options;
   const nowIso =
-    options.now !== undefined
-      ? new Date(options.now).toISOString()
-      : new Date().toISOString();
+    options.now !== undefined ? new Date(options.now).toISOString() : new Date().toISOString();
   const drained = drainPendingFeedbacks(
     {
       markAs: "ADMITTED",
@@ -831,9 +825,7 @@ export function inspectRecycleHealth(
 ): MindRecycleHealth {
   const assessment = assessRecyclingState(state, runRoot, options);
   const nowIso =
-    options?.now !== undefined
-      ? new Date(options.now).toISOString()
-      : new Date().toISOString();
+    options?.now !== undefined ? new Date(options.now).toISOString() : new Date().toISOString();
 
   return {
     healthy: assessment.canRecycle && assessment.infiniteCadence,

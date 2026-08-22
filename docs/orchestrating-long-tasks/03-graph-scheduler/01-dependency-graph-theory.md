@@ -156,4 +156,104 @@ independent adversary that reviews the plan once it's compiled.
 
 ---
 
+## 📐 Sugiyama Hierarchical Layout & Tarjan Cycle Diagnostics
+
+To visualize complex task dependencies without spaghetti crossings or ambiguous ordering, the harness implements a full **Sugiyama Hierarchical DAG Layout Engine** coupled with **Tarjan Strongly Connected Component (SCC) Cycle Diagnostics** (`dag:render`, aliased as `graph:sugiyama`).
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    SUGIYAMA 4-PHASE HIERARCHICAL LAYOUT                     │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  Phase 1: Layered Ranking                                                   │
+│    Assigns discrete ranks L_0, L_1, ..., L_k such that                      │
+│    rank(target) >= rank(source) + 1 for every directed edge.                │
+│                                  │                                          │
+│                                  ▼                                          │
+│  Phase 2: Dummy Node Normalization                                          │
+│    Splits multi-layer edges (span > 1) into chains of dummy nodes so        │
+│    every edge connects strictly adjacent layers.                            │
+│                                  │                                          │
+│                                  ▼                                          │
+│  Phase 3: Barycenter Crossing Minimization                                  │
+│    Iteratively sweeps up and down adjacent layers, computing the average    │
+│    barycenter position of adjacent neighbors:                               │
+│      barycenter(u) = (1 / deg(u)) * sum_{v in N(u)} pos(v)                  │
+│    Sorts nodes by barycenter to minimize visual edge crossings.              │
+│                                  │                                          │
+│                                  ▼                                          │
+│  Phase 4: Orthogonal Coordinate Assignment & Visual Box Rendering          │
+│    Assigns X/Y grid positions and renders rounded Unicode or ASCII boxes.   │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### 1. Tarjan Cycle Detection Algorithm (`detectCyclesTarjan`)
+
+Before rendering or scheduling, the engine audits the graph for deadlocks using Tarjan's linear-time ($O(V + E)$) strongly connected components algorithm:
+
+- Maintains discovery `indices`, `lowlinks`, and an active traversal `stack`.
+- Any strongly connected component with more than one node (or a self-loop) represents a cyclic dependency deadlock.
+- Produces exact cycle paths (e.g. `task-auth -> task-db -> task-auth`), exact cycle edges, and structured remediation hints.
+
+```bash
+bun harness.ts dag:render --run .capsules/<slug> --box-style rounded
+```
+
+```text
+### Sugiyama Hierarchical DAG: capsule-run (Revision 1)
+- **Status**: Compiled Plan (5 tasks across 3 waves)
+- **Cycle Diagnostics**: PASSED ✅ (No dependency cycles detected)
+- **Bypass Diagnostics**: PASSED ✅ (No illegal transitive layer bypasses)
+- **Parallelism Factor**: 1.67x (Work: 5 units, Span: 3 units)
+
+Layer 0 (Wave 1):
+┌──────────────────────────────┐       ┌──────────────────────────────┐
+│ task-schema                  │       │ task-auth-token              │
+│ (○ READY)                    │       │ (○ READY)                    │
+│ Scope: src/db/schema.ts      │       │ Scope: src/auth/token.ts     │
+└──────────────┬───────────────┘       └──────────────┬───────────────┘
+               │                                      │
+               ▼                                      ▼
+Layer 1 (Wave 2):
+┌─────────────────────────────────────────────────────────────────────┐
+│ task-auth-service                                                   │
+│ (⏳ BLOCKED)                                                        │
+│ Scope: src/auth/service.ts                                          │
+│ Deps: task-schema, task-auth-token                                  │
+└──────────────────────────────────┬──────────────────────────────────┘
+                                   │
+                                   ▼
+Layer 2 (Wave 3):
+┌──────────────────────────────┐       ┌──────────────────────────────┐
+│ task-api-routes              │       │ task-cli-wiring              │
+│ (⏳ BLOCKED)                 │       │ (⏳ BLOCKED)                 │
+│ Scope: src/api/routes.ts     │       │ Scope: src/cli/index.ts      │
+└──────────────────────────────┘       └──────────────────────────────┘
+```
+
+### 2. Live Status Badges & Box Styles
+
+The renderer reflects live task states via deterministic badges:
+
+| Status Code                   | Visual Badge     | Meaning                                               |
+| :---------------------------- | :--------------- | :---------------------------------------------------- |
+| `done`, `satisfied`, `passed` | `✓ PASSED`       | Task execution verified and closed.                   |
+| `leased`, `running`, `active` | `🟢 RUNNING`     | Worker holds active lease and heartbeats.             |
+| `validating`                  | `🔄 VALIDATING`  | Independent validator executing probe/gate checks.    |
+| `validated`                   | `🟣 VALIDATED`   | All applicable domain checklists passed.              |
+| `ready`, `retry_ready`        | `○ READY`        | Dependencies satisfied; claimable immediately.        |
+| `proposed`, `blocked`         | `⏳ BLOCKED`     | Prerequisite tasks or gates pending.                  |
+| `changes_requested`           | `🔴 CHANGES_REQ` | Validator pushback; ready for repairer claim.         |
+| `failed`, `rejected`          | `❌ REJECTED`    | Terminal rejection or irrecoverable failure.          |
+| `escalated`                   | `🚨 ESCALATED`   | Repair budget exhausted; awaiting human intervention. |
+
+Supported border styles via `--box-style`:
+
+- **`rounded`** (default): Uses smooth Unicode box characters (`┌─┐│└─┘`).
+- **`sharp`**: Uses squared Unicode corners (`┌─┐│└─┘`).
+- **`ascii`**: Uses pure 7-bit ASCII characters (`+-+|+-+`) for legacy terminals.
+
+---
+
 [⬅ Previous: Authority Decisions](../02-requirements/03-authority-decisions-and-dispositions.md) | [Master Table of Contents](../README.md) | [Next: Topological Conflict-Free Batching ➡](./02-topological-conflict-free-batching.md)

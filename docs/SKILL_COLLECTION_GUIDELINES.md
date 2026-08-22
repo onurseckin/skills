@@ -33,6 +33,7 @@ Every skill in this repository must live in its own top-level directory and adhe
 ## 2. Skill Authoring Standards
 
 ### 2.1 `SKILL.md` Specification
+
 Every skill must declare a root `SKILL.md` file featuring standard YAML frontmatter:
 
 ```markdown

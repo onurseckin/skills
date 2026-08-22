@@ -4,8 +4,15 @@ import { mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { buildPacket } from "../../../orchestrating-long-tasks/scripts/src/packets/render-packet.ts";
-import { createPacketBundle, verifyPacketBundle } from "../../../orchestrating-long-tasks/scripts/src/packets/packet-bundle.ts";
-import { isolateValidatorContext, excludeValidatorContamination, VALIDATOR_EXCLUSIONS } from "../../../orchestrating-long-tasks/scripts/src/packets/validator-context.ts";
+import {
+  createPacketBundle,
+  verifyPacketBundle,
+} from "../../../orchestrating-long-tasks/scripts/src/packets/packet-bundle.ts";
+import {
+  isolateValidatorContext,
+  excludeValidatorContamination,
+  VALIDATOR_EXCLUSIONS,
+} from "../../../orchestrating-long-tasks/scripts/src/packets/validator-context.ts";
 import { evidenceSchema } from "../../../orchestrating-long-tasks/scripts/src/packets/evidence-schema.ts";
 import { claimTask } from "../../../orchestrating-long-tasks/scripts/src/workflow/lease/claim.ts";
 import { at, TestPort, workflowState } from "../workflow/test-port.ts";
@@ -275,8 +282,12 @@ describe("Decoupled Capsule Memory Architecture", () => {
       };
 
       // Attempting to overwrite existing bundle with different content must throw
-      expect(() => createPacketBundle(root, "packet-static-1", built2, false)).toThrow(/already exists/u);
-      expect(() => createPacketBundle(root, "packet-static-1", built2, true)).toThrow(/already exists/u);
+      expect(() => createPacketBundle(root, "packet-static-1", built2, false)).toThrow(
+        /already exists/u,
+      );
+      expect(() => createPacketBundle(root, "packet-static-1", built2, true)).toThrow(
+        /already exists/u,
+      );
     });
   });
 });

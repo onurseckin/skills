@@ -126,4 +126,3 @@ export function isDagJsonReport(value: unknown): value is DagJsonReport {
     rec.metrics !== null
   );
 }
-

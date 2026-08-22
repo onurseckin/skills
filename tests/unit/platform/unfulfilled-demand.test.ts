@@ -163,13 +163,9 @@ describe("Aggressive Unfulfilled-Demand Pushback Engine", () => {
         "task-1": { status: "done", write_scope: ["src/a.ts"] },
       },
       graph: {
-        gates: [
-          { id: "gate-platform", mandatory: true, status: "pending" },
-        ],
+        gates: [{ id: "gate-platform", mandatory: true, status: "pending" }],
       },
-      candidates: [
-        { id: "cand-new-feature", status: "admitted", write_scope: ["src/feature.ts"] },
-      ],
+      candidates: [{ id: "cand-new-feature", status: "admitted", write_scope: ["src/feature.ts"] }],
     };
 
     const report = evaluateUnfulfilledDemands(strictState, {

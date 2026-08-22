@@ -1,13 +1,20 @@
 /**
  * Living Dynamic DAG Expansion Engine & Real-Time Step Tracer Subsystem
- * Replays live telemetry to reconstruct dynamic subgraphs and renders chronological execution timelines.
+ * Replays live capsule telemetry (events.jsonl, rounds/, leases/) to reconstruct dynamic subgraphs.
+ * Renders chronological execution timelines and live round-by-round DAG node states.
  */
-import { existsSync } from "node:fs";
-import { basename } from "node:path";
+import { existsSync, readdirSync } from "node:fs";
+import { join } from "node:path";
 import type { HarnessEvent } from "../contracts/capsule.ts";
-import { HarnessError } from "../errors/harness-error.ts";
-import { readCapsuleEvents, type CapsuleEventsResult } from "./event-stream.ts";
+import { readCapsuleEvents } from "./event-stream.ts";
 import { formatTable } from "../cli/formatters/line-limiter.ts";
+
+export type DynamicTaskOrigin =
+  | "static"
+  | "dynamic_expansion"
+  | "branch"
+  | "replan"
+  | "repair_branch";
 
 export interface DynamicTaskState {
   readonly id: string;
@@ -17,10 +24,38 @@ export interface DynamicTaskState {
   readonly dependencies: readonly string[];
   readonly writeScope: readonly string[];
   readonly assignedAgent?: string | null | undefined;
-  readonly origin: "static" | "dynamic_expansion" | "branch" | "replan";
+  readonly origin: DynamicTaskOrigin;
   readonly createdAtSeq: number;
   readonly updatedAtSeq: number;
   readonly branchId?: string | undefined;
+  readonly round: number;
+  readonly attempt: number;
+  readonly executionState: string;
+  readonly activeTool?: string | null | undefined;
+  readonly activeCommand?: string | null | undefined;
+  readonly activeStepIndex?: number | null | undefined;
+  readonly rejectionReason?: string | null | undefined;
+  readonly validatorId?: string | null | undefined;
+  readonly repairForTaskId?: string | null | undefined;
+  readonly sproutedChildren?: readonly string[] | undefined;
+  readonly findings?: readonly string[] | undefined;
+}
+
+export interface ActiveAgentState {
+  readonly role: string;
+  readonly taskId: string | null;
+  readonly currentTool: string | null;
+  readonly currentCommand: string | null;
+  readonly lastActiveSeq: number;
+  readonly activeStepIndex: number;
+}
+
+export interface SproutedRepairPair {
+  readonly rejectedTaskId: string;
+  readonly round: number;
+  readonly repairTaskId: string;
+  readonly validatorTaskId: string;
+  readonly reason: string | null;
 }
 
 export interface DynamicDagState {
@@ -29,9 +64,12 @@ export interface DynamicDagState {
   readonly totalTasks: number;
   readonly staticTasksCount: number;
   readonly dynamicTasksCount: number;
+  readonly repairBranchesCount: number;
+  readonly currentRound: number;
   readonly tasks: ReadonlyMap<string, DynamicTaskState>;
-  readonly activeAgents: ReadonlyMap<string, { role: string; taskId: string | null; lastActiveSeq: number }>;
+  readonly activeAgents: ReadonlyMap<string, ActiveAgentState>;
   readonly activeBranches: readonly string[];
+  readonly sproutedRepairPairs: readonly SproutedRepairPair[];
 }
 
 export interface StepTraceEntry {
@@ -56,6 +94,8 @@ export interface StepTracerSummary {
   readonly uniqueActors: readonly string[];
   readonly taskCount: number;
   readonly dynamicExpansionCount: number;
+  readonly repairBranchesCount: number;
+  readonly maxRoundReached: number;
   readonly gateRunsCount: number;
   readonly gatePassesCount: number;
   readonly gateFailsCount: number;
@@ -76,22 +116,44 @@ export interface LivingTracerOptions {
 export interface LivingTracerReport {
   readonly markdown: string;
   readonly asciiTimeline: string;
+  readonly asciiDag: string;
   readonly dynamicDag: DynamicDagState;
   readonly steps: readonly StepTraceEntry[];
   readonly summary: StepTracerSummary;
 }
 
-function parsePayloadString(payload: Record<string, unknown> | undefined, keys: readonly string[]): string | null {
+function parsePayloadString(
+  payload: Record<string, unknown> | undefined,
+  keys: readonly string[],
+): string | null {
   if (!payload || typeof payload !== "object") return null;
   for (const k of keys) {
-    if (typeof payload[k] === "string" && (payload[k] as string).trim().length > 0) {
-      return (payload[k] as string).trim();
+    const val = payload[k];
+    if (typeof val === "string" && val.trim().length > 0) {
+      return val.trim();
     }
   }
   return null;
 }
 
-function parsePayloadStringArray(payload: Record<string, unknown> | undefined, key: string): readonly string[] {
+function parsePayloadNumber(
+  payload: Record<string, unknown> | undefined,
+  keys: readonly string[],
+): number | null {
+  if (!payload || typeof payload !== "object") return null;
+  for (const k of keys) {
+    const val = payload[k];
+    if (typeof val === "number" && !Number.isNaN(val)) {
+      return val;
+    }
+  }
+  return null;
+}
+
+function parsePayloadStringArray(
+  payload: Record<string, unknown> | undefined,
+  key: string,
+): readonly string[] {
   if (!payload || typeof payload !== "object") return [];
   const val = payload[key];
   if (Array.isArray(val) && val.every((item) => typeof item === "string")) {
@@ -100,117 +162,532 @@ function parsePayloadStringArray(payload: Record<string, unknown> | undefined, k
   return [];
 }
 
+function formatSeq(seq: number): string {
+  return `#${seq.toString().padStart(3, "0")}`;
+}
+
+function formatDuration(ms: number): string {
+  const totalSec = Math.floor(ms / 1000);
+  const min = Math.floor(totalSec / 60);
+  const sec = totalSec % 60;
+  const milli = Math.floor((ms % 1000) / 10);
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  return `${pad(min)}:${pad(sec)}.${pad(milli)}`;
+}
+
 /**
- * Builds dynamic DAG expansion state by replaying capsule events.
+ * Builds dynamic DAG expansion state by replaying capsule telemetry events.
+ * Status transitions, active tools, lease holders, step indices, and sprouted repair branches are 100% telemetry-grounded.
  */
-export function buildDynamicDagState(events: readonly HarnessEvent[], runId = "capsule-run"): DynamicDagState {
+export function buildDynamicDagState(
+  events: readonly HarnessEvent[],
+  runId = "capsule-run",
+): DynamicDagState {
   const taskMap = new Map<string, DynamicTaskState>();
-  const agentMap = new Map<string, { role: string; taskId: string | null; lastActiveSeq: number }>();
+  const agentMap = new Map<string, ActiveAgentState>();
   const branches = new Set<string>();
+  const sproutedRepairPairs: SproutedRepairPair[] = [];
   let revision = 1;
+  let maxRoundReached = 1;
 
   for (const ev of events) {
-    const payload = typeof ev.payload === "object" && ev.payload !== null ? (ev.payload as Record<string, unknown>) : {};
+    const payload =
+      typeof ev.payload === "object" && ev.payload !== null
+        ? (ev.payload as Record<string, unknown>)
+        : {};
     const actor = ev.actor;
-    const kind = ev.kind.toLowerCase();
+    const kind = ev.kind;
+    const lowerKind = kind.toLowerCase();
     const seq = ev.sequence;
 
     if (typeof ev.revision === "number" && ev.revision > revision) {
       revision = ev.revision;
     }
 
-    const taskId = parsePayloadString(payload, ["task_id", "taskId", "task"]);
-    const role = parsePayloadString(payload, ["role", "assigned_role", "assignedRole"]);
+    const explicitTaskId = parsePayloadString(payload, ["task_id", "taskId", "task", "id"]);
+    const role = parsePayloadString(payload, [
+      "role",
+      "assigned_role",
+      "assignedRole",
+      "repair_assignee",
+    ]);
+    const tool = parsePayloadString(payload, [
+      "tool",
+      "current_tool",
+      "tool_name",
+      "toolName",
+      "tool_call",
+    ]);
+    const cmd = parsePayloadString(payload, ["command", "cmd", "command_line", "commandLine"]);
+    const exitCode = parsePayloadNumber(payload, ["exit_code", "code", "exitCode"]);
+    const roundInPayload = parsePayloadNumber(payload, ["round", "repair_round", "attempt_round"]);
+    const attemptInPayload = parsePayloadNumber(payload, ["attempt", "lease_attempt"]);
+    const branchIdFromPayload = parsePayloadString(payload, ["branch_id", "branchId", "branch"]);
 
+    // If task ID is not explicitly given, try resolving from active agent
+    const taskId = explicitTaskId ?? (actor ? (agentMap.get(actor)?.taskId ?? null) : null);
+
+    // Track active agent
     if (actor && actor !== "system" && actor !== "operator") {
       const existingAgent = agentMap.get(actor);
       agentMap.set(actor, {
-        role: role ?? existingAgent?.role ?? "worker",
+        role:
+          role ?? existingAgent?.role ?? (lowerKind.includes("val") ? "validator" : "implementer"),
         taskId: taskId ?? existingAgent?.taskId ?? null,
+        currentTool: tool ?? existingAgent?.currentTool ?? null,
+        currentCommand: cmd ?? existingAgent?.currentCommand ?? null,
         lastActiveSeq: seq,
+        activeStepIndex: seq,
       });
     }
 
-    if (kind === "branch-opened" || kind === "branch:open") {
-      const bId = parsePayloadString(payload, ["branch_id", "branchId", "branch"]);
-      if (bId) branches.add(bId);
-    } else if (kind === "branch-collected" || kind === "branch:collect" || kind === "branch-abandoned") {
-      const bId = parsePayloadString(payload, ["branch_id", "branchId", "branch"]);
-      if (bId) branches.delete(bId);
+    // Track branch lifecycle
+    if (lowerKind === "branch-opened" || lowerKind === "branch:open") {
+      if (branchIdFromPayload) branches.add(branchIdFromPayload);
+    } else if (
+      lowerKind === "branch-collected" ||
+      lowerKind === "branch:collect" ||
+      lowerKind === "branch-abandoned"
+    ) {
+      if (branchIdFromPayload) branches.delete(branchIdFromPayload);
     }
 
     // Dynamic task creations or additions
-    if (kind === "task-created" || kind === "task:add" || kind === "task-added" || kind === "smart-task:plan") {
-      const id = taskId ?? parsePayloadString(payload, ["id"]);
+    if (
+      lowerKind === "task-created" ||
+      lowerKind === "task:add" ||
+      lowerKind === "task-added" ||
+      lowerKind === "smart-task:plan" ||
+      lowerKind === "subtask-created" ||
+      lowerKind === "dynamic-expansion"
+    ) {
+      const id = explicitTaskId ?? parsePayloadString(payload, ["id"]);
       if (id) {
         const label = parsePayloadString(payload, ["label", "title"]) ?? id;
-        const deps = parsePayloadStringArray(payload, "dependencies").concat(parsePayloadStringArray(payload, "deps"));
-        const writeScope = parsePayloadStringArray(payload, "write_scope").concat(parsePayloadStringArray(payload, "writeScope"));
-        const branchId = parsePayloadString(payload, ["branch_id", "branchId"]);
+        const deps = parsePayloadStringArray(payload, "dependencies").concat(
+          parsePayloadStringArray(payload, "deps"),
+        );
+        const writeScope = parsePayloadStringArray(payload, "write_scope").concat(
+          parsePayloadStringArray(payload, "writeScope"),
+        );
+        const taskRound = roundInPayload ?? 1;
+        if (taskRound > maxRoundReached) maxRoundReached = taskRound;
 
         taskMap.set(id, {
           id,
+          label,
+          status: deps.length > 0 ? "proposed" : "ready",
+          role: role ?? undefined,
+          dependencies: [...new Set(deps)],
+          writeScope: [...new Set(writeScope)],
+          assignedAgent: null,
+          origin: branchIdFromPayload ? "branch" : "dynamic_expansion",
+          createdAtSeq: seq,
+          updatedAtSeq: seq,
+          branchId: branchIdFromPayload ?? undefined,
+          round: taskRound,
+          attempt: attemptInPayload ?? 1,
+          executionState: deps.length > 0 ? "[🔒 PROPOSED]" : "[⏳ READY]",
+          activeTool: null,
+          activeCommand: null,
+          activeStepIndex: seq,
+          sproutedChildren: [],
+        });
+      }
+    }
+
+    // If an existing task is referenced, update its state grounded in live telemetry
+    if (taskId) {
+      // If task is not yet in taskMap, initialize it as static base task
+      if (!taskMap.has(taskId)) {
+        const label = parsePayloadString(payload, ["label", "title"]) ?? taskId;
+        const writeScope = parsePayloadStringArray(payload, "write_scope").concat(
+          parsePayloadStringArray(payload, "writeScope"),
+        );
+        const deps = parsePayloadStringArray(payload, "dependencies").concat(
+          parsePayloadStringArray(payload, "deps"),
+        );
+        const taskRound = roundInPayload ?? 1;
+        if (taskRound > maxRoundReached) maxRoundReached = taskRound;
+
+        taskMap.set(taskId, {
+          id: taskId,
           label,
           status: "ready",
           role: role ?? undefined,
           dependencies: [...new Set(deps)],
           writeScope: [...new Set(writeScope)],
           assignedAgent: null,
-          origin: branchId ? "branch" : "dynamic_expansion",
+          origin: "static",
           createdAtSeq: seq,
           updatedAtSeq: seq,
-          branchId: branchId ?? undefined,
+          round: taskRound,
+          attempt: attemptInPayload ?? 1,
+          executionState: "[⏳ READY]",
+          activeTool: null,
+          activeCommand: null,
+          activeStepIndex: seq,
+          sproutedChildren: [],
         });
       }
-    }
 
-    if (taskId && taskMap.has(taskId)) {
+      // Check if this event targets a sprouted repair task or the main task
       const existing = taskMap.get(taskId)!;
-      let nextStatus = existing.status;
-      let nextAgent = existing.assignedAgent;
+      let targetTask = existing;
+      let targetTaskId = taskId;
 
-      if (kind === "task-claimed" || kind === "task:claim") {
-        nextStatus = "leased";
-        nextAgent = actor;
-      } else if (kind === "task-submitted" || kind === "task:submit") {
-        nextStatus = "validating";
-      } else if (kind === "task-reviewed" || kind === "task:review" || kind === "verdict-passed") {
-        nextStatus = "satisfied";
-      } else if (kind === "task-rejected" || kind === "task:reject") {
-        nextStatus = "changes_requested";
-      } else if (kind === "task-released" || kind === "task:release") {
-        nextStatus = "ready";
-        nextAgent = null;
+      // If existing task was rejected in Round 1 and this event is a Round 2+ claim/tool/verdict,
+      // route to the latest sprouted repair task if one exists
+      if (
+        (existing.status === "changes_requested" || existing.executionState.includes("REJECTED")) &&
+        (roundInPayload === 2 ||
+          role === "repairer" ||
+          (attemptInPayload && attemptInPayload > 1)) &&
+        existing.sproutedChildren &&
+        existing.sproutedChildren.length > 0
+      ) {
+        const repairChildId = existing.sproutedChildren[0]!;
+        if (taskMap.has(repairChildId)) {
+          targetTask = taskMap.get(repairChildId)!;
+          targetTaskId = repairChildId;
+        }
       }
 
-      taskMap.set(taskId, {
-        ...existing,
-        status: nextStatus,
-        assignedAgent: nextAgent,
-        updatedAtSeq: seq,
-      });
-    } else if (taskId && !taskMap.has(taskId)) {
-      // Inferred static/base task encountered in event stream
-      const label = parsePayloadString(payload, ["label", "title"]) ?? taskId;
-      taskMap.set(taskId, {
-        id: taskId,
-        label,
-        status: kind === "task-claimed" ? "leased" : "ready",
-        role: role ?? undefined,
-        dependencies: [],
-        writeScope: [],
-        assignedAgent: kind === "task-claimed" ? actor : null,
-        origin: "static",
-        createdAtSeq: seq,
-        updatedAtSeq: seq,
-      });
+      const currentRound = roundInPayload ?? targetTask.round;
+      if (currentRound > maxRoundReached) maxRoundReached = currentRound;
+      const currentAttempt = attemptInPayload ?? targetTask.attempt;
+
+      let nextStatus = targetTask.status;
+      let nextAgent = targetTask.assignedAgent;
+      let nextExecutionState = targetTask.executionState;
+      let nextActiveTool = targetTask.activeTool;
+      let nextActiveCommand = targetTask.activeCommand;
+      let rejectionReason = targetTask.rejectionReason;
+      let validatorId = targetTask.validatorId;
+
+      // 1. Task Claim / Lease
+      if (
+        lowerKind === "task-claimed" ||
+        lowerKind === "task:claim" ||
+        lowerKind === "lease-claimed" ||
+        lowerKind === "lease:claim" ||
+        lowerKind === "lease-renewed"
+      ) {
+        nextStatus = "leased";
+        nextAgent = actor;
+        nextActiveTool = null;
+        nextActiveCommand = null;
+        nextExecutionState = `[🟢 LEASED by ${actor} (step ${formatSeq(seq)})]`;
+
+        if (actor) {
+          agentMap.set(actor, {
+            role: role ? role : targetTask.role ? targetTask.role : "implementer",
+            taskId: targetTaskId,
+            currentTool: null,
+            currentCommand: null,
+            lastActiveSeq: seq,
+            activeStepIndex: seq,
+          });
+        }
+      }
+
+      // 2. Active Tool / Command Execution
+      else if (
+        lowerKind === "tool-exec" ||
+        lowerKind === "tool:start" ||
+        lowerKind === "tool_call" ||
+        lowerKind === "tool-call" ||
+        lowerKind === "tool-invocation" ||
+        lowerKind === "exec" ||
+        lowerKind === "command-exec"
+      ) {
+        nextStatus = "in_progress";
+        nextActiveTool = tool ? tool : "exec";
+        nextActiveCommand = cmd ?? null;
+        const displayCmd = cmd ? cmd : tool ? tool : "exec";
+        nextExecutionState = `[🟢 RUNNING: ${displayCmd}]`;
+
+        if (actor) {
+          agentMap.set(actor, {
+            role: role ? role : targetTask.role ? targetTask.role : "implementer",
+            taskId: targetTaskId,
+            currentTool: tool ? tool : "exec",
+            currentCommand: cmd ?? null,
+            lastActiveSeq: seq,
+            activeStepIndex: seq,
+          });
+        }
+      }
+
+      // 3. Gate Proving / Execution
+      else if (
+        lowerKind === "gate:prove" ||
+        lowerKind === "gate-prove" ||
+        lowerKind === "gate:proof" ||
+        lowerKind === "prove"
+      ) {
+        nextActiveTool = "gate";
+        nextActiveCommand = cmd ?? null;
+
+        if (exitCode === 0) {
+          nextExecutionState = `[🛡️✓ GATE PASSED (step ${formatSeq(seq)})]`;
+          nextActiveTool = null;
+          nextActiveCommand = null;
+        } else if (exitCode !== null && exitCode !== 0) {
+          nextExecutionState = `[🛡️❌ GATE FAILED (exit ${exitCode}, step ${formatSeq(seq)})]`;
+        } else {
+          const gateCmd = cmd ? cmd : "gate proof";
+          nextExecutionState = `[🛡️ PROVING GATE: ${gateCmd}]`;
+        }
+      }
+
+      // 4. Task Submitted for Validation
+      else if (
+        lowerKind === "task-submitted" ||
+        lowerKind === "task:submit" ||
+        lowerKind === "submission-created" ||
+        lowerKind === "submit"
+      ) {
+        nextStatus = "validating";
+        nextActiveTool = null;
+        nextActiveCommand = null;
+        nextExecutionState = `[📦 SUBMITTED (step ${formatSeq(seq)})]`;
+      }
+
+      // 5. Begin Validation / Validator Claim
+      else if (
+        lowerKind === "begin-validation" ||
+        lowerKind === "validation-claimed" ||
+        lowerKind === "validator-claimed" ||
+        lowerKind === "review:begin"
+      ) {
+        nextStatus = "validating";
+        validatorId = actor;
+        nextActiveTool = null;
+        nextActiveCommand = null;
+        nextExecutionState = `[🔍 VALIDATING by ${actor} (step ${formatSeq(seq)})]`;
+
+        if (actor) {
+          agentMap.set(actor, {
+            role: "validator",
+            taskId: targetTaskId,
+            currentTool: null,
+            currentCommand: null,
+            lastActiveSeq: seq,
+            activeStepIndex: seq,
+          });
+        }
+      }
+
+      // 6. Review Verdict / Rejection / Pass & Sprouting
+      const verdictStr = parsePayloadString(payload, ["verdict", "decision", "review_verdict"]);
+      const isExplicitReject =
+        lowerKind.includes("reject") ||
+        lowerKind.includes("fail") ||
+        verdictStr === "reject" ||
+        verdictStr === "rejected" ||
+        lowerKind.includes("changes-requested") ||
+        lowerKind.includes("changes_requested");
+
+      const isExplicitPass =
+        lowerKind.includes("pass") ||
+        verdictStr === "pass" ||
+        verdictStr === "passed" ||
+        lowerKind === "verdict-passed" ||
+        (lowerKind === "task-reviewed" && verdictStr !== "reject");
+
+      if (isExplicitReject) {
+        nextStatus = "changes_requested";
+        const parsedReason = parsePayloadString(payload, [
+          "reason",
+          "message",
+          "error",
+          "feedback",
+          "finding",
+          "rejection_reason",
+        ]);
+        rejectionReason = parsedReason ? parsedReason : "Validation check failed";
+        nextActiveTool = null;
+        nextActiveCommand = null;
+        nextExecutionState = `[❌ REJECTED - R${currentRound}]`;
+
+        // DYNAMIC GRAPH EXPANSION: Sprout Round (currentRound + 1) Repair Implementer & Validator branch!
+        const nextRound = currentRound + 1;
+        if (nextRound > maxRoundReached) maxRoundReached = nextRound;
+
+        const baseCleanId = targetTask.id.replace(/-repair-r\d+$/, "");
+        const repairTaskId = `${baseCleanId}-repair-r${nextRound}`;
+        const validatorTaskId = `val-${baseCleanId.replace(/^val-/, "")}-r${nextRound}`;
+
+        const repairLabel = `${targetTask.label.replace(/ \(R\d+ Repair\)$/, "")} (R${nextRound} Repair)`;
+        const validatorLabel = `Validator for ${targetTask.label.replace(/ \(R\d+ Repair\)$/, "")} (R${nextRound})`;
+
+        const sproutedRepairTask: DynamicTaskState = {
+          id: repairTaskId,
+          label: repairLabel,
+          status: "ready",
+          role: "repairer",
+          dependencies: [targetTaskId],
+          writeScope: targetTask.writeScope,
+          assignedAgent: null,
+          origin: "repair_branch",
+          createdAtSeq: seq,
+          updatedAtSeq: seq,
+          round: nextRound,
+          attempt: 1,
+          executionState: `[⏳ READY - R${nextRound} Repair]`,
+          activeTool: null,
+          activeCommand: null,
+          activeStepIndex: seq,
+          repairForTaskId: targetTaskId,
+          sproutedChildren: [],
+        };
+
+        const sproutedValidatorTask: DynamicTaskState = {
+          id: validatorTaskId,
+          label: validatorLabel,
+          status: "proposed",
+          role: "validator",
+          dependencies: [repairTaskId],
+          writeScope: targetTask.writeScope,
+          assignedAgent: null,
+          origin: "repair_branch",
+          createdAtSeq: seq,
+          updatedAtSeq: seq,
+          round: nextRound,
+          attempt: 1,
+          executionState: `[⏳ PROPOSED - R${nextRound} Validator]`,
+          activeTool: null,
+          activeCommand: null,
+          activeStepIndex: seq,
+          sproutedChildren: [],
+        };
+
+        taskMap.set(repairTaskId, sproutedRepairTask);
+        taskMap.set(validatorTaskId, sproutedValidatorTask);
+
+        sproutedRepairPairs.push({
+          rejectedTaskId: targetTaskId,
+          round: nextRound,
+          repairTaskId,
+          validatorTaskId,
+          reason: rejectionReason,
+        });
+
+        // Record sprouted child IDs onto parent task
+        const updatedSprouted = [
+          ...(targetTask.sproutedChildren ?? []),
+          repairTaskId,
+          validatorTaskId,
+        ];
+        taskMap.set(targetTaskId, {
+          ...targetTask,
+          status: nextStatus,
+          assignedAgent: nextAgent,
+          executionState: nextExecutionState,
+          activeTool: nextActiveTool,
+          activeCommand: nextActiveCommand,
+          rejectionReason,
+          validatorId: validatorId ?? actor,
+          updatedAtSeq: seq,
+          activeStepIndex: seq,
+          sproutedChildren: updatedSprouted,
+        });
+      } else if (isExplicitPass) {
+        nextStatus = "satisfied";
+        nextActiveTool = null;
+        nextActiveCommand = null;
+        nextExecutionState = `[✓ PASSED - R${currentRound}]`;
+
+        taskMap.set(targetTaskId, {
+          ...targetTask,
+          status: nextStatus,
+          assignedAgent: nextAgent,
+          executionState: nextExecutionState,
+          activeTool: nextActiveTool,
+          activeCommand: nextActiveCommand,
+          validatorId: validatorId ?? actor,
+          updatedAtSeq: seq,
+          activeStepIndex: seq,
+        });
+
+        // If target was a repair task, also update the original parent task to reflect resolution
+        if (targetTask.repairForTaskId && taskMap.has(targetTask.repairForTaskId)) {
+          const parentT = taskMap.get(targetTask.repairForTaskId)!;
+          taskMap.set(targetTask.repairForTaskId, {
+            ...parentT,
+            status: "satisfied",
+            executionState: `[✓ RESOLVED - R${currentRound}]`,
+            updatedAtSeq: seq,
+          });
+        }
+      } else if (
+        lowerKind === "task-released" ||
+        lowerKind === "task:release" ||
+        lowerKind === "lease-released"
+      ) {
+        nextStatus = "ready";
+        nextAgent = null;
+        nextActiveTool = null;
+        nextActiveCommand = null;
+        nextExecutionState = "[⏳ READY]";
+
+        taskMap.set(targetTaskId, {
+          ...targetTask,
+          status: nextStatus,
+          assignedAgent: nextAgent,
+          executionState: nextExecutionState,
+          activeTool: nextActiveTool,
+          activeCommand: nextActiveCommand,
+          updatedAtSeq: seq,
+          activeStepIndex: seq,
+        });
+      } else if (lowerKind === "replacement-repairer-assigned" || lowerKind === "assign-repairer") {
+        const replacementId = parsePayloadString(payload, [
+          "replacement_id",
+          "replacementId",
+          "repair_assignee",
+        ]);
+        if (replacementId) {
+          nextAgent = replacementId;
+          nextStatus = "leased";
+          nextExecutionState = `[🔧 REPAIRER ASSIGNED: ${replacementId} (step ${formatSeq(seq)})]`;
+
+          taskMap.set(targetTaskId, {
+            ...targetTask,
+            assignedAgent: nextAgent,
+            status: nextStatus,
+            executionState: nextExecutionState,
+            updatedAtSeq: seq,
+            activeStepIndex: seq,
+          });
+        }
+      } else {
+        // General state refresh
+        taskMap.set(targetTaskId, {
+          ...targetTask,
+          status: nextStatus,
+          assignedAgent: nextAgent,
+          executionState: nextExecutionState,
+          activeTool: nextActiveTool,
+          activeCommand: nextActiveCommand,
+          rejectionReason,
+          validatorId,
+          round: currentRound,
+          attempt: currentAttempt,
+          updatedAtSeq: seq,
+          activeStepIndex: seq,
+        });
+      }
     }
   }
 
   let staticCount = 0;
   let dynamicCount = 0;
+  let repairBranchesCount = 0;
   for (const t of taskMap.values()) {
     if (t.origin === "static") staticCount += 1;
+    else if (t.origin === "repair_branch") repairBranchesCount += 1;
     else dynamicCount += 1;
   }
 
@@ -219,15 +696,18 @@ export function buildDynamicDagState(events: readonly HarnessEvent[], runId = "c
     revision,
     totalTasks: taskMap.size,
     staticTasksCount: staticCount,
-    dynamicTasksCount: dynamicCount,
+    dynamicTasksCount: dynamicCount + repairBranchesCount,
+    repairBranchesCount,
+    currentRound: maxRoundReached,
     tasks: taskMap,
     activeAgents: agentMap,
     activeBranches: [...branches],
+    sproutedRepairPairs,
   };
 }
 
 /**
- * Parses events into structured chronological step traces.
+ * Parses events into structured chronological step traces with precise execution glyphs.
  */
 export function buildStepTraceEntries(
   events: readonly HarnessEvent[],
@@ -245,16 +725,37 @@ export function buildStepTraceEntries(
     if (options.fromSeq !== undefined && seq < options.fromSeq) continue;
     if (options.toSeq !== undefined && seq > options.toSeq) continue;
 
-    const payload = typeof ev.payload === "object" && ev.payload !== null ? (ev.payload as Record<string, unknown>) : {};
+    const payload =
+      typeof ev.payload === "object" && ev.payload !== null
+        ? (ev.payload as Record<string, unknown>)
+        : {};
     const actor = ev.actor;
     const kind = ev.kind;
 
-    const taskId = parsePayloadString(payload, ["task_id", "taskId", "task"]);
-    const role = parsePayloadString(payload, ["role", "assigned_role", "assignedRole"]);
-    const tool = parsePayloadString(payload, ["tool", "current_tool", "tool_name", "toolName"]);
-    const cmd = parsePayloadString(payload, ["command", "cmd", "command_line"]);
-    const exitCode = typeof payload.exit_code === "number" ? payload.exit_code : typeof payload.code === "number" ? payload.code : null;
-    const errorMsg = parsePayloadString(payload, ["error", "message", "reason", "stderr"]);
+    const taskId = parsePayloadString(payload, ["task_id", "taskId", "task", "id"]);
+    const role = parsePayloadString(payload, [
+      "role",
+      "assigned_role",
+      "assignedRole",
+      "repair_assignee",
+    ]);
+    const tool = parsePayloadString(payload, [
+      "tool",
+      "current_tool",
+      "tool_name",
+      "toolName",
+      "tool_call",
+    ]);
+    const cmd = parsePayloadString(payload, ["command", "cmd", "command_line", "commandLine"]);
+    const exitCode = parsePayloadNumber(payload, ["exit_code", "code", "exitCode"]);
+    const errorMsg = parsePayloadString(payload, [
+      "error",
+      "message",
+      "reason",
+      "stderr",
+      "feedback",
+    ]);
+    const round = parsePayloadNumber(payload, ["round", "repair_round"]);
 
     if (options.filterTask && taskId !== options.filterTask) continue;
     if (options.filterActor && actor.toLowerCase() !== options.filterActor.toLowerCase()) continue;
@@ -274,7 +775,9 @@ export function buildStepTraceEntries(
     if (lowerKind.includes("claim")) {
       glyph = "🟢";
       if (role) details.push(`Role: ${role}`);
-      if (typeof payload.lease_seconds === "number") details.push(`Lease: ${payload.lease_seconds}s`);
+      if (typeof payload.lease_seconds === "number")
+        details.push(`Lease: ${payload.lease_seconds}s`);
+      if (round !== null) details.push(`Round: R${round}`);
     } else if (lowerKind.includes("submit")) {
       glyph = "📦";
       if (typeof payload.summary === "string") details.push(`Summary: ${payload.summary}`);
@@ -288,17 +791,40 @@ export function buildStepTraceEntries(
       }
       if (cmd) details.push(`Gate Cmd: ${cmd}`);
       if (exitCode !== null) details.push(`Exit Code: ${exitCode}`);
-    } else if (lowerKind.includes("review") || lowerKind.includes("verdict") || lowerKind.includes("pass")) {
-      glyph = "✓";
-      if (typeof payload.verdict === "string") details.push(`Verdict: ${payload.verdict}`);
-    } else if (lowerKind.includes("reject") || lowerKind.includes("fail") || lowerKind.includes("error")) {
+    } else if (
+      lowerKind.includes("review") ||
+      lowerKind.includes("verdict") ||
+      lowerKind.includes("pass")
+    ) {
+      const verdictStr = parsePayloadString(payload, ["verdict", "decision"]);
+      if (verdictStr === "reject" || verdictStr === "rejected" || lowerKind.includes("reject")) {
+        glyph = "❌";
+        isError = true;
+        if (errorMsg) details.push(`Reason: ${errorMsg}`);
+        if (round !== null) details.push(`Round: R${round}`);
+      } else {
+        glyph = "✓";
+        if (verdictStr) details.push(`Verdict: ${verdictStr}`);
+        if (round !== null) details.push(`Round: R${round}`);
+      }
+    } else if (
+      lowerKind.includes("reject") ||
+      lowerKind.includes("fail") ||
+      lowerKind.includes("error")
+    ) {
       glyph = "❌";
       isError = true;
       if (errorMsg) details.push(`Reason: ${errorMsg}`);
+      if (round !== null) details.push(`Round: R${round}`);
     } else if (lowerKind.includes("branch")) {
       glyph = "🌿";
       const bId = parsePayloadString(payload, ["branch_id", "branchId"]);
       if (bId) details.push(`Branch: ${bId}`);
+    } else if (lowerKind.includes("replacement") || lowerKind.includes("assign-repairer")) {
+      glyph = "🔧";
+      const replacementId = parsePayloadString(payload, ["replacement_id", "replacementId"]);
+      if (replacementId) details.push(`Replacement Repairer: ${replacementId}`);
+      if (errorMsg) details.push(`Reason: ${errorMsg}`);
     } else if (lowerKind.includes("exec") || lowerKind.includes("tool") || cmd) {
       glyph = "⚙️";
       if (tool) details.push(`Tool: ${tool}`);
@@ -335,36 +861,128 @@ export function buildStepTraceEntries(
   return entries;
 }
 
-function formatDuration(ms: number): string {
-  const totalSec = Math.floor(ms / 1000);
-  const min = Math.floor(totalSec / 60);
-  const sec = totalSec % 60;
-  const milli = Math.floor((ms % 1000) / 10);
-  const pad = (n: number) => n.toString().padStart(2, "0");
-  return `${pad(min)}:${pad(sec)}.${pad(milli)}`;
+/**
+ * Renders the living dynamic DAG expansion with round-by-round branches and real-time execution states as connected ASCII.
+ */
+export function renderDynamicDagAscii(dynamicDag: DynamicDagState): string {
+  if (dynamicDag.tasks.size === 0) {
+    return "  ┌────────────────────────────────────────────────────────┐\n  │  (No dynamic DAG tasks discovered in telemetry events) │\n  └────────────────────────────────────────────────────────┘";
+  }
+
+  const lines: string[] = [];
+  const visited = new Set<string>();
+
+  function formatNode(task: DynamicTaskState): string {
+    const agentText = task.assignedAgent ? ` [${task.assignedAgent}]` : "";
+    const stepText = task.activeStepIndex
+      ? ` (step ${formatSeq(task.activeStepIndex)})`
+      : ` (seq ${formatSeq(task.updatedAtSeq)})`;
+    return `[${task.id}] ${task.executionState}${agentText}${stepText}`;
+  }
+
+  function renderNodeHierarchy(taskId: string, prefix: string, isLast: boolean): void {
+    if (visited.has(taskId)) return;
+    visited.add(taskId);
+
+    const task = dynamicDag.tasks.get(taskId);
+    if (!task) return;
+
+    const connector = isLast ? "└── " : "├── ";
+    const childPrefix = prefix + (isLast ? "    " : "│   ");
+
+    lines.push(`${prefix}${connector}${formatNode(task)}`);
+
+    if (task.writeScope.length > 0) {
+      lines.push(`${childPrefix}↳ Scope: ${task.writeScope.join(", ")}`);
+    }
+    if (task.rejectionReason) {
+      lines.push(`${childPrefix}↳ Rejection: ${task.rejectionReason}`);
+    }
+    if (task.activeCommand && !task.executionState.includes(task.activeCommand)) {
+      lines.push(`${childPrefix}↳ Active Cmd: ${task.activeCommand}`);
+    }
+
+    // Visually sprout Round 2+ Repair Implementer & Validator branches
+    const sproutedChildren = (task.sproutedChildren ?? []).filter((id) => dynamicDag.tasks.has(id));
+    for (let i = 0; i < sproutedChildren.length; i++) {
+      const childId = sproutedChildren[i]!;
+      const isLastChild = i === sproutedChildren.length - 1;
+      const childTask = dynamicDag.tasks.get(childId)!;
+      visited.add(childId);
+
+      const sproutConnector = isLastChild ? "└──► " : "├──► ";
+      const sproutChildPrefix = childPrefix + (isLastChild ? "     " : "│    ");
+
+      lines.push(`${childPrefix}│`);
+      lines.push(`${childPrefix}${sproutConnector}${formatNode(childTask)}`);
+      if (childTask.rejectionReason) {
+        lines.push(`${sproutChildPrefix}↳ Rejection: ${childTask.rejectionReason}`);
+      }
+      if (childTask.activeCommand && !childTask.executionState.includes(childTask.activeCommand)) {
+        lines.push(`${sproutChildPrefix}↳ Active Cmd: ${childTask.activeCommand}`);
+      }
+    }
+  }
+
+  // Root tasks: tasks not sprouted as child branches
+  const sproutedIds = new Set<string>();
+  for (const t of dynamicDag.tasks.values()) {
+    for (const c of t.sproutedChildren ?? []) {
+      sproutedIds.add(c);
+    }
+  }
+
+  const rootTasks = [...dynamicDag.tasks.values()].filter(
+    (t) => !sproutedIds.has(t.id) && t.origin !== "repair_branch",
+  );
+
+  for (let i = 0; i < rootTasks.length; i++) {
+    const root = rootTasks[i]!;
+    if (visited.has(root.id)) continue;
+    const isLast = i === rootTasks.length - 1;
+    renderNodeHierarchy(root.id, "", isLast);
+    if (!isLast) {
+      lines.push("");
+    }
+  }
+
+  // Any remaining unvisited tasks
+  for (const t of dynamicDag.tasks.values()) {
+    if (!visited.has(t.id)) {
+      renderNodeHierarchy(t.id, "", true);
+    }
+  }
+
+  return lines.join("\n");
 }
 
 /**
  * Renders the chronological step trace as a connected ASCII/Unicode vertical timeline.
  */
-export function renderAsciiTimeline(entries: readonly StepTraceEntry[], maxEntries?: number): string {
+export function renderAsciiTimeline(
+  entries: readonly StepTraceEntry[],
+  maxEntries?: number,
+): string {
   if (entries.length === 0) {
     return "  ┌────────────────────────────────────────────────────────┐\n  │  (No telemetry events recorded for active step trace)  │\n  └────────────────────────────────────────────────────────┘";
   }
 
   const lines: string[] = [];
-  const displayEntries = maxEntries !== undefined && maxEntries > 0 ? entries.slice(0, maxEntries) : entries;
+  const displayEntries =
+    maxEntries !== undefined && maxEntries > 0 ? entries.slice(0, maxEntries) : entries;
 
   for (let i = 0; i < displayEntries.length; i++) {
     const entry = displayEntries[i]!;
     const isLast = i === displayEntries.length - 1;
     const timeStr = formatDuration(entry.elapsedMs);
-    const seqStr = `#${entry.sequence.toString().padStart(3, "0")}`;
+    const seqStr = formatSeq(entry.sequence);
 
     const connector = i === 0 ? "●" : isLast ? "└─●" : "├─●";
     const pipe = isLast ? "  " : "│ ";
 
-    lines.push(`${connector} [${seqStr} +${timeStr}] [${entry.actor}] ${entry.glyph} ${entry.title}`);
+    lines.push(
+      `${connector} [${seqStr} +${timeStr}] [${entry.actor}] ${entry.glyph} ${entry.title}`,
+    );
 
     for (const d of entry.details) {
       lines.push(`${pipe} ↳ ${d}`);
@@ -383,7 +1001,7 @@ export function renderAsciiTimeline(entries: readonly StepTraceEntry[], maxEntri
 }
 
 /**
- * Computes summary statistics across step trace entries.
+ * Computes summary statistics across step trace entries and dynamic DAG state.
  */
 export function computeStepTracerSummary(
   entries: readonly StepTraceEntry[],
@@ -402,6 +1020,8 @@ export function computeStepTracerSummary(
     uniqueActors,
     taskCount: dynamicDag.totalTasks,
     dynamicExpansionCount: dynamicDag.dynamicTasksCount,
+    repairBranchesCount: dynamicDag.repairBranchesCount,
+    maxRoundReached: dynamicDag.currentRound,
     gateRunsCount: gateRuns.length,
     gatePassesCount: gatePasses.length,
     gateFailsCount: gateFails.length,
@@ -410,7 +1030,51 @@ export function computeStepTracerSummary(
 }
 
 /**
+ * Inspects auxiliary capsule artifacts on disk (rounds/, leases/) to corroborate telemetry.
+ */
+export function inspectCapsuleAuxiliary(runRoot: string): {
+  readonly roundsFound: readonly string[];
+  readonly activeLeaseFiles: readonly string[];
+} {
+  const roundsFound: string[] = [];
+  const activeLeaseFiles: string[] = [];
+
+  if (existsSync(runRoot)) {
+    const roundsDir = join(runRoot, "rounds");
+    if (existsSync(roundsDir)) {
+      try {
+        const entries = readdirSync(roundsDir, { withFileTypes: true });
+        for (const e of entries) {
+          if (e.isDirectory()) {
+            roundsFound.push(e.name);
+          }
+        }
+      } catch {
+        // ignore filesystem permission errors
+      }
+    }
+
+    const leasesDir = join(runRoot, "leases");
+    if (existsSync(leasesDir)) {
+      try {
+        const entries = readdirSync(leasesDir, { withFileTypes: true });
+        for (const e of entries) {
+          if (e.isFile() && e.name.endsWith(".json")) {
+            activeLeaseFiles.push(e.name);
+          }
+        }
+      } catch {
+        // ignore filesystem permission errors
+      }
+    }
+  }
+
+  return { roundsFound, activeLeaseFiles };
+}
+
+/**
  * Builds the complete Living Tracer report.
+ * Strictly bans idealized static plans; renders 100% ground-truth telemetry from capsule events.
  */
 export function buildLivingTracerReport(
   events: readonly HarnessEvent[],
@@ -421,38 +1085,68 @@ export function buildLivingTracerReport(
   const steps = buildStepTraceEntries(events, options);
   const summary = computeStepTracerSummary(steps, dynamicDag);
   const asciiTimeline = renderAsciiTimeline(steps, options.maxSteps);
+  const asciiDag = renderDynamicDagAscii(dynamicDag);
 
   const mdSections: string[] = [
-    `### Real-Time Telemetry & Dynamic Step Tracer: ${runId}`,
+    `### Living Dynamic DAG Expansion & Real-Time Telemetry: ${runId}`,
     `- **Total Steps Trace**: ${summary.totalSteps} events across ${summary.uniqueActors.length} active agent(s)`,
-    `- **Dynamic Graph Scope**: ${summary.taskCount} total tasks (${summary.dynamicExpansionCount} dynamically spawned)`,
+    `- **Dynamic Graph Scope**: ${summary.taskCount} total tasks (${summary.dynamicExpansionCount} dynamic/repair expansions across ${summary.maxRoundReached} round(s))`,
     `- **Execution Duration**: ${formatDuration(summary.totalDurationMs)} | **Gates Passed/Failed**: ${summary.gatePassesCount}/${summary.gateFailsCount}`,
     "",
-    "#### Chronological Step Execution Timeline",
+    "#### Living Dynamic Round-by-Round DAG & Node States",
     "```text",
-    asciiTimeline,
+    asciiDag,
     "```",
   ];
 
-  if (dynamicDag.dynamicTasksCount > 0) {
+  if (dynamicDag.sproutedRepairPairs.length > 0) {
     mdSections.push("");
-    mdSections.push("#### Dynamically Spawned Subgraphs & Branches");
-    const dynHeaders = ["Task ID", "Origin", "Branch", "Status", "Created At Seq"];
-    const dynRows = [...dynamicDag.tasks.values()]
-      .filter((t) => t.origin !== "static")
-      .map((t) => [
-        `\`${t.id}\``,
-        t.origin,
-        t.branchId ? `\`${t.branchId}\`` : "—",
-        `\`${t.status}\``,
-        `#${t.createdAtSeq}`,
-      ]);
-    mdSections.push(...formatTable(dynHeaders, dynRows));
+    mdSections.push("#### Dynamically Sprouted Repair & Validator Branches (Rejections)");
+    const sproutHeaders = [
+      "Rejected Task",
+      "Round",
+      "Sprouted Repair Task",
+      "Sprouted Validator",
+      "Rejection Reason",
+    ];
+    const sproutRows = dynamicDag.sproutedRepairPairs.map((p) => [
+      `\`${p.rejectedTaskId}\``,
+      `R${p.round}`,
+      `\`${p.repairTaskId}\``,
+      `\`${p.validatorTaskId}\``,
+      p.reason ? `\`${p.reason}\`` : "—",
+    ]);
+    mdSections.push(...formatTable(sproutHeaders, sproutRows));
   }
+
+  if (dynamicDag.activeAgents.size > 0) {
+    mdSections.push("");
+    mdSections.push("#### Active Agent Live Tool & Lease Registry");
+    const agentHeaders = ["Agent", "Role", "Assigned Task", "Active Step", "Active Tool / Command"];
+    const agentRows = [...dynamicDag.activeAgents.entries()].map(([agentId, state]) => [
+      `\`${agentId}\``,
+      `\`${state.role}\``,
+      state.taskId ? `\`${state.taskId}\`` : "—",
+      formatSeq(state.activeStepIndex),
+      state.currentCommand
+        ? `\`[🟢 RUNNING: ${state.currentCommand}]\``
+        : state.currentTool
+          ? `\`[🟢 TOOL: ${state.currentTool}]\``
+          : "—",
+    ]);
+    mdSections.push(...formatTable(agentHeaders, agentRows));
+  }
+
+  mdSections.push("");
+  mdSections.push("#### Chronological Step Execution Timeline");
+  mdSections.push("```text");
+  mdSections.push(asciiTimeline);
+  mdSections.push("```");
 
   return {
     markdown: mdSections.join("\n"),
     asciiTimeline,
+    asciiDag,
     dynamicDag,
     steps,
     summary,
@@ -460,7 +1154,7 @@ export function buildLivingTracerReport(
 }
 
 /**
- * Reads events directly from run capsule path and builds report.
+ * Reads events directly from run capsule path and builds the living tracer report.
  */
 export function traceCapsuleRun(
   runPath: string,

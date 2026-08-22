@@ -17,7 +17,10 @@ export function isUnifiedEvidenceRelativePath(path: string): boolean {
   if (normalized.startsWith("../") || normalized === ".." || normalized.startsWith("/")) {
     return false;
   }
-  return normalized === UNIFIED_EVIDENCE_DIRECTORY || normalized.startsWith(`${UNIFIED_EVIDENCE_DIRECTORY}/`);
+  return (
+    normalized === UNIFIED_EVIDENCE_DIRECTORY ||
+    normalized.startsWith(`${UNIFIED_EVIDENCE_DIRECTORY}/`)
+  );
 }
 
 /**

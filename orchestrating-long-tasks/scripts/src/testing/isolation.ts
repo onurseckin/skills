@@ -5,14 +5,7 @@
  * safe process environment mutation & restoration, and ephemeral port allocation.
  */
 
-import {
-  existsSync,
-  mkdirSync,
-  rmSync,
-  writeFileSync,
-  readFileSync,
-  readdirSync,
-} from "node:fs";
+import { existsSync, mkdirSync, rmSync, writeFileSync, readFileSync, readdirSync } from "node:fs";
 import { join, resolve, dirname } from "node:path";
 import { randomUUID } from "node:crypto";
 import { createServer } from "node:net";
@@ -93,7 +86,7 @@ export function findRepoRoot(startDir?: string | undefined): string {
  */
 export function getIsolatedTempDir(options?: string | IsolatedTempDirOptions | undefined): string {
   const opts: IsolatedTempDirOptions =
-    typeof options === "string" ? { prefix: options } : options ?? {};
+    typeof options === "string" ? { prefix: options } : (options ?? {});
 
   const baseDir = opts.baseDir
     ? resolve(opts.baseDir)
@@ -205,10 +198,7 @@ export function releaseIsolatedPort(port: number): void {
 /**
  * Checks if a specific port is currently available for binding.
  */
-export async function isPortAvailable(
-  port: number,
-  host: string = "127.0.0.1",
-): Promise<boolean> {
+export async function isPortAvailable(port: number, host: string = "127.0.0.1"): Promise<boolean> {
   if (reservedPorts.has(port)) return false;
 
   return new Promise<boolean>((res) => {
@@ -228,9 +218,7 @@ export async function isPortAvailable(
 /**
  * Allocates a free ephemeral network port for test server isolation.
  */
-export async function allocateIsolatedPort(
-  options: AllocatePortOptions = {},
-): Promise<number> {
+export async function allocateIsolatedPort(options: AllocatePortOptions = {}): Promise<number> {
   const host = options.host !== undefined ? options.host : "127.0.0.1";
   const preferredPort = options.preferredPort;
 
@@ -300,9 +288,7 @@ export function createTestIsolationContext(
 
   const shouldIsolateEnv = options.isolatedEnv ?? true;
   const initialEnvSnapshot = shouldIsolateEnv ? snapshotEnv() : null;
-  const contextEnv: Record<string, string | undefined> = options.env
-    ? { ...options.env }
-    : {};
+  const contextEnv: Record<string, string | undefined> = options.env ? { ...options.env } : {};
   const ports: number[] = [];
   let isCleanedUp = false;
 
@@ -330,9 +316,7 @@ export function createTestIsolationContext(
     }
   };
 
-  const allocatePortMethod = async (
-    opts?: AllocatePortOptions | undefined,
-  ): Promise<number> => {
+  const allocatePortMethod = async (opts?: AllocatePortOptions | undefined): Promise<number> => {
     if (isCleanedUp) {
       throw new Error("Cannot allocate port on cleaned-up TestIsolationContext");
     }
@@ -366,10 +350,7 @@ export function createTestIsolationContext(
     return p;
   };
 
-  const writeTempFileMethod = (
-    filename: string,
-    content: string | Uint8Array,
-  ): string => {
+  const writeTempFileMethod = (filename: string, content: string | Uint8Array): string => {
     const filePath = join(tempDir, filename);
     const parent = dirname(filePath);
     if (!existsSync(parent)) {
@@ -383,10 +364,7 @@ export function createTestIsolationContext(
     return filePath;
   };
 
-  const readTempFileMethod = (
-    filename: string,
-    encoding: BufferEncoding = "utf8",
-  ): string => {
+  const readTempFileMethod = (filename: string, encoding: BufferEncoding = "utf8"): string => {
     const filePath = join(tempDir, filename);
     return readFileSync(filePath, { encoding });
   };

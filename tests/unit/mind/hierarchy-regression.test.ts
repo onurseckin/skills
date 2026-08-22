@@ -16,9 +16,7 @@ import type {
   JsonObject,
   JsonValue,
 } from "../../../orchestrating-long-tasks/scripts/src/contracts/json.ts";
-import {
-  AGENT_ROLES,
-} from "../../../orchestrating-long-tasks/scripts/src/contracts/packets.ts";
+import { AGENT_ROLES } from "../../../orchestrating-long-tasks/scripts/src/contracts/packets.ts";
 import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
 import {
   DEFAULT_MIND_BUDGET,

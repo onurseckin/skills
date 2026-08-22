@@ -32,7 +32,9 @@ describe("Diagnostics Pushback Ingestion Engine", () => {
 
       const stats = getFeedbackStats(items);
       expect(stats.total).toBe(items.length);
-      expect(stats.pending + stats.processed + stats.admitted + stats.declined + stats.completed).toBe(items.length);
+      expect(
+        stats.pending + stats.processed + stats.admitted + stats.declined + stats.completed,
+      ).toBe(items.length);
 
       // Check specific known feedback items
       const p00 = items.find((i) => i.id === "p00-perpetual-mind-cadence-and-anti-idle-rollover");
@@ -54,9 +56,13 @@ describe("Diagnostics Pushback Ingestion Engine", () => {
       // Boundary violations
       expect(mapFeedbackCategoryToBlunderCategory("AGENT_CONTRACTS")).toBe("boundary_violation");
       expect(mapFeedbackCategoryToBlunderCategory("WATCHDOG")).toBe("boundary_violation");
-      expect(mapFeedbackCategoryToBlunderCategory("EXECUTION_EFFICIENCY")).toBe("boundary_violation");
+      expect(mapFeedbackCategoryToBlunderCategory("EXECUTION_EFFICIENCY")).toBe(
+        "boundary_violation",
+      );
       expect(mapFeedbackCategoryToBlunderCategory("ROLE_CONFUSION")).toBe("boundary_violation");
-      expect(mapFeedbackCategoryToBlunderCategory("boundary_confinement")).toBe("boundary_violation");
+      expect(mapFeedbackCategoryToBlunderCategory("boundary_confinement")).toBe(
+        "boundary_violation",
+      );
 
       // Model reasoning errors
       expect(mapFeedbackCategoryToBlunderCategory("DOCUMENTATION")).toBe("model_reasoning_error");
@@ -92,14 +98,24 @@ describe("Diagnostics Pushback Ingestion Engine", () => {
         expect(pushback8.title).toContain("Pushback #8");
         expect(pushback8.items.length).toBeGreaterThanOrEqual(3);
 
-        const g1Item = pushback8.items.find((it) => it.title?.includes("G1") || it.issue.includes("whoami") || it.issue.includes("thread:identify"));
+        const g1Item = pushback8.items.find(
+          (it) =>
+            it.title?.includes("G1") ||
+            it.issue.includes("whoami") ||
+            it.issue.includes("thread:identify"),
+        );
         expect(g1Item !== undefined).toBeTrue();
         if (g1Item !== undefined) {
           expect(g1Item.issue.length).toBeGreaterThan(0);
           expect(g1Item.resolution.length).toBeGreaterThan(0);
         }
 
-        const g2Item = pushback8.items.find((it) => it.title?.includes("G2") || it.issue.includes("Dead code") || it.issue.includes("dead code"));
+        const g2Item = pushback8.items.find(
+          (it) =>
+            it.title?.includes("G2") ||
+            it.issue.includes("Dead code") ||
+            it.issue.includes("dead code"),
+        );
         expect(g2Item !== undefined).toBeTrue();
       }
 

@@ -126,7 +126,11 @@ export function recordRepositoryInspection(
     try {
       return fromState(loaded.state, phase);
     } catch (error) {
-      if (!(error instanceof HarnessError) || (error.code !== "INVALID_STATE" && error.code !== "INTEGRITY")) throw error;
+      if (
+        !(error instanceof HarnessError) ||
+        (error.code !== "INVALID_STATE" && error.code !== "INTEGRITY")
+      )
+        throw error;
     }
   }
   const repo = dirname(dirname(actualRunRoot));
@@ -139,7 +143,11 @@ export function recordRepositoryInspection(
     try {
       return fromState(loaded.state, "baseline");
     } catch (error) {
-      if (!(error instanceof HarnessError) || (error.code !== "INVALID_STATE" && error.code !== "INTEGRITY")) throw error;
+      if (
+        !(error instanceof HarnessError) ||
+        (error.code !== "INVALID_STATE" && error.code !== "INTEGRITY")
+      )
+        throw error;
     }
   }
   if (phase === "current") {
@@ -155,7 +163,11 @@ export function recordRepositoryInspection(
         return previous;
       }
     } catch (error) {
-      if (!(error instanceof HarnessError) || (error.code !== "INVALID_STATE" && error.code !== "INTEGRITY")) throw error;
+      if (
+        !(error instanceof HarnessError) ||
+        (error.code !== "INVALID_STATE" && error.code !== "INTEGRITY")
+      )
+        throw error;
     }
   }
   transact(

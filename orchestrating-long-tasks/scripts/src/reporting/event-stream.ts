@@ -83,10 +83,7 @@ export function resolveCapsulePath(runInput: string, repoRoot: string = process.
     return realpathSync(inCapsules);
   }
 
-  throw new HarnessError(
-    "INVALID_ARGUMENT",
-    `capsule run directory not found: ${runInput}`,
-  );
+  throw new HarnessError("INVALID_ARGUMENT", `capsule run directory not found: ${runInput}`);
 }
 
 export function readCapsuleEvents(
@@ -137,7 +134,10 @@ export function readCapsuleEvents(
       } else if (typeof parsed === "object" && parsed !== null) {
         // Safe cast for legacy or partial event records
         const eventCandidate = parsed as unknown as HarnessEvent;
-        if (typeof eventCandidate.sequence === "number" && typeof eventCandidate.kind === "string") {
+        if (
+          typeof eventCandidate.sequence === "number" &&
+          typeof eventCandidate.kind === "string"
+        ) {
           allEvents.push(eventCandidate);
         }
       }
@@ -276,7 +276,7 @@ export async function deliverEventsToWebhook(
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Accept": "application/json, text/plain",
+          Accept: "application/json, text/plain",
           "User-Agent": "orchestrating-long-tasks/event-stream-bridge",
           ...(options.headers ?? {}),
         },
@@ -288,7 +288,8 @@ export async function deliverEventsToWebhook(
       lastStatusCode = response.status;
 
       if (response.ok) {
-        let receiptId = response.headers.get("x-receipt-id") ?? response.headers.get("x-delivery-receipt");
+        let receiptId =
+          response.headers.get("x-receipt-id") ?? response.headers.get("x-delivery-receipt");
         if (!receiptId) {
           try {
             const resJson: unknown = await response.json();
@@ -391,7 +392,10 @@ export function renderAsciiEventStreamTable(
     const time = typeof rec.timestamp === "string" ? formatIsoTime(rec.timestamp) : "-";
     const actor = typeof rec.actor === "string" ? rec.actor : "-";
     const kind = typeof rec.kind === "string" ? rec.kind : "-";
-    const payload = typeof rec.payload === "object" && rec.payload !== null ? (rec.payload as Record<string, unknown>) : undefined;
+    const payload =
+      typeof rec.payload === "object" && rec.payload !== null
+        ? (rec.payload as Record<string, unknown>)
+        : undefined;
     const summary = summarizeEventPayload(payload);
     rows.push({ seq, time, actor, kind, summary });
   }
@@ -418,7 +422,8 @@ export function renderAsciiEventStreamTable(
   lines.push(header);
   lines.push(divider);
 
-  const displayRows = options.maxLines !== undefined && options.maxLines > 0 ? rows.slice(0, options.maxLines) : rows;
+  const displayRows =
+    options.maxLines !== undefined && options.maxLines > 0 ? rows.slice(0, options.maxLines) : rows;
   for (const r of displayRows) {
     lines.push(
       `| ${pad(r.seq, colSeqWidth)} | ${pad(r.time, colTimeWidth)} | ${pad(r.actor, colActorWidth)} | ${pad(r.kind, colKindWidth)} | ${pad(r.summary, colSummaryWidth)} |`,

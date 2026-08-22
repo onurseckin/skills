@@ -9,12 +9,7 @@ export type FeedbackPriority =
   | "NORMAL"
   | "LOW";
 
-export type FeedbackStatus =
-  | "PENDING"
-  | "ADMITTED"
-  | "DECLINED"
-  | "PROCESSED"
-  | "COMPLETED";
+export type FeedbackStatus = "PENDING" | "ADMITTED" | "DECLINED" | "PROCESSED" | "COMPLETED";
 
 export type FeedbackCategory =
   | "DOCUMENTATION"
@@ -75,7 +70,10 @@ export function readFeedbackQueue(customPath?: string): FeedbackItem[] {
   }
 
   const raw = readFileSync(filePath, "utf8");
-  const lines = raw.split("\n").map((l) => l.trim()).filter(Boolean);
+  const lines = raw
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
   const items: FeedbackItem[] = [];
 
   for (let i = 0; i < lines.length; i++) {
@@ -88,18 +86,21 @@ export function readFeedbackQueue(customPath?: string): FeedbackItem[] {
       }
       const item: FeedbackItem = {
         id: String(parsed["id"]),
-        timestamp: typeof parsed["timestamp"] === "string" ? parsed["timestamp"] : new Date().toISOString(),
+        timestamp:
+          typeof parsed["timestamp"] === "string" ? parsed["timestamp"] : new Date().toISOString(),
         priority: validatePriority(parsed["priority"]),
         status: validateStatus(parsed["status"]),
         category: validateCategory(parsed["category"]),
         title: typeof parsed["title"] === "string" ? parsed["title"] : `Feedback ${parsed["id"]}`,
         content: typeof parsed["content"] === "string" ? parsed["content"] : "",
         candidate_id: typeof parsed["candidate_id"] === "string" ? parsed["candidate_id"] : null,
-        resolution_note: typeof parsed["resolution_note"] === "string" ? parsed["resolution_note"] : null,
+        resolution_note:
+          typeof parsed["resolution_note"] === "string" ? parsed["resolution_note"] : null,
         processed_at: typeof parsed["processed_at"] === "string" ? parsed["processed_at"] : null,
-        metadata: typeof parsed["metadata"] === "object" && parsed["metadata"] !== null
-          ? (parsed["metadata"] as Record<string, unknown>)
-          : undefined,
+        metadata:
+          typeof parsed["metadata"] === "object" && parsed["metadata"] !== null
+            ? (parsed["metadata"] as Record<string, unknown>)
+            : undefined,
       };
       items.push(item);
     } catch {
@@ -121,7 +122,10 @@ export function writeFeedbackQueue(items: readonly FeedbackItem[], customPath?: 
   writeFileSync(filePath, lines.join("\n") + (lines.length > 0 ? "\n" : ""), "utf8");
 }
 
-export function appendFeedbackItem(item: Omit<FeedbackItem, "timestamp"> & { timestamp?: string }, customPath?: string): FeedbackItem {
+export function appendFeedbackItem(
+  item: Omit<FeedbackItem, "timestamp"> & { timestamp?: string },
+  customPath?: string,
+): FeedbackItem {
   const existing = readFeedbackQueue(customPath);
   const duplicate = existing.find((e) => e.id === item.id);
   if (duplicate) {
@@ -149,10 +153,7 @@ export function updateFeedbackItem(
   const existing = readFeedbackQueue(customPath);
   const index = existing.findIndex((e) => e.id === id);
   if (index === -1) {
-    throw new HarnessError(
-      "INVALID_STATE",
-      `Feedback item with id '${id}' not found in queue`,
-    );
+    throw new HarnessError("INVALID_STATE", `Feedback item with id '${id}' not found in queue`);
   }
 
   const current = existing[index]!;
@@ -264,7 +265,8 @@ function validatePriority(val: unknown): FeedbackPriority {
   if (typeof val === "string") {
     const upper = val.toUpperCase();
     if (upper === "CRITICAL_USER_FEEDBACK" || upper === "CRITICAL") return "CRITICAL_USER_FEEDBACK";
-    if (upper === "HIGH_ARCHITECTURAL_FEATURE" || upper === "HIGH") return "HIGH_ARCHITECTURAL_FEATURE";
+    if (upper === "HIGH_ARCHITECTURAL_FEATURE" || upper === "HIGH")
+      return "HIGH_ARCHITECTURAL_FEATURE";
     if (upper === "USER_DIRECTIVE" || upper === "DIRECTIVE") return "USER_DIRECTIVE";
     if (upper === "NORMAL" || upper === "MEDIUM") return "NORMAL";
     if (upper === "LOW") return "LOW";

@@ -252,4 +252,60 @@ refuses to do anywhere else.
 
 ---
 
+## 🐕 Watchdog Supervisory Engine & Lifecycle Invariants
+
+In autonomous background loops, monitors and health probes must themselves be durably tracked and protected against monitor leaks or zombie processes. The harness implements the **Watchdog Manager Subsystem** (`authority/watchdog-manager.ts`):
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                 WATCHDOG DURABILITY & CLEANUP PIPELINE                      │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  [ Watchdog Registration: generation + pulse_id ]                           │
+│    • Recorded in .capsules/watchdogs.json or capsule run root               │
+│    • Invariant: Max 1 active monitor per generation/pulse strictly enforced │
+│                                  │                                          │
+│                                  ▼                                          │
+│  [ Lifecycle State Transitions ]                                            │
+│    • active      -> currently heartbeating within max_age_ms window         │
+│    • stale       -> heartbeat timeout exceeded (> 15m cadence)              │
+│    • terminated  -> gracefully closed upon phase completion/rollover        │
+│    • orphaned    -> parent process disappeared without release              │
+│                                  │                                          │
+│                                  ▼                                          │
+│  [ Automated Phase Cleanup & Supervisory Health Probing ]                   │
+│    • watchdog:phase-cleanup: purges prior phase monitors on phase change    │
+│    • watchdog:cleanup: sweeps and transitions stale monitors to terminated  │
+│    • watchdog:verify: audits invariants and fails on monitor leaks          │
+│    • watchdog:probe: 5-point supervisory health check dispatched to lead    │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### CLI Command Reference for Watchdog Durability
+
+```bash
+# Verify watchdog registry compliance and invariant rules
+bun harness.ts watchdog:verify --generation 1
+
+# Clean up stale monitors exceeding cadence limits
+bun harness.ts watchdog:cleanup --generation 1 --max-age-ms 900000
+
+# Terminate previous phase monitors upon transition to execution phase
+bun harness.ts watchdog:phase-cleanup --current-phase execution --generation 1
+
+# Dispatch active 5-point supervisory health probe to leader
+bun harness.ts watchdog:probe --run .capsules/<run-id>
+```
+
+```text
+### Watchdog Lifecycle Invariant Verification
+- **Target Root**: `.capsules/`
+- **Verification Status**: PASSED ✅ (All Lifecycle Invariants Upheld)
+- **Total Monitors Inspected**: 3 (Active: 1, Stale: 0, Terminated: 2, Orphaned: 0)
+- **Invariant Rule**: Max 1 active monitor per generation/pulse strictly enforced
+```
+
+---
+
 [⬅ Previous: POSIX File Locking & Durable Writes](./02-posix-flock-and-fdatasync.md) | [Master Table of Contents](../README.md) | [Next: Chapter 09 — Execution-Time Branching ➡](../09-branching-and-honesty/01-execution-time-branching.md)

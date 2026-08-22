@@ -1,15 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import {
-  categorizeBlunder,
-  type BlunderCategory,
-  type MindCandidateProposal,
-} from "./blunders.ts";
-import {
-  readFeedbackQueue,
-  type FeedbackCategory,
-  type FeedbackItem,
-} from "./feedback-queue.ts";
+import { categorizeBlunder, type BlunderCategory, type MindCandidateProposal } from "./blunders.ts";
+import { readFeedbackQueue, type FeedbackCategory, type FeedbackItem } from "./feedback-queue.ts";
 
 export interface PushbackItem {
   readonly id?: string | undefined;
@@ -152,7 +144,11 @@ function parseInvariantsTable(lines: readonly string[]): PushbackInvariant[] {
     }
     const trimmed = line.trim();
 
-    if (trimmed.startsWith("|") && trimmed.includes("Invariant") && trimmed.includes("Requirement")) {
+    if (
+      trimmed.startsWith("|") &&
+      trimmed.includes("Invariant") &&
+      trimmed.includes("Requirement")
+    ) {
       inTable = true;
       continue;
     }
@@ -235,12 +231,14 @@ export function parsePushbackMarkdown(content: string): PushbackRecord[] {
         /^(?:[-*]|\d+\.)\s+\*\*(?:Pushback Item|Item|\d+)?\s*(?:(\d+)|([^*]+))\*\*:\s*(.*)$/i,
       );
 
-      const objectiveMatch = trimmed.match(
-        /^\d+\.\s+\*\*(.+?)\*\*\s*(?:\((.+?)\))?:\s*(.*)$/,
-      );
+      const objectiveMatch = trimmed.match(/^\d+\.\s+\*\*(.+?)\*\*\s*(?:\((.+?)\))?:\s*(.*)$/);
 
       if (itemMatch || objectiveMatch) {
-        const itemTitle = itemMatch ? (itemMatch[2] ?? itemMatch[1] ?? "").trim() : (objectiveMatch ? (objectiveMatch[1] ?? "").trim() : "");
+        const itemTitle = itemMatch
+          ? (itemMatch[2] ?? itemMatch[1] ?? "").trim()
+          : objectiveMatch
+            ? (objectiveMatch[1] ?? "").trim()
+            : "";
         let issue = itemMatch && itemMatch[3] ? itemMatch[3].trim() : "";
         let resolution = "";
 
@@ -260,12 +258,18 @@ export function parsePushbackMarkdown(content: string): PushbackRecord[] {
             break;
           }
 
-          if (subTrimmed.toLowerCase().includes("*issue*:") || subTrimmed.toLowerCase().includes("**issue**:")) {
+          if (
+            subTrimmed.toLowerCase().includes("*issue*:") ||
+            subTrimmed.toLowerCase().includes("**issue**:")
+          ) {
             const issuePart = subTrimmed.split(/:/i)[1];
             if (issuePart) {
               issue = issuePart.replace(/\*/g, "").trim();
             }
-          } else if (subTrimmed.toLowerCase().includes("*resolution*:") || subTrimmed.toLowerCase().includes("**resolution**:")) {
+          } else if (
+            subTrimmed.toLowerCase().includes("*resolution*:") ||
+            subTrimmed.toLowerCase().includes("**resolution**:")
+          ) {
             const resPart = subTrimmed.split(/:/i)[1];
             if (resPart) {
               resolution = resPart.replace(/\*/g, "").trim();
@@ -319,13 +323,17 @@ export function parsePushbackMarkdown(content: string): PushbackRecord[] {
     }
 
     if (effectiveGenNum !== undefined) {
-      const existingGenIdx = records.findIndex((r) => r.generation === effectiveGenNum && r.pushback_number === undefined);
+      const existingGenIdx = records.findIndex(
+        (r) => r.generation === effectiveGenNum && r.pushback_number === undefined,
+      );
       if (existingGenIdx !== -1) {
         const existingRec = records[existingGenIdx];
         if (existingRec !== undefined) {
           records[existingGenIdx] = {
             ...existingRec,
-            title: existingRec.title.includes("Convergence") ? existingRec.title : currentSectionTitle,
+            title: existingRec.title.includes("Convergence")
+              ? existingRec.title
+              : currentSectionTitle,
             items: [...existingRec.items, ...items],
             invariants: [...existingRec.invariants, ...invariants],
             raw_section: `${existingRec.raw_section ?? ""}\n\n${currentSectionLines.join("\n")}`,
@@ -359,7 +367,8 @@ export function parsePushbackMarkdown(content: string): PushbackRecord[] {
 
       // Extract Pushback Number e.g. "User Pushback #8: ..."
       const pushbackMatch = currentSectionTitle.match(/Pushback\s*#?(\d+)/i);
-      currentPushbackNum = pushbackMatch && pushbackMatch[1] ? Number.parseInt(pushbackMatch[1], 10) : undefined;
+      currentPushbackNum =
+        pushbackMatch && pushbackMatch[1] ? Number.parseInt(pushbackMatch[1], 10) : undefined;
 
       // Extract Generation Number e.g. "Pulse Generation 1 Convergence"
       const genMatch = currentSectionTitle.match(/Generation\s*(\d+)/i);
@@ -416,11 +425,13 @@ export function ingestPushbacks(
       if (item === undefined) {
         continue;
       }
-      const cat = item.category ?? categorizeBlunder({
-        type: item.title ?? rec.title,
-        observation: item.issue,
-        remediation: item.resolution,
-      });
+      const cat =
+        item.category ??
+        categorizeBlunder({
+          type: item.title ?? rec.title,
+          observation: item.issue,
+          remediation: item.resolution,
+        });
 
       categoryCounts[cat] = (categoryCounts[cat] ?? 0) + 1;
 
@@ -435,7 +446,11 @@ export function ingestPushbacks(
       const rationale = `Pushback issue: ${item.issue}. Prescribed resolution: ${item.resolution}`;
 
       const charterGoals =
-        cat === "boundary_violation" ? ["G2"] : cat === "model_reasoning_error" ? ["G1"] : ["G1", "G2"];
+        cat === "boundary_violation"
+          ? ["G2"]
+          : cat === "model_reasoning_error"
+            ? ["G1"]
+            : ["G1", "G2"];
 
       proposals.push({
         id: candId,
@@ -464,8 +479,7 @@ export function ingestPushbacks(
       const candId = fb.candidate_id ?? `cand-feedback-${fb.id}`;
       const statement = `Remediate feedback [${fb.id}]: ${fb.title}`;
       const rationale = fb.content;
-      const charterGoals =
-        cat === "boundary_violation" ? ["G2"] : ["G1"];
+      const charterGoals = cat === "boundary_violation" ? ["G2"] : ["G1"];
 
       proposals.push({
         id: candId,

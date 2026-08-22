@@ -3,7 +3,10 @@ import {
   auditHierarchicalExecution,
   validateTaskDispatchCompliance,
 } from "../../../orchestrating-long-tasks/scripts/src/orchestrator/decision-policy.ts";
-import type { TaskRecord, WorkflowState } from "../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
+import type {
+  TaskRecord,
+  WorkflowState,
+} from "../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
 import { workflowState } from "../workflow/test-port.ts";
 
 describe("Orchestrator Decision Policy & Hierarchical Audit", () => {
@@ -43,7 +46,9 @@ describe("Orchestrator Decision Policy & Hierarchical Audit", () => {
 
     const report = auditHierarchicalExecution(state);
     expect(report.compliant).toBeFalse();
-    expect(report.violations.some((v) => v.ruleId === "DOM-03-REPAIRER-ASSIGNMENT-MISSING")).toBeTrue();
+    expect(
+      report.violations.some((v) => v.ruleId === "DOM-03-REPAIRER-ASSIGNMENT-MISSING"),
+    ).toBeTrue();
   });
 
   test("auditHierarchicalExecution catches role mismatch on active lease", () => {
@@ -65,7 +70,9 @@ describe("Orchestrator Decision Policy & Hierarchical Audit", () => {
 
     const report = auditHierarchicalExecution(state);
     expect(report.compliant).toBeFalse();
-    expect(report.violations.some((v) => v.ruleId === "DOM-02-IMPLEMENTER-NOT-REPAIRER")).toBeTrue();
+    expect(
+      report.violations.some((v) => v.ruleId === "DOM-02-IMPLEMENTER-NOT-REPAIRER"),
+    ).toBeTrue();
   });
 
   test("validateTaskDispatchCompliance verifies role matching at dispatch", () => {

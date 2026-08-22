@@ -158,9 +158,7 @@ export function formatQueueWaveBrief(params: QueueWaveParams): string {
     "",
     `- **Topology**: ${topology}`,
     `- **Dispatch**: each row is independently claimable now — claim it the moment an agent is free; do not wait for the rest of this list before claiming the next one.`,
-    ...nextActionsBlock(
-      queueWaveNextActions(params.runId, params.entries[0]?.taskId),
-    ),
+    ...nextActionsBlock(queueWaveNextActions(params.runId, params.entries[0]?.taskId)),
   ];
   return enforceLineLimit(lines.join("\n"), 30);
 }
@@ -185,9 +183,7 @@ export function formatQueuePopBrief(params: QueuePopParams): string {
     `- **Deadline**: ${params.deadlineMinutes}m (Expires: ${params.expiresAt})`,
     `- **Write Scope**: ${scopeStr}`,
     `- **Mandatory Gate**: ${gateList(params.gates)}`,
-    ...nextActionsBlock(
-      queuePopNextActions(undefined, params.taskId, params.agent, params.token),
-    ),
+    ...nextActionsBlock(queuePopNextActions(undefined, params.taskId, params.agent, params.token)),
   ].join("\n");
   return enforceLineLimit(md, 30);
 }

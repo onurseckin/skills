@@ -34,10 +34,7 @@ export function assignReplacementRepairer(
           "replacement must differ from original implementer",
         );
       }
-      const allValidations = [
-        ...(task.validations ?? []),
-        ...(task.validation_history ?? []),
-      ];
+      const allValidations = [...(task.validations ?? []), ...(task.validation_history ?? [])];
       if (allValidations.some((v) => v.validator_id === replacementId)) {
         throw new HarnessError(
           "INVALID_ARGUMENT",

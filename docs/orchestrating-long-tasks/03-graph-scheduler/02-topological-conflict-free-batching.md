@@ -181,4 +181,51 @@ waited rather than leaving a reader to guess.
 
 ---
 
+## 📊 Wave Concurrency Metrics & Work/Span Theory
+
+The scheduler computes formal computational complexity metrics using Directed Acyclic Graph Work/Span analysis:
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    DAG WORK / SPAN COMPLEXITY METRICS                       │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  • Total Work (T_1):                                                        │
+│      The total work time across all tasks executed serially:                │
+│        T_1 = sum_{i=1}^N effort(task_i)                                     │
+│                                                                             │
+│  • Span / Critical Path (T_infinity):                                       │
+│      The longest directed dependency path through the DAG:                  │
+│        T_infinity = max_{paths P} sum_{v in P} effort(v)                    │
+│                                                                             │
+│  • Parallelism Factor (P = T_1 / T_infinity):                               │
+│      The theoretical maximum concurrency speedup achievable.                │
+│                                                                             │
+│  • Optimal Concurrency (C_opt = min(max_parallel, ceil(P))):                │
+│      The ideal number of worker threads to dispatch without lane thrashing. │
+│                                                                             │
+│  • Serial Bottleneck Count:                                                 │
+│      Number of waves restricted to width = 1 due to hard dependencies.      │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+These metrics are rendered in `dag:render` and exported in `metrics.json`:
+
+```bash
+bun harness.ts dag:render --run .capsules/<slug> --recommendations
+```
+
+```text
+### Wave Concurrency Telemetry:
+- **Total Work ($T_1$)**: 14 effort units
+- **Critical Path Span ($T_\infty$)**: 4 effort units
+- **Parallelism Factor**: 3.50x
+- **Optimal Worker Pool**: 4 concurrent agents
+- **Serial Bottlenecks**: 1 wave constrained to width 1 (Task `task-db-migration`)
+- **Parallel Optimization Recommendation**: Partition `task-db-migration` into isolated sub-schemas to unlock parallel wave execution.
+```
+
+---
+
 [⬅ Previous: Dependency Graph Theory](./01-dependency-graph-theory.md) | [Master Table of Contents](../README.md) | [Next: Plan Revision & Freezing ➡](./03-plan-revision-and-freezing.md)

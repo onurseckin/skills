@@ -24,7 +24,11 @@ import {
 } from "../../../orchestrating-long-tasks/scripts/src/scheduler/index.ts";
 import { registerWatchdog } from "../../../orchestrating-long-tasks/scripts/src/authority/watchdog-manager.ts";
 import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
-import type { TaskRecord, TransactionPort, WorkflowState } from "../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
+import type {
+  TaskRecord,
+  TransactionPort,
+  WorkflowState,
+} from "../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
 import { schedulerState } from "./fixtures.ts";
 
 function createMockPort(initialState: Record<string, unknown>): TransactionPort {
@@ -223,7 +227,13 @@ describe("Core Scheduler Engine — 5-Point Graph Health Probes", () => {
       const graph = state.graph as Record<string, unknown>;
       graph.gates = [
         { id: "bad-gate-1", command: "true", cwd: ".", scope: "task", requirement_ids: [] },
-        { id: "bad-gate-2", command: "bun test", cwd: "/abs/path", scope: "invalid-scope", requirement_ids: ["R-001"] },
+        {
+          id: "bad-gate-2",
+          command: "bun test",
+          cwd: "/abs/path",
+          scope: "invalid-scope",
+          requirement_ids: ["R-001"],
+        },
       ];
 
       const result = probeGateCoverageViolations(state);
@@ -318,13 +328,23 @@ describe("Core Scheduler Engine — Structured 5-Point Supervisory Health Audit 
     const result = probePlanEnhancementNeeds(state);
     expect(result.passed).toBeFalse();
     expect(result.unfulfilledRequirementsCount).toBe(1);
-    expect(result.suggestedEnhancements).toContain("Requirement 'R-UNFULFILLED-999' has no assigned tasks.");
+    expect(result.suggestedEnhancements).toContain(
+      "Requirement 'R-UNFULFILLED-999' has no assigned tasks.",
+    );
   });
 
   test("Probe (c): 100% Agent Registry Accuracy detects ghost agents and role mismatches", () => {
     const state = schedulerState();
     state.agents = [
-      { id: "worker-1", role: "implementer", status: "active", host: "local", granted_at: "2026-08-22T00:00:00Z", parent_agent_id: null, parent_task_id: null },
+      {
+        id: "worker-1",
+        role: "implementer",
+        status: "active",
+        host: "local",
+        granted_at: "2026-08-22T00:00:00Z",
+        parent_agent_id: null,
+        parent_task_id: null,
+      },
     ];
 
     const tasks = state.tasks as Record<string, Record<string, unknown>>;
@@ -347,7 +367,15 @@ describe("Core Scheduler Engine — Structured 5-Point Supervisory Health Audit 
   test("Probe (c): 100% Agent Registry Accuracy passes on 100% compliant active registry", () => {
     const state = schedulerState();
     state.agents = [
-      { id: "worker-1", role: "implementer", status: "active", host: "local", granted_at: "2026-08-22T00:00:00Z", parent_agent_id: null, parent_task_id: null },
+      {
+        id: "worker-1",
+        role: "implementer",
+        status: "active",
+        host: "local",
+        granted_at: "2026-08-22T00:00:00Z",
+        parent_agent_id: null,
+        parent_task_id: null,
+      },
     ];
 
     const tasks = state.tasks as Record<string, Record<string, unknown>>;
@@ -405,9 +433,7 @@ describe("Core Scheduler Engine — Structured 5-Point Supervisory Health Audit 
     expect(determineTopLeader(stateWithOrch).agentId).toBe("orch-1");
 
     const stateWithCoord = {
-      agents: [
-        { id: "coord-1", role: "coordinator", status: "active" },
-      ],
+      agents: [{ id: "coord-1", role: "coordinator", status: "active" }],
     };
     expect(determineTopLeader(stateWithCoord).role).toBe("coordinator");
   });
@@ -415,7 +441,15 @@ describe("Core Scheduler Engine — Structured 5-Point Supervisory Health Audit 
   test("auditSupervisory5PointHealth and dispatchSupervisoryHealthProbe produce structured report", () => {
     const state = schedulerState();
     state.agents = [
-      { id: "mind-lead", role: "mind", status: "active", host: "local", granted_at: "2026-08-22T00:00:00Z", parent_agent_id: null, parent_task_id: null },
+      {
+        id: "mind-lead",
+        role: "mind",
+        status: "active",
+        host: "local",
+        granted_at: "2026-08-22T00:00:00Z",
+        parent_agent_id: null,
+        parent_task_id: null,
+      },
     ];
 
     const report = auditSupervisory5PointHealth(state);
@@ -434,9 +468,9 @@ describe("Core Scheduler Engine — Structured 5-Point Supervisory Health Audit 
 describe("Core Scheduler Engine — Zero-Tolerance Doctor Gate Enforcement (p25)", () => {
   test("assertDoctorGatePassed throws HarnessError on failing doctor check", async () => {
     // Calling with non-existent / invalid directory triggers rejection
-    await expect(
-      assertDoctorGatePassed("/nonexistent/run/directory"),
-    ).rejects.toThrow(HarnessError);
+    await expect(assertDoctorGatePassed("/nonexistent/run/directory")).rejects.toThrow(
+      HarnessError,
+    );
   });
 });
 

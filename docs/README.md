@@ -7,6 +7,7 @@ Welcome to the central documentation directory for the **`@onurseckin/skills`** 
 Root `docs/` is **strictly reserved** for repository-wide multi-skill collection guidelines, quality gates, packaging standards, and repository-level governance.
 
 ### Architectural Invariants:
+
 1. **No Individual Skill Runtime Docs in Root `docs/`:**
    - All documentation specific to an individual skill (such as role definitions, reference guides, protocol specifications, checklists, and state models) resides strictly inside that skill's dedicated directory (e.g., `orchestrating-long-tasks/references/`, `orchestrating-long-tasks/roles/`, `orchestrating-long-tasks/mind/`).
    - `orchestrating-long-tasks/docs/` is prohibited and must not exist.

@@ -5,7 +5,10 @@ import {
   evaluateRepairCycleStatus,
 } from "../../../orchestrating-long-tasks/scripts/src/orchestrator/recursive-critic-feedback.ts";
 import type { CompletionReview } from "../../../orchestrating-long-tasks/scripts/src/workflow/completion/types.ts";
-import type { TaskRecord, WorkflowState } from "../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
+import type {
+  TaskRecord,
+  WorkflowState,
+} from "../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
 import { TestPort, repositoryBinding, workflowState } from "../workflow/test-port.ts";
 
 describe("Orchestrator Recursive Critic Feedback Integration", () => {
@@ -89,11 +92,15 @@ describe("Orchestrator Recursive Critic Feedback Integration", () => {
     expect(instruction.repairAssignee).toBe("worker-1");
     expect(instruction.repairRound).toBe(1);
     expect(instruction.writeScope).toEqual(["src/db/pool.ts"]);
-    expect(instruction.remediationInstructions).toContain("Connection leak on retry in src/db/pool.ts");
+    expect(instruction.remediationInstructions).toContain(
+      "Connection leak on retry in src/db/pool.ts",
+    );
     expect(instruction.revalidationGates).toContain("bun test tests/unit/db.test.ts");
 
     expect(outcome.defectSynthesis).toBeDefined();
-    expect(outcome.defectSynthesis?.synthesizedPrompt).toContain("Evolutionary Round 2 Refinement Directive");
+    expect(outcome.defectSynthesis?.synthesizedPrompt).toContain(
+      "Evolutionary Round 2 Refinement Directive",
+    );
   });
 
   test("evaluateRepairCycleStatus categorizes near-budget and exhausted tasks", () => {

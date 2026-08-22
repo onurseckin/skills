@@ -197,15 +197,36 @@ Crossing that line is a planning signal, not a capacity problem.
 
 ---
 
-## 🔎 Inspecting Branches
+---
 
-```bash
-bun harness.ts branch:status --run .capsules/<run-id>
-bun harness.ts branch:status --run .capsules/<run-id> --task task-truncate --all
+## ⚡ Living Dynamic DAG Expansion & Branch Replay
+
+Branches modify the execution topology at runtime without invalidating the frozen plan graph `state.graph`. When `events.jsonl` is replayed via `readCapsuleEvents` by the Living Tracer (`dag:trace`), dynamic branch tasks and their sub-agent assignments are projected into `DynamicDagState` for timeline rendering:
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    BRANCH EXPANSION IN THE LIVING TRACER                    │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  events.jsonl (replayed via readCapsuleEvents)                              │
+│    ├── Seq 38: {"kind": "branch-opened", "branch_id": "B-1b72a087", ...}    │
+│    ├── Seq 39: {"kind": "task-created", "task_id": "S-measure", ...}        │
+│    ├── Seq 40: {"kind": "task-created", "task_id": "S-ellipsis", ...}       │
+│    ├── Seq 42: {"kind": "branch-submitted", "sub_task": "S-measure", ...}   │
+│    └── Seq 48: {"kind": "branch-collected", "files_changed": [...], ...}    │
+│                                  │                                          │
+│                                  ▼ (dag:trace timeline rendering)           │
+│  [ Living Vertical Step Trace ]                                             │
+│    Seq 38: 🟢 branch-opened (task-truncate -> B-1b72a087)                   │
+│    Seq 39: ○ sub-task-created (S-measure: Cut-point measurement)            │
+│    Seq 40: ○ sub-task-created (S-ellipsis: Ellipsis character)              │
+│    Seq 42: 🟣 branch-submitted (S-measure by sub-measure)                   │
+│    Seq 48: ✓ branch-collected (B-1b72a087 -> 2 files diffed)                │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-Open branches are listed by default with the reason each was opened; `--all` includes collected and
-abandoned ones.
+This ensures full post-hoc observability into execution branching via chronological timeline rendering without sacrificing plan determinism.
 
 ---
 

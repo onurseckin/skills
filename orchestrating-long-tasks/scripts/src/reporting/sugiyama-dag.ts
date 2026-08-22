@@ -31,7 +31,14 @@ export interface SugiyamaNode {
 export interface SugiyamaEdge {
   readonly from: string;
   readonly to: string;
-  readonly type?: "dataflow" | "scope_conflict" | "explicit_justification" | "prerequisite_gate" | "declared_dep" | "virtual" | undefined;
+  readonly type?:
+    | "dataflow"
+    | "scope_conflict"
+    | "explicit_justification"
+    | "prerequisite_gate"
+    | "declared_dep"
+    | "virtual"
+    | undefined;
   readonly reason?: string | undefined;
 }
 
@@ -280,7 +287,9 @@ export function detectCyclesTarjan(
       cycleEdges.push({ from: fromNode, to: toNode });
     }
     const firstEdge = `${path[0]} ➔ ${path[1] ?? path[0]}`;
-    remediation.push(`Drop edge [${firstEdge}] or re-sequence tasks to break dependency cycle (${path.join(" ➔ ")})`);
+    remediation.push(
+      `Drop edge [${firstEdge}] or re-sequence tasks to break dependency cycle (${path.join(" ➔ ")})`,
+    );
   }
 
   return {
@@ -375,7 +384,9 @@ export function assignSugiyamaRanks(
   const cycleSet = new Set(cycleNodeIds);
 
   // Filter out cycle back-edges to calculate ranks safely
-  const acyclicEdges = edges.filter((e) => !cycleSet.has(e.from) || !cycleSet.has(e.to) || e.from === e.to);
+  const acyclicEdges = edges.filter(
+    (e) => !cycleSet.has(e.from) || !cycleSet.has(e.to) || e.from === e.to,
+  );
 
   // In-degree computation
   const inDegree = new Map<string, number>();
@@ -466,7 +477,10 @@ export function minimizeCrossingsBarycenter(
     adjUp.get(e.to)?.push(e.from);
   }
 
-  function countCrossingsBetween(layerA: readonly SugiyamaRankedNode[], layerB: readonly SugiyamaRankedNode[]): number {
+  function countCrossingsBetween(
+    layerA: readonly SugiyamaRankedNode[],
+    layerB: readonly SugiyamaRankedNode[],
+  ): number {
     let crossings = 0;
     const posB = new Map<string, number>();
     for (let i = 0; i < layerB.length; i++) {
@@ -519,7 +533,9 @@ export function minimizeCrossingsBarycenter(
 
       const barycenters = currLayer.map((node, originalIndex) => {
         const parents = adjUp.get(node.id) ?? [];
-        const validPositions = parents.filter((pId) => posMap.has(pId)).map((pId) => posMap.get(pId)!);
+        const validPositions = parents
+          .filter((pId) => posMap.has(pId))
+          .map((pId) => posMap.get(pId)!);
         const bc =
           validPositions.length > 0
             ? validPositions.reduce((acc, val) => acc + val, 0) / validPositions.length
@@ -542,7 +558,9 @@ export function minimizeCrossingsBarycenter(
 
       const barycenters = currLayer.map((node, originalIndex) => {
         const children = adjDown.get(node.id) ?? [];
-        const validPositions = children.filter((cId) => posMap.has(cId)).map((cId) => posMap.get(cId)!);
+        const validPositions = children
+          .filter((cId) => posMap.has(cId))
+          .map((cId) => posMap.get(cId)!);
         const bc =
           validPositions.length > 0
             ? validPositions.reduce((acc, val) => acc + val, 0) / validPositions.length
@@ -611,7 +629,8 @@ export function renderRoundedNodeBox(
   const cycleBadge = options.isCycle ? " ⚡[CYCLE]" : "";
   const bypassBadge = options.isBypass ? " ❌[BYPASS]" : "";
   const agentBadge =
-    task.assignedAgent && (task.status === "leased" || task.status === "running" || task.status === "validating")
+    task.assignedAgent &&
+    (task.status === "leased" || task.status === "running" || task.status === "validating")
       ? ` [⚡ ${task.status === "validating" ? "VALIDATING" : "LEASED"}: ${task.assignedAgent} (${task.assignedRole ?? "implementer"})]`
       : "";
 
@@ -632,7 +651,8 @@ export function renderRoundedNodeBox(
   }
 
   if (options.detailed || (task.writeScope && task.writeScope.length > 0)) {
-    const scopes = task.writeScope && task.writeScope.length > 0 ? task.writeScope.join(", ") : "none";
+    const scopes =
+      task.writeScope && task.writeScope.length > 0 ? task.writeScope.join(", ") : "none";
     rows.push(`Scope: ${scopes}`);
   }
 
@@ -649,11 +669,20 @@ export function renderRoundedNodeBox(
     rows.push(`Gate:  ${task.gate}`);
   }
 
-  if (task.assignedAgent && task.status !== "leased" && task.status !== "running" && task.status !== "validating") {
-    const attemptStr = task.attempt !== null && task.attempt !== undefined ? ` (Attempt #${task.attempt})` : "";
+  if (
+    task.assignedAgent &&
+    task.status !== "leased" &&
+    task.status !== "running" &&
+    task.status !== "validating"
+  ) {
+    const attemptStr =
+      task.attempt !== null && task.attempt !== undefined ? ` (Attempt #${task.attempt})` : "";
     const toolStr = task.assignedTool ? ` • Tool: ${task.assignedTool}` : "";
     rows.push(`Agent: ${task.assignedAgent}${attemptStr}${toolStr}`);
-  } else if (task.assignedTool && (task.status === "leased" || task.status === "running" || task.status === "validating")) {
+  } else if (
+    task.assignedTool &&
+    (task.status === "leased" || task.status === "running" || task.status === "validating")
+  ) {
     rows.push(`Tool:  ${task.assignedTool}`);
   }
 
@@ -693,7 +722,8 @@ export function renderSugiyamaDag(
 
   if (nodes.length === 0) {
     return {
-      renderedDag: "  ╭──────────────────────────────────────────────╮\n  │  (No tasks declared in planning buffer/graph) │\n  ╰──────────────────────────────────────────────╯",
+      renderedDag:
+        "  ╭──────────────────────────────────────────────╮\n  │  (No tasks declared in planning buffer/graph) │\n  ╰──────────────────────────────────────────────╯",
       layers: [],
       rankedNodes: [],
       cycleDiagnostic,
@@ -833,8 +863,14 @@ export function buildSugiyamaDagReport(
     options,
   );
 
-  const totalWork = nodes.reduce((acc, t) => acc + (typeof t.effort === "number" ? t.effort : 1), 0);
-  const maxCriticalPath = Math.max(1, ...nodes.map((n) => (typeof n.criticalDepth === "number" ? n.criticalDepth + 1 : 1)));
+  const totalWork = nodes.reduce(
+    (acc, t) => acc + (typeof t.effort === "number" ? t.effort : 1),
+    0,
+  );
+  const maxCriticalPath = Math.max(
+    1,
+    ...nodes.map((n) => (typeof n.criticalDepth === "number" ? n.criticalDepth + 1 : 1)),
+  );
   const span = maxCriticalPath;
   const parallelismFactor = span > 0 ? Number((totalWork / span).toFixed(2)) : 0;
   const maxParallel = options.maxParallel ?? 4;
@@ -844,7 +880,8 @@ export function buildSugiyamaDagReport(
     totalWaves: layers.length,
     maxParallelLanes: layers.length > 0 ? Math.max(...layers.map((l) => l.nodes.length)) : 0,
     criticalPathLength: maxCriticalPath,
-    averageWaveConcurrency: layers.length > 0 ? Number((nodes.length / layers.length).toFixed(2)) : 0,
+    averageWaveConcurrency:
+      layers.length > 0 ? Number((nodes.length / layers.length).toFixed(2)) : 0,
     serialBottlenecks: nodes.filter((n) => (n.descendantCount ?? 0) >= 3).length,
     parallelEligibleChains: 0,
     totalWork,

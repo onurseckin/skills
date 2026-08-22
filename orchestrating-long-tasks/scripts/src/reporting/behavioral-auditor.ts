@@ -13,7 +13,8 @@ export type BehavioralViolationType =
   | "orchestrator_direct_implementation"
   | "implementer_self_grading"
   | "implementer_graph_mutation"
-  | "subagent_pulse_termination";
+  | "subagent_pulse_termination"
+  | "role_confinement_violation";
 
 export type BehavioralSeverity = "critical" | "important" | "minor";
 
@@ -164,6 +165,62 @@ function inferRole(actorId: string, roleMap: Map<string, string>, state: JsonObj
   return "unknown";
 }
 
+export function isFullTestSuiteCommand(argv: readonly string[]): boolean {
+  if (!argv || argv.length === 0) return false;
+  const joined = argv.join(" ").trim();
+  const lowerJoined = joined.toLowerCase();
+
+  if (
+    lowerJoined === "bun test" ||
+    lowerJoined === "bun run test" ||
+    lowerJoined === "bun run test:unit" ||
+    lowerJoined === "bun test:unit" ||
+    lowerJoined.includes("test --coverage") ||
+    lowerJoined.includes("run test:unit") ||
+    lowerJoined === "npm test" ||
+    lowerJoined === "npm run test" ||
+    lowerJoined === "npm run test:unit" ||
+    lowerJoined === "yarn test" ||
+    lowerJoined === "yarn test:unit" ||
+    lowerJoined === "pnpm test" ||
+    lowerJoined === "pnpm test:unit" ||
+    lowerJoined === "pytest" ||
+    lowerJoined === "vitest" ||
+    lowerJoined === "cargo test" ||
+    lowerJoined === "go test ./..."
+  ) {
+    return true;
+  }
+
+  const isTestRunner =
+    (argv[0] === "bun" && argv[1] === "test") ||
+    (argv[0] === "bun" &&
+      argv[1] === "run" &&
+      typeof argv[2] === "string" &&
+      argv[2].startsWith("test")) ||
+    (argv[0] === "npm" &&
+      (argv[1] === "test" ||
+        (argv[1] === "run" && typeof argv[2] === "string" && argv[2].startsWith("test")))) ||
+    (argv[0] === "yarn" && (argv[1] === "test" || argv[1] === "test:unit")) ||
+    (argv[0] === "pnpm" && (argv[1] === "test" || argv[1] === "test:unit")) ||
+    argv[0] === "pytest" ||
+    argv[0] === "vitest" ||
+    argv[0] === "jest";
+
+  if (isTestRunner) {
+    const hasSingleTestFile = argv.some(
+      (arg) =>
+        !arg.startsWith("-") &&
+        /(\.(test|spec)\.[cm]?[jt]sx?|([/_]test|^test)[^/]*\.py|_test\.py|_spec\.rb)$/i.test(arg),
+    );
+    if (!hasSingleTestFile) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 function auditCoordinatorCodeWriting(
   roleMap: Map<string, string>,
   grants: readonly AgentGrantRecord[],
@@ -240,6 +297,22 @@ function auditCoordinatorCodeWriting(
           argv: [...(cmd.argv ?? [])],
           ...(cmd.tool ? { tool: cmd.tool } : {}),
           ...(cmd.tool_category ? { tool_category: cmd.tool_category } : {}),
+        },
+      });
+    }
+
+    if (isFullTestSuiteCommand(cmd.argv ?? [])) {
+      findings.push({
+        agent_id: cmd.actor,
+        role: "coordinator",
+        violation_type: "role_confinement_violation",
+        severity: "critical",
+        observation: `Coordinator agent "${cmd.actor}" executed prohibited full test suite command "${(cmd.argv ?? []).join(" ")}" in command "${cmd.id}"`,
+        remediation:
+          "Coordinators are strictly banned from running full test suites (`bun test`, `bun run test:unit`, `bun test --coverage`). Coordinators coordinate task evidence without running tests; full tests belong exclusively to Completeness Critics.",
+        evidence: {
+          command_id: cmd.id,
+          argv: [...(cmd.argv ?? [])],
         },
       });
     }
@@ -369,6 +442,22 @@ function auditOrchestratorDirectImplementation(
           command_id: cmd.id,
           ...(cmd.tool ? { tool: cmd.tool } : {}),
           ...(cmd.tool_category ? { tool_category: cmd.tool_category } : {}),
+        },
+      });
+    }
+
+    if (isFullTestSuiteCommand(argv)) {
+      findings.push({
+        agent_id: cmd.actor,
+        role: "orchestrator",
+        violation_type: "role_confinement_violation",
+        severity: "critical",
+        observation: `Orchestrator agent "${cmd.actor}" executed prohibited full test suite command "${argv.join(" ")}" in command "${cmd.id}"`,
+        remediation:
+          "Orchestrators are strictly banned from running full test suites (`bun test`, `bun run test:unit`, `bun test --coverage`). Only Completeness Critics may run full tests; workers run only scoped single-file tests.",
+        evidence: {
+          command_id: cmd.id,
+          argv: [...argv],
         },
       });
     }

@@ -308,7 +308,13 @@ describe("CLI Query Integration & Retrieval Contracts", () => {
       expect(contract.commands).toContain("evidence:screenshots");
       expect(contract.commands).toContain("whoami");
 
-      for (const cmd of ["finding:get", "report:get", "evidence:get", "evidence:screenshots", "whoami"]) {
+      for (const cmd of [
+        "finding:get",
+        "report:get",
+        "evidence:get",
+        "evidence:screenshots",
+        "whoami",
+      ]) {
         const spec = findCommand(cmd)!;
         expect(spec).toBeDefined();
         expect(() => assertRoleMayInvoke("validator", spec, "val-1")).not.toThrow();
@@ -324,7 +330,14 @@ describe("CLI Query Integration & Retrieval Contracts", () => {
       expect(contract.commands).toContain("evidence:screenshots");
       expect(contract.commands).toContain("whoami");
 
-      for (const cmd of ["dag:view", "finding:get", "report:get", "evidence:get", "evidence:screenshots", "whoami"]) {
+      for (const cmd of [
+        "dag:view",
+        "finding:get",
+        "report:get",
+        "evidence:get",
+        "evidence:screenshots",
+        "whoami",
+      ]) {
         const spec = findCommand(cmd)!;
         expect(spec).toBeDefined();
         expect(() => assertRoleMayInvoke("coordinator", spec, "coord-1")).not.toThrow();
@@ -339,7 +352,13 @@ describe("CLI Query Integration & Retrieval Contracts", () => {
       expect(contract.commands).toContain("evidence:screenshots");
       expect(contract.commands).toContain("whoami");
 
-      for (const cmd of ["finding:get", "report:get", "evidence:get", "evidence:screenshots", "whoami"]) {
+      for (const cmd of [
+        "finding:get",
+        "report:get",
+        "evidence:get",
+        "evidence:screenshots",
+        "whoami",
+      ]) {
         const spec = findCommand(cmd)!;
         expect(spec).toBeDefined();
         expect(() => assertRoleMayInvoke("completeness-critic", spec, "critic-1")).not.toThrow();

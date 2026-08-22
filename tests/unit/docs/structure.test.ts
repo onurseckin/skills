@@ -106,4 +106,45 @@ describe("Documentation Structure, Diátaxis Modules & Semantic Mirroring Invari
       }
     }
   });
+
+  it("verifies all relative markdown links in docs/ resolve to existing files", () => {
+    function getMdFiles(dir: string): string[] {
+      const entries = readdirSync(dir, { withFileTypes: true });
+      const files: string[] = [];
+      for (const entry of entries) {
+        const full = join(dir, entry.name);
+        if (entry.isDirectory()) {
+          files.push(...getMdFiles(full));
+        } else if (entry.isFile() && entry.name.endsWith(".md")) {
+          files.push(full);
+        }
+      }
+      return files;
+    }
+
+    const mdFiles = getMdFiles(rootDocsDir);
+    expect(mdFiles.length).toBeGreaterThanOrEqual(32);
+
+    const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+    let checkedCount = 0;
+
+    for (const file of mdFiles) {
+      const content = readFileSync(file, "utf8");
+      let match;
+      while ((match = linkRegex.exec(content)) !== null) {
+        const [_, _text, url] = match;
+        if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("mailto:")) {
+          continue;
+        }
+        const filePathPart = url.split("#")[0];
+        if (!filePathPart) {
+          continue;
+        }
+        const resolved = resolve(join(file, ".."), filePathPart);
+        expect(existsSync(resolved)).toBe(true);
+        checkedCount++;
+      }
+    }
+    expect(checkedCount).toBeGreaterThan(200);
+  });
 });

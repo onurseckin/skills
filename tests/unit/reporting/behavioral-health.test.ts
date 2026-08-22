@@ -200,6 +200,41 @@ describe("behavioral health auditor - coordinator violations", () => {
     expect(finding).toBeDefined();
     expect(finding?.observation).toContain("executed file modification");
   });
+
+  test("detects coordinator running full test suite (blunder-20260822-20)", () => {
+    const state: JsonObject = {
+      agents: [
+        {
+          id: "coord-runner",
+          role: "coordinator",
+          parent_agent_id: "orch-1",
+          parent_task_id: null,
+          host: "antigravity",
+          granted_at: "2026-08-21T00:00:00.000Z",
+          status: "active",
+        },
+      ],
+      tasks: {},
+      commands: {
+        "cmd-full-suite": {
+          id: "cmd-full-suite",
+          actor: "coord-runner",
+          argv: ["bun", "test", "--coverage"],
+          status: "succeeded",
+          started_at: "2026-08-21T00:00:00.000Z",
+          finished_at: "2026-08-21T00:00:01.000Z",
+          fingerprint: "fp-c",
+        },
+      },
+    };
+
+    const findings = auditBehavioralHealth("", state);
+    const finding = findings.find((f) => f.violation_type === "role_confinement_violation");
+    expect(finding).toBeDefined();
+    expect(finding?.agent_id).toBe("coord-runner");
+    expect(finding?.severity).toBe("critical");
+    expect(finding?.observation).toContain("executed prohibited full test suite command");
+  });
 });
 
 describe("behavioral health auditor - orchestrator violations", () => {
@@ -316,6 +351,41 @@ describe("behavioral health auditor - orchestrator violations", () => {
     const finding = findings.find((f) => f.violation_type === "orchestrator_direct_implementation");
     expect(finding).toBeDefined();
     expect(finding?.observation).toContain("holds task lease for task");
+  });
+
+  test("detects orchestrator running full test suite (blunder-20260822-20)", () => {
+    const state: JsonObject = {
+      agents: [
+        {
+          id: "orch-runner",
+          role: "orchestrator",
+          parent_agent_id: null,
+          parent_task_id: null,
+          host: "antigravity",
+          granted_at: "2026-08-21T00:00:00.000Z",
+          status: "active",
+        },
+      ],
+      tasks: {},
+      commands: {
+        "cmd-orch-suite": {
+          id: "cmd-orch-suite",
+          actor: "orch-runner",
+          argv: ["bun", "test"],
+          status: "succeeded",
+          started_at: "2026-08-21T00:00:00.000Z",
+          finished_at: "2026-08-21T00:00:01.000Z",
+          fingerprint: "fp-o",
+        },
+      },
+    };
+
+    const findings = auditBehavioralHealth("", state);
+    const finding = findings.find((f) => f.violation_type === "role_confinement_violation");
+    expect(finding).toBeDefined();
+    expect(finding?.agent_id).toBe("orch-runner");
+    expect(finding?.severity).toBe("critical");
+    expect(finding?.observation).toContain("executed prohibited full test suite command");
   });
 });
 

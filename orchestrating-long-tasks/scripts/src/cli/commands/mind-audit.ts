@@ -95,7 +95,11 @@ export function mindAuditStartCommand(
         `agent ${actor} holds no grant; register it with agent:register first`,
       );
     }
-  } else if (grant.role !== "mind-auditor" && grant.role !== "mind" && grant.role !== "coordinator") {
+  } else if (
+    grant.role !== "mind-auditor" &&
+    grant.role !== "mind" &&
+    grant.role !== "coordinator"
+  ) {
     throw new HarnessError(
       "INVALID_STATE",
       `agent ${actor} holds role '${grant.role}'; role 'mind-auditor' or 'mind' is required to start an audit`,
@@ -302,7 +306,11 @@ export function mindAuditReportCommand(
         `agent ${actor} holds no grant; register it with agent:register first`,
       );
     }
-  } else if (grant.role !== "mind-auditor" && grant.role !== "mind" && grant.role !== "coordinator") {
+  } else if (
+    grant.role !== "mind-auditor" &&
+    grant.role !== "mind" &&
+    grant.role !== "coordinator"
+  ) {
     throw new HarnessError(
       "INVALID_STATE",
       `agent ${actor} holds role '${grant.role}'; role 'mind-auditor' or 'mind' is required to report an audit`,

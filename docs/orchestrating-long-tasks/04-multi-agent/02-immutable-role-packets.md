@@ -222,4 +222,67 @@ an agent to fail. Two examples that were corrected:
 
 ---
 
+## 🛡️ Lean Packets & Validator Context Isolation
+
+To ensure that subagents remain laser-focused and completely immune to sycophantic cognitive bias, the harness enforces **Lean Packet Generation** and **Strict Context Isolation** (`isolateValidatorContext`, `excludeValidatorContamination`, `isolateCriticContext`).
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                   CONTEXT ISOLATION & LEAN PACKET PIPELINE                  │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  [ Task Submission / State Context ]                                        │
+│    • Implementer narrative summary ("I fixed bug X, tests look good!")      │
+│    • Subjective confidence estimates & decision rationale                   │
+│    • Task contract, repository state, gate command definitions              │
+│                                  │                                          │
+│                                  ▼                                          │
+│  [ isolateValidatorContext / excludeValidatorContamination ]                │
+│    • Strips all subjective narrative & conclusion keys                      │
+│    • Strips previous review notes & implementer excuses                     │
+│    • Retains ONLY ground-truth objective evidence & contracts               │
+│                                  │                                          │
+│                                  ▼                                          │
+│  [ Lean Validator Packet (Token-Budgeted <= 4KB) ]                          │
+│    • Original prompt & acceptance criteria                                  │
+│    • Exact write scope & current repository git state                       │
+│    • Mandatory gate command argv to execute via run:exec                    │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### 1. The Strict Validator Exclusion Set (`VALIDATOR_EXCLUSIONS`)
+
+The context isolation pipeline recursively scrubs all keys matching subjective or contaminated reporting:
+
+| Sanitized Key Family                 | Why It Is Stripped from Validator Context                              |
+| :----------------------------------- | :--------------------------------------------------------------------- |
+| `confidence`                         | Prevents anchoring on the implementer's self-confidence score.         |
+| `decision_narrative`                 | Eliminates implementer rationalizations and conversational excuses.    |
+| `implementer_report` / `task_report` | Strips implementer prose; validators must inspect real code.           |
+| `previous_review` / `prior_reviews`  | Prevents round-2+ validators from adopting previous reviewers' biases. |
+| `validator_report`                   | Prevents circular review feedback loops.                               |
+
+### 2. The Strict Validator Allowed Allowlist
+
+A validator packet receives **strictly** these objective fields:
+
+- `baseline_repository_state`: Git commit SHA / tree digest before task execution.
+- `current_repository_state`: Live repository tree and diffs.
+- `task_contract`: Declared write scope, priority, effort, and assigned ID.
+- `mapped_requirements`: Specific prompt obligations assigned to this task.
+- `original_prompt`: Verbatim prompt markdown text.
+- `command_evidence`: Real recorded execution receipts from `run:exec`.
+- `validation_round`: Current validation cycle counter.
+
+### 3. Critic Context Isolation (`isolateCriticContext`)
+
+The whole-run completeness critic receives a dedicated, isolated context:
+
+- `commands`, `completion_readiness`, `completion_result`, `completion_review`, `gates`, `graph`, `integrity_evidence`, `orphan_evidence`, `original_prompt`, `plan_history`, `repository_evidence`, `requirements`, `repository_state`, `tasks`.
+
+This structural firewall guarantees that adversarial verification is grounded entirely in real code execution, eliminating conversational sycophancy.
+
+---
+
 [⬅ Previous: Host-Agnostic Architecture](./01-host-agnostic-architecture.md) | [Master Table of Contents](../README.md) | [Next: Bearer Token Security ➡](./03-bearer-token-security.md)

@@ -240,19 +240,73 @@ rather than as spend.
 
 ---
 
+## ⚡ Dynamic DAG Expansion & Living Tracer Engine
+
+While the **Plan Graph** (`state.graph`) remains structurally frozen for each revision to protect scheduling guarantees, real-world execution produces runtime subgraphs, dynamic sub-tasks, and branches.
+
+The harness bridges this with the **Living Dynamic DAG Expansion Engine** and **Step Tracer** (`dag:trace`, aliased as `trace:dag`, `stream:trace`):
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│               STATIC PLAN DAG vs. LIVING DYNAMIC EXPANSION                  │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  [ Static Plan Graph: state.graph ]                                         │
+│    • Compiled at plan:compile (Revision 1, 2, ...)                          │
+│    • Authoritative contract for wave scheduling & conflict detection        │
+│    • Contains strictly planned top-level tasks & gates                      │
+│                                                                             │
+│                                      │                                      │
+│                                      ▼ (Replay events.jsonl via readCapsuleEvents)
+│                                                                             │
+│  [ Living Dynamic DAG State: DynamicDagState ]                              │
+│    • Reconstructed dynamically by replaying the hash-chained event stream   │
+│      using readCapsuleEvents()                                              │
+│    • Captures execution-time branch expansions (branch-opened / collected)  │
+│    • Tracks active worker agent assignments and real-time step sequences    │
+│    • Visualizes step-by-step progress via vertical chronological trace      │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Chronological Step Tracing (`dag:trace`)
+
+The Living Tracer inspects the immutable event log (replayed via `readCapsuleEvents`) and formats a real-time chronological timeline and timeline rendering of all agent operations:
+
+```bash
+bun harness.ts dag:trace --run .capsules/<slug> --max-steps 20
+```
+
+```text
+### Living Dynamic DAG Step Trace: slugger
+- **Events Replayed**: 48 total steps across 3 active agents
+- **Dynamic Tasks**: 2 static tasks, 2 dynamic branch sub-tasks
+- **Timeline Window**: Seq 1 -> Seq 48 (Duration: 124.5s)
+
+  Seq   Time (+ms)   Actor         Role          Tool     Event & Summary
+ ────  ────────────  ────────────  ────────────  ───────  ────────────────────────────────────
+    1       +0.00ms  coordinator   coordinator   -        ○ plan-compiled (Revision 1, 2 tasks)
+   12    +1240.20ms  impl-slug     implementer   -        🟢 task-claimed (task-slug)
+   18    +3420.10ms  impl-slug     implementer   Bash     ✓ run:exec (bun test tests/slug.test.ts)
+   22    +5120.00ms  impl-slug     implementer   -        🟣 task-submitted (task-slug)
+   25    +5890.30ms  val-slug      validator     -        🔄 validate-start (val-slug on task-slug)
+   28    +7100.00ms  val-slug      validator     Bash     ✓ task:probe (1 demand recorded)
+   34   +10200.00ms  val-slug      validator     -        ✓ task-reviewed (PASS, resolved finding-1)
+   38   +12100.50ms  impl-trunc    implementer   -        🟢 branch-opened (B-1b72a087, 2 sub-tasks)
+   42   +18400.00ms  sub-measure   sub-impl      Write    🟢 branch-submitted (S-measure)
+   48   +24500.00ms  impl-trunc    implementer   -        ✓ branch-collected (2 files diffed)
+```
+
+---
+
+## 🔍 Why a Finished Task's Gate Set Is Not Frozen
+
+A revision may add a gate that lands on a task already `done`, and that is correct rather than a violation.
+
+`taskGates()` selects gates by **requirement-id overlap, not task identity**. So when a repair task legitimately inherits a done task's requirement, the new task-scoped gate it brings is attributed to the done task as well. That growth is how a critic's or validator's finding becomes a claimable repair task — it is not a retroactive change to what the done task was verified against.
+
+Its own gate _results_ are already recorded and cannot be revisited. Only tasks still in flight need their gate set frozen against revision, which is what `gateContractActive` expresses: execution-active and not `done`. The task's _contract_ — write scope, dependencies, produces — stays frozen for a done task, so its definition still cannot be silently rewritten.
+
+---
+
 [⬅ Previous: Topological Conflict-Free Batching](./02-topological-conflict-free-batching.md) | [Master Table of Contents](../README.md) | [Next: Chapter 04 — Host-Agnostic Architecture ➡](../04-multi-agent/01-host-agnostic-architecture.md)
-
-## Why a finished task's gate set is not frozen
-
-A revision may add a gate that lands on a task already `done`, and that is correct rather than a
-violation.
-
-`taskGates()` selects gates by **requirement-id overlap, not task identity**. So when a repair task
-legitimately inherits a done task's requirement, the new task-scoped gate it brings is attributed to
-the done task as well. That growth is how a critic's or validator's finding becomes a claimable repair
-task — it is not a retroactive change to what the done task was verified against.
-
-Its own gate _results_ are already recorded and cannot be revisited. Only tasks still in flight need
-their gate set frozen against revision, which is what `gateContractActive` expresses: execution-active
-and not `done`. The task's _contract_ — write scope, dependencies, produces — stays frozen for a done
-task, so its definition still cannot be silently rewritten.

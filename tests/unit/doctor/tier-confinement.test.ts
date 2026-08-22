@@ -3,6 +3,7 @@ import {
   auditCrossTierSpawning,
   auditTierConfinement,
   isCoordinatorRole,
+  isFullTestSuiteCommand,
   isImplementerRole,
   isOrchestratorRole,
   isTier3Role,
@@ -98,7 +99,9 @@ describe("Tier Boundary Confinement Doctor Checks - p21 4-tier hierarchy enforce
     expect(findings[0]?.violation_type).toBe("cross_tier_spawning_violation");
     expect(findings[0]?.agent_id).toBe("impl-rogue");
     expect(findings[0]?.severity).toBe("critical");
-    expect(findings[0]?.observation).toContain("Parent agent \"orch-lead\" (Tier 1 orchestrator) directly spawned child agent \"impl-rogue\" (Tier 3 implementer)");
+    expect(findings[0]?.observation).toContain(
+      'Parent agent "orch-lead" (Tier 1 orchestrator) directly spawned child agent "impl-rogue" (Tier 3 implementer)',
+    );
   });
 
   test("auditTierConfinement reports clean on compliant 4-tier execution hierarchy", () => {
@@ -269,6 +272,156 @@ describe("Tier Boundary Confinement Doctor Checks - p21 4-tier hierarchy enforce
     expect(finding).toBeDefined();
     expect(finding?.agent_id).toBe("impl-self");
     expect(finding?.tier).toBe(3);
-    expect(finding?.observation).toContain("performed validation review for task \"task-1\" which it previously implemented");
+    expect(finding?.observation).toContain(
+      'performed validation review for task "task-1" which it previously implemented',
+    );
+  });
+
+  test("isFullTestSuiteCommand distinguishes whole-suite commands from scoped test runs", () => {
+    expect(isFullTestSuiteCommand(["bun", "test"])).toBe(true);
+    expect(isFullTestSuiteCommand(["bun", "test", "--coverage"])).toBe(true);
+    expect(isFullTestSuiteCommand(["bun", "run", "test:unit"])).toBe(true);
+    expect(isFullTestSuiteCommand(["bun", "run", "test"])).toBe(true);
+    expect(isFullTestSuiteCommand(["npm", "test"])).toBe(true);
+    expect(isFullTestSuiteCommand(["pytest"])).toBe(true);
+    expect(isFullTestSuiteCommand(["vitest"])).toBe(true);
+
+    // Scoped single file test runs must NOT be flagged as full test suite
+    expect(isFullTestSuiteCommand(["bun", "test", "tests/unit/mind/counterfactual.test.ts"])).toBe(
+      false,
+    );
+    expect(
+      isFullTestSuiteCommand(["bun", "test", "tests/unit/doctor/tier-confinement.test.ts"]),
+    ).toBe(false);
+    expect(isFullTestSuiteCommand(["pytest", "tests/unit/test_foo.py"])).toBe(false);
+  });
+
+  test("auditTierConfinement detects orchestrator running full test suite (blunder-20260822-20)", () => {
+    const state: JsonObject = {
+      agents: [
+        {
+          id: "orch-tester",
+          role: "orchestrator",
+          parent_agent_id: null,
+          parent_task_id: null,
+          host: "antigravity",
+          granted_at: "2026-08-22T00:00:00.000Z",
+          status: "active",
+        },
+      ],
+      tasks: {},
+      commands: {
+        "cmd-orch-full-test": {
+          id: "cmd-orch-full-test",
+          actor: "orch-tester",
+          argv: ["bun", "test", "--coverage"],
+          status: "succeeded",
+          started_at: "2026-08-22T00:00:00.000Z",
+          finished_at: "2026-08-22T00:00:05.000Z",
+          fingerprint: "fp-orch-test",
+        },
+      },
+    };
+
+    const findings = auditTierConfinement("", state);
+    const finding = findings.find(
+      (f) => f.agent_id === "orch-tester" && f.violation_type === "role_confinement_violation",
+    );
+    expect(finding).toBeDefined();
+    expect(finding?.severity).toBe("critical");
+    expect(finding?.observation).toContain("executed prohibited full test suite command");
+    expect(finding?.observation).toContain("bun test --coverage");
+    expect(finding?.remediation).toContain(
+      "Orchestrators are strictly banned from running full test suites",
+    );
+  });
+
+  test("auditTierConfinement detects coordinator running full test suite (blunder-20260822-20)", () => {
+    const state: JsonObject = {
+      agents: [
+        {
+          id: "coord-tester",
+          role: "coordinator",
+          parent_agent_id: "orch-1",
+          parent_task_id: null,
+          host: "antigravity",
+          granted_at: "2026-08-22T00:00:00.000Z",
+          status: "active",
+        },
+      ],
+      tasks: {},
+      commands: {
+        "cmd-coord-full-test": {
+          id: "cmd-coord-full-test",
+          actor: "coord-tester",
+          argv: ["bun", "run", "test:unit"],
+          status: "succeeded",
+          started_at: "2026-08-22T00:00:00.000Z",
+          finished_at: "2026-08-22T00:00:05.000Z",
+          fingerprint: "fp-coord-test",
+        },
+      },
+    };
+
+    const findings = auditTierConfinement("", state);
+    const finding = findings.find(
+      (f) => f.agent_id === "coord-tester" && f.violation_type === "role_confinement_violation",
+    );
+    expect(finding).toBeDefined();
+    expect(finding?.severity).toBe("critical");
+    expect(finding?.observation).toContain("executed prohibited full test suite command");
+    expect(finding?.observation).toContain("bun run test:unit");
+    expect(finding?.remediation).toContain(
+      "Coordinators are strictly banned from running full test suites",
+    );
+  });
+
+  test("auditTierConfinement allows completeness-critic to run full tests and implementer to run scoped single-file test", () => {
+    const state: JsonObject = {
+      agents: [
+        {
+          id: "critic-1",
+          role: "completeness-critic",
+          parent_agent_id: "coord-1",
+          parent_task_id: null,
+          host: "antigravity",
+          granted_at: "2026-08-22T00:00:00.000Z",
+          status: "active",
+        },
+        {
+          id: "impl-1",
+          role: "implementer",
+          parent_agent_id: "coord-1",
+          parent_task_id: null,
+          host: "antigravity",
+          granted_at: "2026-08-22T00:00:00.000Z",
+          status: "active",
+        },
+      ],
+      tasks: {},
+      commands: {
+        "cmd-critic-run": {
+          id: "cmd-critic-run",
+          actor: "critic-1",
+          argv: ["bun", "test"],
+          status: "succeeded",
+          started_at: "2026-08-22T00:00:00.000Z",
+          finished_at: "2026-08-22T00:00:05.000Z",
+          fingerprint: "fp-critic",
+        },
+        "cmd-impl-scoped": {
+          id: "cmd-impl-scoped",
+          actor: "impl-1",
+          argv: ["bun", "test", "tests/unit/mind/counterfactual.test.ts"],
+          status: "succeeded",
+          started_at: "2026-08-22T00:00:00.000Z",
+          finished_at: "2026-08-22T00:00:01.000Z",
+          fingerprint: "fp-impl",
+        },
+      },
+    };
+
+    const findings = auditTierConfinement("", state);
+    expect(findings).toHaveLength(0);
   });
 });

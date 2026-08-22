@@ -19,12 +19,12 @@ describe("Unified Reporting Subsystem", () => {
     mock.module("../../../orchestrating-long-tasks/scripts/src/cli/commands/dag-view.ts", () => ({
       dagViewCommand: mockDagView,
     }));
-    const flags: Flags = { "run": ".capsules/test" };
+    const flags: Flags = { run: ".capsules/test" };
     expect(reportDagCommand(flags)).toBeDefined();
   });
 
   it("report:graph delegates to dagViewCommand", () => {
-    const flags: Flags = { "run": ".capsules/test" };
+    const flags: Flags = { run: ".capsules/test" };
     expect(reportGraphCommand(flags)).toBeDefined();
   });
 
@@ -42,14 +42,14 @@ describe("Unified Reporting Subsystem", () => {
               sub_tasks: [
                 { id: "sub-1", lease: { agent: "agent-2" } },
                 { id: "sub-2" }, // no lease
-              ]
-            }
-          ]
+              ],
+            },
+          ],
         },
       }),
     }));
 
-    const flags: Flags = { "run": ".capsules/test" };
+    const flags: Flags = { run: ".capsules/test" };
     const result = reportLeasesCommand(flags) as { matrix: LeaseMatrixRow[]; markdown: string };
     expect(result.matrix).toHaveLength(2);
     expect(result.matrix[0].taskId).toBe("sub-1");
@@ -66,26 +66,25 @@ describe("Unified Reporting Subsystem", () => {
           requirements: [
             {
               id: "req-1",
-              authority_history: [
-                { decision: "grant", rationale: "ok", actor: "admin" }
-              ]
+              authority_history: [{ decision: "grant", rationale: "ok", actor: "admin" }],
             },
             {
               id: "req-2",
-              authority_history: [
-                { decision: "decline", rationale: "bad", actor: "boss" }
-              ]
+              authority_history: [{ decision: "decline", rationale: "bad", actor: "boss" }],
             },
             {
-              id: "req-3"
-            }
-          ]
+              id: "req-3",
+            },
+          ],
         },
       }),
     }));
 
-    const flags: Flags = { "run": ".capsules/test" };
-    const result = reportDecisionsCommand(flags) as { decisions: DecisionAuditRow[]; markdown: string };
+    const flags: Flags = { run: ".capsules/test" };
+    const result = reportDecisionsCommand(flags) as {
+      decisions: DecisionAuditRow[];
+      markdown: string;
+    };
     expect(result.decisions).toHaveLength(2);
     expect(result.decisions[0].requirementId).toBe("req-1");
     expect(result.decisions[0].decision).toBe("grant");
@@ -97,17 +96,24 @@ describe("Unified Reporting Subsystem", () => {
     mock.module("../../../orchestrating-long-tasks/scripts/src/reporting/doctor.ts", () => ({
       runDoctor: async () => ({ healthy: true, bun_version: "1.0.0" }),
     }));
-    const flags: Flags = { "run": ".capsules/test" };
-    const result = (await reportHealthCommand(flags)) as { healthy: boolean; run_root: string; markdown: string };
+    const flags: Flags = { run: ".capsules/test" };
+    const result = (await reportHealthCommand(flags)) as {
+      healthy: boolean;
+      run_root: string;
+      markdown: string;
+    };
     expect(result.healthy).toBeTrue();
     expect(result.run_root).toBe(".capsules/test");
   });
-  
+
   it("reportGraphJsonCommand calls export", () => {
-    mock.module("../../../orchestrating-long-tasks/scripts/src/cli/commands/summary-ops.ts", () => ({
-      summaryExportCommand: () => ({ exported: true }),
-    }));
-    const flags: Flags = { "run": ".capsules/test" };
+    mock.module(
+      "../../../orchestrating-long-tasks/scripts/src/cli/commands/summary-ops.ts",
+      () => ({
+        summaryExportCommand: () => ({ exported: true }),
+      }),
+    );
+    const flags: Flags = { run: ".capsules/test" };
     const result = reportGraphJsonCommand(flags) as { exported: boolean };
     expect(result.exported).toBeTrue();
   });

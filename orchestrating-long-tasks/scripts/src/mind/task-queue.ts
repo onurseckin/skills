@@ -5,25 +5,28 @@ import { HarnessError } from "../errors/harness-error.ts";
 
 export type TaskQueueStatus =
   | "PENDING"
+  | "ADMITTED"
   | "IN_PROGRESS"
+  | "RUNNING"
+  | "VALIDATING"
   | "COMPLETED"
   | "FAILED"
-  | "BLOCKED";
+  | "BLOCKED"
+  | "ESCALATED";
 
 export const TASK_QUEUE_STATUSES: readonly TaskQueueStatus[] = [
   "PENDING",
+  "ADMITTED",
   "IN_PROGRESS",
+  "RUNNING",
+  "VALIDATING",
   "COMPLETED",
   "FAILED",
   "BLOCKED",
+  "ESCALATED",
 ];
 
-export type TaskPriority =
-  | "CRITICAL"
-  | "HIGH"
-  | "MEDIUM"
-  | "LOW"
-  | "BACKGROUND";
+export type TaskPriority = "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "BACKGROUND";
 
 export const TASK_PRIORITIES: readonly TaskPriority[] = [
   "CRITICAL",
@@ -46,7 +49,8 @@ export type TaskSourceType =
   | "feedback_intake"
   | "self_evolution"
   | "blunder_remediation"
-  | "direct_prompt";
+  | "direct_prompt"
+  | "plan_enhancement";
 
 export interface TaskLease {
   readonly agent_id: string;
@@ -76,9 +80,12 @@ export interface TaskQueueItem {
   readonly started_at?: string | null | undefined;
   readonly completed_at?: string | null | undefined;
   readonly failed_at?: string | null | undefined;
+  readonly escalated_at?: string | null | undefined;
   readonly retry_count: number;
   readonly max_retries: number;
   readonly error_message?: string | null | undefined;
+  readonly assigned_tier?: string | null | undefined;
+  readonly assigned_role?: string | null | undefined;
   readonly metadata?: Readonly<Record<string, unknown>> | undefined;
 }
 
@@ -87,6 +94,7 @@ export interface NewTaskQueueInput {
   readonly title: string;
   readonly description?: string | undefined;
   readonly priority?: TaskPriority | undefined;
+  readonly status?: TaskQueueStatus | undefined;
   readonly write_scope: readonly string[];
   readonly gate: string;
   readonly charter_goals?: readonly string[] | undefined;
@@ -94,16 +102,22 @@ export interface NewTaskQueueInput {
   readonly dependencies?: readonly string[] | undefined;
   readonly source_type?: TaskSourceType | undefined;
   readonly max_retries?: number | undefined;
+  readonly assigned_tier?: string | undefined;
+  readonly assigned_role?: string | undefined;
   readonly metadata?: Readonly<Record<string, unknown>> | undefined;
 }
 
 export interface TaskQueueStats {
   readonly total: number;
   readonly pending: number;
+  readonly admitted: number;
   readonly in_progress: number;
+  readonly running: number;
+  readonly validating: number;
   readonly completed: number;
   readonly failed: number;
   readonly blocked: number;
+  readonly escalated: number;
   readonly active_leases: number;
   readonly expired_leases: number;
 }
@@ -140,7 +154,10 @@ export function readTaskQueue(customPath?: string): TaskQueueItem[] {
   }
 
   const raw = readFileSync(filePath, "utf8");
-  const lines = raw.split("\n").map((l) => l.trim()).filter(Boolean);
+  const lines = raw
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
   const items: TaskQueueItem[] = [];
 
   for (const line of lines) {
@@ -240,10 +257,7 @@ export function validateTaskQueueDag(items: readonly TaskQueueItem[]): {
 /**
  * Enqueues a single new task into the task queue with dependency resolution.
  */
-export function enqueueTask(
-  input: NewTaskQueueInput,
-  customPath?: string,
-): TaskQueueItem {
+export function enqueueTask(input: NewTaskQueueInput, customPath?: string): TaskQueueItem {
   const existing = readTaskQueue(customPath);
   const duplicate = existing.find((e) => e.id === input.id);
   if (duplicate) {
@@ -255,43 +269,43 @@ export function enqueueTask(
 
   const rawDeps = input.dependencies ?? [];
   if (rawDeps.includes(input.id)) {
-    throw new HarnessError(
-      "INVALID_ARGUMENT",
-      `Task '${input.id}' cannot depend on itself`,
-    );
+    throw new HarnessError("INVALID_ARGUMENT", `Task '${input.id}' cannot depend on itself`);
   }
 
   const nowIso = new Date().toISOString();
-  const completedIds = new Set(
-    existing.filter((t) => t.status === "COMPLETED").map((t) => t.id),
-  );
+  const completedIds = new Set(existing.filter((t) => t.status === "COMPLETED").map((t) => t.id));
 
   // Compute unresolved dependencies
   const blockedBy = rawDeps.filter((depId) => !completedIds.has(depId));
-  const initialStatus: TaskQueueStatus = blockedBy.length > 0 ? "BLOCKED" : "PENDING";
+  const initialStatus: TaskQueueStatus =
+    typeof input.status === "string" ? input.status : blockedBy.length > 0 ? "BLOCKED" : "PENDING";
 
   const newItem: TaskQueueItem = {
     id: input.id.trim(),
     title: input.title.trim(),
     description: input.description?.trim() ?? input.title.trim(),
-    priority: input.priority ?? "MEDIUM",
+    priority: typeof input.priority === "string" ? input.priority : "MEDIUM",
     status: initialStatus,
     write_scope: [...input.write_scope],
     gate: input.gate.trim(),
-    charter_goals: input.charter_goals && input.charter_goals.length > 0 ? [...input.charter_goals] : ["G1"],
+    charter_goals:
+      input.charter_goals && input.charter_goals.length > 0 ? [...input.charter_goals] : ["G1"],
     acceptance_criteria: input.acceptance_criteria ? [...input.acceptance_criteria] : [],
     dependencies: [...rawDeps],
     blocked_by: blockedBy,
     lease: null,
-    source_type: input.source_type ?? "direct_prompt",
+    source_type: typeof input.source_type === "string" ? input.source_type : "direct_prompt",
     created_at: nowIso,
     updated_at: nowIso,
     started_at: null,
     completed_at: null,
     failed_at: null,
+    escalated_at: null,
     retry_count: 0,
     max_retries: input.max_retries ?? DEFAULT_MAX_RETRIES,
     error_message: null,
+    assigned_tier: input.assigned_tier ?? null,
+    assigned_role: input.assigned_role ?? null,
     metadata: input.metadata,
   };
 
@@ -331,45 +345,49 @@ export function enqueueTasksBatch(
   }
 
   const nowIso = new Date().toISOString();
-  const completedIds = new Set(
-    existing.filter((t) => t.status === "COMPLETED").map((t) => t.id),
-  );
+  const completedIds = new Set(existing.filter((t) => t.status === "COMPLETED").map((t) => t.id));
 
   const newItems: TaskQueueItem[] = [];
   for (const input of inputs) {
     const rawDeps = input.dependencies ?? [];
     if (rawDeps.includes(input.id)) {
-      throw new HarnessError(
-        "INVALID_ARGUMENT",
-        `Task '${input.id}' cannot depend on itself`,
-      );
+      throw new HarnessError("INVALID_ARGUMENT", `Task '${input.id}' cannot depend on itself`);
     }
 
     const blockedBy = rawDeps.filter((depId) => !completedIds.has(depId));
-    const initialStatus: TaskQueueStatus = blockedBy.length > 0 ? "BLOCKED" : "PENDING";
+    const initialStatus: TaskQueueStatus =
+      typeof input.status === "string"
+        ? input.status
+        : blockedBy.length > 0
+          ? "BLOCKED"
+          : "PENDING";
 
     newItems.push({
       id: input.id.trim(),
       title: input.title.trim(),
       description: input.description?.trim() ?? input.title.trim(),
-      priority: input.priority ?? "MEDIUM",
+      priority: typeof input.priority === "string" ? input.priority : "MEDIUM",
       status: initialStatus,
       write_scope: [...input.write_scope],
       gate: input.gate.trim(),
-      charter_goals: input.charter_goals && input.charter_goals.length > 0 ? [...input.charter_goals] : ["G1"],
+      charter_goals:
+        input.charter_goals && input.charter_goals.length > 0 ? [...input.charter_goals] : ["G1"],
       acceptance_criteria: input.acceptance_criteria ? [...input.acceptance_criteria] : [],
       dependencies: [...rawDeps],
       blocked_by: blockedBy,
       lease: null,
-      source_type: input.source_type ?? "direct_prompt",
+      source_type: typeof input.source_type === "string" ? input.source_type : "direct_prompt",
       created_at: nowIso,
       updated_at: nowIso,
       started_at: null,
       completed_at: null,
       failed_at: null,
+      escalated_at: null,
       retry_count: 0,
       max_retries: input.max_retries ?? DEFAULT_MAX_RETRIES,
       error_message: null,
+      assigned_tier: input.assigned_tier ?? null,
+      assigned_role: input.assigned_role ?? null,
       metadata: input.metadata,
     });
   }
@@ -389,6 +407,49 @@ export function enqueueTasksBatch(
 }
 
 /**
+ * Explicitly admits a pending task into the admitted execution queue.
+ */
+export function admitTask(params: {
+  readonly taskId: string;
+  readonly admittedBy?: string | undefined;
+  readonly customPath?: string | undefined;
+  readonly nowIso?: string | undefined;
+}): TaskQueueItem {
+  const queue = readTaskQueue(params.customPath);
+  const index = queue.findIndex((t) => t.id === params.taskId);
+  if (index === -1) {
+    throw new HarnessError("INVALID_ARGUMENT", `Task '${params.taskId}' not found in task queue`);
+  }
+
+  const task = queue[index]!;
+  if (task.status === "COMPLETED") {
+    throw new HarnessError("INVALID_STATE", `Cannot admit task '${task.id}': already COMPLETED`);
+  }
+  if (task.status === "FAILED" || task.status === "ESCALATED") {
+    throw new HarnessError(
+      "INVALID_STATE",
+      `Cannot admit task '${task.id}': task has status ${task.status}`,
+    );
+  }
+
+  const nowIso = params.nowIso ?? new Date().toISOString();
+  const admittedTask: TaskQueueItem = {
+    ...task,
+    status: task.blocked_by.length > 0 ? "BLOCKED" : "ADMITTED",
+    updated_at: nowIso,
+    metadata: {
+      ...(task.metadata ?? {}),
+      ...(params.admittedBy ? { admitted_by: params.admittedBy } : {}),
+      admitted_at: nowIso,
+    },
+  };
+
+  queue[index] = admittedTask;
+  writeTaskQueue(queue, params.customPath);
+  return admittedTask;
+}
+
+/**
  * Claims a lease on a specific task.
  */
 export function claimTaskLease(params: {
@@ -401,10 +462,7 @@ export function claimTaskLease(params: {
   const queue = readTaskQueue(params.customPath);
   const index = queue.findIndex((t) => t.id === params.taskId);
   if (index === -1) {
-    throw new HarnessError(
-      "INVALID_ARGUMENT",
-      `Task '${params.taskId}' not found in task queue`,
-    );
+    throw new HarnessError("INVALID_ARGUMENT", `Task '${params.taskId}' not found in task queue`);
   }
 
   const task = queue[index]!;
@@ -412,10 +470,7 @@ export function claimTaskLease(params: {
   const nowIso = params.nowIso ?? new Date(nowMs).toISOString();
 
   if (task.status === "COMPLETED") {
-    throw new HarnessError(
-      "INVALID_STATE",
-      `Cannot claim task '${task.id}': already COMPLETED`,
-    );
+    throw new HarnessError("INVALID_STATE", `Cannot claim task '${task.id}': already COMPLETED`);
   }
 
   if (task.status === "BLOCKED") {
@@ -425,14 +480,14 @@ export function claimTaskLease(params: {
     );
   }
 
-  if (task.status === "FAILED") {
+  if (task.status === "FAILED" || task.status === "ESCALATED") {
     throw new HarnessError(
       "INVALID_STATE",
-      `Cannot claim task '${task.id}': task has FAILED (${task.error_message ?? "no error note"})`,
+      `Cannot claim task '${task.id}': task has status ${task.status} (${task.error_message ?? "no error note"})`,
     );
   }
 
-  if (task.status === "IN_PROGRESS" && task.lease) {
+  if ((task.status === "IN_PROGRESS" || task.status === "RUNNING") && task.lease) {
     const expiresMs = Date.parse(task.lease.expires_at);
     if (Number.isFinite(expiresMs) && expiresMs > nowMs) {
       if (task.lease.agent_id !== params.agentId) {
@@ -487,7 +542,7 @@ export function popNextEligibleTask(params: {
 
   const queue = readTaskQueue(params.customPath);
   const eligible = queue.filter((t) => {
-    if (t.status !== "PENDING") return false;
+    if (t.status !== "PENDING" && t.status !== "ADMITTED") return false;
     if (t.blocked_by.length > 0) return false;
     if (t.lease) {
       const expMs = Date.parse(t.lease.expires_at);
@@ -531,18 +586,12 @@ export function renewTaskLease(params: {
   const queue = readTaskQueue(params.customPath);
   const index = queue.findIndex((t) => t.id === params.taskId);
   if (index === -1) {
-    throw new HarnessError(
-      "INVALID_ARGUMENT",
-      `Task '${params.taskId}' not found in task queue`,
-    );
+    throw new HarnessError("INVALID_ARGUMENT", `Task '${params.taskId}' not found in task queue`);
   }
 
   const task = queue[index]!;
   if (!task.lease) {
-    throw new HarnessError(
-      "INVALID_STATE",
-      `Task '${task.id}' does not have an active lease`,
-    );
+    throw new HarnessError("INVALID_STATE", `Task '${task.id}' does not have an active lease`);
   }
 
   if (task.lease.token !== params.leaseToken || task.lease.agent_id !== params.agentId) {
@@ -585,19 +634,13 @@ export function releaseTaskLease(params: {
   const queue = readTaskQueue(params.customPath);
   const index = queue.findIndex((t) => t.id === params.taskId);
   if (index === -1) {
-    throw new HarnessError(
-      "INVALID_ARGUMENT",
-      `Task '${params.taskId}' not found in task queue`,
-    );
+    throw new HarnessError("INVALID_ARGUMENT", `Task '${params.taskId}' not found in task queue`);
   }
 
   const task = queue[index]!;
   if (task.lease) {
     if (params.leaseToken && task.lease.token !== params.leaseToken) {
-      throw new HarnessError(
-        "INVALID_STATE",
-        `Lease token mismatch for task '${task.id}'`,
-      );
+      throw new HarnessError("INVALID_STATE", `Lease token mismatch for task '${task.id}'`);
     }
     if (task.lease.agent_id !== params.agentId) {
       throw new HarnessError(
@@ -621,6 +664,50 @@ export function releaseTaskLease(params: {
 }
 
 /**
+ * Transitions an in-progress or running task to VALIDATING state for verification.
+ */
+export function startTaskValidation(params: {
+  readonly taskId: string;
+  readonly agentId?: string | undefined;
+  readonly leaseToken?: string | undefined;
+  readonly customPath?: string | undefined;
+  readonly nowIso?: string | undefined;
+}): TaskQueueItem {
+  const queue = readTaskQueue(params.customPath);
+  const index = queue.findIndex((t) => t.id === params.taskId);
+  if (index === -1) {
+    throw new HarnessError("INVALID_ARGUMENT", `Task '${params.taskId}' not found in task queue`);
+  }
+
+  const task = queue[index]!;
+  if (task.status === "COMPLETED") {
+    throw new HarnessError("INVALID_STATE", `Cannot validate task '${task.id}': already COMPLETED`);
+  }
+
+  if (params.leaseToken && task.lease && task.lease.token !== params.leaseToken) {
+    throw new HarnessError("INVALID_STATE", `Lease token mismatch for task '${task.id}'`);
+  }
+
+  if (params.agentId && task.lease && task.lease.agent_id !== params.agentId) {
+    throw new HarnessError(
+      "INVALID_STATE",
+      `Agent mismatch for task '${task.id}': leased to '${task.lease.agent_id}'`,
+    );
+  }
+
+  const nowIso = params.nowIso ?? new Date().toISOString();
+  const validatingTask: TaskQueueItem = {
+    ...task,
+    status: "VALIDATING",
+    updated_at: nowIso,
+  };
+
+  queue[index] = validatingTask;
+  writeTaskQueue(queue, params.customPath);
+  return validatingTask;
+}
+
+/**
  * Marks a task as COMPLETED, clears lease, and unblocks any dependent tasks.
  */
 export function completeTask(params: {
@@ -636,10 +723,7 @@ export function completeTask(params: {
   const queue = readTaskQueue(params.customPath);
   const index = queue.findIndex((t) => t.id === params.taskId);
   if (index === -1) {
-    throw new HarnessError(
-      "INVALID_ARGUMENT",
-      `Task '${params.taskId}' not found in task queue`,
-    );
+    throw new HarnessError("INVALID_ARGUMENT", `Task '${params.taskId}' not found in task queue`);
   }
 
   const task = queue[index]!;
@@ -648,10 +732,7 @@ export function completeTask(params: {
   }
 
   if (params.leaseToken && task.lease && task.lease.token !== params.leaseToken) {
-    throw new HarnessError(
-      "INVALID_STATE",
-      `Lease token mismatch for task '${task.id}'`,
-    );
+    throw new HarnessError("INVALID_STATE", `Lease token mismatch for task '${task.id}'`);
   }
 
   const nowIso = params.nowIso ?? new Date().toISOString();
@@ -698,6 +779,94 @@ export function completeTask(params: {
 }
 
 /**
+ * Escalates a task to a higher supervisory tier or human review.
+ */
+export function escalateTask(params: {
+  readonly taskId: string;
+  readonly reason: string;
+  readonly escalationTier?: string | undefined;
+  readonly agentId?: string | undefined;
+  readonly leaseToken?: string | undefined;
+  readonly customPath?: string | undefined;
+  readonly nowIso?: string | undefined;
+}): {
+  readonly task: TaskQueueItem;
+  readonly affectedDependents: readonly string[];
+} {
+  const queue = readTaskQueue(params.customPath);
+  const index = queue.findIndex((t) => t.id === params.taskId);
+  if (index === -1) {
+    throw new HarnessError("INVALID_ARGUMENT", `Task '${params.taskId}' not found in task queue`);
+  }
+
+  const task = queue[index]!;
+  if (task.status === "COMPLETED") {
+    throw new HarnessError("INVALID_STATE", `Cannot escalate task '${task.id}': already COMPLETED`);
+  }
+
+  if (params.leaseToken && task.lease && task.lease.token !== params.leaseToken) {
+    throw new HarnessError("INVALID_STATE", `Lease token mismatch for task '${task.id}'`);
+  }
+
+  const nowIso = params.nowIso ?? new Date().toISOString();
+  const escalatedTask: TaskQueueItem = {
+    ...task,
+    status: "ESCALATED",
+    lease: null,
+    escalated_at: nowIso,
+    error_message: params.reason,
+    assigned_tier: params.escalationTier ?? task.assigned_tier ?? "Tier_0_Mind",
+    updated_at: nowIso,
+    metadata: {
+      ...(task.metadata ?? {}),
+      escalated_by: params.agentId ?? "system",
+      escalation_reason: params.reason,
+      escalation_timestamp: nowIso,
+    },
+  };
+
+  queue[index] = escalatedTask;
+
+  // Mark all dependent tasks as BLOCKED
+  const affectedDependents: string[] = [];
+  for (let i = 0; i < queue.length; i++) {
+    const item = queue[i]!;
+    if (
+      item.id === escalatedTask.id ||
+      item.status === "COMPLETED" ||
+      item.status === "FAILED" ||
+      item.status === "ESCALATED"
+    )
+      continue;
+
+    if (item.dependencies.includes(escalatedTask.id)) {
+      if (!item.blocked_by.includes(escalatedTask.id)) {
+        queue[i] = {
+          ...item,
+          status: "BLOCKED",
+          blocked_by: [...item.blocked_by, escalatedTask.id],
+          updated_at: nowIso,
+        };
+      } else if (item.status !== "BLOCKED") {
+        queue[i] = {
+          ...item,
+          status: "BLOCKED",
+          updated_at: nowIso,
+        };
+      }
+      affectedDependents.push(item.id);
+    }
+  }
+
+  writeTaskQueue(queue, params.customPath);
+
+  return {
+    task: escalatedTask,
+    affectedDependents,
+  };
+}
+
+/**
  * Records a task failure, managing retries and blocking dependent tasks if permanently failed.
  */
 export function failTask(params: {
@@ -706,28 +875,24 @@ export function failTask(params: {
   readonly agentId?: string | undefined;
   readonly leaseToken?: string | undefined;
   readonly canRetry?: boolean | undefined;
+  readonly escalateOnMaxRetries?: boolean | undefined;
   readonly customPath?: string | undefined;
   readonly nowIso?: string | undefined;
 }): {
   readonly task: TaskQueueItem;
   readonly retried: boolean;
   readonly affectedDependents: readonly string[];
+  readonly escalated?: boolean | undefined;
 } {
   const queue = readTaskQueue(params.customPath);
   const index = queue.findIndex((t) => t.id === params.taskId);
   if (index === -1) {
-    throw new HarnessError(
-      "INVALID_ARGUMENT",
-      `Task '${params.taskId}' not found in task queue`,
-    );
+    throw new HarnessError("INVALID_ARGUMENT", `Task '${params.taskId}' not found in task queue`);
   }
 
   const task = queue[index]!;
   if (params.leaseToken && task.lease && task.lease.token !== params.leaseToken) {
-    throw new HarnessError(
-      "INVALID_STATE",
-      `Lease token mismatch for task '${task.id}'`,
-    );
+    throw new HarnessError("INVALID_STATE", `Lease token mismatch for task '${task.id}'`);
   }
 
   const nowIso = params.nowIso ?? new Date().toISOString();
@@ -748,6 +913,24 @@ export function failTask(params: {
       task: retriedTask,
       retried: true,
       affectedDependents: [],
+      escalated: false,
+    };
+  }
+
+  if (params.escalateOnMaxRetries) {
+    const escResult = escalateTask({
+      taskId: params.taskId,
+      reason: `Max retries (${task.max_retries}) exceeded: ${params.errorMessage}`,
+      agentId: params.agentId,
+      leaseToken: params.leaseToken,
+      customPath: params.customPath,
+      nowIso: params.nowIso,
+    });
+    return {
+      task: escResult.task,
+      retried: false,
+      affectedDependents: escResult.affectedDependents,
+      escalated: true,
     };
   }
 
@@ -766,7 +949,13 @@ export function failTask(params: {
   const affectedDependents: string[] = [];
   for (let i = 0; i < queue.length; i++) {
     const item = queue[i]!;
-    if (item.id === failedTask.id || item.status === "COMPLETED" || item.status === "FAILED") continue;
+    if (
+      item.id === failedTask.id ||
+      item.status === "COMPLETED" ||
+      item.status === "FAILED" ||
+      item.status === "ESCALATED"
+    )
+      continue;
 
     if (item.dependencies.includes(failedTask.id)) {
       if (!item.blocked_by.includes(failedTask.id)) {
@@ -793,16 +982,19 @@ export function failTask(params: {
     task: failedTask,
     retried: false,
     affectedDependents,
+    escalated: false,
   };
 }
 
 /**
  * Scans and reclaims expired leases across the task queue.
  */
-export function reclaimExpiredLeases(params: {
-  readonly customPath?: string | undefined;
-  readonly nowMs?: number | undefined;
-} = {}): {
+export function reclaimExpiredLeases(
+  params: {
+    readonly customPath?: string | undefined;
+    readonly nowMs?: number | undefined;
+  } = {},
+): {
   readonly reclaimedCount: number;
   readonly tasks: readonly TaskQueueItem[];
 } {
@@ -815,7 +1007,12 @@ export function reclaimExpiredLeases(params: {
 
   for (let i = 0; i < queue.length; i++) {
     const item = queue[i]!;
-    if (item.status === "IN_PROGRESS" && item.lease) {
+    if (
+      (item.status === "IN_PROGRESS" ||
+        item.status === "RUNNING" ||
+        item.status === "VALIDATING") &&
+      item.lease
+    ) {
       const expiresMs = Date.parse(item.lease.expires_at);
       if (Number.isFinite(expiresMs) && expiresMs <= nowMs) {
         // Lease has expired
@@ -862,17 +1059,23 @@ export function reclaimExpiredLeases(params: {
 /**
  * Computes queue statistics across all items.
  */
-export function getQueueStats(customPathOrItems?: string | readonly TaskQueueItem[]): TaskQueueStats {
+export function getQueueStats(
+  customPathOrItems?: string | readonly TaskQueueItem[],
+): TaskQueueStats {
   const items = Array.isArray(customPathOrItems)
     ? customPathOrItems
     : readTaskQueue(typeof customPathOrItems === "string" ? customPathOrItems : undefined);
 
   const nowMs = Date.now();
   let pending = 0;
+  let admitted = 0;
   let inProgress = 0;
+  let running = 0;
+  let validating = 0;
   let completed = 0;
   let failed = 0;
   let blocked = 0;
+  let escalated = 0;
   let activeLeases = 0;
   let expiredLeases = 0;
 
@@ -881,8 +1084,18 @@ export function getQueueStats(customPathOrItems?: string | readonly TaskQueueIte
       case "PENDING":
         pending += 1;
         break;
+      case "ADMITTED":
+        admitted += 1;
+        break;
       case "IN_PROGRESS":
         inProgress += 1;
+        break;
+      case "RUNNING":
+        running += 1;
+        inProgress += 1;
+        break;
+      case "VALIDATING":
+        validating += 1;
         break;
       case "COMPLETED":
         completed += 1;
@@ -892,6 +1105,9 @@ export function getQueueStats(customPathOrItems?: string | readonly TaskQueueIte
         break;
       case "BLOCKED":
         blocked += 1;
+        break;
+      case "ESCALATED":
+        escalated += 1;
         break;
     }
 
@@ -908,10 +1124,14 @@ export function getQueueStats(customPathOrItems?: string | readonly TaskQueueIte
   return {
     total: items.length,
     pending,
+    admitted,
     in_progress: inProgress,
+    running,
+    validating,
     completed,
     failed,
     blocked,
+    escalated,
     active_leases: activeLeases,
     expired_leases: expiredLeases,
   };
@@ -920,12 +1140,14 @@ export function getQueueStats(customPathOrItems?: string | readonly TaskQueueIte
 /**
  * Lists tasks from queue with optional filtering.
  */
-export function listTaskQueue(options: {
-  readonly status?: TaskQueueStatus | undefined;
-  readonly priority?: TaskPriority | undefined;
-  readonly customPath?: string | undefined;
-  readonly limit?: number | undefined;
-} = {}): TaskQueueItem[] {
+export function listTaskQueue(
+  options: {
+    readonly status?: TaskQueueStatus | undefined;
+    readonly priority?: TaskPriority | undefined;
+    readonly customPath?: string | undefined;
+    readonly limit?: number | undefined;
+  } = {},
+): TaskQueueItem[] {
   const all = readTaskQueue(options.customPath);
   let filtered = all;
 
@@ -1011,7 +1233,10 @@ function deserializeTaskQueueItem(raw: Record<string, unknown>): TaskQueueItem {
         leased_at: typeof l["leased_at"] === "string" ? l["leased_at"] : new Date().toISOString(),
         expires_at: l["expires_at"],
         attempt: typeof l["attempt"] === "number" ? l["attempt"] : 1,
-        lease_duration_seconds: typeof l["lease_duration_seconds"] === "number" ? l["lease_duration_seconds"] : DEFAULT_LEASE_DURATION_SECONDS,
+        lease_duration_seconds:
+          typeof l["lease_duration_seconds"] === "number"
+            ? l["lease_duration_seconds"]
+            : DEFAULT_LEASE_DURATION_SECONDS,
         token: typeof l["token"] === "string" ? l["token"] : "unknown-token",
       };
     }
@@ -1024,24 +1249,31 @@ function deserializeTaskQueueItem(raw: Record<string, unknown>): TaskQueueItem {
     priority,
     status,
     write_scope: writeScope,
-    gate: typeof raw["gate"] === "string" ? raw["gate"] : "bun test tests/unit && bun run typecheck",
+    gate:
+      typeof raw["gate"] === "string" ? raw["gate"] : "bun test tests/unit && bun run typecheck",
     charter_goals: charterGoals,
     acceptance_criteria: acceptanceCriteria,
     dependencies,
     blocked_by: blockedBy,
     lease,
     source_type: validateSourceType(raw["source_type"]),
-    created_at: typeof raw["created_at"] === "string" ? raw["created_at"] : new Date().toISOString(),
-    updated_at: typeof raw["updated_at"] === "string" ? raw["updated_at"] : new Date().toISOString(),
+    created_at:
+      typeof raw["created_at"] === "string" ? raw["created_at"] : new Date().toISOString(),
+    updated_at:
+      typeof raw["updated_at"] === "string" ? raw["updated_at"] : new Date().toISOString(),
     started_at: typeof raw["started_at"] === "string" ? raw["started_at"] : null,
     completed_at: typeof raw["completed_at"] === "string" ? raw["completed_at"] : null,
     failed_at: typeof raw["failed_at"] === "string" ? raw["failed_at"] : null,
+    escalated_at: typeof raw["escalated_at"] === "string" ? raw["escalated_at"] : null,
     retry_count: typeof raw["retry_count"] === "number" ? raw["retry_count"] : 0,
     max_retries: typeof raw["max_retries"] === "number" ? raw["max_retries"] : DEFAULT_MAX_RETRIES,
     error_message: typeof raw["error_message"] === "string" ? raw["error_message"] : null,
-    metadata: typeof raw["metadata"] === "object" && raw["metadata"] !== null
-      ? (raw["metadata"] as Record<string, unknown>)
-      : undefined,
+    assigned_tier: typeof raw["assigned_tier"] === "string" ? raw["assigned_tier"] : null,
+    assigned_role: typeof raw["assigned_role"] === "string" ? raw["assigned_role"] : null,
+    metadata:
+      typeof raw["metadata"] === "object" && raw["metadata"] !== null
+        ? (raw["metadata"] as Record<string, unknown>)
+        : undefined,
   };
 }
 
@@ -1052,7 +1284,8 @@ function validateSourceType(val: unknown): TaskSourceType {
       val === "feedback_intake" ||
       val === "self_evolution" ||
       val === "blunder_remediation" ||
-      val === "direct_prompt"
+      val === "direct_prompt" ||
+      val === "plan_enhancement"
     ) {
       return val;
     }

@@ -172,13 +172,7 @@ describe("CLI - watchdog:phase-cleanup", () => {
     registerWatchdog({ id: "wd-plan-phase", generation: 1, phase: "planning" }, dir);
     registerWatchdog({ id: "wd-exec-phase", generation: 2, phase: "execution" }, dir);
 
-    const result = await execute([
-      "watchdog:phase-cleanup",
-      "--run",
-      dir,
-      "--phase",
-      "planning",
-    ]);
+    const result = await execute(["watchdog:phase-cleanup", "--run", dir, "--phase", "planning"]);
 
     expect(typeof result.markdown).toBe("string");
     expect(String(result.markdown)).toContain("### Watchdog Automatic Phase Cleanup Engine");
@@ -212,13 +206,7 @@ describe("CLI - watchdog:phase-cleanup", () => {
     const dir = scratchRoot(import.meta.path, "cli-phase-clean-alias");
     registerWatchdog({ id: "wd-alias-test", generation: 1, phase: "draft" }, dir);
 
-    const result = await execute([
-      "watchdog:cleanup-phase",
-      "--run",
-      dir,
-      "--phase",
-      "draft",
-    ]);
+    const result = await execute(["watchdog:cleanup-phase", "--run", dir, "--phase", "draft"]);
     expect(result.terminated_count).toBe(1);
   });
 });
@@ -303,6 +291,24 @@ describe("CLI - watchdog:verify", () => {
     const dir = scratchRoot(import.meta.path, "cli-verify-alias");
     const result = await execute(["watchdog:check", "--run", dir]);
     expect(result.valid).toBe(true);
+  });
+});
+
+describe("CLI - watchdog:probe", () => {
+  test("executes supervisory health probe without run directory", async () => {
+    const result = await execute(["watchdog:probe"]);
+    expect(typeof result.markdown).toBe("string");
+    expect(result.markdown).toContain("Two-Way Supervisory Watchdog 5-Point Health Probe");
+    expect(typeof result.dispatched).toBe("boolean");
+    expect(result.report).toBeDefined();
+  });
+
+  test("executes supervisory health probe with run target", async () => {
+    const dir = scratchRoot(import.meta.path, "cli-probe-run");
+    const result = await execute(["watchdog:probe", "--run", dir]);
+    expect(typeof result.markdown).toBe("string");
+    expect(result.markdown).toContain("Two-Way Supervisory Watchdog 5-Point Health Probe");
+    expect(result.run_root).toBe(dir);
   });
 });
 

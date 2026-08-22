@@ -2,12 +2,7 @@ import type { JsonObject, JsonValue } from "../contracts/json.ts";
 import type { AgentRole } from "../contracts/packets.ts";
 import type { AgentModelTier, ThinkingLevel } from "../contracts/agents.ts";
 
-export type HostProvider =
-  | "antigravity"
-  | "claude-code"
-  | "cursor"
-  | "codex"
-  | "chatgpt";
+export type HostProvider = "antigravity" | "claude-code" | "cursor" | "codex" | "chatgpt";
 
 export const HOST_PROVIDERS: readonly HostProvider[] = [
   "antigravity",

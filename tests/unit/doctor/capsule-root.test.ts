@@ -68,6 +68,8 @@ describe("Capsule Root Doctor Checks - p18 strict repository root confinement", 
     const audit = verifyStrictRepositoryCapsuleRoot(runRoot, repo);
     expect(audit.valid).toBe(false);
     expect(audit.misplacedCapsules.length).toBe(2);
-    expect(audit.issues.some((i) => i.includes("Misplaced nested .capsules directory detected"))).toBe(true);
+    expect(
+      audit.issues.some((i) => i.includes("Misplaced nested .capsules directory detected")),
+    ).toBe(true);
   });
 });

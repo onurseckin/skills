@@ -95,10 +95,7 @@ export function isOrchestratorRole(role: string): boolean {
 
 export function isImplementerRole(role: string): boolean {
   return (
-    role === "implementer" ||
-    role === "repairer" ||
-    role === "sub-implementer" ||
-    role === "worker"
+    role === "implementer" || role === "repairer" || role === "sub-implementer" || role === "worker"
   );
 }
 
@@ -119,6 +116,62 @@ export function isTier3Role(role: string): boolean {
     role === "planner" ||
     role === "sub-investigator"
   );
+}
+
+export function isFullTestSuiteCommand(argv: readonly string[]): boolean {
+  if (!argv || argv.length === 0) return false;
+  const joined = argv.join(" ").trim();
+  const lowerJoined = joined.toLowerCase();
+
+  if (
+    lowerJoined === "bun test" ||
+    lowerJoined === "bun run test" ||
+    lowerJoined === "bun run test:unit" ||
+    lowerJoined === "bun test:unit" ||
+    lowerJoined.includes("test --coverage") ||
+    lowerJoined.includes("run test:unit") ||
+    lowerJoined === "npm test" ||
+    lowerJoined === "npm run test" ||
+    lowerJoined === "npm run test:unit" ||
+    lowerJoined === "yarn test" ||
+    lowerJoined === "yarn test:unit" ||
+    lowerJoined === "pnpm test" ||
+    lowerJoined === "pnpm test:unit" ||
+    lowerJoined === "pytest" ||
+    lowerJoined === "vitest" ||
+    lowerJoined === "cargo test" ||
+    lowerJoined === "go test ./..."
+  ) {
+    return true;
+  }
+
+  const isTestRunner =
+    (argv[0] === "bun" && argv[1] === "test") ||
+    (argv[0] === "bun" &&
+      argv[1] === "run" &&
+      typeof argv[2] === "string" &&
+      argv[2].startsWith("test")) ||
+    (argv[0] === "npm" &&
+      (argv[1] === "test" ||
+        (argv[1] === "run" && typeof argv[2] === "string" && argv[2].startsWith("test")))) ||
+    (argv[0] === "yarn" && (argv[1] === "test" || argv[1] === "test:unit")) ||
+    (argv[0] === "pnpm" && (argv[1] === "test" || argv[1] === "test:unit")) ||
+    argv[0] === "pytest" ||
+    argv[0] === "vitest" ||
+    argv[0] === "jest";
+
+  if (isTestRunner) {
+    const hasSingleTestFile = argv.some(
+      (arg) =>
+        !arg.startsWith("-") &&
+        /(\.(test|spec)\.[cm]?[jt]sx?|([/_]test|^test)[^/]*\.py|_test\.py|_spec\.rb)$/i.test(arg),
+    );
+    if (!hasSingleTestFile) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 function inferRole(actorId: string, roleMap: Map<string, string>, state: JsonObject): string {
@@ -180,7 +233,8 @@ export function auditCrossTierSpawning(
 
     const childRole = grant.role;
     const childTier = roleToTier(childRole);
-    const parentRole = roleMap.get(grant.parent_agent_id) ?? inferRole(grant.parent_agent_id, roleMap, {});
+    const parentRole =
+      roleMap.get(grant.parent_agent_id) ?? inferRole(grant.parent_agent_id, roleMap, {});
     const parentTier = roleToTier(parentRole);
 
     const validation = validateTierSpawning(parentTier, childTier, parentRole, childRole);
@@ -284,6 +338,23 @@ export function auditCoordinatorConfinement(
           command_id: cmd.id,
           argv: [...(cmd.argv ?? [])],
           ...(cmd.tool ? { tool: cmd.tool } : {}),
+        },
+      });
+    }
+
+    if (isFullTestSuiteCommand(cmd.argv ?? [])) {
+      findings.push({
+        agent_id: cmd.actor,
+        role: "coordinator",
+        tier: 2,
+        violation_type: "role_confinement_violation",
+        severity: "critical",
+        observation: `Tier 2 Coordinator agent "${cmd.actor}" executed prohibited full test suite command "${(cmd.argv ?? []).join(" ")}" in command "${cmd.id}"`,
+        remediation:
+          "Coordinators are strictly banned from running full test suites (`bun test`, `bun run test:unit`, `bun test --coverage`). Coordinators coordinate task evidence without running tests; full tests belong exclusively to Completeness Critics.",
+        evidence: {
+          command_id: cmd.id,
+          argv: [...(cmd.argv ?? [])],
         },
       });
     }
@@ -421,6 +492,23 @@ export function auditOrchestratorConfinement(
         evidence: {
           command_id: cmd.id,
           ...(cmd.tool ? { tool: cmd.tool } : {}),
+        },
+      });
+    }
+
+    if (isFullTestSuiteCommand(argv)) {
+      findings.push({
+        agent_id: cmd.actor,
+        role: "orchestrator",
+        tier: 1,
+        violation_type: "role_confinement_violation",
+        severity: "critical",
+        observation: `Tier 1 Orchestrator agent "${cmd.actor}" executed prohibited full test suite command "${argv.join(" ")}" in command "${cmd.id}"`,
+        remediation:
+          "Orchestrators are strictly banned from running full test suites (`bun test`, `bun run test:unit`, `bun test --coverage`). Only Completeness Critics may run full tests; workers run only scoped single-file tests.",
+        evidence: {
+          command_id: cmd.id,
+          argv: [...argv],
         },
       });
     }
@@ -672,7 +760,9 @@ export function auditPulseTerminationConfinement(
   }
 }
 
-function deduplicateFindings(findings: readonly TierConfinementFinding[]): TierConfinementFinding[] {
+function deduplicateFindings(
+  findings: readonly TierConfinementFinding[],
+): TierConfinementFinding[] {
   const seen = new Set<string>();
   const deduplicated: TierConfinementFinding[] = [];
   for (const finding of findings) {
@@ -749,7 +839,8 @@ export function summarizeTierConfinement(
   findings: readonly TierConfinementFinding[],
 ): TierConfinementSummary {
   const issues = findings.map(
-    (f) => `tier-confinement [${f.severity}] (Tier ${f.tier} ${f.role}/${f.agent_id}): ${f.observation}`,
+    (f) =>
+      `tier-confinement [${f.severity}] (Tier ${f.tier} ${f.role}/${f.agent_id}): ${f.observation}`,
   );
   return {
     healthy: findings.length === 0,

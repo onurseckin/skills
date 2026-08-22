@@ -144,7 +144,9 @@ describe("WatchdogManager - Registration & Single Active Invariant", () => {
     expect(second.supersededWatchdogs[0]?.termination_reason).toBe("superseded_by_new_watchdog");
 
     const store = loadWatchdogStore(dir);
-    const activeMonitors = store.watchdogs.filter((w) => w.status === "active" && w.generation === 1);
+    const activeMonitors = store.watchdogs.filter(
+      (w) => w.status === "active" && w.generation === 1,
+    );
     expect(activeMonitors.length).toBe(1);
     expect(activeMonitors[0]?.id).toBe("wd-gen1-second");
   });
@@ -270,7 +272,11 @@ describe("WatchdogManager - Heartbeat & Termination", () => {
     const dir = scratchRoot(import.meta.path, "terminate-ok");
     registerWatchdog({ id: "wd-term-2" }, dir);
 
-    const term1 = terminateWatchdog("wd-term-2", { reason: "job_done", now: "2026-08-21T21:00:00.000Z" }, dir);
+    const term1 = terminateWatchdog(
+      "wd-term-2",
+      { reason: "job_done", now: "2026-08-21T21:00:00.000Z" },
+      dir,
+    );
     expect(term1.status).toBe("terminated");
     expect(term1.termination_reason).toBe("job_done");
     expect(term1.terminated_at).toBe("2026-08-21T21:00:00.000Z");
@@ -805,8 +811,12 @@ describe("WatchdogManager - Lifecycle Invariant Verification", () => {
 
     const result = verifyWatchdogLifecycle({}, dir);
     expect(result.valid).toBe(false);
-    expect(result.violations.some((v) => v.includes("Multiple active watchdogs found in generation 1"))).toBe(true);
-    expect(result.violationDetails.some((d) => d.rule === "single_active_per_generation")).toBe(true);
+    expect(
+      result.violations.some((v) => v.includes("Multiple active watchdogs found in generation 1")),
+    ).toBe(true);
+    expect(result.violationDetails.some((d) => d.rule === "single_active_per_generation")).toBe(
+      true,
+    );
   });
 
   test("verifyWatchdogLifecycle detects multiple active monitors with same pulse_id", () => {
@@ -859,7 +869,11 @@ describe("WatchdogManager - Lifecycle Invariant Verification", () => {
 
     const result = verifyWatchdogLifecycle({}, dir);
     expect(result.valid).toBe(false);
-    expect(result.violations.some((v) => v.includes("Multiple active watchdogs found for pulse 'shared-pulse-123'"))).toBe(true);
+    expect(
+      result.violations.some((v) =>
+        v.includes("Multiple active watchdogs found for pulse 'shared-pulse-123'"),
+      ),
+    ).toBe(true);
     expect(result.violationDetails.some((d) => d.rule === "single_active_per_pulse")).toBe(true);
   });
 
@@ -907,10 +921,9 @@ describe("Invariants & Cleanliness Audit", () => {
         __dirname,
         "../../../orchestrating-long-tasks/scripts/src/authority/watchdog-manager.ts",
       ),
-      join(
-        __dirname,
-        "../../../orchestrating-long-tasks/scripts/src/cli/commands/watchdog-ops.ts",
-      ),
+      join(__dirname, "../../../orchestrating-long-tasks/scripts/src/runner/watchdog.ts"),
+      join(__dirname, "../../../orchestrating-long-tasks/scripts/src/orchestrator/watchdog.ts"),
+      join(__dirname, "../../../orchestrating-long-tasks/scripts/src/cli/commands/watchdog-ops.ts"),
       __filename,
     ];
 

@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
   computeWorkSpanMetrics,
+  computeResourceDisjointness,
   partitionOrchestratorDomains,
   calculateValidatorAllocations,
   calculateCriticConcurrency,
@@ -17,9 +18,39 @@ describe("Dynamic Topology Synthesis", () => {
         ["t3", new Set(["t2"])],
       ]);
       const tasks = new Map([
-        ["t1", { id: "t1", priority: 1, created_order: 1, effort: 2, requirement_ids: [], write_scope: [] }],
-        ["t2", { id: "t2", priority: 1, created_order: 2, effort: 3, requirement_ids: [], write_scope: [] }],
-        ["t3", { id: "t3", priority: 1, created_order: 3, effort: 1, requirement_ids: [], write_scope: [] }],
+        [
+          "t1",
+          {
+            id: "t1",
+            priority: 1,
+            created_order: 1,
+            effort: 2,
+            requirement_ids: [],
+            write_scope: [],
+          },
+        ],
+        [
+          "t2",
+          {
+            id: "t2",
+            priority: 1,
+            created_order: 2,
+            effort: 3,
+            requirement_ids: [],
+            write_scope: [],
+          },
+        ],
+        [
+          "t3",
+          {
+            id: "t3",
+            priority: 1,
+            created_order: 3,
+            effort: 1,
+            requirement_ids: [],
+            write_scope: [],
+          },
+        ],
       ]);
 
       const metrics = computeWorkSpanMetrics(deps, tasks);
@@ -39,11 +70,61 @@ describe("Dynamic Topology Synthesis", () => {
         ["join", new Set(["branch-a", "branch-b", "branch-c"])],
       ]);
       const tasks = new Map([
-        ["root", { id: "root", priority: 1, created_order: 1, effort: 1, requirement_ids: [], write_scope: [] }],
-        ["branch-a", { id: "branch-a", priority: 1, created_order: 2, effort: 4, requirement_ids: [], write_scope: [] }],
-        ["branch-b", { id: "branch-b", priority: 1, created_order: 3, effort: 2, requirement_ids: [], write_scope: [] }],
-        ["branch-c", { id: "branch-c", priority: 1, created_order: 4, effort: 1, requirement_ids: [], write_scope: [] }],
-        ["join", { id: "join", priority: 1, created_order: 5, effort: 1, requirement_ids: [], write_scope: [] }],
+        [
+          "root",
+          {
+            id: "root",
+            priority: 1,
+            created_order: 1,
+            effort: 1,
+            requirement_ids: [],
+            write_scope: [],
+          },
+        ],
+        [
+          "branch-a",
+          {
+            id: "branch-a",
+            priority: 1,
+            created_order: 2,
+            effort: 4,
+            requirement_ids: [],
+            write_scope: [],
+          },
+        ],
+        [
+          "branch-b",
+          {
+            id: "branch-b",
+            priority: 1,
+            created_order: 3,
+            effort: 2,
+            requirement_ids: [],
+            write_scope: [],
+          },
+        ],
+        [
+          "branch-c",
+          {
+            id: "branch-c",
+            priority: 1,
+            created_order: 4,
+            effort: 1,
+            requirement_ids: [],
+            write_scope: [],
+          },
+        ],
+        [
+          "join",
+          {
+            id: "join",
+            priority: 1,
+            created_order: 5,
+            effort: 1,
+            requirement_ids: [],
+            write_scope: [],
+          },
+        ],
       ]);
 
       const metrics = computeWorkSpanMetrics(deps, tasks);
@@ -58,10 +139,38 @@ describe("Dynamic Topology Synthesis", () => {
   describe("partitionOrchestratorDomains", () => {
     test("partitions tasks into domain clusters based on write scopes", () => {
       const tasks = [
-        { id: "ui-task-1", priority: 1, created_order: 1, effort: 1, requirement_ids: [], write_scope: ["src/ui/Button.tsx"] },
-        { id: "ui-task-2", priority: 1, created_order: 2, effort: 1, requirement_ids: [], write_scope: ["src/ui/Nav.tsx"] },
-        { id: "sys-task-1", priority: 1, created_order: 3, effort: 2, requirement_ids: [], write_scope: ["src/contracts/schema.graphql"] },
-        { id: "core-task-1", priority: 1, created_order: 4, effort: 1, requirement_ids: [], write_scope: ["src/utils/math.ts"] },
+        {
+          id: "ui-task-1",
+          priority: 1,
+          created_order: 1,
+          effort: 1,
+          requirement_ids: [],
+          write_scope: ["src/ui/Button.tsx"],
+        },
+        {
+          id: "ui-task-2",
+          priority: 1,
+          created_order: 2,
+          effort: 1,
+          requirement_ids: [],
+          write_scope: ["src/ui/Nav.tsx"],
+        },
+        {
+          id: "sys-task-1",
+          priority: 1,
+          created_order: 3,
+          effort: 2,
+          requirement_ids: [],
+          write_scope: ["src/contracts/schema.graphql"],
+        },
+        {
+          id: "core-task-1",
+          priority: 1,
+          created_order: 4,
+          effort: 1,
+          requirement_ids: [],
+          write_scope: ["src/utils/math.ts"],
+        },
       ];
       const deps = new Map([
         ["ui-task-1", new Set<string>()],
@@ -87,8 +196,22 @@ describe("Dynamic Topology Synthesis", () => {
 
     test("identifies cross-orchestrator partition dependencies", () => {
       const tasks = [
-        { id: "schema-task", priority: 1, created_order: 1, effort: 2, requirement_ids: [], write_scope: ["src/contracts/schema.proto"] },
-        { id: "ui-task", priority: 1, created_order: 2, effort: 1, requirement_ids: [], write_scope: ["src/components/View.tsx"] },
+        {
+          id: "schema-task",
+          priority: 1,
+          created_order: 1,
+          effort: 2,
+          requirement_ids: [],
+          write_scope: ["src/contracts/schema.proto"],
+        },
+        {
+          id: "ui-task",
+          priority: 1,
+          created_order: 2,
+          effort: 1,
+          requirement_ids: [],
+          write_scope: ["src/components/View.tsx"],
+        },
       ];
       const deps = new Map([
         ["schema-task", new Set<string>()],
@@ -105,9 +228,30 @@ describe("Dynamic Topology Synthesis", () => {
   describe("calculateValidatorAllocations", () => {
     test("calculates validator demand and fleet sizing based on task write scopes", () => {
       const tasks = [
-        { id: "t1", priority: 1, created_order: 1, effort: 1, requirement_ids: [], write_scope: ["src/index.ts"] },
-        { id: "t2", priority: 1, created_order: 2, effort: 1, requirement_ids: [], write_scope: ["src/view.tsx"] },
-        { id: "t3", priority: 1, created_order: 3, effort: 1, requirement_ids: [], write_scope: ["src/schema.graphql"] },
+        {
+          id: "t1",
+          priority: 1,
+          created_order: 1,
+          effort: 1,
+          requirement_ids: [],
+          write_scope: ["src/index.ts"],
+        },
+        {
+          id: "t2",
+          priority: 1,
+          created_order: 2,
+          effort: 1,
+          requirement_ids: [],
+          write_scope: ["src/view.tsx"],
+        },
+        {
+          id: "t3",
+          priority: 1,
+          created_order: 3,
+          effort: 1,
+          requirement_ids: [],
+          write_scope: ["src/schema.graphql"],
+        },
       ];
 
       const { demands, fleet } = calculateValidatorAllocations(tasks);
@@ -161,10 +305,95 @@ describe("Dynamic Topology Synthesis", () => {
       expect(barrier.dependentTaskId).toBe("t-gamma");
     });
 
+    test("computes resource disjointness and tier recommendations correctly", () => {
+      const state = topologyState();
+      const synthesis = synthesizeDynamicTopology(state, { default_max_parallel: 4 });
+
+      expect(synthesis.resourceDisjointness).toBeDefined();
+      expect(synthesis.resourceDisjointness.disjointComponentCount).toBeGreaterThanOrEqual(1);
+      expect(synthesis.resourceDisjointness.disjointnessScore).toBeGreaterThan(0);
+      expect(synthesis.recommendedTier1Orchestrators).toBeGreaterThanOrEqual(1);
+      expect(synthesis.recommendedTier2Coordinators).toBeGreaterThanOrEqual(1);
+    });
+
     test("throws HarnessError on invalid state or missing revision", () => {
       expect(() => synthesizeDynamicTopology({}, { default_max_parallel: 4 })).toThrow(
         "a plan must be applied before topology is synthesized",
       );
+    });
+  });
+
+  describe("computeResourceDisjointness", () => {
+    test("computes disjoint components for independent tasks with disjoint write scopes", () => {
+      const tasks = [
+        {
+          id: "t1",
+          priority: 1,
+          created_order: 1,
+          effort: 1,
+          requirement_ids: [],
+          write_scope: ["src/a.ts"],
+        },
+        {
+          id: "t2",
+          priority: 1,
+          created_order: 2,
+          effort: 1,
+          requirement_ids: [],
+          write_scope: ["src/b.ts"],
+        },
+        {
+          id: "t3",
+          priority: 1,
+          created_order: 3,
+          effort: 1,
+          requirement_ids: [],
+          write_scope: ["src/c.ts"],
+        },
+      ];
+      const metrics = computeResourceDisjointness(tasks);
+      expect(metrics.disjointComponentCount).toBe(3);
+      expect(metrics.disjointnessScore).toBe(1);
+      expect(metrics.componentTaskIds.length).toBe(3);
+    });
+
+    test("merges conflicting tasks into same connected component", () => {
+      const tasks = [
+        {
+          id: "t1",
+          priority: 1,
+          created_order: 1,
+          effort: 1,
+          requirement_ids: [],
+          write_scope: ["src/shared.ts"],
+        },
+        {
+          id: "t2",
+          priority: 1,
+          created_order: 2,
+          effort: 1,
+          requirement_ids: [],
+          write_scope: ["src/shared.ts"],
+        },
+        {
+          id: "t3",
+          priority: 1,
+          created_order: 3,
+          effort: 1,
+          requirement_ids: [],
+          write_scope: ["src/isolated.ts"],
+        },
+      ];
+      const metrics = computeResourceDisjointness(tasks);
+      expect(metrics.disjointComponentCount).toBe(2);
+      expect(metrics.disjointnessScore).toBe(0.67);
+    });
+
+    test("returns zero components on empty task array", () => {
+      const metrics = computeResourceDisjointness([]);
+      expect(metrics.disjointComponentCount).toBe(0);
+      expect(metrics.disjointnessScore).toBe(1);
+      expect(metrics.componentTaskIds).toEqual([]);
     });
   });
 });

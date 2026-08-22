@@ -46,7 +46,8 @@ describe("Diagnostics Dual-State Remediation Engine", () => {
       category: "boundary_violation",
       status: "open",
       observation: "Execution detected on interactive main thread modifying source files directly.",
-      remediation: "Main thread must not modify code. Dispatch Tier 3 Implementers via invoke_subagent.",
+      remediation:
+        "Main thread must not modify code. Dispatch Tier 3 Implementers via invoke_subagent.",
       role: "main_thread",
     };
 
@@ -93,7 +94,9 @@ describe("Diagnostics Dual-State Remediation Engine", () => {
       expect(resolved.resolution !== undefined).toBeTrue();
       if (resolved.resolution) {
         expect(resolved.resolution.task_id).toBe("task-tier3-delegation-fix");
-        expect(resolved.resolution.test_assertion).toBe("bun test tests/unit/diagnostics/dual-state-remediation.test.ts");
+        expect(resolved.resolution.test_assertion).toBe(
+          "bun test tests/unit/diagnostics/dual-state-remediation.test.ts",
+        );
         expect(resolved.resolution.commit_sha).toBe("commit-sha-boundary-verified-01");
         expect(resolved.resolution.resolved_at).toBe("2026-08-22T08:30:00.000Z");
       }
@@ -115,8 +118,10 @@ describe("Diagnostics Dual-State Remediation Engine", () => {
       timestamp: "2026-08-22T08:35:00.000Z",
       category: "model_reasoning_error",
       status: "open",
-      observation: "Tier 0 Mind exhibited passive inertia and failed to trigger plan revision tools.",
-      remediation: "Trigger dynamic multi-orchestrator dispatch and autonomic loop rollover in recycler.ts.",
+      observation:
+        "Tier 0 Mind exhibited passive inertia and failed to trigger plan revision tools.",
+      remediation:
+        "Trigger dynamic multi-orchestrator dispatch and autonomic loop rollover in recycler.ts.",
       role: "mind",
     };
 
@@ -160,7 +165,8 @@ describe("Diagnostics Dual-State Remediation Engine", () => {
       category: "code_defect",
       status: "open",
       observation: "Implicit any detected in diagnostics telemetry module.",
-      remediation: "Add strict TypeScript type annotations; verify tsc -p tsconfig.json --noEmit exits with code 0.",
+      remediation:
+        "Add strict TypeScript type annotations; verify tsc -p tsconfig.json --noEmit exits with code 0.",
     };
 
     test("State 1 (Defect State): Flags defect kind candidate with G1 goal", () => {

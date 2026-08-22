@@ -38,7 +38,10 @@ export function verifyUnifiedEvidenceLocation(
     for (const capture of captures) {
       checkedCount++;
       const pathToCheck = capture.path;
-      if (!isUnifiedEvidenceRelativePath(pathToCheck) && !isUnifiedEvidencePath(pathToCheck, resolvedRunRoot)) {
+      if (
+        !isUnifiedEvidenceRelativePath(pathToCheck) &&
+        !isUnifiedEvidencePath(pathToCheck, resolvedRunRoot)
+      ) {
         invalidPaths.push(pathToCheck);
         issues.push(
           `Capture record "${capture.name}" (${capture.kind}) has non-unified path "${pathToCheck}": validator outputs must reside under .capsules/<run>/evidence/ (e.g. evidence/screenshots/)`,

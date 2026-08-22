@@ -386,9 +386,7 @@ export function formatPlanValidateStartBrief(params: PlanValidateStartParams): s
     `- **Under Review**: ${params.totalTasks} compiled tasks`,
     `- **Answer in writing**: does the decomposition match the prompt's entity count; is every dependency edge justified by a read/write relationship; can each gate fail if its task does nothing; will any task's scope leave one agent straggling.`,
     `- **Next Step**: \`plan:review --status approved\` or \`--status changes_requested\` with the four answers.`,
-    ...nextActionsBlock(
-      planValidateStartNextActions(params.runId, params.validator, params.token),
-    ),
+    ...nextActionsBlock(planValidateStartNextActions(params.runId, params.validator, params.token)),
   ].join("\n");
   return enforceLineLimit(md, 30);
 }

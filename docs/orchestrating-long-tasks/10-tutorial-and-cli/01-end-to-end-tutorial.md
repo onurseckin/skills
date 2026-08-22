@@ -1030,6 +1030,9 @@ Releasing afterwards is refused:
 
 ```bash
 bun harness.ts agent:list --run .capsules/slugger --task task-truncate
+bun harness.ts dag:render --run .capsules/slugger --box-style rounded
+bun harness.ts dag:trace --run .capsules/slugger --max-steps 20
+bun harness.ts watchdog:verify --generation 1
 bun harness.ts summary:export --run .capsules/slugger
 bun harness.ts doctor --run .capsules/slugger
 ```
@@ -1079,13 +1082,14 @@ the run's own timeline. Neither of those existed in this export before today.
 | 3C  | `plan:audit`                                            | Structural audit verdict recorded, whether or not it blocks.             |
 | 4   | `plan:compile`                                          | Requirements, DAG, revision 1, `state.topology`, topology declaration.   |
 | 4B  | `plan:validate-start` / `plan:review`                   | Plan-validator assignment and verdict on the graph revision.             |
-| 5   | `queue:wave`                                            | Read-only; the whole conflict-free wave.                                 |
+| 5   | `queue:wave` / `dag:render`                             | Read-only wave inspection and Sugiyama layered layout visualization.     |
 | 6   | `agent:register` ×N                                     | `state.agents` grants and lineage.                                       |
 | 7   | `task:claim --role`                                     | Lease + one-time bearer token + write-scope content digest at claim.     |
 | 8   | `run:exec`                                              | Command record, log bytes, `trusted_host_observed_v1` evidence.          |
 | 8B  | `gate:prove`                                            | Falsifiability verdict on a reverted scratch copy, `gate_proofs` event.  |
 | 9   | `task:submit --summary`                                 | Submission report; scope compliance and write-scope digest checked.      |
 | 10  | `branch:open` / `claim` / `submit` / `collect`          | `state.branches`; parent frozen, then resumed with a measured file list. |
+| 10B | `dag:trace`                                             | Replayed event stream into vertical chronological step timeline.         |
 | 11  | `task:validate-start`                                   | Validation token; independence enforced.                                 |
 | 12  | `task:reject`                                           | Defect finding; `changes_requested`; repair round +1.                    |
 | 13  | `task:claim --role repairer`                            | Repair lease.                                                            |
@@ -1094,8 +1098,9 @@ the run's own timeline. Neither of those existed in this export before today.
 | 12B | `task:submit --no-op --reason` (aside)                  | Accepted no-op, distinct from an unexplained non-change refusal.         |
 | 16  | `critic:start` / `critic:review`                        | Completion certificate with requirement proofs.                          |
 | 17  | `agent:release` ×N                                      | Grants closed.                                                           |
-| 18  | `run:complete`                                          | Capsule sealed.                                                          |
-| 19  | `summary:export` / `doctor`                             | Graph, timeline, metrics, integrity report.                              |
+| 18  | `watchdog:verify`                                       | Audited watchdog registry against accumulation invariants.               |
+| 19  | `run:complete`                                          | Capsule sealed.                                                          |
+| 20  | `summary:export` / `doctor`                             | Graph, timeline, metrics, integrity report.                              |
 
 ---
 

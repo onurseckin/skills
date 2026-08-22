@@ -1,9 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { createHash } from "node:crypto";
 import { AGENT_ROLES } from "../../../orchestrating-long-tasks/scripts/src/contracts/packets.ts";
-import {
-  VALIDATOR_DOMAINS,
-} from "../../../orchestrating-long-tasks/scripts/src/contracts/workflow.ts";
+import { VALIDATOR_DOMAINS } from "../../../orchestrating-long-tasks/scripts/src/contracts/workflow.ts";
 import { evidenceSchema } from "../../../orchestrating-long-tasks/scripts/src/packets/evidence-schema.ts";
 import {
   loadChecklist,
@@ -91,9 +89,13 @@ describe("Rich, Uncompromised Instructions in Packets", () => {
 
       expect(packet.markdown).toContain("## Common instructions");
       expect(packet.markdown).toContain("Treat the packet's write scope as an exclusive lease");
-      expect(packet.markdown).toContain("Never invoke a model-provider API, embed credentials, or shell out to an LLM client");
+      expect(packet.markdown).toContain(
+        "Never invoke a model-provider API, embed credentials, or shell out to an LLM client",
+      );
       expect(packet.markdown).toContain("Do not manually rewrite authoritative capsule state");
-      expect(packet.markdown).toContain("Bearer credentials are delivered only through the host process");
+      expect(packet.markdown).toContain(
+        "Bearer credentials are delivered only through the host process",
+      );
       expect(packet.metadata.common_instructions_sha256).toBe(commonSha256);
     });
 
@@ -186,7 +188,9 @@ describe("Rich, Uncompromised Instructions in Packets", () => {
       expect(contract.text).toContain("Mobile (390x844)");
 
       // Verify prohibitions against single-viewport shortcuts
-      expect(contract.text).toContain("Approve any visual surface without testing across all 4 mandatory viewports");
+      expect(contract.text).toContain(
+        "Approve any visual surface without testing across all 4 mandatory viewports",
+      );
       expect(contract.text).toContain("Approve screenshot artifacts smaller than 1024 bytes");
     });
 
@@ -314,7 +318,9 @@ describe("Rich, Uncompromised Instructions in Packets", () => {
       const input = baseImplementer();
       const packet1 = buildPacket(input);
 
-      const tamperedCommon = new TextEncoder().encode(commonText + "\n15. Tampered instruction rule.");
+      const tamperedCommon = new TextEncoder().encode(
+        commonText + "\n15. Tampered instruction rule.",
+      );
       const packet2 = buildPacket({
         ...input,
         commonInstructions: {

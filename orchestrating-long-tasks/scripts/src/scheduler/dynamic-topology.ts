@@ -2,7 +2,11 @@ import { HarnessError } from "../errors/harness-error.ts";
 import { dependencyMap } from "../graph/dependency-map.ts";
 import { downstreamMap, topologicalOrder, type DependencyMap } from "../graph/topology.ts";
 import { isInteger, isRecord } from "../requirements/predicates.ts";
-import { applicableValidatorDomains, type ValidatorDomain, VALIDATOR_DOMAINS } from "../contracts/workflow.ts";
+import {
+  applicableValidatorDomains,
+  type ValidatorDomain,
+  VALIDATOR_DOMAINS,
+} from "../contracts/workflow.ts";
 import type { TopologyDecision, TopologyReason, TopologyWave } from "../contracts/topology.ts";
 import { resourceConflict, scopeConflict } from "./conflicts.ts";
 import { schedulingMetrics, type SchedulingMetrics } from "./metrics.ts";
@@ -57,12 +61,21 @@ export interface DynamicTopologyOptions {
   readonly rationales?: Readonly<Record<string, string>> | undefined;
 }
 
+export interface ResourceDisjointnessMetrics {
+  readonly disjointComponentCount: number;
+  readonly disjointnessScore: number;
+  readonly componentTaskIds: readonly (readonly string[])[];
+}
+
 export interface DynamicTopologySynthesis {
   readonly revision: number;
   readonly work: number;
   readonly span: number;
   readonly parallelismFactor: number;
   readonly criticalPath: readonly string[];
+  readonly resourceDisjointness: ResourceDisjointnessMetrics;
+  readonly recommendedTier1Orchestrators: number;
+  readonly recommendedTier2Coordinators: number;
   readonly recommendedWorkerFleetSize: number;
   readonly recommendedValidatorFleet: Readonly<Record<ValidatorDomain, number>>;
   readonly recommendedCriticConcurrency: number;
@@ -184,6 +197,73 @@ export function computeWorkSpanMetrics(
   };
 }
 
+export function computeResourceDisjointness(
+  tasks: readonly ScheduledTask[],
+  dependencies?: DependencyMap | undefined,
+): ResourceDisjointnessMetrics {
+  if (tasks.length === 0) {
+    return {
+      disjointComponentCount: 0,
+      disjointnessScore: 1,
+      componentTaskIds: [],
+    };
+  }
+
+  const adj = new Map<string, Set<string>>();
+  for (const t of tasks) {
+    adj.set(t.id, new Set<string>());
+  }
+
+  for (let i = 0; i < tasks.length; i++) {
+    const left = tasks[i]!;
+    for (let j = i + 1; j < tasks.length; j++) {
+      const right = tasks[j]!;
+      const isConflicting = conflicting(left, right);
+      const isDep =
+        (dependencies?.get(left.id)?.has(right.id) ?? false) ||
+        (dependencies?.get(right.id)?.has(left.id) ?? false);
+      if (isConflicting || isDep) {
+        adj.get(left.id)?.add(right.id);
+        adj.get(right.id)?.add(left.id);
+      }
+    }
+  }
+
+  const visited = new Set<string>();
+  const components: string[][] = [];
+
+  for (const t of tasks) {
+    if (visited.has(t.id)) continue;
+    const comp: string[] = [];
+    const queue: string[] = [t.id];
+    visited.add(t.id);
+
+    while (queue.length > 0) {
+      const curr = queue.shift()!;
+      comp.push(curr);
+      const neighbors = adj.get(curr) ?? new Set<string>();
+      for (const n of neighbors) {
+        if (!visited.has(n)) {
+          visited.add(n);
+          queue.push(n);
+        }
+      }
+    }
+
+    comp.sort();
+    components.push(comp);
+  }
+
+  const disjointComponentCount = components.length;
+  const disjointnessScore = Number((disjointComponentCount / Math.max(1, tasks.length)).toFixed(2));
+
+  return {
+    disjointComponentCount,
+    disjointnessScore,
+    componentTaskIds: components,
+  };
+}
+
 export function partitionOrchestratorDomains(
   tasks: readonly ScheduledTask[],
   dependencies: DependencyMap,
@@ -243,11 +323,16 @@ export function partitionOrchestratorDomains(
     const subDeps: DependencyMap = new Map();
     for (const t of groupTasks) {
       const rawPrereqs = dependencies.get(t.id);
-      const prereqs = rawPrereqs ? Array.from(rawPrereqs).filter((id: string) => groupTaskIds.includes(id)) : [];
+      const prereqs = rawPrereqs
+        ? Array.from(rawPrereqs).filter((id: string) => groupTaskIds.includes(id))
+        : [];
       subDeps.set(t.id, new Set(prereqs));
     }
     const subMetrics = computeWorkSpanMetrics(subDeps, taskMap);
-    const recommendedWorkers = Math.max(1, Math.min(groupTasks.length, Math.ceil(subMetrics.parallelismFactor)));
+    const recommendedWorkers = Math.max(
+      1,
+      Math.min(groupTasks.length, Math.ceil(subMetrics.parallelismFactor)),
+    );
 
     partitions.push({
       partitionId: `orchestrator-domain-${domain}`,
@@ -267,9 +352,9 @@ export function partitionOrchestratorDomains(
     const remainder = partitions.slice(maxPartitions - 1);
     const mergedTaskIds = Array.from(new Set(remainder.flatMap((p) => p.taskIds))).sort();
     const mergedWriteScopes = Array.from(new Set(remainder.flatMap((p) => p.writeScopes))).sort();
-    const mergedDeps = Array.from(new Set(remainder.flatMap((p) => p.dependencies))).filter(
-      (d) => !remainder.some((r) => r.partitionId === d),
-    ).sort();
+    const mergedDeps = Array.from(new Set(remainder.flatMap((p) => p.dependencies)))
+      .filter((d) => !remainder.some((r) => r.partitionId === d))
+      .sort();
     const mergedWork = remainder.reduce((acc, p) => acc + p.work, 0);
     const mergedSpan = Math.max(...remainder.map((p) => p.span));
     const mergedWorkers = Math.max(...remainder.map((p) => p.recommendedWorkers));
@@ -292,13 +377,14 @@ export function partitionOrchestratorDomains(
   return partitions;
 }
 
-export function calculateValidatorAllocations(
-  tasks: readonly ScheduledTask[],
-): { demands: readonly ValidatorDemand[]; fleet: Readonly<Record<ValidatorDomain, number>> } {
+export function calculateValidatorAllocations(tasks: readonly ScheduledTask[]): {
+  demands: readonly ValidatorDemand[];
+  fleet: Readonly<Record<ValidatorDomain, number>>;
+} {
   const counts: Record<ValidatorDomain, number> = {
     "code-quality": 0,
-    "product": 0,
-    "security": 0,
+    product: 0,
+    security: 0,
     "system-design": 0,
     "ui-design": 0,
   };
@@ -313,8 +399,8 @@ export function calculateValidatorAllocations(
   const demands: ValidatorDemand[] = [];
   const fleet: Record<ValidatorDomain, number> = {
     "code-quality": 0,
-    "product": 0,
-    "security": 0,
+    product: 0,
+    security: 0,
     "system-design": 0,
     "ui-design": 0,
   };
@@ -356,11 +442,17 @@ export function synthesizeDynamicTopology(
     );
   }
   if (!isRecord(state) || !isRecord(state.graph) || !isRecord(state.tasks)) {
-    throw new HarnessError("INVALID_STATE", "a plan must be applied before topology is synthesized");
+    throw new HarnessError(
+      "INVALID_STATE",
+      "a plan must be applied before topology is synthesized",
+    );
   }
   const revision = state.graph.revision;
   if (!isInteger(revision) || revision < 1) {
-    throw new HarnessError("INVALID_STATE", "graph revision is required to synthesize dynamic topology");
+    throw new HarnessError(
+      "INVALID_STATE",
+      "graph revision is required to synthesize dynamic topology",
+    );
   }
 
   const dependencies = dependencyMap(state.graph);
@@ -389,7 +481,10 @@ export function synthesizeDynamicTopology(
   const working = structuredClone(state);
   const workingTasks = working.tasks;
   if (!isRecord(workingTasks)) {
-    throw new HarnessError("INVALID_STATE", "a plan must be applied before topology is synthesized");
+    throw new HarnessError(
+      "INVALID_STATE",
+      "a plan must be applied before topology is synthesized",
+    );
   }
 
   const rationales = options.rationales ?? {};
@@ -468,6 +563,7 @@ export function synthesizeDynamicTopology(
     }
   }
 
+  const resourceDisjointness = computeResourceDisjointness(allTasks, dependencies);
   const { fleet: recommendedValidatorFleet } = calculateValidatorAllocations(allTasks);
   const recommendedWorkerFleetSize = Math.max(
     1,
@@ -478,6 +574,14 @@ export function synthesizeDynamicTopology(
     waves.length,
     partitions.length,
   );
+  const recommendedTier1Orchestrators = Math.max(
+    1,
+    Math.min(options.max_orchestrator_partitions ?? 4, Math.max(partitions.length, 1)),
+  );
+  const recommendedTier2Coordinators =
+    partitions.length > 0
+      ? partitions.reduce((acc, p) => acc + Math.max(1, Math.ceil(p.recommendedWorkers / 2)), 0)
+      : 1;
 
   return {
     revision,
@@ -485,6 +589,9 @@ export function synthesizeDynamicTopology(
     span: workSpan.span,
     parallelismFactor: workSpan.parallelismFactor,
     criticalPath: workSpan.criticalPath,
+    resourceDisjointness,
+    recommendedTier1Orchestrators,
+    recommendedTier2Coordinators,
     recommendedWorkerFleetSize,
     recommendedValidatorFleet,
     recommendedCriticConcurrency,

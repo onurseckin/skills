@@ -5,7 +5,12 @@ import { createHash } from "node:crypto";
 const encoder = new TextEncoder();
 
 function encode(value: JsonValue | undefined): string {
-  if (value === undefined || value === null || typeof value === "boolean" || typeof value === "string") {
+  if (
+    value === undefined ||
+    value === null ||
+    typeof value === "boolean" ||
+    typeof value === "string"
+  ) {
     return JSON.stringify(value === undefined ? null : value);
   }
   if (typeof value === "number") {

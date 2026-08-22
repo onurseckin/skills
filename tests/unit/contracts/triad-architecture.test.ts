@@ -43,7 +43,12 @@ describe("Directive p06: Agent Triad Architecture & Host Provider Taxonomy", () 
         tier: 3,
         contract: "roles/implementer.md",
       },
-      { file: "worker.yaml", expectedRole: "implementer", tier: 3, contract: "roles/implementer.md" },
+      {
+        file: "worker.yaml",
+        expectedRole: "implementer",
+        tier: 3,
+        contract: "roles/implementer.md",
+      },
       {
         file: "validator.yaml",
         expectedRole: "validator",

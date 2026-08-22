@@ -104,11 +104,7 @@ describe("Blunder Audit CLI Command", () => {
       remediation: "Dispatch Tier 3 Implementer via invoke_subagent",
       context: { cwd: pastCapsule, indicators: { ROLE: "main" } },
     };
-    writeFileSync(
-      join(pastCapsule, "blunders.jsonl"),
-      `${JSON.stringify(pastBlunder)}\n`,
-      "utf-8",
-    );
+    writeFileSync(join(pastCapsule, "blunders.jsonl"), `${JSON.stringify(pastBlunder)}\n`, "utf-8");
 
     // Create root blunders.jsonl
     const rootBlunder = {
@@ -123,11 +119,7 @@ describe("Blunder Audit CLI Command", () => {
       remediation: "Restrict agent grants to implementer role",
       context: { cwd: capsulesDir },
     };
-    writeFileSync(
-      join(capsulesDir, "blunders.jsonl"),
-      `${JSON.stringify(rootBlunder)}\n`,
-      "utf-8",
-    );
+    writeFileSync(join(capsulesDir, "blunders.jsonl"), `${JSON.stringify(rootBlunder)}\n`, "utf-8");
 
     // Create current run blunder
     const currentBlunder = {
@@ -142,11 +134,7 @@ describe("Blunder Audit CLI Command", () => {
       remediation: "Scope mutate command to packet write scope",
       context: { cwd: runRoot },
     };
-    writeFileSync(
-      join(runRoot, "blunders.jsonl"),
-      `${JSON.stringify(currentBlunder)}\n`,
-      "utf-8",
-    );
+    writeFileSync(join(runRoot, "blunders.jsonl"), `${JSON.stringify(currentBlunder)}\n`, "utf-8");
 
     const result = blunderAuditCommand({
       "capsules-dir": capsulesDir,
@@ -207,21 +195,31 @@ describe("Blunder Audit CLI Command", () => {
       "filter-status": "open",
     });
     expect(openResult.filtered_blunders.length).toBe(1);
-    expect(openResult.filtered_blunders[0] !== undefined ? openResult.filtered_blunders[0].id : "").toBe("blunder-1");
+    expect(
+      openResult.filtered_blunders[0] !== undefined ? openResult.filtered_blunders[0].id : "",
+    ).toBe("blunder-1");
 
     const admittedResult = blunderAuditCommand({
       "capsules-dir": capsulesDir,
       "filter-status": "admitted",
     });
     expect(admittedResult.filtered_blunders.length).toBe(1);
-    expect(admittedResult.filtered_blunders[0] !== undefined ? admittedResult.filtered_blunders[0].id : "").toBe("blunder-2");
+    expect(
+      admittedResult.filtered_blunders[0] !== undefined
+        ? admittedResult.filtered_blunders[0].id
+        : "",
+    ).toBe("blunder-2");
 
     const resolvedResult = blunderAuditCommand({
       "capsules-dir": capsulesDir,
       "filter-status": "resolved",
     });
     expect(resolvedResult.filtered_blunders.length).toBe(1);
-    expect(resolvedResult.filtered_blunders[0] !== undefined ? resolvedResult.filtered_blunders[0].id : "").toBe("blunder-3");
+    expect(
+      resolvedResult.filtered_blunders[0] !== undefined
+        ? resolvedResult.filtered_blunders[0].id
+        : "",
+    ).toBe("blunder-3");
 
     const allResult = blunderAuditCommand({
       "capsules-dir": capsulesDir,
@@ -261,14 +259,18 @@ describe("Blunder Audit CLI Command", () => {
       "filter-category": "main_thread",
     });
     expect(result.filtered_blunders.length).toBe(1);
-    expect(result.filtered_blunders[0] !== undefined ? result.filtered_blunders[0].id : "").toBe("blunder-1");
+    expect(result.filtered_blunders[0] !== undefined ? result.filtered_blunders[0].id : "").toBe(
+      "blunder-1",
+    );
 
     const resultAlias = blunderAuditCommand({
       "capsules-dir": capsulesDir,
       "filter-type": "role_escalation",
     });
     expect(resultAlias.filtered_blunders.length).toBe(1);
-    expect(resultAlias.filtered_blunders[0] !== undefined ? resultAlias.filtered_blunders[0].id : "").toBe("blunder-2");
+    expect(
+      resultAlias.filtered_blunders[0] !== undefined ? resultAlias.filtered_blunders[0].id : "",
+    ).toBe("blunder-2");
   });
 
   test("supports --auto-admit flag to record candidate proposals for open blunders", () => {
@@ -281,11 +283,7 @@ describe("Blunder Audit CLI Command", () => {
       observation: "Uncontained main thread execution",
       remediation: "Dispatch Tier 2 Coordinator",
     };
-    writeFileSync(
-      join(capsulesDir, "blunders.jsonl"),
-      `${JSON.stringify(openBlunder)}\n`,
-      "utf-8",
-    );
+    writeFileSync(join(capsulesDir, "blunders.jsonl"), `${JSON.stringify(openBlunder)}\n`, "utf-8");
 
     const result = blunderAuditCommand({
       run: runRoot,
@@ -296,9 +294,15 @@ describe("Blunder Audit CLI Command", () => {
 
     expect(result.auto_admitted_count).toBe(1);
     expect(result.auto_admitted_candidates.length).toBe(1);
-    expect(result.auto_admitted_candidates[0] !== undefined ? result.auto_admitted_candidates[0] : "").toBe("cand-blunder-blunder-to-admit");
-    expect(result.filtered_blunders[0] !== undefined ? result.filtered_blunders[0].status : "").toBe("admitted");
-    expect(result.filtered_blunders[0] !== undefined ? result.filtered_blunders[0].candidate_id : null).toBe("cand-blunder-blunder-to-admit");
+    expect(
+      result.auto_admitted_candidates[0] !== undefined ? result.auto_admitted_candidates[0] : "",
+    ).toBe("cand-blunder-blunder-to-admit");
+    expect(
+      result.filtered_blunders[0] !== undefined ? result.filtered_blunders[0].status : "",
+    ).toBe("admitted");
+    expect(
+      result.filtered_blunders[0] !== undefined ? result.filtered_blunders[0].candidate_id : null,
+    ).toBe("cand-blunder-blunder-to-admit");
 
     // Verify candidate was transacted into state.json
     const reloaded = loadRun(runRoot, false);
@@ -386,7 +390,9 @@ describe("Blunder Audit CLI Command", () => {
       "capsules-dir": capsulesDir,
     });
     expect(mixedResult.total_blunders).toBe(1);
-    expect(mixedResult.filtered_blunders[0] !== undefined ? mixedResult.filtered_blunders[0].id : "").toBe("blunder-valid-1");
+    expect(
+      mixedResult.filtered_blunders[0] !== undefined ? mixedResult.filtered_blunders[0].id : "",
+    ).toBe("blunder-valid-1");
   });
 
   test("calculates APCA Lightness Contrast (Lc) and verifies badge compliance", () => {
@@ -562,11 +568,7 @@ describe("Blunder Audit CLI Command", () => {
       observation: "First observation",
       remediation: "Fix",
     };
-    writeFileSync(
-      join(capsulesDir, "blunders.jsonl"),
-      `${JSON.stringify(blunderOpen)}\n`,
-      "utf-8",
-    );
+    writeFileSync(join(capsulesDir, "blunders.jsonl"), `${JSON.stringify(blunderOpen)}\n`, "utf-8");
 
     const blunderResolved = {
       id: "blunder-dup-1",
@@ -576,11 +578,7 @@ describe("Blunder Audit CLI Command", () => {
       observation: "First observation",
       remediation: "Fix",
     };
-    writeFileSync(
-      join(runRoot, "blunders.jsonl"),
-      `${JSON.stringify(blunderResolved)}\n`,
-      "utf-8",
-    );
+    writeFileSync(join(runRoot, "blunders.jsonl"), `${JSON.stringify(blunderResolved)}\n`, "utf-8");
 
     const result = blunderAuditCommand({
       run: runRoot,
@@ -589,7 +587,9 @@ describe("Blunder Audit CLI Command", () => {
 
     expect(result.total_blunders).toBe(1);
     expect(result.filtered_blunders.length).toBe(1);
-    expect(result.filtered_blunders[0] !== undefined ? result.filtered_blunders[0].status : "").toBe("resolved");
+    expect(
+      result.filtered_blunders[0] !== undefined ? result.filtered_blunders[0].status : "",
+    ).toBe("resolved");
   });
 
   test("enforces line limits without --all and expands with --all", () => {
@@ -648,4 +648,3 @@ describe("Blunder Audit CLI Command", () => {
     expect(lowContrast).toBe(0);
   });
 });
-

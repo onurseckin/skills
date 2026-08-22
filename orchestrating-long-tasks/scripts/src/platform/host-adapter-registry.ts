@@ -60,7 +60,11 @@ export function resolveHostProvider(rawHost?: string | null): HostProvider {
   if (normalized.includes("codex") || normalized.includes("openai-codex")) {
     return "codex";
   }
-  if (normalized.includes("chatgpt") || normalized.includes("gpt") || normalized.includes("openai")) {
+  if (
+    normalized.includes("chatgpt") ||
+    normalized.includes("gpt") ||
+    normalized.includes("openai")
+  ) {
     return "chatgpt";
   }
   if (normalized.includes("antigravity") || normalized.includes("gemini")) {

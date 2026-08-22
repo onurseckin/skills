@@ -9,13 +9,17 @@ describe("Diagnostics Blunder Categorization Engine", () => {
   describe("Explicit Category Preservation & Aliasing", () => {
     test("preserves valid explicit canonical categories verbatim", () => {
       expect(categorizeBlunder({ category: "boundary_violation" })).toBe("boundary_violation");
-      expect(categorizeBlunder({ category: "model_reasoning_error" })).toBe("model_reasoning_error");
+      expect(categorizeBlunder({ category: "model_reasoning_error" })).toBe(
+        "model_reasoning_error",
+      );
       expect(categorizeBlunder({ category: "code_defect" })).toBe("code_defect");
     });
 
     test("handles case-insensitive canonical categories", () => {
       expect(categorizeBlunder({ category: "BOUNDARY_VIOLATION" })).toBe("boundary_violation");
-      expect(categorizeBlunder({ category: "Model_Reasoning_Error" })).toBe("model_reasoning_error");
+      expect(categorizeBlunder({ category: "Model_Reasoning_Error" })).toBe(
+        "model_reasoning_error",
+      );
       expect(categorizeBlunder({ category: "CODE_DEFECT" })).toBe("code_defect");
     });
 
@@ -50,19 +54,25 @@ describe("Diagnostics Blunder Categorization Engine", () => {
     });
 
     test("identifies boundary violations from ID keywords", () => {
-      expect(categorizeBlunder({ id: "blunder-20260821-08-orch-role-leak" })).toBe("boundary_violation");
-      expect(categorizeBlunder({ id: "blunder-20260821-10-identity-and-role-amnesia" })).toBe("boundary_violation");
+      expect(categorizeBlunder({ id: "blunder-20260821-08-orch-role-leak" })).toBe(
+        "boundary_violation",
+      );
+      expect(categorizeBlunder({ id: "blunder-20260821-10-identity-and-role-amnesia" })).toBe(
+        "boundary_violation",
+      );
       expect(categorizeBlunder({ id: "blunder-main-thread-spillover" })).toBe("boundary_violation");
     });
 
     test("identifies boundary violations from observation and remediation phrases", () => {
       const phrases = [
         {
-          observation: "Execution detected on interactive main conversation thread without subagent boundary delegation.",
+          observation:
+            "Execution detected on interactive main conversation thread without subagent boundary delegation.",
           remediation: "Dispatch Tier 2 Background Coordinators or Tier 3 Implementers.",
         },
         {
-          observation: "Tier 1 Orchestrator attempted direct file edits and test runs instead of delegating.",
+          observation:
+            "Tier 1 Orchestrator attempted direct file edits and test runs instead of delegating.",
           remediation: "Enforce strict non-implementation boundaries for Orchestrator.",
         },
         {
@@ -111,32 +121,43 @@ describe("Diagnostics Blunder Categorization Engine", () => {
     });
 
     test("identifies model reasoning errors from ID keywords", () => {
-      expect(categorizeBlunder({ id: "blunder-20260821-09-mind-plan-revision-paralysis" })).toBe("model_reasoning_error");
-      expect(categorizeBlunder({ id: "blunder-hallucination-api-key" })).toBe("model_reasoning_error");
-      expect(categorizeBlunder({ id: "blunder-intent-drift-task-3" })).toBe("model_reasoning_error");
+      expect(categorizeBlunder({ id: "blunder-20260821-09-mind-plan-revision-paralysis" })).toBe(
+        "model_reasoning_error",
+      );
+      expect(categorizeBlunder({ id: "blunder-hallucination-api-key" })).toBe(
+        "model_reasoning_error",
+      );
+      expect(categorizeBlunder({ id: "blunder-intent-drift-task-3" })).toBe(
+        "model_reasoning_error",
+      );
       expect(categorizeBlunder({ id: "blunder-idle-death-loop" })).toBe("model_reasoning_error");
     });
 
     test("identifies model reasoning errors from observation and remediation text", () => {
       const cases = [
         {
-          observation: "Tier 0 Mind exhibited passive inertia: failed to trigger plan revision tools when work bottlenecked.",
-          remediation: "Mind must actively use plan revision mechanisms rather than passive sleep loops.",
+          observation:
+            "Tier 0 Mind exhibited passive inertia: failed to trigger plan revision tools when work bottlenecked.",
+          remediation:
+            "Mind must actively use plan revision mechanisms rather than passive sleep loops.",
         },
         {
           observation: "Model produced hallucination of non-existent API endpoints.",
           remediation: "Verify schema definitions against source docs.",
         },
         {
-          observation: "Model made an incorrect premise regarding state file structure, leading to illogical branch choice.",
+          observation:
+            "Model made an incorrect premise regarding state file structure, leading to illogical branch choice.",
           remediation: "Re-read state schema before reasoning.",
         },
         {
-          observation: "Agent produced an illogical decision contradicting requirements due to context loss.",
+          observation:
+            "Agent produced an illogical decision contradicting requirements due to context loss.",
           remediation: "Perform self-audit before emitting final response.",
         },
         {
-          observation: "Mind system executed pulse-close and fell into sleep loop, violating perpetual consciousness invariant.",
+          observation:
+            "Mind system executed pulse-close and fell into sleep loop, violating perpetual consciousness invariant.",
           remediation: "Ensure non-terminating autonomic loop rollover in recycler.ts.",
         },
       ];
@@ -169,7 +190,9 @@ describe("Diagnostics Blunder Categorization Engine", () => {
     test("defaults empty or unrecognized records to code_defect", () => {
       expect(categorizeBlunder({})).toBe("code_defect");
       expect(categorizeBlunder({ type: "generic_issue" })).toBe("code_defect");
-      expect(categorizeBlunder({ observation: "File not found at /tmp/foo.txt" })).toBe("code_defect");
+      expect(categorizeBlunder({ observation: "File not found at /tmp/foo.txt" })).toBe(
+        "code_defect",
+      );
     });
   });
 
@@ -193,7 +216,8 @@ describe("Diagnostics Blunder Categorization Engine", () => {
     test("boundary violation takes precedence over reasoning error in ambiguous multi-signal blunders", () => {
       const ambiguousEntry = {
         type: "agent_failure",
-        observation: "Agent hallucinated permission and attempted main thread direct write without subagent delegation",
+        observation:
+          "Agent hallucinated permission and attempted main thread direct write without subagent delegation",
         remediation: "Enforce thread restraint and role boundaries",
       };
       expect(categorizeBlunder(ambiguousEntry)).toBe("boundary_violation");

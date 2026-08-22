@@ -3,7 +3,13 @@ import type { Finding } from "../../contracts/workflow.ts";
 import { HarnessError } from "../../errors/harness-error.ts";
 import { archiveOpenValidations } from "../review/validation-state.ts";
 import { requireText, taskIn, transition, utc } from "../task-state.ts";
-import { systemClock, type Clock, type TaskRecord, type TransactionPort, type WorkflowState } from "../types.ts";
+import {
+  systemClock,
+  type Clock,
+  type TaskRecord,
+  type TransactionPort,
+  type WorkflowState,
+} from "../types.ts";
 import type { CompletionFinding, CompletionReview } from "./types.ts";
 
 export interface RouteCriticFindingsOptions {
@@ -40,9 +46,7 @@ export interface TaskRepairBudgetStatus {
   readonly deterministicDefectDetected: boolean;
 }
 
-export function generateStructuredFindingsFromCritic(
-  reviewValue: unknown,
-): Finding[] {
+export function generateStructuredFindingsFromCritic(reviewValue: unknown): Finding[] {
   if (typeof reviewValue !== "object" || reviewValue === null || Array.isArray(reviewValue)) {
     return [];
   }
@@ -55,10 +59,14 @@ export function generateStructuredFindingsFromCritic(
         findings.push({
           id: f.id,
           requirement_id: typeof f.requirement_id === "string" ? f.requirement_id : "general",
-          severity: f.severity === "minor" ? "minor" : f.severity === "critical" ? "critical" : "important",
+          severity:
+            f.severity === "minor" ? "minor" : f.severity === "critical" ? "critical" : "important",
           observation: typeof f.observation === "string" ? f.observation : "Critic defect detected",
           evidence: Array.isArray(f.evidence) ? f.evidence : [],
-          remediation: typeof f.remediation === "string" ? f.remediation : "Remediate finding and verify with non-mocked tests",
+          remediation:
+            typeof f.remediation === "string"
+              ? f.remediation
+              : "Remediate finding and verify with non-mocked tests",
           revalidation: typeof f.revalidation === "string" ? f.revalidation : "",
           status: "open",
         });
@@ -77,7 +85,9 @@ export function generateStructuredFindingsFromCritic(
             requirement_id: proof.requirement_id,
             severity: "critical",
             observation: `Requirement ${proof.requirement_id} remains unproven in completeness review`,
-            evidence: Array.isArray(proof.evidence) ? (proof.evidence as unknown as Finding["evidence"]) : [],
+            evidence: Array.isArray(proof.evidence)
+              ? (proof.evidence as unknown as Finding["evidence"])
+              : [],
             remediation: `Implement non-mocked automated validation proving requirement ${proof.requirement_id}`,
             revalidation: `bun test --filter ${proof.requirement_id}`,
             status: "open",
@@ -90,10 +100,7 @@ export function generateStructuredFindingsFromCritic(
   return findings;
 }
 
-export function isDeterministicFindingRepeat(
-  task: TaskRecord,
-  newFinding: Finding,
-): boolean {
+export function isDeterministicFindingRepeat(task: TaskRecord, newFinding: Finding): boolean {
   if (!Array.isArray(task.findings) || task.findings.length === 0) {
     return false;
   }
@@ -134,10 +141,7 @@ export function trackTaskRepairBudget(
   };
 }
 
-function findTasksForFinding(
-  tasks: Record<string, TaskRecord>,
-  finding: Finding,
-): TaskRecord[] {
+function findTasksForFinding(tasks: Record<string, TaskRecord>, finding: Finding): TaskRecord[] {
   const matched: TaskRecord[] = [];
 
   // Match by requirement_id
@@ -178,9 +182,9 @@ export function routeCriticReviewFindings(
   const now = clock.now();
 
   const findings = generateStructuredFindingsFromCritic(reviewValue);
-  const review = (typeof reviewValue === "object" && reviewValue !== null
-    ? reviewValue
-    : {}) as Partial<CompletionReview>;
+  const review = (
+    typeof reviewValue === "object" && reviewValue !== null ? reviewValue : {}
+  ) as Partial<CompletionReview>;
 
   const reviewStatus = review.status === "clean" ? "clean" : "findings";
   if (reviewStatus === "clean" || findings.length === 0) {

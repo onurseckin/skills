@@ -53,8 +53,12 @@ describe("Core Blunder Categorization & Resolution Tracking Engine", () => {
     });
 
     test("categorizes boundary violations from type keywords", () => {
-      expect(categorizeBlunder({ type: "main_thread_direct_execution" })).toBe("boundary_violation");
-      expect(categorizeBlunder({ type: "main_thread_boundary_violation" })).toBe("boundary_violation");
+      expect(categorizeBlunder({ type: "main_thread_direct_execution" })).toBe(
+        "boundary_violation",
+      );
+      expect(categorizeBlunder({ type: "main_thread_boundary_violation" })).toBe(
+        "boundary_violation",
+      );
       expect(categorizeBlunder({ type: "role_escalation" })).toBe("boundary_violation");
       expect(categorizeBlunder({ type: "unauthorized_mutation" })).toBe("boundary_violation");
       expect(categorizeBlunder({ type: "restraint_violation" })).toBe("boundary_violation");
@@ -176,7 +180,11 @@ describe("Core Blunder Categorization & Resolution Tracking Engine", () => {
         JSON.stringify({ id: "valid-1", type: "lint_error", observation: "Unused var" }),
         "42",
         "null",
-        JSON.stringify({ id: "valid-2", type: "logic_error", observation: "Reasoning error in calculation" }),
+        JSON.stringify({
+          id: "valid-2",
+          type: "logic_error",
+          observation: "Reasoning error in calculation",
+        }),
       ].join("\n");
 
       const parsed = parseBlunderLog(content);
@@ -353,7 +361,10 @@ describe("Core Blunder Categorization & Resolution Tracking Engine", () => {
         remediation: "Ignore legacy file",
       };
 
-      writeFileSync(join(capsule1, "blunders.jsonl"), `${JSON.stringify(blunderA)}\n${JSON.stringify(blunderB)}\n`);
+      writeFileSync(
+        join(capsule1, "blunders.jsonl"),
+        `${JSON.stringify(blunderA)}\n${JSON.stringify(blunderB)}\n`,
+      );
       writeFileSync(join(capsule2, "blunders.jsonl"), `${JSON.stringify(blunderC)}\n`);
 
       const report: BlunderAuditReport = auditBlunderLog([capsule1, capsule2]);

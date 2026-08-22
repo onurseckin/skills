@@ -272,7 +272,10 @@ function parseBlundersFromFile(
       ? capsulesDir
       : join(capsulesDir, fileInfo.capsuleName);
   const statePath = join(capsuleDir, "state.json");
-  const admittedBlunderWitnesses = new Map<string, { candidateId: string; status: BlunderStatus }>();
+  const admittedBlunderWitnesses = new Map<
+    string,
+    { candidateId: string; status: BlunderStatus }
+  >();
 
   if (existsSync(statePath)) {
     try {
@@ -471,7 +474,9 @@ export function formatBlunderAuditReport(params: {
 
   lines.push("");
   lines.push("#### APCA Perceptual Contrast Matrix");
-  lines.push("| State / Severity | Badge Text | Foreground | Background | Perceived Lc | APCA Status |");
+  lines.push(
+    "| State / Severity | Badge Text | Foreground | Background | Perceived Lc | APCA Status |",
+  );
   lines.push("| :--- | :--- | :--- | :--- | :--- | :--- |");
   for (const badge of params.summary.apca_contrast_compliance.badge_details) {
     lines.push(
@@ -716,7 +721,8 @@ export function blunderAuditCommand(
     if (b.status === "open") openCount = openCount + 1;
     else if (b.status === "admitted") admittedCount = admittedCount + 1;
     else if (b.status === "resolved") resolvedCount = resolvedCount + 1;
-    else if (b.status === "declined" ? true : b.status === "ignored") declinedCount = declinedCount + 1;
+    else if (b.status === "declined" ? true : b.status === "ignored")
+      declinedCount = declinedCount + 1;
 
     if (b.severity === "critical") criticalCount = criticalCount + 1;
     else warningCount = warningCount + 1;

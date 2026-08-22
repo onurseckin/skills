@@ -142,7 +142,13 @@ export function parseTierValue(value: string | undefined): ExecutionTier | null 
 
 export function roleToTier(role: string): ExecutionTier {
   const normalized = role.toLowerCase().trim();
-  if (normalized === "mind" || normalized === "human" || normalized === "user" || normalized === "lead") return 0;
+  if (
+    normalized === "mind" ||
+    normalized === "human" ||
+    normalized === "user" ||
+    normalized === "lead"
+  )
+    return 0;
   if (
     normalized === "orchestrator" ||
     normalized.startsWith("orch-") ||
@@ -213,18 +219,22 @@ export function recordBlunder(
 
 export function detectHostApp(env: NodeJS.ProcessEnv | Record<string, string | undefined>): string {
   const termProgram = env["TERM_PROGRAM"]?.toLowerCase() || "";
-  
+
   if (env["CLAUDE_CODE_VERSION"] || env["CLAUDE_CLI"]) return "Claude Code";
-  if (env["ANTIGRAVITY_CLI"] || env["GEMINI_CLI"] || env["ANTIGRAVITY_VERSION"]) return "Antigravity/Gemini CLI";
+  if (env["ANTIGRAVITY_CLI"] || env["GEMINI_CLI"] || env["ANTIGRAVITY_VERSION"])
+    return "Antigravity/Gemini CLI";
   if (termProgram === "cursor" || env["CURSOR_VERSION"]) return "Cursor";
   if (env["OPENCODE_VERSION"] || env["OPENCODE_CLI"] || env["OPENCODE"]) return "OpenCode";
   if (env["CODEX_VERSION"] || env["CODEX_CLI"] || env["CODEX"]) return "Codex";
   if (termProgram === "vscode") return "VSCode Terminal";
-  
+
   return "Generic Host";
 }
 
-export function buildCapabilitiesProfile(tier: ExecutionTier, env: Record<string, string | undefined>): CapabilitiesProfile {
+export function buildCapabilitiesProfile(
+  tier: ExecutionTier,
+  env: Record<string, string | undefined>,
+): CapabilitiesProfile {
   let taxonomy = "Restricted Sandbox";
   if (tier === 0) taxonomy = "Full Root / All Permissions";
   else if (tier === 1) taxonomy = "Orchestration / Delegation Only";
@@ -232,10 +242,20 @@ export function buildCapabilitiesProfile(tier: ExecutionTier, env: Record<string
   else if (tier === 3) taxonomy = "Implementation / Execution";
 
   const rawTools = env.GRANTED_TOOLS || env.AVAILABLE_TOOLS || "";
-  const tools = rawTools ? rawTools.split(",").map(t => t.trim()).filter(Boolean) : [];
-  
+  const tools = rawTools
+    ? rawTools
+        .split(",")
+        .map((t) => t.trim())
+        .filter(Boolean)
+    : [];
+
   const rawGrants = env.ENVIRONMENT_GRANTS || env.TOOL_GRANTS || "";
-  const environment_grants = rawGrants ? rawGrants.split(",").map(g => g.trim()).filter(Boolean) : [];
+  const environment_grants = rawGrants
+    ? rawGrants
+        .split(",")
+        .map((g) => g.trim())
+        .filter(Boolean)
+    : [];
 
   return {
     tools,
@@ -270,10 +290,8 @@ export function identifyExecutionContext(
   }
 
   const explicitTierEnv = parseTierValue(env.HARNESS_EXECUTION_TIER);
-  const explicitRole =
-    options.role ?? env.HARNESS_AGENT_ROLE ?? env.AGENT_ROLE ?? env.ROLE ?? null;
-  const explicitAgentId =
-    options.agentId ?? env.HARNESS_AGENT_ID ?? env.AGENT_ID ?? null;
+  const explicitRole = options.role ?? env.HARNESS_AGENT_ROLE ?? env.AGENT_ROLE ?? env.ROLE ?? null;
+  const explicitAgentId = options.agentId ?? env.HARNESS_AGENT_ID ?? env.AGENT_ID ?? null;
 
   const isSubagent =
     env.HOST_SUBAGENT === "1" ||
@@ -287,9 +305,7 @@ export function identifyExecutionContext(
     (options.isInteractiveMainThread !== false &&
       (env.INTERACTIVE_MAIN_THREAD === "1" ||
         env.INTERACTIVE_MAIN_THREAD === "true" ||
-        ((Boolean(env.HOST_SESSION) ||
-          Boolean(env.CONVERSATION_ID) ||
-          Boolean(env.SESSION_ID)) &&
+        ((Boolean(env.HOST_SESSION) || Boolean(env.CONVERSATION_ID) || Boolean(env.SESSION_ID)) &&
           !isSubagent &&
           explicitTierEnv === null &&
           explicitRole === null &&
@@ -446,16 +462,19 @@ export function validateTierSpawning(
           : "implementer");
   const cRole =
     childRole ??
-    (childTier === 1
-      ? "orchestrator"
-      : childTier === 2
-        ? "coordinator"
-        : "implementer");
+    (childTier === 1 ? "orchestrator" : childTier === 2 ? "coordinator" : "implementer");
 
   // Tier 0 (Mind) can deploy Tier 1 (Orchestrator, Mind Auditor)
   if (parentTier === 0) {
     if (childTier === 1) {
-      return { allowed: true, parentTier, childTier, parentRole: pRole, childRole: cRole, reason: null };
+      return {
+        allowed: true,
+        parentTier,
+        childTier,
+        parentRole: pRole,
+        childRole: cRole,
+        reason: null,
+      };
     }
     return {
       allowed: false,
@@ -470,7 +489,14 @@ export function validateTierSpawning(
   // Tier 1 (Orchestrator) can deploy Tier 2 (Coordinator)
   if (parentTier === 1) {
     if (childTier === 2) {
-      return { allowed: true, parentTier, childTier, parentRole: pRole, childRole: cRole, reason: null };
+      return {
+        allowed: true,
+        parentTier,
+        childTier,
+        parentRole: pRole,
+        childRole: cRole,
+        reason: null,
+      };
     }
     return {
       allowed: false,
@@ -485,7 +511,14 @@ export function validateTierSpawning(
   // Tier 2 (Coordinator) can deploy Tier 3 (Implementers, Validators, Critics, Repairers, Planners)
   if (parentTier === 2) {
     if (childTier === 3) {
-      return { allowed: true, parentTier, childTier, parentRole: pRole, childRole: cRole, reason: null };
+      return {
+        allowed: true,
+        parentTier,
+        childTier,
+        parentRole: pRole,
+        childRole: cRole,
+        reason: null,
+      };
     }
     return {
       allowed: false,
@@ -500,7 +533,14 @@ export function validateTierSpawning(
   // Tier 3 (Implementers/Validators) can only spawn Tier 3 sub-agents (sub-implementer, sub-validator, sub-investigator)
   if (parentTier === 3) {
     if (childTier === 3) {
-      return { allowed: true, parentTier, childTier, parentRole: pRole, childRole: cRole, reason: null };
+      return {
+        allowed: true,
+        parentTier,
+        childTier,
+        parentRole: pRole,
+        childRole: cRole,
+        reason: null,
+      };
     }
     return {
       allowed: false,
@@ -521,4 +561,3 @@ export function validateTierSpawning(
     reason: `Invalid tier hierarchy transition from Tier ${parentTier} to Tier ${childTier}.`,
   };
 }
-

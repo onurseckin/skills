@@ -38,9 +38,7 @@ export async function roleCheatSheetCommand(
   const roleNames = listAvailableRoles(rolesDir);
 
   if (all) {
-    const sheets: RoleCheatSheet[] = roleNames.map((r) =>
-      generateRoleCheatSheet(r, options),
-    );
+    const sheets: RoleCheatSheet[] = roleNames.map((r) => generateRoleCheatSheet(r, options));
     const table = renderAsciiRoleTable(sheets);
     const markdown = [
       "### 🛡️ System Role Catalog & Cheat Sheets",

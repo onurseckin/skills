@@ -253,7 +253,11 @@ export function buildMemoryIndex(documents: readonly MemoryDocument[]): MemoryIn
 /**
  * Extracts a dynamic contextual snippet centered around matched query terms.
  */
-export function extractSnippet(content: string, queryTokens: readonly string[], maxLength = 160): string {
+export function extractSnippet(
+  content: string,
+  queryTokens: readonly string[],
+  maxLength = 160,
+): string {
   if (!content) return "";
   if (content.length <= maxLength) return content.trim();
 
@@ -348,7 +352,8 @@ export function searchMemory(
     return [];
   }
 
-  const minScore = typeof options.minScore === "number" && options.minScore >= 0 ? options.minScore : 0.0;
+  const minScore =
+    typeof options.minScore === "number" && options.minScore >= 0 ? options.minScore : 0.0;
   const limit = typeof options.limit === "number" && options.limit > 0 ? options.limit : 10;
 
   // Normalize kind filter
@@ -357,7 +362,9 @@ export function searchMemory(
     if (Array.isArray(options.kind)) {
       allowedKinds = new Set(options.kind.map((k) => String(k).trim().toLowerCase()));
     } else {
-      const splitKinds = String(options.kind).split(",").map((k) => k.trim().toLowerCase());
+      const splitKinds = String(options.kind)
+        .split(",")
+        .map((k) => k.trim().toLowerCase());
       allowedKinds = new Set(splitKinds);
     }
   }
@@ -368,7 +375,9 @@ export function searchMemory(
     if (Array.isArray(options.capsule)) {
       allowedCapsules = new Set(options.capsule.map((c) => String(c).trim().toLowerCase()));
     } else {
-      const splitCapsules = String(options.capsule).split(",").map((c) => c.trim().toLowerCase());
+      const splitCapsules = String(options.capsule)
+        .split(",")
+        .map((c) => c.trim().toLowerCase());
       allowedCapsules = new Set(splitCapsules);
     }
   }
@@ -514,7 +523,11 @@ export function indexCharterDocuments(repoRoot: string): MemoryDocument[] {
       const entries = readdirSync(refDir, { withFileTypes: true });
       for (let i = 0; i < entries.length; i += 1) {
         const entry = entries[i];
-        if (entry !== undefined && entry.isFile() && (entry.name.endsWith(".md") || entry.name.endsWith(".json"))) {
+        if (
+          entry !== undefined &&
+          entry.isFile() &&
+          (entry.name.endsWith(".md") || entry.name.endsWith(".json"))
+        ) {
           const filePath = join(refDir, entry.name);
           const absPath = resolve(filePath);
           if (!visitedPaths.has(absPath)) {
@@ -767,7 +780,10 @@ export function indexCapsuleDocuments(capsulesDir: string, explicitRun?: string)
 /**
  * Indexes decisions from candidate proposals, audit reports, and round reviews.
  */
-export function indexDecisionDocuments(capsulesDir: string, explicitRun?: string): MemoryDocument[] {
+export function indexDecisionDocuments(
+  capsulesDir: string,
+  explicitRun?: string,
+): MemoryDocument[] {
   const documents: MemoryDocument[] = [];
   const capsuleDirs: Array<{ name: string; path: string }> = [];
 
@@ -987,9 +1003,7 @@ export function indexReportDocuments(capsulesDir: string, explicitRun?: string):
 export function indexAllMemory(options: IndexMemoryOptions = {}): MemoryIndex {
   const repoRoot = options.repoRoot !== undefined ? resolve(options.repoRoot) : process.cwd();
   const capsulesDir =
-    options.capsulesDir !== undefined
-      ? resolve(options.capsulesDir)
-      : join(repoRoot, ".capsules");
+    options.capsulesDir !== undefined ? resolve(options.capsulesDir) : join(repoRoot, ".capsules");
   const runRoot = options.runRoot !== undefined ? resolve(options.runRoot) : undefined;
 
   const charterDocs = indexCharterDocuments(repoRoot);
@@ -1079,7 +1093,9 @@ export function formatMemoryQueryBrief(params: {
     `- **Total Memory Documents Indexed**: ${params.totalIndexed}`,
     `- **Matching Records Found**: ${params.results.length}`,
     params.kindFilter ? `- **Kind Filter**: \`${params.kindFilter}\`` : "- **Kind Filter**: `all`",
-    params.runRoot !== null ? `- **Target Run Root**: \`${params.runRoot}\`` : "- **Target Run Root**: *all*",
+    params.runRoot !== null
+      ? `- **Target Run Root**: \`${params.runRoot}\``
+      : "- **Target Run Root**: *all*",
     "",
     "#### Search Results Matrix",
     renderAsciiMemoryTable(params.results),

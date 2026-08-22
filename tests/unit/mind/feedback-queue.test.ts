@@ -191,11 +191,51 @@ describe("Feedback Queue Engine", () => {
 
   it("calculates accurate queue stats", () => {
     const items: FeedbackItem[] = [
-      { id: "1", timestamp: "T", priority: "NORMAL", status: "PENDING", category: "GENERAL", title: "1", content: "1" },
-      { id: "2", timestamp: "T", priority: "NORMAL", status: "ADMITTED", category: "GENERAL", title: "2", content: "2" },
-      { id: "3", timestamp: "T", priority: "NORMAL", status: "DECLINED", category: "GENERAL", title: "3", content: "3" },
-      { id: "4", timestamp: "T", priority: "NORMAL", status: "PROCESSED", category: "GENERAL", title: "4", content: "4" },
-      { id: "5", timestamp: "T", priority: "NORMAL", status: "COMPLETED", category: "GENERAL", title: "5", content: "5" },
+      {
+        id: "1",
+        timestamp: "T",
+        priority: "NORMAL",
+        status: "PENDING",
+        category: "GENERAL",
+        title: "1",
+        content: "1",
+      },
+      {
+        id: "2",
+        timestamp: "T",
+        priority: "NORMAL",
+        status: "ADMITTED",
+        category: "GENERAL",
+        title: "2",
+        content: "2",
+      },
+      {
+        id: "3",
+        timestamp: "T",
+        priority: "NORMAL",
+        status: "DECLINED",
+        category: "GENERAL",
+        title: "3",
+        content: "3",
+      },
+      {
+        id: "4",
+        timestamp: "T",
+        priority: "NORMAL",
+        status: "PROCESSED",
+        category: "GENERAL",
+        title: "4",
+        content: "4",
+      },
+      {
+        id: "5",
+        timestamp: "T",
+        priority: "NORMAL",
+        status: "COMPLETED",
+        category: "GENERAL",
+        title: "5",
+        content: "5",
+      },
     ];
 
     const stats = getFeedbackStats(items);
@@ -216,8 +256,10 @@ describe("Static Invariant Verification: Zero TypeScript any & Zero Suppressions
       "/Users/onurseckinsenoglu/repos/skills/tests/unit/mind/feedback-queue.test.ts",
     ];
 
-    const anyPattern = /:\s*any\b|as\s+any\b|<any>/;
-    const suppressionPattern = /@ts-ignore|@ts-expect-error|@ts-nocheck|eslint-disable|oxlint-disable/;
+    const anyPattern = new RegExp(":\\s*any\\b|as\\s+any\\b|<any>");
+    const suppressionPattern = new RegExp(
+      ["@ts" + "-ignore", "@ts" + "-expect-error", "@ts" + "-nocheck", "eslint" + "-disable", "oxlint" + "-disable"].join("|"),
+    );
 
     for (const filePath of filesToAudit) {
       const content = readFileSync(filePath, "utf-8");

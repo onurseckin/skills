@@ -504,15 +504,7 @@ export async function watchdogProbeCommand(
   flags: Flags,
   _context?: CommandContext,
 ): Promise<Record<string, unknown>> {
-  const allowedFlags = [
-    "run",
-    "capsules-dir",
-    "generation",
-    "pulse-id",
-    "now",
-    "all",
-    "json",
-  ];
+  const allowedFlags = ["run", "capsules-dir", "generation", "pulse-id", "now", "all", "json"];
   assertFlags(flags, allowedFlags);
 
   const run = textFlag(flags, "run", false);

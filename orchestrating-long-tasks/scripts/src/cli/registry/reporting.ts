@@ -30,9 +30,7 @@ export const REPORTING_COMMANDS: readonly CommandSpec[] = [
       optionalFlag("out", "string", "Path to save JSON"),
       optionalFlag("pretty", "bool", "Format output JSON nicely"),
     ],
-    examples: [
-      "bun harness.ts report:graph-json --run .capsules/<run-id> --out graph.json"
-    ],
+    examples: ["bun harness.ts report:graph-json --run .capsules/<run-id> --out graph.json"],
     handler: exportGraphJsonCommand,
   },
   {
@@ -40,13 +38,26 @@ export const REPORTING_COMMANDS: readonly CommandSpec[] = [
     aliases: [],
     domain: "reporting",
     summary: "Canonical reporting for DAG status.",
-    description: "Aliases/links to dag:view to inspect compiled graph or planning buffer DAG topology.",
+    description:
+      "Aliases/links to dag:view to inspect compiled graph or planning buffer DAG topology.",
     flags: [
-      optionalFlag("run", "string", "Capsule run root. Defaults to current repository .capsules/ when omitted."),
+      optionalFlag(
+        "run",
+        "string",
+        "Capsule run root. Defaults to current repository .capsules/ when omitted.",
+      ),
       optionalFlag("run-id", "string", "Alias of --run."),
       optionalFlag("repo", "string", "Repository root to search for .capsules/.", "."),
-      optionalFlag("detailed", "bool", "Render full write scopes, gate commands, and dependency lists."),
-      optionalFlag("recommendations", "bool", "Highlight algorithmic parallelization opportunities."),
+      optionalFlag(
+        "detailed",
+        "bool",
+        "Render full write scopes, gate commands, and dependency lists.",
+      ),
+      optionalFlag(
+        "recommendations",
+        "bool",
+        "Highlight algorithmic parallelization opportunities.",
+      ),
       optionalFlag("all", "bool", "Do not truncate output lines."),
     ],
     readsStdin: false,
@@ -95,9 +106,7 @@ export const REPORTING_COMMANDS: readonly CommandSpec[] = [
     domain: "reporting",
     summary: "Active lease and agent matrix.",
     description: "Reports the matrix of active leases.",
-    flags: [
-      requiredFlag("run", "string", "Capsule run root."),
-    ],
+    flags: [requiredFlag("run", "string", "Capsule run root.")],
     readsStdin: false,
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
@@ -110,9 +119,7 @@ export const REPORTING_COMMANDS: readonly CommandSpec[] = [
     domain: "reporting",
     summary: "Inspection of authority decisions and governance audit.",
     description: "Reports the decisions audit matrix.",
-    flags: [
-      requiredFlag("run", "string", "Capsule run root."),
-    ],
+    flags: [requiredFlag("run", "string", "Capsule run root.")],
     readsStdin: false,
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
@@ -203,14 +210,23 @@ export const REPORTING_COMMANDS: readonly CommandSpec[] = [
     name: "dag:render",
     aliases: ["graph:sugiyama", "report:sugiyama"],
     domain: "reporting",
-    summary: "Render Sugiyama hierarchical DAG layout with rounded Unicode boxes and cycle diagnostics.",
+    summary:
+      "Render Sugiyama hierarchical DAG layout with rounded Unicode boxes and cycle diagnostics.",
     description:
       "Computes Sugiyama layered layout, crossing minimization via barycenter heuristics, Tarjan cycle alerts, illegal bypass warnings, and orthogonal connectors.",
     flags: [
-      optionalFlag("run", "string", "Capsule run root. Defaults to current repository .capsules/ when omitted."),
+      optionalFlag(
+        "run",
+        "string",
+        "Capsule run root. Defaults to current repository .capsules/ when omitted.",
+      ),
       optionalFlag("run-id", "string", "Alias of --run."),
       optionalFlag("repo", "string", "Repository root to search for .capsules/.", "."),
-      optionalFlag("detailed", "bool", "Render full write scopes, gate commands, and dependency lists."),
+      optionalFlag(
+        "detailed",
+        "bool",
+        "Render full write scopes, gate commands, and dependency lists.",
+      ),
       optionalFlag("box-style", "string", "Box border style: rounded, sharp, or ascii.", "rounded"),
       optionalFlag("all", "bool", "Do not truncate output lines."),
       optionalFlag("json", "bool", "Output structured JSON report."),

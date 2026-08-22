@@ -83,7 +83,9 @@ export function verifyStrictRepositoryCapsuleRoot(
 ): CapsuleRootAuditResult {
   const issues: string[] = [];
   const resolvedRunRoot = resolve(runRoot);
-  const repoRoot = explicitRepoRoot ? resolve(explicitRepoRoot) : findRepositoryRoot(resolvedRunRoot);
+  const repoRoot = explicitRepoRoot
+    ? resolve(explicitRepoRoot)
+    : findRepositoryRoot(resolvedRunRoot);
 
   const expectedCapsulesDir = join(repoRoot, ".capsules");
   const relFromRepo = relative(repoRoot, resolvedRunRoot).replace(/\\/g, "/");

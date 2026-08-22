@@ -10,7 +10,7 @@ export function exportGraphJsonCommand(flags: Flags): Record<string, unknown> {
   const runIdFlag = textFlag(flags, "run-id", false);
 
   const run = resolveCapsuleRun(repo, runFlag, runIdFlag);
-  
+
   const report = generateDagJsonReport(run);
 
   const out = textFlag(flags, "out", false);

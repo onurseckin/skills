@@ -215,24 +215,18 @@ describe("CLI command: mind:pulse-close", () => {
     test("routes next instruction to admitted candidate when available", async () => {
       const fixture = setupMindCapsule("close-with-candidate");
 
-      transact(
-        fixture.run,
-        "mind-1",
-        "candidate-admitted",
-        { id: "cand-p00" },
-        (working) => {
-          working.candidates = [
-            {
-              id: "cand-p00",
-              kind: "defect",
-              statement: "Implement perpetual cadence",
-              charter_goal: "G1",
-              write_scope: ["src/"],
-              status: "admitted",
-            },
-          ] as unknown as JsonObject;
-        },
-      );
+      transact(fixture.run, "mind-1", "candidate-admitted", { id: "cand-p00" }, (working) => {
+        working.candidates = [
+          {
+            id: "cand-p00",
+            kind: "defect",
+            statement: "Implement perpetual cadence",
+            charter_goal: "G1",
+            write_scope: ["src/"],
+            status: "admitted",
+          },
+        ] as unknown as JsonObject;
+      });
 
       const result = await mindPulseCloseCommand({
         run: fixture.run,

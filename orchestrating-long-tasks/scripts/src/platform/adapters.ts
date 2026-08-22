@@ -67,8 +67,15 @@ export function validateDispatchPacket(packet: SubagentDispatchPacket): void {
   if (!packet.runRoot || typeof packet.runRoot !== "string" || packet.runRoot.trim().length === 0) {
     throw new HarnessError("INVALID_ARGUMENT", "Dispatch packet requires a non-empty runRoot");
   }
-  if (!packet.taskDescription || typeof packet.taskDescription !== "string" || packet.taskDescription.trim().length === 0) {
-    throw new HarnessError("INVALID_ARGUMENT", "Dispatch packet requires a non-empty taskDescription");
+  if (
+    !packet.taskDescription ||
+    typeof packet.taskDescription !== "string" ||
+    packet.taskDescription.trim().length === 0
+  ) {
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      "Dispatch packet requires a non-empty taskDescription",
+    );
   }
   if (!Array.isArray(packet.writeScope)) {
     throw new HarnessError("INVALID_ARGUMENT", "Dispatch packet writeScope must be an array");
@@ -105,7 +112,9 @@ export class MechanicalFirstDispatcher {
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       if (options.onFallbackTriggered) {
-        options.onFallbackTriggered(`Mechanical dispatch failed: ${message}; falling back to cognitive prompt`);
+        options.onFallbackTriggered(
+          `Mechanical dispatch failed: ${message}; falling back to cognitive prompt`,
+        );
       }
       return adapter.generateCognitiveFallbackPrompt(packet);
     }

@@ -375,7 +375,9 @@ describe("dag:view CLI command execution", () => {
   });
 
   test("fails when run capsule does not exist", async () => {
-    await expect(execute(["dag:view", "--run", "/tmp/does-not-exist-capsule-12345"])).rejects.toThrow();
+    await expect(
+      execute(["dag:view", "--run", "/tmp/does-not-exist-capsule-12345"]),
+    ).rejects.toThrow();
   });
 });
 
@@ -635,9 +637,7 @@ describe("Algorithmic Parallelization & Serialization Analysis", () => {
     const recs = analyzeParallelization(tasks, emptyDepMap, 4);
     const multiCoordRec = recs.find((r) => r.type === "multi_coordinator");
     expect(multiCoordRec).toBeDefined();
-    expect(multiCoordRec?.description).toContain(
-      "Plan spans 3 distinct domain write scopes",
-    );
+    expect(multiCoordRec?.description).toContain("Plan spans 3 distinct domain write scopes");
     expect(multiCoordRec?.description).toContain("Tier 2 Domain Coordinators");
   });
 
@@ -768,7 +768,9 @@ describe("Algorithmic Parallelization & Serialization Analysis", () => {
     const artificialWarn = recs.find((r) => r.type === "artificial_serialization");
     expect(artificialWarn).toBeDefined();
     expect(artificialWarn?.description).toContain("ARTIFICIAL_SERIALIZATION_WARNING");
-    expect(artificialWarn?.description).toContain("Task [task-auth] can be decoupled from Task [task-docs]");
+    expect(artificialWarn?.description).toContain(
+      "Task [task-auth] can be decoupled from Task [task-docs]",
+    );
   });
 
   test("computes Work vs Span metrics and DagWaveMetrics correctly", async () => {
@@ -1046,7 +1048,9 @@ describe("renderAsciiDag formatting", () => {
     const rendered = renderVisualDag(waves, { detailed: false });
 
     expect(rendered).toContain("┌─ WAVE 1 (1 lane • leased) ⚡ [ACTIVE EXECUTION SUBGRAPH]");
-    expect(rendered).toContain("(🟢 ACTIVE) task-whoami-identity-command [⚡ LEASED: impl-identity (impl-identity)]");
+    expect(rendered).toContain(
+      "(🟢 ACTIVE) task-whoami-identity-command [⚡ LEASED: impl-identity (impl-identity)]",
+    );
     expect(rendered).toContain("Role: impl-identity | Phase: Wave 1 | Work: 1 | Span: 1");
     expect(rendered).toContain("┬");
     expect(rendered).toContain("│");

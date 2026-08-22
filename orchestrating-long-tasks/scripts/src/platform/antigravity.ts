@@ -31,9 +31,8 @@ export class AntigravityHostAdapter implements HostAdapter {
   public readonly capabilities: HostCapabilities = ANTIGRAVITY_CAPABILITIES;
 
   public dispatchMechanical(packet: SubagentDispatchPacket): MechanicalDispatchResult {
-    const workspace = packet.workspaceMode && packet.workspaceMode !== "none"
-      ? packet.workspaceMode
-      : "inherit";
+    const workspace =
+      packet.workspaceMode && packet.workspaceMode !== "none" ? packet.workspaceMode : "inherit";
 
     const toolArgs = {
       agent_name: packet.agentId,
@@ -94,7 +93,9 @@ export class AntigravityHostAdapter implements HostAdapter {
       `## 2. TASK EXECUTION MANDATE`,
       packet.taskDescription,
       "",
-      packet.extraInstructions ? `### Additional Context & Rules\n${packet.extraInstructions}\n` : "",
+      packet.extraInstructions
+        ? `### Additional Context & Rules\n${packet.extraInstructions}\n`
+        : "",
       `## 3. MANDATORY TASK SUBMISSION`,
       `Upon completing implementation and verifying all scoped unit gates:`,
       "```bash",

@@ -149,9 +149,7 @@ export async function taskClaimCommand(
     /^orch/i.test(agent) ||
     /^mind/i.test(agent);
 
-  const isCoordinator =
-    role === "coordinator" ||
-    /^coord/i.test(agent);
+  const isCoordinator = role === "coordinator" || /^coord/i.test(agent);
 
   if (isOrchestrator || isCoordinator) {
     const roleTitle = isOrchestrator ? "Orchestrators" : "Coordinators";

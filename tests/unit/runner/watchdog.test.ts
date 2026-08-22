@@ -79,3 +79,36 @@ describe("monitorProcess", () => {
     expect(outcome).toEqual({ code: null, timeout: "idle", interrupted: false });
   });
 });
+
+describe("Invariants & Cleanliness Audit - Runner Watchdog", () => {
+  test("zero TypeScript any and zero suppressions across runner watchdog files", () => {
+    const { readFileSync } = require("node:fs");
+    const { join } = require("node:path");
+    const sourceFiles = [
+      join(__dirname, "../../../orchestrating-long-tasks/scripts/src/runner/watchdog.ts"),
+      __filename,
+    ];
+
+    const anyAnnotation = new RegExp(":\\s*any\\b");
+    const anyCast = new RegExp("as\\s+any\\b");
+    const anyGeneric = new RegExp("<\\s*any\\s*>");
+    const tsIgnore = "@" + "ts-ignore";
+    const tsExpectError = "@" + "ts-expect-error";
+    const tsNoCheck = "@" + "ts-nocheck";
+    const suppressionDirectiveA = "eslint" + "-disable";
+    const suppressionDirectiveB = "oxlint" + "-disable";
+
+    for (const filePath of sourceFiles) {
+      const content = readFileSync(filePath, "utf8");
+
+      expect(content).not.toMatch(anyAnnotation);
+      expect(content).not.toMatch(anyCast);
+      expect(content).not.toMatch(anyGeneric);
+      expect(content.includes(tsIgnore)).toBe(false);
+      expect(content.includes(tsExpectError)).toBe(false);
+      expect(content.includes(tsNoCheck)).toBe(false);
+      expect(content.includes(suppressionDirectiveA)).toBe(false);
+      expect(content.includes(suppressionDirectiveB)).toBe(false);
+    }
+  });
+});

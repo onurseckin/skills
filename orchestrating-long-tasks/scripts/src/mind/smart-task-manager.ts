@@ -21,7 +21,8 @@ export type SmartTaskSourceType =
   | "self_evolution"
   | "blunder_remediation"
   | "direct_prompt"
-  | "external_intake";
+  | "external_intake"
+  | "plan_enhancement";
 
 export interface SmartTaskPlan {
   readonly id: string;
@@ -34,6 +35,15 @@ export interface SmartTaskPlan {
   readonly source_type: SmartTaskSourceType;
   readonly priority?: TaskPriority | undefined;
   readonly rationale: string;
+  readonly assigned_tier?:
+    | "Tier_0_Mind"
+    | "Tier_1_Orchestrator"
+    | "Tier_2_Coordinator"
+    | "Tier_3_Implementer"
+    | "Tier_3_Validator"
+    | undefined;
+  readonly assigned_role?: string | undefined;
+  readonly metadata?: Readonly<Record<string, unknown>> | undefined;
 }
 
 export interface SmartTaskSynthesisResult {
@@ -56,6 +66,11 @@ export interface SmartWavePlanResult {
   readonly waves: readonly WaveGroup[];
 }
 
+export interface ScopeCollision {
+  readonly scope: string;
+  readonly task_ids: readonly string[];
+}
+
 export interface AutonomousDualIntakeResult {
   readonly mode: "Mode_A_Self_Evolution" | "Mode_B_External_Intake" | "Queue_Active";
   readonly synthesized_plans: readonly SmartTaskPlan[];
@@ -66,17 +81,42 @@ export interface AutonomousDualIntakeResult {
 }
 
 /**
+ * Detects write scope collisions among a set of task plans.
+ */
+export function detectScopeCollisions(plans: readonly SmartTaskPlan[]): readonly ScopeCollision[] {
+  const scopeMap = new Map<string, string[]>();
+  for (const plan of plans) {
+    for (const scope of plan.write_scope) {
+      const normalized = scope.endsWith("/") ? scope.slice(0, -1) : scope;
+      const list = scopeMap.get(normalized) ?? [];
+      list.push(plan.id);
+      scopeMap.set(normalized, list);
+    }
+  }
+
+  const collisions: ScopeCollision[] = [];
+  for (const [scope, taskIds] of scopeMap.entries()) {
+    if (taskIds.length > 1) {
+      collisions.push({ scope, task_ids: taskIds });
+    }
+  }
+  return collisions;
+}
+
+/**
  * Autonomous Task Synthesizer implementing Dual-Intake:
  * - Mode A: Empty queue -> Autonomous Self-Evolution (Blunder remediation + Invariant hardening)
  * - Mode B: Pending items -> Feedback / External Directive Expansion
  */
-export function synthesizeAutonomousTasks(options: {
-  readonly capsulesDir?: string | undefined;
-  readonly queuePath?: string | undefined;
-  readonly charterGoals?: readonly string[] | undefined;
-  readonly maxTasks?: number | undefined;
-  readonly autoEnqueue?: boolean | undefined;
-} = {}): SmartTaskSynthesisResult {
+export function synthesizeAutonomousTasks(
+  options: {
+    readonly capsulesDir?: string | undefined;
+    readonly queuePath?: string | undefined;
+    readonly charterGoals?: readonly string[] | undefined;
+    readonly maxTasks?: number | undefined;
+    readonly autoEnqueue?: boolean | undefined;
+  } = {},
+): SmartTaskSynthesisResult {
   const maxTasks = options.maxTasks ?? 5;
   const feedbackItems = readFeedbackQueue(options.capsulesDir);
   const pendingFeedback = feedbackItems.filter((f) => f.status === "PENDING");
@@ -109,7 +149,10 @@ export function synthesizeAutonomousTasks(options: {
         label: fb.title,
         write_scope: scope,
         gate,
-        charter_goals: options.charterGoals && options.charterGoals.length > 0 ? [options.charterGoals[0]!] : ["G1"],
+        charter_goals:
+          options.charterGoals && options.charterGoals.length > 0
+            ? [options.charterGoals[0]!]
+            : ["G1"],
         acceptance_criteria: [
           `Satisfy user directive/feedback: ${fb.title}`,
           `Pass mandatory gate: ${gate}`,
@@ -119,6 +162,7 @@ export function synthesizeAutonomousTasks(options: {
         source_type: "feedback_intake",
         priority,
         rationale: `Ingested from feedback queue [${fb.priority}]: ${fb.content.slice(0, 150)}`,
+        assigned_tier: "Tier_2_Coordinator",
       });
     }
 
@@ -135,15 +179,13 @@ export function synthesizeAutonomousTasks(options: {
         acceptance_criteria: t.acceptance_criteria,
         dependencies: t.dependencies,
         source_type: "feedback_intake",
+        assigned_tier: t.assigned_tier,
       }));
       const enqueued = enqueueTasksBatch(batchInputs, options.queuePath);
       enqueuedCount = enqueued.length;
 
       // Drain and update pending feedbacks
-      drainPendingFeedbacks(
-        { markAs: "ADMITTED", limit: selected.length },
-        options.capsulesDir,
-      );
+      drainPendingFeedbacks({ markAs: "ADMITTED", limit: selected.length }, options.capsulesDir);
     }
 
     return {
@@ -172,7 +214,10 @@ export function synthesizeAutonomousTasks(options: {
       label: `Automated Blunder Remediation (${blunder.category})`,
       write_scope: blunderScope,
       gate: blunderGate,
-      charter_goals: options.charterGoals && options.charterGoals.length > 0 ? [options.charterGoals[0]!] : ["G2"],
+      charter_goals:
+        options.charterGoals && options.charterGoals.length > 0
+          ? [options.charterGoals[0]!]
+          : ["G2"],
       acceptance_criteria: [
         `Remediate open blunder ${blunder.id}: ${blunder.observation.slice(0, 100)}`,
         `Pass gate: ${blunderGate}`,
@@ -182,6 +227,7 @@ export function synthesizeAutonomousTasks(options: {
       source_type: "blunder_remediation",
       priority: "CRITICAL",
       rationale: `Autonomous remediation for open blunder ${blunder.id}: ${blunder.observation}`,
+      assigned_tier: "Tier_3_Implementer",
     });
   }
 
@@ -197,7 +243,8 @@ export function synthesizeAutonomousTasks(options: {
     label: "Continuous Invariant Hardening & Zero-Suppression Assurance",
     write_scope: hardeningScope,
     gate: "bun test tests/unit/mind && bun run typecheck",
-    charter_goals: options.charterGoals && options.charterGoals.length > 0 ? [options.charterGoals[0]!] : ["G1"],
+    charter_goals:
+      options.charterGoals && options.charterGoals.length > 0 ? [options.charterGoals[0]!] : ["G1"],
     acceptance_criteria: [
       "0 TypeScript any across all modules",
       "0 compiler or linter suppressions",
@@ -206,19 +253,19 @@ export function synthesizeAutonomousTasks(options: {
     dependencies: selfTasks.length > 0 ? [selfTasks[0]!.id] : [],
     source_type: "self_evolution",
     priority: "HIGH",
-    rationale: "Continuous invariant hardening maintaining zero compiler suppressions and deterministic typed schemas.",
+    rationale:
+      "Continuous invariant hardening maintaining zero compiler suppressions and deterministic typed schemas.",
+    assigned_tier: "Tier_3_Implementer",
   });
 
   // Add autonomic continuous optimization task
   selfTasks.push({
     id: `task-${selfTasks.length + 1}-autonomic-optimization`,
     label: "Continuous Architecture & Invariant Hardening",
-    write_scope: [
-      "orchestrating-long-tasks/scripts/src/mind/",
-      "tests/unit/mind/",
-    ],
+    write_scope: ["orchestrating-long-tasks/scripts/src/mind/", "tests/unit/mind/"],
     gate: "bun test tests/unit/mind && bun run typecheck",
-    charter_goals: options.charterGoals && options.charterGoals.length > 0 ? [options.charterGoals[0]!] : ["G3"],
+    charter_goals:
+      options.charterGoals && options.charterGoals.length > 0 ? [options.charterGoals[0]!] : ["G3"],
     acceptance_criteria: [
       "Autonomic self-evolution cycle maintaining loop cadence and clean metrics",
       "Pass all mind unit tests cleanly",
@@ -226,7 +273,9 @@ export function synthesizeAutonomousTasks(options: {
     dependencies: [selfTasks[selfTasks.length - 1]!.id],
     source_type: "self_evolution",
     priority: "MEDIUM",
-    rationale: "Autonomic self-evolution cycle maintaining 0 any, 0 suppressions, and continuous loop cadence.",
+    rationale:
+      "Autonomic self-evolution cycle maintaining 0 any, 0 suppressions, and continuous loop cadence.",
+    assigned_tier: "Tier_1_Orchestrator",
   });
 
   const selectedSelfTasks = selfTasks.slice(0, maxTasks);
@@ -244,6 +293,7 @@ export function synthesizeAutonomousTasks(options: {
       acceptance_criteria: t.acceptance_criteria,
       dependencies: t.dependencies,
       source_type: t.source_type,
+      assigned_tier: t.assigned_tier,
     }));
     const enqueued = enqueueTasksBatch(batchInputs, options.queuePath);
     enqueuedCount = enqueued.length;
@@ -269,6 +319,13 @@ export function expandExternalPromptToPlan(
     readonly priority?: TaskPriority | undefined;
     readonly writeScope?: readonly string[] | undefined;
     readonly gate?: string | undefined;
+    readonly assignedTier?:
+      | "Tier_0_Mind"
+      | "Tier_1_Orchestrator"
+      | "Tier_2_Coordinator"
+      | "Tier_3_Implementer"
+      | "Tier_3_Validator"
+      | undefined;
   } = {},
 ): SmartTaskPlan {
   const trimmed = prompt.trim();
@@ -276,20 +333,27 @@ export function expandExternalPromptToPlan(
     throw new HarnessError("INVALID_ARGUMENT", "Prompt cannot be empty for task expansion");
   }
 
-  const lines = trimmed.split("\n").map((l) => l.trim()).filter(Boolean);
+  const lines = trimmed
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
   const title = lines[0]!.slice(0, 80);
-  const baseId = options.baseId !== undefined && options.baseId.trim().length > 0
-    ? sanitizeSlug(options.baseId.trim())
-    : `task-${sanitizeSlug(title.slice(0, 30))}`;
-  const goals = options.charterGoals && options.charterGoals.length > 0 ? options.charterGoals : ["G1"];
+  const baseId =
+    options.baseId !== undefined && options.baseId.trim().length > 0
+      ? sanitizeSlug(options.baseId.trim())
+      : `task-${sanitizeSlug(title.slice(0, 30))}`;
+  const goals =
+    options.charterGoals && options.charterGoals.length > 0 ? options.charterGoals : ["G1"];
 
-  const scope = options.writeScope && options.writeScope.length > 0
-    ? options.writeScope
-    : ["orchestrating-long-tasks/scripts/src/", "tests/unit/"];
+  const scope =
+    options.writeScope && options.writeScope.length > 0
+      ? options.writeScope
+      : ["orchestrating-long-tasks/scripts/src/", "tests/unit/"];
 
-  const gate = options.gate && options.gate.trim().length > 0
-    ? options.gate.trim()
-    : deriveGateForCategory("CORE_ENGINE", scope);
+  const gate =
+    options.gate && options.gate.trim().length > 0
+      ? options.gate.trim()
+      : deriveGateForCategory("CORE_ENGINE", scope);
 
   const criteria: string[] = [
     `Implement requirements declared in: ${title}`,
@@ -308,6 +372,56 @@ export function expandExternalPromptToPlan(
     source_type: "direct_prompt",
     priority: options.priority ?? "HIGH",
     rationale: `Expanded from direct prompt: ${trimmed.slice(0, 120)}`,
+    assigned_tier: options.assignedTier ?? "Tier_3_Implementer",
+  };
+}
+
+/**
+ * General Plan Enhancer function: transforms raw prompt or FeedbackItem into a structured SmartTaskPlan.
+ */
+export function planEnhance(
+  promptOrFeedback: string | FeedbackItem,
+  options: {
+    readonly charterGoals?: readonly string[] | undefined;
+    readonly baseId?: string | undefined;
+    readonly priority?: TaskPriority | undefined;
+    readonly writeScope?: readonly string[] | undefined;
+    readonly gate?: string | undefined;
+  } = {},
+): SmartTaskPlan {
+  if (typeof promptOrFeedback === "string") {
+    return expandExternalPromptToPlan(promptOrFeedback, options);
+  }
+
+  const fb = promptOrFeedback;
+  const scope =
+    options.writeScope && options.writeScope.length > 0
+      ? options.writeScope
+      : deriveWriteScopeForCategory(fb.category, fb.id);
+  const gate =
+    options.gate && options.gate.trim().length > 0
+      ? options.gate.trim()
+      : deriveGateForCategory(fb.category, scope);
+  const priority = options.priority ?? mapFeedbackPriorityToTaskPriority(fb.priority);
+  const baseId = options.baseId ? sanitizeSlug(options.baseId) : `task-${sanitizeSlug(fb.id)}`;
+
+  return {
+    id: baseId,
+    label: fb.title,
+    write_scope: scope,
+    gate,
+    charter_goals:
+      options.charterGoals && options.charterGoals.length > 0 ? options.charterGoals : ["G1"],
+    acceptance_criteria: [
+      `Satisfy feedback requirements: ${fb.title}`,
+      `Pass gate: ${gate}`,
+      "Ensure 0 TypeScript any and zero suppressions",
+    ],
+    dependencies: [],
+    source_type: "plan_enhancement",
+    priority,
+    rationale: `Plan enhanced from feedback item [${fb.category}]: ${fb.content.slice(0, 150)}`,
+    assigned_tier: "Tier_2_Coordinator",
   };
 }
 
@@ -331,8 +445,9 @@ export function expandExternalPromptToWavePlan(
     .map((l) => l.trim())
     .filter((l) => l.length > 0 && !l.startsWith("#"));
 
-  const prefix = options.baseIdPrefix ?? "wave-task";
-  const goals = options.charterGoals && options.charterGoals.length > 0 ? options.charterGoals : ["G1"];
+  const prefix = typeof options.baseIdPrefix === "string" ? options.baseIdPrefix : "wave-task";
+  const goals =
+    options.charterGoals && options.charterGoals.length > 0 ? options.charterGoals : ["G1"];
 
   const tasks: SmartTaskPlan[] = [];
   for (let i = 0; i < lines.length; i++) {
@@ -351,18 +466,60 @@ export function expandExternalPromptToWavePlan(
       write_scope: scope,
       gate,
       charter_goals: goals,
-      acceptance_criteria: [
-        `Complete wave subtask: ${line}`,
-        `Verify gate: ${gate}`,
-      ],
+      acceptance_criteria: [`Complete wave subtask: ${line}`, `Verify gate: ${gate}`],
       dependencies,
       source_type: "external_intake",
       priority: "HIGH",
       rationale: `Expanded step ${i + 1} from multi-step prompt: ${line}`,
+      assigned_tier: "Tier_3_Implementer",
     });
   }
 
   return compileSmartTasksToWavePlan(tasks);
+}
+
+/**
+ * Plan enhancer that converts feedback items or multi-step prompt into disjoint wave plans.
+ */
+export function planEnhanceToWavePlan(
+  promptOrFeedbacks: string | readonly FeedbackItem[],
+  options: {
+    readonly charterGoals?: readonly string[] | undefined;
+    readonly baseIdPrefix?: string | undefined;
+  } = {},
+): SmartWavePlanResult {
+  if (typeof promptOrFeedbacks === "string") {
+    return expandExternalPromptToWavePlan(promptOrFeedbacks, options);
+  }
+
+  const prefix = typeof options.baseIdPrefix === "string" ? options.baseIdPrefix : "fb-wave";
+  const tasks: SmartTaskPlan[] = [];
+  const seenScopes = new Set<string>();
+
+  for (let i = 0; i < promptOrFeedbacks.length; i++) {
+    const fb = promptOrFeedbacks[i]!;
+    const basePlan = planEnhance(fb, {
+      charterGoals: options.charterGoals,
+      baseId: `${prefix}-${i + 1}-${sanitizeSlug(fb.id)}`,
+    });
+
+    // Check scope overlap to wire dependencies
+    const dependencies: string[] = [];
+    for (const s of basePlan.write_scope) {
+      if (seenScopes.has(s) && i > 0) {
+        dependencies.push(tasks[i - 1]!.id);
+        break;
+      }
+      seenScopes.add(s);
+    }
+
+    tasks.push({
+      ...basePlan,
+      dependencies,
+    });
+  }
+
+  return partitionIntoDisjointWaves(tasks);
 }
 
 /**
@@ -390,7 +547,10 @@ export function compileSmartTasksToWavePlan(tasks: readonly SmartTaskPlan[]): Sm
       return depthMap.get(taskId)!;
     }
     if (visiting.has(taskId)) {
-      throw new HarnessError("INTEGRITY", `Circular dependency detected involving task '${taskId}'`);
+      throw new HarnessError(
+        "INTEGRITY",
+        `Circular dependency detected involving task '${taskId}'`,
+      );
     }
 
     visiting.add(taskId);
@@ -447,21 +607,75 @@ export function compileSmartTasksToWavePlan(tasks: readonly SmartTaskPlan[]): Sm
 }
 
 /**
+ * Partitions tasks into strictly disjoint waves, ensuring no two tasks in the same wave
+ * touch overlapping write scopes.
+ */
+export function partitionIntoDisjointWaves(tasks: readonly SmartTaskPlan[]): SmartWavePlanResult {
+  const initialWaves = compileSmartTasksToWavePlan(tasks);
+  const disjointWaves: WaveGroup[] = [];
+  let waveIndex = 1;
+
+  for (const rawWave of initialWaves.waves) {
+    // Within this dependency wave, group tasks such that no tasks in the same sub-wave share scopes
+    const subWaves: SmartTaskPlan[][] = [];
+
+    for (const task of rawWave.tasks) {
+      let placed = false;
+      for (const bucket of subWaves) {
+        const hasCollision = bucket.some((existing) =>
+          existing.write_scope.some((s) => task.write_scope.includes(s)),
+        );
+        if (!hasCollision) {
+          bucket.push(task);
+          placed = true;
+          break;
+        }
+      }
+      if (!placed) {
+        subWaves.push([task]);
+      }
+    }
+
+    for (const bucket of subWaves) {
+      disjointWaves.push({
+        wave_number: waveIndex++,
+        task_ids: bucket.map((t) => t.id),
+        tasks: bucket,
+      });
+    }
+  }
+
+  return {
+    total_waves: disjointWaves.length,
+    total_tasks: tasks.length,
+    waves: disjointWaves,
+  };
+}
+
+/**
  * Runs a full Autonomous Dual-Intake Cycle:
  * - Checks queue state.
  * - If queue has active tasks, returns current status.
  * - If pending feedback exists, runs Mode B external intake and auto-enqueues.
  * - If queue is empty, runs Mode A self-evolution synthesis and auto-enqueues.
  */
-export function runAutonomousDualIntakeCycle(options: {
-  readonly capsulesDir?: string | undefined;
-  readonly queuePath?: string | undefined;
-  readonly charterGoals?: readonly string[] | undefined;
-  readonly maxTasks?: number | undefined;
-} = {}): AutonomousDualIntakeResult {
+export function runAutonomousDualIntakeCycle(
+  options: {
+    readonly capsulesDir?: string | undefined;
+    readonly queuePath?: string | undefined;
+    readonly charterGoals?: readonly string[] | undefined;
+    readonly maxTasks?: number | undefined;
+  } = {},
+): AutonomousDualIntakeResult {
   const currentQueue = readTaskQueue(options.queuePath);
   const activeTasks = currentQueue.filter(
-    (t) => t.status === "PENDING" || t.status === "IN_PROGRESS" || t.status === "BLOCKED",
+    (t) =>
+      t.status === "PENDING" ||
+      t.status === "ADMITTED" ||
+      t.status === "IN_PROGRESS" ||
+      t.status === "RUNNING" ||
+      t.status === "VALIDATING" ||
+      t.status === "BLOCKED",
   );
 
   const feedbackItems = readFeedbackQueue(options.capsulesDir);
@@ -531,7 +745,11 @@ export function deriveWriteScopeForCategory(category: string, id: string): reado
     case "DOCUMENTATION":
       return ["docs/", "orchestrating-long-tasks/references/"];
     case "AGENT_CONTRACTS":
-      return ["orchestrating-long-tasks/agents/", "orchestrating-long-tasks/roles/", "orchestrating-long-tasks/references/"];
+      return [
+        "orchestrating-long-tasks/agents/",
+        "orchestrating-long-tasks/roles/",
+        "orchestrating-long-tasks/references/",
+      ];
     case "CLI_TOOLING":
       return [
         `orchestrating-long-tasks/scripts/src/cli/commands/${slug}.ts`,
@@ -569,7 +787,11 @@ export function deriveGateForCategory(_category: string, writeScope: readonly st
 }
 
 export function sanitizeSlug(val: string): string {
-  return val.toLowerCase().replace(/[^a-z0-9_-]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
+  return val
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
 }
 
 function mapFeedbackPriorityToTaskPriority(fbPriority: string): TaskPriority {

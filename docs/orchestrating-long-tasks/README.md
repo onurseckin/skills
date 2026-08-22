@@ -35,20 +35,20 @@ Every document in this directory includes previous/next navigation links at the 
 ### [Chapter 03: Graph Scheduling & Write-Scope Isolation](./03-graph-scheduler/01-dependency-graph-theory.md)
 
 7. **[01. Dependency Graph Theory & Schema](./03-graph-scheduler/01-dependency-graph-theory.md)**
-   _The plan graph's 8 node types and 10 edge types, DAG execution rules, and how it differs from the narrative graph `summary:export` writes._
+   _The plan graph's 8 node types and 10 edge types, Sugiyama Hierarchical DAG rendering (`graph:sugiyama`, `dag:render`), Tarjan cycle detection (`detectCyclesTarjan`), and orthogonal ASCII box layouts._
 8. **[02. Topological Conflict-Free Batching & The Recorded Topology](./03-graph-scheduler/02-topological-conflict-free-batching.md)**
-   _`proposeBatch` as the single scheduling authority, the 6-factor ranking, glob-aware scope conflict, `queue:wave`, and `state.topology`._
+   _`proposeBatch` as the single scheduling authority, 6-factor ranking, glob-aware scope conflict, Work/Span complexity analysis ($T_1$, $T_\infty$), and `state.topology`._
 9. **[03. Plan Revision, Replanning & Immutability](./03-graph-scheduler/03-plan-revision-and-freezing.md)**
-   _Structural freeze, when to branch instead of revise, `plan:replan` into a disjoint repair wave, and what survives a recompile._
+   _Structural freeze, Living Dynamic DAG Expansion (`dag:trace`, `DynamicDagState`), telemetry replay, `plan:replan` into a disjoint repair wave, and immutable histories._
 
 ---
 
 ### [Chapter 04: Multi-Agent Deployment & Two-Tier Hierarchy](./04-multi-agent/01-host-agnostic-architecture.md)
 
 10. **[01. Host-Agnostic Architecture & Adapters](./04-multi-agent/01-host-agnostic-architecture.md)**
-    _Tier 1 chat $\to$ Tier 2 coordinator $\to$ Tier 3 workers and their branch children; zero-dependency design; why the run only knows what the dispatcher reports._
+    _Tier 1 chat $\to$ Tier 2 coordinator $\to$ Tier 3 workers; Dual-Time Telemetry (monotonic sequence vs wall-clock ISO), host transcript probing, and `telemetry_conflicts` resolution._
 11. **[02. Role Contracts & Task Execution Briefs](./04-multi-agent/02-immutable-role-packets.md)**
-    _The ten canonical roles, the binding frontmatter contract, where packets are published, and the budgets every role inherits._
+    _The ten canonical roles, Lean Packets ($\le 4\text{KB}$ budgets), Validator Context Isolation (`isolateValidatorContext`, `excludeValidatorContamination`), and sycophancy mitigation._
 12. **[03. Bearer Token Protocol & Dispatch Security](./04-multi-agent/03-bearer-token-security.md)**
     _One-time stdout-delivered tokens, digest-only persistence including in reports, the three token families, and voluntary release._
 
@@ -57,18 +57,18 @@ Every document in this directory includes previous/next navigation links at the 
 ### [Chapter 05: Task Lifecycle & Monitored Execution](./05-task-execution/01-leasing-and-heartbeats.md)
 
 13. **[01. Leasing, Deadlines & Heartbeat Keepalive](./05-task-execution/01-leasing-and-heartbeats.md)**
-    _Leases, `task:heartbeat`, lease suspension while branched, `task:release`, and explicit `recover`._
+    _Time-bounded leases, `task:heartbeat`, lease suspension while branched, Watchdogs & Supervisory Monitoring (`watchdog:status`, `watchdog:cleanup`, `watchdog:verify`, `watchdog:probe`)._
 14. **[02. Write Scopes & Directory Containment Invariants](./05-task-execution/02-atomic-filesystem-scopes.md)**
     _Glob-aware containment, overlap vs containment, shared-file integration tasks, and scoping a task so it can branch._
 15. **[03. Structured Submission & Monitored Command Evidence](./05-task-execution/03-submission-and-evidence-collection.md)**
-    _`task:submit --summary`, where each report field comes from, the on-disk command record, and no substitutions._
+    _`task:submit --summary`, where each report field comes from, the on-disk command record, and byte-identical scope non-change detection._
 
 ---
 
 ### [Chapter 06: Adversarial Validation & Bounded Repair Loop](./06-validation-repair/01-adversarial-validation-philosophy.md)
 
 16. **[01. Adversarial Validation: The Probe / Defect Split](./06-validation-repair/01-adversarial-validation-philosophy.md)**
-    _Why self-grading fails, the three independence rules, context sanitization, and `task:probe` as a demand for proof rather than an accusation._
+    _Why self-grading fails, the three independence rules, algorithmic context sanitization (`VALIDATOR_EXCLUSIONS`), and `task:probe` demands for proof._
 17. **[02. Structured Finding Schema & Resolution](./06-validation-repair/02-structured-finding-schema.md)**
     _`defect` vs `probe_demand`, the mandatory components, and closing a finding with `--resolve <finding-id>=<command-id>`._
 18. **[03. Bounded Repair Routing & Escalation](./06-validation-repair/03-repair-routing-and-escalation.md)**
@@ -94,27 +94,27 @@ Every document in this directory includes previous/next navigation links at the 
 23. **[02. POSIX File Locking & Durable Writes](./08-durability-recovery/02-posix-flock-and-fdatasync.md)**
     _Advisory file locking with `flock`, `fdatasync`, atomic temporary file replacement, and directory syncing._
 24. **[03. Stale Worker, Crash Forensics & Torn Tail Quarantine](./08-durability-recovery/03-stale-worker-and-torn-tail-recovery.md)**
-    _Torn tail quarantine protocol, stale lease reclamation, and crash resilience._
+    _Torn tail quarantine protocol, stale lease reclamation, Watchdog lifecycle monitoring (`watchdog:phase-cleanup`), and crash resilience._
 
 ---
 
 ### [Chapter 09: Branching, Grants & Evidence Honesty](./09-branching-and-honesty/01-execution-time-branching.md)
 
 25. **[01. Execution-Time Branching & Collect](./09-branching-and-honesty/01-execution-time-branching.md)**
-    _`branch:open` … `branch:collect`, the four safety rules, lease suspension, and why a branch never enters the plan DAG._
+    _`branch:open` … `branch:collect`, the four safety rules, lease suspension, dynamic Living Tracer replay, and why a branch never enters the plan DAG._
 26. **[02. The Agent Grant Ledger & Lineage](./09-branching-and-honesty/02-agent-grant-ledger.md)**
-    _`agent:register` / `agent:report` / `agent:release` / `agent:list`, the grant record, and per-agent telemetry that is never inferred._
+    _`agent:register` / `agent:report` / `agent:release` / `agent:list`, Host Telemetry Probe merging, and per-agent telemetry that is never inferred._
 27. **[03. Evidence Classes & The Honesty Model](./09-branching-and-honesty/03-evidence-classes-and-honesty.md)**
-    _`harness_observed` / `agent_reported` / `host_reported` / `derived` / `unknown`, and how the exported graph renders absence._
+    _`harness_observed` / `agent_reported` / `host_reported` / `derived` / `unknown`, Dual-Time Telemetry pairing, and how the exported graph renders absence._
 
 ---
 
 ### [Chapter 10: Complete End-to-End Tutorial & CLI Manual](./10-tutorial-and-cli/01-end-to-end-tutorial.md)
 
 28. **[01. Complete End-to-End Tutorial](./10-tutorial-and-cli/01-end-to-end-tutorial.md)**
-    _An executed walkthrough from prompt to sealed capsule — including a plan audit, an independent plan-validator round, a gate falsifiability proof, a branch, a real rejection, a probe, and every refusal encountered along the way._
+    _An executed walkthrough from prompt to sealed capsule — including `dag:render` Sugiyama visualization, `dag:trace` living dynamic step tracing, and `watchdog:verify` lifecycle auditing._
 29. **[02. CLI Command Reference](./10-tutorial-and-cli/02-cli-command-reference.md)**
-    _A pointer to the generated `references/cli-capabilities.md` manifest, plus the conventions that hold across the whole surface._
+    _A pointer to the generated `references/cli-capabilities.md` manifest, full domain index including reporting and authority watchdog operations, and CLI conventions._
 30. **[03. Troubleshooting, Common Pitfalls & FAQ](./10-tutorial-and-cli/03-troubleshooting-and-faq.md)**
     _The refusals you will actually hit, verbatim, with what each one means and how to satisfy it._
 

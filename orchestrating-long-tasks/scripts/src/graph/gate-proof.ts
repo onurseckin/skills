@@ -274,15 +274,11 @@ function effectiveRevertScope(
   if (!isBunTest && !isOtherTest) return writeScope;
 
   const rawTestPaths = isBunTest ? gateArgv.slice(2) : gateArgv.slice(1);
-  const gateTestPaths = rawTestPaths
-    .filter((arg) => !arg.startsWith("-"))
-    .map(normalizeScopePath);
+  const gateTestPaths = rawTestPaths.filter((arg) => !arg.startsWith("-")).map(normalizeScopePath);
 
   const filtered = writeScope.filter((raw) => {
     const norm = normalizeScopePath(raw);
-    return !gateTestPaths.some(
-      (testPath) => testPath === norm || testPath.startsWith(`${norm}/`),
-    );
+    return !gateTestPaths.some((testPath) => testPath === norm || testPath.startsWith(`${norm}/`));
   });
   return filtered.length > 0 ? filtered : writeScope;
 }

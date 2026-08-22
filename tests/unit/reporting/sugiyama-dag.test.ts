@@ -251,9 +251,27 @@ describe("Sugiyama DAG Renderer & Diagnostics (p24, p25, p26)", () => {
     it("builds a complete SugiyamaDagReport with metrics and markdown", () => {
       const nodes: SugiyamaNode[] = [
         { id: "task-1", label: "Base Engine", status: "done", dependencies: [], effort: 2 },
-        { id: "task-2", label: "Parallel Track 1", status: "running", dependencies: ["task-1"], effort: 3 },
-        { id: "task-3", label: "Parallel Track 2", status: "ready", dependencies: ["task-1"], effort: 3 },
-        { id: "task-4", label: "Aggregator", status: "blocked", dependencies: ["task-2", "task-3"], effort: 4 },
+        {
+          id: "task-2",
+          label: "Parallel Track 1",
+          status: "running",
+          dependencies: ["task-1"],
+          effort: 3,
+        },
+        {
+          id: "task-3",
+          label: "Parallel Track 2",
+          status: "ready",
+          dependencies: ["task-1"],
+          effort: 3,
+        },
+        {
+          id: "task-4",
+          label: "Aggregator",
+          status: "blocked",
+          dependencies: ["task-2", "task-3"],
+          effort: 4,
+        },
       ];
       const edges: SugiyamaEdge[] = [
         { from: "task-1", to: "task-2" },

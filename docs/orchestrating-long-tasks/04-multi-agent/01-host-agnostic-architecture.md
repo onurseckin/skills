@@ -24,42 +24,52 @@ This has one unavoidable consequence: **the run only knows what the dispatcher t
 
 ---
 
-## 📡 Telemetry Evidence Classes: What Was Reported vs. What Was Measured
+## 📡 Dual-Time Telemetry & Host Probe Architecture
 
-Every field on an agent grant record carries the evidence class of _how the harness came to know it_,
-never just its value:
+Every event and telemetry observation in the capsule is recorded across two orthogonal time domains:
 
-- **`agent_reported`** — the dispatcher (or the agent itself, via `agent:report`) told the harness,
-  on `agent:register --model`, `--provider`, `--model-tier`, `--thinking-level`, `--context-window`
-  or `--tool`. This is the CLI surface, and it is the only surface where a caller can type a value
-  that turns out not to be true — a nonexistent model id typed here is recorded exactly as though the
-  host had attested to it, so `agent_reported` is a **claim**, not a verification. The one exception:
-  an explicit `unknown` thinking-level or tier value keeps evidence class `unknown`, because stating
-  "I don't know" is not an unverified claim of fact.
-- **`host_reported` / `derived` / `harness_observed`** — earned _only_ by an automatic probe the
-  harness itself runs, never by anything a CLI flag supplied. `agent:register`, `agent:release`,
-  `task:claim` and `task:submit` all call this probe on every invocation, automatically, without a
-  round-trip back to the agent — `agent:report` (the mid-flight tool/token check-in) does **not**;
-  it only ever records the caller's own self-reported numbers as `agent_reported`. The probe: it
-  reads the host's own configuration files (session concurrency
-  limits, per-agent definition files, feature flags — one detector per host, keyed by a `host_tool`
-  string, never a TypeScript type) and, separately, the host's own on-disk transcript for that
-  specific agent id (real token usage, the exact model id, real tool calls with success/failure).
-  When a probed value disagrees with an already-recorded `agent_reported` value, neither is
-  discarded — the disagreement is appended to `telemetry_conflicts` on the grant, and an explicit
-  report always wins the _field_ while the conflict stays visible for an operator to see later.
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    DUAL-TIME TELEMETRY ARCHITECTURE                         │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  1. Monotonic Logical Time (sequence: 1, 2, 3, ...):                        │
+│     • Strictly increasing integer counter in events.jsonl                   │
+│     • Eliminates race conditions, clock skew, and distributed host drift    │
+│     • Guarantees total causal event order across all concurrent subagents   │
+│                                                                             │
+│  2. Physical Wall-Clock Time (timestamp: "2026-08-22T02:30:00.000Z"):       │
+│     • ISO8601 UTC timestamp recorded per event                              │
+│     • Measures real-world execution durations, latency, and SLA heartbeats  │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
 
-The practical read: an agent's own self-report of its model or token spend should be treated as a
-claim until the automatic probe corroborates it (or contradicts it). A run whose host publishes
-nothing usable — no known config, no transcript for that agent id — simply carries fewer telemetry
-fields, never a guessed one.
+### Telemetry Evidence Classes: What Was Reported vs. What Was Measured
 
-Tool usage follows the same open-vocabulary discipline as everything else in this harness:
-`--tool <name>=<category>` accepts any category string, not a closed enum (`browser-automation`,
-`shell`, `test-runner` and a dozen others are merely the seeded, recognised set) — a category outside
-that set is recorded exactly as given, never dropped or coerced into the nearest known one.
-`--tool-extra <tool>:<key>=<value>` records one tool-specific fact verbatim under the reporter's own
-key name, and refuses if the named tool was never declared with `--tool` in the same call.
+Every field on an agent grant record carries the evidence class of _how the harness came to know it_, never just its value:
+
+- **`agent_reported`** — the dispatcher (or the agent itself, via `agent:report`) told the harness on `agent:register --model`, `--provider`, `--model-tier`, `--thinking-level`, `--context-window`, or `--tool`. This is the CLI surface: an agent's self-declaration is an unverified claim until corroborated.
+- **`host_reported` / `derived` / `harness_observed`** — earned _only_ by the automatic **Host Telemetry Probe** (`refreshAgentDerivedTelemetry`, `readAgentTranscriptTelemetry`), never by CLI flags. On lifecycle transitions (`agent:register`, `agent:release`, `task:claim`, `task:submit`), the harness inspects host session config and on-disk JSON transcript streams for real tokens consumed, exact model IDs, and executed tool calls.
+
+### Conflict Detection & `telemetry_conflicts` Resolution
+
+When a probed host observation disagrees with an agent's self-reported claim (for example, an agent claims `model: gpt-4o` but transcript telemetry observes `claude-3-5-sonnet`, or claims `tokens_out: 500` when transcript logs show `4,200`), the harness **never silently overwrites** either value:
+
+1. The explicit `agent_reported` value remains on the grant field.
+2. The discrepancy is appended to the immutable `telemetry_conflicts` ledger on the grant:
+
+```json
+{
+  "field": "tokens_out",
+  "recorded_value": 500,
+  "recorded_evidence_class": "agent_reported",
+  "probed_value": 4200,
+  "probed_evidence_class": "harness_observed"
+}
+```
+
+3. If parent agent relationships conflict (`checkParentAgentConflict`), a conflict record is opened to prevent lineage spoofing.
 
 ---
 
@@ -133,7 +143,7 @@ To prevent conversational context explosion and preserve interactive responsiven
 - Discovered at `.claude/skills/orchestrating-long-tasks` or `~/.claude/skills/...`.
 - Dispatches subagents with the native `Agent` tool; each claims a disjoint write scope and the lead
   coordinator validates. `SendMessage` and the experimental Agent Teams file-mailbox channel are for
-  agent-to-agent messaging, not dispatch — see [`references/host-adapters.md`](../../references/host-adapters.md)'s
+  agent-to-agent messaging, not dispatch — see [`references/host-adapters.md`](../../../orchestrating-long-tasks/references/host-adapters.md)'s
   adapter table for the full, current detail.
 
 ### 3. OpenAI Codex & ChatGPT

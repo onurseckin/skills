@@ -8,6 +8,18 @@ import { HarnessError } from "../errors/harness-error.ts";
 import type { CommandOptions, NormalizedCommandOptions } from "./types.ts";
 import { captureGateEnvironment } from "./gate-environment.ts";
 
+export const DEFAULT_TEST_WALL_TIMEOUT_MS = 60_000;
+export const DEFAULT_TEST_IDLE_TIMEOUT_MS = 30_000;
+
+export const TEST_POLICY_DEFAULTS = {
+  wallTimeoutMs: DEFAULT_TEST_WALL_TIMEOUT_MS,
+  idleTimeoutMs: DEFAULT_TEST_IDLE_TIMEOUT_MS,
+  graceMs: 1_000,
+  drainTimeoutMs: 5_000,
+  heartbeatIntervalMs: 1_000,
+  maxOutputBytes: 64 * 1024 * 1024,
+} as const;
+
 const DEFAULTS = {
   wallTimeoutMs: 600_000,
   idleTimeoutMs: 300_000,

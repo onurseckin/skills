@@ -9,10 +9,7 @@ import {
 } from "../workflow/completion/critic-feedback-loop.ts";
 import type { CompletionReview } from "../workflow/completion/types.ts";
 import type { TransactionPort, WorkflowState } from "../workflow/types.ts";
-import {
-  normalizeFindingToDetail,
-  synthesizeNextRoundPrompt,
-} from "./defect-synthesizer.ts";
+import { normalizeFindingToDetail, synthesizeNextRoundPrompt } from "./defect-synthesizer.ts";
 import type { DefectSynthesis, RoundGateResult } from "./types.ts";
 
 export interface TaskRepairInstruction {
@@ -60,7 +57,9 @@ export function generateRepairInstructions(
     const remediationLines: string[] = [];
     remediationLines.push(`### Task Repair Directive: [${task.id}] (Round ${task.repair_round})`);
     remediationLines.push(`**Assignee:** \`${summary.repairAssignee}\``);
-    remediationLines.push(`**Scoped Write Paths:** ${task.write_scope.map((s) => `\`${s}\``).join(", ")}`);
+    remediationLines.push(
+      `**Scoped Write Paths:** ${task.write_scope.map((s) => `\`${s}\``).join(", ")}`,
+    );
     remediationLines.push("");
     remediationLines.push("#### Open Findings to Remediate:");
     for (const f of taskFindings) {

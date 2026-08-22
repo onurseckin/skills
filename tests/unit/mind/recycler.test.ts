@@ -215,7 +215,13 @@ describe("mind autonomic recycler", () => {
 
     test("filters out invalid candidate entries", () => {
       const state: Record<string, unknown> = {
-        candidates: [null, undefined, 123, { statement: "no id" }, createCandidate("cand-valid", "admitted")],
+        candidates: [
+          null,
+          undefined,
+          123,
+          { statement: "no id" },
+          createCandidate("cand-valid", "admitted"),
+        ],
       };
       const candidates = extractAllCandidates(state);
       expect(candidates).toHaveLength(1);
@@ -571,7 +577,9 @@ describe("mind autonomic recycler", () => {
       expect(result.cadence).toBe("infinite_autonomous");
       expect(result.allowed).toBe(true);
       expect(result.nextInstruction).toBe(`bun harness.ts mind:wake --run ${runRoot}`);
-      expect(result.message).toContain("Terminal outcome recorded; perpetual mind loop remains armed");
+      expect(result.message).toContain(
+        "Terminal outcome recorded; perpetual mind loop remains armed",
+      );
     });
   });
 
@@ -618,7 +626,9 @@ describe("mind autonomic recycler", () => {
       expect(result.nextCommands).toHaveLength(2);
       expect(result.nextCommands[0]).toContain("mind:round-open");
       expect(result.wavePlanCommands).toContain(`bun harness.ts plan:compile --run ${runRoot}`);
-      expect(result.wavePlanCommands).toContain(`bun harness.ts orchestrate --run ${runRoot} --parallel`);
+      expect(result.wavePlanCommands).toContain(
+        `bun harness.ts orchestrate --run ${runRoot} --parallel`,
+      );
 
       // Verify state on disk
       const loaded = loadRun(runRoot, false);
@@ -652,8 +662,12 @@ describe("mind autonomic recycler", () => {
       expect(wavePlan.waves[0]?.candidateIds).toEqual(["cand-w1", "cand-w2"]);
       expect(wavePlan.waves[1]?.candidateIds).toEqual(["cand-w3", "cand-w4"]);
       expect(wavePlan.waves[2]?.candidateIds).toEqual(["cand-w5"]);
-      expect(wavePlan.dispatchCommands).toContain("bun harness.ts plan:compile --run .capsules/mind-gen-2");
-      expect(wavePlan.dispatchCommands).toContain("bun harness.ts orchestrate --run .capsules/mind-gen-2 --parallel");
+      expect(wavePlan.dispatchCommands).toContain(
+        "bun harness.ts plan:compile --run .capsules/mind-gen-2",
+      );
+      expect(wavePlan.dispatchCommands).toContain(
+        "bun harness.ts orchestrate --run .capsules/mind-gen-2 --parallel",
+      );
       expect(wavePlan.nextInstruction).toContain("mind:round-open");
     });
   });
@@ -699,7 +713,9 @@ describe("mind autonomic recycler", () => {
       expect(rolloverResult.admittedCandidates[0]?.id).toBe("cand-fb-gen2-01");
       expect(rolloverResult.wavePlan.waves.length).toBeGreaterThan(0);
       expect(rolloverResult.markdown).toContain("Autonomic Mind Generation Rollover: 1 → 2");
-      expect(rolloverResult.markdown).toContain("infinite autonomous loop active (zero yield / zero idle)");
+      expect(rolloverResult.markdown).toContain(
+        "infinite autonomous loop active (zero yield / zero idle)",
+      );
 
       // Check successor capsule
       const targetState = loadRun(rolloverResult.targetRunRoot, false);
@@ -729,7 +745,9 @@ describe("mind autonomic recycler", () => {
       expect(brief).toContain("- **Source**: `mind-gen-1` (converged & sealed)");
       expect(brief).toContain("- **Successor**: `mind-gen-2` at `.capsules/mind-gen-2`");
       expect(brief).toContain("- **FEEDBACK_QUEUE Drained**: 3 items admitted");
-      expect(brief).toContain("- **Cadence**: infinite autonomous loop active (zero yield / zero idle)");
+      expect(brief).toContain(
+        "- **Cadence**: infinite autonomous loop active (zero yield / zero idle)",
+      );
       expect(brief.split("\n").length).toBeLessThanOrEqual(25);
     });
   });

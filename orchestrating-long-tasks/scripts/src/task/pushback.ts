@@ -18,7 +18,12 @@ import {
   recordCoordinatorPushback,
   type CoordinatorPushbackInput,
 } from "../workflow/review/coordinator-pushback.ts";
-import { systemClock, type Clock, type TransactionPort, type WorkflowState } from "../workflow/types.ts";
+import {
+  systemClock,
+  type Clock,
+  type TransactionPort,
+  type WorkflowState,
+} from "../workflow/types.ts";
 
 export type { CoordinatorPushbackInput } from "../workflow/review/coordinator-pushback.ts";
 export type { CoordinatorPushback, CoordinatorPushbackCause, ValidatorDomain };
@@ -81,17 +86,27 @@ export function executeCoordinatorPushback(
   port: TransactionPort,
   taskId: string,
   coordinatorId: string,
-  input: CoordinatorPushbackInput | { validatorId?: string | undefined; validator_id?: string | undefined; domain: ValidatorDomain; cause: CoordinatorPushbackCause; observation: string; remediation: string },
+  input:
+    | CoordinatorPushbackInput
+    | {
+        validatorId?: string | undefined;
+        validator_id?: string | undefined;
+        domain: ValidatorDomain;
+        cause: CoordinatorPushbackCause;
+        observation: string;
+        remediation: string;
+      },
   clock: Clock = systemClock,
   maxRepairRounds: number = MAX_REPAIR_ROUNDS,
 ): WorkflowState {
   validatePushbackEvidence(input.cause, input.observation, input.remediation);
 
-  const rawValidatorId = "validatorId" in input && typeof input.validatorId === "string"
-    ? input.validatorId
-    : "validator_id" in input && typeof input.validator_id === "string"
-      ? input.validator_id
-      : "";
+  const rawValidatorId =
+    "validatorId" in input && typeof input.validatorId === "string"
+      ? input.validatorId
+      : "validator_id" in input && typeof input.validator_id === "string"
+        ? input.validator_id
+        : "";
 
   const payload = {
     validator_id: rawValidatorId,
@@ -121,10 +136,7 @@ export function contestValidatorVerdict(
   } = options;
 
   if (!isValidatorDomain(domain)) {
-    throw new HarnessError(
-      "INVALID_ARGUMENT",
-      `Invalid validator domain '${String(domain)}'`,
-    );
+    throw new HarnessError("INVALID_ARGUMENT", `Invalid validator domain '${String(domain)}'`);
   }
 
   return executeCoordinatorPushback(

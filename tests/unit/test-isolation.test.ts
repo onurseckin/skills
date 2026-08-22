@@ -65,7 +65,9 @@ describe("Parallel Test Isolation Primitives", () => {
 
     it("should handle removeIsolatedTempDir safely on non-existent directories", () => {
       expect(() => {
-        removeIsolatedTempDir(join(findRepoRoot(), ".tmp", "test-isolation", "non-existent-dir-12345"));
+        removeIsolatedTempDir(
+          join(findRepoRoot(), ".tmp", "test-isolation", "non-existent-dir-12345"),
+        );
       }).not.toThrow();
     });
   });

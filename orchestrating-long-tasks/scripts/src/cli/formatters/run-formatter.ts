@@ -197,10 +197,7 @@ export function formatRunExecBrief(params: RunExecParams): string {
   if (params.logPath) lines.push(`- **Raw Stream Log**: \`${params.logPath}\``);
   lines.push(
     ...nextActionsBlock(
-      runExecNextActions(
-        undefined,
-        params.evidencePath?.split("/").pop()?.replace(".json", ""),
-      ),
+      runExecNextActions(undefined, params.evidencePath?.split("/").pop()?.replace(".json", "")),
     ),
   );
   return enforceLineLimit(lines.join("\n"), 30);

@@ -334,7 +334,7 @@ no-fabrication discipline as everything else in this capsule.
 
 ## 🛠️ The Zero-JSON CLI & Markdown Briefs
 
-Instead of generating raw JSON files or separate markdown packets on disk, the harness provides domain-specific colon commands across fourteen domains — `plan`, `queue`, `task`, `run`, `critic`, `summary`, `inspection`, `orchestrator`, `branch`, `agent`, `authority`, `orphan`, `install` and `diagnostics`. The generated manifest at [`references/cli-capabilities.md`](../../references/cli-capabilities.md) is the single description of that surface; `bun harness.ts help` prints it from the terminal.
+Instead of generating raw JSON files or separate markdown packets on disk, the harness provides domain-specific colon commands across fourteen domains — `plan`, `queue`, `task`, `run`, `critic`, `summary`, `inspection`, `orchestrator`, `branch`, `agent`, `authority`, `orphan`, `install` and `diagnostics`. The generated manifest at [`references/cli-capabilities.md`](../../../orchestrating-long-tasks/references/cli-capabilities.md) is the single description of that surface; `bun harness.ts help` prints it from the terminal.
 
 Each command emits a compact, structured Markdown brief ($\le 30$ lines) directly to standard output:
 

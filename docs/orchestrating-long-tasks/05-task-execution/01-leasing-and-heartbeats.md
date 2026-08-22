@@ -144,4 +144,61 @@ bun harness.ts recover --run .capsules/<run-id> --actor coordinator --grace-seco
 
 ---
 
+## 🐕 Watchdogs & Supervisory Cadence Monitoring
+
+In long-running autonomous runs, leases alone do not protect against silent agent stall or monitor accumulation. The harness implements a supervisory **Watchdog Manager Subsystem** (`authority/watchdog-manager.ts`) governed by generation and pulse cadence.
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    WATCHDOG MONITORING & CADENCE LIFECYCLE                  │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  [ Generation / Pulse Cadence ]                                             │
+│    • Mind Generation (generation: 1, 2, ...)                                │
+│    • Periodic Heartbeat Pulse (pulse-id: pulse-<uuid>)                      │
+│    • Watchdog Store: .capsules/watchdogs.json                               │
+│                                  │                                          │
+│                                  ▼                                          │
+│  [ Single Active Monitor Invariant ]                                        │
+│    • STRICT INVARIANT: Exactly <= 1 active watchdog per generation/pulse    │
+│    • Transitions: active -> stale -> terminated | orphaned                  │
+│    • Automatic phase rollover purges legacy phase monitors                  │
+│                                  │                                          │
+│                                  ▼                                          │
+│  [ 5-Point Supervisory Health Probe (watchdog:probe) ]                      │
+│    1. Work/Span DAG Parallelization Efficiency                              │
+│    2. Plan Enhancement & Dynamic Expansion Completeness                     │
+│    3. 100% Agent Registry & Lineage Accuracy                                │
+│    4. Strict Role Boundary & Tier Isolation Adherence                      │
+│    5. Capsule Doctor Diagnostics & Zero-Error Validation                    │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Watchdog Operations CLI Surface
+
+| CLI Command                             | Alias                  | Purpose                                                                                      |
+| :-------------------------------------- | :--------------------- | :------------------------------------------------------------------------------------------- |
+| `bun harness.ts watchdog:status`        | `watchdog:list`        | Query active, stale, terminated, and orphaned monitors across generations and pulses.        |
+| `bun harness.ts watchdog:cleanup`       | `watchdog:clean`       | Purge timed-out or stale monitors exceeding max age cadence without mutating active leases.  |
+| `bun harness.ts watchdog:phase-cleanup` | `watchdog:phase-clean` | Terminate legacy phase monitors upon phase rollover (e.g. `planning` $\to$ `execution`).     |
+| `bun harness.ts watchdog:verify`        | `watchdog:check`       | Audit registry to assert that max 1 active monitor per generation constraint holds.          |
+| `bun harness.ts watchdog:probe`         | `watchdog:supervise`   | Execute 2-way 5-point health probe and doctor diagnostics, dispatching report to top leader. |
+
+Example status check:
+
+```bash
+bun harness.ts watchdog:status --generation 1 --filter-status active
+```
+
+```text
+### Watchdog Lifecycle & Cadence Status
+- **Capsules Target Root**: `.capsules/`
+- **Total Registered Monitors**: 4 (1 matching filter)
+- **Status Breakdown**: Active: 1 | Stale: 0 | Terminated: 3 | Orphaned: 0
+- **Accumulation Invariant**: Max 1 active monitor per generation/pulse strictly enforced
+```
+
+---
+
 [⬅ Previous: Bearer Token Security](../04-multi-agent/03-bearer-token-security.md) | [Master Table of Contents](../README.md) | [Next: Atomic Filesystem Scopes ➡](./02-atomic-filesystem-scopes.md)

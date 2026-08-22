@@ -311,4 +311,3 @@ Every host adapter implementation must enforce the following guardrails:
   - If a registered action, lane, or task is planned in Harness memory (`state.tasks`, `state.topology.waves`, `state.candidates`, `state.graph.gates`) but left unfulfilled, the engine immediately halts with a harsh, blocking pushback (`[AGGRESSIVE UNFULFILLED-DEMAND PUSHBACK]`).
   - The pushback isolates the exact root cause for every stalled item (e.g. unleased task, missing submission evidence, unresolved repair findings, unproven mandatory gate, unfulfilled wave lane).
   - State advancement and phase transition are strictly refused until all unfulfilled demands are fully resolved and verified.
-

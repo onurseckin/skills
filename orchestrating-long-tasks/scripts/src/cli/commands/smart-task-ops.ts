@@ -105,7 +105,9 @@ export function smartTaskSynthesizeCommand(
     `- **Summary**: ${result.summary}`,
     `- **Source Items Evaluated**: ${result.source_items_count}`,
     `- **Generated Tasks**: ${result.tasks.length}`,
-    ...(result.enqueued_count !== undefined ? [`- **Enqueued to State Queue**: ${result.enqueued_count}`] : []),
+    ...(result.enqueued_count !== undefined
+      ? [`- **Enqueued to State Queue**: ${result.enqueued_count}`]
+      : []),
   ];
 
   if (result.tasks.length > 0) {
@@ -114,7 +116,9 @@ export function smartTaskSynthesizeCommand(
     lines.push("| :--- | :--- | :--- | :--- |");
     for (const t of result.tasks) {
       const scopeSummary = t.write_scope.join(", ");
-      lines.push(`| \`${t.id}\` | ${t.label} | \`${scopeSummary.length > 40 ? scopeSummary.slice(0, 37) + "..." : scopeSummary}\` | \`${t.gate}\` |`);
+      lines.push(
+        `| \`${t.id}\` | ${t.label} | \`${scopeSummary.length > 40 ? scopeSummary.slice(0, 37) + "..." : scopeSummary}\` | \`${t.gate}\` |`,
+      );
     }
   }
 
@@ -186,8 +190,12 @@ export function smartTaskQueueListCommand(
   _context?: CommandContext,
 ): SmartTaskQueueListResult {
   const queuePath = textFlag(flags, "queue-file", false);
-  const statusFilter = textFlag(flags, "status", false)?.toUpperCase() as TaskQueueStatus | undefined;
-  const priorityFilter = textFlag(flags, "priority", false)?.toUpperCase() as TaskPriority | undefined;
+  const statusFilter = textFlag(flags, "status", false)?.toUpperCase() as
+    | TaskQueueStatus
+    | undefined;
+  const priorityFilter = textFlag(flags, "priority", false)?.toUpperCase() as
+    | TaskPriority
+    | undefined;
   const limit = integerFlag(flags, "limit", { minimum: 1 }) ?? 20;
 
   const tasks = listTaskQueue({
@@ -214,7 +222,9 @@ export function smartTaskQueueListCommand(
     for (const t of tasks) {
       const blocked = t.blocked_by.length > 0 ? t.blocked_by.join(",") : "-";
       const agent = t.lease?.agent_id ?? "-";
-      lines.push(`| \`${t.id}\` | ${t.priority} | ${t.status} | ${blocked} | ${agent} | ${t.title} |`);
+      lines.push(
+        `| \`${t.id}\` | ${t.priority} | ${t.status} | ${blocked} | ${agent} | ${t.title} |`,
+      );
     }
   } else {
     lines.push("");
@@ -378,7 +388,9 @@ export function smartTaskQueueReclaimCommand(
     lines.push("| Reclaimed Task ID | Status | Retry Count | Error / Reason |");
     lines.push("| :--- | :--- | :--- | :--- |");
     for (const t of result.tasks) {
-      lines.push(`| \`${t.id}\` | ${t.status} | ${t.retry_count}/${t.max_retries} | ${t.error_message ?? "-"} |`);
+      lines.push(
+        `| \`${t.id}\` | ${t.status} | ${t.retry_count}/${t.max_retries} | ${t.error_message ?? "-"} |`,
+      );
     }
   }
 

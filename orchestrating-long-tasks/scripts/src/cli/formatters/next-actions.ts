@@ -380,7 +380,10 @@ export function validationStartNextActions(
   return actions;
 }
 
-export function taskReviewPassNextActions(run?: string, unblockedTaskId?: string): NextActionItem[] {
+export function taskReviewPassNextActions(
+  run?: string,
+  unblockedTaskId?: string,
+): NextActionItem[] {
   const runArg = run ? ` --run ${run}` : "";
   const nextCmd = unblockedTaskId
     ? `bun harness.ts task:claim${runArg} --task ${unblockedTaskId} --agent <AGENT> --role implementer`

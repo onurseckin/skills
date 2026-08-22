@@ -36,7 +36,9 @@ describe("Diagnostics Remediation Proof & Static Quality Invariants", () => {
 
       expect(resolved.status).toBe("resolved");
       expect(resolved.resolution?.task_id).toBe("task-verify-remediation-proof");
-      expect(resolved.resolution?.test_assertion).toBe("bun test tests/unit/diagnostics/remediation-proof.test.ts");
+      expect(resolved.resolution?.test_assertion).toBe(
+        "bun test tests/unit/diagnostics/remediation-proof.test.ts",
+      );
       expect(resolved.resolution?.resolved_at).toBe("2026-08-22T09:45:00.000Z");
       expect(resolved.resolution?.commit_sha).toBe("commit-sha-proof-9999");
     });

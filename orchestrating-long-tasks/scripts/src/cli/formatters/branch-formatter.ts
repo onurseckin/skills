@@ -41,12 +41,7 @@ export function formatBranchOpenBrief(branch: BranchRecord, runId: string): stri
     `bun harness.ts branch:collect --run ${runId} --branch ${branch.id} --agent ${branch.parent_agent_id} --token <PARENT_TOKEN> --summary "<WHAT CAME BACK>"`,
     "```",
     ...nextActionsBlock(
-      branchOpenNextActions(
-        runId,
-        branch.id,
-        branch.sub_tasks[0]?.id,
-        branch.parent_agent_id,
-      ),
+      branchOpenNextActions(runId, branch.id, branch.sub_tasks[0]?.id, branch.parent_agent_id),
     ),
   ].join("\n");
   return enforceLineLimit(md);
@@ -71,13 +66,7 @@ export function formatBranchClaimBrief(
     `bun harness.ts branch:submit --run ${runId} --branch ${branch.id} --sub-task ${subTask.id} --agent ${subTask.agent_id ?? "<AGENT>"} --token ${token} --summary "<WHAT CHANGED>"`,
     "```",
     ...nextActionsBlock(
-      branchClaimNextActions(
-        runId,
-        branch.id,
-        subTask.id,
-        subTask.agent_id ?? "<AGENT>",
-        token,
-      ),
+      branchClaimNextActions(runId, branch.id, subTask.id, subTask.agent_id ?? "<AGENT>", token),
     ),
   ].join("\n");
   return enforceLineLimit(md);
@@ -111,11 +100,7 @@ export function formatBranchCollectBrief(branch: BranchRecord, parentStatus: str
     "",
     ...formatTable(["Sub-task", "Label", "Status", "Agent", "Write Scope"], subTaskRows(branch)),
     ...nextActionsBlock(
-      branchCollectNextActions(
-        undefined,
-        branch.parent_task_id,
-        branch.parent_agent_id,
-      ),
+      branchCollectNextActions(undefined, branch.parent_task_id, branch.parent_agent_id),
     ),
   ].join("\n");
   return enforceLineLimit(md);

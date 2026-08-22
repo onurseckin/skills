@@ -14,10 +14,7 @@ import {
   type SugiyamaNode,
   type SugiyamaEdge,
 } from "../../reporting/sugiyama-dag.ts";
-import {
-  buildLivingTracerReport,
-  type LivingTracerReport,
-} from "../../reporting/living-tracer.ts";
+import { buildLivingTracerReport, type LivingTracerReport } from "../../reporting/living-tracer.ts";
 import { readCapsuleEvents } from "../../reporting/event-stream.ts";
 
 function isStringArray(value: unknown): value is readonly string[] {

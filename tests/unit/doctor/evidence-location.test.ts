@@ -29,8 +29,12 @@ describe("Evidence Location Doctor Checks - p18 unified validator evidence locat
   });
 
   test("formatUnifiedEvidencePath creates correct canonical paths", () => {
-    expect(formatUnifiedEvidencePath("desktop.png", "screenshots")).toBe("evidence/screenshots/desktop.png");
-    expect(formatUnifiedEvidencePath("manifest.json", "manifests")).toBe("evidence/manifests/manifest.json");
+    expect(formatUnifiedEvidencePath("desktop.png", "screenshots")).toBe(
+      "evidence/screenshots/desktop.png",
+    );
+    expect(formatUnifiedEvidencePath("manifest.json", "manifests")).toBe(
+      "evidence/manifests/manifest.json",
+    );
     expect(formatUnifiedEvidencePath("report.json", "reports")).toBe("evidence/report.json");
   });
 
@@ -106,7 +110,11 @@ describe("Evidence Location Doctor Checks - p18 unified validator evidence locat
     expect(audit.valid).toBe(false);
     expect(audit.invalidCount).toBe(1);
     expect(audit.invalidPaths).toContain("screenshots/rogue.png");
-    expect(audit.issues.some((i) => i.includes("validator outputs must reside under .capsules/<run>/evidence/"))).toBe(true);
+    expect(
+      audit.issues.some((i) =>
+        i.includes("validator outputs must reside under .capsules/<run>/evidence/"),
+      ),
+    ).toBe(true);
   });
 
   test("verifyUnifiedEvidenceLocation audits validation finding evidence in state", async () => {

@@ -21,15 +21,19 @@ describe("task subsystem pushback unit tests", () => {
     ).not.toThrow();
 
     expect(() =>
-      validatePushbackEvidence("invalid_cause" as unknown as CoordinatorPushbackCause, "Valid observation", "Valid remediation"),
+      validatePushbackEvidence(
+        "invalid_cause" as unknown as CoordinatorPushbackCause,
+        "Valid observation",
+        "Valid remediation",
+      ),
     ).toThrow(HarnessError);
 
-    expect(() =>
-      validatePushbackEvidence("procedural", "", "Valid remediation"),
-    ).toThrow(HarnessError);
+    expect(() => validatePushbackEvidence("procedural", "", "Valid remediation")).toThrow(
+      HarnessError,
+    );
 
-    expect(() =>
-      validatePushbackEvidence("substantive", "Valid observation", ""),
-    ).toThrow(HarnessError);
+    expect(() => validatePushbackEvidence("substantive", "Valid observation", "")).toThrow(
+      HarnessError,
+    );
   });
 });

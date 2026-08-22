@@ -43,7 +43,9 @@ describe("Thread Authority Identifier", () => {
       env: { HARNESS_EXECUTION_TIER: "1" },
     });
     expect(fromEnvTier.tier).toBe(1);
-    expect(fromEnvTier.tier_name).toBe("Tier 1: Orchestrator Lead (Plan Supervisor & Release Manager)");
+    expect(fromEnvTier.tier_name).toBe(
+      "Tier 1: Orchestrator Lead (Plan Supervisor & Release Manager)",
+    );
     expect(fromEnvTier.role).toBe("orchestrator");
     expect(fromEnvTier.is_main_thread).toBeFalse();
 
@@ -120,7 +122,9 @@ describe("Thread Authority Identifier", () => {
       env: { HARNESS_EXECUTION_TIER: "3" },
     });
     expect(fromEnvTier.tier).toBe(3);
-    expect(fromEnvTier.tier_name).toBe("Tier 3: Implementer / Validator / Repairer / Completeness Critic");
+    expect(fromEnvTier.tier_name).toBe(
+      "Tier 3: Implementer / Validator / Repairer / Completeness Critic",
+    );
     expect(fromEnvTier.is_main_thread).toBeFalse();
 
     const fromTierString = identifyExecutionContext({

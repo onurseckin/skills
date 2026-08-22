@@ -98,7 +98,11 @@ export function mindPulseOpenCommand(
         `agent ${actor} holds no grant; register it with agent:register first`,
       );
     }
-  } else if (grant.role !== "mind" && grant.role !== "orchestrator" && grant.role !== "coordinator") {
+  } else if (
+    grant.role !== "mind" &&
+    grant.role !== "orchestrator" &&
+    grant.role !== "coordinator"
+  ) {
     throw new HarnessError(
       "INVALID_STATE",
       `agent ${actor} holds role '${grant.role}'; role 'mind' is required to open a pulse`,

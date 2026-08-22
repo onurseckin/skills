@@ -36,7 +36,8 @@ export function whoamiCommand(flags: Flags): Record<string, unknown> {
   const pidOverride = parseOptionalInt(flags, "pid", 1);
   const ppidOverride = parseOptionalInt(flags, "ppid", 0);
 
-  const parsedTier = tierOverride !== undefined ? parseTierValue(tierOverride) ?? undefined : undefined;
+  const parsedTier =
+    tierOverride !== undefined ? (parseTierValue(tierOverride) ?? undefined) : undefined;
 
   const thread = identifyExecutionContext({
     ...(pidOverride !== undefined ? { pid: pidOverride } : {}),
@@ -120,8 +121,12 @@ export function whoamiCommand(flags: Flags): Record<string, unknown> {
 
   if (run !== null) {
     mdLines.push(`- **Run Root**: \`${run}\``);
-    mdLines.push(`- **Active Grants**: \`${filteredGrants.length}\` active (total run active: \`${activeGrants.length}\`)`);
-    mdLines.push(`- **Active Leases**: \`${filteredLeases.length}\` held (total run leases: \`${activeLeases.length}\`)`);
+    mdLines.push(
+      `- **Active Grants**: \`${filteredGrants.length}\` active (total run active: \`${activeGrants.length}\`)`,
+    );
+    mdLines.push(
+      `- **Active Leases**: \`${filteredLeases.length}\` held (total run leases: \`${activeLeases.length}\`)`,
+    );
 
     if (filteredLeases.length > 0) {
       mdLines.push(`- **Held Tasks**: ${filteredLeases.map((l) => `\`${l.task_id}\``).join(", ")}`);

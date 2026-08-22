@@ -188,18 +188,30 @@ which is what the table above used after the run had closed every grant.
 
 `state.agents` is an array of grant records:
 
-| Field                                     | Evidence class                                  | Notes                                                |
-| :---------------------------------------- | :---------------------------------------------- | :--------------------------------------------------- |
-| `id`, `role`, `host`, `granted_at`        | harness                                         | Always present.                                      |
-| `parent_agent_id`, `parent_task_id`       | harness                                         | `null` for the root.                                 |
-| `status`, `released_at`, `release_reason` | harness                                         | `active` or `released`.                              |
-| `model`, `model_tier`, `thinking_level`   | `agent_reported`                                | Optional. Absent unless the dispatcher supplied it.  |
-| `tools_granted`                           | `agent_reported`                                | Optional; what the dispatcher relayed.               |
-| `tools_used[]`                            | per-entry `evidence_class`                      | Each tool carries its own class and first-seen time. |
-| `tokens_in`, `tokens_out`                 | `agent_reported`, or `derived` + `is_estimated` | Optional.                                            |
-| `report_count`, `last_reported_at`        | harness                                         | Optional.                                            |
+| Field                                     | Evidence class                                                      | Notes                                                     |
+| :---------------------------------------- | :------------------------------------------------------------------ | :-------------------------------------------------------- |
+| `id`, `role`, `host`, `granted_at`        | harness                                                             | Always present.                                           |
+| `parent_agent_id`, `parent_task_id`       | harness                                                             | `null` for the root.                                      |
+| `status`, `released_at`, `release_reason` | harness                                                             | `active` or `released`.                                   |
+| `model`, `model_tier`, `thinking_level`   | `agent_reported` / `harness_observed`                               | Optional. Probed from transcript or agent-declared.       |
+| `tools_granted`                           | `agent_reported`                                                    | Optional; what the dispatcher relayed.                    |
+| `tools_used[]`                            | per-entry `evidence_class`                                          | Each tool carries its own class and first-seen time.      |
+| `tokens_in`, `tokens_out`                 | `agent_reported`, `harness_observed`, or `derived` + `is_estimated` | Real counts or estimates.                                 |
+| `telemetry_conflicts[]`                   | harness                                                             | Disagreements between agent reports and host transcripts. |
+| `report_count`, `last_reported_at`        | harness                                                             | Optional.                                                 |
 
 The three events are `agent-registered`, `agent-reported`, `agent-released`.
+
+---
+
+## 📡 Host Probe Telemetry Merging (`refreshAgentDerivedTelemetry`)
+
+On lifecycle boundaries (`task:claim`, `task:submit`, `agent:release`), the harness invokes the host probe to merge host-observed telemetry into the active grant:
+
+1. **`mergeDerivedField`**: Merges provider, model, thinking level, and context window. If the agent self-reported a value that contradicts host transcripts, the conflict is recorded in `telemetry_conflicts` without overwriting the explicit claim.
+2. **`mergeObservedCount`**: Replaces estimated token counts with real host-observed token counts (`tokens_in`, `tokens_out`).
+3. **`mergeObservedTools`**: Reconciles tool usage events and failure counts from transcript tool call logs.
+4. **`checkParentAgentConflict`**: Asserts that the claimed parent agent ID matches observed transcript spawn depth.
 
 ---
 

@@ -79,7 +79,10 @@ function resolveRoleFile(role: string, rolesDir?: string | undefined): string {
   const fileName = role.endsWith(".md") ? role : `${role}.md`;
   const fullPath = join(dir, fileName);
   if (!existsSync(fullPath)) {
-    throw new HarnessError("INVALID_ARGUMENT", `role contract not found for role '${role}' at ${fullPath}`);
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      `role contract not found for role '${role}' at ${fullPath}`,
+    );
   }
   return fullPath;
 }
@@ -177,7 +180,12 @@ function extractProseDetails(body: string): {
       proseRules.push(trimmed.slice(2).trim());
       continue;
     }
-    if (!trimmed.startsWith("#") && !trimmed.startsWith("-") && trimmed.length > 0 && leadParagraphs.length < 2) {
+    if (
+      !trimmed.startsWith("#") &&
+      !trimmed.startsWith("-") &&
+      trimmed.length > 0 &&
+      leadParagraphs.length < 2
+    ) {
       leadParagraphs.push(trimmed);
     }
   }
@@ -196,7 +204,9 @@ function formatFullMarkdownCheatSheet(sheet: Omit<RoleCheatSheet, "markdown">): 
     lines.push(`- **Validator Domain**: \`${sheet.domain}\``);
   }
   lines.push(`- **Authority Tier**: Tier ${sheet.tier}`);
-  lines.push(`- **Spawns Allowed**: ${sheet.spawns.length > 0 ? sheet.spawns.map((s) => `\`${s}\``).join(", ") : "*(None — Leaf Worker)*"}`);
+  lines.push(
+    `- **Spawns Allowed**: ${sheet.spawns.length > 0 ? sheet.spawns.map((s) => `\`${s}\``).join(", ") : "*(None — Leaf Worker)*"}`,
+  );
   lines.push("");
 
   lines.push("#### ⚡ Granted CLI Verbs & Syntax");
@@ -233,8 +243,12 @@ function formatFullMarkdownCheatSheet(sheet: Omit<RoleCheatSheet, "markdown">): 
 function formatCompactMarkdownCheatSheet(sheet: Omit<RoleCheatSheet, "markdown">): string {
   const lines: string[] = [];
   lines.push(`### ⚡ Compact Cheat-Sheet: \`${sheet.role}\` (Tier ${sheet.tier})`);
-  lines.push(`**Granted Commands (${sheet.grantedCommands.length})**: ${sheet.grantedCommands.map((c) => `\`${c}\``).join(", ")}`);
-  lines.push(`**Spawns (${sheet.spawns.length})**: ${sheet.spawns.length > 0 ? sheet.spawns.map((s) => `\`${s}\``).join(", ") : "none"}`);
+  lines.push(
+    `**Granted Commands (${sheet.grantedCommands.length})**: ${sheet.grantedCommands.map((c) => `\`${c}\``).join(", ")}`,
+  );
+  lines.push(
+    `**Spawns (${sheet.spawns.length})**: ${sheet.spawns.length > 0 ? sheet.spawns.map((s) => `\`${s}\``).join(", ") : "none"}`,
+  );
   lines.push("");
   lines.push("```text");
   for (const cmd of sheet.commandDetails) {
@@ -308,9 +322,7 @@ export function generateRoleCheatSheet(
   };
 }
 
-export function renderAsciiRoleTable(
-  roles: readonly (RoleSummary | RoleCheatSheet)[],
-): string {
+export function renderAsciiRoleTable(roles: readonly (RoleSummary | RoleCheatSheet)[]): string {
   if (roles.length === 0) {
     return "(no roles found)";
   }
@@ -318,7 +330,8 @@ export function renderAsciiRoleTable(
   const rows = roles.map((r) => {
     const roleName = r.role;
     const tierStr = String(r.tier);
-    const cmdCount = "commandCount" in r ? String(r.commandCount) : String(r.grantedCommands.length);
+    const cmdCount =
+      "commandCount" in r ? String(r.commandCount) : String(r.grantedCommands.length);
     const spawnsList = r.spawns.length > 0 ? r.spawns.join(", ") : "(none)";
     const invCount =
       "invariantsCount" in r ? String(r.invariantsCount) : String(r.invariants.length);
@@ -348,9 +361,7 @@ export function renderAsciiRoleTable(
 
   const dataLines = rows.map((r) => {
     const spawnsTruncated =
-      r.spawns.length > colSpawnsWidth
-        ? `${r.spawns.slice(0, colSpawnsWidth - 3)}...`
-        : r.spawns;
+      r.spawns.length > colSpawnsWidth ? `${r.spawns.slice(0, colSpawnsWidth - 3)}...` : r.spawns;
     return `│ ${r.role.padEnd(colRoleWidth)} │ ${r.tier.padEnd(colTierWidth)} │ ${r.commands.padEnd(colCmdWidth)} │ ${spawnsTruncated.padEnd(colSpawnsWidth)} │ ${r.invariants.padEnd(colInvWidth)} │`;
   });
 

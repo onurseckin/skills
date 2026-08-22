@@ -32,7 +32,9 @@ describe("Diagnostics Blunder Ingestion Engine", () => {
           expect(typeof item.type).toBe("string");
           expect(typeof item.severity).toBe("string");
           expect(typeof item.timestamp).toBe("string");
-          expect(["code_defect", "model_reasoning_error", "boundary_violation"]).toContain(item.category);
+          expect(["code_defect", "model_reasoning_error", "boundary_violation"]).toContain(
+            item.category,
+          );
           expect(["open", "resolved", "wontfix"]).toContain(item.status);
           expect(typeof item.observation).toBe("string");
           expect(typeof item.remediation).toBe("string");
@@ -59,7 +61,9 @@ describe("Diagnostics Blunder Ingestion Engine", () => {
         expect(entry.observation).toContain("Tier 1 Orchestrator attempted direct file edits");
         expect(entry.message).toContain("Tier 1 Orchestrator attempted direct file edits");
         expect(entry.remediation).toContain("Enforce strict CLI-level write restrictions");
-        expect(entry.prescribed_remediation).toContain("Enforce strict CLI-level write restrictions");
+        expect(entry.prescribed_remediation).toContain(
+          "Enforce strict CLI-level write restrictions",
+        );
       }
     });
 
@@ -80,7 +84,9 @@ describe("Diagnostics Blunder Ingestion Engine", () => {
         expect(entry.role).toBe("mind");
         expect(entry.status).toBe("open");
         expect(entry.observation).toContain("Tier 0 Mind exhibited passive inertia");
-        expect(entry.remediation).toContain("Tier 0 Mind must actively use plan revision mechanisms");
+        expect(entry.remediation).toContain(
+          "Tier 0 Mind must actively use plan revision mechanisms",
+        );
       }
     });
 
@@ -112,7 +118,9 @@ describe("Diagnostics Blunder Ingestion Engine", () => {
 
       const content = readFileSync(historicalBlundersPath, "utf8");
       const parsed = parseBlunderLog(content);
-      const entry = parsed.find((b) => b.id === "blunder-20260821-12-mind-self-termination-and-idle-death");
+      const entry = parsed.find(
+        (b) => b.id === "blunder-20260821-12-mind-self-termination-and-idle-death",
+      );
 
       expect(entry !== undefined).toBeTrue();
       if (entry !== undefined) {
@@ -120,7 +128,7 @@ describe("Diagnostics Blunder Ingestion Engine", () => {
         expect(entry.category).toBe("boundary_violation");
         expect(entry.severity).toBe("critical");
         expect(entry.role).toBe("mind");
-        expect(entry.status).toBe("open");
+        expect(entry.status).toBe("resolved");
         expect(entry.observation).toContain("mind:pulse-close");
         expect(entry.remediation).toContain("recycler.ts");
       }

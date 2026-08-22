@@ -95,8 +95,7 @@ export function activeAgentBadge(task: DagNodeSummary): string {
   if (!isActivelyLeased || !task.assignedAgent) {
     return "";
   }
-  const role =
-    task.assignedRole ?? (task.status === "validating" ? "validator" : "implementer");
+  const role = task.assignedRole ?? (task.status === "validating" ? "validator" : "implementer");
   const actionPrefix = task.status === "validating" ? "VALIDATING" : "LEASED";
   return ` [⚡ ${actionPrefix}: ${task.assignedAgent} (${role})]`;
 }
@@ -134,12 +133,10 @@ export function renderNodeBox(
 ): string[] {
   const glyph = statusGlyph(task.status, task.dependencies.length > 0);
   const agentBadge = activeAgentBadge(task);
-  const labelSuffix =
-    task.label && task.label !== task.id ? ` • ${task.label}` : "";
+  const labelSuffix = task.label && task.label !== task.id ? ` • ${task.label}` : "";
   const titleLine = `${glyph} ${task.id}${labelSuffix}${agentBadge}`;
 
-  const role =
-    task.assignedRole ?? (task.assignedAgent ? "implementer" : "unassigned");
+  const role = task.assignedRole ?? (task.assignedAgent ? "implementer" : "unassigned");
   const work = typeof task.effort === "number" ? task.effort : 1;
   const span = task.criticalDepth + 1;
 
@@ -221,8 +218,7 @@ export function renderVisualDag(
 
     const waveStatuses = [...new Set(waveTasks.map((t) => t.status))].join("/");
     const hasActiveTasks = waveTasks.some(
-      (t) =>
-        t.status === "leased" || t.status === "running" || t.status === "validating",
+      (t) => t.status === "leased" || t.status === "running" || t.status === "validating",
     );
     const activeWaveBadge = hasActiveTasks ? " ⚡ [ACTIVE EXECUTION SUBGRAPH]" : "";
     const headerTitle = ` WAVE ${waveNum} (${waveTasks.length} ${waveTasks.length === 1 ? "lane" : "lanes"} • ${waveStatuses})${activeWaveBadge} `;

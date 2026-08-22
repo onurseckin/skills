@@ -125,30 +125,44 @@ independent verdicts; they do not give it several independent finding lists.
 
 ---
 
-## 🧼 Context Sanitization
+---
 
-Even a separate agent anchors on the implementer's narrative. So the validator's brief is built from
-an allowlist:
+## 🧼 Context Sanitization & Sycophancy Prevention
+
+LLMs are inherently susceptible to **sycophantic confirmation bias**: when provided with an implementer's self-assuring narrative ("I refactored the auth module and all edge cases are handled cleanly"), an LLM validator is statistically inclined to agree, skimming over subtle regressions.
+
+To prevent this cognitive failure mode, the harness applies algorithmic **Validator Context Isolation** (`isolateValidatorContext`, `excludeValidatorContamination`) to every validation brief:
 
 ```text
-[ Implementer Submits Work: task:submit ]
-  ├── summary: "I fixed the bug and tests pass 100%!" (PROSE, agent_reported)
-  ├── files_changed: ["src/auth.ts"]                  (harness_observed via git)
-  └── write_scope: ["src/auth"]
-                  │
-                  ▼ (task:validate-start)
-┌────────────────────────────────────────────────────────┐
-│  STRIPPED FROM THE VALIDATOR BRIEF:                    │
-│  ❌ implementer narrative   ❌ subjective confidence    │
-│  ❌ prior review notes      ❌ implementer claims       │
-└──────────────────────────┬─────────────────────────────┘
-                           ▼
-[ Allowlisted context delivered to the validator ]
-  ✅ Original prompt text        ✅ Atomic acceptance criteria
-  ✅ The repository on disk      ✅ Mandatory gate argv to run via run:exec
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                 ALGORITHMIC CONTEXT SANITIZATION PIPELINE                   │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  [ Raw Implementer Submission ]                                             │
+│    • summary: "I fixed the bug and tests pass 100%!" (PROSE, agent_reported)│
+│    • confidence: 0.98, decision_narrative: "Refactored parsing logic"       │
+│    • files_changed: ["src/auth.ts"] (harness_observed via git diff)         │
+│    • write_scope: ["src/auth"]                                              │
+│                                  │                                          │
+│                                  ▼ (isolateValidatorContext)                │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │  SCRUBBED EXCLUSION SET (VALIDATOR_EXCLUSIONS):                       │  │
+│  │  ❌ confidence             ❌ decision_narrative                      │  │
+│  │  ❌ implementer_report     ❌ task_report                             │  │
+│  │  ❌ previous_review        ❌ prior_reviews                           │  │
+│  │  ❌ validator_report       ❌ subjective conclusions                  │  │
+│  └───────────────────────────────┬───────────────────────────────────────┘  │
+│                                  ▼                                          │
+│  [ Clean Allowlisted Brief Delivered to Validator ]                         │
+│    ✅ Original prompt markdown text (prompt.md)                             │
+│    ✅ Atomic acceptance criteria & mapped requirements                      │
+│    ✅ Objective filesystem state on disk & git baseline diff                │
+│    ✅ Exact mandatory gate command argv to execute via run:exec             │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-The brief also states the bar up front:
+The brief states the verification contract up front without narrative contamination:
 
 ```text
 ### Validation Leased: task-slug

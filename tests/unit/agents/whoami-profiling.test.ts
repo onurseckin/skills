@@ -55,7 +55,9 @@ describe("Agent Whoami Profiling Engine", () => {
   describe("buildCapabilitiesProfile", () => {
     it("should set taxonomy based on tier", () => {
       expect(buildCapabilitiesProfile(0, {}).command_taxonomy).toBe("Full Root / All Permissions");
-      expect(buildCapabilitiesProfile(1, {}).command_taxonomy).toBe("Orchestration / Delegation Only");
+      expect(buildCapabilitiesProfile(1, {}).command_taxonomy).toBe(
+        "Orchestration / Delegation Only",
+      );
       expect(buildCapabilitiesProfile(2, {}).command_taxonomy).toBe("Coordination / Dispatch Only");
       expect(buildCapabilitiesProfile(3, {}).command_taxonomy).toBe("Implementation / Execution");
     });

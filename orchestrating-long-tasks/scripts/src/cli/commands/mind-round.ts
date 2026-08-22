@@ -100,7 +100,11 @@ export function mindRoundOpenCommand(flags: Flags, _context?: CommandContext): M
         `agent ${actor} holds no grant; register it with agent:register first`,
       );
     }
-  } else if (grant.role !== "orchestrator" && grant.role !== "mind" && grant.role !== "coordinator") {
+  } else if (
+    grant.role !== "orchestrator" &&
+    grant.role !== "mind" &&
+    grant.role !== "coordinator"
+  ) {
     throw new HarnessError(
       "INVALID_STATE",
       `agent ${actor} holds role '${grant.role}'; role 'orchestrator' or 'mind' is required to open a round`,
@@ -278,7 +282,11 @@ export function mindRoundCloseCommand(
         `agent ${actor} holds no grant; register it with agent:register first`,
       );
     }
-  } else if (grant.role !== "orchestrator" && grant.role !== "mind" && grant.role !== "coordinator") {
+  } else if (
+    grant.role !== "orchestrator" &&
+    grant.role !== "mind" &&
+    grant.role !== "coordinator"
+  ) {
     throw new HarnessError(
       "INVALID_STATE",
       `agent ${actor} holds role '${grant.role}'; role 'orchestrator' or 'mind' is required to close a round`,

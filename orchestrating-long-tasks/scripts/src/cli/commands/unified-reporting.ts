@@ -5,11 +5,15 @@ import { runDoctor } from "../../reporting/doctor.ts";
 import { formatDoctorBrief } from "./diagnostics-ops.ts";
 import { summaryExportCommand } from "./summary-ops.ts";
 
-export function reportDagCommand(flags: Flags): Record<string, unknown> | Promise<Record<string, unknown>> {
+export function reportDagCommand(
+  flags: Flags,
+): Record<string, unknown> | Promise<Record<string, unknown>> {
   return dagViewCommand(flags);
 }
 
-export function reportGraphCommand(flags: Flags): Record<string, unknown> | Promise<Record<string, unknown>> {
+export function reportGraphCommand(
+  flags: Flags,
+): Record<string, unknown> | Promise<Record<string, unknown>> {
   return dagViewCommand(flags);
 }
 
@@ -22,19 +26,25 @@ export async function reportHealthCommand(flags: Flags): Promise<Record<string, 
   const source = textFlag(flags, "source", false);
   const home = textFlag(flags, "home", false);
   const clients = textFlag(flags, "clients", false);
-  
-  const installation = source !== undefined && home !== undefined
-    ? {
-        installation: {
-          source,
-          home,
-          ...(clients === undefined ? {} : {
-            clients: clients.split(",").map(name => name.trim()).filter(Boolean)
-          })
+
+  const installation =
+    source !== undefined && home !== undefined
+      ? {
+          installation: {
+            source,
+            home,
+            ...(clients === undefined
+              ? {}
+              : {
+                  clients: clients
+                    .split(",")
+                    .map((name) => name.trim())
+                    .filter(Boolean),
+                }),
+          },
         }
-      }
-    : {};
-    
+      : {};
+
   const report = await runDoctor(run, installation);
   return { ...report, markdown: formatDoctorBrief(run, report), run_root: run };
 }

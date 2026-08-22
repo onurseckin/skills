@@ -1,16 +1,23 @@
 export { proposeBatch } from "./propose-batch.ts";
 export { schedulingMetrics } from "./metrics.ts";
-export { resourceConflict, scopeConflict, hasActiveOwnership, ownershipConflicts } from "./conflicts.ts";
+export {
+  resourceConflict,
+  scopeConflict,
+  hasActiveOwnership,
+  ownershipConflicts,
+} from "./conflicts.ts";
 export { computeTopology, type TopologyConfig, type TopologyInputs } from "./topology.ts";
 export { recordTopology } from "./persist-topology.ts";
 export { readySet, type ReadyEntry, type ReadySetSelection } from "./ready-set.ts";
 export {
   computeWorkSpanMetrics,
+  computeResourceDisjointness,
   partitionOrchestratorDomains,
   calculateValidatorAllocations,
   calculateCriticConcurrency,
   synthesizeDynamicTopology,
   type WorkSpanMetrics,
+  type ResourceDisjointnessMetrics,
   type OrchestratorPartition,
   type CrossOrchestratorBarrier,
   type ValidatorDemand,
@@ -82,3 +89,22 @@ export {
   type PulseTickOptions,
   type PulseTickResult,
 } from "./pulse.ts";
+export {
+  deriveCounterfactualRequirement,
+  normalizeCriticFinding,
+  selectImplementerValidatorPair,
+  detectDeterministicRepeat,
+  compileRepairDag,
+  routeCriticFeedback,
+  evaluateRepairCycleConvergence,
+  type ReviewerRole,
+  type CriticFindingInput,
+  type CriticFindingDetail,
+  type ImplementerValidatorBinding,
+  type PairAssignmentStrategy,
+  type ClosedLoopRepairPayload,
+  type CompiledRepairDagNode,
+  type CompiledRepairDag,
+  type RouteCriticFeedbackOptions,
+  type RouteCriticFeedbackResult,
+} from "./critic-feedback.ts";

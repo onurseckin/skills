@@ -37,11 +37,16 @@ export const AUTHORITY_COMMANDS: readonly CommandSpec[] = [
     name: "whoami",
     aliases: [],
     domain: "authority",
-    summary: "Inspect thread execution tier, PID, active agent, grants, and main-thread compliance.",
+    summary:
+      "Inspect thread execution tier, PID, active agent, grants, and main-thread compliance.",
     description:
       "Inspects the calling thread's OS process ID, parent PID, execution tier, active agent ID, active role grants, and task leases. When executed on the interactive main thread, enforces the Main-Thread Restraint Guard advisory and logs structured blunder records for unauthorized direct implementations.",
     flags: [
-      optionalFlag("run", "string", "Capsule run root to cross-reference active leases and grants."),
+      optionalFlag(
+        "run",
+        "string",
+        "Capsule run root to cross-reference active leases and grants.",
+      ),
       optionalFlag("agent", "string", "Explicit agent id override to inspect."),
       optionalFlag("role", "string", "Explicit role override to inspect."),
       optionalFlag("tier", "string", "Explicit execution tier override to inspect."),
@@ -95,7 +100,11 @@ export const AUTHORITY_COMMANDS: readonly CommandSpec[] = [
       optionalFlag("generation", "int", "Filter by mind generation."),
       optionalFlag("pulse-id", "string", "Filter by pulse ID."),
       optionalFlag("phase", "string", "Filter by execution phase."),
-      optionalFlag("filter-status", "string", "Filter by status: active, stale, terminated, orphaned, all."),
+      optionalFlag(
+        "filter-status",
+        "string",
+        "Filter by status: active, stale, terminated, orphaned, all.",
+      ),
       optionalFlag("max-age-ms", "int", "Maximum age in milliseconds."),
       optionalFlag("dry-run", "bool", "Simulate cleanup without disk mutation."),
       optionalFlag("all", "bool", "Show all watchdog monitors."),
@@ -192,10 +201,7 @@ export const AUTHORITY_COMMANDS: readonly CommandSpec[] = [
     readsStdin: false,
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
-    examples: [
-      "bun harness.ts watchdog:verify",
-      "bun harness.ts watchdog:verify --generation 1",
-    ],
+    examples: ["bun harness.ts watchdog:verify", "bun harness.ts watchdog:verify --generation 1"],
     handler: watchdogVerifyCommand,
   },
   {

@@ -1,5 +1,12 @@
 import { enforceLineLimit } from "../formatters/line-limiter.ts";
-import { boolFlag, integerFlag, listFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
+import {
+  boolFlag,
+  integerFlag,
+  listFlag,
+  textFlag,
+  type CommandContext,
+  type Flags,
+} from "../options.ts";
 import {
   deliverEventsToWebhook,
   formatEventsToNdjsonStream,
@@ -38,7 +45,8 @@ export async function streamEventsCommand(
   const toSeq = integerFlag(flags, "to-seq", { minimum: 0 });
   const maxEvents = integerFlag(flags, "max-events", { minimum: 1 });
   const filterType = listFlag(flags, "filter-type", false) ?? textFlag(flags, "filter-type", false);
-  const filterActor = listFlag(flags, "filter-actor", false) ?? textFlag(flags, "filter-actor", false);
+  const filterActor =
+    listFlag(flags, "filter-actor", false) ?? textFlag(flags, "filter-actor", false);
   const all = boolFlag(flags, "all");
   const isJson = boolFlag(flags, "json");
   const isNow = boolFlag(flags, "now");

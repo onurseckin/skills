@@ -6,7 +6,7 @@ The Global Capture Engine and Dual-Channel UI Validation Subsystem within `orche
 
 ## Goals
 
-- G1: Enforce 100% criterion coverage across Mechanical (CRIT-MECH-*), Cognitive (CRIT-COGN-*), Product Heuristics (CRIT-PROD-*), and UX Ergonomics (CRIT-UX-*) on all UI tasks.
+- G1: Enforce 100% criterion coverage across Mechanical (CRIT-MECH-_), Cognitive (CRIT-COGN-_), Product Heuristics (CRIT-PROD-_), and UX Ergonomics (CRIT-UX-_) on all UI tasks.
 - G2: Automatically pose and evaluate 12 deep perceptual, ergonomic, typographic, and state machine questions on every screen snapshot, synthesizing actionable diagnoses into .manifest.json.
 - G3: Enforce physical capture authenticity (>= 1024 bytes) and reject dummy/placeholder hex stubs or unverified mocks.
 - G4: Default to all configured viewports (mobile, tablet, desktop, desktop-wide) without requiring manual screen-level repetition.
@@ -43,6 +43,7 @@ The Global Capture Engine and Dual-Channel UI Validation Subsystem within `orche
 ## Prohibitions
 
 NEVER, unattended, at any tier:
+
 - git push --force, merge or rebase onto a default branch without passing all quality gates
 - any write outside charter.repo_roots, any delete outside a leased write scope
 - package publish, external cloud production deploy, or destructive data drops

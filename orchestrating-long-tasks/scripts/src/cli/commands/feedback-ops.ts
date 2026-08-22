@@ -72,7 +72,9 @@ export function feedbackListCommand(flags: Flags, _context?: CommandContext): Fe
     lines.push("| ID | Priority | Status | Category | Title |");
     lines.push("| :--- | :--- | :--- | :--- | :--- |");
     for (const item of items) {
-      lines.push(`| \`${item.id}\` | ${item.priority} | ${item.status} | ${item.category} | ${item.title} |`);
+      lines.push(
+        `| \`${item.id}\` | ${item.priority} | ${item.status} | ${item.category} | ${item.title} |`,
+      );
     }
   } else {
     lines.push("");
@@ -89,7 +91,10 @@ export function feedbackListCommand(flags: Flags, _context?: CommandContext): Fe
   };
 }
 
-export function feedbackIngestCommand(flags: Flags, _context?: CommandContext): FeedbackIngestResult {
+export function feedbackIngestCommand(
+  flags: Flags,
+  _context?: CommandContext,
+): FeedbackIngestResult {
   const id = textFlag(flags, "id", true)!;
   const title = textFlag(flags, "title", true)!;
   const content = textFlag(flags, "content", true)!;

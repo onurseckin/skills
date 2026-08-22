@@ -43,6 +43,7 @@ The Master Infinite Mind Subsystem within `orchestrating-long-tasks` is the supr
 ## Prohibitions
 
 NEVER, unattended, at any tier:
+
 - git push --force, merge or rebase onto a default branch without passing all quality gates
 - any write outside charter.repo_roots, any delete outside a leased write scope
 - package publish, external cloud production deploy, or destructive data drops

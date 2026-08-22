@@ -10,9 +10,7 @@ import {
   parseRoleContract,
   resolveRoleContractPath,
 } from "../../../orchestrating-long-tasks/scripts/src/packets/role-contract.ts";
-import {
-  findCommand,
-} from "../../../orchestrating-long-tasks/scripts/src/cli/registry/index.ts";
+import { findCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/registry/index.ts";
 import type { AgentGrantRecord } from "../../../orchestrating-long-tasks/scripts/src/contracts/agents.ts";
 
 describe("Phase 5 W5.1 - mind-auditor Role Contract", () => {

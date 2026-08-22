@@ -19,9 +19,7 @@ function bound(gate: GateRuntime): BoundGate {
 export function applicableGates(state: WorkflowState, task: TaskRecord): GateRuntime[] {
   const requirements = executableTaskRequirementIds(state, task.requirement_ids);
   const gates =
-    state.gates ??
-    (state as unknown as { graph?: { gates?: GateRuntime[] } }).graph?.gates ??
-    [];
+    state.gates ?? (state as unknown as { graph?: { gates?: GateRuntime[] } }).graph?.gates ?? [];
   return gates.filter(
     (gate) =>
       bound(gate).scope === "task" &&

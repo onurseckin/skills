@@ -15,8 +15,14 @@ import {
 import { streamEventsCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/stream-events.ts";
 import type { HarnessEvent } from "../../../orchestrating-long-tasks/scripts/src/contracts/capsule.ts";
 
-function createMockCapsule(events: readonly Record<string, unknown>[]): { dir: string; cleanup: () => void } {
-  const dir = join(process.cwd(), `.tmp_test_capsule_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`);
+function createMockCapsule(events: readonly Record<string, unknown>[]): {
+  dir: string;
+  cleanup: () => void;
+} {
+  const dir = join(
+    process.cwd(),
+    `.tmp_test_capsule_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+  );
   mkdirSync(dir, { recursive: true });
 
   const manifest = {
@@ -165,7 +171,9 @@ describe("reporting/event-stream", () => {
     });
 
     it("throws INVALID_ARGUMENT when run directory does not exist", () => {
-      expect(() => readCapsuleEvents("/non/existent/path")).toThrow("capsule run directory not found");
+      expect(() => readCapsuleEvents("/non/existent/path")).toThrow(
+        "capsule run directory not found",
+      );
     });
   });
 
@@ -190,7 +198,12 @@ describe("reporting/event-stream", () => {
     });
 
     it("handles empty and malformed whitespace in NDJSON gracefully", () => {
-      const raw = "\n\n" + JSON.stringify(sampleEvents[0]) + "\n  \n" + JSON.stringify(sampleEvents[1]) + "\n";
+      const raw =
+        "\n\n" +
+        JSON.stringify(sampleEvents[0]) +
+        "\n  \n" +
+        JSON.stringify(sampleEvents[1]) +
+        "\n";
       const parsed = parseNdjsonStream(raw);
       expect(parsed.length).toBe(2);
     });

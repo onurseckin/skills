@@ -1,9 +1,6 @@
 import type { JsonObject, JsonValue } from "../contracts/json.ts";
 import { HarnessError } from "../errors/harness-error.ts";
-import type {
-  UnfulfilledDemandItem,
-  UnfulfilledDemandPushbackReport,
-} from "./types.ts";
+import type { UnfulfilledDemandItem, UnfulfilledDemandPushbackReport } from "./types.ts";
 
 export interface UnfulfilledDemandEvaluationOptions {
   readonly targetTaskIds?: readonly string[];
@@ -19,13 +16,14 @@ export function evaluateUnfulfilledDemands(
   const unfulfilledItems: UnfulfilledDemandItem[] = [];
   const remediationPlan: string[] = [];
 
-  const rawTasks = (typeof state.tasks === "object" && state.tasks !== null
-    ? state.tasks
-    : {}) as Record<string, unknown>;
+  const rawTasks = (
+    typeof state.tasks === "object" && state.tasks !== null ? state.tasks : {}
+  ) as Record<string, unknown>;
 
-  const graph = typeof state.graph === "object" && state.graph !== null
-    ? (state.graph as Record<string, unknown>)
-    : {};
+  const graph =
+    typeof state.graph === "object" && state.graph !== null
+      ? (state.graph as Record<string, unknown>)
+      : {};
 
   const graphNodes = Array.isArray(graph.nodes) ? graph.nodes : [];
   const graphGates = Array.isArray(graph.gates) ? graph.gates : [];
@@ -34,7 +32,12 @@ export function evaluateUnfulfilledDemands(
 
   const tasksInState: Record<
     string,
-    { status: string; write_scope: string[]; label?: string | undefined; lease?: Record<string, unknown> | undefined }
+    {
+      status: string;
+      write_scope: string[];
+      label?: string | undefined;
+      lease?: Record<string, unknown> | undefined;
+    }
   > = {};
 
   for (const [taskId, rawTask] of Object.entries(rawTasks)) {
@@ -42,13 +45,12 @@ export function evaluateUnfulfilledDemands(
       const taskObj = rawTask as Record<string, unknown>;
       tasksInState[taskId] = {
         status: typeof taskObj.status === "string" ? taskObj.status : "unknown",
-        write_scope: Array.isArray(taskObj.write_scope)
-          ? (taskObj.write_scope as string[])
-          : [],
+        write_scope: Array.isArray(taskObj.write_scope) ? (taskObj.write_scope as string[]) : [],
         label: typeof taskObj.label === "string" ? taskObj.label : undefined,
-        lease: typeof taskObj.lease === "object" && taskObj.lease !== null
-          ? (taskObj.lease as Record<string, unknown>)
-          : undefined,
+        lease:
+          typeof taskObj.lease === "object" && taskObj.lease !== null
+            ? (taskObj.lease as Record<string, unknown>)
+            : undefined,
       };
     }
   }
@@ -74,9 +76,10 @@ export function evaluateUnfulfilledDemands(
   const allTaskIds = Object.keys(tasksInState);
   const totalPlanned = allTaskIds.length;
 
-  const targetIds = options?.targetTaskIds && options.targetTaskIds.length > 0
-    ? new Set(options.targetTaskIds)
-    : null;
+  const targetIds =
+    options?.targetTaskIds && options.targetTaskIds.length > 0
+      ? new Set(options.targetTaskIds)
+      : null;
 
   for (const [taskId, taskInfo] of Object.entries(tasksInState)) {
     if (targetIds && !targetIds.has(taskId)) {
@@ -87,9 +90,8 @@ export function evaluateUnfulfilledDemands(
     const isFulfilled = status === "done" || status === "validated";
 
     if (!isFulfilled) {
-      const assignedAgent = typeof taskInfo.lease?.agent_id === "string"
-        ? taskInfo.lease.agent_id
-        : undefined;
+      const assignedAgent =
+        typeof taskInfo.lease?.agent_id === "string" ? taskInfo.lease.agent_id : undefined;
 
       let rootCause = `Task '${taskId}' is in non-terminal status '${status}'.`;
       let blockingReason = `Advancement blocked: Planned task '${taskId}' must reach 'validated' or 'done' status.`;
@@ -128,9 +130,10 @@ export function evaluateUnfulfilledDemands(
     }
   }
 
-  const topology = typeof state.topology === "object" && state.topology !== null
-    ? (state.topology as Record<string, unknown>)
-    : null;
+  const topology =
+    typeof state.topology === "object" && state.topology !== null
+      ? (state.topology as Record<string, unknown>)
+      : null;
 
   if (topology && Array.isArray(topology.waves)) {
     for (const waveEntry of topology.waves) {
@@ -197,7 +200,7 @@ export function evaluateUnfulfilledDemands(
         if (candStatus === "admitted") {
           const hasLinkedCompletedTask = allTaskIds.some((id) => {
             const t = tasksInState[id];
-            return (t?.status === "done" || t?.status === "validated");
+            return t?.status === "done" || t?.status === "validated";
           });
 
           if (!hasLinkedCompletedTask && allTaskIds.length === 0) {
@@ -206,7 +209,9 @@ export function evaluateUnfulfilledDemands(
               kind: "action",
               label: `Admitted Candidate ${candId}`,
               status: "admitted_unplanned",
-              writeScope: Array.isArray(candObj.write_scope) ? (candObj.write_scope as string[]) : [],
+              writeScope: Array.isArray(candObj.write_scope)
+                ? (candObj.write_scope as string[])
+                : [],
               rootCause: `Candidate '${candId}' was admitted by authority but no execution tasks were planned or completed.`,
               blockingReason: `Admitted candidates in Harness memory must be planned and fulfilled.`,
               remediation: `Compile plan to fulfill admitted candidate: bun harness.ts plan:compile`,
@@ -225,8 +230,9 @@ export function evaluateUnfulfilledDemands(
         `Advancement is strictly blocked until root causes are isolated and full completion is enforced.`,
         "",
         `### Unfulfilled Demand Details:`,
-        ...unfulfilledItems.map((item, idx) =>
-          `${idx + 1}. [${item.kind.toUpperCase()} ${item.id}] Status: ${item.status}\n   - Root Cause: ${item.rootCause}\n   - Blocking Reason: ${item.blockingReason}\n   - Remediation: ${item.remediation}`,
+        ...unfulfilledItems.map(
+          (item, idx) =>
+            `${idx + 1}. [${item.kind.toUpperCase()} ${item.id}] Status: ${item.status}\n   - Root Cause: ${item.rootCause}\n   - Blocking Reason: ${item.blockingReason}\n   - Remediation: ${item.remediation}`,
         ),
       ].join("\n")
     : undefined;

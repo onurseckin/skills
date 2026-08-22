@@ -6,13 +6,13 @@ recording the result.
 
 ## Dispatch and isolation
 
-| Capability                          |       Google Antigravity       |               Anthropic Claude Code               |   OpenAI Codex / ChatGPT   |           Cursor           |    Generic subagent CLI    |
-| :---------------------------------- | :----------------------------: | :-----------------------------------------------: | :------------------------: | :------------------------: | :------------------------: |
-| **Tiered orchestration**            |   Native (`invoke_subagent`)   |               Native (`Agent` tool)               | Native (subagent dispatch) |    Native (`Task` tool)    | Scripted fork / subprocess |
-| **Paired continuous dispatch**      | One `invoke_subagent` per pair |           Concurrent `Agent` tool calls           |        Batch runner        |    Concurrent `Task`s      |        Process pool        |
-| **Sub-agents for branch sub-tasks** |    Nested `invoke_subagent`    |             Nested `Agent` tool calls             |      Nested dispatch       | Direct subagent depth 1    |       Nested process       |
-| **Direct messaging to the parent**  |         `send_message`         | `SendMessage`; experimental Agent Teams mailboxes |      `send_message`        |          Capsule           |         IPC / pipe         |
-| **Main-thread isolation**           |        Background tree         |                  Background tree                  |      Background tree       |      Background tree       |     Detached processes     |
+| Capability                          |       Google Antigravity       |               Anthropic Claude Code               |   OpenAI Codex / ChatGPT   |         Cursor          |    Generic subagent CLI    |
+| :---------------------------------- | :----------------------------: | :-----------------------------------------------: | :------------------------: | :---------------------: | :------------------------: |
+| **Tiered orchestration**            |   Native (`invoke_subagent`)   |               Native (`Agent` tool)               | Native (subagent dispatch) |  Native (`Task` tool)   | Scripted fork / subprocess |
+| **Paired continuous dispatch**      | One `invoke_subagent` per pair |           Concurrent `Agent` tool calls           |        Batch runner        |   Concurrent `Task`s    |        Process pool        |
+| **Sub-agents for branch sub-tasks** |    Nested `invoke_subagent`    |             Nested `Agent` tool calls             |      Nested dispatch       | Direct subagent depth 1 |       Nested process       |
+| **Direct messaging to the parent**  |         `send_message`         | `SendMessage`; experimental Agent Teams mailboxes |       `send_message`       |         Capsule         |         IPC / pipe         |
+| **Main-thread isolation**           |        Background tree         |                  Background tree                  |      Background tree       |     Background tree     |     Detached processes     |
 
 ## Evidence the host is expected to report
 

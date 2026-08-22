@@ -128,7 +128,10 @@ export function findCommandRecord(
   return null;
 }
 
-export function readCandidateCommandOutput(record: CommandRecordCandidate, runRoot: string): string {
+export function readCandidateCommandOutput(
+  record: CommandRecordCandidate,
+  runRoot: string,
+): string {
   if (typeof record.output === "string") {
     return record.output;
   }
@@ -709,7 +712,11 @@ export function evaluateGate5Affordable(
     };
   }
 
-  if (wallClockPerDay !== null && Number.isFinite(wallClockPerDay) && wallClockToday >= wallClockPerDay) {
+  if (
+    wallClockPerDay !== null &&
+    Number.isFinite(wallClockPerDay) &&
+    wallClockToday >= wallClockPerDay
+  ) {
     return {
       gateId,
       gateNumber,

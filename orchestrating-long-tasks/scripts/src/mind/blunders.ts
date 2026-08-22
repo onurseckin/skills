@@ -30,11 +30,13 @@ export interface BlunderEntry {
   readonly pid?: number | undefined;
   readonly ppid?: number | undefined;
   readonly agent_id?: string | null | undefined;
-  readonly context?: {
-    readonly cwd?: string | undefined;
-    readonly indicators?: Readonly<Record<string, string>> | undefined;
-    readonly [key: string]: unknown;
-  } | undefined;
+  readonly context?:
+    | {
+        readonly cwd?: string | undefined;
+        readonly indicators?: Readonly<Record<string, string>> | undefined;
+        readonly [key: string]: unknown;
+      }
+    | undefined;
   readonly resolution?: BlunderResolutionProof | null | undefined;
   readonly capsule_root?: string | null | undefined;
 }
@@ -133,91 +135,212 @@ export function categorizeBlunder(
   const fullSearchSpace = `${rawId} ${rawType} ${rawRole} ${rawObservation} ${rawRemediation}`;
 
   // Boundary violation patterns
-  const isBoundary =
-    rawType.includes("role_confusion") ? true :
-    rawType.includes("role_leak") ? true :
-    rawType.includes("role_amnesia") ? true :
-    rawType.includes("identity") ? true :
-    rawType.includes("main_thread") ? true :
-    rawType.includes("boundary") ? true :
-    rawType.includes("unauthorized") ? true :
-    rawType.includes("role_escalation") ? true :
-    rawType.includes("restraint") ? true :
-    rawType.includes("thread_authority") ? true :
-    rawType.includes("tier") ? true :
-    rawType.includes("permission") ? true :
-    rawType.includes("sandbox_escape") ? true :
-    rawType.includes("scope_escape") ? true :
-    rawId.includes("role-leak") ? true :
-    rawId.includes("role-amnesia") ? true :
-    rawId.includes("identity") ? true :
-    rawId.includes("boundary") ? true :
-    rawId.includes("main-thread") ? true :
-    rawId.includes("orch-role") ? true :
-    fullSearchSpace.includes("main thread") ? true :
-    fullSearchSpace.includes("restraint active") ? true :
-    fullSearchSpace.includes("boundary violation") ? true :
-    fullSearchSpace.includes("boundary") ? true :
-    fullSearchSpace.includes("boundaries") ? true :
-    fullSearchSpace.includes("write scope") ? true :
-    fullSearchSpace.includes("unauthorized mutation") ? true :
-    fullSearchSpace.includes("human shell") ? true :
-    fullSearchSpace.includes("subagent boundary") ? true :
-    fullSearchSpace.includes("subagent delegation") ? true :
-    fullSearchSpace.includes("role escalation") ? true :
-    fullSearchSpace.includes("role confusion") ? true :
-    fullSearchSpace.includes("role amnesia") ? true :
-    fullSearchSpace.includes("identity and role") ? true :
-    fullSearchSpace.includes("direct file edit") ? true :
-    fullSearchSpace.includes("direct test run") ? true :
-    fullSearchSpace.includes("whoami") ? true :
-    fullSearchSpace.includes("failed to actively police") ? true : false;
+  const isBoundary = rawType.includes("role_confusion")
+    ? true
+    : rawType.includes("role_leak")
+      ? true
+      : rawType.includes("role_amnesia")
+        ? true
+        : rawType.includes("identity")
+          ? true
+          : rawType.includes("main_thread")
+            ? true
+            : rawType.includes("boundary")
+              ? true
+              : rawType.includes("unauthorized")
+                ? true
+                : rawType.includes("role_escalation")
+                  ? true
+                  : rawType.includes("restraint")
+                    ? true
+                    : rawType.includes("thread_authority")
+                      ? true
+                      : rawType.includes("tier")
+                        ? true
+                        : rawType.includes("permission")
+                          ? true
+                          : rawType.includes("sandbox_escape")
+                            ? true
+                            : rawType.includes("scope_escape")
+                              ? true
+                              : rawId.includes("role-leak")
+                                ? true
+                                : rawId.includes("role-amnesia")
+                                  ? true
+                                  : rawId.includes("identity")
+                                    ? true
+                                    : rawId.includes("boundary")
+                                      ? true
+                                      : rawId.includes("main-thread")
+                                        ? true
+                                        : rawId.includes("orch-role")
+                                          ? true
+                                          : fullSearchSpace.includes("main thread")
+                                            ? true
+                                            : fullSearchSpace.includes("restraint active")
+                                              ? true
+                                              : fullSearchSpace.includes("boundary violation")
+                                                ? true
+                                                : fullSearchSpace.includes("boundary")
+                                                  ? true
+                                                  : fullSearchSpace.includes("boundaries")
+                                                    ? true
+                                                    : fullSearchSpace.includes("write scope")
+                                                      ? true
+                                                      : fullSearchSpace.includes(
+                                                            "unauthorized mutation",
+                                                          )
+                                                        ? true
+                                                        : fullSearchSpace.includes("human shell")
+                                                          ? true
+                                                          : fullSearchSpace.includes(
+                                                                "subagent boundary",
+                                                              )
+                                                            ? true
+                                                            : fullSearchSpace.includes(
+                                                                  "subagent delegation",
+                                                                )
+                                                              ? true
+                                                              : fullSearchSpace.includes(
+                                                                    "role escalation",
+                                                                  )
+                                                                ? true
+                                                                : fullSearchSpace.includes(
+                                                                      "role confusion",
+                                                                    )
+                                                                  ? true
+                                                                  : fullSearchSpace.includes(
+                                                                        "role amnesia",
+                                                                      )
+                                                                    ? true
+                                                                    : fullSearchSpace.includes(
+                                                                          "identity and role",
+                                                                        )
+                                                                      ? true
+                                                                      : fullSearchSpace.includes(
+                                                                            "direct file edit",
+                                                                          )
+                                                                        ? true
+                                                                        : fullSearchSpace.includes(
+                                                                              "direct test run",
+                                                                            )
+                                                                          ? true
+                                                                          : fullSearchSpace.includes(
+                                                                                "whoami",
+                                                                              )
+                                                                            ? true
+                                                                            : fullSearchSpace.includes(
+                                                                                  "failed to actively police",
+                                                                                )
+                                                                              ? true
+                                                                              : false;
 
   if (isBoundary) {
     return "boundary_violation";
   }
 
   // Model reasoning error patterns
-  const isReasoningError =
-    rawType.includes("reasoning") ? true :
-    rawType.includes("hallucination") ? true :
-    rawType.includes("logic") ? true :
-    rawType.includes("assumption") ? true :
-    rawType.includes("plan_drift") ? true :
-    rawType.includes("intent_drift") ? true :
-    rawType.includes("instruction_drift") ? true :
-    rawType.includes("self_critique") ? true :
-    rawType.includes("context_loss") ? true :
-    rawType.includes("premise") ? true :
-    rawType.includes("inertia") ? true :
-    rawType.includes("paralysis") ? true :
-    rawType.includes("idle_death") ? true :
-    rawType.includes("self_termination") ? true :
-    rawId.includes("paralysis") ? true :
-    rawId.includes("drift") ? true :
-    rawId.includes("hallucination") ? true :
-    rawId.includes("idle-death") ? true :
-    rawId.includes("self-termination") ? true :
-    fullSearchSpace.includes("reasoning error") ? true :
-    fullSearchSpace.includes("hallucination") ? true :
-    fullSearchSpace.includes("illogical") ? true :
-    fullSearchSpace.includes("incorrect premise") ? true :
-    fullSearchSpace.includes("wrong assumption") ? true :
-    fullSearchSpace.includes("invalid assumption") ? true :
-    fullSearchSpace.includes("failed to adhere") ? true :
-    fullSearchSpace.includes("intent drift") ? true :
-    fullSearchSpace.includes("instruction drift") ? true :
-    fullSearchSpace.includes("plan drift") ? true :
-    fullSearchSpace.includes("plan revision paralysis") ? true :
-    fullSearchSpace.includes("passive inertia") ? true :
-    fullSearchSpace.includes("revision paralysis") ? true :
-    fullSearchSpace.includes("context loss") ? true :
-    fullSearchSpace.includes("self-critique") ? true :
-    fullSearchSpace.includes("self critique") ? true :
-    fullSearchSpace.includes("sleep loop") ? true :
-    fullSearchSpace.includes("idle death") ? true :
-    fullSearchSpace.includes("self-termination") ? true :
-    fullSearchSpace.includes("perpetual consciousness") ? true : false;
+  const isReasoningError = rawType.includes("reasoning")
+    ? true
+    : rawType.includes("hallucination")
+      ? true
+      : rawType.includes("logic")
+        ? true
+        : rawType.includes("assumption")
+          ? true
+          : rawType.includes("plan_drift")
+            ? true
+            : rawType.includes("intent_drift")
+              ? true
+              : rawType.includes("instruction_drift")
+                ? true
+                : rawType.includes("self_critique")
+                  ? true
+                  : rawType.includes("context_loss")
+                    ? true
+                    : rawType.includes("premise")
+                      ? true
+                      : rawType.includes("inertia")
+                        ? true
+                        : rawType.includes("paralysis")
+                          ? true
+                          : rawType.includes("idle_death")
+                            ? true
+                            : rawType.includes("self_termination")
+                              ? true
+                              : rawId.includes("paralysis")
+                                ? true
+                                : rawId.includes("drift")
+                                  ? true
+                                  : rawId.includes("hallucination")
+                                    ? true
+                                    : rawId.includes("idle-death")
+                                      ? true
+                                      : rawId.includes("self-termination")
+                                        ? true
+                                        : fullSearchSpace.includes("reasoning error")
+                                          ? true
+                                          : fullSearchSpace.includes("hallucination")
+                                            ? true
+                                            : fullSearchSpace.includes("illogical")
+                                              ? true
+                                              : fullSearchSpace.includes("incorrect premise")
+                                                ? true
+                                                : fullSearchSpace.includes("wrong assumption")
+                                                  ? true
+                                                  : fullSearchSpace.includes("invalid assumption")
+                                                    ? true
+                                                    : fullSearchSpace.includes("failed to adhere")
+                                                      ? true
+                                                      : fullSearchSpace.includes("intent drift")
+                                                        ? true
+                                                        : fullSearchSpace.includes(
+                                                              "instruction drift",
+                                                            )
+                                                          ? true
+                                                          : fullSearchSpace.includes("plan drift")
+                                                            ? true
+                                                            : fullSearchSpace.includes(
+                                                                  "plan revision paralysis",
+                                                                )
+                                                              ? true
+                                                              : fullSearchSpace.includes(
+                                                                    "passive inertia",
+                                                                  )
+                                                                ? true
+                                                                : fullSearchSpace.includes(
+                                                                      "revision paralysis",
+                                                                    )
+                                                                  ? true
+                                                                  : fullSearchSpace.includes(
+                                                                        "context loss",
+                                                                      )
+                                                                    ? true
+                                                                    : fullSearchSpace.includes(
+                                                                          "self-critique",
+                                                                        )
+                                                                      ? true
+                                                                      : fullSearchSpace.includes(
+                                                                            "self critique",
+                                                                          )
+                                                                        ? true
+                                                                        : fullSearchSpace.includes(
+                                                                              "sleep loop",
+                                                                            )
+                                                                          ? true
+                                                                          : fullSearchSpace.includes(
+                                                                                "idle death",
+                                                                              )
+                                                                            ? true
+                                                                            : fullSearchSpace.includes(
+                                                                                  "self-termination",
+                                                                                )
+                                                                              ? true
+                                                                              : fullSearchSpace.includes(
+                                                                                    "perpetual consciousness",
+                                                                                  )
+                                                                                ? true
+                                                                                : false;
 
   if (isReasoningError) {
     return "model_reasoning_error";
@@ -275,7 +398,8 @@ export function parseBlunderLog(
       const rawRemediation =
         typeof parsed.remediation === "string" && parsed.remediation.trim()
           ? parsed.remediation.trim()
-          : typeof parsed.prescribed_remediation === "string" && parsed.prescribed_remediation.trim()
+          : typeof parsed.prescribed_remediation === "string" &&
+              parsed.prescribed_remediation.trim()
             ? parsed.prescribed_remediation.trim()
             : "";
 
@@ -308,16 +432,14 @@ export function parseBlunderLog(
             : undefined;
 
       const role =
-        typeof parsed.role === "string" && parsed.role.trim()
-          ? parsed.role.trim()
-          : undefined;
+        typeof parsed.role === "string" && parsed.role.trim() ? parsed.role.trim() : undefined;
 
-      const context =
-        isRecord(parsed.context)
-          ? (parsed.context as BlunderEntry["context"])
-          : undefined;
+      const context = isRecord(parsed.context)
+        ? (parsed.context as BlunderEntry["context"])
+        : undefined;
 
-      const rawStatus = typeof parsed.status === "string" ? parsed.status.trim().toLowerCase() : "open";
+      const rawStatus =
+        typeof parsed.status === "string" ? parsed.status.trim().toLowerCase() : "open";
       const status: BlunderStatus =
         rawStatus === "resolved"
           ? "resolved"
@@ -331,8 +453,7 @@ export function parseBlunderLog(
         const taskId = typeof resObj.task_id === "string" ? resObj.task_id : "";
         const testAssertion =
           typeof resObj.test_assertion === "string" ? resObj.test_assertion : "";
-        const resolvedAt =
-          typeof resObj.resolved_at === "string" ? resObj.resolved_at : "";
+        const resolvedAt = typeof resObj.resolved_at === "string" ? resObj.resolved_at : "";
         const commitSha =
           typeof resObj.commit_sha === "string"
             ? resObj.commit_sha
@@ -352,7 +473,8 @@ export function parseBlunderLog(
         resolution = null;
       }
 
-      const rawCat = typeof parsed.category === "string" ? parsed.category.trim().toLowerCase() : "";
+      const rawCat =
+        typeof parsed.category === "string" ? parsed.category.trim().toLowerCase() : "";
       const category: BlunderCategory =
         rawCat === "role_confusion" || rawCat === "boundary_violation"
           ? "boundary_violation"
@@ -390,7 +512,9 @@ export function parseBlunderLog(
         remediation: rawRemediation,
         ...(role !== undefined ? { role } : {}),
         ...(message !== undefined ? { message } : {}),
-        ...(prescribedRemediation !== undefined ? { prescribed_remediation: prescribedRemediation } : {}),
+        ...(prescribedRemediation !== undefined
+          ? { prescribed_remediation: prescribedRemediation }
+          : {}),
         ...(pid !== undefined ? { pid } : {}),
         ...(ppid !== undefined ? { ppid } : {}),
         ...(agent_id !== undefined ? { agent_id } : {}),
@@ -432,19 +556,14 @@ export function serializeBlunderLog(blunders: readonly BlunderEntry[]): string {
 /**
  * Updates a blunder entry with verified resolution proof.
  */
-export function resolveBlunder(
-  blunder: BlunderEntry,
-  proof: BlunderResolutionProof,
-): BlunderEntry {
+export function resolveBlunder(blunder: BlunderEntry, proof: BlunderResolutionProof): BlunderEntry {
   if (!isRecord(proof)) {
     throw new HarnessError("INVALID_ARGUMENT", "resolution proof must be an object");
   }
 
   const taskId = typeof proof.task_id === "string" ? proof.task_id.trim() : "";
-  const testAssertion =
-    typeof proof.test_assertion === "string" ? proof.test_assertion.trim() : "";
-  const resolvedAt =
-    typeof proof.resolved_at === "string" ? proof.resolved_at.trim() : "";
+  const testAssertion = typeof proof.test_assertion === "string" ? proof.test_assertion.trim() : "";
+  const resolvedAt = typeof proof.resolved_at === "string" ? proof.resolved_at.trim() : "";
   const commitSha =
     typeof proof.commit_sha === "string"
       ? proof.commit_sha.trim()
@@ -453,10 +572,7 @@ export function resolveBlunder(
         : undefined;
 
   if (!taskId) {
-    throw new HarnessError(
-      "INVALID_ARGUMENT",
-      "resolution proof requires non-empty task_id",
-    );
+    throw new HarnessError("INVALID_ARGUMENT", "resolution proof requires non-empty task_id");
   }
   if (!testAssertion) {
     throw new HarnessError(
@@ -465,10 +581,7 @@ export function resolveBlunder(
     );
   }
   if (!resolvedAt) {
-    throw new HarnessError(
-      "INVALID_ARGUMENT",
-      "resolution proof requires non-empty resolved_at",
-    );
+    throw new HarnessError("INVALID_ARGUMENT", "resolution proof requires non-empty resolved_at");
   }
 
   const validatedProof: BlunderResolutionProof = {
@@ -654,9 +767,7 @@ export function formulateBlunderCandidates(
   }
 
   const goals =
-    Array.isArray(charterGoals) && charterGoals.length > 0
-      ? charterGoals
-      : ["G1", "G2"];
+    Array.isArray(charterGoals) && charterGoals.length > 0 ? charterGoals : ["G1", "G2"];
 
   const openBlunders = blunders.filter((b) => b.status === "open");
   const proposals: MindCandidateProposal[] = [];
@@ -664,27 +775,26 @@ export function formulateBlunderCandidates(
   for (let i = 0; i < openBlunders.length; i += 1) {
     const b = openBlunders[i];
     if (b !== undefined) {
-      const sanitizedId = b.id.startsWith("blunder-")
-        ? b.id.slice("blunder-".length)
-        : b.id;
+      const sanitizedId = b.id.startsWith("blunder-") ? b.id.slice("blunder-".length) : b.id;
 
       const candidateId = `cand-blunder-${sanitizedId}`;
-      const kind: "proposal" | "defect" =
-        b.category === "code_defect" ? "defect" : "proposal";
+      const kind: "proposal" | "defect" = b.category === "code_defect" ? "defect" : "proposal";
 
       let matchedGoals: string[] = [];
       if (b.category === "boundary_violation") {
-        matchedGoals = goals.filter((g) => g === "G2" ? true : g.toLowerCase().includes("invariant"));
+        matchedGoals = goals.filter((g) =>
+          g === "G2" ? true : g.toLowerCase().includes("invariant"),
+        );
         if (matchedGoals.length === 0) {
           matchedGoals = goals.slice(0, 1);
         }
       } else if (b.category === "model_reasoning_error") {
-        matchedGoals = goals.filter((g) => g === "G1" ? true : g === "G2");
+        matchedGoals = goals.filter((g) => (g === "G1" ? true : g === "G2"));
         if (matchedGoals.length === 0) {
           matchedGoals = goals.slice(0, 1);
         }
       } else {
-        matchedGoals = goals.filter((g) => g === "G1" ? true : g.toLowerCase().includes("type"));
+        matchedGoals = goals.filter((g) => (g === "G1" ? true : g.toLowerCase().includes("type")));
         if (matchedGoals.length === 0) {
           matchedGoals = goals.slice(0, 1);
         }
@@ -725,9 +835,7 @@ export function formatBlunderAuditBrief(
   options: FormatBlunderAuditBriefOptions = {},
 ): string {
   const maxLines =
-    typeof options.maxLines === "number" && options.maxLines > 0
-      ? options.maxLines
-      : 30;
+    typeof options.maxLines === "number" && options.maxLines > 0 ? options.maxLines : 30;
 
   const lines: string[] = [
     "### Blunder Audit & Remediation Brief",

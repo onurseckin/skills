@@ -270,7 +270,10 @@ export function decoupleDisjointTasks(
   const parsedTasks: ParsedTaskInfo[] = [];
 
   for (const node of rawNodes) {
-    if (isRecord(node) && (node.type === "task" || typeof node.id === "string")) {
+    if (
+      isRecord(node) &&
+      (node.type === "task" || (node.type === undefined && typeof node.id === "string"))
+    ) {
       const id = String(node.id ?? "");
       if (!id) continue;
       const rawScopes = extractStringArray(node.write_scope ?? node.writeScope);
