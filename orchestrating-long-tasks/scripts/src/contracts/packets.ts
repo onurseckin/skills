@@ -48,3 +48,18 @@ export interface PacketMetadata extends JsonObject {
   role_contract_sha256: string;
   excluded_fields: string[];
 }
+
+export interface ResponsibilityChecklistItem {
+  readonly id: string;
+  readonly text: string;
+  readonly role?: AgentRole;
+  readonly mandatory: boolean;
+}
+
+export interface CapsuleMemoryPointer {
+  readonly run_id: string;
+  readonly task_id: string | null;
+  readonly role: AgentRole;
+  readonly capsule_root: string;
+  readonly command_examples: readonly string[];
+}

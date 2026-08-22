@@ -5,7 +5,7 @@ import { commandMatchesGate } from "../gates/gate-policy.ts";
 import { embeddedCommandIssues } from "../../runner/command-shape.ts";
 import { requirementExecutionState } from "../authority/index.ts";
 import { orphanEvidenceIssues } from "../orphan-evidence/digest.ts";
-import type { RequirementRuntime, WorkflowState } from "../types.ts";
+import type { GateRuntime, RequirementRuntime, WorkflowState } from "../types.ts";
 import { validationForDomain } from "../review/validation-state.ts";
 import { authoritativeRepositoryCommand } from "./repository-evidence.ts";
 import { commandIsSuccessfulGate } from "./readiness-snapshot.ts";
@@ -100,7 +100,9 @@ export function completionReadinessIssues(state: WorkflowState): string[] {
     if (requirement.evidence.length === 0)
       issues.push(`requirement ${requirement.id} has no evidence`);
   }
-  const runGates = state.gates.filter((gate) => gate.scope === "run" && gate.mandatory);
+  const gates =
+    state.gates ?? (state as unknown as { graph?: { gates?: GateRuntime[] } }).graph?.gates ?? [];
+  const runGates = gates.filter((gate) => gate.scope === "run" && gate.mandatory);
   if (runGates.length === 0) issues.push("run has no mandatory run gate");
   for (const gate of runGates) {
     const command = Object.values(state.commands).find(

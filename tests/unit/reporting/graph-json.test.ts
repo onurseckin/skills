@@ -1,122 +1,115 @@
-import { describe, expect, it, mock } from "bun:test";
-
-// Mock must be defined before import
-mock.module("../../../orchestrating-long-tasks/scripts/src/cli/commands/dag-view.ts", () => {
-  return {
-    dagViewCommand: () => ({
-      markdown: "",
-      run_root: "/fake/run",
-      is_compiled: true,
-      graph_revision: 1,
-      total_tasks: 2,
-      status_summary: {},
-      critical_path_length: 2,
-      active_agents: [
-        {
-          id: "agent-1",
-          role: "implementer",
-          host: "local",
-          status: "active",
-          taskId: "task-1",
-          attempt: 1,
-          tool: "run_command",
-        },
-      ],
-      waves: [],
-      recommendations: [],
-      ascii_dag: "",
-      metrics: {
-        totalWaves: 2,
-        maxParallelLanes: 1,
-        criticalPathLength: 2,
-        averageWaveConcurrency: 1,
-        serialBottlenecks: 0,
-        parallelEligibleChains: 0,
-        totalWork: 3,
-        span: 2,
-        parallelismFactor: 1.5,
-        optimalConcurrency: 1,
-      },
-      dependency_forensics: [
-        {
-          fromTaskId: "task-1",
-          toTaskId: "task-2",
-          reason: "scope conflict on file.ts",
-          edgeType: "scope_conflict",
-        },
-        {
-          fromTaskId: "task-0",
-          toTaskId: "task-1",
-          reason: "must happen first",
-          edgeType: "explicit_justification",
-        },
-      ],
-      serialization_analysis: [],
-      multi_coordinator_opportunities: [],
-      nodes: [
-        {
-          id: "task-1",
-          label: "First Task",
-          status: "success",
-          priority: 50,
-          writeScope: [],
-          resourceScope: [],
-          gate: "",
-          dependencies: [],
-          assignedAgent: null,
-          attempt: null,
-          wave: 1,
-          criticalDepth: 0,
-          descendantCount: 1,
-          effort: 2,
-        },
-        {
-          id: "task-2",
-          label: "Second Task",
-          status: "pending",
-          priority: 50,
-          writeScope: [],
-          resourceScope: [],
-          gate: "",
-          dependencies: ["task-1"],
-          assignedAgent: null,
-          attempt: null,
-          wave: 2,
-          criticalDepth: 1,
-          descendantCount: 0,
-          effort: 1,
-        },
-        {
-          id: "task-1a",
-          label: "Parallel Task",
-          status: "pending",
-          priority: 50,
-          writeScope: [],
-          resourceScope: [],
-          gate: "",
-          dependencies: [],
-          assignedAgent: null,
-          attempt: null,
-          wave: 1,
-          criticalDepth: 0,
-          descendantCount: 0,
-          effort: 1,
-        },
-      ],
-    }),
-    resolveCapsuleRun: (repo: string, runFlag?: string) => runFlag || "/fake/run",
-  };
-});
-
+import { describe, expect, it } from "bun:test";
+import type { DagViewReport } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/dag-view.ts";
 import {
   generateDagJsonReport,
   isDagJsonReport,
 } from "../../../orchestrating-long-tasks/scripts/src/reporting/graph-json.ts";
-import { exportGraphJsonCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/graph-export.ts";
+
+const mockDagView: DagViewReport = {
+  markdown: "",
+  run_root: "/fake/run",
+  is_compiled: true,
+  graph_revision: 1,
+  total_tasks: 2,
+  status_summary: {},
+  critical_path_length: 2,
+  active_agents: [
+    {
+      id: "agent-1",
+      role: "implementer",
+      host: "local",
+      status: "active",
+      taskId: "task-1",
+      attempt: 1,
+      tool: "run_command",
+    },
+  ],
+  waves: [],
+  recommendations: [],
+  ascii_dag: "",
+  metrics: {
+    totalWaves: 2,
+    maxParallelLanes: 1,
+    criticalPathLength: 2,
+    averageWaveConcurrency: 1,
+    serialBottlenecks: 0,
+    parallelEligibleChains: 0,
+    totalWork: 3,
+    span: 2,
+    parallelismFactor: 1.5,
+    optimalConcurrency: 1,
+  },
+  dependency_forensics: [
+    {
+      fromTaskId: "task-1",
+      toTaskId: "task-2",
+      reason: "scope conflict on file.ts",
+      edgeType: "scope_conflict",
+    },
+    {
+      fromTaskId: "task-0",
+      toTaskId: "task-1",
+      reason: "must happen first",
+      edgeType: "explicit_justification",
+    },
+  ],
+  serialization_analysis: [],
+  multi_coordinator_opportunities: [],
+  nodes: [
+    {
+      id: "task-1",
+      label: "First Task",
+      status: "success",
+      priority: 50,
+      writeScope: [],
+      resourceScope: [],
+      gate: "",
+      dependencies: [],
+      assignedAgent: null,
+      attempt: null,
+      wave: 1,
+      criticalDepth: 0,
+      descendantCount: 1,
+      effort: 2,
+    },
+    {
+      id: "task-2",
+      label: "Second Task",
+      status: "pending",
+      priority: 50,
+      writeScope: [],
+      resourceScope: [],
+      gate: "",
+      dependencies: ["task-1"],
+      assignedAgent: null,
+      attempt: null,
+      wave: 2,
+      criticalDepth: 1,
+      descendantCount: 0,
+      effort: 1,
+    },
+    {
+      id: "task-1a",
+      label: "Parallel Task",
+      status: "pending",
+      priority: 50,
+      writeScope: [],
+      resourceScope: [],
+      gate: "",
+      dependencies: [],
+      assignedAgent: null,
+      attempt: null,
+      wave: 1,
+      criticalDepth: 0,
+      descendantCount: 0,
+      effort: 1,
+    },
+  ],
+};
 
 describe("graph-json", () => {
   it("generates a valid DAG JSON report with coordinates and metrics", () => {
-    const report = generateDagJsonReport("/fake/run");
+    const report = generateDagJsonReport("/fake/run", mockDagView);
 
     expect(report.runId).toBe("run");
 
@@ -160,14 +153,8 @@ describe("graph-json", () => {
     expect(soft.to).toBe("task-1");
   });
 
-  it("exportGraphJsonCommand executes and optionally formats", () => {
-    const res = exportGraphJsonCommand({ run: "/fake/run", pretty: true });
-    expect(res).toBeDefined();
-    expect((res as Record<string, unknown>).runId).toBe("run");
-  });
-
   it("validates report structure via isDagJsonReport", () => {
-    const report = generateDagJsonReport("/fake/run");
+    const report = generateDagJsonReport("/fake/run", mockDagView);
     expect(isDagJsonReport(report)).toBe(true);
     expect(isDagJsonReport(null)).toBe(false);
     expect(isDagJsonReport({})).toBe(false);

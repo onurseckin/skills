@@ -4,17 +4,25 @@ const FORBIDDEN = new Set([
   "assumed_complete",
   "assumed_completion",
   "assumed_completions",
+  "bulk_logs",
   "confidence",
   "debug_logs",
   "decision_narrative",
   "dependency_graph_dump",
+  "diagnostic_dumps",
+  "error_blob",
+  "error_blobs",
   "error_logs",
   "fake_completion",
   "fake_completions",
   "full_graph_dump",
   "giant_logs",
+  "giant_payloads",
+  "hallucinated_completion",
+  "hallucinated_completions",
   "historical_completion",
   "historical_completions",
+  "historical_events",
   "historical_report",
   "historical_reports",
   "implementer_report",
@@ -26,14 +34,21 @@ const FORBIDDEN = new Set([
   "prior_completion_claims",
   "prior_review",
   "prior_reviews",
+  "raw_errors",
+  "raw_error_blob",
+  "raw_error_blobs",
   "raw_events",
   "raw_event_log",
   "raw_metadata",
+  "raw_telemetry",
   "report",
+  "stack_trace",
+  "stack_traces",
   "stale_evidence",
   "stale_pass",
   "task_report",
   "task_reports",
+  "unfiltered_metadata",
   "unverified_success",
   "validator_report",
   "validator_reports",
@@ -80,8 +95,8 @@ function forbiddenKey(key: string): boolean {
     FORBIDDEN.has(normalized) ||
     /^(?:implementer|task|validator|historical)_reports?$/u.test(normalized) ||
     /^(?:previous|prior)_reviews?(?:_notes)?$/u.test(normalized) ||
-    /^(?:assumed|fake|historical|prior)_completions?(?:_claims?)?$/u.test(normalized) ||
-    /^(?:raw_events?|raw_metadata|giant_logs?|error_logs?|debug_logs?|dependency_graph_dump|full_graph_dump)$/u.test(
+    /^(?:assumed|fake|historical|prior|hallucinated)_completions?(?:_claims?)?$/u.test(normalized) ||
+    /^(?:raw_events?|raw_event_logs?|raw_metadata|giant_logs?|error_logs?|debug_logs?|dependency_graph_dump|full_graph_dump|raw_errors?|raw_error_blobs?|error_blobs?|stack_traces?|diagnostic_dumps?|raw_telemetry|bulk_logs?|historical_events?|giant_payloads?|unfiltered_metadata)$/u.test(
       normalized,
     ) ||
     /^(?:unverified_success|stale_pass|stale_evidence)$/u.test(normalized)

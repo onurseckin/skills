@@ -609,12 +609,24 @@ export function dagViewCommand(
       let leasedTaskId: string | null = null;
       let attemptNum: number | null = null;
       for (const [tId, tRecord] of Object.entries(taskMap)) {
-        if (isRecord(tRecord.lease) && tRecord.lease.agent_id === id) {
-          leasedTaskId = tId;
-          if (typeof tRecord.lease.attempt === "number") {
-            attemptNum = tRecord.lease.attempt;
+        if (isRecord(tRecord.lease)) {
+          const lAgentId =
+            typeof tRecord.lease.agent_id === "string" &&
+            tRecord.lease.agent_id.trim().length > 0 &&
+            tRecord.lease.agent_id !== "undefined"
+              ? tRecord.lease.agent_id.trim()
+              : typeof tRecord.lease.agent === "string" &&
+                  tRecord.lease.agent.trim().length > 0 &&
+                  tRecord.lease.agent !== "undefined"
+                ? tRecord.lease.agent.trim()
+                : undefined;
+          if (lAgentId === id) {
+            leasedTaskId = tId;
+            if (typeof tRecord.lease.attempt === "number") {
+              attemptNum = tRecord.lease.attempt;
+            }
+            break;
           }
-          break;
         }
       }
 
@@ -638,10 +650,19 @@ export function dagViewCommand(
     });
 
   for (const [tId, tRecord] of Object.entries(taskMap)) {
-    if (isRecord(tRecord.lease) && typeof tRecord.lease.agent_id === "string") {
-      const agentId = tRecord.lease.agent_id;
-      if (!activeAgents.some((a) => a.id === agentId)) {
-        const role = typeof tRecord.lease.role === "string" ? tRecord.lease.role : "implementer";
+    if (isRecord(tRecord.lease)) {
+      const agentId =
+        typeof tRecord.lease.agent_id === "string" &&
+        tRecord.lease.agent_id.trim().length > 0 &&
+        tRecord.lease.agent_id !== "undefined"
+          ? tRecord.lease.agent_id.trim()
+          : typeof tRecord.lease.agent === "string" &&
+              tRecord.lease.agent.trim().length > 0 &&
+              tRecord.lease.agent !== "undefined"
+            ? tRecord.lease.agent.trim()
+            : null;
+      if (agentId && !activeAgents.some((a) => a.id === agentId)) {
+        const role = typeof tRecord.lease.role === "string" && tRecord.lease.role.length > 0 ? tRecord.lease.role : "implementer";
         const attempt = typeof tRecord.lease.attempt === "number" ? tRecord.lease.attempt : 1;
         activeAgents.push({
           id: agentId,
@@ -726,7 +747,17 @@ export function dagViewCommand(
       const gateStr = typeof t.gate === "string" ? t.gate : "";
       const deps = isStringArray(t.dependencies) ? t.dependencies : [];
       const lease = isRecord(t.lease) ? t.lease : null;
-      const assignedAgent = lease && typeof lease.agent_id === "string" ? lease.agent_id : null;
+      const assignedAgent = lease
+        ? typeof lease.agent_id === "string" &&
+          lease.agent_id.trim().length > 0 &&
+          lease.agent_id !== "undefined"
+          ? lease.agent_id.trim()
+          : typeof lease.agent === "string" &&
+              lease.agent.trim().length > 0 &&
+              lease.agent !== "undefined"
+            ? lease.agent.trim()
+            : null
+        : null;
       const attempt = lease && typeof lease.attempt === "number" ? lease.attempt : null;
       const effort = typeof t.effort === "number" ? t.effort : 1;
 

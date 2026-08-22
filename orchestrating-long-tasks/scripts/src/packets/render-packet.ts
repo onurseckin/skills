@@ -18,6 +18,8 @@ import { CONCLUSION_EXCLUSIONS, validatorTaskContract } from "./prior-round-dema
 import { renderValidationRound } from "./render-validation-round.ts";
 import { VALIDATION_ROUND_KEY } from "./validation-round.ts";
 
+import type { AgentRole } from "../contracts/packets.ts";
+
 function section(title: string, content: string): string {
   return `## ${title}\n\n${content.trim()}\n`;
 }
@@ -29,28 +31,63 @@ function jsonSection(title: string, value: unknown): string {
 const READ_ONLY_BRANCH_ROLES: ReadonlySet<string> = new Set(["sub-investigator", "sub-validator"]);
 const VALIDATION_ROLES: ReadonlySet<string> = new Set(["sub-validator", "validator"]);
 
-function responsibilityChecklist(): string {
+function responsibilityChecklist(role: AgentRole): string {
+  if (role === "validator" || role === "sub-validator") {
+    return [
+      "- [ ] 1. Pre-flight verification & independence: Execute `whoami` and `doctor` to verify harness health; confirm independence from task author.",
+      "- [ ] 2. Anti-rubber-stamping & direct validation: Execute independent validation commands directly against actual disk state; forbid superficial sign-offs or mock rubber-stamping.",
+      "- [ ] 3. Adversarial Gate Proofs (AGP) & falsifiability: Verify gate counterfactual falsifiability (`gate:prove` / manual negative checks) proving the gate fails on broken logic.",
+      "- [ ] 4. Direct end-to-end command verification: Validate actual runtime command behavior, not isolated mocks or superficial unit tests.",
+      "- [ ] 5. Strict quantitative metric floors: Enforce 0 TypeScript `any` types, 0 compiler/linter suppressions, 100% test pass rate, and exact execution timings.",
+      "- [ ] 6. Anti-boundary-leak rule: Never edit repository files directly to fix defects; record structured findings via `task:reject` and assign repairers.",
+      "- [ ] 7. Disk-backed evidence submission: Save all proof artifacts and screenshots strictly under `.capsules/<run>/evidence/` and record structured review verdict.",
+    ].join("\n");
+  }
+  if (role === "completeness-critic") {
+    return [
+      "- [ ] 1. Pre-flight snapshot & prompt verification: Verify readiness digest and immutable original prompt against whole repository state.",
+      "- [ ] 2. Whole-run AGP & gate discrimination: Verify run-level gates discriminate counterfactually between working and defective states.",
+      "- [ ] 3. Comprehensive requirement proof: Provide direct, critic-executed command proof for every requirement; unproven requirements block completion.",
+      "- [ ] 4. End-to-end integration & anti-fragmentation: Verify cohesive user-facing interfaces with zero fragmented options, disconnected flags, or half-baked stubs.",
+      "- [ ] 5. Strict repository invariants: Enforce 0 TypeScript `any` types, 0 suppressions, and 100% gate pass rate across the whole codebase.",
+      "- [ ] 6. Sealed commit history: Verify clean, coherent commit history proportionate to work without WIP commits.",
+      "- [ ] 7. Disk-backed completion verdict: Record approval or structured rejection findings strictly under `.capsules/<run>/evidence/`.",
+    ].join("\n");
+  }
+  if (role === "implementer" || role === "repairer" || role === "sub-implementer") {
+    return [
+      "- [ ] 1. Pre-flight verification: Execute `whoami` and `doctor` to verify harness health and active run lease.",
+      "- [ ] 2. Exclusive write scope: Verify and respect assigned write scope lease; never edit or stage files outside assigned paths.",
+      "- [ ] 3. Direct end-to-end implementation & tests: Write focused, high-quality code and tests; avoid superficial unit tests and mock-only shortcuts.",
+      "- [ ] 4. Strict static invariants: Enforce zero TypeScript untyped references (0 `any`) and zero compiler/linter suppressions.",
+      "- [ ] 5. Mandatory test gate execution: Execute focused test gates and capture complete quantitative proof (100% pass, exit code 0).",
+      "- [ ] 6. Ultra-lean context & on-demand inspection: Query heavy capsule metadata on disk on demand via CLI (`report:task`, `stream:events`, `explain`) rather than expecting large context dumps.",
+      "- [ ] 7. Structured evidence submission: Submit structured results with valid lease token via harness CLI and report back to Coordinator.",
+    ].join("\n");
+  }
   return [
     "- [ ] 1. Pre-flight checks: Execute `whoami` and `doctor` to verify harness health and run state.",
-    "- [ ] 2. Task claim & lease verification: Verify exclusive lease and assigned write scope before making modifications.",
+    "- [ ] 2. Task claim & lease verification: Verify exclusive lease and assigned scope before acting.",
     "- [ ] 3. Fresh verified proofs: Never assume prior completions or historical success; produce fresh counterfactual falsifiability proofs and concrete evidence.",
     "- [ ] 4. Ultra-lean context & on-demand inspection: Query heavy capsule metadata on disk on demand via CLI (`report:task`, `stream:events`, `explain`) rather than expecting large context dumps.",
     "- [ ] 5. Strict static invariants: Enforce zero TypeScript untyped references and zero compiler/linter suppressions.",
-    "- [ ] 6. Mandatory test gate execution: Execute focused test gates and capture complete quantitative proof.",
-    "- [ ] 7. Structured evidence submission: Submit structured results with valid lease token via harness CLI and report back to Coordinator.",
+    "- [ ] 6. Mandatory gate execution: Execute required gates and capture complete quantitative proof.",
+    "- [ ] 7. Structured evidence submission: Submit structured results with valid credentials via harness CLI and report back to parent.",
   ].join("\n");
 }
 
 function capsuleMemoryGuidance(runId: string, taskId: string | null): string {
   const taskFlag = taskId ? ` --task ${taskId}` : "";
   return [
-    "Heavy metadata, full event streams, dependency graphs, and historical logs are decoupled into structured Capsule Memory on disk (`.capsules/`).",
+    "Heavy metadata, full event streams, dependency graphs, historical logs, and error dumps are decoupled into structured Capsule Memory on disk (`.capsules/`).",
     "Query detailed runtime information on demand using the following Harness CLI commands:",
     `- Inspect task status & review history: \`bun harness.ts report:task --run .capsules/${runId}${taskFlag}\``,
     `- Stream event timeline: \`bun harness.ts stream:events --run .capsules/${runId}\``,
     `- Inspect DAG topology & waves: \`bun harness.ts dag:view --run .capsules/${runId}\``,
+    `- Verify gate falsifiability (AGP): \`bun harness.ts gate:prove --run .capsules/${runId}${taskFlag}\``,
     `- Query errors & remedies: \`bun harness.ts explain <ERROR_CODE>\``,
     `- Check run health & diagnostics: \`bun harness.ts doctor --run .capsules/${runId}\``,
+    `- Retrieve recorded evidence artifacts: \`bun harness.ts evidence:get --run .capsules/${runId} --evidence <ID>\``,
   ].join("\n");
 }
 
@@ -138,7 +175,7 @@ export function buildPacket(input: PacketInput): BuiltPacket {
       "Identity",
       `Run: ${input.runId}\nTask: ${taskId ?? "none - run-level packet"}\nAttempt: ${input.attempt}`,
     ),
-    section("Responsibility checklist", responsibilityChecklist()),
+    section("Responsibility checklist", responsibilityChecklist(input.role)),
     section("Capsule memory on disk", capsuleMemoryGuidance(input.runId, taskId)),
     section("Role contract", roleContract.text),
     jsonSection("Task contract", taskContract(input)),

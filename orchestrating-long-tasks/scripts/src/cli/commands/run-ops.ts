@@ -29,6 +29,7 @@ import { ingestScreenshots, ingestVisualReport } from "../../reporting/screensho
 import { commandEvidenceView, commandRecordPath } from "../../reporting/command-evidence.ts";
 import type { ScreenshotRecord } from "../../reporting/screenshot-types.ts";
 import { capsuleCatalogue, runStatus, type CapsuleCatalogue } from "../../reporting/status.ts";
+import { extractLeaseAgentId } from "../../reporting/unified.ts";
 import { resolveCapsuleRun } from "./dag-view.ts";
 
 function occupancyCeilings(runRoot: string): { maxParallel: number; gateMaxParallel: number } {
@@ -159,8 +160,9 @@ export function runStatusCommand(flags: Flags): Record<string, unknown> {
   const taskItems = tasks.map((t) => {
     let agentOrLock = "-";
     if (t.lease) {
-      const roleStr = typeof t.lease.role === "string" ? ` [${t.lease.role}]` : "";
-      agentOrLock = `Leased (${t.lease.agent_id}${roleStr})`;
+      const leaseAgent = extractLeaseAgentId(t.lease) || "unknown";
+      const roleStr = typeof t.lease.role === "string" && t.lease.role.length > 0 ? ` [${t.lease.role}]` : "";
+      agentOrLock = `Leased (${leaseAgent}${roleStr})`;
     } else if (t.validations && t.validations.length > 0) {
       const activeVals = t.validations.filter((v) => v.verdict === undefined);
       if (activeVals.length > 0) {
@@ -168,6 +170,8 @@ export function runStatusCommand(flags: Flags): Record<string, unknown> {
       } else {
         agentOrLock = `Validated (${t.validations.map((v) => v.validator_id).join(", ")})`;
       }
+    } else if (t.status === "validating") {
+      agentOrLock = "Validating (Pending Probe)";
     } else if (t.status === "done") {
       agentOrLock = "Completed";
     } else if (t.status === "submitted") {

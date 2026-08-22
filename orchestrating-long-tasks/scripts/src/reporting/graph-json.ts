@@ -45,9 +45,12 @@ export interface DagJsonReport {
   metrics: DagJsonMetrics;
 }
 
-export function generateDagJsonReport(runRoot: string): DagJsonReport {
+export function generateDagJsonReport(
+  runRoot: string,
+  injectedDagView?: DagViewReport,
+): DagJsonReport {
   const flags = { run: runRoot };
-  const dagView = dagViewCommand(flags) as unknown as DagViewReport;
+  const dagView = injectedDagView ?? (dagViewCommand(flags) as unknown as DagViewReport);
 
   const nodes: DagJsonNode[] = (dagView.nodes || []).map((n) => {
     return {

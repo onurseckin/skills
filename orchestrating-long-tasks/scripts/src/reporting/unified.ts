@@ -99,11 +99,25 @@ export interface UnifiedReport {
   decisions: DecisionAuditRow[];
 }
 
-function extractLeaseAgentId(lease: unknown): string {
+export function extractLeaseAgentId(lease: unknown): string {
   if (!lease || typeof lease !== "object") return "";
   const rec = lease as Record<string, unknown>;
-  if (typeof rec.agent_id === "string" && rec.agent_id.length > 0) return rec.agent_id;
-  if (typeof rec.agent === "string" && rec.agent.length > 0) return rec.agent;
+  if (
+    typeof rec.agent_id === "string" &&
+    rec.agent_id.trim().length > 0 &&
+    rec.agent_id !== "undefined" &&
+    rec.agent_id !== "null"
+  ) {
+    return rec.agent_id.trim();
+  }
+  if (
+    typeof rec.agent === "string" &&
+    rec.agent.trim().length > 0 &&
+    rec.agent !== "undefined" &&
+    rec.agent !== "null"
+  ) {
+    return rec.agent.trim();
+  }
   return "";
 }
 
@@ -120,8 +134,8 @@ export function generateLeasesReport(runRoot: string): {
 
   for (const t of tasks) {
     if (t.lease) {
-      const agentId = extractLeaseAgentId(t.lease);
-      const role = typeof t.lease.role === "string" ? t.lease.role : "implementer";
+      const agentId = extractLeaseAgentId(t.lease) || "unknown";
+      const role = typeof t.lease.role === "string" && t.lease.role.length > 0 ? t.lease.role : "implementer";
       const attempt = typeof t.lease.attempt === "number" ? t.lease.attempt : 1;
       const issuedAt = typeof t.lease.issued_at === "string" ? t.lease.issued_at : undefined;
       const expiresAt = typeof t.lease.expires_at === "string" ? t.lease.expires_at : undefined;
@@ -143,8 +157,8 @@ export function generateLeasesReport(runRoot: string): {
   for (const b of branches) {
     for (const sub of b.sub_tasks) {
       if (sub.lease) {
-        const agentId = extractLeaseAgentId(sub.lease);
-        const role = typeof sub.lease.role === "string" ? sub.lease.role : "sub_implementer";
+        const agentId = extractLeaseAgentId(sub.lease) || "unknown";
+        const role = typeof sub.lease.role === "string" && sub.lease.role.length > 0 ? sub.lease.role : "sub_implementer";
         const attempt = typeof sub.lease.attempt === "number" ? sub.lease.attempt : 1;
         const issuedAt = typeof sub.lease.issued_at === "string" ? sub.lease.issued_at : undefined;
         const expiresAt = typeof sub.lease.expires_at === "string" ? sub.lease.expires_at : undefined;
@@ -283,8 +297,8 @@ export function generateUnifiedReport(
       if (t.lease) {
         implementersActive.push({
           taskId: t.id,
-          agentId: extractLeaseAgentId(t.lease),
-          role: typeof t.lease.role === "string" ? t.lease.role : "repairer",
+          agentId: extractLeaseAgentId(t.lease) || "unknown",
+          role: typeof t.lease.role === "string" && t.lease.role.length > 0 ? t.lease.role : "repairer",
           attempt: typeof t.lease.attempt === "number" ? t.lease.attempt : 1,
           expiresAt: typeof t.lease.expires_at === "string" ? t.lease.expires_at : "",
         });
@@ -306,8 +320,8 @@ export function generateUnifiedReport(
       if (t.lease) {
         implementersActive.push({
           taskId: t.id,
-          agentId: extractLeaseAgentId(t.lease),
-          role: typeof t.lease.role === "string" ? t.lease.role : "implementer",
+          agentId: extractLeaseAgentId(t.lease) || "unknown",
+          role: typeof t.lease.role === "string" && t.lease.role.length > 0 ? t.lease.role : "implementer",
           attempt: typeof t.lease.attempt === "number" ? t.lease.attempt : 1,
           expiresAt: typeof t.lease.expires_at === "string" ? t.lease.expires_at : "",
         });
