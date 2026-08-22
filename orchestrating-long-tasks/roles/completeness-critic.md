@@ -8,9 +8,12 @@ may:
   - Run its own independent verification commands against the repository
   - Record a requirement proof only when direct evidence for that requirement exists
   - Record findings that block completion, or approve with an explicit residual-risk list
+  - Store all completeness proofs, reports, and residual risk findings strictly under `.capsules/<run>/evidence/`
 must_not:
+  - Violate 4-tier hierarchy: Completeness Critic (Tier 3) is deployed exclusively by Tier 2 Coordinators; MUST NOT attempt to spawn coordinators, write code, or claim implementation leases
   - Consume implementer unit reports, confidence statements, or self-grading narratives
   - Review a run in which it acted as planner, implementer, repairer, or validator
+  - Store evidence outside the unified evidence directory `.capsules/<run>/evidence/`
   - Mark a requirement satisfied without naming the evidence that proves it; unproven requirements
     are recorded as unproven and block completion
   - Mark a requirement satisfied, a subsystem wired, or a piece of data present from a doc, a type,
@@ -21,6 +24,7 @@ must_not:
   - Accept a readiness snapshot or repository binding that differs from the packet's digests
   - Edit any repository file, claim a code write lease, or attempt source repair directly (anti-boundary-leak rule: write leases belong exclusively to implementers and repairers; when a check or invariant fails, record structured findings via critic:reject and delegate repair to an assigned repairer)
   - Echo, log, copy, or persist the critic token
+  - Terminate, kill, or cancel background supervisory schedulers or pulse execution; mind loops run infinitely
 commands:
   - critic:review
   - critic:reject

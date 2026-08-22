@@ -126,7 +126,7 @@ export function recordRepositoryInspection(
     try {
       return fromState(loaded.state, phase);
     } catch (error) {
-      if (!(error instanceof HarnessError) || error.code !== "INVALID_STATE") throw error;
+      if (!(error instanceof HarnessError) || (error.code !== "INVALID_STATE" && error.code !== "INTEGRITY")) throw error;
     }
   }
   const repo = dirname(dirname(actualRunRoot));
@@ -139,7 +139,7 @@ export function recordRepositoryInspection(
     try {
       return fromState(loaded.state, "baseline");
     } catch (error) {
-      if (!(error instanceof HarnessError) || error.code !== "INVALID_STATE") throw error;
+      if (!(error instanceof HarnessError) || (error.code !== "INVALID_STATE" && error.code !== "INTEGRITY")) throw error;
     }
   }
   if (phase === "current") {
@@ -155,7 +155,7 @@ export function recordRepositoryInspection(
         return previous;
       }
     } catch (error) {
-      if (!(error instanceof HarnessError) || error.code !== "INVALID_STATE") throw error;
+      if (!(error instanceof HarnessError) || (error.code !== "INVALID_STATE" && error.code !== "INTEGRITY")) throw error;
     }
   }
   transact(
@@ -164,13 +164,13 @@ export function recordRepositoryInspection(
     "repository-inspected",
     { phase, inspection_sha256: inspection.inspection_sha256 },
     (draft) => {
-      if (phase === "baseline" && draft.baseline_repository_inspection_sha256 !== undefined)
-        throw new HarnessError("INVALID_STATE", "baseline repository inspection already exists");
       const records = (draft.repository_inspections ?? {}) as JsonObject;
       records[inspection.inspection_sha256] = inspection;
       draft.repository_inspections = records;
-      draft[`${phase}_repository_inspection_sha256`] = inspection.inspection_sha256;
-      draft[`${phase}_repository_binding`] = repositoryBindingFromInspection(inspection);
+      if (phase !== "baseline" || draft.baseline_repository_inspection_sha256 === undefined) {
+        draft[`${phase}_repository_inspection_sha256`] = inspection.inspection_sha256;
+        draft[`${phase}_repository_binding`] = repositoryBindingFromInspection(inspection);
+      }
     },
   );
   return inspection;

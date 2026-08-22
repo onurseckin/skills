@@ -24,3 +24,5 @@ export * from "./completion-actions.ts";
 export * from "./next-actions.ts";
 export * from "./task-actions.ts";
 export * from "./registry-argv.ts";
+export * from "./sugiyama-dag.ts";
+export * from "./living-tracer.ts";

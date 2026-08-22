@@ -3,6 +3,7 @@ import { roleCheatSheetCommand } from "../commands/role-cheat-sheet.ts";
 import {
   watchdogCleanupCommand,
   watchdogPhaseCleanupCommand,
+  watchdogProbeCommand,
   watchdogStatusCommand,
   watchdogVerifyCommand,
 } from "../commands/watchdog-ops.ts";
@@ -196,5 +197,30 @@ export const AUTHORITY_COMMANDS: readonly CommandSpec[] = [
       "bun harness.ts watchdog:verify --generation 1",
     ],
     handler: watchdogVerifyCommand,
+  },
+  {
+    name: "watchdog:probe",
+    aliases: ["watchdog:supervise", "watchdog:health-probe"],
+    domain: "authority",
+    summary: "Execute 2-way supervisory health probe and doctor diagnostics to top leader.",
+    description:
+      "Audits the live capsule across 5 supervisory health points ((a) Work/Span parallelization, (b) Plan enhancement, (c) 100% agent registry accuracy, (d) Strict role boundary adherence, (e) Doctor error resolution) and dispatches active probe report to the top leader.",
+    flags: [
+      optionalFlag("run", "string", "Capsule run root."),
+      optionalFlag("capsules-dir", "string", "Capsules root directory."),
+      optionalFlag("generation", "int", "Target generation."),
+      optionalFlag("pulse-id", "string", "Target pulse ID."),
+      optionalFlag("all", "bool", "Show verbose report details."),
+      optionalFlag("now", "string", "Timestamp override (ISO8601)."),
+      optionalFlag("json", "bool", "Output JSON format."),
+    ],
+    readsStdin: false,
+    takesRemainder: false,
+    exitCodes: DEFAULT_EXIT_CODES,
+    examples: [
+      "bun harness.ts watchdog:probe",
+      "bun harness.ts watchdog:probe --run .capsules/<run-id>",
+    ],
+    handler: watchdogProbeCommand,
   },
 ];

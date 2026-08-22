@@ -3,6 +3,7 @@ import {
   validateCrossChannelConsistency,
 } from "./cross-channel-consistency.ts";
 import { extractDomViolations, type FindingAdder } from "./dom-violation-extractor.ts";
+import { isUnifiedEvidenceRelativePath } from "./evidence-paths.ts";
 import type {
   ClippingViolation,
   CompanionManifestData,
@@ -547,7 +548,7 @@ export function analyzeDualChannel(input: DualChannelInput): DualChannelAuditRes
     };
   }
 
-  // Validate screenshots: Reject < 1024 bytes
+  // Validate screenshots: Reject < 1024 bytes and validate evidence location
   for (const sc of screenshots) {
     if (!sc.sizeBytes || sc.sizeBytes < 1024 || isNaN(sc.sizeBytes)) {
       addFinding(
@@ -558,6 +559,19 @@ export function analyzeDualChannel(input: DualChannelInput): DualChannelAuditRes
         undefined,
         sc.viewport,
       );
+    }
+
+    if (sc.path && typeof sc.path === "string" && sc.path.length > 0) {
+      if (!isUnifiedEvidenceRelativePath(sc.path) && !sc.path.includes("/evidence/")) {
+        addFinding(
+          "invalid_evidence_location",
+          "error",
+          `Unified Evidence Invariant Violation: Screenshot '${sc.name}' has path '${sc.path}' which does not reside under unified evidence location (evidence/ or evidence/screenshots/).`,
+          "Store all validator screenshots and output artifacts strictly under .capsules/<run>/evidence/ (e.g. evidence/screenshots/).",
+          undefined,
+          sc.viewport,
+        );
+      }
     }
   }
 

@@ -1,6 +1,6 @@
 export { proposeBatch } from "./propose-batch.ts";
 export { schedulingMetrics } from "./metrics.ts";
-export { resourceConflict, scopeConflict } from "./conflicts.ts";
+export { resourceConflict, scopeConflict, hasActiveOwnership, ownershipConflicts } from "./conflicts.ts";
 export { computeTopology, type TopologyConfig, type TopologyInputs } from "./topology.ts";
 export { recordTopology } from "./persist-topology.ts";
 export { readySet, type ReadyEntry, type ReadySetSelection } from "./ready-set.ts";
@@ -27,3 +27,58 @@ export {
   type HierarchicalDecisionContext,
   type HierarchicalDecisionResult,
 } from "./decision-tree.ts";
+export {
+  SchedulerEngine,
+  auditDoctorGate,
+  auditGraphHealth,
+  auditSupervisory5PointHealth,
+  auditSupervisoryWatchdog,
+  assertDoctorGatePassed,
+  determineTopLeader,
+  dispatchSupervisoryHealthProbe,
+  formatSupervisoryHealthMarkdown,
+  probeAgentRegistryAccuracy,
+  probeCircularDependencies,
+  probeDoctorErrorResolution,
+  probeGateCoverageViolations,
+  probeOrphanedTasks,
+  probePlanEnhancementNeeds,
+  probeRoleBoundaryAdherence,
+  probeScopeCollisionHazards,
+  probeStaleLeases,
+  probeWorkSpanParallelizationHealth,
+  recoverStaleTasks,
+  type AgentRegistryAccuracyAudit,
+  type BlockedTaskInfo,
+  type CircularDependenciesProbeResult,
+  type DoctorErrorResolutionAudit,
+  type GateCoverageProbeResult,
+  type GraphHealthAuditReport,
+  type GraphHealthIssue,
+  type OrphanedTasksProbeResult,
+  type PlanEnhancementAudit,
+  type RoleBoundaryAdherenceAudit,
+  type ScheduledTaskDispatch,
+  type ScheduledWaveResult,
+  type SchedulerEngineOptions,
+  type ScopeCollisionHazard,
+  type ScopeCollisionProbeResult,
+  type StaleLeaseInfo,
+  type StaleLeasesProbeResult,
+  type Supervisory5PointHealthReport,
+  type Supervisory5PointOptions,
+  type SupervisoryProbeDispatchResult,
+  type SupervisoryTopLeader,
+  type SupervisoryWatchdogAuditReport,
+  type TaskRecoveryRecord,
+  type TaskRecoveryResult,
+  type WorkSpanHealthAudit,
+} from "./core-engine.ts";
+export {
+  executePulseTick,
+  runPulseLoop,
+  type PulseLoopOptions,
+  type PulseLoopResult,
+  type PulseTickOptions,
+  type PulseTickResult,
+} from "./pulse.ts";

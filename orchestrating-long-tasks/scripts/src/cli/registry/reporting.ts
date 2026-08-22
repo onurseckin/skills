@@ -12,6 +12,7 @@ import { summaryViewCommand } from "../commands/summary-ops.ts";
 import { reportGetCommand } from "../commands/inspection-ops.ts";
 import { streamEventsCommand } from "../commands/stream-events.ts";
 import { exportGraphJsonCommand } from "../commands/graph-export.ts";
+import { dagRenderCommand, dagTraceCommand } from "../commands/dag.ts";
 
 export const REPORTING_COMMANDS: readonly CommandSpec[] = [
   {
@@ -197,5 +198,60 @@ export const REPORTING_COMMANDS: readonly CommandSpec[] = [
       "bun harness.ts stream:events --run .capsules/<run-id> --filter-type task-claimed",
     ],
     handler: streamEventsCommand,
+  },
+  {
+    name: "dag:render",
+    aliases: ["graph:sugiyama", "report:sugiyama"],
+    domain: "reporting",
+    summary: "Render Sugiyama hierarchical DAG layout with rounded Unicode boxes and cycle diagnostics.",
+    description:
+      "Computes Sugiyama layered layout, crossing minimization via barycenter heuristics, Tarjan cycle alerts, illegal bypass warnings, and orthogonal connectors.",
+    flags: [
+      optionalFlag("run", "string", "Capsule run root. Defaults to current repository .capsules/ when omitted."),
+      optionalFlag("run-id", "string", "Alias of --run."),
+      optionalFlag("repo", "string", "Repository root to search for .capsules/.", "."),
+      optionalFlag("detailed", "bool", "Render full write scopes, gate commands, and dependency lists."),
+      optionalFlag("box-style", "string", "Box border style: rounded, sharp, or ascii.", "rounded"),
+      optionalFlag("all", "bool", "Do not truncate output lines."),
+      optionalFlag("json", "bool", "Output structured JSON report."),
+    ],
+    readsStdin: false,
+    takesRemainder: false,
+    exitCodes: DEFAULT_EXIT_CODES,
+    examples: [
+      "bun harness.ts dag:render --run .capsules/<run-id>",
+      "bun harness.ts dag:render --detailed --box-style rounded",
+    ],
+    handler: dagRenderCommand,
+  },
+  {
+    name: "dag:trace",
+    aliases: ["trace:dag", "stream:trace"],
+    domain: "reporting",
+    summary: "Real-time step tracer and dynamic living DAG expansion timeline.",
+    description:
+      "Replays events.jsonl to construct dynamic branch expansions and renders a chronological vertical step timeline with status glyphs and telemetry.",
+    flags: [
+      optionalFlag("run", "string", "Capsule run root."),
+      optionalFlag("run-id", "string", "Capsule run identifier."),
+      optionalFlag("repo", "string", "Repository root."),
+      optionalFlag("from-seq", "int", "Starting event sequence number."),
+      optionalFlag("to-seq", "int", "Ending event sequence number."),
+      optionalFlag("max-steps", "int", "Maximum step entries to display.", 50),
+      optionalFlag("task", "string", "Filter steps by task ID."),
+      optionalFlag("actor", "string", "Filter steps by agent ID."),
+      optionalFlag("filter-type", "string", "Filter steps by event kind."),
+      optionalFlag("detailed", "bool", "Detailed step inspection."),
+      optionalFlag("all", "bool", "Return all steps without line truncation."),
+      optionalFlag("json", "bool", "Output JSON."),
+    ],
+    readsStdin: false,
+    takesRemainder: false,
+    exitCodes: DEFAULT_EXIT_CODES,
+    examples: [
+      "bun harness.ts dag:trace --run .capsules/<run-id>",
+      "bun harness.ts dag:trace --run .capsules/<run-id> --task task-1",
+    ],
+    handler: dagTraceCommand,
   },
 ];

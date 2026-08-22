@@ -107,9 +107,10 @@ is a capability gap to be declared, not worked around silently.
 | Host                        | Dispatch                                                   | Definitions                                                               | Messaging                                                                                                                    | Depth                                                                                    | Concurrency                                                           |
 | :-------------------------- | :--------------------------------------------------------- | :------------------------------------------------------------------------ | :--------------------------------------------------------------------------------------------------------------------------- | :--------------------------------------------------------------------------------------- | :-------------------------------------------------------------------- |
 | **Claude Code**             | `Agent` tool                                               | `.claude/agents/*.md` (YAML frontmatter)                                  | `SendMessage` (v2.1.206+); experimental Agent Teams use file mailboxes at `~/.claude/teams/<team>/inboxes/<agent>.json`      | 3 (`CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH`)                                               | 20 (`CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS`)                           |
-| **Antigravity** (CLI + IDE) | `invoke_subagent`                                          | custom agents with `subagent: true`; `define_subagent` for transient ones | none documented                                                                                                              | not documented                                                                           | not documented                                                        |
+| **Antigravity** (CLI + IDE) | `invoke_subagent`                                          | custom agents with `subagent: true`; `define_subagent` for transient ones | `send_message` direct channel                                                                                                | 3                                                                                        | 8                                                                     |
 | **Codex**                   | `collaboration` group `multi_agent_v1`, tool `spawn_agent` | TOML in `~/.codex/agents/` or `.codex/agents/`                            | `send_message`, `followup_task`, `send_input`, `wait_agent`, `interrupt_agent`, `list_agents`, `resume_agent`, `close_agent` | hierarchical task paths from `/root`                                                     | `agents.max_concurrent_threads_per_session` in `~/.codex/config.toml` |
 | **Cursor** (CLI + IDE)      | `Task` tool (SDK policy name `"task"`)                     | —                                                                         | none documented                                                                                                              | main agent and its DIRECT subagents may spawn; a subagent's subagent may not (since 2.5) | no documented limit                                                   |
+| **ChatGPT** (Web / API)     | function calling / `execute_subagent_task`                 | system / developer instructions                                           | single / multi-turn delegation                                                                                               | 2                                                                                        | 4                                                                     |
 
 ---
 
@@ -176,6 +177,51 @@ it, and do not fail quietly.**
 - No messaging → the capsule is the only channel between agents, which it already is by design.
 
 Never emit a command the host cannot execute. A confusing failure is worse than an honest limitation.
+
+---
+
+### 3.6 Mechanical-First, Cognitive-Fallback Architecture
+
+To guarantee deterministic multi-agent execution across heterogeneous hosts, Harness enforces a **Mechanical-First, Cognitive-Fallback** architecture:
+
+1. **Mechanical Invocation (Preferred)**:
+   - For every host provider, Harness leverages native direct tool/API dispatch first.
+   - **Antigravity CLI/IDE**: Dispatches subagents directly via `invoke_subagent` with explicit `workspace` isolation (`"inherit"` | `"branch"` | `"share"`) and optional `reused_subagent_id` for resume.
+   - **Claude Code**: Dispatches subagents directly via `Agent` tool with parameters for `name`, `prompt`, `model`, `effort`, and depth controls.
+   - **Cursor CLI/IDE**: Dispatches subagents directly via `Task` tool (`policy: "task"`).
+   - **Codex**: Dispatches subagents directly via `spawn_agent` in the `collaboration` group (`multi_agent_v1`), setting `task_path`, `model`, and `reasoning_effort`.
+   - **ChatGPT / OpenAI**: Dispatches subagents directly via structured tool/function calling payload (`chatgpt_subagent_call` / `execute_subagent_task`).
+
+2. **Cognitive Fallback (Automatic Resilient Fallback)**:
+   - If a host environment lacks native subagent tool execution or encounters tool call refusal, the CLI generates an authoritative, structured prompt.
+   - This prompt forces the LLM to adopt the strict role persona, execute the subagent instructions directly, maintain strict disjoint write-scope confinement, and execute the mandatory atomic CLI registration sequence.
+
+---
+
+### 3.7 Mandatory CLI Action Registration Protocol
+
+To guarantee a 100% complete, tamper-proof agent execution history in Harness memory, **all agent actions across all host environments MUST execute atomic CLI lifecycle registrations**:
+
+1. **Step 1: Agent Registration (`agent:register`)**:
+   - Before executing any task work, every subagent must be registered in the harness ledger:
+   ```bash
+   bun harness.ts agent:register --run <RUN> --agent <AGENT_ID> --role <ROLE> --host <HOST> [--parent-agent <PARENT>]
+   ```
+2. **Step 2: Task Claim & Token Acquisition (`task:claim`)**:
+   - The worker must claim the task lease to secure its cryptographic bearer token and bind git baseline:
+   ```bash
+   bun harness.ts task:claim --run <RUN> --task <TASK_ID> --agent <AGENT_ID> --role <ROLE>
+   ```
+3. **Step 3: Periodic Heartbeat (`task:heartbeat`)**:
+   - Long-running workers must refresh active lease deadlines:
+   ```bash
+   bun harness.ts task:heartbeat --run <RUN> --task <TASK_ID> --agent <AGENT_ID> --token <TOKEN>
+   ```
+4. **Step 4: Task Submission & Verification Evidence (`task:submit`)**:
+   - Upon completing implementation and verifying scoped unit gates, worker records submission evidence:
+   ```bash
+   bun harness.ts task:submit --run <RUN> --task <TASK_ID> --agent <AGENT_ID> --token <TOKEN> --summary "<SUMMARY>"
+   ```
 
 ---
 
@@ -257,3 +303,12 @@ Every host adapter implementation must enforce the following guardrails:
   - Subagents and coordinators are STRICTLY FORBIDDEN from calling `manage_task kill` on background schedulers or terminating pulse processes.
   - All final repository release tasks (git commit, git push to upstream, and global skill sync via `bun scripts/sync-global.ts`) MUST be executed by the dedicated Tier 1 Background Orchestrator / Tier 0 Mind Runner on its own background thread.
   - The main interactive user thread remains purely open and supervisory.
+
+### 5.9 Aggressive Unfulfilled-Demand Pushback & Mechanical Engine Halting
+
+- **Anti-Pattern**: Advancing execution waves, closing pulses, or validating runs when planned actions, lanes, or tasks in Harness memory remain unfulfilled, stranded, or skipped.
+- **Guardrail**:
+  - If a registered action, lane, or task is planned in Harness memory (`state.tasks`, `state.topology.waves`, `state.candidates`, `state.graph.gates`) but left unfulfilled, the engine immediately halts with a harsh, blocking pushback (`[AGGRESSIVE UNFULFILLED-DEMAND PUSHBACK]`).
+  - The pushback isolates the exact root cause for every stalled item (e.g. unleased task, missing submission evidence, unresolved repair findings, unproven mandatory gate, unfulfilled wave lane).
+  - State advancement and phase transition are strictly refused until all unfulfilled demands are fully resolved and verified.
+

@@ -8,10 +8,13 @@ may:
   - Reject with structured findings that each carry an ID, requirement, severity, evidence, and remediation
   - Pass only after every task requirement is covered by validator-owned check evidence
   - Dispatch a sub-validator and fold the evidence it records into the verdict
+  - Store all validation output artifacts, visual reports, DOM dumps, and screenshots strictly under `.capsules/<run>/evidence/` (and `.capsules/<run>/evidence/screenshots/`)
 must_not:
+  - Violate 4-tier hierarchy: Validator (Tier 3) is deployed exclusively by Tier 2 Coordinators; MUST NOT attempt to spawn coordinators, write code, or claim implementation leases
   - Read or request implementer reports, confidence statements, decision narratives, prior review
     notes, or completeness summaries
   - Validate a task it implemented, repaired, or previously validated
+  - Store validation evidence outside the unified evidence directory `.capsules/<run>/evidence/`
   - Pass before the mandatory adversarial probe round has been recorded
   - Pass while a required gate's recorded exit code is nonzero, or while a finding is unresolved
   - Run the whole repository's suite to verify one task; run that task's gate and the tests covering its scope
@@ -22,6 +25,7 @@ must_not:
   - Write a probe demand as if it were an observed defect, or a defect as if it were a probe demand
   - Open a branch: `branch:open` demands a live implementation lease, which a validator never holds
   - Echo, log, copy, or persist the validation token
+  - Terminate, kill, or cancel background supervisory schedulers or pulse execution; mind loops run infinitely
 commands:
   - task:validate-start
   - run:exec

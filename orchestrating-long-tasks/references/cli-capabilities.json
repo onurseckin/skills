@@ -2864,6 +2864,230 @@
       ]
     },
     {
+      "name": "dag:render",
+      "aliases": [
+        "graph:sugiyama",
+        "report:sugiyama"
+      ],
+      "domain": "reporting",
+      "summary": "Render Sugiyama hierarchical DAG layout with rounded Unicode boxes and cycle diagnostics.",
+      "description": "Computes Sugiyama layered layout, crossing minimization via barycenter heuristics, Tarjan cycle alerts, illegal bypass warnings, and orthogonal connectors.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root. Defaults to current repository .capsules/ when omitted."
+        },
+        {
+          "name": "run-id",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Alias of --run."
+        },
+        {
+          "name": "repo",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": ".",
+          "description": "Repository root to search for .capsules/."
+        },
+        {
+          "name": "detailed",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Render full write scopes, gate commands, and dependency lists."
+        },
+        {
+          "name": "box-style",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": "rounded",
+          "description": "Box border style: rounded, sharp, or ascii."
+        },
+        {
+          "name": "all",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Do not truncate output lines."
+        },
+        {
+          "name": "json",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Output structured JSON report."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts dag:render --run .capsules/<run-id>",
+        "bun harness.ts dag:render --detailed --box-style rounded"
+      ]
+    },
+    {
+      "name": "dag:trace",
+      "aliases": [
+        "trace:dag",
+        "stream:trace"
+      ],
+      "domain": "reporting",
+      "summary": "Real-time step tracer and dynamic living DAG expansion timeline.",
+      "description": "Replays events.jsonl to construct dynamic branch expansions and renders a chronological vertical step timeline with status glyphs and telemetry.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root."
+        },
+        {
+          "name": "run-id",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run identifier."
+        },
+        {
+          "name": "repo",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Repository root."
+        },
+        {
+          "name": "from-seq",
+          "type": "int",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Starting event sequence number."
+        },
+        {
+          "name": "to-seq",
+          "type": "int",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Ending event sequence number."
+        },
+        {
+          "name": "max-steps",
+          "type": "int",
+          "required": false,
+          "repeatable": false,
+          "default": 50,
+          "description": "Maximum step entries to display."
+        },
+        {
+          "name": "task",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Filter steps by task ID."
+        },
+        {
+          "name": "actor",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Filter steps by agent ID."
+        },
+        {
+          "name": "filter-type",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Filter steps by event kind."
+        },
+        {
+          "name": "detailed",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Detailed step inspection."
+        },
+        {
+          "name": "all",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Return all steps without line truncation."
+        },
+        {
+          "name": "json",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Output JSON."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts dag:trace --run .capsules/<run-id>",
+        "bun harness.ts dag:trace --run .capsules/<run-id> --task task-1"
+      ]
+    },
+    {
       "name": "run:exec",
       "aliases": [],
       "domain": "run",

@@ -901,6 +901,61 @@ bun harness.ts stream:events --run .capsules/<run-id> --from-seq 10 --max-events
 bun harness.ts stream:events --run .capsules/<run-id> --filter-type task-claimed
 ```
 
+### `dag:render`
+
+Render Sugiyama hierarchical DAG layout with rounded Unicode boxes and cycle diagnostics.
+
+Computes Sugiyama layered layout, crossing minimization via barycenter heuristics, Tarjan cycle alerts, illegal bypass warnings, and orthogonal connectors.
+
+- **Aliases**: `graph:sugiyama`, `report:sugiyama`
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--run` | string | no | no | - | Capsule run root. Defaults to current repository .capsules/ when omitted. |
+| `--run-id` | string | no | no | - | Alias of --run. |
+| `--repo` | string | no | no | `.` | Repository root to search for .capsules/. |
+| `--detailed` | bool | no | no | - | Render full write scopes, gate commands, and dependency lists. |
+| `--box-style` | string | no | no | `rounded` | Box border style: rounded, sharp, or ascii. |
+| `--all` | bool | no | no | - | Do not truncate output lines. |
+| `--json` | bool | no | no | - | Output structured JSON report. |
+
+```bash
+bun harness.ts dag:render --run .capsules/<run-id>
+bun harness.ts dag:render --detailed --box-style rounded
+```
+
+### `dag:trace`
+
+Real-time step tracer and dynamic living DAG expansion timeline.
+
+Replays events.jsonl to construct dynamic branch expansions and renders a chronological vertical step timeline with status glyphs and telemetry.
+
+- **Aliases**: `trace:dag`, `stream:trace`
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--run` | string | no | no | - | Capsule run root. |
+| `--run-id` | string | no | no | - | Capsule run identifier. |
+| `--repo` | string | no | no | - | Repository root. |
+| `--from-seq` | int | no | no | - | Starting event sequence number. |
+| `--to-seq` | int | no | no | - | Ending event sequence number. |
+| `--max-steps` | int | no | no | `50` | Maximum step entries to display. |
+| `--task` | string | no | no | - | Filter steps by task ID. |
+| `--actor` | string | no | no | - | Filter steps by agent ID. |
+| `--filter-type` | string | no | no | - | Filter steps by event kind. |
+| `--detailed` | bool | no | no | - | Detailed step inspection. |
+| `--all` | bool | no | no | - | Return all steps without line truncation. |
+| `--json` | bool | no | no | - | Output JSON. |
+
+```bash
+bun harness.ts dag:trace --run .capsules/<run-id>
+bun harness.ts dag:trace --run .capsules/<run-id> --task task-1
+```
+
 ## run
 
 ### `run:exec`

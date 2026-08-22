@@ -23,9 +23,9 @@ export interface MindPulseOpenResult {
   deadline_at: string;
   budget: {
     pulses_today: number;
-    pulses_per_day: number;
+    pulses_per_day: number | null;
     wall_clock_ms_today: number;
-    wall_clock_ms_per_day: number;
+    wall_clock_ms_per_day: number | null;
   };
 }
 
@@ -38,8 +38,9 @@ export function formatMindPulseOpenBrief(params: {
   openedAt: string;
   deadlineAt: string;
   pulsesToday: number;
-  pulsesPerDay: number;
+  pulsesPerDay: number | null;
 }): string {
+  const limitStr = params.pulsesPerDay === null ? "∞" : params.pulsesPerDay;
   const md = [
     `### Mind Pulse Opened: ${params.pulseId}`,
     `- **Capsule Root**: \`${params.runRoot}\``,
@@ -48,7 +49,7 @@ export function formatMindPulseOpenBrief(params: {
     `- **Driver**: \`${params.driver}\``,
     `- **Opened At**: \`${params.openedAt}\``,
     `- **Deadline At**: \`${params.deadlineAt}\``,
-    `- **Budget Headroom**: ${params.pulsesToday} / ${params.pulsesPerDay} pulses today`,
+    `- **Budget Headroom**: ${params.pulsesToday} / ${limitStr} pulses today`,
   ].join("\n");
   return enforceLineLimit(md, 30);
 }

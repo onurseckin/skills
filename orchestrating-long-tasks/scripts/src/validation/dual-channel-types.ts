@@ -161,7 +161,8 @@ export interface StructuredFinding {
     | "boilerplate_evidence"
     | "superficial_evidence"
     | "missing_evidence_metrics"
-    | "superficial_cognitive_feedback";
+    | "superficial_cognitive_feedback"
+    | "invalid_evidence_location";
   readonly message: string;
   readonly affectedSelector?: string;
   readonly viewport?: string;

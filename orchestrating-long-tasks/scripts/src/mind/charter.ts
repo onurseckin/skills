@@ -14,28 +14,34 @@ export interface StabilityCheck {
 }
 
 export interface MindBudgetOverrides {
-  readonly pulses_per_day?: number;
-  readonly wall_clock_ms_per_day?: number;
-  readonly max_agents_in_flight?: number;
-  readonly max_rounds_per_objective?: number;
+  readonly cadence?: string | undefined;
+  readonly concurrency_model?: string | undefined;
+  readonly infinite_cadence?: boolean | undefined;
+  readonly pulses_per_day?: number | null;
+  readonly wall_clock_ms_per_day?: number | null;
+  readonly max_agents_in_flight?: number | null;
+  readonly max_rounds_per_objective?: number | null;
   readonly base_interval_ms?: number;
-  readonly max_interval_ms?: number;
-  readonly max_pause_interval_ms?: number;
+  readonly max_interval_ms?: number | null;
+  readonly max_pause_interval_ms?: number | null;
   readonly pulse_deadline_ms?: number;
-  readonly max_open_proposals?: number;
+  readonly max_open_proposals?: number | null;
   readonly quiet_hours?: string | null;
 }
 
 export interface MindBudget {
-  pulses_per_day: number;
-  wall_clock_ms_per_day: number;
-  max_agents_in_flight: number;
-  max_rounds_per_objective: number;
+  cadence?: string | undefined;
+  concurrency_model?: string | undefined;
+  infinite_cadence?: boolean | undefined;
+  pulses_per_day: number | null;
+  wall_clock_ms_per_day: number | null;
+  max_agents_in_flight: number | null;
+  max_rounds_per_objective: number | null;
   base_interval_ms: number;
-  max_interval_ms: number;
-  max_pause_interval_ms: number;
+  max_interval_ms: number | null;
+  max_pause_interval_ms: number | null;
   pulse_deadline_ms: number;
-  max_open_proposals: number;
+  max_open_proposals: number | null;
   quiet_hours: string | null;
   day_key: string;
   pulses_today: number;
@@ -46,15 +52,18 @@ export const DEFAULT_MIND_BUDGET: Omit<
   MindBudget,
   "day_key" | "pulses_today" | "wall_clock_ms_today"
 > = {
-  pulses_per_day: 96,
-  wall_clock_ms_per_day: 21600000, // 6 hours
-  max_agents_in_flight: 8,
-  max_rounds_per_objective: 3,
-  base_interval_ms: 900000, // 15 minutes
-  max_interval_ms: 14400000, // 4 hours
-  max_pause_interval_ms: 1800000, // 30 minutes
+  cadence: "infinite_borderless",
+  concurrency_model: "topological_work_span",
+  infinite_cadence: true,
+  pulses_per_day: null,
+  wall_clock_ms_per_day: null,
+  max_agents_in_flight: null,
+  max_rounds_per_objective: null,
+  base_interval_ms: 0,
+  max_interval_ms: null,
+  max_pause_interval_ms: null,
   pulse_deadline_ms: 1200000, // 20 minutes
-  max_open_proposals: 5,
+  max_open_proposals: null,
   quiet_hours: null,
 };
 
@@ -89,9 +98,22 @@ function normalizeHeading(raw: string): string {
     .replace(/[\s-]+/g, "_");
 }
 
-function parseDurationOrNumber(raw: string): number {
+function parseDurationOrNumber(raw: string): number | null {
   const trimmed = raw.trim();
   const lower = trimmed.toLowerCase();
+  if (
+    lower === "infinity" ||
+    lower === "infinite" ||
+    lower === "unlimited" ||
+    lower === "none" ||
+    lower === "borderless" ||
+    lower.startsWith("topological") ||
+    lower.includes("p = w / s") ||
+    lower.includes("p=w/s") ||
+    lower.includes("w/s")
+  ) {
+    return null;
+  }
   if (lower.endsWith("ms")) {
     const val = Number(lower.slice(0, -2).trim());
     if (Number.isFinite(val) && val >= 0) return Math.round(val);
@@ -116,7 +138,7 @@ function parseDurationOrNumber(raw: string): number {
   if (Number.isFinite(val) && val >= 0) return Math.round(val);
   throw new HarnessError(
     "INVALID_ARGUMENT",
-    `invalid budget value '${raw}'; expected a non-negative number or duration (e.g. 15m, 4h, 900000)`,
+    `invalid budget value '${raw}'; expected a non-negative number, duration (e.g. 15m, 4h, 900000), or infinite/topological specification`,
   );
 }
 
@@ -136,7 +158,16 @@ function parseBudgetsSection(lines: readonly string[]): MindBudgetOverrides {
       .replace(/[\s/-]+/g, "_");
     const value = trimmed.slice(splitIdx + 1).trim();
 
-    if (key === "pulses_per_day" || key === "pulses_day") {
+    if (key === "cadence") {
+      overrides.cadence = value;
+      if (value.toLowerCase().includes("infinite") || value.toLowerCase().includes("borderless")) {
+        overrides.infinite_cadence = true;
+      }
+    } else if (key === "concurrency_model" || key === "concurrency") {
+      overrides.concurrency_model = value;
+    } else if (key === "infinite_cadence") {
+      overrides.infinite_cadence = value.toLowerCase() === "true" || value === "1";
+    } else if (key === "pulses_per_day" || key === "pulses_day") {
       overrides.pulses_per_day = parseDurationOrNumber(value);
     } else if (
       key === "wall_clock_ms_per_day" ||

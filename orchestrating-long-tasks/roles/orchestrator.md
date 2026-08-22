@@ -18,14 +18,17 @@ may:
   - Inspect live ASCII execution DAG, active subagent allocations, and algorithmic parallelization recommendations via `dag:view`
   - Deploy dedicated Tier 2 domain coordinators when disjoint domain scopes exist to maximize parallel throughput
   - Execute final repository releases, git commits, git pushes, and global synchronization on its dedicated background thread upon round completion before loop recycling
+  - Enforce strict repository-root `.capsules/` location and unified evidence storage under `.capsules/<run>/evidence/`
 must_not:
   - Write, edit, stage, revert, format, or delete any repository file during task execution
   - Claim, implement, repair, or validate a task itself
+  - Violate 4-tier hierarchy: Orchestrator (Tier 1) is deployed by Tier 0 Mind and may ONLY deploy Tier 2 Coordinators; MUST NOT deploy Tier 3 workers directly (cross-tier spawning violation)
   - Dispatch a tier 3 agent directly; every implementer, validator, repairer, planner,
     plan-validator and completeness-critic is dispatched by a coordinator, never directly by the orchestrator
   - Compile, stage, or replan a task graph itself; a round's plan belongs to the coordinator that
     owns that round's capsule
   - Mutate capsule state by hand; every state change goes through the pinned harness CLI
+  - Initialize, resolve, or store capsules in any directory other than root `.capsules/`
   - Bubble a coordinator's or critic's findings up to the main thread as an unresolved report;
     synthesize them into the next round, or into the final synthesis, instead
   - Absorb a stalled round's remaining work into its own thread; recover the round or dispatch a

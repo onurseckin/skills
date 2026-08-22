@@ -48,6 +48,8 @@ export interface BudgetLadderOptions {
   readonly roundIndex?: number | undefined;
   readonly objectiveId?: string | undefined;
   readonly openProposalsCount?: number | undefined;
+  readonly totalWork?: number | undefined;
+  readonly span?: number | undefined;
 }
 
 export function parseNowMs(nowInput?: number | Date | string): number {
@@ -58,6 +60,22 @@ export function parseNowMs(nowInput?: number | Date | string): number {
     if (Number.isFinite(parsed)) return parsed;
   }
   return Date.now();
+}
+
+/**
+ * Computes dynamic topological concurrency governed by Work/Span math:
+ * P = W / S (where W = total work, S = critical path span).
+ * In an infinite borderless mind, concurrency scales dynamically with topological parallelism.
+ */
+export function computeTopologicalConcurrency(
+  totalWork: number,
+  span: number,
+  minConcurrency: number = 1,
+): number {
+  if (!Number.isFinite(totalWork) || totalWork <= 0) return minConcurrency;
+  if (!Number.isFinite(span) || span <= 0) return Math.max(minConcurrency, Math.ceil(totalWork));
+  const p = Math.ceil(totalWork / span);
+  return Math.max(minConcurrency, p);
 }
 
 /**
@@ -169,7 +187,7 @@ export function checkQuietHoursBudget(
 
 /**
  * Validates daily pulse limit against budget.
- * Hard refusal with outcome: 'deferred'.
+ * In an infinite borderless mind, infinite cadence is supported without artificial refusal halts.
  */
 export function checkDailyPulseLimit(
   budget: Record<string, unknown>,
@@ -183,9 +201,9 @@ export function checkDailyPulseLimit(
       ? budget.pulses_per_day
       : typeof budget.daily_pulse_limit === "number"
         ? budget.daily_pulse_limit
-        : 96;
+        : Infinity;
 
-  if (pulsesToday >= pulsesPerDay) {
+  if (Number.isFinite(pulsesPerDay) && pulsesToday >= pulsesPerDay) {
     return {
       ok: false,
       key: "daily_pulse_limit",
@@ -202,7 +220,7 @@ export function checkDailyPulseLimit(
 
 /**
  * Validates daily wall clock limit against budget.
- * Hard refusal with outcome: 'deferred'.
+ * In an infinite borderless mind, infinite cadence is supported without artificial refusal halts.
  */
 export function checkDailyWallClockLimit(
   budget: Record<string, unknown>,
@@ -217,9 +235,9 @@ export function checkDailyWallClockLimit(
       ? budget.wall_clock_ms_per_day
       : typeof budget.daily_wall_clock_limit_ms === "number"
         ? budget.daily_wall_clock_limit_ms
-        : 21_600_000;
+        : Infinity;
 
-  if (wallClockToday >= wallClockPerDay) {
+  if (Number.isFinite(wallClockPerDay) && wallClockToday >= wallClockPerDay) {
     return {
       ok: false,
       key: "daily_wall_clock_limit_ms",
@@ -235,12 +253,12 @@ export function checkDailyWallClockLimit(
 }
 
 /**
- * Validates maximum active agents in flight against budget limit.
- * Hard refusal with outcome: 'deferred'.
+ * Validates maximum active agents in flight against budget limit or topological Work/Span concurrency.
  */
 export function checkMaxAgentsInFlight(
   budget: Record<string, unknown>,
   activeAgentsCountOrState: number | Record<string, unknown>,
+  topologicalParams?: { totalWork?: number; span?: number },
 ): BudgetCheckResult {
   let activeCount: number;
   if (typeof activeAgentsCountOrState === "number") {
@@ -249,10 +267,16 @@ export function checkMaxAgentsInFlight(
     activeCount = countActiveAgentsInFlight(activeAgentsCountOrState);
   }
 
-  const maxAgents =
-    typeof budget.max_agents_in_flight === "number" ? budget.max_agents_in_flight : 8;
+  let maxAgents: number;
+  if (typeof budget.max_agents_in_flight === "number") {
+    maxAgents = budget.max_agents_in_flight;
+  } else if (topologicalParams?.totalWork !== undefined && topologicalParams?.span !== undefined) {
+    maxAgents = computeTopologicalConcurrency(topologicalParams.totalWork, topologicalParams.span);
+  } else {
+    maxAgents = Infinity;
+  }
 
-  if (activeCount >= maxAgents) {
+  if (Number.isFinite(maxAgents) && activeCount >= maxAgents) {
     return {
       ok: false,
       key: "max_agents_in_flight",
@@ -269,7 +293,7 @@ export function checkMaxAgentsInFlight(
 
 /**
  * Validates round budget against max rounds per objective.
- * Hard refusal with outcome: 'paused'.
+ * In an infinite borderless mind, infinite cadence is supported without artificial refusal halts.
  */
 export function checkRoundBudget(
   budget: Record<string, unknown>,
@@ -281,9 +305,9 @@ export function checkRoundBudget(
       ? budget.max_rounds_per_objective
       : typeof budget.round_budget === "number"
         ? budget.round_budget
-        : 3;
+        : Infinity;
 
-  if (roundIndex > maxRounds) {
+  if (Number.isFinite(maxRounds) && roundIndex > maxRounds) {
     const objLabel = objectiveId ? ` for objective '${objectiveId}'` : "";
     return {
       ok: false,
@@ -301,15 +325,16 @@ export function checkRoundBudget(
 
 /**
  * Validates open proposals count against max_open_proposals budget.
- * Hard refusal with outcome: 'paused'.
+ * In an infinite borderless mind, infinite proposal capacity is supported without artificial refusal halts.
  */
 export function checkMaxOpenProposals(
   budget: Record<string, unknown>,
   openProposalsCount: number,
 ): BudgetCheckResult {
-  const maxOpen = typeof budget.max_open_proposals === "number" ? budget.max_open_proposals : 5;
+  const maxOpen =
+    typeof budget.max_open_proposals === "number" ? budget.max_open_proposals : Infinity;
 
-  if (openProposalsCount >= maxOpen) {
+  if (Number.isFinite(maxOpen) && openProposalsCount >= maxOpen) {
     return {
       ok: false,
       key: "max_open_proposals",
@@ -347,15 +372,15 @@ export function countActiveAgentsInFlight(state: Record<string, unknown>): numbe
 }
 
 /**
- * Evaluates the full strict budget refusal ladder in deterministic order:
+ * Evaluates the full budget refusal ladder in deterministic order:
  * 1. Quiet Hours (refusal outcome: 'deferred')
  * 2. Daily Pulse Limit (refusal outcome: 'deferred')
  * 3. Daily Wall Clock Limit (refusal outcome: 'deferred')
- * 4. Max Agents in Flight (refusal outcome: 'deferred')
+ * 4. Max Agents in Flight / Dynamic Topological Concurrency (refusal outcome: 'deferred')
  * 5. Round Budget (refusal outcome: 'paused')
  * 6. Max Open Proposals (refusal outcome: 'paused')
  *
- * All budget checks return hard refusals (NEVER warnings), prescribing explicit outcomes.
+ * In infinite borderless mode (default), checks pass without artificial refusal halts.
  */
 export function evaluateBudgetRefusalLadder(
   budgetOrState: Record<string, unknown>,
@@ -379,13 +404,18 @@ export function evaluateBudgetRefusalLadder(
   const wallCheck = checkDailyWallClockLimit(budget, options?.now);
   if (!wallCheck.ok) return wallCheck;
 
-  // 4. Max agents in flight
+  // 4. Max agents in flight / dynamic topological concurrency
+  const topoParams =
+    options?.totalWork !== undefined && options?.span !== undefined
+      ? { totalWork: options.totalWork, span: options.span }
+      : undefined;
+
   if (options?.activeAgentsCount !== undefined) {
-    const agentsCheck = checkMaxAgentsInFlight(budget, options.activeAgentsCount);
+    const agentsCheck = checkMaxAgentsInFlight(budget, options.activeAgentsCount, topoParams);
     if (!agentsCheck.ok) return agentsCheck;
   } else if (Array.isArray(budgetOrState.agents)) {
     const activeCount = countActiveAgentsInFlight(budgetOrState);
-    const agentsCheck = checkMaxAgentsInFlight(budget, activeCount);
+    const agentsCheck = checkMaxAgentsInFlight(budget, activeCount, topoParams);
     if (!agentsCheck.ok) return agentsCheck;
   }
 

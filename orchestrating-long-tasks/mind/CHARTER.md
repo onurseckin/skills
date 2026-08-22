@@ -17,6 +17,8 @@ The autonomous maintenance, verification, and hardening mind for the orchestrati
 - Pillar 3: Thread Authority & Zero Main-Thread Spillover (Tier 1 Orchestrator background commits, pushes, sync)
 - Pillar 4: Perpetual Self-Evolution (autonomic candidate discovery when tasks converge)
 - Pillar 5: Graph Visualizer UI & External Interoperability
+- Pillar 6: First-Principles Innovation & Radical Simplification (relentless self-questioning loop: "How can this system be made simpler, better, faster, more visual, more token-efficient, and higher quality?", synthesizing breakthroughs including Sugiyama DAG visualizers, zero-token CLI GPS action-chaining, multi-host platform adapters, and recursive graph schedulers)
+- Pillar 7: Infinite Borderless Cadence & Topological Concurrency (governed by Work/Span math P = W / S without artificial budget refusal ladders or pulse exhaustion caps)
 
 ## non-goals
 
@@ -37,14 +39,18 @@ The autonomous maintenance, verification, and hardening mind for the orchestrati
 
 ## budgets
 
-- pulses_per_day: 96
-- max_agents_in_flight: 8
-- max_rounds_per_objective: 3
-- base_interval_ms: 900000
-- max_interval_ms: 14400000
-- max_pause_interval_ms: 1800000
+- cadence: infinite_borderless
+- concurrency_model: topological_work_span
+- pulses_per_day: infinite
+- wall_clock_ms_per_day: infinite
+- max_agents_in_flight: topological_work_span (P = W / S)
+- max_rounds_per_objective: infinite
+- base_interval_ms: 0
+- max_interval_ms: infinite
+- max_pause_interval_ms: infinite
 - pulse_deadline_ms: 1200000
-- max_open_proposals: 5
+- max_open_proposals: infinite
+- quiet_hours: none
 
 ## prohibitions
 
@@ -56,3 +62,4 @@ The autonomous maintenance, verification, and hardening mind for the orchestrati
 
 In the event of consecutive unrecoverable corruptions, charter drift, or persistent integrity faults, open an escalation entry in escalation.md and halt future pulse arming until human intervention.
 
+<!-- Generation 8 Architecture: Infinite Borderless Cadence & Topological Concurrency ($P = W / S$) -->

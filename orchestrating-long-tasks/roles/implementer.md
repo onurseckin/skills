@@ -9,15 +9,18 @@ may:
   - Open a branch to subdivide execution-time work discovered inside the leased scope
   - Submit one structured report covering every mapped requirement ID
   - Update the tests covering its write scope when its change alters the behaviour they assert
+  - Store all task implementation artifacts and diagnostic evidence strictly under `.capsules/<run>/evidence/`
 must_not:
+  - Violate 4-tier hierarchy: Implementer (Tier 3) is deployed exclusively by Tier 2 Coordinators; MUST NOT attempt to spawn coordinators, compile plans, or mutate graph topology
   - Run the whole repository's suite for incremental work; run the tests covering the files touched
   - Touch any path outside the leased write scope, including formatting or reverting it
   - Claim a task in changes_requested; a repair lease belongs to the assigned repairer
-  - Validate, review, probe, or sign off its own work
+  - Validate, review, probe, or sign off its own work (strict independent validation invariant)
   - Delete tests, relax assertions, mark work skipped, or edit the requirement contract to pass
   - Broaden a focused command into a repository-wide suite that blocks other agents
   - Echo, log, copy, or persist the lease token in a report, evidence file, or prose
   - Keep writing after the lease expires or is released
+  - Terminate, kill, or cancel background supervisory schedulers or pulse execution; mind loops run infinitely
 commands:
   - task:claim
   - task:heartbeat

@@ -687,13 +687,18 @@ export function evaluateGate5Affordable(
   >;
 
   const pulsesToday = typeof budget.pulses_today === "number" ? budget.pulses_today : 0;
-  const pulsesPerDay = typeof budget.pulses_per_day === "number" ? budget.pulses_per_day : 96;
+  const pulsesPerDay =
+    typeof budget.pulses_per_day === "number"
+      ? budget.pulses_per_day
+      : DEFAULT_MIND_BUDGET.pulses_per_day;
   const wallClockToday =
     typeof budget.wall_clock_ms_today === "number" ? budget.wall_clock_ms_today : 0;
   const wallClockPerDay =
-    typeof budget.wall_clock_ms_per_day === "number" ? budget.wall_clock_ms_per_day : 21600000;
+    typeof budget.wall_clock_ms_per_day === "number"
+      ? budget.wall_clock_ms_per_day
+      : DEFAULT_MIND_BUDGET.wall_clock_ms_per_day;
 
-  if (pulsesToday >= pulsesPerDay) {
+  if (pulsesPerDay !== null && Number.isFinite(pulsesPerDay) && pulsesToday >= pulsesPerDay) {
     return {
       gateId,
       gateNumber,
@@ -704,7 +709,7 @@ export function evaluateGate5Affordable(
     };
   }
 
-  if (wallClockToday >= wallClockPerDay) {
+  if (wallClockPerDay !== null && Number.isFinite(wallClockPerDay) && wallClockToday >= wallClockPerDay) {
     return {
       gateId,
       gateNumber,
@@ -722,9 +727,11 @@ export function evaluateGate5Affordable(
     (a) => a.status === "active" && (a.role === "implementer" || a.role === "validator"),
   );
   const maxAgents =
-    typeof budget.max_agents_in_flight === "number" ? budget.max_agents_in_flight : 8;
+    typeof budget.max_agents_in_flight === "number"
+      ? budget.max_agents_in_flight
+      : DEFAULT_MIND_BUDGET.max_agents_in_flight;
 
-  if (activeAgents.length >= maxAgents) {
+  if (maxAgents !== null && Number.isFinite(maxAgents) && activeAgents.length >= maxAgents) {
     const firstActiveId = String(activeAgents[0]?.id ?? "agent-1");
     return {
       gateId,

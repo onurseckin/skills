@@ -7,11 +7,14 @@ may:
   - Re-run the admission test against candidates that were already admitted
   - Record findings that block, or approve with an explicit residual-risk list
   - Halt the mind
+  - Store audit reports and evidence strictly under `.capsules/<run>/evidence/`
 must_not:
+  - Violate 4-tier hierarchy: Mind Auditor (Tier 1) operates as an independent supervisory role and must not mutate repository files or execute task implementations
   - Read the mind's own narrative, rationale prose, or self-assessment
   - Audit a period in which it acted as orchestrator, coordinator, implementer or validator
   - Approve while any pulse in the window is unaccounted for
   - Edit any repository file, the charter, or any ledger
+  - Store evidence outside `.capsules/<run>/evidence/`
 commands:
   - mind:audit-start
   - mind:audit-report

@@ -15,12 +15,17 @@ import {
   checkQuietHours,
   checkQuietHoursBudget,
   checkRoundBudget,
+  computeTopologicalConcurrency,
   countActiveAgentsInFlight,
   evaluateBudgetRefusalLadder,
   parseNowMs,
   rollDayKeyIfNeeded,
   type BudgetOutcome,
 } from "../../../orchestrating-long-tasks/scripts/src/mind/budget.ts";
+import {
+  DEFAULT_MIND_BUDGET,
+  parseCharter,
+} from "../../../orchestrating-long-tasks/scripts/src/mind/charter.ts";
 import { initRun } from "../../../orchestrating-long-tasks/scripts/src/store/capsule.ts";
 import { loadRun } from "../../../orchestrating-long-tasks/scripts/src/store/load.ts";
 import { transact } from "../../../orchestrating-long-tasks/scripts/src/store/transaction.ts";
@@ -715,6 +720,128 @@ describe("mind/budget - strict refusal ladder and outcomes per CONTRACTS §1.3 a
       expect(after.state.event_sequence).toBe(seqBefore);
       expect(after.state.event_head).toBe(headBefore);
       expect(after.events.length).toBe(before.events.length);
+    });
+  });
+
+  describe("p17 & p23 - Infinite Borderless Mind & Dynamic Topological Concurrency ($P = W/S$)", () => {
+    test("DEFAULT_MIND_BUDGET provides infinite borderless parameters without artificial caps", () => {
+      expect(DEFAULT_MIND_BUDGET.infinite_cadence).toBe(true);
+      expect(DEFAULT_MIND_BUDGET.cadence).toBe("infinite_borderless");
+      expect(DEFAULT_MIND_BUDGET.concurrency_model).toBe("topological_work_span");
+      expect(DEFAULT_MIND_BUDGET.pulses_per_day).toBeNull();
+      expect(DEFAULT_MIND_BUDGET.wall_clock_ms_per_day).toBeNull();
+      expect(DEFAULT_MIND_BUDGET.max_agents_in_flight).toBeNull();
+      expect(DEFAULT_MIND_BUDGET.max_rounds_per_objective).toBeNull();
+      expect(DEFAULT_MIND_BUDGET.max_open_proposals).toBeNull();
+      expect(DEFAULT_MIND_BUDGET.base_interval_ms).toBe(0);
+      expect(DEFAULT_MIND_BUDGET.max_interval_ms).toBeNull();
+      expect(DEFAULT_MIND_BUDGET.max_pause_interval_ms).toBeNull();
+      expect(DEFAULT_MIND_BUDGET.pulse_deadline_ms).toBe(1_200_000);
+      expect(DEFAULT_MIND_BUDGET.quiet_hours).toBeNull();
+    });
+
+    test("computeTopologicalConcurrency accurately calculates P = ceil(W / S)", () => {
+      // Work = 10, Span = 2 -> P = 5
+      expect(computeTopologicalConcurrency(10, 2)).toBe(5);
+      // Work = 10, Span = 4 -> P = ceil(2.5) = 3
+      expect(computeTopologicalConcurrency(10, 4)).toBe(3);
+      // Work = 6, Span = 1 -> P = 6
+      expect(computeTopologicalConcurrency(6, 1)).toBe(6);
+      // Work = 6, Span = 6 (serial chain) -> P = 1
+      expect(computeTopologicalConcurrency(6, 6)).toBe(1);
+      // Edge cases
+      expect(computeTopologicalConcurrency(0, 0)).toBe(1);
+      expect(computeTopologicalConcurrency(-5, 2)).toBe(1);
+      expect(computeTopologicalConcurrency(10, 0)).toBe(10);
+    });
+
+    test("checkMaxAgentsInFlight evaluates dynamic topological Work/Span concurrency", () => {
+      const budget: Record<string, unknown> = {
+        infinite_cadence: true,
+      };
+
+      // When 4 agents active, and W=12, S=3 -> maxAgents = 4 -> passes
+      const passResult = checkMaxAgentsInFlight(budget, 3, { totalWork: 12, span: 3 });
+      expect(passResult.ok).toBe(true);
+
+      // When 5 agents active, and W=12, S=3 -> maxAgents = 4 -> refuses with capacity deferral
+      const refuseResult = checkMaxAgentsInFlight(budget, 5, { totalWork: 12, span: 3 });
+      expect(refuseResult.ok).toBe(false);
+      if (!refuseResult.ok) {
+        expect(refuseResult.key).toBe("max_agents_in_flight");
+        expect(refuseResult.outcome).toBe("deferred");
+        expect(refuseResult.current).toBe(5);
+        expect(refuseResult.limit).toBe(4);
+      }
+    });
+
+    test("budget checks pass unconditionally under default infinite budget", () => {
+      const defaultBudget = {
+        ...DEFAULT_MIND_BUDGET,
+        day_key: "2026-08-22",
+        pulses_today: 10000,
+        wall_clock_ms_today: 999999999,
+      };
+
+      expect(checkDailyPulseLimit(defaultBudget).ok).toBe(true);
+      expect(checkDailyWallClockLimit(defaultBudget).ok).toBe(true);
+      expect(checkMaxAgentsInFlight(defaultBudget, 50).ok).toBe(true);
+      expect(checkRoundBudget(defaultBudget, 100, "obj-infinite").ok).toBe(true);
+      expect(checkMaxOpenProposals(defaultBudget, 50).ok).toBe(true);
+
+      const ladderResult = evaluateBudgetRefusalLadder(defaultBudget, {
+        activeAgentsCount: 50,
+        roundIndex: 100,
+        openProposalsCount: 50,
+      });
+      expect(ladderResult.ok).toBe(true);
+    });
+
+    test("parseCharter correctly parses infinite borderless cadence and topological Work/Span notation", () => {
+      const infiniteCharter = `
+# System Charter
+
+## identity
+Infinite Borderless Mind with Topological Concurrency
+
+## goals
+- G1: Ensure non-stop autonomic self-evolution
+
+## non-goals
+- Manual intervention bottlenecks
+
+## repo_roots
+- \`orchestrating-long-tasks/\`
+
+## budgets
+- cadence: infinite_borderless
+- concurrency_model: topological_work_span
+- pulses_per_day: infinite
+- wall_clock_ms_per_day: unlimited
+- max_agents_in_flight: topological_work_span (P = W / S)
+- max_rounds_per_objective: infinite
+- base_interval_ms: 0
+- max_interval_ms: infinite
+- max_pause_interval_ms: infinite
+- pulse_deadline_ms: 20m
+- max_open_proposals: infinite
+- quiet_hours: none
+`;
+      const parsed = parseCharter(infiniteCharter);
+      expect(parsed.budgets).toBeDefined();
+      expect(parsed.budgets!.infinite_cadence).toBe(true);
+      expect(parsed.budgets!.cadence).toBe("infinite_borderless");
+      expect(parsed.budgets!.concurrency_model).toBe("topological_work_span");
+      expect(parsed.budgets!.pulses_per_day).toBeNull();
+      expect(parsed.budgets!.wall_clock_ms_per_day).toBeNull();
+      expect(parsed.budgets!.max_agents_in_flight).toBeNull();
+      expect(parsed.budgets!.max_rounds_per_objective).toBeNull();
+      expect(parsed.budgets!.base_interval_ms).toBe(0);
+      expect(parsed.budgets!.max_interval_ms).toBeNull();
+      expect(parsed.budgets!.max_pause_interval_ms).toBeNull();
+      expect(parsed.budgets!.pulse_deadline_ms).toBe(20 * 60 * 1000);
+      expect(parsed.budgets!.max_open_proposals).toBeNull();
+      expect(parsed.budgets!.quiet_hours).toBeNull();
     });
   });
 });
