@@ -10,7 +10,7 @@ import { captureGateEnvironment } from "./gate-environment.ts";
 
 const DEFAULTS = {
   wallTimeoutMs: 600_000,
-  idleTimeoutMs: 120_000,
+  idleTimeoutMs: 300_000,
   graceMs: 1_000,
   drainTimeoutMs: 5_000,
   heartbeatIntervalMs: 1_000,
