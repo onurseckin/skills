@@ -48,10 +48,6 @@ export function beginCompletenessCritic(
         );
       if (current.status !== "reviewed" && current.status !== "expired") {
         current.status = "expired";
-        const historical = history.find(
-          (entry) => entry.attempt === current.attempt && entry.critic_id === current.critic_id,
-        );
-        if (historical) historical.status = "expired";
       }
       if (current.status === "reviewed") {
         const review = draft.completion_review;
@@ -78,6 +74,11 @@ export function beginCompletenessCritic(
             "completion findings require recorded remediation",
           );
         }
+      }
+    }
+    for (const entry of history) {
+      if (entry.status !== "reviewed" && entry.status !== "expired") {
+        entry.status = "expired";
       }
     }
     const attempt = history.length + 1;
