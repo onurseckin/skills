@@ -3,6 +3,7 @@ import { loadRun } from "../../store/index.ts";
 import { recordCoordinatorPushback } from "../../workflow/review/coordinator-pushback.ts";
 import { systemClock } from "../../workflow/types.ts";
 import { actorFlag, textFlag, type Flags } from "../options.ts";
+import { validateReviewPushbackCriteria } from "../../authority/review-pushback.ts";
 
 export function coordinatorPushbackCommand(flags: Flags): Record<string, unknown> {
   const run = textFlag(flags, "run")!;
@@ -13,19 +14,27 @@ export function coordinatorPushbackCommand(flags: Flags): Record<string, unknown
   const cause = textFlag(flags, "cause")!;
   const observation = textFlag(flags, "observation")!;
   const remediation = textFlag(flags, "remediation")!;
+  const guidance = textFlag(flags, "guidance");
+  const rejectionReasonsRaw = textFlag(flags, "rejection-reasons");
+
+  const inputPayload = {
+    validator_id: validatorId,
+    domain,
+    cause,
+    observation,
+    remediation,
+    ...(guidance ? { guidance: [guidance] } : {}),
+    ...(rejectionReasonsRaw ? { rejection_reasons: rejectionReasonsRaw.split(",").map((s) => s.trim()) } : {}),
+  };
+
+  validateReviewPushbackCriteria(taskId, actor, inputPayload);
 
   loadRun(run);
   const state = recordCoordinatorPushback(
     workflowPort(run),
     taskId,
     actor,
-    {
-      validator_id: validatorId,
-      domain,
-      cause,
-      observation,
-      remediation,
-    },
+    inputPayload,
     systemClock,
   );
 
@@ -36,8 +45,10 @@ export function coordinatorPushbackCommand(flags: Flags): Record<string, unknown
     `### Coordinator Pushback Recorded: ${taskId}`,
     `- **Cause**: ${cause}`,
     `- **Against**: validator \`${validatorId}\`, domain \`${domain}\``,
+    `- **Repair round**: ${task.repair_round}`,
     `- **Task status**: ${task.status}`,
     pushback ? `- **Finding id**: \`${String(pushback.id)}\`` : undefined,
+    guidance ? `- **Guidance**: ${guidance}` : undefined,
   ]
     .filter((line): line is string => line !== undefined)
     .join("\n");

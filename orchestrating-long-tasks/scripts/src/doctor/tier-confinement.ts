@@ -14,6 +14,8 @@ import {
   validateTierSpawning,
 } from "../authority/thread-identifier.ts";
 
+export const DOCTOR_SUPERVISOR_CODE_CONTAMINATION = "DOCTOR_SUPERVISOR_CODE_CONTAMINATION";
+
 export type TierViolationType =
   | "cross_tier_spawning_violation"
   | "coordinator_code_writing"
@@ -21,7 +23,8 @@ export type TierViolationType =
   | "implementer_self_grading"
   | "implementer_graph_mutation"
   | "subagent_pulse_termination"
-  | "role_confinement_violation";
+  | "role_confinement_violation"
+  | "supervisor_code_contamination";
 
 export type TierViolationSeverity = "critical" | "important" | "minor";
 
@@ -776,6 +779,217 @@ function deduplicateFindings(
   return deduplicated;
 }
 
+export interface GitDiffRecord {
+  readonly path: string;
+  readonly status?: string | undefined;
+  readonly actor?: string | undefined;
+  readonly role?: string | undefined;
+}
+
+export function isSourceCodeFile(filePath: string): boolean {
+  const normalized = filePath.toLowerCase().trim();
+  if (
+    normalized.startsWith(".capsules/") ||
+    normalized.includes("/.capsules/")
+  ) {
+    return false;
+  }
+  if (
+    normalized.endsWith(".md") ||
+    normalized.endsWith(".json") ||
+    normalized.endsWith(".yaml") ||
+    normalized.endsWith(".yml") ||
+    normalized.endsWith(".txt")
+  ) {
+    if (
+      normalized.includes("/src/") ||
+      normalized.includes("scripts/src/") ||
+      normalized.endsWith(".ts") ||
+      normalized.endsWith(".js")
+    ) {
+      return true;
+    }
+    return false;
+  }
+  return (
+    /\.(ts|tsx|js|jsx|mjs|cjs|py|rs|go|rb|c|cpp|h|hpp|cs|java|kt|swift|scala|sh|bash|zsh)$/i.test(
+      normalized,
+    ) ||
+    normalized.includes("/src/") ||
+    normalized.includes("scripts/src/")
+  );
+}
+
+/**
+ * Mechanical audit for DOCTOR_SUPERVISOR_CODE_CONTAMINATION.
+ * Ensures zero direct source code file mutations, no file editing tool usage,
+ * no direct code modification commands, and no git diff modifications by Orchestrators (Tier 1) and Coordinators (Tier 2).
+ */
+export function auditSupervisorCodeContamination(
+  roleMap: Map<string, string>,
+  grants: readonly AgentGrantRecord[],
+  commands: readonly CommandRecord[],
+  tasks: readonly TaskRecord[],
+  gitDiffs?: readonly (string | GitDiffRecord)[],
+  findings?: TierConfinementFinding[],
+): TierConfinementFinding[] {
+  const resultFindings: TierConfinementFinding[] = findings ?? [];
+
+  // 1. Audit Grants & Tool Usage for Supervisors
+  for (const grant of grants) {
+    const role = grant.role;
+    if (!isOrchestratorRole(role) && !isCoordinatorRole(role)) continue;
+    const tier = roleToTier(role);
+
+    for (const tool of (grant.tools_used ?? []) as readonly AgentToolUse[]) {
+      if (tool.category === "file-edit" || CODE_EDIT_TOOLS.has(tool.name)) {
+        resultFindings.push({
+          agent_id: grant.id,
+          role,
+          tier,
+          violation_type: "supervisor_code_contamination",
+          severity: "critical",
+          observation: `[${DOCTOR_SUPERVISOR_CODE_CONTAMINATION}] Tier ${tier} supervisor "${grant.id}" (${role}) used code-editing tool "${tool.name}"`,
+          remediation:
+            "Supervisors must maintain zero source code file mutations and delegate all implementation exclusively to Tier 3 Implementers.",
+          evidence: {
+            check: DOCTOR_SUPERVISOR_CODE_CONTAMINATION,
+            tool_name: tool.name,
+            category: tool.category,
+          },
+        });
+      }
+    }
+  }
+
+  // 2. Audit Command History for Supervisors
+  for (const cmd of commands) {
+    const role = roleMap.get(cmd.actor) ?? inferRole(cmd.actor, roleMap, {});
+    if (!isOrchestratorRole(role) && !isCoordinatorRole(role)) continue;
+    const tier = roleToTier(role);
+
+    const isEditTool = cmd.tool !== undefined && CODE_EDIT_TOOLS.has(cmd.tool);
+    const isEditCat = cmd.tool_category === "file-edit";
+    const hasEditArg = (cmd.argv ?? []).some((arg) => CODE_EDIT_TOOLS.has(arg));
+
+    if (isEditTool || isEditCat || hasEditArg) {
+      resultFindings.push({
+        agent_id: cmd.actor,
+        role,
+        tier,
+        violation_type: "supervisor_code_contamination",
+        severity: "critical",
+        observation: `[${DOCTOR_SUPERVISOR_CODE_CONTAMINATION}] Tier ${tier} supervisor "${cmd.actor}" executed file modification tool/command in "${cmd.id}"`,
+        remediation:
+          "Supervisors must never edit code directly. Delegate all file edits to Tier 3 Implementers.",
+        evidence: {
+          check: DOCTOR_SUPERVISOR_CODE_CONTAMINATION,
+          command_id: cmd.id,
+          argv: [...(cmd.argv ?? [])],
+          ...(cmd.tool ? { tool: cmd.tool } : {}),
+        },
+      });
+    }
+
+    if (
+      cmd.repository_before &&
+      cmd.repository_after &&
+      cmd.repository_before.content_sha256 !== cmd.repository_after.content_sha256
+    ) {
+      resultFindings.push({
+        agent_id: cmd.actor,
+        role,
+        tier,
+        violation_type: "supervisor_code_contamination",
+        severity: "critical",
+        observation: `[${DOCTOR_SUPERVISOR_CODE_CONTAMINATION}] Tier ${tier} supervisor "${cmd.actor}" caused direct repository content mutation in command "${cmd.id}" (before: ${cmd.repository_before.content_sha256.slice(0, 8)}, after: ${cmd.repository_after.content_sha256.slice(0, 8)})`,
+        remediation:
+          "Supervisors must not mutate repository source files during command execution.",
+        evidence: {
+          check: DOCTOR_SUPERVISOR_CODE_CONTAMINATION,
+          command_id: cmd.id,
+          repo_before_sha: cmd.repository_before.content_sha256,
+          repo_after_sha: cmd.repository_after.content_sha256,
+        },
+      });
+    }
+  }
+
+  // 3. Audit Task Leases held by Supervisors
+  for (const task of tasks) {
+    if (!task.lease) continue;
+    const leaseRole = task.lease.role;
+    const agentRole =
+      roleMap.get(task.lease.agent_id) ?? inferRole(task.lease.agent_id, roleMap, {});
+    const isSup =
+      isOrchestratorRole(leaseRole) ||
+      isCoordinatorRole(leaseRole) ||
+      isOrchestratorRole(agentRole) ||
+      isCoordinatorRole(agentRole);
+
+    if (isSup) {
+      const effectiveRole =
+        isOrchestratorRole(leaseRole) || isOrchestratorRole(agentRole)
+          ? "orchestrator"
+          : "coordinator";
+      const tier = roleToTier(effectiveRole);
+
+      resultFindings.push({
+        agent_id: task.lease.agent_id,
+        role: effectiveRole,
+        tier,
+        violation_type: "supervisor_code_contamination",
+        severity: "critical",
+        observation: `[${DOCTOR_SUPERVISOR_CODE_CONTAMINATION}] Tier ${tier} supervisor "${task.lease.agent_id}" holds active implementation lease for task "${task.id}"`,
+        remediation:
+          "Supervisors must not hold implementation task leases. Implementation tasks must be claimed only by Tier 3 Implementers.",
+        evidence: {
+          check: DOCTOR_SUPERVISOR_CODE_CONTAMINATION,
+          task_id: task.id,
+          lease_role: leaseRole,
+        },
+      });
+    }
+  }
+
+  // 4. Audit Git Diffs attributed to Supervisors
+  if (gitDiffs && gitDiffs.length > 0) {
+    for (const diff of gitDiffs) {
+      const diffPath = typeof diff === "string" ? diff : diff.path;
+      const diffActor = typeof diff === "object" && diff.actor ? diff.actor : undefined;
+      const diffRole = typeof diff === "object" && diff.role ? diff.role : undefined;
+
+      if (isSourceCodeFile(diffPath)) {
+        if (diffActor) {
+          const actorRole =
+            diffRole ?? roleMap.get(diffActor) ?? inferRole(diffActor, roleMap, {});
+          if (isOrchestratorRole(actorRole) || isCoordinatorRole(actorRole)) {
+            const tier = roleToTier(actorRole);
+            resultFindings.push({
+              agent_id: diffActor,
+              role: actorRole,
+              tier,
+              violation_type: "supervisor_code_contamination",
+              severity: "critical",
+              observation: `[${DOCTOR_SUPERVISOR_CODE_CONTAMINATION}] Tier ${tier} supervisor "${diffActor}" modified source code file "${diffPath}" in git diff`,
+              remediation:
+                "Zero direct source code file mutations are permitted by supervisors. Revert changes and delegate to Tier 3 Implementers.",
+              evidence: {
+                check: DOCTOR_SUPERVISOR_CODE_CONTAMINATION,
+                file_path: diffPath,
+                actor: diffActor,
+                role: actorRole,
+              },
+            });
+          }
+        }
+      }
+    }
+  }
+
+  return resultFindings;
+}
+
 /**
  * Full mechanical audit of 4-tier boundary confinement across capsule state.
  */
@@ -832,6 +1046,7 @@ export function auditTierConfinement(
   auditOrchestratorConfinement(roleMap, grants, commands, tasks, findings);
   auditImplementerConfinement(roleMap, tasks, commands, loadedEvents, findings);
   auditPulseTerminationConfinement(roleMap, resolvedState, commands, findings);
+  auditSupervisorCodeContamination(roleMap, grants, commands, tasks, undefined, findings);
 
   return deduplicateFindings(findings);
 }
@@ -862,7 +1077,8 @@ export function assertSupervisorRoleConfinement(
   const supervisorViolations = findings.filter(
     (f) =>
       f.violation_type === "coordinator_code_writing" ||
-      f.violation_type === "orchestrator_direct_implementation",
+      f.violation_type === "orchestrator_direct_implementation" ||
+      f.violation_type === "supervisor_code_contamination",
   );
 
   if (supervisorViolations.length > 0) {

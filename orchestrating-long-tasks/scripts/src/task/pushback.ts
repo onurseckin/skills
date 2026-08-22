@@ -24,9 +24,67 @@ import {
   type TransactionPort,
   type WorkflowState,
 } from "../workflow/types.ts";
+import {
+  auditTaskVerificationEvidence,
+  appendPushbackRound,
+  createPushbackHistory,
+  detectDomainBatching,
+  evaluateCounterfactualEvidence,
+  evaluateRepairProgression,
+  generateCorrectiveGuidance,
+  isRepairExhausted,
+  rejectSuperficialClaims,
+  validateReviewPushbackCriteria,
+  validateReviewPushbackInput,
+  type CounterfactualEvidenceEvaluation,
+  type CounterfactualEvidenceItem,
+  type DomainBatchingDetectionResult,
+  type PushbackHistory,
+  type PushbackRoundRecord,
+  type RepairProgressionEvaluation,
+  type ScepticismAuditOptions,
+  type ScepticismViolation,
+  type ScepticismViolationType,
+  type SuperficialityDetectionResult,
+  type TaskVerificationAuditResult,
+  type TaskVerificationCheckInput,
+  type TaskVerificationEvidenceInput,
+  type TaskVerificationEvidenceItem,
+  type ValidatedReviewPushback,
+} from "../authority/review-pushback.ts";
 
 export type { CoordinatorPushbackInput } from "../workflow/review/coordinator-pushback.ts";
 export type { CoordinatorPushback, CoordinatorPushbackCause, ValidatorDomain };
+export type {
+  CounterfactualEvidenceEvaluation,
+  CounterfactualEvidenceItem,
+  DomainBatchingDetectionResult,
+  PushbackHistory,
+  PushbackRoundRecord,
+  RepairProgressionEvaluation,
+  ScepticismAuditOptions,
+  ScepticismViolation,
+  ScepticismViolationType,
+  SuperficialityDetectionResult,
+  TaskVerificationAuditResult,
+  TaskVerificationCheckInput,
+  TaskVerificationEvidenceInput,
+  TaskVerificationEvidenceItem,
+  ValidatedReviewPushback,
+};
+export {
+  auditTaskVerificationEvidence,
+  appendPushbackRound,
+  createPushbackHistory,
+  detectDomainBatching,
+  evaluateCounterfactualEvidence,
+  evaluateRepairProgression,
+  generateCorrectiveGuidance,
+  isRepairExhausted,
+  rejectSuperficialClaims,
+  validateReviewPushbackCriteria,
+  validateReviewPushbackInput,
+};
 
 export interface PushbackContestOptions {
   readonly taskId: string;
@@ -38,6 +96,8 @@ export interface PushbackContestOptions {
   readonly remediation: string;
   readonly clock?: Clock | undefined;
   readonly maxRepairRounds?: number | undefined;
+  readonly guidance?: readonly string[] | undefined;
+  readonly rejectionReasons?: readonly string[] | undefined;
 }
 
 export interface PushbackExecutionResult {
@@ -47,6 +107,8 @@ export interface PushbackExecutionResult {
   readonly pushbackRecord: CoordinatorPushback;
   readonly repairAssignee?: string | undefined;
   readonly repairRound: number;
+  readonly pushbackHistory?: PushbackHistory | undefined;
+  readonly auditResult?: TaskVerificationAuditResult | undefined;
 }
 
 export function isProceduralPushback(cause: unknown): cause is "procedural" {
@@ -95,6 +157,8 @@ export function executeCoordinatorPushback(
         cause: CoordinatorPushbackCause;
         observation: string;
         remediation: string;
+        guidance?: readonly string[] | undefined;
+        rejection_reasons?: readonly string[] | undefined;
       },
   clock: Clock = systemClock,
   maxRepairRounds: number = MAX_REPAIR_ROUNDS,
@@ -133,6 +197,8 @@ export function contestValidatorVerdict(
     remediation,
     clock = systemClock,
     maxRepairRounds = MAX_REPAIR_ROUNDS,
+    guidance,
+    rejectionReasons,
   } = options;
 
   if (!isValidatorDomain(domain)) {
@@ -149,6 +215,8 @@ export function contestValidatorVerdict(
       cause,
       observation,
       remediation,
+      ...(guidance !== undefined ? { guidance } : {}),
+      ...(rejectionReasons !== undefined ? { rejection_reasons: rejectionReasons } : {}),
     },
     clock,
     maxRepairRounds,

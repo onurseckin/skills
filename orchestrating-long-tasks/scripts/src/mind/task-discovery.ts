@@ -1,0 +1,997 @@
+import { existsSync, lstatSync, readdirSync, readFileSync } from "node:fs";
+import { basename, dirname, extname, join, relative, resolve } from "node:path";
+import { HarnessError } from "../errors/harness-error.ts";
+import { auditBlunderLog, type BlunderEntry } from "./blunders.ts";
+import { parseCharter, type ParsedCharter } from "./charter.ts";
+import { readFeedbackQueue, type FeedbackItem, type FeedbackPriority } from "./feedback-queue.ts";
+import { MIND_DISCOVERY_SOURCES, type MindSourceDefinition } from "./sources.ts";
+import {
+  enqueueTasksBatch,
+  readTaskQueue,
+  type NewTaskQueueInput,
+  type TaskPriority,
+  type TaskQueueItem,
+  type TaskSourceType,
+} from "./task-queue.ts";
+
+export type DiscoveryCategory =
+  | "CODE_QUALITY"
+  | "TEST_COVERAGE"
+  | "DORMANT_CRITERIA"
+  | "FEEDBACK_INTAKE"
+  | "BLUNDER_REMEDIATION"
+  | "ARCHITECTURAL_HEALTH"
+  | "CONTINUOUS_HARDENING";
+
+export type DiscoverySeverity = "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "BACKGROUND";
+
+export type CodeQualityIssueType =
+  | "TYPE_SAFETY_ANY"
+  | "COMPILER_SUPPRESSION"
+  | "LITERAL_FALLBACK"
+  | "TODO_FIXME_MARKER"
+  | "OVERSIZED_MODULE"
+  | "UNEXPORTED_DEAD_CODE"
+  | "DOCUMENTATION_DEFICIT";
+
+export interface CodeQualityFinding {
+  readonly file: string;
+  readonly line?: number | undefined;
+  readonly issueType: CodeQualityIssueType;
+  readonly description: string;
+  readonly snippet?: string | undefined;
+  readonly severity: DiscoverySeverity;
+  readonly suggestedRemediation: string;
+}
+
+export interface CodeQualityScanOptions {
+  readonly sourceRoots?: readonly string[] | undefined;
+  readonly maxFindings?: number | undefined;
+  readonly maxLineThreshold?: number | undefined;
+  readonly fileExtensions?: readonly string[] | undefined;
+  readonly excludePatterns?: readonly string[] | undefined;
+}
+
+export interface CodeQualityScanResult {
+  readonly findings: readonly CodeQualityFinding[];
+  readonly filesScanned: number;
+  readonly totalFindings: number;
+  readonly durationMs: number;
+}
+
+export type TestCoverageIssueType =
+  | "MISSING_TEST_FILE"
+  | "SKIPPED_TESTS"
+  | "EMPTY_TEST_SUITE"
+  | "LOW_ASSERTION_DENSITY";
+
+export interface TestCoverageFinding {
+  readonly sourceFile: string;
+  readonly testFile?: string | undefined;
+  readonly issueType: TestCoverageIssueType;
+  readonly description: string;
+  readonly suggestedRemediation: string;
+  readonly severity: DiscoverySeverity;
+}
+
+export interface TestCoverageScanOptions {
+  readonly sourceRoots?: readonly string[] | undefined;
+  readonly testRoots?: readonly string[] | undefined;
+  readonly fileExtensions?: readonly string[] | undefined;
+  readonly excludePatterns?: readonly string[] | undefined;
+  readonly maxFindings?: number | undefined;
+}
+
+export interface TestCoverageScanResult {
+  readonly findings: readonly TestCoverageFinding[];
+  readonly sourceFilesScanned: number;
+  readonly testFilesScanned: number;
+  readonly missingTestCount: number;
+  readonly skippedTestCount: number;
+  readonly durationMs: number;
+}
+
+export interface DormantCriteriaFinding {
+  readonly criteriaId: string;
+  readonly source: "charter_goal" | "charter_stability" | "prompt_requirement" | "unverified_backlog";
+  readonly statement: string;
+  readonly severity: DiscoverySeverity;
+  readonly suggestedRemediation: string;
+}
+
+export interface DormantCriteriaScanOptions {
+  readonly charterPath?: string | undefined;
+  readonly taskQueuePath?: string | undefined;
+  readonly workspaceRoot?: string | undefined;
+  readonly recentTasksHistory?: readonly TaskQueueItem[] | undefined;
+  readonly maxFindings?: number | undefined;
+}
+
+export interface DormantCriteriaScanResult {
+  readonly findings: readonly DormantCriteriaFinding[];
+  readonly goalsCheckedCount: number;
+  readonly dormantCount: number;
+  readonly durationMs: number;
+}
+
+export interface DiscoveryItem {
+  readonly id: string;
+  readonly category: DiscoveryCategory;
+  readonly title: string;
+  readonly description: string;
+  readonly priority: TaskPriority;
+  readonly targetFiles: readonly string[];
+  readonly writeScope: readonly string[];
+  readonly gate: string;
+  readonly charterGoals: readonly string[];
+  readonly acceptanceCriteria: readonly string[];
+  readonly remediation: string;
+  readonly sourceType: TaskSourceType;
+  readonly sourceReference?: string | undefined;
+  readonly metadata?: Readonly<Record<string, unknown>> | undefined;
+}
+
+export interface DiscoveredTaskPlan {
+  readonly id: string;
+  readonly label: string;
+  readonly write_scope: readonly string[];
+  readonly gate: string;
+  readonly charter_goals: readonly string[];
+  readonly acceptance_criteria: readonly string[];
+  readonly dependencies: readonly string[];
+  readonly source_type: TaskSourceType;
+  readonly priority: TaskPriority;
+  readonly rationale: string;
+  readonly assigned_tier:
+    | "Tier_0_Mind"
+    | "Tier_1_Orchestrator"
+    | "Tier_2_Coordinator"
+    | "Tier_3_Implementer"
+    | "Tier_3_Validator";
+  readonly assigned_implementer: string;
+  readonly assigned_validator: string;
+  readonly candidate_id?: string | undefined;
+  readonly metadata?: Readonly<Record<string, unknown>> | undefined;
+}
+
+export interface TaskDiscoveryOptions {
+  readonly workspaceRoot?: string | undefined;
+  readonly sourceRoots?: readonly string[] | undefined;
+  readonly testRoots?: readonly string[] | undefined;
+  readonly charterPath?: string | undefined;
+  readonly feedbackQueuePath?: string | undefined;
+  readonly taskQueuePath?: string | undefined;
+  readonly capsulesDir?: string | undefined;
+  readonly maxTasks?: number | undefined;
+  readonly enableCodeQualityScan?: boolean | undefined;
+  readonly enableTestCoverageScan?: boolean | undefined;
+  readonly enableDormantCriteriaScan?: boolean | undefined;
+  readonly enableFeedbackQueueScan?: boolean | undefined;
+  readonly enableBlunderScan?: boolean | undefined;
+  readonly autoEnqueue?: boolean | undefined;
+  readonly actor?: string | undefined;
+}
+
+export interface TaskDiscoveryResult {
+  readonly scannedAt: string;
+  readonly findings: {
+    readonly codeQuality: readonly CodeQualityFinding[];
+    readonly testCoverage: readonly TestCoverageFinding[];
+    readonly dormantCriteria: readonly DormantCriteriaFinding[];
+    readonly feedbackPending: readonly FeedbackItem[];
+    readonly openBlunders: readonly BlunderEntry[];
+  };
+  readonly discoveries: readonly DiscoveryItem[];
+  readonly synthesizedPlans: readonly DiscoveredTaskPlan[];
+  readonly enqueuedTasks: readonly TaskQueueItem[];
+  readonly stats: {
+    readonly totalFindings: number;
+    readonly codeQualityCount: number;
+    readonly testCoverageCount: number;
+    readonly dormantCriteriaCount: number;
+    readonly feedbackCount: number;
+    readonly blunderCount: number;
+    readonly synthesizedCount: number;
+    readonly enqueuedCount: number;
+  };
+  readonly summary: string;
+}
+
+const DEFAULT_SOURCE_EXTENSIONS: readonly string[] = [".ts", ".js", ".tsx", ".jsx"];
+const DEFAULT_EXCLUDE_PATTERNS: readonly string[] = [
+  "node_modules",
+  ".git",
+  ".capsules",
+  "dist",
+  "build",
+];
+
+function sanitizeSlug(input: string): string {
+  return input
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40);
+}
+
+export function resolveDiscoveryCharterPath(customPath?: string): string {
+  if (customPath && customPath.trim()) {
+    return resolve(customPath.trim());
+  }
+  const cwd = process.cwd();
+  const candidates = [
+    join(cwd, "docs", "mind", "CHARTER.md"),
+    join(cwd, "docs", "CHARTER.md"),
+    join(cwd, "CHARTER.md"),
+    join(dirname(cwd), "docs", "mind", "CHARTER.md"),
+    join(dirname(cwd), "docs", "CHARTER.md"),
+    join(dirname(cwd), "CHARTER.md"),
+  ];
+  for (const c of candidates) {
+    if (existsSync(c)) return c;
+  }
+  return resolve(cwd, "docs/mind/CHARTER.md");
+}
+
+function collectFilesRecursively(
+  root: string,
+  dir: string,
+  extensions: readonly string[],
+  excludePatterns: readonly string[],
+  accumulated: string[] = [],
+): string[] {
+  if (!existsSync(dir)) return accumulated;
+
+  const entries = readdirSync(dir, { withFileTypes: true });
+  for (const entry of entries) {
+    const fullPath = join(dir, entry.name);
+    const relFromRoot = relative(root, fullPath);
+    const segments = relFromRoot.split(/[/\\]/);
+    const shouldExclude = segments.some((seg) => excludePatterns.includes(seg));
+    if (shouldExclude) continue;
+
+    if (entry.isDirectory()) {
+      collectFilesRecursively(root, fullPath, extensions, excludePatterns, accumulated);
+    } else if (entry.isFile()) {
+      const ext = extname(entry.name).toLowerCase();
+      if (extensions.includes(ext)) {
+        accumulated.push(fullPath);
+      }
+    }
+  }
+
+  return accumulated;
+}
+
+/**
+ * Scans codebase files for code quality defects:
+ * - TypeScript `any` types
+ * - Compiler suppressions (@ts-ignore, @ts-nocheck, @ts-expect-error)
+ * - Literal fallbacks / TODOs / FIXMEs / hardcoded stubs
+ * - Oversized modules exceeding line thresholds
+ */
+export function scanCodeQuality(options: CodeQualityScanOptions = {}): CodeQualityScanResult {
+  const startTime = Date.now();
+  const roots = options.sourceRoots && options.sourceRoots.length > 0
+    ? options.sourceRoots
+    : ["orchestrating-long-tasks/scripts/src"];
+  const extensions = options.fileExtensions ?? DEFAULT_SOURCE_EXTENSIONS;
+  const excludes = options.excludePatterns ?? DEFAULT_EXCLUDE_PATTERNS;
+  const maxLineThreshold = options.maxLineThreshold ?? 800;
+  const maxFindings = options.maxFindings ?? 50;
+
+  const allFiles: string[] = [];
+  for (const root of roots) {
+    const resolvedRoot = resolve(root);
+    collectFilesRecursively(resolvedRoot, resolvedRoot, extensions, excludes, allFiles);
+  }
+
+  const findings: CodeQualityFinding[] = [];
+
+  for (const file of allFiles) {
+    if (findings.length >= maxFindings) break;
+
+    try {
+      const content = readFileSync(file, "utf8");
+      const lines = content.split("\n");
+
+      // Check 1: Oversized module
+      if (lines.length > maxLineThreshold) {
+        findings.push({
+          file,
+          issueType: "OVERSIZED_MODULE",
+          description: `Module length of ${lines.length} lines exceeds recommended limit of ${maxLineThreshold} lines`,
+          severity: "LOW",
+          suggestedRemediation: "Refactor module into modular sub-components or distinct domain helpers.",
+        });
+      }
+
+      // Check lines for suppressions, any keyword, and markers
+      for (let i = 0; i < lines.length; i++) {
+        if (findings.length >= maxFindings) break;
+        const line = lines[i];
+        if (!line) continue;
+        const lineNum = i + 1;
+        const trimmed = line.trim();
+
+        // Check 2: Compiler suppressions
+        if (
+          trimmed.includes("@ts-ignore") ||
+          trimmed.includes("@ts-nocheck") ||
+          trimmed.includes("@ts-expect-error")
+        ) {
+          findings.push({
+            file,
+            line: lineNum,
+            issueType: "COMPILER_SUPPRESSION",
+            description: `TypeScript compiler suppression detected on line ${lineNum}: "${trimmed.slice(0, 60)}"`,
+            snippet: trimmed,
+            severity: "HIGH",
+            suggestedRemediation:
+              "Remove compiler suppression and provide explicit, rigorous TypeScript type definitions.",
+          });
+        }
+
+        // Check 3: any type annotations (e.g. `: any`, `<any>`, `as any`, `Promise<any>`)
+        if (
+          !trimmed.startsWith("//") &&
+          !trimmed.startsWith("/*") &&
+          !trimmed.startsWith("*") &&
+          (/\b:\s*any\b/.test(trimmed) ||
+            /\b<any>\b/.test(trimmed) ||
+            /\bas\s+any\b/.test(trimmed) ||
+            /\bArray<any>\b/.test(trimmed) ||
+            /\bPromise<any>\b/.test(trimmed) ||
+            /\bRecord<[^,]+,\s*any\b/.test(trimmed))
+        ) {
+          findings.push({
+            file,
+            line: lineNum,
+            issueType: "TYPE_SAFETY_ANY",
+            description: `Unconstrained 'any' type annotation on line ${lineNum}: "${trimmed.slice(0, 60)}"`,
+            snippet: trimmed,
+            severity: "HIGH",
+            suggestedRemediation:
+              "Replace 'any' with strict discriminated unions, unknown with type guards, or generic contracts.",
+          });
+        }
+
+        // Check 4: Unaddressed TODO / FIXME / HACK markers
+        if (
+          /\b(TODO|FIXME|HACK|XXX)\b/i.test(trimmed) &&
+          (trimmed.startsWith("//") || trimmed.startsWith("/*") || trimmed.startsWith("*"))
+        ) {
+          findings.push({
+            file,
+            line: lineNum,
+            issueType: "TODO_FIXME_MARKER",
+            description: `Unresolved work marker on line ${lineNum}: "${trimmed.slice(0, 60)}"`,
+            snippet: trimmed,
+            severity: "MEDIUM",
+            suggestedRemediation: "Implement planned logic or formalize into a tracked task.",
+          });
+        }
+      }
+    } catch {
+      // Skip unreadable files gracefully
+    }
+  }
+
+  return {
+    findings,
+    filesScanned: allFiles.length,
+    totalFindings: findings.length,
+    durationMs: Date.now() - startTime,
+  };
+}
+
+/**
+ * Scans source and test trees to discover test coverage gaps:
+ * - Source modules without matching test files in tests/unit/
+ * - Skipped test suites (test.skip, describe.skip)
+ * - Empty or missing test assertions
+ */
+export function scanTestCoverage(options: TestCoverageScanOptions = {}): TestCoverageScanResult {
+  const startTime = Date.now();
+  const sourceRoots = options.sourceRoots && options.sourceRoots.length > 0
+    ? options.sourceRoots
+    : ["orchestrating-long-tasks/scripts/src"];
+  const testRoots = options.testRoots && options.testRoots.length > 0
+    ? options.testRoots
+    : ["tests/unit"];
+  const extensions = options.fileExtensions ?? DEFAULT_SOURCE_EXTENSIONS;
+  const excludes = options.excludePatterns ?? DEFAULT_EXCLUDE_PATTERNS;
+  const maxFindings = options.maxFindings ?? 50;
+
+  const sourceFiles: string[] = [];
+  for (const root of sourceRoots) {
+    const resolved = resolve(root);
+    collectFilesRecursively(resolved, resolved, extensions, excludes, sourceFiles);
+  }
+
+  const testFiles: string[] = [];
+  for (const root of testRoots) {
+    const resolved = resolve(root);
+    collectFilesRecursively(resolved, resolved, extensions, excludes, testFiles);
+  }
+
+  const testFileMap = new Map<string, string>();
+  for (const tf of testFiles) {
+    testFileMap.set(basename(tf), tf);
+  }
+
+  const findings: TestCoverageFinding[] = [];
+  let missingTestCount = 0;
+  let skippedTestCount = 0;
+
+  for (const sf of sourceFiles) {
+    if (findings.length >= maxFindings) break;
+
+    const base = basename(sf, extname(sf));
+    // Skip index or type-only definition files from strict 1:1 test requirement if small
+    if (base === "index" || base === "types" || base.endsWith(".d")) {
+      continue;
+    }
+
+    const expectedTestName1 = `${base}.test.ts`;
+    const expectedTestName2 = `${base}.spec.ts`;
+
+    const matchedTest = testFileMap.get(expectedTestName1) ?? testFileMap.get(expectedTestName2);
+
+    if (!matchedTest) {
+      missingTestCount++;
+      findings.push({
+        sourceFile: sf,
+        issueType: "MISSING_TEST_FILE",
+        description: `Missing dedicated unit test suite for source module: ${basename(sf)}`,
+        suggestedRemediation: `Create unit test suite at tests/unit/${relative(process.cwd(), sf).replace(/scripts\/src\//, "").replace(/\.ts$/, ".test.ts")}`,
+        severity: "HIGH",
+      });
+    }
+  }
+
+  // Scan existing test files for skipped tests or empty suites
+  for (const tf of testFiles) {
+    if (findings.length >= maxFindings) break;
+
+    try {
+      const content = readFileSync(tf, "utf8");
+      if (
+        content.includes("test.skip(") ||
+        content.includes("describe.skip(") ||
+        content.includes("it.skip(")
+      ) {
+        skippedTestCount++;
+        findings.push({
+          sourceFile: tf,
+          testFile: tf,
+          issueType: "SKIPPED_TESTS",
+          description: `Skipped test cases detected in test suite: ${basename(tf)}`,
+          suggestedRemediation: "Re-enable skipped tests and repair any underlying assertion failures.",
+          severity: "MEDIUM",
+        });
+      }
+
+      if (!content.includes("test(") && !content.includes("it(")) {
+        findings.push({
+          sourceFile: tf,
+          testFile: tf,
+          issueType: "EMPTY_TEST_SUITE",
+          description: `Empty test suite without test assertions: ${basename(tf)}`,
+          suggestedRemediation: "Implement comprehensive assertions covering positive and negative cases.",
+          severity: "HIGH",
+        });
+      }
+    } catch {
+      // Ignore read errors
+    }
+  }
+
+  return {
+    findings,
+    sourceFilesScanned: sourceFiles.length,
+    testFilesScanned: testFiles.length,
+    missingTestCount,
+    skippedTestCount,
+    durationMs: Date.now() - startTime,
+  };
+}
+
+/**
+ * Scans charter goals and recent task history to discover dormant criteria:
+ * - Goals defined in CHARTER.md that have zero associated tasks or tests
+ * - Stability checks that have not been exercised
+ */
+export function scanDormantCriteria(
+  options: DormantCriteriaScanOptions = {},
+): DormantCriteriaScanResult {
+  const startTime = Date.now();
+  const charterPath = resolveDiscoveryCharterPath(options.charterPath);
+  const maxFindings = options.maxFindings ?? 20;
+
+  const findings: DormantCriteriaFinding[] = [];
+  let goalsCheckedCount = 0;
+
+  if (!existsSync(charterPath)) {
+    return {
+      findings: [
+        {
+          criteriaId: "missing-charter",
+          source: "charter_goal",
+          statement: "Charter document is missing at expected location",
+          severity: "CRITICAL",
+          suggestedRemediation: "Create CHARTER.md with valid identity, goals, and repo_roots sections.",
+        },
+      ],
+      goalsCheckedCount: 0,
+      dormantCount: 1,
+      durationMs: Date.now() - startTime,
+    };
+  }
+
+  try {
+    const rawContent = readFileSync(charterPath, "utf8");
+    const parsed = parseCharter(rawContent);
+
+    // Read task history from queue or provided history
+    const taskHistory = options.recentTasksHistory ?? readTaskQueue(options.taskQueuePath);
+    const targetedGoals = new Set<string>();
+
+    for (const task of taskHistory) {
+      for (const g of task.charter_goals) {
+        targetedGoals.add(g.toUpperCase().trim());
+      }
+    }
+
+    goalsCheckedCount = parsed.goals.length;
+
+    for (const goal of parsed.goals) {
+      if (findings.length >= maxFindings) break;
+      const normalizedId = goal.id.toUpperCase().trim();
+
+      if (!targetedGoals.has(normalizedId)) {
+        findings.push({
+          criteriaId: goal.id,
+          source: "charter_goal",
+          statement: goal.statement,
+          severity: "MEDIUM",
+          suggestedRemediation: `Synthesize dedicated task targeting dormant charter goal ${goal.id}: "${goal.statement}"`,
+        });
+      }
+    }
+
+    // Check stability checks
+    const stabilityChecks = parsed.stability ?? [];
+    for (const check of stabilityChecks) {
+      if (findings.length >= maxFindings) break;
+      if (!check.command.trim()) {
+        findings.push({
+          criteriaId: `stability-${sanitizeSlug(check.command)}`,
+          source: "charter_stability",
+          statement: `Stability check: ${check.command}`,
+          severity: "LOW",
+          suggestedRemediation: `Ensure automated test verifies exit code ${check.expectedExit} for command "${check.command}"`,
+        });
+      }
+    }
+  } catch (err) {
+    if (err instanceof HarnessError) {
+      findings.push({
+        criteriaId: "charter-parse-error",
+        source: "charter_goal",
+        statement: `Charter validation failed: ${err.message}`,
+        severity: "CRITICAL",
+        suggestedRemediation: "Repair CHARTER.md formatting per CONTRACTS.md §7 standards.",
+      });
+    }
+  }
+
+  return {
+    findings,
+    goalsCheckedCount,
+    dormantCount: findings.length,
+    durationMs: Date.now() - startTime,
+  };
+}
+
+function mapPriority(severity: DiscoverySeverity): TaskPriority {
+  switch (severity) {
+    case "CRITICAL":
+      return "CRITICAL";
+    case "HIGH":
+      return "HIGH";
+    case "MEDIUM":
+      return "MEDIUM";
+    case "LOW":
+      return "LOW";
+    case "BACKGROUND":
+      return "BACKGROUND";
+    default:
+      return "MEDIUM";
+  }
+}
+
+function mapFeedbackPriorityToTaskPriority(p: FeedbackPriority): TaskPriority {
+  switch (p) {
+    case "CRITICAL_USER_FEEDBACK":
+      return "CRITICAL";
+    case "HIGH_ARCHITECTURAL_FEATURE":
+      return "HIGH";
+    case "USER_DIRECTIVE":
+      return "HIGH";
+    case "NORMAL":
+      return "MEDIUM";
+    case "LOW":
+      return "LOW";
+    default:
+      return "MEDIUM";
+  }
+}
+
+/**
+ * Synthesizes a structured DiscoveredTaskPlan from a generic DiscoveryItem.
+ * Strictly guarantees Anti-Batching rules and 1:1 implementer-validator separation.
+ */
+export function synthesizeTaskFromDiscovery(
+  item: DiscoveryItem,
+  index = 1,
+): DiscoveredTaskPlan {
+  const taskSlug = sanitizeSlug(item.id);
+  const taskId = `task-p49-discovery-${index}-${taskSlug}`;
+  const implementerRole = `implementer-p49-discovery-${taskSlug}`;
+  const validatorRole = `validator-p49-discovery-${taskSlug}`;
+
+  const writeScope =
+    item.writeScope.length > 0
+      ? item.writeScope
+      : item.targetFiles.length > 0
+        ? item.targetFiles
+        : ["orchestrating-long-tasks/scripts/src/mind/"];
+
+  const gate =
+    item.gate.trim().length > 0
+      ? item.gate
+      : "bun test tests/unit/mind && bun run typecheck";
+
+  const acceptanceCriteria =
+    item.acceptanceCriteria.length > 0
+      ? item.acceptanceCriteria
+      : [
+          `Remediate discovery issue: ${item.description.slice(0, 100)}`,
+          `Verify gate passes cleanly: ${gate}`,
+          "Enforce 100% strict TypeScript types with 0 any and 0 compiler suppressions",
+        ];
+
+  return {
+    id: taskId,
+    label: item.title.slice(0, 100),
+    write_scope: writeScope,
+    gate,
+    charter_goals: item.charterGoals.length > 0 ? item.charterGoals : ["G1"],
+    acceptance_criteria: acceptanceCriteria,
+    dependencies: [],
+    source_type: item.sourceType,
+    priority: item.priority,
+    rationale: item.description,
+    assigned_tier: "Tier_3_Implementer",
+    assigned_implementer: implementerRole,
+    assigned_validator: validatorRole,
+    candidate_id: item.sourceReference,
+    metadata: {
+      discovery_category: item.category,
+      assigned_implementer: implementerRole,
+      assigned_validator: validatorRole,
+      source_reference: item.sourceReference ?? null,
+      ...item.metadata,
+    },
+  };
+}
+
+/**
+ * Main Autonomous Mind Task Discovery Engine.
+ * Scans code quality, test coverage, dormant criteria, pending feedback, and blunder logs
+ * to synthesize actionable, anti-batched self-evolution tasks for idle Mind loops.
+ */
+export function discoverTasks(options: TaskDiscoveryOptions = {}): TaskDiscoveryResult {
+  const nowIso = new Date().toISOString();
+  const maxTasks = options.maxTasks ?? 5;
+  const existingQueue = readTaskQueue(options.taskQueuePath);
+  const existingTaskIds = new Set(existingQueue.map((t) => t.id));
+
+  // Step 1: Scan Code Quality
+  const codeQualityResult =
+    options.enableCodeQualityScan !== false
+      ? scanCodeQuality({
+          sourceRoots: options.sourceRoots,
+          fileExtensions: undefined,
+          excludePatterns: undefined,
+          maxFindings: 10,
+        })
+      : { findings: [], filesScanned: 0, totalFindings: 0, durationMs: 0 };
+
+  // Step 2: Scan Test Coverage
+  const testCoverageResult =
+    options.enableTestCoverageScan !== false
+      ? scanTestCoverage({
+          sourceRoots: options.sourceRoots,
+          testRoots: options.testRoots,
+          maxFindings: 10,
+        })
+      : {
+          findings: [],
+          sourceFilesScanned: 0,
+          testFilesScanned: 0,
+          missingTestCount: 0,
+          skippedTestCount: 0,
+          durationMs: 0,
+        };
+
+  // Step 3: Scan Dormant Criteria
+  const dormantCriteriaResult =
+    options.enableDormantCriteriaScan !== false
+      ? scanDormantCriteria({
+          charterPath: options.charterPath,
+          taskQueuePath: options.taskQueuePath,
+          recentTasksHistory: existingQueue,
+          maxFindings: 5,
+        })
+      : { findings: [], goalsCheckedCount: 0, dormantCount: 0, durationMs: 0 };
+
+  // Step 4: Scan Pending Feedback Items
+  const pendingFeedback =
+    options.enableFeedbackQueueScan !== false
+      ? readFeedbackQueue(options.feedbackQueuePath).filter((f) => f.status === "PENDING")
+      : [];
+
+  // Step 5: Scan Open Blunders
+  const openBlunders =
+    options.enableBlunderScan !== false
+      ? auditBlunderLog(options.capsulesDir ? [options.capsulesDir] : [".capsules/"]).blunders.filter(
+          (b) => b.status === "open",
+        )
+      : [];
+
+  const rawDiscoveries: DiscoveryItem[] = [];
+
+  // Transform Feedback Items into Discoveries
+  for (const fb of pendingFeedback) {
+    const slug = sanitizeSlug(fb.id);
+    const scope = [
+      `orchestrating-long-tasks/scripts/src/mind/${slug}.ts`,
+      `tests/unit/mind/${slug}.test.ts`,
+    ];
+    rawDiscoveries.push({
+      id: `fb-${slug}`,
+      category: "FEEDBACK_INTAKE",
+      title: fb.title,
+      description: fb.content || fb.title,
+      priority: mapFeedbackPriorityToTaskPriority(fb.priority),
+      targetFiles: scope,
+      writeScope: scope,
+      gate: `bun test tests/unit/mind/${slug}.test.ts && bun run typecheck`,
+      charterGoals: ["G1"],
+      acceptanceCriteria: [
+        `Fulfill feedback directive: ${fb.title}`,
+        "Maintain zero compiler warnings and strict types",
+      ],
+      remediation: `Implement feedback directive ${fb.id}`,
+      sourceType: "feedback_intake",
+      sourceReference: fb.id,
+      metadata: { feedback_id: fb.id, priority: fb.priority },
+    });
+  }
+
+  // Transform Open Blunders into Discoveries
+  for (const bl of openBlunders) {
+    const slug = sanitizeSlug(bl.id);
+    const scope = ["orchestrating-long-tasks/scripts/src/mind/", "tests/unit/mind/"];
+    rawDiscoveries.push({
+      id: `blunder-${slug}`,
+      category: "BLUNDER_REMEDIATION",
+      title: `Remediate Blunder: ${bl.observation.slice(0, 50)}`,
+      description: bl.observation,
+      priority: "CRITICAL",
+      targetFiles: scope,
+      writeScope: scope,
+      gate: "bun test tests/unit/mind && bun run typecheck",
+      charterGoals: ["G2"],
+      acceptanceCriteria: [
+        `Resolve open blunder ${bl.id}: ${bl.observation.slice(0, 80)}`,
+        "Verify regression immunity with unit tests",
+      ],
+      remediation: bl.remediation || bl.prescribed_remediation || "Fix root cause of blunder",
+      sourceType: "blunder_remediation",
+      sourceReference: bl.id,
+      metadata: { blunder_id: bl.id, category: bl.category },
+    });
+  }
+
+  // Transform Code Quality Findings into Discoveries
+  for (const cq of codeQualityResult.findings) {
+    const fileBase = basename(cq.file, extname(cq.file));
+    const slug = `${sanitizeSlug(fileBase)}-${sanitizeSlug(cq.issueType)}`;
+    const relFile = relative(process.cwd(), cq.file);
+    const testFile = relFile.startsWith("orchestrating-long-tasks/")
+      ? `tests/unit/${relFile.replace("orchestrating-long-tasks/scripts/src/", "").replace(/\.ts$/, ".test.ts")}`
+      : `tests/unit/${fileBase}.test.ts`;
+
+    rawDiscoveries.push({
+      id: `cq-${slug}`,
+      category: "CODE_QUALITY",
+      title: `Code Quality: Fix ${cq.issueType} in ${basename(cq.file)}`,
+      description: cq.description,
+      priority: mapPriority(cq.severity),
+      targetFiles: [cq.file],
+      writeScope: [cq.file, testFile],
+      gate: `bun test ${testFile} && bun run typecheck`,
+      charterGoals: ["G1"],
+      acceptanceCriteria: [
+        cq.suggestedRemediation,
+        `Ensure 0 any and 0 compiler suppressions in ${basename(cq.file)}`,
+      ],
+      remediation: cq.suggestedRemediation,
+      sourceType: "self_evolution",
+      sourceReference: `${cq.file}:${cq.line ?? 1}`,
+      metadata: { issue_type: cq.issueType, line: cq.line },
+    });
+  }
+
+  // Transform Test Coverage Findings into Discoveries
+  for (const tc of testCoverageResult.findings) {
+    const fileBase = basename(tc.sourceFile, extname(tc.sourceFile));
+    const slug = `${sanitizeSlug(fileBase)}-coverage`;
+    const relSource = relative(process.cwd(), tc.sourceFile);
+    const targetTestFile =
+      tc.testFile ??
+      (relSource.startsWith("orchestrating-long-tasks/")
+        ? `tests/unit/${relSource.replace("orchestrating-long-tasks/scripts/src/", "").replace(/\.ts$/, ".test.ts")}`
+        : `tests/unit/${fileBase}.test.ts`);
+
+    rawDiscoveries.push({
+      id: `cov-${slug}`,
+      category: "TEST_COVERAGE",
+      title: `Test Coverage: Add unit test suite for ${basename(tc.sourceFile)}`,
+      description: tc.description,
+      priority: mapPriority(tc.severity),
+      targetFiles: [tc.sourceFile],
+      writeScope: [tc.sourceFile, targetTestFile],
+      gate: `bun test ${targetTestFile} && bun run typecheck`,
+      charterGoals: ["G3"],
+      acceptanceCriteria: [
+        tc.suggestedRemediation,
+        `All unit tests in ${basename(targetTestFile)} execute cleanly with 100% pass rate`,
+      ],
+      remediation: tc.suggestedRemediation,
+      sourceType: "self_evolution",
+      sourceReference: tc.sourceFile,
+      metadata: { issue_type: tc.issueType, test_file: targetTestFile },
+    });
+  }
+
+  // Transform Dormant Criteria into Discoveries
+  for (const dc of dormantCriteriaResult.findings) {
+    const slug = sanitizeSlug(dc.criteriaId);
+    rawDiscoveries.push({
+      id: `dormant-${slug}`,
+      category: "DORMANT_CRITERIA",
+      title: `Dormant Criteria: Activate ${dc.criteriaId}`,
+      description: `Unaddressed charter requirement: "${dc.statement}"`,
+      priority: mapPriority(dc.severity),
+      targetFiles: ["orchestrating-long-tasks/scripts/src/mind/"],
+      writeScope: ["orchestrating-long-tasks/scripts/src/mind/", "tests/unit/mind/"],
+      gate: "bun test tests/unit/mind && bun run typecheck",
+      charterGoals: [dc.criteriaId],
+      acceptanceCriteria: [
+        dc.suggestedRemediation,
+        `Verify implementation satisfies charter goal ${dc.criteriaId}`,
+      ],
+      remediation: dc.suggestedRemediation,
+      sourceType: "self_evolution",
+      sourceReference: dc.criteriaId,
+      metadata: { criteria_id: dc.criteriaId, source: dc.source },
+    });
+  }
+
+  // Deduplicate and synthesize plans
+  const synthesizedPlans: DiscoveredTaskPlan[] = [];
+  let planIndex = 1;
+
+  for (const disc of rawDiscoveries) {
+    if (synthesizedPlans.length >= maxTasks) break;
+    const plan = synthesizeTaskFromDiscovery(disc, planIndex);
+    if (!existingTaskIds.has(plan.id)) {
+      synthesizedPlans.push(plan);
+      planIndex++;
+    }
+  }
+
+  // Fallback Continuous Invariant Hardening Task if 0 discoveries
+  if (synthesizedPlans.length === 0) {
+    const hardeningScope = [
+      "orchestrating-long-tasks/scripts/src/mind/task-discovery.ts",
+      "orchestrating-long-tasks/scripts/src/mind/self-evolution.ts",
+      "tests/unit/mind/task-discovery.test.ts",
+    ];
+    const fallbackPlan: DiscoveredTaskPlan = {
+      id: `task-p49-discovery-hardening-${Date.now().toString().slice(-6)}`,
+      label: "Perpetual Invariant Hardening & Zero-Suppression Assurance",
+      write_scope: hardeningScope,
+      gate: "bun test tests/unit/mind/task-discovery.test.ts && bun run typecheck",
+      charter_goals: ["G1"],
+      acceptance_criteria: [
+        "Maintain 100% strict TypeScript types across mind engine",
+        "0 compiler suppressions (@ts-ignore, @ts-nocheck, @ts-expect-error)",
+        "All mind discovery unit tests pass cleanly",
+      ],
+      dependencies: [],
+      source_type: "self_evolution",
+      priority: "HIGH",
+      rationale:
+        "Autonomic perpetual self-evolution maintaining continuous invariant hardening and type safety.",
+      assigned_tier: "Tier_3_Implementer",
+      assigned_implementer: "implementer-p49-hardening",
+      assigned_validator: "validator-p49-hardening",
+      metadata: {
+        discovery_category: "CONTINUOUS_HARDENING",
+        assigned_implementer: "implementer-p49-hardening",
+        assigned_validator: "validator-p49-hardening",
+      },
+    };
+    synthesizedPlans.push(fallbackPlan);
+  }
+
+  // Auto-enqueue if requested
+  let enqueuedTasks: readonly TaskQueueItem[] = [];
+  if (options.autoEnqueue) {
+    const batchInputs: NewTaskQueueInput[] = synthesizedPlans.map((p) => ({
+      id: p.id,
+      title: p.label,
+      description: p.rationale,
+      priority: p.priority,
+      write_scope: p.write_scope,
+      gate: p.gate,
+      charter_goals: p.charter_goals,
+      acceptance_criteria: p.acceptance_criteria,
+      dependencies: p.dependencies,
+      source_type: p.source_type,
+      assigned_tier: p.assigned_tier,
+      metadata: p.metadata,
+    }));
+    enqueuedTasks = enqueueTasksBatch(batchInputs, options.taskQueuePath);
+  }
+
+  const totalFindings =
+    codeQualityResult.totalFindings +
+    testCoverageResult.missingTestCount +
+    testCoverageResult.skippedTestCount +
+    dormantCriteriaResult.dormantCount +
+    pendingFeedback.length +
+    openBlunders.length;
+
+  const summary = `Mind Task Discovery: identified ${totalFindings} finding(s) across code quality (${codeQualityResult.totalFindings}), test coverage (${testCoverageResult.missingTestCount} missing), dormant criteria (${dormantCriteriaResult.dormantCount}), feedback (${pendingFeedback.length}), and blunders (${openBlunders.length}). Synthesized ${synthesizedPlans.length} actionable task(s).`;
+
+  return {
+    scannedAt: nowIso,
+    findings: {
+      codeQuality: codeQualityResult.findings,
+      testCoverage: testCoverageResult.findings,
+      dormantCriteria: dormantCriteriaResult.findings,
+      feedbackPending: pendingFeedback,
+      openBlunders,
+    },
+    discoveries: rawDiscoveries,
+    synthesizedPlans,
+    enqueuedTasks,
+    stats: {
+      totalFindings,
+      codeQualityCount: codeQualityResult.totalFindings,
+      testCoverageCount: testCoverageResult.missingTestCount + testCoverageResult.skippedTestCount,
+      dormantCriteriaCount: dormantCriteriaResult.dormantCount,
+      feedbackCount: pendingFeedback.length,
+      blunderCount: openBlunders.length,
+      synthesizedCount: synthesizedPlans.length,
+      enqueuedCount: enqueuedTasks.length,
+    },
+    summary,
+  };
+}
