@@ -239,7 +239,7 @@ export function verifyCapsuleLayoutSync(capsuleRoot: string): CapsuleLayoutValid
     } catch {
       exists = false;
     }
-    files.push({ name: fileName, type: "file", exists, path: filePath, sizeBytes });
+    files.push({ name: fileName, type: "file", exists, path: filePath, ...(sizeBytes !== undefined ? { sizeBytes } : {}) });
     if (!exists) {
       missingFiles.push(fileName);
     }
