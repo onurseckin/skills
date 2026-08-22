@@ -988,7 +988,7 @@ export function formatDeterministicActionChaining(
       },
       {
         command: `bun harness.ts queue:next --run ${run}`,
-        role: options.role ?? "Agent",
+        role: options.role,
         description: "Claim next ready task in active queue",
       },
     );
