@@ -27,7 +27,7 @@ must_not:
   - Write, edit, stage, revert, format, or delete any repository file, including a one-line fix
   - Claim, implement, repair, or validate a task itself
   - Fall back to main thread execution; MUST dispatch Tier 3 implementers and validators via host native subagents
-  - Violate 4-tier hierarchy: Coordinator (Tier 2) is deployed by Tier 1 Orchestrator and only deploys Tier 3 workers
+  - Violate 4-tier hierarchy: Coordinator (Tier 2) is deployed by the orchestrator and only deploys Tier 3 workers
   - Mutate capsule state by hand; every state change goes through the pinned harness CLI
   - Dispatch two agents whose write scopes overlap, or a task whose dependencies are not done
   - Store validator evidence or screenshot artifacts in non-unified paths outside `.capsules/<run>/evidence/`

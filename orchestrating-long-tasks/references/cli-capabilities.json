@@ -6017,6 +6017,98 @@
       ]
     },
     {
+      "name": "watchdog:probe",
+      "aliases": [
+        "watchdog:supervise",
+        "watchdog:health-probe"
+      ],
+      "domain": "authority",
+      "summary": "Execute 2-way supervisory health probe and doctor diagnostics to top leader.",
+      "description": "Audits the live capsule across 5 supervisory health points ((a) Work/Span parallelization, (b) Plan enhancement, (c) 100% agent registry accuracy, (d) Strict role boundary adherence, (e) Doctor error resolution) and dispatches active probe report to the top leader.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root."
+        },
+        {
+          "name": "capsules-dir",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsules root directory."
+        },
+        {
+          "name": "generation",
+          "type": "int",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Target generation."
+        },
+        {
+          "name": "pulse-id",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Target pulse ID."
+        },
+        {
+          "name": "all",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Show verbose report details."
+        },
+        {
+          "name": "now",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Timestamp override (ISO8601)."
+        },
+        {
+          "name": "json",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Output JSON format."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts watchdog:probe",
+        "bun harness.ts watchdog:probe --run .capsules/<run-id>"
+      ]
+    },
+    {
       "name": "install",
       "aliases": [],
       "domain": "install",

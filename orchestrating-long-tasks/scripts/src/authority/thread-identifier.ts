@@ -82,16 +82,29 @@ export interface ExecutionContextOptions {
 export function parseTierValue(value: string | undefined): ExecutionTier | null {
   if (!value) return null;
   const normalized = value.trim().toLowerCase();
-  if (normalized === "0" || normalized === "tier-0" || normalized === "tier_0" || normalized === "human" || normalized === "mind") {
+  if (
+    normalized === "0" ||
+    normalized === "tier-0" ||
+    normalized === "tier_0" ||
+    normalized === "tier 0" ||
+    normalized === "human" ||
+    normalized === "mind" ||
+    normalized.startsWith("tier 0") ||
+    normalized.startsWith("tier 0:")
+  ) {
     return 0;
   }
   if (
     normalized === "1" ||
     normalized === "tier-1" ||
     normalized === "tier_1" ||
+    normalized === "tier 1" ||
     normalized === "orchestrator" ||
+    normalized === "orch" ||
     normalized === "mind-auditor" ||
-    normalized === "auditor"
+    normalized === "auditor" ||
+    normalized.startsWith("tier 1") ||
+    normalized.startsWith("tier 1:")
   ) {
     return 1;
   }
@@ -99,7 +112,11 @@ export function parseTierValue(value: string | undefined): ExecutionTier | null 
     normalized === "2" ||
     normalized === "tier-2" ||
     normalized === "tier_2" ||
-    normalized === "coordinator"
+    normalized === "tier 2" ||
+    normalized === "coordinator" ||
+    normalized === "coord" ||
+    normalized.startsWith("tier 2") ||
+    normalized.startsWith("tier 2:")
   ) {
     return 2;
   }
@@ -107,13 +124,16 @@ export function parseTierValue(value: string | undefined): ExecutionTier | null 
     normalized === "3" ||
     normalized === "tier-3" ||
     normalized === "tier_3" ||
+    normalized === "tier 3" ||
     normalized === "implementer" ||
     normalized === "validator" ||
     normalized === "critic" ||
     normalized === "completeness-critic" ||
     normalized === "repairer" ||
     normalized === "planner" ||
-    normalized === "plan-validator"
+    normalized === "plan-validator" ||
+    normalized.startsWith("tier 3") ||
+    normalized.startsWith("tier 3:")
   ) {
     return 3;
   }
@@ -122,11 +142,12 @@ export function parseTierValue(value: string | undefined): ExecutionTier | null 
 
 export function roleToTier(role: string): ExecutionTier {
   const normalized = role.toLowerCase().trim();
-  if (normalized === "mind") return 0;
+  if (normalized === "mind" || normalized === "human" || normalized === "user" || normalized === "lead") return 0;
   if (
     normalized === "orchestrator" ||
     normalized.startsWith("orch-") ||
     normalized.startsWith("orchestrator-") ||
+    normalized === "orch" ||
     normalized === "mind-auditor" ||
     normalized === "auditor"
   ) {
@@ -135,7 +156,8 @@ export function roleToTier(role: string): ExecutionTier {
   if (
     normalized === "coordinator" ||
     normalized.startsWith("coord-") ||
-    normalized.startsWith("coordinator-")
+    normalized.startsWith("coordinator-") ||
+    normalized === "coord"
   ) {
     return 2;
   }
@@ -145,7 +167,7 @@ export function roleToTier(role: string): ExecutionTier {
 export function agentIdToTier(agentId: string): ExecutionTier | null {
   const normalized = agentId.toLowerCase().trim();
   if (/^mind-audit|^audit/i.test(normalized)) return 1;
-  if (/^mind/i.test(normalized)) return 0;
+  if (/^mind|^human/i.test(normalized)) return 0;
   if (/^orch/i.test(normalized)) return 1;
   if (/^coord/i.test(normalized)) return 2;
   if (/^(impl|val|critic|repair|worker|sub|plan)/i.test(normalized)) return 3;
@@ -156,6 +178,7 @@ export function agentIdToRole(agentId: string): string | null {
   const normalized = agentId.toLowerCase().trim();
   if (/^mind-audit|^audit/i.test(normalized)) return "mind-auditor";
   if (/^mind/i.test(normalized)) return "mind";
+  if (/^human/i.test(normalized)) return "human";
   if (/^orch/i.test(normalized)) return "orchestrator";
   if (/^coord/i.test(normalized)) return "coordinator";
   if (/^impl/i.test(normalized)) return "implementer";
@@ -261,15 +284,16 @@ export function identifyExecutionContext(
 
   const hasInteractiveMainIndicator =
     options.isInteractiveMainThread === true ||
-    env.INTERACTIVE_MAIN_THREAD === "1" ||
-    env.INTERACTIVE_MAIN_THREAD === "true" ||
-    ((Boolean(env.HOST_SESSION) ||
-      Boolean(env.CONVERSATION_ID) ||
-      Boolean(env.SESSION_ID)) &&
-      !isSubagent &&
-      explicitTierEnv === null &&
-      explicitRole === null &&
-      explicitAgentId === null);
+    (options.isInteractiveMainThread !== false &&
+      (env.INTERACTIVE_MAIN_THREAD === "1" ||
+        env.INTERACTIVE_MAIN_THREAD === "true" ||
+        ((Boolean(env.HOST_SESSION) ||
+          Boolean(env.CONVERSATION_ID) ||
+          Boolean(env.SESSION_ID)) &&
+          !isSubagent &&
+          explicitTierEnv === null &&
+          explicitRole === null &&
+          explicitAgentId === null)));
 
   let tier: ExecutionTier = 0;
   let inferredRole: string | null = explicitRole;

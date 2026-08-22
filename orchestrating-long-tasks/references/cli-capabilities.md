@@ -1776,6 +1776,31 @@ bun harness.ts watchdog:verify
 bun harness.ts watchdog:verify --generation 1
 ```
 
+### `watchdog:probe`
+
+Execute 2-way supervisory health probe and doctor diagnostics to top leader.
+
+Audits the live capsule across 5 supervisory health points ((a) Work/Span parallelization, (b) Plan enhancement, (c) 100% agent registry accuracy, (d) Strict role boundary adherence, (e) Doctor error resolution) and dispatches active probe report to the top leader.
+
+- **Aliases**: `watchdog:supervise`, `watchdog:health-probe`
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--run` | string | no | no | - | Capsule run root. |
+| `--capsules-dir` | string | no | no | - | Capsules root directory. |
+| `--generation` | int | no | no | - | Target generation. |
+| `--pulse-id` | string | no | no | - | Target pulse ID. |
+| `--all` | bool | no | no | - | Show verbose report details. |
+| `--now` | string | no | no | - | Timestamp override (ISO8601). |
+| `--json` | bool | no | no | - | Output JSON format. |
+
+```bash
+bun harness.ts watchdog:probe
+bun harness.ts watchdog:probe --run .capsules/<run-id>
+```
+
 ## install
 
 ### `install`
