@@ -36,12 +36,33 @@ describe("Diagnostics Pushback Ingestion Engine", () => {
         stats.pending + stats.processed + stats.admitted + stats.declined + stats.completed,
       ).toBe(items.length);
 
-      // Check specific known feedback items
-      const item = items[0];
-      expect(item !== undefined).toBeTrue();
-      if (item !== undefined) {
+      const validPriorities = new Set([
+        "CRITICAL_USER_FEEDBACK",
+        "HIGH_ARCHITECTURAL_FEATURE",
+        "USER_DIRECTIVE",
+        "NORMAL",
+        "LOW",
+      ]);
+      const validStatuses = new Set([
+        "PENDING",
+        "ADMITTED",
+        "DECLINED",
+        "PROCESSED",
+        "COMPLETED",
+      ]);
+
+      // Check that all items match expected schema and properties
+      for (const item of items) {
+        expect(typeof item.id).toBe("string");
         expect(item.id.length).toBeGreaterThan(0);
+        expect(typeof item.title).toBe("string");
         expect(item.title.length).toBeGreaterThan(0);
+        expect(typeof item.content).toBe("string");
+        expect(typeof item.timestamp).toBe("string");
+        expect(validPriorities.has(item.priority)).toBeTrue();
+        expect(validStatuses.has(item.status)).toBeTrue();
+        expect(typeof item.category).toBe("string");
+        expect(item.category.length).toBeGreaterThan(0);
       }
     });
 
