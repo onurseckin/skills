@@ -30,6 +30,11 @@ export function resolvePathExecutable(argument: string, pathValue: string): stri
   throw new HarnessError("PATH_SAFETY", `gate executable is not resolvable: ${argument}`);
 }
 
+function normalizeBindingForVerification(binding: CommandPathBinding) {
+  const { inode: _inode, device: _device, ...rest } = binding;
+  return rest;
+}
+
 export function gatePathBindingIssues(
   repositoryRoot: string,
   cwd: string,
@@ -39,8 +44,12 @@ export function gatePathBindingIssues(
 ): string[] {
   try {
     const current = captureGatePathBindings(repositoryRoot, cwd, argv, pathValue);
-    return recorded &&
-      Buffer.from(canonicalJsonBytes(recorded)).equals(Buffer.from(canonicalJsonBytes(current)))
+    const recordedNormalized = recorded?.map(normalizeBindingForVerification);
+    const currentNormalized = current.map(normalizeBindingForVerification);
+    return recordedNormalized &&
+      Buffer.from(canonicalJsonBytes(recordedNormalized)).equals(
+        Buffer.from(canonicalJsonBytes(currentNormalized)),
+      )
       ? []
       : ["gate path identity or digest changed"];
   } catch (error) {
