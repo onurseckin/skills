@@ -21,7 +21,6 @@ export function recoverGateAttempt(
       ...attempt,
       status: "failed",
       timeout_kind: null,
-      failure_class: "evidence_failure",
       gate_finalized_at: now().toISOString(),
       repository_after: structuredClone(inspectRepository(intent.repository_root)),
       integrity_failure: attempt.integrity_failure ?? POST_INTERRUPTED,
@@ -34,7 +33,6 @@ export function recoverGateAttempt(
       ...attempt,
       status: "failed",
       timeout_kind: null,
-      failure_class: "evidence_failure",
       integrity_failure: REPOSITORY_DRIFT,
     };
   }
