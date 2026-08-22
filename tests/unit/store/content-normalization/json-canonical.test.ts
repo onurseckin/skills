@@ -3,6 +3,7 @@ import {
   canonicalizeJson,
   canonicalizeJsonl,
 } from "../../../../orchestrating-long-tasks/scripts/src/store/content-normalization/json-canonical.ts";
+import { canonicalJsonBytes } from "../../../../orchestrating-long-tasks/scripts/src/core/json.ts";
 
 const encode = (text: string): Uint8Array => new TextEncoder().encode(text);
 const decode = (bytes: Uint8Array): string => new TextDecoder().decode(bytes);
@@ -26,6 +27,15 @@ describe("canonicalizeJson", () => {
 
   test("returns undefined for invalid UTF-8", () => {
     expect(canonicalizeJson(new Uint8Array([0xff, 0xfe, 0xfd]))).toBeUndefined();
+  });
+
+  test("canonicalJsonBytes safely handles undefined, null, and non-object inputs", () => {
+    expect(decode(canonicalJsonBytes(undefined))).toBe("null");
+    expect(decode(canonicalJsonBytes(null))).toBe("null");
+    expect(decode(canonicalJsonBytes(123))).toBe("123");
+    expect(decode(canonicalJsonBytes("hello"))).toBe('"hello"');
+    expect(decode(canonicalJsonBytes(true))).toBe("true");
+    expect(decode(canonicalJsonBytes({ a: 1, b: undefined }))).toBe('{"a":1}');
   });
 });
 

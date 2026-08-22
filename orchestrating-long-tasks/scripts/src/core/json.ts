@@ -4,22 +4,32 @@ import { createHash } from "node:crypto";
 
 const encoder = new TextEncoder();
 
-function encode(value: JsonValue): string {
-  if (value === null || typeof value === "boolean" || typeof value === "string") {
-    return JSON.stringify(value);
+function encode(value: JsonValue | undefined): string {
+  if (value === undefined || value === null || typeof value === "boolean" || typeof value === "string") {
+    return JSON.stringify(value === undefined ? null : value);
   }
   if (typeof value === "number") {
     if (!Number.isFinite(value)) throw new TypeError("JSON numbers must be finite");
     return JSON.stringify(value);
   }
-  if (Array.isArray(value)) return `[${value.map(encode).join(",")}]`;
-  const fields = Object.keys(value)
+  if (Array.isArray(value)) {
+    return `[${value.map((item) => encode(item as JsonValue)).join(",")}]`;
+  }
+  if (typeof value !== "object") {
+    return JSON.stringify(value);
+  }
+  const record = value as Record<string, JsonValue | undefined>;
+  const fields = Object.keys(record)
+    .filter((key) => record[key] !== undefined)
     .sort()
-    .map((key) => `${JSON.stringify(key)}:${encode(value[key]!)}`);
+    .map((key) => `${JSON.stringify(key)}:${encode(record[key])}`);
   return `{${fields.join(",")}}`;
 }
 
-export function canonicalJsonBytes(value: JsonValue): Uint8Array {
+export function canonicalJsonBytes(value: JsonValue | undefined): Uint8Array {
+  if (value === undefined) {
+    return encoder.encode("null");
+  }
   return encoder.encode(encode(value));
 }
 

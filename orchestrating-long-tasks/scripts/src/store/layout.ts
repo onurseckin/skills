@@ -99,6 +99,12 @@ export const CAPSULE_LAYOUT: readonly LayoutEntry[] = [
     createdAtInit: true,
   },
   {
+    name: "screenshots/",
+    role: "primary",
+    responsibility: "Captured visual reports and screenshot artifacts.",
+    createdAtInit: false,
+  },
+  {
     name: "summary/",
     role: "export",
     responsibility: "The export handed to the visualizer: the one place repetition is deliberate.",
