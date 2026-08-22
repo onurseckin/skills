@@ -16,7 +16,7 @@ describe("Orchestrator YAML Specification Unit Tests", () => {
     expect(content).toContain("tier: 1");
     expect(content).toContain('display_name: "Meta-Orchestrator & Loop Runner"');
     expect(content).toContain("enable_subagent_tools: true");
-    expect(content).toContain("enable_write_tools: true");
+    expect(content).toContain("enable_write_tools: false");
     expect(content).toContain("max_autonomous_rounds: 10");
     expect(content).toContain("state_capsule_chaining: true");
     expect(content).toContain("defect_synthesis_fan_in: true");

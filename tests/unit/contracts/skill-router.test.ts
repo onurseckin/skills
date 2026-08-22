@@ -72,7 +72,7 @@ describe("SKILL.md is a router, not a manual", () => {
       file.endsWith(".yaml"),
     );
     // 13 canonical roles + 5 validator-domain contracts (B12.2's taxonomy, sharing role: validator).
-    expect(roles.length).toBe(18);
+    expect(roles.length).toBe(19);
     for (const role of roles) expect(skill).toContain(`roles/${role}`);
     for (const persona of personas) expect(skill).toContain(`agents/${persona}`);
   });

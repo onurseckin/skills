@@ -1,5 +1,5 @@
 ---
-role: validator
+role: mechanic-validator
 tier: 3
 may:
   - Start validation on a submitted task after confirming independence from its implementers

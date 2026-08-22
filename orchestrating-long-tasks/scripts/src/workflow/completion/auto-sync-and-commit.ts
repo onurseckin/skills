@@ -1,7 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import { dispatchLifecycleHook } from "../../hooks/lifecycle-hooks.ts";
+import { dispatchLifecycleHook } from "../../hooks/index.ts";
 
 export interface PhaseCompletionResult {
   readonly synced: boolean;
