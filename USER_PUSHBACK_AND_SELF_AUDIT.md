@@ -91,3 +91,32 @@ Generation 1 of the Mind Autonomous Loop (`mind-gen-1`) executed under strict 4-
 | **Capsule Permanence** | Preserve `.capsules/` permanently on disk | ✅ Verified | `.capsules/mind-gen-3` sealed & auditable (5/5 gates green) |
 | **Critic Verification** | Completeness Critic audit approval | ✅ Verified | Certificate approved by `critic-lead` |
 
+---
+
+## 6. Pulse Generation 2 Convergence (`mind-gen-2`)
+
+**Mind Generation Capsule**: [`/Users/onurseckinsenoglu/repos/skills/.capsules/mind-gen-2`](file:///Users/onurseckinsenoglu/repos/skills/.capsules/mind-gen-2)  
+**Last Updated**: 2026-08-22 (Pulse Generation 2 Convergence)
+
+### Core Objectives Delivered:
+1. **Canonical `whoami` Command Deduplication & Registry Cleanup** (`cand-1` / `task-1`):
+   - Removed redundant `thread:identify` and duplicate registry shims so only the canonical `whoami` command remains.
+   - Cleaned all legacy alias registrations and role contract references.
+   - Verified by independent gate: `bun test tests/unit/cli/whoami.test.ts tests/unit/cli/registry.test.ts` (Exit Code 0, `C-9f456f1f-8396-44a9-9077-f8581d03dbef`).
+2. **Zero Dead Code, Legacy Shim Removal & Test Suite Health** (`cand-2` / `task-2`):
+   - Cleaned dead code, unused shims, and test regex self-match issues across core and workflow.
+   - Fixed `literal-fallbacks` health check in `plan-formatter.ts` to cleanly handle optional `promptBytes`.
+   - Fixed test runner isolation and git spawn options (`stdio: ["ignore", "pipe", "pipe"]`) across test packets and mind tests.
+   - Verified by independent gate: `bun test tests/unit/workflow tests/unit/mind` (Exit Code 0, `C-f0c3008a-a4e1-4d38-99c2-70273a7154cf`).
+
+### Generation 2 Quality Rails & Invariants:
+| Invariant | Requirement | Status | Evidence |
+| :--- | :--- | :--- | :--- |
+| **0 TypeScript `any`** | Strict ban across all TS source and tests | ✅ Verified | Clean `tsc -p tsconfig.json --noEmit` exit 0; 0 instances |
+| **0 Suppressions** | 0 `@ts-ignore`, 0 `@ts-expect-error`, 0 `eslint-disable` | ✅ Verified | Verified across all touched files |
+| **0 Main-Thread Edits** | Strict tier delegation | ✅ Verified | Tier 3 Implementers performed candidate code modifications |
+| **Gate Verification** | Full test suite passing | ✅ Verified | 4,956+ tests passing across all test groups; 0 failures |
+| **Capsule Permanence** | Preserve `.capsules/` permanently on disk | ✅ Verified | `.capsules/mind-gen-2` sealed & auditable (3/3 gates green) |
+| **Critic Verification** | Completeness Critic audit approval | ✅ Verified | Certificate approved by `critic-lead` (`C-befc2815-f92b-4f9a-8408-0d659e5ba1ec`) |
+
+
