@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { beginCompletenessCritic } from "../../../../orchestrating-long-tasks/scripts/src/workflow/completion/begin-completeness-critic.ts";
-import { at, TestPort } from "../test-port.ts";
+import { at } from "../test-port.ts";
 import { completionPort, review } from "../completion-provenance-fixture.ts";
 
 const clock = at("2026-08-13T12:05:00.000Z");

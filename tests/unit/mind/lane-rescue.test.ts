@@ -4,7 +4,6 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { AgentGrantRecord } from "../../../orchestrating-long-tasks/scripts/src/contracts/agents.ts";
-import type { JsonObject } from "../../../orchestrating-long-tasks/scripts/src/contracts/json.ts";
 import { executeRescueLane } from "../../../orchestrating-long-tasks/scripts/src/mind/lanes/rescue.ts";
 import { initRun } from "../../../orchestrating-long-tasks/scripts/src/store/capsule.ts";
 import { loadRun } from "../../../orchestrating-long-tasks/scripts/src/store/load.ts";
@@ -269,7 +268,7 @@ describe("rescue.ts — executeRescueLane", () => {
           },
         ];
         working.tasks = {
-          "T1": {
+          T1: {
             id: "T1",
             label: "Task 1",
             type: "task",
@@ -338,7 +337,7 @@ describe("rescue.ts — executeRescueLane", () => {
           },
         ];
         working.tasks = {
-          "T1": {
+          T1: {
             id: "T1",
             label: "Task 1",
             type: "task",
@@ -411,7 +410,7 @@ describe("rescue.ts — executeRescueLane", () => {
           },
         ];
         working.tasks = {
-          "T2": {
+          T2: {
             id: "T2",
             label: "Task 2",
             type: "task",
@@ -539,13 +538,7 @@ describe("rescue.ts — executeRescueLane", () => {
       });
 
       // Transact an event attributed to busy-planner 5 minutes ago
-      transact(
-        runPath,
-        "busy-planner",
-        "planner-active",
-        { agent_id: "busy-planner" },
-        () => {},
-      );
+      transact(runPath, "busy-planner", "planner-active", { agent_id: "busy-planner" }, () => {});
 
       const result = await executeRescueLane(fixture.run, {
         targetRunRoots: [runPath],

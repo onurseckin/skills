@@ -207,4 +207,3 @@ export interface Clock {
 }
 
 export const systemClock: Clock = { now: () => new Date() };
-export type OperationResult = { state: WorkflowState; data: JsonValue };

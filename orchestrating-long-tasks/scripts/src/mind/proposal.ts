@@ -104,7 +104,12 @@ export function getAllProposals(state: Record<string, unknown>): MindProposal[] 
   }
 
   return list
-    .filter((c) => c.kind === "proposal" || c.disposition === "needs_authority" || c.status === "needs_authority")
+    .filter(
+      (c) =>
+        c.kind === "proposal" ||
+        c.disposition === "needs_authority" ||
+        c.status === "needs_authority",
+    )
     .map((c) => {
       const id = typeof c.id === "string" ? c.id : "cand-proposal";
       const statement = typeof c.statement === "string" ? c.statement : "";
@@ -116,21 +121,23 @@ export function getAllProposals(state: Record<string, unknown>): MindProposal[] 
           : typeof c.charter_goal === "string"
             ? [c.charter_goal]
             : [];
-      const falsifierArgv = Array.isArray(c.falsifier_argv) ? (c.falsifier_argv as string[]) : undefined;
+      const falsifierArgv = Array.isArray(c.falsifier_argv)
+        ? (c.falsifier_argv as string[])
+        : undefined;
       const falsifierExit = typeof c.falsifier_exit === "number" ? c.falsifier_exit : undefined;
       const writeScope = Array.isArray(c.write_scope) ? (c.write_scope as string[]) : [];
       const status: ProposalStatus =
         c.status === "granted" || c.status === "declined" || c.status === "admitted"
           ? c.status
           : "needs_authority";
-      const requirementId =
-        typeof c.requirement_id === "string" ? c.requirement_id : `req-${id}`;
+      const requirementId = typeof c.requirement_id === "string" ? c.requirement_id : `req-${id}`;
       const disposition =
         c.disposition === "actionable" || c.disposition === "out_of_scope"
           ? c.disposition
           : "needs_authority";
       const witness = typeof c.witness === "string" ? c.witness : null;
-      const witnessCommandId = typeof c.witness_command_id === "string" ? c.witness_command_id : null;
+      const witnessCommandId =
+        typeof c.witness_command_id === "string" ? c.witness_command_id : null;
       const createdAt = typeof c.created_at === "string" ? c.created_at : new Date(0).toISOString();
       const createdPulse =
         typeof c.created_pulse === "number" || typeof c.created_pulse === "string"
@@ -249,7 +256,11 @@ export function checkProposalRateLimits(
     const allProposals = getAllProposals(state);
     for (const prop of allProposals) {
       const createdAtMs = Date.parse(prop.created_at);
-      if (Number.isFinite(createdAtMs) && nowMs >= createdAtMs && nowMs - createdAtMs < minInterval) {
+      if (
+        Number.isFinite(createdAtMs) &&
+        nowMs >= createdAtMs &&
+        nowMs - createdAtMs < minInterval
+      ) {
         const remainingMs = minInterval - (nowMs - createdAtMs);
         const remainingHours = (remainingMs / 3_600_000).toFixed(1);
         return {
@@ -338,7 +349,9 @@ export function recordProposalInState(
   // Gate 6 check: declined proposal permanently blocked from re-proposal
   const declinedMatch = findDeclinedProposalConflict(state, statement);
   if (declinedMatch) {
-    const reasonText = declinedMatch.decline_reason ? ` (reason: ${declinedMatch.decline_reason})` : "";
+    const reasonText = declinedMatch.decline_reason
+      ? ` (reason: ${declinedMatch.decline_reason})`
+      : "";
     throw new HarnessError(
       "INVALID_STATE",
       `declined proposal permanently blocked from re-proposal: "${statement}"${reasonText}`,
@@ -435,10 +448,7 @@ export function recordProposalInState(
 /**
  * Records a novelty proposal durably in a mind capsule via transaction.
  */
-export function recordProposal(
-  runRoot: string,
-  options: RecordProposalOptions,
-): MindProposal {
+export function recordProposal(runRoot: string, options: RecordProposalOptions): MindProposal {
   let created: MindProposal | null = null;
   transact(
     runRoot,
@@ -489,9 +499,7 @@ export function decideProposalInState(
     ? (state.candidates as Record<string, unknown>[])
     : [];
 
-  const candidate = candidates.find(
-    (c) => c.id === targetId || c.requirement_id === targetId,
-  );
+  const candidate = candidates.find((c) => c.id === targetId || c.requirement_id === targetId);
 
   if (!candidate) {
     throw new HarnessError("INVALID_ARGUMENT", `unknown proposal or requirement: ${targetId}`);
@@ -605,10 +613,7 @@ export function isProposalGranted(proposal: MindProposal): boolean {
  * Returns whether a granted proposal is now admissible for admission gates.
  */
 export function isProposalAdmissible(proposal: MindProposal): boolean {
-  return (
-    isProposalGranted(proposal) &&
-    proposal.disposition === "actionable"
-  );
+  return isProposalGranted(proposal) && proposal.disposition === "actionable";
 }
 
 /**

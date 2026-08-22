@@ -34,7 +34,10 @@ export interface QuiescentValidationResult {
   readonly missingSources: readonly MindSourceId[];
   readonly nonZeroSources: readonly { readonly source: MindSourceId; readonly count: number }[];
   readonly invalidSources: readonly string[];
-  readonly unevidencedSources: readonly { readonly source: MindSourceId; readonly commandId: string }[];
+  readonly unevidencedSources: readonly {
+    readonly source: MindSourceId;
+    readonly commandId: string;
+  }[];
   readonly error?: string | undefined;
 }
 
@@ -101,7 +104,9 @@ export function parseQuiescentSourceSpec(spec: string): QuiescentSourceInput {
  */
 export function tryParseQuiescentSourceSpec(
   spec: string,
-): { readonly ok: true; readonly value: QuiescentSourceInput } | { readonly ok: false; readonly error: string } {
+):
+  | { readonly ok: true; readonly value: QuiescentSourceInput }
+  | { readonly ok: false; readonly error: string } {
   try {
     const parsed = parseQuiescentSourceSpec(spec);
     return { ok: true, value: parsed };
@@ -146,7 +151,12 @@ export function validateQuiescentScan(
       typeof item.commandId === "string" &&
       typeof item.count === "number"
     ) {
-      if (!Number.isSafeInteger(item.count) || item.count < 0 || !item.source.trim() || !item.commandId.trim()) {
+      if (
+        !Number.isSafeInteger(item.count) ||
+        item.count < 0 ||
+        !item.source.trim() ||
+        !item.commandId.trim()
+      ) {
         invalidSources.push(JSON.stringify(item));
         continue;
       }
@@ -230,7 +240,11 @@ export function validateQuiescentScan(
  * Computes next quiescent streak count from previous streak.
  */
 export function computeQuiescentStreak(previousStreak?: number | null): number {
-  if (typeof previousStreak === "number" && Number.isFinite(previousStreak) && previousStreak >= 0) {
+  if (
+    typeof previousStreak === "number" &&
+    Number.isFinite(previousStreak) &&
+    previousStreak >= 0
+  ) {
     return Math.floor(previousStreak) + 1;
   }
   return 1;
@@ -248,7 +262,10 @@ export function calculateQuiescentInterval(
   const safeBase = Math.max(1000, baseIntervalMs || DEFAULT_BASE_INTERVAL_MS);
   const safeMax = Math.max(safeBase, maxIntervalMs || DEFAULT_MAX_INTERVAL_MS);
   const safeStreak = Math.max(0, streak);
-  return Math.min(safeMax, Math.round(safeBase * Math.pow(QUIESCENCE_INTERVAL_MULTIPLIER, safeStreak)));
+  return Math.min(
+    safeMax,
+    Math.round(safeBase * Math.pow(QUIESCENCE_INTERVAL_MULTIPLIER, safeStreak)),
+  );
 }
 
 /**

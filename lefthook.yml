@@ -12,4 +12,3 @@ pre-push:
       run: bun run typecheck
     test-coverage:
       run: bun test --timeout 30000 --parallel --no-isolate tests/unit
-

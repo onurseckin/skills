@@ -3,7 +3,7 @@ import {
   evaluateAdmissionGates,
   findCommandRecord,
   parseFalsifierArgv,
-  readCommandOutput,
+  readCandidateCommandOutput,
   outputContainsDefect,
   type AdmissionGateVerdict,
   type CandidateRecord,
@@ -123,7 +123,10 @@ export function createIsolatedCandidate(
   }
 
   const rawObj = rawCandidate as Record<string, unknown>;
-  const id = typeof rawCandidate.id === "string" && rawCandidate.id.trim() ? rawCandidate.id.trim() : "unknown-cand";
+  const id =
+    typeof rawCandidate.id === "string" && rawCandidate.id.trim()
+      ? rawCandidate.id.trim()
+      : "unknown-cand";
   const kind = rawCandidate.kind === "proposal" ? "proposal" : "defect";
   const statement = typeof rawCandidate.statement === "string" ? rawCandidate.statement.trim() : "";
 
@@ -152,7 +155,9 @@ export function createIsolatedCandidate(
   } else if (rawCandidate.falsifier_argv === null) {
     rawFalsifier = null;
   } else if (Array.isArray(rawObj.falsifier)) {
-    rawFalsifier = (rawObj.falsifier as unknown[]).filter((s): s is string => typeof s === "string");
+    rawFalsifier = (rawObj.falsifier as unknown[]).filter(
+      (s): s is string => typeof s === "string",
+    );
   } else if (typeof rawObj.falsifier === "string") {
     rawFalsifier = rawObj.falsifier;
   } else if (rawObj.falsifier === null) {
@@ -163,9 +168,7 @@ export function createIsolatedCandidate(
   const falsifierArgv = falsifierArgvParsed.length > 0 ? [...falsifierArgvParsed] : null;
 
   const falsifierExit =
-    typeof rawCandidate.falsifier_exit === "number"
-      ? rawCandidate.falsifier_exit
-      : null;
+    typeof rawCandidate.falsifier_exit === "number" ? rawCandidate.falsifier_exit : null;
 
   const rawScope = Array.isArray(rawCandidate.write_scope) ? rawCandidate.write_scope : [];
   const writeScope = (rawScope as unknown[])
@@ -251,8 +254,12 @@ export function selectPreviouslyAdmittedCandidates(
   } else if (strategy === "random" || strategy === "sample") {
     const seed = options.seed ?? 12345;
     admitted = [...admitted].sort((a, b) => {
-      const hashA = String(a.id).split("").reduce((acc, char) => acc + char.charCodeAt(0), seed);
-      const hashB = String(b.id).split("").reduce((acc, char) => acc + char.charCodeAt(0), seed);
+      const hashA = String(a.id)
+        .split("")
+        .reduce((acc, char) => acc + char.charCodeAt(0), seed);
+      const hashB = String(b.id)
+        .split("")
+        .reduce((acc, char) => acc + char.charCodeAt(0), seed);
       return hashA - hashB;
     });
   }
@@ -267,8 +274,9 @@ export function selectPreviouslyAdmittedCandidates(
       : Array.isArray(c.charter_goals)
         ? c.charter_goals
         : [];
-    const charterGoalIds = (rawGoals as unknown[])
-      .filter((g): g is string => typeof g === "string");
+    const charterGoalIds = (rawGoals as unknown[]).filter(
+      (g): g is string => typeof g === "string",
+    );
 
     const record: CandidateRecord = {
       id: typeof c.id === "string" ? c.id : "unknown-cand",
@@ -447,7 +455,7 @@ export function evaluateCandidateCounterfactual(
         };
       }
 
-      const output = readCommandOutput(record, context.runRoot);
+      const output = readCandidateCommandOutput(record, context.runRoot);
       if (output && !outputContainsDefect(output, isolated.statement)) {
         const finding: CounterfactualFinding = {
           candidateId: isolated.id,
@@ -502,7 +510,9 @@ export function evaluateCandidateCounterfactual(
     const finding: CounterfactualFinding = {
       candidateId: isolated.id,
       findingKind,
-      message: failing?.reason ?? `admission gate '${failing?.gateId ?? "unknown"}' failed during fresh re-admission`,
+      message:
+        failing?.reason ??
+        `admission gate '${failing?.gateId ?? "unknown"}' failed during fresh re-admission`,
       ...(failing?.gateNumber !== undefined ? { gateNumber: failing.gateNumber } : {}),
       ...(failing?.gateId !== undefined ? { gateId: failing.gateId } : {}),
       details: {
@@ -599,7 +609,9 @@ export function formatCounterfactualReportMarkdown(
     }
     lines.push("");
   } else {
-    lines.push(`_All ${suiteResult.totalEvaluated} tested candidate(s) confirmed persistent defect validity under fresh isolated evaluation._`);
+    lines.push(
+      `_All ${suiteResult.totalEvaluated} tested candidate(s) confirmed persistent defect validity under fresh isolated evaluation._`,
+    );
     lines.push("");
   }
 

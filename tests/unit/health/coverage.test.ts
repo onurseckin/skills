@@ -75,7 +75,7 @@ describe("coverage audit engine", () => {
       {
         file: "src/low.ts",
         lines: 0.92,
-        statements: 0.90,
+        statements: 0.9,
         functions: 0.92,
         uncoveredLines: [1, 2, 3],
       },
@@ -123,7 +123,7 @@ export function add(a: number, b: number): number {
         {
           file: "src/sub.ts",
           lines: 0.88,
-          statements: 0.90,
+          statements: 0.9,
           functions: 0.88,
           uncoveredLines: [5],
         },
@@ -143,7 +143,7 @@ export function add(a: number, b: number): number {
       lines: 0.98,
       statements: 0.97,
       functions: 0.98,
-      branches: 0.90,
+      branches: 0.9,
       uncoveredLines: [12],
     };
 
@@ -158,7 +158,7 @@ export function add(a: number, b: number): number {
       file: "src/func-fail.ts",
       lines: 0.98,
       statements: 0.97,
-      functions: 0.90,
+      functions: 0.9,
       uncoveredLines: [22],
     };
 

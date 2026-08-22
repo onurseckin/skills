@@ -70,7 +70,7 @@ interface HairlineSubpixelGapResult {
 /** Computes per-corner concentric outer radii with asymmetric directional padding */
 function computeDirectionalConcentricOuter(
   inner: CornerRadii,
-  pad: DirectionalPadding
+  pad: DirectionalPadding,
 ): CornerRadii {
   const padTL = (pad.top + pad.left) / 2;
   const padTR = (pad.top + pad.right) / 2;
@@ -89,8 +89,12 @@ function computeDirectionalConcentricOuter(
 function classifyNestedCornerGeometry(
   outerRadius: number,
   innerRadius: number,
-  padding: number
-): { readonly classification: NestedCornerClassification; readonly isConcentric: boolean; readonly delta: number } {
+  padding: number,
+): {
+  readonly classification: NestedCornerClassification;
+  readonly isConcentric: boolean;
+  readonly delta: number;
+} {
   const expectedOuter = calculateConcentricRadius(innerRadius, padding);
   const delta = Math.abs(outerRadius - expectedOuter);
 
@@ -131,7 +135,7 @@ function detectHairlineSubpixelGap(
   innerRadius: number,
   outerRadius: number,
   padding: number,
-  dpr: number
+  dpr: number,
 ): HairlineSubpixelGapResult {
   const expectedOuter = innerRadius + padding;
   const rawDelta = outerRadius - expectedOuter;
@@ -294,7 +298,7 @@ describe("Optical Ring Snapping & Concentric Geometry Matrix Validator", () => {
         bounds: { x: 0, y: 0, width: 300, height: 200 },
         computedStyles: {
           borderRadius: 8, // Container radius 8px
-          padding: 16,     // Padding 16px
+          padding: 16, // Padding 16px
         },
         children: [
           {
@@ -377,20 +381,95 @@ describe("Optical Ring Snapping & Concentric Geometry Matrix Validator", () => {
         readonly expectedClass: NestedCornerClassification;
         readonly expectedConcentric: boolean;
       }[] = [
-        { inner: 4, outer: 8, pad: 4, tol: 1.0, expectedClass: "concentric", expectedConcentric: true },
-        { inner: 8, outer: 16, pad: 8, tol: 1.0, expectedClass: "concentric", expectedConcentric: true },
-        { inner: 16, outer: 32, pad: 16, tol: 1.0, expectedClass: "concentric", expectedConcentric: true },
-        { inner: 6, outer: 9, pad: 3, tol: 1.0, expectedClass: "concentric", expectedConcentric: true },
-        { inner: 8, outer: 8, pad: 8, tol: 1.0, expectedClass: "non-concentric", expectedConcentric: false },
-        { inner: 12, outer: 12, pad: 12, tol: 1.0, expectedClass: "non-concentric", expectedConcentric: false },
-        { inner: 0, outer: 24, pad: 8, tol: 1.0, expectedClass: "square-in-round", expectedConcentric: false },
-        { inner: 0, outer: 16, pad: 4, tol: 1.0, expectedClass: "square-in-round", expectedConcentric: false },
-        { inner: 20, outer: 10, pad: 8, tol: 1.0, expectedClass: "inverted-mismatch", expectedConcentric: false },
-        { inner: 16, outer: 6, pad: 12, tol: 1.0, expectedClass: "inverted-mismatch", expectedConcentric: false },
+        {
+          inner: 4,
+          outer: 8,
+          pad: 4,
+          tol: 1.0,
+          expectedClass: "concentric",
+          expectedConcentric: true,
+        },
+        {
+          inner: 8,
+          outer: 16,
+          pad: 8,
+          tol: 1.0,
+          expectedClass: "concentric",
+          expectedConcentric: true,
+        },
+        {
+          inner: 16,
+          outer: 32,
+          pad: 16,
+          tol: 1.0,
+          expectedClass: "concentric",
+          expectedConcentric: true,
+        },
+        {
+          inner: 6,
+          outer: 9,
+          pad: 3,
+          tol: 1.0,
+          expectedClass: "concentric",
+          expectedConcentric: true,
+        },
+        {
+          inner: 8,
+          outer: 8,
+          pad: 8,
+          tol: 1.0,
+          expectedClass: "non-concentric",
+          expectedConcentric: false,
+        },
+        {
+          inner: 12,
+          outer: 12,
+          pad: 12,
+          tol: 1.0,
+          expectedClass: "non-concentric",
+          expectedConcentric: false,
+        },
+        {
+          inner: 0,
+          outer: 24,
+          pad: 8,
+          tol: 1.0,
+          expectedClass: "square-in-round",
+          expectedConcentric: false,
+        },
+        {
+          inner: 0,
+          outer: 16,
+          pad: 4,
+          tol: 1.0,
+          expectedClass: "square-in-round",
+          expectedConcentric: false,
+        },
+        {
+          inner: 20,
+          outer: 10,
+          pad: 8,
+          tol: 1.0,
+          expectedClass: "inverted-mismatch",
+          expectedConcentric: false,
+        },
+        {
+          inner: 16,
+          outer: 6,
+          pad: 12,
+          tol: 1.0,
+          expectedClass: "inverted-mismatch",
+          expectedConcentric: false,
+        },
       ];
 
       for (const vector of testMatrix) {
-        const result = validateNestedConcentricCorners(vector.outer, vector.inner, vector.pad, vector.tol);
+        const result = validateNestedConcentricCorners(
+          vector.outer,
+          vector.inner,
+          vector.pad,
+          vector.tol,
+        );
         expect(result.isConcentric).toBe(vector.expectedConcentric);
 
         const classification = classifyNestedCornerGeometry(vector.outer, vector.inner, vector.pad);
@@ -791,7 +870,8 @@ describe("Optical Ring Snapping & Concentric Geometry Matrix Validator", () => {
       ];
 
       const anyPattern = /:\s*any\b|as\s+any\b|<any>|\bany\s*>/;
-      const suppressionPattern = /@ts-ignore|@ts-expect-error|@ts-nocheck|eslint-disable|oxlint-disable/;
+      const suppressionPattern =
+        /@ts-ignore|@ts-expect-error|@ts-nocheck|eslint-disable|oxlint-disable/;
 
       for (const filePath of filesToAudit) {
         const content = readFileSync(filePath, "utf-8");

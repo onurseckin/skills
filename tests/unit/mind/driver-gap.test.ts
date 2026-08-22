@@ -3,7 +3,10 @@ import { createHash } from "node:crypto";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { buildWakeBrief, renderGapLine } from "../../../orchestrating-long-tasks/scripts/src/mind/brief.ts";
+import {
+  buildWakeBrief,
+  renderGapLine,
+} from "../../../orchestrating-long-tasks/scripts/src/mind/brief.ts";
 import {
   readLastPulse,
   reconcileLastPulse,
@@ -127,7 +130,9 @@ describe("GAP Calculation and renderGapLine", () => {
 
   test("renders driver late when lateness is > 60s and <= 3x armed interval", () => {
     expect(renderGapLine(1_020_000, 900_000, 120_000)).toBe("17m (armed 15m; driver late by 2m)");
-    expect(renderGapLine(2_700_000, 900_000, 1_800_000)).toBe("45m (armed 15m; driver late by 30m)");
+    expect(renderGapLine(2_700_000, 900_000, 1_800_000)).toBe(
+      "45m (armed 15m; driver late by 30m)",
+    );
   });
 
   test("surfaces warning when GAP > 3x armed interval", () => {
@@ -191,7 +196,9 @@ describe("buildWakeBrief GAP line and 3x Thresholds", () => {
     });
 
     const brief = await buildWakeBrief(run, { now });
-    expect(brief.markdown).toContain("GAP       50m (armed 15m; driver late by 35m [WARNING: > 3x armed interval])");
+    expect(brief.markdown).toContain(
+      "GAP       50m (armed 15m; driver late by 35m [WARNING: > 3x armed interval])",
+    );
     expect(brief.facts.gapMs).toBe(50 * 60_000);
     expect(brief.facts.driverLateWarning).toBe(true);
   });

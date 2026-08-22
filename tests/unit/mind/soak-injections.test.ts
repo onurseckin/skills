@@ -1,13 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { createHash } from "node:crypto";
-import {
-  chmodSync,
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  statSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { agentRegisterCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/agent-ops.ts";
 import { doctorCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/diagnostics-ops.ts";
@@ -16,8 +9,10 @@ import { mindPulseCloseCommand } from "../../../orchestrating-long-tasks/scripts
 import { mindPulseOpenCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/mind-pulse-open.ts";
 import { mindRotateCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/mind-rotate.ts";
 import { mindWakeCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/mind-wake.ts";
-import type { JsonObject, JsonValue } from "../../../orchestrating-long-tasks/scripts/src/contracts/json.ts";
-import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
+import type {
+  JsonObject,
+  JsonValue,
+} from "../../../orchestrating-long-tasks/scripts/src/contracts/json.ts";
 import {
   evaluateGate6NotADuplicate,
   type CandidateRecord,
@@ -28,7 +23,6 @@ import {
   writeLastPulse,
   type LastPulseRecord,
 } from "../../../orchestrating-long-tasks/scripts/src/mind/last-pulse.ts";
-import { reclaimDeadPulse } from "../../../orchestrating-long-tasks/scripts/src/mind/pulse-reclaim.ts";
 import { calculateNextWakeInterval } from "../../../orchestrating-long-tasks/scripts/src/mind/value.ts";
 import { initRun } from "../../../orchestrating-long-tasks/scripts/src/store/capsule.ts";
 import { verifyIntegrity } from "../../../orchestrating-long-tasks/scripts/src/store/integrity.ts";
@@ -61,15 +55,9 @@ Autonomous Mind supervising remote container operations and health invariants.
 - \`tests/\`
 `;
 
-const BACKUP_SH_PATH = resolve(
-  import.meta.dir,
-  "../../../deploy/backup-capsule.sh",
-);
+const BACKUP_SH_PATH = resolve(import.meta.dir, "../../../deploy/backup-capsule.sh");
 
-const RESTORE_SH_PATH = resolve(
-  import.meta.dir,
-  "../../../deploy/restore-capsule.sh",
-);
+const RESTORE_SH_PATH = resolve(import.meta.dir, "../../../deploy/restore-capsule.sh");
 
 const HARNESS_PATH = resolve(
   import.meta.dir,
@@ -154,14 +142,8 @@ function setupMindCapsule(
 
       working.pulse = {
         counter: 0,
-        open:
-          overrides.pulseOpen !== undefined
-            ? (overrides.pulseOpen as JsonObject | null)
-            : null,
-        last:
-          overrides.pulseLast !== undefined
-            ? (overrides.pulseLast as JsonObject | null)
-            : null,
+        open: overrides.pulseOpen !== undefined ? (overrides.pulseOpen as JsonObject | null) : null,
+        last: overrides.pulseLast !== undefined ? (overrides.pulseLast as JsonObject | null) : null,
       };
 
       if (overrides.candidates !== undefined) {
@@ -337,7 +319,7 @@ describe("PHASE-6 72-Hour Soak and Failure Injection Test Suite", () => {
       expect(payload.pulse_id).toBe("pulse-1");
       expect(payload.evidence).toBe("no close within deadline");
       expect(typeof payload.deadline_passed_by_ms).toBe("number");
-      expect((payload.deadline_passed_by_ms as number)).toBeGreaterThan(0);
+      expect(payload.deadline_passed_by_ms as number).toBeGreaterThan(0);
 
       // Verify wake brief prescribes NEXT command without human intervention
       const nextCommands = wakeResult.next as string[];
@@ -991,7 +973,9 @@ describe("PHASE-6 72-Hour Soak and Failure Injection Test Suite", () => {
       };
       const verdict = evaluateGate6NotADuplicate(duplicateCandidate, gateContext);
       expect(verdict.passed).toBe(false);
-      expect(verdict.reason).toContain("duplicate of permanently declined candidate 'cand-declined-auth-leak'");
+      expect(verdict.reason).toContain(
+        "duplicate of permanently declined candidate 'cand-declined-auth-leak'",
+      );
 
       // Sealed Generation 1 remains readable and valid
       expect(verifyIntegrity(gen1RunRoot)).toEqual([]);

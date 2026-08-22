@@ -5,19 +5,24 @@ const MEDIA_TAGS = new Set(["IMG", "VIDEO", "IFRAME", "CANVAS", "OBJECT", "EMBED
 
 export function validateClsReservation(
   element: ElementPhysicsSnapshot,
-  index: number
+  index: number,
 ): ValidationDefect | null {
-  const isMedia = MEDIA_TAGS.has(element.tagName.toUpperCase()) || element.role === "img" || element.role === "video";
+  const isMedia =
+    MEDIA_TAGS.has(element.tagName.toUpperCase()) ||
+    element.role === "img" ||
+    element.role === "video";
   if (!isMedia) return null;
 
-  const hasAspect = Boolean(element.computedStyles?.aspectRatio && element.computedStyles.aspectRatio !== "auto");
+  const hasAspect = Boolean(
+    element.computedStyles?.aspectRatio && element.computedStyles.aspectRatio !== "auto",
+  );
   const hasMetaReserved = Boolean(element.imageVideoMeta?.hasDimensionsReserved);
   const hasHtmlDims = Boolean(
     element.attributes &&
     element.attributes["width"] &&
     element.attributes["height"] &&
     element.attributes["width"] !== "" &&
-    element.attributes["height"] !== ""
+    element.attributes["height"] !== "",
   );
 
   if (!hasAspect && !hasMetaReserved && !hasHtmlDims) {

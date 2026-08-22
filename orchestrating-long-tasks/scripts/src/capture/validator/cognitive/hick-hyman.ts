@@ -10,7 +10,7 @@ export function calculateHickHymanEntropy(n: number): number {
 
 export function validateHickHyman(
   element: ElementPhysicsSnapshot,
-  index: number
+  index: number,
 ): ValidationDefect | null {
   const children = element.children;
   if (!children || children.length === 0) return null;

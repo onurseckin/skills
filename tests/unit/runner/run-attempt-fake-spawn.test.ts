@@ -120,7 +120,11 @@ describe("runAttempt via an injected spawnApi (no real subprocess)", () => {
 
   test("surfaces an output-quota failure raised while the attempt is still running", async () => {
     const { root, commandRoot } = await attemptRoot("run-attempt-quota-");
-    const options = baseOptions(root, { maxOutputBytes: 1, wallTimeoutMs: 5000, idleTimeoutMs: 5000 });
+    const options = baseOptions(root, {
+      maxOutputBytes: 1,
+      wallTimeoutMs: 5000,
+      idleTimeoutMs: 5000,
+    });
     const spawnApi: BunSpawnApi = {
       spawn: () => ({
         pid: 999_999_997,

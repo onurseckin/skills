@@ -8,15 +8,15 @@ interface MD3LayerSpec {
 }
 
 const MD3_SPECS: Readonly<Record<string, MD3LayerSpec>> = {
-  hover: { target: 0.08, min: 0.06, max: 0.10 },
-  focus: { target: 0.12, min: 0.10, max: 0.14 },
-  pressed: { target: 0.12, min: 0.10, max: 0.14 },
+  hover: { target: 0.08, min: 0.06, max: 0.1 },
+  focus: { target: 0.12, min: 0.1, max: 0.14 },
+  pressed: { target: 0.12, min: 0.1, max: 0.14 },
   dragged: { target: 0.16, min: 0.14, max: 0.18 },
 };
 
 export function validateMaterialStateLayers(
   element: ElementPhysicsSnapshot,
-  index: number
+  index: number,
 ): ValidationDefect | null {
   const layers = element.stateLayers;
   if (!layers) return null;
@@ -27,7 +27,9 @@ export function validateMaterialStateLayers(
     const actualOpacity = layers[state];
     if (actualOpacity !== undefined) {
       if (actualOpacity < spec.min || actualOpacity > spec.max) {
-        violations.push(`${state} opacity ${(actualOpacity * 100).toFixed(0)}% (expected ${(spec.target * 100).toFixed(0)}%)`);
+        violations.push(
+          `${state} opacity ${(actualOpacity * 100).toFixed(0)}% (expected ${(spec.target * 100).toFixed(0)}%)`,
+        );
       }
     }
   }

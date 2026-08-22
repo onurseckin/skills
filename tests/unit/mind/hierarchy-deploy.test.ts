@@ -1,9 +1,10 @@
 import { describe, expect, test } from "bun:test";
-import { AGENT_ROLES, type AgentRole } from "../../../orchestrating-long-tasks/scripts/src/contracts/packets.ts";
+import {
+  AGENT_ROLES,
+  type AgentRole,
+} from "../../../orchestrating-long-tasks/scripts/src/contracts/packets.ts";
 import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
 import {
-  ALLOWED_TIER_SPAWNS,
-  ROLE_TIER_MAP,
   ABSTRACT_PROFILES,
   assertAbstractProfile,
   assertNoModelTelemetry,
@@ -196,7 +197,9 @@ describe("Phase 4 W4.3: Strict Tier Hierarchy and Deployment", () => {
       const mindContract = loadMindContract();
       const mustNotText = mindContract.must_not.join("\n");
       expect(mustNotText).toContain("Deploy any role below tier 1");
-      expect(mustNotText).toContain("Write, edit, stage, revert, format or delete any repository file");
+      expect(mustNotText).toContain(
+        "Write, edit, stage, revert, format or delete any repository file",
+      );
       expect(mustNotText).toContain("Claim, implement, repair, validate or review any task");
     });
 
@@ -277,17 +280,15 @@ describe("Phase 4 W4.3: Strict Tier Hierarchy and Deployment", () => {
       };
       expect(() => assertNoModelTelemetry(cleanData)).not.toThrow();
 
-      expect(() =>
-        assertNoModelTelemetry({ ...cleanData, model: "some-model" }),
-      ).toThrow(HarnessError);
+      expect(() => assertNoModelTelemetry({ ...cleanData, model: "some-model" })).toThrow(
+        HarnessError,
+      );
 
-      expect(() =>
-        assertNoModelTelemetry({ ...cleanData, model_tier: "m" }),
-      ).toThrow(HarnessError);
+      expect(() => assertNoModelTelemetry({ ...cleanData, model_tier: "m" })).toThrow(HarnessError);
 
-      expect(() =>
-        assertNoModelTelemetry({ ...cleanData, thinking_level: "high" }),
-      ).toThrow(HarnessError);
+      expect(() => assertNoModelTelemetry({ ...cleanData, thinking_level: "high" })).toThrow(
+        HarnessError,
+      );
 
       expect(() =>
         assertNoModelTelemetry({ ...cleanData, nested: { prompt: "use claude-3-5-sonnet" } }),
@@ -369,9 +370,9 @@ describe("Phase 4 W4.3: Strict Tier Hierarchy and Deployment", () => {
         buildTier1DeploymentPacket({ ...validPacketInput, witnessCommandId: "" }),
       ).toThrow(HarnessError);
 
-      expect(() =>
-        buildTier1DeploymentPacket({ ...validPacketInput, charterGoalIds: [] }),
-      ).toThrow(HarnessError);
+      expect(() => buildTier1DeploymentPacket({ ...validPacketInput, charterGoalIds: [] })).toThrow(
+        HarnessError,
+      );
 
       expect(() =>
         buildTier1DeploymentPacket({ ...validPacketInput, remainingRoundBudget: 0 }),

@@ -1,5 +1,6 @@
 import { authorityDecideCommand } from "../commands/authority-ops.ts";
-import { DEFAULT_EXIT_CODES, requiredFlag, type CommandSpec } from "./types.ts";
+import { whoamiCommand } from "../commands/whoami.ts";
+import { DEFAULT_EXIT_CODES, optionalFlag, requiredFlag, type CommandSpec } from "./types.ts";
 
 export const AUTHORITY_COMMANDS: readonly CommandSpec[] = [
   {
@@ -23,5 +24,27 @@ export const AUTHORITY_COMMANDS: readonly CommandSpec[] = [
       'bun harness.ts authority:decide --run .capsules/<run-id> --requirement req-prod-deploy --actor coordinator --decision grant --rationale "Human approved the production deploy in the review thread"',
     ],
     handler: authorityDecideCommand,
+  },
+  {
+    name: "whoami",
+    aliases: [],
+    domain: "authority",
+    summary: "Inspect thread execution tier, PID, active agent, grants, and main-thread compliance.",
+    description:
+      "Inspects the calling thread's OS process ID, parent PID, execution tier, active agent ID, active role grants, and task leases. When executed on the interactive main thread, enforces the Main-Thread Restraint Guard advisory and logs structured blunder records for unauthorized direct implementations.",
+    flags: [
+      optionalFlag("run", "string", "Capsule run root to cross-reference active leases and grants."),
+      optionalFlag("agent", "string", "Explicit agent id override to inspect."),
+      optionalFlag("pid", "int", "Process ID override for testing."),
+      optionalFlag("ppid", "int", "Parent Process ID override for testing."),
+    ],
+    readsStdin: false,
+    takesRemainder: false,
+    exitCodes: DEFAULT_EXIT_CODES,
+    examples: [
+      "bun harness.ts whoami",
+      "bun harness.ts whoami --run .capsules/<run-id> --agent coordinator-lead",
+    ],
+    handler: whoamiCommand,
   },
 ];

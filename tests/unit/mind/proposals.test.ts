@@ -402,15 +402,10 @@ describe("mind/proposal.ts - Proposal Lifecycle and Invariants", () => {
     expect(isProposalAdmissible(proposal)).toBe(false);
 
     // Owner approves the proposal
-    const granted = decideProposal(
-      fixture.run,
-      proposal.id,
-      "owner-alice",
-      {
-        decision: "grant",
-        rationale: "Approved for exploration in next cycle",
-      },
-    );
+    const granted = decideProposal(fixture.run, proposal.id, "owner-alice", {
+      decision: "grant",
+      rationale: "Approved for exploration in next cycle",
+    });
 
     expect(granted.status).toBe("granted");
     expect(granted.disposition).toBe("actionable");
@@ -451,15 +446,10 @@ describe("mind/proposal.ts - Proposal Lifecycle and Invariants", () => {
     });
 
     // Owner declines the proposal
-    const declined = decideProposal(
-      fixture.run,
-      proposal.id,
-      "owner-alice",
-      {
-        decision: "decline",
-        rationale: "Out of scope: filesystem JSONL chain is non-negotiable substrate",
-      },
-    );
+    const declined = decideProposal(fixture.run, proposal.id, "owner-alice", {
+      decision: "decline",
+      rationale: "Out of scope: filesystem JSONL chain is non-negotiable substrate",
+    });
 
     expect(declined.status).toBe("declined");
     expect(declined.disposition).toBe("out_of_scope");
@@ -475,10 +465,7 @@ describe("mind/proposal.ts - Proposal Lifecycle and Invariants", () => {
     expect(declinedList[0]?.id).toBe(proposal.id);
 
     // Check findDeclinedProposalConflict helper
-    const conflict = findDeclinedProposalConflict(
-      state,
-      "rewrite storage layer in sqlite",
-    );
+    const conflict = findDeclinedProposalConflict(state, "rewrite storage layer in sqlite");
     expect(conflict).toBeDefined();
     expect(conflict?.id).toBe(proposal.id);
 
@@ -563,20 +550,16 @@ describe("mind/proposal.ts - Proposal Lifecycle and Invariants", () => {
       minIntervalMs: 0,
     });
 
-    decideProposal(
-      fixture.run,
-      proposal.id,
-      "owner-bob",
-      { decision: "grant", rationale: "Approved" },
-    );
+    decideProposal(fixture.run, proposal.id, "owner-bob", {
+      decision: "grant",
+      rationale: "Approved",
+    });
 
     expect(() =>
-      decideProposal(
-        fixture.run,
-        proposal.id,
-        "owner-bob",
-        { decision: "decline", rationale: "Changed mind" },
-      ),
+      decideProposal(fixture.run, proposal.id, "owner-bob", {
+        decision: "decline",
+        rationale: "Changed mind",
+      }),
     ).toThrow(HarnessError);
   });
 

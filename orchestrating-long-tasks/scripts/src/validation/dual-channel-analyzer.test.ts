@@ -1,9 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "bun:test";
-import {
-  analyzeDualChannel,
-  validateCompanionManifestCriteria,
-} from "./dual-channel-analyzer.ts";
+import { analyzeDualChannel, validateCompanionManifestCriteria } from "./dual-channel-analyzer.ts";
 import type { DualChannelInput, StructuredFinding } from "./dual-channel-types.ts";
 
 describe("Dual-Channel Visual Validation & Screenshot Size Enforcement", () => {
@@ -208,7 +205,13 @@ describe("Companion Manifest 4-Pillar Criteria Enforcement", () => {
           details: "Pass",
           evidence: "Evidence",
         },
-        { id: "CRIT-COGN-COWAN", pillar: "cognitive", passed: true, details: "Pass", evidence: "Ev" },
+        {
+          id: "CRIT-COGN-COWAN",
+          pillar: "cognitive",
+          passed: true,
+          details: "Pass",
+          evidence: "Ev",
+        },
         { id: "CRIT-PROD-GEIST", pillar: "product", passed: true, details: "Pass", evidence: "Ev" },
         { id: "CRIT-UX-FOCUS", pillar: "ux", passed: true, details: "Pass", evidence: "Ev" },
       ],
@@ -219,7 +222,9 @@ describe("Companion Manifest 4-Pillar Criteria Enforcement", () => {
 
     expect(outcome.valid).toBe(false);
     const critErrors = findings.filter((f) => f.category === "invalid_manifest_criterion");
-    expect(critErrors.some((f) => f.message.includes("Missing explicit boolean 'passed'"))).toBe(true);
+    expect(critErrors.some((f) => f.message.includes("Missing explicit boolean 'passed'"))).toBe(
+      true,
+    );
   });
 
   it("rejects criteria with empty details and empty evidence", () => {
@@ -228,7 +233,13 @@ describe("Companion Manifest 4-Pillar Criteria Enforcement", () => {
       viewport: "desktop",
       criteria: [
         { id: "CRIT-MECH-APCA", pillar: "mechanical", passed: true, details: "", evidence: "   " },
-        { id: "CRIT-COGN-COWAN", pillar: "cognitive", passed: true, details: "Pass", evidence: "Ev" },
+        {
+          id: "CRIT-COGN-COWAN",
+          pillar: "cognitive",
+          passed: true,
+          details: "Pass",
+          evidence: "Ev",
+        },
         { id: "CRIT-PROD-GEIST", pillar: "product", passed: true, details: "Pass", evidence: "Ev" },
         { id: "CRIT-UX-FOCUS", pillar: "ux", passed: true, details: "Pass", evidence: "Ev" },
       ],
@@ -239,7 +250,9 @@ describe("Companion Manifest 4-Pillar Criteria Enforcement", () => {
 
     expect(outcome.valid).toBe(false);
     const critErrors = findings.filter((f) => f.category === "invalid_manifest_criterion");
-    expect(critErrors.some((f) => f.message.includes("non-empty 'details' or 'evidence'"))).toBe(true);
+    expect(critErrors.some((f) => f.message.includes("non-empty 'details' or 'evidence'"))).toBe(
+      true,
+    );
   });
 
   it("rejects manifest if any criterion failed (passed: false)", () => {
@@ -254,7 +267,13 @@ describe("Companion Manifest 4-Pillar Criteria Enforcement", () => {
           details: "APCA contrast Lc=38.2 below required threshold 60.0",
           evidence: "Contrast failure on selector .btn-secondary",
         },
-        { id: "CRIT-COGN-COWAN", pillar: "cognitive", passed: true, details: "Pass", evidence: "Ev" },
+        {
+          id: "CRIT-COGN-COWAN",
+          pillar: "cognitive",
+          passed: true,
+          details: "Pass",
+          evidence: "Ev",
+        },
         { id: "CRIT-PROD-GEIST", pillar: "product", passed: true, details: "Pass", evidence: "Ev" },
         { id: "CRIT-UX-FOCUS", pillar: "ux", passed: true, details: "Pass", evidence: "Ev" },
       ],
@@ -336,10 +355,26 @@ describe("Semantic Depth Quality Checks & requireSemanticDepth Enforcement", () 
     });
 
     expect(outcome.valid).toBe(false);
-    expect(findings.some((f) => f.category === "boilerplate_evidence" && f.message.includes("CRIT-MECH-OVERFLOW"))).toBe(true);
-    expect(findings.some((f) => f.category === "superficial_evidence" && f.message.includes("CRIT-COGN-THUMB"))).toBe(true);
-    expect(findings.some((f) => f.category === "boilerplate_evidence" && f.message.includes("CRIT-COGN-THUMB"))).toBe(true);
-    expect(findings.some((f) => f.category === "missing_evidence_metrics" && f.message.includes("CRIT-PROD-BRAND"))).toBe(true);
+    expect(
+      findings.some(
+        (f) => f.category === "boilerplate_evidence" && f.message.includes("CRIT-MECH-OVERFLOW"),
+      ),
+    ).toBe(true);
+    expect(
+      findings.some(
+        (f) => f.category === "superficial_evidence" && f.message.includes("CRIT-COGN-THUMB"),
+      ),
+    ).toBe(true);
+    expect(
+      findings.some(
+        (f) => f.category === "boilerplate_evidence" && f.message.includes("CRIT-COGN-THUMB"),
+      ),
+    ).toBe(true);
+    expect(
+      findings.some(
+        (f) => f.category === "missing_evidence_metrics" && f.message.includes("CRIT-PROD-BRAND"),
+      ),
+    ).toBe(true);
   });
 
   it("validates cognitiveAnalysis.questions for superficial rationale and missing metrics", () => {
@@ -412,10 +447,26 @@ describe("Semantic Depth Quality Checks & requireSemanticDepth Enforcement", () 
     });
 
     expect(outcome.valid).toBe(false);
-    expect(findings.some((f) => f.category === "superficial_evidence" && f.message.includes("Q-PERC-01-JTBD-ANCHOR"))).toBe(true);
-    expect(findings.some((f) => f.category === "boilerplate_evidence" && f.message.includes("Q-ERGO-02-FITTS"))).toBe(true);
-    expect(findings.some((f) => f.category === "boilerplate_evidence" && f.message.includes("Q-TYPO-01-CONTRAST"))).toBe(true);
-    expect(findings.some((f) => f.category === "missing_evidence_metrics" && f.message.includes("Q-RESI-01-STATES"))).toBe(true);
+    expect(
+      findings.some(
+        (f) => f.category === "superficial_evidence" && f.message.includes("Q-PERC-01-JTBD-ANCHOR"),
+      ),
+    ).toBe(true);
+    expect(
+      findings.some(
+        (f) => f.category === "boilerplate_evidence" && f.message.includes("Q-ERGO-02-FITTS"),
+      ),
+    ).toBe(true);
+    expect(
+      findings.some(
+        (f) => f.category === "boilerplate_evidence" && f.message.includes("Q-TYPO-01-CONTRAST"),
+      ),
+    ).toBe(true);
+    expect(
+      findings.some(
+        (f) => f.category === "missing_evidence_metrics" && f.message.includes("Q-RESI-01-STATES"),
+      ),
+    ).toBe(true);
   });
 
   it("passes analyzeDualChannel when requireSemanticDepth is active and manifests provide deep quantitative proof", () => {
@@ -458,14 +509,16 @@ describe("Semantic Depth Quality Checks & requireSemanticDepth Enforcement", () 
               id: "CRIT-COGN-CHUNKS",
               pillar: "cognitive",
               passed: true,
-              details: "Navigation menu groups links into 4 distinct semantic items under Cowan limit.",
+              details:
+                "Navigation menu groups links into 4 distinct semantic items under Cowan limit.",
               evidence: "Total of 4 primary navigation clusters counted across 1280px canvas.",
             },
             {
               id: "CRIT-PROD-TOKENS",
               pillar: "product",
               passed: true,
-              details: "Header typography styles adhere strictly to Design System font-size tokens.",
+              details:
+                "Header typography styles adhere strictly to Design System font-size tokens.",
               evidence: "Verified 16px body font and 24px title against token scales.",
             },
             {
@@ -481,7 +534,8 @@ describe("Semantic Depth Quality Checks & requireSemanticDepth Enforcement", () 
               {
                 id: "Q-PERC-01-JTBD-ANCHOR",
                 passed: true,
-                observation: "Primary focal brand anchor is immediately recognizable within first 2.0s glance.",
+                observation:
+                  "Primary focal brand anchor is immediately recognizable within first 2.0s glance.",
                 evidence: "Logo anchor bounds 180x48px at coordinate (24, 16) in 1280px viewport.",
               },
             ],
@@ -562,7 +616,9 @@ describe("Semantic Depth Quality Checks & requireSemanticDepth Enforcement", () 
     expect(result.isUiTask).toBe(true);
     expect(result.passed).toBe(false);
     expect(result.mode).toBe("rejected");
-    const boilerplateFindings = result.findings.filter((f) => f.category === "boilerplate_evidence");
+    const boilerplateFindings = result.findings.filter(
+      (f) => f.category === "boilerplate_evidence",
+    );
     expect(boilerplateFindings.length).toBeGreaterThanOrEqual(4);
   });
 });
@@ -576,7 +632,8 @@ describe("Static Invariant Verification: Zero TypeScript any & Zero Suppressions
     ];
 
     const anyPattern = /:\s*any\b|as\s+any\b|<any>/;
-    const suppressionPattern = /@ts-ignore|@ts-expect-error|@ts-nocheck|eslint-disable|oxlint-disable/;
+    const suppressionPattern =
+      /@ts-ignore|@ts-expect-error|@ts-nocheck|eslint-disable|oxlint-disable/;
 
     for (const filePath of filesToAudit) {
       const content = readFileSync(filePath, "utf-8");

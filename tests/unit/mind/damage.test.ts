@@ -7,7 +7,6 @@ import { mindPulseOpenCommand } from "../../../orchestrating-long-tasks/scripts/
 import { mindWakeCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/mind-wake.ts";
 import type { AgentGrantRecord } from "../../../orchestrating-long-tasks/scripts/src/contracts/agents.ts";
 import type { JsonObject } from "../../../orchestrating-long-tasks/scripts/src/contracts/json.ts";
-import { canonicalJsonBytes } from "../../../orchestrating-long-tasks/scripts/src/core/json.ts";
 import { executeRescueLane } from "../../../orchestrating-long-tasks/scripts/src/mind/lanes/rescue.ts";
 import { initRun } from "../../../orchestrating-long-tasks/scripts/src/store/capsule.ts";
 import { verifyIntegrity } from "../../../orchestrating-long-tasks/scripts/src/store/integrity.ts";
@@ -98,9 +97,7 @@ function setupMindDamageCapsule(
       working.pulse = {
         counter: 12,
         open:
-          overrides.pulseOpen !== undefined
-            ? (overrides.pulseOpen as unknown as JsonObject)
-            : null,
+          overrides.pulseOpen !== undefined ? (overrides.pulseOpen as unknown as JsonObject) : null,
         last:
           overrides.pulseLast !== undefined
             ? (overrides.pulseLast as unknown as JsonObject)

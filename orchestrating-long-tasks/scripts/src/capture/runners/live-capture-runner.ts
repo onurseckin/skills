@@ -17,10 +17,7 @@ import type {
   CompanionManifest,
   DomPhysicsSnapshot,
 } from "./types.ts";
-import {
-  synthesizeCompanionManifest,
-  type ValidationContext,
-} from "../validator/index.ts";
+import { synthesizeCompanionManifest, type ValidationContext } from "../validator/index.ts";
 import { deflateSync } from "node:zlib";
 
 const CRC_TABLE: Int32Array = (() => {
@@ -269,7 +266,9 @@ export async function runLiveCapture(options: CaptureRunOptions = {}): Promise<C
           const physics = await extractDomPhysics(page, {
             width: vp.width,
             height: vp.height,
-            ...(vp.deviceScaleFactor !== undefined ? { deviceScaleFactor: vp.deviceScaleFactor } : {}),
+            ...(vp.deviceScaleFactor !== undefined
+              ? { deviceScaleFactor: vp.deviceScaleFactor }
+              : {}),
           });
 
           const sha256 = createHash("sha256").update(screenshotBuffer).digest("hex");

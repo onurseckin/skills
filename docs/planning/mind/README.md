@@ -12,16 +12,16 @@ lands, because W0.5 decides whether every later change is landing on a green gat
 
 Dispatch order, and what may run at the same time:
 
-| Wave | Who                          | Picks up                        | Parallel? |
-| :--- | :--------------------------- | :------------------------------ | :-------- |
-| 1    | one implementer + validator  | `PHASE-0.md` W0.5               | no — it gates the rest |
-| 2    | pair A                       | `PHASE-0.md` W0.1 + W0.2        | yes, with pair B |
-| 2    | pair B                       | `PHASE-0.md` W0.3 + W0.4        | yes, with pair A |
-| 3    | **the owner**                | write `docs/mind/CHARTER.md`    | blocks Phase 1 entirely |
-| 4    | one pair                     | `PHASE-1.md` W1.1 then W1.2     | no — everything imports them |
-| 5    | three pairs                  | `PHASE-1.md` W1.3, W1.4, W1.5+W1.6 | yes, disjoint files |
-| 6    | one pair                     | `PHASE-1.md` W1.7 (`pulse.sh`)  | yes, with wave 5 |
-| 7    | **the owner**                | the overnight experiment, `PHASE-1.md` §5 | it decides whether Phase 2 happens |
+| Wave | Who                         | Picks up                                  | Parallel?                          |
+| :--- | :-------------------------- | :---------------------------------------- | :--------------------------------- |
+| 1    | one implementer + validator | `PHASE-0.md` W0.5                         | no — it gates the rest             |
+| 2    | pair A                      | `PHASE-0.md` W0.1 + W0.2                  | yes, with pair B                   |
+| 2    | pair B                      | `PHASE-0.md` W0.3 + W0.4                  | yes, with pair A                   |
+| 3    | **the owner**               | write `docs/mind/CHARTER.md`              | blocks Phase 1 entirely            |
+| 4    | one pair                    | `PHASE-1.md` W1.1 then W1.2               | no — everything imports them       |
+| 5    | three pairs                 | `PHASE-1.md` W1.3, W1.4, W1.5+W1.6        | yes, disjoint files                |
+| 6    | one pair                    | `PHASE-1.md` W1.7 (`pulse.sh`)            | yes, with wave 5                   |
+| 7    | **the owner**               | the overnight experiment, `PHASE-1.md` §5 | it decides whether Phase 2 happens |
 
 After that, one phase at a time, in numerical order. Phases 5 and 6 may run concurrently with each
 other; nothing else may.
@@ -47,8 +47,8 @@ Two standing rules for whoever dispatches:
 
 ## Reading order
 
-| Order | Document          | What it settles                                                                       |
-| ----: | :---------------- | :------------------------------------------------------------------------------------ |
+| Order | Document          | What it settles                                                                        |
+| ----: | :---------------- | :------------------------------------------------------------------------------------- |
 |     1 | `README.md`       | The decisions every phase depends on, and how a phase file is meant to be executed     |
 |     2 | `CONTRACTS.md`    | The substrate: capsule shape, state keys, event kinds, every command's flags, wiring   |
 |     3 | `VERIFICATION.md` | The check-and-balance regime: what counts as proof, and the suites each phase must add |
@@ -102,7 +102,7 @@ mind does not travel with the repository and is not backed up by pushing. Phase 
 and it is the single most likely way a remote deployment silently loses its history.
 
 **Capsule ids versus agent ids.** The capsule is `mind-gen-<n>` — `.capsules/mind-gen-1`,
-`.capsules/mind-gen-2` after a rotation — and the tier-0 *agent* is `mind-1`, `mind-2` by the same
+`.capsules/mind-gen-2` after a rotation — and the tier-0 _agent_ is `mind-1`, `mind-2` by the same
 convention every other role uses. They are deliberately different strings so that a brief, a lock
 path and an `--actor` can never be confused for one another.
 
@@ -131,7 +131,7 @@ not edited the charter since the pin. Unequal means HALT (`PLAN.md` §8.2).
 
 `assertGrantedCommand` (`packets/command-authority.ts`) resolves the capsule from a flag literally
 named `run`, and returns silently — granting everything — when it is absent. A `mind:*` command that
-took `--mind` instead would pass its role contract unchecked while *appearing* to be governed by
+took `--mind` instead would pass its role contract unchecked while _appearing_ to be governed by
 one. That is the exact capability-versus-rail failure this whole project exists to prevent.
 
 So: `--run .capsules/mind-gen-1`. If someone later wants `--mind` as an ergonomic alias, it is a
@@ -190,13 +190,13 @@ an unbound value as `unknown`. See `PLAN.md` §10 and `../orchestration-overhaul
 
 ### Still open, and where each is answered
 
-| Question                                    | `PLAN.md` | Answered by                                                       |
-| :------------------------------------------ | :-------- | :---------------------------------------------------------------- |
-| One mind per repo, or one across repos?     | §14.1.3   | Deferred past Phase 6. Per-repo until a second repo actually asks |
-| What counts as "the app is stable"?         | §14.1.4   | The charter's `stability` block; Phase 1 writes this repo's       |
-| Should a quiescent mind ever propose?       | §14.1.5   | Measured in Phase 3's shadow week, then decided                   |
-| Is Antigravity's scheduler durable?         | §14.1.6   | Phase 6 verifies before any adapter table claims it               |
-| `host_reported` is defined and unassigned   | §14.1.7   | Out of scope. Until something assigns it, model data is a claim   |
+| Question                                  | `PLAN.md` | Answered by                                                       |
+| :---------------------------------------- | :-------- | :---------------------------------------------------------------- |
+| One mind per repo, or one across repos?   | §14.1.3   | Deferred past Phase 6. Per-repo until a second repo actually asks |
+| What counts as "the app is stable"?       | §14.1.4   | The charter's `stability` block; Phase 1 writes this repo's       |
+| Should a quiescent mind ever propose?     | §14.1.5   | Measured in Phase 3's shadow week, then decided                   |
+| Is Antigravity's scheduler durable?       | §14.1.6   | Phase 6 verifies before any adapter table claims it               |
+| `host_reported` is defined and unassigned | §14.1.7   | Out of scope. Until something assigns it, model data is a claim   |
 
 ## How to execute a phase file
 

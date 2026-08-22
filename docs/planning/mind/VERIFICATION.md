@@ -21,13 +21,13 @@ checks that can.
 
 Every phase is graded against these. A phase that satisfies four is not done.
 
-| # | Bar                     | The question it answers                                                 |
-| - | :---------------------- | :----------------------------------------------------------------------- |
-| 1 | **Falsifiable**         | Does the test fail when the change is reverted?                         |
-| 2 | **Negative**            | Is there a test for every refusal, asserting *which* refusal fired?     |
-| 3 | **Adversarial**         | Has a planted defect been caught by the check that claims to catch it?  |
-| 4 | **Independent**         | Was it verified by someone other than whoever wrote it?                 |
-| 5 | **Legible**             | Can a human read the output and say what happened without asking?       |
+| #   | Bar             | The question it answers                                                |
+| --- | :-------------- | :--------------------------------------------------------------------- |
+| 1   | **Falsifiable** | Does the test fail when the change is reverted?                        |
+| 2   | **Negative**    | Is there a test for every refusal, asserting _which_ refusal fired?    |
+| 3   | **Adversarial** | Has a planted defect been caught by the check that claims to catch it? |
+| 4   | **Independent** | Was it verified by someone other than whoever wrote it?                |
+| 5   | **Legible**     | Can a human read the output and say what happened without asking?      |
 
 Bar 1 is the one this repository has historically failed. `gate:prove`
 (`cli/commands/gate-prove.ts`) exists because ten tasks once shared a gate that passed whether the
@@ -84,7 +84,7 @@ For every refusal condition in `CONTRACTS.md` §5, one test that triggers it and
 4. **the capsule did not change**: `event_sequence` and `event_head` are identical before and after.
 
 That fourth assertion is the one people forget, and it is the one that catches a refusal implemented
-*after* a mutation.
+_after_ a mutation.
 
 ### 3.3 Adversarial — plant the defect, require the catch
 
@@ -106,22 +106,22 @@ The deliberate-damage suite is a **deliverable**, not a nice-to-have (`PLAN.md` 
 scratch capsule, each of these, asserting which ladder rung (`PLAN.md` §9.2) responds and what it
 records:
 
-| Damage                                    | Expected response                                     |
-| :---------------------------------------- | :----------------------------------------------------- |
-| expire a lease                            | rung 1 reclaims it; `supervisor-*` event recorded      |
-| kill an agent mid-attempt                 | rung 2 `task:abandon` path with a reason               |
-| truncate the tail of `events.jsonl`       | `doctor:repair` re-derives, quarantines the fragment   |
-| corrupt `state.json`                      | `INTEGRITY` with the subcode; retry-once then escalate |
-| hold two pulses at once                   | the second refuses; capsule unchanged                  |
-| leave a pulse open past its deadline      | next `mind:wake` closes it `crashed`, counts it        |
-| three consecutive crashed pulses          | HALT, no arm, escalation recorded                      |
-| a charter whose bytes changed since pin   | HALT at wake, no arm                                   |
+| Damage                                  | Expected response                                      |
+| :-------------------------------------- | :----------------------------------------------------- |
+| expire a lease                          | rung 1 reclaims it; `supervisor-*` event recorded      |
+| kill an agent mid-attempt               | rung 2 `task:abandon` path with a reason               |
+| truncate the tail of `events.jsonl`     | `doctor:repair` re-derives, quarantines the fragment   |
+| corrupt `state.json`                    | `INTEGRITY` with the subcode; retry-once then escalate |
+| hold two pulses at once                 | the second refuses; capsule unchanged                  |
+| leave a pulse open past its deadline    | next `mind:wake` closes it `crashed`, counts it        |
+| three consecutive crashed pulses        | HALT, no arm, escalation recorded                      |
+| a charter whose bytes changed since pin | HALT at wake, no arm                                   |
 
 ---
 
 ## 4. The refusal-quality gate
 
-`RAILS.md`: *a refusal without a prescribed repair is a defect.* A weak model that hits a bare
+`RAILS.md`: _a refusal without a prescribed repair is a defect._ A weak model that hits a bare
 refusal does not re-plan — it leaves the harness and edits files directly, and the ledger becomes
 fiction.
 
@@ -182,23 +182,23 @@ Two anti-patterns, both of which this repository has produced before:
   id is `agent_reported` and proves nothing.
 - **Green from one lane is not green.** The unit lane once passed while the integration lane sat at
   45 failures and CI had never run the real tests since the repository's first commit. The charter's
-  `stability` block must name *every* lane that matters.
+  `stability` block must name _every_ lane that matters.
 - **Absent renders as `unknown`.** Never as a plausible default, never as a neutral-looking zero.
 - **Structured fields, never prose matching.** A naive scan for quota terms once matched 473 agent
-  transcripts, because agents were reading the source file that *contains* those terms. Detection
+  transcripts, because agents were reading the source file that _contains_ those terms. Detection
   reads a typed field or it does not exist.
 
 ---
 
 ## 8. What is deliberately not a validation
 
-| Not a validation                              | Why                                                       |
-| :-------------------------------------------- | :--------------------------------------------------------- |
-| The system's own summary of its night          | `agent_reported`. It is the thing being checked            |
-| Pulses run, agents deployed, commands executed | Activity, not value. `PLAN.md` §11.2 keeps these out       |
-| Tokens spent, files touched, lines changed     | Same                                                       |
-| "All gates green" with one lane                | §7                                                         |
-| A validator's pass on work it also planned     | Independence failure; the pairing invariant exists for it  |
+| Not a validation                               | Why                                                         |
+| :--------------------------------------------- | :---------------------------------------------------------- |
+| The system's own summary of its night          | `agent_reported`. It is the thing being checked             |
+| Pulses run, agents deployed, commands executed | Activity, not value. `PLAN.md` §11.2 keeps these out        |
+| Tokens spent, files touched, lines changed     | Same                                                        |
+| "All gates green" with one lane                | §7                                                          |
+| A validator's pass on work it also planned     | Independence failure; the pairing invariant exists for it   |
 | A count of findings hitting a target           | A run once asked for ">=5 pushbacks" and produced exactly 5 |
 
 ---
@@ -208,11 +208,11 @@ Two anti-patterns, both of which this repository has produced before:
 Three phases are graded by an experiment rather than a suite, because what they claim is about
 behaviour over hours. Each has a written pass bar, and each produces an artifact a human reads.
 
-| Phase | Experiment            | Duration | Pass bar                                     |
-| :---- | :-------------------- | :------- | :------------------------------------------- |
-| 1     | The overnight run     | 1 night  | `PHASE-1.md` §5 — five numbered criteria     |
-| 3     | The shadow week       | 7 days   | `PHASE-3.md` §5 — discovery on, adoption off |
-| 6     | The soak              | 72 h     | `PHASE-6.md` §5 — four injected failures     |
+| Phase | Experiment        | Duration | Pass bar                                     |
+| :---- | :---------------- | :------- | :------------------------------------------- |
+| 1     | The overnight run | 1 night  | `PHASE-1.md` §5 — five numbered criteria     |
+| 3     | The shadow week   | 7 days   | `PHASE-3.md` §5 — discovery on, adoption off |
+| 6     | The soak          | 72 h     | `PHASE-6.md` §5 — four injected failures     |
 
 An experiment's result is recorded in the capsule and summarised in one paragraph in the phase file
 itself, so the next reader inherits the finding rather than the intention.
@@ -221,12 +221,12 @@ itself, so the next reader inherits the finding rather than the intention.
 
 ## 10. The phase verification matrix
 
-| Phase | Positive | Negative | Adversarial | Damage | Experiment | Independent verifier |
-| :---- | :------- | :------- | :---------- | :----- | :--------- | :------------------- |
-| 0     | yes      | yes      | —           | —      | —          | yes                  |
-| 1     | yes      | yes      | —           | —      | overnight  | yes                  |
-| 2     | yes      | yes      | yes         | **yes**| —          | yes                  |
-| 3     | yes      | **yes, 20 cases** | yes | —      | shadow week| yes                  |
-| 4     | yes      | yes      | yes         | yes    | one real objective | yes          |
-| 5     | yes      | yes      | **yes, planted ledger** | — | —  | **different agent**  |
-| 6     | yes      | yes      | —           | yes    | 72 h soak  | owner                |
+| Phase | Positive | Negative          | Adversarial             | Damage  | Experiment         | Independent verifier |
+| :---- | :------- | :---------------- | :---------------------- | :------ | :----------------- | :------------------- |
+| 0     | yes      | yes               | —                       | —       | —                  | yes                  |
+| 1     | yes      | yes               | —                       | —       | overnight          | yes                  |
+| 2     | yes      | yes               | yes                     | **yes** | —                  | yes                  |
+| 3     | yes      | **yes, 20 cases** | yes                     | —       | shadow week        | yes                  |
+| 4     | yes      | yes               | yes                     | yes     | one real objective | yes                  |
+| 5     | yes      | yes               | **yes, planted ledger** | —       | —                  | **different agent**  |
+| 6     | yes      | yes               | —                       | yes     | 72 h soak          | owner                |

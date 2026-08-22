@@ -124,15 +124,9 @@ export function calculatePulseValue(
 
   const leasesReclaimed = getMetric("leases_reclaimed", "leasesReclaimed");
   const findingsResolved = getMetric("findings_resolved", "findingsResolved");
-  const gatesFlipped = getMetric(
-    "gates_flipped_red_to_green",
-    "gatesFlippedRedToGreen",
-  );
+  const gatesFlipped = getMetric("gates_flipped_red_to_green", "gatesFlippedRedToGreen");
   const tasksDone = getMetric("tasks_reaching_done", "tasksReachingDone");
-  const candidatesAdmitted = getMetric(
-    "candidates_admitted",
-    "candidatesAdmitted",
-  );
+  const candidatesAdmitted = getMetric("candidates_admitted", "candidatesAdmitted");
   const rawProposals = getMetric("proposals_recorded", "proposalsRecorded");
   const proposalsRecorded = Math.min(1, rawProposals);
 
@@ -279,7 +273,7 @@ export function calculateNextWakeInterval(
 
   let finalInterval = rawInterval;
   if (applyJitter && rawInterval > 0) {
-    const clampedRatio = Math.max(0.10, Math.min(0.20, jitterRatio));
+    const clampedRatio = Math.max(0.1, Math.min(0.2, jitterRatio));
     const jitterFactor = (random() * 2 - 1) * clampedRatio;
     const jittered = Math.round(rawInterval * (1 + jitterFactor));
     finalInterval = Math.max(1000, Math.min(maxIntervalMs, jittered));

@@ -47,9 +47,7 @@ async function createMidFlightRun(taskCount = 2): Promise<string> {
       ],
     };
     state.requirements = {
-      requirements: [
-        { id: "R-1", disposition: "actionable", status: "planned", evidence: [] },
-      ],
+      requirements: [{ id: "R-1", disposition: "actionable", status: "planned", evidence: [] }],
     };
     const tasks: Record<string, unknown> = {};
     for (let i = 1; i <= taskCount; i++) {

@@ -193,9 +193,7 @@ export function enforceZeroMainThreadSpillover(params: {
   const finalComplete = params.finalizationComplete ?? true;
   const gitEnclosed = params.gitOperationsEnclosed ?? true;
   const syncEnclosed = params.globalSyncEnclosed ?? true;
-  const verifiedAt = params.now
-    ? new Date(params.now).toISOString()
-    : new Date().toISOString();
+  const verifiedAt = params.now ? new Date(params.now).toISOString() : new Date().toISOString();
 
   const isCompliant = !isMain && (tier === 1 || tier === 0) && finalComplete && gitEnclosed;
 
@@ -307,9 +305,7 @@ export async function executeBackgroundFinalization(
   }
   const branch = options.branch ? options.branch : "main";
   const remote = options.remote ? options.remote : "origin";
-  const now = options.now
-    ? new Date(options.now).toISOString()
-    : new Date(startTime).toISOString();
+  const now = options.now ? new Date(options.now).toISOString() : new Date(startTime).toISOString();
 
   // Enforce zero main-thread spillover check upfront
   if (isMainThread) {

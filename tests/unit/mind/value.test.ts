@@ -14,14 +14,10 @@ import {
   generateTrailingValueSeries,
   MAX_JITTER_RATIO,
   MIN_INTERVAL_MS,
-  MIN_JITTER_RATIO,
-  QUIESCENCE_INTERVAL_MULTIPLIER,
   type TrailingValuePoint,
 } from "../../../orchestrating-long-tasks/scripts/src/mind/interval.ts";
 import {
-  calculateNextWakeInterval,
   calculatePulseValue,
-  calculateQuiescentBackoffInterval,
   EXCLUDED_VALUE_METRICS,
   INCLUDED_VALUE_METRICS,
   isExcludedValueMetric,
@@ -289,7 +285,7 @@ describe("Mandatory Random Jitter & Bounds (+/- 10-20%)", () => {
 
     // If 40% requested -> clamped to 20%
     const upperClamped = applyIntervalJitter(rawInterval, {
-      jitterRatio: 0.40,
+      jitterRatio: 0.4,
       random: () => 0.99999999,
     });
     expect(upperClamped).toBe(1_200_000); // 1,000,000 * (1 + 0.20)
@@ -355,7 +351,9 @@ describe("Trailing Value Series Generator for Owner Digest (PLAN §11.2, PHASE-5
     expect(series.trailingZeroStreak).toBe(8);
     expect(series.isFlatZero).toBe(true);
     expect(series.markdown).toContain("Flat Zero Series");
-    expect(series.markdown).toContain("A long flat zero is either a healthy repository or a broken mind");
+    expect(series.markdown).toContain(
+      "A long flat zero is either a healthy repository or a broken mind",
+    );
   });
 
   test("extracts trailing value series from state and events cleanly", () => {
@@ -363,7 +361,12 @@ describe("Trailing Value Series Generator for Owner Digest (PLAN §11.2, PHASE-5
       pulse: {
         history: [
           { pulse_id: "pulse-1", outcome: "advanced", value: 2, closed_at: "2026-08-21T01:00:00Z" },
-          { pulse_id: "pulse-2", outcome: "quiescent", value: 0, closed_at: "2026-08-21T02:00:00Z" },
+          {
+            pulse_id: "pulse-2",
+            outcome: "quiescent",
+            value: 0,
+            closed_at: "2026-08-21T02:00:00Z",
+          },
         ],
       },
     };

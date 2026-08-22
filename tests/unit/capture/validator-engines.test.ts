@@ -20,32 +20,49 @@ import {
 describe("T-CAP-ENGINES: 4-Pillar Validation Engines", () => {
   describe("Pillar 1: Mechanical Engine", () => {
     it("validates APCA contrast and flags low contrast", () => {
-      const highLc = calculateApcaLightness({ r: 0, g: 0, b: 0, a: 1 }, { r: 255, g: 255, b: 255, a: 1 });
+      const highLc = calculateApcaLightness(
+        { r: 0, g: 0, b: 0, a: 1 },
+        { r: 255, g: 255, b: 255, a: 1 },
+      );
       expect(Math.abs(highLc)).toBeGreaterThan(100);
 
       const passCtx: ValidationContext = {
         screenId: "home",
         viewport: "desktop",
-        elements: [{
-          selector: "#title",
-          tagName: "H1",
-          text: "Hello World",
-          bounds: { x: 10, y: 10, width: 200, height: 40 },
-          computedStyles: { color: "#000000", backgroundColor: "#ffffff", fontSize: 24, fontWeight: 700 },
-        }],
+        elements: [
+          {
+            selector: "#title",
+            tagName: "H1",
+            text: "Hello World",
+            bounds: { x: 10, y: 10, width: 200, height: 40 },
+            computedStyles: {
+              color: "#000000",
+              backgroundColor: "#ffffff",
+              fontSize: 24,
+              fontWeight: 700,
+            },
+          },
+        ],
       };
       expect(validateMechanical(passCtx).passed).toBe(true);
 
       const failCtx: ValidationContext = {
         screenId: "home",
         viewport: "desktop",
-        elements: [{
-          selector: "#muted",
-          tagName: "P",
-          text: "Muted",
-          bounds: { x: 10, y: 10, width: 200, height: 20 },
-          computedStyles: { color: "#cccccc", backgroundColor: "#ffffff", fontSize: 14, fontWeight: 400 },
-        }],
+        elements: [
+          {
+            selector: "#muted",
+            tagName: "P",
+            text: "Muted",
+            bounds: { x: 10, y: 10, width: 200, height: 20 },
+            computedStyles: {
+              color: "#cccccc",
+              backgroundColor: "#ffffff",
+              fontSize: 14,
+              fontWeight: 400,
+            },
+          },
+        ],
       };
       const resFail = validateMechanical(failCtx);
       expect(resFail.passed).toBe(false);
@@ -59,7 +76,9 @@ describe("T-CAP-ENGINES: 4-Pillar Validation Engines", () => {
         interactive: true,
         bounds: { x: 10, y: 10, width: 30, height: 30 },
       };
-      expect(validateMechanical({ screenId: "s", viewport: "m", elements: [smallBtn] }).passed).toBe(false);
+      expect(
+        validateMechanical({ screenId: "s", viewport: "m", elements: [smallBtn] }).passed,
+      ).toBe(false);
 
       const nonConcentric: ElementPhysicsSnapshot = {
         selector: ".child",
@@ -69,7 +88,9 @@ describe("T-CAP-ENGINES: 4-Pillar Validation Engines", () => {
         parentBorderRadius: 12,
         parentPadding: 16,
       };
-      expect(validateMechanical({ screenId: "s", viewport: "d", elements: [nonConcentric] }).passed).toBe(false);
+      expect(
+        validateMechanical({ screenId: "s", viewport: "d", elements: [nonConcentric] }).passed,
+      ).toBe(false);
     });
 
     it("validates subpixel snapping, CLS reservation, and sidebar rules", () => {
@@ -78,7 +99,9 @@ describe("T-CAP-ENGINES: 4-Pillar Validation Engines", () => {
         tagName: "DIV",
         bounds: { x: 10.33, y: 20.75, width: 100, height: 50 },
       };
-      expect(validateMechanical({ screenId: "s", viewport: "d", elements: [subpixelEl] }).defects.length).toBeGreaterThan(0);
+      expect(
+        validateMechanical({ screenId: "s", viewport: "d", elements: [subpixelEl] }).defects.length,
+      ).toBeGreaterThan(0);
 
       const topNav: ElementPhysicsSnapshot = {
         selector: "header.top-navbar",
@@ -89,7 +112,12 @@ describe("T-CAP-ENGINES: 4-Pillar Validation Engines", () => {
         screenId: "s",
         viewport: "d",
         elements: [topNav],
-        sidebarConfig: { enabled: true, requireZeroNavbar: true, logoPosition: "top-left", userProfilePosition: "bottom-left" },
+        sidebarConfig: {
+          enabled: true,
+          requireZeroNavbar: true,
+          logoPosition: "top-left",
+          userProfilePosition: "bottom-left",
+        },
       });
       expect(res.defects.some((d) => d.category === "sidebar-layout")).toBe(true);
     });
@@ -110,7 +138,9 @@ describe("T-CAP-ENGINES: 4-Pillar Validation Engines", () => {
           bounds: { x: 10, y: i * 40, width: 200, height: 30 },
         })),
       };
-      expect(validateCognitive({ screenId: "s", viewport: "d", elements: [denseNav] }).passed).toBe(false);
+      expect(validateCognitive({ screenId: "s", viewport: "d", elements: [denseNav] }).passed).toBe(
+        false,
+      );
     });
 
     it("validates Norman error recovery and UI states FSM", () => {
@@ -127,7 +157,11 @@ describe("T-CAP-ENGINES: 4-Pillar Validation Engines", () => {
         bounds: { x: 250, y: 100, width: 120, height: 44 },
         implementedStates: ["default", "hover"],
       };
-      const res = validateCognitive({ screenId: "s", viewport: "d", elements: [unsafeDelete, incompleteFsm] });
+      const res = validateCognitive({
+        screenId: "s",
+        viewport: "d",
+        elements: [unsafeDelete, incompleteFsm],
+      });
       expect(res.defects.some((d) => d.category === "norman-grace")).toBe(true);
       expect(res.defects.some((d) => d.category === "ui-states-fsm")).toBe(true);
     });
@@ -147,7 +181,11 @@ describe("T-CAP-ENGINES: 4-Pillar Validation Engines", () => {
         isFloating: true,
         bounds: { x: 2, y: 100, width: 120, height: 40 },
       };
-      const res = validateCustom({ screenId: "s", viewport: "d", elements: [modalWithoutTrap, overflowingTooltip] });
+      const res = validateCustom({
+        screenId: "s",
+        viewport: "d",
+        elements: [modalWithoutTrap, overflowingTooltip],
+      });
       expect(res.defects.some((d) => d.category === "aria-focus-trap")).toBe(true);
       expect(res.defects.some((d) => d.category === "floating-ui-collision")).toBe(true);
     });
@@ -158,15 +196,23 @@ describe("T-CAP-ENGINES: 4-Pillar Validation Engines", () => {
       const perfectContext: ValidationContext = {
         screenId: "dashboard",
         viewport: "desktop",
-        elements: [{
-          selector: "button#primary",
-          tagName: "BUTTON",
-          text: "Get Started",
-          interactive: true,
-          bounds: { x: 500, y: 350, width: 160, height: 48 },
-          computedStyles: { color: "#ffffff", backgroundColor: "#000000", fontSize: 16, fontWeight: 600, borderRadius: 6 },
-          implementedStates: ["default", "hover", "active", "focus", "disabled"],
-        }],
+        elements: [
+          {
+            selector: "button#primary",
+            tagName: "BUTTON",
+            text: "Get Started",
+            interactive: true,
+            bounds: { x: 500, y: 350, width: 160, height: 48 },
+            computedStyles: {
+              color: "#ffffff",
+              backgroundColor: "#000000",
+              fontSize: 16,
+              fontWeight: 600,
+              borderRadius: 6,
+            },
+            implementedStates: ["default", "hover", "active", "focus", "disabled"],
+          },
+        ],
       };
       const manifestCertified = synthesizeCompanionManifest(perfectContext);
       expect(manifestCertified.verdict).toBe("CERTIFIED");
@@ -176,14 +222,16 @@ describe("T-CAP-ENGINES: 4-Pillar Validation Engines", () => {
       const flawedContext: ValidationContext = {
         screenId: "dashboard",
         viewport: "desktop",
-        elements: [{
-          selector: "button#tiny",
-          tagName: "BUTTON",
-          text: "X",
-          interactive: true,
-          bounds: { x: 10, y: 10, width: 20, height: 20 },
-          computedStyles: { color: "#e0e0e0", backgroundColor: "#ffffff" },
-        }],
+        elements: [
+          {
+            selector: "button#tiny",
+            tagName: "BUTTON",
+            text: "X",
+            interactive: true,
+            bounds: { x: 10, y: 10, width: 20, height: 20 },
+            computedStyles: { color: "#e0e0e0", backgroundColor: "#ffffff" },
+          },
+        ],
       };
       const manifestFlawed = synthesizeCompanionManifest(flawedContext);
       expect(manifestFlawed.verdict).toBe("DEFECTS_FOUND");
@@ -201,7 +249,11 @@ describe("T-CAP-ENGINES: 4-Pillar Validation Engines", () => {
     it("persists and reloads 1-to-1 Companion Manifest v2.0 JSON", async () => {
       const tmp = await mkdtemp(join(tmpdir(), "cap-manifest-test-"));
       try {
-        const manifest = synthesizeCompanionManifest({ screenId: "checkout", viewport: "mobile-375", elements: [] });
+        const manifest = synthesizeCompanionManifest({
+          screenId: "checkout",
+          viewport: "mobile-375",
+          elements: [],
+        });
         const savedPath = await saveCompanionManifest(manifest, tmp);
         expect(savedPath.endsWith("checkout-mobile-375.manifest.json")).toBe(true);
 
@@ -230,7 +282,8 @@ describe("T-CAP-ENGINES: 4-Pillar Validation Engines", () => {
           metadata: { task: "T-CAP-ENGINES", uid },
         }),
       );
-      const pngBase64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+      const pngBase64 =
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
       const pngBuf = Buffer.concat([Buffer.from(pngBase64, "base64"), Buffer.from(uid)]);
       const shotDesktop = join(tmpdir(), `desktop-engine-${uid}.png`);
       const shotTablet = join(tmpdir(), `tablet-engine-${uid}.png`);

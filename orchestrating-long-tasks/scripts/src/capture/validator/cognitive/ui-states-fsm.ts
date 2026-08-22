@@ -11,7 +11,7 @@ const REQUIRED_UI_STATES: readonly UIInteractionState[] = [
 
 export function validateUiStatesFsm(
   element: ElementPhysicsSnapshot,
-  index: number
+  index: number,
 ): ValidationDefect | null {
   const isInteractive =
     element.interactive ||

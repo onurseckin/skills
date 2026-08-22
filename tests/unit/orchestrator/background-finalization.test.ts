@@ -25,16 +25,18 @@ import { loadRun } from "../../../orchestrating-long-tasks/scripts/src/store/loa
 import { transact } from "../../../orchestrating-long-tasks/scripts/src/store/transaction.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
-function createMockGitRunner(responses: {
-  readonly statusOutput?: string;
-  readonly commitSha?: string;
-  readonly addStatus?: number;
-  readonly commitStatus?: number;
-  readonly pushStatus?: number;
-  readonly addError?: string;
-  readonly commitError?: string;
-  readonly pushError?: string;
-} = {}): {
+function createMockGitRunner(
+  responses: {
+    readonly statusOutput?: string;
+    readonly commitSha?: string;
+    readonly addStatus?: number;
+    readonly commitStatus?: number;
+    readonly pushStatus?: number;
+    readonly addError?: string;
+    readonly commitError?: string;
+    readonly pushError?: string;
+  } = {},
+): {
   readonly runner: GitRunner;
   readonly commands: string[][];
 } {
@@ -82,10 +84,12 @@ function createMockGitRunner(responses: {
   return { runner, commands };
 }
 
-function createMockSyncRunner(responses: {
-  readonly status?: number;
-  readonly error?: string;
-} = {}): {
+function createMockSyncRunner(
+  responses: {
+    readonly status?: number;
+    readonly error?: string;
+  } = {},
+): {
   readonly runner: SyncRunner;
   readonly commands: string[];
 } {

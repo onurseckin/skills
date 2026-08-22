@@ -12,7 +12,12 @@ import { releaseAgentGrant } from "../../workflow/agents/grants.ts";
 import { readAgentLedger } from "../../workflow/agents/ledger.ts";
 import { readWorktreeLedger } from "../../workflow/worktree/ledger.ts";
 import { reclaimOrphanedWorktrees, recordReclaim } from "../../workflow/worktree/reclaim.ts";
-import { systemClock, type Clock, type TaskRecord, type WorkflowState } from "../../workflow/types.ts";
+import {
+  systemClock,
+  type Clock,
+  type TaskRecord,
+  type WorkflowState,
+} from "../../workflow/types.ts";
 import { runSupervisionTick } from "../../orchestrator/supervision-tick.ts";
 import { runDoctor } from "../../reporting/doctor.ts";
 import { installedRuntimeFreshness } from "../../installer/runtime-freshness.ts";
@@ -206,7 +211,7 @@ export async function executeRescueLane(
       ? charterRecord.source_path
       : "docs/mind/CHARTER.md";
   const charterRepoRoots = Array.isArray(charterRecord.repo_roots)
-    ? (charterRecord.repo_roots.filter((r): r is string => typeof r === "string"))
+    ? charterRecord.repo_roots.filter((r): r is string => typeof r === "string")
     : undefined;
   const charterFullPath = resolveCharterPath(repoRoot, charterSourceRel, charterRepoRoots);
 
@@ -234,36 +239,26 @@ export async function executeRescueLane(
     charterDrifted = true;
     rung0Halted = true;
     rung0HaltReason =
-      charterStatus === "DRIFTED"
-        ? "charter drifted from pinned digest"
-        : "charter file missing";
+      charterStatus === "DRIFTED" ? "charter drifted from pinned digest" : "charter file missing";
     actionsTaken.push(`Rung 0: HALT triggered due to ${rung0HaltReason}`);
     escalations.push(rung0HaltReason);
 
-    transact(
-      mindRunRoot,
-      actor,
-      "mind-halted",
-      { reason: rung0HaltReason },
-      (working) => {
-        const workingMind = (working.mind ?? {}) as Record<string, unknown>;
-        workingMind.halted = true;
-        workingMind.halt_reason = rung0HaltReason;
-        working.mind = workingMind as unknown as JsonObject;
+    transact(mindRunRoot, actor, "mind-halted", { reason: rung0HaltReason }, (working) => {
+      const workingMind = (working.mind ?? {}) as Record<string, unknown>;
+      workingMind.halted = true;
+      workingMind.halt_reason = rung0HaltReason;
+      working.mind = workingMind as unknown as JsonObject;
 
-        const workingEscalations = Array.isArray(working.escalations)
-          ? [...working.escalations]
-          : [];
-        workingEscalations.push({
-          id: `esc-charter-${nowMs}`,
-          reason: charterStatus === "DRIFTED" ? "charter_drift" : "charter_missing",
-          detail: rung0HaltReason ?? "",
-          escalated_at: nowIso,
-          resolved_at: null,
-        } as unknown as JsonObject);
-        working.escalations = workingEscalations as unknown as JsonObject[];
-      },
-    );
+      const workingEscalations = Array.isArray(working.escalations) ? [...working.escalations] : [];
+      workingEscalations.push({
+        id: `esc-charter-${nowMs}`,
+        reason: charterStatus === "DRIFTED" ? "charter_drift" : "charter_missing",
+        detail: rung0HaltReason ?? "",
+        escalated_at: nowIso,
+        resolved_at: null,
+      } as unknown as JsonObject);
+      working.escalations = workingEscalations as unknown as JsonObject[];
+    });
   }
 
   // Runtime freshness check
@@ -293,30 +288,24 @@ export async function executeRescueLane(
       actionsTaken.push(`Rung 0: HALT triggered due to ${rung0HaltReason}`);
       escalations.push(rung0HaltReason);
 
-      transact(
-        mindRunRoot,
-        actor,
-        "mind-halted",
-        { reason: rung0HaltReason },
-        (working) => {
-          const workingMind = (working.mind ?? {}) as Record<string, unknown>;
-          workingMind.halted = true;
-          workingMind.halt_reason = rung0HaltReason;
-          working.mind = workingMind as unknown as JsonObject;
+      transact(mindRunRoot, actor, "mind-halted", { reason: rung0HaltReason }, (working) => {
+        const workingMind = (working.mind ?? {}) as Record<string, unknown>;
+        workingMind.halted = true;
+        workingMind.halt_reason = rung0HaltReason;
+        working.mind = workingMind as unknown as JsonObject;
 
-          const workingEscalations = Array.isArray(working.escalations)
-            ? [...working.escalations]
-            : [];
-          workingEscalations.push({
-            id: `esc-runtime-${nowMs}`,
-            reason: "runtime_drift",
-            detail: rung0HaltReason ?? "",
-            escalated_at: nowIso,
-            resolved_at: null,
-          } as unknown as JsonObject);
-          working.escalations = workingEscalations as unknown as JsonObject[];
-        },
-      );
+        const workingEscalations = Array.isArray(working.escalations)
+          ? [...working.escalations]
+          : [];
+        workingEscalations.push({
+          id: `esc-runtime-${nowMs}`,
+          reason: "runtime_drift",
+          detail: rung0HaltReason ?? "",
+          escalated_at: nowIso,
+          resolved_at: null,
+        } as unknown as JsonObject);
+        working.escalations = workingEscalations as unknown as JsonObject[];
+      });
     }
   }
 
@@ -350,30 +339,24 @@ export async function executeRescueLane(
           actionsTaken.push(`Rung 0: HALT triggered due to ${rung0HaltReason}`);
           escalations.push(rung0HaltReason);
 
-          transact(
-            mindRunRoot,
-            actor,
-            "mind-halted",
-            { reason: rung0HaltReason },
-            (working) => {
-              const workingMind = (working.mind ?? {}) as Record<string, unknown>;
-              workingMind.halted = true;
-              workingMind.halt_reason = rung0HaltReason;
-              working.mind = workingMind as unknown as JsonObject;
+          transact(mindRunRoot, actor, "mind-halted", { reason: rung0HaltReason }, (working) => {
+            const workingMind = (working.mind ?? {}) as Record<string, unknown>;
+            workingMind.halted = true;
+            workingMind.halt_reason = rung0HaltReason;
+            working.mind = workingMind as unknown as JsonObject;
 
-              const workingEscalations = Array.isArray(working.escalations)
-                ? [...working.escalations]
-                : [];
-              workingEscalations.push({
-                id: `esc-integrity-${nowMs}`,
-                reason: "integrity_failed",
-                detail: rung0HaltReason ?? "",
-                escalated_at: nowIso,
-                resolved_at: null,
-              } as unknown as JsonObject);
-              working.escalations = workingEscalations as unknown as JsonObject[];
-            },
-          );
+            const workingEscalations = Array.isArray(working.escalations)
+              ? [...working.escalations]
+              : [];
+            workingEscalations.push({
+              id: `esc-integrity-${nowMs}`,
+              reason: "integrity_failed",
+              detail: rung0HaltReason ?? "",
+              escalated_at: nowIso,
+              resolved_at: null,
+            } as unknown as JsonObject);
+            working.escalations = workingEscalations as unknown as JsonObject[];
+          });
         }
       }
     }

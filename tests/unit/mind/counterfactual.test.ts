@@ -11,9 +11,11 @@ import {
   runCounterfactualReAdmissionSuite,
   selectPreviouslyAdmittedCandidates,
 } from "../../../orchestrating-long-tasks/scripts/src/mind/counterfactual.ts";
-import type { CandidateRecord, GateEvaluationContext } from "../../../orchestrating-long-tasks/scripts/src/mind/gates.ts";
+import type {
+  CandidateRecord,
+  GateEvaluationContext,
+} from "../../../orchestrating-long-tasks/scripts/src/mind/gates.ts";
 import { initRun } from "../../../orchestrating-long-tasks/scripts/src/store/capsule.ts";
-import { transact } from "../../../orchestrating-long-tasks/scripts/src/store/transaction.ts";
 
 const roots: string[] = [];
 
@@ -343,11 +345,41 @@ describe("Counterfactual Re-Admission Tester", () => {
     test("selectPreviouslyAdmittedCandidates filters only admitted candidates with selection strategies", () => {
       const state = {
         candidates: [
-          { id: "c1", status: "admitted", kind: "defect", statement: "Defect 1", charter_goal_ids: ["G1"] },
-          { id: "c2", status: "opened", kind: "defect", statement: "Defect 2", charter_goal_ids: ["G1"] },
-          { id: "c3", status: "declined", kind: "defect", statement: "Defect 3", charter_goal_ids: ["G1"] },
-          { id: "c4", status: "admitted", kind: "proposal", statement: "Proposal 1", charter_goal_ids: ["G2"] },
-          { id: "c5", status: "admitted", kind: "defect", statement: "Defect 4", charter_goal_ids: ["G1"] },
+          {
+            id: "c1",
+            status: "admitted",
+            kind: "defect",
+            statement: "Defect 1",
+            charter_goal_ids: ["G1"],
+          },
+          {
+            id: "c2",
+            status: "opened",
+            kind: "defect",
+            statement: "Defect 2",
+            charter_goal_ids: ["G1"],
+          },
+          {
+            id: "c3",
+            status: "declined",
+            kind: "defect",
+            statement: "Defect 3",
+            charter_goal_ids: ["G1"],
+          },
+          {
+            id: "c4",
+            status: "admitted",
+            kind: "proposal",
+            statement: "Proposal 1",
+            charter_goal_ids: ["G2"],
+          },
+          {
+            id: "c5",
+            status: "admitted",
+            kind: "defect",
+            statement: "Defect 4",
+            charter_goal_ids: ["G1"],
+          },
         ],
       };
 

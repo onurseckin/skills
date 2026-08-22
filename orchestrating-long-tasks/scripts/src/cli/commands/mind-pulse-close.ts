@@ -80,7 +80,10 @@ export async function mindPulseCloseCommand(
   const actor = textFlag(flags, "actor")!;
   const pulseFlag = textFlag(flags, "pulse", false) ?? textFlag(flags, "pulse-id", false);
   if (!pulseFlag) {
-    throw new HarnessError("INVALID_ARGUMENT", "--pulse is required: specify the pulse id to close");
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      "--pulse is required: specify the pulse id to close",
+    );
   }
   const pulseId = pulseFlag;
 
@@ -197,8 +200,7 @@ export async function mindPulseCloseCommand(
       signal,
     });
     armedIntervalMs = intervalResult.intervalMs;
-    nextWakeAt =
-      armedIntervalMs !== null ? new Date(nowMs + armedIntervalMs).toISOString() : null;
+    nextWakeAt = armedIntervalMs !== null ? new Date(nowMs + armedIntervalMs).toISOString() : null;
     if (!effectiveArmMech && armedIntervalMs !== null) effectiveArmMech = "autonomous-rail";
   }
 

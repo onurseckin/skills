@@ -102,10 +102,7 @@ function resolveCharterContext(
   };
 }
 
-export function mindAdmitCommand(
-  flags: Flags,
-  _context?: CommandContext,
-): Record<string, unknown> {
+export function mindAdmitCommand(flags: Flags, _context?: CommandContext): Record<string, unknown> {
   const run = textFlag(flags, "run", true)!;
   const actor = textFlag(flags, "actor", true)!;
   const candidateId = textFlag(flags, "candidate", true)!;
@@ -135,9 +132,7 @@ export function mindAdmitCommand(
   const mindState = (state.mind ?? {}) as Record<string, unknown>;
   if (mindState.halted === true) {
     const haltReason =
-      typeof mindState.halt_reason === "string"
-        ? mindState.halt_reason
-        : "unknown reason";
+      typeof mindState.halt_reason === "string" ? mindState.halt_reason : "unknown reason";
     throw new HarnessError(
       "INVALID_STATE",
       `mind is halted (${haltReason}); cannot admit candidate. Outcome: halted.`,
@@ -155,18 +150,17 @@ export function mindAdmitCommand(
   }
 
   // 4. Candidate lookup
-  const candidates = (Array.isArray(state.candidates)
-    ? (state.candidates as unknown as readonly CandidateRecord[])
-    : []) as readonly CandidateRecord[];
+  const candidates = (
+    Array.isArray(state.candidates)
+      ? (state.candidates as unknown as readonly CandidateRecord[])
+      : []
+  ) as readonly CandidateRecord[];
   const candidate = candidates.find((c) => c.id === candidateId);
   if (!candidate) {
     throw new HarnessError("INVALID_ARGUMENT", `unknown candidate '${candidateId}'`);
   }
   if (candidate.status === "admitted") {
-    throw new HarnessError(
-      "INVALID_STATE",
-      `candidate '${candidateId}' is already admitted`,
-    );
+    throw new HarnessError("INVALID_STATE", `candidate '${candidateId}' is already admitted`);
   }
   if (candidate.status === "declined") {
     throw new HarnessError(
@@ -225,9 +219,9 @@ export function mindAdmitCommand(
       admitted_at: nowIso,
     },
     (working) => {
-      const workingCandidates = (Array.isArray(working.candidates)
-        ? working.candidates
-        : []) as Record<string, unknown>[];
+      const workingCandidates = (
+        Array.isArray(working.candidates) ? working.candidates : []
+      ) as Record<string, unknown>[];
       const target = workingCandidates.find((c) => c.id === candidateId);
       if (target) {
         target.status = "admitted";
@@ -287,12 +281,13 @@ export async function mindDeclineCommand(
     : []) as unknown as CandidateRecord[];
   const target = candidates.find((c) => c.id === candidateId);
   if (!target) {
-    throw new HarnessError(
-      "INVALID_STATE",
-      `candidate ${candidateId} not found in state`,
-    );
+    throw new HarnessError("INVALID_STATE", `candidate ${candidateId} not found in state`);
   }
-  if (target.status !== "proposed" && target.status !== "candidate" && target.status !== undefined) {
+  if (
+    target.status !== "proposed" &&
+    target.status !== "candidate" &&
+    target.status !== undefined
+  ) {
     throw new HarnessError(
       "INVALID_STATE",
       `candidate ${candidateId} is already decided (status: ${target.status})`,
@@ -309,9 +304,9 @@ export async function mindDeclineCommand(
       declined_at: nowIso,
     },
     (working) => {
-      const workingCandidates = (Array.isArray(working.candidates)
-        ? working.candidates
-        : []) as Record<string, unknown>[];
+      const workingCandidates = (
+        Array.isArray(working.candidates) ? working.candidates : []
+      ) as Record<string, unknown>[];
       const found = workingCandidates.find((c) => c.id === candidateId);
       if (found) {
         found.status = "declined";

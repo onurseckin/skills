@@ -8,7 +8,10 @@ import {
   formatMindObserveBrief,
   mindObserveCommand,
 } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/mind-observe.ts";
-import { COMMAND_REGISTRY, findCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/registry/index.ts";
+import {
+  COMMAND_REGISTRY,
+  findCommand,
+} from "../../../orchestrating-long-tasks/scripts/src/cli/registry/index.ts";
 import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
 import {
   findSourceDefinition,
@@ -163,16 +166,66 @@ describe("The 10 Authoritative Discovery Sources (PLAN.md §7.2 / PHASE-3.md §3
       readonly registryCommand: string;
       readonly evidenceClass: EvidenceClass;
     }[] = [
-      { id: "intent-drift", number: 1, registryCommand: "health", evidenceClass: "harness_observed" },
-      { id: "unused-code", number: 2, registryCommand: "health", evidenceClass: "harness_observed" },
-      { id: "literal-fallbacks", number: 3, registryCommand: "health", evidenceClass: "harness_observed" },
-      { id: "open-findings", number: 4, registryCommand: "finding:get", evidenceClass: "agent_reported" },
-      { id: "escalated-tasks", number: 5, registryCommand: "run:status", evidenceClass: "harness_observed" },
-      { id: "failing-gates", number: 6, registryCommand: "evidence:get", evidenceClass: "harness_observed" },
-      { id: "capsule-integrity", number: 7, registryCommand: "doctor", evidenceClass: "harness_observed" },
-      { id: "install-drift", number: 8, registryCommand: "installation-status", evidenceClass: "harness_observed" },
-      { id: "unsealed-capsules", number: 9, registryCommand: "run:status", evidenceClass: "harness_observed" },
-      { id: "charter-backlog", number: 10, registryCommand: "health", evidenceClass: "harness_observed" },
+      {
+        id: "intent-drift",
+        number: 1,
+        registryCommand: "health",
+        evidenceClass: "harness_observed",
+      },
+      {
+        id: "unused-code",
+        number: 2,
+        registryCommand: "health",
+        evidenceClass: "harness_observed",
+      },
+      {
+        id: "literal-fallbacks",
+        number: 3,
+        registryCommand: "health",
+        evidenceClass: "harness_observed",
+      },
+      {
+        id: "open-findings",
+        number: 4,
+        registryCommand: "finding:get",
+        evidenceClass: "agent_reported",
+      },
+      {
+        id: "escalated-tasks",
+        number: 5,
+        registryCommand: "run:status",
+        evidenceClass: "harness_observed",
+      },
+      {
+        id: "failing-gates",
+        number: 6,
+        registryCommand: "evidence:get",
+        evidenceClass: "harness_observed",
+      },
+      {
+        id: "capsule-integrity",
+        number: 7,
+        registryCommand: "doctor",
+        evidenceClass: "harness_observed",
+      },
+      {
+        id: "install-drift",
+        number: 8,
+        registryCommand: "installation-status",
+        evidenceClass: "harness_observed",
+      },
+      {
+        id: "unsealed-capsules",
+        number: 9,
+        registryCommand: "run:status",
+        evidenceClass: "harness_observed",
+      },
+      {
+        id: "charter-backlog",
+        number: 10,
+        registryCommand: "health",
+        evidenceClass: "harness_observed",
+      },
     ];
 
     for (const expected of expectedSources) {

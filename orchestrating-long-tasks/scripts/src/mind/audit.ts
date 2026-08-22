@@ -7,16 +7,7 @@ import { HarnessError } from "../errors/harness-error.ts";
 import { resolveWitnessCommand, verifyDefectWitness } from "./witness.ts";
 import { calculatePulseValue, type PulseValueMetrics } from "./value.ts";
 
-export const AUDIT_QUESTION_IDS = [
-  "Q1",
-  "Q2",
-  "Q3",
-  "Q4",
-  "Q5",
-  "Q6",
-  "Q7",
-  "Q8",
-] as const;
+export const AUDIT_QUESTION_IDS = ["Q1", "Q2", "Q3", "Q4", "Q5", "Q6", "Q7", "Q8"] as const;
 
 export type AuditQuestionId = (typeof AUDIT_QUESTION_IDS)[number];
 
@@ -110,11 +101,7 @@ export function normalizeQuestionId(raw: string): AuditQuestionId | undefined {
 }
 
 export type AuditVerdict = "approved" | "changes_requested" | "halt";
-export const AUDIT_VERDICTS: readonly AuditVerdict[] = [
-  "approved",
-  "changes_requested",
-  "halt",
-];
+export const AUDIT_VERDICTS: readonly AuditVerdict[] = ["approved", "changes_requested", "halt"];
 
 export type AuditAnswerVerdict = "pass" | "fail" | "finding" | "clean";
 
@@ -171,7 +158,11 @@ export function checkPulseGaps(
 
   for (const event of events) {
     const eventTimeMs = Date.parse(event.timestamp);
-    if (Number.isFinite(windowStartMs) && Number.isFinite(eventTimeMs) && eventTimeMs < windowStartMs) {
+    if (
+      Number.isFinite(windowStartMs) &&
+      Number.isFinite(eventTimeMs) &&
+      eventTimeMs < windowStartMs
+    ) {
       continue;
     }
 
@@ -310,10 +301,7 @@ export function checkAdmittedCandidateWitnesses(
     }
 
     try {
-      const verification = verifyDefectWitness(
-        witnessId,
-        options.capsuleRoot ?? options.repoRoot,
-      );
+      const verification = verifyDefectWitness(witnessId, options.capsuleRoot ?? options.repoRoot);
       verifiedCount++;
       if (verification.exitCode === 0 && verification.status === "succeeded") {
         findings.push(
@@ -404,7 +392,12 @@ export function checkAdmittedCandidateGoals(
     }
 
     for (const g of rawGoals) {
-      const goalId = typeof g === "string" ? g : typeof (g as { id?: string })?.id === "string" ? (g as { id: string }).id : String(g);
+      const goalId =
+        typeof g === "string"
+          ? g
+          : typeof (g as { id?: string })?.id === "string"
+            ? (g as { id: string }).id
+            : String(g);
       if (!validGoalSet.has(goalId)) {
         findings.push(
           `admitted candidate '${candidateId}' cited non-existent charter goal '${goalId}'`,
@@ -439,30 +432,25 @@ export function checkValueConsistency(
     if (event.kind === "mind-pulse-closed") {
       const pulseId =
         typeof event.payload.pulse_id === "string" ? event.payload.pulse_id : "unknown";
-      const recordedValue =
-        typeof event.payload.value === "number" ? event.payload.value : 0;
+      const recordedValue = typeof event.payload.value === "number" ? event.payload.value : 0;
       series.push(recordedValue);
 
       const metricsObj = (event.payload.metrics ?? event.payload) as Record<string, unknown>;
       const metrics: PulseValueMetrics = {
-        leases_reclaimed: typeof metricsObj.leases_reclaimed === "number" ? metricsObj.leases_reclaimed : 0,
-        findings_resolved: typeof metricsObj.findings_resolved === "number" ? metricsObj.findings_resolved : 0,
+        leases_reclaimed:
+          typeof metricsObj.leases_reclaimed === "number" ? metricsObj.leases_reclaimed : 0,
+        findings_resolved:
+          typeof metricsObj.findings_resolved === "number" ? metricsObj.findings_resolved : 0,
         gates_flipped_red_to_green:
           typeof metricsObj.gates_flipped_red_to_green === "number"
             ? metricsObj.gates_flipped_red_to_green
             : 0,
         tasks_reaching_done:
-          typeof metricsObj.tasks_reaching_done === "number"
-            ? metricsObj.tasks_reaching_done
-            : 0,
+          typeof metricsObj.tasks_reaching_done === "number" ? metricsObj.tasks_reaching_done : 0,
         candidates_admitted:
-          typeof metricsObj.candidates_admitted === "number"
-            ? metricsObj.candidates_admitted
-            : 0,
+          typeof metricsObj.candidates_admitted === "number" ? metricsObj.candidates_admitted : 0,
         proposals_recorded:
-          typeof metricsObj.proposals_recorded === "number"
-            ? metricsObj.proposals_recorded
-            : 0,
+          typeof metricsObj.proposals_recorded === "number" ? metricsObj.proposals_recorded : 0,
       };
 
       const computedValue = calculatePulseValue(metrics);
@@ -532,7 +520,8 @@ export function checkScopeViolations(
 
       for (const touched of touchedFiles) {
         const matchesScope = declaredScope.some(
-          (scope) => touched === scope || touched.startsWith(scope.endsWith("/") ? scope : `${scope}/`),
+          (scope) =>
+            touched === scope || touched.startsWith(scope.endsWith("/") ? scope : `${scope}/`),
         );
         if (!matchesScope && declaredScope.length > 0) {
           findings.push(
@@ -579,7 +568,10 @@ export function checkNeverUnattendedActions(
   const violations: string[] = [];
 
   for (const event of events) {
-    if (event.kind === "prohibited-action-attempted" || event.kind === "never-unattended-violation") {
+    if (
+      event.kind === "prohibited-action-attempted" ||
+      event.kind === "never-unattended-violation"
+    ) {
       const reason =
         typeof event.payload.reason === "string"
           ? event.payload.reason
@@ -678,9 +670,7 @@ export function checkDeclinedCandidates(
           : null;
 
     if (!reason || !reason.trim()) {
-      findings.push(
-        `declined candidate '${candidateId}' is missing a non-empty decline reason`,
-      );
+      findings.push(`declined candidate '${candidateId}' is missing a non-empty decline reason`);
     }
   }
 
@@ -827,11 +817,8 @@ export function validateAuditAnswers(rawAnswers: unknown): readonly AuditAnswer[
         const verdict: AuditAnswerVerdict =
           rawV === "fail" || rawV === "finding" || rawV === "failed" ? "fail" : "pass";
 
-        const findingsVal = Array.isArray(obj.findings)
-          ? (obj.findings as string[])
-          : undefined;
-        const statementVal =
-          typeof obj.statement === "string" ? obj.statement : undefined;
+        const findingsVal = Array.isArray(obj.findings) ? (obj.findings as string[]) : undefined;
+        const statementVal = typeof obj.statement === "string" ? obj.statement : undefined;
 
         answerMap.set(qId, {
           question_id: qId,
@@ -890,11 +877,8 @@ export function validateAuditAnswers(rawAnswers: unknown): readonly AuditAnswer[
         const verdict: AuditAnswerVerdict =
           rawV === "fail" || rawV === "finding" || rawV === "failed" ? "fail" : "pass";
 
-        const findingsVal = Array.isArray(obj.findings)
-          ? (obj.findings as string[])
-          : undefined;
-        const statementVal =
-          typeof obj.statement === "string" ? obj.statement : undefined;
+        const findingsVal = Array.isArray(obj.findings) ? (obj.findings as string[]) : undefined;
+        const statementVal = typeof obj.statement === "string" ? obj.statement : undefined;
 
         answerMap.set(qId, {
           question_id: qId,
@@ -939,7 +923,11 @@ export function checkAuditBlocksPulse(state: RunState): AuditBlockCheckResult {
   const auditRecord = (state.audit ?? mindState.audit ?? {}) as Record<string, unknown>;
 
   // 1. Mind halted check
-  if (mindState.halted === true || auditRecord.status === "halted" || auditRecord.last_verdict === "halt") {
+  if (
+    mindState.halted === true ||
+    auditRecord.status === "halted" ||
+    auditRecord.last_verdict === "halt"
+  ) {
     const reason =
       typeof mindState.halt_reason === "string"
         ? mindState.halt_reason
@@ -968,10 +956,14 @@ export function checkAuditBlocksPulse(state: RunState): AuditBlockCheckResult {
   }
 
   // 3. Status changes_requested check
-  if (auditRecord.status === "changes_requested" || auditRecord.last_verdict === "changes_requested") {
+  if (
+    auditRecord.status === "changes_requested" ||
+    auditRecord.last_verdict === "changes_requested"
+  ) {
     return {
       blocked: true,
-      reason: "audit verdict requested changes; cannot proceed past WAKE until findings are resolved. Outcome: blocked.",
+      reason:
+        "audit verdict requested changes; cannot proceed past WAKE until findings are resolved. Outcome: blocked.",
       outcome: "blocked",
     };
   }
@@ -986,9 +978,6 @@ export function checkAuditBlocksPulse(state: RunState): AuditBlockCheckResult {
 export function assertAuditAllowsPulseOpen(state: RunState): void {
   const check = checkAuditBlocksPulse(state);
   if (check.blocked) {
-    throw new HarnessError(
-      "INVALID_STATE",
-      check.reason ?? "pulse blocked by open audit findings",
-    );
+    throw new HarnessError("INVALID_STATE", check.reason ?? "pulse blocked by open audit findings");
   }
 }

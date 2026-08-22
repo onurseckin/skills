@@ -473,7 +473,8 @@ export const PLAN_COMMANDS: readonly CommandSpec[] = [
     name: "dag:view",
     aliases: ["graph:ascii", "status:dag"],
     domain: "plan",
-    summary: "Render live ASCII execution DAG, active subagent allocations, and algorithmic parallelization recommendations.",
+    summary:
+      "Render live ASCII execution DAG, active subagent allocations, and algorithmic parallelization recommendations.",
     description:
       "Inspects compiled graph or planning buffer DAG topology, computes critical path depth, tracks active subagent leases, and generates algorithmic parallelization recommendations.",
     flags: [

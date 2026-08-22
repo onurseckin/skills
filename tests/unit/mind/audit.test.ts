@@ -5,14 +5,14 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { agentRegisterCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/agent-ops.ts";
 import {
-  formatMindAuditReportBrief,
-  formatMindAuditStartBrief,
   mindAuditReportCommand,
   mindAuditStartCommand,
 } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/mind-audit.ts";
-import { mindPulseCloseCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/mind-pulse-close.ts";
 import { mindPulseOpenCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/mind-pulse-open.ts";
-import type { HarnessEvent, RunState } from "../../../orchestrating-long-tasks/scripts/src/contracts/capsule.ts";
+import type {
+  HarnessEvent,
+  RunState,
+} from "../../../orchestrating-long-tasks/scripts/src/contracts/capsule.ts";
 import type { JsonObject } from "../../../orchestrating-long-tasks/scripts/src/contracts/json.ts";
 import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
 import {
@@ -20,13 +20,11 @@ import {
   AUDIT_QUESTION_IDS,
   AUDIT_QUESTIONS,
   checkAdmittedCandidateGoals,
-  checkAdmittedCandidateWitnesses,
   checkAuditBlocksPulse,
   checkCharterDigestIntegrity,
   checkDeclinedCandidates,
   checkNeverUnattendedActions,
   checkPulseGaps,
-  checkScopeViolations,
   checkValueConsistency,
   normalizeQuestionId,
   validateAuditAnswers,
@@ -209,18 +207,18 @@ describe("Phase 5 W5.2 - Mind Audit Questionnaire & Verification", () => {
       ];
 
       expect(() => validateAuditAnswers(missingCmdAnswers)).toThrow(HarnessError);
-      expect(() => validateAuditAnswers(missingCmdAnswers)).toThrow(/must cite a non-empty command id/);
+      expect(() => validateAuditAnswers(missingCmdAnswers)).toThrow(
+        /must cite a non-empty command id/,
+      );
     });
 
     test("refuses answers when fewer than 8 questions are answered", () => {
-      const incompleteAnswers = [
-        "Q1:cmd-101:pass",
-        "Q2:cmd-102:pass",
-        "Q3:cmd-103:pass",
-      ];
+      const incompleteAnswers = ["Q1:cmd-101:pass", "Q2:cmd-102:pass", "Q3:cmd-103:pass"];
 
       expect(() => validateAuditAnswers(incompleteAnswers)).toThrow(HarnessError);
-      expect(() => validateAuditAnswers(incompleteAnswers)).toThrow(/missing answers for audit questionnaire/);
+      expect(() => validateAuditAnswers(incompleteAnswers)).toThrow(
+        /missing answers for audit questionnaire/,
+      );
     });
 
     test("accepts object format with question IDs or keys", () => {
@@ -512,18 +510,12 @@ describe("Phase 5 W5.2 - Mind Audit Questionnaire & Verification", () => {
 
     test("refuses starting audit when mind is halted", () => {
       const fixture = setupMindCapsule("start-halted");
-      transact(
-        fixture.run,
-        "owner",
-        "mind-halted",
-        { reason: "manual test halt" },
-        (working) => {
-          const mindState = (working.mind ?? {}) as Record<string, unknown>;
-          mindState.halted = true;
-          mindState.halt_reason = "manual test halt";
-          working.mind = mindState as unknown as JsonObject;
-        },
-      );
+      transact(fixture.run, "owner", "mind-halted", { reason: "manual test halt" }, (working) => {
+        const mindState = (working.mind ?? {}) as Record<string, unknown>;
+        mindState.halted = true;
+        mindState.halt_reason = "manual test halt";
+        working.mind = mindState as unknown as JsonObject;
+      });
 
       expect(() =>
         mindAuditStartCommand({

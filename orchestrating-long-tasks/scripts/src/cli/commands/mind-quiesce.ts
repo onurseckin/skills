@@ -134,9 +134,7 @@ export async function mindQuiesceCommand(
       ? budget.base_interval_ms
       : DEFAULT_BASE_INTERVAL_MS;
   const maxIntervalMs =
-    typeof budget.max_interval_ms === "number"
-      ? budget.max_interval_ms
-      : DEFAULT_MAX_INTERVAL_MS;
+    typeof budget.max_interval_ms === "number" ? budget.max_interval_ms : DEFAULT_MAX_INTERVAL_MS;
   const armedIntervalMs = calculateQuiescentInterval(baseIntervalMs, maxIntervalMs, newStreak);
 
   // 6. Trigger digest at 8th consecutive quiescent pulse per PLAN.md §7.5 / PHASE-3.md §3.5

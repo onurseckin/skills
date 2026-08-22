@@ -15,11 +15,7 @@ import {
   type LayoutShiftEntry,
   type UnstableElementDisplacement,
 } from "./runners/layout-shift-tracker.ts";
-import type {
-  AABB,
-  DomPhysicsSnapshot,
-  ExtractedElementPhysics,
-} from "./runners/types.ts";
+import type { AABB, DomPhysicsSnapshot, ExtractedElementPhysics } from "./runners/types.ts";
 
 function createMockElement(
   selector: string,
@@ -256,36 +252,58 @@ describe("Cumulative Layout Shift (CLS) Tracking & Event Simulation", () => {
       expect(calculateImpactFraction([], viewport)).toBe(0);
       expect(
         calculateImpactFraction(
-          [{
-            previousRect: { x: 0, y: 0, width: 100, height: 100, left: 0, right: 100, top: 0, bottom: 100 },
-            currentRect: { x: 0, y: 50, width: 100, height: 100, left: 0, right: 100, top: 50, bottom: 150 },
-          }],
+          [
+            {
+              previousRect: {
+                x: 0,
+                y: 0,
+                width: 100,
+                height: 100,
+                left: 0,
+                right: 100,
+                top: 0,
+                bottom: 100,
+              },
+              currentRect: {
+                x: 0,
+                y: 50,
+                width: 100,
+                height: 100,
+                left: 0,
+                right: 100,
+                top: 50,
+                bottom: 150,
+              },
+            },
+          ],
           { width: 0, height: 0 },
         ),
       ).toBe(0);
 
-      const singleShift = [{
-        previousRect: {
-          x: 0,
-          y: 0,
-          width: 500,
-          height: 500,
-          left: 0,
-          right: 500,
-          top: 0,
-          bottom: 500,
+      const singleShift = [
+        {
+          previousRect: {
+            x: 0,
+            y: 0,
+            width: 500,
+            height: 500,
+            left: 0,
+            right: 500,
+            top: 0,
+            bottom: 500,
+          },
+          currentRect: {
+            x: 0,
+            y: 200,
+            width: 500,
+            height: 500,
+            left: 0,
+            right: 500,
+            top: 200,
+            bottom: 700,
+          },
         },
-        currentRect: {
-          x: 0,
-          y: 200,
-          width: 500,
-          height: 500,
-          left: 0,
-          right: 500,
-          top: 200,
-          bottom: 700,
-        },
-      }];
+      ];
       const impactFraction = calculateImpactFraction(singleShift, viewport);
       expect(impactFraction).toBeCloseTo(0.35, 4);
     });
@@ -314,8 +332,18 @@ describe("Cumulative Layout Shift (CLS) Tracking & Event Simulation", () => {
     });
 
     it("enforces sub-pixel shift thresholds", () => {
-      const elPrev = createMockElement("div.box", "DIV", { x: 100, y: 100, width: 200, height: 200 });
-      const elCurrSubpixel = createMockElement("div.box", "DIV", { x: 100.3, y: 100.2, width: 200, height: 200 });
+      const elPrev = createMockElement("div.box", "DIV", {
+        x: 100,
+        y: 100,
+        width: 200,
+        height: 200,
+      });
+      const elCurrSubpixel = createMockElement("div.box", "DIV", {
+        x: 100.3,
+        y: 100.2,
+        width: 200,
+        height: 200,
+      });
       const snapPrev = createMockSnapshot([elPrev]);
       const snapSubpixel = createMockSnapshot([elCurrSubpixel]);
 
@@ -327,7 +355,12 @@ describe("Cumulative Layout Shift (CLS) Tracking & Event Simulation", () => {
       expect(subpixelShift.sources.length).toBe(0);
       expect(subpixelShift.isValidShift).toBe(false);
 
-      const elCurrSignificant = createMockElement("div.box", "DIV", { x: 100, y: 120, width: 200, height: 200 });
+      const elCurrSignificant = createMockElement("div.box", "DIV", {
+        x: 100,
+        y: 120,
+        width: 200,
+        height: 200,
+      });
       const snapSignificant = createMockSnapshot([elCurrSignificant]);
 
       const significantShift = detectLayoutShiftBetweenSnapshots(snapPrev, snapSignificant, {
@@ -395,7 +428,7 @@ describe("Cumulative Layout Shift (CLS) Tracking & Event Simulation", () => {
       expect(windows[0]?.isMaxWindow).toBe(false);
 
       expect(windows[1]?.entries.length).toBe(2);
-      expect(windows[1]?.windowScore).toBeCloseTo(0.10, 4);
+      expect(windows[1]?.windowScore).toBeCloseTo(0.1, 4);
       expect(windows[1]?.isMaxWindow).toBe(true);
     });
 
@@ -548,8 +581,26 @@ describe("Cumulative Layout Shift (CLS) Tracking & Event Simulation", () => {
         {
           selector: "div.banner",
           tagName: "DIV",
-          previousRect: { x: 0, y: 0, width: 1000, height: 50, left: 0, right: 1000, top: 0, bottom: 50 },
-          currentRect: { x: 0, y: 0, width: 1000, height: 200, left: 0, right: 1000, top: 0, bottom: 200 },
+          previousRect: {
+            x: 0,
+            y: 0,
+            width: 1000,
+            height: 50,
+            left: 0,
+            right: 1000,
+            top: 0,
+            bottom: 50,
+          },
+          currentRect: {
+            x: 0,
+            y: 0,
+            width: 1000,
+            height: 200,
+            left: 0,
+            right: 1000,
+            top: 0,
+            bottom: 200,
+          },
           deltaX: 0,
           deltaY: 0,
           deltaWidth: 0,
@@ -569,18 +620,28 @@ describe("Cumulative Layout Shift (CLS) Tracking & Event Simulation", () => {
     });
 
     it("excludes fixed and sticky elements when option is enabled", () => {
-      const fixedPrev = createMockElement("header.navbar", "HEADER", {
-        x: 0,
-        y: 0,
-        width: 1000,
-        height: 60,
-      }, { position: "fixed" });
-      const fixedCurr = createMockElement("header.navbar", "HEADER", {
-        x: 0,
-        y: 10,
-        width: 1000,
-        height: 60,
-      }, { position: "fixed" });
+      const fixedPrev = createMockElement(
+        "header.navbar",
+        "HEADER",
+        {
+          x: 0,
+          y: 0,
+          width: 1000,
+          height: 60,
+        },
+        { position: "fixed" },
+      );
+      const fixedCurr = createMockElement(
+        "header.navbar",
+        "HEADER",
+        {
+          x: 0,
+          y: 10,
+          width: 1000,
+          height: 60,
+        },
+        { position: "fixed" },
+      );
 
       const snapPrev = createMockSnapshot([fixedPrev]);
       const snapCurr = createMockSnapshot([fixedCurr]);
@@ -840,14 +901,9 @@ describe("Cumulative Layout Shift (CLS) Tracking & Event Simulation", () => {
       ];
 
       const prohibitedAnyRegex = new RegExp(
-        [
-          ":\\s*any\\b",
-          "<any>",
-          "as\\s+any\\b",
-          "=\\s*any\\b",
-          ",\\s*any\\b",
-          "\\bany\\[\\]",
-        ].join("|"),
+        [":\\s*any\\b", "<any>", "as\\s+any\\b", "=\\s*any\\b", ",\\s*any\\b", "\\bany\\[\\]"].join(
+          "|",
+        ),
       );
 
       for (const filePath of targetFiles) {

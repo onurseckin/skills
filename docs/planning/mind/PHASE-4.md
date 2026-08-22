@@ -27,10 +27,10 @@ written, so §3.2's "new, tier 1" is half-obsolete. Reconcile rather than overwr
    throws `INVALID_STATE` unconditionally — `cli/commands/orchestrator-ops.ts:76-80` requires a
    host-injected executor and no injector exists anywhere in the tree. A compliant tier-1 agent
    following the shipped contract today calls a command that cannot work. This is the exact
-   capability-versus-rail failure, inverted: a *granted* capability that does not exist.
+   capability-versus-rail failure, inverted: a _granted_ capability that does not exist.
 2. **Add `mind:round-open` and `mind:round-close`** once W4.2 lands.
-3. **Split the dual-role paragraph out of `roles/coordinator.md:102`** — *"This contract covers both
-   drivers: the tier 2 coordinator that owns one run, and the tier 1 loop runner that chains runs."*
+3. **Split the dual-role paragraph out of `roles/coordinator.md:102`** — _"This contract covers both
+   drivers: the tier 2 coordinator that owns one run, and the tier 1 loop runner that chains runs."_
    One document describing two roles is precisely how a weak model ends up doing the wrong one.
 
 **Acceptance:** a test asserting no role contract grants a command that unconditionally throws — it
@@ -85,15 +85,15 @@ Collapse a tier and you delete a bound.
 The tier-1 packet carries (`PLAN.md` §3.4) — nothing new is needed, `packets/render-packet.ts`
 already stamps `role_contract_sha256`:
 
-| Field                | Class            | Source                                        |
-| :------------------- | :--------------- | :--------------------------------------------- |
-| `objective`          | agent_reported   | the admitted candidate's statement             |
-| `witness_command_id` | harness_observed | the command that proved the defect exists      |
-| `charter_goal_ids`   | harness_observed | which goals admitted it                        |
-| `round_budget`       | derived          | from the remaining pulse/day budget            |
-| `wall_clock_budget`  | derived          | same                                           |
-| `profile`            | agent_reported   | abstract profile name only — never a model name|
-| `prohibitions`       | harness_observed | the charter's never-unattended list, verbatim  |
+| Field                | Class            | Source                                          |
+| :------------------- | :--------------- | :---------------------------------------------- |
+| `objective`          | agent_reported   | the admitted candidate's statement              |
+| `witness_command_id` | harness_observed | the command that proved the defect exists       |
+| `charter_goal_ids`   | harness_observed | which goals admitted it                         |
+| `round_budget`       | derived          | from the remaining pulse/day budget             |
+| `wall_clock_budget`  | derived          | same                                            |
+| `profile`            | agent_reported   | abstract profile name only — never a model name |
+| `prohibitions`       | harness_observed | the charter's never-unattended list, verbatim   |
 
 **Acceptance:** a test that a mind grant may not register an implementer, a validator, a
 planner or a coordinator; a test that an orchestrator grant may not register an implementer; a test
@@ -138,7 +138,7 @@ selection produces the limitation string rather than a silently dropped paramete
   CLI refuses the command.
 - **Findings must route.** The delegation audit (`../coordinator-conformance/DELEGATION-AUDIT.md`)
   found that a validator's findings had no transport to the agent that could act on them, and that
-  the *success* path (`workflow/review/record-review.ts:121`) notifies nobody at all. If that is
+  the _success_ path (`workflow/review/record-review.ts:121`) notifies nobody at all. If that is
   still true when this phase starts, it is a work item here, because a hierarchy whose feedback does
   not reach the tier below is a hierarchy in name only.
 - **The damage suite from Phase 2 runs against a round**, not only against a task.
@@ -160,14 +160,14 @@ has **never yet achieved in a real run**:
 
 ## 6. Failure modes
 
-| Likely mistake                                             | The tell                                                  |
-| :--------------------------------------------------------- | :--------------------------------------------------------- |
-| Overwriting the shipped `roles/orchestrator.md`            | Commit `8318e5d`'s prose disappears from the diff          |
-| Building `orchestrator:run`'s executor                     | Host dispatch code inside `scripts/src/` — see D8          |
-| The mind dispatching a coordinator "just this once"   | A `spawns` list with more than one entry                   |
-| An objective statement edited between rounds               | Convergence claimed for a goal nobody set                  |
-| A model name appearing in a packet                         | The grep test fails — and the ledger becomes a fiction     |
-| Declaring done without checking file mtimes                | The forensic failure, reproduced exactly                   |
+| Likely mistake                                      | The tell                                               |
+| :-------------------------------------------------- | :----------------------------------------------------- |
+| Overwriting the shipped `roles/orchestrator.md`     | Commit `8318e5d`'s prose disappears from the diff      |
+| Building `orchestrator:run`'s executor              | Host dispatch code inside `scripts/src/` — see D8      |
+| The mind dispatching a coordinator "just this once" | A `spawns` list with more than one entry               |
+| An objective statement edited between rounds        | Convergence claimed for a goal nobody set              |
+| A model name appearing in a packet                  | The grep test fails — and the ledger becomes a fiction |
+| Declaring done without checking file mtimes         | The forensic failure, reproduced exactly               |
 
 ## 7. Rollback
 

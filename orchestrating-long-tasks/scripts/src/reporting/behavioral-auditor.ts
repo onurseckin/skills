@@ -1,9 +1,5 @@
 import { existsSync } from "node:fs";
-import type {
-  AgentGrantRecord,
-  AgentToolRef,
-  AgentToolUse,
-} from "../contracts/agents.ts";
+import type { AgentGrantRecord, AgentToolRef, AgentToolUse } from "../contracts/agents.ts";
 import { isAgentRole } from "../contracts/packets.ts";
 import type { CommandRecord } from "../contracts/commands.ts";
 import { isJsonObject, type JsonObject } from "../contracts/json.ts";
@@ -91,10 +87,7 @@ export function isOrchestratorRole(role: string): boolean {
 
 export function isImplementerRole(role: string): boolean {
   return (
-    role === "implementer" ||
-    role === "repairer" ||
-    role === "sub-implementer" ||
-    role === "worker"
+    role === "implementer" || role === "repairer" || role === "sub-implementer" || role === "worker"
   );
 }
 
@@ -126,22 +119,14 @@ export function isSubagentRole(role: string): boolean {
   );
 }
 
-function inferRole(
-  actorId: string,
-  roleMap: Map<string, string>,
-  state: JsonObject,
-): string {
+function inferRole(actorId: string, roleMap: Map<string, string>, state: JsonObject): string {
   if (roleMap.has(actorId)) return roleMap.get(actorId)!;
   if (isAgentRole(actorId)) return actorId;
 
   const packets = state.packets;
   if (isJsonObject(packets)) {
     for (const packet of Object.values(packets)) {
-      if (
-        isJsonObject(packet) &&
-        packet.agent_id === actorId &&
-        typeof packet.role === "string"
-      ) {
+      if (isJsonObject(packet) && packet.agent_id === actorId && typeof packet.role === "string") {
         return packet.role;
       }
     }
@@ -152,11 +137,7 @@ function inferRole(
     for (const task of Object.values(tasks)) {
       if (!isJsonObject(task)) continue;
       const lease = task.lease;
-      if (
-        isJsonObject(lease) &&
-        lease.agent_id === actorId &&
-        typeof lease.role === "string"
-      ) {
+      if (isJsonObject(lease) && lease.agent_id === actorId && typeof lease.role === "string") {
         return lease.role;
       }
       const attempts = task.attempts;
@@ -236,9 +217,7 @@ function auditCoordinatorCodeWriting(
   }
 
   for (const cmd of commands) {
-    const role =
-      roleMap.get(cmd.actor) ??
-      (isCoordinatorRole(cmd.actor) ? "coordinator" : "");
+    const role = roleMap.get(cmd.actor) ?? (isCoordinatorRole(cmd.actor) ? "coordinator" : "");
     if (!isCoordinatorRole(role)) continue;
 
     const isEditTool = cmd.tool !== undefined && FILE_EDIT_TOOLS.has(cmd.tool);
@@ -247,7 +226,7 @@ function auditCoordinatorCodeWriting(
     const hasEditArg = (cmd.argv ?? []).some((arg) => FILE_EDIT_TOOLS.has(arg));
 
     if (isEditTool || isEditCat || hasEditArg) {
-      const cmdDesc = argvJoined ? argvJoined : (cmd.tool ? cmd.tool : "file-edit");
+      const cmdDesc = argvJoined ? argvJoined : cmd.tool ? cmd.tool : "file-edit";
       findings.push({
         agent_id: cmd.actor,
         role: "coordinator",
@@ -270,10 +249,7 @@ function auditCoordinatorCodeWriting(
     if (!task.lease) continue;
     const leaseRole = task.lease.role;
     const agentRole = roleMap.get(task.lease.agent_id);
-    if (
-      isCoordinatorRole(leaseRole) ||
-      (agentRole && isCoordinatorRole(agentRole))
-    ) {
+    if (isCoordinatorRole(leaseRole) || (agentRole && isCoordinatorRole(agentRole))) {
       findings.push({
         agent_id: task.lease.agent_id,
         role: "coordinator",
@@ -324,10 +300,7 @@ function auditOrchestratorDirectImplementation(
     if (!task.lease) continue;
     const leaseRole = task.lease.role;
     const agentRole = roleMap.get(task.lease.agent_id);
-    if (
-      isOrchestratorRole(leaseRole) ||
-      (agentRole && isOrchestratorRole(agentRole))
-    ) {
+    if (isOrchestratorRole(leaseRole) || (agentRole && isOrchestratorRole(agentRole))) {
       findings.push({
         agent_id: task.lease.agent_id,
         role: "orchestrator",
@@ -345,9 +318,7 @@ function auditOrchestratorDirectImplementation(
   }
 
   for (const cmd of commands) {
-    const role =
-      roleMap.get(cmd.actor) ??
-      (isOrchestratorRole(cmd.actor) ? "orchestrator" : "");
+    const role = roleMap.get(cmd.actor) ?? (isOrchestratorRole(cmd.actor) ? "orchestrator" : "");
     if (!isOrchestratorRole(role)) continue;
 
     if (cmd.task_id) {
@@ -386,10 +357,7 @@ function auditOrchestratorDirectImplementation(
       });
     }
 
-    if (
-      cmd.tool_category === "file-edit" ||
-      (cmd.tool && FILE_EDIT_TOOLS.has(cmd.tool))
-    ) {
+    if (cmd.tool_category === "file-edit" || (cmd.tool && FILE_EDIT_TOOLS.has(cmd.tool))) {
       findings.push({
         agent_id: cmd.actor,
         role: "orchestrator",
@@ -468,9 +436,7 @@ function auditImplementerSelfGradingAndTopology(
   }
 
   for (const cmd of commands) {
-    const role =
-      roleMap.get(cmd.actor) ??
-      (isImplementerRole(cmd.actor) ? "implementer" : "");
+    const role = roleMap.get(cmd.actor) ?? (isImplementerRole(cmd.actor) ? "implementer" : "");
     if (!isImplementerRole(role)) continue;
 
     const argv = cmd.argv ?? [];
@@ -516,8 +482,7 @@ function auditImplementerSelfGradingAndTopology(
     if (!isJsonObject(ev)) continue;
     const actor = typeof ev.actor === "string" ? ev.actor : "";
     const kind = typeof ev.kind === "string" ? ev.kind : "";
-    const role =
-      roleMap.get(actor) ?? (isImplementerRole(actor) ? "implementer" : "");
+    const role = roleMap.get(actor) ?? (isImplementerRole(actor) ? "implementer" : "");
     if (!isImplementerRole(role)) continue;
 
     if (
@@ -555,8 +520,7 @@ function auditSubagentPulseTermination(
     const last = pulse.last;
     if (isJsonObject(last)) {
       const outcome = typeof last.outcome === "string" ? last.outcome : "";
-      const terminalReason =
-        typeof last.terminal_reason === "string" ? last.terminal_reason : null;
+      const terminalReason = typeof last.terminal_reason === "string" ? last.terminal_reason : null;
       const pulseActor = typeof last.actor === "string" ? last.actor : "";
 
       if (TERMINAL_PULSE_OUTCOMES.has(outcome) || terminalReason !== null) {
@@ -573,9 +537,7 @@ function auditSubagentPulseTermination(
             remediation:
               "Subagents are strictly prohibited from terminating pulse loops or supervisory schedulers. Mind execution must run continuously without agent-driven termination.",
             evidence: {
-              ...(typeof last.pulse_id === "string"
-                ? { pulse_id: last.pulse_id }
-                : {}),
+              ...(typeof last.pulse_id === "string" ? { pulse_id: last.pulse_id } : {}),
               outcome,
               ...(terminalReason !== null ? { terminal_reason: terminalReason } : {}),
             },
@@ -588,9 +550,7 @@ function auditSubagentPulseTermination(
   for (const cmd of commands) {
     const actorRole =
       roleMap.get(cmd.actor) ??
-      (isSubagentRole(cmd.actor)
-        ? cmd.actor
-        : inferRole(cmd.actor, roleMap, state));
+      (isSubagentRole(cmd.actor) ? cmd.actor : inferRole(cmd.actor, roleMap, state));
     const argv = cmd.argv ?? [];
     const argvJoined = argv.join(" ").toLowerCase();
 
@@ -601,8 +561,7 @@ function auditSubagentPulseTermination(
         argvJoined.includes("--outcome stopped") ||
         argvJoined.includes("--outcome completed");
       const hasTerminalReason =
-        argvJoined.includes("--terminal-reason") ||
-        argvJoined.includes("--reason");
+        argvJoined.includes("--terminal-reason") || argvJoined.includes("--reason");
 
       if (hasTerminalOutcome || hasTerminalReason) {
         const reportedRole = actorRole ? actorRole : "subagent";
@@ -654,9 +613,7 @@ function auditSubagentPulseTermination(
   }
 }
 
-function deduplicateFindings(
-  findings: readonly BehavioralFinding[],
-): BehavioralFinding[] {
+function deduplicateFindings(findings: readonly BehavioralFinding[]): BehavioralFinding[] {
   const seen = new Set<string>();
   const deduplicated: BehavioralFinding[] = [];
   for (const finding of findings) {
@@ -673,9 +630,7 @@ export function auditBehavioralHealth(
   capsuleRoot: string,
   state?: RunState | JsonObject | null,
 ): BehavioralFinding[] {
-  let resolvedState: JsonObject | null = isJsonObject(state)
-    ? (state as JsonObject)
-    : null;
+  let resolvedState: JsonObject | null = isJsonObject(state) ? (state as JsonObject) : null;
   let loadedEvents: JsonObject[] = [];
 
   if (capsuleRoot && existsSync(capsuleRoot)) {
@@ -722,20 +677,8 @@ export function auditBehavioralHealth(
   const findings: BehavioralFinding[] = [];
 
   auditCoordinatorCodeWriting(roleMap, grants, commands, tasks, findings);
-  auditOrchestratorDirectImplementation(
-    roleMap,
-    grants,
-    commands,
-    tasks,
-    findings,
-  );
-  auditImplementerSelfGradingAndTopology(
-    roleMap,
-    tasks,
-    commands,
-    loadedEvents,
-    findings,
-  );
+  auditOrchestratorDirectImplementation(roleMap, grants, commands, tasks, findings);
+  auditImplementerSelfGradingAndTopology(roleMap, tasks, commands, loadedEvents, findings);
   auditSubagentPulseTermination(roleMap, resolvedState, commands, findings);
 
   return deduplicateFindings(findings);
@@ -745,8 +688,7 @@ export function summarizeBehavioralHealth(
   findings: readonly BehavioralFinding[],
 ): BehavioralHealthSummary {
   const issues = findings.map(
-    (f) =>
-      `behavioral [${f.severity}] (${f.role}/${f.agent_id}): ${f.observation}`,
+    (f) => `behavioral [${f.severity}] (${f.role}/${f.agent_id}): ${f.observation}`,
   );
   return {
     healthy: findings.length === 0,
@@ -756,22 +698,16 @@ export function summarizeBehavioralHealth(
   };
 }
 
-export function formatBehavioralRoleHealthSection(
-  findings: readonly BehavioralFinding[],
-): string {
+export function formatBehavioralRoleHealthSection(findings: readonly BehavioralFinding[]): string {
   const lines: string[] = ["### Behavioral Role Health"];
   if (findings.length === 0) {
     lines.push("- **Status**: clean (0 violations)");
-    lines.push(
-      "- **Role Segregation**: verified (all agents conform to role contracts)",
-    );
+    lines.push("- **Role Segregation**: verified (all agents conform to role contracts)");
   } else {
     lines.push(`- **Status**: violations detected (${findings.length})`);
     lines.push("- **Findings**:");
     for (const f of findings) {
-      lines.push(
-        `  - \`[${f.severity}]\` **${f.role}** (\`${f.agent_id}\`): ${f.observation}`,
-      );
+      lines.push(`  - \`[${f.severity}]\` **${f.role}** (\`${f.agent_id}\`): ${f.observation}`);
       lines.push(`    - *Remediation*: ${f.remediation}`);
     }
   }

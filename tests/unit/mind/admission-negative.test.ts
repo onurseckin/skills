@@ -5,7 +5,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { agentRegisterCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/agent-ops.ts";
 import { mindAdmitCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/mind-admit.ts";
-import type { JsonObject, JsonValue } from "../../../orchestrating-long-tasks/scripts/src/contracts/json.ts";
+import type {
+  JsonObject,
+  JsonValue,
+} from "../../../orchestrating-long-tasks/scripts/src/contracts/json.ts";
 import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
 import {
   evaluateAdmissionGates,
@@ -171,16 +174,28 @@ function writeRecordedCommand(
     exit_code: record.exit_code,
     status: record.status ?? (record.exit_code === 0 ? "succeeded" : "failed"),
     logs: {
-      stdout: { path: `commands/${commandId}/attempt-1/stdout.log`, bytes: (record.stdout ?? "").length },
-      stderr: { path: `commands/${commandId}/attempt-1/stderr.log`, bytes: (record.stderr ?? "").length },
+      stdout: {
+        path: `commands/${commandId}/attempt-1/stdout.log`,
+        bytes: (record.stdout ?? "").length,
+      },
+      stderr: {
+        path: `commands/${commandId}/attempt-1/stderr.log`,
+        bytes: (record.stderr ?? "").length,
+      },
     },
     attempts: [
       {
         attempt: 1,
         exit_code: record.exit_code,
         logs: {
-          stdout: { path: `commands/${commandId}/attempt-1/stdout.log`, bytes: (record.stdout ?? "").length },
-          stderr: { path: `commands/${commandId}/attempt-1/stderr.log`, bytes: (record.stderr ?? "").length },
+          stdout: {
+            path: `commands/${commandId}/attempt-1/stdout.log`,
+            bytes: (record.stdout ?? "").length,
+          },
+          stderr: {
+            path: `commands/${commandId}/attempt-1/stderr.log`,
+            bytes: (record.stderr ?? "").length,
+          },
         },
       },
     ],
@@ -383,7 +398,9 @@ describe("PHASE-3 §4.1: Twenty Negative Admission Gate Refusals", () => {
     expect(verdict.passed).toBe(false);
     expect(verdict.gateId).toBe("gate-1-witnessed");
     expect(verdict.gateNumber).toBe(1);
-    expect(verdict.reason).toContain("proposals require an owner authority decision ('owner-decision') before admission");
+    expect(verdict.reason).toContain(
+      "proposals require an owner authority decision ('owner-decision') before admission",
+    );
     expect(verdict.repairArgv).toBeDefined();
     expect(verdict.repairArgv).toContain("authority:decide");
 
@@ -475,7 +492,9 @@ describe("PHASE-3 §4.1: Twenty Negative Admission Gate Refusals", () => {
     expect(verdict.passed).toBe(false);
     expect(verdict.gateId).toBe("gate-2-in-charter");
     expect(verdict.gateNumber).toBe(2);
-    expect(verdict.reason).toContain("charter goal 'G999-deprecated-generation' does not exist in pinned charter");
+    expect(verdict.reason).toContain(
+      "charter goal 'G999-deprecated-generation' does not exist in pinned charter",
+    );
     expect(verdict.repairArgv).toBeDefined();
     expect(verdict.repairArgv).toContain("--charter-goal");
 
@@ -759,7 +778,9 @@ describe("PHASE-3 §4.1: Twenty Negative Admission Gate Refusals", () => {
     expect(verdict.passed).toBe(false);
     expect(verdict.gateId).toBe("gate-4-scoped");
     expect(verdict.gateNumber).toBe(4);
-    expect(verdict.reason).toContain("write scope conflicts with live task lease 'task-live-lease-42'");
+    expect(verdict.reason).toContain(
+      "write scope conflicts with live task lease 'task-live-lease-42'",
+    );
     expect(verdict.repairArgv).toBeDefined();
     expect(verdict.repairArgv).toContain("--write-scope");
 
@@ -813,7 +834,9 @@ describe("PHASE-3 §4.1: Twenty Negative Admission Gate Refusals", () => {
     expect(verdict.passed).toBe(false);
     expect(verdict.gateId).toBe("gate-4-scoped");
     expect(verdict.gateNumber).toBe(4);
-    expect(verdict.reason).toContain("write scope conflicts with active candidate 'cand-other-active-open'");
+    expect(verdict.reason).toContain(
+      "write scope conflicts with active candidate 'cand-other-active-open'",
+    );
     expect(verdict.repairArgv).toBeDefined();
     expect(verdict.repairArgv).toContain("--write-scope");
 
@@ -1037,7 +1060,9 @@ describe("PHASE-3 §4.1: Twenty Negative Admission Gate Refusals", () => {
     expect(verdict.passed).toBe(false);
     expect(verdict.gateId).toBe("gate-6-not-a-duplicate");
     expect(verdict.gateNumber).toBe(6);
-    expect(verdict.reason).toContain("candidate is a duplicate of active candidate 'cand-existing-open'");
+    expect(verdict.reason).toContain(
+      "candidate is a duplicate of active candidate 'cand-existing-open'",
+    );
     expect(verdict.repairArgv).toBeDefined();
     expect(verdict.repairArgv).toContain("mind:candidate");
 
@@ -1148,7 +1173,9 @@ describe("PHASE-3 §4.1: Twenty Negative Admission Gate Refusals", () => {
     expect(verdict.passed).toBe(false);
     expect(verdict.gateId).toBe("gate-6-not-a-duplicate");
     expect(verdict.gateNumber).toBe(6);
-    expect(verdict.reason).toContain("candidate is a duplicate of permanently declined candidate 'cand-declined-yesterday'");
+    expect(verdict.reason).toContain(
+      "candidate is a duplicate of permanently declined candidate 'cand-declined-yesterday'",
+    );
     expect(verdict.reason).toContain("frivolous busywork styling refactor");
     expect(verdict.repairArgv).toBeDefined();
     expect(verdict.repairArgv).toContain("mind:candidate");
@@ -1189,7 +1216,14 @@ describe("PHASE-3 §4.1: Twenty Negative Admission Gate Refusals", () => {
             write_scope: ["src/a.ts"],
             status: "opened",
           },
-          context: { runRoot: run, repoRoot: repo, actor: "mind-1", state: {}, charterGoals: new Set(["G1"]), repoRoots: ["src/"] },
+          context: {
+            runRoot: run,
+            repoRoot: repo,
+            actor: "mind-1",
+            state: {},
+            charterGoals: new Set(["G1"]),
+            repoRoots: ["src/"],
+          },
         }),
       },
       {
@@ -1207,7 +1241,14 @@ describe("PHASE-3 §4.1: Twenty Negative Admission Gate Refusals", () => {
             write_scope: ["src/a.ts"],
             status: "opened",
           },
-          context: { runRoot: run, repoRoot: repo, actor: "mind-1", state: {}, charterGoals: new Set(["G1"]), repoRoots: ["src/"] },
+          context: {
+            runRoot: run,
+            repoRoot: repo,
+            actor: "mind-1",
+            state: {},
+            charterGoals: new Set(["G1"]),
+            repoRoots: ["src/"],
+          },
         }),
       },
       {
@@ -1227,7 +1268,14 @@ describe("PHASE-3 §4.1: Twenty Negative Admission Gate Refusals", () => {
               write_scope: ["src/a.ts"],
               status: "opened",
             },
-            context: { runRoot: run, repoRoot: repo, actor: "mind-1", state: {}, charterGoals: new Set(["G1"]), repoRoots: ["src/"] },
+            context: {
+              runRoot: run,
+              repoRoot: repo,
+              actor: "mind-1",
+              state: {},
+              charterGoals: new Set(["G1"]),
+              repoRoots: ["src/"],
+            },
           };
         },
       },
@@ -1236,7 +1284,10 @@ describe("PHASE-3 §4.1: Twenty Negative Admission Gate Refusals", () => {
         expectedGateNumber: 1,
         expectedGateId: "gate-1-witnessed",
         createCandidateAndContext: (repo, run) => {
-          writeRecordedCommand(run, "C-matrix-mismatch", { exit_code: 1, stderr: "DatabaseConnectionRefused on port 5432" });
+          writeRecordedCommand(run, "C-matrix-mismatch", {
+            exit_code: 1,
+            stderr: "DatabaseConnectionRefused on port 5432",
+          });
           return {
             candidate: {
               id: "m-cand-4",
@@ -1248,7 +1299,14 @@ describe("PHASE-3 §4.1: Twenty Negative Admission Gate Refusals", () => {
               write_scope: ["src/a.ts"],
               status: "opened",
             },
-            context: { runRoot: run, repoRoot: repo, actor: "mind-1", state: {}, charterGoals: new Set(["G1"]), repoRoots: ["src/"] },
+            context: {
+              runRoot: run,
+              repoRoot: repo,
+              actor: "mind-1",
+              state: {},
+              charterGoals: new Set(["G1"]),
+              repoRoots: ["src/"],
+            },
           };
         },
       },
@@ -1266,7 +1324,14 @@ describe("PHASE-3 §4.1: Twenty Negative Admission Gate Refusals", () => {
             write_scope: ["src/a.ts"],
             status: "opened",
           },
-          context: { runRoot: run, repoRoot: repo, actor: "mind-1", state: {}, charterGoals: new Set(["G1"]), repoRoots: ["src/"] },
+          context: {
+            runRoot: run,
+            repoRoot: repo,
+            actor: "mind-1",
+            state: {},
+            charterGoals: new Set(["G1"]),
+            repoRoots: ["src/"],
+          },
         }),
       },
       {
@@ -1274,7 +1339,10 @@ describe("PHASE-3 §4.1: Twenty Negative Admission Gate Refusals", () => {
         expectedGateNumber: 2,
         expectedGateId: "gate-2-in-charter",
         createCandidateAndContext: (repo, run) => {
-          writeRecordedCommand(run, "C-matrix-g2-no-goal", { exit_code: 1, stderr: "defect in a.ts" });
+          writeRecordedCommand(run, "C-matrix-g2-no-goal", {
+            exit_code: 1,
+            stderr: "defect in a.ts",
+          });
           return {
             candidate: {
               id: "m-cand-6",
@@ -1286,7 +1354,14 @@ describe("PHASE-3 §4.1: Twenty Negative Admission Gate Refusals", () => {
               write_scope: ["src/a.ts"],
               status: "opened",
             },
-            context: { runRoot: run, repoRoot: repo, actor: "mind-1", state: {}, charterGoals: new Set(["G1"]), repoRoots: ["src/"] },
+            context: {
+              runRoot: run,
+              repoRoot: repo,
+              actor: "mind-1",
+              state: {},
+              charterGoals: new Set(["G1"]),
+              repoRoots: ["src/"],
+            },
           };
         },
       },
@@ -1295,7 +1370,10 @@ describe("PHASE-3 §4.1: Twenty Negative Admission Gate Refusals", () => {
         expectedGateNumber: 2,
         expectedGateId: "gate-2-in-charter",
         createCandidateAndContext: (repo, run) => {
-          writeRecordedCommand(run, "C-matrix-g2-wrong-goal", { exit_code: 1, stderr: "defect in a.ts" });
+          writeRecordedCommand(run, "C-matrix-g2-wrong-goal", {
+            exit_code: 1,
+            stderr: "defect in a.ts",
+          });
           return {
             candidate: {
               id: "m-cand-7",
@@ -1307,7 +1385,14 @@ describe("PHASE-3 §4.1: Twenty Negative Admission Gate Refusals", () => {
               write_scope: ["src/a.ts"],
               status: "opened",
             },
-            context: { runRoot: run, repoRoot: repo, actor: "mind-1", state: {}, charterGoals: new Set(["G1"]), repoRoots: ["src/"] },
+            context: {
+              runRoot: run,
+              repoRoot: repo,
+              actor: "mind-1",
+              state: {},
+              charterGoals: new Set(["G1"]),
+              repoRoots: ["src/"],
+            },
           };
         },
       },
@@ -1316,7 +1401,10 @@ describe("PHASE-3 §4.1: Twenty Negative Admission Gate Refusals", () => {
         expectedGateNumber: 2,
         expectedGateId: "gate-2-in-charter",
         createCandidateAndContext: (repo, run) => {
-          writeRecordedCommand(run, "C-matrix-g2-non-goal", { exit_code: 1, stderr: "UI redesign defect" });
+          writeRecordedCommand(run, "C-matrix-g2-non-goal", {
+            exit_code: 1,
+            stderr: "UI redesign defect",
+          });
           return {
             candidate: {
               id: "m-cand-8",
@@ -1345,7 +1433,10 @@ describe("PHASE-3 §4.1: Twenty Negative Admission Gate Refusals", () => {
         expectedGateNumber: 3,
         expectedGateId: "gate-3-falsifiable",
         createCandidateAndContext: (repo, run) => {
-          writeRecordedCommand(run, "C-matrix-g3-falsifier-zero", { exit_code: 1, stderr: "falsifier defect" });
+          writeRecordedCommand(run, "C-matrix-g3-falsifier-zero", {
+            exit_code: 1,
+            stderr: "falsifier defect",
+          });
           return {
             candidate: {
               id: "m-cand-9",
@@ -1357,7 +1448,14 @@ describe("PHASE-3 §4.1: Twenty Negative Admission Gate Refusals", () => {
               write_scope: ["src/a.ts"],
               status: "opened",
             },
-            context: { runRoot: run, repoRoot: repo, actor: "mind-1", state: {}, charterGoals: new Set(["G1"]), repoRoots: ["src/"] },
+            context: {
+              runRoot: run,
+              repoRoot: repo,
+              actor: "mind-1",
+              state: {},
+              charterGoals: new Set(["G1"]),
+              repoRoots: ["src/"],
+            },
           };
         },
       },
@@ -1366,7 +1464,10 @@ describe("PHASE-3 §4.1: Twenty Negative Admission Gate Refusals", () => {
         expectedGateNumber: 3,
         expectedGateId: "gate-3-falsifiable",
         createCandidateAndContext: (repo, run) => {
-          writeRecordedCommand(run, "C-matrix-g3-falsifier-missing", { exit_code: 1, stderr: "falsifier missing defect" });
+          writeRecordedCommand(run, "C-matrix-g3-falsifier-missing", {
+            exit_code: 1,
+            stderr: "falsifier missing defect",
+          });
           return {
             candidate: {
               id: "m-cand-10",
@@ -1378,7 +1479,14 @@ describe("PHASE-3 §4.1: Twenty Negative Admission Gate Refusals", () => {
               write_scope: ["src/a.ts"],
               status: "opened",
             },
-            context: { runRoot: run, repoRoot: repo, actor: "mind-1", state: {}, charterGoals: new Set(["G1"]), repoRoots: ["src/"] },
+            context: {
+              runRoot: run,
+              repoRoot: repo,
+              actor: "mind-1",
+              state: {},
+              charterGoals: new Set(["G1"]),
+              repoRoots: ["src/"],
+            },
           };
         },
       },
@@ -1387,7 +1495,10 @@ describe("PHASE-3 §4.1: Twenty Negative Admission Gate Refusals", () => {
         expectedGateNumber: 4,
         expectedGateId: "gate-4-scoped",
         createCandidateAndContext: (repo, run) => {
-          writeRecordedCommand(run, "C-matrix-g4-empty-scope", { exit_code: 1, stderr: "scope defect" });
+          writeRecordedCommand(run, "C-matrix-g4-empty-scope", {
+            exit_code: 1,
+            stderr: "scope defect",
+          });
           return {
             candidate: {
               id: "m-cand-11",
@@ -1399,7 +1510,14 @@ describe("PHASE-3 §4.1: Twenty Negative Admission Gate Refusals", () => {
               write_scope: [],
               status: "opened",
             },
-            context: { runRoot: run, repoRoot: repo, actor: "mind-1", state: {}, charterGoals: new Set(["G1"]), repoRoots: ["src/"] },
+            context: {
+              runRoot: run,
+              repoRoot: repo,
+              actor: "mind-1",
+              state: {},
+              charterGoals: new Set(["G1"]),
+              repoRoots: ["src/"],
+            },
           };
         },
       },
@@ -1408,7 +1526,10 @@ describe("PHASE-3 §4.1: Twenty Negative Admission Gate Refusals", () => {
         expectedGateNumber: 4,
         expectedGateId: "gate-4-scoped",
         createCandidateAndContext: (repo, run) => {
-          writeRecordedCommand(run, "C-matrix-g4-outside-roots", { exit_code: 1, stderr: "scope defect" });
+          writeRecordedCommand(run, "C-matrix-g4-outside-roots", {
+            exit_code: 1,
+            stderr: "scope defect",
+          });
           return {
             candidate: {
               id: "m-cand-12",
@@ -1420,7 +1541,14 @@ describe("PHASE-3 §4.1: Twenty Negative Admission Gate Refusals", () => {
               write_scope: ["docs/planning/mind/PLAN.md"],
               status: "opened",
             },
-            context: { runRoot: run, repoRoot: repo, actor: "mind-1", state: {}, charterGoals: new Set(["G1"]), repoRoots: ["src/"] },
+            context: {
+              runRoot: run,
+              repoRoot: repo,
+              actor: "mind-1",
+              state: {},
+              charterGoals: new Set(["G1"]),
+              repoRoots: ["src/"],
+            },
           };
         },
       },
@@ -1429,7 +1557,10 @@ describe("PHASE-3 §4.1: Twenty Negative Admission Gate Refusals", () => {
         expectedGateNumber: 4,
         expectedGateId: "gate-4-scoped",
         createCandidateAndContext: (repo, run) => {
-          writeRecordedCommand(run, "C-matrix-g4-lease-collision", { exit_code: 1, stderr: "scope defect" });
+          writeRecordedCommand(run, "C-matrix-g4-lease-collision", {
+            exit_code: 1,
+            stderr: "scope defect",
+          });
           return {
             candidate: {
               id: "m-cand-13",
@@ -1465,7 +1596,10 @@ describe("PHASE-3 §4.1: Twenty Negative Admission Gate Refusals", () => {
         expectedGateNumber: 4,
         expectedGateId: "gate-4-scoped",
         createCandidateAndContext: (repo, run) => {
-          writeRecordedCommand(run, "C-matrix-g4-cand-collision", { exit_code: 1, stderr: "scope defect" });
+          writeRecordedCommand(run, "C-matrix-g4-cand-collision", {
+            exit_code: 1,
+            stderr: "scope defect",
+          });
           return {
             candidate: {
               id: "m-cand-14",
@@ -1520,7 +1654,13 @@ describe("PHASE-3 §4.1: Twenty Negative Admission Gate Refusals", () => {
               repoRoot: repo,
               actor: "mind-1",
               state: {
-                budget: { pulses_per_day: 10, pulses_today: 10, wall_clock_ms_per_day: 100000, wall_clock_ms_today: 0, max_agents_in_flight: 5 },
+                budget: {
+                  pulses_per_day: 10,
+                  pulses_today: 10,
+                  wall_clock_ms_per_day: 100000,
+                  wall_clock_ms_today: 0,
+                  max_agents_in_flight: 5,
+                },
               },
               charterGoals: new Set(["G1"]),
               repoRoots: ["src/"],
@@ -1550,7 +1690,13 @@ describe("PHASE-3 §4.1: Twenty Negative Admission Gate Refusals", () => {
               repoRoot: repo,
               actor: "mind-1",
               state: {
-                budget: { pulses_per_day: 10, pulses_today: 1, wall_clock_ms_per_day: 10000, wall_clock_ms_today: 10000, max_agents_in_flight: 5 },
+                budget: {
+                  pulses_per_day: 10,
+                  pulses_today: 1,
+                  wall_clock_ms_per_day: 10000,
+                  wall_clock_ms_today: 10000,
+                  max_agents_in_flight: 5,
+                },
               },
               charterGoals: new Set(["G1"]),
               repoRoots: ["src/"],
@@ -1563,7 +1709,10 @@ describe("PHASE-3 §4.1: Twenty Negative Admission Gate Refusals", () => {
         expectedGateNumber: 5,
         expectedGateId: "gate-5-affordable",
         createCandidateAndContext: (repo, run) => {
-          writeRecordedCommand(run, "C-matrix-g5-agents", { exit_code: 1, stderr: "budget defect" });
+          writeRecordedCommand(run, "C-matrix-g5-agents", {
+            exit_code: 1,
+            stderr: "budget defect",
+          });
           return {
             candidate: {
               id: "m-cand-17",
@@ -1580,7 +1729,13 @@ describe("PHASE-3 §4.1: Twenty Negative Admission Gate Refusals", () => {
               repoRoot: repo,
               actor: "mind-1",
               state: {
-                budget: { pulses_per_day: 10, pulses_today: 1, wall_clock_ms_per_day: 10000, wall_clock_ms_today: 100, max_agents_in_flight: 1 },
+                budget: {
+                  pulses_per_day: 10,
+                  pulses_today: 1,
+                  wall_clock_ms_per_day: 10000,
+                  wall_clock_ms_today: 100,
+                  max_agents_in_flight: 1,
+                },
                 agents: [{ id: "agent-1", role: "implementer", status: "active" }],
               },
               charterGoals: new Set(["G1"]),
@@ -1594,7 +1749,10 @@ describe("PHASE-3 §4.1: Twenty Negative Admission Gate Refusals", () => {
         expectedGateNumber: 6,
         expectedGateId: "gate-6-not-a-duplicate",
         createCandidateAndContext: (repo, run) => {
-          writeRecordedCommand(run, "C-matrix-g6-dup-open", { exit_code: 1, stderr: "duplicate defect" });
+          writeRecordedCommand(run, "C-matrix-g6-dup-open", {
+            exit_code: 1,
+            stderr: "duplicate defect",
+          });
           return {
             candidate: {
               id: "m-cand-18",
@@ -1633,7 +1791,10 @@ describe("PHASE-3 §4.1: Twenty Negative Admission Gate Refusals", () => {
         expectedGateNumber: 6,
         expectedGateId: "gate-6-not-a-duplicate",
         createCandidateAndContext: (repo, run) => {
-          writeRecordedCommand(run, "C-matrix-g6-dup-task", { exit_code: 1, stderr: "task dup defect" });
+          writeRecordedCommand(run, "C-matrix-g6-dup-task", {
+            exit_code: 1,
+            stderr: "task dup defect",
+          });
           return {
             candidate: {
               id: "m-cand-19",
@@ -1670,7 +1831,10 @@ describe("PHASE-3 §4.1: Twenty Negative Admission Gate Refusals", () => {
         expectedGateNumber: 6,
         expectedGateId: "gate-6-not-a-duplicate",
         createCandidateAndContext: (repo, run) => {
-          writeRecordedCommand(run, "C-matrix-g6-declined", { exit_code: 1, stderr: "declined forever defect" });
+          writeRecordedCommand(run, "C-matrix-g6-declined", {
+            exit_code: 1,
+            stderr: "declined forever defect",
+          });
           return {
             candidate: {
               id: "m-cand-20",
@@ -1781,9 +1945,9 @@ describe("PHASE-3 §4.1: Twenty Negative Admission Gate Refusals", () => {
     const runAfter = loadRun(run, false);
     expect(runAfter.events.length).toBe(eventCountBefore);
 
-    const candidateAfter = (runAfter.state.candidates as unknown as readonly CandidateRecord[]).find(
-      (c) => c.id === "cand-cli-refused",
-    );
+    const candidateAfter = (
+      runAfter.state.candidates as unknown as readonly CandidateRecord[]
+    ).find((c) => c.id === "cand-cli-refused");
     expect(candidateAfter?.status).toBe("opened");
   });
 });

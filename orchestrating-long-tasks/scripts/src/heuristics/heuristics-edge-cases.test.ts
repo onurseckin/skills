@@ -20,10 +20,7 @@ import {
   type GlassTextElement,
   type ParsedRgba,
 } from "./glass-surfaces.ts";
-import {
-  validateModalFocusTrap,
-  type ModalFocusTrapInput,
-} from "./modal-focus-traps.ts";
+import { validateModalFocusTrap, type ModalFocusTrapInput } from "./modal-focus-traps.ts";
 import {
   CANONICAL_FRACTIONAL_DPR_SCALES,
   evaluateAntiAliasingEdgeContrast,
@@ -76,7 +73,12 @@ describe("Extended Heuristics: Nested Glass Surfaces & Translucency Dynamics", (
     expect(parseColorToRgba("#000000")).toEqual({ r: 0, g: 0, b: 0, a: 1 });
     expect(parseColorToRgba("#ff000080")).toEqual({ r: 255, g: 0, b: 0, a: 128 / 255 });
     expect(parseColorToRgba("#1234")).toEqual({ r: 17, g: 34, b: 51, a: 68 / 255 });
-    expect(parseColorToRgba("rgba(100, 150, 200, 0.5)")).toEqual({ r: 100, g: 150, b: 200, a: 0.5 });
+    expect(parseColorToRgba("rgba(100, 150, 200, 0.5)")).toEqual({
+      r: 100,
+      g: 150,
+      b: 200,
+      a: 0.5,
+    });
     expect(parseColorToRgba("rgba(100%, 50%, 0%, 0.8)")).toEqual({ r: 255, g: 128, b: 0, a: 0.8 });
     expect(parseColorToRgba("rgb(50, 60, 70)")).toEqual({ r: 50, g: 60, b: 70, a: 1 });
     expect(parseColorToRgba("hsla(0, 100%, 50%, 0.8)")?.r).toBe(255);
@@ -159,11 +161,31 @@ describe("Extended Heuristics: Nested Glass Surfaces & Translucency Dynamics", (
 
   it("evaluates 5+ deeply nested translucent glass layers without numerical errors or NaN", () => {
     const deepStack: GlassSurfaceLayer[] = [
-      { selector: ".modal-backdrop", backgroundColor: "rgba(0, 0, 0, 0.4)", backdropFilter: "blur(20px)" },
-      { selector: ".modal-window", backgroundColor: "rgba(255, 255, 255, 0.6)", backdropFilter: "blur(12px)" },
-      { selector: ".modal-section", backgroundColor: "rgba(255, 255, 255, 0.4)", backdropFilter: "blur(8px)" },
-      { selector: ".glass-pill", backgroundColor: "rgba(0, 0, 0, 0.2)", backdropFilter: "blur(4px)" },
-      { selector: ".glass-badge", backgroundColor: "rgba(255, 255, 255, 0.8)", backdropFilter: "blur(2px)" },
+      {
+        selector: ".modal-backdrop",
+        backgroundColor: "rgba(0, 0, 0, 0.4)",
+        backdropFilter: "blur(20px)",
+      },
+      {
+        selector: ".modal-window",
+        backgroundColor: "rgba(255, 255, 255, 0.6)",
+        backdropFilter: "blur(12px)",
+      },
+      {
+        selector: ".modal-section",
+        backgroundColor: "rgba(255, 255, 255, 0.4)",
+        backdropFilter: "blur(8px)",
+      },
+      {
+        selector: ".glass-pill",
+        backgroundColor: "rgba(0, 0, 0, 0.2)",
+        backdropFilter: "blur(4px)",
+      },
+      {
+        selector: ".glass-badge",
+        backgroundColor: "rgba(255, 255, 255, 0.8)",
+        backdropFilter: "blur(2px)",
+      },
     ];
 
     const text: GlassTextElement = {
@@ -416,9 +438,7 @@ describe("Extended Heuristics: Modal Focus Traps", () => {
       isOpen: true,
       ariaModal: true,
       focusableElements: [{ selector: "#btn-save", tabIndex: 0, isInsideModal: true }],
-      outsideSiblings: [
-        { selector: "#sidebar", ariaHidden: false, isInert: false },
-      ],
+      outsideSiblings: [{ selector: "#sidebar", ariaHidden: false, isInert: false }],
       bodyStyles: {
         overflow: "visible",
       },
@@ -554,7 +574,7 @@ describe("Extended Heuristics: Subpixel Borders & Hairline Artifacts", () => {
     expect(border05.isCompliant).toBe(false);
     expect(border05.dprEvaluations[0]?.isAligned).toBe(false); // 1.0x: 0.5px phys (blurry)
     expect(border05.dprEvaluations[1]?.isAligned).toBe(false); // 1.5x: 0.75px phys (blurry)
-    expect(border05.dprEvaluations[2]?.isAligned).toBe(true);  // 2.0x: 1.0px phys (crisp)
+    expect(border05.dprEvaluations[2]?.isAligned).toBe(true); // 2.0x: 1.0px phys (crisp)
     expect(border05.dprEvaluations[3]?.isAligned).toBe(false); // 3.0x: 1.5px phys (blurry)
 
     // 0.75px border: blurry at 1x, 1.5x, 2x, 3x; crisp at 4x
@@ -569,7 +589,7 @@ describe("Extended Heuristics: Subpixel Borders & Hairline Artifacts", () => {
     expect(border075.dprEvaluations[1]?.isAligned).toBe(false); // 1.5x: 1.125 phys
     expect(border075.dprEvaluations[2]?.isAligned).toBe(false); // 2.0x: 1.5 phys
     expect(border075.dprEvaluations[3]?.isAligned).toBe(false); // 3.0x: 2.25 phys
-    expect(border075.dprEvaluations[4]?.isAligned).toBe(true);  // 4.0x: 3.0 phys (crisp)
+    expect(border075.dprEvaluations[4]?.isAligned).toBe(true); // 4.0x: 3.0 phys (crisp)
 
     // 1.3333px (4/3 px) border: crisp at 1.5x and 3.0x; blurry at 1.0x and 2.0x
     const border133 = validateSubpixelBorders({
@@ -580,9 +600,9 @@ describe("Extended Heuristics: Subpixel Borders & Hairline Artifacts", () => {
     });
 
     expect(border133.dprEvaluations[0]?.isAligned).toBe(false); // 1.0x: 1.33 phys (blurry)
-    expect(border133.dprEvaluations[1]?.isAligned).toBe(true);  // 1.5x: 2.0 phys (crisp)
+    expect(border133.dprEvaluations[1]?.isAligned).toBe(true); // 1.5x: 2.0 phys (crisp)
     expect(border133.dprEvaluations[2]?.isAligned).toBe(false); // 2.0x: 2.67 phys (blurry)
-    expect(border133.dprEvaluations[3]?.isAligned).toBe(true);  // 3.0x: 4.0 phys (crisp)
+    expect(border133.dprEvaluations[3]?.isAligned).toBe(true); // 3.0x: 4.0 phys (crisp)
 
     // 0.3333px (1/3 px) hairline: crisp at 3.0x (Super Retina); blurry at 1.0x and 2.0x
     const border033 = validateSubpixelBorders({
@@ -594,7 +614,7 @@ describe("Extended Heuristics: Subpixel Borders & Hairline Artifacts", () => {
 
     expect(border033.dprEvaluations[0]?.isAligned).toBe(false); // 1.0x: 0.33 phys (blurry)
     expect(border033.dprEvaluations[1]?.isAligned).toBe(false); // 2.0x: 0.67 phys (blurry)
-    expect(border033.dprEvaluations[2]?.isAligned).toBe(true);  // 3.0x: 1.0 phys (crisp)
+    expect(border033.dprEvaluations[2]?.isAligned).toBe(true); // 3.0x: 1.0 phys (crisp)
   });
 
   it("evaluates asymmetric fractional CSS border widths across diverse DPR values", () => {
@@ -691,8 +711,12 @@ describe("Extended Heuristics: Subpixel Borders & Hairline Artifacts", () => {
       desktop1xElements.map((el) => ({ ...el, dprScales: [1.0] })),
     );
     expect(desktop1xAnalysis.isCompliant).toBe(false);
-    expect(desktop1xAnalysis.defects.some((d) => d.elementSelector === "div.blurry-card")).toBe(true);
-    expect(desktop1xAnalysis.defects.some((d) => d.elementSelector === "dialog.centered-modal")).toBe(true);
+    expect(desktop1xAnalysis.defects.some((d) => d.elementSelector === "div.blurry-card")).toBe(
+      true,
+    );
+    expect(
+      desktop1xAnalysis.defects.some((d) => d.elementSelector === "dialog.centered-modal"),
+    ).toBe(true);
 
     // Scenario B: Desktop-wide Retina (2560x1440 @ 2.0x DPR)
     const desktop2xElements: readonly SubpixelElementInput[] = [
@@ -947,9 +971,21 @@ describe("Extended Heuristics: Multi-Viewport Manifest & 4 Pillars Hierarchy", (
   it("flags missing canonical viewport", () => {
     const input: MultiViewportBundleInput = {
       entries: [
-        { viewport: "mobile", manifest: createMockManifest("mobile", true), screenshot: validScreenshot("mobile") },
-        { viewport: "tablet", manifest: createMockManifest("tablet", true), screenshot: validScreenshot("tablet") },
-        { viewport: "desktop", manifest: createMockManifest("desktop", true), screenshot: validScreenshot("desktop") },
+        {
+          viewport: "mobile",
+          manifest: createMockManifest("mobile", true),
+          screenshot: validScreenshot("mobile"),
+        },
+        {
+          viewport: "tablet",
+          manifest: createMockManifest("tablet", true),
+          screenshot: validScreenshot("tablet"),
+        },
+        {
+          viewport: "desktop",
+          manifest: createMockManifest("desktop", true),
+          screenshot: validScreenshot("desktop"),
+        },
       ],
     };
 
@@ -1175,8 +1211,10 @@ describe("Extended Heuristics: Semantic Depth & Anti-Boilerplate Verification", 
       pillar: "mechanical",
       name: "APCA Lightness Contrast",
       passed: true,
-      details: "All heading and body elements satisfy APCA Lc lightness contrast thresholds based on font size and weight.",
-      evidence: "Evaluated 28 text elements in viewport 'desktop' with 0 contrast violations; lowest measured Lc was 78.4 (required: 60).",
+      details:
+        "All heading and body elements satisfy APCA Lc lightness contrast thresholds based on font size and weight.",
+      evidence:
+        "Evaluated 28 text elements in viewport 'desktop' with 0 contrast violations; lowest measured Lc was 78.4 (required: 60).",
     };
 
     const depthResult = auditCriterionSemanticDepth(deepCriterion);
@@ -1187,7 +1225,22 @@ describe("Extended Heuristics: Semantic Depth & Anti-Boilerplate Verification", 
   });
 
   it("flags and rejects superficial boilerplate details ('ok', 'pass', 'looks good', 'n/a', 'checked', 'none')", () => {
-    const boilerplateSamples = ["ok", "pass", "passed", "true", "yes", "n/a", "none", "looks good", "test passed", "checked", "valid", "all good", "placeholder", "tbd"];
+    const boilerplateSamples = [
+      "ok",
+      "pass",
+      "passed",
+      "true",
+      "yes",
+      "n/a",
+      "none",
+      "looks good",
+      "test passed",
+      "checked",
+      "valid",
+      "all good",
+      "placeholder",
+      "tbd",
+    ];
 
     for (const bp of boilerplateSamples) {
       const criterion = {
@@ -1204,7 +1257,16 @@ describe("Extended Heuristics: Semantic Depth & Anti-Boilerplate Verification", 
   });
 
   it("flags and rejects superficial boilerplate evidence (< 12 chars, 'all good', 'as expected')", () => {
-    const badEvidenceSamples = ["", "   ", "ok", "all good", "done", "as expected", "fine", "looks fine"];
+    const badEvidenceSamples = [
+      "",
+      "   ",
+      "ok",
+      "all good",
+      "done",
+      "as expected",
+      "fine",
+      "looks fine",
+    ];
 
     for (const ev of badEvidenceSamples) {
       const criterion = {
@@ -1229,7 +1291,11 @@ describe("Extended Heuristics: Semantic Depth & Anti-Boilerplate Verification", 
     };
 
     const depthResult = auditCriterionSemanticDepth(ungroundedCriterion);
-    expect(depthResult.defects.some((d) => d.category === "missing_evidence_metrics" || d.category === "superficial_evidence")).toBe(true);
+    expect(
+      depthResult.defects.some(
+        (d) => d.category === "missing_evidence_metrics" || d.category === "superficial_evidence",
+      ),
+    ).toBe(true);
   });
 
   it("audits manifest-level semantic depth across multi-pillar criteria", () => {
@@ -1241,7 +1307,8 @@ describe("Extended Heuristics: Semantic Depth & Anti-Boilerplate Verification", 
           id: "CRIT-MECH-APCA",
           pillar: "mechanical",
           passed: true,
-          details: "All text elements meet APCA Lc lightness contrast thresholds based on font size and weight.",
+          details:
+            "All text elements meet APCA Lc lightness contrast thresholds based on font size and weight.",
           evidence: "Evaluated 18 element snapshots in viewport 'desktop' with 0 violations.",
         },
         {
@@ -1255,14 +1322,16 @@ describe("Extended Heuristics: Semantic Depth & Anti-Boilerplate Verification", 
           id: "CRIT-PROD-TOKENS",
           pillar: "product",
           passed: true,
-          details: "Typography, spacing, borders, and shadows adhere to design system token scales.",
+          details:
+            "Typography, spacing, borders, and shadows adhere to design system token scales.",
           evidence: "Evaluated 24 container surfaces conforming to 8pt spatial grid rhythm.",
         },
         {
           id: "CRIT-UX-FOCUS",
           pillar: "ux",
           passed: true,
-          details: "Modal dialogs and menus constrain keyboard focus cycling and support roving tabindex.",
+          details:
+            "Modal dialogs and menus constrain keyboard focus cycling and support roving tabindex.",
           evidence: "Verified 4 focusable controls trapped inside modal with 0 leakage.",
         },
       ],
@@ -1283,7 +1352,12 @@ describe("Extended Heuristics: Semantic Depth & Anti-Boilerplate Verification", 
         tagName: "H1",
         text: "VIP Dispatch Center",
         bounds: { x: 40, y: 40, width: 400, height: 48 },
-        computedStyles: { fontSize: 32, fontWeight: 700, color: "#ffffff", backgroundColor: "#000000" },
+        computedStyles: {
+          fontSize: 32,
+          fontWeight: 700,
+          color: "#ffffff",
+          backgroundColor: "#000000",
+        },
       },
       {
         selector: "button.dispatch-btn",
@@ -1394,7 +1468,7 @@ describe("Static Invariant Verification: Zero TypeScript any & Zero Suppressions
         // If auditing this test file itself, ignore lines inside the invariant test block
         if (filePath.endsWith("heuristics-edge-cases.test.ts")) {
           const invariantBlockIdx = lines.findIndex((l) =>
-            l.includes("describe(\"Static Invariant Verification"),
+            l.includes('describe("Static Invariant Verification'),
           );
           if (invariantBlockIdx !== -1 && idx >= invariantBlockIdx) {
             return false;

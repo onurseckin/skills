@@ -10,11 +10,7 @@ import {
   type ResolvedLayoutShiftTrackerOptions,
   type UnstableElementDisplacement,
 } from "./layout-shift-tracker.ts";
-import type {
-  CapturePageDriver,
-  DomPhysicsSnapshot,
-  ExtractedElementPhysics,
-} from "./types.ts";
+import type { CapturePageDriver, DomPhysicsSnapshot, ExtractedElementPhysics } from "./types.ts";
 
 export type SyntheticDomEventType =
   | "click"
@@ -251,7 +247,11 @@ export async function simulateDomEvent(
     case "hover":
     case "mouseenter":
     case "mouseleave": {
-      if ((event.type === "hover" || event.type === "mouseenter") && event.selector && driver.hover) {
+      if (
+        (event.type === "hover" || event.type === "mouseenter") &&
+        event.selector &&
+        driver.hover
+      ) {
         await driver.hover(event.selector);
       } else if (event.selector) {
         await driver.evaluate(DOM_EVENT_DISPATCH_SCRIPT, {
@@ -546,8 +546,7 @@ export class DomEventSimulator {
     const mergedOptions: ResolvedDomSimulationOptions = resolveDomSimulationOptions({
       settleDelayMs: options?.settleDelayMs ?? this.options.settleDelayMs,
       clsThreshold: options?.clsThreshold ?? this.options.clsThreshold,
-      failOnUnexpectedShift:
-        options?.failOnUnexpectedShift ?? this.options.failOnUnexpectedShift,
+      failOnUnexpectedShift: options?.failOnUnexpectedShift ?? this.options.failOnUnexpectedShift,
       trackerOptions: {
         ...this.options.trackerOptions,
         ...options?.trackerOptions,

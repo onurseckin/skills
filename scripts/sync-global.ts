@@ -45,5 +45,6 @@ if (existsSync(nestedTargetCapsules)) {
   rmSync(nestedTargetCapsules, { recursive: true, force: true });
 }
 
-console.log("✓ Global skill sync complete: ~/.agents/skills/orchestrating-long-tasks is up to date and isolated from working tree edits.");
-
+console.log(
+  "✓ Global skill sync complete: ~/.agents/skills/orchestrating-long-tasks is up to date and isolated from working tree edits.",
+);

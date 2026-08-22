@@ -8,7 +8,10 @@ import {
   mindRotateCommand,
 } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/mind-rotate.ts";
 import { summaryViewCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/summary-ops.ts";
-import type { JsonObject, JsonValue } from "../../../orchestrating-long-tasks/scripts/src/contracts/json.ts";
+import type {
+  JsonObject,
+  JsonValue,
+} from "../../../orchestrating-long-tasks/scripts/src/contracts/json.ts";
 import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
 import {
   evaluateGate6NotADuplicate,

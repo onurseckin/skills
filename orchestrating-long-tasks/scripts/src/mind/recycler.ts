@@ -109,9 +109,7 @@ export function assessRecyclingState(
 
   const openRound = allRounds.find((r) => r.status === "opened");
   const latestRound =
-    allRounds.length > 0
-      ? [...allRounds].sort((a, b) => b.round - a.round)[0]
-      : undefined;
+    allRounds.length > 0 ? [...allRounds].sort((a, b) => b.round - a.round)[0] : undefined;
 
   // 1. Check if completeness critic has reviewed the current round
   if (completionReview && typeof completionReview.status === "string") {
@@ -120,7 +118,10 @@ export function assessRecyclingState(
       const nextCandidate = allCandidates.find(
         (c) =>
           c.status === "admitted" &&
-          (!c.objective_run_id || !allRounds.some((r) => r.candidate_id === c.id && r.status === "closed" && r.result === "converged")),
+          (!c.objective_run_id ||
+            !allRounds.some(
+              (r) => r.candidate_id === c.id && r.status === "closed" && r.result === "converged",
+            )),
       );
 
       if (nextCandidate) {
@@ -173,16 +174,26 @@ export function assessRecyclingState(
         roundNumber: null,
         nextRecommendedCommand: candCmd,
         suggestedCommands: [candCmd, wakeCmd],
-        reason: "Completeness critic signed off clean; transitioning to new candidate discovery under perpetual mind loop.",
+        reason:
+          "Completeness critic signed off clean; transitioning to new candidate discovery under perpetual mind loop.",
         infiniteCadence: true,
       };
     }
 
     if (completionReview.status === "findings") {
       // Critic identified findings: carry forward into successor round if budget allows
-      const currentObj = openRound?.objective_id ? openRound.objective_id : latestRound?.objective_id;
-      const currentCand = openRound?.candidate_id ? openRound.candidate_id : latestRound?.candidate_id;
-      const currentRndNum = openRound?.round !== undefined ? openRound.round : (latestRound?.round !== undefined ? latestRound.round : 1);
+      const currentObj = openRound?.objective_id
+        ? openRound.objective_id
+        : latestRound?.objective_id;
+      const currentCand = openRound?.candidate_id
+        ? openRound.candidate_id
+        : latestRound?.candidate_id;
+      const currentRndNum =
+        openRound?.round !== undefined
+          ? openRound.round
+          : latestRound?.round !== undefined
+            ? latestRound.round
+            : 1;
 
       if (currentObj && currentCand && currentRndNum < maxRounds) {
         const nextRnd = currentRndNum + 1;
@@ -222,7 +233,10 @@ export function assessRecyclingState(
   const admittedCandidate = allCandidates.find(
     (c) =>
       c.status === "admitted" &&
-      (!c.objective_run_id || !allRounds.some((r) => r.candidate_id === c.id && r.status === "closed" && r.result === "converged")),
+      (!c.objective_run_id ||
+        !allRounds.some(
+          (r) => r.candidate_id === c.id && r.status === "closed" && r.result === "converged",
+        )),
   );
 
   if (admittedCandidate && !openRound) {
@@ -336,10 +350,7 @@ export function planAutonomousRoundRecycle(
 /**
  * Formats a clean, line-limited brief (<= 25 lines) for autonomous round recycling.
  */
-export function formatRecycleBrief(
-  assessment: RecycleAssessment,
-  runRoot: string,
-): string {
+export function formatRecycleBrief(assessment: RecycleAssessment, runRoot: string): string {
   const lines = [
     `### Autonomous Mind Recycler`,
     `- **Capsule**: \`${runRoot}\``,
@@ -378,7 +389,8 @@ export function enforceInfiniteMindCadence(params: {
       cadence: "infinite_autonomous",
       allowed: true,
       nextInstruction: nextCmd,
-      message: "Terminal outcome recorded; perpetual mind loop remains armed and ready for manual or external restart.",
+      message:
+        "Terminal outcome recorded; perpetual mind loop remains armed and ready for manual or external restart.",
     };
   }
 
@@ -386,6 +398,7 @@ export function enforceInfiniteMindCadence(params: {
     cadence: "infinite_autonomous",
     allowed: true,
     nextInstruction: nextCmd,
-    message: "Infinite autonomous mind cadence active; agents may not terminate background loops or schedulers.",
+    message:
+      "Infinite autonomous mind cadence active; agents may not terminate background loops or schedulers.",
   };
 }

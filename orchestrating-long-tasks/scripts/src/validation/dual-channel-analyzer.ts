@@ -137,12 +137,17 @@ export function validateCompanionManifestCriteria(
 ): ManifestCriteriaValidationResult {
   const index = typeof indexOrOptions === "number" ? indexOrOptions : 0;
   const options =
-    typeof indexOrOptions === "object" && indexOrOptions !== null
-      ? indexOrOptions
-      : maybeOptions;
+    typeof indexOrOptions === "object" && indexOrOptions !== null ? indexOrOptions : maybeOptions;
   const requireSemanticDepth = options?.requireSemanticDepth ?? false;
   let hasErrors = false;
-  const reportError: FindingAdder = (category, severity, message, remediation, affectedSelector, viewport) => {
+  const reportError: FindingAdder = (
+    category,
+    severity,
+    message,
+    remediation,
+    affectedSelector,
+    viewport,
+  ) => {
     if (severity === "error") {
       hasErrors = true;
     }
@@ -357,12 +362,7 @@ export function validateCompanionManifestCriteria(
     if (c.passed === true) {
       passedCount++;
     } else if (c.passed === false) {
-      const detailsMsg =
-        hasDetails
-          ? detailsStr
-          : hasEvidence
-            ? evidenceStr
-            : "Criterion failed";
+      const detailsMsg = hasDetails ? detailsStr : hasEvidence ? evidenceStr : "Criterion failed";
       reportError(
         "manifest_criterion_failed",
         "error",
@@ -404,7 +404,10 @@ export function validateCompanionManifestCriteria(
           const qObj = q as Record<string, unknown>;
           const qId = typeof qObj.id === "string" ? qObj.id : "Q-UNKNOWN";
           if (qObj.passed === false) {
-            const obs = typeof qObj.observation === "string" ? qObj.observation : "Cognitive heuristic violated";
+            const obs =
+              typeof qObj.observation === "string"
+                ? qObj.observation
+                : "Cognitive heuristic violated";
             reportError(
               "manifest_criterion_failed",
               "error",

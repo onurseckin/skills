@@ -93,7 +93,8 @@ export function completionActions(
     pushArgv(argv, criticReview(entrypoint, runRoot, critic.critic_id));
     return { argv, unavailable: [] };
   }
-  if (critic.status !== "reviewed" && critic.status !== "review_recorded") return { argv, unavailable: [] };
+  if (critic.status !== "reviewed" && critic.status !== "review_recorded")
+    return { argv, unavailable: [] };
   const review = view.completion_review as { status: string; review_sha256: string } | null;
   if (review?.status === "clean") {
     pushArgv(

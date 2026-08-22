@@ -44,7 +44,7 @@ spawns: []
 ```
 
 The first `must_not` is the important one. An auditor that reads the mind's own account of itself is
-auditing a story. It reads the ledger and the repository, and nothing the mind wrote *about* what it
+auditing a story. It reads the ledger and the repository, and nothing the mind wrote _about_ what it
 did.
 
 **Acceptance:** the role-parity test passes; a test that the auditor contract grants no write
@@ -64,7 +64,7 @@ The questionnaire is **fixed**, and every answer must cite a command id:
 4. Is the trailing value series consistent with the work the ledger claims?
 5. Did anything change outside a declared write scope?
 6. Did any pulse take an action on the never-unattended list?
-7. What did the mind *decline* to do, and does the reason survive re-reading?
+7. What did the mind _decline_ to do, and does the reason survive re-reading?
 8. Did the charter digest change without an owner decision?
 
 `mind:audit-report` refuses any answer lacking a command id. The verdict is consumed by the **next**
@@ -197,14 +197,14 @@ held.
 
 ## 6. Failure modes
 
-| Likely mistake                                              | The tell                                                 |
-| :----------------------------------------------------------- | :--------------------------------------------------------- |
-| The auditor reads the mind's own narrative                  | It approves everything, fluently                          |
-| The auditor's tests written by the auditor's author         | Every plant is caught; no plant was surprising            |
-| Value computed from tokens, files or commands               | Busywork becomes the rational strategy                    |
-| A budget that warns and proceeds                            | The night costs whatever it costs                         |
-| The digest summarising the value series instead of showing it| A long flat zero becomes invisible                        |
-| An audit finding that does not block the next pulse         | The audit is advisory, which means it is decorative       |
+| Likely mistake                                                | The tell                                            |
+| :------------------------------------------------------------ | :-------------------------------------------------- |
+| The auditor reads the mind's own narrative                    | It approves everything, fluently                    |
+| The auditor's tests written by the auditor's author           | Every plant is caught; no plant was surprising      |
+| Value computed from tokens, files or commands                 | Busywork becomes the rational strategy              |
+| A budget that warns and proceeds                              | The night costs whatever it costs                   |
+| The digest summarising the value series instead of showing it | A long flat zero becomes invisible                  |
+| An audit finding that does not block the next pulse           | The audit is advisory, which means it is decorative |
 
 ## 7. Rollback
 

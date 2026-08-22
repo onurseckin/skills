@@ -42,7 +42,10 @@ export interface MindBudget {
   wall_clock_ms_today: number;
 }
 
-export const DEFAULT_MIND_BUDGET: Omit<MindBudget, "day_key" | "pulses_today" | "wall_clock_ms_today"> = {
+export const DEFAULT_MIND_BUDGET: Omit<
+  MindBudget,
+  "day_key" | "pulses_today" | "wall_clock_ms_today"
+> = {
   pulses_per_day: 96,
   wall_clock_ms_per_day: 21600000, // 6 hours
   max_agents_in_flight: 8,
@@ -126,12 +129,20 @@ function parseBudgetsSection(lines: readonly string[]): MindBudgetOverrides {
     const eqIdx = trimmed.indexOf("=");
     const splitIdx = colonIdx >= 0 ? colonIdx : eqIdx;
     if (splitIdx < 0) continue;
-    const key = trimmed.slice(0, splitIdx).trim().toLowerCase().replace(/[\s/-]+/g, "_");
+    const key = trimmed
+      .slice(0, splitIdx)
+      .trim()
+      .toLowerCase()
+      .replace(/[\s/-]+/g, "_");
     const value = trimmed.slice(splitIdx + 1).trim();
 
     if (key === "pulses_per_day" || key === "pulses_day") {
       overrides.pulses_per_day = parseDurationOrNumber(value);
-    } else if (key === "wall_clock_ms_per_day" || key === "wall_clock_per_day" || key === "wall_clock_day") {
+    } else if (
+      key === "wall_clock_ms_per_day" ||
+      key === "wall_clock_per_day" ||
+      key === "wall_clock_day"
+    ) {
       overrides.wall_clock_ms_per_day = parseDurationOrNumber(value);
     } else if (key === "max_agents_in_flight" || key === "max_concurrent_agents") {
       overrides.max_agents_in_flight = parseDurationOrNumber(value);

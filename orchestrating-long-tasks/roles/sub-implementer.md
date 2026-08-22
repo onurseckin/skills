@@ -20,6 +20,7 @@ commands:
   - finding:get
   - evidence:get
   - agent:report
+  - whoami
 spawns: []
 ---
 

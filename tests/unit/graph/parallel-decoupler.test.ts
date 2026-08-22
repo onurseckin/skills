@@ -29,7 +29,9 @@ describe("parallel-decoupler: detectArtificialSerialization", () => {
       { taskId: "task-a", writeScope: ["src/a.ts"], dependencies: [] },
       { taskId: "task-b", writeScope: ["src/b.ts"], dependencies: ["task-a"] },
     ];
-    const justifications = new Map([["task-b->task-a", "Consumes generated artifacts from task-a"]]);
+    const justifications = new Map([
+      ["task-b->task-a", "Consumes generated artifacts from task-a"],
+    ]);
 
     const warnings = detectArtificialSerialization(tasks, justifications);
     expect(warnings).toHaveLength(1);

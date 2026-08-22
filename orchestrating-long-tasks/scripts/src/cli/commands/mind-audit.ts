@@ -13,12 +13,7 @@ import { loadRun } from "../../store/load.ts";
 import { transact } from "../../store/transaction.ts";
 import { findGrant, readAgentLedger } from "../../workflow/agents/ledger.ts";
 import { enforceLineLimit } from "../formatters/line-limiter.ts";
-import {
-  listFlag,
-  textFlag,
-  type CommandContext,
-  type Flags,
-} from "../options.ts";
+import { listFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
 
 export interface MindAuditStartResult {
   readonly markdown: string;
@@ -78,11 +73,7 @@ export function mindAuditStartCommand(
       `agent ${actor} holds no grant; register it with agent:register first`,
     );
   }
-  if (
-    grant.role !== "mind-auditor" &&
-    grant.role !== "mind" &&
-    grant.role !== "coordinator"
-  ) {
+  if (grant.role !== "mind-auditor" && grant.role !== "mind" && grant.role !== "coordinator") {
     throw new HarnessError(
       "INVALID_STATE",
       `agent ${actor} holds role '${grant.role}'; role 'mind-auditor' or 'mind' is required to start an audit`,
@@ -93,9 +84,7 @@ export function mindAuditStartCommand(
   const mindState = (state.mind ?? {}) as Record<string, unknown>;
   if (mindState.halted === true) {
     const haltReason =
-      typeof mindState.halt_reason === "string"
-        ? mindState.halt_reason
-        : "unknown reason";
+      typeof mindState.halt_reason === "string" ? mindState.halt_reason : "unknown reason";
     throw new HarnessError(
       "INVALID_STATE",
       `mind is halted (${haltReason}); cannot start audit. Outcome: halted.`,
@@ -257,11 +246,7 @@ export function mindAuditReportCommand(
       `agent ${actor} holds no grant; register it with agent:register first`,
     );
   }
-  if (
-    grant.role !== "mind-auditor" &&
-    grant.role !== "mind" &&
-    grant.role !== "coordinator"
-  ) {
+  if (grant.role !== "mind-auditor" && grant.role !== "mind" && grant.role !== "coordinator") {
     throw new HarnessError(
       "INVALID_STATE",
       `agent ${actor} holds role '${grant.role}'; role 'mind-auditor' or 'mind' is required to report an audit`,
@@ -279,10 +264,7 @@ export function mindAuditReportCommand(
   if (answersFile) {
     const fullAnswersPath = resolve(run, answersFile);
     if (!existsSync(fullAnswersPath)) {
-      throw new HarnessError(
-        "INVALID_ARGUMENT",
-        `answers file not found at '${fullAnswersPath}'`,
-      );
+      throw new HarnessError("INVALID_ARGUMENT", `answers file not found at '${fullAnswersPath}'`);
     }
     try {
       const fileContent = readFileSync(fullAnswersPath, "utf-8");
@@ -373,17 +355,17 @@ export function mindAuditReportCommand(
       workingAudit.audit_id = auditId;
       workingAudit.auditor = actor;
       workingAudit.status =
-        verdict === "approved"
-          ? "approved"
-          : verdict === "halt"
-            ? "halted"
-            : "changes_requested";
+        verdict === "approved" ? "approved" : verdict === "halt" ? "halted" : "changes_requested";
       workingAudit.last_reported_at = nowIso;
       workingAudit.last_verdict = verdict;
       workingAudit.summary = summary;
       workingAudit.answers = validatedAnswers as unknown as JsonValue;
       workingAudit.open_findings =
-        verdict === "approved" ? [] : openFindings.length > 0 ? openFindings : [`Audit ${auditId} verdict: ${verdict}`];
+        verdict === "approved"
+          ? []
+          : openFindings.length > 0
+            ? openFindings
+            : [`Audit ${auditId} verdict: ${verdict}`];
       working.audit = workingAudit as unknown as JsonObject;
     },
   );

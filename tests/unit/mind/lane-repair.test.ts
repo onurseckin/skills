@@ -1,6 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, readFileSync } from "node:fs";
 import {
   buildEscalationDigest,
   extractRunSignals,
@@ -10,7 +9,6 @@ import {
   type DigestFailingGate,
   type DigestFinding,
   type DigestOpenProposal,
-  type EscalationDigestData,
 } from "../../../orchestrating-long-tasks/scripts/src/mind/digest.ts";
 import { executeRepairLane } from "../../../orchestrating-long-tasks/scripts/src/mind/lanes/repair.ts";
 import { initRun } from "../../../orchestrating-long-tasks/scripts/src/store/capsule.ts";
@@ -488,11 +486,19 @@ describe("Escalation Digest and REPAIR Lane", () => {
 
       // Verify markdown content
       expect(result.markdown).toContain("### Escalation Digest: `mind-run-01`");
-      expect(result.markdown).toContain("- `[finding-w1]` [critical] (task `task-1`): Null pointer in config parser");
-      expect(result.markdown).toContain("- `gate-worker-unit` (task `task-1`): `bun test tests/unit/worker.test.ts` (exit code 1)");
+      expect(result.markdown).toContain(
+        "- `[finding-w1]` [critical] (task `task-1`): Null pointer in config parser",
+      );
+      expect(result.markdown).toContain(
+        "- `gate-worker-unit` (task `task-1`): `bun test tests/unit/worker.test.ts` (exit code 1)",
+      );
       expect(result.markdown).toContain("## What I would have done without asking");
-      expect(result.markdown).toContain('- `cand-declined-1`: "Rewrite in Rust" — Reason: Violates architecture contract (goal: `G1`, witness: `cmd-wit-001`)');
-      expect(result.markdown).toContain('- `req-needs-auth-1`: "Integrate third-party payment gateway" — Rationale: Requires executive financial authority (goal: `G1`, requirement: `req-needs-auth-1`)');
+      expect(result.markdown).toContain(
+        '- `cand-declined-1`: "Rewrite in Rust" — Reason: Violates architecture contract (goal: `G1`, witness: `cmd-wit-001`)',
+      );
+      expect(result.markdown).toContain(
+        '- `req-needs-auth-1`: "Integrate third-party payment gateway" — Rationale: Requires executive financial authority (goal: `G1`, requirement: `req-needs-auth-1`)',
+      );
     });
 
     test("returns hasSignals=false on clean empty repository", async () => {

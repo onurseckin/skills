@@ -7,7 +7,8 @@ interface CategoryTemplate {
 
 const REMEDIATION_TEMPLATES: Readonly<Record<string, CategoryTemplate>> = {
   "apca-contrast": {
-    description: "Adjust text and background colors to satisfy APCA 0.98G minimum lightness contrast (Lc).",
+    description:
+      "Adjust text and background colors to satisfy APCA 0.98G minimum lightness contrast (Lc).",
     snippets: {
       react: `<span className="text-zinc-900 dark:text-zinc-50 bg-white dark:bg-zinc-950 font-medium">Accessible Text</span>`,
       "react-native": `<Text style={{ color: '#09090b', backgroundColor: '#ffffff', fontWeight: '500' }}>Accessible Text</Text>`,
@@ -17,7 +18,8 @@ const REMEDIATION_TEMPLATES: Readonly<Record<string, CategoryTemplate>> = {
     },
   },
   "touch-target": {
-    description: "Expand touch target dimension to >= 44x44px and maintain >= 24px circular clearance.",
+    description:
+      "Expand touch target dimension to >= 44x44px and maintain >= 24px circular clearance.",
     snippets: {
       react: `<button className="min-w-[44px] min-h-[44px] p-3 inline-flex items-center justify-center rounded-lg">Touch Action</button>`,
       "react-native": `<Pressable hitSlop={12} style={{ minWidth: 44, minHeight: 44, justifyContent: 'center', alignItems: 'center' }}>\n  <Text>Touch Action</Text>\n</Pressable>`,
@@ -27,7 +29,8 @@ const REMEDIATION_TEMPLATES: Readonly<Record<string, CategoryTemplate>> = {
     },
   },
   "concentric-radius": {
-    description: "Align nested border radii to maintain concentricity: Outer Radius = Inner Radius + Padding.",
+    description:
+      "Align nested border radii to maintain concentricity: Outer Radius = Inner Radius + Padding.",
     snippets: {
       react: `<div className="p-4 rounded-[16px] border bg-card">\n  <div className="rounded-[8px] p-2 bg-muted">Nested Content</div>\n</div>`,
       "react-native": `<View style={{ padding: 16, borderRadius: 16, backgroundColor: '#f4f4f5' }}>\n  <View style={{ borderRadius: 8, padding: 8, backgroundColor: '#ffffff' }}>\n    <Text>Nested Content</Text>\n  </View>\n</View>`,
@@ -37,7 +40,8 @@ const REMEDIATION_TEMPLATES: Readonly<Record<string, CategoryTemplate>> = {
     },
   },
   "subpixel-snapping": {
-    description: "Round coordinates and CSS transforms to whole integer pixels to avoid blurry subpixel rendering.",
+    description:
+      "Round coordinates and CSS transforms to whole integer pixels to avoid blurry subpixel rendering.",
     snippets: {
       react: `<div className="transform translate-x-[10px] translate-y-[20px] will-change-transform">\n  Snapped Content\n</div>`,
       "react-native": `<View style={{ transform: [{ translateX: Math.round(10.0) }, { translateY: Math.round(20.0) }] }}>\n  <Text>Snapped Content</Text>\n</View>`,
@@ -47,7 +51,8 @@ const REMEDIATION_TEMPLATES: Readonly<Record<string, CategoryTemplate>> = {
     },
   },
   "cls-reservation": {
-    description: "Reserve width, height, or aspect-ratio upfront to eliminate Cumulative Layout Shift (CLS).",
+    description:
+      "Reserve width, height, or aspect-ratio upfront to eliminate Cumulative Layout Shift (CLS).",
     snippets: {
       react: `<img src="/hero.webp" width={800} height={450} className="w-full h-auto aspect-video object-cover" alt="Hero media" loading="eager" fetchPriority="high" />`,
       "react-native": `<Image source={{ uri: 'https://example.com/hero.webp' }} style={{ width: '100%', aspectRatio: 16 / 9 }} />`,
@@ -57,7 +62,8 @@ const REMEDIATION_TEMPLATES: Readonly<Record<string, CategoryTemplate>> = {
     },
   },
   "cowan-chunking": {
-    description: "Partition dense information into 4±1 chunks or categorized subsections to reduce cognitive load.",
+    description:
+      "Partition dense information into 4±1 chunks or categorized subsections to reduce cognitive load.",
     snippets: {
       react: `<nav className="flex flex-col gap-6">\n  {sections.map(section => <NavGroup key={section.id} title={section.title} items={section.items} />)}\n</nav>`,
       "react-native": `<SectionList sections={groupedSections} renderSectionHeader={({ section }) => <Text style={{ fontWeight: 'bold' }}>{section.title}</Text>} renderItem={({ item }) => <NavItem item={item} />} />`,
@@ -67,7 +73,8 @@ const REMEDIATION_TEMPLATES: Readonly<Record<string, CategoryTemplate>> = {
     },
   },
   "fitts-law": {
-    description: "Reduce Fitts's Law Index of Difficulty by placing primary actions in predictable, high-surface zones.",
+    description:
+      "Reduce Fitts's Law Index of Difficulty by placing primary actions in predictable, high-surface zones.",
     snippets: {
       react: `<div className="sticky bottom-6 right-6 z-50">\n  <button className="w-full sm:w-auto px-8 py-4 text-base font-semibold bg-primary text-primary-foreground rounded-xl shadow-lg">Primary Action</button>\n</div>`,
       "react-native": `<Pressable style={{ position: 'absolute', bottom: 24, left: 16, right: 16, height: 56, borderRadius: 12, backgroundColor: '#09090b', alignItems: 'center', justifyContent: 'center' }}>\n  <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}>Primary Action</Text>\n</Pressable>`,
@@ -77,7 +84,8 @@ const REMEDIATION_TEMPLATES: Readonly<Record<string, CategoryTemplate>> = {
     },
   },
   "hick-hyman": {
-    description: "Mitigate Hick-Hyman decision latency by structuring unorganized choices with hierarchy and search filtering.",
+    description:
+      "Mitigate Hick-Hyman decision latency by structuring unorganized choices with hierarchy and search filtering.",
     snippets: {
       react: `<Command>\n  <CommandInput placeholder="Search actions..." />\n  <CommandList>\n    <CommandGroup heading="Suggestions">\n      <CommandItem>Option A</CommandItem>\n    </CommandGroup>\n  </CommandList>\n</Command>`,
       "react-native": `<AutocompleteDropdown dataSet={categorizedItems} clearOnFocus={false} closeOnBlur={true} />`,
@@ -87,7 +95,8 @@ const REMEDIATION_TEMPLATES: Readonly<Record<string, CategoryTemplate>> = {
     },
   },
   "norman-grace": {
-    description: "Provide Don Norman undo grace period, confirmation dialog, or reversible workflow for destructive action.",
+    description:
+      "Provide Don Norman undo grace period, confirmation dialog, or reversible workflow for destructive action.",
     snippets: {
       react: `<Button variant="destructive" onClick={() => toast("Item removed", { action: { label: "Undo", onClick: () => handleRestore() } })}>Delete</Button>`,
       "react-native": `<Pressable onPress={() => Alert.alert('Delete Record', 'Are you sure?', [{ text: 'Cancel', style: 'cancel' }, { text: 'Delete', style: 'destructive', onPress: handleDelete }])}><Text>Delete</Text></Pressable>`,
@@ -97,7 +106,8 @@ const REMEDIATION_TEMPLATES: Readonly<Record<string, CategoryTemplate>> = {
     },
   },
   "ui-states-fsm": {
-    description: "Implement complete 5-state FSM: default, hover, active/pressed, focus-visible, and disabled/loading.",
+    description:
+      "Implement complete 5-state FSM: default, hover, active/pressed, focus-visible, and disabled/loading.",
     snippets: {
       react: `<button className="px-4 py-2 rounded-md bg-blue-600 text-white transition-colors hover:bg-blue-700 active:bg-blue-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none">Interactive Button</button>`,
       "react-native": `<Pressable style={({ pressed, hovered, focused }) => [styles.btn, hovered && styles.hover, pressed && styles.press, focused && styles.focus]} disabled={disabled}>\n  <Text style={styles.btnText}>Interactive Button</Text>\n</Pressable>`,
@@ -107,7 +117,8 @@ const REMEDIATION_TEMPLATES: Readonly<Record<string, CategoryTemplate>> = {
     },
   },
   "aria-focus-trap": {
-    description: "Ensure modals & composite widgets implement WAI-ARIA 1.2 focus traps, modal flags, and roving tabindex.",
+    description:
+      "Ensure modals & composite widgets implement WAI-ARIA 1.2 focus traps, modal flags, and roving tabindex.",
     snippets: {
       react: `<Dialog.Root>\n  <Dialog.Portal>\n    <Dialog.Overlay className="fixed inset-0 bg-black/50" />\n    <Dialog.Content role="dialog" aria-modal="true" className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 p-6 bg-white rounded-lg shadow-xl">\n      <Dialog.Title>Modal Title</Dialog.Title>\n    </Dialog.Content>\n  </Dialog.Portal>\n</Dialog.Root>`,
       "react-native": `<Modal visible={isOpen} accessibilityViewIsModal={true} focusable={true} onRequestClose={onClose}>\n  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>\n    <Text>Modal Title</Text>\n  </View>\n</Modal>`,
@@ -117,7 +128,8 @@ const REMEDIATION_TEMPLATES: Readonly<Record<string, CategoryTemplate>> = {
     },
   },
   "floating-ui-collision": {
-    description: "Apply Floating UI collision detection with flip, shift, and boundary padding (>= 8px).",
+    description:
+      "Apply Floating UI collision detection with flip, shift, and boundary padding (>= 8px).",
     snippets: {
       react: `<Popover.Content sideOffset={5} collisionPadding={8} avoidCollisions={true} className="z-50 rounded-md border bg-popover p-4 shadow-md">\n  Popover Content\n</Popover.Content>`,
       "react-native": `<FloatingTooltip boundaryPadding={8} flip={true} shift={true}>\n  <Text>Tooltip</Text>\n</FloatingTooltip>`,
@@ -127,7 +139,8 @@ const REMEDIATION_TEMPLATES: Readonly<Record<string, CategoryTemplate>> = {
     },
   },
   "md3-state-layers": {
-    description: "Apply Material Design 3 state layers: Hover (8%), Focus (12%), Pressed (12%), Dragged (16%).",
+    description:
+      "Apply Material Design 3 state layers: Hover (8%), Focus (12%), Pressed (12%), Dragged (16%).",
     snippets: {
       react: `<div className="relative overflow-hidden before:absolute before:inset-0 before:bg-current before:opacity-0 hover:before:opacity-[0.08] focus-visible:before:opacity-[0.12] active:before:opacity-[0.12] before:transition-opacity">\n  MD3 Component\n</div>`,
       "react-native": `<Pressable style={({ pressed, hovered }) => [{ backgroundColor: '#6750A4' }, hovered && { opacity: 0.92 }, pressed && { opacity: 0.88 }]}>\n  <Text>MD3 Button</Text>\n</Pressable>`,
@@ -137,7 +150,8 @@ const REMEDIATION_TEMPLATES: Readonly<Record<string, CategoryTemplate>> = {
     },
   },
   "apple-hig-tracking": {
-    description: "Align letter-spacing with Apple HIG optical tracking curves for SF Pro typography scaling.",
+    description:
+      "Align letter-spacing with Apple HIG optical tracking curves for SF Pro typography scaling.",
     snippets: {
       react: `<p className="font-sans antialiased text-[17px] tracking-[-0.41px] leading-[22px]">Apple HIG Typography</p>`,
       "react-native": `<Text style={{ fontSize: 17, letterSpacing: -0.41, lineHeight: 22 }}>Apple HIG Typography</Text>`,
@@ -147,7 +161,8 @@ const REMEDIATION_TEMPLATES: Readonly<Record<string, CategoryTemplate>> = {
     },
   },
   "geist-tokens": {
-    description: "Standardize token scales using Vercel Geist design tokens (Geist font, 6px/8px radii, 1px borders).",
+    description:
+      "Standardize token scales using Vercel Geist design tokens (Geist font, 6px/8px radii, 1px borders).",
     snippets: {
       react: `<div className="font-sans text-sm rounded-md border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-black p-4 shadow-sm">\n  Geist Card\n</div>`,
       "react-native": `<View style={{ borderRadius: 6, borderWidth: 1, borderColor: '#eaeaea', padding: 16, backgroundColor: '#ffffff' }}>\n  <Text>Geist Card</Text>\n</View>`,
@@ -157,7 +172,8 @@ const REMEDIATION_TEMPLATES: Readonly<Record<string, CategoryTemplate>> = {
     },
   },
   "sidebar-layout": {
-    description: "Configure standard vertical sidebar layout with zero top navbar and compliant anchor positions.",
+    description:
+      "Configure standard vertical sidebar layout with zero top navbar and compliant anchor positions.",
     snippets: {
       react: `<div className="flex min-h-screen">\n  <aside className="w-64 border-r flex flex-col justify-between p-4 bg-sidebar">\n    <Logo />\n    <NavLinks />\n    <UserProfile />\n  </aside>\n  <main className="flex-1 p-6">Main Content</main>\n</div>`,
       "react-native": `<View style={{ flexDirection: 'row', flex: 1 }}>\n  <View style={{ width: 256, borderRightWidth: 1, padding: 16 }}>\n    <Text>Sidebar</Text>\n  </View>\n  <View style={{ flex: 1, padding: 16 }}>\n    <Text>Main Content</Text>\n  </View>\n</View>`,
@@ -170,7 +186,13 @@ const REMEDIATION_TEMPLATES: Readonly<Record<string, CategoryTemplate>> = {
 
 export function generateRemediations(category: string): readonly CodeRemediation[] {
   const template = REMEDIATION_TEMPLATES[category];
-  const frameworks: readonly CodeRemediationFramework[] = ["react", "react-native", "vue", "svelte", "css"];
+  const frameworks: readonly CodeRemediationFramework[] = [
+    "react",
+    "react-native",
+    "vue",
+    "svelte",
+    "css",
+  ];
 
   if (!template) {
     return frameworks.map((framework) => ({

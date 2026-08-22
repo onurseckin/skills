@@ -3,7 +3,7 @@ import { generateRemediations } from "../synthesis/remediation-generator.ts";
 
 export function validateConcentricRadius(
   element: ElementPhysicsSnapshot,
-  index: number
+  index: number,
 ): ValidationDefect | null {
   const childRadius = element.computedStyles?.borderRadius;
   const parentRadius = element.parentBorderRadius;
@@ -40,7 +40,12 @@ export function validateConcentricRadius(
   }
 
   // Also check if element has children with defined radius & padding
-  if (element.children && element.children.length > 0 && element.computedStyles?.borderRadius && element.computedStyles.padding) {
+  if (
+    element.children &&
+    element.children.length > 0 &&
+    element.computedStyles?.borderRadius &&
+    element.computedStyles.padding
+  ) {
     const outerRadius = element.computedStyles.borderRadius;
     const padding = element.computedStyles.padding;
 

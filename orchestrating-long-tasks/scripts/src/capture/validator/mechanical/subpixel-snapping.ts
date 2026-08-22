@@ -19,7 +19,9 @@ function extractTranslateFractions(transformStr?: string): readonly number[] {
     if (p5 !== undefined && !isNaN(p5) && isFractional(p5)) fractions.push(p5);
   }
 
-  const translateMatch = transformStr.match(/translate(?:3d)?\(\s*([\d.-]+)(?:px)?\s*,\s*([\d.-]+)(?:px)?/);
+  const translateMatch = transformStr.match(
+    /translate(?:3d)?\(\s*([\d.-]+)(?:px)?\s*,\s*([\d.-]+)(?:px)?/,
+  );
   if (translateMatch && translateMatch[1] && translateMatch[2]) {
     const x = parseFloat(translateMatch[1]);
     const y = parseFloat(translateMatch[2]);
@@ -32,7 +34,7 @@ function extractTranslateFractions(transformStr?: string): readonly number[] {
 
 export function validateSubpixelSnapping(
   element: ElementPhysicsSnapshot,
-  index: number
+  index: number,
 ): ValidationDefect | null {
   const { x, y, width, height } = element.bounds;
   const transformFractions = extractTranslateFractions(element.computedStyles?.transform);

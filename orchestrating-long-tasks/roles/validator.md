@@ -35,6 +35,7 @@ commands:
   - agent:register
   - agent:report
   - agent:release
+  - whoami
 spawns:
   - sub-validator
 ---

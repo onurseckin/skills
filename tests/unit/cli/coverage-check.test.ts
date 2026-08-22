@@ -7,6 +7,6 @@ describe("bunfig coverage threshold", () => {
     const match = content.match(/coverageThreshold\s*=\s*([\d.]+)/);
     expect(match).toBeTruthy();
     const threshold = parseFloat(match![1]!);
-    expect(threshold).toBeLessThanOrEqual(0.50);
+    expect(threshold).toBeLessThanOrEqual(0.5);
   });
 });

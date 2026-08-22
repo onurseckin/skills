@@ -1,7 +1,16 @@
 import type { ElementPhysicsSnapshot, ValidationDefect } from "../types.ts";
 import { generateRemediations } from "../synthesis/remediation-generator.ts";
 
-const DESTRUCTIVE_KEYWORDS = ["delete", "remove", "destroy", "drop", "purge", "terminate", "wipe", "discard"];
+const DESTRUCTIVE_KEYWORDS = [
+  "delete",
+  "remove",
+  "destroy",
+  "drop",
+  "purge",
+  "terminate",
+  "wipe",
+  "discard",
+];
 
 function isDestructiveAction(element: ElementPhysicsSnapshot): boolean {
   if (element.isDestructive) return true;
@@ -12,7 +21,7 @@ function isDestructiveAction(element: ElementPhysicsSnapshot): boolean {
 
 export function validateNormanRecovery(
   element: ElementPhysicsSnapshot,
-  index: number
+  index: number,
 ): ValidationDefect | null {
   if (!isDestructiveAction(element)) {
     return null;
@@ -21,7 +30,9 @@ export function validateNormanRecovery(
   const hasRecovery = element.hasUndo === true || element.hasConfirmation === true;
 
   if (!hasRecovery) {
-    const isCritical = (element.text ?? "").toLowerCase().includes("account") || (element.text ?? "").toLowerCase().includes("all");
+    const isCritical =
+      (element.text ?? "").toLowerCase().includes("account") ||
+      (element.text ?? "").toLowerCase().includes("all");
     return {
       id: `cog-norman-recovery-${index}`,
       pillar: "cognitive",

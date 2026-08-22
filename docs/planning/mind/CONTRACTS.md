@@ -1,7 +1,7 @@
 # CONTRACTS — the substrate every phase writes against
 
 Nothing here is a suggestion. These are the names, shapes and paths that phases 1–6 assume. An
-implementer who needs a field that is not here adds it *to this document first*, in the same change,
+implementer who needs a field that is not here adds it _to this document first_, in the same change,
 so the next agent inherits it instead of inventing a second one.
 
 Everything below was checked against the tree. Line references are to
@@ -15,13 +15,13 @@ Everything below was checked against the tree. Line references are to
 
 `mind:init` calls `initRun` (`store/capsule.ts:24`) with:
 
-| Argument         | Value                                                             |
-| :--------------- | :---------------------------------------------------------------- |
-| `repoRoot`       | `--repo`, realpath'd by `initRun`                                 |
+| Argument         | Value                                                                    |
+| :--------------- | :----------------------------------------------------------------------- |
+| `repoRoot`       | `--repo`, realpath'd by `initRun`                                        |
 | `runId`          | `mind-gen-<generation>`, default `mind-gen-1` — matches `RUN_ID_PATTERN` |
-| `prompt`         | the charter file's bytes, read with `readRegularFileNoFollow`     |
-| `captureMode`    | `"file"`                                                          |
-| `sourceVerified` | `true` — `captureAssurance` requires it for any non-verbatim mode |
+| `prompt`         | the charter file's bytes, read with `readRegularFileNoFollow`            |
+| `captureMode`    | `"file"`                                                                 |
+| `sourceVerified` | `true` — `captureAssurance` requires it for any non-verbatim mode        |
 
 The capsule that results is indistinguishable from a run capsule to `doctor`, `doctor:repair`,
 `recover`, `verifyIntegrity`, `loadRun` and the lock. That is the point of D2.
@@ -56,9 +56,13 @@ Everything below is a business field, mutated only inside a `transact` callback
       "pinned_sha256": "<hex>",
       "goals": ["G1", "G2"],
       "repo_roots": ["orchestrating-long-tasks/", "docs/"],
-      "evidence_class": "harness_observed"
+      "evidence_class": "harness_observed",
     },
-    "previous_generation": { "run_id": "mind-gen-0", "event_head": "<hex>", "sealed_at": "<iso8601>" }
+    "previous_generation": {
+      "run_id": "mind-gen-0",
+      "event_head": "<hex>",
+      "sealed_at": "<iso8601>",
+    },
   },
 
   "budget": {
@@ -74,7 +78,7 @@ Everything below is a business field, mutated only inside a `transact` callback
     "quiet_hours": null,
     "day_key": "2026-08-21",
     "pulses_today": 41,
-    "wall_clock_ms_today": 7860000
+    "wall_clock_ms_today": 7860000,
   },
 
   "pulse": {
@@ -85,7 +89,7 @@ Everything below is a business field, mutated only inside a `transact` callback
       "deadline_at": "<iso8601>",
       "host": "<host id as reported>",
       "driver": "<driver id as reported>",
-      "actor": "mind-1"
+      "actor": "mind-1",
     },
     "last": {
       "pulse_id": "pulse-1283",
@@ -95,8 +99,8 @@ Everything below is a business field, mutated only inside a `transact` callback
       "armed_interval_ms": 1350000,
       "armed_at": "<iso8601>",
       "arm_mechanism": "systemd-timer",
-      "zero_value_streak": 3
-    }
+      "zero_value_streak": 3,
+    },
   },
 
   "observations": [
@@ -106,8 +110,8 @@ Everything below is a business field, mutated only inside a `transact` callback
       "command_id": "<command record id>",
       "count": 35,
       "observed_at": "<iso8601>",
-      "evidence_class": "harness_observed"
-    }
+      "evidence_class": "harness_observed",
+    },
   ],
 
   "candidates": [
@@ -124,19 +128,19 @@ Everything below is a business field, mutated only inside a `transact` callback
       "decided_at": "<iso8601>",
       "decline_reason": null,
       "gate_failed": null,
-      "objective_run_id": "objective-7"
-    }
+      "objective_run_id": "objective-7",
+    },
   ],
 
   "escalations": [
-    { "id": "esc-3", "reason": "<text>", "opened_at": "<iso8601>", "resolved_at": null }
+    { "id": "esc-3", "reason": "<text>", "opened_at": "<iso8601>", "resolved_at": null },
   ],
 
   "audit": {
     "last_started_at": "<iso8601>",
     "last_verdict": "approved",
-    "open_findings": []
-  }
+    "open_findings": [],
+  },
 }
 ```
 
@@ -153,23 +157,23 @@ Rules that are not negotiable:
 
 Appended through `transact(runRoot, actor, kind, payload, mutate)`. Kind strings are exact.
 
-| Kind                    | Appended by         | Payload carries                                            |
-| :---------------------- | :------------------ | :--------------------------------------------------------- |
-| `mind-initialized`      | `mind:init`         | generation, charter source path, pinned digest             |
-| `mind-pulse-opened`     | `mind:pulse-open`   | pulse id, deadline, host, driver                           |
-| `mind-pulse-closed`     | `mind:pulse-close`  | pulse id, outcome, value, armed interval, arm mechanism    |
-| `mind-pulse-reclaimed`  | `mind:wake`         | pulse id, deadline passed by ms, consecutive crash count   |
-| `mind-observed`         | `mind:observe`      | source, command id, count                                  |
-| `mind-candidate-opened` | `mind:candidate`    | candidate id, kind, witness command id, goals, scope       |
-| `mind-candidate-admitted` | `mind:admit`      | candidate id, six gate verdicts, falsifier exit observed   |
-| `mind-candidate-declined` | `mind:decline`    | candidate id, reason, gate that refused when applicable    |
-| `mind-quiesced`         | `mind:quiesce`      | sources checked, command id and count per source           |
-| `mind-escalated`        | `mind:escalate`     | escalation id, reason                                      |
-| `mind-halted`           | `mind:halt`         | reason, whether an arm was suppressed                      |
-| `mind-round-opened`     | `mind:round-open`   | objective id, round index, chained-from capsule            |
-| `mind-round-closed`     | `mind:round-close`  | objective id, round index, successor or terminal reason    |
-| `mind-audit-started`    | `mind:audit-start`  | audit id, window start, auditor agent id                   |
-| `mind-audit-reported`   | `mind:audit-report` | audit id, eight answers with command ids, verdict          |
+| Kind                      | Appended by         | Payload carries                                          |
+| :------------------------ | :------------------ | :------------------------------------------------------- |
+| `mind-initialized`        | `mind:init`         | generation, charter source path, pinned digest           |
+| `mind-pulse-opened`       | `mind:pulse-open`   | pulse id, deadline, host, driver                         |
+| `mind-pulse-closed`       | `mind:pulse-close`  | pulse id, outcome, value, armed interval, arm mechanism  |
+| `mind-pulse-reclaimed`    | `mind:wake`         | pulse id, deadline passed by ms, consecutive crash count |
+| `mind-observed`           | `mind:observe`      | source, command id, count                                |
+| `mind-candidate-opened`   | `mind:candidate`    | candidate id, kind, witness command id, goals, scope     |
+| `mind-candidate-admitted` | `mind:admit`        | candidate id, six gate verdicts, falsifier exit observed |
+| `mind-candidate-declined` | `mind:decline`      | candidate id, reason, gate that refused when applicable  |
+| `mind-quiesced`           | `mind:quiesce`      | sources checked, command id and count per source         |
+| `mind-escalated`          | `mind:escalate`     | escalation id, reason                                    |
+| `mind-halted`             | `mind:halt`         | reason, whether an arm was suppressed                    |
+| `mind-round-opened`       | `mind:round-open`   | objective id, round index, chained-from capsule          |
+| `mind-round-closed`       | `mind:round-close`  | objective id, round index, successor or terminal reason  |
+| `mind-audit-started`      | `mind:audit-start`  | audit id, window start, auditor agent id                 |
+| `mind-audit-reported`     | `mind:audit-report` | audit id, eight answers with command ids, verdict        |
 
 ### 1.5 `last_pulse.json` — deliberately outside the chain
 
@@ -220,7 +224,7 @@ or is not governed by a role contract. All four failures are silent at the call 
    over them.**
 6. **Authority** — grant the command in every role contract that may invoke it, and in no other.
    `assertGrantedCommand` (`packets/command-authority.ts`) enforces this only when `--run` is
-   present *and* the acting agent holds a grant in that capsule's ledger. See D4 and §6 below.
+   present _and_ the acting agent holds a grant in that capsule's ledger. See D4 and §6 below.
 
 ### 2.1 Adding a role
 
@@ -271,13 +275,13 @@ must be a registered agent in that capsule for the role contract to bind (§6).
 
 ### 5.1 `mind:init`
 
-| Flag            | Type   | Req | Meaning                                            |
-| :-------------- | :----- | :-- | :------------------------------------------------- |
-| `repo`          | string | yes | Repository root the mind serves                    |
-| `charter`       | string | yes | Path to the owner's charter file                   |
-| `actor`         | string | yes | Recorded on `mind-initialized`                     |
-| `mind-id`       | string | no  | Default `mind-gen-1`                                   |
-| `capsules-dir`  | string | no  | Override `.capsules/`                              |
+| Flag           | Type   | Req | Meaning                          |
+| :------------- | :----- | :-- | :------------------------------- |
+| `repo`         | string | yes | Repository root the mind serves  |
+| `charter`      | string | yes | Path to the owner's charter file |
+| `actor`        | string | yes | Recorded on `mind-initialized`   |
+| `mind-id`      | string | no  | Default `mind-gen-1`             |
+| `capsules-dir` | string | no  | Override `.capsules/`            |
 
 Refuses when: the charter is missing, unreadable, empty, or not a regular file; the capsule already
 exists; the charter's required sections are absent (§7). Writes the capsule per §1.1 and returns the
@@ -285,28 +289,28 @@ pinned digest.
 
 ### 5.2 `mind:wake`
 
-| Flag            | Type   | Req | Meaning                                                     |
-| :-------------- | :----- | :-- | :----------------------------------------------------------- |
-| `run`           | string | yes | the mind capsule root                                            |
-| `actor`         | string | no  | Recorded only if the call reclaims a dead pulse              |
-| `depth`         | string | no  | `brief` (default) or `run`                                   |
-| `target-run`    | string | no  | With `--depth run`, the run capsule whose handoff to render  |
+| Flag         | Type   | Req | Meaning                                                     |
+| :----------- | :----- | :-- | :---------------------------------------------------------- |
+| `run`        | string | yes | the mind capsule root                                       |
+| `actor`      | string | no  | Recorded only if the call reclaims a dead pulse             |
+| `depth`      | string | no  | `brief` (default) or `run`                                  |
+| `target-run` | string | no  | With `--depth run`, the run capsule whose handoff to render |
 
 **Read-only in the normal case.** It may append exactly one event: `mind-pulse-reclaimed`, when it
 finds an open pulse past its deadline (§1.4, `PLAN.md` §9.3).
 
-It never refuses. It *reports* HALT conditions, because a pulse that cannot orient must still be
+It never refuses. It _reports_ HALT conditions, because a pulse that cannot orient must still be
 able to learn why. Returns the Tier A brief of `PLAN.md` §6.1 — every line a measured fact or the
 literal word `unknown` — ending in `NEXT` and `THEN` argv.
 
 ### 5.3 `mind:pulse-open`
 
-| Flag       | Type   | Req | Meaning                                  |
-| :--------- | :----- | :-- | :---------------------------------------- |
-| `run`      | string | yes | the mind capsule root                        |
-| `actor`    | string | yes | The tier-0 agent id                      |
-| `host`     | string | yes | Host runtime as reported                 |
-| `driver`   | string | yes | Driver identity as reported              |
+| Flag     | Type   | Req | Meaning                     |
+| :------- | :----- | :-- | :-------------------------- |
+| `run`    | string | yes | the mind capsule root       |
+| `actor`  | string | yes | The tier-0 agent id         |
+| `host`   | string | yes | Host runtime as reported    |
+| `driver` | string | yes | Driver identity as reported |
 
 Refuses when: a pulse is already open and not past its deadline; `pulses_today` has reached
 `pulses_per_day`; `wall_clock_ms_today` has reached its cap; the clock is inside `quiet_hours`; the
@@ -315,17 +319,17 @@ outcome the pulse should record instead (`deferred`, `halted`) and the argv to r
 
 ### 5.4 `mind:pulse-close`
 
-| Flag          | Type   | Req | Meaning                                                            |
-| :------------ | :----- | :-- | :------------------------------------------------------------------ |
-| `run`         | string | yes | the mind capsule root                                                   |
-| `actor`       | string | yes | Must match the opening actor                                        |
-| `pulse`       | string | yes | Pulse id; must match the open pulse                                 |
-| `outcome`     | string | yes | One of the eleven outcomes in `PLAN.md` §4.3                        |
-| `arm`         | string | no  | Duration for the next wake, e.g. `15m`                              |
-| `arm-mechanism` | string | no | How it was armed, as reported                                       |
-| `terminal-reason` | string | no | Required when `--arm` is absent and the outcome is not terminal   |
-| `witness`     | string | no  | Command id evidencing the work this pulse did                       |
-| `signal`      | string | no  | Typed signal, e.g. `rate_limit`; never inferred from prose          |
+| Flag              | Type   | Req | Meaning                                                         |
+| :---------------- | :----- | :-- | :-------------------------------------------------------------- |
+| `run`             | string | yes | the mind capsule root                                           |
+| `actor`           | string | yes | Must match the opening actor                                    |
+| `pulse`           | string | yes | Pulse id; must match the open pulse                             |
+| `outcome`         | string | yes | One of the eleven outcomes in `PLAN.md` §4.3                    |
+| `arm`             | string | no  | Duration for the next wake, e.g. `15m`                          |
+| `arm-mechanism`   | string | no  | How it was armed, as reported                                   |
+| `terminal-reason` | string | no  | Required when `--arm` is absent and the outcome is not terminal |
+| `witness`         | string | no  | Command id evidencing the work this pulse did                   |
+| `signal`          | string | no  | Typed signal, e.g. `rate_limit`; never inferred from prose      |
 
 **The arming rail** (`PLAN.md` §3.3) lives here: the command refuses to close unless it has either an
 arm or a terminal reason. A pulse that can supply neither closes `unarmed`, which is itself a
@@ -336,13 +340,13 @@ from a number the agent supplies.
 
 ### 5.5 `mind:observe`
 
-| Flag         | Type   | Req | Meaning                                       |
-| :----------- | :----- | :-- | :--------------------------------------------- |
-| `run`        | string | yes | the mind capsule root                             |
-| `actor`      | string | yes | Acting agent                                  |
-| `source`     | string | yes | One of the ten source ids in `PLAN.md` §7.2   |
-| `command-id` | string | yes | The recorded command whose output this is     |
-| `count`      | int    | yes | How many items that source returned           |
+| Flag         | Type   | Req | Meaning                                     |
+| :----------- | :----- | :-- | :------------------------------------------ |
+| `run`        | string | yes | the mind capsule root                       |
+| `actor`      | string | yes | Acting agent                                |
+| `source`     | string | yes | One of the ten source ids in `PLAN.md` §7.2 |
+| `command-id` | string | yes | The recorded command whose output this is   |
+| `count`      | int    | yes | How many items that source returned         |
 
 Refuses when the source id is unknown, or when `--command-id` names no command record in any capsule
 under `.capsules/`. That second refusal is what makes an observation a measurement rather than a
@@ -350,46 +354,50 @@ claim.
 
 ### 5.6 `mind:candidate`
 
-| Flag             | Type   | Req | Meaning                                                    |
-| :--------------- | :----- | :-- | :---------------------------------------------------------- |
-| `run`            | string | yes | the mind capsule root                                           |
-| `actor`          | string | yes | Acting agent                                                |
-| `kind`           | string | yes | `defect` or `proposal`                                      |
-| `statement`      | string | yes | One line, recorded `agent_reported`                         |
-| `witness`        | string | cond | Command id — **required unless `--kind proposal`**         |
-| `charter-goal`   | string | yes, repeatable | Goal ids from the pinned charter                |
-| `falsifier`      | string | cond | Argv that fails now and would pass if fixed (defects only) |
-| `write-scope`    | string | yes, repeatable | Paths the work would touch                      |
-| `rationale`      | string | no  | Proposals only                                              |
+| Flag           | Type   | Req             | Meaning                                                    |
+| :------------- | :----- | :-------------- | :--------------------------------------------------------- |
+| `run`          | string | yes             | the mind capsule root                                      |
+| `actor`        | string | yes             | Acting agent                                               |
+| `kind`         | string | yes             | `defect` or `proposal`                                     |
+| `statement`    | string | yes             | One line, recorded `agent_reported`                        |
+| `witness`      | string | cond            | Command id — **required unless `--kind proposal`**         |
+| `charter-goal` | string | yes, repeatable | Goal ids from the pinned charter                           |
+| `falsifier`    | string | cond            | Argv that fails now and would pass if fixed (defects only) |
+| `write-scope`  | string | yes, repeatable | Paths the work would touch                                 |
+| `rationale`    | string | no              | Proposals only                                             |
 
 Refuses a defect without a witness; a proposal past `max_open_proposals`; any candidate whose
 `--charter-goal` is not in the pinned charter.
 
 ### 5.7 `mind:admit`
 
-| Flag        | Type   | Req | Meaning                    |
-| :---------- | :----- | :-- | :-------------------------- |
-| `run`       | string | yes | the mind capsule root          |
-| `actor`     | string | yes | Acting agent               |
-| `candidate` | string | yes | Candidate id               |
+| Flag        | Type   | Req | Meaning               |
+| :---------- | :----- | :-- | :-------------------- |
+| `run`       | string | yes | the mind capsule root |
+| `actor`     | string | yes | Acting agent          |
+| `candidate` | string | yes | Candidate id          |
 
 Runs the six gates of `PLAN.md` §7.3 in order and stops at the first failure, recording **which gate
 refused** and returning its repair argv. Gate 3 **executes** the falsifier and requires a non-zero
 exit; a falsifier that already passes is a wish, not a defect. Gate 4 checks scope disjointness
-against live leases and the charter's `repo_roots`. Gate 6 checks open *and declined* candidates.
+against live leases and the charter's `repo_roots`. Gate 6 checks open _and declined_ candidates.
 
 ### 5.8 `mind:decline` — `--run`, `--actor`, `--candidate`, `--reason` (all required). Refuses an
+
 unknown or already-decided candidate. A decline is permanent and is what gate 6 remembers.
 
 ### 5.9 `mind:quiesce` — `--run`, `--actor`, plus `--source` repeated with a `<source>:<command-id>:<count>`
+
 triple for each of the ten sources. Refuses if any count is non-zero, and refuses if any of the ten
-sources is missing: a quiescent claim is *"I checked ten places and all ten were clean"*, and nine is
+sources is missing: a quiescent claim is _"I checked ten places and all ten were clean"_, and nine is
 not ten.
 
 ### 5.10 `mind:escalate` — `--run`, `--actor`, `--reason` (required), `--severity` (optional).
+
 Appends `mind-escalated` and **appends** to `escalation.md`. Sends nothing; see D7.
 
 ### 5.11 `mind:halt` — `--run`, `--actor`, `--reason` (required). Records the halt, suppresses arming,
+
 writes `last_pulse.json` with `next_wake_at: null`.
 
 ### 5.12 `mind:round-open` / `mind:round-close` — Phase 4. Specified in `PHASE-4.md` §3.
@@ -419,17 +427,17 @@ role is `mind` — so the rail cannot be skipped by omission.
 `mind:init` parses and refuses what it cannot parse. The charter is Markdown with these `##`
 headings, and the first four are mandatory:
 
-| Section         | Required | Machine-read as                                                  |
-| :-------------- | :------- | :---------------------------------------------------------------- |
-| `identity`      | yes      | prose, unparsed                                                   |
-| `goals`         | yes      | `- G<n>: <statement>` lines; the ids gate 2 checks against        |
-| `non-goals`     | yes      | `- <statement>` lines; a candidate matching one is refused        |
-| `repo_roots`    | yes      | backticked paths; the only paths any agent may write              |
-| `stability`     | no       | `- \`<argv>\` → exit <n>` lines; the mechanical definition of "stable" |
-| `budgets`       | no       | key/value lines overriding the §1.3 defaults                      |
-| `prohibitions`  | no       | copied verbatim into every packet; defaults to `PLAN.md` §11.3    |
-| `escalation`    | no       | prose, surfaced in the digest                                     |
-| `open_questions`| no       | a legitimate discovery source                                     |
+| Section          | Required | Machine-read as                                                        |
+| :--------------- | :------- | :--------------------------------------------------------------------- |
+| `identity`       | yes      | prose, unparsed                                                        |
+| `goals`          | yes      | `- G<n>: <statement>` lines; the ids gate 2 checks against             |
+| `non-goals`      | yes      | `- <statement>` lines; a candidate matching one is refused             |
+| `repo_roots`     | yes      | backticked paths; the only paths any agent may write                   |
+| `stability`      | no       | `- \`<argv>\` → exit <n>` lines; the mechanical definition of "stable" |
+| `budgets`        | no       | key/value lines overriding the §1.3 defaults                           |
+| `prohibitions`   | no       | copied verbatim into every packet; defaults to `PLAN.md` §11.3         |
+| `escalation`     | no       | prose, surfaced in the digest                                          |
+| `open_questions` | no       | a legitimate discovery source                                          |
 
 A missing `stability` block is not an error. It is the honest state of most repositories, and the
 mind's first useful proposal is usually to create one (`PLAN.md` §14.1.4).

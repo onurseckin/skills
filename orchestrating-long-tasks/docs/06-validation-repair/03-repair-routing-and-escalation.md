@@ -167,7 +167,7 @@ A finding's revalidation command reaches `plan:replan` under two different names
 legitimate.
 
 An operator's ad hoc `--findings` / `--findings-file` JSON documents itself as `revalidation_gate`
-(see `plan:replan`'s `--gate` help text). Every *recorded* finding schema — `CompletionFinding` and
+(see `plan:replan`'s `--gate` help text). Every _recorded_ finding schema — `CompletionFinding` and
 `Finding` — names the same thing `revalidation`, and `defect-synthesizer.ts` already treats
 `revalidation` as the schema's source of truth. Reading only `revalidation_gate` silently discarded
 the gate command a critic or validator had recorded, which is what made a finding unable to become a

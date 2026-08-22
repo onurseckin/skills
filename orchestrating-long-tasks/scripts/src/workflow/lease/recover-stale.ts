@@ -50,7 +50,8 @@ export function recoverStale(
       if (task.status === "validating" && task.validations) {
         const stillOpen = task.validations.filter(
           (entry) =>
-            (entry.verdict === "pass" || entry.verdict === "reject") ||
+            entry.verdict === "pass" ||
+            entry.verdict === "reject" ||
             Date.parse(entry.deadline_at) > now.valueOf(),
         );
         if (stillOpen.length !== task.validations.length) {

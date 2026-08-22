@@ -6,9 +6,10 @@ const MIN_CIRCULAR_CLEARANCE = 24;
 
 export function validateTouchTargetDimensions(
   element: ElementPhysicsSnapshot,
-  index: number
+  index: number,
 ): ValidationDefect | null {
-  const isInteractive = element.interactive || element.isTouchTarget || isInteractiveTag(element.tagName);
+  const isInteractive =
+    element.interactive || element.isTouchTarget || isInteractiveTag(element.tagName);
   if (!isInteractive) return null;
 
   const { width, height } = element.bounds;
@@ -36,11 +37,14 @@ export function validateTouchTargetDimensions(
 }
 
 export function validateTouchTargetClearance(
-  targets: readonly ElementPhysicsSnapshot[]
+  targets: readonly ElementPhysicsSnapshot[],
 ): readonly ValidationDefect[] {
   const defects: ValidationDefect[] = [];
   const interactiveTargets = targets.filter(
-    (el) => (el.interactive || el.isTouchTarget || isInteractiveTag(el.tagName)) && el.bounds.width > 0 && el.bounds.height > 0
+    (el) =>
+      (el.interactive || el.isTouchTarget || isInteractiveTag(el.tagName)) &&
+      el.bounds.width > 0 &&
+      el.bounds.height > 0,
   );
 
   for (let i = 0; i < interactiveTargets.length; i++) {
@@ -65,12 +69,25 @@ export function validateTouchTargetClearance(
       const minCenterDist = (a.bounds.width + b.bounds.width) / 4 + MIN_CIRCULAR_CLEARANCE;
 
       // Check if bounding boxes overlap or are too close
-      const horizontalOverlap = Math.max(0, Math.min(a.bounds.x + a.bounds.width, b.bounds.x + b.bounds.width) - Math.max(a.bounds.x, b.bounds.x));
-      const verticalOverlap = Math.max(0, Math.min(a.bounds.y + a.bounds.height, b.bounds.y + b.bounds.height) - Math.max(a.bounds.y, b.bounds.y));
+      const horizontalOverlap = Math.max(
+        0,
+        Math.min(a.bounds.x + a.bounds.width, b.bounds.x + b.bounds.width) -
+          Math.max(a.bounds.x, b.bounds.x),
+      );
+      const verticalOverlap = Math.max(
+        0,
+        Math.min(a.bounds.y + a.bounds.height, b.bounds.y + b.bounds.height) -
+          Math.max(a.bounds.y, b.bounds.y),
+      );
 
-      const edgeDistance = dist - (Math.min(a.bounds.width, a.bounds.height) + Math.min(b.bounds.width, b.bounds.height)) / 2;
+      const edgeDistance =
+        dist -
+        (Math.min(a.bounds.width, a.bounds.height) + Math.min(b.bounds.width, b.bounds.height)) / 2;
 
-      if ((dist < minCenterDist && horizontalOverlap > 0 && verticalOverlap > 0) || (edgeDistance < MIN_CIRCULAR_CLEARANCE && edgeDistance >= 0 && dist < 48)) {
+      if (
+        (dist < minCenterDist && horizontalOverlap > 0 && verticalOverlap > 0) ||
+        (edgeDistance < MIN_CIRCULAR_CLEARANCE && edgeDistance >= 0 && dist < 48)
+      ) {
         defects.push({
           id: `mech-touch-clearance-${i}-${j}`,
           pillar: "mechanical",
@@ -94,5 +111,11 @@ export function validateTouchTargetClearance(
 
 function isInteractiveTag(tagName: string): boolean {
   const upper = tagName.toUpperCase();
-  return upper === "BUTTON" || upper === "A" || upper === "INPUT" || upper === "SELECT" || upper === "TEXTAREA";
+  return (
+    upper === "BUTTON" ||
+    upper === "A" ||
+    upper === "INPUT" ||
+    upper === "SELECT" ||
+    upper === "TEXTAREA"
+  );
 }

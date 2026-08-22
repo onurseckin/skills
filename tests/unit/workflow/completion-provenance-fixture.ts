@@ -1,5 +1,3 @@
-import { createHash } from "node:crypto";
-import { canonicalJsonBytes } from "../../../orchestrating-long-tasks/scripts/src/core/json.ts";
 import { completionArtifactRequirements } from "../../../orchestrating-long-tasks/scripts/src/workflow/completion/artifact-verification.ts";
 import { recordCompletionReview } from "../../../orchestrating-long-tasks/scripts/src/workflow/completion/record-completion-review.ts";
 import { completionReadinessSnapshot } from "../../../orchestrating-long-tasks/scripts/src/workflow/completion/readiness-snapshot.ts";

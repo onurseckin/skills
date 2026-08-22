@@ -8,7 +8,6 @@ import { mindPulseOpenCommand } from "../../../orchestrating-long-tasks/scripts/
 import { mindRoundOpenCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/mind-round.ts";
 import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
 import {
-  checkDailyBudget,
   checkDailyPulseLimit,
   checkDailyWallClockLimit,
   checkMaxAgentsInFlight,
@@ -20,9 +19,7 @@ import {
   evaluateBudgetRefusalLadder,
   parseNowMs,
   rollDayKeyIfNeeded,
-  type BudgetCheckResult,
   type BudgetOutcome,
-  type BudgetRefusalKey,
 } from "../../../orchestrating-long-tasks/scripts/src/mind/budget.ts";
 import { initRun } from "../../../orchestrating-long-tasks/scripts/src/store/capsule.ts";
 import { loadRun } from "../../../orchestrating-long-tasks/scripts/src/store/load.ts";
@@ -547,9 +544,7 @@ describe("mind/budget - strict refusal ladder and outcomes per CONTRACTS §1.3 a
       const timestamp = 1755770400000;
       expect(parseNowMs(timestamp)).toBe(timestamp);
       expect(parseNowMs(new Date(timestamp))).toBe(timestamp);
-      expect(parseNowMs("2026-08-21T10:00:00.000Z")).toBe(
-        Date.parse("2026-08-21T10:00:00.000Z"),
-      );
+      expect(parseNowMs("2026-08-21T10:00:00.000Z")).toBe(Date.parse("2026-08-21T10:00:00.000Z"));
       expect(typeof parseNowMs()).toBe("number");
     });
 

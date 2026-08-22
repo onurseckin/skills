@@ -10,7 +10,6 @@ import {
   resolveAgentProfile,
   resolveProfile,
   roleToProfile,
-  type AbstractProfile,
   type ProfileBindings,
 } from "../../../orchestrating-long-tasks/scripts/src/mind/profiles.ts";
 

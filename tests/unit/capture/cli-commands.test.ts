@@ -19,8 +19,8 @@ describe("T-CAP-CLI-TESTS: Harness CLI Capture Commands Integration", () => {
         expect(existsSync(targetPath)).toBe(true);
 
         const content = readFileSync(targetPath, "utf-8");
-        expect(content).toContain("version: \"1.0\"");
-        expect(content).toContain("baseUrl: \"http://localhost:3000\"");
+        expect(content).toContain('version: "1.0"');
+        expect(content).toContain('baseUrl: "http://localhost:3000"');
         expect(content).toContain("desktop:");
         expect(content).toContain("mobile:");
       } finally {
@@ -52,7 +52,11 @@ describe("T-CAP-CLI-TESTS: Harness CLI Capture Commands Integration", () => {
         expect(threw).toBe(true);
 
         // Overwrite with force should succeed
-        const forceRes = await captureInitCommand({ "config-dir": tempDir, format: "json", force: true });
+        const forceRes = await captureInitCommand({
+          "config-dir": tempDir,
+          format: "json",
+          force: true,
+        });
         expect(forceRes.status).toBe("initialized");
       } finally {
         rmSync(tempDir, { recursive: true, force: true });
@@ -130,7 +134,12 @@ screens:
               tagName: "H1",
               text: "Welcome",
               bounds: { x: 100, y: 100, width: 300, height: 50 },
-              computedStyles: { color: "#000000", backgroundColor: "#ffffff", fontSize: 24, fontWeight: 700 },
+              computedStyles: {
+                color: "#000000",
+                backgroundColor: "#ffffff",
+                fontSize: 24,
+                fontWeight: 700,
+              },
             },
           ],
         };
@@ -162,7 +171,12 @@ screens:
               tagName: "P",
               text: "Muted low contrast",
               bounds: { x: 50, y: 50, width: 200, height: 20 },
-              computedStyles: { color: "#d0d0d0", backgroundColor: "#ffffff", fontSize: 12, fontWeight: 400 },
+              computedStyles: {
+                color: "#d0d0d0",
+                backgroundColor: "#ffffff",
+                fontSize: 12,
+                fontWeight: 400,
+              },
             },
           ],
         };
@@ -205,7 +219,8 @@ screens:
           metadata: { task: "T-CAP-CLI-TESTS", uid },
         }),
       );
-      const pngBase64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+      const pngBase64 =
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
       const pngBuf = Buffer.concat([Buffer.from(pngBase64, "base64"), Buffer.from(`cli-${uid}`)]);
       const shotPath = join(tmpdir(), `cli-proof-${uid}.png`);
       writeFileSync(shotPath, pngBuf);

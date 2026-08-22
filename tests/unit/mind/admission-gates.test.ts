@@ -171,16 +171,28 @@ function writeCommandRecordToCapsule(
     exit_code: record.exit_code,
     status: record.status ?? (record.exit_code === 0 ? "succeeded" : "failed"),
     logs: {
-      stdout: { path: `commands/${commandId}/attempt-1/stdout.log`, bytes: (record.stdout ?? "").length },
-      stderr: { path: `commands/${commandId}/attempt-1/stderr.log`, bytes: (record.stderr ?? "").length },
+      stdout: {
+        path: `commands/${commandId}/attempt-1/stdout.log`,
+        bytes: (record.stdout ?? "").length,
+      },
+      stderr: {
+        path: `commands/${commandId}/attempt-1/stderr.log`,
+        bytes: (record.stderr ?? "").length,
+      },
     },
     attempts: [
       {
         attempt: 1,
         exit_code: record.exit_code,
         logs: {
-          stdout: { path: `commands/${commandId}/attempt-1/stdout.log`, bytes: (record.stdout ?? "").length },
-          stderr: { path: `commands/${commandId}/attempt-1/stderr.log`, bytes: (record.stderr ?? "").length },
+          stdout: {
+            path: `commands/${commandId}/attempt-1/stdout.log`,
+            bytes: (record.stdout ?? "").length,
+          },
+          stderr: {
+            path: `commands/${commandId}/attempt-1/stderr.log`,
+            bytes: (record.stderr ?? "").length,
+          },
         },
       },
     ],
@@ -641,7 +653,9 @@ describe("Mind Admission Gates (W3.3 / PLAN.md §7.3)", () => {
     expect(verdict.passed).toBe(false);
     expect(verdict.gateId).toBe("gate-6-not-a-duplicate");
     expect(verdict.gateNumber).toBe(6);
-    expect(verdict.reason).toContain("duplicate of permanently declined candidate 'cand-declined-yesterday'");
+    expect(verdict.reason).toContain(
+      "duplicate of permanently declined candidate 'cand-declined-yesterday'",
+    );
     expect(verdict.reason).toContain("out of scope busywork refactor");
   });
 
@@ -682,7 +696,7 @@ describe("Mind Admission Gates (W3.3 / PLAN.md §7.3)", () => {
       status: "opened",
     };
 
-    const { repo, run } = setupMindTest("cli-admit-success", {
+    const { run } = setupMindTest("cli-admit-success", {
       candidates: [candidate],
     });
 

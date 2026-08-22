@@ -130,7 +130,7 @@ It reads `.capsules/mind-gen-1/last_pulse.json` and pages the owner when it is s
 
 > Nothing inside a dead system can report that it is dead.
 
-The `GAP` line built in Phase 2 catches a *late* driver from the inside. Only something outside
+The `GAP` line built in Phase 2 catches a _late_ driver from the inside. Only something outside
 catches a driver that never fires again.
 
 **Acceptance:** stopping the timer produces a page within one interval plus grace; the check itself
@@ -143,13 +143,13 @@ failing is distinguishable from the mind failing.
 Four injected failures. After each, **the next pulse must resume without human help, and the ledger
 must say what happened**:
 
-| Injection                        | Required outcome                                             |
-| :------------------------------- | :------------------------------------------------------------ |
-| Kill the pulse mid-flight        | Next wake closes it `crashed`, records the deadline evidence  |
-| Reboot the box                   | `Persistent=yes` fires the missed pulse; no gap in the ledger |
-| Revoke the token for an hour     | Outcome `paused`, interval multiplied, **nothing killed** —   |
-|                                  | leases live, attempts open, worktrees in place, all resumable |
-| Fill the disk                    | Refuses to write rather than writing a torn capsule; recovers |
+| Injection                    | Required outcome                                              |
+| :--------------------------- | :------------------------------------------------------------ |
+| Kill the pulse mid-flight    | Next wake closes it `crashed`, records the deadline evidence  |
+| Reboot the box               | `Persistent=yes` fires the missed pulse; no gap in the ledger |
+| Revoke the token for an hour | Outcome `paused`, interval multiplied, **nothing killed** —   |
+|                              | leases live, attempts open, worktrees in place, all resumable |
+| Fill the disk                | Refuses to write rather than writing a torn capsule; recovers |
 
 The quota case is the owner's explicit requirement and it already matches the harness's own
 behaviour: `orchestrator/failure-classifier.ts` classes `rate_limit`, `network`, `provider_5xx` and
@@ -173,15 +173,15 @@ contains `RESOURCE_EXHAUSTED` and `rate_limit`. The pulse reports it through
 
 ## 6. Failure modes
 
-| Likely mistake                                        | The tell                                                  |
-| :---------------------------------------------------- | :---------------------------------------------------------- |
-| `Restart=always` on the service                       | A crash loop burns the night's budget before dawn          |
-| `chmod -R u+w` during provisioning                    | `INTEGRITY: prompt.md is writable` on the first pulse      |
-| Assuming `.capsules/` is backed up because git is     | A redeploy produces an amnesiac mind that looks healthy    |
-| Deploying with push credentials "temporarily"         | The one failure mode with real external cost               |
-| A liveness check that runs on the box it checks       | It dies with the thing it was watching                     |
-| Two drivers armed at once — cron *and* an in-session loop | The measured `INTEGRITY` race, repeatedly              |
-| Verifying an untested host scheduler by assumption    | `PLAN.md` §14.1.6 — test it before any table claims it     |
+| Likely mistake                                            | The tell                                                |
+| :-------------------------------------------------------- | :------------------------------------------------------ |
+| `Restart=always` on the service                           | A crash loop burns the night's budget before dawn       |
+| `chmod -R u+w` during provisioning                        | `INTEGRITY: prompt.md is writable` on the first pulse   |
+| Assuming `.capsules/` is backed up because git is         | A redeploy produces an amnesiac mind that looks healthy |
+| Deploying with push credentials "temporarily"             | The one failure mode with real external cost            |
+| A liveness check that runs on the box it checks           | It dies with the thing it was watching                  |
+| Two drivers armed at once — cron _and_ an in-session loop | The measured `INTEGRITY` race, repeatedly               |
+| Verifying an untested host scheduler by assumption        | `PLAN.md` §14.1.6 — test it before any table claims it  |
 
 ## 7. Rollback
 

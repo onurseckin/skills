@@ -26,12 +26,7 @@ describe("IntegrityIssue subcode and issue helper", () => {
   });
 
   test("issue helper constructs issue with subcode and path when provided", () => {
-    const item: IntegrityIssue = issue(
-      "STATE_PROJECTION",
-      "mismatch",
-      "path/to/file",
-      "READ_RACE",
-    );
+    const item: IntegrityIssue = issue("STATE_PROJECTION", "mismatch", "path/to/file", "READ_RACE");
     expect(item).toEqual({
       code: "STATE_PROJECTION",
       message: "mismatch",

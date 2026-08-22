@@ -9,7 +9,13 @@ function findSourceFiles(directory: string): string[] {
     const fullPath = join(directory, entry.name);
     if (entry.isDirectory()) {
       files.push(...findSourceFiles(fullPath));
-    } else if (entry.isFile() && fullPath.endsWith(".ts") && !fullPath.endsWith(".d.ts") && !fullPath.endsWith(".test.ts") && !fullPath.endsWith(".spec.ts")) {
+    } else if (
+      entry.isFile() &&
+      fullPath.endsWith(".ts") &&
+      !fullPath.endsWith(".d.ts") &&
+      !fullPath.endsWith(".test.ts") &&
+      !fullPath.endsWith(".spec.ts")
+    ) {
       files.push(fullPath);
     }
   }

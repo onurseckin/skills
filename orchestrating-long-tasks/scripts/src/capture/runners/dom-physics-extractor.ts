@@ -143,7 +143,9 @@ export function computeLayoutMetrics(
   for (const el of elements) {
     const scrollDiffX = el.metrics.scrollWidth - el.metrics.clientWidth;
     const vpBoundDiffX =
-      viewportWidth > 0 && el.bounds.right > viewportWidth + subpixelTolerance && el.computedStyles.position !== "fixed"
+      viewportWidth > 0 &&
+      el.bounds.right > viewportWidth + subpixelTolerance &&
+      el.computedStyles.position !== "fixed"
         ? el.bounds.right - viewportWidth
         : 0;
     const diffX = Math.max(scrollDiffX, vpBoundDiffX);
@@ -159,7 +161,9 @@ export function computeLayoutMetrics(
 
     const scrollDiffY = el.metrics.scrollHeight - el.metrics.clientHeight;
     const vpBoundDiffY =
-      viewportHeight > 0 && el.bounds.bottom > viewportHeight + subpixelTolerance && el.computedStyles.position === "fixed"
+      viewportHeight > 0 &&
+      el.bounds.bottom > viewportHeight + subpixelTolerance &&
+      el.computedStyles.position === "fixed"
         ? el.bounds.bottom - viewportHeight
         : 0;
     const diffY = Math.max(scrollDiffY, vpBoundDiffY);

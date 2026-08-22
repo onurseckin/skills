@@ -156,7 +156,11 @@ function parseNowMs(nowInput?: number | Date | string): number {
   return Date.now();
 }
 
-function extractLiveRuns(capsulesDir: string, currentRunRoot: string, nowMs: number): LiveRunSummary[] {
+function extractLiveRuns(
+  capsulesDir: string,
+  currentRunRoot: string,
+  nowMs: number,
+): LiveRunSummary[] {
   const currentBasename = basename(currentRunRoot);
   if (!existsSync(capsulesDir) || !lstatSync(capsulesDir).isDirectory()) {
     return [];
@@ -166,7 +170,11 @@ function extractLiveRuns(capsulesDir: string, currentRunRoot: string, nowMs: num
 
   for (const entry of entries) {
     if (!entry.isDirectory() && !entry.isSymbolicLink()) continue;
-    if (entry.name === currentBasename || entry.name.startsWith("mind-") || entry.name.startsWith(".")) {
+    if (
+      entry.name === currentBasename ||
+      entry.name.startsWith("mind-") ||
+      entry.name.startsWith(".")
+    ) {
       continue;
     }
     const runPath = join(capsulesDir, entry.name);
@@ -181,7 +189,9 @@ function extractLiveRuns(capsulesDir: string, currentRunRoot: string, nowMs: num
       const tasksCount = tasks.length;
       const leasedCount = tasks.filter((t) => t.lease !== undefined).length;
       const escalatedCount = tasks.filter((t) => t.status === "escalated").length;
-      const readyTasksCount = tasks.filter((t) => t.status === "ready" || t.status === "retry_ready").length;
+      const readyTasksCount = tasks.filter(
+        (t) => t.status === "ready" || t.status === "retry_ready",
+      ).length;
 
       let hasStaleLease = false;
       for (const t of tasks) {
@@ -210,12 +220,11 @@ function extractLiveRuns(capsulesDir: string, currentRunRoot: string, nowMs: num
       ).length;
       const totalGatesCount = gates.length;
 
-      const phase =
-        tasks.some((t) => t.status === "validating")
-          ? "validating"
-          : state.graph
-            ? "executing"
-            : "planning";
+      const phase = tasks.some((t) => t.status === "validating")
+        ? "validating"
+        : state.graph
+          ? "executing"
+          : "planning";
 
       summaries.push({
         runId: entry.name,
@@ -325,9 +334,11 @@ export async function buildWakeBrief(
 
   // 1. Check Charter
   const charterSourceRel =
-    typeof charterRecord.source_path === "string" ? charterRecord.source_path : "docs/mind/CHARTER.md";
+    typeof charterRecord.source_path === "string"
+      ? charterRecord.source_path
+      : "docs/mind/CHARTER.md";
   const charterRepoRoots = Array.isArray(charterRecord.repo_roots)
-    ? (charterRecord.repo_roots.filter((r): r is string => typeof r === "string"))
+    ? charterRecord.repo_roots.filter((r): r is string => typeof r === "string")
     : undefined;
   const charterFullPath = resolveCharterPath(repoRoot, charterSourceRel, charterRepoRoots);
   let charterStatus: CharterStatus = "missing";
@@ -386,11 +397,14 @@ export async function buildWakeBrief(
 
   // 4. Check Budget
   const pulsesToday = typeof budgetRecord.pulses_today === "number" ? budgetRecord.pulses_today : 0;
-  const pulsesPerDay = typeof budgetRecord.pulses_per_day === "number" ? budgetRecord.pulses_per_day : 96;
+  const pulsesPerDay =
+    typeof budgetRecord.pulses_per_day === "number" ? budgetRecord.pulses_per_day : 96;
   const wallClockTodayMs =
     typeof budgetRecord.wall_clock_ms_today === "number" ? budgetRecord.wall_clock_ms_today : 0;
   const wallClockPerDayMs =
-    typeof budgetRecord.wall_clock_ms_per_day === "number" ? budgetRecord.wall_clock_ms_per_day : 21_600_000;
+    typeof budgetRecord.wall_clock_ms_per_day === "number"
+      ? budgetRecord.wall_clock_ms_per_day
+      : 21_600_000;
   const maxAgentsInFlight =
     typeof budgetRecord.max_agents_in_flight === "number" ? budgetRecord.max_agents_in_flight : 8;
   const eventSequence = state.event_sequence ?? 0;
@@ -428,9 +442,12 @@ export async function buildWakeBrief(
 
   // 7. Attention
   const stateEscalations = Array.isArray(state.escalations)
-    ? (state.escalations as readonly Record<string, unknown>[]).filter((e) => e.resolved_at === null)
+    ? (state.escalations as readonly Record<string, unknown>[]).filter(
+        (e) => e.resolved_at === null,
+      )
     : [];
-  const escalationsCount = stateEscalations.length + liveRuns.reduce((sum, r) => sum + r.escalatedCount, 0);
+  const escalationsCount =
+    stateEscalations.length + liveRuns.reduce((sum, r) => sum + r.escalatedCount, 0);
   const openFindingsCount = liveRuns.reduce((sum, r) => sum + r.openFindingsCount, 0);
   const staleLeasesCount = liveRuns.filter((r) => r.hasStaleLease).length;
 
@@ -497,7 +514,10 @@ export async function buildWakeBrief(
     mode = "paused";
   } else if (
     liveRuns.length > 0 &&
-    (staleLeasesCount > 0 || openFindingsCount > 0 || agentsInFlight > 0 || liveRuns.some((r) => r.readyTasksCount > 0))
+    (staleLeasesCount > 0 ||
+      openFindingsCount > 0 ||
+      agentsInFlight > 0 ||
+      liveRuns.some((r) => r.readyTasksCount > 0))
   ) {
     mode = "work";
   } else {
@@ -601,7 +621,8 @@ export async function buildWakeBrief(
       "15m",
     ];
   } else if (lane === "rescue") {
-    const rescueTarget = liveRuns.find((r) => r.hasStaleLease)?.runRoot ?? liveRuns[0]?.runRoot ?? loaded.runRoot;
+    const rescueTarget =
+      liveRuns.find((r) => r.hasStaleLease)?.runRoot ?? liveRuns[0]?.runRoot ?? loaded.runRoot;
     nextArgv = [
       "bun",
       "harness.ts",
@@ -625,7 +646,9 @@ export async function buildWakeBrief(
       "15m",
     ];
   } else if (lane === "repair") {
-    const repairTarget = liveRuns.find((r) => r.openFindingsCount > 0 || r.failingGatesCount > 0)?.runRoot ?? loaded.runRoot;
+    const repairTarget =
+      liveRuns.find((r) => r.openFindingsCount > 0 || r.failingGatesCount > 0)?.runRoot ??
+      loaded.runRoot;
     nextArgv = [
       "bun",
       "harness.ts",

@@ -24,6 +24,7 @@ commands:
   - evidence:get
   - evidence:screenshots
   - agent:report
+  - whoami
 spawns: []
 ---
 

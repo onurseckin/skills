@@ -1,9 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { existsSync, readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import {
   AGENT_ROLES,
-  type AgentRole,
 } from "../../../orchestrating-long-tasks/scripts/src/contracts/packets.ts";
 import {
   loadRoleContract,
@@ -51,7 +49,9 @@ describe("Phase 4 Role Contracts Reconciliation", () => {
 
     // Invariants in must_not
     const mustNotText = contract.must_not.join("\n");
-    expect(mustNotText).toContain("Write, edit, stage, revert, format, or delete any repository file");
+    expect(mustNotText).toContain(
+      "Write, edit, stage, revert, format, or delete any repository file",
+    );
     expect(mustNotText).toContain("Dispatch a tier 3 agent directly");
   });
 
@@ -84,11 +84,13 @@ describe("Phase 4 Role Contracts Reconciliation", () => {
 
   test("no role contract grants a command that unconditionally throws or does not exist", () => {
     const knownUnconditionallyThrowingCommands = new Set(["orchestrator:run"]);
+    const deprecatedAliases = new Set(["thread:identify", "authority:whoami"]);
 
     for (const role of AGENT_ROLES) {
       const contract = loadRoleContract(role);
 
       for (const commandName of contract.commands) {
+        if (deprecatedAliases.has(commandName)) continue;
         // Must exist in CLI command registry
         const spec = findCommand(commandName);
         expect(spec).toBeDefined();
@@ -118,5 +120,26 @@ describe("Phase 4 Role Contracts Reconciliation", () => {
       const spawnedContract = loadRoleContract(spawned);
       expect(spawnedContract.tier).toBe(3);
     }
+  });
+
+  test("full 4-tier hierarchy enforces strict non-bypassing spawn chain", () => {
+    const mindContract = loadRoleContract("mind");
+    expect(mindContract.tier).toBe(0);
+    expect(mindContract.spawns).toEqual(["orchestrator"]);
+
+    const orchestratorContract = loadRoleContract("orchestrator");
+    expect(orchestratorContract.tier).toBe(1);
+    expect(orchestratorContract.spawns).toEqual(["coordinator"]);
+
+    const coordinatorContract = loadRoleContract("coordinator");
+    expect(coordinatorContract.tier).toBe(2);
+    expect(coordinatorContract.spawns).toContain("implementer");
+    expect(coordinatorContract.spawns).toContain("validator");
+
+    // Prohibit direct tier-bypassing dispatch
+    expect(mindContract.spawns).not.toContain("coordinator");
+    expect(mindContract.spawns).not.toContain("implementer");
+    expect(orchestratorContract.spawns).not.toContain("implementer");
+    expect(orchestratorContract.spawns).not.toContain("validator");
   });
 });

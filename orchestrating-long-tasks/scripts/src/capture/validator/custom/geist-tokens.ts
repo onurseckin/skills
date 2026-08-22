@@ -5,7 +5,7 @@ const GEIST_ALLOWED_RADII = new Set([0, 4, 6, 8, 12, 16, 24, 9999]);
 
 export function validateGeistTokens(
   element: ElementPhysicsSnapshot,
-  index: number
+  index: number,
 ): ValidationDefect | null {
   const styles = element.computedStyles;
   if (!styles) return null;

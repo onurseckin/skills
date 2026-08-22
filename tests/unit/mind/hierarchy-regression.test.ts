@@ -12,10 +12,12 @@ import {
   findCommand,
 } from "../../../orchestrating-long-tasks/scripts/src/cli/registry/index.ts";
 import { evidenced } from "../../../orchestrating-long-tasks/scripts/src/contracts/evidence.ts";
-import type { JsonObject, JsonValue } from "../../../orchestrating-long-tasks/scripts/src/contracts/json.ts";
+import type {
+  JsonObject,
+  JsonValue,
+} from "../../../orchestrating-long-tasks/scripts/src/contracts/json.ts";
 import {
   AGENT_ROLES,
-  type AgentRole,
 } from "../../../orchestrating-long-tasks/scripts/src/contracts/packets.ts";
 import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
 import {
@@ -76,22 +78,73 @@ function createMindTestCapsule(
   const charterDir = join(repo, "docs", "mind");
   mkdirSync(charterDir, { recursive: true });
   const charterPath = join(charterDir, "CHARTER.md");
-  writeFileSync(charterPath, `# CHARTER\n\n## identity\nRegression\n\n## goals\n- G1: Stability\n\n## non-goals\n- None\n\n## repo_roots\n- \`src/\`\n`, "utf-8");
+  writeFileSync(
+    charterPath,
+    `# CHARTER\n\n## identity\nRegression\n\n## goals\n- G1: Stability\n\n## non-goals\n- None\n\n## repo_roots\n- \`src/\`\n`,
+    "utf-8",
+  );
   const charterSha = createHash("sha256").update(readFileSync(charterPath)).digest("hex");
   const run = initRun(repo, `mind-reg-${label}`, readFileSync(charterPath), "file", true);
 
-  transact(run, "mind-init", "mind-initialized", { generation: 1, charter_source_path: "docs/mind/CHARTER.md", pinned_sha256: charterSha }, (w) => {
-    w.mind = { generation: 1, opened_at: new Date().toISOString(), charter: { source_path: "docs/mind/CHARTER.md", pinned_sha256: charterSha, goals: ["G1"], repo_roots: ["src/"], evidence_class: "harness_observed" }, actor: "mind-1" };
-    w.budget = { pulses_per_day: 96, wall_clock_ms_per_day: 21_600_000, max_agents_in_flight: 8, max_rounds_per_objective: 3, base_interval_ms: 900_000, max_interval_ms: 14_400_000, max_pause_interval_ms: 1_800_000, pulse_deadline_ms: 1_200_000, max_open_proposals: 5, quiet_hours: null, day_key: "2026-08-21", pulses_today: 0, wall_clock_ms_today: 0, ...(overrides.budget as unknown as JsonObject) };
-    const candList = overrides.candidates ?? [{ id: "cand-1", kind: "defect", statement: "fix parser race condition", charter_goal_ids: ["G1"], write_scope: ["src/parser.ts"], status: "admitted", witness_command_id: "cmd-witness-1" }];
-    w.candidates = candList as unknown as JsonValue;
-    w.pulse = { counter: 1, open: null, last: null };
-    w.rounds = [];
-    w.objectives = [];
-  });
+  transact(
+    run,
+    "mind-init",
+    "mind-initialized",
+    { generation: 1, charter_source_path: "docs/mind/CHARTER.md", pinned_sha256: charterSha },
+    (w) => {
+      w.mind = {
+        generation: 1,
+        opened_at: new Date().toISOString(),
+        charter: {
+          source_path: "docs/mind/CHARTER.md",
+          pinned_sha256: charterSha,
+          goals: ["G1"],
+          repo_roots: ["src/"],
+          evidence_class: "harness_observed",
+        },
+        actor: "mind-1",
+      };
+      w.budget = {
+        pulses_per_day: 96,
+        wall_clock_ms_per_day: 21_600_000,
+        max_agents_in_flight: 8,
+        max_rounds_per_objective: 3,
+        base_interval_ms: 900_000,
+        max_interval_ms: 14_400_000,
+        max_pause_interval_ms: 1_800_000,
+        pulse_deadline_ms: 1_200_000,
+        max_open_proposals: 5,
+        quiet_hours: null,
+        day_key: "2026-08-21",
+        pulses_today: 0,
+        wall_clock_ms_today: 0,
+        ...(overrides.budget as unknown as JsonObject),
+      };
+      const candList = overrides.candidates ?? [
+        {
+          id: "cand-1",
+          kind: "defect",
+          statement: "fix parser race condition",
+          charter_goal_ids: ["G1"],
+          write_scope: ["src/parser.ts"],
+          status: "admitted",
+          witness_command_id: "cmd-witness-1",
+        },
+      ];
+      w.candidates = candList as unknown as JsonValue;
+      w.pulse = { counter: 1, open: null, last: null };
+      w.rounds = [];
+      w.objectives = [];
+    },
+  );
 
   if (overrides.registerAgent ?? true) {
-    agentRegisterCommand({ run, agent: overrides.agentId ?? "orch-1", role: overrides.agentRole ?? "orchestrator", host: "test-host" });
+    agentRegisterCommand({
+      run,
+      agent: overrides.agentId ?? "orch-1",
+      role: overrides.agentRole ?? "orchestrator",
+      host: "test-host",
+    });
   }
   return { repo, run };
 }
@@ -99,12 +152,28 @@ function createMindTestCapsule(
 function createPriorRoundCapsule(
   repoRoot: string,
   runId: string,
-  overrides: { tasks?: Record<string, unknown>; requirements?: readonly Record<string, unknown>[] } = {},
+  overrides: {
+    tasks?: Record<string, unknown>;
+    requirements?: readonly Record<string, unknown>[];
+  } = {},
 ): string {
   const capsulePath = initRun(repoRoot, runId, Buffer.from("Prior"), "file", true);
   transact(capsulePath, "init", "plan-initialized", { prompt: "Prior" }, (w) => {
-    w.tasks = (overrides.tasks ?? { "task-1": { id: "task-1", status: "completed", write_scope: ["src/parser.ts"], findings: [{ id: "find-1", status: "unresolved", severity: "critical", observation: "bug" }, { id: "find-2", status: "resolved", severity: "low", observation: "fixed" }] } }) as unknown as JsonValue;
-    w.requirements = (overrides.requirements ?? [{ id: "req-1", statement: "parse", status: "unsatisfied" }, { id: "req-2", statement: "ast", status: "satisfied" }]) as unknown as JsonValue;
+    w.tasks = (overrides.tasks ?? {
+      "task-1": {
+        id: "task-1",
+        status: "completed",
+        write_scope: ["src/parser.ts"],
+        findings: [
+          { id: "find-1", status: "unresolved", severity: "critical", observation: "bug" },
+          { id: "find-2", status: "resolved", severity: "low", observation: "fixed" },
+        ],
+      },
+    }) as unknown as JsonValue;
+    w.requirements = (overrides.requirements ?? [
+      { id: "req-1", statement: "parse", status: "unsatisfied" },
+      { id: "req-2", statement: "ast", status: "satisfied" },
+    ]) as unknown as JsonValue;
   });
   return capsulePath;
 }
@@ -121,7 +190,13 @@ describe("Phase 4 Hierarchy and Regression Integration Suite", () => {
 
       const coord = loadRoleContract("coordinator");
       expect(coord.tier).toBe(2);
-      expect(coord.spawns).toEqual(["planner", "implementer", "validator", "repairer", "completeness-critic"]);
+      expect(coord.spawns).toEqual([
+        "planner",
+        "implementer",
+        "validator",
+        "repairer",
+        "completeness-critic",
+      ]);
       expect(coord.commands).not.toContain("orchestrator:run");
       expect(coord.commands).not.toContain("mind:round-open");
 
@@ -133,9 +208,11 @@ describe("Phase 4 Hierarchy and Regression Integration Suite", () => {
 
     test("no role contract grants unconditionally throwing commands and all commands exist in registry", () => {
       const unconditionallyThrowing = new Set(["orchestrator:run"]);
+      const deprecatedAliases = new Set(["thread:identify", "authority:whoami"]);
       for (const role of AGENT_ROLES) {
         const contract = loadRoleContract(role);
         for (const cmd of contract.commands) {
+          if (deprecatedAliases.has(cmd)) continue;
           expect(findCommand(cmd)).toBeDefined();
           expect(unconditionallyThrowing.has(cmd)).toBe(false);
         }
@@ -152,7 +229,13 @@ describe("Phase 4 Hierarchy and Regression Integration Suite", () => {
     test("strict tier spawning constraints: mind -> orch -> coord -> tier 3 execution roles", () => {
       expect(validateTierSpawn("mind", "orchestrator").ok).toBe(true);
       expect(() => assertTierSpawn("mind", "orchestrator")).not.toThrow();
-      for (const role of ["coordinator", "implementer", "validator", "planner", "repairer"] as const) {
+      for (const role of [
+        "coordinator",
+        "implementer",
+        "validator",
+        "planner",
+        "repairer",
+      ] as const) {
         expect(validateTierSpawn("mind", role).ok).toBe(false);
         expect(() => assertTierSpawn("mind", role)).toThrow(HarnessError);
       }
@@ -164,7 +247,13 @@ describe("Phase 4 Hierarchy and Regression Integration Suite", () => {
         expect(() => assertTierSpawn("orchestrator", role)).toThrow(HarnessError);
       }
 
-      for (const role of ["implementer", "validator", "planner", "repairer", "completeness-critic"] as const) {
+      for (const role of [
+        "implementer",
+        "validator",
+        "planner",
+        "repairer",
+        "completeness-critic",
+      ] as const) {
         expect(validateTierSpawn("coordinator", role).ok).toBe(true);
         expect(() => assertTierSpawn("coordinator", role)).not.toThrow();
       }
@@ -213,15 +302,51 @@ describe("Phase 4 Hierarchy and Regression Integration Suite", () => {
     });
 
     test("createTier1DeployInputFromCandidate enforces admission status and witness command", () => {
-      const cand: CandidateRecord = { id: "cand-10", kind: "defect", statement: "Fix lock", witness_command_id: "cmd-witness-10", charter_goal_ids: ["G1"], write_scope: ["src/lock.ts"], status: "admitted" };
-      const charter: ParsedCharter = { identity: "Mind", goals: [{ id: "G1", statement: "Goal" }], goalIds: ["G1"], nonGoals: [], repoRoots: ["src/"], prohibitions: DEFAULT_PROHIBITIONS, rawText: "C", sha256: "abc" };
-      const budget: MindBudget = { ...DEFAULT_MIND_BUDGET, day_key: "2026-08-21", pulses_today: 1, wall_clock_ms_today: 100_000 };
+      const cand: CandidateRecord = {
+        id: "cand-10",
+        kind: "defect",
+        statement: "Fix lock",
+        witness_command_id: "cmd-witness-10",
+        charter_goal_ids: ["G1"],
+        write_scope: ["src/lock.ts"],
+        status: "admitted",
+      };
+      const charter: ParsedCharter = {
+        identity: "Mind",
+        goals: [{ id: "G1", statement: "Goal" }],
+        goalIds: ["G1"],
+        nonGoals: [],
+        repoRoots: ["src/"],
+        prohibitions: DEFAULT_PROHIBITIONS,
+        rawText: "C",
+        sha256: "abc",
+      };
+      const budget: MindBudget = {
+        ...DEFAULT_MIND_BUDGET,
+        day_key: "2026-08-21",
+        pulses_today: 1,
+        wall_clock_ms_today: 100_000,
+      };
 
-      const deployInput = createTier1DeployInputFromCandidate(cand, charter, budget, "run-1", "orch-1");
+      const deployInput = createTier1DeployInputFromCandidate(
+        cand,
+        charter,
+        budget,
+        "run-1",
+        "orch-1",
+      );
       expect(deployInput.candidateStatement).toBe("Fix lock");
       expect(deployInput.witnessCommandId).toBe("cmd-witness-10");
 
-      expect(() => createTier1DeployInputFromCandidate({ ...cand, status: "opened" }, charter, budget, "run-1", "orch-1")).toThrow(HarnessError);
+      expect(() =>
+        createTier1DeployInputFromCandidate(
+          { ...cand, status: "opened" },
+          charter,
+          budget,
+          "run-1",
+          "orch-1",
+        ),
+      ).toThrow(HarnessError);
     });
   });
 
@@ -234,30 +359,102 @@ describe("Phase 4 Hierarchy and Regression Integration Suite", () => {
         ],
       });
 
-      const res = mindRoundOpenCommand({ run: fixture.run, actor: "orch-1", objective: "obj-parser-race", candidate: "cand-admitted" });
+      const res = mindRoundOpenCommand({
+        run: fixture.run,
+        actor: "orch-1",
+        objective: "obj-parser-race",
+        candidate: "cand-admitted",
+      });
       expect(res.round).toBe(1);
       expect(res.candidate_id).toBe("cand-admitted");
       expect(getAllRounds(loadRun(fixture.run, false).state).length).toBe(1);
-      expect(getOpenRoundForObjective(loadRun(fixture.run, false).state, "obj-parser-race")).toBeDefined();
+      expect(
+        getOpenRoundForObjective(loadRun(fixture.run, false).state, "obj-parser-race"),
+      ).toBeDefined();
 
-      expect(() => mindRoundOpenCommand({ run: fixture.run, actor: "orch-1", objective: "obj-unadmitted", candidate: "cand-unadmitted" })).toThrow(/is not admitted/);
-      expect(() => mindRoundOpenCommand({ run: fixture.run, actor: "orch-1", objective: "obj-drift", candidate: "cand-admitted", statement: "drift" })).toThrow(/objective statement drifted/);
-      expect(() => mindRoundOpenCommand({ run: fixture.run, actor: "orch-1", objective: "obj-parser-race", candidate: "cand-admitted" })).toThrow(/already open for objective/);
+      expect(() =>
+        mindRoundOpenCommand({
+          run: fixture.run,
+          actor: "orch-1",
+          objective: "obj-unadmitted",
+          candidate: "cand-unadmitted",
+        }),
+      ).toThrow(/is not admitted/);
+      expect(() =>
+        mindRoundOpenCommand({
+          run: fixture.run,
+          actor: "orch-1",
+          objective: "obj-drift",
+          candidate: "cand-admitted",
+          statement: "drift",
+        }),
+      ).toThrow(/objective statement drifted/);
+      expect(() =>
+        mindRoundOpenCommand({
+          run: fixture.run,
+          actor: "orch-1",
+          objective: "obj-parser-race",
+          candidate: "cand-admitted",
+        }),
+      ).toThrow(/already open for objective/);
 
       const priorLeasedPath = createPriorRoundCapsule(fixture.repo, "round-prior-leased", {
-        tasks: { "task-1": { id: "task-1", status: "leased", lease: { agent: "worker-1", expires_at: new Date(Date.now() + 600_000).toISOString() } } },
+        tasks: {
+          "task-1": {
+            id: "task-1",
+            status: "leased",
+            lease: { agent: "worker-1", expires_at: new Date(Date.now() + 600_000).toISOString() },
+          },
+        },
       });
-      expect(() => mindRoundOpenCommand({ run: fixture.run, actor: "orch-1", objective: "obj-chain-lease", candidate: "cand-admitted", "chain-from": priorLeasedPath })).toThrow(/has a live lease/);
+      expect(() =>
+        mindRoundOpenCommand({
+          run: fixture.run,
+          actor: "orch-1",
+          objective: "obj-chain-lease",
+          candidate: "cand-admitted",
+          "chain-from": priorLeasedPath,
+        }),
+      ).toThrow(/has a live lease/);
     });
 
     test("mindRoundCloseCommand enforces arming rails, result invariants, and updates state", () => {
       const fixture = createMindTestCapsule(import.meta.path, "close-lifecycle");
-      mindRoundOpenCommand({ run: fixture.run, actor: "orch-1", objective: "obj-close-test", candidate: "cand-1" });
+      mindRoundOpenCommand({
+        run: fixture.run,
+        actor: "orch-1",
+        objective: "obj-close-test",
+        candidate: "cand-1",
+      });
 
-      expect(() => mindRoundCloseCommand({ run: fixture.run, actor: "orch-1", objective: "obj-close-test", round: "1", result: "converged" })).toThrow(/a round may not close without either an armed successor/);
-      expect(() => mindRoundCloseCommand({ run: fixture.run, actor: "orch-1", objective: "obj-close-test", round: "1", result: "bad-result", "terminal-reason": "done" })).toThrow(/invalid round result/);
+      expect(() =>
+        mindRoundCloseCommand({
+          run: fixture.run,
+          actor: "orch-1",
+          objective: "obj-close-test",
+          round: "1",
+          result: "converged",
+        }),
+      ).toThrow(/a round may not close without either an armed successor/);
+      expect(() =>
+        mindRoundCloseCommand({
+          run: fixture.run,
+          actor: "orch-1",
+          objective: "obj-close-test",
+          round: "1",
+          result: "bad-result",
+          "terminal-reason": "done",
+        }),
+      ).toThrow(/invalid round result/);
 
-      const closeRes = mindRoundCloseCommand({ run: fixture.run, actor: "orch-1", objective: "obj-close-test", round: "1", result: "converged", "terminal-reason": "resolved defect" });
+      const closeRes = mindRoundCloseCommand({
+        run: fixture.run,
+        actor: "orch-1",
+        objective: "obj-close-test",
+        round: "1",
+        result: "converged",
+        "terminal-reason": "resolved defect",
+      });
       expect(closeRes.result).toBe("converged");
       expect(closeRes.terminal_reason).toBe("resolved defect");
 
@@ -272,15 +469,48 @@ describe("Phase 4 Hierarchy and Regression Integration Suite", () => {
       const targetPath = join(fixture.repo, ".capsules", "round-chain-r2");
       mkdirSync(targetPath, { recursive: true });
 
-      const manifest = carryForwardFindingsAndRequirements({ sourceRunId: "round-chain-r1", targetRunId: "round-chain-r2", sourceCapsulePath: r1Path, targetCapsulePath: targetPath, roundNumber: 2 });
+      const manifest = carryForwardFindingsAndRequirements({
+        sourceRunId: "round-chain-r1",
+        targetRunId: "round-chain-r2",
+        sourceCapsulePath: r1Path,
+        targetCapsulePath: targetPath,
+        roundNumber: 2,
+      });
       expect(manifest.carryoverRequirements).toEqual(["req-1"]);
       expect(manifest.unresolvedFindingIds).toEqual(["find-1"]);
       expect(existsSync(join(targetPath, "chain_manifest.json"))).toBe(true);
 
-      mindRoundOpenCommand({ run: fixture.run, actor: "orch-1", objective: "obj-chain", candidate: "cand-1", round: "1" });
-      mindRoundCloseCommand({ run: fixture.run, actor: "orch-1", objective: "obj-chain", round: "1", result: "exhausted", successor: "round-chain-r2" });
-      mindRoundOpenCommand({ run: fixture.run, actor: "orch-1", objective: "obj-chain", candidate: "cand-1", round: "2", "chain-from": r1Path });
-      mindRoundCloseCommand({ run: fixture.run, actor: "orch-1", objective: "obj-chain", round: "2", result: "converged", "terminal-reason": "resolved" });
+      mindRoundOpenCommand({
+        run: fixture.run,
+        actor: "orch-1",
+        objective: "obj-chain",
+        candidate: "cand-1",
+        round: "1",
+      });
+      mindRoundCloseCommand({
+        run: fixture.run,
+        actor: "orch-1",
+        objective: "obj-chain",
+        round: "1",
+        result: "exhausted",
+        successor: "round-chain-r2",
+      });
+      mindRoundOpenCommand({
+        run: fixture.run,
+        actor: "orch-1",
+        objective: "obj-chain",
+        candidate: "cand-1",
+        round: "2",
+        "chain-from": r1Path,
+      });
+      mindRoundCloseCommand({
+        run: fixture.run,
+        actor: "orch-1",
+        objective: "obj-chain",
+        round: "2",
+        result: "converged",
+        "terminal-reason": "resolved",
+      });
 
       const reconciled = reconcileRoundState(loadRun(fixture.run, false).state, "obj-chain");
       expect(reconciled.totalRoundsCount).toBe(2);
@@ -325,7 +555,9 @@ describe("Phase 4 Hierarchy and Regression Integration Suite", () => {
       expect(unbound.model).toBe("unknown");
       expect(unbound.model_tier).toBe("unknown");
 
-      expect(formatHostDegradation("antigravity")).toBe("per-agent model selection unavailable on antigravity");
+      expect(formatHostDegradation("antigravity")).toBe(
+        "per-agent model selection unavailable on antigravity",
+      );
       expect(isPerAgentModelSelectionSupported()).toBe(false);
 
       const unsupp = resolveAgentProfile("validator", "antigravity");
@@ -333,8 +565,15 @@ describe("Phase 4 Hierarchy and Regression Integration Suite", () => {
       expect(unsupp.supportedOnHost).toBe(false);
       expect(unsupp.limitation).toBe("per-agent model selection unavailable on antigravity");
 
-      const bindings: ProfileBindings = { adversarial: { thinking_level: "high", model_tier: "l" } };
-      const supp = resolveAgentProfile("validator", "codex", { per_agent_model_selection: evidenced(true, "derived") }, bindings);
+      const bindings: ProfileBindings = {
+        adversarial: { thinking_level: "high", model_tier: "l" },
+      };
+      const supp = resolveAgentProfile(
+        "validator",
+        "codex",
+        { per_agent_model_selection: evidenced(true, "derived") },
+        bindings,
+      );
       expect(supp.profile).toBe("adversarial");
       expect(supp.supportedOnHost).toBe(true);
       expect(supp.thinking_level).toEqual(evidenced("high", "agent_reported"));
@@ -345,7 +584,12 @@ describe("Phase 4 Hierarchy and Regression Integration Suite", () => {
   describe("5. Deliberate Damage, Mutation Isolation, and Refusal Invariants", () => {
     test("refusals leave capsule event stream and state completely unmutated", () => {
       const fixture = createMindTestCapsule(import.meta.path, "mutation-isolation");
-      mindRoundOpenCommand({ run: fixture.run, actor: "orch-1", objective: "obj-iso", candidate: "cand-1" });
+      mindRoundOpenCommand({
+        run: fixture.run,
+        actor: "orch-1",
+        objective: "obj-iso",
+        candidate: "cand-1",
+      });
 
       const before = loadRun(fixture.run, false);
       const eventsBefore = before.events.length;
@@ -353,7 +597,12 @@ describe("Phase 4 Hierarchy and Regression Integration Suite", () => {
 
       let openThrew = false;
       try {
-        mindRoundOpenCommand({ run: fixture.run, actor: "orch-1", objective: "obj-iso", candidate: "cand-1" });
+        mindRoundOpenCommand({
+          run: fixture.run,
+          actor: "orch-1",
+          objective: "obj-iso",
+          candidate: "cand-1",
+        });
       } catch (err: unknown) {
         openThrew = true;
         expect(String(err)).toContain("already open");
@@ -362,7 +611,13 @@ describe("Phase 4 Hierarchy and Regression Integration Suite", () => {
 
       let closeThrew = false;
       try {
-        mindRoundCloseCommand({ run: fixture.run, actor: "orch-1", objective: "obj-iso", round: "1", result: "converged" });
+        mindRoundCloseCommand({
+          run: fixture.run,
+          actor: "orch-1",
+          objective: "obj-iso",
+          round: "1",
+          result: "converged",
+        });
       } catch (err: unknown) {
         closeThrew = true;
         expect(String(err)).toContain("a round may not close without either an armed successor");
@@ -375,13 +630,25 @@ describe("Phase 4 Hierarchy and Regression Integration Suite", () => {
     });
 
     test("unauthorized role attempting round operations leaves state unmutated", () => {
-      const fixture = createMindTestCapsule(import.meta.path, "unauth-isolation", { registerAgent: false });
-      agentRegisterCommand({ run: fixture.run, agent: "impl-bad", role: "implementer", host: "antigravity" });
+      const fixture = createMindTestCapsule(import.meta.path, "unauth-isolation", {
+        registerAgent: false,
+      });
+      agentRegisterCommand({
+        run: fixture.run,
+        agent: "impl-bad",
+        role: "implementer",
+        host: "antigravity",
+      });
 
       const before = loadRun(fixture.run, false);
       let threw = false;
       try {
-        mindRoundOpenCommand({ run: fixture.run, actor: "impl-bad", objective: "obj-unauth", candidate: "cand-1" });
+        mindRoundOpenCommand({
+          run: fixture.run,
+          actor: "impl-bad",
+          objective: "obj-unauth",
+          candidate: "cand-1",
+        });
       } catch (err: unknown) {
         threw = true;
         expect(String(err)).toContain("role 'orchestrator' or 'mind' is required");

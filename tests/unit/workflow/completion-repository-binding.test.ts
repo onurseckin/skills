@@ -1,6 +1,5 @@
 import { describe, expect, test } from "bun:test";
 import { createHash } from "node:crypto";
-import { canonicalJsonBytes } from "../../../orchestrating-long-tasks/scripts/src/core/json.ts";
 import { buildPacket } from "../../../orchestrating-long-tasks/scripts/src/packets/render-packet.ts";
 import { beginCompletenessCritic } from "../../../orchestrating-long-tasks/scripts/src/workflow/completion/begin-completeness-critic.ts";
 import { completeRun } from "../../../orchestrating-long-tasks/scripts/src/workflow/completion/complete-run.ts";

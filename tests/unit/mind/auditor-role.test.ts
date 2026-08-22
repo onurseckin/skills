@@ -11,7 +11,6 @@ import {
   resolveRoleContractPath,
 } from "../../../orchestrating-long-tasks/scripts/src/packets/role-contract.ts";
 import {
-  COMMAND_REGISTRY,
   findCommand,
 } from "../../../orchestrating-long-tasks/scripts/src/cli/registry/index.ts";
 import type { AgentGrantRecord } from "../../../orchestrating-long-tasks/scripts/src/contracts/agents.ts";

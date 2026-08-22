@@ -57,10 +57,7 @@ function collectCapsuleSearchRoots(startPath?: string): string[] {
   for (const candidate of candidates) {
     if (!existsSync(candidate)) continue;
 
-    if (
-      existsSync(join(candidate, "state.json")) ||
-      existsSync(join(candidate, "manifest.json"))
-    ) {
+    if (existsSync(join(candidate, "state.json")) || existsSync(join(candidate, "manifest.json"))) {
       roots.add(candidate);
       const parent = dirname(candidate);
       if (existsSync(parent) && lstatSync(parent).isDirectory()) {
@@ -258,8 +255,7 @@ export function verifyDefectWitness(
   const resolution = resolveWitnessCommand(commandId, capsuleRunOrRepoPath);
   const { commandRecord, capsuleRoot } = resolution;
 
-  const exitCode =
-    commandRecord.exit_code ?? (commandRecord.attempts?.[0]?.exit_code ?? null);
+  const exitCode = commandRecord.exit_code ?? commandRecord.attempts?.[0]?.exit_code ?? null;
 
   if (exitCode === 0 || (exitCode === null && commandRecord.status === "succeeded")) {
     throw new HarnessError(

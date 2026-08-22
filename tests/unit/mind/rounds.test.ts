@@ -7,25 +7,24 @@ import {
   mindRoundCloseCommand,
   mindRoundOpenCommand,
 } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/mind-round.ts";
-import type { JsonObject, JsonValue } from "../../../orchestrating-long-tasks/scripts/src/contracts/json.ts";
+import type {
+  JsonObject,
+  JsonValue,
+} from "../../../orchestrating-long-tasks/scripts/src/contracts/json.ts";
 import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
 import {
   carryForwardFindingsAndRequirements,
-  closeRoundInState,
   formatMindRoundCloseBrief,
   formatMindRoundOpenBrief,
   getAllRounds,
   getOpenRoundForObjective,
   isRoundResult,
-  openRoundInState,
   reconcileRoundState,
-  resolveCapsulePath,
   validateCandidateAdmitted,
   validateObjectiveStatement,
   validatePriorRoundCompleted,
   validateRoundBudget,
   validateRoundCloseArmingRail,
-  type RoundRecord,
 } from "../../../orchestrating-long-tasks/scripts/src/mind/rounds.ts";
 import { initRun } from "../../../orchestrating-long-tasks/scripts/src/store/capsule.ts";
 import { loadRun } from "../../../orchestrating-long-tasks/scripts/src/store/load.ts";
@@ -307,13 +306,11 @@ describe("mind/rounds - round state helpers and chainer integration", () => {
       status: "admitted",
     };
 
-    expect(() =>
-      validateObjectiveStatement(candidate, "fix parser race condition"),
-    ).not.toThrow();
+    expect(() => validateObjectiveStatement(candidate, "fix parser race condition")).not.toThrow();
 
-    expect(() =>
-      validateObjectiveStatement(candidate, "add new feature to parser"),
-    ).toThrow(/objective statement drifted from candidate 'cand-1' statement/);
+    expect(() => validateObjectiveStatement(candidate, "add new feature to parser")).toThrow(
+      /objective statement drifted from candidate 'cand-1' statement/,
+    );
 
     expect(() =>
       validateObjectiveStatement(
@@ -610,7 +607,9 @@ describe("mind:round-open and mind:round-close CLI commands", () => {
         objective: "obj-double",
         candidate: "cand-1",
       }),
-    ).toThrow(/round 1 is already open for objective 'obj-double'; close it first with mind:round-close/);
+    ).toThrow(
+      /round 1 is already open for objective 'obj-double'; close it first with mind:round-close/,
+    );
   });
 
   test("mindRoundOpenCommand and mindRoundCloseCommand enforce role contract grants", () => {

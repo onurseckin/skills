@@ -50,6 +50,7 @@ commands:
   - branch:status
   - mind:round-open
   - mind:round-close
+  - whoami
 spawns:
   - coordinator
 ---

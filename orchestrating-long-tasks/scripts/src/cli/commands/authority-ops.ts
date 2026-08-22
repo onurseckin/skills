@@ -55,4 +55,3 @@ export function authorityDecideCommand(flags: Flags): Record<string, unknown> {
     requirement: requirement ?? null,
   };
 }
-

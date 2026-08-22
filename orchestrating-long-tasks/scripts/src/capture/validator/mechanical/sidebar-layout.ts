@@ -5,7 +5,7 @@ import { generateRemediations } from "../synthesis/remediation-generator.ts";
 export function validateSidebarLayout(
   elements: readonly ElementPhysicsSnapshot[],
   sidebarConfig?: SidebarLayoutConfig,
-  viewportBounds?: { readonly width: number; readonly height: number }
+  viewportBounds?: { readonly width: number; readonly height: number },
 ): readonly ValidationDefect[] {
   if (!sidebarConfig || !sidebarConfig.enabled) {
     return [];
@@ -23,9 +23,15 @@ export function validateSidebarLayout(
 
       const tag = el.tagName.toUpperCase();
       const role = el.role?.toLowerCase();
-      const isNavBanner = tag === "HEADER" || tag === "NAV" || role === "banner" || role === "navigation";
+      const isNavBanner =
+        tag === "HEADER" || tag === "NAV" || role === "banner" || role === "navigation";
 
-      if (isNavBanner && el.bounds.y <= 10 && el.bounds.width >= vpWidth * 0.7 && el.bounds.height > 20) {
+      if (
+        isNavBanner &&
+        el.bounds.y <= 10 &&
+        el.bounds.width >= vpWidth * 0.7 &&
+        el.bounds.height > 20
+      ) {
         defects.push({
           id: `mech-sidebar-navbar-found-${i}`,
           pillar: "mechanical",
@@ -47,7 +53,9 @@ export function validateSidebarLayout(
   // 2. Check sidebar container width if specified
   const containerSelector = sidebarConfig.selectors?.container;
   const sidebarContainer = containerSelector
-    ? elements.find((e) => e.selector === containerSelector || e.selector.includes(containerSelector))
+    ? elements.find(
+        (e) => e.selector === containerSelector || e.selector.includes(containerSelector),
+      )
     : elements.find((e) => e.tagName.toUpperCase() === "ASIDE" || e.selector.includes("sidebar"));
 
   if (sidebarContainer) {
@@ -83,7 +91,9 @@ export function validateSidebarLayout(
     const logoSel = sidebarConfig.selectors?.logo;
     const logoEl = logoSel
       ? elements.find((e) => e.selector === logoSel || e.selector.includes(logoSel))
-      : elements.find((e) => e.selector.includes("logo") || e.attributes?.["data-testid"] === "logo");
+      : elements.find(
+          (e) => e.selector.includes("logo") || e.attributes?.["data-testid"] === "logo",
+        );
 
     if (logoEl && (logoEl.bounds.x > 80 || logoEl.bounds.y > 100)) {
       defects.push({
@@ -115,7 +125,11 @@ export function validateSidebarLayout(
         message: `User profile position (x=${Math.round(profileEl.bounds.x)}, y=${Math.round(profileEl.bounds.y)}) is not docked at bottom-left of sidebar.`,
         severity: "moderate",
         remediations: generateRemediations("sidebar-layout"),
-        metadata: { x: Math.round(profileEl.bounds.x), y: Math.round(profileEl.bounds.y), vpHeight },
+        metadata: {
+          x: Math.round(profileEl.bounds.x),
+          y: Math.round(profileEl.bounds.y),
+          vpHeight,
+        },
       });
     }
   }

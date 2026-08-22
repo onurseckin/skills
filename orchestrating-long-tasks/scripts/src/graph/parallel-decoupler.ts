@@ -66,7 +66,6 @@ interface ParsedEdgeInfo {
   readonly rawEdge: Record<string, unknown>;
 }
 
-
 function extractStringArray(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
   const result: string[] = [];
@@ -138,7 +137,9 @@ export function detectArtificialSerialization(
           message:
             `Task ${task.taskId} is artificially serialized behind ${depTask.taskId} with disjoint write scopes ` +
             `([${task.writeScope.join(", ")}] vs [${depTask.writeScope.join(", ")}])` +
-            (hasJustification ? ` despite declared justification: ${justification}` : " and no dataflow justification."),
+            (hasJustification
+              ? ` despite declared justification: ${justification}`
+              : " and no dataflow justification."),
           dataflowJustified: hasJustification,
           sourceScope: task.writeScope,
           targetScope: depTask.writeScope,
@@ -195,7 +196,11 @@ export function computeWorkSpanMetrics(
   }
 
   const parallelismFactor =
-    criticalSpan > 0 ? Math.round((totalWork / criticalSpan) * 100) / 100 : tasks.length > 0 ? 1 : 0;
+    criticalSpan > 0
+      ? Math.round((totalWork / criticalSpan) * 100) / 100
+      : tasks.length > 0
+        ? 1
+        : 0;
 
   const optimalLanes = Math.max(
     1,

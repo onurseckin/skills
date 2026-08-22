@@ -78,6 +78,7 @@ commands:
   - agent:report
   - agent:release
   - agent:list
+  - whoami
 spawns:
   - planner
   - implementer

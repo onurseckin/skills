@@ -5,7 +5,13 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { parseArguments } from "../../../orchestrating-long-tasks/scripts/src/cli/arguments.ts";
 import { mindWakeCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/mind-wake.ts";
-import { buildWakeBrief, deriveLane, formatDuration, formatNumber, formatShortSha } from "../../../orchestrating-long-tasks/scripts/src/mind/brief.ts";
+import {
+  buildWakeBrief,
+  deriveLane,
+  formatDuration,
+  formatNumber,
+  formatShortSha,
+} from "../../../orchestrating-long-tasks/scripts/src/mind/brief.ts";
 import { initRun } from "../../../orchestrating-long-tasks/scripts/src/store/capsule.ts";
 import { transact } from "../../../orchestrating-long-tasks/scripts/src/store/transaction.ts";
 
@@ -217,7 +223,10 @@ describe("mind:wake and Tier A brief", () => {
       },
     });
 
-    const result = await mindWakeCommand({ run: "reclaim", ...{ run, now: new Date(now).toISOString() } });
+    const result = await mindWakeCommand({
+      run: "reclaim",
+      ...{ run, now: new Date(now).toISOString() },
+    });
 
     expect(result.reclaimed).toBe(true);
     expect(result.reclaimed_pulse_id).toBe("pulse-12");
@@ -421,7 +430,9 @@ describe("mind:wake and Tier A brief", () => {
     writeFileSync(statePath, JSON.stringify(stateRaw), "utf-8");
 
     const result = await mindWakeCommand({ run: "headroom", ...{ run } });
-    expect((result.next as string[]).join(" ")).toContain("event sequence head-room limit exceeded");
+    expect((result.next as string[]).join(" ")).toContain(
+      "event sequence head-room limit exceeded",
+    );
     expect((result.next as string[]).join(" ")).toContain("--outcome deferred");
   });
 

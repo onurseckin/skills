@@ -252,7 +252,7 @@ legitimately inherits a done task's requirement, the new task-scoped gate it bri
 the done task as well. That growth is how a critic's or validator's finding becomes a claimable repair
 task — it is not a retroactive change to what the done task was verified against.
 
-Its own gate *results* are already recorded and cannot be revisited. Only tasks still in flight need
+Its own gate _results_ are already recorded and cannot be revisited. Only tasks still in flight need
 their gate set frozen against revision, which is what `gateContractActive` expresses: execution-active
-and not `done`. The task's *contract* — write scope, dependencies, produces — stays frozen for a done
+and not `done`. The task's _contract_ — write scope, dependencies, produces — stays frozen for a done
 task, so its definition still cannot be silently rewritten.

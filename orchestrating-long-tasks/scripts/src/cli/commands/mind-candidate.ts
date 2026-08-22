@@ -5,12 +5,7 @@ import { loadRun } from "../../store/load.ts";
 import { transact } from "../../store/transaction.ts";
 import { findGrant, readAgentLedger } from "../../workflow/agents/ledger.ts";
 import { enforceLineLimit } from "../formatters/line-limiter.ts";
-import {
-  listFlag,
-  textFlag,
-  type CommandContext,
-  type Flags,
-} from "../options.ts";
+import { listFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
 
 export interface MindCandidate extends JsonObject {
   readonly id: string;
@@ -150,16 +145,19 @@ export function mindCandidateCommand(
     }
 
     // Check open proposal cap
-    const rawCandidates = (Array.isArray(state.candidates) ? state.candidates : []) as Record<string, unknown>[];
+    const rawCandidates = (Array.isArray(state.candidates) ? state.candidates : []) as Record<
+      string,
+      unknown
+    >[];
     const openProposals = rawCandidates.filter(
       (c) =>
         c.kind === "proposal" &&
-        (c.status === "open" ||
-          c.status === "needs_authority" ||
-          c.status === "proposed"),
+        (c.status === "open" || c.status === "needs_authority" || c.status === "proposed"),
     );
     const maxOpenProposals =
-      ((state.budget as Record<string, unknown> | undefined)?.max_open_proposals as number | undefined) ?? 5;
+      ((state.budget as Record<string, unknown> | undefined)?.max_open_proposals as
+        | number
+        | undefined) ?? 5;
 
     if (openProposals.length >= maxOpenProposals) {
       throw new HarnessError(
@@ -170,7 +168,10 @@ export function mindCandidateCommand(
   }
 
   // 4. Generate next candidate ID
-  const existingCandidates = (Array.isArray(state.candidates) ? state.candidates : []) as Record<string, unknown>[];
+  const existingCandidates = (Array.isArray(state.candidates) ? state.candidates : []) as Record<
+    string,
+    unknown
+  >[];
   let candidateIndex = existingCandidates.length + 1;
   let candidateId = `cand-${candidateIndex}`;
   while (existingCandidates.some((c) => c.id === candidateId)) {

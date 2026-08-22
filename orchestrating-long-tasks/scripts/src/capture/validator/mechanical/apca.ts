@@ -40,7 +40,9 @@ function parseColor(colorStr?: string): ParsedRGB | null {
     }
   }
 
-  const rgbaMatch = trimmed.match(/^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)(?:\s*,\s*([\d.]+))?\s*\)$/);
+  const rgbaMatch = trimmed.match(
+    /^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)(?:\s*,\s*([\d.]+))?\s*\)$/,
+  );
   if (rgbaMatch) {
     const m1 = rgbaMatch[1];
     const m2 = rgbaMatch[2];
@@ -112,7 +114,7 @@ function getRequiredLc(fontSize: number, fontWeight: number): number {
 
 export function validateApcaElement(
   element: ElementPhysicsSnapshot,
-  index: number
+  index: number,
 ): ValidationDefect | null {
   const styles = element.computedStyles;
   if (!styles || !element.text || element.text.trim().length === 0) {

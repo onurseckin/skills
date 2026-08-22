@@ -1,11 +1,17 @@
 import { describe, expect, test } from "bun:test";
-import { existsSync, readFileSync, realpathSync, statSync, symlinkSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  readFileSync,
+  realpathSync,
+  statSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { join } from "node:path";
 import { mindInitCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/mind-init.ts";
 import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
 import {
   DEFAULT_MIND_BUDGET,
-  DEFAULT_PROHIBITIONS,
   parseCharter,
 } from "../../../orchestrating-long-tasks/scripts/src/mind/charter.ts";
 import { verifyIntegrity } from "../../../orchestrating-long-tasks/scripts/src/store/integrity.ts";
@@ -65,7 +71,9 @@ Ping the on-call engineer when 3 consecutive crashed pulses are observed.
 describe("parseCharter", () => {
   test("parses all required and optional sections correctly", () => {
     const parsed = parseCharter(SAMPLE_VALID_CHARTER);
-    expect(parsed.identity).toContain("Autonomous Mind supervising long-running task orchestration");
+    expect(parsed.identity).toContain(
+      "Autonomous Mind supervising long-running task orchestration",
+    );
     expect(parsed.goals.length).toBe(3);
     expect(parsed.goalIds).toEqual(["G1", "G2", "G3"]);
     expect(parsed.goals[0]).toEqual({
@@ -300,25 +308,6 @@ describe("mindInitCommand", () => {
     // Verify integrity passes with zero issues
     const issues = verifyIntegrity(runRoot);
     expect(issues).toEqual([]);
-  });
-
-  test("supports explicit generation flag and custom budget defaults", () => {
-    const repo = scratchRoot("mind-init-gen-2");
-    const minimalCharter = `
-## identity
-Gen 2 Mind
-
-## goals
-- G1: Continuous operation
-
-## non-goals
-- Dangerous operations
-
-## repo_roots
-- \`src/\`
-`;
-    const charterPath = join(repo, "docs", "CHARTER.md");
-    writeFileSync(join(repo, "docs"), "", { flag: "w" }); // ensure dir
   });
 
   test("supports custom generation and seeds default budget when unspecified", () => {

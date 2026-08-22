@@ -69,7 +69,12 @@ describe("taskAttemptTurnState — the task-lease half of the turn-completion co
   test("closed: the last attempt was explicitly abandoned", () => {
     const task = baseTask({
       attempts: [
-        { ...openAttempt(), abandoned_at: t0.toISOString(), abandoned_by: "x", abandoned_reason: "r" },
+        {
+          ...openAttempt(),
+          abandoned_at: t0.toISOString(),
+          abandoned_by: "x",
+          abandoned_reason: "r",
+        },
       ],
     });
     expect(taskAttemptTurnState(task, t0, 30_000)).toBe("closed");
@@ -140,7 +145,10 @@ describe("validationTurnState / openTaskValidations / abandonedTaskValidations",
   test("openTaskValidations returns only entries with no verdict yet", () => {
     const task = baseTask({
       status: "validating",
-      validations: [validation({ validator_id: "v-pass", verdict: "pass" }), validation({ validator_id: "v-open" })],
+      validations: [
+        validation({ validator_id: "v-pass", verdict: "pass" }),
+        validation({ validator_id: "v-open" }),
+      ],
     });
     expect(openTaskValidations(task).map((entry) => entry.validator_id)).toEqual(["v-open"]);
   });
@@ -149,8 +157,14 @@ describe("validationTurnState / openTaskValidations / abandonedTaskValidations",
     const task = baseTask({
       status: "validating",
       validations: [
-        validation({ validator_id: "v-dead", deadline_at: new Date(t0.valueOf() + 5_000).toISOString() }),
-        validation({ validator_id: "v-alive", deadline_at: new Date(t0.valueOf() + 3_600_000).toISOString() }),
+        validation({
+          validator_id: "v-dead",
+          deadline_at: new Date(t0.valueOf() + 5_000).toISOString(),
+        }),
+        validation({
+          validator_id: "v-alive",
+          deadline_at: new Date(t0.valueOf() + 3_600_000).toISOString(),
+        }),
       ],
     });
     const abandoned = abandonedTaskValidations(task, new Date(t0.valueOf() + 36_000), 30_000);
@@ -158,7 +172,9 @@ describe("validationTurnState / openTaskValidations / abandonedTaskValidations",
   });
 });
 
-function critic(overrides: Partial<CompletionCriticAuthorization> = {}): CompletionCriticAuthorization {
+function critic(
+  overrides: Partial<CompletionCriticAuthorization> = {},
+): CompletionCriticAuthorization {
   return {
     critic_id: "critic-1",
     token_digest: "digest",
@@ -208,7 +224,9 @@ describe("criticTurnState / openCompletenessCritic / abandonedCompletenessCritic
 
   test("abandonedCompletenessCritic does not re-flag a critic recover-stale already expired", () => {
     const state = stateWithCritic(critic({ status: "expired" }));
-    expect(abandonedCompletenessCritic(state, new Date(t0.valueOf() + 3_600_000), 30_000)).toBeUndefined();
+    expect(
+      abandonedCompletenessCritic(state, new Date(t0.valueOf() + 3_600_000), 30_000),
+    ).toBeUndefined();
   });
 
   test("abandonedCompletenessCritic names a live-looking critic once its deadline plus grace has passed", () => {

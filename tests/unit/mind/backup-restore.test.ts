@@ -12,15 +12,9 @@ function scratchRoot(label: string): string {
   return makeScratchRoot(import.meta.path, label);
 }
 
-const BACKUP_SH_PATH = resolve(
-  import.meta.dir,
-  "../../../deploy/backup-capsule.sh",
-);
+const BACKUP_SH_PATH = resolve(import.meta.dir, "../../../deploy/backup-capsule.sh");
 
-const RESTORE_SH_PATH = resolve(
-  import.meta.dir,
-  "../../../deploy/restore-capsule.sh",
-);
+const RESTORE_SH_PATH = resolve(import.meta.dir, "../../../deploy/restore-capsule.sh");
 
 const HARNESS_PATH = resolve(
   import.meta.dir,
@@ -90,7 +84,8 @@ function setupTestMind(repo: string, gen: number = 1): string {
         score: 95,
         at: new Date().toISOString(),
       });
-      working.candidates = candidates as unknown as import("../../../orchestrating-long-tasks/scripts/src/contracts/json.ts").JsonArray;
+      working.candidates =
+        candidates as unknown as import("../../../orchestrating-long-tasks/scripts/src/contracts/json.ts").JsonArray;
     },
   );
 
@@ -131,7 +126,9 @@ describe("Capsule Backup and Restore", () => {
 
     const promptArtifact = manifestContent.artifacts.find((a) => a.path === "prompt.md");
     expect(promptArtifact).toBeDefined();
-    expect(promptArtifact!.mode.endsWith("444") || promptArtifact!.mode.endsWith("0444")).toBe(true);
+    expect(promptArtifact!.mode.endsWith("444") || promptArtifact!.mode.endsWith("0444")).toBe(
+      true,
+    );
     expect(promptArtifact!.sha256.length).toBe(64);
   });
 
@@ -205,7 +202,8 @@ describe("Capsule Backup and Restore", () => {
         (working) => {
           const obs = (working.observations ?? []) as unknown[];
           obs.push({ id: `obs-${i}`, summary: `Test observation step ${i}` });
-          working.observations = obs as unknown as import("../../../orchestrating-long-tasks/scripts/src/contracts/json.ts").JsonArray;
+          working.observations =
+            obs as unknown as import("../../../orchestrating-long-tasks/scripts/src/contracts/json.ts").JsonArray;
         },
       );
     }
@@ -222,10 +220,13 @@ describe("Capsule Backup and Restore", () => {
     const targetRepo = scratchRoot("head-match-dest");
     const restoredRun = join(targetRepo, ".capsules", "mind-gen-1");
 
-    const restoreProc = Bun.spawn(["bash", RESTORE_SH_PATH, archivePath, restoredRun, manifestPath], {
-      cwd: targetRepo,
-      env: { ...process.env, HARNESS_PATH },
-    });
+    const restoreProc = Bun.spawn(
+      ["bash", RESTORE_SH_PATH, archivePath, restoredRun, manifestPath],
+      {
+        cwd: targetRepo,
+        env: { ...process.env, HARNESS_PATH },
+      },
+    );
     expect(await restoreProc.exited).toBe(0);
 
     // Compare loaded runs
@@ -257,10 +258,13 @@ describe("Capsule Backup and Restore", () => {
     const restoredRun = join(targetRepo, ".capsules", "mind-gen-1");
 
     // Restore first
-    const restoreProc = Bun.spawn(["bash", RESTORE_SH_PATH, archivePath, restoredRun, manifestPath], {
-      cwd: targetRepo,
-      env: { ...process.env, HARNESS_PATH },
-    });
+    const restoreProc = Bun.spawn(
+      ["bash", RESTORE_SH_PATH, archivePath, restoredRun, manifestPath],
+      {
+        cwd: targetRepo,
+        env: { ...process.env, HARNESS_PATH },
+      },
+    );
     expect(await restoreProc.exited).toBe(0);
 
     // Simulate chmod -R u+w on the restored capsule
@@ -293,12 +297,15 @@ describe("Capsule Backup and Restore", () => {
     expect(await tarProc.exited).toBe(0);
 
     const destCorrupted = join(scratchRoot("corrupted-dest"), ".capsules", "mind-gen-2");
-    const failingRestoreProc = Bun.spawn(["bash", RESTORE_SH_PATH, corruptedArchive, destCorrupted], {
-      cwd: targetRepo,
-      env: { ...process.env, HARNESS_PATH },
-      stdout: "pipe",
-      stderr: "pipe",
-    });
+    const failingRestoreProc = Bun.spawn(
+      ["bash", RESTORE_SH_PATH, corruptedArchive, destCorrupted],
+      {
+        cwd: targetRepo,
+        env: { ...process.env, HARNESS_PATH },
+        stdout: "pipe",
+        stderr: "pipe",
+      },
+    );
 
     const failingExit = await failingRestoreProc.exited;
     expect(failingExit).not.toBe(0);

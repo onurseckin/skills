@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -17,16 +17,11 @@ import {
   calculateNextWakeInterval,
   calculatePulseValue,
   calculateQuiescentBackoffInterval,
-  isPulseOutcome,
-  isTerminalOutcome,
   parseDuration,
-  PULSE_OUTCOMES,
 } from "../../../orchestrating-long-tasks/scripts/src/mind/value.ts";
 import {
-  assessRecyclingState,
   enforceInfiniteMindCadence,
   extractAllCandidates,
-  formatRecycleBrief,
   planAutonomousRoundRecycle,
   transitionCompletenessCriticSignOff,
   transitionPulseCloseToWake,
@@ -666,25 +661,19 @@ describe("mindPulseCloseCommand - Successful Closures & Invariant Checks", () =>
     const fixture = setupMindCapsule("close-infinite-cadence");
 
     // Add an admitted candidate in state
-    transact(
-      fixture.run,
-      "mind-1",
-      "mind-candidate-recorded",
-      { id: "cand-auto-1" },
-      (working) => {
-        const workingMind = (working.mind ?? {}) as Record<string, unknown>;
-        workingMind.candidates = [
-          {
-            id: "cand-auto-1",
-            kind: "defect",
-            statement: "Fix defect in test",
-            write_scope: ["src/"],
-            status: "admitted",
-          },
-        ];
-        working.mind = workingMind as unknown as JsonObject;
-      },
-    );
+    transact(fixture.run, "mind-1", "mind-candidate-recorded", { id: "cand-auto-1" }, (working) => {
+      const workingMind = (working.mind ?? {}) as Record<string, unknown>;
+      workingMind.candidates = [
+        {
+          id: "cand-auto-1",
+          kind: "defect",
+          statement: "Fix defect in test",
+          write_scope: ["src/"],
+          status: "admitted",
+        },
+      ];
+      working.mind = workingMind as unknown as JsonObject;
+    });
 
     const result = await mindPulseCloseCommand({
       run: fixture.run,
@@ -913,7 +902,9 @@ describe("recycler.ts - Autonomous Round-to-Round Recycling Engine", () => {
     expect(assessment.canRecycle).toBe(true);
     expect(assessment.phase).toBe("pulse_closed");
     expect(assessment.transition).toBe("pulse_to_wake");
-    expect(assessment.nextRecommendedCommand).toBe("bun harness.ts mind:wake --run /tmp/capsules/mind-gen-1");
+    expect(assessment.nextRecommendedCommand).toBe(
+      "bun harness.ts mind:wake --run /tmp/capsules/mind-gen-1",
+    );
     expect(assessment.infiniteCadence).toBe(true);
   });
 
@@ -967,4 +958,3 @@ describe("recycler.ts - Autonomous Round-to-Round Recycling Engine", () => {
     expect(plan.markdown.split("\n").length).toBeLessThanOrEqual(25);
   });
 });
-

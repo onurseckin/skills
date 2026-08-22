@@ -4,20 +4,11 @@ import type { JsonValue } from "../../contracts/json.ts";
 import { atomicWriteJson } from "../../core/durable-write.ts";
 import { readRegularFileNoFollow } from "../../core/no-follow.ts";
 import { HarnessError } from "../../errors/harness-error.ts";
-import {
-  DEFAULT_MIND_BUDGET,
-  parseCharter,
-  type ParsedCharter,
-} from "../../mind/charter.ts";
+import { DEFAULT_MIND_BUDGET, parseCharter, type ParsedCharter } from "../../mind/charter.ts";
 import { initRun, loadRun } from "../../store/index.ts";
 import { transact } from "../../store/transaction.ts";
 import { enforceLineLimit } from "../formatters/line-limiter.ts";
-import {
-  integerFlag,
-  textFlag,
-  type CommandContext,
-  type Flags,
-} from "../options.ts";
+import { integerFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
 
 export interface MindInitResult {
   markdown: string;
@@ -103,10 +94,7 @@ export function mindInitCommand(
     charterText = new TextDecoder("utf-8", { fatal: true }).decode(charterBytes);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    throw new HarnessError(
-      "INVALID_ARGUMENT",
-      `charter file contains invalid UTF-8: ${message}`,
-    );
+    throw new HarnessError("INVALID_ARGUMENT", `charter file contains invalid UTF-8: ${message}`);
   }
 
   const parsedCharter: ParsedCharter = parseCharter(charterText);
@@ -174,15 +162,22 @@ export function mindInitCommand(
 
       state.budget = {
         pulses_per_day: budgets?.pulses_per_day ?? DEFAULT_MIND_BUDGET.pulses_per_day,
-        wall_clock_ms_per_day: budgets?.wall_clock_ms_per_day ?? DEFAULT_MIND_BUDGET.wall_clock_ms_per_day,
-        max_agents_in_flight: budgets?.max_agents_in_flight ?? DEFAULT_MIND_BUDGET.max_agents_in_flight,
-        max_rounds_per_objective: budgets?.max_rounds_per_objective ?? DEFAULT_MIND_BUDGET.max_rounds_per_objective,
+        wall_clock_ms_per_day:
+          budgets?.wall_clock_ms_per_day ?? DEFAULT_MIND_BUDGET.wall_clock_ms_per_day,
+        max_agents_in_flight:
+          budgets?.max_agents_in_flight ?? DEFAULT_MIND_BUDGET.max_agents_in_flight,
+        max_rounds_per_objective:
+          budgets?.max_rounds_per_objective ?? DEFAULT_MIND_BUDGET.max_rounds_per_objective,
         base_interval_ms: budgets?.base_interval_ms ?? DEFAULT_MIND_BUDGET.base_interval_ms,
         max_interval_ms: budgets?.max_interval_ms ?? DEFAULT_MIND_BUDGET.max_interval_ms,
-        max_pause_interval_ms: budgets?.max_pause_interval_ms ?? DEFAULT_MIND_BUDGET.max_pause_interval_ms,
+        max_pause_interval_ms:
+          budgets?.max_pause_interval_ms ?? DEFAULT_MIND_BUDGET.max_pause_interval_ms,
         pulse_deadline_ms: budgets?.pulse_deadline_ms ?? DEFAULT_MIND_BUDGET.pulse_deadline_ms,
         max_open_proposals: budgets?.max_open_proposals ?? DEFAULT_MIND_BUDGET.max_open_proposals,
-        quiet_hours: budgets?.quiet_hours !== undefined ? budgets.quiet_hours : DEFAULT_MIND_BUDGET.quiet_hours,
+        quiet_hours:
+          budgets?.quiet_hours !== undefined
+            ? budgets.quiet_hours
+            : DEFAULT_MIND_BUDGET.quiet_hours,
         day_key: dayKey,
         pulses_today: 0,
         wall_clock_ms_today: 0,

@@ -59,7 +59,7 @@ export function loadBunfigCoverageThreshold(dir: string): number | undefined {
     const match = content.match(/coverageThreshold\s*=\s*([\d.]+)/);
     if (match && match[1] !== undefined) {
       const parsed = parseFloat(match[1]);
-      return Number.isNaN(parsed) ? undefined : (parsed > 1 ? parsed / 100 : parsed);
+      return Number.isNaN(parsed) ? undefined : parsed > 1 ? parsed / 100 : parsed;
     }
   } catch {
     // Ignore read error
@@ -81,9 +81,14 @@ export async function coverageCheckCommand(
 
   const rawThreshold = textFlag(flags, "threshold", false);
   const bunfigThreshold = loadBunfigCoverageThreshold(resolvedDir);
-  const threshold = rawThreshold !== undefined
-    ? (Number(rawThreshold) > 1 ? Number(rawThreshold) / 100 : Number(rawThreshold))
-    : (bunfigThreshold !== undefined ? bunfigThreshold : 0.0);
+  const threshold =
+    rawThreshold !== undefined
+      ? Number(rawThreshold) > 1
+        ? Number(rawThreshold) / 100
+        : Number(rawThreshold)
+      : bunfigThreshold !== undefined
+        ? bunfigThreshold
+        : 0.0;
   const strict = Boolean(flags.strict);
 
   const result = spawnSync(
@@ -103,9 +108,7 @@ export async function coverageCheckCommand(
   const output = `${stdout}\n${stderr}`;
   const tableRows = parseCoverageTable(output);
 
-  const failing = tableRows.filter(
-    (row) => row.lines < threshold || row.statements < threshold,
-  );
+  const failing = tableRows.filter((row) => row.lines < threshold || row.statements < threshold);
   const passed = failing.length === 0;
 
   const markdown = [

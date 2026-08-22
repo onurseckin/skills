@@ -179,7 +179,9 @@ const mindAuditorRecord: JsonObject = {
   audit_id: "<audit id>",
   window: "<window start iso-8601>",
   verdict: "approved|changes_requested|halt",
-  answers: [{ question_id: "<q1-q8>", command_id: "<command id>", verdict: "pass|fail|finding|clean" }],
+  answers: [
+    { question_id: "<q1-q8>", command_id: "<command id>", verdict: "pass|fail|finding|clean" },
+  ],
 };
 
 const ROLE_CONTRACTS: Readonly<Record<AgentRole, JsonObject>> = {

@@ -17,10 +17,7 @@ export async function mindWakeCommand(
   const now = textFlag(flags, "now", false);
 
   if (depth !== "brief" && depth !== "run") {
-    throw new HarnessError(
-      "INVALID_ARGUMENT",
-      `--depth must be brief or run; got ${depth}`,
-    );
+    throw new HarnessError("INVALID_ARGUMENT", `--depth must be brief or run; got ${depth}`);
   }
 
   if (depth === "run") {

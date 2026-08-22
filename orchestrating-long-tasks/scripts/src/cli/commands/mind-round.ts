@@ -50,10 +50,7 @@ export interface MindRoundCloseResult {
   readonly [key: string]: unknown;
 }
 
-export function mindRoundOpenCommand(
-  flags: Flags,
-  _context?: CommandContext,
-): MindRoundOpenResult {
+export function mindRoundOpenCommand(flags: Flags, _context?: CommandContext): MindRoundOpenResult {
   const run = textFlag(flags, "run", true)!;
   const actor = textFlag(flags, "actor", true)!;
   const objective = textFlag(flags, "objective", true)!;
@@ -79,11 +76,7 @@ export function mindRoundOpenCommand(
       `agent ${actor} holds no grant; register it with agent:register first`,
     );
   }
-  if (
-    grant.role !== "orchestrator" &&
-    grant.role !== "mind" &&
-    grant.role !== "coordinator"
-  ) {
+  if (grant.role !== "orchestrator" && grant.role !== "mind" && grant.role !== "coordinator") {
     throw new HarnessError(
       "INVALID_STATE",
       `agent ${actor} holds role '${grant.role}'; role 'orchestrator' or 'mind' is required to open a round`,
@@ -94,13 +87,8 @@ export function mindRoundOpenCommand(
   const mindState = (state.mind ?? {}) as Record<string, unknown>;
   if (mindState.halted === true) {
     const haltReason =
-      typeof mindState.halt_reason === "string"
-        ? mindState.halt_reason
-        : "unknown reason";
-    throw new HarnessError(
-      "INVALID_STATE",
-      `mind is halted (${haltReason}); cannot open round`,
-    );
+      typeof mindState.halt_reason === "string" ? mindState.halt_reason : "unknown reason";
+    throw new HarnessError("INVALID_STATE", `mind is halted (${haltReason}); cannot open round`);
   }
 
   // 3. Resolve chained-from capsule directory if provided
@@ -117,15 +105,9 @@ export function mindRoundOpenCommand(
     .filter((r) => r.objective_id === objective)
     .sort((a, b) => a.round - b.round);
   const priorRound =
-    objectiveRounds.length > 0
-      ? objectiveRounds[objectiveRounds.length - 1]
-      : undefined;
+    objectiveRounds.length > 0 ? objectiveRounds[objectiveRounds.length - 1] : undefined;
 
-  validateObjectiveStatement(
-    candidate,
-    statementFlag,
-    priorRound?.statement,
-  );
+  validateObjectiveStatement(candidate, statementFlag, priorRound?.statement);
 
   const calculatedRound = roundFlag ?? (priorRound ? priorRound.round + 1 : 1);
   validateRoundBudget(state, calculatedRound, objective);
@@ -204,8 +186,7 @@ export function mindRoundCloseCommand(
   const objective = textFlag(flags, "objective", true)!;
   const roundNumber = integerFlag(flags, "round", { required: true, minimum: 1 })!;
 
-  const resultRaw =
-    textFlag(flags, "result", false) ?? textFlag(flags, "outcome", false);
+  const resultRaw = textFlag(flags, "result", false) ?? textFlag(flags, "outcome", false);
   if (!resultRaw) {
     throw new HarnessError(
       "INVALID_ARGUMENT",
@@ -220,12 +201,9 @@ export function mindRoundCloseCommand(
   }
   const result: RoundResult = resultRaw;
 
-  const successor =
-    textFlag(flags, "successor", false) ??
-    textFlag(flags, "successor-run", false);
+  const successor = textFlag(flags, "successor", false) ?? textFlag(flags, "successor-run", false);
   const terminalReason =
-    textFlag(flags, "terminal-reason", false) ??
-    textFlag(flags, "reason", false);
+    textFlag(flags, "terminal-reason", false) ?? textFlag(flags, "reason", false);
   const now = textFlag(flags, "now", false);
 
   const nowIso = now ?? new Date().toISOString();
@@ -241,11 +219,7 @@ export function mindRoundCloseCommand(
       `agent ${actor} holds no grant; register it with agent:register first`,
     );
   }
-  if (
-    grant.role !== "orchestrator" &&
-    grant.role !== "mind" &&
-    grant.role !== "coordinator"
-  ) {
+  if (grant.role !== "orchestrator" && grant.role !== "mind" && grant.role !== "coordinator") {
     throw new HarnessError(
       "INVALID_STATE",
       `agent ${actor} holds role '${grant.role}'; role 'orchestrator' or 'mind' is required to close a round`,

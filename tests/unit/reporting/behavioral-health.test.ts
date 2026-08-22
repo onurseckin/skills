@@ -13,10 +13,7 @@ import {
   summarizeBehavioralHealth,
 } from "../../../orchestrating-long-tasks/scripts/src/reporting/behavioral-auditor.ts";
 import { runDoctor } from "../../../orchestrating-long-tasks/scripts/src/reporting/doctor.ts";
-import {
-  initRun,
-  transact,
-} from "../../../orchestrating-long-tasks/scripts/src/store/index.ts";
+import { initRun, transact } from "../../../orchestrating-long-tasks/scripts/src/store/index.ts";
 import type { JsonObject } from "../../../orchestrating-long-tasks/scripts/src/contracts/json.ts";
 
 const roots: string[] = [];
@@ -644,12 +641,12 @@ describe("doctor integration and markdown rendering", () => {
     const dirtyReport = await runDoctor(runRoot);
     expect(dirtyReport.healthy).toBe(false);
     expect(Array.isArray(dirtyReport.behavioral_findings)).toBe(true);
+    expect((dirtyReport.behavioral_findings as unknown[]).length).toBeGreaterThan(0);
     expect(
-      (dirtyReport.behavioral_findings as unknown[]).length,
-    ).toBeGreaterThan(0);
-    expect(
-      (dirtyReport.issues as string[]).some((issue) =>
-        issue.includes("coordinator_code_writing") || issue.includes("recorded usage of code-editing tool"),
+      (dirtyReport.issues as string[]).some(
+        (issue) =>
+          issue.includes("coordinator_code_writing") ||
+          issue.includes("recorded usage of code-editing tool"),
       ),
     ).toBe(true);
     expect(dirtyReport.markdown as string).toContain("violations detected");

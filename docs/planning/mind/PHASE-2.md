@@ -54,18 +54,18 @@ is non-empty; a test that the selector reads only recorded numbers and never cal
 
 The ladder from `PLAN.md` §9.2, in order, each rung an existing command:
 
-| Rung | Condition                                | Action                                            |
-| :--- | :--------------------------------------- | :------------------------------------------------- |
-| 0    | charter drift / runtime drift            | HALT, escalate, **do not arm**                     |
-| 0    | `INTEGRITY` with the W0.2 subcode        | retry **once**, then escalate                      |
-| 0    | `INTEGRITY` otherwise                    | `doctor` → `doctor:repair` → escalate if it persists|
-| 1    | any live run                             | `orchestrator:supervise --run <r> --actor <a>`     |
-| 2    | open attempt, agent gone                 | `task:abandon --reason …`                          |
-| 2    | orphan evidence                          | escalate; a coordinator disposes of it             |
-| 2    | abandoned worktrees                      | `worktree:reclaim`                                 |
-| 3    | grant active, no attributable event      | `agent:release --reason presumed_dead`             |
-| 4    | pulse open past deadline                 | close `crashed`; **3 consecutive ⇒ HALT**          |
-| 5    | `GAP > 3×` armed interval                | record and notify — the driver is late or dead     |
+| Rung | Condition                           | Action                                               |
+| :--- | :---------------------------------- | :--------------------------------------------------- |
+| 0    | charter drift / runtime drift       | HALT, escalate, **do not arm**                       |
+| 0    | `INTEGRITY` with the W0.2 subcode   | retry **once**, then escalate                        |
+| 0    | `INTEGRITY` otherwise               | `doctor` → `doctor:repair` → escalate if it persists |
+| 1    | any live run                        | `orchestrator:supervise --run <r> --actor <a>`       |
+| 2    | open attempt, agent gone            | `task:abandon --reason …`                            |
+| 2    | orphan evidence                     | escalate; a coordinator disposes of it               |
+| 2    | abandoned worktrees                 | `worktree:reclaim`                                   |
+| 3    | grant active, no attributable event | `agent:release --reason presumed_dead`               |
+| 4    | pulse open past deadline            | close `crashed`; **3 consecutive ⇒ HALT**            |
+| 5    | `GAP > 3×` armed interval           | record and notify — the driver is late or dead       |
 
 Two single-writer rules that are not optional (`PLAN.md` §5.4):
 
@@ -164,7 +164,7 @@ coverage at threshold on new files; independent verification of §5.
 
 ### 4.3 The thing to watch for in this phase specifically
 
-A rescue lane that *reports* damage it did not actually repair is the `FORENSICS.md` failure wearing
+A rescue lane that _reports_ damage it did not actually repair is the `FORENSICS.md` failure wearing
 a new hat. Every rung's test asserts the **state change**, not the log line.
 
 ## 5. Exit criteria
@@ -183,15 +183,15 @@ Plus, recorded here:
 
 ## 6. Failure modes
 
-| Likely mistake                                             | The tell                                                     |
-| :--------------------------------------------------------- | :------------------------------------------------------------ |
-| Asking the model to choose the lane                        | A prompt containing the word "decide"                         |
-| Ticking a run whose coordinator is alive                   | Intermittent `STATE_PROJECTION` failures under load           |
-| Retrying every `INTEGRITY` failure                         | Real corruption gets retried instead of escalated             |
-| Matching `"STATE_PROJECTION"` in a message string          | Detection degrades exactly as the 473-transcript scan did     |
-| Stubbing `advance`/`discover` as silent no-ops             | The ledger claims lanes that do nothing                       |
-| Asserting log output instead of state change               | Rescue "succeeds" while the lease stays expired               |
-| Building the digest only when there is something to report | Nobody learns to read it before it matters                    |
+| Likely mistake                                             | The tell                                                  |
+| :--------------------------------------------------------- | :-------------------------------------------------------- |
+| Asking the model to choose the lane                        | A prompt containing the word "decide"                     |
+| Ticking a run whose coordinator is alive                   | Intermittent `STATE_PROJECTION` failures under load       |
+| Retrying every `INTEGRITY` failure                         | Real corruption gets retried instead of escalated         |
+| Matching `"STATE_PROJECTION"` in a message string          | Detection degrades exactly as the 473-transcript scan did |
+| Stubbing `advance`/`discover` as silent no-ops             | The ledger claims lanes that do nothing                   |
+| Asserting log output instead of state change               | Rescue "succeeds" while the lease stays expired           |
+| Building the digest only when there is something to report | Nobody learns to read it before it matters                |
 
 ## 7. Rollback
 

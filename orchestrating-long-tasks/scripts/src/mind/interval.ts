@@ -14,8 +14,8 @@ export const DEFAULT_MAX_INTERVAL_MS = 14_400_000; // 4 hours
 export const DEFAULT_MAX_PAUSE_INTERVAL_MS = 1_800_000; // 30 minutes
 export const QUIESCENCE_INTERVAL_MULTIPLIER = 1.5;
 
-export const MIN_JITTER_RATIO = 0.10; // 10%
-export const MAX_JITTER_RATIO = 0.20; // 20%
+export const MIN_JITTER_RATIO = 0.1; // 10%
+export const MAX_JITTER_RATIO = 0.2; // 20%
 export const DEFAULT_JITTER_RATIO = 0.15; // 15%
 export const MIN_INTERVAL_MS = 1_000; // 1 second
 
@@ -32,10 +32,7 @@ export interface JitterOptions {
  * Applies bounded random jitter (+/- 10-20%) to an interval in milliseconds.
  * Prevents thundering herd across distributed autonomous workers.
  */
-export function applyIntervalJitter(
-  rawIntervalMs: number,
-  options: JitterOptions = {},
-): number {
+export function applyIntervalJitter(rawIntervalMs: number, options: JitterOptions = {}): number {
   if (rawIntervalMs <= 0) return Math.max(0, rawIntervalMs);
 
   const randomFn = options.random ?? Math.random;
@@ -206,8 +203,7 @@ export function generateTrailingValueSeries(
   const windowedPoints = windowSize > 0 ? pulses.slice(-windowSize) : pulses;
   const rawValues = windowedPoints.map((p) => p.value);
   const totalValue = rawValues.reduce((sum, v) => sum + v, 0);
-  const meanValue =
-    rawValues.length > 0 ? Number((totalValue / rawValues.length).toFixed(2)) : 0;
+  const meanValue = rawValues.length > 0 ? Number((totalValue / rawValues.length).toFixed(2)) : 0;
 
   let trailingZeroStreak = 0;
   for (let i = rawValues.length - 1; i >= 0; i--) {

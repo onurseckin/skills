@@ -8,7 +8,6 @@ import {
   formatMindPulseOpenBrief,
   mindPulseOpenCommand,
 } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/mind-pulse-open.ts";
-import type { JsonObject } from "../../../orchestrating-long-tasks/scripts/src/contracts/json.ts";
 import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
 import {
   checkDailyBudget,
@@ -672,7 +671,11 @@ describe("budget helpers", () => {
     expect(pulseRes.ok).toBe(false);
     expect(pulseRes.outcome).toBe("deferred");
 
-    const wallCapBudget = { ...validBudget, wall_clock_ms_today: 21600000, wall_clock_ms_per_day: 21600000 };
+    const wallCapBudget = {
+      ...validBudget,
+      wall_clock_ms_today: 21600000,
+      wall_clock_ms_per_day: 21600000,
+    };
     const wallRes = checkDailyBudget(wallCapBudget, "2026-08-21T10:00:00Z");
     expect(wallRes.ok).toBe(false);
     expect(wallRes.outcome).toBe("deferred");

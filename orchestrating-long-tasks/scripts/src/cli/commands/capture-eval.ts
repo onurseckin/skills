@@ -32,7 +32,11 @@ export function evaluateManifestFile(filePath: string): CompanionManifestV2 {
   const screenId = typeof manifestObj.screenId === "string" ? manifestObj.screenId : "unknown";
   const viewport = typeof manifestObj.viewport === "string" ? manifestObj.viewport : "desktop";
   let elements = Array.isArray(manifestObj.elements) ? manifestObj.elements : [];
-  if (elements.length === 0 && typeof manifestObj.physics === "object" && manifestObj.physics !== null) {
+  if (
+    elements.length === 0 &&
+    typeof manifestObj.physics === "object" &&
+    manifestObj.physics !== null
+  ) {
     const phys = manifestObj.physics as Record<string, unknown>;
     if (Array.isArray(phys.elements)) {
       elements = phys.elements;
@@ -122,7 +126,9 @@ export async function captureEvalCommand(
     throw new HarnessError(
       "INVALID_STATE",
       `Strict certification failed: ${totalDefectsCount} defects found across ${defectsCount} screen manifests`,
-      evaluations.flatMap((e) => e.allDefects.map((d) => `[${d.pillar}:${d.category}] ${d.message}`)),
+      evaluations.flatMap((e) =>
+        e.allDefects.map((d) => `[${d.pillar}:${d.category}] ${d.message}`),
+      ),
       3,
       "Address flagged defects or run remediation generator before re-evaluating",
     );

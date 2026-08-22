@@ -425,8 +425,12 @@ describe("Multi-Theme Contrast Matrix & Dynamic Color Scheme Visual Reporting En
 
       const missingFindings = report.findings.filter((f) => f.id.includes("MISSING"));
       expect(missingFindings.length).toBeGreaterThanOrEqual(2);
-      expect(missingFindings.some((f) => f.selector === "nav.top-bar" && f.theme === "dark")).toBe(true);
-      expect(missingFindings.some((f) => f.selector === "button.sidebar-toggle" && f.theme === "light")).toBe(true);
+      expect(missingFindings.some((f) => f.selector === "nav.top-bar" && f.theme === "dark")).toBe(
+        true,
+      );
+      expect(
+        missingFindings.some((f) => f.selector === "button.sidebar-toggle" && f.theme === "light"),
+      ).toBe(true);
     });
 
     it("detects and flags invalid color expressions gracefully", () => {
@@ -536,9 +540,15 @@ describe("Multi-Theme Contrast Matrix & Dynamic Color Scheme Visual Reporting En
       const markdown = formatThemeContrastMatrixMarkdown(report);
 
       expect(markdown).toContain("# Multi-Theme Contrast & Dynamic Color Scheme Visual Report");
-      expect(markdown).toContain("┌────────────────────────────────────────────────────────────────────────┐");
-      expect(markdown).toContain("│ Multi-Theme Contrast Compliance Summary                                │");
-      expect(markdown).toContain("└────────────────────────────────────────────────────────────────────────┘");
+      expect(markdown).toContain(
+        "┌────────────────────────────────────────────────────────────────────────┐",
+      );
+      expect(markdown).toContain(
+        "│ Multi-Theme Contrast Compliance Summary                                │",
+      );
+      expect(markdown).toContain(
+        "└────────────────────────────────────────────────────────────────────────┘",
+      );
       expect(markdown).toContain("## Theme-Specific Compliance Rates");
       expect(markdown).toContain("## High-Level Element Contrast Matrix");
       expect(markdown).toContain("| Selector | light | dark | Status |");
@@ -568,7 +578,9 @@ describe("Multi-Theme Contrast Matrix & Dynamic Color Scheme Visual Reporting En
       const markdown = formatThemeContrastMatrixMarkdown(report);
 
       expect(markdown).toContain("Overall Status       : PASS");
-      expect(markdown).toContain("No contrast regressions or color scheme defects detected across evaluated themes.");
+      expect(markdown).toContain(
+        "No contrast regressions or color scheme defects detected across evaluated themes.",
+      );
     });
   });
 
@@ -580,7 +592,8 @@ describe("Multi-Theme Contrast Matrix & Dynamic Color Scheme Visual Reporting En
       ];
 
       const anyPattern = /:\s*any\b|as\s+any\b|<any>|\bany\s*>/;
-      const suppressionPattern = /@ts-ignore|@ts-expect-error|@ts-nocheck|eslint-disable|oxlint-disable/;
+      const suppressionPattern =
+        /@ts-ignore|@ts-expect-error|@ts-nocheck|eslint-disable|oxlint-disable/;
 
       for (const filePath of filesToAudit) {
         const content = readFileSync(filePath, "utf-8");

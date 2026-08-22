@@ -53,7 +53,11 @@ interface GitSpawnResult {
   error?: Error;
 }
 
-export type GitSpawn = (command: string, args: string[], options: GitSpawnOptions) => GitSpawnResult;
+export type GitSpawn = (
+  command: string,
+  args: string[],
+  options: GitSpawnOptions,
+) => GitSpawnResult;
 
 const nodeGitSpawn: GitSpawn = (command, args, options) =>
   spawnSync(command, args, options) as GitSpawnResult;

@@ -100,9 +100,7 @@ export const MIND_COMMANDS: readonly CommandSpec[] = [
     readsStdin: false,
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
-    examples: [
-      "bun harness.ts mind:init --repo . --charter docs/mind/CHARTER.md --actor owner",
-    ],
+    examples: ["bun harness.ts mind:init --repo . --charter docs/mind/CHARTER.md --actor owner"],
     handler: mindInitCommand,
   },
   {
@@ -169,17 +167,13 @@ export const MIND_COMMANDS: readonly CommandSpec[] = [
         "Required when --arm is absent and the outcome is not terminal.",
       ),
       optionalFlag("witness", "string", "Command id evidencing the work this pulse did."),
-      optionalFlag(
-        "signal",
-        "string",
-        "Typed signal, e.g. rate_limit; never inferred from prose.",
-      ),
+      optionalFlag("signal", "string", "Typed signal, e.g. rate_limit; never inferred from prose."),
     ],
     readsStdin: false,
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
-      'bun harness.ts mind:pulse-close --run .capsules/mind-gen-1 --actor mind-1 --pulse pulse-1 --outcome quiescent --arm 15m --arm-mechanism systemd-timer',
+      "bun harness.ts mind:pulse-close --run .capsules/mind-gen-1 --actor mind-1 --pulse pulse-1 --outcome quiescent --arm 15m --arm-mechanism systemd-timer",
     ],
     handler: mindPulseCloseCommand,
   },
@@ -375,11 +369,7 @@ export const MIND_COMMANDS: readonly CommandSpec[] = [
       requiredFlag("actor", "string", "Acting agent."),
       requiredFlag("objective", "string", "Objective id."),
       requiredFlag("round", "int", "Round index."),
-      optionalFlag(
-        "terminal-reason",
-        "string",
-        "Reason if round terminates without successor.",
-      ),
+      optionalFlag("terminal-reason", "string", "Reason if round terminates without successor."),
       optionalFlag("successor-run", "string", "Successor capsule run id."),
     ],
     readsStdin: false,

@@ -25,9 +25,20 @@ describe("Capture Runner & Companion Manifest Writer", () => {
       defaultUser: "admin-user",
       tokenHeaderName: "Authorization",
       users: {
-        "admin-user": { id: "admin-user", name: "Admin", role: "admin", token: "admin-tok", headers: { "X-Admin": "1" } },
+        "admin-user": {
+          id: "admin-user",
+          name: "Admin",
+          role: "admin",
+          token: "admin-tok",
+          headers: { "X-Admin": "1" },
+        },
         "driver-user": { id: "driver-user", name: "Driver", role: "driver", token: "driver-tok" },
-        "customer-user": { id: "customer-user", name: "Customer", role: "customer", token: "Bearer cust-tok" },
+        "customer-user": {
+          id: "customer-user",
+          name: "Customer",
+          role: "customer",
+          token: "Bearer cust-tok",
+        },
       },
     };
 
@@ -80,7 +91,14 @@ describe("Capture Runner & Companion Manifest Writer", () => {
             overflowX: "hidden",
             overflowY: "visible",
           },
-          metrics: { scrollWidth: 390, clientWidth: 375, scrollHeight: 50, clientHeight: 50, offsetWidth: 375, offsetHeight: 50 },
+          metrics: {
+            scrollWidth: 390,
+            clientWidth: 375,
+            scrollHeight: 50,
+            clientHeight: 50,
+            offsetWidth: 375,
+            offsetHeight: 50,
+          },
         },
         {
           selector: ".clipped-text",
@@ -95,7 +113,14 @@ describe("Capture Runner & Companion Manifest Writer", () => {
             overflowX: "visible",
             overflowY: "hidden",
           },
-          metrics: { scrollWidth: 200, clientWidth: 200, scrollHeight: 45, clientHeight: 30, offsetWidth: 200, offsetHeight: 30 },
+          metrics: {
+            scrollWidth: 200,
+            clientWidth: 200,
+            scrollHeight: 45,
+            clientHeight: 30,
+            offsetWidth: 200,
+            offsetHeight: 30,
+          },
           textSnippet: "Long description text",
         },
       ];
@@ -119,7 +144,11 @@ describe("Capture Runner & Companion Manifest Writer", () => {
         },
       };
 
-      const snapshot = await extractDomPhysics(mockDriver, { width: 1440, height: 900, deviceScaleFactor: 2 });
+      const snapshot = await extractDomPhysics(mockDriver, {
+        width: 1440,
+        height: 900,
+        deviceScaleFactor: 2,
+      });
       expect(snapshot.viewport.width).toBe(1440);
       expect(snapshot.viewport.height).toBe(900);
       expect(snapshot.elements).toEqual([]);
@@ -138,8 +167,12 @@ describe("Capture Runner & Companion Manifest Writer", () => {
         screens: [{ id: "home", name: "Home", path: "/" }],
       };
 
-      expect(resolveCaptureOutputDir({ outDir: "/tmp/custom-out" }, testConfig)).toBe("/tmp/custom-out");
-      expect(resolveCaptureOutputDir({ capsuleDir: "/capsules/test-run" }, testConfig)).toBe("/capsules/test-run/captures");
+      expect(resolveCaptureOutputDir({ outDir: "/tmp/custom-out" }, testConfig)).toBe(
+        "/tmp/custom-out",
+      );
+      expect(resolveCaptureOutputDir({ capsuleDir: "/capsules/test-run" }, testConfig)).toBe(
+        "/capsules/test-run/captures",
+      );
 
       const filtered = filterScreens(testConfig.screens, ["home"]);
       expect(filtered).toHaveLength(1);
@@ -161,9 +194,17 @@ describe("Capture Runner & Companion Manifest Writer", () => {
             desktop: { name: "desktop", width: 1440, height: 900 },
             mobile: { name: "mobile", width: 375, height: 667, isMobile: true },
           },
-          auth: { users: { admin: { id: "admin", name: "Admin", role: "admin", token: "tok-123" } } },
+          auth: {
+            users: { admin: { id: "admin", name: "Admin", role: "admin", token: "tok-123" } },
+          },
           screens: [
-            { id: "dashboard", name: "Admin Dashboard", path: "/dashboard", viewports: ["desktop", "mobile"], auth: "admin" },
+            {
+              id: "dashboard",
+              name: "Admin Dashboard",
+              path: "/dashboard",
+              viewports: ["desktop", "mobile"],
+              auth: "admin",
+            },
           ],
         };
 
@@ -176,7 +217,9 @@ describe("Capture Runner & Companion Manifest Writer", () => {
           expect(existsSync(item.manifestPath)).toBe(true);
           expect(item.manifestPath).toBe(item.imagePath.replace(/\.png$/, ".manifest.json"));
 
-          const manifest = JSON.parse(readFileSync(item.manifestPath, "utf-8")) as CompanionManifest;
+          const manifest = JSON.parse(
+            readFileSync(item.manifestPath, "utf-8"),
+          ) as CompanionManifest;
           expect(manifest.schema).toBe("companion.manifest.v1");
           expect(manifest.screenId).toBe("dashboard");
           expect(manifest.viewport).toBe(item.viewport);
@@ -198,10 +241,18 @@ describe("Capture Runner & Companion Manifest Writer", () => {
             goto: async () => {},
             waitForSelector: async () => {},
             screenshot: async () => Buffer.from("simulated-img"),
-            click: async (sel) => { actionsExecuted.push(`click:${sel}`); },
-            fill: async (sel, val) => { actionsExecuted.push(`fill:${sel}=${val}`); },
-            hover: async (sel) => { actionsExecuted.push(`hover:${sel}`); },
-            waitForTimeout: async (ms) => { actionsExecuted.push(`wait:${ms}`); },
+            click: async (sel) => {
+              actionsExecuted.push(`click:${sel}`);
+            },
+            fill: async (sel, val) => {
+              actionsExecuted.push(`fill:${sel}=${val}`);
+            },
+            hover: async (sel) => {
+              actionsExecuted.push(`hover:${sel}`);
+            },
+            waitForTimeout: async (ms) => {
+              actionsExecuted.push(`wait:${ms}`);
+            },
             evaluate: async <T>() => createEmptyDomPhysicsSnapshot() as unknown as T,
           }),
           close: async () => {},
@@ -283,8 +334,12 @@ describe("Capture Runner & Companion Manifest Writer", () => {
           metadata: { task: "T-CAP-RUNNER", uid },
         }),
       );
-      const pngBase64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
-      const pngBuf = Buffer.concat([Buffer.from(pngBase64, "base64"), Buffer.from(`runner-${uid}`)]);
+      const pngBase64 =
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+      const pngBuf = Buffer.concat([
+        Buffer.from(pngBase64, "base64"),
+        Buffer.from(`runner-${uid}`),
+      ]);
       const shotPath = join(tmpdir(), `runner-proof-${uid}.png`);
       writeFileSync(shotPath, pngBuf);
 

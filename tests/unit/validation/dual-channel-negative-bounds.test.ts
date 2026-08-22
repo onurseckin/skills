@@ -201,7 +201,11 @@ describe("Dual-Channel Visual Analyzer - Negative Bounds & Custom Viewports", ()
       });
 
       expect(result.passed).toBe(false);
-      expect(result.findings.filter((f) => f.category === "zero_byte_screenshot" || f.category === "invalid_screenshot_size")).toHaveLength(2);
+      expect(
+        result.findings.filter(
+          (f) => f.category === "zero_byte_screenshot" || f.category === "invalid_screenshot_size",
+        ),
+      ).toHaveLength(2);
     });
 
     test("validateCrossChannelConsistency detects malformed / negative dimensions and mismatches", () => {

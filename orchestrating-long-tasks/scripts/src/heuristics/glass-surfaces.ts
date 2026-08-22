@@ -194,7 +194,8 @@ export function parseColorToRgba(colorStr?: string): ParsedRgba | null {
       }
 
       const k = (n: number) => (n + h / 30) % 12;
-      const f = (n: number) => l - s * Math.min(l, 1 - l) * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+      const f = (n: number) =>
+        l - s * Math.min(l, 1 - l) * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
       return {
         r: Math.round(f(0) * 255),
         g: Math.round(f(8) * 255),
@@ -327,7 +328,8 @@ export function analyzeGlassSurfaces(
     const layer = surfaceStack[i];
     if (!layer) continue;
 
-    const blur = layer.blurPx ?? extractBlurRadiusPx(layer.backdropFilter ?? layer.webkitBackdropFilter);
+    const blur =
+      layer.blurPx ?? extractBlurRadiusPx(layer.backdropFilter ?? layer.webkitBackdropFilter);
     linearBlurSum += blur;
     quadraticBlurSum += blur * blur;
 
@@ -415,7 +417,12 @@ export function analyzeGlassSurfaces(
 
   // 3. APCA Perceived Contrast on Worst-Case Substrate
   const textSelector = textElement?.selector ? textElement.selector : "glass-text";
-  const textRgb = parseColorToRgba(textElement?.color ? textElement.color : "#000000") || { r: 0, g: 0, b: 0, a: 1 };
+  const textRgb = parseColorToRgba(textElement?.color ? textElement.color : "#000000") || {
+    r: 0,
+    g: 0,
+    b: 0,
+    a: 1,
+  };
   const fontSize = typeof textElement?.fontSize === "number" ? textElement.fontSize : 16;
   const fontWeight = typeof textElement?.fontWeight === "number" ? textElement.fontWeight : 400;
   const requiredLc = getRequiredApcaLc(fontSize, fontWeight);

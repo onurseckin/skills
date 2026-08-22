@@ -239,7 +239,11 @@ const NAMED_COLORS: Readonly<Record<string, RgbaColor>> = {
   stone: { r: 120, g: 113, b: 108, a: 1 },
 };
 
-function hslToRgb(h: number, s: number, l: number): { readonly r: number; readonly g: number; readonly b: number } {
+function hslToRgb(
+  h: number,
+  s: number,
+  l: number,
+): { readonly r: number; readonly g: number; readonly b: number } {
   const normH = ((h % 360) + 360) % 360;
   const normS = Math.max(0, Math.min(1, s / 100));
   const normL = Math.max(0, Math.min(1, l / 100));
@@ -344,7 +348,9 @@ export function parseCssColor(colorStr?: string): RgbaColor | null {
   }
 
   // RGB / RGBA
-  const rgbMatch = trimmed.match(/^rgba?\(\s*([\d.]+)\s*(?:,|\s+)\s*([\d.]+)\s*(?:,|\s+)\s*([\d.]+)(?:\s*(?:,|\/)\s*([\d.]+%?))?\s*\)$/i);
+  const rgbMatch = trimmed.match(
+    /^rgba?\(\s*([\d.]+)\s*(?:,|\s+)\s*([\d.]+)\s*(?:,|\s+)\s*([\d.]+)(?:\s*(?:,|\/)\s*([\d.]+%?))?\s*\)$/i,
+  );
   if (rgbMatch) {
     const m1 = rgbMatch[1];
     const m2 = rgbMatch[2];
@@ -364,7 +370,9 @@ export function parseCssColor(colorStr?: string): RgbaColor | null {
   }
 
   // HSL / HSLA
-  const hslMatch = trimmed.match(/^hsla?\(\s*([\d.]+)(?:deg)?\s*(?:,|\s+)\s*([\d.]+)%\s*(?:,|\s+)\s*([\d.]+)%(?:\s*(?:,|\/)\s*([\d.]+%?))?\s*\)$/i);
+  const hslMatch = trimmed.match(
+    /^hsla?\(\s*([\d.]+)(?:deg)?\s*(?:,|\s+)\s*([\d.]+)%\s*(?:,|\s+)\s*([\d.]+)%(?:\s*(?:,|\/)\s*([\d.]+%?))?\s*\)$/i,
+  );
   if (hslMatch) {
     const m1 = hslMatch[1];
     const m2 = hslMatch[2];
@@ -441,7 +449,7 @@ export function validateNestedConcentricCorners(
   outerRadius: number,
   innerRadius: number,
   padding: number,
-  tolerancePx = 1.0
+  tolerancePx = 1.0,
 ): ConcentricCornerEvaluation {
   const expectedOuterRadius = calculateConcentricRadius(innerRadius, padding);
   const delta = Math.abs(outerRadius - expectedOuterRadius);
@@ -478,7 +486,7 @@ export function validateNestedConcentricCorners(
 export function auditFocusRingContrast(
   ringColor: string,
   backgroundColor: string,
-  targetContrast = 3.0
+  targetContrast = 3.0,
 ): { readonly contrastRatio: number; readonly passes: boolean } {
   const ringParsed = parseCssColor(ringColor);
   const bgParsed = parseCssColor(backgroundColor);
@@ -512,24 +520,27 @@ export function calculateOpticalCurvatureMetrics(
   ringOffset: number,
   outerRadius: number,
   curvatureSmoothing?: number,
-  curvatureExponent?: number
+  curvatureExponent?: number,
 ): OpticalCurvatureMetrics {
-  const exponent = curvatureExponent !== undefined
-    ? curvatureExponent
-    : curvatureSmoothing !== undefined
-      ? 2.0 + 3.0 * Math.max(0, Math.min(1, curvatureSmoothing))
-      : 2.0;
+  const exponent =
+    curvatureExponent !== undefined
+      ? curvatureExponent
+      : curvatureSmoothing !== undefined
+        ? 2.0 + 3.0 * Math.max(0, Math.min(1, curvatureSmoothing))
+        : 2.0;
 
-  const smoothingFactor = curvatureSmoothing !== undefined
-    ? Math.max(0, Math.min(1, curvatureSmoothing))
-    : Math.max(0, Math.min(1, (exponent - 2.0) / 3.0));
+  const smoothingFactor =
+    curvatureSmoothing !== undefined
+      ? Math.max(0, Math.min(1, curvatureSmoothing))
+      : Math.max(0, Math.min(1, (exponent - 2.0) / 3.0));
 
   const circleDiagFactor = 1 / Math.SQRT2;
   const superellipseDiagFactor = exponent > 0 ? 1 / Math.pow(2, 1 / exponent) : circleDiagFactor;
   const diagonalDeltaFactor = superellipseDiagFactor - circleDiagFactor;
 
   const nonEuclideanDelta = Math.round(innerRadius * diagonalDeltaFactor * 1000) / 1000;
-  const cornerArcLengthCorrection = Math.round((1 + (Math.max(0, exponent - 2) / Math.max(1, exponent)) * 0.2146) * 1000) / 1000;
+  const cornerArcLengthCorrection =
+    Math.round((1 + (Math.max(0, exponent - 2) / Math.max(1, exponent)) * 0.2146) * 1000) / 1000;
   const hasG2Continuity = exponent >= 2.5 && exponent <= 6.0;
 
   return {
@@ -562,12 +573,17 @@ export function snapToDevicePixelRatio(value: number, dpr: number): number {
  */
 export function validateFocusRingOpticalSnapping(
   ring: FocusRingGeometry,
-  options?: OpticalSnappingOptions
+  options?: OpticalSnappingOptions,
 ): OpticalSnapResult {
-  const dpr = typeof options?.dpr === "number" ? options.dpr : typeof ring.dpr === "number" ? ring.dpr : 1.0;
-  const supportedDprScales = options?.supportedDprScales !== undefined ? options.supportedDprScales : [1.0, 1.25, 1.5, 2.0, 3.0];
+  const dpr =
+    typeof options?.dpr === "number" ? options.dpr : typeof ring.dpr === "number" ? ring.dpr : 1.0;
+  const supportedDprScales =
+    options?.supportedDprScales !== undefined
+      ? options.supportedDprScales
+      : [1.0, 1.25, 1.5, 2.0, 3.0];
   const tolerancePx = typeof options?.tolerancePx === "number" ? options.tolerancePx : 1.0;
-  const subpixelTolerance = typeof options?.subpixelTolerance === "number" ? options.subpixelTolerance : 0.05;
+  const subpixelTolerance =
+    typeof options?.subpixelTolerance === "number" ? options.subpixelTolerance : 0.05;
   const targetContrast = typeof options?.targetContrast === "number" ? options.targetContrast : 3.0;
   const checkClipping = typeof options?.checkClipping === "boolean" ? options.checkClipping : true;
   const selector = ring.selector !== undefined ? ring.selector : "focus-ring-target";
@@ -581,15 +597,16 @@ export function validateFocusRingOpticalSnapping(
   const ringHeight = ring.elementBounds.height + 2 * (ring.ringOffset + ring.ringWidth);
 
   // 2. Evaluate Concentric Corners
-  const actualOuterRadius = ring.ringRadius !== undefined
-    ? ring.ringRadius
-    : calculateConcentricRadius(ring.elementBorderRadius, ring.ringOffset + ring.ringWidth);
+  const actualOuterRadius =
+    ring.ringRadius !== undefined
+      ? ring.ringRadius
+      : calculateConcentricRadius(ring.elementBorderRadius, ring.ringOffset + ring.ringWidth);
 
   const concentricEvaluation = validateNestedConcentricCorners(
     actualOuterRadius,
     ring.elementBorderRadius,
     ring.ringOffset + ring.ringWidth,
-    tolerancePx
+    tolerancePx,
   );
 
   if (!concentricEvaluation.isConcentric) {
@@ -665,21 +682,26 @@ export function validateFocusRingOpticalSnapping(
 
   const matchingDpr = dprScaleResults.find((r) => Math.abs(r.dpr - dpr) < 0.001);
   const activeDprEval = matchingDpr !== undefined ? matchingDpr : dprScaleResults[0];
-  const snappedRingBounds: ElementBoundingBox = activeDprEval !== undefined
-    ? activeDprEval.snappedCssBounds
-    : {
-        x: Math.round(ringX * dpr) / dpr,
-        y: Math.round(ringY * dpr) / dpr,
-        width: Math.round(ringWidth * dpr) / dpr,
-        height: Math.round(ringHeight * dpr) / dpr,
-      };
+  const snappedRingBounds: ElementBoundingBox =
+    activeDprEval !== undefined
+      ? activeDprEval.snappedCssBounds
+      : {
+          x: Math.round(ringX * dpr) / dpr,
+          y: Math.round(ringY * dpr) / dpr,
+          width: Math.round(ringWidth * dpr) / dpr,
+          height: Math.round(ringHeight * dpr) / dpr,
+        };
 
   if (activeDprEval && !activeDprEval.isPhysicalIntegerAligned) {
     const fractionalParts: string[] = [];
-    if (activeDprEval.subpixelFractionX > subpixelTolerance) fractionalParts.push(`x offset frac=${activeDprEval.subpixelFractionX}`);
-    if (activeDprEval.subpixelFractionY > subpixelTolerance) fractionalParts.push(`y offset frac=${activeDprEval.subpixelFractionY}`);
-    if (activeDprEval.subpixelFractionThickness > subpixelTolerance) fractionalParts.push(`thickness frac=${activeDprEval.subpixelFractionThickness}`);
-    if (activeDprEval.subpixelFractionOffset > subpixelTolerance) fractionalParts.push(`outline-offset frac=${activeDprEval.subpixelFractionOffset}`);
+    if (activeDprEval.subpixelFractionX > subpixelTolerance)
+      fractionalParts.push(`x offset frac=${activeDprEval.subpixelFractionX}`);
+    if (activeDprEval.subpixelFractionY > subpixelTolerance)
+      fractionalParts.push(`y offset frac=${activeDprEval.subpixelFractionY}`);
+    if (activeDprEval.subpixelFractionThickness > subpixelTolerance)
+      fractionalParts.push(`thickness frac=${activeDprEval.subpixelFractionThickness}`);
+    if (activeDprEval.subpixelFractionOffset > subpixelTolerance)
+      fractionalParts.push(`outline-offset frac=${activeDprEval.subpixelFractionOffset}`);
 
     defects.push({
       id: `focus-ring-subpixel-${selector}`,
@@ -704,16 +726,20 @@ export function validateFocusRingOpticalSnapping(
     ring.ringOffset,
     actualOuterRadius,
     ring.opticalCurvatureSmoothing,
-    options?.curvatureExponent
+    options?.curvatureExponent,
   );
 
-  if (opticalCurvatureMetrics.curvatureExponent < 1.0 || opticalCurvatureMetrics.curvatureExponent > 10.0) {
+  if (
+    opticalCurvatureMetrics.curvatureExponent < 1.0 ||
+    opticalCurvatureMetrics.curvatureExponent > 10.0
+  ) {
     defects.push({
       id: `focus-ring-distortion-${selector}`,
       type: "optical-distortion",
       message: `Non-Euclidean optical curvature exponent (${opticalCurvatureMetrics.curvatureExponent}) produces geometric distortion (pinched astroid corners or clipped right-angle vertices).`,
       severity: "moderate",
-      suggestedRemediation: "Constrain optical curvature exponent between 2.0 (circular) and 5.0 (squircle) to maintain G2 continuity.",
+      suggestedRemediation:
+        "Constrain optical curvature exponent between 2.0 (circular) and 5.0 (squircle) to maintain G2 continuity.",
       metrics: {
         curvatureExponent: opticalCurvatureMetrics.curvatureExponent,
         smoothingFactor: opticalCurvatureMetrics.smoothingFactor,
@@ -724,14 +750,21 @@ export function validateFocusRingOpticalSnapping(
 
   // 5. Evaluate Clipping Artifacts
   let isClipped = false;
-  let clippingOverlap: { readonly topOverflow: number; readonly rightOverflow: number; readonly bottomOverflow: number; readonly leftOverflow: number } | undefined = undefined;
+  let clippingOverlap:
+    | {
+        readonly topOverflow: number;
+        readonly rightOverflow: number;
+        readonly bottomOverflow: number;
+        readonly leftOverflow: number;
+      }
+    | undefined = undefined;
 
   if (checkClipping && ring.clippingBounds) {
     const clip = ring.clippingBounds;
     const topOverflow = Math.max(0, clip.y - ringY);
     const leftOverflow = Math.max(0, clip.x - ringX);
-    const bottomOverflow = Math.max(0, (ringY + ringHeight) - (clip.y + clip.height));
-    const rightOverflow = Math.max(0, (ringX + ringWidth) - (clip.x + clip.width));
+    const bottomOverflow = Math.max(0, ringY + ringHeight - (clip.y + clip.height));
+    const rightOverflow = Math.max(0, ringX + ringWidth - (clip.x + clip.width));
 
     if (topOverflow > 0.1 || leftOverflow > 0.1 || bottomOverflow > 0.1 || rightOverflow > 0.1) {
       isClipped = true;
@@ -747,7 +780,8 @@ export function validateFocusRingOpticalSnapping(
         type: "clipping-overflow",
         message: `Focus ring extends beyond container clipping boundary [top: ${clippingOverlap.topOverflow}px, right: ${clippingOverlap.rightOverflow}px, bottom: ${clippingOverlap.bottomOverflow}px, left: ${clippingOverlap.leftOverflow}px], causing outline truncation.`,
         severity: "serious",
-        suggestedRemediation: "Ensure container has sufficient padding (>= focus ring offset + thickness) or change container overflow mode.",
+        suggestedRemediation:
+          "Ensure container has sufficient padding (>= focus ring offset + thickness) or change container overflow mode.",
         metrics: {
           topOverflow: clippingOverlap.topOverflow,
           rightOverflow: clippingOverlap.rightOverflow,
@@ -759,9 +793,10 @@ export function validateFocusRingOpticalSnapping(
   }
 
   // 6. Contrast Audit
-  const contrastAudit = ring.ringColor && ring.backgroundColor
-    ? auditFocusRingContrast(ring.ringColor, ring.backgroundColor, targetContrast)
-    : { contrastRatio: 21.0, passes: true };
+  const contrastAudit =
+    ring.ringColor && ring.backgroundColor
+      ? auditFocusRingContrast(ring.ringColor, ring.backgroundColor, targetContrast)
+      : { contrastRatio: 21.0, passes: true };
 
   if (!contrastAudit.passes) {
     defects.push({

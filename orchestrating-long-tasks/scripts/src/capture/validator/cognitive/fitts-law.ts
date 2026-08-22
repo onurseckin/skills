@@ -9,7 +9,7 @@ export function calculateFittsId(
   targetWidth: number,
   targetHeight: number,
   originX: number,
-  originY: number
+  originY: number,
 ): number {
   const centerX = targetX + targetWidth / 2;
   const centerY = targetY + targetHeight / 2;
@@ -26,9 +26,10 @@ export function calculateFittsId(
 export function validateFittsLaw(
   element: ElementPhysicsSnapshot,
   index: number,
-  viewportBounds?: { readonly width: number; readonly height: number }
+  viewportBounds?: { readonly width: number; readonly height: number },
 ): ValidationDefect | null {
-  const isButton = element.tagName.toUpperCase() === "BUTTON" || element.role === "button" || element.interactive;
+  const isButton =
+    element.tagName.toUpperCase() === "BUTTON" || element.role === "button" || element.interactive;
   if (!isButton) return null;
 
   const vpW = viewportBounds?.width ?? 1280;
@@ -42,7 +43,7 @@ export function validateFittsLaw(
     element.bounds.width,
     element.bounds.height,
     originX,
-    originY
+    originY,
   );
 
   if (id > MAX_INDEX_OF_DIFFICULTY) {

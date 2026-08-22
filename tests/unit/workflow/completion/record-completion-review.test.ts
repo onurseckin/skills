@@ -4,7 +4,6 @@ import { repositoryBinding } from "../test-port.ts";
 import {
   clock,
   completionPort,
-  criticToken,
   reviewInput,
   verifyRepository,
 } from "../completion-provenance-fixture.ts";

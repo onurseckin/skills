@@ -1351,6 +1351,28 @@ A requirement disposed needs_authority holds every task built on it non-executab
 bun harness.ts authority:decide --run .capsules/<run-id> --requirement req-prod-deploy --actor coordinator --decision grant --rationale "Human approved the production deploy in the review thread"
 ```
 
+### `whoami`
+
+Inspect thread execution tier, PID, active agent, grants, and main-thread compliance.
+
+Inspects the calling thread's OS process ID, parent PID, execution tier, active agent ID, active role grants, and task leases. When executed on the interactive main thread, enforces the Main-Thread Restraint Guard advisory and logs structured blunder records for unauthorized direct implementations.
+
+- **Aliases**: none
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--run` | string | no | no | - | Capsule run root to cross-reference active leases and grants. |
+| `--agent` | string | no | no | - | Explicit agent id override to inspect. |
+| `--pid` | int | no | no | - | Process ID override for testing. |
+| `--ppid` | int | no | no | - | Parent Process ID override for testing. |
+
+```bash
+bun harness.ts whoami
+bun harness.ts whoami --run .capsules/<run-id> --agent coordinator-lead
+```
+
 ## install
 
 ### `install`

@@ -103,7 +103,13 @@ export function findCommandRecord(
       const entries = readdirSync(capsulesDir, { withFileTypes: true });
       for (const entry of entries) {
         if (entry.isDirectory()) {
-          const siblingPath = resolve(capsulesDir, entry.name, "commands", commandId, "record.json");
+          const siblingPath = resolve(
+            capsulesDir,
+            entry.name,
+            "commands",
+            commandId,
+            "record.json",
+          );
           if (existsSync(siblingPath)) {
             try {
               const content = readFileSync(siblingPath, "utf-8");
@@ -122,10 +128,7 @@ export function findCommandRecord(
   return null;
 }
 
-export function readCommandOutput(
-  record: CommandRecordCandidate,
-  runRoot: string,
-): string {
+export function readCandidateCommandOutput(record: CommandRecordCandidate, runRoot: string): string {
   if (typeof record.output === "string") {
     return record.output;
   }
@@ -188,8 +191,28 @@ export function outputContainsDefect(output: string, statement: string): boolean
 
   // 2. Word/token match
   const stopWords = new Set([
-    "the", "a", "an", "and", "or", "in", "on", "at", "to", "for", "of", "with",
-    "is", "are", "was", "were", "this", "that", "it", "from", "by", "as",
+    "the",
+    "a",
+    "an",
+    "and",
+    "or",
+    "in",
+    "on",
+    "at",
+    "to",
+    "for",
+    "of",
+    "with",
+    "is",
+    "are",
+    "was",
+    "were",
+    "this",
+    "that",
+    "it",
+    "from",
+    "by",
+    "as",
   ]);
 
   const tokens = normalizedStatement
@@ -211,7 +234,12 @@ export function isPathInRepoRoots(
   repoRoot: string,
 ): boolean {
   if (!targetPath) return false;
-  if (repoRoots.length === 0 || repoRoots.includes(".") || repoRoots.includes("./") || repoRoots.includes("*")) {
+  if (
+    repoRoots.length === 0 ||
+    repoRoots.includes(".") ||
+    repoRoots.includes("./") ||
+    repoRoots.includes("*")
+  ) {
     return true;
   }
 
@@ -219,7 +247,9 @@ export function isPathInRepoRoots(
   const absoluteTarget = resolve(repoRoot, normalizedTarget);
 
   for (const root of repoRoots) {
-    const normalizedRoot = normalize(root).replace(/^[./\\]+/, "").replace(/[/\\]+$/, "");
+    const normalizedRoot = normalize(root)
+      .replace(/^[./\\]+/, "")
+      .replace(/[/\\]+$/, "");
     if (!normalizedRoot || normalizedRoot === ".") return true;
 
     if (normalizedTarget === normalizedRoot || normalizedTarget.startsWith(`${normalizedRoot}/`)) {
@@ -253,7 +283,8 @@ export function executeFalsifier(
       maxBuffer: 10 * 1024 * 1024,
     });
 
-    const timedOut = proc.error !== undefined && "code" in proc.error && proc.error.code === "ETIMEDOUT";
+    const timedOut =
+      proc.error !== undefined && "code" in proc.error && proc.error.code === "ETIMEDOUT";
     const exitCode = timedOut ? null : proc.status;
     const stdout = typeof proc.stdout === "string" ? proc.stdout : "";
     const stderr = typeof proc.stderr === "string" ? proc.stderr : "";
@@ -267,12 +298,15 @@ export function executeFalsifier(
 
 export function parseFalsifierArgv(raw?: readonly string[] | string | null): readonly string[] {
   if (!raw) return [];
-  if (Array.isArray(raw)) return raw.filter((s): s is string => typeof s === "string" && s.length > 0);
+  if (Array.isArray(raw))
+    return raw.filter((s): s is string => typeof s === "string" && s.length > 0);
   if (typeof raw === "string") {
-    return raw
-      .match(/(?:[^\s"']+|"[^"]*"|'[^']*')+/g)
-      ?.map((token) => token.replace(/^["']|["']$/g, ""))
-      ?.filter((s) => s.length > 0) ?? [];
+    return (
+      raw
+        .match(/(?:[^\s"']+|"[^"]*"|'[^']*')+/g)
+        ?.map((token) => token.replace(/^["']|["']$/g, ""))
+        ?.filter((s) => s.length > 0) ?? []
+    );
   }
   return [];
 }
@@ -305,8 +339,7 @@ export function evaluateGate1Witnessed(
       gateNumber,
       name,
       passed: false,
-      reason:
-        "proposals require an owner authority decision ('owner-decision') before admission",
+      reason: "proposals require an owner authority decision ('owner-decision') before admission",
       repairArgv: `bun harness.ts authority:decide --run ${context.runRoot} --requirement ${candidate.id} --decision grant`,
     };
   }
@@ -365,7 +398,7 @@ export function evaluateGate1Witnessed(
     };
   }
 
-  const output = readCommandOutput(record, context.runRoot);
+  const output = readCandidateCommandOutput(record, context.runRoot);
   if (output && !outputContainsDefect(output, candidate.statement)) {
     return {
       gateId,
@@ -595,9 +628,9 @@ export function evaluateGate4Scoped(
   }
 
   // Conflict against other open/admitted candidates
-  const candidates = (Array.isArray(context.state.candidates)
-    ? context.state.candidates
-    : []) as readonly CandidateRecord[];
+  const candidates = (
+    Array.isArray(context.state.candidates) ? context.state.candidates : []
+  ) as readonly CandidateRecord[];
   for (const other of candidates) {
     if (other.id !== candidate.id && (other.status === "opened" || other.status === "admitted")) {
       const otherScope = (other.write_scope ?? []) as readonly string[];
@@ -648,11 +681,15 @@ export function evaluateGate5Affordable(
   }
 
   const mindState = (context.state.mind ?? {}) as Record<string, unknown>;
-  const budget = (context.state.budget ?? mindState.budget ?? DEFAULT_MIND_BUDGET) as Record<string, unknown>;
+  const budget = (context.state.budget ?? mindState.budget ?? DEFAULT_MIND_BUDGET) as Record<
+    string,
+    unknown
+  >;
 
   const pulsesToday = typeof budget.pulses_today === "number" ? budget.pulses_today : 0;
   const pulsesPerDay = typeof budget.pulses_per_day === "number" ? budget.pulses_per_day : 96;
-  const wallClockToday = typeof budget.wall_clock_ms_today === "number" ? budget.wall_clock_ms_today : 0;
+  const wallClockToday =
+    typeof budget.wall_clock_ms_today === "number" ? budget.wall_clock_ms_today : 0;
   const wallClockPerDay =
     typeof budget.wall_clock_ms_per_day === "number" ? budget.wall_clock_ms_per_day : 21600000;
 
@@ -678,11 +715,14 @@ export function evaluateGate5Affordable(
     };
   }
 
-  const agents = (Array.isArray(context.state.agents) ? context.state.agents : []) as readonly Record<string, unknown>[];
+  const agents = (
+    Array.isArray(context.state.agents) ? context.state.agents : []
+  ) as readonly Record<string, unknown>[];
   const activeAgents = agents.filter(
     (a) => a.status === "active" && (a.role === "implementer" || a.role === "validator"),
   );
-  const maxAgents = typeof budget.max_agents_in_flight === "number" ? budget.max_agents_in_flight : 8;
+  const maxAgents =
+    typeof budget.max_agents_in_flight === "number" ? budget.max_agents_in_flight : 8;
 
   if (activeAgents.length >= maxAgents) {
     const firstActiveId = String(activeAgents[0]?.id ?? "agent-1");
@@ -718,9 +758,9 @@ export function evaluateGate6NotADuplicate(
   const gateNumber = 6;
   const name = "Not a duplicate";
 
-  const candidates = (Array.isArray(context.state.candidates)
-    ? context.state.candidates
-    : []) as readonly CandidateRecord[];
+  const candidates = (
+    Array.isArray(context.state.candidates) ? context.state.candidates : []
+  ) as readonly CandidateRecord[];
 
   const scope = (candidate.write_scope ?? []) as readonly string[];
   const statementLower = candidate.statement.trim().toLowerCase();
@@ -734,7 +774,11 @@ export function evaluateGate6NotADuplicate(
     const otherWitnessId = other.witness_command_id?.trim();
 
     if (other.status === "declined") {
-      const isWitnessDup = witnessId && otherWitnessId && witnessId !== "owner-decision" && witnessId === otherWitnessId;
+      const isWitnessDup =
+        witnessId &&
+        otherWitnessId &&
+        witnessId !== "owner-decision" &&
+        witnessId === otherWitnessId;
       const isStatementScopeDup =
         statementLower === otherStatementLower && scopeConflict(scope, otherScope);
       const isProposalDup =
@@ -755,7 +799,11 @@ export function evaluateGate6NotADuplicate(
     }
 
     if (other.status === "opened" || other.status === "admitted") {
-      const isWitnessDup = witnessId && otherWitnessId && witnessId !== "owner-decision" && witnessId === otherWitnessId;
+      const isWitnessDup =
+        witnessId &&
+        otherWitnessId &&
+        witnessId !== "owner-decision" &&
+        witnessId === otherWitnessId;
       const isStatementScopeDup =
         statementLower === otherStatementLower && scopeConflict(scope, otherScope);
 
@@ -780,7 +828,9 @@ export function evaluateGate6NotADuplicate(
       const status = String(task.status);
       if (status === "ready" || status === "leased" || status === "proposed") {
         const taskLabel = typeof task.label === "string" ? task.label.trim().toLowerCase() : "";
-        const taskScope = (Array.isArray(task.write_scope) ? task.write_scope : []) as readonly string[];
+        const taskScope = (
+          Array.isArray(task.write_scope) ? task.write_scope : []
+        ) as readonly string[];
         if (taskLabel === statementLower && scopeConflict(scope, taskScope)) {
           return {
             gateId,

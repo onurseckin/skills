@@ -9,7 +9,6 @@ import {
   type MindCandidate,
 } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/mind-candidate.ts";
 import type { CommandRecord } from "../../../orchestrating-long-tasks/scripts/src/contracts/commands.ts";
-import type { JsonObject } from "../../../orchestrating-long-tasks/scripts/src/contracts/json.ts";
 import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
 import {
   readCommandOutput,
@@ -384,7 +383,7 @@ describe("mind:candidate CLI command", () => {
     expect(candidates[0].witness_command_id).toBe("cmd-real-fail");
 
     // Verify events
-    const events = (readFileSync(join(run, "events.jsonl"), "utf-8"))
+    const events = readFileSync(join(run, "events.jsonl"), "utf-8")
       .split("\n")
       .filter(Boolean)
       .map((line) => JSON.parse(line));

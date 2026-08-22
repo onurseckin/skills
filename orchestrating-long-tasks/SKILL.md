@@ -45,13 +45,15 @@ Do not create a harness for a simple answer, one-file mechanical edit, or short 
 8. Enforce 4-Tier Viewport Resolution Matrix for UI tasks: Desktop-Wide (1920x1080), Desktop (1440x900), Tablet (768x1024), Mobile (390x844). Omitting desktop-wide resolution is a mandatory rejection.
 9. Require quantitative proofs over superficial prose: exit codes, DOM metrics, APCA Lc, screenshots (>=1024B) under `--require-semantic-depth`.
 10. Maintain continuous non-stop loops: auto-chain phases without human intervention; use host timers/schedules (`schedule`) and `pulse.sh` floor loops (`|| true`).
-11. Repository root `.capsules/` invariant: capsules MUST ALWAYS live at the active Git repo root (`<repo-root>/.capsules/`).
+11. Repository root `.capsules/` invariant and Zero `/tmp` Ban: capsules MUST ALWAYS live at the active Git repo root (`<repo-root>/.capsules/`). All skills work, artifacts, reports, and payloads must reside exclusively in `.capsules/` (never `/tmp` or `.tmp/`). Keeping temporary files, scratch artifacts, or run states under `/tmp` or `.tmp/` is strictly prohibited.
 12. Throttle CPU gates to `gate_max_parallel`; reasoners scale to `default_max_parallel` ([`references/configuration.md`](references/configuration.md)).
 13. Scratch workspace isolation: use native host workspace isolation (`Workspace: "branch"` or `"share"`) or git worktrees for disk-mutating concurrent runs.
 14. Consolidation of user pushbacks and self-audits: consolidate all user pushbacks and model self-critiques into canonical documentation.
 15. Strict TypeScript and linter hygiene: zero `any` annotations, casts, or generic defaults, zero compiler/linter suppressions.
-16. Mandatory 5-Minute Supervisory Scheduler & Algorithmic DAG Optimization: Every long task, multi-phase execution, or autonomous mind loop MUST enforce a recurring 5-minute supervisory scheduler (`schedule` cron `*/5 * * * *`, systemd timer, or floor loop) and provide live ASCII DAG introspection (`dag:view`) with algorithmic parallelization recommendations to eliminate serial bottlenecks without main-thread or coordinator direct code editing.
+16. Mandatory 3-Minute Supervisory Scheduler & Algorithmic DAG Optimization: Every long task, multi-phase execution, or autonomous mind loop MUST enforce a recurring 3-minute supervisory scheduler (`schedule` cron `*/3 * * * *`, systemd timer, or floor loop) and provide live ASCII DAG introspection (`dag:view`) with algorithmic parallelization recommendations to eliminate serial bottlenecks without main-thread or coordinator direct code editing.
 17. Infinite Mind Cadence, No Agent-Driven Termination & Background Finalization Isolation: Mind systems and multi-phase orchestrations MUST execute as infinite, non-stop cadence loops unless explicitly halted by the human user. Subagents and coordinators are STRICTLY FORBIDDEN from killing schedulers or terminating pulses. Finalization (git commits, pushes, release sealing, global skill syncing) MUST be executed by the dedicated Tier 1 Background Orchestrator / Tier 0 Mind Runner on its own background thread, NEVER spilled onto the main interactive thread.
+18. Main-Thread Containment Invariant & Thread Authority (`whoami`): The main interactive thread orchestrates top-level flow and dispatches Tier 2 Background Coordinators and Tier 3 subagents via host-native mechanisms (Antigravity: `invoke_subagent`, Claude Code: `Agent`, Codex: `spawn_agent`, Cursor: `Task`). The main thread MUST NEVER directly implement code, run test loops, or ingest/read massive JSON dumps (such as raw `state.json`). Harness command `whoami` (superseding legacy alias thread:identify) inspects thread and process authority to verify execution context; if an agent or thread detects it is operating on the main interactive thread, it must immediately transition execution to background subagents and return to the skill flow.
+19. True Visual Directed Acyclic Graph (DAG) Formatting: Graph introspection (`dag:view`) and supervisory status reports must render true topological DAG representations in ASCII/Unicode boxed format (with boxes, arrows, levels, and active node indicators like `[● ACTIVE]`, `[✓ DONE]`, `[○ READY]`), rather than flat prose, bulleted lists, or vague status words.
 
 ## Route by role
 
@@ -60,8 +62,8 @@ Every agent holds exactly one role; `roles/<role>.md` is its binding contract. L
 | Role (tier)               | Contract + persona                                                                                            | Read for the job                                                                               | Never read                                                                  |
 | :------------------------ | :------------------------------------------------------------------------------------------------------------ | :--------------------------------------------------------------------------------------------- | :-------------------------------------------------------------------------- |
 | `mind` (0)                | [roles/mind.md](roles/mind.md)                                                                                | [host-adapters.md](references/host-adapters.md), [protocol.md](references/protocol.md)         | Execution details; it observes, admits, and deploys tier 1 orchestrators    |
-| `orchestrator` (1)        | [roles/orchestrator.md](roles/orchestrator.md) + [agents/orchestrator.yaml](agents/orchestrator.yaml)         | [host-adapters.md](references/host-adapters.md), [protocol.md](references/protocol.md)         | Any task-level phase; it never claims, implements or replans directly      |
-| `mind-auditor` (1)        | [roles/mind-auditor.md](roles/mind-auditor.md)                                                                | [protocol.md](references/protocol.md), ledger and capsule integrity                            | Mind self-assessment narrative; it audits strictly from verifiable evidence|
+| `orchestrator` (1)        | [roles/orchestrator.md](roles/orchestrator.md) + [agents/orchestrator.yaml](agents/orchestrator.yaml)         | [host-adapters.md](references/host-adapters.md), [protocol.md](references/protocol.md)         | Any task-level phase; it never claims, implements or replans directly       |
+| `mind-auditor` (1)        | [roles/mind-auditor.md](roles/mind-auditor.md)                                                                | [protocol.md](references/protocol.md), ledger and capsule integrity                            | Mind self-assessment narrative; it audits strictly from verifiable evidence |
 | `coordinator` (2)         | [roles/coordinator.md](roles/coordinator.md) + [agents/coordinator.yaml](agents/coordinator.yaml)             | [run-playbook.md](references/run-playbook.md), [host-adapters.md](references/host-adapters.md) | Validator and critic protocols; it may not judge or write code              |
 | `planner` (3)             | [roles/planner.md](roles/planner.md)                                                                          | [schema-examples.md](references/schema-examples.md), playbook Phase 1                          | Anything about validation, branches or sealing                              |
 | `plan-validator` (3)      | [roles/plan-validator.md](roles/plan-validator.md) + [agents/plan-validator.yaml](agents/plan-validator.yaml) | Playbook Phase 1; reviews the compiled graph before any implementer dispatches                 | Implementer reports, task-level findings — it judges the plan, not the code |
@@ -79,18 +81,21 @@ Every agent holds exactly one role; `roles/<role>.md` is its binding contract. L
 ## Route by phase & references
 
 Command sequences: [`references/run-playbook.md`](references/run-playbook.md); rules: [`references/protocol.md`](references/protocol.md).
+
 - **Plan**: `plan:init`, `plan:enhance`, `plan:add` (use `--auto-partition <glob>`, [`references/topology-exemplar.md`](references/topology-exemplar.md)), `plan:compile`, `dag:view`, [`references/schema-examples.md`](references/schema-examples.md).
 - **Dispatch**: `queue:wave`, `agent:register`, [`references/host-adapters.md`](references/host-adapters.md) (main-thread isolation, per-host dispatch).
 - **Execute**: `task:claim`, `run:exec`, `task:submit`, `task:release`, [`references/parity-matrix.md`](references/parity-matrix.md).
 - **Branch**: `branch:open`, `branch:claim`, `branch:submit`, `branch:collect`, [`references/state-model.md`](references/state-model.md).
 - **Validate**: `task:validate-start`, `task:probe`, `task:reject`, `task:review`, [`references/failure-modes.md`](references/failure-modes.md).
 - **Replan & Seal**: `critic:reject`, `plan:replan`, `critic:start`, `critic:review`, `run:complete`.
-- **Recover & Inspect**: `recover`, `doctor`, `summary:export`, `summary:view`, `dag:view`, [`references/cli.md`](references/cli.md), [`references/cli-capabilities.md`](references/cli-capabilities.md) ([`references/cli-capabilities.json`](references/cli-capabilities.json)).
+- **Recover & Inspect**: `recover`, `doctor`, `summary:export`, `summary:view`, `dag:view`, `whoami`, [`references/cli.md`](references/cli.md), [`references/cli-capabilities.md`](references/cli-capabilities.md) ([`references/cli-capabilities.json`](references/cli-capabilities.json)).
 
 ## Critical Anti-Patterns & Operational Guardrails
 
-- **Main-Thread Fallback**: Never edit files or run tests on main thread. Main thread only dispatches parallel Tier 3 subagents.
-- **Missing Supervisory Schedule / Silent Task Halts**: Never leave background tasks unmonitored or terminate schedulers on idle ticks. Always register a 5-minute supervisory cron/timer (`schedule` or systemd).
+- **Main-Thread Fallback & Context Flooding**: Never edit files, run test loops, or ingest massive JSON payloads (such as raw `state.json`) on the main interactive thread. Main thread only orchestrates and dispatches parallel Tier 2 Coordinators and Tier 3 subagents via host-native subagents (Antigravity: `invoke_subagent`, Claude Code: `Agent`, Codex: `spawn_agent`, Cursor: `Task`). Enforce thread boundaries via `whoami`.
+- **Temporary Directory Leakage (Zero /tmp Ban)**: Never store state, artifacts, scratch files, or reports under `/tmp` or `.tmp/`. All skills work, artifacts, reports, and payloads must reside exclusively in `<repo-root>/.capsules/`.
+- **Missing Supervisory Schedule / 3-Minute Watchdog**: Never leave background tasks unmonitored or terminate schedulers on idle ticks. Always register a recurring 3-minute supervisory cron/timer (`schedule` cron `*/3 * * * *`, systemd timer, or floor loop).
+- **Prose-Only or List-Only DAG Reports**: Never represent graph status as flat text lists or generic status adjectives ("satisfied", "done"). Always render True Visual DAGs in ASCII/Unicode boxed format with topological levels and active node indicators (`dag:view`).
 - **Sequential Execution Simulation**: Never serialize disjoint tasks when parallel wave subagents can be dispatched. Inspect and optimize the DAG via `dag:view`.
 - **Coordinator Code Pollution**: Never let coordinators or supervisors write code directly.
 - **Viewport Omission**: Never test single viewport. Visual UI tasks require all 4: Desktop-Wide (1920x1080), Desktop (1440x900), Tablet (768x1024), Mobile (390x844).
@@ -105,4 +110,5 @@ Check flags in [`references/cli-capabilities.json`](references/cli-capabilities.
 ```bash
 bun orchestrating-long-tasks/scripts/harness.ts help <command>
 ```
+
 Explain errors: `explain --code <CODE>` (or `--command <name>`).

@@ -134,8 +134,7 @@ export function reclaimDeadPulse(
   const haltReason = shouldHalt ? "consecutive pulse crashes threshold exceeded" : undefined;
   const evidence = "no close within deadline";
 
-  const reclaimActor =
-    options.actor ?? (typeof open.actor === "string" ? open.actor : "mind");
+  const reclaimActor = options.actor ?? (typeof open.actor === "string" ? open.actor : "mind");
 
   transact(
     runRoot,
@@ -161,7 +160,9 @@ export function reclaimDeadPulse(
         closed_at: nowIso,
         outcome: "crashed",
         value: 0,
-        armed_interval_ms: shouldHalt ? null : ((workingLast.armed_interval_ms as number) ?? 900_000),
+        armed_interval_ms: shouldHalt
+          ? null
+          : ((workingLast.armed_interval_ms as number) ?? 900_000),
         armed_at: shouldHalt ? null : nowIso,
         arm_mechanism: shouldHalt ? null : "crash-recovery",
         next_wake_at: null,

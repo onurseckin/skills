@@ -8,10 +8,7 @@ import { HarnessError } from "../../errors/harness-error.ts";
 import { readPlanObject } from "../../graph/read-plan.ts";
 import { refreshHandoff } from "../../reporting/handoff.ts";
 import { workflowPort } from "../../integration/store-ports.ts";
-import {
-  repositoryGit,
-  type RepositoryGitCommand,
-} from "../../packets/repository-git-command.ts";
+import { repositoryGit, type RepositoryGitCommand } from "../../packets/repository-git-command.ts";
 import { hasRepositoryGitMetadata } from "../../packets/repository-git-metadata.ts";
 import { publishTaskRolePacket } from "../../packets/role-grant.ts";
 import { loadRun } from "../../store/index.ts";

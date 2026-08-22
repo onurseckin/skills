@@ -189,7 +189,9 @@ describe("workflow submissions", () => {
     const findings = result.state.tasks["T-1"]!.findings ?? [];
     expect(findings).toHaveLength(2);
     expect(findings[0]!.id).toBe("F-existing");
-    expect(findings.some((finding) => finding.observation.includes("unrelated/rogue.json"))).toBeTrue();
+    expect(
+      findings.some((finding) => finding.observation.includes("unrelated/rogue.json")),
+    ).toBeTrue();
   });
 
   test("C10: no finding is raised when every changed path is covered by a declared write_scope", () => {

@@ -173,7 +173,7 @@ Everything in this section was opened. This is the inventory the design is allow
 
 ### 2.1 Correct, load-bearing, and reusable as-is
 
-| Mechanism                       | Where                                                | Why it matters to the mind                                                                                                                                      |
+| Mechanism                       | Where                                                | Why it matters to the mind                                                                                                                                           |
 | :------------------------------ | :--------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Re-entrant supervision tick     | `orchestrator/supervision-tick.ts`                   | The pulse's recovery half. Pure function of state + clock; safe to call from cron.                                                                                   |
 | Single-tick-without-dispatcher  | `orchestrator/supervisor.ts:233-234`                 | `dispatcher === undefined` → `stopReason: "single_tick"`. The externally driven mode already exists.                                                                 |
@@ -182,7 +182,7 @@ Everything in this section was opened. This is the inventory the design is allow
 | Failure classifier              | `orchestrator/failure-classifier.ts`                 | `rate_limit`/`network`/`provider_5xx`/`timeout` transient and unbounded in count, bounded in elapsed time (4 h default). Exponential backoff with jitter.            |
 | Morning report                  | `orchestrator/morning-report.ts`                     | Completed / escalated / awaiting-repair / dead-agents-reclaimed / retries / run span / backoff / occupancy. Verified rendering against a real capsule.               |
 | Revision guard                  | `graph/revision-guard.ts`                            | Frozen requirement contract, mutable interior; revision must increase by exactly one. The shape §8 copies one level up.                                              |
-| Role-contract command authority | `packets/command-authority.ts` + `cli/execute.ts:29` | The CLI refuses a command the acting agent's role contract does not list. **This is the rail the mind extends.**                                                |
+| Role-contract command authority | `packets/command-authority.ts` + `cli/execute.ts:29` | The CLI refuses a command the acting agent's role contract does not list. **This is the rail the mind extends.**                                                     |
 | Evidence spine                  | `references/protocol.md:23-36`                       | `harness_observed` / `agent_reported` / `host_reported` / `derived` / `unknown`. Absent stays absent.                                                                |
 | Per-agent telemetry ledger      | `contracts/agents.ts:AgentGrantRecord`               | `model`, `model_tier`, `thinking_level`, `context_window`, `tokens_in/out` — each `Evidenced<T>`. The substrate for §10.                                             |
 | Host capability probe           | `summary/host-telemetry.ts:HostCapabilities`         | `nesting_depth`, `concurrency_ceiling`, `native_workspace_isolation`, `native_resume`, `per_agent_model_selection`, `multi_agent_enabled`.                           |
@@ -934,7 +934,7 @@ Naming the failures makes the rules checkable.
 | Re-proposing last night's declined idea    | Gate 6 remembers declines                                                                      |
 | Fixing the same drift finding twice        | Gate 6 duplicate-scope check                                                                   |
 | A dozen shallow tasks to look productive   | One lane per pulse; round budget in the packet                                                 |
-| Rewriting the goal to match what it did    | The charter guard (§8); the mind holds no write on the charter                            |
+| Rewriting the goal to match what it did    | The charter guard (§8); the mind holds no write on the charter                                 |
 | "≥5 validator pushbacks" quota-filled work | **No prompt anywhere states a target count.** §12.4                                            |
 | Churning a file to make the mtime move     | `task:submit`'s C4 no-op refusal                                                               |
 
@@ -1601,7 +1601,7 @@ Stated plainly, including the ones I could not resolve.
 | Two drivers armed at once (e.g. cron _and_ an in-session loop)                | medium                 | The measured `INTEGRITY` race, repeatedly                         | `flock -n` exits 0 rather than queueing; single-writer rule                                              |
 | Overnight token burn on a repo that was already clean                         | medium                 | Money for nothing                                                 | Quiescent backoff to a 4 h ceiling; value-per-pulse throttle; budget refusals                            |
 | The auditor becomes a rubber stamp, exactly as the 29/29 validator passes did | medium                 | The top-level check silently stops checking                       | Planted-defect suite; fixed questionnaire; every answer cites a command id                               |
-| Gates are weak, so the mind certifies weak work faster                   | **high** in most repos | Confident wrongness at scale                                      | The charter must name every lane; `gate:prove`; §12.3                                                    |
+| Gates are weak, so the mind certifies weak work faster                        | **high** in most repos | Confident wrongness at scale                                      | The charter must name every lane; `gate:prove`; §12.3                                                    |
 | A container with push credentials pushes something at 4 a.m.                  | low but severe         | Real damage to a shared branch                                    | No push remote on the box (§11.4) — a capability removed, not a rule added                               |
 | Small models mis-execute the _judgement_ steps (admission, proposals)         | **high**               | Bad candidates admitted, good ones declined                       | Every judgement step is structurally bounded — a witness or nothing; the auditor re-tests admissions     |
 

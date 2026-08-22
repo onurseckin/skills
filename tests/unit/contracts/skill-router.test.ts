@@ -60,7 +60,7 @@ describe("SKILL.md is a router, not a manual", () => {
   });
 
   test("every command it names resolves in the command registry", () => {
-    const known = new Set(COMMAND_REGISTRY.map((spec) => spec.name));
+    const known = new Set(COMMAND_REGISTRY.flatMap((spec) => [spec.name, ...spec.aliases]));
     const named = namedCommands(skill);
     expect(named.length).toBeGreaterThan(15);
     for (const command of named) expect(known).toContain(command);

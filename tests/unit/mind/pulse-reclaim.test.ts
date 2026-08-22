@@ -5,9 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
 import { readLastPulse } from "../../../orchestrating-long-tasks/scripts/src/mind/last-pulse.ts";
-import {
-  reclaimDeadPulse,
-} from "../../../orchestrating-long-tasks/scripts/src/mind/pulse-reclaim.ts";
+import { reclaimDeadPulse } from "../../../orchestrating-long-tasks/scripts/src/mind/pulse-reclaim.ts";
 import { loadRun } from "../../../orchestrating-long-tasks/scripts/src/store/load.ts";
 import { initRun } from "../../../orchestrating-long-tasks/scripts/src/store/capsule.ts";
 import { transact } from "../../../orchestrating-long-tasks/scripts/src/store/transaction.ts";
@@ -40,7 +38,9 @@ function setupTestCapsule(
     readonly mindHaltReason?: string;
   } = {},
 ): CapsuleFixture {
-  const repo = mkdtempSync(join(tmpdir(), `pulse-reclaim-test-${name}-${Math.random().toString(36).slice(2)}-`));
+  const repo = mkdtempSync(
+    join(tmpdir(), `pulse-reclaim-test-${name}-${Math.random().toString(36).slice(2)}-`),
+  );
   roots.push(repo);
 
   const charterDir = join(repo, "docs", "mind");
@@ -51,7 +51,13 @@ function setupTestCapsule(
   writeFileSync(charterPath, charterContent, "utf-8");
   const charterSha = createHash("sha256").update(charterContent).digest("hex");
 
-  const run = initRun(repo, `mind-gen-${name}`, new TextEncoder().encode(charterContent), "file", true);
+  const run = initRun(
+    repo,
+    `mind-gen-${name}`,
+    new TextEncoder().encode(charterContent),
+    "file",
+    true,
+  );
 
   transact(
     run,
@@ -240,7 +246,9 @@ describe("reclaimDeadPulse — Dead Pulse Reclamation", () => {
         expect(err).toBeInstanceOf(HarnessError);
         const harnessErr = err as HarnessError;
         expect(harnessErr.code).toBe("INVALID_ARGUMENT");
-        expect(harnessErr.message).toContain("pulse id 'pulse-99' does not match open pulse id 'pulse-42'");
+        expect(harnessErr.message).toContain(
+          "pulse id 'pulse-99' does not match open pulse id 'pulse-42'",
+        );
       }
 
       // Verify state was not modified

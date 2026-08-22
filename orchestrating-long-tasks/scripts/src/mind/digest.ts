@@ -95,11 +95,13 @@ export interface BuildEscalationDigestOptions {
     | undefined;
   readonly events?: readonly Record<string, unknown>[] | undefined;
   readonly state?: Record<string, unknown> | undefined;
-  readonly liveRuns?: readonly {
-    readonly runId: string;
-    readonly runRoot?: string | undefined;
-    readonly state?: Record<string, unknown> | undefined;
-  }[] | undefined;
+  readonly liveRuns?:
+    | readonly {
+        readonly runId: string;
+        readonly runRoot?: string | undefined;
+        readonly state?: Record<string, unknown> | undefined;
+      }[]
+    | undefined;
   readonly capsulesDir?: string | undefined;
   readonly mindRunRoot?: string | undefined;
   readonly windowSize?: number | undefined;
@@ -151,9 +153,11 @@ export function extractRunSignals(
         if (escObj.resolved_at === null || escObj.resolved_at === undefined) {
           const id = typeof escObj.id === "string" ? escObj.id : "escalation";
           const taskId = typeof escObj.task_id === "string" ? escObj.task_id : undefined;
-          const reason = typeof escObj.reason === "string" ? escObj.reason : "unknown escalation reason";
+          const reason =
+            typeof escObj.reason === "string" ? escObj.reason : "unknown escalation reason";
           const evidence = typeof escObj.evidence === "string" ? escObj.evidence : undefined;
-          const escalatedAt = typeof escObj.escalated_at === "string" ? escObj.escalated_at : undefined;
+          const escalatedAt =
+            typeof escObj.escalated_at === "string" ? escObj.escalated_at : undefined;
           const commandSource =
             typeof escObj.command_id === "string"
               ? escObj.command_id
@@ -188,13 +192,16 @@ export function extractRunSignals(
     for (const [taskId, task] of Object.entries(tasksObj)) {
       if (task.status === "escalated") {
         const alreadyListed = escalations.some(
-          (e) => (e.taskId === taskId || e.escalationId === taskId) && (!runId || e.runId === runId),
+          (e) =>
+            (e.taskId === taskId || e.escalationId === taskId) && (!runId || e.runId === runId),
         );
         if (!alreadyListed) {
-          const escId = typeof task.escalation_id === "string" ? task.escalation_id : `esc-${taskId}`;
+          const escId =
+            typeof task.escalation_id === "string" ? task.escalation_id : `esc-${taskId}`;
           const reason =
             typeof task.escalation_reason === "string" ? task.escalation_reason : "task escalated";
-          const evidence = typeof task.escalation_evidence === "string" ? task.escalation_evidence : undefined;
+          const evidence =
+            typeof task.escalation_evidence === "string" ? task.escalation_evidence : undefined;
           const commandSource =
             typeof task.last_command_id === "string"
               ? task.last_command_id
@@ -345,8 +352,7 @@ export function extractRunSignals(
 
   for (const gate of gateItems) {
     const isFailed =
-      gate.status === "failed" ||
-      (typeof gate.exit_code === "number" && gate.exit_code !== 0);
+      gate.status === "failed" || (typeof gate.exit_code === "number" && gate.exit_code !== 0);
 
     if (isFailed) {
       const gateId = typeof gate.id === "string" ? gate.id : "gate";
@@ -354,7 +360,9 @@ export function extractRunSignals(
       const cmd =
         Array.isArray(gate.command) || typeof gate.command === "string"
           ? (gate.command as readonly string[] | string)
-          : (Array.isArray(gate.argv) ? (gate.argv as readonly string[]) : "unknown-gate-command");
+          : Array.isArray(gate.argv)
+            ? (gate.argv as readonly string[])
+            : "unknown-gate-command";
       const exitCode = typeof gate.exit_code === "number" ? gate.exit_code : undefined;
       const snippet =
         typeof gate.failure_snippet === "string"
@@ -512,7 +520,10 @@ export function extractRunSignals(
     const reqList: Record<string, unknown>[] = Array.isArray(state.requirements)
       ? (state.requirements as Record<string, unknown>[])
       : Array.isArray((state.requirements as Record<string, unknown>).requirements)
-        ? ((state.requirements as Record<string, unknown>).requirements as Record<string, unknown>[])
+        ? ((state.requirements as Record<string, unknown>).requirements as Record<
+            string,
+            unknown
+          >[])
         : (Object.values(state.requirements) as Record<string, unknown>[]);
 
     for (const req of reqList) {
@@ -684,7 +695,10 @@ export function buildEscalationDigest(
   if (options.mindRunRoot && existsSync(options.mindRunRoot) && !options.state) {
     try {
       const loaded = loadRun(options.mindRunRoot, false);
-      const extracted = extractRunSignals(loaded.state as Record<string, unknown>, basename(options.mindRunRoot));
+      const extracted = extractRunSignals(
+        loaded.state as Record<string, unknown>,
+        basename(options.mindRunRoot),
+      );
       for (const f of extracted.findings) registerFinding(f);
       for (const g of extracted.gates) registerGate(g);
       for (const e of extracted.escalations) registerEscalation(e);
@@ -718,7 +732,10 @@ export function buildEscalationDigest(
         }));
         trailingValueSeries = generateTrailingValueSeries(points, windowSize);
       } else {
-        trailingValueSeries = generateTrailingValueSeries(arr as readonly TrailingValuePoint[], windowSize);
+        trailingValueSeries = generateTrailingValueSeries(
+          arr as readonly TrailingValuePoint[],
+          windowSize,
+        );
       }
     } else {
       trailingValueSeries = generateTrailingValueSeries([], windowSize);
@@ -903,9 +920,7 @@ export function formatOwnerDigestMarkdown(
       ? ["  - none"]
       : digest.openFindings.map(formatFindingLine)),
     `- **Failing gates**: ${digest.failingGates.length}`,
-    ...(digest.failingGates.length === 0
-      ? ["  - none"]
-      : digest.failingGates.map(formatGateLine)),
+    ...(digest.failingGates.length === 0 ? ["  - none"] : digest.failingGates.map(formatGateLine)),
     `- **Escalations (needs human decision)**: ${digest.escalations.length}`,
     ...(digest.escalations.length === 0
       ? ["  - none"]
@@ -936,4 +951,3 @@ export function formatEscalationDigestMarkdown(
     includeTrailingValueSeries: includeTrailing,
   });
 }
-

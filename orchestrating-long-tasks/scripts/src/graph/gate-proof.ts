@@ -256,15 +256,23 @@ function effectiveRevertScope(
   writeScope: readonly string[],
   gateArgv: readonly string[],
 ): readonly string[] {
-  const isTestCommand =
+  const isBunTest = gateArgv.length >= 2 && gateArgv[0] === "bun" && gateArgv[1] === "test";
+  const isOtherTest =
     gateArgv.length >= 2 &&
-    ((gateArgv[0] === "bun" && gateArgv[1] === "test") ||
-      gateArgv[0] === "vitest" ||
-      gateArgv[0] === "jest" ||
-      gateArgv[0] === "pytest");
-  if (!isTestCommand) return writeScope;
-  const gateTestPaths = new Set(gateArgv.slice(1).map(normalizeScopePath));
-  const filtered = writeScope.filter((raw) => !gateTestPaths.has(normalizeScopePath(raw)));
+    (gateArgv[0] === "vitest" || gateArgv[0] === "jest" || gateArgv[0] === "pytest");
+  if (!isBunTest && !isOtherTest) return writeScope;
+
+  const rawTestPaths = isBunTest ? gateArgv.slice(2) : gateArgv.slice(1);
+  const gateTestPaths = rawTestPaths
+    .filter((arg) => !arg.startsWith("-"))
+    .map(normalizeScopePath);
+
+  const filtered = writeScope.filter((raw) => {
+    const norm = normalizeScopePath(raw);
+    return !gateTestPaths.some(
+      (testPath) => testPath === norm || testPath.startsWith(`${norm}/`),
+    );
+  });
   return filtered.length > 0 ? filtered : writeScope;
 }
 

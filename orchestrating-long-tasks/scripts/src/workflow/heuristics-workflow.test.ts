@@ -4,26 +4,18 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   calculateApcaLightness,
-  evaluateCognitiveQuestions,
   formatManifestFilename,
   isCertifiedManifest,
   loadCompanionManifest,
   saveCompanionManifest,
   synthesizeCompanionManifest,
   validateApcaElement,
-  validateAppleOpticalTracking,
-  validateClsReservation,
-  validateCognitive,
   validateConcentricRadius,
   validateCustom,
   validateFloatingUiCollision,
-  validateGeistTokens,
   validateMaterialStateLayers,
   validateMechanical,
-  validateSidebarLayout,
   validateSubpixelSnapping,
-  validateTouchTargetClearance,
-  validateTouchTargetDimensions,
   validateWaiAriaFocusTrap,
 } from "../capture/validator/index.ts";
 import type {
@@ -38,9 +30,7 @@ import {
 import { createSyntheticPngBuffer } from "../capture/runners/live-capture-runner.ts";
 import {
   analyzeDualChannel,
-  isUiScope,
   validateCompanionManifestCriteria,
-  validateCrossChannelConsistency,
 } from "../validation/dual-channel-analyzer.ts";
 import type {
   CompanionManifestData,
@@ -49,12 +39,7 @@ import type {
   StructuredFinding,
   VisualMetricsReport,
 } from "../validation/dual-channel-types.ts";
-import { extractDomViolations } from "../validation/dom-violation-extractor.ts";
-import {
-  assertRoleArtifactPresent,
-  classifiesAsUiTask,
-  taskClassificationTexts,
-} from "./review/role-evidence.ts";
+import { assertRoleArtifactPresent } from "./review/role-evidence.ts";
 import type { TaskRecord, WorkflowState } from "./types.ts";
 import { HarnessError } from "../errors/harness-error.ts";
 
@@ -95,7 +80,8 @@ describe("Adversarial Edge Cases: Nested Glass Surfaces & Translucency", () => {
   it("evaluates 5+ deeply nested translucent glass layers without stack overflow or NaN values", () => {
     // Construct a 5-level deep hierarchy of translucent glass surfaces
     const level5: ElementPhysicsSnapshot = {
-      selector: "div.glass-container > div.glass-l1 > div.glass-l2 > div.glass-l3 > span.glass-label",
+      selector:
+        "div.glass-container > div.glass-l1 > div.glass-l2 > div.glass-l3 > span.glass-label",
       tagName: "SPAN",
       text: "Deep Glass Surface Content",
       bounds: { x: 140, y: 140, width: 200, height: 24 },
@@ -241,7 +227,7 @@ describe("Adversarial Edge Cases: Nested Glass Surfaces & Translucency", () => {
       tagName: "BUTTON",
       bounds: { x: 10, y: 10, width: 100, height: 48 },
       stateLayers: {
-        hover: 0.60,
+        hover: 0.6,
         focus: 0.01,
         pressed: 0.0,
         dragged: 0.99,
@@ -543,7 +529,11 @@ describe("Adversarial Edge Cases: Multi-Viewport Companion Manifest Verification
 
     const res = validateCompanionManifestCriteria(manifestMissingMech, addFinding);
     expect(res.valid).toBe(false);
-    expect(findings.some((f) => f.category === "missing_pillar_criteria" && f.message.includes("Mechanical"))).toBe(true);
+    expect(
+      findings.some(
+        (f) => f.category === "missing_pillar_criteria" && f.message.includes("Mechanical"),
+      ),
+    ).toBe(true);
   });
 
   it("rejects unevidenced evaluations (missing passed flag, empty details and evidence)", () => {
@@ -565,8 +555,18 @@ describe("Adversarial Edge Cases: Multi-Viewport Companion Manifest Verification
 
     const res = validateCompanionManifestCriteria(unevidencedManifest, addFinding);
     expect(res.valid).toBe(false);
-    expect(findings.some((f) => f.category === "invalid_manifest_criterion" && f.message.includes("passed"))).toBe(true);
-    expect(findings.some((f) => f.category === "invalid_manifest_criterion" && f.message.includes("non-empty 'details' or 'evidence'"))).toBe(true);
+    expect(
+      findings.some(
+        (f) => f.category === "invalid_manifest_criterion" && f.message.includes("passed"),
+      ),
+    ).toBe(true);
+    expect(
+      findings.some(
+        (f) =>
+          f.category === "invalid_manifest_criterion" &&
+          f.message.includes("non-empty 'details' or 'evidence'"),
+      ),
+    ).toBe(true);
   });
 
   it("rejects dual-channel UI task when required viewports are missing", () => {
@@ -621,7 +621,9 @@ describe("Adversarial Edge Cases: Multi-Viewport Companion Manifest Verification
     expect(result.mode).toBe("rejected");
     const stubFindings = result.findings.filter((f) => f.category === "invalid_screenshot_size");
     expect(stubFindings.length).toBe(3);
-    expect(stubFindings.some((f) => f.message.includes("Anti-Mocking Invariant Violation"))).toBe(true);
+    expect(stubFindings.some((f) => f.message.includes("Anti-Mocking Invariant Violation"))).toBe(
+      true,
+    );
   });
 
   it("passes multi-viewport companion manifest verification with genuine screenshots >= 1024 bytes", () => {
@@ -694,7 +696,9 @@ describe("Adversarial Edge Cases: Multi-Viewport Companion Manifest Verification
     expect(audit.passed).toBe(true);
     expect(audit.mode).toBe("screenshot_gap_filled");
     expect(audit.proofs).toHaveLength(3);
-    expect(audit.proofs.some((p) => p.verifiedInvariants.includes("manifest_4_pillars_certified"))).toBe(true);
+    expect(
+      audit.proofs.some((p) => p.verifiedInvariants.includes("manifest_4_pillars_certified")),
+    ).toBe(true);
   });
 
   it("enforces assertRoleArtifactPresent constraints across UI and non-UI domains", () => {
@@ -764,7 +768,9 @@ describe("Adversarial Edge Cases: Multi-Viewport Companion Manifest Verification
       expect(isCertifiedManifest(manifest)).toBe(true);
 
       const filePath = await saveCompanionManifest(manifest, tempDir);
-      expect(formatManifestFilename(manifest.screenId, manifest.viewport)).toBe("checkout-screen-mobile.manifest.json");
+      expect(formatManifestFilename(manifest.screenId, manifest.viewport)).toBe(
+        "checkout-screen-mobile.manifest.json",
+      );
 
       const loaded = await loadCompanionManifest(filePath);
       expect(loaded.version).toBe("2.0");
@@ -784,13 +790,32 @@ describe("Static Invariant Verification: Zero TypeScript any & Zero Suppressions
     const content = await readFile(thisFilePath, "utf8");
     const lines = content.split("\n");
 
-    const forbiddenAnyForms = [":" + " any", "as" + " any", "<" + "any>", "Promise<" + "any>", "Record<string," + " any>"];
-    const forbiddenSupTokens = ["@" + "ts-ignore", "@" + "ts-expect-error", "@" + "ts-nocheck", "eslint-" + "disable", "oxlint-" + "disable"];
+    const forbiddenAnyForms = [
+      ":" + " any",
+      "as" + " any",
+      "<" + "any>",
+      "Promise<" + "any>",
+      "Record<string," + " any>",
+    ];
+    const forbiddenSupTokens = [
+      "@" + "ts-ignore",
+      "@" + "ts-expect-error",
+      "@" + "ts-nocheck",
+      "eslint-" + "disable",
+      "oxlint-" + "disable",
+    ];
+
+    const invariantBlockIdx = lines.findIndex((l) =>
+      l.includes("Static Invariant Verification: Zero TypeScript any"),
+    );
 
     const invalidLines = lines.filter((line, idx) => {
       // Ignore the static invariant test block itself
-      if (idx > 775) return false;
-      return forbiddenAnyForms.some((token) => line.includes(token)) || forbiddenSupTokens.some((token) => line.includes(token));
+      if (invariantBlockIdx !== -1 && idx >= invariantBlockIdx) return false;
+      return (
+        forbiddenAnyForms.some((token) => line.includes(token)) ||
+        forbiddenSupTokens.some((token) => line.includes(token))
+      );
     });
 
     expect(invalidLines).toEqual([]);

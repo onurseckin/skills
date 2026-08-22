@@ -142,7 +142,10 @@ export function getPhysicalRoundingError(val: number, dpr: number): number {
  * Snap CSS pixel values or bounding box coordinates to the nearest physical device pixel boundary.
  */
 export function snapToDevicePixels(input: number, dpr: number): number;
-export function snapToDevicePixels(input: SubpixelElementBounds, dpr: number): SubpixelElementBounds;
+export function snapToDevicePixels(
+  input: SubpixelElementBounds,
+  dpr: number,
+): SubpixelElementBounds;
 export function snapToDevicePixels(
   input: number | SubpixelElementBounds,
   dpr: number,
@@ -202,7 +205,10 @@ export function evaluateAntiAliasingEdgeContrast(
   return {
     dpr,
     physicalWidth: Number(physicalWidth.toFixed(4)),
-    fractionalCoverage: physicalWidth < 1 ? Number(physicalWidth.toFixed(4)) : Number((physicalWidth % 1 || 1).toFixed(4)),
+    fractionalCoverage:
+      physicalWidth < 1
+        ? Number(physicalWidth.toFixed(4))
+        : Number((physicalWidth % 1 || 1).toFixed(4)),
     isCrisp,
     edgeContrastFactor: Number(edgeContrastFactor.toFixed(4)),
     roundingError: Number(roundingError.toFixed(4)),
@@ -224,7 +230,9 @@ export function evaluateEdgeContrast(
   const roundingError = Math.abs(physicalWidth - nearest);
   const contrastFactor = Math.max(0.2, 1 - roundingError * 1.2);
   const effectiveContrastRatio = Number((nominalContrastRatio * contrastFactor).toFixed(2));
-  const contrastDegradationPct = Number(((1 - effectiveContrastRatio / nominalContrastRatio) * 100).toFixed(1));
+  const contrastDegradationPct = Number(
+    ((1 - effectiveContrastRatio / nominalContrastRatio) * 100).toFixed(1),
+  );
   const isCrisp = roundingError <= 0.05;
   const passesContrastThreshold = effectiveContrastRatio >= minThreshold;
 
@@ -315,7 +323,8 @@ export function evaluateSubpixelDrift(
   }
 
   const isCrispOnAllDprs = blurredDprs.length === 0;
-  const recommendedCssWidth = borderWidthCss > 0 ? snapToDevicePixels(borderWidthCss, 1.0) || 1.0 : 0;
+  const recommendedCssWidth =
+    borderWidthCss > 0 ? snapToDevicePixels(borderWidthCss, 1.0) || 1.0 : 0;
 
   return {
     cssWidth: borderWidthCss,
@@ -394,9 +403,12 @@ export function parseTransformTranslations(
 /**
  * Normalize border widths input to standard 4-edge object.
  */
-export function normalizeBorderWidths(
-  input?: SubpixelBorderWidths | number,
-): { readonly top: number; readonly right: number; readonly bottom: number; readonly left: number } {
+export function normalizeBorderWidths(input?: SubpixelBorderWidths | number): {
+  readonly top: number;
+  readonly right: number;
+  readonly bottom: number;
+  readonly left: number;
+} {
   if (typeof input === "number") {
     return { top: input, right: input, bottom: input, left: input };
   }
@@ -482,7 +494,8 @@ export function validateSubpixelBorders(
       }
 
       // Check fractional border rasterization (tolerance threshold: 0.08 physical pixel)
-      const hasBorder = borders.top > 0 || borders.right > 0 || borders.bottom > 0 || borders.left > 0;
+      const hasBorder =
+        borders.top > 0 || borders.right > 0 || borders.bottom > 0 || borders.left > 0;
       if (hasBorder && (topErr > 0.08 || rightErr > 0.08 || bottomErr > 0.08 || leftErr > 0.08)) {
         const artifactMsg = `Fractional physical border at ${dpr}x DPR (T=${physTop.toFixed(2)}px, R=${physRight.toFixed(2)}px, B=${physBottom.toFixed(2)}px, L=${physLeft.toFixed(2)}px)`;
         if (!dprArtifacts.includes(artifactMsg)) {
@@ -643,4 +656,3 @@ export function validateElementSubpixelPhysics(
  * Alias for validateElementSubpixelPhysics.
  */
 export const evaluateElementSubpixelPhysics = validateElementSubpixelPhysics;
-

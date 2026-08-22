@@ -12,7 +12,9 @@ describe("processSnapshot", () => {
   });
 
   test("skips lines that do not match the pid/ppid/pgid shape", async () => {
-    const processes = await processSnapshot(async () => "not a process line\n  7  8  9  \nabc def ghi\n");
+    const processes = await processSnapshot(
+      async () => "not a process line\n  7  8  9  \nabc def ghi\n",
+    );
     expect(processes).toEqual(new Map([[7, { pid: 7, parent: 8, group: 9 }]]));
   });
 

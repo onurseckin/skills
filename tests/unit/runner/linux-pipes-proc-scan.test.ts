@@ -25,7 +25,13 @@ async function fakeProc(label: string): Promise<string> {
   return root;
 }
 
-function statLine(pid: number, parent: number, group: number, birth: string, comm = "name"): string {
+function statLine(
+  pid: number,
+  parent: number,
+  group: number,
+  birth: string,
+  comm = "name",
+): string {
   const fields = ["S", String(parent), String(group), ...Array(16).fill("0"), birth];
   return `${pid} (${comm}) ${fields.join(" ")}`;
 }

@@ -10,7 +10,7 @@ export function formatManifestFilename(screenId: string, viewport: string): stri
 
 export async function saveCompanionManifest(
   manifest: CompanionManifestV2,
-  outputDir: string
+  outputDir: string,
 ): Promise<string> {
   const filename = formatManifestFilename(manifest.screenId, manifest.viewport);
   const targetPath = join(outputDir, filename);
@@ -26,7 +26,11 @@ export async function loadCompanionManifest(filePath: string): Promise<Companion
   const raw = await readFile(filePath, "utf8");
   const parsed: unknown = JSON.parse(raw);
 
-  if (!parsed || typeof parsed !== "object" || (parsed as { version?: unknown }).version !== "2.0") {
+  if (
+    !parsed ||
+    typeof parsed !== "object" ||
+    (parsed as { version?: unknown }).version !== "2.0"
+  ) {
     throw new Error(`Invalid Companion Manifest v2.0 file at ${filePath}`);
   }
 

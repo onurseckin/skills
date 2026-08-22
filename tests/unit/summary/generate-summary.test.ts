@@ -2,7 +2,10 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
-import type { RunFiles, RunState } from "../../../orchestrating-long-tasks/scripts/src/contracts/capsule.ts";
+import type {
+  RunFiles,
+  RunState,
+} from "../../../orchestrating-long-tasks/scripts/src/contracts/capsule.ts";
 import {
   generateSummarySuite,
   loadCommandsFromDir,
@@ -40,7 +43,10 @@ describe("generateSummarySuite", () => {
     const runRoot = tempRoot();
     const loaded = fakeRunFiles(runRoot);
 
-    const suite = generateSummarySuite({ capsulePath: "unused-when-readRun-is-injected" }, () => loaded);
+    const suite = generateSummarySuite(
+      { capsulePath: "unused-when-readRun-is-injected" },
+      () => loaded,
+    );
 
     const summaryDir = join(runRoot, "summary");
     expect(existsSync(summaryDir)).toBe(true);

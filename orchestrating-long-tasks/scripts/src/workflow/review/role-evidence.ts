@@ -57,7 +57,11 @@ export function classifiesAsUiTask(
 
 export interface RoleArtifactEvidence {
   readonly hasArtifact: boolean;
-  readonly screenshots?: readonly { readonly sizeBytes?: number; readonly bytes?: number; readonly name?: string }[];
+  readonly screenshots?: readonly {
+    readonly sizeBytes?: number;
+    readonly bytes?: number;
+    readonly name?: string;
+  }[];
   readonly manifests?: readonly unknown[];
 }
 
@@ -69,7 +73,8 @@ export function assertRoleArtifactPresent(
   if (!domainApplies) return;
 
   const validScreenshots = (evidence.screenshots ? evidence.screenshots : []).filter((s) => {
-    const sz = typeof s.sizeBytes === "number" ? s.sizeBytes : (typeof s.bytes === "number" ? s.bytes : 0);
+    const sz =
+      typeof s.sizeBytes === "number" ? s.sizeBytes : typeof s.bytes === "number" ? s.bytes : 0;
     return sz >= 1024;
   });
 

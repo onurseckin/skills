@@ -69,12 +69,12 @@ Milestones climb the ladder one tier at a time; nothing skips a tier. The Backgr
 notifies the **Tier 1 orchestrator** that dispatched it, never the user directly:
 
 | Milestone Event                  | Notification Sent to Orchestrator? | Content Delivered                                                   |
-| :-------------------------------- | :---------------------------------- | :------------------------------------------------------------------ |
-| **Plan Compiled**                | ✅ Yes                              | Brief summary of total tasks, execution waves, and write scopes.    |
-| **Wave Completed**               | ✅ Yes                              | Confirmation of completed wave tasks and entry into validation.     |
-| **Escalation / Decision Needed** | ✅ Yes                              | Finding details if a task exhausts configured repair rounds.        |
-| **Step / Tool-Call Noise**       | ❌ No (Suppressed)                  | Internal test runs, file edits, and heartbeats stay in background.  |
-| **Run Complete**                 | ✅ Yes                              | Final completeness sign-off, diff summary, and verification report. |
+| :------------------------------- | :--------------------------------- | :------------------------------------------------------------------ |
+| **Plan Compiled**                | ✅ Yes                             | Brief summary of total tasks, execution waves, and write scopes.    |
+| **Wave Completed**               | ✅ Yes                             | Confirmation of completed wave tasks and entry into validation.     |
+| **Escalation / Decision Needed** | ✅ Yes                             | Finding details if a task exhausts configured repair rounds.        |
+| **Step / Tool-Call Noise**       | ❌ No (Suppressed)                 | Internal test runs, file edits, and heartbeats stay in background.  |
+| **Run Complete**                 | ✅ Yes                             | Final completeness sign-off, diff summary, and verification report. |
 
 The orchestrator does not relay each of those to the user. It absorbs every round's milestones —
 including a coordinator's or critic's findings — and forwards to the **Tier 0 main thread** only its
@@ -201,23 +201,27 @@ Never emit a command the host cannot execute. A confusing failure is worse than 
 Every host adapter implementation must enforce the following guardrails:
 
 ### 5.1 Main-Thread Execution Fallback & Parallel Batching
+
 - **Anti-Pattern**: Coordinator or Orchestrator attempting to edit code, write fixes, or run task tests directly in the main interactive chat thread.
 - **Guardrail**: Main thread acts solely as a wake-up dispatcher. Tier 2 Coordinators must dispatch Tier 3 Implementers and Validators via host-native subagent tools (`invoke_subagent` in Antigravity, `Agent` in Claude Code, `spawn_agent` in Codex). When ready tasks exist, dispatch the full wave in a single tool call array (`Subagents: [...]`) rather than serializing dispatches across turns.
 
 ### 5.2 4-Tier Multi-Viewport Resolution Matrix
+
 - **Anti-Pattern**: Visual UI reviews testing only mobile viewports or omitting desktop-wide displays.
 - **Guardrail**: Visual surfaces must be evaluated against all four classified viewports:
   - `Desktop-Wide`: 1920x1080 (16:9 widescreen layout, large data tables, multi-column navigation)
   - `Desktop`: 1440x900 (standard desktop layout, sidebars, expanded dialogs)
   - `Tablet`: 768x1024 (adaptive navigation, portrait/landscape split)
   - `Mobile`: 390x844 (stacked single-column layout, bottom sheets, >= 44x44px touch targets)
-  Single-viewport reviews or omitting Desktop-Wide 1920x1080 are grounds for mandatory validation rejection.
+    Single-viewport reviews or omitting Desktop-Wide 1920x1080 are grounds for mandatory validation rejection.
 
 ### 5.3 Quantitative Proof Mandates & Anti-Boilerplate Verification
+
 - **Anti-Pattern**: Validators approving tasks with superficial prose praise ("Code looks good") without live commands or DOM measurements.
 - **Guardrail**: Task reviews must carry authoritative command exit codes (0), stdout snapshots, APCA lightness contrast (`Lc >= 60` body, `Lc >= 45` large text), exact bounding client rects, and screenshot files (>= 1024 bytes). Under `--require-semantic-depth`, boilerplate or unmeasured reviews are rejected.
 
 ### 5.4 Resilient Schedulers, Watchdog Protocols & Floor Loops
+
 - **Anti-Pattern**: Schedulers terminating when hitting an idle tick or requiring human intervention between execution phases.
 - **Guardrail**: Maintain continuous non-stop autonomous loops:
   - Register background cron schedules (`schedule` tool with `CronExpression="*/5 * * * *"`, systemd timers).
@@ -225,10 +229,12 @@ Every host adapter implementation must enforce the following guardrails:
   - Automatically chain subsequent phases upon completion without halting for user confirmation.
 
 ### 5.5 Repository Root Capsule Resolution Protocol
+
 - **Anti-Pattern**: Writing `.capsules` into subdirectories (e.g. `scripts/.capsules`) when invoked from a nested directory.
 - **Guardrail**: All harness storage MUST resolve to `<repo-root>/.capsules/` at the active local Git repository root.
 
 ### 5.6 Mandatory 5-Minute Supervisory Scheduler & Live ASCII DAG Optimization
+
 - **Anti-Pattern**: Schedulers running unmonitored without active wake intervals, or serializing parallelizable tasks due to lack of topological introspection. Coordinators editing codebase files directly instead of orchestrating.
 - **Guardrail**:
   - Enforce mandatory 5-minute supervisory scheduler registration (`schedule` cron `*/5 * * * *` or timer `DurationSeconds=300`) across all multi-phase runs.
@@ -236,6 +242,7 @@ Every host adapter implementation must enforce the following guardrails:
   - Coordinators must strictly orchestrate and NEVER write, edit, or test code directly.
 
 ### 5.7 Multi-Coordinator Scaling & Algorithmic DAG Parallelization
+
 - **Anti-Pattern**: Single coordinator bottlenecking wide multi-subsystem codebases, or artificial serial dependency chains when write scopes are disjoint.
 - **Guardrail**:
   - Perform algorithmic DAG analysis (`dag:view`) to calculate Work vs Span ($P = \text{Work} / \text{Span}$) and detect false dependencies between disjoint scopes.
@@ -243,13 +250,10 @@ Every host adapter implementation must enforce the following guardrails:
   - Eliminate artificial serialization warnings (`ARTIFICIAL_SERIALIZATION_WARNING`) by decoupling soft dependencies into concurrent wave lanes.
 
 ### 5.8 Infinite Mind Cadence, Zero Agent-Driven Termination & Background Finalization Isolation
+
 - **Anti-Pattern**: Subagents killing supervisory schedulers or terminating running pulse processes. Mind loops spilling final tasks (git commits, pushes, skill sync) to the main interactive thread upon pulse completion.
 - **Guardrail**:
   - Mind systems and multi-phase orchestrations run as infinite, non-stop loops unless explicitly stopped by the human user.
   - Subagents and coordinators are STRICTLY FORBIDDEN from calling `manage_task kill` on background schedulers or terminating pulse processes.
   - All final repository release tasks (git commit, git push to upstream, and global skill sync via `bun scripts/sync-global.ts`) MUST be executed by the dedicated Tier 1 Background Orchestrator / Tier 0 Mind Runner on its own background thread.
   - The main interactive user thread remains purely open and supervisory.
-
-
-
-

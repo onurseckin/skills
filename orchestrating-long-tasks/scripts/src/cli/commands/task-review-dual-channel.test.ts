@@ -144,7 +144,9 @@ describe("Task Review Dual-Channel Audit & Companion Manifest Integration", () =
 
     const refusal = dualChannelRefusalMessage(dummyTask.id, audit);
     expect(refusal).toContain("cannot pass task-01");
-    expect(refusal).toContain("Dual-Channel Validator Protocol mandate not satisfied (mode rejected)");
+    expect(refusal).toContain(
+      "Dual-Channel Validator Protocol mandate not satisfied (mode rejected)",
+    );
     expect(refusal).toContain("boilerplate_evidence");
     expect(refusal).toContain("looks good");
   });
@@ -318,7 +320,9 @@ describe("Task Review Dual-Channel Audit & Companion Manifest Integration", () =
     expect(audit.isUiTask).toBe(true);
     expect(audit.passed).toBe(true);
     expect(audit.mode).toBe("screenshot_gap_filled");
-    expect(audit.proofs.some((p) => p.verifiedInvariants.includes("manifest_4_pillars_certified"))).toBe(true);
+    expect(
+      audit.proofs.some((p) => p.verifiedInvariants.includes("manifest_4_pillars_certified")),
+    ).toBe(true);
   });
 });
 
@@ -332,7 +336,10 @@ describe("task:review CLI Command Dual-Channel & Semantic Depth Refusal Enforcem
     validatorToken: string;
     checkId: string;
   }> => {
-    testDir = join(tmpdir(), `test-task-review-dual-channel-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    testDir = join(
+      tmpdir(),
+      `test-task-review-dual-channel-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    );
     mkdirSync(testDir, { recursive: true });
     execSync("git init -b main", { cwd: testDir });
     execSync("git config user.name 'Test Runner'", { cwd: testDir });
@@ -493,13 +500,34 @@ describe("task:review CLI Command Dual-Channel & Semantic Depth Refusal Enforcem
         screenId: "card-preview",
         viewport: "desktop",
         criteria: [
-          { id: "CRIT-MECH-APCA", pillar: "mechanical", passed: true, details: "ok", evidence: "pass" },
-          { id: "CRIT-COGN-STATES", pillar: "cognitive", passed: true, details: "ok", evidence: "pass" },
-          { id: "CRIT-PROD-TOKENS", pillar: "product", passed: true, details: "ok", evidence: "pass" },
+          {
+            id: "CRIT-MECH-APCA",
+            pillar: "mechanical",
+            passed: true,
+            details: "ok",
+            evidence: "pass",
+          },
+          {
+            id: "CRIT-COGN-STATES",
+            pillar: "cognitive",
+            passed: true,
+            details: "ok",
+            evidence: "pass",
+          },
+          {
+            id: "CRIT-PROD-TOKENS",
+            pillar: "product",
+            passed: true,
+            details: "ok",
+            evidence: "pass",
+          },
           { id: "CRIT-UX-FOCUS", pillar: "ux", passed: true, details: "ok", evidence: "pass" },
         ],
       };
-      writeFileSync(join(capturesDir, "card-desktop.manifest.json"), JSON.stringify(shallowManifest, null, 2));
+      writeFileSync(
+        join(capturesDir, "card-desktop.manifest.json"),
+        JSON.stringify(shallowManifest, null, 2),
+      );
 
       let threw = false;
       try {
@@ -552,7 +580,8 @@ describe("task:review CLI Command Dual-Channel & Semantic Depth Refusal Enforcem
             pillar: "cognitive",
             name: "UI States FSM",
             passed: true,
-            details: "All UI interaction states (idle, hover, active, focus, disabled) implemented.",
+            details:
+              "All UI interaction states (idle, hover, active, focus, disabled) implemented.",
             evidence: "5 distinct interactive states verified with 120ms animation transitions.",
           },
           {
@@ -573,7 +602,10 @@ describe("task:review CLI Command Dual-Channel & Semantic Depth Refusal Enforcem
           },
         ],
       };
-      writeFileSync(join(capturesDir, "card-desktop.manifest.json"), JSON.stringify(deepManifest, null, 2));
+      writeFileSync(
+        join(capturesDir, "card-desktop.manifest.json"),
+        JSON.stringify(deepManifest, null, 2),
+      );
 
       const reviewResult = await taskReviewCommand({
         run: runPath,
@@ -607,13 +639,34 @@ describe("task:review CLI Command Dual-Channel & Semantic Depth Refusal Enforcem
         screenId: "card-preview",
         viewport: "desktop",
         criteria: [
-          { id: "CRIT-MECH-APCA", pillar: "mechanical", passed: true, details: "Valid", evidence: "Tested" },
-          { id: "CRIT-COGN-STATES", pillar: "cognitive", passed: true, details: "Valid", evidence: "Tested" },
-          { id: "CRIT-PROD-TOKENS", pillar: "product", passed: true, details: "Valid", evidence: "Tested" },
+          {
+            id: "CRIT-MECH-APCA",
+            pillar: "mechanical",
+            passed: true,
+            details: "Valid",
+            evidence: "Tested",
+          },
+          {
+            id: "CRIT-COGN-STATES",
+            pillar: "cognitive",
+            passed: true,
+            details: "Valid",
+            evidence: "Tested",
+          },
+          {
+            id: "CRIT-PROD-TOKENS",
+            pillar: "product",
+            passed: true,
+            details: "Valid",
+            evidence: "Tested",
+          },
           { id: "CRIT-UX-FOCUS", pillar: "ux", passed: true, details: "Valid", evidence: "Tested" },
         ],
       };
-      writeFileSync(join(capturesDir, "card-desktop.manifest.json"), JSON.stringify(shallowManifest, null, 2));
+      writeFileSync(
+        join(capturesDir, "card-desktop.manifest.json"),
+        JSON.stringify(shallowManifest, null, 2),
+      );
 
       const reviewResult = await taskReviewCommand({
         run: runPath,
@@ -642,7 +695,8 @@ describe("Static Invariant Verification: Zero TypeScript any & Zero Suppressions
     ];
 
     const anyPattern = /:\s*any\b|as\s+any\b|<any>/;
-    const suppressionPattern = /@ts-ignore|@ts-expect-error|@ts-nocheck|eslint-disable|oxlint-disable/;
+    const suppressionPattern =
+      /@ts-ignore|@ts-expect-error|@ts-nocheck|eslint-disable|oxlint-disable/;
 
     for (const filePath of filesToAudit) {
       const content = readFileSync(filePath, "utf-8");
@@ -659,4 +713,3 @@ describe("Static Invariant Verification: Zero TypeScript any & Zero Suppressions
     }
   });
 });
-

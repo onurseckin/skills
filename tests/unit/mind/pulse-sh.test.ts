@@ -314,7 +314,8 @@ describe("pulse.sh driver seam", () => {
           host: "antigravity",
           driver: "pulse.sh",
         };
-        working.pulse = workingPulse as unknown as import("../../../orchestrating-long-tasks/scripts/src/contracts/json.ts").JsonObject;
+        working.pulse =
+          workingPulse as unknown as import("../../../orchestrating-long-tasks/scripts/src/contracts/json.ts").JsonObject;
       },
     );
 

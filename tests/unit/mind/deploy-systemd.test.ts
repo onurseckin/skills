@@ -93,9 +93,7 @@ describe("Phase 6 W6.1 - Systemd service and timer units", () => {
 
       const service = parsed.Service!;
       expect(service.Type).toBe("oneshot");
-      expect(service.ExecStart).toBe(
-        "/opt/mind/pulse.sh /srv/repo/.capsules/mind-gen-1",
-      );
+      expect(service.ExecStart).toBe("/opt/mind/pulse.sh /srv/repo/.capsules/mind-gen-1");
 
       const timeoutSec = parseTimeDurationSec(service.TimeoutStartSec!);
       expect(timeoutSec).toBeGreaterThanOrEqual(1800);
@@ -123,11 +121,9 @@ describe("Phase 6 W6.1 - Systemd service and timer units", () => {
       state: TimerState,
       reboot: RebootEvent,
     ): { missedPulseFiredImmediately: boolean; nextTriggerTimeMs: number } {
-      const scheduledPulseTimeMs =
-        state.lastInactiveTimestampMs + state.intervalMs;
+      const scheduledPulseTimeMs = state.lastInactiveTimestampMs + state.intervalMs;
       const pulseWasMissedDuringDowntime =
-        scheduledPulseTimeMs > reboot.shutdownTimeMs &&
-        scheduledPulseTimeMs <= reboot.bootTimeMs;
+        scheduledPulseTimeMs > reboot.shutdownTimeMs && scheduledPulseTimeMs <= reboot.bootTimeMs;
 
       if (state.persistent && pulseWasMissedDuringDowntime) {
         return {
@@ -136,10 +132,7 @@ describe("Phase 6 W6.1 - Systemd service and timer units", () => {
         };
       }
 
-      const nextTrigger = Math.max(
-        scheduledPulseTimeMs,
-        reboot.bootTimeMs + state.intervalMs,
-      );
+      const nextTrigger = Math.max(scheduledPulseTimeMs, reboot.bootTimeMs + state.intervalMs);
       return {
         missedPulseFiredImmediately: false,
         nextTriggerTimeMs: nextTrigger,
@@ -240,9 +233,7 @@ describe("Phase 6 W6.1 - Systemd service and timer units", () => {
       totalWindowMs: number;
     }
 
-    function runSupervisorSimulation(
-      sim: SupervisorSimulation,
-    ): PulseExecution[] {
+    function runSupervisorSimulation(sim: SupervisorSimulation): PulseExecution[] {
       const executions: PulseExecution[] = [];
       let currentClockMs = 0;
       let nextTimerTickMs = 0;
@@ -297,8 +288,7 @@ describe("Phase 6 W6.1 - Systemd service and timer units", () => {
 
       // Check interval between failed pulses is >= 15 min
       for (let i = 1; i < executions.length; i++) {
-        const interval =
-          executions[i]!.timestampMs - executions[i - 1]!.timestampMs;
+        const interval = executions[i]!.timestampMs - executions[i - 1]!.timestampMs;
         expect(interval).toBeGreaterThanOrEqual(timerIntervalMs);
       }
     });

@@ -31,44 +31,45 @@ export interface CanonicalViewportSpec {
   readonly physicalHeight: number;
 }
 
-export const CANONICAL_VIEWPORT_SPECS: Readonly<Record<CanonicalViewport, CanonicalViewportSpec>> = {
-  "desktop-wide": {
-    name: "desktop-wide",
-    width: 1920,
-    height: 1080,
-    defaultDpr: 1,
-    supportedDprs: [1, 2],
-    physicalWidth: 1920,
-    physicalHeight: 1080,
-  },
-  desktop: {
-    name: "desktop",
-    width: 1440,
-    height: 900,
-    defaultDpr: 1,
-    supportedDprs: [1, 2],
-    physicalWidth: 1440,
-    physicalHeight: 900,
-  },
-  tablet: {
-    name: "tablet",
-    width: 768,
-    height: 1024,
-    defaultDpr: 2,
-    supportedDprs: [2],
-    physicalWidth: 1536,
-    physicalHeight: 2048,
-  },
-  mobile: {
-    name: "mobile",
-    width: 390,
-    height: 844,
-    defaultDpr: 3,
-    supportedDprs: [3],
-    physicalWidth: 1170,
-    physicalHeight: 2532,
-  },
-};
+export const CANONICAL_VIEWPORT_SPECS: Readonly<Record<CanonicalViewport, CanonicalViewportSpec>> =
+  {
+    "desktop-wide": {
+      name: "desktop-wide",
+      width: 1920,
+      height: 1080,
+      defaultDpr: 1,
+      supportedDprs: [1, 2],
+      physicalWidth: 1920,
+      physicalHeight: 1080,
+    },
+    desktop: {
+      name: "desktop",
+      width: 1440,
+      height: 900,
+      defaultDpr: 1,
+      supportedDprs: [1, 2],
+      physicalWidth: 1440,
+      physicalHeight: 900,
+    },
+    tablet: {
+      name: "tablet",
+      width: 768,
+      height: 1024,
+      defaultDpr: 2,
+      supportedDprs: [2],
+      physicalWidth: 1536,
+      physicalHeight: 2048,
+    },
+    mobile: {
+      name: "mobile",
+      width: 390,
+      height: 844,
+      defaultDpr: 3,
+      supportedDprs: [3],
+      physicalWidth: 1170,
+      physicalHeight: 2532,
+    },
+  };
 
 export interface PhysicalViewportMetrics {
   readonly viewport: string;
@@ -132,7 +133,9 @@ export interface MultiViewportManifestEntry {
 
 export interface MultiViewportBundleInput {
   readonly entries?: readonly MultiViewportManifestEntry[] | undefined;
-  readonly manifests?: readonly (CompanionManifestV2 | Readonly<Record<string, unknown>>)[] | undefined;
+  readonly manifests?:
+    | readonly (CompanionManifestV2 | Readonly<Record<string, unknown>>)[]
+    | undefined;
   readonly screenshots?: readonly ScreenshotArtifact[] | undefined;
   readonly requiredViewports?: readonly string[] | undefined;
   readonly requireSemanticDepth?: boolean | undefined;
@@ -269,15 +272,13 @@ export function normalizePillar(rawPillar?: string): MandatoryPillar | null {
 /**
  * Evaluates semantic depth of a single criterion, flagging superficial or boilerplate details and evidence.
  */
-export function auditCriterionSemanticDepth(
-  criterion: {
-    readonly id?: string;
-    readonly pillar?: string;
-    readonly name?: string;
-    readonly details?: string;
-    readonly evidence?: string;
-  },
-): SemanticDepthAuditResult {
+export function auditCriterionSemanticDepth(criterion: {
+  readonly id?: string;
+  readonly pillar?: string;
+  readonly name?: string;
+  readonly details?: string;
+  readonly evidence?: string;
+}): SemanticDepthAuditResult {
   const critId = criterion.id ?? "unknown-criterion";
   const pillar = criterion.pillar;
   const details = typeof criterion.details === "string" ? criterion.details.trim() : "";
@@ -321,9 +322,7 @@ export function auditCriterionSemanticDepth(
   }
 
   // Check evidence boilerplate & quantitative metrics
-  const metricMatches = evidence.match(
-    /\b\d+(\.\d+)?(px|%|rem|em|ms|s|B|KB|MB|Lc|fps)?\b/gi,
-  );
+  const metricMatches = evidence.match(/\b\d+(\.\d+)?(px|%|rem|em|ms|s|B|KB|MB|Lc|fps)?\b/gi);
   const metricsFound = metricMatches ? Array.from(new Set(metricMatches)) : [];
 
   if (evidence.length === 0) {
@@ -372,16 +371,20 @@ export function auditCriterionSemanticDepth(
     });
   }
 
-  const qualitativeDepthScore = details.length >= 30 ? 1.0 : details.length >= 15 ? 0.6 : details.length > 0 ? 0.3 : 0.0;
-  const quantitativeDepthScore = metricsFound.length >= 2
-    ? 1.0
-    : metricsFound.length === 1
-      ? 0.7
-      : evidence.length >= 30
-        ? 0.5
-        : 0.1;
+  const qualitativeDepthScore =
+    details.length >= 30 ? 1.0 : details.length >= 15 ? 0.6 : details.length > 0 ? 0.3 : 0.0;
+  const quantitativeDepthScore =
+    metricsFound.length >= 2
+      ? 1.0
+      : metricsFound.length === 1
+        ? 0.7
+        : evidence.length >= 30
+          ? 0.5
+          : 0.1;
 
-  const combinedDepthScore = Number(((qualitativeDepthScore * 0.4) + (quantitativeDepthScore * 0.6)).toFixed(2));
+  const combinedDepthScore = Number(
+    (qualitativeDepthScore * 0.4 + quantitativeDepthScore * 0.6).toFixed(2),
+  );
   const isDeep = combinedDepthScore >= 0.5 && defects.length === 0;
 
   return {
@@ -436,7 +439,8 @@ export function auditManifestSemanticDepth(manifest: unknown): ManifestSemanticD
     }
   }
 
-  const averageDepthScore = evaluatedCount > 0 ? Number((totalScore / evaluatedCount).toFixed(2)) : 0;
+  const averageDepthScore =
+    evaluatedCount > 0 ? Number((totalScore / evaluatedCount).toFixed(2)) : 0;
   const superficialCount = evaluatedCount - deepCount;
   const passed = defects.length === 0 && evaluatedCount > 0;
 
@@ -562,7 +566,9 @@ export function auditSingleViewportManifest(
   }
 
   const coveredPillars: MandatoryPillar[] = Array.from(coveredPillarsSet);
-  const missingPillars: MandatoryPillar[] = MANDATORY_PILLARS.filter((p) => !coveredPillarsSet.has(p));
+  const missingPillars: MandatoryPillar[] = MANDATORY_PILLARS.filter(
+    (p) => !coveredPillarsSet.has(p),
+  );
 
   if (missingPillars.length > 0) {
     for (const mp of missingPillars) {
@@ -633,7 +639,8 @@ export function auditSingleViewportManifest(
       for (const d of depthAudit.defects) {
         defects.push({
           id: `manifest-depth-${viewport}-${d.id}`,
-          category: d.category === "boilerplate_evidence" ? "boilerplate_evidence" : "superficial_evidence",
+          category:
+            d.category === "boilerplate_evidence" ? "boilerplate_evidence" : "superficial_evidence",
           severity: d.severity,
           viewport,
           criterionId: critId,
@@ -799,7 +806,7 @@ export function synthesizeDprAwareCompanionManifest(
 ): CompanionManifestV2 {
   const norm = (viewport ? viewport.trim().toLowerCase() : "") as CanonicalViewport;
   const spec = CANONICAL_VIEWPORT_SPECS[norm];
-  const dpr = options?.dpr !== undefined ? options.dpr : (spec ? spec.defaultDpr : 1);
+  const dpr = options?.dpr !== undefined ? options.dpr : spec ? spec.defaultDpr : 1;
   const metrics = computePhysicalViewportMetrics(viewport, dpr);
   const screenId = options?.screenId !== undefined ? options.screenId : viewport;
   const elements = options?.elements !== undefined ? options.elements : [];
@@ -879,4 +886,3 @@ export function synthesizeDprAwareCompanionManifest(
     remediationSummary: [],
   };
 }
-

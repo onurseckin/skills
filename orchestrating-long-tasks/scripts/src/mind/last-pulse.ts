@@ -64,7 +64,7 @@ export function reconcileLastPulse(
         ? last.closed_at
         : last && typeof last.armed_at === "string"
           ? last.armed_at
-          : current?.at ?? new Date().toISOString(),
+          : (current?.at ?? new Date().toISOString()),
     pulse_id: last && typeof last.pulse_id === "string" ? last.pulse_id : null,
     outcome: last && typeof last.outcome === "string" ? last.outcome : null,
     next_wake_at: last && typeof last.next_wake_at === "string" ? last.next_wake_at : null,

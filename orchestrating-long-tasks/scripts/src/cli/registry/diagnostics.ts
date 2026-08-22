@@ -24,7 +24,12 @@ export const DIAGNOSTICS_COMMANDS: readonly CommandSpec[] = [
     description:
       "Runs bun test with coverage collection, parses per-file metrics across lines, statements, functions, and branches, and enforces the minimum 95% threshold.",
     flags: [
-      optionalFlag("threshold", "string", "Minimum coverage threshold fraction, default 0.95.", "0.95"),
+      optionalFlag(
+        "threshold",
+        "string",
+        "Minimum coverage threshold fraction, default 0.95.",
+        "0.95",
+      ),
       optionalFlag("dir", "string", "Target repository directory to run coverage check in."),
       optionalFlag("strict", "bool", "Exit nonzero when coverage is below threshold."),
     ],

@@ -4461,6 +4461,71 @@
       ]
     },
     {
+      "name": "whoami",
+      "aliases": [],
+      "domain": "authority",
+      "summary": "Inspect thread execution tier, PID, active agent, grants, and main-thread compliance.",
+      "description": "Inspects the calling thread's OS process ID, parent PID, execution tier, active agent ID, active role grants, and task leases. When executed on the interactive main thread, enforces the Main-Thread Restraint Guard advisory and logs structured blunder records for unauthorized direct implementations.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root to cross-reference active leases and grants."
+        },
+        {
+          "name": "agent",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Explicit agent id override to inspect."
+        },
+        {
+          "name": "pid",
+          "type": "int",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Process ID override for testing."
+        },
+        {
+          "name": "ppid",
+          "type": "int",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Parent Process ID override for testing."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts whoami",
+        "bun harness.ts whoami --run .capsules/<run-id> --agent coordinator-lead"
+      ]
+    },
+    {
       "name": "install",
       "aliases": [],
       "domain": "install",

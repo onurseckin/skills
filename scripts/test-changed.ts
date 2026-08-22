@@ -76,7 +76,9 @@ function resolveAffectedTestFiles(changedFiles: string[]): { all: boolean; testF
 
   for (const file of changedFiles) {
     if (CRITICAL_GLOBAL_FILES.includes(file)) {
-      console.log(`[test-changed] Critical config file changed (${file}), running full test suite.`);
+      console.log(
+        `[test-changed] Critical config file changed (${file}), running full test suite.`,
+      );
       return { all: true, testFiles: [] };
     }
   }
@@ -86,7 +88,10 @@ function resolveAffectedTestFiles(changedFiles: string[]): { all: boolean; testF
 
   for (const file of changedFiles) {
     // If a test file itself changed
-    if (file.startsWith("tests/unit/") && (file.endsWith(".test.ts") || file.endsWith(".spec.ts"))) {
+    if (
+      file.startsWith("tests/unit/") &&
+      (file.endsWith(".test.ts") || file.endsWith(".spec.ts"))
+    ) {
       if (existsSync(file)) affected.add(file);
       continue;
     }
@@ -142,25 +147,24 @@ async function run(): Promise<void> {
   const { all, testFiles } = resolveAffectedTestFiles(changed);
 
   if (!all && testFiles.length === 0) {
-    console.log("[test-changed] No test files affected by current changes. Skipping test execution.");
+    console.log(
+      "[test-changed] No test files affected by current changes. Skipping test execution.",
+    );
     process.exit(0);
   }
 
-  const testArgs = [
-    "test",
-    "--timeout",
-    "30000",
-    "--parallel",
-    "--no-isolate",
-    "--coverage",
-  ];
+  const testArgs = ["test", "--timeout", "30000", "--parallel", "--no-isolate", "--coverage"];
 
   if (all) {
     testArgs.push("tests/unit");
-    console.log(`[test-changed] Running full test suite with mandatory 95% coverage check (${all ? "all files" : testFiles.length + " files"})...`);
+    console.log(
+      `[test-changed] Running full test suite with mandatory 95% coverage check (${all ? "all files" : testFiles.length + " files"})...`,
+    );
   } else {
     testArgs.push(...testFiles);
-    console.log(`[test-changed] Running ${testFiles.length} affected test file(s) with mandatory 95% coverage check:`);
+    console.log(
+      `[test-changed] Running ${testFiles.length} affected test file(s) with mandatory 95% coverage check:`,
+    );
     for (const f of testFiles) console.log(`  - ${f}`);
   }
 
@@ -193,10 +197,18 @@ async function run(): Promise<void> {
     );
 
     if (failingFiles.length > 0) {
-      console.error("\n❌ [coverage-gate] Mandatory +95% Coverage Check Failed for the following file(s):");
-      console.error("┌────────────────────────────────────────────────────────┬─────────────┬─────────────┬──────────────────────────┐");
-      console.error("│ File                                                   │ % Lines     │ % Statements│ Uncovered Lines          │");
-      console.error("├────────────────────────────────────────────────────────┼─────────────┼─────────────┼──────────────────────────┤");
+      console.error(
+        "\n❌ [coverage-gate] Mandatory +95% Coverage Check Failed for the following file(s):",
+      );
+      console.error(
+        "┌────────────────────────────────────────────────────────┬─────────────┬─────────────┬──────────────────────────┐",
+      );
+      console.error(
+        "│ File                                                   │ % Lines     │ % Statements│ Uncovered Lines          │",
+      );
+      console.error(
+        "├────────────────────────────────────────────────────────┼─────────────┼─────────────┼──────────────────────────┤",
+      );
       for (const f of failingFiles) {
         const filePad = f.file.padEnd(54).slice(0, 54);
         const linesPad = `${f.linesPct.toFixed(1)}%`.padEnd(11);
@@ -204,11 +216,17 @@ async function run(): Promise<void> {
         const uncovPad = f.uncovered.padEnd(24).slice(0, 24);
         console.error(`│ ${filePad} │ ${linesPad} │ ${stmtsPad} │ ${uncovPad} │`);
       }
-      console.error("└────────────────────────────────────────────────────────┴─────────────┴─────────────┴──────────────────────────┘");
-      console.error("All production TypeScript modules must achieve >= 95.0% coverage before push.");
+      console.error(
+        "└────────────────────────────────────────────────────────┴─────────────┴─────────────┴──────────────────────────┘",
+      );
+      console.error(
+        "All production TypeScript modules must achieve >= 95.0% coverage before push.",
+      );
       process.exit(1);
     } else {
-      console.log("\n✓ [coverage-gate] Mandatory +95% Coverage Check passed across all evaluated modules.");
+      console.log(
+        "\n✓ [coverage-gate] Mandatory +95% Coverage Check passed across all evaluated modules.",
+      );
     }
   }
 

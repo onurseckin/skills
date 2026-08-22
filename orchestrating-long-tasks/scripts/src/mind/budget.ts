@@ -110,7 +110,16 @@ export function checkQuietHours(
   const endH = parseInt(match[3]!, 10);
   const endM = parseInt(match[4]!, 10);
 
-  if (startH < 0 || startH > 23 || startM < 0 || startM > 59 || endH < 0 || endH > 23 || endM < 0 || endM > 59) {
+  if (
+    startH < 0 ||
+    startH > 23 ||
+    startM < 0 ||
+    startM > 59 ||
+    endH < 0 ||
+    endH > 23 ||
+    endM < 0 ||
+    endM > 59
+  ) {
     return { inQuietHours: false, quietHours: trimmed };
   }
 
@@ -298,8 +307,7 @@ export function checkMaxOpenProposals(
   budget: Record<string, unknown>,
   openProposalsCount: number,
 ): BudgetCheckResult {
-  const maxOpen =
-    typeof budget.max_open_proposals === "number" ? budget.max_open_proposals : 5;
+  const maxOpen = typeof budget.max_open_proposals === "number" ? budget.max_open_proposals : 5;
 
   if (openProposalsCount >= maxOpen) {
     return {
@@ -320,7 +328,10 @@ export function checkMaxOpenProposals(
  * Counts active agents in flight from a state object.
  */
 export function countActiveAgentsInFlight(state: Record<string, unknown>): number {
-  const agents = (Array.isArray(state.agents) ? state.agents : []) as readonly Record<string, unknown>[];
+  const agents = (Array.isArray(state.agents) ? state.agents : []) as readonly Record<
+    string,
+    unknown
+  >[];
   return agents.filter((a) => {
     const status = String(a.status ?? "");
     const role = String(a.role ?? "");
@@ -396,7 +407,6 @@ export function evaluateBudgetRefusalLadder(
 /**
  * Validates budget headroom (quiet hours, daily pulses, wall clock time).
  * Rolls over day key before checking.
- * Kept for backward-compatibility with mind:pulse-open.
  */
 export function checkDailyBudget(
   budget: Record<string, unknown>,

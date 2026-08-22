@@ -7,12 +7,7 @@
  * alpha-blending composite calculations, theme regression tracking, and ASCII visual reporting.
  */
 
-export const THEME_MODES = [
-  "light",
-  "dark",
-  "high-contrast-light",
-  "high-contrast-dark",
-] as const;
+export const THEME_MODES = ["light", "dark", "high-contrast-light", "high-contrast-dark"] as const;
 
 export type ThemeMode = (typeof THEME_MODES)[number];
 
@@ -287,7 +282,7 @@ function parseHue(hueStr: string): number {
   const trimmed = hueStr.trim().toLowerCase();
   if (trimmed.endsWith("turn")) {
     const turns = parseFloat(trimmed.slice(0, -4));
-    return ((turns * 360) % 360 + 360) % 360;
+    return (((turns * 360) % 360) + 360) % 360;
   }
   if (trimmed.endsWith("rad")) {
     const rad = parseFloat(trimmed.slice(0, -3));
@@ -336,10 +331,7 @@ export function isValidColor(color: string): boolean {
   }
   if (/^[0-9a-f]{3,8}$/i.test(trimmed)) {
     return (
-      trimmed.length === 3 ||
-      trimmed.length === 4 ||
-      trimmed.length === 6 ||
-      trimmed.length === 8
+      trimmed.length === 3 || trimmed.length === 4 || trimmed.length === 6 || trimmed.length === 8
     );
   }
   if (/^rgba?\s*\(/i.test(trimmed)) {
@@ -397,12 +389,7 @@ export function parseRgb(color: string): { r: number; g: number; b: number; a: n
     const gChar = hexStr[1];
     const bChar = hexStr[2];
     const aChar = hexStr[3];
-    if (
-      rChar !== undefined &&
-      gChar !== undefined &&
-      bChar !== undefined &&
-      aChar !== undefined
-    ) {
+    if (rChar !== undefined && gChar !== undefined && bChar !== undefined && aChar !== undefined) {
       return {
         r: parseInt(rChar + rChar, 16),
         g: parseInt(gChar + gChar, 16),
@@ -529,15 +516,10 @@ export function calculateWcagContrast(fg: string, bg: string): number {
 
   // If background is translucent, composite over default white canvas substrate
   const effectiveBg =
-    bgParsed.a < 1
-      ? compositeRgb(bgParsed, { r: 255, g: 255, b: 255, a: 1 })
-      : bgParsed;
+    bgParsed.a < 1 ? compositeRgb(bgParsed, { r: 255, g: 255, b: 255, a: 1 }) : bgParsed;
 
   // Composite foreground over the effective background
-  const effectiveFg =
-    fgParsed.a < 1
-      ? compositeRgb(fgParsed, effectiveBg)
-      : fgParsed;
+  const effectiveFg = fgParsed.a < 1 ? compositeRgb(fgParsed, effectiveBg) : fgParsed;
 
   const l1 = calculateRelativeLuminance(effectiveFg);
   const l2 = calculateRelativeLuminance(effectiveBg);
@@ -560,14 +542,9 @@ export function calculateApcaContrast(fg: string, bg: string): number {
   const bgParsed = parseRgb(bg);
 
   const effectiveBg =
-    bgParsed.a < 1
-      ? compositeRgb(bgParsed, { r: 255, g: 255, b: 255, a: 1 })
-      : bgParsed;
+    bgParsed.a < 1 ? compositeRgb(bgParsed, { r: 255, g: 255, b: 255, a: 1 }) : bgParsed;
 
-  const effectiveFg =
-    fgParsed.a < 1
-      ? compositeRgb(fgParsed, effectiveBg)
-      : fgParsed;
+  const effectiveFg = fgParsed.a < 1 ? compositeRgb(fgParsed, effectiveBg) : fgParsed;
 
   const toApcaY = (c: { r: number; g: number; b: number }): number => {
     const rLin = Math.pow(Math.max(0, Math.min(255, c.r)) / 255, 2.4);
@@ -634,10 +611,7 @@ function resolveIsLargeText(
   return false;
 }
 
-function getRequiredThreshold(
-  standard: ContrastStandard,
-  isLargeText: boolean,
-): number {
+function getRequiredThreshold(standard: ContrastStandard, isLargeText: boolean): number {
   switch (standard) {
     case "wcag-aa":
       return isLargeText ? 3.0 : 4.5;
@@ -767,11 +741,12 @@ export function evaluateThemeContrastMatrix(
       const bgValid = isValidColor(pair.backgroundColor);
 
       if (!fgValid || !bgValid) {
-        const invalidDetails = !fgValid && !bgValid
-          ? `Both foreground "${pair.foregroundColor}" and background "${pair.backgroundColor}" are invalid color expressions.`
-          : !fgValid
-            ? `Foreground color "${pair.foregroundColor}" is an invalid color expression.`
-            : `Background color "${pair.backgroundColor}" is an invalid color expression.`;
+        const invalidDetails =
+          !fgValid && !bgValid
+            ? `Both foreground "${pair.foregroundColor}" and background "${pair.backgroundColor}" are invalid color expressions.`
+            : !fgValid
+              ? `Foreground color "${pair.foregroundColor}" is an invalid color expression.`
+              : `Background color "${pair.backgroundColor}" is an invalid color expression.`;
 
         findings.push({
           id: generateFindingId("SYNTAX"),
@@ -798,8 +773,7 @@ export function evaluateThemeContrastMatrix(
       const bgRgb = parseRgb(pair.backgroundColor);
       const effectiveBg =
         bgRgb.a < 1 ? compositeRgb(bgRgb, { r: 255, g: 255, b: 255, a: 1 }) : bgRgb;
-      const effectiveFg =
-        fgRgb.a < 1 ? compositeRgb(fgRgb, effectiveBg) : fgRgb;
+      const effectiveFg = fgRgb.a < 1 ? compositeRgb(fgRgb, effectiveBg) : fgRgb;
 
       const evaluations: ContrastEvaluation[] = [];
       let themePassed = true;
@@ -879,7 +853,8 @@ export function evaluateThemeContrastMatrix(
           backgroundColor: darkRes.backgroundColor,
           contrastRatio: darkRes.wcagRatio,
           requiredThreshold: getRequiredThreshold("wcag-aa", anyLargeText),
-          details: "Dark mode color palette fails to preserve adequate contrast compared to light theme baseline.",
+          details:
+            "Dark mode color palette fails to preserve adequate contrast compared to light theme baseline.",
         });
       }
     }
@@ -898,7 +873,8 @@ export function evaluateThemeContrastMatrix(
           backgroundColor: hcLightRes.backgroundColor,
           contrastRatio: hcLightRes.wcagRatio,
           requiredThreshold: lightRes.wcagRatio,
-          details: "High-contrast theme mode must yield higher or equal luminance contrast relative to standard themes.",
+          details:
+            "High-contrast theme mode must yield higher or equal luminance contrast relative to standard themes.",
         });
       }
     }
@@ -916,7 +892,8 @@ export function evaluateThemeContrastMatrix(
           backgroundColor: hcDarkRes.backgroundColor,
           contrastRatio: hcDarkRes.wcagRatio,
           requiredThreshold: darkRes.wcagRatio,
-          details: "High-contrast theme mode must yield higher or equal luminance contrast relative to standard themes.",
+          details:
+            "High-contrast theme mode must yield higher or equal luminance contrast relative to standard themes.",
         });
       }
     }
@@ -937,8 +914,7 @@ export function evaluateThemeContrastMatrix(
       stats.total > 0 ? Math.round((stats.passed / stats.total) * 1000) / 10 : 100;
   }
 
-  const passRate =
-    totalChecks > 0 ? Math.round((passedChecks / totalChecks) * 1000) / 10 : 100;
+  const passRate = totalChecks > 0 ? Math.round((passedChecks / totalChecks) * 1000) / 10 : 100;
 
   return {
     timestamp: new Date().toISOString(),
@@ -961,9 +937,7 @@ export function evaluateThemeContrastMatrix(
 /**
  * Renders a clean ASCII / Unicode visual table report for multi-theme contrast compliance.
  */
-export function formatThemeContrastMatrixMarkdown(
-  report: MultiThemeComparisonReport,
-): string {
+export function formatThemeContrastMatrixMarkdown(report: MultiThemeComparisonReport): string {
   const lines: string[] = [];
 
   const statusText = report.overallPassed ? "PASS" : "FAIL";
@@ -1026,9 +1000,7 @@ export function formatThemeContrastMatrixMarkdown(
   lines.push(
     "| Selector | Theme | FG Color | BG Color | WCAG CR | APCA Lc | WCAG AA | WCAG AAA | APCA | Status |",
   );
-  lines.push(
-    "| :--- | :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: |",
-  );
+  lines.push("| :--- | :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: |");
 
   for (const matrix of report.matrices) {
     for (const theme of report.evaluatedThemes) {

@@ -117,8 +117,8 @@ screens:
   test("exports default configuration template", () => {
     const defaultYaml = exportDefaultCaptureConfigYaml();
     expect(defaultYaml).toContain("baseUrl:");
-    expect(defaultYaml).toContain("logoPosition: \"top-left\"");
-    expect(defaultYaml).toContain("userProfilePosition: \"bottom-left\"");
+    expect(defaultYaml).toContain('logoPosition: "top-left"');
+    expect(defaultYaml).toContain('userProfilePosition: "bottom-left"');
     expect(defaultYaml).toContain("requireZeroNavbar: true");
     const parsed = parseYamlOrJson(defaultYaml);
     const validated = validateCaptureConfig(parsed);

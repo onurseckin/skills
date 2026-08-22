@@ -151,10 +151,16 @@ export interface CaptureRunResult {
 export interface CapturePageDriver {
   setViewportSize(size: { width: number; height: number }): Promise<void>;
   setExtraHTTPHeaders(headers: Record<string, string>): Promise<void>;
-  goto(url: string, options?: { waitUntil?: "load" | "domcontentloaded" | "networkidle"; timeout?: number }): Promise<void>;
+  goto(
+    url: string,
+    options?: { waitUntil?: "load" | "domcontentloaded" | "networkidle"; timeout?: number },
+  ): Promise<void>;
   waitForSelector(selector: string, options?: { timeout?: number }): Promise<void>;
   screenshot(options: { path?: string; fullPage?: boolean }): Promise<Buffer | Uint8Array>;
-  evaluate<T, A = unknown>(pageFunction: ((arg: A) => T | Promise<T>) | string, arg?: A): Promise<T>;
+  evaluate<T, A = unknown>(
+    pageFunction: ((arg: A) => T | Promise<T>) | string,
+    arg?: A,
+  ): Promise<T>;
   click?(selector: string): Promise<void>;
   fill?(selector: string, value: string): Promise<void>;
   hover?(selector: string): Promise<void>;

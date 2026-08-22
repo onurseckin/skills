@@ -27,7 +27,7 @@ ledger. Discovery without a baseline of what "quiet" looks like has nothing to c
 
 This is the single structural device that makes busywork hard. It does not ask the model to be
 disciplined — it removes the input channel through which undisciplined work arrives. There is no
-source that emits *"it would be nice if…"*.
+source that emits _"it would be nice if…"_.
 
 `mind:candidate` refuses a `defect` without `--witness`, and refuses a witness whose recorded exit
 code and output do not actually contain the cited defect. Resolving a command id means finding the
@@ -45,18 +45,18 @@ names the gate and carries repair argv.
 
 Each is a real command in this repository today (`PLAN.md` §7.2):
 
-| # | Source                                | Command                                       | Class            |
-| - | :------------------------------------ | :-------------------------------------------- | :--------------- |
-| 1 | code no longer matching intent        | `health --check intent-drift --all`           | harness_observed |
-| 2 | dead / unreachable / unenforced code  | `health --check unused-code,dead-code,…`      | harness_observed |
-| 3 | literal fallbacks                     | `health --check literal-fallbacks`            | harness_observed |
-| 4 | open findings from real validators    | `finding:get --run <r> --all`                 | agent_reported*  |
-| 5 | escalated tasks awaiting a human      | `run:status` / morning report `needsHuman`    | harness_observed |
-| 6 | gates whose recorded exit ≠ 0         | `failingGateRuns` / `evidence:get`            | harness_observed |
-| 7 | capsule integrity damage              | `doctor --run <r>`                            | harness_observed |
-| 8 | install / runtime drift               | `installation-status --home … --source …`     | harness_observed |
-| 9 | unsealed capsules with live leases    | `run:status` across `.capsules/`              | harness_observed |
-|10 | owner backlog in charter documents    | `health intent-drift` over charter references | harness_observed |
+| #   | Source                               | Command                                       | Class            |
+| --- | :----------------------------------- | :-------------------------------------------- | :--------------- |
+| 1   | code no longer matching intent       | `health --check intent-drift --all`           | harness_observed |
+| 2   | dead / unreachable / unenforced code | `health --check unused-code,dead-code,…`      | harness_observed |
+| 3   | literal fallbacks                    | `health --check literal-fallbacks`            | harness_observed |
+| 4   | open findings from real validators   | `finding:get --run <r> --all`                 | agent_reported*  |
+| 5   | escalated tasks awaiting a human     | `run:status` / morning report `needsHuman`    | harness_observed |
+| 6   | gates whose recorded exit ≠ 0        | `failingGateRuns` / `evidence:get`            | harness_observed |
+| 7   | capsule integrity damage             | `doctor --run <r>`                            | harness_observed |
+| 8   | install / runtime drift              | `installation-status --home … --source …`     | harness_observed |
+| 9   | unsealed capsules with live leases   | `run:status` across `.capsules/`              | harness_observed |
+| 10  | owner backlog in charter documents   | `health intent-drift` over charter references | harness_observed |
 
 \* a finding is an agent's assertion, but one that reached the ledger already survived the
 validator's own gate run, which is `harness_observed`. That is why it counts.
@@ -83,17 +83,17 @@ zero counts is exactly the precondition `mind:quiesce` requires.
 `mind:admit` refuses unless all six pass, **stops at the first failure**, and records which one
 refused (`PLAN.md` §7.3):
 
-| # | Gate            | Decided by                                                          |
-| - | :-------------- | :------------------------------------------------------------------- |
-| 1 | Witnessed       | harness: the command record exists and its output matches            |
-| 2 | In charter      | harness: a cited goal id must exist in the pinned charter            |
-| 3 | **Falsifiable** | agent declares the command; **harness runs it now, requires ≠ 0**    |
-| 4 | Scoped          | harness: `scopeConflict` against live leases + charter `repo_roots`  |
-| 5 | Affordable      | harness: arithmetic on the budget ledger                             |
-| 6 | Not a duplicate | harness: open, live **or declined** candidate with same class+scope  |
+| #   | Gate            | Decided by                                                          |
+| --- | :-------------- | :------------------------------------------------------------------ |
+| 1   | Witnessed       | harness: the command record exists and its output matches           |
+| 2   | In charter      | harness: a cited goal id must exist in the pinned charter           |
+| 3   | **Falsifiable** | agent declares the command; **harness runs it now, requires ≠ 0**   |
+| 4   | Scoped          | harness: `scopeConflict` against live leases + charter `repo_roots` |
+| 5   | Affordable      | harness: arithmetic on the budget ledger                            |
+| 6   | Not a duplicate | harness: open, live **or declined** candidate with same class+scope |
 
 **Gate 3 is the load-bearing one** and it is the direct ancestor of `gate:prove`. A candidate whose
-"failing command" already exits 0 is not a defect; it is a wish. Requiring the harness to *execute*
+"failing command" already exits 0 is not a defect; it is a wish. Requiring the harness to _execute_
 it during admission — not merely record that the agent named it — is what stops a weak model from
 naming a plausible command it never ran.
 
@@ -149,8 +149,8 @@ granted proposal still faces gates 2–6; a declined proposal is refused re-prop
 > Idling is a first-class outcome with its own record, not a failure to find work.
 
 `mind:quiesce` records the sources checked, the command id each returned, the count each returned,
-and the resulting interval. It is a positive statement — *"I checked ten places and all ten were
-clean"* — and it is the most valuable line in the ledger, because it is the one a human uses to
+and the resulting interval. It is a positive statement — _"I checked ten places and all ten were
+clean"_ — and it is the most valuable line in the ledger, because it is the one a human uses to
 decide whether the system is healthy or merely asleep.
 
 - The interval **multiplies** on quiescence (suggested ×1.5, capped at `max_interval_ms`).
@@ -209,7 +209,7 @@ Add a test that greps every prompt, brief and contract this phase emits for nume
 
 ## 5. The shadow week — discovery on, adoption off
 
-Run discovery for seven days with `mind:admit` disabled. The mind records what it *would* have
+Run discovery for seven days with `mind:admit` disabled. The mind records what it _would_ have
 admitted, and nothing acts on it.
 
 Then the owner reads a week of that and says how much of it was worth doing. **That number is the
@@ -234,14 +234,14 @@ returned at least once across the week, or the ones that never fired are explain
 
 ## 7. Failure modes, rollback, and recorded results
 
-| Likely mistake                                          | The tell                                                  |
-| :------------------------------------------------------ | :--------------------------------------------------------- |
-| Gate 3 records the falsifier instead of running it      | Admission passes for commands nobody executed              |
-| Trusting `--witness` text rather than resolving the id  | Fabricated command ids are admitted                        |
-| Forgetting the declined set in gate 6                   | The same idea returns every night forever                  |
-| A source implemented as "the model looks around"        | Discovery becomes invention with extra steps               |
-| Any target count in any prompt                          | The count is met exactly, every time                       |
-| Enabling admission during the shadow week               | The measurement it exists for is destroyed                 |
+| Likely mistake                                         | The tell                                      |
+| :----------------------------------------------------- | :-------------------------------------------- |
+| Gate 3 records the falsifier instead of running it     | Admission passes for commands nobody executed |
+| Trusting `--witness` text rather than resolving the id | Fabricated command ids are admitted           |
+| Forgetting the declined set in gate 6                  | The same idea returns every night forever     |
+| A source implemented as "the model looks around"       | Discovery becomes invention with extra steps  |
+| Any target count in any prompt                         | The count is met exactly, every time          |
+| Enabling admission during the shadow week              | The measurement it exists for is destroyed    |
 
 Rollback: discovery is additive and gated behind the DISCOVER lane, which the selector reaches only
 when the first three lanes are provably empty. Disabling `mind:admit` returns the system to a Phase 2

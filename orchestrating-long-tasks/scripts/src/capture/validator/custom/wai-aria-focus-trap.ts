@@ -5,7 +5,7 @@ const COMPOSITE_ROLES = new Set(["tablist", "menu", "menubar", "radiogroup", "gr
 
 export function validateWaiAriaFocusTrap(
   element: ElementPhysicsSnapshot,
-  index: number
+  index: number,
 ): ValidationDefect | null {
   const role = element.role?.toLowerCase();
   const tag = element.tagName.toUpperCase();

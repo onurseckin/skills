@@ -56,7 +56,10 @@ describe("restoreLease", () => {
   });
 
   test("refreshes heartbeat_at to the restore clock when a heartbeat was already recorded", () => {
-    const record = lease({ suspended_at: t0.toISOString(), heartbeat_at: "2020-01-01T00:00:00.000Z" });
+    const record = lease({
+      suspended_at: t0.toISOString(),
+      heartbeat_at: "2020-01-01T00:00:00.000Z",
+    });
     restoreLease(record, t0, 60);
     expect(record.heartbeat_at).toBe(t0.toISOString());
   });

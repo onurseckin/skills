@@ -94,10 +94,7 @@ export function carryForwardFindingsAndRequirements(
 /**
  * Resolves a capsule directory path given a run id or directory path.
  */
-export function resolveCapsulePath(
-  runOrPath: string,
-  baseRunRoot?: string,
-): string {
+export function resolveCapsulePath(runOrPath: string, baseRunRoot?: string): string {
   if (existsSync(runOrPath) && lstatSync(runOrPath).isDirectory()) {
     return resolve(runOrPath);
   }
@@ -132,15 +129,10 @@ export function validateCandidateAdmitted(
     }
   }
 
-  const candidate = candidateList.find((c) => c.id === candidateId) as
-    | CandidateRecord
-    | undefined;
+  const candidate = candidateList.find((c) => c.id === candidateId) as CandidateRecord | undefined;
 
   if (!candidate) {
-    throw new HarnessError(
-      "INVALID_ARGUMENT",
-      `unknown candidate '${candidateId}'`,
-    );
+    throw new HarnessError("INVALID_ARGUMENT", `unknown candidate '${candidateId}'`);
   }
 
   if (candidate.status !== "admitted") {
@@ -171,10 +163,7 @@ export function validateObjectiveStatement(
     }
   }
 
-  if (
-    priorObjectiveStatement !== undefined &&
-    priorObjectiveStatement.trim().length > 0
-  ) {
+  if (priorObjectiveStatement !== undefined && priorObjectiveStatement.trim().length > 0) {
     if (priorObjectiveStatement.trim() !== candidate.statement.trim()) {
       throw new HarnessError(
         "INVALID_STATE",
@@ -245,8 +234,7 @@ export function validatePriorRoundCompleted(
           status === "leased" ||
           (lease !== undefined &&
             lease !== null &&
-            (typeof lease.expires_at !== "string" ||
-              Date.parse(lease.expires_at) > Date.now()));
+            (typeof lease.expires_at !== "string" || Date.parse(lease.expires_at) > Date.now()));
 
         if (isLeased) {
           throw new HarnessError(
@@ -287,10 +275,7 @@ export function validatePriorRoundCompleted(
   } catch (err) {
     if (err instanceof HarnessError) throw err;
     const msg = err instanceof Error ? err.message : String(err);
-    throw new HarnessError(
-      "INTEGRITY",
-      `cannot read prior round state at '${statePath}': ${msg}`,
-    );
+    throw new HarnessError("INTEGRITY", `cannot read prior round state at '${statePath}': ${msg}`);
   }
 }
 
@@ -303,11 +288,9 @@ export function validateRoundCloseArmingRail(params: {
   readonly successor?: string | null | undefined;
   readonly terminalReason?: string | null | undefined;
 }): void {
-  const hasSuccessor =
-    typeof params.successor === "string" && params.successor.trim().length > 0;
+  const hasSuccessor = typeof params.successor === "string" && params.successor.trim().length > 0;
   const hasReason =
-    typeof params.terminalReason === "string" &&
-    params.terminalReason.trim().length > 0;
+    typeof params.terminalReason === "string" && params.terminalReason.trim().length > 0;
 
   if (!hasSuccessor && !hasReason) {
     throw new HarnessError(
@@ -409,8 +392,8 @@ export function reconcileRoundState(
   const activeRounds = allRounds.filter((r) => r.status === "opened");
 
   // Keep state.rounds and state.objectives updated in state
-  state.rounds = (allRounds as unknown) as JsonObject[];
-  state.objectives = (objectives as unknown) as JsonObject[];
+  state.rounds = allRounds as unknown as JsonObject[];
+  state.objectives = objectives as unknown as JsonObject[];
   if (state.mind && typeof state.mind === "object") {
     (state.mind as Record<string, unknown>).rounds = state.rounds;
     (state.mind as Record<string, unknown>).objectives = state.objectives;
@@ -450,15 +433,9 @@ export function openRoundInState(
     .filter((r) => r.objective_id === objective)
     .sort((a, b) => a.round - b.round);
   const priorRound =
-    objectiveRounds.length > 0
-      ? objectiveRounds[objectiveRounds.length - 1]
-      : undefined;
+    objectiveRounds.length > 0 ? objectiveRounds[objectiveRounds.length - 1] : undefined;
 
-  validateObjectiveStatement(
-    candidate,
-    explicitStatement,
-    priorRound?.statement,
-  );
+  validateObjectiveStatement(candidate, explicitStatement, priorRound?.statement);
 
   // 3. Prevent opening over an unclosed round for the same objective
   const activeRound = getOpenRoundForObjective(state, objective);

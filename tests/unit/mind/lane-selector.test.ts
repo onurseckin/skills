@@ -3,7 +3,6 @@ import {
   deriveLane,
   deriveTheoreticalLane,
   selectLane,
-  type LaneDecision,
   type LaneSelectorFacts,
   type MindLane,
 } from "../../../orchestrating-long-tasks/scripts/src/mind/lane.ts";
@@ -426,7 +425,10 @@ describe("lane.ts — Pure Lane Selector", () => {
       const deadAgentBlocked: LaneSelectorFacts = { ...candidateFacts, deadAgentsCount: 1 };
       expect(deriveTheoreticalLane(deadAgentBlocked)).toBe("rescue");
 
-      const integrityBlocked: LaneSelectorFacts = { ...candidateFacts, integrityStatus: "repairable" };
+      const integrityBlocked: LaneSelectorFacts = {
+        ...candidateFacts,
+        integrityStatus: "repairable",
+      };
       expect(deriveTheoreticalLane(integrityBlocked)).toBe("rescue");
 
       // 2. Non-empty repair blocks discover
@@ -520,13 +522,21 @@ describe("lane.ts — Pure Lane Selector", () => {
     });
 
     test("boundary testing pulsesToday vs pulsesPerDay", () => {
-      const belowLimit: LaneSelectorFacts = { pulsesToday: 41, pulsesPerDay: 96, staleLeasesCount: 1 };
+      const belowLimit: LaneSelectorFacts = {
+        pulsesToday: 41,
+        pulsesPerDay: 96,
+        staleLeasesCount: 1,
+      };
       expect(deriveLane(belowLimit)).toBe("rescue");
 
       const atLimit: LaneSelectorFacts = { pulsesToday: 96, pulsesPerDay: 96, staleLeasesCount: 1 };
       expect(deriveLane(atLimit)).toBe("defer");
 
-      const aboveLimit: LaneSelectorFacts = { pulsesToday: 97, pulsesPerDay: 96, staleLeasesCount: 1 };
+      const aboveLimit: LaneSelectorFacts = {
+        pulsesToday: 97,
+        pulsesPerDay: 96,
+        staleLeasesCount: 1,
+      };
       expect(deriveLane(aboveLimit)).toBe("defer");
     });
 

@@ -86,8 +86,7 @@ export function rotateMindGeneration(options: RotateMindOptions): RotateMindResu
     );
   }
 
-  const sourceGeneration =
-    typeof sourceMind.generation === "number" ? sourceMind.generation : 1;
+  const sourceGeneration = typeof sourceMind.generation === "number" ? sourceMind.generation : 1;
   const targetGeneration = sourceGeneration + 1;
   const sourceRunId = sourceLoaded.manifest.run_id || basename(realSourceRunRoot);
 
@@ -109,10 +108,7 @@ export function rotateMindGeneration(options: RotateMindOptions): RotateMindResu
     promptBytes = readRegularFileNoFollow(sourcePromptPath);
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
-    throw new HarnessError(
-      "INTEGRITY",
-      `cannot read prompt.md in source capsule: ${message}`,
-    );
+    throw new HarnessError("INTEGRITY", `cannot read prompt.md in source capsule: ${message}`);
   }
 
   if (promptBytes.byteLength === 0) {
@@ -229,13 +225,10 @@ export function rotateMindGeneration(options: RotateMindOptions): RotateMindResu
   const openCandidatesCount = carriedCandidates.filter(
     (c) => c.status === "opened" || c.status === "admitted",
   ).length;
-  const declinedCandidatesCount = carriedCandidates.filter(
-    (c) => c.status === "declined",
-  ).length;
+  const declinedCandidatesCount = carriedCandidates.filter((c) => c.status === "declined").length;
 
   const sourcePulseState = (sourceState.pulse ?? {}) as Record<string, unknown>;
-  const pulseCounter =
-    typeof sourcePulseState.counter === "number" ? sourcePulseState.counter : 0;
+  const pulseCounter = typeof sourcePulseState.counter === "number" ? sourcePulseState.counter : 0;
   const sourceBudgetState = (sourceState.budget ?? {}) as Record<string, unknown>;
 
   transact(
@@ -271,8 +264,7 @@ export function rotateMindGeneration(options: RotateMindOptions): RotateMindResu
       } as unknown as JsonValue;
 
       state.budget = {
-        pulses_per_day:
-          sourceBudgetState.pulses_per_day ?? DEFAULT_MIND_BUDGET.pulses_per_day,
+        pulses_per_day: sourceBudgetState.pulses_per_day ?? DEFAULT_MIND_BUDGET.pulses_per_day,
         wall_clock_ms_per_day:
           sourceBudgetState.wall_clock_ms_per_day ?? DEFAULT_MIND_BUDGET.wall_clock_ms_per_day,
         max_agents_in_flight:
@@ -282,8 +274,7 @@ export function rotateMindGeneration(options: RotateMindOptions): RotateMindResu
           DEFAULT_MIND_BUDGET.max_rounds_per_objective,
         base_interval_ms:
           sourceBudgetState.base_interval_ms ?? DEFAULT_MIND_BUDGET.base_interval_ms,
-        max_interval_ms:
-          sourceBudgetState.max_interval_ms ?? DEFAULT_MIND_BUDGET.max_interval_ms,
+        max_interval_ms: sourceBudgetState.max_interval_ms ?? DEFAULT_MIND_BUDGET.max_interval_ms,
         max_pause_interval_ms:
           sourceBudgetState.max_pause_interval_ms ?? DEFAULT_MIND_BUDGET.max_pause_interval_ms,
         pulse_deadline_ms:

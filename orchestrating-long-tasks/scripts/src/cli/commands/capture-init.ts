@@ -125,8 +125,19 @@ export function generateInitialConfigJson(presetName = "standard-dashboard"): st
       },
     },
     screens: [
-      { id: "dashboard", name: "Main Dashboard", path: "/", viewports: ["desktop", "tablet", "mobile"] },
-      { id: "settings", name: "Settings Page", path: "/settings", auth: "admin", viewports: ["desktop", "mobile"] },
+      {
+        id: "dashboard",
+        name: "Main Dashboard",
+        path: "/",
+        viewports: ["desktop", "tablet", "mobile"],
+      },
+      {
+        id: "settings",
+        name: "Settings Page",
+        path: "/settings",
+        auth: "admin",
+        viewports: ["desktop", "mobile"],
+      },
     ],
   };
   return JSON.stringify(config, null, 2);
@@ -137,11 +148,13 @@ export async function captureInitCommand(
   _context?: CommandContext,
 ): Promise<Record<string, unknown>> {
   const explicitConfigDir = textFlag(flags, "config-dir", false);
-  const configDir = explicitConfigDir && explicitConfigDir.length > 0 ? explicitConfigDir : process.cwd();
+  const configDir =
+    explicitConfigDir && explicitConfigDir.length > 0 ? explicitConfigDir : process.cwd();
   const explicitFormat = textFlag(flags, "format", false);
   const format = explicitFormat === "json" ? "json" : "yaml";
   const explicitPreset = textFlag(flags, "preset", false);
-  const preset = explicitPreset && explicitPreset.length > 0 ? explicitPreset : "standard-dashboard";
+  const preset =
+    explicitPreset && explicitPreset.length > 0 ? explicitPreset : "standard-dashboard";
   const force = Boolean(flags.force);
 
   const resolvedDir = resolve(configDir);
@@ -157,7 +170,8 @@ export async function captureInitCommand(
     );
   }
 
-  const content = format === "json" ? generateInitialConfigJson(preset) : generateInitialConfigYaml(preset);
+  const content =
+    format === "json" ? generateInitialConfigJson(preset) : generateInitialConfigYaml(preset);
   mkdirSync(dirname(targetPath), { recursive: true });
   writeFileSync(targetPath, content, "utf-8");
 

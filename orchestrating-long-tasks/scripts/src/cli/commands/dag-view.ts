@@ -138,33 +138,23 @@ export interface DagViewReport {
 
 export type DagViewResult = DagViewReport;
 
-function statusBadge(status: string): string {
-  switch (status) {
-    case "done":
-    case "satisfied":
-      return "[DONE 🟢]";
-    case "leased":
-    case "running":
-      return "[LEASED 🟡]";
-    case "validating":
-      return "[VALIDATING 🔵]";
-    case "validated":
-      return "[VALIDATED 🟣]";
-    case "ready":
-    case "retry_ready":
-      return "[READY 🟢]";
-    case "changes_requested":
-      return "[CHANGES_REQ 🔴]";
-    case "failed":
-      return "[FAILED ❌]";
-    case "escalated":
-      return "[ESCALATED 🚨]";
-    case "proposed":
-    case "blocked":
-    default:
-      return "[BLOCKED ⚪]";
-  }
-}
+import {
+  activeAgentBadge,
+  renderAsciiDag,
+  renderNodeBox,
+  renderVisualDag,
+  statusBadge,
+  statusGlyph,
+} from "../../summary/dag-visualizer.ts";
+
+export {
+  activeAgentBadge,
+  renderAsciiDag,
+  renderNodeBox,
+  renderVisualDag,
+  statusBadge,
+  statusGlyph,
+};
 
 export function findLatestCapsuleIn(repoRoot: string): string | null {
   const capsulesDir = resolve(repoRoot, ".capsules");
@@ -441,102 +431,7 @@ export function analyzeMultiCoordinatorOpportunities(
   return opportunities;
 }
 
-export function renderAsciiDag(
-  waves: readonly { wave: number; tasks: readonly DagNodeSummary[] }[],
-  detailed = false,
-  forensics?: readonly DependencyForensicItem[],
-): string {
-  if (waves.length === 0) {
-    return (
-      "  ┌──────────────────────────────────────────────┐\n" +
-      "  │  (No tasks declared in planning buffer/graph) │\n" +
-      "  └──────────────────────────────────────────────┘"
-    );
-  }
 
-  const lines: string[] = [];
-
-  for (let w = 0; w < waves.length; w += 1) {
-    const waveEntry = waves[w]!;
-    const waveNum = waveEntry.wave;
-    const waveTasks = waveEntry.tasks;
-
-    const waveStatuses = [...new Set(waveTasks.map((t) => t.status))].join("/");
-    const hasActiveTasks = waveTasks.some(
-      (t) => t.status === "leased" || t.status === "running" || t.status === "validating",
-    );
-    const activeWaveBadge = hasActiveTasks ? " ⚡ [ACTIVE EXECUTION SUBGRAPH]" : "";
-    const headerTitle = ` WAVE ${waveNum} (${waveTasks.length} ${waveTasks.length === 1 ? "lane" : "lanes"} • ${waveStatuses})${activeWaveBadge} `;
-    const barLength = Math.max(20, 68 - headerTitle.length);
-    const headerLine = `┌─${headerTitle}${"─".repeat(barLength)}┐`;
-    lines.push(headerLine);
-
-    for (const task of waveTasks) {
-      const badge = statusBadge(task.status);
-      const isActivelyLeased =
-        (task.status === "leased" || task.status === "running" || task.status === "validating") &&
-        Boolean(task.assignedAgent);
-      const agentRole = task.assignedRole ?? (task.status === "validating" ? "validator" : "implementer");
-      const actionPrefix = task.status === "validating" ? "VALIDATING" : "LEASED";
-      const agentBadge = isActivelyLeased
-        ? ` [⚡ ${actionPrefix}: ${task.assignedAgent} (${agentRole})]`
-        : "";
-      const toolStr = task.assignedTool ? ` [Tool: ${task.assignedTool}]` : "";
-      const agentStr =
-        !isActivelyLeased && task.assignedAgent
-          ? ` • Agent: ${task.assignedAgent}${toolStr}`
-          : isActivelyLeased && task.assignedTool
-            ? ` • Tool: ${task.assignedTool}`
-            : "";
-      const attemptStr = task.attempt !== null ? ` (Attempt #${task.attempt})` : "";
-      const label = task.label.length > 40 ? `${task.label.slice(0, 37)}...` : task.label;
-
-      const parallelTag =
-        task.dependencies.length === 0 && task.status !== "done"
-          ? " [⚡ PARALLEL-ELIGIBLE]"
-          : "";
-
-      lines.push(`│ ┌─ [${task.id}] ${label}`);
-      lines.push(`│ │  Status: ${badge}${agentBadge}${agentStr}${attemptStr}${parallelTag}`);
-
-      if (detailed || task.writeScope.length > 0) {
-        const scopes = task.writeScope.length > 0 ? task.writeScope.join(", ") : "none";
-        lines.push(`│ │  Scope:  ${scopes}`);
-      }
-
-      if (task.dependencies.length > 0) {
-        lines.push(`│ │  Deps:   ${task.dependencies.join(", ")}`);
-        for (const depId of task.dependencies) {
-          const explicitReason = task.depReasons?.[depId];
-          const forensic = forensics?.find((f) => f.fromTaskId === depId && f.toTaskId === task.id);
-          const reason =
-            explicitReason && explicitReason.trim().length > 0
-              ? explicitReason.trim()
-              : forensic?.reason;
-          if (reason) {
-            lines.push(`│ │  ↳ Dep on ${depId}: ${reason}`);
-          }
-        }
-      }
-
-      if (detailed && task.gate) {
-        lines.push(`│ │  Gate:   ${task.gate}`);
-      }
-
-      lines.push(`│ └───────────────────────────────────────────────────────────`);
-    }
-
-    const footerBar = "─".repeat(headerLine.length - 2);
-    lines.push(`└${footerBar}┘`);
-
-    if (w < waves.length - 1) {
-      lines.push("                           │");
-      lines.push("                           ▼");
-    }
-  }
-
-  return lines.join("\n");
-}
 
 export function analyzeParallelization(
   tasks: readonly DagNodeSummary[],
@@ -585,7 +480,11 @@ export function analyzeParallelization(
             description: `Tasks [${parentTask.id}] and [${t.id}] have a conflicting write scope (\`${t.writeScope[0]}\`). Serial execution is required to avoid race conditions.`,
             taskIds: [parentTask.id, t.id],
           });
-        } else if (!hasScopeConflict && t.writeScope.length > 0 && parentTask.writeScope.length > 0) {
+        } else if (
+          !hasScopeConflict &&
+          t.writeScope.length > 0 &&
+          parentTask.writeScope.length > 0
+        ) {
           const hasDataflow =
             parentTask.writeScope.some(
               (s) =>
@@ -684,11 +583,9 @@ export function dagViewCommand(
     string,
     Record<string, unknown>
   >;
-  const planningBuffer = (
-    Array.isArray(state.planning_buffer)
-      ? (state.planning_buffer as unknown as readonly TaskDeclaration[])
-      : []
-  );
+  const planningBuffer = Array.isArray(state.planning_buffer)
+    ? (state.planning_buffer as unknown as readonly TaskDeclaration[])
+    : [];
 
   const rawAgents = (Array.isArray(state.agents) ? state.agents : []) as Record<string, unknown>[];
   const activeAgents: ActiveAgentInfo[] = rawAgents
@@ -794,7 +691,7 @@ export function dagViewCommand(
       const matchingAgent =
         activeAgents.find((a) => a.id === assignedAgent) ??
         activeAgents.find((a) => a.taskId === id);
-      const effectiveAgent = assignedAgent ?? (matchingAgent?.id ?? null);
+      const effectiveAgent = assignedAgent ?? matchingAgent?.id ?? null;
       const assignedRole =
         typeof matchingAgent?.role === "string"
           ? matchingAgent.role
@@ -809,12 +706,11 @@ export function dagViewCommand(
             : null;
 
       const planningTask = planningBuffer.find((p) => p.id === id);
-      const depReasons =
-        isRecord(t.dep_reasons)
-          ? (t.dep_reasons as Readonly<Record<string, string>>)
-          : isRecord(t.depReasons)
-            ? (t.depReasons as Readonly<Record<string, string>>)
-            : planningTask?.depReasons;
+      const depReasons = isRecord(t.dep_reasons)
+        ? (t.dep_reasons as Readonly<Record<string, string>>)
+        : isRecord(t.depReasons)
+          ? (t.depReasons as Readonly<Record<string, string>>)
+          : planningTask?.depReasons;
 
       nodeSummaries.push({
         id,
@@ -863,9 +759,7 @@ export function dagViewCommand(
         criticalDepth: criticalDepthMap.has(item.id)
           ? (criticalDepthMap.get(item.id) as number)
           : 0,
-        descendantCount: descendantsMap.has(item.id)
-          ? (descendantsMap.get(item.id) as number)
-          : 0,
+        descendantCount: descendantsMap.has(item.id) ? (descendantsMap.get(item.id) as number) : 0,
         effort: typeof item.effort === "number" ? item.effort : 1,
         depReasons: item.depReasons,
       });
@@ -912,10 +806,7 @@ export function dagViewCommand(
   );
   const span = Math.max(1, maxCriticalPath);
   const parallelismFactor = span > 0 ? Number((totalWork / span).toFixed(2)) : 0;
-  const optimalConcurrency = Math.min(
-    maxParallel,
-    Math.max(1, Math.ceil(updatedNodes.length / 2)),
-  );
+  const optimalConcurrency = Math.min(maxParallel, Math.max(1, Math.ceil(updatedNodes.length / 2)));
 
   const metrics: DagWaveMetrics = {
     totalWaves: waveGroups.length,
@@ -923,9 +814,7 @@ export function dagViewCommand(
       waveGroups.length > 0 ? Math.max(...waveGroups.map((g) => g.tasks.length)) : 0,
     criticalPathLength: maxCriticalPath,
     averageWaveConcurrency:
-      waveGroups.length > 0
-        ? Number((updatedNodes.length / waveGroups.length).toFixed(2))
-        : 0,
+      waveGroups.length > 0 ? Number((updatedNodes.length / waveGroups.length).toFixed(2)) : 0,
     serialBottlenecks: updatedNodes.filter((n) => n.descendantCount >= 3).length,
     parallelEligibleChains: serializationAnalysis.filter((s) => s.isSerial && s.parallelEligible)
       .length,

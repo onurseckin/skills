@@ -1,11 +1,8 @@
-import { createHash } from "node:crypto";
 import { describe, expect, test } from "bun:test";
-import { canonicalJsonBytes } from "../../../orchestrating-long-tasks/scripts/src/core/json.ts";
 import { beginCompletenessCritic } from "../../../orchestrating-long-tasks/scripts/src/workflow/completion/begin-completeness-critic.ts";
 import { recordCompletionRemediation } from "../../../orchestrating-long-tasks/scripts/src/workflow/completion/record-completion-remediation.ts";
 import { recordCompletionReview } from "../../../orchestrating-long-tasks/scripts/src/workflow/completion/record-completion-review.ts";
 import { claimTask } from "../../../orchestrating-long-tasks/scripts/src/workflow/lease/claim.ts";
-import { tokenDigest } from "../../../orchestrating-long-tasks/scripts/src/workflow/lease/token.ts";
 import { beginValidation } from "../../../orchestrating-long-tasks/scripts/src/workflow/review/begin-validation.ts";
 import { recordReview } from "../../../orchestrating-long-tasks/scripts/src/workflow/review/record-review.ts";
 import { submitTask } from "../../../orchestrating-long-tasks/scripts/src/workflow/submission/submit.ts";
@@ -122,7 +119,7 @@ function readyCriticPort(): TestPort {
   return new TestPort(state);
 }
 
-function publishCritic(port: TestPort, critic: string, attempt: number, token: string): void {
+function publishCritic(port: TestPort, critic: string, attempt: number): void {
   const id = `critic-${attempt}`;
   const sha = String(attempt).repeat(64);
   port.transact(critic, "packet-published", {}, (draft) => {
@@ -156,7 +153,7 @@ function publishCritic(port: TestPort, critic: string, attempt: number, token: s
 }
 
 function recordFindings(port: TestPort, critic: string, attempt: number, token: string): void {
-  publishCritic(port, critic, attempt, token);
+  publishCritic(port, critic, attempt);
   recordCompletionReview(
     port,
     critic,

@@ -6,7 +6,7 @@ const FLOATING_BOUNDARY_PADDING = 8;
 export function validateFloatingUiCollision(
   element: ElementPhysicsSnapshot,
   index: number,
-  viewportBounds?: { readonly width: number; readonly height: number }
+  viewportBounds?: { readonly width: number; readonly height: number },
 ): ValidationDefect | null {
   const isFloating =
     element.isFloating ||
@@ -30,10 +30,14 @@ export function validateFloatingUiCollision(
     overflows.push(`top edge (${Math.round(bounds.y)}px < ${FLOATING_BOUNDARY_PADDING}px)`);
   }
   if (bounds.x + bounds.width > vpW - FLOATING_BOUNDARY_PADDING) {
-    overflows.push(`right edge (${Math.round(bounds.x + bounds.width)}px > ${vpW - FLOATING_BOUNDARY_PADDING}px)`);
+    overflows.push(
+      `right edge (${Math.round(bounds.x + bounds.width)}px > ${vpW - FLOATING_BOUNDARY_PADDING}px)`,
+    );
   }
   if (bounds.y + bounds.height > vpH - FLOATING_BOUNDARY_PADDING) {
-    overflows.push(`bottom edge (${Math.round(bounds.y + bounds.height)}px > ${vpH - FLOATING_BOUNDARY_PADDING}px)`);
+    overflows.push(
+      `bottom edge (${Math.round(bounds.y + bounds.height)}px > ${vpH - FLOATING_BOUNDARY_PADDING}px)`,
+    );
   }
 
   // Also check clipping container bounds if defined

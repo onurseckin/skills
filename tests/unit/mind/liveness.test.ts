@@ -12,7 +12,6 @@ import {
   EXIT_CODE_STALE,
   formatLivenessBrief,
   getExitCodeForStatus,
-  resolvePulseFilePath,
 } from "../../../orchestrating-long-tasks/scripts/src/mind/liveness.ts";
 
 const tempDirs: string[] = [];
@@ -289,15 +288,7 @@ describe("deploy/liveness-check.sh external script execution", () => {
     );
 
     const proc = Bun.spawn(
-      [
-        scriptPath,
-        "--capsule",
-        dir,
-        "--now",
-        new Date(nowMs).toISOString(),
-        "--threshold",
-        "1200",
-      ],
+      [scriptPath, "--capsule", dir, "--now", new Date(nowMs).toISOString(), "--threshold", "1200"],
       { stdout: "pipe", stderr: "pipe" },
     );
 
@@ -422,10 +413,10 @@ describe("deploy/liveness-check.sh external script execution", () => {
     );
 
     // Positional args: dir path and 30s threshold -> 50s age > 30s threshold => exits 2
-    const procStale = Bun.spawn(
-      [scriptPath, dir, "30", "--now", new Date(nowMs).toISOString()],
-      { stdout: "pipe", stderr: "pipe" },
-    );
+    const procStale = Bun.spawn([scriptPath, dir, "30", "--now", new Date(nowMs).toISOString()], {
+      stdout: "pipe",
+      stderr: "pipe",
+    });
     const exitCodeStale = await procStale.exited;
     expect(exitCodeStale).toBe(2);
 

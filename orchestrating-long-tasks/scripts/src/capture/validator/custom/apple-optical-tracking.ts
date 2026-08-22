@@ -1,7 +1,11 @@
 import type { ElementPhysicsSnapshot, ValidationDefect } from "../types.ts";
 import { generateRemediations } from "../synthesis/remediation-generator.ts";
 
-export function getExpectedAppleTracking(fontSize: number): { readonly min: number; readonly max: number; readonly expected: number } {
+export function getExpectedAppleTracking(fontSize: number): {
+  readonly min: number;
+  readonly max: number;
+  readonly expected: number;
+} {
   if (fontSize <= 13) {
     return { min: -0.05, max: 0.4, expected: 0.1 };
   }
@@ -16,7 +20,7 @@ export function getExpectedAppleTracking(fontSize: number): { readonly min: numb
 
 export function validateAppleOpticalTracking(
   element: ElementPhysicsSnapshot,
-  index: number
+  index: number,
 ): ValidationDefect | null {
   const styles = element.computedStyles;
   if (!styles || styles.fontSize === undefined || styles.letterSpacing === undefined) {

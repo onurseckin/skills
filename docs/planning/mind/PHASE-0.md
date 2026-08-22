@@ -27,7 +27,7 @@ a red gate.
 
 ---
 
-### W0.5 — Resolve the armed coverage gate  *(do this first)*
+### W0.5 — Resolve the armed coverage gate _(do this first)_
 
 **Files:** `bunfig.toml`, and whichever source files are chosen for repair.
 
@@ -95,7 +95,7 @@ tick 2 and runs 3,019 ms; with an **unrefd** timer it exits in 18 ms.
 **Why.** Four concurrent supervision ticks against one capsule produced three successes and one
 `INTEGRITY / STATE_PROJECTION` failure at exit 3. `doctor` afterwards found nothing wrong, so that
 was a transient read race against the writer's rename — not corruption. The pulse must retry it
-once; every *other* integrity failure must escalate immediately (`PLAN.md` §0.3, §5.4).
+once; every _other_ integrity failure must escalate immediately (`PLAN.md` §0.3, §5.4).
 
 **The fix.** `IntegrityIssue` already carries an optional `detail` field
 (`contracts/capsule.ts:73`). Add a `subcode` — or populate `detail` with a typed discriminator — set
@@ -180,14 +180,14 @@ Plus, recorded in the phase's own notes:
 
 ## 6. Failure modes
 
-| Likely mistake                                              | The tell                                            |
-| :---------------------------------------------------------- | :--------------------------------------------------- |
-| "Fixing" `--watch` with a keepalive instead of the refd timer | A `setInterval` or `stdin.resume()` in the diff      |
-| A W0.1 test that mocks the sleep and passes on broken code   | It does not fail when the change is stashed          |
-| Deciding retryability by matching the message string         | `includes("STATE_PROJECTION")` anywhere outside store |
-| Truncating the argv list to fit 30 lines                     | A brief ending mid-command                           |
-| Raising coverage with tests that assert a mock's own return  | Coverage moves, mutation survives                    |
-| Reverting another agent's in-flight work to get a clean tree  | Files you never touched appear in your diff          |
+| Likely mistake                                                | The tell                                              |
+| :------------------------------------------------------------ | :---------------------------------------------------- |
+| "Fixing" `--watch` with a keepalive instead of the refd timer | A `setInterval` or `stdin.resume()` in the diff       |
+| A W0.1 test that mocks the sleep and passes on broken code    | It does not fail when the change is stashed           |
+| Deciding retryability by matching the message string          | `includes("STATE_PROJECTION")` anywhere outside store |
+| Truncating the argv list to fit 30 lines                      | A brief ending mid-command                            |
+| Raising coverage with tests that assert a mock's own return   | Coverage moves, mutation survives                     |
+| Reverting another agent's in-flight work to get a clean tree  | Files you never touched appear in your diff           |
 
 ## 7. Rollback
 

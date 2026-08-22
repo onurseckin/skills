@@ -1,7 +1,10 @@
 import { describe, expect, it } from "bun:test";
 import { validateCaptureConfig } from "./config/config-loader.ts";
 import { CANONICAL_VIEWPORTS } from "./config/default-presets.ts";
-import { generateInitialConfigJson, generateInitialConfigYaml } from "../cli/commands/capture-init.ts";
+import {
+  generateInitialConfigJson,
+  generateInitialConfigYaml,
+} from "../cli/commands/capture-init.ts";
 import { resolveViewportsForScreen } from "./runners/live-capture-runner.ts";
 import type { CaptureConfig } from "./config/types.ts";
 
@@ -73,9 +76,9 @@ describe("Capture Configuration Schema", () => {
     expect(yaml).toContain('username: "admin"');
     expect(yaml).toContain('password: "Password123!"');
     expect(yaml).toContain('loginUrl: "/login"');
-    expect(yaml).toContain('usernameSelector:');
-    expect(yaml).toContain('passwordSelector:');
-    expect(yaml).toContain('submitSelector:');
+    expect(yaml).toContain("usernameSelector:");
+    expect(yaml).toContain("passwordSelector:");
+    expect(yaml).toContain("submitSelector:");
   });
 
   it("capture-init JSON template does not contain isMobile or hasTouch, and has clean credentials", () => {

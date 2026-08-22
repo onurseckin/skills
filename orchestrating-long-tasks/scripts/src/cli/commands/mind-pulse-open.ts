@@ -85,7 +85,8 @@ export function mindPulseOpenCommand(
   // 2. Check if mind is halted
   const mindState = (state.mind ?? {}) as Record<string, unknown>;
   if (mindState.halted === true) {
-    const haltReason = typeof mindState.halt_reason === "string" ? mindState.halt_reason : "unknown reason";
+    const haltReason =
+      typeof mindState.halt_reason === "string" ? mindState.halt_reason : "unknown reason";
     throw new HarnessError(
       "INVALID_STATE",
       `mind is halted (${haltReason}); cannot open pulse. Outcome: halted. Next: human inspection required.`,
@@ -97,7 +98,8 @@ export function mindPulseOpenCommand(
   const openPulse = pulseState.open as Record<string, unknown> | null | undefined;
   if (openPulse !== null && openPulse !== undefined && typeof openPulse === "object") {
     const openPulseId = typeof openPulse.pulse_id === "string" ? openPulse.pulse_id : "unknown";
-    const deadlineAt = typeof openPulse.deadline_at === "string" ? openPulse.deadline_at : "unknown";
+    const deadlineAt =
+      typeof openPulse.deadline_at === "string" ? openPulse.deadline_at : "unknown";
     const deadlineMs = Date.parse(deadlineAt);
     if (Number.isFinite(deadlineMs) && nowMs > deadlineMs) {
       throw new HarnessError(
@@ -115,9 +117,11 @@ export function mindPulseOpenCommand(
   const repoRoot = dirname(dirname(loaded.runRoot));
   const charterRecord = (mindState.charter ?? {}) as Record<string, unknown>;
   const charterSourceRel =
-    typeof charterRecord.source_path === "string" ? charterRecord.source_path : "docs/mind/CHARTER.md";
+    typeof charterRecord.source_path === "string"
+      ? charterRecord.source_path
+      : "docs/mind/CHARTER.md";
   const charterRepoRoots = Array.isArray(charterRecord.repo_roots)
-    ? (charterRecord.repo_roots.filter((r): r is string => typeof r === "string"))
+    ? charterRecord.repo_roots.filter((r): r is string => typeof r === "string")
     : undefined;
   const charterFullPath = resolveCharterPath(repoRoot, charterSourceRel, charterRepoRoots);
 
@@ -205,11 +209,14 @@ export function mindPulseOpenCommand(
     (working) => {
       const workingBudget = (working.budget ?? {}) as Record<string, unknown>;
       rollDayKeyIfNeeded(workingBudget, nowMs);
-      const currentToday = typeof workingBudget.pulses_today === "number" ? workingBudget.pulses_today : 0;
+      const currentToday =
+        typeof workingBudget.pulses_today === "number" ? workingBudget.pulses_today : 0;
       updatedPulsesToday = currentToday + 1;
       workingBudget.pulses_today = updatedPulsesToday;
       updatedWallClockToday =
-        typeof workingBudget.wall_clock_ms_today === "number" ? workingBudget.wall_clock_ms_today : 0;
+        typeof workingBudget.wall_clock_ms_today === "number"
+          ? workingBudget.wall_clock_ms_today
+          : 0;
       working.budget = workingBudget as unknown as JsonObject;
 
       const workingPulse = (working.pulse ?? {}) as Record<string, unknown>;

@@ -1,8 +1,4 @@
-import type {
-  CapturePreset,
-  CaptureViewport,
-  SidebarLayoutConfig,
-} from "./types.ts";
+import type { CapturePreset, CaptureViewport, SidebarLayoutConfig } from "./types.ts";
 
 export const CANONICAL_VIEWPORTS: Readonly<Record<string, CaptureViewport>> = {
   desktop: {
@@ -50,14 +46,16 @@ export const DEFAULT_SIDEBAR_LAYOUT: SidebarLayoutConfig = {
 export const DEFAULT_PRESETS: Readonly<Record<string, CapturePreset>> = {
   "standard-dashboard": {
     name: "standard-dashboard",
-    description: "Standard dashboard preset with desktop and tablet viewports and sidebar layout validation",
+    description:
+      "Standard dashboard preset with desktop and tablet viewports and sidebar layout validation",
     viewports: [CANONICAL_VIEWPORTS.desktop!, CANONICAL_VIEWPORTS.tablet!],
     sidebar: DEFAULT_SIDEBAR_LAYOUT,
     authRequired: true,
   },
   "marketing-site": {
     name: "marketing-site",
-    description: "Public marketing site with desktop and mobile viewports and standard navbar layout",
+    description:
+      "Public marketing site with desktop and mobile viewports and standard navbar layout",
     viewports: [CANONICAL_VIEWPORTS.desktop!, CANONICAL_VIEWPORTS.mobile!],
     sidebar: {
       enabled: false,

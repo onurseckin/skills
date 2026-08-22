@@ -7,7 +7,11 @@ import { canonicalJsonBytes } from "../core/json.ts";
 import { HarnessError } from "../errors/harness-error.ts";
 import { DEFAULT_PROHIBITIONS, type MindBudget, type ParsedCharter } from "./charter.ts";
 import type { CandidateRecord } from "./gates.ts";
-import { loadRoleContract, parseRoleContract, type RoleContract } from "../packets/role-contract.ts";
+import {
+  loadRoleContract,
+  parseRoleContract,
+  type RoleContract,
+} from "../packets/role-contract.ts";
 
 /**
  * Mapping of canonical agent roles to their designated hierarchy tier (0 to 3).
@@ -68,12 +72,7 @@ export const ALLOWED_TIER_SPAWNS: Readonly<Record<AgentRole, readonly AgentRole[
  * Abstract profile names defined per PLAN.md §10.
  * Profile maps to abstract behavior categories, never concrete model names.
  */
-export const ABSTRACT_PROFILES = [
-  "deliberate",
-  "default",
-  "adversarial",
-  "cheap_bulk",
-] as const;
+export const ABSTRACT_PROFILES = ["deliberate", "default", "adversarial", "cheap_bulk"] as const;
 
 export type AbstractProfile = (typeof ABSTRACT_PROFILES)[number];
 
@@ -341,7 +340,10 @@ export function buildTier1DeploymentPacket(
     throw new HarnessError("INVALID_ARGUMENT", "witnessCommandId must be a non-empty string");
   }
   if (!Array.isArray(input.charterGoalIds) || input.charterGoalIds.length === 0) {
-    throw new HarnessError("INVALID_ARGUMENT", "charterGoalIds must be a non-empty array of strings");
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      "charterGoalIds must be a non-empty array of strings",
+    );
   }
   if (
     typeof input.remainingRoundBudget !== "number" ||
@@ -425,9 +427,7 @@ export function buildTier1DeploymentPacket(
     ...(contractSha !== "" ? { role_contract_sha256: contractSha } : {}),
   };
 
-  const digest = createHash("sha256")
-    .update(canonicalJsonBytes(canonicalPayload))
-    .digest("hex");
+  const digest = createHash("sha256").update(canonicalJsonBytes(canonicalPayload)).digest("hex");
 
   const packet: Tier1DeploymentPacket = {
     ...canonicalPayload,

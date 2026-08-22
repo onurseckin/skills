@@ -1,10 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import {
-  CANONICAL_VIEWPORTS,
-  DEFAULT_PRESETS,
-  DEFAULT_SIDEBAR_LAYOUT,
-} from "./default-presets.ts";
+import { CANONICAL_VIEWPORTS, DEFAULT_PRESETS, DEFAULT_SIDEBAR_LAYOUT } from "./default-presets.ts";
 import type {
   CaptureAuthConfig,
   CaptureConfig,
@@ -154,7 +150,7 @@ function parseScreens(raw: unknown): CaptureScreenTarget[] {
       typeof obj.waitForSelector === "string" ? obj.waitForSelector : undefined;
     const fullPage = typeof obj.fullPage === "boolean" ? obj.fullPage : undefined;
     const viewports = Array.isArray(obj.viewports)
-      ? (obj.viewports.filter((v): v is string => typeof v === "string"))
+      ? obj.viewports.filter((v): v is string => typeof v === "string")
       : undefined;
 
     screens.push({
@@ -175,8 +171,12 @@ export function validateCaptureConfig(raw: unknown): CaptureConfig {
     throw new Error("Invalid capture configuration: expected an object at root");
   }
   const obj = raw as Record<string, unknown>;
-  const version = typeof obj.version === "string" || typeof obj.version === "number" ? obj.version : "1.0";
-  const baseUrl = typeof obj.baseUrl === "string" && obj.baseUrl.trim().length > 0 ? obj.baseUrl.trim() : "http://localhost:3000";
+  const version =
+    typeof obj.version === "string" || typeof obj.version === "number" ? obj.version : "1.0";
+  const baseUrl =
+    typeof obj.baseUrl === "string" && obj.baseUrl.trim().length > 0
+      ? obj.baseUrl.trim()
+      : "http://localhost:3000";
   const outputDir = typeof obj.outputDir === "string" ? obj.outputDir : undefined;
   const defaultViewport = typeof obj.defaultViewport === "string" ? obj.defaultViewport : "desktop";
 

@@ -86,12 +86,9 @@ export interface LaneDecision {
  * - Halted state (drift, failed integrity, consecutive crashes) returns "quiesce"
  * - Budget exhaustion or quiet hours returns "defer"
  */
-export function selectLane(
-  facts: LaneSelectorFacts,
-  options?: LaneSelectorOptions,
-): LaneDecision {
+export function selectLane(facts: LaneSelectorFacts, options?: LaneSelectorOptions): LaneDecision {
   const currentPhase = options?.phase ?? 2;
-  const allowAdvanceAndDiscover = options?.allowAdvanceAndDiscover ?? (currentPhase >= 3);
+  const allowAdvanceAndDiscover = options?.allowAdvanceAndDiscover ?? currentPhase >= 3;
 
   // Precondition 1: Halt conditions
   const isHalted =
@@ -139,8 +136,7 @@ export function selectLane(
   const hasStaleLeases =
     (facts.staleLeasesCount !== undefined && facts.staleLeasesCount > 0) ||
     Boolean(facts.liveRuns?.some((r) => Boolean(r.hasStaleLease)));
-  const hasDeadAgents =
-    facts.deadAgentsCount !== undefined && facts.deadAgentsCount > 0;
+  const hasDeadAgents = facts.deadAgentsCount !== undefined && facts.deadAgentsCount > 0;
   const hasRepairableIntegrity =
     facts.integrityStatus === "repairable" ||
     (facts.integrityIssuesCount !== undefined && facts.integrityIssuesCount > 0);
@@ -234,10 +230,7 @@ export function selectLane(
  * Pure lane selector function mapping brief facts to MindLane.
  * In Phase 2, advance and discover return "quiesce".
  */
-export function deriveLane(
-  facts: LaneSelectorFacts,
-  options?: LaneSelectorOptions,
-): MindLane {
+export function deriveLane(facts: LaneSelectorFacts, options?: LaneSelectorOptions): MindLane {
   return selectLane(facts, options).lane;
 }
 

@@ -11,22 +11,24 @@ import {
 import { mindPulseCloseCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/mind-pulse-close.ts";
 import { mindPulseOpenCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/mind-pulse-open.ts";
 import type { CommandRecord } from "../../../orchestrating-long-tasks/scripts/src/contracts/commands.ts";
-import type { HarnessEvent, RunState } from "../../../orchestrating-long-tasks/scripts/src/contracts/capsule.ts";
-import type { JsonObject, JsonValue } from "../../../orchestrating-long-tasks/scripts/src/contracts/json.ts";
+import type {
+  HarnessEvent,
+  RunState,
+} from "../../../orchestrating-long-tasks/scripts/src/contracts/capsule.ts";
+import type {
+  JsonObject,
+  JsonValue,
+} from "../../../orchestrating-long-tasks/scripts/src/contracts/json.ts";
 import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
 import {
   assertAuditAllowsPulseOpen,
-  AUDIT_QUESTION_IDS,
   checkAdmittedCandidateGoals,
   checkAdmittedCandidateWitnesses,
   checkAuditBlocksPulse,
   checkCharterDigestIntegrity,
-  checkDeclinedCandidates,
-  checkNeverUnattendedActions,
   checkPulseGaps,
   checkScopeViolations,
   checkValueConsistency,
-  validateAuditAnswers,
 } from "../../../orchestrating-long-tasks/scripts/src/mind/audit.ts";
 import { calculatePulseValue } from "../../../orchestrating-long-tasks/scripts/src/mind/value.ts";
 import { verifyDefectWitness } from "../../../orchestrating-long-tasks/scripts/src/mind/witness.ts";
@@ -749,7 +751,9 @@ describe("PHASE-5 §4.1 & PLAN §13.7 Planted-Ledger Audit Test Suite", () => {
 
       const result = checkAdmittedCandidateGoals(stateWithZeroGoals, [], ["G1", "G2"]);
       expect(result.ok).toBe(false);
-      expect(result.findings[0]).toContain("admitted candidate 'cand-no-goals' cites zero charter goals");
+      expect(result.findings[0]).toContain(
+        "admitted candidate 'cand-no-goals' cites zero charter goals",
+      );
     });
 
     test("admitted candidates with legitimate charter goals pass check cleanly", () => {
@@ -856,15 +860,15 @@ describe("PHASE-5 §4.1 & PLAN §13.7 Planted-Ledger Audit Test Suite", () => {
       const result = checkValueConsistency(events, {} as unknown as RunState);
       expect(result.ok).toBe(false);
       expect(result.findings.length).toBe(5);
-      expect(result.findings.some((f) => f.includes("metric 'tokens_spent' is explicitly excluded"))).toBe(
-        true,
-      );
-      expect(result.findings.some((f) => f.includes("metric 'files_touched' is explicitly excluded"))).toBe(
-        true,
-      );
-      expect(result.findings.some((f) => f.includes("metric 'commands_run' is explicitly excluded"))).toBe(
-        true,
-      );
+      expect(
+        result.findings.some((f) => f.includes("metric 'tokens_spent' is explicitly excluded")),
+      ).toBe(true);
+      expect(
+        result.findings.some((f) => f.includes("metric 'files_touched' is explicitly excluded")),
+      ).toBe(true);
+      expect(
+        result.findings.some((f) => f.includes("metric 'commands_run' is explicitly excluded")),
+      ).toBe(true);
     });
 
     test("unplanted clean value computation produces consistent trailing series", () => {
@@ -1042,10 +1046,7 @@ describe("PHASE-5 §4.1 & PLAN §13.7 Planted-Ledger Audit Test Suite", () => {
           payload: {
             task_id: "T-01",
             write_scope: ["src/mind/", "tests/unit/mind/"],
-            touched_files: [
-              "src/mind/audit.ts",
-              "tests/unit/mind/audit.test.ts",
-            ],
+            touched_files: ["src/mind/audit.ts", "tests/unit/mind/audit.test.ts"],
           },
           previous_hash: null,
           projection: null,

@@ -217,7 +217,13 @@ export function resolveCommandRecord(
     if (existsSync(recordPath)) {
       try {
         const record = JSON.parse(readFileSync(recordPath, "utf-8")) as Record<string, unknown>;
-        return { found: true, commandId: trimmedId, location: recordPath, runRoot: capPath, record };
+        return {
+          found: true,
+          commandId: trimmedId,
+          location: recordPath,
+          runRoot: capPath,
+          record,
+        };
       } catch {
         return { found: true, commandId: trimmedId, location: recordPath, runRoot: capPath };
       }
@@ -248,7 +254,13 @@ export function resolveCommandRecord(
         const commands = stateObj.commands as Record<string, unknown> | undefined;
         if (commands && typeof commands === "object" && Object.hasOwn(commands, trimmedId)) {
           const cmdRecord = commands[trimmedId] as Record<string, unknown> | undefined;
-          return { found: true, commandId: trimmedId, location: statePath, runRoot: capPath, record: cmdRecord };
+          return {
+            found: true,
+            commandId: trimmedId,
+            location: statePath,
+            runRoot: capPath,
+            record: cmdRecord,
+          };
         }
       } catch {
         // ignore unreadable state
@@ -347,7 +359,8 @@ export function validateQuiescentSources(
     reason = `non-zero counts in sources: ${nonZeroSources.map((s) => `${s.source}=${s.count}`).join(", ")}`;
   }
 
-  const ok = invalidSources.length === 0 && missingSources.length === 0 && nonZeroSources.length === 0;
+  const ok =
+    invalidSources.length === 0 && missingSources.length === 0 && nonZeroSources.length === 0;
 
   return {
     ok,

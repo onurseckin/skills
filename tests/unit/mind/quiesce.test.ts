@@ -13,12 +13,7 @@ import {
   buildQuiescentDigest,
   calculateQuiescentInterval,
   computeQuiescentStreak,
-  DEFAULT_BASE_INTERVAL_MS,
-  DEFAULT_MAX_INTERVAL_MS,
-  formatQuiescentDigestMarkdown,
   parseQuiescentSourceSpec,
-  QUIESCENCE_INTERVAL_MULTIPLIER,
-  QUIESCENT_DIGEST_STREAK_THRESHOLD,
   shouldTriggerQuiescentDigest,
   tryParseQuiescentSourceSpec,
   validateQuiescentScan,
@@ -26,7 +21,6 @@ import {
 } from "../../../orchestrating-long-tasks/scripts/src/mind/quiesce.ts";
 import {
   MIND_DISCOVERY_SOURCES,
-  type MindSourceId,
 } from "../../../orchestrating-long-tasks/scripts/src/mind/sources.ts";
 import { initRun } from "../../../orchestrating-long-tasks/scripts/src/store/capsule.ts";
 import { verifyIntegrity } from "../../../orchestrating-long-tasks/scripts/src/store/integrity.ts";
@@ -331,7 +325,9 @@ describe("Quiesce Module: Specifications & Pure Functions", () => {
     });
 
     expect(validation.ok).toBe(false);
-    expect(validation.nonZeroSources.some((n) => n.source === "unused-code" && n.count === 3)).toBe(true);
+    expect(validation.nonZeroSources.some((n) => n.source === "unused-code" && n.count === 3)).toBe(
+      true,
+    );
     expect(validation.error).toContain("non-zero counts detected in sources: unused-code=3");
   });
 

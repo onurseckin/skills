@@ -55,10 +55,7 @@ export function formatMindObserveBrief(params: {
   return enforceLineLimit(md, 30);
 }
 
-export function mindObserveCommand(
-  flags: Flags,
-  _context?: CommandContext,
-): MindObserveResult {
+export function mindObserveCommand(flags: Flags, _context?: CommandContext): MindObserveResult {
   const run = textFlag(flags, "run", true)!;
   const actor = textFlag(flags, "actor", true)!;
   const sourceRaw = textFlag(flags, "source", true)!;
@@ -141,7 +138,9 @@ export function mindObserveCommand(
   }
 
   // 3. Determine next observation ID
-  const existingObservations = (Array.isArray(state.observations) ? state.observations : []) as Record<string, unknown>[];
+  const existingObservations = (
+    Array.isArray(state.observations) ? state.observations : []
+  ) as Record<string, unknown>[];
   let maxObsNum = 0;
   for (const obs of existingObservations) {
     if (typeof obs?.id === "string") {
@@ -179,9 +178,7 @@ export function mindObserveCommand(
       observed_at: nowIso,
     },
     (working) => {
-      const observations = Array.isArray(working.observations)
-        ? [...working.observations]
-        : [];
+      const observations = Array.isArray(working.observations) ? [...working.observations] : [];
       observations.push(observationRecord as unknown as JsonObject);
       working.observations = observations as unknown as JsonValue[];
     },

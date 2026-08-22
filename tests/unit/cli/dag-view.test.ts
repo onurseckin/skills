@@ -5,12 +5,17 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execute } from "../../../orchestrating-long-tasks/scripts/src/cli/execute.ts";
 import {
+  activeAgentBadge,
   analyzeDependencyForensics,
   analyzeMultiCoordinatorOpportunities,
   analyzeParallelization,
   analyzeSerialization,
   executeDagViewCommand,
   renderAsciiDag,
+  renderNodeBox,
+  renderVisualDag,
+  statusBadge,
+  statusGlyph,
   type DagNodeSummary,
   type DagViewResult,
 } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/dag-view.ts";
@@ -102,9 +107,10 @@ describe("dag:view CLI command execution", () => {
     expect(result.waves[0]?.taskIds).toEqual(["task-auth"]);
     expect(result.waves[1]?.taskIds).toEqual(["task-api"]);
     expect(result.ascii_dag).toContain("WAVE 1");
-    expect(result.ascii_dag).toContain("[task-auth]");
+    expect(result.ascii_dag).toContain("(○ READY) task-auth");
     expect(result.ascii_dag).toContain("WAVE 2");
-    expect(result.ascii_dag).toContain("[task-api]");
+    expect(result.ascii_dag).toContain("(⏳ BLOCKED) task-api");
+    expect(result.ascii_dag).toContain("▼");
   });
 
   test("renders multi-wave DAG and computes critical path on compiled graphs", async () => {
@@ -872,13 +878,17 @@ describe("renderAsciiDag formatting", () => {
     const rendered = renderAsciiDag(waves, true);
 
     expect(rendered).toContain("┌─ WAVE 1 (1 lane • done)");
-    expect(rendered).toContain("│ ┌─ [task-init] Initialize Storage Layer");
-    expect(rendered).toContain("Status: [DONE 🟢] • Agent: worker-0 (Attempt #1)");
+    expect(rendered).toContain("(✓ SATISFIED) task-init");
+    expect(rendered).toContain("Initialize Storage Layer");
+    expect(rendered).toContain("Role: implementer | Phase: Wave 1 | Work: 1 | Span: 2");
     expect(rendered).toContain("Scope:  src/store");
-    expect(rendered).toContain("                           ▼");
+    expect(rendered).toContain("Agent:  worker-0 (Attempt #1)");
+    expect(rendered).toContain("▼");
     expect(rendered).toContain("┌─ WAVE 2 (1 lane • ready)");
-    expect(rendered).toContain("│ ┌─ [task-runner] Execute Integration Pipeline");
-    expect(rendered).toContain("Status: [READY 🟢]");
+    expect(rendered).toContain("(○ READY) task-runner");
+    expect(rendered).toContain("Execute Integration Pipeline");
+    expect(rendered).toContain("Needs: task-init");
+    expect(rendered).toContain("Scope:  src/runner");
     expect(rendered).toContain("Deps:   task-init");
   });
 
@@ -928,10 +938,13 @@ describe("renderAsciiDag formatting", () => {
     const rendered = renderAsciiDag(waves, true);
 
     expect(rendered).toContain("⚡ [ACTIVE EXECUTION SUBGRAPH]");
+    expect(rendered).toContain("(🟢 ACTIVE) task-behavioral-health");
     expect(rendered).toContain("[⚡ LEASED: impl-behavioral-health (implementer)]");
+    expect(rendered).toContain("(🔵 VALIDATING) task-validator-node");
     expect(rendered).toContain("[⚡ VALIDATING: val-behavioral-health (validator)]");
-    expect(rendered).toContain("• Tool: write_file");
-    expect(rendered).toContain("• Tool: verify");
+    expect(rendered).toContain("Tool:   write_file");
+    expect(rendered).toContain("Tool:   verify");
+    expect(rendered).toContain("──┬── ──▶ [PARALLEL LANE]");
   });
 
   test("renders dependency reason justifications below task boxes", () => {
@@ -987,13 +1000,71 @@ describe("renderAsciiDag formatting", () => {
     expect(rendered).toContain("↳ Dep on task-a: reads schema generated in task-a");
   });
 
-  test("zero TypeScript any and zero suppressions across dag-view source and test files", async () => {
+  test("renders complete topological DAG with boxed nodes, glyphs, connectors, and work/span metrics", () => {
+    const task1: DagNodeSummary = {
+      id: "task-whoami-identity-command",
+      label: "task-whoami-identity-command",
+      status: "leased",
+      priority: 90,
+      writeScope: ["orchestrating-long-tasks/scripts/src/cli/commands/whoami.ts"],
+      resourceScope: [],
+      gate: "bun test tests/unit/cli/whoami.test.ts",
+      dependencies: [],
+      assignedAgent: "impl-identity",
+      assignedRole: "impl-identity",
+      assignedTool: "write_file",
+      attempt: 1,
+      wave: 1,
+      criticalDepth: 0,
+      descendantCount: 1,
+      effort: 1,
+    };
+
+    const task2: DagNodeSummary = {
+      id: "task-skill-spec-3m-watchdog",
+      label: "task-skill-spec-3m-watchdog",
+      status: "blocked",
+      priority: 80,
+      writeScope: ["orchestrating-long-tasks/SKILL.md"],
+      resourceScope: [],
+      gate: "bun test tests/unit/contracts/scheduler-invariant.test.ts",
+      dependencies: ["task-whoami-identity-command"],
+      assignedAgent: null,
+      assignedRole: "impl-skill-docs",
+      attempt: null,
+      wave: 2,
+      criticalDepth: 0,
+      descendantCount: 0,
+      effort: 1,
+    };
+
+    const waves = [
+      { wave: 1, tasks: [task1] },
+      { wave: 2, tasks: [task2] },
+    ];
+
+    const rendered = renderVisualDag(waves, { detailed: false });
+
+    expect(rendered).toContain("┌─ WAVE 1 (1 lane • leased) ⚡ [ACTIVE EXECUTION SUBGRAPH]");
+    expect(rendered).toContain("(🟢 ACTIVE) task-whoami-identity-command [⚡ LEASED: impl-identity (impl-identity)]");
+    expect(rendered).toContain("Role: impl-identity | Phase: Wave 1 | Work: 1 | Span: 1");
+    expect(rendered).toContain("┬");
+    expect(rendered).toContain("│");
+    expect(rendered).toContain("▼");
+    expect(rendered).toContain("┌─ WAVE 2 (1 lane • blocked)");
+    expect(rendered).toContain("(⏳ BLOCKED) task-skill-spec-3m-watchdog");
+    expect(rendered).toContain("Role: impl-skill-docs | Needs: task-whoami-identity-command");
+    expect(rendered).toContain("Phase: Wave 2 | Work: 1 | Span: 1");
+  });
+
+  test("zero TypeScript any and zero suppressions across dag-view source, visualizer, and test files", async () => {
     const { readFileSync } = await import("node:fs");
     const dagViewSource = readFileSync(
-      join(
-        __dirname,
-        "../../../orchestrating-long-tasks/scripts/src/cli/commands/dag-view.ts",
-      ),
+      join(__dirname, "../../../orchestrating-long-tasks/scripts/src/cli/commands/dag-view.ts"),
+      "utf8",
+    );
+    const dagVisualizerSource = readFileSync(
+      join(__dirname, "../../../orchestrating-long-tasks/scripts/src/summary/dag-visualizer.ts"),
       "utf8",
     );
     const testSource = readFileSync(__filename, "utf8");
@@ -1003,15 +1074,17 @@ describe("renderAsciiDag formatting", () => {
     const anyGeneric = new RegExp("<" + "any" + ">");
     const tsIgnore = "@" + "ts-ignore";
     const tsExpectError = "@" + "ts-expect-error";
+    const tsNoCheck = "@" + "ts-nocheck";
     const suppressionDirectiveA = "eslint" + "-disable";
     const suppressionDirectiveB = "oxlint" + "-disable";
 
-    for (const content of [dagViewSource, testSource]) {
+    for (const content of [dagViewSource, dagVisualizerSource, testSource]) {
       expect(content).not.toMatch(anyAnnotation);
       expect(content).not.toMatch(anyCast);
       expect(content).not.toMatch(anyGeneric);
       expect(content.includes(tsIgnore)).toBe(false);
       expect(content.includes(tsExpectError)).toBe(false);
+      expect(content.includes(tsNoCheck)).toBe(false);
       expect(content.includes(suppressionDirectiveA)).toBe(false);
       expect(content.includes(suppressionDirectiveB)).toBe(false);
     }

@@ -5,7 +5,7 @@ const COWAN_CHUNK_LIMIT = 5;
 
 export function validateCowanChunking(
   element: ElementPhysicsSnapshot,
-  index: number
+  index: number,
 ): ValidationDefect | null {
   const children = element.children;
   if (!children || children.length === 0) {

@@ -100,19 +100,19 @@ manifest digest equals the sha256 of the charter file; `prompt.md` is mode `0444
 This is the most valuable command in the phase, and `PLAN.md` §6.3 is right that most of it is
 plumbing rather than invention. Compose the brief from what already exists:
 
-| Brief line   | Source                                                                    |
-| :----------- | :------------------------------------------------------------------------ |
-| `MODE`       | `state.pulse` and `state.mind`                                            |
-| `CHARTER`    | re-hash `state.mind.charter.source_path`, compare `manifest.prompt_sha256`|
-| `RUNTIME`    | `assertInstalledRuntimeFresh` (`installer/runtime-freshness.ts`)          |
-| `INTEGRITY`  | `verifyIntegrity` on the mind capsule, plus the W0.2 subcode              |
-| `BUDGET`     | `state.budget` arithmetic                                                 |
-| `GAP`        | `now − last.closed_at` versus `last.armed_interval_ms`                    |
-| `RUNS`       | `run:status` per capsule under `.capsules/` that is not a mind capsule    |
-| `ATTENTION`  | escalations, open findings, stale leases from those same statuses         |
-| `HEALTH`     | last recorded `health` result and its age — **never re-run health here**  |
-| `LANE`       | derived, never asked for — see below                                      |
-| `NEXT`/`THEN`| literal argv                                                              |
+| Brief line    | Source                                                                     |
+| :------------ | :------------------------------------------------------------------------- |
+| `MODE`        | `state.pulse` and `state.mind`                                             |
+| `CHARTER`     | re-hash `state.mind.charter.source_path`, compare `manifest.prompt_sha256` |
+| `RUNTIME`     | `assertInstalledRuntimeFresh` (`installer/runtime-freshness.ts`)           |
+| `INTEGRITY`   | `verifyIntegrity` on the mind capsule, plus the W0.2 subcode               |
+| `BUDGET`      | `state.budget` arithmetic                                                  |
+| `GAP`         | `now − last.closed_at` versus `last.armed_interval_ms`                     |
+| `RUNS`        | `run:status` per capsule under `.capsules/` that is not a mind capsule     |
+| `ATTENTION`   | escalations, open findings, stale leases from those same statuses          |
+| `HEALTH`      | last recorded `health` result and its age — **never re-run health here**   |
+| `LANE`        | derived, never asked for — see below                                       |
+| `NEXT`/`THEN` | literal argv                                                               |
 
 Hard requirements:
 
@@ -122,7 +122,7 @@ Hard requirements:
   refuses while a pulse is open. Phase 2 adds the crash-count ladder on top; Phase 1 only closes the
   corpse and records why.
 - **It never refuses.** A pulse that cannot orient must still learn why. HALT conditions are
-  *reported* — `CHARTER DRIFTED`, `INTEGRITY FAILED` — with the argv that addresses them.
+  _reported_ — `CHARTER DRIFTED`, `INTEGRITY FAILED` — with the argv that addresses them.
 - **Under 2 KB.** Enforced by `enforceLineLimit` at 30 lines plus a byte assertion in the test. If
   the brief exceeds it, the brief is wrong, not the model.
 - **Every line is a measured fact or the literal word `unknown`.** No plausible defaults.
@@ -264,18 +264,18 @@ Pulse Zero that cannot survive a night.
 
 ## 6. Failure modes
 
-| Likely mistake                                                | The tell                                                    |
-| :------------------------------------------------------------ | :----------------------------------------------------------- |
-| Inventing a `--mind` flag                                     | Role enforcement silently stops applying (D4)                |
-| Adding `roles/mind.md` without touching `AGENT_ROLES`| The roles parity test fails                                  |
-| `tier: 0` without widening the bound                          | `loadRoleContract` throws at parse                           |
-| Hand-editing `cli-capabilities.md`                            | The digest test fails, or a bare `oxfmt` rewrites 485 lines  |
-| Making `mind:wake` refuse on a HALT condition                 | A halted mind can no longer explain itself                   |
-| Re-running `health` inside `mind:wake`                        | The 2 KB budget and the ~0.1 s orientation both blow         |
-| Asking the model which lane to take                           | `LANE` must be a pure function of the numbers above          |
-| Letting the agent supply `value`                              | Activity becomes the numerator; busywork becomes rational    |
-| A pulse that closes with neither arm nor terminal reason      | The mind stops overnight and nothing says why                |
-| Adding a notifier to `scripts/src/`                           | D7 — the harness records, the driver notifies                |
+| Likely mistake                                           | The tell                                                    |
+| :------------------------------------------------------- | :---------------------------------------------------------- |
+| Inventing a `--mind` flag                                | Role enforcement silently stops applying (D4)               |
+| Adding `roles/mind.md` without touching `AGENT_ROLES`    | The roles parity test fails                                 |
+| `tier: 0` without widening the bound                     | `loadRoleContract` throws at parse                          |
+| Hand-editing `cli-capabilities.md`                       | The digest test fails, or a bare `oxfmt` rewrites 485 lines |
+| Making `mind:wake` refuse on a HALT condition            | A halted mind can no longer explain itself                  |
+| Re-running `health` inside `mind:wake`                   | The 2 KB budget and the ~0.1 s orientation both blow        |
+| Asking the model which lane to take                      | `LANE` must be a pure function of the numbers above         |
+| Letting the agent supply `value`                         | Activity becomes the numerator; busywork becomes rational   |
+| A pulse that closes with neither arm nor terminal reason | The mind stops overnight and nothing says why               |
+| Adding a notifier to `scripts/src/`                      | D7 — the harness records, the driver notifies               |
 
 ## 7. Rollback and recorded results
 

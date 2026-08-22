@@ -141,7 +141,12 @@ export async function criticReviewCommand(flags: Flags): Promise<Record<string, 
     }
 
     const checksList = Object.values(state.commands)
-      .filter((c) => c.actor === critic && c.exit_code === 0 && authoritativeRepositoryCommand(state, c.id) !== undefined)
+      .filter(
+        (c) =>
+          c.actor === critic &&
+          c.exit_code === 0 &&
+          authoritativeRepositoryCommand(state, c.id) !== undefined,
+      )
       .map((c) => ({ command_id: c.id }));
 
     const proofs = parseRawProofs(proofsRaw, proofsFile);

@@ -10,13 +10,15 @@ const coordinatorRolePath = join(skillRoot, "roles/coordinator.md");
 const orchestratorRolePath = join(skillRoot, "roles/orchestrator.md");
 const hostAdaptersPath = join(skillRoot, "references/host-adapters.md");
 
-describe("Mandatory 5-Minute Supervisory Scheduler Invariant & Rule 16 Contract", () => {
-  test("SKILL.md defines Rule 16 with mandatory 5-minute supervisory scheduler requirement", () => {
+describe("Mandatory Supervisory Scheduler Invariant & Rule 16 Contract", () => {
+  test("SKILL.md defines Rule 16 with mandatory supervisory scheduler requirement", () => {
     expect(existsSync(skillPath)).toBe(true);
     const content = readFileSync(skillPath, "utf8");
 
-    expect(content).toContain("16. Mandatory 5-Minute Supervisory Scheduler & Algorithmic DAG Optimization");
-    expect(content).toContain("5-minute");
+    expect(content).toContain(
+      "16. Mandatory 3-Minute Supervisory Scheduler & Algorithmic DAG Optimization",
+    );
+    expect(content).toMatch(/(3-minute|3m)/);
     expect(content).toContain("schedule");
     expect(content).toContain("dag:view");
   });
@@ -63,7 +65,9 @@ describe("Mandatory 5-Minute Supervisory Scheduler Invariant & Rule 16 Contract"
     expect(existsSync(hostAdaptersPath)).toBe(true);
     const content = readFileSync(hostAdaptersPath, "utf8");
 
-    expect(content).toContain("Mandatory 5-Minute Supervisory Scheduler & Live ASCII DAG Optimization");
+    expect(content).toContain(
+      "Mandatory 5-Minute Supervisory Scheduler & Live ASCII DAG Optimization",
+    );
     expect(content).toContain("5-minute");
     expect(content).toContain("dag:view");
     expect(content).toContain("schedule");
@@ -71,14 +75,18 @@ describe("Mandatory 5-Minute Supervisory Scheduler Invariant & Rule 16 Contract"
 
   test("SKILL.md defines Rule 17 on Infinite Mind Cadence, No Agent Termination, and Background Finalization", () => {
     const content = readFileSync(skillPath, "utf8");
-    expect(content).toContain("17. Infinite Mind Cadence, No Agent-Driven Termination & Background Finalization Isolation");
+    expect(content).toContain(
+      "17. Infinite Mind Cadence, No Agent-Driven Termination & Background Finalization Isolation",
+    );
     expect(content).toContain("Tier 1 Background Orchestrator");
     expect(content).toContain("main interactive thread");
   });
 
   test("references/host-adapters.md documents Section 5.8 for Infinite Cadence & Background Finalization", () => {
     const content = readFileSync(hostAdaptersPath, "utf8");
-    expect(content).toContain("5.8 Infinite Mind Cadence, Zero Agent-Driven Termination & Background Finalization Isolation");
+    expect(content).toContain(
+      "5.8 Infinite Mind Cadence, Zero Agent-Driven Termination & Background Finalization Isolation",
+    );
     expect(content).toContain("Tier 1 Background Orchestrator");
   });
 

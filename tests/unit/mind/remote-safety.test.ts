@@ -2,8 +2,10 @@ import { describe, expect, test } from "bun:test";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { scratchRoot as makeScratchRoot } from "../../support/scratch-root.ts";
-import { AGENT_ROLES, type AgentRole } from "../../../orchestrating-long-tasks/scripts/src/contracts/packets.ts";
-import { loadRoleContract } from "../../../orchestrating-long-tasks/scripts/src/packets/role-contract.ts";
+import {
+  AGENT_ROLES,
+  type AgentRole,
+} from "../../../orchestrating-long-tasks/scripts/src/contracts/packets.ts";
 import { loadMindContract } from "../../../orchestrating-long-tasks/scripts/src/mind/deploy.ts";
 
 function scratchRoot(label: string): string {
@@ -119,7 +121,9 @@ export function auditRemoteUrls(repoDir: string): RemoteUrlAuditResult {
   for (const [name, urls] of Object.entries(remotesMap)) {
     if (urls.push) {
       if (!isPushTargetInert(urls.push)) {
-        issues.push(`Remote '${name}' has active push URL '${urls.push}'; must be inert (e.g. 'no_push')`);
+        issues.push(
+          `Remote '${name}' has active push URL '${urls.push}'; must be inert (e.g. 'no_push')`,
+        );
       }
     } else if (urls.fetch) {
       // In Git, if push URL is not explicitly set, push defaults to fetch URL.
@@ -230,7 +234,9 @@ describe("PHASE-6 W6.4: Remote Container Safety & Capability Removal", () => {
       const audit = auditRemoteUrls(root);
       expect(audit.ok).toBe(false);
       expect(audit.issues.length).toBeGreaterThan(0);
-      expect(audit.issues[0]).toMatch(/has active push URL|without an explicit inert push URL configured/u);
+      expect(audit.issues[0]).toMatch(
+        /has active push URL|without an explicit inert push URL configured/u,
+      );
     });
 
     test("auditRemoteUrls detects active/writable push URL", () => {
@@ -276,7 +282,9 @@ describe("PHASE-6 W6.4: Remote Container Safety & Capability Removal", () => {
       expect(exitCode).not.toBe(0);
       // Failure must come directly from Git's fatal transport error
       expect(stderr.toLowerCase()).toContain("fatal:");
-      expect(stderr.toLowerCase()).toMatch(/('origin' does not appear to be a git repository|fatal: 'origin')/u);
+      expect(stderr.toLowerCase()).toMatch(
+        /('origin' does not appear to be a git repository|fatal: 'origin')/u,
+      );
     });
 
     test("git push fails at transport/git layer when push URL is 'no_push'", async () => {

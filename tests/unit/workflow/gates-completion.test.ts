@@ -76,9 +76,7 @@ describe("gates and completion", () => {
       },
     ];
     const dirty = new TestPort(state);
-    expect(() => finishTask(dirty, "T-1", "coordinator", clock)).toThrow(
-      /task has open findings/,
-    );
+    expect(() => finishTask(dirty, "T-1", "coordinator", clock)).toThrow(/task has open findings/);
   });
 
   test("promotes a dependent proposed task to ready once its dependency finishes", () => {

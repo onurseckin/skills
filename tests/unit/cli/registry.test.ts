@@ -67,6 +67,7 @@ const EXPECTED_INVOCATIONS = [
   "agent:list",
   "orphan:dispose",
   "authority:decide",
+  "whoami",
   "install",
   "installation-status",
   "coverage:check",

@@ -272,7 +272,16 @@ describe("orchestrator:supervise --watch", () => {
     };
 
     const result = await execute(
-      ["orchestrator:supervise", "--run", run, "--actor", "coordinator", "--watch", "--interval", "1"],
+      [
+        "orchestrator:supervise",
+        "--run",
+        run,
+        "--actor",
+        "coordinator",
+        "--watch",
+        "--interval",
+        "1",
+      ],
       context,
     );
 

@@ -179,11 +179,7 @@ export function runStatus(
       ? { argv: [], unavailable: [] }
       : nextActions(loaded.runRoot, entrypoint, view as JsonObject, agents);
 
-  const phase = loaded.state.completion_result
-    ? "Completed"
-    : graph
-      ? "Executing"
-      : "Planning";
+  const phase = loaded.state.completion_result ? "Completed" : graph ? "Executing" : "Planning";
 
   const catalogue = capsuleCatalogue(loaded.runRoot);
   const satisfiedCount = tasks.filter(
