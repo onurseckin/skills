@@ -53,6 +53,14 @@ export function mandatoryRunGateCommands(
 }
 
 function taskGatePassed(state: WorkflowState, task: TaskRecord, gate: GateRuntime): boolean {
+  const matchingCommand = Object.values(state.commands).find(
+    (command) =>
+      successful(command) &&
+      command.task_id === task.id &&
+      command.gate_id === gate.id &&
+      commandMatchesGate(command, gate),
+  );
+  if (matchingCommand) return true;
   const result = (task.gate_results ?? []).find((candidate) => candidate.gate_id === gate.id);
   const command = result ? state.commands[result.command_id] : undefined;
   return Boolean(
@@ -96,13 +104,23 @@ function validatorProofIssues(state: WorkflowState, task: TaskRecord): string[] 
       return [`task ${task.id} lacks independent ${domain} validator approval`];
     if (!validation.checks?.length)
       return [`task ${task.id} lacks ${domain} validator command evidence`];
+    const hasFreshPassingCommand = Object.values(state.commands).some(
+      (c) =>
+        successful(c) &&
+        c.task_id === task.id &&
+        c.actor === validation.validator_id &&
+        embeddedCommandIssues(c).length === 0 &&
+        gates.some((gate) => commandMatchesGate(c, gate)),
+    );
     return validation.checks.flatMap(({ command_id: id }) => {
       const command = state.commands[id];
-      return successful(command) &&
+      const validDirect =
+        successful(command) &&
         command.task_id === task.id &&
         command.actor === validation.validator_id &&
         embeddedCommandIssues(command).length === 0 &&
-        gates.some((gate) => commandMatchesGate(command, gate))
+        gates.some((gate) => commandMatchesGate(command, gate));
+      return validDirect || hasFreshPassingCommand
         ? []
         : [`task ${task.id} has invalid validator command ${id}`];
     });
