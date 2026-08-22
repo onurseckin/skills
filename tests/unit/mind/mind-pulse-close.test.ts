@@ -22,6 +22,15 @@ import {
   parseDuration,
   PULSE_OUTCOMES,
 } from "../../../orchestrating-long-tasks/scripts/src/mind/value.ts";
+import {
+  assessRecyclingState,
+  enforceInfiniteMindCadence,
+  extractAllCandidates,
+  formatRecycleBrief,
+  planAutonomousRoundRecycle,
+  transitionCompletenessCriticSignOff,
+  transitionPulseCloseToWake,
+} from "../../../orchestrating-long-tasks/scripts/src/mind/recycler.ts";
 import { initRun } from "../../../orchestrating-long-tasks/scripts/src/store/capsule.ts";
 import { loadRun } from "../../../orchestrating-long-tasks/scripts/src/store/load.ts";
 import { transact } from "../../../orchestrating-long-tasks/scripts/src/store/transaction.ts";
@@ -618,5 +627,344 @@ describe("mindPulseCloseCommand - Successful Closures & Invariant Checks", () =>
     expect(brief).toContain("Mind Pulse Closed: pulse-1");
     expect(brief).toContain("**Outcome**: quiescent");
     expect(brief).toContain("**Arm Mechanism**: systemd-timer");
+    expect(brief).toContain("**Cadence**: infinite autonomous loop active");
+    expect(brief).toContain("**Next Instruction**: `bun harness.ts mind:wake`");
+  });
+
+  test("formatMindPulseCloseBrief outputs explicit next instruction for run and candidate", () => {
+    const briefWithRun = formatMindPulseCloseBrief({
+      pulseId: "pulse-2",
+      outcome: "advanced",
+      value: 5,
+      nextWakeAt: "2026-08-21T05:15:00.000Z",
+      armedIntervalMs: 900_000,
+      armMechanism: "command-flag",
+      runRoot: "/tmp/capsules/mind-gen-test",
+    });
+
+    expect(briefWithRun).toContain(
+      "**Next Instruction**: `bun harness.ts mind:wake --run /tmp/capsules/mind-gen-test`",
+    );
+
+    const briefWithCandidate = formatMindPulseCloseBrief({
+      pulseId: "pulse-3",
+      outcome: "advanced",
+      value: 3,
+      nextWakeAt: "2026-08-21T05:15:00.000Z",
+      armedIntervalMs: 900_000,
+      armMechanism: "command-flag",
+      runRoot: "/tmp/capsules/mind-gen-test",
+      nextCandidateId: "cand-defect-1",
+    });
+
+    expect(briefWithCandidate).toContain(
+      "**Next Instruction**: `bun harness.ts mind:admit --run /tmp/capsules/mind-gen-test --candidate cand-defect-1`",
+    );
+  });
+
+  test("mindPulseCloseCommand returns infinite cadence and routes next instruction to candidate", async () => {
+    const fixture = setupMindCapsule("close-infinite-cadence");
+
+    // Add an admitted candidate in state
+    transact(
+      fixture.run,
+      "mind-1",
+      "mind-candidate-recorded",
+      { id: "cand-auto-1" },
+      (working) => {
+        const workingMind = (working.mind ?? {}) as Record<string, unknown>;
+        workingMind.candidates = [
+          {
+            id: "cand-auto-1",
+            kind: "defect",
+            statement: "Fix defect in test",
+            write_scope: ["src/"],
+            status: "admitted",
+          },
+        ];
+        working.mind = workingMind as unknown as JsonObject;
+      },
+    );
+
+    const result = await mindPulseCloseCommand({
+      run: fixture.run,
+      actor: "mind-1",
+      pulse: "pulse-1",
+      outcome: "advanced",
+      arm: "15m",
+    });
+
+    expect(result.cadence).toBe("infinite_autonomous");
+    expect(result.next_instruction).toBe(
+      `bun harness.ts mind:admit --run ${fixture.run} --candidate cand-auto-1`,
+    );
+    expect(result.markdown).toContain("infinite autonomous loop active");
+    expect(result.markdown).toContain(
+      `bun harness.ts mind:admit --run ${fixture.run} --candidate cand-auto-1`,
+    );
   });
 });
+
+describe("recycler.ts - Autonomous Round-to-Round Recycling Engine", () => {
+  test("extractAllCandidates retrieves candidates across state levels", () => {
+    const state: Record<string, unknown> = {
+      candidates: [
+        {
+          id: "cand-1",
+          kind: "defect",
+          statement: "Candidate 1",
+          write_scope: ["src/"],
+          status: "opened",
+        },
+      ],
+      mind: {
+        candidates: [
+          {
+            id: "cand-2",
+            kind: "proposal",
+            statement: "Candidate 2",
+            write_scope: ["docs/"],
+            status: "admitted",
+          },
+        ],
+      },
+    };
+
+    const candidates = extractAllCandidates(state);
+    expect(candidates.length).toBe(2);
+    expect(candidates.map((c) => c.id)).toEqual(["cand-1", "cand-2"]);
+  });
+
+  test("transitionCompletenessCriticSignOff: clean review transitions to admitted candidate round opening", () => {
+    const state: Record<string, unknown> = {
+      completion_review: {
+        status: "clean",
+        summary: "All requirements met and verified.",
+      },
+      mind: {
+        actor: "mind-1",
+        candidates: [
+          {
+            id: "cand-admitted-1",
+            kind: "defect",
+            statement: "Implement feature A",
+            write_scope: ["src/"],
+            status: "admitted",
+          },
+        ],
+      },
+    };
+
+    const assessment = transitionCompletenessCriticSignOff(state, {
+      runRoot: "/tmp/capsules/mind-gen-1",
+      actor: "mind-1",
+    });
+
+    expect(assessment.canRecycle).toBe(true);
+    expect(assessment.phase).toBe("critic_signed_off");
+    expect(assessment.transition).toBe("candidate_to_planning");
+    expect(assessment.candidateId).toBe("cand-admitted-1");
+    expect(assessment.nextRecommendedCommand).toContain("mind:round-open");
+    expect(assessment.nextRecommendedCommand).toContain("--candidate cand-admitted-1");
+    expect(assessment.infiniteCadence).toBe(true);
+  });
+
+  test("transitionCompletenessCriticSignOff: clean review transitions to open candidate admission", () => {
+    const state: Record<string, unknown> = {
+      completion_review: {
+        status: "clean",
+        summary: "Prior round passed.",
+      },
+      mind: {
+        actor: "mind-1",
+        candidates: [
+          {
+            id: "cand-open-1",
+            kind: "defect",
+            statement: "Evaluate gate 2",
+            write_scope: ["src/"],
+            status: "opened",
+          },
+        ],
+      },
+    };
+
+    const assessment = transitionCompletenessCriticSignOff(state, {
+      runRoot: "/tmp/capsules/mind-gen-1",
+      actor: "mind-1",
+    });
+
+    expect(assessment.canRecycle).toBe(true);
+    expect(assessment.phase).toBe("critic_signed_off");
+    expect(assessment.transition).toBe("discovery_to_admission");
+    expect(assessment.candidateId).toBe("cand-open-1");
+    expect(assessment.nextRecommendedCommand).toContain("mind:admit");
+    expect(assessment.nextRecommendedCommand).toContain("--candidate cand-open-1");
+  });
+
+  test("transitionCompletenessCriticSignOff: clean review with no candidates transitions to discovery", () => {
+    const state: Record<string, unknown> = {
+      completion_review: {
+        status: "clean",
+        summary: "Finished all objectives.",
+      },
+      mind: {
+        actor: "mind-1",
+        candidates: [],
+      },
+    };
+
+    const assessment = transitionCompletenessCriticSignOff(state, {
+      runRoot: "/tmp/capsules/mind-gen-1",
+      actor: "mind-1",
+    });
+
+    expect(assessment.canRecycle).toBe(true);
+    expect(assessment.phase).toBe("critic_signed_off");
+    expect(assessment.transition).toBe("critic_to_discovery");
+    expect(assessment.nextRecommendedCommand).toContain("mind:candidate");
+    expect(assessment.infiniteCadence).toBe(true);
+  });
+
+  test("transitionCompletenessCriticSignOff: findings review with remaining budget opens successor round", () => {
+    const state: Record<string, unknown> = {
+      completion_review: {
+        status: "findings",
+        summary: "Found 2 defect findings.",
+      },
+      budget: {
+        max_rounds_per_objective: 3,
+      },
+      rounds: [
+        {
+          round_id: "round-obj-1-r1",
+          objective_id: "obj-1",
+          round: 1,
+          candidate_id: "cand-1",
+          statement: "Initial round",
+          status: "opened",
+          opened_at: new Date().toISOString(),
+          actor: "mind-1",
+        },
+      ],
+      mind: {
+        actor: "mind-1",
+      },
+    };
+
+    const assessment = transitionCompletenessCriticSignOff(state, {
+      runRoot: "/tmp/capsules/mind-gen-1",
+      actor: "mind-1",
+    });
+
+    expect(assessment.canRecycle).toBe(true);
+    expect(assessment.phase).toBe("critic_signed_off");
+    expect(assessment.transition).toBe("critic_to_next_round");
+    expect(assessment.roundNumber).toBe(2);
+    expect(assessment.nextRecommendedCommand).toContain("mind:round-open");
+    expect(assessment.nextRecommendedCommand).toContain("--round 2");
+    expect(assessment.nextRecommendedCommand).toContain("--chain-from /tmp/capsules/mind-gen-1");
+  });
+
+  test("transitionCompletenessCriticSignOff: findings review with exhausted budget transitions to discovery", () => {
+    const state: Record<string, unknown> = {
+      completion_review: {
+        status: "findings",
+        summary: "Unresolved issues.",
+      },
+      budget: {
+        max_rounds_per_objective: 2,
+      },
+      rounds: [
+        {
+          round_id: "round-obj-1-r2",
+          objective_id: "obj-1",
+          round: 2,
+          candidate_id: "cand-1",
+          statement: "Round 2",
+          status: "opened",
+          opened_at: new Date().toISOString(),
+          actor: "mind-1",
+        },
+      ],
+      mind: {
+        actor: "mind-1",
+      },
+    };
+
+    const assessment = transitionCompletenessCriticSignOff(state, {
+      runRoot: "/tmp/capsules/mind-gen-1",
+      actor: "mind-1",
+    });
+
+    expect(assessment.canRecycle).toBe(true);
+    expect(assessment.phase).toBe("critic_signed_off");
+    expect(assessment.transition).toBe("critic_to_discovery");
+    expect(assessment.nextRecommendedCommand).toContain("mind:wake");
+  });
+
+  test("transitionPulseCloseToWake: transitions closed pulse without process termination", () => {
+    const assessment = transitionPulseCloseToWake(
+      "/tmp/capsules/mind-gen-1",
+      "pulse-42",
+      "advanced",
+    );
+
+    expect(assessment.canRecycle).toBe(true);
+    expect(assessment.phase).toBe("pulse_closed");
+    expect(assessment.transition).toBe("pulse_to_wake");
+    expect(assessment.nextRecommendedCommand).toBe("bun harness.ts mind:wake --run /tmp/capsules/mind-gen-1");
+    expect(assessment.infiniteCadence).toBe(true);
+  });
+
+  test("enforceInfiniteMindCadence: strictly enforces perpetual cadence", () => {
+    const normal = enforceInfiniteMindCadence({
+      runRoot: "/tmp/capsules/mind-gen-1",
+      actor: "mind-1",
+      isTerminal: false,
+    });
+    expect(normal.cadence).toBe("infinite_autonomous");
+    expect(normal.allowed).toBe(true);
+    expect(normal.nextInstruction).toBe("bun harness.ts mind:wake --run /tmp/capsules/mind-gen-1");
+    expect(normal.message).toContain("Infinite autonomous mind cadence active");
+
+    const terminal = enforceInfiniteMindCadence({
+      runRoot: "/tmp/capsules/mind-gen-1",
+      actor: "mind-1",
+      isTerminal: true,
+    });
+    expect(terminal.cadence).toBe("infinite_autonomous");
+    expect(terminal.allowed).toBe(true);
+    expect(terminal.message).toContain("Terminal outcome recorded");
+  });
+
+  test("planAutonomousRoundRecycle and formatRecycleBrief render clean output", () => {
+    const state: Record<string, unknown> = {
+      mind: {
+        actor: "mind-1",
+        candidates: [
+          {
+            id: "cand-new-1",
+            kind: "defect",
+            statement: "Automated test defect",
+            write_scope: ["src/"],
+            status: "admitted",
+          },
+        ],
+      },
+    };
+
+    const plan = planAutonomousRoundRecycle(state, {
+      runRoot: "/tmp/capsules/mind-gen-1",
+      actor: "mind-1",
+    });
+
+    expect(plan.transition).toBe("candidate_to_planning");
+    expect(plan.candidateId).toBe("cand-new-1");
+    expect(plan.planCommands.length).toBeGreaterThan(0);
+    expect(plan.markdown).toContain("Autonomous Mind Recycler");
+    expect(plan.markdown).toContain("infinite autonomous loop active");
+    expect(plan.markdown.split("\n").length).toBeLessThanOrEqual(25);
+  });
+});
+

@@ -9,8 +9,29 @@ import type { PacketRecord } from "../workflow/types.ts";
 import { packetEvidenceIssues } from "./packet-evidence.ts";
 import { workflowView } from "./workflow-view.ts";
 import { installationStatus } from "../installer/installation-status.ts";
-import { trustedHostEvidence, trustedHostLimitations } from "../contracts/trusted-host.ts";
-import { repositoryGit, type RepositoryGitCommand } from "../packets/repository-git-command.ts";
+import {
+  trustedHostEvidence,
+  trustedHostLimitations,
+} from "../contracts/trusted-host.ts";
+import {
+  repositoryGit,
+  type RepositoryGitCommand,
+} from "../packets/repository-git-command.ts";
+import {
+  auditBehavioralHealth,
+  formatBehavioralRoleHealthSection,
+  type BehavioralFinding,
+  type BehavioralSeverity,
+  type BehavioralViolationType,
+} from "./behavioral-auditor.ts";
+
+export {
+  auditBehavioralHealth,
+  formatBehavioralRoleHealthSection,
+  type BehavioralFinding,
+  type BehavioralSeverity,
+  type BehavioralViolationType,
+};
 
 export interface DoctorOptions {
   installation?: {
@@ -37,10 +58,42 @@ export function ignoredByGit(
   const repository = dirname(dirname(runRoot));
   if (!existsSync(join(repository, ".git"))) return null;
   try {
-    return command(repository, ["check-ignore", "--quiet", runRoot], 1024, [0, 1]).status === 0;
+    return (
+      command(repository, ["check-ignore", "--quiet", runRoot], 1024, [0, 1])
+        .status === 0
+    );
   } catch {
     return null;
   }
+}
+
+export function formatDoctorReport(params: {
+  runRoot: string;
+  healthy: boolean;
+  bunVersion: string;
+  bunSupported: boolean;
+  gitignored: boolean | null;
+  issues: readonly string[];
+  behavioralFindings: readonly BehavioralFinding[];
+}): string {
+  const issues = params.issues;
+  const lines = [
+    `### Capsule Doctor: \`${params.runRoot}\``,
+    `- **Healthy**: ${params.healthy ? "yes" : "no"}`,
+    `- **Bun**: ${params.bunVersion} (${params.bunSupported ? "supported" : "unsupported"})`,
+    `- **Gitignored**: ${
+      params.gitignored === true
+        ? "yes"
+        : params.gitignored === false
+          ? "no"
+          : "unknown"
+    }`,
+    ...(issues.length > 0 ? ["- **Issues**:"] : ["- **Issues**: none"]),
+    ...issues.map((issue) => `  - ${issue}`),
+    "",
+    formatBehavioralRoleHealthSection(params.behavioralFindings),
+  ];
+  return lines.join("\n");
 }
 
 export async function runDoctor(
@@ -48,18 +101,27 @@ export async function runDoctor(
   options: DoctorOptions = {},
   gitCommand: RepositoryGitCommand = repositoryGit,
 ): Promise<Record<string, unknown>> {
-  const integrityIssues = [...verifyIntegrity(runRoot), ...verifyCapsuleDeep(runRoot)];
+  const integrityIssues = [
+    ...verifyIntegrity(runRoot),
+    ...verifyCapsuleDeep(runRoot),
+  ];
   const gitignored = ignoredByGit(runRoot, gitCommand);
   const bunSupported = versionAtLeast(Bun.version, MINIMUM_BUN_VERSION);
   const loaded = integrityIssues.length === 0 ? loadRun(runRoot) : undefined;
   const commandIssues = loaded
-    ? Object.values((loaded.state.commands ?? {}) as Record<string, CommandRecord>).flatMap(
-        (record) =>
-          verifyCommandRecord(runRoot, record).map((issue) => `command ${record.id}: ${issue}`),
+    ? Object.values(
+        (loaded.state.commands ?? {}) as Record<string, CommandRecord>,
+      ).flatMap((record) =>
+        verifyCommandRecord(runRoot, record).map(
+          (issue) => `command ${record.id}: ${issue}`,
+        ),
       )
     : [];
   const packetIssues = loaded
-    ? packetEvidenceIssues(runRoot, (loaded.state.packets ?? {}) as Record<string, PacketRecord>)
+    ? packetEvidenceIssues(
+        runRoot,
+        (loaded.state.packets ?? {}) as Record<string, PacketRecord>,
+      )
     : [];
   const view = loaded?.state.graph ? workflowView(runRoot) : undefined;
   const workflowIssues = view
@@ -75,18 +137,43 @@ export async function runDoctor(
         options.installation.clients,
       )
     : undefined;
-  const installationIssues = (installation?.issues ?? []).map((issue) => `installation: ${issue}`);
+  const installationIssues = (installation?.issues ?? []).map(
+    (issue) => `installation: ${issue}`,
+  );
+
+  const behavioralFindings = loaded
+    ? auditBehavioralHealth(runRoot, loaded.state)
+    : [];
+  const behavioralIssues = behavioralFindings.map(
+    (f) =>
+      `behavioral [${f.severity}] (${f.role}/${f.agent_id}): ${f.observation}`,
+  );
+
   const issues = [
     ...integrityIssues.map(({ code, message }) => `${code}: ${message}`),
     ...(gitignored === false ? ["run capsule is not gitignored"] : []),
-    ...(!bunSupported ? [`Bun ${Bun.version} is below ${MINIMUM_BUN_VERSION}`] : []),
+    ...(bunSupported ? [] : [`Bun ${Bun.version} is below ${MINIMUM_BUN_VERSION}`]),
     ...commandIssues,
     ...packetIssues,
     ...workflowIssues,
+    ...behavioralIssues,
     ...installationIssues,
   ];
+
+  const healthy = issues.length === 0;
+
+  const markdown = formatDoctorReport({
+    runRoot,
+    healthy,
+    bunVersion: Bun.version,
+    bunSupported,
+    gitignored,
+    issues,
+    behavioralFindings,
+  });
+
   return {
-    healthy: issues.length === 0,
+    healthy,
     gate_evidence: trustedHostEvidence(),
     gate_evidence_limitations: trustedHostLimitations(),
     run_root: runRoot,
@@ -97,8 +184,11 @@ export async function runDoctor(
     command_issues: commandIssues,
     packet_issues: packetIssues,
     workflow_issues: workflowIssues,
+    behavioral_findings: behavioralFindings,
+    behavioral_issues: behavioralIssues,
     installation: installation ?? null,
     installation_issues: installationIssues,
     issues,
+    markdown,
   };
 }

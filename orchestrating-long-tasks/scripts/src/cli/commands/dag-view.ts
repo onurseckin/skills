@@ -48,6 +48,7 @@ export interface DagNodeSummary {
   readonly gate: string;
   readonly dependencies: readonly string[];
   readonly assignedAgent: string | null;
+  readonly assignedRole?: string | null | undefined;
   readonly assignedTool?: string | null | undefined;
   readonly attempt: number | null;
   readonly wave: number;
@@ -461,46 +462,65 @@ export function renderAsciiDag(
     const waveTasks = waveEntry.tasks;
 
     const waveStatuses = [...new Set(waveTasks.map((t) => t.status))].join("/");
-    const headerTitle = ` WAVE ${waveNum} (${waveTasks.length} ${waveTasks.length === 1 ? "lane" : "lanes"} • ${waveStatuses}) `;
+    const hasActiveTasks = waveTasks.some(
+      (t) => t.status === "leased" || t.status === "running" || t.status === "validating",
+    );
+    const activeWaveBadge = hasActiveTasks ? " ⚡ [ACTIVE EXECUTION SUBGRAPH]" : "";
+    const headerTitle = ` WAVE ${waveNum} (${waveTasks.length} ${waveTasks.length === 1 ? "lane" : "lanes"} • ${waveStatuses})${activeWaveBadge} `;
     const barLength = Math.max(20, 68 - headerTitle.length);
     const headerLine = `┌─${headerTitle}${"─".repeat(barLength)}┐`;
     lines.push(headerLine);
 
     for (const task of waveTasks) {
       const badge = statusBadge(task.status);
+      const isActivelyLeased =
+        (task.status === "leased" || task.status === "running" || task.status === "validating") &&
+        Boolean(task.assignedAgent);
+      const agentRole = task.assignedRole ?? (task.status === "validating" ? "validator" : "implementer");
+      const actionPrefix = task.status === "validating" ? "VALIDATING" : "LEASED";
+      const agentBadge = isActivelyLeased
+        ? ` [⚡ ${actionPrefix}: ${task.assignedAgent} (${agentRole})]`
+        : "";
       const toolStr = task.assignedTool ? ` [Tool: ${task.assignedTool}]` : "";
-      const agentStr = task.assignedAgent ? ` • Agent: ${task.assignedAgent}${toolStr}` : "";
+      const agentStr =
+        !isActivelyLeased && task.assignedAgent
+          ? ` • Agent: ${task.assignedAgent}${toolStr}`
+          : isActivelyLeased && task.assignedTool
+            ? ` • Tool: ${task.assignedTool}`
+            : "";
       const attemptStr = task.attempt !== null ? ` (Attempt #${task.attempt})` : "";
       const label = task.label.length > 40 ? `${task.label.slice(0, 37)}...` : task.label;
 
-      const parallelTag = task.dependencies.length === 0 ? " [⚡ PARALLEL-ELIGIBLE]" : "";
+      const parallelTag =
+        task.dependencies.length === 0 && task.status !== "done"
+          ? " [⚡ PARALLEL-ELIGIBLE]"
+          : "";
 
       lines.push(`│ ┌─ [${task.id}] ${label}`);
-      lines.push(`│ │  Status: ${badge}${agentStr}${attemptStr}${parallelTag}`);
+      lines.push(`│ │  Status: ${badge}${agentBadge}${agentStr}${attemptStr}${parallelTag}`);
 
       if (detailed || task.writeScope.length > 0) {
         const scopes = task.writeScope.length > 0 ? task.writeScope.join(", ") : "none";
         lines.push(`│ │  Scope:  ${scopes}`);
       }
 
-      if (detailed) {
-        if (task.gate) {
-          lines.push(`│ │  Gate:   ${task.gate}`);
-        }
-        if (task.dependencies.length > 0) {
-          const depStrings: string[] = [];
-          for (const d of task.dependencies) {
-            const forensic = forensics?.find((f) => f.fromTaskId === d && f.toTaskId === task.id);
-            if (forensic) {
-              depStrings.push(`${d} (${forensic.reason})`);
-            } else {
-              depStrings.push(d);
-            }
-          }
-          lines.push(`│ │  Deps:   ${depStrings.join("; ")}`);
-        }
-      } else if (task.dependencies.length > 0) {
+      if (task.dependencies.length > 0) {
         lines.push(`│ │  Deps:   ${task.dependencies.join(", ")}`);
+        for (const depId of task.dependencies) {
+          const explicitReason = task.depReasons?.[depId];
+          const forensic = forensics?.find((f) => f.fromTaskId === depId && f.toTaskId === task.id);
+          const reason =
+            explicitReason && explicitReason.trim().length > 0
+              ? explicitReason.trim()
+              : forensic?.reason;
+          if (reason) {
+            lines.push(`│ │  ↳ Dep on ${depId}: ${reason}`);
+          }
+        }
+      }
+
+      if (detailed && task.gate) {
+        lines.push(`│ │  Gate:   ${task.gate}`);
       }
 
       lines.push(`│ └───────────────────────────────────────────────────────────`);
@@ -614,16 +634,19 @@ export function analyzeParallelization(
 
   // 5. Multi-Coordinator Scaling & Span vs Work Analysis
   const multiCoordOpps = analyzeMultiCoordinatorOpportunities(tasks);
-  const totalWork = tasks.length;
+  const totalWork = tasks.reduce(
+    (acc, t) => acc + (typeof t.effort === "number" ? t.effort : 1),
+    0,
+  );
   const span = Math.max(1, maxDepth + 1);
-  const pFactor = totalWork / span;
+  const pFactor = span > 0 ? Number((totalWork / span).toFixed(2)) : 0;
   const optimalP = Math.min(maxParallel, Math.max(2, Math.ceil(totalWork / 2)));
 
   if (multiCoordOpps.length >= 2) {
     const spanWorkNote =
       pFactor < optimalP
         ? ` Parallelism factor P=${pFactor.toFixed(2)} is below optimal P=${optimalP} (Work=${totalWork}, Span=${span}).`
-        : "";
+        : ` Parallelism factor P=${pFactor.toFixed(2)} (Work=${totalWork}, Span=${span}).`;
     recommendations.push({
       type: "multi_coordinator",
       description: `Plan spans ${multiCoordOpps.length} distinct domain write scopes (${multiCoordOpps.map((o) => o.domain).join(", ")}).${spanWorkNote} Recommend deploying dedicated Tier 2 Domain Coordinators to manage parallel wave execution.`,
@@ -698,6 +721,14 @@ export function dagViewCommand(
         }
       }
 
+      if (!leasedTaskId) {
+        if (typeof a.parent_task_id === "string") {
+          leasedTaskId = a.parent_task_id;
+        } else if (typeof a.task_id === "string") {
+          leasedTaskId = a.task_id;
+        }
+      }
+
       return {
         id,
         role,
@@ -760,13 +791,30 @@ export function dagViewCommand(
       const attempt = lease && typeof lease.attempt === "number" ? lease.attempt : null;
       const effort = typeof t.effort === "number" ? t.effort : 1;
 
-      const matchingAgent = activeAgents.find((a) => a.id === assignedAgent);
+      const matchingAgent =
+        activeAgents.find((a) => a.id === assignedAgent) ??
+        activeAgents.find((a) => a.taskId === id);
+      const effectiveAgent = assignedAgent ?? (matchingAgent?.id ?? null);
+      const assignedRole =
+        typeof matchingAgent?.role === "string"
+          ? matchingAgent.role
+          : typeof effectiveAgent === "string"
+            ? "implementer"
+            : null;
       const assignedTool =
         typeof matchingAgent?.tool === "string"
           ? matchingAgent.tool
-          : typeof assignedAgent === "string"
+          : typeof effectiveAgent === "string"
             ? "write_file"
             : null;
+
+      const planningTask = planningBuffer.find((p) => p.id === id);
+      const depReasons =
+        isRecord(t.dep_reasons)
+          ? (t.dep_reasons as Readonly<Record<string, string>>)
+          : isRecord(t.depReasons)
+            ? (t.depReasons as Readonly<Record<string, string>>)
+            : planningTask?.depReasons;
 
       nodeSummaries.push({
         id,
@@ -777,13 +825,15 @@ export function dagViewCommand(
         resourceScope,
         gate: gateStr,
         dependencies: deps,
-        assignedAgent,
+        assignedAgent: effectiveAgent,
+        assignedRole,
         assignedTool,
         attempt,
         wave: 1,
         criticalDepth: criticalDepthMap.has(id) ? (criticalDepthMap.get(id) as number) : 0,
         descendantCount: descendantsMap.has(id) ? (descendantsMap.get(id) as number) : 0,
         effort,
+        depReasons,
       });
     }
   } else {
@@ -806,6 +856,7 @@ export function dagViewCommand(
         gate: gateStr,
         dependencies: Array.isArray(item.deps) ? item.deps : [],
         assignedAgent: null,
+        assignedRole: null,
         assignedTool: null,
         attempt: null,
         wave: 1,

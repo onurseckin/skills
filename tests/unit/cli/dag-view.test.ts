@@ -882,6 +882,111 @@ describe("renderAsciiDag formatting", () => {
     expect(rendered).toContain("Deps:   task-init");
   });
 
+  test("renders active agent coordinate badges and execution subgraphs for leased/validating tasks", () => {
+    const waves = [
+      {
+        wave: 1,
+        tasks: [
+          {
+            id: "task-behavioral-health",
+            label: "Behavioral Health Engine",
+            status: "leased",
+            priority: 90,
+            writeScope: ["src/doctor.ts"],
+            resourceScope: [],
+            gate: "bun test doctor",
+            dependencies: [],
+            assignedAgent: "impl-behavioral-health",
+            assignedRole: "implementer",
+            assignedTool: "write_file",
+            attempt: 1,
+            wave: 1,
+            criticalDepth: 1,
+            descendantCount: 1,
+          },
+          {
+            id: "task-validator-node",
+            label: "Validator Health Audit",
+            status: "validating",
+            priority: 85,
+            writeScope: ["src/validator.ts"],
+            resourceScope: [],
+            gate: "bun test validator",
+            dependencies: [],
+            assignedAgent: "val-behavioral-health",
+            assignedRole: "validator",
+            assignedTool: "verify",
+            attempt: 1,
+            wave: 1,
+            criticalDepth: 1,
+            descendantCount: 0,
+          },
+        ],
+      },
+    ];
+
+    const rendered = renderAsciiDag(waves, true);
+
+    expect(rendered).toContain("⚡ [ACTIVE EXECUTION SUBGRAPH]");
+    expect(rendered).toContain("[⚡ LEASED: impl-behavioral-health (implementer)]");
+    expect(rendered).toContain("[⚡ VALIDATING: val-behavioral-health (validator)]");
+    expect(rendered).toContain("• Tool: write_file");
+    expect(rendered).toContain("• Tool: verify");
+  });
+
+  test("renders dependency reason justifications below task boxes", () => {
+    const waves = [
+      {
+        wave: 1,
+        tasks: [
+          {
+            id: "task-a",
+            label: "Schema Definition",
+            status: "done",
+            priority: 90,
+            writeScope: ["src/schema.ts"],
+            resourceScope: [],
+            gate: "bun test schema",
+            dependencies: [],
+            assignedAgent: "impl-schema",
+            attempt: 1,
+            wave: 1,
+            criticalDepth: 1,
+            descendantCount: 1,
+          },
+        ],
+      },
+      {
+        wave: 2,
+        tasks: [
+          {
+            id: "task-b",
+            label: "Consumer Client",
+            status: "ready",
+            priority: 80,
+            writeScope: ["src/client.ts"],
+            resourceScope: [],
+            gate: "bun test client",
+            dependencies: ["task-a"],
+            depReasons: {
+              "task-a": "reads schema generated in task-a",
+            },
+            assignedAgent: null,
+            attempt: null,
+            wave: 2,
+            criticalDepth: 0,
+            descendantCount: 0,
+          },
+        ],
+      },
+    ];
+
+    const rendered = renderAsciiDag(waves, true);
+
+    expect(rendered).toContain("Deps:   task-a");
+    expect(rendered).toContain("↳ Dep on task-a: reads schema generated in task-a");
+  });
+
   test("zero TypeScript any and zero suppressions across dag-view source and test files", async () => {
     const { readFileSync } = await import("node:fs");
     const dagViewSource = readFileSync(

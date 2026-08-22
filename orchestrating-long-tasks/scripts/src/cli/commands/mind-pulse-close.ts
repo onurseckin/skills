@@ -28,16 +28,31 @@ export interface MindPulseCloseResult {
   readonly arm_mechanism: string | null;
   readonly next_wake_at: string | null;
   readonly zero_value_streak: number;
+  readonly next_instruction?: string | undefined;
+  readonly cadence?: string | undefined;
 }
 
-export function formatMindPulseCloseBrief(params: {
+export interface MindPulseCloseBriefParams {
   readonly pulseId: string;
   readonly outcome: string;
   readonly value: number;
   readonly nextWakeAt: string | null;
   readonly armedIntervalMs: number | null;
   readonly armMechanism: string | null;
-}): string {
+  readonly runRoot?: string | undefined;
+  readonly nextInstruction?: string | undefined;
+  readonly nextCandidateId?: string | undefined;
+}
+
+export function formatMindPulseCloseBrief(params: MindPulseCloseBriefParams): string {
+  const nextCommand =
+    params.nextInstruction ??
+    (params.nextCandidateId && params.runRoot
+      ? `bun harness.ts mind:admit --run ${params.runRoot} --candidate ${params.nextCandidateId}`
+      : params.runRoot
+        ? `bun harness.ts mind:wake --run ${params.runRoot}`
+        : `bun harness.ts mind:wake`);
+
   const lines = [
     `### Mind Pulse Closed: ${params.pulseId}`,
     `- **Outcome**: ${params.outcome}`,
@@ -50,6 +65,8 @@ export function formatMindPulseCloseBrief(params: {
         }`
       : `- **Next Wake**: none (terminal)`,
     params.armMechanism ? `- **Arm Mechanism**: ${params.armMechanism}` : undefined,
+    `- **Cadence**: infinite autonomous loop active (prohibits agent-driven termination or process exit)`,
+    `- **Next Instruction**: \`${nextCommand}\``,
   ].filter((l): l is string => l !== undefined);
 
   return enforceLineLimit(lines.join("\n"), 20);
@@ -246,6 +263,31 @@ export async function mindPulseCloseCommand(
     next_wake_at: nextWakeAt,
   });
 
+  // Check for candidate discovery / admission progression
+  let nextCandidateId: string | undefined;
+  const candidatesList: Record<string, unknown>[] = [];
+  if (Array.isArray(state.candidates)) {
+    candidatesList.push(...(state.candidates as Record<string, unknown>[]));
+  }
+  const mindState = (state.mind ?? {}) as Record<string, unknown>;
+  if (Array.isArray(mindState.candidates)) {
+    for (const c of mindState.candidates as Record<string, unknown>[]) {
+      if (!candidatesList.some((existing) => existing.id === c.id)) {
+        candidatesList.push(c);
+      }
+    }
+  }
+  const openOrAdmittedCandidate = candidatesList.find(
+    (c) => c.status === "admitted" || c.status === "opened" || c.status === "open",
+  );
+  if (openOrAdmittedCandidate && typeof openOrAdmittedCandidate.id === "string") {
+    nextCandidateId = openOrAdmittedCandidate.id;
+  }
+
+  const nextInstruction = nextCandidateId
+    ? `bun harness.ts mind:admit --run ${run} --candidate ${nextCandidateId}`
+    : `bun harness.ts mind:wake --run ${run}`;
+
   const markdown = formatMindPulseCloseBrief({
     pulseId,
     outcome,
@@ -253,6 +295,9 @@ export async function mindPulseCloseCommand(
     nextWakeAt,
     armedIntervalMs,
     armMechanism: effectiveArmMech,
+    runRoot: run,
+    nextInstruction,
+    nextCandidateId,
   });
 
   return {
@@ -265,5 +310,7 @@ export async function mindPulseCloseCommand(
     arm_mechanism: effectiveArmMech,
     next_wake_at: nextWakeAt,
     zero_value_streak: zeroValueStreak,
+    next_instruction: nextInstruction,
+    cadence: "infinite_autonomous",
   };
 }

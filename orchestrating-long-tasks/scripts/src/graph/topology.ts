@@ -115,3 +115,17 @@ export function downstreamMap(
   }
   return downstream;
 }
+
+export {
+  ARTIFICIAL_SERIALIZATION_WARNING,
+  type ArtificialSerializationWarning,
+  type DecoupledGraphResult,
+  type DecoupleOptions,
+  type ParallelLaneAssignment,
+  type ParallelMetrics,
+  allocateParallelLanes,
+  computeWorkSpanMetrics,
+  decoupleDisjointTasks,
+  detectArtificialSerialization,
+} from "./parallel-decoupler.ts";
+
