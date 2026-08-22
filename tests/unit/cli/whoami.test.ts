@@ -29,7 +29,7 @@ describe("Thread Authority Identifier", () => {
     });
 
     expect(identified.tier).toBe(0);
-    expect(identified.tier_name).toBe("Tier 0: Human User Interactive Shell");
+    expect(identified.tier_name).toBe("Tier 0: Mind Lead (Observe-Only Supervisor & Human Shell)");
     expect(identified.is_main_thread).toBeFalse();
     expect(identified.compliance_state).toBe("compliant");
     expect(identified.advisory).toBeNull();
@@ -43,7 +43,7 @@ describe("Thread Authority Identifier", () => {
       env: { HARNESS_EXECUTION_TIER: "1" },
     });
     expect(fromEnvTier.tier).toBe(1);
-    expect(fromEnvTier.tier_name).toBe("Tier 1: Autonomous Orchestrator (Background)");
+    expect(fromEnvTier.tier_name).toBe("Tier 1: Orchestrator Lead (Plan Supervisor & Release Manager)");
     expect(fromEnvTier.role).toBe("orchestrator");
     expect(fromEnvTier.is_main_thread).toBeFalse();
 
@@ -78,7 +78,7 @@ describe("Thread Authority Identifier", () => {
       env: { HARNESS_EXECUTION_TIER: "2" },
     });
     expect(fromEnvTier.tier).toBe(2);
-    expect(fromEnvTier.tier_name).toBe("Tier 2: Background Coordinator");
+    expect(fromEnvTier.tier_name).toBe("Tier 2: Coordinator Lead (Wave Execution & Lease Manager)");
     expect(fromEnvTier.role).toBe("coordinator");
     expect(fromEnvTier.is_main_thread).toBeFalse();
 
@@ -120,7 +120,7 @@ describe("Thread Authority Identifier", () => {
       env: { HARNESS_EXECUTION_TIER: "3" },
     });
     expect(fromEnvTier.tier).toBe(3);
-    expect(fromEnvTier.tier_name).toBe("Tier 3: Background Implementer / Validator / Critic");
+    expect(fromEnvTier.tier_name).toBe("Tier 3: Implementer / Validator / Repairer / Completeness Critic");
     expect(fromEnvTier.is_main_thread).toBeFalse();
 
     const fromTierString = identifyExecutionContext({

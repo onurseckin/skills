@@ -16,8 +16,16 @@ export interface VendorTree {
 }
 
 export const PRODUCT_GRAMMAR_MODULES: readonly string[] = [
+  "src/authority/thread-identifier.ts",
   "src/graph/gate-runtime-grammar.ts",
   "src/installer/runtime-freshness.ts",
+  "src/platform/adapters.ts",
+  "src/platform/antigravity.ts",
+  "src/platform/chatgpt.ts",
+  "src/platform/claude-code.ts",
+  "src/platform/codex.ts",
+  "src/platform/cursor.ts",
+  "src/platform/host-adapter-registry.ts",
   "src/summary/host-telemetry.ts",
 ];
 
