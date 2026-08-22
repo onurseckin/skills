@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   assertRoleArtifactPresent,
   classifiesAsUiTask,
+  gateReviewPayload,
   taskClassificationTexts,
 } from "../../../../orchestrating-long-tasks/scripts/src/workflow/review/role-evidence.ts";
 import type {
@@ -144,3 +145,122 @@ describe("assertRoleArtifactPresent", () => {
     }
   });
 });
+
+describe("gateReviewPayload & review payload gating", () => {
+  const mock4TierManifest = {
+    schema: "companion.manifest.v1",
+    screenId: "dashboard",
+    viewport: "desktop",
+    criteria: Array.from({ length: 40 }, (_, i) => ({
+      id: `CRIT-${i}`,
+      pillar: i % 4 === 0 ? "mechanical" : i % 4 === 1 ? "cognitive" : i % 4 === 2 ? "product" : "ux",
+      passed: true,
+      details: "Detailed diagnostic measurement and evaluation of component behavior",
+      evidence: "Quantitative measurements: 120ms transitions, 25 inspected nodes, 0 layout shifts",
+    })),
+    cognitiveAnalysis: {
+      questions: Array.from({ length: 20 }, (_, i) => ({
+        id: `Q-${i}`,
+        question: `Cognitive question ${i} regarding Norman recovery and Fitts law`,
+        passed: true,
+        observation: "User ergonomics and mental models validated with clear error recovery paths",
+        evidence: "120ms animated transitions, 48px touch targets, 0 orphan elements",
+      })),
+    },
+    domPhysics: {
+      gravity: 9.8,
+      nodes: Array.from({ length: 50 }, (_, i) => ({ id: `node-${i}`, mass: 1, velocity: [0, 0] })),
+    },
+    layoutShifts: Array.from({ length: 30 }, (_, i) => ({
+      timestamp: i * 100,
+      cls: 0.001,
+      elements: [`#elem-${i}`],
+    })),
+  };
+
+  const mockVisualReport = {
+    schema: "visual.metrics.v1",
+    viewports: [
+      {
+        viewport: "desktop",
+        width: 1280,
+        height: 800,
+        domNodes: Array.from({ length: 100 }, (_, i) => ({ id: `el-${i}`, bounds: [0, 0, 100, 100] })),
+      },
+    ],
+  };
+
+  test("preserves 4-tier companion manifests and visual artifacts when isUiTask is true", () => {
+    const rawReport = {
+      task_id: "task-ui-01",
+      validator: "val-1",
+      token_digest: "digest-123",
+      status: "pass",
+      verdict: "pass",
+      summary: "Verified UI card component across viewports",
+      checks: ["C-1", "C-2"],
+      findings: [],
+      companion_manifests: [mock4TierManifest],
+      visual_report: mockVisualReport,
+      screenshot_records: [{ name: "card.png", bytes: 2048, path: "/capsules/card.png" }],
+      screenshots: ["/capsules/card.png"],
+      dual_channel_audit: { isUiTask: true, passed: true, mode: "screenshot_gap_filled" },
+    };
+
+    const gated = gateReviewPayload("task-ui-01", true, rawReport);
+    expect(gated.companion_manifests).toBeDefined();
+    expect((gated.companion_manifests as unknown[]).length).toBe(1);
+    expect(gated.visual_report).toBeDefined();
+    expect(gated.screenshot_records).toBeDefined();
+    expect(gated.screenshots).toBeDefined();
+  });
+
+  test("prunes companion manifests, visual reports, and cognitive payload trees when isUiTask is false", () => {
+    const rawHeavyReport = {
+      task_id: "task-backend-01",
+      validator: "val-1",
+      token_digest: "digest-123",
+      status: "pass",
+      verdict: "pass",
+      summary: "Implemented user authentication and token verification logic",
+      created_at: "2026-08-22T09:00:00.000Z",
+      checks: ["C-1", "C-2"],
+      findings: [],
+      task_scope_findings: [],
+      checklist_coverage: { applicable: false, reason: "No standing checklist applies" },
+      resolved_findings: [],
+      unblocked: ["task-backend-02"],
+      task: { id: "task-backend-01", status: "validated", write_scope: ["src/auth.ts"] },
+      companion_manifests: [mock4TierManifest, mock4TierManifest],
+      visual_report: mockVisualReport,
+      screenshot_records: [],
+      screenshots: [],
+      dual_channel_audit: {
+        isUiTask: false,
+        passed: true,
+        mode: "non_ui_skipped",
+        proofs: [],
+        findings: [],
+      },
+    };
+
+    // Serialized raw heavy report size is ~82+ KB
+    const heavyJson = JSON.stringify(rawHeavyReport, null, 2);
+    const heavyBytes = Buffer.byteLength(heavyJson, "utf-8");
+    expect(heavyBytes).toBeGreaterThan(20000); // 20+ KB
+
+    const gated = gateReviewPayload("task-backend-01", false, rawHeavyReport);
+
+    // Pruned fields
+    expect(gated.companion_manifests).toBeUndefined();
+    expect(gated.visual_report).toBeUndefined();
+    expect(gated.screenshot_records).toBeUndefined();
+    expect(gated.screenshots).toBeUndefined();
+
+    // Serialized gated review packet is strictly under 2 KB (2048 bytes)
+    const gatedJson = JSON.stringify(gated, null, 2);
+    const gatedBytes = Buffer.byteLength(gatedJson, "utf-8");
+    expect(gatedBytes).toBeLessThan(2048);
+  });
+});
+

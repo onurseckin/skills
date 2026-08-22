@@ -4,7 +4,7 @@ import { refreshHandoffOnEscalation } from "../../reporting/handoff.ts";
 import { loadRun } from "../../store/index.ts";
 import { tokenDigest } from "../../workflow/lease/token.ts";
 import { recordReview } from "../../workflow/review/record-review.ts";
-import { systemClock, type TaskRecord } from "../../workflow/types.ts";
+import { systemClock, type TaskRecord, type WorkflowState } from "../../workflow/types.ts";
 import { formatTaskRejectBrief } from "../formatters/index.ts";
 import { textFlag, type Flags } from "../options.ts";
 import {
@@ -13,6 +13,12 @@ import {
   parseSeverity,
   resolveFindingRequirement,
 } from "./task-finding-input.ts";
+import {
+  assertRoleArtifactPresent,
+  classifiesAsUiTask,
+  gateReviewPayload,
+} from "../../workflow/review/role-evidence.ts";
+import { isUiScope } from "../../validation/dual-channel-analyzer.ts";
 import {
   collectTaskScreenshots,
   persistReviewReport,
@@ -81,10 +87,15 @@ export async function taskRejectCommand(flags: Flags): Promise<Record<string, un
     systemClock,
     reviewPolicyFor(loaded.runRoot).maxRepairRounds,
   );
+  const isUiTask = classifiesAsUiTask(
+    loaded.state as unknown as WorkflowState,
+    taskBefore,
+    isUiScope(taskBefore.write_scope),
+  );
   const taskScreenshots = collectTaskScreenshots(loaded.runRoot, taskId, validator, checkIds);
   const screenshotPaths = taskScreenshots.map((s) => s.path);
 
-  const reportData = {
+  const rawReportData = {
     task_id: taskId,
     validator,
     token_digest: tokenDigest(token),
@@ -98,7 +109,8 @@ export async function taskRejectCommand(flags: Flags): Promise<Record<string, un
     screenshots: screenshotPaths,
     screenshot_records: taskScreenshots,
   };
-  const reportPath = persistReviewReport(loaded.runRoot, taskId, reportData);
+  const reportData = gateReviewPayload(taskId, isUiTask, rawReportData);
+  const reportPath = persistReviewReport(loaded.runRoot, taskId, reportData, isUiTask);
 
   const handoffPath = refreshHandoffOnEscalation(run, state.tasks[taskId]!.status);
   const findingId = String(findingObj.id);

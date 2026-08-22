@@ -3,7 +3,7 @@ import {
   sameTrustedHostRepositoryBinding,
   TRUSTED_HOST_ASSURANCE,
 } from "../../contracts/trusted-host.ts";
-import { isAbsolute, resolve } from "node:path";
+import { isAbsolute } from "node:path";
 import { canonicalCommandFingerprint } from "../../runner/command-id.ts";
 import { embeddedCommandIssues } from "../../runner/command-shape.ts";
 import { gatePathBindingIssues } from "../../runner/gate-path-bindings.ts";
@@ -16,10 +16,13 @@ function bound(gate: GateRuntime): BoundGate {
   return gate as BoundGate;
 }
 
+export function workflowGates(state: WorkflowState): GateRuntime[] {
+  return state.gates ?? state.graph?.gates ?? [];
+}
+
 export function applicableGates(state: WorkflowState, task: TaskRecord): GateRuntime[] {
   const requirements = executableTaskRequirementIds(state, task.requirement_ids);
-  const gates =
-    state.gates ?? (state as unknown as { graph?: { gates?: GateRuntime[] } }).graph?.gates ?? [];
+  const gates = workflowGates(state);
   return gates.filter(
     (gate) =>
       bound(gate).scope === "task" &&

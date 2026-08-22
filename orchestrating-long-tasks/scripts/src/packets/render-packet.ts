@@ -17,8 +17,27 @@ import { validateRepositoryInspectionPair } from "./repository-inspection.ts";
 import { CONCLUSION_EXCLUSIONS, validatorTaskContract } from "./prior-round-demands.ts";
 import { renderValidationRound } from "./render-validation-round.ts";
 import { VALIDATION_ROUND_KEY } from "./validation-round.ts";
+import { pruneNonUiPayload } from "../workflow/review/role-evidence.ts";
+import { uiDomainApplies } from "../contracts/workflow.ts";
 
 import type { AgentRole } from "../contracts/packets.ts";
+
+function isUiTaskPacket(input: PacketInput): boolean {
+  if (input.task) {
+    const texts: string[] = [];
+    if (typeof input.task.label === "string" && input.task.label.length > 0) {
+      texts.push(input.task.label);
+    }
+    if (Array.isArray(input.task.requirement_ids)) {
+      texts.push(...input.task.requirement_ids);
+    }
+    return uiDomainApplies(input.task.write_scope ?? [], texts);
+  }
+  if (input.subTask) {
+    return uiDomainApplies(input.subTask.write_scope ?? []);
+  }
+  return false;
+}
 
 function section(title: string, content: string): string {
   return `## ${title}\n\n${content.trim()}\n`;
@@ -101,9 +120,10 @@ function taskContract(input: PacketInput): JsonObject | null {
   const bound = input.task ?? input.subTask;
   if (!bound) return null;
   const contract = structuredClone(bound) as JsonObject;
-  return VALIDATION_ROLES.has(input.role)
+  const raw = VALIDATION_ROLES.has(input.role)
     ? validatorTaskContract(excludeValidatorContamination(contract), input.task)
     : (sanitizeLeanContext(contract) as JsonObject);
+  return isUiTaskPacket(input) ? raw : pruneNonUiPayload(raw, false);
 }
 
 function allowedScope(input: PacketInput): JsonObject {
@@ -168,7 +188,10 @@ export function buildPacket(input: PacketInput): BuiltPacket {
         }
       : {}),
   };
-  const { [VALIDATION_ROUND_KEY]: validationRound, ...remainingContext } = context;
+  const { [VALIDATION_ROUND_KEY]: validationRound, ...rawRemainingContext } = context;
+  const remainingContext = isUiTaskPacket(input)
+    ? rawRemainingContext
+    : pruneNonUiPayload(rawRemainingContext, false);
   const sections = [
     `# ${input.role} packet`,
     section(

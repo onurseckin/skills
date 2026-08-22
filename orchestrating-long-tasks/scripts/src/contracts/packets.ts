@@ -63,3 +63,33 @@ export interface CapsuleMemoryPointer {
   readonly capsule_root: string;
   readonly command_examples: readonly string[];
 }
+
+export interface ReviewPayloadGating extends JsonObject {
+  readonly is_ui_task: boolean;
+  readonly include_companion_manifests?: boolean;
+  readonly include_visual_artifacts?: boolean;
+  readonly max_packet_bytes?: number;
+}
+
+export interface ReviewPacketPayload extends JsonObject {
+  readonly task_id: string;
+  readonly validator: string;
+  readonly token_digest?: string;
+  readonly status: "pass" | "fail";
+  readonly verdict: "pass" | "reject";
+  readonly summary?: string;
+  readonly created_at: string;
+  readonly checks: string[];
+  readonly findings: JsonObject[];
+  readonly task_scope_findings?: JsonObject[];
+  readonly checklist_coverage?: JsonObject;
+  readonly resolved_findings?: JsonObject[];
+  readonly unblocked?: string[];
+  readonly task?: JsonObject;
+  readonly screenshots?: string[];
+  readonly screenshot_records?: JsonObject[];
+  readonly companion_manifests?: JsonObject[];
+  readonly dual_channel_audit?: JsonObject;
+  readonly visual_report?: JsonObject;
+}
+

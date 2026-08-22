@@ -1,5 +1,5 @@
 import type { JsonObject } from "../../contracts/json.ts";
-import { commandMatchesGate } from "../gates/gate-policy.ts";
+import { commandMatchesGate, workflowGates } from "../gates/gate-policy.ts";
 import type { GateRuntime, WorkflowState } from "../types.ts";
 import { jsonDigest } from "./completion-review-digest.ts";
 import { currentRepositoryBinding } from "./repository-binding.ts";
@@ -43,8 +43,7 @@ export function completionReadinessSnapshot(
     .filter((review) => review.critic_id !== activeCriticId)
     .slice(0, Math.max(0, attempt - 1));
   const remediations = state.completion_remediations ?? [];
-  const gates =
-    state.gates ?? (state as unknown as { graph?: { gates?: GateRuntime[] } }).graph?.gates ?? [];
+  const gates = workflowGates(state);
   const source = {
     repository_binding: currentRepositoryBinding(state),
     graph_revision: state.graph_revision ?? null,
@@ -79,8 +78,7 @@ export function commandIsSuccessfulGate(
   taskId: string | null,
 ): boolean {
   const command = commandId ? state.commands[commandId] : undefined;
-  const gates =
-    state.gates ?? (state as unknown as { graph?: { gates?: GateRuntime[] } }).graph?.gates ?? [];
+  const gates = workflowGates(state);
   const gate = gates.find((entry) => entry.id === gateId);
   return Boolean(
     command &&

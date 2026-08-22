@@ -448,6 +448,62 @@ describe("Decoupled Capsule Memory Architecture", () => {
       expect(VALIDATOR_EXCLUSIONS).toContain("stack_traces");
       expect(VALIDATOR_EXCLUSIONS).toContain("diagnostic_dumps");
       expect(VALIDATOR_EXCLUSIONS).toContain("hallucinated_completion");
+      expect(VALIDATOR_EXCLUSIONS).toContain("companion_manifest");
+      expect(VALIDATOR_EXCLUSIONS).toContain("companion_manifests");
+      expect(VALIDATOR_EXCLUSIONS).toContain("visual_report");
+      expect(VALIDATOR_EXCLUSIONS).toContain("dom_report");
+      expect(VALIDATOR_EXCLUSIONS).toContain("dom_metrics");
+      expect(VALIDATOR_EXCLUSIONS).toContain("cognitive_questions");
+      expect(VALIDATOR_EXCLUSIONS).toContain("cognitive_tree");
+      expect(VALIDATOR_EXCLUSIONS).toContain("dom_physics");
+      expect(VALIDATOR_EXCLUSIONS).toContain("layout_shifts");
+    });
+  });
+
+  describe("Review Payload Gating & 4-Tier Companion Manifest Gating", () => {
+    test("buildPacket prunes heavy companion manifests and visual artifacts on non-UI tasks", () => {
+      const { state, token } = baseTaskState();
+      const task = state.tasks["T-1"]!;
+      task.write_scope = ["src/backend/engine.ts"];
+      task.label = "Backend Calculation Engine";
+
+      const heavyContext = {
+        ...inspectionContext(),
+        mapped_requirements: [{ id: "R-1" }],
+        task_contract: { id: "T-1", write_scope: ["src/backend/engine.ts"] },
+        companion_manifests: [
+          {
+            schema: "companion.manifest.v1",
+            screenId: "preview",
+            viewport: "desktop",
+            criteria: Array.from({ length: 20 }, (_, i) => ({ id: `CRIT-${i}`, passed: true })),
+          },
+        ],
+        visual_report: { schema: "visual.metrics.v1", viewports: [] },
+        cognitive_questions: [{ id: "Q-1", passed: true }],
+      };
+
+      const packet = buildPacket({
+        runId: "run-gated-1",
+        graphRevision: 1,
+        role: "implementer",
+        agentId: "worker-1",
+        attempt: 1,
+        state,
+        task,
+        commonInstructions: { bytes: commonBytes, sha256: commonSha256 },
+        evidenceSchema: evidenceSchema("implementer"),
+        targetedCommands: [["bun", "test"]],
+        leaseToken: token,
+        clock,
+        authoritativeContext: heavyContext,
+      });
+
+      expect(packet.markdown).not.toContain("companion.manifest.v1");
+      expect(packet.markdown).not.toContain("visual.metrics.v1");
+      expect(packet.markdown).not.toContain("CRIT-0");
+      expect(packet.markdown).not.toContain("cognitive_questions");
     });
   });
 });
+

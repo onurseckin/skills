@@ -1,7 +1,7 @@
 import { HarnessError } from "../../errors/harness-error.ts";
 import { taskIn, transition } from "../task-state.ts";
 import { systemClock, type Clock, type TransactionPort } from "../types.ts";
-import { applicableGates, taskHasPassedGate } from "./gate-policy.ts";
+import { applicableGates, taskHasPassedGate, workflowGates } from "./gate-policy.ts";
 import { requirementExecutionState } from "../authority/index.ts";
 import { assertAttemptsClosed } from "../lease/attempt-state.ts";
 import { everyApplicableDomainPassed } from "../review/validation-state.ts";
@@ -46,7 +46,7 @@ export function finishTask(
       if (
         covering.length > 0 &&
         covering.every((candidate) => candidate.status === "done") &&
-        draft.gates
+        workflowGates(draft)
           .filter(
             (gate) =>
               gate.scope === "task" &&

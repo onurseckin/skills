@@ -138,6 +138,15 @@ export interface RunGateRuntime extends JsonObject {
   mandatory: boolean;
 }
 
+export interface WorkflowGraphRuntime extends JsonObject {
+  revision?: number;
+  schema?: string;
+  version?: number;
+  gates?: GateRuntime[];
+  nodes?: JsonValue[];
+  edges?: JsonValue[];
+}
+
 export interface CompletionEvidence extends JsonObject {
   integrity_issues: string[];
   critic: {
@@ -169,10 +178,12 @@ export interface WorkflowState extends JsonObject {
   tasks: { [taskId: string]: TaskRecord };
   requirements: RequirementRuntime[];
   gates: GateRuntime[];
+  graph?: WorkflowGraphRuntime;
   commands: { [commandId: string]: CommandRecord };
   orphan_evidence: JsonObject[];
   orphan_evidence_dispositions?: OrphanEvidenceDisposition[];
   graph_revision?: number;
+  revision?: number;
   current_repository_binding?: RepositoryBinding;
   packets?: { [packetId: string]: PacketRecord };
   branches?: BranchRecord[];

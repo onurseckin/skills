@@ -1,6 +1,6 @@
 import type { CommandRecord } from "../../contracts/commands.ts";
 import { embeddedCommandIssues } from "../../runner/command-shape.ts";
-import { commandMatchesGate } from "../gates/gate-policy.ts";
+import { commandMatchesGate, workflowGates } from "../gates/gate-policy.ts";
 import type { WorkflowState } from "../types.ts";
 
 export function authoritativeRepositoryCommand(
@@ -18,10 +18,7 @@ export function authoritativeRepositoryCommand(
   )
     return undefined;
   if (command.gate_id === null) return command;
-  const gates =
-    state.gates ??
-    (state as unknown as { graph?: { gates?: typeof state.gates } }).graph?.gates ??
-    [];
+  const gates = workflowGates(state);
   const gate = gates.find(
     (candidate) => candidate.id === command.gate_id && candidate.scope === "run",
   );

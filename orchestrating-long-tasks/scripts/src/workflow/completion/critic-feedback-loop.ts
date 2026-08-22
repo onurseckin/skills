@@ -85,9 +85,7 @@ export function generateStructuredFindingsFromCritic(reviewValue: unknown): Find
             requirement_id: proof.requirement_id,
             severity: "critical",
             observation: `Requirement ${proof.requirement_id} remains unproven in completeness review`,
-            evidence: Array.isArray(proof.evidence)
-              ? (proof.evidence as unknown as Finding["evidence"])
-              : [],
+            evidence: Array.isArray(proof.evidence) ? proof.evidence : [],
             remediation: `Implement non-mocked automated validation proving requirement ${proof.requirement_id}`,
             revalidation: `bun test --filter ${proof.requirement_id}`,
             status: "open",

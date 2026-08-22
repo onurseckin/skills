@@ -5,3 +5,10 @@ export { transact } from "./transaction.ts";
 export { verifyIntegrity } from "./integrity.ts";
 export { verifyCapsuleDeep } from "./layout-integrity.ts";
 export { indexFreshness, loadIndex } from "./capsule-index.ts";
+export {
+  appendCapsuleBlunder,
+  loadCapsuleBlunders,
+  compactCapsuleBlunders,
+  resolveCapsuleBlunder,
+} from "./blunder-store.ts";
+

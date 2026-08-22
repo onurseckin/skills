@@ -2,7 +2,7 @@ import type { CommandRecord } from "../../contracts/commands.ts";
 import { applicableValidatorDomains } from "../../contracts/workflow.ts";
 import { embeddedCommandIssues } from "../../runner/command-shape.ts";
 import { openBranchIssues } from "../branch/completion-blockers.ts";
-import { applicableGates, commandMatchesGate } from "../gates/gate-policy.ts";
+import { applicableGates, commandMatchesGate, workflowGates } from "../gates/gate-policy.ts";
 import { requirementExecutionState } from "../authority/index.ts";
 import { orphanEvidenceIssues } from "../orphan-evidence/digest.ts";
 import type {
@@ -27,7 +27,7 @@ export function mandatoryRunGateCommands(
   issues: string[] = [],
 ): { [gateId: string]: string } {
   const result: { [gateId: string]: string } = {};
-  const rawGates = state.gates ?? (state as unknown as { graph?: { gates?: GateRuntime[] } }).graph?.gates ?? [];
+  const rawGates = workflowGates(state);
   const gates = rawGates.filter((gate) => gate.scope === "run" && gate.mandatory);
   if (gates.length === 0) issues.push("run has no mandatory run gate");
   for (const gate of gates) {
@@ -78,7 +78,7 @@ export function gateTally(state: WorkflowState): GateTally {
       if (taskGatePassed(state, task, gate)) green += 1;
     }
   }
-  const rawGates = state.gates ?? (state as unknown as { graph?: { gates?: GateRuntime[] } }).graph?.gates ?? [];
+  const rawGates = workflowGates(state);
   const runGates = rawGates.filter((gate) => gate.scope === "run" && gate.mandatory);
   const proven = mandatoryRunGateCommands(state);
   for (const gate of runGates) {

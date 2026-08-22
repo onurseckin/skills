@@ -184,12 +184,13 @@ export function persistReviewReport(
   runRoot: string,
   taskId: string,
   reportData: Record<string, unknown>,
+  isUiTask: boolean = true,
 ): string {
   const reportsDir = join(runRoot, "reports");
   mkdirSync(reportsDir, { recursive: true });
   const reportPath = join(reportsDir, `${taskId}-review.json`);
 
-  const visualReport = getVisualReport(runRoot);
+  const visualReport = isUiTask ? getVisualReport(runRoot) : undefined;
   const finalData = {
     ...reportData,
     ...(visualReport && !reportData.visual_report ? { visual_report: visualReport } : {}),
@@ -198,6 +199,7 @@ export function persistReviewReport(
   writeFileSync(reportPath, JSON.stringify(finalData, null, 2), "utf-8");
   return reportPath;
 }
+
 
 export function resolveCheckIds(
   explicitEvidence: string | undefined,

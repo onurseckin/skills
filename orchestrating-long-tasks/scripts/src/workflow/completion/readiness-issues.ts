@@ -1,7 +1,6 @@
 import { applicableValidatorDomains } from "../../contracts/workflow.ts";
 import { openBranchIssues } from "../branch/completion-blockers.ts";
-import { applicableGates } from "../gates/gate-policy.ts";
-import { commandMatchesGate } from "../gates/gate-policy.ts";
+import { applicableGates, commandMatchesGate, workflowGates } from "../gates/gate-policy.ts";
 import { embeddedCommandIssues } from "../../runner/command-shape.ts";
 import { requirementExecutionState } from "../authority/index.ts";
 import { orphanEvidenceIssues } from "../orphan-evidence/digest.ts";
@@ -100,8 +99,7 @@ export function completionReadinessIssues(state: WorkflowState): string[] {
     if (requirement.evidence.length === 0)
       issues.push(`requirement ${requirement.id} has no evidence`);
   }
-  const gates =
-    state.gates ?? (state as unknown as { graph?: { gates?: GateRuntime[] } }).graph?.gates ?? [];
+  const gates = workflowGates(state);
   const runGates = gates.filter((gate) => gate.scope === "run" && gate.mandatory);
   if (runGates.length === 0) issues.push("run has no mandatory run gate");
   for (const gate of runGates) {

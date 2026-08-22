@@ -133,6 +133,7 @@ export function gateFalsifiabilityStatuses(
 }
 
 export function assertGateProofFalsifiable(state: WorkflowState, task: TaskRecord): void {
+  if (task.no_op !== undefined) return;
   const unproven = gateFalsifiabilityStatuses(state, task).filter((status) => !status.proven);
   if (unproven.length === 0) return;
   const detail = unproven

@@ -11,8 +11,10 @@ import { recordReview } from "../../workflow/review/record-review.ts";
 import {
   assertRoleArtifactPresent,
   classifiesAsUiTask,
+  gateReviewPayload,
   taskClassificationTexts,
 } from "../../workflow/review/role-evidence.ts";
+import { isUiScope } from "../../validation/dual-channel-analyzer.ts";
 import {
   validateChecklistCoverage,
   type ChecklistCoverageReport,
@@ -163,15 +165,36 @@ export async function taskReviewCommand(flags: Flags): Promise<Record<string, un
   if (isPass) assertOpenFindingsAnswered(taskId, openFindings, resolutions);
 
   const requireSemanticDepth = boolFlag(flags, "require-semantic-depth");
-  const taskScreenshots = collectTaskScreenshots(loaded.runRoot, taskId, validator, checkIds);
-  const companionManifests = collectCompanionManifests(loaded.runRoot, taskId);
-  const dualChannel = runDualChannelAudit(
-    loaded.runRoot,
+  const isUiScopeCandidate = isUiScope(taskBefore.write_scope);
+  const isUiCandidate = classifiesAsUiTask(
+    loaded.state as unknown as WorkflowState,
     taskBefore,
-    taskScreenshots,
-    companionManifests,
-    { requireSemanticDepth },
+    isUiScopeCandidate,
   );
+
+  const taskScreenshots = isUiCandidate
+    ? collectTaskScreenshots(loaded.runRoot, taskId, validator, checkIds)
+    : [];
+  const companionManifests = isUiCandidate
+    ? collectCompanionManifests(loaded.runRoot, taskId)
+    : [];
+  const dualChannel = isUiCandidate
+    ? runDualChannelAudit(
+        loaded.runRoot,
+        taskBefore,
+        taskScreenshots,
+        companionManifests,
+        { requireSemanticDepth },
+      )
+    : {
+        isUiTask: false,
+        passed: true,
+        mode: "non_ui_skipped" as const,
+        findings: [],
+        proofs: [],
+        summary: "Task does not touch UI or frontend scopes. Visual validation bypassed.",
+      };
+
   if (isPass && dualChannel.isUiTask && !dualChannel.passed) {
     throw new HarnessError("INVALID_STATE", dualChannelRefusalMessage(taskId, dualChannel));
   }
@@ -241,7 +264,7 @@ export async function taskReviewCommand(flags: Flags): Promise<Record<string, un
 
   const screenshotPaths = taskScreenshots.map((s) => s.path);
 
-  const reportData = {
+  const rawReportData = {
     task_id: taskId,
     validator,
     token_digest: tokenDigest(token),
@@ -261,7 +284,8 @@ export async function taskReviewCommand(flags: Flags): Promise<Record<string, un
     companion_manifests: companionManifests,
     dual_channel_audit: dualChannel,
   };
-  const reportPath = persistReviewReport(loaded.runRoot, taskId, reportData);
+  const reportData = gateReviewPayload(taskId, isUiTask, rawReportData);
+  const reportPath = persistReviewReport(loaded.runRoot, taskId, reportData, isUiTask);
 
   const handoffPath = refreshHandoffOnEscalation(run, state.tasks[taskId]!.status);
   const findingId = findingObj === null ? null : String(findingObj.id);
@@ -302,9 +326,9 @@ export async function taskReviewCommand(flags: Flags): Promise<Record<string, un
     verdict: status,
     unblocked,
     report_path: reportPath,
-    screenshots: screenshotPaths,
-    screenshot_records: taskScreenshots,
-    companion_manifests: companionManifests,
+    screenshots: isUiTask ? screenshotPaths : [],
+    screenshot_records: isUiTask ? taskScreenshots : [],
+    companion_manifests: isUiTask ? companionManifests : [],
     dual_channel_audit: dualChannel,
     probe_rounds: probeRoundsRecorded(state.tasks[taskId]!),
     min_adversarial_probes: policy.minProbes,
