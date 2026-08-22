@@ -5,7 +5,7 @@ export interface CapsuleInitParams {
   runId: string;
   runRoot: string;
   promptSha256: string;
-  promptBytes: number;
+  promptBytes?: number;
   assurance: string;
   bunVersion?: string;
   runtimePin?: { sha256: string; files: number };
@@ -13,10 +13,12 @@ export interface CapsuleInitParams {
 
 export function formatCapsuleInitBrief(params: CapsuleInitParams): string {
   const bunVer = params.bunVersion ?? "unknown";
+  const bytesStr =
+    params.promptBytes !== undefined ? ` (${params.promptBytes.toLocaleString()} bytes)` : "";
   const md = [
     `### Capsule Initialized: ${params.runId}`,
     `- **Capsule Root**: \`${params.runRoot}\``,
-    `- **Prompt SHA-256**: \`${params.promptSha256}\` (${params.promptBytes.toLocaleString()} bytes)`,
+    `- **Prompt SHA-256**: \`${params.promptSha256}\`${bytesStr}`,
     `- **Assurance**: \`${params.assurance}\` | Runtime: Bun ${bunVer}`,
     params.runtimePin === undefined
       ? "- **Runtime Pin**: none — no runtime source was supplied to `plan:init`."

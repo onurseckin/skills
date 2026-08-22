@@ -120,7 +120,10 @@ export function commandRecord(id: string, overrides: Partial<CommandRecord> = {}
   const taskId = overrides.task_id === undefined ? "T-1" : overrides.task_id;
   const actor = overrides.actor ?? "validator";
   const gateId =
-    overrides.gate_id === undefined && taskId !== null && actor.startsWith("validator")
+    overrides.gate_id === undefined &&
+    overrides.argv === undefined &&
+    taskId !== null &&
+    actor.startsWith("validator")
       ? "G-1"
       : (overrides.gate_id ?? null);
   const environment = captureGateEnvironment(process.env, "00000000-0000-4000-8000-000000000000");

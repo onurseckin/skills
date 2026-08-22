@@ -14,6 +14,7 @@ import { ORCHESTRATOR_COMMANDS } from "./orchestrator.ts";
 import { ORPHAN_COMMANDS } from "./orphan.ts";
 import { PLAN_COMMANDS } from "./plan.ts";
 import { QUEUE_COMMANDS } from "./queue.ts";
+import { REPORTING_COMMANDS } from "./reporting.ts";
 import { RUN_COMMANDS } from "./run.ts";
 import { SUMMARY_COMMANDS } from "./summary.ts";
 import { TASK_COMMANDS } from "./task.ts";
@@ -25,6 +26,7 @@ export const COMMAND_REGISTRY: readonly CommandSpec[] = [
   ...PLAN_COMMANDS,
   ...QUEUE_COMMANDS,
   ...TASK_COMMANDS,
+  ...REPORTING_COMMANDS,
   ...RUN_COMMANDS,
   ...CRITIC_COMMANDS,
   ...SUMMARY_COMMANDS,
@@ -47,6 +49,7 @@ export const COMMAND_DOMAINS: readonly CommandDomain[] = [
   "plan",
   "queue",
   "task",
+  "reporting",
   "run",
   "critic",
   "summary",

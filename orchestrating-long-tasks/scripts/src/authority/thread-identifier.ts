@@ -1,5 +1,6 @@
 import { existsSync, appendFileSync } from "node:fs";
 import { join } from "node:path";
+import os from "node:os";
 
 export type ExecutionTier = 0 | 1 | 2 | 3;
 
@@ -33,6 +34,21 @@ export interface BlunderRecord {
   };
 }
 
+export interface HostProfile {
+  app_id: string;
+  os_platform: string;
+  os_release: string;
+  os_arch: string;
+  runtime_node: string | null;
+  runtime_bun: string | null;
+}
+
+export interface CapabilitiesProfile {
+  tools: readonly string[];
+  environment_grants: readonly string[];
+  command_taxonomy: string;
+}
+
 export interface ThreadIdentification {
   pid: number;
   ppid: number;
@@ -45,6 +61,8 @@ export interface ThreadIdentification {
   advisory: string | null;
   indicators: Record<string, string>;
   blunder: BlunderRecord | null;
+  host_profile: HostProfile;
+  capabilities: CapabilitiesProfile;
 }
 
 export interface ExecutionContextOptions {
@@ -142,6 +160,39 @@ export function recordBlunder(
     }
   }
   return blunder;
+}
+
+export function detectHostApp(env: NodeJS.ProcessEnv | Record<string, string | undefined>): string {
+  const termProgram = env["TERM_PROGRAM"]?.toLowerCase() || "";
+  
+  if (env["CLAUDE_CODE_VERSION"] || env["CLAUDE_CLI"]) return "Claude Code";
+  if (env["ANTIGRAVITY_CLI"] || env["GEMINI_CLI"] || env["ANTIGRAVITY_VERSION"]) return "Antigravity/Gemini CLI";
+  if (termProgram === "cursor" || env["CURSOR_VERSION"]) return "Cursor";
+  if (env["OPENCODE_VERSION"] || env["OPENCODE_CLI"] || env["OPENCODE"]) return "OpenCode";
+  if (env["CODEX_VERSION"] || env["CODEX_CLI"] || env["CODEX"]) return "Codex";
+  if (termProgram === "vscode") return "VSCode Terminal";
+  
+  return "Generic Host";
+}
+
+export function buildCapabilitiesProfile(tier: ExecutionTier, env: Record<string, string | undefined>): CapabilitiesProfile {
+  let taxonomy = "Restricted Sandbox";
+  if (tier === 0) taxonomy = "Full Root / All Permissions";
+  else if (tier === 1) taxonomy = "Orchestration / Delegation Only";
+  else if (tier === 2) taxonomy = "Coordination / Dispatch Only";
+  else if (tier === 3) taxonomy = "Implementation / Execution";
+
+  const rawTools = env.GRANTED_TOOLS || env.AVAILABLE_TOOLS || "";
+  const tools = rawTools ? rawTools.split(",").map(t => t.trim()).filter(Boolean) : [];
+  
+  const rawGrants = env.ENVIRONMENT_GRANTS || env.TOOL_GRANTS || "";
+  const environment_grants = rawGrants ? rawGrants.split(",").map(g => g.trim()).filter(Boolean) : [];
+
+  return {
+    tools,
+    environment_grants,
+    command_taxonomy: taxonomy,
+  };
 }
 
 export function identifyExecutionContext(
@@ -252,6 +303,17 @@ export function identifyExecutionContext(
     });
   }
 
+  const host_profile: HostProfile = {
+    app_id: detectHostApp(env),
+    os_platform: os.platform(),
+    os_release: os.release(),
+    os_arch: os.arch(),
+    runtime_node: process.versions?.node ?? null,
+    runtime_bun: (process.versions as Record<string, string | undefined>)?.bun ?? null,
+  };
+
+  const capabilities = buildCapabilitiesProfile(tier, env);
+
   return {
     pid,
     ppid,
@@ -264,6 +326,8 @@ export function identifyExecutionContext(
     advisory,
     indicators,
     blunder,
+    host_profile,
+    capabilities,
   };
 }
 
@@ -274,7 +338,18 @@ export function formatThreadIdentificationBrief(id: ThreadIdentification): strin
     `- **Execution Tier**: \`${id.is_main_thread ? "Main Interactive Agent Thread" : `Tier ${id.tier}`}\` (${id.tier_name})`,
     `- **Active Agent**: \`${id.agent_id ?? "none"}\`${id.role ? ` (role: \`${id.role}\`)` : ""}`,
     `- **Compliance**: \`${id.compliance_state.toUpperCase()}\``,
+    `- **Host App**: \`${id.host_profile.app_id}\``,
+    `- **OS Platform**: \`${id.host_profile.os_platform} ${id.host_profile.os_release} (${id.host_profile.os_arch})\``,
+    `- **Runtime**: \`${id.host_profile.runtime_bun ? `bun ${id.host_profile.runtime_bun}` : `node ${id.host_profile.runtime_node}`}\``,
+    `- **Taxonomy**: \`${id.capabilities.command_taxonomy}\``,
   ];
+
+  if (id.capabilities.tools.length > 0) {
+    lines.push(`- **Tools**: ${id.capabilities.tools.join(", ")}`);
+  }
+  if (id.capabilities.environment_grants.length > 0) {
+    lines.push(`- **Environment Grants**: ${id.capabilities.environment_grants.join(", ")}`);
+  }
 
   if (id.advisory) {
     lines.push(`- **Advisory**: ⚠️ ${id.advisory}`);

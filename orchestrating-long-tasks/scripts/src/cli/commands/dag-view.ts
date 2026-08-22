@@ -134,6 +134,7 @@ export interface DagViewReport {
   readonly dependency_forensics: readonly DependencyForensicItem[];
   readonly serialization_analysis: readonly SerializationAnalysisItem[];
   readonly multi_coordinator_opportunities: readonly MultiCoordinatorOpportunity[];
+  readonly nodes: readonly DagNodeSummary[];
 }
 
 export type DagViewResult = DagViewReport;
@@ -929,6 +930,7 @@ export function dagViewCommand(
     dependency_forensics: dependencyForensics,
     serialization_analysis: serializationAnalysis,
     multi_coordinator_opportunities: multiCoordinatorOpportunities,
+    nodes: updatedNodes,
   };
 
   return result as unknown as Record<string, unknown>;

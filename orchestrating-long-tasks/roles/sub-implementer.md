@@ -15,6 +15,10 @@ must_not:
   - Report a sub-task as done while its declared commands were skipped or failed
 commands:
   - branch:claim
+  - branch:open
+  - branch:status
+  - branch:collect
+  - branch:abandon
   - branch:submit
   - run:exec
   - finding:get

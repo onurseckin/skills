@@ -80,6 +80,7 @@ describe("restricted Git policy", () => {
           encoding: "buffer",
           env: { ...restrictedEnvironment, LANG: "C", PATH: "/usr/bin:/bin" },
           shell: false,
+          stdio: ["ignore", "pipe", "pipe"],
           maxBuffer: 65,
           timeout: 15_000,
           killSignal: "SIGKILL",

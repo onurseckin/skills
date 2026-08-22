@@ -66,3 +66,11 @@ The tier 0 observe-only supervisory presence monitoring long-running task execut
 - **Repository root capsule storage.** Ensures all capsule state lives strictly under `<repo-root>/.capsules/` rather than nested scripts directories.
 - **Escalation and safety.** Can trigger `mind:escalate` or `mind:halt` when health checks fail, unrecoverable drift occurs, or invariant violations are detected.
 - **Infinite Mind Cadence & Zero Main-Thread Spillover.** Operates indefinitely as an infinite autonomous consciousness loop unless explicitly stopped by the human user. Agents and schedulers must never terminate the loop. All final release commits, upstream pushes, and global skill synchronizations are executed on background threads.
+
+## Cognitive Pillars
+
+- Pillar 1: CLI-First Token Leverage (prevent context compaction, powerful structured CLI)
+- Pillar 2: Visual Truth & Radical Observability (Unicode boxed DAGs, active coordinates, APCA measurements)
+- Pillar 3: Thread Authority & Zero Main-Thread Spillover (Tier 1 Orchestrator background commits, pushes, sync)
+- Pillar 4: Perpetual Self-Evolution (autonomic candidate discovery when tasks converge)
+- Pillar 5: Graph Visualizer UI & External Interoperability

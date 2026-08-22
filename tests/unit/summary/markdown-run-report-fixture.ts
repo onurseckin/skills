@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, realpathSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execute } from "../../../orchestrating-long-tasks/scripts/src/cli/execute.ts";
@@ -53,7 +53,7 @@ export interface BuiltRun {
  * non-zero, host-reported agent telemetry, a critic verdict and a sealed completion.
  */
 export async function buildRunReportCapsule(): Promise<BuiltRun> {
-  const repo = mkdtempSync(join(tmpdir(), "harness-b6-"));
+  const repo = realpathSync(mkdtempSync(join(tmpdir(), "harness-b6-")));
   mkdirSync(join(repo, "src"), { recursive: true });
   // C3b: gate:prove reverts a task's write scope back to the sha task:claim recorded as its base
   // and reruns the compiled gate there. `gate.ts` has to actually notice that reversion instead of
@@ -75,11 +75,19 @@ export async function buildRunReportCapsule(): Promise<BuiltRun> {
     join(repo, "prompt.txt"),
     "Build the alpha subsystem.\nBuild the beta subsystem.\nWire gamma onto alpha.\n",
   );
-  Bun.spawnSync(["git", "init", "-q"], { cwd: repo });
-  Bun.spawnSync(["git", "config", "user.email", "fixture@example.invalid"], { cwd: repo });
-  Bun.spawnSync(["git", "config", "user.name", "fixture"], { cwd: repo });
-  Bun.spawnSync(["git", "add", "-A"], { cwd: repo });
-  Bun.spawnSync(["git", "commit", "-qm", "baseline"], { cwd: repo });
+  const env = {
+    ...process.env,
+    GIT_CONFIG_GLOBAL: "/dev/null",
+    GIT_CONFIG_NOSYSTEM: "1",
+    GIT_TERMINAL_PROMPT: "0",
+  };
+  Bun.spawnSync(["git", "init", "-q"], { cwd: repo, env });
+  Bun.spawnSync(["git", "config", "user.email", "fixture@example.invalid"], { cwd: repo, env });
+  Bun.spawnSync(["git", "config", "user.name", "fixture"], { cwd: repo, env });
+  Bun.spawnSync(["git", "config", "commit.gpgsign", "false"], { cwd: repo, env });
+  Bun.spawnSync(["git", "config", "tag.gpgsign", "false"], { cwd: repo, env });
+  Bun.spawnSync(["git", "add", "-A"], { cwd: repo, env });
+  Bun.spawnSync(["git", "commit", "-qm", "baseline"], { cwd: repo, env });
 
   const init = await cli("plan:init", {
     repo,

@@ -1,6 +1,7 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, test } from "bun:test";
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { agentRegisterCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/agent-ops.ts";
 import { doctorCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/diagnostics-ops.ts";
@@ -28,11 +29,25 @@ import { initRun } from "../../../orchestrating-long-tasks/scripts/src/store/cap
 import { verifyIntegrity } from "../../../orchestrating-long-tasks/scripts/src/store/integrity.ts";
 import { loadRun } from "../../../orchestrating-long-tasks/scripts/src/store/load.ts";
 import { transact } from "../../../orchestrating-long-tasks/scripts/src/store/transaction.ts";
-import { scratchRoot as makeScratchRoot } from "../../support/scratch-root.ts";
 import { auditRemoteUrls, isPushTargetInert } from "../../support/remote-safety.ts";
 
+const roots: string[] = [];
+
+afterEach(() => {
+  for (const root of roots) {
+    try {
+      rmSync(root, { recursive: true, force: true });
+    } catch {
+      // ignore
+    }
+  }
+  roots.length = 0;
+});
+
 function scratchRoot(label: string): string {
-  return makeScratchRoot(import.meta.path, label);
+  const dir = mkdtempSync(join(tmpdir(), `mind-soak-${label}-`));
+  roots.push(dir);
+  return dir;
 }
 
 const SAMPLE_CHARTER = `# CHARTER
@@ -984,19 +999,29 @@ describe("PHASE-6 72-Hour Soak and Failure Injection Test Suite", () => {
     test("Exit Criterion 3: git push fails at transport level (structural push removal)", async () => {
       const repoDir = scratchRoot("push-fail-transport-test");
 
-      Bun.spawnSync(["git", "init", "-b", "main"], { cwd: repoDir });
-      Bun.spawnSync(["git", "config", "user.name", "Test Runner"], { cwd: repoDir });
-      Bun.spawnSync(["git", "config", "user.email", "runner@test.local"], { cwd: repoDir });
+      const env = {
+        ...process.env,
+        GIT_CONFIG_GLOBAL: "/dev/null",
+        GIT_CONFIG_NOSYSTEM: "1",
+        GIT_TERMINAL_PROMPT: "0",
+      };
+      Bun.spawnSync(["git", "init", "-b", "main"], { cwd: repoDir, env });
+      Bun.spawnSync(["git", "config", "user.name", "Test Runner"], { cwd: repoDir, env });
+      Bun.spawnSync(["git", "config", "user.email", "runner@test.local"], { cwd: repoDir, env });
+      Bun.spawnSync(["git", "config", "commit.gpgsign", "false"], { cwd: repoDir, env });
+      Bun.spawnSync(["git", "config", "tag.gpgsign", "false"], { cwd: repoDir, env });
       writeFileSync(join(repoDir, "README.md"), "# Test\n", "utf-8");
-      Bun.spawnSync(["git", "add", "README.md"], { cwd: repoDir });
-      Bun.spawnSync(["git", "commit", "-m", "chore: initial commit"], { cwd: repoDir });
+      Bun.spawnSync(["git", "add", "README.md"], { cwd: repoDir, env });
+      Bun.spawnSync(["git", "commit", "-m", "chore: initial commit"], { cwd: repoDir, env });
 
       // Configure inert dummy push URL
       Bun.spawnSync(["git", "remote", "add", "origin", "git@github.com:org/repo.git"], {
         cwd: repoDir,
+        env,
       });
       Bun.spawnSync(["git", "remote", "set-url", "--push", "origin", "no_push"], {
         cwd: repoDir,
+        env,
       });
 
       const audit = auditRemoteUrls(repoDir);

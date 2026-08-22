@@ -1,6 +1,6 @@
 import { afterAll, afterEach, describe, expect, test } from "bun:test";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execute } from "../../../orchestrating-long-tasks/scripts/src/cli/execute.ts";
@@ -15,7 +15,17 @@ const roots: string[] = [];
 afterEach(async () => cleanupRoots(roots));
 
 function git(repo: string, argv: readonly string[]): void {
-  const result = spawnSync("git", [...argv], { cwd: repo, encoding: "utf8" });
+  const result = spawnSync("git", [...argv], {
+    cwd: repo,
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+    env: {
+      ...process.env,
+      GIT_CONFIG_GLOBAL: "/dev/null",
+      GIT_CONFIG_NOSYSTEM: "1",
+      GIT_TERMINAL_PROMPT: "0",
+    },
+  });
   if (result.status !== 0) throw new Error(`git ${argv.join(" ")}: ${result.stderr}`);
 }
 
@@ -24,7 +34,7 @@ async function compiledSingleTaskRun(
   name: string,
   gate: string,
 ): Promise<{ repo: string; run: string }> {
-  const repo = mkdtempSync(join(tmpdir(), `gate-prove-cmd-${name}-`));
+  const repo = realpathSync(mkdtempSync(join(tmpdir(), `gate-prove-cmd-${name}-`)));
   gitRoots.push(repo);
   git(repo, ["init", "--quiet", "--initial-branch", "main"]);
   git(repo, ["config", "user.email", "harness@example.test"]);
@@ -181,6 +191,13 @@ describe("gate:prove (command layer)", () => {
     const shaAtClaim = spawnSync("git", ["rev-parse", "HEAD"], {
       cwd: repo,
       encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+      env: {
+        ...process.env,
+        GIT_CONFIG_GLOBAL: "/dev/null",
+        GIT_CONFIG_NOSYSTEM: "1",
+        GIT_TERMINAL_PROMPT: "0",
+      },
     }).stdout.trim();
 
     await execute([

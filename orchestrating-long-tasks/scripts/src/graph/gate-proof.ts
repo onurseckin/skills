@@ -7,6 +7,7 @@ import {
   mkdirSync,
   mkdtempSync,
   readdirSync,
+  realpathSync,
   rmSync,
   symlinkSync,
   writeFileSync,
@@ -217,12 +218,21 @@ function gateEnvironment(source: NodeJS.ProcessEnv): Record<string, string> {
     CI: "1",
     TERM: "dumb",
     FORCE_COLOR: "0",
+    GIT_CONFIG_NOSYSTEM: "1",
+    GIT_CONFIG_GLOBAL: "/dev/null",
+    GIT_AUTHOR_NAME: "test",
+    GIT_AUTHOR_EMAIL: "test@example.com",
+    GIT_COMMITTER_NAME: "test",
+    GIT_COMMITTER_EMAIL: "test@example.com",
   };
   return env;
 }
 
 export const nodeSpawnGate: GateSpawn = (argv, cwd, timeoutMs) => {
-  const result = spawnSync(argv[0]!, argv.slice(1), {
+  const isCompound = argv.includes("&&") || argv.includes("||") || argv.includes(";");
+  const execFile = isCompound ? "/bin/sh" : argv[0]!;
+  const execArgs = isCompound ? ["-c", argv.join(" ")] : argv.slice(1);
+  const result = spawnSync(execFile, execArgs, {
     cwd,
     env: gateEnvironment(process.env),
     encoding: "utf8",
@@ -230,6 +240,7 @@ export const nodeSpawnGate: GateSpawn = (argv, cwd, timeoutMs) => {
     timeout: timeoutMs,
     killSignal: "SIGKILL",
     maxBuffer: GATE_MAX_OUTPUT_BYTES,
+    stdio: ["ignore", "pipe", "pipe"],
   });
   const timedOut = (result.error as NodeJS.ErrnoException | undefined)?.code === "ETIMEDOUT";
   if (result.error && !timedOut) {
@@ -301,7 +312,7 @@ export function proveGateFalsifiable(
   const base = input.base?.trim() || DEFAULT_BASE_REF;
   const maxFiles = input.maxFiles ?? MAX_SCRATCH_FILES;
 
-  const scratchRoot = mkdtempSync(join(tmpdir(), "gate-prove-"));
+  const scratchRoot = realpathSync(mkdtempSync(join(tmpdir(), "gate-prove-")));
   try {
     const files = repoFileList(repoRoot, git);
     if (files.length > maxFiles) {

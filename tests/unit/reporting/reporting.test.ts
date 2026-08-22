@@ -16,10 +16,10 @@ import {
 import { renderPreplanHandoff } from "../../../orchestrating-long-tasks/scripts/src/reporting/preplan-handoff.ts";
 import { runStatus } from "../../../orchestrating-long-tasks/scripts/src/reporting/status.ts";
 import { runStatusCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/run-ops.ts";
-import { repositoryBinding } from "../workflow/test-port.ts";
+import { repositoryBinding, commandRecord } from "../workflow/test-port.ts";
 import { orphanEvidenceSha256 } from "../../../orchestrating-long-tasks/scripts/src/workflow/orphan-evidence/digest.ts";
-import { commandRecord } from "../workflow/test-port.ts";
 import { dispatchFailures, handoffArgv } from "./dispatchable.ts";
+import { generateLeasesReport } from "../../../orchestrating-long-tasks/scripts/src/reporting/unified.ts";
 
 const roots: string[] = [];
 const skillRoot = fileURLToPath(new URL("../../../orchestrating-long-tasks", import.meta.url));
@@ -248,5 +248,12 @@ describe("status handoff and doctor", () => {
     });
     expect(report.installation).toMatchObject({ installed: false, drifted: true });
     expect(report.installation_issues).toContain("installation: not installed");
+  });
+
+  test("generateLeasesReport generates active lease matrix correctly", async () => {
+    const run = await fixture();
+    const result = generateLeasesReport(run);
+    expect(result.matrix).toBeArray();
+    expect(result.markdown).toContain("Active Leases Matrix");
   });
 });

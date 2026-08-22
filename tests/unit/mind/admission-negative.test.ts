@@ -1913,7 +1913,7 @@ describe("PHASE-3 §4.1: Twenty Negative Admission Gate Refusals", () => {
       host: "antigravity",
     });
 
-    const runBefore = loadRun(run, false);
+    const runBefore = loadRun(run, true);
     const eventCountBefore = runBefore.events.length;
 
     let caughtError: HarnessError | null = null;

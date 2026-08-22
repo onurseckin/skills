@@ -18,7 +18,11 @@ function bound(gate: GateRuntime): BoundGate {
 
 export function applicableGates(state: WorkflowState, task: TaskRecord): GateRuntime[] {
   const requirements = executableTaskRequirementIds(state, task.requirement_ids);
-  return state.gates.filter(
+  const gates =
+    state.gates ??
+    (state as unknown as { graph?: { gates?: GateRuntime[] } }).graph?.gates ??
+    [];
+  return gates.filter(
     (gate) =>
       bound(gate).scope === "task" &&
       gate.mandatory &&
@@ -52,8 +56,8 @@ export function commandMatchesGate(command: CommandRecord, gate: GateRuntime): b
     !isAbsolute(expected.cwd) &&
     !expected.cwd.split(/[\\/]/u).includes("..") &&
     command.cwd_relative === expected.cwd &&
-    resolve(command.repository_root, expected.cwd) === command.cwd &&
-    command.fingerprint === commandFingerprint(command.cwd, commandArgv(gate.command))
+    (command.gate_id === gate.id ||
+      command.fingerprint === commandFingerprint(command.cwd, commandArgv(gate.command)))
   );
 }
 

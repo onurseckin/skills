@@ -44,6 +44,7 @@ interface GitSpawnOptions {
   timeout: number;
   killSignal: "SIGKILL";
   maxBuffer: number;
+  stdio?: ["ignore", "pipe", "pipe"];
 }
 
 interface GitSpawnResult {
@@ -72,6 +73,7 @@ export function createGitRunner(spawn: GitSpawn = nodeGitSpawn): GitRunner {
       timeout: WORKTREE_GIT_TIMEOUT_MS,
       killSignal: "SIGKILL",
       maxBuffer: 16 * 1024 * 1024,
+      stdio: ["ignore", "pipe", "pipe"],
     });
     if (result.error) {
       throw new HarnessError(

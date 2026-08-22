@@ -696,6 +696,128 @@ bun harness.ts coordinator:pushback --run .capsules/<run-id> --task task-1 --act
 bun harness.ts coordinator:pushback --run .capsules/<run-id> --task task-1 --actor coordinator --validator val-1 --domain code-quality --cause substantive --observation "the recorded check output shows the gate never ran" --remediation "fix the gate invocation and resubmit"
 ```
 
+## reporting
+
+### `report:graph-json`
+
+Export DAG telemetry and metrics to JSON.
+
+Export DAG telemetry and metrics to JSON.
+
+- **Aliases**: `dag:export-json`
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--run` | string | no | no | - | Path to capsule run directory |
+| `--run-id` | string | no | no | - | Capsule run identifier |
+| `--out` | string | no | no | - | Path to save JSON |
+| `--pretty` | bool | no | no | - | Format output JSON nicely |
+
+```bash
+bun harness.ts report:graph-json --run .capsules/<run-id> --out graph.json
+```
+
+### `report:dag`
+
+Canonical reporting for DAG status.
+
+Aliases/links to dag:view to inspect compiled graph or planning buffer DAG topology.
+
+- **Aliases**: none
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--run` | string | no | no | - | Capsule run root. Defaults to current repository .capsules/ when omitted. |
+| `--run-id` | string | no | no | - | Alias of --run. |
+| `--repo` | string | no | no | `.` | Repository root to search for .capsules/. |
+| `--detailed` | bool | no | no | - | Render full write scopes, gate commands, and dependency lists. |
+| `--recommendations` | bool | no | no | - | Highlight algorithmic parallelization opportunities. |
+| `--all` | bool | no | no | - | Do not truncate output lines. |
+
+```bash
+bun harness.ts report:dag --run .capsules/<run-id>
+```
+
+### `report:graph`
+
+Visual/ASCII and graph overview.
+
+Renders the task graph.
+
+- **Aliases**: none
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--run` | string | yes | no | - | Capsule run root. |
+| `--detailed` | bool | no | no | - | Detailed output. |
+
+```bash
+bun harness.ts report:graph --run .capsules/<run-id>
+```
+
+### `report:health`
+
+Canonical reporting for health/doctor status.
+
+Runs the capsule doctor to check health status.
+
+- **Aliases**: none
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--run` | string | yes | no | - | Capsule run root. |
+| `--source` | string | no | no | - | Source. |
+| `--home` | string | no | no | - | Home. |
+| `--clients` | string | no | no | - | Clients. |
+
+```bash
+bun harness.ts report:health --run .capsules/<run-id>
+```
+
+### `report:leases`
+
+Active lease and agent matrix.
+
+Reports the matrix of active leases.
+
+- **Aliases**: none
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--run` | string | yes | no | - | Capsule run root. |
+
+```bash
+bun harness.ts report:leases --run .capsules/<run-id>
+```
+
+### `report:decisions`
+
+Inspection of authority decisions and governance audit.
+
+Reports the decisions audit matrix.
+
+- **Aliases**: none
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--run` | string | yes | no | - | Capsule run root. |
+
+```bash
+bun harness.ts report:decisions --run .capsules/<run-id>
+```
+
 ## run
 
 ### `run:exec`

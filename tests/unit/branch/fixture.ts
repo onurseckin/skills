@@ -1,4 +1,5 @@
 import { spawnSync } from "node:child_process";
+import { realpathSync } from "node:fs";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -17,7 +18,17 @@ export async function cleanupRoots(roots: string[]): Promise<void> {
 }
 
 function git(repo: string, argv: readonly string[]): void {
-  const result = spawnSync("git", [...argv], { cwd: repo, encoding: "utf8" });
+  const result = spawnSync("git", [...argv], {
+    cwd: repo,
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+    env: {
+      ...process.env,
+      GIT_CONFIG_GLOBAL: "/dev/null",
+      GIT_CONFIG_NOSYSTEM: "1",
+      GIT_TERMINAL_PROMPT: "0",
+    },
+  });
   if (result.status !== 0) throw new Error(`git ${argv.join(" ")}: ${result.stderr}`);
 }
 
@@ -30,7 +41,7 @@ export async function branchCapsule(
   name: string,
   config: Record<string, number> = {},
 ): Promise<BranchFixture> {
-  const repo = await mkdtemp(join(tmpdir(), `harness-${name}-`));
+  const repo = realpathSync(await mkdtemp(join(tmpdir(), `harness-${name}-`)));
   roots.push(repo);
   if (Object.keys(config).length > 0) {
     // Written before the first command runs: the resolved config is cached per root pair.
@@ -67,7 +78,7 @@ export async function branchCapsule(
     "--gate",
     "bun test tests/unit/thing.test.ts",
     "--actor",
-    "coordinator",
+    "planner",
   ]);
   await execute([
     "plan:compile",
@@ -77,6 +88,19 @@ export async function branchCapsule(
     "planner",
     "--completion-gate",
     "bun test tests",
+  ]);
+  await execute([
+    "agent:register",
+    "--run",
+    run,
+    "--agent",
+    "worker-1",
+    "--role",
+    "implementer",
+    "--host",
+    "antigravity",
+    "--parent-task",
+    "task-1",
   ]);
   const claimed = await execute([
     "task:claim",
@@ -162,6 +186,21 @@ export async function openChainLevel(
     reason: `level ${level} needs an agent of its own`,
     subTasks: [{ id: subTaskId, label: `Level ${level}`, scopes: [chainScope(level)] }],
   });
+  await execute([
+    "agent:register",
+    "--run",
+    fixture.run,
+    "--agent",
+    agent,
+    "--role",
+    "sub-implementer",
+    "--host",
+    "antigravity",
+    "--parent-agent",
+    parent.agent,
+    "--parent-task",
+    subTaskId,
+  ]);
   const claimed = await execute([
     "branch:claim",
     "--run",

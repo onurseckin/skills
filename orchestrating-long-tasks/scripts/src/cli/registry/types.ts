@@ -32,6 +32,7 @@ export type CommandDomain =
   | "orphan"
   | "authority"
   | "diagnostics"
+  | "reporting"
   | "gate"
   | "capture"
   | "mind";

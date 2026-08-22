@@ -2192,6 +2192,344 @@
       ]
     },
     {
+      "name": "report:graph-json",
+      "aliases": [
+        "dag:export-json"
+      ],
+      "domain": "reporting",
+      "summary": "Export DAG telemetry and metrics to JSON.",
+      "description": "Export DAG telemetry and metrics to JSON.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Path to capsule run directory"
+        },
+        {
+          "name": "run-id",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run identifier"
+        },
+        {
+          "name": "out",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Path to save JSON"
+        },
+        {
+          "name": "pretty",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Format output JSON nicely"
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts report:graph-json --run .capsules/<run-id> --out graph.json"
+      ]
+    },
+    {
+      "name": "report:dag",
+      "aliases": [],
+      "domain": "reporting",
+      "summary": "Canonical reporting for DAG status.",
+      "description": "Aliases/links to dag:view to inspect compiled graph or planning buffer DAG topology.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root. Defaults to current repository .capsules/ when omitted."
+        },
+        {
+          "name": "run-id",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Alias of --run."
+        },
+        {
+          "name": "repo",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": ".",
+          "description": "Repository root to search for .capsules/."
+        },
+        {
+          "name": "detailed",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Render full write scopes, gate commands, and dependency lists."
+        },
+        {
+          "name": "recommendations",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Highlight algorithmic parallelization opportunities."
+        },
+        {
+          "name": "all",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Do not truncate output lines."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts report:dag --run .capsules/<run-id>"
+      ]
+    },
+    {
+      "name": "report:graph",
+      "aliases": [],
+      "domain": "reporting",
+      "summary": "Visual/ASCII and graph overview.",
+      "description": "Renders the task graph.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root."
+        },
+        {
+          "name": "detailed",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Detailed output."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts report:graph --run .capsules/<run-id>"
+      ]
+    },
+    {
+      "name": "report:health",
+      "aliases": [],
+      "domain": "reporting",
+      "summary": "Canonical reporting for health/doctor status.",
+      "description": "Runs the capsule doctor to check health status.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root."
+        },
+        {
+          "name": "source",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Source."
+        },
+        {
+          "name": "home",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Home."
+        },
+        {
+          "name": "clients",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Clients."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts report:health --run .capsules/<run-id>"
+      ]
+    },
+    {
+      "name": "report:leases",
+      "aliases": [],
+      "domain": "reporting",
+      "summary": "Active lease and agent matrix.",
+      "description": "Reports the matrix of active leases.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts report:leases --run .capsules/<run-id>"
+      ]
+    },
+    {
+      "name": "report:decisions",
+      "aliases": [],
+      "domain": "reporting",
+      "summary": "Inspection of authority decisions and governance audit.",
+      "description": "Reports the decisions audit matrix.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts report:decisions --run .capsules/<run-id>"
+      ]
+    },
+    {
       "name": "run:exec",
       "aliases": [],
       "domain": "run",

@@ -23,12 +23,20 @@ import {
  * Initializes a scratch git repository for testing.
  */
 function initTestRepo(root: string): void {
-  Bun.spawnSync(["git", "init", "-b", "main"], { cwd: root });
-  Bun.spawnSync(["git", "config", "user.name", "Safety Test User"], { cwd: root });
-  Bun.spawnSync(["git", "config", "user.email", "safety@example.local"], { cwd: root });
+  const env = {
+    ...process.env,
+    GIT_CONFIG_GLOBAL: "/dev/null",
+    GIT_CONFIG_NOSYSTEM: "1",
+    GIT_TERMINAL_PROMPT: "0",
+  };
+  Bun.spawnSync(["git", "init", "-b", "main"], { cwd: root, env });
+  Bun.spawnSync(["git", "config", "user.name", "Safety Test User"], { cwd: root, env });
+  Bun.spawnSync(["git", "config", "user.email", "safety@example.local"], { cwd: root, env });
+  Bun.spawnSync(["git", "config", "commit.gpgsign", "false"], { cwd: root, env });
+  Bun.spawnSync(["git", "config", "tag.gpgsign", "false"], { cwd: root, env });
   writeFileSync(join(root, "README.md"), "# Safety Test\n", "utf-8");
-  Bun.spawnSync(["git", "add", "README.md"], { cwd: root });
-  Bun.spawnSync(["git", "commit", "-m", "chore: initial commit"], { cwd: root });
+  Bun.spawnSync(["git", "add", "README.md"], { cwd: root, env });
+  Bun.spawnSync(["git", "commit", "-m", "chore: initial commit"], { cwd: root, env });
 }
 
 describe("PHASE-6 W6.4: Remote Container Safety & Capability Removal", () => {

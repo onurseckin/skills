@@ -73,6 +73,7 @@ describe("restricted repository Git callers", () => {
         encoding: "buffer",
         env: environment,
         shell: false,
+        stdio: ["ignore", "pipe", "pipe"],
         maxBuffer: 1025,
         timeout: 15_000,
         killSignal: "SIGKILL",

@@ -91,7 +91,18 @@ export function whoamiCommand(flags: Flags): Record<string, unknown> {
     `- **Execution Tier**: \`${thread.is_main_thread ? "Main Interactive Agent Thread" : `Tier ${thread.tier}`}\` (${thread.tier_name})`,
     `- **Active Agent**: \`${activeAgentId ?? thread.agent_id ?? "none"}\`${thread.role ? ` (role: \`${thread.role}\`)` : ""}`,
     `- **Compliance**: \`${thread.compliance_state.toUpperCase()}\``,
+    `- **Host App**: \`${thread.host_profile.app_id}\``,
+    `- **OS Platform**: \`${thread.host_profile.os_platform} ${thread.host_profile.os_release} (${thread.host_profile.os_arch})\``,
+    `- **Runtime**: \`${thread.host_profile.runtime_bun ? `bun ${thread.host_profile.runtime_bun}` : `node ${thread.host_profile.runtime_node}`}\``,
+    `- **Taxonomy**: \`${thread.capabilities.command_taxonomy}\``,
   ];
+
+  if (thread.capabilities.tools.length > 0) {
+    mdLines.push(`- **Tools**: ${thread.capabilities.tools.join(", ")}`);
+  }
+  if (thread.capabilities.environment_grants.length > 0) {
+    mdLines.push(`- **Environment Grants**: ${thread.capabilities.environment_grants.join(", ")}`);
+  }
 
   if (thread.advisory) {
     mdLines.push(`- **Advisory**: ⚠️ ${thread.advisory}`);
@@ -127,5 +138,7 @@ export function whoamiCommand(flags: Flags): Record<string, unknown> {
     active_grants: filteredGrants,
     active_leases: filteredLeases,
     blunder: thread.blunder,
+    host_profile: thread.host_profile,
+    capabilities: thread.capabilities,
   };
 }

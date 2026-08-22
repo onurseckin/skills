@@ -25,6 +25,7 @@ interface RepositoryGitSpawnOptions {
   maxBuffer: number;
   timeout: number;
   killSignal: "SIGKILL";
+  stdio?: ["ignore", "pipe", "pipe"];
 }
 
 interface RepositoryGitSpawnResult {
@@ -116,6 +117,7 @@ export function createRepositoryGitCommand(
       maxBuffer: maximum + 1,
       timeout: REPOSITORY_GIT_TIMEOUT_MS,
       killSignal: "SIGKILL",
+      stdio: ["ignore", "pipe", "pipe"],
     };
     let result = spawn("git", spawnArgv, spawnOptions);
     for (
