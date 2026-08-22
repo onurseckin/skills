@@ -301,7 +301,7 @@ export function registerWatchdog(
     id: watchdogId,
     generation,
     pulse_id: params.pulse_id ?? null,
-    phase: params.phase ?? "autonomous-loop",
+    phase: params.phase !== undefined ? params.phase : "autonomous-loop",
     run_id: params.run_id ?? null,
     run_root: params.run_root ?? null,
     pid: params.pid ?? (typeof process !== "undefined" ? process.pid : 0),
@@ -406,7 +406,7 @@ export function terminateWatchdog(
     ...existing,
     status: "terminated",
     terminated_at: nowIso,
-    termination_reason: options.reason ?? "normal_termination",
+    termination_reason: options.reason !== undefined ? options.reason : "normal_termination",
     ...(options.metadata !== undefined || existing.metadata !== undefined
       ? {
           metadata: {
@@ -470,9 +470,9 @@ export function cleanupStaleWatchdogs(options: CleanupOptions = {}, target?: str
   const nowIso = new Date(nowMs).toISOString();
   const currentStore = loadWatchdogStore(target);
 
-  const markAs: WatchdogStatus = options.markAs ?? "stale";
+  const markAs: WatchdogStatus = options.markAs !== undefined ? options.markAs : "stale";
   const dryRun = options.dryRun === true;
-  const reason = options.reason ?? "stale_cadence_exceeded";
+  const reason = options.reason !== undefined ? options.reason : "stale_cadence_exceeded";
 
   const cleanedWatchdogs: WatchdogRecord[] = [];
   const updatedWatchdogs: WatchdogRecord[] = [];

@@ -114,7 +114,7 @@ export function expandExternalPromptToPlan(
     throw new HarnessError("INVALID_ARGUMENT", "Prompt cannot be empty for task expansion");
   }
 
-  const baseId = options.baseId ?? "task-external-intake";
+  const baseId = options.baseId !== undefined ? options.baseId : "task-external-intake";
   const goals = options.charterGoals && options.charterGoals.length > 0 ? options.charterGoals : ["G1"];
 
   return {

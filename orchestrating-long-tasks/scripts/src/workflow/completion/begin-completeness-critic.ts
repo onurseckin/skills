@@ -59,7 +59,9 @@ export function beginCompletenessCritic(
           throw new HarnessError("INTEGRITY", "completion critic review history is inconsistent");
         if (
           review.status === "clean" &&
-          sameRepositoryBinding(currentRepositoryBinding(draft), current.repository_binding)
+          sameRepositoryBinding(currentRepositoryBinding(draft), current.repository_binding) &&
+          completionReadinessSnapshot(draft, current.attempt, current.critic_id).sha256 ===
+            review.readiness_sha256
         )
           throw new HarnessError(
             "INVALID_STATE",

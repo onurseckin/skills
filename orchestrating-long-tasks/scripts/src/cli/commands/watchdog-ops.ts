@@ -95,7 +95,7 @@ export function watchdogStatusCommand(
 
   const lines: string[] = [
     "### Watchdog Lifecycle & Cadence Status",
-    `- **Capsules / Target Root**: \`${target ?? "default (.capsules/)"}\``,
+    `- **Capsules / Target Root**: \`${target !== undefined ? target : "default (.capsules/)"}\``,
     `- **Total Registered Monitors**: ${allWatchdogs.length} (${filteredWatchdogs.length} matching filter)`,
     `- **Status Breakdown**: Active: ${activeCount} | Stale: ${staleCount} | Terminated: ${terminatedCount} | Orphaned: ${orphanedCount}`,
     `- **Accumulation Invariant**: Max 1 active monitor per generation/pulse strictly enforced`,
@@ -170,7 +170,7 @@ export function watchdogCleanupCommand(
 
   const lines: string[] = [
     "### Watchdog Stale Cleanup Engine",
-    `- **Target Root**: \`${target ?? "default (.capsules/)"}\``,
+    `- **Target Root**: \`${target !== undefined ? target : "default (.capsules/)"}\``,
     `- **Execution Mode**: ${isDryRun ? "Dry Run (Simulated)" : "Live Cleanup"}`,
     `- **Stale Monitors Cleaned**: ${result.cleanedCount}`,
     `- **Remaining Active Monitors**: ${result.activeCount}`,

@@ -2530,6 +2530,340 @@
       ]
     },
     {
+      "name": "report:summary",
+      "aliases": [],
+      "domain": "reporting",
+      "summary": "Render executive summary brief of capsule run.",
+      "description": "Renders the executive brief in markdown or JSON directly to terminal.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root."
+        },
+        {
+          "name": "out",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Directory for viewer registry export."
+        },
+        {
+          "name": "json",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Output JSON."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts report:summary --run .capsules/<run-id>"
+      ]
+    },
+    {
+      "name": "report:task",
+      "aliases": [],
+      "domain": "reporting",
+      "summary": "Read and render a task submission, review or critic report.",
+      "description": "Extracts and formats full task report evidence including verification outcomes, gate executions, and screenshot records without requiring raw file inspection.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root."
+        },
+        {
+          "name": "task",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Task whose report is wanted."
+        },
+        {
+          "name": "critic",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Read the critic review report."
+        },
+        {
+          "name": "submission",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Force the submission report."
+        },
+        {
+          "name": "review",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Force the review report."
+        },
+        {
+          "name": "type",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "submission, review or critic."
+        },
+        {
+          "name": "stage",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Alias of --type."
+        },
+        {
+          "name": "report",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Explicit report file name."
+        },
+        {
+          "name": "id",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Alias of --report."
+        },
+        {
+          "name": "screenshots",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Include screenshot records."
+        },
+        {
+          "name": "json",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Output JSON."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts report:task --run .capsules/<run-id> --task task-1",
+        "bun harness.ts report:task --run .capsules/<run-id> --task task-1 --type review"
+      ]
+    },
+    {
+      "name": "stream:events",
+      "aliases": [
+        "events:stream",
+        "events:tail"
+      ],
+      "domain": "reporting",
+      "summary": "Stream, query, and tail structured capsule events.",
+      "description": "Streams chronological capsule events as rich terminal ASCII tables, Markdown, or NDJSON, with sequence filtering and optional webhook delivery.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root."
+        },
+        {
+          "name": "run-id",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run identifier."
+        },
+        {
+          "name": "repo",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Repository root."
+        },
+        {
+          "name": "from-seq",
+          "type": "int",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Starting event sequence number."
+        },
+        {
+          "name": "to-seq",
+          "type": "int",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Ending event sequence number."
+        },
+        {
+          "name": "max-events",
+          "type": "int",
+          "required": false,
+          "repeatable": false,
+          "default": 50,
+          "description": "Maximum events to return."
+        },
+        {
+          "name": "filter-type",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Filter events by event type name."
+        },
+        {
+          "name": "filter-actor",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Filter events by acting agent ID."
+        },
+        {
+          "name": "all",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Return all matching events."
+        },
+        {
+          "name": "now",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Return only the latest event in the log."
+        },
+        {
+          "name": "format",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Output format: markdown, json, or ndjson."
+        },
+        {
+          "name": "webhook-url",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Webhook endpoint URL for event forwarding."
+        },
+        {
+          "name": "webhook-retries",
+          "type": "int",
+          "required": false,
+          "repeatable": false,
+          "default": 3,
+          "description": "Webhook retry attempts."
+        },
+        {
+          "name": "webhook-timeout",
+          "type": "int",
+          "required": false,
+          "repeatable": false,
+          "default": 5000,
+          "description": "Webhook request timeout in ms."
+        },
+        {
+          "name": "json",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Output JSON."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts stream:events --run .capsules/<run-id>",
+        "bun harness.ts stream:events --run .capsules/<run-id> --from-seq 10 --max-events 20",
+        "bun harness.ts stream:events --run .capsules/<run-id> --filter-type task-claimed"
+      ]
+    },
+    {
       "name": "run:exec",
       "aliases": [],
       "domain": "run",
@@ -4836,6 +5170,14 @@
           "repeatable": false,
           "default": null,
           "description": "Parent Process ID override for testing."
+        },
+        {
+          "name": "json",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Output JSON format."
         }
       ],
       "reads_stdin": false,
@@ -4861,6 +5203,190 @@
       "examples": [
         "bun harness.ts whoami",
         "bun harness.ts whoami --run .capsules/<run-id> --agent coordinator-lead"
+      ]
+    },
+    {
+      "name": "role:cheat-sheet",
+      "aliases": [
+        "role:contract",
+        "role:cheat"
+      ],
+      "domain": "authority",
+      "summary": "Display compact terminal cheat sheets and command matrices for system roles.",
+      "description": "Renders ASCII tables and formatted markdown cheat sheets detailing tier, granted commands, forbidden actions, spawn rights, and architectural invariants.",
+      "flags": [
+        {
+          "name": "role",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Specific role name to inspect."
+        },
+        {
+          "name": "roles-dir",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Override roles directory path."
+        },
+        {
+          "name": "all",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Render full cheat sheets for all available roles."
+        },
+        {
+          "name": "compact",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Render compact summary format."
+        },
+        {
+          "name": "json",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Output JSON."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts role:cheat-sheet",
+        "bun harness.ts role:cheat-sheet --role implementer",
+        "bun harness.ts role:cheat-sheet --all"
+      ]
+    },
+    {
+      "name": "watchdog:status",
+      "aliases": [
+        "watchdog:list"
+      ],
+      "domain": "authority",
+      "summary": "Query watchdog lifecycle, monitor cadence, and health status.",
+      "description": "Inspects background watchdog monitors across runs and generations, reporting active, stale, terminated, and orphaned monitors.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root."
+        },
+        {
+          "name": "capsules-dir",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsules root directory."
+        },
+        {
+          "name": "generation",
+          "type": "int",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Filter by mind generation."
+        },
+        {
+          "name": "filter-status",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Filter by status: active, stale, terminated, orphaned, all."
+        },
+        {
+          "name": "max-age-ms",
+          "type": "int",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Maximum age in milliseconds."
+        },
+        {
+          "name": "dry-run",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Simulate cleanup without disk mutation."
+        },
+        {
+          "name": "all",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Show all watchdog monitors."
+        },
+        {
+          "name": "now",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Timestamp override (ISO8601)."
+        },
+        {
+          "name": "json",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Output JSON."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts watchdog:status",
+        "bun harness.ts watchdog:status --generation 1 --filter-status active"
       ]
     },
     {
@@ -4973,6 +5499,120 @@
       ],
       "examples": [
         "bun harness.ts installation-status --source . --home ~"
+      ]
+    },
+    {
+      "name": "blunder:audit",
+      "aliases": [],
+      "domain": "diagnostics",
+      "summary": "Audit, deduplicate, and auto-admit blunders across capsules.",
+      "description": "Discovers blunders.jsonl files across .capsules/ and active run, deduplicates entries, displays an ASCII summary matrix, and optionally auto-admits candidate remediations.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root."
+        },
+        {
+          "name": "capsules-dir",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsules root directory."
+        },
+        {
+          "name": "filter-status",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Filter by status: open, admitted, resolved, all."
+        },
+        {
+          "name": "filter-category",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Filter by blunder category/type."
+        },
+        {
+          "name": "filter-type",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Alias for --filter-category."
+        },
+        {
+          "name": "auto-admit",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Automatically admit open blunders as candidates."
+        },
+        {
+          "name": "actor",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Actor recording admissions."
+        },
+        {
+          "name": "all",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Show all blunders without line truncation."
+        },
+        {
+          "name": "now",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Timestamp override (ISO8601)."
+        },
+        {
+          "name": "json",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Output JSON."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts blunder:audit",
+        "bun harness.ts blunder:audit --run .capsules/<run-id> --filter-status open",
+        "bun harness.ts blunder:audit --auto-admit --actor coordinator"
       ]
     },
     {
@@ -5822,6 +6462,129 @@
       "examples": [
         "bun harness.ts capture:eval --manifest .captures/dashboard-desktop.manifest.json",
         "bun harness.ts capture:eval --manifest-dir .captures --strict"
+      ]
+    },
+    {
+      "name": "memory:query",
+      "aliases": [
+        "memory:search"
+      ],
+      "domain": "mind",
+      "summary": "Query indexed cross-run knowledge, decisions, and memory documents.",
+      "description": "Performs full-text retrieval and ranking across knowledge base, charter, findings, decisions, and past run summaries with zero external file reads required.",
+      "flags": [
+        {
+          "name": "query",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Search query terms."
+        },
+        {
+          "name": "run",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Filter by capsule run root."
+        },
+        {
+          "name": "capsules-dir",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Override capsules root directory."
+        },
+        {
+          "name": "repo",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Repository root path."
+        },
+        {
+          "name": "kind",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Filter by document kind."
+        },
+        {
+          "name": "limit",
+          "type": "int",
+          "required": false,
+          "repeatable": false,
+          "default": 10,
+          "description": "Maximum number of search results."
+        },
+        {
+          "name": "min-score",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Minimum similarity/match score threshold."
+        },
+        {
+          "name": "format",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Output format: markdown or json."
+        },
+        {
+          "name": "all",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Display all matching documents without truncation."
+        },
+        {
+          "name": "now",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Timestamp override (ISO8601)."
+        },
+        {
+          "name": "json",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Output JSON."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts memory:query --query \"authentication refactor\"",
+        "bun harness.ts memory:query --query \"rate limit\" --limit 5"
       ]
     },
     {
@@ -6958,6 +7721,339 @@
       ],
       "examples": [
         "bun harness.ts mind:rotate --run .capsules/mind-gen-1 --next-run .capsules/mind-gen-2 --actor coordinator-1"
+      ]
+    },
+    {
+      "name": "feedback:list",
+      "aliases": [
+        "feedback:query",
+        "feedback:status"
+      ],
+      "domain": "mind",
+      "summary": "List, search, and inspect items in .capsules/FEEDBACK_QUEUE.jsonl.",
+      "description": "Queries the persistent file-backed feedback queue, returning priority-ranked items and status statistics.",
+      "flags": [
+        {
+          "name": "queue-file",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Custom path to FEEDBACK_QUEUE.jsonl."
+        },
+        {
+          "name": "status",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Filter by status: PENDING, ADMITTED, PROCESSED, COMPLETED, DECLINED."
+        },
+        {
+          "name": "category",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Filter by category: DOCUMENTATION, AGENT_CONTRACTS, CLI_TOOLING, etc."
+        },
+        {
+          "name": "limit",
+          "type": "int",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Maximum number of items to return (default: 20)."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts feedback:list",
+        "bun harness.ts feedback:list --status PENDING --limit 10"
+      ]
+    },
+    {
+      "name": "feedback:ingest",
+      "aliases": [
+        "feedback:add"
+      ],
+      "domain": "mind",
+      "summary": "Ingest a new user feedback or architectural directive into the queue.",
+      "description": "Appends a structured feedback item to .capsules/FEEDBACK_QUEUE.jsonl for autonomous Mind intake.",
+      "flags": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Unique feedback item identifier."
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Human-readable summary title."
+        },
+        {
+          "name": "content",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "Detailed feedback or directive content."
+        },
+        {
+          "name": "priority",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Priority: CRITICAL_USER_FEEDBACK, HIGH_ARCHITECTURAL_FEATURE, USER_DIRECTIVE, NORMAL, LOW."
+        },
+        {
+          "name": "category",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Category: DOCUMENTATION, AGENT_CONTRACTS, CLI_TOOLING, WATCHDOG, SCALING, ARCHITECTURE, CORE_ENGINE."
+        },
+        {
+          "name": "queue-file",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Custom path to FEEDBACK_QUEUE.jsonl."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts feedback:ingest --id fb-08 --title 'New Feature' --content 'Implement streaming UI' --priority HIGH_ARCHITECTURAL_FEATURE"
+      ]
+    },
+    {
+      "name": "feedback:drain",
+      "aliases": [
+        "feedback:pop"
+      ],
+      "domain": "mind",
+      "summary": "Drain and mark pending feedback items as processed or admitted.",
+      "description": "Selects pending items from FEEDBACK_QUEUE.jsonl and transitions their status.",
+      "flags": [
+        {
+          "name": "mark-as",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Status to transition to: PROCESSED, ADMITTED, DECLINED, COMPLETED (default: PROCESSED)."
+        },
+        {
+          "name": "limit",
+          "type": "int",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Maximum items to drain."
+        },
+        {
+          "name": "category",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Filter category to drain."
+        },
+        {
+          "name": "queue-file",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Custom path to FEEDBACK_QUEUE.jsonl."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts feedback:drain --mark-as ADMITTED --limit 5"
+      ]
+    },
+    {
+      "name": "smart-task:plan",
+      "aliases": [
+        "task:synthesize"
+      ],
+      "domain": "mind",
+      "summary": "Autonomously synthesize self-evolution tasks or plan from feedback queue.",
+      "description": "Smart task planner: prioritizes feedback intake, or synthesizes autonomic self-evolution tasks on empty queue.",
+      "flags": [
+        {
+          "name": "capsules-dir",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsules root directory."
+        },
+        {
+          "name": "max-tasks",
+          "type": "int",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Maximum tasks to generate (default: 5)."
+        },
+        {
+          "name": "goal",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Charter goal ID to bind."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts smart-task:plan",
+        "bun harness.ts smart-task:plan --max-tasks 3"
+      ]
+    },
+    {
+      "name": "smart-task:ingest",
+      "aliases": [
+        "smart-task:expand"
+      ],
+      "domain": "mind",
+      "summary": "Ingest and enhance an external prompt into a gate-verifiable task plan.",
+      "description": "Expands an external prompt into a structured task with write scope and mandatory gate.",
+      "flags": [
+        {
+          "name": "prompt",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null,
+          "description": "External prompt or task description."
+        },
+        {
+          "name": "id",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Custom task ID."
+        },
+        {
+          "name": "goal",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Charter goal ID to bind."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts smart-task:ingest --prompt 'Implement real-time metrics telemetry' --id task-metrics"
       ]
     }
   ]

@@ -102,8 +102,14 @@ export function feedbackIngestCommand(flags: Flags, _context?: CommandContext): 
       id: id.trim(),
       title: title.trim(),
       content: content.trim(),
-      priority: (priorityRaw?.trim().toUpperCase() as FeedbackPriority) || "CRITICAL_USER_FEEDBACK",
-      category: (categoryRaw?.trim().toUpperCase() as FeedbackCategory) || "GENERAL",
+      priority:
+        priorityRaw !== undefined && priorityRaw.trim().length > 0
+          ? (priorityRaw.trim().toUpperCase() as FeedbackPriority)
+          : "CRITICAL_USER_FEEDBACK",
+      category:
+        categoryRaw !== undefined && categoryRaw.trim().length > 0
+          ? (categoryRaw.trim().toUpperCase() as FeedbackCategory)
+          : "GENERAL",
       status: "PENDING",
     },
     queuePath,
@@ -132,7 +138,10 @@ export function feedbackDrainCommand(flags: Flags, _context?: CommandContext): F
   const categoryRaw = textFlag(flags, "category", false);
   const queuePath = textFlag(flags, "queue-file", false);
 
-  const markAs: FeedbackStatus = (markAsRaw?.trim().toUpperCase() as FeedbackStatus) || "PROCESSED";
+  const markAs: FeedbackStatus =
+    markAsRaw !== undefined && markAsRaw.trim().length > 0
+      ? (markAsRaw.trim().toUpperCase() as FeedbackStatus)
+      : "PROCESSED";
   const category = categoryRaw?.trim().toUpperCase() as FeedbackCategory | undefined;
 
   const drained = drainPendingFeedbacks(
@@ -148,7 +157,7 @@ export function feedbackDrainCommand(flags: Flags, _context?: CommandContext): F
     `### Feedback Queue Drained`,
     `- **Items Drained**: ${drained.length}`,
     `- **Marked As**: ${markAs}`,
-    `- **Category Filter**: ${category ?? "ALL"}`,
+    `- **Category Filter**: ${category !== undefined ? category : "ALL"}`,
   ];
 
   if (drained.length > 0) {

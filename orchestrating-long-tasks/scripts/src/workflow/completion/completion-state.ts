@@ -38,7 +38,12 @@ export function mandatoryRunGateCommands(
           command.gate_id === gate.id &&
           commandMatchesGate(command, gate),
       )
-      .sort((left, right) => left.id.localeCompare(right.id));
+      .sort(
+        (left, right) =>
+          (right.finished_at ?? right.started_at ?? "").localeCompare(
+            left.finished_at ?? left.started_at ?? "",
+          ) || right.id.localeCompare(left.id),
+      );
     if (commands.length === 0)
       issues.push(`run gate ${gate.id} lacks an authoritative passing command`);
     else result[gate.id] = commands[0]!.id;

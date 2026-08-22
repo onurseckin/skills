@@ -178,7 +178,7 @@ export function drainPendingFeedbacks(
   customPath?: string,
 ): FeedbackItem[] {
   const existing = readFeedbackQueue(customPath);
-  const markAs = options.markAs ?? "PROCESSED";
+  const markAs = options.markAs !== undefined ? options.markAs : "PROCESSED";
   const limit = options.limit ?? Number.POSITIVE_INFINITY;
   const nowIso = new Date().toISOString();
 

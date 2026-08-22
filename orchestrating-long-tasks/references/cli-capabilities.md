@@ -818,6 +818,89 @@ Reports the decisions audit matrix.
 bun harness.ts report:decisions --run .capsules/<run-id>
 ```
 
+### `report:summary`
+
+Render executive summary brief of capsule run.
+
+Renders the executive brief in markdown or JSON directly to terminal.
+
+- **Aliases**: none
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--run` | string | yes | no | - | Capsule run root. |
+| `--out` | string | no | no | - | Directory for viewer registry export. |
+| `--json` | bool | no | no | - | Output JSON. |
+
+```bash
+bun harness.ts report:summary --run .capsules/<run-id>
+```
+
+### `report:task`
+
+Read and render a task submission, review or critic report.
+
+Extracts and formats full task report evidence including verification outcomes, gate executions, and screenshot records without requiring raw file inspection.
+
+- **Aliases**: none
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--run` | string | yes | no | - | Capsule run root. |
+| `--task` | string | no | no | - | Task whose report is wanted. |
+| `--critic` | bool | no | no | - | Read the critic review report. |
+| `--submission` | bool | no | no | - | Force the submission report. |
+| `--review` | bool | no | no | - | Force the review report. |
+| `--type` | string | no | no | - | submission, review or critic. |
+| `--stage` | string | no | no | - | Alias of --type. |
+| `--report` | string | no | no | - | Explicit report file name. |
+| `--id` | string | no | no | - | Alias of --report. |
+| `--screenshots` | bool | no | no | - | Include screenshot records. |
+| `--json` | bool | no | no | - | Output JSON. |
+
+```bash
+bun harness.ts report:task --run .capsules/<run-id> --task task-1
+bun harness.ts report:task --run .capsules/<run-id> --task task-1 --type review
+```
+
+### `stream:events`
+
+Stream, query, and tail structured capsule events.
+
+Streams chronological capsule events as rich terminal ASCII tables, Markdown, or NDJSON, with sequence filtering and optional webhook delivery.
+
+- **Aliases**: `events:stream`, `events:tail`
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--run` | string | no | no | - | Capsule run root. |
+| `--run-id` | string | no | no | - | Capsule run identifier. |
+| `--repo` | string | no | no | - | Repository root. |
+| `--from-seq` | int | no | no | - | Starting event sequence number. |
+| `--to-seq` | int | no | no | - | Ending event sequence number. |
+| `--max-events` | int | no | no | `50` | Maximum events to return. |
+| `--filter-type` | string | no | no | - | Filter events by event type name. |
+| `--filter-actor` | string | no | no | - | Filter events by acting agent ID. |
+| `--all` | bool | no | no | - | Return all matching events. |
+| `--now` | bool | no | no | - | Return only the latest event in the log. |
+| `--format` | string | no | no | - | Output format: markdown, json, or ndjson. |
+| `--webhook-url` | string | no | no | - | Webhook endpoint URL for event forwarding. |
+| `--webhook-retries` | int | no | no | `3` | Webhook retry attempts. |
+| `--webhook-timeout` | int | no | no | `5000` | Webhook request timeout in ms. |
+| `--json` | bool | no | no | - | Output JSON. |
+
+```bash
+bun harness.ts stream:events --run .capsules/<run-id>
+bun harness.ts stream:events --run .capsules/<run-id> --from-seq 10 --max-events 20
+bun harness.ts stream:events --run .capsules/<run-id> --filter-type task-claimed
+```
+
 ## run
 
 ### `run:exec`
@@ -1489,10 +1572,62 @@ Inspects the calling thread's OS process ID, parent PID, execution tier, active 
 | `--agent` | string | no | no | - | Explicit agent id override to inspect. |
 | `--pid` | int | no | no | - | Process ID override for testing. |
 | `--ppid` | int | no | no | - | Parent Process ID override for testing. |
+| `--json` | bool | no | no | - | Output JSON format. |
 
 ```bash
 bun harness.ts whoami
 bun harness.ts whoami --run .capsules/<run-id> --agent coordinator-lead
+```
+
+### `role:cheat-sheet`
+
+Display compact terminal cheat sheets and command matrices for system roles.
+
+Renders ASCII tables and formatted markdown cheat sheets detailing tier, granted commands, forbidden actions, spawn rights, and architectural invariants.
+
+- **Aliases**: `role:contract`, `role:cheat`
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--role` | string | no | no | - | Specific role name to inspect. |
+| `--roles-dir` | string | no | no | - | Override roles directory path. |
+| `--all` | bool | no | no | - | Render full cheat sheets for all available roles. |
+| `--compact` | bool | no | no | - | Render compact summary format. |
+| `--json` | bool | no | no | - | Output JSON. |
+
+```bash
+bun harness.ts role:cheat-sheet
+bun harness.ts role:cheat-sheet --role implementer
+bun harness.ts role:cheat-sheet --all
+```
+
+### `watchdog:status`
+
+Query watchdog lifecycle, monitor cadence, and health status.
+
+Inspects background watchdog monitors across runs and generations, reporting active, stale, terminated, and orphaned monitors.
+
+- **Aliases**: `watchdog:list`
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--run` | string | no | no | - | Capsule run root. |
+| `--capsules-dir` | string | no | no | - | Capsules root directory. |
+| `--generation` | int | no | no | - | Filter by mind generation. |
+| `--filter-status` | string | no | no | - | Filter by status: active, stale, terminated, orphaned, all. |
+| `--max-age-ms` | int | no | no | - | Maximum age in milliseconds. |
+| `--dry-run` | bool | no | no | - | Simulate cleanup without disk mutation. |
+| `--all` | bool | no | no | - | Show all watchdog monitors. |
+| `--now` | string | no | no | - | Timestamp override (ISO8601). |
+| `--json` | bool | no | no | - | Output JSON. |
+
+```bash
+bun harness.ts watchdog:status
+bun harness.ts watchdog:status --generation 1 --filter-status active
 ```
 
 ## install
@@ -1538,6 +1673,35 @@ bun harness.ts installation-status --source . --home ~
 ```
 
 ## diagnostics
+
+### `blunder:audit`
+
+Audit, deduplicate, and auto-admit blunders across capsules.
+
+Discovers blunders.jsonl files across .capsules/ and active run, deduplicates entries, displays an ASCII summary matrix, and optionally auto-admits candidate remediations.
+
+- **Aliases**: none
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--run` | string | no | no | - | Capsule run root. |
+| `--capsules-dir` | string | no | no | - | Capsules root directory. |
+| `--filter-status` | string | no | no | - | Filter by status: open, admitted, resolved, all. |
+| `--filter-category` | string | no | no | - | Filter by blunder category/type. |
+| `--filter-type` | string | no | no | - | Alias for --filter-category. |
+| `--auto-admit` | bool | no | no | - | Automatically admit open blunders as candidates. |
+| `--actor` | string | no | no | - | Actor recording admissions. |
+| `--all` | bool | no | no | - | Show all blunders without line truncation. |
+| `--now` | string | no | no | - | Timestamp override (ISO8601). |
+| `--json` | bool | no | no | - | Output JSON. |
+
+```bash
+bun harness.ts blunder:audit
+bun harness.ts blunder:audit --run .capsules/<run-id> --filter-status open
+bun harness.ts blunder:audit --auto-admit --actor coordinator
+```
 
 ### `coverage:check`
 
@@ -1780,6 +1944,35 @@ bun harness.ts capture:eval --manifest-dir .captures --strict
 ```
 
 ## mind
+
+### `memory:query`
+
+Query indexed cross-run knowledge, decisions, and memory documents.
+
+Performs full-text retrieval and ranking across knowledge base, charter, findings, decisions, and past run summaries with zero external file reads required.
+
+- **Aliases**: `memory:search`
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--query` | string | no | no | - | Search query terms. |
+| `--run` | string | no | no | - | Filter by capsule run root. |
+| `--capsules-dir` | string | no | no | - | Override capsules root directory. |
+| `--repo` | string | no | no | - | Repository root path. |
+| `--kind` | string | no | no | - | Filter by document kind. |
+| `--limit` | int | no | no | `10` | Maximum number of search results. |
+| `--min-score` | string | no | no | - | Minimum similarity/match score threshold. |
+| `--format` | string | no | no | - | Output format: markdown or json. |
+| `--all` | bool | no | no | - | Display all matching documents without truncation. |
+| `--now` | string | no | no | - | Timestamp override (ISO8601). |
+| `--json` | bool | no | no | - | Output JSON. |
+
+```bash
+bun harness.ts memory:query --query "authentication refactor"
+bun harness.ts memory:query --query "rate limit" --limit 5
+```
 
 ### `mind:init`
 
@@ -2129,4 +2322,111 @@ Performs generational rotation, carrying forward charter pin and declined candid
 
 ```bash
 bun harness.ts mind:rotate --run .capsules/mind-gen-1 --next-run .capsules/mind-gen-2 --actor coordinator-1
+```
+
+### `feedback:list`
+
+List, search, and inspect items in .capsules/FEEDBACK_QUEUE.jsonl.
+
+Queries the persistent file-backed feedback queue, returning priority-ranked items and status statistics.
+
+- **Aliases**: `feedback:query`, `feedback:status`
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--queue-file` | string | no | no | - | Custom path to FEEDBACK_QUEUE.jsonl. |
+| `--status` | string | no | no | - | Filter by status: PENDING, ADMITTED, PROCESSED, COMPLETED, DECLINED. |
+| `--category` | string | no | no | - | Filter by category: DOCUMENTATION, AGENT_CONTRACTS, CLI_TOOLING, etc. |
+| `--limit` | int | no | no | - | Maximum number of items to return (default: 20). |
+
+```bash
+bun harness.ts feedback:list
+bun harness.ts feedback:list --status PENDING --limit 10
+```
+
+### `feedback:ingest`
+
+Ingest a new user feedback or architectural directive into the queue.
+
+Appends a structured feedback item to .capsules/FEEDBACK_QUEUE.jsonl for autonomous Mind intake.
+
+- **Aliases**: `feedback:add`
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--id` | string | yes | no | - | Unique feedback item identifier. |
+| `--title` | string | yes | no | - | Human-readable summary title. |
+| `--content` | string | yes | no | - | Detailed feedback or directive content. |
+| `--priority` | string | no | no | - | Priority: CRITICAL_USER_FEEDBACK, HIGH_ARCHITECTURAL_FEATURE, USER_DIRECTIVE, NORMAL, LOW. |
+| `--category` | string | no | no | - | Category: DOCUMENTATION, AGENT_CONTRACTS, CLI_TOOLING, WATCHDOG, SCALING, ARCHITECTURE, CORE_ENGINE. |
+| `--queue-file` | string | no | no | - | Custom path to FEEDBACK_QUEUE.jsonl. |
+
+```bash
+bun harness.ts feedback:ingest --id fb-08 --title 'New Feature' --content 'Implement streaming UI' --priority HIGH_ARCHITECTURAL_FEATURE
+```
+
+### `feedback:drain`
+
+Drain and mark pending feedback items as processed or admitted.
+
+Selects pending items from FEEDBACK_QUEUE.jsonl and transitions their status.
+
+- **Aliases**: `feedback:pop`
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--mark-as` | string | no | no | - | Status to transition to: PROCESSED, ADMITTED, DECLINED, COMPLETED (default: PROCESSED). |
+| `--limit` | int | no | no | - | Maximum items to drain. |
+| `--category` | string | no | no | - | Filter category to drain. |
+| `--queue-file` | string | no | no | - | Custom path to FEEDBACK_QUEUE.jsonl. |
+
+```bash
+bun harness.ts feedback:drain --mark-as ADMITTED --limit 5
+```
+
+### `smart-task:plan`
+
+Autonomously synthesize self-evolution tasks or plan from feedback queue.
+
+Smart task planner: prioritizes feedback intake, or synthesizes autonomic self-evolution tasks on empty queue.
+
+- **Aliases**: `task:synthesize`
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--capsules-dir` | string | no | no | - | Capsules root directory. |
+| `--max-tasks` | int | no | no | - | Maximum tasks to generate (default: 5). |
+| `--goal` | string | no | no | - | Charter goal ID to bind. |
+
+```bash
+bun harness.ts smart-task:plan
+bun harness.ts smart-task:plan --max-tasks 3
+```
+
+### `smart-task:ingest`
+
+Ingest and enhance an external prompt into a gate-verifiable task plan.
+
+Expands an external prompt into a structured task with write scope and mandatory gate.
+
+- **Aliases**: `smart-task:expand`
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--prompt` | string | yes | no | - | External prompt or task description. |
+| `--id` | string | no | no | - | Custom task ID. |
+| `--goal` | string | no | no | - | Charter goal ID to bind. |
+
+```bash
+bun harness.ts smart-task:ingest --prompt 'Implement real-time metrics telemetry' --id task-metrics
 ```
