@@ -446,11 +446,11 @@ describe("Automated State Evaluation & Neglected Responsibility Detection (super
   test("evaluates compliant clean state as passed with zero violations", () => {
     const context: SupervisoryReminderEvaluationContext = {
       role: "coordinator",
-      agentId: "coordinator-alpha",
+      agentId: "coordinator_domain-cli-tools",
       runId: "mind-gen-1-wave-2",
       activeLeases: [
-        { taskId: "task-1", agentId: "impl-1", writeScope: ["src/a.ts"] },
-        { taskId: "task-2", agentId: "impl-2", writeScope: ["src/b.ts"] },
+        { taskId: "task-1", agentId: "implementer_task-p47-autonomic-watchdog", writeScope: ["src/a.ts"] },
+        { taskId: "task-2", agentId: "implementer_task-p48-another-task", writeScope: ["src/b.ts"] },
       ],
       queueState: { readyCount: 0, runningCount: 2, blockedCount: 0, totalCount: 2 },
       openFindingsCount: 0,
@@ -614,7 +614,7 @@ describe("Supervisory Persona Reminder Engine (supervisory-persona-reminder.ts)"
   test("constructs rich persona reminder for Mind (Tier 0)", () => {
     const reminder = constructSupervisoryPersonaReminder({
       role: "mind",
-      agentId: "mind-prime",
+      agentId: "mind_prime",
       runId: "mind-gen-1-wave-2",
       pulseId: "pulse-gen-1-001",
       tickNumber: 1,
@@ -623,7 +623,7 @@ describe("Supervisory Persona Reminder Engine (supervisory-persona-reminder.ts)"
 
     expect(reminder.role).toBe("mind");
     expect(reminder.tier).toBe(0);
-    expect(reminder.agentId).toBe("mind-prime");
+    expect(reminder.agentId).toBe("mind_prime");
     expect(reminder.runId).toBe("mind-gen-1-wave-2");
     expect(reminder.pulseId).toBe("pulse-gen-1-001");
     expect(reminder.tickNumber).toBe(1);
@@ -667,12 +667,13 @@ describe("Supervisory Persona Reminder Engine (supervisory-persona-reminder.ts)"
   test("constructs rich persona reminder for Coordinator (Tier 2) with active violations and directives", () => {
     const reminder = constructSupervisoryPersonaReminder({
       role: "coordinator",
-      agentId: "coordinator-beta",
+      agentId: "coordinator_domain-cli-tools",
       runId: "mind-gen-1-wave-2",
       tickNumber: 5,
       cadenceMs: 180_000,
       context: {
         role: "coordinator",
+        agentId: "coordinator_domain-cli-tools",
         queueState: { readyCount: 3, runningCount: 0, blockedCount: 0, totalCount: 3 },
         unprovenGatesCount: 2,
       },
@@ -689,7 +690,7 @@ describe("Supervisory Persona Reminder Engine (supervisory-persona-reminder.ts)"
   test("constructs rich persona reminder for Implementer (Tier 3)", () => {
     const reminder = constructSupervisoryPersonaReminder({
       role: "implementer",
-      agentId: "implementer-gamma",
+      agentId: "implementer_task-p47-autonomic-watchdog",
       tickNumber: 2,
     });
 
@@ -703,10 +704,11 @@ describe("Supervisory Persona Reminder Engine (supervisory-persona-reminder.ts)"
   test("constructs rich persona reminder for Validator (Tier 3)", () => {
     const reminder = constructSupervisoryPersonaReminder({
       role: "validator",
-      agentId: "validator-delta",
+      agentId: "validator_task-p47-autonomic-watchdog",
       tickNumber: 1,
       context: {
         role: "validator",
+        agentId: "validator_task-p47-autonomic-watchdog",
         adversarialProbeRecorded: true,
       },
     });
