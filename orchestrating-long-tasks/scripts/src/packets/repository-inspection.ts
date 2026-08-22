@@ -121,6 +121,7 @@ export function recordRepositoryInspection(
   if (phase !== "baseline" && phase !== "current")
     throw new HarnessError("INVALID_ARGUMENT", "inspection phase must be baseline or current");
   const loaded = loadRun(runRoot);
+  const actualRunRoot = loaded?.runRoot ?? runRoot;
   if (phase === "baseline") {
     try {
       return fromState(loaded.state, phase);
@@ -128,7 +129,7 @@ export function recordRepositoryInspection(
       if (!(error instanceof HarnessError) || error.code !== "INVALID_STATE") throw error;
     }
   }
-  const repo = dirname(dirname(loaded.runRoot));
+  const repo = dirname(dirname(actualRunRoot));
   const content = inspectRepository(repo, phase, now) as JsonObject;
   const inspection = {
     ...content,
@@ -158,7 +159,7 @@ export function recordRepositoryInspection(
     }
   }
   transact(
-    loaded.runRoot,
+    actualRunRoot,
     actor,
     "repository-inspected",
     { phase, inspection_sha256: inspection.inspection_sha256 },

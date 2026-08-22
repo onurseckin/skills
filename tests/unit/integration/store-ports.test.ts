@@ -21,9 +21,15 @@ function seedMinimalPlan(run: string): void {
 }
 
 describe("workflowPort (integration/store-ports)", () => {
-  test("read() refuses a capsule with no plan applied yet", () => {
+  test("read() gracefully returns an empty workflow structure when no plan is applied yet", () => {
     const run = freshRun("no-plan");
-    expect(() => workflowPort(run).read()).toThrow(/workflow requires an applied plan/i);
+    const state = workflowPort(run).read();
+    expect(state.tasks).toEqual({});
+    expect(state.requirements).toEqual([]);
+    expect(state.gates).toEqual([]);
+    expect(state.commands).toEqual({});
+    expect(state.orphan_evidence).toEqual([]);
+    expect(state.graph_revision).toBeUndefined();
   });
 
   test("read() refuses a graph with a non-positive or non-integer revision", () => {

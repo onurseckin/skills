@@ -176,8 +176,9 @@ export async function executeRescueLane(
   const clock: Clock = options.clock ?? { now: () => new Date(nowMs) };
 
   const loadedMind = loadRun(mindRunRoot, false);
-  const repoRoot = dirname(dirname(loadedMind.runRoot));
-  const capsulesDir = dirname(loadedMind.runRoot);
+  const actualMindRunRoot = loadedMind?.runRoot ?? mindRunRoot;
+  const repoRoot = dirname(dirname(actualMindRunRoot));
+  const capsulesDir = dirname(actualMindRunRoot);
 
   const actor =
     options.actor ??

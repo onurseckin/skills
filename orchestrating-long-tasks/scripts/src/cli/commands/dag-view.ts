@@ -573,7 +573,8 @@ export function dagViewCommand(
   const showAll = boolFlag(flags, "all");
   const showRecommendationsOnly = boolFlag(flags, "recommendations");
 
-  const harnessConfig = getHarnessConfig(dirname(dirname(loaded.runRoot)), loaded.runRoot);
+  const runRoot = loaded?.runRoot ?? run;
+  const harnessConfig = getHarnessConfig(dirname(dirname(runRoot)), runRoot);
   const maxParallel = harnessConfig.default_max_parallel;
 
   const isCompiled = state.graph !== undefined && state.graph !== null;

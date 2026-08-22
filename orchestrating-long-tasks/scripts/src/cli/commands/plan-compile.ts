@@ -40,8 +40,6 @@ export function planCompileCommand(flags: Flags): Record<string, unknown> {
   const prompt = promptText(loaded.prompt);
   const rawBuffer = Array.isArray(loaded.state.planning_buffer) ? loaded.state.planning_buffer : [];
   const buffer = rawBuffer as unknown as TaskDeclaration[];
-  if (buffer.length === 0)
-    throw new HarnessError("INVALID_STATE", "cannot compile empty planning buffer");
 
   const scopeAnalysis = analyzeScopeIndependence(
     buffer.map((t) => ({ taskId: t.id, writeScope: t.writeScope, dependencies: t.deps })),

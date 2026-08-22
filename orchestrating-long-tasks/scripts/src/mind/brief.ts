@@ -322,8 +322,9 @@ export async function buildWakeBrief(
   const loaded = loadRun(mindRunRoot, false);
   const state = loaded.state;
   const manifest = loaded.manifest;
-  const repoRoot = dirname(dirname(loaded.runRoot));
-  const capsulesDir = dirname(loaded.runRoot);
+  const actualRunRoot = loaded?.runRoot ?? mindRunRoot;
+  const repoRoot = dirname(dirname(actualRunRoot));
+  const capsulesDir = dirname(actualRunRoot);
 
   const mindState = (state.mind ?? {}) as Record<string, unknown>;
   const charterRecord = (mindState.charter ?? {}) as Record<string, unknown>;
@@ -415,7 +416,7 @@ export async function buildWakeBrief(
 
   // 5. Check GAP and reconcile last_pulse.json
   try {
-    reconcileLastPulse(loaded.runRoot, state);
+    reconcileLastPulse(actualRunRoot, state);
   } catch {
     // Non-fatal
   }
@@ -437,7 +438,7 @@ export async function buildWakeBrief(
   }
 
   // 6. Live Runs
-  const liveRuns = extractLiveRuns(capsulesDir, loaded.runRoot, nowMs);
+  const liveRuns = extractLiveRuns(capsulesDir, actualRunRoot, nowMs);
   const agentsInFlight = liveRuns.reduce((sum, r) => sum + r.leasedCount, 0);
 
   // 7. Attention
@@ -555,7 +556,7 @@ export async function buildWakeBrief(
       "harness.ts",
       "mind:escalate",
       "--run",
-      loaded.runRoot,
+      actualRunRoot,
       "--actor",
       actor,
       "--reason",
@@ -566,7 +567,7 @@ export async function buildWakeBrief(
       "harness.ts",
       "mind:halt",
       "--run",
-      loaded.runRoot,
+      actualRunRoot,
       "--actor",
       actor,
       "--reason",
@@ -578,7 +579,7 @@ export async function buildWakeBrief(
       "harness.ts",
       "mind:pulse-close",
       "--run",
-      loaded.runRoot,
+      actualRunRoot,
       "--outcome",
       "deferred",
       "--reason",
@@ -589,7 +590,7 @@ export async function buildWakeBrief(
       "harness.ts",
       "mind:pulse-close",
       "--run",
-      loaded.runRoot,
+      actualRunRoot,
       "--outcome",
       "deferred",
       "--arm",
@@ -601,7 +602,7 @@ export async function buildWakeBrief(
       "harness.ts",
       "mind:pulse-open",
       "--run",
-      loaded.runRoot,
+      actualRunRoot,
       "--actor",
       actor,
       "--host",
@@ -614,7 +615,7 @@ export async function buildWakeBrief(
       "harness.ts",
       "mind:pulse-close",
       "--run",
-      loaded.runRoot,
+      actualRunRoot,
       "--outcome",
       "deferred",
       "--arm",
@@ -622,7 +623,7 @@ export async function buildWakeBrief(
     ];
   } else if (lane === "rescue") {
     const rescueTarget =
-      liveRuns.find((r) => r.hasStaleLease)?.runRoot ?? liveRuns[0]?.runRoot ?? loaded.runRoot;
+      liveRuns.find((r) => r.hasStaleLease)?.runRoot ?? liveRuns[0]?.runRoot ?? actualRunRoot;
     nextArgv = [
       "bun",
       "harness.ts",
@@ -637,7 +638,7 @@ export async function buildWakeBrief(
       "harness.ts",
       "mind:pulse-close",
       "--run",
-      loaded.runRoot,
+      actualRunRoot,
       "--outcome",
       "rescued",
       "--witness",
@@ -648,7 +649,7 @@ export async function buildWakeBrief(
   } else if (lane === "repair") {
     const repairTarget =
       liveRuns.find((r) => r.openFindingsCount > 0 || r.failingGatesCount > 0)?.runRoot ??
-      loaded.runRoot;
+      actualRunRoot;
     nextArgv = [
       "bun",
       "harness.ts",
@@ -663,7 +664,7 @@ export async function buildWakeBrief(
       "harness.ts",
       "mind:pulse-close",
       "--run",
-      loaded.runRoot,
+      actualRunRoot,
       "--outcome",
       "repaired",
       "--arm",
@@ -676,7 +677,7 @@ export async function buildWakeBrief(
       "harness.ts",
       "mind:pulse-open",
       "--run",
-      loaded.runRoot,
+      actualRunRoot,
       "--actor",
       actor,
       "--host",
@@ -689,7 +690,7 @@ export async function buildWakeBrief(
       "harness.ts",
       "mind:pulse-close",
       "--run",
-      loaded.runRoot,
+      actualRunRoot,
       "--outcome",
       "quiescent",
       "--arm",

@@ -36,7 +36,9 @@ function occupancyCeilings(runRoot: string): { maxParallel: number; gateMaxParal
 }
 
 function liveRepositoryBinding(run: string) {
-  const repository = dirname(dirname(loadRun(run).runRoot));
+  const loaded = loadRun(run);
+  const runRoot = loaded?.runRoot ?? run;
+  const repository = dirname(dirname(runRoot));
   return inspectRepositoryBinding(repository);
 }
 
@@ -183,11 +185,12 @@ export function runStatusCommand(flags: Flags): Record<string, unknown> {
   const completionResult = state.completion_result as { status: string } | undefined;
   const phase =
     completionResult?.status === "complete" ? "Completed" : state.graph ? "Executing" : "Planning";
-  const catalogue = capsuleCatalogue(loaded.runRoot);
+  const actualRunRoot = loaded?.runRoot ?? run;
+  const catalogue = capsuleCatalogue(actualRunRoot);
   const activeCount = tasks.filter(
     (t) => t.status === "leased" || t.status === "running" || t.status === "validating",
   ).length;
-  const { maxParallel, gateMaxParallel } = occupancyCeilings(loaded.runRoot);
+  const { maxParallel, gateMaxParallel } = occupancyCeilings(actualRunRoot);
   const occupancySummary = `${activeCount}/${maxParallel} occupancy slots in use (gate ceiling ${gateMaxParallel}).`;
   const markdown = formatRunStatusBrief(
     basename(run),

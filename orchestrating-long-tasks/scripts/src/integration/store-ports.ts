@@ -21,34 +21,59 @@ function taskRecord(value: Record<string, unknown>): TaskRecord {
 }
 
 function workflowState(value: Record<string, unknown>): WorkflowState {
-  if (!value.graph || !value.tasks || !value.requirements) {
-    throw new TypeError("workflow requires an applied plan");
-  }
+  const tasksValue =
+    typeof value.tasks === "object" && value.tasks !== null && !Array.isArray(value.tasks)
+      ? (value.tasks as Record<string, Record<string, unknown>>)
+      : {};
   const tasks = Object.fromEntries(
-    Object.entries(value.tasks as Record<string, Record<string, unknown>>).map(([id, task]) => [
+    Object.entries(tasksValue).map(([id, task]) => [
       id,
       taskRecord(task),
     ]),
   );
-  const requirementDocument = value.requirements as Record<string, unknown>;
-  const requirements = (requirementDocument.requirements as RequirementRuntime[]).map((entry) => ({
-    ...structuredClone(entry),
-    evidence: entry.evidence ?? [],
-  }));
-  const graph = value.graph as Record<string, unknown>;
-  if (!Number.isSafeInteger(graph.revision) || (graph.revision as number) < 1) {
-    throw new TypeError("workflow requires a valid graph revision");
+  let requirements: RequirementRuntime[] = [];
+  if (
+    typeof value.requirements === "object" &&
+    value.requirements !== null &&
+    !Array.isArray(value.requirements)
+  ) {
+    const requirementDocument = value.requirements as Record<string, unknown>;
+    if (Array.isArray(requirementDocument.requirements)) {
+      requirements = (requirementDocument.requirements as RequirementRuntime[]).map((entry) => ({
+        ...structuredClone(entry),
+        evidence: entry.evidence ?? [],
+      }));
+    }
   }
-  const gates = structuredClone((graph.gates ?? []) as GateRuntime[]);
-  const commands = structuredClone((value.commands ?? {}) as WorkflowState["commands"]);
-  const orphanEvidence = structuredClone((value.orphan_evidence ?? []) as JsonObject[]);
+  let gates: GateRuntime[] = [];
+  let graphRevision: number | undefined = undefined;
+  if (
+    typeof value.graph === "object" &&
+    value.graph !== null &&
+    !Array.isArray(value.graph)
+  ) {
+    const graph = value.graph as Record<string, unknown>;
+    if (!Number.isSafeInteger(graph.revision) || (graph.revision as number) < 1) {
+      throw new TypeError("workflow requires a valid graph revision");
+    }
+    graphRevision = graph.revision as number;
+    gates = structuredClone((graph.gates ?? []) as GateRuntime[]);
+  }
+  const commands = structuredClone(
+    (typeof value.commands === "object" && value.commands !== null && !Array.isArray(value.commands)
+      ? value.commands
+      : {}) as WorkflowState["commands"],
+  );
+  const orphanEvidence = structuredClone(
+    (Array.isArray(value.orphan_evidence) ? value.orphan_evidence : []) as JsonObject[],
+  );
   const state: WorkflowState = {
     tasks,
     requirements,
     gates,
     commands,
     orphan_evidence: orphanEvidence,
-    graph_revision: graph.revision as number,
+    ...(graphRevision !== undefined ? { graph_revision: graphRevision } : {}),
   };
   const completion = value.completion;
   if (typeof completion === "object" && completion !== null && !Array.isArray(completion)) {
@@ -82,11 +107,32 @@ function workflowState(value: Record<string, unknown>): WorkflowState {
 
 function mergeWorkflow(draft: Record<string, unknown>, workflow: WorkflowState): void {
   draft.tasks = workflow.tasks;
-  const requirementDocument = draft.requirements as Record<string, unknown>;
-  requirementDocument.requirements = workflow.requirements;
-  const graph = draft.graph as Record<string, unknown>;
-  graph.gates = workflow.gates;
-  graph.revision = workflow.graph_revision;
+  if (
+    typeof draft.requirements === "object" &&
+    draft.requirements !== null &&
+    !Array.isArray(draft.requirements)
+  ) {
+    const requirementDocument = draft.requirements as Record<string, unknown>;
+    requirementDocument.requirements = workflow.requirements;
+  } else if (workflow.requirements.length > 0) {
+    draft.requirements = { requirements: workflow.requirements };
+  }
+  if (
+    typeof draft.graph === "object" &&
+    draft.graph !== null &&
+    !Array.isArray(draft.graph)
+  ) {
+    const graph = draft.graph as Record<string, unknown>;
+    graph.gates = workflow.gates;
+    if (workflow.graph_revision !== undefined) {
+      graph.revision = workflow.graph_revision;
+    }
+  } else if (workflow.gates.length > 0 || workflow.graph_revision !== undefined) {
+    draft.graph = {
+      gates: workflow.gates,
+      ...(workflow.graph_revision !== undefined ? { revision: workflow.graph_revision } : {}),
+    };
+  }
   draft.commands = workflow.commands;
   draft.orphan_evidence = workflow.orphan_evidence;
   for (const field of [

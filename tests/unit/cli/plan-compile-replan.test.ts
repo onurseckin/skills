@@ -12,7 +12,7 @@ const roots: string[] = [];
 afterEach(async () => cleanupRoots(roots));
 
 describe("plan:compile", () => {
-  test("refuses to compile an empty planning buffer", async () => {
+  test("compiles an empty planning buffer with 0 tasks", async () => {
     const repo = await mkdtemp(join(tmpdir(), "harness-plan-compile-empty-"));
     roots.push(repo);
     const promptPath = join(repo, "prompt.txt");
@@ -26,17 +26,17 @@ describe("plan:compile", () => {
       "--prompt-file",
       promptPath,
     ]);
-    await expect(
-      execute([
-        "plan:compile",
-        "--run",
-        init.run_root as string,
-        "--actor",
-        "planner",
-        "--completion-gate",
-        "bun test tests",
-      ]),
-    ).rejects.toThrow(/cannot compile empty planning buffer/);
+    const result = await execute([
+      "plan:compile",
+      "--run",
+      init.run_root as string,
+      "--actor",
+      "planner",
+      "--completion-gate",
+      "bun test tests",
+    ]);
+    expect(result.total_tasks).toBe(0);
+    expect(result.revision).toBe(1);
   });
 
   test("refuses overlapping write scopes between two buffered tasks", async () => {
