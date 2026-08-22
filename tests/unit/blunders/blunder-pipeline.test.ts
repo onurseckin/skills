@@ -21,13 +21,13 @@ import {
   serializeAggregatedBlunderLog,
   streamDeduplicateBlunders,
   toAggregatedBlunder,
-} from "./index.ts";
+} from "../../../orchestrating-long-tasks/scripts/src/blunders/index.ts";
 import type {
   AggregatedBlunder,
   BlunderCategory,
   BlunderRecordInput,
   BlunderResolutionProof,
-} from "./types.ts";
+} from "../../../orchestrating-long-tasks/scripts/src/blunders/types.ts";
 import {
   advanceDeliberationRound,
   auditBlunderLog,
@@ -46,7 +46,7 @@ import {
   validateResolutionProof,
   verifyResolutionProofEmpirical,
   type BlunderEntry,
-} from "../mind/blunders.ts";
+} from "../../../orchestrating-long-tasks/scripts/src/mind/blunders.ts";
 
 describe("Blunder Pipeline - Categorization & Discriminator Logic", () => {
   it("categorizes boundary violations correctly", () => {
@@ -969,13 +969,14 @@ describe("Blunder Pipeline - Audit Reporting & Markdown Formatting", () => {
 
 describe("Blunder Pipeline - Static Code Invariants", () => {
   it("strictly enforces 0 TypeScript any and 0 compiler/linter suppressions across all blunder files", () => {
-    const blunderDir = join(import.meta.dir);
+    const blunderDir = join(process.cwd(), "orchestrating-long-tasks/scripts/src/blunders");
     const blunderFiles = readdirSync(blunderDir)
       .filter((f) => f.endsWith(".ts"))
       .map((f) => join(blunderDir, f));
 
-    const mindBlundersPath = join(import.meta.dir, "../mind/blunders.ts");
-    const allFiles = [...blunderFiles, mindBlundersPath];
+    const mindBlundersPath = join(process.cwd(), "orchestrating-long-tasks/scripts/src/mind/blunders.ts");
+    const testFilePath = join(process.cwd(), "tests/unit/blunders/blunder-pipeline.test.ts");
+    const allFiles = [...blunderFiles, mindBlundersPath, testFilePath];
 
     const forbiddenPatterns = [
       new RegExp(":\\s*" + "any\\b"),
@@ -986,7 +987,7 @@ describe("Blunder Pipeline - Static Code Invariants", () => {
       new RegExp("@ts-" + "ignore"),
       new RegExp("@ts-" + "expect-error"),
       new RegExp("@ts-" + "nocheck"),
-      new RegExp("eslint-" + "disable"),
+      new RegExp(["es", "lint", "-disable"].join("")),
     ];
 
     for (const filePath of allFiles) {

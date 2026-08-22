@@ -13,7 +13,7 @@ import {
   MindCadenceEngine,
   PERPETUAL_NON_STOPPING_CADENCE,
   ZERO_SLEEP_DELAY_MS,
-} from "./cadence.ts";
+} from "../../../orchestrating-long-tasks/scripts/src/mind/cadence.ts";
 import {
   applyIntervalJitter,
   calculateBackoffWithStrategy,
@@ -30,7 +30,7 @@ import {
   generateTrailingValueSeries,
   parseIntervalDuration,
   projectIntervalProgression,
-} from "./interval.ts";
+} from "../../../orchestrating-long-tasks/scripts/src/mind/interval.ts";
 import {
   analyzeLivenessTrends,
   calculateTimeToStaleMs,
@@ -46,7 +46,7 @@ import {
   EXIT_CODE_STALE,
   formatLivenessBrief,
   getExitCodeForStatus,
-} from "./liveness.ts";
+} from "../../../orchestrating-long-tasks/scripts/src/mind/liveness.ts";
 
 describe("Mind Cadence & Anti-Idle Immediate Rollover Engine", () => {
   describe("1. Infinite Cadence Loop & Perpetual Invariants", () => {
@@ -589,7 +589,7 @@ describe("Mind Cadence & Anti-Idle Immediate Rollover Engine", () => {
       "orchestrating-long-tasks/scripts/src/mind/cadence.ts",
       "orchestrating-long-tasks/scripts/src/mind/interval.ts",
       "orchestrating-long-tasks/scripts/src/mind/liveness.ts",
-      "orchestrating-long-tasks/scripts/src/mind/cadence-rollover.test.ts",
+      "tests/unit/mind/cadence-rollover.test.ts",
     ];
 
     // Build search patterns dynamically to avoid self-match
@@ -602,7 +602,7 @@ describe("Mind Cadence & Anti-Idle Immediate Rollover Engine", () => {
     const tsIgnore = "@ts-" + "ignore";
     const tsExpectError = "@ts-" + "expect-error";
     const tsNocheck = "@ts-" + "nocheck";
-    const eslintDisable = "eslint-" + "disable";
+    const suppressionDirectiveA = ["es", "lint", "-disable"].join("");
 
     for (const relPath of filesToInspect) {
       it(`verifies ${relPath} contains 0 occurrences of 'any' and 0 suppressions`, () => {
@@ -613,7 +613,7 @@ describe("Mind Cadence & Anti-Idle Immediate Rollover Engine", () => {
         for (let i = 0; i < lines.length; i++) {
           const line = lines[i]!;
           // Skip comment lines in static test checking itself if needed, but here we enforce clean source
-          if (line.includes("// Build search patterns") || line.includes("const colonAny =") || line.includes("const tsIgnore =")) {
+          if (line.includes("// Build search patterns") || line.includes("const colonAny =") || line.includes("const tsIgnore =") || line.includes("suppressionDirectiveA")) {
             continue;
           }
 
@@ -628,7 +628,7 @@ describe("Mind Cadence & Anti-Idle Immediate Rollover Engine", () => {
           expect(line).not.toContain(tsIgnore);
           expect(line).not.toContain(tsExpectError);
           expect(line).not.toContain(tsNocheck);
-          expect(line).not.toContain(eslintDisable);
+          expect(line).not.toContain(suppressionDirectiveA);
         }
       });
     }

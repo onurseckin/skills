@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { HarnessError } from "../errors/harness-error.ts";
+import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
 import {
   advanceProposalWithInitiative,
   admitProposalInState,
@@ -32,7 +32,7 @@ import {
   type PlanRevisionProposal,
   type PlanRevisionSignal,
   type ProposalStatus,
-} from "./proposal.ts";
+} from "../../../orchestrating-long-tasks/scripts/src/mind/proposal.ts";
 import {
   balanceOrchestratorLoad,
   calculateHierarchyCapacity,
@@ -45,7 +45,7 @@ import {
   type HierarchyCapacityMetrics,
   type OrchestratorNodeInfo,
   type ScalingThresholds,
-} from "./self-evolution.ts";
+} from "../../../orchestrating-long-tasks/scripts/src/mind/self-evolution.ts";
 
 describe("Mind Proposal & Plan Revision Subsystem", () => {
   describe("Proposal Creation, Deduplication & Fingerprinting", () => {
@@ -725,7 +725,7 @@ describe("Mind Proposal & Plan Revision Subsystem", () => {
       const filesToCheck = [
         resolve(process.cwd(), "orchestrating-long-tasks/scripts/src/mind/proposal.ts"),
         resolve(process.cwd(), "orchestrating-long-tasks/scripts/src/mind/self-evolution.ts"),
-        resolve(process.cwd(), "orchestrating-long-tasks/scripts/src/mind/plan-revision.test.ts"),
+        resolve(process.cwd(), "tests/unit/mind/plan-revision.test.ts"),
       ];
 
       const linterPattern = ["es", "lint", "-disable"].join("");
