@@ -2,6 +2,7 @@ import { workflowPort } from "../integration/store-ports.ts";
 import { loadRun } from "../store/index.ts";
 import { systemClock, type Clock } from "../workflow/types.ts";
 import { buildMorningReport, type MorningReport } from "./morning-report.ts";
+import type { DispatchLogEvent } from "./dispatch-log.ts";
 import { isRunTerminal } from "./run-terminal.ts";
 import {
   runSupervisionTick,
@@ -74,7 +75,8 @@ export async function runSupervisionWatch(
 
   function report(): MorningReport {
     const loaded = loadRun(options.runRoot);
-    return buildMorningReport(port.read(), loaded.events, clock.now(), {
+    const events = (loaded?.events ?? []) as readonly DispatchLogEvent[];
+    return buildMorningReport(port.read(), events, clock.now(), {
       ...(options.maxParallel === undefined ? {} : { maxParallel: options.maxParallel }),
       ...(options.gateMaxParallel === undefined
         ? {}

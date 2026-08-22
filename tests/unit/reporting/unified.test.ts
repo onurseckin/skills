@@ -8,6 +8,10 @@ import {
   reportDecisionsCommand,
 } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/unified-reporting.ts";
 import type { Flags } from "../../../orchestrating-long-tasks/scripts/src/cli/options.ts";
+import type {
+  LeaseMatrixRow,
+  DecisionAuditRow,
+} from "../../../orchestrating-long-tasks/scripts/src/reporting/unified.ts";
 
 describe("Unified Reporting Subsystem", () => {
   it("report:dag delegates to dagViewCommand", () => {
@@ -46,7 +50,7 @@ describe("Unified Reporting Subsystem", () => {
     }));
 
     const flags: Flags = { "run": ".capsules/test" };
-    const result = reportLeasesCommand(flags) as any;
+    const result = reportLeasesCommand(flags) as { matrix: LeaseMatrixRow[]; markdown: string };
     expect(result.matrix).toHaveLength(2);
     expect(result.matrix[0].taskId).toBe("sub-1");
     expect(result.matrix[0].agentId).toBe("agent-2");
@@ -81,7 +85,7 @@ describe("Unified Reporting Subsystem", () => {
     }));
 
     const flags: Flags = { "run": ".capsules/test" };
-    const result = reportDecisionsCommand(flags) as any;
+    const result = reportDecisionsCommand(flags) as { decisions: DecisionAuditRow[]; markdown: string };
     expect(result.decisions).toHaveLength(2);
     expect(result.decisions[0].requirementId).toBe("req-1");
     expect(result.decisions[0].decision).toBe("grant");
@@ -94,7 +98,7 @@ describe("Unified Reporting Subsystem", () => {
       runDoctor: async () => ({ healthy: true, bun_version: "1.0.0" }),
     }));
     const flags: Flags = { "run": ".capsules/test" };
-    const result = await reportHealthCommand(flags) as any;
+    const result = (await reportHealthCommand(flags)) as { healthy: boolean; run_root: string; markdown: string };
     expect(result.healthy).toBeTrue();
     expect(result.run_root).toBe(".capsules/test");
   });
@@ -104,7 +108,7 @@ describe("Unified Reporting Subsystem", () => {
       summaryExportCommand: () => ({ exported: true }),
     }));
     const flags: Flags = { "run": ".capsules/test" };
-    const result = reportGraphJsonCommand(flags) as any;
+    const result = reportGraphJsonCommand(flags) as { exported: boolean };
     expect(result.exported).toBeTrue();
   });
 });

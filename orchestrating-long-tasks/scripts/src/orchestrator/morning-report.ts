@@ -55,14 +55,15 @@ function escalationReport(state: WorkflowState, taskId: string): EscalatedTaskRe
   };
 }
 
-function retryBreakdown(events: readonly DispatchLogEvent[]): RetryBreakdown[] {
+function retryBreakdown(events: readonly DispatchLogEvent[] = []): RetryBreakdown[] {
+  const safeEvents = events ?? [];
   const byTask = new Map<string, { transient: number; deterministic: number }>();
-  for (const event of events) {
-    if (event.kind !== DISPATCH_OUTCOME_KIND || event.payload.outcome !== "failed") continue;
-    const taskId = event.payload.task_id;
+  for (const event of safeEvents) {
+    if (!event || event.kind !== DISPATCH_OUTCOME_KIND || event.payload?.outcome !== "failed") continue;
+    const taskId = event.payload?.task_id;
     if (typeof taskId !== "string") continue;
     const entry = byTask.get(taskId) ?? { transient: 0, deterministic: 0 };
-    if (event.payload.failure_class === "deterministic") entry.deterministic += 1;
+    if (event.payload?.failure_class === "deterministic") entry.deterministic += 1;
     else entry.transient += 1;
     byTask.set(taskId, entry);
   }
@@ -73,11 +74,12 @@ function retryBreakdown(events: readonly DispatchLogEvent[]): RetryBreakdown[] {
   }));
 }
 
-function totalBackoffMs(events: readonly DispatchLogEvent[]): number {
+function totalBackoffMs(events: readonly DispatchLogEvent[] = []): number {
+  const safeEvents = events ?? [];
   let total = 0;
-  for (const event of events) {
-    if (event.kind !== DISPATCH_OUTCOME_KIND) continue;
-    const retryAt = event.payload.retry_at;
+  for (const event of safeEvents) {
+    if (!event || event.kind !== DISPATCH_OUTCOME_KIND) continue;
+    const retryAt = event.payload?.retry_at;
     if (typeof retryAt !== "string") continue;
     const delay = Date.parse(retryAt) - Date.parse(event.timestamp);
     if (Number.isFinite(delay) && delay > 0) total += delay;
@@ -85,18 +87,23 @@ function totalBackoffMs(events: readonly DispatchLogEvent[]): number {
   return total;
 }
 
-function runSpanMs(events: readonly DispatchLogEvent[]): number | undefined {
-  const timestamps = events.map((event) => Date.parse(event.timestamp)).filter(Number.isFinite);
+function runSpanMs(events: readonly DispatchLogEvent[] = []): number | undefined {
+  const safeEvents = events ?? [];
+  const timestamps = safeEvents
+    .filter((event) => event && typeof event.timestamp === "string")
+    .map((event) => Date.parse(event.timestamp))
+    .filter(Number.isFinite);
   if (timestamps.length === 0) return undefined;
   return Math.max(...timestamps) - Math.min(...timestamps);
 }
 
 export function buildMorningReport(
   state: WorkflowState,
-  events: readonly DispatchLogEvent[],
+  events: readonly DispatchLogEvent[] = [],
   generatedAt: Date,
   ceilings: ConcurrencyCeilings = {},
 ): MorningReport {
+  const safeEvents = events ?? [];
   const tasks = Object.values(state.tasks);
   const completed = tasks
     .filter((task) => task.status === "done")
@@ -105,10 +112,10 @@ export function buildMorningReport(
     .filter((task) => task.status === "escalated")
     .map((task) => escalationReport(state, task.id));
   const changesRequested = changesRequestedTasks(state);
-  const deadAgentsReclaimed = events.filter(
-    (event) => event.kind === DEAD_AGENT_RECLAIMED_KIND,
+  const deadAgentsReclaimed = safeEvents.filter(
+    (event) => event?.kind === DEAD_AGENT_RECLAIMED_KIND,
   ).length;
-  const span = runSpanMs(events);
+  const span = runSpanMs(safeEvents);
   const occupiedAtReport = tasks.filter((task) => task.lease !== undefined).length;
 
   return {
@@ -117,9 +124,9 @@ export function buildMorningReport(
     escalated,
     changesRequested,
     deadAgentsReclaimed,
-    retries: retryBreakdown(events),
+    retries: retryBreakdown(safeEvents),
     ...(span === undefined ? {} : { runSpanMs: span }),
-    totalBackoffMs: totalBackoffMs(events),
+    totalBackoffMs: totalBackoffMs(safeEvents),
     needsHuman: escalated,
     occupiedAtReport,
     ceilings,

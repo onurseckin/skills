@@ -136,7 +136,8 @@ export function mindPulseOpenCommand(
   }
 
   // 4. Check charter digest consistency
-  const repoRoot = dirname(dirname(loaded.runRoot));
+  const actualRunRoot = loaded?.runRoot ?? run;
+  const repoRoot = dirname(dirname(actualRunRoot));
   const charterRecord = (mindState.charter ?? {}) as Record<string, unknown>;
   const charterSourceRel =
     typeof charterRecord.source_path === "string"
