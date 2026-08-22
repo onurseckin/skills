@@ -108,7 +108,10 @@ mock.module("../../../orchestrating-long-tasks/scripts/src/cli/commands/dag-view
   };
 });
 
-import { generateDagJsonReport } from "../../../orchestrating-long-tasks/scripts/src/reporting/graph-json.ts";
+import {
+  generateDagJsonReport,
+  isDagJsonReport,
+} from "../../../orchestrating-long-tasks/scripts/src/reporting/graph-json.ts";
 import { exportGraphJsonCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/graph-export.ts";
 
 describe("graph-json", () => {
@@ -160,6 +163,14 @@ describe("graph-json", () => {
   it("exportGraphJsonCommand executes and optionally formats", () => {
     const res = exportGraphJsonCommand({ run: "/fake/run", pretty: true });
     expect(res).toBeDefined();
-    expect((res as any).runId).toBe("run");
+    expect((res as Record<string, unknown>).runId).toBe("run");
+  });
+
+  it("validates report structure via isDagJsonReport", () => {
+    const report = generateDagJsonReport("/fake/run");
+    expect(isDagJsonReport(report)).toBe(true);
+    expect(isDagJsonReport(null)).toBe(false);
+    expect(isDagJsonReport({})).toBe(false);
   });
 });
+

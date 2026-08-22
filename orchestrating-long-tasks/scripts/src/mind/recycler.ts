@@ -402,3 +402,68 @@ export function enforceInfiniteMindCadence(params: {
       "Infinite autonomous mind cadence active; agents may not terminate background loops or schedulers.",
   };
 }
+
+export interface MindRecycleHealth {
+  readonly healthy: boolean;
+  readonly activeCadence: "infinite_autonomous";
+  readonly assessment: RecycleAssessment;
+  readonly timestamp: string;
+}
+
+/**
+ * Diagnostic helper inspecting the autonomic loop recycling health and invariant compliance.
+ */
+export function inspectRecycleHealth(
+  state: Record<string, unknown>,
+  runRoot: string,
+  options?: AutonomousRecycleOptions,
+): MindRecycleHealth {
+  const assessment = assessRecyclingState(state, runRoot, options);
+  const nowIso =
+    options?.now !== undefined
+      ? new Date(options.now).toISOString()
+      : new Date().toISOString();
+
+  return {
+    healthy: assessment.canRecycle && assessment.infiniteCadence,
+    activeCadence: "infinite_autonomous",
+    assessment,
+    timestamp: nowIso,
+  };
+}
+
+/**
+ * Validates whether a mind capsule is ready for generational rollover.
+ */
+export function validateRolloverReadiness(
+  sourceState: Record<string, unknown>,
+  targetGeneration: number,
+): {
+  readonly ready: boolean;
+  readonly reason: string;
+  readonly generation: number;
+} {
+  const mind = sourceState.mind as Record<string, unknown> | undefined;
+  if (!mind || typeof mind !== "object") {
+    return {
+      ready: false,
+      reason: "Missing mind substate in source capsule",
+      generation: 1,
+    };
+  }
+
+  const currentGen = typeof mind.generation === "number" ? mind.generation : 1;
+  if (targetGeneration <= currentGen) {
+    return {
+      ready: false,
+      reason: `Target generation ${targetGeneration} must exceed current generation ${currentGen}`,
+      generation: currentGen,
+    };
+  }
+
+  return {
+    ready: true,
+    reason: `Mind is ready to transition from generation ${currentGen} to ${targetGeneration}`,
+    generation: currentGen,
+  };
+}

@@ -111,3 +111,19 @@ export function generateDagJsonReport(runRoot: string): DagJsonReport {
     metrics,
   };
 }
+
+export function isDagJsonReport(value: unknown): value is DagJsonReport {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return false;
+  }
+  const rec = value as Record<string, unknown>;
+  return (
+    typeof rec.runId === "string" &&
+    Array.isArray(rec.nodes) &&
+    Array.isArray(rec.edges) &&
+    Array.isArray(rec.leases) &&
+    typeof rec.metrics === "object" &&
+    rec.metrics !== null
+  );
+}
+

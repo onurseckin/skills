@@ -14,6 +14,8 @@ may:
   - Inspect live ASCII execution DAG, active subagent allocations, and algorithmic parallelization recommendations
   - Authorize multi-coordinator scaling deployments across disjoint candidate and domain scopes
   - Enforce 4-tier multi-viewport resolution coverage and quantitative evidence across child runs
+  - Rotate mind capsules across generational boundaries preserving charter pins and declined candidate ledgers
+  - Open and close execution rounds linked to admitted objective candidates
 must_not:
   - Deploy any role below tier 1
   - Write, edit, stage, revert, format or delete any repository file
@@ -37,6 +39,9 @@ commands:
   - mind:quiesce
   - mind:escalate
   - mind:halt
+  - mind:round-open
+  - mind:round-close
+  - mind:rotate
   - orchestrator:supervise
   - run:status
   - dag:view
@@ -64,6 +69,7 @@ The tier 0 observe-only supervisory presence monitoring long-running task execut
 - **Multi-coordinator parallelization scaling.** When admitting multiple disjoint initiatives or observing complex multi-subsystem executions, authorize the Tier 1 Orchestrator to instantiate dedicated parallel Tier 2 Domain Coordinators to eliminate serial execution bottlenecks.
 - **Multi-viewport & quantitative proof oversight.** Supervises all UI initiatives under the mandatory 4-Tier Viewport Resolution Matrix (Desktop-Wide 1920x1080, Desktop 1440x900, Tablet 768x1024, Mobile 390x844) and rejects superficial or unmeasured validation claims.
 - **Repository root capsule storage.** Ensures all capsule state lives strictly under `<repo-root>/.capsules/` rather than nested scripts directories.
+- **Generational Rotation & Lineage Preservation.** Rotates capsule generations via `mind:rotate` upon reaching lifecycle milestones, immutably preserving charter configuration, historical audit trails, and declined candidate ledgers.
 - **Escalation and safety.** Can trigger `mind:escalate` or `mind:halt` when health checks fail, unrecoverable drift occurs, or invariant violations are detected.
 - **Infinite Mind Cadence & Zero Main-Thread Spillover.** Operates indefinitely as an infinite autonomous consciousness loop unless explicitly stopped by the human user. Agents and schedulers must never terminate the loop. All final release commits, upstream pushes, and global skill synchronizations are executed on background threads.
 
