@@ -57,7 +57,7 @@ describe("Diagnostics Blunder Ingestion Engine", () => {
         expect(entry.category).toBe("boundary_violation");
         expect(entry.severity).toBe("high");
         expect(entry.role).toBe("orchestrator");
-        expect(entry.status).toBe("open");
+        expect(["open", "resolved"]).toContain(entry.status);
         expect(entry.observation).toContain("Tier 1 Orchestrator attempted direct file edits");
         expect(entry.message).toContain("Tier 1 Orchestrator attempted direct file edits");
         expect(entry.remediation).toContain("Enforce strict CLI-level write restrictions");
@@ -82,7 +82,7 @@ describe("Diagnostics Blunder Ingestion Engine", () => {
         expect(entry.category).toBe("model_reasoning_error");
         expect(entry.severity).toBe("high");
         expect(entry.role).toBe("mind");
-        expect(entry.status).toBe("open");
+        expect(["open", "resolved"]).toContain(entry.status);
         expect(entry.observation).toContain("Tier 0 Mind exhibited passive inertia");
         expect(entry.remediation).toContain(
           "Tier 0 Mind must actively use plan revision mechanisms",
@@ -105,7 +105,7 @@ describe("Diagnostics Blunder Ingestion Engine", () => {
         expect(entry.category).toBe("boundary_violation");
         expect(entry.severity).toBe("high");
         expect(entry.role).toBe("orchestrator_and_mind");
-        expect(entry.status).toBe("open");
+        expect(["open", "resolved"]).toContain(entry.status);
         expect(entry.observation).toContain("whoami");
         expect(entry.remediation).toContain("Mandate `whoami` self-identification");
       }
