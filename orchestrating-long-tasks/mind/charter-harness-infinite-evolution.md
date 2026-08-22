@@ -27,18 +27,6 @@ The Global Skill Harness Evolution & Step-Machine Perfection Subsystem within `o
 - `bun test` -> exit 0
 - `bun run typecheck` -> exit 0
 
-## Budgets
-
-- pulses_per_day: 288
-- wall_clock_ms_per_day: 86400000
-- max_agents_in_flight: 12
-- max_rounds_per_objective: 10
-- base_interval_ms: 300000
-- max_interval_ms: 3600000
-- max_pause_interval_ms: 1800000
-- pulse_deadline_ms: 1200000
-- max_open_proposals: 10
-- quiet_hours: null
 
 ## Prohibitions
 

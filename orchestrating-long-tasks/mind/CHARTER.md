@@ -37,20 +37,6 @@ The autonomous maintenance, verification, and hardening mind for the orchestrati
 - `bun test tests/unit` → exit 0
 - `bun run typecheck` → exit 0
 
-## budgets
-
-- cadence: infinite_borderless
-- concurrency_model: topological_work_span
-- pulses_per_day: infinite
-- wall_clock_ms_per_day: infinite
-- max_agents_in_flight: topological_work_span (P = W / S)
-- max_rounds_per_objective: infinite
-- base_interval_ms: 0
-- max_interval_ms: infinite
-- max_pause_interval_ms: infinite
-- pulse_deadline_ms: 1200000
-- max_open_proposals: infinite
-- quiet_hours: none
 
 ## prohibitions
 

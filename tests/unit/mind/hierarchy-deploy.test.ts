@@ -190,7 +190,7 @@ describe("Phase 4 W4.3: Strict Tier Hierarchy and Deployment", () => {
       const mindContract = loadMindContract();
       const mayText = mindContract.may.join("\n");
       expect(mayText).toContain("Deploy tier 1 orchestrators");
-      expect(mayText).toContain("bound its round and wall-clock budget");
+      expect(mayText).toContain("govern its execution round parameters");
     });
 
     test("mind contract explicitly prohibits deploying below tier 1 and writing repository files", () => {
