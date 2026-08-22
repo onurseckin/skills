@@ -46,25 +46,45 @@ function taskIssues(state: WorkflowState): string[] {
         issues.push(`task ${task.id} lacks independent ${domain} validator approval`);
       if (!validation?.checks?.length)
         issues.push(`task ${task.id} lacks ${domain} validator command evidence`);
+      const hasFreshPassingCommand = Object.values(state.commands).some(
+        (c) =>
+          c.status === "succeeded" &&
+          c.exit_code === 0 &&
+          c.task_id === task.id &&
+          c.actor === validation?.validator_id &&
+          embeddedCommandIssues(c).length === 0 &&
+          gates.some((gate) => commandMatchesGate(c, gate)),
+      );
       for (const proof of validation?.checks ?? []) {
         const command = state.commands[proof.command_id];
-        if (
-          !command ||
-          command.status !== "succeeded" ||
-          command.exit_code !== 0 ||
-          command.task_id !== task.id ||
-          command.actor !== validation?.validator_id ||
-          embeddedCommandIssues(command).length > 0 ||
-          !gates.some((gate) => commandMatchesGate(command, gate))
-        )
+        const validDirect =
+          command &&
+          command.status === "succeeded" &&
+          command.exit_code === 0 &&
+          command.task_id === task.id &&
+          command.actor === validation?.validator_id &&
+          embeddedCommandIssues(command).length === 0 &&
+          gates.some((gate) => commandMatchesGate(command, gate));
+        if (!validDirect && !hasFreshPassingCommand)
           issues.push(`task ${task.id} has invalid validator command ${proof.command_id}`);
       }
     }
     for (const finding of task.findings ?? [])
       if (finding.status === "open") issues.push(`task ${task.id} has open finding ${finding.id}`);
     for (const gate of applicableGates(state, task)) {
+      const hasFreshPassingGateCommand = Object.values(state.commands).some(
+        (c) =>
+          c.status === "succeeded" &&
+          c.exit_code === 0 &&
+          c.task_id === task.id &&
+          c.gate_id === gate.id &&
+          commandMatchesGate(c, gate),
+      );
       const result = (task.gate_results ?? []).find((entry) => entry.gate_id === gate.id);
-      if (!result || !commandIsSuccessfulGate(state, result.command_id, gate.id, task.id))
+      const hasResultGate = Boolean(
+        result && commandIsSuccessfulGate(state, result.command_id, gate.id, task.id),
+      );
+      if (!hasFreshPassingGateCommand && !hasResultGate)
         issues.push(`task ${task.id} lacks authoritative gate ${gate.id}`);
     }
     return issues;
