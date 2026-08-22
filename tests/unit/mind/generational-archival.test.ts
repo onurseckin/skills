@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { mindInitCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/mind-init.ts";
 import {
@@ -10,14 +10,19 @@ import type { JsonObject, JsonValue } from "../../../orchestrating-long-tasks/sc
 import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
 import {
   appendArchivedObjectives,
+  archiveCapsule,
+  consolidateCapsules,
   extractItemGeneration,
   isArchivedItemType,
+  isEffectivelyEmptyDirectory,
   isItemCompleted,
   pruneAndArchiveGenerationalState,
+  pruneCapsuleBoilerplate,
   readArchivedObjectives,
   resolveArchivedObjectivesPath,
   validateArchivedObjectiveRecord,
   writeArchivedObjectives,
+  BOILERPLATE_CAPSULE_SUBDIRECTORIES,
   type ArchivedObjectiveRecord,
 } from "../../../orchestrating-long-tasks/scripts/src/mind/archival.ts";
 import {
@@ -809,4 +814,198 @@ describe("Generational State Archival (REMED-007)", () => {
       expect(allIndex.total_documents).toBeGreaterThanOrEqual(2);
     });
   });
+
+  describe("Capsule Boilerplate Subdirectory Pruning", () => {
+    test("isEffectivelyEmptyDirectory accurately identifies empty and non-empty trees", () => {
+      const scratch = scratchRoot("empty-dir-test");
+      const emptyDir = join(scratch, "empty");
+      const nestedEmpty = join(scratch, "nested-empty", "sub1", "sub2");
+      const dsStoreOnly = join(scratch, "ds-store-only");
+      const withFile = join(scratch, "with-file");
+
+      mkdirSync(emptyDir, { recursive: true });
+      mkdirSync(nestedEmpty, { recursive: true });
+      mkdirSync(dsStoreOnly, { recursive: true });
+      writeFileSync(join(dsStoreOnly, ".DS_Store"), "dummy");
+      mkdirSync(withFile, { recursive: true });
+      writeFileSync(join(withFile, "data.txt"), "hello");
+
+      expect(isEffectivelyEmptyDirectory(emptyDir)).toBe(true);
+      expect(isEffectivelyEmptyDirectory(nestedEmpty)).toBe(true);
+      expect(isEffectivelyEmptyDirectory(join(scratch, "nested-empty"))).toBe(true);
+      expect(isEffectivelyEmptyDirectory(dsStoreOnly)).toBe(true);
+      expect(isEffectivelyEmptyDirectory(withFile)).toBe(false);
+      expect(isEffectivelyEmptyDirectory(join(scratch, "non-existent"))).toBe(true);
+    });
+
+    test("pruneCapsuleBoilerplate removes empty boilerplate subdirectories and preserves non-empty ones", () => {
+      const { runRoot } = setupMindCapsule("prune-boilerplate-test");
+
+      // Verify that initial capsule has directories like commands, blobs, evidence, reports, planning
+      expect(existsSync(join(runRoot, "commands"))).toBe(true);
+      expect(existsSync(join(runRoot, "blobs"))).toBe(true);
+      expect(existsSync(join(runRoot, "evidence"))).toBe(true);
+      expect(existsSync(join(runRoot, "reports"))).toBe(true);
+      expect(existsSync(join(runRoot, "planning"))).toBe(true);
+
+      // Populate one directory (commands) with a file
+      const cmdDir = join(runRoot, "commands", "C-001");
+      mkdirSync(cmdDir, { recursive: true });
+      writeFileSync(join(cmdDir, "dummy.txt"), "output");
+
+      // Execute dry-run first
+      const dryRunResult = pruneCapsuleBoilerplate(runRoot, { dryRun: true });
+      expect(dryRunResult.prunedDirectories).toContain("blobs");
+      expect(dryRunResult.prunedDirectories).toContain("evidence");
+      expect(dryRunResult.prunedDirectories).toContain("reports");
+      expect(dryRunResult.preservedDirectories).toContain("commands");
+      expect(existsSync(join(runRoot, "blobs"))).toBe(true); // Still exists in dry run
+
+      // Execute real pruning
+      const realResult = pruneCapsuleBoilerplate(runRoot);
+      expect(realResult.prunedDirectories).toContain("blobs");
+      expect(realResult.prunedDirectories).toContain("evidence");
+      expect(realResult.prunedDirectories).toContain("reports");
+      expect(realResult.prunedDirectories).toContain("planning");
+      expect(realResult.preservedDirectories).toContain("commands");
+
+      // Verify pruned directories are gone from disk
+      expect(existsSync(join(runRoot, "blobs"))).toBe(false);
+      expect(existsSync(join(runRoot, "evidence"))).toBe(false);
+      expect(existsSync(join(runRoot, "reports"))).toBe(false);
+
+      // Verify non-empty directory is preserved
+      expect(existsSync(join(runRoot, "commands"))).toBe(true);
+      expect(existsSync(join(cmdDir, "dummy.txt"))).toBe(true);
+
+      // Verify core files remain intact
+      expect(existsSync(join(runRoot, "manifest.json"))).toBe(true);
+      expect(existsSync(join(runRoot, "prompt.md"))).toBe(true);
+      expect(existsSync(join(runRoot, "events.jsonl"))).toBe(true);
+      expect(existsSync(join(runRoot, "state.json"))).toBe(true);
+      expect(existsSync(join(runRoot, "README.md"))).toBe(true);
+      expect(existsSync(join(runRoot, "index.json"))).toBe(true);
+      expect(existsSync(join(runRoot, "trace.md"))).toBe(true);
+
+      // Verify integrity continues to pass 100%
+      expect(verifyIntegrity(runRoot)).toEqual([]);
+    });
+  });
+
+  describe("Capsule Directory Consolidation & Legacy Root Archival", () => {
+    test("archiveCapsule moves legacy capsule root into .capsules/archive/<runId>", () => {
+      const { repoRoot, runRoot } = setupMindCapsule("archive-capsule-test");
+      const runId = "archive-capsule-test";
+
+      const archiveResult = archiveCapsule(runRoot);
+      expect(archiveResult.runId).toContain("mind-gen-1");
+      expect(archiveResult.archivedPath).toContain(join(".capsules", "archive"));
+      expect(existsSync(runRoot)).toBe(false);
+      expect(existsSync(archiveResult.archivedPath)).toBe(true);
+
+      // Verify archived capsule integrity
+      expect(verifyIntegrity(archiveResult.archivedPath)).toEqual([]);
+
+      // Verify archived capsule contains manifest.json and prompt.md
+      expect(existsSync(join(archiveResult.archivedPath, "manifest.json"))).toBe(true);
+      expect(existsSync(join(archiveResult.archivedPath, "prompt.md"))).toBe(true);
+    });
+
+    test("consolidateCapsules archives legacy generation roots into .capsules/archive/ and keeps active roots minimal", () => {
+      const scratch = scratchRoot("consolidate-capsules-test");
+      const capsulesDir = join(scratch, ".capsules");
+      mkdirSync(capsulesDir, { recursive: true });
+
+      writeFileSync(join(scratch, "CHARTER.md"), SAMPLE_CHARTER, "utf-8");
+
+      // Create Gen 1 (legacy), Gen 2 (legacy), Gen 3 (active), Gen 4 (active) capsules
+      mindInitCommand({ repo: scratch, charter: "CHARTER.md", actor: "test", generation: "1" });
+      mindInitCommand({ repo: scratch, charter: "CHARTER.md", actor: "test", generation: "2" });
+      mindInitCommand({ repo: scratch, charter: "CHARTER.md", actor: "test", generation: "3" });
+      mindInitCommand({ repo: scratch, charter: "CHARTER.md", actor: "test", generation: "4" });
+
+      // Add dummy companion files in .capsules to ensure they are preserved
+      writeFileSync(join(capsulesDir, "ARCHIVED_OBJECTIVES.jsonl"), '{"id":"test"}\n');
+      writeFileSync(join(capsulesDir, "blunders.jsonl"), '{"id":"blunder-1"}\n');
+
+      // Consolidate with currentGeneration = 4, retentionGenerations = 2
+      // Cutoff = 4 - 2 = 2. Gen 1 and Gen 2 are legacy (<= 2) -> ARCHIVED to .capsules/archive/
+      // Gen 3 and Gen 4 are active (> 2) -> KEPT in .capsules/ and pruned of boilerplate
+      const consolidateResult = consolidateCapsules(capsulesDir, {
+        currentGeneration: 4,
+        retentionGenerations: 2,
+      });
+
+      expect(consolidateResult.archivedCapsules).toContain("mind-gen-1");
+      expect(consolidateResult.archivedCapsules).toContain("mind-gen-2");
+      expect(consolidateResult.activeCapsules).toContain("mind-gen-3");
+      expect(consolidateResult.activeCapsules).toContain("mind-gen-4");
+
+      // Verify filesystem state
+      const archiveDir = join(capsulesDir, "archive");
+      expect(existsSync(archiveDir)).toBe(true);
+      expect(existsSync(join(archiveDir, "mind-gen-1"))).toBe(true);
+      expect(existsSync(join(archiveDir, "mind-gen-2"))).toBe(true);
+      expect(existsSync(join(capsulesDir, "mind-gen-1"))).toBe(false);
+      expect(existsSync(join(capsulesDir, "mind-gen-2"))).toBe(false);
+      expect(existsSync(join(capsulesDir, "mind-gen-3"))).toBe(true);
+      expect(existsSync(join(capsulesDir, "mind-gen-4"))).toBe(true);
+
+      // Verify active roots have boilerplate subdirectories pruned (minimal)
+      expect(existsSync(join(capsulesDir, "mind-gen-4", "blobs"))).toBe(false);
+      expect(existsSync(join(capsulesDir, "mind-gen-4", "evidence"))).toBe(false);
+
+      // Verify companion files are preserved in .capsules
+      expect(existsSync(join(capsulesDir, "ARCHIVED_OBJECTIVES.jsonl"))).toBe(true);
+      expect(existsSync(join(capsulesDir, "blunders.jsonl"))).toBe(true);
+
+      // Verify integrity of all active and archived capsules
+      expect(verifyIntegrity(join(archiveDir, "mind-gen-1"))).toEqual([]);
+      expect(verifyIntegrity(join(archiveDir, "mind-gen-2"))).toEqual([]);
+      expect(verifyIntegrity(join(capsulesDir, "mind-gen-3"))).toEqual([]);
+      expect(verifyIntegrity(join(capsulesDir, "mind-gen-4"))).toEqual([]);
+
+      // Verify idempotency
+      const secondRun = consolidateCapsules(capsulesDir, {
+        currentGeneration: 4,
+        retentionGenerations: 2,
+      });
+      expect(secondRun.archivedCapsules.length).toBe(0);
+      expect(secondRun.activeCapsules).toContain("mind-gen-3");
+      expect(secondRun.activeCapsules).toContain("mind-gen-4");
+    });
+
+    test("pruneAndArchiveGenerationalState consolidates on-disk capsules when consolidateCapsulesOnDisk is enabled", () => {
+      const scratch = scratchRoot("prune-archive-disk-consolidation");
+      const capsulesDir = join(scratch, ".capsules");
+      mkdirSync(capsulesDir, { recursive: true });
+      writeFileSync(join(scratch, "CHARTER.md"), SAMPLE_CHARTER, "utf-8");
+
+      // Setup Gen 1 and Gen 3
+      mindInitCommand({ repo: scratch, charter: "CHARTER.md", actor: "test", generation: "1" });
+      mindInitCommand({ repo: scratch, charter: "CHARTER.md", actor: "test", generation: "3" });
+
+      const sourceState: Record<string, unknown> = {
+        candidates: [],
+        objectives: [],
+        tasks: [],
+      };
+
+      const result = pruneAndArchiveGenerationalState({
+        sourceState,
+        sourceGeneration: 3,
+        retentionGenerations: 2,
+        capsulesDir,
+        consolidateCapsulesOnDisk: true,
+        pruneBoilerplateOnDisk: true,
+      });
+
+      expect(result.consolidatedCapsules).toBeDefined();
+      expect(result.consolidatedCapsules?.archivedCapsules).toContain("mind-gen-1");
+      expect(result.consolidatedCapsules?.activeCapsules).toContain("mind-gen-3");
+      expect(existsSync(join(capsulesDir, "archive", "mind-gen-1"))).toBe(true);
+      expect(existsSync(join(capsulesDir, "mind-gen-1"))).toBe(false);
+    });
+  });
 });
+

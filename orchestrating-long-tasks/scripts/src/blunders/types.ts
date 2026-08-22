@@ -1,10 +1,28 @@
 import type {
+  BlunderAuditReport,
   BlunderCategory,
+  BlunderDeliberationRound,
+  BlunderEntry,
+  BlunderHypothesis,
+  BlunderRemediationAction,
+  BlunderRemediationSynthesis,
   BlunderResolutionProof,
   BlunderStatus,
+  DeliberationPipelineOptions,
 } from "../mind/blunders.ts";
 
-export type { BlunderCategory, BlunderResolutionProof, BlunderStatus };
+export type {
+  BlunderAuditReport,
+  BlunderCategory,
+  BlunderDeliberationRound,
+  BlunderEntry,
+  BlunderHypothesis,
+  BlunderRemediationAction,
+  BlunderRemediationSynthesis,
+  BlunderResolutionProof,
+  BlunderStatus,
+  DeliberationPipelineOptions,
+};
 
 export interface BlunderOccurrence {
   readonly timestamp: string;
@@ -64,13 +82,21 @@ export interface AggregatedBlunder {
   readonly capsule_root?: string | null | undefined;
 }
 
-export type DeduplicationStrategy = "aggregate_synchronous" | "windowed" | "exact_dedup";
+export type DeduplicationStrategy =
+  | "aggregate_synchronous"
+  | "windowed"
+  | "exact_dedup"
+  | "sliding_window_hash";
+
+export type ContentHashAlgorithm = "sha256" | "fnv1a";
 
 export interface BlunderKeyOptions {
   readonly includeAgentId?: boolean | undefined;
   readonly includeCategory?: boolean | undefined;
   readonly includeType?: boolean | undefined;
   readonly normalizeObservation?: boolean | undefined;
+  readonly useContentHash?: boolean | undefined;
+  readonly hashAlgorithm?: ContentHashAlgorithm | undefined;
   readonly customDiscriminator?: ((entry: BlunderRecordInput) => string) | undefined;
 }
 
@@ -80,4 +106,26 @@ export interface LiveDeduplicationOptions {
   readonly maxOccurrencesTracked?: number | undefined;
   readonly maxEntries?: number | undefined;
   readonly keyOptions?: BlunderKeyOptions | undefined;
+  readonly onBlunderDeduplicated?:
+    | ((existing: AggregatedBlunder, incoming: BlunderRecordInput) => void)
+    | undefined;
+  readonly onNewBlunder?: ((entry: AggregatedBlunder) => void) | undefined;
+}
+
+export interface BlunderAggregateMetrics {
+  readonly total_recorded: number;
+  readonly unique_blunders: number;
+  readonly open_count: number;
+  readonly resolved_count: number;
+  readonly wontfix_count: number;
+  readonly recurrence_count: number;
+  readonly recurrence_rate: number;
+  readonly by_category: Readonly<Record<BlunderCategory, number>>;
+  readonly by_severity: Readonly<Record<string, number>>;
+  readonly mean_time_to_resolution_ms: number | null;
+}
+
+export interface BlunderStreamOptions extends LiveDeduplicationOptions {
+  readonly bufferSize?: number | undefined;
+  readonly flushIntervalMs?: number | undefined;
 }

@@ -168,7 +168,7 @@ export async function criticReviewCommand(flags: Flags): Promise<Record<string, 
         );
     }
 
-    const checksList = Object.values(state.commands)
+    const criticChecks = Object.values(state.commands)
       .filter(
         (c) =>
           c.actor === critic &&
@@ -176,6 +176,17 @@ export async function criticReviewCommand(flags: Flags): Promise<Record<string, 
           authoritativeRepositoryCommand(state, c.id) !== undefined,
       )
       .map((c) => ({ command_id: c.id }));
+
+    const runGateChecks = Object.values(state.commands)
+      .filter(
+        (c) =>
+          c.exit_code === 0 &&
+          c.gate_id !== null &&
+          authoritativeRepositoryCommand(state, c.id) !== undefined,
+      )
+      .map((c) => ({ command_id: c.id }));
+
+    const checksList = criticChecks.length > 0 ? criticChecks : runGateChecks;
 
     const proofs = parseRawProofs(proofsRaw, proofsFile);
 

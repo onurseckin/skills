@@ -78,7 +78,7 @@ export function generateDagJsonReport(
     }
   }
 
-  const leases: DagJsonLease[] = dagView.active_agents.map((a) => ({
+  const leases: DagJsonLease[] = (dagView.active_agents ?? []).map((a) => ({
     agentId: a.id,
     taskId: a.taskId,
     role: a.role,
@@ -88,13 +88,13 @@ export function generateDagJsonReport(
   }));
 
   const metrics: DagJsonMetrics = {
-    work: dagView.metrics.totalWork,
-    span: dagView.metrics.span,
-    parallelWidth: dagView.metrics.maxParallelLanes,
-    speedupFactor: dagView.metrics.parallelismFactor,
+    work: dagView.metrics?.totalWork ?? 0,
+    span: dagView.metrics?.span ?? 0,
+    parallelWidth: dagView.metrics?.maxParallelLanes ?? 0,
+    speedupFactor: dagView.metrics?.parallelismFactor ?? 0,
   };
 
-  const edges: DagJsonDependency[] = dagView.dependency_forensics.map((d) => {
+  const edges: DagJsonDependency[] = (dagView.dependency_forensics ?? []).map((d) => {
     let type = "hard";
     if (d.edgeType === "explicit_justification") type = "soft";
     if (d.edgeType === "scope_conflict") type = "authority";
@@ -129,3 +129,27 @@ export function isDagJsonReport(value: unknown): value is DagJsonReport {
     rec.metrics !== null
   );
 }
+
+export interface GduiIntegrityResult {
+  readonly valid: boolean;
+  readonly issues: readonly string[];
+}
+
+export function validateGduiReportIntegrity(report: unknown): GduiIntegrityResult {
+  const issues: string[] = [];
+  if (!isDagJsonReport(report)) {
+    issues.push("Invalid report structure: fails isDagJsonReport schema check");
+    return { valid: false, issues };
+  }
+  if (typeof report.runId !== "string" || report.runId.trim().length === 0) {
+    issues.push("Missing or invalid runId");
+  }
+  for (const node of report.nodes) {
+    if (!node.id) issues.push("Node missing id");
+    if (node.coordinates.rank < 0 || node.coordinates.lane < 0) {
+      issues.push(`Node ${node.id} has invalid coordinates rank=${node.coordinates.rank}, lane=${node.coordinates.lane}`);
+    }
+  }
+  return { valid: issues.length === 0, issues };
+}
+

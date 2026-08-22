@@ -1,7 +1,6 @@
-import { describe, expect, it, mock } from "bun:test";
+import { describe, expect, it } from "bun:test";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { tmpdir } from "node:crypto";
 import {
   deliverEventsToWebhook,
   formatEventsToNdjsonStream,
@@ -11,6 +10,7 @@ import {
   readCapsuleEvents,
   renderAsciiEventStreamTable,
   resolveCapsulePath,
+  type FetchLike,
 } from "../../../orchestrating-long-tasks/scripts/src/reporting/event-stream.ts";
 import { streamEventsCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/stream-events.ts";
 import type { HarnessEvent } from "../../../orchestrating-long-tasks/scripts/src/contracts/capsule.ts";
@@ -63,6 +63,7 @@ describe("reporting/event-stream", () => {
       payload: { tasks_count: 3 },
       previous_hash: null,
       projection: null,
+      hash: "a".repeat(64),
     },
     {
       schema: "harness.event",
@@ -77,6 +78,7 @@ describe("reporting/event-stream", () => {
       payload: { task_id: "task-1", role: "implementer" },
       previous_hash: "hash1",
       projection: null,
+      hash: "b".repeat(64),
     },
     {
       schema: "harness.event",
@@ -91,6 +93,7 @@ describe("reporting/event-stream", () => {
       payload: { task_id: "task-2", role: "implementer" },
       previous_hash: "hash2",
       projection: null,
+      hash: "c".repeat(64),
     },
     {
       schema: "harness.event",
@@ -105,6 +108,7 @@ describe("reporting/event-stream", () => {
       payload: { task_id: "task-1", status: "submitted" },
       previous_hash: "hash3",
       projection: null,
+      hash: "d".repeat(64),
     },
   ];
 
@@ -211,7 +215,7 @@ describe("reporting/event-stream", () => {
 
   describe("deliverEventsToWebhook", () => {
     it("delivers events successfully with mock fetch and parses receipt ID", async () => {
-      const mockFetch: typeof fetch = async (url, init) => {
+      const mockFetch: FetchLike = async () => {
         const headers = new Headers();
         headers.set("x-receipt-id", "rcpt-test-12345");
         return new Response(JSON.stringify({ ok: true }), {
@@ -234,7 +238,7 @@ describe("reporting/event-stream", () => {
 
     it("retries on 500 error and succeeds on subsequent attempt", async () => {
       let callCount = 0;
-      const mockFetch: typeof fetch = async () => {
+      const mockFetch: FetchLike = async () => {
         callCount++;
         if (callCount === 1) {
           return new Response("Internal Server Error", { status: 500, statusText: "Error" });
@@ -259,7 +263,7 @@ describe("reporting/event-stream", () => {
 
     it("does not retry 400 client errors", async () => {
       let callCount = 0;
-      const mockFetch: typeof fetch = async () => {
+      const mockFetch: FetchLike = async () => {
         callCount++;
         return new Response("Bad Request", { status: 400, statusText: "Bad Request" });
       };
@@ -280,6 +284,110 @@ describe("reporting/event-stream", () => {
       expect(res.deliveredCount).toBe(0);
       expect(res.attempts).toBe(0);
     });
+
+    it("chunks events into multiple batches when batchSize is specified", async () => {
+      const calls: { url: string | URL | Request; body: unknown }[] = [];
+      const mockFetch: FetchLike = async (url, init) => {
+        const body = typeof init?.body === "string" ? JSON.parse(init.body) : init?.body;
+        calls.push({ url, body });
+        return new Response(JSON.stringify({ receipt_id: `rcpt-batch-${calls.length}` }), {
+          status: 200,
+          statusText: "OK",
+          headers: { "Content-Type": "application/json" },
+        });
+      };
+
+      const res = await deliverEventsToWebhook(sampleEvents, "https://example.com/webhook", {
+        customFetch: mockFetch,
+        batchSize: 2,
+      });
+
+      expect(res.success).toBe(true);
+      expect(res.deliveredCount).toBe(4);
+      expect(calls.length).toBe(2);
+      expect(res.receiptId).toBe("rcpt-batch-2");
+      expect(res.attempts).toBe(2);
+
+      const batch1 = calls[0]?.body as { events: unknown[]; count: number };
+      const batch2 = calls[1]?.body as { events: unknown[]; count: number };
+      expect(batch1.count).toBe(2);
+      expect(batch2.count).toBe(2);
+    });
+
+    it("handles partial failure during multi-batch delivery", async () => {
+      let callCount = 0;
+      const mockFetch: FetchLike = async () => {
+        callCount++;
+        if (callCount === 1) {
+          return new Response(JSON.stringify({ receipt_id: "rcpt-1" }), {
+            status: 200,
+            statusText: "OK",
+            headers: { "Content-Type": "application/json" },
+          });
+        }
+        return new Response("Unauthorized", { status: 401, statusText: "Unauthorized" });
+      };
+
+      const res = await deliverEventsToWebhook(sampleEvents, "https://example.com/webhook", {
+        customFetch: mockFetch,
+        batchSize: 2,
+        retries: 2,
+      });
+
+      expect(res.success).toBe(false);
+      expect(res.deliveredCount).toBe(2);
+      expect(res.statusCode).toBe(401);
+      expect(res.error).toContain("HTTP 401");
+    });
+
+    it("retries on HTTP 429 rate limit responses", async () => {
+      let callCount = 0;
+      const mockFetch: FetchLike = async () => {
+        callCount++;
+        if (callCount === 1) {
+          return new Response("Too Many Requests", {
+            status: 429,
+            statusText: "Too Many Requests",
+          });
+        }
+        return new Response(JSON.stringify({ receipt_id: "rcpt-after-429" }), {
+          status: 200,
+          statusText: "OK",
+          headers: { "Content-Type": "application/json" },
+        });
+      };
+
+      const res = await deliverEventsToWebhook(sampleEvents, "https://example.com/webhook", {
+        customFetch: mockFetch,
+        retries: 2,
+        backoffBaseMs: 1,
+      });
+
+      expect(res.success).toBe(true);
+      expect(res.attempts).toBe(2);
+      expect(res.receiptId).toBe("rcpt-after-429");
+    });
+
+    it("forwards custom headers during delivery", async () => {
+      let capturedHeaders: HeadersInit | undefined;
+      const mockFetch: FetchLike = async (_url, init) => {
+        capturedHeaders = init?.headers;
+        return new Response(JSON.stringify({ receipt_id: "rcpt-hdr" }), {
+          status: 200,
+          statusText: "OK",
+          headers: { "Content-Type": "application/json" },
+        });
+      };
+
+      await deliverEventsToWebhook(sampleEvents, "https://example.com/webhook", {
+        customFetch: mockFetch,
+        headers: { "X-Custom-Auth": "secret-token-123" },
+      });
+
+      expect(capturedHeaders).toBeDefined();
+      const rec = capturedHeaders as Record<string, string>;
+      expect(rec["X-Custom-Auth"]).toBe("secret-token-123");
+    });
   });
 
   describe("renderAsciiEventStreamTable", () => {
@@ -294,9 +402,64 @@ describe("reporting/event-stream", () => {
       expect(table).toContain("task-claimed");
     });
 
+    it("renders optional title header and truncates rows when maxLines is set", () => {
+      const table = renderAsciiEventStreamTable(sampleEvents, {
+        title: "Test Capsule Stream",
+        maxLines: 2,
+      });
+      expect(table).toContain("=== Test Capsule Stream ===");
+      expect(table).toContain("... [2 more events truncated]");
+    });
+
     it("handles empty events list with placeholder message", () => {
       const table = renderAsciiEventStreamTable([]);
       expect(table).toContain("No events found");
+    });
+  });
+
+  describe("isHarnessEvent and edge cases", () => {
+    it("validates HarnessEvent structure accurately", () => {
+      expect(isHarnessEvent(sampleEvents[0])).toBe(true);
+      expect(isHarnessEvent(null)).toBe(false);
+      expect(isHarnessEvent(undefined)).toBe(false);
+      expect(isHarnessEvent("invalid")).toBe(false);
+      expect(isHarnessEvent(123)).toBe(false);
+      expect(isHarnessEvent([])).toBe(false);
+      expect(isHarnessEvent({ schema: "harness.event" })).toBe(false);
+    });
+
+    it("reads events when passing direct events.jsonl file path", () => {
+      const mock = createMockCapsule(sampleEvents);
+      try {
+        const directFile = join(mock.dir, "events.jsonl");
+        const result = readCapsuleEvents(directFile);
+        expect(result.matchingEvents.length).toBe(4);
+      } finally {
+        mock.cleanup();
+      }
+    });
+
+    it("throws INTEGRITY error when events.jsonl has corrupt JSON line", () => {
+      const mock = createMockCapsule([]);
+      try {
+        writeFileSync(join(mock.dir, "events.jsonl"), "invalid-json-content\n", "utf8");
+        expect(() => readCapsuleEvents(mock.dir)).toThrow("failed to parse event at line 1");
+      } finally {
+        mock.cleanup();
+      }
+    });
+
+    it("throws INVALID_ARGUMENT error when events.jsonl is missing in directory", () => {
+      const dir = join(
+        process.cwd(),
+        `.tmp_test_empty_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      );
+      mkdirSync(dir, { recursive: true });
+      try {
+        expect(() => readCapsuleEvents(dir)).toThrow("events.jsonl not found");
+      } finally {
+        rmSync(dir, { recursive: true, force: true });
+      }
     });
   });
 
@@ -344,7 +507,7 @@ describe("reporting/event-stream", () => {
           statusText: "OK",
           headers: { "Content-Type": "application/json" },
         });
-      }) as typeof fetch;
+      }) as unknown as typeof fetch;
 
       try {
         const result = await streamEventsCommand({

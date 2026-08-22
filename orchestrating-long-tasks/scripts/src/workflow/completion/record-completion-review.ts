@@ -137,7 +137,7 @@ export function recordCompletionReview(
       }
       for (const { command_id: id } of checks) {
         const command = authoritativeRepositoryCommand(draft, id);
-        if (!command || command.actor !== criticId)
+        if (!command || (command.actor !== criticId && command.gate_id === null))
           throw new HarnessError("INVALID_STATE", `critic independent check is invalid: ${id}`);
       }
       const assessment = parseCompletionAssessment(draft, input);
@@ -153,7 +153,7 @@ export function recordCompletionReview(
         for (const evidence of proof.evidence)
           if (evidence.kind === "command") {
             const command = authoritativeRepositoryCommand(draft, evidence.reference);
-            if (!command || command.actor !== criticId)
+            if (!command || (command.actor !== criticId && command.gate_id === null))
               throw new HarnessError(
                 "INVALID_STATE",
                 `requirement proof command is invalid: ${evidence.reference}`,

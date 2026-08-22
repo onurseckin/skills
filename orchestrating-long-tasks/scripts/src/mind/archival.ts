@@ -1,5 +1,15 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import {
+  cpSync,
+  existsSync,
+  lstatSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { basename, dirname, join, resolve } from "node:path";
 import { HarnessError } from "../errors/harness-error.ts";
 import type { CandidateRecord } from "./gates.ts";
 import type { ObjectiveRecord } from "./rounds.ts";
@@ -28,6 +38,62 @@ export interface ArchivedObjectiveRecord {
   readonly metadata?: Readonly<Record<string, unknown>> | undefined;
 }
 
+export const BOILERPLATE_CAPSULE_SUBDIRECTORIES: readonly string[] = [
+  "blobs",
+  "commands",
+  "evidence",
+  "packets",
+  "planning",
+  "reports",
+  "quarantine",
+  "screenshots",
+  "summary",
+  "runtime",
+];
+
+export interface PruneBoilerplateOptions {
+  readonly dryRun?: boolean | undefined;
+  readonly subdirectories?: readonly string[] | undefined;
+}
+
+export interface PruneBoilerplateResult {
+  readonly capsulePath: string;
+  readonly prunedDirectories: readonly string[];
+  readonly preservedDirectories: readonly string[];
+}
+
+export interface ArchiveCapsuleOptions {
+  readonly targetArchiveDir?: string | undefined;
+  readonly pruneBoilerplate?: boolean | undefined;
+  readonly overwrite?: boolean | undefined;
+  readonly dryRun?: boolean | undefined;
+}
+
+export interface ArchiveCapsuleResult {
+  readonly sourcePath: string;
+  readonly archivedPath: string;
+  readonly runId: string;
+  readonly prunedDirectories: readonly string[];
+}
+
+export interface ConsolidateCapsulesOptions {
+  readonly activeRunIds?: readonly string[] | undefined;
+  readonly currentGeneration?: number | undefined;
+  readonly retentionGenerations?: number | undefined;
+  readonly targetArchiveDir?: string | undefined;
+  readonly pruneBoilerplate?: boolean | undefined;
+  readonly dryRun?: boolean | undefined;
+  readonly archiveLegacyRoots?: boolean | undefined;
+}
+
+export interface ConsolidateCapsulesResult {
+  readonly capsulesDir: string;
+  readonly activeCapsules: readonly string[];
+  readonly archivedCapsules: readonly string[];
+  readonly prunedSubdirectoriesCount: number;
+  readonly archiveDir: string;
+}
+
 export interface PruneAndArchiveOptions {
   readonly sourceState: Record<string, unknown>;
   readonly sourceGeneration: number;
@@ -37,6 +103,8 @@ export interface PruneAndArchiveOptions {
   readonly targetRunRoot?: string | undefined;
   readonly customArchivalPath?: string | undefined;
   readonly nowIso?: string | undefined;
+  readonly consolidateCapsulesOnDisk?: boolean | undefined;
+  readonly pruneBoilerplateOnDisk?: boolean | undefined;
 }
 
 export interface PruneAndArchiveResult {
@@ -47,6 +115,8 @@ export interface PruneAndArchiveResult {
   readonly prunedCount: number;
   readonly archivedCount: number;
   readonly archivalPath: string;
+  readonly consolidatedCapsules?: ConsolidateCapsulesResult | undefined;
+  readonly prunedBoilerplateDirectories?: readonly string[] | undefined;
 }
 
 const DEFAULT_ARCHIVED_OBJECTIVES_FILE = ".capsules/ARCHIVED_OBJECTIVES.jsonl";
@@ -492,6 +562,28 @@ export function pruneAndArchiveGenerationalState(
     }
   }
 
+  // 5. Prune boilerplate subdirectories & consolidate legacy capsule roots if requested
+  const prunedBoilerplateDirs: string[] = [];
+  if (options.pruneBoilerplateOnDisk !== false) {
+    if (options.sourceRunRoot && existsSync(options.sourceRunRoot)) {
+      const pruneRes = pruneCapsuleBoilerplate(options.sourceRunRoot);
+      prunedBoilerplateDirs.push(...pruneRes.prunedDirectories);
+    }
+    if (options.targetRunRoot && existsSync(options.targetRunRoot)) {
+      const pruneRes = pruneCapsuleBoilerplate(options.targetRunRoot);
+      prunedBoilerplateDirs.push(...pruneRes.prunedDirectories);
+    }
+  }
+
+  let consolidatedCapsules: ConsolidateCapsulesResult | undefined;
+  if (options.consolidateCapsulesOnDisk && options.capsulesDir && existsSync(options.capsulesDir)) {
+    consolidatedCapsules = consolidateCapsules(options.capsulesDir, {
+      currentGeneration: sourceGeneration,
+      retentionGenerations: retention,
+      pruneBoilerplate: options.pruneBoilerplateOnDisk !== false,
+    });
+  }
+
   return {
     archivedRecords: toArchive,
     carriedCandidates,
@@ -500,5 +592,266 @@ export function pruneAndArchiveGenerationalState(
     prunedCount: toArchive.length,
     archivedCount: toArchive.length,
     archivalPath,
+    ...(consolidatedCapsules !== undefined ? { consolidatedCapsules } : {}),
+    ...(prunedBoilerplateDirs.length > 0 ? { prunedBoilerplateDirectories: prunedBoilerplateDirs } : {}),
+  };
+}
+
+/**
+ * Checks whether a directory is empty or contains only ignorable OS files / empty subdirectories.
+ */
+export function isEffectivelyEmptyDirectory(dirPath: string): boolean {
+  if (!existsSync(dirPath)) return true;
+  try {
+    const stat = lstatSync(dirPath);
+    if (!stat.isDirectory()) return false;
+    const entries = readdirSync(dirPath);
+    if (entries.length === 0) return true;
+
+    for (const entry of entries) {
+      if (entry === ".DS_Store") continue;
+      const childPath = join(dirPath, entry);
+      try {
+        const childStat = lstatSync(childPath);
+        if (!childStat.isDirectory()) return false;
+        if (!isEffectivelyEmptyDirectory(childPath)) return false;
+      } catch {
+        return false;
+      }
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Prunes empty boilerplate subdirectories from an active or archived capsule.
+ * Preserves core files and any directory that contains files or data.
+ */
+export function pruneCapsuleBoilerplate(
+  capsulePath: string,
+  options: PruneBoilerplateOptions = {},
+): PruneBoilerplateResult {
+  if (!capsulePath || !existsSync(capsulePath)) {
+    throw new HarnessError("INVALID_ARGUMENT", `capsulePath must exist: ${capsulePath}`);
+  }
+  const resolved = resolve(capsulePath);
+  const stat = lstatSync(resolved);
+  if (!stat.isDirectory()) {
+    throw new HarnessError("INVALID_ARGUMENT", `capsulePath must be a directory: ${capsulePath}`);
+  }
+
+  const subdirs = options.subdirectories ?? BOILERPLATE_CAPSULE_SUBDIRECTORIES;
+  const prunedDirectories: string[] = [];
+  const preservedDirectories: string[] = [];
+
+  for (const subdir of subdirs) {
+    const targetPath = join(resolved, subdir);
+    if (!existsSync(targetPath)) continue;
+    try {
+      const subStat = lstatSync(targetPath);
+      if (!subStat.isDirectory()) {
+        preservedDirectories.push(subdir);
+        continue;
+      }
+      if (isEffectivelyEmptyDirectory(targetPath)) {
+        if (!options.dryRun) {
+          rmSync(targetPath, { recursive: true, force: true });
+        }
+        prunedDirectories.push(subdir);
+      } else {
+        preservedDirectories.push(subdir);
+      }
+    } catch {
+      preservedDirectories.push(subdir);
+    }
+  }
+
+  return {
+    capsulePath: resolved,
+    prunedDirectories,
+    preservedDirectories,
+  };
+}
+
+/**
+ * Archives a legacy capsule root by moving it to .capsules/archive/<runId>
+ * and pruning empty boilerplate subdirectories.
+ */
+export function archiveCapsule(
+  sourceCapsulePath: string,
+  options: ArchiveCapsuleOptions = {},
+): ArchiveCapsuleResult {
+  if (!sourceCapsulePath || !existsSync(sourceCapsulePath)) {
+    throw new HarnessError("INVALID_ARGUMENT", `sourceCapsulePath must exist: ${sourceCapsulePath}`);
+  }
+  const resolvedSource = resolve(sourceCapsulePath);
+  const stat = lstatSync(resolvedSource);
+  if (!stat.isDirectory()) {
+    throw new HarnessError("INVALID_ARGUMENT", `sourceCapsulePath must be a directory: ${sourceCapsulePath}`);
+  }
+
+  const runId = basename(resolvedSource);
+  const parentDir = dirname(resolvedSource);
+  const archiveDir = options.targetArchiveDir
+    ? resolve(options.targetArchiveDir)
+    : join(parentDir, "archive");
+  const targetPath = join(archiveDir, runId);
+
+  if (existsSync(targetPath)) {
+    if (options.overwrite) {
+      if (!options.dryRun) {
+        rmSync(targetPath, { recursive: true, force: true });
+      }
+    } else {
+      throw new HarnessError(
+        "INVALID_STATE",
+        `Target archived capsule already exists: ${targetPath}`,
+      );
+    }
+  }
+
+  let prunedDirectories: string[] = [];
+
+  if (!options.dryRun) {
+    if (!existsSync(archiveDir)) {
+      mkdirSync(archiveDir, { recursive: true, mode: 0o755 });
+    }
+    try {
+      renameSync(resolvedSource, targetPath);
+    } catch {
+      // Fallback across file systems / devices
+      cpSync(resolvedSource, targetPath, { recursive: true });
+      rmSync(resolvedSource, { recursive: true, force: true });
+    }
+
+    if (options.pruneBoilerplate !== false) {
+      const pruneRes = pruneCapsuleBoilerplate(targetPath);
+      prunedDirectories = [...pruneRes.prunedDirectories];
+    }
+  }
+
+  return {
+    sourcePath: resolvedSource,
+    archivedPath: targetPath,
+    runId,
+    prunedDirectories,
+  };
+}
+
+/**
+ * Consolidates capsules in a capsules directory:
+ * - Archives legacy roots into .capsules/archive/
+ * - Prunes boilerplate subdirectories to keep active capsule roots minimal
+ */
+export function consolidateCapsules(
+  capsulesDir: string,
+  options: ConsolidateCapsulesOptions = {},
+): ConsolidateCapsulesResult {
+  if (!capsulesDir || !existsSync(capsulesDir)) {
+    throw new HarnessError("INVALID_ARGUMENT", `capsulesDir must exist: ${capsulesDir}`);
+  }
+  const resolvedCapsulesDir = resolve(capsulesDir);
+  const stat = lstatSync(resolvedCapsulesDir);
+  if (!stat.isDirectory()) {
+    throw new HarnessError("INVALID_ARGUMENT", `capsulesDir must be a directory: ${capsulesDir}`);
+  }
+
+  const targetArchiveDir = options.targetArchiveDir
+    ? resolve(options.targetArchiveDir)
+    : join(resolvedCapsulesDir, "archive");
+
+  const retention = options.retentionGenerations ?? 2;
+  const currentGen = options.currentGeneration;
+  const cutoffGen = currentGen !== undefined ? currentGen - retention : undefined;
+  const activeRunIdsSet = options.activeRunIds ? new Set(options.activeRunIds) : undefined;
+  const archiveLegacy = options.archiveLegacyRoots ?? true;
+  const pruneBoilerplate = options.pruneBoilerplate ?? true;
+
+  const entries = readdirSync(resolvedCapsulesDir);
+  const activeCapsules: string[] = [];
+  const archivedCapsules: string[] = [];
+  let prunedSubdirectoriesCount = 0;
+
+  for (const entry of entries) {
+    if (entry.startsWith(".") || entry === "archive") continue;
+    const fullPath = join(resolvedCapsulesDir, entry);
+    let entryStat;
+    try {
+      entryStat = lstatSync(fullPath);
+    } catch {
+      continue;
+    }
+    if (!entryStat.isDirectory() || entryStat.isSymbolicLink()) continue;
+
+    // Verify if it's a capsule directory (has manifest.json or prompt.md or state.json)
+    const isCapsule =
+      existsSync(join(fullPath, "manifest.json")) ||
+      existsSync(join(fullPath, "state.json")) ||
+      existsSync(join(fullPath, "prompt.md"));
+
+    if (!isCapsule) continue;
+
+    // Determine if entry is legacy
+    let isLegacy = false;
+
+    if (activeRunIdsSet !== undefined) {
+      isLegacy = !activeRunIdsSet.has(entry);
+    } else if (cutoffGen !== undefined) {
+      const genMatch = entry.match(/(?:mind-)?gen[-_]?(\d+)/i);
+      if (genMatch && genMatch[1]) {
+        const parsedGen = Number.parseInt(genMatch[1], 10);
+        if (Number.isFinite(parsedGen) && parsedGen <= cutoffGen) {
+          isLegacy = true;
+        }
+      }
+    }
+
+    // Also check state for completed / rotated mind or run if neither explicit active list nor gen cutoff flagged it
+    if (!isLegacy && activeRunIdsSet === undefined && cutoffGen === undefined) {
+      try {
+        const statePath = join(fullPath, "state.json");
+        if (existsSync(statePath)) {
+          const stateRaw = JSON.parse(readFileSync(statePath, "utf-8")) as Record<string, unknown>;
+          const mindState = stateRaw["mind"] as Record<string, unknown> | undefined;
+          const completionResult = stateRaw["completion_result"] as Record<string, unknown> | undefined;
+          if (mindState?.status === "rotated" || completionResult?.status === "complete") {
+            if (typeof mindState?.generation === "number" && currentGen !== undefined) {
+              if (mindState.generation <= currentGen - retention) {
+                isLegacy = true;
+              }
+            }
+          }
+        }
+      } catch {
+        // Skip read error
+      }
+    }
+
+    if (isLegacy && archiveLegacy) {
+      const archiveRes = archiveCapsule(fullPath, {
+        targetArchiveDir,
+        pruneBoilerplate,
+        overwrite: true,
+        dryRun: options.dryRun,
+      });
+      archivedCapsules.push(entry);
+      prunedSubdirectoriesCount += archiveRes.prunedDirectories.length;
+    } else {
+      activeCapsules.push(entry);
+      if (pruneBoilerplate) {
+        const pruneRes = pruneCapsuleBoilerplate(fullPath, { dryRun: options.dryRun });
+        prunedSubdirectoriesCount += pruneRes.prunedDirectories.length;
+      }
+    }
+  }
+
+  return {
+    capsulesDir: resolvedCapsulesDir,
+    activeCapsules,
+    archivedCapsules,
+    prunedSubdirectoriesCount,
+    archiveDir: targetArchiveDir,
   };
 }

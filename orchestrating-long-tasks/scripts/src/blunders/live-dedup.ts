@@ -1,12 +1,16 @@
 import { resolveBlunder } from "../mind/blunders.ts";
 import {
   aggregateBlunderEntries,
+  calculateBlunderAggregateMetrics,
   toAggregatedBlunder,
   withinDeduplicationWindow,
 } from "./aggregator.ts";
 import { computeBlunderDiscriminator } from "./discriminator.ts";
+import { parseAndDeduplicateBlunderJsonl, serializeAggregatedBlunderLog } from "./dedup-stream.ts";
 import type {
   AggregatedBlunder,
+  BlunderAggregateMetrics,
+  BlunderCategory,
   BlunderRecordInput,
   BlunderResolutionProof,
   LiveDeduplicationOptions,
@@ -21,7 +25,11 @@ export class LiveBlunderDeduplicator {
     this.options = options;
   }
 
-  public record(blunder: BlunderRecordInput): { isNew: boolean; entry: AggregatedBlunder } {
+  public record(blunder: BlunderRecordInput): {
+    readonly isNew: boolean;
+    readonly entry: AggregatedBlunder;
+    readonly occurrenceCount: number;
+  } {
     const key = computeBlunderDiscriminator(blunder, this.options.keyOptions);
     const existing = this.entries.get(key);
     const strategy = this.options.strategy ? this.options.strategy : "aggregate_synchronous";
@@ -35,14 +43,23 @@ export class LiveBlunderDeduplicator {
       );
       this.entries.set(key, entry);
       this.idToKey.set(entry.id, key);
-      return { isNew: true, entry };
+
+      if (this.options.maxEntries && this.entries.size > this.options.maxEntries) {
+        this.evictOldest(this.options.maxEntries);
+      }
+
+      if (this.options.onNewBlunder) {
+        this.options.onNewBlunder(entry);
+      }
+
+      return { isNew: true, entry, occurrenceCount: entry.count };
     }
 
     if (strategy === "exact_dedup") {
-      return { isNew: false, entry: existing };
+      return { isNew: false, entry: existing, occurrenceCount: existing.count };
     }
 
-    if (strategy === "windowed") {
+    if (strategy === "windowed" || strategy === "sliding_window_hash") {
       const incomingTs = blunder.timestamp ?? new Date().toISOString();
       if (!withinDeduplicationWindow(existing.last_seen_at, incomingTs, windowMs)) {
         const newEntry = toAggregatedBlunder(
@@ -51,14 +68,33 @@ export class LiveBlunderDeduplicator {
         );
         this.entries.set(key, newEntry);
         this.idToKey.set(newEntry.id, key);
-        return { isNew: true, entry: newEntry };
+
+        if (this.options.onNewBlunder) {
+          this.options.onNewBlunder(newEntry);
+        }
+
+        return { isNew: true, entry: newEntry, occurrenceCount: newEntry.count };
       }
     }
 
     const updated = aggregateBlunderEntries(existing, blunder, { maxOccurrences });
     this.entries.set(key, updated);
     this.idToKey.set(updated.id, key);
-    return { isNew: false, entry: updated };
+
+    if (this.options.onBlunderDeduplicated) {
+      this.options.onBlunderDeduplicated(updated, blunder);
+    }
+
+    return { isNew: false, entry: updated, occurrenceCount: updated.count };
+  }
+
+  public recordMany(blunders: readonly BlunderRecordInput[]): readonly AggregatedBlunder[] {
+    const results: AggregatedBlunder[] = [];
+    for (const b of blunders) {
+      const { entry } = this.record(b);
+      results.push(entry);
+    }
+    return results;
   }
 
   public get(keyOrId: string): AggregatedBlunder | undefined {
@@ -76,10 +112,31 @@ export class LiveBlunderDeduplicator {
     return Array.from(this.entries.values());
   }
 
-  public resolve(keyOrId: string, proof: BlunderResolutionProof): AggregatedBlunder | null {
+  public getOpenBlunders(): readonly AggregatedBlunder[] {
+    return this.getAll().filter((b) => b.status === "open");
+  }
+
+  public getResolvedBlunders(): readonly AggregatedBlunder[] {
+    return this.getAll().filter((b) => b.status === "resolved");
+  }
+
+  public getByCategory(category: BlunderCategory): readonly AggregatedBlunder[] {
+    return this.getAll().filter((b) => b.category === category);
+  }
+
+  public getBySeverity(severity: string): readonly AggregatedBlunder[] {
+    const norm = severity.toLowerCase().trim();
+    return this.getAll().filter((b) => b.severity.toLowerCase().trim() === norm);
+  }
+
+  public resolve(
+    keyOrId: string,
+    proof: BlunderResolutionProof,
+    options: { readonly requireCommitSha?: boolean | undefined } = {},
+  ): AggregatedBlunder | null {
     const existing = this.get(keyOrId);
     if (!existing) return null;
-    const resolvedMindEntry = resolveBlunder(existing, proof);
+    const resolvedMindEntry = resolveBlunder(existing, proof, options);
     const updated: AggregatedBlunder = {
       ...existing,
       status: "resolved",
@@ -100,6 +157,47 @@ export class LiveBlunderDeduplicator {
       }
     }
     return pruned;
+  }
+
+  public evictOldest(maxEntries: number): number {
+    if (this.entries.size <= maxEntries) {
+      return 0;
+    }
+
+    const sortedEntries = Array.from(this.entries.values()).sort(
+      (a, b) => Date.parse(a.last_seen_at) - Date.parse(b.last_seen_at),
+    );
+
+    const excessCount = this.entries.size - maxEntries;
+    let evicted = 0;
+
+    for (let i = 0; i < excessCount && i < sortedEntries.length; i += 1) {
+      const entry = sortedEntries[i];
+      if (entry) {
+        this.entries.delete(entry.dedup_key);
+        this.idToKey.delete(entry.id);
+        evicted += 1;
+      }
+    }
+
+    return evicted;
+  }
+
+  public getMetrics(): BlunderAggregateMetrics {
+    return calculateBlunderAggregateMetrics(this.getAll());
+  }
+
+  public exportJsonl(): string {
+    return serializeAggregatedBlunderLog(this.getAll());
+  }
+
+  public importJsonl(jsonl: string): number {
+    const parsed = parseAndDeduplicateBlunderJsonl(jsonl, this.options);
+    for (const entry of parsed) {
+      this.entries.set(entry.dedup_key, entry);
+      this.idToKey.set(entry.id, entry.dedup_key);
+    }
+    return parsed.length;
   }
 
   public clear(): void {

@@ -1,5 +1,5 @@
 import { enforceLineLimit } from "./line-limiter.ts";
-import { nextActionsBlock, orchestrateNextActions } from "./next-actions.ts";
+import { nextActionsBlock } from "./next-actions.ts";
 
 export interface OrchestrateBriefParams {
   readonly runId: string;

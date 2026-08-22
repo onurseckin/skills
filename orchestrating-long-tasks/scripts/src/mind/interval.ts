@@ -19,6 +19,8 @@ export const MAX_JITTER_RATIO = 0.2; // 20%
 export const DEFAULT_JITTER_RATIO = 0.15; // 15%
 export const MIN_INTERVAL_MS = 1_000; // 1 second
 
+export type BackoffStrategy = "exponential" | "linear" | "fibonacci" | "fixed" | "immediate";
+
 export interface JitterOptions {
   readonly jitterRatio?: number | undefined;
   readonly minRatio?: number | undefined;
@@ -26,6 +28,20 @@ export interface JitterOptions {
   readonly random?: (() => number) | undefined;
   readonly minIntervalMs?: number | undefined;
   readonly maxIntervalMs?: number | undefined;
+}
+
+/**
+ * Creates a deterministic pseudo-random number generator (Mulberry32) from a 32-bit integer seed.
+ * Produces uniform float values in [0, 1) for reproducible jitter calculations.
+ */
+export function createDeterministicRandom(seed: number): () => number {
+  let s = Math.trunc(seed) >>> 0;
+  return function mulberry32(): number {
+    s = (s + 0x6d2b79f5) >>> 0;
+    let t = Math.imul(s ^ (s >>> 15), 1 | s);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
 }
 
 /**
@@ -55,6 +71,21 @@ export function applyIntervalJitter(rawIntervalMs: number, options: JitterOption
 }
 
 /**
+ * Computes deterministic interval with seed-based jitter for reproducible tests and schedules.
+ */
+export function calculateDeterministicInterval(
+  rawIntervalMs: number,
+  seed: number,
+  options: Omit<JitterOptions, "random"> = {},
+): number {
+  const prng = createDeterministicRandom(seed);
+  return applyIntervalJitter(rawIntervalMs, {
+    ...options,
+    random: prng,
+  });
+}
+
+/**
  * Computes exponential backoff interval: min(maxIntervalMs, round(baseIntervalMs * 1.5^streak))
  */
 export function calculateExponentialBackoff(
@@ -67,6 +98,63 @@ export function calculateExponentialBackoff(
     maxIntervalMs,
     Math.round(baseIntervalMs * Math.pow(QUIESCENCE_INTERVAL_MULTIPLIER, safeStreak)),
   );
+}
+
+/**
+ * Computes backoff interval supporting multiple configurable strategies:
+ * - exponential: base * multiplier^streak
+ * - linear: base * (1 + streak)
+ * - fibonacci: base * fib(streak + 1)
+ * - fixed: base
+ * - immediate: 0
+ */
+export function calculateBackoffWithStrategy(options: {
+  readonly baseIntervalMs: number;
+  readonly maxIntervalMs: number;
+  readonly streak: number;
+  readonly strategy?: BackoffStrategy | undefined;
+  readonly multiplier?: number | undefined;
+}): number {
+  const {
+    baseIntervalMs,
+    maxIntervalMs,
+    streak,
+    strategy = "exponential",
+    multiplier = QUIESCENCE_INTERVAL_MULTIPLIER,
+  } = options;
+
+  const safeStreak = Math.max(0, streak);
+
+  switch (strategy) {
+    case "immediate":
+      return 0;
+
+    case "fixed":
+      return Math.min(maxIntervalMs, baseIntervalMs);
+
+    case "linear": {
+      const raw = baseIntervalMs * (1 + safeStreak);
+      return Math.min(maxIntervalMs, Math.round(raw));
+    }
+
+    case "fibonacci": {
+      let a = 1;
+      let b = 1;
+      for (let i = 0; i < safeStreak; i++) {
+        const next = a + b;
+        a = b;
+        b = next;
+      }
+      const raw = baseIntervalMs * a;
+      return Math.min(maxIntervalMs, Math.round(raw));
+    }
+
+    case "exponential":
+    default: {
+      const raw = baseIntervalMs * Math.pow(multiplier, safeStreak);
+      return Math.min(maxIntervalMs, Math.round(raw));
+    }
+  }
 }
 
 export interface ThrottleIntervalOptions {
@@ -169,6 +257,148 @@ export function calculateThrottleInterval(
     isReset,
     isRateLimited,
   };
+}
+
+export interface AntiIdleIntervalOptions {
+  readonly hasPendingWork: boolean;
+  readonly zeroValueStreak: number;
+  readonly baseIntervalMs?: number | undefined;
+  readonly maxIntervalMs?: number | undefined;
+  readonly maxPauseIntervalMs?: number | undefined;
+  readonly isRateLimited?: boolean | undefined;
+  readonly previousIntervalMs?: number | undefined;
+  readonly applyJitter?: boolean | undefined;
+  readonly random?: (() => number) | undefined;
+  readonly jitterRatio?: number | undefined;
+}
+
+export interface AntiIdleIntervalResult {
+  readonly intervalMs: number;
+  readonly rawIntervalMs: number;
+  readonly isImmediate: boolean;
+  readonly reason: string;
+  readonly zeroValueStreak: number;
+}
+
+/**
+ * Computes interval taking anti-idle immediate rollover into account.
+ * When work is pending (hasPendingWork = true), immediately returns intervalMs = 0 (isImmediate = true).
+ * Otherwise applies standard exponential backoff with optional jitter.
+ */
+export function computeAntiIdleInterval(
+  options: AntiIdleIntervalOptions,
+): AntiIdleIntervalResult {
+  const {
+    hasPendingWork,
+    zeroValueStreak,
+    baseIntervalMs = DEFAULT_BASE_INTERVAL_MS,
+    maxIntervalMs = DEFAULT_MAX_INTERVAL_MS,
+    maxPauseIntervalMs = DEFAULT_MAX_PAUSE_INTERVAL_MS,
+    isRateLimited = false,
+    previousIntervalMs,
+    applyJitter = true,
+    random = Math.random,
+    jitterRatio = DEFAULT_JITTER_RATIO,
+  } = options;
+
+  if (hasPendingWork) {
+    return {
+      intervalMs: 0,
+      rawIntervalMs: 0,
+      isImmediate: true,
+      reason: "Immediate rollover: active work or feedback present in queue",
+      zeroValueStreak: 0,
+    };
+  }
+
+  if (isRateLimited) {
+    const prev =
+      previousIntervalMs !== undefined && previousIntervalMs > 0
+        ? previousIntervalMs
+        : baseIntervalMs;
+    const raw = Math.min(maxPauseIntervalMs, prev * 2);
+    const jittered = applyJitter
+      ? applyIntervalJitter(raw, { jitterRatio, random, maxIntervalMs: maxPauseIntervalMs })
+      : raw;
+    return {
+      intervalMs: jittered,
+      rawIntervalMs: raw,
+      isImmediate: false,
+      reason: `Rate limit backoff: paused interval ${jittered}ms`,
+      zeroValueStreak: zeroValueStreak + 1,
+    };
+  }
+
+  const rawBackoff = calculateExponentialBackoff(baseIntervalMs, maxIntervalMs, zeroValueStreak);
+  const finalInterval = applyJitter
+    ? applyIntervalJitter(rawBackoff, { jitterRatio, random, maxIntervalMs })
+    : rawBackoff;
+
+  return {
+    intervalMs: finalInterval,
+    rawIntervalMs: rawBackoff,
+    isImmediate: false,
+    reason: `Quiescent backoff: streak ${zeroValueStreak}, interval ${finalInterval}ms`,
+    zeroValueStreak,
+  };
+}
+
+/**
+ * Projects backoff interval progression over N steps.
+ */
+export function projectIntervalProgression(options: {
+  readonly baseIntervalMs: number;
+  readonly maxIntervalMs: number;
+  readonly steps: number;
+  readonly multiplier?: number | undefined;
+  readonly strategy?: BackoffStrategy | undefined;
+}): readonly number[] {
+  const { baseIntervalMs, maxIntervalMs, steps, multiplier, strategy } = options;
+  const safeSteps = Math.max(0, steps);
+  const progression: number[] = [];
+
+  for (let streak = 0; streak < safeSteps; streak++) {
+    progression.push(
+      calculateBackoffWithStrategy({
+        baseIntervalMs,
+        maxIntervalMs,
+        streak,
+        strategy,
+        multiplier,
+      }),
+    );
+  }
+
+  return progression;
+}
+
+/**
+ * Formats a duration in milliseconds to human-readable string (e.g., "0ms", "500ms", "15m", "1h 30m").
+ */
+export function formatIntervalDuration(intervalMs: number): string {
+  if (intervalMs <= 0) return "0ms";
+  if (intervalMs < 1000) return `${intervalMs}ms`;
+
+  const totalSeconds = Math.floor(intervalMs / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  const parts: string[] = [];
+  if (hours > 0) parts.push(`${hours}h`);
+  if (minutes > 0) parts.push(`${minutes}m`);
+  if (seconds > 0 && hours === 0) parts.push(`${seconds}s`);
+
+  return parts.length > 0 ? parts.join(" ") : "0s";
+}
+
+/**
+ * Parses duration string into milliseconds (e.g., "0ms" -> 0, "15m" -> 900000, "4h" -> 14400000).
+ */
+export function parseIntervalDuration(durationStr: string): number {
+  const trimmed = durationStr.trim().toLowerCase();
+  if (trimmed === "0" || trimmed === "0ms" || trimmed === "0s" || trimmed === "0m") return 0;
+  return parseDuration(durationStr);
 }
 
 export interface TrailingValuePoint {

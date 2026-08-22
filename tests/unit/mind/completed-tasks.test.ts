@@ -320,7 +320,7 @@ describe("Completed Tasks Ledger Engine", () => {
     expect(emptyStats.by_category).toEqual({});
   });
 
-  it("seamlessly updates FEEDBACK_QUEUE.jsonl when resolving items", () => {
+  it("seamlessly updates FEEDBACK_QUEUE.jsonl with empirical sealing when resolving items", () => {
     setup();
 
     // Prepare initial FEEDBACK_QUEUE.jsonl
@@ -338,9 +338,19 @@ describe("Completed Tasks Ledger Engine", () => {
         id: "fb-102",
         timestamp: "2026-08-22T00:05:00.000Z",
         priority: "NORMAL",
-        status: "PENDING",
+        status: "ADMITTED",
         category: "GENERAL",
         title: "Other Feedback",
+        content: "Assigned to candidate.",
+        candidate_id: "task-cand-102",
+      },
+      {
+        id: "fb-103",
+        timestamp: "2026-08-22T00:10:00.000Z",
+        priority: "LOW",
+        status: "PENDING",
+        category: "DOCUMENTATION",
+        title: "Untouched Feedback",
         content: "Should remain pending.",
       },
     ];
@@ -351,19 +361,37 @@ describe("Completed Tasks Ledger Engine", () => {
       "utf8",
     );
 
-    const completedTask: CompletedTaskRecord = {
+    const completedTask1: CompletedTaskRecord = {
       id: "fb-101",
       source: "feedback_queue",
       title: "Add Completed Tasks Ledger",
       status: "COMPLETED",
       generation_id: "gen-5",
       commit_sha: "abc9999",
+      test_path: "tests/unit/mind/completed-tasks.test.ts",
+      assertions: 24,
+      runtime_ms: 68,
       proof_summary: "Completed tasks ledger implemented and tested.",
       completed_at: "2026-08-22T02:00:00.000Z",
       category: "CLI_TOOLING",
     };
 
-    recordCompletedTask(completedTask, {
+    const completedTask2: CompletedTaskRecord = {
+      id: "task-cand-102",
+      source: "task_queue",
+      title: "Resolve Candidate Feedback",
+      status: "COMPLETED",
+      generation_id: "gen-5",
+      commit_sha: "def8888",
+      test_path: "tests/unit/mind/cand.test.ts",
+      assertions: ["assertion A", "assertion B"],
+      runtime_ms: 110,
+      proof_summary: "Candidate task resolved with 2 assertions.",
+      completed_at: "2026-08-22T02:15:00.000Z",
+      category: "GENERAL",
+    };
+
+    recordCompletedTasksBatch([completedTask1, completedTask2], {
       customPath: ledgerFile,
       feedbackQueuePath: feedbackFile,
       updateFeedbackQueue: true,
@@ -371,8 +399,11 @@ describe("Completed Tasks Ledger Engine", () => {
 
     // Check ledger
     const ledger = readCompletedTasksLedger(ledgerFile);
-    expect(ledger).toHaveLength(1);
+    expect(ledger).toHaveLength(2);
     expect(ledger[0]?.id).toBe("fb-101");
+    expect(ledger[0]?.test_path).toBe("tests/unit/mind/completed-tasks.test.ts");
+    expect(ledger[0]?.assertions).toBe(24);
+    expect(ledger[0]?.runtime_ms).toBe(68);
 
     // Check feedback queue
     const rawFb = readFileSync(feedbackFile, "utf8");
@@ -380,7 +411,7 @@ describe("Completed Tasks Ledger Engine", () => {
       .trim()
       .split("\n")
       .map((l) => JSON.parse(l) as Record<string, unknown>);
-    expect(fbLines).toHaveLength(2);
+    expect(fbLines).toHaveLength(3);
 
     const updatedFb101 = fbLines.find((f) => f["id"] === "fb-101");
     expect(updatedFb101?.["status"]).toBe("COMPLETED");
@@ -388,9 +419,32 @@ describe("Completed Tasks Ledger Engine", () => {
       "Completed tasks ledger implemented and tested.",
     );
     expect(updatedFb101?.["processed_at"]).toBe("2026-08-22T02:00:00.000Z");
+    expect(updatedFb101?.["test_path"]).toBe("tests/unit/mind/completed-tasks.test.ts");
+    expect(updatedFb101?.["assertions"]).toBe(24);
+    expect(updatedFb101?.["runtime_ms"]).toBe(68);
+    expect(updatedFb101?.["commit_sha"]).toBe("abc9999");
+    const res101 = updatedFb101?.["resolution"] as Record<string, unknown>;
+    expect(res101).toBeDefined();
+    expect(res101["task_id"]).toBe("fb-101");
+    expect(res101["test_path"]).toBe("tests/unit/mind/completed-tasks.test.ts");
+    expect(res101["assertions"]).toBe(24);
+    expect(res101["runtime_ms"]).toBe(68);
+    expect(res101["commit_sha"]).toBe("abc9999");
 
-    const untouchedFb102 = fbLines.find((f) => f["id"] === "fb-102");
-    expect(untouchedFb102?.["status"]).toBe("PENDING");
+    // Match by candidate_id
+    const updatedFb102 = fbLines.find((f) => f["id"] === "fb-102");
+    expect(updatedFb102?.["status"]).toBe("COMPLETED");
+    expect(updatedFb102?.["test_path"]).toBe("tests/unit/mind/cand.test.ts");
+    expect(updatedFb102?.["assertions"]).toEqual(["assertion A", "assertion B"]);
+    expect(updatedFb102?.["runtime_ms"]).toBe(110);
+    expect(updatedFb102?.["commit_sha"]).toBe("def8888");
+    const res102 = updatedFb102?.["resolution"] as Record<string, unknown>;
+    expect(res102).toBeDefined();
+    expect(res102["task_id"]).toBe("task-cand-102");
+
+    const untouchedFb103 = fbLines.find((f) => f["id"] === "fb-103");
+    expect(untouchedFb103?.["status"]).toBe("PENDING");
+    expect(untouchedFb103?.["resolution"]).toBeUndefined();
 
     teardown();
   });
@@ -431,6 +485,8 @@ describe("Completed Tasks Ledger Engine", () => {
       status: "RESOLVED",
       generation_id: "gen-6",
       commit_sha: "fed4321",
+      test_path: "tests/unit/mind/completed-tasks.test.ts",
+      runtime_ms: 55,
       proof_summary: "bun test tests/unit/mind/completed-tasks.test.ts passed 100%",
       completed_at: "2026-08-22T02:30:00.000Z",
       category: "code_defect",
@@ -466,6 +522,8 @@ describe("Completed Tasks Ledger Engine", () => {
     );
     expect(resolution["resolved_at"]).toBe("2026-08-22T02:30:00.000Z");
     expect(resolution["commit_sha"]).toBe("fed4321");
+    expect(resolution["test_path"]).toBe("tests/unit/mind/completed-tasks.test.ts");
+    expect(resolution["runtime_ms"]).toBe(55);
 
     const untouchedBlunder100 = blunderLines.find((b) => b["id"] === "blunder-100");
     expect(untouchedBlunder100?.["status"]).toBe("open");
@@ -518,5 +576,33 @@ describe("Completed Tasks Ledger Engine", () => {
     const truncatedBrief = formatCompletedTasksBrief(records, 5);
     expect(truncatedBrief.split("\n").length).toBeLessThanOrEqual(5);
     expect(truncatedBrief).toContain("truncated");
+  });
+});
+
+describe("Static Invariant Verification: Zero TypeScript any & Zero Suppressions", () => {
+  it("verifies completed tasks files contain zero any and zero suppressions", () => {
+    const filesToAudit = [
+      join(process.cwd(), "orchestrating-long-tasks/scripts/src/mind/completed-tasks.ts"),
+      join(process.cwd(), "tests/unit/mind/completed-tasks.test.ts"),
+    ];
+
+    const anyPattern = new RegExp(":\\s*any\\b|as\\s+any\\b|<any>");
+    const suppressionPattern = new RegExp(
+      ["@ts" + "-ignore", "@ts" + "-expect-error", "@ts" + "-nocheck", "eslint" + "-disable", "oxlint" + "-disable"].join("|"),
+    );
+
+    for (const filePath of filesToAudit) {
+      if (!existsSync(filePath)) continue;
+      const content = readFileSync(filePath, "utf-8");
+      const lines = content.split("\n");
+
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i]!;
+        if (line.includes("anyPattern") || line.includes("suppressionPattern")) continue;
+
+        expect(anyPattern.test(line)).toBe(false);
+        expect(suppressionPattern.test(line)).toBe(false);
+      }
+    }
   });
 });

@@ -8,6 +8,7 @@ import {
   formatBranchStatusBrief,
   formatBranchSubmitBrief,
 } from "../../../orchestrating-long-tasks/scripts/src/cli/formatters/branch-formatter.ts";
+import { formatDeterministicActionChaining } from "../../../orchestrating-long-tasks/scripts/src/cli/formatters/next-actions.ts";
 
 function branch(overrides: Partial<BranchRecord> = {}): BranchRecord {
   return {
@@ -42,6 +43,13 @@ describe("formatBranchOpenBrief", () => {
     expect(brief).toContain("**Depth**: 1");
     expect(brief).toContain("branch:claim --run run-1 --branch B-1");
     expect(brief).toContain("branch:collect --run run-1 --branch B-1 --agent worker-1");
+    expect(brief).toContain("⚡ Next Actions:");
+    expect(brief).toContain(
+      "`bun harness.ts branch:claim --run run-1 --branch B-1 --sub-task S-1 --agent <SUB_AGENT>` [Sub-agent] — Claim sub-task under isolated scope",
+    );
+    expect(brief).toContain(
+      '`bun harness.ts branch:collect --run run-1 --branch B-1 --agent worker-1 --token <PARENT_TOKEN> --summary "<SUMMARY>"` [Parent] — Collect branch once sub-tasks are submitted',
+    );
   });
 });
 
@@ -75,6 +83,10 @@ describe("formatBranchClaimBrief", () => {
     expect(brief).toContain(
       "branch:submit --run run-1 --branch B-1 --sub-task S-1 --agent sub-1 --token tok_abc",
     );
+    expect(brief).toContain("⚡ Next Actions:");
+    expect(brief).toContain(
+      '`bun harness.ts branch:submit --run run-1 --branch B-1 --sub-task S-1 --agent sub-1 --token tok_abc --summary "<SUMMARY>"` [Sub-agent] — Submit completed sub-task back to parent branch',
+    );
   });
 
   test("an unassigned sub-task with no gate and no lease admits all three are unknown", () => {
@@ -91,6 +103,10 @@ describe("formatBranchClaimBrief", () => {
     expect(brief).toContain("**Gate**: none declared");
     expect(brief).toContain("**Lease Expires**: unknown");
     expect(brief).toContain("--agent <AGENT>");
+    expect(brief).toContain("⚡ Next Actions:");
+    expect(brief).toContain(
+      '`bun harness.ts branch:submit --run run-1 --branch B-1 --sub-task S-1 --agent <AGENT> --token tok_abc --summary "<SUMMARY>"` [Sub-agent] — Submit completed sub-task back to parent branch',
+    );
   });
 });
 
@@ -108,6 +124,10 @@ describe("formatBranchSubmitBrief", () => {
     expect(brief).toContain("### Sub-task Submitted: S-1");
     expect(brief).toContain("`B-1` on `task-1`");
     expect(brief).toContain("`S-2` (claimed)");
+    expect(brief).toContain("⚡ Next Actions:");
+    expect(brief).toContain(
+      '`bun harness.ts branch:collect --branch B-1 --agent worker-1 --token <PARENT_TOKEN> --summary "<SUMMARY>"` [Parent] — Collect submitted branch work',
+    );
   });
 
   test("once nothing remains open, says the branch is ready to collect", () => {
@@ -135,6 +155,10 @@ describe("formatBranchCollectBrief", () => {
     expect(brief).toContain("**Files Changed**: unknown (no repository observation)");
     expect(brief).toContain("`task-1` is now running with a fresh lease");
     expect(brief).toContain("**Outcome**: none recorded");
+    expect(brief).toContain("⚡ Next Actions:");
+    expect(brief).toContain(
+      '`bun harness.ts task:submit --task task-1 --agent worker-1 --token <TOKEN> --summary "<SUMMARY>"` [Parent] — Submit parent task with branch modifications integrated',
+    );
   });
 
   test("distinguishes a measured empty change set from an unmeasured one", () => {
@@ -170,7 +194,15 @@ describe("formatBranchCollectBrief", () => {
 
 describe("formatBranchStatusBrief", () => {
   test("says so plainly when nothing has branched", () => {
-    expect(formatBranchStatusBrief([], "run-1")).toContain("none opened in this run");
+    const brief = formatBranchStatusBrief([], "run-1");
+    expect(brief).toContain("none opened in this run");
+    expect(brief).toContain("⚡ Next Actions:");
+    expect(brief).toContain(
+      "`bun harness.ts branch:open --run run-1 --parent-task <TASK_ID> --parent-agent <AGENT> --token <TOKEN>` [Parent] — Open branch to subdivide complex task",
+    );
+    expect(brief).toContain(
+      "`bun harness.ts run:status --run run-1` [Orchestrator] — Check execution status",
+    );
   });
 
   test("shows why every open branch exists, with its submitted count and file evidence", () => {
@@ -186,6 +218,13 @@ describe("formatBranchStatusBrief", () => {
 
     expect(brief).toContain("the parser blocks the API change");
     expect(brief).toContain("| `B-1` | `task-1` | 1 | open | 0/1 | 1 files (harness_observed) |");
+    expect(brief).toContain("⚡ Next Actions:");
+    expect(brief).toContain(
+      "`bun harness.ts branch:open --run run-1 --parent-task <TASK_ID> --parent-agent <AGENT> --token <TOKEN>` [Parent] — Open branch to subdivide complex task",
+    );
+    expect(brief).toContain(
+      "`bun harness.ts run:status --run run-1` [Orchestrator] — Check execution status",
+    );
   });
 });
 
@@ -205,6 +244,10 @@ describe("formatBranchAbandonBrief", () => {
     expect(brief).toContain("`task-1` is now leased with a fresh lease");
     expect(brief).toContain("the approach was a dead end");
     expect(brief).toContain("**Sub-leases Released**: 1");
+    expect(brief).toContain("⚡ Next Actions:");
+    expect(brief).toContain(
+      "`bun harness.ts task:heartbeat --task task-1 --agent worker-1 --token <TOKEN>` [Parent] — Refresh parent lease and resume work",
+    );
   });
 
   test("an unresolved abandon admits it recorded no outcome", () => {
@@ -212,3 +255,24 @@ describe("formatBranchAbandonBrief", () => {
     expect(brief).toContain("**Why Abandoned**: none recorded");
   });
 });
+
+describe("formatDeterministicActionChaining", () => {
+  test("generates deterministic action chains for branch, task, plan, and queue stages", () => {
+    const branchActions = formatDeterministicActionChaining("branch", { runId: "run-b" });
+    expect(branchActions.join("\n")).toContain("bun harness.ts branch:open --run run-b");
+    expect(branchActions.join("\n")).toContain("bun harness.ts branch:claim --run run-b");
+
+    const taskActions = formatDeterministicActionChaining("task");
+    expect(taskActions.join("\n")).toContain("bun harness.ts task:heartbeat --task <TASK_ID>");
+    expect(taskActions.join("\n")).toContain("bun harness.ts task:submit --task <TASK_ID>");
+
+    const planActions = formatDeterministicActionChaining("plan", { runId: "run-p" });
+    expect(planActions.join("\n")).toContain("bun harness.ts plan:enhance --run run-p");
+    expect(planActions.join("\n")).toContain("bun harness.ts plan:compile --run run-p");
+
+    const queueActions = formatDeterministicActionChaining("queue", { runId: "run-q" });
+    expect(queueActions.join("\n")).toContain("bun harness.ts queue:wave --run run-q");
+    expect(queueActions.join("\n")).toContain("bun harness.ts queue:next --run run-q");
+  });
+});
+

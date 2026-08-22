@@ -107,9 +107,8 @@ export function formatReportsListBrief(params: ReportsListParams): string {
     lines.push("- No reports recorded for this run.");
   } else {
     for (const r of params.reports.slice(0, 10)) {
-      const sCount = Array.isArray(r.data?.screenshots)
-        ? (r.data?.screenshots as unknown[]).length
-        : 0;
+      const screenshots = r.data?.screenshots;
+      const sCount = Array.isArray(screenshots) ? screenshots.length : 0;
       const sSuffix = params.showScreenshots || sCount > 0 ? ` (${sCount} screenshots)` : "";
       lines.push(`- **\`${r.name}\`**${sSuffix}: \`${r.path}\``);
     }

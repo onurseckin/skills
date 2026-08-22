@@ -11,6 +11,19 @@ import {
   TIER_NAMES,
   type ExecutionTier,
 } from "../authority/thread-identifier.ts";
+import {
+  extractLeaseAgentId,
+  extractLeaseRole,
+  extractLeaseAttempt,
+  type LeaseRecordView,
+} from "./lease-agent-extractor.ts";
+
+export {
+  extractLeaseAgentId,
+  extractLeaseRole,
+  extractLeaseAttempt,
+  type LeaseRecordView,
+};
 
 export interface LeaseMatrixRow {
   taskId: string;
@@ -99,27 +112,6 @@ export interface UnifiedReport {
   decisions: DecisionAuditRow[];
 }
 
-export function extractLeaseAgentId(lease: unknown): string {
-  if (!lease || typeof lease !== "object") return "";
-  const rec = lease as Record<string, unknown>;
-  if (
-    typeof rec.agent_id === "string" &&
-    rec.agent_id.trim().length > 0 &&
-    rec.agent_id !== "undefined" &&
-    rec.agent_id !== "null"
-  ) {
-    return rec.agent_id.trim();
-  }
-  if (
-    typeof rec.agent === "string" &&
-    rec.agent.trim().length > 0 &&
-    rec.agent !== "undefined" &&
-    rec.agent !== "null"
-  ) {
-    return rec.agent.trim();
-  }
-  return "";
-}
 
 export function generateLeasesReport(runRoot: string): {
   matrix: LeaseMatrixRow[];

@@ -9,6 +9,11 @@ import { workflowPort } from "../../integration/store-ports.ts";
 import { inspectRepositoryBinding } from "../../packets/repository-identity.ts";
 import { verifyCommandRecord } from "../../runner/verify-command.ts";
 import { loadRun } from "../../store/index.ts";
+import {
+  archiveCapsule,
+  consolidateCapsules,
+  pruneCapsuleBoilerplate,
+} from "../../mind/archival.ts";
 import { completeRun } from "../../workflow/completion/complete-run.ts";
 import { gateTally } from "../../workflow/completion/completion-state.ts";
 import type { CompletionArtifactRequirements } from "../../workflow/completion/artifact-verification.ts";
@@ -128,6 +133,14 @@ export function runCompleteCommand(flags: Flags): Record<string, unknown> {
     // Non-blocking
   }
 
+  let prunedSubdirectories: readonly string[] = [];
+  try {
+    const pruneRes = pruneCapsuleBoilerplate(run);
+    prunedSubdirectories = pruneRes.prunedDirectories;
+  } catch {
+    // Non-blocking
+  }
+
   const markdown = formatRunCompleteBrief({
     runId: basename(run),
     capsulePath: run,
@@ -158,6 +171,28 @@ export function runCompleteCommand(flags: Flags): Record<string, unknown> {
     ...(consolidation === undefined ? {} : { worktree_consolidation: consolidation }),
     ...(summaryWarning === undefined ? {} : { summary_warning: summaryWarning }),
     ...(autoSyncCommitResult === undefined ? {} : { auto_sync_commit: autoSyncCommitResult }),
+    ...(prunedSubdirectories.length > 0 ? { pruned_subdirectories: prunedSubdirectories } : {}),
+  };
+}
+
+export function runConsolidateCommand(flags: Flags): Record<string, unknown> {
+  const repo = textFlag(flags, "repo", false) ?? process.cwd();
+  const capsulesDir = textFlag(flags, "capsules-dir", false) ?? join(repo, ".capsules");
+  const dryRun = boolFlag(flags, "dry-run");
+  const result = consolidateCapsules(capsulesDir, { dryRun });
+  return {
+    markdown: `### Capsule Consolidation Complete\n- **Active Capsules**: ${result.activeCapsules.length}\n- **Archived Capsules**: ${result.archivedCapsules.length}\n- **Pruned Subdirectories**: ${result.prunedSubdirectoriesCount}\n- **Archive Directory**: \`${result.archiveDir}\``,
+    ...result,
+  };
+}
+
+export function runArchiveCommand(flags: Flags): Record<string, unknown> {
+  const run = textFlag(flags, "run")!;
+  const dryRun = boolFlag(flags, "dry-run");
+  const result = archiveCapsule(run, { dryRun });
+  return {
+    markdown: `### Capsule Archived: \`${result.runId}\`\n- **Source**: \`${result.sourcePath}\`\n- **Archived**: \`${result.archivedPath}\`\n- **Pruned Subdirectories**: ${result.prunedDirectories.length}`,
+    ...result,
   };
 }
 

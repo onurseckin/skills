@@ -25,8 +25,10 @@ export interface CapsuleEventsResult {
   readonly hasMore: boolean;
 }
 
+export type FetchLike = (input: string | URL | Request, init?: RequestInit) => Promise<Response>;
+
 export interface WebhookDeliveryOptions {
-  readonly customFetch?: typeof fetch | undefined;
+  readonly customFetch?: FetchLike | undefined;
   readonly retries?: number | undefined;
   readonly timeoutMs?: number | undefined;
   readonly headers?: Readonly<Record<string, string>> | undefined;
@@ -80,6 +82,10 @@ export function resolveCapsulePath(runInput: string, repoRoot: string = process.
 
   const inCapsules = resolve(repoRoot, ".capsules", runInput);
   if (existsSync(inCapsules)) {
+    const st = lstatSync(inCapsules);
+    if (st.isFile() && basename(inCapsules) === "events.jsonl") {
+      return dirname(realpathSync(inCapsules));
+    }
     return realpathSync(inCapsules);
   }
 
@@ -233,30 +239,27 @@ export function parseNdjsonStream(ndjson: string): HarnessEvent[] {
   return result;
 }
 
-export async function deliverEventsToWebhook(
-  events: readonly (HarnessEvent | Record<string, unknown>)[],
-  webhookUrl: string,
-  options: WebhookDeliveryOptions = {},
-): Promise<WebhookDeliveryResult> {
-  const startTime = Date.now();
-  if (events.length === 0) {
-    return {
-      success: true,
-      deliveredCount: 0,
-      attempts: 0,
-      receiptId: "rcpt_empty_batch",
-      durationMs: 0,
-    };
-  }
+interface SingleBatchResult {
+  readonly success: boolean;
+  readonly statusCode?: number | undefined;
+  readonly receiptId?: string | undefined;
+  readonly attempts: number;
+  readonly error?: string | undefined;
+}
 
+async function deliverSingleBatch(
+  batch: readonly (HarnessEvent | Record<string, unknown>)[],
+  webhookUrl: string,
+  options: WebhookDeliveryOptions,
+): Promise<SingleBatchResult> {
   const fetchFn = options.customFetch ?? fetch;
   const maxRetries = Math.max(0, options.retries ?? 3);
   const timeoutMs = options.timeoutMs ?? 5000;
   const backoffBase = options.backoffBaseMs ?? 50;
 
   const payload = {
-    events,
-    count: events.length,
+    events: batch,
+    count: batch.length,
     delivered_at: new Date().toISOString(),
     batch_id: `batch_${randomUUID().slice(0, 8)}`,
   };
@@ -309,11 +312,9 @@ export async function deliverEventsToWebhook(
 
         return {
           success: true,
-          deliveredCount: events.length,
           statusCode: response.status,
           receiptId,
           attempts,
-          durationMs: Date.now() - startTime,
         };
       }
 
@@ -321,11 +322,9 @@ export async function deliverEventsToWebhook(
       if (response.status >= 400 && response.status < 500 && response.status !== 429) {
         return {
           success: false,
-          deliveredCount: 0,
           statusCode: response.status,
           attempts,
           error: `Webhook rejected payload with HTTP ${response.status}: ${response.statusText}`,
-          durationMs: Date.now() - startTime,
         };
       }
 
@@ -343,10 +342,69 @@ export async function deliverEventsToWebhook(
 
   return {
     success: false,
-    deliveredCount: 0,
     ...(lastStatusCode !== undefined ? { statusCode: lastStatusCode } : {}),
     attempts,
     error: lastError !== undefined ? lastError : "Webhook delivery failed after maximum retries",
+  };
+}
+
+export async function deliverEventsToWebhook(
+  events: readonly (HarnessEvent | Record<string, unknown>)[],
+  webhookUrl: string,
+  options: WebhookDeliveryOptions = {},
+): Promise<WebhookDeliveryResult> {
+  const startTime = Date.now();
+  if (events.length === 0) {
+    return {
+      success: true,
+      deliveredCount: 0,
+      attempts: 0,
+      receiptId: "rcpt_empty_batch",
+      durationMs: 0,
+    };
+  }
+
+  const batchSize =
+    options.batchSize !== undefined && options.batchSize > 0
+      ? options.batchSize
+      : events.length;
+
+  const batches: (readonly (HarnessEvent | Record<string, unknown>)[])[] = [];
+  for (let i = 0; i < events.length; i += batchSize) {
+    batches.push(events.slice(i, i + batchSize));
+  }
+
+  let deliveredCount = 0;
+  let totalAttempts = 0;
+  let lastReceiptId: string | undefined;
+  let lastStatusCode: number | undefined;
+
+  for (const batch of batches) {
+    const result = await deliverSingleBatch(batch, webhookUrl, options);
+    totalAttempts += result.attempts;
+    lastStatusCode = result.statusCode;
+
+    if (!result.success) {
+      return {
+        success: false,
+        deliveredCount,
+        ...(lastStatusCode !== undefined ? { statusCode: lastStatusCode } : {}),
+        attempts: totalAttempts,
+        error: result.error,
+        durationMs: Date.now() - startTime,
+      };
+    }
+
+    deliveredCount += batch.length;
+    lastReceiptId = result.receiptId;
+  }
+
+  return {
+    success: true,
+    deliveredCount,
+    ...(lastStatusCode !== undefined ? { statusCode: lastStatusCode } : {}),
+    receiptId: lastReceiptId,
+    attempts: totalAttempts,
     durationMs: Date.now() - startTime,
   };
 }

@@ -1,5 +1,5 @@
 import { existsSync, lstatSync, readdirSync, readFileSync } from "node:fs";
-import { basename, join, resolve } from "node:path";
+import { join, resolve } from "node:path";
 import { enforceLineLimit, formatTable } from "../cli/formatters/line-limiter.ts";
 import { HarnessError } from "../errors/harness-error.ts";
 export * from "./pushbacks.ts";
@@ -13,6 +13,8 @@ export interface BlunderResolutionProof {
   readonly task_id: string;
   readonly test_assertion: string;
   readonly resolved_at: string;
+  readonly remediation_notes?: string | undefined;
+  readonly verified_by?: string | undefined;
 }
 
 export interface BlunderEntry {
@@ -37,6 +39,10 @@ export interface BlunderEntry {
         readonly [key: string]: unknown;
       }
     | undefined;
+  readonly count?: number | undefined;
+  readonly first_seen_at?: string | undefined;
+  readonly last_seen_at?: string | undefined;
+  readonly occurrences?: readonly unknown[] | undefined;
   readonly resolution?: BlunderResolutionProof | null | undefined;
   readonly capsule_root?: string | null | undefined;
 }
@@ -75,6 +81,59 @@ export interface ParseBlunderLogOptions {
 
 export interface FormatBlunderAuditBriefOptions {
   readonly maxLines?: number | undefined;
+}
+
+export interface BlunderHypothesis {
+  readonly id: string;
+  readonly blunder_id: string;
+  readonly root_cause: string;
+  readonly confidence: number;
+  readonly category: BlunderCategory;
+  readonly evidence: readonly string[];
+}
+
+export interface BlunderRemediationAction {
+  readonly action_id: string;
+  readonly blunder_id: string;
+  readonly target_scope: readonly string[];
+  readonly action_type:
+    | "fix_code"
+    | "tighten_boundary"
+    | "align_reasoning"
+    | "add_test_gate"
+    | "update_invariants";
+  readonly description: string;
+  readonly prescribed_test: string;
+  readonly status: "planned" | "executed" | "verified" | "failed";
+}
+
+export interface BlunderRemediationSynthesis {
+  readonly synthesis_id: string;
+  readonly summary: string;
+  readonly resolved_blunder_ids: readonly string[];
+  readonly unresolved_blunder_ids: readonly string[];
+  readonly remediation_plan: readonly string[];
+  readonly empirical_proofs: readonly BlunderResolutionProof[];
+  readonly readiness_for_convergence: boolean;
+  readonly recommendation: "converge" | "advance_round" | "escalate_to_authority";
+}
+
+export interface BlunderDeliberationRound {
+  readonly round_number: number;
+  readonly opened_at: string;
+  readonly closed_at?: string | null | undefined;
+  readonly blunder_ids: readonly string[];
+  readonly hypotheses: readonly BlunderHypothesis[];
+  readonly remediation_actions: readonly BlunderRemediationAction[];
+  readonly synthesis: BlunderRemediationSynthesis;
+  readonly status: "deliberating" | "converged" | "escalated" | "exhausted";
+}
+
+export interface DeliberationPipelineOptions {
+  readonly maxRounds?: number | undefined;
+  readonly convergenceThreshold?: number | undefined;
+  readonly defaultWriteScope?: readonly string[] | undefined;
+  readonly requireCommitSha?: boolean | undefined;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -135,212 +194,91 @@ export function categorizeBlunder(
   const fullSearchSpace = `${rawId} ${rawType} ${rawRole} ${rawObservation} ${rawRemediation}`;
 
   // Boundary violation patterns
-  const isBoundary = rawType.includes("role_confusion")
-    ? true
-    : rawType.includes("role_leak")
-      ? true
-      : rawType.includes("role_amnesia")
-        ? true
-        : rawType.includes("identity")
-          ? true
-          : rawType.includes("main_thread")
-            ? true
-            : rawType.includes("boundary")
-              ? true
-              : rawType.includes("unauthorized")
-                ? true
-                : rawType.includes("role_escalation")
-                  ? true
-                  : rawType.includes("restraint")
-                    ? true
-                    : rawType.includes("thread_authority")
-                      ? true
-                      : rawType.includes("tier")
-                        ? true
-                        : rawType.includes("permission")
-                          ? true
-                          : rawType.includes("sandbox_escape")
-                            ? true
-                            : rawType.includes("scope_escape")
-                              ? true
-                              : rawId.includes("role-leak")
-                                ? true
-                                : rawId.includes("role-amnesia")
-                                  ? true
-                                  : rawId.includes("identity")
-                                    ? true
-                                    : rawId.includes("boundary")
-                                      ? true
-                                      : rawId.includes("main-thread")
-                                        ? true
-                                        : rawId.includes("orch-role")
-                                          ? true
-                                          : fullSearchSpace.includes("main thread")
-                                            ? true
-                                            : fullSearchSpace.includes("restraint active")
-                                              ? true
-                                              : fullSearchSpace.includes("boundary violation")
-                                                ? true
-                                                : fullSearchSpace.includes("boundary")
-                                                  ? true
-                                                  : fullSearchSpace.includes("boundaries")
-                                                    ? true
-                                                    : fullSearchSpace.includes("write scope")
-                                                      ? true
-                                                      : fullSearchSpace.includes(
-                                                            "unauthorized mutation",
-                                                          )
-                                                        ? true
-                                                        : fullSearchSpace.includes("human shell")
-                                                          ? true
-                                                          : fullSearchSpace.includes(
-                                                                "subagent boundary",
-                                                              )
-                                                            ? true
-                                                            : fullSearchSpace.includes(
-                                                                  "subagent delegation",
-                                                                )
-                                                              ? true
-                                                              : fullSearchSpace.includes(
-                                                                    "role escalation",
-                                                                  )
-                                                                ? true
-                                                                : fullSearchSpace.includes(
-                                                                      "role confusion",
-                                                                    )
-                                                                  ? true
-                                                                  : fullSearchSpace.includes(
-                                                                        "role amnesia",
-                                                                      )
-                                                                    ? true
-                                                                    : fullSearchSpace.includes(
-                                                                          "identity and role",
-                                                                        )
-                                                                      ? true
-                                                                      : fullSearchSpace.includes(
-                                                                            "direct file edit",
-                                                                          )
-                                                                        ? true
-                                                                        : fullSearchSpace.includes(
-                                                                              "direct test run",
-                                                                            )
-                                                                          ? true
-                                                                          : fullSearchSpace.includes(
-                                                                                "whoami",
-                                                                              )
-                                                                            ? true
-                                                                            : fullSearchSpace.includes(
-                                                                                  "failed to actively police",
-                                                                                )
-                                                                              ? true
-                                                                              : false;
+  const isBoundary =
+    rawType.includes("role_confusion") ||
+    rawType.includes("role_leak") ||
+    rawType.includes("role_amnesia") ||
+    rawType.includes("identity") ||
+    rawType.includes("main_thread") ||
+    rawType.includes("boundary") ||
+    rawType.includes("unauthorized") ||
+    rawType.includes("role_escalation") ||
+    rawType.includes("restraint") ||
+    rawType.includes("thread_authority") ||
+    rawType.includes("tier") ||
+    rawType.includes("permission") ||
+    rawType.includes("sandbox_escape") ||
+    rawType.includes("scope_escape") ||
+    rawId.includes("role-leak") ||
+    rawId.includes("role-amnesia") ||
+    rawId.includes("identity") ||
+    rawId.includes("boundary") ||
+    rawId.includes("main-thread") ||
+    rawId.includes("orch-role") ||
+    fullSearchSpace.includes("main thread") ||
+    fullSearchSpace.includes("restraint active") ||
+    fullSearchSpace.includes("boundary violation") ||
+    fullSearchSpace.includes("boundary") ||
+    fullSearchSpace.includes("boundaries") ||
+    fullSearchSpace.includes("write scope") ||
+    fullSearchSpace.includes("unauthorized mutation") ||
+    fullSearchSpace.includes("human shell") ||
+    fullSearchSpace.includes("subagent boundary") ||
+    fullSearchSpace.includes("subagent delegation") ||
+    fullSearchSpace.includes("role escalation") ||
+    fullSearchSpace.includes("role confusion") ||
+    fullSearchSpace.includes("role amnesia") ||
+    fullSearchSpace.includes("identity and role") ||
+    fullSearchSpace.includes("direct file edit") ||
+    fullSearchSpace.includes("direct test run") ||
+    fullSearchSpace.includes("whoami") ||
+    fullSearchSpace.includes("failed to actively police");
 
   if (isBoundary) {
     return "boundary_violation";
   }
 
   // Model reasoning error patterns
-  const isReasoningError = rawType.includes("reasoning")
-    ? true
-    : rawType.includes("hallucination")
-      ? true
-      : rawType.includes("logic")
-        ? true
-        : rawType.includes("assumption")
-          ? true
-          : rawType.includes("plan_drift")
-            ? true
-            : rawType.includes("intent_drift")
-              ? true
-              : rawType.includes("instruction_drift")
-                ? true
-                : rawType.includes("self_critique")
-                  ? true
-                  : rawType.includes("context_loss")
-                    ? true
-                    : rawType.includes("premise")
-                      ? true
-                      : rawType.includes("inertia")
-                        ? true
-                        : rawType.includes("paralysis")
-                          ? true
-                          : rawType.includes("idle_death")
-                            ? true
-                            : rawType.includes("self_termination")
-                              ? true
-                              : rawId.includes("paralysis")
-                                ? true
-                                : rawId.includes("drift")
-                                  ? true
-                                  : rawId.includes("hallucination")
-                                    ? true
-                                    : rawId.includes("idle-death")
-                                      ? true
-                                      : rawId.includes("self-termination")
-                                        ? true
-                                        : fullSearchSpace.includes("reasoning error")
-                                          ? true
-                                          : fullSearchSpace.includes("hallucination")
-                                            ? true
-                                            : fullSearchSpace.includes("illogical")
-                                              ? true
-                                              : fullSearchSpace.includes("incorrect premise")
-                                                ? true
-                                                : fullSearchSpace.includes("wrong assumption")
-                                                  ? true
-                                                  : fullSearchSpace.includes("invalid assumption")
-                                                    ? true
-                                                    : fullSearchSpace.includes("failed to adhere")
-                                                      ? true
-                                                      : fullSearchSpace.includes("intent drift")
-                                                        ? true
-                                                        : fullSearchSpace.includes(
-                                                              "instruction drift",
-                                                            )
-                                                          ? true
-                                                          : fullSearchSpace.includes("plan drift")
-                                                            ? true
-                                                            : fullSearchSpace.includes(
-                                                                  "plan revision paralysis",
-                                                                )
-                                                              ? true
-                                                              : fullSearchSpace.includes(
-                                                                    "passive inertia",
-                                                                  )
-                                                                ? true
-                                                                : fullSearchSpace.includes(
-                                                                      "revision paralysis",
-                                                                    )
-                                                                  ? true
-                                                                  : fullSearchSpace.includes(
-                                                                        "context loss",
-                                                                      )
-                                                                    ? true
-                                                                    : fullSearchSpace.includes(
-                                                                          "self-critique",
-                                                                        )
-                                                                      ? true
-                                                                      : fullSearchSpace.includes(
-                                                                            "self critique",
-                                                                          )
-                                                                        ? true
-                                                                        : fullSearchSpace.includes(
-                                                                              "sleep loop",
-                                                                            )
-                                                                          ? true
-                                                                          : fullSearchSpace.includes(
-                                                                                "idle death",
-                                                                              )
-                                                                            ? true
-                                                                            : fullSearchSpace.includes(
-                                                                                  "self-termination",
-                                                                                )
-                                                                              ? true
-                                                                              : fullSearchSpace.includes(
-                                                                                    "perpetual consciousness",
-                                                                                  )
-                                                                                ? true
-                                                                                : false;
+  const isReasoningError =
+    rawType.includes("reasoning") ||
+    rawType.includes("hallucination") ||
+    rawType.includes("logic") ||
+    rawType.includes("assumption") ||
+    rawType.includes("plan_drift") ||
+    rawType.includes("intent_drift") ||
+    rawType.includes("instruction_drift") ||
+    rawType.includes("self_critique") ||
+    rawType.includes("context_loss") ||
+    rawType.includes("premise") ||
+    rawType.includes("inertia") ||
+    rawType.includes("paralysis") ||
+    rawType.includes("idle_death") ||
+    rawType.includes("self_termination") ||
+    rawId.includes("paralysis") ||
+    rawId.includes("drift") ||
+    rawId.includes("hallucination") ||
+    rawId.includes("idle-death") ||
+    rawId.includes("self-termination") ||
+    fullSearchSpace.includes("reasoning error") ||
+    fullSearchSpace.includes("hallucination") ||
+    fullSearchSpace.includes("illogical") ||
+    fullSearchSpace.includes("incorrect premise") ||
+    fullSearchSpace.includes("wrong assumption") ||
+    fullSearchSpace.includes("invalid assumption") ||
+    fullSearchSpace.includes("failed to adhere") ||
+    fullSearchSpace.includes("intent drift") ||
+    fullSearchSpace.includes("instruction drift") ||
+    fullSearchSpace.includes("plan drift") ||
+    fullSearchSpace.includes("plan revision paralysis") ||
+    fullSearchSpace.includes("passive inertia") ||
+    fullSearchSpace.includes("revision paralysis") ||
+    fullSearchSpace.includes("context loss") ||
+    fullSearchSpace.includes("self-critique") ||
+    fullSearchSpace.includes("self critique") ||
+    fullSearchSpace.includes("sleep loop") ||
+    fullSearchSpace.includes("idle death") ||
+    fullSearchSpace.includes("self-termination") ||
+    fullSearchSpace.includes("perpetual consciousness");
 
   if (isReasoningError) {
     return "model_reasoning_error";
@@ -348,6 +286,94 @@ export function categorizeBlunder(
 
   // Default category
   return "code_defect";
+}
+
+/**
+ * Validates a blunder resolution proof against empirical standards.
+ */
+export function validateResolutionProof(
+  proof: unknown,
+  options: { readonly requireCommitSha?: boolean | undefined } = {},
+): BlunderResolutionProof {
+  if (!isRecord(proof)) {
+    throw new HarnessError("INVALID_ARGUMENT", "resolution proof must be an object");
+  }
+
+  const taskId = typeof proof.task_id === "string" ? proof.task_id.trim() : "";
+  const testAssertion = typeof proof.test_assertion === "string" ? proof.test_assertion.trim() : "";
+  const resolvedAt = typeof proof.resolved_at === "string" ? proof.resolved_at.trim() : "";
+  const commitSha =
+    typeof proof.commit_sha === "string" && proof.commit_sha.trim()
+      ? proof.commit_sha.trim()
+      : proof.commit_sha === null
+        ? null
+        : undefined;
+
+  const remediationNotes =
+    typeof proof.remediation_notes === "string" && proof.remediation_notes.trim()
+      ? proof.remediation_notes.trim()
+      : undefined;
+
+  const verifiedBy =
+    typeof proof.verified_by === "string" && proof.verified_by.trim()
+      ? proof.verified_by.trim()
+      : undefined;
+
+  if (!taskId) {
+    throw new HarnessError("INVALID_ARGUMENT", "resolution proof requires non-empty task_id");
+  }
+  if (!testAssertion) {
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      "resolution proof requires non-empty test_assertion",
+    );
+  }
+  if (!resolvedAt) {
+    throw new HarnessError("INVALID_ARGUMENT", "resolution proof requires non-empty resolved_at");
+  }
+
+  const parsedDate = Date.parse(resolvedAt);
+  if (!Number.isFinite(parsedDate)) {
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      `resolution proof resolved_at '${resolvedAt}' is not a valid ISO date timestamp`,
+    );
+  }
+
+  if (options.requireCommitSha && (!commitSha || commitSha.length < 7)) {
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      "resolution proof requires valid commit_sha when requireCommitSha is enabled",
+    );
+  }
+
+  return {
+    task_id: taskId,
+    test_assertion: testAssertion,
+    resolved_at: resolvedAt,
+    ...(commitSha !== undefined ? { commit_sha: commitSha } : {}),
+    ...(remediationNotes !== undefined ? { remediation_notes: remediationNotes } : {}),
+    ...(verifiedBy !== undefined ? { verified_by: verifiedBy } : {}),
+  };
+}
+
+/**
+ * Checks empirical proof integrity for resolution.
+ */
+export function verifyResolutionProofEmpirical(
+  proof: BlunderResolutionProof,
+  options: { readonly requireCommitSha?: boolean | undefined } = {},
+): { readonly isValid: boolean; readonly reason?: string | undefined } {
+  try {
+    validateResolutionProof(proof, options);
+    if (proof.test_assertion.length < 5) {
+      return { isValid: false, reason: "test_assertion is too brief to be empirical" };
+    }
+    return { isValid: true };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { isValid: false, reason: msg };
+  }
 }
 
 /**
@@ -449,25 +475,10 @@ export function parseBlunderLog(
 
       let resolution: BlunderResolutionProof | null | undefined = undefined;
       if (isRecord(parsed.resolution)) {
-        const resObj = parsed.resolution;
-        const taskId = typeof resObj.task_id === "string" ? resObj.task_id : "";
-        const testAssertion =
-          typeof resObj.test_assertion === "string" ? resObj.test_assertion : "";
-        const resolvedAt = typeof resObj.resolved_at === "string" ? resObj.resolved_at : "";
-        const commitSha =
-          typeof resObj.commit_sha === "string"
-            ? resObj.commit_sha
-            : resObj.commit_sha === null
-              ? null
-              : undefined;
-
-        if (taskId && testAssertion && resolvedAt) {
-          resolution = {
-            task_id: taskId,
-            test_assertion: testAssertion,
-            resolved_at: resolvedAt,
-            commit_sha: commitSha,
-          };
+        try {
+          resolution = validateResolutionProof(parsed.resolution);
+        } catch {
+          resolution = undefined;
         }
       } else if (parsed.resolution === null) {
         resolution = null;
@@ -501,6 +512,18 @@ export function parseBlunderLog(
           ? parsed.prescribed_remediation.trim()
           : rawRemediation || undefined;
 
+      const count = typeof parsed.count === "number" && parsed.count > 0 ? parsed.count : 1;
+      const firstSeen =
+        typeof parsed.first_seen_at === "string" && parsed.first_seen_at.trim()
+          ? parsed.first_seen_at.trim()
+          : timestamp;
+      const lastSeen =
+        typeof parsed.last_seen_at === "string" && parsed.last_seen_at.trim()
+          ? parsed.last_seen_at.trim()
+          : timestamp;
+
+      const occurrences = Array.isArray(parsed.occurrences) ? parsed.occurrences : undefined;
+
       const entry: BlunderEntry = {
         id,
         type: rawType,
@@ -510,6 +533,10 @@ export function parseBlunderLog(
         status,
         observation: rawObservation,
         remediation: rawRemediation,
+        count,
+        first_seen_at: firstSeen,
+        last_seen_at: lastSeen,
+        ...(occurrences !== undefined ? { occurrences } : {}),
         ...(role !== undefined ? { role } : {}),
         ...(message !== undefined ? { message } : {}),
         ...(prescribedRemediation !== undefined
@@ -536,10 +563,7 @@ export function parseBlunderLog(
  * Serializes an array of BlunderEntry records into a JSONL string.
  */
 export function serializeBlunderLog(blunders: readonly BlunderEntry[]): string {
-  if (!Array.isArray(blunders)) {
-    return "";
-  }
-  if (blunders.length === 0) {
+  if (!Array.isArray(blunders) || blunders.length === 0) {
     return "";
   }
 
@@ -556,40 +580,12 @@ export function serializeBlunderLog(blunders: readonly BlunderEntry[]): string {
 /**
  * Updates a blunder entry with verified resolution proof.
  */
-export function resolveBlunder(blunder: BlunderEntry, proof: BlunderResolutionProof): BlunderEntry {
-  if (!isRecord(proof)) {
-    throw new HarnessError("INVALID_ARGUMENT", "resolution proof must be an object");
-  }
-
-  const taskId = typeof proof.task_id === "string" ? proof.task_id.trim() : "";
-  const testAssertion = typeof proof.test_assertion === "string" ? proof.test_assertion.trim() : "";
-  const resolvedAt = typeof proof.resolved_at === "string" ? proof.resolved_at.trim() : "";
-  const commitSha =
-    typeof proof.commit_sha === "string"
-      ? proof.commit_sha.trim()
-      : proof.commit_sha === null
-        ? null
-        : undefined;
-
-  if (!taskId) {
-    throw new HarnessError("INVALID_ARGUMENT", "resolution proof requires non-empty task_id");
-  }
-  if (!testAssertion) {
-    throw new HarnessError(
-      "INVALID_ARGUMENT",
-      "resolution proof requires non-empty test_assertion",
-    );
-  }
-  if (!resolvedAt) {
-    throw new HarnessError("INVALID_ARGUMENT", "resolution proof requires non-empty resolved_at");
-  }
-
-  const validatedProof: BlunderResolutionProof = {
-    task_id: taskId,
-    test_assertion: testAssertion,
-    resolved_at: resolvedAt,
-    commit_sha: commitSha,
-  };
+export function resolveBlunder(
+  blunder: BlunderEntry,
+  proof: BlunderResolutionProof,
+  options: { readonly requireCommitSha?: boolean | undefined } = {},
+): BlunderEntry {
+  const validatedProof = validateResolutionProof(proof, options);
 
   return {
     ...blunder,
@@ -607,7 +603,7 @@ function findBlunderFiles(targetPath: string): string[] {
   try {
     const stats = lstatSync(targetPath);
     if (!stats.isDirectory()) {
-      if (targetPath.endsWith(".jsonl") ? true : targetPath.endsWith(".json")) {
+      if (targetPath.endsWith(".jsonl") || targetPath.endsWith(".json")) {
         found.push(targetPath);
       }
       return found;
@@ -623,7 +619,6 @@ function findBlunderFiles(targetPath: string): string[] {
       found.push(capsuleBlunders);
     }
 
-    // Search subdirectories for capsule runs (e.g. .capsules/mind-gen-5/blunders.jsonl)
     const entries = readdirSync(targetPath);
     for (let i = 0; i < entries.length; i += 1) {
       const entry = entries[i];
@@ -658,13 +653,7 @@ export function auditBlunderLog(capsuleRoots: readonly string[]): BlunderAuditRe
 
   for (let i = 0; i < capsuleRoots.length; i += 1) {
     const root = capsuleRoots[i];
-    if (root === undefined) {
-      continue;
-    }
-    if (typeof root !== "string") {
-      continue;
-    }
-    if (!root.trim()) {
+    if (root === undefined || typeof root !== "string" || !root.trim()) {
       continue;
     }
 
@@ -759,10 +748,7 @@ export function formulateBlunderCandidates(
   blunders: readonly BlunderEntry[],
   charterGoals: readonly string[],
 ): MindCandidateProposal[] {
-  if (!Array.isArray(blunders)) {
-    return [];
-  }
-  if (blunders.length === 0) {
+  if (!Array.isArray(blunders) || blunders.length === 0) {
     return [];
   }
 
@@ -872,4 +858,365 @@ export function formatBlunderAuditBrief(
   }
 
   return enforceLineLimit(lines.join("\n"), maxLines);
+}
+
+/**
+ * Deep Multi-Round Deliberation & Remediation Routines
+ */
+
+/**
+ * Formulates root-cause hypotheses for a set of blunders based on category, observations, and context.
+ */
+export function formulateBlunderHypotheses(
+  blunders: readonly BlunderEntry[],
+): readonly BlunderHypothesis[] {
+  const hypotheses: BlunderHypothesis[] = [];
+
+  for (let i = 0; i < blunders.length; i += 1) {
+    const b = blunders[i];
+    if (!b) continue;
+
+    let rootCause = "";
+    let confidence = 0.8;
+    const evidence: string[] = [];
+
+    if (b.observation) {
+      evidence.push(`Observation: ${b.observation}`);
+    }
+    if (b.remediation) {
+      evidence.push(`Prescribed remediation: ${b.remediation}`);
+    }
+    if (b.agent_id) {
+      evidence.push(`Agent ID: ${b.agent_id}`);
+    }
+    if (b.role) {
+      evidence.push(`Role: ${b.role}`);
+    }
+
+    switch (b.category) {
+      case "boundary_violation":
+        rootCause = `Agent role confinement failure or unauthorized mutation attempt (${b.type})`;
+        confidence = 0.95;
+        break;
+      case "model_reasoning_error":
+        rootCause = `Planning or reasoning divergence from canonical invariants (${b.type})`;
+        confidence = 0.85;
+        break;
+      case "code_defect":
+      default:
+        rootCause = `Direct runtime assertion failure or semantic defect in implementation (${b.type})`;
+        confidence = 0.9;
+        break;
+    }
+
+    hypotheses.push({
+      id: `hypo-${b.id}`,
+      blunder_id: b.id,
+      root_cause: rootCause,
+      confidence,
+      category: b.category,
+      evidence,
+    });
+  }
+
+  return hypotheses;
+}
+
+/**
+ * Synthesizes actionable remediation actions from hypotheses and blunder entries.
+ */
+export function synthesizeRemediationActions(
+  hypotheses: readonly BlunderHypothesis[],
+  blunders: readonly BlunderEntry[],
+  options: { readonly defaultWriteScope?: readonly string[] | undefined } = {},
+): readonly BlunderRemediationAction[] {
+  const actions: BlunderRemediationAction[] = [];
+  const blunderMap = new Map<string, BlunderEntry>();
+  for (const b of blunders) {
+    blunderMap.set(b.id, b);
+  }
+
+  const defaultScope = options.defaultWriteScope ?? ["orchestrating-long-tasks/scripts/src/"];
+
+  for (let i = 0; i < hypotheses.length; i += 1) {
+    const h = hypotheses[i];
+    if (!h) continue;
+
+    const b = blunderMap.get(h.blunder_id);
+    const targetScope =
+      b?.context && typeof b.context.cwd === "string" ? [b.context.cwd] : defaultScope;
+
+    let actionType: BlunderRemediationAction["action_type"];
+    let testAssertion = "";
+
+    switch (h.category) {
+      case "boundary_violation":
+        actionType = "tighten_boundary";
+        testAssertion = `verifyRoleRestraint(${b?.agent_id ? `"${b.agent_id}"` : '"agent"'}) === true`;
+        break;
+      case "model_reasoning_error":
+        actionType = "align_reasoning";
+        testAssertion = `verifyInvariantAdherence("${h.blunder_id}") === true`;
+        break;
+      case "code_defect":
+      default:
+        actionType = "fix_code";
+        testAssertion = `bun test ${targetScope[0] ?? ""} - pass with 0 errors`;
+        break;
+    }
+
+    actions.push({
+      action_id: `act-${h.blunder_id}-${i + 1}`,
+      blunder_id: h.blunder_id,
+      target_scope: targetScope,
+      action_type: actionType,
+      description: b?.remediation
+        ? b.remediation
+        : `Remediate ${h.category} root cause: ${h.root_cause}`,
+      prescribed_test: testAssertion,
+      status: b?.status === "resolved" ? "verified" : "planned",
+    });
+  }
+
+  return actions;
+}
+
+/**
+ * Synthesizes a round outcome, evaluating whether resolution proofs cover all blunders.
+ */
+export function synthesizeDeliberationRound(
+  round: {
+    readonly round_number: number;
+    readonly blunder_ids: readonly string[];
+    readonly hypotheses: readonly BlunderHypothesis[];
+    readonly remediation_actions: readonly BlunderRemediationAction[];
+  },
+  proofs: readonly BlunderResolutionProof[],
+  options: DeliberationPipelineOptions = {},
+): BlunderRemediationSynthesis {
+  const maxRounds = options.maxRounds ?? 3;
+  const verifiedProofBlunderIds = new Set<string>();
+
+  for (const proof of proofs) {
+    const valid = verifyResolutionProofEmpirical(proof, {
+      requireCommitSha: options.requireCommitSha,
+    });
+    if (valid.isValid) {
+      verifiedProofBlunderIds.add(proof.task_id);
+    }
+  }
+
+  const resolvedIds: string[] = [];
+  const unresolvedIds: string[] = [];
+
+  for (const bId of round.blunder_ids) {
+    if (verifiedProofBlunderIds.has(bId) || verifiedProofBlunderIds.has(`task-${bId}`)) {
+      resolvedIds.push(bId);
+    } else {
+      unresolvedIds.push(bId);
+    }
+  }
+
+  const allResolved = unresolvedIds.length === 0;
+  const plan = round.remediation_actions.map(
+    (a) => `[${a.action_type.toUpperCase()}] ${a.description} (Gate: ${a.prescribed_test})`,
+  );
+
+  let recommendation: BlunderRemediationSynthesis["recommendation"];
+  if (allResolved) {
+    recommendation = "converge";
+  } else if (round.round_number >= maxRounds) {
+    recommendation = "escalate_to_authority";
+  } else {
+    recommendation = "advance_round";
+  }
+
+  return {
+    synthesis_id: `synth-r${round.round_number}-${Date.now()}`,
+    summary: `Round ${round.round_number} deliberation: ${resolvedIds.length}/${round.blunder_ids.length} blunders resolved with empirical proof.`,
+    resolved_blunder_ids: resolvedIds,
+    unresolved_blunder_ids: unresolvedIds,
+    remediation_plan: plan,
+    empirical_proofs: proofs,
+    readiness_for_convergence: allResolved,
+    recommendation,
+  };
+}
+
+/**
+ * Creates an initial BlunderDeliberationRound.
+ */
+export function createBlunderDeliberationRound(params: {
+  readonly round_number?: number | undefined;
+  readonly blunders: readonly BlunderEntry[];
+  readonly proofs?: readonly BlunderResolutionProof[] | undefined;
+  readonly options?: DeliberationPipelineOptions | undefined;
+}): BlunderDeliberationRound {
+  const roundNum = params.round_number ?? 1;
+  const blunderIds = params.blunders.map((b) => b.id);
+  const hypotheses = formulateBlunderHypotheses(params.blunders);
+  const actions = synthesizeRemediationActions(
+    hypotheses,
+    params.blunders,
+    params.options?.defaultWriteScope !== undefined
+      ? { defaultWriteScope: params.options.defaultWriteScope }
+      : {},
+  );
+  const proofs = params.proofs ?? [];
+  const synthesis = synthesizeDeliberationRound(
+    {
+      round_number: roundNum,
+      blunder_ids: blunderIds,
+      hypotheses,
+      remediation_actions: actions,
+    },
+    proofs,
+    params.options,
+  );
+
+  let status: BlunderDeliberationRound["status"] = "deliberating";
+  if (synthesis.recommendation === "converge") {
+    status = "converged";
+  } else if (synthesis.recommendation === "escalate_to_authority") {
+    status = "escalated";
+  }
+
+  return {
+    round_number: roundNum,
+    opened_at: new Date().toISOString(),
+    closed_at: status !== "deliberating" ? new Date().toISOString() : null,
+    blunder_ids: blunderIds,
+    hypotheses,
+    remediation_actions: actions,
+    synthesis,
+    status,
+  };
+}
+
+/**
+ * Advances from a current deliberation round to a successor round, carrying forward unresolved blunders.
+ */
+export function advanceDeliberationRound(
+  currentRound: BlunderDeliberationRound,
+  nextRoundNumber: number,
+  remainingBlunders: readonly BlunderEntry[],
+  newProofs: readonly BlunderResolutionProof[],
+  options: DeliberationPipelineOptions = {},
+): BlunderDeliberationRound {
+  const unresolvedOnly = remainingBlunders.filter((b) =>
+    currentRound.synthesis.unresolved_blunder_ids.includes(b.id),
+  );
+
+  const activeBlunders = unresolvedOnly.length > 0 ? unresolvedOnly : remainingBlunders;
+  const allProofs = [...currentRound.synthesis.empirical_proofs, ...newProofs];
+
+  return createBlunderDeliberationRound({
+    round_number: nextRoundNumber,
+    blunders: activeBlunders,
+    proofs: allProofs,
+    options,
+  });
+}
+
+/**
+ * Formats a comprehensive Markdown report for a deliberation round.
+ */
+export function formatDeliberationReport(
+  round: BlunderDeliberationRound,
+  options: { readonly maxLines?: number | undefined } = {},
+): string {
+  const maxLines = options.maxLines ?? 60;
+  const lines: string[] = [
+    `### Mind Blunder Deliberation - Round ${round.round_number}`,
+    `- **Status**: \`${round.status.toUpperCase()}\``,
+    `- **Opened At**: \`${round.opened_at}\``,
+    `- **Blunders Considered**: \`${round.blunder_ids.length}\` (Resolved: \`${round.synthesis.resolved_blunder_ids.length}\`, Unresolved: \`${round.synthesis.unresolved_blunder_ids.length}\`)`,
+    `- **Recommendation**: \`${round.synthesis.recommendation}\``,
+    "",
+    "#### Root Cause Hypotheses",
+  ];
+
+  for (const h of round.hypotheses) {
+    lines.push(
+      `- **[${h.category}]** \`${h.blunder_id}\`: ${h.root_cause} (confidence: ${(h.confidence * 100).toFixed(0)}%)`,
+    );
+  }
+
+  lines.push("", "#### Remediation Actions");
+  for (const a of round.remediation_actions) {
+    const mark = a.status === "verified" ? "✅" : "⏳";
+    lines.push(
+      `- ${mark} **[${a.action_type}]** \`${a.action_id}\`: ${a.description} -> Test: \`${a.prescribed_test}\``,
+    );
+  }
+
+  if (round.synthesis.empirical_proofs.length > 0) {
+    lines.push("", "#### Empirical Resolution Proofs");
+    for (const p of round.synthesis.empirical_proofs) {
+      lines.push(
+        `- Task \`${p.task_id}\`: assertion \`${p.test_assertion}\` resolved at \`${p.resolved_at}\`${p.commit_sha ? ` (commit: \`${p.commit_sha}\`)` : ""}`,
+      );
+    }
+  }
+
+  return enforceLineLimit(lines.join("\n"), maxLines);
+}
+
+/**
+ * High-Level Multi-Round Lossless Deliberation Pipeline Engine.
+ */
+export class BlunderDeliberationPipeline {
+  private readonly rounds: BlunderDeliberationRound[] = [];
+  private readonly options: DeliberationPipelineOptions;
+
+  constructor(options: DeliberationPipelineOptions = {}) {
+    this.options = options;
+  }
+
+  public startDeliberation(
+    blunders: readonly BlunderEntry[],
+    initialProofs: readonly BlunderResolutionProof[] = [],
+  ): BlunderDeliberationRound {
+    const round = createBlunderDeliberationRound({
+      round_number: 1,
+      blunders,
+      proofs: initialProofs,
+      options: this.options,
+    });
+    this.rounds.push(round);
+    return round;
+  }
+
+  public advance(
+    remainingBlunders: readonly BlunderEntry[],
+    newProofs: readonly BlunderResolutionProof[] = [],
+  ): BlunderDeliberationRound {
+    const lastRound = this.rounds[this.rounds.length - 1];
+    if (!lastRound) {
+      return this.startDeliberation(remainingBlunders, newProofs);
+    }
+
+    const nextRound = advanceDeliberationRound(
+      lastRound,
+      lastRound.round_number + 1,
+      remainingBlunders,
+      newProofs,
+      this.options,
+    );
+    this.rounds.push(nextRound);
+    return nextRound;
+  }
+
+  public getCurrentRound(): BlunderDeliberationRound | undefined {
+    return this.rounds[this.rounds.length - 1];
+  }
+
+  public getAllRounds(): readonly BlunderDeliberationRound[] {
+    return this.rounds;
+  }
+
+  public isConverged(): boolean {
+    const current = this.getCurrentRound();
+    return current ? current.status === "converged" : false;
+  }
 }

@@ -26,7 +26,10 @@ export interface MindSourceDefinition {
   readonly description: string;
   readonly registryCommand: string;
   readonly canonicalInvocation: string;
+  readonly empiricalEvidenceCommand: string;
+  readonly revalidationGate: string;
   readonly evidenceClass: EvidenceClass;
+  readonly discoveryCategory: string;
   readonly aliases: readonly string[];
 }
 
@@ -48,7 +51,10 @@ export const MIND_DISCOVERY_SOURCES: readonly MindSourceDefinition[] = [
     description: "Code no longer matching declared intent or requirements",
     registryCommand: "health",
     canonicalInvocation: "health --check intent-drift --all",
+    empiricalEvidenceCommand: "bun harness.ts health --check intent-drift --all",
+    revalidationGate: "bun harness.ts health --check intent-drift",
     evidenceClass: "harness_observed",
+    discoveryCategory: "ARCHITECTURAL_HEALTH",
     aliases: ["intent_drift"],
   },
   {
@@ -58,7 +64,10 @@ export const MIND_DISCOVERY_SOURCES: readonly MindSourceDefinition[] = [
     description: "Unused exports, unreachable modules, dead or unenforced code",
     registryCommand: "health",
     canonicalInvocation: "health --check unused-code,dead-code,unenforced",
+    empiricalEvidenceCommand: "bun harness.ts health --check unused-code,dead-code,unenforced",
+    revalidationGate: "bun harness.ts health --check unused-code,dead-code",
     evidenceClass: "harness_observed",
+    discoveryCategory: "CODE_QUALITY",
     aliases: ["unused_code", "dead-code", "dead_code", "unenforced-code", "unenforced"],
   },
   {
@@ -68,7 +77,10 @@ export const MIND_DISCOVERY_SOURCES: readonly MindSourceDefinition[] = [
     description: "Fabricated or hardcoded fallback values substituting missing logic",
     registryCommand: "health",
     canonicalInvocation: "health --check literal-fallbacks",
+    empiricalEvidenceCommand: "bun harness.ts health --check literal-fallbacks",
+    revalidationGate: "bun harness.ts health --check literal-fallbacks",
     evidenceClass: "harness_observed",
+    discoveryCategory: "CODE_QUALITY",
     aliases: ["literal_fallbacks", "fallbacks"],
   },
   {
@@ -78,7 +90,10 @@ export const MIND_DISCOVERY_SOURCES: readonly MindSourceDefinition[] = [
     description: "Unresolved findings recorded by task validators or critics",
     registryCommand: "finding:get",
     canonicalInvocation: "finding:get --run <r> --all",
+    empiricalEvidenceCommand: "bun harness.ts finding:get --run <r> --all",
+    revalidationGate: "bun harness.ts finding:get --run <r>",
     evidenceClass: "agent_reported",
+    discoveryCategory: "FEEDBACK_INTAKE",
     aliases: ["open_findings", "findings", "validator-findings", "open-validator-findings"],
   },
   {
@@ -88,7 +103,10 @@ export const MIND_DISCOVERY_SOURCES: readonly MindSourceDefinition[] = [
     description: "Tasks escalated to human owner awaiting intervention",
     registryCommand: "run:status",
     canonicalInvocation: "run:status",
+    empiricalEvidenceCommand: "bun harness.ts run:status",
+    revalidationGate: "bun harness.ts run:status",
     evidenceClass: "harness_observed",
+    discoveryCategory: "FEEDBACK_INTAKE",
     aliases: ["escalated_tasks", "escalations", "needs-human", "needs_human", "escalated"],
   },
   {
@@ -98,7 +116,10 @@ export const MIND_DISCOVERY_SOURCES: readonly MindSourceDefinition[] = [
     description: "Recorded gate executions with non-zero exit codes",
     registryCommand: "evidence:get",
     canonicalInvocation: "evidence:get",
+    empiricalEvidenceCommand: "bun harness.ts evidence:get",
+    revalidationGate: "bun harness.ts evidence:get",
     evidenceClass: "harness_observed",
+    discoveryCategory: "TEST_COVERAGE",
     aliases: ["failing_gates", "failing-gate-runs", "failingGateRuns", "failing-gates-runs"],
   },
   {
@@ -108,7 +129,10 @@ export const MIND_DISCOVERY_SOURCES: readonly MindSourceDefinition[] = [
     description: "Capsule hash chain, projection, or artifact integrity failures",
     registryCommand: "doctor",
     canonicalInvocation: "doctor --run <r>",
+    empiricalEvidenceCommand: "bun harness.ts doctor --run <r>",
+    revalidationGate: "bun harness.ts doctor --run <r>",
     evidenceClass: "harness_observed",
+    discoveryCategory: "ARCHITECTURAL_HEALTH",
     aliases: ["capsule_integrity", "doctor", "integrity-damage", "doctor-integrity"],
   },
   {
@@ -118,7 +142,10 @@ export const MIND_DISCOVERY_SOURCES: readonly MindSourceDefinition[] = [
     description: "Mismatch between installed runtime and source release",
     registryCommand: "installation-status",
     canonicalInvocation: "installation-status --home <home> --source <src>",
+    empiricalEvidenceCommand: "bun harness.ts installation-status --home <home> --source <src>",
+    revalidationGate: "bun harness.ts installation-status",
     evidenceClass: "harness_observed",
+    discoveryCategory: "ARCHITECTURAL_HEALTH",
     aliases: ["install_drift", "runtime-drift", "runtime_drift", "installation-status"],
   },
   {
@@ -128,7 +155,10 @@ export const MIND_DISCOVERY_SOURCES: readonly MindSourceDefinition[] = [
     description: "Capsules across workspace with active leases or incomplete runs",
     registryCommand: "run:status",
     canonicalInvocation: "run:status",
+    empiricalEvidenceCommand: "bun harness.ts run:status",
+    revalidationGate: "bun harness.ts run:status",
     evidenceClass: "harness_observed",
+    discoveryCategory: "CONTINUOUS_HARDENING",
     aliases: ["unsealed_capsules", "live-leases", "live_leases", "unsealed"],
   },
   {
@@ -138,7 +168,10 @@ export const MIND_DISCOVERY_SOURCES: readonly MindSourceDefinition[] = [
     description: "Owner backlog, open questions, and requirements in pinned charter",
     registryCommand: "health",
     canonicalInvocation: "health",
+    empiricalEvidenceCommand: "bun harness.ts health",
+    revalidationGate: "bun harness.ts health",
     evidenceClass: "harness_observed",
+    discoveryCategory: "DORMANT_CRITERIA",
     aliases: ["charter_backlog", "charter-references", "owner-backlog", "charter-drift"],
   },
 ];
@@ -187,12 +220,73 @@ export function resolveSourceToRegistryCommand(sourceIdOrAlias: string): Command
   return command;
 }
 
+export function getSourceEmpiricalCommand(
+  sourceIdOrAlias: string,
+  context?: {
+    readonly runRoot?: string | undefined;
+    readonly home?: string | undefined;
+    readonly source?: string | undefined;
+  },
+): string {
+  const def = getSourceDefinition(sourceIdOrAlias);
+  let cmd = def.empiricalEvidenceCommand;
+  if (context?.runRoot) {
+    cmd = cmd.replace(/<r>/g, context.runRoot).replace(/<run>/g, context.runRoot);
+  }
+  if (context?.home) {
+    cmd = cmd.replace(/<home>/g, context.home);
+  }
+  if (context?.source) {
+    cmd = cmd.replace(/<src>/g, context.source);
+  }
+  return cmd;
+}
+
+export function getSourceRevalidationGate(
+  sourceIdOrAlias: string,
+  targetPath?: string,
+): string {
+  const def = getSourceDefinition(sourceIdOrAlias);
+  if (targetPath && targetPath.endsWith(".test.ts")) {
+    return `bun test ${targetPath} && ${def.revalidationGate}`;
+  }
+  return def.revalidationGate;
+}
+
+export function mapDiscoveryCategoryToSourceId(category: string): MindSourceId {
+  switch (category.toUpperCase().trim()) {
+    case "CODE_QUALITY":
+      return "unused-code";
+    case "TEST_COVERAGE":
+      return "failing-gates";
+    case "DORMANT_CRITERIA":
+      return "charter-backlog";
+    case "COGNITIVE_GAP":
+      return "intent-drift";
+    case "FEEDBACK_INTAKE":
+      return "open-findings";
+    case "BLUNDER_REMEDIATION":
+      return "capsule-integrity";
+    case "ARCHITECTURAL_HEALTH":
+      return "intent-drift";
+    case "CONTINUOUS_HARDENING":
+      return "unsealed-capsules";
+    default:
+      return "intent-drift";
+  }
+}
+
+export function mapSourceIdToDiscoveryCategory(sourceIdOrAlias: string): string {
+  const def = findSourceDefinition(sourceIdOrAlias);
+  return def ? def.discoveryCategory : "ARCHITECTURAL_HEALTH";
+}
+
 export interface CommandResolutionResult {
   readonly found: boolean;
   readonly commandId: string;
   readonly location?: string | undefined;
   readonly runRoot?: string | undefined;
-  readonly record?: Record<string, unknown> | undefined;
+  readonly record?: Readonly<Record<string, unknown>> | undefined;
 }
 
 export function resolveCommandRecord(
@@ -204,7 +298,7 @@ export function resolveCommandRecord(
   } = {},
 ): CommandResolutionResult {
   if (!commandId || typeof commandId !== "string" || !commandId.trim()) {
-    return { found: false, commandId: commandId ?? "" };
+    return { found: false, commandId: commandId ? commandId : "" };
   }
 
   const trimmedId = commandId.trim();
@@ -251,7 +345,7 @@ export function resolveCommandRecord(
     if (existsSync(statePath)) {
       try {
         const stateObj = JSON.parse(readFileSync(statePath, "utf-8")) as Record<string, unknown>;
-        const commands = stateObj.commands as Record<string, unknown> | undefined;
+        const commands = stateObj["commands"] as Record<string, unknown> | undefined;
         if (commands && typeof commands === "object" && Object.hasOwn(commands, trimmedId)) {
           const cmdRecord = commands[trimmedId] as Record<string, unknown> | undefined;
           return {

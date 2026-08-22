@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { realpathSync } from "node:fs";
-import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createHash } from "node:crypto";
@@ -9,7 +9,12 @@ import { transact, loadRun } from "../../../orchestrating-long-tasks/scripts/src
 import { buildPacket } from "../../../orchestrating-long-tasks/scripts/src/packets/render-packet.ts";
 import { isolateValidatorContext } from "../../../orchestrating-long-tasks/scripts/src/packets/validator-context.ts";
 import { evidenceSchema } from "../../../orchestrating-long-tasks/scripts/src/packets/evidence-schema.ts";
-import { extractLeaseAgentId, type UnifiedReport } from "../../../orchestrating-long-tasks/scripts/src/reporting/unified.ts";
+import {
+  extractLeaseAgentId,
+  extractLeaseRole,
+  extractLeaseAttempt,
+} from "../../../orchestrating-long-tasks/scripts/src/reporting/lease-agent-extractor.ts";
+import type { UnifiedReport } from "../../../orchestrating-long-tasks/scripts/src/reporting/unified.ts";
 import { cleanupRoots } from "../cli/full-lifecycle-fixture.ts";
 import { inspectionContext } from "../packets/inspection-fixture.ts";
 import type { WorkflowState } from "../../../orchestrating-long-tasks/scripts/src/workflow/types.ts";
@@ -305,5 +310,18 @@ describe("P52 & P53 End-to-End Integration Verification", () => {
     expect(extractLeaseAgentId("not-an-object")).toBe("");
     expect(extractLeaseAgentId(12345)).toBe("");
     expect(extractLeaseAgentId({})).toBe("");
+  });
+
+  test("extractLeaseRole and extractLeaseAttempt parse lease metadata safely", () => {
+    expect(extractLeaseRole({ role: "validator" })).toBe("validator");
+    expect(extractLeaseRole({ role: "  repairer  " })).toBe("repairer");
+    expect(extractLeaseRole({}, "custom-default")).toBe("custom-default");
+    expect(extractLeaseRole(null)).toBe("implementer");
+
+    expect(extractLeaseAttempt({ attempt: 3 })).toBe(3);
+    expect(extractLeaseAttempt({ attempt: 2.7 })).toBe(2);
+    expect(extractLeaseAttempt({ attempt: -1 })).toBe(1);
+    expect(extractLeaseAttempt({})).toBe(1);
+    expect(extractLeaseAttempt(null)).toBe(1);
   });
 });

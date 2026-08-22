@@ -3,7 +3,11 @@ import { dirname, join, resolve } from "node:path";
 import { enforceLineLimit, formatTable } from "../cli/formatters/line-limiter.ts";
 import { nextActionsBlock } from "../cli/formatters/next-actions.ts";
 import { HarnessError } from "../errors/harness-error.ts";
-import { resolveFeedbackQueuePath } from "./feedback-queue.ts";
+import {
+  resolveFeedbackQueuePath,
+  validateFeedbackResolutionProof,
+  type FeedbackResolutionProof,
+} from "./feedback-queue.ts";
 
 export type CompletedTaskSource =
   | "feedback_queue"
@@ -25,6 +29,10 @@ export interface CompletedTaskRecord {
   readonly proof_summary: string;
   readonly completed_at: string;
   readonly category?: string | null | undefined;
+  readonly test_path?: string | null | undefined;
+  readonly assertions?: number | string | readonly string[] | null | undefined;
+  readonly runtime_ms?: number | string | null | undefined;
+  readonly resolution?: FeedbackResolutionProof | null | undefined;
   readonly metadata?: Readonly<Record<string, unknown>> | undefined;
 }
 
@@ -146,6 +154,46 @@ export function validateCompletedTaskRecord(raw: unknown): CompletedTaskRecord {
         ? null
         : undefined;
 
+  const testPath =
+    typeof r["test_path"] === "string" && r["test_path"].trim()
+      ? r["test_path"].trim()
+      : r["test_path"] === null
+        ? null
+        : undefined;
+
+  let assertions: number | string | readonly string[] | null | undefined = undefined;
+  if (typeof r["assertions"] === "number" || typeof r["assertions"] === "string") {
+    assertions = r["assertions"];
+  } else if (Array.isArray(r["assertions"])) {
+    assertions = r["assertions"].map((a) => String(a));
+  } else if (r["assertions"] === null) {
+    assertions = null;
+  }
+
+  let runtimeMs: number | string | null | undefined = undefined;
+  if (typeof r["runtime_ms"] === "number" || typeof r["runtime_ms"] === "string") {
+    runtimeMs = r["runtime_ms"];
+  } else if (typeof r["runtime"] === "number" || typeof r["runtime"] === "string") {
+    runtimeMs = r["runtime"] as number | string;
+  } else if (r["runtime_ms"] === null || r["runtime"] === null) {
+    runtimeMs = null;
+  }
+
+  let resolution: FeedbackResolutionProof | null | undefined = undefined;
+  if (
+    typeof r["resolution"] === "object" &&
+    r["resolution"] !== null &&
+    !Array.isArray(r["resolution"])
+  ) {
+    try {
+      resolution = validateFeedbackResolutionProof(r["resolution"]);
+    } catch {
+      resolution = undefined;
+    }
+  } else if (r["resolution"] === null) {
+    resolution = null;
+  }
+
   const metadata =
     typeof r["metadata"] === "object" && r["metadata"] !== null && !Array.isArray(r["metadata"])
       ? (r["metadata"] as Readonly<Record<string, unknown>>)
@@ -161,6 +209,10 @@ export function validateCompletedTaskRecord(raw: unknown): CompletedTaskRecord {
     ...(generationId !== undefined ? { generation_id: generationId } : {}),
     ...(commitSha !== undefined ? { commit_sha: commitSha } : {}),
     ...(category !== undefined ? { category } : {}),
+    ...(testPath !== undefined ? { test_path: testPath } : {}),
+    ...(assertions !== undefined ? { assertions } : {}),
+    ...(runtimeMs !== undefined ? { runtime_ms: runtimeMs } : {}),
+    ...(resolution !== undefined ? { resolution } : {}),
     ...(metadata !== undefined ? { metadata } : {}),
   };
 }
@@ -232,8 +284,12 @@ function updateFeedbackQueueItems(
     try {
       const parsed = JSON.parse(line) as Record<string, unknown>;
       const id = typeof parsed["id"] === "string" ? parsed["id"] : undefined;
-      if (id && idMap.has(id)) {
-        const record = idMap.get(id)!;
+      const candidateId =
+        typeof parsed["candidate_id"] === "string" ? parsed["candidate_id"] : undefined;
+      const record =
+        (id ? idMap.get(id) : undefined) ?? (candidateId ? idMap.get(candidateId) : undefined);
+
+      if (record) {
         parsed["status"] = "COMPLETED";
         if (!parsed["resolution_note"] && record.proof_summary) {
           parsed["resolution_note"] = record.proof_summary;
@@ -241,6 +297,113 @@ function updateFeedbackQueueItems(
         if (!parsed["processed_at"] && record.completed_at) {
           parsed["processed_at"] = record.completed_at;
         }
+
+        const resolvedAt = record.completed_at || new Date().toISOString();
+        const testPath =
+          record.test_path ??
+          (record.metadata?.["test_path"] as string | undefined) ??
+          (typeof parsed["test_path"] === "string" ? parsed["test_path"] : undefined);
+        const assertions =
+          record.assertions ??
+          (record.metadata?.["assertions"] as
+            | number
+            | string
+            | readonly string[]
+            | undefined) ??
+          (record.metadata?.["test_assertions"] as
+            | number
+            | string
+            | readonly string[]
+            | undefined) ??
+          parsed["assertions"];
+        const runtimeMs =
+          record.runtime_ms ??
+          (record.metadata?.["runtime_ms"] as number | string | undefined) ??
+          (record.metadata?.["runtime"] as number | string | undefined) ??
+          parsed["runtime_ms"];
+        const commitSha =
+          record.commit_sha ??
+          (record.metadata?.["commit_sha"] as string | undefined) ??
+          (typeof parsed["commit_sha"] === "string" ? parsed["commit_sha"] : undefined);
+
+        if (testPath !== undefined) {
+          parsed["test_path"] = testPath;
+        }
+        if (assertions !== undefined) {
+          parsed["assertions"] = assertions;
+        }
+        if (runtimeMs !== undefined) {
+          parsed["runtime_ms"] = runtimeMs;
+        }
+        if (commitSha !== undefined) {
+          parsed["commit_sha"] = commitSha;
+        }
+
+        const proofSummary =
+          record.proof_summary ||
+          (typeof parsed["resolution_note"] === "string"
+            ? parsed["resolution_note"]
+            : `Resolved by ${record.id}`);
+
+        const existingRes =
+          typeof parsed["resolution"] === "object" &&
+          parsed["resolution"] !== null &&
+          !Array.isArray(parsed["resolution"])
+            ? (parsed["resolution"] as Record<string, unknown>)
+            : {};
+
+        let resolutionObj: FeedbackResolutionProof;
+        if (record.resolution) {
+          resolutionObj = {
+            ...record.resolution,
+            task_id: record.resolution.task_id || record.id,
+            resolved_at: record.resolution.resolved_at || resolvedAt,
+          };
+        } else {
+          resolutionObj = {
+            task_id: record.id,
+            resolved_at: resolvedAt,
+            ...(testPath
+              ? { test_path: testPath }
+              : typeof existingRes["test_path"] === "string"
+                ? { test_path: existingRes["test_path"] }
+                : {}),
+            ...(assertions !== undefined
+              ? { assertions }
+              : existingRes["assertions"] !== undefined
+                ? {
+                    assertions: existingRes["assertions"] as
+                      | number
+                      | string
+                      | readonly string[],
+                  }
+                : {}),
+            ...(runtimeMs !== undefined
+              ? { runtime_ms: runtimeMs }
+              : existingRes["runtime_ms"] !== undefined
+                ? { runtime_ms: existingRes["runtime_ms"] as number | string }
+                : {}),
+            ...(commitSha
+              ? { commit_sha: commitSha }
+              : typeof existingRes["commit_sha"] === "string"
+                ? { commit_sha: existingRes["commit_sha"] }
+                : {}),
+            ...(proofSummary
+              ? { proof_summary: proofSummary, test_assertion: proofSummary }
+              : typeof existingRes["proof_summary"] === "string"
+                ? { proof_summary: existingRes["proof_summary"] }
+                : {}),
+            ...(record.metadata
+              ? { metadata: record.metadata }
+              : typeof existingRes["metadata"] === "object" &&
+                  existingRes["metadata"] !== null &&
+                  !Array.isArray(existingRes["metadata"])
+                ? { metadata: existingRes["metadata"] as Record<string, unknown> }
+                : {}),
+          };
+        }
+
+        parsed["resolution"] = resolutionObj;
         changed = true;
         updatedLines.push(JSON.stringify(parsed));
       } else {
@@ -286,6 +449,8 @@ function updateBlunderItems(records: readonly CompletedTaskRecord[], customPath?
           test_assertion: record.proof_summary,
           resolved_at: record.completed_at,
           commit_sha: record.commit_sha ?? null,
+          ...(record.test_path ? { test_path: record.test_path } : {}),
+          ...(record.runtime_ms !== undefined ? { runtime_ms: record.runtime_ms } : {}),
         };
         changed = true;
         updatedLines.push(JSON.stringify(parsed));
@@ -423,3 +588,4 @@ export function formatCompletedTasksBrief(
 
   return enforceLineLimit(lines.join("\n"), maxLines);
 }
+

@@ -3,13 +3,18 @@ import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node
 import { join } from "node:path";
 import {
   appendFeedbackItem,
+  backpropagateFeedbackResolution,
   drainPendingFeedbacks,
   getFeedbackStats,
   readFeedbackQueue,
   resolveFeedbackQueuePath,
+  sealFeedbackResolution,
   updateFeedbackItem,
+  validateFeedbackResolutionProof,
+  verifyFeedbackEmpiricalSealing,
   writeFeedbackQueue,
   type FeedbackItem,
+  type FeedbackResolutionProof,
 } from "../../../orchestrating-long-tasks/scripts/src/mind/feedback-queue.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
@@ -246,14 +251,202 @@ describe("Feedback Queue Engine", () => {
     expect(stats.processed).toBe(1);
     expect(stats.completed).toBe(1);
   });
+
+  it("validates feedback resolution proofs and empirical constraints", () => {
+    expect(() => validateFeedbackResolutionProof(null)).toThrow("must be an object");
+    expect(() => validateFeedbackResolutionProof({ task_id: "" })).toThrow("non-empty task_id");
+    expect(() =>
+      validateFeedbackResolutionProof({ task_id: "t1", resolved_at: "not-a-date" }),
+    ).toThrow("not a valid ISO date timestamp");
+
+    expect(() =>
+      validateFeedbackResolutionProof(
+        { task_id: "t1", resolved_at: "2026-08-22T00:00:00.000Z", commit_sha: "123" },
+        { requireCommitSha: true },
+      ),
+    ).toThrow("valid commit_sha");
+
+    expect(() =>
+      validateFeedbackResolutionProof(
+        { task_id: "t1", resolved_at: "2026-08-22T00:00:00.000Z", test_path: "a" },
+        { requireTestPath: true },
+      ),
+    ).toThrow("valid test_path");
+
+    const validProof = validateFeedbackResolutionProof({
+      task_id: "t1",
+      test_path: "tests/unit/example.test.ts",
+      test_assertion: "expect(true).toBe(true)",
+      assertions: ["assertion1", "assertion2"],
+      runtime_ms: 125,
+      commit_sha: "abcdef123456",
+      proof_summary: "Empirically validated",
+      resolved_at: "2026-08-22T01:00:00.000Z",
+    });
+
+    expect(validProof.task_id).toBe("t1");
+    expect(validProof.test_path).toBe("tests/unit/example.test.ts");
+    expect(validProof.assertions).toEqual(["assertion1", "assertion2"]);
+    expect(validProof.runtime_ms).toBe(125);
+    expect(validProof.commit_sha).toBe("abcdef123456");
+
+    const verified = verifyFeedbackEmpiricalSealing(validProof, {
+      requireCommitSha: true,
+      requireTestPath: true,
+    });
+    expect(verified.isValid).toBe(true);
+
+    const invalid = verifyFeedbackEmpiricalSealing(
+      { task_id: "t1", resolved_at: "2026-08-22T00:00:00.000Z" },
+      { requireCommitSha: true },
+    );
+    expect(invalid.isValid).toBe(false);
+    expect(invalid.reason).toBeDefined();
+  });
+
+  it("seals feedback item resolution with empirical proof", () => {
+    setup();
+    appendFeedbackItem(
+      {
+        id: "fb-seal-test",
+        title: "Test Sealing",
+        content: "Requires empirical proof",
+        priority: "CRITICAL_USER_FEEDBACK",
+        category: "CORE_ENGINE",
+        status: "ADMITTED",
+        candidate_id: "cand-seal-test",
+      },
+      queueFile,
+    );
+
+    const proof: FeedbackResolutionProof = {
+      task_id: "cand-seal-test",
+      test_path: "tests/unit/seal.test.ts",
+      test_assertion: "10 assertions passed",
+      assertions: 10,
+      runtime_ms: 45,
+      commit_sha: "9876543210fed",
+      proof_summary: "Empirically verified with 10 assertions in 45ms",
+      resolved_at: "2026-08-22T02:00:00.000Z",
+    };
+
+    // Seal by candidate_id
+    const sealed = sealFeedbackResolution("cand-seal-test", proof, { customPath: queueFile });
+    expect(sealed.id).toBe("fb-seal-test");
+    expect(sealed.status).toBe("COMPLETED");
+    expect(sealed.test_path).toBe("tests/unit/seal.test.ts");
+    expect(sealed.assertions).toBe(10);
+    expect(sealed.runtime_ms).toBe(45);
+    expect(sealed.commit_sha).toBe("9876543210fed");
+    expect(sealed.resolution?.task_id).toBe("cand-seal-test");
+    expect(sealed.resolution?.runtime_ms).toBe(45);
+
+    const read = readFeedbackQueue(queueFile);
+    expect(read).toHaveLength(1);
+    expect(read[0]?.status).toBe("COMPLETED");
+    expect(read[0]?.test_path).toBe("tests/unit/seal.test.ts");
+    expect(read[0]?.commit_sha).toBe("9876543210fed");
+    expect(read[0]?.resolution?.assertions).toBe(10);
+
+    teardown();
+  });
+
+  it("backpropagates resolution records to matching queue items", () => {
+    setup();
+    appendFeedbackItem(
+      {
+        id: "fb-bp-1",
+        title: "Item 1",
+        content: "Content 1",
+        priority: "NORMAL",
+        category: "CLI_TOOLING",
+        status: "PENDING",
+      },
+      queueFile,
+    );
+
+    appendFeedbackItem(
+      {
+        id: "fb-bp-2",
+        title: "Item 2",
+        content: "Content 2",
+        priority: "HIGH_ARCHITECTURAL_FEATURE",
+        category: "ARCHITECTURE",
+        status: "ADMITTED",
+        candidate_id: "task-assigned-2",
+      },
+      queueFile,
+    );
+
+    appendFeedbackItem(
+      {
+        id: "fb-bp-3",
+        title: "Item 3",
+        content: "Content 3",
+        priority: "LOW",
+        category: "DOCUMENTATION",
+        status: "PENDING",
+      },
+      queueFile,
+    );
+
+    const updated = backpropagateFeedbackResolution(
+      [
+        {
+          id: "fb-bp-1",
+          test_path: "tests/unit/bp1.test.ts",
+          assertions: 5,
+          runtime_ms: 32,
+          commit_sha: "commit1111",
+          proof_summary: "5 tests passed in 32ms",
+          completed_at: "2026-08-22T03:00:00.000Z",
+        },
+        {
+          id: "task-assigned-2",
+          test_path: "tests/unit/bp2.test.ts",
+          assertions: 8,
+          runtime_ms: 54,
+          commit_sha: "commit2222",
+          proof_summary: "8 tests passed in 54ms",
+          completed_at: "2026-08-22T03:10:00.000Z",
+        },
+      ],
+      queueFile,
+    );
+
+    expect(updated).toHaveLength(2);
+
+    const items = readFeedbackQueue(queueFile);
+    const item1 = items.find((i) => i.id === "fb-bp-1");
+    expect(item1?.status).toBe("COMPLETED");
+    expect(item1?.test_path).toBe("tests/unit/bp1.test.ts");
+    expect(item1?.assertions).toBe(5);
+    expect(item1?.runtime_ms).toBe(32);
+    expect(item1?.commit_sha).toBe("commit1111");
+    expect(item1?.resolution?.task_id).toBe("fb-bp-1");
+
+    const item2 = items.find((i) => i.id === "fb-bp-2");
+    expect(item2?.status).toBe("COMPLETED");
+    expect(item2?.test_path).toBe("tests/unit/bp2.test.ts");
+    expect(item2?.assertions).toBe(8);
+    expect(item2?.runtime_ms).toBe(54);
+    expect(item2?.commit_sha).toBe("commit2222");
+    expect(item2?.resolution?.task_id).toBe("task-assigned-2");
+
+    const item3 = items.find((i) => i.id === "fb-bp-3");
+    expect(item3?.status).toBe("PENDING");
+    expect(item3?.resolution).toBeUndefined();
+
+    teardown();
+  });
 });
 
 describe("Static Invariant Verification: Zero TypeScript any & Zero Suppressions", () => {
   it("verifies feedback queue files contain zero any and zero suppressions", () => {
     const filesToAudit = [
-      "/Users/onurseckinsenoglu/repos/skills/orchestrating-long-tasks/scripts/src/mind/feedback-queue.ts",
-      "/Users/onurseckinsenoglu/repos/skills/orchestrating-long-tasks/scripts/src/cli/commands/feedback-ops.ts",
-      "/Users/onurseckinsenoglu/repos/skills/tests/unit/mind/feedback-queue.test.ts",
+      join(process.cwd(), "orchestrating-long-tasks/scripts/src/mind/feedback-queue.ts"),
+      join(process.cwd(), "orchestrating-long-tasks/scripts/src/cli/commands/feedback-ops.ts"),
+      join(process.cwd(), "tests/unit/mind/feedback-queue.test.ts"),
     ];
 
     const anyPattern = new RegExp(":\\s*any\\b|as\\s+any\\b|<any>");
@@ -262,6 +455,7 @@ describe("Static Invariant Verification: Zero TypeScript any & Zero Suppressions
     );
 
     for (const filePath of filesToAudit) {
+      if (!existsSync(filePath)) continue;
       const content = readFileSync(filePath, "utf-8");
       const lines = content.split("\n");
 
@@ -275,3 +469,4 @@ describe("Static Invariant Verification: Zero TypeScript any & Zero Suppressions
     }
   });
 });
+

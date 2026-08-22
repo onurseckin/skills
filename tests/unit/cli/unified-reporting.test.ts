@@ -7,6 +7,11 @@ import { execute } from "../../../orchestrating-long-tasks/scripts/src/cli/execu
 import { transact } from "../../../orchestrating-long-tasks/scripts/src/store/index.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
 import type { UnifiedReport } from "../../../orchestrating-long-tasks/scripts/src/reporting/unified.ts";
+import {
+  extractLeaseAgentId,
+  extractLeaseRole,
+  extractLeaseAttempt,
+} from "../../../orchestrating-long-tasks/scripts/src/reporting/lease-agent-extractor.ts";
 
 const roots: string[] = [];
 afterEach(async () => cleanupRoots(roots));
@@ -336,5 +341,14 @@ describe("Unified Reporting CLI Surface", () => {
     expect(reportResult.lifecycle.implementers.active[0]?.agentId).toBe("legacy-worker-99");
     expect(reportResult.markdown).toContain("legacy-worker-99");
     expect(reportResult.markdown).not.toContain("`undefined`");
+  });
+
+  test("lease-agent-extractor exports extractLeaseAgentId, extractLeaseRole, and extractLeaseAttempt", () => {
+    expect(extractLeaseAgentId({ agent_id: "agent-10" })).toBe("agent-10");
+    expect(extractLeaseAgentId({ agent: "agent-20" })).toBe("agent-20");
+    expect(extractLeaseRole({ role: "coordinator" })).toBe("coordinator");
+    expect(extractLeaseRole({})).toBe("implementer");
+    expect(extractLeaseAttempt({ attempt: 2 })).toBe(2);
+    expect(extractLeaseAttempt({})).toBe(1);
   });
 });

@@ -11,4 +11,17 @@ export {
   compactCapsuleBlunders,
   resolveCapsuleBlunder,
 } from "./blunder-store.ts";
+export {
+  pruneCapsuleBoilerplate,
+  archiveCapsule,
+  consolidateCapsules,
+  isEffectivelyEmptyDirectory,
+  BOILERPLATE_CAPSULE_SUBDIRECTORIES,
+  type PruneBoilerplateOptions,
+  type PruneBoilerplateResult,
+  type ArchiveCapsuleOptions,
+  type ArchiveCapsuleResult,
+  type ConsolidateCapsulesOptions,
+  type ConsolidateCapsulesResult,
+} from "../mind/archival.ts";
 

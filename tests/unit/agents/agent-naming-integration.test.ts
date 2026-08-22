@@ -5,14 +5,14 @@ import {
   AGENT_NAMING_STANDARDS,
   agentIdToRole,
   agentIdToTier,
-  identifyExecutionContext,
   isStandardAgentId,
   parseStandardAgentId,
   recommendStandardAgentId,
   roleToTier,
   validateAgentNamingConvention,
   type StandardAgentRole,
-} from "../../../orchestrating-long-tasks/scripts/src/authority/thread-identifier.ts";
+} from "../../../orchestrating-long-tasks/scripts/src/agents/naming.ts";
+import { identifyExecutionContext } from "../../../orchestrating-long-tasks/scripts/src/authority/thread-identifier.ts";
 import {
   findSkillRoot,
   loadAgentManifest,
@@ -315,7 +315,7 @@ describe("P54 End-to-End Agent Naming Standardization & Hierarchy Integration", 
     });
 
     test("whoamiCommand and identifyExecutionContext seamlessly integrate with standardized agent IDs", () => {
-      const testCases: Array<{ agentId: string; expectedTier: number; expectedRole: string }> = [
+      const testCases: Array<{ agentId: string; expectedTier: ExecutionTier; expectedRole: string }> = [
         { agentId: "mind_pulse-gen-1", expectedTier: 0, expectedRole: "mind" },
         { agentId: "orchestrator_wave-1", expectedTier: 1, expectedRole: "orchestrator" },
         { agentId: "mind-auditor_audit-1", expectedTier: 1, expectedRole: "mind-auditor" },
@@ -333,7 +333,7 @@ describe("P54 End-to-End Agent Naming Standardization & Hierarchy Integration", 
         expect(ctx.role).toBe(tc.expectedRole);
         expect(ctx.agent_id).toBe(tc.agentId);
 
-        const whoami = whoamiCommand({ agent: tc.agentId, pid: 1234, ppid: 1 });
+        const whoami = whoamiCommand({ agent: tc.agentId, pid: "1234", ppid: "1" });
         expect(whoami.tier).toBe(tc.expectedTier);
         expect(whoami.agent_id).toBe(tc.agentId);
       }
@@ -344,6 +344,7 @@ describe("P54 End-to-End Agent Naming Standardization & Hierarchy Integration", 
     test("zero TypeScript any and zero suppressions across thread-identifier files", () => {
       const sourceFiles = [
         join(__dirname, "../../../orchestrating-long-tasks/scripts/src/authority/thread-identifier.ts"),
+        join(__dirname, "../../../orchestrating-long-tasks/scripts/src/agents/naming.ts"),
         __filename,
       ];
 

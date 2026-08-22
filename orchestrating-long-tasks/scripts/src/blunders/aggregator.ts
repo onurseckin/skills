@@ -1,12 +1,18 @@
 import { categorizeBlunder } from "../mind/blunders.ts";
-import { computeBlunderDiscriminator } from "./discriminator.ts";
+import {
+  calculateBlunderSimilarity,
+  computeBlunderDiscriminator,
+  normalizeObservationSignature,
+} from "./discriminator.ts";
 import type {
   AggregatedBlunder,
+  BlunderAggregateMetrics,
   BlunderCategory,
   BlunderKeyOptions,
   BlunderOccurrence,
   BlunderRecordInput,
   BlunderStatus,
+  LiveDeduplicationOptions,
 } from "./types.ts";
 
 const SEVERITY_WEIGHTS: Readonly<Record<string, number>> = {
@@ -106,7 +112,10 @@ export function toAggregatedBlunder(
   return {
     id,
     dedup_key: dedupKey,
-    type: typeof input.type === "string" && input.type.length > 0 ? input.type : "unspecified_blunder",
+    type:
+      typeof input.type === "string" && input.type.length > 0
+        ? input.type
+        : "unspecified_blunder",
     severity: input.severity ? input.severity.toLowerCase() : "warning",
     category,
     status,
@@ -145,10 +154,10 @@ export function aggregateBlunderEntries(
   const inFirst = incoming.first_seen_at ?? inTs;
   const inLast = incoming.last_seen_at ?? inTs;
 
-  const firstSeen = parseIsoMs(inFirst) < parseIsoMs(target.first_seen_at)
-    ? inFirst
-    : target.first_seen_at;
-  const lastSeen = parseIsoMs(inLast) > parseIsoMs(target.last_seen_at) ? inLast : target.last_seen_at;
+  const firstSeen =
+    parseIsoMs(inFirst) < parseIsoMs(target.first_seen_at) ? inFirst : target.first_seen_at;
+  const lastSeen =
+    parseIsoMs(inLast) > parseIsoMs(target.last_seen_at) ? inLast : target.last_seen_at;
 
   const incomingSev =
     typeof incoming.severity === "string" && incoming.severity.length > 0
@@ -190,4 +199,159 @@ export function aggregateBlunderEntries(
     ...(mergedContext !== undefined ? { context: mergedContext } : {}),
     ...(resolution ? { resolution } : {}),
   };
+}
+
+/**
+ * Merges two collections of blunders into a single deduplicated list.
+ */
+export function mergeBlunderSets(
+  primary: readonly AggregatedBlunder[],
+  incoming: readonly (AggregatedBlunder | BlunderRecordInput)[],
+  options: LiveDeduplicationOptions = {},
+): AggregatedBlunder[] {
+  const map = new Map<string, AggregatedBlunder>();
+  const maxOccurrences = options.maxOccurrencesTracked ?? 50;
+
+  for (const b of primary) {
+    if (!b) continue;
+    map.set(b.dedup_key, b);
+  }
+
+  for (const item of incoming) {
+    if (!item) continue;
+    const key = computeBlunderDiscriminator(item, options.keyOptions);
+    const existing = map.get(key);
+    if (!existing) {
+      map.set(
+        key,
+        toAggregatedBlunder(
+          item,
+          options.keyOptions !== undefined ? { keyOptions: options.keyOptions } : {},
+        ),
+      );
+    } else {
+      map.set(key, aggregateBlunderEntries(existing, item, { maxOccurrences }));
+    }
+  }
+
+  return Array.from(map.values());
+}
+
+/**
+ * Computes statistical aggregate metrics over a collection of blunder records.
+ */
+export function calculateBlunderAggregateMetrics(
+  blunders: readonly (AggregatedBlunder | BlunderRecordInput)[],
+): BlunderAggregateMetrics {
+  let totalRecorded = 0;
+  let openCount = 0;
+  let resolvedCount = 0;
+  let wontfixCount = 0;
+  let recurrenceCount = 0;
+
+  const categoryCounts: Record<BlunderCategory, number> = {
+    code_defect: 0,
+    model_reasoning_error: 0,
+    boundary_violation: 0,
+  };
+
+  const severityCounts: Record<string, number> = {};
+  let totalResolutionTimeMs = 0;
+  let resolvedWithTimeCount = 0;
+
+  for (const b of blunders) {
+    if (!b) continue;
+    const count = typeof b.count === "number" && b.count > 0 ? b.count : 1;
+    totalRecorded += count;
+    if (count > 1) {
+      recurrenceCount += count - 1;
+    }
+
+    const normStatus = typeof b.status === "string" ? b.status.toLowerCase().trim() : "open";
+    if (normStatus === "resolved") {
+      resolvedCount += 1;
+      if (b.resolution && b.resolution.resolved_at && b.first_seen_at) {
+        const start = parseIsoMs(b.first_seen_at);
+        const end = parseIsoMs(b.resolution.resolved_at);
+        if (end >= start) {
+          totalResolutionTimeMs += end - start;
+          resolvedWithTimeCount += 1;
+        }
+      }
+    } else if (normStatus === "wontfix" || normStatus === "wont_fix") {
+      wontfixCount += 1;
+    } else {
+      openCount += 1;
+    }
+
+    const rawCat = typeof b.category === "string" ? b.category.toLowerCase().trim() : "";
+    const cat: BlunderCategory =
+      rawCat === "boundary_violation" || rawCat === "role_confusion"
+        ? "boundary_violation"
+        : rawCat === "model_reasoning_error"
+          ? "model_reasoning_error"
+          : rawCat === "code_defect"
+            ? "code_defect"
+            : categorizeBlunder(b as unknown as Record<string, unknown>);
+
+    categoryCounts[cat] = (categoryCounts[cat] ?? 0) + 1;
+
+    const sev = typeof b.severity === "string" ? b.severity.toLowerCase().trim() : "warning";
+    severityCounts[sev] = (severityCounts[sev] ?? 0) + 1;
+  }
+
+  const uniqueCount = blunders.length;
+  const recurrenceRate = totalRecorded > 0 ? recurrenceCount / totalRecorded : 0;
+  const meanTimeToResolutionMs =
+    resolvedWithTimeCount > 0 ? totalResolutionTimeMs / resolvedWithTimeCount : null;
+
+  return {
+    total_recorded: totalRecorded,
+    unique_blunders: uniqueCount,
+    open_count: openCount,
+    resolved_count: resolvedCount,
+    wontfix_count: wontfixCount,
+    recurrence_count: recurrenceCount,
+    recurrence_rate: recurrenceRate,
+    by_category: categoryCounts,
+    by_severity: severityCounts,
+    mean_time_to_resolution_ms: meanTimeToResolutionMs,
+  };
+}
+
+/**
+ * Clusters an array of aggregated blunders based on semantic similarity of their observations.
+ */
+export function clusterBlundersBySimilarity(
+  blunders: readonly AggregatedBlunder[],
+  similarityThreshold: number = 0.5,
+): ReadonlyArray<readonly AggregatedBlunder[]> {
+  const clusters: AggregatedBlunder[][] = [];
+
+  for (const blunder of blunders) {
+    if (!blunder) continue;
+    let placed = false;
+
+    const sig = normalizeObservationSignature(blunder.observation || blunder.type);
+    for (const cluster of clusters) {
+      const representative = cluster[0];
+      if (representative) {
+        const repSig = normalizeObservationSignature(
+          representative.observation || representative.type,
+        );
+        const sim = calculateBlunderSimilarity(sig, repSig);
+        if (sim >= similarityThreshold && blunder.category === representative.category) {
+          cluster.push(blunder);
+          placed = true;
+          break;
+        }
+      }
+    }
+
+    if (!placed) {
+      clusters.push([blunder]);
+    }
+  }
+
+  return clusters;
 }

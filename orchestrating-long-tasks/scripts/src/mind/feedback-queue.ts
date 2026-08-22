@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { HarnessError } from "../errors/harness-error.ts";
 
@@ -22,6 +22,20 @@ export type FeedbackCategory =
   | "REPAIR"
   | "GENERAL";
 
+export interface FeedbackResolutionProof {
+  readonly task_id: string;
+  readonly resolved_at: string;
+  readonly test_path?: string | null | undefined;
+  readonly test_assertion?: string | null | undefined;
+  readonly assertions?: number | string | readonly string[] | null | undefined;
+  readonly runtime_ms?: number | string | null | undefined;
+  readonly commit_sha?: string | null | undefined;
+  readonly proof_summary?: string | null | undefined;
+  readonly verified_by?: string | null | undefined;
+  readonly remediation_notes?: string | null | undefined;
+  readonly metadata?: Readonly<Record<string, unknown>> | undefined;
+}
+
 export interface FeedbackItem {
   readonly id: string;
   readonly timestamp: string;
@@ -30,9 +44,14 @@ export interface FeedbackItem {
   readonly category: FeedbackCategory;
   readonly title: string;
   readonly content: string;
-  readonly candidate_id?: string | null;
+  readonly candidate_id?: string | null | undefined;
   readonly resolution_note?: string | null | undefined;
   readonly processed_at?: string | null | undefined;
+  readonly resolution?: FeedbackResolutionProof | null | undefined;
+  readonly test_path?: string | null | undefined;
+  readonly assertions?: number | string | readonly string[] | null | undefined;
+  readonly runtime_ms?: number | string | null | undefined;
+  readonly commit_sha?: string | null | undefined;
   readonly metadata?: Readonly<Record<string, unknown>> | undefined;
 }
 
@@ -45,14 +64,33 @@ export interface FeedbackQueueStats {
   readonly completed: number;
 }
 
+export interface BackpropagationRecord {
+  readonly id: string;
+  readonly commit_sha?: string | null | undefined;
+  readonly proof_summary?: string | null | undefined;
+  readonly completed_at?: string | null | undefined;
+  readonly test_path?: string | null | undefined;
+  readonly assertions?: number | string | readonly string[] | null | undefined;
+  readonly runtime_ms?: number | string | null | undefined;
+  readonly metadata?: Readonly<Record<string, unknown>> | undefined;
+  readonly resolution?: FeedbackResolutionProof | null | undefined;
+}
+
 const DEFAULT_FEEDBACK_FILE = ".capsules/FEEDBACK_QUEUE.jsonl";
+
+export const PRIORITY_ORDER: Record<FeedbackPriority, number> = {
+  CRITICAL_USER_FEEDBACK: 1,
+  HIGH_ARCHITECTURAL_FEATURE: 2,
+  USER_DIRECTIVE: 3,
+  NORMAL: 4,
+  LOW: 5,
+};
 
 export function resolveFeedbackQueuePath(customPath?: string): string {
   if (customPath && customPath.trim()) {
     return resolve(customPath.trim());
   }
   const cwd = process.cwd();
-  // Check if we are inside orchestrating-long-tasks
   if (existsSync(join(cwd, ".capsules"))) {
     return join(cwd, DEFAULT_FEEDBACK_FILE);
   }
@@ -61,6 +99,158 @@ export function resolveFeedbackQueuePath(customPath?: string): string {
     return join(dirname(cwd), DEFAULT_FEEDBACK_FILE);
   }
   return resolve(cwd, DEFAULT_FEEDBACK_FILE);
+}
+
+export function validateFeedbackResolutionProof(
+  proof: unknown,
+  options: {
+    readonly requireCommitSha?: boolean | undefined;
+    readonly requireTestPath?: boolean | undefined;
+  } = {},
+): FeedbackResolutionProof {
+  if (typeof proof !== "object" || proof === null || Array.isArray(proof)) {
+    throw new HarnessError("INVALID_ARGUMENT", "Feedback resolution proof must be an object");
+  }
+
+  const p = proof as Record<string, unknown>;
+  const taskId = typeof p["task_id"] === "string" ? p["task_id"].trim() : "";
+  if (!taskId) {
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      "Feedback resolution proof requires non-empty task_id",
+    );
+  }
+
+  const resolvedAt =
+    typeof p["resolved_at"] === "string" && p["resolved_at"].trim()
+      ? p["resolved_at"].trim()
+      : new Date().toISOString();
+
+  const parsedDate = Date.parse(resolvedAt);
+  if (!Number.isFinite(parsedDate)) {
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      `Feedback resolution proof resolved_at '${resolvedAt}' is not a valid ISO date timestamp`,
+    );
+  }
+
+  const testPath =
+    typeof p["test_path"] === "string" && p["test_path"].trim()
+      ? p["test_path"].trim()
+      : p["test_path"] === null
+        ? null
+        : undefined;
+
+  if (options.requireTestPath && (!testPath || testPath.length < 3)) {
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      "Feedback resolution proof requires valid test_path when requireTestPath is enabled",
+    );
+  }
+
+  const testAssertion =
+    typeof p["test_assertion"] === "string" && p["test_assertion"].trim()
+      ? p["test_assertion"].trim()
+      : p["test_assertion"] === null
+        ? null
+        : undefined;
+
+  let assertions: number | string | readonly string[] | null | undefined = undefined;
+  if (typeof p["assertions"] === "number" || typeof p["assertions"] === "string") {
+    assertions = p["assertions"];
+  } else if (Array.isArray(p["assertions"])) {
+    assertions = p["assertions"].map((a) => String(a));
+  } else if (p["assertions"] === null) {
+    assertions = null;
+  }
+
+  let runtimeMs: number | string | null | undefined = undefined;
+  if (typeof p["runtime_ms"] === "number" || typeof p["runtime_ms"] === "string") {
+    runtimeMs = p["runtime_ms"];
+  } else if (typeof p["runtime"] === "number" || typeof p["runtime"] === "string") {
+    runtimeMs = p["runtime"] as number | string;
+  } else if (p["runtime_ms"] === null || p["runtime"] === null) {
+    runtimeMs = null;
+  }
+
+  const commitSha =
+    typeof p["commit_sha"] === "string" && p["commit_sha"].trim()
+      ? p["commit_sha"].trim()
+      : p["commit_sha"] === null
+        ? null
+        : undefined;
+
+  if (options.requireCommitSha && (!commitSha || commitSha.length < 7)) {
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      "Feedback resolution proof requires valid commit_sha (>= 7 chars) when requireCommitSha is enabled",
+    );
+  }
+
+  const proofSummary =
+    typeof p["proof_summary"] === "string" && p["proof_summary"].trim()
+      ? p["proof_summary"].trim()
+      : p["proof_summary"] === null
+        ? null
+        : undefined;
+
+  const verifiedBy =
+    typeof p["verified_by"] === "string" && p["verified_by"].trim()
+      ? p["verified_by"].trim()
+      : p["verified_by"] === null
+        ? null
+        : undefined;
+
+  const remediationNotes =
+    typeof p["remediation_notes"] === "string" && p["remediation_notes"].trim()
+      ? p["remediation_notes"].trim()
+      : p["remediation_notes"] === null
+        ? null
+        : undefined;
+
+  const metadata =
+    typeof p["metadata"] === "object" && p["metadata"] !== null && !Array.isArray(p["metadata"])
+      ? (p["metadata"] as Readonly<Record<string, unknown>>)
+      : undefined;
+
+  return {
+    task_id: taskId,
+    resolved_at: resolvedAt,
+    ...(testPath !== undefined ? { test_path: testPath } : {}),
+    ...(testAssertion !== undefined ? { test_assertion: testAssertion } : {}),
+    ...(assertions !== undefined ? { assertions } : {}),
+    ...(runtimeMs !== undefined ? { runtime_ms: runtimeMs } : {}),
+    ...(commitSha !== undefined ? { commit_sha: commitSha } : {}),
+    ...(proofSummary !== undefined ? { proof_summary: proofSummary } : {}),
+    ...(verifiedBy !== undefined ? { verified_by: verifiedBy } : {}),
+    ...(remediationNotes !== undefined ? { remediation_notes: remediationNotes } : {}),
+    ...(metadata !== undefined ? { metadata } : {}),
+  };
+}
+
+export function verifyFeedbackEmpiricalSealing(
+  proof: FeedbackResolutionProof,
+  options: {
+    readonly requireCommitSha?: boolean | undefined;
+    readonly requireTestPath?: boolean | undefined;
+  } = {},
+): { readonly isValid: boolean; readonly reason?: string | undefined } {
+  try {
+    const validated = validateFeedbackResolutionProof(proof, options);
+    if (!validated.task_id) {
+      return { isValid: false, reason: "task_id is missing" };
+    }
+    if (options.requireTestPath && !validated.test_path) {
+      return { isValid: false, reason: "test_path is missing" };
+    }
+    if (options.requireCommitSha && (!validated.commit_sha || validated.commit_sha.length < 7)) {
+      return { isValid: false, reason: "commit_sha is missing or too short" };
+    }
+    return { isValid: true };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { isValid: false, reason: msg };
+  }
 }
 
 export function readFeedbackQueue(customPath?: string): FeedbackItem[] {
@@ -84,6 +274,40 @@ export function readFeedbackQueue(customPath?: string): FeedbackItem[] {
       if (!parsed["id"] || typeof parsed["id"] !== "string") {
         continue;
       }
+
+      let resolution: FeedbackResolutionProof | null | undefined = undefined;
+      if (
+        typeof parsed["resolution"] === "object" &&
+        parsed["resolution"] !== null &&
+        !Array.isArray(parsed["resolution"])
+      ) {
+        try {
+          resolution = validateFeedbackResolutionProof(parsed["resolution"]);
+        } catch {
+          resolution = undefined;
+        }
+      } else if (parsed["resolution"] === null) {
+        resolution = null;
+      }
+
+      let assertions: number | string | readonly string[] | null | undefined = undefined;
+      if (typeof parsed["assertions"] === "number" || typeof parsed["assertions"] === "string") {
+        assertions = parsed["assertions"];
+      } else if (Array.isArray(parsed["assertions"])) {
+        assertions = parsed["assertions"].map((a) => String(a));
+      } else if (parsed["assertions"] === null) {
+        assertions = null;
+      }
+
+      let runtimeMs: number | string | null | undefined = undefined;
+      if (typeof parsed["runtime_ms"] === "number" || typeof parsed["runtime_ms"] === "string") {
+        runtimeMs = parsed["runtime_ms"];
+      } else if (typeof parsed["runtime"] === "number" || typeof parsed["runtime"] === "string") {
+        runtimeMs = parsed["runtime"] as number | string;
+      } else if (parsed["runtime_ms"] === null || parsed["runtime"] === null) {
+        runtimeMs = null;
+      }
+
       const item: FeedbackItem = {
         id: String(parsed["id"]),
         timestamp:
@@ -97,8 +321,15 @@ export function readFeedbackQueue(customPath?: string): FeedbackItem[] {
         resolution_note:
           typeof parsed["resolution_note"] === "string" ? parsed["resolution_note"] : null,
         processed_at: typeof parsed["processed_at"] === "string" ? parsed["processed_at"] : null,
+        ...(resolution !== undefined ? { resolution } : {}),
+        ...(typeof parsed["test_path"] === "string" ? { test_path: parsed["test_path"] } : {}),
+        ...(assertions !== undefined ? { assertions } : {}),
+        ...(runtimeMs !== undefined ? { runtime_ms: runtimeMs } : {}),
+        ...(typeof parsed["commit_sha"] === "string" ? { commit_sha: parsed["commit_sha"] } : {}),
         metadata:
-          typeof parsed["metadata"] === "object" && parsed["metadata"] !== null
+          typeof parsed["metadata"] === "object" &&
+          parsed["metadata"] !== null &&
+          !Array.isArray(parsed["metadata"])
             ? (parsed["metadata"] as Record<string, unknown>)
             : undefined,
       };
@@ -120,6 +351,13 @@ export function writeFeedbackQueue(items: readonly FeedbackItem[], customPath?: 
 
   const lines = items.map((item) => JSON.stringify(item));
   writeFileSync(filePath, lines.join("\n") + (lines.length > 0 ? "\n" : ""), "utf8");
+}
+
+export function clearFeedbackQueue(customPath?: string): void {
+  const filePath = resolveFeedbackQueuePath(customPath);
+  if (existsSync(filePath)) {
+    rmSync(filePath, { force: true });
+  }
 }
 
 export function appendFeedbackItem(
@@ -145,6 +383,91 @@ export function appendFeedbackItem(
   return newItem;
 }
 
+export function ingestFeedbackItem(
+  input: {
+    readonly id?: string | undefined;
+    readonly title: string;
+    readonly content: string;
+    readonly priority?: FeedbackPriority | undefined;
+    readonly category?: FeedbackCategory | undefined;
+    readonly candidate_id?: string | null | undefined;
+    readonly metadata?: Readonly<Record<string, unknown>> | undefined;
+  },
+  customPath?: string,
+): FeedbackItem {
+  const generatedId = input.id ?? `fb-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+  return appendFeedbackItem(
+    {
+      id: generatedId,
+      title: input.title,
+      content: input.content,
+      priority: input.priority ?? "NORMAL",
+      category: input.category ?? "GENERAL",
+      status: "PENDING",
+      candidate_id: input.candidate_id ?? null,
+      metadata: input.metadata,
+    },
+    customPath,
+  );
+}
+
+export function admitFeedbackToQueue(
+  idOrItem:
+    | string
+    | (Omit<FeedbackItem, "timestamp" | "status"> & {
+        readonly timestamp?: string | undefined;
+        readonly status?: FeedbackStatus | undefined;
+      }),
+  customPath?: string,
+): FeedbackItem {
+  if (typeof idOrItem === "string") {
+    const existing = readFeedbackQueue(customPath);
+    const index = existing.findIndex((e) => e.id === idOrItem);
+    if (index === -1) {
+      throw new HarnessError(
+        "INVALID_STATE",
+        `Feedback item with id '${idOrItem}' not found in queue`,
+      );
+    }
+    const current = existing[index]!;
+    const updatedItem: FeedbackItem = {
+      ...current,
+      status: "ADMITTED",
+      processed_at: current.processed_at ?? new Date().toISOString(),
+    };
+    const updatedList = [...existing];
+    updatedList[index] = updatedItem;
+    writeFeedbackQueue(updatedList, customPath);
+    return updatedItem;
+  }
+
+  const existing = readFeedbackQueue(customPath);
+  const existingIndex = existing.findIndex((e) => e.id === idOrItem.id);
+  if (existingIndex !== -1) {
+    const current = existing[existingIndex]!;
+    const updatedItem: FeedbackItem = {
+      ...current,
+      ...idOrItem,
+      status: idOrItem.status ?? "ADMITTED",
+      processed_at: current.processed_at ?? new Date().toISOString(),
+    };
+    const updatedList = [...existing];
+    updatedList[existingIndex] = updatedItem;
+    writeFeedbackQueue(updatedList, customPath);
+    return updatedItem;
+  }
+
+  const newItem: FeedbackItem = {
+    ...idOrItem,
+    status: idOrItem.status ?? "ADMITTED",
+    timestamp: idOrItem.timestamp ?? new Date().toISOString(),
+    processed_at: new Date().toISOString(),
+  };
+  const updatedList = [...existing, newItem];
+  writeFeedbackQueue(updatedList, customPath);
+  return newItem;
+}
+
 export function updateFeedbackItem(
   id: string,
   update: Partial<FeedbackItem>,
@@ -160,8 +483,8 @@ export function updateFeedbackItem(
   const updatedItem: FeedbackItem = {
     ...current,
     ...update,
-    id: current.id, // Immutable ID
-    timestamp: current.timestamp, // Immutable creation timestamp
+    id: current.id,
+    timestamp: current.timestamp,
   };
 
   const updatedList = [...existing];
@@ -170,11 +493,184 @@ export function updateFeedbackItem(
   return updatedItem;
 }
 
+export function sealFeedbackResolution(
+  idOrTaskId: string,
+  proof: FeedbackResolutionProof,
+  options?: {
+    readonly customPath?: string | undefined;
+    readonly requireCommitSha?: boolean | undefined;
+    readonly requireTestPath?: boolean | undefined;
+  },
+): FeedbackItem {
+  const filePath = resolveFeedbackQueuePath(options?.customPath);
+  const existing = readFeedbackQueue(filePath);
+  const index = existing.findIndex(
+    (e) => e.id === idOrTaskId || (e.candidate_id && e.candidate_id === idOrTaskId),
+  );
+  if (index === -1) {
+    throw new HarnessError(
+      "INVALID_STATE",
+      `Feedback item matching id or candidate_id '${idOrTaskId}' not found in queue`,
+    );
+  }
+
+  const validatedProof = validateFeedbackResolutionProof(proof, {
+    requireCommitSha: options?.requireCommitSha,
+    requireTestPath: options?.requireTestPath,
+  });
+
+  const current = existing[index]!;
+  const proofSummary =
+    validatedProof.proof_summary ??
+    validatedProof.test_assertion ??
+    current.resolution_note ??
+    `Empirically resolved by ${validatedProof.task_id}`;
+
+  const updatedItem: FeedbackItem = {
+    ...current,
+    status: "COMPLETED",
+    processed_at: validatedProof.resolved_at,
+    resolution_note: proofSummary,
+    resolution: validatedProof,
+    ...(validatedProof.test_path !== undefined && validatedProof.test_path !== null
+      ? { test_path: validatedProof.test_path }
+      : current.test_path !== undefined
+        ? { test_path: current.test_path }
+        : {}),
+    ...(validatedProof.assertions !== undefined && validatedProof.assertions !== null
+      ? { assertions: validatedProof.assertions }
+      : current.assertions !== undefined
+        ? { assertions: current.assertions }
+        : {}),
+    ...(validatedProof.runtime_ms !== undefined && validatedProof.runtime_ms !== null
+      ? { runtime_ms: validatedProof.runtime_ms }
+      : current.runtime_ms !== undefined
+        ? { runtime_ms: current.runtime_ms }
+        : {}),
+    ...(validatedProof.commit_sha !== undefined && validatedProof.commit_sha !== null
+      ? { commit_sha: validatedProof.commit_sha }
+      : current.commit_sha !== undefined
+        ? { commit_sha: current.commit_sha }
+        : {}),
+  };
+
+  const updatedList = [...existing];
+  updatedList[index] = updatedItem;
+  writeFeedbackQueue(updatedList, filePath);
+  return updatedItem;
+}
+
+export function backpropagateFeedbackResolution(
+  records: readonly BackpropagationRecord[],
+  customPath?: string,
+): FeedbackItem[] {
+  const filePath = resolveFeedbackQueuePath(customPath);
+  if (!existsSync(filePath) || records.length === 0) {
+    return [];
+  }
+
+  const existing = readFeedbackQueue(filePath);
+  if (existing.length === 0) {
+    return [];
+  }
+
+  const taskMap = new Map<string, BackpropagationRecord>();
+  for (const r of records) {
+    taskMap.set(r.id, r);
+  }
+
+  const updatedItems: FeedbackItem[] = [];
+  const nextList: FeedbackItem[] = [];
+  let changed = false;
+
+  for (const item of existing) {
+    const matchedRecord =
+      taskMap.get(item.id) ?? (item.candidate_id ? taskMap.get(item.candidate_id) : undefined);
+    if (matchedRecord) {
+      const resolvedAt = matchedRecord.completed_at || new Date().toISOString();
+      const testPath =
+        matchedRecord.test_path ??
+        (matchedRecord.metadata?.["test_path"] as string | undefined) ??
+        item.test_path;
+      const assertions =
+        matchedRecord.assertions ??
+        (matchedRecord.metadata?.["assertions"] as
+          | number
+          | string
+          | readonly string[]
+          | undefined) ??
+        (matchedRecord.metadata?.["test_assertions"] as
+          | number
+          | string
+          | readonly string[]
+          | undefined) ??
+        item.assertions;
+      const runtimeMs =
+        matchedRecord.runtime_ms ??
+        (matchedRecord.metadata?.["runtime_ms"] as number | string | undefined) ??
+        (matchedRecord.metadata?.["runtime"] as number | string | undefined) ??
+        item.runtime_ms;
+      const commitSha =
+        matchedRecord.commit_sha ??
+        (matchedRecord.metadata?.["commit_sha"] as string | undefined) ??
+        item.commit_sha;
+      const proofSummary =
+        matchedRecord.proof_summary ??
+        item.resolution_note ??
+        `Resolved by task ${matchedRecord.id}`;
+
+      let proof: FeedbackResolutionProof;
+      if (matchedRecord.resolution) {
+        proof = validateFeedbackResolutionProof({
+          ...matchedRecord.resolution,
+          task_id: matchedRecord.resolution.task_id || matchedRecord.id,
+          resolved_at: matchedRecord.resolution.resolved_at || resolvedAt,
+        });
+      } else {
+        proof = {
+          task_id: matchedRecord.id,
+          resolved_at: resolvedAt,
+          ...(testPath ? { test_path: testPath } : {}),
+          ...(assertions !== undefined && assertions !== null ? { assertions } : {}),
+          ...(runtimeMs !== undefined && runtimeMs !== null ? { runtime_ms: runtimeMs } : {}),
+          ...(commitSha ? { commit_sha: commitSha } : {}),
+          ...(proofSummary ? { proof_summary: proofSummary, test_assertion: proofSummary } : {}),
+        };
+      }
+
+      const updated: FeedbackItem = {
+        ...item,
+        status: "COMPLETED",
+        processed_at: resolvedAt,
+        resolution_note: proofSummary,
+        resolution: proof,
+        ...(testPath !== undefined && testPath !== null ? { test_path: testPath } : {}),
+        ...(assertions !== undefined && assertions !== null ? { assertions } : {}),
+        ...(runtimeMs !== undefined && runtimeMs !== null ? { runtime_ms: runtimeMs } : {}),
+        ...(commitSha !== undefined && commitSha !== null ? { commit_sha: commitSha } : {}),
+      };
+
+      updatedItems.push(updated);
+      nextList.push(updated);
+      changed = true;
+    } else {
+      nextList.push(item);
+    }
+  }
+
+  if (changed) {
+    writeFeedbackQueue(nextList, filePath);
+  }
+
+  return updatedItems;
+}
+
 export function drainPendingFeedbacks(
   options: {
-    readonly markAs?: FeedbackStatus;
-    readonly limit?: number;
-    readonly category?: FeedbackCategory;
+    readonly markAs?: FeedbackStatus | undefined;
+    readonly limit?: number | undefined;
+    readonly category?: FeedbackCategory | undefined;
+    readonly filter?: ((item: FeedbackItem) => boolean) | undefined;
   } = {},
   customPath?: string,
 ): FeedbackItem[] {
@@ -188,7 +684,8 @@ export function drainPendingFeedbacks(
 
   for (const item of existing) {
     const matchesCategory = !options.category || item.category === options.category;
-    if (item.status === "PENDING" && matchesCategory && selected.length < limit) {
+    const matchesCustom = !options.filter || options.filter(item);
+    if (item.status === "PENDING" && matchesCategory && matchesCustom && selected.length < limit) {
       const processed: FeedbackItem = {
         ...item,
         status: markAs,
@@ -206,6 +703,27 @@ export function drainPendingFeedbacks(
   }
 
   return selected;
+}
+
+export function compareFeedbackPriority(
+  a: FeedbackItem | FeedbackPriority,
+  b: FeedbackItem | FeedbackPriority,
+): number {
+  const priorityA = typeof a === "string" ? a : a.priority;
+  const priorityB = typeof b === "string" ? b : b.priority;
+  const rankA = PRIORITY_ORDER[priorityA] ?? 99;
+  const rankB = PRIORITY_ORDER[priorityB] ?? 99;
+  if (rankA !== rankB) {
+    return rankA - rankB;
+  }
+  if (typeof a !== "string" && typeof b !== "string") {
+    return a.timestamp.localeCompare(b.timestamp);
+  }
+  return 0;
+}
+
+export function sortFeedbackByPriority(items: readonly FeedbackItem[]): FeedbackItem[] {
+  return [...items].sort((a, b) => compareFeedbackPriority(a, b));
 }
 
 export function getFeedbackStats(items: readonly FeedbackItem[]): FeedbackQueueStats {
@@ -243,22 +761,6 @@ export function getFeedbackStats(items: readonly FeedbackItem[]): FeedbackQueueS
     processed,
     completed,
   };
-}
-
-const PRIORITY_ORDER: Record<FeedbackPriority, number> = {
-  CRITICAL_USER_FEEDBACK: 1,
-  HIGH_ARCHITECTURAL_FEATURE: 2,
-  USER_DIRECTIVE: 3,
-  NORMAL: 4,
-  LOW: 5,
-};
-
-function sortFeedbackByPriority(items: FeedbackItem[]): FeedbackItem[] {
-  return [...items].sort((a, b) => {
-    const pDiff = (PRIORITY_ORDER[a.priority] ?? 99) - (PRIORITY_ORDER[b.priority] ?? 99);
-    if (pDiff !== 0) return pDiff;
-    return a.timestamp.localeCompare(b.timestamp);
-  });
 }
 
 function validatePriority(val: unknown): FeedbackPriority {

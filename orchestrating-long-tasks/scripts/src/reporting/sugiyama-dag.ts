@@ -521,6 +521,37 @@ export function detectIllegalBypasses(
   };
 }
 
+export interface DiagnosticHealthResult {
+  readonly healthy: boolean;
+  readonly issues: readonly string[];
+  readonly cycleCount: number;
+  readonly bypassCount: number;
+}
+
+export function validateDiagnosticHealth(
+  nodes: readonly SugiyamaNode[],
+  edges: readonly SugiyamaEdge[],
+): DiagnosticHealthResult {
+  const cycleDiag = detectCyclesTarjan(nodes, edges);
+  const bypassDiag = detectIllegalBypasses(nodes, edges);
+  const issues: string[] = [];
+  if (cycleDiag.hasCycle) {
+    issues.push(`Cycle detected: ${cycleDiag.cyclePaths.map((p) => p.join(" -> ")).join(", ")}`);
+  }
+  if (bypassDiag.hasBypass) {
+    for (const b of bypassDiag.bypasses) {
+      issues.push(`Illegal bypass: ${b.from} -> ${b.to} via intermediate [${b.intermediatePath.join(", ")}]`);
+    }
+  }
+  return {
+    healthy: !cycleDiag.hasCycle && !bypassDiag.hasBypass,
+    issues,
+    cycleCount: cycleDiag.cyclePaths.length,
+    bypassCount: bypassDiag.bypasses.length,
+  };
+}
+
+
 /**
  * Step 1: Assign nodes to discrete rank layers using longest-path leveling.
  */
