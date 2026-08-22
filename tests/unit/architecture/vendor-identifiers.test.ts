@@ -33,6 +33,12 @@ const SCRIPT_EXEMPTIONS: readonly string[] = [
   "src/authority/thread-identifier.ts",
   "src/graph/gate-runtime-grammar.ts",
   "src/installer/runtime-freshness.ts",
+  "src/platform/adapters.ts",
+  "src/platform/antigravity.ts",
+  "src/platform/chatgpt.ts",
+  "src/platform/claude-code.ts",
+  "src/platform/codex.ts",
+  "src/platform/host-adapter-registry.ts",
   "src/summary/host-telemetry.ts",
 ];
 
@@ -70,6 +76,8 @@ const SCRIPT_EXEMPTIONS: readonly string[] = [
  *   (`const claude = report.roots.find((entry) => entry.kind === "claude")!`) so an assertion a few
  *   lines later can say which host's root it is checking — the same documenting role
  *   `antigravityLink` already plays in the exemption above, not a coined concept.
+ * - unit/platform/adapters.test.ts and unit/platform/host-adapters.test.ts: test platform adapters
+ *   for named hosts.
  */
 const TEST_EXEMPTIONS: readonly string[] = [
   "unit/summary/host-telemetry.test.ts",
@@ -80,6 +88,9 @@ const TEST_EXEMPTIONS: readonly string[] = [
   "unit/installer/installation-status.test.ts",
   "unit/installer/client-links.test.ts",
   "unit/installer/runtime-freshness.test.ts",
+  "unit/authority/thread-identifier.test.ts",
+  "unit/platform/adapters.test.ts",
+  "unit/platform/host-adapters.test.ts",
 ];
 
 function describeFindings(findings: readonly VendorIdentifierFinding[]): string[] {
