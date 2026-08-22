@@ -852,8 +852,19 @@ export function validateAgentNamingConvention(
   const parsed = parseStandardAgentId(trimmed);
 
   if (!parsed) {
-    const inferredRole = expectedRole ?? agentIdToRole(trimmed) ?? "implementer";
-    const inferredContext = expectedTaskId ?? "task-id";
+    let inferredRole = "implementer";
+    if (typeof expectedRole === "string" && expectedRole.length > 0) {
+      inferredRole = expectedRole;
+    } else {
+      const byId = agentIdToRole(trimmed);
+      if (typeof byId === "string" && byId.length > 0) {
+        inferredRole = byId;
+      }
+    }
+    let inferredContext = "task-id";
+    if (typeof expectedTaskId === "string" && expectedTaskId.length > 0) {
+      inferredContext = expectedTaskId;
+    }
     const recommendation = recommendStandardAgentId(inferredRole, inferredContext);
     return {
       valid: false,

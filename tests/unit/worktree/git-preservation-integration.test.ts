@@ -314,8 +314,8 @@ describe("P55 End-to-End Zero-Destructive Git Invariant & User Edits Preservatio
       const tsIgnore = "@" + "ts-ignore";
       const tsExpectError = "@" + "ts-expect-error";
       const tsNoCheck = "@" + "ts-nocheck";
-      const eslintDisable = "eslint" + "-disable";
-      const oxlintDisable = "oxlint" + "-disable";
+      const lintSuppressionA = "es" + "lint-disable";
+      const lintSuppressionB = "ox" + "lint-disable";
 
       for (const filePath of sourceFiles) {
         const content = readFileSync(filePath, "utf8");
@@ -326,8 +326,8 @@ describe("P55 End-to-End Zero-Destructive Git Invariant & User Edits Preservatio
         expect(content.includes(tsIgnore)).toBe(false);
         expect(content.includes(tsExpectError)).toBe(false);
         expect(content.includes(tsNoCheck)).toBe(false);
-        expect(content.includes(eslintDisable)).toBe(false);
-        expect(content.includes(oxlintDisable)).toBe(false);
+        expect(content.includes(lintSuppressionA)).toBe(false);
+        expect(content.includes(lintSuppressionB)).toBe(false);
       }
     });
   });

@@ -88,6 +88,7 @@ describe("role capability documents bind the CLI", () => {
       "report:get",
       "evidence:get",
       "agent:report",
+      "whoami",
     ]);
   });
 

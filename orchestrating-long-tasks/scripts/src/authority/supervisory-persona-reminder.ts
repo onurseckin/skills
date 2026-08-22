@@ -789,11 +789,12 @@ export function evaluateSupervisoryState(
   if (context.agentId) {
     const namingValidation = validateAgentNamingConvention(context.agentId, role, tier);
     if (!namingValidation.valid) {
+      const reasonDetail = namingValidation.reason ? `: ${namingValidation.reason}.` : ".";
       violations.push({
         code: "UNSTANDARDIZED_AGENT_ID_BREACH",
         rule: "All agents must use standardized role-prefixed and scope-bound IDs.",
         severity: "high",
-        message: `Agent ID '${context.agentId}' violates standardized naming: ${namingValidation.reason ?? "Invalid format"}.`,
+        message: `Agent ID '${context.agentId}' violates standardized naming${reasonDetail}`,
         correctiveDirective: namingValidation.recommendedAgentId
           ? `Adopt recommended standardized agent ID: ${namingValidation.recommendedAgentId}`
           : "Adopt standardized agent ID (<role>_<task-id>-<slug> for Tier 3, <role>_<slug> for Tier 1/2).",
