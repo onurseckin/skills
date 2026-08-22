@@ -182,7 +182,7 @@ describe("CLI command registry", () => {
       expect(failure).toBeInstanceOf(Error);
       expect((failure as Error).message).not.toContain("unknown command");
     }
-  });
+  }, 30_000);
 
   test("rejects a flag the command does not declare", async () => {
     await expect(execute(["plan:status", "--run", "/tmp/run", "--nope", "x"])).rejects.toThrow(

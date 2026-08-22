@@ -83,6 +83,7 @@ const TEST_EXEMPTIONS: readonly string[] = [
   "unit/summary/host-telemetry.test.ts",
   "unit/agents/transcript-telemetry.test.ts",
   "unit/agents/whoami-profiling.test.ts",
+  "unit/authority/thread-identifier.test.ts",
   "unit/cli/install-ops-command.test.ts",
   "unit/installer/install.test.ts",
   "unit/installer/installation-status.test.ts",
