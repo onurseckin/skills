@@ -637,6 +637,48 @@ export function dagViewCommand(
       };
     });
 
+  for (const [tId, tRecord] of Object.entries(taskMap)) {
+    if (isRecord(tRecord.lease) && typeof tRecord.lease.agent_id === "string") {
+      const agentId = tRecord.lease.agent_id;
+      if (!activeAgents.some((a) => a.id === agentId)) {
+        const role = typeof tRecord.lease.role === "string" ? tRecord.lease.role : "implementer";
+        const attempt = typeof tRecord.lease.attempt === "number" ? tRecord.lease.attempt : 1;
+        activeAgents.push({
+          id: agentId,
+          role,
+          host: "cli",
+          status: "active",
+          taskId: tId,
+          attempt,
+          tool:
+            role === "implementer"
+              ? "write_file/run_command"
+              : role === "validator"
+                ? "run_command/verify"
+                : "harness_cli",
+        });
+      }
+    }
+    if (Array.isArray(tRecord.validations)) {
+      for (const val of tRecord.validations) {
+        if (isRecord(val) && typeof val.validator_id === "string" && val.verdict === undefined) {
+          const valId = val.validator_id;
+          if (!activeAgents.some((a) => a.id === valId)) {
+            activeAgents.push({
+              id: valId,
+              role: "validator",
+              host: "cli",
+              status: "active",
+              taskId: tId,
+              attempt: typeof val.attempt === "number" ? val.attempt : 1,
+              tool: "run_command/verify",
+            });
+          }
+        }
+      }
+    }
+  }
+
   let depMap: Map<string, Set<string>>;
   if (isCompiled) {
     try {
@@ -695,9 +737,11 @@ export function dagViewCommand(
       const assignedRole =
         typeof matchingAgent?.role === "string"
           ? matchingAgent.role
-          : typeof effectiveAgent === "string"
-            ? "implementer"
-            : null;
+          : typeof lease?.role === "string"
+            ? (lease.role as string)
+            : typeof effectiveAgent === "string"
+              ? "implementer"
+              : null;
       const assignedTool =
         typeof matchingAgent?.tool === "string"
           ? matchingAgent.tool

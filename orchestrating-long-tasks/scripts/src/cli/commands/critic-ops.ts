@@ -100,6 +100,34 @@ export async function criticReviewCommand(flags: Flags): Promise<Record<string, 
   let reviewPayload: Record<string, unknown>;
   const isApproved = decision === "approve";
 
+  if (isApproved) {
+    const trimmedSummary = summary.trim().toLowerCase();
+    const genericSignOffs = new Set([
+      "looks good",
+      "lgtm",
+      "all good",
+      "approved",
+      "approve",
+      "done",
+      "ok",
+      "fine",
+      "pass",
+      "passed",
+      "everything passed",
+      "all requirements met",
+      "verified",
+      "rubber stamp",
+      "n/a",
+      "none",
+    ]);
+    if (trimmedSummary.length < 15 || genericSignOffs.has(trimmedSummary)) {
+      throw new HarnessError(
+        "INVALID_ARGUMENT",
+        "critic summary cannot be a superficial rubber-stamp or generic sign-off; provide comprehensive requirement evidence",
+      );
+    }
+  }
+
   const capsuleNow = loadRun(run);
   const observedIntegrity = observeCapsuleIntegrity(
     capsuleNow.runRoot,

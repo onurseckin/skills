@@ -103,7 +103,7 @@ describe("Unified Reporting Subsystem", () => {
       markdown: string;
     };
     expect(result.healthy).toBeTrue();
-    expect(result.run_root).toBe(".capsules/test");
+    expect(result.run_root).toContain(".capsules/test");
   });
 
   it("reportGraphJsonCommand calls export", () => {

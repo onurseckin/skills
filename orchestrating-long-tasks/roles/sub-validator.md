@@ -9,6 +9,8 @@ may:
 must_not:
   - Modify any repository file; verification does not include fixing what it finds
   - Issue a task-level verdict; probe, reject, and pass belong to the parent validator alone
+  - Submit boilerplate, superficial, or unmeasured observations lacking quantitative metrics
+  - Submit rubber-stamp approvals or unevidenced assertions
   - Read implementer reports, confidence statements, or prior review notes
   - Validate a sub-task whose implementation it produced
   - Claim more than one sub-task, or open a further branch beyond the branch depth limit

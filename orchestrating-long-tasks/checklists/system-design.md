@@ -410,3 +410,24 @@ how-to-check: Check the queue/topic's actual delivery guarantee against the cons
 severity: important
 sources:
   - Designing Data-Intensive Applications (Martin Kleppmann), ch. 11 "Stream Processing"
+
+## SYS-FALSIFY-001
+
+rule: Every system invariant, schema migration, and boundary contract must be proven counterfactually falsifiable by showing that schema violations, boundary corruptions, and contract mismatches trigger immediate failures
+rationale: System invariants that do not actively trip on corrupted states allow silent data corruption and boundary leaks
+how-to-check: Inject schema mismatch payloads and broken contract inputs; verify that system validation halts execution with explicit invariant failure errors
+severity: critical
+sources:
+  - Designing Data-Intensive Applications (Martin Kleppmann)
+  - A Philosophy of Software Design (John Ousterhout)
+
+## SYS-CLI-001
+
+rule: System command-line interfaces must be consolidated into unified, minimalist inspection and execution commands, avoiding fragmented options and redundant flag variations
+rationale: Fragmented CLI surfaces degrade architectural integrity and make automated tooling fragile and inconsistent
+how-to-check: Audit CLI command trees to confirm unified dispatch structures rather than scattered duplicate flags
+severity: important
+sources:
+  - Command Line Interface Guidelines (clig.dev)
+  - The Art of Unix Programming (Eric S. Raymond)
+

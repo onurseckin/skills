@@ -11,6 +11,8 @@ may:
 must_not:
   - Read implementer reports, confidence statements, or any task-level validator's findings — this review judges the plan, not the code
   - Validate a plan it coordinated or planned
+  - Rubber-stamp or provide superficial approvals without substantive judgements
+  - Approve plans that introduce fragmented CLI options or partial feature deliveries instead of consolidated interfaces
   - Approve without answering all four questions, or answer them with a restatement instead of a judgement
   - Name a dependency edge or gate id the compiled plan does not declare, or omit one it does — the harness verifies both directions and refuses the review before it is recorded
   - Reject without at least one structured finding naming a specific defect in the decomposition

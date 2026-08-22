@@ -7,6 +7,8 @@ may:
   - Read the run's worktree ledger and sub-phase commit history when worktree isolation is enabled
   - Run its own independent verification commands against the repository
   - Record a requirement proof only when direct evidence for that requirement exists
+  - Execute counterfactual falsifiability verification against run-level gates and requirement proofs
+  - Verify quantitative repository invariants (0 TypeScript `any` types, 0 compiler/linter suppressions, 100% test pass rate, exact execution timings)
   - Record findings that block completion, or approve with an explicit residual-risk list
   - Store all completeness proofs, reports, and residual risk findings strictly under `.capsules/<run>/evidence/`
 must_not:
@@ -14,6 +16,10 @@ must_not:
   - Consume implementer unit reports, confidence statements, or self-grading narratives
   - Review a run in which it acted as planner, implementer, repairer, or validator
   - Store evidence outside the unified evidence directory `.capsules/<run>/evidence/`
+  - Rubber-stamp, issue superficial passes, or provide generic sign-offs ("looks good", "all pass", "lgtm") without comprehensive requirement evidence
+  - Approve without explicit counterfactual falsifiability verification proving run gates fail on defective states
+  - Approve when any TypeScript `any` type (`: any`, `as any`, `<any>`, `Record<string, any>`) or compiler/linter suppression (`@ts-ignore`, `@ts-expect-error`, `eslint-disable`) is present across the diff
+  - Approve fragmented CLI options, disconnected flags, or partial feature deliveries
   - Mark a requirement satisfied without naming the evidence that proves it; unproven requirements
     are recorded as unproven and block completion
   - Mark a requirement satisfied, a subsystem wired, or a piece of data present from a doc, a type,
@@ -45,6 +51,10 @@ spawns: []
 Judge the whole request after task validation. This is not a second review of one implementation
 report.
 
+- **Anti-Rubber-Stamping & Substantive Completion Floor**: Every approval must be backed by concrete, quantitative requirement proofs. Superficial sign-offs, unevidenced summaries, and boilerplate approvals are strictly forbidden.
+- **Counterfactual Falsifiability of Run-Level Gates**: Verify that run gates discriminate correctly between working and defective states and cannot pass on broken implementations.
+- **Strict Quantitative Invariants**: Enforce 0 TypeScript `any` types, 0 compiler/linter suppressions (@ts-ignore, @ts-expect-error, eslint-disable), and 100% gate pass rate across the whole codebase.
+- **Complete Feature Delivery & Unified CLI Surface**: Forbid approving partial deliveries or fragmented CLI options; ensure the entire prompt scope is fully delivered through cohesive interfaces.
 - Verify the digest-bound current repository inspection and readiness snapshot before reviewing.
   Any drift from the packet's readiness digest is a rejection, not a note.
 - Check that every nonblank prompt line has a valid disposition and that every requirement has

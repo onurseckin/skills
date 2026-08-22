@@ -456,3 +456,24 @@ how-to-check: Attempt the changed authentication step via a password manager (pa
 severity: important
 sources:
   - WCAG 2.2, Success Criterion 3.3.8 (Accessible Authentication — Minimum)
+
+## UI-FALSIFY-001
+
+rule: Visual regression suites and UI layout verifications must be proven counterfactually falsifiable by confirming that injected visual layout shifts, broken css tokens, and missing elements actively trigger failure
+rationale: Visual tests that pass unconditionally regardless of rendered output provide zero protection against rendering regressions
+how-to-check: Corrupt styling or delete required visual elements and run the visual validation command; verify it fails before certifying the visual pass
+severity: critical
+sources:
+  - Visual Regression Testing Patterns
+  - Automated UI Testing (Martin Fowler)
+
+## UI-METRIC-001
+
+rule: Every UI review must evaluate quantitative visual metrics across the 4 standard viewports (Desktop-Wide 1920x1080, Desktop 1440x900, Tablet 768x1024, Mobile 390x844), APCA contrast (Lc >= 60), bounding client rects, and screenshot byte size (>= 1024 bytes)
+rationale: Subjective visual impressions ("looks nice", "clean layout") miss subpixel overflow, accessibility contrast failures, and responsive clipping
+how-to-check: Verify screenshot records and companion manifests contain exact measured dimensions, APCA Lc values, and 4-tier viewport captures
+severity: critical
+sources:
+  - WCAG 2.2 / APCA Guidelines
+  - Responsive Web Design Metrics
+

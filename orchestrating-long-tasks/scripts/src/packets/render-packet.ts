@@ -5,6 +5,7 @@ import { loadCommonInstructions, verifyCommonInstructions } from "./common-instr
 import {
   isolateValidatorContext,
   excludeValidatorContamination,
+  sanitizeLeanContext,
   VALIDATOR_EXCLUSIONS,
 } from "./validator-context.ts";
 import type { BuiltPacket, PacketInput } from "./types.ts";
@@ -28,10 +29,35 @@ function jsonSection(title: string, value: unknown): string {
 const READ_ONLY_BRANCH_ROLES: ReadonlySet<string> = new Set(["sub-investigator", "sub-validator"]);
 const VALIDATION_ROLES: ReadonlySet<string> = new Set(["sub-validator", "validator"]);
 
+function responsibilityChecklist(): string {
+  return [
+    "- [ ] 1. Pre-flight checks: Execute `whoami` and `doctor` to verify harness health and run state.",
+    "- [ ] 2. Task claim & lease verification: Verify exclusive lease and assigned write scope before making modifications.",
+    "- [ ] 3. Fresh verified proofs: Never assume prior completions or historical success; produce fresh counterfactual falsifiability proofs and concrete evidence.",
+    "- [ ] 4. Ultra-lean context & on-demand inspection: Query heavy capsule metadata on disk on demand via CLI (`report:task`, `stream:events`, `explain`) rather than expecting large context dumps.",
+    "- [ ] 5. Strict static invariants: Enforce zero TypeScript untyped references and zero compiler/linter suppressions.",
+    "- [ ] 6. Mandatory test gate execution: Execute focused test gates and capture complete quantitative proof.",
+    "- [ ] 7. Structured evidence submission: Submit structured results with valid lease token via harness CLI and report back to Coordinator.",
+  ].join("\n");
+}
+
+function capsuleMemoryGuidance(runId: string, taskId: string | null): string {
+  const taskFlag = taskId ? ` --task ${taskId}` : "";
+  return [
+    "Heavy metadata, full event streams, dependency graphs, and historical logs are decoupled into structured Capsule Memory on disk (`.capsules/`).",
+    "Query detailed runtime information on demand using the following Harness CLI commands:",
+    `- Inspect task status & review history: \`bun harness.ts report:task --run .capsules/${runId}${taskFlag}\``,
+    `- Stream event timeline: \`bun harness.ts stream:events --run .capsules/${runId}\``,
+    `- Inspect DAG topology & waves: \`bun harness.ts dag:view --run .capsules/${runId}\``,
+    `- Query errors & remedies: \`bun harness.ts explain <ERROR_CODE>\``,
+    `- Check run health & diagnostics: \`bun harness.ts doctor --run .capsules/${runId}\``,
+  ].join("\n");
+}
+
 function roleContext(input: PacketInput): JsonObject {
   if (VALIDATION_ROLES.has(input.role)) return isolateValidatorContext(input.authoritativeContext);
   if (input.role === "completeness-critic") return criticContext(input);
-  return structuredClone(input.authoritativeContext);
+  return sanitizeLeanContext(input.authoritativeContext);
 }
 
 function taskContract(input: PacketInput): JsonObject | null {
@@ -40,7 +66,7 @@ function taskContract(input: PacketInput): JsonObject | null {
   const contract = structuredClone(bound) as JsonObject;
   return VALIDATION_ROLES.has(input.role)
     ? validatorTaskContract(excludeValidatorContamination(contract), input.task)
-    : contract;
+    : (sanitizeLeanContext(contract) as JsonObject);
 }
 
 function allowedScope(input: PacketInput): JsonObject {
@@ -76,7 +102,7 @@ export function buildPacket(input: PacketInput): BuiltPacket {
   );
   const mapped = VALIDATION_ROLES.has(input.role)
     ? mappedRequirements.map((requirement) => excludeValidatorContamination(requirement))
-    : mappedRequirements;
+    : mappedRequirements.map((requirement) => sanitizeLeanContext(requirement));
   const metadata: JsonObject = {
     schema: "harness.packet",
     version: 1,
@@ -112,6 +138,8 @@ export function buildPacket(input: PacketInput): BuiltPacket {
       "Identity",
       `Run: ${input.runId}\nTask: ${taskId ?? "none - run-level packet"}\nAttempt: ${input.attempt}`,
     ),
+    section("Responsibility checklist", responsibilityChecklist()),
+    section("Capsule memory on disk", capsuleMemoryGuidance(input.runId, taskId)),
     section("Role contract", roleContract.text),
     jsonSection("Task contract", taskContract(input)),
     jsonSection("Mapped requirements", mapped),

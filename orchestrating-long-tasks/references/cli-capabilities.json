@@ -2192,6 +2192,82 @@
       ]
     },
     {
+      "name": "report",
+      "aliases": [
+        "report:unified",
+        "report:all"
+      ],
+      "domain": "reporting",
+      "summary": "Deliver unified topology, lifecycle tier breakdown, agent roles, IDs, and timestamps.",
+      "description": "Generates comprehensive unified run report across tasks, topology, agent lifecycle tiers, and audit trail.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root. Defaults to current repository .capsules/ when omitted."
+        },
+        {
+          "name": "run-id",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Alias of --run."
+        },
+        {
+          "name": "repo",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": ".",
+          "description": "Repository root to search for .capsules/."
+        },
+        {
+          "name": "detailed",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Detailed topology and audit forensics."
+        },
+        {
+          "name": "json",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Output structured JSON report."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts report --run .capsules/<run-id>",
+        "bun harness.ts report:unified --run .capsules/<run-id>"
+      ]
+    },
+    {
       "name": "report:graph-json",
       "aliases": [
         "dag:export-json"
@@ -3185,7 +3261,9 @@
     },
     {
       "name": "run:status",
-      "aliases": [],
+      "aliases": [
+        "status"
+      ],
       "domain": "run",
       "summary": "Show phase, per-task status and progress for the run.",
       "description": "Reads the capsule without mutating it and renders the execution table.",
@@ -3193,10 +3271,26 @@
         {
           "name": "run",
           "type": "string",
-          "required": true,
+          "required": false,
           "repeatable": false,
           "default": null,
-          "description": "Capsule run root."
+          "description": "Capsule run root. Defaults to current repository .capsules/ when omitted."
+        },
+        {
+          "name": "run-id",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Alias of --run."
+        },
+        {
+          "name": "repo",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": ".",
+          "description": "Repository root to search for .capsules/."
         },
         {
           "name": "detailed",
@@ -3228,7 +3322,8 @@
         }
       ],
       "examples": [
-        "bun harness.ts run:status --run .capsules/<run-id>"
+        "bun harness.ts run:status --run .capsules/<run-id>",
+        "bun harness.ts status --run .capsules/<run-id>"
       ]
     },
     {

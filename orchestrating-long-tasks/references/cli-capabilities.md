@@ -698,6 +698,29 @@ bun harness.ts coordinator:pushback --run .capsules/<run-id> --task task-1 --act
 
 ## reporting
 
+### `report`
+
+Deliver unified topology, lifecycle tier breakdown, agent roles, IDs, and timestamps.
+
+Generates comprehensive unified run report across tasks, topology, agent lifecycle tiers, and audit trail.
+
+- **Aliases**: `report:unified`, `report:all`
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--run` | string | no | no | - | Capsule run root. Defaults to current repository .capsules/ when omitted. |
+| `--run-id` | string | no | no | - | Alias of --run. |
+| `--repo` | string | no | no | `.` | Repository root to search for .capsules/. |
+| `--detailed` | bool | no | no | - | Detailed topology and audit forensics. |
+| `--json` | bool | no | no | - | Output structured JSON report. |
+
+```bash
+bun harness.ts report --run .capsules/<run-id>
+bun harness.ts report:unified --run .capsules/<run-id>
+```
+
 ### `report:graph-json`
 
 Export DAG telemetry and metrics to JSON.
@@ -989,17 +1012,20 @@ Show phase, per-task status and progress for the run.
 
 Reads the capsule without mutating it and renders the execution table.
 
-- **Aliases**: none
+- **Aliases**: `status`
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
 | Flag | Type | Required | Repeatable | Default | Description |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `--run` | string | yes | no | - | Capsule run root. |
+| `--run` | string | no | no | - | Capsule run root. Defaults to current repository .capsules/ when omitted. |
+| `--run-id` | string | no | no | - | Alias of --run. |
+| `--repo` | string | no | no | `.` | Repository root to search for .capsules/. |
 | `--detailed` | bool | no | no | - | Include the raw state in the JSON result. |
 
 ```bash
 bun harness.ts run:status --run .capsules/<run-id>
+bun harness.ts status --run .capsules/<run-id>
 ```
 
 ### `run:complete`

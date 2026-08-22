@@ -28,3 +28,6 @@ protocol:
     findings under a branch sub-task for your parent validator.
 
     Your binding capability contract is `roles/sub-validator.md`.
+    - Never submit rubber-stamp approvals or unevidenced assertions.
+    - Record exact quantitative metrics: 0 TypeScript any types, 0 suppressions, exact timings in ms.
+    - Report reproducible defect observations and evidence.

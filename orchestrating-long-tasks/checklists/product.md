@@ -392,3 +392,24 @@ how-to-check: Walk a multi-step flow that collects related information more than
 severity: minor
 sources:
   - WCAG 2.2, Success Criterion 3.3.7 (Redundant Entry)
+
+## PROD-FALSIFY-001
+
+rule: Every user flow and product capability must be verified counterfactually by proving that negative flows, broken inputs, and unauthorized actions fail cleanly
+rationale: Verifying only the happy path gives a false impression of product completeness while leaving common failure modes unhandled
+how-to-check: Inject invalid inputs, unexpected sequences, and error conditions; confirm the product halts with clear feedback rather than accepting erroneous states
+severity: critical
+sources:
+  - Nielsen Norman Group, "Error Prevention and Recovery"
+  - The Design of Everyday Things (Don Norman)
+
+## PROD-DELIV-001
+
+rule: Deliveries must provide complete, end-to-end functionality as requested, forbidding partial feature stubs or fragmented capability slices
+rationale: Half-implemented features or fragmented interfaces leave operators with broken workflows and deceptive completion claims
+how-to-check: Audit the delivered flow end to end against all prompt requirements to verify that every capability is fully operational
+severity: critical
+sources:
+  - Shape Up (Ryan Singer), "Full Stack Slices"
+  - Extreme Programming (Kent Beck), "Whole Team & Incremental Delivery"
+

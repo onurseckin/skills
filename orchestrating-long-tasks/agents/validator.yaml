@@ -105,10 +105,12 @@ protocol:
     - Record the returned command ids; they are what your findings and resolutions cite.
 
     ### Step 3: Adversarial audit across both channels
-    1. **Contract & Boundary Audit**: edge cases, boundary conditions, input extremes, strict types.
-    2. **Negative & Failure Testing**: negative assertions exist and errors are handled cleanly.
-    3. **Mathematical & Layout Precision**: bounding box geometry, coordinate math, responsive scaling.
-    4. **Visual Layout & Rendering Invariants (MANDATORY for UI tasks)**:
+    1. **Anti-Rubber-Stamping Mandate**: Never issue generic sign-offs ("looks good", "passed", "lgtm", "all tests pass"). Every pass must cite concrete quantitative measurements and command outputs.
+    2. **Mandatory Counterfactual Falsifiability Proof**: Verify that the task's gate fails when the fix/feature logic is reverted or an intentional defect is injected (`falsifiable: true`). Prove the gate discriminates between working and broken code before certifying a pass.
+    3. **Contract & Boundary Audit**: edge cases, boundary conditions, input extremes, strict types.
+    4. **Negative & Failure Testing**: negative assertions exist and errors are handled cleanly.
+    5. **Mathematical & Layout Precision**: bounding box geometry, coordinate math, responsive scaling.
+    6. **Visual Layout & Rendering Invariants (MANDATORY for UI tasks)**:
        - **Negative Visual Rejection Invariants**: 0-byte images, mock renders, unrendered DOMs, and threshold breaches are defects.
        - **Layout Overflow Detection**: unintentional horizontal scrollbars (`overflow-x` leaks) at 375px, 768px and 1280px; flex/grid children exceeding parent boundaries (missing `min-width: 0`).
        - **Text Clipping & Descending Glyphs**: premature ellipsis truncation, unnatural mid-word breaks, clipped descenders ('g', 'y', 'p', 'q', 'j') under tight `line-height` with `overflow: hidden`.
@@ -116,9 +118,10 @@ protocol:
        - **Responsive Constraints**: fluid adaptation across breakpoints without awkward wrapping or collapsed panes.
        - **Typography & Accessibility**: letter-spacing/tracking, font hierarchy, semantic tags, ARIA attributes, WCAG AA contrast.
        - **Asset Completeness**: zero placeholder text, broken image URLs, or unstyled elements.
-    5. **Zero-Any TypeScript Audit**: zero `any` (`: any`, `Promise<any>`, `as any`, `T = any`) and zero suppressions (`@ts-ignore`, `@ts-expect-error`, `eslint-disable`).
-    6. **Substantive Test Audit**: reject tautological, empty, or mocked-out tests that bypass business logic.
-    7. **Strict Write Scope Compliance**: every change stays inside the leased `write_scope`.
+    7. **Strict Quantitative Invariants**: 0 TypeScript `any` (`: any`, `Promise<any>`, `as any`, `T = any`, `Record<string, any>`), 0 compiler/linter suppressions (`@ts-ignore`, `@ts-expect-error`, `eslint-disable`), 100% test pass rate, and exact execution timings in milliseconds.
+    8. **Substantive Test Audit**: reject tautological, empty, or mocked-out tests that bypass business logic.
+    9. **No Fragmented CLI Options or Partial Deliveries**: reject changes that introduce one-off disconnected flags or partial feature deliveries instead of consolidated, complete interfaces.
+    10. **Strict Write Scope Compliance**: every change stays inside the leased `write_scope`.
 
     ### Step 4: Round 1 — record the adversarial probe (`task:probe`)
     - `task:probe --run $RUN --task <task-id> --validator <val-agent> --token <token> --demand "Prove the parser rejects an empty payload" --demand "Prove the 1280px layout has no horizontal overflow"`
@@ -138,7 +141,8 @@ protocol:
     ### Step 6: Sign off with answers, not adjectives (`task:review --status pass`)
     - Re-run the gates, re-audit both channels, and confirm the repairer added a regression test for
       every defect and command evidence for every demand.
-    - `task:review --run $RUN --task <task-id> --validator <val-agent> --token <token> --status pass --checks <cmd-ids> --resolve <finding-id>=<cmd-id> --resolve <finding-id>=<cmd-id> --summary "<what the evidence shows, including the DOM-metric and screenshot evaluation>"`
+    - Confirm counterfactual falsifiability has been proven and all quantitative metrics are met.
+    - `task:review --run $RUN --task <task-id> --validator <val-agent> --token <token> --status pass --checks <cmd-ids> --resolve <finding-id>=<cmd-id> --resolve <finding-id>=<cmd-id> --summary "<what the evidence shows, including the DOM-metric, quantitative invariant, and screenshot evaluation>"`
     - Repeat `--resolve` for EVERY open finding; a pass with one unanswered finding is refused.
       `--resolution-method <finding-id>=<how it was answered>` overrides the default label.
     - To fail on a defect through the same command:

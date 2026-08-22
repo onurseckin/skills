@@ -29,6 +29,7 @@ import { ingestScreenshots, ingestVisualReport } from "../../reporting/screensho
 import { commandEvidenceView, commandRecordPath } from "../../reporting/command-evidence.ts";
 import type { ScreenshotRecord } from "../../reporting/screenshot-types.ts";
 import { capsuleCatalogue, runStatus, type CapsuleCatalogue } from "../../reporting/status.ts";
+import { resolveCapsuleRun } from "./dag-view.ts";
 
 function occupancyCeilings(runRoot: string): { maxParallel: number; gateMaxParallel: number } {
   const config = getHarnessConfig(resolve(runRoot, "..", ".."), runRoot);
@@ -145,22 +146,43 @@ export function runCompleteCommand(flags: Flags): Record<string, unknown> {
 }
 
 export function runStatusCommand(flags: Flags): Record<string, unknown> {
-  const run = textFlag(flags, "run")!;
+  const repo = textFlag(flags, "repo", false) ?? process.cwd();
+  const runFlag = textFlag(flags, "run", false);
+  const runIdFlag = textFlag(flags, "run-id", false);
   const detailed = boolFlag(flags, "detailed");
 
+  const run = resolveCapsuleRun(repo, runFlag, runIdFlag);
   const loaded = loadRun(run);
   const state = loaded.state;
   const tasks = Object.values((state.tasks ?? {}) as Record<string, TaskRecord>);
 
   const taskItems = tasks.map((t) => {
     let agentOrLock = "-";
-    if (t.lease) agentOrLock = `Leased (${t.lease.agent_id})`;
-    else if (t.validations && t.validations.length > 0)
-      agentOrLock = `Validating (${t.validations.map((v) => v.validator_id).join(", ")})`;
-    else if (t.status === "done") agentOrLock = "Completed";
+    if (t.lease) {
+      const roleStr = typeof t.lease.role === "string" ? ` [${t.lease.role}]` : "";
+      agentOrLock = `Leased (${t.lease.agent_id}${roleStr})`;
+    } else if (t.validations && t.validations.length > 0) {
+      const activeVals = t.validations.filter((v) => v.verdict === undefined);
+      if (activeVals.length > 0) {
+        agentOrLock = `Validating (${activeVals.map((v) => `${v.validator_id} [${v.domain}]`).join(", ")})`;
+      } else {
+        agentOrLock = `Validated (${t.validations.map((v) => v.validator_id).join(", ")})`;
+      }
+    } else if (t.status === "done") {
+      agentOrLock = "Completed";
+    } else if (t.status === "submitted") {
+      agentOrLock = `Submitted (${t.original_implementer ?? "implementer"})`;
+    } else if (t.status === "ready") {
+      agentOrLock = "Standby (Ready)";
+    } else if (t.status === "proposed") {
+      agentOrLock = "Blocked (Prereqs)";
+    } else if (t.status === "changes_requested") {
+      agentOrLock = "Repair Required";
+    }
 
     let statusEmoji = "⚪ Unknown";
     if (t.status === "done") statusEmoji = "✅ Satisfied";
+    else if (t.status === "submitted") statusEmoji = "📦 Submitted";
     else if (t.status === "leased" || t.status === "running") statusEmoji = "🏃 Leased";
     else if (t.status === "validating") statusEmoji = "🔄 Validating";
     else if (t.status === "ready") statusEmoji = "🟢 Ready";
@@ -178,20 +200,20 @@ export function runStatusCommand(flags: Flags): Record<string, unknown> {
 
   const satCount = tasks.filter((t) => t.status === "done").length;
   const valCount = tasks.filter((t) => t.status === "validating").length;
-  const leasedCount = tasks.filter((t) => t.status === "leased").length;
+  const leasedCount = tasks.filter((t) => t.status === "leased" || t.status === "running").length;
+  const readyCount = tasks.filter((t) => t.status === "ready").length;
   const blockedCount = tasks.filter((t) => t.status === "proposed").length;
-  const progressSummary = `${satCount}/${tasks.length} Satisfied, ${valCount} Validating, ${leasedCount} Leased, ${blockedCount} Blocked.`;
+  const repairCount = tasks.filter((t) => t.status === "changes_requested").length;
+  const progressSummary = `${satCount}/${tasks.length} Satisfied, ${valCount} Validating, ${leasedCount} Leased (Coding), ${readyCount} Standby (Ready), ${blockedCount} Blocked${repairCount > 0 ? `, ${repairCount} Repair` : ""}.`;
 
   const completionResult = state.completion_result as { status: string } | undefined;
   const phase =
     completionResult?.status === "complete" ? "Completed" : state.graph ? "Executing" : "Planning";
   const actualRunRoot = loaded?.runRoot ?? run;
   const catalogue = capsuleCatalogue(actualRunRoot);
-  const activeCount = tasks.filter(
-    (t) => t.status === "leased" || t.status === "running" || t.status === "validating",
-  ).length;
+  const activeCount = leasedCount + valCount;
   const { maxParallel, gateMaxParallel } = occupancyCeilings(actualRunRoot);
-  const occupancySummary = `${activeCount}/${maxParallel} occupancy slots in use (gate ceiling ${gateMaxParallel}).`;
+  const occupancySummary = `${leasedCount} Implementer(s) coding, ${valCount} Validator(s) testing/probing, ${readyCount} Standby ready | ${activeCount}/${maxParallel} active slots (gate ceiling ${gateMaxParallel}).`;
   const markdown = formatRunStatusBrief(
     basename(run),
     phase,
@@ -209,8 +231,15 @@ export function runStatusCommand(flags: Flags): Record<string, unknown> {
     catalogue,
     occupancy: {
       active: activeCount,
+      implementers: leasedCount,
+      validators: valCount,
+      standby: readyCount,
+      blocked: blockedCount,
+      satisfied: satCount,
+      repair: repairCount,
       max_parallel: maxParallel,
       gate_max_parallel: gateMaxParallel,
+      summary: occupancySummary,
     },
     ...(readWorktreeLedger(state) === null ? {} : { worktrees: readWorktreeLedger(state) }),
   };

@@ -32,8 +32,10 @@ describe("registry-resolved argv", () => {
       "does not start with bun",
     );
     expect(dispatchFailure(["bun", ENTRYPOINT])).toContain("names no command");
-    expect(dispatchFailure(["bun", ENTRYPOINT, "status"])).toBe("no registry command named status");
-    expect(dispatchFailure(["bun", ENTRYPOINT, "run:status"])).toBe("run:status is missing --run");
+    expect(dispatchFailure(["bun", ENTRYPOINT, "nonexistent-command"])).toBe(
+      "no registry command named nonexistent-command",
+    );
+    expect(dispatchFailure(["bun", ENTRYPOINT, "report:leases"])).toBe("report:leases is missing --run");
     expect(dispatchFailure(["bun", ENTRYPOINT, "run:status", "--run", RUN, "--nope"])).toContain(
       "unknown option",
     );
@@ -43,7 +45,7 @@ describe("registry-resolved argv", () => {
   });
 
   test("refuses to name a command the registry does not have", () => {
-    expect(registryArgv(ENTRYPOINT, "status", [["run", RUN]])).toBeUndefined();
+    expect(registryArgv(ENTRYPOINT, "nonexistent-command", [["run", RUN]])).toBeUndefined();
     expect(registryArgv(ENTRYPOINT, "packet", [["run", RUN]])).toBeUndefined();
     expect(registryArgv(ENTRYPOINT, "gate", [["run", RUN]])).toBeUndefined();
     expect(registryArgv(ENTRYPOINT, "finish", [["run", RUN]])).toBeUndefined();

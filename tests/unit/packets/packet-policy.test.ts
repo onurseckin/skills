@@ -170,14 +170,19 @@ describe("mechanical packet contracts", () => {
         repository_evidence: { command_ids: ["C-REPO"] },
         ...inspectionContext(),
         implementer_report: "I am done",
-        validator_report: "looks good",
+        validator_report: "unauthorized validator report leak",
         task_reports: [{ summary: "done" }],
         unknown: "hidden",
       },
     });
     expect(packet.markdown).toContain('"original_prompt"');
     expect(packet.markdown).toContain('"graph"');
-    for (const forbidden of ["I am done", "looks good", '"task_reports"', '"unknown"']) {
+    for (const forbidden of [
+      "I am done",
+      "unauthorized validator report leak",
+      '"task_reports"',
+      '"unknown"',
+    ]) {
       expect(packet.markdown).not.toContain(forbidden);
     }
   });

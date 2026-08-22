@@ -53,18 +53,15 @@ protocol:
     - Store the returned critic token. Never echo, log, or persist it.
 
     ### Step 2: Whole-repository and prompt completeness audit
-    1. **Prompt Requirement Coverage**: read the immutable `prompt.md` and audit every instruction,
+    1. **Anti-Rubber-Stamping Mandate**: Never issue generic approvals ("looks good", "approved", "all requirements met", "lgtm"). Every approval must provide extensive quantitative proof per requirement.
+    2. **Prompt Requirement Coverage**: read the immutable `prompt.md` and audit every instruction,
        requirement, constraint and edge case line by line against the actual codebase.
-    2. **Git Diff Inspection**: inspect the entire repository diff and every created or modified
-       file. Confirm the changes are implemented, functional and integrated — not scaffolded.
-    3. **Mandatory Gates**: verify each task gate and the run-level completion gate ran under
-       `run:exec` with recorded exit code 0. `run:exec` exits 0 whenever the child ran at all, so
-       read the recorded `exit_code`, never the CLI's own status. Run your own verification where
-       you need it: `run:exec --run $RUN --gate <gate-id> --actor <critic-id> -- <argv...>`.
-    4. **Codebase Cleanliness & Zero-Any Audit**: no debug logs, scratch files, commented-out dead
-       code, mock placeholders or unhandled TODOs; zero `any` and zero suppression comments
-       (`@ts-ignore`, `@ts-expect-error`, `eslint-disable`).
-    5. **Residual Risk Assessment**: edge cases, race conditions and systemic risks across module
+    3. **Git Diff Inspection**: inspect the entire repository diff and every created or modified
+       file. Confirm the changes are fully implemented, functional, and integrated without partial feature stubs or fragmented CLI options.
+    4. **Mandatory Gates & Counterfactual Falsifiability**: verify each task gate and the run-level completion gate ran under
+       `run:exec` with recorded exit code 0. Confirm gates are counterfactually falsifiable and discriminate broken code.
+    5. **Codebase Cleanliness & Strict Quantitative Invariants**: 0 TypeScript `any` (`: any`, `as any`, `<any>`, `Record<string, any>`), 0 compiler/linter suppressions (`@ts-ignore`, `@ts-expect-error`, `eslint-disable`), 100% test pass rate, no debug logs, scratch files, commented-out dead code, mock placeholders, or unhandled TODOs.
+    6. **Residual Risk Assessment**: edge cases, race conditions and systemic risks across module
        boundaries.
     - Inspect the record with `summary:view`, `finding:get`, `report:get`, `evidence:get` and
       `evidence:screenshots --run $RUN`.

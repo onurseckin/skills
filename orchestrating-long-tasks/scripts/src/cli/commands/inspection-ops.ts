@@ -16,6 +16,7 @@ import {
   formatScreenshotsListBrief,
 } from "../formatters/index.ts";
 import { boolFlag, textFlag, type Flags } from "../options.ts";
+import { resolveCapsuleRun } from "./dag-view.ts";
 
 function isObject(value: JsonValue | undefined): value is JsonObject {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -43,7 +44,10 @@ function recordedFindings(state: JsonObject): Record<string, unknown>[] {
 }
 
 export function findingGetCommand(flags: Flags): Record<string, unknown> {
-  const run = textFlag(flags, "run")!;
+  const repo = textFlag(flags, "repo", false) ?? process.cwd();
+  const runFlag = textFlag(flags, "run", false);
+  const runIdFlag = textFlag(flags, "run-id", false);
+  const run = resolveCapsuleRun(repo, runFlag, runIdFlag);
   const id = textFlag(flags, "id", false) ?? textFlag(flags, "finding", false);
 
   const loaded = loadRun(run);
@@ -74,7 +78,10 @@ export function findingGetCommand(flags: Flags): Record<string, unknown> {
 }
 
 export function reportGetCommand(flags: Flags): Record<string, unknown> {
-  const run = textFlag(flags, "run")!;
+  const repo = textFlag(flags, "repo", false) ?? process.cwd();
+  const runFlag = textFlag(flags, "run", false);
+  const runIdFlag = textFlag(flags, "run-id", false);
+  const run = resolveCapsuleRun(repo, runFlag, runIdFlag);
   const task = textFlag(flags, "task", false);
   const isCriticFlag = boolFlag(flags, "critic");
   const isSubmissionFlag = boolFlag(flags, "submission");
@@ -163,7 +170,10 @@ export function reportGetCommand(flags: Flags): Record<string, unknown> {
 }
 
 export function evidenceGetCommand(flags: Flags): Record<string, unknown> {
-  const run = textFlag(flags, "run")!;
+  const repo = textFlag(flags, "repo", false) ?? process.cwd();
+  const runFlag = textFlag(flags, "run", false);
+  const runIdFlag = textFlag(flags, "run-id", false);
+  const run = resolveCapsuleRun(repo, runFlag, runIdFlag);
   const cmdId =
     textFlag(flags, "command", false) ??
     textFlag(flags, "id", false) ??
@@ -219,7 +229,10 @@ export function evidenceGetCommand(flags: Flags): Record<string, unknown> {
 }
 
 export function evidenceScreenshotsCommand(flags: Flags): Record<string, unknown> {
-  const run = textFlag(flags, "run")!;
+  const repo = textFlag(flags, "repo", false) ?? process.cwd();
+  const runFlag = textFlag(flags, "run", false);
+  const runIdFlag = textFlag(flags, "run-id", false);
+  const run = resolveCapsuleRun(repo, runFlag, runIdFlag);
   const taskFilter = textFlag(flags, "task", false);
   const cmdFilter =
     textFlag(flags, "command", false) ??

@@ -77,9 +77,11 @@ export function dagRenderCommand(
       const assignedRole =
         typeof matchingAgent?.role === "string"
           ? matchingAgent.role
-          : assignedAgent
-            ? "implementer"
-            : undefined;
+          : typeof lease?.role === "string"
+            ? (lease.role as string)
+            : assignedAgent
+              ? "implementer"
+              : undefined;
       const assignedTool =
         typeof matchingAgent?.tool === "string"
           ? matchingAgent.tool

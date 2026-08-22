@@ -483,3 +483,34 @@ how-to-check: Grep the diff for `console.log`/`print`/`debugger` statements that
 severity: minor
 sources:
   - Google Engineering Practices — Code Review, "Style"
+
+## CQ-FALSIFY-001
+
+rule: Every test gate and verification suite must be proven counterfactually falsifiable by confirming it fails when the fix or feature logic is reverted or an intentional defect is introduced
+rationale: A test gate that passes regardless of whether the code is correct or broken is a rubber stamp and provides zero verification
+how-to-check: Revert the implementation diff or inject an intentional defect and execute the gate command; confirm it exits nonzero before certifying that the passing gate is valid
+severity: critical
+sources:
+  - Popper's Falsifiability Criterion
+  - Test-Driven Development (Kent Beck)
+
+## CQ-METRIC-001
+
+rule: Touched code enforces strict quantitative invariants: 0 TypeScript any types, 0 compiler or linter suppressions, 100% test pass rate, and exact execution timings
+rationale: Quantitative invariants provide objective, verifiable correctness guarantees that cannot be diluted by subjective confidence narratives
+how-to-check: Audit all touched files for any usages, @ts-ignore, @ts-expect-error, eslint-disable comments, and verify 100% test pass rate
+severity: critical
+sources:
+  - Effective TypeScript (Dan Vanderkam)
+  - Clean Code (Robert C. Martin)
+
+## CQ-CLI-001
+
+rule: Command-line interfaces and options must be cohesive, consolidated, and complete, forbidding fragmented options or one-off disconnected flags
+rationale: Fragmented CLI options create interface drift, increase surface complexity, and degrade operator ergonomics
+how-to-check: Inspect CLI command registrations to ensure flags and subcommands are consolidated into unified interfaces rather than sprawling one-off flags
+severity: important
+sources:
+  - POSIX Utility Conventions
+  - Command Line Interface Guidelines (clig.dev)
+

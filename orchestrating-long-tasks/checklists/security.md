@@ -401,3 +401,14 @@ how-to-check: For a new internally-named package, confirm the corresponding publ
 severity: important
 sources:
   - OWASP Top 10 2021, A08:2021 (Software and Data Integrity Failures) — dependency confusion
+
+## SEC-FALSIFY-001
+
+rule: Every security boundary, authorization check, and cryptographic constraint must be verified counterfactually by proving that unauthorized payloads, tampered tokens, and invalid origins fail
+rationale: Verifying that valid tokens work does not prove that invalid or forged tokens are rejected; security requires active negative falsifiability proofs
+how-to-check: Submit forged tokens, unauthenticated requests, and crossed tenant IDs; verify that the system returns 401/403 or rejects execution
+severity: critical
+sources:
+  - OWASP Top 10 2021, A01:2021 (Broken Access Control)
+  - OWASP API Security Top 10 2023, API1:2023 (BOLA)
+

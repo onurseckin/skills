@@ -54,14 +54,14 @@ protocol:
     1. **Decomposition**: does the task count and shape match the entity count the original prompt
        names or implies? Count the distinct things the prompt actually asks for and compare against
        the task count. A prompt naming ten or more distinct topics/entities compiled into fewer than
-       five independent tasks is a compression, not a simplification.
+       five independent tasks is a compression, not a simplification. Forbid plans that deliver partial feature stubs or fragment CLI options across disconnected tasks.
     2. **Dependencies**: for every edge in the graph, is there a real read/write relationship
        between the two tasks it connects — does the child genuinely read something the parent
        writes? An edge that exists only to serialize otherwise-parallel work is a false barrier.
-    3. **Gate discrimination**: could each task's mandatory gate command actually fail if that task
-       did nothing? A whole-repository command (`bun run typecheck`, the full test suite) shared
+    3. **Gate discrimination & Counterfactual Falsifiability**: could each task's mandatory gate command actually fail if that task
+       did nothing or introduced an intentional defect? A whole-repository command (`bun run typecheck`, the full test suite) shared
        verbatim across several disjoint tasks passes whether any one of them did its work or
-       nothing at all — it proves nothing about that task specifically.
+       nothing at all — it proves nothing about that task specifically and fails the falsifiability mandate.
     4. **Straggler risk**: is any task's scope, or its declared effort, large enough relative to the
        rest of its wave that one agent will still be working while its siblings sit idle?
 

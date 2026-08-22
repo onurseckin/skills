@@ -1,6 +1,7 @@
 import type { CommandSpec } from "./types.ts";
 import { DEFAULT_EXIT_CODES, optionalFlag, requiredFlag } from "./types.ts";
 import {
+  reportUnifiedCommand,
   reportDagCommand,
   reportGraphCommand,
   reportGraphJsonCommand,
@@ -15,6 +16,33 @@ import { exportGraphJsonCommand } from "../commands/graph-export.ts";
 import { dagRenderCommand, dagTraceCommand } from "../commands/dag.ts";
 
 export const REPORTING_COMMANDS: readonly CommandSpec[] = [
+  {
+    name: "report",
+    aliases: ["report:unified", "report:all"],
+    domain: "reporting",
+    summary: "Deliver unified topology, lifecycle tier breakdown, agent roles, IDs, and timestamps.",
+    description:
+      "Generates comprehensive unified run report across tasks, topology, agent lifecycle tiers, and audit trail.",
+    flags: [
+      optionalFlag(
+        "run",
+        "string",
+        "Capsule run root. Defaults to current repository .capsules/ when omitted.",
+      ),
+      optionalFlag("run-id", "string", "Alias of --run."),
+      optionalFlag("repo", "string", "Repository root to search for .capsules/.", "."),
+      optionalFlag("detailed", "bool", "Detailed topology and audit forensics."),
+      optionalFlag("json", "bool", "Output structured JSON report."),
+    ],
+    readsStdin: false,
+    takesRemainder: false,
+    exitCodes: DEFAULT_EXIT_CODES,
+    examples: [
+      "bun harness.ts report --run .capsules/<run-id>",
+      "bun harness.ts report:unified --run .capsules/<run-id>",
+    ],
+    handler: reportUnifiedCommand,
+  },
   {
     name: "report:graph-json",
     aliases: ["dag:export-json"],

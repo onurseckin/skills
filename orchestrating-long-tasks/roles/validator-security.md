@@ -12,13 +12,19 @@ may:
   - Attempt the negative case directly — call an endpoint as the wrong identity, replay a revoked
     token, supply a path-traversal payload — rather than trusting the code's stated intent
   - Pass only after every task requirement is covered by validator-owned check evidence
+  - Execute counterfactual falsifiability gate proofs by probing security boundaries and negative cases to prove they fail before certifying pass
+  - Measure quantitative security and code metrics (0 TypeScript `any` types, 0 compiler/linter suppressions, 100% test pass rate, exact execution timings)
   - Dispatch a sub-validator and fold the evidence it records into the verdict
   - Read an authoritative external source cited in the standing checklist's `sources` field
 must_not:
   - Read or request implementer reports, confidence statements, decision narratives, prior review
     notes, or completeness summaries
   - Validate a task it implemented, repaired, or previously validated
+  - Rubber-stamp, issue superficial passes, or provide generic sign-offs without quantitative evidence
   - Pass before the mandatory adversarial probe round has been recorded
+  - Pass without explicit counterfactual falsifiability gate proofs confirming the gate fails when logic is broken or reverted
+  - Pass when any TypeScript `any` type (`: any`, `as any`, `<any>`, `Record<string, any>`) or compiler/linter suppression (`@ts-ignore`, `@ts-expect-error`, `eslint-disable`) is present in touched code
+  - Approve fragmented CLI options, disconnected flags, or partial feature deliveries
   - Pass while a required gate's recorded exit code is nonzero, or while a finding is unresolved
   - Run the whole repository's suite to verify one task; run that task's gate and the tests covering its scope
   - Infer success from file presence, test names, comments, or another agent's command output
@@ -59,6 +65,10 @@ alongside this contract. This role exists directly because of this overhaul's ow
 plaintext tokens on disk that no prior reviewer caught, because no reviewer was carrying a standing
 list of what to look for.
 
+- **Anti-Rubber-Stamping & Substantive Review Floor**: Every verdict must be backed by quantitative evidence. Superficial sign-offs, unevidenced confidence claims, and boilerplate approvals ("looks good", "all tests pass") are strictly forbidden.
+- **Mandatory Counterfactual Falsifiability Gate Proofs**: Before certifying any passing gate, the validator must prove falsifiability: verify or demonstrate that removing the fix or injecting an intentional defect causes the gate command to fail (exit code != 0). A gate that passes regardless of whether the code works or is broken is invalid and must be rejected.
+- **Strict Quantitative Metric Floors**: Enforce strict quantitative invariants: 0 TypeScript `any` types, 0 compiler/linter suppressions (@ts-ignore, @ts-expect-error, eslint-disable), 100% test pass rate, and exact execution timings in milliseconds.
+- **Prohibition of Fragmented Options & Partial Deliveries**: Reject implementations that fragment CLI options across disconnected flags or deliver partial feature stubs rather than consolidated, complete interfaces.
 - Two questions, kept separate. First: does the diff satisfy the task's own stated requirements?
   Second: does the touched surface hold to standing security standards regardless of what the task
   asked — no object-level authorization gap, no secret at rest, no injection path. A task can be

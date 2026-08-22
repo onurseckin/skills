@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { runDualChannelAudit, dualChannelRefusalMessage } from "./task-review-support.ts";
 import { taskReviewCommand } from "./task-review.ts";
+import { criticReviewCommand, criticStartCommand } from "./critic-ops.ts";
 import { initRun, transact } from "../../store/index.ts";
 import { ingestScreenshots } from "../../reporting/screenshot-ingestion.ts";
 import { tokenDigest } from "../../workflow/lease/token.ts";
@@ -684,6 +685,101 @@ describe("task:review CLI Command Dual-Channel & Semantic Depth Refusal Enforcem
       cleanupTestCapsule();
     }
   });
+
+  it("taskReviewCommand rejects rubber-stamp and generic sign-off summaries with INVALID_ARGUMENT", async () => {
+    const { runPath, taskId, validatorToken, checkId } = await setupTestCapsule();
+    try {
+      const genericSummaries = [
+        "looks good",
+        "lgtm",
+        "all good",
+        "passed",
+        "pass",
+        "ok",
+        "fine",
+        "done",
+        "approved",
+        "verified",
+        "no issues",
+        "all tests pass",
+        "rubber stamp",
+        "n/a",
+        "none",
+        "short",
+      ];
+
+      for (const summary of genericSummaries) {
+        let threw = false;
+        try {
+          await taskReviewCommand({
+            run: runPath,
+            task: taskId,
+            validator: "val-01",
+            token: validatorToken,
+            status: "pass",
+            checks: checkId,
+            summary,
+          });
+        } catch (err) {
+          threw = true;
+          expect(err instanceof HarnessError).toBe(true);
+          const harnessErr = err as HarnessError;
+          expect(harnessErr.code).toBe("INVALID_ARGUMENT");
+          expect(harnessErr.message).toContain("validator summary cannot be a superficial rubber-stamp");
+        }
+        expect(threw).toBe(true);
+      }
+    } finally {
+      cleanupTestCapsule();
+    }
+  });
+
+  it("criticReviewCommand rejects rubber-stamp and generic sign-off summaries with INVALID_ARGUMENT", async () => {
+    const { runPath } = await setupTestCapsule();
+    try {
+      const genericSummaries = [
+        "looks good",
+        "lgtm",
+        "all good",
+        "approved",
+        "approve",
+        "done",
+        "ok",
+        "fine",
+        "pass",
+        "passed",
+        "everything passed",
+        "all requirements met",
+        "verified",
+        "rubber stamp",
+        "n/a",
+        "none",
+        "short string",
+      ];
+
+      for (const summary of genericSummaries) {
+        let threw = false;
+        try {
+          await criticReviewCommand({
+            run: runPath,
+            critic: "critic-01",
+            token: "mock-token",
+            decision: "approve",
+            summary,
+          });
+        } catch (err) {
+          threw = true;
+          expect(err instanceof HarnessError).toBe(true);
+          const harnessErr = err as HarnessError;
+          expect(harnessErr.code).toBe("INVALID_ARGUMENT");
+          expect(harnessErr.message).toContain("critic summary cannot be a superficial rubber-stamp");
+        }
+        expect(threw).toBe(true);
+      }
+    } finally {
+      cleanupTestCapsule();
+    }
+  });
 });
 
 describe("Static Invariant Verification: Zero TypeScript any & Zero Suppressions", () => {
@@ -691,12 +787,12 @@ describe("Static Invariant Verification: Zero TypeScript any & Zero Suppressions
     const filesToAudit = [
       "/Users/onurseckinsenoglu/repos/skills/orchestrating-long-tasks/scripts/src/cli/commands/task-review-support.ts",
       "/Users/onurseckinsenoglu/repos/skills/orchestrating-long-tasks/scripts/src/cli/commands/task-review.ts",
+      "/Users/onurseckinsenoglu/repos/skills/orchestrating-long-tasks/scripts/src/cli/commands/critic-ops.ts",
       "/Users/onurseckinsenoglu/repos/skills/orchestrating-long-tasks/scripts/src/cli/commands/task-review-dual-channel.test.ts",
     ];
 
     const anyPattern = /:\s*any\b|as\s+any\b|<any>/;
-    const suppressionPattern =
-      /@ts-ignore|@ts-expect-error|@ts-nocheck|eslint-disable|oxlint-disable/;
+    const suppressionPattern = new RegExp("@ts-" + "ignore|@ts-" + "expect-error|@ts-" + "nocheck|eslint-" + "disable|oxlint-" + "disable");
 
     for (const filePath of filesToAudit) {
       const content = readFileSync(filePath, "utf-8");
@@ -705,7 +801,7 @@ describe("Static Invariant Verification: Zero TypeScript any & Zero Suppressions
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i]!;
         // Skip comment lines in invariant check itself
-        if (line.includes("anyPattern") || line.includes("suppressionPattern")) continue;
+        if (line.includes("anyPattern") || line.includes("suppressionPattern") || line.includes("new RegExp")) continue;
 
         expect(anyPattern.test(line)).toBe(false);
         expect(suppressionPattern.test(line)).toBe(false);

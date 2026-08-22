@@ -52,18 +52,27 @@ export const RUN_COMMANDS: readonly CommandSpec[] = [
   },
   {
     name: "run:status",
-    aliases: [],
+    aliases: ["status"],
     domain: "run",
     summary: "Show phase, per-task status and progress for the run.",
     description: "Reads the capsule without mutating it and renders the execution table.",
     flags: [
-      requiredFlag("run", "string", "Capsule run root."),
+      optionalFlag(
+        "run",
+        "string",
+        "Capsule run root. Defaults to current repository .capsules/ when omitted.",
+      ),
+      optionalFlag("run-id", "string", "Alias of --run."),
+      optionalFlag("repo", "string", "Repository root to search for .capsules/.", "."),
       optionalFlag("detailed", "bool", "Include the raw state in the JSON result."),
     ],
     readsStdin: false,
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
-    examples: ["bun harness.ts run:status --run .capsules/<run-id>"],
+    examples: [
+      "bun harness.ts run:status --run .capsules/<run-id>",
+      "bun harness.ts status --run .capsules/<run-id>",
+    ],
     handler: runStatusCommand,
   },
   {

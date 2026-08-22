@@ -92,7 +92,7 @@ describe("every command the restart document can name", () => {
 
   test("is rejected when it is one of the invocations the CLI never had", () => {
     const invented = [
-      'registryArgv(entrypoint, "status", [["run", run]]);',
+      'registryArgv(entrypoint, "nonexistent-status", [["run", run]]);',
       'registryArgv(entrypoint, "packet", [["run", run]]);',
       'registryArgv(entrypoint, "validate", [["run", run]]);',
       'const INVENTED: readonly string[] = ["plan-apply"];',
@@ -102,7 +102,7 @@ describe("every command the restart document can name", () => {
       namesIn(invented)
         .filter((name) => findCommand(name) === undefined)
         .sort(),
-    ).toEqual(["packet", "plan-apply", "status", "validate"]);
+    ).toEqual(["nonexistent-status", "packet", "plan-apply", "validate"]);
   });
 });
 

@@ -132,6 +132,32 @@ export async function taskReviewCommand(flags: Flags): Promise<Record<string, un
   );
 
   const isPass = status === "pass";
+  if (isPass && summary !== undefined) {
+    const trimmedSummary = summary.trim().toLowerCase();
+    const genericSignOffs = new Set([
+      "looks good",
+      "lgtm",
+      "all good",
+      "passed",
+      "pass",
+      "ok",
+      "fine",
+      "done",
+      "approved",
+      "verified",
+      "no issues",
+      "all tests pass",
+      "rubber stamp",
+      "n/a",
+      "none",
+    ]);
+    if (trimmedSummary.length < 12 || genericSignOffs.has(trimmedSummary)) {
+      throw new HarnessError(
+        "INVALID_ARGUMENT",
+        "validator summary cannot be a superficial rubber-stamp or generic sign-off; provide concrete evidence and verification details",
+      );
+    }
+  }
   const openFindings = (taskBefore.findings ?? []).filter((f) => f.status === "open");
   const resolutions = isPass ? resolutionProofs(flags, taskId, openFindings) : [];
   if (isPass) assertOpenFindingsAnswered(taskId, openFindings, resolutions);
