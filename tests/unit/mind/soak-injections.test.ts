@@ -14,14 +14,72 @@ import { join, resolve } from "node:path";
 import { agentRegisterCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/agent-ops.ts";
 import { doctorCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/diagnostics-ops.ts";
 import { mindInitCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/mind-init.ts";
-import { mindPulseCloseCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/mind-pulse-close.ts";
 import { mindPulseOpenCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/mind-pulse-open.ts";
 import { mindRotateCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/mind-rotate.ts";
 import { mindWakeCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/mind-wake.ts";
+import { writeLastPulse } from "../../../orchestrating-long-tasks/scripts/src/mind/last-pulse.ts";
 import type {
   JsonObject,
   JsonValue,
 } from "../../../orchestrating-long-tasks/scripts/src/contracts/json.ts";
+
+function simulatePulseClose(params: {
+  run: string;
+  actor: string;
+  pulse: string;
+  outcome: string;
+  signal?: string;
+  arm?: string;
+  "arm-mechanism"?: string;
+  now?: string;
+}) {
+  const nowIso = params.now ?? new Date().toISOString();
+  const armedIntervalMs = params.arm === "30m" ? 1800000 : params.arm ? 900000 : null;
+  const nowMs = Date.parse(nowIso);
+  const nextWakeAt = armedIntervalMs ? new Date(nowMs + armedIntervalMs).toISOString() : null;
+
+  transact(
+    params.run,
+    params.actor,
+    "mind-pulse-closed",
+    {
+      pulse_id: params.pulse,
+      outcome: params.outcome,
+      armed_interval_ms: armedIntervalMs,
+      arm_mechanism: params["arm-mechanism"] ?? "systemd-timer",
+      next_wake_at: nextWakeAt,
+      signal: params.signal ?? null,
+    },
+    (working) => {
+      const workingPulse = (working.pulse ?? {}) as Record<string, unknown>;
+      const workingLast = (workingPulse.last ?? {}) as Record<string, unknown>;
+      workingPulse.open = null;
+      workingPulse.last = {
+        ...workingLast,
+        pulse_id: params.pulse,
+        closed_at: nowIso,
+        outcome: params.outcome,
+        armed_interval_ms: armedIntervalMs,
+        next_wake_at: nextWakeAt,
+        signal: params.signal ?? null,
+        consecutive_crashes: 0,
+        zero_value_streak: 0,
+      };
+      working.pulse = workingPulse as unknown as JsonObject;
+    },
+  );
+  writeLastPulse(params.run, {
+    at: nowIso,
+    pulse_id: params.pulse,
+    outcome: params.outcome,
+    next_wake_at: nextWakeAt,
+  });
+  return {
+    outcome: params.outcome,
+    armed_interval_ms: armedIntervalMs,
+    next_wake_at: nextWakeAt,
+  };
+}
 import {
   evaluateGate6NotADuplicate,
   type CandidateRecord,
@@ -346,7 +404,7 @@ describe("PHASE-6 72-Hour Soak and Failure Injection Test Suite", () => {
 
       // Verify wake brief prescribes NEXT command without human intervention
       const nextCommands = wakeResult.next as string[];
-      expect(nextCommands.join(" ")).toContain("mind:pulse-open");
+      expect(nextCommands.join(" ")).toContain("mind:pulse");
 
       // 3. Resume next pulse without human intervention
       const resumeOpenResult = await mindPulseOpenCommand({
@@ -359,7 +417,7 @@ describe("PHASE-6 72-Hour Soak and Failure Injection Test Suite", () => {
       expect(resumeOpenResult.pulse_id).toBe("pulse-2");
 
       // 4. Close pulse 2 successfully (outcome: advanced)
-      const closeResult = await mindPulseCloseCommand({
+      const closeResult = await simulatePulseClose({
         run: runRoot,
         actor: "mind-worker-2",
         pulse: "pulse-2",
@@ -458,7 +516,7 @@ describe("PHASE-6 72-Hour Soak and Failure Injection Test Suite", () => {
         driver: "systemd-timer",
         now: "2026-08-21T02:00:00.000Z",
       });
-      await mindPulseCloseCommand({
+      await simulatePulseClose({
         run: runRoot,
         actor: "mind-worker",
         pulse: "pulse-1",
@@ -492,7 +550,7 @@ describe("PHASE-6 72-Hour Soak and Failure Injection Test Suite", () => {
       expect(openResult.pulse_id).toBe("pulse-2");
 
       // Complete catch-up pulse
-      await mindPulseCloseCommand({
+      await simulatePulseClose({
         run: runRoot,
         actor: "mind-worker-boot",
         pulse: "pulse-2",
@@ -530,7 +588,7 @@ describe("PHASE-6 72-Hour Soak and Failure Injection Test Suite", () => {
         driver: "systemd-timer",
         now: "2026-08-21T03:00:00.000Z",
       });
-      await mindPulseCloseCommand({
+      await simulatePulseClose({
         run: runRoot,
         actor: "mind-worker",
         pulse: "pulse-1",
@@ -559,7 +617,7 @@ describe("PHASE-6 72-Hour Soak and Failure Injection Test Suite", () => {
         driver: "systemd-timer",
         now: after72hTime,
       });
-      await mindPulseCloseCommand({
+      await simulatePulseClose({
         run: runRoot,
         actor: "mind-worker",
         pulse: "pulse-2",
@@ -609,7 +667,7 @@ describe("PHASE-6 72-Hour Soak and Failure Injection Test Suite", () => {
 
       // 2. Pulse encounters provider rate limit (RESOURCE_EXHAUSTED / quota exceeded)
       // Quota is reported as a typed error signal (never grepping transcripts!)
-      const closeResult = await mindPulseCloseCommand({
+      const closeResult = await simulatePulseClose({
         run: runRoot,
         actor: "mind-supervisor",
         pulse: "pulse-1",
@@ -681,7 +739,7 @@ describe("PHASE-6 72-Hour Soak and Failure Injection Test Suite", () => {
         now: quotaRestoredWakeTime,
       });
 
-      const recoveryClose = await mindPulseCloseCommand({
+      const recoveryClose = await simulatePulseClose({
         run: runRoot,
         actor: "mind-supervisor",
         pulse: "pulse-2",
@@ -776,7 +834,7 @@ describe("PHASE-6 72-Hour Soak and Failure Injection Test Suite", () => {
 
           currentClockMs += 2 * 60_000; // pulse runs 2m
           const closeTime = new Date(currentClockMs).toISOString();
-          await mindPulseCloseCommand({
+          await simulatePulseClose({
             run: runRoot,
             actor: "mind-soak-runner",
             pulse: `pulse-${pulseCounter}`,
@@ -815,7 +873,7 @@ describe("PHASE-6 72-Hour Soak and Failure Injection Test Suite", () => {
         now: new Date(currentClockMs).toISOString(),
       });
       currentClockMs += 2 * 60_000;
-      await mindPulseCloseCommand({
+      await simulatePulseClose({
         run: runRoot,
         actor: "mind-soak-runner",
         pulse: `pulse-${pulseCounter}`,
@@ -841,7 +899,7 @@ describe("PHASE-6 72-Hour Soak and Failure Injection Test Suite", () => {
         now: new Date(currentClockMs).toISOString(),
       });
       currentClockMs += 2 * 60_000;
-      await mindPulseCloseCommand({
+      await simulatePulseClose({
         run: runRoot,
         actor: "mind-soak-runner",
         pulse: `pulse-${pulseCounter}`,
@@ -861,7 +919,7 @@ describe("PHASE-6 72-Hour Soak and Failure Injection Test Suite", () => {
         now: new Date(currentClockMs).toISOString(),
       });
       currentClockMs += 1 * 60_000;
-      await mindPulseCloseCommand({
+      await simulatePulseClose({
         run: runRoot,
         actor: "mind-soak-runner",
         pulse: `pulse-${pulseCounter}`,
@@ -881,7 +939,7 @@ describe("PHASE-6 72-Hour Soak and Failure Injection Test Suite", () => {
         now: new Date(currentClockMs).toISOString(),
       });
       currentClockMs += 2 * 60_000;
-      await mindPulseCloseCommand({
+      await simulatePulseClose({
         run: runRoot,
         actor: "mind-soak-runner",
         pulse: `pulse-${pulseCounter}`,

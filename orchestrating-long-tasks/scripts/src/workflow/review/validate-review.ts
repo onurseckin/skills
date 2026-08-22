@@ -147,6 +147,26 @@ export function validateReview(task: TaskRecord, value: unknown): ReviewInput {
   }
   validateFindings(task, review.findings, { forbidden: "probe_demand" });
   const resolvedFindings = validateResolutions(review.resolved_findings);
+
+  if (review.verdict === "pass") {
+    if (expected.size > 1 && checks.length < expected.size) {
+      throw new HarnessError(
+        "INVALID_ARGUMENT",
+        `anti-batching violation: passing review covers ${expected.size} requirements but only provides ${checks.length} check(s); individual discriminating test proofs required per item`,
+      );
+    }
+    if (resolvedFindings.length > 0) {
+      for (const proof of resolvedFindings) {
+        if (!proof.evidence || proof.evidence.length === 0) {
+          throw new HarnessError(
+            "INVALID_ARGUMENT",
+            `anti-batching violation: resolved finding ${proof.finding_id} must carry individual discriminating command evidence`,
+          );
+        }
+      }
+    }
+  }
+
   return jsonCopy({
     verdict: review.verdict,
     requirement_ids: review.requirement_ids,

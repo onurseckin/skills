@@ -1,4 +1,5 @@
 import { existsSync } from "node:fs";
+import { HarnessError } from "../errors/harness-error.ts";
 import type { AgentGrantRecord, AgentToolRef, AgentToolUse } from "../contracts/agents.ts";
 import { isAgentRole } from "../contracts/packets.ts";
 import type { CommandRecord } from "../contracts/commands.ts";
@@ -849,3 +850,29 @@ export function summarizeTierConfinement(
     issues,
   };
 }
+
+/**
+ * Hard mechanical assertion ensuring supervisors (Tier 1 Orchestrators & Tier 2 Coordinators)
+ * never perform direct code edits or hold task leases.
+ * Throws a fatal HarnessError if any supervisor code contamination is detected.
+ */
+export function assertSupervisorRoleConfinement(
+  findings: readonly TierConfinementFinding[],
+): void {
+  const supervisorViolations = findings.filter(
+    (f) =>
+      f.violation_type === "coordinator_code_writing" ||
+      f.violation_type === "orchestrator_direct_implementation",
+  );
+
+  if (supervisorViolations.length > 0) {
+    const details = supervisorViolations
+      .map((v) => `[Tier ${v.tier} ${v.role}/${v.agent_id}]: ${v.observation}`)
+      .join("; ");
+    throw new HarnessError(
+      "ROLE_CONFINEMENT_VIOLATION",
+      `Supervisor code editing contamination detected: ${details}. Supervisors are strictly forbidden from writing code and must delegate implementation exclusively to Tier 3 Implementers via invoke_subagent.`,
+    );
+  }
+}
+

@@ -2,6 +2,13 @@ import type { EvidenceClass } from "../contracts/evidence.ts";
 import type { FindingDetail } from "../workflow/scope-partitioner.ts";
 import type { Finding } from "../contracts/workflow.ts";
 import type { DefectSynthesis, CriticDecision, RoundGateResult } from "./types.ts";
+import type { SmartTaskPlan } from "../mind/smart-task-manager.ts";
+import {
+  assertAntiBatchingRule,
+  deriveGateForCategory,
+  deriveWriteScopeForCategory,
+  sanitizeSlug,
+} from "../mind/smart-task-manager.ts";
 
 export interface NormalizedFinding extends FindingDetail {
   readonly file_paths_evidence_class: EvidenceClass;
@@ -195,4 +202,73 @@ export function synthesizeNextRoundPrompt(input: SynthesizeDefectsInput): Defect
     synthesizedPrompt,
     affectedFiles,
   };
+}
+
+/**
+ * Mechanically partitions defect candidates / findings into 1:1 isolated repair tasks,
+ * ensuring each defect receives a dedicated implementer and independent validator.
+ */
+export function partitionDefectsToIsolatedTasks(
+  findings: readonly (Finding | FindingDetail)[],
+  options: {
+    readonly roundNumber?: number | undefined;
+    readonly priorRunId?: string | undefined;
+    readonly charterGoals?: readonly string[] | undefined;
+  } = {},
+): readonly SmartTaskPlan[] {
+  const round = options.roundNumber ?? 1;
+  const goals =
+    options.charterGoals && options.charterGoals.length > 0 ? options.charterGoals : ["G1"];
+  const tasks: SmartTaskPlan[] = [];
+
+  for (let i = 0; i < findings.length; i++) {
+    const raw = findings[i]!;
+    const normalized = normalizeFindingToDetail(raw);
+    const slug = sanitizeSlug(normalized.id);
+    const taskId = `repair-r${round}-${i + 1}-${slug}`;
+
+    const scope =
+      normalized.file_paths.length > 0
+        ? normalized.file_paths
+        : deriveWriteScopeForCategory("CORE_ENGINE", normalized.id);
+
+    const gate =
+      normalized.revalidation_gate && normalized.revalidation_gate.trim().length > 0
+        ? normalized.revalidation_gate.trim()
+        : deriveGateForCategory("CORE_ENGINE", scope);
+
+    tasks.push({
+      id: taskId,
+      label: `Remediate [${normalized.id}] (${normalized.severity}): ${normalized.observation.slice(0, 60)}`,
+      write_scope: scope,
+      gate,
+      charter_goals: goals,
+      acceptance_criteria: [
+        `Remediate defect finding ${normalized.id}: ${normalized.remediation}`,
+        `Verify gate pass: ${gate}`,
+        "1:1 implementer-validator isolation verified",
+      ],
+      dependencies: [],
+      source_type: "blunder_remediation",
+      priority:
+        normalized.severity === "critical"
+          ? "CRITICAL"
+          : normalized.severity === "important"
+            ? "HIGH"
+            : "MEDIUM",
+      rationale: `Isolated repair task for defect [${normalized.id}]: ${normalized.observation}`,
+      assigned_tier: "Tier_3_Implementer",
+      assigned_implementer: `implementer-${slug}`,
+      assigned_validator: `validator-${slug}`,
+      candidate_id: normalized.id,
+      metadata: {
+        candidate_id: normalized.id,
+        assigned_implementer: `implementer-${slug}`,
+        assigned_validator: `validator-${slug}`,
+      },
+    });
+  }
+
+  assertAntiBatchingRule(tasks);
+  return tasks;
 }

@@ -24,7 +24,6 @@ const FALLBACK_CEILING: ReadonlyMap<string, number> = new Map([
   ["orchestrating-long-tasks/scripts/src/cli/commands/dag.ts", 1],
   ["orchestrating-long-tasks/scripts/src/cli/commands/mind-audit.ts", 3],
   ["orchestrating-long-tasks/scripts/src/cli/commands/mind-init.ts", 1],
-  ["orchestrating-long-tasks/scripts/src/cli/commands/mind-pulse-close.ts", 1],
   ["orchestrating-long-tasks/scripts/src/cli/commands/mind-quiesce.ts", 1],
   ["orchestrating-long-tasks/scripts/src/cli/commands/mind-rotate.ts", 1],
   ["orchestrating-long-tasks/scripts/src/cli/commands/mind-wake.ts", 1],

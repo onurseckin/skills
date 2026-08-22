@@ -219,7 +219,7 @@ export function checkPulseGaps(
       gaps.push(`pulse ${pulseId} has duplicate close events (${closes} closes)`);
     } else if (opens === 1 && closes === 0) {
       const isLatestOpen =
-        options.allowTrailingInFlight && openOrder[openOrder.length - 1] === pulseId;
+        options.allowTrailingInFlight === true && openOrder[openOrder.length - 1] === pulseId;
       if (!isLatestOpen) {
         gaps.push(`pulse ${pulseId} was opened but never closed`);
       }

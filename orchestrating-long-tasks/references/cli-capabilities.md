@@ -1158,6 +1158,36 @@ Generates the same suite in memory and returns only the markdown brief.
 bun harness.ts summary:view --run .capsules/<run-id>
 ```
 
+### `test:summary`
+
+Display or record test execution summary metadata.
+
+Reads or records test summary records from capsule storage, showing passed/failed counts, duration, coverage, and execution scope.
+
+- **Aliases**: none
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--run` | string | no | no | - | Capsule run root or storage directory. |
+| `--json` | bool | no | no | - | Output JSON format. |
+| `--passed` | int | no | no | - | Passed test count for manual summary recording. |
+| `--failed` | int | no | no | - | Failed test count for manual summary recording. |
+| `--skipped` | int | no | no | - | Skipped test count for manual summary recording. |
+| `--duration` | int | no | no | - | Duration in milliseconds for manual summary recording. |
+| `--coverage` | string | no | no | - | Coverage percentage for manual summary recording. |
+| `--commit` | string | no | no | - | Commit SHA for manual summary recording. |
+| `--files` | int | no | no | - | Test files count for manual summary recording. |
+| `--scope` | string | no | no | - | Scope filter or recorded scope (e.g. 'full' or 'scoped'). |
+| `--agent` | string | no | no | - | Agent recording the summary. |
+
+```bash
+bun harness.ts test:summary
+bun harness.ts test:summary --run .capsules/<run-id>
+bun harness.ts test:summary --passed 45 --failed 0 --duration 1200
+```
+
 ## inspection
 
 ### `finding:get`
@@ -2209,11 +2239,11 @@ Opens a new pulse cycle, validating budget headroom, daily pulse and wall-clock 
 bun harness.ts mind:pulse-open --run .capsules/mind-gen-1 --actor mind-1 --host antigravity --driver bash-loop
 ```
 
-### `mind:pulse-close`
+### `mind:pulse`
 
-Close an active mind pulse with an outcome, value score, and next-pulse arm.
+Unified perpetual mind pulse: report active telemetry or open a new pulse.
 
-Closes the open pulse, calculates value delivered, enforces the arming rail (requiring --arm or --terminal-reason), appends mind-pulse-closed, and updates last_pulse.json.
+Unified perpetual mind pulse command. If a pulse is open, outputs active pulse telemetry and next scheduled interval. If no pulse is open, automatically opens a new perpetual pulse. Enforces CLOSING_FORBIDDEN_FOR_MIND invariant.
 
 - **Aliases**: none
 - **Stdin**: not read
@@ -2222,17 +2252,16 @@ Closes the open pulse, calculates value delivered, enforces the arming rail (req
 | Flag | Type | Required | Repeatable | Default | Description |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `--run` | string | yes | no | - | The mind capsule root. |
-| `--actor` | string | yes | no | - | Must match the opening actor. |
-| `--pulse` | string | yes | no | - | Pulse id; must match the open pulse. |
-| `--outcome` | string | yes | no | - | One of the eleven outcomes in PLAN.md §4.3. |
-| `--arm` | string | no | no | - | Duration for the next wake, e.g. 15m. |
-| `--arm-mechanism` | string | no | no | - | How it was armed, as reported. |
-| `--terminal-reason` | string | no | no | - | Required when --arm is absent and the outcome is not terminal. |
-| `--witness` | string | no | no | - | Command id evidencing the work this pulse did. |
-| `--signal` | string | no | no | - | Typed signal, e.g. rate_limit; never inferred from prose. |
+| `--actor` | string | no | no | `mind-1` | The acting agent id. |
+| `--host` | string | no | no | `antigravity` | Host runtime as reported. |
+| `--driver` | string | no | no | `perpetual-loop` | Driver identity as reported. |
+| `--arm` | string | no | no | - | Scheduled duration for the next interval, e.g. 15m. |
+| `--arm-mechanism` | string | no | no | - | How the pulse was armed, as reported. |
+| `--now` | string | no | no | - | Timestamp override (ISO8601). |
 
 ```bash
-bun harness.ts mind:pulse-close --run .capsules/mind-gen-1 --actor mind-1 --pulse pulse-1 --outcome quiescent --arm 15m --arm-mechanism systemd-timer
+bun harness.ts mind:pulse --run .capsules/mind-gen-1 --actor mind-1
+bun harness.ts mind:pulse --run .capsules/mind-gen-1 --arm 15m
 ```
 
 ### `mind:observe`

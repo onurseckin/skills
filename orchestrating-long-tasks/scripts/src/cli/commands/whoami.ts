@@ -115,6 +115,16 @@ export function whoamiCommand(flags: Flags): Record<string, unknown> {
     mdLines.push(`- **Advisory**: ⚠️ ${thread.advisory}`);
   }
 
+  if (
+    thread.tier === 1 ||
+    thread.tier === 2 ||
+    (thread.role && (thread.role.startsWith("orch") || thread.role.startsWith("coord")))
+  ) {
+    mdLines.push(
+      `- **ROLE INVARIANT**: 🚫 SUPERVISOR ROLE DETECTED (Tier ${thread.tier}). You are strictly forbidden from calling code-editing tools (\`write_to_file\`, \`replace_file_content\`). All code implementation and test execution MUST be delegated to Tier 3 subagents via \`invoke_subagent\`.`,
+    );
+  }
+
   if (thread.blunder) {
     mdLines.push(`- **Blunder Logged**: \`${thread.blunder.id}\` (${thread.blunder.type})`);
   }

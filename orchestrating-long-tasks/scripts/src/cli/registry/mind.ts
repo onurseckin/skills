@@ -9,7 +9,7 @@ import { mindAuditReportCommand, mindAuditStartCommand } from "../commands/mind-
 import { mindCandidateCommand } from "../commands/mind-candidate.ts";
 import { mindInitCommand } from "../commands/mind-init.ts";
 import { mindObserveCommand } from "../commands/mind-observe.ts";
-import { mindPulseCloseCommand } from "../commands/mind-pulse-close.ts";
+import { mindPulseCommand } from "../commands/mind-pulse.ts";
 import { mindPulseOpenCommand } from "../commands/mind-pulse-open.ts";
 import { mindQuiesceCommand } from "../commands/mind-quiesce.ts";
 import { mindRotateCommand } from "../commands/mind-rotate.ts";
@@ -37,7 +37,7 @@ export {
   mindDeclineCommand,
   mindInitCommand,
   mindObserveCommand,
-  mindPulseCloseCommand,
+  mindPulseCommand,
   mindPulseOpenCommand,
   mindQuiesceCommand,
   mindRotateCommand,
@@ -190,34 +190,29 @@ export const MIND_COMMANDS: readonly CommandSpec[] = [
     handler: mindPulseOpenCommand,
   },
   {
-    name: "mind:pulse-close",
+    name: "mind:pulse",
     aliases: [],
     domain: "mind",
-    summary: "Close an active mind pulse with an outcome, value score, and next-pulse arm.",
+    summary: "Unified perpetual mind pulse: report active telemetry or open a new pulse.",
     description:
-      "Closes the open pulse, calculates value delivered, enforces the arming rail (requiring --arm or --terminal-reason), appends mind-pulse-closed, and updates last_pulse.json.",
+      "Unified perpetual mind pulse command. If a pulse is open, outputs active pulse telemetry and next scheduled interval. If no pulse is open, automatically opens a new perpetual pulse. Enforces CLOSING_FORBIDDEN_FOR_MIND invariant.",
     flags: [
       requiredFlag("run", "string", "The mind capsule root."),
-      requiredFlag("actor", "string", "Must match the opening actor."),
-      requiredFlag("pulse", "string", "Pulse id; must match the open pulse."),
-      requiredFlag("outcome", "string", "One of the eleven outcomes in PLAN.md §4.3."),
-      optionalFlag("arm", "string", "Duration for the next wake, e.g. 15m."),
-      optionalFlag("arm-mechanism", "string", "How it was armed, as reported."),
-      optionalFlag(
-        "terminal-reason",
-        "string",
-        "Required when --arm is absent and the outcome is not terminal.",
-      ),
-      optionalFlag("witness", "string", "Command id evidencing the work this pulse did."),
-      optionalFlag("signal", "string", "Typed signal, e.g. rate_limit; never inferred from prose."),
+      optionalFlag("actor", "string", "The acting agent id.", "mind-1"),
+      optionalFlag("host", "string", "Host runtime as reported.", "antigravity"),
+      optionalFlag("driver", "string", "Driver identity as reported.", "perpetual-loop"),
+      optionalFlag("arm", "string", "Scheduled duration for the next interval, e.g. 15m."),
+      optionalFlag("arm-mechanism", "string", "How the pulse was armed, as reported."),
+      optionalFlag("now", "string", "Timestamp override (ISO8601)."),
     ],
     readsStdin: false,
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
-      "bun harness.ts mind:pulse-close --run .capsules/mind-gen-1 --actor mind-1 --pulse pulse-1 --outcome quiescent --arm 15m --arm-mechanism systemd-timer",
+      "bun harness.ts mind:pulse --run .capsules/mind-gen-1 --actor mind-1",
+      "bun harness.ts mind:pulse --run .capsules/mind-gen-1 --arm 15m",
     ],
-    handler: mindPulseCloseCommand,
+    handler: mindPulseCommand,
   },
   {
     name: "mind:observe",

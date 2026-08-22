@@ -167,8 +167,8 @@ describe("mind:wake and Tier A brief", () => {
     expect(markdown).toContain("RUNS      0 live");
     expect(markdown).toContain("HEALTH    intent-drift 3");
     expect(markdown).toContain("LANE      quiesce");
-    expect(markdown).toContain("NEXT      bun harness.ts mind:pulse-open");
-    expect(markdown).toContain("THEN      bun harness.ts mind:pulse-close");
+    expect(markdown).toContain("NEXT      bun harness.ts mind:pulse");
+    expect(markdown).toContain("THEN      bun harness.ts mind:pulse");
   });
 
   test("detects charter drift when charter is modified after pinning", async () => {
@@ -294,8 +294,8 @@ describe("mind:wake and Tier A brief", () => {
     const result = await mindWakeCommand({ run: "budget-exhausted", ...{ run } });
     expect(result.mode).toBe("paused");
     expect(result.lane).toBe("defer");
-    expect((result.next as string[]).join(" ")).toContain("mind:pulse-open");
-    expect((result.then as string[]).join(" ")).toContain("--outcome deferred");
+    expect((result.next as string[]).join(" ")).toContain("mind:pulse");
+    expect((result.then as string[]).join(" ")).toContain("mind:pulse");
   });
 
   test("calculates driver GAP correctly", async () => {
@@ -430,10 +430,7 @@ describe("mind:wake and Tier A brief", () => {
     writeFileSync(statePath, JSON.stringify(stateRaw), "utf-8");
 
     const result = await mindWakeCommand({ run: "headroom", ...{ run } });
-    expect((result.next as string[]).join(" ")).toContain(
-      "event sequence head-room limit exceeded",
-    );
-    expect((result.next as string[]).join(" ")).toContain("--outcome deferred");
+    expect((result.next as string[]).join(" ")).toContain("mind:rotate");
   });
 
   test("renders live runs in RUNS section", async () => {

@@ -210,7 +210,7 @@ describe("Phase 4 W4.3: Strict Tier Hierarchy and Deployment", () => {
         "mind:init",
         "mind:wake",
         "mind:pulse-open",
-        "mind:pulse-close",
+        "mind:pulse",
         "mind:observe",
         "mind:candidate",
         "mind:admit",

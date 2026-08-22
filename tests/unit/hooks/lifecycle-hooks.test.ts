@@ -31,7 +31,7 @@ describe("Lifecycle Hooks - Event Pattern Matching", () => {
   test("exact matches succeed for standard and custom events", () => {
     expect(matchesEvent("orchestrator:complete", "orchestrator:complete")).toBe(true);
     expect(matchesEvent("run:complete", "run:complete")).toBe(true);
-    expect(matchesEvent("mind:pulse-close", "mind:pulse-close")).toBe(true);
+    expect(matchesEvent("mind:pulse", "mind:pulse")).toBe(true);
     expect(matchesEvent("gate:pass", "gate:pass")).toBe(true);
     expect(matchesEvent("task:review", "task:review")).toBe(true);
     expect(matchesEvent("critic:approve", "critic:approve")).toBe(true);
@@ -211,17 +211,17 @@ describe("Lifecycle Hooks - Webhook Action Execution", () => {
     try {
       const hook: HookDefinition = {
         id: "webhook-test-1",
-        events: ["mind:pulse-close"],
+        events: ["mind:pulse"],
         action: "webhook",
         url: `http://localhost:${server.port}/webhook`,
         method: "POST",
         headers: { Authorization: "Bearer test-token-xyz" },
       };
 
-      const result = await executeWebhookAction(hook, "mind:pulse-close", { pulse: 42 });
+      const result = await executeWebhookAction(hook, "mind:pulse", { pulse: 42 });
       expect(result.success).toBe(true);
       expect(result.output).toContain("HTTP 200");
-      expect(receivedEvent).toBe("mind:pulse-close");
+      expect(receivedEvent).toBe("mind:pulse");
       expect(receivedPayload).toEqual({ pulse: 42 });
       expect(receivedAuthHeader).toBe("Bearer test-token-xyz");
     } finally {

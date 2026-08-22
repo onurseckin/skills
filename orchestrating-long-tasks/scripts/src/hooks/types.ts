@@ -13,7 +13,7 @@ export type KnownLifecycleEvent =
   | "run:complete"
   | "run:fail"
   | "mind:pulse-open"
-  | "mind:pulse-close"
+  | "mind:pulse"
   | "gate:pass"
   | "gate:fail"
   | "task:start"

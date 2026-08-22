@@ -136,7 +136,7 @@ export function mindPulseOpenCommand(
     }
     throw new HarnessError(
       "INVALID_STATE",
-      `pulse ${openPulseId} is already open (deadline: ${deadlineAt}); close it with mind:pulse-close or wait for deadline`,
+      `pulse ${openPulseId} is already open (deadline: ${deadlineAt}); query telemetry with mind:pulse or wait for deadline`,
     );
   }
 

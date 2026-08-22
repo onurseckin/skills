@@ -8,6 +8,11 @@ import { join } from "node:path";
 import type { HarnessEvent } from "../contracts/capsule.ts";
 import { readCapsuleEvents } from "./event-stream.ts";
 import { formatTable } from "../cli/formatters/line-limiter.ts";
+import {
+  formatCoordinates,
+  formatStatusBadge,
+  formatSubagentAllocation,
+} from "./sugiyama-dag.ts";
 
 export type DynamicTaskOrigin =
   | "static"
@@ -39,6 +44,24 @@ export interface DynamicTaskState {
   readonly repairForTaskId?: string | null | undefined;
   readonly sproutedChildren?: readonly string[] | undefined;
   readonly findings?: readonly string[] | undefined;
+  readonly coordinates?:
+    | { readonly wave?: number; readonly lane?: number; readonly rank?: number; readonly order?: number }
+    | string
+    | undefined;
+  readonly probeRound?: number | undefined;
+  readonly expandedSubtasks?:
+    | readonly (
+        | DynamicTaskState
+        | {
+            readonly id: string;
+            readonly label?: string | undefined;
+            readonly status?: string | undefined;
+            readonly assignedAgent?: string | null | undefined;
+            readonly validatorId?: string | null | undefined;
+            readonly role?: string | undefined;
+          }
+      )[]
+    | undefined;
 }
 
 export interface ActiveAgentState {
@@ -223,6 +246,21 @@ export function buildDynamicDagState(
     const roundInPayload = parsePayloadNumber(payload, ["round", "repair_round", "attempt_round"]);
     const attemptInPayload = parsePayloadNumber(payload, ["attempt", "lease_attempt"]);
     const branchIdFromPayload = parsePayloadString(payload, ["branch_id", "branchId", "branch"]);
+    const validatorFromPayload = parsePayloadString(payload, [
+      "validator_id",
+      "validatorId",
+      "validator",
+      "validator_agent",
+      "validatorAgent",
+    ]);
+    const probeRoundInPayload = parsePayloadNumber(payload, ["probe_round", "probeRound"]);
+    const coordinatesFromPayload =
+      typeof payload.coordinates === "string" ||
+      (typeof payload.coordinates === "object" && payload.coordinates !== null)
+        ? (payload.coordinates as
+            | { wave?: number; lane?: number; rank?: number; order?: number }
+            | string)
+        : undefined;
 
     // If task ID is not explicitly given, try resolving from active agent
     const taskId = explicitTaskId ?? (actor ? (agentMap.get(actor)?.taskId ?? null) : null);
@@ -292,6 +330,9 @@ export function buildDynamicDagState(
           activeCommand: null,
           activeStepIndex: seq,
           sproutedChildren: [],
+          validatorId: validatorFromPayload ?? undefined,
+          probeRound: probeRoundInPayload ?? undefined,
+          coordinates: coordinatesFromPayload ?? undefined,
         });
       }
     }
@@ -328,6 +369,9 @@ export function buildDynamicDagState(
           activeCommand: null,
           activeStepIndex: seq,
           sproutedChildren: [],
+          validatorId: validatorFromPayload ?? undefined,
+          probeRound: probeRoundInPayload ?? undefined,
+          coordinates: coordinatesFromPayload ?? undefined,
         });
       }
 
@@ -873,11 +917,25 @@ export function renderDynamicDagAscii(dynamicDag: DynamicDagState): string {
   const visited = new Set<string>();
 
   function formatNode(task: DynamicTaskState): string {
-    const agentText = task.assignedAgent ? ` [${task.assignedAgent}]` : "";
     const stepText = task.activeStepIndex
       ? ` (step ${formatSeq(task.activeStepIndex)})`
       : ` (seq ${formatSeq(task.updatedAtSeq)})`;
-    return `[${task.id}] ${task.executionState}${agentText}${stepText}`;
+
+    let agentText = "";
+    if (task.assignedAgent && task.validatorId) {
+      const roleUpper = (task.role ?? "implementer").toUpperCase();
+      agentText = ` [● ${roleUpper}: ${task.assignedAgent} ──► VALIDATOR: ${task.validatorId}]`;
+    } else if (task.assignedAgent) {
+      agentText = ` [${task.assignedAgent}]`;
+    } else if (task.validatorId) {
+      agentText = ` [● VALIDATOR: ${task.validatorId}]`;
+    }
+
+    const coordText = task.coordinates
+      ? ` ${formatCoordinates(task.coordinates)}`
+      : "";
+
+    return `[${task.id}] ${task.executionState}${coordText}${agentText}${stepText}`;
   }
 
   function renderNodeHierarchy(taskId: string, prefix: string, isLast: boolean): void {
@@ -892,6 +950,12 @@ export function renderDynamicDagAscii(dynamicDag: DynamicDagState): string {
 
     lines.push(`${prefix}${connector}${formatNode(task)}`);
 
+    if (task.coordinates) {
+      lines.push(`${childPrefix}↳ Coordinates: ${formatCoordinates(task.coordinates)}`);
+    }
+    if (task.probeRound !== undefined && task.probeRound > 0) {
+      lines.push(`${childPrefix}↳ Probe Round: P${task.probeRound} (🔍 PROBING)`);
+    }
     if (task.writeScope.length > 0) {
       lines.push(`${childPrefix}↳ Scope: ${task.writeScope.join(", ")}`);
     }
@@ -900,6 +964,30 @@ export function renderDynamicDagAscii(dynamicDag: DynamicDagState): string {
     }
     if (task.activeCommand && !task.executionState.includes(task.activeCommand)) {
       lines.push(`${childPrefix}↳ Active Cmd: ${task.activeCommand}`);
+    }
+
+    // Visually sprout dynamically expanded sub-tasks if declared
+    if (task.expandedSubtasks && task.expandedSubtasks.length > 0) {
+      for (let i = 0; i < task.expandedSubtasks.length; i++) {
+        const sub = task.expandedSubtasks[i]!;
+        const isLastSub = i === task.expandedSubtasks.length - 1;
+        const sproutConnector = isLastSub ? "└──► " : "├──► ";
+        const subStatus = formatStatusBadge(sub.status ?? "ready");
+        const subImpl =
+          "assignedAgent" in sub && sub.role !== "validator"
+            ? sub.assignedAgent
+            : null;
+        const subVal =
+          "validatorId" in sub && typeof sub.validatorId === "string"
+            ? sub.validatorId
+            : "assignedAgent" in sub && sub.role === "validator"
+              ? sub.assignedAgent
+              : null;
+        const alloc = formatSubagentAllocation(subImpl, subVal, sub.role ?? "IMPLEMENTER");
+        const allocText = alloc ? ` ${alloc}` : "";
+        lines.push(`${childPrefix}│`);
+        lines.push(`${childPrefix}${sproutConnector}[${sub.id}] ${subStatus}${allocText}`);
+      }
     }
 
     // Visually sprout Round 2+ Repair Implementer & Validator branches

@@ -21,11 +21,7 @@ fi
 
 BRIEF_FILE="$(mktemp -t mind-brief-XXXXXX 2>/dev/null || mktemp /tmp/mind-brief.XXXXXX)"
 cleanup() {
-  local code=$?
   rm -f "$BRIEF_FILE"
-  if [ "$code" -ne 0 ]; then
-    "$BUN" "$HARNESS" mind:pulse-close --run "$CAPSULE" --actor mind --pulse auto --outcome unarmed 2>/dev/null || true
-  fi
 }
 trap cleanup EXIT INT TERM
 

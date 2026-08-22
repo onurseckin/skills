@@ -43,7 +43,18 @@ export interface SmartTaskPlan {
     | "Tier_3_Validator"
     | undefined;
   readonly assigned_role?: string | undefined;
+  readonly assigned_implementer?: string | undefined;
+  readonly assigned_validator?: string | undefined;
+  readonly feedback_id?: string | undefined;
+  readonly candidate_id?: string | undefined;
   readonly metadata?: Readonly<Record<string, unknown>> | undefined;
+}
+
+export interface AntiBatchingValidationReport {
+  readonly compliant: boolean;
+  readonly violations: readonly string[];
+  readonly total_tasks: number;
+  readonly isolated_task_count: number;
 }
 
 export interface SmartTaskSynthesisResult {
@@ -52,6 +63,7 @@ export interface SmartTaskSynthesisResult {
   readonly summary: string;
   readonly source_items_count: number;
   readonly enqueued_count?: number | undefined;
+  readonly anti_batching_enforced?: boolean | undefined;
 }
 
 export interface WaveGroup {
@@ -78,6 +90,283 @@ export interface AutonomousDualIntakeResult {
   readonly queue_stats: TaskQueueStats;
   readonly summary: string;
   readonly admitted_feedback_ids: readonly string[];
+}
+
+/**
+ * Validates that all task plans strictly comply with the Anti-Batching Rule:
+ * 1. No task merges multiple disparate feedback items or candidate directives.
+ * 2. Every task has an independent, non-empty write scope.
+ * 3. Every task has a dedicated Implementer and an independent Validator (1:1 isolation; no self-validation).
+ */
+export function validateAntiBatchingIsolation(
+  plans: readonly SmartTaskPlan[],
+): AntiBatchingValidationReport {
+  const violations: string[] = [];
+  let isolatedCount = 0;
+
+  for (const plan of plans) {
+    let planCompliant = true;
+
+    // 1. Reject merged multi-item tasks
+    const metadata = plan.metadata ?? {};
+    const batchedFeedback = metadata["batched_feedback_ids"] ?? metadata["feedback_ids"];
+    const batchedCandidates = metadata["batched_candidate_ids"] ?? metadata["candidate_ids"];
+
+    if (Array.isArray(batchedFeedback) && batchedFeedback.length > 1) {
+      violations.push(
+        `Task '${plan.id}' illegally merges multiple feedback items ([${batchedFeedback.join(", ")}]) into a single task node.`,
+      );
+      planCompliant = false;
+    }
+
+    if (Array.isArray(batchedCandidates) && batchedCandidates.length > 1) {
+      violations.push(
+        `Task '${plan.id}' illegally merges multiple defect candidates ([${batchedCandidates.join(", ")}]) into a single task node.`,
+      );
+      planCompliant = false;
+    }
+
+    if (
+      typeof plan.feedback_id === "string" &&
+      (plan.feedback_id.includes(",") || plan.feedback_id.includes(";"))
+    ) {
+      violations.push(
+        `Task '${plan.id}' declares multi-item feedback_id '${plan.feedback_id}', violating 1:1 partitioning.`,
+      );
+      planCompliant = false;
+    }
+
+    if (
+      plan.label.toLowerCase().includes("[batch") ||
+      plan.label.toLowerCase().includes("[multi-item")
+    ) {
+      violations.push(
+        `Task '${plan.id}' title indicates batched execution '${plan.label}', which violates the anti-batching invariant.`,
+      );
+      planCompliant = false;
+    }
+
+    // 2. Reject empty write scopes
+    if (!plan.write_scope || plan.write_scope.length === 0) {
+      violations.push(
+        `Task '${plan.id}' has empty write scope, violating independent file isolation.`,
+      );
+      planCompliant = false;
+    }
+
+    // 3. Enforce 1:1 Implementer & independent Validator isolation
+    const impl = plan.assigned_implementer ?? (typeof metadata["assigned_implementer"] === "string" ? metadata["assigned_implementer"] : undefined);
+    const val = plan.assigned_validator ?? (typeof metadata["assigned_validator"] === "string" ? metadata["assigned_validator"] : undefined);
+
+    if (!impl || !impl.trim()) {
+      violations.push(
+        `Task '${plan.id}' is missing a dedicated Implementer assignment.`,
+      );
+      planCompliant = false;
+    }
+
+    if (!val || !val.trim()) {
+      violations.push(
+        `Task '${plan.id}' is missing an independent Validator assignment.`,
+      );
+      planCompliant = false;
+    }
+
+    if (impl && val && impl.trim() === val.trim()) {
+      violations.push(
+        `Task '${plan.id}' violates 1:1 isolation: implementer '${impl}' cannot act as independent validator for its own task.`,
+      );
+      planCompliant = false;
+    }
+
+    if (planCompliant) {
+      isolatedCount += 1;
+    }
+  }
+
+  return {
+    compliant: violations.length === 0,
+    violations,
+    total_tasks: plans.length,
+    isolated_task_count: isolatedCount,
+  };
+}
+
+/**
+ * Asserts strict Anti-Batching Rule compliance, throwing HarnessError if violations occur.
+ */
+export function assertAntiBatchingRule(plans: readonly SmartTaskPlan[]): void {
+  const report = validateAntiBatchingIsolation(plans);
+  if (!report.compliant) {
+    throw new HarnessError(
+      "INTEGRITY",
+      `Anti-Batching Rule violation: ${report.violations.join("; ")}`,
+    );
+  }
+}
+
+/**
+ * Strictly partitions grouped feedback items into 1:1 isolated task nodes.
+ */
+export function partitionGroupedFeedbacksStrictly(
+  feedbacks: readonly FeedbackItem[],
+  options: {
+    readonly charterGoals?: readonly string[] | undefined;
+    readonly baseIdPrefix?: string | undefined;
+    readonly autoEnqueue?: boolean | undefined;
+    readonly queuePath?: string | undefined;
+  } = {},
+): readonly SmartTaskPlan[] {
+  const prefix = options.baseIdPrefix ?? "task";
+  const tasks: SmartTaskPlan[] = [];
+  const seenScopes = new Set<string>();
+
+  for (let i = 0; i < feedbacks.length; i++) {
+    const fb = feedbacks[i]!;
+    const slug = sanitizeSlug(fb.id);
+    const scope = deriveWriteScopeForCategory(fb.category, fb.id);
+    const gate = deriveGateForCategory(fb.category, scope);
+    const priority = mapFeedbackPriorityToTaskPriority(fb.priority);
+    const taskId = `${prefix}-${i + 1}-${slug}`;
+
+    const dependencies: string[] = [];
+    for (const s of scope) {
+      if (seenScopes.has(s) && i > 0) {
+        dependencies.push(tasks[i - 1]!.id);
+        break;
+      }
+      seenScopes.add(s);
+    }
+
+    tasks.push({
+      id: taskId,
+      label: fb.title,
+      write_scope: scope,
+      gate,
+      charter_goals:
+        options.charterGoals && options.charterGoals.length > 0
+          ? options.charterGoals
+          : ["G1"],
+      acceptance_criteria: [
+        `Strictly isolate and satisfy feedback item: ${fb.title}`,
+        `Pass mandatory gate: ${gate}`,
+        "Enforce 1:1 Implementer-Validator isolation (0 any, 0 suppressions)",
+      ],
+      dependencies,
+      source_type: "feedback_intake",
+      priority,
+      rationale: `Partitioned 1:1 from feedback item [${fb.id}]: ${fb.content.slice(0, 150)}`,
+      assigned_tier: "Tier_2_Coordinator",
+      assigned_implementer: `implementer-${slug}`,
+      assigned_validator: `validator-${slug}`,
+      feedback_id: fb.id,
+      metadata: {
+        feedback_id: fb.id,
+        assigned_implementer: `implementer-${slug}`,
+        assigned_validator: `validator-${slug}`,
+      },
+    });
+  }
+
+  assertAntiBatchingRule(tasks);
+
+  if (options.autoEnqueue && tasks.length > 0) {
+    const batchInputs: NewTaskQueueInput[] = tasks.map((t) => ({
+      id: t.id,
+      title: t.label,
+      description: t.rationale,
+      priority: t.priority ?? "HIGH",
+      write_scope: t.write_scope,
+      gate: t.gate,
+      charter_goals: t.charter_goals,
+      acceptance_criteria: t.acceptance_criteria,
+      dependencies: t.dependencies,
+      source_type: "feedback_intake",
+      assigned_tier: t.assigned_tier,
+      assigned_role: t.assigned_role,
+      metadata: t.metadata,
+    }));
+    enqueueTasksBatch(batchInputs, options.queuePath);
+  }
+
+  return tasks;
+}
+
+/**
+ * Strictly partitions defect candidates / directives into 1:1 isolated task nodes.
+ */
+export function partitionCandidatesStrictly(
+  candidates: readonly {
+    readonly id: string;
+    readonly title?: string | undefined;
+    readonly statement?: string | undefined;
+    readonly category?: string | undefined;
+    readonly write_scope?: readonly string[] | undefined;
+    readonly gate?: string | undefined;
+    readonly priority?: TaskPriority | undefined;
+  }[],
+  options: {
+    readonly charterGoals?: readonly string[] | undefined;
+    readonly baseIdPrefix?: string | undefined;
+  } = {},
+): readonly SmartTaskPlan[] {
+  const prefix = options.baseIdPrefix ?? "candidate-task";
+  const tasks: SmartTaskPlan[] = [];
+  const seenScopes = new Set<string>();
+
+  for (let i = 0; i < candidates.length; i++) {
+    const cand = candidates[i]!;
+    const slug = sanitizeSlug(cand.id);
+    const label = cand.title ?? cand.statement ?? `Defect Candidate ${cand.id}`;
+    const category = cand.category ?? "CORE_ENGINE";
+    const scope =
+      cand.write_scope && cand.write_scope.length > 0
+        ? cand.write_scope
+        : deriveWriteScopeForCategory(category, cand.id);
+    const gate = cand.gate ?? deriveGateForCategory(category, scope);
+    const taskId = `${prefix}-${i + 1}-${slug}`;
+
+    const dependencies: string[] = [];
+    for (const s of scope) {
+      if (seenScopes.has(s) && i > 0) {
+        dependencies.push(tasks[i - 1]!.id);
+        break;
+      }
+      seenScopes.add(s);
+    }
+
+    tasks.push({
+      id: taskId,
+      label,
+      write_scope: scope,
+      gate,
+      charter_goals:
+        options.charterGoals && options.charterGoals.length > 0
+          ? options.charterGoals
+          : ["G1"],
+      acceptance_criteria: [
+        `Strictly isolate and satisfy candidate: ${label}`,
+        `Pass gate: ${gate}`,
+        "Enforce 1:1 implementer-validator isolation",
+      ],
+      dependencies,
+      source_type: "plan_enhancement",
+      priority: cand.priority ?? "HIGH",
+      rationale: `Partitioned 1:1 from defect candidate [${cand.id}]`,
+      assigned_tier: "Tier_3_Implementer",
+      assigned_implementer: `implementer-${slug}`,
+      assigned_validator: `validator-${slug}`,
+      candidate_id: cand.id,
+      metadata: {
+        candidate_id: cand.id,
+        assigned_implementer: `implementer-${slug}`,
+        assigned_validator: `validator-${slug}`,
+      },
+    });
+  }
+
+  assertAntiBatchingRule(tasks);
+  return tasks;
 }
 
 /**
@@ -121,7 +410,7 @@ export function synthesizeAutonomousTasks(
   const feedbackItems = readFeedbackQueue(options.capsulesDir);
   const pendingFeedback = feedbackItems.filter((f) => f.status === "PENDING");
 
-  // Mode B: If pending user feedback items exist, prioritize and expand them
+  // Mode B: If pending user feedback items exist, prioritize and expand them (1:1 Partitioning)
   if (pendingFeedback.length > 0) {
     const selected = pendingFeedback.slice(0, maxTasks);
     const tasks: SmartTaskPlan[] = [];
@@ -129,10 +418,11 @@ export function synthesizeAutonomousTasks(
 
     for (let i = 0; i < selected.length; i++) {
       const fb = selected[i]!;
+      const slug = sanitizeSlug(fb.id);
       const scope = deriveWriteScopeForCategory(fb.category, fb.id);
       const gate = deriveGateForCategory(fb.category, scope);
       const priority = mapFeedbackPriorityToTaskPriority(fb.priority);
-      const taskId = `task-${i + 1}-${sanitizeSlug(fb.id)}`;
+      const taskId = `task-${i + 1}-${slug}`;
 
       // Establish sequential dependencies if scopes collide
       const dependencies: string[] = [];
@@ -163,8 +453,18 @@ export function synthesizeAutonomousTasks(
         priority,
         rationale: `Ingested from feedback queue [${fb.priority}]: ${fb.content.slice(0, 150)}`,
         assigned_tier: "Tier_2_Coordinator",
+        assigned_implementer: `implementer-${slug}`,
+        assigned_validator: `validator-${slug}`,
+        feedback_id: fb.id,
+        metadata: {
+          feedback_id: fb.id,
+          assigned_implementer: `implementer-${slug}`,
+          assigned_validator: `validator-${slug}`,
+        },
       });
     }
+
+    assertAntiBatchingRule(tasks);
 
     let enqueuedCount = 0;
     if (options.autoEnqueue) {
@@ -180,6 +480,8 @@ export function synthesizeAutonomousTasks(
         dependencies: t.dependencies,
         source_type: "feedback_intake",
         assigned_tier: t.assigned_tier,
+        assigned_role: t.assigned_role,
+        metadata: t.metadata,
       }));
       const enqueued = enqueueTasksBatch(batchInputs, options.queuePath);
       enqueuedCount = enqueued.length;
@@ -191,8 +493,9 @@ export function synthesizeAutonomousTasks(
     return {
       mode: "feedback_intake",
       tasks,
-      summary: `Synthesized ${tasks.length} task(s) from pending user feedback queue.`,
+      summary: `Synthesized ${tasks.length} isolated task(s) from pending user feedback queue with 1:1 implementer-validator mapping.`,
       source_items_count: pendingFeedback.length,
+      anti_batching_enforced: true,
       ...(enqueuedCount > 0 ? { enqueued_count: enqueuedCount } : {}),
     };
   }
@@ -206,11 +509,12 @@ export function synthesizeAutonomousTasks(
 
   if (openBlunders.length > 0) {
     const blunder = openBlunders[0]!;
+    const blunderSlug = sanitizeSlug(blunder.id);
     const blunderScope = deriveWriteScopeForCategory("CORE_ENGINE", blunder.id);
     const blunderGate = deriveGateForCategory("CORE_ENGINE", blunderScope);
 
     selfTasks.push({
-      id: `task-1-blunder-${sanitizeSlug(blunder.id)}`,
+      id: `task-1-blunder-${blunderSlug}`,
       label: `Automated Blunder Remediation (${blunder.category})`,
       write_scope: blunderScope,
       gate: blunderGate,
@@ -228,6 +532,14 @@ export function synthesizeAutonomousTasks(
       priority: "CRITICAL",
       rationale: `Autonomous remediation for open blunder ${blunder.id}: ${blunder.observation}`,
       assigned_tier: "Tier_3_Implementer",
+      assigned_implementer: `implementer-blunder-${blunderSlug}`,
+      assigned_validator: `validator-blunder-${blunderSlug}`,
+      candidate_id: blunder.id,
+      metadata: {
+        candidate_id: blunder.id,
+        assigned_implementer: `implementer-blunder-${blunderSlug}`,
+        assigned_validator: `validator-blunder-${blunderSlug}`,
+      },
     });
   }
 
@@ -256,6 +568,12 @@ export function synthesizeAutonomousTasks(
     rationale:
       "Continuous invariant hardening maintaining zero compiler suppressions and deterministic typed schemas.",
     assigned_tier: "Tier_3_Implementer",
+    assigned_implementer: "implementer-invariant-hardening",
+    assigned_validator: "validator-invariant-hardening",
+    metadata: {
+      assigned_implementer: "implementer-invariant-hardening",
+      assigned_validator: "validator-invariant-hardening",
+    },
   });
 
   // Add autonomic continuous optimization task
@@ -276,9 +594,16 @@ export function synthesizeAutonomousTasks(
     rationale:
       "Autonomic self-evolution cycle maintaining 0 any, 0 suppressions, and continuous loop cadence.",
     assigned_tier: "Tier_1_Orchestrator",
+    assigned_implementer: "implementer-autonomic-optimization",
+    assigned_validator: "validator-autonomic-optimization",
+    metadata: {
+      assigned_implementer: "implementer-autonomic-optimization",
+      assigned_validator: "validator-autonomic-optimization",
+    },
   });
 
   const selectedSelfTasks = selfTasks.slice(0, maxTasks);
+  assertAntiBatchingRule(selectedSelfTasks);
 
   let enqueuedCount = 0;
   if (options.autoEnqueue) {
@@ -294,6 +619,8 @@ export function synthesizeAutonomousTasks(
       dependencies: t.dependencies,
       source_type: t.source_type,
       assigned_tier: t.assigned_tier,
+      assigned_role: t.assigned_role,
+      metadata: t.metadata,
     }));
     const enqueued = enqueueTasksBatch(batchInputs, options.queuePath);
     enqueuedCount = enqueued.length;
@@ -302,8 +629,9 @@ export function synthesizeAutonomousTasks(
   return {
     mode: "self_evolution",
     tasks: selectedSelfTasks,
-    summary: `Autonomous self-evolution synthesized ${selectedSelfTasks.length} task(s) on empty queue.`,
+    summary: `Autonomous self-evolution synthesized ${selectedSelfTasks.length} isolated task(s) on empty queue with 1:1 implementer-validator mapping.`,
     source_items_count: openBlunders.length,
+    anti_batching_enforced: true,
     ...(enqueuedCount > 0 ? { enqueued_count: enqueuedCount } : {}),
   };
 }
@@ -326,6 +654,8 @@ export function expandExternalPromptToPlan(
       | "Tier_3_Implementer"
       | "Tier_3_Validator"
       | undefined;
+    readonly assignedImplementer?: string | undefined;
+    readonly assignedValidator?: string | undefined;
   } = {},
 ): SmartTaskPlan {
   const trimmed = prompt.trim();
@@ -361,7 +691,7 @@ export function expandExternalPromptToPlan(
     "Maintain strict type safety (0 any, 0 suppressions)",
   ];
 
-  return {
+  const plan: SmartTaskPlan = {
     id: baseId,
     label: title,
     write_scope: scope,
@@ -373,7 +703,16 @@ export function expandExternalPromptToPlan(
     priority: options.priority ?? "HIGH",
     rationale: `Expanded from direct prompt: ${trimmed.slice(0, 120)}`,
     assigned_tier: options.assignedTier ?? "Tier_3_Implementer",
+    assigned_implementer: options.assignedImplementer ?? `implementer-${baseId}`,
+    assigned_validator: options.assignedValidator ?? `validator-${baseId}`,
+    metadata: {
+      assigned_implementer: options.assignedImplementer ?? `implementer-${baseId}`,
+      assigned_validator: options.assignedValidator ?? `validator-${baseId}`,
+    },
   };
+
+  assertAntiBatchingRule([plan]);
+  return plan;
 }
 
 /**
@@ -387,6 +726,8 @@ export function planEnhance(
     readonly priority?: TaskPriority | undefined;
     readonly writeScope?: readonly string[] | undefined;
     readonly gate?: string | undefined;
+    readonly assignedImplementer?: string | undefined;
+    readonly assignedValidator?: string | undefined;
   } = {},
 ): SmartTaskPlan {
   if (typeof promptOrFeedback === "string") {
@@ -394,6 +735,7 @@ export function planEnhance(
   }
 
   const fb = promptOrFeedback;
+  const slug = sanitizeSlug(fb.id);
   const scope =
     options.writeScope && options.writeScope.length > 0
       ? options.writeScope
@@ -403,9 +745,12 @@ export function planEnhance(
       ? options.gate.trim()
       : deriveGateForCategory(fb.category, scope);
   const priority = options.priority ?? mapFeedbackPriorityToTaskPriority(fb.priority);
-  const baseId = options.baseId ? sanitizeSlug(options.baseId) : `task-${sanitizeSlug(fb.id)}`;
+  const baseId = options.baseId ? sanitizeSlug(options.baseId) : `task-${slug}`;
 
-  return {
+  const assignedImplementer = options.assignedImplementer ?? `implementer-${slug}`;
+  const assignedValidator = options.assignedValidator ?? `validator-${slug}`;
+
+  const plan: SmartTaskPlan = {
     id: baseId,
     label: fb.title,
     write_scope: scope,
@@ -422,7 +767,18 @@ export function planEnhance(
     priority,
     rationale: `Plan enhanced from feedback item [${fb.category}]: ${fb.content.slice(0, 150)}`,
     assigned_tier: "Tier_2_Coordinator",
+    assigned_implementer: assignedImplementer,
+    assigned_validator: assignedValidator,
+    feedback_id: fb.id,
+    metadata: {
+      feedback_id: fb.id,
+      assigned_implementer: assignedImplementer,
+      assigned_validator: assignedValidator,
+    },
   };
+
+  assertAntiBatchingRule([plan]);
+  return plan;
 }
 
 /**
@@ -452,7 +808,8 @@ export function expandExternalPromptToWavePlan(
   const tasks: SmartTaskPlan[] = [];
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]!;
-    const id = `${prefix}-${i + 1}-${sanitizeSlug(line.slice(0, 25))}`;
+    const slug = sanitizeSlug(line.slice(0, 25));
+    const id = `${prefix}-${i + 1}-${slug}`;
     const scope = [
       `orchestrating-long-tasks/scripts/src/mind/step-${i + 1}.ts`,
       `tests/unit/mind/step-${i + 1}.test.ts`,
@@ -472,9 +829,16 @@ export function expandExternalPromptToWavePlan(
       priority: "HIGH",
       rationale: `Expanded step ${i + 1} from multi-step prompt: ${line}`,
       assigned_tier: "Tier_3_Implementer",
+      assigned_implementer: `implementer-wave-step-${i + 1}`,
+      assigned_validator: `validator-wave-step-${i + 1}`,
+      metadata: {
+        assigned_implementer: `implementer-wave-step-${i + 1}`,
+        assigned_validator: `validator-wave-step-${i + 1}`,
+      },
     });
   }
 
+  assertAntiBatchingRule(tasks);
   return compileSmartTasksToWavePlan(tasks);
 }
 

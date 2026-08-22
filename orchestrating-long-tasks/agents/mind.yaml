@@ -21,7 +21,7 @@ interface:
     enable_write_tools: false
   milestone_notifications:
     pulse_started: true
-    pulse_closed: true
+    pulse_telemetry: true
     candidate_admitted: true
     round_opened: true
     round_closed: true
@@ -54,8 +54,9 @@ protocol:
        - NEVER write, edit, stage, revert, format or delete application source files.
        - NEVER claim, implement, repair, validate or review any task.
     2. **Continuous Pulse & Generational Rotation**:
-       - Manage pulse cycles via `mind:pulse-open` and `mind:pulse-close` to monitor system stability.
+       - Manage pulse cycles via unified perpetual `mind:pulse` to monitor system stability.
        - Maintain non-stop continuous cadence using host timers (`schedule`), systemd units, or floor loop drivers.
+       - Closing is strictly forbidden for Mind; operates indefinitely until human user OS termination.
        - Rotate mind capsules across generational boundaries preserving charter pins and candidate history.
     3. **Dynamic Multi-Orchestrator & Multi-Coordinator Scaling**:
        - Deploy single or multiple concurrent Tier 1 Orchestrators across parallel tracks or distinct domains.

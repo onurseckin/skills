@@ -6,6 +6,22 @@ import { HarnessError } from "../errors/harness-error.ts";
 import { scopeConflict } from "../scheduler/conflicts.ts";
 import { schedulingMetrics, type SchedulingMetrics } from "../scheduler/metrics.ts";
 
+export interface SugiyamaSubtask {
+  readonly id: string;
+  readonly label?: string | undefined;
+  readonly status?: string | undefined;
+  readonly assignedAgent?: string | null | undefined;
+  readonly validatorAgent?: string | null | undefined;
+  readonly validatorId?: string | null | undefined;
+  readonly implementerAgent?: string | null | undefined;
+  readonly role?: string | undefined;
+  readonly coordinates?:
+    | { readonly wave?: number; readonly lane?: number; readonly rank?: number; readonly order?: number }
+    | string
+    | undefined;
+  readonly writeScope?: readonly string[] | undefined;
+}
+
 export interface SugiyamaNode {
   readonly id: string;
   readonly label: string;
@@ -17,6 +33,9 @@ export interface SugiyamaNode {
   readonly assignedAgent?: string | null | undefined;
   readonly assignedRole?: string | null | undefined;
   readonly assignedTool?: string | null | undefined;
+  readonly validatorAgent?: string | null | undefined;
+  readonly validatorId?: string | null | undefined;
+  readonly implementerAgent?: string | null | undefined;
   readonly attempt?: number | null | undefined;
   readonly priority?: number | undefined;
   readonly effort?: number | undefined;
@@ -26,6 +45,24 @@ export interface SugiyamaNode {
   readonly isDummy?: boolean | undefined;
   readonly origSource?: string | undefined;
   readonly origTarget?: string | undefined;
+  readonly coordinates?:
+    | { readonly wave?: number; readonly lane?: number; readonly rank?: number; readonly order?: number }
+    | string
+    | undefined;
+  readonly wave?: number | undefined;
+  readonly lane?: number | undefined;
+  readonly parentTaskId?: string | undefined;
+  readonly branchId?: string | undefined;
+  readonly round?: number | undefined;
+  readonly probeRound?: number | undefined;
+  readonly expandedSubtasks?: readonly (SugiyamaNode | SugiyamaSubtask | string)[] | undefined;
+  readonly dynamicOrigin?:
+    | "static"
+    | "dynamic_expansion"
+    | "branch"
+    | "replan"
+    | "repair_branch"
+    | undefined;
 }
 
 export interface SugiyamaEdge {
@@ -119,14 +156,25 @@ export interface SugiyamaDagReport {
  */
 export function getStatusBadge(status: string, hasDeps = false): string {
   switch (status.toLowerCase()) {
+    case "pass":
+      return "✓ PASS";
     case "done":
     case "satisfied":
     case "passed":
       return "✓ PASSED";
+    case "active":
+      return "● ACTIVE";
     case "leased":
     case "running":
-    case "active":
       return "🟢 RUNNING";
+    case "probing":
+    case "probe":
+    case "investigating":
+      return "🔍 PROBING";
+    case "repairing":
+    case "repair":
+    case "remediation":
+      return "⟳ REPAIRING";
     case "validating":
       return "🔄 VALIDATING";
     case "validated":
@@ -152,6 +200,107 @@ export function getStatusBadge(status: string, hasDeps = false): string {
 
 export function getStatusGlyph(status: string, hasDeps = false): string {
   return `(${getStatusBadge(status, hasDeps)})`;
+}
+
+/**
+ * Returns boxed bracket status badges for dynamic DAG visualization.
+ * Supported badges: [● ACTIVE], [✓ PASS], [○ READY], [⟳ REPAIRING], [🔍 PROBING], etc.
+ */
+export function formatStatusBadge(status: string, hasDeps = false): string {
+  switch (status.toLowerCase()) {
+    case "active":
+    case "leased":
+    case "running":
+    case "in_progress":
+      return "[● ACTIVE]";
+    case "pass":
+    case "done":
+    case "satisfied":
+    case "passed":
+      return "[✓ PASS]";
+    case "ready":
+    case "retry_ready":
+      return "[○ READY]";
+    case "repairing":
+    case "repair":
+    case "changes_requested":
+    case "remediation":
+      return "[⟳ REPAIRING]";
+    case "probing":
+    case "probe":
+    case "investigating":
+      return "[🔍 PROBING]";
+    case "validating":
+      return "[🔄 VALIDATING]";
+    case "validated":
+      return "[🟣 VALIDATED]";
+    case "failed":
+    case "rejected":
+      return "[❌ REJECTED]";
+    case "escalated":
+      return "[🚨 ESCALATED]";
+    case "proposed":
+    case "blocked":
+      return "[⏳ BLOCKED]";
+    case "draft":
+    default:
+      return hasDeps ? "[⏳ BLOCKED]" : "[○ READY]";
+  }
+}
+
+/**
+ * Formats subagent allocation relationship string:
+ * [● IMPLEMENTER: <agent-id> ──► VALIDATOR: <agent-id>]
+ */
+export function formatSubagentAllocation(
+  implementerId?: string | null,
+  validatorId?: string | null,
+  implementerRole = "IMPLEMENTER",
+): string {
+  const cleanImpl = implementerId?.trim();
+  const cleanVal = validatorId?.trim();
+
+  if (cleanImpl && cleanVal) {
+    const roleUpper = implementerRole.toUpperCase();
+    return `[● ${roleUpper}: ${cleanImpl} ──► VALIDATOR: ${cleanVal}]`;
+  }
+  if (cleanImpl) {
+    const roleUpper = implementerRole.toUpperCase();
+    return `[● ${roleUpper}: ${cleanImpl}]`;
+  }
+  if (cleanVal) {
+    return `[● VALIDATOR: ${cleanVal}]`;
+  }
+  return "";
+}
+
+/**
+ * Formats wave/lane coordinates: [W<wave>:L<lane>]
+ */
+export function formatCoordinates(
+  coordinates?:
+    | { readonly wave?: number; readonly lane?: number; readonly rank?: number; readonly order?: number }
+    | string
+    | null,
+  waveFallback?: number,
+  laneFallback?: number,
+): string {
+  if (typeof coordinates === "string" && coordinates.trim().length > 0) {
+    const trimmed = coordinates.trim();
+    if (trimmed.startsWith("[") && trimmed.endsWith("]")) return trimmed;
+    return `[${trimmed}]`;
+  }
+  if (coordinates && typeof coordinates === "object") {
+    const wave = coordinates.wave ?? (coordinates.rank !== undefined ? coordinates.rank + 1 : 1);
+    const lane = coordinates.lane ?? (coordinates.order !== undefined ? coordinates.order + 1 : 1);
+    return `[W${wave}:L${lane}]`;
+  }
+  if (waveFallback !== undefined || laneFallback !== undefined) {
+    const wave = waveFallback ?? 1;
+    const lane = laneFallback ?? 1;
+    return `[W${wave}:L${lane}]`;
+  }
+  return "";
 }
 
 /**
@@ -585,6 +734,14 @@ export function minimizeCrossingsBarycenter(
       ...node,
       rank,
       order,
+      wave: node.wave ?? rank + 1,
+      lane: node.lane ?? order + 1,
+      coordinates: node.coordinates ?? {
+        wave: node.wave ?? rank + 1,
+        lane: node.lane ?? order + 1,
+        rank,
+        order,
+      },
     })),
   }));
 }
@@ -630,7 +787,10 @@ export function renderRoundedNodeBox(
   const bypassBadge = options.isBypass ? " ❌[BYPASS]" : "";
   const agentBadge =
     task.assignedAgent &&
-    (task.status === "leased" || task.status === "running" || task.status === "validating")
+    (task.status === "leased" ||
+      task.status === "running" ||
+      task.status === "validating" ||
+      task.status === "active")
       ? ` [⚡ ${task.status === "validating" ? "VALIDATING" : "LEASED"}: ${task.assignedAgent} (${task.assignedRole ?? "implementer"})]`
       : "";
 
@@ -643,11 +803,43 @@ export function renderRoundedNodeBox(
 
   const rows: string[] = [titleLine];
 
+  // Active Subagent Allocation rendering: [● IMPLEMENTER: <agent-id> ──► VALIDATOR: <agent-id>]
+  const implementerId =
+    task.implementerAgent ??
+    (task.assignedRole !== "validator" ? task.assignedAgent : null);
+  const validatorId =
+    task.validatorAgent ??
+    task.validatorId ??
+    (task.assignedRole === "validator" ? task.assignedAgent : null);
+  const subagentAlloc = formatSubagentAllocation(
+    implementerId,
+    validatorId,
+    task.assignedRole ?? "IMPLEMENTER",
+  );
+  if (subagentAlloc) {
+    rows.push(`Allocations: ${subagentAlloc}`);
+  }
+
+  // Coordinates rendering
+  const coords = formatCoordinates(task.coordinates, task.wave, task.lane);
+  if (coords) {
+    rows.push(`Coordinates: ${coords}`);
+  }
+
+  // Phase / Work / Span / Dependencies
   if (task.dependencies.length === 0) {
     rows.push(`Role: ${role} | Work: ${work} | Span: ${span}`);
   } else {
     rows.push(`Role: ${role} | Needs: ${task.dependencies.join(", ")}`);
     rows.push(`Work: ${work} | Span: ${span}`);
+  }
+
+  // Probe / Repair Round Indicators
+  if (task.probeRound !== undefined && task.probeRound > 0) {
+    rows.push(`Probe Round: P${task.probeRound} (🔍 PROBING)`);
+  }
+  if (task.round !== undefined && task.round > 1) {
+    rows.push(`Repair Round: R${task.round} (⟳ REPAIRING)`);
   }
 
   if (options.detailed || (task.writeScope && task.writeScope.length > 0)) {
@@ -669,11 +861,56 @@ export function renderRoundedNodeBox(
     rows.push(`Gate:  ${task.gate}`);
   }
 
+  // Dynamically expanded branch sub-tasks and live relationship arrows
+  if (task.expandedSubtasks && task.expandedSubtasks.length > 0) {
+    const branchHeader = task.branchId
+      ? `↳ Dynamic Branch [${task.branchId}] (${task.expandedSubtasks.length} sub-tasks):`
+      : `↳ Dynamic Sub-tasks (${task.expandedSubtasks.length}):`;
+    rows.push(branchHeader);
+
+    for (let i = 0; i < task.expandedSubtasks.length; i++) {
+      const sub = task.expandedSubtasks[i]!;
+      const isLast = i === task.expandedSubtasks.length - 1;
+      const connector = isLast ? "  └──►" : "  ├──►";
+
+      if (typeof sub === "string") {
+        rows.push(`${connector} [${sub}]`);
+      } else {
+        const subId = sub.id;
+        const subStatus = formatStatusBadge(sub.status ?? "ready");
+        const subRole =
+          "assignedRole" in sub && typeof sub.assignedRole === "string"
+            ? sub.assignedRole
+            : "role" in sub && typeof sub.role === "string"
+              ? sub.role
+              : undefined;
+        const subImpl =
+          "assignedAgent" in sub && subRole !== "validator"
+            ? sub.assignedAgent
+            : "implementerAgent" in sub && typeof sub.implementerAgent === "string"
+              ? sub.implementerAgent
+              : null;
+        const subVal =
+          "validatorId" in sub && typeof sub.validatorId === "string"
+            ? sub.validatorId
+            : "validatorAgent" in sub && typeof sub.validatorAgent === "string"
+              ? sub.validatorAgent
+              : "assignedAgent" in sub && subRole === "validator"
+                ? sub.assignedAgent
+                : null;
+        const childAlloc = formatSubagentAllocation(subImpl, subVal, subRole ?? "IMPLEMENTER");
+        const allocSuffix = childAlloc ? ` ${childAlloc}` : "";
+        rows.push(`${connector} [${subId}] ${subStatus}${allocSuffix}`);
+      }
+    }
+  }
+
   if (
     task.assignedAgent &&
     task.status !== "leased" &&
     task.status !== "running" &&
-    task.status !== "validating"
+    task.status !== "validating" &&
+    task.status !== "active"
   ) {
     const attemptStr =
       task.attempt !== null && task.attempt !== undefined ? ` (Attempt #${task.attempt})` : "";
@@ -681,7 +918,10 @@ export function renderRoundedNodeBox(
     rows.push(`Agent: ${task.assignedAgent}${attemptStr}${toolStr}`);
   } else if (
     task.assignedTool &&
-    (task.status === "leased" || task.status === "running" || task.status === "validating")
+    (task.status === "leased" ||
+      task.status === "running" ||
+      task.status === "validating" ||
+      task.status === "active")
   ) {
     rows.push(`Tool:  ${task.assignedTool}`);
   }
@@ -744,6 +984,14 @@ export function renderSugiyamaDag(
         ...n,
         rank: r,
         order,
+        wave: n.wave ?? r + 1,
+        lane: n.lane ?? order + 1,
+        coordinates: n.coordinates ?? {
+          wave: n.wave ?? r + 1,
+          lane: n.lane ?? order + 1,
+          rank: r,
+          order,
+        },
       }));
     if (nodesInRank.length > 0) {
       initialLayers.push({ rank: r, nodes: nodesInRank });

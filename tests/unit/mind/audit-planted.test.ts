@@ -8,7 +8,7 @@ import {
   mindAuditReportCommand,
   mindAuditStartCommand,
 } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/mind-audit.ts";
-import { mindPulseCloseCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/mind-pulse-close.ts";
+import { mindPulseCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/mind-pulse.ts";
 import { mindPulseOpenCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/mind-pulse-open.ts";
 import type { CommandRecord } from "../../../orchestrating-long-tasks/scripts/src/contracts/commands.ts";
 import type {
@@ -472,23 +472,28 @@ describe("PHASE-5 §4.1 & PLAN §13.7 Planted-Ledger Audit Test Suite", () => {
       expect(() => assertAuditAllowsPulseOpen(loaded.state)).toThrow(HarnessError);
     });
 
-    test("unplanted clean pulse sequence returns approved and unblocks pulse open", () => {
+    test("unplanted clean pulse sequence returns approved and unblocks pulse open", async () => {
       const fixture = setupPlantedAuditCapsule("pulse-gap-clean");
 
-      // Open and properly close pulse-1
-      mindPulseOpenCommand({
-        run: fixture.run,
-        actor: "mind-1",
-        host: "antigravity",
-        driver: "bash-loop",
-      });
-      mindPulseCloseCommand({
-        run: fixture.run,
-        actor: "mind-1",
-        outcome: "quiescent",
-        "pulse-id": "pulse-1",
-        arm: "900000",
-      });
+      // Transact clean pulse-1 cycle
+      transact(
+        fixture.run,
+        "mind-1",
+        "mind-pulse-opened",
+        { pulse_id: "pulse-1" },
+        (working) => {
+          working.pulse = { open: { pulse_id: "pulse-1" } } as unknown as JsonObject;
+        },
+      );
+      transact(
+        fixture.run,
+        "mind-1",
+        "mind-pulse-closed",
+        { pulse_id: "pulse-1", outcome: "quiescent", value: 0 },
+        (working) => {
+          working.pulse = { open: null, last: { pulse_id: "pulse-1", outcome: "quiescent" } } as unknown as JsonObject;
+        },
+      );
 
       const loadedPre = loadRun(fixture.run, true);
       const gapCheck = checkPulseGaps(loadedPre.events);

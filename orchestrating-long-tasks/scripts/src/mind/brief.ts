@@ -577,30 +577,26 @@ export async function buildWakeBrief(
     nextArgv = [
       "bun",
       "harness.ts",
-      "mind:pulse-close",
+      "mind:rotate",
       "--run",
       actualRunRoot,
-      "--outcome",
-      "deferred",
-      "--reason",
-      "event sequence head-room limit exceeded",
+      "--next-run",
+      `${actualRunRoot}-next`,
+      "--actor",
+      actor,
     ];
     thenArgv = [
       "bun",
       "harness.ts",
-      "mind:pulse-close",
+      "mind:wake",
       "--run",
       actualRunRoot,
-      "--outcome",
-      "deferred",
-      "--arm",
-      "15m",
     ];
   } else if (lane === "defer") {
     nextArgv = [
       "bun",
       "harness.ts",
-      "mind:pulse-open",
+      "mind:pulse",
       "--run",
       actualRunRoot,
       "--actor",
@@ -613,11 +609,9 @@ export async function buildWakeBrief(
     thenArgv = [
       "bun",
       "harness.ts",
-      "mind:pulse-close",
+      "mind:pulse",
       "--run",
       actualRunRoot,
-      "--outcome",
-      "deferred",
       "--arm",
       "15m",
     ];
@@ -636,13 +630,9 @@ export async function buildWakeBrief(
     thenArgv = [
       "bun",
       "harness.ts",
-      "mind:pulse-close",
+      "mind:pulse",
       "--run",
       actualRunRoot,
-      "--outcome",
-      "rescued",
-      "--witness",
-      "<command-id>",
       "--arm",
       "15m",
     ];
@@ -662,11 +652,9 @@ export async function buildWakeBrief(
     thenArgv = [
       "bun",
       "harness.ts",
-      "mind:pulse-close",
+      "mind:pulse",
       "--run",
       actualRunRoot,
-      "--outcome",
-      "repaired",
       "--arm",
       "15m",
     ];
@@ -675,7 +663,7 @@ export async function buildWakeBrief(
     nextArgv = [
       "bun",
       "harness.ts",
-      "mind:pulse-open",
+      "mind:pulse",
       "--run",
       actualRunRoot,
       "--actor",
@@ -688,11 +676,9 @@ export async function buildWakeBrief(
     thenArgv = [
       "bun",
       "harness.ts",
-      "mind:pulse-close",
+      "mind:pulse",
       "--run",
       actualRunRoot,
-      "--outcome",
-      "quiescent",
       "--arm",
       "15m",
     ];

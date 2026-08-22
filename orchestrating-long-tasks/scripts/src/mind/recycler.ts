@@ -458,12 +458,12 @@ export function transitionCompletenessCriticSignOff(
 }
 
 /**
- * Specifically transitions a closed pulse into the next wake/pulse arm without process termination.
+ * Specifically transitions a pulse cycle into the next wake/pulse arm without process termination.
  */
-export function transitionPulseCloseToWake(
+export function transitionPulseToWake(
   runRoot: string,
   pulseId: string,
-  outcome: string,
+  outcome: string = "active",
 ): RecycleAssessment {
   const wakeCmd = `bun harness.ts mind:wake --run ${runRoot}`;
   return {
@@ -479,6 +479,11 @@ export function transitionPulseCloseToWake(
     infiniteCadence: true,
   };
 }
+
+/**
+ * Legacy alias for transitionPulseToWake.
+ */
+export const transitionPulseCloseToWake = transitionPulseToWake;
 
 /**
  * Drains pending feedback items from FEEDBACK_QUEUE.jsonl and admits them

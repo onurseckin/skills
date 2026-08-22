@@ -3720,6 +3720,128 @@
       ]
     },
     {
+      "name": "test:summary",
+      "aliases": [],
+      "domain": "summary",
+      "summary": "Display or record test execution summary metadata.",
+      "description": "Reads or records test summary records from capsule storage, showing passed/failed counts, duration, coverage, and execution scope.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root or storage directory."
+        },
+        {
+          "name": "json",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Output JSON format."
+        },
+        {
+          "name": "passed",
+          "type": "int",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Passed test count for manual summary recording."
+        },
+        {
+          "name": "failed",
+          "type": "int",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Failed test count for manual summary recording."
+        },
+        {
+          "name": "skipped",
+          "type": "int",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Skipped test count for manual summary recording."
+        },
+        {
+          "name": "duration",
+          "type": "int",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Duration in milliseconds for manual summary recording."
+        },
+        {
+          "name": "coverage",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Coverage percentage for manual summary recording."
+        },
+        {
+          "name": "commit",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Commit SHA for manual summary recording."
+        },
+        {
+          "name": "files",
+          "type": "int",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Test files count for manual summary recording."
+        },
+        {
+          "name": "scope",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Scope filter or recorded scope (e.g. 'full' or 'scoped')."
+        },
+        {
+          "name": "agent",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Agent recording the summary."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts test:summary",
+        "bun harness.ts test:summary --run .capsules/<run-id>",
+        "bun harness.ts test:summary --passed 45 --failed 0 --duration 1200"
+      ]
+    },
+    {
       "name": "finding:get",
       "aliases": [],
       "domain": "inspection",
@@ -7507,11 +7629,11 @@
       ]
     },
     {
-      "name": "mind:pulse-close",
+      "name": "mind:pulse",
       "aliases": [],
       "domain": "mind",
-      "summary": "Close an active mind pulse with an outcome, value score, and next-pulse arm.",
-      "description": "Closes the open pulse, calculates value delivered, enforces the arming rail (requiring --arm or --terminal-reason), appends mind-pulse-closed, and updates last_pulse.json.",
+      "summary": "Unified perpetual mind pulse: report active telemetry or open a new pulse.",
+      "description": "Unified perpetual mind pulse command. If a pulse is open, outputs active pulse telemetry and next scheduled interval. If no pulse is open, automatically opens a new perpetual pulse. Enforces CLOSING_FORBIDDEN_FOR_MIND invariant.",
       "flags": [
         {
           "name": "run",
@@ -7524,26 +7646,26 @@
         {
           "name": "actor",
           "type": "string",
-          "required": true,
+          "required": false,
           "repeatable": false,
-          "default": null,
-          "description": "Must match the opening actor."
+          "default": "mind-1",
+          "description": "The acting agent id."
         },
         {
-          "name": "pulse",
+          "name": "host",
           "type": "string",
-          "required": true,
+          "required": false,
           "repeatable": false,
-          "default": null,
-          "description": "Pulse id; must match the open pulse."
+          "default": "antigravity",
+          "description": "Host runtime as reported."
         },
         {
-          "name": "outcome",
+          "name": "driver",
           "type": "string",
-          "required": true,
+          "required": false,
           "repeatable": false,
-          "default": null,
-          "description": "One of the eleven outcomes in PLAN.md §4.3."
+          "default": "perpetual-loop",
+          "description": "Driver identity as reported."
         },
         {
           "name": "arm",
@@ -7551,7 +7673,7 @@
           "required": false,
           "repeatable": false,
           "default": null,
-          "description": "Duration for the next wake, e.g. 15m."
+          "description": "Scheduled duration for the next interval, e.g. 15m."
         },
         {
           "name": "arm-mechanism",
@@ -7559,31 +7681,15 @@
           "required": false,
           "repeatable": false,
           "default": null,
-          "description": "How it was armed, as reported."
+          "description": "How the pulse was armed, as reported."
         },
         {
-          "name": "terminal-reason",
+          "name": "now",
           "type": "string",
           "required": false,
           "repeatable": false,
           "default": null,
-          "description": "Required when --arm is absent and the outcome is not terminal."
-        },
-        {
-          "name": "witness",
-          "type": "string",
-          "required": false,
-          "repeatable": false,
-          "default": null,
-          "description": "Command id evidencing the work this pulse did."
-        },
-        {
-          "name": "signal",
-          "type": "string",
-          "required": false,
-          "repeatable": false,
-          "default": null,
-          "description": "Typed signal, e.g. rate_limit; never inferred from prose."
+          "description": "Timestamp override (ISO8601)."
         }
       ],
       "reads_stdin": false,
@@ -7607,7 +7713,8 @@
         }
       ],
       "examples": [
-        "bun harness.ts mind:pulse-close --run .capsules/mind-gen-1 --actor mind-1 --pulse pulse-1 --outcome quiescent --arm 15m --arm-mechanism systemd-timer"
+        "bun harness.ts mind:pulse --run .capsules/mind-gen-1 --actor mind-1",
+        "bun harness.ts mind:pulse --run .capsules/mind-gen-1 --arm 15m"
       ]
     },
     {

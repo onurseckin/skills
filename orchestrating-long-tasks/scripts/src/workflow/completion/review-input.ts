@@ -94,6 +94,24 @@ function requirementProofs(state: WorkflowState, value: unknown): CompletionRequ
   const proofs = [...byId.keys()].map(
     (id) => supplied.get(id) ?? { requirement_id: id, status: "unproven" as const, evidence: [] },
   );
+
+  const satisfiedProofs = proofs.filter((p) => p.status === "satisfied");
+  if (satisfiedProofs.length > 1) {
+    const allRefs = satisfiedProofs.map((p) =>
+      p.evidence
+        .map((e) => `${e.kind}:${e.reference}`)
+        .sort()
+        .join(";"),
+    );
+    const uniqueSets = new Set(allRefs);
+    if (uniqueSets.size === 1 && allRefs[0] !== undefined) {
+      throw new HarnessError(
+        "INVALID_ARGUMENT",
+        "anti-batching violation: critic sign-off cannot claim multiple disparate feedback items/requirements without individual discriminating test proofs per item",
+      );
+    }
+  }
+
   return proofs.sort((left, right) => left.requirement_id.localeCompare(right.requirement_id));
 }
 
