@@ -233,4 +233,23 @@ export const INVALID_STATE_AND_ARGUMENT_ENTRIES: readonly ExplainEntry[] = [
       ),
     ],
   },
+  {
+    code: "ROLE_CONFINEMENT_VIOLATION",
+    summary: "An orchestrator or coordinator attempted to claim or execute a code task directly.",
+    rule: "Orchestrators (Tier 1) and Coordinators (Tier 2) are mechanically confined from claiming code execution tasks and must dispatch Tier 3 Implementers.",
+    causes: [
+      cause(
+        "role-confinement-task-claim",
+        "Orchestrator or Coordinator attempted to claim a task",
+        "An agent holding an orchestrator or coordinator role attempted to invoke task:claim.",
+        "Orchestrators and coordinators are mechanically confined from claiming code execution tasks. Dispatch Tier 3 Implementers via invoke_subagent.",
+        [
+          example(
+            "cli/commands/task-claim.ts",
+            "Orchestrators are mechanically confined from claiming code execution tasks. Dispatch Tier 3 Implementers via invoke_subagent.",
+          ),
+        ],
+      ),
+    ],
+  },
 ];

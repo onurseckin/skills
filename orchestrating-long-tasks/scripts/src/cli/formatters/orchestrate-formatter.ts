@@ -1,4 +1,5 @@
 import { enforceLineLimit } from "./line-limiter.ts";
+import { nextActionsBlock, orchestrateNextActions } from "./next-actions.ts";
 
 export interface OrchestrateBriefParams {
   readonly runId: string;
@@ -21,17 +22,19 @@ export function formatOrchestrateBrief(params: OrchestrateBriefParams): string {
     "",
     "**Exactly one next step — nothing here is optional and nothing is done for you:**",
     `1. Register and dispatch a single Tier 1 orchestrator (\`--run ${params.runRoot}\`), bound to`,
-    "   `roles/orchestrator.md` and `agents/orchestrator.yaml`. Do not read the repository, stage",
-    "   tasks, compile the graph, or dispatch a coordinator or any implementer/validator yourself —",
-    "   every one of those is the orchestrator's job, never the caller's.",
+    "   `roles/orchestrator.md` and `agents/orchestrator.yaml`.",
     "",
     "The orchestrator dispatches exactly one Tier 2 coordinator per round; the coordinator dispatches",
-    "every planner, plan-validator, implementer, validator and completeness-critic the round needs;",
-    "the orchestrator composes the finished report and hands it back to you. Nothing here is bubbled",
-    "up half-done.",
+    "the execution subagents. The orchestrator composes the finished report and hands it back.",
+    ...nextActionsBlock([
+      {
+        command: `bun harness.ts agent:register --run ${params.runRoot} --agent orchestrator-1 --role orchestrator --host <HOST>`,
+        role: "Orchestrator",
+        description: "Register Tier 1 autonomous orchestrator",
+      },
+    ]),
     "",
-    "Tier ladder and per-host dispatch: `references/host-adapters.md`. Full command reference:",
-    "`references/cli-capabilities.md`. Phase-by-phase detail: `references/run-playbook.md`.",
+    "Tier ladder: `references/host-adapters.md`. Command reference: `references/cli-capabilities.md`.",
   ].join("\n");
   return enforceLineLimit(md, 30);
 }

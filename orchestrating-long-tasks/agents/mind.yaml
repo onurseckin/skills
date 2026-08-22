@@ -1,10 +1,12 @@
 name: "mind"
+role: "mind"
 tier: 0
 provider:
   - antigravity
   - agy
   - claude
   - codex
+  - cursor
   - generic
 tools:
   enable_subagent_tools: true

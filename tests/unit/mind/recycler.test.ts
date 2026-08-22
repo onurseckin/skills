@@ -10,11 +10,20 @@ import type {
   JsonObject,
   JsonValue,
 } from "../../../orchestrating-long-tasks/scripts/src/contracts/json.ts";
+import {
+  appendFeedbackItem,
+  writeFeedbackQueue,
+  type FeedbackItem,
+} from "../../../orchestrating-long-tasks/scripts/src/mind/feedback-queue.ts";
 import type { CandidateRecord } from "../../../orchestrating-long-tasks/scripts/src/mind/gates.ts";
 import {
   assessRecyclingState,
+  compileAutonomicWavePlan,
+  drainAndAdmitFeedbackCandidates,
   enforceInfiniteMindCadence,
+  executeAutonomicRollover,
   extractAllCandidates,
+  formatAutonomicRolloverBrief,
   formatRecycleBrief,
   inspectRecycleHealth,
   planAutonomousRoundRecycle,
@@ -272,7 +281,7 @@ describe("mind autonomic recycler", () => {
       expect(assessment.reason).toContain("admission review");
     });
 
-    test("critic clean: transitions to critic_to_discovery when no candidates remain", () => {
+    test("critic clean: transitions to critic_to_discovery when no candidates remain and no feedback queue", () => {
       const state: Record<string, unknown> = {
         mind: { actor: "mind-worker" },
         completion_review: { status: "clean", summary: "All tasks completed." },
@@ -286,6 +295,43 @@ describe("mind autonomic recycler", () => {
       expect(assessment.nextRecommendedCommand).toContain("mind:candidate");
       expect(assessment.suggestedCommands).toContain(`bun harness.ts mind:wake --run ${runRoot}`);
       expect(assessment.reason).toContain("transitioning to new candidate discovery");
+    });
+
+    test("critic clean: transitions to generation_rollover when feedback items are pending in queue", () => {
+      const repo = scratchRoot(import.meta.path, "assess-rollover-test");
+      const queuePath = join(repo, "FEEDBACK_QUEUE.jsonl");
+      writeFeedbackQueue(
+        [
+          {
+            id: "p00-rollover-item",
+            timestamp: "2026-08-21T10:00:00.000Z",
+            priority: "CRITICAL_USER_FEEDBACK",
+            status: "PENDING",
+            category: "CORE_ENGINE",
+            title: "Perpetual Autonomic Mind Cadence",
+            content: "Eliminate Mind idle loops and rollover immediately.",
+          },
+        ],
+        queuePath,
+      );
+
+      const state: Record<string, unknown> = {
+        mind: { actor: "mind-lead", generation: 1 },
+        completion_review: { status: "clean", summary: "Gen 1 converged." },
+      };
+
+      const assessment = assessRecyclingState(state, runRoot, {
+        feedbackQueuePath: queuePath,
+        checkFeedbackQueue: true,
+      });
+
+      expect(assessment.canRecycle).toBe(true);
+      expect(assessment.phase).toBe("generation_converged");
+      expect(assessment.transition).toBe("generation_rollover");
+      expect(assessment.targetGeneration).toBe(2);
+      expect(assessment.pendingFeedbackCount).toBe(1);
+      expect(assessment.nextRecommendedCommand).toContain("mind:rotate");
+      expect(assessment.reason).toContain("generation 1 converged with 1 pending feedback items");
     });
 
     test("critic findings: opens successor round when round budget is available", () => {
@@ -529,6 +575,165 @@ describe("mind autonomic recycler", () => {
     });
   });
 
+  describe("drainAndAdmitFeedbackCandidates", () => {
+    test("drains pending feedbacks from queue and admits them into capsule state", () => {
+      const { runRoot, repoRoot } = setupMindCapsule("drain-test");
+      const queuePath = join(repoRoot, "FEEDBACK_QUEUE.jsonl");
+
+      writeFeedbackQueue(
+        [
+          {
+            id: "fb-101",
+            timestamp: "2026-08-21T10:00:00.000Z",
+            priority: "CRITICAL_USER_FEEDBACK",
+            status: "PENDING",
+            category: "CORE_ENGINE",
+            title: "Improve recycling cadence",
+            content: "Avoid sleep between rounds",
+          },
+          {
+            id: "fb-102",
+            timestamp: "2026-08-21T10:05:00.000Z",
+            priority: "HIGH_ARCHITECTURAL_FEATURE",
+            status: "PENDING",
+            category: "CLI_TOOLING",
+            title: "Support wave plans",
+            content: "Parallel orchestrator execution",
+          },
+        ],
+        queuePath,
+      );
+
+      const result = drainAndAdmitFeedbackCandidates({
+        runRoot,
+        actor: "mind-admin",
+        queuePath,
+      });
+
+      expect(result.drainedItems).toHaveLength(2);
+      expect(result.admittedCandidates).toHaveLength(2);
+      expect(result.admittedCandidates[0]?.id).toBe("cand-fb-101");
+      expect(result.admittedCandidates[0]?.status).toBe("admitted");
+      expect(result.admittedCandidates[1]?.id).toBe("cand-fb-102");
+      expect(result.nextCommands).toHaveLength(2);
+      expect(result.nextCommands[0]).toContain("mind:round-open");
+      expect(result.wavePlanCommands).toContain(`bun harness.ts plan:compile --run ${runRoot}`);
+      expect(result.wavePlanCommands).toContain(`bun harness.ts orchestrate --run ${runRoot} --parallel`);
+
+      // Verify state on disk
+      const loaded = loadRun(runRoot, false);
+      const candidates = extractAllCandidates(loaded.state as Record<string, unknown>);
+      expect(candidates).toHaveLength(2);
+      expect(candidates.map((c) => c.id)).toContain("cand-fb-101");
+      expect(candidates.map((c) => c.id)).toContain("cand-fb-102");
+    });
+  });
+
+  describe("compileAutonomicWavePlan", () => {
+    test("groups admitted candidates into parallel execution batches", () => {
+      const c1 = createCandidate("cand-w1", "admitted");
+      const c2 = createCandidate("cand-w2", "admitted");
+      const c3 = createCandidate("cand-w3", "admitted");
+      const c4 = createCandidate("cand-w4", "admitted");
+      const c5 = createCandidate("cand-w5", "admitted");
+
+      const state: Record<string, unknown> = {
+        mind: { generation: 2, actor: "mind-lead" },
+        candidates: [c1, c2, c3, c4, c5],
+      };
+
+      const wavePlan = compileAutonomicWavePlan(state, ".capsules/mind-gen-2", {
+        maxParallel: 2,
+      });
+
+      expect(wavePlan.generation).toBe(2);
+      expect(wavePlan.totalCandidates).toBe(5);
+      expect(wavePlan.waves).toHaveLength(3); // 2 + 2 + 1
+      expect(wavePlan.waves[0]?.candidateIds).toEqual(["cand-w1", "cand-w2"]);
+      expect(wavePlan.waves[1]?.candidateIds).toEqual(["cand-w3", "cand-w4"]);
+      expect(wavePlan.waves[2]?.candidateIds).toEqual(["cand-w5"]);
+      expect(wavePlan.dispatchCommands).toContain("bun harness.ts plan:compile --run .capsules/mind-gen-2");
+      expect(wavePlan.dispatchCommands).toContain("bun harness.ts orchestrate --run .capsules/mind-gen-2 --parallel");
+      expect(wavePlan.nextInstruction).toContain("mind:round-open");
+    });
+  });
+
+  describe("executeAutonomicRollover & formatAutonomicRolloverBrief", () => {
+    test("executes end-to-end autonomic generation rollover from Generation 1 to Generation 2", () => {
+      const c1 = createCandidate("cand-prev-converged", "admitted");
+      const r1 = createRound(1, "obj-1", "cand-prev-converged", "closed", "converged");
+      const { runRoot, repoRoot } = setupMindCapsule("exec-rollover-test", {
+        candidates: [c1],
+        rounds: [r1],
+        completionReview: { status: "clean", summary: "All Gen 1 tasks converged cleanly." },
+      });
+
+      const queuePath = join(repoRoot, "FEEDBACK_QUEUE.jsonl");
+      writeFeedbackQueue(
+        [
+          {
+            id: "fb-gen2-01",
+            timestamp: "2026-08-21T11:00:00.000Z",
+            priority: "CRITICAL_USER_FEEDBACK",
+            status: "PENDING",
+            category: "CORE_ENGINE",
+            title: "Perpetual master heartbeat",
+            content: "Anti-idle rollover engine",
+          },
+        ],
+        queuePath,
+      );
+
+      const rolloverResult = executeAutonomicRollover({
+        sourceRunRoot: runRoot,
+        actor: "mind-master-orchestrator",
+        feedbackQueuePath: queuePath,
+        autoDrain: true,
+      });
+
+      expect(rolloverResult.success).toBe(true);
+      expect(rolloverResult.sourceGeneration).toBe(1);
+      expect(rolloverResult.targetGeneration).toBe(2);
+      expect(rolloverResult.drainedFeedbackItems).toHaveLength(1);
+      expect(rolloverResult.admittedCandidates).toHaveLength(1);
+      expect(rolloverResult.admittedCandidates[0]?.id).toBe("cand-fb-gen2-01");
+      expect(rolloverResult.wavePlan.waves.length).toBeGreaterThan(0);
+      expect(rolloverResult.markdown).toContain("Autonomic Mind Generation Rollover: 1 → 2");
+      expect(rolloverResult.markdown).toContain("infinite autonomous loop active (zero yield / zero idle)");
+
+      // Check successor capsule
+      const targetState = loadRun(rolloverResult.targetRunRoot, false);
+      const targetMind = targetState.state.mind as Record<string, unknown>;
+      expect(targetMind.generation).toBe(2);
+
+      // Check source capsule is sealed
+      const sourceState = loadRun(runRoot, false);
+      const sourceMind = sourceState.state.mind as Record<string, unknown>;
+      expect(sourceMind.status).toBe("rotated");
+    });
+
+    test("formatAutonomicRolloverBrief produces concise brief under line limit", () => {
+      const brief = formatAutonomicRolloverBrief({
+        sourceRunId: "mind-gen-1",
+        targetRunId: "mind-gen-2",
+        sourceGeneration: 1,
+        targetGeneration: 2,
+        targetRunRoot: ".capsules/mind-gen-2",
+        drainedCount: 3,
+        admittedCount: 3,
+        waveCount: 2,
+        nextInstruction: "bun harness.ts orchestrate --run .capsules/mind-gen-2 --parallel",
+      });
+
+      expect(brief).toContain("### Autonomic Mind Generation Rollover: 1 → 2");
+      expect(brief).toContain("- **Source**: `mind-gen-1` (converged & sealed)");
+      expect(brief).toContain("- **Successor**: `mind-gen-2` at `.capsules/mind-gen-2`");
+      expect(brief).toContain("- **FEEDBACK_QUEUE Drained**: 3 items admitted");
+      expect(brief).toContain("- **Cadence**: infinite autonomous loop active (zero yield / zero idle)");
+      expect(brief.split("\n").length).toBeLessThanOrEqual(25);
+    });
+  });
+
   describe("formatMindRotateBrief and mindRotateCommand", () => {
     test("formatMindRotateBrief produces structured markdown within line limit", () => {
       const brief = formatMindRotateBrief({
@@ -625,6 +830,7 @@ describe("mind autonomic recycler", () => {
       const resHigher = validateRolloverReadiness(stateWithMind, 3);
       expect(resHigher.ready).toBe(true);
       expect(resHigher.generation).toBe(2);
+      expect(resHigher.targetGeneration).toBe(3);
       expect(resHigher.reason).toContain("ready to transition from generation 2 to 3");
     });
   });

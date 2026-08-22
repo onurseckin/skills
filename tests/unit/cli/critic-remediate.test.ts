@@ -261,4 +261,31 @@ describe("critic:remediate", () => {
       ]),
     ).rejects.toThrow("--resolution-method must be given as <finding-id>=<value>");
   });
+
+  test("proves anti-leak flow: critic rejections route findings to repairers and require command-backed resolutions", async () => {
+    const { run, reviewSha, findingId } = await reviewedFindingsRun("anti-leak-routing", roots);
+    // Findings cannot be auto-cleared; they must be formally resolved with recorded command evidence
+    const result = await execute([
+      "critic:remediate",
+      "--run",
+      run,
+      "--actor",
+      "coordinator",
+      "--resolve",
+      `${findingId}=C-FIX`,
+      "--resolution-method",
+      `${findingId}=dedicated repairer executed unit test fix and verified with C-FIX`,
+    ]);
+    expect(result.run_root).toBe(run);
+    const remediation = result.remediation as {
+      review_sha256: string;
+      resolutions: { finding_id: string; method: string; command_ids: string[] }[];
+    };
+    expect(remediation.review_sha256).toBe(reviewSha);
+    expect(remediation.resolutions[0]!.finding_id).toBe(findingId);
+    expect(remediation.resolutions[0]!.method).toContain("dedicated repairer executed unit test fix");
+    expect(remediation.resolutions[0]!.command_ids).toEqual(["C-FIX"]);
+    expect(String(result.markdown)).toContain("Next Step");
+    expect(String(result.markdown)).toContain("critic:start");
+  });
 });

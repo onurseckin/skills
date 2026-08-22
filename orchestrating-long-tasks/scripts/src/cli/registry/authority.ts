@@ -1,6 +1,11 @@
 import { authorityDecideCommand } from "../commands/authority-ops.ts";
 import { roleCheatSheetCommand } from "../commands/role-cheat-sheet.ts";
-import { watchdogStatusCommand } from "../commands/watchdog-ops.ts";
+import {
+  watchdogCleanupCommand,
+  watchdogPhaseCleanupCommand,
+  watchdogStatusCommand,
+  watchdogVerifyCommand,
+} from "../commands/watchdog-ops.ts";
 import { whoamiCommand } from "../commands/whoami.ts";
 import { DEFAULT_EXIT_CODES, optionalFlag, requiredFlag, type CommandSpec } from "./types.ts";
 
@@ -37,6 +42,8 @@ export const AUTHORITY_COMMANDS: readonly CommandSpec[] = [
     flags: [
       optionalFlag("run", "string", "Capsule run root to cross-reference active leases and grants."),
       optionalFlag("agent", "string", "Explicit agent id override to inspect."),
+      optionalFlag("role", "string", "Explicit role override to inspect."),
+      optionalFlag("tier", "string", "Explicit execution tier override to inspect."),
       optionalFlag("pid", "int", "Process ID override for testing."),
       optionalFlag("ppid", "int", "Parent Process ID override for testing."),
       optionalFlag("json", "bool", "Output JSON format."),
@@ -85,6 +92,8 @@ export const AUTHORITY_COMMANDS: readonly CommandSpec[] = [
       optionalFlag("run", "string", "Capsule run root."),
       optionalFlag("capsules-dir", "string", "Capsules root directory."),
       optionalFlag("generation", "int", "Filter by mind generation."),
+      optionalFlag("pulse-id", "string", "Filter by pulse ID."),
+      optionalFlag("phase", "string", "Filter by execution phase."),
       optionalFlag("filter-status", "string", "Filter by status: active, stale, terminated, orphaned, all."),
       optionalFlag("max-age-ms", "int", "Maximum age in milliseconds."),
       optionalFlag("dry-run", "bool", "Simulate cleanup without disk mutation."),
@@ -100,5 +109,92 @@ export const AUTHORITY_COMMANDS: readonly CommandSpec[] = [
       "bun harness.ts watchdog:status --generation 1 --filter-status active",
     ],
     handler: watchdogStatusCommand,
+  },
+  {
+    name: "watchdog:cleanup",
+    aliases: ["watchdog:clean"],
+    domain: "authority",
+    summary: "Purge stale or legacy watchdog monitors exceeding heartbeat timeout.",
+    description:
+      "Scans registered watchdog monitors across generations and pulses, transitioning timed-out monitors to stale or terminated status to prevent monitor accumulation.",
+    flags: [
+      optionalFlag("run", "string", "Capsule run root."),
+      optionalFlag("capsules-dir", "string", "Capsules root directory."),
+      optionalFlag("generation", "int", "Target generation."),
+      optionalFlag("pulse-id", "string", "Target pulse ID."),
+      optionalFlag("phase", "string", "Target phase to clean up."),
+      optionalFlag("max-age-ms", "int", "Maximum age before considered stale."),
+      optionalFlag("mark-as", "string", "Status to mark: stale, terminated, orphaned."),
+      optionalFlag("reason", "string", "Termination reason string."),
+      optionalFlag("dry-run", "bool", "Simulate cleanup without disk mutation."),
+      optionalFlag("all", "bool", "Show all cleaned monitors in report."),
+      optionalFlag("now", "string", "Timestamp override (ISO8601)."),
+      optionalFlag("json", "bool", "Output JSON."),
+    ],
+    readsStdin: false,
+    takesRemainder: false,
+    exitCodes: DEFAULT_EXIT_CODES,
+    examples: [
+      "bun harness.ts watchdog:cleanup",
+      "bun harness.ts watchdog:cleanup --generation 1 --dry-run",
+    ],
+    handler: watchdogCleanupCommand,
+  },
+  {
+    name: "watchdog:phase-cleanup",
+    aliases: ["watchdog:phase-clean", "watchdog:cleanup-phase"],
+    domain: "authority",
+    summary: "Terminate legacy phase watchdog monitors upon phase rollover or completion.",
+    description:
+      "Terminates active watchdog monitors belonging to completed or superseded phases, ensuring old monitors never accumulate across phase transitions.",
+    flags: [
+      optionalFlag("run", "string", "Capsule run root."),
+      optionalFlag("capsules-dir", "string", "Capsules root directory."),
+      optionalFlag("phase", "string", "Phase to terminate."),
+      optionalFlag("current-phase", "string", "New phase (terminates all prior phases)."),
+      optionalFlag("generation", "int", "Target generation."),
+      optionalFlag("pulse-id", "string", "Target pulse ID."),
+      optionalFlag("exclude-id", "string", "Watchdog ID to preserve."),
+      optionalFlag("reason", "string", "Termination reason."),
+      optionalFlag("mark-as", "string", "Status to mark (default: terminated)."),
+      optionalFlag("dry-run", "bool", "Simulate phase cleanup."),
+      optionalFlag("all", "bool", "Show all terminated monitors."),
+      optionalFlag("now", "string", "Timestamp override (ISO8601)."),
+      optionalFlag("json", "bool", "Output JSON."),
+    ],
+    readsStdin: false,
+    takesRemainder: false,
+    exitCodes: DEFAULT_EXIT_CODES,
+    examples: [
+      "bun harness.ts watchdog:phase-cleanup --phase planning --generation 1",
+      "bun harness.ts watchdog:phase-cleanup --current-phase execution --generation 1",
+    ],
+    handler: watchdogPhaseCleanupCommand,
+  },
+  {
+    name: "watchdog:verify",
+    aliases: ["watchdog:check", "watchdog:lint"],
+    domain: "authority",
+    summary: "Verify watchdog lifecycle invariants and single-monitor constraints.",
+    description:
+      "Audits the watchdog registry against architectural constraints (max 1 active monitor per generation/pulse, no overdue heartbeats, no legacy phase orphans).",
+    flags: [
+      optionalFlag("run", "string", "Capsule run root."),
+      optionalFlag("capsules-dir", "string", "Capsules root directory."),
+      optionalFlag("generation", "int", "Filter by mind generation."),
+      optionalFlag("pulse-id", "string", "Filter by pulse ID."),
+      optionalFlag("phase", "string", "Filter by phase."),
+      optionalFlag("all", "bool", "Show all monitors in table."),
+      optionalFlag("now", "string", "Timestamp override (ISO8601)."),
+      optionalFlag("json", "bool", "Output JSON."),
+    ],
+    readsStdin: false,
+    takesRemainder: false,
+    exitCodes: DEFAULT_EXIT_CODES,
+    examples: [
+      "bun harness.ts watchdog:verify",
+      "bun harness.ts watchdog:verify --generation 1",
+    ],
+    handler: watchdogVerifyCommand,
   },
 ];

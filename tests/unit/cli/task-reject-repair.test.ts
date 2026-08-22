@@ -367,4 +367,34 @@ describe("task:assign-repairer", () => {
       ]),
     ).rejects.toThrow(/has not failed repeatedly/);
   });
+
+  test("rejects assigning the validating agent as replacement repairer (anti-boundary-leak rule)", async () => {
+    const { repo, run } = await setupCompiledRun("repairer-validator-leak", roots);
+    await claimSubmitValidateAndReject({
+      run,
+      repo,
+      taskId: "task-core",
+      agent: "worker-1",
+      validator: "val-1",
+      reason: "defect detected",
+      remediation: "fix the bug",
+    });
+    await expect(
+      execute([
+        "task:assign-repairer",
+        "--run",
+        run,
+        "--task",
+        "task-core",
+        "--actor",
+        "coordinator",
+        "--repairer",
+        "val-1",
+        "--reason",
+        "unavailable",
+        "--evidence",
+        "attempting to assign validator as repairer",
+      ]),
+    ).rejects.toThrow(/cannot be a validator of task 'task-core' \(anti-boundary-leak rule\)/);
+  });
 });

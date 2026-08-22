@@ -1,4 +1,10 @@
 import { enforceLineLimit } from "./line-limiter.ts";
+import {
+  evidenceGetNextActions,
+  findingGetNextActions,
+  nextActionsBlock,
+  reportGetNextActions,
+} from "./next-actions.ts";
 
 function screenshotRecordPath(record: unknown): string {
   if (typeof record === "object" && record !== null && "path" in record) {
@@ -27,6 +33,7 @@ export function formatFindingBrief(params: FindingBriefParams): string {
     `- **Observation**: ${obs}`,
     `- **Remediation**: ${rem}`,
     `- **File Path**: \`${params.path}\``,
+    ...nextActionsBlock(findingGetNextActions(undefined, id)),
   ];
   return enforceLineLimit(lines.join("\n"), 30);
 }
@@ -51,6 +58,7 @@ export function formatFindingsListBrief(params: FindingsListParams): string {
       lines.push(`- ... and ${params.findings.length - 10} more findings.`);
     }
   }
+  lines.push(...nextActionsBlock(findingGetNextActions(undefined)));
   return enforceLineLimit(lines.join("\n"), 30);
 }
 
@@ -83,6 +91,7 @@ export function formatReportBrief(params: ReportBriefParams): string {
       lines.push(`  - \`${String(s)}\``);
     }
   }
+  lines.push(...nextActionsBlock(reportGetNextActions()));
   return enforceLineLimit(lines.join("\n"), 30);
 }
 
@@ -108,6 +117,7 @@ export function formatReportsListBrief(params: ReportsListParams): string {
       lines.push(`- ... and ${params.reports.length - 10} more reports.`);
     }
   }
+  lines.push(...nextActionsBlock(reportGetNextActions()));
   return enforceLineLimit(lines.join("\n"), 30);
 }
 
@@ -137,6 +147,7 @@ export function formatEvidenceBrief(params: EvidenceBriefParams): string {
       lines.push(`  - \`${screenshotRecordPath(s)}\``);
     }
   }
+  lines.push(...nextActionsBlock(evidenceGetNextActions()));
   return enforceLineLimit(lines.join("\n"), 30);
 }
 
@@ -163,5 +174,6 @@ export function formatEvidenceListBrief(params: EvidenceListParams): string {
       lines.push(`- ... and ${params.evidence.length - 10} more evidence records.`);
     }
   }
+  lines.push(...nextActionsBlock(evidenceGetNextActions()));
   return enforceLineLimit(lines.join("\n"), 30);
 }

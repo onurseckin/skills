@@ -1,4 +1,15 @@
 import { enforceLineLimit } from "./line-limiter.ts";
+import {
+  nextActionsBlock,
+  taskAssignRepairerNextActions,
+  taskClaimNextActions,
+  taskHeartbeatNextActions,
+  taskProbeNextActions,
+  taskRejectNextActions,
+  taskReviewPassNextActions,
+  taskSubmitNextActions,
+  validationStartNextActions,
+} from "./next-actions.ts";
 
 export interface TaskClaimParams {
   taskId: string;
@@ -24,6 +35,7 @@ export function formatTaskClaimBrief(params: TaskClaimParams): string {
           `- **Isolated Worktree**: \`${params.worktreePath}\` — do all editing there, not in the shared repo checkout.`,
         ]),
     `- **Note**: Pass \`--token ${params.token}\` to \`task:submit\`.`,
+    ...nextActionsBlock(taskClaimNextActions(undefined, params.taskId, params.agent, params.token)),
   ].join("\n");
   return enforceLineLimit(md, 30);
 }
@@ -40,6 +52,7 @@ export function formatTaskHeartbeatBrief(params: TaskHeartbeatParams): string {
     `### Heartbeat Acknowledged: ${params.taskId}`,
     `- **Agent**: \`${params.agent}\``,
     `- **Lease Extended**: +${params.extendedMinutes} minutes (New Deadline: ${params.newDeadline})`,
+    ...nextActionsBlock(taskHeartbeatNextActions(undefined, params.taskId, params.agent)),
   ].join("\n");
   return enforceLineLimit(md, 30);
 }
@@ -67,6 +80,7 @@ export function formatTaskSubmitBrief(params: TaskSubmitParams): string {
     `- **Diff Stats**: ${diffStats}`,
     `- **Report**: \`${params.reportPath}\``,
     `- **Next Step**: Dispatch independent validator via \`bun harness.ts task:validate-start --run <RUN_ID> --task ${params.taskId} --validator <VALIDATOR_ID>\``,
+    ...nextActionsBlock(taskSubmitNextActions(undefined, params.taskId)),
   ].join("\n");
   return enforceLineLimit(md, 30);
 }
@@ -93,6 +107,15 @@ export function formatValidationStartBrief(params: ValidationStartParams): strin
       : [
           `- **Before Sign-off**: record ${params.minProbes} adversarial probe(s) with \`task:probe\`; a pass is refused without them.`,
         ]),
+    ...nextActionsBlock(
+      validationStartNextActions(
+        undefined,
+        params.taskId,
+        params.validator,
+        params.token,
+        params.minProbes,
+      ),
+    ),
   ].join("\n");
   return enforceLineLimit(md, 30);
 }
@@ -131,6 +154,7 @@ export function formatTaskReviewPassBrief(params: TaskReviewPassParams): string 
     `- **Gate Results**: ${params.gateSummary}`,
     `- **Downstream Impact**: ${unblockedStr}`,
     `- **Review Report**: \`${params.reportPath}\``,
+    ...nextActionsBlock(taskReviewPassNextActions(undefined, params.unblockedTasks?.[0])),
   ].join("\n");
   return enforceLineLimit(md, 30);
 }
@@ -151,6 +175,7 @@ export function formatTaskRejectBrief(params: TaskRejectParams): string {
     `- **Finding ID**: \`${params.findingId}\``,
     `- **Issue**: \`${params.issue}\``,
     `- **Action**: ${actionStr}`,
+    ...nextActionsBlock(taskRejectNextActions(undefined, params.taskId)),
   ].join("\n");
   return enforceLineLimit(md, 30);
 }
@@ -174,6 +199,7 @@ export function formatTaskProbeBrief(params: TaskProbeParams): string {
     ...demandLines,
     ...(params.warning ? [`- **Config Warning**: ${params.warning}`] : []),
     `- **Next Step**: Answer every demand with command evidence, then \`task:review --status pass\`, or \`task:reject\` if a demand fails.`,
+    ...nextActionsBlock(taskProbeNextActions(undefined, params.taskId, params.validator)),
   ].join("\n");
   return enforceLineLimit(md, 30);
 }
@@ -192,6 +218,9 @@ export function formatTaskAssignRepairerBrief(params: TaskAssignRepairerParams):
     `- **Reason**: ${params.reason}`,
     `- **Evidence**: ${params.evidence}`,
     `- **Next Step**: \`${params.replacementId}\` claims with \`task:claim --role repairer\`.`,
+    ...nextActionsBlock(
+      taskAssignRepairerNextActions(undefined, params.taskId, params.replacementId),
+    ),
   ].join("\n");
   return enforceLineLimit(md, 30);
 }

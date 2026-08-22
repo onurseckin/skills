@@ -1,10 +1,12 @@
 name: "worker"
+role: "implementer"
 tier: 3
 provider:
   - antigravity
   - agy
   - claude
   - codex
+  - cursor
   - generic
 tools:
   enable_subagent_tools: true

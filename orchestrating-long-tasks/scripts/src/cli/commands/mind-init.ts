@@ -7,7 +7,7 @@ import { HarnessError } from "../../errors/harness-error.ts";
 import { DEFAULT_MIND_BUDGET, parseCharter, type ParsedCharter } from "../../mind/charter.ts";
 import { initRun, loadRun } from "../../store/index.ts";
 import { transact } from "../../store/transaction.ts";
-import { enforceLineLimit } from "../formatters/line-limiter.ts";
+import { enforceLineLimit, mindInitNextActions, nextActionsBlock } from "../formatters/index.ts";
 import { integerFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
 
 export interface MindInitResult {
@@ -42,6 +42,7 @@ export function formatMindInitBrief(params: {
     `- **Pinned Goals**: ${params.goals.join(", ")} (${params.goals.length} total)`,
     `- **Repo Roots**: ${params.repoRoots.map((r) => `\`${r}\``).join(", ")}`,
     `- **Status**: Substrate ready for wake (\`mind:wake --run ${params.runRoot}\`).`,
+    ...nextActionsBlock(mindInitNextActions(params.runRoot)),
   ].join("\n");
   return enforceLineLimit(md, 30);
 }

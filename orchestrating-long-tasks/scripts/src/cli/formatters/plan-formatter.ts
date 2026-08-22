@@ -1,5 +1,20 @@
 import type { AuditFinding, AuditNotEvaluated } from "../../graph/plan-audit.ts";
 import { enforceLineLimit, formatTable } from "./line-limiter.ts";
+import {
+  autoPartitionNextActions,
+  nextActionsBlock,
+  planApplyNextActions,
+  planAuditNextActions,
+  planClaimNextActions,
+  planCompileNextActions,
+  planEnhanceNextActions,
+  planInitNextActions,
+  planReplanNextActions,
+  planReviewNextActions,
+  planStatusNextActions,
+  planValidateStartNextActions,
+  taskRegisteredNextActions,
+} from "./next-actions.ts";
 
 export interface CapsuleInitParams {
   runId: string;
@@ -24,6 +39,7 @@ export function formatCapsuleInitBrief(params: CapsuleInitParams): string {
       ? "- **Runtime Pin**: none — no runtime source was supplied to `plan:init`."
       : `- **Runtime Pin**: \`${params.runtimePin.sha256}\` (${params.runtimePin.files.toLocaleString()} files, see \`runtime/\`).`,
     `- **Status**: Ready for task declarations (\`plan:add\`).`,
+    ...nextActionsBlock(planInitNextActions(params.runId)),
   ].join("\n");
   return enforceLineLimit(md, 30);
 }
@@ -56,6 +72,7 @@ export function formatTaskRegisteredBrief(params: TaskRegisteredParams): string 
     `- **Dependencies**: ${depsStr}`,
     `- **Prompt Binding**: ${binding}`,
     `- **Plan Size**: ${params.totalTasks} tasks registered. Run \`plan:compile\` when finished adding tasks.`,
+    ...nextActionsBlock(taskRegisteredNextActions()),
   ].join("\n");
   return enforceLineLimit(md, 30);
 }
@@ -87,6 +104,7 @@ export function formatPlanEnhanceBrief(params: PlanEnhanceParams): string {
     `- **Evidence**: \`agent_reported\` throughout — this is the agent's claim about the repository, not a harness measurement.`,
     `- **Authority**: \`prompt.md\` (sha256 \`${params.promptSha256}\`) stays the requirement source; this document is derived.`,
     `- **Next Step**: Review the document, then declare tasks with \`plan:add --requirement-lines\`.`,
+    ...nextActionsBlock(planEnhanceNextActions(params.runId)),
   ].join("\n");
   return enforceLineLimit(md, 30);
 }
@@ -179,6 +197,7 @@ export function formatPlanCompileBrief(params: PlanCompileParams): string {
   lines.push(
     `- **Next Step**: Dispatch the whole ready wave via \`bun harness.ts queue:wave --run ${params.runId}\``,
   );
+  lines.push(...nextActionsBlock(planCompileNextActions(params.runId, waves.length > 0)));
   return enforceLineLimit(lines.join("\n"), 30);
 }
 
@@ -211,6 +230,7 @@ export function formatPlanStatusBrief(
     isCompiled
       ? `**Status**: ${tasks.length} tasks compiled. Execution active.`
       : `**Status**: ${tasks.length} tasks declared. Uncompiled. Run \`plan:compile\` to seal.`,
+    ...nextActionsBlock(planStatusNextActions(runId, isCompiled)),
   ];
   return enforceLineLimit(lines.join("\n"), 30);
 }
@@ -247,6 +267,7 @@ export function formatPlanReplanBrief(params: PlanReplanParams): string {
     ),
     `- **Validation Barrier**: Completion gate and critic audit locked until all repair tasks pass.`,
     `- **Next Step**: Dispatch parallel batch repair implementers and validators.`,
+    ...nextActionsBlock(planReplanNextActions(params.runId, params.repairTasks[0]?.id)),
   ];
   return enforceLineLimit(lines.join("\n"), 30);
 }
@@ -264,6 +285,7 @@ export function formatPlanClaimBrief(params: PlanClaimParams): string {
     `- **Packet**: \`${params.packetId}\``,
     `- **Write Scope**: \`planning/requirements.json\`, \`planning/graph.json\``,
     `- **Next Step**: Write both documents, then call \`plan:apply --expected-revision\` with the revision the packet reported.`,
+    ...nextActionsBlock(planClaimNextActions(params.runId)),
   ].join("\n");
   return enforceLineLimit(md, 30);
 }
@@ -279,6 +301,7 @@ export function formatPlanApplyBrief(params: PlanApplyParams): string {
     `### Plan Applied: ${params.runId} (Graph Revision ${params.revision})`,
     `- **Total Tasks**: ${params.totalTasks}`,
     `- **Status**: Ready for dispatch (\`queue:next\` / \`queue:wave\`).`,
+    ...nextActionsBlock(planApplyNextActions(params.runId)),
   ].join("\n");
   return enforceLineLimit(md, 30);
 }
@@ -300,6 +323,7 @@ export function formatAutoPartitionBrief(params: AutoPartitionParams): string {
     `- **Dependencies**: none — auto-partitioned tasks are independent roots by construction`,
     `- **Plan Size**: ${params.totalTasks} tasks registered. Run \`plan:compile\` when finished adding tasks.`,
     ...params.breadthWarnings.map((warning) => `- ⚠️ **Gate breadth**: ${warning}`),
+    ...nextActionsBlock(autoPartitionNextActions()),
   ].join("\n");
   return enforceLineLimit(md, 30);
 }
@@ -338,6 +362,11 @@ export function formatPlanAuditBrief(params: PlanAuditBriefParams): string {
       ? "- **Next Step**: `plan:compile` may seal this plan; no blocking invariant is outstanding."
       : "- **Next Step**: fix the plan, or seal it anyway with `plan:compile --accept-audit <id>:<reason>` naming each blocking invariant above and why.",
   );
+  lines.push(
+    ...nextActionsBlock(
+      planAuditNextActions(params.runId, blocking.length > 0, blocking[0]?.invariant),
+    ),
+  );
   return enforceLineLimit(lines.join("\n"), 30);
 }
 
@@ -357,6 +386,9 @@ export function formatPlanValidateStartBrief(params: PlanValidateStartParams): s
     `- **Under Review**: ${params.totalTasks} compiled tasks`,
     `- **Answer in writing**: does the decomposition match the prompt's entity count; is every dependency edge justified by a read/write relationship; can each gate fail if its task does nothing; will any task's scope leave one agent straggling.`,
     `- **Next Step**: \`plan:review --status approved\` or \`--status changes_requested\` with the four answers.`,
+    ...nextActionsBlock(
+      planValidateStartNextActions(params.runId, params.validator, params.token),
+    ),
   ].join("\n");
   return enforceLineLimit(md, 30);
 }
@@ -383,6 +415,7 @@ export function formatPlanReviewBrief(params: PlanReviewParams): string {
       ? "- **Dispatch**: implementers and repairers may now claim tasks under this graph revision."
       : `- **Findings**: ${params.findingsCount} — every implementer and repairer claim against graph revision ${params.graphRevision} is refused until a fresh compile passes plan:review.`,
     `- **Next Step**: ${approved ? "proceed to Phase 2 continuous dispatch." : "replan (plan:add / plan:compile) and dispatch a fresh plan-validator against the new revision."}`,
+    ...nextActionsBlock(planReviewNextActions(params.runId, approved)),
   ].join("\n");
   return enforceLineLimit(md, 30);
 }

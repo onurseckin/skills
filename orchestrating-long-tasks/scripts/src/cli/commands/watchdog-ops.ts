@@ -9,13 +9,46 @@ import {
   type Flags,
 } from "../options.ts";
 import {
+  cleanupPreviousPhaseWatchdogs,
   cleanupStaleWatchdogs,
   listWatchdogs,
   loadWatchdogStore,
   parseTimestamp,
   renderAsciiWatchdogTable,
+  terminatePhaseWatchdogs,
+  verifyWatchdogLifecycle,
   type WatchdogStatus,
 } from "../../authority/watchdog-manager.ts";
+
+function parseFilterStatus(raw?: string): WatchdogStatus | "all" | undefined {
+  if (raw === undefined) return undefined;
+  const normalized = raw.toLowerCase().trim();
+  if (
+    normalized === "active" ||
+    normalized === "stale" ||
+    normalized === "terminated" ||
+    normalized === "orphaned" ||
+    normalized === "all"
+  ) {
+    return normalized as WatchdogStatus | "all";
+  }
+  throw new HarnessError(
+    "INVALID_ARGUMENT",
+    `--filter-status must be active, stale, terminated, orphaned, or all; got '${raw}'`,
+  );
+}
+
+function parseMarkAs(raw?: string): "stale" | "terminated" | "orphaned" | undefined {
+  if (raw === undefined) return undefined;
+  const normalized = raw.toLowerCase().trim();
+  if (normalized === "stale" || normalized === "terminated" || normalized === "orphaned") {
+    return normalized as "stale" | "terminated" | "orphaned";
+  }
+  throw new HarnessError(
+    "INVALID_ARGUMENT",
+    `--mark-as must be stale, terminated, or orphaned; got '${raw}'`,
+  );
+}
 
 export function watchdogStatusCommand(
   flags: Flags,
@@ -25,6 +58,8 @@ export function watchdogStatusCommand(
     "run",
     "capsules-dir",
     "generation",
+    "pulse-id",
+    "phase",
     "filter-status",
     "max-age-ms",
     "dry-run",
@@ -37,6 +72,8 @@ export function watchdogStatusCommand(
   const run = textFlag(flags, "run", false);
   const capsulesDir = textFlag(flags, "capsules-dir", false);
   const generation = integerFlag(flags, "generation", { minimum: 1 });
+  const pulseId = textFlag(flags, "pulse-id", false);
+  const phase = textFlag(flags, "phase", false);
   const filterStatusRaw = textFlag(flags, "filter-status", false);
   const maxAgeMs = integerFlag(flags, "max-age-ms", { minimum: 0 });
   const isAll = boolFlag(flags, "all");
@@ -44,31 +81,14 @@ export function watchdogStatusCommand(
 
   const target = run ?? capsulesDir;
   const store = loadWatchdogStore(target);
-
-  let filterStatus: WatchdogStatus | "all" | undefined = undefined;
-  if (filterStatusRaw !== undefined) {
-    const normalized = filterStatusRaw.toLowerCase().trim();
-    if (
-      normalized === "active" ||
-      normalized === "stale" ||
-      normalized === "terminated" ||
-      normalized === "orphaned" ||
-      normalized === "all"
-    ) {
-      filterStatus = normalized as WatchdogStatus | "all";
-    } else {
-      throw new HarnessError(
-        "INVALID_ARGUMENT",
-        `--filter-status must be active, stale, terminated, orphaned, or all; got '${filterStatusRaw}'`,
-      );
-    }
-  }
-
+  const filterStatus = parseFilterStatus(filterStatusRaw);
   const nowMs = parseTimestamp(nowRaw);
 
   const filteredWatchdogs = listWatchdogs(
     {
       generation,
+      pulse_id: pulseId,
+      phase,
       status: filterStatus,
       max_age_ms: maxAgeMs,
       now: nowMs,
@@ -104,6 +124,12 @@ export function watchdogStatusCommand(
   if (generation !== undefined) {
     lines.push(`- **Generation Filter**: Generation ${generation}`);
   }
+  if (pulseId !== undefined) {
+    lines.push(`- **Pulse Filter**: \`${pulseId}\``);
+  }
+  if (phase !== undefined) {
+    lines.push(`- **Phase Filter**: \`${phase}\``);
+  }
 
   lines.push("");
   lines.push("#### Active & Historical Watchdogs");
@@ -137,7 +163,11 @@ export function watchdogCleanupCommand(
     "run",
     "capsules-dir",
     "generation",
+    "pulse-id",
+    "phase",
     "max-age-ms",
+    "mark-as",
+    "reason",
     "dry-run",
     "all",
     "json",
@@ -148,22 +178,77 @@ export function watchdogCleanupCommand(
   const run = textFlag(flags, "run", false);
   const capsulesDir = textFlag(flags, "capsules-dir", false);
   const generation = integerFlag(flags, "generation", { minimum: 1 });
+  const pulseId = textFlag(flags, "pulse-id", false);
+  const phase = textFlag(flags, "phase", false);
   const maxAgeMs = integerFlag(flags, "max-age-ms", { minimum: 0 });
+  const markAsRaw = textFlag(flags, "mark-as", false);
+  const reason = textFlag(flags, "reason", false);
   const isDryRun = boolFlag(flags, "dry-run");
   const isAll = boolFlag(flags, "all");
   const nowRaw = textFlag(flags, "now", false);
 
   const target = run ?? capsulesDir;
   const nowMs = parseTimestamp(nowRaw);
+  const markAs = parseMarkAs(markAsRaw);
 
+  if (phase !== undefined) {
+    // Phase-directed cleanup
+    const result = terminatePhaseWatchdogs(
+      {
+        phase,
+        generation,
+        pulse_id: pulseId,
+        dryRun: isDryRun,
+        now: nowMs,
+        markAs: markAs ?? "terminated",
+        reason: reason ?? `cleanup_phase_${phase}`,
+      },
+      target,
+    );
+
+    const lines: string[] = [
+      "### Watchdog Phase Cleanup Engine",
+      `- **Target Root**: \`${target !== undefined ? target : "default (.capsules/)"}\``,
+      `- **Execution Mode**: ${isDryRun ? "Dry Run (Simulated)" : "Live Cleanup"}`,
+      `- **Target Phase**: \`${phase}\``,
+      `- **Terminated Monitors**: ${result.terminatedCount}`,
+      `- **Remaining Active Monitors**: ${result.activeCount}`,
+      `- **Total Tracked Monitors**: ${result.totalCount}`,
+    ];
+
+    if (generation !== undefined) {
+      lines.push(`- **Generation Target**: Generation ${generation}`);
+    }
+
+    lines.push("");
+    lines.push("#### Cleaned / Terminated Watchdogs");
+    lines.push(renderAsciiWatchdogTable(result.terminatedWatchdogs, { now: nowMs }));
+
+    const maxLines = isAll ? 500 : 35;
+    const markdown = enforceLineLimit(lines.join("\n"), maxLines);
+
+    return {
+      markdown,
+      cleaned_count: result.terminatedCount,
+      cleaned_watchdogs: result.terminatedWatchdogs,
+      remaining_active: result.activeCount,
+      total_monitors: result.totalCount,
+      dry_run: result.dryRun,
+      phase,
+      run_root: run ?? null,
+      capsules_dir: capsulesDir ?? null,
+    };
+  }
+
+  // Stale monitor cleanup
   const result = cleanupStaleWatchdogs(
     {
       generation,
       maxAgeMs,
       dryRun: isDryRun,
       now: nowMs,
-      markAs: "stale",
-      reason: "stale_cadence_exceeded",
+      markAs: markAs ?? "stale",
+      reason: reason ?? "stale_cadence_exceeded",
     },
     target,
   );
@@ -200,6 +285,205 @@ export function watchdogCleanupCommand(
     remaining_active: result.activeCount,
     total_monitors: result.totalCount,
     dry_run: result.dryRun,
+    run_root: run ?? null,
+    capsules_dir: capsulesDir ?? null,
+  };
+}
+
+export function watchdogPhaseCleanupCommand(
+  flags: Flags,
+  _context?: CommandContext,
+): Record<string, unknown> {
+  const allowedFlags = [
+    "run",
+    "capsules-dir",
+    "phase",
+    "current-phase",
+    "generation",
+    "pulse-id",
+    "exclude-id",
+    "reason",
+    "mark-as",
+    "dry-run",
+    "all",
+    "json",
+    "now",
+  ];
+  assertFlags(flags, allowedFlags);
+
+  const run = textFlag(flags, "run", false);
+  const capsulesDir = textFlag(flags, "capsules-dir", false);
+  const phase = textFlag(flags, "phase", false);
+  const currentPhase = textFlag(flags, "current-phase", false);
+  const generation = integerFlag(flags, "generation", { minimum: 1 });
+  const pulseId = textFlag(flags, "pulse-id", false);
+  const excludeId = textFlag(flags, "exclude-id", false);
+  const reason = textFlag(flags, "reason", false);
+  const markAsRaw = textFlag(flags, "mark-as", false);
+  const isDryRun = boolFlag(flags, "dry-run");
+  const isAll = boolFlag(flags, "all");
+  const nowRaw = textFlag(flags, "now", false);
+
+  const target = run ?? capsulesDir;
+  const nowMs = parseTimestamp(nowRaw);
+  const markAs = parseMarkAs(markAsRaw);
+
+  const result =
+    currentPhase !== undefined
+      ? cleanupPreviousPhaseWatchdogs(
+          {
+            currentPhase,
+            generation,
+            pulse_id: pulseId,
+            currentWatchdogId: excludeId,
+            reason,
+            markAs,
+            dryRun: isDryRun,
+            now: nowMs,
+          },
+          target,
+        )
+      : terminatePhaseWatchdogs(
+          {
+            phase,
+            generation,
+            pulse_id: pulseId,
+            excludeId,
+            reason,
+            markAs,
+            dryRun: isDryRun,
+            now: nowMs,
+          },
+          target,
+        );
+
+  const lines: string[] = [
+    "### Watchdog Automatic Phase Cleanup Engine",
+    `- **Target Root**: \`${target !== undefined ? target : "default (.capsules/)"}\``,
+    `- **Execution Mode**: ${isDryRun ? "Dry Run (Simulated)" : "Live Cleanup"}`,
+    `- **Terminated Phase Monitors**: ${result.terminatedCount}`,
+    `- **Remaining Active Monitors**: ${result.activeCount}`,
+    `- **Total Tracked Monitors**: ${result.totalCount}`,
+  ];
+
+  if (currentPhase !== undefined) {
+    lines.push(`- **Rollover Target Phase**: \`${currentPhase}\` (prior phases terminated)`);
+  } else if (phase !== undefined) {
+    lines.push(`- **Target Phase Terminated**: \`${phase}\``);
+  }
+  if (generation !== undefined) {
+    lines.push(`- **Generation Target**: Generation ${generation}`);
+  }
+  if (pulseId !== undefined) {
+    lines.push(`- **Pulse Target**: \`${pulseId}\``);
+  }
+
+  lines.push("");
+  lines.push("#### Terminated Watchdogs");
+  lines.push(renderAsciiWatchdogTable(result.terminatedWatchdogs, { now: nowMs }));
+
+  const maxLines = isAll ? 500 : 35;
+  const markdown = enforceLineLimit(lines.join("\n"), maxLines);
+
+  return {
+    markdown,
+    terminated_count: result.terminatedCount,
+    terminated_watchdogs: result.terminatedWatchdogs,
+    remaining_active: result.activeCount,
+    total_monitors: result.totalCount,
+    dry_run: result.dryRun,
+    phase: phase ?? null,
+    current_phase: currentPhase ?? null,
+    generation: generation ?? null,
+    pulse_id: pulseId ?? null,
+    run_root: run ?? null,
+    capsules_dir: capsulesDir ?? null,
+  };
+}
+
+export function watchdogVerifyCommand(
+  flags: Flags,
+  _context?: CommandContext,
+): Record<string, unknown> {
+  const allowedFlags = [
+    "run",
+    "capsules-dir",
+    "generation",
+    "pulse-id",
+    "phase",
+    "all",
+    "json",
+    "now",
+  ];
+  assertFlags(flags, allowedFlags);
+
+  const run = textFlag(flags, "run", false);
+  const capsulesDir = textFlag(flags, "capsules-dir", false);
+  const generation = integerFlag(flags, "generation", { minimum: 1 });
+  const pulseId = textFlag(flags, "pulse-id", false);
+  const phase = textFlag(flags, "phase", false);
+  const isAll = boolFlag(flags, "all");
+  const nowRaw = textFlag(flags, "now", false);
+
+  const target = run ?? capsulesDir;
+  const nowMs = parseTimestamp(nowRaw);
+
+  const result = verifyWatchdogLifecycle(
+    {
+      generation,
+      pulse_id: pulseId,
+      phase,
+      now: nowMs,
+    },
+    target,
+  );
+
+  const lines: string[] = [
+    "### Watchdog Lifecycle Invariant Verification",
+    `- **Target Root**: \`${target !== undefined ? target : "default (.capsules/)"}\``,
+    `- **Verification Status**: ${result.valid ? "PASSED ✅ (All Lifecycle Invariants Upheld)" : "FAILED ❌ (Violations Detected)"}`,
+    `- **Total Monitors Inspected**: ${result.totalCount} (Active: ${result.activeCount}, Stale: ${result.staleCount}, Terminated: ${result.terminatedCount}, Orphaned: ${result.orphanedCount})`,
+    `- **Invariant Rule**: Max 1 active monitor per generation/pulse strictly enforced`,
+  ];
+
+  if (generation !== undefined) {
+    lines.push(`- **Generation Scope**: Generation ${generation}`);
+  }
+  if (pulseId !== undefined) {
+    lines.push(`- **Pulse Scope**: \`${pulseId}\``);
+  }
+  if (phase !== undefined) {
+    lines.push(`- **Phase Scope**: \`${phase}\``);
+  }
+
+  if (result.violations.length > 0) {
+    lines.push("");
+    lines.push("#### Invariant Violations");
+    for (const v of result.violations) {
+      lines.push(`- ⚠️ ${v}`);
+    }
+  }
+
+  lines.push("");
+  lines.push("#### Tracked Watchdogs");
+  lines.push(renderAsciiWatchdogTable(result.watchdogs, { now: nowMs }));
+
+  const maxLines = isAll ? 500 : 35;
+  const markdown = enforceLineLimit(lines.join("\n"), maxLines);
+
+  return {
+    markdown,
+    valid: result.valid,
+    violations: result.violations,
+    violation_details: result.violationDetails,
+    summary: {
+      total: result.totalCount,
+      active_count: result.activeCount,
+      stale_count: result.staleCount,
+      terminated_count: result.terminatedCount,
+      orphaned_count: result.orphanedCount,
+    },
+    watchdogs: result.watchdogs,
     run_root: run ?? null,
     capsules_dir: capsulesDir ?? null,
   };

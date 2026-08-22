@@ -178,7 +178,7 @@ process called the harness, indistinguishable from any other flag. `host_reporte
 evidence class but no current code path assigns it to an agent grant field — a value the harness
 independently confirmed off the host's own config or transcript earns `derived` or
 `harness_observed` instead, and only ever fills a field with no explicit report already on it (see
-[Chapter 09 §03](../docs/09-branching-and-honesty/03-evidence-classes-and-honesty.md)).
+[`protocol.md`](protocol.md)).
 
 The parent must already hold a grant, which is what makes lineage a chain rather than a claim; an
 unregistered parent is refused rather than recorded as a dangling reference, a duplicate agent id is

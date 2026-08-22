@@ -1570,6 +1570,8 @@ Inspects the calling thread's OS process ID, parent PID, execution tier, active 
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `--run` | string | no | no | - | Capsule run root to cross-reference active leases and grants. |
 | `--agent` | string | no | no | - | Explicit agent id override to inspect. |
+| `--role` | string | no | no | - | Explicit role override to inspect. |
+| `--tier` | string | no | no | - | Explicit execution tier override to inspect. |
 | `--pid` | int | no | no | - | Process ID override for testing. |
 | `--ppid` | int | no | no | - | Parent Process ID override for testing. |
 | `--json` | bool | no | no | - | Output JSON format. |
@@ -1618,6 +1620,8 @@ Inspects background watchdog monitors across runs and generations, reporting act
 | `--run` | string | no | no | - | Capsule run root. |
 | `--capsules-dir` | string | no | no | - | Capsules root directory. |
 | `--generation` | int | no | no | - | Filter by mind generation. |
+| `--pulse-id` | string | no | no | - | Filter by pulse ID. |
+| `--phase` | string | no | no | - | Filter by execution phase. |
 | `--filter-status` | string | no | no | - | Filter by status: active, stale, terminated, orphaned, all. |
 | `--max-age-ms` | int | no | no | - | Maximum age in milliseconds. |
 | `--dry-run` | bool | no | no | - | Simulate cleanup without disk mutation. |
@@ -1628,6 +1632,93 @@ Inspects background watchdog monitors across runs and generations, reporting act
 ```bash
 bun harness.ts watchdog:status
 bun harness.ts watchdog:status --generation 1 --filter-status active
+```
+
+### `watchdog:cleanup`
+
+Purge stale or legacy watchdog monitors exceeding heartbeat timeout.
+
+Scans registered watchdog monitors across generations and pulses, transitioning timed-out monitors to stale or terminated status to prevent monitor accumulation.
+
+- **Aliases**: `watchdog:clean`
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--run` | string | no | no | - | Capsule run root. |
+| `--capsules-dir` | string | no | no | - | Capsules root directory. |
+| `--generation` | int | no | no | - | Target generation. |
+| `--pulse-id` | string | no | no | - | Target pulse ID. |
+| `--phase` | string | no | no | - | Target phase to clean up. |
+| `--max-age-ms` | int | no | no | - | Maximum age before considered stale. |
+| `--mark-as` | string | no | no | - | Status to mark: stale, terminated, orphaned. |
+| `--reason` | string | no | no | - | Termination reason string. |
+| `--dry-run` | bool | no | no | - | Simulate cleanup without disk mutation. |
+| `--all` | bool | no | no | - | Show all cleaned monitors in report. |
+| `--now` | string | no | no | - | Timestamp override (ISO8601). |
+| `--json` | bool | no | no | - | Output JSON. |
+
+```bash
+bun harness.ts watchdog:cleanup
+bun harness.ts watchdog:cleanup --generation 1 --dry-run
+```
+
+### `watchdog:phase-cleanup`
+
+Terminate legacy phase watchdog monitors upon phase rollover or completion.
+
+Terminates active watchdog monitors belonging to completed or superseded phases, ensuring old monitors never accumulate across phase transitions.
+
+- **Aliases**: `watchdog:phase-clean`, `watchdog:cleanup-phase`
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--run` | string | no | no | - | Capsule run root. |
+| `--capsules-dir` | string | no | no | - | Capsules root directory. |
+| `--phase` | string | no | no | - | Phase to terminate. |
+| `--current-phase` | string | no | no | - | New phase (terminates all prior phases). |
+| `--generation` | int | no | no | - | Target generation. |
+| `--pulse-id` | string | no | no | - | Target pulse ID. |
+| `--exclude-id` | string | no | no | - | Watchdog ID to preserve. |
+| `--reason` | string | no | no | - | Termination reason. |
+| `--mark-as` | string | no | no | - | Status to mark (default: terminated). |
+| `--dry-run` | bool | no | no | - | Simulate phase cleanup. |
+| `--all` | bool | no | no | - | Show all terminated monitors. |
+| `--now` | string | no | no | - | Timestamp override (ISO8601). |
+| `--json` | bool | no | no | - | Output JSON. |
+
+```bash
+bun harness.ts watchdog:phase-cleanup --phase planning --generation 1
+bun harness.ts watchdog:phase-cleanup --current-phase execution --generation 1
+```
+
+### `watchdog:verify`
+
+Verify watchdog lifecycle invariants and single-monitor constraints.
+
+Audits the watchdog registry against architectural constraints (max 1 active monitor per generation/pulse, no overdue heartbeats, no legacy phase orphans).
+
+- **Aliases**: `watchdog:check`, `watchdog:lint`
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--run` | string | no | no | - | Capsule run root. |
+| `--capsules-dir` | string | no | no | - | Capsules root directory. |
+| `--generation` | int | no | no | - | Filter by mind generation. |
+| `--pulse-id` | string | no | no | - | Filter by pulse ID. |
+| `--phase` | string | no | no | - | Filter by phase. |
+| `--all` | bool | no | no | - | Show all monitors in table. |
+| `--now` | string | no | no | - | Timestamp override (ISO8601). |
+| `--json` | bool | no | no | - | Output JSON. |
+
+```bash
+bun harness.ts watchdog:verify
+bun harness.ts watchdog:verify --generation 1
 ```
 
 ## install

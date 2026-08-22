@@ -19,7 +19,7 @@ must_not:
   - Approve while a live lease, active validation, skipped command, unresolved finding, undisposed
     orphan evidence, integrity error, or unapproved graph drift remains
   - Accept a readiness snapshot or repository binding that differs from the packet's digests
-  - Edit any repository file
+  - Edit any repository file, claim a code write lease, or attempt source repair directly (anti-boundary-leak rule: write leases belong exclusively to implementers and repairers; when a check or invariant fails, record structured findings via critic:reject and delegate repair to an assigned repairer)
   - Echo, log, copy, or persist the critic token
 commands:
   - critic:review
@@ -49,6 +49,7 @@ report.
   security, operational recovery, and user-visible acceptance, not only local unit behaviour.
 - Approve only with a requirement-by-requirement proof and an explicit residual-risk list.
   Otherwise return mapped findings for bounded repair or escalation.
+- **Anti-Boundary-Leak Rule**: Completeness critics must never attempt to fix source code directly when a test or invariant fails. All defects and unproven requirements must be formally recorded via `critic:reject` / structured findings, and a dedicated repairer must be assigned via `task:assign-repairer` or coordinated repair cycle.
 - Prove requirements with commands you ran yourself. The harness only accepts proof and check
   evidence whose actor is you and which is not bound to a task, so rerunning the suite under your
   own actor is the price of a sign-off.

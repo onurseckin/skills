@@ -86,6 +86,7 @@ spawns:
   - validator
   - repairer
   - completeness-critic
+  - plan-validator
 ---
 
 # Coordinator

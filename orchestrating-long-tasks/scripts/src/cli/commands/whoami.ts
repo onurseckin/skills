@@ -1,8 +1,8 @@
 import { integerFlag, textFlag, type Flags } from "../options.ts";
-import { enforceLineLimit } from "../formatters/line-limiter.ts";
+import { enforceLineLimit, nextActionsBlock, whoamiNextActions } from "../formatters/index.ts";
 import { loadRun } from "../../store/index.ts";
 import { readAgentLedger } from "../../workflow/agents/ledger.ts";
-import { identifyExecutionContext } from "../../authority/thread-identifier.ts";
+import { identifyExecutionContext, parseTierValue } from "../../authority/thread-identifier.ts";
 import { isJsonObject } from "../../contracts/json.ts";
 import type { AgentGrantRecord } from "../../contracts/agents.ts";
 
@@ -31,13 +31,19 @@ function parseOptionalText(flags: Flags, name: string): string | undefined {
 export function whoamiCommand(flags: Flags): Record<string, unknown> {
   const run = parseOptionalText(flags, "run") ?? null;
   const agentOverride = parseOptionalText(flags, "agent");
+  const roleOverride = parseOptionalText(flags, "role");
+  const tierOverride = parseOptionalText(flags, "tier");
   const pidOverride = parseOptionalInt(flags, "pid", 1);
   const ppidOverride = parseOptionalInt(flags, "ppid", 0);
+
+  const parsedTier = tierOverride !== undefined ? parseTierValue(tierOverride) ?? undefined : undefined;
 
   const thread = identifyExecutionContext({
     ...(pidOverride !== undefined ? { pid: pidOverride } : {}),
     ...(ppidOverride !== undefined ? { ppid: ppidOverride } : {}),
     ...(agentOverride !== undefined ? { agentId: agentOverride } : {}),
+    ...(roleOverride !== undefined ? { role: roleOverride } : {}),
+    ...(parsedTier !== undefined ? { tier: parsedTier } : {}),
     ...(run !== null ? { runRoot: run } : {}),
   });
 
@@ -121,6 +127,8 @@ export function whoamiCommand(flags: Flags): Record<string, unknown> {
       mdLines.push(`- **Held Tasks**: ${filteredLeases.map((l) => `\`${l.task_id}\``).join(", ")}`);
     }
   }
+
+  mdLines.push(...nextActionsBlock(whoamiNextActions(run, thread.is_main_thread)));
 
   return {
     markdown: enforceLineLimit(mdLines.join("\n"), 30),

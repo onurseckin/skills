@@ -23,7 +23,7 @@ This repository is structured as a modular, multi-skill monorepo adhering to the
 - **Durable Crash Recovery:** Capsules under `.capsules/<run-id>/` resume across interruptions; `recover` reclaims dead leases explicitly and `task:release` hands one back voluntarily.
 - **Zero Runtime Dependencies:** Pure Bun standard library and native OS bindings (`node:fs`, `node:crypto`, `node:child_process`). No `node_modules` and no network calls at runtime.
 
-📚 **[Read the full manual →](./orchestrating-long-tasks/docs/README.md)** · 🧭 **[Generated CLI manifest →](./orchestrating-long-tasks/references/cli-capabilities.md)** · 🧪 **[Executable tutorial →](./orchestrating-long-tasks/docs/10-tutorial-and-cli/01-end-to-end-tutorial.md)**
+📚 **[Read the skill specification →](./orchestrating-long-tasks/SKILL.md)** · 🧭 **[Generated CLI manifest →](./orchestrating-long-tasks/references/cli-capabilities.md)** · 📖 **[Protocol reference →](./orchestrating-long-tasks/references/protocol.md)**
 
 ---
 
@@ -241,7 +241,7 @@ Five things in that sequence are easy to get wrong and are refused outright:
   checked against that assignment's own record rather than the critic's live grant, so releasing the
   critic first does not invalidate it. Omitting it is refused outright, not defaulted.
 
-The [end-to-end tutorial](./orchestrating-long-tasks/docs/10-tutorial-and-cli/01-end-to-end-tutorial.md)
+The [run playbook](./orchestrating-long-tasks/references/run-playbook.md)
 runs the same flow with a branch, a real rejection and a repair round.
 
 ---
@@ -309,6 +309,9 @@ skills/
 ├── README.md
 ├── package.json
 ├── tsconfig.json
+├── docs/                    # Repository-wide skill collection guidelines
+│   ├── README.md
+│   └── SKILL_COLLECTION_GUIDELINES.md
 ├── <new-skill-name>/
 │   ├── SKILL.md             # Standard skill definition with YAML frontmatter
 │   ├── agents/
@@ -317,11 +320,12 @@ skills/
 │   │   └── *.md
 │   ├── roles/               # (Optional) Capability contracts, one per agent role
 │   │   └── <role>.md
-│   ├── docs/                # (Optional) The long-form manual
 │   └── scripts/             # (Optional) Executable tooling, helpers, and tests
 │       ├── src/
 │       └── tests/
 ```
+
+For comprehensive multi-skill monorepo standards and quality gates, refer to [**`docs/SKILL_COLLECTION_GUIDELINES.md`**](./docs/SKILL_COLLECTION_GUIDELINES.md).
 
 ### Standard `SKILL.md` Format:
 

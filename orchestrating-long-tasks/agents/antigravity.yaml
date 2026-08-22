@@ -1,0 +1,47 @@
+provider: "antigravity"
+display_name: "Google Antigravity"
+aliases:
+  - "agy"
+  - "antigravity-cli"
+dispatch:
+  tool: "invoke_subagent"
+  subagent_type_default: "self"
+  batch_dispatch: true
+  batch_parameter: "Subagents"
+messaging:
+  tool: "send_message"
+  recipient_parameter: "Recipient"
+  message_parameter: "Message"
+task_management:
+  tool: "manage_task"
+  actions:
+    - "list"
+    - "kill"
+    - "status"
+    - "send_input"
+command_execution:
+  tool: "run_command"
+  command_parameter: "CommandLine"
+  cwd_parameter: "Cwd"
+  async_threshold_parameter: "WaitMsBeforeAsync"
+scheduling:
+  tool: "schedule"
+  cron_parameter: "CronExpression"
+  duration_parameter: "DurationSeconds"
+workspace_isolation:
+  supported_modes:
+    - "inherit"
+    - "branch"
+    - "share"
+  default_mode: "inherit"
+supported_tiers:
+  - 0
+  - 1
+  - 2
+  - 3
+capabilities:
+  hierarchical_subagents: true
+  concurrency_ceiling: 20
+  token_reporting: true
+  native_resume: true
+  reused_subagent_parameter: "ReusedSubagentId"

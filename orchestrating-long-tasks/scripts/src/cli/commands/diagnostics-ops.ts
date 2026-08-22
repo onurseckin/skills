@@ -10,7 +10,12 @@ import { loadRun, recoverProjection } from "../../store/index.ts";
 import { recoverStale } from "../../workflow/lease/recover-stale.ts";
 import { releaseLease } from "../../workflow/lease/release.ts";
 import { systemClock, type WorkflowState } from "../../workflow/types.ts";
-import { enforceLineLimit } from "../formatters/line-limiter.ts";
+import {
+  doctorNextActions,
+  enforceLineLimit,
+  nextActionsBlock,
+  recoverNextActions,
+} from "../formatters/index.ts";
 import { boolFlag, integerFlag, listFlag, textFlag, type Flags } from "../options.ts";
 
 export async function doctorCommand(flags: Flags): Promise<Record<string, unknown>> {
@@ -65,6 +70,7 @@ export function formatDoctorBrief(run: string, report: Record<string, unknown>):
     `- **Gitignored**: ${ternary(report.gitignored, "yes", "no")}`,
     ...(issues.length > 0 ? ["- **Issues**:"] : ["- **Issues**: none"]),
     ...issues.map((issue) => `  - ${issue}`),
+    ...nextActionsBlock(doctorNextActions(run)),
   ];
   return enforceLineLimit(lines.join("\n"));
 }
@@ -104,6 +110,7 @@ export function recoverCommand(flags: Flags): Record<string, unknown> {
     ...recovered.map((id) => `  - \`${id}\` -> ${state.tasks[id]?.status ?? "unknown"}`),
     `- **Branch Sub-leases Reclaimed**: ${recoveredSubTasks.length}`,
     ...recoveredSubTasks.map((id) => `  - \`${id}\` -> open`),
+    ...nextActionsBlock(recoverNextActions(run)),
   ];
   return {
     markdown: enforceLineLimit(lines.join("\n")),
@@ -125,6 +132,13 @@ export function repairProjectionCommand(flags: Flags): Record<string, unknown> {
     `- **Actor**: ${actor}`,
     `- **Event Sequence**: ${state.event_sequence}`,
     `- **Torn Tail Quarantined**: ${quarantined ? "yes" : "no"}`,
+    ...nextActionsBlock([
+      {
+        command: `bun harness.ts run:status --run ${run}`,
+        role: "Orchestrator",
+        description: "Verify state projection integrity",
+      },
+    ]),
   ];
   return {
     markdown: enforceLineLimit(lines.join("\n")),
@@ -145,6 +159,13 @@ export function taskReleaseCommand(flags: Flags): Record<string, unknown> {
     `- **Agent**: \`${agent}\``,
     `- **Task Status**: ${task.status}`,
     `- **Reclaim**: \`bun harness.ts task:claim --run ${run} --task ${taskId} --agent <AGENT>\``,
+    ...nextActionsBlock([
+      {
+        command: `bun harness.ts task:claim --run ${run} --task ${taskId} --agent <AGENT>`,
+        role: "Implementer",
+        description: "Reclaim released task lease",
+      },
+    ]),
   ];
   return { markdown: enforceLineLimit(lines.join("\n")), run_root: run, task };
 }

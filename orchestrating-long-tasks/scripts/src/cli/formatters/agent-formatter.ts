@@ -3,6 +3,11 @@ import type { Evidenced } from "../../contracts/evidence.ts";
 import { isKnownToolCategory } from "../../contracts/taxonomy.ts";
 import type { TaskLineage } from "../../workflow/agents/lineage.ts";
 import { enforceLineLimit, formatTable } from "./line-limiter.ts";
+import {
+  agentListNextActions,
+  agentRegisterNextActions,
+  nextActionsBlock,
+} from "./next-actions.ts";
 
 function cell(value: Evidenced<number | string> | undefined): string {
   if (value === undefined) return "unknown";
@@ -41,6 +46,7 @@ export function formatAgentRegisterBrief(grant: AgentGrantRecord, runId: string)
     "```bash",
     `bun harness.ts agent:release --run ${runId} --agent ${grant.id} --reason "<why>"`,
     "```",
+    ...nextActionsBlock(agentRegisterNextActions(runId, grant.id)),
   ].join("\n");
   return enforceLineLimit(md);
 }
@@ -64,6 +70,13 @@ export function formatAgentReportBrief(grant: AgentGrantRecord, runId: string): 
     `- **Other Counters**: ${extraList}`,
     `- **Grant**: ${grant.status}, under ${parentCell(grant)}`,
     `- **Run**: \`${runId}\``,
+    ...nextActionsBlock([
+      {
+        command: `bun harness.ts agent:list --run ${runId}`,
+        role: "Coordinator",
+        description: "Inspect all active agent grants",
+      },
+    ]),
   ].join("\n");
   return enforceLineLimit(md);
 }
@@ -77,6 +90,7 @@ export function formatAgentReleaseBrief(grant: AgentGrantRecord, runId: string):
     `- **Tokens In**: ${cell(grant.tokens_in)} · **Tokens Out**: ${cell(grant.tokens_out)}`,
     "",
     `Remaining deployment: \`bun harness.ts agent:list --run ${runId}\``,
+    ...nextActionsBlock(agentListNextActions(runId)),
   ].join("\n");
   return enforceLineLimit(md);
 }
@@ -95,6 +109,7 @@ export function formatAgentListBrief(
         `- **Active Grants**: 0`,
         `- **Released Grants**: ${grants.length - active.length}`,
         `- **Action**: \`bun harness.ts agent:register --run ${runId} --agent <ID> --role <ROLE> --host <HOST>\``,
+        ...nextActionsBlock(agentListNextActions(runId)),
       ].join("\n"),
     );
   }
@@ -113,6 +128,7 @@ export function formatAgentListBrief(
     ...formatTable(["Agent", "Role", "Under", "Task", "Status", "Model", "Thinking"], rows),
     "",
     `- **Active**: ${active.length} · **Released**: ${grants.length - active.length}`,
+    ...nextActionsBlock(agentListNextActions(runId)),
   ].join("\n");
   return enforceLineLimit(md);
 }
@@ -137,6 +153,13 @@ export function formatAgentLineageBrief(lineage: TaskLineage): string {
     `### Task Lineage: ${lineage.task_id}`,
     "",
     ...formatTable(["Depth", "Agent", "Role", "Under", "Status"], rows),
+    ...nextActionsBlock([
+      {
+        command: `bun harness.ts task:claim --task ${lineage.task_id} --agent <AGENT>`,
+        role: "Implementer",
+        description: "Inspect or claim task",
+      },
+    ]),
   ].join("\n");
   return enforceLineLimit(md);
 }

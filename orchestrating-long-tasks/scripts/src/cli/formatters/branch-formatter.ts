@@ -1,5 +1,13 @@
 import type { BranchRecord, BranchSubTask } from "../../contracts/branch.ts";
 import { enforceLineLimit, formatTable } from "./line-limiter.ts";
+import {
+  branchClaimNextActions,
+  branchCollectNextActions,
+  branchOpenNextActions,
+  branchStatusNextActions,
+  branchSubmitNextActions,
+  nextActionsBlock,
+} from "./next-actions.ts";
 
 function subTaskRows(branch: BranchRecord): string[][] {
   return branch.sub_tasks.map((subTask) => [
@@ -32,6 +40,14 @@ export function formatBranchOpenBrief(branch: BranchRecord, runId: string): stri
     `bun harness.ts branch:claim --run ${runId} --branch ${branch.id} --sub-task <ID> --agent <AGENT>`,
     `bun harness.ts branch:collect --run ${runId} --branch ${branch.id} --agent ${branch.parent_agent_id} --token <PARENT_TOKEN> --summary "<WHAT CAME BACK>"`,
     "```",
+    ...nextActionsBlock(
+      branchOpenNextActions(
+        runId,
+        branch.id,
+        branch.sub_tasks[0]?.id,
+        branch.parent_agent_id,
+      ),
+    ),
   ].join("\n");
   return enforceLineLimit(md);
 }
@@ -54,6 +70,15 @@ export function formatBranchClaimBrief(
     "```bash",
     `bun harness.ts branch:submit --run ${runId} --branch ${branch.id} --sub-task ${subTask.id} --agent ${subTask.agent_id ?? "<AGENT>"} --token ${token} --summary "<WHAT CHANGED>"`,
     "```",
+    ...nextActionsBlock(
+      branchClaimNextActions(
+        runId,
+        branch.id,
+        subTask.id,
+        subTask.agent_id ?? "<AGENT>",
+        token,
+      ),
+    ),
   ].join("\n");
   return enforceLineLimit(md);
 }
@@ -68,6 +93,7 @@ export function formatBranchSubmitBrief(branch: BranchRecord, subTaskId: string)
     `- **Still Open**: ${pending.length === 0 ? "none - the branch is ready to collect" : pending.map((subTask) => `\`${subTask.id}\` (${subTask.status})`).join(", ")}`,
     "",
     ...formatTable(["Sub-task", "Label", "Status", "Agent", "Write Scope"], subTaskRows(branch)),
+    ...nextActionsBlock(branchSubmitNextActions(undefined, branch.id, branch.parent_agent_id)),
   ].join("\n");
   return enforceLineLimit(md);
 }
@@ -84,6 +110,13 @@ export function formatBranchCollectBrief(branch: BranchRecord, parentStatus: str
     ...(files.length > 10 ? [`  - ... ${files.length - 10} more`] : []),
     "",
     ...formatTable(["Sub-task", "Label", "Status", "Agent", "Write Scope"], subTaskRows(branch)),
+    ...nextActionsBlock(
+      branchCollectNextActions(
+        undefined,
+        branch.parent_task_id,
+        branch.parent_agent_id,
+      ),
+    ),
   ].join("\n");
   return enforceLineLimit(md);
 }
@@ -97,6 +130,13 @@ export function formatBranchAbandonBrief(branch: BranchRecord, parentStatus: str
     `- **Sub-leases Released**: ${branch.sub_tasks.filter((subTask) => subTask.status === "abandoned").length}`,
     "",
     ...formatTable(["Sub-task", "Label", "Status", "Agent", "Write Scope"], subTaskRows(branch)),
+    ...nextActionsBlock([
+      {
+        command: `bun harness.ts task:heartbeat --task ${branch.parent_task_id} --agent ${branch.parent_agent_id} --token <TOKEN>`,
+        role: "Parent",
+        description: "Refresh parent lease and resume work",
+      },
+    ]),
   ].join("\n");
   return enforceLineLimit(md);
 }
@@ -104,7 +144,11 @@ export function formatBranchAbandonBrief(branch: BranchRecord, parentStatus: str
 export function formatBranchStatusBrief(branches: readonly BranchRecord[], runId: string): string {
   if (branches.length === 0) {
     return enforceLineLimit(
-      [`### Branches: ${runId}`, "- **Branches**: none opened in this run."].join("\n"),
+      [
+        `### Branches: ${runId}`,
+        "- **Branches**: none opened in this run.",
+        ...nextActionsBlock(branchStatusNextActions(runId)),
+      ].join("\n"),
     );
   }
   const rows = branches.map((branch) => [
@@ -120,6 +164,7 @@ export function formatBranchStatusBrief(branches: readonly BranchRecord[], runId
     `### Branches: ${runId}`,
     "",
     ...formatTable(["Branch", "Parent", "Depth", "Status", "Submitted", "Files", "Reason"], rows),
+    ...nextActionsBlock(branchStatusNextActions(runId)),
   ].join("\n");
   return enforceLineLimit(md);
 }

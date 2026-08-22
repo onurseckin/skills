@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
+  cleanupPreviousPhaseWatchdogs,
   cleanupStaleWatchdogs,
   createDefaultWatchdogStore,
   DEFAULT_HEARTBEAT_CADENCE_MS,
@@ -14,13 +15,17 @@ import {
   renderAsciiWatchdogTable,
   resolveWatchdogStorePath,
   saveWatchdogStore,
+  terminatePhaseWatchdogs,
   terminateWatchdog,
+  verifyWatchdogLifecycle,
   type WatchdogRecord,
   type WatchdogStore,
 } from "../../../orchestrating-long-tasks/scripts/src/authority/watchdog-manager.ts";
 import {
   watchdogCleanupCommand,
+  watchdogPhaseCleanupCommand,
   watchdogStatusCommand,
+  watchdogVerifyCommand,
 } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/watchdog-ops.ts";
 import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
@@ -483,7 +488,7 @@ describe("CLI Commands - watchdog:status and watchdog:cleanup", () => {
       "filter-status": "active",
     });
 
-    const watchdogs = result.watchdogs as WatchdogRecord[];
+    const watchdogs = result.watchdogs as unknown as WatchdogRecord[];
     expect(watchdogs.length).toBe(1);
     expect(watchdogs[0]?.id).toBe("wd-filt-2");
   });
@@ -545,6 +550,353 @@ describe("CLI Commands - watchdog:status and watchdog:cleanup", () => {
     expect(String(result.markdown)).toContain("### Watchdog Stale Cleanup Engine");
     expect(result.cleaned_count).toBe(1);
     expect(result.remaining_active).toBe(0);
+  });
+
+  test("watchdogCleanupCommand handles phase cleanup via --phase flag", () => {
+    const dir = scratchRoot(import.meta.path, "cli-cleanup-phase");
+
+    registerWatchdog({ id: "wd-p1", generation: 1, phase: "planning" }, dir);
+    registerWatchdog({ id: "wd-p2", generation: 2, phase: "execution" }, dir);
+
+    const result = watchdogCleanupCommand({
+      run: dir,
+      phase: "planning",
+      generation: "1",
+    });
+
+    expect(typeof result.markdown).toBe("string");
+    expect(String(result.markdown)).toContain("### Watchdog Phase Cleanup Engine");
+    expect(result.cleaned_count).toBe(1);
+    expect(result.remaining_active).toBe(1); // wd-p2 in gen 2 is still active
+  });
+
+  test("watchdogPhaseCleanupCommand executes phase termination", () => {
+    const dir = scratchRoot(import.meta.path, "cli-phase-cleanup");
+
+    registerWatchdog({ id: "wd-pc-1", generation: 1, phase: "analysis" }, dir);
+    registerWatchdog({ id: "wd-pc-2", generation: 2, phase: "analysis" }, dir);
+
+    const result = watchdogPhaseCleanupCommand({
+      run: dir,
+      phase: "analysis",
+      generation: "1",
+    });
+
+    expect(typeof result.markdown).toBe("string");
+    expect(String(result.markdown)).toContain("### Watchdog Automatic Phase Cleanup Engine");
+    expect(result.terminated_count).toBe(1);
+    expect(result.remaining_active).toBe(1);
+  });
+
+  test("watchdogPhaseCleanupCommand executes rollover cleanup with --current-phase", () => {
+    const dir = scratchRoot(import.meta.path, "cli-rollover-cleanup");
+
+    registerWatchdog({ id: "wd-prev-1", generation: 1, phase: "planning" }, dir);
+    registerWatchdog({ id: "wd-curr-1", generation: 2, phase: "execution" }, dir);
+
+    const result = watchdogPhaseCleanupCommand({
+      run: dir,
+      "current-phase": "execution",
+    });
+
+    expect(result.terminated_count).toBe(1);
+    expect(result.remaining_active).toBe(1);
+    const terminated = result.terminated_watchdogs as unknown as WatchdogRecord[];
+    expect(terminated[0]?.id).toBe("wd-prev-1");
+  });
+
+  test("watchdogVerifyCommand audits lifecycle invariants and detects violations", () => {
+    const dir = scratchRoot(import.meta.path, "cli-verify");
+
+    // Seed multiple active in same gen to create a violation
+    const seedStore: WatchdogStore = {
+      schema: "harness.watchdog_store",
+      version: 1,
+      updated_at: "2026-08-21T20:00:00.000Z",
+      watchdogs: [
+        {
+          id: "wd-v1",
+          generation: 1,
+          pulse_id: "p1",
+          phase: "exec",
+          run_id: null,
+          run_root: null,
+          pid: 10,
+          ppid: 1,
+          agent_id: null,
+          started_at: "2026-08-21T20:00:00.000Z",
+          last_heartbeat_at: "2026-08-21T20:00:00.000Z",
+          heartbeat_cadence_ms: 180_000,
+          timeout_ms: 360_000,
+          status: "active",
+          terminated_at: null,
+          termination_reason: null,
+        },
+        {
+          id: "wd-v2",
+          generation: 1,
+          pulse_id: "p2",
+          phase: "exec",
+          run_id: null,
+          run_root: null,
+          pid: 11,
+          ppid: 1,
+          agent_id: null,
+          started_at: "2026-08-21T20:00:00.000Z",
+          last_heartbeat_at: "2026-08-21T20:00:00.000Z",
+          heartbeat_cadence_ms: 180_000,
+          timeout_ms: 360_000,
+          status: "active",
+          terminated_at: null,
+          termination_reason: null,
+        },
+      ],
+    };
+    saveWatchdogStore(seedStore, dir);
+
+    const result = watchdogVerifyCommand({
+      run: dir,
+      generation: "1",
+      now: "2026-08-21T20:01:00.000Z",
+    });
+
+    expect(result.valid).toBe(false);
+    expect((result.violations as unknown as string[]).length).toBeGreaterThan(0);
+    expect(String(result.markdown)).toContain("FAILED ❌");
+  });
+});
+
+describe("WatchdogManager - Phase Cleanup & Automatic Rollover", () => {
+  test("terminatePhaseWatchdogs terminates monitors matching target phase", () => {
+    const dir = scratchRoot(import.meta.path, "phase-clean-target");
+
+    registerWatchdog({ id: "wd-plan-1", generation: 1, phase: "planning" }, dir);
+    registerWatchdog({ id: "wd-exec-1", generation: 2, phase: "execution" }, dir);
+
+    const result = terminatePhaseWatchdogs({ phase: "planning" }, dir);
+    expect(result.terminatedCount).toBe(1);
+    expect(result.terminatedWatchdogs[0]?.id).toBe("wd-plan-1");
+    expect(result.terminatedWatchdogs[0]?.status).toBe("terminated");
+    expect(result.terminatedWatchdogs[0]?.termination_reason).toBe("phase_completed_planning");
+    expect(result.activeCount).toBe(1);
+
+    const store = loadWatchdogStore(dir);
+    const planWd = store.watchdogs.find((w) => w.id === "wd-plan-1");
+    expect(planWd?.status).toBe("terminated");
+  });
+
+  test("terminatePhaseWatchdogs supports dry run without mutating store", () => {
+    const dir = scratchRoot(import.meta.path, "phase-clean-dry");
+
+    registerWatchdog({ id: "wd-dry-1", generation: 1, phase: "review" }, dir);
+
+    const dryResult = terminatePhaseWatchdogs({ phase: "review", dryRun: true }, dir);
+    expect(dryResult.terminatedCount).toBe(1);
+    expect(dryResult.dryRun).toBe(true);
+
+    const store = loadWatchdogStore(dir);
+    expect(store.watchdogs.find((w) => w.id === "wd-dry-1")?.status).toBe("active");
+  });
+
+  test("terminatePhaseWatchdogs respects generation, pulse_id, and excludeId", () => {
+    const dir = scratchRoot(import.meta.path, "phase-clean-filters");
+
+    registerWatchdog({ id: "wd-g1-p1", generation: 1, pulse_id: "p1", phase: "task" }, dir);
+    registerWatchdog({ id: "wd-g2-p2", generation: 2, pulse_id: "p2", phase: "task" }, dir);
+    registerWatchdog({ id: "wd-g3-p3", generation: 3, pulse_id: "p3", phase: "task" }, dir);
+
+    const result = terminatePhaseWatchdogs(
+      {
+        phase: "task",
+        generation: 2,
+        pulse_id: "p2",
+        excludeId: "wd-nonexistent",
+      },
+      dir,
+    );
+
+    expect(result.terminatedCount).toBe(1);
+    expect(result.terminatedWatchdogs[0]?.id).toBe("wd-g2-p2");
+    expect(result.activeCount).toBe(2);
+  });
+
+  test("cleanupPreviousPhaseWatchdogs terminates legacy phase monitors on rollover", () => {
+    const dir = scratchRoot(import.meta.path, "rollover-clean");
+
+    registerWatchdog({ id: "wd-old-plan", generation: 1, phase: "planning" }, dir);
+    registerWatchdog({ id: "wd-old-exec", generation: 1, phase: "execution" }, dir);
+    registerWatchdog({ id: "wd-new-val", generation: 2, phase: "validation" }, dir);
+
+    const result = cleanupPreviousPhaseWatchdogs(
+      {
+        currentPhase: "validation",
+        generation: 1,
+      },
+      dir,
+    );
+
+    expect(result.terminatedCount).toBe(1); // in gen 1, wd-old-plan was superseded by wd-old-exec, so only wd-old-exec was active
+    expect(result.terminatedWatchdogs[0]?.id).toBe("wd-old-exec");
+    expect(result.terminatedWatchdogs[0]?.status).toBe("terminated");
+    expect(result.activeCount).toBe(1); // wd-new-val in gen 2 is active
+  });
+});
+
+describe("WatchdogManager - Lifecycle Invariant Verification", () => {
+  test("verifyWatchdogLifecycle passes when invariants are satisfied", () => {
+    const dir = scratchRoot(import.meta.path, "verify-pass");
+
+    registerWatchdog({ id: "wd-ok-1", generation: 1, pulse_id: "p-1" }, dir);
+    registerWatchdog({ id: "wd-ok-2", generation: 2, pulse_id: "p-2" }, dir);
+
+    const result = verifyWatchdogLifecycle({}, dir);
+    expect(result.valid).toBe(true);
+    expect(result.violations).toEqual([]);
+    expect(result.activeCount).toBe(2);
+  });
+
+  test("verifyWatchdogLifecycle detects multiple active monitors in same generation", () => {
+    const dir = scratchRoot(import.meta.path, "verify-multi-active-gen");
+
+    const seedStore: WatchdogStore = {
+      schema: "harness.watchdog_store",
+      version: 1,
+      updated_at: "2026-08-21T20:00:00.000Z",
+      watchdogs: [
+        {
+          id: "wd-conflict-1",
+          generation: 1,
+          pulse_id: "p1",
+          phase: "loop",
+          run_id: null,
+          run_root: null,
+          pid: 1,
+          ppid: 1,
+          agent_id: null,
+          started_at: "2026-08-21T20:00:00.000Z",
+          last_heartbeat_at: "2026-08-21T20:00:00.000Z",
+          heartbeat_cadence_ms: 180_000,
+          timeout_ms: 360_000,
+          status: "active",
+          terminated_at: null,
+          termination_reason: null,
+        },
+        {
+          id: "wd-conflict-2",
+          generation: 1,
+          pulse_id: "p2",
+          phase: "loop",
+          run_id: null,
+          run_root: null,
+          pid: 2,
+          ppid: 1,
+          agent_id: null,
+          started_at: "2026-08-21T20:00:00.000Z",
+          last_heartbeat_at: "2026-08-21T20:00:00.000Z",
+          heartbeat_cadence_ms: 180_000,
+          timeout_ms: 360_000,
+          status: "active",
+          terminated_at: null,
+          termination_reason: null,
+        },
+      ],
+    };
+    saveWatchdogStore(seedStore, dir);
+
+    const result = verifyWatchdogLifecycle({}, dir);
+    expect(result.valid).toBe(false);
+    expect(result.violations.some((v) => v.includes("Multiple active watchdogs found in generation 1"))).toBe(true);
+    expect(result.violationDetails.some((d) => d.rule === "single_active_per_generation")).toBe(true);
+  });
+
+  test("verifyWatchdogLifecycle detects multiple active monitors with same pulse_id", () => {
+    const dir = scratchRoot(import.meta.path, "verify-multi-active-pulse");
+
+    const seedStore: WatchdogStore = {
+      schema: "harness.watchdog_store",
+      version: 1,
+      updated_at: "2026-08-21T20:00:00.000Z",
+      watchdogs: [
+        {
+          id: "wd-pulse-dup1",
+          generation: 1,
+          pulse_id: "shared-pulse-123",
+          phase: "loop",
+          run_id: null,
+          run_root: null,
+          pid: 1,
+          ppid: 1,
+          agent_id: null,
+          started_at: "2026-08-21T20:00:00.000Z",
+          last_heartbeat_at: "2026-08-21T20:00:00.000Z",
+          heartbeat_cadence_ms: 180_000,
+          timeout_ms: 360_000,
+          status: "active",
+          terminated_at: null,
+          termination_reason: null,
+        },
+        {
+          id: "wd-pulse-dup2",
+          generation: 2,
+          pulse_id: "shared-pulse-123",
+          phase: "loop",
+          run_id: null,
+          run_root: null,
+          pid: 2,
+          ppid: 1,
+          agent_id: null,
+          started_at: "2026-08-21T20:00:00.000Z",
+          last_heartbeat_at: "2026-08-21T20:00:00.000Z",
+          heartbeat_cadence_ms: 180_000,
+          timeout_ms: 360_000,
+          status: "active",
+          terminated_at: null,
+          termination_reason: null,
+        },
+      ],
+    };
+    saveWatchdogStore(seedStore, dir);
+
+    const result = verifyWatchdogLifecycle({}, dir);
+    expect(result.valid).toBe(false);
+    expect(result.violations.some((v) => v.includes("Multiple active watchdogs found for pulse 'shared-pulse-123'"))).toBe(true);
+    expect(result.violationDetails.some((d) => d.rule === "single_active_per_pulse")).toBe(true);
+  });
+
+  test("verifyWatchdogLifecycle detects overdue heartbeat timeout", () => {
+    const dir = scratchRoot(import.meta.path, "verify-overdue-hb");
+
+    const seedStore: WatchdogStore = {
+      schema: "harness.watchdog_store",
+      version: 1,
+      updated_at: "2026-08-21T18:00:00.000Z",
+      watchdogs: [
+        {
+          id: "wd-overdue-1",
+          generation: 1,
+          pulse_id: null,
+          phase: "loop",
+          run_id: null,
+          run_root: null,
+          pid: 1,
+          ppid: 1,
+          agent_id: null,
+          started_at: "2026-08-21T18:00:00.000Z",
+          last_heartbeat_at: "2026-08-21T18:00:00.000Z",
+          heartbeat_cadence_ms: 180_000,
+          timeout_ms: 360_000,
+          status: "active",
+          terminated_at: null,
+          termination_reason: null,
+        },
+      ],
+    };
+    saveWatchdogStore(seedStore, dir);
+
+    const result = verifyWatchdogLifecycle({ now: "2026-08-21T21:00:00.000Z" }, dir);
+    expect(result.valid).toBe(false);
+    expect(result.violations.some((v) => v.includes("heartbeat is overdue"))).toBe(true);
+    expect(result.violationDetails.some((d) => d.rule === "heartbeat_timeout_exceeded")).toBe(true);
   });
 });
 

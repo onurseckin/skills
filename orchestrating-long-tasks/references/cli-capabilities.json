@@ -5156,6 +5156,22 @@
           "description": "Explicit agent id override to inspect."
         },
         {
+          "name": "role",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Explicit role override to inspect."
+        },
+        {
+          "name": "tier",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Explicit execution tier override to inspect."
+        },
+        {
           "name": "pid",
           "type": "int",
           "required": false,
@@ -5316,6 +5332,22 @@
           "description": "Filter by mind generation."
         },
         {
+          "name": "pulse-id",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Filter by pulse ID."
+        },
+        {
+          "name": "phase",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Filter by execution phase."
+        },
+        {
           "name": "filter-status",
           "type": "string",
           "required": false,
@@ -5387,6 +5419,377 @@
       "examples": [
         "bun harness.ts watchdog:status",
         "bun harness.ts watchdog:status --generation 1 --filter-status active"
+      ]
+    },
+    {
+      "name": "watchdog:cleanup",
+      "aliases": [
+        "watchdog:clean"
+      ],
+      "domain": "authority",
+      "summary": "Purge stale or legacy watchdog monitors exceeding heartbeat timeout.",
+      "description": "Scans registered watchdog monitors across generations and pulses, transitioning timed-out monitors to stale or terminated status to prevent monitor accumulation.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root."
+        },
+        {
+          "name": "capsules-dir",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsules root directory."
+        },
+        {
+          "name": "generation",
+          "type": "int",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Target generation."
+        },
+        {
+          "name": "pulse-id",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Target pulse ID."
+        },
+        {
+          "name": "phase",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Target phase to clean up."
+        },
+        {
+          "name": "max-age-ms",
+          "type": "int",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Maximum age before considered stale."
+        },
+        {
+          "name": "mark-as",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Status to mark: stale, terminated, orphaned."
+        },
+        {
+          "name": "reason",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Termination reason string."
+        },
+        {
+          "name": "dry-run",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Simulate cleanup without disk mutation."
+        },
+        {
+          "name": "all",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Show all cleaned monitors in report."
+        },
+        {
+          "name": "now",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Timestamp override (ISO8601)."
+        },
+        {
+          "name": "json",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Output JSON."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts watchdog:cleanup",
+        "bun harness.ts watchdog:cleanup --generation 1 --dry-run"
+      ]
+    },
+    {
+      "name": "watchdog:phase-cleanup",
+      "aliases": [
+        "watchdog:phase-clean",
+        "watchdog:cleanup-phase"
+      ],
+      "domain": "authority",
+      "summary": "Terminate legacy phase watchdog monitors upon phase rollover or completion.",
+      "description": "Terminates active watchdog monitors belonging to completed or superseded phases, ensuring old monitors never accumulate across phase transitions.",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root."
+        },
+        {
+          "name": "capsules-dir",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsules root directory."
+        },
+        {
+          "name": "phase",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Phase to terminate."
+        },
+        {
+          "name": "current-phase",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "New phase (terminates all prior phases)."
+        },
+        {
+          "name": "generation",
+          "type": "int",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Target generation."
+        },
+        {
+          "name": "pulse-id",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Target pulse ID."
+        },
+        {
+          "name": "exclude-id",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Watchdog ID to preserve."
+        },
+        {
+          "name": "reason",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Termination reason."
+        },
+        {
+          "name": "mark-as",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Status to mark (default: terminated)."
+        },
+        {
+          "name": "dry-run",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Simulate phase cleanup."
+        },
+        {
+          "name": "all",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Show all terminated monitors."
+        },
+        {
+          "name": "now",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Timestamp override (ISO8601)."
+        },
+        {
+          "name": "json",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Output JSON."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts watchdog:phase-cleanup --phase planning --generation 1",
+        "bun harness.ts watchdog:phase-cleanup --current-phase execution --generation 1"
+      ]
+    },
+    {
+      "name": "watchdog:verify",
+      "aliases": [
+        "watchdog:check",
+        "watchdog:lint"
+      ],
+      "domain": "authority",
+      "summary": "Verify watchdog lifecycle invariants and single-monitor constraints.",
+      "description": "Audits the watchdog registry against architectural constraints (max 1 active monitor per generation/pulse, no overdue heartbeats, no legacy phase orphans).",
+      "flags": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsule run root."
+        },
+        {
+          "name": "capsules-dir",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Capsules root directory."
+        },
+        {
+          "name": "generation",
+          "type": "int",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Filter by mind generation."
+        },
+        {
+          "name": "pulse-id",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Filter by pulse ID."
+        },
+        {
+          "name": "phase",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Filter by phase."
+        },
+        {
+          "name": "all",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Show all monitors in table."
+        },
+        {
+          "name": "now",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Timestamp override (ISO8601)."
+        },
+        {
+          "name": "json",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Output JSON."
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false,
+      "exit_codes": [
+        {
+          "code": 0,
+          "meaning": "SUCCESS - markdown brief on stdout, or JSON when --format json is set"
+        },
+        {
+          "code": 3,
+          "meaning": "INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY / UNSUPPORTED_PLATFORM - rejected before the capsule changed"
+        },
+        {
+          "code": 4,
+          "meaning": "LOCK_TIMEOUT - the capsule lock was still held at the deadline"
+        },
+        {
+          "code": 70,
+          "meaning": "NOT_IMPLEMENTED, or an unexpected failure the harness did not classify"
+        }
+      ],
+      "examples": [
+        "bun harness.ts watchdog:verify",
+        "bun harness.ts watchdog:verify --generation 1"
       ]
     },
     {

@@ -1,5 +1,13 @@
 import { DEFAULT_RESOLVED_CONFIG } from "../../config/harness-config.ts";
 import { enforceLineLimit, formatTable } from "./line-limiter.ts";
+import {
+  nextActionsBlock,
+  queueEmptyNextActions,
+  queueListNextActions,
+  queueNextNextActions,
+  queuePopNextActions,
+  queueWaveNextActions,
+} from "./next-actions.ts";
 
 export interface QueueNextParams {
   taskId: string;
@@ -25,11 +33,7 @@ export function formatQueueNextBrief(params: QueueNextParams): string {
     `- **Goal**: ${goalStr}`,
     `- **Write Scope**: ${scopeStr}`,
     `- **Mandatory Gate**: ${gateList(params.gates)}`,
-    "",
-    `#### Claim Command:`,
-    "```bash",
-    `bun harness.ts task:claim --run ${params.runId} --task ${params.taskId} --agent <AGENT_ID> --role implementer`,
-    "```",
+    ...nextActionsBlock(queueNextNextActions(params.runId, params.taskId)),
   ].join("\n");
   return enforceLineLimit(md, 30);
 }
@@ -40,6 +44,7 @@ export function formatQueueEmptyBrief(runId: string): string {
     `- **Ready Tasks**: 0 tasks available for immediate lease.`,
     `- **Status**: All remaining tasks are currently leased, validating, blocked on dependencies, or satisfied.`,
     `- **Action**: Run \`bun harness.ts queue:list --run ${runId}\` or \`bun harness.ts run:status --run ${runId}\` to inspect active lanes.`,
+    ...nextActionsBlock(queueEmptyNextActions(runId)),
   ].join("\n");
   return enforceLineLimit(md, 30);
 }
@@ -114,6 +119,7 @@ export function formatQueueListBrief(
     ...formatTable(headers, rows),
     "",
     `**Parallel Concurrency**: ${activeCount}/${maxParallel} active lanes utilized. ${partitions.ready.length} ready tasks available.`,
+    ...nextActionsBlock(queueListNextActions()),
   ];
   return enforceLineLimit(lines.join("\n"), 30);
 }
@@ -152,10 +158,9 @@ export function formatQueueWaveBrief(params: QueueWaveParams): string {
     "",
     `- **Topology**: ${topology}`,
     `- **Dispatch**: each row is independently claimable now — claim it the moment an agent is free; do not wait for the rest of this list before claiming the next one.`,
-    "",
-    "```bash",
-    `bun harness.ts task:claim --run ${params.runId} --task <TASK_ID> --agent <AGENT_ID> --role implementer`,
-    "```",
+    ...nextActionsBlock(
+      queueWaveNextActions(params.runId, params.entries[0]?.taskId),
+    ),
   ];
   return enforceLineLimit(lines.join("\n"), 30);
 }
@@ -180,6 +185,9 @@ export function formatQueuePopBrief(params: QueuePopParams): string {
     `- **Deadline**: ${params.deadlineMinutes}m (Expires: ${params.expiresAt})`,
     `- **Write Scope**: ${scopeStr}`,
     `- **Mandatory Gate**: ${gateList(params.gates)}`,
+    ...nextActionsBlock(
+      queuePopNextActions(undefined, params.taskId, params.agent, params.token),
+    ),
   ].join("\n");
   return enforceLineLimit(md, 30);
 }

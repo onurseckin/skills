@@ -66,6 +66,7 @@ describe("Phase 4 Role Contracts Reconciliation", () => {
       "validator",
       "repairer",
       "completeness-critic",
+      "plan-validator",
     ]);
 
     // coordinator does not hold orchestrator:run or round lifecycle commands

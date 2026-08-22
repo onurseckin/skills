@@ -111,4 +111,20 @@ describe("assignReplacementRepairer", () => {
     );
     expect(state.tasks["T-1"]!.replacement_reason).toBe("unavailable");
   });
+
+  test("rejects assigning a validator of the task as the replacement repairer (anti-boundary-leak rule)", () => {
+    const port = portWithChangesRequestedTask({
+      validations: [{ validator_id: "val-1", attempt: 1, verdict: "reject" }],
+    });
+    expect(() =>
+      assignReplacementRepairer(
+        port,
+        "T-1",
+        "val-1",
+        "coordinator",
+        "unavailable",
+        "reassign to validator",
+      ),
+    ).toThrow(/cannot be a validator of task 'T-1' \(anti-boundary-leak rule\)/);
+  });
 });

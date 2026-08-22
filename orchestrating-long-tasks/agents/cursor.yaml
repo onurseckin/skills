@@ -1,0 +1,24 @@
+provider: "cursor"
+display_name: "Cursor"
+aliases:
+  - "cursor-ide"
+  - "cursor-cli"
+dispatch:
+  tool: "Task"
+  policy_name: "task"
+  subagent_nesting_limit: 1
+messaging:
+  tool: "none"
+command_execution:
+  tool: "terminal"
+supported_tiers:
+  - 0
+  - 1
+  - 2
+  - 3
+capabilities:
+  hierarchical_subagents: true
+  max_spawn_depth: 1
+  concurrency_ceiling: 10
+  token_reporting: false
+  native_resume: false

@@ -4,6 +4,7 @@ import type { JsonObject } from "../../contracts/json.ts";
 import { HarnessError } from "../../errors/harness-error.ts";
 import { formatDuration } from "../../mind/brief.ts";
 import { writeLastPulse } from "../../mind/last-pulse.ts";
+import { enforceInfiniteMindCadence } from "../../mind/recycler.ts";
 import {
   calculateNextWakeInterval,
   calculatePulseValue,
@@ -28,8 +29,10 @@ export interface MindPulseCloseResult {
   readonly arm_mechanism: string | null;
   readonly next_wake_at: string | null;
   readonly zero_value_streak: number;
-  readonly next_instruction?: string | undefined;
-  readonly cadence?: string | undefined;
+  readonly next_instruction: string;
+  readonly cadence: "infinite_autonomous";
+  readonly non_terminating: true;
+  readonly [key: string]: unknown;
 }
 
 export interface MindPulseCloseBriefParams {
@@ -75,7 +78,7 @@ export function formatMindPulseCloseBrief(params: MindPulseCloseBriefParams): st
 export async function mindPulseCloseCommand(
   flags: Flags,
   _context?: CommandContext,
-): Promise<Record<string, unknown>> {
+): Promise<MindPulseCloseResult> {
   const run = textFlag(flags, "run")!;
   const actor = textFlag(flags, "actor")!;
   const pulseFlag = textFlag(flags, "pulse", false) ?? textFlag(flags, "pulse-id", false);
@@ -265,6 +268,15 @@ export async function mindPulseCloseCommand(
     next_wake_at: nextWakeAt,
   });
 
+  // Master Heartbeat & Continuous Autonomous Cadence Guarantee:
+  // Disallow any terminal state from breaking the infinite autonomous execution loop.
+  enforceInfiniteMindCadence({
+    runRoot: run,
+    actor,
+    isTerminal,
+    nextWakeAt,
+  });
+
   // Check for candidate discovery / admission progression
   let nextCandidateId: string | undefined;
   const candidatesList: Record<string, unknown>[] = [];
@@ -314,5 +326,6 @@ export async function mindPulseCloseCommand(
     zero_value_streak: zeroValueStreak,
     next_instruction: nextInstruction,
     cadence: "infinite_autonomous",
+    non_terminating: true,
   };
 }

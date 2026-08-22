@@ -1,4 +1,13 @@
 import { enforceLineLimit, formatTable } from "./line-limiter.ts";
+import {
+  criticRejectNextActions,
+  criticReviewNextActions,
+  criticStartNextActions,
+  nextActionsBlock,
+  runCompleteNextActions,
+  runExecNextActions,
+  runStatusNextActions,
+} from "./next-actions.ts";
 
 export interface CriticStartParams {
   critic: string;
@@ -20,6 +29,7 @@ export function formatCriticStartBrief(params: CriticStartParams): string {
     params.finalGates.length === 0
       ? `- **Mandatory Final Gate**: none declared by this run`
       : `- **Mandatory Final Gate**: ${params.finalGates.map((gate) => `\`${gate}\``).join(", ")}`,
+    ...nextActionsBlock(criticStartNextActions(undefined, params.critic, params.token)),
   ].join("\n");
   return enforceLineLimit(md, 30);
 }
@@ -51,6 +61,11 @@ export function formatCriticReviewBrief(params: CriticReviewParams): string {
     if (params.findingId) lines.push(`- **Finding Recorded**: \`${params.findingId}\``);
     lines.push(`- **Next Step**: Dispatch remediation task to resolve identified gap.`);
   }
+  lines.push(
+    ...nextActionsBlock(
+      criticReviewNextActions(params.runId, isApproved, params.token, params.findingId),
+    ),
+  );
   return enforceLineLimit(lines.join("\n"), 30);
 }
 
@@ -72,6 +87,7 @@ export function formatCriticRejectBrief(params: CriticRejectParams): string {
     `- **Findings Count**: ${params.findingsCount} (${findingsStr})`,
     `- **Protocol Action**: Read-Only Auditor Invariant enforced. Yielding to Coordinator.`,
     `- **Next Step**: Coordinator runs \`plan:replan\` to partition scopes and inject repair tasks, then \`critic:remediate\` to close this review out once they're proven.`,
+    ...nextActionsBlock(criticRejectNextActions(params.runId, params.findingIds[0])),
   ];
   return enforceLineLimit(lines.join("\n"), 30);
 }
@@ -114,6 +130,7 @@ export function formatRunCompleteBrief(params: RunCompleteParams): string {
         : [
             `- **Worktree Branch**: \`${wt.branch}\` (${wt.commitCount} sub-phase commits, ${wt.diffstat}${wt.rebased ? ", rebased onto the base branch" : ""}) — local only, never pushed. Review and merge, PR, or discard it yourself.`,
           ]),
+    ...nextActionsBlock(runCompleteNextActions(params.runId)),
   ].join("\n");
   return enforceLineLimit(md, 30);
 }
@@ -142,6 +159,8 @@ export function formatRunStatusBrief(
     t.status,
     t.agentOrLock,
   ]);
+  const allSatisfied =
+    tasks.length > 0 && tasks.every((t) => t.status.toLowerCase().includes("satisfied"));
   const lines = [
     `### Run Status: ${runId} (Phase: ${phase})`,
     ...formatTable(headers, rows),
@@ -150,6 +169,7 @@ export function formatRunStatusBrief(
   ];
   if (occupancySummary !== undefined) lines.push(`**Occupancy**: ${occupancySummary}`);
   if (catalogueSummary !== undefined) lines.push(`**Capsule**: ${catalogueSummary}`);
+  lines.push(...nextActionsBlock(runStatusNextActions(runId, phase, allSatisfied)));
   return enforceLineLimit(lines.join("\n"), 30);
 }
 
@@ -175,5 +195,13 @@ export function formatRunExecBrief(params: RunExecParams): string {
   ];
   if (params.evidencePath) lines.push(`- **Evidence Recorded**: \`${params.evidencePath}\``);
   if (params.logPath) lines.push(`- **Raw Stream Log**: \`${params.logPath}\``);
+  lines.push(
+    ...nextActionsBlock(
+      runExecNextActions(
+        undefined,
+        params.evidencePath?.split("/").pop()?.replace(".json", ""),
+      ),
+    ),
+  );
   return enforceLineLimit(lines.join("\n"), 30);
 }

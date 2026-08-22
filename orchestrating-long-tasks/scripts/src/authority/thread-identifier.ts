@@ -20,7 +20,8 @@ export interface BlunderRecord {
     | "main_thread_direct_execution"
     | "main_thread_boundary_violation"
     | "role_escalation"
-    | "unauthorized_mutation";
+    | "unauthorized_mutation"
+    | "role_confinement_violation";
   severity: "critical" | "warning";
   timestamp: string;
   pid: number;
@@ -73,20 +74,23 @@ export interface ExecutionContextOptions {
   runRoot?: string | undefined;
   agentId?: string | undefined;
   role?: string | undefined;
+  tier?: ExecutionTier | undefined;
   isInteractiveMainThread?: boolean | undefined;
 }
 
-function parseTierValue(value: string | undefined): ExecutionTier | null {
+export function parseTierValue(value: string | undefined): ExecutionTier | null {
   if (!value) return null;
   const normalized = value.trim().toLowerCase();
-  if (normalized === "0" || normalized === "tier-0" || normalized === "tier_0" || normalized === "human") {
+  if (normalized === "0" || normalized === "tier-0" || normalized === "tier_0" || normalized === "human" || normalized === "mind") {
     return 0;
   }
   if (
     normalized === "1" ||
     normalized === "tier-1" ||
     normalized === "tier_1" ||
-    normalized === "orchestrator"
+    normalized === "orchestrator" ||
+    normalized === "mind-auditor" ||
+    normalized === "auditor"
   ) {
     return 1;
   }
@@ -104,40 +108,61 @@ function parseTierValue(value: string | undefined): ExecutionTier | null {
     normalized === "tier_3" ||
     normalized === "implementer" ||
     normalized === "validator" ||
-    normalized === "critic"
+    normalized === "critic" ||
+    normalized === "completeness-critic" ||
+    normalized === "repairer" ||
+    normalized === "planner" ||
+    normalized === "plan-validator"
   ) {
     return 3;
   }
   return null;
 }
 
-function roleToTier(role: string): ExecutionTier {
+export function roleToTier(role: string): ExecutionTier {
   const normalized = role.toLowerCase().trim();
-  if (normalized === "orchestrator") return 1;
-  if (normalized === "coordinator" || normalized.startsWith("coord-") || normalized.startsWith("coordinator-")) {
+  if (normalized === "mind") return 0;
+  if (
+    normalized === "orchestrator" ||
+    normalized.startsWith("orch-") ||
+    normalized.startsWith("orchestrator-") ||
+    normalized === "mind-auditor" ||
+    normalized === "auditor"
+  ) {
+    return 1;
+  }
+  if (
+    normalized === "coordinator" ||
+    normalized.startsWith("coord-") ||
+    normalized.startsWith("coordinator-")
+  ) {
     return 2;
   }
   return 3;
 }
 
-function agentIdToTier(agentId: string): ExecutionTier | null {
+export function agentIdToTier(agentId: string): ExecutionTier | null {
   const normalized = agentId.toLowerCase().trim();
+  if (/^mind-audit|^audit/i.test(normalized)) return 1;
+  if (/^mind/i.test(normalized)) return 0;
   if (/^orch/i.test(normalized)) return 1;
   if (/^coord/i.test(normalized)) return 2;
-  if (/^(impl|val|critic|repair|audit|mind|worker|sub)/i.test(normalized)) return 3;
+  if (/^(impl|val|critic|repair|worker|sub|plan)/i.test(normalized)) return 3;
   return null;
 }
 
-function agentIdToRole(agentId: string): string | null {
+export function agentIdToRole(agentId: string): string | null {
   const normalized = agentId.toLowerCase().trim();
+  if (/^mind-audit|^audit/i.test(normalized)) return "mind-auditor";
+  if (/^mind/i.test(normalized)) return "mind";
   if (/^orch/i.test(normalized)) return "orchestrator";
   if (/^coord/i.test(normalized)) return "coordinator";
   if (/^impl/i.test(normalized)) return "implementer";
   if (/^val/i.test(normalized)) return "validator";
   if (/^critic/i.test(normalized)) return "completeness-critic";
   if (/^repair/i.test(normalized)) return "repairer";
-  if (/^audit/i.test(normalized)) return "mind-auditor";
-  if (/^mind/i.test(normalized)) return "mind";
+  if (/^plan-val/i.test(normalized)) return "plan-validator";
+  if (/^plan/i.test(normalized)) return "planner";
   return null;
 }
 
@@ -249,10 +274,19 @@ export function identifyExecutionContext(
   let inferredRole: string | null = explicitRole;
   let inferredAgentId: string | null = explicitAgentId;
 
-  if (explicitTierEnv !== null) {
+  if (options.tier !== undefined) {
+    tier = options.tier;
+    if (inferredRole === null) {
+      if (tier === 0) inferredRole = "mind";
+      else if (tier === 1) inferredRole = "orchestrator";
+      else if (tier === 2) inferredRole = "coordinator";
+      else if (tier === 3) inferredRole = "implementer";
+    }
+  } else if (explicitTierEnv !== null) {
     tier = explicitTierEnv;
     if (inferredRole === null) {
-      if (tier === 1) inferredRole = "orchestrator";
+      if (tier === 0) inferredRole = "mind";
+      else if (tier === 1) inferredRole = "orchestrator";
       else if (tier === 2) inferredRole = "coordinator";
       else if (tier === 3) inferredRole = "implementer";
     }

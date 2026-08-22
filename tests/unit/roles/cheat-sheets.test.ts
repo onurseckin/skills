@@ -121,6 +121,17 @@ describe("Dynamic Role Cheat-Sheets Engine", () => {
       expect(sheet.role).toBe("validator");
       expect(sheet.domain).toBe("code-quality");
       expect(sheet.grantedCommands).toContain("task:review");
+      expect(sheet.authorityRules.some((r) => r.toLowerCase().includes("anti-boundary-leak"))).toBe(true);
+    });
+
+    test("reflects anti-boundary-leak rule in validator and completeness-critic cheat sheets", () => {
+      const validatorSheet = generateRoleCheatSheet("validator");
+      expect(validatorSheet.authorityRules.some((r) => r.toLowerCase().includes("anti-boundary-leak"))).toBe(true);
+      expect(validatorSheet.invariants.some((inv) => inv.toLowerCase().includes("anti-boundary-leak"))).toBe(true);
+
+      const criticSheet = generateRoleCheatSheet("completeness-critic");
+      expect(criticSheet.authorityRules.some((r) => r.toLowerCase().includes("anti-boundary-leak"))).toBe(true);
+      expect(criticSheet.invariants.some((inv) => inv.toLowerCase().includes("anti-boundary-leak"))).toBe(true);
     });
 
     test("throws when role contract does not exist", () => {

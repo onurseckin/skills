@@ -34,6 +34,16 @@ export function assignReplacementRepairer(
           "replacement must differ from original implementer",
         );
       }
+      const allValidations = [
+        ...(task.validations ?? []),
+        ...(task.validation_history ?? []),
+      ];
+      if (allValidations.some((v) => v.validator_id === replacementId)) {
+        throw new HarnessError(
+          "INVALID_ARGUMENT",
+          `replacement repairer '${replacementId}' cannot be a validator of task '${taskId}' (anti-boundary-leak rule)`,
+        );
+      }
       if (reason === "repeated_failure" && task.repair_round < 2) {
         throw new HarnessError("INVALID_STATE", "original implementer has not failed repeatedly");
       }

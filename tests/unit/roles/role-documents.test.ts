@@ -111,4 +111,22 @@ describe("canonical role documents", () => {
       "Write, edit, stage, revert, format, or delete any repository file",
     );
   });
+
+  test("validator and completeness-critic contracts enforce mechanical anti-boundary-leak rules and repairer delegation", () => {
+    const validatorContract = loadRoleContract("validator");
+    const validatorMustNot = validatorContract.must_not.join("\n");
+    expect(validatorMustNot).toContain("anti-boundary-leak rule");
+    expect(validatorMustNot).toContain("task:reject");
+    expect(validatorMustNot).toContain("assigned repairer");
+    expect(validatorContract.text).toContain("Anti-Boundary-Leak Rule");
+    expect(validatorContract.text).toContain("task:assign-repairer");
+
+    const criticContract = loadRoleContract("completeness-critic");
+    const criticMustNot = criticContract.must_not.join("\n");
+    expect(criticMustNot).toContain("anti-boundary-leak rule");
+    expect(criticMustNot).toContain("critic:reject");
+    expect(criticMustNot).toContain("assigned repairer");
+    expect(criticContract.text).toContain("Anti-Boundary-Leak Rule");
+    expect(criticContract.text).toContain("task:assign-repairer");
+  });
 });

@@ -100,6 +100,66 @@ export interface CleanupResult {
   readonly store: WatchdogStore;
 }
 
+export interface TerminatePhaseWatchdogsOptions {
+  readonly phase?: string | undefined;
+  readonly generation?: number | undefined;
+  readonly pulse_id?: string | null | undefined;
+  readonly excludeId?: string | undefined;
+  readonly reason?: string | undefined;
+  readonly markAs?: "terminated" | "stale" | "orphaned" | undefined;
+  readonly dryRun?: boolean | undefined;
+  readonly now?: string | number | Date | undefined;
+  readonly metadata?: Readonly<Record<string, unknown>> | undefined;
+}
+
+export interface TerminatePhaseWatchdogsResult {
+  readonly terminatedCount: number;
+  readonly terminatedWatchdogs: readonly WatchdogRecord[];
+  readonly activeCount: number;
+  readonly totalCount: number;
+  readonly dryRun: boolean;
+  readonly store: WatchdogStore;
+}
+
+export interface CleanupPreviousPhaseOptions {
+  readonly currentPhase: string;
+  readonly generation?: number | undefined;
+  readonly pulse_id?: string | null | undefined;
+  readonly currentWatchdogId?: string | undefined;
+  readonly reason?: string | undefined;
+  readonly markAs?: "terminated" | "stale" | "orphaned" | undefined;
+  readonly dryRun?: boolean | undefined;
+  readonly now?: string | number | Date | undefined;
+  readonly metadata?: Readonly<Record<string, unknown>> | undefined;
+}
+
+export interface VerifyWatchdogLifecycleOptions {
+  readonly generation?: number | undefined;
+  readonly pulse_id?: string | null | undefined;
+  readonly run_id?: string | null | undefined;
+  readonly phase?: string | undefined;
+  readonly now?: string | number | Date | undefined;
+}
+
+export interface LifecycleInvariantViolation {
+  readonly rule: string;
+  readonly message: string;
+  readonly watchdogIds: readonly string[];
+}
+
+export interface WatchdogLifecycleVerificationResult {
+  readonly valid: boolean;
+  readonly violations: readonly string[];
+  readonly violationDetails: readonly LifecycleInvariantViolation[];
+  readonly activeCount: number;
+  readonly staleCount: number;
+  readonly terminatedCount: number;
+  readonly orphanedCount: number;
+  readonly totalCount: number;
+  readonly watchdogs: readonly WatchdogRecord[];
+  readonly store: WatchdogStore;
+}
+
 export function parseTimestamp(input?: string | number | Date | undefined): number {
   if (typeof input === "number") return input;
   if (input instanceof Date) return input.getTime();
@@ -522,6 +582,271 @@ export function cleanupStaleWatchdogs(options: CleanupOptions = {}, target?: str
     totalCount: updatedWatchdogs.length,
     dryRun,
     store: dryRun ? currentStore : updatedStore,
+  };
+}
+
+export function terminatePhaseWatchdogs(
+  options: TerminatePhaseWatchdogsOptions = {},
+  target?: string,
+): TerminatePhaseWatchdogsResult {
+  const nowMs = parseTimestamp(options.now);
+  const nowIso = new Date(nowMs).toISOString();
+  const currentStore = loadWatchdogStore(target);
+
+  const markAs: WatchdogStatus = options.markAs ?? "terminated";
+  const dryRun = options.dryRun === true;
+  const reason =
+    options.reason ??
+    (options.phase !== undefined ? `phase_completed_${options.phase}` : "phase_cleanup");
+
+  const terminatedWatchdogs: WatchdogRecord[] = [];
+  const updatedWatchdogs: WatchdogRecord[] = [];
+
+  for (const wd of currentStore.watchdogs) {
+    if (wd.status === "active") {
+      if (options.generation !== undefined && wd.generation !== options.generation) {
+        updatedWatchdogs.push(wd);
+        continue;
+      }
+      if (
+        options.pulse_id !== undefined &&
+        options.pulse_id !== null &&
+        wd.pulse_id !== options.pulse_id
+      ) {
+        updatedWatchdogs.push(wd);
+        continue;
+      }
+      if (options.phase !== undefined && wd.phase !== options.phase) {
+        updatedWatchdogs.push(wd);
+        continue;
+      }
+      if (options.excludeId !== undefined && wd.id === options.excludeId) {
+        updatedWatchdogs.push(wd);
+        continue;
+      }
+
+      const terminated: WatchdogRecord = {
+        ...wd,
+        status: markAs,
+        terminated_at: markAs === "terminated" ? nowIso : wd.terminated_at,
+        termination_reason: reason,
+        ...(options.metadata !== undefined || wd.metadata !== undefined
+          ? {
+              metadata: {
+                ...(wd.metadata ?? {}),
+                ...(options.metadata ?? {}),
+              },
+            }
+          : {}),
+      };
+      terminatedWatchdogs.push(terminated);
+      updatedWatchdogs.push(terminated);
+      continue;
+    }
+
+    updatedWatchdogs.push(wd);
+  }
+
+  const activeCount = updatedWatchdogs.filter((w) => w.status === "active").length;
+
+  const updatedStore: WatchdogStore = {
+    ...currentStore,
+    updated_at: nowIso,
+    watchdogs: updatedWatchdogs,
+  };
+
+  if (!dryRun && terminatedWatchdogs.length > 0) {
+    saveWatchdogStore(updatedStore, target);
+  }
+
+  return {
+    terminatedCount: terminatedWatchdogs.length,
+    terminatedWatchdogs,
+    activeCount,
+    totalCount: updatedWatchdogs.length,
+    dryRun,
+    store: dryRun ? currentStore : updatedStore,
+  };
+}
+
+export function cleanupPreviousPhaseWatchdogs(
+  options: CleanupPreviousPhaseOptions,
+  target?: string,
+): TerminatePhaseWatchdogsResult {
+  const nowMs = parseTimestamp(options.now);
+  const nowIso = new Date(nowMs).toISOString();
+  const currentStore = loadWatchdogStore(target);
+
+  const markAs: WatchdogStatus = options.markAs ?? "terminated";
+  const dryRun = options.dryRun === true;
+  const reason = options.reason ?? `phase_transition_to_${options.currentPhase}`;
+
+  const terminatedWatchdogs: WatchdogRecord[] = [];
+  const updatedWatchdogs: WatchdogRecord[] = [];
+
+  for (const wd of currentStore.watchdogs) {
+    if (wd.status === "active") {
+      if (options.generation !== undefined && wd.generation !== options.generation) {
+        updatedWatchdogs.push(wd);
+        continue;
+      }
+      if (
+        options.pulse_id !== undefined &&
+        options.pulse_id !== null &&
+        wd.pulse_id !== options.pulse_id
+      ) {
+        updatedWatchdogs.push(wd);
+        continue;
+      }
+      if (options.currentWatchdogId !== undefined && wd.id === options.currentWatchdogId) {
+        updatedWatchdogs.push(wd);
+        continue;
+      }
+      if (wd.phase !== options.currentPhase) {
+        const terminated: WatchdogRecord = {
+          ...wd,
+          status: markAs,
+          terminated_at: markAs === "terminated" ? nowIso : wd.terminated_at,
+          termination_reason: reason,
+          ...(options.metadata !== undefined || wd.metadata !== undefined
+            ? {
+                metadata: {
+                  ...(wd.metadata ?? {}),
+                  ...(options.metadata ?? {}),
+                },
+              }
+            : {}),
+        };
+        terminatedWatchdogs.push(terminated);
+        updatedWatchdogs.push(terminated);
+        continue;
+      }
+    }
+
+    updatedWatchdogs.push(wd);
+  }
+
+  const activeCount = updatedWatchdogs.filter((w) => w.status === "active").length;
+
+  const updatedStore: WatchdogStore = {
+    ...currentStore,
+    updated_at: nowIso,
+    watchdogs: updatedWatchdogs,
+  };
+
+  if (!dryRun && terminatedWatchdogs.length > 0) {
+    saveWatchdogStore(updatedStore, target);
+  }
+
+  return {
+    terminatedCount: terminatedWatchdogs.length,
+    terminatedWatchdogs,
+    activeCount,
+    totalCount: updatedWatchdogs.length,
+    dryRun,
+    store: dryRun ? currentStore : updatedStore,
+  };
+}
+
+export function verifyWatchdogLifecycle(
+  options: VerifyWatchdogLifecycleOptions = {},
+  target?: string,
+): WatchdogLifecycleVerificationResult {
+  const store = loadWatchdogStore(target);
+  const nowMs = parseTimestamp(options.now);
+
+  const watchdogs = listWatchdogs(
+    {
+      generation: options.generation,
+      pulse_id: options.pulse_id,
+      run_id: options.run_id,
+      phase: options.phase,
+      status: "all",
+      now: nowMs,
+    },
+    target,
+  );
+
+  const violations: string[] = [];
+  const violationDetails: LifecycleInvariantViolation[] = [];
+
+  let activeCount = 0;
+  let staleCount = 0;
+  let terminatedCount = 0;
+  let orphanedCount = 0;
+
+  const activeByGen = new Map<number, string[]>();
+  const activeByPulse = new Map<string, string[]>();
+
+  for (const wd of watchdogs) {
+    if (wd.status === "active") {
+      activeCount++;
+      const lastHb = parseTimestamp(wd.last_heartbeat_at);
+      if (nowMs - lastHb > wd.timeout_ms) {
+        const msg = `Watchdog '${wd.id}' is active but heartbeat is overdue by ${nowMs - lastHb - wd.timeout_ms}ms`;
+        violations.push(msg);
+        violationDetails.push({
+          rule: "heartbeat_timeout_exceeded",
+          message: msg,
+          watchdogIds: [wd.id],
+        });
+      }
+
+      const genList = activeByGen.get(wd.generation) ?? [];
+      genList.push(wd.id);
+      activeByGen.set(wd.generation, genList);
+
+      if (wd.pulse_id !== null) {
+        const pulseList = activeByPulse.get(wd.pulse_id) ?? [];
+        pulseList.push(wd.id);
+        activeByPulse.set(wd.pulse_id, pulseList);
+      }
+    } else if (wd.status === "stale") {
+      staleCount++;
+    } else if (wd.status === "terminated") {
+      terminatedCount++;
+    } else if (wd.status === "orphaned") {
+      orphanedCount++;
+    }
+  }
+
+  for (const [gen, ids] of activeByGen.entries()) {
+    if (ids.length > 1) {
+      const msg = `Multiple active watchdogs found in generation ${gen}: ${ids.join(", ")} (violates max 1 active monitor invariant)`;
+      violations.push(msg);
+      violationDetails.push({
+        rule: "single_active_per_generation",
+        message: msg,
+        watchdogIds: ids,
+      });
+    }
+  }
+
+  for (const [pulse, ids] of activeByPulse.entries()) {
+    if (ids.length > 1) {
+      const msg = `Multiple active watchdogs found for pulse '${pulse}': ${ids.join(", ")} (violates max 1 active monitor per pulse invariant)`;
+      violations.push(msg);
+      violationDetails.push({
+        rule: "single_active_per_pulse",
+        message: msg,
+        watchdogIds: ids,
+      });
+    }
+  }
+
+  const valid = violations.length === 0;
+
+  return {
+    valid,
+    violations,
+    violationDetails,
+    activeCount,
+    staleCount,
+    terminatedCount,
+    orphanedCount,
+    totalCount: watchdogs.length,
+    watchdogs,
+    store,
   };
 }
 

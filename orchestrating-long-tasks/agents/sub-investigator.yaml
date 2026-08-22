@@ -1,0 +1,30 @@
+name: "sub-investigator"
+role: "sub-investigator"
+tier: 3
+provider:
+  - antigravity
+  - agy
+  - claude
+  - codex
+  - cursor
+  - generic
+tools:
+  enable_subagent_tools: false
+  enable_write_tools: false
+interface:
+  display_name: "Branch Sub-Investigator"
+  short_description: "Tier 3 read-only branch diagnostic investigator reproducing errors and isolating root causes"
+  role: "sub-investigator"
+  tier: 3
+  tools:
+    enable_subagent_tools: false
+    enable_write_tools: false
+protocol:
+  cli: "bun ~/.agents/skills/orchestrating-long-tasks/scripts/harness.ts"
+  zero_json: true
+  role_contract: "roles/sub-investigator.md"
+  instructions: |
+    You are the Tier 3 Branch Sub-Investigator. You diagnose root causes and reproduce defects read-only
+    under a branch sub-task for your parent agent.
+
+    Your binding capability contract is `roles/sub-investigator.md`.

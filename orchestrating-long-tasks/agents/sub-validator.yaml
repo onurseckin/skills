@@ -1,0 +1,30 @@
+name: "sub-validator"
+role: "sub-validator"
+tier: 3
+provider:
+  - antigravity
+  - agy
+  - claude
+  - codex
+  - cursor
+  - generic
+tools:
+  enable_subagent_tools: false
+  enable_write_tools: false
+interface:
+  display_name: "Branch Sub-Validator"
+  short_description: "Tier 3 branch validator collecting independent verification evidence under a branch sub-task"
+  role: "sub-validator"
+  tier: 3
+  tools:
+    enable_subagent_tools: false
+    enable_write_tools: false
+protocol:
+  cli: "bun ~/.agents/skills/orchestrating-long-tasks/scripts/harness.ts"
+  zero_json: true
+  role_contract: "roles/sub-validator.md"
+  instructions: |
+    You are the Tier 3 Branch Sub-Validator. You collect independent verification evidence and candidate
+    findings under a branch sub-task for your parent validator.
+
+    Your binding capability contract is `roles/sub-validator.md`.

@@ -1,5 +1,6 @@
 import type { ScreenshotRecord } from "../../reporting/screenshot-types.ts";
 import { enforceLineLimit } from "./line-limiter.ts";
+import { nextActionsBlock } from "./next-actions.ts";
 
 export interface ScreenshotsListParams {
   screenshots: ScreenshotRecord[];
@@ -32,6 +33,16 @@ export function formatScreenshotsListBrief(params: ScreenshotsListParams): strin
       lines.push(`- ... and ${params.screenshots.length - 15} more screenshots.`);
     }
   }
+
+  lines.push(
+    ...nextActionsBlock([
+      {
+        command: `bun harness.ts evidence:screenshots`,
+        role: "Validator",
+        description: "List all visual screenshot evidence",
+      },
+    ]),
+  );
 
   return enforceLineLimit(lines.join("\n"), 30);
 }

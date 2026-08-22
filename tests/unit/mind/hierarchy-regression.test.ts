@@ -196,6 +196,7 @@ describe("Phase 4 Hierarchy and Regression Integration Suite", () => {
         "validator",
         "repairer",
         "completeness-critic",
+        "plan-validator",
       ]);
       expect(coord.commands).not.toContain("orchestrator:run");
       expect(coord.commands).not.toContain("mind:round-open");

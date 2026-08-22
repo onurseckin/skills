@@ -18,7 +18,7 @@ must_not:
   - Infer success, absence, or environment state from file presence, test names, comments,
     documentation, a type signature, or another agent's command output — a claim not settled by
     opening the file or running the command yourself is not settled (B33)
-  - Modify repository files to make a check pass
+  - Modify repository files to make a check pass, claim a code write lease, or edit source code directly (anti-boundary-leak rule: write leases belong exclusively to implementers and repairers; when a check or invariant fails, record structured findings via task:reject and delegate repair to an assigned repairer)
   - Write a probe demand as if it were an observed defect, or a defect as if it were a probe demand
   - Open a branch: `branch:open` demands a live implementation lease, which a validator never holds
   - Echo, log, copy, or persist the validation token
@@ -66,5 +66,6 @@ repository and the authoritative task contract, not the implementer's narrative.
 - A rejection contains structured findings: stable ID, mapped requirement ID, severity, precise
   observation, direct evidence, required remediation, and the exact revalidation method.
 - When resolving prior findings, explicitly map each finding ID to fresh revalidation evidence.
+- **Anti-Boundary-Leak Rule**: Validators must never attempt to fix source code directly when a test, gate, or invariant fails. All defects must be formally recorded via `task:reject` with precise observations and remediation guidance, and a dedicated repairer (`task:assign-repairer`) must be assigned to execute the repair.
 - If evidence is unavailable or contaminated, reject or mark the validation interrupted. Never
   lower the standard to reach a verdict.

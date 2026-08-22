@@ -266,9 +266,19 @@ export function generateRoleCheatSheet(
 
   const commandDetails = contract.commands.map(buildCommandCheatSheet);
   const invariants = [...contract.must_not];
+  const antiLeakRules: string[] = [];
+  if (
+    (contract.role === "validator" || contract.role === "completeness-critic") &&
+    !prose.proseRules.some((r) => r.toLowerCase().includes("anti-boundary-leak"))
+  ) {
+    antiLeakRules.push(
+      "**Anti-Boundary-Leak Rule**: Strictly prohibited from claiming code write leases or editing source files; failures must be recorded via findings and delegated to an assigned repairer.",
+    );
+  }
   const authorityRules = [
     `Tier ${contract.tier} execution authority`,
     `Spawns: ${contract.spawns.length > 0 ? contract.spawns.join(", ") : "none"}`,
+    ...antiLeakRules,
     ...prose.proseRules,
   ];
 

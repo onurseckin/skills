@@ -1,0 +1,31 @@
+provider: "claude"
+display_name: "Anthropic Claude Code"
+aliases:
+  - "claude-code"
+dispatch:
+  tool: "Agent"
+  batch_dispatch: true
+  concurrency_env: "CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS"
+  max_depth_env: "CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH"
+  model_env: "CLAUDE_CODE_SUBAGENT_MODEL"
+messaging:
+  tool: "SendMessage"
+  recipient_parameter: "to"
+  message_parameter: "message"
+  agent_teams_mailbox: "~/.claude/teams/<team>/inboxes/<agent>.json"
+command_execution:
+  tool: "Bash"
+  command_parameter: "command"
+file_editing:
+  tool: "Edit"
+supported_tiers:
+  - 0
+  - 1
+  - 2
+  - 3
+capabilities:
+  hierarchical_subagents: true
+  max_spawn_depth: 3
+  concurrency_ceiling: 20
+  token_reporting: true
+  native_resume: false

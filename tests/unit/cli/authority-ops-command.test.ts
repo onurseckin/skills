@@ -95,3 +95,108 @@ describe("authority:decide", () => {
     ).rejects.toThrow("--decision must be grant or decline");
   });
 });
+
+describe("Mechanical Role Confinement in task:claim", () => {
+  test("strictly blocks Orchestrator role from claiming code tasks", async () => {
+    const { run } = await setupCompiledRun("role-confinement-orch-role", roots);
+
+    try {
+      await execute([
+        "task:claim",
+        "--run",
+        run,
+        "--task",
+        "req-core",
+        "--agent",
+        "worker-1",
+        "--role",
+        "orchestrator",
+      ]);
+      expect(true).toBeFalse();
+    } catch (err: unknown) {
+      const error = err as { code?: string; message: string; fix?: string };
+      expect(error.code).toBe("ROLE_CONFINEMENT_VIOLATION");
+      expect(error.message).toContain(
+        "Orchestrators are mechanically confined from claiming code execution tasks. Dispatch Tier 3 Implementers via invoke_subagent.",
+      );
+      expect(error.fix).toBe("Dispatch Tier 3 Implementers via invoke_subagent.");
+    }
+  });
+
+  test("strictly blocks orch-* agent id from claiming code tasks", async () => {
+    const { run } = await setupCompiledRun("role-confinement-orch-agent", roots);
+
+    try {
+      await execute([
+        "task:claim",
+        "--run",
+        run,
+        "--task",
+        "req-core",
+        "--agent",
+        "orch-pulse-master",
+        "--role",
+        "implementer",
+      ]);
+      expect(true).toBeFalse();
+    } catch (err: unknown) {
+      const error = err as { code?: string; message: string; fix?: string };
+      expect(error.code).toBe("ROLE_CONFINEMENT_VIOLATION");
+      expect(error.message).toContain(
+        "Orchestrators are mechanically confined from claiming code execution tasks. Dispatch Tier 3 Implementers via invoke_subagent.",
+      );
+    }
+  });
+
+  test("strictly blocks Coordinator role from claiming code tasks", async () => {
+    const { run } = await setupCompiledRun("role-confinement-coord-role", roots);
+
+    try {
+      await execute([
+        "task:claim",
+        "--run",
+        run,
+        "--task",
+        "req-core",
+        "--agent",
+        "worker-2",
+        "--role",
+        "coordinator",
+      ]);
+      expect(true).toBeFalse();
+    } catch (err: unknown) {
+      const error = err as { code?: string; message: string; fix?: string };
+      expect(error.code).toBe("ROLE_CONFINEMENT_VIOLATION");
+      expect(error.message).toContain(
+        "Coordinators are mechanically confined from claiming code execution tasks. Dispatch Tier 3 Implementers via invoke_subagent.",
+      );
+      expect(error.fix).toBe("Dispatch Tier 3 Implementers via invoke_subagent.");
+    }
+  });
+
+  test("strictly blocks coord-* agent id from claiming code tasks", async () => {
+    const { run } = await setupCompiledRun("role-confinement-coord-agent", roots);
+
+    try {
+      await execute([
+        "task:claim",
+        "--run",
+        run,
+        "--task",
+        "req-core",
+        "--agent",
+        "coord-domain-backend",
+        "--role",
+        "implementer",
+      ]);
+      expect(true).toBeFalse();
+    } catch (err: unknown) {
+      const error = err as { code?: string; message: string; fix?: string };
+      expect(error.code).toBe("ROLE_CONFINEMENT_VIOLATION");
+      expect(error.message).toContain(
+        "Coordinators are mechanically confined from claiming code execution tasks. Dispatch Tier 3 Implementers via invoke_subagent.",
+      );
+    }
+  });
+});
+

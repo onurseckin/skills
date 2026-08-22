@@ -1,10 +1,12 @@
 name: "coordinator"
+role: "coordinator"
 tier: 2
 provider:
   - antigravity
   - agy
   - claude
   - codex
+  - cursor
   - generic
 tools:
   enable_subagent_tools: true
