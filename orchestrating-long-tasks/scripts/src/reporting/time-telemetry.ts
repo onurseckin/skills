@@ -967,7 +967,7 @@ export function enrichHarnessEvent(
   return {
     ...event,
     dual_time: eventTime,
-  };
+  } as unknown as HarnessEvent & { readonly dual_time: DualTimeRecord };
 }
 
 /**

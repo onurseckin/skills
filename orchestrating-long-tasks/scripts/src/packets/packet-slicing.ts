@@ -310,8 +310,11 @@ export function sliceMarkdownSections(
         const truncatedSummary = `\n  // ... Payload sliced (${lines.length - 15} lines / ${sectionBuffer.byteLength} bytes). Query full data on demand via Harness CLI ...\n`;
         sectionContent = `\`\`\`${lang}\n${keepHead.join("\n")}${truncatedSummary}${keepTail.join("\n")}\n\`\`\``;
       } else {
-        const truncatedBytes = sectionBuffer.subarray(0, maxSecBytes).toString("utf-8");
-        sectionContent = `${truncatedBytes}\n\n[... Section truncated to budget (${sectionBuffer.byteLength} bytes total) ...]`;
+        const notice = `\n\n[... Section truncated to budget (${sectionBuffer.byteLength} bytes total) ...]`;
+        const noticeBytes = Buffer.from(notice, "utf-8").byteLength;
+        const keepBytes = Math.max(0, maxSecBytes - noticeBytes);
+        const truncatedBytes = sectionBuffer.subarray(0, keepBytes).toString("utf-8");
+        sectionContent = `${truncatedBytes}${notice}`;
       }
     }
 
@@ -325,8 +328,21 @@ export function sliceMarkdownSections(
   let finalMarkdown = resultSections.join("\n\n").trim();
 
   if (config.maxTotalBytes && Buffer.from(finalMarkdown, "utf-8").byteLength > config.maxTotalBytes) {
-    const truncatedBuf = Buffer.from(finalMarkdown, "utf-8").subarray(0, config.maxTotalBytes);
-    finalMarkdown = `${truncatedBuf.toString("utf-8")}\n\n[... Packet truncated to maximum total budget ...]`;
+    const notice = "\n\n[... Packet truncated to maximum total budget ...]";
+    const noticeBytes = Buffer.from(notice, "utf-8").byteLength;
+    if (config.maxTotalBytes <= noticeBytes) {
+      const buf = Buffer.from(notice, "utf-8").subarray(0, config.maxTotalBytes);
+      finalMarkdown = buf.toString("utf-8");
+    } else {
+      const maxTextBytes = config.maxTotalBytes - noticeBytes;
+      let textBuf = Buffer.from(finalMarkdown, "utf-8").subarray(0, maxTextBytes);
+      let candidate = `${textBuf.toString("utf-8")}${notice}`;
+      while (Buffer.from(candidate, "utf-8").byteLength > config.maxTotalBytes && textBuf.byteLength > 0) {
+        textBuf = textBuf.subarray(0, textBuf.byteLength - 1);
+        candidate = `${textBuf.toString("utf-8")}${notice}`;
+      }
+      finalMarkdown = candidate;
+    }
   }
 
   return finalMarkdown;
@@ -414,12 +430,12 @@ export function sliceTaskContract(
     return {
       id: taskId,
       status,
-      label,
+      ...(label !== undefined ? { label } : {}),
       write_scope: writeScope,
-      resource_scope: resourceScope,
+      ...(resourceScope !== undefined ? { resource_scope: resourceScope } : {}),
       requirement_ids: requirementIds,
       dependencies,
-      gate,
+      ...(gate !== undefined ? { gate } : {}),
       repair_round: repairRound,
       attempt_count: attempts,
     };
@@ -428,12 +444,12 @@ export function sliceTaskContract(
   return {
     id: taskId,
     status,
-    label,
+    ...(label !== undefined ? { label } : {}),
     write_scope: writeScope,
-    resource_scope: resourceScope,
+    ...(resourceScope !== undefined ? { resource_scope: resourceScope } : {}),
     requirement_ids: requirementIds,
     dependencies,
-    gate,
+    ...(gate !== undefined ? { gate } : {}),
     repair_round: repairRound,
     attempt_count: attempts,
   };
@@ -452,7 +468,11 @@ export function sliceGraphNeighborhood(
 
   const nodeMap = new Map<string, GraphNodeSummary>();
   for (const n of allNodes) {
-    nodeMap.set(n.id, { id: n.id, label: n.label, status: n.status });
+    nodeMap.set(n.id, {
+      id: n.id,
+      ...(n.label !== undefined ? { label: n.label } : {}),
+      ...(n.status !== undefined ? { status: n.status } : {}),
+    });
   }
 
   const focalNode = nodeMap.get(focalTaskId) ?? { id: focalTaskId };
@@ -538,8 +558,9 @@ export function sliceEvidenceLog(
   const originalLineCount = lines.length;
 
   if (originalLineCount <= maxLines && originalByteSize <= maxBytes) {
+    const fullLogSha256 = options.logSha256 ?? sha256Bytes(originalBuffer);
     return {
-      commandId: options.commandId,
+      ...(options.commandId !== undefined ? { commandId: options.commandId } : {}),
       originalByteSize,
       originalLineCount,
       headLines: lines,
@@ -547,8 +568,8 @@ export function sliceEvidenceLog(
       truncatedLinesCount: 0,
       isTruncated: false,
       formattedExcerpt: logText,
-      fullLogPath: options.logPath,
-      fullLogSha256: options.logSha256 ?? sha256Bytes(originalBuffer),
+      ...(options.logPath !== undefined ? { fullLogPath: options.logPath } : {}),
+      ...(fullLogSha256 !== undefined ? { fullLogSha256 } : {}),
     };
   }
 
@@ -563,8 +584,9 @@ export function sliceEvidenceLog(
   const marker = `\n[... Log truncated: omitted ${truncatedLinesCount} lines / ${originalByteSize} total bytes${pointerInfo} ...]\n`;
   const formattedExcerpt = `${headLines.join("\n")}${marker}${tailLines.join("\n")}`;
 
+  const fullLogSha256 = options.logSha256 ?? sha256Bytes(originalBuffer);
   return {
-    commandId: options.commandId,
+    ...(options.commandId !== undefined ? { commandId: options.commandId } : {}),
     originalByteSize,
     originalLineCount,
     headLines,
@@ -572,8 +594,8 @@ export function sliceEvidenceLog(
     truncatedLinesCount,
     isTruncated: true,
     formattedExcerpt,
-    fullLogPath: options.logPath,
-    fullLogSha256: options.logSha256 ?? sha256Bytes(originalBuffer),
+    ...(options.logPath !== undefined ? { fullLogPath: options.logPath } : {}),
+    ...(fullLogSha256 !== undefined ? { fullLogSha256 } : {}),
   };
 }
 
@@ -653,8 +675,11 @@ export function sliceRepositoryDiff(
   const mergedBuf = Buffer.from(merged, "utf-8");
 
   if (mergedBuf.byteLength > maxBytes) {
-    const sliced = mergedBuf.subarray(0, maxBytes).toString("utf-8");
-    return `${sliced}\n\n[... Diff truncated to budget (${mergedBuf.byteLength} bytes total) ...]`;
+    const notice = `\n\n[... Diff truncated to budget (${mergedBuf.byteLength} bytes total) ...]`;
+    const noticeBytes = Buffer.from(notice, "utf-8").byteLength;
+    const keepBytes = Math.max(0, maxBytes - noticeBytes);
+    const sliced = mergedBuf.subarray(0, keepBytes).toString("utf-8");
+    return `${sliced}${notice}`;
   }
 
   return merged;
@@ -679,7 +704,7 @@ export function createMetadataSlice(
       if (request.taskId) {
         const t = isJsonObject(tasks[request.taskId]) ? tasks[request.taskId] : null;
         if (!t) {
-          throw new HarnessError("NOT_FOUND", `Task ${request.taskId} not found in state`);
+          throw new HarnessError("INVALID_ARGUMENT", `Task ${request.taskId} not found in state`);
         }
         const sliced = sliceTaskContract(t as TaskRecord);
         rawData = sliced as unknown as JsonObject;
@@ -721,8 +746,8 @@ export function createMetadataSlice(
     case "events": {
       const events = Array.isArray(state.events) ? (state.events as JsonObject[]) : [];
       const slicedStream = sliceEventStream(events, {
-        taskId: request.taskId,
-        offset: request.offset,
+        ...(request.taskId !== undefined ? { taskId: request.taskId } : {}),
+        ...(request.offset !== undefined ? { offset: request.offset } : {}),
         limit: request.limit ?? 50,
       });
       rawData = slicedStream.events as unknown as JsonValue[];
@@ -803,7 +828,7 @@ export function createMetadataSlice(
     truncated,
     sliceHash,
     data: rawData,
-    pointerUri,
+    ...(pointerUri !== undefined ? { pointerUri } : {}),
   };
 }
 
@@ -871,9 +896,9 @@ export function buildUltraLeanPacket(
   const maxBytes = config.maxBytes ?? DEFAULT_PACKET_BYTE_BUDGET;
 
   const slicedContext = sliceAuthoritativeContext(input.authoritativeContext, {
-    fieldMask: config.fieldMask,
-    role: input.role,
-    maxArrayItems: config.maxArrayItems,
+    ...(config.fieldMask !== undefined ? { fieldMask: config.fieldMask } : {}),
+    ...(input.role !== undefined ? { role: input.role } : {}),
+    ...(config.maxArrayItems !== undefined ? { maxArrayItems: config.maxArrayItems } : {}),
   });
 
   const adaptedInput: PacketInput = {
@@ -884,8 +909,8 @@ export function buildUltraLeanPacket(
   const initialPacket = buildPacket(adaptedInput);
 
   const slicedMarkdown = sliceMarkdownSections(initialPacket.markdown, {
-    includeSections: config.includeSections,
-    excludeSections: config.excludeSections,
+    ...(config.includeSections !== undefined ? { includeSections: config.includeSections } : {}),
+    ...(config.excludeSections !== undefined ? { excludeSections: config.excludeSections } : {}),
     maxTotalBytes: maxBytes,
   });
 
@@ -893,7 +918,7 @@ export function buildUltraLeanPacket(
     ...initialPacket.metadata,
     is_ultra_lean: true,
     packet_sha256: createHash("sha256").update(slicedMarkdown).digest("hex"),
-    original_packet_sha256: initialPacket.metadata.packet_sha256,
+    original_packet_sha256: initialPacket.metadata.packet_sha256 ?? "",
   };
 
   return {
