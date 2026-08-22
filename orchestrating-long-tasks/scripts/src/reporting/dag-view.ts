@@ -153,6 +153,10 @@ export function dynamicDagStateToSugiyama(
 
 /**
  * High-level dynamic DAG view visualizer that renders Sugiyama layered graphs with subagent allocations and live branch expansions.
+ * @param nodesOrState - Array of SugiyamaNode records or a DynamicDagState map
+ * @param edgesOrOptions - Array of SugiyamaEdge records or DynamicDagViewOptions
+ * @param options - Optional rendering and view formatting options
+ * @returns SugiyamaDagReport containing ascii and markdown renders
  */
 export function renderDynamicDagView(
   nodesOrState: readonly SugiyamaNode[] | DynamicDagState,
