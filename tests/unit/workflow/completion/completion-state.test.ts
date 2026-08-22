@@ -30,7 +30,7 @@ describe("completionIssues: validator command provenance", () => {
       disposition: "actionable",
       evidence: ["task:T-1"],
     };
-    state.commands["C-T"] = commandRecord("C-T", { gate_id: "G-1" });
+    state.commands["C-T"] = commandRecord("C-T", { gate_id: "G-1", actor: "implementer" });
     // C-V's actor does not match the validation's validator_id ("validator") - it ran as someone else.
     state.commands["C-V"] = commandRecord("C-V", { actor: "not-the-validator" });
     expect(completionIssues(state)).toContain("task T-1 has invalid validator command C-V");
