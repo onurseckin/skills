@@ -2,6 +2,7 @@ import { existsSync, lstatSync, readdirSync, readFileSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
 import { enforceLineLimit, formatTable } from "../cli/formatters/line-limiter.ts";
 import { HarnessError } from "../errors/harness-error.ts";
+export * from "./pushbacks.ts";
 
 export type BlunderCategory = "code_defect" | "model_reasoning_error" | "boundary_violation";
 
@@ -17,12 +18,15 @@ export interface BlunderResolutionProof {
 export interface BlunderEntry {
   readonly id: string;
   readonly type: string;
-  readonly severity: "critical" | "warning" | string;
+  readonly severity: "critical" | "warning" | "high" | "low" | "info" | string;
   readonly timestamp: string;
   readonly category: BlunderCategory;
   readonly status: BlunderStatus;
   readonly observation: string;
   readonly remediation: string;
+  readonly role?: string | undefined;
+  readonly message?: string | undefined;
+  readonly prescribed_remediation?: string | undefined;
   readonly pid?: number | undefined;
   readonly ppid?: number | undefined;
   readonly agent_id?: string | null | undefined;
@@ -81,8 +85,8 @@ function normalizeText(value: unknown): string {
 
 /**
  * Categorizes a blunder entry into one of the canonical categories:
- * - boundary_violation: main thread direct execution, unauthorized mutation, role/tier escalation
- * - model_reasoning_error: hallucination, logic drift, wrong premise, self-critique failure
+ * - boundary_violation: main thread direct execution, unauthorized mutation, role/tier escalation, role amnesia/confusion
+ * - model_reasoning_error: hallucination, logic drift, wrong premise, self-critique failure, plan revision paralysis
  * - code_defect: syntax, type error, test failure, failing gate, runtime defect
  */
 export function categorizeBlunder(
@@ -90,52 +94,84 @@ export function categorizeBlunder(
     | BlunderEntry
     | Record<string, unknown>
     | {
+        readonly id?: string | undefined;
         readonly type?: string | undefined;
         readonly observation?: string | undefined;
         readonly remediation?: string | undefined;
+        readonly message?: string | undefined;
+        readonly prescribed_remediation?: string | undefined;
         readonly category?: string | undefined;
+        readonly role?: string | undefined;
       },
 ): BlunderCategory {
   if (isRecord(entry)) {
-    const existingCategory = entry.category;
-    if (
-      existingCategory === "code_defect"
-        ? true
-        : existingCategory === "model_reasoning_error"
-          ? true
-          : existingCategory === "boundary_violation"
-    ) {
-      return existingCategory as BlunderCategory;
+    const existingCategory = normalizeText(entry.category);
+    if (existingCategory === "role_confusion") {
+      return "boundary_violation";
+    }
+    if (existingCategory === "boundary_violation") {
+      return "boundary_violation";
+    }
+    if (existingCategory === "model_reasoning_error") {
+      return "model_reasoning_error";
+    }
+    if (existingCategory === "code_defect") {
+      return "code_defect";
     }
   }
 
+  const rawId = isRecord(entry) ? normalizeText(entry.id) : "";
   const rawType = isRecord(entry) ? normalizeText(entry.type) : "";
-  const rawObservation = isRecord(entry) ? normalizeText(entry.observation) : "";
-  const rawRemediation = isRecord(entry) ? normalizeText(entry.remediation) : "";
+  const rawRole = isRecord(entry) ? normalizeText(entry.role) : "";
+  const rawObservation = isRecord(entry)
+    ? normalizeText(entry.observation) || normalizeText(entry.message)
+    : "";
+  const rawRemediation = isRecord(entry)
+    ? normalizeText(entry.remediation) || normalizeText(entry.prescribed_remediation)
+    : "";
 
-  const fullSearchSpace = `${rawType} ${rawObservation} ${rawRemediation}`;
+  const fullSearchSpace = `${rawId} ${rawType} ${rawRole} ${rawObservation} ${rawRemediation}`;
 
   // Boundary violation patterns
   const isBoundary =
+    rawType.includes("role_confusion") ? true :
+    rawType.includes("role_leak") ? true :
+    rawType.includes("role_amnesia") ? true :
+    rawType.includes("identity") ? true :
     rawType.includes("main_thread") ? true :
     rawType.includes("boundary") ? true :
-    rawType.includes("unauthorized_mutation") ? true :
+    rawType.includes("unauthorized") ? true :
     rawType.includes("role_escalation") ? true :
     rawType.includes("restraint") ? true :
     rawType.includes("thread_authority") ? true :
     rawType.includes("tier") ? true :
     rawType.includes("permission") ? true :
     rawType.includes("sandbox_escape") ? true :
+    rawType.includes("scope_escape") ? true :
+    rawId.includes("role-leak") ? true :
+    rawId.includes("role-amnesia") ? true :
+    rawId.includes("identity") ? true :
+    rawId.includes("boundary") ? true :
+    rawId.includes("main-thread") ? true :
+    rawId.includes("orch-role") ? true :
     fullSearchSpace.includes("main thread") ? true :
     fullSearchSpace.includes("restraint active") ? true :
     fullSearchSpace.includes("boundary violation") ? true :
+    fullSearchSpace.includes("boundary") ? true :
+    fullSearchSpace.includes("boundaries") ? true :
+    fullSearchSpace.includes("write scope") ? true :
     fullSearchSpace.includes("unauthorized mutation") ? true :
-    fullSearchSpace.includes("tier 0") ? true :
-    fullSearchSpace.includes("tier 1") ? true :
-    fullSearchSpace.includes("tier 2") ? true :
-    fullSearchSpace.includes("tier 3") ? true :
+    fullSearchSpace.includes("human shell") ? true :
     fullSearchSpace.includes("subagent boundary") ? true :
-    fullSearchSpace.includes("role escalation") ? true : false;
+    fullSearchSpace.includes("subagent delegation") ? true :
+    fullSearchSpace.includes("role escalation") ? true :
+    fullSearchSpace.includes("role confusion") ? true :
+    fullSearchSpace.includes("role amnesia") ? true :
+    fullSearchSpace.includes("identity and role") ? true :
+    fullSearchSpace.includes("direct file edit") ? true :
+    fullSearchSpace.includes("direct test run") ? true :
+    fullSearchSpace.includes("whoami") ? true :
+    fullSearchSpace.includes("failed to actively police") ? true : false;
 
   if (isBoundary) {
     return "boundary_violation";
@@ -150,16 +186,38 @@ export function categorizeBlunder(
     rawType.includes("plan_drift") ? true :
     rawType.includes("intent_drift") ? true :
     rawType.includes("instruction_drift") ? true :
-    rawType.includes("self_critique_failure") ? true :
+    rawType.includes("self_critique") ? true :
     rawType.includes("context_loss") ? true :
     rawType.includes("premise") ? true :
+    rawType.includes("inertia") ? true :
+    rawType.includes("paralysis") ? true :
+    rawType.includes("idle_death") ? true :
+    rawType.includes("self_termination") ? true :
+    rawId.includes("paralysis") ? true :
+    rawId.includes("drift") ? true :
+    rawId.includes("hallucination") ? true :
+    rawId.includes("idle-death") ? true :
+    rawId.includes("self-termination") ? true :
     fullSearchSpace.includes("reasoning error") ? true :
     fullSearchSpace.includes("hallucination") ? true :
     fullSearchSpace.includes("illogical") ? true :
     fullSearchSpace.includes("incorrect premise") ? true :
     fullSearchSpace.includes("wrong assumption") ? true :
+    fullSearchSpace.includes("invalid assumption") ? true :
     fullSearchSpace.includes("failed to adhere") ? true :
-    fullSearchSpace.includes("intent drift") ? true : false;
+    fullSearchSpace.includes("intent drift") ? true :
+    fullSearchSpace.includes("instruction drift") ? true :
+    fullSearchSpace.includes("plan drift") ? true :
+    fullSearchSpace.includes("plan revision paralysis") ? true :
+    fullSearchSpace.includes("passive inertia") ? true :
+    fullSearchSpace.includes("revision paralysis") ? true :
+    fullSearchSpace.includes("context loss") ? true :
+    fullSearchSpace.includes("self-critique") ? true :
+    fullSearchSpace.includes("self critique") ? true :
+    fullSearchSpace.includes("sleep loop") ? true :
+    fullSearchSpace.includes("idle death") ? true :
+    fullSearchSpace.includes("self-termination") ? true :
+    fullSearchSpace.includes("perpetual consciousness") ? true : false;
 
   if (isReasoningError) {
     return "model_reasoning_error";
@@ -207,26 +265,38 @@ export function parseBlunderLog(
           ? parsed.id.trim()
           : `blunder-${Date.now()}-${i}`;
 
-      const type =
+      const rawObservation =
+        typeof parsed.observation === "string" && parsed.observation.trim()
+          ? parsed.observation.trim()
+          : typeof parsed.message === "string" && parsed.message.trim()
+            ? parsed.message.trim()
+            : "";
+
+      const rawRemediation =
+        typeof parsed.remediation === "string" && parsed.remediation.trim()
+          ? parsed.remediation.trim()
+          : typeof parsed.prescribed_remediation === "string" && parsed.prescribed_remediation.trim()
+            ? parsed.prescribed_remediation.trim()
+            : "";
+
+      const rawType =
         typeof parsed.type === "string" && parsed.type.trim()
           ? parsed.type.trim()
-          : "unspecified_blunder";
+          : typeof parsed.id === "string" && parsed.id.trim()
+            ? parsed.id.trim()
+            : typeof parsed.category === "string" && parsed.category.trim()
+              ? parsed.category.trim()
+              : "unspecified_blunder";
 
-      const severity =
+      const rawSeverity =
         typeof parsed.severity === "string" && parsed.severity.trim()
-          ? parsed.severity.trim()
+          ? parsed.severity.trim().toLowerCase()
           : "warning";
 
       const timestamp =
         typeof parsed.timestamp === "string" && parsed.timestamp.trim()
           ? parsed.timestamp.trim()
           : new Date().toISOString();
-
-      const observation =
-        typeof parsed.observation === "string" ? parsed.observation : "";
-
-      const remediation =
-        typeof parsed.remediation === "string" ? parsed.remediation : "";
 
       const pid = typeof parsed.pid === "number" ? parsed.pid : undefined;
       const ppid = typeof parsed.ppid === "number" ? parsed.ppid : undefined;
@@ -237,15 +307,21 @@ export function parseBlunderLog(
             ? null
             : undefined;
 
+      const role =
+        typeof parsed.role === "string" && parsed.role.trim()
+          ? parsed.role.trim()
+          : undefined;
+
       const context =
         isRecord(parsed.context)
           ? (parsed.context as BlunderEntry["context"])
           : undefined;
 
+      const rawStatus = typeof parsed.status === "string" ? parsed.status.trim().toLowerCase() : "open";
       const status: BlunderStatus =
-        parsed.status === "resolved"
+        rawStatus === "resolved"
           ? "resolved"
-          : parsed.status === "wontfix"
+          : rawStatus === "wontfix" || rawStatus === "wont_fix" || rawStatus === "wont-fix"
             ? "wontfix"
             : "open";
 
@@ -276,13 +352,14 @@ export function parseBlunderLog(
         resolution = null;
       }
 
+      const rawCat = typeof parsed.category === "string" ? parsed.category.trim().toLowerCase() : "";
       const category: BlunderCategory =
-        parsed.category === "code_defect"
-          ? "code_defect"
-          : parsed.category === "model_reasoning_error"
+        rawCat === "role_confusion" || rawCat === "boundary_violation"
+          ? "boundary_violation"
+          : rawCat === "model_reasoning_error"
             ? "model_reasoning_error"
-            : parsed.category === "boundary_violation"
-              ? "boundary_violation"
+            : rawCat === "code_defect"
+              ? "code_defect"
               : categorizeBlunder(parsed);
 
       const capsuleRoot =
@@ -292,15 +369,28 @@ export function parseBlunderLog(
             ? options.capsuleRoot
             : undefined;
 
+      const message =
+        typeof parsed.message === "string" && parsed.message.trim()
+          ? parsed.message.trim()
+          : rawObservation || undefined;
+
+      const prescribedRemediation =
+        typeof parsed.prescribed_remediation === "string" && parsed.prescribed_remediation.trim()
+          ? parsed.prescribed_remediation.trim()
+          : rawRemediation || undefined;
+
       const entry: BlunderEntry = {
         id,
-        type,
-        severity,
+        type: rawType,
+        severity: rawSeverity,
         timestamp,
         category,
         status,
-        observation,
-        remediation,
+        observation: rawObservation,
+        remediation: rawRemediation,
+        ...(role !== undefined ? { role } : {}),
+        ...(message !== undefined ? { message } : {}),
+        ...(prescribedRemediation !== undefined ? { prescribed_remediation: prescribedRemediation } : {}),
         ...(pid !== undefined ? { pid } : {}),
         ...(ppid !== undefined ? { ppid } : {}),
         ...(agent_id !== undefined ? { agent_id } : {}),
