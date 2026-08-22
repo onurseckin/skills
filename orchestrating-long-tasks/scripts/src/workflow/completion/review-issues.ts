@@ -35,7 +35,7 @@ function assessmentIssues(state: WorkflowState, review: CompletionReview): strin
     for (const evidence of proof?.evidence ?? [])
       if (evidence.kind === "command") {
         const command = authoritativeRepositoryCommand(state, evidence.reference);
-        if (!command || command.actor !== review.critic_id)
+        if (!command || (command.actor !== review.critic_id && command.gate_id === null))
           issues.push(`completion requirement proof command is invalid: ${evidence.reference}`);
       }
   }
@@ -111,7 +111,7 @@ export function completionReviewIssues(
   if (review.checks.length === 0) issues.push("completion critic checks are missing");
   for (const { command_id: id } of review.checks) {
     const command = authoritativeRepositoryCommand(state, id);
-    if (!command || command.actor !== review.critic_id)
+    if (!command || (command.actor !== review.critic_id && command.gate_id === null))
       issues.push(`completion critic check is invalid: ${id}`);
   }
   return issues;
