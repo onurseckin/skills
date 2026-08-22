@@ -55,6 +55,19 @@ describe("Documentation Separation & Boundary Invariant Unit Tests", () => {
       }
       const runPath = join(capsulesDir, entry);
       if (statSync(runPath).isDirectory()) {
+        if (entry === "archive") {
+          const archivedRuns = readdirSync(runPath);
+          for (const archived of archivedRuns) {
+            if (archived.startsWith(".")) continue;
+            const archivedPath = join(runPath, archived);
+            if (statSync(archivedPath).isDirectory()) {
+              const archivedEntries = readdirSync(archivedPath);
+              expect(archivedEntries).toContain("manifest.json");
+              expect(archivedEntries).toContain("prompt.md");
+            }
+          }
+          continue;
+        }
         const runEntries = readdirSync(runPath);
         expect(runEntries).toContain("manifest.json");
         expect(runEntries).toContain("prompt.md");
