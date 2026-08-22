@@ -6632,6 +6632,14 @@
           "description": "Objective id."
         },
         {
+          "name": "candidate",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null,
+          "description": "Candidate id."
+        },
+        {
           "name": "round",
           "type": "int",
           "required": true,
@@ -6710,6 +6718,14 @@
           "repeatable": false,
           "default": null,
           "description": "Round index."
+        },
+        {
+          "name": "result",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": "converged",
+          "description": "Round result (converged | exhausted | escalated)."
         },
         {
           "name": "terminal-reason",

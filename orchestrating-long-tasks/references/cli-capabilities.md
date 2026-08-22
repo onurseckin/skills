@@ -2036,6 +2036,7 @@ Opens a new execution round for an objective in Phase 4, linking the round to it
 | `--run` | string | yes | no | - | The mind capsule root. |
 | `--actor` | string | yes | no | - | Acting agent. |
 | `--objective` | string | yes | no | - | Objective id. |
+| `--candidate` | string | no | no | - | Candidate id. |
 | `--round` | int | yes | no | - | Round index. |
 | `--target-run` | string | no | no | - | Chained-from capsule run id. |
 
@@ -2059,6 +2060,7 @@ Closes an active execution round for an objective in Phase 4, recording successo
 | `--actor` | string | yes | no | - | Acting agent. |
 | `--objective` | string | yes | no | - | Objective id. |
 | `--round` | int | yes | no | - | Round index. |
+| `--result` | string | no | no | `converged` | Round result (converged | exhausted | escalated). |
 | `--terminal-reason` | string | no | no | - | Reason if round terminates without successor. |
 | `--successor-run` | string | no | no | - | Successor capsule run id. |
 
