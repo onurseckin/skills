@@ -47,8 +47,9 @@ export function writeSuccessfulAttemptEvidence(input: SuccessfulAttemptEvidence)
     readBoundedBytes(input.stdoutPath, input.options.maxOutputBytes),
     readBoundedBytes(input.stderrPath, input.options.maxOutputBytes),
   );
-  const failureClass =
-    evidenceIssues.length > 0
+  const failureClass = input.outcome.timeout
+    ? "timeout"
+    : evidenceIssues.length > 0
       ? "test_failure"
       : classifySignals(
           input.exitCode,
