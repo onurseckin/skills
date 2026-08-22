@@ -3,6 +3,7 @@ import { dirname, join } from "node:path";
 import { verifyCapsuleDeep, verifyIntegrity } from "../store/index.ts";
 import { MINIMUM_BUN_VERSION } from "../config/constants.ts";
 import type { CommandRecord } from "../contracts/commands.ts";
+import type { JsonObject } from "../contracts/json.ts";
 import { loadRun } from "../store/index.ts";
 import { verifyCommandRecord } from "../runner/verify-command.ts";
 import type { PacketRecord } from "../workflow/types.ts";
@@ -18,6 +19,13 @@ import {
   type BehavioralSeverity,
   type BehavioralViolationType,
 } from "./behavioral-auditor.ts";
+import {
+  evaluateSocraticSelfQuestioning,
+  formatSocraticAuditSection,
+  type SocraticAuditReport,
+  type SocraticDimension,
+  type SocraticQuestionEvaluation,
+} from "./socratic-validator.ts";
 
 export {
   auditBehavioralHealth,
@@ -25,6 +33,11 @@ export {
   type BehavioralFinding,
   type BehavioralSeverity,
   type BehavioralViolationType,
+  evaluateSocraticSelfQuestioning,
+  formatSocraticAuditSection,
+  type SocraticAuditReport,
+  type SocraticDimension,
+  type SocraticQuestionEvaluation,
 };
 
 export interface DoctorOptions {
@@ -66,6 +79,7 @@ export function formatDoctorReport(params: {
   gitignored: boolean | null;
   issues: readonly string[];
   behavioralFindings: readonly BehavioralFinding[];
+  socraticReport?: SocraticAuditReport | undefined;
 }): string {
   const issues = params.issues;
   const lines = [
@@ -79,6 +93,8 @@ export function formatDoctorReport(params: {
     ...issues.map((issue) => `  - ${issue}`),
     "",
     formatBehavioralRoleHealthSection(params.behavioralFindings),
+    "",
+    ...(params.socraticReport ? [formatSocraticAuditSection(params.socraticReport)] : []),
   ];
   return lines.join("\n");
 }
@@ -122,6 +138,12 @@ export async function runDoctor(
     (f) => `behavioral [${f.severity}] (${f.role}/${f.agent_id}): ${f.observation}`,
   );
 
+  const socraticReport = evaluateSocraticSelfQuestioning(
+    runRoot,
+    loaded?.state as JsonObject | undefined,
+  );
+  const socraticIssues = socraticReport.issues;
+
   const issues = [
     ...integrityIssues.map(({ code, message }) => `${code}: ${message}`),
     ...(gitignored === false ? ["run capsule is not gitignored"] : []),
@@ -130,6 +152,7 @@ export async function runDoctor(
     ...packetIssues,
     ...workflowIssues,
     ...behavioralIssues,
+    ...socraticIssues,
     ...installationIssues,
   ];
 
@@ -143,6 +166,7 @@ export async function runDoctor(
     gitignored,
     issues,
     behavioralFindings,
+    socraticReport,
   });
 
   return {
@@ -159,6 +183,8 @@ export async function runDoctor(
     workflow_issues: workflowIssues,
     behavioral_findings: behavioralFindings,
     behavioral_issues: behavioralIssues,
+    socratic_audit: socraticReport,
+    socratic_issues: socraticIssues,
     installation: installation ?? null,
     installation_issues: installationIssues,
     issues,

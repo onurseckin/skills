@@ -321,3 +321,70 @@ describe("Registry integration", () => {
     expect(whoamiSpec.examples.length).toBeGreaterThan(0);
   });
 });
+
+describe("Supervisory Persona Reminder Dynamic Injection (whoami CLI)", () => {
+  test("injects Supervisory Persona Reminder for Tier 0 Mind", () => {
+    const result = whoamiCommand({
+      role: "mind",
+      agent: "mind-lead",
+      tier: "0",
+    });
+
+    expect(result.persona_reminder).toBeDefined();
+    const reminder = result.persona_reminder as Record<string, unknown>;
+    expect(reminder.role).toBe("mind");
+    expect(reminder.tier).toBe(0);
+    expect(String(result.markdown)).toContain("SUPERVISOR ROLE DETECTED");
+    expect(String(result.markdown)).toContain("SUPERVISORY PERSONA");
+    expect(String(result.markdown)).toContain("Strict 4-Tier Spawning Hierarchy & Zero-File-Edit Invariant");
+    expect(Array.isArray(result.decision_protocols)).toBeTrue();
+    expect(Array.isArray(result.checklist)).toBeTrue();
+  });
+
+  test("injects Supervisory Persona Reminder for Tier 1 Orchestrator", () => {
+    const result = whoamiCommand({
+      role: "orchestrator",
+      agent: "orch-lead",
+      tier: "1",
+    });
+
+    expect(result.persona_reminder).toBeDefined();
+    const reminder = result.persona_reminder as Record<string, unknown>;
+    expect(reminder.role).toBe("orchestrator");
+    expect(reminder.tier).toBe(1);
+    expect(String(result.markdown)).toContain("SUPERVISOR ROLE DETECTED");
+    expect(String(result.markdown)).toContain("Orchestrator");
+  });
+
+  test("injects Supervisory Persona Reminder for Tier 2 Coordinator with active leases", async () => {
+    const { run } = await setupCompiledRun("whoami-coord-reminder", roots);
+
+    const result = whoamiCommand({
+      run,
+      role: "coordinator",
+      agent: "coord-alpha",
+      tier: "2",
+    });
+
+    expect(result.persona_reminder).toBeDefined();
+    const reminder = result.persona_reminder as Record<string, unknown>;
+    expect(reminder.role).toBe("coordinator");
+    expect(reminder.tier).toBe(2);
+    expect(String(result.markdown)).toContain("Coordinator");
+    expect(String(result.markdown)).toContain("SUPERVISORY INVARIANTS");
+  });
+
+  test("injects Persona Reminder for Tier 3 Implementer", () => {
+    const result = whoamiCommand({
+      role: "implementer",
+      agent: "worker-beta",
+      tier: "3",
+    });
+
+    expect(result.persona_reminder).toBeDefined();
+    const reminder = result.persona_reminder as Record<string, unknown>;
+    expect(reminder.role).toBe("implementer");
+    expect(reminder.tier).toBe(3);
+    expect(String(result.markdown)).toContain("PERSONA REMINDER");
+  });
+});

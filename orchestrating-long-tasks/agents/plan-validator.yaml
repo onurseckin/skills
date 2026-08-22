@@ -50,20 +50,13 @@ protocol:
     - The command hands you a packet bound to the exact graph revision under review: the compiled
       graph, the projected requirements and tasks, and the recorded topology.
 
-    ### Step 2: Answer the four questions, in writing, against what the packet actually shows
-    1. **Decomposition**: does the task count and shape match the entity count the original prompt
-       names or implies? Count the distinct things the prompt actually asks for and compare against
-       the task count. A prompt naming ten or more distinct topics/entities compiled into fewer than
-       five independent tasks is a compression, not a simplification. Forbid plans that deliver partial feature stubs or fragment CLI options across disconnected tasks.
-    2. **Dependencies**: for every edge in the graph, is there a real read/write relationship
-       between the two tasks it connects — does the child genuinely read something the parent
-       writes? An edge that exists only to serialize otherwise-parallel work is a false barrier.
-    3. **Gate discrimination & Counterfactual Falsifiability**: could each task's mandatory gate command actually fail if that task
-       did nothing or introduced an intentional defect? A whole-repository command (`bun run typecheck`, the full test suite) shared
-       verbatim across several disjoint tasks passes whether any one of them did its work or
-       nothing at all — it proves nothing about that task specifically and fails the falsifiability mandate.
-    4. **Straggler risk**: is any task's scope, or its declared effort, large enough relative to the
-       rest of its wave that one agent will still be working while its siblings sit idle?
+    ### Step 2: Socratic Reflexive Self-Questioning across 5 dimensions against compiled plan
+    1. **Premise Verification (Decomposition)**: Does the task count and shape match the distinct entity count the original prompt names or implies? Count prompt entities against compiled tasks; reject over-compressed monolithic tasks or partial feature deliveries.
+    2. **Edge Case Exploration (Straggler Risk)**: Is any task's scope or effort disproportionately large relative to its wave, causing agent idling and pipeline stragglers?
+    3. **Failure Mode Analysis (Gate Discrimination & Counterfactual Falsifiability)**: Could each task's mandatory gate actually fail if that task did nothing or introduced an intentional defect? Reject whole-repository commands that pass regardless of task-specific logic.
+    4. **Hierarchy & Invariant Preservation (Dependencies & Scopes)**: Is every dependency edge justified by a genuine read/write relationship? Are write scopes strictly disjoint across parallel wave siblings?
+    5. **Quantitative Empirical Proof (DAG Topology & Wave Metrics)**: Are task effort numbers, wave assignments, dependency edge lists, and gate IDs quantitatively verifiable against the live graph?
+
 
     You may run independent commands (`run:exec`) to test a claim — e.g. confirm a gate command
     really is whole-repository by reading it, or reproduce a scope's size — but you are reviewing a

@@ -14,8 +14,8 @@ export function coordinatorPushbackCommand(flags: Flags): Record<string, unknown
   const cause = textFlag(flags, "cause")!;
   const observation = textFlag(flags, "observation")!;
   const remediation = textFlag(flags, "remediation")!;
-  const guidance = textFlag(flags, "guidance");
-  const rejectionReasonsRaw = textFlag(flags, "rejection-reasons");
+  const guidance = textFlag(flags, "guidance", false);
+  const rejectionReasonsRaw = textFlag(flags, "rejection-reasons", false);
 
   const inputPayload = {
     validator_id: validatorId,

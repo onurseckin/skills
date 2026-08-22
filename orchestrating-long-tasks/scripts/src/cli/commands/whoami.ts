@@ -5,6 +5,10 @@ import { readAgentLedger } from "../../workflow/agents/ledger.ts";
 import { identifyExecutionContext, parseTierValue } from "../../authority/thread-identifier.ts";
 import { isJsonObject } from "../../contracts/json.ts";
 import type { AgentGrantRecord } from "../../contracts/agents.ts";
+import {
+  constructSupervisoryPersonaReminder,
+  type SupervisoryPersonaReminder,
+} from "../../authority/supervisory-persona-reminder.ts";
 
 export interface TaskLeaseSummary {
   task_id: string;
@@ -92,6 +96,39 @@ export function whoamiCommand(flags: Flags): Record<string, unknown> {
     ? activeLeases.filter((lease) => lease.agent_id === activeAgentId)
     : activeLeases;
 
+  const effectiveRole =
+    roleOverride ??
+    thread.role ??
+    (thread.tier === 0
+      ? "mind"
+      : thread.tier === 1
+        ? "orchestrator"
+        : thread.tier === 2
+          ? "coordinator"
+          : "implementer");
+
+  const tickOverride = parseOptionalInt(flags, "tick", 1);
+  const cadenceOverride = parseOptionalInt(flags, "cadence-ms", 1000);
+
+  const personaReminder: SupervisoryPersonaReminder = constructSupervisoryPersonaReminder({
+    role: effectiveRole,
+    agentId: activeAgentId ?? thread.agent_id ?? undefined,
+    runId: run,
+    tickNumber: tickOverride,
+    cadenceMs: cadenceOverride,
+    context: {
+      role: effectiveRole,
+      agentId: activeAgentId ?? thread.agent_id ?? undefined,
+      runId: run,
+      isMainThread: thread.is_main_thread,
+      activeLeases: filteredLeases.map((l) => ({
+        taskId: l.task_id,
+        agentId: l.agent_id,
+        role: l.role,
+      })),
+    },
+  });
+
   const mdLines: string[] = [
     `### Thread Authority Identification (\`whoami\`)`,
     `- **PID / PPID**: \`${thread.pid}\` / \`${thread.ppid}\``,
@@ -116,12 +153,32 @@ export function whoamiCommand(flags: Flags): Record<string, unknown> {
   }
 
   if (
+    thread.tier === 0 ||
     thread.tier === 1 ||
     thread.tier === 2 ||
-    (thread.role && (thread.role.startsWith("orch") || thread.role.startsWith("coord")))
+    thread.is_main_thread ||
+    (thread.role &&
+      (thread.role.startsWith("orch") ||
+        thread.role.startsWith("coord") ||
+        thread.role.startsWith("mind")))
   ) {
     mdLines.push(
       `- **ROLE INVARIANT**: 🚫 SUPERVISOR ROLE DETECTED (Tier ${thread.tier}). You are strictly forbidden from calling code-editing tools (\`write_to_file\`, \`replace_file_content\`). All code implementation and test execution MUST be delegated to Tier 3 subagents via \`invoke_subagent\`.`,
+    );
+    mdLines.push(
+      `- **SUPERVISORY PERSONA**: [${personaReminder.persona.displayName}] Role=\`${effectiveRole.toUpperCase()}\` (Tier ${personaReminder.tier}). Mandate: ${personaReminder.persona.coreMandate}`,
+    );
+    mdLines.push(
+      `- **SUPERVISORY INVARIANTS**: Strict 4-Tier Spawning Hierarchy & Zero-File-Edit Invariant actively enforced.`,
+    );
+    if (personaReminder.correctiveDirectives.length > 0) {
+      mdLines.push(
+        `- **CORRECTIVE DIRECTIVES**: ${personaReminder.correctiveDirectives.join(" | ")}`,
+      );
+    }
+  } else {
+    mdLines.push(
+      `- **PERSONA REMINDER**: [${personaReminder.persona.displayName}] Role=\`${effectiveRole.toUpperCase()}\` (Tier ${personaReminder.tier}). Mandate: ${personaReminder.persona.coreMandate}`,
     );
   }
 
@@ -146,7 +203,7 @@ export function whoamiCommand(flags: Flags): Record<string, unknown> {
   mdLines.push(...nextActionsBlock(whoamiNextActions(run, thread.is_main_thread)));
 
   return {
-    markdown: enforceLineLimit(mdLines.join("\n"), 30),
+    markdown: enforceLineLimit(mdLines.join("\n"), 35),
     run_root: run,
     thread,
     pid: thread.pid,
@@ -154,7 +211,7 @@ export function whoamiCommand(flags: Flags): Record<string, unknown> {
     tier: thread.tier,
     tier_name: thread.tier_name,
     agent_id: activeAgentId ?? thread.agent_id,
-    role: thread.role,
+    role: thread.role ?? effectiveRole,
     is_main_thread: thread.is_main_thread,
     compliance_state: thread.compliance_state,
     advisory: thread.advisory,
@@ -163,5 +220,8 @@ export function whoamiCommand(flags: Flags): Record<string, unknown> {
     blunder: thread.blunder,
     host_profile: thread.host_profile,
     capabilities: thread.capabilities,
+    persona_reminder: personaReminder,
+    decision_protocols: personaReminder.decisionProtocols,
+    checklist: personaReminder.checklist,
   };
 }

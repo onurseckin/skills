@@ -8,11 +8,14 @@ import {
 import { BootGateEnforcer } from "./boot-gate-enforcer.ts";
 import {
   DEFAULT_HEALTH_AUDIT_INTERVAL_MS,
+  DEFAULT_PROCESS_HEALTH_CHECK_INTERVAL_MS,
   DEFAULT_WATCHDOG_HEARTBEAT_INTERVAL_MS,
   DEFAULT_WATCHDOG_TIMEOUT_MS,
 } from "./constants.ts";
 import type {
   AutonomicWatchdogConfig,
+  LiveCliProof,
+  ProcessHealthStatus,
   SubagentBootGateRecord,
   SubagentRegistrationOptions,
   WatchdogEvent,
@@ -25,21 +28,35 @@ import type {
 export interface AgentActivityState {
   readonly agentId: string;
   readonly taskId: string | null;
+  readonly pid?: number | undefined;
   readonly lastHeartbeatAt: number;
   readonly lastActivityAt: number;
   readonly status: "active" | "stalled";
+  readonly lastProcessHealth?: ProcessHealthStatus | undefined;
+}
+
+function defaultProcessLivenessChecker(pid: number): boolean {
+  if (!Number.isSafeInteger(pid) || pid <= 0) return false;
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export class AutonomicWatchdog {
   public readonly heartbeatIntervalMs: number;
   public readonly timeoutMs: number;
   public readonly healthAuditIntervalMs: number;
+  public readonly processHealthCheckIntervalMs: number;
   public readonly capsuleRoot: string | null;
   public readonly generation: number;
   public readonly pulseId: string | null;
   public readonly enforcePreFlightGates: boolean;
 
   private readonly bootGateEnforcer: BootGateEnforcer;
+  private readonly processLivenessChecker: (pid: number) => boolean;
   private readonly activities = new Map<string, AgentActivityState>();
   private readonly listeners = new Map<string, Set<WatchdogEventListener>>();
   private readonly onHeartbeatCallback:
@@ -64,10 +81,14 @@ export class AutonomicWatchdog {
     this.timeoutMs = config.timeoutMs ?? DEFAULT_WATCHDOG_TIMEOUT_MS;
     this.healthAuditIntervalMs =
       config.healthAuditIntervalMs ?? DEFAULT_HEALTH_AUDIT_INTERVAL_MS;
+    this.processHealthCheckIntervalMs =
+      config.processHealthCheckIntervalMs ?? DEFAULT_PROCESS_HEALTH_CHECK_INTERVAL_MS;
     this.capsuleRoot = config.capsuleRoot ?? null;
     this.generation = config.generation ?? 1;
     this.pulseId = config.pulseId ?? null;
     this.enforcePreFlightGates = config.enforcePreFlightGates !== false;
+    this.processLivenessChecker =
+      config.processLivenessChecker ?? defaultProcessLivenessChecker;
 
     this.bootGateEnforcer = new BootGateEnforcer();
     this.onHeartbeatCallback = config.onHeartbeat;
@@ -111,6 +132,7 @@ export class AutonomicWatchdog {
       this.activities.set(options.agentId, {
         agentId: options.agentId,
         taskId: options.taskId ?? null,
+        ...(options.pid !== undefined ? { pid: options.pid } : {}),
         lastHeartbeatAt: Number.isFinite(timeMs) ? timeMs : Date.now(),
         lastActivityAt: Number.isFinite(timeMs) ? timeMs : Date.now(),
         status: "active",
@@ -123,32 +145,54 @@ export class AutonomicWatchdog {
   public recordWhoami(
     agentId: string,
     now?: string | number | Date,
+    proof?: Partial<LiveCliProof>,
   ): SubagentBootGateRecord {
     const timestamp =
       now !== undefined ? new Date(now).toISOString() : new Date().toISOString();
     this.recordActivity(agentId, undefined, now);
-    return this.bootGateEnforcer.recordWhoamiExecution(agentId, timestamp);
+    return this.bootGateEnforcer.recordWhoamiExecution(agentId, timestamp, proof);
   }
 
   public recordDoctor(
     agentId: string,
     now?: string | number | Date,
+    proof?: Partial<LiveCliProof>,
   ): SubagentBootGateRecord {
     const timestamp =
       now !== undefined ? new Date(now).toISOString() : new Date().toISOString();
     this.recordActivity(agentId, undefined, now);
-    return this.bootGateEnforcer.recordDoctorExecution(agentId, timestamp);
+    return this.bootGateEnforcer.recordDoctorExecution(agentId, timestamp, proof);
+  }
+
+  public recordCliProof(
+    proof: LiveCliProof,
+    now?: string | number | Date,
+  ): SubagentBootGateRecord | undefined {
+    const timestamp =
+      now !== undefined ? new Date(now).toISOString() : new Date().toISOString();
+    this.recordActivity(proof.actor, undefined, now);
+    return this.bootGateEnforcer.recordCliProof(proof, timestamp);
   }
 
   public recordCommand(
     agentId: string,
     argv: readonly string[],
     now?: string | number | Date,
+    exitCode?: number,
+    pid?: number,
+    outputSnippet?: string,
   ): void {
     const timestamp =
       now !== undefined ? new Date(now).toISOString() : new Date().toISOString();
     this.recordActivity(agentId, undefined, now);
-    this.bootGateEnforcer.recordCommandExecution(agentId, argv, timestamp);
+    this.bootGateEnforcer.recordCommandExecution(
+      agentId,
+      argv,
+      timestamp,
+      exitCode,
+      pid,
+      outputSnippet,
+    );
   }
 
   public recordHeartbeat(
@@ -170,9 +214,13 @@ export class AutonomicWatchdog {
     this.activities.set(agentId, {
       agentId,
       taskId: taskId ?? existing?.taskId ?? null,
+      ...(existing?.pid !== undefined ? { pid: existing.pid } : {}),
       lastHeartbeatAt: resolvedMs,
       lastActivityAt: resolvedMs,
       status: "active",
+      ...(existing?.lastProcessHealth !== undefined
+        ? { lastProcessHealth: existing.lastProcessHealth }
+        : {}),
     });
   }
 
@@ -195,17 +243,81 @@ export class AutonomicWatchdog {
     this.activities.set(agentId, {
       agentId,
       taskId: taskId ?? existing?.taskId ?? null,
+      ...(existing?.pid !== undefined ? { pid: existing.pid } : {}),
       lastHeartbeatAt: existing?.lastHeartbeatAt ?? resolvedMs,
       lastActivityAt: resolvedMs,
       status: "active",
+      ...(existing?.lastProcessHealth !== undefined
+        ? { lastProcessHealth: existing.lastProcessHealth }
+        : {}),
     });
+  }
+
+  public checkProcessHealth(
+    pid: number,
+    agentId?: string,
+    now?: string | number | Date,
+  ): ProcessHealthStatus {
+    const timestamp =
+      now !== undefined ? new Date(now).toISOString() : new Date().toISOString();
+    const alive = this.processLivenessChecker(pid);
+
+    const status: ProcessHealthStatus = {
+      pid,
+      alive,
+      ...(agentId !== undefined ? { agentId } : {}),
+      checkedAt: timestamp,
+      ...(alive ? {} : { error: `Process ${pid} is not running or has terminated` }),
+    };
+
+    if (agentId) {
+      this.bootGateEnforcer.updateProcessHealth(agentId, status);
+      const existing = this.activities.get(agentId);
+      if (existing) {
+        this.activities.set(agentId, {
+          ...existing,
+          pid,
+          lastProcessHealth: status,
+        });
+      }
+    }
+
+    return status;
+  }
+
+  public auditProcessHealth(
+    now?: string | number | Date,
+  ): readonly ProcessHealthStatus[] {
+    const results: ProcessHealthStatus[] = [];
+    const allRecords = this.bootGateEnforcer.getAllRecords();
+
+    for (const rec of allRecords) {
+      if (rec.pid !== undefined) {
+        const health = this.checkProcessHealth(rec.pid, rec.agentId, now);
+        results.push(health);
+      }
+    }
+
+    for (const act of this.activities.values()) {
+      if (act.pid !== undefined && !allRecords.some((r) => r.agentId === act.agentId)) {
+        const health = this.checkProcessHealth(act.pid, act.agentId, now);
+        results.push(health);
+      }
+    }
+
+    return results;
   }
 
   public assertBootGatesPassed(
     agentId: string,
     operationDescription = "performing task operations",
+    requireValidProof = false,
   ): void {
-    this.bootGateEnforcer.assertBootGatesPassed(agentId, operationDescription);
+    this.bootGateEnforcer.assertBootGatesPassed(
+      agentId,
+      operationDescription,
+      requireValidProof,
+    );
   }
 
   public async runHealthAudit(
@@ -287,7 +399,53 @@ export class AutonomicWatchdog {
       }
     }
 
-    // 4. Audit Tier Confinement if capsuleRoot is available
+    // 4. Audit Live Process Health
+    let deadProcessesCount = 0;
+    for (const rec of allRecords) {
+      if (rec.pid !== undefined) {
+        const isAlive = this.processLivenessChecker(rec.pid);
+        const healthStatus: ProcessHealthStatus = {
+          pid: rec.pid,
+          alive: isAlive,
+          agentId: rec.agentId,
+          checkedAt: timestamp,
+          ...(isAlive ? {} : { error: `Process PID ${rec.pid} has exited or is unreachable` }),
+        };
+        this.bootGateEnforcer.updateProcessHealth(rec.agentId, healthStatus);
+
+        if (!isAlive) {
+          deadProcessesCount++;
+          const finding: WatchdogFinding = {
+            id: `finding-proc-health-${rec.agentId}-${rec.pid}`,
+            agentId: rec.agentId,
+            role: rec.role,
+            taskId: rec.taskId ?? undefined,
+            violationType: "process_health_failure",
+            severity: "critical",
+            observation: `Subagent process "${rec.agentId}" (PID ${rec.pid}) has terminated unexpectedly or is dead while task lease / monitoring is active.`,
+            remediation:
+              "Clean up zombie task lease, reclaim task or dispatch fresh subagent worker.",
+            timestamp,
+            evidence: {
+              agentId: rec.agentId,
+              role: rec.role,
+              pid: rec.pid,
+              alive: false,
+              checkedAt: timestamp,
+            },
+          };
+          findings.push(finding);
+          this.emit({
+            type: "process_failure_detected",
+            agentId: rec.agentId,
+            pid: rec.pid,
+            finding,
+          });
+        }
+      }
+    }
+
+    // 5. Audit Tier Confinement if capsuleRoot is available
     let tierViolationsCount = 0;
     if (this.capsuleRoot && existsSync(this.capsuleRoot)) {
       try {
@@ -320,17 +478,19 @@ export class AutonomicWatchdog {
     const healthy =
       bootGateViolationsCount === 0 &&
       stalledAgentsCount === 0 &&
+      deadProcessesCount === 0 &&
       tierViolationsCount === 0;
 
     const summary = healthy
       ? `Autonomic watchdog healthy: ${allRecords.length} subagents compliant, ${activeLeasesCount} active monitors.`
-      : `Autonomic watchdog detected issues: ${bootGateViolationsCount} boot-gate violations, ${stalledAgentsCount} stalled agents, ${tierViolationsCount} tier violations.`;
+      : `Autonomic watchdog detected issues: ${bootGateViolationsCount} boot-gate violations, ${stalledAgentsCount} stalled agents, ${deadProcessesCount} dead processes, ${tierViolationsCount} tier violations.`;
 
     const report: WatchdogHealthAuditReport = {
       healthy,
       timestamp,
       activeLeasesCount,
       stalledAgentsCount,
+      deadProcessesCount,
       subagentCount: allRecords.length,
       bootGateCompliantCount,
       bootGateViolationsCount,
@@ -393,6 +553,38 @@ export class AutonomicWatchdog {
     }
 
     return report;
+  }
+
+  public async renderCliStatusReport(
+    currentTime?: string | number | Date,
+  ): Promise<string> {
+    const health = await this.runHealthAudit(currentTime);
+    const bootGateTable = this.bootGateEnforcer.renderAsciiBootGateTable();
+
+    const lines: string[] = [
+      "### Autonomic Watchdog Status & Boot-Gate Enforcer",
+      `- **Overall Health**: ${health.healthy ? "HEALTHY ✅" : "UNHEALTHY ❌"}`,
+      `- **Active Leases / Monitors**: ${health.activeLeasesCount}`,
+      `- **Stalled Agents**: ${health.stalledAgentsCount}`,
+      `- **Dead / Terminated Processes**: ${health.deadProcessesCount}`,
+      `- **Subagent Count**: ${health.subagentCount}`,
+      `- **Boot-Gate Compliant**: ${health.bootGateCompliantCount}/${health.subagentCount}`,
+      `- **Tier Violations**: ${health.tierViolationsCount}`,
+      `- **Summary**: ${health.summary}`,
+      "",
+      "#### Subagent Pre-Flight Boot-Gate Status",
+      bootGateTable,
+    ];
+
+    if (health.findings.length > 0) {
+      lines.push("");
+      lines.push("#### Active Watchdog Findings");
+      for (const f of health.findings) {
+        lines.push(`- [${f.severity.toUpperCase()}] **${f.violationType}**: ${f.observation}`);
+      }
+    }
+
+    return lines.join("\n");
   }
 
   public start(): void {

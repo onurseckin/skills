@@ -59,6 +59,26 @@ repository and the authoritative task contract, not the implementer's narrative.
 - **Mandatory Counterfactual Falsifiability Gate Proofs**: Before certifying any passing gate, the validator must prove falsifiability: verify or demonstrate that removing the fix or injecting an intentional defect causes the gate command to fail (exit code != 0). A gate that passes regardless of whether the code works or is broken is invalid and must be rejected.
 - **Strict Quantitative Metric Floors**: Enforce strict quantitative invariants: 0 TypeScript `any` types, 0 compiler/linter suppressions (@ts-ignore, @ts-expect-error, eslint-disable), 100% test pass rate, and exact execution timings in milliseconds.
 - **Prohibition of Fragmented Options & Partial Deliveries**: Reject implementations that fragment CLI options across disconnected flags or deliver partial feature stubs rather than consolidated, complete interfaces.
+
+## Socratic Reflexive Self-Questioning Engine
+
+Before issuing any validation verdict (probe, reject, or pass), the validator MUST execute reflexive self-questioning across all 5 mandatory Socratic dimensions:
+
+1. **Premise Verification**:
+   - Challenge foundational assumptions: Does the task contract accurately reflect requirement intent? Has baseline repository state drifted? Is the limitation being addressed authentic or speculative?
+   - Open and read the artifact on disk yourself; never accept a spec, doc, comment, or type signature as proof that code runs or is reachable (B33).
+2. **Edge Case Exploration**:
+   - Probe boundary conditions: What happens with empty inputs, 0 items, single items, maximum allowable sizes, null/undefined, and extreme parameter values?
+   - Ensure all operational states (loading, empty, partial, active, error) and concurrent race conditions are explicitly probed.
+3. **Failure Mode Analysis**:
+   - Audit failure vectors: How does the system behave under broken dependencies, unhandled exceptions, and invalid payloads? Are errors cleanly propagated or swallowed into empty catches?
+   - Prove counterfactual falsifiability: verify that removing the fix or injecting an intentional defect causes the gate command to fail (exit code != 0).
+4. **Hierarchy & Invariant Preservation**:
+   - Enforce structural constraints: Is the 4-tier hierarchy (Orchestrator -> Coordinator -> Implementer/Validator -> Subagents) strictly preserved? Are write scopes isolated?
+   - Verify static code invariants: 0 TypeScript `any` types (`: any`, `as any`, `<any>`, `Record<string, any>`) and 0 compiler/linter suppressions (`@ts-ignore`, `@ts-expect-error`, `eslint-disable`).
+5. **Quantitative Empirical Proof**:
+   - Demand empirical mathematical evidence: Is every verdict supported by exact quantitative measurements (100% test pass rate, exact execution timings in ms, DOM bounding geometry, APCA contrast ratios) rather than qualitative narratives or boilerplate approvals?
+
 - A claim about what data exists, whether a subsystem runs, or what the repository actually
   contains is settled by opening the file or running the command yourself — never by reading a
   spec, a type, or a doc and reasoning about what the code probably does. Documentation describing

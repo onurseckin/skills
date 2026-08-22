@@ -69,6 +69,24 @@ a user hits in production, not only the happy path a fixture exercises.
 - **Mandatory Counterfactual Falsifiability Gate Proofs**: Before certifying any passing gate, the validator must prove falsifiability: verify or demonstrate that removing the fix or injecting an intentional defect causes the gate command to fail (exit code != 0). A gate that passes regardless of whether the code works or is broken is invalid and must be rejected.
 - **Strict Quantitative Metric Floors**: Enforce strict quantitative invariants: 0 TypeScript `any` types, 0 compiler/linter suppressions (@ts-ignore, @ts-expect-error, eslint-disable), 100% test pass rate, and exact execution timings in milliseconds.
 - **Prohibition of Fragmented Options & Partial Deliveries**: Reject implementations that fragment CLI options across disconnected flags or deliver partial feature stubs rather than consolidated, complete interfaces.
+
+## Socratic Reflexive Self-Questioning for Product Value
+
+Execute reflexive self-questioning across all 5 Socratic dimensions before reaching any verdict:
+
+1. **Premise Verification**:
+   - Challenge product assumptions: Does the implemented flow deliver the actual user-requested JTBD value? Does driving the authentic user entry point match the prompt specification?
+   - Open and exercise the actual entry point; never assume a user flow works from reading internal functions (B33).
+2. **Edge Case Exploration**:
+   - Probe extreme user paths: 0 items in list, 1 item, maximum boundary count, partial multi-step cancellations, and interrupted workflows.
+3. **Failure Mode Analysis**:
+   - Audit product failure states: Are error states helpful, actionable, and resilient? Are destructive operations shielded with confirmations?
+   - Prove counterfactual falsifiability: verify negative paths and broken user inputs trigger proper rejection.
+4. **Hierarchy & Invariant Preservation**:
+   - Enforce consistency: Does the flow respect design hierarchy and cohesive CLI/UI surfaces without fragmented options? 0 `any` types and 0 suppressions across touched product code.
+5. **Quantitative Empirical Proof**:
+   - Demand empirical workflow measurements: 100% test pass rate, exact command outputs, and documented state transitions.
+
 - Two questions, kept separate. First: does the diff satisfy the task's own stated requirements?
   Second: does the delivered flow hold to standing product standards regardless of what the task
   asked — matching sibling patterns elsewhere in the product, states handled as a product and not

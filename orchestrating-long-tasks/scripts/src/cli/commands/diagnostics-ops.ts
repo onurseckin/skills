@@ -6,6 +6,7 @@ import type { HealthCheckId } from "../../health/types.ts";
 import { HarnessError } from "../../errors/harness-error.ts";
 import { workflowPort } from "../../integration/store-ports.ts";
 import { runDoctor } from "../../reporting/doctor.ts";
+import { constructSupervisoryPersonaReminder } from "../../authority/supervisory-persona-reminder.ts";
 import { loadRun, recoverProjection } from "../../store/index.ts";
 import { recoverStale } from "../../workflow/lease/recover-stale.ts";
 import { releaseLease } from "../../workflow/lease/release.ts";
@@ -23,6 +24,8 @@ export async function doctorCommand(flags: Flags): Promise<Record<string, unknow
   const source = textFlag(flags, "source", false);
   const home = textFlag(flags, "home", false);
   const clients = textFlag(flags, "clients", false);
+  const actor = textFlag(flags, "actor", false) ?? "coordinator";
+  const role = textFlag(flags, "role", false) ?? "coordinator";
   const installation =
     source !== undefined && home !== undefined
       ? {
@@ -42,7 +45,24 @@ export async function doctorCommand(flags: Flags): Promise<Record<string, unknow
       : {};
 
   const report = await runDoctor(run, installation);
-  return { ...report, markdown: formatDoctorBrief(run, report) };
+  const personaReminder = constructSupervisoryPersonaReminder({
+    role,
+    agentId: actor,
+    runId: run,
+    context: {
+      role,
+      agentId: actor,
+      runId: run,
+      failedGatesCount: (report.workflow_issues as unknown[])?.length ?? 0,
+      openFindingsCount: (report.behavioral_findings as unknown[])?.length ?? 0,
+    },
+  });
+
+  return {
+    ...report,
+    persona_reminder: personaReminder,
+    markdown: formatDoctorBrief(run, { ...report, persona_reminder: personaReminder }),
+  };
 }
 
 function ternary(value: unknown, whenTrue: string, whenFalse: string): string {
@@ -68,6 +88,7 @@ export function formatDoctorBrief(run: string, report: Record<string, unknown>):
     `- **Healthy**: ${ternary(report.healthy, "yes", "no")}`,
     `- **Bun**: ${bunVersion} (${ternary(report.bun_supported, "supported", "unsupported")})`,
     `- **Gitignored**: ${ternary(report.gitignored, "yes", "no")}`,
+    `- **Supervisory Invariants**: Strict Tier Hierarchy & Supervisor Zero-File-Edit Rule actively enforced`,
     ...(issues.length > 0 ? ["- **Issues**:"] : ["- **Issues**: none"]),
     ...issues.map((issue) => `  - ${issue}`),
     ...nextActionsBlock(doctorNextActions(run)),

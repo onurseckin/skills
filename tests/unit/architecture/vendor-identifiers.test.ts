@@ -30,6 +30,7 @@ const testsRoot = join(repoRoot, "tests");
  * those cannot be renamed without breaking the lookup.
  */
 const SCRIPT_EXEMPTIONS: readonly string[] = [
+  "src/authority/manifest-parser.ts",
   "src/authority/thread-identifier.ts",
   "src/graph/gate-runtime-grammar.ts",
   "src/installer/runtime-freshness.ts",

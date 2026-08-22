@@ -14,6 +14,10 @@ import { transact } from "../../store/transaction.ts";
 import { findGrant, readAgentLedger, writeAgentLedger } from "../../workflow/agents/ledger.ts";
 import { enforceLineLimit } from "../formatters/line-limiter.ts";
 import { textFlag, type CommandContext, type Flags } from "../options.ts";
+import {
+  constructSupervisoryPersonaReminder,
+  type SupervisoryPersonaReminder,
+} from "../../authority/supervisory-persona-reminder.ts";
 
 export const CLOSING_FORBIDDEN_FOR_MIND = "CLOSING_FORBIDDEN_FOR_MIND" as const;
 
@@ -42,6 +46,7 @@ export interface MindPulseResult {
   readonly invariant: typeof CLOSING_FORBIDDEN_FOR_MIND;
   readonly budget: MindPulseTelemetryBudget;
   readonly zero_value_streak?: number | undefined;
+  readonly persona_reminder?: SupervisoryPersonaReminder | undefined;
   readonly [key: string]: unknown;
 }
 
@@ -57,6 +62,7 @@ export function formatMindPulseActiveBrief(params: {
   readonly nextWakeAt: string;
   readonly pulsesToday: number;
   readonly pulsesPerDay: number | null;
+  readonly personaReminder?: SupervisoryPersonaReminder | undefined;
 }): string {
   const limitStr = params.pulsesPerDay === null ? "∞" : params.pulsesPerDay;
   const lines = [
@@ -72,6 +78,7 @@ export function formatMindPulseActiveBrief(params: {
     `- **Budget Headroom**: ${params.pulsesToday} / ${limitStr} pulses today`,
     `- **Cadence**: infinite autonomous cadence (CLOSING_FORBIDDEN_FOR_MIND)`,
     `- **Invariant**: Mind never self-terminates, dies, or closes. Runs indefinitely until human OS termination.`,
+    `- **Supervisory Invariants**: Strict 4-Tier Spawning Hierarchy & Supervisor Zero-File-Edit Invariant actively enforced.`,
   ];
   return enforceLineLimit(lines.join("\n"), 25);
 }
@@ -88,6 +95,7 @@ export function formatMindPulseOpenedBrief(params: {
   readonly nextWakeAt: string;
   readonly pulsesToday: number;
   readonly pulsesPerDay: number | null;
+  readonly personaReminder?: SupervisoryPersonaReminder | undefined;
 }): string {
   const limitStr = params.pulsesPerDay === null ? "∞" : params.pulsesPerDay;
   const lines = [
@@ -103,6 +111,7 @@ export function formatMindPulseOpenedBrief(params: {
     `- **Budget Headroom**: ${params.pulsesToday} / ${limitStr} pulses today`,
     `- **Cadence**: infinite autonomous cadence (CLOSING_FORBIDDEN_FOR_MIND)`,
     `- **Invariant**: Mind never self-terminates, dies, or closes. Runs indefinitely until human OS termination.`,
+    `- **Supervisory Invariants**: Strict 4-Tier Spawning Hierarchy & Supervisor Zero-File-Edit Invariant actively enforced.`,
   ];
   return enforceLineLimit(lines.join("\n"), 25);
 }
@@ -220,6 +229,22 @@ export async function mindPulseCommand(
     const last = (pulseState.last ?? {}) as Record<string, unknown>;
     const zeroValueStreak = typeof last.zero_value_streak === "number" ? last.zero_value_streak : 0;
 
+    const personaReminder = constructSupervisoryPersonaReminder({
+      role: "mind",
+      agentId: pulseActor,
+      runId: run,
+      pulseId: openPulseId,
+      cadenceMs: scheduledIntervalMs,
+      now: nowMs,
+      context: {
+        role: "mind",
+        agentId: pulseActor,
+        runId: run,
+        pulseId: openPulseId,
+        now: nowMs,
+      },
+    });
+
     const markdown = formatMindPulseActiveBrief({
       pulseId: openPulseId,
       runRoot: run,
@@ -232,6 +257,7 @@ export async function mindPulseCommand(
       nextWakeAt,
       pulsesToday,
       pulsesPerDay,
+      personaReminder,
     });
 
     return {
@@ -251,6 +277,7 @@ export async function mindPulseCommand(
       closing_permitted: false,
       invariant: CLOSING_FORBIDDEN_FOR_MIND,
       zero_value_streak: zeroValueStreak,
+      persona_reminder: personaReminder,
       budget: {
         pulses_today: pulsesToday,
         pulses_per_day: pulsesPerDay,
@@ -402,6 +429,24 @@ export async function mindPulseCommand(
     next_wake_at: nextWakeAt,
   });
 
+  const personaReminder = constructSupervisoryPersonaReminder({
+    role: "mind",
+    agentId: actor,
+    runId: run,
+    pulseId,
+    tickNumber: nextCounter,
+    cadenceMs: scheduledIntervalMs,
+    now: nowMs,
+    context: {
+      role: "mind",
+      agentId: actor,
+      runId: run,
+      pulseId,
+      tickNumber: nextCounter,
+      now: nowMs,
+    },
+  });
+
   const markdown = formatMindPulseOpenedBrief({
     pulseId,
     runRoot: run,
@@ -414,6 +459,7 @@ export async function mindPulseCommand(
     nextWakeAt,
     pulsesToday: updatedPulsesToday,
     pulsesPerDay,
+    personaReminder,
   });
 
   return {
@@ -432,6 +478,7 @@ export async function mindPulseCommand(
     cadence: "infinite_autonomous",
     closing_permitted: false,
     invariant: CLOSING_FORBIDDEN_FOR_MIND,
+    persona_reminder: personaReminder,
     budget: {
       pulses_today: updatedPulsesToday,
       pulses_per_day: pulsesPerDay,

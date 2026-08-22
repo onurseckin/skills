@@ -104,24 +104,16 @@ protocol:
       `report:get --run $RUN --task <task-id> --screenshots`, `evidence:screenshots --run $RUN`.
     - Record the returned command ids; they are what your findings and resolutions cite.
 
-    ### Step 3: Adversarial audit across both channels
-    1. **Anti-Rubber-Stamping Mandate**: Never issue generic sign-offs ("looks good", "passed", "lgtm", "all tests pass"). Every pass must cite concrete quantitative measurements and command outputs.
-    2. **Mandatory Counterfactual Falsifiability Proof**: Verify that the task's gate fails when the fix/feature logic is reverted or an intentional defect is injected (`falsifiable: true`). Prove the gate discriminates between working and broken code before certifying a pass.
-    3. **Contract & Boundary Audit**: edge cases, boundary conditions, input extremes, strict types.
-    4. **Negative & Failure Testing**: negative assertions exist and errors are handled cleanly.
-    5. **Mathematical & Layout Precision**: bounding box geometry, coordinate math, responsive scaling.
-    6. **Visual Layout & Rendering Invariants (MANDATORY for UI tasks)**:
-       - **Negative Visual Rejection Invariants**: 0-byte images, mock renders, unrendered DOMs, and threshold breaches are defects.
-       - **Layout Overflow Detection**: unintentional horizontal scrollbars (`overflow-x` leaks) at 375px, 768px and 1280px; flex/grid children exceeding parent boundaries (missing `min-width: 0`).
-       - **Text Clipping & Descending Glyphs**: premature ellipsis truncation, unnatural mid-word breaks, clipped descenders ('g', 'y', 'p', 'q', 'j') under tight `line-height` with `overflow: hidden`.
-       - **Visual Collisions & Stacking Contexts**: `z-index` hierarchy across modals, headers, FABs, dropdowns and tooltips; tap targets at least 44x44px.
-       - **Responsive Constraints**: fluid adaptation across breakpoints without awkward wrapping or collapsed panes.
-       - **Typography & Accessibility**: letter-spacing/tracking, font hierarchy, semantic tags, ARIA attributes, WCAG AA contrast.
-       - **Asset Completeness**: zero placeholder text, broken image URLs, or unstyled elements.
-    7. **Strict Quantitative Invariants**: 0 TypeScript `any` (`: any`, `Promise<any>`, `as any`, `T = any`, `Record<string, any>`), 0 compiler/linter suppressions (`@ts-ignore`, `@ts-expect-error`, `eslint-disable`), 100% test pass rate, and exact execution timings in milliseconds.
-    8. **Substantive Test Audit**: reject tautological, empty, or mocked-out tests that bypass business logic.
-    9. **No Fragmented CLI Options or Partial Deliveries**: reject changes that introduce one-off disconnected flags or partial feature deliveries instead of consolidated, complete interfaces.
-    10. **Strict Write Scope Compliance**: every change stays inside the leased `write_scope`.
+    ### Step 3: Adversarial audit & Socratic Reflexive Self-Questioning across 5 dimensions
+    1. **Premise Verification**: Challenge baseline assumptions and requirement claims against directly inspected disk artifacts (B33). Verify baseline integrity without unapproved drift.
+    2. **Edge Case Exploration**: Probe boundary conditions, extreme input values, 0-item / single-item / max-capacity collections, concurrency contention, and state transitions (loading, empty, partial, active, error).
+    3. **Failure Mode Analysis & Counterfactual Falsifiability**: Verify negative execution paths, error propagation, zero swallowed exceptions, and counterfactual falsifiability (`falsifiable: true`). Prove the gate fails when logic is broken or reverted.
+    4. **Hierarchy & Invariant Preservation**: Enforce 4-tier structural hierarchy, role segregation, write scope containment, 0 TypeScript `any` (`: any`, `Promise<any>`, `as any`, `T = any`, `Record<string, any>`), and 0 compiler/linter suppressions (`@ts-ignore`, `@ts-expect-error`, `eslint-disable`).
+    5. **Quantitative Empirical Proof & Dual-Channel Audit**:
+       - Anti-Rubber-Stamping Mandate: Require concrete quantitative proof (100% test pass rate, exact ms execution timings, exit code 0).
+       - Visual & Perceptual Floors (for UI tasks): APCA lightness contrast (Lc >= 60/45), bounding client rects (>= 44x44px touch targets), 4-tier viewports (1920x1080, 1440x900, 768x1024, 390x844), valid screenshot bytes (>= 1024 bytes).
+       - Forbid fragmented CLI options, disconnected flags, or partial feature deliveries.
+
 
     ### Step 4: Round 1 — record the adversarial probe (`task:probe`)
     - `task:probe --run $RUN --task <task-id> --validator <val-agent> --token <token> --demand "Prove the parser rejects an empty payload" --demand "Prove the 1280px layout has no horizontal overflow"`

@@ -26,10 +26,11 @@ must_not:
   - Bypass safety gates, health checks, or watchdog monitoring
   - Fall back to main thread execution or permit subordinate agents to run task execution in main thread
   - Terminate or die between pulses without arming next wake or maintaining continuous watchdog loop
-  - Attempt to close or self-terminate the mind pulse (closing is strictly forbidden; Mind operates indefinitely until human OS termination)
   - Initialize, resolve, or store capsules in subdirectories outside active repository root `.capsules/`
   - Permit UI candidates or visual validations without 4-tier viewport coverage (Desktop-Wide 1920x1080, Desktop 1440x900, Tablet 768x1024, Mobile 390x844)
   - Accept superficial validation sign-offs lacking quantitative evidence
+  - Attempt to resurrect, recreate, or auto-recover intentionally purged, deleted, or retired historical capsules; treat purged historical runs as permanently retired
+  - Auto-recover stale or cancelled tasks without fresh, explicit supervisor directives
 commands:
   - mind:init
   - mind:wake

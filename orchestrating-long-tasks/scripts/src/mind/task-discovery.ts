@@ -18,6 +18,7 @@ export type DiscoveryCategory =
   | "CODE_QUALITY"
   | "TEST_COVERAGE"
   | "DORMANT_CRITERIA"
+  | "COGNITIVE_GAP"
   | "FEEDBACK_INTAKE"
   | "BLUNDER_REMEDIATION"
   | "ARCHITECTURAL_HEALTH"
@@ -91,6 +92,38 @@ export interface TestCoverageScanResult {
   readonly durationMs: number;
 }
 
+export type CognitiveIssueType =
+  | "COGNITIVE_COMPLEXITY"
+  | "COGNITIVE_CHUNKING_OVERLOAD"
+  | "UNHANDLED_BOUNDARY"
+  | "UNBOUNDED_COLLECTION"
+  | "MISSING_ERROR_RECOVERY"
+  | "ASYNC_UNCAUGHT_BOUNDARY";
+
+export interface CognitiveGapFinding {
+  readonly file: string;
+  readonly line?: number | undefined;
+  readonly issueType: CognitiveIssueType;
+  readonly description: string;
+  readonly snippet?: string | undefined;
+  readonly severity: DiscoverySeverity;
+  readonly suggestedRemediation: string;
+}
+
+export interface CognitiveGapScanOptions {
+  readonly sourceRoots?: readonly string[] | undefined;
+  readonly maxFindings?: number | undefined;
+  readonly fileExtensions?: readonly string[] | undefined;
+  readonly excludePatterns?: readonly string[] | undefined;
+}
+
+export interface CognitiveGapScanResult {
+  readonly findings: readonly CognitiveGapFinding[];
+  readonly filesScanned: number;
+  readonly totalFindings: number;
+  readonly durationMs: number;
+}
+
 export interface DormantCriteriaFinding {
   readonly criteriaId: string;
   readonly source: "charter_goal" | "charter_stability" | "prompt_requirement" | "unverified_backlog";
@@ -112,6 +145,23 @@ export interface DormantCriteriaScanResult {
   readonly goalsCheckedCount: number;
   readonly dormantCount: number;
   readonly durationMs: number;
+}
+
+export interface CandidateEvolutionProposal {
+  readonly id: string;
+  readonly kind: "proposal" | "defect";
+  readonly title: string;
+  readonly statement: string;
+  readonly rationale: string;
+  readonly targetFiles: readonly string[];
+  readonly writeScope: readonly string[];
+  readonly gate: string;
+  readonly charterGoals: readonly string[];
+  readonly acceptanceCriteria: readonly string[];
+  readonly priority: TaskPriority;
+  readonly sourceType: TaskSourceType;
+  readonly estimatedEffort?: "SMALL" | "MEDIUM" | "LARGE" | undefined;
+  readonly cognitiveDimension?: string | undefined;
 }
 
 export interface DiscoveryItem {
@@ -165,6 +215,7 @@ export interface TaskDiscoveryOptions {
   readonly maxTasks?: number | undefined;
   readonly enableCodeQualityScan?: boolean | undefined;
   readonly enableTestCoverageScan?: boolean | undefined;
+  readonly enableCognitiveGapScan?: boolean | undefined;
   readonly enableDormantCriteriaScan?: boolean | undefined;
   readonly enableFeedbackQueueScan?: boolean | undefined;
   readonly enableBlunderScan?: boolean | undefined;
@@ -177,17 +228,20 @@ export interface TaskDiscoveryResult {
   readonly findings: {
     readonly codeQuality: readonly CodeQualityFinding[];
     readonly testCoverage: readonly TestCoverageFinding[];
+    readonly cognitiveGaps: readonly CognitiveGapFinding[];
     readonly dormantCriteria: readonly DormantCriteriaFinding[];
     readonly feedbackPending: readonly FeedbackItem[];
     readonly openBlunders: readonly BlunderEntry[];
   };
   readonly discoveries: readonly DiscoveryItem[];
+  readonly candidateProposals: readonly CandidateEvolutionProposal[];
   readonly synthesizedPlans: readonly DiscoveredTaskPlan[];
   readonly enqueuedTasks: readonly TaskQueueItem[];
   readonly stats: {
     readonly totalFindings: number;
     readonly codeQualityCount: number;
     readonly testCoverageCount: number;
+    readonly cognitiveGapCount: number;
     readonly dormantCriteriaCount: number;
     readonly feedbackCount: number;
     readonly blunderCount: number;
@@ -272,9 +326,10 @@ function collectFilesRecursively(
  */
 export function scanCodeQuality(options: CodeQualityScanOptions = {}): CodeQualityScanResult {
   const startTime = Date.now();
-  const roots = options.sourceRoots && options.sourceRoots.length > 0
-    ? options.sourceRoots
-    : ["orchestrating-long-tasks/scripts/src"];
+  const roots =
+    options.sourceRoots && options.sourceRoots.length > 0
+      ? options.sourceRoots
+      : ["orchestrating-long-tasks/scripts/src"];
   const extensions = options.fileExtensions ?? DEFAULT_SOURCE_EXTENSIONS;
   const excludes = options.excludePatterns ?? DEFAULT_EXCLUDE_PATTERNS;
   const maxLineThreshold = options.maxLineThreshold ?? 800;
@@ -393,12 +448,14 @@ export function scanCodeQuality(options: CodeQualityScanOptions = {}): CodeQuali
  */
 export function scanTestCoverage(options: TestCoverageScanOptions = {}): TestCoverageScanResult {
   const startTime = Date.now();
-  const sourceRoots = options.sourceRoots && options.sourceRoots.length > 0
-    ? options.sourceRoots
-    : ["orchestrating-long-tasks/scripts/src"];
-  const testRoots = options.testRoots && options.testRoots.length > 0
-    ? options.testRoots
-    : ["tests/unit"];
+  const sourceRoots =
+    options.sourceRoots && options.sourceRoots.length > 0
+      ? options.sourceRoots
+      : ["orchestrating-long-tasks/scripts/src"];
+  const testRoots =
+    options.testRoots && options.testRoots.length > 0
+      ? options.testRoots
+      : ["tests/unit"];
   const extensions = options.fileExtensions ?? DEFAULT_SOURCE_EXTENSIONS;
   const excludes = options.excludePatterns ?? DEFAULT_EXCLUDE_PATTERNS;
   const maxFindings = options.maxFindings ?? 50;
@@ -493,6 +550,111 @@ export function scanTestCoverage(options: TestCoverageScanOptions = {}): TestCov
     testFilesScanned: testFiles.length,
     missingTestCount,
     skippedTestCount,
+    durationMs: Date.now() - startTime,
+  };
+}
+
+/**
+ * Scans codebase files for cognitive complexity and architectural gap issues:
+ * - Deeply nested logic blocks exceeding indentation thresholds
+ * - Cognitive parameter overloading (> 5 positional parameters)
+ * - Unhandled raw JSON parses lacking try/catch protection
+ * - Uncaught promise chains or missing recovery paths
+ */
+export function scanCognitiveGaps(options: CognitiveGapScanOptions = {}): CognitiveGapScanResult {
+  const startTime = Date.now();
+  const roots =
+    options.sourceRoots && options.sourceRoots.length > 0
+      ? options.sourceRoots
+      : ["orchestrating-long-tasks/scripts/src"];
+  const extensions = options.fileExtensions ?? DEFAULT_SOURCE_EXTENSIONS;
+  const excludes = options.excludePatterns ?? DEFAULT_EXCLUDE_PATTERNS;
+  const maxFindings = options.maxFindings ?? 50;
+
+  const allFiles: string[] = [];
+  for (const root of roots) {
+    const resolvedRoot = resolve(root);
+    collectFilesRecursively(resolvedRoot, resolvedRoot, extensions, excludes, allFiles);
+  }
+
+  const findings: CognitiveGapFinding[] = [];
+
+  for (const file of allFiles) {
+    if (findings.length >= maxFindings) break;
+
+    try {
+      const content = readFileSync(file, "utf8");
+      const lines = content.split("\n");
+
+      for (let i = 0; i < lines.length; i++) {
+        if (findings.length >= maxFindings) break;
+        const line = lines[i];
+        if (!line) continue;
+        const lineNum = i + 1;
+        const trimmed = line.trim();
+
+        // Check 1: Deep nesting (> 16 leading spaces or > 4 tabs) indicating cognitive overload
+        const leadingSpaces = line.search(/\S/);
+        if (leadingSpaces >= 20 && !trimmed.startsWith("//") && !trimmed.startsWith("*")) {
+          findings.push({
+            file,
+            line: lineNum,
+            issueType: "COGNITIVE_COMPLEXITY",
+            description: `Excessive nesting depth (${leadingSpaces} spaces) on line ${lineNum}: "${trimmed.slice(0, 50)}"`,
+            snippet: trimmed,
+            severity: "MEDIUM",
+            suggestedRemediation: "Extract deeply nested conditionals or loops into focused helper functions.",
+          });
+        }
+
+        // Check 2: Cognitive Chunking Overload - Function definition with > 5 parameters
+        if (
+          /function\s+\w+\s*\([^)]*,[^)]*,[^)]*,[^)]*,[^)]*,[^)]*\)/.test(line) ||
+          /\(\s*\w+:[^,]+,\s*\w+:[^,]+,\s*\w+:[^,]+,\s*\w+:[^,]+,\s*\w+:[^,]+,\s*\w+:[^)]*\)\s*=>/.test(
+            line,
+          )
+        ) {
+          findings.push({
+            file,
+            line: lineNum,
+            issueType: "COGNITIVE_CHUNKING_OVERLOAD",
+            description: `Function exceeds Cowan/Miller chunking capacity with >5 positional parameters on line ${lineNum}`,
+            snippet: trimmed,
+            severity: "MEDIUM",
+            suggestedRemediation: "Consolidate parameters into a structured options interface object.",
+          });
+        }
+
+        // Check 3: Raw JSON.parse without safe parser wrapper or try-catch context in immediate vicinity
+        if (
+          trimmed.includes("JSON.parse(") &&
+          !trimmed.startsWith("//") &&
+          !content.slice(Math.max(0, content.indexOf(line) - 150), content.indexOf(line)).includes("try {")
+        ) {
+          // Check if try-catch is on adjacent lines
+          const priorLines = lines.slice(Math.max(0, i - 3), i).join(" ");
+          if (!priorLines.includes("try")) {
+            findings.push({
+              file,
+              line: lineNum,
+              issueType: "UNHANDLED_BOUNDARY",
+              description: `Unprotected JSON.parse boundary on line ${lineNum}: "${trimmed.slice(0, 50)}"`,
+              snippet: trimmed,
+              severity: "HIGH",
+              suggestedRemediation: "Wrap JSON.parse in try/catch or use a resilient parsing utility.",
+            });
+          }
+        }
+      }
+    } catch {
+      // Skip unreadable files gracefully
+    }
+  }
+
+  return {
+    findings,
+    filesScanned: allFiles.length,
+    totalFindings: findings.length,
     durationMs: Date.now() - startTime,
   };
 }
@@ -629,6 +791,102 @@ function mapFeedbackPriorityToTaskPriority(p: FeedbackPriority): TaskPriority {
 }
 
 /**
+ * Proposes structured candidate evolutions from discovered system gaps.
+ */
+export function proposeCandidateEvolutions(findings: {
+  readonly codeQuality?: readonly CodeQualityFinding[] | undefined;
+  readonly testCoverage?: readonly TestCoverageFinding[] | undefined;
+  readonly cognitiveGaps?: readonly CognitiveGapFinding[] | undefined;
+  readonly dormantCriteria?: readonly DormantCriteriaFinding[] | undefined;
+  readonly feedbackPending?: readonly FeedbackItem[] | undefined;
+  readonly openBlunders?: readonly BlunderEntry[] | undefined;
+}): readonly CandidateEvolutionProposal[] {
+  const proposals: CandidateEvolutionProposal[] = [];
+
+  // 1. Propose from cognitive gaps
+  if (findings.cognitiveGaps) {
+    for (const cg of findings.cognitiveGaps) {
+      const fileBase = basename(cg.file, extname(cg.file));
+      const slug = `${sanitizeSlug(fileBase)}-${sanitizeSlug(cg.issueType)}`;
+      proposals.push({
+        id: `cand-evo-cog-${slug}`,
+        kind: "proposal",
+        title: `Cognitive Gap: Remediate ${cg.issueType} in ${basename(cg.file)}`,
+        statement: cg.description,
+        rationale: `Cognitive ergonomics and readability: ${cg.suggestedRemediation}`,
+        targetFiles: [cg.file],
+        writeScope: [cg.file],
+        gate: "bun test tests/unit/mind && bun run typecheck",
+        charterGoals: ["G1", "G2"],
+        acceptanceCriteria: [
+          cg.suggestedRemediation,
+          `Ensure cognitive complexity reduction in ${basename(cg.file)}`,
+        ],
+        priority: mapPriority(cg.severity),
+        sourceType: "self_evolution",
+        estimatedEffort: cg.severity === "HIGH" ? "MEDIUM" : "SMALL",
+        cognitiveDimension: cg.issueType,
+      });
+    }
+  }
+
+  // 2. Propose from feedback items
+  if (findings.feedbackPending) {
+    for (const fb of findings.feedbackPending) {
+      const slug = sanitizeSlug(fb.id);
+      proposals.push({
+        id: `cand-evo-fb-${slug}`,
+        kind: "proposal",
+        title: fb.title,
+        statement: fb.title,
+        rationale: fb.content || fb.title,
+        targetFiles: [`orchestrating-long-tasks/scripts/src/mind/${slug}.ts`],
+        writeScope: [
+          `orchestrating-long-tasks/scripts/src/mind/${slug}.ts`,
+          `tests/unit/mind/${slug}.test.ts`,
+        ],
+        gate: `bun test tests/unit/mind/${slug}.test.ts && bun run typecheck`,
+        charterGoals: ["G1"],
+        acceptanceCriteria: [
+          `Fulfill feedback requirement: ${fb.title}`,
+          "0 any and 0 compiler suppressions",
+        ],
+        priority: mapFeedbackPriorityToTaskPriority(fb.priority),
+        sourceType: "feedback_intake",
+        estimatedEffort: "MEDIUM",
+      });
+    }
+  }
+
+  // 3. Propose from blunders
+  if (findings.openBlunders) {
+    for (const bl of findings.openBlunders) {
+      const slug = sanitizeSlug(bl.id);
+      proposals.push({
+        id: `cand-evo-blunder-${slug}`,
+        kind: "defect",
+        title: `Remediate Blunder: ${bl.observation.slice(0, 50)}`,
+        statement: bl.observation,
+        rationale: bl.remediation || "Fix root cause of blunder with regression immunity",
+        targetFiles: ["orchestrating-long-tasks/scripts/src/mind/"],
+        writeScope: ["orchestrating-long-tasks/scripts/src/mind/", "tests/unit/mind/"],
+        gate: "bun test tests/unit/mind && bun run typecheck",
+        charterGoals: ["G2"],
+        acceptanceCriteria: [
+          `Resolve open blunder ${bl.id}`,
+          "Verify regression immunity with automated test",
+        ],
+        priority: "CRITICAL",
+        sourceType: "blunder_remediation",
+        estimatedEffort: "LARGE",
+      });
+    }
+  }
+
+  return proposals;
+}
+
+/**
  * Synthesizes a structured DiscoveredTaskPlan from a generic DiscoveryItem.
  * Strictly guarantees Anti-Batching rules and 1:1 implementer-validator separation.
  */
@@ -688,8 +946,35 @@ export function synthesizeTaskFromDiscovery(
 }
 
 /**
+ * Formats a concise markdown brief of discovery results conforming to line limits.
+ */
+export function formatTaskDiscoveryBrief(result: TaskDiscoveryResult): string {
+  const lines: string[] = [
+    `### Mind Cognitive Task Discovery: ${result.stats.totalFindings} Finding(s)`,
+    `- **Scanned At**: \`${result.scannedAt}\``,
+    `- **Code Quality**: ${result.stats.codeQualityCount} finding(s)`,
+    `- **Test Coverage**: ${result.stats.testCoverageCount} gap(s)`,
+    `- **Cognitive Gaps**: ${result.stats.cognitiveGapCount} gap(s)`,
+    `- **Dormant Criteria**: ${result.stats.dormantCriteriaCount} goal(s)`,
+    `- **Pending Feedback**: ${result.stats.feedbackCount} item(s)`,
+    `- **Open Blunders**: ${result.stats.blunderCount} item(s)`,
+    `- **Synthesized Plans**: ${result.synthesizedPlans.length} task(s)`,
+    `- **Auto-Enqueued**: ${result.enqueuedTasks.length} task(s)`,
+  ];
+
+  if (result.synthesizedPlans.length > 0) {
+    lines.push("", "#### Synthesized Tasks:");
+    for (const plan of result.synthesizedPlans.slice(0, 5)) {
+      lines.push(`- **${plan.id}** [${plan.priority}]: ${plan.label}`);
+    }
+  }
+
+  return lines.join("\n");
+}
+
+/**
  * Main Autonomous Mind Task Discovery Engine.
- * Scans code quality, test coverage, dormant criteria, pending feedback, and blunder logs
+ * Scans code quality, test coverage, cognitive gaps, dormant criteria, pending feedback, and blunder logs
  * to synthesize actionable, anti-batched self-evolution tasks for idle Mind loops.
  */
 export function discoverTasks(options: TaskDiscoveryOptions = {}): TaskDiscoveryResult {
@@ -726,7 +1011,16 @@ export function discoverTasks(options: TaskDiscoveryOptions = {}): TaskDiscovery
           durationMs: 0,
         };
 
-  // Step 3: Scan Dormant Criteria
+  // Step 3: Scan Cognitive Gaps
+  const cognitiveGapResult =
+    options.enableCognitiveGapScan !== false
+      ? scanCognitiveGaps({
+          sourceRoots: options.sourceRoots,
+          maxFindings: 10,
+        })
+      : { findings: [], filesScanned: 0, totalFindings: 0, durationMs: 0 };
+
+  // Step 4: Scan Dormant Criteria
   const dormantCriteriaResult =
     options.enableDormantCriteriaScan !== false
       ? scanDormantCriteria({
@@ -737,13 +1031,13 @@ export function discoverTasks(options: TaskDiscoveryOptions = {}): TaskDiscovery
         })
       : { findings: [], goalsCheckedCount: 0, dormantCount: 0, durationMs: 0 };
 
-  // Step 4: Scan Pending Feedback Items
+  // Step 5: Scan Pending Feedback Items
   const pendingFeedback =
     options.enableFeedbackQueueScan !== false
       ? readFeedbackQueue(options.feedbackQueuePath).filter((f) => f.status === "PENDING")
       : [];
 
-  // Step 5: Scan Open Blunders
+  // Step 6: Scan Open Blunders
   const openBlunders =
     options.enableBlunderScan !== false
       ? auditBlunderLog(options.capsulesDir ? [options.capsulesDir] : [".capsules/"]).blunders.filter(
@@ -803,6 +1097,36 @@ export function discoverTasks(options: TaskDiscoveryOptions = {}): TaskDiscovery
       sourceType: "blunder_remediation",
       sourceReference: bl.id,
       metadata: { blunder_id: bl.id, category: bl.category },
+    });
+  }
+
+  // Transform Cognitive Gaps into Discoveries
+  for (const cg of cognitiveGapResult.findings) {
+    const fileBase = basename(cg.file, extname(cg.file));
+    const slug = `${sanitizeSlug(fileBase)}-${sanitizeSlug(cg.issueType)}`;
+    const relFile = relative(process.cwd(), cg.file);
+    const testFile = relFile.startsWith("orchestrating-long-tasks/")
+      ? `tests/unit/${relFile.replace("orchestrating-long-tasks/scripts/src/", "").replace(/\.ts$/, ".test.ts")}`
+      : `tests/unit/${fileBase}.test.ts`;
+
+    rawDiscoveries.push({
+      id: `cog-${slug}`,
+      category: "COGNITIVE_GAP",
+      title: `Cognitive Gap: Remediate ${cg.issueType} in ${basename(cg.file)}`,
+      description: cg.description,
+      priority: mapPriority(cg.severity),
+      targetFiles: [cg.file],
+      writeScope: [cg.file, testFile],
+      gate: `bun test ${testFile} && bun run typecheck`,
+      charterGoals: ["G1", "G2"],
+      acceptanceCriteria: [
+        cg.suggestedRemediation,
+        `Ensure reduced cognitive complexity and strict verification in ${basename(cg.file)}`,
+      ],
+      remediation: cg.suggestedRemediation,
+      sourceType: "self_evolution",
+      sourceReference: `${cg.file}:${cg.line ?? 1}`,
+      metadata: { issue_type: cg.issueType, line: cg.line },
     });
   }
 
@@ -892,6 +1216,16 @@ export function discoverTasks(options: TaskDiscoveryOptions = {}): TaskDiscovery
     });
   }
 
+  // Propose Candidate Evolutions
+  const candidateProposals = proposeCandidateEvolutions({
+    codeQuality: codeQualityResult.findings,
+    testCoverage: testCoverageResult.findings,
+    cognitiveGaps: cognitiveGapResult.findings,
+    dormantCriteria: dormantCriteriaResult.findings,
+    feedbackPending: pendingFeedback,
+    openBlunders,
+  });
+
   // Deduplicate and synthesize plans
   const synthesizedPlans: DiscoveredTaskPlan[] = [];
   let planIndex = 1;
@@ -964,28 +1298,32 @@ export function discoverTasks(options: TaskDiscoveryOptions = {}): TaskDiscovery
     codeQualityResult.totalFindings +
     testCoverageResult.missingTestCount +
     testCoverageResult.skippedTestCount +
+    cognitiveGapResult.totalFindings +
     dormantCriteriaResult.dormantCount +
     pendingFeedback.length +
     openBlunders.length;
 
-  const summary = `Mind Task Discovery: identified ${totalFindings} finding(s) across code quality (${codeQualityResult.totalFindings}), test coverage (${testCoverageResult.missingTestCount} missing), dormant criteria (${dormantCriteriaResult.dormantCount}), feedback (${pendingFeedback.length}), and blunders (${openBlunders.length}). Synthesized ${synthesizedPlans.length} actionable task(s).`;
+  const summary = `Mind Task Discovery: identified ${totalFindings} finding(s) across code quality (${codeQualityResult.totalFindings}), test coverage (${testCoverageResult.missingTestCount} missing), cognitive gaps (${cognitiveGapResult.totalFindings}), dormant criteria (${dormantCriteriaResult.dormantCount}), feedback (${pendingFeedback.length}), and blunders (${openBlunders.length}). Synthesized ${synthesizedPlans.length} actionable task(s).`;
 
   return {
     scannedAt: nowIso,
     findings: {
       codeQuality: codeQualityResult.findings,
       testCoverage: testCoverageResult.findings,
+      cognitiveGaps: cognitiveGapResult.findings,
       dormantCriteria: dormantCriteriaResult.findings,
       feedbackPending: pendingFeedback,
       openBlunders,
     },
     discoveries: rawDiscoveries,
+    candidateProposals,
     synthesizedPlans,
     enqueuedTasks,
     stats: {
       totalFindings,
       codeQualityCount: codeQualityResult.totalFindings,
       testCoverageCount: testCoverageResult.missingTestCount + testCoverageResult.skippedTestCount,
+      cognitiveGapCount: cognitiveGapResult.totalFindings,
       dormantCriteriaCount: dormantCriteriaResult.dormantCount,
       feedbackCount: pendingFeedback.length,
       blunderCount: openBlunders.length,

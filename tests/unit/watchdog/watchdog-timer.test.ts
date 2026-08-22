@@ -5,9 +5,12 @@ import {
   AutonomicWatchdog,
   BootGateEnforcer,
   DEFAULT_HEALTH_AUDIT_INTERVAL_MS,
+  DEFAULT_PROCESS_HEALTH_CHECK_INTERVAL_MS,
   DEFAULT_WATCHDOG_HEARTBEAT_INTERVAL_MS,
   DEFAULT_WATCHDOG_TIMEOUT_MS,
   MANDATORY_BOOT_GATES,
+  type LiveCliProof,
+  type ProcessHealthStatus,
   type WatchdogEvent,
   type WatchdogFinding,
   type WatchdogHealthAuditReport,
@@ -33,9 +36,11 @@ describe("Autonomic Watchdog 3-Minute Heartbeat Loop (p47)", () => {
     expect(watchdog.heartbeatIntervalMs).toBe(180_000);
     expect(watchdog.timeoutMs).toBe(360_000);
     expect(watchdog.healthAuditIntervalMs).toBe(180_000);
+    expect(watchdog.processHealthCheckIntervalMs).toBe(60_000);
     expect(DEFAULT_WATCHDOG_HEARTBEAT_INTERVAL_MS).toBe(180_000);
     expect(DEFAULT_WATCHDOG_TIMEOUT_MS).toBe(360_000);
     expect(DEFAULT_HEALTH_AUDIT_INTERVAL_MS).toBe(180_000);
+    expect(DEFAULT_PROCESS_HEALTH_CHECK_INTERVAL_MS).toBe(60_000);
     expect(MANDATORY_BOOT_GATES).toEqual(["whoami", "doctor"]);
   });
 
@@ -275,6 +280,173 @@ describe("Mandatory Subagent Pre-Flight Boot Gates (whoami & doctor)", () => {
     expect(findings[0]?.violationType).toBe("boot_gate_missing");
     expect(findings[0]?.severity).toBe("critical");
     expect(findings[0]?.observation).toContain("missing [whoami, doctor]");
+  });
+});
+
+describe("Watchdog Live CLI Integration & Process Health Auditing (p56)", () => {
+  it("captures, verifies, and validates live CLI command proofs for boot gates", () => {
+    const enforcer = new BootGateEnforcer();
+    enforcer.registerSpawnedSubagent({
+      agentId: "impl-live-cli",
+      role: "implementer",
+      taskId: "task-p56",
+      pid: 45678,
+    });
+
+    const whoamiProof: LiveCliProof = {
+      gate: "whoami",
+      actor: "impl-live-cli",
+      argv: ["bun", "harness.ts", "whoami", "--run", ".capsules/run-01"],
+      exitCode: 0,
+      executedAt: "2026-08-22T05:00:00.000Z",
+      pid: 45678,
+      fingerprint: "fp-whoami-01",
+      verified: true,
+    };
+
+    enforcer.recordCliProof(whoamiProof);
+    let record = enforcer.getRecord("impl-live-cli");
+    expect(record?.whoamiExecuted).toBe(true);
+    expect(record?.whoamiProof?.verified).toBe(true);
+    expect(record?.whoamiProof?.fingerprint).toBe("fp-whoami-01");
+    expect(record?.doctorExecuted).toBe(false);
+
+    // Record doctor proof with exitCode 0
+    const doctorProof: LiveCliProof = {
+      gate: "doctor",
+      actor: "impl-live-cli",
+      argv: ["bun", "harness.ts", "doctor", "--run", ".capsules/run-01"],
+      exitCode: 0,
+      executedAt: "2026-08-22T05:00:05.000Z",
+      pid: 45678,
+      fingerprint: "fp-doctor-01",
+      verified: true,
+    };
+
+    enforcer.recordCliProof(doctorProof);
+    record = enforcer.getRecord("impl-live-cli");
+    expect(record?.doctorExecuted).toBe(true);
+    expect(record?.doctorProof?.verified).toBe(true);
+    expect(record?.bootGatePassed).toBe(true);
+
+    const verification = enforcer.verifyBootGates("impl-live-cli", true);
+    expect(verification.passed).toBe(true);
+    expect(verification.proofs?.whoami?.verified).toBe(true);
+    expect(verification.proofs?.doctor?.verified).toBe(true);
+  });
+
+  it("rejects failed / unverified CLI proofs and flags invalid_boot_gate_proof findings", () => {
+    const enforcer = new BootGateEnforcer();
+    enforcer.registerSpawnedSubagent({
+      agentId: "impl-failing-cli",
+      role: "implementer",
+    });
+
+    // Failing doctor proof with non-zero exit
+    const failedDoctorProof: LiveCliProof = {
+      gate: "doctor",
+      actor: "impl-failing-cli",
+      argv: ["bun", "harness.ts", "doctor"],
+      exitCode: 1,
+      executedAt: "2026-08-22T05:00:00.000Z",
+      verified: false,
+      failureReason: "Doctor detected role contamination",
+    };
+
+    enforcer.recordCliProof(failedDoctorProof);
+    const record = enforcer.getRecord("impl-failing-cli");
+    expect(record?.doctorExecuted).toBe(false);
+    expect(record?.doctorProof?.verified).toBe(false);
+
+    const findings = enforcer.auditFindings();
+    expect(findings.length).toBe(1);
+    expect(findings[0]?.violationType).toBe("invalid_boot_gate_proof");
+    expect(findings[0]?.severity).toBe("critical");
+
+    expect(() =>
+      enforcer.assertBootGatesPassed("impl-failing-cli", "running gate", true),
+    ).toThrow(HarnessError);
+  });
+
+  it("audits live process health and detects dead or terminated worker processes", async () => {
+    const livePids = new Set<number>([1111, 2222]);
+    const mockLivenessChecker = (pid: number) => livePids.has(pid);
+
+    const watchdog = new AutonomicWatchdog({
+      processLivenessChecker: mockLivenessChecker,
+    });
+
+    const now = 1700000000000;
+    // Register active worker with live PID 1111
+    watchdog.registerSubagent(
+      {
+        agentId: "impl-live-worker",
+        role: "implementer",
+        pid: 1111,
+      },
+      now,
+    );
+    watchdog.recordWhoami("impl-live-worker", now);
+    watchdog.recordDoctor("impl-live-worker", now);
+
+    // Register worker with dead PID 3333
+    watchdog.registerSubagent(
+      {
+        agentId: "impl-dead-worker",
+        role: "implementer",
+        pid: 3333,
+      },
+      now,
+    );
+    watchdog.recordWhoami("impl-dead-worker", now);
+    watchdog.recordDoctor("impl-dead-worker", now);
+
+    const procFailureEvents: WatchdogEvent[] = [];
+    watchdog.on("process_failure_detected", (e) => procFailureEvents.push(e));
+
+    const audit = await watchdog.runHealthAudit(now);
+    expect(audit.healthy).toBe(false);
+    expect(audit.deadProcessesCount).toBe(1);
+    expect(procFailureEvents.length).toBe(1);
+    expect(procFailureEvents[0]?.type).toBe("process_failure_detected");
+    if (procFailureEvents[0]?.type === "process_failure_detected") {
+      expect(procFailureEvents[0].agentId).toBe("impl-dead-worker");
+      expect(procFailureEvents[0].pid).toBe(3333);
+      expect(procFailureEvents[0].finding.violationType).toBe("process_health_failure");
+    }
+
+    const healthList = watchdog.auditProcessHealth(now);
+    expect(healthList.length).toBe(2);
+    const liveStatus = healthList.find((h) => h.pid === 1111);
+    const deadStatus = healthList.find((h) => h.pid === 3333);
+    expect(liveStatus?.alive).toBe(true);
+    expect(deadStatus?.alive).toBe(false);
+  });
+
+  it("renders clean ASCII tables and formatted CLI status reports", async () => {
+    const watchdog = new AutonomicWatchdog();
+    const now = 1700000000000;
+
+    watchdog.registerSubagent(
+      {
+        agentId: "impl-cli-render-01",
+        role: "implementer",
+        pid: process.pid,
+      },
+      now,
+    );
+    watchdog.recordWhoami("impl-cli-render-01", now);
+    watchdog.recordDoctor("impl-cli-render-01", now);
+
+    const table = watchdog.getBootGateEnforcer().renderAsciiBootGateTable();
+    expect(table).toContain("impl-cli-render-01");
+    expect(table).toContain("PASS ✅");
+    expect(table).toContain("READY ✅");
+
+    const cliReport = await watchdog.renderCliStatusReport(now);
+    expect(cliReport).toContain("### Autonomic Watchdog Status & Boot-Gate Enforcer");
+    expect(cliReport).toContain("HEALTHY ✅");
+    expect(cliReport).toContain("impl-cli-render-01");
   });
 });
 
@@ -532,7 +704,7 @@ describe("DOCTOR_SUPERVISOR_CODE_CONTAMINATION Doctor Check Enforcement", () => 
   });
 });
 
-describe("Invariants & Cleanliness Audit - Autonomic Watchdog (p47)", () => {
+describe("Invariants & Cleanliness Audit - Autonomic Watchdog (p47 & p56)", () => {
   it("zero TypeScript any and zero suppressions across all watchdog files", () => {
     const watchdogDir = join(
       __dirname,

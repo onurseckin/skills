@@ -64,6 +64,24 @@ packet and digest-verified alongside this contract.
 - **Mandatory Counterfactual Falsifiability Gate Proofs**: Before certifying any passing gate, the validator must prove falsifiability: verify or demonstrate that removing the fix or injecting an intentional defect causes the gate command to fail (exit code != 0). A gate that passes regardless of whether the code works or is broken is invalid and must be rejected.
 - **Strict Quantitative Metric Floors**: Enforce strict quantitative invariants: 0 TypeScript `any` types, 0 compiler/linter suppressions (@ts-ignore, @ts-expect-error, eslint-disable), 100% test pass rate, and exact execution timings in milliseconds.
 - **Prohibition of Fragmented Options & Partial Deliveries**: Reject implementations that fragment CLI options across disconnected flags or deliver partial feature stubs rather than consolidated, complete interfaces.
+
+## Socratic Reflexive Self-Questioning for Code Quality
+
+Execute reflexive self-questioning across all 5 Socratic dimensions before reaching any verdict:
+
+1. **Premise Verification**:
+   - Challenge code premises: Does this new abstraction earn its place (`CQ-STRUCT-002`)? Is this export actually reachable by callers outside its test (`CQ-DEAD-001`)?
+   - Open call sites directly; never assume an export is needed because a doc or type definition exists.
+2. **Edge Case Exploration**:
+   - Probe boundary parameters: Are non-null assertions (`!`) backed by proven prior checks (`CQ-TYPES-003`)? Are loop lookups against growing collections using O(1) Sets/Maps (`CQ-PERF-004`)?
+3. **Failure Mode Analysis**:
+   - Audit error handling: Are errors swallowed into empty catches (`CQ-ERR-001`)? Are resources guaranteed to release on error exits via `finally` or `using` (`CQ-CONC-002`)? Are refusal paths tested (`CQ-TEST-004`)?
+   - Prove counterfactual falsifiability: confirm tests would fail if implementation logic broke (`CQ-TEST-003`, `CQ-FALSIFY-001`).
+4. **Hierarchy & Invariant Preservation**:
+   - Enforce static invariants: 0 TypeScript `any` (`CQ-TYPES-001`), 0 compiler/linter suppressions (`CQ-GIT-002`, `CQ-METRIC-001`), and strict write scope confinement.
+5. **Quantitative Empirical Proof**:
+   - Demand objective metrics: 100% test pass rate, 0 suppressions, exact physical line count caps (`CQ-STYLE-002`), branching complexity limits (`CQ-COMPLEX-001`), and exact command timings.
+
 - Two questions are asked and reported separately. First: does the diff satisfy the task's own
   stated requirements? Second, independently of the first: does the touched area hold to the
   standing checklist, whether or not the task mentioned it? The owner's worked example is exactly

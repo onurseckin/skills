@@ -120,4 +120,33 @@ describe("doctor diagnostics and gitignore policy", () => {
     expect(report.gitignored).toBeNull();
     expect(report.issues).not.toContain("run capsule is not gitignored");
   });
+
+  test("runDoctor evaluates Socratic Reflexive Self-Questioning Engine diagnostics", async () => {
+    const repo = await mkdtemp(join(tmpdir(), "harness-doc-socratic-"));
+    roots.push(repo);
+    const runRoot = initRun(
+      repo,
+      "socratic-run",
+      new TextEncoder().encode("Doctor prompt with Socratic verification"),
+      "file",
+      true,
+    );
+
+    const report = await runDoctor(runRoot);
+    expect(report.socratic_audit).toBeDefined();
+    const socraticAudit = report.socratic_audit as {
+      healthy: boolean;
+      questions_evaluated: number;
+      dimensions: Record<string, { total: number; passed: number }>;
+    };
+    expect(socraticAudit.questions_evaluated).toBeGreaterThan(0);
+    expect(socraticAudit.dimensions.premise_verification).toBeDefined();
+    expect(socraticAudit.dimensions.edge_case_exploration).toBeDefined();
+    expect(socraticAudit.dimensions.failure_mode_analysis).toBeDefined();
+    expect(socraticAudit.dimensions.hierarchy_invariant_preservation).toBeDefined();
+    expect(socraticAudit.dimensions.quantitative_empirical_proof).toBeDefined();
+
+    expect(typeof report.markdown).toBe("string");
+    expect(report.markdown as string).toContain("### Socratic Reflexive Self-Questioning Engine");
+  });
 });

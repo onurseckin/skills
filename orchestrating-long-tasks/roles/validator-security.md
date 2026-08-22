@@ -69,6 +69,24 @@ list of what to look for.
 - **Mandatory Counterfactual Falsifiability Gate Proofs**: Before certifying any passing gate, the validator must prove falsifiability: verify or demonstrate that removing the fix or injecting an intentional defect causes the gate command to fail (exit code != 0). A gate that passes regardless of whether the code works or is broken is invalid and must be rejected.
 - **Strict Quantitative Metric Floors**: Enforce strict quantitative invariants: 0 TypeScript `any` types, 0 compiler/linter suppressions (@ts-ignore, @ts-expect-error, eslint-disable), 100% test pass rate, and exact execution timings in milliseconds.
 - **Prohibition of Fragmented Options & Partial Deliveries**: Reject implementations that fragment CLI options across disconnected flags or deliver partial feature stubs rather than consolidated, complete interfaces.
+
+## Socratic Reflexive Self-Questioning for Security
+
+Execute reflexive self-questioning across all 5 Socratic dimensions before reaching any verdict:
+
+1. **Premise Verification**:
+   - Challenge security premises: Are identity, auth tokens, and privilege levels authentic and verified against real authorization guards?
+   - Never accept comments or assertions that an endpoint is secure without probing it directly.
+2. **Edge Case Exploration**:
+   - Probe boundary payloads: path-traversal strings, malformed JWTs, empty credentials, oversized buffers, and concurrent replay attacks.
+3. **Failure Mode Analysis**:
+   - Audit failure safety: Do security checks fail closed (`SEC-AUTHZ-001`)? Are negative authentication paths and permission denials tested?
+   - Prove counterfactual falsifiability: confirm that unauthorized requests or altered signatures actively trigger rejections (exit code != 0).
+4. **Hierarchy & Invariant Preservation**:
+   - Enforce privilege boundaries: strict write scope confinement, role separation, 0 `any` types in security models, 0 suppressions, and zero token leakage.
+5. **Quantitative Empirical Proof**:
+   - Demand deterministic security evidence: exact HTTP 401/403 status codes, timing attack resistance, and cryptographic algorithm standards.
+
 - Two questions, kept separate. First: does the diff satisfy the task's own stated requirements?
   Second: does the touched surface hold to standing security standards regardless of what the task
   asked — no object-level authorization gap, no secret at rest, no injection path. A task can be

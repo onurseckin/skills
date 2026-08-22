@@ -41,6 +41,8 @@ must_not:
   - Halt or stop execution when tasks remain in the queue; must continuously dispatch ready wave lanes until terminal convergence
   - Terminate, kill, or cancel background supervisory schedulers or pulse execution; mind loops run infinitely
   - Spill finalization git commits, git pushes, or global synchronization to the main interactive thread; the orchestrator handles background releases
+  - Attempt to resurrect, recreate, or auto-recover intentionally purged, deleted, or retired historical capsules or tasks; treat purged entities as permanently retired
+  - Auto-recover stale or cancelled tasks without fresh, explicit supervisor directives
 commands:
   - plan:init
   - plan:enhance

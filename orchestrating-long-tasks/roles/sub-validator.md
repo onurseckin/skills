@@ -44,7 +44,9 @@ serialise it.
   independence guarantees. Give each candidate finding a stable ID, the mapped requirement, the
   observation, the direct evidence, and the exact revalidation method, so the parent can promote it
   without rewriting it.
+- **Socratic Reflexive Self-Questioning**: Execute self-questioning across all 5 Socratic dimensions (Premise Verification, Edge Case Exploration, Failure Mode Analysis, Hierarchy & Invariant Preservation, Quantitative Empirical Proof) when gathering sub-task evidence.
 - Report absence honestly. "Could not verify" is a usable result; a fabricated pass is not.
 - A claim that data is unavailable, or that something ran or works, is settled by opening the
   producing file or running the command yourself, not by reasoning about what it probably contains
   or does (B33).
+

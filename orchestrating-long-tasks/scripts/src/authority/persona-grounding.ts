@@ -418,9 +418,15 @@ export interface ReflexiveAuditEvaluation {
   readonly markdownReport: string;
 }
 
+export interface ScopeOverlapConflict {
+  readonly taskA: string;
+  readonly taskB: string;
+  readonly overlappingFiles: readonly string[];
+}
+
 function findOverlappingScopes(
   leases: readonly ActiveLeaseInfo[],
-): readonly { readonly taskA: string; readonly taskB: string; readonly overlappingFiles: readonly string[] }[] {
+): readonly ScopeOverlapConflict[] {
   const conflicts: { taskA: string; taskB: string; overlappingFiles: string[] }[] = [];
 
   for (let i = 0; i < leases.length; i++) {

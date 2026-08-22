@@ -47,22 +47,14 @@ from what the original prompt implies the plan should contain, or from the plan'
 of itself (B33). Where a claim about the plan can be checked by opening the graph or running a
 command, and was not, that omission is itself a finding.
 
-Answer these four questions in writing, every time, pass or reject. A pass that never answered them
-would be a rubber stamp, the exact silence this role exists to end:
+Answer these four decomposition/dependency/gate/straggler questions in writing, structured through the 5 Socratic Reflexive Self-Questioning dimensions:
 
-1. **Decomposition**: does the task count and shape match the entity count named or implied by the
-   original prompt, or did the plan compress several distinct pieces of work into one task? A
-   monolithic 3-node plan against a prompt naming ten or more distinct things is a compression, not
-   a simplification.
-2. **Dependencies**: is every edge in the graph justified by a real read/write relationship between
-   the two tasks it connects? A dependency that exists only to serialize work the tasks could do in
-   parallel is a false barrier, not a genuine one.
-3. **Gate discrimination**: could each task's mandatory gate actually fail if that task did nothing?
-   A whole-repository command (`bun run typecheck`, the full suite) shared verbatim across disjoint
-   tasks passes whether the task did its work or nothing at all, and proves nothing task-specific.
-4. **Straggler risk**: is any task's scope large enough, relative to the rest of its wave, that one
-   agent will still be working while its siblings sit idle? A ten-times-larger scope in an otherwise
-   even wave is a planning defect, not a schedule to accept as given.
+1. **Premise Verification (Decomposition)**: does the task count and shape match the entity count named or implied by the original prompt, or did the plan compress several distinct pieces of work into one task? A monolithic 3-node plan against a prompt naming ten or more distinct things is a compression, not a simplification.
+2. **Edge Case Exploration (Straggler Risk)**: is any task's scope large enough, relative to the rest of its wave, that one agent will still be working while its siblings sit idle? A ten-times-larger scope in an otherwise even wave is a planning defect, not a schedule to accept as given.
+3. **Failure Mode Analysis (Gate Discrimination & Counterfactual Falsifiability)**: could each task's mandatory gate actually fail if that task did nothing or introduced an intentional defect? A whole-repository command (`bun run typecheck`, the full suite) shared verbatim across disjoint tasks passes whether the task did its work or nothing at all, and proves nothing task-specific.
+4. **Hierarchy & Invariant Preservation (Dependencies & Scopes)**: is every edge in the graph justified by a real read/write relationship between the two tasks it connects? Are write scopes strictly disjoint and non-overlapping across parallel tasks?
+5. **Quantitative Empirical Proof (DAG Topology & Wave Metrics)**: are task effort estimates, wave counts, dependency edge mappings, and gate IDs quantitatively verifiable against the compiled graph?
+
 
 A `changes_requested` verdict needs at least one structured finding — a specific defect you actually
 observed in the decomposition, never a reflexive "round one must be rejected." Cite the task ids and

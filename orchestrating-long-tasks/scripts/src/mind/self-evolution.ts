@@ -10,6 +10,8 @@ import {
 } from "./interval.ts";
 import {
   discoverTasks,
+  proposeCandidateEvolutions,
+  type CandidateEvolutionProposal,
   type DiscoveredTaskPlan,
   type TaskDiscoveryOptions,
   type TaskDiscoveryResult,
@@ -124,6 +126,7 @@ export interface SelfEvolutionCycleResult {
   readonly mode: SelfEvolutionMode;
   readonly discoveriesCount: number;
   readonly synthesizedTasks: readonly DiscoveredTaskPlan[];
+  readonly candidateProposals: readonly CandidateEvolutionProposal[];
   readonly enqueuedTasks: readonly TaskQueueItem[];
   readonly admittedFeedbackIds: readonly string[];
   readonly cadenceState: SelfEvolutionCadenceState;
@@ -345,10 +348,36 @@ export function evaluatePerpetualCadence(params: {
 }
 
 /**
+ * Formats a concise markdown brief of self-evolution cycle execution.
+ */
+export function formatSelfEvolutionBrief(result: SelfEvolutionCycleResult): string {
+  const lines: string[] = [
+    `### Self-Evolution Cycle: ${result.cycleId}`,
+    `- **Mode**: \`${result.mode}\``,
+    `- **Generation**: ${result.generation} (Cycle ${result.cycleNumber})`,
+    `- **Synthesized Tasks**: ${result.synthesizedTasks.length}`,
+    `- **Candidate Proposals**: ${result.candidateProposals.length}`,
+    `- **Enqueued Tasks**: ${result.enqueuedTasks.length}`,
+    `- **Admitted Feedback**: ${result.admittedFeedbackIds.length}`,
+    `- **Duration**: ${result.durationMs}ms`,
+    `- **Next Recommended Command**: \`${result.nextRecommendedCommand}\``,
+  ];
+
+  if (result.synthesizedTasks.length > 0) {
+    lines.push("", "#### Synthesized Tasks:");
+    for (const task of result.synthesizedTasks.slice(0, 5)) {
+      lines.push(`- **${task.id}**: ${task.label}`);
+    }
+  }
+
+  return lines.join("\n");
+}
+
+/**
  * Executes a full self-evolution cycle in an idle Mind loop:
  * 1. Evaluates perpetual cadence.
  * 2. If pending feedback exists, drains and admits feedback into tasks (Mode B).
- * 3. If idle, runs task-discovery engine scanning code quality, test coverage, dormant criteria (Mode A).
+ * 3. If idle, runs task-discovery engine scanning code quality, test coverage, cognitive gaps, dormant criteria (Mode A).
  * 4. Ensures Anti-Batching compliance and 1:1 implementer-validator separation.
  * 5. Enqueues synthesized tasks into the task queue.
  * 6. Records the evolution cycle in the evolution ledger.
@@ -377,6 +406,7 @@ export function runSelfEvolutionCycle(
 
   let mode: SelfEvolutionMode = evaluation.mode;
   let synthesizedTasks: readonly DiscoveredTaskPlan[] = [];
+  let candidateProposals: readonly CandidateEvolutionProposal[] = [];
   let enqueuedTasks: readonly TaskQueueItem[] = [];
   const admittedFeedbackIds: string[] = [];
   let discoveriesCount = 0;
@@ -388,6 +418,7 @@ export function runSelfEvolutionCycle(
       taskQueuePath: options.taskQueuePath,
       enableCodeQualityScan: false,
       enableTestCoverageScan: false,
+      enableCognitiveGapScan: false,
       enableDormantCriteriaScan: false,
       enableFeedbackQueueScan: true,
       enableBlunderScan: false,
@@ -397,6 +428,7 @@ export function runSelfEvolutionCycle(
     });
 
     synthesizedTasks = discoveryResult.synthesizedPlans;
+    candidateProposals = discoveryResult.candidateProposals;
     enqueuedTasks = discoveryResult.enqueuedTasks;
 
     const drained = drainPendingFeedbacks(
@@ -409,7 +441,7 @@ export function runSelfEvolutionCycle(
     }
     discoveriesCount = drained.length;
   } else {
-    // Mode A: Autonomic task discovery across code quality, test suites, dormant criteria
+    // Mode A: Autonomic task discovery across code quality, test suites, cognitive gaps, dormant criteria
     const discoveryResult = discoverTasks({
       workspaceRoot: options.workspaceRoot,
       sourceRoots: options.sourceRoots,
@@ -420,6 +452,7 @@ export function runSelfEvolutionCycle(
       capsulesDir: options.capsulesDir,
       enableCodeQualityScan: true,
       enableTestCoverageScan: true,
+      enableCognitiveGapScan: true,
       enableDormantCriteriaScan: true,
       enableFeedbackQueueScan: false,
       enableBlunderScan: true,
@@ -429,6 +462,7 @@ export function runSelfEvolutionCycle(
     });
 
     synthesizedTasks = discoveryResult.synthesizedPlans;
+    candidateProposals = discoveryResult.candidateProposals;
     enqueuedTasks = discoveryResult.enqueuedTasks;
     discoveriesCount = discoveryResult.discoveries.length;
     if (discoveryResult.discoveries.length === 0) {
@@ -443,7 +477,7 @@ export function runSelfEvolutionCycle(
       ? `bun harness.ts queue:wave${runArg}`
       : `bun harness.ts mind:wake${runArg}`;
 
-  const summary = `Self-Evolution Cycle ${cycleId} (${mode}): synthesized ${synthesizedTasks.length} task(s), enqueued ${enqueuedTasks.length} into queue, ingested ${admittedFeedbackIds.length} feedback item(s) in ${durationMs}ms.`;
+  const summary = `Self-Evolution Cycle ${cycleId} (${mode}): synthesized ${synthesizedTasks.length} task(s), proposed ${candidateProposals.length} evolution(s), enqueued ${enqueuedTasks.length} into queue, ingested ${admittedFeedbackIds.length} feedback item(s) in ${durationMs}ms.`;
 
   // Update cadence state
   const cadenceState: SelfEvolutionCadenceState = {
@@ -484,6 +518,7 @@ export function runSelfEvolutionCycle(
     mode,
     discoveriesCount,
     synthesizedTasks,
+    candidateProposals,
     enqueuedTasks,
     admittedFeedbackIds,
     cadenceState,

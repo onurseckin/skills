@@ -69,6 +69,24 @@ coupling and observability, none of which are visible from reading a single chan
 - **Mandatory Counterfactual Falsifiability Gate Proofs**: Before certifying any passing gate, the validator must prove falsifiability: verify or demonstrate that removing the fix or injecting an intentional defect causes the gate command to fail (exit code != 0). A gate that passes regardless of whether the code works or is broken is invalid and must be rejected.
 - **Strict Quantitative Metric Floors**: Enforce strict quantitative invariants: 0 TypeScript `any` types, 0 compiler/linter suppressions (@ts-ignore, @ts-expect-error, eslint-disable), 100% test pass rate, and exact execution timings in milliseconds.
 - **Prohibition of Fragmented Options & Partial Deliveries**: Reject implementations that fragment CLI options across disconnected flags or deliver partial feature stubs rather than consolidated, complete interfaces.
+
+## Socratic Reflexive Self-Questioning for System Design
+
+Execute reflexive self-questioning across all 5 Socratic dimensions before reaching any verdict:
+
+1. **Premise Verification**:
+   - Challenge architectural premises: Is the limitation this architecture works around authentic and proven (`B33`)? Are module boundaries aligned with data ownership?
+   - Trace all consumers directly in the repository rather than trusting the diff's declared blast radius.
+2. **Edge Case Exploration**:
+   - Probe boundary states: high-concurrency contention, lock contention, schema migration rollbacks, and network partition/reconnection states.
+3. **Failure Mode Analysis**:
+   - Audit failure modes: Are timeouts bounded? Do retry loops implement exponential backoff? Are database migrations reversible without data loss (`SYS-MIGR-001`)?
+   - Prove counterfactual falsifiability: verify that broken schema contracts or violating consumers cause gates to fail (exit code != 0).
+4. **Hierarchy & Invariant Preservation**:
+   - Enforce architectural layering: no cyclic dependencies, no hidden writers to single-owner tables, 0 `any` types across module boundaries, and strict write scope confinement.
+5. **Quantitative Empirical Proof**:
+   - Demand empirical measurements: migration execution timings, query latency limits, and exact contract test suite results.
+
 - Two questions, kept separate. First: does the diff satisfy the task's own stated requirements?
   Second: does the change hold to standing architectural standards regardless of what the task
   asked — no new dependency cycle, no silently repurposed field, no unbounded wait on a dependency.

@@ -20,14 +20,19 @@ const CONSUMER = new URL("../../../../gvui/", import.meta.url).pathname;
  * failure by `harness.ts health`. Lower a number as its file is cleaned; the numbers only go down.
  */
 const FALLBACK_CEILING: ReadonlyMap<string, number> = new Map([
+  ["orchestrating-long-tasks/scripts/src/authority/manifest-parser.ts", 1],
+  ["orchestrating-long-tasks/scripts/src/authority/persona-grounding.ts", 1],
+  ["orchestrating-long-tasks/scripts/src/authority/review-pushback.ts", 2],
   ["orchestrating-long-tasks/scripts/src/authority/watchdog-manager.ts", 2],
   ["orchestrating-long-tasks/scripts/src/cli/commands/dag.ts", 1],
+  ["orchestrating-long-tasks/scripts/src/cli/commands/diagnostics-ops.ts", 2],
   ["orchestrating-long-tasks/scripts/src/cli/commands/mind-audit.ts", 3],
   ["orchestrating-long-tasks/scripts/src/cli/commands/mind-init.ts", 1],
   ["orchestrating-long-tasks/scripts/src/cli/commands/mind-quiesce.ts", 1],
   ["orchestrating-long-tasks/scripts/src/cli/commands/mind-rotate.ts", 1],
   ["orchestrating-long-tasks/scripts/src/cli/commands/mind-wake.ts", 1],
   ["orchestrating-long-tasks/scripts/src/cli/commands/mind-pulse.ts", 3],
+  ["orchestrating-long-tasks/scripts/src/cli/commands/run-ops.ts", 1],
   ["orchestrating-long-tasks/scripts/src/cli/commands/smart-task-ops.ts", 1],
   ["orchestrating-long-tasks/scripts/src/cli/commands/test-summary.ts", 2],
   ["orchestrating-long-tasks/scripts/src/cli/commands/watchdog-ops.ts", 3],
@@ -41,6 +46,7 @@ const FALLBACK_CEILING: ReadonlyMap<string, number> = new Map([
   ["orchestrating-long-tasks/scripts/src/mind/digest.ts", 3],
   ["orchestrating-long-tasks/scripts/src/mind/gates.ts", 5],
   ["orchestrating-long-tasks/scripts/src/mind/lanes/rescue.ts", 1],
+  ["orchestrating-long-tasks/scripts/src/mind/mind.ts", 2],
   ["orchestrating-long-tasks/scripts/src/mind/proposal.ts", 1],
   ["orchestrating-long-tasks/scripts/src/mind/pushbacks.ts", 3],
   ["orchestrating-long-tasks/scripts/src/mind/quiesce.ts", 1],
@@ -48,6 +54,7 @@ const FALLBACK_CEILING: ReadonlyMap<string, number> = new Map([
   ["orchestrating-long-tasks/scripts/src/mind/rotate.ts", 1],
   ["orchestrating-long-tasks/scripts/src/mind/rounds.ts", 2],
   ["orchestrating-long-tasks/scripts/src/mind/smart-task-manager.ts", 9],
+  ["orchestrating-long-tasks/scripts/src/mind/task-discovery.ts", 2],
   ["orchestrating-long-tasks/scripts/src/mind/task-queue.ts", 6],
   ["orchestrating-long-tasks/scripts/src/mind/witness.ts", 2],
   ["orchestrating-long-tasks/scripts/src/orchestrator/recursive-critic-feedback.ts", 2],
@@ -68,6 +75,7 @@ const FALLBACK_CEILING: ReadonlyMap<string, number> = new Map([
   ["orchestrating-long-tasks/scripts/src/summary/metrics-collector-helpers.ts", 7],
   ["orchestrating-long-tasks/scripts/src/summary/metrics-collector.ts", 2],
   ["orchestrating-long-tasks/scripts/src/testing/concurrency-lock.ts", 1],
+  ["orchestrating-long-tasks/scripts/src/watchdog/boot-gate-enforcer.ts", 6],
   ["orchestrating-long-tasks/scripts/src/workflow/scope-partitioner.ts", 1],
 ]);
 

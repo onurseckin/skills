@@ -6,25 +6,21 @@ import {
   readFeedbackQueue,
 } from "../../../orchestrating-long-tasks/scripts/src/mind/feedback-queue.ts";
 import {
-  CLOSING_FORBIDDEN_IDLE_MIND,
-  enforcePerpetualNonStoppingCadence,
-  evaluatePerpetualCadence,
-  getEvolutionStats,
-  NON_STOPPING_RULE,
-  PERPETUAL_NON_STOPPING_CADENCE,
-  readEvolutionHistory,
-  recordEvolutionCycle,
-  runSelfEvolutionCycle,
-  type EvolutionLedgerEntry,
-} from "../../../orchestrating-long-tasks/scripts/src/mind/self-evolution.ts";
-import {
   discoverTasks,
+  formatTaskDiscoveryBrief,
+  proposeCandidateEvolutions,
+  resolveDiscoveryCharterPath,
   scanCodeQuality,
+  scanCognitiveGaps,
   scanDormantCriteria,
   scanTestCoverage,
   synthesizeTaskFromDiscovery,
   type DiscoveryItem,
 } from "../../../orchestrating-long-tasks/scripts/src/mind/task-discovery.ts";
+import {
+  mindTaskDiscoveryCommand,
+  MIND_TASK_DISCOVERY_COMMAND_SPEC,
+} from "../../../orchestrating-long-tasks/scripts/src/mind/mind.ts";
 import {
   clearTaskQueue,
   enqueueTask,
@@ -32,11 +28,10 @@ import {
 } from "../../../orchestrating-long-tasks/scripts/src/mind/task-queue.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
-describe("Autonomous Mind Task Discovery & Self-Evolution Engine", () => {
+describe("Autonomous Mind Cognitive Task Discovery Engine", () => {
   const testDir = scratchRoot(import.meta.path, "test-task-discovery");
   const taskQueueFile = join(testDir, "TASK_QUEUE.jsonl");
   const feedbackQueueFile = join(testDir, "FEEDBACK_QUEUE.jsonl");
-  const historyFile = join(testDir, "EVOLUTION_HISTORY.jsonl");
   const charterFile = join(testDir, "CHARTER.md");
   const srcDir = join(testDir, "src");
   const testsDir = join(testDir, "tests");
@@ -74,7 +69,6 @@ describe("Autonomous Mind Task Discovery & Self-Evolution Engine", () => {
         "  return x;",
         "}",
       ];
-      // Add extra lines to test line counting
       for (let i = 0; i < 15; i++) {
         codeLines.push(`export const item_${i} = ${i};`);
       }
@@ -82,7 +76,7 @@ describe("Autonomous Mind Task Discovery & Self-Evolution Engine", () => {
 
       const result = scanCodeQuality({
         sourceRoots: [srcDir],
-        maxLineThreshold: 10, // Small threshold for testing
+        maxLineThreshold: 10,
       });
 
       expect(result.filesScanned).toBe(1);
@@ -172,11 +166,51 @@ describe("Autonomous Mind Task Discovery & Self-Evolution Engine", () => {
     });
   });
 
+  describe("Cognitive Gap Scanner (scanCognitiveGaps)", () => {
+    it("detects cognitive complexity, parameter overloading, and unhandled boundaries", () => {
+      setupWorkspace();
+
+      const complexFile = join(srcDir, "complex.ts");
+      const complexCode = [
+        "export function processItem(a: string, b: string, c: string, d: string, e: string, f: string) {",
+        "  if (a) {",
+        "    if (b) {",
+        "      if (c) {",
+        "        if (d) {",
+        "          if (e) {",
+        "                        const deepValue = 42;",
+        "                        return deepValue;",
+        "          }",
+        "        }",
+        "      }",
+        "    }",
+        "  }",
+        "  const raw = JSON.parse(a);",
+        "  return raw;",
+        "}",
+      ].join("\n");
+      writeFileSync(complexFile, complexCode, "utf8");
+
+      const result = scanCognitiveGaps({
+        sourceRoots: [srcDir],
+      });
+
+      expect(result.filesScanned).toBe(1);
+      expect(result.totalFindings).toBeGreaterThanOrEqual(2);
+
+      const types = result.findings.map((f) => f.issueType);
+      expect(types).toContain("COGNITIVE_COMPLEXITY");
+      expect(types).toContain("COGNITIVE_CHUNKING_OVERLOAD");
+      expect(types).toContain("UNHANDLED_BOUNDARY");
+
+      teardownWorkspace();
+    });
+  });
+
   describe("Dormant Criteria Scanner (scanDormantCriteria)", () => {
     it("identifies charter goals with zero existing tasks in queue", () => {
       setupWorkspace();
 
-      // Seed task queue targeting only G1
       enqueueTask(
         {
           id: "task-g1-work",
@@ -193,8 +227,8 @@ describe("Autonomous Mind Task Discovery & Self-Evolution Engine", () => {
         taskQueuePath: taskQueueFile,
       });
 
-      expect(result.goalsCheckedCount).toBe(3); // G1, G2, G3
-      expect(result.dormantCount).toBe(2); // G2 and G3 are dormant
+      expect(result.goalsCheckedCount).toBe(3);
+      expect(result.dormantCount).toBe(2);
 
       const dormantIds = result.findings.map((f) => f.criteriaId);
       expect(dormantIds).toContain("G2");
@@ -211,6 +245,41 @@ describe("Autonomous Mind Task Discovery & Self-Evolution Engine", () => {
 
       expect(result.dormantCount).toBe(1);
       expect(result.findings[0]?.criteriaId).toBe("missing-charter");
+    });
+  });
+
+  describe("Candidate Evolution Proposals (proposeCandidateEvolutions)", () => {
+    it("proposes structured candidate evolutions across findings", () => {
+      const proposals = proposeCandidateEvolutions({
+        cognitiveGaps: [
+          {
+            file: "src/engine.ts",
+            line: 42,
+            issueType: "COGNITIVE_COMPLEXITY",
+            description: "Deeply nested parsing logic",
+            severity: "HIGH",
+            suggestedRemediation: "Extract sub-parser helper",
+          },
+        ],
+        feedbackPending: [
+          {
+            id: "fb-10",
+            title: "Add Metric Exporter",
+            content: "Export prometheus metrics",
+            priority: "HIGH_ARCHITECTURAL_FEATURE",
+            category: "CORE_ENGINE",
+            status: "PENDING",
+            created_at: new Date().toISOString(),
+          },
+        ],
+      });
+
+      expect(proposals.length).toBe(2);
+      expect(proposals[0]?.id).toContain("cand-evo-cog-");
+      expect(proposals[0]?.kind).toBe("proposal");
+      expect(proposals[0]?.cognitiveDimension).toBe("COGNITIVE_COMPLEXITY");
+      expect(proposals[1]?.id).toContain("cand-evo-fb-");
+      expect(proposals[1]?.sourceType).toBe("feedback_intake");
     });
   });
 
@@ -239,7 +308,7 @@ describe("Autonomous Mind Task Discovery & Self-Evolution Engine", () => {
       expect(plan.assigned_tier).toBe("Tier_3_Implementer");
       expect(plan.assigned_implementer).toBe("implementer-p49-discovery-cq-defective-any");
       expect(plan.assigned_validator).toBe("validator-p49-discovery-cq-defective-any");
-      expect(plan.assigned_implementer).not.toBe(plan.assigned_validator); // 1:1 isolation
+      expect(plan.assigned_implementer).not.toBe(plan.assigned_validator);
       expect(plan.charter_goals).toEqual(["G3"]);
     });
   });
@@ -248,14 +317,12 @@ describe("Autonomous Mind Task Discovery & Self-Evolution Engine", () => {
     it("scans workspace and synthesizes tasks from multiple discovery dimensions", () => {
       setupWorkspace();
 
-      // 1. Add defective code
       writeFileSync(
         join(srcDir, "buggy.ts"),
         "export function run(x: any) {\n  // @ts-ignore\n  return x.val;\n}\n",
         "utf8",
       );
 
-      // 2. Add pending feedback item
       appendFeedbackItem(
         {
           id: "fb-stream-parser",
@@ -282,9 +349,14 @@ describe("Autonomous Mind Task Discovery & Self-Evolution Engine", () => {
       expect(result.stats.totalFindings).toBeGreaterThan(0);
       expect(result.synthesizedPlans.length).toBeGreaterThan(0);
       expect(result.enqueuedTasks.length).toBe(result.synthesizedPlans.length);
+      expect(result.candidateProposals.length).toBeGreaterThan(0);
 
       const queued = readTaskQueue(taskQueueFile);
       expect(queued.length).toBe(result.synthesizedPlans.length);
+
+      const brief = formatTaskDiscoveryBrief(result);
+      expect(brief).toContain("Mind Cognitive Task Discovery");
+      expect(brief).toContain("Code Quality");
 
       teardownWorkspace();
     });
@@ -302,7 +374,6 @@ describe("Autonomous Mind Task Discovery & Self-Evolution Engine", () => {
         autoEnqueue: false,
       });
 
-      // Even on pristine workspace, must synthesize at least 1 task (fallback invariant hardening)
       expect(result.synthesizedPlans.length).toBeGreaterThanOrEqual(1);
       expect(result.synthesizedPlans[0]?.id).toContain("task-p49-discovery-");
 
@@ -310,165 +381,27 @@ describe("Autonomous Mind Task Discovery & Self-Evolution Engine", () => {
     });
   });
 
-  describe("Perpetual Cadence & Non-Stopping Invariants (self-evolution)", () => {
-    it("enforces perpetual non-stopping cadence invariants", () => {
-      const guard = enforcePerpetualNonStoppingCadence({
-        actor: "perpetual-mind",
-        runRoot: ".capsules/test-run",
-      });
-
-      expect(guard.cadence).toBe(PERPETUAL_NON_STOPPING_CADENCE);
-      expect(guard.allowed).toBe(true);
-      expect(guard.closing_permitted).toBe(false);
-      expect(guard.message).toBe(NON_STOPPING_RULE);
-      expect(guard.nextInstruction).toContain("bun harness.ts mind:wake --run .capsules/test-run");
-    });
-
-    it("evaluates cadence as QUEUE_ACTIVE when tasks exist in queue", () => {
+  describe("CLI Command Handler (mindTaskDiscoveryCommand)", () => {
+    it("executes CLI command and produces structured output and markdown", () => {
       setupWorkspace();
 
-      enqueueTask(
-        {
-          id: "task-active-1",
-          title: "Active task in progress",
-          write_scope: ["src/"],
-          gate: "bun test",
-          status: "IN_PROGRESS",
-        },
-        taskQueueFile,
-      );
+      const flags = {
+        "source-root": [srcDir],
+        "test-root": [testsDir],
+        charter: charterFile,
+        "feedback-queue": feedbackQueueFile,
+        "task-queue": taskQueueFile,
+        "auto-enqueue": true,
+        "max-tasks": "3",
+      };
 
-      const evaluation = evaluatePerpetualCadence({
-        taskQueuePath: taskQueueFile,
-        feedbackQueuePath: feedbackQueueFile,
-      });
+      const result = mindTaskDiscoveryCommand(flags);
 
-      expect(evaluation.mode).toBe("QUEUE_ACTIVE");
-      expect(evaluation.canEvolve).toBe(false);
-      expect(evaluation.queueActive).toBe(true);
-      expect(evaluation.closing_permitted).toBe(false);
-      expect(evaluation.nextInstruction).toContain("bun harness.ts queue:wave");
-
-      teardownWorkspace();
-    });
-
-    it("evaluates cadence as MODE_B_FEEDBACK_INTAKE when pending feedback exists", () => {
-      setupWorkspace();
-
-      appendFeedbackItem(
-        {
-          id: "fb-critical-patch",
-          title: "Critical Security Patch",
-          content: "Patch token validation",
-          priority: "CRITICAL_USER_FEEDBACK",
-          category: "CORE_ENGINE",
-          status: "PENDING",
-        },
-        feedbackQueueFile,
-      );
-
-      const evaluation = evaluatePerpetualCadence({
-        taskQueuePath: taskQueueFile,
-        feedbackQueuePath: feedbackQueueFile,
-      });
-
-      expect(evaluation.mode).toBe("MODE_B_FEEDBACK_INTAKE");
-      expect(evaluation.canEvolve).toBe(true);
-      expect(evaluation.pendingFeedbackCount).toBe(1);
-      expect(evaluation.closing_permitted).toBe(false);
-
-      teardownWorkspace();
-    });
-
-    it("evaluates cadence as MODE_A_AUTONOMIC_DISCOVERY when queues are clear", () => {
-      setupWorkspace();
-
-      const evaluation = evaluatePerpetualCadence({
-        taskQueuePath: taskQueueFile,
-        feedbackQueuePath: feedbackQueueFile,
-      });
-
-      expect(evaluation.mode).toBe("MODE_A_AUTONOMIC_DISCOVERY");
-      expect(evaluation.canEvolve).toBe(true);
-      expect(evaluation.activeTasksCount).toBe(0);
-      expect(evaluation.pendingFeedbackCount).toBe(0);
-      expect(evaluation.closing_permitted).toBe(false);
-
-      teardownWorkspace();
-    });
-  });
-
-  describe("Self-Evolution Cycle Execution (runSelfEvolutionCycle)", () => {
-    it("executes Mode B feedback intake cycle, updates feedback queue, and enqueues tasks", () => {
-      setupWorkspace();
-
-      appendFeedbackItem(
-        {
-          id: "fb-intake-test",
-          title: "Intake Test",
-          content: "Add intake feature",
-          priority: "HIGH_ARCHITECTURAL_FEATURE",
-          category: "ARCHITECTURE",
-          status: "PENDING",
-        },
-        feedbackQueueFile,
-      );
-
-      const result = runSelfEvolutionCycle({
-        taskQueuePath: taskQueueFile,
-        feedbackQueuePath: feedbackQueueFile,
-        historyPath: historyFile,
-        charterPath: charterFile,
-        generation: 1,
-        cycleNumber: 1,
-        autoEnqueue: true,
-      });
-
-      expect(result.mode).toBe("MODE_B_FEEDBACK_INTAKE");
-      expect(result.admittedFeedbackIds).toContain("fb-intake-test");
-      expect(result.synthesizedTasks.length).toBeGreaterThanOrEqual(1);
-      expect(result.enqueuedTasks.length).toBeGreaterThanOrEqual(1);
-
-      // Verify feedback was drained to ADMITTED status
-      const feedbacks = readFeedbackQueue(feedbackQueueFile);
-      const fbItem = feedbacks.find((f) => f.id === "fb-intake-test");
-      expect(fbItem?.status).toBe("ADMITTED");
-
-      // Verify history recorded
-      const history = readEvolutionHistory(historyFile);
-      expect(history.length).toBe(1);
-      expect(history[0]?.mode).toBe("MODE_B_FEEDBACK_INTAKE");
-
-      teardownWorkspace();
-    });
-
-    it("executes Mode A discovery cycle on empty queues and updates ledger", () => {
-      setupWorkspace();
-
-      const result = runSelfEvolutionCycle({
-        taskQueuePath: taskQueueFile,
-        feedbackQueuePath: feedbackQueueFile,
-        historyPath: historyFile,
-        charterPath: charterFile,
-        sourceRoots: [srcDir],
-        testRoots: [testsDir],
-        generation: 2,
-        cycleNumber: 3,
-        autoEnqueue: true,
-      });
-
-      expect(["MODE_A_AUTONOMIC_DISCOVERY", "MODE_C_INVARIANT_HARDENING"]).toContain(
-        result.mode,
-      );
-      expect(result.generation).toBe(2);
-      expect(result.cycleNumber).toBe(3);
-      expect(result.synthesizedTasks.length).toBeGreaterThanOrEqual(1);
-      expect(result.enqueuedTasks.length).toBeGreaterThanOrEqual(1);
-      expect(result.cadenceState.infiniteCadenceEnforced).toBe(true);
-
-      const stats = getEvolutionStats(readEvolutionHistory(historyFile));
-      expect(stats.totalCycles).toBe(1);
-      expect(stats.totalTasks).toBe(result.synthesizedTasks.length);
+      expect(result).toBeDefined();
+      expect(typeof result["markdown"]).toBe("string");
+      expect(Array.isArray(result["synthesized_plans"])).toBe(true);
+      expect(Array.isArray(result["enqueued_tasks"])).toBe(true);
+      expect(MIND_TASK_DISCOVERY_COMMAND_SPEC.name).toBe("mind:task-discovery");
 
       teardownWorkspace();
     });

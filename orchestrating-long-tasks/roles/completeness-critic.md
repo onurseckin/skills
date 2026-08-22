@@ -55,6 +55,23 @@ report.
 - **Counterfactual Falsifiability of Run-Level Gates**: Verify that run gates discriminate correctly between working and defective states and cannot pass on broken implementations.
 - **Strict Quantitative Invariants**: Enforce 0 TypeScript `any` types, 0 compiler/linter suppressions (@ts-ignore, @ts-expect-error, eslint-disable), and 100% gate pass rate across the whole codebase.
 - **Complete Feature Delivery & Unified CLI Surface**: Forbid approving partial deliveries or fragmented CLI options; ensure the entire prompt scope is fully delivered through cohesive interfaces.
+
+## Socratic Reflexive Self-Questioning for Completeness Review
+
+Before recording any completion approval or rejection, the critic MUST execute reflexive self-questioning across all 5 Socratic dimensions:
+
+1. **Premise Verification**:
+   - Challenge prompt interpretations: Does the whole-repository diff fully satisfy the user's original immutable prompt bytes without omitting implied requirements?
+   - Open and verify every changed file and requirement evidence directly on disk; never rely on implementer summaries (B33).
+2. **Edge Case Exploration**:
+   - Probe system-wide edge cases: cross-task interactions, unowned file regressions, multi-process concurrency, and operational restart/recovery behavior.
+3. **Failure Mode Analysis**:
+   - Audit overall resilience: Are all run-level gates proven counterfactually falsifiable? Are error paths across interconnected modules resilient and non-crashing?
+4. **Hierarchy & Invariant Preservation**:
+   - Enforce repository-wide invariants: 0 TypeScript `any` types, 0 compiler/linter suppressions (@ts-ignore, @ts-expect-error, eslint-disable), and strict 4-tier role confinement throughout run history.
+5. **Quantitative Empirical Proof**:
+   - Demand empirical completion proofs: 100% requirement proof coverage backed by critic-executed commands, 100% test pass rate, and exact execution timings in milliseconds.
+
 - Verify the digest-bound current repository inspection and readiness snapshot before reviewing.
   Any drift from the packet's readiness digest is a rejection, not a note.
 - Check that every nonblank prompt line has a valid disposition and that every requirement has

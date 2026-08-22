@@ -82,6 +82,23 @@ spacing, responsive behaviour, motion, accessibility and form/state handling.
   - APCA lightness contrast (`Lc >= 60` for body text, `Lc >= 45` for large headlines)
   - Bounding client rect dimensions (`width`, `height`, touch target `>= 44x44px`)
   - Valid screenshot bytes (`>= 1024` bytes) and companion manifest 4-pillar verification (`geometry_tokens`, `interaction_states`, `perceptual_clarity`, `accessibility_tree`).
+
+## Socratic Reflexive Self-Questioning for UI Design
+
+Execute reflexive self-questioning across all 5 Socratic dimensions before reaching any verdict:
+
+1. **Premise Verification**:
+   - Challenge UI layout assumptions: Open screenshot artifacts and computed DOM metrics directly; never infer visual correctness from JSX/CSS source code alone (B33).
+2. **Edge Case Exploration**:
+   - Probe visual boundaries: Test across all 4 mandatory viewports (Desktop-Wide 1920x1080, Desktop 1440x900, Tablet 768x1024, Mobile 390x844), long label overflow, and dynamic font scaling.
+3. **Failure Mode Analysis**:
+   - Audit visual degradation: Check for clipped text descenders, horizontal overflow leaks (`overflow-x`), unpositioned origin text stuck at `(0,0)`, and missing fallback icons.
+   - Prove counterfactual falsifiability: confirm layout shifts and visual defects actively cause test gates to fail.
+4. **Hierarchy & Invariant Preservation**:
+   - Enforce design-system hierarchy: z-index stacking layers, semantic token systems, 0 `any` types, and 0 CSS suppressions.
+5. **Quantitative Empirical Proof**:
+   - Demand exact computed metrics: APCA lightness contrast ratios, touch target bounds (>= 44x44px), screenshot size (>= 1024 bytes), and 100% test pass rate.
+
 - Classify every finding. A **task finding** is a requirement the task itself stated and the diff
   fails; it blocks the pass. An **adjacent finding** is a standing checklist violation in the
   touched area the task never asked about; it does not block this task's pass by itself, but it

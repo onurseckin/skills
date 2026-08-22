@@ -1,11 +1,34 @@
 import type { MandatoryBootGate, WatchdogSeverity, WatchdogViolationType } from "./constants.ts";
 
+export interface LiveCliProof {
+  readonly gate: MandatoryBootGate;
+  readonly actor: string;
+  readonly argv: readonly string[];
+  readonly exitCode?: number | undefined;
+  readonly executedAt: string;
+  readonly pid?: number | undefined;
+  readonly outputSnippet?: string | undefined;
+  readonly fingerprint?: string | undefined;
+  readonly verified: boolean;
+  readonly failureReason?: string | undefined;
+}
+
+export interface ProcessHealthStatus {
+  readonly pid: number;
+  readonly alive: boolean;
+  readonly agentId?: string | undefined;
+  readonly checkedAt: string;
+  readonly error?: string | undefined;
+}
+
 export interface SubagentRegistrationOptions {
   readonly agentId: string;
   readonly role: string;
   readonly tier?: number | undefined;
   readonly parentAgentId?: string | null | undefined;
   readonly taskId?: string | null | undefined;
+  readonly pid?: number | undefined;
+  readonly ppid?: number | undefined;
   readonly spawnedAt?: string | undefined;
   readonly metadata?: Readonly<Record<string, unknown>> | undefined;
 }
@@ -16,14 +39,19 @@ export interface SubagentBootGateRecord {
   readonly tier: number;
   readonly parentAgentId: string | null;
   readonly taskId: string | null;
+  readonly pid?: number | undefined;
+  readonly ppid?: number | undefined;
   readonly spawnedAt: string;
   readonly whoamiExecuted: boolean;
   readonly whoamiExecutedAt: string | null;
+  readonly whoamiProof?: LiveCliProof | undefined;
   readonly doctorExecuted: boolean;
   readonly doctorExecutedAt: string | null;
+  readonly doctorProof?: LiveCliProof | undefined;
   readonly bootGatePassed: boolean;
   readonly gateViolations: readonly string[];
   readonly lastActivityAt: string;
+  readonly lastProcessHealth?: ProcessHealthStatus | undefined;
   readonly metadata?: Readonly<Record<string, unknown>> | undefined;
 }
 
@@ -31,6 +59,7 @@ export interface BootGateVerificationResult {
   readonly passed: boolean;
   readonly missingGates: readonly MandatoryBootGate[];
   readonly violations: readonly string[];
+  readonly proofs?: Readonly<Partial<Record<MandatoryBootGate, LiveCliProof>>> | undefined;
   readonly record?: SubagentBootGateRecord | undefined;
 }
 
@@ -52,6 +81,7 @@ export interface WatchdogHealthAuditReport {
   readonly timestamp: string;
   readonly activeLeasesCount: number;
   readonly stalledAgentsCount: number;
+  readonly deadProcessesCount: number;
   readonly subagentCount: number;
   readonly bootGateCompliantCount: number;
   readonly bootGateViolationsCount: number;
@@ -82,6 +112,12 @@ export type WatchdogEvent =
       readonly finding: WatchdogFinding;
     }
   | {
+      readonly type: "process_failure_detected";
+      readonly agentId: string;
+      readonly pid: number;
+      readonly finding: WatchdogFinding;
+    }
+  | {
       readonly type: "critical_violation";
       readonly finding: WatchdogFinding;
     };
@@ -92,11 +128,13 @@ export interface AutonomicWatchdogConfig {
   readonly heartbeatIntervalMs?: number | undefined;
   readonly timeoutMs?: number | undefined;
   readonly healthAuditIntervalMs?: number | undefined;
+  readonly processHealthCheckIntervalMs?: number | undefined;
   readonly initialStartedAt?: number | string | Date | undefined;
   readonly capsuleRoot?: string | undefined;
   readonly generation?: number | undefined;
   readonly pulseId?: string | null | undefined;
   readonly enforcePreFlightGates?: boolean | undefined;
+  readonly processLivenessChecker?: ((pid: number) => boolean) | undefined;
   readonly onHeartbeat?: ((tick: WatchdogTickReport) => void | Promise<void>) | undefined;
   readonly onHealthAudit?: ((audit: WatchdogHealthAuditReport) => void | Promise<void>) | undefined;
   readonly onViolation?: ((finding: WatchdogFinding) => void | Promise<void>) | undefined;

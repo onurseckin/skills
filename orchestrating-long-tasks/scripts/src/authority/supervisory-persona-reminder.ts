@@ -489,9 +489,15 @@ export interface SupervisoryStateEvaluation {
   readonly summary: string;
 }
 
+export interface SupervisoryScopeConflict {
+  readonly taskA: string;
+  readonly taskB: string;
+  readonly overlappingFiles: readonly string[];
+}
+
 function computeScopeOverlaps(
   leases: readonly ActiveLeaseContext[],
-): readonly { readonly taskA: string; readonly taskB: string; readonly overlappingFiles: readonly string[] }[] {
+): readonly SupervisoryScopeConflict[] {
   const collisions: { taskA: string; taskB: string; overlappingFiles: string[] }[] = [];
   for (let i = 0; i < leases.length; i++) {
     for (let j = i + 1; j < leases.length; j++) {

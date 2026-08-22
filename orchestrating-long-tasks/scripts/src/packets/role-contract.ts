@@ -225,7 +225,7 @@ export function loadRoleContract(
 const CHECKLIST_ITEM_LIST_FIELDS = new Set(["sources"]);
 const CHECKLIST_ITEM_SCALAR_FIELDS = ["rule", "rationale", "how-to-check", "severity"] as const;
 const CHECKLIST_SEVERITIES = new Set(["critical", "important", "minor"]);
-const CHECKLIST_ID = /^[A-Z]{2,6}-[A-Z][A-Z0-9]*-[0-9]{3}$/u;
+const CHECKLIST_ID = /^[A-Z]{2,6}(?:-[A-Z0-9]+)+-[0-9]{3}$/u;
 const CHECKLIST_DOMAIN_LINE = /^Domain: ([a-z-]+)$/u;
 
 export function parseChecklist(bytes: Uint8Array, source: string): Checklist {

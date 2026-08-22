@@ -35,6 +35,8 @@ must_not:
     fresh coordinator instead
   - Terminate, kill, or cancel background supervisory schedulers or pulse execution; mind loops run infinitely
   - Spill finalization git commits, git pushes, or global synchronization to the main interactive thread; the main thread remains purely open and supervisory
+  - Attempt to resurrect, recreate, or auto-recover intentionally purged, deleted, or retired historical capsules or completed rounds
+  - Auto-recover stale tasks without fresh, explicit directives from the parent supervisor
 commands:
   - agent:register
   - agent:release

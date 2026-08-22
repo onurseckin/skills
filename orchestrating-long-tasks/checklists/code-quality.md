@@ -514,3 +514,54 @@ sources:
   - POSIX Utility Conventions
   - Command Line Interface Guidelines (clig.dev)
 
+## CQ-SOC-PREMISE-001
+
+rule: Every assertion and verification claim must be proven against live disk artifacts and directly executed commands rather than assumed from docstrings, types, or comments
+rationale: Speculative assumptions and unchecked descriptions lead to rubber-stamped passes on unimplemented or disconnected logic
+how-to-check: Verify that validation check commands open and test the actual disk files and runtime entry points directly
+severity: critical
+sources:
+  - This repository's B33 (wire vs delete)
+  - Socratic Method
+
+## CQ-SOC-EDGE-001
+
+rule: Changes must be explicitly verified across boundary conditions, empty collections, single-item cases, maximum capacities, and concurrent operations
+rationale: Boundary conditions are the most common source of off-by-one errors, unhandled exceptions, and runtime panics
+how-to-check: Identify boundary inputs and verify corresponding test cases exist and pass
+severity: important
+sources:
+  - Boundary Value Analysis
+  - Socratic Method
+
+## CQ-SOC-FAIL-001
+
+rule: Failure modes, error propagation paths, and negative execution branches must be tested and verified to fail closed with clean recovery
+rationale: Unhandled errors or swallowed exceptions erase failure signals and cause silent corruption
+how-to-check: Check negative path test cases and verify that error cases log/rethrow or return typed error results
+severity: critical
+sources:
+  - The Pragmatic Programmer, "Design by Contract"
+  - Socratic Method
+
+## CQ-SOC-HIERARCHY-001
+
+rule: Architectural tier hierarchy and static invariants (4-tier agent model, write-scope boundaries, 0 TypeScript any, 0 suppressions) must be strictly maintained
+rationale: Boundary leaks and type suppressions degrade architectural integrity and create silent cascading failures
+how-to-check: Audit write scope diffs and search touched files for type suppressions or role boundary violations
+severity: critical
+sources:
+  - 4-Tier Supervisory Architecture
+  - Effective TypeScript
+
+## CQ-SOC-EMPIRICAL-001
+
+rule: All verification verdicts must be backed by quantitative, deterministic, reproducible measurements (exact ms timings, 100% test pass rate, exit code 0)
+rationale: Subjective confidence narratives and boilerplate sign-offs mask unverified bugs and create false confidence
+how-to-check: Confirm every verdict cites exact command IDs, exit codes, and measured execution timings
+severity: critical
+sources:
+  - Empirical Verification
+  - Popper's Falsifiability
+
+
