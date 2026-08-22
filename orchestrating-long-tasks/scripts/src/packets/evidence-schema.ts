@@ -198,6 +198,7 @@ const ROLE_CONTRACTS: Readonly<Record<AgentRole, JsonObject>> = {
   "sub-investigator": investigationReport,
   "sub-validator": validatorReview,
   validator: validatorReview,
+  "mechanic-validator": validatorReview,
 };
 
 export function evidenceSchema(role: AgentRole): JsonObject {

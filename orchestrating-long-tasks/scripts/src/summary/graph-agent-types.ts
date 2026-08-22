@@ -12,6 +12,7 @@ export type NodeRole =
   | "planner"
   | "implementer"
   | "validator"
+  | "mechanic-validator"
   | "plan-validator"
   | "repairer"
   | "completeness-critic"

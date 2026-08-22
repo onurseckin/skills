@@ -32,6 +32,7 @@ export const ROLE_TIER_MAP: Readonly<Record<AgentRole, number>> = {
   "completeness-critic": 2,
   implementer: 3,
   validator: 3,
+  "mechanic-validator": 3,
   "sub-implementer": 3,
   "sub-validator": 3,
   "sub-investigator": 3,
@@ -52,6 +53,7 @@ export const ALLOWED_TIER_SPAWNS: Readonly<Record<AgentRole, readonly AgentRole[
   coordinator: [
     "implementer",
     "validator",
+    "mechanic-validator",
     "planner",
     "plan-validator",
     "repairer",
@@ -59,6 +61,7 @@ export const ALLOWED_TIER_SPAWNS: Readonly<Record<AgentRole, readonly AgentRole[
   ],
   implementer: ["sub-implementer", "sub-investigator"],
   validator: ["sub-validator"],
+  "mechanic-validator": ["sub-validator"],
   planner: [],
   "plan-validator": [],
   repairer: [],

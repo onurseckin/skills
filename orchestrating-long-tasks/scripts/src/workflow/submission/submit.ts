@@ -80,7 +80,7 @@ export function submitTask(
     ) {
       throw new HarnessError(
         "ROLE_CONFINEMENT_VIOLATION",
-        `Supervisors (agent: ${agentId}, role: ${lease?.role ?? "supervisor"}) are mechanically confined from submitting implementation tasks. Implementation submissions are restricted to Tier 3 Implementers.`,
+        `Supervisors (agent: ${agentId}, role: ${lease ? lease.role : "supervisor"}) are mechanically confined from submitting implementation tasks. Implementation submissions are restricted to Tier 3 Implementers.`,
       );
     }
 
