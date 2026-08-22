@@ -1,5 +1,8 @@
 # 03. Evidence Classes & The Honesty Model
 
+> [!IMPORTANT]
+> **HUMAN DEVELOPER REFERENCE ONLY**: This documentation is written for human engineers maintaining and evolving the skill. Autonomous LLM runtime subagents MUST NOT ingest these files directly into context; all operational directives, topology graphs, and task assignments MUST be queried exclusively through the Harness CLI.
+
 [⬅ Previous: The Agent Grant Ledger](./02-agent-grant-ledger.md) | [Master Table of Contents](../README.md) | [Next: Chapter 10 — End-to-End Tutorial ➡](../10-tutorial-and-cli/01-end-to-end-tutorial.md)
 
 ---

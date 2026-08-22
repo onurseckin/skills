@@ -1,5 +1,8 @@
 # 01. Leasing, Deadlines & Heartbeat Keepalive
 
+> [!IMPORTANT]
+> **HUMAN DEVELOPER REFERENCE ONLY**: This documentation is written for human engineers maintaining and evolving the skill. Autonomous LLM runtime subagents MUST NOT ingest these files directly into context; all operational directives, topology graphs, and task assignments MUST be queried exclusively through the Harness CLI.
+
 [⬅ Previous: Bearer Token Security](../04-multi-agent/03-bearer-token-security.md) | [Master Table of Contents](../README.md) | [Next: Atomic Filesystem Scopes ➡](./02-atomic-filesystem-scopes.md)
 
 ---

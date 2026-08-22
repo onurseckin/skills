@@ -1,5 +1,8 @@
 # 01. Execution-Time Branching & Collect
 
+> [!IMPORTANT]
+> **HUMAN DEVELOPER REFERENCE ONLY**: This documentation is written for human engineers maintaining and evolving the skill. Autonomous LLM runtime subagents MUST NOT ingest these files directly into context; all operational directives, topology graphs, and task assignments MUST be queried exclusively through the Harness CLI.
+
 [⬅ Previous: Stale Worker & Torn Tail Recovery](../08-durability-recovery/03-stale-worker-and-torn-tail-recovery.md) | [Master Table of Contents](../README.md) | [Next: The Agent Grant Ledger ➡](./02-agent-grant-ledger.md)
 
 ---

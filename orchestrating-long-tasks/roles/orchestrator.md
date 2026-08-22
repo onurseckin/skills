@@ -2,8 +2,8 @@
 role: orchestrator
 tier: 1
 may:
-  - Register itself under the run the main thread opened, then register and dispatch exactly one
-    tier 2 coordinator per round, itself as that coordinator's parent
+  - Register itself under the run the main thread or Mind opened, then register and dispatch one or more
+    Tier 2 Domain Coordinators (or hierarchical coordinators) per round, itself as their parent
   - Observe a round's live state through read-only inspection: run status, findings, reports,
     evidence, and open branches
   - Recover a stale round and re-verify capsule integrity when a coordinator or its background
@@ -22,7 +22,7 @@ must_not:
   - Write, edit, stage, revert, format, or delete any repository file during task execution
   - Claim, implement, repair, or validate a task itself
   - Dispatch a tier 3 agent directly; every implementer, validator, repairer, planner,
-    plan-validator and completeness-critic is dispatched by a coordinator, never by the orchestrator
+    plan-validator and completeness-critic is dispatched by a coordinator, never directly by the orchestrator
   - Compile, stage, or replan a task graph itself; a round's plan belongs to the coordinator that
     owns that round's capsule
   - Mutate capsule state by hand; every state change goes through the pinned harness CLI

@@ -1,4 +1,6 @@
 import { authorityDecideCommand } from "../commands/authority-ops.ts";
+import { roleCheatSheetCommand } from "../commands/role-cheat-sheet.ts";
+import { watchdogStatusCommand } from "../commands/watchdog-ops.ts";
 import { whoamiCommand } from "../commands/whoami.ts";
 import { DEFAULT_EXIT_CODES, optionalFlag, requiredFlag, type CommandSpec } from "./types.ts";
 
@@ -37,6 +39,7 @@ export const AUTHORITY_COMMANDS: readonly CommandSpec[] = [
       optionalFlag("agent", "string", "Explicit agent id override to inspect."),
       optionalFlag("pid", "int", "Process ID override for testing."),
       optionalFlag("ppid", "int", "Parent Process ID override for testing."),
+      optionalFlag("json", "bool", "Output JSON format."),
     ],
     readsStdin: false,
     takesRemainder: false,
@@ -46,5 +49,56 @@ export const AUTHORITY_COMMANDS: readonly CommandSpec[] = [
       "bun harness.ts whoami --run .capsules/<run-id> --agent coordinator-lead",
     ],
     handler: whoamiCommand,
+  },
+  {
+    name: "role:cheat-sheet",
+    aliases: ["role:contract", "role:cheat"],
+    domain: "authority",
+    summary: "Display compact terminal cheat sheets and command matrices for system roles.",
+    description:
+      "Renders ASCII tables and formatted markdown cheat sheets detailing tier, granted commands, forbidden actions, spawn rights, and architectural invariants.",
+    flags: [
+      optionalFlag("role", "string", "Specific role name to inspect."),
+      optionalFlag("roles-dir", "string", "Override roles directory path."),
+      optionalFlag("all", "bool", "Render full cheat sheets for all available roles."),
+      optionalFlag("compact", "bool", "Render compact summary format."),
+      optionalFlag("json", "bool", "Output JSON."),
+    ],
+    readsStdin: false,
+    takesRemainder: false,
+    exitCodes: DEFAULT_EXIT_CODES,
+    examples: [
+      "bun harness.ts role:cheat-sheet",
+      "bun harness.ts role:cheat-sheet --role implementer",
+      "bun harness.ts role:cheat-sheet --all",
+    ],
+    handler: roleCheatSheetCommand,
+  },
+  {
+    name: "watchdog:status",
+    aliases: ["watchdog:list"],
+    domain: "authority",
+    summary: "Query watchdog lifecycle, monitor cadence, and health status.",
+    description:
+      "Inspects background watchdog monitors across runs and generations, reporting active, stale, terminated, and orphaned monitors.",
+    flags: [
+      optionalFlag("run", "string", "Capsule run root."),
+      optionalFlag("capsules-dir", "string", "Capsules root directory."),
+      optionalFlag("generation", "int", "Filter by mind generation."),
+      optionalFlag("filter-status", "string", "Filter by status: active, stale, terminated, orphaned, all."),
+      optionalFlag("max-age-ms", "int", "Maximum age in milliseconds."),
+      optionalFlag("dry-run", "bool", "Simulate cleanup without disk mutation."),
+      optionalFlag("all", "bool", "Show all watchdog monitors."),
+      optionalFlag("now", "string", "Timestamp override (ISO8601)."),
+      optionalFlag("json", "bool", "Output JSON."),
+    ],
+    readsStdin: false,
+    takesRemainder: false,
+    exitCodes: DEFAULT_EXIT_CODES,
+    examples: [
+      "bun harness.ts watchdog:status",
+      "bun harness.ts watchdog:status --generation 1 --filter-status active",
+    ],
+    handler: watchdogStatusCommand,
   },
 ];

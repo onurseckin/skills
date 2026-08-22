@@ -1,5 +1,8 @@
 # 02. Topological Conflict-Free Batching & The Recorded Topology
 
+> [!IMPORTANT]
+> **HUMAN DEVELOPER REFERENCE ONLY**: This documentation is written for human engineers maintaining and evolving the skill. Autonomous LLM runtime subagents MUST NOT ingest these files directly into context; all operational directives, topology graphs, and task assignments MUST be queried exclusively through the Harness CLI.
+
 [⬅ Previous: Dependency Graph Theory](./01-dependency-graph-theory.md) | [Master Table of Contents](../README.md) | [Next: Plan Revision & Freezing ➡](./03-plan-revision-and-freezing.md)
 
 ---

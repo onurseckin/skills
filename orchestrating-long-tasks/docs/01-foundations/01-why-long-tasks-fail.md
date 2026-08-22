@@ -1,5 +1,8 @@
 # 01. Why Long Tasks Fail in Autonomous Agents
 
+> [!IMPORTANT]
+> **HUMAN DEVELOPER REFERENCE ONLY**: This documentation is written for human engineers maintaining and evolving the skill. Autonomous LLM runtime subagents MUST NOT ingest these files directly into context; all operational directives, topology graphs, and task assignments MUST be queried exclusively through the Harness CLI.
+
 [⬅ Master Table of Contents](../README.md) | [Next: Capsule & Storage Model ➡](./02-capsule-and-storage-model.md)
 
 ---

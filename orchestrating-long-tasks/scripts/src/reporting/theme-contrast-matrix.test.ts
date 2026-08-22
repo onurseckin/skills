@@ -592,8 +592,7 @@ describe("Multi-Theme Contrast Matrix & Dynamic Color Scheme Visual Reporting En
       ];
 
       const anyPattern = /:\s*any\b|as\s+any\b|<any>|\bany\s*>/;
-      const suppressionPattern =
-        /@ts-ignore|@ts-expect-error|@ts-nocheck|eslint-disable|oxlint-disable/;
+      const suppressionPattern = /@ts-ignore|@ts-expect-error|@ts-nocheck|eslint-disable|oxlint-disable/;
 
       for (const filePath of filesToAudit) {
         const content = readFileSync(filePath, "utf-8");

@@ -1,5 +1,8 @@
 # 03. Stale Worker, Crash Forensics & Torn Tail Quarantine
 
+> [!IMPORTANT]
+> **HUMAN DEVELOPER REFERENCE ONLY**: This documentation is written for human engineers maintaining and evolving the skill. Autonomous LLM runtime subagents MUST NOT ingest these files directly into context; all operational directives, topology graphs, and task assignments MUST be queried exclusively through the Harness CLI.
+
 [⬅ Previous: POSIX File Locking & Durable Writes](./02-posix-flock-and-fdatasync.md) | [Master Table of Contents](../README.md) | [Next: Chapter 09 — Execution-Time Branching ➡](../09-branching-and-honesty/01-execution-time-branching.md)
 
 ---

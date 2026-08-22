@@ -345,7 +345,7 @@ export async function deliverEventsToWebhook(
     deliveredCount: 0,
     ...(lastStatusCode !== undefined ? { statusCode: lastStatusCode } : {}),
     attempts,
-    error: lastError ?? "Webhook delivery failed after maximum retries",
+    error: lastError !== undefined ? lastError : "Webhook delivery failed after maximum retries",
     durationMs: Date.now() - startTime,
   };
 }

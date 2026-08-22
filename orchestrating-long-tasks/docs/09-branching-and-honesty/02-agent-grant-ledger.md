@@ -1,5 +1,8 @@
 # 02. The Agent Grant Ledger & Lineage
 
+> [!IMPORTANT]
+> **HUMAN DEVELOPER REFERENCE ONLY**: This documentation is written for human engineers maintaining and evolving the skill. Autonomous LLM runtime subagents MUST NOT ingest these files directly into context; all operational directives, topology graphs, and task assignments MUST be queried exclusively through the Harness CLI.
+
 [⬅ Previous: Execution-Time Branching](./01-execution-time-branching.md) | [Master Table of Contents](../README.md) | [Next: Evidence Classes & The Honesty Model ➡](./03-evidence-classes-and-honesty.md)
 
 ---

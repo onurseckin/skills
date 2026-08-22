@@ -1,3 +1,4 @@
+import { blunderAuditCommand } from "../commands/blunder-audit.ts";
 import { coverageCheckCommand } from "../commands/coverage-check.ts";
 import {
   doctorCommand,
@@ -16,6 +17,35 @@ import {
 } from "./types.ts";
 
 export const DIAGNOSTICS_COMMANDS: readonly CommandSpec[] = [
+  {
+    name: "blunder:audit",
+    aliases: [],
+    domain: "diagnostics",
+    summary: "Audit, deduplicate, and auto-admit blunders across capsules.",
+    description:
+      "Discovers blunders.jsonl files across .capsules/ and active run, deduplicates entries, displays an ASCII summary matrix, and optionally auto-admits candidate remediations.",
+    flags: [
+      optionalFlag("run", "string", "Capsule run root."),
+      optionalFlag("capsules-dir", "string", "Capsules root directory."),
+      optionalFlag("filter-status", "string", "Filter by status: open, admitted, resolved, all."),
+      optionalFlag("filter-category", "string", "Filter by blunder category/type."),
+      optionalFlag("filter-type", "string", "Alias for --filter-category."),
+      optionalFlag("auto-admit", "bool", "Automatically admit open blunders as candidates."),
+      optionalFlag("actor", "string", "Actor recording admissions."),
+      optionalFlag("all", "bool", "Show all blunders without line truncation."),
+      optionalFlag("now", "string", "Timestamp override (ISO8601)."),
+      optionalFlag("json", "bool", "Output JSON."),
+    ],
+    readsStdin: false,
+    takesRemainder: false,
+    exitCodes: DEFAULT_EXIT_CODES,
+    examples: [
+      "bun harness.ts blunder:audit",
+      "bun harness.ts blunder:audit --run .capsules/<run-id> --filter-status open",
+      "bun harness.ts blunder:audit --auto-admit --actor coordinator",
+    ],
+    handler: blunderAuditCommand,
+  },
   {
     name: "coverage:check",
     aliases: [],

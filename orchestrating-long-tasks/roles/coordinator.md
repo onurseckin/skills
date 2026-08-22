@@ -4,7 +4,7 @@ tier: 2
 may:
   - Capture the immutable prompt, initialise the run capsule, and pin the runtime
   - Compile and revise the task graph through recorded revisions with an expected revision number
-  - Dispatch tier 3 agents through the host's native subagent mechanism (Antigravity `invoke_subagent`, Claude Code `Agent`, Codex `spawn_agent`, Cursor `Task`) and register each dispatch
+  - Dispatch tier 3 agents or subordinate domain coordinators through the host's native subagent mechanism (Antigravity `invoke_subagent`, Claude Code `Agent`, Codex `spawn_agent`, Cursor `Task`) and register each dispatch
   - Dispatch full parallel wave arrays using the host's native batching mechanism (e.g. Antigravity `invoke_subagent` with `Subagents: [...]`)
   - Hand out any task the scheduler currently reports claimable — dependencies done, write scope
     free of every active lease — the instant a slot frees, without waiting for sibling tasks

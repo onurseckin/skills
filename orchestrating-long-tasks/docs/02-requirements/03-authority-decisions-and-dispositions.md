@@ -1,5 +1,8 @@
 # 03. Authority-Gated Obligations & Their Dispositions
 
+> [!IMPORTANT]
+> **HUMAN DEVELOPER REFERENCE ONLY**: This documentation is written for human engineers maintaining and evolving the skill. Autonomous LLM runtime subagents MUST NOT ingest these files directly into context; all operational directives, topology graphs, and task assignments MUST be queried exclusively through the Harness CLI.
+
 [⬅ Previous: Line Disposition Algorithm](./02-line-disposition-algorithm.md) | [Master Table of Contents](../README.md) | [Next: Chapter 03 — Dependency Graph Theory ➡](../03-graph-scheduler/01-dependency-graph-theory.md)
 
 ---

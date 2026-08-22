@@ -1,5 +1,8 @@
 # 03. Structured Submission & Monitored Command Evidence
 
+> [!IMPORTANT]
+> **HUMAN DEVELOPER REFERENCE ONLY**: This documentation is written for human engineers maintaining and evolving the skill. Autonomous LLM runtime subagents MUST NOT ingest these files directly into context; all operational directives, topology graphs, and task assignments MUST be queried exclusively through the Harness CLI.
+
 [⬅ Previous: Atomic Filesystem Scopes](./02-atomic-filesystem-scopes.md) | [Master Table of Contents](../README.md) | [Next: Chapter 06 — Adversarial Validation ➡](../06-validation-repair/01-adversarial-validation-philosophy.md)
 
 ---

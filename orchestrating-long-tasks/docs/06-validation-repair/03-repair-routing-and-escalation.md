@@ -1,5 +1,8 @@
 # 03. Bounded Repair Routing & Escalation
 
+> [!IMPORTANT]
+> **HUMAN DEVELOPER REFERENCE ONLY**: This documentation is written for human engineers maintaining and evolving the skill. Autonomous LLM runtime subagents MUST NOT ingest these files directly into context; all operational directives, topology graphs, and task assignments MUST be queried exclusively through the Harness CLI.
+
 [⬅ Previous: Structured Finding Schema](./02-structured-finding-schema.md) | [Master Table of Contents](../README.md) | [Next: Chapter 07 — Gate Systems ➡](../07-gates-and-completion/01-mandatory-gate-systems.md)
 
 ---

@@ -1,5 +1,8 @@
 # 02. Line Disposition & Requirement Derivation
 
+> [!IMPORTANT]
+> **HUMAN DEVELOPER REFERENCE ONLY**: This documentation is written for human engineers maintaining and evolving the skill. Autonomous LLM runtime subagents MUST NOT ingest these files directly into context; all operational directives, topology graphs, and task assignments MUST be queried exclusively through the Harness CLI.
+
 [⬅ Previous: Prompt Capture & Integrity](./01-prompt-capture-and-integrity.md) | [Master Table of Contents](../README.md) | [Next: Authority Decisions & Dispositions ➡](./03-authority-decisions-and-dispositions.md)
 
 ---

@@ -1,5 +1,8 @@
 # Orchestrating Long Tasks — Master Documentation & Architectural Manual
 
+> [!IMPORTANT]
+> **HUMAN DEVELOPER REFERENCE ONLY**: This documentation is written for human engineers maintaining and evolving the skill. Autonomous LLM runtime subagents MUST NOT ingest these files directly into context; all operational directives, topology graphs, and task assignments MUST be queried exclusively through the Harness CLI.
+
 Welcome to the definitive architectural manual and developer tutorial for the **`orchestrating-long-tasks`** agent skill.
 
 This documentation is designed to take any developer—from junior engineers unfamiliar with distributed systems and formal state machines to senior systems architects—on a complete, deeply technical, step-by-step journey through how autonomous AI agents can safely, deterministically, and reliably orchestrate long-running, multi-phase, multi-agent coding tasks using a Zero-JSON CLI and Two-Tier Agent Architecture.

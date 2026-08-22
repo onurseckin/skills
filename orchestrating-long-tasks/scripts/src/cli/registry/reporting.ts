@@ -8,7 +8,9 @@ import {
   reportLeasesCommand,
   reportDecisionsCommand,
 } from "../commands/unified-reporting.ts";
-
+import { summaryViewCommand } from "../commands/summary-ops.ts";
+import { reportGetCommand } from "../commands/inspection-ops.ts";
+import { streamEventsCommand } from "../commands/stream-events.ts";
 import { exportGraphJsonCommand } from "../commands/graph-export.ts";
 
 export const REPORTING_COMMANDS: readonly CommandSpec[] = [
@@ -115,5 +117,85 @@ export const REPORTING_COMMANDS: readonly CommandSpec[] = [
     exitCodes: DEFAULT_EXIT_CODES,
     examples: ["bun harness.ts report:decisions --run .capsules/<run-id>"],
     handler: reportDecisionsCommand,
+  },
+  {
+    name: "report:summary",
+    aliases: [],
+    domain: "reporting",
+    summary: "Render executive summary brief of capsule run.",
+    description: "Renders the executive brief in markdown or JSON directly to terminal.",
+    flags: [
+      requiredFlag("run", "string", "Capsule run root."),
+      optionalFlag("out", "string", "Directory for viewer registry export."),
+      optionalFlag("json", "bool", "Output JSON."),
+    ],
+    readsStdin: false,
+    takesRemainder: false,
+    exitCodes: DEFAULT_EXIT_CODES,
+    examples: ["bun harness.ts report:summary --run .capsules/<run-id>"],
+    handler: summaryViewCommand,
+  },
+  {
+    name: "report:task",
+    aliases: [],
+    domain: "reporting",
+    summary: "Read and render a task submission, review or critic report.",
+    description:
+      "Extracts and formats full task report evidence including verification outcomes, gate executions, and screenshot records without requiring raw file inspection.",
+    flags: [
+      requiredFlag("run", "string", "Capsule run root."),
+      optionalFlag("task", "string", "Task whose report is wanted."),
+      optionalFlag("critic", "bool", "Read the critic review report."),
+      optionalFlag("submission", "bool", "Force the submission report."),
+      optionalFlag("review", "bool", "Force the review report."),
+      optionalFlag("type", "string", "submission, review or critic."),
+      optionalFlag("stage", "string", "Alias of --type."),
+      optionalFlag("report", "string", "Explicit report file name."),
+      optionalFlag("id", "string", "Alias of --report."),
+      optionalFlag("screenshots", "bool", "Include screenshot records."),
+      optionalFlag("json", "bool", "Output JSON."),
+    ],
+    readsStdin: false,
+    takesRemainder: false,
+    exitCodes: DEFAULT_EXIT_CODES,
+    examples: [
+      "bun harness.ts report:task --run .capsules/<run-id> --task task-1",
+      "bun harness.ts report:task --run .capsules/<run-id> --task task-1 --type review",
+    ],
+    handler: reportGetCommand,
+  },
+  {
+    name: "stream:events",
+    aliases: ["events:stream", "events:tail"],
+    domain: "reporting",
+    summary: "Stream, query, and tail structured capsule events.",
+    description:
+      "Streams chronological capsule events as rich terminal ASCII tables, Markdown, or NDJSON, with sequence filtering and optional webhook delivery.",
+    flags: [
+      optionalFlag("run", "string", "Capsule run root."),
+      optionalFlag("run-id", "string", "Capsule run identifier."),
+      optionalFlag("repo", "string", "Repository root."),
+      optionalFlag("from-seq", "int", "Starting event sequence number."),
+      optionalFlag("to-seq", "int", "Ending event sequence number."),
+      optionalFlag("max-events", "int", "Maximum events to return.", 50),
+      optionalFlag("filter-type", "string", "Filter events by event type name."),
+      optionalFlag("filter-actor", "string", "Filter events by acting agent ID."),
+      optionalFlag("all", "bool", "Return all matching events."),
+      optionalFlag("now", "bool", "Return only the latest event in the log."),
+      optionalFlag("format", "string", "Output format: markdown, json, or ndjson."),
+      optionalFlag("webhook-url", "string", "Webhook endpoint URL for event forwarding."),
+      optionalFlag("webhook-retries", "int", "Webhook retry attempts.", 3),
+      optionalFlag("webhook-timeout", "int", "Webhook request timeout in ms.", 5000),
+      optionalFlag("json", "bool", "Output JSON."),
+    ],
+    readsStdin: false,
+    takesRemainder: false,
+    exitCodes: DEFAULT_EXIT_CODES,
+    examples: [
+      "bun harness.ts stream:events --run .capsules/<run-id>",
+      "bun harness.ts stream:events --run .capsules/<run-id> --from-seq 10 --max-events 20",
+      "bun harness.ts stream:events --run .capsules/<run-id> --filter-type task-claimed",
+    ],
+    handler: streamEventsCommand,
   },
 ];

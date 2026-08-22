@@ -1,5 +1,8 @@
 # 03. Bearer Token Protocol & Dispatch Security
 
+> [!IMPORTANT]
+> **HUMAN DEVELOPER REFERENCE ONLY**: This documentation is written for human engineers maintaining and evolving the skill. Autonomous LLM runtime subagents MUST NOT ingest these files directly into context; all operational directives, topology graphs, and task assignments MUST be queried exclusively through the Harness CLI.
+
 [⬅ Previous: Role Briefs & Task Contracts](./02-immutable-role-packets.md) | [Master Table of Contents](../README.md) | [Next: Chapter 05 — Leases & Heartbeats ➡](../05-task-execution/01-leasing-and-heartbeats.md)
 
 ---

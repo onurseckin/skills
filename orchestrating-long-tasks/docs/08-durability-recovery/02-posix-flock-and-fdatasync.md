@@ -1,5 +1,8 @@
 # 02. POSIX File Locking & Durable Writes (`fdatasync` / `fsyncDirectory`)
 
+> [!IMPORTANT]
+> **HUMAN DEVELOPER REFERENCE ONLY**: This documentation is written for human engineers maintaining and evolving the skill. Autonomous LLM runtime subagents MUST NOT ingest these files directly into context; all operational directives, topology graphs, and task assignments MUST be queried exclusively through the Harness CLI.
+
 [⬅ Previous: Tamper-Proof Hash Chains](./01-tamper-proof-hash-chains.md) | [Master Table of Contents](../README.md) | [Next: Stale Worker & Torn Tail Recovery ➡](./03-stale-worker-and-torn-tail-recovery.md)
 
 ---

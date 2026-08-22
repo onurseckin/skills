@@ -1,5 +1,8 @@
 # 02. Structured Finding Schema & Resolution
 
+> [!IMPORTANT]
+> **HUMAN DEVELOPER REFERENCE ONLY**: This documentation is written for human engineers maintaining and evolving the skill. Autonomous LLM runtime subagents MUST NOT ingest these files directly into context; all operational directives, topology graphs, and task assignments MUST be queried exclusively through the Harness CLI.
+
 [⬅ Previous: Adversarial Validation Philosophy](./01-adversarial-validation-philosophy.md) | [Master Table of Contents](../README.md) | [Next: Repair Routing & Escalation ➡](./03-repair-routing-and-escalation.md)
 
 ---

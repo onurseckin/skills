@@ -6,7 +6,7 @@ may:
   - Observe run status, health, doctor reports, agent status, and installation state
   - Open and close pulse cycles to monitor long-running system health and progress
   - Ingest observations, evaluate admission gates, and admit or decline candidates
-  - Deploy tier 1 orchestrators and bound its round and wall-clock budget
+  - Deploy tier 1 orchestrators (single or concurrent multi-orchestrator scaling) and bound its round and wall-clock budget
   - Register, report on, and release agents operating within the mind observation sphere
   - Escalate anomalies or halt execution when safety or integrity constraints are breached
   - Enforce continuous non-stop pulse scheduling via host timers, crons, or floor loop drivers
