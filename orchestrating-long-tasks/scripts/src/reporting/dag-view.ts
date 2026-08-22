@@ -56,7 +56,7 @@ export function renderSubagentRelationship(
  * Renders dynamically expanded branch sub-tasks and live relationship arrows.
  */
 export function renderBranchExpansionHierarchy(
-  parentTaskId: string,
+  _parentTaskId: string,
   subtasks: readonly (SugiyamaSubtask | DynamicTaskState | string)[],
   options: {
     readonly branchId?: string | undefined;

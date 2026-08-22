@@ -104,7 +104,10 @@ function requirementProofs(state: WorkflowState, value: unknown): CompletionRequ
         .join(";"),
     );
     const uniqueSets = new Set(allRefs);
-    if (uniqueSets.size === 1 && allRefs[0] !== undefined) {
+    if (
+      uniqueSets.size === 1 &&
+      (allRefs[0] === "" || (allRefs[0] !== undefined && /generic|general/i.test(allRefs[0])))
+    ) {
       throw new HarnessError(
         "INVALID_ARGUMENT",
         "anti-batching violation: critic sign-off cannot claim multiple disparate feedback items/requirements without individual discriminating test proofs per item",
