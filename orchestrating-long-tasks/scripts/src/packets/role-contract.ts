@@ -2,7 +2,12 @@ import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { isAgentRole, type AgentRole } from "../contracts/packets.ts";
+import {
+  isAgentRole,
+  isCognitiveValidatorRole,
+  isMechanicValidatorRole,
+  type AgentRole,
+} from "../contracts/packets.ts";
 import {
   isValidatorDomain,
   VALIDATOR_DOMAINS,
@@ -185,18 +190,36 @@ export function parseRoleContract(bytes: Uint8Array, source: string): RoleContra
     if (spawned === role) invalid("role contract", source, "a role may not spawn itself");
     spawns.push(spawned);
   }
+  const commands = requireList(frontmatter, "commands", source);
+  if (isCognitiveValidatorRole(role) && !isMechanicValidatorRole(role)) {
+    if (commands.includes("run:exec")) {
+      invalid(
+        "role contract",
+        source,
+        `cognitive validator role ${role} must not declare run:exec in commands (command-running ban)`,
+      );
+    }
+  }
   return {
     role,
     tier,
     may: requireList(frontmatter, "may", source),
     must_not: requireList(frontmatter, "must_not", source),
-    commands: requireList(frontmatter, "commands", source),
+    commands,
     spawns,
     ...(domain !== undefined ? { domain } : {}),
     text,
     bytes,
     sha256: createHash("sha256").update(bytes).digest("hex"),
   };
+}
+
+export function isCognitiveValidatorContract(contract: RoleContract): boolean {
+  return isCognitiveValidatorRole(contract.role);
+}
+
+export function isMechanicValidatorContract(contract: RoleContract): boolean {
+  return isMechanicValidatorRole(contract.role);
 }
 
 export function resolveRoleContractPath(role: AgentRole): string {

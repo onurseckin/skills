@@ -2,12 +2,35 @@ import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import type { RunState } from "../contracts/capsule.ts";
 import type { JsonObject } from "../contracts/json.ts";
+import type { AgentToolRef } from "../contracts/agents.ts";
 import type { AgentRole } from "../contracts/packets.ts";
+import { isCognitiveValidatorRole, isMechanicValidatorRole } from "../contracts/packets.ts";
 import { canonicalJsonBytes } from "../core/json.ts";
 import { HarnessError } from "../errors/harness-error.ts";
 import { loadRun } from "../store/index.ts";
 import { locateSubTask, readBranchLedger } from "../workflow/branch/ledger.ts";
 import type { TransactionPort, WorkflowState } from "../workflow/types.ts";
+
+export function assertGrantedRoleTools(role: AgentRole, tools: readonly AgentToolRef[]): void {
+  if (isCognitiveValidatorRole(role) && !isMechanicValidatorRole(role)) {
+    for (const tool of tools) {
+      if (
+        tool.category === "shell" ||
+        tool.category === "test-runner" ||
+        tool.category === "build" ||
+        tool.category === "package-manager" ||
+        tool.name === "run:exec" ||
+        tool.name === "bash" ||
+        tool.name === "sh"
+      ) {
+        throw new HarnessError(
+          "ROLE_CONFINEMENT_VIOLATION",
+          `Cognitive validator role ${role} cannot be granted execution tool '${tool.name}' (category: ${tool.category ?? "unknown"}). Shell and test execution belongs exclusively to mechanic validators.`,
+        );
+      }
+    }
+  }
+}
 import { evidenceSchema } from "./evidence-schema.ts";
 import type { PublishedPacket } from "./persist-packet.ts";
 import { publishRolePacket } from "./publish-role-packet.ts";
