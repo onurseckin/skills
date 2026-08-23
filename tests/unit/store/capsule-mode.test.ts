@@ -1,10 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "bun:test";
 import { join } from "node:path";
-import { readFileSync, rmSync, mkdtempSync, existsSync } from "node:fs";
+import { readFileSync, rmSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { initRun } from "../../../src/store/capsule";
-import { assertMindModeAllowed } from "../../../src/mind/smart-task-manager";
-import { resolveCapsulesDir } from "../../../src/shared/paths";
+import { initRun } from "../../../olt/scripts/src/store/capsule.ts";
+import { assertMindModeAllowed } from "../../../olt/scripts/src/mind/smart-task-manager.ts";
 
 describe("Capsule Mode Partitioning", () => {
   const getTempDir = () => mkdtempSync(join(tmpdir(), "capsule-mode-test-"));
