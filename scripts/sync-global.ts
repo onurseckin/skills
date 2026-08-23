@@ -20,6 +20,7 @@ mkdirSync(TARGET, { recursive: true });
 
 const ENTRIES = [
   "SKILL.md",
+  "AGENTS.md",
   ".skillignore",
   "agents",
   "checklists",

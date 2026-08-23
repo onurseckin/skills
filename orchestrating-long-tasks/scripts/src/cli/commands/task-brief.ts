@@ -1,5 +1,12 @@
+import { existsSync } from "node:fs";
 import { HarnessError } from "../../errors/harness-error.ts";
 import { workflowPort } from "../../integration/store-ports.ts";
+import {
+  buildExactAnchorBriefing,
+  extractFileAnchors,
+  type ExactAnchor,
+  type ExactAnchorBriefing,
+} from "../../mind/briefing-builder.ts";
 import { loadRun } from "../../store/index.ts";
 import { readAgentLedger, requireGrant } from "../../workflow/agents/ledger.ts";
 import { applicableGates, commandArgv } from "../../workflow/gates/gate-policy.ts";
@@ -170,7 +177,34 @@ export async function taskBriefCommand(flags: Flags): Promise<Record<string, unk
   const resolvedAgent =
     agent !== undefined ? agent : typeof task.agent === "string" ? task.agent : undefined;
 
-  const briefing: TaskBriefParams = {
+  const explicitSymbols = Array.isArray(task.target_symbols)
+    ? (task.target_symbols.filter(
+        (item): item is string => typeof item === "string",
+      ) as readonly string[])
+    : undefined;
+
+  const baseDir = worktreePath !== undefined && existsSync(worktreePath) ? worktreePath : undefined;
+
+  const label =
+    typeof task.label === "string"
+      ? task.label
+      : typeof task.title === "string"
+        ? task.title
+        : taskId;
+
+  const exactAnchorBriefing: ExactAnchorBriefing = buildExactAnchorBriefing({
+    taskId,
+    label,
+    writeScope,
+    targetFiles: targetFiles.length > 0 ? targetFiles : undefined,
+    targetSymbols: explicitSymbols,
+    gateCommands: gateCommands.length > 0 ? gateCommands : undefined,
+    acceptanceCriteria: acceptanceCriteria.length > 0 ? acceptanceCriteria : undefined,
+    recommendedCommands: recommendedCommands.length > 0 ? recommendedCommands : undefined,
+    baseDir,
+  });
+
+  const legacyBriefing: TaskBriefParams = {
     taskId,
     label: typeof task.label === "string" ? task.label : undefined,
     role: resolvedRole,
@@ -184,13 +218,14 @@ export async function taskBriefCommand(flags: Flags): Promise<Record<string, unk
     nextSteps: nextSteps.length > 0 ? nextSteps : undefined,
   };
 
-  const markdown = formatTaskBrief(briefing);
-
   return {
-    markdown,
+    markdown: exactAnchorBriefing.markdown,
     run_root: run,
     task,
-    briefing,
+    briefing: legacyBriefing,
+    exact_anchor_briefing: exactAnchorBriefing,
+    anchors: exactAnchorBriefing.anchors,
+    symbols: exactAnchorBriefing.symbols,
   };
 }
 

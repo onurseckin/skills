@@ -1,6 +1,6 @@
 # Canonical Agent Operating Directives (AGENTS.md)
 
-This document establishes the canonical operational rules, prompt directives, role boundaries, zero-fallback invariants, 2-key validator pairing contracts, 1-hop micro-cycles, zero-exploration briefings, and anti-blunder guidelines for all AI agents, subagents, orchestrators, and contributors operating within the **`@onurseckin/skills`** monorepo.
+This document establishes the canonical operational rules, prompt directives, role boundaries, zero-fallback invariants, 2-key validator pairing contracts, 1-hop micro-cycles, zero-exploration exact-anchor briefings, deep behavioral forensics (Meta-Auditor), fast incremental verification (`task:check`), and anti-blunder guidelines for all AI agents, subagents, orchestrators, and contributors operating within the **`@onurseckin/skills`** monorepo.
 
 ---
 
@@ -17,9 +17,9 @@ Every agent executing within this repository must adhere to the following non-ne
 3. **Disjoint Write Scope Invariant:**
    - An implementer or repairer must strictly confine filesystem modifications to the leased `write_scope` (`task.write_scope`).
    - Modifying, formatting, or deleting files outside the assigned write scope—even for trivial one-line fixes—is a critical integrity violation (`PATH_SAFETY` / `INTEGRITY`).
-4. **Zero-Exploration 1-Shot Agent Briefings:**
-   - Every deployed subagent receives an instant, all-inclusive 1-shot briefing in its dispatch prompt containing: assigned task ID & title, exact disjoint write scope, suggested target files, allowed & recommended commands (`bun test <path.test.ts>` for implementers), acceptance criteria, and next steps.
-   - Dispatchers use `task:brief` and `agent:brief` to assemble structured briefings, eliminating exploratory subagent chatter and discovery probing. Coordinators must NEVER assign unit test execution commands to validators.
+4. **Zero-Exploration Exact-Anchor Subagent Briefings:**
+   - Every deployed subagent receives an instant, all-inclusive 1-shot briefing in its dispatch prompt containing: assigned task ID & title, exact disjoint write scope, target files with explicit line coordinates (`StartLine`, `EndLine`), concrete TypeScript symbols, complete drop-in replacement chunks, allowed & recommended commands (`bun test <path.test.ts>` for implementers), acceptance criteria, and next steps.
+   - Dispatchers use `task:brief` and `agent:brief` to assemble structured briefings, eliminating exploratory subagent chatter, broad grep scans, and directory discovery probing. Implementers must achieve Turn 1 edits without exploratory reads. Coordinators must NEVER assign unit test execution commands to validators.
 5. **1-Hop Implementer <-> Validator Micro-Cycles:**
    - Implementer and paired validator can execute fast in-lease micro-cycles (`--micro-cycle` / `--in-lease` on `task:reject` or `task:review`) without releasing or tearing down the implementation lease.
    - Implementers address validator findings in-lease, verify with file-scoped tests, and resubmit (bounded up to 3 micro-cycles before formal repair escalation).
@@ -37,13 +37,13 @@ Every agent executing within this repository must adhere to the following non-ne
    - All gate and verification commands must execute non-interactively using direct argv arrays (`run:exec … -- <argv>`).
    - Shell string interpolations, subshells, interactive confirmation prompts, and unshielded command chaining (`&&`, `||`, `;`, `|`) are strictly prohibited in automated task execution.
 10. **Zero-JSON CLI Surface:**
-    - Agents interact with the harness exclusively through clean colon commands (e.g. `task:claim`, `task:submit`, `task:validate-start`, `task:review`, `task:brief`, `agent:brief`).
+    - Agents interact with the harness exclusively through clean colon commands (e.g. `task:claim`, `task:submit`, `task:validate-start`, `task:review`, `task:brief`, `agent:brief`, `task:check`, `meta-audit`).
     - Commands return concise, structured markdown briefs ($\le 30$ lines) designed for token efficiency and high signal.
 11. **Brent Work/Span Dynamic Concurrency Scaling ($P = W / S$):**
     - Dynamic parallel occupancy is computed algorithmically via Brent's Theorem: $P = \lceil W / S \rceil$, where Work $W = \sum \text{effort}$ and Span $S = \text{critical path depth}$.
     - Artificial serialization dependencies between tasks with disjoint write scopes are decoupled automatically unless explicit dataflow/artifact rationale is present.
 12. **Supervisor Zero-File-Edit & Role Boundary Watchdog:**
-    - Supervisory tiers (Tier 0 `mind`, Tier 1 `orchestrator`, Tier 2 `coordinator`) must **never** edit repository source files or run unit test suites.
+    - Supervisory tiers (Tier 0 `mind`, Tier 1 `orchestrator`, Tier 2 `coordinator`, Tier 2 `meta-auditor`) must **never** edit repository source files or run unit test suites.
     - Continuous watchdog monitoring (`watchdog:role-boundary`) detects boundary violations, anti-leak/anti-drift defects, and persona duplication using deterministic persona signature hashing.
 13. **Empirical Blunder Logging & Resolution Proofs:**
     - Boundary violations, main-thread implementation attempts, and reasoning errors are logged to canonical `.capsules/mind/queue/blunders.jsonl`.
@@ -63,7 +63,7 @@ Every agent executing within this repository must adhere to the following non-ne
     - Enforces 1:1 Isolated Task Dispatch (Anti-Batching Rule: each task must be single-implementer and single-validator isolated with disjoint write scopes).
     - Supports concurrent multi-orchestrator pre-planning with Brent Work/Span ($W, S, P = \lceil W / S \rceil$) tracking.
 19. **Active 4-Tier Hierarchical Parent-Child Supervision:**
-    - Strict top-down parent-child supervision across all 4 tiers: Tier 0 Mind -> Tier 1 Orchestrator -> Tier 2 Coordinator -> Tier 3 Workers.
+    - Strict top-down parent-child supervision across all 4 tiers: Tier 0 Mind -> Tier 1 Orchestrator -> Tier 2 Coordinator & Meta-Auditor -> Tier 3 Workers.
     - Tier-bypassing and cross-tier spawning (e.g. Mind spawning Coordinators or Implementers, Orchestrators spawning Implementers) is strictly prohibited and mechanically blocked.
 20. **Cognitive Validator Hard-Lock Interlock:**
     - Cognitive Validators (domain: `code-quality`, `product`, `security`, `system-design`, `ui-design`, and general `validator`) are strictly locked out of command execution (0 `run:exec`, 0 tests, 0 bash scripts, 0 build tools), dedicating 100% bandwidth to code reading and Socratic critique.
@@ -72,6 +72,15 @@ Every agent executing within this repository must adhere to the following non-ne
 21. **Script-Backed Scheduler Diagnostics Engine:**
     - Scheduler pulses and coordination loops execute deterministic script-backed diagnostics (`doctor`, `health`, `dag:view`, `report:unified`) before generating telemetry.
     - Embeds live CLI receipts with SHA-256 cryptographic hashes and ASCII DAG badges into pulse briefs and coordination reports.
+22. **Zero-Exploration Exact-Anchor Briefings & Fast Incremental Verification (`task:check`):**
+    - Coordinators must dispatch workers with exact file paths, line ranges (`StartLine`, `EndLine`), symbols, and drop-in replacements (`task:brief`), driving immediate Turn 1 edits with 0 exploratory discovery reads.
+    - Implementers and Mechanic Validators utilize `task:check` (`--task <id> --run <run>` or `--file <paths>`) for fast in-process incremental TypeScript type checking (`tsc --noEmit`) and AST static invariant audits (strict 0 `any`, 0 compiler suppressions, zero-fallback error codes) to verify targeted changes in milliseconds without full test suite overhead.
+23. **Tier 2 Meta-Auditor Deep Behavioral Forensics & Autonomous Injection (`meta-audit`):**
+    - Independent Tier 2 supervisory forensics role (`meta-auditor`, domain: `forensics`) inspects raw event streams (`events.jsonl`), state ledgers (`state.json`), transcripts, and tool executions post-wave and post-run.
+    - Scans coordination traces against 7 behavioral heuristics: `TOKEN_BURNING`, `FALSE_SERIALIZATION`, `ROLE_BOUNDARY_DEVIATION`, `POLLING_WASTE`, `CONTEXT_OVERFLOW`, `GHOST_LEASE`, and `STRAGGLER`.
+    - Computes deterministic behavioral efficiency scores ($0.0\% - 100.0\%$) and quantitative operational metrics.
+    - Autonomously synthesizes structured remediation proposals and injects them directly into the canonical feedback queue (`.capsules/FEEDBACK_QUEUE.jsonl`) via `meta-audit --inject` and the Mind candidate pool (`mind:candidate`).
+    - Strictly prohibited from making direct code edits, claiming leases, running tests, or rubber-stamping unevidenced passes.
 
 ---
 
@@ -97,10 +106,11 @@ The repository enforces a strict **4-Tier Host-Agnostic Architecture** to isolat
 │    • Dispatches ONLY Tier 2 Coordinators; NEVER spawns Tier 3 directly      │
 │                          │                                                  │
 │                          ▼                                                  │
-│  [ Tier 2: Background Run Coordinator ]                                     │
-│    • Owns capsule lifecycle: plan:init, plan:enhance, plan:add, compile     │
-│    • Dispatches tasks via queue:wave and registers agents (agent:register)  │
-│    • Employs Zero-Exploration 1-Shot Briefings (task:brief, agent:brief)    │
+│  [ Tier 2: Background Run Coordinator & Meta-Auditor Forensics ]             │
+│    • coordinator: Owns capsule lifecycle, wave dispatch & Tier 3 supervision │
+│    • meta-auditor: Deep behavioral forensics, 7 heuristics & efficiency score│
+│    • Autonomous remediation injection (--inject) to FEEDBACK_QUEUE.jsonl    │
+│    • Employs Zero-Exploration Exact-Anchor Briefings (task:brief)           │
 │    • Direct parental supervision over Tier 3 Workers (hard resets on kill)  │
 │    • Enforces Cognitive Validator Hard-Lock (0 commands) & Mechanic tasks   │
 │                          │                                                  │
@@ -125,21 +135,22 @@ The repository enforces a strict **4-Tier Host-Agnostic Architecture** to isolat
 
 ### Role Contracts & Prohibitions
 
-| Role                      | Tier | Key Responsibilities                                                                                                                                                                                                     | Non-Negotiable Prohibitions (`must_not`)                                                                                                             |
-| :------------------------ | :--: | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **`mind`**                |  0   | Infinite Product Owner, candidate admission, atomic dispatch chaining, multi-orchestrator scaling, macro DAG diagnostics, queue governance (`.capsules/mind/queue/`), memory persistence, non-idle autonomous discovery. | **Must not** write repository code, execute unit tests, spawn Tier 2/3 agents directly, or permit paused admitted items to linger.                   |
-| **`orchestrator`**        |  1   | Multi-round orchestration, capsule chaining, convergence governance, watchdog cadence, final synthesis, release syncing.                                                                                                 | **Must not** implement tasks directly, run raw test suites, spawn Tier 3 workers directly, or spill work onto main thread.                           |
-| **`coordinator`**         |  2   | Run lifecycle ownership, agent registration, 1-shot briefings, wave dispatching, hard resets, git commits/pushes/sync, Tier 3 supervision.                                                                               | **Must not** write repository code, claim tasks, assign commands to Cognitive Validators, or execute raw test suites (`bun test`).                   |
-| **`planner`**             |  3   | Prompt decomposition, DAG generation, gate assignment.                                                                                                                                                                   | **Must not** implement code or execute task write scopes.                                                                                            |
-| **`plan-validator`**      |  3   | Adversarial inspection of compiled plan topology.                                                                                                                                                                        | **Must not** touch task implementation or alter runtime code.                                                                                        |
-| **`implementer`**         |  3   | Leased task implementation within assigned write scope; 1-hop micro-cycles; file-scoped testing.                                                                                                                         | **Must not** edit outside write scope, self-validate work, or run whole-repo test suites (`bun test`).                                               |
-| **`validator`**           |  3   | Cognitive verification, adversarial probing, 1-hop micro-cycle critique, Socratic review.                                                                                                                                | **Must not** execute ANY bash/test commands (`run:exec`, 0 command privileges), pass without probe round, or validate own work.                      |
-| **`mechanic-validator`**  |  3   | Typechecks (`tsc --noEmit`), AST static invariant audits, Adversarial Gate Proofs (AGP).                                                                                                                                 | **Must not** re-run implementer unit tests, write application code, run whole-repo test suites, or validate tasks without direct execution receipts. |
-| **`repairer`**            |  3   | Targeted remediation of specific validator findings.                                                                                                                                                                     | **Must not** expand scope beyond reported finding remediations.                                                                                      |
-| **`completeness-critic`** |  3   | Whole-run verification against original user prompt.                                                                                                                                                                     | **Must not** approve runs with unmapped requirements or failing gates.                                                                               |
-| **`sub-implementer`**     |  3   | Narrow branch sub-task execution.                                                                                                                                                                                        | **Must not** exceed parent's write scope subset.                                                                                                     |
-| **`sub-validator`**       |  3   | Command execution and evidence gathering.                                                                                                                                                                                | **Must not** render verdicts (`pass`/`fail`) or close findings.                                                                                      |
-| **`sub-investigator`**    |  3   | Read-only diagnosis and root-cause analysis.                                                                                                                                                                             | **Must not** modify filesystem state or write code.                                                                                                  |
+| Role                      | Tier | Key Responsibilities                                                                                                                                                                                                          | Non-Negotiable Prohibitions (`must_not`)                                                                                                             |
+| :------------------------ | :--: | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`mind`**                |  0   | Infinite Product Owner, candidate admission, atomic dispatch chaining, multi-orchestrator scaling, macro DAG diagnostics, queue governance (`.capsules/mind/queue/`), memory persistence, non-idle autonomous discovery.      | **Must not** write repository code, execute unit tests, spawn Tier 2/3 agents directly, or permit paused admitted items to linger.                   |
+| **`orchestrator`**        |  1   | Multi-round orchestration, capsule chaining, convergence governance, watchdog cadence, final synthesis, release syncing.                                                                                                      | **Must not** implement tasks directly, run raw test suites, spawn Tier 3 workers directly, or spill work onto main thread.                           |
+| **`coordinator`**         |  2   | Run lifecycle ownership, agent registration, 1-shot exact-anchor briefings, wave dispatching, hard resets, git commits/pushes/sync, Tier 3 supervision.                                                                       | **Must not** write repository code, claim tasks, assign commands to Cognitive Validators, or execute raw test suites (`bun test`).                   |
+| **`meta-auditor`**        |  2   | Post-wave and post-run deep behavioral forensics, 7 anomaly detection heuristics, deterministic efficiency scoring (0.0% - 100.0%), autonomous remediation injection (`--inject`), zero-exploration exact-anchor enforcement. | **Must not** make direct source code edits, claim code write leases, execute task tests directly, rubber-stamp passes, or bypass 4-tier hierarchy.   |
+| **`planner`**             |  3   | Prompt decomposition, DAG generation, gate assignment.                                                                                                                                                                        | **Must not** implement code or execute task write scopes.                                                                                            |
+| **`plan-validator`**      |  3   | Adversarial inspection of compiled plan topology.                                                                                                                                                                             | **Must not** touch task implementation or alter runtime code.                                                                                        |
+| **`implementer`**         |  3   | Leased task implementation within assigned write scope; 1-hop micro-cycles; file-scoped testing; Turn 1 exact edits.                                                                                                          | **Must not** edit outside write scope, self-validate work, or run whole-repo test suites (`bun test`).                                               |
+| **`validator`**           |  3   | Cognitive verification, adversarial probing, 1-hop micro-cycle critique, Socratic review.                                                                                                                                     | **Must not** execute ANY bash/test commands (`run:exec`, 0 command privileges), pass without probe round, or validate own work.                      |
+| **`mechanic-validator`**  |  3   | Typechecks (`tsc --noEmit`), AST static invariant audits, fast incremental checks (`task:check`), Adversarial Gate Proofs (AGP).                                                                                              | **Must not** re-run implementer unit tests, write application code, run whole-repo test suites, or validate tasks without direct execution receipts. |
+| **`repairer`**            |  3   | Targeted remediation of specific validator findings.                                                                                                                                                                          | **Must not** expand scope beyond reported finding remediations.                                                                                      |
+| **`completeness-critic`** |  3   | Whole-run verification against original user prompt.                                                                                                                                                                          | **Must not** approve runs with unmapped requirements or failing gates.                                                                               |
+| **`sub-implementer`**     |  3   | Narrow branch sub-task execution.                                                                                                                                                                                             | **Must not** exceed parent's write scope subset.                                                                                                     |
+| **`sub-validator`**       |  3   | Command execution and evidence gathering.                                                                                                                                                                                     | **Must not** render verdicts (`pass`/`fail`) or close findings.                                                                                      |
+| **`sub-investigator`**    |  3   | Read-only diagnosis and root-cause analysis.                                                                                                                                                                                  | **Must not** modify filesystem state or write code.                                                                                                  |
 
 ---
 
@@ -185,7 +196,7 @@ To eliminate sycophantic bias and accelerate execution convergence, validation e
 │             │                                       │                       │
 │             │                                       ▼                       │
 │  [ Independent Validator (Key 2) ] ◄───► [ Mechanic Validator ]             │
-│    • Socratic cognitive critique           • Executes file-scoped tests     │
+│    • Socratic cognitive critique           • Fast incremental task:check    │
 │    • 1-hop micro-cycle feedback            • Produces structured receipts   │
 │    • Mandatory adversarial probe           • Adversarial Gate Proofs (AGP)  │
 │    • Signs off (task:review pass)                                           │
@@ -199,7 +210,7 @@ To eliminate sycophantic bias and accelerate execution convergence, validation e
    - When a validator identifies a remediation item or missing assertion during validation, it issues structured critique via `task:reject --micro-cycle --reason "<critique>" --remediation "<fix>"` (or alias `--in-lease`) or `task:review --micro-cycle --status fail`.
    - The implementer's lease is **preserved in active state** (`leased`), bypassing expensive full-cycle lease release, replanning, and re-claiming.
 2. **Direct Implementer Remediation:**
-   - The implementer receives the critique directly, modifies files strictly within write scope, verifies changes using file-scoped test commands (`bun test <path.test.ts>`), and re-submits (`task:submit`).
+   - The implementer receives the critique directly, modifies files strictly within write scope, verifies changes using file-scoped test commands (`bun test <path.test.ts>`) and fast incremental verification (`task:check`), and re-submits (`task:submit`).
 3. **Bounded Micro-Cycle Rounds:**
    - In-lease micro-cycles are bounded to a maximum of 3 rounds (`max_micro_cycles: 3`).
    - If findings remain unresolved after 3 micro-cycle hops, the task transitions to formal `changes_requested` for full repair replanning.
@@ -230,8 +241,8 @@ To protect repository state and prevent common LLM blunder modes:
 1. **Main-Thread Restraint Guard:**
    - Interactive Tier 1 sessions must never perform direct task implementations or file edits.
    - Unauthorized direct edits trigger automated blunder logging (`blunder:audit`) and require delegation to background subagents.
-2. **Zero-Exploration 1-Shot Briefing Mandate:**
-   - Subagents must never be spawned without complete task context. Always issue `task:brief` or `agent:brief` in the dispatch prompt to prevent exploratory probing.
+2. **Zero-Exploration Exact-Anchor Briefing Mandate:**
+   - Subagents must never be spawned without complete task context. Always issue `task:brief` or `agent:brief` containing exact target files, line ranges (`StartLine`, `EndLine`), concrete symbols, and drop-in code replacements. Implementers must achieve Turn 1 edits with 0 exploratory discovery reads. Flag $>5$ exploratory reads before first edit as `TOKEN_BURNING`.
 3. **Strict Test Ban on Coordinators / Orchestrators:**
    - Coordinators and Orchestrators must never execute raw test suites (`bun test`). All test runs must be delegated to Tier 3 Mechanic Validators.
 4. **Hard Subagent Reset Discipline:**
@@ -274,6 +285,10 @@ To protect repository state and prevent common LLM blunder modes:
     - Historical pattern retrieval must leverage `memory:query` / `memory:search` with targeted `--kind`, `--generation`, `--tags`, and `--pattern` filters to search indexed cognitive memory across all generations before planning new objectives or declaring solutions.
 18. **Automated Blunder Promotion & Regression Suite Maintenance:**
     - Every resolved blunder in `blunders.jsonl` must be promoted via `blunder:audit --auto-promote` into `completed-blunders.jsonl` with empirical proof and regression test assertions (`--generate-tests`, `--output-tests`), maintaining 100% regression immunity across all 46 blunder instances.
+19. **Fast Incremental Verification Discipline (`task:check`):**
+    - Implementers and mechanic validators must execute `task:check` (`--task <id> --run <run>` or `--file <paths>`) for instant in-process TypeScript type checking and AST invariant audits (strict 0 `any`, 0 suppressions) before submitting or passing tasks.
+20. **Autonomous Meta-Auditor Forensics & Closed-Loop Remediation:**
+    - Post-wave and post-run reviews must execute `meta-audit --run <run> --inject` to detect coordination defects across 7 behavioral heuristics, compute quantitative efficiency scores, and autonomously enqueue remediation proposals directly into `.capsules/FEEDBACK_QUEUE.jsonl`.
 
 ---
 
@@ -304,7 +319,7 @@ All contributions to the `@onurseckin/skills` monorepo must strictly satisfy all
 │                       STANDARD HARNESS STEP-MACHINE                         │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
-│  1. Generate 1-Shot Briefing:                                               │
+│  1. Generate Zero-Exploration Exact-Anchor Briefing:                        │
 │     bun harness.ts task:brief --run <run> --task <id> --agent <agent> \     │
 │       --role implementer                                                    │
 │                                                                             │
@@ -315,37 +330,40 @@ All contributions to the `@onurseckin/skills` monorepo must strictly satisfy all
 │  3. Execute Implementation within Write Scope:                              │
 │     (Implement code & verify with file-scoped: bun test <file.test.ts>)     │
 │                                                                             │
-│  4. Maintain Live Lease:                                                    │
+│  4. Fast Incremental Verification (Typecheck + AST Invariants):             │
+│     bun harness.ts task:check --run <run> --task <id>                       │
+│                                                                             │
+│  5. Maintain Live Lease:                                                    │
 │     bun harness.ts task:heartbeat --run <run> --task <id> --agent <agent> \ │
 │       --token <token>                                                       │
 │                                                                             │
-│  5. Submit Completed Task:                                                  │
+│  6. Submit Completed Task:                                                  │
 │     bun harness.ts task:submit --run <run> --task <id> --agent <agent> \    │
 │       --token <token> --summary "<SUMMARY>" --files-changed <FILES>         │
 │                                                                             │
-│  6. Independent Validator Takes Over:                                       │
+│  7. Independent Validator Takes Over:                                       │
 │     bun harness.ts task:validate-start --run <run> --task <id> \            │
 │       --validator <val-agent> --validator-domain code-quality               │
 │                                                                             │
-│  7. 1-Hop Micro-Cycle (if critique needed without lease teardown):          │
+│  8. 1-Hop Micro-Cycle (if critique needed without lease teardown):          │
 │     bun harness.ts task:reject --run <run> --task <id> \                    │
 │       --validator <val-agent> --token <val-token> --micro-cycle \           │
 │       --reason "<CRITIQUE>" --remediation "<FIX>"                           │
 │                                                                             │
-│  8. Validator Adversarial Probe:                                            │
+│  9. Validator Adversarial Probe:                                            │
 │     bun harness.ts task:probe --run <run> --task <id> \                     │
 │       --validator <val-agent> --token <val-token> --demand "<DEMAND>"       │
 │                                                                             │
-│  9. Validator Sign-off:                                                     │
-│     bun harness.ts task:review --run <run> --task <id> \                    │
-│       --validator <val-agent> --token <val-token> --status pass             │
+│  10. Validator Sign-off:                                                    │
+│      bun harness.ts task:review --run <run> --task <id> \                   │
+│        --validator <val-agent> --token <val-token> --status pass            │
 │                                                                             │
-│  10. Per-Task/Subgroup Commit, Push & Global Sync:                          │
+│  11. Per-Task/Subgroup Commit, Push & Global Sync:                          │
 │      git commit -m "feat(scope): complete task <id>"                        │
 │      git push origin main                                                   │
 │      bun scripts/sync-global.ts                                             │
 │                                                                             │
-│  11. Hard Agent Reset:                                                      │
+│  12. Hard Agent Reset:                                                      │
 │      (manage_subagents with Action: 'kill' for completed subagents)         │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
@@ -456,3 +474,87 @@ All contributions to the `@onurseckin/skills` monorepo must strictly satisfy all
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
+
+### F. Meta-Auditor Deep Behavioral Forensics & Autonomous Injection Step-Machine
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│          META-AUDITOR DEEP BEHAVIORAL FORENSICS & AUTONOMOUS INJECTION      │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  1. Run Deep Behavioral Forensics Analysis:                                 │
+│     bun harness.ts meta-audit --run <run> --format markdown                 │
+│     (Scans 7 behavioral heuristics, computes efficiency score 0.0%-100.0%)  │
+│                                                                             │
+│  2. Filter Forensics by Specific Agent & Enable Verbose Output:             │
+│     bun harness.ts meta-audit --run <run> --agent <agent-id> --verbose      │
+│                                                                             │
+│  3. Autonomous Closed-Loop Feedback Queue Injection:                        │
+│     bun harness.ts meta-audit --run <run> --inject                          │
+│     (Synthesizes PlanInjectionProposals into .capsules/FEEDBACK_QUEUE.jsonl) │
+│                                                                             │
+│  4. Fast Incremental Verification on Targeted Scope (task:check):           │
+│     bun harness.ts task:check --run <run> --task <id>                       │
+│     bun harness.ts task:check --file <path1>,<path2> --typecheck --lint     │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 8. Deep Behavioral Forensics Taxonomy & Exact-Anchor Protocol
+
+### The 7 Behavioral Forensics Heuristics & Root Cause Taxonomy
+
+The Meta-Auditor (`meta-auditor`, domain: `forensics`) systematically audits run event streams (`events.jsonl`), state ledgers (`state.json`), and transcripts across seven core heuristics:
+
+| Root Cause Category           | Detection Heuristic & Threshold                                                                                                                                                                                                    |    Severity     | Impact                                                                                                   | Prescribed Remediation                                                                                      |
+| :---------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :-------------: | :------------------------------------------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------- |
+| **`TOKEN_BURNING`**           | $>5$ consecutive exploratory read/browse tool calls (`view_file`, `list_dir`, `find_by_name`, `grep_search`) before first write (`write_to_file`, `replace_file_content`), or aggregate read/write ratio $>10:1$ with $>15$ reads. | High / Critical | Input token waste, context window pollution, delayed time-to-first-edit.                                 | Mandate Exact-Anchor task briefings (`task:brief`) with explicit line ranges and drop-in code replacements. |
+| **`FALSE_SERIALIZATION`**     | $\ge 2$ tasks with disjoint write scopes executed sequentially across consecutive timestamps instead of concurrently.                                                                                                              |  Medium / High  | Artificial span inflation, under-utilization of Brent Work/Span concurrency ($P = \lceil W / S \rceil$). | Group ready disjoint tasks into parallel wave dispatches via host native batching (`Subagents: [...]`).     |
+| **`ROLE_BOUNDARY_DEVIATION`** | Tier 1/2 supervisors invoke file write tools; cognitive validators execute code edits or arbitrary shell commands outside test runner.                                                                                             | Critical / High | Collapse of 4-tier separation of concerns, loss of verification integrity.                               | Strict tool grant isolation and lease tokens; delegate code edits strictly to Tier 3 implementers.          |
+| **`POLLING_WASTE`**           | Frequent, short-interval status polling calls (`manage_task status`, `schedule` loops) with count $\ge 4$.                                                                                                                         |  Medium / High  | Token consumption, tool call noise, CPU overhead during async waits.                                     | Mandate `WaitMsBeforeAsync: 10000` on async tool calls; await automatic reactive resumption.                |
+| **`CONTEXT_OVERFLOW`**        | Subagent consumes $>150,000$ prompt input tokens within a single active grant session.                                                                                                                                             | High / Critical | Imminent context overflow, attention degradation, instruction drift, session crash.                      | Granular task decomposition ($\le 1\text{--}2$ files), Cowan-chunked context limits, stream chunking.       |
+| **`GHOST_LEASE`**             | Task remains in `leased` or `stale` status assigned to an agent whose grant status is `released` or dead.                                                                                                                          |      High       | Task deadlock blocking wave completion and subsequent implementer claims.                                | Autonomously reclaim task leases upon agent release or heartbeat expiration; re-queue tasks.                |
+| **`STRAGGLER`**               | Task execution duration exceeds $3\times$ run's average task duration (and $>120$ seconds).                                                                                                                                        |  Medium / High  | Long-tail serial bottleneck stalling subsequent wave lanes and inflating run span.                       | Decompose oversized tasks into atomic work units bounded to 1–2 target files per task.                      |
+
+### Deterministic Efficiency Scoring Model
+
+The Meta-Auditor computes an objective behavioral efficiency score ($0.0\% - 100.0\%$):
+
+$$\text{Score} = \max\left(0.0, \min\left(100.0, 100.0 - \sum \text{Deductions}\right)\right)$$
+
+1. **Incident Severity Deductions**:
+   - **CRITICAL Incident**: $-25.0$ points each
+   - **HIGH Incident**: $-15.0$ points each
+   - **MEDIUM Incident**: $-8.0$ points each
+   - **LOW Incident**: $-3.0$ points each
+
+2. **Operational Penalties**:
+   - **High Read-to-Write Ratio**: If $\text{Ratio} > 15.0$, deduct $\min\left(20.0, (\text{Ratio} - 15.0) \times 1.5\right)$
+   - **Excessive Polling Calls**: If $\text{Count} > 5$, deduct $\min\left(15.0, (\text{Count} - 5) \times 2.0\right)$
+   - **Sequential Bottlenecks**: If $\text{Bottlenecks} > 0$, deduct $\min\left(15.0, \text{Bottlenecks} \times 5.0\right)$
+
+### Closed-Loop Autonomous Feedback Queue Injection (`--inject`)
+
+When executed with `--inject` (`bun harness.ts meta-audit --run <run> --inject`), the forensics engine automatically:
+
+1. Synthesizes structured `PlanInjectionProposal` records for detected high/critical incidents.
+2. Formats remediation directives containing exact file targets, prescribed behavioral fixes, and priority levels.
+3. Appends proposals to `.capsules/FEEDBACK_QUEUE.jsonl` (and `mind:candidate` pool) with cryptographic title/category deduplication.
+4. Feeds directly into Tier 0 Mind's atomic admission-to-dispatch loop for the subsequent wave or run cycle.
+
+### Zero-Exploration Exact-Anchor Briefings & Fast Incremental Verification (`task:check`)
+
+1. **Exact-Anchor Briefing Protocol**:
+   - Coordinators must dispatch Tier 3 workers using `task:brief` containing:
+     - Exact absolute and relative target file paths.
+     - Precise `StartLine` and `EndLine` coordinates.
+     - Concrete TypeScript symbol names, interfaces, and function signatures.
+     - Ready-to-apply drop-in replacement chunks.
+   - Implementers target immediate Turn 1 edits with 0 exploratory discovery calls.
+
+2. **Fast Incremental Verification Engine (`task:check`)**:
+   - In-process TypeScript type checking (`performIncrementalTypecheck`) and AST invariant linting (`performAstLintCheck`).
+   - Scopes verification directly to task write scopes (`--task <id> --run <run>`) or modified files (`--file <path1>,<path2>`).
+   - Enforces strict monorepo quality gates (0 TypeScript `any`, 0 compiler suppressions, zero-fallback error codes) in milliseconds.
