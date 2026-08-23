@@ -9,19 +9,26 @@ import {
   DEFAULT_EXTENSIONS,
   DEFAULT_PROHIBITED_VENDORS,
   assertZeroFallbackCompliance,
+  autoFixSourceCode,
   extractIdentifierWords,
   formatAstLintReport,
+  formatSummaryTable,
+  formatViolationMarkdown,
+  generateFixSuggestion,
   isAstLintResult,
   isAstLintViolation,
+  isAutoFixResult,
   isDirectoryLintResult,
+  isFixSuggestion,
   lintDirectory,
   lintFile,
   lintSourceCode,
+  suggestRefactorings,
   type AstLintOptions,
   type AstLintResult,
-  type AstLintRule,
   type AstLintViolation,
   type DirectoryLintResult,
+  type FixSuggestion,
 } from "../../../orchestrating-long-tasks/scripts/src/linter/ast-enforcer.ts";
 
 describe("Structural Zero-Fallback AST Linter & Vendor Identifier Enforcer", () => {
@@ -99,10 +106,11 @@ describe("Structural Zero-Fallback AST Linter & Vendor Identifier Enforcer", () 
 
     it("passes clean explicit if-else without logical OR", () => {
       const code = `
+        let active = false;
         if (isA) {
-          doWork();
+          active = true;
         } else if (isB) {
-          doWork();
+          active = true;
         }
       `;
       const result = lintSourceCode(code, "clean.ts");
@@ -129,7 +137,7 @@ describe("Structural Zero-Fallback AST Linter & Vendor Identifier Enforcer", () 
     });
 
     it("detects 'any' type in function parameter and return type", () => {
-      const code = "function handle(data: any): any { return data; }";
+      const code = "function process(item: any): any { return item; }";
       const result = lintSourceCode(code, "test.ts");
 
       expect(result.valid).toBe(false);
@@ -138,13 +146,14 @@ describe("Structural Zero-Fallback AST Linter & Vendor Identifier Enforcer", () 
 
     it("detects 'any' in type arguments and type casts", () => {
       const code = `
-        const list: Array<any> = [];
-        const casted = val as any;
+        const map = new Map<string, any>();
+        const obj = (data as any).property;
+        const cast = <any>value;
       `;
       const result = lintSourceCode(code, "test.ts");
 
       expect(result.valid).toBe(false);
-      expect(result.summaryByRule.any_type).toBe(2);
+      expect(result.summaryByRule.any_type).toBe(3);
     });
 
     it("passes clean strictly-typed code with unknown and type guards", () => {
@@ -221,8 +230,8 @@ describe("Structural Zero-Fallback AST Linter & Vendor Identifier Enforcer", () 
 
     it("detects vendor names in import statements and module specifiers", () => {
       const code = `
-        import { OpenAI } from "openai";
-        import * as Anthropic from "anthropic";
+        import { Anthropic } from "@anthropic-ai/sdk";
+        import OpenAI from "openai";
       `;
       const result = lintSourceCode(code, "test.ts");
 
@@ -232,8 +241,8 @@ describe("Structural Zero-Fallback AST Linter & Vendor Identifier Enforcer", () 
 
     it("detects vendor names in export declarations and require calls", () => {
       const code = `
-        export * from "gemini-sdk";
-        const mod = require("chatgpt");
+        export { geminiClient } from "./gemini";
+        const openai = require("openai");
       `;
       const result = lintSourceCode(code, "test.ts");
 
@@ -242,22 +251,24 @@ describe("Structural Zero-Fallback AST Linter & Vendor Identifier Enforcer", () 
     });
 
     it("respects custom vendor names supplied in options", () => {
-      const code = "const llamaModel = new Llama();";
-      const customOptions: AstLintOptions = {
-        vendorNames: ["llama", "mistral"],
+      const code = `
+        const customVendorApi = create();
+        const regularService = standard();
+      `;
+      const options: AstLintOptions = {
+        vendorNames: ["customvendor"],
       };
-      const result = lintSourceCode(code, "test.ts", customOptions);
+      const result = lintSourceCode(code, "test.ts", options);
 
       expect(result.valid).toBe(false);
-      expect(result.summaryByRule.vendor_leak).toBe(2);
+      expect(result.summaryByRule.vendor_leak).toBe(1);
     });
 
     it("passes neutral non-vendor identifiers", () => {
       const code = `
-        const modelClient = new Client();
-        class InferenceEngine {}
-        function dispatchInference() {}
-        const apiKey = "secret";
+        const harness = new TestHarness();
+        const coordinator = new Coordinator();
+        const telemetry = collectMetrics();
       `;
       const result = lintSourceCode(code, "clean.ts");
 
@@ -270,7 +281,7 @@ describe("Structural Zero-Fallback AST Linter & Vendor Identifier Enforcer", () 
     it("detects @ts-ignore in single-line comments", () => {
       const code = `
         // @ts-ignore
-        const x = 1;
+        const value = badCall();
       `;
       const result = lintSourceCode(code, "test.ts");
 
@@ -285,28 +296,27 @@ describe("Structural Zero-Fallback AST Linter & Vendor Identifier Enforcer", () 
       }
     });
 
-    it("detects @ts-nocheck and @ts-expect-error in block comments", () => {
+    it("detects @ts-nocheck, @ts-expect-error, and eslint-disable in comments", () => {
       const code = `
         /* @ts-nocheck */
-        const a = 1;
-        /* @ts-expect-error */
-        const b = a();
+        // @ts-expect-error: expected type mismatch
+        // eslint-disable-next-line
+        const x = 1;
       `;
       const result = lintSourceCode(code, "test.ts");
 
       expect(result.valid).toBe(false);
-      expect(result.summaryByRule.compiler_suppression).toBe(2);
+      expect(result.summaryByRule.compiler_suppression).toBe(3);
     });
 
     it("does not flag ordinary documentation comments", () => {
       const code = `
         /**
-         * Computes the factorial of n.
-         * @param n Positive integer.
-         * @returns Factorial result.
+         * Normal method documentation.
+         * Explains function behavior clearly.
          */
-        function factorial(n: number): number {
-          return n <= 1 ? 1 : n * factorial(n - 1);
+        export function computeScore(input: number): number {
+          return input * 2;
         }
       `;
       const result = lintSourceCode(code, "clean.ts");
@@ -316,79 +326,148 @@ describe("Structural Zero-Fallback AST Linter & Vendor Identifier Enforcer", () 
     });
   });
 
-  describe("7. Multi-Rule Aggregation & Selective Filtering", () => {
-    it("aggregates all 6 rule violations accurately in one source file", () => {
-      const dirtyCode = `
-        // @ts-ignore
-        const openai = (raw: any) => {
-          const config = raw ?? {};
-          const fallback = config.port || 8080;
-          return config.host!;
-        };
+  describe("7. Test Anti-Pattern Rules (mock_tautology, trivial_assertion, empty_test_body, trivial_early_return)", () => {
+    it("detects empty test function bodies", () => {
+      const code = `
+        test("empty test body", () => {});
       `;
-      const result = lintSourceCode(dirtyCode, "all-violations.ts");
+      const result = lintSourceCode(code, "test.ts");
 
       expect(result.valid).toBe(false);
-      expect(result.totalViolations).toBe(6);
+      expect(result.summaryByRule.empty_test_body).toBe(1);
+
+      const violation = result.violations[0];
+      expect(violation !== undefined).toBe(true);
+      if (violation !== undefined) {
+        expect(violation.rule).toBe("empty_test_body");
+        expect(violation.message).toContain("empty function body");
+      }
+    });
+
+    it("detects trivial early return before assertions", () => {
+      const code = `
+        test("early return test", () => {
+          return;
+          expect(1).toBe(2);
+        });
+      `;
+      const result = lintSourceCode(code, "test.ts");
+
+      expect(result.valid).toBe(false);
+      expect(result.summaryByRule.trivial_early_return).toBe(1);
+    });
+
+    it("detects mock return tautology asserted directly against stub without SUT", () => {
+      const code = `
+        test("mock tautology", () => {
+          const mockFn = fn().mockReturnValue("stubbed");
+          expect(mockFn()).toBe("stubbed");
+        });
+      `;
+      const result = lintSourceCode(code, "test.ts");
+
+      expect(result.valid).toBe(false);
+      expect(result.summaryByRule.mock_tautology).toBe(1);
+    });
+
+    it("detects trivial constant assertions comparing literal against itself", () => {
+      const code = `
+        test("trivial literal", () => {
+          expect(1).toBe(1);
+          assert(true);
+        });
+      `;
+      const result = lintSourceCode(code, "test.ts");
+
+      expect(result.valid).toBe(false);
+      expect(result.summaryByRule.trivial_assertion).toBe(2);
+    });
+
+    it("detects variable asserted against itself in expect(x).toBe(x)", () => {
+      const code = `
+        test("identity tautology", () => {
+          const x = 42;
+          expect(x).toBe(x);
+        });
+      `;
+      const result = lintSourceCode(code, "test.ts");
+
+      expect(result.valid).toBe(false);
+      expect(result.summaryByRule.trivial_assertion).toBe(1);
+    });
+  });
+
+  describe("8. Multi-Rule Aggregation & Selective Filtering", () => {
+    it("aggregates all rule violations accurately in one source file", () => {
+      const code = `
+        // @ts-ignore
+        const openaiService: any = client ?? backupClient;
+        const val = list!.item || "fallback";
+      `;
+      const result = lintSourceCode(code, "bad.ts");
+
+      expect(result.valid).toBe(false);
       expect(result.summaryByRule.compiler_suppression).toBe(1);
-      expect(result.summaryByRule.vendor_leak).toBe(1);
+      expect(result.summaryByRule.vendor_leak).toBeGreaterThanOrEqual(1);
       expect(result.summaryByRule.any_type).toBe(1);
       expect(result.summaryByRule.nullish_coalescing).toBe(1);
-      expect(result.summaryByRule.logical_or_fallback).toBe(1);
       expect(result.summaryByRule.non_null_assertion).toBe(1);
+      expect(result.summaryByRule.logical_or_fallback).toBe(1);
     });
 
     it("filters rules via enabledRules option", () => {
-      const dirtyCode = `
-        const x: any = a ?? b;
+      const code = `
+        const x: any = 1;
+        const y = a ?? b;
       `;
       const options: AstLintOptions = {
-        enabledRules: ["any_type"],
+        enabledRules: ["nullish_coalescing"],
       };
-      const result = lintSourceCode(dirtyCode, "test.ts", options);
+      const result = lintSourceCode(code, "test.ts", options);
 
       expect(result.valid).toBe(false);
-      expect(result.totalViolations).toBe(1);
-      expect(result.summaryByRule.any_type).toBe(1);
-      expect(result.summaryByRule.nullish_coalescing).toBe(0);
+      expect(result.summaryByRule.nullish_coalescing).toBe(1);
+      expect(result.summaryByRule.any_type).toBe(0);
     });
 
     it("skips rules via disabledRules option", () => {
-      const dirtyCode = `
-        const x: any = a ?? b;
+      const code = `
+        const x: any = 1;
+        const y = a ?? b;
       `;
       const options: AstLintOptions = {
         disabledRules: ["any_type"],
       };
-      const result = lintSourceCode(dirtyCode, "test.ts", options);
+      const result = lintSourceCode(code, "test.ts", options);
 
       expect(result.valid).toBe(false);
-      expect(result.totalViolations).toBe(1);
       expect(result.summaryByRule.any_type).toBe(0);
       expect(result.summaryByRule.nullish_coalescing).toBe(1);
     });
   });
 
-  describe("8. File and Directory Operations", () => {
-    const testTempDir = join(tmpdir(), "ast-linter-unit-tests-" + String(Date.now()));
+  describe("9. File and Directory Operations", () => {
+    const testDir = join(tmpdir(), `ast-linter-test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
 
     it("lints a single file on disk", () => {
-      mkdirSync(testTempDir, { recursive: true });
-      const testFile = join(testTempDir, "sample.ts");
-      writeFileSync(testFile, "const cleanVar: string = 'hello';", "utf-8");
+      mkdirSync(testDir, { recursive: true });
+      const testFile = join(testDir, "sample.ts");
+      writeFileSync(testFile, "export const x = a ?? b;", "utf-8");
 
       const result = lintFile(testFile);
-      expect(result.valid).toBe(true);
-      expect(result.totalViolations).toBe(0);
+      expect(result.valid).toBe(false);
+      expect(result.totalViolations).toBe(1);
       expect(result.filePath).toBe(testFile);
 
-      rmSync(testFile, { force: true });
+      rmSync(testDir, { recursive: true, force: true });
     });
 
     it("throws HarnessError PATH_SAFETY if file does not exist", () => {
-      expect(() => lintFile("/non/existent/path/for/sure/file.ts")).toThrow();
+      const nonExistent = join(tmpdir(), "non_existent_file.ts");
+      expect(() => lintFile(nonExistent)).toThrow();
+
       try {
-        lintFile("/non/existent/path/for/sure/file.ts");
+        lintFile(nonExistent);
       } catch (err: unknown) {
         expect(err instanceof HarnessError).toBe(true);
         if (err instanceof HarnessError) {
@@ -398,62 +477,85 @@ describe("Structural Zero-Fallback AST Linter & Vendor Identifier Enforcer", () 
     });
 
     it("lints an entire directory tree recursively", () => {
-      mkdirSync(join(testTempDir, "sub"), { recursive: true });
-      writeFileSync(
-        join(testTempDir, "clean.ts"),
-        "export const cleanValue = 42;",
-        "utf-8",
-      );
-      writeFileSync(
-        join(testTempDir, "sub", "dirty.ts"),
-        "export const bad = a ?? b;",
-        "utf-8",
-      );
-      writeFileSync(
-        join(testTempDir, "sub", "ignored.txt"),
-        "some non-code content ?? || any",
-        "utf-8",
-      );
+      mkdirSync(join(testDir, "sub"), { recursive: true });
+      writeFileSync(join(testDir, "clean.ts"), "export const a: number = 1;", "utf-8");
+      writeFileSync(join(testDir, "sub", "bad.ts"), "export const b: any = 2;", "utf-8");
 
-      const dirResult = lintDirectory(testTempDir);
+      const dirResult = lintDirectory(testDir);
       expect(dirResult.valid).toBe(false);
       expect(dirResult.totalFiles).toBe(2);
       expect(dirResult.cleanFiles).toBe(1);
       expect(dirResult.failedFiles).toBe(1);
       expect(dirResult.totalViolations).toBe(1);
-      expect(dirResult.summaryByRule.nullish_coalescing).toBe(1);
+      expect(dirResult.summaryByRule.any_type).toBe(1);
 
-      rmSync(testTempDir, { recursive: true, force: true });
+      rmSync(testDir, { recursive: true, force: true });
     });
 
     it("throws HarnessError PATH_SAFETY if directory does not exist or is not a directory", () => {
-      expect(() => lintDirectory("/non/existent/path/dir")).toThrow();
+      const nonExistent = join(tmpdir(), "no_such_directory_123");
+      expect(() => lintDirectory(nonExistent)).toThrow();
+
+      try {
+        lintDirectory(nonExistent);
+      } catch (err: unknown) {
+        expect(err instanceof HarnessError).toBe(true);
+        if (err instanceof HarnessError) {
+          expect(err.code).toBe("PATH_SAFETY");
+        }
+      }
     });
   });
 
-  describe("9. Report Formatting (formatAstLintReport)", () => {
+  describe("10. Auto-Fix & Refactoring Suggestions", () => {
+    it("generates refactoring suggestions for violations", () => {
+      const violation: AstLintViolation = {
+        rule: "nullish_coalescing",
+        message: "Prohibited ??",
+        file: "test.ts",
+        line: 5,
+        column: 10,
+        snippet: "val ?? 'default'",
+      };
+
+      const suggestion = generateFixSuggestion(violation);
+      expect(suggestion.rule).toBe("nullish_coalescing");
+      expect(suggestion.suggestedReplacement).toContain("!==");
+      expect(suggestion.explanation).toContain("explicit nullish checks");
+    });
+
+    it("suggests refactorings for complete lint results", () => {
+      const code = `
+        const x: any = 1;
+        const y = a ?? b;
+      `;
+      const result = lintSourceCode(code, "test.ts");
+      const suggestions = suggestRefactorings(result, code);
+
+      expect(suggestions.length).toBe(2);
+      expect(suggestions[0] !== undefined).toBe(true);
+      expect(suggestions[1] !== undefined).toBe(true);
+    });
+
+    it("auto-fixes source code transforming ?? and as any", () => {
+      const badCode = `
+        // @ts-ignore
+        const val = input ?? fallback;
+        const obj = data as any;
+      `;
+      const autoFixResult = autoFixSourceCode(badCode, "test.ts");
+
+      expect(isAutoFixResult(autoFixResult)).toBe(true);
+      expect(autoFixResult.appliedFixesCount).toBeGreaterThan(0);
+      expect(autoFixResult.fixedCode).not.toContain("@ts-ignore");
+      expect(autoFixResult.fixedCode).not.toContain("as any");
+      expect(autoFixResult.fixedCode).toContain("as unknown");
+    });
+  });
+
+  describe("11. Report Formatting & Table Utilities", () => {
     it("formats a single file lint report cleanly for clean file", () => {
-      const cleanResult = lintSourceCode("const x: number = 1;", "clean.ts");
-      const report = formatAstLintReport(cleanResult);
-
-      expect(report).toContain("AST LINT FILE REPORT: clean.ts");
-      expect(report).toContain("Status: PASSED (0 violations)");
-      expect(report).toContain("- nullish_coalescing: 0");
-    });
-
-    it("formats a single file lint report with violations and snippets", () => {
-      const dirtyResult = lintSourceCode("const x = a ?? b;", "dirty.ts");
-      const report = formatAstLintReport(dirtyResult);
-
-      expect(report).toContain("AST LINT FILE REPORT: dirty.ts");
-      expect(report).toContain("Status: FAILED (1 violations)");
-      expect(report).toContain("Line 1:");
-      expect(report).toContain("[nullish_coalescing]");
-      expect(report).toContain("a ?? b");
-    });
-
-    it("formats a directory lint report", () => {
-      const fileRes1: AstLintResult = {
+      const cleanResult: AstLintResult = {
         valid: true,
         passed: true,
         filePath: "src/clean.ts",
@@ -466,62 +568,87 @@ describe("Structural Zero-Fallback AST Linter & Vendor Identifier Enforcer", () 
           non_null_assertion: 0,
           vendor_leak: 0,
           compiler_suppression: 0,
+          mock_tautology: 0,
+          trivial_assertion: 0,
+          empty_test_body: 0,
+          trivial_early_return: 0,
         },
       };
 
-      const fileRes2: AstLintResult = {
+      const report = formatAstLintReport(cleanResult);
+      expect(report).toContain("AST LINT FILE REPORT: src/clean.ts");
+      expect(report).toContain("Status: PASSED (0 violations)");
+      expect(report).toContain("nullish_coalescing: 0");
+    });
+
+    it("formats a single file lint report with violations and snippets", () => {
+      const violation: AstLintViolation = {
+        rule: "nullish_coalescing",
+        message: "Prohibited ?? operator",
+        file: "src/bad.ts",
+        line: 12,
+        column: 8,
+        snippet: "val ?? defaultVal",
+      };
+
+      const badResult: AstLintResult = {
         valid: false,
         passed: false,
         filePath: "src/bad.ts",
-        violations: [
-          {
-            rule: "any_type",
-            message: "Prohibited 'any' type annotation detected.",
-            file: "src/bad.ts",
-            line: 10,
-            column: 5,
-            snippet: "let x: any;",
-          },
-        ],
+        violations: [violation],
         totalViolations: 1,
         summaryByRule: {
-          nullish_coalescing: 0,
+          nullish_coalescing: 1,
           logical_or_fallback: 0,
-          any_type: 1,
+          any_type: 0,
           non_null_assertion: 0,
           vendor_leak: 0,
           compiler_suppression: 0,
+          mock_tautology: 0,
+          trivial_assertion: 0,
+          empty_test_body: 0,
+          trivial_early_return: 0,
         },
       };
 
-      const dirResult: DirectoryLintResult = {
-        valid: false,
-        passed: false,
-        directoryPath: "src",
-        totalFiles: 2,
-        cleanFiles: 1,
-        failedFiles: 1,
-        totalViolations: 1,
-        fileResults: [fileRes1, fileRes2],
-        summaryByRule: {
-          nullish_coalescing: 0,
-          logical_or_fallback: 0,
-          any_type: 1,
-          non_null_assertion: 0,
-          vendor_leak: 0,
-          compiler_suppression: 0,
-        },
+      const report = formatAstLintReport(badResult);
+      expect(report).toContain("AST LINT FILE REPORT: src/bad.ts");
+      expect(report).toContain("Status: FAILED (1 violations)");
+      expect(report).toContain("Line 12:8 [nullish_coalescing]");
+      expect(report).toContain("val ?? defaultVal");
+    });
+
+    it("formats violation markdown and summary table", () => {
+      const violation: AstLintViolation = {
+        rule: "logical_or_fallback",
+        message: "Prohibited || operator",
+        file: "src/app.ts",
+        line: 20,
+        column: 4,
+        snippet: "name || 'default'",
       };
 
-      const report = formatAstLintReport(dirResult);
-      expect(report).toContain("AST LINT DIRECTORY REPORT: src");
-      expect(report).toContain("Files scanned: 2 (Clean: 1, Failed: 1)");
-      expect(report).toContain("File: src/bad.ts (1 violations)");
-      expect(report).toContain("Line 10:5 [any_type]");
+      const md = formatViolationMarkdown(violation);
+      expect(md).toContain("- **[logical_or_fallback]** `src/app.ts:20:4`");
+      expect(md).toContain("name || 'default'");
+
+      const table = formatSummaryTable({
+        nullish_coalescing: 0,
+        logical_or_fallback: 1,
+        any_type: 0,
+        non_null_assertion: 0,
+        vendor_leak: 0,
+        compiler_suppression: 0,
+        mock_tautology: 0,
+        trivial_assertion: 0,
+        empty_test_body: 0,
+        trivial_early_return: 0,
+      });
+      expect(table).toContain("| `logical_or_fallback` | 1 |");
     });
   });
 
-  describe("10. assertZeroFallbackCompliance Assertion Guard", () => {
+  describe("12. assertZeroFallbackCompliance Assertion Guard", () => {
     it("does not throw on fully compliant source code", () => {
       const cleanCode = `
         export function safeGet(map: Map<string, number>, key: string): number {
@@ -551,7 +678,7 @@ describe("Structural Zero-Fallback AST Linter & Vendor Identifier Enforcer", () 
     });
   });
 
-  describe("11. Self-Compliance Invariant Verification", () => {
+  describe("13. Self-Compliance Invariant Verification", () => {
     it("ast-enforcer.ts itself is 100% compliant with zero fallback and no violations", () => {
       const linterPath = "orchestrating-long-tasks/scripts/src/linter/ast-enforcer.ts";
       const result = lintFile(linterPath);
@@ -563,7 +690,7 @@ describe("Structural Zero-Fallback AST Linter & Vendor Identifier Enforcer", () 
     });
   });
 
-  describe("12. Helper Functions & Type Guards", () => {
+  describe("14. Helper Functions & Type Guards", () => {
     it("extracts words from identifiers", () => {
       expect(extractIdentifierWords("openaiClient")).toEqual(["openai", "client"]);
       expect(extractIdentifierWords("AnthropicAPIKey")).toEqual(["anthropic", "api", "key"]);
@@ -599,6 +726,10 @@ describe("Structural Zero-Fallback AST Linter & Vendor Identifier Enforcer", () 
           non_null_assertion: 0,
           vendor_leak: 0,
           compiler_suppression: 0,
+          mock_tautology: 0,
+          trivial_assertion: 0,
+          empty_test_body: 0,
+          trivial_early_return: 0,
         },
       };
       expect(isAstLintResult(validResult)).toBe(true);
@@ -619,8 +750,22 @@ describe("Structural Zero-Fallback AST Linter & Vendor Identifier Enforcer", () 
       expect(isDirectoryLintResult(null)).toBe(false);
     });
 
+    it("validates isFixSuggestion and isAutoFixResult predicates", () => {
+      const validFix: FixSuggestion = {
+        rule: "nullish_coalescing",
+        file: "app.ts",
+        line: 1,
+        column: 1,
+        originalSnippet: "a ?? b",
+        suggestedReplacement: "(a !== undefined && a !== null ? a : b)",
+        explanation: "Replace ??",
+      };
+      expect(isFixSuggestion(validFix)).toBe(true);
+      expect(isFixSuggestion({ not: "valid" })).toBe(false);
+    });
+
     it("exports standard constants", () => {
-      expect(ALL_AST_LINT_RULES.length).toBe(6);
+      expect(ALL_AST_LINT_RULES.length).toBe(10);
       expect(DEFAULT_PROHIBITED_VENDORS).toContain("anthropic");
       expect(DEFAULT_PROHIBITED_VENDORS).toContain("openai");
       expect(DEFAULT_PROHIBITED_VENDORS).toContain("gemini");

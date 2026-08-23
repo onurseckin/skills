@@ -57,4 +57,16 @@ describe("agent personas", () => {
     }
     expect(offenders).toEqual([]);
   });
+
+  test("validator personas strictly enforce cognitive vs mechanic separation", () => {
+    const validator = persona("validator.yaml");
+    expect(validator).toContain("Strict Command-Running Ban");
+    expect(validator).not.toContain("- run:exec");
+
+    const mechanic = persona("mechanic_validator.yaml");
+    expect(mechanic).toContain("run:exec");
+  });
 });
+
+
+
