@@ -333,6 +333,8 @@ export function formatMindPulseActiveBrief(params: {
   readonly waveLanes?: readonly MindPulseWaveLaneInfo[] | undefined;
   readonly cliReceiptSummaryBadge?: string | undefined;
   readonly dagBadges?: readonly string[] | undefined;
+  readonly activeRuns?: number;
+  readonly pendingBacklog?: number;
 }): string {
   const limitStr = params.pulsesPerDay === null ? "∞" : params.pulsesPerDay;
   const lines = [
@@ -385,6 +387,11 @@ export function formatMindPulseActiveBrief(params: {
     `- **Invariant**: Mind never self-terminates, dies, or closes. Runs indefinitely until human OS termination.`,
     `- **Supervisory Invariants**: Strict 4-Tier Spawning Hierarchy & Supervisor Zero-File-Edit Invariant actively enforced.`,
   );
+  
+  if (typeof params.activeRuns === "number" && typeof params.pendingBacklog === "number") {
+    const directive = formatPulseDirective({ activeRuns: params.activeRuns, pendingBacklog: params.pendingBacklog });
+    if (directive) lines.push(directive);
+  }
   return enforceLineLimit(lines.join("\n"), 35);
 }
 
@@ -406,6 +413,8 @@ export function formatMindPulseOpenedBrief(params: {
   readonly waveLanes?: readonly MindPulseWaveLaneInfo[] | undefined;
   readonly cliReceiptSummaryBadge?: string | undefined;
   readonly dagBadges?: readonly string[] | undefined;
+  readonly activeRuns?: number;
+  readonly pendingBacklog?: number;
 }): string {
   const limitStr = params.pulsesPerDay === null ? "∞" : params.pulsesPerDay;
   const lines = [
@@ -458,6 +467,11 @@ export function formatMindPulseOpenedBrief(params: {
     `- **Invariant**: Mind never self-terminates, dies, or closes. Runs indefinitely until human OS termination.`,
     `- **Supervisory Invariants**: Strict 4-Tier Spawning Hierarchy & Supervisor Zero-File-Edit Invariant actively enforced.`,
   );
+  
+  if (typeof params.activeRuns === "number" && typeof params.pendingBacklog === "number") {
+    const directive = formatPulseDirective({ activeRuns: params.activeRuns, pendingBacklog: params.pendingBacklog });
+    if (directive) lines.push(directive);
+  }
   return enforceLineLimit(lines.join("\n"), 35);
 }
 
@@ -621,6 +635,8 @@ export async function mindPulseCommand(
       waveLanes: cognitiveTelemetry.waveLanes,
       cliReceiptSummaryBadge: diagResult?.receiptSummaryBadge,
       dagBadges,
+      activeRuns: cognitiveTelemetry.activeAgents?.length ?? 0,
+      pendingBacklog: (Array.isArray(state.planning_buffer) ? state.planning_buffer.length : 0) + (typeof state.tasks === 'object' && state.tasks ? Object.values(state.tasks).filter(t => t && typeof t === 'object' && (t as Record<string, unknown>).status === 'proposed').length : 0),
     });
 
     return {
@@ -882,4 +898,36 @@ export async function mindPulseCommand(
       wall_clock_ms_per_day: wallClockPerDay,
     },
   };
+}
+
+
+import { MindAutonomousDiscoveryEngine } from "../../mind/discovery-engine.ts";
+
+export function formatPulseDirective(params: {
+  readonly activeRuns: number;
+  readonly pendingBacklog: number;
+}): string {
+  if (params.activeRuns === 0 && params.pendingBacklog === 0) {
+    const proposals = MindAutonomousDiscoveryEngine.generateProposals({
+      backlogCount: params.pendingBacklog,
+      activeRunCount: params.activeRuns,
+      unresolvedDefects: 0, // Fallback to 0 if not provided
+    });
+    const lines = [
+      "### MODE A AUTONOMOUS DISCOVERY REQUIRED",
+      "- Active Runs: 0",
+      "- Pending Backlog: 0",
+      "- Action: Generate candidate proposals using MindAutonomousDiscoveryEngine.",
+      "- Invariant: CLOSING_FORBIDDEN_FOR_MIND"
+    ];
+    if (proposals.length > 0) {
+      lines.push("");
+      lines.push("#### Discovery Proposals:");
+      for (const p of proposals) {
+        lines.push(`- **${p.title}** (${p.category}): ${p.candidateGoal}`);
+      }
+    }
+    return lines.join("\n");
+  }
+  return "";
 }
