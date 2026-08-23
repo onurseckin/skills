@@ -1,22 +1,25 @@
 import { describe, expect, test } from "bun:test";
 import {
   allocateParallelLanes,
+  analyzeQueueStalls,
   breakCycles,
   calculateBrentsTheorem,
+  computeCriticalPathDrag,
   computeTaskSlack,
   computeTopologicalWaves,
   computeWorkSpan,
   describeCycle,
   detectArtificialSerialization,
+  detectFanOutBottlenecks,
   findCycles,
   isAcyclic,
+  renderForensicUnicodeReport,
   renderMermaidDag,
   topologicalOrder,
   type ForensicTaskNode,
 } from "../../../orchestrating-long-tasks/scripts/src/graph/dag-forensics.ts";
 import {
   formatBox,
-  renderAsciiDag,
   renderNodeBox,
   renderVisualDag,
   statusBadge,
@@ -25,12 +28,13 @@ import {
 
 describe("DAG Forensics: Topological Sorting & Acyclicity", () => {
   test("topologicalOrder returns empty array on empty graph", () => {
-    expect(topologicalOrder(new Map())).toEqual([]);
-    expect(isAcyclic(new Map())).toBe(true);
+    const emptyGraph = new Map<string, ReadonlySet<string>>();
+    expect(topologicalOrder(emptyGraph)).toEqual([]);
+    expect(isAcyclic(emptyGraph)).toBe(true);
   });
 
   test("topologicalOrder correctly orders linear sequential pipeline", () => {
-    const deps = new Map([
+    const deps = new Map<string, ReadonlySet<string>>([
       ["t1", new Set<string>()],
       ["t2", new Set(["t1"])],
       ["t3", new Set(["t2"])],
@@ -41,7 +45,7 @@ describe("DAG Forensics: Topological Sorting & Acyclicity", () => {
   });
 
   test("topologicalOrder deterministically breaks ties lexicographically", () => {
-    const deps = new Map([
+    const deps = new Map<string, ReadonlySet<string>>([
       ["gamma", new Set<string>()],
       ["alpha", new Set<string>()],
       ["beta", new Set<string>()],
@@ -51,7 +55,7 @@ describe("DAG Forensics: Topological Sorting & Acyclicity", () => {
   });
 
   test("topologicalOrder handles complex diamond and multi-root graph", () => {
-    const deps = new Map([
+    const deps = new Map<string, ReadonlySet<string>>([
       ["root-1", new Set<string>()],
       ["root-2", new Set<string>()],
       ["mid-a", new Set(["root-1"])],
@@ -73,19 +77,23 @@ describe("DAG Forensics: Topological Sorting & Acyclicity", () => {
 
 describe("DAG Forensics: Cycle Detection, Description & Breaking", () => {
   test("findCycles detects 2-cycle and returns cycle path", () => {
-    const deps = new Map([
+    const deps = new Map<string, ReadonlySet<string>>([
       ["task-a", new Set(["task-b"])],
       ["task-b", new Set(["task-a"])],
     ]);
     expect(isAcyclic(deps)).toBe(false);
     const cycles = findCycles(deps);
     expect(cycles.length).toBeGreaterThan(0);
-    expect(cycles[0]).toContain("task-a");
-    expect(cycles[0]).toContain("task-b");
+    const firstCycle = cycles[0];
+    expect(firstCycle).toBeDefined();
+    if (firstCycle !== undefined) {
+      expect(firstCycle).toContain("task-a");
+      expect(firstCycle).toContain("task-b");
+    }
   });
 
   test("describeCycle formats exact human-readable cycle and names break edge", () => {
-    const deps = new Map([
+    const deps = new Map<string, ReadonlySet<string>>([
       ["task-1", new Set(["task-2"])],
       ["task-2", new Set(["task-1"])],
     ]);
@@ -95,7 +103,7 @@ describe("DAG Forensics: Cycle Detection, Description & Breaking", () => {
   });
 
   test("describeCycle describes 3-cycle correctly with Oxford comma", () => {
-    const deps = new Map([
+    const deps = new Map<string, ReadonlySet<string>>([
       ["a", new Set(["b"])],
       ["b", new Set(["c"])],
       ["c", new Set(["a"])],
@@ -106,7 +114,7 @@ describe("DAG Forensics: Cycle Detection, Description & Breaking", () => {
   });
 
   test("describeCycle returns 'no cycle detected' for acyclic graphs", () => {
-    const deps = new Map([
+    const deps = new Map<string, ReadonlySet<string>>([
       ["a", new Set<string>()],
       ["b", new Set(["a"])],
     ]);
@@ -114,7 +122,7 @@ describe("DAG Forensics: Cycle Detection, Description & Breaking", () => {
   });
 
   test("breakCycles automatically drops minimal feedback edges to restore acyclicity", () => {
-    const cyclicDeps = new Map([
+    const cyclicDeps = new Map<string, ReadonlySet<string>>([
       ["task-x", new Set(["task-y"])],
       ["task-y", new Set(["task-z"])],
       ["task-z", new Set(["task-x"])],
@@ -138,7 +146,7 @@ describe("DAG Forensics: Work / Span Mathematics & Brent's Theorem", () => {
       { id: "t2", effort: 3 },
       { id: "t3", effort: 5 },
     ];
-    const deps = new Map([
+    const deps = new Map<string, ReadonlySet<string>>([
       ["t1", new Set<string>()],
       ["t2", new Set(["t1"])],
       ["t3", new Set(["t2"])],
@@ -148,7 +156,7 @@ describe("DAG Forensics: Work / Span Mathematics & Brent's Theorem", () => {
 
     expect(metrics.totalWork).toBe(10);
     expect(metrics.criticalSpan).toBe(10);
-    expect(metrics.parallelismFactor).toBe(1); // P = W / S = 10 / 10 = 1
+    expect(metrics.parallelismFactor).toBe(1);
     expect(metrics.optimalLanes).toBe(1);
     expect(metrics.criticalPath).toEqual(["t1", "t2", "t3"]);
   });
@@ -160,7 +168,7 @@ describe("DAG Forensics: Work / Span Mathematics & Brent's Theorem", () => {
       { id: "t3", effort: 4 },
       { id: "t4", effort: 4 },
     ];
-    const deps = new Map([
+    const deps = new Map<string, ReadonlySet<string>>([
       ["t1", new Set<string>()],
       ["t2", new Set<string>()],
       ["t3", new Set<string>()],
@@ -171,7 +179,7 @@ describe("DAG Forensics: Work / Span Mathematics & Brent's Theorem", () => {
 
     expect(metrics.totalWork).toBe(16);
     expect(metrics.criticalSpan).toBe(4);
-    expect(metrics.parallelismFactor).toBe(4); // P = W / S = 16 / 4 = 4
+    expect(metrics.parallelismFactor).toBe(4);
     expect(metrics.optimalLanes).toBe(4);
   });
 
@@ -183,7 +191,7 @@ describe("DAG Forensics: Work / Span Mathematics & Brent's Theorem", () => {
       { id: "slow-branch-2", effort: 3 },
       { id: "join", effort: 2 },
     ];
-    const deps = new Map([
+    const deps = new Map<string, ReadonlySet<string>>([
       ["root", new Set<string>()],
       ["fast-branch", new Set(["root"])],
       ["slow-branch-1", new Set(["root"])],
@@ -193,11 +201,9 @@ describe("DAG Forensics: Work / Span Mathematics & Brent's Theorem", () => {
 
     const metrics = computeWorkSpan(tasks, deps);
 
-    // Critical path: root(2) -> slow-1(4) -> slow-2(3) -> join(2) = 11
-    // Total work: 2 + 1 + 4 + 3 + 2 = 12
     expect(metrics.totalWork).toBe(12);
     expect(metrics.criticalSpan).toBe(11);
-    expect(metrics.parallelismFactor).toBe(1.09); // 12 / 11 rounded
+    expect(metrics.parallelismFactor).toBe(1.09);
     expect(metrics.criticalPath).toEqual(["root", "slow-branch-1", "slow-branch-2", "join"]);
   });
 
@@ -205,16 +211,12 @@ describe("DAG Forensics: Work / Span Mathematics & Brent's Theorem", () => {
     const W = 100;
     const S = 20;
 
-    // For p = 1 worker: T_1 = 100, Speedup = 1.0, Efficiency = 1.0
     const b1 = calculateBrentsTheorem(W, S, 1);
     expect(b1.lowerBound).toBe(100);
     expect(b1.upperBound).toBe(100);
     expect(b1.theoreticalSpeedup).toBe(1);
     expect(b1.theoreticalEfficiency).toBe(1);
 
-    // For p = 4 workers:
-    // Lower bound: max(ceil(100/4), 20) = max(25, 20) = 25
-    // Upper bound: floor((100 - 20)/4) + 20 = 20 + 20 = 40
     const b4 = calculateBrentsTheorem(W, S, 4);
     expect(b4.lowerBound).toBe(25);
     expect(b4.upperBound).toBe(40);
@@ -222,15 +224,174 @@ describe("DAG Forensics: Work / Span Mathematics & Brent's Theorem", () => {
     expect(b4.estimatedTime).toBeLessThanOrEqual(40);
     expect(b4.theoreticalSpeedup).toBeGreaterThan(1);
   });
+});
 
-  test("computeTaskSlack computes EST, EFT, LST, LFT and identifies critical nodes with 0 slack", () => {
+describe("DAG Forensics: Critical Path Drag Analysis", () => {
+  test("computeCriticalPathDrag calculates drag for all nodes", () => {
+    const tasks: ForensicTaskNode[] = [
+      { id: "root", effort: 3 },
+      { id: "fast", effort: 2 },
+      { id: "slow", effort: 6 },
+      { id: "sink", effort: 4 },
+    ];
+    const deps = new Map<string, ReadonlySet<string>>([
+      ["root", new Set<string>()],
+      ["fast", new Set(["root"])],
+      ["slow", new Set(["root"])],
+      ["sink", new Set(["fast", "slow"])],
+    ]);
+
+    const drags = computeCriticalPathDrag(tasks, deps);
+
+    const rootDrag = drags.find((d) => d.taskId === "root");
+    expect(rootDrag).toBeDefined();
+    if (rootDrag !== undefined) {
+      expect(rootDrag.isCritical).toBe(true);
+      expect(rootDrag.drag).toBe(3);
+      expect(rootDrag.dragCostSummary).toContain("root exerts 3 units");
+    }
+
+    const slowDrag = drags.find((d) => d.taskId === "slow");
+    expect(slowDrag).toBeDefined();
+    if (slowDrag !== undefined) {
+      expect(slowDrag.isCritical).toBe(true);
+      expect(slowDrag.drag).toBe(4);
+    }
+
+    const fastDrag = drags.find((d) => d.taskId === "fast");
+    expect(fastDrag).toBeDefined();
+    if (fastDrag !== undefined) {
+      expect(fastDrag.isCritical).toBe(false);
+      expect(fastDrag.drag).toBe(0);
+      expect(fastDrag.dragCostSummary).toContain("0 drag (non-critical");
+    }
+
+    const sinkDrag = drags.find((d) => d.taskId === "sink");
+    expect(sinkDrag).toBeDefined();
+    if (sinkDrag !== undefined) {
+      expect(sinkDrag.isCritical).toBe(true);
+      expect(sinkDrag.drag).toBe(4);
+    }
+  });
+});
+
+describe("DAG Forensics: Fan-Out Bottleneck Detection", () => {
+  test("detectFanOutBottlenecks detects high fan-out gates", () => {
+    const tasks: ForensicTaskNode[] = [
+      { id: "producer", effort: 2 },
+      { id: "c1", effort: 3 },
+      { id: "c2", effort: 4 },
+      { id: "c3", effort: 5 },
+      { id: "unrelated", effort: 1 },
+    ];
+    const deps = new Map<string, ReadonlySet<string>>([
+      ["producer", new Set<string>()],
+      ["c1", new Set(["producer"])],
+      ["c2", new Set(["producer"])],
+      ["c3", new Set(["producer"])],
+      ["unrelated", new Set<string>()],
+    ]);
+
+    const bottlenecks = detectFanOutBottlenecks(tasks, deps, 2);
+
+    expect(bottlenecks.length).toBe(1);
+    const b = bottlenecks[0];
+    expect(b).toBeDefined();
+    if (b !== undefined) {
+      expect(b.taskId).toBe("producer");
+      expect(b.fanOutCount).toBe(3);
+      expect(b.blockedEffort).toBe(12);
+      expect(b.downstreamTaskIds).toEqual(["c1", "c2", "c3"]);
+      expect(b.impactDescription).toContain("producer gates 3 downstream tasks");
+    }
+  });
+});
+
+describe("DAG Forensics: Queue Stalls & Serialization Justifications", () => {
+  test("analyzeQueueStalls identifies artificial serialization vs dataflow justification", () => {
+    const tasks: ForensicTaskNode[] = [
+      { id: "auth", writeScope: ["src/auth.ts"], effort: 5 },
+      {
+        id: "ui",
+        writeScope: ["src/ui.ts"],
+        effort: 3,
+        dependencies: ["auth"],
+      },
+      {
+        id: "api",
+        writeScope: ["src/api.ts"],
+        effort: 4,
+        dependencies: ["auth"],
+        depReasons: { auth: "consumes AuthToken interface from auth module" },
+      },
+      {
+        id: "auth-sub",
+        writeScope: ["src/auth.ts"],
+        effort: 2,
+        dependencies: ["auth"],
+      },
+    ];
+
+    const stalls = analyzeQueueStalls(tasks);
+    expect(stalls.length).toBe(3);
+
+    const uiStall = stalls.find((s) => s.blockedTaskId === "ui");
+    expect(uiStall).toBeDefined();
+    if (uiStall !== undefined) {
+      expect(uiStall.writeScopeDisjoint).toBe(true);
+      expect(uiStall.isDataflowJustified).toBe(false);
+      expect(uiStall.isCriticalStall).toBe(true);
+      expect(uiStall.stallDuration).toBe(5);
+      expect(uiStall.recommendation).toContain("Eliminate sequential dependency");
+    }
+
+    const apiStall = stalls.find((s) => s.blockedTaskId === "api");
+    expect(apiStall).toBeDefined();
+    if (apiStall !== undefined) {
+      expect(apiStall.writeScopeDisjoint).toBe(true);
+      expect(apiStall.isDataflowJustified).toBe(true);
+      expect(apiStall.isCriticalStall).toBe(false);
+      expect(apiStall.depReason).toBe("consumes AuthToken interface from auth module");
+      expect(apiStall.recommendation).toContain("validated dataflow justification");
+    }
+
+    const authSubStall = stalls.find((s) => s.blockedTaskId === "auth-sub");
+    expect(authSubStall).toBeDefined();
+    if (authSubStall !== undefined) {
+      expect(authSubStall.writeScopeDisjoint).toBe(false);
+      expect(authSubStall.isCriticalStall).toBe(false);
+      expect(authSubStall.recommendation).toContain("Physical write scope overlap");
+    }
+  });
+
+  test("detectArtificialSerialization issues formal warning for disjoint scopes without reason", () => {
+    const tasks: ForensicTaskNode[] = [
+      { id: "task-docs", writeScope: ["docs/readme.md"] },
+      { id: "task-backend", writeScope: ["src/server.ts"], dependencies: ["task-docs"] },
+    ];
+
+    const warnings = detectArtificialSerialization(tasks);
+
+    expect(warnings.length).toBe(1);
+    const w = warnings[0];
+    expect(w).toBeDefined();
+    if (w !== undefined) {
+      expect(w.code).toBe("ARTIFICIAL_SERIALIZATION_WARNING");
+      expect(w.blockedTask).toBe("task-backend");
+      expect(w.dependencyTask).toBe("task-docs");
+    }
+  });
+});
+
+describe("DAG Forensics: Task Slack Analysis", () => {
+  test("computeTaskSlack computes EST, EFT, LST, LFT, Total Slack, and Free Slack", () => {
     const tasks: ForensicTaskNode[] = [
       { id: "root", effort: 2 },
       { id: "short", effort: 1 },
       { id: "long", effort: 5 },
       { id: "join", effort: 2 },
     ];
-    const deps = new Map([
+    const deps = new Map<string, ReadonlySet<string>>([
       ["root", new Set<string>()],
       ["short", new Set(["root"])],
       ["long", new Set(["root"])],
@@ -239,24 +400,37 @@ describe("DAG Forensics: Work / Span Mathematics & Brent's Theorem", () => {
 
     const slackMap = computeTaskSlack(tasks, deps);
 
-    // Total span: root(2) + long(5) + join(2) = 9
-    const rootSlack = slackMap.get("root")!;
-    expect(rootSlack.isCritical).toBe(true);
-    expect(rootSlack.totalSlack).toBe(0);
-    expect(rootSlack.earliestStartTime).toBe(0);
-    expect(rootSlack.earliestFinishTime).toBe(2);
+    const rootSlack = slackMap.get("root");
+    expect(rootSlack).toBeDefined();
+    if (rootSlack !== undefined) {
+      expect(rootSlack.isCritical).toBe(true);
+      expect(rootSlack.totalSlack).toBe(0);
+      expect(rootSlack.freeSlack).toBe(0);
+      expect(rootSlack.earliestStartTime).toBe(0);
+      expect(rootSlack.earliestFinishTime).toBe(2);
+    }
 
-    const longSlack = slackMap.get("long")!;
-    expect(longSlack.isCritical).toBe(true);
-    expect(longSlack.totalSlack).toBe(0);
+    const longSlack = slackMap.get("long");
+    expect(longSlack).toBeDefined();
+    if (longSlack !== undefined) {
+      expect(longSlack.isCritical).toBe(true);
+      expect(longSlack.totalSlack).toBe(0);
+    }
 
-    const joinSlack = slackMap.get("join")!;
-    expect(joinSlack.isCritical).toBe(true);
-    expect(joinSlack.totalSlack).toBe(0);
+    const joinSlack = slackMap.get("join");
+    expect(joinSlack).toBeDefined();
+    if (joinSlack !== undefined) {
+      expect(joinSlack.isCritical).toBe(true);
+      expect(joinSlack.totalSlack).toBe(0);
+    }
 
-    const shortSlack = slackMap.get("short")!;
-    expect(shortSlack.isCritical).toBe(false);
-    expect(shortSlack.totalSlack).toBe(4); // Can slip by 4 units without delaying join
+    const shortSlack = slackMap.get("short");
+    expect(shortSlack).toBeDefined();
+    if (shortSlack !== undefined) {
+      expect(shortSlack.isCritical).toBe(false);
+      expect(shortSlack.totalSlack).toBe(4);
+      expect(shortSlack.freeSlack).toBe(4);
+    }
   });
 });
 
@@ -269,7 +443,7 @@ describe("DAG Forensics: Waves & Parallel Lane Allocation", () => {
       { id: "w2-b", writeScope: ["src/d"], dependencies: ["r2"] },
       { id: "w3", writeScope: ["src/e"], dependencies: ["w2-a", "w2-b"] },
     ];
-    const deps = new Map([
+    const deps = new Map<string, ReadonlySet<string>>([
       ["r1", new Set<string>()],
       ["r2", new Set<string>()],
       ["w2-a", new Set(["r1"])],
@@ -280,12 +454,26 @@ describe("DAG Forensics: Waves & Parallel Lane Allocation", () => {
     const waves = computeTopologicalWaves(tasks, deps);
 
     expect(waves.length).toBe(3);
-    expect(waves[0]?.waveIndex).toBe(1);
-    expect(waves[0]?.taskIds.sort()).toEqual(["r1", "r2"]);
-    expect(waves[1]?.waveIndex).toBe(2);
-    expect(waves[1]?.taskIds.sort()).toEqual(["w2-a", "w2-b"]);
-    expect(waves[2]?.waveIndex).toBe(3);
-    expect(waves[2]?.taskIds).toEqual(["w3"]);
+    const w1 = waves[0];
+    expect(w1).toBeDefined();
+    if (w1 !== undefined) {
+      expect(w1.waveIndex).toBe(1);
+      expect([...w1.taskIds].sort()).toEqual(["r1", "r2"]);
+    }
+
+    const w2 = waves[1];
+    expect(w2).toBeDefined();
+    if (w2 !== undefined) {
+      expect(w2.waveIndex).toBe(2);
+      expect([...w2.taskIds].sort()).toEqual(["w2-a", "w2-b"]);
+    }
+
+    const w3 = waves[2];
+    expect(w3).toBeDefined();
+    if (w3 !== undefined) {
+      expect(w3.waveIndex).toBe(3);
+      expect(w3.taskIds).toEqual(["w3"]);
+    }
   });
 
   test("allocateParallelLanes assigns distinct lane indices", () => {
@@ -295,7 +483,7 @@ describe("DAG Forensics: Waves & Parallel Lane Allocation", () => {
       { id: "p3" },
       { id: "p4" },
     ];
-    const deps = new Map([
+    const deps = new Map<string, ReadonlySet<string>>([
       ["p1", new Set<string>()],
       ["p2", new Set<string>()],
       ["p3", new Set<string>()],
@@ -308,29 +496,15 @@ describe("DAG Forensics: Waves & Parallel Lane Allocation", () => {
     const laneIndices = lanes.map((l) => l.laneIndex);
     expect(new Set(laneIndices).size).toBe(4);
   });
-
-  test("detectArtificialSerialization identifies false serialization with disjoint scopes", () => {
-    const tasks: ForensicTaskNode[] = [
-      { id: "task-docs", writeScope: ["docs/readme.md"] },
-      { id: "task-backend", writeScope: ["src/server.ts"], dependencies: ["task-docs"] },
-    ];
-
-    const warnings = detectArtificialSerialization(tasks);
-
-    expect(warnings.length).toBe(1);
-    expect(warnings[0]?.code).toBe("ARTIFICIAL_SERIALIZATION_WARNING");
-    expect(warnings[0]?.blockedTask).toBe("task-backend");
-    expect(warnings[0]?.dependencyTask).toBe("task-docs");
-  });
 });
 
-describe("DAG Forensics: Visual & Mermaid Rendering", () => {
+describe("DAG Forensics: Unicode & Mermaid Rendering", () => {
   test("renderMermaidDag produces valid Mermaid graph TD output", () => {
     const tasks: ForensicTaskNode[] = [
       { id: "task-a", label: "Task Alpha" },
       { id: "task-b", label: "Task Beta" },
     ];
-    const deps = new Map([
+    const deps = new Map<string, ReadonlySet<string>>([
       ["task-a", new Set<string>()],
       ["task-b", new Set(["task-a"])],
     ]);
@@ -342,16 +516,45 @@ describe("DAG Forensics: Visual & Mermaid Rendering", () => {
     expect(mermaid).toContain("task-a --> task-b");
   });
 
+  test("renderForensicUnicodeReport generates comprehensive diagnostics table", () => {
+    const tasks: ForensicTaskNode[] = [
+      { id: "task-1", effort: 3, writeScope: ["src/mod1.ts"] },
+      { id: "task-2", effort: 4, writeScope: ["src/mod2.ts"], dependencies: ["task-1"] },
+      { id: "task-3", effort: 2, writeScope: ["src/mod3.ts"], dependencies: ["task-1"] },
+    ];
+    const deps = new Map<string, ReadonlySet<string>>([
+      ["task-1", new Set<string>()],
+      ["task-2", new Set(["task-1"])],
+      ["task-3", new Set(["task-1"])],
+    ]);
+
+    const report = renderForensicUnicodeReport(tasks, deps);
+
+    expect(report).toContain("DAG FORENSICS & WORK/SPAN REPORT");
+    expect(report).toContain("Total Work (W): 9");
+    expect(report).toContain("Critical Span (S): 7");
+    expect(report).toContain("task-1");
+    expect(report).toContain("task-2");
+    expect(report).toContain("task-3");
+    expect(report).toContain("FAN-OUT BOTTLENECKS:");
+  });
+
   test("formatBox creates exact rectangular Unicode box with consistent width", () => {
     const rows = ["Hello World", "Line 2 is longer than line 1"];
     const box = formatBox(rows, 63, false);
 
-    expect(box.length).toBe(4); // top, row1, row2, bottom
+    expect(box.length).toBe(4);
     for (const line of box) {
       expect(line.length).toBe(63);
     }
-    expect(box[0]?.startsWith("┌")).toBe(true);
-    expect(box[box.length - 1]?.startsWith("└")).toBe(true);
+    const firstLine = box[0];
+    const lastLine = box[box.length - 1];
+    expect(firstLine).toBeDefined();
+    expect(lastLine).toBeDefined();
+    if (firstLine !== undefined && lastLine !== undefined) {
+      expect(firstLine.startsWith("┌")).toBe(true);
+      expect(lastLine.startsWith("└")).toBe(true);
+    }
   });
 
   test("renderNodeBox and statusBadge render appropriate glyphs", () => {

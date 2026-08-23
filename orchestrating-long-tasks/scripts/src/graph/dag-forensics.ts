@@ -2,11 +2,13 @@
  * DAG Forensics & Layout Mathematical Correctness Subsystem
  *
  * Implements Work/Span mathematics (P = W/S), Brent's Theorem bounds,
+ * Critical Path Drag analysis, Fan-Out bottleneck detection,
+ * queue stall / serialization justification diagnostics,
  * cycle detection & breaking, deterministic topological ordering,
- * parallel lane allocation, and Unicode DAG layout rendering.
+ * parallel lane allocation, and Unicode & Mermaid rendering.
  */
-import { isNonblank, isRecord } from "../requirements/predicates.ts";
-import { checkScopeOverlap, normalizeScopePath, type ConcurrencyWave, type TaskScopeInput } from "./scope-analyzer.ts";
+import { isNonblank } from "../requirements/predicates.ts";
+import { checkScopeOverlap, normalizeScopePath } from "./scope-analyzer.ts";
 import { downstreamMap, topologicalOrder, type DependencyMap } from "./topology.ts";
 
 export interface ForensicTaskNode {
@@ -47,6 +49,36 @@ export interface BrentsBoundResult {
   readonly theoreticalEfficiency: number;
 }
 
+export interface CriticalPathDrag {
+  readonly taskId: string;
+  readonly effort: number;
+  readonly isCritical: boolean;
+  readonly drag: number;
+  readonly dragPercentage: number;
+  readonly dragCostSummary: string;
+}
+
+export interface FanOutBottleneck {
+  readonly taskId: string;
+  readonly fanOutCount: number;
+  readonly downstreamTaskIds: readonly string[];
+  readonly blockedEffort: number;
+  readonly isCritical: boolean;
+  readonly severity: "high" | "medium" | "low";
+  readonly impactDescription: string;
+}
+
+export interface QueueStallAnalysis {
+  readonly blockedTaskId: string;
+  readonly blockerTaskId: string;
+  readonly stallDuration: number;
+  readonly writeScopeDisjoint: boolean;
+  readonly isDataflowJustified: boolean;
+  readonly depReason: string | undefined;
+  readonly isCriticalStall: boolean;
+  readonly recommendation: string;
+}
+
 export interface WorkSpanMetrics {
   readonly totalWork: number;
   readonly criticalSpan: number;
@@ -55,6 +87,9 @@ export interface WorkSpanMetrics {
   readonly maxSupportedLanes: number;
   readonly criticalPath: readonly string[];
   readonly brentsBounds: readonly BrentsBoundResult[];
+  readonly drags: readonly CriticalPathDrag[];
+  readonly fanOutBottlenecks: readonly FanOutBottleneck[];
+  readonly queueStalls: readonly QueueStallAnalysis[];
 }
 
 export interface TaskSlack {
@@ -65,6 +100,7 @@ export interface TaskSlack {
   readonly latestStartTime: number;
   readonly latestFinishTime: number;
   readonly totalSlack: number;
+  readonly freeSlack: number;
   readonly isCritical: boolean;
 }
 
@@ -94,11 +130,53 @@ export interface ArtificialSerializationWarning {
   readonly targetScope: readonly string[];
 }
 
+function extractNeighbors(
+  dependencies: ReadonlyMap<string, ReadonlySet<string>>,
+  nodeId: string,
+): string[] {
+  const set = dependencies.get(nodeId);
+  if (set !== undefined) {
+    return Array.from(set).sort();
+  }
+  return [];
+}
+
+function extractEffort(task: ForensicTaskNode): number {
+  if (typeof task.effort === "number" && task.effort >= 0) {
+    return task.effort;
+  }
+  return 1;
+}
+
+function extractEffortById(effortMap: ReadonlyMap<string, number>, taskId: string): number {
+  const val = effortMap.get(taskId);
+  if (typeof val === "number" && val >= 0) {
+    return val;
+  }
+  return 1;
+}
+
 function joinWithAnd(items: readonly string[]): string {
   if (items.length === 0) return "";
-  if (items.length === 1) return items[0]!;
-  if (items.length === 2) return `${items[0]} and ${items[1]}`;
-  return `${items.slice(0, -1).join(", ")}, and ${items[items.length - 1]}`;
+  if (items.length === 1) {
+    const single = items[0];
+    if (single !== undefined) return single;
+    return "";
+  }
+  if (items.length === 2) {
+    const first = items[0];
+    const second = items[1];
+    if (first !== undefined && second !== undefined) {
+      return `${first} and ${second}`;
+    }
+    return "";
+  }
+  const last = items[items.length - 1];
+  const rest = items.slice(0, -1);
+  if (last !== undefined) {
+    return `${rest.join(", ")}, and ${last}`;
+  }
+  return items.join(", ");
 }
 
 /**
@@ -113,7 +191,7 @@ export function isAcyclic(dependencies: ReadonlyMap<string, ReadonlySet<string>>
  * Finds all elementary cycles in the dependency graph using DFS with state tracking.
  */
 export function findCycles(dependencies: ReadonlyMap<string, ReadonlySet<string>>): string[][] {
-  const allNodes = [...dependencies.keys()].sort();
+  const allNodes = Array.from(dependencies.keys()).sort();
   const visited = new Set<string>();
   const inStack = new Set<string>();
   const stack: string[] = [];
@@ -124,7 +202,7 @@ export function findCycles(dependencies: ReadonlyMap<string, ReadonlySet<string>
     inStack.add(node);
     stack.push(node);
 
-    const neighbors = [...(dependencies.get(node) ?? [])].sort();
+    const neighbors = extractNeighbors(dependencies, node);
     for (const neighbor of neighbors) {
       if (!dependencies.has(neighbor)) continue;
 
@@ -157,46 +235,64 @@ export function findCycles(dependencies: ReadonlyMap<string, ReadonlySet<string>
  */
 export function describeCycle(
   dependencies: ReadonlyMap<string, ReadonlySet<string>>,
-  order?: readonly string[],
+  order?: readonly string[] | undefined,
 ): string {
-  const resolved = new Set(order ?? topologicalOrder(dependencies));
-  const unresolved = new Set([...dependencies.keys()].filter((id) => !resolved.has(id)));
+  let resolvedList: readonly string[];
+  if (order !== undefined) {
+    resolvedList = order;
+  } else {
+    resolvedList = topologicalOrder(dependencies);
+  }
+  const resolved = new Set(resolvedList);
+  const unresolved = new Set(Array.from(dependencies.keys()).filter((id) => !resolved.has(id)));
   if (unresolved.size === 0) return "no cycle detected";
 
-  for (const start of [...unresolved].sort()) {
+  const unresolvedSorted = Array.from(unresolved).sort();
+  for (const start of unresolvedSorted) {
     const stack: { node: string; edgeIdx: number; neighbors: string[] }[] = [];
     const inStack = new Set<string>();
     const visited = new Set<string>();
 
-    const startNeighbors = [...(dependencies.get(start) ?? [])]
-      .filter((id) => unresolved.has(id))
-      .sort();
+    const startNeighbors = extractNeighbors(dependencies, start).filter((id) => unresolved.has(id));
     stack.push({ node: start, edgeIdx: 0, neighbors: startNeighbors });
     inStack.add(start);
     visited.add(start);
 
     while (stack.length > 0) {
-      const top = stack[stack.length - 1]!;
+      const top = stack[stack.length - 1];
+      if (top === undefined) break;
+
       if (top.edgeIdx < top.neighbors.length) {
-        const next = top.neighbors[top.edgeIdx]!;
-        top.edgeIdx++;
+        const next = top.neighbors[top.edgeIdx];
+        top.edgeIdx += 1;
+        if (next === undefined) continue;
 
         if (inStack.has(next)) {
           const cycleNodes: string[] = [];
           const idx = stack.findIndex((item) => item.node === next);
-          for (let i = idx; i < stack.length; i++) {
-            cycleNodes.push(stack[i]!.node);
+          if (idx >= 0) {
+            for (let i = idx; i < stack.length; i++) {
+              const item = stack[i];
+              if (item !== undefined) {
+                cycleNodes.push(item.node);
+              }
+            }
           }
-          const cycleEdges = cycleNodes.map(
-            (id, i) => `${id} --deps ${cycleNodes[(i + 1) % cycleNodes.length]}`,
-          );
-          return `${joinWithAnd(cycleEdges)} form a cycle; drop ${cycleEdges[0]} to break it`;
+          const cycleEdges: string[] = [];
+          for (let i = 0; i < cycleNodes.length; i++) {
+            const current = cycleNodes[i];
+            const nextNode = cycleNodes[(i + 1) % cycleNodes.length];
+            if (current !== undefined && nextNode !== undefined) {
+              cycleEdges.push(`${current} --deps ${nextNode}`);
+            }
+          }
+          const firstEdge = cycleEdges[0];
+          const edgeToDrop = firstEdge !== undefined ? firstEdge : "feedback edge";
+          return `${joinWithAnd(cycleEdges)} form a cycle; drop ${edgeToDrop} to break it`;
         } else if (!visited.has(next)) {
           visited.add(next);
           inStack.add(next);
-          const nextNeighbors = [...(dependencies.get(next) ?? [])]
-            .filter((id) => unresolved.has(id))
-            .sort();
+          const nextNeighbors = extractNeighbors(dependencies, next).filter((id) => unresolved.has(id));
           stack.push({ node: next, edgeIdx: 0, neighbors: nextNeighbors });
         }
       } else {
@@ -222,46 +318,70 @@ export function breakCycles(dependencies: ReadonlyMap<string, ReadonlySet<string
   }
 
   const brokenEdges: CycleBreakCandidate[] = [];
-
   let safetyCounter = 0;
   const maxIterations = dependencies.size * 2 + 10;
 
-  while (!isAcyclic(mutDeps) && safetyCounter++ < maxIterations) {
+  while (!isAcyclic(mutDeps) && safetyCounter < maxIterations) {
+    safetyCounter += 1;
     const cycles = findCycles(mutDeps);
     if (cycles.length === 0) {
-      // Fallback for unresolved nodes without clean simple cycle
       const order = topologicalOrder(mutDeps);
-      const unresolved = [...mutDeps.keys()].filter((id) => !order.includes(id)).sort();
+      const unresolved = Array.from(mutDeps.keys())
+        .filter((id) => !order.includes(id))
+        .sort();
       if (unresolved.length === 0) break;
 
-      const firstUnresolved = unresolved[0]!;
-      const prereqs = [...(mutDeps.get(firstUnresolved) ?? [])].sort();
-      if (prereqs.length > 0) {
-        const dropPrereq = prereqs[0]!;
-        mutDeps.get(firstUnresolved)!.delete(dropPrereq);
-        brokenEdges.push({
-          fromTaskId: firstUnresolved,
-          toTaskId: dropPrereq,
-          edgeDescription: `${firstUnresolved} --deps ${dropPrereq}`,
-          rationale: `Cycle-breaking heuristic: dropped feedback edge ${firstUnresolved} -> ${dropPrereq}`,
-          cycle: [firstUnresolved, dropPrereq],
-        });
+      const firstUnresolved = unresolved[0];
+      if (firstUnresolved !== undefined) {
+        const prereqs = extractNeighbors(mutDeps, firstUnresolved);
+        if (prereqs.length > 0) {
+          const dropPrereq = prereqs[0];
+          if (dropPrereq !== undefined) {
+            const targetSet = mutDeps.get(firstUnresolved);
+            if (targetSet !== undefined) {
+              targetSet.delete(dropPrereq);
+            }
+            brokenEdges.push({
+              fromTaskId: firstUnresolved,
+              toTaskId: dropPrereq,
+              edgeDescription: `${firstUnresolved} --deps ${dropPrereq}`,
+              rationale: `Cycle-breaking heuristic: dropped feedback edge ${firstUnresolved} -> ${dropPrereq}`,
+              cycle: [firstUnresolved, dropPrereq],
+            });
+          }
+        }
       }
       continue;
     }
 
-    const cycle = cycles[0]!;
-    const fromTaskId = cycle[0]!;
-    const toTaskId = cycle.length > 1 ? cycle[1]! : cycle[0]!;
+    const cycle = cycles[0];
+    if (cycle === undefined) break;
+    if (cycle.length === 0) break;
 
-    mutDeps.get(fromTaskId)?.delete(toTaskId);
-    brokenEdges.push({
-      fromTaskId,
-      toTaskId,
-      edgeDescription: `${fromTaskId} --deps ${toTaskId}`,
-      rationale: `Broke cycle [${cycle.join(" -> ")} -> ${cycle[0]}] by dropping edge ${fromTaskId} -> ${toTaskId}`,
-      cycle,
-    });
+    const fromTaskId = cycle[0];
+    let toTaskId = cycle[0];
+    if (cycle.length > 1) {
+      const second = cycle[1];
+      if (second !== undefined) {
+        toTaskId = second;
+      }
+    }
+
+    if (fromTaskId !== undefined && toTaskId !== undefined) {
+      const set = mutDeps.get(fromTaskId);
+      if (set !== undefined) {
+        set.delete(toTaskId);
+      }
+      const firstCycleNode = cycle[0];
+      const loopBack = firstCycleNode !== undefined ? firstCycleNode : fromTaskId;
+      brokenEdges.push({
+        fromTaskId,
+        toTaskId,
+        edgeDescription: `${fromTaskId} --deps ${toTaskId}`,
+        rationale: `Broke cycle [${cycle.join(" -> ")} -> ${loopBack}] by dropping edge ${fromTaskId} -> ${toTaskId}`,
+        cycle,
+      });
+    }
   }
 
   return {
@@ -300,22 +420,27 @@ export function calculateBrentsTheorem(
   };
 }
 
-/**
- * Computes Work ($W$), Span ($S$), Parallelism ($P = W / S$), Critical Path, and Brent's Bounds.
- */
-export function computeWorkSpan(
+function internalComputeSpan(
   tasks: readonly ForensicTaskNode[],
   dependencies: ReadonlyMap<string, ReadonlySet<string>>,
-  maxLanes = 40,
-): WorkSpanMetrics {
+  overrideEffort?: ReadonlyMap<string, number> | undefined,
+): {
+  spanMap: Map<string, number>;
+  criticalSpan: number;
+  criticalPath: string[];
+} {
   const effortMap = new Map<string, number>();
-  let totalWork = 0;
-
   for (const task of tasks) {
-    const rawEffort = task.effort;
-    const effort = typeof rawEffort === "number" && rawEffort > 0 ? rawEffort : 1;
-    effortMap.set(task.id, effort);
-    totalWork += effort;
+    if (overrideEffort !== undefined && overrideEffort.has(task.id)) {
+      const ov = overrideEffort.get(task.id);
+      if (typeof ov === "number") {
+        effortMap.set(task.id, Math.max(0, ov));
+      } else {
+        effortMap.set(task.id, extractEffort(task));
+      }
+    } else {
+      effortMap.set(task.id, extractEffort(task));
+    }
   }
 
   const order = topologicalOrder(dependencies);
@@ -323,13 +448,14 @@ export function computeWorkSpan(
   const parentOnCriticalPath = new Map<string, string | null>();
 
   for (const taskId of order) {
-    const taskEffort = effortMap.get(taskId) ?? 1;
-    const prereqs = dependencies.get(taskId) ?? new Set<string>();
+    const taskEffort = extractEffortById(effortMap, taskId);
+    const prereqs = extractNeighbors(dependencies, taskId);
     let maxPrereqSpan = 0;
     let criticalParent: string | null = null;
 
     for (const prereq of prereqs) {
-      const prereqSpan = spanMap.get(prereq) ?? 0;
+      const pSpan = spanMap.get(prereq);
+      const prereqSpan = typeof pSpan === "number" ? pSpan : 0;
       if (prereqSpan > maxPrereqSpan) {
         maxPrereqSpan = prereqSpan;
         criticalParent = prereq;
@@ -340,10 +466,9 @@ export function computeWorkSpan(
     parentOnCriticalPath.set(taskId, criticalParent);
   }
 
-  // Handle any unresolved tasks
   for (const task of tasks) {
     if (!spanMap.has(task.id)) {
-      spanMap.set(task.id, effortMap.get(task.id) ?? 1);
+      spanMap.set(task.id, extractEffortById(effortMap, task.id));
       parentOnCriticalPath.set(task.id, null);
     }
   }
@@ -360,11 +485,246 @@ export function computeWorkSpan(
 
   const criticalPathReversed: string[] = [];
   let curr = criticalEndTask;
-  while (curr) {
+  while (curr !== null) {
     criticalPathReversed.push(curr);
-    curr = parentOnCriticalPath.get(curr) ?? null;
+    const next = parentOnCriticalPath.get(curr);
+    if (next !== undefined && next !== null) {
+      curr = next;
+    } else {
+      curr = null;
+    }
   }
   const criticalPath = criticalPathReversed.reverse();
+
+  return { spanMap, criticalSpan, criticalPath };
+}
+
+/**
+ * Computes Critical Path Drag for all tasks in the DAG.
+ * Drag of task T = ProjectSpan - ProjectSpan(effort_T = 0).
+ * If T is not on the critical path, Drag = 0.
+ */
+export function computeCriticalPathDrag(
+  tasks: readonly ForensicTaskNode[],
+  dependencies: ReadonlyMap<string, ReadonlySet<string>>,
+): CriticalPathDrag[] {
+  const base = internalComputeSpan(tasks, dependencies);
+  const criticalSet = new Set(base.criticalPath);
+  const results: CriticalPathDrag[] = [];
+
+  for (const task of tasks) {
+    const effort = extractEffort(task);
+    const isCritical = criticalSet.has(task.id);
+
+    if (!isCritical) {
+      results.push({
+        taskId: task.id,
+        effort,
+        isCritical: false,
+        drag: 0,
+        dragPercentage: 0,
+        dragCostSummary: `Task ${task.id} has 0 drag (non-critical, slack > 0).`,
+      });
+      continue;
+    }
+
+    if (base.criticalSpan <= 0) {
+      results.push({
+        taskId: task.id,
+        effort,
+        isCritical: true,
+        drag: 0,
+        dragPercentage: 0,
+        dragCostSummary: `Task ${task.id} has 0 drag (total span is 0).`,
+      });
+      continue;
+    }
+
+    // Counterfactual: set task effort to 0 and compute resulting critical span
+    const override = new Map<string, number>([[task.id, 0]]);
+    const counterfactual = internalComputeSpan(tasks, dependencies, override);
+    const drag = Math.max(0, base.criticalSpan - counterfactual.criticalSpan);
+    const dragPercentage = base.criticalSpan > 0 ? Math.round((drag / base.criticalSpan) * 10000) / 100 : 0;
+
+    results.push({
+      taskId: task.id,
+      effort,
+      isCritical: true,
+      drag,
+      dragPercentage,
+      dragCostSummary:
+        `Task ${task.id} exerts ${drag} units of critical path drag (${dragPercentage}% of total span ${base.criticalSpan}). ` +
+        `Shortening ${task.id} by ${drag} reduces total project duration to ${counterfactual.criticalSpan}.`,
+    });
+  }
+
+  return results;
+}
+
+/**
+ * Identifies fan-out bottlenecks where single upstream tasks gate multiple concurrent downstream tasks.
+ */
+export function detectFanOutBottlenecks(
+  tasks: readonly ForensicTaskNode[],
+  dependencies: ReadonlyMap<string, ReadonlySet<string>>,
+  threshold = 2,
+): FanOutBottleneck[] {
+  const downstream = downstreamMap(dependencies);
+  const taskMap = new Map<string, ForensicTaskNode>();
+  for (const t of tasks) {
+    taskMap.set(t.id, t);
+  }
+
+  const base = internalComputeSpan(tasks, dependencies);
+  const criticalSet = new Set(base.criticalPath);
+  const bottlenecks: FanOutBottleneck[] = [];
+
+  for (const task of tasks) {
+    const directDownstreamSet = downstream.get(task.id);
+    const directDownstream: string[] = [];
+    if (directDownstreamSet !== undefined) {
+      for (const id of directDownstreamSet) {
+        directDownstream.push(id);
+      }
+    }
+    directDownstream.sort();
+
+    const fanOutCount = directDownstream.length;
+    if (fanOutCount >= threshold) {
+      let blockedEffort = 0;
+      for (const downId of directDownstream) {
+        const downTask = taskMap.get(downId);
+        if (downTask !== undefined) {
+          blockedEffort += extractEffort(downTask);
+        } else {
+          blockedEffort += 1;
+        }
+      }
+
+      const isCritical = criticalSet.has(task.id);
+      let severity: "high" | "medium" | "low";
+      if (fanOutCount >= 4) {
+        severity = "high";
+      } else if (isCritical && fanOutCount >= 3) {
+        severity = "high";
+      } else if (fanOutCount >= 2) {
+        severity = "medium";
+      } else {
+        severity = "low";
+      }
+
+      bottlenecks.push({
+        taskId: task.id,
+        fanOutCount,
+        downstreamTaskIds: directDownstream,
+        blockedEffort,
+        isCritical,
+        severity,
+        impactDescription:
+          `Task ${task.id} gates ${fanOutCount} downstream tasks totaling ${blockedEffort} work units ` +
+          `(${isCritical ? "ON critical path" : "off critical path"}, severity: ${severity}).`,
+      });
+    }
+  }
+
+  return bottlenecks;
+}
+
+/**
+ * Analyzes serialization justifications between tasks and detects potential queue stalls.
+ */
+export function analyzeQueueStalls(
+  tasks: readonly ForensicTaskNode[],
+  justificationsByEdge: ReadonlyMap<string, string> = new Map(),
+): QueueStallAnalysis[] {
+  const taskMap = new Map<string, ForensicTaskNode>();
+  for (const t of tasks) {
+    taskMap.set(t.id, t);
+  }
+
+  const stalls: QueueStallAnalysis[] = [];
+
+  for (const task of tasks) {
+    const rawDeps = task.dependencies;
+    const deps: string[] = [];
+    if (rawDeps !== undefined) {
+      for (const d of rawDeps) {
+        if (isNonblank(d)) {
+          deps.push(d);
+        }
+      }
+    }
+
+    const taskScopes = (task.writeScope !== undefined ? task.writeScope : []).map(normalizeScopePath);
+
+    for (const blockerId of deps) {
+      const blocker = taskMap.get(blockerId);
+      if (blocker === undefined) continue;
+
+      const blockerScopes = (blocker.writeScope !== undefined ? blocker.writeScope : []).map(normalizeScopePath);
+      const overlap = checkScopeOverlap(taskScopes, blockerScopes);
+      const edgeKey = `${task.id}->${blockerId}`;
+
+      let depReason: string | undefined = undefined;
+      const explicitJustification = justificationsByEdge.get(edgeKey);
+      if (typeof explicitJustification === "string" && explicitJustification.trim().length > 0) {
+        depReason = explicitJustification.trim();
+      } else if (task.depReasons !== undefined) {
+        const fromTaskReason = task.depReasons[blockerId];
+        if (typeof fromTaskReason === "string" && fromTaskReason.trim().length > 0) {
+          depReason = fromTaskReason.trim();
+        }
+      }
+
+      const isDataflowJustified = depReason !== undefined;
+      const writeScopeDisjoint = !overlap.hasOverlap;
+      const stallDuration = extractEffort(blocker);
+
+      let recommendation: string;
+      if (writeScopeDisjoint && !isDataflowJustified) {
+        recommendation =
+          `Eliminate sequential dependency: Task ${task.id} is blocked by ${blockerId} for ${stallDuration} units ` +
+          `despite disjoint write scopes and no declared dataflow reason. Decouple to unlock parallel lane.`;
+      } else if (writeScopeDisjoint && isDataflowJustified) {
+        recommendation =
+          `Disjoint write scopes with validated dataflow justification: "${depReason}". Dependency is legitimate.`;
+      } else {
+        const conflict = overlap.conflictingPath.length > 0 ? overlap.conflictingPath : "overlapping scope";
+        recommendation =
+          `Physical write scope overlap: tasks contend on [${conflict}]. Sequential ordering is required.`;
+      }
+
+      stalls.push({
+        blockedTaskId: task.id,
+        blockerTaskId: blockerId,
+        stallDuration,
+        writeScopeDisjoint,
+        isDataflowJustified,
+        depReason,
+        isCriticalStall: writeScopeDisjoint && !isDataflowJustified,
+        recommendation,
+      });
+    }
+  }
+
+  return stalls;
+}
+
+/**
+ * Computes Work ($W$), Span ($S$), Parallelism ($P = W / S$), Critical Path, Brent's Bounds,
+ * Critical Path Drag, Fan-Out Bottlenecks, and Queue Stalls.
+ */
+export function computeWorkSpan(
+  tasks: readonly ForensicTaskNode[],
+  dependencies: ReadonlyMap<string, ReadonlySet<string>>,
+  maxLanes = 40,
+): WorkSpanMetrics {
+  let totalWork = 0;
+  for (const task of tasks) {
+    totalWork += extractEffort(task);
+  }
+
+  const { criticalSpan, criticalPath } = internalComputeSpan(tasks, dependencies);
 
   const parallelismFactor =
     criticalSpan > 0 ? Math.round((totalWork / criticalSpan) * 100) / 100 : tasks.length > 0 ? 1 : 0;
@@ -374,6 +734,10 @@ export function computeWorkSpan(
   const standardProcessors = [1, 2, 4, 8, 16, maxLanes].filter((v, i, a) => a.indexOf(v) === i && v <= maxLanes);
   const brentsBounds = standardProcessors.map((p) => calculateBrentsTheorem(totalWork, criticalSpan, p));
 
+  const drags = computeCriticalPathDrag(tasks, dependencies);
+  const fanOutBottlenecks = detectFanOutBottlenecks(tasks, dependencies);
+  const queueStalls = analyzeQueueStalls(tasks);
+
   return {
     totalWork,
     criticalSpan,
@@ -382,13 +746,16 @@ export function computeWorkSpan(
     maxSupportedLanes: maxLanes,
     criticalPath,
     brentsBounds,
+    drags,
+    fanOutBottlenecks,
+    queueStalls,
   };
 }
 
 /**
  * Computes Earliest Start Time (EST), Earliest Finish Time (EFT),
- * Latest Start Time (LST), Latest Finish Time (LFT), and Total Slack for each task.
- * Critical path tasks have Slack = 0.
+ * Latest Start Time (LST), Latest Finish Time (LFT), Total Slack, and Free Slack for each task.
+ * Critical path tasks have Total Slack = 0.
  */
 export function computeTaskSlack(
   tasks: readonly ForensicTaskNode[],
@@ -396,7 +763,7 @@ export function computeTaskSlack(
 ): Map<string, TaskSlack> {
   const effortMap = new Map<string, number>();
   for (const t of tasks) {
-    effortMap.set(t.id, typeof t.effort === "number" && t.effort > 0 ? t.effort : 1);
+    effortMap.set(t.id, extractEffort(t));
   }
 
   const order = topologicalOrder(dependencies);
@@ -405,12 +772,13 @@ export function computeTaskSlack(
 
   // Forward pass: calculate EST and EFT
   for (const id of order) {
-    const effort = effortMap.get(id) ?? 1;
-    const prereqs = dependencies.get(id) ?? new Set<string>();
+    const effort = extractEffortById(effortMap, id);
+    const prereqs = extractNeighbors(dependencies, id);
     let maxEft = 0;
     for (const p of prereqs) {
-      const pEft = eftMap.get(p) ?? 0;
-      if (pEft > maxEft) maxEft = pEft;
+      const pEft = eftMap.get(p);
+      const val = typeof pEft === "number" ? pEft : 0;
+      if (val > maxEft) maxEft = val;
     }
     estMap.set(id, maxEft);
     eftMap.set(id, maxEft + effort);
@@ -426,14 +794,22 @@ export function computeTaskSlack(
   const lftMap = new Map<string, number>();
 
   // Backward pass: calculate LFT and LST
-  const reversedOrder = [...order].reverse();
+  const reversedOrder = Array.from(order).reverse();
   for (const id of reversedOrder) {
-    const effort = effortMap.get(id) ?? 1;
-    const children = downstream.get(id) ?? new Set<string>();
+    const effort = extractEffortById(effortMap, id);
+    const childrenSet = downstream.get(id);
+    const children: string[] = [];
+    if (childrenSet !== undefined) {
+      for (const c of childrenSet) {
+        children.push(c);
+      }
+    }
+
     let minLst = totalSpan;
     for (const c of children) {
-      const cLst = lstMap.get(c) ?? totalSpan;
-      if (cLst < minLst) minLst = cLst;
+      const cLst = lstMap.get(c);
+      const val = typeof cLst === "number" ? cLst : totalSpan;
+      if (val < minLst) minLst = val;
     }
     lftMap.set(id, minLst);
     lstMap.set(id, minLst - effort);
@@ -441,12 +817,34 @@ export function computeTaskSlack(
 
   const result = new Map<string, TaskSlack>();
   for (const t of tasks) {
-    const effort = effortMap.get(t.id) ?? 1;
-    const est = estMap.get(t.id) ?? 0;
-    const eft = eftMap.get(t.id) ?? effort;
-    const lft = lftMap.get(t.id) ?? totalSpan;
-    const lst = lstMap.get(t.id) ?? totalSpan - effort;
+    const effort = extractEffortById(effortMap, t.id);
+    const rawEst = estMap.get(t.id);
+    const est = typeof rawEst === "number" ? rawEst : 0;
+
+    const rawEft = eftMap.get(t.id);
+    const eft = typeof rawEft === "number" ? rawEft : effort;
+
+    const rawLft = lftMap.get(t.id);
+    const lft = typeof rawLft === "number" ? rawLft : totalSpan;
+
+    const rawLst = lstMap.get(t.id);
+    const lst = typeof rawLst === "number" ? rawLst : totalSpan - effort;
+
     const totalSlack = Math.max(0, lst - est);
+
+    // Free slack: min(EST of children) - EFT (or totalSpan - EFT if no children)
+    const childrenSet = downstream.get(t.id);
+    let minChildEst = totalSpan;
+    if (childrenSet !== undefined && childrenSet.size > 0) {
+      for (const childId of childrenSet) {
+        const childEst = estMap.get(childId);
+        const val = typeof childEst === "number" ? childEst : totalSpan;
+        if (val < minChildEst) {
+          minChildEst = val;
+        }
+      }
+    }
+    const freeSlack = Math.max(0, minChildEst - eft);
     const isCritical = totalSlack === 0;
 
     result.set(t.id, {
@@ -457,6 +855,7 @@ export function computeTaskSlack(
       latestStartTime: lst,
       latestFinishTime: lft,
       totalSlack,
+      freeSlack,
       isCritical,
     });
   }
@@ -471,13 +870,9 @@ export function computeTopologicalWaves(
   tasks: readonly ForensicTaskNode[],
   dependencies: ReadonlyMap<string, ReadonlySet<string>>,
 ): ForensicWave[] {
-  const remaining = new Map<string, number>();
   const taskMap = new Map<string, ForensicTaskNode>();
-
   for (const t of tasks) {
     taskMap.set(t.id, t);
-    const deps = dependencies.get(t.id) ?? new Set<string>();
-    remaining.set(t.id, deps.size);
   }
 
   const waveMap = new Map<string, number>();
@@ -488,8 +883,8 @@ export function computeTopologicalWaves(
     const readyInThisWave: string[] = [];
     for (const t of tasks) {
       if (processed.has(t.id)) continue;
-      const prereqs = dependencies.get(t.id) ?? new Set<string>();
-      const allPrereqsDone = [...prereqs].every((p) => waveMap.has(p));
+      const prereqs = extractNeighbors(dependencies, t.id);
+      const allPrereqsDone = prereqs.every((p) => waveMap.has(p));
       if (allPrereqsDone) {
         readyInThisWave.push(t.id);
       }
@@ -510,7 +905,7 @@ export function computeTopologicalWaves(
       waveMap.set(id, currentWave);
       processed.add(id);
     }
-    currentWave++;
+    currentWave += 1;
   }
 
   const maxWave = Math.max(1, currentWave - 1);
@@ -521,13 +916,20 @@ export function computeTopologicalWaves(
     if (waveTasks.length === 0) continue;
 
     const taskIds = waveTasks.map((t) => t.id);
-    const totalWaveEffort = waveTasks.reduce((acc, t) => acc + (t.effort ?? 1), 0);
+    let totalWaveEffort = 0;
+    for (const t of waveTasks) {
+      totalWaveEffort += extractEffort(t);
+    }
 
     let hasConflicts = false;
     for (let i = 0; i < waveTasks.length; i++) {
+      const taskA = waveTasks[i];
+      if (taskA === undefined) continue;
       for (let j = i + 1; j < waveTasks.length; j++) {
-        const scopesA = waveTasks[i]!.writeScope ?? [];
-        const scopesB = waveTasks[j]!.writeScope ?? [];
+        const taskB = waveTasks[j];
+        if (taskB === undefined) continue;
+        const scopesA = taskA.writeScope !== undefined ? taskA.writeScope : [];
+        const scopesB = taskB.writeScope !== undefined ? taskB.writeScope : [];
         if (checkScopeOverlap(scopesA, scopesB).hasOverlap) {
           hasConflicts = true;
           break;
@@ -568,8 +970,8 @@ export function allocateParallelLanes(
         laneIndex,
         taskId,
         waveIndex: wave.waveIndex,
-        earliestStartTime: slack?.earliestStartTime,
-        earliestFinishTime: slack?.earliestFinishTime,
+        earliestStartTime: slack !== undefined ? slack.earliestStartTime : undefined,
+        earliestFinishTime: slack !== undefined ? slack.earliestFinishTime : undefined,
       });
     });
   }
@@ -585,25 +987,37 @@ export function detectArtificialSerialization(
   tasks: readonly ForensicTaskNode[],
   justificationsByEdge: ReadonlyMap<string, string> = new Map(),
 ): ArtificialSerializationWarning[] {
-  const normalizedTasks = tasks.map((t) => ({
-    taskId: t.id,
-    writeScope: (t.writeScope ?? []).map(normalizeScopePath),
-    dependencies: (t.dependencies ?? []).filter(isNonblank),
-    depReasons: t.depReasons ?? {},
-  }));
+  const normalizedTasks = tasks.map((t) => {
+    const rawScopes = t.writeScope !== undefined ? t.writeScope : [];
+    const rawDeps = t.dependencies !== undefined ? t.dependencies : [];
+    const rawReasons = t.depReasons !== undefined ? t.depReasons : {};
+    return {
+      taskId: t.id,
+      writeScope: rawScopes.map(normalizeScopePath),
+      dependencies: rawDeps.filter(isNonblank),
+      depReasons: rawReasons,
+    };
+  });
 
   const warnings: ArtificialSerializationWarning[] = [];
   for (const task of normalizedTasks) {
     for (const depId of task.dependencies) {
       const depTask = normalizedTasks.find((t) => t.taskId === depId);
-      if (!depTask) continue;
+      if (depTask === undefined) continue;
 
       const overlap = checkScopeOverlap(task.writeScope, depTask.writeScope);
       const edgeKey = `${task.taskId}->${depTask.taskId}`;
-      const justification = justificationsByEdge.get(edgeKey) ?? task.depReasons[depId];
+      let justification: string | undefined = justificationsByEdge.get(edgeKey);
+      if (justification === undefined && depId in task.depReasons) {
+        justification = task.depReasons[depId];
+      }
       const hasJustification = typeof justification === "string" && justification.trim().length > 0;
 
       if (!overlap.hasOverlap) {
+        const justificationSuffix = hasJustification
+          ? ` despite declared justification: ${justification}`
+          : " and no dataflow justification.";
+
         warnings.push({
           code: "ARTIFICIAL_SERIALIZATION_WARNING",
           blockedTask: task.taskId,
@@ -611,9 +1025,7 @@ export function detectArtificialSerialization(
           message:
             `Task ${task.taskId} is artificially serialized behind ${depTask.taskId} with disjoint write scopes ` +
             `([${task.writeScope.join(", ")}] vs [${depTask.writeScope.join(", ")}])` +
-            (hasJustification
-              ? ` despite declared justification: ${justification}`
-              : " and no dataflow justification."),
+            justificationSuffix,
           dataflowJustified: hasJustification,
           sourceScope: task.writeScope,
           targetScope: depTask.writeScope,
@@ -634,7 +1046,9 @@ export function renderMermaidDag(
   const lines: string[] = ["graph TD"];
 
   for (const task of tasks) {
-    const label = task.label ? `${task.id}["${task.id}: ${task.label}"]` : task.id;
+    const label = task.label !== undefined && task.label.length > 0
+      ? `${task.id}["${task.id}: ${task.label}"]`
+      : task.id;
     lines.push(`  ${label}`);
   }
 
@@ -644,6 +1058,72 @@ export function renderMermaidDag(
     }
   }
 
+  return lines.join("\n");
+}
+
+/**
+ * Generates an ASCII/Unicode diagnostic forensics report string for console or artifact output.
+ */
+export function renderForensicUnicodeReport(
+  tasks: readonly ForensicTaskNode[],
+  dependencies: ReadonlyMap<string, ReadonlySet<string>>,
+): string {
+  const metrics = computeWorkSpan(tasks, dependencies);
+  const slackMap = computeTaskSlack(tasks, dependencies);
+  const waves = computeTopologicalWaves(tasks, dependencies);
+
+  const lines: string[] = [
+    "╔════════════════════════════════════════════════════════════════════════════════╗",
+    "║                       DAG FORENSICS & WORK/SPAN REPORT                         ║",
+    "╠════════════════════════════════════════════════════════════════════════════════╣",
+    `║ Total Work (W): ${String(metrics.totalWork).padEnd(6)} | Critical Span (S): ${String(metrics.criticalSpan).padEnd(6)} | Concurrency (P): ${String(metrics.parallelismFactor).padEnd(6)} ║`,
+    `║ Optimal Lanes:  ${String(metrics.optimalLanes).padEnd(6)} | Total Waves:       ${String(waves.length).padEnd(6)} | Total Tasks:     ${String(tasks.length).padEnd(6)} ║`,
+    "╠════════════════════════════════════════════════════════════════════════════════╣",
+    `║ Critical Path: [${metrics.criticalPath.join(" -> ")}]`,
+    "╠════════════════════════════════════════════════════════════════════════════════╣",
+    "║ TASK SLACK & CRITICAL PATH DRAG:                                              ║",
+  ];
+
+  for (const task of tasks) {
+    const slack = slackMap.get(task.id);
+    const est = slack !== undefined ? slack.earliestStartTime : 0;
+    const eft = slack !== undefined ? slack.earliestFinishTime : 0;
+    const lst = slack !== undefined ? slack.latestStartTime : 0;
+    const lft = slack !== undefined ? slack.latestFinishTime : 0;
+    const totSlack = slack !== undefined ? slack.totalSlack : 0;
+    const isCrit = slack !== undefined ? slack.isCritical : false;
+
+    const dragInfo = metrics.drags.find((d) => d.taskId === task.id);
+    const drag = dragInfo !== undefined ? dragInfo.drag : 0;
+
+    const critMark = isCrit ? "[CRITICAL]" : "[SLACK]   ";
+    lines.push(
+      `║ ${critMark} ${task.id.padEnd(24)} EST:${String(est).padStart(2)} EFT:${String(eft).padStart(2)} LST:${String(lst).padStart(2)} LFT:${String(lft).padStart(2)} Slack:${String(totSlack).padStart(2)} Drag:${String(drag).padStart(2)} ║`,
+    );
+  }
+
+  if (metrics.fanOutBottlenecks.length > 0) {
+    lines.push("╠════════════════════════════════════════════════════════════════════════════════╣");
+    lines.push("║ FAN-OUT BOTTLENECKS:                                                           ║");
+    for (const b of metrics.fanOutBottlenecks) {
+      lines.push(
+        `║ ⚠️  Task ${b.taskId} (fan-out: ${b.fanOutCount}, blocked effort: ${b.blockedEffort}, severity: ${b.severity})`,
+      );
+    }
+  }
+
+  if (metrics.queueStalls.length > 0) {
+    const artificial = metrics.queueStalls.filter((s) => s.isCriticalStall);
+    if (artificial.length > 0) {
+      lines.push("╠════════════════════════════════════════════════════════════════════════════════╣");
+      lines.push("║ ARTIFICIAL SERIALIZATION & QUEUE STALLS:                                       ║");
+      for (const s of artificial) {
+        lines.push(`║ 🛑 ${s.blockedTaskId} stalled by ${s.blockerTaskId} (${s.stallDuration} units): ${s.recommendation}`);
+      }
+    }
+  }
+
+  lines.push("╚════════════════════════════════════════════════════════════════════════════════╝");
   return lines.join("\n");
 }
 
