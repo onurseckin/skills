@@ -92,7 +92,6 @@ commands:
   - orchestrator:supervise
   - run:status
   - dag
-  - dag
   - doctor
   - doctor:repair
   - recover
