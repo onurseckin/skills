@@ -1,4 +1,6 @@
 import { executePhaseCompletionSyncAndCommit } from "../../workflow/completion/auto-sync-and-commit.ts";
+import { readAgentMetadata } from "../../runtime/agent-metadata.ts";
+import { verifyCommandAuthorization } from "../../policy/rbac-engine.ts";
 import { readFileSync, realpathSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 import type { JsonObject } from "../../core/contracts/json.ts";
@@ -361,6 +363,23 @@ export async function runExecCommand(
 
   const declared = declaredToolFlags(flags);
   const commandDir = `${loaded.runRoot}/commands`;
+
+  const metadata = readAgentMetadata(loaded.runRoot, actor);
+  if (!metadata) {
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      `[ROLE_BOUNDARY_VIOLATION] Cannot find AgentMetadata for actor: ${actor}`,
+    );
+  }
+
+  const auth = verifyCommandAuthorization(metadata, argv);
+  if (!auth.authorized) {
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      auth.message || `[${auth.error_code}] Command authorization failed`,
+    );
+  }
+
   const cmdOpts = {
     runRoot: loaded.runRoot,
     commandDir,

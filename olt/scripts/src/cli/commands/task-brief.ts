@@ -15,6 +15,7 @@ import { formatAgentBrief, type AgentBriefParams } from "../formatters/agent-for
 import { formatTaskBrief, type TaskBriefParams } from "../formatters/task-formatter.ts";
 import { textFlag, type Flags } from "../options.ts";
 import type { TaskRecord } from "../../workflow/types.ts";
+import type { AgentGrantRecord, AgentToolRef } from "../../core/contracts/agents.ts";
 
 /** Helper to extract target files from task write scope or task properties. */
 function deriveTargetFiles(
@@ -241,7 +242,7 @@ export async function taskBriefCommand(flags: Flags): Promise<Record<string, unk
 
     legacyBriefing = {
       taskId,
-      label: typeof task.label === "string" ? task.label : undefined,
+      label,
       role: resolvedRole,
       agent: resolvedAgent,
       writeScope,
@@ -257,7 +258,7 @@ export async function taskBriefCommand(flags: Flags): Promise<Record<string, unk
   if (agentGrant && agentId) {
     const toolsGranted =
       agentGrant.tools_granted?.value !== undefined
-        ? agentGrant.tools_granted.value.map((t: any) => t.name)
+        ? agentGrant.tools_granted.value.map((t: AgentToolRef) => t.name)
         : [];
     agentBriefing = {
       agentId: agentGrant.id,
