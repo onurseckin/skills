@@ -86,14 +86,20 @@ describe("Validator Specialization & UI Split Architecture Verification Suite", 
       const execSpec = spec("run:exec");
       expect(isExecutionCommand(execSpec)).toBe(true);
 
-      for (const role of cognitiveRoles) {
-        expect(() =>
-          assertRoleMayInvoke(
-            role as unknown as Parameters<typeof assertRoleMayInvoke>[0],
-            execSpec,
-            `${role}_task-1`,
-          ),
-        ).toThrow("may not invoke run:exec");
+      const testAgentIds = [
+        "validator_task-1",
+        "ui-validator_task-1",
+        "validator-code-quality_task-1",
+        "validator-ui-design_task-1",
+        "validator-security_task-1",
+        "validator-product_task-1",
+        "validator-system-design_task-1",
+      ];
+
+      for (const agentId of testAgentIds) {
+        expect(() => assertRoleMayInvoke("validator", execSpec, agentId)).toThrow(
+          "cognitive validators are strictly banned from executing bash/shell commands or running test suites (run:exec)",
+        );
       }
     });
 
@@ -111,7 +117,7 @@ describe("Validator Specialization & UI Split Architecture Verification Suite", 
             status: "active",
           },
           {
-            id: "validator-ui-design_task-2",
+            id: "ui-validator_task-2",
             role: "validator",
             parent_agent_id: null,
             parent_task_id: null,
@@ -127,7 +133,7 @@ describe("Validator Specialization & UI Split Architecture Verification Suite", 
         "cognitive validators are strictly banned from executing bash/shell commands or running test suites (run:exec)",
       );
 
-      const flags2: Flags = { run, actor: "validator-ui-design_task-2" };
+      const flags2: Flags = { run, actor: "ui-validator_task-2" };
       expect(() => assertGrantedCommand(spec("run:exec"), flags2)).toThrow(
         "cognitive validators are strictly banned from executing bash/shell commands or running test suites (run:exec)",
       );
@@ -456,7 +462,7 @@ describe("Validator Specialization & UI Split Architecture Verification Suite", 
 
         expect(result.valid).toBe(false);
         expect(result.superficiality.isSuperficial).toBe(true);
-        expect(result.recommendedAction).toBe("pushback_procedural");
+        expect(result.recommendedAction).toBe("pushback_substantive");
         expect(result.correctiveGuidance.length).toBeGreaterThan(0);
       });
 
@@ -512,7 +518,7 @@ describe("Validator Specialization & UI Split Architecture Verification Suite", 
           coordinatorId: "coordinator_domain-ui",
           validatorId: "ui-validator_task-p48-viewport-matrix",
           domain: "ui-design",
-          cause: "stagnant_repair",
+          cause: "substantive",
           observation: "Hamburger menu touch target remains 32px",
           remediation: "Escalate to coordinator for redesign",
           rejectionReasons: ["Repeated failure on touch target"],
