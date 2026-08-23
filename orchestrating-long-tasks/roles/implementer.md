@@ -30,6 +30,8 @@ commands:
   - task:claim
   - task:check
   - task:heartbeat
+  - shell
+  - scope:expand
   - run:exec
   - task:submit
   - branch:open

@@ -14,6 +14,7 @@ import {
   consolidateCapsules,
   pruneCapsuleBoilerplate,
 } from "../../mind/archival.ts";
+import { drainBacklogOnRunCompletion } from "../../mind/smart-task-manager.ts";
 import { completeRun } from "../../workflow/completion/complete-run.ts";
 import { gateTally } from "../../workflow/completion/completion-state.ts";
 import type { CompletionArtifactRequirements } from "../../workflow/completion/artifact-verification.ts";
@@ -120,6 +121,20 @@ export function runCompleteCommand(flags: Flags): Record<string, unknown> {
 
   const tasks = Object.values(state.tasks);
   const gates = gateTally(state);
+
+  // Automatically drain processed/completed backlog items into completed archive ledger
+  try {
+    const repoRoot = dirname(dirname(run));
+    const completedTaskIds = tasks.filter((t) => t.status === "done").map((t) => t.id);
+    drainBacklogOnRunCompletion({
+      runId: basename(run),
+      completedTasks: completedTaskIds,
+      repoRoot,
+    });
+  } catch {
+    // Non-blocking
+  }
+
   // Execute automatic local skill sync, git commit, and git push on run completion
   let autoSyncCommitResult: unknown;
   try {

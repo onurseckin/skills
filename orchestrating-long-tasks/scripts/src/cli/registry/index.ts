@@ -17,6 +17,7 @@ import { QUEUE_COMMANDS } from "./queue.ts";
 import { REPORTING_COMMANDS } from "./reporting.ts";
 import { RUN_COMMANDS } from "./run.ts";
 import { SUMMARY_COMMANDS } from "./summary.ts";
+import { SHELL_COMMANDS } from "./shell.ts";
 import { TASK_COMMANDS } from "./task.ts";
 import { TODO_COMMANDS } from "./todo.ts";
 import {
@@ -28,6 +29,7 @@ import {
 
 export * from "./types.ts";
 export { TODO_COMMANDS } from "./todo.ts";
+export { SHELL_COMMANDS } from "./shell.ts";
 
 export const COMMAND_REGISTRY: readonly CommandSpec[] = [
   ...PLAN_COMMANDS,
@@ -35,6 +37,7 @@ export const COMMAND_REGISTRY: readonly CommandSpec[] = [
   ...TASK_COMMANDS,
   ...REPORTING_COMMANDS,
   ...RUN_COMMANDS,
+  ...SHELL_COMMANDS,
   ...CRITIC_COMMANDS,
   ...SUMMARY_COMMANDS,
   ...INSPECTION_COMMANDS,

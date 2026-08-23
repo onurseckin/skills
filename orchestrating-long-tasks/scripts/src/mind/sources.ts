@@ -1,5 +1,5 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import type { CommandSpec } from "../cli/registry/types.ts";
 import { findCommand } from "../cli/registry/index.ts";
 import type { EvidenceClass } from "../contracts/evidence.ts";
@@ -463,21 +463,26 @@ export function validateQuiescentSources(
   };
 }
 
-export const CANONICAL_OBSERVATIONS_FILE = ".capsules/mind/queue/observations.jsonl";
+export const CANONICAL_OBSERVATIONS_FILE = "olt/telemetry.jsonl";
+export const LEGACY_MIND_OBSERVATIONS_FILE = ".capsules/mind/queue/observations.jsonl";
 export const TODO_OBSERVATIONS_FILE = ".capsules/todo/observations.jsonl";
 export const LEGACY_OBSERVATIONS_FILE = ".capsules/OBSERVATIONS.jsonl";
 export const LEGACY_LOWER_OBSERVATIONS_FILE = ".capsules/observations.jsonl";
 
 export function resolveCanonicalObservationsPath(customRoot?: string, useTodo = false): string {
-  const root = customRoot && customRoot.trim() ? customRoot.trim() : process.cwd();
-  const relPath = useTodo ? TODO_OBSERVATIONS_FILE : CANONICAL_OBSERVATIONS_FILE;
-  return join(root, relPath);
+  const root = customRoot && customRoot.trim() ? resolve(customRoot.trim()) : process.cwd();
+  if (useTodo) return join(root, TODO_OBSERVATIONS_FILE);
+  const canonical = join(root, CANONICAL_OBSERVATIONS_FILE);
+  if (existsSync(canonical)) return canonical;
+  const legacyMind = join(root, LEGACY_MIND_OBSERVATIONS_FILE);
+  if (existsSync(legacyMind)) return legacyMind;
+  return canonical;
 }
 
 export function resolveObservationsPath(customPath?: string): string {
   if (customPath && customPath.trim()) {
     const trimmed = customPath.trim();
-    return trimmed;
+    return resolve(trimmed);
   }
   const cwd = process.cwd();
   const candidates = [cwd, dirname(cwd)];
@@ -485,6 +490,9 @@ export function resolveObservationsPath(customPath?: string): string {
   for (const root of candidates) {
     const canonical = join(root, CANONICAL_OBSERVATIONS_FILE);
     if (existsSync(canonical)) return canonical;
+
+    const legacyMind = join(root, LEGACY_MIND_OBSERVATIONS_FILE);
+    if (existsSync(legacyMind)) return legacyMind;
 
     const todo = join(root, TODO_OBSERVATIONS_FILE);
     if (existsSync(todo)) return todo;
@@ -496,6 +504,9 @@ export function resolveObservationsPath(customPath?: string): string {
     if (existsSync(legacyLower)) return legacyLower;
   }
 
+  if (existsSync(join(cwd, "olt"))) {
+    return join(cwd, CANONICAL_OBSERVATIONS_FILE);
+  }
   if (existsSync(join(cwd, ".capsules"))) {
     return join(cwd, CANONICAL_OBSERVATIONS_FILE);
   }
@@ -503,5 +514,5 @@ export function resolveObservationsPath(customPath?: string): string {
   if (existsSync(parentCapsules)) {
     return join(dirname(cwd), CANONICAL_OBSERVATIONS_FILE);
   }
-  return join(cwd, CANONICAL_OBSERVATIONS_FILE);
+  return resolve(cwd, CANONICAL_OBSERVATIONS_FILE);
 }

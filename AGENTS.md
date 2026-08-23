@@ -91,6 +91,17 @@ Every agent executing within this repository must adhere to the following non-ne
     - Core personas are streamlined to 5 Golden Roles: `mind` (Tier 0), `orchestrator` (Tier 1), `coordinator` (Tier 2), `implementer` (Tier 3), `validator` (Tier 3), plus `completeness-critic` (Tier 3) and `meta-auditor` (Tier 2).
     - `mechanic-validator` is permanently retired as an LLM subagent role; all typechecks and AST static invariant audits (0 any, 0 suppressions) are anchored in the deterministic CLI tool `task:check`.
     - `repairer` is permanently retired as a separate subagent role; repairs are executed directly by the active Implementer through 1-hop in-lease micro-cycles (`task:reject --in-lease`).
+27. **Canonical `olt/` Repository Directory & Persistent Governance**:
+    - Project governance, backlog, defect remediation logs, and telemetry are persisted in the committed `olt/` directory (`olt/policy.json`, `olt/backlog.jsonl`, `olt/completed-tasks.jsonl`, `olt/defects.jsonl`, `olt/completed-defects.jsonl`, `olt/telemetry.jsonl`).
+    - Runtime capsule workspaces remain gitignored under `capsules/` (and legacy `.capsules/`).
+28. **Hard-Coded Mechanical RBAC Engine & Shielded Shell (`harness.ts shell`)**:
+    - All subagent command executions are verified through the hybrid static + dynamic deny-list compiler (`verifyCommandAuthorization`).
+    - Cognitive Validators have `can_execute_shell: false` (Hard-lock interlock: 0 commands allowed).
+    - Implementers are forbidden from un-targeted whole-suite test runs (`^npm test$`, `^bun test$`, `^pytest$`, `^cargo test$`) and git mutations.
+    - Commands must be executed via `bun harness.ts shell --actor <id> -- <cmd>` which emits cryptographically signed receipts into `evidence/` and `olt/telemetry.jsonl`.
+29. **Smart Neighborhood Read Scope & Dynamic Scope Expansion (`harness.ts scope:expand`)**:
+    - Read scope is bounded to target files and direct directory neighborhoods (default depth: 2).
+    - Subagents requiring access to out-of-neighborhood files must dynamically expand their declared read scope using `bun harness.ts scope:expand --actor <id> --read <path>`.
 
 ---
 

@@ -94,11 +94,13 @@ export interface BackpropagationRecord {
   readonly resolution?: FeedbackResolutionProof | null | undefined;
 }
 
-export const CANONICAL_FEEDBACK_FILE = ".capsules/mind/queue/feedback-queue.jsonl";
+export const CANONICAL_BACKLOG_FILE = "olt/backlog.jsonl";
+export const CANONICAL_FEEDBACK_FILE = "olt/backlog.jsonl";
+export const LEGACY_MIND_FEEDBACK_FILE = ".capsules/mind/queue/feedback-queue.jsonl";
 export const TODO_FEEDBACK_FILE = ".capsules/todo/feedback-queue.jsonl";
 export const LEGACY_FEEDBACK_FILE = ".capsules/FEEDBACK_QUEUE.jsonl";
 export const LEGACY_LOWER_FEEDBACK_FILE = ".capsules/feedback-queue.jsonl";
-export const DEFAULT_FEEDBACK_FILE = ".capsules/FEEDBACK_QUEUE.jsonl";
+export const DEFAULT_FEEDBACK_FILE = "olt/backlog.jsonl";
 
 export const PRIORITY_ORDER: Record<FeedbackPriority, number> = {
   CRITICAL_USER_FEEDBACK: 1,
@@ -110,8 +112,12 @@ export const PRIORITY_ORDER: Record<FeedbackPriority, number> = {
 
 export function resolveCanonicalFeedbackQueuePath(customRoot?: string, useTodo = false): string {
   const root = customRoot && customRoot.trim() ? resolve(customRoot.trim()) : process.cwd();
-  const relPath = useTodo ? TODO_FEEDBACK_FILE : CANONICAL_FEEDBACK_FILE;
-  return join(root, relPath);
+  if (useTodo) return join(root, TODO_FEEDBACK_FILE);
+  const canonical = join(root, CANONICAL_BACKLOG_FILE);
+  if (existsSync(canonical)) return canonical;
+  const legacyMind = join(root, LEGACY_MIND_FEEDBACK_FILE);
+  if (existsSync(legacyMind)) return legacyMind;
+  return canonical;
 }
 
 export function resolveFeedbackQueuePath(customPath?: string): string {
@@ -123,8 +129,11 @@ export function resolveFeedbackQueuePath(customPath?: string): string {
   const candidates = [cwd, dirname(cwd)];
 
   for (const root of candidates) {
-    const canonical = join(root, CANONICAL_FEEDBACK_FILE);
+    const canonical = join(root, CANONICAL_BACKLOG_FILE);
     if (existsSync(canonical)) return canonical;
+
+    const legacyMind = join(root, LEGACY_MIND_FEEDBACK_FILE);
+    if (existsSync(legacyMind)) return legacyMind;
 
     const todo = join(root, TODO_FEEDBACK_FILE);
     if (existsSync(todo)) return todo;
@@ -136,14 +145,17 @@ export function resolveFeedbackQueuePath(customPath?: string): string {
     if (existsSync(legacyLower)) return legacyLower;
   }
 
+  if (existsSync(join(cwd, "olt"))) {
+    return join(cwd, CANONICAL_BACKLOG_FILE);
+  }
   if (existsSync(join(cwd, ".capsules"))) {
-    return join(cwd, DEFAULT_FEEDBACK_FILE);
+    return join(cwd, CANONICAL_BACKLOG_FILE);
   }
   const parentCapsules = join(dirname(cwd), ".capsules");
   if (existsSync(parentCapsules)) {
-    return join(dirname(cwd), DEFAULT_FEEDBACK_FILE);
+    return join(dirname(cwd), CANONICAL_BACKLOG_FILE);
   }
-  return resolve(cwd, DEFAULT_FEEDBACK_FILE);
+  return resolve(cwd, CANONICAL_BACKLOG_FILE);
 }
 
 export function migrateFeedbackQueue(options?: {

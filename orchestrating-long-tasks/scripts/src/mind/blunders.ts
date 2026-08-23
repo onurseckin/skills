@@ -672,20 +672,26 @@ export function resolveBlunder(
   };
 }
 
-export const CANONICAL_BLUNDERS_FILE = ".capsules/mind/queue/blunders.jsonl";
+export const CANONICAL_BLUNDERS_FILE = "olt/defects.jsonl";
+export const LEGACY_MIND_BLUNDERS_FILE = ".capsules/mind/queue/blunders.jsonl";
 export const TODO_BLUNDERS_FILE = ".capsules/todo/blunders.jsonl";
 export const LEGACY_BLUNDERS_FILE = ".capsules/blunders.jsonl";
 export const LEGACY_UPPER_BLUNDERS_FILE = ".capsules/BLUNDERS.jsonl";
-export const CANONICAL_COMPLETED_BLUNDERS_FILE = ".capsules/mind/queue/completed-blunders.jsonl";
+export const CANONICAL_COMPLETED_BLUNDERS_FILE = "olt/completed-defects.jsonl";
+export const LEGACY_MIND_COMPLETED_BLUNDERS_FILE = ".capsules/mind/queue/completed-blunders.jsonl";
 export const TODO_COMPLETED_BLUNDERS_FILE = ".capsules/todo/completed-blunders.jsonl";
 export const LEGACY_COMPLETED_BLUNDERS_FILE = ".capsules/COMPLETED_BLUNDERS.jsonl";
 export const LEGACY_LOWER_COMPLETED_BLUNDERS_FILE = ".capsules/completed-blunders.jsonl";
-export const DEFAULT_COMPLETED_BLUNDERS_FILE = ".capsules/COMPLETED_BLUNDERS.jsonl";
+export const DEFAULT_COMPLETED_BLUNDERS_FILE = "olt/completed-defects.jsonl";
 
 export function resolveCanonicalBlunderLogPath(customRoot?: string, useTodo = false): string {
   const root = customRoot && customRoot.trim() ? resolve(customRoot.trim()) : process.cwd();
-  const relPath = useTodo ? TODO_BLUNDERS_FILE : CANONICAL_BLUNDERS_FILE;
-  return join(root, relPath);
+  if (useTodo) return join(root, TODO_BLUNDERS_FILE);
+  const canonical = join(root, CANONICAL_BLUNDERS_FILE);
+  if (existsSync(canonical)) return canonical;
+  const legacyMind = join(root, LEGACY_MIND_BLUNDERS_FILE);
+  if (existsSync(legacyMind)) return legacyMind;
+  return canonical;
 }
 
 export function resolveBlunderLogPath(customPath?: string): string {
@@ -700,6 +706,9 @@ export function resolveBlunderLogPath(customPath?: string): string {
     const canonical = join(root, CANONICAL_BLUNDERS_FILE);
     if (existsSync(canonical)) return canonical;
 
+    const legacyMind = join(root, LEGACY_MIND_BLUNDERS_FILE);
+    if (existsSync(legacyMind)) return legacyMind;
+
     const todo = join(root, TODO_BLUNDERS_FILE);
     if (existsSync(todo)) return todo;
 
@@ -710,10 +719,13 @@ export function resolveBlunderLogPath(customPath?: string): string {
     if (existsSync(legacyUpper)) return legacyUpper;
   }
 
-  if (existsSync(join(cwd, ".capsules"))) {
-    return join(cwd, LEGACY_BLUNDERS_FILE);
+  if (existsSync(join(cwd, "olt"))) {
+    return join(cwd, CANONICAL_BLUNDERS_FILE);
   }
-  return resolve(cwd, LEGACY_BLUNDERS_FILE);
+  if (existsSync(join(cwd, ".capsules"))) {
+    return join(cwd, CANONICAL_BLUNDERS_FILE);
+  }
+  return resolve(cwd, CANONICAL_BLUNDERS_FILE);
 }
 
 export function resolveCanonicalCompletedBlundersPath(
@@ -721,8 +733,12 @@ export function resolveCanonicalCompletedBlundersPath(
   useTodo = false,
 ): string {
   const root = customRoot && customRoot.trim() ? resolve(customRoot.trim()) : process.cwd();
-  const relPath = useTodo ? TODO_COMPLETED_BLUNDERS_FILE : CANONICAL_COMPLETED_BLUNDERS_FILE;
-  return join(root, relPath);
+  if (useTodo) return join(root, TODO_COMPLETED_BLUNDERS_FILE);
+  const canonical = join(root, CANONICAL_COMPLETED_BLUNDERS_FILE);
+  if (existsSync(canonical)) return canonical;
+  const legacyMind = join(root, LEGACY_MIND_COMPLETED_BLUNDERS_FILE);
+  if (existsSync(legacyMind)) return legacyMind;
+  return canonical;
 }
 
 export function resolveCompletedBlundersPath(customPath?: string): string {
@@ -737,6 +753,9 @@ export function resolveCompletedBlundersPath(customPath?: string): string {
     const canonical = join(root, CANONICAL_COMPLETED_BLUNDERS_FILE);
     if (existsSync(canonical)) return canonical;
 
+    const legacyMind = join(root, LEGACY_MIND_COMPLETED_BLUNDERS_FILE);
+    if (existsSync(legacyMind)) return legacyMind;
+
     const todo = join(root, TODO_COMPLETED_BLUNDERS_FILE);
     if (existsSync(todo)) return todo;
 
@@ -747,10 +766,13 @@ export function resolveCompletedBlundersPath(customPath?: string): string {
     if (existsSync(legacyLower)) return legacyLower;
   }
 
-  if (existsSync(join(cwd, ".capsules"))) {
-    return join(cwd, LEGACY_COMPLETED_BLUNDERS_FILE);
+  if (existsSync(join(cwd, "olt"))) {
+    return join(cwd, CANONICAL_COMPLETED_BLUNDERS_FILE);
   }
-  return resolve(cwd, LEGACY_COMPLETED_BLUNDERS_FILE);
+  if (existsSync(join(cwd, ".capsules"))) {
+    return join(cwd, CANONICAL_COMPLETED_BLUNDERS_FILE);
+  }
+  return resolve(cwd, CANONICAL_COMPLETED_BLUNDERS_FILE);
 }
 
 export function readCompletedBlundersLog(customPath?: string): BlunderEntry[] {

@@ -50,32 +50,40 @@ export interface RecordCompletedTaskOptions {
   readonly updateBlunders?: boolean | undefined;
 }
 
-export const CANONICAL_COMPLETED_TASKS_FILE = ".capsules/mind/queue/completed-tasks.jsonl";
+export const CANONICAL_COMPLETED_TASKS_FILE = "olt/completed-tasks.jsonl";
+export const LEGACY_MIND_COMPLETED_TASKS_FILE = ".capsules/mind/queue/completed-tasks.jsonl";
 export const TODO_COMPLETED_TASKS_FILE = ".capsules/todo/completed-tasks.jsonl";
 export const LEGACY_COMPLETED_TASKS_FILE = ".capsules/COMPLETED_TASKS.jsonl";
 export const LEGACY_LOWER_COMPLETED_TASKS_FILE = ".capsules/completed-tasks.jsonl";
-export const DEFAULT_COMPLETED_TASKS_FILE = ".capsules/COMPLETED_TASKS.jsonl";
+export const DEFAULT_COMPLETED_TASKS_FILE = "olt/completed-tasks.jsonl";
 
-export const CANONICAL_BLUNDERS_FILE = ".capsules/mind/queue/blunders.jsonl";
+export const CANONICAL_BLUNDERS_FILE = "olt/defects.jsonl";
+export const LEGACY_MIND_BLUNDERS_FILE = ".capsules/mind/queue/blunders.jsonl";
 export const TODO_BLUNDERS_FILE = ".capsules/todo/blunders.jsonl";
 export const LEGACY_BLUNDERS_FILE = ".capsules/blunders.jsonl";
 export const LEGACY_UPPER_BLUNDERS_FILE = ".capsules/BLUNDERS.jsonl";
-export const DEFAULT_BLUNDERS_FILE = ".capsules/blunders.jsonl";
+export const DEFAULT_BLUNDERS_FILE = "olt/defects.jsonl";
 
-export const CANONICAL_COMPLETED_BLUNDERS_FILE = ".capsules/mind/queue/completed-blunders.jsonl";
+export const CANONICAL_COMPLETED_BLUNDERS_FILE = "olt/completed-defects.jsonl";
+export const LEGACY_MIND_COMPLETED_BLUNDERS_FILE = ".capsules/mind/queue/completed-blunders.jsonl";
 export const TODO_COMPLETED_BLUNDERS_FILE = ".capsules/todo/completed-blunders.jsonl";
 export const LEGACY_COMPLETED_BLUNDERS_FILE = ".capsules/COMPLETED_BLUNDERS.jsonl";
 export const LEGACY_LOWER_COMPLETED_BLUNDERS_FILE = ".capsules/completed-blunders.jsonl";
 
-export const CANONICAL_OBSERVATIONS_FILE = ".capsules/mind/queue/observations.jsonl";
+export const CANONICAL_OBSERVATIONS_FILE = "olt/telemetry.jsonl";
+export const LEGACY_MIND_OBSERVATIONS_FILE = ".capsules/mind/queue/observations.jsonl";
 export const TODO_OBSERVATIONS_FILE = ".capsules/todo/observations.jsonl";
 export const LEGACY_OBSERVATIONS_FILE = ".capsules/OBSERVATIONS.jsonl";
 export const LEGACY_LOWER_OBSERVATIONS_FILE = ".capsules/observations.jsonl";
 
 export function resolveCanonicalCompletedTasksPath(customRoot?: string, useTodo = false): string {
   const root = customRoot && customRoot.trim() ? resolve(customRoot.trim()) : process.cwd();
-  const relPath = useTodo ? TODO_COMPLETED_TASKS_FILE : CANONICAL_COMPLETED_TASKS_FILE;
-  return join(root, relPath);
+  if (useTodo) return join(root, TODO_COMPLETED_TASKS_FILE);
+  const canonical = join(root, CANONICAL_COMPLETED_TASKS_FILE);
+  if (existsSync(canonical)) return canonical;
+  const legacyMind = join(root, LEGACY_MIND_COMPLETED_TASKS_FILE);
+  if (existsSync(legacyMind)) return legacyMind;
+  return canonical;
 }
 
 export function resolveCompletedTasksLedgerPath(customPath?: string): string {
@@ -90,6 +98,9 @@ export function resolveCompletedTasksLedgerPath(customPath?: string): string {
     const canonical = join(root, CANONICAL_COMPLETED_TASKS_FILE);
     if (existsSync(canonical)) return canonical;
 
+    const legacyMind = join(root, LEGACY_MIND_COMPLETED_TASKS_FILE);
+    if (existsSync(legacyMind)) return legacyMind;
+
     const todo = join(root, TODO_COMPLETED_TASKS_FILE);
     if (existsSync(todo)) return todo;
 
@@ -100,14 +111,17 @@ export function resolveCompletedTasksLedgerPath(customPath?: string): string {
     if (existsSync(legacyLower)) return legacyLower;
   }
 
+  if (existsSync(join(cwd, "olt"))) {
+    return join(cwd, CANONICAL_COMPLETED_TASKS_FILE);
+  }
   if (existsSync(join(cwd, ".capsules"))) {
-    return join(cwd, DEFAULT_COMPLETED_TASKS_FILE);
+    return join(cwd, CANONICAL_COMPLETED_TASKS_FILE);
   }
   const parentCapsules = join(dirname(cwd), ".capsules");
   if (existsSync(parentCapsules)) {
-    return join(dirname(cwd), DEFAULT_COMPLETED_TASKS_FILE);
+    return join(dirname(cwd), CANONICAL_COMPLETED_TASKS_FILE);
   }
-  return resolve(cwd, DEFAULT_COMPLETED_TASKS_FILE);
+  return resolve(cwd, CANONICAL_COMPLETED_TASKS_FILE);
 }
 
 export function resolveCanonicalBlundersPath(customRoot?: string, useTodo = false): string {

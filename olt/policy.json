@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "ecosystem": "bun",
+  "package_manager": "bun",
+  "test_runner": {
+    "default_command": "bun test",
+    "targeted_pattern": "bun test <path>",
+    "full_suite_command": "bun test"
+  },
+  "typecheck_command": "bun run typecheck",
+  "lint_command": "bun run lint",
+  "allowed_commands": [
+    "bun test",
+    "bun run",
+    "tsc",
+    "git status",
+    "git diff",
+    "git log",
+    "ls",
+    "find",
+    "grep",
+    "cat",
+    "wc"
+  ],
+  "forbidden_commands": ["git commit", "git push", "git reset", "rm -rf /"],
+  "read_scope_neighborhood_depth": 2
+}
