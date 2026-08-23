@@ -72,7 +72,6 @@ commands:
   - plan:replan
   - plan:status
   - dag
-  - dag
   - queue:next
   - queue:wave
   - queue:list
