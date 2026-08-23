@@ -20,6 +20,7 @@ import { recordTopology } from "../../scheduler/index.ts";
 import { initRun, loadRun } from "../../store/index.ts";
 import { transact } from "../../store/transaction.ts";
 import { ensureHarnessIgnored } from "../git-ignore.ts";
+import { findRepoRoot } from "../../shared/paths.ts";
 import { discoverGatePaths, gateBreadthWarning } from "../../graph/gate-breadth.ts";
 import {
   formatAutoPartitionBrief,
@@ -281,7 +282,7 @@ function planAddSingleCommand(
 
   const breadthWarning = gateBreadthWarning(gate, writeScope);
   const suggestedGatePaths =
-    breadthWarning === undefined ? [] : discoverGatePaths(dirname(dirname(run)), writeScope);
+    breadthWarning === undefined ? [] : discoverGatePaths(findRepoRoot(run), writeScope);
   const breadthNote =
     breadthWarning === undefined
       ? undefined

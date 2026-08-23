@@ -12,6 +12,7 @@ import { parseDuration } from "../../mind/value.ts";
 import { loadRun } from "../../store/load.ts";
 import { transact } from "../../store/transaction.ts";
 import { findGrant, readAgentLedger, writeAgentLedger } from "../../workflow/agents/ledger.ts";
+import { findRepoRoot } from "../../shared/paths.ts";
 import { enforceLineLimit } from "../formatters/line-limiter.ts";
 import { textFlag, type CommandContext, type Flags } from "../options.ts";
 import {
@@ -588,7 +589,7 @@ export async function mindPulseCommand(
     });
 
     const cognitiveTelemetry = computeMindCognitiveTelemetry(state);
-    const repoRoot = dirname(dirname(loaded?.runRoot ?? run));
+    const repoRoot = findRepoRoot(loaded?.runRoot ?? run);
     let diagResult: ScriptBackedDiagnosticsResult | undefined = undefined;
     try {
       diagResult = await runScriptBackedDiagnostics({
@@ -659,7 +660,7 @@ export async function mindPulseCommand(
   // CASE 2: No pulse is open -> Automatically open a new perpetual pulse
   // 3. Check charter digest consistency
   const actualRunRoot = loaded?.runRoot ?? run;
-  const repoRoot = dirname(dirname(actualRunRoot));
+  const repoRoot = findRepoRoot(actualRunRoot);
   const charterRecord = (mindState.charter ?? {}) as Record<string, unknown>;
   const charterSourceRel =
     typeof charterRecord.source_path === "string"

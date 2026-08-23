@@ -10,6 +10,7 @@ import {
 } from "../../contracts/agents.ts";
 import { getHarnessConfig } from "../../config/harness-config.ts";
 import { AGENT_ROLES, isAgentRole, type AgentRole } from "../../contracts/packets.ts";
+import { findRepoRoot } from "../../shared/paths.ts";
 import { HarnessError } from "../../errors/harness-error.ts";
 import { loadRun } from "../../store/index.ts";
 import {
@@ -96,7 +97,7 @@ export function agentRegisterCommand(flags: Flags): Record<string, unknown> {
     parentTaskId: parentTask,
     host: textFlag(flags, "host")!,
     actor,
-    maxAgents: getHarnessConfig(dirname(dirname(run)), run).max_agents,
+    maxAgents: getHarnessConfig(findRepoRoot(run), run).max_agents,
     telemetry: telemetryFlags(flags),
     ...(Object.keys(derivedTelemetry).length === 0 ? {} : { derivedTelemetry }),
   });

@@ -5,6 +5,7 @@ import { enforceLineLimit } from "../cli/formatters/line-limiter.ts";
 import { installedRuntimeFreshness } from "../installer/runtime-freshness.ts";
 import { validateSkillSource } from "../installer/source-validation.ts";
 import { loadRun, verifyIntegrity } from "../store/index.ts";
+import { findRepoRoot } from "../shared/paths.ts";
 import { resolveCharterPath } from "./charter.ts";
 import { reconcileLastPulse } from "./last-pulse.ts";
 
@@ -323,7 +324,7 @@ export async function buildWakeBrief(
   const state = loaded.state;
   const manifest = loaded.manifest;
   const actualRunRoot = loaded?.runRoot ?? mindRunRoot;
-  const repoRoot = dirname(dirname(actualRunRoot));
+  const repoRoot = findRepoRoot(actualRunRoot);
   const capsulesDir = dirname(actualRunRoot);
 
   const mindState = (state.mind ?? {}) as Record<string, unknown>;

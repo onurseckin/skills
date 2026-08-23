@@ -128,3 +128,16 @@ export function resolveTelemetryPath(repoRoot?: string, customPath?: string): st
   if (existsSync(legacy)) return legacy;
   return canonical;
 }
+
+export function resolveScratchDir(repoRoot?: string): string {
+  const root = repoRoot ? resolve(repoRoot) : findRepoRoot();
+  return join(root, OLT_DIR_NAME, "scratch");
+}
+
+export function resolveEvidenceDir(repoRoot?: string, runRoot?: string): string {
+  if (runRoot && existsSync(runRoot)) {
+    return join(runRoot, "evidence");
+  }
+  const root = repoRoot ? resolve(repoRoot) : findRepoRoot();
+  return join(root, OLT_DIR_NAME, "scratch", "evidence");
+}

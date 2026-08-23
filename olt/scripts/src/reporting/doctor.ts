@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { verifyCapsuleDeep, verifyIntegrity } from "../store/index.ts";
 import { MINIMUM_BUN_VERSION } from "../config/constants.ts";
+import { findRepoRoot } from "../shared/paths.ts";
 import type { CommandRecord } from "../contracts/commands.ts";
 import type { JsonObject } from "../contracts/json.ts";
 import { loadRun } from "../store/index.ts";
@@ -78,7 +79,7 @@ export function ignoredByGit(
   runRoot: string,
   command: RepositoryGitCommand = repositoryGit,
 ): boolean | null {
-  const repository = dirname(dirname(runRoot));
+  const repository = findRepoRoot(runRoot);
   if (!existsSync(join(repository, ".git"))) return null;
   try {
     return command(repository, ["check-ignore", "--quiet", runRoot], 1024, [0, 1]).status === 0;
@@ -154,7 +155,7 @@ export async function runDoctor(
   const installationIssues = (installation?.issues ?? []).map((issue) => `installation: ${issue}`);
 
   let gitDiffs: string[] | undefined = undefined;
-  const repository = dirname(dirname(runRoot));
+  const repository = findRepoRoot(runRoot);
   if (existsSync(join(repository, ".git"))) {
     try {
       const diffOutput = gitCommand(repository, ["diff", "--name-only"], 1024 * 64, [0]);

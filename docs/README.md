@@ -38,7 +38,7 @@ This documentation tree is strictly structured according to the **Diátaxis Docu
 
 ### 1. Monorepo Standards & Governance
 
-- [**Skill Collection Guidelines**](./SKILL_COLLECTION_GUIDELINES.md): Standardized policies for authoring, packaging, testing, and governing AI agent skills across this repository.
+- [**Skill Collection Guidelines**](./SKILL_COLLECTION_GUIDELINES.md): Standardized policies for authoring, packaging, testing, and governing AI agent skills across this repository. This root documentation is strictly reserved for repository-wide multi-skill collection guidelines.
 
 ### 2. Orchestrating Long Tasks (`olt`) Architectural Manual
 

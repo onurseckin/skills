@@ -4,6 +4,7 @@ import type { CommandSpec } from "../cli/registry/types.ts";
 import { findCommand } from "../cli/registry/index.ts";
 import type { EvidenceClass } from "../contracts/evidence.ts";
 import { HarnessError } from "../errors/harness-error.ts";
+import { findRepoRoot, resolveCapsulesDir } from "../shared/paths.ts";
 
 export type { EvidenceClass } from "../contracts/evidence.ts";
 
@@ -374,14 +375,14 @@ export function resolveCommandRecord(
   }
   if (options.runRoot) {
     candidateDirs.push(dirname(options.runRoot));
-    const parentOfParent = dirname(dirname(options.runRoot));
-    candidateDirs.push(join(parentOfParent, ".capsules"));
+    const repoRoot = findRepoRoot(options.runRoot);
+    candidateDirs.push(resolveCapsulesDir(repoRoot));
   }
   if (options.repoRoot) {
-    candidateDirs.push(join(options.repoRoot, ".capsules"));
+    candidateDirs.push(resolveCapsulesDir(options.repoRoot));
     candidateDirs.push(options.repoRoot);
   }
-  candidateDirs.push(join(process.cwd(), ".capsules"));
+  candidateDirs.push(resolveCapsulesDir(process.cwd()));
 
   const visitedDirs = new Set<string>();
 

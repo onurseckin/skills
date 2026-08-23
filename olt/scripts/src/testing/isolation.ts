@@ -90,7 +90,7 @@ export function getIsolatedTempDir(options?: string | IsolatedTempDirOptions | u
 
   const baseDir = opts.baseDir
     ? resolve(opts.baseDir)
-    : join(findRepoRoot(), ".tmp", "test-isolation");
+    : join(findRepoRoot(), ".olt", "scratch", "test-isolation");
 
   const id = opts.uuid ?? randomUUID();
   const folderName = opts.prefix ? `${opts.prefix}-${id}` : id;

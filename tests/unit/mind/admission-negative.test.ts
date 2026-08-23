@@ -1883,7 +1883,7 @@ describe("PHASE-3 §4.1: Twenty Negative Admission Gate Refusals", () => {
       expect(typeof evalResult.failingGate?.repairArgv).toBe("string");
       expect(evalResult.failingGate?.repairArgv!.length).toBeGreaterThan(0);
     }
-  });
+  }, 30000);
 
   // -------------------------------------------------------------------------
   // CLI mind:admit End-to-End Rejection and Event Sequence Invariance

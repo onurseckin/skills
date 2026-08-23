@@ -12,6 +12,7 @@ import { workflowPort } from "../../integration/store-ports.ts";
 import { repositoryGit, type RepositoryGitCommand } from "../../packets/repository-git-command.ts";
 import { hasRepositoryGitMetadata } from "../../packets/repository-git-metadata.ts";
 import { publishTaskRolePacket } from "../../packets/role-grant.ts";
+import { findRepoRoot } from "../../shared/paths.ts";
 import { loadRun } from "../../store/index.ts";
 import {
   refreshAgentDerivedTelemetry,
@@ -377,12 +378,12 @@ export async function taskSubmitCommand(
           summary: summary!,
           declaredFiles,
           declaredCommandIds,
-          observedFiles: observeChangedFiles(dirname(dirname(loaded.runRoot))),
+          observedFiles: observeChangedFiles(findRepoRoot(loaded.runRoot)),
           commands: (loaded.state.commands ?? {}) as Record<string, CommandRecord>,
           allowEmptyFiles: noOp,
         });
 
-  const submitRepoRoot = resolve(run, "..", "..");
+  const submitRepoRoot = findRepoRoot(run);
   const currentWriteScopeContentHash = evidenced(
     hashWriteScope(writeScopeHashBase(run, taskId, submitRepoRoot), taskBefore.write_scope),
     "harness_observed",

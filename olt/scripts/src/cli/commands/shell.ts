@@ -12,7 +12,7 @@ import { loadRepoPolicy } from "../../policy/repo-policy.ts";
 import { verifyCommandAuthorization } from "../../policy/rbac-engine.ts";
 import { createAgentMetadata, readAgentMetadata } from "../../runtime/agent-metadata.ts";
 import { emitTelemetryEvent } from "../../reporting/telemetry-stream.ts";
-import { findRepoRoot } from "../../shared/paths.ts";
+import { findRepoRoot, resolveEvidenceDir } from "../../shared/paths.ts";
 
 export interface ShellExecutionResult {
   readonly markdown: string;
@@ -198,7 +198,7 @@ export async function shellCommand(
   };
   const receiptSha256 = createHash("sha256").update(JSON.stringify(receiptPayload)).digest("hex");
 
-  const evidenceDir = join(repoRoot, "evidence");
+  const evidenceDir = resolveEvidenceDir(repoRoot);
   if (!existsSync(evidenceDir)) {
     mkdirSync(evidenceDir, { recursive: true });
   }

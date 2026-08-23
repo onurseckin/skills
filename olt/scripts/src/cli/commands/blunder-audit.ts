@@ -16,6 +16,7 @@ import { transact } from "../../store/transaction.ts";
 import { enforceLineLimit } from "../formatters/line-limiter.ts";
 import { assertFlags, boolFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
 import {
+  findRepoRoot,
   resolveCapsulesDir,
   resolveDefectsPath,
   resolveCompletedDefectsPath,
@@ -233,16 +234,23 @@ export function discoverBlunderFiles(
   const results: BlunderFileDiscovery[] = [];
   const visitedPaths = new Set<string>();
 
-  const canonicalDefects = resolveDefectsPath();
-  if (existsSync(canonicalDefects)) {
-    visitedPaths.add(resolve(canonicalDefects));
-    results.push({ capsuleName: ".olt", filePath: canonicalDefects });
-  }
+  const repoRoot = findRepoRoot(explicitRunRoot ?? capsulesDir);
+  const isCanonicalCapsules =
+    resolve(capsulesDir) === resolve(resolveCapsulesDir(repoRoot)) ||
+    resolve(capsulesDir) === resolve(repoRoot);
 
-  const canonicalCompleted = resolveCompletedDefectsPath();
-  if (existsSync(canonicalCompleted)) {
-    visitedPaths.add(resolve(canonicalCompleted));
-    results.push({ capsuleName: ".olt", filePath: canonicalCompleted });
+  if (isCanonicalCapsules) {
+    const canonicalDefects = resolveDefectsPath(repoRoot);
+    if (existsSync(canonicalDefects)) {
+      visitedPaths.add(resolve(canonicalDefects));
+      results.push({ capsuleName: ".olt", filePath: canonicalDefects });
+    }
+
+    const canonicalCompleted = resolveCompletedDefectsPath(repoRoot);
+    if (existsSync(canonicalCompleted)) {
+      visitedPaths.add(resolve(canonicalCompleted));
+      results.push({ capsuleName: ".olt", filePath: canonicalCompleted });
+    }
   }
 
   const rootBlunders = join(capsulesDir, "blunders.jsonl");

@@ -15,11 +15,6 @@ __pycache__/
 *.tsbuildinfo
 
 # build / run capsules scratch
-.tmp/
-.capsules/
-capsules/
-runtime/
-evidence/
 !.olt/
 .olt/capsules/
 .olt/.locks/

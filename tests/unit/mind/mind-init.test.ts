@@ -245,7 +245,7 @@ describe("mindInitCommand", () => {
 
     const runRoot = result.run_root as string;
     const realRepo = realpathSync(repo);
-    expect(runRoot).toBe(join(realRepo, ".capsules", "mind-gen-1"));
+    expect(runRoot).toBe(join(realRepo, ".olt", "capsules", "mind-gen-1"));
 
     // Check prompt.md
     const promptPath = join(runRoot, "prompt.md");

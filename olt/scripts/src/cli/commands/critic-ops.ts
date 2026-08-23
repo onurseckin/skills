@@ -27,11 +27,12 @@ import {
 } from "../formatters/index.ts";
 import { enforceLineLimit } from "../formatters/line-limiter.ts";
 import { listFlag, textFlag, type Flags } from "../options.ts";
+import { findRepoRoot } from "../../shared/paths.ts";
 import { queryScreenshots } from "../../reporting/screenshot-store.ts";
 
 function liveRepositoryBinding(run: string, expected: Readonly<RepositoryBinding>) {
   void expected;
-  const repository = dirname(dirname(loadRun(run).runRoot));
+  const repository = findRepoRoot(loadRun(run).runRoot);
   return inspectRepositoryBinding(repository);
 }
 

@@ -13,6 +13,7 @@ import { loadRun } from "../../store/load.ts";
 import { transact } from "../../store/transaction.ts";
 import { findGrant, readAgentLedger } from "../../workflow/agents/ledger.ts";
 import { enforceLineLimit } from "../formatters/line-limiter.ts";
+import { findRepoRoot } from "../../shared/paths.ts";
 import { integerFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
 
 export interface MindObserveResult {
@@ -123,8 +124,8 @@ export function mindObserveCommand(flags: Flags, _context?: CommandContext): Min
     );
   }
 
-  // 2. Validate command ID resolves to a real recorded command in .capsules/
-  const repoRoot = dirname(dirname(loaded.runRoot));
+  // 2. Validate command ID resolves to a real recorded command
+  const repoRoot = findRepoRoot(loaded.runRoot);
   const resolution = resolveCommandRecord(commandId, {
     runRoot: loaded.runRoot,
     repoRoot,

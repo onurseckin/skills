@@ -12,6 +12,7 @@ import { loadRun } from "../../store/load.ts";
 import { transact } from "../../store/transaction.ts";
 import { findGrant, readAgentLedger } from "../../workflow/agents/ledger.ts";
 import { enforceLineLimit } from "../formatters/line-limiter.ts";
+import { findRepoRoot } from "../../shared/paths.ts";
 import { textFlag, type CommandContext, type Flags } from "../options.ts";
 
 export interface MindAdmitResult {
@@ -170,7 +171,7 @@ export function mindAdmitCommand(flags: Flags, _context?: CommandContext): Recor
   }
 
   // 5. Resolve charter details
-  const repoRoot = dirname(dirname(loaded.runRoot));
+  const repoRoot = findRepoRoot(loaded.runRoot);
   const charterContext = resolveCharterContext(state, repoRoot);
 
   // 6. Evaluate all six admission gates

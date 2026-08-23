@@ -4,6 +4,7 @@ import type { TaskRecord, WorkflowState } from "../workflow/types.ts";
 import { enforceLineLimit, formatTable } from "../cli/formatters/line-limiter.ts";
 import { isRecord } from "../requirements/predicates.ts";
 import { getHarnessConfig } from "../config/harness-config.ts";
+import { findRepoRoot } from "../shared/paths.ts";
 import { MINIMUM_BUN_VERSION } from "../config/constants.ts";
 import {
   agentIdToRole,
@@ -277,7 +278,7 @@ export function generateUnifiedReport(
   const state = loaded.state as unknown as WorkflowState;
   const runId = loaded.manifest.run_id;
 
-  const harnessConfig = getHarnessConfig(dirname(dirname(loaded.runRoot)), loaded.runRoot);
+  const harnessConfig = getHarnessConfig(findRepoRoot(loaded.runRoot), loaded.runRoot);
   const maxParallel = harnessConfig.default_max_parallel;
   const gateMaxParallel = harnessConfig.gate_max_parallel;
 

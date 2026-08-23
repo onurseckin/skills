@@ -3,6 +3,7 @@ import type { CommandRecord } from "../contracts/commands.ts";
 import type { JsonObject } from "../contracts/json.ts";
 import { readCanonicalObject } from "../core/json.ts";
 import { HarnessError } from "../errors/harness-error.ts";
+import { findRepoRoot } from "../shared/paths.ts";
 import { executePreparedCommand, prepareCommand } from "../runner/run-command.ts";
 import { resolveArtifactPath } from "../runner/artifact-paths.ts";
 import { MAX_COMMAND_RECORD_BYTES } from "../runner/command-record-size.ts";
@@ -153,7 +154,7 @@ export async function runAndRecordCommand(
   const prepared = await dependencies.prepare({
     ...options,
     runRoot,
-    repositoryRoot: options.repositoryRoot ?? dirname(dirname(runRoot)),
+    repositoryRoot: options.repositoryRoot ?? findRepoRoot(runRoot),
   });
   recordCommandIntent(runRoot, options.actor, prepared.record);
   try {

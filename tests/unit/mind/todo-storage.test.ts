@@ -67,29 +67,27 @@ import { scratchRoot } from "../../support/scratch-root.ts";
 describe("Mind & Todo Storage Canonical Layout and Transparent Resolvers", () => {
   describe("Standardized Canonical Constants & Layout Naming", () => {
     it("verifies canonical filenames adhere strictly to lowercase kebab-case naming", () => {
-      expect(CANONICAL_FEEDBACK_FILE).toBe(".capsules/mind/queue/feedback-queue.jsonl");
+      expect(CANONICAL_FEEDBACK_FILE).toBe("olt/backlog.jsonl");
       expect(TODO_FEEDBACK_FILE).toBe(".capsules/todo/feedback-queue.jsonl");
       expect(LEGACY_FEEDBACK_FILE).toBe(".capsules/FEEDBACK_QUEUE.jsonl");
       expect(LEGACY_LOWER_FEEDBACK_FILE).toBe(".capsules/feedback-queue.jsonl");
 
-      expect(CANONICAL_COMPLETED_TASKS_FILE).toBe(".capsules/mind/queue/completed-tasks.jsonl");
+      expect(CANONICAL_COMPLETED_TASKS_FILE).toBe("olt/completed-tasks.jsonl");
       expect(TODO_COMPLETED_TASKS_FILE).toBe(".capsules/todo/completed-tasks.jsonl");
       expect(LEGACY_COMPLETED_TASKS_FILE).toBe(".capsules/COMPLETED_TASKS.jsonl");
       expect(LEGACY_LOWER_COMPLETED_TASKS_FILE).toBe(".capsules/completed-tasks.jsonl");
 
-      expect(CANONICAL_BLUNDERS_FILE).toBe(".capsules/mind/queue/blunders.jsonl");
+      expect(CANONICAL_BLUNDERS_FILE).toBe("olt/defects.jsonl");
       expect(TODO_BLUNDERS_FILE).toBe(".capsules/todo/blunders.jsonl");
       expect(LEGACY_BLUNDERS_FILE).toBe(".capsules/blunders.jsonl");
       expect(LEGACY_UPPER_BLUNDERS_FILE).toBe(".capsules/BLUNDERS.jsonl");
 
-      expect(CANONICAL_COMPLETED_BLUNDERS_FILE).toBe(
-        ".capsules/mind/queue/completed-blunders.jsonl",
-      );
+      expect(CANONICAL_COMPLETED_BLUNDERS_FILE).toBe("olt/completed-defects.jsonl");
       expect(TODO_COMPLETED_BLUNDERS_FILE).toBe(".capsules/todo/completed-blunders.jsonl");
       expect(LEGACY_COMPLETED_BLUNDERS_FILE).toBe(".capsules/COMPLETED_BLUNDERS.jsonl");
       expect(LEGACY_LOWER_COMPLETED_BLUNDERS_FILE).toBe(".capsules/completed-blunders.jsonl");
 
-      expect(CANONICAL_OBSERVATIONS_FILE).toBe(".capsules/mind/queue/observations.jsonl");
+      expect(CANONICAL_OBSERVATIONS_FILE).toBe("olt/telemetry.jsonl");
       expect(TODO_OBSERVATIONS_FILE).toBe(".capsules/todo/observations.jsonl");
       expect(LEGACY_OBSERVATIONS_FILE).toBe(".capsules/OBSERVATIONS.jsonl");
       expect(LEGACY_LOWER_OBSERVATIONS_FILE).toBe(".capsules/observations.jsonl");
@@ -107,41 +105,35 @@ describe("Mind & Todo Storage Canonical Layout and Transparent Resolvers", () =>
       const root = "/custom/repo/root";
 
       // Feedback queue
-      expect(resolveCanonicalFeedbackQueuePath(root)).toBe(
-        join(root, ".capsules/mind/queue/feedback-queue.jsonl"),
-      );
+      expect(resolveCanonicalFeedbackQueuePath(root)).toBe(join(root, "olt/backlog.jsonl"));
       expect(resolveCanonicalFeedbackQueuePath(root, true)).toBe(
         join(root, ".capsules/todo/feedback-queue.jsonl"),
       );
 
       // Completed tasks
       expect(resolveCanonicalCompletedTasksPath(root)).toBe(
-        join(root, ".capsules/mind/queue/completed-tasks.jsonl"),
+        join(root, "olt/completed-tasks.jsonl"),
       );
       expect(resolveCanonicalCompletedTasksPath(root, true)).toBe(
         join(root, ".capsules/todo/completed-tasks.jsonl"),
       );
 
       // Blunders
-      expect(resolveCanonicalBlundersPath(root)).toBe(
-        join(root, ".capsules/mind/queue/blunders.jsonl"),
-      );
+      expect(resolveCanonicalBlundersPath(root)).toBe(join(root, "olt/defects.jsonl"));
       expect(resolveCanonicalBlundersPath(root, true)).toBe(
         join(root, ".capsules/todo/blunders.jsonl"),
       );
 
       // Completed blunders
       expect(resolveCanonicalCompletedBlundersPath(root)).toBe(
-        join(root, ".capsules/mind/queue/completed-blunders.jsonl"),
+        join(root, "olt/completed-defects.jsonl"),
       );
       expect(resolveCanonicalCompletedBlundersPath(root, true)).toBe(
         join(root, ".capsules/todo/completed-blunders.jsonl"),
       );
 
       // Observations
-      expect(resolveCanonicalObservationsPath(root)).toBe(
-        join(root, ".capsules/mind/queue/observations.jsonl"),
-      );
+      expect(resolveCanonicalObservationsPath(root)).toBe(join(root, "olt/telemetry.jsonl"));
       expect(resolveCanonicalObservationsPath(root, true)).toBe(
         join(root, ".capsules/todo/observations.jsonl"),
       );

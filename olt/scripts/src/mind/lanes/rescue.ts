@@ -22,6 +22,7 @@ import { runSupervisionTick } from "../../orchestrator/supervision-tick.ts";
 import { runDoctor } from "../../reporting/doctor.ts";
 import { installedRuntimeFreshness } from "../../installer/runtime-freshness.ts";
 import { validateSkillSource } from "../../installer/source-validation.ts";
+import { findRepoRoot } from "../../shared/paths.ts";
 import { getHarnessConfig } from "../../config/harness-config.ts";
 import { resolveCharterPath } from "../charter.ts";
 import { writeLastPulse } from "../last-pulse.ts";
@@ -177,7 +178,7 @@ export async function executeRescueLane(
 
   const loadedMind = loadRun(mindRunRoot, false);
   const actualMindRunRoot = loadedMind?.runRoot ?? mindRunRoot;
-  const repoRoot = dirname(dirname(actualMindRunRoot));
+  const repoRoot = findRepoRoot(actualMindRunRoot);
   const capsulesDir = dirname(actualMindRunRoot);
 
   const actor =

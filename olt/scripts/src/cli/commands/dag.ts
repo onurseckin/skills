@@ -7,6 +7,7 @@ import { enforceLineLimit } from "../formatters/line-limiter.ts";
 import { boolFlag, integerFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
 import { parseArguments } from "../arguments.ts";
 import { loadRun } from "../../store/index.ts";
+import { findRepoRoot } from "../../shared/paths.ts";
 import { resolveCapsuleRun } from "./dag-view.ts";
 import { schedulingMetrics } from "../../scheduler/metrics.ts";
 import {
@@ -40,7 +41,7 @@ export function dagRenderCommand(
   const runId = basename(run);
 
   const runRoot = loaded?.runRoot ?? run;
-  const harnessConfig = getHarnessConfig(dirname(dirname(runRoot)), runRoot);
+  const harnessConfig = getHarnessConfig(findRepoRoot(runRoot), runRoot);
   const maxParallel = harnessConfig.default_max_parallel;
 
   const isCompiled = state.graph !== undefined && state.graph !== null;

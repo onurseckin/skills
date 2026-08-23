@@ -3,6 +3,7 @@ import { dirname, join } from "node:path";
 import { isJsonObject } from "../../contracts/json.ts";
 import { diffAnchor, type DiffAnchor } from "../../packets/round-repository-delta.ts";
 import { repositoryGit, type RepositoryGitCommand } from "../../packets/repository-git-command.ts";
+import { findRepoRoot } from "../../shared/paths.ts";
 import type { FileRef } from "../graph/graph-types.ts";
 
 const DIFF_PATH_CEILING_BYTES = 1 * 1024 * 1024;
@@ -97,7 +98,7 @@ export function enrichFileRefsWithDiffs(
   const anchor = resolveDiffAnchor(runRoot);
   const headCommit = anchor?.head_commit;
   if (headCommit === undefined || headCommit === null) return [...files];
-  const repositoryRoot = dirname(dirname(runRoot));
+  const repositoryRoot = findRepoRoot(runRoot);
   return files.map((file) => {
     const parsed = readPathDiff(repositoryRoot, headCommit, file.path, command);
     if (parsed === undefined) return file;

@@ -16,6 +16,7 @@ import {
 import { loadRun } from "../../store/load.ts";
 import { transact } from "../../store/transaction.ts";
 import { findGrant, readAgentLedger } from "../../workflow/agents/ledger.ts";
+import { findRepoRoot } from "../../shared/paths.ts";
 import { enforceLineLimit } from "../formatters/line-limiter.ts";
 import { listFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
 
@@ -110,7 +111,7 @@ export async function mindQuiesceCommand(
   }
 
   // 3. Validate all 10 sources observed with count == 0 and valid recorded command evidence
-  const repoRoot = dirname(dirname(loaded.runRoot));
+  const repoRoot = findRepoRoot(loaded.runRoot);
   const validation = validateQuiescentScan(sourceInputs, {
     runRoot: loaded.runRoot,
     repoRoot,

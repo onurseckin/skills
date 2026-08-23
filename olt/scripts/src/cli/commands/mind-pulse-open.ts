@@ -9,6 +9,7 @@ import { DEFAULT_MIND_BUDGET, resolveCharterPath } from "../../mind/charter.ts";
 import { loadRun } from "../../store/load.ts";
 import { transact } from "../../store/transaction.ts";
 import { findGrant, readAgentLedger, writeAgentLedger } from "../../workflow/agents/ledger.ts";
+import { findRepoRoot } from "../../shared/paths.ts";
 import { enforceLineLimit } from "../formatters/line-limiter.ts";
 import { textFlag, type CommandContext, type Flags } from "../options.ts";
 
@@ -142,7 +143,7 @@ export function mindPulseOpenCommand(
 
   // 4. Check charter digest consistency
   const actualRunRoot = loaded?.runRoot ?? run;
-  const repoRoot = dirname(dirname(actualRunRoot));
+  const repoRoot = findRepoRoot(actualRunRoot);
   const charterRecord = (mindState.charter ?? {}) as Record<string, unknown>;
   const charterSourceRel =
     typeof charterRecord.source_path === "string"

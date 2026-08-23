@@ -18,7 +18,7 @@ import { drainBacklogOnRunCompletion } from "../../mind/smart-task-manager.ts";
 import { completeRun } from "../../workflow/completion/complete-run.ts";
 import { gateTally } from "../../workflow/completion/completion-state.ts";
 import type { CompletionArtifactRequirements } from "../../workflow/completion/artifact-verification.ts";
-import { resolveCapsulesDir } from "../../shared/paths.ts";
+import { findRepoRoot, resolveCapsulesDir } from "../../shared/paths.ts";
 import type { TaskRecord, WorkflowState } from "../../workflow/types.ts";
 import { consolidateWorktrees, recordConsolidation } from "../../workflow/worktree/consolidate.ts";
 import { readWorktreeLedger } from "../../workflow/worktree/ledger.ts";
@@ -48,7 +48,7 @@ function occupancyCeilings(runRoot: string): { maxParallel: number; gateMaxParal
 function liveRepositoryBinding(run: string) {
   const loaded = loadRun(run);
   const runRoot = loaded?.runRoot ?? run;
-  const repository = dirname(dirname(runRoot));
+  const repository = findRepoRoot(runRoot);
   return inspectRepositoryBinding(repository);
 }
 
@@ -125,7 +125,7 @@ export function runCompleteCommand(flags: Flags): Record<string, unknown> {
 
   // Automatically drain processed/completed backlog items into completed archive ledger
   try {
-    const repoRoot = dirname(dirname(run));
+    const repoRoot = findRepoRoot(run);
     const completedTaskIds = tasks.filter((t) => t.status === "done").map((t) => t.id);
     drainBacklogOnRunCompletion({
       runId: basename(run),
@@ -139,7 +139,7 @@ export function runCompleteCommand(flags: Flags): Record<string, unknown> {
   // Execute automatic local skill sync, git commit, and git push on run completion
   let autoSyncCommitResult: unknown;
   try {
-    const repoRoot = dirname(dirname(run));
+    const repoRoot = findRepoRoot(run);
     autoSyncCommitResult = executePhaseCompletionSyncAndCommit({
       phaseName: "run:complete",
       runId: basename(run),
@@ -352,7 +352,7 @@ export async function runExecCommand(
   const rawCwd = textFlag(flags, "cwd", false);
   const actor = textFlag(flags, "actor")!;
   const loaded = loadRun(run);
-  const repoRoot = dirname(dirname(loaded.runRoot));
+  const repoRoot = findRepoRoot(loaded.runRoot);
   const cwd = rawCwd
     ? isAbsolute(rawCwd)
       ? realpathSync(rawCwd)

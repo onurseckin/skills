@@ -4,6 +4,7 @@ import type { JsonObject } from "../contracts/json.ts";
 import type { RepositoryBinding } from "../contracts/repository.ts";
 import { canonicalJsonBytes, sha256Bytes } from "../core/json.ts";
 import { HarnessError } from "../errors/harness-error.ts";
+import { findRepoRoot } from "../shared/paths.ts";
 import { loadRun, transact } from "../store/index.ts";
 import { requireText } from "../workflow/task-state.ts";
 import { inspectRepository } from "./repository-snapshot.ts";
@@ -133,7 +134,7 @@ export function recordRepositoryInspection(
         throw error;
     }
   }
-  const repo = dirname(dirname(actualRunRoot));
+  const repo = findRepoRoot(actualRunRoot);
   const content = inspectRepository(repo, phase, now) as JsonObject;
   const inspection = {
     ...content,

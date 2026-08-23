@@ -22,8 +22,8 @@
     "coverage:check": "bun test:coverage",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "oxlint --quiet",
-    "format": "oxfmt '!**/fixtures/**' '!**/.capsules/**'",
-    "format:check": "oxfmt '!**/fixtures/**' '!**/.capsules/**' --check",
+    "format": "oxfmt '!**/.olt/capsules/**' '!**/.olt/scratch/**'",
+    "format:check": "oxfmt '!**/.olt/capsules/**' '!**/.olt/scratch/**' --check",
     "sync:local": "bun scripts/sync-global.ts",
     "sync:remote": "npx skills update orchestrating-long-tasks -g -y",
     "sync": "bun run sync:local"

@@ -11,7 +11,7 @@ import type { TaskDeclaration } from "../../requirements/compiler.ts";
 import { enforceLineLimit, formatTable } from "../formatters/line-limiter.ts";
 import { boolFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
 import { parseArguments } from "../arguments.ts";
-import { resolveCapsulesDir } from "../../shared/paths.ts";
+import { findRepoRoot, resolveCapsulesDir } from "../../shared/paths.ts";
 
 function isStringArray(value: unknown): value is readonly string[] {
   return Array.isArray(value) && value.every((item) => typeof item === "string");
@@ -577,7 +577,7 @@ export function dagViewCommand(
   const showRecommendationsOnly = boolFlag(flags, "recommendations");
 
   const runRoot = loaded?.runRoot ?? run;
-  const harnessConfig = getHarnessConfig(dirname(dirname(runRoot)), runRoot);
+  const harnessConfig = getHarnessConfig(findRepoRoot(runRoot), runRoot);
   const maxParallel = harnessConfig.default_max_parallel;
 
   const isCompiled = state.graph !== undefined && state.graph !== null;

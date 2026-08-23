@@ -20,8 +20,10 @@ import { applicableGates } from "../../workflow/gates/gate-policy.ts";
 import { workflowPort } from "../../integration/store-ports.ts";
 import type { TaskRecord, TransactionPort, WorkflowState } from "../../workflow/types.ts";
 
+import { findRepoRoot } from "../../shared/paths.ts";
+
 export function repoRootOf(runRoot: string): string {
-  return dirname(dirname(runRoot));
+  return findRepoRoot(runRoot);
 }
 
 import {

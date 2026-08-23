@@ -118,10 +118,19 @@ export async function normalizeCommandOptions(
   const runRoot = realpathSync(requestedRunRoot);
   if (input.gateId !== undefined && input.gateId !== null) {
     const runFromRepository = relative(repositoryRoot, runRoot);
-    if (runFromRepository !== ".capsules" && !runFromRepository.startsWith(`.capsules${sep}`)) {
+    const inOltCapsules =
+      runFromRepository === `.olt${sep}capsules` ||
+      runFromRepository.startsWith(`.olt${sep}capsules${sep}`) ||
+      runFromRepository === ".olt" ||
+      runFromRepository.startsWith(`.olt${sep}`);
+    const inCapsules =
+      runFromRepository === "capsules" || runFromRepository.startsWith(`capsules${sep}`);
+    const inLegacyCapsules =
+      runFromRepository === ".capsules" || runFromRepository.startsWith(`.capsules${sep}`);
+    if (!inOltCapsules && !inCapsules && !inLegacyCapsules) {
       throw new HarnessError(
         "PATH_SAFETY",
-        "gate command artifacts must be stored under the repository .capsules directory",
+        "gate command artifacts must be stored under the repository .olt/capsules directory",
       );
     }
   }
