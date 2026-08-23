@@ -4,274 +4,256 @@
 
 ---
 
-## ❄️ The Structural Freeze Invariant
+## ❄️ The Three-Tier Plan Evolution Model
 
-Once `plan:compile` has run and execution has begun:
+In autonomous multi-agent orchestration, plans must balance two competing requirements: **absolute runtime stability** (to prevent race conditions and broken dependency assumptions) and **adaptive replanning** (to recover from discovered defects and architectural pivots).
 
-> **Structural task contracts, write scopes, produced artifacts, and prerequisite dependencies freeze
-> for the duration of the revision.**
+To solve this, `olt` implements a **Three-Tier Plan Evolution Model**:
 
-Why it has to be this way:
-
-- If an agent could rewrite its own dependencies mid-flight, it could skip a prerequisite.
-- If an agent could widen its own write scope, the scheduler's disjointness guarantee — the thing that
-  makes parallel lanes safe — would be worthless.
-
-The freeze is enforced by a revision guard: an apply that does not name the revision it expects, or
-names a stale one, is refused rather than merged.
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    THREE-TIER PLAN EVOLUTION MODEL                          │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  [ TIER 1: DRAFT BUFFER (Revision 0) ]                                      │
+│    • Mutable staging area populated via plan:enhance and plan:add           │
+│    • Fully fluid: tasks, scopes, gates, and dependencies can be edited     │
+│    • Audited mechanically via plan:audit (Invariants A1-A6)                 │
+│                                  │                                          │
+│                                  ▼ plan:compile                             │
+│                                                                             │
+│  [ TIER 2: COMPILED IMMUTABLE FREEZE (Revision 1) ]                         │
+│    • Cryptographically bound and written to state.graph                     │
+│    • Structural freeze: write scopes, dependencies, produced artifacts      │
+│      are permanently locked for the duration of Revision 1                  │
+│    • Reviewed by independent Plan-Validator adversary (plan:validate-start) │
+│    • Wave scheduling and lease dispatch begin against frozen topology       │
+│                                                                             │
+│                                  │                                          │
+│                                  ▼ plan:replan (Upon findings/defects)      │
+│                                                                             │
+│  [ TIER 3: MONOTONIC APPEND-ONLY EXPANSION (Revision N+1) ]                 │
+│    • Ingests findings, partitions defects into disjoint repair scopes       │
+│    • Graph clones Revision N and appends new repair nodes/edges             │
+│    • Prior history, completed tasks, and gate receipts remain intact        │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
-## 🌿 The Escape Hatch That Is Not a Revision
+## 🔒 The Structural Freeze Invariant
 
-A working agent that discovers its task splits in two does **not** need a revision. `branch:open`
-subdivides work at execution time, inside the scope the agent already holds, and never enters the
-plan DAG:
+Once `plan:compile` executes and commits Revision 1:
+
+> **Structural task contracts, write scopes, produced artifacts, and prerequisite dependencies freeze permanently for the duration of that graph revision.**
+
+### Why the Freeze is Absolute
+
+1. **Deterministic Concurrency Guarantees**: The scheduler's conflict-free wave guarantees depend entirely on static write scope disjointness. If an active implementer could dynamically expand its write scope, it could instantly collide with a concurrent agent operating in an adjacent directory.
+2. **Dependency Integrity**: If a worker could rewrite its own `depends_on` edges mid-flight, it could bypass unvalidated prerequisite contracts or introduce execution deadlocks.
+3. **Audit Trail Immutability**: Cryptographic verification requires that completed work cannot be retroactively re-scoped or downgraded.
+
+The freeze is enforced by `guardPlanRevision`: any attempt to mutate a compiled graph without calling `plan:replan` raises `INVALID_STATE: cannot mutate frozen graph revision`.
+
+---
+
+## 🌿 Execution-Time Branching vs. Formal Plan Revisions
+
+When an executing agent discovers that its assigned task is more complex than anticipated, it must choose between two distinct architectural mechanisms:
 
 ```text
-sub-task id S-1 collides with a plan task; a branch never enters the plan DAG
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                   BRANCHING vs. REPLANNING DECISION TREE                    │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  Is the work strictly contained within the task's assigned write scope?     │
+│                                                                             │
+│         ├──► YES: Use EXECUTION-TIME BRANCHING (branch:open)                │
+│         │         • Subdivides work into sub-tasks (e.g., S-1, S-2)         │
+│         │         • Sub-scopes must be PROPER SUBSETS of assigned scope     │
+│         │         • Parent lease clock freezes; parent resumes on collect   │
+│         │         • Never enters the global plan DAG; zero revision bump    │
+│         │                                                                   │
+│         └──► NO:  Request FORMAL REPLAN (plan:replan)                       │
+│                   • Requires new write scopes, new dependencies, or edges   │
+│                   • Dispatches fresh repair tasks in a parallel wave        │
+│                   • Bumps graph revision monotonically (R_1 -> R_2)         │
+│                   • Re-records topology in state.topology                   │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-A branch cannot renegotiate a contract, because it can only hand down a _proper subset_ of what the
-parent already has. That is precisely why it is allowed to happen while the plan is frozen. See
-[Chapter 09 §01](../09-branching-and-honesty/01-execution-time-branching.md).
+### Comparison Matrix
 
-Use a revision when the **contract** must change: a new task, a new dependency, a scope that must
-grow. Use a branch when only the **execution** splits.
+| Property           | Execution-Time Branching (`branch:open`)         | Plan Revision (`plan:replan`)                     |
+| :----------------- | :----------------------------------------------- | :------------------------------------------------ |
+| **Scope Boundary** | Strictly proper subset of existing leased scope  | Can allocate new, previously unassigned scopes    |
+| **Graph Revision** | Stays at current revision (No DAG change)        | Increments monotonically ($N \to N + 1$)          |
+| **Lease Impact**   | Freezes parent lease clock; mints sub-leases     | Spawns new top-level repair task leases           |
+| **Target Actor**   | Current implementer agent                        | Master Coordinator / Planner                      |
+| **When to Use**    | Internal task parallelism or sub-module division | Contract expansion, missing dependencies, defects |
 
 ---
 
 ## 🛑 Two Adversaries Around Compilation
 
-A compiled plan faces two independent checks — one that can refuse the **compile itself**, and one
-that reviews the plan **after** it compiles and can refuse to let anything be dispatched against it.
-Neither is a warning printed to a terminal and forgotten — both are recorded as their own capsule
-events.
-
-### C1 — The Plan Audit: Six Structural Invariants (blocks `plan:compile`)
-
-`plan:compile` runs the identical check `plan:audit` runs by hand, against the same planning buffer,
-and refuses to seal on any **blocking** finding:
-
-```bash
-bun harness.ts plan:audit --run .capsules/<slug> --actor planner
-```
-
-| Invariant                  | Severity      | What it catches                                                                                                                                                                                                                  |
-| :------------------------- | :------------ | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **A1-granularity**         | blocking      | One task's write scope expands (on disk) to more than 3 files while the plan as a whole touches ≥ 5 — a monolithic task compressing most of the plan.                                                                            |
-| **A2-parallelism**         | not evaluated | Always reported under `not_evaluated`, never guessed: there is no grounded, coordinator-declared count of distinct entities the prompt named to compare against, and the harness refuses to fabricate one with an NLP heuristic. |
-| **A3-gate-discrimination** | blocking      | Two tasks with disjoint write scopes share byte-identical gate argv — the gate passes whether either task did its work or nothing at all.                                                                                        |
-| **A4-false-barrier**       | blocking      | A dependency edge serializes two tasks whose write scopes don't actually overlap — a barrier with no scope reason behind it.                                                                                                     |
-| **A5-straggler**           | advisory      | One task's effort estimate is more than 3× the median of its own wave — the rest of the wave idles waiting on it.                                                                                                                |
-| **A6-whole-suite-gate**    | blocking      | A task's gate command looks like it runs the whole test suite. The run-wide suite belongs to `--completion-gate`, which runs once; a task gate must prove its own scope.                                                         |
-
-A3 and A6 are not purely static: both check `gate:prove`'s recorded verdicts first, via a
-`latestGateProof` lookup keyed on the task's current gate argv — a task whose gate was independently
-proven to fail once its own write scope is reverted to a base ref is exempted from the blocking
-finding, even if the argv looks identical to a sibling task's. `gate:prove` is a separate, later
-command (`gate:prove --run .capsules/<slug> --task <task-id>`); it is never run automatically by
-`plan:audit` or `plan:compile`, because at compile time the task's work does not exist yet —
-reverting nothing would yield a scratch copy identical to the live tree, and every verdict would
-degenerate to "not falsifiable." Full falsifiability mechanics — the scratch-copy revert, the
-timeout and symlink handling, what `falsifiable` actually measures — belong to the gates and
-completion chapter; what matters here is that a recorded `falsifiable: true` proof over the task's
-_current_ declared scope is what lets A3/A6 pass without a coordinator having to type
-`--accept-audit`.
-
-A blocking finding can still be overridden, one invariant at a time, with an attributed reason:
-
-```bash
-bun harness.ts plan:compile --run .capsules/<slug> --actor planner \
-  --completion-gate "bun test tests/unit" \
-  --accept-audit "A3-gate-discrimination:task-a and task-b legitimately share the shared-fixture regression test"
-```
-
-There is no blanket override. Every blocking invariant needs its own `--accept-audit
-"<id>:<reason>"`; an id the audit did not actually raise as blocking is refused rather than silently
-accepted, and an acceptance with no reason after the colon is refused too — a silent override is
-exactly the failure mode this gate exists to end.
-
-### C2 — The Plan-Validator: An Adversary for the Plan (blocks dispatch, not compile)
-
-Unlike the audit, the plan-validator is not part of `plan:compile` at all — it reviews an
-_already-compiled_ revision, and its refusal blocks `task:claim`, never `plan:compile`.
-
-A monolithic-plan compression, a false dependency barrier, a gate that can't fail — the six audit
-invariants catch the _mechanical_ shape of these defects. Whether the decomposition actually matches
-what the prompt asked for is a judgment call, and judgment calls are what the **plan-validator** role
-exists for: an independent adversary that reads the compiled plan — never the code, because there is
-no code yet — and answers, in writing, the same four questions the audit checks structurally:
-decomposition, dependencies, gate discrimination, and straggler risk.
-
-```bash
-bun harness.ts plan:validate-start --run .capsules/<slug> --validator plan-val-1
-# → mints a plan-validation token, scoped to the current graph revision
-
-bun harness.ts plan:review --run .capsules/<slug> --validator plan-val-1 --token <token> \
-  --status approved \
-  --decomposition-answer "14 tasks match the 14 named topics" \
-  --dependency-answer "no dependency edges; every task is an independent root" \
-  --gate-answer "each gate runs only that task's own scoped test file" \
-  --straggler-answer "every task carries the same one-topic effort estimate" \
-  --dependency-edges-reviewed "" --gate-ids-reviewed "gate-1,gate-2,...,gate-14" \
-  --summary "Decomposition matches the prompt; gates are scope-narrow"
-```
-
-Prose is not the whole floor: `--dependency-edges-reviewed` and `--gate-ids-reviewed` must each name
-exactly the dependency edges and per-task gate ids the compiled plan declares, or the review is
-refused before it is recorded — the same mechanical check the audit runs, now asked of the verdict
-that vouches for it.
-
-The plan-validator is **optional** — `state.plan_validation` is absent on any run that never
-dispatches one, and nothing forces a coordinator to. But once dispatched, its verdict is not
-advisory:
-
-- The validator must be independent from the coordinator or planner that produced the plan
-  (`assertPlanValidatorIndependent` refuses a validator id that also holds a `coordinator` or
-  `planner` grant) — the exact failure mode this role exists to close is a coordinator's own plan
-  going unreviewed because nothing independent ever looked at it.
-- `--status approved` and `--status changes_requested` both **require** written answers to all four
-  questions — a pass that never answered them would be a rubber stamp.
-- `changes_requested` requires at least one structured finding (id, severity, observation,
-  remediation) naming a specific defect; a reflexive rejection with no finding is refused.
-- A recorded `changes_requested` against the **live** graph revision is a hard stop `task:claim`
-  enforces directly: every implementer and repairer claim against that revision is refused until a
-  fresh graph revision carries a passing review. This is not a warning a coordinator can route
-  around by dispatching anyway — it is checked inside the same transaction that claims a task.
-- One active assignment exists per graph revision, mirroring the completeness critic's shape (the
-  plan is a single whole-run artifact, not a per-task lease). A dangling assignment left open against
-  a now-superseded revision cannot block a fresh one — the plan it was reviewing no longer exists to
-  be reviewed, so a new `plan:validate-start` call against the new revision marks the old one
-  `expired` automatically.
-- The review is bound to a digest of the exact compiled artifact it judged — `graph_revision`, the
-  projected tasks, requirements and gates — built from the same projected `WorkflowState` fields
-  `record-plan-review` re-derives at verdict-recording time. If the plan drifted underneath the
-  validator (a fresh compile, a replan) between `plan:validate-start` and `plan:review`, the digest no
-  longer matches and the verdict is refused rather than recorded against a plan that no longer exists.
-
-**A caveat worth knowing before you rely on this**: unlike a task lease or a validation attempt, a
-plan-validation assignment has no automatic staleness sweep and no release command. If a
-plan-validator's token is lost or the agent dies before calling `plan:review`, `plan:validate-start`
-for the _same graph revision_ refuses with "a plan validation is already active" — verified directly
-against `beginPlanValidation`, which only ever marks a prior assignment `expired` when a call for a
-**different** (newer) graph revision comes in, never on its own deadline passing. The only way to free
-a dead plan-validator up is to raise the graph revision, which today only ever happens through
-`plan:replan` (below).
-
----
-
-## 📈 Revisions ($0 \to 1 \to 2$)
-
-Revision 0 is the uncompiled planning buffer; `plan:compile` commits **revision 1**, always — the
-graph document is built with the literal revision `1`, never a value the caller supplies. There is
-exactly one way to raise it further: **`plan:replan`**.
-
-There is no "add more tasks and recompile" path once a plan is sealed, however natural that sounds.
-Two independent refusals close it off: `plan:add` throws `INVALID_STATE: cannot add tasks to compiled
-plan` the moment `state.graph` exists, and even if a caller worked around that, `plan:compile` always
-attempts to write revision `1` again — `guardPlanRevision` requires a _first_ compile's revision to be
-exactly `1`, but a state that already has a graph must see `graph.revision === state.graph.revision +
-1`, so a second `plan:compile` call collides with the revision it already sealed and is refused with
-"graph revision must increase by exactly one." Retrying `plan:compile` is never how a plan grows.
-
-```bash
-bun harness.ts plan:replan --run .capsules/<slug> --actor coordinator \
-  --findings-file findings.json --gate "bun run typecheck" --round 2
-```
-
-`plan:replan` ingests findings, partitions them into **disjoint write scopes** so the repair wave can
-run in parallel, and compiles the next revision by cloning the current graph and only ever _appending_
-new nodes, edges and gates — no existing entry is read back out and rewritten, which is what lets the
-revision guard see every prior task as byte-identical to before. `--gate` supplies the revalidation
-command for generated repair tasks; it may be omitted only when the findings declare their own
-`revalidation_gate`, or the task already covering that write scope has a gate to inherit. There is no
-default — an unresolved gate is always a refusal, never a guess standing in for one.
-
-Findings come from exactly two places, in this order: an inline `--findings` payload or
-`--findings-file`, or — when neither is given — `state.completion_review.findings`, the completeness
-critic's own recorded review. **`plan:replan` never reads a plan-validator's `changes_requested`
-findings automatically.** Recovering from a plan-validator's rejection today means the coordinator
-passes that same review's findings back in by hand via `--findings-file` — the finding shape
-(`id`, `severity`, `observation`, `remediation`) is compatible, since `plan:replan`'s own finding
-reader accepts exactly those fields. Be aware this path was built around repairing code a validator or
-critic already found defective (a finding's `file_paths` drive which scope a repair task gets); a
-plan-validator's findings carry no file paths because no code exists yet, so every such finding
-partitions into the single whole-tree scope, and `--gate` becomes mandatory since there is no
-per-file scope to inherit an existing task's gate from.
-
-Rules every revision obeys:
-
-1. **Monotonic increment.** Exactly one, and the apply names the revision it expects.
-2. **Immutable source requirements.** Original prompt requirements are not deleted or re-scoped.
-3. **Preserved history.** `done` tasks, satisfied requirements, gate receipts, findings and validation
-   history survive the recompile.
-4. **Archived predecessors.** Prior graph states are kept in `plan_history` and in the event chain.
-5. **Re-recorded topology.** `state.topology` is rewritten for the new revision, so the wave plan and
-   the graph never disagree about which revision they describe.
-
----
-
-## 📊 What Freezes vs. What Evolves
-
-| Property                   | Behaviour                    | Rationale                                                                                                        |
-| :------------------------- | :--------------------------- | :--------------------------------------------------------------------------------------------------------------- |
-| **`prompt.md`**            | Immutable, forever           | SHA-256 bound in `manifest.json` at `plan:init`.                                                                 |
-| **Done task contracts**    | Frozen                       | Completed work cannot be mutated or downgraded.                                                                  |
-| **Active leased scopes**   | Frozen                       | A lease cannot widen or narrow while it is held.                                                                 |
-| **Task status**            | Evolves                      | Driven by the state machine, recorded in `task.history[]`.                                                       |
-| **Findings**               | Appended immutably           | Opened by a verdict, answered by `--resolve` with command ids.                                                   |
-| **Gate receipts**          | Appended immutably           | `run:exec` records argv, exit, timings, repository binding.                                                      |
-| **Branches**               | Appended to `state.branches` | Execution-time only; never a plan node.                                                                          |
-| **Agent grants**           | Appended to `state.agents`   | Registered before work, released after.                                                                          |
-| **Topology**               | Rewritten per revision       | One authority for waves; no second derivation.                                                                   |
-| **New tasks / edges**      | Added via `plan:replan` only | Revision $N+1$ is the only way a contract grows; there is no manual recompile.                                   |
-| **Plan-validator verdict** | Bound to one graph revision  | A dangling `changes_requested` cannot block a revision it never reviewed; a fresh revision needs its own review. |
-
----
-
-## 🚦 When Neither Tool Fits
-
-If a task cannot be completed inside its contract and cannot be branched — a shared file must change,
-a dependency was missed — the agent stops and reports. It does not take the path silently. The
-coordinator then either raises a revision or escalates. A task that has exhausted `max_repair_rounds`
-(6) is `escalated` for the same reason: the loop is bounded so a wrong plan surfaces as a decision
-rather than as spend.
-
----
-
-## ⚡ Dynamic DAG Expansion & Living Tracer Engine
-
-While the **Plan Graph** (`state.graph`) remains structurally frozen for each revision to protect scheduling guarantees, real-world execution produces runtime subgraphs, dynamic sub-tasks, and branches.
-
-The harness bridges this with the **Living Dynamic DAG Expansion Engine** and **Step Tracer** (`dag:trace`, aliased as `trace:dag`, `stream:trace`):
+To prevent flawed, monolithic, or unverifiable plans from reaching execution, `olt` deploys two independent adversarial gates:
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│               STATIC PLAN DAG vs. LIVING DYNAMIC EXPANSION                  │
+│                    THE TWO PLAN ADVERSARIAL GATES                           │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
-│  [ Static Plan Graph: state.graph ]                                         │
-│    • Compiled at plan:compile (Revision 1, 2, ...)                          │
-│    • Authoritative contract for wave scheduling & conflict detection        │
-│    • Contains strictly planned top-level tasks & gates                      │
+│  [ PLANNING BUFFER (Revision 0) ]                                           │
+│                 │                                                           │
+│                 ▼                                                           │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │ GATE 1: MECHANICAL PLAN AUDIT (plan:audit / Invariants A1-A6)         │  │
+│  │   • Evaluates structural shapes mechanically                          │  │
+│  │   • Blocks plan:compile on any blocking finding                       │  │
+│  │   • Overrides require granular --accept-audit <id>:<reason>           │  │
+│  └──────────────────────────────────┬────────────────────────────────────┘  │
+│                                     │                                       │
+│                                     ▼ plan:compile                          │
 │                                                                             │
-│                                      │                                      │
-│                                      ▼ (Replay events.jsonl via readCapsuleEvents)
-│                                                                             │
-│  [ Living Dynamic DAG State: DynamicDagState ]                              │
-│    • Reconstructed dynamically by replaying the hash-chained event stream   │
-│      using readCapsuleEvents()                                              │
-│    • Captures execution-time branch expansions (branch-opened / collected)  │
-│    • Tracks active worker agent assignments and real-time step sequences    │
-│    • Visualizes step-by-step progress via vertical chronological trace      │
+│  [ COMPILED GRAPH (Revision 1) ]                                            │
+│                 │                                                           │
+│                 ▼                                                           │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │ GATE 2: INDEPENDENT PLAN-VALIDATOR (plan:validate-start/review)       │  │
+│  │   • Evaluates semantic decomposition and prompt alignment             │  │
+│  │   • Independent agent role; answers 4 mandatory questions in writing   │  │
+│  │   • Rejection (changes_requested) BLOCKS task:claim across whole run  │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Chronological Step Tracing (`dag:trace`)
+### 1. Gate 1: The Plan Audit (Six Structural Invariants)
 
-The Living Tracer inspects the immutable event log (replayed via `readCapsuleEvents`) and formats a real-time chronological timeline and timeline rendering of all agent operations:
+`plan:compile` automatically executes the identical invariant checks as `plan:audit`. Any **blocking** finding halts compilation immediately:
+
+| Invariant ID                 |   Severity    | Failure Mode Detected & Checked                                                                                                                                       |
+| :--------------------------- | :-----------: | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`A1-granularity`**         |   Blocking    | **Monolithic Task Compression**: A single task's write scope expands to $> 3$ files on disk while the overall plan touches $\ge 5$ files.                             |
+| **`A2-parallelism`**         | Not Evaluated | Always reported under `not_evaluated`. The harness strictly refuses to fabricate ungrounded entity counts using unreliable NLP heuristics.                            |
+| **`A3-gate-discrimination`** |   Blocking    | **Shared Indiscriminate Gate**: Two tasks with disjoint write scopes share byte-identical gate commands, meaning the gate cannot isolate task-specific regressions.   |
+| **`A4-false-barrier`**       |   Blocking    | **Unjustified Dependency**: A `depends_on` edge serializes two tasks whose write scopes do not overlap without an explicit read/write justification.                  |
+| **`A5-straggler`**           |   Advisory    | **Straggler Risk**: A task's effort estimate is $> 3\times$ the median effort of its wave, risking lane starvation.                                                   |
+| **`A6-whole-suite-gate`**    |   Blocking    | **Run-Wide Suite as Task Gate**: A task gate runs the entire test suite rather than scoped tests. (Run-wide verification belongs exclusively to `--completion-gate`). |
+
+#### Granular Audit Overrides
+
+A blocking finding can be overridden with an explicit, attributed justification:
+
+```bash
+bun harness.ts plan:compile --run .capsules/<slug> --actor planner \
+  --completion-gate "bun test tests/unit" \
+  --accept-audit "A3-gate-discrimination:task-a and task-b share common integration fixture"
+```
+
+Blanket overrides are strictly rejected. Every overridden invariant requires its own `--accept-audit "<id>:<reason>"`.
+
+### 2. Gate 2: The Independent Plan-Validator Role
+
+While `plan:audit` evaluates structural shapes mechanically, the **Plan-Validator** evaluates whether the decomposition matches the semantic intent of the user prompt.
+
+```bash
+bun harness.ts agent:register --run .capsules/<slug> --agent plan-val-1 \
+  --role plan-validator --host claude-code --parent-agent coordinator-1
+
+bun harness.ts plan:validate-start --run .capsules/<slug> --validator plan-val-1
+```
+
+#### Written Verification Questions
+
+The plan-validator must submit written answers to four mandatory architectural questions:
+
+```bash
+bun harness.ts plan:review --run .capsules/<slug> --validator plan-val-1 --token "$PV_TOKEN" \
+  --status approved \
+  --decomposition-answer "Decomposed into 4 granular tasks matching the 4 prompt modules" \
+  --dependency-answer "All 2 dependency edges reflect real schema import requirements" \
+  --gate-answer "Each gate targets specific test files corresponding to task write scopes" \
+  --straggler-answer "Effort estimates are evenly balanced across wave lanes" \
+  --dependency-edges-reviewed "task-api->task-db,task-auth->task-db" \
+  --gate-ids-reviewed "gate-db,gate-auth,gate-api,gate-cli" \
+  --summary "Decomposition is sound, gates are scope-narrow, and dependencies are justified."
+```
+
+#### Mechanical Dispatch Interlock
+
+If the plan-validator issues a `changes_requested` verdict:
+
+- The rejection is permanently bound to the current graph revision digest.
+- `task:claim` **refuses every implementer and repairer claim** across the entire repository until a new plan revision is compiled and approved.
+
+---
+
+## 🧨 The `gate:prove` Falsifiability Engine
+
+Static heuristics cannot always determine whether a gate command will legitimately fail when code is missing. `gate:prove` resolves this by testing falsifiability dynamically in an isolated scratch copy:
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    GATE FALSIFIABILITY PROOF PIPELINE                       │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  1. Create isolated throwaway scratch directory in /tmp                     │
+│  2. Copy entire repository into scratch directory                           │
+│  3. In the scratch copy: revert task's write scope to base ref (HEAD)       │
+│  4. Execute compiled gate command inside the scratch copy                   │
+│                                                                             │
+│  VERDICT EVALUATION:                                                        │
+│    • Gate exits NON-ZERO (Fails on reverted code):                          │
+│      --> PROVEN FALSIFIABLE ✅ (Evidence recorded in gate-proved event)     │
+│      --> Satisfies Invariants A3 and A6 automatically without override!     │
+│                                                                             │
+│    • Gate exits ZERO (Passes despite missing code):                         │
+│      --> NOT FALSIFIABLE ❌ (Gate is hollow or uncalibrated)                │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+```bash
+bun harness.ts gate:prove --run .capsules/<slug> --task task-slug --actor coordinator-1
+```
+
+```text
+### Gate Proof: `task-slug`
+**PROVEN FALSIFIABLE**: exits 1 once `task-slug`'s write scope is reverted to `HEAD`.
+- **Gate**: `bun test tests/slug.test.ts`
+- **Write scope**: src/slug.ts
+- **Scratch Reversion**: 0 restored, 1 removed
+- **Duration**: 248ms
+- **Integration**: Recorded as gate-proved event; satisfies A3/A6 invariant checks.
+```
+
+---
+
+## 📈 Monotonic Replanning via `plan:replan` ($R_1 \to R_2 \to R_N$)
+
+When defects, test failures, or validator findings require structural changes, the coordinator invokes `plan:replan`:
+
+```bash
+bun harness.ts plan:replan --run .capsules/<slug> --actor coordinator \
+  --findings-file findings.json --gate "bun test tests/repair.test.ts" --round 2
+```
+
+### Invariants Maintained During Replanning
+
+1. **Monotonic Increment**: Graph revision increases by exactly one ($R_{\text{new}} = R_{\text{old}} + 1$).
+2. **Immutable Source Obligations**: Original prompt lines and requirement nodes are preserved intact.
+3. **Preserved Execution History**: Completed tasks (`done`), validated gates, and past event logs survive the recompile.
+4. **Disjoint Repair Partitioning**: Ingested findings are partitioned into disjoint write scopes so repair workers can execute concurrently in parallel wave lanes.
+5. **Topology Re-recording**: `state.topology` is freshly calculated and committed for the new revision.
+
+---
+
+## ⚡ Dynamic DAG Expansion & Living Tracer Engine (`dag:trace`)
+
+While `state.graph` remains frozen for each revision, real-time execution generates dynamic branches, sub-tasks, and validator probes. The **Living Tracer Engine** reconstructs the full runtime execution state by replaying the hash-chained `events.jsonl` log via `readCapsuleEvents`:
 
 ```bash
 bun harness.ts dag:trace --run .capsules/<slug> --max-steps 20
@@ -279,33 +261,24 @@ bun harness.ts dag:trace --run .capsules/<slug> --max-steps 20
 
 ```text
 ### Living Dynamic DAG Step Trace: slugger
-- **Events Replayed**: 48 total steps across 3 active agents
-- **Dynamic Tasks**: 2 static tasks, 2 dynamic branch sub-tasks
-- **Timeline Window**: Seq 1 -> Seq 48 (Duration: 124.5s)
+- **Events Replayed**: 32 total steps across 4 active agents
+- **Dynamic Tasks**: 2 static plan tasks, 2 dynamic branch sub-tasks
+- **Timeline**: Seq 1 -> Seq 32 (Duration: 84.2s)
 
   Seq   Time (+ms)   Actor         Role          Tool     Event & Summary
  ────  ────────────  ────────────  ────────────  ───────  ────────────────────────────────────
-    1       +0.00ms  coordinator   coordinator   -        ○ plan-compiled (Revision 1, 2 tasks)
-   12    +1240.20ms  impl-slug     implementer   -        🟢 task-claimed (task-slug)
-   18    +3420.10ms  impl-slug     implementer   Bash     ✓ run:exec (bun test tests/slug.test.ts)
-   22    +5120.00ms  impl-slug     implementer   -        🟣 task-submitted (task-slug)
-   25    +5890.30ms  val-slug      validator     -        🔄 validate-start (val-slug on task-slug)
-   28    +7100.00ms  val-slug      validator     Bash     ✓ task:probe (1 demand recorded)
-   34   +10200.00ms  val-slug      validator     -        ✓ task-reviewed (PASS, resolved finding-1)
-   38   +12100.50ms  impl-trunc    implementer   -        🟢 branch-opened (B-1b72a087, 2 sub-tasks)
-   42   +18400.00ms  sub-measure   sub-impl      Write    🟢 branch-submitted (S-measure)
-   48   +24500.00ms  impl-trunc    implementer   -        ✓ branch-collected (2 files diffed)
+    1       +0.00ms  planner       planner       -        ○ plan-compiled (Revision 1, 2 tasks)
+    4    +1200.10ms  plan-val-1    plan-val      -        🟣 plan-reviewed (APPROVED)
+    8    +2400.50ms  impl-slug     implementer   -        🟢 task-claimed (task-slug)
+   12    +4100.20ms  impl-slug     implementer   Bash     ✓ run:exec (bun test tests/slug.test.ts)
+   15    +5300.00ms  impl-slug     implementer   -        🟣 task-submitted (task-slug)
+   18    +6200.40ms  val-slug      validator     -        🔄 validate-start (val-slug)
+   22    +7800.10ms  val-slug      validator     Bash     ✓ task:probe (1 demand recorded)
+   26   +11200.00ms  val-slug      validator     -        ✓ task-reviewed (PASS, resolved probe)
+   28   +13400.00ms  impl-trunc    implementer   -        🟢 branch-opened (B-1b72a087, 2 sub-tasks)
+   30   +18900.00ms  sub-measure   sub-impl      Write    🟢 branch-submitted (S-measure)
+   32   +24100.00ms  impl-trunc    implementer   -        ✓ branch-collected (2 files diffed)
 ```
-
----
-
-## 🔍 Why a Finished Task's Gate Set Is Not Frozen
-
-A revision may add a gate that lands on a task already `done`, and that is correct rather than a violation.
-
-`taskGates()` selects gates by **requirement-id overlap, not task identity**. So when a repair task legitimately inherits a done task's requirement, the new task-scoped gate it brings is attributed to the done task as well. That growth is how a critic's or validator's finding becomes a claimable repair task — it is not a retroactive change to what the done task was verified against.
-
-Its own gate _results_ are already recorded and cannot be revisited. Only tasks still in flight need their gate set frozen against revision, which is what `gateContractActive` expresses: execution-active and not `done`. The task's _contract_ — write scope, dependencies, produces — stays frozen for a done task, so its definition still cannot be silently rewritten.
 
 ---
 

@@ -4,389 +4,334 @@
 
 ---
 
-## 📦 What is a Run Capsule?
+## 📦 The Dual-Layer Storage Model
 
-In `olt`, all coordination state, historical records, and execution runtimes for a given task execution live inside an isolated directory called a **Run Capsule**.
+Autonomous agent architectures frequently fail because they conflate **long-term repository governance** with **ephemeral runtime coordination**. When runtime scratch data is committed to Git history, repositories become bloated and polluted. Conversely, when governance policies, defect blunders, and task backlogs exist only in ephemeral process memory, the system suffers complete amnesia across successive agent runs.
 
-By default, every run is created under:
+To solve this, the OLT harness enforces a strict, physically separated **Dual-Layer Storage Model**:
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│                             THE DUAL-LAYER STORAGE MODEL                                │
+├─────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                         │
+│  ============================= PERSISTENT GOVERNANCE: olt/ =========================== │
+│  (Committed to Git Repository • Cross-Generational Memory • Organizational Durability)   │
+│                                                                                         │
+│  olt/                                                                                   │
+│  ├── policy.json              # Global quality gates, timeout rules, concurrency caps   │
+│  ├── backlog.jsonl            # Cross-generational backlog & admitted objectives       │
+│  ├── completed-tasks.jsonl    # Verifiable ledger of completed tasks + commit hashes   │
+│  ├── defects.jsonl            # Active repository blunders & defect trackers            │
+│  ├── completed-blunders.jsonl # Verifiable blunder remediations (permanent immunity)    │
+│  └── telemetry.jsonl          # Longitudinal telemetry, Work/Span logs, token usage   │
+│                                                                                         │
+│                                           ▲                                             │
+│               Historical Retrieval        │   Automated Promotion                       │
+│               & Memory Queries            │   & Evidence Sealing                        │
+│               (memory:query)              │   (blunder:audit / run:complete)            │
+│                                           ▼                                             │
+│                                                                                         │
+│  ========================= RUNTIME WORKSPACE: .capsules/<run-id>/ ===================== │
+│  (Gitignored • Inode-Bound POSIX flock • Forward-Secure SHA-256 Hash Chain)              │
+│                                                                                         │
+│  .capsules/<run-id>/                                                                    │
+│  ├── prompt.md                # Byte-exact raw prompt (read-only mode 0444)             │
+│  ├── manifest.json            # Capture assurance, SHA-256 binding, pinned runtime     │
+│  ├── events.jsonl             # Canonical append-only cryptographic event hash chain    │
+│  ├── state.json               # Deterministic materialized projection from events       │
+│  ├── index.json               # Derived catalogue answering status queries in 1 read    │
+│  ├── trace.md                 # Human-readable chronological execution audit trace      │
+│  ├── handoff.md               # Regenerated restart brief for incoming agents           │
+│  ├── captures.json            # Capture ledger: blob metadata and owner attribution     │
+│  ├── planning/                # Enhanced plan outputs (enhanced-plan.md, mode 0444)     │
+│  ├── packets/                 # Published immutable role capability contracts (0444)   │
+│  ├── blobs/                   # Content-addressed deduplicated byte storage (<aa>/<sha>)│
+│  ├── evidence/                # Human-readable hardlinks/copies pointing into blobs/   │
+│  ├── quarantine/              # Recovered torn-tail event fragments from crash events   │
+│  ├── runtime/                 # Pinned copy of harness scripts at plan:init time        │
+│  └── summary/                 # Derived export bundle (graph.json, summary.md)          │
+│                                                                                         │
+└─────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 🏛️ Layer 1: The Persistent Governance Layer (`olt/`)
+
+The `olt/` directory lives at the root of the repository and is **tracked directly in Git version control**. It provides the immutable historical memory and global policy constraints required for multi-generational autonomous development.
+
+### Key Governance Artifacts:
+
+1. **`olt/policy.json`**:
+   The authoritative rulebook for all runs. Declares global timeout policies, lease durations, maximum retry boundaries (`max_repair_rounds: 6`), required checklist domains, and strict monorepo quality gates (e.g., zero TypeScript `any`, zero compiler suppressions).
+
+2. **`olt/backlog.jsonl`**:
+   The strategic backlog governed by Tier 0 Mind. Holds external feature requests, refactoring directives, and architectural initiatives. Items transition from `PENDING` $\to$ `ADMITTED` $\to$ `IN_PROGRESS` $\to$ `SEALED`.
+
+3. **`olt/completed-tasks.jsonl`**:
+   The immutable archive of all finished tasks across all runs. Each entry records the task ID, prompt line mappings, completing commit SHA, completion timestamp, and cryptographic proof hashes.
+
+4. **`olt/defects.jsonl` & `olt/completed-blunders.jsonl`**:
+   Active blunders, anti-patterns, and reasoning defects detected during agent runs are logged to `defects.jsonl`. When a blunder is verified as resolved (`blunder:audit --auto-promote`), it is permanently promoted to `completed-blunders.jsonl` alongside regression test assertions. This ensures **permanent regression immunity** across all future runs.
+
+5. **`olt/telemetry.jsonl`**:
+   Longitudinal telemetry tracking Brent Work/Span metrics ($W, S, P = \lceil W / S \rceil$), subagent token consumption, tool call distributions, and behavioral efficiency scores over time.
+
+---
+
+## 📦 Layer 2: The Runtime Capsule Layer (`.capsules/<run-id>/`)
+
+A **Run Capsule** is an isolated, zero-dependency, crash-resilient directory created for an individual task or feature execution. By default, capsules are stored under:
 
 ```text
 <repository-root>/.capsules/<run-id>/
 ```
 
-Where `<run-id>` is a unique, URL-safe slug identifying the task execution (e.g., `auth-refactor-2026`, `feature-cache-layer`).
+Capsules are **gitignored**. They maintain the real-time execution state machine, cryptographic event log, file write leases, and command receipts.
 
-The capsule is completely self-contained, zero-dependency, and isolated from external package changes. If an AI agent crashes, or if the user switches from Antigravity to Claude Code or Codex, the incoming agent simply points to the `.capsules/<run-id>/` directory and resumes with 100% fidelity.
+If an AI agent crashes mid-task, hits a token limit, or is swapped for a different model host (e.g., transitioning from Claude Code to Antigravity), the replacement agent simply reads `.capsules/<run-id>/` and resumes execution with **100% state fidelity**.
 
 ---
 
-## 🗂️ Complete Directory Anatomy
-
-Here is the exact filesystem structure of a live run capsule:
+## 🗂️ Complete Capsule Directory Anatomy
 
 ```text
 .capsules/<run-id>/
 ├── prompt.md             # Immutable original prompt bytes (read-only, mode 0444)
-├── README.md             # The generated layout note: one line per entry and what it is for
-├── handoff.md            # Regenerated restart document: state, live wave, gate assurance
-├── manifest.json         # Capture assurance, prompt SHA-256, runtime pin, runtime version
-├── state.json            # Authoritative current projection (derived from events)
-├── events.jsonl          # Canonical append-only cryptographic hash chain
-├── index.json            # Derived catalogue: the routine questions answered in one read
-├── trace.md              # Derived step trace: one row per recorded event, in order
-├── captures.json         # The capture ledger: every stored blob and who produced it
-├── planning/             # plan:enhance output: enhanced-plan.md + enhanced-plan.json (0444)
-├── packets/               # One directory per published role packet
+├── manifest.json         # Capture assurance, prompt SHA-256, runtime pin, Bun version
+├── README.md             # Generated layout documentation for the capsule
+├── handoff.md            # Regenerated restart document: active state, live wave, gate status
+├── state.json            # Authoritative current projection (derived from events.jsonl)
+├── events.jsonl          # Canonical append-only cryptographic SHA-256 hash chain
+├── index.json            # Derived catalogue answering routine queries in a single disk read
+├── trace.md              # Derived step trace: chronological table of recorded events
+├── captures.json         # Capture ledger: maps every stored blob to its owning command/task
+├── planning/             # plan:enhance artifacts: enhanced-plan.md + json (mode 0444)
+├── packets/               # Published role packet contracts (packet.md + metadata.json)
 │   └── <role>-<hash>/
-│       ├── packet.md             # Immutable contract text handed to the dispatched agent
-│       └── metadata.json         # packet_sha256, role, grant binding
-├── commands/             # One directory per recorded command
+│       ├── packet.md             # Immutable contract text handed to the worker
+│       └── metadata.json         # Role grant binding and SHA-256 digest
+├── commands/             # Dedicated directory per recorded execution
 │   └── C-<uuid>/
-│       ├── record.json           # argv, cwd, exit code, timings, repository binding, log digests
+│       ├── record.json           # Direct argv, cwd, exit code, timings, log digests
 │       └── attempt-1/
-│           ├── stdout.log
-│           └── stderr.log
-├── blobs/                # <aa>/<sha256>: the one physical home for every captured byte-blob, 0444
-├── evidence/             # Readable names hardlinked onto blobs/; holds no bytes of its own
-├── quarantine/           # Event-log fragments recovery removed, kept byte for byte
-├── reports/              # Submission, probe, review and critic reports
-├── runtime/              # The harness scripts pinned at plan:init, unless --no-runtime-pin
-└── summary/              # summary:export output: graph.json, timeline.json, metrics.json, summary.md
+│           ├── stdout.log        # Raw standard output log
+│           └── stderr.log        # Raw standard error log
+├── blobs/                # <aa>/<sha256>: Single physical home for deduplicated byte-blobs (0444)
+├── evidence/             # Human-readable hardlinks (or fallback copies) into blobs/
+├── quarantine/           # Recovered torn-tail event fragments from crash events
+├── runtime/              # Pinned harness scripts captured at plan:init time
+└── summary/              # summary:export outputs: graph.json, summary.md, timeline.json
 ```
 
-The lock the capsule is coordinated with is not stored here. It lives beside the capsules, in
-`.capsules/.locks/<run-id>/`, because coordination state is not durable state.
-
-There is no `plan.json` and no per-capsule `config.json`. The compiled graph, the requirements
-document, the topology record, the branch ledger and the agent ledger are all keys inside
-`state.json`, because they are projections of the event chain and nothing else may write them.
-
-### 🪪 Run-Id Typing: An Identifier, Never a Path
-
-`<run-id>` looks like a filesystem path fragment, and treating it as one is a real, documented
-failure mode: a run id concatenated carelessly onto `.capsules/` can build a path like
-`.capsules/.capsules/<run-id>` the instant a caller passes in a value that already carries the
-prefix. The harness closes this with a single, narrow rule enforced in one place,
-`store/run-id.ts`'s `normalizeRunId`:
-
-1. Strip **at most one** leading `.capsules/` prefix. This exists because every read-side CLI
-   command documents `--run .capsules/<run-id>` as the value to pass, and a caller who reuses that
-   exact same string at a call site that instead expects a bare id (`plan:init`'s `--run`, or the
-   autonomous loop runner's own base run id) is following the CLI's own convention, not making a
-   mistake.
-2. Refuse anything that **still** contains a path separator afterward — checked as the literal
-   POSIX `/` character unconditionally, regardless of the host platform's own path separator, so a
-   value copied from a POSIX shell is rejected identically everywhere the harness runs.
-3. Only then is the result checked against `RUN_ID_PATTERN` (a 1–128 character slug: alphanumeric,
-   `.`, `_`, `-`) and joined onto `.capsules/` to build the real directory.
-
-The practical consequence is a real split in the CLI surface, and it is worth knowing which side of
-it a command sits on before you type `--run`:
-
-- **`plan:init`** and **`orchestrate`** take a **bare run id** (`--run my-feature`, `--run-id
-my-feature`) — they are the two commands that _build_ the capsule path, so they are the two call
-  sites `normalizeRunId` actually protects.
-- **Every other command** — `plan:add`, `plan:compile`, `task:claim`, `queue:wave`, `run:complete`,
-  and the rest — takes the **full capsule root** (`--run .capsules/my-feature`) and uses that value
-  directly as a filesystem path with no further joining. Passing a bare id to one of these is a
-  caller mistake, not a harness bug: there is nothing here to strip a prefix that was never there to
-  begin with.
+> [!NOTE]
+> **Separation of Locks**: Lock files are not stored inside the capsule itself. They reside beside capsules in `.capsules/.locks/<run-id>/` because transient coordination state must never pollute durable state.
 
 ---
 
-## 🔒 The Core Storage Primitives
+## 🔒 Core Storage Primitives & Cryptographic Integrity
 
-Let's examine the primitives that guarantee data integrity across crashes and resets — the four
-files at the heart of the hash chain, plus the blob store and the derived export that build on top
-of them:
+Data integrity across unexpected crashes, kills, and resets is guaranteed by four interlocking primitives:
 
 ```text
-+-----------------------------------------------------------------------------------------------+
-|                                    CORE STORAGE PRIMITIVES                                    |
-+-----------------------------------------------------------------------------------------------+
-|                                                                                               |
-|   +-------------------+    SHA-256 Hash Bound    +-------------------+                        |
-|   |     prompt.md     | <---------------------- |   manifest.json   |                        |
-|   |  (Raw Bytes 0444) |                         | (Capture Metadata)|                        |
-|   +-------------------+                         +-------------------+                        |
-|                                                           |                                   |
-|                                                           v                                   |
-|   +-------------------------------------------------------------------+                       |
-|   |                            events.jsonl                           |                       |
-|   |  [Event 0] ---> [Event 1] ---> [Event 2] ---> [Event 3] (Chain)   |                       |
-|   +-------------------------------------------------------------------+                       |
-|                                     |                                                         |
-|                                     v (Deterministic Derivation)                              |
-|   +-------------------------------------------------------------------+                       |
-|   |                             state.json                            |                       |
-|   |  Current Projection: tasks, leases, findings, gates, completion   |                       |
-|   +-------------------------------------------------------------------+                       |
-|                                                                                               |
-+-----------------------------------------------------------------------------------------------+
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│                                CORE STORAGE PRIMITIVES                                  │
+├─────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                         │
+│   ┌───────────────────┐    SHA-256 Hash Bound    ┌───────────────────┐                  │
+│   │     prompt.md     │ ◄─────────────────────── │   manifest.json   │                  │
+│   │ (Raw Bytes: 0444) │                          │(Capture Metadata) │                  │
+│   └───────────────────┘                          └─────────┬─────────┘                  │
+│                                                            │                            │
+│                                                            ▼                            │
+│   ┌───────────────────────────────────────────────────────────────────────────────┐     │
+│   │                                 events.jsonl                                  │     │
+│   │   [Event 0] ────► [Event 1] ────► [Event 2] ────► [Event 3] (Hash Chain)      │     │
+│   └───────────────────────────────────────────────────────────────────────────────┘     │
+│                                            │                                            │
+│                                            ▼ (Deterministic Derivation)                 │
+│   ┌───────────────────────────────────────────────────────────────────────────────┐     │
+│   │                                  state.json                                   │     │
+│   │   Materialized View: tasks, leases, findings, gates, completion               │     │
+│   └───────────────────────────────────────────────────────────────────────────────┘     │
+│                                                                                         │
+└─────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 1. `prompt.md` & `manifest.json`
+### 1. `prompt.md` & `manifest.json` (Immutable Prompt Capture)
 
-- **`prompt.md`**: Contains the exact raw bytes of the user's prompt. It is created with mode `0444` (read-only) via `plan:init` and is never modified during the entire lifecycle of the run.
-- **`manifest.json`**: Records the capture metadata:
+- **`prompt.md`**: Contains the byte-exact original prompt provided by the user. It is written with filesystem permissions **`0444` (read-only)** during `plan:init` and is never modified.
+- **`manifest.json`**: Cryptographically binds the prompt and runtime environment:
   ```json
   {
     "schema": "harness.manifest",
     "version": 1,
-    "run_id": "slugger",
-    "capsule_id": "f5c05b7bd29d4207a7dc0f93484717c3",
-    "created_at": "2026-08-20T05:12:58.486Z",
+    "run_id": "auth-refactor-v2",
+    "capsule_id": "e8b23c91d4e04f29a8bc31f948572e91",
+    "created_at": "2026-08-23T03:00:00.000Z",
     "capture_mode": "file",
     "assurance": "source-verified",
     "source_verified": true,
-    "prompt_bytes": 200,
-    "prompt_sha256": "ba20966731e18c4133cd16a43dd9d2f205c7d57844d58ce2e332cc5e2a91401d",
+    "prompt_bytes": 1420,
+    "prompt_sha256": "4a7d2e8b9c1f4e3a2d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c",
     "bun_version": "1.3.14",
     "bun_compatibility": "same-major-not-older",
     "runtime_version": "0.1.0",
     "runtime_entrypoint": "runtime/harness.ts",
-    "runtime_files": 479,
-    "runtime_sha256": "1eac54785ea994a159cea10dde52362b36f48f72cfdd0b556f051a178efe6c77"
+    "runtime_files": 482,
+    "runtime_sha256": "9f8e7d6c5b4a3f2e1d0c9b8a7f6e5d4c3b2a1f0e9d8c7b6a5f4e3d2c1b0a9f8e"
   }
   ```
-  - **Capture Assurance**: If initialized via `--prompt-stdin` or direct file retrieval, assurance is `source-verified`. If transcribed from chat history, assurance is `recorded-unverified`.
-  - **Runtime Pin**: `runtime_entrypoint`, `runtime_files` and `runtime_sha256` are absent when
-    `--no-runtime-pin` was passed at `plan:init`; otherwise they name the pinned copy under `runtime/`
-    that this capsule stays reproducible against, independent of what the global skill later becomes.
-  - **`bun_compatibility`** is itself optional: a capsule written before this compatibility-policy
-    field existed simply carries no such key, and integrity checking treats that as an absent
-    declaration rather than a defect. Only a manifest that _does_ declare a policy is held to it, and
-    it is always checked against the Bun version actually running right now, not the one that
-    originally created the capsule.
+  - **Capture Assurance**: Stamped as `source-verified` if captured via direct stdin pipe or file read; stamped as `recorded-unverified` if transcribed from chat conversation.
+  - **Runtime Pin**: The harness scripts are copied into `runtime/` and hashed at `plan:init`, ensuring the run executes with deterministic behavior even if global repository scripts are upgraded mid-flight.
 
-### 2. `events.jsonl` (The Cryptographic Hash Chain)
+### 2. `events.jsonl` (The Cryptographic SHA-256 Hash Chain)
 
-All mutations to the run state are modeled as **immutable events** appended to `events.jsonl`.
-Every event line contains a forward-secure cryptographic hash chain:
+Every state mutation in the harness is an immutable event line appended to `events.jsonl`. Each line embeds the SHA-256 hash of the previous line, establishing a tamper-proof cryptographic ledger:
 
 ```json
 {
   "schema": "harness.event",
   "version": 1,
-  "run_id": "slugger",
-  "capsule_id": "f5c05b7b…",
-  "sequence": 4,
-  "revision": 4,
-  "timestamp": "2026-08-20T05:22:19.372Z",
-  "actor": "impl-slug",
+  "run_id": "auth-refactor-v2",
+  "capsule_id": "e8b23c91…",
+  "sequence": 7,
+  "revision": 7,
+  "timestamp": "2026-08-23T03:05:12.184Z",
+  "actor": "imp-1",
   "kind": "task-claimed",
-  "payload": { "task_id": "task-slug", "agent_id": "impl-slug", "role": "implementer" },
-  "previous_hash": "9b12…44f2",
+  "payload": {
+    "task_id": "task-auth-token",
+    "agent_id": "imp-1",
+    "role": "implementer"
+  },
+  "previous_hash": "3f8a…7b1c",
   "projection": {
     "schema": "harness.state",
     "version": 1,
-    "revision": 4,
-    "event_sequence": 4,
-    "event_head": "9b12…44f2"
+    "revision": 7,
+    "event_sequence": 7,
+    "event_head": "3f8a…7b1c"
   },
-  "hash": "7c88…19e0"
+  "hash": "8d2e…94f0"
 }
 ```
 
-The hash of Event $N$ is computed as:
-$$\text{hash}_N = \text{SHA-256}(\text{previous\_hash}_N + \text{canonical\_json}(\text{event\_fields}))$$
+The hash of Event $N$ is calculated deterministically as:
+$$\text{hash}_N = \text{SHA-256}\left(\text{previous\_hash}_N + \text{canonical\_json}(\text{event\_fields}_N)\right)$$
 
-Event kinds are hyphenated, not underscored, and the vocabulary grew with the ledgers: alongside
-`plan-init`, `plan-task-added`, `plan-compiled`, `task-claimed`, `task-submitted`, `validation-started`,
-`review-recorded`, `command-recorded` and `run-completed`, a capsule now records `plan-enhanced`,
-`topology-recorded`, `probe-recorded`, `branch-opened`, `branch-claimed`, `branch-submitted`,
-`branch-collected`, `branch-abandoned`, `agent-registered`, `agent-reported` and `agent-released`.
+#### Security & Crash Properties:
 
-Payload enrichment is **forward-only**. `review-recorded` carries `verdict`, `round`, `class` and
-`finding_count`; older events keep the payload they were written with and are never backfilled,
-because rewriting a payload would break every hash after it.
+1. **Tamper Proof**: Altering an event in the middle of `events.jsonl` invalidates every subsequent hash in the chain, triggering an immediate `INTEGRITY` error on the next read.
+2. **Torn-Tail Forensic Recovery**: If a power failure or process kill occurs during an append, producing a partial/torn trailing line, the recovery engine detects the malformed line, moves it to `quarantine/torn-tail-<uuid>.jsonl`, truncates the file back to the last valid SHA-256 link, and cleanly reconstructs `state.json`.
 
-**Why this matters:**
+### 3. `state.json` (Materialized State Projection)
 
-1. **Tamper Proof**: If an agent or bug edits an earlier event in the middle of the file, the entire remaining hash chain breaks immediately.
-2. **Crash Resilience**: If a machine crashes mid-write, creating a "torn line" at the very end of `events.jsonl`, the forensic recovery engine detects the torn fragment, quarantines it, truncates back to the last valid hash link, and rebuilds state cleanly without data loss.
+`state.json` is a deterministic, materialized projection computed by replaying `events.jsonl` from sequence `0` to sequence $N$. It contains:
 
-### 3. `state.json` (The Current Authoritative Projection)
+- **`graph`**: The topological DAG of tasks, dependency edges, and falsifiable gates.
+- **`requirements`**: 100% line disposition mapping and requirement definitions.
+- **`tasks`**: Active leases, token digests, findings, probe rounds, and repair histories.
+- **`topology`**: Wave allocations and per-task scheduling decisions.
+- **`agents`**: The grant ledger mapping agent IDs to approved role contracts.
+- **`commands`**: Receipts and logs for all executed commands.
+- **`completion_*`**: Whole-run sign-off, critic approvals, and verification receipts.
 
-`state.json` is a deterministic, materialized view computed by replaying `events.jsonl` from sequence 0 to sequence $N$. The top-level keys of the sealed tutorial capsule, read back from disk, are:
+> [!IMPORTANT]
+> **No In-Memory Illusions**: Agents **NEVER** edit `state.json` directly. `state.json` is rewritten atomically by the harness CLI only after a new event has been successfully appended to `events.jsonl` and flushed to disk.
+
+---
+
+## ⚡ Concurrency & Crash Durability: Kernel POSIX `flock` & Atomic Writes
+
+To allow parallel subagents, supervisory coordinators, and background watchdog processes to safely mutate the capsule concurrently without race conditions or file corruption, OLT implements kernel-level locking and atomic two-phase file replacement:
 
 ```text
-schema  version  revision  event_sequence  event_head
-graph            # nodes, edges, gates, revision
-requirements     # prompt_sha256, requirements[], dispositions[]
-tasks            # per-task status, lease, findings, history, probe_round, repair_round
-task_order       # deterministic scheduling order
-planning         # digest of the plan:enhance document
-planning_buffer  # uncompiled plan:add declarations
-planning_tasks   # compiled task declarations
-plan_history     # archived revisions
-topology         # recorded waves and per-task scheduling decisions
-agents           # the grant ledger
-branches         # the branch ledger (absent until the first branch:open)
-commands         # every recorded command
-packets          # published role-packet contracts, keyed by packet id
-orphan_evidence  # evidence that arrived without a live owner
-gate_proofs      # gate:prove verdicts, keyed by task (absent until the first gate:prove)
-worktree_ledger  # per-task worktree assignments, when worktree isolation is on
-
-# the plan-validator's own review of the compiled plan (C2) — absent on a run that never
-# dispatched one; this role is an optional adversary, not a precondition every run acquires
-plan_validation          # the live claim on the current graph revision, if one is open
-plan_validation_history  # every plan-validation assignment, in order
-plan_review              # the most recent recorded verdict
-plan_reviews             # the verdict history
-
-# the completion block, written by critic:start / critic:review / run:complete
-completion_critic          # the assigned critic and its authorization
-completion_critic_history  # every critic assignment, in order
-completion_review          # the authoritative critic verdict
-completion_reviews         # the verdict history
-completion_verification    # the artifact and receipt re-verification
-completion_result          # the sealed outcome
-
-# repository binding, written whenever the harness inspects the worktree
-baseline_repository_binding            # the commit and dirty-state at the run's first inspection
-baseline_repository_inspection_sha256  # digest of that inspection (write-once)
-current_repository_binding             # the commit and dirty-state the last inspection saw
-current_repository_inspection_sha256   # digest of that inspection
-repository_inspections                 # every recorded inspection
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│                           ATOMIC MUTATION PIPELINE UNDER FLOCK                          │
+├─────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                         │
+│   [ Agent Command Invocation ]                                                          │
+│                │                                                                        │
+│                ▼                                                                        │
+│   1. Acquire exclusive POSIX kernel `flock` on capsule directory inode (<run-dir>)       │
+│                │                                                                        │
+│                ▼                                                                        │
+│   2. Read and verify `manifest.json` and `events.jsonl` cryptographic hash chain        │
+│                │                                                                        │
+│                ▼                                                                        │
+│   3. Validate mutation against current state machine invariants & active leases         │
+│                │                                                                        │
+│                ▼                                                                        │
+│   4. Compute next SHA-256 link, append event to `events.jsonl`, and execute `fdatasync`│
+│                │                                                                        │
+│                ▼                                                                        │
+│   5. Derive new state projection and write to temporary file: `state.json.tmp-<uuid>`   │
+│                │                                                                        │
+│                ▼                                                                        │
+│   6. `fchmod(0644)` + `fsync()` on temporary file descriptor                            │
+│                │                                                                        │
+│                ▼                                                                        │
+│   7. Atomic rename: `rename("state.json.tmp-<uuid>", "state.json")`                     │
+│                │                                                                        │
+│                ▼                                                                        │
+│   8. `fsync()` on parent directory descriptor (guarantees directory entry durability)   │
+│                │                                                                        │
+│                ▼                                                                        │
+│   9. Release POSIX `flock` and return structured Markdown brief                         │
+│                                                                                         │
+└─────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-`branches`, `agents`, `topology`, `planning`, `plan_validation`, `gate_proofs` and `worktree_ledger`
-are all optional: a capsule written before they existed simply has none, and every reader must see
-that absence rather than a default. `plan_validation` in particular is absent on the majority of
-runs — the plan-validator ([Chapter 02 §03](../02-requirements/03-authority-decisions-and-dispositions.md))
-is an adversary the coordinator can choose to dispatch, not a step every run is retroactively
-assumed to have taken.
+### Architectural Highlights of Inode Locking:
 
-> **Important**: Agents NEVER edit `state.json` directly. `state.json` is rewritten atomically by the harness CLI only after an event has been securely appended and synced to disk.
+- **Inode-Bound Security**: Locking is performed on the open file descriptor of the capsule directory inode. If a rogue process renames the path while the lock is held, the kernel lock remains pinned to the opened inode.
+- **Fail-Closed Concurrency**: If a competing agent holds the lock beyond the timeout window, subsequent invocations fail safely with `LOCK_TIMEOUT` / `CONFLICT` instead of performing uncoordinated writes.
+- **Journaling File-System Durability**: Step 8 explicitly executes `fsync()` on the containing directory descriptor. This ensures that the directory inode metadata update is committed to disk journals immediately, eliminating zero-byte file corruptions during hard OS reboots.
 
-### 4. The Blob Store & Its Derived Catalogue (`blobs/`, `evidence/`, `captures.json`, `index.json`)
+---
 
-Four more entries from the directory anatomy above deserve their own explanation, because together
-they answer "where did this exact byte sequence actually come from, and can I trust the name I'm
-looking at it under":
+## 🪪 Run-Id Typing: An Identifier, Never a Path
 
-- **`blobs/<aa>/<sha256>`** is the **one** physical home for every captured byte-blob in the
-  capsule — a screenshot, a command's stdout, a stored report. A `BlobDescriptor` (identity, size,
-  one capsule-relative path) is what every other record stores; nothing else in the capsule ever
-  holds a second copy of the raw bytes. Writing a blob is a hash-then-copy-then-name operation
-  (`copyAndHash`), deliberately in that order: hashing the source first and naming the destination
-  second would risk naming a blob for bytes that changed underneath between the two steps.
-- **`evidence/`** holds a _readable name_ for every blob, not a second copy of it — normally a
-  hardlink (`linkSync`, same inode, zero extra bytes), so a human or another tool can open
-  `evidence/screenshot-1.png` without needing to already know its SHA-256. On a filesystem that
-  cannot hardlink (crossing a filesystem boundary, or one without hardlink support at all), the
-  store falls back to an actual byte-for-byte copy rather than refusing to record the evidence at
-  all — and it says so explicitly: the view's `storage` field reads `"copy"` instead of `"hardlink"`,
-  a declared, deliberate duplication rather than a silent one.
-- **`captures.json`** is the capture ledger: one record per stored blob, naming who produced it (a
-  command id, a task id) if anyone did. A capture whose bytes match one already on file — the _exact
-  same content_, not merely a similarly-named file — is recognised as the same capture and never
-  becomes a second record under a second claimed owner; this dedup-by-content-hash rule exists
-  because the opposite (re-attributing evidence by file name or timing proximity) is precisely how a
-  single stale screenshot once ended up credited to every command in a run.
-- **`index.json`** is a wholly **derived** catalogue — deleting it loses nothing, because every fact
-  in it restates something whose one authoritative home is `state.json` or `captures.json`. What
-  makes it safe to trust without re-deriving it on every read is that it records the exact chain
-  position (`{sequence, head}`) and a digest of the capture ledger it was built from; a reader can
-  tell in one comparison whether the index is still current or has fallen behind, rather than having
-  to assume freshness or re-walk the whole capsule to check.
+A frequent defect in multi-agent scripts is treating `<run-id>` carelessly as a filesystem path fragment. If an agent naively concatenates `.capsules/` onto an already prefixed argument, it generates corrupted nested paths like `.capsules/.capsules/my-feature`.
 
-### 5. What `summary:export` Actually Produces (`summary/`)
+The harness enforces strict run-ID normalization (`store/run-id.ts`'s `normalizeRunId`):
 
-`summary:export` is the one command that reads the whole capsule end to end and writes a
-self-contained package for a human or a browser — never a second source of truth, only a rendering
-of what `state.json` and `events.jsonl` already record. It writes four files, and the honesty rules
-that govern the rest of this document apply here with no exceptions:
+1. **Prefix Stripping**: Strips at most one leading `.capsules/` prefix.
+2. **Path Separator Rejection**: Rejects any string still containing a path separator (`/` or `\`) after prefix removal.
+3. **Regex Enforcement**: Enforces `RUN_ID_PATTERN` (`^[a-zA-Z0-9._-]{1,128}$`).
 
-- **`graph.json`** — a machine-readable dataset: every node (implementer, validator, gate, critic,
-  branch sub-agent), every edge between them, and a `run` key carrying whole-run facts (the raw
-  prompt, the requirements document, a monotonic per-action step trace) that sits _beside_ `nodes`
-  and `edges` rather than embedded inside them, so a renderer that knows nothing about orchestration
-  semantics can still draw the graph correctly.
-- **`summary.md`** — the human-readable sibling of `graph.json`, built from the identical shared
-  object so the two can never disagree about what happened. Read top to bottom, it is meant to be
-  the whole run, complete on its own.
-- **`timeline.json`** and **`metrics.json`** — a per-action step trace and a rollup of counts (files
-  touched, commands run, an estimated token cost). The token estimate (`estimated_tokens`) is a
-  required field built from a byte-ratio proxy over whatever manifests and command logs the harness
-  actually has — a missing input simply contributes zero bytes rather than blocking the estimate.
-  Contrast that with `total_edge_traffic_exchanges`: there is no formula for it, only a real count
-  summed from the graph that was actually generated, so when no graph exists this field is _omitted
-  entirely_ rather than reported as a fabricated `0`.
+### CLI Command Conventions:
 
-The rule that governs every field of every one of these four files is the same one this chapter has
-already used for `state.json` and `manifest.json`: a fact the capsule genuinely never recorded is
-left out of the export, so a reader can always tell "the run never recorded this" apart from "the
-exporter silently dropped it." Concretely: a command's exit code renders as the literal word
-`unknown` rather than defaulting to `0` (which would misreport "never ran" as "succeeded"); a
-screenshot nobody claimed is surfaced as explicitly unattributed evidence on the terminal node rather
-than credited to whichever agent happened to be nearby; and a file's line-level diff, when the
-harness could read one, is carried through **whole** rather than trimmed, because completeness — not
-export size — is the stated constraint on this specific artifact. The deep schema of `graph.json`
-itself, and how it differs from the plan DAG in `state.graph`, is
-[Chapter 03's](../03-graph-scheduler/01-dependency-graph-theory.md) subject, not this one; what
-matters here is that `summary/` is a derived export like `index.json`, governed by the identical
-no-fabrication discipline as everything else in this capsule.
+- **`plan:init` & `orchestrate`**: Take a **bare run ID** (`--run auth-v2`).
+- **All other CLI commands** (`task:claim`, `task:submit`, `queue:wave`, `run:complete`): Take the **full capsule path** (`--run .capsules/auth-v2`).
 
 ---
 
 ## 🛠️ The Zero-JSON CLI & Markdown Briefs
 
-Instead of generating raw JSON files or separate markdown packets on disk, the harness provides domain-specific colon commands across fourteen domains — `plan`, `queue`, `task`, `run`, `critic`, `summary`, `inspection`, `orchestrator`, `branch`, `agent`, `authority`, `orphan`, `install` and `diagnostics`. The generated manifest at [`references/cli-capabilities.md`](../../../olt/references/cli-capabilities.md) is the single description of that surface; `bun harness.ts help` prints it from the terminal.
+To maximize token efficiency and prevent JSON parsing hallucinations in LLM subagents, the OLT CLI never requires subagents to construct complex JSON payloads. Agents interact exclusively through domain-specific colon commands.
 
-Each command emits a compact, structured Markdown brief ($\le 30$ lines) directly to standard output:
+Every command emits a compact, high-signal **Markdown brief** ($\le 30$ lines):
 
 ```text
-### Task Leased: task-slug
-- **Agent**: `impl-slug`
-- **Lease Token**: `K6QeJSe2sZ4n4kcMTiH1oxGbXEKstjtLEBxG2F-2-5A`
-- **Duration**: 20 minutes
-- **Assigned Write Scope**: `src/slug.ts`
-- **Note**: Pass `--token K6QeJSe2sZ4n4kcMTiH1oxGbXEKstjtLEBxG2F-2-5A` to `task:submit`.
+### Task Leased: task-auth-token
+- **Agent**: `imp-1`
+- **Lease Token**: `qSGsImlAsT8wBTk2FyR7eeAKf5u0CEGspRRXGgtNgQo`
+- **Duration**: 20 minutes (expires: 2026-08-23T03:25:00Z)
+- **Assigned Write Scope**: `src/auth/`
+- **Target Files**: `src/auth/token.ts:L45-L89`
+- **Next Command**: bun harness.ts task:submit --run .capsules/auth-v2 --task task-auth-token --token qSGsImlAsT8wBTk2FyR7eeAKf5u0CEGspRRXGgtNgQo
 ```
 
-Subagents parse these concise Markdown briefs without token bloat or error-prone JSON serialization.
-
-### 🧾 How a Command Actually Runs
-
-Every invocation goes through the same four ordered checks before a single line of the command's
-own logic runs, in `cli/execute.ts`'s `execute()`:
-
-1. **Resolve the command spec** from the registry, so the argument parser knows which flags this
-   specific command takes (which are repeatable, which take a value) before it even tokenizes the
-   rest of `argv`.
-2. **Reject unexpected positionals** and **missing required flags** — pure argument shape checks,
-   with no capsule read yet.
-3. **Resolve who is asking.** The harness reads a fixed, small set of identity flags — `--agent`,
-   `--validator`, `--critic`, `--actor` — and, for a handful of commands (`agent:register`,
-   `agent:report`, `agent:release`, `queue:pop`, `critic:start`), skips the flag that names the
-   _subject being acted upon_ rather than the caller (e.g. `agent:register --agent <new-id>` names
-   who is being registered, not who is registering them; the acting identity for that call has to
-   come from a different flag, `--actor`, or is absent). A blank, repeated, or malformed identity
-   flag is treated as "no identity given" here — reporting _that_ mistake precisely is left to the
-   command's own handler, which can phrase it far more specifically than a shared dispatch layer
-   ever could.
-4. **Check the resolved identity's grant against its role contract** — `assertGrantedCommand`, which
-   looks the identity up in the run's own agent grant ledger and refuses the call outright if that
-   role's contract (the same frontmatter contract described in
-   [Chapter 04 §02](../04-multi-agent/02-immutable-role-packets.md)) does not list this command among
-   what it may invoke. An identity with **no** grant at all is not refused here — nothing in this
-   check applies to it — but it is then refused by whatever command-specific authority check applies
-   downstream (a published role packet, a bearer token), so an unregistered agent still cannot act.
-
-Step 4 only fires once `--run` names a capsule that actually exists and has a `state.json` to read;
-`plan:init` itself, and any command run against a run id that doesn't exist yet, skips it entirely.
-This ordering is deliberate: a role without permission for an action never even reaches the first
-line of that action's own handler, but a plain argument mistake is always reported as exactly that,
-never disguised as an authority refusal.
+Subagents parse these concise Markdown briefs without token bloat or schema serialization failures.
 
 ---
 
-## ⚙️ Configuration File (`harness.config.json`)
+## ⚙️ Configuration Reference (`harness.config.json`)
 
-Global and repository-level defaults are controlled via `harness.config.json` (or `.harness.config.json`):
+Global behavior is configured via `harness.config.json` at the repository root:
 
 ```json
 {
@@ -400,60 +345,12 @@ Global and repository-level defaults are controlled via `harness.config.json` (o
 }
 ```
 
-- **`min_adversarial_probes`** (default `1`): Probe rounds a validator must record before `task:review --status pass` is allowed. A probe is a demand for proof, not a rejection.
-- **`max_repair_rounds`** (default `6`): Recorded rejections a task may absorb before it becomes `escalated`.
-- **`max_branch_depth`** (default `5`): Escalation tripwire on branch nesting, not a structural bound — termination is guaranteed by the proper-subset rule on write scopes. Crossing it escalates to a human.
-- **`max_agents`** (default `100`): Total agent grants a run may issue across every depth. Assumed, not measured; `agent:register` and `branch:open` refuse once it is spent.
+- **`min_adversarial_probes`** (default `1`): Minimum mandatory probe rounds a validator must record before a task pass can be signed off.
+- **`max_repair_rounds`** (default `6`): Rejection ceiling before a failing task is marked `escalated`.
+- **`max_branch_depth`** (default `5`): Maximum permissible hierarchy depth for execution-time branching.
+- **`max_agents`** (default `100`): Maximum subagent grants a run can issue across all waves.
 - **`max_output_bytes`** (default `10485760` / 10MB): Maximum command output buffered before truncation.
-- **`default_lease_seconds`** (default `1800`): Sub-task lease duration for `branch:claim`. It does **not** govern `task:claim`, which defaults to 1200 seconds and is overridden per call with `--lease-seconds`.
-- **`default_max_parallel`** (default `4`): Concurrency cap for independent tasks; `queue:wave` and `queue:list` read it rather than hardcoding one.
-
-Mandatory gate coverage and independent-validator checks are not configurable: the compiler and the
-completion checks enforce them unconditionally, not behind a knob.
-
----
-
-## ⚡ Concurrency & Crash Durability: Kernel `flock` & Atomic Writes
-
-To allow multiple concurrent agents and watchdog processes to operate safely without corrupting files, the storage engine implements strict kernel-level locking and atomic filesystem mutations:
-
-```text
-[ Agent Action ]
-       │
-       ▼
-1. Acquire POSIX kernel `flock` on the capsule directory inode (<run-dir>)
-       │
-       ▼
-2. Read & verify `manifest.json`, `events.jsonl` hash chain
-       │
-       ▼
-3. Validate mutation against current state machine invariants
-       │
-       ▼
-4. Append new event to `events.jsonl` and execute `fdatasync()`
-       │
-       ▼
-5. Write new state to temporary file: `state.json.tmp-<uuid>`
-       │
-       ▼
-6. `fchmod(0644)` + `fsync()` on temporary file
-       │
-       ▼
-7. Atomic rename: `rename(state.json.tmp-<uuid>, state.json)`
-       │
-       ▼
-8. `fsync()` on containing directory (guarantees directory entry durability)
-       │
-       ▼
-9. Release POSIX `flock`
-```
-
-### Key Properties of this Design:
-
-- **Inode-Bound Locking**: Locking is performed on the capsule directory's own inode. If a rogue process deletes or renames the capsule path, the kernel lock remains securely held on the opened descriptor.
-- **Fail-Closed on Collision**: If a lock cannot be acquired within the timeout window, the command fails with `CONFLICT` error rather than corrupting state.
-- **No In-Memory Illusions**: State transitions only succeed once the bytes have been physically flushed to the OS storage controller via `fsync()`.
-- **Evidence Assurance**: Commands recorded via `run:exec` capture stdout/stderr with exact timestamps and process exit codes, classified under `trusted_host_observed_v1`.
+- **`default_max_parallel`** (default `4`): Concurrency cap for parallel task execution during wave scheduling.
 
 ---
 

@@ -1,63 +1,277 @@
 # 01. Host-Agnostic Architecture & Adapters
 
-[⬅ Previous: Plan Revision & Freezing](../03-graph-scheduler/03-plan-revision-and-freezing.md) | [Master Table of Contents](../README.md) | [Next: Role Briefs & Two-Tier Architecture ➡](./02-immutable-role-packets.md)
+[⬅ Previous: Plan Revision & Freezing](../03-graph-scheduler/03-plan-revision-and-freezing.md) | [Master Table of Contents](../README.md) | [Next: Role Contracts & Task Execution Briefs ➡](./02-immutable-role-packets.md)
 
 ---
 
-## 🚫 Why the Harness Never Calls LLM APIs Directly
+## 🧭 Executive Overview & Architectural Purpose
 
-A common flaw in agent orchestration frameworks is hardcoding direct API calls to OpenAI, Anthropic, or Google, or attempting to spawn CLI subshells like `claude` or `codex` internally.
+In modern software engineering with large language models (LLMs), a fatal architectural mistake is coupling orchestration logic directly to specific vendor APIs (e.g., OpenAI, Anthropic, Google) or hardcoding platform-dependent CLI subshell invocations (such as calling `claude`, `codex`, or `gemini` from within python or bash scripts).
 
-This approach creates severe issues:
+Coupled architectures suffer from four systemic vulnerabilities:
 
-- **Credential Leakage:** Requires API keys to be embedded into filesystem scripts.
-- **Platform Inflexibility:** Binds the system to one vendor's rate limits and billing models.
-- **Process Shadowing:** The host application loses visibility into subagent lifecycles and token consumption.
+1. **Credential Exposure:** Secret API keys and bearer tokens are baked into filesystem scripts, environment dumps, or temporary artifacts.
+2. **Platform Lock-In & Cost Inflexibility:** Workflows cannot seamlessly transition between enterprise cloud environments, local air-gapped models, and specialized coding assistants without extensive rewrites.
+3. **Process Shadowing & Context runaway:** When the harness directly spawns AI processes, the host developer environment loses native visibility into subagent lifecycles, memory boundaries, and token consumption metrics.
+4. **Context Churn & Token Exhaustion:** Unanchored subagents spend hundreds of thousands of tokens running exploratory commands (`find`, `grep`, `ls`, `git status`) merely to understand where they are and what they are supposed to do.
 
-Instead, `olt` is **100% Host-Agnostic and Zero-Dependency**:
-
-- The harness **never** makes HTTP model calls or launches LLM CLIs.
-- The harness operates through a **Zero-JSON colon CLI** that manages deterministic state machines on disk.
-- The **host developer application** (Google Antigravity, Claude Code, OpenAI Codex, ChatGPT) uses its own native subagent mechanism to dispatch workers.
-
-This has one unavoidable consequence: **the run only knows what the dispatcher tells it.** Spawning happens host-side, so an agent exists in the capsule because someone ran `agent:register`, and its model, tier, thinking level and token counts exist because someone reported them. Nothing is inferred from the machine that happens to be running the export. See [Chapter 09 §02](../09-branching-and-honesty/02-agent-grant-ledger.md).
-
----
-
-## 📡 Dual-Time Telemetry & Host Probe Architecture
-
-Every event and telemetry observation in the capsule is recorded across two orthogonal time domains:
+`olt` solves these failure modes by enforcing a **100% Host-Agnostic, Zero-JSON Colon CLI Architecture**. The harness never makes HTTP calls to AI providers, never invokes LLM SDKs, and never starts unshielded shell processes. Instead, the harness acts as a deterministic state machine and cryptographic verification ledger on disk. Host developer tools (Google Antigravity, Claude Code, OpenAI Codex, ChatGPT, OpenCode, Cursor, Gemini, or custom IDEs) use their native subagent dispatching mechanisms to execute tasks, interacting with the harness exclusively through compact, deterministic CLI commands.
 
 ```text
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                    DUAL-TIME TELEMETRY ARCHITECTURE                         │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│  1. Monotonic Logical Time (sequence: 1, 2, 3, ...):                        │
-│     • Strictly increasing integer counter in events.jsonl                   │
-│     • Eliminates race conditions, clock skew, and distributed host drift    │
-│     • Guarantees total causal event order across all concurrent subagents   │
-│                                                                             │
-│  2. Physical Wall-Clock Time (timestamp: "2026-08-22T02:30:00.000Z"):       │
-│     • ISO8601 UTC timestamp recorded per event                              │
-│     • Measures real-world execution durations, latency, and SLA heartbeats  │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                             HOST-AGNOSTIC MULTI-AGENT TOPOLOGY                                   │
+├──────────────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                                  │
+│  HOST RUNTIME ENVIRONMENT (Google Antigravity / Claude Code / Codex / ChatGPT / Cursor / OpenCode)│
+│  ┌────────────────────────────────────────────────────────────────────────────────────────────┐  │
+│  │ Native Subagent Dispatcher (invoke_subagent, Agent tool, native threads, IDE workers)      │  │
+│  └─────────────────────────────────────────┬──────────────────────────────────────────────────┘  │
+│                                            │ Invokes CLI Commands                                │
+│                                            ▼                                                     │
+│  OLT DETERMINISTIC HARNESS RUNTIME (bun harness.ts <command>)                                     │
+│  ┌────────────────────────────────────────────────────────────────────────────────────────────┐  │
+│  │ • Zero-JSON Colon CLI Interface (plan:compile, queue:pop, task:claim, task:submit, etc.)   │  │
+│  │ • POSIX flock & atomic fdatasync transactional ledger (state.json & events.jsonl)          │  │
+│  │ • Hybrid RBAC Deny-List Engine & Shielded Shell Gate (bun harness.ts shell)                │  │
+│  │ • Dual-Time Monotonic Logical & Physical Telemetry Probes                                  │  │
+│  │ • Zero-Exploration Exact-Anchor Briefing Engine (task:brief, agent:brief)                  │  │
+│  └────────────────────────────────────────────────────────────────────────────────────────────┘  │
+│                                                                                                  │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 🏛️ The 4-Tier Hierarchical Agent Model
+
+To guarantee conversational responsiveness for human developers while enabling deep autonomous parallel execution, the harness organizes agents into a strict **4-Tier Hierarchical Supervision Model**. Cross-tier boundary skips (e.g., Tier 0 attempting to dispatch a Tier 3 worker directly) are strictly forbidden and rejected at dispatch.
+
+```text
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                               THE 4-TIER HIERARCHICAL AGENT MODEL                                │
+├──────────────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                                  │
+│  [ Tier 0: Infinite Mind (Product Owner) ]                                                       │
+│    ├── Strategic intent decomposition & requirement intake                                       │
+│    ├── Enforces Atomic Admission-to-Dispatch chaining (ZERO paused admitted items)              │
+│    └── Dispatches strictly: Tier 1 Orchestrator                                                  │
+│                        │                                                                         │
+│                        ▼                                                                         │
+│  [ Tier 1: Interactive Run Orchestrator ]                                                        │
+│    ├── Interactive user dialog, progress telemetry, milestone sign-offs                          │
+│    ├── Capsule governance & whole-run completion lifecycle                                       │
+│    └── Dispatches strictly: Tier 2 Background Run Coordinators                                   │
+│                        │                                                                         │
+│                        ▼                                                                         │
+│  [ Tier 2: Background Run Coordinator & Meta-Auditor ]                                           │
+│    ├── Owns capsule state graph: plan:init, plan:add, plan:compile, queue:wave, run:complete     │
+│    ├── Manages concurrency ceilings and worker lease lifecycles                                  │
+│    ├── Meta-Auditor: Real-time invariant watchdog & dynamic role boundary auditor                │
+│    └── Dispatches strictly: Tier 3 Ephemeral Subagents                                           │
+│                        │                                                                         │
+│                        ▼                                                                         │
+│  [ Tier 3: Ephemeral Workers, Validators & Critics ]                                             │
+│    ├── Implementer: Leased disjoint write scopes, targeted unit test execution, task:submit     │
+│    ├── Cognitive Validator: Hard-locked out of shell execution (0 commands), Socratic diff audit │
+│    ├── Completeness Critic: Whole-run prompt verification & requirement satisfaction review      │
+│    └── Repairer: Targeted defect resolution for changes_requested findings                       │
+│                                                                                                  │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Tier Responsibilities and Boundaries
+
+| Tier       | Canonical Role                | Scope of Authority                                                               | Permitted Spawns                                              | Forbidden Actions                                                                 |
+| :--------- | :---------------------------- | :------------------------------------------------------------------------------- | :------------------------------------------------------------ | :-------------------------------------------------------------------------------- |
+| **Tier 0** | `mind`                        | Strategic roadmap, prompt admission, product ownership.                          | `orchestrator`                                                | Direct file writes, executing tests, spawning Tier 2/3 agents directly.           |
+| **Tier 1** | `orchestrator`                | Human-in-the-loop chat, milestone reporting, high-level run execution.           | `coordinator`                                                 | Modifying repository code, running full test suites, direct worker dispatch.      |
+| **Tier 2** | `coordinator`, `meta-auditor` | Capsule graph compilation, task queuing, lease recovery, telemetry auditing.     | `implementer`, `validator`, `completeness-critic`, `repairer` | Editing repository files, self-validating tasks, modifying plan during execution. |
+| **Tier 3** | `implementer`, `repairer`     | File modifications confined strictly within leased disjoint write scopes.        | None (Leaf worker)                                            | Full-suite test runs (`bun test`), git commits/pushes, validating own work.       |
+| **Tier 3** | `validator` (Cognitive)       | Pure logic auditing, diff inspection, invariant verification, Socratic critique. | None (Leaf worker)                                            | **0 commands allowed** (no `run:exec`, no bash, no builds, no test runners).      |
+| **Tier 3** | `completeness-critic`         | End-to-end prompt compliance verification, final sign-off audit.                 | None (Leaf worker)                                            | Modifying repository files, executing arbitrary test scripts.                     |
+
+---
+
+## 🔌 Supported Host Environments & Native Adapters
+
+The harness runtime (`bun olt/scripts/harness.ts`) is designed to run identically across every major AI development platform without custom host-specific code in the core engine. Each host environment maps its native agent tools to the harness CLI.
+
+```text
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                    HOST ADAPTER INTEGRATIONS                                     │
+├──────────────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                                  │
+│  Google Antigravity            Claude Code                  OpenAI Codex / ChatGPT               │
+│  ┌───────────────────────┐     ┌──────────────────────┐     ┌──────────────────────┐             │
+│  │ native subagents      │     │ native Agent tool    │     │ native worker thread │             │
+│  │ send_message          │     │ File mailbox channel │     │ multi-turn chat      │             │
+│  │ ~/.gemini/antigravity │     │ .claude/skills/olt   │     │ .agents/skills/olt   │             │
+│  └───────────┬───────────┘     └──────────┬───────────┘     └──────────┬───────────┘             │
+│              │                            │                            │                         │
+│              └────────────────────────────┼────────────────────────────┘                         │
+│                                           │                                                      │
+│  OpenCode / Cursor / Custom IDE           │                                                      │
+│  ┌───────────────────────┐                │                                                      │
+│  │ Background terminal   │                │                                                      │
+│  │ Workspace extension   │────────────────┘                                                      │
+│  │ .olt/skills           │                                                                       │
+│  └───────────────────────┘                                                                       │
+│                                           │ (Deterministic CLI Execution)                        │
+│                                           ▼                                                      │
+│                        ┌─────────────────────────────────────┐                                   │
+│                        │       PINNED HARNESS RUNTIME        │                                   │
+│                        │       olt/scripts/harness.ts        │                                   │
+│                        └─────────────────────────────────────┘                                   │
+│                                                                                                  │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### 1. Google Antigravity
+
+- **Skill Location:** Global discovery at `~/.gemini/antigravity-cli/skills/olt` or project `.gemini/skills/olt`.
+- **Dispatch Mechanism:** Tier 1 Orchestrator / Tier 2 Coordinator dispatches workers via native `invoke_subagent` and streams bidirectional updates with `send_message`.
+- **Telemetry Integration:** Host session JSON logs and tool invocation events are automatically ingested into the grant ledger.
+
+### 2. Anthropic Claude Code
+
+- **Skill Location:** Discovered at `.claude/skills/olt` or `~/.claude/skills/olt`.
+- **Dispatch Mechanism:** Dispatches subagents using the native `Agent` tool. Inter-agent communication is coordinated via `SendMessage` and the experimental file-mailbox channel.
+- **Lease Handling:** The Claude Code lead agent acts as Tier 2 Coordinator, issuing `task:claim --role implementer` and assigning disjoint file scopes to child worker agents.
+
+### 3. OpenAI Codex & ChatGPT Coding Agents
+
+- **Skill Location:** Discovered at `.agents/skills/olt` or project root `.agents/skills`.
+- **Dispatch Mechanism:** Uses native subagent collaboration channels and multi-threaded worker dispatch to execute task briefs and return structured evidence.
+- **Concurrency Control:** Reads host-published concurrency parameters (such as `max_concurrent_threads_per_session`) to establish reasoning capacity ceilings.
+
+### 4. OpenCode, Cursor, & Custom LLM Hosts
+
+- **Skill Location:** Discovered via `.cursor/rules`, `.opencode/skills`, or repo-level `olt/SKILL.md`.
+- **Dispatch Mechanism:** Executes CLI commands directly in isolated subshells or terminal workers.
+- **Zero-Dependency Guarantee:** Because the harness runs on Bun/Node with zero external npm dependencies, any host capable of spawning a process can fully drive the system.
+
+---
+
+## ⚡ Token Economy & Zero-Exploration Exact-Anchor Briefings
+
+A primary driver of latency, high API costs, and context runaway in autonomous agent systems is **exploratory context churn**. When an agent is spawned with a vague prompt (e.g. _"Fix the auth bug"_), it predictably executes 10–20 exploratory shell commands (`ls -la`, `grep -rn "auth" .`, `git status`, `cat package.json`) consuming 40,000 to 100,000 tokens before writing a single line of functional code.
+
+`olt` eliminates exploratory churn through **Zero-Exploration Exact-Anchor Briefings** generated via `task:brief` and `agent:brief`.
+
+```text
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                         ZERO-EXPLORATION CONTEXT BRIEFING PIPELINE                               │
+├──────────────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                                  │
+│  [ NAIVE EXPLORATORY PATTERN (Anti-Pattern) ]                                                    │
+│    Agent Spawns ──► `ls -R` ──► `grep auth` ──► `cat file1` ──► `cat file2` ──► 80k tokens wasted│
+│                                                                                                  │
+│  [ OLT EXACT-ANCHOR BRIEFING PATTERN (Turn 1 Execution) ]                                        │
+│    Coordinator calls `task:brief --task task-42 --agent worker-1`                                │
+│    ┌────────────────────────────────────────────────────────────────────────────────────────┐    │
+│    │ Emits Compact (≤ 30 lines) Exact Markdown Brief directly to stdout:                   │    │
+│    │  • Exact Disjoint Write Scope (`src/auth/jwt.ts`, `tests/auth/jwt.test.ts`)            │    │
+│    │  • Isolated Worktree Location (`.worktrees/task-42`)                                   │    │
+│    │  • Suggested Target Files & Pre-Authorized Recommended Commands                        │    │
+│    │  • Mandatory Gate Commands & Acceptance Criteria                                       │    │
+│    │  • Step-by-Step CLI Next Actions                                                       │    │
+│    └────────────────────────────────────────────────────────────────────────────────────────┘    │
+│                                  │                                                               │
+│                                  ▼                                                               │
+│    Worker Agent Begins Turn 1 Code Edits Immediately with Zero Exploratory Overhead             │
+│                                                                                                  │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Concrete Briefing Walkthrough
+
+When a coordinator or host prepares to dispatch a worker, it runs:
+
+```bash
+bun harness.ts task:brief --run .capsules/<run-id> --task task-auth --agent worker-1 --role implementer
+```
+
+The harness generates and prints a structured, token-optimized briefing:
+
+```markdown
+### 🌌 Zero-Exploration Briefing: task-auth
+
+- **Label**: Implement JWT Authentication & Token Revocation
+- **Assignment**: Role: `implementer` · Agent: `worker-1`
+- **Assigned Write Scope**: `src/auth/jwt.ts`, `tests/auth/jwt.test.ts`
+- **Isolated Worktree**: `.worktrees/task-auth`
+- **Suggested Target Files**: `src/auth/jwt.ts`, `tests/auth/jwt.test.ts`
+- **Recommended Commands**:
+  - `bun test tests/auth/jwt.test.ts`
+- **Gate Commands**:
+  - `bun test tests/auth/jwt.test.ts`
+  - `bun harness.ts task:check --task task-auth`
+- **Acceptance Criteria**:
+  - Passes JWT verification and expiration test suite.
+  - Requirement `REQ-AUTH-01`: Token revocation blacklist handled in memory.
+    ⚡ Next Actions:
+
+1. `bun harness.ts task:claim --run .capsules/<run-id> --task task-auth --agent worker-1 --role implementer`
+```
+
+### Context Compaction Invariants
+
+1. **Compact Output (≤ 30 lines):** Briefs are constrained to concise markdown to avoid pushing earlier task requirements out of the LLM's active attention window.
+2. **Exact Paths & Line Numbers:** The briefing provides explicit file paths, eliminating guesswork.
+3. **Structured JSON Mode:** Automated scripts can supply `--format json` (placed before any `--` argument) to receive machine-readable payloads for custom tooling.
+
+---
+
+## 📡 Dual-Time Monotonic Telemetry & Host Probes
+
+Multi-agent coordination across asynchronous processes cannot rely exclusively on physical system clocks due to distributed clock skew, NTP adjustments, and sub-millisecond race conditions. `olt` records all telemetry events across two independent, orthogonal time domains:
+
+```text
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                DUAL-TIME TELEMETRY ARCHITECTURE                                  │
+├──────────────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                                  │
+│  1. Monotonic Logical Time (sequence: 1, 2, 3, ...):                                             │
+│     • Strictly increasing integer counter stored in events.jsonl                                 │
+│     • Guarantees total Lamport causal ordering across all concurrent subagent events             │
+│     • Completely immune to NTP jumps, clock skew, and multi-host drift                           │
+│                                                                                                  │
+│  2. Physical Wall-Clock Time (timestamp: "2026-08-23T03:00:00.000Z"):                            │
+│     • High-resolution ISO 8601 UTC timestamp per event                                          │
+│     • Evaluates lease expiration deadlines, SLA heartbeats, and real execution duration          │
+│                                                                                                  │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Telemetry Evidence Classes: What Was Reported vs. What Was Measured
 
-Every field on an agent grant record carries the evidence class of _how the harness came to know it_, never just its value:
+Every field on an agent grant record carries an immutable evidence class recording _how the harness came to know it_:
 
-- **`agent_reported`** — the dispatcher (or the agent itself, via `agent:report`) told the harness on `agent:register --model`, `--provider`, `--model-tier`, `--thinking-level`, `--context-window`, or `--tool`. This is the CLI surface: an agent's self-declaration is an unverified claim until corroborated.
-- **`host_reported` / `derived` / `harness_observed`** — earned _only_ by the automatic **Host Telemetry Probe** (`refreshAgentDerivedTelemetry`, `readAgentTranscriptTelemetry`), never by CLI flags. On lifecycle transitions (`agent:register`, `agent:release`, `task:claim`, `task:submit`), the harness inspects host session config and on-disk JSON transcript streams for real tokens consumed, exact model IDs, and executed tool calls.
+```text
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                 TELEMETRY EVIDENCE HIERARCHY                                     │
+├──────────────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                                  │
+│  [ agent_reported ] (Unverified Claim)                                                           │
+│    └── Declared via CLI flags (e.g. `agent:register --model gpt-4o --tokens-out 500`)           │
+│    └── Treated as an unverified self-claim until corroborated by host telemetry                  │
+│                                                                                                  │
+│  [ host_reported / derived / harness_observed ] (Verified Ground Truth)                          │
+│    └── Discovered via Host Telemetry Probes (`readAgentTranscriptTelemetry`)                     │
+│    └── Read directly from host session transcripts, IDE process streams, and OS exit codes       │
+│    └── Earned ONLY by automated observation, NEVER by agent self-reporting                       │
+│                                                                                                  │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+```
 
 ### Conflict Detection & `telemetry_conflicts` Resolution
 
-When a probed host observation disagrees with an agent's self-reported claim (for example, an agent claims `model: gpt-4o` but transcript telemetry observes `claude-3-5-sonnet`, or claims `tokens_out: 500` when transcript logs show `4,200`), the harness **never silently overwrites** either value:
+When a probed host observation disagrees with an agent's self-reported claim (for example, an agent claims `model: gpt-4o` with `500` tokens, but host transcript probing discovers `claude-3-7-sonnet` with `4,200` tokens consumed), the harness **never silently overwrites** either record.
+
+Instead, the harness preserves both:
 
 1. The explicit `agent_reported` value remains on the grant field.
-2. The discrepancy is appended to the immutable `telemetry_conflicts` ledger on the grant:
+2. An immutable entry is appended to the `telemetry_conflicts` ledger on the grant record:
 
 ```json
 {
@@ -69,147 +283,69 @@ When a probed host observation disagrees with an agent's self-reported claim (fo
 }
 ```
 
-3. If parent agent relationships conflict (`checkParentAgentConflict`), a conflict record is opened to prevent lineage spoofing.
+3. **Parent Lineage Conflict Protection:** If an agent claims parentage (`checkParentAgentConflict`) that contradicts host transcript data, a conflict record is opened and supervisory alerts are emitted to prevent rogue lineage spoofing.
 
 ---
 
-## 👥 The Two-Tier Agent Architecture
+## 🩺 Autonomous Supervision & Failure Classification
 
-To prevent conversational context explosion and preserve interactive responsiveness for the developer, the harness enforces a strict 3-tier hierarchy:
-
-```text
-+-----------------------------------------------------------------------------------------------+
-|                                 TWO-TIER AGENT ARCHITECTURE                                   |
-+-----------------------------------------------------------------------------------------------+
-|                                                                                               |
-|  [ Tier 1: Main Interactive Chat ]  <---> [ Human Developer ]                                 |
-|    ➜ Pure conversation & status updates                                                       |
-|    ➜ Spawns exactly ONE background child                                                      |
-|    ➜ Zero worker tool churn or polling loops in chat window                                   |
-|                      │                                                                        |
-|                      ▼                                                                        |
-|  [ Tier 2: Background Run Coordinator ]                                                       |
-|    ➜ Owns capsule lifecycle: plan:init, plan:enhance, plan:add, plan:compile, run:complete    |
-|    ➜ Dispatches each claimable task via queue:wave; registers every agent with agent:register |
-|    ➜ Reports to Tier 1 ONLY at milestones (Plan Compiled, Queue Drained, Final Sign-off)      |
-|                      │                                                                        |
-|                      ▼                                                                        |
-|  [ Tier 3: Ephemeral Worker, Validator & Critic Subagents ]                                   |
-|    ➜ Plan-validator: adversary for the compiled plan, before any implementer dispatches       |
-|    ➜ Implementers: leased disjoint write scopes, task:heartbeat, task:submit                 |
-|    ➜ Validators: independent checks, run:exec, task:probe, task:reject, task:review          |
-|    ➜ Repairers: claim changes_requested under --role repairer                                |
-|    ➜ Completeness critic: critic:review / critic:reject with structured findings              |
-|                      │                                                                        |
-|                      ▼                                                                        |
-|  [ Branch children of a lease-holding tier 3 agent ]                                          |
-|    ➜ sub-implementer / sub-investigator: branch:claim, run:exec, branch:submit                |
-|                                                                                               |
-+-----------------------------------------------------------------------------------------------+
-```
-
----
-
-## 🔌 Supported Host Environments
-
-```text
-+-----------------------------------------------------------------------------------------------+
-|                                      HOST ADAPTER ARCHITECTURE                                |
-+-----------------------------------------------------------------------------------------------+
-|                                                                                               |
-|  [ Google Antigravity ]       [ Claude Code ]          [ OpenAI Codex ]      [ ChatGPT ]      |
-|    ➜ native subagents           ➜ the `Agent` tool       ➜ native workers      ➜ coding agent |
-|    ➜ ~/.gemini/config/skills    ➜ .claude/skills         ➜ .agents/skills      ➜ .agents/skills|
-|             │                         │                        │                    │         |
-|             └─────────────────────────┼────────────────────────┴────────────────────┘         |
-|                                       │ (Zero-JSON Colon CLI)                                 |
-|                                       ▼                                                       |
-|                     +-----------------------------------+                                     |
-|                     |        PINNED HARNESS RUNTIME     |                                     |
-|                     | olt/scripts/harness.ts |                                     |
-|                     +-----------------------------------+                                     |
-|                                                                                               |
-+-----------------------------------------------------------------------------------------------+
-```
-
-### 1. Google Antigravity
-
-- Discovered globally at `~/.gemini/config/skills/olt` or pinned runtime.
-- Uses native `invoke_subagent` / `send_message` tools to dispatch workers.
-- Lead agent acts as the Tier 2 Coordinator, managing subagents and state transitions.
-
-### 2. Claude Code
-
-- Discovered at `.claude/skills/olt` or `~/.claude/skills/...`.
-- Dispatches subagents with the native `Agent` tool; each claims a disjoint write scope and the lead
-  coordinator validates. `SendMessage` and the experimental Agent Teams file-mailbox channel are for
-  agent-to-agent messaging, not dispatch — see [`references/host-adapters.md`](../../../olt/references/host-adapters.md)'s
-  adapter table for the full, current detail.
-
-### 3. OpenAI Codex & ChatGPT
-
-- Discovered at `.agents/skills/olt` or `~/.agents/skills/...`.
-- Uses native subagent collaboration channels to process role briefs and report command evidence.
-
----
-
-## 🔀 Sequential Fallback Mode
-
-If a developer runs the harness in an environment where multi-agent concurrency is unavailable (e.g. single-agent CLI mode), the harness automatically switches to **Sequential Execution**:
-
-- The single agent processes ready tasks one at a time.
-- When switching between the **Implementer** role and the **Validator** role, the agent must perform a **Context Reset** (clearing conversational memory) to prevent self-grading contamination, and must use a **different agent id** — `task:validate-start` refuses a validator that appears in the task's attempts, and refuses one that already validated the task in an earlier round.
-- If independence cannot be guaranteed, validation remains blocked rather than allowing self-approval.
-
----
-
-## 🩺 Autonomous Supervision (B27 / B28)
-
-Everything above this line describes a coordinator driving dispatch by hand, one `task:claim` at a
-time. `orchestrator:supervise` is the alternative: a single reclaim-classify-dispatch pass over a
-run's eligible set, safe to drive from an external poll loop (cron, a shell `while`) because a call
-with no injected dispatcher performs exactly one pass and returns.
+While a human developer or lead coordinator can manually dispatch tasks one by one, `orchestrator:supervise` provides an autonomous supervision loop. It performs an atomic reclaim-classify-dispatch cycle over the run's eligible set:
 
 ```bash
 bun harness.ts orchestrator:supervise --run .capsules/<run-id> --actor coordinator
 ```
 
-One pass does three things, in order:
+```text
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                               AUTONOMOUS SUPERVISION CYCLE                                       │
+├──────────────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                                  │
+│  1. Reclaim Stale Leases                                                                         │
+│     └── Identifies workers whose leases expired with no heartbeats; reclaims tasks to retry_ready│
+│                                  │                                                               │
+│                                  ▼                                                               │
+│  2. Classify Failures (Transient vs. Deterministic)                                              │
+│     ├── Transient: rate_limit, network, provider_5xx, timeout (retried within 4-hour window)     │
+│     ├── Crash: Transient but capped at max 3 consecutive identical failures                      │
+│     └── Deterministic: gate failure, RBAC rejection, invalid scope (escalated to human)         │
+│                                  │                                                               │
+│                                  ▼                                                               │
+│  3. Calculate Dispatchable Waves                                                                 │
+│     └── Queries topological dependency graph, respects reasoning & gate concurrency ceilings     │
+│                                                                                                  │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+```
 
-1. **Reclaims dead agents.** A lease whose holder never submitted and never heartbeat past expiry is
-   reclaimed the same way `recover` already does — this is the automatic counterpart to that manual
-   command.
-2. **Escalates deterministic dead ends (B28.3).** Every dispatch failure is recorded as its own event
-   (there is no dedicated state field for it — a dispatch can fail before a task lease even exists, so
-   there's nothing on the task record to attach it to). A failure is classified `transient` or
-   `deterministic` from that history: `rate_limit`, `network`, `provider_5xx` and `timeout` are
-   transient _without limit on retry count_ — a provider having a bad moment doesn't get more broken
-   the more times the identical message repeats, so only elapsed wall-clock time (default 4 hours) can
-   ever demote them. `crash` is transient too, but _is_ subject to a consecutive-repeat cap (default 3) — an agent dying identically several times in a row for the same task is evidence about the
-   task, unlike a provider outage. Every other signal (a failed gate, an auth rejection) starts
-   deterministic. A task judged deterministic is escalated out of automatic circulation — pulled from
-   dispatch, its reason recorded, waiting for a human — never retried forever.
-3. **Reports what's dispatchable.** Same readiness query `queue:wave` runs, annotated with which
-   backed-off tasks are still cooling down before their next retry.
+### Dual Concurrency Ceilings: Reasoning vs. CPU Gates
 
-`--no-recover` is the one opt-out (recovery is on by default, B28.5). `--max-parallel` and
-`--gate-max-parallel` set the two independent occupancy ceilings this run enforces: a general
-reasoning ceiling (host-discovered when not overridden — the harness reads the host's own published
-per-session concurrency limit, e.g. Codex's `max_concurrent_threads_per_session`, rather than
-hardcoding a number) and a separate, lower, CPU-bound ceiling for gate-running work (derived from
-local core count, since a test suite or `tsc` run competes for _this machine's_ CPU, not a provider's
-queue). Precedence between an explicit `--max-parallel`/`--gate-max-parallel` flag, a repo's
-`harness.config.json`, and this host-discovered default is a task-execution-chapter concern; what
-matters here is that both ceilings are reported side by side, so idle reasoning capacity sitting next
-to a saturated gate ceiling is visible, not silently absorbed into one number.
+The supervisor enforces two distinct, independent concurrency limits:
 
-`orchestrator:run` is the sibling command for a fresh capsule: it drives plan → execute → validate →
-critic rounds until the critic approves or the round budget (default 10) is spent. Both commands
-require the **host** to inject the actual work — a `TaskDispatcher` for `orchestrator:supervise`, a
-round executor for `orchestrator:run` — because dispatching a task always means real host work
-(spawning and running an actual agent), and the harness itself never does it; without one, both
-commands refuse outright rather than pretending a round ran.
+- **`--max-parallel` (Reasoning Ceiling):** Discovered from host limits (e.g. `max_concurrent_threads_per_session`) or configured in `harness.config.json`. Governs how many reasoning subagents may be active simultaneously.
+- **`--gate-max-parallel` (Gate Execution Ceiling):** Derived from local CPU core count (`navigator.hardwareConcurrency`). Governs how many CPU-heavy build and test commands may execute concurrently to prevent system thrashing and test timeout flakes.
 
 ---
 
-[⬅ Previous: Plan Revision & Freezing](../03-graph-scheduler/03-plan-revision-and-freezing.md) | [Master Table of Contents](../README.md) | [Next: Role Briefs & Two-Tier Architecture ➡](./02-immutable-role-packets.md)
+## 🔀 Sequential Fallback Mode (Single-Agent Environments)
+
+When executing in environments where subagent concurrency is unavailable (e.g., standard single-agent terminal sessions), the harness automatically activates **Sequential Execution Mode**:
+
+1. **Strict Context Reset:** When transitioning between the **Implementer** role and the **Validator** role, the agent must perform a complete context reset (wiping conversational working memory) to prevent self-grading bias.
+2. **Distinct Agent ID Requirement:** `task:validate-start` strictly refuses a validator whose agent ID appears in the task's implementation attempts or who previously validated the task in an earlier round.
+3. **Refusal Over Contamination:** If role independence cannot be guaranteed in the current session, validation remains blocked rather than permitting unverified self-approval.
+
+---
+
+## 📚 Diátaxis Reference: Host CLI Capabilities
+
+| Capability Category | Command / Flag                                  | Purpose                                        | Host Supported |
+| :------------------ | :---------------------------------------------- | :--------------------------------------------- | :------------- |
+| **Registration**    | `agent:register --role <role> --host <host>`    | Registers agent grant in immutable ledger.     | All            |
+| **Briefing**        | `task:brief --task <id>`                        | Emits zero-exploration markdown brief.         | All            |
+| **Supervision**     | `orchestrator:supervise --run <path>`           | Runs single-pass autonomous supervision.       | All            |
+| **Telemetry**       | `agent:report --tokens-in <N> --tokens-out <N>` | Records self-reported agent telemetry.         | All            |
+| **Shell Interlock** | `shell --actor <id> -- <argv>`                  | Executes direct command under RBAC shield.     | All            |
+| **Read Expansion**  | `scope:expand --actor <id> --read <path>`       | Dynamically expands allowed read neighborhood. | All            |
+
+---
+
+[⬅ Previous: Plan Revision & Freezing](../03-graph-scheduler/03-plan-revision-and-freezing.md) | [Master Table of Contents](../README.md) | [Next: Role Contracts & Task Execution Briefs ➡](./02-immutable-role-packets.md)

@@ -4,212 +4,362 @@
 
 ---
 
-## 🛑 Why Vague Feedback Fails
+## 🧭 Diátaxis Overview
 
-_"This code looks buggy, please fix error handling"_ costs a repairer an entire round of guessing:
-which function, what input, what command reproduces it, and how will the fix be proven?
-
-Every finding in the capsule therefore carries the same six answers, and the harness supplies none of
-them on a validator's behalf.
-
----
-
-## 📋 Two Classes, One Pipeline
-
-```bash
-bun harness.ts task:reject \
-  --run .capsules/<run-id> --task <task-id> --validator <val-id> --token <validation-token> \
-  --reason "The gate is green only because both test inputs are hard-coded; slugify implements nothing." \
-  --severity critical \
-  --remediation "Lowercase the input, collapse every run of non-alphanumeric characters into one hyphen, and trim the edges." \
-  --checks <validator-gate-command-id>
-```
-
-```json
-{
-  "id": "finding-task-slug-reject",
-  "class": "defect",
-  "requirement_id": "req-slug",
-  "severity": "critical",
-  "evidence": [{ "kind": "command", "reference": "C-1c12763c-29c4-493b-a0ef-e5a6b6e255a3" }],
-  "observation": "The gate is green only because both test inputs are hard-coded; slugify implements nothing.",
-  "remediation": "Lowercase the input, collapse every run of non-alphanumeric characters into one hyphen, and trim the edges.",
-  "revalidation": "Run gate tests for task-slug"
-}
-```
-
-```bash
-bun harness.ts task:probe \
-  --run .capsules/<run-id> --task <task-id> --validator <val-id> --token <validation-token> \
-  --demand "Prove the slug is computed, not matched: the gate must stay green with the hard-coded branches gone." \
-  --revalidation "bun test tests/slug.test.ts"
-```
-
-```json
-{
-  "id": "probe-task-slug-01-1",
-  "class": "probe_demand",
-  "requirement_id": "req-slug",
-  "severity": "minor",
-  "evidence": [
-    {
-      "kind": "demand",
-      "detail": "Prove the slug is computed, not matched: the gate must stay green with the hard-coded branches gone.",
-      "evidence_class": "agent_reported"
-    }
-  ],
-  "observation": "Prove the slug is computed, not matched: the gate must stay green with the hard-coded branches gone.",
-  "remediation": "Answer the demand with evidence, or record a defect with task:reject if it does not hold.",
-  "revalidation": "bun test tests/slug.test.ts"
-}
-```
-
-Both land in `state.tasks.<id>.findings[]`, which is where a finding lives; `finding:get` reads
-them from there, and `index.json` catalogues them by task and status. The
-`class` field is what keeps them apart, and it is **never inferred from severity or verdict** — a
-probe demand carries `severity: minor` because it asserts nothing, not because it is unimportant.
+| Quadrant         | Purpose in this Chapter                                                                                                                       |
+| :--------------- | :-------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Explanation**  | Understand the design rationale of structured findings, why unstructured prose feedback fails, and the mechanics of cryptographic resolution. |
+| **How-To Guide** | Creating defects, emitting probes, filing AST static findings, querying findings, and mechanically resolving them with gate receipts.         |
+| **Reference**    | Complete JSON schemas for `Finding`, `ProbeDemand`, `ChecklistReport`, and severity classification rules.                                     |
+| **Tutorial**     | Step-by-step example of resolving a multi-finding defect report through targeted revalidation.                                                |
 
 ---
 
-## 🔍 The Mandatory Components
+## 🛑 1. Explanation: Why Vague Feedback Fails
 
-| Field                | Meaning                                                                  | Rule                                                               |
-| :------------------- | :----------------------------------------------------------------------- | :----------------------------------------------------------------- |
-| **`id`**             | Stable identifier: `finding-<task>-reject`, `probe-<task>-NN-N`.         | Auto-derived, or set with `--finding-id`.                          |
-| **`class`**          | `defect` or `probe_demand`.                                              | Set by which command recorded it.                                  |
-| **`requirement_id`** | The obligation this finding is about.                                    | Bound with `--requirement`, else the task's own.                   |
-| **`severity`**       | `critical`, `important`, `minor`.                                        | **Required** on `task:reject`. No default.                         |
-| **`observation`**    | Exactly what was observed, or exactly what must be proved.               | Non-empty.                                                         |
-| **`evidence[]`**     | `kind: "command"` references for a defect; `kind: "demand"` for a probe. | Command references must resolve.                                   |
-| **`remediation`**    | What would fix it.                                                       | **Required** on `task:reject`; the harness writes none of its own. |
-| **`revalidation`**   | How the fix is to be proven.                                             | `--revalidation`, else the task's own gate.                        |
-| **`status`**         | `open` or `resolved`.                                                    | Only a `--resolve` on a verdict moves it.                          |
+In typical AI agent systems, code review feedback consists of conversational prose such as:
 
-The severity vocabulary is `critical | important | minor`. Nothing grades a finding automatically, and
-`--remediation` may not simply restate `--reason`: echoing the observation back under the remediation
-label files the defect as its own fix.
+> _"The error handling in auth looks a bit weak and there might be an edge case with empty payloads. Please clean this up."_
 
----
+This feedback produces immediate failure cascades:
 
-## 🔐 Resolution Requires a Command, Explicitly
+- **No Precise Target**: The repairer does not know which function, line, or input triggers the issue.
+- **No Actionable Remediation**: The expected behavioral change is ambiguous.
+- **No Falsifiable Proof**: There is no defined command to verify when the repair is actually complete.
+- **Rubber-Stamping Risk**: A repairer can make trivial changes, claim "fixed", and pass without proof.
 
-A finding cannot be closed by prose, by a later submission, or by the harness deciding it looks
-handled. `task:review --status pass` requires one `--resolve` per open finding:
-
-```bash
-bun harness.ts task:review \
-  --run .capsules/<run-id> --task task-slug --validator val-slug-2 --token <token> --status pass \
-  --summary "The literal branches are gone and the gate still passes, so the slug is computed." \
-  --checks C-168a1579-… \
-  --resolve "probe-task-slug-01-1=C-168a1579-…" \
-  --resolve "finding-task-slug-reject=C-168a1579-…"
-```
-
-Omit one and the pass is refused **by name**:
+To eliminate this ambiguity, every finding in the `olt` capsule conforms to a **Strict Structural Finding Schema** enforcing six mandatory components:
 
 ```text
-{"ok":false,"error":{"code":"INVALID_STATE","message":"cannot pass task-slug: 1 open finding(s) unanswered: finding-task-slug-reject; answer each with --resolve <finding-id>=<command-id>"}}
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                       THE 6-POINT FINDING CONTRACT                          │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  1. Stable Identifier (`id`)       ──► finding-<task>-<seq> or probe-<task> │
+│  2. Bound Obligation (`req_id`)    ──► Explicit requirement link            │
+│  3. Discrete Severity (`severity`) ──► critical | important | minor         │
+│  4. Empirical Observation          ──► Exact failure reproduction / demand  │
+│  5. Concrete Remediation           ──► Specific code correction required    │
+│  6. Falsifiable Revalidation       ──► Exact command verifying the fix      │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
-
-`--resolve` takes `<finding-id>=<command-id>[,<command-id>]`, and each cited command must be a
-**successful run by this validator, bound to this task, matching a mandatory gate**. `--resolution-method`
-optionally records how it was answered; it defaults to the finding's class.
-
-A pass carrying only `--summary` is therefore not a complete verdict once any finding is open, and it
-does not satisfy the probe requirement on its own either.
 
 ---
 
-## 📐 Standing Checklist Coverage: A Separate Report (B12.5)
+## 📋 2. Reference: The Core Finding Schema
 
-A finding says "this specific thing is wrong." It never says what a validator actually _looked at_ to
-conclude the rest was fine — and an unstated gap there is the identical failure mode as a fabricated
-pass: an item nobody checked is indistinguishable, from the outside, from an item that was checked and
-found clean. B12.5 closes that gap with a second, explicit report, attached alongside the verdict but
-never gating it:
+All findings are stored in `state.tasks.<id>.findings[]` and cataloged in `index.json`.
 
-```bash
-bun harness.ts task:review --run .capsules/<run-id> --task task-slug --validator val-slug --token <token> \
-  --status pass --checks C-168a1579-… --summary "All gates pass" \
-  --checklist-domain code-quality --checklist-report coverage.json
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           FINDING OBJECT STRUCTURE                          │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  {                                                                          │
+│    "id": "finding-task-slug-01",                                            │
+│    "class": "defect" | "probe_demand",                                      │
+│    "requirement_id": "req-slug-core",                                       │
+│    "severity": "critical" | "important" | "minor",                          │
+│    "observation": "String describing exact defect or demand to prove",      │
+│    "remediation": "String describing concrete fix or proof path",           │
+│    "revalidation": "Command string to execute for verification",            │
+│    "status": "open" | "resolved",                                           │
+│    "evidence": [                                                            │
+│      {                                                                      │
+│        "kind": "command" | "demand" | "ast_node" | "reference",             │
+│        "reference": "C-1c12763c-29c4-493b-a0ef-e5a6b6e255a3",              │
+│        "detail": "src/slug.ts:14-22"                                        │
+│      }                                                                      │
+│    ],                                                                       │
+│    "resolution": {                                                          │
+│      "command_id": "C-948205",                                              │
+│      "resolved_by": "val-sec-1",                                            │
+│      "resolved_at": "2026-08-23T03:15:00.000Z"                              │
+│    }                                                                        │
+│  }                                                                          │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-`--checklist-domain` and `--checklist-report` are demanded together — one without the other is a CLI
-error. Each checklist lives in this repository's `checklists/<domain>.md`, one canonical, versioned
-document per domain (`code-quality.md`, `product.md`, `security.md`, `system-design.md`,
-`ui-design.md`), every item carrying a stable, domain-prefixed id (`CQ-…`, `PROD-…`, `SEC-…`, `SYS-…`,
-`UI-…`) so a coverage report can never be checked against an invented or drifted list.
+### Field Specifications
 
-`coverage.json` must account for **every single item** the named domain's checklist declares, in
-exactly one of three buckets — an item silently missing from all three is refused outright:
+| Field                | Type     | Invariant / Validation Rule                                                                      |
+| :------------------- | :------- | :----------------------------------------------------------------------------------------------- |
+| **`id`**             | `string` | Unique, stable identifier matching `(finding\|probe)-<task>-.*`.                                 |
+| **`class`**          | `enum`   | Exactly `"defect"` (for `task:reject`) or `"probe_demand"` (for `task:probe`).                   |
+| **`requirement_id`** | `string` | Must resolve to a valid requirement registered in `state.requirements`.                          |
+| **`severity`**       | `enum`   | `"critical"` (blocks execution), `"important"` (correctness risk), or `"minor"` (hygiene/probe). |
+| **`observation`**    | `string` | Non-empty string. Cannot be identical to remediation.                                            |
+| **`remediation`**    | `string` | Non-empty actionable fix description. Required on all defects.                                   |
+| **`revalidation`**   | `string` | Executable gate command or verification instruction.                                             |
+| **`status`**         | `enum`   | `"open"` when emitted; transitions to `"resolved"` only via `--resolve`.                         |
+| **`evidence`**       | `array`  | List of supporting command execution receipts or AST references.                                 |
+
+---
+
+## ⚡ 3. Reference: Fast Incremental Static Findings (`task:check`)
+
+When static audits (`task:check`) detect AST rule violations, they generate structured static findings under the `code-quality` domain:
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    STATIC AST CHECK FINDING DEFINITIONS                     │
+├───────────────────┬──────────────┬──────────────────────────────────────────┤
+│ Rule ID           │ Severity     │ Description                              │
+├───────────────────┼──────────────┼──────────────────────────────────────────┤
+│ `CQ-TYPE-001`     │ `critical`   │ Disallowed `any` type in TypeScript AST. │
+│ `CQ-SUPPRESS-002` │ `critical`   │ Disallowed suppression comments          │
+│                   │              │ (`@ts-ignore`, `eslint-disable`).        │
+│ `CQ-EXPORT-003`   │ `important`  │ Exported symbol missing explicit return  │
+│                   │              │ or parameter types.                      │
+│ `CQ-UNUSED-004`   │ `minor`      │ Unused variable or import declaration.   │
+└───────────────────┴──────────────┴──────────────────────────────────────────┘
+```
+
+### Static Finding JSON Example
+
+```json
+{
+  "id": "finding-task-auth-ast-01",
+  "class": "defect",
+  "requirement_id": "req-auth-types",
+  "severity": "critical",
+  "observation": "Explicit 'any' type annotation used for parameter 'payload' in src/auth/token.ts:18.",
+  "remediation": "Replace 'any' with strongly typed interface 'TokenPayload' or 'unknown' with type narrowing.",
+  "revalidation": "bun harness.ts task:check --task task-auth",
+  "evidence": [
+    {
+      "kind": "ast_node",
+      "detail": "src/auth/token.ts:18:24 -> ParameterDeclaration: payload: any"
+    }
+  ],
+  "status": "open"
+}
+```
+
+---
+
+## 🔐 4. Explanation: The Mechanical Resolution Contract
+
+A finding **cannot** be marked resolved through conversational assertion, prose explanations, or subsequent code commits.
+
+> **A finding is resolved ONLY when a fresh, independent validator executes a successful gate run and explicitly binds the command receipt to the finding ID via `--resolve`.**
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                     FINDING RESOLUTION STATE TRANSITION                     │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  [ Open Finding in state.json ]                                             │
+│    • id: "finding-task-slug-01"                                             │
+│    • status: "open"                                                         │
+│                                                                             │
+│                                  │                                          │
+│                                  ▼ (Validator runs gate: run:exec)          │
+│  [ Command Receipt Generated ]                                              │
+│    • command_id: "C-168a1579"                                               │
+│    • exit_code: 0 (Success)                                                 │
+│    • actor: "val-code-2" (Active Validator)                                 │
+│    • task: "task-slug"                                                      │
+│                                                                             │
+│                                  │                                          │
+│                                  ▼ (task:review --resolve finding=cmd)      │
+│  [ Finding Marked Resolved ]                                                │
+│    • status: "resolved"                                                     │
+│    • resolution.command_id: "C-168a1579"                                    │
+│    • resolution.resolved_by: "val-code-2"                                   │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Resolution Rules:
+
+1. **Receipt Actor Match**: The command ID passed to `--resolve` must have been executed by the _active validator_ holding the current lease.
+2. **Task Scope Match**: The command must be bound to the task under review.
+3. **Exit Code Zero**: The command receipt must record an exit code of `0`.
+4. **All Open Findings Addressed**: `task:review --status pass` will fail with `INVALID_STATE` if any open finding on the task is omitted from `--resolve`.
+
+---
+
+## 📐 5. Reference: Standing Checklist Coverage Reports (B12.5)
+
+In addition to task-specific requirements, validators evaluate standard engineering checklists (`checklists/<domain>.md`). Checklist coverage is submitted via `--checklist-report <file.json>`.
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    STANDING CHECKLIST DOMAINS & PREFIXES                    │
+├───────────────────────┬────────────┬────────────────────────────────────────┤
+│ Domain                │ Prefix     │ Checklist File                         │
+├───────────────────────┼────────────┼────────────────────────────────────────┤
+│ Code Quality          │ `CQ-`      │ `checklists/code-quality.md`           │
+│ Product Completeness  │ `PROD-`    │ `checklists/product.md`                │
+│ Security & Isolation  │ `SEC-`     │ `checklists/security.md`               │
+│ System Design         │ `SYS-`     │ `checklists/system-design.md`          │
+│ UI & Visual Quality   │ `UI-`      │ `checklists/ui-design.md`              │
+└───────────────────────┴────────────┴────────────────────────────────────────┘
+```
+
+### Checklist Report JSON Schema
+
+Every item in the domain checklist must have an explicit entry:
 
 ```json
 {
   "items": [
-    { "id": "CQ-STRUCT-001", "disposition": "checked" },
+    {
+      "id": "CQ-STRUCT-001",
+      "disposition": "checked"
+    },
     {
       "id": "CQ-NAMING-002",
       "disposition": "not_applicable",
-      "reason": "no boolean or collection names were introduced"
+      "reason": "Task did not introduce any collection identifiers or boolean flags."
     },
     {
       "id": "CQ-TEST-004",
       "disposition": "could_not_check",
-      "reason": "no test harness available for this scope in this review window"
+      "reason": "Database integration fixture unavailable in offline test runner."
     }
   ],
   "adjacent_findings": [
     {
-      "id": "adj-1",
+      "id": "adj-parser-01",
       "checklist_item_id": "CQ-STRUCT-001",
       "severity": "minor",
-      "observation": "src/legacy/parser.ts mixes two unrelated concerns, but it sits outside this task's write scope.",
-      "remediation": "Split it in a follow-up task scoped to src/legacy.",
-      "evidence": [{ "kind": "reference", "detail": "src/legacy/parser.ts:40-88" }]
+      "observation": "Legacy helper src/legacy/format.ts has cyclomatic complexity > 25, outside task write scope.",
+      "remediation": "Schedule refactoring task for legacy helpers.",
+      "evidence": [{ "kind": "reference", "detail": "src/legacy/format.ts:32-89" }]
     }
   ]
 }
 ```
 
-- **`checked`** needs nothing further — the item was inspected and found to hold.
-- **`not_applicable`** and **`could_not_check`** each require a non-empty `reason`; a bare disposition
-  with no explanation is refused for the same reason a bare `--reject` with no remediation is refused.
-- **`adjacent_findings`** (B12.1) surfaces a standing-standard violation the validator noticed **outside**
-  the task's own write scope — real information for the coordinator, but it never blocks or resolves
-  anything for the task currently under review; routing it is the coordinator's decision, not this
-  command's.
+### Dispositions:
 
-None of this changes whether the task passes or fails. The verdict is decided purely by the task's own
-requirements and open findings, exactly as described above; `checklist_coverage` is a report of what was
-actually inspected, filed alongside that verdict so the coverage itself is visible rather than implied.
+- **`checked`**: Item was directly inspected and satisfied.
+- **`not_applicable`**: Item does not apply to this change (non-empty `reason` required).
+- **`could_not_check`**: Item could not be inspected (non-empty `reason` required).
+- **`adjacent_findings` (B12.1)**: Out-of-scope defects noticed during review. Surfaced to the coordinator for future task generation without blocking current task completion.
 
 ---
 
-## 🔒 Finding Invariants
+## 📖 6. How-To Guide: Working with Findings
 
-1. **No phantom rejections.** A rejection without a severity and a remediation is refused; a critic
-   rejection without structured `--findings` is refused. A critic that rejects with nothing to say
-   fails rather than inventing a finding.
-2. **No phantom probes.** `task:probe` needs at least one `--demand`.
-3. **Immutable traceability.** Findings live in `events.jsonl` and its `state.json` projection, and the
-   `review-recorded` event carries `verdict`, `round`, `class` and `finding_count`, so a clean pass is
-   never mislabelled in the timeline as "requested changes (0 findings)".
-4. **Mechanical resolution only.** Every close is `<finding-id>=<command-id>`, and the harness never
-   marks one answered on a validator's behalf.
-5. **One reject archives every open domain (B12.2).** If a task carries several concurrently open
-   validations, one per domain, a reject from any single one of them archives **all** of them into
-   `validation_history` — a domain that had already recorded a pass this round does not survive a
-   sibling domain's rejection. See Chapter 06 §01 for the full multi-domain model.
-
----
-
-## 🔎 Reading Findings Back
+### Emitting a Structured Defect
 
 ```bash
-bun harness.ts finding:get --run .capsules/<run-id>
-bun harness.ts finding:get --run .capsules/<run-id> --id probe-task-slug-01-1
-bun harness.ts report:get  --run .capsules/<run-id> --task task-slug --type review
+bun harness.ts task:reject \
+  --run .capsules/<run-id> \
+  --task <task-id> \
+  --validator <val-id> \
+  --token <val-token> \
+  --reason "Regex in slug generator fails on Unicode emojis, emitting empty strings." \
+  --severity critical \
+  --remediation "Use Unicode character class property escapes: replace(/[^\\p{L}\\p{N}]+/gu, '-')" \
+  --checks <gate-cmd-id>
 ```
+
+### Emitting an Adversarial Probe
+
+```bash
+bun harness.ts task:probe \
+  --run .capsules/<run-id> \
+  --task <task-id> \
+  --validator <val-id> \
+  --token <val-token> \
+  --demand "Prove that token revocation blacklisting survives process restarts using durable storage." \
+  --revalidation "bun test tests/auth/revocation.test.ts"
+```
+
+### Querying All Open Findings
+
+```bash
+bun harness.ts finding:get --run .capsules/<run-id> --status open
+```
+
+### Querying Specific Finding Detail
+
+```bash
+bun harness.ts finding:get --run .capsules/<run-id> --id finding-task-slug-01
+```
+
+### Resolving Findings with Gate Receipts
+
+```bash
+bun harness.ts task:review \
+  --run .capsules/<run-id> \
+  --task <task-id> \
+  --validator <val-id> \
+  --token <val-token> \
+  --status pass \
+  --summary "All defects resolved and verified against mandatory gate suite." \
+  --checks <gate-cmd-id> \
+  --resolve "finding-task-slug-01=<gate-cmd-id>" \
+  --resolve "probe-task-slug-01-1=<gate-cmd-id>"
+```
+
+---
+
+## 💻 7. Tutorial: Multi-Finding Revalidation Workflow
+
+### Context
+
+A validator previously rejected `task-crypto-hash` with two open findings:
+
+1. `finding-task-crypto-01` (Critical): Missing salt generation in PBKDF2 hashing.
+2. `probe-task-crypto-01-1` (Minor): Probe demanding timing attack resistance evidence.
+
+A repairer implemented the fix and re-submitted. A fresh validator (`val-crypto-2`) is leased.
+
+### Step 1: Query Open Findings
+
+```bash
+bun harness.ts finding:get --run .capsules/run-91 --task task-crypto-hash
+```
+
+Output:
+
+```text
+Found 2 open finding(s) for task-crypto-hash:
+- finding-task-crypto-01 [critical]: Missing salt generation in PBKDF2 hashing.
+- probe-task-crypto-01-1 [minor]: Prove constant-time comparison is used to prevent timing attacks.
+```
+
+### Step 2: Validator Reruns Mandatory Test Gate
+
+```bash
+bun harness.ts run:exec --run .capsules/run-91 --actor val-crypto-2 --task task-crypto-hash -- \
+  bun test tests/crypto/hash.test.ts
+```
+
+Receipt generated: `C-552019` (Exit code: 0).
+
+### Step 3: Validator Runs Specific Timing Test
+
+```bash
+bun harness.ts run:exec --run .capsules/run-91 --actor val-crypto-2 --task task-crypto-hash -- \
+  bun test tests/crypto/timing.test.ts
+```
+
+Receipt generated: `C-552020` (Exit code: 0).
+
+### Step 4: Submit Review Resolving Both Findings
+
+```bash
+bun harness.ts task:review \
+  --run .capsules/run-91 \
+  --task task-crypto-hash \
+  --validator val-crypto-2 \
+  --token VAL_TOK_HASH_2 \
+  --status pass \
+  --summary "PBKDF2 uses 32-byte cryptographic salt. Timing resistance verified via crypto.timingSafeEqual." \
+  --checks C-552019,C-552020 \
+  --resolve "finding-task-crypto-01=C-552019" \
+  --resolve "probe-task-crypto-01-1=C-552020"
+```
+
+The harness marks both findings `resolved` in `state.json`, records the transition event in `events.jsonl`, and advances `task-crypto-hash` to `validated`.
 
 ---
 

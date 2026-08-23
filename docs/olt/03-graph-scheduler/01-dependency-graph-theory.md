@@ -4,214 +4,250 @@
 
 ---
 
-## 🕸️ Why a Formal Graph?
+## 🕸️ Why Formal Graph Theory in Autonomous Orchestration?
 
-Complex engineering projects cannot be represented as simple linear "to-do lists." In any non-trivial codebase:
+Complex engineering initiatives cannot be represented as naive linear to-do lists or unstructured markdown checklists. When autonomous AI agents operate on real codebases, linear task execution creates crippling bottlenecks, while uncontrolled concurrency introduces destructive race conditions, git merge collisions, and untraceable regressions.
 
-- Task D depends on Task A and Task B.
-- Task C can run completely in parallel with Task A.
-- Task E produces an artifact consumed by Task F.
-- Multiple tasks might relate to the same semantic topic or feature requirement.
+In non-trivial multi-agent engineering:
 
-To model these multi-dimensional relationships deterministically, `olt` compiles a **Strict Relational Dependency Graph** through `plan:add` and `plan:compile`.
+- **Task D** depends on the completed artifacts and validated interfaces of **Task A** and **Task B**.
+- **Task C** operates in an entirely disjoint directory from **Task A** and must execute concurrently in parallel wave lanes.
+- **Task E** produces database migration schemas consumed by backend services in **Task F**.
+- Multiple tasks cross-cut identical semantic topic domains or high-level product obligations.
 
-> **Two graphs, two vocabularies.** The _plan graph_ in `state.graph` is what the scheduler reasons
-> over: 8 node types, 10 edge types, cycle-free on `depends_on`. The _narrative graph_ written by
-> `summary:export` is a different artifact with its own richer vocabulary — 19 edge kinds, sections,
-> per-node evidence — built for a human reading the run afterwards. This chapter describes the first;
-> [Chapter 09 §03](../09-branching-and-honesty/03-evidence-classes-and-honesty.md) describes the second.
-
----
-
-## 🏷️ The 8 Node Types
-
-The graph schema recognizes exactly eight formal node types:
+To model these multidimensional constraints deterministically, `olt` compiles a **Strict Relational Directed Acyclic Graph (DAG)** via `plan:add` and `plan:compile`.
 
 ```text
-+-----------------------------------------------------------------------------------------------+
-|                                      THE 8 GRAPH NODE TYPES                                   |
-+-----------------------------------------------------------------------------------------------+
-|                                                                                               |
-|  1. requirement  ---> An atomic, testable obligation decomposed from the prompt.              |
-|  2. task         ---> An executable unit of work with exclusive write scopes and gates.       |
-|  3. artifact     ---> A concrete deliverable or file collection produced by a task.          |
-|  4. gate         ---> A literal, non-interactive command contract proving task acceptance.    |
-|  5. agent        ---> A named identity leased to execute, validate, or criticize.            |
-|  6. finding      ---> A structured defect report issued by an independent validator.          |
-|  7. decision     ---> An audited user authority decision (grant/decline) or architectural choice|
-|  8. topic        ---> A high-level semantic grouping or domain concept.                      |
-|                                                                                               |
-+-----------------------------------------------------------------------------------------------+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    THE TWO-GRAPH ARCHITECTURAL SEPARATION                   │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  1. THE PLAN GRAPH (state.graph)                                            │
+│     • Authoritative mathematical execution DAG                              │
+│     • Exactly 8 node types and 10 edge types                                │
+│     • Strict acyclicity invariant on depends_on edges (Cycle-Free)          │
+│     • Drives topological sorting, wave batching, and lease safety           │
+│                                                                             │
+│  2. THE NARRATIVE GRAPH (summary/graph.json)                                │
+│     • Comprehensive post-execution audit dataset                            │
+│     • Rich 19-edge vocabulary, chronological step sequence, evidence links  │
+│     • Constructed by summary:export for human review and compliance audits   │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 🔗 The 10 Edge Types & Directionality
+## 🏷️ The 8 Formal Node Types
 
-Edges represent typed relationships between nodes. The vocabulary is strictly closed to prevent ambiguity:
+The `olt` plan graph schema is strictly closed. It recognizes exactly eight formal node types, preventing schema drift and ambiguous execution semantics:
 
-| Edge Type             | Valid Source Node         | Valid Target Node      | Meaning                                                                              |
-| :-------------------- | :------------------------ | :--------------------- | :----------------------------------------------------------------------------------- |
-| **`depends_on`**      | `task`                    | `task` (Prerequisite)  | **Directional execution prerequisite.** Target must be `done` before Source can run. |
-| **`implements`**      | `task`                    | `requirement`          | Declares which atomic requirements the task fulfills.                                |
-| **`produces`**        | `task`                    | `artifact`             | Declares the deliverables created by this task.                                      |
-| **`validates`**       | `gate` / `agent`          | `task` / `requirement` | Binds verification evidence to work.                                                 |
-| **`evidenced_by`**    | `requirement` / `finding` | `gate` / `command`     | Points to command execution receipts.                                                |
-| **`assigned_to`**     | `task`                    | `agent`                | Records worker leasing.                                                              |
-| **`discovered_from`** | `finding`                 | `task` / `gate`        | Traces defect origin.                                                                |
-| **`supersedes`**      | `task` / `artifact`       | `task` / `artifact`    | Versioning and replacement links.                                                    |
-| **`blocks`**          | `finding`                 | `task`                 | Prevents task completion.                                                            |
-| **`relates_to`**      | Any                       | Any                    | General semantic relation (can form cycles).                                         |
+```text
++---------------------------------------------------------------------------------------------------+
+|                                      THE 8 FORMAL NODE TYPES                                      |
++---------------------------------------------------------------------------------------------------+
+|                                                                                                   |
+|  1. requirement  ---> An atomic, testable obligation decomposed from the user prompt.             |
+|  2. task         ---> An executable unit of work with exclusive write scopes, gates, and lease.  |
+|  3. artifact     ---> A concrete deliverable, file collection, or build target produced by work.  |
+|  4. gate         ---> A literal, non-interactive verification command contract proving acceptance.|
+|  5. agent        ---> A leased worker identity registered in state.agents (Tier 2/3).             |
+|  6. finding      ---> A structured defect report or probe demand issued by an adversary.         |
+|  7. decision     ---> An audited user authority grant/decline or architectural fork.              |
+|  8. topic        ---> A high-level semantic grouping or domain concept.                          |
+|                                                                                                   |
++---------------------------------------------------------------------------------------------------+
+```
+
+### Node Schema Specifications
+
+| Node Type         | Key Properties                                                           | Mutability             | Lifecycle Owner                     |
+| :---------------- | :----------------------------------------------------------------------- | :--------------------- | :---------------------------------- |
+| **`requirement`** | `id`, `line_number`, `text`, `status`, `authority_gate`, `disposition`   | Frozen at compile      | `plan:compile` / `authority:decide` |
+| **`task`**        | `id`, `label`, `write_scope`, `priority`, `effort`, `status`, `lease`    | State machine evolves  | Implementer / Repairer              |
+| **`artifact`**    | `id`, `path`, `content_hash`, `mime_type`, `produced_by`                 | Immutable once created | Task execution / `task:submit`      |
+| **`gate`**        | `id`, `command`, `argv`, `working_dir`, `timeout_ms`, `scope`            | Frozen at compile      | `plan:compile` / `gate:prove`       |
+| **`agent`**       | `id`, `role`, `host`, `model`, `thinking_level`, `status`, `parent`      | Dynamic registry       | `agent:register` / `agent:release`  |
+| **`finding`**     | `id`, `kind` (`defect`\|`probe_demand`), `severity`, `remediation`       | Immutable append       | Validator / Critic                  |
+| **`decision`**    | `id`, `actor`, `decision` (`grant`\|`decline`), `rationale`, `timestamp` | Append-only ledger     | `authority:decide`                  |
+| **`topic`**       | `id`, `label`, `description`, `domain_tag`                               | Static / Descriptive   | `plan:enhance`                      |
+
+---
+
+## 🔗 The 10 Edge Types & Directionality Matrix
+
+Edges represent directional semantic and execution relationships between nodes. Every edge belongs to a strictly typed, closed vocabulary:
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           DIRECTED EDGE TOPOLOGY                            │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│      [task] ────────────── depends_on (Prerequisite) ────────────► [task]   │
+│         │                                                             │     │
+│         ├──────────────── implements ──────────────────► [requirement]       │
+│         │                                                     │             │
+│         ├──────────────── produces ────────────────────► [artifact]          │
+│         │                                                     ▲             │
+│         ├──────────────── assigned_to ─────────────────► [agent]             │
+│         │                                                     │             │
+│      [gate] ────────────── validates ─────────────────────────┤             │
+│         │                                                     ▼             │
+│  [requirement] ─────────── evidenced_by ───────────────► [command]          │
+│         ▲                                                     │             │
+│         └──────────────── discovered_from ─────────────► [finding]          │
+│                                                               │             │
+│      [finding] ─────────── blocks ─────────────────────► [task]             │
+│                                                                             │
+│      [task / artifact] ─── supersedes ─────────────────► [task / artifact]  │
+│      [any node] ────────── relates_to ─────────────────► [any node]         │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Complete Edge Specification Matrix
+
+| Edge Type             | Source Node Type          | Target Node Type       | Execution Semantics & Invariants                                                                                                                                |
+| :-------------------- | :------------------------ | :--------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`depends_on`**      | `task`                    | `task` (Prerequisite)  | **Directional Execution Prerequisite.** Target must reach `done` status before Source becomes eligible for wave scheduling. **Must be strictly acyclic (DAG).** |
+| **`implements`**      | `task`                    | `requirement`          | Binds executable units of work to decomposed prompt obligations. Mandatory 100% coverage rule.                                                                  |
+| **`produces`**        | `task`                    | `artifact`             | Declares file deliverables or schema assets generated upon task submission.                                                                                     |
+| **`validates`**       | `gate` / `agent`          | `task` / `requirement` | Binds verification gates or validator agents to units of work.                                                                                                  |
+| **`evidenced_by`**    | `requirement` / `finding` | `gate` / `command`     | Points to cryptographic command execution receipts (`commands/C-<uuid>/record.json`).                                                                           |
+| **`assigned_to`**     | `task`                    | `agent`                | Records active worker leases, lineage, and role capability bindings.                                                                                            |
+| **`discovered_from`** | `finding`                 | `task` / `gate`        | Traces defect origin or probe demand back to the originating task execution.                                                                                    |
+| **`supersedes`**      | `task` / `artifact`       | `task` / `artifact`    | Tracks versioning and replacement across plan revisions ($R_1 \to R_2$).                                                                                        |
+| **`blocks`**          | `finding`                 | `task`                 | Prevents task completion while open findings remain unresolved.                                                                                                 |
+| **`relates_to`**      | Any Node                  | Any Node               | Semantic grouping and associative relations. **Cycles permitted.**                                                                                              |
 
 ---
 
 ## 🔄 Execution DAG vs. Relational Cycles
 
-The harness makes a critical distinction between **Execution Dependencies** and **Semantic Relations**:
+The `olt` engine enforces a strict mathematical boundary between **Execution Dependencies** and **Semantic Relations**:
 
-1. **`depends_on` (Execution Graph): MUST BE A DAG (Directed Acyclic Graph)**
-   - Cyclic dependencies (`Task A -> Task B -> Task A`) represent deadlock and are **strictly rejected** during `plan:compile`.
-   - The graph engine runs a topological cycle-detection algorithm on all `depends_on` edges before compiling the execution plan.
+1. **`depends_on` (Execution Graph): MUST BE STRICTLY ACYCLIC (DAG)**
+   - Cyclic execution dependencies (e.g., $T_A \to T_B \to T_A$) represent deadlock conditions where neither task can ever start.
+   - The graph engine executes Tarjan's Strongly Connected Components algorithm during `plan:compile`. Any non-trivial component immediately aborts compilation with `INTEGRITY_CYCLE_DETECTED`.
 
-2. **`relates_to` (Semantic Graph): CYCLES PERMITTED**
-   - Topic nodes and semantic concepts (e.g. `Auth System` $\leftrightarrow$ `Database Layer`) can have bidirectional or cyclic relations without affecting task execution.
+2. **`relates_to` (Semantic Graph): CYCLES FULLY PERMITTED**
+   - High-level domain concepts and topics (e.g., `Authentication` $\leftrightarrow$ `Session Storage`) frequently have bidirectional semantic links.
+   - Semantic cycles do not enter the scheduling pipeline and do not impact topological wave calculation.
 
----
+```text
+       EXECUTION GRAPH (Strict DAG)                 SEMANTIC GRAPH (Cycles Allowed)
 
-## 📜 Declarative CLI Assembly
-
-Tasks and gates are declared and compiled using the zero-JSON colon commands:
-
-```bash
-bun harness.ts plan:add --run .capsules/<slug> --actor planner --id task-auth \
-  --label "Implement Authentication" --scope src/auth \
-  --gate "bun test tests/auth.test.ts" --requirement-lines 3
-
-bun harness.ts plan:compile --run .capsules/<slug> --actor planner \
-  --completion-gate "bun test tests/unit"
+           ┌──────────────┐                             ┌──────────────┐
+           │  Task-Auth   │                             │  Topic-Auth  │
+           └──────┬───────┘                             └──────▲───────┘
+                  │                                            │       ▲
+            depends_on                               relates_to│       │relates_to
+                  │                                            ▼       │
+                  ▼                                     ┌──────────────┴┐
+           ┌──────────────┐                             │  Topic-Session│
+           │  Task-Route  │                             └───────────────┘
+           └──────────────┘
+        (Acyclic: No deadlock)                       (Cyclic: Domain context only)
 ```
 
-`plan:compile` writes three things at once: the requirements document, the graph at revision 1, and
-`state.topology` — the wave assignment and the reason each task landed where it did. The gate ids it
-derives follow the task ids: `task-auth` yields `gate-auth`, and the run-scope gate declared by
-`--completion-gate` is always `gate-run-completion`.
-
 ---
 
-## 🤖 Deriving Tasks From a Glob: `--auto-partition`
+## 🧭 Tarjan Strongly Connected Components Cycle Detection
 
-Hand-declaring one `plan:add` call per file is how a coordinator's incentives quietly drift toward
-fewer, bigger tasks — a documented incident had a coordinator hand-roll one task per curriculum file
-instead of letting the harness derive the partition, and the plan compressed into something far more
-monolithic than the prompt actually named. `--auto-partition` is the countermeasure: the planner
-declares a glob, and the harness enumerates what actually exists on disk and derives one task per
-match, so "fewer tasks means less bookkeeping" stops being the path of least resistance.
+Before any plan is compiled or scheduled, the graph engine executes Tarjan's linear-time $O(|V| + |E|)$ cycle detection algorithm (`detectCyclesTarjan`).
 
-```bash
-bun harness.ts plan:add --run .capsules/<slug> --id task-topic --label "Topic bank" --actor coordinator \
-  --auto-partition "src/curriculum/mlQuestions/*.ts" --gate-template "bun test {scope}"
+### Algorithmic Mechanics
+
+Tarjan's algorithm traverses the execution graph via Depth-First Search (DFS), maintaining two integer indices for each vertex $u$:
+
+- `discoveryIndex[u]`: Monotonically increasing counter when vertex $u$ is first visited.
+- `lowlink[u]`: The smallest `discoveryIndex` reachable from $u$ through DFS exploration, including back-edges to nodes currently on the call stack.
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    TARJAN SCC CYCLE DETECTION PIPELINE                      │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  For each unvisited vertex u in state.graph.tasks:                          │
+│    1. Set discoveryIndex[u] = lowlink[u] = ++currentIndex                   │
+│    2. Push u onto active traversal stack S                                  │
+│    3. For each directed edge (u, v) in depends_on:                          │
+│         if v is unvisited:                                                  │
+│           DFS(v)                                                            │
+│           lowlink[u] = min(lowlink[u], lowlink[v])                          │
+│         else if v is currently on stack S:                                  │
+│           lowlink[u] = min(lowlink[u], discoveryIndex[v])  <-- BACK-EDGE!   │
+│    4. If lowlink[u] == discoveryIndex[u]:                                   │
+│         Pop nodes from stack S until u is popped.                           │
+│         If popped set size > 1 (or self-loop):                              │
+│           --> CYCLE DETECTED! Emit exact cycle path and fail compile.       │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-- **`--auto-partition <glob>`** is mutually exclusive with `--scope`, `--gate`, `--deps` and
-  `--dep-reason` — auto-partitioned tasks derive their scope and gate from the glob and are
-  independent roots by construction (no dependency edges, so nothing to justify).
-- **`--gate-template`** must contain the literal placeholder `{scope}`, substituted per generated
-  task with that task's own matched file (or directory) path.
-- **`--group-by file`** (the default) emits one task per matched file. **`--group-by directory`**
-  emits one task per directory that holds at least one match, with that task's write scope set to
-  the directory and every match inside it as its files.
-- Every generated task id is `<id-prefix>-<slugified-scope>` and every generated label is
-  `<label-prefix>: <scope>` — the glob author never hand-picks which files land in which task; the
-  harness derives granularity from what actually exists on disk.
-- The glob matcher is a pragmatic, non-POSIX translator: `*` and `?` never cross a `/`, and a bare
-  `**` segment matches zero or more whole path segments — `src/**/*.ts` also matches `src/a.ts`
-  directly. It walks the real repository tree, skipping `.git`, `.capsules`, `node_modules`, `.bun`,
-  `.cache`, `coverage`, `__pycache__` and any symlink, and throws rather than silently registering
-  nothing if the glob matches zero files.
+If a cycle is detected, `plan:compile` produces a structured diagnostics report containing the exact cycle chain, the involved write scopes, and prescriptive remediation instructions:
 
----
-
-## 📋 The Mandatory Topology Declaration (C6)
-
-Every dependency edge a coordinator declares by hand must carry the one-line reason it exists:
-
-```bash
-bun harness.ts plan:add --run .capsules/<slug> --id task-integration --label "Integration" \
-  --scope src/integration --gate "bun test tests/integration" --actor coordinator \
-  --deps task-db,task-cli \
-  --dep-reason "task-db:reads the schema task-db writes" \
-  --dep-reason "task-cli:reads the CLI wiring task-cli writes"
+```text
+{"ok":false,"error":{"code":"INTEGRITY","message":"Cyclic dependency detected in planning buffer: task-auth -> task-db -> task-auth. Execution graph must be a Directed Acyclic Graph (DAG). Remove circular depends_on edge to proceed.","issues":[{"cycle":["task-auth","task-db","task-auth"]}]}}
 ```
 
-`plan:compile` refuses to seal the plan while any `--deps` id lacks a matching `--dep-reason` — there
-is no default and no way to declare an edge silently. The design principle is that stating _why_ an
-edge exists is what makes an unjustified barrier visible to the coordinator that just drew it; a false
-barrier can look scope-disjoint and still slip past every structural check if nothing forces the
-coordinator to say why they drew it. `plan:compile`'s brief reports the independent-root count and
-every justified edge (`"Topology Declaration": 3/5 tasks are independent roots; 2 dependency edge(s),
-all justified`). This check runs strictly after the six-invariant plan audit (`plan:compile` runs the
-audit first, then this declaration check, then builds the graph) — see [Chapter 03
-§03](./03-plan-revision-and-freezing.md) for the audit and for the plan-validator, the second,
-independent adversary that reviews the plan once it's compiled.
-
 ---
 
-## 📐 Sugiyama Hierarchical Layout & Tarjan Cycle Diagnostics
+## 📐 Sugiyama 4-Phase Hierarchical Layout Engine
 
-To visualize complex task dependencies without spaghetti crossings or ambiguous ordering, the harness implements a full **Sugiyama Hierarchical DAG Layout Engine** coupled with **Tarjan Strongly Connected Component (SCC) Cycle Diagnostics** (`dag:render`, aliased as `graph:sugiyama`).
+To provide visual clarity in terminal interfaces without resorting to external web viewers or heavy GUI dependencies, `olt` incorporates an in-engine **Sugiyama 4-Phase Hierarchical DAG Renderer** (`dag:render`, aliased as `graph:sugiyama`).
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                    SUGIYAMA 4-PHASE HIERARCHICAL LAYOUT                     │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
-│  Phase 1: Layered Ranking                                                   │
-│    Assigns discrete ranks L_0, L_1, ..., L_k such that                      │
-│    rank(target) >= rank(source) + 1 for every directed edge.                │
+│  Phase 1: Layered Ranking (Longest Path Layer Assignment)                  │
+│    Assigns discrete integer ranks L_0, L_1, ..., L_k such that              │
+│    rank(v) >= rank(u) + 1 for every directed edge (u, v) in depends_on.     │
 │                                  │                                          │
 │                                  ▼                                          │
 │  Phase 2: Dummy Node Normalization                                          │
-│    Splits multi-layer edges (span > 1) into chains of dummy nodes so        │
-│    every edge connects strictly adjacent layers.                            │
+│    Splits multi-layer edges (where rank(v) - rank(u) > 1) into chains of    │
+│    synthetic dummy vertices so every segment connects strictly adjacent     │
+│    layers L_i and L_{i+1}.                                                  │
 │                                  │                                          │
 │                                  ▼                                          │
 │  Phase 3: Barycenter Crossing Minimization                                  │
-│    Iteratively sweeps up and down adjacent layers, computing the average    │
-│    barycenter position of adjacent neighbors:                               │
-│      barycenter(u) = (1 / deg(u)) * sum_{v in N(u)} pos(v)                  │
-│    Sorts nodes by barycenter to minimize visual edge crossings.              │
+│    Iteratively sweeps up and down adjacent layers. Computes the average      │
+│    neighbor position for every vertex u:                                    │
+│      barycenter(u) = (1 / deg(u)) * sum_{v in Neighbors(u)} position(v)     │
+│    Sorts vertices within each layer to minimize visual edge crossings.      │
 │                                  │                                          │
 │                                  ▼                                          │
-│  Phase 4: Orthogonal Coordinate Assignment & Visual Box Rendering          │
-│    Assigns X/Y grid positions and renders rounded Unicode or ASCII boxes.   │
+│  Phase 4: Orthogonal Grid Assignment & Box Rendering                        │
+│    Computes column offsets, routes orthogonal ASCII/Unicode interconnects,  │
+│    and renders rounded/sharp/ascii terminal boxes with live state badges.   │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 1. Tarjan Cycle Detection Algorithm (`detectCyclesTarjan`)
+### Live Visual Execution Rendering
 
-Before rendering or scheduling, the engine audits the graph for deadlocks using Tarjan's linear-time ($O(V + E)$) strongly connected components algorithm:
-
-- Maintains discovery `indices`, `lowlinks`, and an active traversal `stack`.
-- Any strongly connected component with more than one node (or a self-loop) represents a cyclic dependency deadlock.
-- Produces exact cycle paths (e.g. `task-auth -> task-db -> task-auth`), exact cycle edges, and structured remediation hints.
+Running `dag:render` generates an interactive, high-fidelity ASCII/Unicode topology map directly in the terminal:
 
 ```bash
 bun harness.ts dag:render --run .capsules/<slug> --box-style rounded
 ```
 
 ```text
-### Sugiyama Hierarchical DAG: capsule-run (Revision 1)
-- **Status**: Compiled Plan (5 tasks across 3 waves)
+### Sugiyama Hierarchical DAG: slugger (Revision 1)
+- **Status**: Compiled Plan (4 tasks across 3 waves)
 - **Cycle Diagnostics**: PASSED ✅ (No dependency cycles detected)
 - **Bypass Diagnostics**: PASSED ✅ (No illegal transitive layer bypasses)
-- **Parallelism Factor**: 1.67x (Work: 5 units, Span: 3 units)
+- **Work/Span Telemetry**: Work W=12 units, Span S=4 units, Parallelism Factor P=3.00x
 
 Layer 0 (Wave 1):
 ┌──────────────────────────────┐       ┌──────────────────────────────┐
-│ task-schema                  │       │ task-auth-token              │
-│ (○ READY)                    │       │ (○ READY)                    │
+│ task-schema                  │       │ task-token-gen               │
+│ (✓ PASSED)                   │       │ (🟢 RUNNING)                 │
 │ Scope: src/db/schema.ts      │       │ Scope: src/auth/token.ts     │
+│ Gate: bun test tests/db.test │       │ Gate: bun test tests/tok.test│
 └──────────────┬───────────────┘       └──────────────┬───────────────┘
                │                                      │
                ▼                                      ▼
@@ -220,7 +256,8 @@ Layer 1 (Wave 2):
 │ task-auth-service                                                   │
 │ (⏳ BLOCKED)                                                        │
 │ Scope: src/auth/service.ts                                          │
-│ Deps: task-schema, task-auth-token                                  │
+│ Gate: bun test tests/auth.test.ts                                   │
+│ Deps: task-schema, task-token-gen                                   │
 └──────────────────────────────────┬──────────────────────────────────┘
                                    │
                                    ▼
@@ -229,30 +266,72 @@ Layer 2 (Wave 3):
 │ task-api-routes              │       │ task-cli-wiring              │
 │ (⏳ BLOCKED)                 │       │ (⏳ BLOCKED)                 │
 │ Scope: src/api/routes.ts     │       │ Scope: src/cli/index.ts      │
+│ Gate: bun test tests/api.test│       │ Gate: bun test tests/cli.test│
 └──────────────────────────────┘       └──────────────────────────────┘
 ```
 
-### 2. Live Status Badges & Box Styles
+### Deterministic State Badge Vocabulary
 
-The renderer reflects live task states via deterministic badges:
+| Status Code                   | Visual Badge     | Formal Meaning & Scheduling Impact                                |
+| :---------------------------- | :--------------- | :---------------------------------------------------------------- |
+| `done`, `satisfied`, `passed` | `✓ PASSED`       | Task execution verified, gates passed, and review signed off.     |
+| `leased`, `running`, `active` | `🟢 RUNNING`     | Worker holds active lease and sends regular heartbeats.           |
+| `validating`                  | `🔄 VALIDATING`  | Independent validator executing probe and gate checks.            |
+| `validated`                   | `🟣 VALIDATED`   | All adversarial probes and gate checks satisfied.                 |
+| `ready`, `retry_ready`        | `○ READY`        | Dependencies satisfied; claimable immediately in current wave.    |
+| `proposed`, `blocked`         | `⏳ BLOCKED`     | Prerequisite tasks or ungranted authority gates pending.          |
+| `changes_requested`           | `🔴 CHANGES_REQ` | Validator pushback; available for repairer claim.                 |
+| `failed`, `rejected`          | `❌ REJECTED`    | Terminal failure or unrecoverable defect.                         |
+| `escalated`                   | `🚨 ESCALATED`   | Max repair budget (6 rounds) exhausted; requires human authority. |
 
-| Status Code                   | Visual Badge     | Meaning                                               |
-| :---------------------------- | :--------------- | :---------------------------------------------------- |
-| `done`, `satisfied`, `passed` | `✓ PASSED`       | Task execution verified and closed.                   |
-| `leased`, `running`, `active` | `🟢 RUNNING`     | Worker holds active lease and heartbeats.             |
-| `validating`                  | `🔄 VALIDATING`  | Independent validator executing probe/gate checks.    |
-| `validated`                   | `🟣 VALIDATED`   | All applicable domain checklists passed.              |
-| `ready`, `retry_ready`        | `○ READY`        | Dependencies satisfied; claimable immediately.        |
-| `proposed`, `blocked`         | `⏳ BLOCKED`     | Prerequisite tasks or gates pending.                  |
-| `changes_requested`           | `🔴 CHANGES_REQ` | Validator pushback; ready for repairer claim.         |
-| `failed`, `rejected`          | `❌ REJECTED`    | Terminal rejection or irrecoverable failure.          |
-| `escalated`                   | `🚨 ESCALATED`   | Repair budget exhausted; awaiting human intervention. |
+---
 
-Supported border styles via `--box-style`:
+## 🤖 Deriving Granular Tasks From a Glob: `--auto-partition`
 
-- **`rounded`** (default): Uses smooth Unicode box characters (`┌─┐│└─┘`).
-- **`sharp`**: Uses squared Unicode corners (`┌─┐│└─┘`).
-- **`ascii`**: Uses pure 7-bit ASCII characters (`+-+|+-+`) for legacy terminals.
+A common failure mode in autonomous planning is **monolithic task compression**: an AI planner combines 10 separate file implementations into 1 huge task to minimize planning overhead. This destroys parallel execution speedup.
+
+To eliminate this failure mode mechanically, `plan:add` provides `--auto-partition`. The planner specifies a filesystem glob pattern, and the harness enumerates disk matches to derive independent, parallel root tasks:
+
+```bash
+bun harness.ts plan:add --run .capsules/<slug> --actor planner --id task-curriculum \
+  --label "Curriculum module" --auto-partition "src/curriculum/**/*.ts" \
+  --gate-template "bun test tests/{scope}.test.ts" --group-by file
+```
+
+### Partitioning Invariants & Rules
+
+1. **Mutual Exclusion**: `--auto-partition` is mutually exclusive with `--scope`, `--gate`, `--deps`, and `--dep-reason`. Auto-partitioned tasks derive scopes and gates mechanically from disk.
+2. **Template Substitution**: `--gate-template` must contain the literal `{scope}` placeholder, dynamically substituted with each matched file or directory path.
+3. **Grouping Strategy**:
+   - `--group-by file` (default): Emits exactly one independent task per matched file.
+   - `--group-by directory`: Emits one task per distinct directory containing matches, setting the write scope to the directory and binding all contained files.
+4. **Deterministic Identifier Generation**: Every generated task id is `<id-prefix>-<slugified-scope>`, ensuring consistent, collision-free node identifiers.
+5. **Path Safety**: The glob engine traverses physical repository files, skipping `.git`, `.capsules`, `node_modules`, `.bun`, `coverage`, and symlinks. If zero files match, compilation throws `INVALID_ARGUMENT` rather than silently generating an empty plan.
+
+---
+
+## 📋 The Mandatory Topology Declaration (C6)
+
+A central invariant of `olt` is that **artificial serialization barriers are forbidden**. Every dependency edge declared between tasks must carry a verifiable, machine-auditable justification explaining the exact data flow or semantic prerequisite.
+
+```bash
+bun harness.ts plan:add --run .capsules/<slug> --actor coordinator --id task-api \
+  --label "REST API Endpoints" --scope src/api --gate "bun test tests/api" \
+  --deps task-db,task-auth \
+  --dep-reason "task-db:imports database client and typeorm entities generated by task-db" \
+  --dep-reason "task-auth:requires JWT validation middleware exported from task-auth"
+```
+
+### Mechanical Declaration Invariant
+
+- `plan:compile` verifies that every dependency ID listed in `--deps` possesses an exact corresponding `--dep-reason "<task-id>:<reason>"`.
+- If any edge lacks justification, `plan:compile` halts immediately:
+
+```text
+{"ok":false,"error":{"code":"INVALID_ARGUMENT","message":"dependency edge(s) without a declared justification: task-api -> task-db. Pass plan:add --dep-reason <dep-id>:\"<why this edge exists>\" for each one before compiling.","issues":[]}}
+```
+
+This mechanical gate forces planning agents to articulate why two tasks cannot run concurrently, preventing accidental serialization of disjoint engineering scopes.
 
 ---
 

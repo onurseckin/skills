@@ -6,233 +6,495 @@
 
 ## 🧭 The End-to-End Orchestration Lifecycle
 
-A complex request moves through ten deterministic stages, plus one optional adversarial check between
-Compile and Dispatch. Each has defined inputs, recorded outputs, and a transition the harness will
-refuse to make without evidence.
+An engineering objective within the OLT framework transitions through an authoritative, multi-tier execution lifecycle. Every phase has cryptographically sealed inputs, deterministic state machine transitions, and mechanical verification gates that refuse to proceed without host-observed evidence.
 
 ```text
-  1. CAPTURE          2. ENHANCE          3. DECLARE           4. COMPILE
-┌─────────────┐     ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│ prompt.md   │ ──> │ Agent's     │ ──> │ Tasks bound │ ──> │ Requirements│
-│ (SHA-256)   │     │ repo reading│     │ to lines    │     │ DAG + waves │
-└─────────────┘     └─────────────┘     └─────────────┘     └──────┬──────┘
-                                                                    │ *
-                                                                    ▼
-  8. PROBE & REPAIR    7. VALIDATE         6. EXECUTE          5. DISPATCH
-┌─────────────┐     ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│ Probe demand│ <── │ Independent │ <── │ Lease, edit,│ <── │ Ready now,  │
-│ or defect   │     │ validator   │     │ branch, gate│     │ registered  │
-└─────────────┘     └─────────────┘     └─────────────┘     └─────────────┘
-       │
-       ▼
-  9. GATES & CRITIC   10. COMPLETE
-┌─────────────┐     ┌─────────────┐
-│ Run gate +  │ ──> │ Mechanical  │
-│ sign-off    │     │ terminal OK │
-└─────────────┘     └─────────────┘
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│                           THE COMPLETE OLT EXECUTION PIPELINE                           │
+├─────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                         │
+│  [ TIER 0: MIND ADMISSION & DISPATCH ]                                                  │
+│  ┌───────────────────────────────────────────────────────────────────────────────────┐  │
+│  │ 1. INGEST FEEDBACK      2. ADMIT CANDIDATE        3. ATOMIC DISPATCH              │  │
+│  │    (mind:queue:add)        (mind:queue:drain)        (TASK_QUEUE.jsonl)           │  │
+│  └──────────────────────────────────────┬────────────────────────────────────────────┘  │
+│                                         │                                               │
+│                                         ▼                                               │
+│  [ TIER 1: ORCHESTRATOR PLANNING & AUDIT ]                                              │
+│  ┌───────────────────────────────────────────────────────────────────────────────────┐  │
+│  │ 4. CAPTURE PROMPT       5. ENHANCE PLAN           6. DECLARE & COMPILE DAG        │  │
+│  │    (plan:init 0444)        (plan:enhance)            (plan:add / plan:compile)   │  │
+│  └──────────────────────────────────────┬────────────────────────────────────────────┘  │
+│                                         │                                               │
+│                                         ▼                                               │
+│  [ TIER 2: COORDINATOR WAVE SCHEDULING ]                                                │
+│  ┌───────────────────────────────────────────────────────────────────────────────────┐  │
+│  │ 7. BRENT WORK/SPAN      8. 1-SHOT EXACT BRIEF     9. LEASE ACQUISITION            │  │
+│  │    (queue:wave P=W/S)      (task:brief Turn 1)       (task:claim bearer token)    │  │
+│  └──────────────────────────────────────┬────────────────────────────────────────────┘  │
+│                                         │                                               │
+│                                         ▼                                               │
+│  [ TIER 3: IMPLEMENTATION & 1-HOP MICRO-CYCLES ]                                        │
+│  ┌───────────────────────────────────────────────────────────────────────────────────┐  │
+│  │ 10. DISJOINT WRITE     11. FAST CHECK (AST/TYPE) 12. 1-HOP MICRO-CYCLE CRITIQUE   │  │
+│  │    (task.write_scope)      (task:check 0 any)        (task:reject --in-lease)     │  │
+│  └──────────────────────────────────────┬────────────────────────────────────────────┘  │
+│                                         │                                               │
+│                                         ▼                                               │
+│  [ TIER 3: COGNITIVE VALIDATION & ADVERSARIAL PROBES ]                                  │
+│  ┌───────────────────────────────────────────────────────────────────────────────────┐  │
+│  │ 13. HARD-LOCK REVIEW   14. ADVERSARIAL PROBE     15. VERIFIED PASS SIGN-OFF       │  │
+│  │    (0 commands run)        (task:probe min >= 1)     (task:review --resolve all)  │  │
+│  └──────────────────────────────────────┬────────────────────────────────────────────┘  │
+│                                         │                                               │
+│                                         ▼                                               │
+│  [ RUN-LEVEL GATES, CRITIC & METRIC SEALING ]                                           │
+│  ┌───────────────────────────────────────────────────────────────────────────────────┐  │
+│  │ 16. COMPLETENESS CRITIC 17. MECHANICAL TERMINAL  18. META-AUDITOR FORENSICS       │  │
+│  │    (critic:start / review) (run:complete)            (meta-audit --inject)        │  │
+│  └───────────────────────────────────────────────────────────────────────────────────┘  │
+│                                                                                         │
+└─────────────────────────────────────────────────────────────────────────────────────────┘
 ```
-
-`*` Between Compile and Dispatch sits an optional eleventh stage the diagram above has no numbered
-box for, because it is an adversary the coordinator opts into rather than a step every run takes:
-**Stage 4½, Plan Review** (`plan:validate-start` / `plan:review`). See below.
 
 ---
 
-## 🔍 The Ten Stages
+## 🔬 Phase-by-Phase Execution Walkthrough
 
-### Stage 1: Capture (`plan:init`)
+---
 
-```bash
-printf "%s" "$PROMPT" | bun harness.ts plan:init --repo . --run <slug> --prompt-stdin
-bun harness.ts plan:init --repo . --run <slug> --prompt-file prompt.txt --capture-mode file
+### Phase 1: Tier 0 Mind Admission & Atomic Dispatch Chaining
+
+Tier 0 Mind operates as an **Infinite Product Owner** managing repository backlogs across two operational modes:
+
+- **Mode A (Autonomous Self-Evolution)**: Triggers continuous codebase optimization, charter gap audits, and blunder regression tests when the queue is empty.
+- **Mode B (External Intake)**: Ingests user directives, architectural features, and external bug reports into `.capsules/mind/queue/feedback-queue.jsonl`.
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│                      TIER 0 MIND ADMISSION & ATOMIC DISPATCH                            │
+├─────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                         │
+│  [ Ingest Directive ] ──► [ feedback-queue.jsonl ] ──► [ Atomic Admission & Dispatch ]  │
+│    (mind:queue:add)             (Status: PENDING)             (Status: ADMITTED)        │
+│                                                                        │                │
+│                                                                        ▼                │
+│                                                               [ TASK_QUEUE.jsonl ]      │
+│                                                              (0 Paused Admitted Items)  │
+│                                                                        │                │
+│                                                                        ▼                │
+│                                                              [ Spawn Tier 1 Orchestrator]│
+│                                                                                         │
+└─────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-Creates `.capsules/<run-id>/` with `prompt.md` at mode `0444`, `manifest.json` bound to its SHA-256,
-an empty `events.jsonl` and `state.json`. Assurance is `source-verified` for a direct stream or file
-read, `recorded-unverified` for a transcribed copy. The command refuses if `.capsules` is not
-gitignored. `--run` here is a **bare run id** — never `.capsules/<run-id>` — because this is the one
-command that builds that path; see [Chapter 01 §02](./02-capsule-and-storage-model.md), under
-"Run-Id Typing," for exactly what is and isn't accepted, and why every other stage below takes the
-full capsule root instead.
-
-There is a second, equivalent entry point: `orchestrate` takes the user's entire message as free
-text — `bun harness.ts orchestrate Add a slugify helper...`, or a piped stdin with no flags at all —
-captures it byte-for-byte with the identical guarantee as `plan:init`, and opens the capsule in one
-call. It cannot run Stage 2 for you: deciding what the repository actually contains needs a model's
-judgment, and the harness never calls one on its own. What it hands back instead is the fixed
-checklist for everything that comes after, bound to the run it just opened, so the calling agent
-never has to reconstruct that sequence from memory. A registered flag such as `--repo` or `--run`,
-if it appears _after_ the free-text prompt on the command line, is refused outright rather than
-silently folded into the captured bytes — a concrete, previously-real bug this guard exists to
-close: `orchestrate fix the bug --repo /other` used to corrupt the prompt capture with flag syntax
-the user never meant as prose, while silently discarding `--repo`'s actual effect.
-
-### Stage 2: Enhance (`plan:enhance`)
+#### Key Step Machine Commands:
 
 ```bash
-bun harness.ts plan:enhance --run .capsules/<slug> --actor planner \
-  --summary "<what this run is about>" --observation "<what the repo actually contains>" \
-  --todo "<one organised step>" --risk "<what could go wrong>" --source <file-actually-read>
+# 1. Ingest directive into Mind queue
+bun harness.ts mind:queue:add \
+  --title "Implement OAuth2 PKCE Support" \
+  --content "Add secure OAuth2 PKCE auth flow to src/auth/ with file-scoped unit tests" \
+  --priority HIGH_ARCHITECTURAL_FEATURE \
+  --category SECURITY
+
+# 2. Inspect pending backlog
+bun harness.ts mind:queue:list --status PENDING
+
+# 3. Drain and admit candidate atomically into execution
+bun harness.ts mind:queue:drain --limit 1 --mark-as ADMITTED
 ```
 
-Writes `planning/enhanced-plan.md` and `.json` read-only and records their digests in
-`state.planning`. Everything in it is `agent_reported`: the harness asks no model anything, and the
-document is explicitly derived. `prompt.md` stays the requirement source.
+> [!IMPORTANT]
+> **Atomic Admission-to-Dispatch Invariant**: Mind never leaves admitted items in a paused or orphaned state (`reconcilePausedAdmittedFeedbacks`). Admitted items are atomically converted and dispatched directly to the active task queue.
 
-### Stage 3: Declare (`plan:add`)
+---
+
+### Phase 2: Tier 1 Orchestrator Multi-Round Planning & Plan Audit
+
+The Tier 1 Orchestrator receives the admitted objective, initializes the isolated run capsule, enhances plan context by inspecting the repository, and compiles the topological graph.
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│                     TIER 1 ORCHESTRATOR PLANNING & STRUCTURAL AUDIT                     │
+├─────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                         │
+│  1. CAPTURE PROMPT (plan:init) ──► prompt.md (mode 0444) + manifest.json (SHA-256)     │
+│             │                                                                           │
+│             ▼                                                                           │
+│  2. ENHANCE CONTEXT (plan:enhance) ──► planning/enhanced-plan.md (agent_reported)       │
+│             │                                                                           │
+│             ▼                                                                           │
+│  3. DECLARE TASKS (plan:add) ──► 100% Prompt Line Coverage + Explicit --dep-reason      │
+│             │                                                                           │
+│             ▼                                                                           │
+│  4. STRUCTURAL AUDIT & COMPILE (plan:compile) ──► Enforces Invariants C1 - C6           │
+│             │                                                                           │
+│             ▼ (Optional Stage 4½)                                                       │
+│  5. ADVERSARIAL PLAN REVIEW (plan:validate-start / plan:review) ──► Plan Approved      │
+│                                                                                         │
+└─────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+#### 1. Capture Prompt (`plan:init`)
 
 ```bash
-bun harness.ts plan:add --run .capsules/<slug> --actor planner --id <task-id> \
-  --label "<label>" --scope <path> --gate "<gate-cmd>" --requirement-lines "3-5" [--deps <dep-id>]
+printf "%s" "$USER_PROMPT" | bun harness.ts plan:init \
+  --repo . \
+  --run oauth-pkce-v1 \
+  --prompt-stdin
 ```
 
-`--requirement-lines` binds the task to the prompt lines it implements. Without it the compiler glues
-the task to the next unclaimed non-blank line by position and warns. Every `--deps <id>` also needs
-its own `--dep-reason <id>:"<why this edge exists>"` — `plan:compile` will not seal the plan while any
-edge lacks one — and a whole batch of tasks can be declared in a single call with
-`--auto-partition <glob> --gate-template "<cmd with {scope}>"` instead of one `plan:add` per task; see
-[Chapter 02 §02](../02-requirements/02-line-disposition-algorithm.md) for both in full.
+Creates `.capsules/oauth-pkce-v1/` with `prompt.md` locked at mode `0444` and cryptographic hash recorded in `manifest.json`.
 
-### Stage 4: Compile (`plan:compile`)
+#### 2. Enhance Plan (`plan:enhance`)
 
 ```bash
-bun harness.ts plan:compile --run .capsules/<slug> --actor planner --completion-gate "bun test tests"
+bun harness.ts plan:enhance \
+  --run .capsules/oauth-pkce-v1 \
+  --actor planner \
+  --summary "OAuth2 PKCE integration" \
+  --observation "Existing auth handler in src/auth/session.ts uses legacy cookies" \
+  --todo "Implement PKCE verifier generation and token exchange in src/auth/pkce.ts" \
+  --risk "Token replay if verifier is logged in plaintext" \
+  --source src/auth/session.ts
 ```
 
-Before anything else, this command runs the same six-invariant structural audit `plan:audit` runs
-standalone (compressed decomposition, non-discriminating shared gates, false dependency barriers,
-wave stragglers, whole-suite task gates) and **refuses to seal the plan** on any blocking finding
-unless it was explicitly accepted with `--accept-audit "<invariant-id>:<reason>"`, once per finding —
-there is no blanket override. It then refuses separately if any dependency edge in the buffer still
-lacks its `--dep-reason` justification. Only once both checks clear does it derive one requirement
-per task, dispose every non-blank prompt line, check scope independence, build the graph at revision
-1, and record `state.topology` — the waves and the per-task scheduling decision that produced them.
-`--completion-gate` is mandatory and has no default. See [Chapter 02 §02](../02-requirements/02-line-disposition-algorithm.md),
-under "Two Checks Before a Plan Can Be Sealed," for the full mechanics of both checks, including
-exactly what each of the six invariants looks for.
-
-### Stage 4½: Plan Review (`plan:validate-start`, `plan:review`) — optional
+#### 3. Declare Tasks (`plan:add`)
 
 ```bash
-bun harness.ts plan:validate-start --run .capsules/<slug> --validator plan-val-1
-bun harness.ts plan:review --run .capsules/<slug> --validator plan-val-1 --token <token> \
-  --status approved --decomposition-answer "..." --dependency-answer "..." \
-  --gate-answer "..." --straggler-answer "..." \
-  --dependency-edges-reviewed "..." --gate-ids-reviewed "..." --summary "<verdict>"
+bun harness.ts plan:add \
+  --run .capsules/oauth-pkce-v1 \
+  --actor planner \
+  --id task-pkce-core \
+  --label "Core PKCE Code Generator" \
+  --scope "src/auth/pkce.ts" \
+  --gate "bun test tests/auth/pkce.test.ts" \
+  --requirement-lines "1-4"
 ```
 
-The structural audit in Stage 4 is mechanical — it can only check what a static heuristic can see.
-This stage adds a second, genuinely independent check: a plan-validator agent (never the coordinator
-or planner that produced the plan) reads the compiled graph and answers, in writing, the same four
-questions every time, pass or reject — decomposition, dependency justification, gate discrimination,
-straggler risk. Unlike every other adversary in this lifecycle, it judges the _plan_, never the code,
-because there is no code yet. It is **optional**: most runs never dispatch one, and `state.json`
-simply has no `plan_validation` key when none was. But once one _is_ dispatched, its verdict is not
-advisory — a recorded `changes_requested` against the live graph revision is a hard stop
-`task:claim` enforces directly, refusing every implementer and repairer claim until a fresh compile
-brings back a passing review. See [Chapter 02 §03](../02-requirements/03-authority-decisions-and-dispositions.md),
-under "A Second, Independent Gate," for the full protocol.
-
-### Stage 5: Dispatch (`queue:wave`, `agent:register`, `task:claim`)
+#### 4. Compile Plan (`plan:compile`)
 
 ```bash
-bun harness.ts queue:wave --run .capsules/<slug>
-bun harness.ts agent:register --run .capsules/<slug> --agent <id> --role implementer \
-  --host <host> --parent-agent <coordinator> --parent-task <task-id>
-bun harness.ts task:claim --run .capsules/<slug> --task <task-id> --agent <id> --role implementer
+bun harness.ts plan:compile \
+  --run .capsules/oauth-pkce-v1 \
+  --actor planner \
+  --completion-gate "bun test tests/auth/"
 ```
 
-`queue:wave` reports every task claimable right now, so each one is dispatched as an agent frees up
-rather than as a batch to wait on. `queue:pop` claims a single task atomically and fills one freed
-slot. `task:claim`
-demands an explicit `--role` and returns a one-time bearer token; only its digest is persisted.
+`plan:compile` automatically executes the **Six Plan Invariants (C1–C6)**:
 
-### Stage 6: Execute (`run:exec`, `branch:*`, `task:submit`)
+- **C1**: Plan structural audit (blocks compressed decomposition or shared gates).
+- **C2**: Plan validator gating.
+- **C3**: Falsifiable gate checks.
+- **C4**: Effort-evidence tracking.
+- **C5**: Run ID pattern normalization.
+- **C6**: Declared topology justification for every DAG edge.
+
+---
+
+### Phase 3: Tier 2 Coordinator Wave Scheduling & 1-Shot Exact Briefs
+
+The Tier 2 Coordinator calculates optimal concurrency using **Brent's Theorem**:
+$$P = \left\lceil \frac{W}{S} \right\rceil$$
+Where Work $W = \sum \text{task effort}$ and Span $S = \text{critical path depth}$.
+
+Tasks with strictly disjoint write scopes are grouped into parallel waves. The coordinator generates **1-Shot Exact-Anchor Briefings** (`task:brief`), driving implementers to **Turn 1 edits with zero exploratory reads**.
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│                      1-SHOT EXACT-ANCHOR DISPATCH WORKFLOW                              │
+├─────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                         │
+│  [ queue:wave ] ──► Identifies parallel ready lanes with disjoint write scopes          │
+│         │                                                                               │
+│         ▼                                                                               │
+│  [ task:brief ] ──► Assembles Exact Briefing:                                           │
+│                       • Exact target files & explicit line coordinates (Start/EndLine)  │
+│                       • Concrete TypeScript symbols & drop-in replacement chunks        │
+│                       • File-scoped test command: bun test tests/auth/pkce.test.ts      │
+│         │                                                                               │
+│         ▼                                                                               │
+│  [ task:claim ] ──► Issues one-time bearer token (qSGsImlAsT...) + leases write scope   │
+│                                                                                         │
+└─────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+#### Dispatch Commands:
 
 ```bash
-bun harness.ts run:exec --run .capsules/<slug> --task <task-id> --gate <gate-id> \
-  --actor <agent> -- <gate-argv...>
-bun harness.ts task:submit --run .capsules/<slug> --task <task-id> --agent <agent> \
-  --token <token> --summary "<what changed>"
+# 1. Inspect ready wave lanes
+bun harness.ts queue:wave --run .capsules/oauth-pkce-v1
+
+# 2. Register Implementer Agent
+bun harness.ts agent:register \
+  --run .capsules/oauth-pkce-v1 \
+  --agent imp-1 \
+  --role implementer \
+  --host antigravity \
+  --parent-agent coord-1 \
+  --parent-task task-pkce-core
+
+# 3. Assemble Exact-Anchor Briefing
+bun harness.ts task:brief \
+  --run .capsules/oauth-pkce-v1 \
+  --task task-pkce-core \
+  --agent imp-1 \
+  --role implementer
+
+# 4. Claim Task Lease
+bun harness.ts task:claim \
+  --run .capsules/oauth-pkce-v1 \
+  --task task-pkce-core \
+  --agent imp-1 \
+  --role implementer
 ```
 
-The agent writes only inside its leased scope and heartbeats with `task:heartbeat`. If the work turns
-out to split, `branch:open` subdivides it at execution time without touching the plan revision; the
-parent's lease clock freezes until `branch:collect` or `branch:abandon`. `--summary` is mandatory on
-submit, and `files_changed` comes from a Git observation narrowed to the write scope.
+---
 
-`task:claim` and `task:submit` each compute a sha256 content digest of every file the write scope
-currently holds on disk — not by timestamp, since a Git checkout or rebase can rewrite mtimes on
-files nobody touched, which would misreport as work that never happened. If the two digests are
-byte-identical, `task:submit` refuses the submission outright: `--no-op --reason "<why this
-legitimately needed no change>"` is the one way past that refusal, and it is only accepted when the
-scope genuinely didn't change; declaring `--no-op` against a scope that _did_ change is refused just
-as firmly, the other way round. An unexplained no-change submission is always an error, never
-silently inferred as intentional.
+### Phase 4: Tier 3 Implementer Execution & 1-Hop In-Lease Micro-Cycles
 
-### Stage 7: Validate (`task:validate-start`)
+The Implementer executes modifications strictly within `task.write_scope`.
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│                   IMPLEMENTER EXECUTION & FAST INCREMENTAL CHECK                        │
+├─────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                         │
+│  [ Turn 1 Edit ] ──► Immediate code edit within leased write scope (0 exploration)      │
+│         │                                                                               │
+│         ▼                                                                               │
+│  [ Unit Test ]   ──► File-scoped test execution: bun test tests/auth/pkce.test.ts       │
+│         │                                                                               │
+│         ▼                                                                               │
+│  [ task:check ]  ──► Fast in-process incremental check (0 any, 0 suppressions, AST)     │
+│         │                                                                               │
+│         ▼                                                                               │
+│  [ task:submit ] ──► Verifies SHA-256 write-scope change & closes lease                 │
+│                                                                                         │
+└─────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+#### Implementer Execution Commands:
 
 ```bash
-bun harness.ts task:validate-start --run .capsules/<slug> --task <task-id> --validator <val-agent>
-bun harness.ts run:exec --run .capsules/<slug> --task <task-id> --gate <gate-id> \
-  --actor <val-agent> -- <gate-argv...>
+# 1. Maintain active lease heartbeat during work
+bun harness.ts task:heartbeat \
+  --run .capsules/oauth-pkce-v1 \
+  --task task-pkce-core \
+  --agent imp-1 \
+  --token <token>
+
+# 2. Fast incremental verification (AST static invariants + TypeScript typecheck)
+bun harness.ts task:check \
+  --run .capsules/oauth-pkce-v1 \
+  --task task-pkce-core
+
+# 3. Submit completed implementation
+bun harness.ts task:submit \
+  --run .capsules/oauth-pkce-v1 \
+  --task task-pkce-core \
+  --agent imp-1 \
+  --token <token> \
+  --summary "Implemented PKCE verifier generation and SHA-256 challenge hashing" \
+  --files-changed src/auth/pkce.ts
 ```
 
-A fresh, independent validator is assigned and receives allowlisted context stripped of implementer
-prose. It must be independent of the implementers **and** of every previous validation of this task —
-a repair round needs a new validator.
+> [!TIP]
+> **Effort-Evidence Submission Invariant (C4)**: If `src/auth/pkce.ts` is byte-identical before and after the lease, `task:submit` refuses the submission unless `--no-op --reason "<why>"` is explicitly declared and verified.
 
-### Stage 8: Probe and Repair (`task:probe`, `task:reject`, `task:claim --role repairer`)
+---
+
+### Phase 5: Tier 3 Cognitive Validation & Adversarial Probes
+
+Once submitted, the task is handed to an independent **Cognitive Validator**.
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│                  COGNITIVE VALIDATOR HARD-LOCK & 1-HOP MICRO-CYCLE                      │
+├─────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                         │
+│  [ task:validate-start ] ──► Fresh independent validator assigned (stripped context)   │
+│            │                                                                            │
+│            ▼                                                                            │
+│  [ Cognitive Hard-Lock ] ──► 0 commands allowed (0 run:exec, 0 tests, 0 shell tools)    │
+│            │                 100% focused Socratic code review & checklist analysis     │
+│            ▼                                                                            │
+│  [ task:probe ]          ──► Demands adversarial proof (min_adversarial_probes >= 1)    │
+│            │                                                                            │
+│    ┌───────┴──────────────────────────────────────────┐                                 │
+│    ▼ (Critique / Missing edge case)                   ▼ (All checks verified)           │
+│  [ 1-Hop Micro-Cycle ]                           [ task:review --status pass ]          │
+│  task:reject --in-lease                          Resolves all open probe demands        │
+│  Implementer fixes in-lease & resubmits          Task transitions to validated          │
+│                                                                                         │
+└─────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+#### 1. Start Validation
 
 ```bash
-bun harness.ts task:probe --run .capsules/<slug> --task <task-id> --validator <val-agent> \
-  --token <token> --demand "Prove <property>"
-
-bun harness.ts task:reject --run .capsules/<slug> --task <task-id> --validator <val-agent> \
-  --token <token> --reason "<observed defect>" --severity critical --remediation "<what fixes it>"
+bun harness.ts task:validate-start \
+  --run .capsules/oauth-pkce-v1 \
+  --task task-pkce-core \
+  --validator val-1 \
+  --validator-domain security
 ```
 
-These are different acts. A **probe** demands proof, leaves `repair_round` untouched, keeps the task
-`validating`, and is mandatory at least `min_adversarial_probes` (default 1) times before a pass. A
-**rejection** asserts an observed defect, moves the task to `changes_requested`, and consumes one of
-`max_repair_rounds` (default 6). On the sixth the task becomes `escalated`.
-
-### Stage 9: Sign-off, Run Gate and Critic
+#### 2. Issue Mandatory Adversarial Probe (`task:probe`)
 
 ```bash
-bun harness.ts task:review --run .capsules/<slug> --task <task-id> --validator <val-agent> \
-  --token <token> --status pass --checks <command-id> --resolve <finding-id>=<command-id>
-
-bun harness.ts run:exec --run .capsules/<slug> --gate gate-run-completion \
-  --actor coordinator -- bun test tests
-bun harness.ts critic:start --run .capsules/<slug> --critic critic-lead
-bun harness.ts critic:review --run .capsules/<slug> --critic critic-lead --token <token> \
-  --decision approve --proofs-file proofs.json --summary "<verdict>"
+bun harness.ts task:probe \
+  --run .capsules/oauth-pkce-v1 \
+  --task task-pkce-core \
+  --validator val-1 \
+  --token <val-token> \
+  --demand "Prove that code_challenge handles URL-safe base64 encoding without padding '=' characters"
 ```
 
-A pass requires one `--resolve` per open finding, probe demands and defects alike, and is refused
-while a mandatory gate's recorded run exited nonzero. The critic must prove every requirement with
-commands it ran itself; a requirement with no proof is recorded `unproven` and blocks completion.
-
-### Stage 10: Complete (`agent:release`, `run:complete`)
+#### 3. Execute 1-Hop In-Lease Micro-Cycle (If Remediation Needed)
 
 ```bash
-bun harness.ts agent:release --run .capsules/<slug> --agent <id> --reason "<why>"
-bun harness.ts run:complete --run .capsules/<slug> --actor coordinator \
-  --auth-token <token-from-critic:start>
-bun harness.ts run:status --run .capsules/<slug>
+bun harness.ts task:reject \
+  --run .capsules/oauth-pkce-v1 \
+  --task task-pkce-core \
+  --validator val-1 \
+  --token <val-token> \
+  --micro-cycle \
+  --reason "Base64 padding '=' was not stripped from code_challenge" \
+  --remediation "Use .replace(/=+$/, '') on base64url encoded challenge string"
 ```
 
-Close every grant first — a completed run is terminal and refuses further mutation. `--auth-token` is
-mandatory: it is the same bearer token `critic:start` minted for the critic, checked against that
-assignment's own token digest rather than the critic's live grant — `critic:review` never mints or
-returns a token of its own. Completion passes if and only if:
+#### 4. Sign-Off Verified Pass
 
-1. Zero integrity or traceability issues exist.
-2. Every prompt line is disposed and every requirement is proven with command evidence.
-3. All tasks are `done`, with zero active leases and zero open findings.
-4. All mandatory gates succeeded and still match the live repository binding.
-5. The completeness critic issued a clean approval.
+```bash
+bun harness.ts task:review \
+  --run .capsules/oauth-pkce-v1 \
+  --task task-pkce-core \
+  --validator val-1 \
+  --token <val-token> \
+  --status pass \
+  --resolve probe-1=verified-in-code
+```
+
+---
+
+### Phase 6: Completeness Critic Whole-Run Verification
+
+Before any run can finish, the **Completeness Critic** performs whole-run adversarial verification directly against `prompt.md`.
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│                    COMPLETENESS CRITIC WHOLE-RUN AUDIT                                  │
+├─────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                         │
+│  [ critic:start ]  ──► Assigns independent lead critic and mints completion bearer token│
+│          │                                                                              │
+│          ▼                                                                              │
+│  [ Line-by-Line ]  ──► Verifies 100% prompt line dispositions against final repo diff   │
+│          │                                                                              │
+│          ▼                                                                              │
+│  [ critic:review ] ──► Issues authoritative approval with structured proof artifacts    │
+│                        (--decision approve --proofs-file proofs.json)                  │
+│                                                                                         │
+└─────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+#### Critic Execution Commands:
+
+```bash
+# 1. Start critic assignment
+bun harness.ts critic:start \
+  --run .capsules/oauth-pkce-v1 \
+  --critic critic-lead
+
+# 2. Run whole-suite completion gate
+bun harness.ts run:exec \
+  --run .capsules/oauth-pkce-v1 \
+  --gate gate-completion \
+  --actor critic-lead \
+  -- bun test tests/auth/
+
+# 3. Submit critic approval
+bun harness.ts critic:review \
+  --run .capsules/oauth-pkce-v1 \
+  --critic critic-lead \
+  --token <critic-token> \
+  --decision approve \
+  --proofs-file proofs.json \
+  --summary "All 4 prompt requirements verified against implementation and passing tests"
+```
+
+---
+
+### Phase 7: Mechanical Completion Engine (`run:complete`)
+
+The terminal completion command mechanically seals the run capsule:
+
+```bash
+# 1. Release all agent grants
+bun harness.ts agent:release \
+  --run .capsules/oauth-pkce-v1 \
+  --agent imp-1 \
+  --reason "Wave execution finished"
+
+# 2. Execute mechanical completion gate
+bun harness.ts run:complete \
+  --run .capsules/oauth-pkce-v1 \
+  --actor coordinator \
+  --auth-token <critic-token>
+
+# 3. Verify sealed status
+bun harness.ts run:status --run .capsules/oauth-pkce-v1
+```
+
+#### Five Invariant Checks Enforced by `run:complete`:
+
+1. **Cryptographic Integrity**: SHA-256 hash chain in `events.jsonl` has zero broken links or unquarantined torn tails.
+2. **100% Requirement Coverage**: Every line in `prompt.md` is mapped to an atomic requirement verified with command receipts.
+3. **Task Completion**: 100% of tasks in `state.tasks` are `done` with 0 open findings and 0 active leases.
+4. **Gate Assurance**: All mandatory task gates and the whole-run completion gate exited with code `0`.
+5. **Critic Approval**: Completeness critic issued `decision: "approve"`.
+
+---
+
+### Phase 8: Tier 2 Meta-Auditor Behavioral Forensics (`meta-audit`)
+
+Following wave or run completion, the **Meta-Auditor** inspects the event trace across 7 behavioral heuristics and autonomously injects remediations:
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│                    META-AUDITOR DEEP BEHAVIORAL FORENSICS                               │
+├─────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                         │
+│  [ meta-audit ] ──► Audits events.jsonl against 7 Behavioral Heuristics:                │
+│                       1. TOKEN_BURNING           (>5 exploratory reads before write)    │
+│                       2. FALSE_SERIALIZATION     (Sequential execution of disjoint tasks)│
+│                       3. ROLE_BOUNDARY_DEVIATION (Supervisor writes, Validator runs cmd)│
+│                       4. POLLING_WASTE           (Excessive status loops >= 4)          │
+│                       5. CONTEXT_OVERFLOW        (>150k input tokens in single grant)   │
+│                       6. GHOST_LEASE             (Active lease on released agent)       │
+│                       7. STRAGGLER               (Task duration > 3x average)           │
+│         │                                                                               │
+│         ▼                                                                               │
+│  [ Efficiency Score ] ──► Computes deterministic score (0.0% - 100.0%)                  │
+│         │                                                                               │
+│         ▼                                                                               │
+│  [ Closed-Loop Injection ] ──► meta-audit --inject                                      │
+│                                Synthesizes remediation into .capsules/FEEDBACK_QUEUE.json│
+│                                                                                         │
+└─────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+#### Forensics Commands:
+
+```bash
+# 1. Run behavioral audit and compute score
+bun harness.ts meta-audit --run .capsules/oauth-pkce-v1 --format markdown
+
+# 2. Autonomously inject detected remediations into the feedback queue
+bun harness.ts meta-audit --run .capsules/oauth-pkce-v1 --inject
+```
 
 ---
 
@@ -245,74 +507,72 @@ returns a token of its own. Completion passes if and only if:
                            │ (all dependencies are 'done')
                            ▼
                      ┌───────────┐
-       ┌────────────>│   ready   │<──────────── retry_ready ◀── recover / task:release
-       │             └─────┬─────┘
-       │ (lease expiry)    │ (queue:pop / task:claim --role + bearer token)
-       │                   ▼
-       │             ┌───────────┐
-       ├─────────────┤  leased   │
-       │             └─────┬─────┘
-       │                   │ (work begins; task:heartbeat)
-       │                   ▼
-       │             ┌───────────┐   branch:open   ┌───────────┐
-       ├─────────────┤  running  ├────────────────>│ branched  │
-       │             └─────┬─────┘<────────────────┤ (lease    │
-       │                   │      branch:collect / │  frozen)  │
-       │                   │      branch:abandon   └───────────┘
-       │                   │ (task:submit --summary)
-       │                   ▼
-       │             ┌───────────┐
-       │             │ submitted │
-       │             └─────┬─────┘
-       │                   │ (task:validate-start, fresh validator)
-       │                   ▼
-       │             ┌────────────┐  task:probe   ┐
-       │             │ validating │<──────────────┘ stays validating,
-       │             └─────┬──────┘                 probe_round +1
-       │                   │
-       │         ┌─────────┴─────────┐
-       │         │ (task:review pass │ (task:reject)
-       │         │  + --resolve all) │
-       │         ▼                   ▼
-       │   ┌───────────┐       ┌───────────────────┐
-       │   │ validated │       │ changes_requested │
-       │   └─────┬─────┘       └─────────┬─────────┘
-       │         │ (run:exec task gates) │ (task:claim --role repairer)
-       │         ▼                       │
-       │   ┌───────────┐                 │  after max_repair_rounds (6)
-       │   │  gating   │                 ▼
-       │   └─────┬─────┘           ┌───────────┐
-       │         │ (all gates pass)│ escalated │
-       │         ▼                 └───────────┘
-       │   ┌───────────┐
-       │   │   done    │
-       │   └───────────┘
-       │
-       └─> [ recover ] ──> retry_ready
+        ┌───────────►│   ready   │◄──────────── retry_ready ◄── recover / task:release
+        │            └─────┬─────┘
+        │ (lease expiry)   │ (queue:pop / task:claim --role + bearer token)
+        │                  ▼
+        │            ┌───────────┐
+        ├────────────┤  leased   │
+        │            └─────┬─────┘
+        │                  │ (work begins; task:heartbeat)
+        │                  ▼
+        │            ┌───────────┐   branch:open   ┌───────────┐
+        ├────────────┤  running  ├────────────────►│ branched  │
+        │            └─────┬─────┘◄────────────────┤ (lease    │
+        │                  │      branch:collect / │  frozen)  │
+        │                  │      branch:abandon   └───────────┘
+        │                  │ (task:submit --summary)
+        │                  ▼
+        │            ┌───────────┐
+        │            │ submitted │
+        │            └─────┬─────┘
+        │                  │ (task:validate-start, fresh validator)
+        │                  ▼
+        │            ┌───────────┐  task:probe   ┐
+        │            │validating │◄──────────────┘ stays validating,
+        │            └─────┬─────┘                 probe_round +1
+        │                  │
+        │        ┌─────────┴─────────┐
+        │        │ (task:review pass │ (task:reject --in-lease / formal)
+        │        │  + --resolve all) │
+        │        ▼                   ▼
+        │  ┌───────────┐       ┌───────────────────┐
+        │  │ validated │       │ changes_requested │
+        │  └─────┬─────┘       └─────────┬─────────┘
+        │        │ (run:exec task gates) │ (in-lease micro-cycle OR repair claim)
+        │        ▼                       │
+        │  ┌───────────┐                 │ after max_repair_rounds (6)
+        │  │  gating   │                 ▼
+        │  └─────┬─────┘           ┌───────────┐
+        │        │ (all gates pass)│ escalated │
+        │        ▼                 └───────────┘
+        │  ┌───────────┐
+        │  │   done    │
+        │  └───────────┘
+        │
+        └─► [ recover ] ──► retry_ready
 ```
 
 ---
 
-## 📊 Summary of Task States
+## 📊 Summary of Task States & Allowed Actions
 
-| State                   | Meaning                                                                               | Permitted next actions                                  |
-| :---------------------- | :------------------------------------------------------------------------------------ | :------------------------------------------------------ |
-| **`proposed`**          | In the plan, waiting on prerequisites.                                                | Becomes `ready` when dependencies are `done`.           |
-| **`ready`**             | Unblocked and eligible for a wave.                                                    | `queue:wave` then `task:claim`, or `queue:pop`.         |
-| **`retry_ready`**       | Released or recovered; holds no lease but is claimable.                               | `task:claim`.                                           |
-| **`leased`**            | Claimed; one-time bearer token issued; timer running.                                 | `task:heartbeat`, `run:exec`, `task:submit`.            |
-| **`running`**           | Active work with recorded progress.                                                   | `task:submit`, `branch:open`, `task:release`.           |
-| **`branched`**          | Subdivided at execution time; **lease clock frozen**, never reaped as stale.          | `branch:collect` or `branch:abandon`.                   |
-| **`submitted`**         | Report recorded; write lease closed.                                                  | `task:validate-start` with a fresh validator.           |
-| **`validating`**        | An independent validator holds the validation token.                                  | `run:exec`, `task:probe`, `task:review`, `task:reject`. |
-| **`validated`**         | Passed with validator-owned command evidence.                                         | Mandatory task gates via `run:exec`.                    |
-| **`gating`**            | Task gates running under the watchdog.                                                | `done` when every gate exits 0.                         |
-| **`changes_requested`** | A defect finding is open.                                                             | `task:claim --role repairer`, fix, `task:submit`.       |
-| **`done`**              | Terminal success. Unblocks dependants.                                                | None.                                                   |
-| **`blocked`**           | Held back by something outside the repair loop, e.g. an ungranted authority decision. | Whatever removes the block, then `ready`.               |
-| **`escalated`**         | Repair budget spent (6 rounds) or an unresolvable blocker.                            | Human intervention or a plan revision.                  |
-| **`cancelled`**         | Requirements disposed out of scope.                                                   | None.                                                   |
-| **`stale`**             | Lease expired and not yet recovered.                                                  | `recover`.                                              |
+| State                   | Semantic Meaning                                       | Permitted Next Actions                                          |
+| :---------------------- | :----------------------------------------------------- | :-------------------------------------------------------------- |
+| **`proposed`**          | Declared in DAG; waiting on upstream prerequisites.    | Transitions to `ready` when all dependencies reach `done`.      |
+| **`ready`**             | Unblocked and eligible for wave allocation.            | `queue:wave`, `task:claim`, `queue:pop`.                        |
+| **`retry_ready`**       | Reclaimed after lease timeout; immediately claimable.  | `task:claim`.                                                   |
+| **`leased`**            | Claimed by implementer; one-time bearer token active.  | `task:heartbeat`, `task:check`, `task:submit`.                  |
+| **`running`**           | Active implementation underway.                        | `task:submit`, `branch:open`, `task:release`.                   |
+| **`branched`**          | Subdivided dynamically; **lease clock frozen**.        | `branch:collect`, `branch:abandon`.                             |
+| **`submitted`**         | Code written; write scope hashed and verified.         | `task:validate-start` (assigns fresh validator).                |
+| **`validating`**        | Independent cognitive validator inspecting diffs.      | `task:probe`, `task:reject` (micro-cycle), `task:review`.       |
+| **`validated`**         | Cognitive sign-off complete; all probes resolved.      | `run:exec` on task gates.                                       |
+| **`gating`**            | Deterministic task gates executing under watchdog.     | Transitions to `done` when all gates exit `0`.                  |
+| **`changes_requested`** | Defect identified; awaiting in-lease or formal repair. | In-lease micro-cycle remediation, `task:claim --role repairer`. |
+| **`done`**              | **Terminal Success**: Dependencies satisfied.          | None (unblocks downstream dependent tasks).                     |
+| **`escalated`**         | Max repair rounds exceeded (6 rounds).                 | Requires human intervention or plan revision.                   |
+| **`stale`**             | Lease expired without heartbeat.                       | `recover` transitions to `retry_ready`.                         |
 
 ---
 

@@ -4,309 +4,320 @@
 
 ---
 
-## 🎯 What the Critic Is For
+## 🧭 Diátaxis Overview
 
-Task validators review one scope each. A macro-level risk survives that: every task can pass while the
-**request** goes unmet.
-
-- All tasks done, one cross-cutting user requirement forgotten.
-- Artifacts declared but absent, empty, or stubbed.
-- A prompt line disposed as `context` that was actually an obligation.
-
-The completeness critic is an independent audit of the whole request, run after task validation and
-before completion.
+| Quadrant         | Purpose in this Chapter                                                                                                                                                                  |
+| :--------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Explanation**  | Understand the macro-level role of the Completeness Critic, whole-run verification against `prompt.md`, requirement satisfaction mechanics, and the Plan-Validator pre-flight adversary. |
+| **How-To Guide** | Initializing critic review, executing task-unbound critic commands, compiling requirement proofs, issuing approval/rejection verdicts, and remediating critic findings.                  |
+| **Reference**    | Critic JSON schemas, proof schemas, command syntax, independence constraints, and error codes.                                                                                           |
+| **Tutorial**     | Complete walkthrough of auditing a finished capsule against prompt requirements and recording an authoritative approval.                                                                 |
 
 ---
 
-## 🔐 The Lifecycle
+## 🎯 1. Explanation: Why Whole-Run Verification Is Necessary
+
+Task validators verify localized scopes. However, an entire run can pass every individual task validation while still failing the user's overarching request:
 
 ```text
-[ critic:start --critic <id> ]
-        ├── refuses a critic that planned, implemented, repaired or validated anything in this run
-        ├── records a repository inspection and a readiness snapshot
-        └── returns the critic token (once, stdout only; digest persisted)
-                 │
-                 ▼
-[ the critic runs its OWN commands: run:exec --actor <critic> ]
-                 │
-                 ▼
-[ critic:review --decision approve|request_changes  |  critic:reject ]
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    THE MACRO-LEVEL COMPLETION GAP                           │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  Task 1: Auth Token Generation  ──► ✅ Validated by val-1                   │
+│  Task 2: User Database Schema   ──► ✅ Validated by val-2                   │
+│  Task 3: REST API Handler       ──► ✅ Validated by val-3                   │
+│                                                                             │
+│  CRITICAL RUNTIME FAILURES SURVIVING TASK VALIDATION:                       │
+│  ❌ Prompt requirement #4 ("Generate Swagger OpenAPI spec") was never mapped│
+│     to any task and was completely forgotten.                               │
+│  ❌ Integration regression: Auth middleware crashes when receiving schema   │
+│     responses from Task 2 due to type mismatch across module boundaries.    │
+│  ❌ Declared CLI documentation artifact is an empty 0-byte stub.            │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
+
+The **Completeness Critic** is an independent, whole-run verification authority executed after all graph tasks are `validated` and before the capsule can be sealed.
+
+---
+
+## 🔐 2. Explanation: The Critic Verification Protocol
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                      COMPLETENESS CRITIC LIFECYCLE                          │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  1. `critic:start --critic <id>`                                            │
+│     ├── Verifies strict independence invariant (0 prior roles in run)       │
+│     ├── Captures repository readiness snapshot & baseline integrity         │
+│     └── Mints single-use critic bearer token (digest stored in state)       │
+│                                   │                                         │
+│                                   ▼                                         │
+│  2. Critic Executes Unbound Commands: `run:exec --actor <critic>`           │
+│     ├── Executes whole-suite run completion gate (`gate-run-completion`)    │
+│     ├── Runs cross-cutting integration checks & end-to-end tests            │
+│     └── Validates that commands are NOT bound to individual tasks           │
+│                                   │                                         │
+│                                   ▼                                         │
+│  3. Critic Verifies Every Prompt Requirement                                │
+│     ├── Audits `prompt.md` line-by-line against `planning/requirements.json`│
+│     └── Maps each requirement to a successful critic command receipt        │
+│                                   │                                         │
+│                                   ▼                                         │
+│  4. Verdict Submission                                                      │
+│     ├── `critic:review --decision approve` (Requires 100% Proven Reqs)      │
+│     └── `critic:reject --findings [...]`  (Triggers replan & repair wave)   │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### The Strict Independence Invariant
+
+The completeness critic must have **zero prior participation** in the current run. An agent that acted as planner, coordinator, implementer, repairer, or validator is strictly disqualified:
+
+```json
+{
+  "ok": false,
+  "error": {
+    "code": "INVALID_STATE",
+    "message": "completeness critic must be independent from implementers, repairers, planners, and validators"
+  }
+}
+```
+
+---
+
+## 🧪 3. Explanation: Task-Unbound Critic Command Execution
+
+A completeness critic cannot rely on command receipts generated by implementers or validators. The critic must **re-run all verification commands independently** under its own actor identity.
+
+Furthermore, critic verification commands must be **unbound to any specific task**:
 
 ```bash
-bun harness.ts critic:start --run .capsules/<run-id> --critic critic-1
+# ✅ VALID: Critic runs completion gate unbound to tasks
+bun harness.ts run:exec \
+  --run .capsules/<run-id> \
+  --actor critic-1 \
+  --gate gate-run-completion \
+  -- bun test tests/
+
+# ❌ INVALID: Critic attempts to cite a task-bound command (Refused)
+bun harness.ts run:exec \
+  --run .capsules/<run-id> \
+  --actor critic-1 \
+  --task task-slug \
+  -- bun test tests/slug.test.ts
 ```
 
-Independence is enforced, not requested:
+If a critic attempts to submit a review without fresh, unbound command receipts, the harness aborts:
 
-```text
-completeness critic must be independent from implementers, repairers, and validators
+```json
+{
+  "ok": false,
+  "error": {
+    "code": "INVALID_ARGUMENT",
+    "message": "critic checks must be nonempty and unbound to specific tasks"
+  }
+}
 ```
 
 ---
 
-## 🧪 The Critic Must Run Its Own Commands
+## 📝 4. Reference: Requirement Proof Schema
 
-This is the step most people miss. The critic's evidence is collected automatically from the commands
-whose **actor is the critic** — and a command qualifies only if it is **not bound to a task**:
-
-```bash
-bun harness.ts run:exec --run .capsules/<run-id> --actor critic-1 -- bun test tests/slug.test.ts
-bun harness.ts run:exec --run .capsules/<run-id> --actor critic-1 -- bun test tests/truncate.test.ts
-bun harness.ts run:exec --run .capsules/<run-id> --gate gate-run-completion --actor critic-1 -- bun test tests
-```
-
-Skip it and the review is refused:
-
-```text
-{"ok":false,"error":{"code":"INVALID_ARGUMENT","message":"critic checks must be nonempty"}}
-```
-
-Cite a task-bound or someone else's command and it is refused too:
-
-```text
-{"ok":false,"error":{"code":"INVALID_STATE","message":"critic independent check is invalid: C-312707c8-…"}}
-```
-
-Rerunning the suite under the critic's own actor is the price of a sign-off. That is the whole
-mechanism by which "the critic verified it" means something.
-
----
-
-## 📝 Requirement Proofs Are Mandatory and Unfakeable
-
-An approval must carry one proof per requirement, supplied by `--proofs`, `--proofs-file`, or a
-complete `--review` payload:
+To approve completion, the critic must submit a verified proof for **every requirement** registered in `state.requirements`:
 
 ```json
 [
   {
-    "requirement_id": "req-slug",
+    "requirement_id": "req-auth-jwt",
     "status": "satisfied",
     "evidence": [
       {
         "kind": "command",
-        "reference": "C-6c9cbf46-fe0b-405d-a060-69176613528f",
-        "observation": "the critic ran bun test tests/slug.test.ts itself and it exited 0"
+        "reference": "C-948205",
+        "observation": "Critic executed bun test tests/auth/jwt.test.ts; exited 0 with 14 assertions passed."
+      }
+    ]
+  },
+  {
+    "requirement_id": "req-swagger-docs",
+    "status": "satisfied",
+    "evidence": [
+      {
+        "kind": "command",
+        "reference": "C-948206",
+        "observation": "Critic executed bun run validate:swagger; confirmed valid OpenAPI 3.1 schema generated."
       }
     ]
   }
 ]
 ```
 
-- `status` is `satisfied`, `out_of_scope`, or `unproven`.
-- **`unproven` is not something a critic can claim.** It is what the harness records for a requirement
-  the critic never proved, and it blocks completion.
-- A clean verdict with any unproven requirement is refused:
-  ```text
-  clean completion review leaves requirements unproven: req-truncate
-  ```
-- Every `kind: "command"` reference must resolve to a critic-run, task-unbound, successful command:
-  ```text
-  requirement proof command is invalid: C-3e1dbf9d-…
-  ```
+### Requirement Status Values:
 
-Nothing auto-generates a `satisfied` proof. A requirement the critic did not look at stays unproven,
-and the run does not finish.
+- **`satisfied`**: Verified and proven by a successful critic command receipt.
+- **`out_of_scope`**: Disposed as non-binding context with explicit rationale.
+- **`unproven`**: System state for any requirement lacking verified proof. **Blocks completion unconditionally.**
 
 ---
 
-## ✅ Approving
+## 🪞 5. Explanation: The Mirror-Image Adversary (Plan-Validator)
 
-```bash
-bun harness.ts critic:review --run .capsules/<run-id> --critic critic-1 --token <critic-token> \
-  --decision approve --proofs-file proofs.json \
-  --summary "Both prompt lines are implemented and each is bound to a gate run the harness recorded."
-```
+While the Completeness Critic audits the _finished output_ at the end of the run, the **Plan-Validator** serves as the mirror-image adversary at the _beginning_ of the run.
 
 ```text
-### Completeness Critic Sign-Off: APPROVED
-- **Critic**: `critic-1`
-- **Summary**: Both prompt lines are implemented and each is bound to a gate run the harness recorded.
-- **Authorization**: Valid completion certificate issued
-- **Next Step**: Seal run via `bun harness.ts run:complete --run .capsules/<run-id> --auth-token …`
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                       PLAN-VALIDATOR VS CRITIC ROLES                        │
+├────────────────────────────┬────────────────────────────────────────────────┤
+│ Feature                    │ Plan-Validator (Pre-Flight)                    │ Completeness Critic (Post-Flight)│
+├────────────────────────────┼────────────────────────────────────────────────┼──────────────────────────────────┤
+│ Timing                     │ Before any implementer is dispatched           │ After all tasks are validated    │
+│ Target Artifact            │ Compiled graph DAG & requirements              │ Final working tree & diff        │
+│ Focus                      │ Decomposition, false barriers, stragglers      │ Prompt completeness & gates      │
+│ Blocking Power             │ `changes_requested` blocks all `task:claim`    │ Rejection blocks `run:complete`  │
+│ Primary Artifact Inspected │ `planning/graph.json` & `requirements.json`    │ Whole repository diff & prompt.md│
+└────────────────────────────┴────────────────────────────────────────────────┴──────────────────────────────────┘
 ```
 
-`--summary` is mandatory and is the critic's own words. `integrity_evidence` is always the harness's
-own capsule integrity observation measured at review time — a `--review` file cannot certify its own
-capsule, so whatever it declares under that key is replaced.
+### The 4 Mandatory Plan-Review Questions
+
+`plan:review` requires explicit structured answers to four architectural questions on every review:
+
+1. **Decomposition**: Does the graph granularity match the entities in the prompt?
+2. **Dependencies**: Is every graph edge justified by a real data/type dependency? (No false barriers).
+3. **Gate Discrimination**: Can each task gate fail if its task's work is absent?
+4. **Straggler Risk**: Is any task's scope disproportionately large relative to its wave?
+
+If a plan-validator rejects a graph revision (`status: "changes_requested"`), all implementer claims are **hard-locked** until a new graph revision is compiled and approved.
 
 ---
 
-## ❌ Rejecting
+## 📖 6. How-To Guide: Operating the Critic
+
+### Step 1: Start Critic Review
 
 ```bash
-bun harness.ts critic:reject --run .capsules/<run-id> --critic critic-1 --token <critic-token> \
-  --summary "Missing error boundary" \
-  --findings '[{"id":"F-01","requirement_id":"req-1","severity":"critical","observation":"No error boundary around the render tree","remediation":"Wrap the tree in an error boundary","revalidation":"bun test tests/render"}]'
+bun harness.ts critic:start \
+  --run .capsules/<run-id> \
+  --critic critic-1
 ```
 
-Structured findings are **mandatory**:
+Output:
 
 ```text
---decision request_changes requires --findings or --findings-file; a rejection must name the defects it found
+### Completeness Critic Leased: critic-1
+- **Run**: `.capsules/run-402`
+- **Critic Token**: `CRITIC_TOK_88194` (digest recorded)
+- **Action Required**: Execute whole-suite gates and compile requirement proofs.
 ```
 
-Each finding carries `id`, `requirement_id`, `severity`, `observation`, `remediation` and
-`revalidation`. A critic that wants to reject but has nothing concrete to say **fails** rather than
-producing a finding the harness wrote for it. Rejected findings feed `plan:replan`, which partitions
-them into a disjoint repair wave.
+### Step 2: Critic Executes Verification Commands
+
+```bash
+# Run completion gate
+bun harness.ts run:exec \
+  --run .capsules/<run-id> \
+  --actor critic-1 \
+  --gate gate-run-completion \
+  -- bun test
+
+# Run specific integration check
+bun harness.ts run:exec \
+  --run .capsules/<run-id> \
+  --actor critic-1 \
+  -- bun run build
+```
+
+### Step 3A: Issue Approval Verdict
+
+```bash
+bun harness.ts critic:review \
+  --run .capsules/<run-id> \
+  --critic critic-1 \
+  --token CRITIC_TOK_88194 \
+  --decision approve \
+  --proofs-file proofs.json \
+  --summary "All prompt requirements implemented and verified against full integration test suite."
+```
+
+### Step 3B: Issue Rejection Verdict
+
+```bash
+bun harness.ts critic:reject \
+  --run .capsules/<run-id> \
+  --critic critic-1 \
+  --token CRITIC_TOK_88194 \
+  --summary "Missing OpenAPI schema generation" \
+  --findings '[{"id":"CF-01","requirement_id":"req-swagger","severity":"critical","observation":"openapi.json is missing from build output","remediation":"Add swagger generation script to build pipeline","revalidation":"bun run validate:swagger"}]'
+```
+
+### Step 4: Remediating Critic Rejections
+
+When defects are fixed, the coordinator registers the remediation receipts:
+
+```bash
+bun harness.ts critic:remediate \
+  --run .capsules/<run-id> \
+  --actor coordinator \
+  --resolve CF-01=C-948210 \
+  --resolution-method CF-01="Generated OpenAPI spec via build script"
+```
 
 ---
 
-## 🔧 Closing the Loop: `critic:remediate`
+## 💻 7. Tutorial: Whole-Run Audit Walkthrough
 
-`plan:replan` schedules the repair work; it does not, by itself, satisfy completion. Every review ever
-recorded with `status: "findings"` stays in the run's history and blocks completion until it carries a
-remediation naming exactly its own finding ids, each proven by a task-unbound, successful command:
+### 1. Critic Starts Review
 
 ```bash
-bun harness.ts critic:remediate --run .capsules/<run-id> --actor coordinator \
-  --resolve CF-1=<fix-command-id> --resolution-method CF-1="focused repair and verification"
+bun harness.ts critic:start --run .capsules/run-99 --critic critic-audit-1
 ```
 
-`--resolve` is repeatable as `<finding-id>=<command-id>[,<command-id>]`; every finding the review
-opened must be answered exactly, no more and no fewer. `--review-sha256` defaults to the currently
-recorded review. This does **not** clear the review's own `unresolved_finding_ids` or make it
-`clean` — only a fresh, independent critic pass does that. What it does is record that the defects
-were closed, so completion's history check stops demanding a remediation that was never made.
+Mints token `CRIT_9901`.
 
----
+### 2. Critic Checks Whole-Repository Diff
 
-## 🛡️ The Critic's Own Rules
+Critic inspects `git diff HEAD~3` and compares against `prompt.md`. Critic finds:
 
-1. **Token digest verification.** The critic token must match the digest recorded at `critic:start`.
-2. **Independence.** No prior role in this run, ever.
-3. **No implementer prose.** The critic consumes the prompt, the dispositions, the whole-repository
-   diff, and the authoritative command, gate and finding records — not self-grading narratives.
-4. **Readiness binding.** Any drift from the packet's readiness digest or repository binding is a
-   rejection, not a note.
-5. **Explicit residual risk.** An approval may carry risks; it may not carry silence about them.
+- Prompt item: "Add rate limiting middleware with Redis storage."
+- Implementation: Rate limiter implemented with in-memory map; Redis adapter omitted.
 
----
-
-## 🪞 The Mirror-Image Adversary: Plan-Validator Pre-Flight Review
-
-Everything above is an adversary for the _finished work_ — dispatched after every task validator has
-already passed, reviewing the whole diff against the whole prompt. The **plan-validator** role is the
-same adversarial pattern turned around to face the _other_ end of the run: dispatched once per compiled
-graph revision, **before any implementer is dispatched at all**, reviewing the compiled plan itself —
-the graph, the projected tasks, the topology's own stated reasoning for where each task landed — never
-any code, because at this point no code exists yet to review.
-
-Coordinators have never had a dedicated adversary for this before. A task validator catches a bad
-_implementation_; nothing has ever told a coordinator its _decomposition_ was wrong before workers
-started burning wall-clock time executing it. A real forensics run recorded exactly this gap: a user
-had to be the plan's refusal mechanism by hand, four separate times, because nothing in the harness
-would say "no" to a plan on its own.
-
-### The lifecycle
-
-```text
-[ plan:validate-start --validator <id> ]
-        ├── refuses a validator who is the coordinator or planner that produced this plan
-        ├── one active assignment per graph revision (mirrors task:validate-start)
-        └── returns the validation token, bound to a packet carrying the compiled graph,
-            the projected requirements/tasks, and the recorded topology
-                 │
-                 ▼
-[ the validator reviews the compiled document — may run read-only run:exec checks to test
-  a specific claim, but most of the review is reading the graph and topology as compiled ]
-                 │
-                 ▼
-[ plan:review --status approved | changes_requested ]
-```
+### 3. Critic Executes Gate and Discovers Failure
 
 ```bash
-bun harness.ts plan:validate-start --run .capsules/<run-id> --validator plan-val-1
+bun harness.ts run:exec --run .capsules/run-99 --actor critic-audit-1 -- \
+  bun test tests/integration/rate-limit.test.ts
 ```
 
-Independence is enforced identically to the critic's, just against a different pair of roles: a
-plan-validator that is also the coordinator or planner who authored the plan is refused outright —
-grading your own homework is exactly the failure this role exists to close.
+Receipt `C-110022` recorded with exit code `1`.
 
-### Four mandatory questions, on every verdict — pass or reject
-
-`plan:review` requires a written answer to all four, every time, whether the verdict is
-`approved` or `changes_requested`. A pass that never answered them is a rubber stamp, and the harness
-refuses it structurally rather than trusting a coordinator's dispatch prompt to demand it:
-
-1. **Decomposition** — does the task count and shape match the entity count the prompt actually names?
-   Ten or more distinct topics compiled into fewer than five independent tasks is a compression, not a
-   simplification.
-2. **Dependencies** — for every edge in the graph, is there a real read/write relationship between the
-   two tasks it connects? An edge that exists only to serialize otherwise-parallel work is a false
-   barrier.
-3. **Gate discrimination** — could each task's mandatory gate command actually fail if that task did
-   nothing? (This is exactly Chapter 07 §01's falsifiability question, asked here as a reading exercise
-   against the compiled plan rather than measured with `gate:prove`.)
-4. **Straggler risk** — is any task's scope or declared effort large enough, relative to the rest of its
-   wave, that the wave will sit idle waiting on it?
+### 4. Critic Emits Structured Rejection
 
 ```bash
-bun harness.ts plan:review --run .capsules/<run-id> --validator plan-val-1 --token <token> \
-  --status changes_requested \
-  --decomposition-answer "10 topics compressed into 1 task" \
-  --dependency-answer "n/a" \
-  --gate-answer "the shared gate cannot fail per-task" \
-  --straggler-answer "n/a" \
-  --dependency-edges-reviewed "" --gate-ids-reviewed "gate-1" \
-  --summary "Compressed decomposition; see findings" \
-  --findings '[{"id":"PV-1","invariant":"A2-parallelism","severity":"critical","observation":"10 distinct topics collapsed into task-domains","remediation":"one task per topic, each with its own scoped gate"}]'
+bun harness.ts critic:reject \
+  --run .capsules/run-99 \
+  --critic critic-audit-1 \
+  --token CRIT_9901 \
+  --summary "Rate limiter lacks Redis backend required by prompt." \
+  --findings '[{
+    "id": "CF-RATE-01",
+    "requirement_id": "req-rate-limit-redis",
+    "severity": "critical",
+    "observation": "RateLimiter class uses Map<string, number> instead of ioredis client.",
+    "remediation": "Inject RedisStore into RateLimiter and connect to REDIS_URL.",
+    "revalidation": "bun test tests/integration/rate-limit.test.ts"
+  }]'
 ```
 
-Prose is not the whole floor: `--dependency-edges-reviewed` and `--gate-ids-reviewed` must each name
-exactly the dependency edges and per-task gate ids the compiled plan declares — no fewer (a skipped
-one) and no more (a fabricated one) — or the review is refused before it is recorded.
+### 5. Repair Wave & Final Remediation
 
-`changes_requested` requires at least one structured finding (`id`, `severity`, `observation`,
-`remediation`, and an optional `invariant` naming which of the four questions — or one of `plan:audit`'s
-own invariant ids — it answers); `approved` may carry none. The review is also digest-bound: it embeds
-the exact compiled-plan digest (`currentPlanDigest`, built from the projected graph revision, tasks,
-requirements and gates — never the raw graph document) the validator was actually shown, and
-`plan:review` refuses to record a verdict if that digest no longer matches the live plan. A plan that
-moved underneath the validator between `plan:validate-start` and `plan:review` — a fresh compile, a
-replan — cannot be signed off as if nothing had changed.
-
-### The pushback: what `changes_requested` actually blocks
-
-This is not advisory. `task:claim` reads `state.plan_review` directly: whenever a recorded review's
-`graph_revision` still matches the run's **live** graph revision and its `status` is
-`changes_requested`, **every** `--role implementer` and `--role repairer` claim is refused outright —
-
-```text
-{"ok":false,"error":{"code":"INVALID_STATE","message":"plan validation rejected this graph revision; replan and record a passing plan:review before any implementer or repairer can claim work"}}
-```
-
-— a hard stop enforced at the one place work actually starts, not a warning a coordinator can route
-around by dispatching anyway. The only way out is a **new** graph revision followed by a **new**,
-passing `plan:review` against it; a stale rejection against a superseded revision no longer blocks
-anything.
-
-> **What "a new graph revision" honestly requires today.** The natural-sounding path — call `plan:add`
-> to fix the buffer, then `plan:compile` again — does not work: `plan:add` refuses outright once
-> `state.graph` exists (`"cannot add tasks to compiled plan"`), and that condition never reverts, for
-> the rest of the run's life, once the _first_ `plan:compile` has ever succeeded. The verified working
-> path is the **planner role's** own route: `plan:claim` (which hands back a packet bound to
-> `planning/requirements.json` and `planning/graph.json`) followed by `plan:apply
---expected-revision <current>`, with the freshly authored `graph.json` declaring
-> `"revision": <current + 1>` — `--expected-revision` only checks that the run hasn't moved since the
-> packet was issued; the submitted graph's own `revision` field is what actually has to be exactly one
-> more than the live one, or `plan:apply` refuses it. This is the real way a graph revision advances
-> after the first compile. `plan:replan` is a different tool entirely: it only
-> ever _appends_ a disjoint repair wave driven by findings that name concrete file paths, and by default
-> reads its findings from `state.completion_review` (the completeness critic's review), not
-> `state.plan_review` — it cannot revise an existing task's scope, remove a false dependency edge, or
-> fix a bad decomposition, which is exactly what a plan-validator's rejection is usually about.
-
-### What it is not
-
-- It never touches repository files — the packet carries the compiled plan, not a write scope.
-- It is not part of the 9-point terminal completion checklist in Chapter 07 §03; it gates the _start_
-  of implementation, not the _end_ of the run.
-- `recover` does not reclaim a stale plan-validation assignment the way it reclaims a stale
-  completeness critic — see [Chapter 08 §03](../08-durability-recovery/03-stale-worker-and-torn-tail-recovery.md)
-  for exactly what that means if the validator's agent dies mid-review.
+1. Coordinator dispatches repair task via `plan:replan`.
+2. Repairer implements Redis store and tests pass.
+3. Coordinator calls `critic:remediate --resolve CF-RATE-01=C-110045`.
+4. Fresh critic `critic-audit-2` is started, verifies all requirements, and signs off `approve`.
 
 ---
 

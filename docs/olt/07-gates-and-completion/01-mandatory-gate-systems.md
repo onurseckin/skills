@@ -1,196 +1,314 @@
-# 01. Mandatory Gate Systems & Verification Contracts
+# 01. Mandatory Gate Systems & Falsifiable Gate Proofs
 
 [⬅ Previous: Repair Routing & Escalation](../06-validation-repair/03-repair-routing-and-escalation.md) | [Master Table of Contents](../README.md) | [Next: Completeness Critic Verification ➡](./02-completeness-critic-verification.md)
 
 ---
 
-## 🏛️ Why Gates are Non-Negotiable
+## 🧭 Diátaxis Overview
 
-Even if an independent validator marks a task as `pass`, human developers need objective, automated assurance that compiler, linter, and integration test suites passed cleanly.
+| Quadrant         | Purpose in this Chapter                                                                                                                                               |
+| :--------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Explanation**  | Understand the Mandatory Gate Hierarchy, why green gates can be deceptive, the mathematics of falsifiability proofs (`gate:prove`), and repository snapshot bindings. |
+| **How-To Guide** | Declaring task and run gates, executing gates under isolation, proving gate falsifiability, and resolving `plan:audit` gate invariant warnings.                       |
+| **Reference**    | Gate JSON schemas, CLI command syntax, direct argv grammar rules, and gate execution event payloads.                                                                  |
+| **Tutorial**     | Step-by-step walkthrough of authoring a scoped gate, running `gate:prove` in scratch isolation, and validating receipts.                                              |
 
-In `olt`, verification contracts are represented as **Mandatory Gates**:
+---
+
+## 🏛️ 1. Explanation: The Mandatory Gate Hierarchy
+
+In `olt`, verification contracts are not informal guidelines—they are **Mandatory Gates** enforced mechanically by the harness runner. Gates exist in a strict two-tier hierarchy:
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         MANDATORY GATE HIERARCHY                            │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  TIER 1: TASK-SCOPED GATES (`scope: "task"`)                                │
+│  ├── Declared by: `plan:add --gate` (or planner graph authoring)            │
+│  ├── Bound to: Specific task ID and requirement ID                          │
+│  ├── Target: Focused unit tests, scoped typechecks, AST validation          │
+│  ├── Evaluated by: Independent Validator (`run:exec --actor <val>`)         │
+│  └── Enforcement: Blocks `task:review --status pass` if failing             │
+│                                                                             │
+│                                     │                                       │
+│                                     ▼                                       │
+│  TIER 2: RUN-SCOPED COMPLETION GATES (`scope: "run"`)                       │
+│  ├── Declared by: `plan:compile --completion-gate` (MANDATORY, NO DEFAULT)  │
+│  ├── Bound to: Entire run / whole capsule (`gate-run-completion`)           │
+│  ├── Target: Full test suites, end-to-end integration, linter sweeps        │
+│  ├── Evaluated by: Completeness Critic (`run:exec --actor <critic>`)        │
+│  └── Enforcement: Blocks `run:complete` if failing or unproven              │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Gate Object Schema
 
 ```json
 {
   "id": "gate-slug",
   "scope": "task",
-  "command": ["bun", "test", "tests/slug.test.ts"],
+  "command": ["bun", "test", "tests/unit/slug.test.ts"],
   "cwd": ".",
   "mandatory": true,
   "requirement_ids": ["req-slug"]
 }
 ```
 
-Gate ids are derived from the task that declared them: `task-slug` yields `gate-slug`. The run-scope
-gate declared by `plan:compile --completion-gate` is always `gate-run-completion`. Every gate is
-executed through the watchdog runner and recorded as `trusted_host_observed_v1`.
+- **Task Gates (`gate-<task-id>`)**: Ensure the localized write scope satisfies its specific behavioral contract.
+- **Run Gates (`gate-run-completion`)**: Ensure system-wide integration integrity across all merged task scopes.
 
 ---
 
-## 🔒 Scope: Task Gates vs. Run Gates
+## 🔬 2. Explanation: Falsifiable Gate Proofs (`gate:prove`)
 
-The harness supports two distinct gate scopes:
+### The Deceptive Green Gate Anti-Pattern
 
-### 1. Task Gates (`scope: "task"`)
+A test suite that exits `0` does **not** prove that the task's implementation is correct. Consider these common failure modes:
 
-- Declared by `plan:add --gate`, bound to that task's derived requirement.
-- Rerun by the **validator itself** during validation via `run:exec --actor <validator>`.
-- `task:review --status pass` is **refused** while a mandatory gate's recorded run exited nonzero:
-  a red gate blocks sign-off mechanically, not by convention.
-- `--checks` on a verdict must cover every mandatory gate, and each cited command must be the
-  validator's own successful run bound to this task.
+1. **Unscoped Whole-Suite Gates**: Ten disjoint-scope tasks share `bun test`. If any single task does nothing, the suite still passes on existing tests.
+2. **Vacuous / Mocked Tests**: The test asserts `expect(true).toBe(true)` or matches hardcoded mock outputs.
+3. **Missing Assertions**: The test runs code paths but makes no assertions on side effects or return values.
 
-### 2. Run Gates (`scope: "run"`)
+> **A gate command that cannot fail in the absence of the task's work is not a verification gate; it is decorative theater.**
 
-- Declared by `plan:compile --completion-gate`, which is **mandatory and has no default**. The
-  compiler refuses to invent the command the whole run is finally held to.
-- The declaration is checked for substance. A gate that verifies nothing is rejected at compile time:
-  ```text
-  {"ok":false,"error":{"code":"INTEGRITY","message":"compiled graph failed validation: gates[2].command must perform substantive verification"}}
-  ```
-- Evaluated before completeness review:
-  ```bash
-  bun harness.ts run:exec --run .capsules/<slug> --gate gate-run-completion --actor coordinator -- bun test tests/unit
-  ```
-- The completeness critic must run it **again under its own actor**, unbound to any task; a
-  task-bound command or another agent's run is not critic evidence.
-- Must succeed with exit code 0 before `run:complete` will seal the capsule.
+`gate:prove` tests the gate's discriminatory power by asking one mechanical question:
+
+$$\text{Does this gate exit nonzero when this task's write scope is reverted to base?}$$
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    GATE:PROVE SCRATCH ISOLATION ENGINE                      │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  1. CLONE ISOLATION TREE                                                    │
+│     Copy all tracked/unignored repository files into a temporary scratch    │
+│     directory (`mkdtempSync` outside workspace). Workspace is untouched.    │
+│                                   │                                         │
+│                                   ▼                                         │
+│  2. REVERT TASK WRITE SCOPE                                                 │
+│     Inside the scratch copy ONLY: revert files in task's `write_scope`      │
+│     to `--base` (default `HEAD`). Files created by task are deleted;        │
+│     modified files are restored to their base commit contents.              │
+│                                   │                                         │
+│                                   ▼                                         │
+│  3. EXECUTE COMPILED GATE IN SCRATCH TREE                                   │
+│     Execute `gate.command` inside the scratch directory.                    │
+│                                   │                                         │
+│                                   ▼                                         │
+│  4. EVALUATE FALSIFIABILITY & CLEANUP                                       │
+│     • Exit code != 0 ──► PROVEN FALSIFIABLE ✅ (Gate catches missing work)  │
+│     • Exit code == 0 ──► NOT FALSIFIABLE ❌ (Gate passes on empty work)     │
+│     • `rmSync` scratch directory unconditionally. Real repo never modified. │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Integration with `plan:audit` Invariants
+
+`plan:audit` validates compiled graphs against recorded falsifiability proofs before dispatching workers:
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                     PLAN:AUDIT GATE INVARIANT CHECKS                        │
+├───────────────────────┬─────────────────────────────────────────────────────┤
+│ Invariant ID          │ Rule Enforced                                       │
+├───────────────────────┼─────────────────────────────────────────────────────┤
+│ `A3-gate-discrimination` │ Two disjoint-scope tasks sharing identical gate     │
+│                       │ argv are REFUSED unless BOTH tasks have recorded a  │
+│                       │ falsifiable proof over their respective scopes.     │
+├───────────────────────┼─────────────────────────────────────────────────────┤
+│ `A6-whole-suite-gate` │ A task gate that matches a broad suite pattern      │
+│                       │ (`bun test`, `npm test`) is REFUSED unless backed   │
+│                       │ by an explicit falsifiable proof.                   │
+└───────────────────────┴─────────────────────────────────────────────────────┘
+```
 
 ---
 
-## 📜 Direct Argv Grammar Rules
+## 📜 3. Reference: Direct Argv Grammar & Security Seams
 
-To prevent command injection, shell escaping vulnerabilities, and unpredictable terminal environments:
+To prevent shell injection, escaping bugs, and terminal environment leaks:
 
-- **No Shell Wrappers:** Gate commands MUST be expressed as literal bare executable string arrays:
-  - ✅ `["bun", "test", "tests/unit/cache.test.ts"]`
-  - ✅ `["cargo", "test", "--package", "auth"]`
-  - ❌ `["sh", "-c", "bun test tests/unit/*.test.ts"]` _(Rejected)_
-  - ❌ `"bun test tests/unit/cache.test.ts"` _(Rejected)_
-- **Git Security Seams:** When running Git commands, the harness injects strict isolation headers (`GIT_NO_REPLACE_OBJECTS=1`, `--no-ext-diff`, `GIT_CONFIG_NOSYSTEM=1`, `GIT_CONFIG_GLOBAL=/dev/null`).
-- **Everything After `--` Belongs to the Child:** `run:exec` forwards the remainder verbatim. Harness
-  flags such as `--format json` must therefore appear **before** the `--`, or they are consumed by the
-  command being measured.
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        DIRECT ARGV GRAMMAR RULES                            │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  ✅ PERMITTED (Literal Bare String Arrays):                                 │
+│     ["bun", "test", "tests/unit/slug.test.ts"]                              │
+│     ["cargo", "test", "--package", "auth", "--", "test_token"]              │
+│     ["pytest", "tests/test_api.py", "-k", "test_auth"]                      │
+│                                                                             │
+│  ❌ FORBIDDEN & REFUSED:                                                    │
+│     ["sh", "-c", "bun test tests/unit/*.test.ts"]  (Shell Wrapper)         │
+│     "bun test tests/unit/slug.test.ts"             (Unsplit Bare String)    │
+│     ["bash", "-e", "scripts/test.sh"]              (Script Indirection)     │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Git Security Seams
+
+Whenever the harness or gate runner invokes Git commands, it injects strict isolation headers into the child process environment:
+
+- `GIT_NO_REPLACE_OBJECTS=1` (Prevents object spoofing)
+- `--no-ext-diff` (Disables external diff drivers)
+- `GIT_CONFIG_NOSYSTEM=1` (Ignores system-wide config overrides)
+- `GIT_CONFIG_GLOBAL=/dev/null` (Ignores user global configs)
 
 ---
 
-## 🛡️ Live Repository Binding (`trusted_host_observed_v1`)
+## 🛡️ 4. Explanation: Live Repository Binding (`trusted_host_observed_v1`)
 
-To eliminate the "pass on dirty tree, commit on broken tree" race condition, every gate execution captures cryptographic snapshots before and after command execution:
+To prevent the **"green on dirty tree, red on clean commit"** race condition, every gate execution captures cryptographic snapshots before and after command execution:
 
 $$\text{repository\_binding} = \{\text{content\_sha256}, \text{git\_identity\_sha256}, \text{file\_count}, \text{total\_bytes}\}$$
 
-During final completion, the harness verifies that the current live repository matches the post-command repository binding of the gate receipts. If any files were modified after the gate ran, the gate is marked stale and must be re-executed.
-
----
-
-## 🚦 `run:exec` Exit Semantics
-
-`run:exec` exits **0 whenever the child ran at all**, and reports the child's own status in
-`exit_code`. A failing gate is a recorded fact, not a CLI error:
-
 ```text
-### Command Executed: `bun test tests/slug.test.ts`
-- **Exit Code**: `1` (Failure) | **Duration**: 0.72s
-- **Output Summary**: Command returned non-zero exit code
-- **Evidence Recorded**: `.capsules/slugger/evidence/C-237045e3-….json`
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                     LIVE REPOSITORY BINDING TIMELINE                        │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  [ Pre-Command Snapshot ]                                                   │
+│    • content_sha256: "e3b0c44298fc1c149afbf4c8996fb924..."                 │
+│    • git_identity_sha256: "9f83377b895f26385f361e59..."                   │
+│                                  │                                          │
+│                                  ▼ (Execute Gate via run:exec)              │
+│  [ Gate Command Runs: `bun test tests/slug.test.ts` ]                        │
+│                                  │                                          │
+│                                  ▼                                          │
+│  [ Post-Command Snapshot ]                                                  │
+│    • content_sha256: "4a2b918f8e918c..."                                    │
+│    • git_identity_sha256: "9f83377b895f26385f361e59..."                   │
+│                                                                             │
+│                                  │                                          │
+│                                  ▼ (Verified during run:complete)           │
+│  [ Completion Engine Verifies: Live Repo SHA === Gate Post-Command SHA ]    │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-The enforcement lives one step later, where it belongs: `task:review --status pass` refuses while a
-required gate's recorded exit code is nonzero, and completion refuses while any mandatory gate is
-unsatisfied. Recording a failure and refusing to sign off on it are two different jobs.
+If any files are modified after a gate was executed, the gate receipt becomes **stale** and completion will refuse to seal until the gate is re-executed on the live tree.
 
 ---
 
-## 🔬 Falsifiability: Proving a Gate Can Actually Fail (`gate:prove`)
+## 🚦 5. Reference: `run:exec` Execution Semantics
 
-Everything above establishes that a gate _ran_ and _exited 0_. It says nothing about whether that
-command was capable of ever exiting nonzero _for this task specifically_. A real forensics run
-(`docs/planning/coordinator-conformance/FORENSICS.md`) found ten disjoint-scope tasks sharing one
-whole-repository `bun run typecheck` gate, verbatim. That command passes whether any one of those ten
-tasks did its work or nothing at all — a green gate that proves nothing about the task it is nominally
-attached to. A command that can't fail for a task isn't verifying that task; it's decoration.
-
-`gate:prove` answers one narrow, mechanical question honestly instead of trusting the gate's shape by
-eye: **does this task's own compiled gate actually fail once this task's own work is reverted?**
+`run:exec` is the sole authorized gateway for executing commands and recording receipts in `events.jsonl`:
 
 ```bash
-bun harness.ts gate:prove --run .capsules/<run-id> --task task-1 --actor coordinator
-bun harness.ts gate:prove --run .capsules/<run-id> --task task-1 --actor coordinator --base HEAD~1
+bun harness.ts run:exec \
+  --run .capsules/<run-id> \
+  --actor <agent-id> \
+  --task <task-id> \
+  --gate <gate-id> \
+  -- bun test tests/unit/slug.test.ts
 ```
 
-### What it actually does
+### Semantics:
 
-```text
-┌──────────────────────────────────────────────────────────────────────┐
-│  1. Copy every tracked/not-ignored file into a throwaway scratch      │
-│     directory (`git ls-files -z --cached --others --exclude-standard`)│
-│                          │                                            │
-│                          ▼                                            │
-│  2. Inside the SCRATCH copy only: revert the task's own write scope   │
-│     back to --base (default HEAD) — files present at base are         │
-│     restored to that content; files the task created that base never │
-│     knew about are deleted                                           │
-│                          │                                            │
-│                          ▼                                            │
-│  3. Run the task's compiled gate command against the reverted copy    │
-│                          │                                            │
-│                          ▼                                            │
-│  4. falsifiable = (exit code is not null, and is not 0)               │
-└──────────────────────────────────────────────────────────────────────┘
+- **Harness Exit Code**: `run:exec` itself exits `0` whenever the child process launched and completed, regardless of whether the child passed or failed.
+- **Child Status Recording**: The child's exit code, duration, stdout, stderr, and repository bindings are recorded into `.capsules/<run-id>/evidence/C-<uuid>.json`.
+- **Argv Splitting**: All flags after `--` are forwarded verbatim to the child process. Harness flags (`--format json`, `--actor`) must appear before `--`.
+
+---
+
+## 📖 6. How-To Guide: Working with Gates
+
+### Proving Gate Falsifiability
+
+```bash
+bun harness.ts gate:prove \
+  --run .capsules/<run-id> \
+  --task task-slug \
+  --actor coordinator
 ```
 
-The **real repository is never touched.** Every read and every write happens inside a `mkdtempSync`
-scratch directory that is `rmSync`'d, recursively, before the command returns — success, failure, or a
-thrown error alike. This is also why `gate:prove` is a **deliberate post-compile step**, never something
-`plan:compile` runs for you automatically: at compile time the task's work does not exist yet, so
-reverting it would produce a scratch copy identical to the current tree, and every verdict would
-degenerate to "not falsifiable" regardless of the gate's real quality.
-
-`gate:prove` **always exits 0**, whether the verdict comes back falsifiable or not — a negative verdict
-("this gate still passes with the task's work reverted") is exactly the real information the command
-exists to surface, not a failure of the command itself. Only a genuine setup problem throws: no
-compiled gate for the task, an empty write scope (nothing to revert), a repository with no Git history
-to revert against, or a symlink/submodule inside the write scope (unsupported — `gate:prove` only
-reverts plain files).
+Expected Output:
 
 ```text
-### Gate Proof: `task-1`
-**PROVEN FALSIFIABLE**: exits 1 once `task-1`'s write scope is reverted to `HEAD`.
+### Gate Proof: `task-slug`
+**PROVEN FALSIFIABLE**: exits 1 once `task-slug`'s write scope is reverted to `HEAD`.
 - **Gate**: `bun test tests/unit/slug.test.ts`
-- **Write scope**: src/slug.ts
-- **Reverted in scratch**: 1 restored, 0 removed, of 214 files copied
-- **Duration**: 842ms
-- **Prior proof**: none recorded for this exact gate.
+- **Write Scope**: src/slug.ts
+- **Reverted in Scratch**: 1 restored, 0 removed, of 184 files copied
+- **Duration**: 612ms
+- **Evidence Stored**: state.gate_proofs["task-slug"]
 ```
 
-Each proof is recorded as a durable `gate-proved` event and appended to `state.gate_proofs`, keyed by
-task id and the gate's own argv. Running `gate:prove` again against the same task and the same gate
-command shows drift against the last recorded proof — a gate that used to prove falsifiable and no
-longer does is a real regression, surfaced explicitly rather than silently overwritten.
+### Executing a Task Gate as a Validator
 
-### How this feeds `plan:audit`'s gate invariants
+```bash
+bun harness.ts run:exec \
+  --run .capsules/<run-id> \
+  --actor val-1 \
+  --task task-slug \
+  --gate gate-slug \
+  -- bun test tests/unit/slug.test.ts
+```
 
-Two of `plan:audit`'s six invariants exist specifically to judge whether a task's gate can
-actually discriminate its own work — both blocking, not advisory — and they consult exactly this recorded proof, via
-`graph/plan-audit.ts`'s `latestGateProof`, rather than duplicating the falsifiability check themselves:
+### Executing the Run Completion Gate as a Critic
 
-- **A3 — gate discrimination**: two tasks with disjoint write scopes sharing byte-identical gate argv
-  is refused _unless both tasks individually carry a falsifiable proof over their own current scope_ —
-  a proof for only one of the pair is not enough, since it only shows the shared command can tell that
-  task's absence from its presence, not the other's.
-- **A6 — whole-suite gate**: a task whose gate command _looks_ like it walks the whole repository (no
-  narrow, path-scoped invocation) is refused _unless_ it carries a matching falsifiable proof — an
-  actual, measured falsifiability result overrides the static "this looks too broad" heuristic.
+```bash
+bun harness.ts run:exec \
+  --run .capsules/<run-id> \
+  --actor critic-1 \
+  --gate gate-run-completion \
+  -- bun test tests/
+```
 
-A proof only counts toward either invariant when its recorded write scope still matches the task's
-**current** declared scope — a proof taken before the task's scope changed says nothing about the scope
-it has now, and is not treated as satisfying it. `plan:compile` refuses to seal the plan while a
-blocking `plan:audit` finding stands, unless the coordinator explicitly overrides it with
-`--accept-audit "<invariant-id>:<reason>"` — naming the exact invariant and the reason, once per
-blocking invariant; there is no blanket override. The full six-invariant audit (decomposition,
-dependency justification, false barriers, straggler risk, and the two gate invariants above) is its own
-mechanism, run via `plan:audit`; this chapter only owns the part of it that is actually about gates.
+### Overriding a Static Plan Audit Warning
+
+If two tasks legitimately share a regression test fixture:
+
+```bash
+bun harness.ts plan:compile \
+  --run .capsules/<run-id> \
+  --actor planner \
+  --completion-gate "bun test" \
+  --accept-audit "A3-gate-discrimination:task-a and task-b share common integration fixture"
+```
+
+---
+
+## 💻 7. Tutorial: Authoring and Falsifying a Scoped Task Gate
+
+### Step 1: Implement Feature and Author Scoped Test
+
+Write scope: `src/format/date.ts`.
+Test file: `tests/format/date.test.ts`.
+
+### Step 2: Declare Task with Scoped Gate in Plan
+
+```bash
+bun harness.ts plan:add \
+  --run .capsules/run-50 \
+  --id task-date-format \
+  --title "Implement ISO date formatting helper" \
+  --write-scope "src/format/date.ts,tests/format/date.test.ts" \
+  --gate "bun test tests/format/date.test.ts"
+```
+
+### Step 3: Verify Falsifiability Before Validation
+
+```bash
+bun harness.ts gate:prove \
+  --run .capsules/run-50 \
+  --task task-date-format \
+  --actor coordinator
+```
+
+Verification Result:
+
+- Scratch isolation directory created.
+- `src/format/date.ts` reverted to base state (empty/deleted).
+- `bun test tests/format/date.test.ts` executed in scratch.
+- Gate exited with code `1` (`Cannot find module 'src/format/date.ts'`).
+- `gate-proved` event recorded with `falsifiable: true`.
+
+The gate is confirmed discriminatory and safe for validator enforcement.
 
 ---
 

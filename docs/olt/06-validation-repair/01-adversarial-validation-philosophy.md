@@ -1,137 +1,275 @@
-# 01. Adversarial Validation: The Probe / Defect Split
+# 01. Adversarial Validation: The Probe / Defect Split & Dual-Channel Protocol
 
 [⬅ Previous: Submission & Evidence Collection](../05-task-execution/03-submission-and-evidence-collection.md) | [Master Table of Contents](../README.md) | [Next: Structured Finding Schema ➡](./02-structured-finding-schema.md)
 
 ---
 
-## 🧱 Two Layers of Adversarial Checking
+## 🧭 Diátaxis Overview
 
-This chapter is about the second of two layers, and it is worth being explicit about the boundary
-before diving in.
-
-**Before any task is dispatched at all**, `plan:compile` runs a purely mechanical, structural audit —
-`plan:audit` — against the whole planning buffer: is any one task's write scope quietly carrying most
-of the plan (`A1-granularity`), do two disjoint-scope tasks share a gate so indistinguishable from a
-no-op that it cannot tell either task's absence from its presence (`A3-gate-discrimination`), is a
-dependency edge serializing two tasks whose scopes never actually overlap (`A4-false-barrier`), does
-one task's effort estimate dwarf its wave-mates enough that everyone else will idle waiting on it
-(`A5-straggler`), or does a task's own gate walk the whole repository when only `--completion-gate`
-is allowed to (`A6-whole-suite-gate`). A blocking finding refuses to let `plan:compile` seal the plan at
-all unless the coordinator explicitly accepts it, once per invariant, with a stated reason:
-
-```bash
-bun harness.ts plan:compile --run .capsules/<run-id> --actor planner \
-  --completion-gate "bun test tests/unit" \
-  --accept-audit "A3-gate-discrimination:task-a and task-b legitimately share the shared-fixture regression test"
-```
-
-`A3` and `A6` both consult recorded **falsifiability proofs** (`gate:prove`, Chapter 07) before
-flagging a shared or whole-repository-looking gate: a gate that has actually been proven to fail once
-its task's own work is reverted in a scratch copy is not the same finding as one nobody has ever tried
-to falsify. `A2-parallelism` — "does the decomposition match the prompt's entity count" — has no
-grounded number to compare against anywhere in the plan (deriving one would mean an NLP heuristic
-guessing at a count nobody asked for), so it is always reported under `not_evaluated` rather than
-silently skipped or invented.
-
-This structural audit is deterministic and requires no judgement — it is the harness checking its own
-arithmetic. The rest of this chapter is the opposite: a **task's own submitted work**, judged by an
-independent agent that has to actually look at the diff, not a shape the harness can check by counting
-files. Both layers exist because a plan can be structurally sound and still contain a task whose
-implementation is wrong, and a gate can be well-formed and still pass on code that does nothing.
+| Quadrant         | Purpose in this Chapter                                                                                                                             |
+| :--------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Explanation**  | Understand why LLM self-grading fails, the mechanics of cognitive validator hard-locks, context sanitization, and the Dual-Channel Review Protocol. |
+| **How-To Guide** | Step-by-step procedures for leasing validation, executing mandatory gate runs, recording probes, performing static AST checks, and rejecting tasks. |
+| **Reference**    | CLI commands, flag specifications, validator domain classifications, and validation error contracts.                                                |
+| **Tutorial**     | End-to-end walkthrough of validating a multi-domain task with adversarial probes and incremental checks.                                            |
 
 ---
 
-## 🎭 The Fatal Flaw of Self-Grading
+## 🧱 1. Explanation: The Fatal Flaw of Self-Grading
 
-Ask an agent that just wrote code whether its tests pass, and it evaluates its own output under deep
-conversational bias: it assumes its reasoning was correct, reads ambiguous output optimistically, and
-overlooks the edge cases it never thought of.
+In conventional multi-agent systems, agents that implement a feature are frequently prompted to "verify" their own work. In practice, this produces catastrophic failure rates on long-horizon tasks due to three systemic cognitive vulnerabilities:
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                       THE COGNITIVE SELF-GRADING TRAP                       │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  1. Sycophantic Confirmation Bias                                           │
+│     The model assumes its own prior reasoning was sound and interprets      │
+│     ambiguous error output or partial mock data as "expected behavior".     │
+│                                                                             │
+│  2. Blind-Spot Inheritance                                                  │
+│     The edge cases and invariants overlooked during implementation are the   │
+│     exact same edge cases omitted from self-authored verification tests.     │
+│                                                                             │
+│  3. Optimistic Ambiguity Collapse                                           │
+│     When test output is noisy or unassertive, the implementer assumes the   │
+│     absence of explicit failure equals verifiable correctness.              │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+To eliminate these vulnerabilities, the `olt` harness enforces a foundational rule:
 
 > **An implementer is NEVER permitted to validate its own task.**
 
-`task:validate-start` enforces three separate independence rules:
+When `task:validate-start` is invoked, the harness verifies three strict independence invariants before issuing a validation lease token:
 
-1. The validator is not the task's `original_implementer`.
-2. The validator does not appear in the task's attempts.
-3. **The validator has not validated this task before.** A repair round needs a _fresh_ validator.
-
-Reusing a validator across rounds fails outright:
+1. **Implementer Separation**: The candidate validator cannot be the task's `original_implementer`.
+2. **Attempt Disqualification**: The candidate validator cannot appear in any prior implementation or repair attempt for this task.
+3. **Freshness Invariant**: The candidate validator cannot have validated this task in any previous round. A repair round demands a _fresh_ validator to eliminate confirmation anchoring from previous reviews.
 
 ```text
-{"ok":false,"error":{"code":"INVALID_STATE","message":"validator must be independent from implementers"}}
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    VALIDATOR INDEPENDENCE VERIFICATION                      │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  Agent Assignment Request (agent_id: "val-1")                               │
+│       │                                                                     │
+│       ├── 1. agent_id === task.original_implementer? ───► [ REJECT ]        │
+│       │                                                                     │
+│       ├── 2. agent_id ∈ task.attempts[*].implementer? ──► [ REJECT ]        │
+│       │                                                                     │
+│       ├── 3. agent_id ∈ task.validation_history[*]? ────► [ REJECT ]        │
+│       │                                                                     │
+│       └── All Checks Passed ────────────────────────────► [ GRANT LEASE ]   │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+Attempting to assign a compromised or non-independent validator fails immediately with a deterministic harness error:
+
+```json
+{
+  "ok": false,
+  "error": {
+    "code": "INVALID_STATE",
+    "message": "validator must be independent from implementers and prior validators"
+  }
+}
 ```
 
 ---
 
-## 🗂️ One Task, Several Domains (B12.2)
+## 🔒 2. Explanation: The Cognitive Validator Hard-Lock
 
-A single validator judging "is this task good" conflates several genuinely different questions: is the
-code well-structured, does the UI actually render correctly, is the security posture sound. The harness
-answers this by letting a task carry **several open validations at once, one per applicable standing
-checklist domain**, rather than forcing one validator to certify everything:
+A validator's responsibility is rigorous cognitive evaluation and verification of evidence—**not** performing ad-hoc code alterations, applying dirty patches, or running arbitrary non-reproducible scripts.
 
 ```text
-VALIDATOR_DOMAINS = code-quality | product | security | system-design | ui-design
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                   COGNITIVE VALIDATOR HARD-LOCK BOUNDARY                    │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  ┌─────────────────────────────────┐   ┌─────────────────────────────────┐  │
+│  │        IMPLEMENTER ROLE         │   │         VALIDATOR ROLE          │  │
+│  ├─────────────────────────────────┤   ├─────────────────────────────────┤  │
+│  │ • Write Scope: MUTABLE          │   │ • Write Scope: READ-ONLY (🔒)   │  │
+│  │ • Arbitrary Commands: ALLOWED   │   │ • 0 Workspace Mutating Cmds     │  │
+│  │ • Edits Code, Adds Files        │   │ • Pure Cognitive Inspection     │  │
+│  │ • Submits Diff & Commit State   │   │ • Mandatory Gate Verification   │  │
+│  │ • Executes Unit/Integration     │   │ • AST Static Checks (0 any)     │  │
+│  │   Test Suites During Dev        │   │ • Socratic Probing & Pushbacks  │  │
+│  └─────────────────────────────────┘   └─────────────────────────────────┘  │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-`code-quality` applies to **every** task — whatever else changes, it is also code. The others are
-either derived automatically from the task's write scope, or dispatched explicitly:
+Under the **Cognitive Validator Hard-Lock**:
 
-- **`ui-design`** — the scope touches a markup/style/component extension (`.tsx`, `.jsx`, `.vue`,
-  `.svelte`, `.html`, `.css`, `.scss`, `.sass`, `.less`, …).
-- **`system-design`** — the scope touches `.graphql` / `.gql` / `.proto`, or a path containing
-  `schema/`, `contracts/` or `migrations/`.
-- **`product`** and **`security`** — real domains the checklist system names, but with no structural
-  signal in a write scope to auto-detect them from. A run that needs one dispatches it explicitly.
+- The validator is granted **zero commands** to alter repository code. Its filesystem view is strictly immutable.
+- A validator cannot bypass a failure by quietly patching an implementer's code.
+- All command executions performed by a validator via `run:exec --actor <validator>` must target explicit compiled mandatory gates or static checks (`task:check`).
+- The validator operates as an objective cognitive critic, measuring reality against requirements.
+
+---
+
+## 📡 3. Explanation: The Dual-Channel Review Protocol
+
+Reviewing code requires two distinct cognitive approaches: identifying broken functionality and probing for latent brittleness. The **Dual-Channel Review Protocol** formalizes this separation:
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                       DUAL-CHANNEL REVIEW PROTOCOL                          │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│             ┌─────────────────────────────────────────────────┐             │
+│             │            VALIDATOR INSPECTION ENGINE          │             │
+│             └───────────────┬─────────────────┬───────────────┘             │
+│                             │                 │                             │
+│               CHANNEL 1     │                 │     CHANNEL 2               │
+│            (Defect Push)    │                 │ (Cognitive Probe)           │
+│                             ▼                 ▼                             │
+│             ┌─────────────────────────┐ ┌─────────────────────────┐         │
+│             │       task:reject       │ │       task:probe        │         │
+│             ├─────────────────────────┤ ├─────────────────────────┤         │
+│             │ • Claim: "X is broken"  │ │ • Claim: "Prove X"      │         │
+│             │ • Class: defect         │ │ • Class: probe_demand   │         │
+│             │ • Severity: required    │ │ • Severity: minor       │         │
+│             │ • Moves repair_round +1 │ │ • Moves probe_round +1  │         │
+│             │ • Reassigns/escalates   │ │ • Stays in validating   │         │
+│             └─────────────────────────┘ └─────────────────────────┘         │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Channel 1: Adversarial Defect Pushes (`task:reject`)
+
+Channel 1 handles hard functional defects: logic errors, broken contracts, security vulnerabilities, regression bugs, or hardcoded mock returns that bypass gates without actually implementing logic.
+
+- **Precondition**: Requires `--checks` citing the validator's own successful execution of mandatory gates. If the gate itself is red, the task is mechanically broken; `task:reject` is reserved for when gates are green but requirements are unmet.
+- **Effect**: Records a structured `defect` finding, increments `repair_round`, transitions task state to `changes_requested`, and routes the task to repair.
+
+### Channel 2: Socratic Cognitive Deepening Probes (`task:probe`)
+
+Channel 2 handles demands for falsifiable proof. A probe is a Socratic challenge, not an accusation of failure.
+
+- **Nature**: Asks the implementer or codebase to demonstrate generalization (e.g., "Prove the algorithm handles empty strings and multi-byte UTF-8 without branching into special-case hardcodes").
+- **Effect**: Records a `probe_demand` finding, increments `probe_round`, and keeps the task in `validating` state.
+- **Invariant**: Every task has a mandatory minimum number of probes (`min_adversarial_probes`, default `1`). `task:review --status pass` is strictly refused until this minimum is satisfied.
+
+---
+
+## ⚡ 4. Explanation: 1-Hop In-Lease Micro-Cycles
+
+Full task rejection and reassignment introduces coordination latency: the implementer's lease is revoked, work is queued to the graph coordinator, and a repairer must be scheduled and onboarded.
+
+For minor defects and fast corrections, `olt` provides **1-Hop In-Lease Micro-Cycles** (`task:reject --in-lease`):
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    1-HOP IN-LEASE MICRO-CYCLE STATE ENGINE                  │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  [ Task Submitted by Implementer ] ──► [ Validator Leased ]                 │
+│                                                │                            │
+│                                                ▼                            │
+│                                       [ Finding Discovered ]                │
+│                                                │                            │
+│                   ┌────────────────────────────┴────────────────────────────┐
+│                   ▼ (micro_cycles < 3)                  ▼ (micro_cycles >= 3)│
+│       ┌───────────────────────┐             ┌───────────────────────┐       │
+│       │ task:reject --in-lease│             │      task:reject      │       │
+│       ├───────────────────────┤             ├───────────────────────┤       │
+│       │ • Lease retained      │             │ • Lease revoked       │       │
+│       │ • micro_cycles +1     │             │ • repair_round +1     │       │
+│       │ • Direct fast repair  │             │ • Formal reassignment │       │
+│       └───────────┬───────────┘             └───────────────────────┘       │
+│                   │                                                         │
+│                   ▼                                                         │
+│       [ Implementer Fixes Code ]                                            │
+│                   │                                                         │
+│                   ▼                                                         │
+│       [ Re-submit: task:submit ]                                            │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+1. **Micro-Cycle Execution**: When a minor issue is identified during active validation, the validator issues `task:reject --in-lease`. The active implementer's lease is maintained rather than torn down.
+2. **Direct Turnaround**: The implementer receives the structured finding, applies the fix, and re-submits within the active lease window.
+3. **Hard Bounded Ceiling (Max 3)**: A task is permitted a maximum of **3 in-lease micro-cycles**. If the implementer cannot satisfy the validator within 3 micro-cycles, the harness automatically escalates the rejection to a formal round (`repair_round + 1`), revokes the lease, and triggers formal repair routing.
+
+---
+
+## 🔍 5. Explanation: Fast Incremental Static Checks (`task:check`)
+
+Before and during validation, static code quality is verified via `task:check`. This provides instantaneous, deterministic AST-level feedback without running heavy integration test suites.
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                       TASK:CHECK AUDIT INVARIANTS                           │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  1. Zero `any` Types                                                        │
+│     Explicit or untyped `any` annotations are flagged as hard blocking      │
+│     defects (CQ-TYPE-001). Code must use strict types or `unknown`.         │
+│                                                                             │
+│  2. Zero Suppression Directives                                             │
+│     Comments disabling type checking or linter rules (@ts-ignore,            │
+│     @ts-expect-error, eslint-disable) are strictly rejected (CQ-SUPPRESS-002).│
+│                                                                             │
+│  3. Boundary Type Integrity                                                 │
+│     All exported functions, parameters, and return types must carry         │
+│     explicit, non-inferred type definitions.                                │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+Running `task:check` ensures the codebase is statically sound before cognitive review begins:
 
 ```bash
-bun harness.ts task:validate-start --run .capsules/<run-id> --task task-1 --validator val-1
-bun harness.ts task:validate-start --run .capsules/<run-id> --task task-1 --validator val-1 --validator-domain code-quality
+bun harness.ts task:check --run .capsules/<run-id> --task <task-id>
 ```
 
-Omit `--validator-domain` and the harness derives it: the first domain applicable to the task's write
-scope that nobody currently has an **open** validation against. This is what lets a coordinator
-dispatch one validator per applicable domain without tracking which flag goes with which agent by hand.
-An explicitly named domain the write scope does not draw is refused (`validator domain X is not
-applicable to task-1's write scope`), and a domain that already has an open attempt is refused too —
-one open attempt per domain, at most.
+---
 
-The three independence rules above still apply **task-wide**, not per domain: an agent who validated
-`ui-design` on round 1 cannot pick up `code-quality` on round 2 of the same task either. Validating one
-domain of a task is still validating that task.
+## 🗂️ 6. Reference: Standing Checklist Validator Domains (B12.2)
 
-### Reaching `validated`
+To avoid forcing a single validator to certify unrelated specialties, tasks support **concurrent domain validations**:
 
-The task transitions to `validated` only once **every applicable domain has its own recorded pass** —
-the first domain to pass does not unilaterally close the task out from under the domains still mid-flight.
-A pass on one domain while others remain open reports honestly rather than declaring victory early:
+$$\text{VALIDATOR\_DOMAINS} = \{\text{code-quality}, \text{product}, \text{security}, \text{system-design}, \text{ui-design}\}$$
 
 ```text
-### Domain Passed, Task Still validating: task-slug
-- **Validator**: `val-ui` | Verdict: ✅ PASS
-- **Outstanding Domains**: security still need an independent pass before task-slug is validated
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    DOMAIN APPLICABILITY & DISPATCH RULES                    │
+├───────────────────┬─────────────────────────────────────────────────────────┤
+│ Domain            │ Trigger Invariant / Scope Criteria                      │
+├───────────────────┼─────────────────────────────────────────────────────────┤
+│ `code-quality`    │ Mandatory for ALL tasks. Enforces formatting, types,    │
+│                   │ AST cleanliness, and structure.                         │
+├───────────────────┼─────────────────────────────────────────────────────────┤
+│ `ui-design`       │ Triggered when write scope touches: `.tsx`, `.jsx`,     │
+│                   │ `.vue`, `.svelte`, `.html`, `.css`, `.scss`, `.sass`.   │
+├───────────────────┼─────────────────────────────────────────────────────────┤
+│ `system-design`   │ Triggered when write scope touches: `.graphql`,         │
+│                   │ `.proto`, or paths matching `schema/`, `migrations/`.   │
+├───────────────────┼─────────────────────────────────────────────────────────┤
+│ `security`        │ Dispatched explicitly for auth, crypto, and token code. │
+├───────────────────┼─────────────────────────────────────────────────────────┤
+│ `product`         │ Dispatched explicitly for user-facing flows & copy.     │
+└───────────────────┴─────────────────────────────────────────────────────────┘
 ```
 
-But a **reject from any single domain ends the round for every domain at once.** If `code-quality` and
-`ui-design` are both open and `ui-design` rejects, `code-quality`'s still-open attempt is archived into
-`validation_history` along with it — it loses its slot the same as the domain that actually rejected,
-and both are re-dispatched together once the repair round completes. A task-wide defect does not get to
-coexist with a passing domain from before it was found.
+### Domain Rules:
 
-Findings themselves (`task.findings`) are a **single list shared by the whole task**, not partitioned
-per domain — a finding a `ui-design` validator raised is still an open finding a `security` validator's
-own later pass has to `--resolve`, exactly as if it had raised it itself. Domains give a task several
-independent verdicts; they do not give it several independent finding lists.
+1. **Unanimous Pass Required**: A task reaches `validated` status only when **every applicable domain has recorded an independent pass**.
+2. **Atomic Invalidation on Reject**: A rejection from **any single domain** immediately terminates the round for all domains, archiving all open validation attempts into `validation_history`.
+3. **Shared Finding Registry**: Findings are registered at the task level (`state.tasks[id].findings`), requiring all open findings to be resolved before any domain can issue a final pass.
 
 ---
 
----
+## 🧼 7. Explanation: Algorithmic Context Sanitization
 
-## 🧼 Context Sanitization & Sycophancy Prevention
-
-LLMs are inherently susceptible to **sycophantic confirmation bias**: when provided with an implementer's self-assuring narrative ("I refactored the auth module and all edge cases are handled cleanly"), an LLM validator is statistically inclined to agree, skimming over subtle regressions.
-
-To prevent this cognitive failure mode, the harness applies algorithmic **Validator Context Isolation** (`isolateValidatorContext`, `excludeValidatorContamination`) to every validation brief:
+LLMs suffer from sycophantic anchoring when shown previous reviewers' narratives or implementers' self-assessing claims. The harness sanitizes validator briefs via `isolateValidatorContext`:
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -139,207 +277,249 @@ To prevent this cognitive failure mode, the harness applies algorithmic **Valida
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
 │  [ Raw Implementer Submission ]                                             │
-│    • summary: "I fixed the bug and tests pass 100%!" (PROSE, agent_reported)│
-│    • confidence: 0.98, decision_narrative: "Refactored parsing logic"       │
-│    • files_changed: ["src/auth.ts"] (harness_observed via git diff)         │
-│    • write_scope: ["src/auth"]                                              │
+│    • summary: "Refactored auth module. All tests 100% pass!" (PROSE)        │
+│    • confidence: 0.99, decision_narrative: "Clean rewrite"                  │
+│    • files_changed: ["src/auth.ts"]                                         │
 │                                  │                                          │
 │                                  ▼ (isolateValidatorContext)                │
 │  ┌───────────────────────────────────────────────────────────────────────┐  │
-│  │  SCRUBBED EXCLUSION SET (VALIDATOR_EXCLUSIONS):                       │  │
+│  │  SCRUBBED EXCLUSION SET:                                              │  │
 │  │  ❌ confidence             ❌ decision_narrative                      │  │
 │  │  ❌ implementer_report     ❌ task_report                             │  │
 │  │  ❌ previous_review        ❌ prior_reviews                           │  │
-│  │  ❌ validator_report       ❌ subjective conclusions                  │  │
+│  │  ❌ validator_report       ❌ subjective opinions                     │  │
 │  └───────────────────────────────┬───────────────────────────────────────┘  │
 │                                  ▼                                          │
 │  [ Clean Allowlisted Brief Delivered to Validator ]                         │
-│    ✅ Original prompt markdown text (prompt.md)                             │
-│    ✅ Atomic acceptance criteria & mapped requirements                      │
-│    ✅ Objective filesystem state on disk & git baseline diff                │
-│    ✅ Exact mandatory gate command argv to execute via run:exec             │
+│    ✅ Original requirements & acceptance criteria                            │
+│    ✅ Objective Git diff of touched files                                    │
+│    ✅ Mandatory gate command argv to execute via run:exec                   │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-The brief states the verification contract up front without narrative contamination:
+### Round 2+ Judgement Stripping
 
-```text
-### Validation Leased: task-slug
-- **Validator**: `val-slug`
-- **Validation Token**: `BtYrfM4hNV-YBbSBw3jp6eHUI-GmVZAXbPBT9b2l6cQ`
-- **Mandatory Gates to Run**:
-  1. `bun test tests/slug.test.ts`
-- **Before Sign-off**: record 1 adversarial probe(s) with `task:probe`; a pass is refused without them.
-```
-
-### Round Two Gets a Harder Sanitization Pass
-
-A fresh validator identity defeats one kind of anchoring. It does nothing about a subtler kind: a round-2
-validator who reads "round 1 concluded the parser drops empty rows" has already been handed a
-conclusion to defend or dismiss, not a question to answer for itself. So on any round after the first,
-every prior finding is stripped of anything that states a **judgement** — `verdict`, `severity`,
-`class`, `observation`, `conclusion`, `rationale`, `recommendation`, `resolved_by`, and everything else
-that names an opinion rather than a fact — before it ever reaches the round-2+ packet. What survives is
-re-expressed as a **demand to prove**, not a verdict to inherit:
+In repair rounds (Round 2 and beyond), prior findings are stripped of subjective fields (`verdict`, `severity`, `observation`, `recommendation`). What remains is re-framed as an objective **demand to prove**:
 
 ```json
 {
   "demand_id": "finding-task-slug-reject",
   "requirement_id": "req-slug",
-  "prove": "Lowercase the input, collapse every run of non-alphanumeric characters into one hyphen, and trim the edges.",
+  "prove": "Lowercase input, collapse non-alphanumeric character runs to single hyphens, trim edge hyphens.",
   "prove_by": "bun test tests/slug.test.ts",
-  "look_at": ["..."]
+  "look_at": ["src/slug.ts", "tests/slug.test.ts"]
 }
 ```
 
-Both readings point at the identical underlying defect. Only the second leaves the judgement where it
-belongs: with the validator actually looking at the code. This stripping is enforced, not merely
-attempted — anything that reaches a round-2+ packet still carrying one of those judgement-bearing keys
-fails the packet build outright rather than shipping a validator brief with a thumb on the scale.
-
-The round-2+ packet also carries what the harness itself measured about the gap between rounds: every
-demand still standing, every command already run against the task, the mandatory gates' latest recorded
-results, and a repository diff anchored to the previous round's own repository reading — including,
-when no commit landed between rounds, the raw fact that the anchor commit itself never moved, so "nothing
-changed since the previous round" is never confused with "the diff looks unchanged because nothing was
-re-measured."
-
 ---
 
-## 🔎 The Probe: Adversarial Without Being Dishonest
+## 📖 8. How-To Guide: The Validator Lifecycle
 
-Requiring a validator to be adversarial is easy to state and easy to get wrong. Demand a mandatory
-_rejection_ and you have asked for a defect nobody observed; demand nothing and the check is
-optional. Neither is acceptable.
+Follow this operational procedure when validating any task.
 
-A **probe** is the shape that works. It is a demand for proof, not an accusation, so requiring one
-asks nothing dishonest of anybody:
+### Step 1: Claim the Validation Lease
 
 ```bash
-bun harness.ts task:probe --run .capsules/<run-id> --task <task-id> \
-  --validator <val-agent> --token <token> \
-  --demand "Prove the slug is computed, not matched: the gate must stay green with the hard-coded branches gone." \
+bun harness.ts task:validate-start \
+  --run .capsules/<run-id> \
+  --task <task-id> \
+  --validator <validator-agent-id> \
+  --validator-domain code-quality
+```
+
+Output:
+
+```text
+### Validation Leased: task-slug
+- **Validator**: `val-code-1`
+- **Validation Token**: `BtYrfM4hNV-YBbSBw3jp6eHUI-GmVZAXbPBT9b2l6cQ`
+- **Mandatory Gates to Run**:
+  1. `bun test tests/slug.test.ts`
+- **Before Sign-off**: record 1 adversarial probe(s) with `task:probe`.
+```
+
+### Step 2: Run Static Audits
+
+```bash
+bun harness.ts task:check \
+  --run .capsules/<run-id> \
+  --task <task-id>
+```
+
+### Step 3: Execute Mandatory Gates Independently
+
+Every mandatory gate must be executed by the validator using its own actor identity:
+
+```bash
+bun harness.ts run:exec \
+  --run .capsules/<run-id> \
+  --actor <validator-agent-id> \
+  --task <task-id> \
+  -- bun test tests/slug.test.ts
+```
+
+### Step 4: Record Socratic Probes
+
+```bash
+bun harness.ts task:probe \
+  --run .capsules/<run-id> \
+  --task <task-id> \
+  --validator <validator-agent-id> \
+  --token <validation-token> \
+  --demand "Prove the slugify function computes slugs dynamically rather than matching static fixture strings." \
   --revalidation "bun test tests/slug.test.ts"
 ```
 
-```text
-### Adversarial Probe Recorded: task-slug
-- **Validator**: `val-slug-2` | Verdict: 🔎 PROBE (Round 1)
-- **Nature**: Demand for proof, not a defect. Repair round stays 0.
-- **Demands**:
-  - `probe-task-slug-01-1`: Prove the slug is computed, not matched: …
-- **Next Step**: Answer every demand with command evidence, then `task:review --status pass`, or `task:reject` if a demand fails.
+### Step 5A: Issue Verdict — PASS
+
+When all gates pass, probes are answered, and static checks are clean:
+
+```bash
+bun harness.ts task:review \
+  --run .capsules/<run-id> \
+  --task <task-id> \
+  --validator <validator-agent-id> \
+  --token <validation-token> \
+  --status pass \
+  --summary "Implementation handles unicode, collapses hyphens dynamically, and satisfies all requirements." \
+  --checks <gate-command-id> \
+  --resolve "probe-<task-id>-01-1=<gate-command-id>"
 ```
 
-|                       | `task:probe`            | `task:reject`                             |
-| :-------------------- | :---------------------- | :---------------------------------------- |
-| Claim made            | "Prove X"               | "X is broken"                             |
-| Finding `class`       | `probe_demand`          | `defect`                                  |
-| Counter moved         | `probe_round` +1        | `repair_round` +1                         |
-| Task status after     | stays `validating`      | `changes_requested`                       |
-| Reassigns implementer | no                      | yes                                       |
-| Graph edge            | `probe` (info / cyan)   | `pushback` (error)                        |
-| Required flags        | at least one `--demand` | `--reason`, `--severity`, `--remediation` |
+### Step 5B: Issue Verdict — Fast In-Lease Pushback (Micro-Cycle)
 
-`min_adversarial_probes` is **1**. The requirement is enforced, not merely written down:
-`task:review --status pass` is refused while `probe_round` is short of it.
+If a fast, isolated fix is needed within the active lease:
+
+```bash
+bun harness.ts task:reject \
+  --run .capsules/<run-id> \
+  --task <task-id> \
+  --validator <validator-agent-id> \
+  --token <validation-token> \
+  --in-lease \
+  --reason "Missing boundary check for null/undefined input in src/slug.ts:14" \
+  --severity minor \
+  --remediation "Add explicit guard clause checking for empty/null string before regex execution." \
+  --checks <gate-command-id>
+```
+
+### Step 5C: Issue Verdict — Formal Task Rejection
+
+For substantial defects or exhausted micro-cycles:
+
+```bash
+bun harness.ts task:reject \
+  --run .capsules/<run-id> \
+  --task <task-id> \
+  --validator <validator-agent-id> \
+  --token <validation-token> \
+  --reason "Slug generation uses hardcoded if-statements matching test cases rather than algorithmic transformation." \
+  --severity critical \
+  --remediation "Implement dynamic regex replacement: input.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')" \
+  --checks <gate-command-id>
+```
 
 ---
 
-## ⚖️ When a Rejection Is Actually Correct
+## 💻 9. Tutorial: End-to-End Task Validation Walkthrough
 
-`task:reject` demands `--checks` that are the validator's **own successful runs of every mandatory
-task gate**. A failing gate run cannot back a rejection:
+### Scenario
 
-```text
-review check command C-237045e3-… is not successful validator evidence for task-slug
+An implementer (`imp-1`) has submitted `task-auth-token`, which generates and verifies cryptographic JWT tokens. Write scope: `src/auth/token.ts`, `tests/auth/token.test.ts`.
+
+### 1. Acquire Validation Lease
+
+```bash
+bun harness.ts task:validate-start \
+  --run .capsules/run-402 \
+  --task task-auth-token \
+  --validator val-sec-1 \
+  --validator-domain code-quality
 ```
 
-That constraint is not arbitrary. It makes `task:reject` the tool for a defect **the green gate does
-not catch** — the case where mechanical verification passes and judgement is still required:
+The harness mints validation token `VAL_TOK_9981`.
 
-```ts
-// The gate is green. The requirement is not met.
-export function slugify(input: string): string {
-  if (input === "Hello World") return "hello-world";
-  if (input === "Ship it, now!") return "ship-it-now";
-  return input;
-}
+### 2. Run AST Static Check
+
+```bash
+bun harness.ts task:check --run .capsules/run-402 --task task-auth-token
 ```
 
-```text
-### Task Rejected: task-slug
-- **Validator**: `val-slug` | Verdict: ❌ REJECTED
-- **Finding ID**: `finding-task-slug-reject`
-- **Issue**: `The gate is green only because both test inputs are hard-coded; slugify implements nothing.`
-- **Action**: Task recorded as `changes_requested`.
+Result: `0 any types found, 0 linter suppression comments detected. Clean.`
+
+### 3. Validator Executes Gate
+
+```bash
+bun harness.ts run:exec --run .capsules/run-402 --actor val-sec-1 --task task-auth-token -- \
+  bun test tests/auth/token.test.ts
 ```
 
-A **red** gate is not a verdict to record. It is a repair situation: the task goes back, and
-`task:review --status pass` stays blocked while any mandatory gate's recorded run exited nonzero.
+Recorded command receipt: `C-948201`.
 
----
+### 4. Challenge Implementation with Socratic Probe
 
-## 🖼️ UI Tasks: The Dual-Channel Validator Protocol
+Validator inspects `src/auth/token.ts` and notices token expiration check uses client-supplied timestamps. Validator records probe:
 
-A prose claim of "the layout renders correctly" is exactly the unfalsifiable kind of statement this
-whole chapter exists to refuse. For a task whose write scope touches a UI extension or a UI-shaped
-directory (`.tsx`, `.jsx`, `.vue`, `.svelte`, `.html`, `.css`, `.scss`, `.sass`, `.less`, `.svg`, or a
-path under `components/`, `views/`, `pages/`, `styles/`, `ui/`, `frontend/`, `client/`, `renderer/`,
-`canvas/`, or `layout/`), `task:review --status pass` runs a **Dual-Channel Validator Protocol** audit
-before the verdict is even recorded, and a task the audit fails cannot pass — non-UI tasks are entirely
-unaffected; the audit reports `non_ui_skipped` and moves on.
-
-The audit asks for either channel, and ideally both:
-
-- **DOM metrics** (`visual-report.json`) — a structured report of overflow, clipping, stacking order,
-  contrast and origin-orphan checks per viewport.
-- **Screenshots** — real, non-empty rasterizations. A screenshot recorded at 0 bytes is flagged as an
-  **Anti-Mocking Invariant Violation**, not silently accepted as evidence.
-
-Both channels missing is an outright refusal (`mode: rejected`): "Task modifies UI scope but provided
-neither DOM metrics nor visual screenshots." When at least one channel is present, the audit further
-requires coverage across all three required viewports — **mobile, tablet, desktop** — from either
-channel; a viewport covered by neither is its own finding (`missing_viewport`). When **both** channels
-cover a viewport, the audit cross-checks them against each other (`mode: dual_channel_corroborated`):
-a dimension only one channel actually recorded is never compared against a number the other channel
-never measured, so a mismatch reported here is always a genuine disagreement between two real
-readings, never a fabricated one filled in against a missing measurement.
-
-The validator does not have to run this manually — `collectTaskScreenshots` and the visual-report
-ingestion run automatically as part of `task:review`, searching the repository root plus
-`test-results/`, `screenshots/` and `playwright-report/` for evidence the task's own commands produced.
-The validator's job is to make sure that evidence exists before asking for a pass.
-
----
-
-## 🧭 The Validator's Sequence
-
-```text
-1. task:validate-start        → validation token, mandatory gate list, probe requirement
-2. run:exec … --actor <val>   → rerun every mandatory gate yourself
-3. task:probe --demand "…"    → at least min_adversarial_probes rounds
-4. run:exec … --actor <val>   → produce the command that ANSWERS each demand
-5a. task:review --status pass --checks <cmd> --resolve <finding>=<cmd>   (every open finding)
-5b. task:reject --severity … --remediation … --checks <green gate run>  (an observed defect)
+```bash
+bun harness.ts task:probe \
+  --run .capsules/run-402 \
+  --task task-auth-token \
+  --validator val-sec-1 \
+  --token VAL_TOK_9981 \
+  --demand "Prove signature verification fails when an expired token is signed with a valid key but past its exp claim." \
+  --revalidation "bun test tests/auth/token.test.ts"
 ```
 
-Steps 2 and 4 are frequently the same command; the point is that the evidence answering a demand is a
-recorded run, not a sentence.
+Probe registered: `probe-task-auth-token-01-1`.
 
-A passing `task:review` may optionally attach `--checklist-domain <domain> --checklist-report
-<path>` — the standing-checklist coverage report Chapter 06 §02 covers in full. It is a separate report
-of what the validator actually inspected against that domain's checklist, and it never gates the
-verdict on its own; the task's own pass/fail is decided purely by its own requirements.
+### 5. Pushback via 1-Hop In-Lease Micro-Cycle
 
-If the task draws more than one applicable domain, this sequence runs once **per domain**, independently
-— each domain's validator holds its own token and passes or rejects on its own timeline. The task
-itself only reaches `validated` once every domain that opened has recorded a pass, as covered above.
-`probe_round`, though, is a single counter kept on the **task**, not one per domain: the first
-validator to probe — whichever domain it is validating — satisfies `min_adversarial_probes` for every
-domain's eventual pass on that task, not just its own. A second domain's validator is not required to
-record its own probe if another domain already recorded one this round.
+Validator runs a test against token expiration and finds the expiration check was omitted:
+
+```bash
+bun harness.ts task:reject \
+  --run .capsules/run-402 \
+  --task task-auth-token \
+  --validator val-sec-1 \
+  --token VAL_TOK_9981 \
+  --in-lease \
+  --reason "Token verification does not validate the 'exp' claim against server clock." \
+  --severity critical \
+  --remediation "Add Math.floor(Date.now() / 1000) > payload.exp check in verifyToken." \
+  --checks C-948201
+```
+
+### 6. Implementer Fast-Fix & Re-submission
+
+Implementer `imp-1` (still holding lease) updates `src/auth/token.ts`, adds an expiration unit test, and runs `task:submit`.
+
+### 7. Re-Testing & Resolution
+
+Validator reruns gate:
+
+```bash
+bun harness.ts run:exec --run .capsules/run-402 --actor val-sec-1 --task task-auth-token -- \
+  bun test tests/auth/token.test.ts
+```
+
+Recorded command receipt: `C-948205`.
+
+Validator signs off:
+
+```bash
+bun harness.ts task:review \
+  --run .capsules/run-402 \
+  --task task-auth-token \
+  --validator val-sec-1 \
+  --token VAL_TOK_9981 \
+  --status pass \
+  --summary "Cryptographic verification confirmed. Expiration claim validated against system clock." \
+  --checks C-948205 \
+  --resolve "probe-task-auth-token-01-1=C-948205"
+```
+
+Task transitions to `validated`.
 
 ---
 

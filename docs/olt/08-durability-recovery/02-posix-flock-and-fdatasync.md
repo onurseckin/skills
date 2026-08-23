@@ -4,118 +4,270 @@
 
 ---
 
-## 💥 The Reality of Power Cuts & OS Crashes
+## 🧭 Diátaxis Overview
 
-Operating systems buffer file writes in memory before flushing them to physical disk sectors. If power is interrupted or an agent process is killed via `SIGKILL`, buffered writes can:
-
-- Be lost completely.
-- Leave half-written, torn JSON fragments on disk.
-- Corrupt filesystem directory entry tables.
-
-To achieve enterprise-grade durability, `olt` implements the **Durable Storage Engine** using POSIX advisory locks and synchronous directory flushing.
-
----
-
-## 🔒 Concurrency Control: Advisory POSIX File Locks (`flock`)
-
-Multiple subagents running concurrently on the same host machine must never write to `.capsules/<run-id>/events.jsonl` simultaneously.
-
-Every state transition acquires an exclusive advisory lock on the capsule directory's own inode.
-There is no lock file inside the capsule: the directory is the thing opened, so a rogue process
-cannot displace the lock by replacing a path, and a reader browsing the capsule never has to tell
-coordination state apart from evidence.
-
-**There is no `flock` in `node:fs`.** Neither Node nor Bun exposes the `flock(2)` syscall as a
-JavaScript API, so the harness calls it directly, via `bun:ffi`, against whichever libc the host
-actually has loaded (`platform/flock-ffi.ts`): a fixed candidate list of `libc.so.6` /
-`libc.musl-<arch>.so.1` paths on Linux (read off `/proc/self/maps` first, in case the running process
-already has a specific one loaded), and `/usr/lib/libSystem.B.dylib` on macOS. Getting the errno right
-matters as much as calling `flock` itself: `EAGAIN`/`EWOULDBLOCK` (`11` on Linux, `35` on Darwin) means
-another process holds it, so the harness retries; `EINTR` means the call was merely interrupted by a
-signal, so it retries the exact same call rather than treating it as a failure; anything else is a real
-error and throws. The actual acquire/release pair (`platform/run-lock.ts`):
-
-```typescript
-const descriptor = openSync(
-  runRoot,
-  constants.O_RDONLY | constants.O_DIRECTORY | constants.O_NOFOLLOW,
-);
-// tryExclusiveFlock loops on EINTR, returns false on EAGAIN/EWOULDBLOCK (caller retries with backoff),
-// and throws on any other errno — it is the harness's own FFI wrapper around flock(fd, LOCK_EX|LOCK_NB).
-while (!tryExclusiveFlock(descriptor)) {
-  /* sleep briefly, then retry, until options.timeoutMs (default 10s) is exhausted */
-}
-try {
-  // 1. Read latest events.jsonl
-  // 2. Validate hash chain head
-  // 3. Append new event with fsyncSync
-  // 4. Update state.json projection atomically
-} finally {
-  releaseFlock(descriptor); // flock(fd, LOCK_UN)
-  closeSync(descriptor);
-}
-```
-
-Before and after the operation runs, `withRunLock` also re-checks that `runRoot` still resolves to the
-**same device and inode** it opened (`assertPathIdentity`) — a directory that got deleted, replaced, or
-swapped out from under the lock while it was held is treated as a `PATH_SAFETY` failure, not silently
-tolerated. A timed-out acquisition (the lock is still held by someone else after `timeoutMs`) is its own
-distinct error code, `LOCK_TIMEOUT`.
-
-### Who is holding the lock right now
-
-Advisory locking tells a second process it must wait; it does not, on its own, tell a human staring at
-a stuck run _who_ is holding it or from what machine. Every successful acquisition also publishes a
-small **observer record** — deliberately outside the capsule, in a sibling `.locks/<run-id>/owner.json`
-(`platform/observer.ts`, `LOCKS_DIRECTORY = ".locks"`) — naming the PID, hostname, and a random token
-for the current holder, written the same atomic-write-then-`fsync` way as everything else in this
-chapter. This is coordination metadata, not run state: a reader browsing `.capsules/<run-id>/` should
-never have to distinguish "who currently has the lock" from "what the run actually recorded", which is
-exactly why it lives beside the capsule directory rather than inside it. `owner.json` is removed the
-moment the operation finishes (matched against its own token, so a stale write from an unrelated
-process can never delete someone else's live record) — its presence is therefore itself a live signal:
-if it is still there and its PID is dead, that is forensic evidence of exactly which process crashed
-while holding the run lock.
+| Quadrant         | Purpose in this Chapter                                                                                                                         |
+| :--------------- | :---------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Explanation**  | Understand filesystem write hazards, kernel-level POSIX `flock` concurrency control on directory inodes, and the 3-Stage Atomic Write Pipeline. |
+| **How-To Guide** | Handling lock timeouts, inspecting external lock holders via `.locks/`, and diagnosing filesystem durability issues.                            |
+| **Reference**    | FFI syscall specifications, errno error codes, filesystem permission matrices, and atomic write invariants.                                     |
+| **Tutorial**     | Step-by-step trace of an atomic state mutation across kernel locks, physical disk flushes, and directory entry syncs.                           |
 
 ---
 
-## 💾 Atomic Multi-Stage Write Pipeline
+## 💥 1. Explanation: Filesystem Write Hazards
 
-When writing any persistent artifact (manifest, state projection, command record):
+In high-concurrency multi-agent execution, multiple subagents frequently read and write to the same capsule simultaneously. Modern operating systems buffer disk writes in volatile page caches. Under unhandled process crashes (`SIGKILL`), hardware power cuts, or host resource exhaustion, standard disk I/O introduces severe hazards:
 
 ```text
-[ Stage 1: Write Temporary File ]
-  ├── Create `.state.json.<uuid>.tmp` (leading dot, real filename kept in the
-  │   middle) via O_CREAT|O_EXCL — a second, concurrent writer targeting the
-  │   same path can never collide with this one, since each gets its own uuid
-  ├── openSync(..., 0o600) at creation, then chmodSync to the caller's real
-  │   target mode once the bytes are written — `state.json` itself lands at
-  │   0o644; the read-only capsule artifacts (`prompt.md`, published packets)
-  │   are written with an explicit 0o444 instead, and never rewritten after
-  ├── Write the canonical JSON buffer
-  └── Call `fsyncSync(fd)` (flushes data & inode metadata to physical storage)
-
-[ Stage 2: Atomic POSIX Rename ]
-  └── Call `renameSync(tempPath, targetPath)` (atomic replacement on POSIX filesystems)
-
-[ Stage 3: Synchronize Parent Directory ]
-  └── Call `fsyncDirectory(parentDir)` (flushes directory inode entries to prevent orphan files)
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         FILESYSTEM CRASH HAZARDS                            │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  1. Torn JSON Writes                                                        │
+│     Process terminates after writing 1,200 bytes of a 2,048-byte JSON       │
+│     payload, leaving truncated, unparseable bytes on disk.                  │
+│                                                                             │
+│  2. Inode / Directory Desynchronization                                     │
+│     File data sectors are written to storage blocks, but parent directory   │
+│     dentry tables in RAM are not flushed before crash, creating 0-byte or   │
+│     orphaned files.                                                         │
+│                                                                             │
+│  3. Concurrent Race Interleaving                                            │
+│     Two subagents append to `events.jsonl` simultaneously, interleaving     │
+│     character streams and corrupting cryptographic hash links.              │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-A crash between Stage 1 and Stage 2 leaves nothing but an orphaned `.tmp` file behind — the real
-`state.json` (or `prompt.md`, or a packet bundle) is never in a half-written state, because nothing
-ever renames a file over it until the replacement is completely written and durably flushed. If the
-write itself fails partway through, the same helper (`atomicWriteBytes` in `core/durable-write.ts`)
-closes the descriptor and deletes the temp file in its `catch` — a failed write does not even leave the
-`.tmp` fragment behind for a human to clean up.
+To eliminate these failure modes, `olt` implements a **Kernel-Level Advisory Lock Engine** paired with a **3-Stage Synchronous Write Pipeline**.
 
-A published packet bundle (`packets/packet-bundle.ts`) shows why a **directory's own** permission
-matters independently of the files inside it: `packet.md` and `metadata.json` are written 0o444
-(read-only, digest-bound — a published packet can never be silently edited afterward), but the
-directory that holds them is `chmodSync`'d to 0o755 once it's complete. Without that, a later ordinary
-recursive delete of the whole capsule would need its own repair step just to remove read-only files
-first; with it, the capsule can be torn down through nothing more than a plain recursive `rm`, exactly
-as any other directory would be.
+---
+
+## 🔒 2. Explanation: Kernel-Level Advisory POSIX `flock`
+
+### Why Traditional Lockfiles Fail
+
+Traditional `.lock` files suffer from critical race hazards:
+
+- **Atomicity Gap**: Checking if a lockfile exists and creating it requires multiple steps unless using complex flags.
+- **Path Replacement Attack**: A rogue process can unlink and recreate a lockfile path out from under an active holder.
+- **Evidence Pollution**: Placing lockfiles inside the capsule clutters immutable audit evidence with transient coordination state.
+
+### The Capsule Inode Lock
+
+`olt` locks the **capsule directory's own filesystem inode**:
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                     KERNEL INODE LOCKING ARCHITECTURE                       │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  Subagent A (PID 1042)                 Subagent B (PID 1043)                │
+│       │                                     │                               │
+│       ▼                                     ▼                               │
+│  openSync(runRoot, O_RDONLY|O_DIRECTORY) openSync(runRoot, O_RDONLY|O_DIR)  │
+│       │                                     │                               │
+│       ▼                                     ▼                               │
+│  flock(fd_A, LOCK_EX | LOCK_NB)        flock(fd_B, LOCK_EX | LOCK_NB)       │
+│       │                                     │                               │
+│  [ GRANTED: Kernel Lock on Inode ]          │                               │
+│       │                                     ▼                               │
+│       │                                [ EAGAIN: Lock Contention ]          │
+│       │                                     │                               │
+│       │                                     ▼                               │
+│       │                                [ Backoff & Retry Loop ]             │
+│       │                                                                     │
+│       ▼ (Mutate State, Append Event, Flush)                                 │
+│  flock(fd_A, LOCK_UN) ──────────────────► [ GRANTED to Subagent B ]         │
+│  closeSync(fd_A)                                                            │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Direct `bun:ffi` Syscall Integration
+
+Because neither Node.js nor Bun standard libraries expose the raw `flock(2)` syscall, `olt` binds directly to the OS libc via `bun:ffi` (`platform/flock-ffi.ts`):
+
+- **Linux**: Loads `/lib/x86_64-linux-gnu/libc.so.6` or `libc.musl` (discovered dynamically via `/proc/self/maps`).
+- **macOS (Darwin)**: Loads `/usr/lib/libSystem.B.dylib`.
+
+### Robust Errno Handling:
+
+- **`EAGAIN` / `EWOULDBLOCK`** (`11` on Linux, `35` on Darwin): Lock is held by another process. Harness sleeps with exponential backoff and retries until `timeoutMs` (default 10s).
+- **`EINTR`** (`4`): Syscall was interrupted by an OS signal. Harness retries immediately without counting against timeout.
+- **Other Errno**: Unexpected kernel error; throws immediately.
+
+### Inode Safety Check (`assertPathIdentity`)
+
+Before and after mutating state, the harness verifies `fstatSync(fd)` against `statSync(runRoot)`. If the device ID or inode number changed while the lock was held (e.g. directory moved or unlinked), a `PATH_SAFETY` violation is triggered.
+
+---
+
+## 👁️ 3. Explanation: External Lock Observer (`.locks/`)
+
+To provide immediate visibility into who holds a lock without polluting the capsule audit record, `olt` writes an **Observer Record** outside the capsule in `.locks/<run-id>/owner.json`:
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        EXTERNAL OBSERVER REGISTRY                           │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  Filesystem Layout:                                                         │
+│  ├── .capsules/run-402/          ◄── Pure Immutable Audit Evidence          │
+│  │   ├── events.jsonl                                                       │
+│  │   └── state.json                                                         │
+│  │                                                                          │
+│  └── .locks/run-402/             ◄── Transient Coordination Directory       │
+│      └── owner.json              ◄── Live Holder Forensic Metadata          │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### `owner.json` Payload:
+
+```json
+{
+  "pid": 48102,
+  "hostname": "worker-node-04.internal",
+  "holder_token": "HLD_8819204",
+  "acquired_at": "2026-08-23T03:14:02.100Z"
+}
+```
+
+When the lock is released, `owner.json` is atomically removed. If a process crashes while holding the lock, `owner.json` survives as forensic proof of which PID and host caused the lock stall.
+
+---
+
+## 💾 4. Explanation: The 3-Stage Atomic Write Pipeline
+
+Whenever the harness writes state files (`state.json`, `metadata.json`, command evidence):
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                     3-STAGE ATOMIC WRITE PIPELINE                           │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  STAGE 1: WRITE & FLUSH TEMPORARY FILE                                      │
+│  ├── Create unique temp path: `.state.json.<uuid>.tmp`                      │
+│  ├── openSync with `O_CREAT | O_EXCL | O_WRONLY` at mode 0o600             │
+│  ├── Write Canonical JSON buffer                                            │
+│  └── Execute `fsyncSync(fd)` (Flushes data blocks & inode metadata to disk) │
+│  └── closeSync(fd)                                                          │
+│                                   │                                         │
+│                                   ▼                                         │
+│  STAGE 2: ATOMIC POSIX RENAME                                               │
+│  └── Execute `renameSync(tempPath, targetPath)`                             │
+│      (Guarantees atomic directory entry swap on POSIX filesystems)          │
+│                                   │                                         │
+│                                   ▼                                         │
+│  STAGE 3: SYNCHRONIZE PARENT DIRECTORY                                      │
+│  ├── openSync(parentDir, O_RDONLY | O_DIRECTORY)                            │
+│  ├── Execute `fsyncSync(parentDirFd)`                                       │
+│  │   (Flushes directory dentry entries to physical platter/SSD)             │
+│  └── closeSync(parentDirFd)                                                 │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Durability Guarantees:
+
+- **Crash in Stage 1**: Only an isolated `.tmp` file is left. Target `state.json` remains intact.
+- **Crash in Stage 2**: POSIX guarantees `renameSync` is atomic—the target file either points to the old version or the new version; it is never half-swapped.
+- **Stage 3 Sync**: Guarantees directory index tables survive power cuts without filesystem corruption.
+
+---
+
+## 📐 5. Reference: Filesystem Permission Matrix
+
+Capsules enforce strict POSIX permissions to prevent accidental manual edits:
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    CAPSULE FILESYSTEM PERMISSION MATRIX                     │
+├──────────────────────────┬──────────┬───────────────────────────────────────┤
+│ Artifact Path            │ Mode     │ Rationale                             │
+├──────────────────────────┼──────────┼───────────────────────────────────────┤
+│ `state.json`             │ `0o644`  │ Read/write by harness, readable by UI │
+│ `events.jsonl`           │ `0o644`  │ Append-only by lock holder            │
+│ `prompt.md`              │ `0o444`  │ Read-only; immutable prompt baseline  │
+│ Published Packets        │ `0o444`  │ Read-only; digest-bound brief packets │
+│ Capsule Directories      │ `0o755`  │ Executable/Searchable for clean `rm`  │
+│ Temporary `.tmp` files   │ `0o600`  │ Owner-only during write stage         │
+└──────────────────────────┴──────────┴───────────────────────────────────────┘
+```
+
+---
+
+## 📖 6. How-To Guide: Diagnosing Lock Contention
+
+### Checking Current Lock Holder
+
+If a CLI command reports `LOCK_TIMEOUT`:
+
+```bash
+cat .locks/<run-id>/owner.json
+```
+
+Output:
+
+```json
+{
+  "pid": 19402,
+  "hostname": "macbook-pro.local",
+  "holder_token": "HLD_192830",
+  "acquired_at": "2026-08-23T03:10:00.000Z"
+}
+```
+
+### Checking if Holder Process is Alive
+
+```bash
+ps -p 19402
+```
+
+If the process does not exist, the holder crashed. Run `doctor:repair` to clean stale lock state:
+
+```bash
+bun harness.ts doctor:repair --run .capsules/<run-id> --actor coordinator
+```
+
+---
+
+## 💻 7. Tutorial: Complete State Mutation Walkthrough
+
+### 1. Harness Initiates Task Claim
+
+Worker `worker-1` attempts to claim `task-auth`.
+
+### 2. Lock Acquisition
+
+1. Harness opens descriptor on `.capsules/run-99` directory.
+2. Calls `flock(fd, LOCK_EX | LOCK_NB)` via `bun:ffi`.
+3. Writes `.locks/run-99/owner.json` with PID and token.
+
+### 3. Read & Verify Head
+
+1. Reads `events.jsonl`.
+2. Verifies cryptographic head matches `state.json` projection.
+
+### 4. Append Event & Sync
+
+1. Appends Event 14 (`task-claimed`) to `events.jsonl`.
+2. Calls `fsyncSync` on `events.jsonl` file descriptor.
+
+### 5. 3-Stage Atomic Write of `state.json`
+
+1. Writes `.state.json.f492a81.tmp`.
+2. Flushes via `fsyncSync`.
+3. Calls `renameSync(".state.json.f492a81.tmp", "state.json")`.
+4. Flushes capsule directory descriptor with `fsyncSync`.
+
+### 6. Lock Release
+
+1. Deletes `.locks/run-99/owner.json`.
+2. Calls `flock(fd, LOCK_UN)`.
+3. Closes directory descriptor.
 
 ---
 

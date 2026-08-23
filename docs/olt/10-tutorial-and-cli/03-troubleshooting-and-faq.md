@@ -1,287 +1,279 @@
-# 03. Troubleshooting, Common Pitfalls & FAQ
+# 03. Troubleshooting, Blunder Dictionary & FAQ
 
 [⬅ Previous: CLI Command Reference](./02-cli-command-reference.md) | [Master Table of Contents](../README.md)
 
 ---
 
-## 🧯 Refusals You Will Actually Hit
+## 🧯 The Architectural Blunder & Error Code Dictionary
 
-Every message below is verbatim output from a real run. They are refusals, not bugs — each one is the
-harness declining to record something it cannot stand behind.
+Every refusal emitted by `olt` is a deterministic mechanical barrier designed to stop silent corruption before it occurs. This section catalogs all major error codes, root causes, and exact recovery procedures:
 
-### `.capsules must be gitignored before initializing a run`
-
-`plan:init` will not create a capsule that git would track. Add `.capsules/` to `.gitignore` first.
-
-### `compiled graph failed validation: gates[N].command must perform substantive verification`
-
-A gate has to actually verify something. `bun test` with no target is refused; `bun test tests` is
-accepted. This applies to `--completion-gate` as much as to task gates.
-
-### `a plan must be applied before scheduling`
-
-`queue:wave`, `queue:next` and `queue:pop` need a compiled plan. Run `plan:compile`.
-
-### `plan:audit blocks compilation — <invariant>: <message>. Fix the plan, or pass --accept-audit …`
-
-`plan:compile` runs `plan:audit`'s six structural invariants (A1 granularity, A3 gate-discrimination,
-A4 false-barrier, A5 straggler, A6 whole-suite-gate — A2 is never evaluated, see the FAQ below) itself,
-immediately before sealing, and refuses to proceed on any **blocking** finding. Either fix what the
-message names, or accept it explicitly and record why:
-
-```bash
-bun harness.ts plan:compile --run .capsules/<run-id> --actor planner --completion-gate "…" \
-  --accept-audit "<invariant-id>:<why this is fine>"
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    THE ERROR CODE & BLUNDER TAXONOMY                        │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  [ CONCURRENCY & SCHEDULING BLUNDERS ]                                      │
+│    • FALSE_SERIALIZATION_BLUNDER   --> Dispatching 1 worker when N are ready│
+│    • WRITE_SCOPE_VIOLATION         --> Mutating files outside lease boundary│
+│    • UNJUSTIFIED_DEPENDENCY        --> depends_on edge without --dep-reason │
+│                                                                             │
+│  [ INTEGRITY & FREEZE BLUNDERS ]                                            │
+│    • INVALID_STATE_FROZEN_REVISION --> Attempting to mutate compiled graph  │
+│    • STALE_PLAN_DIGEST             --> Plan modified underneath active lease│
+│    • TORN_TAIL_DETECTED            --> Cryptographic hash chain corruption  │
+│    • LOCK_TIMEOUT                  --> Kernel POSIX flock contention        │
+│                                                                             │
+│  [ VALIDATION & COMPLETION BLUNDERS ]                                       │
+│    • CONTAMINATED_VALIDATOR        --> Validator not independent or reused  │
+│    • UNANSWERED_FINDING            --> Signing off with open probe / defect │
+│    • UNPROVEN_REQUIREMENT          --> Critic missing independent proof cmd │
+│    • EMPTY_NON_SUBSTANTIVE_GATE    --> Gate lacks verifiable command target │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-One `--accept-audit` per blocking invariant — there is no blanket override, and naming an invariant the
-audit did not actually raise is refused: `--accept-audit names <id>, which the audit did not raise as
-blocking; nothing to accept`.
+---
 
-### `dependency edge(s) without a declared justification: <task> -> <dep>. Pass plan:add --dep-reason …`
+### 1. `FALSE_SERIALIZATION_BLUNDER`
 
-Every `--deps` edge needs a one-line reason (C6) or `plan:compile` refuses to seal, independently of
-`plan:audit`'s own A4 false-barrier check on the same edge. Fix it at the source — declaring the
-dependency again is not possible once it is in the buffer, so get the reason right at `plan:add` time:
-`plan:add --deps <id> --dep-reason "<id>:<why this edge exists>"`.
+#### The Failure Mode
 
-### `plan validator must be independent from the coordinator or planner that produced the plan`
+The coordinator calls `queue:wave` and receives multiple ready, conflict-free tasks (e.g., 3 tasks in Wave 1). Instead of dispatching 3 parallel implementer agents, the coordinator dispatches 1 agent, waits for completion, and then dispatches the next. This turns a high-performance parallel graph into a serial waterfall.
 
-The same independence rule task-level `validator` gets against implementers, applied to the whole plan:
-a `plan-validator` agent id cannot be the same id already registered as `coordinator` or `planner`. This
-fires at `plan:validate-start`, not at `agent:register` — the grant itself is unconditional.
+#### Verbatim Output
 
-### `plan validation rejected this graph revision; replan and record a passing plan:review before any implementer or repairer can claim work`
+```text
+{"ok":false,"error":{"code":"FALSE_SERIALIZATION_BLUNDER","message":"Anti-serialization interlock tripped: Wave 1 contains 3 ready, conflict-free tasks [task-auth, task-billing, task-analytics], but only 1 agent was dispatched. Serializing parallel-ready work is prohibited. You MUST dispatch all 3 concurrent lanes simultaneously using task:claim across distinct agent identities.","issues":[{"claimable_tasks":["task-auth","task-billing","task-analytics"],"available_capacity":4}]}}
+```
 
-A recorded `changes_requested` plan review against the **live** graph revision is a hard stop
-`task:claim` enforces directly, for every implementer and repairer, regardless of who they are. There
-is no override flag. Fix it by replanning (`plan:add` / `plan:compile`, which mints a new graph
-revision) and dispatching a fresh plan-validator that records a passing `plan:review` against it. No
-plan-validator dispatched at all is a different, unpenalized case — this only fires on an actual
-recorded rejection.
+#### Remediation Workflow
 
-### `a plan validation is already active for this graph revision` / `this validator already recorded a verdict for this graph revision`
-
-Mirrors task-level validation: only one open plan-validation assignment exists per graph revision, and
-a validator who already recorded a verdict against a revision cannot reopen it. A fresh `plan:compile`
-or `plan:replan` (a new graph revision) is always reviewable again.
-
-### `run_id must be an identifier, not a path: "<value>" still contains a path separator after stripping one optional ".capsules/" prefix`
-
-`plan:init --run`/`--run-id` accepts a bare run id, or the same `.capsules/<run-id>` value every other
-command's `--run` uses (exactly one such prefix is stripped). What it never accepts is a value that
-still contains a path separator after that single strip — a run id is an identifier, not a path.
-
-### `task <id> write scope (…) is byte-identical to its content at claim; nothing was written. Submit --no-op --reason "<why>" …`
-
-`task:submit` compares a content digest of the write scope against the one `task:claim` recorded. A
-byte-identical submission is refused unless the agent explicitly declares `--no-op --reason "<why this
-needed no change>"`. Making a real change is the other fix. `--reason` without `--no-op`, or `--no-op`
-without `--reason`, are refused as a caller mistake before the digest is even compared.
-
-### `sub-task S-1 write scope … is not a proper subset of the parent scope …`
-
-A branch must hand down **strictly less** than it holds. A parent scoped to a single file cannot
-branch at all; give the task a directory scope if you expect it to subdivide.
-
-### `validator must be independent from implementers`
-
-Three separate causes, all enforced by `task:validate-start`:
-
-1. The validator implemented the task.
-2. The validator appears in the task's attempts.
-3. **The validator already validated this task once.** A repair round needs a _fresh_ validator.
-
-### `cannot pass <task>: N open finding(s) unanswered: …; answer each with --resolve <finding-id>=<command-id>`
-
-`task:review --status pass` requires every open finding to be answered explicitly — probe demands and
-defects alike. Use `finding:get --run <capsule>` to list them.
-
-### `review check command C-… is not successful validator evidence for <task>`
-
-`--checks` must be commands that (a) the validator itself ran, (b) exited 0, (c) are bound to this
-task, and (d) match a mandatory gate. A **failing** gate run therefore cannot back a rejection: a red
-gate is a repair situation, not a verdict.
-
-### `task <id> has no compiled task-scope gate to prove; run plan:compile first` / `task <id> has no write scope to revert; nothing for gate:prove to falsify`
-
-`gate:prove` needs a task that has actually been through `plan:compile` — it reverts the task's
-_compiled_ write scope back to `--base` (default `HEAD`) in a scratch copy and runs the _compiled_
-gate against it, so both have to exist first. It never runs at `plan:add` time, on purpose: before
-`plan:compile`, the task's work does not exist yet, so reverting it would yield a scratch copy
-identical to the current tree and every verdict would degenerate to "not falsifiable".
-
-### `critic checks must be nonempty` / `critic independent check is invalid: C-…`
-
-The completeness critic must run its own commands with `--actor <critic>` and **without** `--task`.
-Task-bound commands and other agents' commands are not critic evidence.
-
-### `requirement proof command is invalid: C-…`
-
-Same rule for `--proofs-file` entries: each `kind: "command"` reference must be a command the critic
-itself ran, unbound to a task.
-
-### `clean completion review leaves requirements unproven: …`
-
-Every requirement needs a proof entry. A requirement the critic did not prove is recorded `unproven`
-and blocks completion; the harness will not mint a proof on the critic's behalf.
-
-### `repository bytes changed after critic authorization`
-
-`critic:start` binds the authorization to the repository bytes it inspected. Anything written to the
-worktree afterwards — including a scratch `proofs.json` — invalidates it. Write the proofs payload
-outside the repository, or re-run `critic:start`.
-
-### `completed runs are terminal and cannot be mutated`
-
-Release every agent grant **before** `run:complete`.
-
-### `SyntaxError: JSON Parse error` after `--format json`
-
-`--format json` was placed after `--`, so it went to the child process. Put it before the `--`.
+1. Register distinct agent identities for each ready lane via `agent:register`.
+2. Issue simultaneous `task:claim` calls across distinct agent identities.
+3. If serial execution is genuinely required due to unmodeled external constraints, pass `--serialize-reason "<justification>"`.
 
 ---
 
-## ❓ FAQ
+### 2. `WRITE_SCOPE_VIOLATION`
 
-### How many adversarial checks must a validator record before a pass?
+#### The Failure Mode
 
-`min_adversarial_probes = 1`. The mandatory check is a **probe** (`task:probe --demand …`) — a demand
-for proof, not an accusation — so satisfying it never requires filing a defect nobody observed. A
-probe does not consume the repair budget and does not reassign the implementer.
+An implementer or repairer modifies or creates a file outside its leased write scope directory tree.
 
-### How many repair rounds do I get?
+#### Verbatim Output
 
-`max_repair_rounds = 6` (config `harness.config.json`). On the sixth recorded rejection the task
-becomes `escalated` rather than looping.
+```text
+{"ok":false,"error":{"code":"WRITE_SCOPE_VIOLATION","message":"task-auth touched files outside its declared write scope: [src/database/schema.ts]. Leased scope is strictly confined to [src/auth/**].","issues":[{"unauthorized_files":["src/database/schema.ts"]}]}}
+```
 
-### What does `plan:audit` actually check, and is it mandatory?
+#### Remediation Workflow
 
-Six structural invariants, always in the same order: **A1** granularity (one task quietly carrying
-most of the plan's files), **A3** gate-discrimination (two disjoint-scope tasks sharing one gate that
-can't tell them apart), **A4** false-barrier (a dependency edge between scope-independent tasks), **A5**
-straggler (one task's effort estimate dwarfing the rest of its wave), and **A6** whole-suite-gate (a
-task gate that runs the entire suite instead of proving its own scope). **A2** parallelism is declared
-and reported `not_evaluated` on every run — the harness has no honest way to count how many distinct
-entities a prompt names without guessing. You never call `plan:audit` yourself for it to take effect:
-`plan:compile` runs it automatically and refuses to seal on any blocking finding, so it is mandatory in
-that sense even though the standalone command is optional and purely informational.
-
-### What is `gate:prove`, and when should I run it?
-
-It answers one question a static heuristic can only guess at: does this task's gate actually fail when
-the task's own work is reverted? It copies the repository into a scratch directory, reverts the task's
-compiled write scope back to `--base` (default `HEAD`), runs the compiled gate there, and records
-whether it exited non-zero (`falsifiable: true`) — all inside the throwaway copy, never touching the
-real repository. Run it any time after `plan:compile`, most usefully on a gate `plan:audit`'s A3 or A6
-flagged: a recorded falsifiable proof satisfies those two invariants in place of the static heuristic,
-letting a legitimately broad or shared gate through without a `--accept-audit` override.
-
-### What is the plan-validator, and do I have to dispatch one?
-
-An independent adversary for the compiled plan itself — not a task's code, the plan's own
-decomposition, dependency edges, gate discrimination and straggler risk (the same four questions
-`plan:audit`'s findings feed into, now judged by a person or agent rather than a heuristic). It is
-optional: most runs never dispatch one, and `task:claim` only ever blocks on an actual recorded
-`changes_requested` verdict against the live graph revision, never on the mere absence of a review. If
-you do dispatch one, do it before the first implementer claims work — the registry's own guidance is
-"get a passing `plan:review` before dispatching any implementer."
-
-### What is the difference between `task:probe` and `task:reject`?
-
-|               | `task:probe`            | `task:reject`                                                         |
-| :------------ | :---------------------- | :-------------------------------------------------------------------- |
-| Claim         | "Prove X"               | "X is broken"                                                         |
-| Finding class | `probe_demand`          | `defect`                                                              |
-| Counter       | `probe_round` +1        | `repair_round` +1                                                     |
-| Task status   | stays `validating`      | `changes_requested`                                                   |
-| Graph edge    | `probe` (info/cyan)     | `pushback` (error)                                                    |
-| Requires      | at least one `--demand` | `--severity`, `--remediation`, and the validator's own green gate run |
-
-Both produce findings that must be answered with `--resolve` before a pass.
-
-### My task legitimately needed no code change. How do I submit that honestly?
-
-`task:submit --no-op --reason "<why this needed no change>"`. `task:submit` always compares a content
-digest of the write scope against the one `task:claim` recorded, and a byte-identical scope is refused
-unless `--no-op` is explicit — an unexplained non-change is indistinguishable from a stamped submission
-that never did the work, so the harness never infers "nothing to do" on its own. `--reason` is required
-alongside it and is recorded verbatim on the task record (`task.no_op`); an investigation task that
-confirms existing code already satisfies its requirement is exactly the case this exists for.
-
-### `queue:pop` or `queue:wave`?
-
-`queue:wave` to see everything claimable right now; `queue:pop` to actually take one. The wave query
-is read-only and never a batch to wait on — dispatch each row as an agent frees up, and re-run it the
-instant one does. Looping `queue:pop` alone, one task at a time, is what turns a parallel graph into
-a waterfall.
-
-### An agent died holding a lease. Now what?
-
-`recover --run <capsule> --actor <you>` returns expired leases to `retry_ready` (or
-`changes_requested` after a repair attempt), reopens interrupted validations, reclaims branch
-sub-tasks whose sub-agent died, and expires a stale critic. A _branched_ parent is never reaped — its
-lease is frozen because it is blocked on children, not gone. For a voluntary hand-back use
-`task:release` while the lease is still live.
-
-### Why does the graph say my agent's model is "unknown"?
-
-Because nobody reported one. Per-agent model, tier and thinking level come only from
-`agent:register --model/--model-tier/--thinking-level` or `agent:report`. Nothing is inferred from
-the machine that ran `summary:export`. Register your agents with the telemetry your host actually
-knows, and it will appear.
-
-### Can a validator branch to parallelise verification?
-
-No. `branch:open` requires a live implementation lease and a validator holds a validation token, not
-a lease. Dispatch a sub-validator with `agent:register` instead — but note the verdict's `--checks`
-must still be the parent validator's own runs.
-
-### Is there a command to grant or decline an authority-gated requirement?
-
-Yes — `authority:decide --requirement <id> --decision grant|decline --rationale "<why>"`. Granting
-makes the requirement actionable; declining disposes it `out_of_scope` and cancels every dormant task
-that depends on it alone (refusing instead if that would invalidate a task already active or
-completed). The decision is permanent: a repeat call with the same actor and rationale is idempotent,
-any other call against an already-decided requirement is refused. See
-[Chapter 02 §03](../02-requirements/03-authority-decisions-and-dispositions.md) for the full
-`needs_authority` vocabulary and how a gated obligation reaches this state in the first place.
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    WRITE SCOPE VIOLATION RESOLUTION                         │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  Did the task modify shared infrastructure or another task's scope?         │
+│                                                                             │
+│    ├──► YES: Revert unauthorized changes (git checkout src/database).       │
+│    │         If the change is necessary, request formal replan via          │
+│    │         plan:replan to assign a dedicated integration task.            │
+│    │                                                                        │
+│    └──► NO:  The write scope was declared too narrowly in plan:add.         │
+│              Issue plan:replan with an expanded scope allocation.           │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
-## ⚠️ Pitfalls
+### 3. `UNJUSTIFIED_DEPENDENCY`
 
-| Pitfall                             | Root cause                                                       | Fix                                                                                |
-| :---------------------------------- | :--------------------------------------------------------------- | :--------------------------------------------------------------------------------- |
-| Serial execution of a parallel plan | Dispatching with `queue:pop` in a loop                           | `queue:wave`, then one `task:claim` per agent                                      |
-| `WRITE_SCOPE_VIOLATION` on submit   | Edited a file outside the lease                                  | Check the scope in `run:status`; request a revision instead of taking the path     |
-| Task glued to the wrong requirement | `plan:add` without `--requirement-lines`                         | Bind the lines explicitly; the compiler warns when it glues by position            |
-| Everything serialises unexpectedly  | Two scopes overlap, e.g. `docs/**` and `docs/concepts/**`        | Scope conflict is glob-aware; make the scopes genuinely disjoint                   |
-| A task that can never branch        | Single-file write scope                                          | Give it a directory scope if subdivision is plausible                              |
-| Gate marked stale at completion     | Files changed after the gate ran                                 | Re-run it through `run:exec` to capture a fresh `trusted_host_observed_v1` binding |
-| Shell string passed as a gate       | `"bun test tests/*.ts"`                                          | Gates are literal argv: `bun harness.ts run:exec … -- bun test tests/foo.test.ts`  |
-| Late `agent:release`                | Released after `run:complete`                                    | Close every grant before sealing                                                   |
-| Critic authorization invalidated    | A file was written between `critic:start` and `critic:review`    | Keep scratch files out of the repository                                           |
-| `plan:compile` refused unexpectedly | A blocking `plan:audit` finding, or an unjustified `--deps` edge | Read the finding; fix the plan, or `--accept-audit <id>:<reason>` / `--dep-reason` |
-| Every `task:claim` refused mid-run  | A dispatched plan-validator recorded `changes_requested`         | Replan (new graph revision) and dispatch a fresh plan-validator that passes it     |
-| Honest no-op submission refused     | `task:submit` with no real change and no `--no-op`               | Add `--no-op --reason "<why>"`, or make the change the scope actually requires     |
+#### The Failure Mode
+
+A task declaration includes `--deps` edges without supplying corresponding `--dep-reason` justifications for every prerequisite.
+
+#### Verbatim Output
+
+```text
+{"ok":false,"error":{"code":"INVALID_ARGUMENT","message":"dependency edge(s) without a declared justification: task-api -> task-db. Pass plan:add --dep-reason <dep-id>:\"<why this edge exists>\" for each one before compiling.","issues":[]}}
+```
+
+#### Remediation Workflow
+
+Provide the exact read/write data-flow rationale for each edge:
+
+```bash
+bun harness.ts plan:add --run .capsules/<slug> --actor planner --id task-api \
+  --deps task-db --dep-reason "task-db:imports database client generated by task-db" ...
+```
 
 ---
 
-## 🧭 Master Navigation Hub
+### 4. `CONTAMINATED_VALIDATOR` / `VALIDATOR_INDEPENDENCE_VIOLATION`
 
-| Section | Chapter                                                                                | Primary topics                                            |
-| :------ | :------------------------------------------------------------------------------------- | :-------------------------------------------------------- |
-| **01**  | [Foundations & Architecture](../01-foundations/01-why-long-tasks-fail.md)              | Failure modes, run capsule, the lifecycle.                |
-| **02**  | [Requirements & Dispositions](../02-requirements/01-prompt-capture-and-integrity.md)   | Prompt integrity, line disposition, authority vocabulary. |
-| **03**  | [Graph & Scheduler](../03-graph-scheduler/01-dependency-graph-theory.md)               | DAG theory, `proposeBatch`, recorded topology, revisions. |
-| **04**  | [Multi-Agent Deployment](../04-multi-agent/01-host-agnostic-architecture.md)           | Tiers, the ten roles, grants, bearer tokens.              |
-| **05**  | [Task Lifecycle & Execution](../05-task-execution/01-leasing-and-heartbeats.md)        | Leases, write scopes, `task:submit`, `run:exec`.          |
-| **06**  | [Validation & Repair](../06-validation-repair/01-adversarial-validation-philosophy.md) | Probe vs defect, finding schema, 6-round budget.          |
-| **07**  | [Gates & Completion](../07-gates-and-completion/01-mandatory-gate-systems.md)          | Gate contracts, critic protocol, terminal checklist.      |
-| **08**  | [Durability & Recovery](../08-durability-recovery/01-tamper-proof-hash-chains.md)      | Hash chains, flock/fdatasync, torn tail quarantine.       |
-| **09**  | [Branching & Honesty](../09-branching-and-honesty/01-execution-time-branching.md)      | Branch-and-collect, agent ledger, evidence classes.       |
-| **10**  | [Tutorial & CLI Reference](./01-end-to-end-tutorial.md)                                | Executable tutorial, generated manifest, this page.       |
+#### The Failure Mode
+
+An agent attempts to validate a task when it:
+
+1. Previously implemented or submitted work for that task.
+2. Holds a coordinator or planner role grant.
+3. **Previously validated that exact task in an earlier repair round.**
+
+#### Verbatim Output
+
+```text
+{"ok":false,"error":{"code":"INVALID_STATE","message":"validator must be independent from implementers and cannot validate the same task across multiple repair rounds","issues":[]}}
+```
+
+#### Remediation Workflow
+
+Release the prior validator and register a brand-new validator identity:
+
+```bash
+bun harness.ts agent:release --run .capsules/<slug> --agent val-1 --reason "Round 1 complete"
+bun harness.ts agent:register --run .capsules/<slug> --agent val-2 --role validator --parent-agent coordinator-1 --parent-task <task-id>
+bun harness.ts task:validate-start --run .capsules/<slug> --task <task-id> --validator val-2
+```
+
+---
+
+### 5. `UNANSWERED_FINDING`
+
+#### The Failure Mode
+
+A validator attempts to pass a task (`task:review --status pass`) while open defect findings or probe demands remain unresolved.
+
+#### Verbatim Output
+
+```text
+{"ok":false,"error":{"code":"INVALID_STATE","message":"cannot pass task-auth: 1 open finding(s) unanswered: finding-auth-01; answer each with --resolve <finding-id>=<command-id>","issues":[]}}
+```
+
+#### Remediation Workflow
+
+Run the verification command and pass `--resolve "<finding-id>=<cmd-id>"` for **every** open finding:
+
+```bash
+bun harness.ts task:review --run .capsules/<slug> --task task-auth --validator val-2 \
+  --token <token> --status pass --checks <cmd-id> --resolve "finding-auth-01=<cmd-id>"
+```
+
+---
+
+### 6. `UNPROVEN_REQUIREMENT`
+
+#### The Failure Mode
+
+The Completeness Critic attempts to approve a run without attaching independent command receipts for all prompt obligations.
+
+#### Verbatim Output
+
+```text
+{"ok":false,"error":{"code":"INTEGRITY","message":"clean completion review leaves requirements unproven: [req-2]. Every requirement must be evidenced by an independent critic command execution.","issues":[{"unproven":["req-2"]}]}}
+```
+
+#### Remediation Workflow
+
+The critic must execute its own verification command (unbound to any task) and include the reference in `--proofs-file`:
+
+```bash
+CMD=$(bun harness.ts run:exec --format json --run .capsules/<slug> --actor critic-1 -- bun test tests/req2.test.ts | bun -e 'console.log(JSON.parse(process.argv[1]).result.command_id)')
+# Include CMD in /tmp/proofs.json and call critic:review --proofs-file /tmp/proofs.json
+```
+
+---
+
+### 7. `LOCK_TIMEOUT`
+
+#### The Failure Mode
+
+A command fails to acquire the POSIX `flock` on `.capsules/<slug>/state.json` within the 5000ms deadline.
+
+#### Verbatim Output
+
+```text
+{"ok":false,"error":{"code":"LOCK_TIMEOUT","message":"Failed to acquire exclusive lock on .capsules/slug/state.json after 5000ms. Another process is holding the capsule lock.","issues":[]}}
+```
+
+#### Remediation Workflow
+
+1. Check running processes: `ps aux | grep harness.ts`.
+2. If an agent process crashed ungracefully while holding the lock, run recovery diagnostics:
+
+```bash
+bun harness.ts recover --run .capsules/<slug> --actor coordinator-1
+```
+
+---
+
+## 🛠️ Step-by-Step Diagnostic & Recovery Workflows
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    CRASH RECOVERY & LEASE RECLAMATION                       │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  Scenario: Implementer agent died or disconnected mid-execution.           │
+│                                                                             │
+│  1. Run Capsule Doctor:                                                     │
+│     $ bun harness.ts doctor --run .capsules/<slug>                          │
+│     --> Identifies expired leases and orphaned branches.                   │
+│                                                                             │
+│  2. Execute Lease Recovery:                                                 │
+│     $ bun harness.ts recover --run .capsules/<slug> --actor coordinator     │
+│     --> Returns expired leases to 'retry_ready' state.                      │
+│     --> Reopens interrupted validation attempts.                            │
+│     --> Preserves frozen branched parents.                                  │
+│                                                                             │
+│  3. Re-dispatch Work:                                                       │
+│     $ bun harness.ts queue:wave --run .capsules/<slug>                      │
+│     --> Reclaimed task is claimable immediately in current wave.            │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## ❓ Frequently Asked Questions (FAQ)
+
+### Q: How does Work/Span scaling determine optimal concurrency?
+
+The scheduler calculates Total Work $W = \sum \text{effort}$ and Critical Path Span $S$. According to **Brent's Theorem**, maximum efficiency occurs at:
+$$P = \left\lceil \frac{W}{S} \right\rceil$$
+The scheduler clamps wave width to $\min(\text{max\_parallel}, P)$, preventing coordinator context exhaustion while maximizing throughput.
+
+### Q: What is the difference between `task:probe` and `task:reject`?
+
+| Comparison Property   | `task:probe`                  | `task:reject`                             |
+| :-------------------- | :---------------------------- | :---------------------------------------- |
+| **Semantic Nature**   | Non-defect demand for proof   | Formal defect finding                     |
+| **Task Status**       | Stays `validating`            | Transitions to `changes_requested`        |
+| **Repair Budget**     | Does NOT consume repair round | Increments `repair_round` ($+1$)          |
+| **Worker Assignment** | Same validator continues      | Worker claims under `--role repairer`     |
+| **Mandatory Flags**   | `--demand`, `--revalidation`  | `--severity`, `--remediation`, `--checks` |
+
+### Q: How do I submit an investigation task that legitimately required no code changes?
+
+If an implementer confirms that existing code already satisfies requirements, submit using `--no-op --reason "<why>"`:
+
+```bash
+bun harness.ts task:submit --run .capsules/<slug> --task <task-id> --agent <agent-id> \
+  --token <token> --summary "Investigation complete" \
+  --no-op --reason "Existing implementation already passes all test fixtures."
+```
+
+`task:submit` compares disk content digests at claim vs submission. Byte-identical submissions without `--no-op` are rejected as unexecuted work.
+
+### Q: How does the Supervisory Watchdog monitor long tasks?
+
+The watchdog runs background health checks on active leases, detecting dead worker processes and stale tokens without blocking the main event loop:
+
+```bash
+bun harness.ts watchdog:status --run .capsules/<slug>
+bun harness.ts watchdog:verify --generation 1
+```
 
 ---
 

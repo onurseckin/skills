@@ -4,185 +4,305 @@
 
 ---
 
-## 📄 Compact Markdown Briefs, Not JSON Packets
+## 🎭 The Multi-Agent Role Architecture
 
-Rather than making agents parse multi-page JSON from disk, every command prints a compact markdown
-brief (≤ 30 lines) to stdout:
+In a resilient multi-agent software engineering system, agents must not be generalist free-roaming actors. When an agent attempts to simultaneously plan, write code, run tests, and grade its own changes, cognitive bias inevitably creeps in: agents overlook their own edge-case bugs, rationalize broken invariants, and rubber-stamp failing tests.
+
+`olt` solves this through **Immutable Role Contracts**, **Strict Hierarchical Boundaries**, and **Cryptographically Bound Role Packets**. Every agent operating within an `olt` run is bound to a formal contract that strictly defines its permissible actions, forbidden commands, and parent-child spawning authority.
 
 ```text
-### Task Leased: task-slug
-- **Agent**: `impl-slug`
-- **Lease Token**: `K6QeJSe2sZ4n4kcMTiH1oxGbXEKstjtLEBxG2F-2-5A`
-- **Duration**: 20 minutes
-- **Assigned Write Scope**: `src/slug.ts`
-- **Note**: Pass `--token K6QeJSe2sZ4n4kcMTiH1oxGbXEKstjtLEBxG2F-2-5A` to `task:submit`.
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                               THE CANONICAL ROLE HIERARCHY                                       │
+├──────────────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                                  │
+│  [ Tier 0: Infinite Mind ]                                                                       │
+│    └── mind: Product Owner, strategic decomposition, atomic admission-to-dispatch                │
+│                                  │                                                               │
+│                                  ▼ (Spawns strictly Tier 1)                                      │
+│  [ Tier 1: Interactive Run Orchestrator ]                                                        │
+│    └── orchestrator: User interface, capsule lifecycle governance, multi-coordinator supervision │
+│                                  │                                                               │
+│                                  ▼ (Spawns strictly Tier 2)                                      │
+│  [ Tier 2: Background Governance & Oversight ]                                                   │
+│    ├── coordinator: State machine graph owner, wave dispatcher (never edits source code)         │
+│    └── meta-auditor: Invariant watchdog, dynamic role auditor, boundary leak enforcer            │
+│                                  │                                                               │
+│                                  ▼ (Spawns strictly Tier 3)                                      │
+│  [ Tier 3: Specialized Ephemeral Workers, Validators & Critics ]                                 │
+│    ├── implementer: File editor confined to leased write scope, focused unit test receipts       │
+│    ├── repairer: Targeted defect closer for changes_requested tasks                              │
+│    ├── validator (Cognitive): HARD-LOCKED (0 commands allowed), 100% Socratic diff reasoning      │
+│    └── completeness-critic: Whole-run prompt verification & requirement satisfaction review      │
+│                                                                                                  │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
-
-`--format json` returns the same result structured, for anything scripted. It must appear **before**
-any `--`, or it is forwarded to the child process instead of read by the harness.
 
 ---
 
-## 🎭 The Ten Canonical Roles
+## 🏆 The 5 Golden Roles (+ Meta-Auditor & Critic)
 
-`AgentRole` is a closed vocabulary (`contracts/packets.ts`'s `AGENT_ROLES`). Each role has exactly
-one document in `olt/roles/<role>.md`. The `validator` role additionally carries
-one contract per standing-checklist domain (B12.2) — `roles/validator-code-quality.md`,
-`-product.md`, `-security.md`, `-system-design.md` and `-ui-design.md` — each declaring `role:
-validator` plus its own `domain:`, so every check keyed on the literal role string `"validator"`
-keeps working unchanged; a domain variant is not a separate `AgentRole` and its filename does not
-match one. A unit test asserts `roles/` holds exactly one document per canonical role, plus exactly
-one per validator domain — fifteen files total, not ten.
+The system organizes agent capabilities into specialized archetypes:
 
 ```text
-+-----------------------------------------------------------------------------------------------+
-|                                    THE 10 CANONICAL ROLES                                     |
-+-----------------------------------------------------------------------------------------------+
-| Tier 2                                                                                        |
-|  1. coordinator         ---> Owns the run. Never edits a repository file.                     |
-| Tier 3                                                                                        |
-|  2. planner             ---> Prompt → tasks, gates, dependencies. plan:add, plan:compile      |
-|  3. plan-validator      ---> The coordinator's own adversary. plan:validate-start, plan:review |
-|  4. implementer         ---> task:claim --role implementer, run:exec, task:submit             |
-|  5. validator           ---> task:validate-start, task:probe, task:reject, task:review        |
-|  6. repairer            ---> task:claim --role repairer; closes findings, nothing else        |
-|  7. completeness-critic ---> critic:review / critic:reject over the whole request             |
-| Branch children (tier 3)                                                                      |
-|  8. sub-implementer     ---> One branch sub-task, one disjoint sub-scope                      |
-|  9. sub-validator       ---> Verification hand; produces evidence, never a verdict            |
-| 10. sub-investigator    ---> Read-only diagnosis; returns a cause or an explicit unknown       |
-+-----------------------------------------------------------------------------------------------+
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                 THE 5 GOLDEN ROLES MATRIX                                        │
+├──────────────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                                  │
+│  1. mind (Tier 0)             ──► Defines WHAT to build; decomposes prompt; admits tasks         │
+│  2. orchestrator (Tier 1)     ──► Manages HOW the run proceeds; user dialog; milestone sign-offs │
+│  3. coordinator (Tier 2)      ──► Compiles dependency DAG; manages leases; drives queue waves    │
+│  4. implementer (Tier 3)      ──► Writes code in disjoint scopes; runs targeted local tests      │
+│  5. validator (Tier 3)        ──► Evaluates WHY code meets requirements; Socratic diff critique  │
+│                                                                                                  │
+│  Specialized Governance & Quality Assurance Roles:                                               │
+│  • meta-auditor (Tier 2)      ──► Audits role boundaries, invariants, and hierarchical spawning  │
+│  • completeness-critic (Tier 3)──► Audits entire prompt satisfaction before final run approval   │
+│  • repairer (Tier 3)          ──► Dedicated defect resolver for tasks in changes_requested       │
+│                                                                                                  │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-The plan-validator is the newest of the ten and the only one that never touches a task: it reviews
-the _compiled plan itself_ — the graph, the projected requirements and tasks, and the topology's own
-reasoning for where each task landed — before a single implementer is dispatched. Its own commands,
-budgets and independence rule are covered in
-[Chapter 03 §03](../03-graph-scheduler/03-plan-revision-and-freezing.md); this chapter treats it like
-any other role for packet publication and contract enforcement, because that machinery is identical
-across all ten.
+### Detailed Role Specifications
+
+#### 1. Mind (`mind` — Tier 0)
+
+- **Primary Function:** Strategic Product Owner and requirement admissions authority.
+- **Invariants:** Operates under **Infinite Product Owner Mode** and **Atomic Admission-to-Dispatch Chaining** (ZERO paused admitted items). When an item is admitted, it must be atomically chained to orchestrator dispatch without intermediate stalling.
+- **Permitted Commands:** `mind:init`, `mind:admit`, `whoami`.
+- **Prohibitions:** Strictly forbidden from writing repository files, running shell commands, or skipping tiers to dispatch Tier 2/3 workers directly.
+
+#### 2. Orchestrator (`orchestrator` — Tier 1)
+
+- **Primary Function:** Capsule governance and interactive user communication.
+- **Invariants:** Maintains high-level context, reports progress at major milestones, and coordinates multi-coordinator background tasks.
+- **Permitted Commands:** `orchestrator:supervise`, `orchestrator:run`, `whoami`.
+- **Prohibitions:** Forbidden from modifying repository source code, executing unshielded test runners, or dispatching Tier 3 workers directly (must spawn a Tier 2 Coordinator).
+
+#### 3. Coordinator (`coordinator` — Tier 2)
+
+- **Primary Function:** Graph compiler, queue scheduler, and task lease administrator.
+- **Invariants:** Compiles the strict topological DAG (`plan:compile`), resolves waves (`queue:wave`), issues worker leases (`task:claim`, `queue:pop`), and monitors telemetry.
+- **Permitted Commands:** `plan:init`, `plan:add`, `plan:compile`, `queue:wave`, `queue:pop`, `task:claim`, `task:validate-start`, `agent:register`, `agent:release`, `recover`, `run:complete`.
+- **Prohibitions:** **NEVER edits repository files.** Never runs implementation code, never performs self-validation.
+
+#### 4. Implementer (`implementer` — Tier 3)
+
+- **Primary Function:** Execution worker leased to a specific task.
+- **Invariants:** Confined strictly to the task's assigned disjoint write scope. Modifying or deleting any file outside the leased scope is an immediate security violation.
+- **Permitted Commands:** `task:heartbeat`, `task:submit`, `task:release`, `scope:expand`, `shell` (with targeted test arguments), `whoami`.
+- **Prohibitions:** Forbidden from running whole-repo un-targeted test suites (`bun test`, `pytest`), forbidden from committing/pushing git history, forbidden from calling validation review commands.
+
+#### 5. Cognitive Validator (`validator` — Tier 3)
+
+- **Primary Function:** Independent, adversarial cognitive code auditor and Socratic reviewer.
+- **Invariants:** **Cognitive Validator Hard-Lock (0 commands allowed).** Differentiates verification through deep code reading, formal logic critique, and adversarial probe generation.
+- **Permitted Commands:** `task:probe`, `task:review`, `task:reject`, `whoami`.
+- **Prohibitions:** **STRICTLY FORBIDDEN from executing shell commands, test runners, build tools, or subprocesses.**
+
+#### 6. Meta-Auditor (`meta-auditor` — Tier 2)
+
+- **Primary Function:** Autonomous runtime watchdog and boundary integrity auditor.
+- **Invariants:** Audits dynamic role definitions against the canonical archetype schema, monitors hierarchical parent-child spawning in real-time, and flags boundary leak violations.
+- **Permitted Commands:** `meta:audit`, `whoami`.
+
+#### 7. Completeness Critic (`completeness-critic` — Tier 3)
+
+- **Primary Function:** Whole-run prompt verification and holistic acceptance gatekeeper.
+- **Invariants:** Evaluates the complete capsule against the original user prompt, requirement disposition matrix, and orphan evidence ledger before granting completion sign-off.
+- **Permitted Commands:** `critic:start`, `critic:review`, `critic:reject`, `whoami`.
 
 ---
 
-## 📜 The Contract Format
+## 🔒 The Cognitive Validator Hard-Lock & Retirement of Mechanic-Validator
 
-Each role document opens with YAML frontmatter the harness parses and hashes:
+### The Anti-Pattern: "The Green Checkmark Trap"
+
+In traditional agent architectures, validators are given bash access and instructed to "run the tests." This creates a severe cognitive vulnerability:
+
+1. **False Sense of Security:** If tests pass with exit code 0, the LLM validator assumes the implementation is flawless, failing to notice untested edge cases, architectural decay, or missing requirements.
+2. **Test Tampering Blindness:** An implementer that modified assertions or added `@ts-ignore` will pass test runs cleanly, misleading a command-running validator.
+3. **Wasted Token Budget:** The validator expends 90% of its reasoning tokens parsing long terminal test outputs rather than deeply auditing source code diffs.
+
+```text
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                             COGNITIVE VALIDATOR HARD-LOCK ARCHITECTURE                           │
+├──────────────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                                  │
+│  [ COGNITIVE VALIDATOR (Tier 3 LLM Agent) ]                                                      │
+│    ├── Shell Execution Status: HARD-LOCKED (can_execute_shell: false)                            │
+│    ├── Permitted Commands: EXACTLY 0 Shell Commands (Forbidden Regex: [/.*/])                    │
+│    └── 100% Reasoning Dedicated To:                                                              │
+│        • Socratic diff analysis & line-by-line logic verification                                │
+│        • Invariant verification & boundary-condition inspection                                  │
+│        • Generating adversarial probe challenges for implementers                                │
+│        • Verifying requirement coverage against original prompt                                  │
+│                                                                                                  │
+│  [ DETERMINISTIC MECHANICAL AUDIT: Retired into CLI Tool `task:check` ]                          │
+│    ├── Replaces the retired `mechanic-validator` LLM agent role with a fast native binary        │
+│    ├── Command: `bun harness.ts task:check --task <task-id>`                                    │
+│    ├── Execution Speed: < 50ms (Zero LLM token consumption)                                     │
+│    └── Deterministic Verifications:                                                              │
+│        • Fast incremental TypeScript type checking                                               │
+│        • AST invariant enforcement (0 TypeScript `any`, 0 compiler/linter suppressions)          │
+│        • Strict syntax and formatting compliance                                                 │
+│                                                                                                  │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Mechanical Enforcement of the Hard-Lock
+
+The Cognitive Validator Hard-Lock is enforced at multiple redundant layers in the codebase:
+
+1. **Role Metadata Inference:**
+   `inferCanExecuteShell("validator")` resolves statically to `false`. Any attempt by a validator agent to declare `can_execute_shell: true` in its payload is overridden and rejected.
+2. **Catch-All Deny-List Regex:**
+   `compileEffectiveForbiddenPatterns("validator")` returns `[/.*/]`, matching and blocking 100% of shell command strings.
+3. **Interlock Assertion:**
+   `verifyCommandAuthorization` and `assertCognitiveValidatorHardlock` immediately throw `PERMISSION_DENIED` with error code `ROLE_CONFINEMENT_VIOLATION` if any execution tool (`run_command`, `bash`, `sh`, `test_runner`) is invoked.
+4. **Boundary Integrity Anti-Leak:**
+   `validation/anti-leak.ts` and `RoleBoundaryWatchdog` monitor event streams and reject any validation attempt carrying subprocess execution receipts.
+
+### Retirement of Mechanic-Validator into `task:check`
+
+Earlier experimental designs used a separate LLM agent called `mechanic-validator` to run typechecks and AST linters. This was retired because:
+
+- Mechanical tasks do not require probabilistic neural reasoning.
+- Running an LLM for typechecking introduces high token costs and latency.
+- The dedicated CLI command `bun harness.ts task:check` runs instantly in native TypeScript/Rust AST tooling, providing deterministic receipts with zero LLM overhead.
+
+---
+
+## 📜 The Immutable Role Contract Format
+
+Every role in the system is defined by a canonical markdown contract located in `olt/roles/<role>.md`. Each document opens with a strict YAML frontmatter specification:
 
 ```yaml
 ---
 role: validator
 tier: 3
+can_execute_shell: false
 may:
-  - Start validation on a submitted task after confirming independence from its implementers
+  - Start validation on a submitted task after confirming independence from implementers
+  - Inspect repository code diffs and command receipts within the task neighborhood
+  - Issue structured adversarial probes demanding proof of edge-case handling
+  - Pass or reject task submissions with structured findings
 must_not:
-  - Pass before the mandatory adversarial probe round has been recorded
+  - Execute bash commands, run test suites, or invoke build tools (0 commands allowed)
+  - Edit, modify, or format any repository file
+  - Approve submissions with unaddressed adversarial probes
 commands:
   - task:validate-start
   - task:probe
-spawns:
-  - sub-validator
+  - task:review
+  - task:reject
+  - whoami
+spawns: []
 ---
 ```
 
-| Key        | Meaning                                             | Validation                                                                                               |
-| :--------- | :-------------------------------------------------- | :------------------------------------------------------------------------------------------------------- |
-| `role`     | One of the ten canonical roles.                     | Rejected otherwise.                                                                                      |
-| `tier`     | Integer 1–3.                                        | Rejected otherwise.                                                                                      |
-| `may`      | Explicit allowed actions.                           | Must be non-empty.                                                                                       |
-| `must_not` | Non-negotiable prohibitions.                        | Must be non-empty.                                                                                       |
-| `commands` | The exact CLI commands this role may invoke.        | Must be non-empty and duplicate-free; every entry is checked against `references/cli-capabilities.json`. |
-| `spawns`   | Roles it may branch into or dispatch; `[]` if none. | Must name canonical roles; a role may not spawn itself.                                                  |
+### Frontmatter Schema Definition
 
-A malformed document is an `INTEGRITY` error, not a warning. The whole file — frontmatter and prose —
-is SHA-256 hashed and that digest is recorded on the packet published for the agent, so what an agent
-was told is auditable after the fact.
+| Key                 | Type       | Validation & Constraints                                | Meaning                                                |
+| :------------------ | :--------- | :------------------------------------------------------ | :----------------------------------------------------- |
+| `role`              | `string`   | Must be one of the closed canonical role names.         | The unique formal identifier of the role.              |
+| `tier`              | `number`   | Must be an integer `0`, `1`, `2`, or `3`.               | The hierarchical level in the supervision tree.        |
+| `can_execute_shell` | `boolean`  | Must be `false` for `validator`, `critic`, `planner`.   | Controls shell gate access in the RBAC engine.         |
+| `may`               | `string[]` | Must be a non-empty array of strings.                   | Explicitly authorized activities for the role.         |
+| `must_not`          | `string[]` | Must be a non-empty array of strings.                   | Non-negotiable structural prohibitions.                |
+| `commands`          | `string[]` | Must match CLI capabilities in `cli-capabilities.json`. | The exact CLI commands this role is allowed to invoke. |
+| `spawns`            | `string[]` | Must contain valid lower-tier roles (or empty `[]`).    | Roles this agent is authorized to spawn.               |
+
+### Contract Digest Verification (`role_contract_sha256`)
+
+When a role document is registered, the harness parses the YAML frontmatter, extracts the full file contents, and computes its SHA-256 digest. This digest is embedded in published role packets (`role_contract_sha256`) and recorded in the immutable capsule ledger. Any tampering with role definitions on disk causes immediate verification failure.
 
 ---
 
-## 🔗 Where a Contract Binds
+## 🛡️ Context Isolation Pipelines (`isolateValidatorContext`)
 
-Role packets are published at every point where an agent takes on work:
+When an implementer submits a task, their report typically contains subjective prose, emotional confidence assertions (_"I am 100% confident this fixes the problem"_), and explanations for why certain tests were skipped.
 
-| Command               | Role bound                                               |
-| :-------------------- | :------------------------------------------------------- |
-| `task:claim --role`   | `implementer` or `repairer`                              |
-| `queue:pop`           | `implementer`                                            |
-| `task:validate-start` | `validator`                                              |
-| `plan:validate-start` | `plan-validator`                                         |
-| `critic:start`        | `completeness-critic`                                    |
-| `branch:claim --role` | `sub-implementer` / `sub-validator` / `sub-investigator` |
+If a validator reads this narrative, **sycophantic cognitive bias** occurs: the validator anchors on the implementer's narrative and looks for confirming evidence rather than defects.
 
-`plan:validate-start` mints a packet that carries the compiled graph, the projected requirements and
-tasks, and the recorded topology at that revision — plus the four DESIGN.md C2 questions as explicit
-prompts, the same way a validator-domain packet carries its own standing checklist (B12.2, see
-[Chapter 06 §01](../06-validation-repair/01-adversarial-validation-philosophy.md)) — rather than
-trusting a coordinator to type them into a dispatch prompt.
+`olt` eliminates this contamination through an automated **Context Isolation Pipeline** (`isolateValidatorContext`, `excludeValidatorContamination`, `isolateCriticContext`).
 
-The packet embeds the role document's bytes verbatim and records their sha256 as
-`role_contract_sha256`, so what an agent was handed stays provable after the fact. Each of these
-commands returns `packet_id`, `packet_path` and `role_contract_sha256` alongside the bearer token.
+```text
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                            CONTEXT ISOLATION & SANITIZATION PIPELINE                             │
+├──────────────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                                  │
+│  [ Raw Task Submission / Capsule State ]                                                         │
+│    ├── Implementer prose: "Fixed edge cases, auth looks rock solid!"                             │
+│    ├── Subjective confidence scores: `confidence: 0.99`                                          │
+│    ├── Previous review notes & implementer rationalizations                                      │
+│    └── Objective evidence: Git diffs, task contract, requirement IDs                             │
+│                                  │                                                               │
+│                                  ▼                                                               │
+│  [ isolateValidatorContext / excludeValidatorContamination Engine ]                              │
+│    ├── Recursively scrubs all forbidden keys (VALIDATOR_EXCLUSIONS)                              │
+│    ├── Strips out all conversational justifications and confidence claims                        │
+│    └── Retains ONLY ground-truth objective code state & requirement obligations                  │
+│                                  │                                                               │
+│                                  ▼                                                               │
+│  [ Sanitized Lean Validator Packet (Token-Budgeted ≤ 4KB) ]                                      │
+│    ├── `baseline_repository_state`: Git commit SHA before task execution                         │
+│    ├── `current_repository_state`: Exact git diff and modified file list                         │
+│    ├── `task_contract`: Assigned ID, write scope, and priority                                   │
+│    ├── `mapped_requirements`: Specific prompt obligation statements                              │
+│    ├── `original_prompt`: Verbatim prompt requirement text                                       │
+│    └── `command_evidence`: Real execution receipts from `run:exec` / `shell`                     │
+│                                                                                                  │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+```
 
-`--role` is **mandatory** on `task:claim` and `branch:claim`. Defaulting it would bind an agent to a
-contract nobody chose for it, so the harness refuses instead:
+### The Strict Validator Exclusion Set (`VALIDATOR_EXCLUSIONS`)
+
+The context isolation pipeline recursively purges the following key families from validator packets:
+
+| Excluded Key Family                  | Why It Is Stripped from Validator Context                                  |
+| :----------------------------------- | :------------------------------------------------------------------------- |
+| `confidence`                         | Prevents anchoring on the implementer's self-reported certainty.           |
+| `decision_narrative`                 | Eliminates conversational excuses and post-hoc rationalizations.           |
+| `implementer_report` / `task_report` | Strips implementer prose; forces validator to inspect raw source code.     |
+| `previous_review` / `prior_reviews`  | Prevents multi-round validators from inheriting earlier reviewers' biases. |
+| `validator_report`                   | Prevents circular feedback loops across review rounds.                     |
+
+### Critic Context Isolation (`isolateCriticContext`)
+
+The whole-run Completeness Critic operates under a dedicated context filter that includes full requirements coverage, topological dependency graphs, orphan evidence ledgers, and completion gate receipts, while excluding individual task narrative noise.
+
+---
+
+## ⚡ Task Execution Briefs & Compact Markdown Format
+
+Rather than forcing agents to parse hundreds of lines of complex JSON, `olt` emits compact, human- and LLM-readable markdown briefs (≤ 30 lines) directly to standard output:
 
 ```bash
-bun harness.ts task:claim --run .capsules/<run-id> --task task-1 --agent worker-1 --role implementer
-bun harness.ts task:claim --run .capsules/<run-id> --task task-1 --agent worker-1 --role repairer
-bun harness.ts branch:claim --run .capsules/<run-id> --branch <B-id> --sub-task S-1 --agent sub-1 --role sub-investigator
+bun harness.ts task:claim --run .capsules/<run-id> --task task-db --agent worker-2 --role implementer
 ```
 
-Submission and review then assert that a packet was actually published for the acting agent, role
-and attempt, so a report cannot arrive from an identity that was never issued a contract. Orphan
-evidence from an expired lease is the one exception: preserving a dead agent's work is not an act of
-authority, and refusing it would destroy the only record of what that agent did.
+```markdown
+### Task Leased: task-db
 
-## 🚧 The `commands:` List Is Enforced at Dispatch
-
-Before any handler runs, the CLI resolves the acting agent's role from the `state.agents` grant
-ledger — the record `agent:register` wrote — and refuses an invocation the role's `commands:` list
-does not grant. The refusal names the role, the command and the path of the document it was checked
-against:
-
-```
-role validator may not invoke task:submit: agent val-1 holds a validator grant, and the contract at
-.../olt/roles/validator.md grants only task:validate-start, run:exec, ...
+- **Agent**: `worker-2`
+- **Lease Token**: `K6QeJSe2sZ4n4kcMTiH1oxGbXEKstjtLEBxG2F-2-5A`
+- **Duration**: 20 minutes
+- **Assigned Write Scope**: `src/db/schema.ts`, `src/db/migrations/`
+- **Suggested Target Files**: `src/db/schema.ts`
+- **Recommended Commands**:
+  - `bun test tests/db/schema.test.ts`
+- **Note**: Pass `--token K6QeJSe2sZ4n4kcMTiH1oxGbXEKstjtLEBxG2F-2-5A` to `task:submit`.
 ```
 
-The acting agent is the caller: `--agent` for the task and branch families, `--validator` for a
-validation, `--critic` for a critic's own review, and `--actor` for the plan and run families.
+### Scripted JSON Access
 
-Five commands hand authority to somebody else, and there the identity flag names that **subject**,
-not the caller: `--agent` on `agent:register`, `agent:report`, `agent:release` and `queue:pop`, and
-`--critic` on `critic:start`. All five belong to the coordinator's contract. The subject is skipped
-when resolving who called, because charging a critic's contract for the `critic:start` that created
-it would refuse the coordinator's own documented dispatch and record the wrong agent as having
-acted. On `agent:*` the caller is `--actor`; `queue:pop` and `critic:start` take no `--actor`, so
-the run holds no record of who invoked them and no contract is resolved rather than one guessed.
-
-An identity with no grant has no recorded role, so there is no contract to enforce and none is
-guessed from the shape of an agent id. What refuses an unregistered agent is the published-packet
-requirement on the actions that carry authority.
+When invoked in programmatic pipelines, passing `--format json` **before** any `--` separator causes the command to emit the structured JSON payload.
 
 ---
 
-## ⚠️ Contracts Can Be Stricter Than the Harness, Never Looser
+## ⚙️ Budgets & Global Invariants
 
-A role may forbid something the harness would technically allow — `repairer` refuses to open a branch
-even though a lease holder could, because a repair is already bounded by the findings it must close.
-That is a legitimate contract.
-
-The reverse is a lie. A role document that lists a command the harness refuses for that role teaches
-an agent to fail. Two examples that were corrected:
-
-- **`validator` may not branch.** `branch:open` demands a live implementation lease; a validator holds
-  a validation token. Its branch commands were removed and the prohibition stated explicitly.
-- **`sub-investigator` has no empty write scope.** Every branch sub-task requires a `--sub-scope` that
-  is a proper subset of the parent's. Its read-only guarantee is the contract, not a filesystem
-  permission.
-
----
-
-## ⚙️ Budgets Every Role Inherits
+Every role operates within immutable global resource budgets:
 
 ```json
 {
@@ -196,92 +316,10 @@ an agent to fail. Two examples that were corrected:
 }
 ```
 
-- **A pass is refused** until `min_adversarial_probes` probe rounds are recorded (default 1). A probe
-  is a demand for proof, not a rejection: it does not consume repair budget.
-- **Escalation** at `max_repair_rounds` (default 6) recorded rejections: the task becomes `escalated`
-  rather than looping.
-- **Branch nesting** past `max_branch_depth` (default 5) is an escalation to a human, not a retry.
-  It is a tripwire, not the termination guarantee: that comes from every sub-scope being a strictly
-  proper subset of its parent's.
-- **Agent budget** at `max_agents` (default 100, assumed rather than measured): every grant a run
-  issues at any depth counts, and `agent:register` and `branch:open` are refused once it is spent.
-
----
-
-## 📜 Universal Invariants for Worker Subagents
-
-- **Exclusive write scope.** Never edit, format or delete a file outside the lease — not even a
-  one-line fix.
-- **Direct argv.** Gate commands run through `run:exec … -- <argv>` with no shell interpolation.
-- **Focused verification.** Implementers prove their own change with a focused command; the run-scope
-  gate belongs to the coordinator and the critic.
-- **Token confidentiality.** A plaintext token is a CLI argument and nothing else — never a log line,
-  a commit message, a report field, or chat.
-- **Absence stays absent.** Never substitute a plausible path, command id or check for one you did not
-  observe.
-
----
-
-## 🛡️ Lean Packets & Validator Context Isolation
-
-To ensure that subagents remain laser-focused and completely immune to sycophantic cognitive bias, the harness enforces **Lean Packet Generation** and **Strict Context Isolation** (`isolateValidatorContext`, `excludeValidatorContamination`, `isolateCriticContext`).
-
-```text
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                   CONTEXT ISOLATION & LEAN PACKET PIPELINE                  │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│  [ Task Submission / State Context ]                                        │
-│    • Implementer narrative summary ("I fixed bug X, tests look good!")      │
-│    • Subjective confidence estimates & decision rationale                   │
-│    • Task contract, repository state, gate command definitions              │
-│                                  │                                          │
-│                                  ▼                                          │
-│  [ isolateValidatorContext / excludeValidatorContamination ]                │
-│    • Strips all subjective narrative & conclusion keys                      │
-│    • Strips previous review notes & implementer excuses                     │
-│    • Retains ONLY ground-truth objective evidence & contracts               │
-│                                  │                                          │
-│                                  ▼                                          │
-│  [ Lean Validator Packet (Token-Budgeted <= 4KB) ]                          │
-│    • Original prompt & acceptance criteria                                  │
-│    • Exact write scope & current repository git state                       │
-│    • Mandatory gate command argv to execute via run:exec                    │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
-
-### 1. The Strict Validator Exclusion Set (`VALIDATOR_EXCLUSIONS`)
-
-The context isolation pipeline recursively scrubs all keys matching subjective or contaminated reporting:
-
-| Sanitized Key Family                 | Why It Is Stripped from Validator Context                              |
-| :----------------------------------- | :--------------------------------------------------------------------- |
-| `confidence`                         | Prevents anchoring on the implementer's self-confidence score.         |
-| `decision_narrative`                 | Eliminates implementer rationalizations and conversational excuses.    |
-| `implementer_report` / `task_report` | Strips implementer prose; validators must inspect real code.           |
-| `previous_review` / `prior_reviews`  | Prevents round-2+ validators from adopting previous reviewers' biases. |
-| `validator_report`                   | Prevents circular review feedback loops.                               |
-
-### 2. The Strict Validator Allowed Allowlist
-
-A validator packet receives **strictly** these objective fields:
-
-- `baseline_repository_state`: Git commit SHA / tree digest before task execution.
-- `current_repository_state`: Live repository tree and diffs.
-- `task_contract`: Declared write scope, priority, effort, and assigned ID.
-- `mapped_requirements`: Specific prompt obligations assigned to this task.
-- `original_prompt`: Verbatim prompt markdown text.
-- `command_evidence`: Real recorded execution receipts from `run:exec`.
-- `validation_round`: Current validation cycle counter.
-
-### 3. Critic Context Isolation (`isolateCriticContext`)
-
-The whole-run completeness critic receives a dedicated, isolated context:
-
-- `commands`, `completion_readiness`, `completion_result`, `completion_review`, `gates`, `graph`, `integrity_evidence`, `orphan_evidence`, `original_prompt`, `plan_history`, `repository_evidence`, `requirements`, `repository_state`, `tasks`.
-
-This structural firewall guarantees that adversarial verification is grounded entirely in real code execution, eliminating conversational sycophancy.
+- **Mandatory Adversarial Probes:** A task validation cannot pass until at least `min_adversarial_probes` (default 1) probe round has been recorded.
+- **Escalation Cap:** If a task reaches `max_repair_rounds` (default 6) rejections, it transitions to `escalated` and requires human intervention.
+- **Branch Depth Tripwire:** Sub-agent branch nesting past depth 5 triggers an automatic escalation.
+- **Agent Grant Ceiling:** A capsule enforces an upper ceiling of `max_agents` (default 100) registered grants to prevent runaway subagent generation.
 
 ---
 

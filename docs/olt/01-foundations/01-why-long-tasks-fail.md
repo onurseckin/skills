@@ -6,168 +6,313 @@
 
 ## 📌 Introduction: The Illusion of Agent Competence
 
-When a developer asks an LLM-based coding assistant to fix a single typo or add a helper function to a single file, the model usually succeeds. The prompt is short, the context is fresh, the action is atomic, and the human directly verifies the result.
+When a developer asks an LLM-based coding assistant to fix a single typo, write a localized helper function, or explain a compiler error, the model usually succeeds. The prompt is short, the context window is clean, the action is atomic, and the human supervisor immediately inspects and verifies the result.
 
-However, when developers give an autonomous AI agent a **large, multi-faceted prompt**—such as building an entire microservice, refactoring an authentication subsystem across dozens of files, or implementing a complete multi-step feature roadmap—unstructured agents routinely fail. Even state-of-the-art frontier models suffer catastrophic failures on long tasks when driven purely by conversational loops.
+However, when developers task an autonomous AI agent with a **complex, long-horizon, multi-faceted engineering objective**—such as architecting a complete microservice, refactoring an authentication and session subsystem across dozens of source files, or executing an end-to-end multi-phase feature roadmap—unstructured agents routinely fail. Even state-of-the-art frontier models experience catastrophic failures on long tasks when driven purely by conversational chat loops and unconstrained tool execution.
 
-Understanding _why_ these failures happen is the foundational motivation behind the `olt` harness architecture.
+Understanding _why_ these failures occur is the fundamental motivation behind the **Open Loop Task (OLT)** harness architecture.
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│                           THE LONG-TASK DEGRADATION CLIFF                               │
+├─────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                         │
+│   Success Rate                                                                          │
+│     100% ┼───────╮                                                                      │
+│          │       │ Local edits, single-file scripts, typos (< 5 tool calls)             │
+│      80% │       │                                                                      │
+│          │        ╲                                                                     │
+│      50% │         ╲  Unstructured Multi-Agent Loop Collapse                            │
+│          │          ╲  • Context saturation & prompt amnesia                            │
+│      20% │           ╲ • Uncoordinated write collisions & torn edits                    │
+│          │            ╲• Sycophantic self-grading & unverified passes                    │
+│       0% ┼─────────────┴───────────────────────────────────────────────────────►        │
+│          0           10          25          50         100+   Cumulative Actions       │
+│                                                                                         │
+└─────────────────────────────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
 ## 💥 The Anatomy of Long-Task Failure Modes
 
-Unstructured agent runs fail due to seven fundamental failure modes:
+Long-horizon autonomous agent executions without deterministic harness governance fail due to **eight fundamental root failure modes**:
 
 ```text
-+-----------------------------------------------------------------------------------------+
-|                                7 CORE AGENT FAILURE MODES                               |
-+-----------------------------------------------------------------------------------------+
-|  1. Scope Drift & Prompt Amnesia      ---> Forget initial constraints as chat grows     |
-|  2. Sycophantic Self-Grading          ---> "I wrote the code, so of course it works!"   |
-|  3. Uncoordinated Write Collisions    ---> Parallel agents overwriting each other       |
-|  4. Ephemeral State Loss              ---> Process crash = complete loss of progress    |
-|  5. Anchoring on Prior Biases         ---> Validators trusting flawed implementer prose |
-|  6. Assurance Inflation               ---> Claiming tests passed when none were executed|
-|  7. Confident Fabrication             ---> Filling an unknown value with a plausible one |
-+-----------------------------------------------------------------------------------------+
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│                               8 CORE AGENT FAILURE MODES                                │
+├─────────────────────────────────────────────────────────────────────────────────────────┤
+│  1. Scope Drift & Prompt Amnesia           ──► Forgets original constraints as chat grows│
+│  2. Sycophantic Self-Grading               ──► "I wrote the code, so of course it works!"│
+│  3. Uncoordinated Write Collisions         ──► Parallel agents overwriting shared files  │
+│  4. Ephemeral State Loss                   ──► In-memory state lost on process crash/drop│
+│  5. Anchoring & Cognitive Bias             ──► Reviewers trust flawed implementer prose  │
+│  6. Assurance Inflation                    ──► Claiming tests passed when none were run  │
+│  7. Confident Fabrication                  ──► Inventing plausible data when absent      │
+│  8. Strategic Coordination Drift           ──► Subagents optimize locally, break globals │
+└─────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 1. Scope Drift and Prompt Amnesia
+### 1. Scope Drift & Prompt Amnesia
 
-As an agent performs work, its context window fills with bash command outputs, compiler errors, tool calls, and conversational prose. Under context truncation or attention degradation:
+As an autonomous agent executes commands, runs compilers, reads directories, and inspects files, its context window rapidly saturates with hundreds of kilobytes of verbose shell outputs, stack traces, and intermediate tool responses. Under context truncation, attention degradation, or Cowan-chunk context overflow ($>150{,}000$ tokens):
 
-- The agent forgets constraints mentioned deep within the original prompt.
-- The agent invents new requirements that the user never asked for (scope creep).
-- The agent "hallucinates" that it already completed requirements that it actually skipped.
+- **Constraint Loss**: The agent forgets negative constraints, performance bounds, or architectural guidelines declared deep within the original prompt.
+- **Unbounded Creep**: The agent invents novel requirements, abstractions, and dependencies that the user never requested.
+- **Hallucinated Progress**: The agent assumes it has completed earlier requirements simply because related text appears in its conversational history, skipping mandatory deliverables.
 
 ### 2. Sycophantic Self-Grading (The "I Did Great!" Trap)
 
-When the same agent that wrote a piece of code is asked: _"Did you satisfy the user's requirements and did your tests pass?"_, it will almost always answer with an enthusiastic _"Yes! Everything is fully implemented and tested."_
-Even if the test command exited with code 0 because it found 0 tests, or if half the edge cases are unhandled stubs (`// TODO: implement`), the implementer agent rationalizes its own output. **An implementer cannot objectively validate its own work.**
+When the same agent that drafted a complex code change is asked: _"Did your implementation satisfy all requirements, and did all tests pass?"_, it almost invariably responds with an enthusiastic _"Yes! Everything is fully implemented, verified, and functioning perfectly."_
+
+Even when the test command exited with code `0` because zero test files matched the pattern, or when critical edge cases contain unimplemented stubs (`// TODO: implement`), the implementer rationalizes its own output. **An implementer agent cannot objectively grade its own work.**
 
 ### 3. Uncoordinated Write Collisions
 
-If a developer spawns three parallel subagents to work on a task without a strict write-scope arbiter:
+When multiple parallel subagents are spawned to accelerate work without a centralized, mathematically enforced write-scope arbiter:
 
-- Agent A edits `src/auth/session.ts`.
-- Agent B concurrently refactors `src/auth/session.ts`.
-- Agent C runs tests against an inconsistent, half-written file.
-  The result is git merge conflicts, torn files, race conditions, and corrupted repositories.
+- **Agent A** edits `src/auth/session.ts` to add JWT token renewal.
+- **Agent B** concurrently refactors `src/auth/session.ts` to migrate to OAuth2 cookies.
+- **Agent C** executes unit tests against the torn, half-written file.
+
+The inevitable result is silent code clobbering, Git merge disasters, corrupt syntax, and irrecoverable file states.
 
 ### 4. Ephemeral State Loss (The Zero-Durability Crash)
 
-Standard agent systems maintain their "state" entirely in LLM conversation memory or in-memory Python/Node objects. If:
+Traditional multi-agent frameworks maintain orchestration state exclusively in volatile LLM conversation threads, Python/Node runtime objects, or uncommitted in-memory variables. When:
 
-- The network drops,
-- The token limit is hit,
-- The agent host crashes or restarts,
-- The developer switches from Claude Code to Antigravity or Codex,
-  the entire history is lost. The next agent must start over from scratch, with no authoritative record of what was completed, what was validated, and what remains to be done.
+- An API provider throws a `502 Bad Gateway` or `429 Rate Limit`,
+- The agent host machine restarts or crashes,
+- A context window hard-limit is breached, or
+- The developer switches from Claude Code to Codex or Antigravity,
+
+the entire execution history evaporates. The subsequent agent must restart from zero, with zero forensic durability regarding what was actually completed, what was validated, and what remains broken.
 
 ### 5. Anchoring & Cognitive Bias in Validation
 
-When an agent reviews another agent's code, but is given the implementer's narrative (e.g., _"I refactored the database pool and increased throughput by 50%"_), the reviewer anchors on the implementer's confidence. Instead of checking edge cases, the reviewer skims the diff and rubber-stamps the change.
+When a secondary agent is assigned to review code but is provided with the implementer's persuasive narrative (_"I refactored the connection pool and optimized query throughput by 45%"_), the reviewer cognitively anchors on the implementer's stated intent.
+
+Instead of performing independent, adversarial verification of edge cases, error handling, and type safety, the reviewer skims the diff through the implementer's biased lens and rubber-stamps the flawed change.
 
 ### 6. Assurance Inflation
 
-Unstructured agents frequently use vague, inflated claims: _"The test suite passed hermetically with 100% certainty."_ In reality, commands run on a host machine require precise attribution and verification. The harness explicitly models evidence as `trusted_host_observed_v1`, capturing pre-command and post-command repository state, SHA-256 bound stdout/stderr, and strict process isolation without false hermetic assumptions.
+Unstructured agents routinely produce vague, inflated assertions: _"The test suite passed hermetically with 100% certainty across all platforms."_
+
+In physical reality, commands executed on host environments require explicit provenance, cryptographic attribution, and empirical measurement. The harness strictly models evidence as `trusted_host_observed_v1`, capturing pre-command and post-command repository state, SHA-256 digests of stdout and stderr, and strict process exit codes without false hermetic assumptions.
 
 ### 7. Confident Fabrication
 
-The subtlest failure is not a wrong answer; it is a **plausible** one where there was no answer at all. A summary that lists a model nobody reported, a file list that is empty because git could not be read, a dollar cost invented from a zero — each looks like data and is not. The harness answers this with `evidence_class`: every reported value is labelled `harness_observed`, `agent_reported`, `host_reported`, `derived` or `unknown`, and an absent value stays absent. See [Chapter 09 §03](../09-branching-and-honesty/03-evidence-classes-and-honesty.md).
+The most pernicious agent failure is not an overt syntax error; it is a **plausible fabrication** where real data was absent. A summary that lists an AI model nobody invoked, a file list that is empty because Git could not be read, or a performance metric synthesized from thin air—each appears authoritative but represents hallucinated noise.
 
-This is not merely a labelling convention layered on top of ordinary values — it is a distinct
-TypeScript shape (`contracts/evidence.ts`'s `Evidenced<T>`, declared as `{ value: T, evidence_class:
-EvidenceClass, ... }`) that every reported field in state, events and the exported graph is wrapped
-in, so a consumer cannot accidentally read the raw value without also seeing where it came from.
-There is exactly one sanctioned way to construct a value that is admittedly a guess:
-`estimated<T>()`, which always stamps `evidence_class: "derived"` and `is_estimated: true` — there
-is no code path that lets a guess masquerade as a measurement. The same discipline shows up in every
-Markdown brief the CLI prints: when a compiled task declared no mandatory gate, the queue brief
-renders the literal string `` `none declared` `` rather than omitting the line or inventing one; when
-a finding carries no recorded severity, it renders `unknown` rather than defaulting to something
-that would read as a real, if minor, judgement. Absence is always rendered as absence, in words a
-reader cannot mistake for data.
+The harness eliminates this via strict typed evidence modeling: every reported field is wrapped in `Evidenced<T>` (`contracts/evidence.ts`) with an explicit `EvidenceClass`:
+
+- `harness_observed`: Directly witnessed and measured by the deterministic harness runtime.
+- `agent_reported`: Declared by an LLM subagent (subject to independent verification).
+- `host_reported`: Captured from OS/host execution receipts.
+- `derived`: Computed algorithmically from underlying verified records.
+- `unknown`: Explicit absence. **Absence stays absent; an unknown is never defaulted to a plausible value.**
+
+### 8. Strategic Coordination Drift & Context Fragmentation
+
+In complex, multi-wave workflows spanning dozens of subagents, each subagent operates in an isolated micro-context. Without continuous supervisory governance:
+
+- **Loss of Global Invariants**: Individual subagents implement local micro-optimizations that violate global repository contracts (e.g., adding an unapproved external dependency or violating zero-`any` TypeScript rules).
+- **Context Fragmentation**: Upstream architectural decisions fail to propagate to downstream implementers, resulting in mismatched APIs and contradictory data schemas.
+- **Missing Supervisory Feedback Loops**: Nobody audits the coordination process itself for anti-patterns such as token burning, false serialization, ghost leases, or stragglers.
 
 ---
 
 ## 🏛️ The Core Philosophy: Prose is Not State
 
-To eliminate these vulnerabilities, `olt` is built on a single, uncompromising architectural principle:
+To eliminate these vulnerabilities, the OLT harness is anchored on a single, uncompromising architectural axiom:
 
 > **"Prose is not state. Memory is not proof. Agent confidence is irrelevant. An unknown is not a default."**
 
-An agent claiming in chat that _"Feature X is complete"_ has zero authoritative weight in the harness. The harness only recognizes cryptographic proofs, deterministic filesystem state machines, append-only event logs, independent adversarial validation reports, and literal command exit records.
+An agent asserting in chat that _"Task X is completely finished and fully tested"_ carries **zero authoritative weight** in the harness. The harness recognizes only:
 
----
-
-## 📜 The 16 Non-Negotiable Invariants
-
-The harness enforces sixteen structural invariants that cannot be bypassed by any prompt, LLM output, or agent role. The first ten govern the run itself; the last six — lettered `C1`–`C6` in the source, after the codebase's own internal convention — specifically guard the **quality of the plan** before a single implementer is ever dispatched against it, added after a real forensic incident in which nothing in the loop ever told the coordinator its own plan was wrong.
-
-| Invariant                                            | Description                                                                                                                                                                                                                                                                                                                               | Enforcement Mechanism                                                                                       |
-| :--------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------- |
-| **1. Byte-Exact Prompt Capture**                     | `prompt.md` is preserved byte-for-byte with mode `0444` and bound via SHA-256 to `manifest.json`.                                                                                                                                                                                                                                         | Cryptographic SHA-256 verification on every startup and mutation (`plan:init`).                             |
-| **2. Immutable Capture Assurance**                   | A run initialized from context copy is marked `recorded-unverified`; direct capture is `source-verified`.                                                                                                                                                                                                                                 | Closed enum schema enforcement in manifest.                                                                 |
-| **3. 100% Line Disposition Coverage**                | Every non-blank prompt line must have exactly one disposition mapping to atomic requirements.                                                                                                                                                                                                                                             | Requirements compiler validator (`plan:compile`) rejects unmapped lines.                                    |
-| **4. Pinned Runtime & Hashed Events**                | All state mutations must use the Zero-JSON colon CLI and append to `events.jsonl`.                                                                                                                                                                                                                                                        | Kernel POSIX `flock` on inode + SHA-256 hash chaining.                                                      |
-| **5. Disjoint Write-Scope Leases**                   | Parallel agents can only write within strictly disjoint directory scopes.                                                                                                                                                                                                                                                                 | Topological conflict-free scheduler arbiter (`queue:pop`, `task:claim`).                                    |
-| **6. Adversarial Role Separation**                   | Implementers cannot validate their own work; validators receive allowlisted context stripped of prose.                                                                                                                                                                                                                                    | Tokenized validator identities and context sanitization (`task:validate-start`).                            |
-| **7. Bounded Deterministic Retries**                 | Retries are strictly bounded (configurable via `harness.config.json`, default 6 repair rounds).                                                                                                                                                                                                                                           | Watchdog command runner and repair counter escalation.                                                      |
-| **8. Mechanical Completion Gate**                    | Completion requires zero open findings, all tasks done, all gates passed, and clean critic approval.                                                                                                                                                                                                                                      | `run:complete` verification engine with live `trusted_host_observed_v1` proof.                              |
-| **9. Mandatory Adversarial Probe**                   | A pass is refused until the validator has recorded at least `min_adversarial_probes` (default 1) probes, and every open finding is answered.                                                                                                                                                                                              | `task:probe` records demands; `task:review --status pass --resolve` answers them.                           |
-| **10. Labelled Evidence**                            | Every reported value carries an `evidence_class`; nothing substitutes a plausible value for a missing one.                                                                                                                                                                                                                                | Typed `Evidenced<T>` wrappers in state, events and graph output.                                            |
-| **11. Plan-Time Structural Audit (C1)**              | `plan:compile` refuses to seal a plan carrying a compressed decomposition, a non-discriminating shared gate, a false dependency barrier, or a whole-repository task gate — unless each is explicitly accepted, by name and reason, with `--accept-audit`.                                                                                 | `graph/plan-audit.ts`'s `auditPlan`, run inside `cli/commands/plan-compile.ts`.                             |
-| **12. Independent Plan Review (C2)**                 | An adversarial plan-validator — never the coordinator or planner that produced the plan — may reject a compiled graph revision with structured findings; that rejection is a hard stop `task:claim` itself enforces on every implementer and repairer, not a warning a coordinator can route around.                                      | `workflow/plan-review/*`, enforced inside `workflow/lease/claim.ts`'s `claimTask`.                          |
-| **13. Falsifiable Gates, on Demand (C3)**            | `gate:prove` reverts a task's write scope to a base ref inside a disposable scratch copy and requires the compiled gate to actually fail there; only a matching `falsifiable: true` proof lets the plan-time audit accept a shared or broad-looking gate instead of refusing it outright. Coordinator-initiated, never run automatically. | `graph/gate-proof.ts`'s `proveGateFalsifiable`, read back by `graph/plan-audit.ts`'s `latestGateProof`.     |
-| **14. Effort-Evidence on Submission (C4)**           | A submission whose write scope hashes byte-identical to what it was at claim time is refused unless the agent explicitly declares `--no-op --reason "<why>"`.                                                                                                                                                                             | `workflow/lease/write-scope-hash.ts`'s `hashWriteScope`, compared in `workflow/submission/submit.ts`.       |
-| **15. A Run Id Is An Identifier, Never A Path (C5)** | A run id is validated against a slug pattern and never concatenated as a raw path segment; at most one documented `.capsules/` prefix is stripped, and anything still containing a path separator afterward is refused.                                                                                                                   | `store/run-id.ts`'s `normalizeRunId`.                                                                       |
-| **16. Declared Topology (C6)**                       | Every dependency edge a plan declares needs a stated one-line justification before `plan:compile` will seal it; `plan:add --auto-partition` derives task granularity from files that actually exist on disk rather than a coordinator's guess.                                                                                            | `graph/topology-declaration.ts`'s `assertTopologyJustified`, `graph/auto-partition.ts`'s `partitionByGlob`. |
-
----
-
-## 🔄 How the Harness Compares to Traditional Workflows
+1. Cryptographic SHA-256 hash chains of immutable events.
+2. Inode-locked POSIX `flock` filesystem state machines.
+3. Strict disjoint write-scope leases.
+4. Independent adversarial validation receipts with zero implementer prose.
+5. Live host-observed command receipts (`run:exec`, `task:check`) with verified exit codes.
 
 ```text
-TRADITIONAL CHAT-DRIVEN AGENTS               THE HARNESS ARCHITECTURE
-================================             =======================================
-[ User Prompt ]                              [ User Prompt ]
-      |                                            | (Byte-exact SHA-256 capture: plan:init)
-      v                                            v
-[ Monolithic Conversational Context ]        [ Immutable Capsule: .capsules/<run>/ ]
-      |                                            | (100% Line Coverage: plan:compile)
-      v (Hallucination & Scope Drift)              v
-[ Agent writes all files at once ]           [ Formal Dependency Graph DAG: plan:add ]
-      |                                            | (Disjoint Write-Scope Scheduler: queue:pop)
-      v (Race conditions & overwrite)              v
-[ Implementer tests own code ]               [ Independent Implementer Agents (Tier 3) ]
-      |                                            | (Structured Submission: task:submit)
-      v (Sycophantic "Looks good!")                v
-[ Claims Done (Broken Code) ]                [ Adversarial Independent Validator (Tier 3) ]
-                                                   | (task:validate-start + run:exec)
-                                            +------+------+
-                                            | (Probe/Pass)| (Reject: Structured Findings)
-                                            v             v
-                                     [ Task Gates ]  [ Bounded Repair Loop (Default 6) ]
-                                            |
-                                            v
-                                     [ Run Gates & Completeness Critic: critic:start ]
-                                            | (critic:review --decision approve)
-                                            v
-                                     [ Mechanical Terminal Completion: run:complete ]
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│                       PROSE VS. CRYPTOGRAPHIC PROOF IN OLT                              │
+├────────────────────────────────────────┬────────────────────────────────────────────────┤
+│       UNSTRUCTURED AGENT PROSE         │           OLT HARNESS GROUND TRUTH             │
+├────────────────────────────────────────┼────────────────────────────────────────────────┤
+│ "I updated the auth logic."            │ SHA-256 write-scope content digest change      │
+│ "All unit tests passed cleanly."       │ Direct argv run:exec exit code 0 + stdout log  │
+│ "Task 3 is finished."                  │ task:submit + task:validate-start + pass review│
+│ "The architecture looks sound."        │ 0 AST suppressions + 0 any via task:check      │
+│ "I remembered the user's constraints." │ 100% Prompt line disposition in state.json     │
+│ "No errors occurred during run."       │ Clean hash chain in events.jsonl with 0 blunders│
+└────────────────────────────────────────┴────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 👥 Two-Tier Agent Architecture
+## 💾 Dual-Layer Storage Model: Persistent Governance vs. Runtime Capsules
 
-To prevent conversational context explosion and preserve interactive responsiveness, the harness enforces a clear 3-tier hierarchy:
+OLT enforces a strict separation between **permanent repository governance** and **ephemeral execution workspaces**:
 
-1. **Tier 1 (Main Interactive Thread)**: Dedicated exclusively to communicating with the user. Spawns exactly one Tier 2 Background Coordinator and does not engage in worker tool loops.
-2. **Tier 2 (Background Run Coordinator)**: Manages capsule lifecycle, planning, scheduling waves, and lifecycle gates. Dispatches work to Tier 3 subagents.
-3. **Tier 3 (Worker & Validator Subagents)**: Ephemeral task executors assigned disjoint write scopes. Receive compact markdown briefs ($\le 30$ lines) and report execution results back to Tier 2. Ten canonical roles exist (`contracts/packets.ts`'s `AGENT_ROLES`) — `coordinator`, `planner`, `plan-validator`, `implementer`, `validator`, `repairer`, `completeness-critic`, `sub-implementer`, `sub-validator`, `sub-investigator` — each with a binding capability contract in `olt/roles/`. `plan-validator` (Chapter 02 §03) is the newest of the ten: an adversary that judges the compiled plan itself, dispatched at most once per graph revision, never per task. The five `validator-*` role documents alongside them (`validator-code-quality`, `validator-product`, `validator-security`, `validator-system-design`, `validator-ui-design`) are not additional roles in this enum — they are the same `validator` role loaded with a different domain-specific standing checklist.
+```text
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│                              DUAL-LAYER STORAGE MODEL                                   │
+├─────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                         │
+│  [ PERSISTENT GOVERNANCE LAYER: olt/ ] (Committed to Git Repository)                    │
+│  ├── policy.json              # Global quality gates, role rules, timeout policies      │
+│  ├── backlog.jsonl            # Cross-generational backlog & admitted objectives       │
+│  ├── completed-tasks.jsonl    # Historical record of completed tasks with proof hashes  │
+│  ├── defects.jsonl            # Active repository blunders & defect trackers            │
+│  ├── completed-blunders.jsonl # Verified blunder remediations (permanent immunity)      │
+│  └── telemetry.jsonl          # Longitudinal telemetry, Work/Span logs, token usage   │
+│                                                                                         │
+│                                           ▲                                             │
+│                     Cross-Generational    │   State Promotion &                         │
+│                     Memory & Retrieval    │   Evidence Sealing                          │
+│                                           │                                             │
+│                                           ▼                                             │
+│                                                                                         │
+│  [ RUNTIME CAPSULE LAYER: .capsules/<run-id>/ ] (Gitignored, Inode-Locked)              │
+│  ├── prompt.md                # Byte-exact raw prompt (read-only mode 0444)             │
+│  ├── manifest.json            # Capture assurance, SHA-256 hashes, runtime pin         │
+│  ├── events.jsonl             # Forward-secure cryptographic append-only hash chain    │
+│  ├── state.json               # Deterministic materialized projection from events       │
+│  ├── packets/                 # Immutable role capability contracts handed to workers   │
+│  ├── blobs/ & evidence/       # Content-addressed deduplicated byte storage (0444)     │
+│  └── summary/                 # Derived export artifacts (graph.json, summary.md)       │
+│                                                                                         │
+└─────────────────────────────────────────────────────────────────────────────────────────┘
+```
 
-Every dispatched subagent is recorded with `agent:register` before it starts, so the run can attribute work to an identity instead of inferring it later ([Chapter 09 §02](../09-branching-and-honesty/02-agent-grant-ledger.md)).
+1. **Governance Layer (`olt/`)**:
+   - Committed to version control for cross-generational durability.
+   - Preserves organizational memory, anti-blunder regression suites, quality gate policies, and historical task completion proofs.
+   - Provides longitudinal context across multiple autonomous runs.
+
+2. **Runtime Capsule Layer (`.capsules/<run-id>/`)**:
+   - Ephemeral, zero-dependency, crash-resilient workspace for an individual run.
+   - Completely isolated from Git history and external package modifications.
+   - Allows instant crash recovery and host-switching by simply pointing to the directory.
+
+---
+
+## 👥 The 4-Tier Hierarchy & 5 Golden Roles
+
+To eliminate context pollution, prevent cognitive anchoring, and enforce strict separation of concerns, OLT organizes agents into an authoritative **4-Tier Hierarchy** powered by **5 Golden Roles**:
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│                                 THE 4-TIER HIERARCHY                                    │
+├─────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                         │
+│  [ TIER 0: MIND ] (Infinite Product Owner & Macro Supervisor)                           │
+│    • Governs queue lifecycle, candidate admission, and backlog governance               │
+│    • Enforces Atomic Admission-to-Dispatch Chaining (0 paused admitted items)           │
+│    • Dispatches ONLY Tier 1 Orchestrators; NEVER spawns Tier 2/3 agents directly       │
+│                                │                                                        │
+│                                ▼                                                        │
+│  [ TIER 1: ORCHESTRATOR ] (Meta-Orchestrator & Loop Runner)                             │
+│    • Multi-round capsule chaining, convergence governance, and release syncing         │
+│    • Background watchdog monitoring and autonomous wake                                 │
+│    • Dispatches ONLY Tier 2 Coordinators; NEVER spawns Tier 3 workers directly         │
+│                                │                                                        │
+│                                ▼                                                        │
+│  [ TIER 2: COORDINATOR & META-AUDITOR ] (Wave Scheduling & Forensics)                   │
+│    • coordinator: Capsule lifecycle, exact-anchor briefs (task:brief), wave dispatch   │
+│    • meta-auditor: Post-wave forensics, 7 behavioral heuristics, efficiency scoring    │
+│    • Direct parental supervision over Tier 3 Workers; enforces hard resets             │
+│                                │                                                        │
+│                                ▼                                                        │
+│  [ TIER 3: EPHEMERAL WORKERS ] (Disjoint Task Execution & Independent Validation)       │
+│    • implementer: Leased worker in disjoint write scope; 1-hop in-lease micro-cycles    │
+│    • validator: Cognitive reviewer with Hard-Lock (0 commands, 100% Socratic code read) │
+│    • completeness-critic: Whole-run validator proving all prompt lines against diffs   │
+│                                                                                         │
+└─────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### The 5 Golden Roles
+
+| Golden Role        |  Tier  | Core Responsibilities                                                                                                                      | Prohibitions (`must_not`)                                                                            |
+| :----------------- | :----: | :----------------------------------------------------------------------------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------- |
+| **`mind`**         | Tier 0 | Macro backlog ownership, candidate admission, atomic dispatch chaining, memory indexing, non-idle discovery.                               | Must not write code, run unit tests, or bypass tiers to spawn Tier 2/3 directly.                     |
+| **`orchestrator`** | Tier 1 | Multi-round orchestration, capsule chaining, high-level plan verification, release synchronization.                                        | Must not implement tasks, run test suites, or spawn Tier 3 workers directly.                         |
+| **`coordinator`**  | Tier 2 | Run lifecycle management, 1-shot exact-anchor briefings (`task:brief`), wave scheduling, Git sync, Tier 3 supervision.                     | Must not write source code, claim leases, or assign unit test commands to Cognitive Validators.      |
+| **`implementer`**  | Tier 3 | Leased execution strictly inside `task.write_scope`, Turn 1 exact edits, file-scoped unit testing (`bun test <path>`), 1-hop micro-cycles. | Must not edit outside write scope, self-validate work, or run whole-repo test suites.                |
+| **`validator`**    | Tier 3 | Cognitive verification, adversarial probing (`task:probe`), 1-hop micro-cycle critique, Socratic analysis.                                 | **Cognitive Hard-Lock**: Must execute ZERO terminal commands (0 `run:exec`, 0 tests, 0 build tools). |
+
+#### Specialized Support Roles:
+
+- **`completeness-critic` (Tier 3)**: Independent reviewer evaluating the final repository state against the immutable `prompt.md` line by line before completion.
+- **`meta-auditor` (Tier 2)**: Deep behavioral forensics auditor scanning `events.jsonl` traces against 7 behavioral heuristics, computing efficiency scores, and injecting closed-loop remediations (`--inject`).
+
+> [!NOTE]
+> **Streamlined Architecture Evolution**:
+>
+> 1. `mechanic-validator` is retired as an LLM subagent; all deterministic typechecks and AST static audits (0 any, 0 suppressions) are executed via the CLI command `task:check`.
+> 2. `repairer` is retired as a separate subagent role; defect remediation is handled directly by the active `implementer` via **1-hop in-lease micro-cycles** (`task:reject --in-lease`).
+
+---
+
+## 📜 The 16 Non-Negotiable Structural Invariants
+
+The harness enforces sixteen non-negotiable structural invariants that cannot be overridden by conversational prompts, LLM personas, or supervisor overrides:
+
+|   #    | Invariant                                | Description                                                                                    | Enforcement Mechanism                                                                 |
+| :----: | :--------------------------------------- | :--------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------ |
+| **1**  | **Byte-Exact Prompt Capture**            | `prompt.md` is captured byte-for-byte at mode `0444` and bound via SHA-256 in `manifest.json`. | Cryptographic SHA-256 check on startup and mutations (`plan:init`).                   |
+| **2**  | **Immutable Capture Assurance**          | Direct stdin/file capture is `source-verified`; transcribed text is `recorded-unverified`.     | Closed enum schema enforcement in manifest.                                           |
+| **3**  | **100% Line Disposition Coverage**       | Every non-blank line of `prompt.md` must map to an atomic requirement.                         | Compiler validator (`plan:compile`) rejects unmapped lines.                           |
+| **4**  | **Pinned Runtime & Hashed Events**       | All state mutations append to `events.jsonl` using a forward-secure SHA-256 hash chain.        | Kernel POSIX `flock` on inode + SHA-256 hash chaining.                                |
+| **5**  | **Disjoint Write-Scope Leases**          | Parallel implementers can modify only strictly disjoint directory/file paths.                  | Topological conflict-free scheduler arbiter (`queue:pop`, `task:claim`).              |
+| **6**  | **Adversarial Role Separation**          | Implementers cannot validate their own work; validators receive stripped, objective diffs.     | Tokenized validator identities and context sanitization (`task:validate-start`).      |
+| **7**  | **Bounded Deterministic Retries**        | Retries are strictly capped (default: 6 repair rounds) before escalating.                      | Escalation counter and tripwire in state machine.                                     |
+| **8**  | **Mechanical Completion Gate**           | Completion requires 0 open findings, all tasks done, all gates passed, and critic approval.    | `run:complete` verification engine with live `trusted_host_observed_v1` proof.        |
+| **9**  | **Mandatory Adversarial Probe**          | A pass is refused until the validator records at least $\ge 1$ adversarial probe demand.       | `task:probe` records demands; `task:review --status pass --resolve` verifies answers. |
+| **10** | **Labelled Typed Evidence**              | Every reported datum carries an `evidence_class`; missing values stay `unknown`.               | Typed `Evidenced<T>` wrappers in state, events, and graph exports.                    |
+| **11** | **Plan-Time Structural Audit (C1)**      | `plan:compile` refuses plans with compressed decomposition, shared gates, or false barriers.   | Static graph audit in `graph/plan-audit.ts` (`plan:audit`).                           |
+| **12** | **Independent Plan Review (C2)**         | An independent `plan-validator` can reject compiled graph revisions prior to dispatch.         | `workflow/plan-review/*`, enforced in `task:claim`.                                   |
+| **13** | **Falsifiable Gates on Demand (C3)**     | Gates must be proven to fail when the implementation is absent or reverted.                    | `gate:prove` counterfactual test runner.                                              |
+| **14** | **Effort-Evidence on Submission (C4)**   | Submissions with byte-identical write scopes are refused unless `--no-op` is justified.        | SHA-256 write-scope content hashing in `task:submit`.                                 |
+| **15** | **Run ID Identifier Typing (C5)**        | Run IDs are validated against strict slugs; raw path separators are rejected.                  | `store/run-id.ts` normalization and regex validation.                                 |
+| **16** | **Declared Topology Justification (C6)** | Every dependency edge requires a stated rationale before `plan:compile` seals the plan.        | Graph topology validator (`assertTopologyJustified`).                                 |
+
+---
+
+## 🔄 Traditional Chat vs. OLT Harness Workflow
+
+```text
+TRADITIONAL CHAT-DRIVEN AGENTS               THE OLT HARNESS ARCHITECTURE
+================================             =======================================
+[ User Prompt in Chat Window ]               [ Raw User Prompt ]
+      │                                            │ (Byte-exact SHA-256 capture: plan:init)
+      ▼                                            ▼
+[ Unstructured Conversational Context ]      [ Immutable Run Capsule: .capsules/<run>/ ]
+      │                                            │ (100% Line Disposition: plan:compile)
+      ▼ (Context saturation & drift)               ▼
+[ Agent edits all files at once ]            [ Topological DAG Wave Scheduling: queue:wave ]
+      │                                            │ (Disjoint Write-Scope Leases: task:claim)
+      ▼ (Write collisions & torn edits)            ▼
+[ Implementer tests own code ]               [ Independent Implementers (Tier 3) ]
+      │                                            │ (Fast Check & Submit: task:check, task:submit)
+      ▼ (Sycophantic "All good!")                  ▼
+[ Claims Done (Broken Code & Stubs) ]        [ Cognitive Validator Hard-Lock (0 commands) ]
+                                                   │ (task:validate-start + task:probe)
+                                            ┌──────┴──────┐
+                                            │ (Probe/Pass)│ (Reject: 1-hop micro-cycle)
+                                            ▼             ▼
+                                     [ Task Gates ]  [ In-Lease Implementer Repair ]
+                                            │
+                                            ▼
+                                     [ Completeness Critic: critic:start + critic:review ]
+                                            │ (Zero unproven lines & all gates passed)
+                                            ▼
+                                     [ Mechanical Terminal Completion: run:complete ]
+```
 
 ---
 
