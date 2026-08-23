@@ -18,6 +18,12 @@ import {
   constructSupervisoryPersonaReminder,
   type SupervisoryPersonaReminder,
 } from "../../authority/supervisory-persona-reminder.ts";
+import {
+  generateAsciiDagBadges,
+  runScriptBackedDiagnostics,
+  type CliDiagnosticReceipt,
+  type ScriptBackedDiagnosticsResult,
+} from "../../scheduler/diagnostics.ts";
 
 export const CLOSING_FORBIDDEN_FOR_MIND = "CLOSING_FORBIDDEN_FOR_MIND" as const;
 
@@ -81,6 +87,10 @@ export interface MindPulseResult {
   readonly work_span?: MindPulseWorkSpanMetrics | undefined;
   readonly active_agents?: readonly MindPulseActiveAgentCoordinate[] | undefined;
   readonly wave_lanes?: readonly MindPulseWaveLaneInfo[] | undefined;
+  readonly cli_receipts?: readonly CliDiagnosticReceipt[] | undefined;
+  readonly cli_receipt_summary_badge?: string | undefined;
+  readonly dag_badges?: readonly string[] | undefined;
+  readonly diagnostics?: ScriptBackedDiagnosticsResult | undefined;
   readonly [key: string]: unknown;
 }
 
@@ -320,6 +330,8 @@ export function formatMindPulseActiveBrief(params: {
   readonly workSpan?: MindPulseWorkSpanMetrics | undefined;
   readonly activeAgents?: readonly MindPulseActiveAgentCoordinate[] | undefined;
   readonly waveLanes?: readonly MindPulseWaveLaneInfo[] | undefined;
+  readonly cliReceiptSummaryBadge?: string | undefined;
+  readonly dagBadges?: readonly string[] | undefined;
 }): string {
   const limitStr = params.pulsesPerDay === null ? "∞" : params.pulsesPerDay;
   const lines = [
@@ -335,6 +347,10 @@ export function formatMindPulseActiveBrief(params: {
     `- **Budget Headroom**: ${params.pulsesToday} / ${limitStr} pulses today`,
   ];
 
+  if (params.cliReceiptSummaryBadge) {
+    lines.push(`- **CLI Diagnostics Receipts**: ${params.cliReceiptSummaryBadge}`);
+  }
+
   if (params.workSpan && params.workSpan.total_work > 0) {
     lines.push(
       `- **Work/Span Concurrency**: Work=${params.workSpan.total_work}, Span=${params.workSpan.span}, P=${params.workSpan.parallelism_factor} (Optimal=${params.workSpan.optimal_concurrency}, Active=${params.workSpan.active_concurrency})`,
@@ -344,6 +360,10 @@ export function formatMindPulseActiveBrief(params: {
   if (params.activeAgents && params.activeAgents.length > 0) {
     const badges = params.activeAgents.map((a) => a.coordinate_badge).join(" ");
     lines.push(`- **Active Agents**: ${badges}`);
+  }
+
+  if (params.dagBadges && params.dagBadges.length > 0) {
+    lines.push(`- **ASCII DAG Badges**: ${params.dagBadges.slice(0, 6).join(" ")}`);
   }
 
   if (params.waveLanes && params.waveLanes.length > 0) {
@@ -364,7 +384,7 @@ export function formatMindPulseActiveBrief(params: {
     `- **Invariant**: Mind never self-terminates, dies, or closes. Runs indefinitely until human OS termination.`,
     `- **Supervisory Invariants**: Strict 4-Tier Spawning Hierarchy & Supervisor Zero-File-Edit Invariant actively enforced.`,
   );
-  return enforceLineLimit(lines.join("\n"), 25);
+  return enforceLineLimit(lines.join("\n"), 35);
 }
 
 export function formatMindPulseOpenedBrief(params: {
@@ -383,6 +403,8 @@ export function formatMindPulseOpenedBrief(params: {
   readonly workSpan?: MindPulseWorkSpanMetrics | undefined;
   readonly activeAgents?: readonly MindPulseActiveAgentCoordinate[] | undefined;
   readonly waveLanes?: readonly MindPulseWaveLaneInfo[] | undefined;
+  readonly cliReceiptSummaryBadge?: string | undefined;
+  readonly dagBadges?: readonly string[] | undefined;
 }): string {
   const limitStr = params.pulsesPerDay === null ? "∞" : params.pulsesPerDay;
   const lines = [
@@ -398,6 +420,10 @@ export function formatMindPulseOpenedBrief(params: {
     `- **Budget Headroom**: ${params.pulsesToday} / ${limitStr} pulses today`,
   ];
 
+  if (params.cliReceiptSummaryBadge) {
+    lines.push(`- **CLI Diagnostics Receipts**: ${params.cliReceiptSummaryBadge}`);
+  }
+
   if (params.workSpan && params.workSpan.total_work > 0) {
     lines.push(
       `- **Work/Span Concurrency**: Work=${params.workSpan.total_work}, Span=${params.workSpan.span}, P=${params.workSpan.parallelism_factor} (Optimal=${params.workSpan.optimal_concurrency}, Active=${params.workSpan.active_concurrency})`,
@@ -407,6 +433,10 @@ export function formatMindPulseOpenedBrief(params: {
   if (params.activeAgents && params.activeAgents.length > 0) {
     const badges = params.activeAgents.map((a) => a.coordinate_badge).join(" ");
     lines.push(`- **Active Agents**: ${badges}`);
+  }
+
+  if (params.dagBadges && params.dagBadges.length > 0) {
+    lines.push(`- **ASCII DAG Badges**: ${params.dagBadges.slice(0, 6).join(" ")}`);
   }
 
   if (params.waveLanes && params.waveLanes.length > 0) {
@@ -427,7 +457,7 @@ export function formatMindPulseOpenedBrief(params: {
     `- **Invariant**: Mind never self-terminates, dies, or closes. Runs indefinitely until human OS termination.`,
     `- **Supervisory Invariants**: Strict 4-Tier Spawning Hierarchy & Supervisor Zero-File-Edit Invariant actively enforced.`,
   );
-  return enforceLineLimit(lines.join("\n"), 25);
+  return enforceLineLimit(lines.join("\n"), 35);
 }
 
 export async function mindPulseCommand(
@@ -558,6 +588,19 @@ export async function mindPulseCommand(
     });
 
     const cognitiveTelemetry = computeMindCognitiveTelemetry(state);
+    const repoRoot = dirname(dirname(loaded?.runRoot ?? run));
+    let diagResult: ScriptBackedDiagnosticsResult | undefined = undefined;
+    try {
+      diagResult = await runScriptBackedDiagnostics({
+        runRoot: run,
+        repoRoot,
+        state,
+        clock: { now: () => new Date(nowMs) },
+      });
+    } catch {
+      // Non-fatal fallback
+    }
+    const dagBadges = generateAsciiDagBadges(state);
 
     const markdown = formatMindPulseActiveBrief({
       pulseId: openPulseId,
@@ -575,6 +618,8 @@ export async function mindPulseCommand(
       workSpan: cognitiveTelemetry.workSpan,
       activeAgents: cognitiveTelemetry.activeAgents,
       waveLanes: cognitiveTelemetry.waveLanes,
+      cliReceiptSummaryBadge: diagResult?.receiptSummaryBadge,
+      dagBadges,
     });
 
     return {
@@ -598,6 +643,10 @@ export async function mindPulseCommand(
       work_span: cognitiveTelemetry.workSpan,
       active_agents: cognitiveTelemetry.activeAgents,
       wave_lanes: cognitiveTelemetry.waveLanes,
+      cli_receipts: diagResult?.receipts,
+      cli_receipt_summary_badge: diagResult?.receiptSummaryBadge,
+      dag_badges: dagBadges,
+      diagnostics: diagResult,
       budget: {
         pulses_today: pulsesToday,
         pulses_per_day: pulsesPerDay,
@@ -768,6 +817,18 @@ export async function mindPulseCommand(
   });
 
   const cognitiveTelemetry = computeMindCognitiveTelemetry(state);
+  let diagResult: ScriptBackedDiagnosticsResult | undefined = undefined;
+  try {
+    diagResult = await runScriptBackedDiagnostics({
+      runRoot: run,
+      repoRoot,
+      state,
+      clock: { now: () => new Date(nowMs) },
+    });
+  } catch {
+    // Non-fatal fallback
+  }
+  const dagBadges = generateAsciiDagBadges(state);
 
   const markdown = formatMindPulseOpenedBrief({
     pulseId,
@@ -785,6 +846,8 @@ export async function mindPulseCommand(
     workSpan: cognitiveTelemetry.workSpan,
     activeAgents: cognitiveTelemetry.activeAgents,
     waveLanes: cognitiveTelemetry.waveLanes,
+    cliReceiptSummaryBadge: diagResult?.receiptSummaryBadge,
+    dagBadges,
   });
 
   return {
@@ -807,6 +870,10 @@ export async function mindPulseCommand(
     work_span: cognitiveTelemetry.workSpan,
     active_agents: cognitiveTelemetry.activeAgents,
     wave_lanes: cognitiveTelemetry.waveLanes,
+    cli_receipts: diagResult?.receipts,
+    cli_receipt_summary_badge: diagResult?.receiptSummaryBadge,
+    dag_badges: dagBadges,
+    diagnostics: diagResult,
     budget: {
       pulses_today: updatedPulsesToday,
       pulses_per_day: pulsesPerDay,

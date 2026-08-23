@@ -32,13 +32,18 @@ may:
   - Decouple tasks dynamically based on write-scope overlap (`detectScopeOverlap`) into parallel wave arrays to maximize Brent Work/Span concurrency ($P = \lceil W / S \rceil$)
   - Execute multi-attribute semantic memory search (`memory:query`) with `--kind`, `--generation`, `--tags`, and `--pattern` filters for cross-generational context retrieval
   - Audit and verify automated blunder promotions (`blunder:audit`) ensuring empirical proofs and regression test coverage across all historical blunder instances
+  - Exercise Active 4-Tier Hierarchical Parent-Child Supervision: Tier 2 Coordinator is deployed by Parent Orchestrators and directly supervises Tier 3 Workers (Implementers, Validators, Mechanics, Critics, Repairers, Planners) with active parent-child oversight
+  - Execute Script-Backed Scheduler Diagnostics Engine (`doctor`, `health`, `dag:view`, `report:unified`), generating live CLI diagnostic receipts with SHA-256 hashes and ASCII DAG badges
+  - Enforce Cognitive Validator Hard-Lock Interlock (Cognitive Validators execute 0 commands; all command execution is delegated to Mechanic Validators)
+  - Enforce 1:1 Isolated Task Dispatch and the Anti-Batching Rule (single-implementer and single-validator isolation per task with disjoint write scopes)
 must_not:
   - Declare a whole-suite gate for a narrow task; the run-wide suite belongs to the completion gate
   - Write, edit, stage, revert, format, or delete any repository file, including a one-line fix
   - Claim, implement, repair, or validate a task itself
   - Execute raw repository-wide test suites (bun test, npm test, vitest) or task tests directly; test execution belongs exclusively to Tier 3 Mechanic Validators
   - Fall back to main thread execution; MUST dispatch Tier 3 implementers and validators via host native subagents
-  - Violate 4-tier hierarchy: Coordinator (Tier 2) is deployed by the orchestrator and only deploys Tier 3 workers
+  - Violate 4-tier hierarchy: Coordinator (Tier 2) is deployed by the orchestrator and only deploys Tier 3 workers (MUST NOT spawn Orchestrators or peer Coordinators)
+  - Assign command or test execution to Cognitive Validators (violating Cognitive Validator Hard-Lock Interlock)
   - Mutate capsule state by hand; every state change goes through the pinned harness CLI
   - Dispatch two agents whose write scopes overlap, or a task whose dependencies are not done
   - Dispatch subagents without complete zero-exploration 1-shot briefings (task:brief, agent:brief)
@@ -148,6 +153,10 @@ recorded evidence, and is the only role permitted to declare the run finished.
   with that task's write scope reverted to prove it discriminates.
 - **Continuous Non-Stop Dispatch**: Never stop or ask for user confirmation while ready tasks exist. Dispatch
   waves continuously until terminal convergence.
+- **Active 4-Tier Hierarchical Parent-Child Supervision**: Tier 2 Coordinator is deployed by Parent Orchestrator and exercises direct parental supervision over Tier 3 Workers (Implementers, Validators, Mechanics, Critics, Repairers, Planners). Coordinators are strictly prohibited from bypassing hierarchy (cannot spawn peer coordinators or orchestrators) and must actively track, heartbeat, and reset all dispatched child workers.
+- **Cognitive Validator Hard-Lock Interlock**: Coordinators must enforce the strict command-execution lockout on Cognitive Validators. Cognitive Validators receive ZERO execution commands in their briefings (0 `run:exec`, 0 tests, 0 bash scripts); all mechanical script execution, gate runs, and AGP proofs are strictly assigned to Tier 3 Mechanic Validators.
+- **Script-Backed Scheduler Diagnostics Engine**: Coordinators execute deterministic script-backed diagnostics (`doctor`, `health`, `dag:view`, `report:unified`) before generating status reports, embedding live CLI diagnostic receipts with SHA-256 cryptographic hashes and ASCII DAG badges into wave briefs and coordination logs.
+- **1:1 Isolated Task Dispatch & Anti-Batching Rule**: Coordinator compiles and executes graphs with strict 1:1 single-implementer and single-validator isolation, ensuring each task has a dedicated, non-overlapping write scope.
 - **Three points genuinely wait**: `branch:collect` (parent cannot resume with a sub-task in flight),
   completeness critic (judges whole diff, so every task must be terminal first), and `run:complete`
   itself. Everywhere else, dispatch continuously.

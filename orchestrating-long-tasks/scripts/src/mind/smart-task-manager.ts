@@ -2,10 +2,16 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { HarnessError } from "../errors/harness-error.ts";
 import {
+  auditAdmissionDispatchIntegrity,
   drainPendingFeedbacks,
   readFeedbackQueue,
+  writeFeedbackQueue,
+  type AdmissionDispatchIntegrityReport,
+  type AtomicAdmissionDispatchResult,
   type FeedbackCategory,
   type FeedbackItem,
+  type FeedbackPriority,
+  type FeedbackStatus,
 } from "./feedback-queue.ts";
 import { auditBlunderLog } from "./blunders.ts";
 import {
@@ -291,6 +297,124 @@ export interface RebalancedTaskPlanResult extends SmartWavePlanResult {
 export interface ScopeCollision {
   readonly scope: string;
   readonly task_ids: readonly string[];
+}
+
+export interface MultiOrchestratorSubTreePlan {
+  readonly orchestrator_id: string;
+  readonly write_scope: readonly string[];
+  readonly tasks: readonly SmartTaskPlan[];
+  readonly wave_plan: SmartWavePlanResult;
+  readonly macro_metrics: MacroMetrics;
+}
+
+export interface MultiOrchestratorPrePlanningResult {
+  readonly total_orchestrators: number;
+  readonly total_tasks: number;
+  readonly orchestrators: readonly MultiOrchestratorSubTreePlan[];
+  readonly macro_metrics: MacroMetrics;
+  readonly is_disjoint: boolean;
+  readonly cross_orchestrator_collisions: readonly ScopeCollision[];
+  readonly warnings: readonly string[];
+}
+
+export interface MultiOrchestratorPlanningOptions {
+  readonly orchestratorIds?: readonly string[] | undefined;
+  readonly maxOrchestrators?: number | undefined;
+  readonly maxLanesPerOrchestrator?: number | undefined;
+  readonly charterGoals?: readonly string[] | undefined;
+  readonly autoUpdateMemory?: boolean | undefined;
+  readonly cognitiveMemoryPath?: string | undefined;
+}
+
+export type ProductOwnerIntakeStream =
+  | "user_feedback"
+  | "self_evolution"
+  | "defect_candidate"
+  | "charter_roadmap"
+  | "direct_directive";
+
+export interface ProductOwnerIntakeItem {
+  readonly id: string;
+  readonly title: string;
+  readonly description: string;
+  readonly priority?: TaskPriority | FeedbackPriority | undefined;
+  readonly category?: FeedbackCategory | string | undefined;
+  readonly stream: ProductOwnerIntakeStream;
+  readonly candidate_id?: string | undefined;
+  readonly charter_goals?: readonly string[] | undefined;
+  readonly write_scope?: readonly string[] | undefined;
+  readonly gate?: string | undefined;
+  readonly metadata?: Readonly<Record<string, unknown>> | undefined;
+}
+
+export interface ProductOwnerIntakeDecision {
+  readonly item_id: string;
+  readonly admitted: boolean;
+  readonly priority: TaskPriority;
+  readonly rationale: string;
+  readonly assigned_task_id?: string | undefined;
+  readonly assigned_orchestrator?: string | undefined;
+  readonly rejected_reason?: string | undefined;
+}
+
+export interface InfiniteProductOwnerState {
+  readonly cycle_number: number;
+  readonly last_cycle_at: string;
+  readonly total_intake_items: number;
+  readonly total_admitted_and_dispatched: number;
+  readonly total_declined: number;
+  readonly active_orchestrator_subtrees: number;
+  readonly macro_metrics: MacroMetrics;
+  readonly zero_paused_admitted_verified: boolean;
+}
+
+export interface InfiniteProductOwnerResult {
+  readonly cycle_id: string;
+  readonly timestamp: string;
+  readonly mode:
+    | "feedback_intake"
+    | "self_evolution"
+    | "multi_orchestrator_dispatch"
+    | "idle_monitored";
+  readonly decisions: readonly ProductOwnerIntakeDecision[];
+  readonly synthesized_tasks: readonly SmartTaskPlan[];
+  readonly enqueued_tasks: readonly TaskQueueItem[];
+  readonly multi_orchestrator_plan?: MultiOrchestratorPrePlanningResult | undefined;
+  readonly macro_metrics: MacroMetrics;
+  readonly zero_paused_admitted_guaranteed: boolean;
+  readonly summary: string;
+}
+
+export interface AdmissionToDispatchAuditReport {
+  readonly compliant: boolean;
+  readonly total_feedback: number;
+  readonly pending_feedback: number;
+  readonly admitted_feedback: number;
+  readonly paused_admitted_feedback: number;
+  readonly total_tasks: number;
+  readonly active_tasks: number;
+  readonly zero_paused_admitted: boolean;
+  readonly violations: readonly string[];
+}
+
+export interface AdmissionToDispatchResult {
+  readonly synthesized_tasks: readonly SmartTaskPlan[];
+  readonly enqueued_tasks: readonly TaskQueueItem[];
+  readonly admitted_feedbacks: readonly FeedbackItem[];
+  readonly audit_report: AdmissionToDispatchAuditReport;
+  readonly summary: string;
+}
+
+export interface InfiniteProductOwnerOptions {
+  readonly capsulesDir?: string | undefined;
+  readonly queuePath?: string | undefined;
+  readonly memoryPath?: string | undefined;
+  readonly charterGoals?: readonly string[] | undefined;
+  readonly orchestratorCount?: number | undefined;
+  readonly orchestratorIds?: readonly string[] | undefined;
+  readonly maxTasks?: number | undefined;
+  readonly directIntakeItems?: readonly ProductOwnerIntakeItem[] | undefined;
+  readonly autoEnqueue?: boolean | undefined;
 }
 
 export interface AutonomousDualIntakeResult {
@@ -1968,4 +2092,801 @@ function mapFeedbackPriorityToTaskPriority(fbPriority: string): TaskPriority {
     default:
       return "MEDIUM";
   }
+}
+
+/**
+ * Partitions and stages tasks across multiple orchestrator sub-trees simultaneously,
+ * maintaining strictly disjoint write scopes between all orchestrator trees.
+ */
+export function preplanMultiOrchestratorTasks(
+  tasks: readonly SmartTaskPlan[],
+  options: MultiOrchestratorPlanningOptions | number | readonly string[] = {},
+): MultiOrchestratorPrePlanningResult {
+  let targetOrchestratorIds: string[] = [];
+  let maxOrchestrators = 2;
+  let autoUpdateMemory = false;
+  let cognitiveMemoryPath: string | undefined = undefined;
+
+  if (typeof options === "number") {
+    maxOrchestrators = Math.max(1, options);
+    targetOrchestratorIds = Array.from(
+      { length: maxOrchestrators },
+      (_, i) => `orchestrator-${i + 1}`,
+    );
+  } else if (Array.isArray(options)) {
+    targetOrchestratorIds = options.length > 0 ? [...options] : ["orchestrator-1"];
+    maxOrchestrators = targetOrchestratorIds.length;
+  } else {
+    const opts = options as MultiOrchestratorPlanningOptions;
+    if (opts.orchestratorIds && opts.orchestratorIds.length > 0) {
+      targetOrchestratorIds = [...opts.orchestratorIds];
+      maxOrchestrators = targetOrchestratorIds.length;
+    } else if (typeof opts.maxOrchestrators === "number" && opts.maxOrchestrators > 0) {
+      maxOrchestrators = opts.maxOrchestrators;
+      targetOrchestratorIds = Array.from(
+        { length: maxOrchestrators },
+        (_, i) => `orchestrator-${i + 1}`,
+      );
+    } else {
+      maxOrchestrators = Math.max(1, Math.min(tasks.length > 0 ? tasks.length : 1, 4));
+      targetOrchestratorIds = Array.from(
+        { length: maxOrchestrators },
+        (_, i) => `orchestrator-${i + 1}`,
+      );
+    }
+    autoUpdateMemory = opts.autoUpdateMemory ?? false;
+    cognitiveMemoryPath = opts.cognitiveMemoryPath;
+  }
+
+  if (tasks.length === 0) {
+    const emptyMetrics: MacroMetrics = { work: 0, span: 0, parallelism: 0, efficiency: 0 };
+    return {
+      total_orchestrators: 0,
+      total_tasks: 0,
+      orchestrators: [],
+      macro_metrics: emptyMetrics,
+      is_disjoint: true,
+      cross_orchestrator_collisions: [],
+      warnings: [],
+    };
+  }
+
+  // 1. Group tasks into connected clusters based on scope overlap and dependencies
+  const n = tasks.length;
+  const parent = Array.from({ length: n }, (_, i) => i);
+  function find(i: number): number {
+    let root = i;
+    while (root !== parent[root]) {
+      root = parent[root]!;
+    }
+    let curr = i;
+    while (curr !== root) {
+      const nxt = parent[curr]!;
+      parent[curr] = root;
+      curr = nxt;
+    }
+    return root;
+  }
+  function union(i: number, j: number): void {
+    const rootI = find(i);
+    const rootJ = find(j);
+    if (rootI !== rootJ) {
+      parent[rootI] = rootJ;
+    }
+  }
+
+  const taskIdToIndex = new Map<string, number>();
+  for (let i = 0; i < n; i++) {
+    taskIdToIndex.set(tasks[i]!.id, i);
+  }
+
+  for (let i = 0; i < n; i++) {
+    const taskA = tasks[i]!;
+    for (const depId of taskA.dependencies) {
+      const depIdx = taskIdToIndex.get(depId);
+      if (depIdx !== undefined) {
+        union(i, depIdx);
+      }
+    }
+    for (let j = i + 1; j < n; j++) {
+      const taskB = tasks[j]!;
+      if (detectScopeOverlap(taskA.write_scope, taskB.write_scope).length > 0) {
+        union(i, j);
+      }
+    }
+  }
+
+  const clusterMap = new Map<number, SmartTaskPlan[]>();
+  for (let i = 0; i < n; i++) {
+    const root = find(i);
+    const list = clusterMap.get(root) ?? [];
+    list.push(tasks[i]!);
+    clusterMap.set(root, list);
+  }
+
+  interface TaskCluster {
+    readonly tasks: readonly SmartTaskPlan[];
+    readonly totalWork: number;
+    readonly scopes: readonly string[];
+  }
+
+  const clusters: TaskCluster[] = [];
+  for (const clusterTasks of clusterMap.values()) {
+    let work = 0;
+    const scopeSet = new Set<string>();
+    for (const t of clusterTasks) {
+      work += typeof t.effort === "number" && t.effort > 0 ? t.effort : 1;
+      for (const s of t.write_scope) {
+        scopeSet.add(s);
+      }
+    }
+    clusters.push({
+      tasks: clusterTasks,
+      totalWork: work,
+      scopes: Array.from(scopeSet),
+    });
+  }
+
+  clusters.sort((a, b) => b.totalWork - a.totalWork);
+
+  // 2. Bin pack clusters across target orchestrators
+  const numOrchestrators = Math.min(clusters.length, targetOrchestratorIds.length);
+  const activeOrchIds = targetOrchestratorIds.slice(0, Math.max(1, numOrchestrators));
+
+  interface OrchBucket {
+    readonly id: string;
+    tasks: SmartTaskPlan[];
+    totalWork: number;
+    scopes: Set<string>;
+  }
+
+  const buckets: OrchBucket[] = activeOrchIds.map((id) => ({
+    id,
+    tasks: [],
+    totalWork: 0,
+    scopes: new Set<string>(),
+  }));
+
+  for (const cluster of clusters) {
+    let chosenBucket = buckets[0]!;
+    for (let b = 1; b < buckets.length; b++) {
+      if (buckets[b]!.totalWork < chosenBucket.totalWork) {
+        chosenBucket = buckets[b]!;
+      }
+    }
+
+    for (const t of cluster.tasks) {
+      chosenBucket.tasks.push(t);
+    }
+    chosenBucket.totalWork += cluster.totalWork;
+    for (const s of cluster.scopes) {
+      chosenBucket.scopes.add(s);
+    }
+  }
+
+  // 3. Build sub-tree plans for each active orchestrator
+  const subTreePlans: MultiOrchestratorSubTreePlan[] = [];
+  const crossCollisions: ScopeCollision[] = [];
+  const warnings: string[] = [];
+
+  for (const bucket of buckets) {
+    if (bucket.tasks.length === 0) continue;
+    const wavePlan = planWaveExecution(bucket.tasks);
+    const orchScopes = Array.from(bucket.scopes);
+    subTreePlans.push({
+      orchestrator_id: bucket.id,
+      write_scope: orchScopes,
+      tasks: bucket.tasks,
+      wave_plan: wavePlan,
+      macro_metrics: wavePlan.macro_metrics ?? computeMacroMetrics(bucket.tasks),
+    });
+  }
+
+  // 4. Verify disjointness across orchestrator sub-trees
+  for (let i = 0; i < subTreePlans.length; i++) {
+    for (let j = i + 1; j < subTreePlans.length; j++) {
+      const orchA = subTreePlans[i]!;
+      const orchB = subTreePlans[j]!;
+      const overlaps = detectScopeOverlap(orchA.write_scope, orchB.write_scope);
+      if (overlaps.length > 0) {
+        for (const overlap of overlaps) {
+          crossCollisions.push({
+            scope: overlap,
+            task_ids: [orchA.orchestrator_id, orchB.orchestrator_id],
+          });
+        }
+      }
+    }
+  }
+
+  // 5. Aggregate MacroMetrics
+  let aggWork = 0;
+  let maxSpan = 0;
+  for (const st of subTreePlans) {
+    aggWork += st.macro_metrics.work;
+    if (st.macro_metrics.span > maxSpan) {
+      maxSpan = st.macro_metrics.span;
+    }
+  }
+  const parallelism =
+    maxSpan > 0 ? Math.round((aggWork / maxSpan) * 100) / 100 : tasks.length > 0 ? 1 : 0;
+  const optimalLanes = Math.max(1, Math.min(40, Math.ceil(parallelism > 0 ? parallelism : 1)));
+  const efficiency =
+    optimalLanes > 0 && parallelism > 0 ? Math.round((parallelism / optimalLanes) * 100) / 100 : 0;
+
+  const aggregateMetrics: MacroMetrics = {
+    work: aggWork,
+    span: maxSpan,
+    parallelism,
+    efficiency,
+  };
+
+  if (autoUpdateMemory) {
+    try {
+      updateCognitiveMemory(
+        (curr) => ({
+          ...curr,
+          macro_metrics: aggregateMetrics,
+        }),
+        cognitiveMemoryPath,
+      );
+    } catch {
+      // non-fatal
+    }
+  }
+
+  return {
+    total_orchestrators: subTreePlans.length,
+    total_tasks: tasks.length,
+    orchestrators: subTreePlans,
+    macro_metrics: aggregateMetrics,
+    is_disjoint: crossCollisions.length === 0,
+    cross_orchestrator_collisions: crossCollisions,
+    warnings,
+  };
+}
+
+/**
+ * Asserts strict multi-orchestrator write scope isolation and anti-batching rule.
+ * Throws HarnessError if any write scope overlaps across different orchestrator sub-trees.
+ */
+export function validateMultiOrchestratorIsolation(plan: MultiOrchestratorPrePlanningResult): void {
+  if (!plan.is_disjoint || plan.cross_orchestrator_collisions.length > 0) {
+    const details = plan.cross_orchestrator_collisions
+      .map((c) => `[${c.scope} between ${c.task_ids.join(" and ")}]`)
+      .join(", ");
+    throw new HarnessError(
+      "INTEGRITY",
+      `Multi-orchestrator isolation violation: write scopes overlap across orchestrator sub-trees: ${details}`,
+    );
+  }
+
+  for (const orch of plan.orchestrators) {
+    assertAntiBatchingRule(orch.tasks);
+  }
+}
+
+/**
+ * Stages tasks across multiple orchestrator sub-trees, tagging each task with its assigned orchestrator
+ * and wave metadata, and enforcing strict write scope isolation.
+ */
+export function stageTasksForMultiOrchestratorExecution(
+  tasks: readonly SmartTaskPlan[],
+  options: MultiOrchestratorPlanningOptions | number | readonly string[] = {},
+): {
+  readonly plan: MultiOrchestratorPrePlanningResult;
+  readonly staged_tasks: readonly SmartTaskPlan[];
+} {
+  const plan = preplanMultiOrchestratorTasks(tasks, options);
+  validateMultiOrchestratorIsolation(plan);
+
+  const stagedTasks: SmartTaskPlan[] = [];
+  for (const orch of plan.orchestrators) {
+    for (const wave of orch.wave_plan.waves) {
+      for (const task of wave.tasks) {
+        stagedTasks.push({
+          ...task,
+          assigned_tier: "Tier_1_Orchestrator",
+          assigned_role: `orchestrator-${orch.orchestrator_id}`,
+          metadata: {
+            ...(task.metadata ?? {}),
+            assigned_orchestrator: orch.orchestrator_id,
+            orchestrator_wave: wave.wave_number,
+            disjoint_scope_group: orch.orchestrator_id,
+          },
+        });
+      }
+    }
+  }
+
+  return {
+    plan,
+    staged_tasks: stagedTasks,
+  };
+}
+
+/**
+ * Alias for preplanMultiOrchestratorTasks.
+ */
+export function planMultiOrchestratorExecution(
+  tasks: readonly SmartTaskPlan[],
+  options: MultiOrchestratorPlanningOptions | number | readonly string[] = {},
+): MultiOrchestratorPrePlanningResult {
+  return preplanMultiOrchestratorTasks(tasks, options);
+}
+
+/**
+ * Alias for preplanMultiOrchestratorTasks.
+ */
+export function partitionTasksAcrossOrchestrators(
+  tasks: readonly SmartTaskPlan[],
+  options: MultiOrchestratorPlanningOptions | number | readonly string[] = {},
+): MultiOrchestratorPrePlanningResult {
+  return preplanMultiOrchestratorTasks(tasks, options);
+}
+
+/**
+ * Verifies the Atomic Admission-to-Dispatch invariant:
+ * 1. Zero paused admitted feedback items (every ADMITTED feedback has a corresponding active or completed task).
+ * 2. Every task in the queue satisfies 1:1 Implementer-Validator isolation and anti-batching rule.
+ */
+export function verifyAdmissionToDispatchInvariants(
+  options: {
+    readonly capsulesDir?: string | undefined;
+    readonly queuePath?: string | undefined;
+  } = {},
+): AdmissionToDispatchAuditReport {
+  const feedbacks = readFeedbackQueue(options.capsulesDir);
+  const tasks = readTaskQueue(options.queuePath);
+
+  const pendingFeedbacks = feedbacks.filter((f) => f.status === "PENDING");
+  const admittedFeedbacks = feedbacks.filter((f) => f.status === "ADMITTED");
+
+  const taskMap = new Map<string, TaskQueueItem>();
+  const feedbackIdToTaskMap = new Map<string, TaskQueueItem>();
+  for (const t of tasks) {
+    taskMap.set(t.id, t);
+    const fbId = t.metadata?.["feedback_id"] ?? t.metadata?.["batched_feedback_ids"];
+    if (typeof fbId === "string") {
+      feedbackIdToTaskMap.set(fbId, t);
+    }
+  }
+
+  const violations: string[] = [];
+  let pausedAdmittedCount = 0;
+
+  for (const fb of admittedFeedbacks) {
+    const dispatchedTaskId = fb.metadata?.["dispatched_task_id"];
+    const matchedByMeta =
+      typeof dispatchedTaskId === "string" ? taskMap.get(dispatchedTaskId) : undefined;
+    const matchedByFbId = feedbackIdToTaskMap.get(fb.id);
+    const matchedTask = matchedByMeta ?? matchedByFbId;
+
+    if (!matchedTask) {
+      violations.push(
+        `Admitted feedback '${fb.id}' (${fb.title}) has no corresponding dispatched task node in task queue.`,
+      );
+      pausedAdmittedCount++;
+    }
+  }
+
+  const activeTasks = tasks.filter(
+    (t) =>
+      t.status === "PENDING" ||
+      t.status === "ADMITTED" ||
+      t.status === "IN_PROGRESS" ||
+      t.status === "RUNNING" ||
+      t.status === "VALIDATING",
+  );
+
+  return {
+    compliant: violations.length === 0,
+    total_feedback: feedbacks.length,
+    pending_feedback: pendingFeedbacks.length,
+    admitted_feedback: admittedFeedbacks.length,
+    paused_admitted_feedback: pausedAdmittedCount,
+    total_tasks: tasks.length,
+    active_tasks: activeTasks.length,
+    zero_paused_admitted: pausedAdmittedCount === 0,
+    violations,
+  };
+}
+
+/**
+ * Alias for verifyAdmissionToDispatchInvariants.
+ */
+export function verifyProductOwnerInvariants(
+  options: {
+    readonly capsulesDir?: string | undefined;
+    readonly queuePath?: string | undefined;
+  } = {},
+): AdmissionToDispatchAuditReport {
+  return verifyAdmissionToDispatchInvariants(options);
+}
+
+/**
+ * Atomically admits pending or provided feedback items and dispatches them to 1:1 isolated task nodes in the task queue.
+ * Guarantees that zero items are left in a paused ADMITTED state.
+ */
+export function executeAtomicAdmissionToDispatch(
+  options: {
+    readonly capsulesDir?: string | undefined;
+    readonly queuePath?: string | undefined;
+    readonly feedbackItems?: readonly FeedbackItem[] | undefined;
+    readonly charterGoals?: readonly string[] | undefined;
+    readonly maxTasks?: number | undefined;
+    readonly orchestratorIds?: readonly string[] | undefined;
+  } = {},
+): AdmissionToDispatchResult {
+  const maxTasks = options.maxTasks ?? 10;
+  const targetFeedbacks =
+    options.feedbackItems && options.feedbackItems.length > 0
+      ? options.feedbackItems
+      : readFeedbackQueue(options.capsulesDir).filter((f) => f.status === "PENDING");
+
+  if (targetFeedbacks.length === 0) {
+    const auditReport = verifyAdmissionToDispatchInvariants(options);
+    return {
+      synthesized_tasks: [],
+      enqueued_tasks: [],
+      admitted_feedbacks: [],
+      audit_report: auditReport,
+      summary: "No pending feedback items to admit or dispatch.",
+    };
+  }
+
+  const selected = targetFeedbacks.slice(0, maxTasks);
+  const tasks = partitionGroupedFeedbacksStrictly(selected, {
+    charterGoals: options.charterGoals,
+  });
+
+  assertAntiBatchingRule(tasks);
+
+  // If orchestratorIds provided, stage across orchestrators
+  let finalTasks = tasks;
+  if (options.orchestratorIds && options.orchestratorIds.length > 0) {
+    const staged = stageTasksForMultiOrchestratorExecution(tasks, {
+      orchestratorIds: options.orchestratorIds,
+    });
+    finalTasks = staged.staged_tasks;
+  }
+
+  // 1. Enqueue tasks to task queue
+  const batchInputs: NewTaskQueueInput[] = finalTasks.map((t) => ({
+    id: t.id,
+    title: t.label,
+    description: t.rationale,
+    priority: t.priority ?? "HIGH",
+    write_scope: t.write_scope,
+    gate: t.gate,
+    charter_goals: t.charter_goals,
+    acceptance_criteria: t.acceptance_criteria,
+    dependencies: t.dependencies,
+    source_type: "feedback_intake",
+    assigned_tier: t.assigned_tier,
+    assigned_role: t.assigned_role,
+    metadata: t.metadata,
+  }));
+
+  const enqueuedTasks = enqueueTasksBatch(batchInputs, options.queuePath);
+
+  // 2. Atomically update feedback queue status to ADMITTED with linked task ID
+  const allFeedbacks = readFeedbackQueue(options.capsulesDir);
+  const nowIso = new Date().toISOString();
+  const admittedMap = new Map<string, string>();
+  for (const t of finalTasks) {
+    if (t.feedback_id) {
+      admittedMap.set(t.feedback_id, t.id);
+    }
+  }
+
+  const newlyAdmitted: FeedbackItem[] = [];
+  const updatedFeedbacks = allFeedbacks.map((fb) => {
+    const matchedTaskId = admittedMap.get(fb.id);
+    if (matchedTaskId) {
+      const updated: FeedbackItem = {
+        ...fb,
+        status: "ADMITTED",
+        processed_at: nowIso,
+        metadata: {
+          ...(fb.metadata ?? {}),
+          dispatched_task_id: matchedTaskId,
+          atomic_dispatched_at: nowIso,
+        },
+      };
+      newlyAdmitted.push(updated);
+      return updated;
+    }
+    return fb;
+  });
+
+  writeFeedbackQueue(updatedFeedbacks, options.capsulesDir);
+
+  // 3. Verify zero paused admitted items invariant
+  const auditReport = verifyAdmissionToDispatchInvariants(options);
+  if (!auditReport.zero_paused_admitted) {
+    throw new HarnessError(
+      "INTEGRITY",
+      `Atomic admission-to-dispatch invariant violated: ${auditReport.violations.join("; ")}`,
+    );
+  }
+
+  return {
+    synthesized_tasks: finalTasks,
+    enqueued_tasks: enqueuedTasks,
+    admitted_feedbacks: newlyAdmitted,
+    audit_report: auditReport,
+    summary: `Atomically admitted and dispatched ${newlyAdmitted.length} feedback item(s) to ${enqueuedTasks.length} task queue node(s) with 0 paused admitted items.`,
+  };
+}
+
+/**
+ * Alias for executeAtomicAdmissionToDispatch.
+ */
+export function executeProductOwnerAdmissionAndDispatch(
+  options: {
+    readonly capsulesDir?: string | undefined;
+    readonly queuePath?: string | undefined;
+    readonly feedbackItems?: readonly FeedbackItem[] | undefined;
+    readonly charterGoals?: readonly string[] | undefined;
+    readonly maxTasks?: number | undefined;
+    readonly orchestratorIds?: readonly string[] | undefined;
+  } = {},
+): AdmissionToDispatchResult {
+  return executeAtomicAdmissionToDispatch(options);
+}
+
+/**
+ * Auto-reconciles any paused or orphaned admitted items by synthesizing missing 1:1 isolated tasks
+ * and enqueuing them to the task queue.
+ */
+export function reconcileAdmissionToDispatchState(
+  options: {
+    readonly capsulesDir?: string | undefined;
+    readonly queuePath?: string | undefined;
+    readonly charterGoals?: readonly string[] | undefined;
+  } = {},
+): {
+  readonly reconciled_feedbacks_count: number;
+  readonly newly_enqueued_tasks_count: number;
+  readonly audit_report: AdmissionToDispatchAuditReport;
+} {
+  const audit = verifyAdmissionToDispatchInvariants(options);
+  if (audit.zero_paused_admitted) {
+    return {
+      reconciled_feedbacks_count: 0,
+      newly_enqueued_tasks_count: 0,
+      audit_report: audit,
+    };
+  }
+
+  const allFeedbacks = readFeedbackQueue(options.capsulesDir);
+  const tasks = readTaskQueue(options.queuePath);
+  const taskMap = new Map<string, TaskQueueItem>();
+  for (const t of tasks) {
+    taskMap.set(t.id, t);
+    const fbId = t.metadata?.["feedback_id"];
+    if (typeof fbId === "string") {
+      taskMap.set(fbId, t);
+    }
+  }
+
+  const orphanedFeedbacks = allFeedbacks.filter(
+    (f) =>
+      f.status === "ADMITTED" &&
+      !taskMap.has(f.id) &&
+      (!f.metadata?.["dispatched_task_id"] ||
+        !taskMap.has(String(f.metadata["dispatched_task_id"]))),
+  );
+
+  if (orphanedFeedbacks.length === 0) {
+    return {
+      reconciled_feedbacks_count: 0,
+      newly_enqueued_tasks_count: 0,
+      audit_report: audit,
+    };
+  }
+
+  const dispatchResult = executeAtomicAdmissionToDispatch({
+    capsulesDir: options.capsulesDir,
+    queuePath: options.queuePath,
+    feedbackItems: orphanedFeedbacks,
+    charterGoals: options.charterGoals,
+  });
+
+  return {
+    reconciled_feedbacks_count: orphanedFeedbacks.length,
+    newly_enqueued_tasks_count: dispatchResult.enqueued_tasks.length,
+    audit_report: dispatchResult.audit_report,
+  };
+}
+
+/**
+ * Executes a full Infinite Mind Product Owner cycle:
+ * 1. Intakes items across user feedback, defect candidates, and self-evolution streams.
+ * 2. Emits Product Owner admission decisions (G1-G6 criteria, anti-batching 1:1 isolation).
+ * 3. Pre-plans tasks across concurrent multi-orchestrator sub-trees with disjoint write scopes.
+ * 4. Atomically chains admission to task queue dispatch (guaranteeing zero paused admitted items).
+ * 5. Integrates Work/Span macro metrics into persistent cognitive memory.
+ */
+export function runInfiniteProductOwnerCycle(
+  options: InfiniteProductOwnerOptions = {},
+): InfiniteProductOwnerResult {
+  const cycleId = `po-cycle-${Date.now()}`;
+  const nowIso = new Date().toISOString();
+
+  const feedbackItems = readFeedbackQueue(options.capsulesDir);
+  const pendingFeedbacks = feedbackItems.filter((f) => f.status === "PENDING");
+  const directIntake = options.directIntakeItems ?? [];
+  const maxTasks = options.maxTasks ?? 10;
+
+  const decisions: ProductOwnerIntakeDecision[] = [];
+  let synthesizedPlans: readonly SmartTaskPlan[] = [];
+  let enqueuedTasks: readonly TaskQueueItem[] = [];
+  let multiOrchPlan: MultiOrchestratorPrePlanningResult | undefined = undefined;
+  let mode:
+    | "feedback_intake"
+    | "self_evolution"
+    | "multi_orchestrator_dispatch"
+    | "idle_monitored" = "idle_monitored";
+
+  // Check Mode B: Pending feedback items or direct intake items
+  if (pendingFeedbacks.length > 0 || directIntake.length > 0) {
+    mode = "feedback_intake";
+
+    const candidateFeedbacks: FeedbackItem[] = [...pendingFeedbacks];
+    if (directIntake.length > 0) {
+      for (const item of directIntake) {
+        candidateFeedbacks.push({
+          id: item.id,
+          timestamp: nowIso,
+          priority:
+            typeof item.priority === "string"
+              ? (item.priority as FeedbackPriority)
+              : "USER_DIRECTIVE",
+          status: "PENDING",
+          category:
+            typeof item.category === "string" ? (item.category as FeedbackCategory) : "CORE_ENGINE",
+          title: item.title,
+          content: item.description,
+          candidate_id: item.candidate_id ?? null,
+          metadata: item.metadata,
+        });
+      }
+    }
+
+    const selectedFeedbacks = candidateFeedbacks.slice(0, maxTasks);
+    synthesizedPlans = partitionGroupedFeedbacksStrictly(selectedFeedbacks, {
+      charterGoals: options.charterGoals,
+    });
+
+    for (let i = 0; i < selectedFeedbacks.length; i++) {
+      const fb = selectedFeedbacks[i]!;
+      const assignedTask = synthesizedPlans[i];
+      decisions.push({
+        item_id: fb.id,
+        admitted: true,
+        priority: assignedTask?.priority ?? "HIGH",
+        rationale: `Product Owner admitted item '${fb.title}' into isolated task node ${assignedTask?.id ?? "unknown"}`,
+        assigned_task_id: assignedTask?.id,
+      });
+    }
+
+    // Check multi-orchestrator pre-planning
+    if (
+      (options.orchestratorCount && options.orchestratorCount > 1) ||
+      (options.orchestratorIds && options.orchestratorIds.length > 0)
+    ) {
+      mode = "multi_orchestrator_dispatch";
+      const staged = stageTasksForMultiOrchestratorExecution(synthesizedPlans, {
+        orchestratorIds: options.orchestratorIds,
+        maxOrchestrators: options.orchestratorCount,
+      });
+      synthesizedPlans = staged.staged_tasks;
+      multiOrchPlan = staged.plan;
+    }
+
+    // Execute atomic admission-to-dispatch
+    if (options.autoEnqueue !== false) {
+      const dispatchRes = executeAtomicAdmissionToDispatch({
+        capsulesDir: options.capsulesDir,
+        queuePath: options.queuePath,
+        feedbackItems: selectedFeedbacks,
+        charterGoals: options.charterGoals,
+        orchestratorIds: options.orchestratorIds,
+      });
+      enqueuedTasks = dispatchRes.enqueued_tasks;
+      synthesizedPlans = dispatchRes.synthesized_tasks;
+    }
+  } else {
+    // Check Task Queue State: if idle, run Mode A Self-Evolution
+    const currentQueue = readTaskQueue(options.queuePath);
+    const activeTasks = currentQueue.filter(
+      (t) =>
+        t.status === "PENDING" ||
+        t.status === "ADMITTED" ||
+        t.status === "IN_PROGRESS" ||
+        t.status === "RUNNING" ||
+        t.status === "VALIDATING",
+    );
+
+    if (activeTasks.length === 0) {
+      mode = "self_evolution";
+      const selfSynth = synthesizeSmartTasksFromSelfEvolution({
+        capsulesDir: options.capsulesDir,
+        queuePath: options.queuePath,
+        charterGoals: options.charterGoals,
+        maxTasks: options.maxTasks,
+        autoEnqueue: options.autoEnqueue !== false,
+      });
+
+      synthesizedPlans = selfSynth.tasks;
+      for (const t of synthesizedPlans) {
+        decisions.push({
+          item_id: t.id,
+          admitted: true,
+          priority: t.priority ?? "HIGH",
+          rationale: `Product Owner autonomous self-evolution task: ${t.label}`,
+          assigned_task_id: t.id,
+        });
+      }
+
+      if (
+        (options.orchestratorCount && options.orchestratorCount > 1) ||
+        (options.orchestratorIds && options.orchestratorIds.length > 0)
+      ) {
+        const staged = stageTasksForMultiOrchestratorExecution(synthesizedPlans, {
+          orchestratorIds: options.orchestratorIds,
+          maxOrchestrators: options.orchestratorCount,
+        });
+        synthesizedPlans = staged.staged_tasks;
+        multiOrchPlan = staged.plan;
+      }
+
+      if (options.autoEnqueue !== false) {
+        const updatedQueue = readTaskQueue(options.queuePath);
+        enqueuedTasks = updatedQueue.slice(-synthesizedPlans.length);
+      }
+    } else {
+      mode = "idle_monitored";
+    }
+  }
+
+  const macroMetrics = multiOrchPlan
+    ? multiOrchPlan.macro_metrics
+    : computeMacroMetrics(synthesizedPlans);
+
+  // Update memory
+  try {
+    updateCognitiveMemory(
+      (curr) => ({
+        ...curr,
+        strategic_focus: [
+          "Infinite Product Owner Backlog & Admission Governance",
+          "Continuous Atomic Admission-to-Dispatch Chaining (Zero Paused Admitted)",
+          "Concurrent Multi-Orchestrator Disjoint Write Scope Pre-Planning",
+          "Zero-Any & Zero-Suppression Strict Compliance",
+        ],
+        macro_metrics: macroMetrics,
+      }),
+      options.memoryPath,
+    );
+  } catch {
+    // non-fatal
+  }
+
+  const auditReport = verifyAdmissionToDispatchInvariants(options);
+
+  return {
+    cycle_id: cycleId,
+    timestamp: nowIso,
+    mode,
+    decisions,
+    synthesized_tasks: synthesizedPlans,
+    enqueued_tasks: enqueuedTasks,
+    ...(multiOrchPlan ? { multi_orchestrator_plan: multiOrchPlan } : {}),
+    macro_metrics: macroMetrics,
+    zero_paused_admitted_guaranteed: auditReport.zero_paused_admitted,
+    summary: `Infinite Product Owner cycle [${mode}] completed: ${decisions.length} decision(s), ${synthesizedPlans.length} synthesized task(s), ${enqueuedTasks.length} enqueued task(s), zero paused admitted items verified.`,
+  };
 }

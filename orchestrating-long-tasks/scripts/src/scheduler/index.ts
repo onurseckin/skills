@@ -1,5 +1,11 @@
 export { proposeBatch } from "./propose-batch.ts";
-export { schedulingMetrics } from "./metrics.ts";
+export {
+  schedulingMetrics,
+  generateTaskDagBadge,
+  generateWaveLaneBadges,
+  formatWorkSpanBadge,
+  type SchedulingMetrics,
+} from "./metrics.ts";
 export {
   resourceConflict,
   scopeConflict,
@@ -43,7 +49,11 @@ export {
   assertDoctorGatePassed,
   determineTopLeader,
   dispatchSupervisoryHealthProbe,
+  formatDiagnosticReceiptsMarkdown,
   formatSupervisoryHealthMarkdown,
+  generateAsciiDagBadges,
+  generateReceiptBadge,
+  generateReceiptSummaryBadge,
   probeAgentRegistryAccuracy,
   probeCircularDependencies,
   probeDoctorErrorResolution,
@@ -55,9 +65,17 @@ export {
   probeStaleLeases,
   probeWorkSpanParallelizationHealth,
   recoverStaleTasks,
+  runInspectorDagView,
+  runInspectorDoctor,
+  runInspectorHealth,
+  runInspectorUnifiedReport,
+  runScriptBackedDiagnostics,
   type AgentRegistryAccuracyAudit,
   type BlockedTaskInfo,
   type CircularDependenciesProbeResult,
+  type CliDiagnosticReceipt,
+  type DiagnosticInspectorName,
+  type DiagnosticReceiptStatus,
   type DoctorErrorResolutionAudit,
   type GateCoverageProbeResult,
   type GraphHealthAuditReport,
@@ -70,6 +88,8 @@ export {
   type SchedulerEngineOptions,
   type ScopeCollisionHazard,
   type ScopeCollisionProbeResult,
+  type ScriptBackedDiagnosticsOptions,
+  type ScriptBackedDiagnosticsResult,
   type StaleLeaseInfo,
   type StaleLeasesProbeResult,
   type Supervisory5PointHealthReport,
@@ -83,6 +103,7 @@ export {
 } from "./core-engine.ts";
 export {
   executePulseTick,
+  executePulseTickWithDiagnostics,
   runPulseLoop,
   type PulseLoopOptions,
   type PulseLoopResult,

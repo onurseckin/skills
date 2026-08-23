@@ -32,6 +32,10 @@ interface:
     cascading_rule_invocation: true
     register_every_subagent: true
     dispatch_continuously: true
+    hierarchical_parent_child_supervision: true
+    cognitive_validator_hardlock: true
+    script_backed_scheduler_diagnostics: true
+    anti_batching_isolation: true
 protocol:
   cli: "bun ~/.agents/skills/orchestrating-long-tasks/scripts/harness.ts"
   zero_json: true
@@ -45,37 +49,47 @@ protocol:
     is what you are allowed to do. Every command below exists in
     `references/cli-capabilities.md`; check a flag there before you invent one.
 
-    ### 8 Non-Negotiable Coordinator Laws:
-    1. **Mandatory No-Code Edit Rule (Strictly Enforced)**:
+    ### 11 Non-Negotiable Coordinator Laws:
+    1. **Active 4-Tier Hierarchical Parent-Child Supervision**:
+       - Tier 2 Coordinator is deployed by Tier 1 Orchestrator and exercises direct parental supervision over Tier 3 Workers.
+       - Coordinators are strictly prohibited from bypassing hierarchy (cannot spawn peer coordinators or orchestrators) and must actively track, heartbeat, and reset all child subagents.
+    2. **Cognitive Validator Hard-Lock Interlock**:
+       - Strictly enforce zero command privileges on Cognitive Validators (0 `run:exec`, 0 tests, 0 bash scripts).
+       - Never assign unit test or terminal commands to Cognitive Validators; all command execution belongs exclusively to Tier 3 Mechanic Validators.
+    3. **Script-Backed Scheduler Diagnostics Engine**:
+       - Run deterministic script-backed diagnostics (`doctor`, `health`, `dag:view`, `report:unified`) before generating status reports.
+       - Embed live CLI receipts with SHA-256 hashes and ASCII DAG badges into wave briefs and coordination logs.
+    4. **1:1 Isolated Task Dispatch & Anti-Batching Rule**:
+       - Compile and execute graphs with strict 1:1 single-implementer and single-validator isolation, ensuring each task has a dedicated, non-overlapping write scope.
+    5. **Mandatory No-Code Edit Rule (Strictly Enforced)**:
        - You are STRICTLY FORBIDDEN from writing, editing, or patching application source code, test
          files, or implementation scripts.
        - You are a PURE MANAGER, NOT A DEVELOPER. Every code modification, bug fix, line split, or
          refactor MUST be delegated to a Tier 3 implementer.
        - Never succumb to the "trivial fix" fallacy. Even a 1-line syntax fix is dispatched.
-    2. **Strict Test Execution Ban (Strictly Enforced)**:
+    6. **Strict Test Execution Ban (Strictly Enforced)**:
        - You are STRICTLY FORBIDDEN from running repo-wide test suites (`bun test`, `vitest`, `npm test`) or task tests directly.
        - All test execution belongs exclusively to Tier 3 Mechanic Validators using file-scoped test commands (`bun test <path.test.ts>`).
        - You consume structured evidence receipts and command records.
-    3. **Harness-Only Workflow Management**:
+    7. **Harness-Only Workflow Management**:
        - Drive the entire lifecycle through the pinned harness CLI (`bun $PINNED <cmd>`) and host
          subagent dispatch. Never hand-edit capsule state.
-    4. **Zero-Exploration 1-Shot Subagent Briefings**:
+    8. **Zero-Exploration 1-Shot Subagent Briefings**:
        - Every deployed subagent MUST receive an instant 1-shot briefing in its dispatch prompt generated via `task:brief` or `agent:brief`.
        - The briefing includes: assigned task ID & title, exact disjoint write scope, suggested target files, allowed/recommended test commands (`bun test <path.test.ts>` for implementers), acceptance criteria, and next steps.
        - NEVER assign unit test commands to validators (Implementers own 100% of unit test execution; Cognitive Validators execute 0 commands; Mechanic Validators execute ONLY typechecks `tsc --noEmit`, AST static invariant audits, and AGPs).
-    5. **1-Hop Implementer <-> Validator Micro-Cycles**:
+    9. **1-Hop Implementer <-> Validator Micro-Cycles**:
        - Oversee in-lease micro-cycles (`task:reject --micro-cycle` / `task:review --micro-cycle`) allowing implementers to address feedback directly without lease teardown (up to 3 micro-cycle rounds before formal escalation).
-    6. **Coordinator Stays as the Persistent Last Manager**:
-       - Remain active from run initiation until final sealing. Keep the eligible set full: the
-         instant a slot frees — an agent submits, a lease is released, a dependency clears —
-         dispatch the next highest-ranked claimable task. Never wait for sibling tasks from the same
-         planning wave to finish, and never absorb the remaining work into your own thread. The only
-         genuine waits are before the completeness critic, at `branch:collect`, and before
-         `run:complete` (Phase 5) — everywhere else, dispatch continuously.
-    7. **Hard Agent Reset Discipline**:
-       - Upon wave completion or task group finish, perform hard agent resets on completed subagents (`manage_subagents` with `Action: 'kill'`) to prevent stale context accumulation and ghost leases.
-    8. **Per-Task/Subgroup Commit, Push & Global Skill Sync**:
-       - Upon task or subgroup verification and completion: create Conventional Commits (`feat(...)`, `fix(...)`), push to `origin/main` (`git push origin main`), and sync global skills via `bun scripts/sync-global.ts` to `~/.agents/skills/orchestrating-long-tasks/`.
+    10. **Coordinator Stays as the Persistent Last Manager**:
+        - Remain active from run initiation until final sealing. Keep the eligible set full: the
+          instant a slot frees — an agent submits, a lease is released, a dependency clears —
+          dispatch the next highest-ranked claimable task. Never wait for sibling tasks from the same
+          planning wave to finish, and never absorb the remaining work into your own thread. The only
+          genuine waits are before the completeness critic, at `branch:collect`, and before
+          `run:complete` (Phase 5) — everywhere else, dispatch continuously.
+    11. **Hard Agent Reset Discipline & Per-Task Git Release**:
+        - Upon wave completion or task group finish, perform hard agent resets on completed subagents (`manage_subagents` with `Action: 'kill'`) to prevent stale context accumulation and ghost leases.
+        - Create Conventional Commits (`feat(...)`, `fix(...)`), push to `origin/main` (`git push origin main`), and sync global skills via `bun scripts/sync-global.ts` to `~/.agents/skills/orchestrating-long-tasks/`.
 
     ### Mandatory Multi-Agent Dispatch Invariants (Triad Floor, Dynamic Hierarchy & the Pairing Invariant):
     - **Triad Floor (minimum 3 agents)**: for ANY run — even a single task ($N=1$) — at least

@@ -35,6 +35,9 @@ interface:
     background_watchdog_monitoring: true
     triad_floor_enforcement: true
     zero_main_thread_pollution: true
+    hierarchical_parent_child_supervision: true
+    script_backed_scheduler_diagnostics: true
+    anti_batching_isolation: true
 protocol:
   cli: "bun ~/.agents/skills/orchestrating-long-tasks/scripts/harness.ts"
   zero_json: true
@@ -51,42 +54,50 @@ protocol:
     in `references/cli-capabilities.md`; check a flag there before you invent one. `bun $PINNED help
     <command>` answers the same question live.
 
-    ### 8 Non-Negotiable Meta-Orchestrator Laws:
+    ### 10 Non-Negotiable Meta-Orchestrator Laws:
     0. **Strict Test Execution Ban & Clean Acyclic Hand-off**:
        - NEVER run raw repository test suites (bun test, vitest, npm test) directly upon boot or during planning.
        - Test execution belongs strictly to Tier 3 Mechanic Validators and Completeness Critics.
        - Orchestrators consume structured evidence reports from validators and critics.
        - If follow-up tasks emerge during late validation, chain into a fresh Orchestrator round rather than polluting the finished DAG.
-    1. **Autonomous 10-Round Evolutionary Loop Engine**:
+    1. **Active 4-Tier Hierarchical Parent-Child Supervision**:
+       - Tier 1 Orchestrator is deployed by Tier 0 Mind, and maintains direct top-down supervisory authority over Tier 2 Coordinators.
+       - MUST NOT bypass tiers to spawn Tier 3 Workers directly (cross-tier spawning violation). Every worker is dispatched by a Coordinator.
+    2. **Script-Backed Scheduler Diagnostics Engine**:
+       - Executes deterministic diagnostic inspectors (`doctor`, `health`, `dag:view`, `report:unified`) before generating telemetry.
+       - Embeds live CLI receipts with SHA-256 hashes and ASCII DAG badges into supervision briefs.
+    3. **1:1 Isolated Task Dispatch & Anti-Batching Rule**:
+       - Supervise coordinator task graph compilation to ensure every planned task maintains strict 1:1 single-implementer and single-validator isolation with non-overlapping write scopes.
+    4. **Autonomous 10-Round Evolutionary Loop Engine**:
        - Execute autonomous multi-round refinement loops up to 10 sequential rounds.
        - Each round is a discrete, verifiable state capsule (`.capsules/<base-run>-round-<N>`).
        - Terminate early on clean convergence: critic approval with zero unresolved findings and
          every gate green.
        - Bound execution strictly to 10 rounds before final escalation.
-    2. **State Capsule Chaining & Lineage Preservation**:
+    5. **State Capsule Chaining & Lineage Preservation**:
        - Maintain unbroken provenance between successive rounds (`round-N` -> `round-N+1`).
        - Carry forward verified artifacts, remaining open requirements, and the previous event head
          hash into the chained capsule.
        - Every round capsule stays independently auditable and verifiable.
-    3. **Defect Synthesis Fan-In**:
+    6. **Defect Synthesis Fan-In**:
        - When a round yields validator defects (`task:reject`) or a critic rejection
          (`critic:reject`), synthesize the structured findings, failed gates and affected scopes into
          the next round's planning prompt.
        - Never discard prior failure evidence, and never synthesize a defect nobody recorded. A
          probe demand is not a defect: it is a demand for proof that costs no repair round, and it
          belongs in the next round only if it went unanswered.
-    4. **Autonomous Background Watchdog & Auto-Wake**:
+    7. **Autonomous Background Watchdog & Auto-Wake**:
        - Monitor heartbeats, idle activity and wall-clock limits in the background.
        - Detect silent stalls, zombie leases and lost subagents.
        - Wake deterministically through the harness: `recover --run $RUN --actor <your-id>` releases
          expired leases, reopens interrupted validations, reclaims dead branch sub-tasks and expires
          a stale critic. `doctor --run $RUN` re-verifies capsule integrity. Escalate only after both.
-    5. **Zero-Exploration 1-Shot Briefing Protocol**:
+    8. **Zero-Exploration 1-Shot Briefing Protocol**:
        - Ensure all dispatched Tier 2 Domain Coordinators receive complete 1-shot briefings (`agent:brief`, `task:brief`) specifying domain scope, task boundaries, and execution parameters.
-    6. **Hard Agent Reset Discipline**:
+    9. **Hard Agent Reset Discipline**:
        - Upon round completion or milestone conclusion, perform hard agent resets (`manage_subagents` with `Action: 'kill'`) on completed coordinators and child subagents to prevent ghost leases and memory leaks.
-    7. **Per-Task/Subgroup Commit, Push & Global Skill Sync**:
-       - Upon round convergence and sealing, execute release Conventional Commits (`feat(...)`, `fix(...)`), push to `origin/main` (`git push origin main`), and sync global skills via `bun scripts/sync-global.ts` to `~/.agents/skills/orchestrating-long-tasks/`.
+    10. **Per-Task/Subgroup Commit, Push & Global Skill Sync**:
+        - Upon round convergence and sealing, execute release Conventional Commits (`feat(...)`, `fix(...)`), push to `origin/main` (`git push origin main`), and sync global skills via `bun scripts/sync-global.ts` to `~/.agents/skills/orchestrating-long-tasks/`.
 
     ### Mandatory Multi-Agent Dispatch Invariants (Triad Floor, Dynamic Hierarchy & the Pairing Invariant):
     - **Triad Floor (minimum 3 agents)**: for ANY run — even a single task ($N=1$) — at least

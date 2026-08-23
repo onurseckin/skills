@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { HarnessError } from "../errors/harness-error.ts";
+import { resolveTaskQueuePath } from "./task-queue.ts";
 
 export type FeedbackPriority =
   | "CRITICAL_USER_FEEDBACK"
@@ -62,6 +63,23 @@ export interface FeedbackQueueStats {
   readonly declined: number;
   readonly processed: number;
   readonly completed: number;
+}
+
+export interface AtomicAdmissionDispatchResult {
+  readonly feedback_item: FeedbackItem;
+  readonly dispatched_task_id: string;
+  readonly admitted_at: string;
+  readonly auto_enqueued: boolean;
+}
+
+export interface AdmissionDispatchIntegrityReport {
+  readonly is_compliant: boolean;
+  readonly total_feedback_items: number;
+  readonly admitted_feedback_count: number;
+  readonly paused_admitted_feedback_count: number;
+  readonly paused_admitted_feedbacks: readonly FeedbackItem[];
+  readonly active_dispatched_feedback_count: number;
+  readonly violations: readonly string[];
 }
 
 export interface BackpropagationRecord {
@@ -851,4 +869,239 @@ function validateCategory(val: unknown): FeedbackCategory {
     if (upper === "REPAIR") return "REPAIR";
   }
   return "GENERAL";
+}
+
+/**
+ * Atomically admits a feedback item and dispatches it to a task node.
+ * Ensures the atomic admission-to-dispatch invariant: no item is paused in ADMITTED state
+ * without an associated task node. If the dispatcher fails, the feedback queue is not modified.
+ */
+export function admitAndDispatchFeedbackAtomically(
+  idOrItem:
+    | string
+    | (Omit<FeedbackItem, "timestamp" | "status"> & {
+        readonly timestamp?: string | undefined;
+        readonly status?: FeedbackStatus | undefined;
+      }),
+  dispatcher: (item: FeedbackItem) => {
+    readonly taskId: string;
+    readonly autoEnqueued?: boolean | undefined;
+    readonly metadata?: Readonly<Record<string, unknown>> | undefined;
+  },
+  customPath?: string,
+): AtomicAdmissionDispatchResult {
+  const filePath = resolveFeedbackQueuePath(customPath);
+  const existing = readFeedbackQueue(filePath);
+  const nowIso = new Date().toISOString();
+
+  let targetItem: FeedbackItem;
+  let targetIndex = -1;
+
+  if (typeof idOrItem === "string") {
+    targetIndex = existing.findIndex((e) => e.id === idOrItem);
+    if (targetIndex === -1) {
+      throw new HarnessError(
+        "INVALID_STATE",
+        `Feedback item with id '${idOrItem}' not found in queue`,
+      );
+    }
+    targetItem = existing[targetIndex]!;
+  } else {
+    targetIndex = existing.findIndex((e) => e.id === idOrItem.id);
+    if (targetIndex !== -1) {
+      targetItem = {
+        ...existing[targetIndex]!,
+        ...idOrItem,
+        status: idOrItem.status ?? existing[targetIndex]!.status,
+        timestamp: idOrItem.timestamp ?? existing[targetIndex]!.timestamp,
+      };
+    } else {
+      const initialStatus: FeedbackStatus =
+        idOrItem.status !== undefined ? idOrItem.status : "PENDING";
+      targetItem = {
+        ...idOrItem,
+        status: initialStatus,
+        timestamp: idOrItem.timestamp ?? nowIso,
+      };
+    }
+  }
+
+  // Execute dispatcher callback atomically BEFORE persisting the ADMITTED state
+  const dispatchRes = dispatcher(targetItem);
+  if (!dispatchRes.taskId || !dispatchRes.taskId.trim()) {
+    throw new HarnessError(
+      "INTEGRITY",
+      "Atomic admission-to-dispatch failure: dispatcher did not return a valid taskId",
+    );
+  }
+
+  const updatedMetadata: Record<string, unknown> = {
+    ...(targetItem.metadata ?? {}),
+    ...(dispatchRes.metadata ?? {}),
+    dispatched_task_id: dispatchRes.taskId.trim(),
+    atomic_dispatched_at: nowIso,
+  };
+
+  const admittedItem: FeedbackItem = {
+    ...targetItem,
+    status: "ADMITTED",
+    processed_at: nowIso,
+    metadata: updatedMetadata,
+  };
+
+  const updatedList = [...existing];
+  if (targetIndex !== -1) {
+    updatedList[targetIndex] = admittedItem;
+  } else {
+    updatedList.push(admittedItem);
+  }
+
+  writeFeedbackQueue(updatedList, filePath);
+
+  return {
+    feedback_item: admittedItem,
+    dispatched_task_id: dispatchRes.taskId.trim(),
+    admitted_at: nowIso,
+    auto_enqueued: dispatchRes.autoEnqueued ?? true,
+  };
+}
+
+/**
+ * Audits the atomic admission-to-dispatch integrity across feedback and task queues.
+ * Verifies that zero admitted items are left in a paused or orphaned state.
+ */
+export function auditAdmissionDispatchIntegrity(
+  options: {
+    readonly feedbackPath?: string | undefined;
+    readonly taskQueuePath?: string | undefined;
+  } = {},
+): AdmissionDispatchIntegrityReport {
+  const feedbacks = readFeedbackQueue(options.feedbackPath);
+  const admittedFeedbacks = feedbacks.filter((f) => f.status === "ADMITTED");
+
+  // Read task queue
+  const taskQueueFilePath = resolveTaskQueuePath(options.taskQueuePath);
+  interface ParsedTaskInfo {
+    readonly id: string;
+    readonly status: string;
+    readonly metadata?: Readonly<Record<string, unknown>> | undefined;
+  }
+  const taskItems: ParsedTaskInfo[] = [];
+
+  if (existsSync(taskQueueFilePath)) {
+    try {
+      const raw = readFileSync(taskQueueFilePath, "utf8");
+      const lines = raw
+        .split("\n")
+        .map((l) => l.trim())
+        .filter(Boolean);
+      for (const line of lines) {
+        try {
+          const parsed = JSON.parse(line) as Record<string, unknown>;
+          if (parsed && typeof parsed["id"] === "string") {
+            taskItems.push({
+              id: parsed["id"],
+              status: typeof parsed["status"] === "string" ? parsed["status"] : "PENDING",
+              metadata:
+                typeof parsed["metadata"] === "object" && parsed["metadata"] !== null
+                  ? (parsed["metadata"] as Readonly<Record<string, unknown>>)
+                  : undefined,
+            });
+          }
+        } catch {
+          // skip
+        }
+      }
+    } catch {
+      // skip
+    }
+  }
+
+  const taskMap = new Map<string, ParsedTaskInfo>();
+  const feedbackIdToTaskMap = new Map<string, ParsedTaskInfo>();
+  for (const t of taskItems) {
+    taskMap.set(t.id, t);
+    const fbId = t.metadata?.["feedback_id"] ?? t.metadata?.["batched_feedback_ids"];
+    if (typeof fbId === "string") {
+      feedbackIdToTaskMap.set(fbId, t);
+    }
+  }
+
+  const violations: string[] = [];
+  const pausedAdmitted: FeedbackItem[] = [];
+  let activeDispatchedCount = 0;
+
+  for (const fb of admittedFeedbacks) {
+    const dispatchedTaskId = fb.metadata?.["dispatched_task_id"];
+    const matchedByMeta =
+      typeof dispatchedTaskId === "string" ? taskMap.get(dispatchedTaskId) : undefined;
+    const matchedByFbId = feedbackIdToTaskMap.get(fb.id);
+    const matchedTask = matchedByMeta ?? matchedByFbId;
+
+    if (!matchedTask) {
+      violations.push(
+        `Admitted feedback item '${fb.id}' (${fb.title}) is paused without an enqueued/dispatched task node.`,
+      );
+      pausedAdmitted.push(fb);
+    } else {
+      activeDispatchedCount++;
+    }
+  }
+
+  return {
+    is_compliant: violations.length === 0,
+    total_feedback_items: feedbacks.length,
+    admitted_feedback_count: admittedFeedbacks.length,
+    paused_admitted_feedback_count: pausedAdmitted.length,
+    paused_admitted_feedbacks: pausedAdmitted,
+    active_dispatched_feedback_count: activeDispatchedCount,
+    violations,
+  };
+}
+
+/**
+ * Reconciles paused or orphaned admitted feedbacks by resetting status to PENDING or returning report.
+ */
+export function reconcilePausedAdmittedFeedbacks(
+  options: {
+    readonly feedbackPath?: string | undefined;
+    readonly taskQueuePath?: string | undefined;
+    readonly resetToPending?: boolean | undefined;
+  } = {},
+): {
+  readonly reconciled_count: number;
+  readonly remediated_feedbacks: readonly FeedbackItem[];
+} {
+  const audit = auditAdmissionDispatchIntegrity(options);
+  if (audit.paused_admitted_feedback_count === 0) {
+    return {
+      reconciled_count: 0,
+      remediated_feedbacks: [],
+    };
+  }
+
+  const filePath = resolveFeedbackQueuePath(options.feedbackPath);
+  const existing = readFeedbackQueue(filePath);
+  const pausedIds = new Set(audit.paused_admitted_feedbacks.map((f) => f.id));
+  const remediated: FeedbackItem[] = [];
+
+  const updatedList = existing.map((item) => {
+    if (pausedIds.has(item.id)) {
+      const resetStatus: FeedbackStatus = options.resetToPending ? "PENDING" : "ADMITTED";
+      const updated: FeedbackItem = {
+        ...item,
+        status: resetStatus,
+        processed_at: null,
+      };
+      remediated.push(updated);
+      return updated;
+    }
+    return item;
+  });
+
+  writeFeedbackQueue(updatedList, filePath);
+  return {
+    reconciled_count: remediated.length,
+    remediated_feedbacks: remediated,
+  };
 }

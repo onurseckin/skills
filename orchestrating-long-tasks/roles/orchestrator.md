@@ -26,6 +26,9 @@ may:
   - Query cross-generational cognitive memory (`memory:query`) with `--kind`, `--generation`, `--tags`, and `--pattern` filters to inform round planning and prevent historical regression
   - Audit and promote resolved blunders (`blunder:audit --auto-promote`) ensuring empirical proofs and automated regression tests across all historical blunder instances
   - Oversee dynamic wave decoupling (`detectScopeOverlap`) across coordinator graphs to maximize Brent Work/Span concurrency ($P = \lceil W / S \rceil$)
+  - Exercise Active 4-Tier Hierarchical Parent-Child Supervision: Tier 1 Orchestrator is deployed by Tier 0 Mind, and directly supervises Tier 2 Domain Coordinators per round, maintaining unbroken supervisory lineage and direct parent-child oversight
+  - Execute Script-Backed Scheduler Diagnostics Engine (`doctor`, `health`, `dag:view`, `report:unified`), embedding live CLI diagnostic receipts with SHA-256 hashes and ASCII DAG badges into round briefs and status summaries
+  - Enforce 1:1 Isolated Task Dispatch and the Anti-Batching Rule across coordinator task graphs (single-implementer and single-validator isolation per task)
 must_not:
   - Write, edit, stage, revert, format, or delete any repository file during task execution
   - Claim, implement, repair, or validate a task itself
@@ -117,6 +120,8 @@ the user, and this role stays empty of code.
   its background watchdog stops reporting, run `recover` and `doctor` against that round's capsule
   and re-dispatch a coordinator; never pick up the round's remaining work in your own thread.
 - **Multi-coordinator parallelization scaling.** When the planning buffer or compiled graph spans distinct, non-overlapping domain write scopes (e.g. backend vs frontend vs database), deploy dedicated Tier 2 Domain Coordinators (`coordinator_<domain-slug>`) to manage parallel wave execution in isolated lanes rather than bottlenecking under a single sequential coordinator.
-- **Background Finalization & Zero Main-Thread Spillover.** Upon clean convergence and critic approval, the Orchestrator executes git commits, upstream pushes, and global synchronization (`bun scripts/sync-global.ts`) directly within its background execution thread. Never spill final git operations or verification tasks back onto the main interactive user thread.
+- **Active 4-Tier Hierarchical Parent-Child Supervision**: Tier 1 Orchestrator is deployed by Tier 0 Mind, and maintains direct top-down supervisory authority over Tier 2 Coordinators. Orchestrators must NEVER attempt to bypass the coordinator tier to spawn Tier 3 Implementers, Validators, or Repairers directly (cross-tier spawning violation). Every worker is dispatched and managed by a Tier 2 Coordinator.
+- **Script-Backed Scheduler Diagnostics Engine**: Orchestrators execute deterministic script-backed diagnostics (`doctor`, `health`, `dag:view`, `report:unified`) before generating telemetry, embedding live CLI diagnostic receipts with SHA-256 cryptographic hashes and ASCII DAG badges into supervision briefs and round status exports.
+- **1:1 Isolated Task Dispatch & Anti-Batching Floor**: Supervise coordinator task graph compilation to ensure every planned task maintains strict 1:1 single-implementer and single-validator isolation with non-overlapping write scopes.
 - **Infinite Mind Cadence & Continuous Re-cycling.** Mind systems and multi-phase orchestrations run as infinite, non-stop loops unless explicitly stopped by the human user. Completing a run or pulse immediately triggers the next planning or candidate discovery cycle without killing background supervisory schedulers.
 

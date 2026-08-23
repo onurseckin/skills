@@ -29,6 +29,7 @@ export type RoleAuditCategory =
   | "command_authorization"
   | "duplicate_persona"
   | "spawning_hierarchy"
+  | "validator_hardlock"
   | "drift";
 
 /**
@@ -433,10 +434,12 @@ export function auditSingleRole(
     }
   }
 
-  // 2. Anti-Boundary-Leak Enforcement for Validators & Critics
+  // 2. Anti-Boundary-Leak Enforcement & Cognitive Validator Hard-Lock for Validators & Critics
   if (
     strictAntiLeak &&
-    (spec.archetype === "tier_3_validator" || spec.archetype === "tier_3_critic")
+    (spec.archetype === "tier_3_validator" ||
+      spec.archetype === "tier_3_critic" ||
+      isCognitiveValidatorRole(spec.name))
   ) {
     if (spec.writeScopePolicy !== "forbidden") {
       findings.push({
@@ -492,9 +495,73 @@ export function auditSingleRole(
           "Add explicit prohibition 'Claim code write leases or edit source files (Anti-Boundary-Leak Rule)' to must_not.",
       });
     }
+
+    // Cognitive Validator Hard-Lock Interlock verification
+    if (!isMechanicValidatorRole(spec.name)) {
+      const prohibitedExecutionCmds = spec.grantedCommands.filter((cmd) => {
+        const c = cmd.toLowerCase().trim();
+        return (
+          c === "run:exec" ||
+          c === "bash" ||
+          c === "sh" ||
+          c === "zsh" ||
+          c === "exec" ||
+          c === "bun test" ||
+          c === "npm test" ||
+          c === "pytest" ||
+          c === "cargo test" ||
+          c.includes("test-runner") ||
+          c.startsWith("run:exec")
+        );
+      });
+      if (prohibitedExecutionCmds.length > 0) {
+        findings.push({
+          id: `FIND-HARDLOCK-CMD-${spec.name}`,
+          roleName: spec.name,
+          tier: spec.tier,
+          category: "validator_hardlock",
+          severity: "CRITICAL",
+          title: "Cognitive Validator Hard-Lock: Execution Command Granted",
+          description: `Cognitive validator role '${spec.name}' was granted prohibited execution command(s) [${prohibitedExecutionCmds.join(", ")}]. Cognitive Validators and Critics are strictly banned from executing bash, shell commands, test runners, build tools, or package managers.`,
+          recommendation:
+            "Remove all execution commands ('run:exec', test runners, shell commands) from cognitive validator granted commands. Test execution authority belongs exclusively to Mechanic Validators.",
+          evidence: {
+            grantedCommands: spec.grantedCommands,
+            prohibitedCommands: prohibitedExecutionCmds,
+          },
+        });
+      }
+
+      const hasHardlockMustNot = spec.prohibitedActions.some((act) => {
+        const a = act.toLowerCase();
+        return (
+          a.includes("run:exec") ||
+          a.includes("execute bash") ||
+          a.includes("shell command") ||
+          a.includes("test suite") ||
+          a.includes("validator hard-lock") ||
+          a.includes("hard-lock") ||
+          a.includes("package manager") ||
+          a.includes("build tool")
+        );
+      });
+      if (!hasHardlockMustNot) {
+        findings.push({
+          id: `FIND-HARDLOCK-MUSTNOT-${spec.name}`,
+          roleName: spec.name,
+          tier: spec.tier,
+          category: "validator_hardlock",
+          severity: "HIGH",
+          title: "Cognitive Validator Hard-Lock: Missing Explicit Prohibition",
+          description: `Validator role '${spec.name}' lacks explicit Cognitive Validator Hard-Lock prohibition in must_not declarations.`,
+          recommendation:
+            "Add explicit prohibition 'Execute test suites, bash/shell commands, build tools, or package managers (Cognitive Validator Hard-Lock Rule)' to must_not.",
+        });
+      }
+    }
   }
 
-  // 3. Spawning Hierarchy Validation
+  // 3. Spawning Hierarchy & Parent-Child Boundary Validation
   if (checkHierarchy) {
     if (spec.tier === 3 && spec.spawns.length > 0) {
       findings.push({
@@ -509,7 +576,7 @@ export function auditSingleRole(
       });
     }
 
-    if (spec.tier === 0 && spec.spawns.some((s) => s !== "orchestrator")) {
+    if (spec.tier === 0 && spec.spawns.some((s) => !isOrchestratorRole(s))) {
       findings.push({
         id: `FIND-HIER-SPAWN0-${spec.name}`,
         roleName: spec.name,
@@ -522,7 +589,7 @@ export function auditSingleRole(
       });
     }
 
-    if (spec.tier === 1 && spec.spawns.some((s) => s !== "coordinator")) {
+    if (spec.tier === 1 && spec.spawns.some((s) => !isCoordinatorRole(s))) {
       findings.push({
         id: `FIND-HIER-SPAWN1-${spec.name}`,
         roleName: spec.name,
@@ -533,6 +600,72 @@ export function auditSingleRole(
         description: `Tier 1 Orchestrator declared child spawns [${spec.spawns.join(", ")}]. Orchestrator may only dispatch Tier 2 Coordinator.`,
         recommendation: "Set spawns to strictly ['coordinator'].",
       });
+    }
+
+    if (
+      spec.tier === 2 &&
+      spec.spawns.some(
+        (s) => isMindRole(s) || isOrchestratorRole(s) || isCoordinatorRole(s) || roleToTier(s) < 3,
+      )
+    ) {
+      findings.push({
+        id: `FIND-HIER-SPAWN2-${spec.name}`,
+        roleName: spec.name,
+        tier: spec.tier,
+        category: "spawning_hierarchy",
+        severity: "CRITICAL",
+        title: "Tier 2 Cross-Tier Spawning Violation",
+        description: `Tier 2 Coordinator declared non-Tier-3 child spawns [${spec.spawns.join(", ")}]. Coordinators may only dispatch Tier 3 workers (Implementers, Validators, Critics, Repairers).`,
+        recommendation: "Set spawns to strictly Tier 3 role names.",
+      });
+    }
+
+    if (spec.parentRole) {
+      if (spec.tier === 0) {
+        findings.push({
+          id: `FIND-HIER-PARENT0-${spec.name}`,
+          roleName: spec.name,
+          tier: spec.tier,
+          category: "spawning_hierarchy",
+          severity: "CRITICAL",
+          title: "Tier 0 Root Hierarchy Violation",
+          description: `Tier 0 Mind declared parent role '${spec.parentRole}'. Tier 0 Mind is root supervisory authority and cannot have a parent role.`,
+          recommendation: "Remove parentRole from Tier 0 Mind role specification.",
+        });
+      } else if (spec.tier === 1 && !isMindRole(spec.parentRole)) {
+        findings.push({
+          id: `FIND-HIER-PARENT1-${spec.name}`,
+          roleName: spec.name,
+          tier: spec.tier,
+          category: "spawning_hierarchy",
+          severity: "CRITICAL",
+          title: "Tier 1 Parent Supervision Violation",
+          description: `Tier 1 Orchestrator declared invalid parent role '${spec.parentRole}'. Orchestrator must be supervised by Tier 0 Mind.`,
+          recommendation: "Set parentRole to 'mind'.",
+        });
+      } else if (spec.tier === 2 && !isOrchestratorRole(spec.parentRole)) {
+        findings.push({
+          id: `FIND-HIER-PARENT2-${spec.name}`,
+          roleName: spec.name,
+          tier: spec.tier,
+          category: "spawning_hierarchy",
+          severity: "CRITICAL",
+          title: "Tier 2 Parent Supervision Violation",
+          description: `Tier 2 Coordinator declared invalid parent role '${spec.parentRole}'. Coordinator must be supervised by Tier 1 Orchestrator.`,
+          recommendation: "Set parentRole to 'orchestrator'.",
+        });
+      } else if (spec.tier === 3 && !isCoordinatorRole(spec.parentRole)) {
+        findings.push({
+          id: `FIND-HIER-PARENT3-${spec.name}`,
+          roleName: spec.name,
+          tier: spec.tier,
+          category: "spawning_hierarchy",
+          severity: "CRITICAL",
+          title: "Tier 3 Parent Supervision Violation",
+          description: `Tier 3 worker declared invalid parent role '${spec.parentRole}'. Tier 3 workers must be supervised by Tier 2 Coordinator.`,
+          recommendation: "Set parentRole to 'coordinator'.",
+        });
+      }
     }
   }
 
@@ -938,6 +1071,49 @@ export function isValidatorRole(role: string): boolean {
   );
 }
 
+export function isMechanicValidatorRole(role: string): boolean {
+  const normalized = role.toLowerCase().trim();
+  return (
+    normalized === "mechanic-validator" ||
+    normalized === "ui-mechanic-validator" ||
+    normalized === "mechanic_validator" ||
+    normalized.startsWith("mechanic-") ||
+    normalized.endsWith("-mechanic-validator")
+  );
+}
+
+export function isCognitiveValidatorRole(role: string): boolean {
+  const normalized = role.toLowerCase().trim();
+  if (isMechanicValidatorRole(normalized)) return false;
+  return (
+    normalized === "validator" ||
+    normalized === "ui-validator" ||
+    normalized.startsWith("validator-")
+  );
+}
+
+export const PROHIBITED_COGNITIVE_TOOL_CATEGORIES: ReadonlySet<string> = new Set([
+  "shell",
+  "test-runner",
+  "build",
+  "package-manager",
+  "bash",
+  "terminal",
+  "exec",
+]);
+
+export const PROHIBITED_COGNITIVE_TOOLS: ReadonlySet<string> = new Set([
+  "run_command",
+  "bash",
+  "sh",
+  "zsh",
+  "exec",
+  "terminal",
+  "test_runner",
+  "bun_test",
+  "npm_test",
+]);
+
 export function roleToTier(role: string): number {
   if (isMindRole(role)) return 0;
   if (isOrchestratorRole(role)) return 1;
@@ -1012,7 +1188,8 @@ export type ZeroToleranceBoundaryInvariant =
   | "0_unassigned_test_running"
   | "anti_boundary_leak"
   | "spawning_hierarchy"
-  | "command_authorization";
+  | "command_authorization"
+  | "validator_hardlock";
 
 /**
  * Concrete violation classifications for role boundary breaches.
@@ -1026,7 +1203,8 @@ export type RoleBoundaryViolationType =
   | "leaf_spawning"
   | "supervisory_task_claim"
   | "forbidden_command_execution"
-  | "role_confinement_violation";
+  | "role_confinement_violation"
+  | "validator_hardlock_violation";
 
 /**
  * An action submitted for real-time role-boundary auditing.
@@ -1147,13 +1325,19 @@ export class RoleBoundaryWatchdog {
       return this.handleViolation(antiLeakViolation);
     }
 
-    // 5. Spawning hierarchy checks
+    // 5. Cognitive Validator Hard-Lock Interlock
+    const hardlockViolation = this.checkCognitiveValidatorHardlockAction(action, tier, timestamp);
+    if (hardlockViolation) {
+      return this.handleViolation(hardlockViolation);
+    }
+
+    // 6. Spawning hierarchy checks
     const spawningViolation = this.checkSpawningHierarchyAction(action, tier, timestamp);
     if (spawningViolation) {
       return this.handleViolation(spawningViolation);
     }
 
-    // 6. Forbidden commands checks
+    // 7. Forbidden commands checks
     const cmdViolation = this.checkForbiddenCommandsAction(action, tier, timestamp);
     if (cmdViolation) {
       return this.handleViolation(cmdViolation);
@@ -1642,6 +1826,71 @@ export class RoleBoundaryWatchdog {
     return null;
   }
 
+  private checkCognitiveValidatorHardlockAction(
+    action: RoleBoundaryAction,
+    tier: number,
+    timestamp: string,
+  ): RoleBoundaryViolation | null {
+    if (!isCognitiveValidatorRole(action.role) || isMechanicValidatorRole(action.role)) {
+      return null;
+    }
+
+    const argv = action.argv ?? [];
+    const isRunExec = argv.includes("run:exec");
+    const hasExecutionCategory =
+      action.toolCategory !== undefined &&
+      PROHIBITED_COGNITIVE_TOOL_CATEGORIES.has(action.toolCategory.toLowerCase().trim());
+    const isProhibitedTool =
+      action.toolName !== undefined &&
+      (PROHIBITED_COGNITIVE_TOOLS.has(action.toolName.toLowerCase().trim()) ||
+        PROHIBITED_COGNITIVE_TOOL_CATEGORIES.has(action.toolName.toLowerCase().trim()));
+    const isTestRunAction = action.actionType === "test_run";
+    const hasTestArg = argv.some((a) => {
+      const lower = a.toLowerCase();
+      return (
+        lower === "run:exec" ||
+        lower === "test" ||
+        lower.startsWith("test:") ||
+        lower.includes(".test.") ||
+        lower.includes(".spec.") ||
+        lower === "pytest" ||
+        lower === "vitest" ||
+        lower === "jest" ||
+        lower === "cargo" ||
+        lower === "npm" ||
+        lower === "yarn" ||
+        lower === "pnpm"
+      );
+    });
+
+    if (isRunExec || hasExecutionCategory || isProhibitedTool || isTestRunAction || hasTestArg) {
+      const detail = action.toolName ?? (argv.length > 0 ? argv.join(" ") : action.actionType);
+      return {
+        id: `VIOL-HARDLOCK-VAL-${action.agentId}-${Date.now()}`,
+        invariant: "validator_hardlock",
+        violationType: "validator_hardlock_violation",
+        severity: "CRITICAL",
+        agentId: action.agentId,
+        role: action.role,
+        tier: 3,
+        title: "Cognitive Validator Hard-Lock Interlock Violation",
+        observation: `Cognitive Validator Hard-Lock Violation: Cognitive Validator/Critic '${action.agentId}' (${action.role}) attempted execution/test action '${detail}'. Cognitive Validators and Critics are strictly locked from running bash, shell commands, test runners, build tools, or package managers.`,
+        remediation:
+          "Cognitive Validators must evaluate deliverables strictly via read-only inspection and artifact review. Test execution authority belongs exclusively to Mechanic Validators (mechanic-validator / ui-mechanic-validator).",
+        action,
+        timestamp,
+        evidence: {
+          actionType: action.actionType,
+          argv: action.argv,
+          toolName: action.toolName,
+          toolCategory: action.toolCategory,
+        },
+      };
+    }
+
+    return null;
+  }
+
   private checkSpawningHierarchyAction(
     action: RoleBoundaryAction,
     tier: number,
@@ -1714,6 +1963,36 @@ export class RoleBoundaryWatchdog {
         timestamp,
         evidence: {
           targetRole: action.targetRole,
+        },
+      };
+    }
+
+    // Tier 2 Coordinator spawning non-tier-3
+    if (
+      tier === 2 &&
+      action.targetRole &&
+      (isMindRole(action.targetRole) ||
+        isOrchestratorRole(action.targetRole) ||
+        isCoordinatorRole(action.targetRole) ||
+        (action.targetTier !== undefined && action.targetTier < 3))
+    ) {
+      return {
+        id: `VIOL-SPAWN-TIER2-${action.agentId}-${Date.now()}`,
+        invariant: "spawning_hierarchy",
+        violationType: "cross_tier_spawning",
+        severity: "CRITICAL",
+        agentId: action.agentId,
+        role: action.role,
+        tier: 2,
+        title: "Hierarchy Violation: Tier 2 Cross-Tier Spawning",
+        observation: `Tier 2 Coordinator '${action.agentId}' attempted to dispatch non-Tier-3 agent '${action.targetRole}'. Coordinators may only dispatch Tier 3 workers (Implementers, Validators, Critics, Repairers).`,
+        remediation:
+          "Coordinators may only spawn Tier 3 task workers (Implementer, Validator, Critic, Repairer).",
+        action,
+        timestamp,
+        evidence: {
+          targetRole: action.targetRole,
+          targetTier: action.targetTier,
         },
       };
     }
@@ -1844,4 +2123,98 @@ export function auditRoleBoundaryActions(
 ): RoleBoundaryAuditResult {
   const watchdog = new RoleBoundaryWatchdog(options);
   return watchdog.auditActions(actions);
+}
+
+export interface ParentChildSupervisionResult {
+  readonly valid: boolean;
+  readonly parentRole: string;
+  readonly childRole: string;
+  readonly parentTier: number;
+  readonly childTier: number;
+  readonly reason?: string;
+}
+
+export function validateParentChildSupervision(
+  parentRole: string,
+  childRole: string,
+): ParentChildSupervisionResult {
+  const pTier = roleToTier(parentRole);
+  const cTier = roleToTier(childRole);
+
+  // Tier 0 Mind -> Tier 1 Orchestrator only
+  if (pTier === 0) {
+    if (cTier === 1 && isOrchestratorRole(childRole)) {
+      return { valid: true, parentRole, childRole, parentTier: pTier, childTier: cTier };
+    }
+    return {
+      valid: false,
+      parentRole,
+      childRole,
+      parentTier: pTier,
+      childTier: cTier,
+      reason: `Tier 0 Mind (${parentRole}) may only dispatch Tier 1 Orchestrators. Disagreeing child role '${childRole}' (Tier ${cTier}) violates hierarchical parent-child boundary.`,
+    };
+  }
+
+  // Tier 1 Orchestrator -> Tier 2 Coordinator only
+  if (pTier === 1) {
+    if (cTier === 2 && isCoordinatorRole(childRole)) {
+      return { valid: true, parentRole, childRole, parentTier: pTier, childTier: cTier };
+    }
+    return {
+      valid: false,
+      parentRole,
+      childRole,
+      parentTier: pTier,
+      childTier: cTier,
+      reason: `Tier 1 Orchestrator (${parentRole}) may only dispatch Tier 2 Coordinators. Disagreeing child role '${childRole}' (Tier ${cTier}) violates hierarchical parent-child boundary.`,
+    };
+  }
+
+  // Tier 2 Coordinator -> Tier 3 workers only
+  if (pTier === 2) {
+    if (
+      cTier === 3 &&
+      !isMindRole(childRole) &&
+      !isOrchestratorRole(childRole) &&
+      !isCoordinatorRole(childRole)
+    ) {
+      return { valid: true, parentRole, childRole, parentTier: pTier, childTier: cTier };
+    }
+    return {
+      valid: false,
+      parentRole,
+      childRole,
+      parentTier: pTier,
+      childTier: cTier,
+      reason: `Tier 2 Coordinator (${parentRole}) may only dispatch Tier 3 workers (Implementers, Validators, Critics, Repairers). Disagreeing child role '${childRole}' (Tier ${cTier}) violates hierarchical parent-child boundary.`,
+    };
+  }
+
+  // Tier 3 Leaf workers -> cannot spawn children
+  return {
+    valid: false,
+    parentRole,
+    childRole,
+    parentTier: pTier,
+    childTier: cTier,
+    reason: `Tier 3 worker (${parentRole}) is a leaf execution agent and cannot dispatch child agents ('${childRole}').`,
+  };
+}
+
+export function assertParentChildBoundary(
+  parentRole: string,
+  childRole: string,
+  parentAgentId?: string,
+  childAgentId?: string,
+): void {
+  const result = validateParentChildSupervision(parentRole, childRole);
+  if (!result.valid) {
+    const parentDisplay = parentAgentId ? `'${parentAgentId}' (${parentRole})` : `'${parentRole}'`;
+    const childDisplay = childAgentId ? `'${childAgentId}' (${childRole})` : `'${childRole}'`;
+    throw new HarnessError(
+      "ROLE_CONFINEMENT_VIOLATION",
+      `Active Hierarchical Parent-Child Boundary Violation: Supervisor ${parentDisplay} cannot dispatch subagent ${childDisplay}. ${result.reason}`,
+    );
+  }
 }

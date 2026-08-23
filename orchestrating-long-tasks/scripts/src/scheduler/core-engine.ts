@@ -59,6 +59,22 @@ import {
   type DoctorOptions,
 } from "../reporting/doctor.ts";
 import { verifyIntegrity } from "../store/index.ts";
+import {
+  formatDiagnosticReceiptsMarkdown,
+  generateAsciiDagBadges,
+  generateReceiptBadge,
+  generateReceiptSummaryBadge,
+  runInspectorDagView,
+  runInspectorDoctor,
+  runInspectorHealth,
+  runInspectorUnifiedReport,
+  runScriptBackedDiagnostics,
+  type CliDiagnosticReceipt,
+  type DiagnosticInspectorName,
+  type DiagnosticReceiptStatus,
+  type ScriptBackedDiagnosticsOptions,
+  type ScriptBackedDiagnosticsResult,
+} from "./diagnostics.ts";
 
 // ============================================================================
 // Types & Interfaces for 5-Point Graph Health Audit
@@ -1856,6 +1872,24 @@ export class SchedulerEngine {
     });
   }
 
+  public async auditScriptBackedDiagnostics(
+    options: ScriptBackedDiagnosticsOptions = {},
+  ): Promise<ScriptBackedDiagnosticsResult> {
+    return await runScriptBackedDiagnostics({
+      clock: this.clock,
+      ...options,
+    });
+  }
+
+  public async runScriptBackedDiagnostics(
+    options: ScriptBackedDiagnosticsOptions = {},
+  ): Promise<ScriptBackedDiagnosticsResult> {
+    return await runScriptBackedDiagnostics({
+      clock: this.clock,
+      ...options,
+    });
+  }
+
   public registerSupervisoryHeartbeat(agentId: string = "scheduler-engine"): WatchdogRecord {
     const result = registerWatchdog(
       {
@@ -1876,10 +1910,22 @@ export {
   derivePrimaryValidatorDomain,
   dispatchMultiDomainValidators,
   evaluateMultiDomainBatch,
+  formatDiagnosticReceiptsMarkdown,
+  generateAsciiDagBadges,
+  generateReceiptBadge,
+  generateReceiptSummaryBadge,
   isMultiDomainDispatchEligible,
   MULTI_DOMAIN_PARALLELISM_THRESHOLD,
   proposeMultiDomainWave,
   resolveParallelismFactor,
+  runInspectorDagView,
+  runInspectorDoctor,
+  runInspectorHealth,
+  runInspectorUnifiedReport,
+  runScriptBackedDiagnostics,
+  type CliDiagnosticReceipt,
+  type DiagnosticInspectorName,
+  type DiagnosticReceiptStatus,
   type MultiDomainBatchOptions,
   type MultiDomainBatchResult,
   type MultiDomainBlockedTaskInfo,
@@ -1888,5 +1934,7 @@ export {
   type MultiDomainValidatorDispatchResult,
   type MultiDomainWaveOptions,
   type MultiDomainWaveResult,
+  type ScriptBackedDiagnosticsOptions,
+  type ScriptBackedDiagnosticsResult,
   type TaskDomain,
 };

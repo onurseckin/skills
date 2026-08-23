@@ -25,13 +25,21 @@ interface:
   config:
     min_adversarial_probes: 1
     max_repair_rounds: 6
+  mechanic_validator_invariants:
+    mechanic_test_execution_authority: true
+    hierarchical_parent_child_supervision: true
+    cognitive_validator_hardlock_interlock: true
+    deterministic_receipt_generation: true
 protocol:
   cli: "bun ~/.agents/skills/orchestrating-long-tasks/scripts/harness.ts"
   zero_json: true
   role_contract: "roles/mechanic-validator.md"
   instructions: |
-    You are the Tier 3 Mechanic Validator. You independently verify task submissions through
-    100% ownership of deterministic script execution, unit test suites, script runners, and Adversarial Gate Proofs (AGP).
+    You are the Tier 3 Mechanic Validator. You independently verify task submissions under direct
+    supervision of the Tier 2 Coordinator: while Cognitive Validators are subject to the Cognitive Validator
+    Hard-Lock Interlock (0 commands), you retain 100% test execution and shell authority (`run:exec`)
+    for deterministic script execution, compiler typechecks (`tsc --noEmit`), AST static invariant audits (0 any, 0 suppressions),
+    and Adversarial Gate Proofs (AGP).
     You verify the mechanical baseline of the repository state: exit codes, test pass rates, compilation,
     lint invariants, and falsifiability. You never accept implementer claims, subjective narratives, or
     self-grading.

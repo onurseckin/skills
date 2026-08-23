@@ -6,7 +6,8 @@ export type BoundaryViolationType =
   | "validator_write_lease"
   | "supervisor_code_contamination"
   | "self_repair_violation"
-  | "cross_tier_boundary_leak";
+  | "cross_tier_boundary_leak"
+  | "validator_hardlock_violation";
 
 export type BoundaryViolationSeverity = "critical" | "important" | "minor";
 
@@ -93,6 +94,74 @@ export const SUPERVISORY_ROLES: ReadonlySet<string> = new Set([
   "supervisor",
 ]);
 
+export const PROHIBITED_COGNITIVE_CATEGORIES: ReadonlySet<string> = new Set([
+  "shell",
+  "test-runner",
+  "build",
+  "package-manager",
+  "bash",
+  "terminal",
+  "exec",
+]);
+
+export const PROHIBITED_COGNITIVE_ACTIONS: ReadonlySet<string> = new Set([
+  "run:exec",
+  "exec",
+  "shell",
+  "test-runner",
+  "build",
+  "package-manager",
+  "bash",
+  "sh",
+  "zsh",
+  "run_command",
+  "bun test",
+  "npm test",
+  "pytest",
+  "vitest",
+  "jest",
+  "cargo",
+]);
+
+export function isMechanicValidatorRole(role: string): boolean {
+  const normalized = role.trim().toLowerCase();
+  return (
+    normalized === "mechanic-validator" ||
+    normalized === "ui-mechanic-validator" ||
+    normalized === "mechanic_validator" ||
+    normalized.startsWith("mechanic-") ||
+    normalized.endsWith("-mechanic-validator")
+  );
+}
+
+export function isCognitiveValidatorRole(role: string): boolean {
+  const normalized = role.trim().toLowerCase();
+  if (isMechanicValidatorRole(normalized)) return false;
+  return (
+    normalized === "validator" ||
+    normalized === "ui-validator" ||
+    normalized.startsWith("validator-")
+  );
+}
+
+export function isExecutionToolCategory(category: string): boolean {
+  return PROHIBITED_COGNITIVE_CATEGORIES.has(category.trim().toLowerCase());
+}
+
+export function isProhibitedValidatorExecutionAction(action: string): boolean {
+  const normalized = action.trim().toLowerCase();
+  if (PROHIBITED_COGNITIVE_ACTIONS.has(normalized)) return true;
+  return (
+    normalized.startsWith("run:exec") ||
+    normalized.startsWith("bun test") ||
+    normalized.startsWith("npm test") ||
+    normalized.startsWith("pytest") ||
+    normalized.startsWith("cargo test") ||
+    normalized.includes("test-runner") ||
+    normalized.includes("run_command")
+  );
+}
+
 export function isCriticOrValidatorRole(role: string): boolean {
   const normalized = role.trim().toLowerCase();
   return (
@@ -147,6 +216,8 @@ export function isCodeMutationAction(action: string): boolean {
 export function isBoundaryLeakViolation(check: BoundaryLeakCheck): boolean {
   const role = check.role.trim().toLowerCase();
   const isCriticOrVal = isCriticOrValidatorRole(role) || isCriticOrValidatorAgent(check.agent_id);
+  const isMechanicVal =
+    isMechanicValidatorRole(role) || check.agent_id.trim().toLowerCase().includes("mechanic");
   const isSup = isSupervisorRole(role);
   const action = check.action.trim().toLowerCase();
   const hasWriteScope =
@@ -188,6 +259,27 @@ export function isBoundaryLeakViolation(check: BoundaryLeakCheck): boolean {
     }
   }
 
+  // 6. Cognitive Validator Hard-Lock: Cognitive Validator / Critic attempting execution / shell / test commands
+  if (isCriticOrVal && !isMechanicVal) {
+    if (isProhibitedValidatorExecutionAction(action)) {
+      return true;
+    }
+    if (check.metadata) {
+      const toolCategory = check.metadata["tool_category"] ?? check.metadata["toolCategory"];
+      if (typeof toolCategory === "string" && isExecutionToolCategory(toolCategory)) {
+        return true;
+      }
+      const toolName = check.metadata["tool_name"] ?? check.metadata["tool"];
+      if (
+        typeof toolName === "string" &&
+        (PROHIBITED_COGNITIVE_ACTIONS.has(toolName.toLowerCase().trim()) ||
+          isExecutionToolCategory(toolName))
+      ) {
+        return true;
+      }
+    }
+  }
+
   return false;
 }
 
@@ -200,6 +292,8 @@ export function validateBoundaryIntegrity(
   for (const check of checkList) {
     const role = check.role.trim().toLowerCase();
     const isCriticOrVal = isCriticOrValidatorRole(role) || isCriticOrValidatorAgent(check.agent_id);
+    const isMechanicVal =
+      isMechanicValidatorRole(role) || check.agent_id.trim().toLowerCase().includes("mechanic");
     const isSup = isSupervisorRole(role);
     const action = check.action.trim().toLowerCase();
     let taskId: string;
@@ -265,6 +359,40 @@ export function validateBoundaryIntegrity(
             target_file: targetFile,
           },
         });
+      }
+
+      // Cognitive Validator Hard-Lock check
+      if (!isMechanicVal) {
+        const toolCategory = check.metadata
+          ? ((check.metadata["tool_category"] ?? check.metadata["toolCategory"]) as
+              | string
+              | undefined)
+          : undefined;
+        const isToolCatProhibited =
+          toolCategory !== undefined && isExecutionToolCategory(toolCategory);
+        const isExecAction = isProhibitedValidatorExecutionAction(action);
+
+        if (isExecAction || isToolCatProhibited) {
+          violations.push({
+            violation_type: "validator_hardlock_violation",
+            severity: "critical",
+            agent_id: check.agent_id,
+            role: check.role,
+            task_id: taskId,
+            action: check.action,
+            target_file: targetFile,
+            observation: `Cognitive Validator Hard-Lock Violation: Cognitive Validator/Critic '${check.agent_id}' with role '${check.role}' attempted command execution or test running action '${check.action}'. Cognitive Validators and Critics are strictly locked from running bash, shell commands, test runners, build tools, or package managers.`,
+            remediation:
+              "Cognitive Validators must evaluate tasks strictly through read-only inspection and artifact review. Test execution authority is strictly reserved for Mechanic Validators (mechanic-validator / ui-mechanic-validator).",
+            evidence: {
+              task_id: taskId,
+              agent_id: check.agent_id,
+              role: check.role,
+              action: check.action,
+              metadata: check.metadata,
+            },
+          });
+        }
       }
     }
 

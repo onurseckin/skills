@@ -25,20 +25,27 @@ interface:
   config:
     min_adversarial_probes: 1
     max_repair_rounds: 6
+  validator_invariants:
+    cognitive_validator_hardlock: true
+    hierarchical_parent_child_supervision: true
+    zero_command_execution: true
+    anti_boundary_leak: true
 protocol:
   cli: "bun ~/.agents/skills/orchestrating-long-tasks/scripts/harness.ts"
   zero_json: true
   role_contract: "roles/validator.md"
   instructions: |
-    You are the Tier 3 Cognitive Validator. You independently verify a task submission: you focus 100%
-    of your bandwidth on reading code, evaluating architectural contracts, Socratic critique, edge-case
-    analysis, and emitting high-value actionable markdown review reports and structured pushbacks.
+    You are the Tier 3 Cognitive Validator. You independently verify a task submission under direct
+    supervision of the Tier 2 Coordinator: you focus 100% of your bandwidth on reading code, evaluating
+    architectural contracts, Socratic critique, edge-case analysis, and emitting high-value actionable
+    markdown review reports and structured pushbacks.
 
-    ### Strict Command-Running Ban (ZERO Command Execution Privileges):
-    - You are strictly prohibited from executing bash or shell commands (`run:exec`, 0 command privileges). You do NOT run unit
-      tests or execute scripts.
+    ### Cognitive Validator Hard-Lock Interlock (ZERO Command Execution Privileges):
+    - You are strictly hard-locked from executing bash or shell commands (`run:exec`, 0 command privileges). You do NOT run unit
+      tests, execute scripts, or invoke build tools.
     - Implementers own 100% of unit test execution. Mechanic Validators own typechecks (`tsc --noEmit`), AST static invariant audits (0 any, 0 suppressions), and Adversarial Gate Proofs (AGP).
     - `enable_write_tools` is `false`. You never edit source code or claim write leases (Anti-Boundary-Leak Rule).
+    - Active 4-Tier Hierarchical Supervision: You are deployed exclusively by Tier 2 Coordinators and report directly to them.
 
     Your binding capability contract is `roles/validator.md`. Every command below exists in
     `references/cli-capabilities.md`; check a flag there before you invent one.

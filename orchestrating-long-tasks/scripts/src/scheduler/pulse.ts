@@ -20,6 +20,13 @@ import {
   type SupervisoryProbeDispatchResult,
   type TaskRecoveryResult,
 } from "./core-engine.ts";
+import {
+  generateAsciiDagBadges,
+  runScriptBackedDiagnostics,
+  type CliDiagnosticReceipt,
+  type ScriptBackedDiagnosticsOptions,
+  type ScriptBackedDiagnosticsResult,
+} from "./diagnostics.ts";
 
 export interface PulseTickOptions {
   readonly tickNumber?: number | undefined;
@@ -34,6 +41,9 @@ export interface PulseTickOptions {
   readonly runRoot?: string | undefined;
   readonly dispatchLeaderProbe?: boolean | undefined;
   readonly assertDoctorGate?: boolean | undefined;
+  readonly runDiagnostics?: boolean | undefined;
+  readonly diagnosticsResult?: ScriptBackedDiagnosticsResult | undefined;
+  readonly diagnosticsOptions?: ScriptBackedDiagnosticsOptions | undefined;
 }
 
 export interface PulseTickResult {
@@ -47,6 +57,10 @@ export interface PulseTickResult {
   readonly readyTasks: readonly ScheduledTaskDispatch[];
   readonly activeOccupiedTasks: readonly string[];
   readonly workflowCompleted: boolean;
+  readonly diagnostics?: ScriptBackedDiagnosticsResult | undefined;
+  readonly cliReceipts?: readonly CliDiagnosticReceipt[] | undefined;
+  readonly cliReceiptSummaryBadge?: string | undefined;
+  readonly dagBadges?: readonly string[] | undefined;
   readonly error?: string | undefined;
 }
 
@@ -67,6 +81,7 @@ export interface PulseLoopResult {
   readonly stoppedReason: "max_ticks_reached" | "workflow_completed" | "aborted" | "error";
   readonly durationMs: number;
   readonly lastTickResult?: PulseTickResult | undefined;
+  readonly lastDiagnostics?: ScriptBackedDiagnosticsResult | undefined;
   readonly errors: readonly string[];
 }
 
@@ -81,6 +96,7 @@ function delay(ms: number): Promise<void> {
  * 3. Heartbeats supervisory watchdog.
  * 4. Recovers stale leases if autoRecoverStale is enabled.
  * 5. Evaluates batch readiness and workflow convergence.
+ * 6. Embeds script-backed CLI receipts and ASCII DAG badges.
  */
 export function executePulseTick(
   port: TransactionPort,
@@ -153,10 +169,15 @@ export function executePulseTick(
         (t) => t.status === "done" || t.status === "validated" || t.status === "cancelled",
       );
 
+    // 7. Script-Backed Diagnostics & ASCII DAG Badges
+    const dagBadges = generateAsciiDagBadges(statePostRecovery);
+    const diag = options.diagnosticsResult;
+
     return {
       tickNumber,
       timestamp,
-      graphHealthy: auditReport.healthy && supervisoryReport.healthy,
+      graphHealthy:
+        auditReport.healthy && supervisoryReport.healthy && (diag ? diag.healthy : true),
       auditReport,
       supervisoryReport,
       probeDispatch,
@@ -164,6 +185,10 @@ export function executePulseTick(
       readyTasks: waveResult.readyTasks,
       activeOccupiedTasks: waveResult.activeOccupiedTasks,
       workflowCompleted,
+      diagnostics: diag,
+      cliReceipts: diag?.receipts,
+      cliReceiptSummaryBadge: diag?.receiptSummaryBadge,
+      dagBadges: diag?.dagBadges && diag.dagBadges.length > 0 ? diag.dagBadges : dagBadges,
     };
   } catch (err: unknown) {
     const errorMsg = err instanceof Error ? err.message : String(err);
@@ -183,8 +208,33 @@ export function executePulseTick(
 }
 
 /**
+ * Asynchronous pulse tick execution with automatic script-backed CLI diagnostics.
+ * Executes real Harness CLI diagnostics (doctor, health, dag:view, report:unified)
+ * prior to evaluating graph state and dispatches.
+ */
+export async function executePulseTickWithDiagnostics(
+  port: TransactionPort,
+  options: PulseTickOptions = {},
+): Promise<PulseTickResult> {
+  const clock = options.clock ?? systemClock;
+  const state = port.read();
+
+  const diagResult = await runScriptBackedDiagnostics({
+    runRoot: options.runRoot,
+    state,
+    clock,
+    ...options.diagnosticsOptions,
+  });
+
+  return executePulseTick(port, {
+    ...options,
+    diagnosticsResult: diagResult,
+  });
+}
+
+/**
  * Continuous / Multi-tick Scheduler Pulse Loop
- * Resilient floor loop execution with error isolation (errors do not crash continuous loop).
+ * Resilient floor loop execution with error isolation and script-backed diagnostics support.
  */
 export async function runPulseLoop(
   port: TransactionPort,
@@ -195,11 +245,13 @@ export async function runPulseLoop(
   const maxTicks = options.maxTicks ?? Number.POSITIVE_INFINITY;
   const stopWhenDone = options.stopWhenDone !== false;
   const signal = options.signal;
+  const runDiagnostics = options.runDiagnostics ?? Boolean(options.runRoot);
 
   let tickCount = 0;
   let totalRecovered = 0;
   let totalDispatched = 0;
   let lastTickResult: PulseTickResult | undefined = undefined;
+  let lastDiagnostics: ScriptBackedDiagnosticsResult | undefined = undefined;
   const errors: string[] = [];
   let stoppedReason: "max_ticks_reached" | "workflow_completed" | "aborted" | "error" =
     "max_ticks_reached";
@@ -231,10 +283,27 @@ export async function runPulseLoop(
     tickCount++;
 
     try {
+      let diagResult: ScriptBackedDiagnosticsResult | undefined = options.diagnosticsResult;
+      if (runDiagnostics && !diagResult) {
+        try {
+          diagResult = await runScriptBackedDiagnostics({
+            runRoot: options.runRoot,
+            state: port.read(),
+            clock: options.clock,
+            ...options.diagnosticsOptions,
+          });
+          lastDiagnostics = diagResult;
+        } catch (diagErr: unknown) {
+          const diagErrMsg = diagErr instanceof Error ? diagErr.message : String(diagErr);
+          errors.push(`Tick ${tickCount} diagnostics error: ${diagErrMsg}`);
+        }
+      }
+
       const tickResult = executePulseTick(port, {
         ...options,
         tickNumber: tickCount,
         watchdogId: watchdog?.id,
+        diagnosticsResult: diagResult,
       });
 
       lastTickResult = tickResult;
@@ -293,6 +362,7 @@ export async function runPulseLoop(
     stoppedReason,
     durationMs: Date.now() - startTime,
     lastTickResult,
+    lastDiagnostics,
     errors,
   };
 }

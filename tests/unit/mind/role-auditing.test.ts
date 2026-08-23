@@ -282,6 +282,10 @@ describe("Mind Autonomous Role Auditing & Non-Duplicate Persona Synthesis", () =
         name: "clean-val",
         archetype: "tier_3_validator",
         cognitivePillars: ["Adversarial Gate Falsification", "Quantitative Proof Enforcement"],
+        prohibitedActions: [
+          "Claim code write leases, edit source files, or modify repository code directly (Anti-Boundary-Leak Rule)",
+          "Execute test suites, bash/shell commands, build tools, or package managers (Cognitive Validator Hard-Lock Rule)",
+        ],
       });
 
       const implFindings = auditSingleRole(impl);
