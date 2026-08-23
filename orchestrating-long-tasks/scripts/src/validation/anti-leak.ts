@@ -346,7 +346,7 @@ export function assertNoBoundaryLeak(checks: readonly BoundaryLeakCheck[] | Boun
       violation_type: v.violation_type,
       agent_id: v.agent_id,
       role: v.role,
-      task_id: v.task_id ?? null,
+      task_id: v.task_id !== undefined ? v.task_id : null,
       observation: v.observation,
       remediation: v.remediation,
     }));
@@ -473,7 +473,7 @@ export function detectGraphCycles(
     recStack.add(node);
     path.push(node);
 
-    const neighbors = graph[node] ?? [];
+    const neighbors = graph[node] !== undefined ? graph[node] : [];
     for (const neighbor of neighbors) {
       if (!visited.has(neighbor)) {
         if (dfs(neighbor)) return true;
@@ -545,13 +545,14 @@ export function validateAcyclicPushbackDelegation(
         violations.push(`Finding at index ${i} missing stable non-empty 'id'`);
         structured = false;
       }
+      const findingLabel = typeof rec["id"] === "string" ? rec["id"] : String(i);
       if (
         !rec["remediation"] ||
         typeof rec["remediation"] !== "string" ||
         rec["remediation"].trim().length === 0
       ) {
         violations.push(
-          `Finding '${String(rec["id"] ?? i)}' missing non-empty 'remediation' instructions`,
+          `Finding '${findingLabel}' missing non-empty 'remediation' instructions`,
         );
         structured = false;
       }
@@ -560,7 +561,7 @@ export function validateAcyclicPushbackDelegation(
         typeof rec["observation"] !== "string" ||
         rec["observation"].trim().length === 0
       ) {
-        violations.push(`Finding '${String(rec["id"] ?? i)}' missing non-empty 'observation'`);
+        violations.push(`Finding '${findingLabel}' missing non-empty 'observation'`);
         structured = false;
       }
     }
@@ -585,8 +586,9 @@ export function validateAcyclicPushbackDelegation(
   if (params.dependencyGraph) {
     const cycleCheck = detectGraphCycles(params.dependencyGraph);
     if (cycleCheck.hasCycle) {
+      const cycleStr = cycleCheck.cyclePath !== undefined ? cycleCheck.cyclePath.join(" -> ") : "";
       violations.push(
-        `Circular DAG dependency detected: cycle along path [${(cycleCheck.cyclePath ?? []).join(" -> ")}]`,
+        `Circular DAG dependency detected: cycle along path [${cycleStr}]`,
       );
       acyclic = false;
     }
@@ -612,8 +614,9 @@ export function assertAcyclicPushbackDelegation(params: AcyclicPushbackValidatio
       `Acyclic pushback delegation failure: ${result.violations.join("; ")}`,
       result.violations.map((v) => ({ violation: v })),
       3,
-      result.remediation_guidance ??
-        "Provide structured remediation and eliminate circular dependencies.",
+      result.remediation_guidance !== undefined
+        ? result.remediation_guidance
+        : "Provide structured remediation and eliminate circular dependencies.",
     );
   }
 }
