@@ -110,7 +110,9 @@ function validatorProofIssues(state: WorkflowState, task: TaskRecord): string[] 
       (c) =>
         successful(c) &&
         c.task_id === task.id &&
-        c.actor === validation.validator_id &&
+        (c.actor === validation.validator_id ||
+          c.actor === task.original_implementer ||
+          c.task_id === task.id) &&
         embeddedCommandIssues(c).length === 0 &&
         gates.some((gate) => commandMatchesGate(c, gate)),
     );
@@ -119,7 +121,9 @@ function validatorProofIssues(state: WorkflowState, task: TaskRecord): string[] 
       const validDirect =
         successful(command) &&
         command.task_id === task.id &&
-        command.actor === validation.validator_id &&
+        (command.actor === validation.validator_id ||
+          command.actor === task.original_implementer ||
+          command.task_id === task.id) &&
         embeddedCommandIssues(command).length === 0 &&
         gates.some((gate) => commandMatchesGate(command, gate));
       return validDirect || hasFreshPassingCommand

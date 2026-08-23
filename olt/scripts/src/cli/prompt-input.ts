@@ -21,24 +21,101 @@ function orchestrateFlagNames(): ReadonlySet<string> {
 export function extractOrchestrateInlinePrompt(argv: readonly string[]): OrchestrateArgv {
   if (argv[0] !== "orchestrate") return { argv };
   const rest = argv.slice(1);
-  if (rest.length === 0 || rest[0]!.startsWith("--")) return { argv };
+  if (rest.length === 0) return { argv };
+
   const flagNames = orchestrateFlagNames();
-  const strayFlag = rest
-    .slice(1)
-    .find((token) => token.startsWith("--") && flagNames.has(token.slice(2)));
-  if (strayFlag !== undefined) {
-    throw new HarnessError(
-      "INVALID_ARGUMENT",
-      `${strayFlag} cannot follow inline prompt text — it would be captured as prompt bytes ` +
-        "instead of taking effect. Pass it through --prompt-file or piped stdin instead.",
-    );
+  const filteredArgv: string[] = [argv[0]!];
+  const promptTokens: string[] = [];
+
+  let i = 0;
+  while (i < rest.length) {
+    const token = rest[i]!;
+    if (token.startsWith("--")) {
+      const flagName = token.slice(2);
+      if (promptTokens.length > 0) {
+        if (flagNames.has(flagName)) {
+          throw new HarnessError(
+            "INVALID_ARGUMENT",
+            `${token} cannot follow inline prompt text — it would be captured as prompt bytes ` +
+              "instead of taking effect. Pass it through --prompt-file or piped stdin instead.",
+          );
+        } else {
+          promptTokens.push(token);
+          i++;
+          continue;
+        }
+      }
+
+      if (flagNames.has(flagName)) {
+        filteredArgv.push(token);
+        i++;
+        // If the flag takes a value, capture the value as a flag option, not as inline prompt
+        if (
+          flagName === "run" ||
+          flagName === "run-id" ||
+          flagName === "repo" ||
+          flagName === "prompt-file" ||
+          flagName === "runtime-source" ||
+          flagName === "capture-mode"
+        ) {
+          if (i < rest.length && !rest[i]!.startsWith("--")) {
+            filteredArgv.push(rest[i]!);
+            i++;
+          }
+        }
+      } else {
+        promptTokens.push(token);
+        i++;
+      }
+    } else {
+      promptTokens.push(token);
+      i++;
+    }
   }
-  return { argv: [argv[0]!], inlinePrompt: rest.join(" ") };
+
+  if (promptTokens.length === 0) {
+    return { argv: filteredArgv };
+  }
+
+  return { argv: filteredArgv, inlinePrompt: promptTokens.join(" ") };
 }
 
 export function shouldAutoReadOrchestrateStdin(argv: readonly string[], isTTY: boolean): boolean {
   if (argv[0] !== "orchestrate" || isTTY) return false;
+  if (argv.includes("--prompt-file")) return false;
   const rest = argv.slice(1);
-  if (rest.length > 0 && !rest[0]!.startsWith("--")) return false;
-  return !rest.includes("--prompt-file");
+  const flagNames = orchestrateFlagNames();
+
+  let hasPositionalPrompt = false;
+  let i = 0;
+  while (i < rest.length) {
+    const token = rest[i]!;
+    if (token.startsWith("--")) {
+      const flagName = token.slice(2);
+      if (flagNames.has(flagName)) {
+        i++;
+        if (
+          flagName === "run" ||
+          flagName === "run-id" ||
+          flagName === "repo" ||
+          flagName === "prompt-file" ||
+          flagName === "runtime-source" ||
+          flagName === "capture-mode"
+        ) {
+          if (i < rest.length && !rest[i]!.startsWith("--")) {
+            i++;
+          }
+        }
+      } else {
+        hasPositionalPrompt = true;
+        break;
+      }
+    } else {
+      hasPositionalPrompt = true;
+      break;
+    }
+  }
+
+  if (hasPositionalPrompt) return false;
+  return true;
 }

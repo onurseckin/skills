@@ -1,6 +1,7 @@
-import { existsSync, appendFileSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, appendFileSync, mkdirSync } from "node:fs";
+import { join, dirname } from "node:path";
 import os from "node:os";
+import { resolveDefectsPath } from "../shared/paths.ts";
 
 export type ExecutionTier = 0 | 1 | 2 | 3;
 
@@ -209,19 +210,18 @@ export function recordBlunder(
   blunder: BlunderRecord,
   options: { runRoot?: string | undefined; cwd?: string | undefined } = {},
 ): BlunderRecord {
-  const targetDir = options.runRoot
-    ? options.runRoot
-    : options.cwd && existsSync(join(options.cwd, ".capsules"))
-      ? join(options.cwd, ".capsules")
-      : null;
+  const targetFile = options.runRoot
+    ? join(options.runRoot, "blunders.jsonl")
+    : resolveDefectsPath(options.cwd);
 
-  if (targetDir && existsSync(targetDir)) {
-    try {
-      const blundersPath = join(targetDir, "blunders.jsonl");
-      appendFileSync(blundersPath, `${JSON.stringify(blunder)}\n`, "utf8");
-    } catch {
-      // Disk recording is best-effort and non-fatal
+  try {
+    const dir = dirname(targetFile);
+    if (!existsSync(dir)) {
+      mkdirSync(dir, { recursive: true });
     }
+    appendFileSync(targetFile, `${JSON.stringify(blunder)}\n`, "utf8");
+  } catch {
+    // Disk recording is best-effort and non-fatal
   }
   return blunder;
 }

@@ -19,6 +19,7 @@ import type {
 } from "./types.ts";
 import { synthesizeCompanionManifest, type ValidationContext } from "../validator/index.ts";
 import { deflateSync } from "node:zlib";
+import { resolveCapsulesDir } from "../../shared/paths.ts";
 
 const CRC_TABLE: Int32Array = (() => {
   const table = new Int32Array(256);
@@ -141,7 +142,7 @@ export function resolveCaptureOutputDir(options: CaptureRunOptions, config: Capt
     return resolve(join(options.capsuleDir.trim(), "captures"));
   }
   if (options.runId && options.runId.trim().length > 0) {
-    return resolve(join(".capsules", options.runId.trim(), "captures"));
+    return resolve(join(resolveCapsulesDir(), options.runId.trim(), "captures"));
   }
   if (config.outputDir && config.outputDir.trim().length > 0) {
     return resolve(config.outputDir.trim());

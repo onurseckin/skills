@@ -7,6 +7,7 @@ import { formatOrchestrateBrief } from "../formatters/index.ts";
 import { textFlag, type CommandContext, type Flags } from "../options.ts";
 import { firstAvailableRunId, deriveRunId } from "./orchestrate-slug.ts";
 import { planInitCommand } from "./plan.ts";
+import { resolveCapsulesDir } from "../../shared/paths.ts";
 
 function promptText(prompt: Uint8Array): string {
   return new TextDecoder("utf-8", { fatal: true }).decode(prompt);
@@ -38,7 +39,7 @@ export async function orchestrateCommand(
   const runIdWasDerived = explicitRunId === undefined;
   const runId = runIdWasDerived
     ? firstAvailableRunId(deriveRunId(promptText(prompt)), (candidate) =>
-        existsSync(join(repo, ".capsules", candidate)),
+        existsSync(join(resolveCapsulesDir(repo), candidate)),
       )
     : explicitRunId;
 

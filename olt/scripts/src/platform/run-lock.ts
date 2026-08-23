@@ -1,7 +1,17 @@
-import { closeSync, constants, fstatSync, lstatSync, openSync, realpathSync } from "node:fs";
+import {
+  closeSync,
+  constants,
+  existsSync,
+  fstatSync,
+  lstatSync,
+  openSync,
+  realpathSync,
+} from "node:fs";
+import { join } from "node:path";
 import { HarnessError } from "../errors/harness-error.ts";
 import { releaseFlock, tryExclusiveFlock } from "./flock-ffi.ts";
 import { clearObserver, publishObserver } from "./observer.ts";
+import { resolveCapsulesDir } from "../shared/paths.ts";
 
 export interface RunLockOptions {
   timeoutMs?: number;
@@ -44,11 +54,18 @@ export function withRunLock<T>(
   operation: () => T,
   options: RunLockOptions = {},
 ): T {
-  const metadata = lstatSync(runRoot);
+  let targetPath = runRoot;
+  if (!existsSync(targetPath)) {
+    const candidate = join(resolveCapsulesDir(), runRoot);
+    if (existsSync(candidate)) {
+      targetPath = candidate;
+    }
+  }
+  const metadata = lstatSync(targetPath);
   if (!metadata.isDirectory() || metadata.isSymbolicLink())
     throw new HarnessError("INVALID_ARGUMENT", `run root must be a real directory: ${runRoot}`);
   const descriptor = openSync(
-    runRoot,
+    targetPath,
     constants.O_RDONLY | (constants.O_DIRECTORY ?? 0) | (constants.O_NOFOLLOW ?? 0),
   );
   const opened = fstatSync(descriptor);
@@ -56,8 +73,8 @@ export function withRunLock<T>(
     closeSync(descriptor);
     throw new HarnessError("INVALID_ARGUMENT", `run root must be a directory: ${runRoot}`);
   }
-  assertPathIdentity(runRoot, opened);
-  const root = realpathSync(runRoot);
+  assertPathIdentity(targetPath, opened);
+  const root = realpathSync(targetPath);
   const maximum = timeout(options.timeoutMs ?? 10_000);
   const retry = timeout(options.retryMs ?? 10);
   const deadline = performance.now() + maximum;
@@ -73,14 +90,14 @@ export function withRunLock<T>(
       }
       delay(Math.min(retry, remaining));
     }
-    assertPathIdentity(runRoot, opened);
+    assertPathIdentity(targetPath, opened);
     const observer = publishObserver(root);
     try {
       const result = operation();
-      assertPathIdentity(runRoot, opened);
+      assertPathIdentity(targetPath, opened);
       return result;
     } catch (error) {
-      assertPathIdentity(runRoot, opened);
+      assertPathIdentity(targetPath, opened);
       throw error;
     } finally {
       clearObserver(observer);

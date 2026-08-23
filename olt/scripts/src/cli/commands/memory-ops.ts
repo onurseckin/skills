@@ -15,6 +15,7 @@ import {
   searchMemory,
   type MemoryQueryResult,
 } from "../../mind/memory.ts";
+import { resolveCapsulesDir } from "../../shared/paths.ts";
 
 export interface MemoryQueryCommandResult {
   readonly markdown: string;
@@ -131,7 +132,7 @@ export function memoryQueryCommand(
       resolvedCapsulesDir = parentDir;
     }
   } else {
-    resolvedCapsulesDir = join(repoRoot, ".capsules");
+    resolvedCapsulesDir = resolveCapsulesDir(repoRoot);
   }
 
   const index = indexAllMemory({

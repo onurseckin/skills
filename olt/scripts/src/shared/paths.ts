@@ -60,11 +60,13 @@ export function resolveOltDir(repoRoot?: string): string {
 
 export function resolveCapsulesDir(repoRoot?: string): string {
   const root = repoRoot ? resolve(repoRoot) : findRepoRoot();
+  const canonical = join(root, OLT_DIR_NAME, CAPSULES_DIR_NAME);
+  if (existsSync(canonical)) return canonical;
   const modern = join(root, CAPSULES_DIR_NAME);
-  const legacy = join(root, LEGACY_CAPSULES_DIR_NAME);
   if (existsSync(modern)) return modern;
+  const legacy = join(root, LEGACY_CAPSULES_DIR_NAME);
   if (existsSync(legacy)) return legacy;
-  return modern;
+  return canonical;
 }
 
 export function resolvePolicyPath(repoRoot?: string, customPath?: string): string {
@@ -84,8 +86,6 @@ export function resolveBacklogPath(repoRoot?: string, customPath?: string): stri
   if (existsSync(canonical)) return canonical;
   const legacy = join(root, LEGACY_MIND_QUEUE_FILES.BACKLOG);
   if (existsSync(legacy)) return legacy;
-  const legacyCapsule = join(root, ".capsules/FEEDBACK_QUEUE.jsonl");
-  if (existsSync(legacyCapsule)) return legacyCapsule;
   return canonical;
 }
 
@@ -106,8 +106,6 @@ export function resolveDefectsPath(repoRoot?: string, customPath?: string): stri
   if (existsSync(canonical)) return canonical;
   const legacy = join(root, LEGACY_MIND_QUEUE_FILES.DEFECTS);
   if (existsSync(legacy)) return legacy;
-  const legacyCapsule = join(root, ".capsules/blunders.jsonl");
-  if (existsSync(legacyCapsule)) return legacyCapsule;
   return canonical;
 }
 
@@ -118,8 +116,6 @@ export function resolveCompletedDefectsPath(repoRoot?: string, customPath?: stri
   if (existsSync(canonical)) return canonical;
   const legacy = join(root, LEGACY_MIND_QUEUE_FILES.COMPLETED_DEFECTS);
   if (existsSync(legacy)) return legacy;
-  const legacyCapsule = join(root, ".capsules/COMPLETED_BLUNDERS.jsonl");
-  if (existsSync(legacyCapsule)) return legacyCapsule;
   return canonical;
 }
 
@@ -130,7 +126,5 @@ export function resolveTelemetryPath(repoRoot?: string, customPath?: string): st
   if (existsSync(canonical)) return canonical;
   const legacy = join(root, LEGACY_MIND_QUEUE_FILES.TELEMETRY);
   if (existsSync(legacy)) return legacy;
-  const legacyCapsule = join(root, ".capsules/observations.jsonl");
-  if (existsSync(legacyCapsule)) return legacyCapsule;
   return canonical;
 }

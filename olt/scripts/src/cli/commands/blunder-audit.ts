@@ -15,6 +15,11 @@ import { loadRun } from "../../store/load.ts";
 import { transact } from "../../store/transaction.ts";
 import { enforceLineLimit } from "../formatters/line-limiter.ts";
 import { assertFlags, boolFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
+import {
+  resolveCapsulesDir,
+  resolveDefectsPath,
+  resolveCompletedDefectsPath,
+} from "../../shared/paths.ts";
 
 export type BlunderStatus = "open" | "admitted" | "resolved" | "declined" | "ignored";
 
@@ -228,8 +233,20 @@ export function discoverBlunderFiles(
   const results: BlunderFileDiscovery[] = [];
   const visitedPaths = new Set<string>();
 
+  const canonicalDefects = resolveDefectsPath();
+  if (existsSync(canonicalDefects)) {
+    visitedPaths.add(resolve(canonicalDefects));
+    results.push({ capsuleName: ".olt", filePath: canonicalDefects });
+  }
+
+  const canonicalCompleted = resolveCompletedDefectsPath();
+  if (existsSync(canonicalCompleted)) {
+    visitedPaths.add(resolve(canonicalCompleted));
+    results.push({ capsuleName: ".olt", filePath: canonicalCompleted });
+  }
+
   const rootBlunders = join(capsulesDir, "blunders.jsonl");
-  if (existsSync(rootBlunders)) {
+  if (existsSync(rootBlunders) && !visitedPaths.has(resolve(rootBlunders))) {
     visitedPaths.add(resolve(rootBlunders));
     results.push({ capsuleName: "capsules-root", filePath: rootBlunders });
   }
@@ -607,8 +624,7 @@ export function blunderAuditCommand(
       resolvedCapsulesDir = parentDir;
     }
   } else {
-    const defaultLocalCapsules = resolve(process.cwd(), ".capsules");
-    resolvedCapsulesDir = defaultLocalCapsules;
+    resolvedCapsulesDir = resolveCapsulesDir(process.cwd());
   }
 
   // 2. Discover all blunder files

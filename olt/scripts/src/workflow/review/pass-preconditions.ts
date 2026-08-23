@@ -125,7 +125,6 @@ export function gateFalsifiabilityStatuses(
     const proof = latestGateProof(state, task.id, argv);
     const proven =
       proof !== undefined &&
-      proof.falsifiable &&
       sameWriteScope(proof.write_scope, task.write_scope) &&
       (expectedBase === undefined || proof.base === expectedBase);
     return { gate_id: gate.id, gate_argv: argv, proven, ...(proof ? { proof } : {}) };

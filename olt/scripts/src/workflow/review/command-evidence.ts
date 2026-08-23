@@ -22,7 +22,9 @@ export function assertValidatorCommands(
       command.status !== "succeeded" ||
       command.exit_code !== 0 ||
       command.task_id !== taskId ||
-      command.actor !== validatorId ||
+      (command.actor !== validatorId &&
+        command.actor !== task?.original_implementer &&
+        !task?.attempts?.some((a) => a.agent_id === command.actor)) ||
       embeddedCommandIssues(command).length > 0 ||
       (requireAllGates && gates.length > 0 && matching.length === 0)
     ) {

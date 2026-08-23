@@ -43,13 +43,27 @@ const UI_TEXT_MARKERS: readonly RegExp[] = [
   /\bfront-?end\b/i,
   /\bviewports?\b/i,
   /\bresponsive\b/i,
-  /\bdual-channel\b/i,
-  /\bdual channel\b/i,
   /\bwcag\b/i,
   /\bcontrast ratio\b/i,
   /\baccessib(le|ility)\b/i,
   /\bdom metrics\b/i,
 ];
+
+function isDocOnlyScope(writeScope: readonly string[]): boolean {
+  return (
+    writeScope.length > 0 &&
+    writeScope.every((raw) => {
+      const s = raw.toLowerCase();
+      return (
+        s.startsWith("docs") ||
+        s.includes("/docs") ||
+        s.endsWith(".md") ||
+        s.endsWith(".mdx") ||
+        s.endsWith(".txt")
+      );
+    })
+  );
+}
 
 export function textSignalsUiDomain(texts: readonly string[]): boolean {
   return texts.some((text) => UI_TEXT_MARKERS.some((marker) => marker.test(text)));
@@ -70,7 +84,9 @@ export function applicableValidatorDomains(
     )
       domains.add("system-design");
   }
-  if (textSignalsUiDomain(requirementTexts)) domains.add("ui-design");
+  if (!isDocOnlyScope(writeScope) && textSignalsUiDomain(requirementTexts)) {
+    domains.add("ui-design");
+  }
   return VALIDATOR_DOMAINS.filter((domain) => domains.has(domain));
 }
 

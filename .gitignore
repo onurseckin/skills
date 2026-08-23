@@ -21,6 +21,9 @@ capsules/
 runtime/
 evidence/
 !.olt/
+.olt/capsules/
+.olt/.locks/
+.olt/scratch/
 
 # os / filesystem
 .DS_Store

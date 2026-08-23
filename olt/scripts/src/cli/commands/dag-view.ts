@@ -11,6 +11,7 @@ import type { TaskDeclaration } from "../../requirements/compiler.ts";
 import { enforceLineLimit, formatTable } from "../formatters/line-limiter.ts";
 import { boolFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
 import { parseArguments } from "../arguments.ts";
+import { resolveCapsulesDir } from "../../shared/paths.ts";
 
 function isStringArray(value: unknown): value is readonly string[] {
   return Array.isArray(value) && value.every((item) => typeof item === "string");
@@ -162,7 +163,7 @@ export {
 };
 
 export function findLatestCapsuleIn(repoRoot: string): string | null {
-  const capsulesDir = resolve(repoRoot, ".capsules");
+  const capsulesDir = resolveCapsulesDir(repoRoot);
   if (!existsSync(capsulesDir)) return null;
 
   try {
@@ -198,7 +199,7 @@ export function resolveCapsuleRun(repo: string, runFlag?: string, runIdFlag?: st
     if (existsSync(directRel)) {
       return directRel;
     }
-    const insideCapsules = resolve(repo, ".capsules", explicit);
+    const insideCapsules = resolve(resolveCapsulesDir(repo), explicit);
     if (existsSync(insideCapsules)) {
       return insideCapsules;
     }
@@ -210,7 +211,7 @@ export function resolveCapsuleRun(repo: string, runFlag?: string, runIdFlag?: st
 
   throw new HarnessError(
     "INVALID_ARGUMENT",
-    "no active capsule found; specify --run <path> or run in a repository with .capsules/",
+    "no active capsule found; specify --run <path> or run in a repository with .olt/capsules/",
   );
 }
 

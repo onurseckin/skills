@@ -217,6 +217,7 @@ export function canFinalizeReview(
 export function assertReviewProtocolSatisfied(
   task: TaskRecord,
   config: ReviewProtocolConfig = DEFAULT_REVIEW_PROTOCOL_CONFIG,
+  resolvedFindingIds: readonly string[] = [],
 ): void {
   const state = projectTaskReviewState(task, config);
 
@@ -227,7 +228,10 @@ export function assertReviewProtocolSatisfied(
     );
   }
 
-  const openFindings = (task.findings ?? []).filter((f) => f.status === "open");
+  const resolvedSet = new Set(resolvedFindingIds);
+  const openFindings = (task.findings ?? []).filter(
+    (f) => f.status === "open" && !resolvedSet.has(f.id),
+  );
   if (openFindings.length > 0) {
     throw new HarnessError(
       "INVALID_STATE",

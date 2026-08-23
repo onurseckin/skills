@@ -18,6 +18,7 @@ import { drainBacklogOnRunCompletion } from "../../mind/smart-task-manager.ts";
 import { completeRun } from "../../workflow/completion/complete-run.ts";
 import { gateTally } from "../../workflow/completion/completion-state.ts";
 import type { CompletionArtifactRequirements } from "../../workflow/completion/artifact-verification.ts";
+import { resolveCapsulesDir } from "../../shared/paths.ts";
 import type { TaskRecord, WorkflowState } from "../../workflow/types.ts";
 import { consolidateWorktrees, recordConsolidation } from "../../workflow/worktree/consolidate.ts";
 import { readWorktreeLedger } from "../../workflow/worktree/ledger.ts";
@@ -192,7 +193,7 @@ export function runCompleteCommand(flags: Flags): Record<string, unknown> {
 
 export function runConsolidateCommand(flags: Flags): Record<string, unknown> {
   const repo = textFlag(flags, "repo", false) ?? process.cwd();
-  const capsulesDir = textFlag(flags, "capsules-dir", false) ?? join(repo, ".capsules");
+  const capsulesDir = textFlag(flags, "capsules-dir", false) ?? resolveCapsulesDir(repo);
   const dryRun = boolFlag(flags, "dry-run");
   const result = consolidateCapsules(capsulesDir, { dryRun });
   return {

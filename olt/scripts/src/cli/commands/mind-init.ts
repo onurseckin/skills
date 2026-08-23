@@ -9,6 +9,7 @@ import { initRun, loadRun } from "../../store/index.ts";
 import { transact } from "../../store/transaction.ts";
 import { enforceLineLimit, mindInitNextActions, nextActionsBlock } from "../formatters/index.ts";
 import { integerFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
+import { resolveCapsulesDir } from "../../shared/paths.ts";
 
 export interface MindInitResult {
   markdown: string;
@@ -123,7 +124,7 @@ export function mindInitCommand(
   const relativeCharterPath = relative(repoRoot, resolvedCharterPath) || charterPathRaw;
 
   // Refuse if capsule already exists
-  const targetCapsuleDir = join(repoRoot, ".capsules", mindId);
+  const targetCapsuleDir = join(resolveCapsulesDir(repoRoot), mindId);
   if (existsSync(targetCapsuleDir)) {
     throw new HarnessError(
       "INVALID_STATE",

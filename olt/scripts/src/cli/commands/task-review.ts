@@ -293,7 +293,11 @@ export async function taskReviewCommand(flags: Flags): Promise<Record<string, un
 
   const policy = reviewPolicyFor(loaded.runRoot, validator);
   if (isPass) {
-    assertReviewProtocolSatisfied(taskBefore, policy.reviewProtocol);
+    assertReviewProtocolSatisfied(
+      taskBefore,
+      policy.reviewProtocol,
+      resolutions.map((r) => r.finding_id),
+    );
   }
 
   let state = recordReview(

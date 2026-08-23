@@ -149,7 +149,7 @@ export const DECISION_PROTOCOLS: Readonly<Record<DecisionProtocolId, DecisionPro
       keyInvariants: [
         "Supervisory heartbeat ticks occur every 3-5 minutes.",
         "Mind pulse never terminates; continuous background timers keep loop active.",
-        "All task evidence stored strictly in unified directory `.capsules/<run>/evidence/`.",
+        "All task evidence stored strictly in unified directory `.olt/capsules/<run>/evidence/`.",
       ],
       operationalGuidance:
         "Maintain active heartbeats (`task:heartbeat`, `mind:pulse`) and verify capsule health on every tick.",

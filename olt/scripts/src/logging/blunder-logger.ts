@@ -14,6 +14,7 @@ import type {
 } from "../blunders/types.ts";
 import { atomicWriteBytes } from "../core/durable-write.ts";
 import type { BlunderLogOptions, BlunderLogResult } from "./types.ts";
+import { resolveDefectsPath } from "../shared/paths.ts";
 
 export function resolveBlunderLogPath(options: BlunderLogOptions = {}): string | null {
   if (options.filePath) {
@@ -25,13 +26,7 @@ export function resolveBlunderLogPath(options: BlunderLogOptions = {}): string |
   if (options.targetDir) {
     return join(resolve(options.targetDir), "blunders.jsonl");
   }
-  if (options.cwd) {
-    const defaultCapsules = join(resolve(options.cwd), ".capsules");
-    if (existsSync(defaultCapsules)) {
-      return join(defaultCapsules, "blunders.jsonl");
-    }
-  }
-  return null;
+  return resolveDefectsPath(options.cwd);
 }
 
 export function readBlunderLogFile(

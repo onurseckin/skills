@@ -1,3 +1,4 @@
+import type { AgentGrantRecord } from "../contracts/agents.ts";
 import type { BranchRecord } from "../contracts/branch.ts";
 import type { CommandRecord } from "../contracts/commands.ts";
 import type {
@@ -175,6 +176,7 @@ export interface PacketRecord extends JsonObject {
 }
 
 export interface WorkflowState extends JsonObject {
+  agents?: AgentGrantRecord[];
   tasks: { [taskId: string]: TaskRecord };
   requirements: RequirementRuntime[];
   gates: GateRuntime[];

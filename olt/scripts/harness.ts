@@ -40,8 +40,9 @@ export async function main(argv: readonly string[]): Promise<void> {
   // whether stdin is actually a pipe, never by requiring a flag the user has to already know about.
   const { argv: execArgv, inlinePrompt } = extractOrchestrateInlinePrompt(format.argv);
   const readStdin =
-    shouldReadPromptStdin(execArgv) ||
-    shouldAutoReadOrchestrateStdin(execArgv, process.stdin.isTTY === true);
+    inlinePrompt === undefined &&
+    (shouldReadPromptStdin(execArgv) ||
+      shouldAutoReadOrchestrateStdin(format.argv, process.stdin.isTTY === true));
   const context = {
     executingRuntime,
     ...(inlinePrompt === undefined ? {} : { inlinePrompt }),

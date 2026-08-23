@@ -15,6 +15,7 @@ import { initialState } from "./state.ts";
 import { writeIndex } from "./capsule-index.ts";
 import { normalizeRunId } from "./run-id.ts";
 import { writeTrace } from "./trace.ts";
+import { resolveCapsulesDir } from "../shared/paths.ts";
 
 export interface InitRunOptions {
   runtimeSource?: string;
@@ -42,10 +43,10 @@ export function initRun(
   if (!existsSync(repoRoot) || !lstatSync(repoRoot).isDirectory())
     throw new HarnessError("INVALID_ARGUMENT", `repo_root must be a directory: ${repoRoot}`);
   const repo = realpathSync(repoRoot);
-  const capsulesRoot = safeRepoPath(repo, ".capsules");
+  const capsulesRoot = resolveCapsulesDir(repo);
   mkdirSync(capsulesRoot, { recursive: true, mode: 0o755 });
   fsyncDirectory(repo);
-  const runRoot = safeRepoPath(repo, join(".capsules", runId));
+  const runRoot = join(capsulesRoot, runId);
   mkdirSync(runRoot, { mode: 0o755 });
   fsyncDirectory(capsulesRoot);
   try {

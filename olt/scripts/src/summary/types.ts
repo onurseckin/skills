@@ -43,7 +43,7 @@ import type {
   RunReportFacts,
   RunRepositoryFacts,
   RunRequirementFacts,
-} from "./graph-types.ts";
+} from "./graph/graph-types.ts";
 
 export type {
   ActionKind,

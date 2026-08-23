@@ -1,4 +1,5 @@
-import { lstatSync, realpathSync } from "node:fs";
+import { existsSync, lstatSync, realpathSync } from "node:fs";
+import { join } from "node:path";
 import type { Manifest, RunFiles, RunState } from "../contracts/capsule.ts";
 import { readCanonicalObject } from "../core/json.ts";
 import { readRegularFileNoFollow } from "../core/no-follow.ts";
@@ -8,6 +9,7 @@ import { validateEventChain } from "./event-stream.ts";
 import { throwIntegrity } from "./issues.ts";
 import { runFilePath } from "./paths.ts";
 import { verifyIntegrity } from "./integrity.ts";
+import { resolveCapsulesDir } from "../shared/paths.ts";
 
 function loadRunFiles(
   runRoot: string,
@@ -15,10 +17,17 @@ function loadRunFiles(
   options: StoreLimits,
   collectEvents: boolean,
 ): RunFiles {
-  const rootStat = lstatSync(runRoot);
+  let targetPath = runRoot;
+  if (!existsSync(targetPath)) {
+    const candidate = join(resolveCapsulesDir(), runRoot);
+    if (existsSync(candidate)) {
+      targetPath = candidate;
+    }
+  }
+  const rootStat = lstatSync(targetPath);
   if (!rootStat.isDirectory() || rootStat.isSymbolicLink())
     throw new HarnessError("INVALID_ARGUMENT", `run_root must be a real directory: ${runRoot}`);
-  const root = realpathSync(runRoot);
+  const root = realpathSync(targetPath);
   if (verify) {
     const found = verifyIntegrity(root, options);
     if (found.length > 0) throwIntegrity(found);

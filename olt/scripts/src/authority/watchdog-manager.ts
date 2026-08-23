@@ -3,6 +3,7 @@ import { dirname, join, resolve } from "node:path";
 import type { JsonValue } from "../contracts/json.ts";
 import { atomicWriteJson } from "../core/durable-write.ts";
 import { HarnessError } from "../errors/harness-error.ts";
+import { resolveCapsulesDir } from "../shared/paths.ts";
 
 export type WatchdogStatus = "active" | "stale" | "terminated" | "orphaned";
 
@@ -172,11 +173,7 @@ export function parseTimestamp(input?: string | number | Date | undefined): numb
 
 export function resolveWatchdogStorePath(target?: string): string {
   if (!target) {
-    const cwdCapsules = join(process.cwd(), ".capsules");
-    if (existsSync(cwdCapsules)) {
-      return join(cwdCapsules, "watchdogs.json");
-    }
-    return join(process.cwd(), "watchdogs.json");
+    return join(resolveCapsulesDir(), "watchdogs.json");
   }
 
   const resolved = resolve(target);

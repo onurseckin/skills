@@ -14,6 +14,7 @@ import {
 } from "../../mind/meta-auditor.ts";
 import { enforceLineLimit, formatTable } from "../formatters/line-limiter.ts";
 import { assertFlags, boolFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
+import { resolveBacklogPath } from "../../shared/paths.ts";
 
 export type {
   FeedbackInjectionOptions,
@@ -146,7 +147,7 @@ export function formatMetaAuditReport(params: {
 
   if (injection !== undefined) {
     lines.push(
-      `- **Status**: Injected ${injection.injected_count} remediation task(s) into feedback queue (\`${injection.queue_path ?? ".capsules/FEEDBACK_QUEUE.jsonl"}\`)`,
+      `- **Status**: Injected ${injection.injected_count} remediation task(s) into feedback queue (\`${injection.queue_path ?? resolveBacklogPath()}\`)`,
     );
     if (injection.injected_items.length > 0) {
       lines.push(`- **Injected Items**: \`${injection.injected_items.join("`, `")}\``);

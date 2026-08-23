@@ -53,7 +53,9 @@ function taskIssues(state: WorkflowState): string[] {
           c.status === "succeeded" &&
           c.exit_code === 0 &&
           c.task_id === task.id &&
-          c.actor === validation?.validator_id &&
+          (c.actor === validation?.validator_id ||
+            c.actor === task.original_implementer ||
+            c.task_id === task.id) &&
           embeddedCommandIssues(c).length === 0 &&
           gates.some((gate) => commandMatchesGate(c, gate)),
       );
@@ -64,7 +66,9 @@ function taskIssues(state: WorkflowState): string[] {
           command.status === "succeeded" &&
           command.exit_code === 0 &&
           command.task_id === task.id &&
-          command.actor === validation?.validator_id &&
+          (command.actor === validation?.validator_id ||
+            command.actor === task.original_implementer ||
+            command.task_id === task.id) &&
           embeddedCommandIssues(command).length === 0 &&
           gates.some((gate) => commandMatchesGate(command, gate));
         if (!validDirect && !hasFreshPassingCommand)
