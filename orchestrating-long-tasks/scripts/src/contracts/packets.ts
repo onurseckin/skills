@@ -39,6 +39,30 @@ export function isAgentRole(value: unknown): value is AgentRole {
   return typeof value === "string" && ROLE_SET.has(value);
 }
 
+export function isCognitiveValidatorRole(role: string): boolean {
+  const normalized = role.toLowerCase().trim();
+  return (
+    normalized === "validator" ||
+    normalized === "sub-validator" ||
+    normalized === "plan-validator" ||
+    normalized === "ui-validator" ||
+    normalized.startsWith("validator-")
+  );
+}
+
+export function isMechanicValidatorRole(role: string): boolean {
+  const normalized = role.toLowerCase().trim();
+  return (
+    normalized === "mechanic-validator" ||
+    normalized === "ui-mechanic-validator" ||
+    normalized === "mechanic_validator"
+  );
+}
+
+export function isAnyValidatorRole(role: string): boolean {
+  return isCognitiveValidatorRole(role) || isMechanicValidatorRole(role);
+}
+
 export interface PacketMetadata extends JsonObject {
   run_id: string;
   task_id: null | string;
