@@ -52,7 +52,7 @@ bun harness.ts orchestrate --repo . --run my-feature --prompt-file prompt.txt
 
 Create a run capsule and capture the prompt bytes immutably.
 
-Initialises <repo>/.capsules/<run-id>, records the verbatim prompt with its sha256, and ensures the capsule is gitignored.
+Initialises <repo>/.olt/capsules/<run-id>, records the verbatim prompt with its sha256, and ensures the capsule is gitignored.
 
 - **Aliases**: `init`
 - **Stdin**: reads stdin when `--prompt-stdin` is set
@@ -97,7 +97,7 @@ Writes planning/enhanced-plan.md and planning/enhanced-plan.json read-only and r
 | `--source` | string | no | yes | - | A file the agent actually read. |
 
 ```bash
-bun harness.ts plan:enhance --run .capsules/<run-id> --actor planner --summary "Wire the drawer to the graph store" --todo "Add the state machine tab" --todo "Delete the legacy asset writes" --risk "Fixture dataset predates the new schema" --source src/graph/store.ts
+bun harness.ts plan:enhance --run .olt/capsules/<run-id> --actor planner --summary "Wire the drawer to the graph store" --todo "Add the state machine tab" --todo "Delete the legacy asset writes" --risk "Fixture dataset predates the new schema" --source src/graph/store.ts
 ```
 
 ### `plan:add`
@@ -130,10 +130,10 @@ Appends one task to the uncompiled planning buffer. Rejected once the plan has b
 | `--group-by` | string | no | no | `file` | file (default) or directory: whether --auto-partition emits one task per matched file or one task per directory holding matches. |
 
 ```bash
-bun harness.ts plan:add --run .capsules/<run-id> --id task-1 --label "Database schema" --scope "src/db" --gate "bun test tests/db.test.ts" --actor coordinator
-bun harness.ts plan:add --run .capsules/<run-id> --id task-2 --label "CLI wiring" --scope "src/cli" --gate "bun test tests/unit/cli" --actor coordinator --requirement-lines "3-5"
-bun harness.ts plan:add --run .capsules/<run-id> --id task-3 --label "Integration" --scope "src/integration" --gate "bun test tests/integration" --actor coordinator --deps task-1,task-2 --dep-reason "task-1:reads the schema task-1 writes" --dep-reason "task-2:reads the CLI wiring task-2 writes"
-bun harness.ts plan:add --run .capsules/<run-id> --id task-topic --label "Topic bank" --actor coordinator --auto-partition "src/curriculum/mlQuestions/*.ts" --gate-template "bun test {scope}"
+bun harness.ts plan:add --run .olt/capsules/<run-id> --id task-1 --label "Database schema" --scope "src/db" --gate "bun test tests/db.test.ts" --actor coordinator
+bun harness.ts plan:add --run .olt/capsules/<run-id> --id task-2 --label "CLI wiring" --scope "src/cli" --gate "bun test tests/unit/cli" --actor coordinator --requirement-lines "3-5"
+bun harness.ts plan:add --run .olt/capsules/<run-id> --id task-3 --label "Integration" --scope "src/integration" --gate "bun test tests/integration" --actor coordinator --deps task-1,task-2 --dep-reason "task-1:reads the schema task-1 writes" --dep-reason "task-2:reads the CLI wiring task-2 writes"
+bun harness.ts plan:add --run .olt/capsules/<run-id> --id task-topic --label "Topic bank" --actor coordinator --auto-partition "src/curriculum/mlQuestions/*.ts" --gate-template "bun test {scope}"
 ```
 
 ### `plan:audit`
@@ -152,7 +152,7 @@ Runs A1-granularity, A3-gate-discrimination, A4-false-barrier, A5-straggler and 
 | `--actor` | string | yes | no | - | Actor recorded on the event. |
 
 ```bash
-bun harness.ts plan:audit --run .capsules/<run-id> --actor planner
+bun harness.ts plan:audit --run .olt/capsules/<run-id> --actor planner
 ```
 
 ### `plan:compile`
@@ -173,8 +173,8 @@ Checks scope independence, derives requirements from the prompt lines, builds th
 | `--accept-audit` | string | no | yes | - | Accept one blocking plan:audit invariant so compilation may proceed: "<invariant-id>:<reason>". Repeatable; every blocking invariant needs its own acceptance, and an invariant the audit did not raise as blocking is refused rather than silently accepted. Never a blanket override. |
 
 ```bash
-bun harness.ts plan:compile --run .capsules/<run-id> --actor planner --completion-gate "bun test tests/unit"
-bun harness.ts plan:compile --run .capsules/<run-id> --actor planner --completion-gate "bun test tests/unit" --accept-audit "A3-gate-discrimination:task-a and task-b legitimately share the shared-fixture regression test"
+bun harness.ts plan:compile --run .olt/capsules/<run-id> --actor planner --completion-gate "bun test tests/unit"
+bun harness.ts plan:compile --run .olt/capsules/<run-id> --actor planner --completion-gate "bun test tests/unit" --accept-audit "A3-gate-discrimination:task-a and task-b legitimately share the shared-fixture regression test"
 ```
 
 ### `plan:validate-start`
@@ -194,7 +194,7 @@ C2: opens the plan-validator's claim on the currently compiled plan (the project
 | `--lease-duration` | int | no | no | `1200` | Seconds until the validation window expires (5-86400). |
 
 ```bash
-bun harness.ts plan:validate-start --run .capsules/<run-id> --validator plan-val-1
+bun harness.ts plan:validate-start --run .olt/capsules/<run-id> --validator plan-val-1
 ```
 
 ### `plan:review`
@@ -225,8 +225,8 @@ C2: --status approved clears the plan for implementer dispatch; changes_requeste
 | `--gate-ids-reviewed` | string | no | no | - | Comma-separated gate ids — must name exactly the plan's per-task gate ids (never the run-scoped completion gate), no more and no fewer. |
 
 ```bash
-bun harness.ts plan:review --run .capsules/<run-id> --validator plan-val-1 --token <token> --status approved --decomposition-answer "14 tasks match the 14 named topics" --dependency-answer "no dependency edges; every task is an independent root" --gate-answer "each gate runs only that task's own scoped test file" --straggler-answer "every task carries the same one-topic effort estimate" --gate-ids-reviewed "gate-1,gate-2,gate-3" --summary "Decomposition matches the prompt; gates are scope-narrow"
-bun harness.ts plan:review --run .capsules/<run-id> --validator plan-val-1 --token <token> --status changes_requested --decomposition-answer "10 topics compressed into 1 task" --dependency-answer "n/a" --gate-answer "the shared gate cannot fail per-task" --straggler-answer "n/a" --gate-ids-reviewed "gate-1" --summary "Compressed decomposition; see findings" --findings '[{"id":"PV-1","invariant":"A2-parallelism","severity":"critical","observation":"10 distinct topics collapsed into task-domains","remediation":"one task per topic, each with its own scoped gate"}]'
+bun harness.ts plan:review --run .olt/capsules/<run-id> --validator plan-val-1 --token <token> --status approved --decomposition-answer "14 tasks match the 14 named topics" --dependency-answer "no dependency edges; every task is an independent root" --gate-answer "each gate runs only that task's own scoped test file" --straggler-answer "every task carries the same one-topic effort estimate" --gate-ids-reviewed "gate-1,gate-2,gate-3" --summary "Decomposition matches the prompt; gates are scope-narrow"
+bun harness.ts plan:review --run .olt/capsules/<run-id> --validator plan-val-1 --token <token> --status changes_requested --decomposition-answer "10 topics compressed into 1 task" --dependency-answer "n/a" --gate-answer "the shared gate cannot fail per-task" --straggler-answer "n/a" --gate-ids-reviewed "gate-1" --summary "Compressed decomposition; see findings" --findings '[{"id":"PV-1","invariant":"A2-parallelism","severity":"critical","observation":"10 distinct topics collapsed into task-domains","remediation":"one task per topic, each with its own scoped gate"}]'
 ```
 
 ### `plan:replan`
@@ -249,7 +249,7 @@ Ingests validator or critic findings, partitions them into disjoint write scopes
 | `--gate` | string | no | no | - | Revalidation gate for generated repair tasks. Omit only when the findings declare revalidation_gate or the planned task covering the scope has a gate to inherit; there is no default. |
 
 ```bash
-bun harness.ts plan:replan --run .capsules/<run-id> --actor coordinator --gate "bun run typecheck"
+bun harness.ts plan:replan --run .olt/capsules/<run-id> --actor coordinator --gate "bun run typecheck"
 ```
 
 ### `plan:claim`
@@ -269,7 +269,7 @@ The planner has no task and no lease, so it cannot task:claim. This is its equiv
 | `--expected-revision` | int | no | no | - | The graph revision the caller believes is live; the claim is refused if the run has moved past it. Omitted, the packet is issued at whatever revision is actually live. |
 
 ```bash
-bun harness.ts plan:claim --run .capsules/<run-id> --agent planner-1
+bun harness.ts plan:claim --run .olt/capsules/<run-id> --agent planner-1
 ```
 
 ### `plan:apply`
@@ -291,7 +291,7 @@ Reads requirements.json and graph.json (defaulting to planning/ inside the run),
 | `--expected-revision` | int | no | no | - | The graph revision this apply must be built against; the apply is refused if the run has moved past it. |
 
 ```bash
-bun harness.ts plan:apply --run .capsules/<run-id> --actor planner-1 --expected-revision 0
+bun harness.ts plan:apply --run .olt/capsules/<run-id> --actor planner-1 --expected-revision 0
 ```
 
 ### `plan:status`
@@ -309,32 +309,7 @@ Reports every buffered task with its scope, gate and dependencies.
 | `--run` | string | yes | no | - | Capsule run root. |
 
 ```bash
-bun harness.ts plan:status --run .capsules/<run-id>
-```
-
-### `dag:view`
-
-Render live ASCII execution DAG, active subagent allocations, and algorithmic parallelization recommendations.
-
-Inspects compiled graph or planning buffer DAG topology, computes critical path depth, tracks active subagent leases, and generates algorithmic parallelization recommendations.
-
-- **Aliases**: `graph:ascii`, `status:dag`
-- **Stdin**: not read
-- **Arguments after `--`**: rejected
-
-| Flag | Type | Required | Repeatable | Default | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `--run` | string | no | no | - | Capsule run root. Defaults to current repository .capsules/ when omitted. |
-| `--run-id` | string | no | no | - | Alias of --run. |
-| `--repo` | string | no | no | `.` | Repository root to search for .capsules/. |
-| `--detailed` | bool | no | no | - | Render full write scopes, gate commands, and dependency lists. |
-| `--recommendations` | bool | no | no | - | Highlight algorithmic parallelization opportunities. |
-| `--all` | bool | no | no | - | Do not truncate output lines. |
-
-```bash
-bun harness.ts dag:view --run .capsules/<run-id>
-bun harness.ts graph:ascii --run .capsules/<run-id> --detailed
-bun harness.ts dag:view --detailed --recommendations
+bun harness.ts plan:status --run .olt/capsules/<run-id>
 ```
 
 ## queue
@@ -354,7 +329,7 @@ Reads the queue and reports the task a coordinator would dispatch next.
 | `--run` | string | yes | no | - | Capsule run root. |
 
 ```bash
-bun harness.ts queue:next --run .capsules/<run-id>
+bun harness.ts queue:next --run .olt/capsules/<run-id>
 ```
 
 ### `queue:list`
@@ -372,7 +347,7 @@ Groups tasks into ready, leased, validating, blocked and satisfied partitions wi
 | `--run` | string | yes | no | - | Capsule run root. |
 
 ```bash
-bun harness.ts queue:list --run .capsules/<run-id>
+bun harness.ts queue:list --run .olt/capsules/<run-id>
 ```
 
 ### `queue:wave`
@@ -391,7 +366,7 @@ The readiness query: runs the scheduler over live task state and returns every t
 | `--max-parallel` | int | no | no | - | Occupancy ceiling for this query; defaults to the configured default_max_parallel. |
 
 ```bash
-bun harness.ts queue:wave --run .capsules/<run-id> --max-parallel 4
+bun harness.ts queue:wave --run .olt/capsules/<run-id> --max-parallel 4
 ```
 
 ### `queue:pop`
@@ -412,7 +387,7 @@ Atomically leases the next ready task to an agent. Fails when no task is ready r
 | `--lease-seconds` | int | no | no | `1200` | Alias of --lease-duration. |
 
 ```bash
-bun harness.ts queue:pop --run .capsules/<run-id> --agent worker-1 --lease-seconds 1800
+bun harness.ts queue:pop --run .olt/capsules/<run-id> --agent worker-1 --lease-seconds 1800
 ```
 
 ## task
@@ -430,13 +405,13 @@ Produces a structured briefing containing assigned write scope, target files, ga
 | Flag | Type | Required | Repeatable | Default | Description |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `--run` | string | yes | no | - | Capsule run root. |
-| `--task` | string | yes | no | - | Task id to brief. |
+| `--task` | string | no | no | - | Task id to brief. |
 | `--agent` | string | no | no | - | Agent id assigned to or briefing for the task. |
 | `--role` | string | no | no | - | Role under which the task is being briefed. |
 
 ```bash
-bun harness.ts task:brief --run .capsules/<run-id> --task task-1
-bun harness.ts task:brief --run .capsules/<run-id> --task task-1 --agent worker-1 --role implementer
+bun harness.ts task:brief --run .olt/capsules/<run-id> --task task-1
+bun harness.ts task:brief --run .olt/capsules/<run-id> --task task-1 --agent worker-1 --role implementer
 ```
 
 ### `task:claim`
@@ -459,8 +434,8 @@ Transitions the task to leased and returns the bearer token the agent must echo 
 | `--lease-seconds` | int | no | no | `1200` | Alias of --lease-duration. |
 
 ```bash
-bun harness.ts task:claim --run .capsules/<run-id> --task task-1 --agent worker-1 --role implementer
-bun harness.ts task:claim --run .capsules/<run-id> --task task-1 --agent worker-1 --role repairer
+bun harness.ts task:claim --run .olt/capsules/<run-id> --task task-1 --agent worker-1 --role implementer
+bun harness.ts task:claim --run .olt/capsules/<run-id> --task task-1 --agent worker-1 --role repairer
 ```
 
 ### `task:heartbeat`
@@ -481,7 +456,7 @@ Requires the lease token; a stale or foreign token is refused.
 | `--token` | string | yes | no | - | Lease bearer token. |
 
 ```bash
-bun harness.ts task:heartbeat --run .capsules/<run-id> --task task-1 --agent worker-1 --token <token>
+bun harness.ts task:heartbeat --run .olt/capsules/<run-id> --task task-1 --agent worker-1 --token <token>
 ```
 
 ### `task:submit`
@@ -508,8 +483,8 @@ Records the submission report, audits write-scope compliance, and moves the task
 | `--reason` | string | no | no | - | Why --no-op is true. Required with --no-op, and meaningless without it. |
 
 ```bash
-bun harness.ts task:submit --run .capsules/<run-id> --task task-1 --agent worker-1 --token <token> --summary "Implemented user auth"
-bun harness.ts task:submit --run .capsules/<run-id> --task task-1 --agent worker-1 --token <token> --summary "Investigated; no code change was needed" --no-op --reason "task-0 already fixed the same defect"
+bun harness.ts task:submit --run .olt/capsules/<run-id> --task task-1 --agent worker-1 --token <token> --summary "Implemented user auth"
+bun harness.ts task:submit --run .olt/capsules/<run-id> --task task-1 --agent worker-1 --token <token> --summary "Investigated; no code change was needed" --no-op --reason "task-0 already fixed the same defect"
 ```
 
 ### `task:validate-start`
@@ -531,8 +506,8 @@ Assigns the validator and mints the validation token required by task:review.
 | `--validator-domain` | string | no | no | - | B12.2 standing checklist domain (code-quality, product, security, system-design, ui-design); binds the matching checklist into this validator's packet. Omitted, the domain is DERIVED from the task's write scope (code-quality always applies; ui-design/system-design follow file extension and path signals) — the first applicable domain nobody has an open validation against yet. A task can carry several open validations at once, one per applicable domain; it reaches validated only once every one of them has passed. |
 
 ```bash
-bun harness.ts task:validate-start --run .capsules/<run-id> --task task-1 --validator val-1
-bun harness.ts task:validate-start --run .capsules/<run-id> --task task-1 --validator val-1 --validator-domain code-quality
+bun harness.ts task:validate-start --run .olt/capsules/<run-id> --task task-1 --validator val-1
+bun harness.ts task:validate-start --run .olt/capsules/<run-id> --task task-1 --validator val-1 --validator-domain code-quality
 ```
 
 ### `task:review`
@@ -567,10 +542,10 @@ Record a validator verdict with its gate evidence.
 | `--require-semantic-depth` | bool | no | no | - | Enforce strict semantic depth audits on companion manifest criteria and cognitive questions. |
 
 ```bash
-bun harness.ts task:review --run .capsules/<run-id> --task task-1 --validator val-1 --token <token> --status pass --checks C-123 --summary "All gates pass"
-bun harness.ts task:review --run .capsules/<run-id> --task task-1 --validator val-1 --token <token> --status pass --checks C-123 --resolve probe-task-1-01-1=C-123
-bun harness.ts task:review --run .capsules/<run-id> --task task-1 --validator val-1 --token <token> --status fail --summary "Gate command never ran against the new schema" --severity critical --remediation "Point the gate at tests/db and rerun it"
-bun harness.ts task:review --run .capsules/<run-id> --task task-1 --validator val-1 --token <token> --status pass --checks C-123 --summary "All gates pass" --checklist-domain code-quality --checklist-report coverage.json
+bun harness.ts task:review --run .olt/capsules/<run-id> --task task-1 --validator val-1 --token <token> --status pass --checks C-123 --summary "All gates pass"
+bun harness.ts task:review --run .olt/capsules/<run-id> --task task-1 --validator val-1 --token <token> --status pass --checks C-123 --resolve probe-task-1-01-1=C-123
+bun harness.ts task:review --run .olt/capsules/<run-id> --task task-1 --validator val-1 --token <token> --status fail --summary "Gate command never ran against the new schema" --severity critical --remediation "Point the gate at tests/db and rerun it"
+bun harness.ts task:review --run .olt/capsules/<run-id> --task task-1 --validator val-1 --token <token> --status pass --checks C-123 --summary "All gates pass" --checklist-domain code-quality --checklist-report coverage.json
 ```
 
 ### `task:probe`
@@ -595,7 +570,7 @@ Each --demand becomes a probe_demand finding on the task. The task stays in vali
 | `--evidence` | string | no | no | - | Comma-separated command ids the demands cite. |
 
 ```bash
-bun harness.ts task:probe --run .capsules/<run-id> --task task-1 --validator val-1 --token <token> --demand "Prove the parser rejects an empty payload"
+bun harness.ts task:probe --run .olt/capsules/<run-id> --task task-1 --validator val-1 --token <token> --demand "Prove the parser rejects an empty payload"
 ```
 
 ### `task:reject`
@@ -624,7 +599,7 @@ Records the validator's finding and returns the task to the implementer. The sev
 | `--requirement` | string | no | no | - | Requirement the finding binds to. |
 
 ```bash
-bun harness.ts task:reject --run .capsules/<run-id> --task task-1 --validator val-1 --token <token> --reason "Missing input validation" --severity critical --remediation "Validate the payload before the insert"
+bun harness.ts task:reject --run .olt/capsules/<run-id> --task task-1 --validator val-1 --token <token> --reason "Missing input validation" --severity critical --remediation "Validate the payload before the insert"
 ```
 
 ### `task:assign-repairer`
@@ -647,7 +622,7 @@ The original implementer always gets the first repair opportunity; this records 
 | `--evidence` | string | yes | no | - | Why the replacement is warranted. |
 
 ```bash
-bun harness.ts task:assign-repairer --run .capsules/<run-id> --task task-1 --actor coordinator --repairer worker-2 --reason unavailable --evidence "worker-1 released without claiming the repair lease"
+bun harness.ts task:assign-repairer --run .olt/capsules/<run-id> --task task-1 --actor coordinator --repairer worker-2 --reason unavailable --evidence "worker-1 released without claiming the repair lease"
 ```
 
 ### `task:abandon`
@@ -668,7 +643,7 @@ The forced counterpart to task:release: it does not require the lease token, onl
 | `--reason` | string | yes | no | - | Why the attempt is being abandoned. |
 
 ```bash
-bun harness.ts task:abandon --run .capsules/<run-id> --task task-1 --actor coordinator --reason "agent-1 crashed mid-attempt and will not return"
+bun harness.ts task:abandon --run .olt/capsules/<run-id> --task task-1 --actor coordinator --reason "agent-1 crashed mid-attempt and will not return"
 ```
 
 ### `task:release`
@@ -689,7 +664,7 @@ The voluntary counterpart to `recover`. Requires the live lease token; the task 
 | `--token` | string | yes | no | - | Lease bearer token. |
 
 ```bash
-bun harness.ts task:release --run .capsules/<run-id> --task task-1 --agent worker-1 --token <token>
+bun harness.ts task:release --run .olt/capsules/<run-id> --task task-1 --agent worker-1 --token <token>
 ```
 
 ### `coordinator:pushback`
@@ -714,8 +689,8 @@ QUEUE-6: the edge every pushback ran on was validator -> implementer; this is th
 | `--remediation` | string | yes | no | - | What must happen before this can pass again. |
 
 ```bash
-bun harness.ts coordinator:pushback --run .capsules/<run-id> --task task-1 --actor coordinator --validator val-1 --domain ui-design --cause procedural --observation "pass carried zero screenshot evidence" --remediation "re-run the visual suite and record real evidence before passing again"
-bun harness.ts coordinator:pushback --run .capsules/<run-id> --task task-1 --actor coordinator --validator val-1 --domain code-quality --cause substantive --observation "the recorded check output shows the gate never ran" --remediation "fix the gate invocation and resubmit"
+bun harness.ts coordinator:pushback --run .olt/capsules/<run-id> --task task-1 --actor coordinator --validator val-1 --domain ui-design --cause procedural --observation "pass carried zero screenshot evidence" --remediation "re-run the visual suite and record real evidence before passing again"
+bun harness.ts coordinator:pushback --run .olt/capsules/<run-id> --task task-1 --actor coordinator --validator val-1 --domain code-quality --cause substantive --observation "the recorded check output shows the gate never ran" --remediation "fix the gate invocation and resubmit"
 ```
 
 ## reporting
@@ -726,21 +701,21 @@ Deliver unified topology, lifecycle tier breakdown, agent roles, IDs, and timest
 
 Generates comprehensive unified run report across tasks, topology, agent lifecycle tiers, and audit trail.
 
-- **Aliases**: `report:unified`, `report:all`
+- **Aliases**: `report:all`
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
 | Flag | Type | Required | Repeatable | Default | Description |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `--run` | string | no | no | - | Capsule run root. Defaults to current repository .capsules/ when omitted. |
+| `--run` | string | no | no | - | Capsule run root. Defaults to current repository .olt/capsules/ when omitted. |
 | `--run-id` | string | no | no | - | Alias of --run. |
-| `--repo` | string | no | no | `.` | Repository root to search for .capsules/. |
+| `--repo` | string | no | no | `.` | Repository root to search for .olt/capsules/. |
 | `--detailed` | bool | no | no | - | Detailed topology and audit forensics. |
 | `--json` | bool | no | no | - | Output structured JSON report. |
 
 ```bash
-bun harness.ts report --run .capsules/<run-id>
-bun harness.ts report:unified --run .capsules/<run-id>
+bun harness.ts report --run .olt/capsules/<run-id>
+bun harness.ts report:unified --run .olt/capsules/<run-id>
 ```
 
 ### `report:graph-json`
@@ -761,7 +736,7 @@ Export DAG telemetry and metrics to JSON.
 | `--pretty` | bool | no | no | - | Format output JSON nicely |
 
 ```bash
-bun harness.ts report:graph-json --run .capsules/<run-id> --out graph.json
+bun harness.ts report:graph-json --run .olt/capsules/<run-id> --out graph.json
 ```
 
 ### `report:dag`
@@ -776,15 +751,15 @@ Aliases/links to dag:view to inspect compiled graph or planning buffer DAG topol
 
 | Flag | Type | Required | Repeatable | Default | Description |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `--run` | string | no | no | - | Capsule run root. Defaults to current repository .capsules/ when omitted. |
+| `--run` | string | no | no | - | Capsule run root. Defaults to current repository .olt/capsules/ when omitted. |
 | `--run-id` | string | no | no | - | Alias of --run. |
-| `--repo` | string | no | no | `.` | Repository root to search for .capsules/. |
+| `--repo` | string | no | no | `.` | Repository root to search for .olt/capsules/. |
 | `--detailed` | bool | no | no | - | Render full write scopes, gate commands, and dependency lists. |
 | `--recommendations` | bool | no | no | - | Highlight algorithmic parallelization opportunities. |
 | `--all` | bool | no | no | - | Do not truncate output lines. |
 
 ```bash
-bun harness.ts report:dag --run .capsules/<run-id>
+bun harness.ts report:dag --run .olt/capsules/<run-id>
 ```
 
 ### `report:graph`
@@ -803,7 +778,7 @@ Renders the task graph.
 | `--detailed` | bool | no | no | - | Detailed output. |
 
 ```bash
-bun harness.ts report:graph --run .capsules/<run-id>
+bun harness.ts report:graph --run .olt/capsules/<run-id>
 ```
 
 ### `report:health`
@@ -824,7 +799,7 @@ Runs the capsule doctor to check health status.
 | `--clients` | string | no | no | - | Clients. |
 
 ```bash
-bun harness.ts report:health --run .capsules/<run-id>
+bun harness.ts report:health --run .olt/capsules/<run-id>
 ```
 
 ### `report:leases`
@@ -842,7 +817,7 @@ Reports the matrix of active leases.
 | `--run` | string | yes | no | - | Capsule run root. |
 
 ```bash
-bun harness.ts report:leases --run .capsules/<run-id>
+bun harness.ts report:leases --run .olt/capsules/<run-id>
 ```
 
 ### `report:decisions`
@@ -860,7 +835,7 @@ Reports the decisions audit matrix.
 | `--run` | string | yes | no | - | Capsule run root. |
 
 ```bash
-bun harness.ts report:decisions --run .capsules/<run-id>
+bun harness.ts report:decisions --run .olt/capsules/<run-id>
 ```
 
 ### `report:summary`
@@ -880,7 +855,7 @@ Renders the executive brief in markdown or JSON directly to terminal.
 | `--json` | bool | no | no | - | Output JSON. |
 
 ```bash
-bun harness.ts report:summary --run .capsules/<run-id>
+bun harness.ts report:summary --run .olt/capsules/<run-id>
 ```
 
 ### `report:task`
@@ -908,8 +883,8 @@ Extracts and formats full task report evidence including verification outcomes, 
 | `--json` | bool | no | no | - | Output JSON. |
 
 ```bash
-bun harness.ts report:task --run .capsules/<run-id> --task task-1
-bun harness.ts report:task --run .capsules/<run-id> --task task-1 --type review
+bun harness.ts report:task --run .olt/capsules/<run-id> --task task-1
+bun harness.ts report:task --run .olt/capsules/<run-id> --task task-1 --type review
 ```
 
 ### `stream:events`
@@ -941,33 +916,33 @@ Streams chronological capsule events as rich terminal ASCII tables, Markdown, or
 | `--json` | bool | no | no | - | Output JSON. |
 
 ```bash
-bun harness.ts stream:events --run .capsules/<run-id>
-bun harness.ts stream:events --run .capsules/<run-id> --from-seq 10 --max-events 20
-bun harness.ts stream:events --run .capsules/<run-id> --filter-type task-claimed
+bun harness.ts stream:events --run .olt/capsules/<run-id>
+bun harness.ts stream:events --run .olt/capsules/<run-id> --from-seq 10 --max-events 20
+bun harness.ts stream:events --run .olt/capsules/<run-id> --filter-type task-claimed
 ```
 
-### `dag:render`
+### `dag`
 
 Render Sugiyama hierarchical DAG layout with rounded Unicode boxes and cycle diagnostics.
 
 Computes Sugiyama layered layout, crossing minimization via barycenter heuristics, Tarjan cycle alerts, illegal bypass warnings, and orthogonal connectors.
 
-- **Aliases**: `graph:sugiyama`, `report:sugiyama`
+- **Aliases**: `dag:render`, `dag:view`, `graph:sugiyama`, `report:sugiyama`, `graph:ascii`, `status:dag`
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
 | Flag | Type | Required | Repeatable | Default | Description |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `--run` | string | no | no | - | Capsule run root. Defaults to current repository .capsules/ when omitted. |
+| `--run` | string | no | no | - | Capsule run root. Defaults to current repository .olt/capsules/ when omitted. |
 | `--run-id` | string | no | no | - | Alias of --run. |
-| `--repo` | string | no | no | `.` | Repository root to search for .capsules/. |
+| `--repo` | string | no | no | `.` | Repository root to search for .olt/capsules/. |
 | `--detailed` | bool | no | no | - | Render full write scopes, gate commands, and dependency lists. |
 | `--box-style` | string | no | no | `rounded` | Box border style: rounded, sharp, or ascii. |
 | `--all` | bool | no | no | - | Do not truncate output lines. |
 | `--json` | bool | no | no | - | Output structured JSON report. |
 
 ```bash
-bun harness.ts dag:render --run .capsules/<run-id>
+bun harness.ts dag:render --run .olt/capsules/<run-id>
 bun harness.ts dag:render --detailed --box-style rounded
 ```
 
@@ -997,8 +972,8 @@ Replays events.jsonl to construct dynamic branch expansions and renders a chrono
 | `--json` | bool | no | no | - | Output JSON. |
 
 ```bash
-bun harness.ts dag:trace --run .capsules/<run-id>
-bun harness.ts dag:trace --run .capsules/<run-id> --task task-1
+bun harness.ts dag:trace --run .olt/capsules/<run-id>
+bun harness.ts dag:trace --run .olt/capsules/<run-id> --task task-1
 ```
 
 ## run
@@ -1025,7 +1000,7 @@ Captures argv, cwd, timestamps, exit code and log bytes into the capsule, then i
 | `--tool-extra` | string | no | yes | - | One tool-specific fact about this command as <key>=<value>, kept verbatim under the reported name. |
 
 ```bash
-bun harness.ts run:exec --run .capsules/<run-id> --task task-1 --gate gate-1 --actor val-1 --tool-category test-runner --tool bun-test -- bun test tests/unit/auth.test.ts
+bun harness.ts run:exec --run .olt/capsules/<run-id> --task task-1 --gate gate-1 --actor val-1 --tool-category test-runner --tool bun-test -- bun test tests/unit/auth.test.ts
 ```
 
 ### `run:status`
@@ -1040,14 +1015,14 @@ Reads the capsule without mutating it and renders the execution table.
 
 | Flag | Type | Required | Repeatable | Default | Description |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `--run` | string | no | no | - | Capsule run root. Defaults to current repository .capsules/ when omitted. |
+| `--run` | string | no | no | - | Capsule run root. Defaults to current repository .olt/capsules/ when omitted. |
 | `--run-id` | string | no | no | - | Alias of --run. |
-| `--repo` | string | no | no | `.` | Repository root to search for .capsules/. |
+| `--repo` | string | no | no | `.` | Repository root to search for .olt/capsules/. |
 | `--detailed` | bool | no | no | - | Include the raw state in the JSON result. |
 
 ```bash
-bun harness.ts run:status --run .capsules/<run-id>
-bun harness.ts status --run .capsules/<run-id>
+bun harness.ts run:status --run .olt/capsules/<run-id>
+bun harness.ts status --run .olt/capsules/<run-id>
 ```
 
 ### `run:complete`
@@ -1067,7 +1042,33 @@ Re-verifies the recorded command evidence and the live repository binding, then 
 | `--auth-token` | string | yes | no | - | The token critic:review handed back on approval; verified against the completeness critic's own record before the run can be sealed. |
 
 ```bash
-bun harness.ts run:complete --run .capsules/<run-id> --actor coordinator --auth-token <token-from-critic:review>
+bun harness.ts run:complete --run .olt/capsules/<run-id> --actor coordinator --auth-token <token-from-critic:review>
+```
+
+### `shell`
+
+Execute direct non-interactive CLI commands under mechanical RBAC policy with signed evidence.
+
+Validates actor role capabilities against repository policy (blocking un-targeted whole-suite runs and cognitive validator commands) and emits cryptographic receipts into evidence/ and telemetry.
+
+- **Aliases**: `sh`, `exec:safe`
+- **Stdin**: not read
+- **Arguments after `--`**: forwarded to the child process
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--actor` | string | yes | no | - | Who is executing the command. |
+| `--run` | string | no | no | - | Capsule run root (optional if running standalone). |
+| `--run-id` | string | no | no | - | Alias for --run. |
+| `--task` | string | no | no | - | Task id this command belongs to. |
+| `--gate` | string | no | no | - | Gate id proven by this command. |
+| `--cwd` | string | no | no | - | Working directory for the execution. |
+| `--role` | string | no | no | - | Explicit role override if actor metadata is not initialized on disk. |
+
+```bash
+bun harness.ts shell --actor imp-1 -- bun test tests/unit/auth.test.ts
+bun harness.ts shell --actor val-1 -- git status
+bun harness.ts shell --actor imp-1 --run .olt/capsules/<run-id> --task task-1 -- bun test tests/unit/parser.test.ts
 ```
 
 ## critic
@@ -1089,7 +1090,7 @@ Records a repository inspection, assigns the critic, and returns the critic toke
 | `--repository-command-ids` | string | no | yes | - | Extra authoritative command ids to add as repository evidence, alongside every run-gate command the harness auto-discovers. |
 
 ```bash
-bun harness.ts critic:start --run .capsules/<run-id> --critic critic-1
+bun harness.ts critic:start --run .olt/capsules/<run-id> --critic critic-1
 ```
 
 ### `critic:review`
@@ -1116,7 +1117,7 @@ Record the completeness verdict over the whole repository diff.
 | `--review` | string | no | no | - | Path to a complete review payload. |
 
 ```bash
-bun harness.ts critic:review --run .capsules/<run-id> --critic critic-1 --token <token> --decision approve --proofs-file proofs.json --summary "Whole diff verified"
+bun harness.ts critic:review --run .olt/capsules/<run-id> --critic critic-1 --token <token> --decision approve --proofs-file proofs.json --summary "Whole diff verified"
 ```
 
 ### `critic:reject`
@@ -1142,7 +1143,7 @@ Equivalent to critic:review --decision request_changes with a rejection brief. S
 | `--review` | string | no | no | - | Path to a complete review payload. |
 
 ```bash
-bun harness.ts critic:reject --run .capsules/<run-id> --critic critic-1 --token <token> --summary "Missing error boundary" --findings '[{"id":"F-01","requirement_id":"req-1","severity":"critical","observation":"No error boundary around the render tree","remediation":"Wrap the tree in an error boundary","revalidation":"bun test tests/render"}]'
+bun harness.ts critic:reject --run .olt/capsules/<run-id> --critic critic-1 --token <token> --summary "Missing error boundary" --findings '[{"id":"F-01","requirement_id":"req-1","severity":"critical","observation":"No error boundary around the render tree","remediation":"Wrap the tree in an error boundary","revalidation":"bun test tests/render"}]'
 ```
 
 ### `critic:remediate`
@@ -1164,7 +1165,7 @@ Every review recorded with status findings stays in history and blocks completio
 | `--resolution-method` | string | no | yes | - | How a finding was answered: <finding-id>=<method>. |
 
 ```bash
-bun harness.ts critic:remediate --run .capsules/<run-id> --actor coordinator --resolve CF-1=C-fix-1 --resolution-method CF-1="focused repair and verification"
+bun harness.ts critic:remediate --run .olt/capsules/<run-id> --actor coordinator --resolve CF-1=C-fix-1 --resolution-method CF-1="focused repair and verification"
 ```
 
 ## summary
@@ -1185,7 +1186,7 @@ Generates the summary suite under <run>/summary and, with --out, an additional r
 | `--out` | string | no | no | - | Directory for the viewer registry export. |
 
 ```bash
-bun harness.ts summary:export --run .capsules/<run-id>
+bun harness.ts summary:export --run .olt/capsules/<run-id>
 ```
 
 ### `summary:view`
@@ -1203,7 +1204,7 @@ Generates the same suite in memory and returns only the markdown brief.
 | `--run` | string | yes | no | - | Capsule run root. |
 
 ```bash
-bun harness.ts summary:view --run .capsules/<run-id>
+bun harness.ts summary:view --run .olt/capsules/<run-id>
 ```
 
 ### `test:summary`
@@ -1232,7 +1233,7 @@ Reads or records test summary records from capsule storage, showing passed/faile
 
 ```bash
 bun harness.ts test:summary
-bun harness.ts test:summary --run .capsules/<run-id>
+bun harness.ts test:summary --run .olt/capsules/<run-id>
 bun harness.ts test:summary --passed 45 --failed 0 --duration 1200
 ```
 
@@ -1255,7 +1256,7 @@ Without an id the whole findings directory is listed.
 | `--finding` | string | no | no | - | Alias of --id. |
 
 ```bash
-bun harness.ts finding:get --run .capsules/<run-id> --id finding-task-1
+bun harness.ts finding:get --run .olt/capsules/<run-id> --id finding-task-1
 ```
 
 ### `report:get`
@@ -1282,7 +1283,7 @@ With --task the review report is preferred and the submission is used as the fal
 | `--screenshots` | bool | no | no | - | Include screenshot records. |
 
 ```bash
-bun harness.ts report:get --run .capsules/<run-id> --task task-1 --type review
+bun harness.ts report:get --run .olt/capsules/<run-id> --task task-1 --type review
 ```
 
 ### `evidence:get`
@@ -1307,7 +1308,7 @@ Filters the evidence directory by command id, task, gate or actor.
 | `--screenshots` | bool | no | no | - | Include screenshot records. |
 
 ```bash
-bun harness.ts evidence:get --run .capsules/<run-id> --task task-1
+bun harness.ts evidence:get --run .olt/capsules/<run-id> --task task-1
 ```
 
 ### `evidence:screenshots`
@@ -1330,7 +1331,7 @@ Queries the screenshot store rather than the evidence files.
 | `--actor` | string | no | no | - | Filter by actor. |
 
 ```bash
-bun harness.ts evidence:screenshots --run .capsules/<run-id> --task task-1
+bun harness.ts evidence:screenshots --run .olt/capsules/<run-id> --task task-1
 ```
 
 ## orchestrator
@@ -1387,8 +1388,8 @@ One reclaim-classify-dispatch pass over a run's eligible set: reclaims leases wh
 | `--interval` | int | no | no | `30` | Seconds between heartbeat ticks in --watch mode; refused without --watch. |
 
 ```bash
-bun harness.ts orchestrator:supervise --run .capsules/<run-id> --actor coordinator
-bun harness.ts orchestrator:supervise --run .capsules/<run-id> --actor coordinator --watch --interval 30
+bun harness.ts orchestrator:supervise --run .olt/capsules/<run-id> --actor coordinator
+bun harness.ts orchestrator:supervise --run .olt/capsules/<run-id> --actor coordinator --watch --interval 30
 ```
 
 ## branch
@@ -1418,7 +1419,7 @@ A branch is an execution-time subdivision, never a plan task, so it never touche
 | `--actor` | string | no | no | - | Event actor; defaults to the acting agent. |
 
 ```bash
-bun harness.ts branch:open --run .capsules/<run-id> --parent-task task-1 --agent worker-1 --token <token> --reason "parser rewrite blocks the API change" --sub-task S-1 --sub-label S-1="Fix the parser" --sub-scope S-1=src/one/parser
+bun harness.ts branch:open --run .olt/capsules/<run-id> --parent-task task-1 --agent worker-1 --token <token> --reason "parser rewrite blocks the API change" --sub-task S-1 --sub-label S-1="Fix the parser" --sub-scope S-1=src/one/parser
 ```
 
 ### `branch:claim`
@@ -1443,7 +1444,7 @@ Returns the bearer token the sub-agent echoes back to branch:submit. The lease e
 | `--actor` | string | no | no | - | Event actor; defaults to the acting agent. |
 
 ```bash
-bun harness.ts branch:claim --run .capsules/<run-id> --branch B-<uuid> --sub-task S-1 --agent sub-1 --role sub-implementer
+bun harness.ts branch:claim --run .olt/capsules/<run-id> --branch B-<uuid> --sub-task S-1 --agent sub-1 --role sub-implementer
 ```
 
 ### `branch:submit`
@@ -1467,7 +1468,7 @@ Records what the sub-agent reports it did and releases the sub-lease. The summar
 | `--actor` | string | no | no | - | Event actor; defaults to the acting agent. |
 
 ```bash
-bun harness.ts branch:submit --run .capsules/<run-id> --branch B-<uuid> --sub-task S-1 --agent sub-1 --token <token> --summary "Parser accepts the new grammar"
+bun harness.ts branch:submit --run .olt/capsules/<run-id> --branch B-<uuid> --sub-task S-1 --agent sub-1 --token <token> --summary "Parser accepts the new grammar"
 ```
 
 ### `branch:collect`
@@ -1491,7 +1492,7 @@ Refuses while any sub-task is still live. Records a real Git observation of the 
 | `--actor` | string | no | no | - | Event actor; defaults to the acting agent. |
 
 ```bash
-bun harness.ts branch:collect --run .capsules/<run-id> --branch B-<uuid> --agent worker-1 --token <token> --summary "Parser fixed; API change unblocked"
+bun harness.ts branch:collect --run .olt/capsules/<run-id> --branch B-<uuid> --agent worker-1 --token <token> --summary "Parser fixed; API change unblocked"
 ```
 
 ### `branch:abandon`
@@ -1514,7 +1515,7 @@ The failure path. Every non-terminal sub-task is marked abandoned and its lease 
 | `--actor` | string | no | no | - | Event actor; defaults to the acting agent. |
 
 ```bash
-bun harness.ts branch:abandon --run .capsules/<run-id> --branch B-<uuid> --agent worker-1 --token <token> --reason "sub-agent could not reproduce the failure"
+bun harness.ts branch:abandon --run .olt/capsules/<run-id> --branch B-<uuid> --agent worker-1 --token <token> --reason "sub-agent could not reproduce the failure"
 ```
 
 ### `branch:status`
@@ -1535,29 +1536,32 @@ Lists open branches by default with the reason each one was opened. --all includ
 | `--all` | bool | no | no | - | Include collected and abandoned branches. |
 
 ```bash
-bun harness.ts branch:status --run .capsules/<run-id>
-bun harness.ts branch:status --run .capsules/<run-id> --task task-1 --all
+bun harness.ts branch:status --run .olt/capsules/<run-id>
+bun harness.ts branch:status --run .olt/capsules/<run-id> --task task-1 --all
 ```
 
 ## agent
 
-### `agent:brief`
+### `scope:expand`
 
-Generate a zero-exploration 1-shot briefing for a dispatched agent.
+Dynamically expand the declared read scope neighborhood for an active actor.
 
-Produces a structured briefing for the agent with role, parent lineage, model/thinking configuration, tools, and parent task write scope and test commands if attached to a task.
+Appends the specified target path or directory to the agent's allowed read scope manifest and logs the expansion.
 
-- **Aliases**: none
+- **Aliases**: `scope-expand`
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
 | Flag | Type | Required | Repeatable | Default | Description |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `--run` | string | yes | no | - | Capsule run root. |
-| `--agent` | string | yes | no | - | Agent id holding the grant. |
+| `--actor` | string | yes | no | - | Agent id whose read scope is being expanded. |
+| `--read` | string | yes | no | - | Target file or directory path to add to allowed read scope. |
+| `--run` | string | no | no | - | Capsule run root. |
+| `--run-id` | string | no | no | - | Alias for --run. |
 
 ```bash
-bun harness.ts agent:brief --run .capsules/<run-id> --agent worker-1
+bun harness.ts scope:expand --actor imp-1 --read src/shared/types.ts
+bun harness.ts scope:expand --actor imp-1 --run .olt/capsules/<run-id> --read src/policy/repo-policy.ts
 ```
 
 ### `agent:register`
@@ -1588,7 +1592,7 @@ Spawning happens host-side; this is how the run learns a subagent exists, who de
 | `--tool-extra` | string | no | yes | - | One tool-specific fact as <tool>:<key>=<value>, kept verbatim under the reported name. The tool must also be given with --tool. |
 
 ```bash
-bun harness.ts agent:register --run .capsules/<run-id> --agent worker-1 --role implementer --host claude-code --parent-agent coordinator-1 --parent-task task-1 --tool Bash=shell --tool-extra Bash:shell=zsh
+bun harness.ts agent:register --run .olt/capsules/<run-id> --agent worker-1 --role implementer --host claude-code --parent-agent coordinator-1 --parent-task task-1 --tool Bash=shell --tool-extra Bash:shell=zsh
 ```
 
 ### `agent:report`
@@ -1614,7 +1618,7 @@ Token counts are the caller's running totals and replace the previous ones, tagg
 | `--actor` | string | no | no | - | Event actor; defaults to the reporting agent. |
 
 ```bash
-bun harness.ts agent:report --run .capsules/<run-id> --agent worker-1 --tool Read=file-edit --tool Grep=search --tokens-in 18000 --tokens-out 2400 --token-extra cache_read_input_tokens=91000
+bun harness.ts agent:report --run .olt/capsules/<run-id> --agent worker-1 --tool Read=file-edit --tool Grep=search --tokens-in 18000 --tokens-out 2400 --token-extra cache_read_input_tokens=91000
 ```
 
 ### `agent:release`
@@ -1635,7 +1639,7 @@ Marks the grant released and stamps the release time. A released agent can no lo
 | `--actor` | string | no | no | - | Event actor; defaults to the released agent. |
 
 ```bash
-bun harness.ts agent:release --run .capsules/<run-id> --agent worker-1 --reason "task-1 submitted"
+bun harness.ts agent:release --run .olt/capsules/<run-id> --agent worker-1 --reason "task-1 submitted"
 ```
 
 ### `agent:list`
@@ -1655,8 +1659,8 @@ Without flags it lists active grants with whatever telemetry was recorded, each 
 | `--all` | bool | no | no | - | Include released grants. |
 
 ```bash
-bun harness.ts agent:list --run .capsules/<run-id>
-bun harness.ts agent:list --run .capsules/<run-id> --task task-1
+bun harness.ts agent:list --run .olt/capsules/<run-id>
+bun harness.ts agent:list --run .olt/capsules/<run-id> --task task-1
 ```
 
 ## orphan
@@ -1681,7 +1685,7 @@ Orphan evidence — typically a durable command record left behind by an agent t
 | `--evidence` | string | no | yes | - | Command id supporting the disposition; repeat per id. |
 
 ```bash
-bun harness.ts orphan:dispose --run .capsules/<run-id> --actor coordinator --orphan-sha256 <sha> --disposition ignored_non_authoritative --rationale "agent worker-3 died before submitting; the command it ran is not authoritative for any task" --evidence C-abc123
+bun harness.ts orphan:dispose --run .olt/capsules/<run-id> --actor coordinator --orphan-sha256 <sha> --disposition ignored_non_authoritative --rationale "agent worker-3 died before submitting; the command it ran is not authoritative for any task" --evidence C-abc123
 ```
 
 ## authority
@@ -1705,14 +1709,14 @@ A requirement disposed needs_authority holds every task built on it non-executab
 | `--rationale` | string | yes | no | - | Why this decision is correct. |
 
 ```bash
-bun harness.ts authority:decide --run .capsules/<run-id> --requirement req-prod-deploy --actor coordinator --decision grant --rationale "Human approved the production deploy in the review thread"
+bun harness.ts authority:decide --run .olt/capsules/<run-id> --requirement req-prod-deploy --actor coordinator --decision grant --rationale "Human approved the production deploy in the review thread"
 ```
 
 ### `whoami`
 
 Inspect thread execution tier, PID, active agent, grants, and main-thread compliance.
 
-Inspects the calling thread's OS process ID, parent PID, execution tier, active agent ID, active role grants, and task leases. When executed on the interactive main thread, enforces the Main-Thread Restraint Guard advisory and logs structured blunder records for unauthorized direct implementations.
+Inspects the calling thread's OS process ID, parent PID, execution tier, active agent ID, active role grants, and task leases. When executed on the interactive main thread, enforces the Main-Thread Restraint Guard advisory and logs structured defect records for unauthorized direct implementations.
 
 - **Aliases**: none
 - **Stdin**: not read
@@ -1730,7 +1734,7 @@ Inspects the calling thread's OS process ID, parent PID, execution tier, active 
 
 ```bash
 bun harness.ts whoami
-bun harness.ts whoami --run .capsules/<run-id> --agent coordinator-lead
+bun harness.ts whoami --run .olt/capsules/<run-id> --agent coordinator-lead
 ```
 
 ### `role:cheat-sheet`
@@ -1895,7 +1899,7 @@ Audits the live capsule across 5 supervisory health points ((a) Work/Span parall
 
 ```bash
 bun harness.ts watchdog:probe
-bun harness.ts watchdog:probe --run .capsules/<run-id>
+bun harness.ts watchdog:probe --run .olt/capsules/<run-id>
 ```
 
 ## install
@@ -1942,13 +1946,13 @@ bun harness.ts installation-status --source . --home ~
 
 ## diagnostics
 
-### `blunder:audit`
+### `defect:audit`
 
-Audit, deduplicate, and auto-admit blunders across capsules.
+Audit, deduplicate, and auto-admit defects across capsules.
 
-Discovers blunders.jsonl files across .capsules/ and active run, deduplicates entries, displays an ASCII summary matrix, and optionally auto-admits candidate remediations.
+Discovers defects.jsonl files across .olt/capsules/ and active run, deduplicates entries, displays an ASCII summary matrix, and optionally auto-admits candidate remediations.
 
-- **Aliases**: none
+- **Aliases**: `defects`
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
@@ -1957,18 +1961,18 @@ Discovers blunders.jsonl files across .capsules/ and active run, deduplicates en
 | `--run` | string | no | no | - | Capsule run root. |
 | `--capsules-dir` | string | no | no | - | Capsules root directory. |
 | `--filter-status` | string | no | no | - | Filter by status: open, admitted, resolved, all. |
-| `--filter-category` | string | no | no | - | Filter by blunder category/type. |
+| `--filter-category` | string | no | no | - | Filter by defect category/type. |
 | `--filter-type` | string | no | no | - | Alias for --filter-category. |
-| `--auto-admit` | bool | no | no | - | Automatically admit open blunders as candidates. |
+| `--auto-admit` | bool | no | no | - | Automatically admit open defects as candidates. |
 | `--actor` | string | no | no | - | Actor recording admissions. |
-| `--all` | bool | no | no | - | Show all blunders without line truncation. |
+| `--all` | bool | no | no | - | Show all defects without line truncation. |
 | `--now` | string | no | no | - | Timestamp override (ISO8601). |
 | `--json` | bool | no | no | - | Output JSON. |
 
 ```bash
-bun harness.ts blunder:audit
-bun harness.ts blunder:audit --run .capsules/<run-id> --filter-status open
-bun harness.ts blunder:audit --auto-admit --actor coordinator
+bun harness.ts defect:audit
+bun harness.ts defect:audit --run .olt/capsules/<run-id> --filter-status open
+bun harness.ts defect:audit --auto-admit --actor coordinator
 ```
 
 ### `coverage:check`
@@ -2034,7 +2038,7 @@ Re-hashes the event chain, re-verifies every recorded command, reports workflow 
 | `--clients` | string | no | no | - | Comma-separated clients for the installation check. |
 
 ```bash
-bun harness.ts doctor --run .capsules/<run-id>
+bun harness.ts doctor --run .olt/capsules/<run-id>
 ```
 
 ### `doctor:repair`
@@ -2053,7 +2057,7 @@ The repair counterpart to `doctor`: `doctor` only reports a torn tail or a state
 | `--actor` | string | yes | no | - | Who is running the repair. Recorded on the event; there is no default actor. |
 
 ```bash
-bun harness.ts doctor:repair --run .capsules/<run-id> --actor coordinator
+bun harness.ts doctor:repair --run .olt/capsules/<run-id> --actor coordinator
 ```
 
 ### `recover`
@@ -2073,7 +2077,7 @@ Returns tasks whose lease expired to retry_ready (or changes_requested after a r
 | `--grace-seconds` | int | no | no | `30` | Grace period past expiry, 0-86400. |
 
 ```bash
-bun harness.ts recover --run .capsules/<run-id> --actor coordinator
+bun harness.ts recover --run .olt/capsules/<run-id> --actor coordinator
 ```
 
 ### `worktree:reclaim`
@@ -2092,7 +2096,7 @@ B22.6: removes the worktree directories a crashed or abandoned run left behind, 
 | `--actor` | string | yes | no | - | Who is running the reclaim. Recorded on the event; there is no default actor. |
 
 ```bash
-bun harness.ts worktree:reclaim --run .capsules/<run-id> --actor coordinator
+bun harness.ts worktree:reclaim --run .olt/capsules/<run-id> --actor coordinator
 ```
 
 ### `explain`
@@ -2137,8 +2141,8 @@ Copies the repository's tracked and not-ignored files into a throwaway directory
 | `--max-files` | int | no | no | - | Refuses to copy a tree larger than this many tracked/untracked files, so an unexpectedly huge repository fails loudly instead of proving slowly; default 50000. |
 
 ```bash
-bun harness.ts gate:prove --run .capsules/<run-id> --task task-1 --actor coordinator
-bun harness.ts gate:prove --run .capsules/<run-id> --task task-1 --actor coordinator --base HEAD~1
+bun harness.ts gate:prove --run .olt/capsules/<run-id> --task task-1 --actor coordinator
+bun harness.ts gate:prove --run .olt/capsules/<run-id> --task task-1 --actor coordinator --base HEAD~1
 ```
 
 ## capture
@@ -2187,7 +2191,7 @@ Dispatches Playwright or simulated runner across configured screens and viewport
 
 ```bash
 bun harness.ts capture:run --config .capture.yaml
-bun harness.ts capture:run --run .capsules/<run-id> --screen dashboard --viewport desktop
+bun harness.ts capture:run --run .olt/capsules/<run-id> --screen dashboard --viewport desktop
 ```
 
 ### `capture:eval`
@@ -2258,7 +2262,7 @@ Validates the markdown charter file per CONTRACTS.md §7, creates the mind capsu
 | `--charter` | string | yes | no | - | Path to the owner's charter file. |
 | `--actor` | string | yes | no | - | Recorded on mind-initialized. |
 | `--mind-id` | string | no | no | `mind-gen-1` | Mind capsule run id; defaults to mind-gen-1. |
-| `--capsules-dir` | string | no | no | - | Override .capsules/ directory location. |
+| `--capsules-dir` | string | no | no | - | Override .olt/capsules/ directory location. |
 
 ```bash
 bun harness.ts mind:init --repo . --charter docs/mind/CHARTER.md --actor owner
@@ -2282,7 +2286,7 @@ Inspects the mind capsule state and budget, reclaims any open pulse past its dea
 | `--target-run` | string | no | no | - | With --depth run, the run capsule whose handoff to render. |
 
 ```bash
-bun harness.ts mind:wake --run .capsules/mind-gen-1
+bun harness.ts mind:wake --run .olt/capsules/mind-gen-1
 ```
 
 ### `mind:pulse-open`
@@ -2303,7 +2307,7 @@ Opens a new pulse cycle, validating budget headroom, daily pulse and wall-clock 
 | `--driver` | string | yes | no | - | Driver identity as reported. |
 
 ```bash
-bun harness.ts mind:pulse-open --run .capsules/mind-gen-1 --actor mind-1 --host antigravity --driver bash-loop
+bun harness.ts mind:pulse-open --run .olt/capsules/mind-gen-1 --actor mind-1 --host antigravity --driver bash-loop
 ```
 
 ### `mind:pulse`
@@ -2327,8 +2331,8 @@ Unified perpetual mind pulse command. If a pulse is open, outputs active pulse t
 | `--now` | string | no | no | - | Timestamp override (ISO8601). |
 
 ```bash
-bun harness.ts mind:pulse --run .capsules/mind-gen-1 --actor mind-1
-bun harness.ts mind:pulse --run .capsules/mind-gen-1 --arm 15m
+bun harness.ts mind:pulse --run .olt/capsules/mind-gen-1 --actor mind-1
+bun harness.ts mind:pulse --run .olt/capsules/mind-gen-1 --arm 15m
 ```
 
 ### `mind:observe`
@@ -2350,7 +2354,7 @@ Records an observation from one of the ten discovery sources evidenced by a reco
 | `--count` | int | yes | no | - | How many items that source returned. |
 
 ```bash
-bun harness.ts mind:observe --run .capsules/mind-gen-1 --actor mind-1 --source intent-drift --command-id cmd-41 --count 0
+bun harness.ts mind:observe --run .olt/capsules/mind-gen-1 --actor mind-1 --source intent-drift --command-id cmd-41 --count 0
 ```
 
 ### `mind:candidate`
@@ -2376,7 +2380,7 @@ Proposes a defect or proposal candidate. Defects require a witness command recor
 | `--rationale` | string | no | no | - | Proposals only. |
 
 ```bash
-bun harness.ts mind:candidate --run .capsules/mind-gen-1 --actor mind-1 --kind defect --statement "typecheck fails" --witness cmd-123 --charter-goal G1 --falsifier "bun run typecheck" --write-scope olt/scripts/src/health/
+bun harness.ts mind:candidate --run .olt/capsules/mind-gen-1 --actor mind-1 --kind defect --statement "typecheck fails" --witness cmd-123 --charter-goal G1 --falsifier "bun run typecheck" --write-scope olt/scripts/src/health/
 ```
 
 ### `mind:admit`
@@ -2396,7 +2400,7 @@ Runs the six admission gates (falsifier verification, scope disjointness, charte
 | `--candidate` | string | yes | no | - | Candidate id. |
 
 ```bash
-bun harness.ts mind:admit --run .capsules/mind-gen-1 --actor mind-1 --candidate cand-12
+bun harness.ts mind:admit --run .olt/capsules/mind-gen-1 --actor mind-1 --candidate cand-12
 ```
 
 ### `mind:decline`
@@ -2417,7 +2421,7 @@ Marks a candidate permanently declined with a recorded reason and gate failure a
 | `--reason` | string | yes | no | - | Reason why candidate was declined. |
 
 ```bash
-bun harness.ts mind:decline --run .capsules/mind-gen-1 --actor mind-1 --candidate cand-12 --reason "scope overlaps active lease"
+bun harness.ts mind:decline --run .olt/capsules/mind-gen-1 --actor mind-1 --candidate cand-12 --reason "scope overlaps active lease"
 ```
 
 ### `mind:quiesce`
@@ -2437,7 +2441,7 @@ Records that all ten discovery sources were scanned and found clean with zero it
 | `--source` | string | yes | yes | - | Source scan result as <source>:<command-id>:<count>; repeat for each of the ten sources. |
 
 ```bash
-bun harness.ts mind:quiesce --run .capsules/mind-gen-1 --actor mind-1 --source intent-drift:cmd-1:0 --source unassigned-todos:cmd-2:0
+bun harness.ts mind:quiesce --run .olt/capsules/mind-gen-1 --actor mind-1 --source intent-drift:cmd-1:0 --source unassigned-todos:cmd-2:0
 ```
 
 ### `mind:escalate`
@@ -2458,7 +2462,7 @@ Records an escalation event in the hash chain and appends the escalation reason 
 | `--severity` | string | no | no | - | Severity of escalation. |
 
 ```bash
-bun harness.ts mind:escalate --run .capsules/mind-gen-1 --actor mind-1 --reason "budget exhausted unexpectedly"
+bun harness.ts mind:escalate --run .olt/capsules/mind-gen-1 --actor mind-1 --reason "budget exhausted unexpectedly"
 ```
 
 ### `mind:halt`
@@ -2478,7 +2482,7 @@ Halts the mind run, suppresses further autonomous pulse arming, records mind-hal
 | `--reason` | string | yes | no | - | Reason for halting. |
 
 ```bash
-bun harness.ts mind:halt --run .capsules/mind-gen-1 --actor mind-1 --reason "critical safety check failure"
+bun harness.ts mind:halt --run .olt/capsules/mind-gen-1 --actor mind-1 --reason "critical safety check failure"
 ```
 
 ### `mind:round-open`
@@ -2501,7 +2505,7 @@ Opens a new execution round for an objective in Phase 4, linking the round to it
 | `--target-run` | string | no | no | - | Chained-from capsule run id. |
 
 ```bash
-bun harness.ts mind:round-open --run .capsules/mind-gen-1 --actor mind-1 --objective obj-1 --round 1
+bun harness.ts mind:round-open --run .olt/capsules/mind-gen-1 --actor mind-1 --objective obj-1 --round 1
 ```
 
 ### `mind:round-close`
@@ -2525,7 +2529,7 @@ Closes an active execution round for an objective in Phase 4, recording successo
 | `--successor-run` | string | no | no | - | Successor capsule run id. |
 
 ```bash
-bun harness.ts mind:round-close --run .capsules/mind-gen-1 --actor mind-1 --objective obj-1 --round 1 --terminal-reason "objective completed"
+bun harness.ts mind:round-close --run .olt/capsules/mind-gen-1 --actor mind-1 --objective obj-1 --round 1 --terminal-reason "objective completed"
 ```
 
 ### `mind:audit-start`
@@ -2546,7 +2550,7 @@ Initiates an independent audit cycle in Phase 5, recording window start time and
 | `--window-start` | string | yes | no | - | Window start timestamp (ISO8601). |
 
 ```bash
-bun harness.ts mind:audit-start --run .capsules/mind-gen-1 --actor auditor-1 --audit-id audit-1 --window-start 2026-08-21T00:00:00Z
+bun harness.ts mind:audit-start --run .olt/capsules/mind-gen-1 --actor auditor-1 --audit-id audit-1 --window-start 2026-08-21T00:00:00Z
 ```
 
 ### `mind:audit-report`
@@ -2568,7 +2572,7 @@ Records the eight audit answers with supporting command ids and overall verdict 
 | `--answer` | string | yes | yes | - | One of eight audit question answers as <question-id>:<command-id>:<verdict>; repeat for all eight. |
 
 ```bash
-bun harness.ts mind:audit-report --run .capsules/mind-gen-1 --actor auditor-1 --audit-id audit-1 --verdict approved --answer Q1:cmd-10:pass
+bun harness.ts mind:audit-report --run .olt/capsules/mind-gen-1 --actor auditor-1 --audit-id audit-1 --verdict approved --answer Q1:cmd-10:pass
 ```
 
 ### `mind:rotate`
@@ -2588,135 +2592,7 @@ Performs generational rotation, carrying forward charter pin and declined candid
 | `--actor` | string | yes | no | - | Acting agent id. |
 
 ```bash
-bun harness.ts mind:rotate --run .capsules/mind-gen-1 --next-run .capsules/mind-gen-2 --actor coordinator-1
-```
-
-### `mind:queue:list`
-
-List, search, and inspect items in .capsules/mind/queue/feedback-queue.jsonl.
-
-Queries the persistent file-backed feedback queue, returning priority-ranked items and status statistics.
-
-- **Aliases**: `todo:list`, `feedback:list`, `feedback:query`, `feedback:status`
-- **Stdin**: not read
-- **Arguments after `--`**: rejected
-
-| Flag | Type | Required | Repeatable | Default | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `--queue-file` | string | no | no | - | Custom path to feedback-queue.jsonl. |
-| `--queue-path` | string | no | no | - | Alias for --queue-file. |
-| `--status` | string | no | no | - | Filter by status: PENDING, ADMITTED, PROCESSED, COMPLETED, DECLINED. |
-| `--category` | string | no | no | - | Filter by category: DOCUMENTATION, AGENT_CONTRACTS, CLI_TOOLING, etc. |
-| `--priority` | string | no | no | - | Filter by priority: CRITICAL_USER_FEEDBACK, HIGH_ARCHITECTURAL_FEATURE, etc. |
-| `--limit` | int | no | no | `20` | Maximum number of items to return (default: 20). |
-| `--all` | bool | no | no | - | Display all matching items without truncation limit. |
-| `--format` | string | no | no | - | Output format: markdown or json. |
-
-```bash
-bun harness.ts mind:queue:list
-bun harness.ts todo:list --status PENDING --all
-bun harness.ts todo:list --category ARCHITECTURE
-```
-
-### `mind:queue:add`
-
-Ingest a new user feedback or architectural directive into the queue.
-
-Appends a structured feedback/todo item to .capsules/mind/queue/feedback-queue.jsonl for autonomous Mind intake.
-
-- **Aliases**: `todo:add`, `feedback:ingest`, `feedback:add`
-- **Stdin**: not read
-- **Arguments after `--`**: rejected
-
-| Flag | Type | Required | Repeatable | Default | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `--title` | string | yes | no | - | Human-readable summary title. |
-| `--content` | string | yes | no | - | Detailed feedback or directive content. |
-| `--id` | string | no | no | - | Unique feedback item identifier. |
-| `--priority` | string | no | no | - | Priority: CRITICAL_USER_FEEDBACK, HIGH_ARCHITECTURAL_FEATURE, USER_DIRECTIVE, NORMAL, LOW. |
-| `--category` | string | no | no | - | Category: DOCUMENTATION, AGENT_CONTRACTS, CLI_TOOLING, WATCHDOG, SCALING, ARCHITECTURE, CORE_ENGINE, REPAIR, GENERAL. |
-| `--queue-file` | string | no | no | - | Custom path to feedback-queue.jsonl. |
-| `--queue-path` | string | no | no | - | Alias for --queue-file. |
-
-```bash
-bun harness.ts mind:queue:add --title 'New Feature' --content 'Implement streaming UI' --priority HIGH_ARCHITECTURAL_FEATURE
-bun harness.ts todo:add --title 'Fix edge case' --content 'Address empty array handling' --category REPAIR
-```
-
-### `mind:queue:drain`
-
-Drain and mark pending items in FIFO order for execution.
-
-Extracts next available item in FIFO order from feedback-queue.jsonl and transitions its status.
-
-- **Aliases**: `todo:drain`, `feedback:drain`, `feedback:pop`
-- **Stdin**: not read
-- **Arguments after `--`**: rejected
-
-| Flag | Type | Required | Repeatable | Default | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `--mark-as` | string | no | no | - | Status to transition to: PROCESSED, ADMITTED, DECLINED, COMPLETED (default: PROCESSED). |
-| `--limit` | int | no | no | `1` | Maximum items to drain (default: 1). |
-| `--category` | string | no | no | - | Filter category to drain. |
-| `--priority` | string | no | no | - | Filter priority to drain. |
-| `--queue-file` | string | no | no | - | Custom path to feedback-queue.jsonl. |
-| `--queue-path` | string | no | no | - | Alias for --queue-file. |
-
-```bash
-bun harness.ts mind:queue:drain
-bun harness.ts todo:drain --limit 1 --mark-as ADMITTED
-```
-
-### `mind:queue:seal`
-
-Seal an item in the queue with resolution proof and verification metadata.
-
-Records resolution notes and optional empirical proof (commit sha, test paths) for a completed queue item.
-
-- **Aliases**: `todo:seal`
-- **Stdin**: not read
-- **Arguments after `--`**: rejected
-
-| Flag | Type | Required | Repeatable | Default | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `--id` | string | yes | no | - | Item ID to seal. |
-| `--resolution` | string | yes | no | - | Resolution note or proof summary. |
-| `--commit` | string | no | no | - | Commit SHA associated with the fix. |
-| `--commit-sha` | string | no | no | - | Alias for --commit. |
-| `--test-path` | string | no | no | - | Path to verification test. |
-| `--assertions` | string | no | no | - | Assertion count or summary. |
-| `--runtime-ms` | int | no | no | - | Test runtime in milliseconds. |
-| `--queue-file` | string | no | no | - | Custom path to feedback-queue.jsonl. |
-| `--queue-path` | string | no | no | - | Alias for --queue-file. |
-| `--require-commit-sha` | bool | no | no | - | Require commit SHA to be present and >= 7 chars. |
-| `--require-test-path` | bool | no | no | - | Require test path to be present. |
-
-```bash
-bun harness.ts mind:queue:seal --id fb-123 --resolution 'Fixed broken parser' --commit a1b2c3d
-bun harness.ts todo:seal --id fb-123 --resolution 'Implemented CLI command' --test-path tests/cli.test.ts
-```
-
-### `mind:queue:clean`
-
-Prune resolved items from the queue into completed archives ledger.
-
-Archives completed and declined items from feedback-queue.jsonl into completed-tasks.jsonl ledger.
-
-- **Aliases**: `todo:clean`
-- **Stdin**: not read
-- **Arguments after `--`**: rejected
-
-| Flag | Type | Required | Repeatable | Default | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `--queue-file` | string | no | no | - | Custom path to feedback-queue.jsonl. |
-| `--queue-path` | string | no | no | - | Alias for --queue-file. |
-| `--archive-file` | string | no | no | - | Custom path to completed-tasks.jsonl ledger. |
-| `--completed-file` | string | no | no | - | Alias for --archive-file. |
-| `--dry-run` | bool | no | no | - | Simulate clean without writing changes to files. |
-
-```bash
-bun harness.ts mind:queue:clean
-bun harness.ts todo:clean --dry-run
+bun harness.ts mind:rotate --run .olt/capsules/mind-gen-1 --next-run .olt/capsules/mind-gen-2 --actor coordinator-1
 ```
 
 ### `smart-task:plan`

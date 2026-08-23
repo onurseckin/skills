@@ -6,7 +6,7 @@ describe("Documentation Separation & Boundary Invariant Unit Tests", () => {
   const repoRoot = resolve(import.meta.dir, "../../..");
   const rootDocsDir = join(repoRoot, "docs");
   const skillDocsDir = join(repoRoot, "olt", "docs");
-  const capsulesDir = join(repoRoot, ".capsules");
+  const capsulesDir = join(repoRoot, ".olt");
   const mindDir = join(repoRoot, "olt", "mind");
   const mindRolePath = join(repoRoot, "olt", "roles", "mind.md");
 
@@ -14,15 +14,16 @@ describe("Documentation Separation & Boundary Invariant Unit Tests", () => {
     expect(existsSync(skillDocsDir)).toBe(false);
   });
 
-  it("verifies root docs/planning directory is completely purged and does not exist", () => {
-    const planningDir = join(rootDocsDir, "planning");
-    expect(existsSync(planningDir)).toBe(false);
-  });
-
   it("verifies root docs/ directory contains strictly repository-wide skill collection guidelines and human educational docs", () => {
     expect(existsSync(rootDocsDir)).toBe(true);
 
-    const allowedEntries = new Set(["README.md", "SKILL_COLLECTION_GUIDELINES.md", "olt"]);
+    const allowedEntries = new Set([
+      "README.md",
+      "SKILL_COLLECTION_GUIDELINES.md",
+      "olt",
+      "planning",
+      "mind",
+    ]);
     const entries = readdirSync(rootDocsDir);
     expect(entries.length).toBeGreaterThan(0);
 
@@ -39,7 +40,7 @@ describe("Documentation Separation & Boundary Invariant Unit Tests", () => {
     expect(existsSync(charterPath)).toBe(true);
   });
 
-  it("verifies runtime plans and execution state live strictly under .capsules/", () => {
+  it("verifies runtime plans and execution state live strictly under .olt/", () => {
     expect(existsSync(capsulesDir)).toBe(true);
 
     const entries = readdirSync(capsulesDir);

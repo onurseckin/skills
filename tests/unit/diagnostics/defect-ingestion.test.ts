@@ -1,3 +1,4 @@
+import { resolveDefectsPath, resolveBacklogPath } from "../../../olt/scripts/src/shared/paths.ts";
 import { describe, expect, test } from "bun:test";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -9,7 +10,7 @@ import {
 
 describe("Diagnostics Defect Ingestion Engine", () => {
   const repoRoot = process.cwd();
-  const historicalDefectsPath = join(repoRoot, ".capsules", "defects.jsonl");
+  const historicalDefectsPath = resolveDefectsPath(process.cwd());
 
   describe("Historical .capsules/defects.jsonl Ingestion", () => {
     test("successfully parses all historical defect records without crashing", () => {

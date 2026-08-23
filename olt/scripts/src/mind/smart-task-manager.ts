@@ -188,38 +188,19 @@ export interface CognitiveMemoryState {
   readonly context?: Readonly<Record<string, unknown>> | undefined;
 }
 
-export const CANONICAL_COGNITIVE_MEMORY_FILE = ".capsules/mind/memory.json";
-export const DEFAULT_COGNITIVE_MEMORY_FILE = ".capsules/mind/memory.json";
+export const CANONICAL_COGNITIVE_MEMORY_FILE = ".olt/memory.json";
+export const DEFAULT_COGNITIVE_MEMORY_FILE = ".olt/memory.json";
 
-export function resolveCanonicalCognitiveMemoryPath(customRoot?: string, useTodo = false): string {
+export function resolveCanonicalCognitiveMemoryPath(customRoot?: string): string {
   const root = customRoot && customRoot.trim() ? resolve(customRoot.trim()) : process.cwd();
-  const relPath = CANONICAL_COGNITIVE_MEMORY_FILE;
-  return join(root, relPath);
+  return join(root, CANONICAL_COGNITIVE_MEMORY_FILE);
 }
 
 export function resolveCognitiveMemoryPath(customPath?: string): string {
   if (customPath && customPath.trim()) {
     return resolve(customPath.trim());
   }
-  const cwd = process.cwd();
-  const candidates = [cwd, dirname(cwd)];
-
-  for (const root of candidates) {
-    const canonical = join(root, CANONICAL_COGNITIVE_MEMORY_FILE);
-    if (existsSync(canonical)) return canonical;
-  }
-
-  if (existsSync(join(cwd, ".capsules", "mind"))) {
-    return join(cwd, CANONICAL_COGNITIVE_MEMORY_FILE);
-  }
-  if (existsSync(join(cwd, ".capsules"))) {
-    return join(cwd, CANONICAL_COGNITIVE_MEMORY_FILE);
-  }
-  const parentCapsules = join(dirname(cwd), ".capsules");
-  if (existsSync(parentCapsules)) {
-    return join(dirname(cwd), CANONICAL_COGNITIVE_MEMORY_FILE);
-  }
-  return resolve(cwd, CANONICAL_COGNITIVE_MEMORY_FILE);
+  return resolveCanonicalCognitiveMemoryPath(process.cwd());
 }
 
 export function readCognitiveMemory(customPath?: string): CognitiveMemoryState {
