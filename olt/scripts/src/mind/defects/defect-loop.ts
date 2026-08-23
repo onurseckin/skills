@@ -7,7 +7,7 @@ import {
   type DefectRemediationSynthesis,
   type DefectResolutionProof,
   type DefectStatus,
-} from "../mind/defects.ts";
+} from "../defects.ts";
 import { LiveDefectDeduplicator } from "./live-dedup.ts";
 import type {
   AggregatedDefect,

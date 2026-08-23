@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { categorizeDefect } from "../mind/defects.ts";
+import { categorizeDefect } from "../defects.ts";
 import type {
   DefectCategory,
   DefectKeyOptions,
