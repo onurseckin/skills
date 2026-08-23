@@ -130,9 +130,22 @@ export async function taskReviewCommand(flags: Flags): Promise<Record<string, un
   const summary = failure ? failure.observation : textFlag(flags, "summary", false);
 
   if (isMicroCycle && status === "fail") {
-    const reason = failure?.observation ?? summary ?? "Micro-cycle critique";
-    const remediation = failure?.remediation ?? textFlag(flags, "remediation", false);
-    const defect = failure?.observation ?? textFlag(flags, "defect", false) ?? reason;
+    const reason =
+      failure?.observation !== undefined
+        ? failure.observation
+        : summary !== undefined
+          ? summary
+          : "Micro-cycle critique";
+    const remediation =
+      failure?.remediation !== undefined
+        ? failure.remediation
+        : textFlag(flags, "remediation", false);
+    const defect =
+      failure?.observation !== undefined
+        ? failure.observation
+        : textFlag(flags, "defect", false) !== undefined
+          ? textFlag(flags, "defect", false)
+          : reason;
     const maxRounds = integerFlag(flags, "max-rounds", { minimum: 1, maximum: 50 });
 
     const state = recordMicroCycleCritique(workflowPort(run), taskId, validator, reason, {

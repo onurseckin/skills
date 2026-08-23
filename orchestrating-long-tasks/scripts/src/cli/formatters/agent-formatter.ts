@@ -133,19 +133,22 @@ export function formatAgentRegisterBrief(grant: AgentGrantRecord, runId: string)
 }
 
 export function formatAgentReportBrief(grant: AgentGrantRecord, runId: string): string {
-  const tools = grant.tools_used ?? [];
+  const tools = grant.tools_used !== undefined ? grant.tools_used : [];
   const toolList =
     tools.length === 0
       ? "none reported"
       : tools.map((tool) => `${toolCell(tool)} [${tool.evidence_class}]`).join(", ");
-  const extras = Object.entries(grant.token_extras ?? {});
+  const extras = Object.entries(grant.token_extras !== undefined ? grant.token_extras : {});
   const extraList =
     extras.length === 0
       ? "none reported"
       : extras.map(([name, counter]) => `\`${name}\` ${cell(counter)}`).join(", ");
+  const reportCount = grant.report_count !== undefined ? grant.report_count : 0;
+  const lastReported =
+    grant.last_reported_at !== undefined ? grant.last_reported_at : "unknown";
   const md = [
     `### Agent Report: ${grant.id} (${grant.role})`,
-    `- **Reports Ingested**: ${grant.report_count ?? 0} (latest ${grant.last_reported_at ?? "unknown"})`,
+    `- **Reports Ingested**: ${reportCount} (latest ${lastReported})`,
     `- **Tools Used**: ${toolList}`,
     `- **Tokens In**: ${cell(grant.tokens_in)} · **Tokens Out**: ${cell(grant.tokens_out)}`,
     `- **Other Counters**: ${extraList}`,
@@ -163,11 +166,15 @@ export function formatAgentReportBrief(grant: AgentGrantRecord, runId: string): 
 }
 
 export function formatAgentReleaseBrief(grant: AgentGrantRecord, runId: string): string {
+  const releasedAtStr =
+    grant.released_at !== undefined ? grant.released_at : "unknown";
+  const releaseReasonStr =
+    grant.release_reason !== undefined ? grant.release_reason : "none recorded";
   const md = [
     `### Agent Released: ${grant.id} (${grant.role})`,
     `- **Granted At**: ${grant.granted_at}`,
-    `- **Released At**: ${grant.released_at ?? "unknown"}`,
-    `- **Reason**: ${grant.release_reason ?? "none recorded"}`,
+    `- **Released At**: ${releasedAtStr}`,
+    `- **Reason**: ${releaseReasonStr}`,
     `- **Tokens In**: ${cell(grant.tokens_in)} · **Tokens Out**: ${cell(grant.tokens_out)}`,
     "",
     `Remaining deployment: \`bun harness.ts agent:list --run ${runId}\``,
