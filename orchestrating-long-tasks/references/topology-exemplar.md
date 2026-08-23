@@ -93,3 +93,13 @@ An edge whose write scopes are provably disjoint is also `plan:audit`'s `A4-fals
 [`references/protocol.md`](protocol.md) for the full six-invariant audit and its
 `--accept-audit "<id>:<reason>"` override. The two checks are independent: a stated reason satisfies
 `plan:compile`'s declaration; a genuinely unrelated scope still needs the audit's own override.
+
+## Generation 5: Automatic Brent Work/Span Dynamic Rebalancing
+
+Generation 5 introduces automatic Work/Span topology rebalancing using Brent's Theorem limits:
+
+- **Work ($W$)**: Total task execution effort ($\sum \text{effort}$).
+- **Span ($S$)**: Critical path length along true dependency chains.
+- **Parallelism Factor ($P$)**: $P = \lceil W / S \rceil$, defining optimal concurrency headroom without artificial worker limits.
+- **Automatic Edge Decoupling**: The harness (`dag:render`, `rebalanceTasksWithBrentLimits`) detects false serialization barriers where write scopes are disjoint and dataflow rationale is absent, automatically decoupling them to restore maximum concurrency lanes ($\le 40$).
+- **Live Memory Integration**: Computed metrics ($W, S, P$, efficiency) are persistently recorded in `.capsules/mind/memory.json` for cross-run cognitive planning.

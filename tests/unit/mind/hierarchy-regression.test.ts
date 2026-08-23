@@ -217,7 +217,7 @@ describe("Phase 4 Hierarchy and Regression Integration Suite", () => {
         }
       }
       for (const spec of COMMAND_REGISTRY) {
-        expect(spec.name).toMatch(/^[a-z][a-z-]*(?::[a-z][a-z-]*)?$/u);
+        expect(spec.name).toMatch(/^[a-z][a-z-]*(?::[a-z][a-z-]*)*$/u);
         expect(typeof spec.handler).toBe("function");
         expect(spec.domain).toBeDefined();
       }

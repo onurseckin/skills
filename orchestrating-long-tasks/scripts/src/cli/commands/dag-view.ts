@@ -52,6 +52,7 @@ export interface DagNodeSummary {
   readonly assignedTool?: string | null | undefined;
   readonly attempt: number | null;
   readonly wave: number;
+  readonly lane?: number | undefined;
   readonly criticalDepth: number;
   readonly descendantCount: number;
   readonly effort?: number | undefined;
@@ -66,6 +67,9 @@ export interface ActiveAgentInfo {
   readonly taskId: string | null;
   readonly attempt: number | null;
   readonly tool?: string | null | undefined;
+  readonly wave?: number | null | undefined;
+  readonly lane?: number | null | undefined;
+  readonly coordinateBadge?: string | undefined;
 }
 
 export interface ParallelizationRecommendation {
@@ -845,18 +849,42 @@ export function dagViewCommand(
   }
 
   const { waveMap, maxWave } = computeTopologicalWaves(nodeSummaries, depMap);
-  const updatedNodes = nodeSummaries.map((node) => ({
-    ...node,
-    wave: waveMap.has(node.id) ? (waveMap.get(node.id) as number) : 1,
-  }));
 
   const waveGroups: { wave: number; tasks: DagNodeSummary[] }[] = [];
   for (let w = 1; w <= maxWave; w += 1) {
-    const tasksInWave = updatedNodes.filter((t) => t.wave === w);
+    const tasksInWave = nodeSummaries
+      .filter((t) => (waveMap.get(t.id) ?? 1) === w)
+      .map((t, idx) => ({
+        ...t,
+        wave: w,
+        lane: idx + 1,
+      }));
     if (tasksInWave.length > 0) {
       waveGroups.push({ wave: w, tasks: tasksInWave });
     }
   }
+
+  const updatedNodes = waveGroups.flatMap((wg) => wg.tasks);
+
+  const enrichedActiveAgents: ActiveAgentInfo[] = activeAgents.map((a) => {
+    let waveNum: number | null = null;
+    let laneNum: number | null = null;
+    if (a.taskId) {
+      const found = updatedNodes.find((n) => n.id === a.taskId);
+      if (found) {
+        waveNum = found.wave;
+        laneNum = found.lane ?? 1;
+      }
+    }
+    const coordBadge =
+      waveNum !== null && laneNum !== null ? `[W${waveNum}:L${laneNum}]` : undefined;
+    return {
+      ...a,
+      wave: waveNum,
+      lane: laneNum,
+      coordinateBadge: coordBadge,
+    };
+  });
 
   const waveInfos: WaveInfo[] = waveGroups.map((wg) => ({
     wave: wg.wave,
@@ -907,7 +935,7 @@ export function dagViewCommand(
     `- **Graph Status**: ${isCompiled ? `Compiled (Revision ${graphRevision})` : "Draft (Planning Buffer)"}`,
     `- **Total Tasks**: ${updatedNodes.length} across ${waveGroups.length} execution wave(s)`,
     `- **Critical Path**: ${maxCriticalPath} wave(s) | **Max Parallel Capacity**: ${maxParallel} lanes | **Work/Span (P)**: ${parallelismFactor}`,
-    `- **Active Subagents**: ${activeAgents.length} registered in flight`,
+    `- **Active Subagents**: ${enrichedActiveAgents.length} registered in flight`,
     "",
     "#### Live ASCII DAG Trace",
     "```text",
@@ -915,11 +943,11 @@ export function dagViewCommand(
     "```",
   ];
 
-  if (activeAgents.length > 0) {
+  if (enrichedActiveAgents.length > 0) {
     mdSections.push("");
     mdSections.push("#### Active Subagents & Lease Matrix");
     const agentHeaders = ["Agent ID", "Role", "Host", "Status", "Leased Task", "Attempt", "Tool"];
-    const agentRows = activeAgents.map((a) => [
+    const agentRows = enrichedActiveAgents.map((a) => [
       `\`${a.id}\``,
       a.role,
       a.host,
@@ -999,7 +1027,7 @@ export function dagViewCommand(
     total_tasks: updatedNodes.length,
     status_summary: statusCounts,
     critical_path_length: maxCriticalPath,
-    active_agents: activeAgents,
+    active_agents: enrichedActiveAgents,
     waves: waveInfos,
     recommendations,
     ascii_dag: asciiDag,

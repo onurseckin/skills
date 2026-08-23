@@ -26,6 +26,7 @@ export interface ParallelMetrics {
   readonly parallelismFactor: number;
   readonly optimalLanes: number;
   readonly maxSupportedLanes: number;
+  readonly efficiency: number;
 }
 
 export interface ParallelLaneAssignment {
@@ -151,7 +152,7 @@ export function detectArtificialSerialization(
 }
 
 export function computeWorkSpanMetrics(
-  tasks: readonly { readonly id: string; readonly effort?: number }[],
+  tasks: readonly { readonly id: string; readonly effort?: number | undefined }[],
   dependencies: ReadonlyMap<string, ReadonlySet<string>>,
   maxLanes = 40,
 ): ParallelMetrics {
@@ -207,12 +208,102 @@ export function computeWorkSpanMetrics(
     Math.min(maxLanes, Math.ceil(parallelismFactor > 0 ? parallelismFactor : 1)),
   );
 
+  const efficiency =
+    optimalLanes > 0 && parallelismFactor > 0
+      ? Math.round((parallelismFactor / optimalLanes) * 100) / 100
+      : 0;
+
   return {
     totalWork,
     criticalSpan,
     parallelismFactor,
     optimalLanes,
     maxSupportedLanes: maxLanes,
+    efficiency,
+  };
+}
+
+export interface DynamicLanePartitioningResult {
+  readonly lanes: readonly ParallelLaneAssignment[];
+  readonly metrics: ParallelMetrics;
+  readonly optimalLanes: number;
+  readonly waves: readonly ConcurrencyWave[];
+}
+
+export type DynamicLaneTaskInput = {
+  readonly id?: string | undefined;
+  readonly taskId?: string | undefined;
+  readonly effort?: number | undefined;
+  readonly writeScope?: readonly string[] | undefined;
+  readonly write_scope?: readonly string[] | undefined;
+  readonly dependencies?: readonly string[] | undefined;
+};
+
+export function partitionDynamicLanes(
+  tasks: readonly DynamicLaneTaskInput[],
+  dependenciesOrMaxLanes?: ReadonlyMap<string, ReadonlySet<string>> | number | undefined,
+  maxLanesOpt?: number | undefined,
+): DynamicLanePartitioningResult {
+  let depsMap: ReadonlyMap<string, ReadonlySet<string>>;
+  let maxLanes: number;
+
+  if (typeof dependenciesOrMaxLanes === "number") {
+    maxLanes = dependenciesOrMaxLanes;
+    const derivedDeps = new Map<string, Set<string>>();
+    for (const t of tasks) {
+      const id = t.taskId ?? t.id ?? "";
+      if (id) {
+        derivedDeps.set(id, new Set(t.dependencies ?? []));
+      }
+    }
+    depsMap = derivedDeps;
+  } else if (dependenciesOrMaxLanes instanceof Map) {
+    depsMap = dependenciesOrMaxLanes;
+    maxLanes = typeof maxLanesOpt === "number" ? maxLanesOpt : 40;
+  } else {
+    const derivedDeps = new Map<string, Set<string>>();
+    for (const t of tasks) {
+      const id = t.taskId ?? t.id ?? "";
+      if (id) {
+        derivedDeps.set(id, new Set(t.dependencies ?? []));
+      }
+    }
+    depsMap = derivedDeps;
+    maxLanes = typeof maxLanesOpt === "number" ? maxLanesOpt : 40;
+  }
+
+  const normalizedTasks: TaskScopeInput[] = tasks.map((t) => ({
+    taskId: t.taskId ?? t.id ?? "",
+    writeScope: (t.writeScope ?? t.write_scope ?? []).map(normalizeScopePath),
+    dependencies: t.dependencies ?? [...(depsMap.get(t.taskId ?? t.id ?? "") ?? [])],
+  }));
+
+  const metrics = computeWorkSpanMetrics(
+    tasks.map((t) => ({ id: t.taskId ?? t.id ?? "", effort: t.effort })),
+    depsMap,
+    maxLanes,
+  );
+
+  const targetLanes = Math.max(1, Math.min(maxLanes, metrics.optimalLanes));
+  const waves = computeConcurrencyWaves(normalizedTasks, depsMap);
+  const assignments: ParallelLaneAssignment[] = [];
+
+  for (const wave of waves) {
+    wave.tasks.forEach((taskId, index) => {
+      const laneIndex = index % targetLanes;
+      assignments.push({
+        laneIndex,
+        taskId,
+        waveIndex: wave.waveIndex,
+      });
+    });
+  }
+
+  return {
+    lanes: assignments,
+    metrics,
+    optimalLanes: targetLanes,
+    waves,
   };
 }
 
@@ -257,6 +348,7 @@ export function decoupleDisjointTasks(
         parallelismFactor: 0,
         optimalLanes: 1,
         maxSupportedLanes: maxLanes,
+        efficiency: 0,
       },
       waves: [],
       lanes: [],

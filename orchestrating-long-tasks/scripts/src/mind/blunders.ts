@@ -1,5 +1,13 @@
-import { existsSync, lstatSync, readdirSync, readFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import {
+  appendFileSync,
+  existsSync,
+  lstatSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  writeFileSync,
+} from "node:fs";
+import { dirname, join, resolve } from "node:path";
 import { enforceLineLimit, formatTable } from "../cli/formatters/line-limiter.ts";
 import { HarnessError } from "../errors/harness-error.ts";
 export * from "./pushbacks.ts";
@@ -81,6 +89,27 @@ export interface ParseBlunderLogOptions {
 
 export interface FormatBlunderAuditBriefOptions {
   readonly maxLines?: number | undefined;
+}
+
+export interface LogBoundaryViolationParams {
+  readonly agent_id?: string | null | undefined;
+  readonly role?: string | undefined;
+  readonly tier?: number | undefined;
+  readonly violation_type: string;
+  readonly invariant?: string | undefined;
+  readonly severity?: "critical" | "warning" | "high" | "low" | "info" | string | undefined;
+  readonly observation: string;
+  readonly remediation?: string | undefined;
+  readonly evidence?: Readonly<Record<string, unknown>> | undefined;
+  readonly context?: Readonly<Record<string, unknown>> | undefined;
+  readonly timestamp?: string | undefined;
+}
+
+export interface LogBoundaryViolationOptions {
+  readonly capsuleRoot?: string | undefined;
+  readonly customPath?: string | undefined;
+  readonly useTodo?: boolean | undefined;
+  readonly writeToDisk?: boolean | undefined;
 }
 
 export interface BlunderHypothesis {
@@ -636,6 +665,91 @@ export function resolveBlunderLogPath(customPath?: string): string {
   return resolve(cwd, LEGACY_BLUNDERS_FILE);
 }
 
+/**
+ * Appends a single BlunderEntry to the canonical or specified blunders log file.
+ */
+export function appendBlunderLogEntry(
+  entry: BlunderEntry,
+  options?: LogBoundaryViolationOptions,
+): string {
+  const targetPath = options?.customPath
+    ? resolve(options.customPath)
+    : options?.capsuleRoot
+      ? resolveCanonicalBlunderLogPath(options.capsuleRoot, options.useTodo ?? false)
+      : resolveBlunderLogPath();
+
+  try {
+    const parentDir = dirname(targetPath);
+    if (!existsSync(parentDir)) {
+      mkdirSync(parentDir, { recursive: true });
+    }
+    const line = `${JSON.stringify(entry)}\n`;
+    appendFileSync(targetPath, line, "utf8");
+  } catch {
+    // Non-fatal if filesystem append fails in restricted test/mock environment
+  }
+
+  return targetPath;
+}
+
+/**
+ * Automatically logs a boundary violation blunder with strict typing, structured context, and disk persistence.
+ */
+export function logBoundaryViolationBlunder(
+  params: LogBoundaryViolationParams,
+  options?: LogBoundaryViolationOptions,
+): BlunderEntry {
+  if (!params.observation || !params.observation.trim()) {
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      "Boundary violation blunder requires non-empty observation",
+    );
+  }
+  if (!params.violation_type || !params.violation_type.trim()) {
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      "Boundary violation blunder requires non-empty violation_type",
+    );
+  }
+
+  const timestamp = params.timestamp?.trim() || new Date().toISOString();
+  const id = `blunder-boundary-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const defaultRemediation =
+    params.remediation?.trim() ||
+    `Enforce zero-tolerance boundary confinement for role '${params.role ?? "agent"}' and remediate violation '${params.violation_type}'.`;
+
+  const context: Record<string, unknown> = {
+    ...(params.context ?? {}),
+    ...(params.evidence ? { evidence: params.evidence } : {}),
+    ...(params.tier !== undefined ? { tier: params.tier } : {}),
+    ...(params.invariant ? { invariant: params.invariant } : {}),
+  };
+
+  const entry: BlunderEntry = {
+    id,
+    type: params.violation_type.trim(),
+    severity: params.severity?.trim().toLowerCase() || "critical",
+    timestamp,
+    category: "boundary_violation",
+    status: "open",
+    observation: params.observation.trim(),
+    remediation: defaultRemediation,
+    ...(params.role ? { role: params.role.trim() } : {}),
+    ...(params.agent_id !== undefined ? { agent_id: params.agent_id } : {}),
+    context,
+    count: 1,
+    first_seen_at: timestamp,
+    last_seen_at: timestamp,
+    ...(options?.capsuleRoot ? { capsule_root: options.capsuleRoot } : {}),
+  };
+
+  if (options?.writeToDisk !== false) {
+    appendBlunderLogEntry(entry, options);
+  }
+
+  return entry;
+}
+
 function findBlunderFiles(targetPath: string): string[] {
   const found: string[] = [];
   if (!existsSync(targetPath)) {
@@ -926,6 +1040,181 @@ export function formatBlunderAuditBrief(
  */
 
 /**
+ * Formulates a structured root-cause hypothesis specifically for a boundary violation blunder.
+ */
+export function formulateBoundaryViolationHypothesis(blunder: BlunderEntry): BlunderHypothesis {
+  let rootCause: string;
+  let confidence = 0.98;
+  const evidence: string[] = [];
+
+  if (blunder.observation) {
+    evidence.push(`Observation: ${blunder.observation}`);
+  }
+  if (blunder.remediation) {
+    evidence.push(`Prescribed remediation: ${blunder.remediation}`);
+  }
+  if (blunder.role) {
+    evidence.push(`Role: ${blunder.role}`);
+  }
+  if (blunder.agent_id) {
+    evidence.push(`Agent ID: ${blunder.agent_id}`);
+  }
+
+  const vType = blunder.type.toLowerCase();
+  const rawObs = (blunder.observation || "").toLowerCase();
+  const rawInvariant =
+    blunder.context && typeof blunder.context.invariant === "string"
+      ? blunder.context.invariant.toLowerCase()
+      : "";
+
+  if (
+    vType.includes("coordinator_code_writing") ||
+    (rawObs.includes("coordinator") &&
+      (rawObs.includes("code") || rawObs.includes("write") || rawObs.includes("file"))) ||
+    rawInvariant.includes("coordinator_code_writing")
+  ) {
+    rootCause =
+      "Tier 2 Coordinator breached zero-tolerance boundary (0 coordinator code writing) by attempting direct file editing or implementation lease holding instead of delegating to Tier 3 Implementers.";
+    confidence = 0.99;
+  } else if (
+    vType.includes("orchestrator_direct_implementation") ||
+    (rawObs.includes("orchestrator") &&
+      (rawObs.includes("task") || rawObs.includes("implementation") || rawObs.includes("plan"))) ||
+    rawInvariant.includes("orchestrator_task_implementation")
+  ) {
+    rootCause =
+      "Tier 1 Orchestrator breached zero-tolerance boundary (0 orchestrator task implementations) by directly executing task implementations or graph mutations instead of delegating to Tier 2 Coordinators.";
+    confidence = 0.99;
+  } else if (
+    vType.includes("unassigned_test_running") ||
+    rawObs.includes("unassigned test") ||
+    rawObs.includes("prohibited full test") ||
+    rawInvariant.includes("unassigned_test_running")
+  ) {
+    rootCause =
+      "Agent breached test running confinement (0 unassigned test running) by executing full test suites or unassigned test files outside authorized scope.";
+    confidence = 0.97;
+  } else if (
+    vType.includes("anti_boundary_leak") ||
+    rawObs.includes("anti-boundary-leak") ||
+    (rawObs.includes("validator") && rawObs.includes("write"))
+  ) {
+    rootCause =
+      "Validator or Critic breached Anti-Boundary-Leak policy by declaring write permissions or attempting mutations.";
+    confidence = 0.99;
+  } else if (
+    vType.includes("cross_tier_spawning") ||
+    rawObs.includes("cross-tier") ||
+    rawObs.includes("directly spawned")
+  ) {
+    rootCause =
+      "Supervisory agent bypassed 4-tier hierarchical spawning boundaries (Tier 0 -> Tier 1 -> Tier 2 -> Tier 3).";
+    confidence = 0.98;
+  } else if (
+    vType.includes("leaf_spawning") ||
+    (rawObs.includes("leaf") && rawObs.includes("spawn"))
+  ) {
+    rootCause = "Tier 3 leaf agent attempted illegal subagent dispatch.";
+    confidence = 0.98;
+  } else if (
+    vType.includes("supervisory_task_claim") ||
+    (rawObs.includes("claim") &&
+      (rawObs.includes("tier 0") || rawObs.includes("tier 1") || rawObs.includes("tier 2")))
+  ) {
+    rootCause =
+      "Supervisory agent (Tier 0-2) illegally attempted task claiming command instead of delegating execution.";
+    confidence = 0.96;
+  } else {
+    rootCause = `Agent role confinement failure or unauthorized boundary breach (${blunder.type}).`;
+    confidence = 0.95;
+  }
+
+  if (blunder.context && typeof blunder.context === "object") {
+    if (blunder.context.invariant) {
+      evidence.push(`Violated invariant: ${String(blunder.context.invariant)}`);
+    }
+    if (blunder.context.evidence) {
+      evidence.push(`Evidence: ${JSON.stringify(blunder.context.evidence)}`);
+    }
+  }
+
+  return {
+    id: `hypo-${blunder.id}`,
+    blunder_id: blunder.id,
+    root_cause: rootCause,
+    confidence,
+    category: "boundary_violation",
+    evidence,
+  };
+}
+
+/**
+ * Synthesizes actionable remediation actions specifically for boundary violation blunders.
+ */
+export function synthesizeBoundaryRemediationActions(
+  hypotheses: readonly BlunderHypothesis[],
+  blunders: readonly BlunderEntry[],
+  options: { readonly defaultWriteScope?: readonly string[] | undefined } = {},
+): readonly BlunderRemediationAction[] {
+  const actions: BlunderRemediationAction[] = [];
+  const blunderMap = new Map<string, BlunderEntry>();
+  for (const b of blunders) {
+    blunderMap.set(b.id, b);
+  }
+
+  const defaultScope = options.defaultWriteScope ?? ["orchestrating-long-tasks/scripts/src/mind/"];
+
+  for (let i = 0; i < hypotheses.length; i += 1) {
+    const h = hypotheses[i];
+    if (!h) continue;
+
+    const b = blunderMap.get(h.blunder_id);
+    const targetScope =
+      b?.context && typeof b.context.cwd === "string" ? [b.context.cwd] : defaultScope;
+
+    let actionType: BlunderRemediationAction["action_type"] = "tighten_boundary";
+    let testAssertion = "";
+
+    const vType = b?.type.toLowerCase() || "";
+    const rawObs = (b?.observation || "").toLowerCase();
+
+    if (vType.includes("coordinator_code_writing") || rawObs.includes("coordinator")) {
+      actionType = "tighten_boundary";
+      testAssertion = `verifyRoleRestraint("${b?.agent_id ?? "coordinator"}", "0_coordinator_code_writing") === true`;
+    } else if (
+      vType.includes("orchestrator_direct_implementation") ||
+      rawObs.includes("orchestrator")
+    ) {
+      actionType = "tighten_boundary";
+      testAssertion = `verifyRoleRestraint("${b?.agent_id ?? "orchestrator"}", "0_orchestrator_task_implementation") === true`;
+    } else if (vType.includes("unassigned_test_running") || rawObs.includes("test")) {
+      actionType = "add_test_gate";
+      testAssertion = `verifyRoleRestraint("${b?.agent_id ?? "agent"}", "0_unassigned_test_running") === true`;
+    } else if (vType.includes("anti_boundary_leak") || rawObs.includes("anti-boundary-leak")) {
+      actionType = "update_invariants";
+      testAssertion = `verifyAntiBoundaryLeak("${b?.role ?? "validator"}") === true`;
+    } else {
+      actionType = "tighten_boundary";
+      testAssertion = `verifyRoleRestraint(${b?.agent_id ? `"${b.agent_id}"` : '"agent"'}) === true`;
+    }
+
+    actions.push({
+      action_id: `act-boundary-${h.blunder_id}-${i + 1}`,
+      blunder_id: h.blunder_id,
+      target_scope: targetScope,
+      action_type: actionType,
+      description: b?.remediation
+        ? b.remediation
+        : `Remediate boundary violation root cause: ${h.root_cause}`,
+      prescribed_test: testAssertion,
+      status: b?.status === "resolved" ? "verified" : "planned",
+    });
+  }
+
+  return actions;
+}
+
+/**
  * Formulates root-cause hypotheses for a set of blunders based on category, observations, and context.
  */
 export function formulateBlunderHypotheses(
@@ -936,6 +1225,11 @@ export function formulateBlunderHypotheses(
   for (let i = 0; i < blunders.length; i += 1) {
     const b = blunders[i];
     if (!b) continue;
+
+    if (b.category === "boundary_violation") {
+      hypotheses.push(formulateBoundaryViolationHypothesis(b));
+      continue;
+    }
 
     let rootCause = "";
     let confidence = 0.8;
@@ -955,10 +1249,6 @@ export function formulateBlunderHypotheses(
     }
 
     switch (b.category) {
-      case "boundary_violation":
-        rootCause = `Agent role confinement failure or unauthorized mutation attempt (${b.type})`;
-        confidence = 0.95;
-        break;
       case "model_reasoning_error":
         rootCause = `Planning or reasoning divergence from canonical invariants (${b.type})`;
         confidence = 0.85;
@@ -1004,6 +1294,15 @@ export function synthesizeRemediationActions(
     if (!h) continue;
 
     const b = blunderMap.get(h.blunder_id);
+
+    if (h.category === "boundary_violation") {
+      const boundaryActions = synthesizeBoundaryRemediationActions([h], b ? [b] : [], options);
+      if (boundaryActions.length > 0) {
+        actions.push(...boundaryActions);
+        continue;
+      }
+    }
+
     const targetScope =
       b?.context && typeof b.context.cwd === "string" ? [b.context.cwd] : defaultScope;
 

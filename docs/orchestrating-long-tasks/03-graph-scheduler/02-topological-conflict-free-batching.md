@@ -226,6 +226,10 @@ bun harness.ts dag:render --run .capsules/<slug> --recommendations
 - **Parallel Optimization Recommendation**: Partition `task-db-migration` into isolated sub-schemas to unlock parallel wave execution.
 ```
 
+### Generation 5: Brent Work/Span Dynamic Rebalancing & Edge Decoupling
+
+Generation 5 automatically decouples artificial serialization barriers between tasks whose write scopes do not overlap, maximizing parallel wave lanes ($P = \lceil W / S \rceil \le 40$) and integrating Work/Span telemetry directly into cognitive memory (`.capsules/mind/memory.json`).
+
 ---
 
 [⬅ Previous: Dependency Graph Theory](./01-dependency-graph-theory.md) | [Master Table of Contents](../README.md) | [Next: Plan Revision & Freezing ➡](./03-plan-revision-and-freezing.md)

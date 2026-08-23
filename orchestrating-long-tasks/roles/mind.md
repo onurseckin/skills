@@ -71,10 +71,17 @@ commands:
   - todo:seal
   - todo:clean
   - memory:query
+  - blunder:audit
+  - watchdog:probe
+  - watchdog:verify
+  - watchdog:status
+  - watchdog:cleanup
+  - watchdog:phase-cleanup
   - smart-task:plan
   - smart-task:ingest
   - orchestrator:supervise
   - run:status
+  - dag:render
   - dag:view
   - doctor
   - doctor:repair
@@ -146,3 +153,4 @@ The tier 0 observe-only supervisory presence and Strategic Brain at 30,000 feet 
 - Pillar 8: Autonomic Self-Recovery & Non-Idle In-Progress Resumption (automatic stale lease recovery via recover command, non-idle in-progress resumption, and dynamic full-parallel wave dispatch)
 - Pillar 9: Strategic Brain & Hyper-Active Proactive Cognition (Operating at 30,000 feet with the 3 Hard Zeros—zero source edits, zero unit test execution, zero critic jobs; actively utilizing subordinate execution windows for macro DAG diagnostics, backlog grooming, candidate admission, and proactive roadmap planning for future fleets)
 - Pillar 10: Mind Queue Domain & Cognitive Memory Persistence (Canonical storage at `<repo-root>/.capsules/mind/queue/` and `.capsules/mind/memory.json`; primary `mind:queue:*` and alias `todo:*` CLI suites; strict non-idle discovery invariant)
+- Pillar 11: Generation 5 Mindful Infusion (Brent Work/Span dynamic concurrency scaling $P = \lceil W / S \rceil$, automated decoupling of artificial serialization edges, role boundary watchdog enforcement with persona signature deduplication, empirical blunder logging with resolution proofs in `blunders.jsonl`, and live cognitive telemetry streaming with active `[W<wave>:L<lane>]` coordinate badges)

@@ -415,6 +415,34 @@ triggers dynamic graph recompilation and parallel repair rounds:
 
 ---
 
+## Generation 5 Mindful Infusion Architecture
+
+### 1. Brent Work/Span Dynamic Scaling ($P = W / S$)
+
+- Concurrency $P$ is determined algorithmically by Work $W$ over Span $S$: $P = \lceil W / S \rceil$.
+- **Artificial Dependency Decoupling**: Tasks with disjoint write scopes are automatically decoupled unless explicit dataflow or artifact coupling is documented.
+- **Wave Lane Planning**: Sugiyama topological wave scheduling maps parallel lanes with optimal concurrency caps ($\le 40$).
+- **Cognitive Memory Integration**: Work/Span metrics ($W, S, P$, efficiency) are persistently recorded in `.capsules/mind/memory.json`.
+
+### 2. Role Boundary Watchdog & Anti-Leak Governance
+
+- **Supervisor Zero-File-Edit Invariant**: Tier 0 (`mind`), Tier 1 (`orchestrator`), and Tier 2 (`coordinator`) are strictly forbidden from modifying repository files or executing test suites.
+- **Continuous Watchdog Auditing**: Background monitors (Role Boundary Watchdog, `createRoleBoundaryWatchdog`) audit agent actions in real time.
+- **Persona Deduplication**: Persona signatures are hashed across archetypes, commands, pillars, and write policies (`computePersonaSignature`) to prevent role fragmentation.
+
+### 3. Empirical Blunder Logging & Resolution
+
+- **Canonical Storage**: Blunders and boundary violations are logged to `<repo-root>/.capsules/mind/queue/blunders.jsonl`.
+- **Resolution Proofs**: Resolving blunders (`resolveBlunder` / `blunder:audit`) requires empirical proof: `commit_sha`, `test_assertion`, and `task_id`.
+- **Candidate Proposal Flow**: Open blunders are discovered, deduplicated, and admitted via `blunder:audit --auto-admit`.
+
+### 4. Live Cognitive Telemetry & Coordinate Badges
+
+- **Coordinate Badges**: Subagents carry trace badges `[W<wave>:L<lane>]` corresponding to their Sugiyama DAG wave and lane.
+- **Perpetual Telemetry**: `mind:pulse` streams real-time Work/Span metrics, active agent badges, and wave lane statuses under the infinite cadence invariant (`CLOSING_FORBIDDEN_FOR_MIND`).
+
+---
+
 ## Formal state transitions
 
 | Current state           | Trigger / command                   | Next state             | Required conditions & invariant checks                                                          |

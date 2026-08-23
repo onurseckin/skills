@@ -403,6 +403,7 @@ export function compileUnifiedHighLeveragePlan(input: UnifiedPlanInput): Unified
     parallelismFactor: 1,
     optimalLanes: 1,
     maxSupportedLanes: maxLanes,
+    efficiency: 1,
   };
 
   const topology: ExecutableTopology = {

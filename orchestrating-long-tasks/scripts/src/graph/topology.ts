@@ -147,12 +147,14 @@ export {
   type ArtificialSerializationWarning,
   type DecoupledGraphResult,
   type DecoupleOptions,
+  type DynamicLanePartitioningResult,
   type ParallelLaneAssignment,
   type ParallelMetrics,
   allocateParallelLanes,
   computeWorkSpanMetrics,
   decoupleDisjointTasks,
   detectArtificialSerialization,
+  partitionDynamicLanes,
 } from "./parallel-decoupler.ts";
 
 export {

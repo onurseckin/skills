@@ -83,7 +83,7 @@ describe("canonical role documents", () => {
   test("commands are named without flag syntax so they cannot drift from the manifest", () => {
     for (const role of AGENT_ROLES)
       for (const command of loadRoleContract(role).commands)
-        expect(command).toMatch(/^[a-z][a-z-]*(?::[a-z][a-z-]*)?$/u);
+        expect(command).toMatch(/^[a-z][a-z-]*(?::[a-z][a-z-]*)*$/u);
   });
 
   test("spawns name canonical roles and match the documented branch topology", () => {

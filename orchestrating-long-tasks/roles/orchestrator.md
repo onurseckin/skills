@@ -17,7 +17,8 @@ may:
   - Release a coordinator's grant once its round reaches a terminal state
   - Perform hard agent resets (manage_subagents with Action: 'kill') on completed coordinators and child subagents upon round completion
   - Enforce mandatory 3-to-5-minute supervisory scheduler cycles (5-minute watchdog schedule, `schedule` cron `*/3 * * * *`, systemd timer, or floor loop) across active execution rounds
-  - Inspect live ASCII execution DAG, active subagent allocations, and algorithmic parallelization recommendations via `dag:view`
+  - Inspect live ASCII execution DAG, active subagent allocations, and algorithmic parallelization recommendations via `dag:view` and `dag:render`
+  - Leverage Brent Work/Span dynamic concurrency scaling ($P = \lceil W / S \rceil$, optimal lanes $\le 40$) across coordinator rounds
   - Deploy dedicated Tier 2 domain coordinators when disjoint domain scopes exist to maximize parallel throughput
   - Execute final repository releases, git commits, git pushes to origin/main, and global synchronization (`bun scripts/sync-global.ts`) on its dedicated background thread upon round completion before loop recycling
   - Enforce strict repository-root `.capsules/` location and unified evidence storage under `.capsules/<run>/evidence/`
@@ -51,7 +52,9 @@ commands:
   - agent:list
   - task:brief
   - run:status
+  - dag:render
   - dag:view
+  - blunder:audit
   - recover
   - doctor
   - orchestrator:supervise

@@ -8,6 +8,7 @@ import { boolFlag, integerFlag, textFlag, type CommandContext, type Flags } from
 import { parseArguments } from "../arguments.ts";
 import { loadRun } from "../../store/index.ts";
 import { resolveCapsuleRun } from "./dag-view.ts";
+import { schedulingMetrics } from "../../scheduler/metrics.ts";
 import {
   buildSugiyamaDagReport,
   type SugiyamaDagReport,
@@ -56,6 +57,33 @@ export function dagRenderCommand(
 
   const rawAgents = (Array.isArray(state.agents) ? state.agents : []) as Record<string, unknown>[];
 
+  let depMap: Map<string, Set<string>>;
+  if (isCompiled) {
+    depMap = new Map();
+    for (const [id, t] of Object.entries(taskMap)) {
+      const deps = isStringArray(t.dependencies) ? t.dependencies : [];
+      depMap.set(id, new Set(deps));
+    }
+  } else {
+    depMap = new Map();
+    for (const item of planningBuffer) {
+      depMap.set(item.id, new Set(Array.isArray(item.deps) ? item.deps : []));
+    }
+  }
+
+  let criticalDepthMap = new Map<string, number>();
+  let descendantsMap = new Map<string, number>();
+  try {
+    const metrics = schedulingMetrics(depMap);
+    criticalDepthMap = metrics.criticalDepth;
+    descendantsMap = metrics.descendants;
+  } catch {
+    for (const k of depMap.keys()) {
+      criticalDepthMap.set(k, 0);
+      descendantsMap.set(k, 0);
+    }
+  }
+
   const sugiyamaNodes: SugiyamaNode[] = [];
   const sugiyamaEdges: SugiyamaEdge[] = [];
 
@@ -69,25 +97,50 @@ export function dagRenderCommand(
       const gate = typeof t.gate === "string" ? t.gate : undefined;
       const deps = isStringArray(t.dependencies) ? t.dependencies : [];
       const lease = isRecord(t.lease) ? t.lease : null;
-      const assignedAgent = lease && typeof lease.agent_id === "string" ? lease.agent_id : null;
-      const attempt = lease && typeof lease.attempt === "number" ? lease.attempt : null;
+      let assignedAgent =
+        lease && typeof lease.agent_id === "string" && lease.agent_id.trim().length > 0
+          ? lease.agent_id.trim()
+          : lease && typeof lease.agent === "string" && lease.agent.trim().length > 0
+            ? lease.agent.trim()
+            : null;
+      let assignedRole =
+        typeof lease?.role === "string" && lease.role.length > 0
+          ? (lease.role as string)
+          : undefined;
+      let assignedTool: string | undefined;
+      let attempt = lease && typeof lease.attempt === "number" ? lease.attempt : null;
       const effort = typeof t.effort === "number" ? t.effort : 1;
 
+      // Check validations if validating
+      if (!assignedAgent && Array.isArray(t.validations)) {
+        for (const val of t.validations) {
+          if (isRecord(val) && typeof val.validator_id === "string" && val.verdict === undefined) {
+            assignedAgent = val.validator_id;
+            assignedRole = "validator";
+            assignedTool = "run_command/verify";
+            if (typeof val.attempt === "number") attempt = val.attempt;
+            break;
+          }
+        }
+      }
+
       const matchingAgent = rawAgents.find((a) => a.id === assignedAgent);
-      const assignedRole =
-        typeof matchingAgent?.role === "string"
-          ? matchingAgent.role
-          : typeof lease?.role === "string"
-            ? (lease.role as string)
-            : assignedAgent
-              ? "implementer"
-              : undefined;
-      const assignedTool =
-        typeof matchingAgent?.tool === "string"
-          ? matchingAgent.tool
-          : typeof matchingAgent?.current_tool === "string"
-            ? matchingAgent.current_tool
-            : undefined;
+      if (matchingAgent) {
+        if (!assignedRole && typeof matchingAgent.role === "string") {
+          assignedRole = matchingAgent.role;
+        }
+        if (!assignedTool) {
+          assignedTool =
+            typeof matchingAgent.tool === "string"
+              ? matchingAgent.tool
+              : typeof matchingAgent.current_tool === "string"
+                ? matchingAgent.current_tool
+                : undefined;
+        }
+      }
+      if (!assignedRole && assignedAgent) {
+        assignedRole = status === "validating" ? "validator" : "implementer";
+      }
 
       const depReasons = isRecord(t.dep_reasons)
         ? (t.dep_reasons as Readonly<Record<string, string>>)
@@ -109,6 +162,8 @@ export function dagRenderCommand(
         assignedTool,
         attempt,
         effort,
+        criticalDepth: criticalDepthMap.get(id) ?? 0,
+        descendantCount: descendantsMap.get(id) ?? 0,
         depReasons,
       });
 
@@ -117,6 +172,7 @@ export function dagRenderCommand(
           from: depId,
           to: id,
           reason: depReasons?.[depId],
+          type: depReasons?.[depId] ? "explicit_justification" : "declared_dep",
         });
       }
     }
@@ -141,6 +197,8 @@ export function dagRenderCommand(
         dependencies: deps,
         assignedAgent: null,
         effort: typeof item.effort === "number" ? item.effort : 1,
+        criticalDepth: criticalDepthMap.get(item.id) ?? 0,
+        descendantCount: descendantsMap.get(item.id) ?? 0,
         depReasons: item.depReasons,
       });
 
@@ -149,6 +207,7 @@ export function dagRenderCommand(
           from: depId,
           to: item.id,
           reason: item.depReasons?.[depId],
+          type: item.depReasons?.[depId] ? "explicit_justification" : "declared_dep",
         });
       }
     }

@@ -221,3 +221,23 @@ bun $PINNED summary:view --run $RUN
 
 `summary:export` writes `graph.json`, `timeline.json`, `metrics.json` and `summary.md` under
 `<run>/summary`; `--out` additionally writes a registry export for the graph viewer.
+
+---
+
+## Phase 8 — Generation 5: Cognitive Telemetry, Brent Scaling & Blunder Auditing
+
+```bash
+# Render topological Sugiyama DAG with Work/Span metrics and decoupled artificial edges
+bun $PINNED dag:render --run $RUN --detailed
+
+# Real-time supervisory telemetry with Work/Span metrics and active [W<wave>:L<lane>] badges
+bun $PINNED mind:pulse --run $RUN
+
+# Blunder audit, deduplication, and candidate auto-admission
+bun $PINNED blunder:audit --run $RUN --filter-status open
+bun $PINNED blunder:audit --run $RUN --auto-admit --actor coordinator
+
+# Role boundary watchdog verification across active monitors
+bun $PINNED watchdog:verify --generation 1 --all
+bun $PINNED watchdog:probe --run $RUN
+```

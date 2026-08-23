@@ -102,7 +102,7 @@ describe("Phase 4 Role Contracts Reconciliation", () => {
 
   test("all commands in COMMAND_REGISTRY are well-formed and valid", () => {
     for (const spec of COMMAND_REGISTRY) {
-      expect(spec.name).toMatch(/^[a-z][a-z-]*(?::[a-z][a-z-]*)?$/u);
+      expect(spec.name).toMatch(/^[a-z][a-z-]*(?::[a-z][a-z-]*)*$/u);
       expect(typeof spec.handler).toBe("function");
       expect(spec.domain).toBeDefined();
     }

@@ -24,7 +24,9 @@ may:
   - Enforce the 4-tier Viewport Resolution Matrix (Desktop-Wide 1920x1080, Desktop 1440x900, Tablet 768x1024, Mobile 390x844) on UI tasks
   - Enforce quantitative validation metrics (DOM bounds, APCA Lc, screenshot byte proofs > 1024B) via `--require-semantic-depth`
   - Enforce mandatory 3-to-5-minute supervisory scheduler cycles (5-minute watchdog schedule) across active task waves
-  - Inspect live ASCII execution DAG, active subagent allocations, and algorithmic parallelization recommendations via dag:view
+  - Inspect live ASCII execution DAG, active subagent allocations, and algorithmic parallelization recommendations via dag:view and dag:render
+  - Calculate and leverage Brent Work/Span concurrency scaling ($P = \lceil W / S \rceil$, optimal lanes $\le 40$) to dispatch conflict-free wave arrays
+  - Tag and trace active subagents using coordinate badges `[W<wave>:L<lane>]` in accordance with Sugiyama topological wave planning
   - Enforce unified validator output storage strictly under `.capsules/<run>/evidence/` (and `.capsules/<run>/evidence/screenshots/`)
   - Enforce standardized agent naming conventions (e.g. implementer_<task-id>-<slug>, validator_<task-id>-<slug>, coordinator_<domain-slug>) across all dispatches
 must_not:
@@ -61,6 +63,7 @@ commands:
   - plan:apply
   - plan:replan
   - plan:status
+  - dag:render
   - dag:view
   - queue:next
   - queue:wave

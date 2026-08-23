@@ -5,6 +5,7 @@ import {
   computeWorkSpanMetrics,
   decoupleDisjointTasks,
   detectArtificialSerialization,
+  partitionDynamicLanes,
 } from "../../../orchestrating-long-tasks/scripts/src/graph/parallel-decoupler.ts";
 
 describe("parallel-decoupler: detectArtificialSerialization", () => {
@@ -290,5 +291,15 @@ describe("parallel-decoupler: decoupleDisjointTasks", () => {
     expect(result.warnings).toHaveLength(0);
     expect(result.metrics.totalWork).toBe(0);
     expect(result.waves).toHaveLength(0);
+  });
+
+  test("partitionDynamicLanes partitions wave tasks according to Brent bounds", () => {
+    const tasks = [
+      { id: "t1", effort: 2 },
+      { id: "t2", effort: 3 },
+    ];
+    const result = partitionDynamicLanes(tasks, 2);
+    expect(result.lanes).toBeDefined();
+    expect(result.lanes.length).toBeGreaterThan(0);
   });
 });

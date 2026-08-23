@@ -37,9 +37,20 @@ Every agent executing within this repository must adhere to the following non-ne
    - All gate and verification commands must execute non-interactively using direct argv arrays (`run:exec … -- <argv>`).
    - Shell string interpolations, subshells, interactive confirmation prompts, and unshielded command chaining (`&&`, `||`, `;`, `|`) are strictly prohibited in automated task execution.
 10. **Zero-JSON CLI Surface:**
-
-- Agents interact with the harness exclusively through clean colon commands (e.g. `task:claim`, `task:submit`, `task:validate-start`, `task:review`, `task:brief`, `agent:brief`).
-- Commands return concise, structured markdown briefs ($\le 30$ lines) designed for token efficiency and high signal.
+    - Agents interact with the harness exclusively through clean colon commands (e.g. `task:claim`, `task:submit`, `task:validate-start`, `task:review`, `task:brief`, `agent:brief`).
+    - Commands return concise, structured markdown briefs ($\le 30$ lines) designed for token efficiency and high signal.
+11. **Brent Work/Span Dynamic Concurrency Scaling ($P = W / S$):**
+    - Dynamic parallel occupancy is computed algorithmically via Brent's Theorem: $P = \lceil W / S \rceil$, where Work $W = \sum \text{effort}$ and Span $S = \text{critical path depth}$.
+    - Artificial serialization dependencies between tasks with disjoint write scopes are decoupled automatically unless explicit dataflow/artifact rationale is present.
+12. **Supervisor Zero-File-Edit & Role Boundary Watchdog:**
+    - Supervisory tiers (Tier 0 `mind`, Tier 1 `orchestrator`, Tier 2 `coordinator`) must **never** edit repository source files or run unit test suites.
+    - Continuous watchdog monitoring (`watchdog:role-boundary`) detects boundary violations, anti-leak/anti-drift defects, and persona duplication using deterministic persona signature hashing.
+13. **Empirical Blunder Logging & Resolution Proofs:**
+    - Boundary violations, main-thread implementation attempts, and reasoning errors are logged to canonical `.capsules/mind/queue/blunders.jsonl`.
+    - Blunders are deduplicated, audited (`blunder:audit`), and resolved only with empirical proof (`commit_sha`, `test_assertion`, `task_id`).
+14. **Live Cognitive Telemetry & Active Coordinate Badges:**
+    - Supervisory pulses (`mind:pulse`) stream live Work/Span metrics ($W, S, P$, optimal concurrency, active concurrency) and active agent coordinate badges (`[W<wave>:L<lane>]`).
+    - The supervisory mind operates on an infinite autonomous cadence (`CLOSING_FORBIDDEN_FOR_MIND`) with active persona mandate injection.
 
 ---
 
@@ -220,6 +231,17 @@ To protect repository state and prevent common LLM blunder modes:
     - Mind queue data lives strictly under `<repo-root>/.capsules/mind/queue/` (and `.capsules/todo/`) using standardized lowercase kebab-case files: `feedback-queue.jsonl`, `completed-tasks.jsonl`, `blunders.jsonl`, `completed-blunders.jsonl`, `observations.jsonl`, `watchdogs.json`, alongside indexed cognitive memory at `.capsules/mind/memory.json`.
     - When feedback queue count is 0, Mind is strictly forbidden from sitting idle or reporting "waiting in standby"; it must immediately trigger autonomous discovery (0 any checks, charter gap audits, blunder regression tests, Work/Span P = W / S optimizations).
     - Mind queue operations must execute via `mind:queue:*` or alias `todo:*` CLI commands (`list`, `add`, `drain`, `seal`, `clean`).
+12. **Role Boundary Watchdog & Persona Deduplication:**
+    - Continuous watchdog auditing (`watchdog:role-boundary`, `createRoleBoundaryWatchdog`) ensures no agent violates its tier constraints, leaks write scopes, or runs forbidden test suites.
+    - Dynamic personas are deterministically hashed (`computePersonaSignature`) and deduplicated to prevent persona sprawl across multi-orchestrator deployments.
+13. **Empirical Blunder Resolution Invariant:**
+    - Every recorded blunder in `blunders.jsonl` requires empirical proof to resolve (`blunder:resolve` / `blunder:audit` with `commit_sha`, `test_assertion`, and `task_id`).
+    - Speculative assertions, verbal dismissals, and unevidenced status overrides are strictly prohibited.
+14. **Brent Work/Span Optimization & Edge Decoupling:**
+    - Wave execution plans must maximize concurrency ($P = \lceil W / S \rceil$) by pruning artificial dependencies between tasks with disjoint write scopes.
+    - Tasks must never enforce artificial serialization unless dataflow or artifact coupling is explicitly documented.
+15. **Active Coordinate Badge Traceability:**
+    - All dispatched subagents must display coordinate badges `[W<wave>:L<lane>]` corresponding to their Sugiyama DAG wave and parallel lane assignments during telemetry pulses (`mind:pulse`).
 
 ---
 
@@ -327,7 +349,36 @@ All contributions to the `@onurseckin/skills` monorepo must strictly satisfy all
 │     (alias: bun harness.ts todo:clean)                                      │
 │                                                                             │
 │  6. Autonomous Discovery on Empty Queue (0 Pending):                        │
-│     (Trigger 0 any scan, charter gap audit, blunder regression, P = W / S)  │
+│     (Trigger 0 any scan, charter gap audits, blunder regression, P = W / S)  │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### C. Work/Span Dynamic Scaling & Role Boundary Watchdog Step-Machine
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│       WORK/SPAN DYNAMIC SCALING & ROLE BOUNDARY WATCHDOG STEP-MACHINE       │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  1. Dynamic Work/Span Topology Rebalancing & Edge Decoupling:               │
+│     bun harness.ts dag:render --run <run> --detailed                        │
+│     (Decouples non-overlapping serial edges, calculates P = ceil(W / S))   │
+│                                                                             │
+│  2. Live Cognitive Telemetry & Active Agent Coordinates:                    │
+│     bun harness.ts mind:pulse --run <run>                                   │
+│     (Displays W, S, P, optimal/active concurrency, [W<wave>:L<lane>] badges)│
+│                                                                             │
+│  3. Blunder Audit & Candidate Admission:                                    │
+│     bun harness.ts blunder:audit --run <run> --filter-status open           │
+│     bun harness.ts blunder:audit --run <run> --auto-admit --actor coordinator│
+│                                                                             │
+│  4. Continuous Role Boundary Watchdog Verification:                         │
+│     bun harness.ts watchdog:verify --generation 1 --all                     │
+│     bun harness.ts watchdog:probe --run <run>                               │
+│                                                                             │
+│  5. Empirical Blunder Resolution:                                           │
+│     (Resolves defects citing task ID, commit SHA, and test assertions)      │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```

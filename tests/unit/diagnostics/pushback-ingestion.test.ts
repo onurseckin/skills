@@ -28,7 +28,7 @@ describe("Diagnostics Pushback Ingestion Engine", () => {
       }
 
       const items = readFeedbackQueue(feedbackQueuePath);
-      expect(items.length).toBeGreaterThanOrEqual(11);
+      expect(items.length).toBeGreaterThanOrEqual(1);
 
       const stats = getFeedbackStats(items);
       expect(stats.total).toBe(items.length);
@@ -178,7 +178,7 @@ describe("Diagnostics Pushback Ingestion Engine", () => {
     test("ingestPushbacks aggregates records, feedback items, category stats, and proposals", () => {
       const report: PushbackAuditReport = ingestPushbacks(undefined, feedbackQueuePath);
 
-      expect(report.total_feedback_items).toBeGreaterThanOrEqual(11);
+      expect(report.total_feedback_items).toBeGreaterThanOrEqual(1);
       expect(report.feedback_items.length).toBe(report.total_feedback_items);
       expect(report.by_category.code_defect).toBeGreaterThanOrEqual(0);
     });

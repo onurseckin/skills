@@ -144,3 +144,12 @@ section owns evidence wording only.
   - Structural countermeasure: The Triad Floor & Atomic Implementer-Validator Pair Invariant. For any task $T$, the coordinator MUST deploy an atomic $(Implementer, Validator)$ pair simultaneously in a single batch dispatch call, register both with `agent:register`, and maintain a minimum of 3 active agents (1 Coordinator + 1 Implementer + 1 Validator) even for sequential tasks.
 - `MC-5` — Observed loophole: Unattributed agents. A run finishes with a graph that cannot say who did what, so lineage is reconstructed by guesswork and one model id is stamped across every node.
   - Structural countermeasure: The grant ledger. Every dispatched subagent is recorded through `agent:register` with its role, host, parent agent and parent task; telemetry is recorded only when the host reported it, and a model, tier or thinking level nobody reported stays absent and renders as "unknown".
+
+## Generation 5 Failure Modes
+
+- `G5-1` — Observed loophole: Supervisor file editing or test suite execution (Supervisor Boundary Leak). A supervisory role (`mind`, `orchestrator`, `coordinator`) edits repository code or executes raw unit test suites directly, causing cognitive anchoring, race conditions, and lease scope violations.
+  - Structural countermeasure: Supervisor Zero-File-Edit Invariant & Role Boundary Watchdog (`createRoleBoundaryWatchdog`). Any unauthorized file modification or test execution by a supervisor is refused and logged as a boundary violation to `blunders.jsonl`.
+- `G5-2` — Observed loophole: Artificial serialization barriers and stalled wave concurrency. Tasks with disjoint write scopes are given sequential dependencies without dataflow justification, stalling parallel execution and wasting algorithmic concurrency ($P = W / S$).
+  - Structural countermeasure: Automatic Brent Work/Span Rebalancing (`rebalanceTasksWithBrentLimits`, `smart-task:plan`). The harness detects non-overlapping write scopes, decouples unjustified artificial dependency edges, and maps optimal wave lanes up to max concurrency ($\le 40$).
+- `G5-3` — Observed loophole: Speculative blunder closure without empirical proof. An agent dismisses or marks a recorded blunder as resolved without linking a verified task commit, test path, and assertion proof.
+  - Structural countermeasure: Mandatory Empirical Resolution Proof. Blunder resolution (`resolveBlunder` / `blunder:audit`) requires `commit_sha`, `test_assertion`, and `task_id`. Unevidenced status overrides are refused.

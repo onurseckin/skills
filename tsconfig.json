@@ -22,7 +22,8 @@
   "include": [
     "orchestrating-long-tasks/scripts/src/**/*.ts",
     "orchestrating-long-tasks/scripts/harness.ts",
-    "orchestrating-long-tasks/scripts/generate-cli-manifest.ts"
+    "orchestrating-long-tasks/scripts/generate-cli-manifest.ts",
+    "scripts/verify-gen5.ts"
   ],
   "exclude": ["tests"]
 }
