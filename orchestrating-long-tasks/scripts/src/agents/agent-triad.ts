@@ -150,6 +150,8 @@ export function loadAgentIdentity(roleInput: string, options?: AgentTriadOptions
     `${roleInput}.yaml`,
     `${roleInput}.yml`,
     normRole === "mechanic-validator" ? "mechanic_validator.yaml" : "",
+    normRole === "ui-mechanic-validator" ? "ui-mechanic-validator.yaml" : "",
+    normRole === "ui-validator" ? "ui-validator.yaml" : "",
   ].filter(Boolean);
 
   let targetPath: string | null = null;
@@ -240,6 +242,9 @@ export function loadAgentRoleDefinition(roleInput: string, options?: AgentTriadO
     `${normRole}.md`,
     `${roleInput}.md`,
     normRole.startsWith("validator-") ? `${normRole}.md` : "",
+    normRole === "ui-validator" ? "validator-ui-design.md" : "",
+    normRole === "ui-mechanic-validator" ? "mechanic-validator.md" : "",
+    normRole === "mechanic-validator" ? "mechanic-validator.md" : "",
   ].filter(Boolean);
 
   let targetPath: string | null = null;
@@ -248,6 +253,24 @@ export function loadAgentRoleDefinition(roleInput: string, options?: AgentTriadO
     if (existsSync(p)) {
       targetPath = p;
       break;
+    }
+  }
+
+  if (!targetPath) {
+    try {
+      const identity = loadAgentIdentity(normRole, options);
+      if (identity.protocol?.role_contract) {
+        const contractRel = identity.protocol.role_contract;
+        const candidate1 = join(rolesDir, basename(contractRel));
+        const candidate2 = join(resolveWorkspacePaths(options).skillRoot, contractRel);
+        if (existsSync(candidate1)) {
+          targetPath = candidate1;
+        } else if (existsSync(candidate2)) {
+          targetPath = candidate2;
+        }
+      }
+    } catch {
+      // Fallback
     }
   }
 
@@ -342,6 +365,9 @@ const KNOWN_ROLES_TO_MATCH = [
   "coordinator",
   "implementer",
   "validator",
+  "mechanic-validator",
+  "ui-mechanic-validator",
+  "ui-validator",
   "repairer",
   "completeness-critic",
   "planner",
@@ -498,7 +524,12 @@ export function validateAgentTriad(roleInput: string, options?: AgentTriadOption
   if (hasIdentity && identity.protocol?.role_contract) {
     const ref = identity.protocol.role_contract;
     const cleanRef = basename(ref, extname(ref));
-    if (cleanRef !== normRole && cleanRef !== identity.name) {
+    const isKnownMapping =
+      (normRole === "ui-mechanic-validator" && cleanRef === "mechanic-validator") ||
+      (normRole === "ui-validator" && (cleanRef === "validator-ui-design" || cleanRef === "validator")) ||
+      (normRole === "mechanic-validator" && cleanRef === "mechanic-validator") ||
+      (normRole.startsWith("validator-") && (cleanRef === normRole || cleanRef === "validator"));
+    if (cleanRef !== normRole && cleanRef !== identity.name && !isKnownMapping) {
       roleContractRefConsistent = false;
       warnings.push(
         `Manifest protocol.role_contract '${ref}' points to a different role name than '${normRole}'`,
@@ -588,8 +619,8 @@ export function auditAgentTriadWorkspace(options?: AgentTriadOptions): TriadAudi
 
   for (const r of manifestRoles) {
     if (!contractRoles.has(r)) {
-      // Exclude generic host provider manifests
-      if (!["antigravity", "claude", "codex", "cursor", "generic", "openai"].includes(r)) {
+      // Exclude generic host provider manifests or specialized validator manifests mapped to existing contracts
+      if (!["antigravity", "claude", "codex", "cursor", "generic", "openai", "ui-mechanic-validator", "ui-validator", "worker"].includes(r)) {
         orphanedManifests.push(r);
       }
     }

@@ -7,6 +7,9 @@ export type StandardAgentRole =
   | "coordinator"
   | "implementer"
   | "validator"
+  | "mechanic-validator"
+  | "ui-mechanic-validator"
+  | "ui-validator"
   | "repairer"
   | "completeness-critic"
   | "critic"
@@ -87,6 +90,33 @@ export const AGENT_NAMING_STANDARDS: Readonly<Record<string, AgentNamingStandard
     regexPattern: /^validator_(task-[a-z0-9]+)(?:-([a-z0-9]+(?:-[a-z0-9]+)*))?$/,
     example: "validator_task-p47-autonomic-watchdog",
     description: "Tier 3 Adversarial Validator strictly bound to validated task ID",
+  },
+  "mechanic-validator": {
+    role: "mechanic-validator",
+    tier: 3,
+    bindingType: "task",
+    formatTemplate: "mechanic-validator_<task-id>[-<descriptive-slug>]",
+    regexPattern: /^mechanic-validator_(task-[a-z0-9]+)(?:-([a-z0-9]+(?:-[a-z0-9]+)*))?$/,
+    example: "mechanic-validator_task-p47-autonomic-watchdog",
+    description: "Tier 3 Mechanic Validator strictly bound to validated task ID for deterministic test/gate execution",
+  },
+  "ui-mechanic-validator": {
+    role: "ui-mechanic-validator",
+    tier: 3,
+    bindingType: "task",
+    formatTemplate: "ui-mechanic-validator_<task-id>[-<descriptive-slug>]",
+    regexPattern: /^ui-mechanic-validator_(task-[a-z0-9]+)(?:-([a-z0-9]+(?:-[a-z0-9]+)*))?$/,
+    example: "ui-mechanic-validator_task-p48-viewport-matrix",
+    description: "Tier 3 UI Mechanic Validator bound to task ID for automated DOM metrics and screenshot capture",
+  },
+  "ui-validator": {
+    role: "ui-validator",
+    tier: 3,
+    bindingType: "task",
+    formatTemplate: "ui-validator_<task-id>[-<descriptive-slug>]",
+    regexPattern: /^ui-validator_(task-[a-z0-9]+)(?:-([a-z0-9]+(?:-[a-z0-9]+)*))?$/,
+    example: "ui-validator_task-p48-viewport-matrix",
+    description: "Tier 3 UI Cognitive Validator bound to task ID for visual aesthetics, layout, UX, and accessibility critique",
   },
   repairer: {
     role: "repairer",
@@ -244,7 +274,7 @@ export function agentIdToTier(agentId: string): ExecutionTier | null {
   if (/^mind|^human/i.test(normalized)) return 0;
   if (/^orch/i.test(normalized)) return 1;
   if (/^coord/i.test(normalized)) return 2;
-  if (/^(impl|val|critic|completeness[-_]critic|repair|worker|sub|plan)/i.test(normalized)) return 3;
+  if (/^(impl|val|critic|completeness[-_]critic|repair|worker|sub|plan|mechanic|ui[-_]mechanic|ui[-_]val)/i.test(normalized)) return 3;
   return null;
 }
 
@@ -255,6 +285,9 @@ export function agentIdToRole(agentId: string): string | null {
   if (/^human/i.test(normalized)) return "human";
   if (/^orch/i.test(normalized)) return "orchestrator";
   if (/^coord/i.test(normalized)) return "coordinator";
+  if (/^ui[-_]mechanic[-_]validator/i.test(normalized)) return "ui-mechanic-validator";
+  if (/^ui[-_]validator/i.test(normalized)) return "ui-validator";
+  if (/^mechanic[-_]validator/i.test(normalized)) return "mechanic-validator";
   if (/^validator[-_]code[-_]quality/i.test(normalized)) return "validator-code-quality";
   if (/^validator[-_]ui[-_]design/i.test(normalized)) return "validator-ui-design";
   if (/^validator[-_]security/i.test(normalized)) return "validator-security";
