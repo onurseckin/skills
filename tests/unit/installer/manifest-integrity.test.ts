@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { canonicalJsonBytes, sha256Bytes } from "../../../olt/scripts/src/core/json.ts";
-import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 import {
   sealInstallationManifest,
   verifiedManifestPayload,

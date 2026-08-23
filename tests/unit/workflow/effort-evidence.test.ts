@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { evidenced } from "../../../olt/scripts/src/contracts/evidence.ts";
+import { evidenced } from "../../../olt/scripts/src/core/contracts/evidence.ts";
 import { claimTask } from "../../../olt/scripts/src/workflow/lease/claim.ts";
 import { submitTask } from "../../../olt/scripts/src/workflow/submission/submit.ts";
 import { at, registerTaskPacket, TestPort, workflowState } from "./test-port.ts";

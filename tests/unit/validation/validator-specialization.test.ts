@@ -42,7 +42,7 @@ import {
   DEFAULT_PRESETS,
 } from "../../../olt/scripts/src/capture/config/default-presets.ts";
 import { createSyntheticPngBuffer } from "../../../olt/scripts/src/capture/runners/live-capture-runner.ts";
-import { transact } from "../../../olt/scripts/src/store/index.ts";
+import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
 import { emptyGrantRun } from "../packets/grant-run-fixture.ts";
 
 function spec(invocation: string): CommandSpec {

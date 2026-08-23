@@ -11,16 +11,16 @@ import {
 } from "../../../olt/scripts/src/cli/commands/mind-pulse.ts";
 import { execute } from "../../../olt/scripts/src/cli/execute.ts";
 import { findCommand } from "../../../olt/scripts/src/cli/registry/index.ts";
-import type { JsonObject } from "../../../olt/scripts/src/contracts/json.ts";
-import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
+import type { JsonObject } from "../../../olt/scripts/src/core/contracts/json.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 import { readLastPulse } from "../../../olt/scripts/src/mind/last-pulse.ts";
 import {
   enforceInfiniteMindCadence,
   transitionPulseToWake,
 } from "../../../olt/scripts/src/mind/recycler.ts";
-import { initRun } from "../../../olt/scripts/src/store/capsule.ts";
-import { loadRun } from "../../../olt/scripts/src/store/load.ts";
-import { transact } from "../../../olt/scripts/src/store/transaction.ts";
+import { initRun } from "../../../olt/scripts/src/engine/store/capsule.ts";
+import { loadRun } from "../../../olt/scripts/src/engine/store/load.ts";
+import { transact } from "../../../olt/scripts/src/engine/store/transaction.ts";
 
 const testRoots: string[] = [];
 

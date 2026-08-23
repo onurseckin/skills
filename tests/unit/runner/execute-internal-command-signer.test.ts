@@ -2,11 +2,11 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { RepositoryBinding } from "../../../olt/scripts/src/contracts/repository.ts";
-import { createCommandSigningCapability } from "../../../olt/scripts/src/runner/attempt-disposition-capability.ts";
-import type { CommandRuntimeCapability } from "../../../olt/scripts/src/runner/command-execution-snapshot.ts";
-import { executeInternalPreparedCommand } from "../../../olt/scripts/src/runner/execute-internal-command.ts";
-import { createInternalCommandRunner } from "../../../olt/scripts/src/runner/internal-command-runner.ts";
+import type { RepositoryBinding } from "../../../olt/scripts/src/core/contracts/repository.ts";
+import { createCommandSigningCapability } from "../../../olt/scripts/src/engine/runner/attempt-disposition-capability.ts";
+import type { CommandRuntimeCapability } from "../../../olt/scripts/src/engine/runner/command-execution-snapshot.ts";
+import { executeInternalPreparedCommand } from "../../../olt/scripts/src/engine/runner/execute-internal-command.ts";
+import { createInternalCommandRunner } from "../../../olt/scripts/src/engine/runner/internal-command-runner.ts";
 
 const roots: string[] = [];
 const digest = (marker: string): string => marker.repeat(64);

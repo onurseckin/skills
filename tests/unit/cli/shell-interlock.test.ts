@@ -5,7 +5,7 @@ import {
   checkReadScopeAuthorization,
   isWithinNeighborhood,
 } from "../../../olt/scripts/src/runtime/read-scope-guard.ts";
-import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 
 describe("CLI Shell Interlock & Read Scope Expansion", () => {
   describe("shellCommand", () => {

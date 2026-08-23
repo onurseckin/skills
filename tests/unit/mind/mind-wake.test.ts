@@ -12,8 +12,8 @@ import {
   formatNumber,
   formatShortSha,
 } from "../../../olt/scripts/src/mind/brief.ts";
-import { initRun } from "../../../olt/scripts/src/store/capsule.ts";
-import { transact } from "../../../olt/scripts/src/store/transaction.ts";
+import { initRun } from "../../../olt/scripts/src/engine/store/capsule.ts";
+import { transact } from "../../../olt/scripts/src/engine/store/transaction.ts";
 
 const roots: string[] = [];
 

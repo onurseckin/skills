@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { monitorProcess } from "../../../olt/scripts/src/runner/watchdog.ts";
-import type { BunSubprocess } from "../../../olt/scripts/src/runner/types.ts";
+import { monitorProcess } from "../../../olt/scripts/src/engine/runner/watchdog.ts";
+import type { BunSubprocess } from "../../../olt/scripts/src/capture/runners/types.ts";
 
 function fakeChild(exited: Promise<number>): BunSubprocess {
   return { pid: 1234, exited } as never;

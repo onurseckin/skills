@@ -15,7 +15,7 @@ import type {
   CandidateRecord,
   GateEvaluationContext,
 } from "../../../olt/scripts/src/mind/gates.ts";
-import { initRun } from "../../../olt/scripts/src/store/capsule.ts";
+import { initRun } from "../../../olt/scripts/src/engine/store/capsule.ts";
 
 const roots: string[] = [];
 

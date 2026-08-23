@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import * as storeIndex from "../../../olt/scripts/src/store/index.ts";
+import * as storeIndex from "../../../olt/scripts/src/engine/store/index.ts";
 
 describe("store barrel exports", () => {
   test("re-exports the public store API surface", () => {

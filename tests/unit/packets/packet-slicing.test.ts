@@ -23,7 +23,7 @@ import { claimTask } from "../../../olt/scripts/src/workflow/lease/claim.ts";
 import { at, TestPort, workflowState } from "../workflow/test-port.ts";
 import { inspectionContext } from "./inspection-fixture.ts";
 import type { TaskRecord, WorkflowState } from "../../../olt/scripts/src/workflow/types.ts";
-import type { JsonObject } from "../../../olt/scripts/src/contracts/json.ts";
+import type { JsonObject } from "../../../olt/scripts/src/core/contracts/json.ts";
 
 const clock = at("2026-08-13T12:00:00.000Z");
 const commonBytes = new TextEncoder().encode("Canonical common instructions.\n");

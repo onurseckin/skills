@@ -9,7 +9,7 @@ import {
   mindObserveCommand,
 } from "../../../olt/scripts/src/cli/commands/mind-observe.ts";
 import { COMMAND_REGISTRY, findCommand } from "../../../olt/scripts/src/cli/registry/index.ts";
-import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 import {
   findSourceDefinition,
   getSourceDefinition,
@@ -21,10 +21,10 @@ import {
   type EvidenceClass,
   type MindSourceId,
 } from "../../../olt/scripts/src/mind/sources.ts";
-import { initRun } from "../../../olt/scripts/src/store/capsule.ts";
-import { verifyIntegrity } from "../../../olt/scripts/src/store/integrity.ts";
-import { loadRun } from "../../../olt/scripts/src/store/load.ts";
-import { transact } from "../../../olt/scripts/src/store/transaction.ts";
+import { initRun } from "../../../olt/scripts/src/engine/store/capsule.ts";
+import { verifyIntegrity } from "../../../olt/scripts/src/engine/store/integrity.ts";
+import { loadRun } from "../../../olt/scripts/src/engine/store/load.ts";
+import { transact } from "../../../olt/scripts/src/engine/store/transaction.ts";
 
 const tempRoots: string[] = [];
 

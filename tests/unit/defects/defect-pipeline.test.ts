@@ -21,13 +21,13 @@ import {
   serializeAggregatedDefectLog,
   streamDeduplicateDefects,
   toAggregatedDefect,
-} from "../../../olt/scripts/src/defects/index.ts";
+} from "../../../olt/scripts/src/mind/defects/index.ts";
 import type {
   AggregatedDefect,
   DefectCategory,
   DefectRecordInput,
   DefectResolutionProof,
-} from "../../../olt/scripts/src/defects/types.ts";
+} from "../../../olt/scripts/src/mind/defects/types.ts";
 import {
   advanceDeliberationRound,
   auditDefectLog,

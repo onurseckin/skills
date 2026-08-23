@@ -7,8 +7,8 @@ import {
   normalizeCommandOptions,
   policyRecord,
   policyRecordIssues,
-} from "../../../olt/scripts/src/runner/policy.ts";
-import type { CommandOptions } from "../../../olt/scripts/src/runner/types.ts";
+} from "../../../olt/scripts/src/engine/runner/policy.ts";
+import type { CommandOptions } from "../../../olt/scripts/src/capture/runners/types.ts";
 
 const roots: string[] = [];
 

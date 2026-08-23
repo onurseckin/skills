@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   canonicalizeJson,
   canonicalizeJsonl,
-} from "../../../../olt/scripts/src/store/content-normalization/json-canonical.ts";
+} from "../../../../olt/scripts/src/engine/store/content-normalization/json-canonical.ts";
 import { canonicalJsonBytes } from "../../../../olt/scripts/src/core/json.ts";
 
 const encode = (text: string): Uint8Array => new TextEncoder().encode(text);

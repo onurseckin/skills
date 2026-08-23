@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { execute } from "../../../olt/scripts/src/cli/execute.ts";
-import { ERROR_CODES } from "../../../olt/scripts/src/errors/codes.ts";
+import { ERROR_CODES } from "../../../olt/scripts/src/core/errors/codes.ts";
 import { EXPLAIN_ENTRIES } from "../../../olt/scripts/src/cli/commands/explain-data.ts";
 import { resolveExampleLine } from "../../../olt/scripts/src/cli/commands/explain-ops.ts";
 import { COMMAND_REGISTRY } from "../../../olt/scripts/src/cli/registry/index.ts";

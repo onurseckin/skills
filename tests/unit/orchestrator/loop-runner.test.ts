@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 import { AutonomousLoopRunner } from "../../../olt/scripts/src/orchestrator/loop-runner.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 import type {

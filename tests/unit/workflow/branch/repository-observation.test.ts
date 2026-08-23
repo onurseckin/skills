@@ -11,7 +11,7 @@ import type {
   RepositoryGitCommand,
   RepositoryGitResult,
 } from "../../../../olt/scripts/src/packets/repository-git-command.ts";
-import type { BranchRepositoryObservation } from "../../../../olt/scripts/src/contracts/branch.ts";
+import type { BranchRepositoryObservation } from "../../../../olt/scripts/src/core/contracts/branch.ts";
 
 const roots: string[] = [];
 afterEach(() => {

@@ -5,17 +5,17 @@ import {
   ownedProcessPids,
   ownershipTokenIdentities,
   runnerPipeHandles,
-} from "../../../olt/scripts/src/runner/pipe-ownership.ts";
+} from "../../../olt/scripts/src/engine/runner/pipe-ownership.ts";
 import {
   darwinPipeHandles,
   darwinPipeOwners,
   darwinProcessIdentity,
   darwinTokenOwnerIdentities,
-} from "../../../olt/scripts/src/runner/darwin-pipes.ts";
+} from "../../../olt/scripts/src/engine/runner/darwin-pipes.ts";
 import {
   processHasToken,
   scanDarwinTokenOwners,
-} from "../../../olt/scripts/src/runner/darwin-token-owners.ts";
+} from "../../../olt/scripts/src/engine/runner/darwin-token-owners.ts";
 
 // These exercise the real darwin FFI-backed implementations against the current, live test
 // process rather than a fake dependency: they are direct syscalls scoped to this process and a

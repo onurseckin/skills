@@ -16,9 +16,9 @@ import {
   type TypeCheckResult,
 } from "../../../olt/scripts/src/cli/commands/task-check.ts";
 import type { Flags } from "../../../olt/scripts/src/cli/options.ts";
-import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 import { ALL_AST_LINT_RULES } from "../../../olt/scripts/src/linter/ast-enforcer.ts";
-import { initRun, transact } from "../../../olt/scripts/src/store/index.ts";
+import { initRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
 import type { TaskRecord } from "../../../olt/scripts/src/workflow/types.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 

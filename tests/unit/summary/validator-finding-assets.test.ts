@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import type { HarnessEvent } from "../../../olt/scripts/src/contracts/capsule.ts";
+import type { HarnessEvent } from "../../../olt/scripts/src/core/contracts/capsule.ts";
 import type { CompletionReview, TaskRecord } from "../../../olt/scripts/src/workflow/types.ts";
 import { mapFindingDetails } from "../../../olt/scripts/src/summary/asset-mapper.ts";
 

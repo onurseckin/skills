@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { evidenced } from "../../../../olt/scripts/src/contracts/evidence.ts";
+import { evidenced } from "../../../../olt/scripts/src/core/contracts/evidence.ts";
 import {
   appendGateProof,
   type GateProofRecord,

@@ -6,7 +6,7 @@ import {
   commandEvidenceView,
   commandRecordPath,
 } from "../../../olt/scripts/src/reporting/command-evidence.ts";
-import { recordCaptures } from "../../../olt/scripts/src/store/captures.ts";
+import { recordCaptures } from "../../../olt/scripts/src/engine/store/captures.ts";
 
 const roots: string[] = [];
 afterEach(() => {

@@ -9,7 +9,7 @@ import {
   evaluateRepairCycleConvergence,
   type ClosedLoopRepairPayload,
   type CriticFindingDetail,
-} from "../../../olt/scripts/src/scheduler/index.ts";
+} from "../../../olt/scripts/src/engine/scheduler/index.ts";
 import type { TaskRecord, WorkflowState } from "../../../olt/scripts/src/workflow/types.ts";
 import { TestPort, repositoryBinding, workflowState } from "../workflow/test-port.ts";
 

@@ -8,16 +8,16 @@ import {
   mindCandidateCommand,
   type MindCandidate,
 } from "../../../olt/scripts/src/cli/commands/mind-candidate.ts";
-import type { CommandRecord } from "../../../olt/scripts/src/contracts/commands.ts";
-import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
+import type { CommandRecord } from "../../../olt/scripts/src/core/contracts/commands.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 import {
   readCommandOutput,
   resolveWitnessCommand,
   verifyDefectWitness,
 } from "../../../olt/scripts/src/mind/witness.ts";
-import { initRun } from "../../../olt/scripts/src/store/capsule.ts";
-import { loadRun } from "../../../olt/scripts/src/store/load.ts";
-import { transact } from "../../../olt/scripts/src/store/transaction.ts";
+import { initRun } from "../../../olt/scripts/src/engine/store/capsule.ts";
+import { loadRun } from "../../../olt/scripts/src/engine/store/load.ts";
+import { transact } from "../../../olt/scripts/src/engine/store/transaction.ts";
 
 const roots: string[] = [];
 

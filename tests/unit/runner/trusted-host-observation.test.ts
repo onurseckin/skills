@@ -6,12 +6,12 @@ import { tmpdir } from "node:os";
 import type {
   CommandAttemptRecord,
   CommandRecord,
-} from "../../../olt/scripts/src/contracts/commands.ts";
-import type { RepositoryBinding } from "../../../olt/scripts/src/contracts/repository.ts";
-import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
-import { embeddedCommandIssues } from "../../../olt/scripts/src/runner/command-shape.ts";
-import { createInternalCommandRunner } from "../../../olt/scripts/src/runner/internal-command-runner.ts";
-import type { AttemptResult } from "../../../olt/scripts/src/runner/types.ts";
+} from "../../../olt/scripts/src/core/contracts/commands.ts";
+import type { RepositoryBinding } from "../../../olt/scripts/src/core/contracts/repository.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import { embeddedCommandIssues } from "../../../olt/scripts/src/engine/runner/command-shape.ts";
+import { createInternalCommandRunner } from "../../../olt/scripts/src/engine/runner/internal-command-runner.ts";
+import type { AttemptResult } from "../../../olt/scripts/src/capture/runners/types.ts";
 
 const roots: string[] = [];
 const digest = (value: string): string => value.repeat(64).slice(0, 64);

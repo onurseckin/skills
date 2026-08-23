@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 import {
   assertConventionalCommitCompliance,
   CONVENTIONAL_COMMIT_TYPES,
@@ -14,7 +14,7 @@ import {
   type PhaseCommitConfig,
   type PhaseGateResult,
   type UpstreamPushPolicy,
-} from "../../../olt/scripts/src/worktree/phase-commits.ts";
+} from "../../../olt/scripts/src/engine/worktree/phase-commits.ts";
 
 describe("Phase Commits & Conventional Commit Validation (p09)", () => {
   describe("CONVENTIONAL_COMMIT_TYPES", () => {

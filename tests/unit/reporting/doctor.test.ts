@@ -3,7 +3,7 @@ import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { ignoredByGit, runDoctor } from "../../../olt/scripts/src/reporting/doctor.ts";
-import { initRun, transact } from "../../../olt/scripts/src/store/index.ts";
+import { initRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
 
 const roots: string[] = [];
 afterEach(async () =>

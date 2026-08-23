@@ -33,7 +33,7 @@ import {
   type ReflexiveAuditContext,
   type SubordinateAgentInfo,
 } from "../../../olt/scripts/src/authority/persona-grounding.ts";
-import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 
 describe("Cognitive Pillars Subsystem (authority/pillars.ts)", () => {
   test("defines exactly 7 cognitive pillars", () => {

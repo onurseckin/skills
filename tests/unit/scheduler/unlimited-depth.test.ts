@@ -9,7 +9,7 @@ import {
   scheduleUnlimitedDepthDAG,
   type DepthMetrics,
   type UnboundedWavePartition,
-} from "../../../olt/scripts/src/scheduler/unlimited-depth.ts";
+} from "../../../olt/scripts/src/engine/scheduler/unlimited-depth.ts";
 import { topologyState } from "./fixtures.ts";
 
 describe("Unlimited Depth DAG Scheduler & Validator Pairing", () => {

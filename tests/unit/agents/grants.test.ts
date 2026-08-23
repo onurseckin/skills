@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
-import { initRun, transact } from "../../../olt/scripts/src/store/index.ts";
+import { initRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
 import {
   recordAgentReport,
   registerAgentGrant,

@@ -10,9 +10,9 @@ import {
   writeLastPulse,
   type LastPulseRecord,
 } from "../../../olt/scripts/src/mind/last-pulse.ts";
-import { initRun } from "../../../olt/scripts/src/store/capsule.ts";
-import { loadRun } from "../../../olt/scripts/src/store/load.ts";
-import { transact } from "../../../olt/scripts/src/store/transaction.ts";
+import { initRun } from "../../../olt/scripts/src/engine/store/capsule.ts";
+import { loadRun } from "../../../olt/scripts/src/engine/store/load.ts";
+import { transact } from "../../../olt/scripts/src/engine/store/transaction.ts";
 
 const roots: string[] = [];
 
@@ -92,7 +92,7 @@ function setupMindCapsule(
         counter: 2,
         open: null,
         last: pulseLast,
-      } as unknown as import("../../../olt/scripts/src/contracts/json.ts").JsonValue;
+      } as unknown as import("../../../olt/scripts/src/core/contracts/json.ts").JsonValue;
       working.observations = [];
       working.candidates = [];
       working.escalations = [];

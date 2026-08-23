@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execute } from "../../../olt/scripts/src/cli/execute.ts";
 import { criticReviewCommand } from "../../../olt/scripts/src/cli/commands/critic-ops.ts";
-import { loadRun } from "../../../olt/scripts/src/store/index.ts";
+import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
 import { requirementIds } from "./critic-run-fixture.ts";
 import { registerInspectionCommand, setupReadyRun } from "./critic-ready-fixture.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";

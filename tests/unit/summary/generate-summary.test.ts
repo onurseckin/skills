@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
-import type { RunFiles, RunState } from "../../../olt/scripts/src/contracts/capsule.ts";
+import type { RunFiles, RunState } from "../../../olt/scripts/src/core/contracts/capsule.ts";
 import {
   generateSummarySuite,
   loadCommandsFromDir,

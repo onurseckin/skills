@@ -5,7 +5,7 @@ import {
   initialCapsuleDirectories,
   isDeclaredCapsuleEntry,
   renderLayoutReadme,
-} from "../../../olt/scripts/src/store/layout.ts";
+} from "../../../olt/scripts/src/engine/store/layout.ts";
 
 describe("isDeclaredCapsuleEntry", () => {
   test("recognizes every declared entry by its bare name, directories included", () => {

@@ -2,13 +2,13 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { verifyUnifiedEvidenceLocation } from "../../../olt/scripts/src/doctor/evidence-location.ts";
+import { verifyUnifiedEvidenceLocation } from "../../../olt/scripts/src/reporting/doctor/evidence-location.ts";
 import {
   isUnifiedEvidencePath,
   isUnifiedEvidenceRelativePath,
   formatUnifiedEvidencePath,
 } from "../../../olt/scripts/src/validation/evidence-paths.ts";
-import type { JsonObject } from "../../../olt/scripts/src/contracts/json.ts";
+import type { JsonObject } from "../../../olt/scripts/src/core/contracts/json.ts";
 
 const roots: string[] = [];
 afterEach(async () => {

@@ -2,12 +2,12 @@ import { describe, expect, test } from "bun:test";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { CommandAttemptStartedRecord } from "../../../olt/scripts/src/contracts/commands.ts";
+import type { CommandAttemptStartedRecord } from "../../../olt/scripts/src/core/contracts/commands.ts";
 import {
   CREATE_ATTEMPT_DISPOSITION,
   createCommandSigningCapability,
-} from "../../../olt/scripts/src/runner/command-signing-capability.ts";
-import type { ProcessIdentity } from "../../../olt/scripts/src/runner/process-identity.ts";
+} from "../../../olt/scripts/src/engine/runner/command-signing-capability.ts";
+import type { ProcessIdentity } from "../../../olt/scripts/src/engine/runner/process-identity.ts";
 
 const mockIdentity: ProcessIdentity = {
   pid: 1234,

@@ -6,7 +6,7 @@ import {
   formatMindRotateBrief,
   mindRotateCommand,
 } from "../../../olt/scripts/src/cli/commands/mind-rotate.ts";
-import type { JsonObject, JsonValue } from "../../../olt/scripts/src/contracts/json.ts";
+import type { JsonObject, JsonValue } from "../../../olt/scripts/src/core/contracts/json.ts";
 import {
   appendFeedbackItem,
   writeFeedbackQueue,
@@ -29,8 +29,8 @@ import {
   validateRolloverReadiness,
 } from "../../../olt/scripts/src/mind/recycler.ts";
 import type { RoundRecord } from "../../../olt/scripts/src/mind/rounds.ts";
-import { loadRun } from "../../../olt/scripts/src/store/load.ts";
-import { transact } from "../../../olt/scripts/src/store/transaction.ts";
+import { loadRun } from "../../../olt/scripts/src/engine/store/load.ts";
+import { transact } from "../../../olt/scripts/src/engine/store/transaction.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 const SAMPLE_CHARTER = `

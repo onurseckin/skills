@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { dispositionShapeIssues } from "../../../olt/scripts/src/runner/attempt-cleanup-validation.ts";
-import type { CommandAttemptCleanupDisposition } from "../../../olt/scripts/src/contracts/commands.ts";
+import { dispositionShapeIssues } from "../../../olt/scripts/src/engine/runner/attempt-cleanup-validation.ts";
+import type { CommandAttemptCleanupDisposition } from "../../../olt/scripts/src/core/contracts/commands.ts";
 
 function validDisposition(
   overrides: Partial<CommandAttemptCleanupDisposition> = {},

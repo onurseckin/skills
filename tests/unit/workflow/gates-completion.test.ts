@@ -5,7 +5,7 @@ import { finishTask } from "../../../olt/scripts/src/workflow/gates/finish-task.
 import { makeAuthorityDecisionRecord } from "../../../olt/scripts/src/workflow/authority/decision-record.ts";
 import { applicableGates } from "../../../olt/scripts/src/workflow/gates/gate-policy.ts";
 import { validateGraph } from "../../../olt/scripts/src/graph/validate-graph.ts";
-import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 import { workflowState, TestPort, at, commandRecord } from "./test-port.ts";
 
 const clock = at("2026-08-13T12:00:00.000Z");

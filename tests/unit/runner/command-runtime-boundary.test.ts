@@ -3,26 +3,26 @@ import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promis
 import { realpathSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import type { CommandAttemptRecord } from "../../../olt/scripts/src/contracts/commands.ts";
-import type { RepositoryBinding } from "../../../olt/scripts/src/contracts/repository.ts";
+import type { CommandAttemptRecord } from "../../../olt/scripts/src/core/contracts/commands.ts";
+import type { RepositoryBinding } from "../../../olt/scripts/src/core/contracts/repository.ts";
 import {
   MAX_COMMAND_ATTEMPTS,
   MAX_COMMAND_ATTEMPT_BYTES,
   MAX_COMMAND_INTENT_BYTES,
   MAX_COMMAND_RECORD_BYTES,
   MAX_EVIDENCE_ERROR_BYTES,
-} from "../../../olt/scripts/src/runner/command-record-size.ts";
-import { createInternalCommandRunner } from "../../../olt/scripts/src/runner/internal-command-runner.ts";
+} from "../../../olt/scripts/src/engine/runner/command-record-size.ts";
+import { createInternalCommandRunner } from "../../../olt/scripts/src/engine/runner/internal-command-runner.ts";
 import {
   executePreparedCommand as executePublic,
   prepareCommand as preparePublic,
-} from "../../../olt/scripts/src/runner/run-command.ts";
-import { OWNERSHIP_ENV } from "../../../olt/scripts/src/runner/pipe-ownership.ts";
+} from "../../../olt/scripts/src/engine/runner/run-command.ts";
+import { OWNERSHIP_ENV } from "../../../olt/scripts/src/engine/runner/pipe-ownership.ts";
 import type {
   AttemptResult,
   NormalizedCommandOptions,
   PreparedCommand,
-} from "../../../olt/scripts/src/runner/types.ts";
+} from "../../../olt/scripts/src/capture/runners/types.ts";
 
 const roots: string[] = [];
 const digest = (marker: string): string => marker.repeat(64);

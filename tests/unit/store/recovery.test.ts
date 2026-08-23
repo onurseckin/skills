@@ -10,10 +10,10 @@ import {
   writeFileSync,
 } from "node:fs";
 import { join } from "node:path";
-import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
-import { initRun } from "../../../olt/scripts/src/store/capsule.ts";
-import { transact } from "../../../olt/scripts/src/store/transaction.ts";
-import { recoverProjection } from "../../../olt/scripts/src/store/recovery.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import { initRun } from "../../../olt/scripts/src/engine/store/capsule.ts";
+import { transact } from "../../../olt/scripts/src/engine/store/transaction.ts";
+import { recoverProjection } from "../../../olt/scripts/src/engine/store/recovery.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 function makeTempDir(label: string): string {

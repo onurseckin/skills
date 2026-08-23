@@ -1,6 +1,6 @@
 import { expect } from "bun:test";
-import type { AgentGrantRecord } from "../../../olt/scripts/src/contracts/agents.ts";
-import type { JsonObject } from "../../../olt/scripts/src/contracts/json.ts";
+import type { AgentGrantRecord } from "../../../olt/scripts/src/core/contracts/agents.ts";
+import type { JsonObject } from "../../../olt/scripts/src/core/contracts/json.ts";
 import { nextActions } from "../../../olt/scripts/src/reporting/next-actions.ts";
 import { dispatchFailures } from "./dispatchable.ts";
 

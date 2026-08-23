@@ -7,8 +7,8 @@ import {
   mindRoundCloseCommand,
   mindRoundOpenCommand,
 } from "../../../olt/scripts/src/cli/commands/mind-round.ts";
-import type { JsonObject, JsonValue } from "../../../olt/scripts/src/contracts/json.ts";
-import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
+import type { JsonObject, JsonValue } from "../../../olt/scripts/src/core/contracts/json.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 import {
   carryForwardFindingsAndRequirements,
   formatMindRoundCloseBrief,
@@ -23,9 +23,9 @@ import {
   validateRoundBudget,
   validateRoundCloseArmingRail,
 } from "../../../olt/scripts/src/mind/rounds.ts";
-import { initRun } from "../../../olt/scripts/src/store/capsule.ts";
-import { loadRun } from "../../../olt/scripts/src/store/load.ts";
-import { transact } from "../../../olt/scripts/src/store/transaction.ts";
+import { initRun } from "../../../olt/scripts/src/engine/store/capsule.ts";
+import { loadRun } from "../../../olt/scripts/src/engine/store/load.ts";
+import { transact } from "../../../olt/scripts/src/engine/store/transaction.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 interface MindFixture {

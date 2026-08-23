@@ -3,11 +3,11 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { atomicWriteJson } from "../../../olt/scripts/src/core/durable-write.ts";
-import { cleanupFailedAttempt } from "../../../olt/scripts/src/runner/attempt-cleanup.ts";
-import { writeAttemptFailureEvidence } from "../../../olt/scripts/src/runner/attempt-failure-evidence.ts";
-import type { AttemptProcessProof } from "../../../olt/scripts/src/runner/attempt-intent.ts";
-import { DescendantTracker } from "../../../olt/scripts/src/runner/descendant-tracker.ts";
-import type { ProcessIdentity } from "../../../olt/scripts/src/runner/process-identity.ts";
+import { cleanupFailedAttempt } from "../../../olt/scripts/src/engine/runner/attempt-cleanup.ts";
+import { writeAttemptFailureEvidence } from "../../../olt/scripts/src/engine/runner/attempt-failure-evidence.ts";
+import type { AttemptProcessProof } from "../../../olt/scripts/src/engine/runner/attempt-intent.ts";
+import { DescendantTracker } from "../../../olt/scripts/src/engine/runner/descendant-tracker.ts";
+import type { ProcessIdentity } from "../../../olt/scripts/src/engine/runner/process-identity.ts";
 
 const roots: string[] = [];
 const rootIdentity: ProcessIdentity = { pid: 40, parent: 30, group: 40, birth: "root" };

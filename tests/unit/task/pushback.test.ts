@@ -5,7 +5,7 @@ import {
   validatePushbackEvidence,
   type CoordinatorPushbackCause,
 } from "../../../olt/scripts/src/task/pushback.ts";
-import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 
 describe("task subsystem pushback unit tests", () => {
   it("recognizes pushback cause categories", () => {

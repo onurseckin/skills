@@ -10,10 +10,10 @@ import {
 } from "../../../olt/scripts/src/cli/commands/mind-audit.ts";
 import { mindPulseCommand } from "../../../olt/scripts/src/cli/commands/mind-pulse.ts";
 import { mindPulseOpenCommand } from "../../../olt/scripts/src/cli/commands/mind-pulse-open.ts";
-import type { CommandRecord } from "../../../olt/scripts/src/contracts/commands.ts";
-import type { HarnessEvent, RunState } from "../../../olt/scripts/src/contracts/capsule.ts";
-import type { JsonObject, JsonValue } from "../../../olt/scripts/src/contracts/json.ts";
-import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
+import type { CommandRecord } from "../../../olt/scripts/src/core/contracts/commands.ts";
+import type { HarnessEvent, RunState } from "../../../olt/scripts/src/core/contracts/capsule.ts";
+import type { JsonObject, JsonValue } from "../../../olt/scripts/src/core/contracts/json.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 import {
   assertAuditAllowsPulseOpen,
   checkAdmittedCandidateGoals,
@@ -26,9 +26,9 @@ import {
 } from "../../../olt/scripts/src/mind/audit.ts";
 import { calculatePulseValue } from "../../../olt/scripts/src/mind/value.ts";
 import { verifyDefectWitness } from "../../../olt/scripts/src/mind/witness.ts";
-import { initRun } from "../../../olt/scripts/src/store/capsule.ts";
-import { loadRun } from "../../../olt/scripts/src/store/load.ts";
-import { transact } from "../../../olt/scripts/src/store/transaction.ts";
+import { initRun } from "../../../olt/scripts/src/engine/store/capsule.ts";
+import { loadRun } from "../../../olt/scripts/src/engine/store/load.ts";
+import { transact } from "../../../olt/scripts/src/engine/store/transaction.ts";
 
 const roots: string[] = [];
 

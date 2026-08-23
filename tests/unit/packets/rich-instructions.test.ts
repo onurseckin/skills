@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { createHash } from "node:crypto";
-import { AGENT_ROLES } from "../../../olt/scripts/src/contracts/packets.ts";
-import { VALIDATOR_DOMAINS } from "../../../olt/scripts/src/contracts/workflow.ts";
+import { AGENT_ROLES } from "../../../olt/scripts/src/core/contracts/packets.ts";
+import { VALIDATOR_DOMAINS } from "../../../olt/scripts/src/core/contracts/workflow.ts";
 import { evidenceSchema } from "../../../olt/scripts/src/packets/evidence-schema.ts";
 import {
   loadChecklist,

@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   boundedReason,
   MAX_CLEANUP_REASON_BYTES,
-} from "../../../olt/scripts/src/runner/attempt-cleanup-signature.ts";
+} from "../../../olt/scripts/src/engine/runner/attempt-cleanup-signature.ts";
 
 describe("boundedReason", () => {
   test("returns a short reason unchanged", () => {

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 import type { RepositoryGitCommand } from "../../../olt/scripts/src/packets/repository-git-command.ts";
 import {
   anchoredChangedPaths,

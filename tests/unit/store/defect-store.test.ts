@@ -7,7 +7,7 @@ import {
   compactCapsuleDefects,
   loadCapsuleDefects,
   resolveCapsuleDefect,
-} from "../../../olt/scripts/src/store/defect-store.ts";
+} from "../../../olt/scripts/src/engine/store/defect-store.ts";
 
 const tempRoots: string[] = [];
 

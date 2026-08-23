@@ -5,23 +5,23 @@ import { tmpdir } from "node:os";
 import type {
   CommandAttemptRecord,
   CommandRecord,
-} from "../../../olt/scripts/src/contracts/commands.ts";
+} from "../../../olt/scripts/src/core/contracts/commands.ts";
 import { atomicWriteJson } from "../../../olt/scripts/src/core/durable-write.ts";
 import { readBoundedBytes, sha256Bytes } from "../../../olt/scripts/src/core/json.ts";
 import {
   reconcileStrandedCommands,
   recordCommandIntent,
 } from "../../../olt/scripts/src/integration/record-command.ts";
-import { applyAttemptRecord } from "../../../olt/scripts/src/runner/command-aggregate.ts";
+import { applyAttemptRecord } from "../../../olt/scripts/src/engine/runner/command-aggregate.ts";
 import {
   settledAttemptTerminalProof,
   startAttemptIntent,
-} from "../../../olt/scripts/src/runner/attempt-intent.ts";
-import { embeddedCommandIssues } from "../../../olt/scripts/src/runner/command-shape.ts";
-import { createInternalCommandRunner } from "../../../olt/scripts/src/runner/internal-command-runner.ts";
-import { createCommandSigningCapability } from "../../../olt/scripts/src/runner/attempt-disposition-capability.ts";
-import { OWNERSHIP_ENV } from "../../../olt/scripts/src/runner/pipe-ownership.ts";
-import { initRun, loadRun } from "../../../olt/scripts/src/store/index.ts";
+} from "../../../olt/scripts/src/engine/runner/attempt-intent.ts";
+import { embeddedCommandIssues } from "../../../olt/scripts/src/engine/runner/command-shape.ts";
+import { createInternalCommandRunner } from "../../../olt/scripts/src/engine/runner/internal-command-runner.ts";
+import { createCommandSigningCapability } from "../../../olt/scripts/src/engine/runner/attempt-disposition-capability.ts";
+import { OWNERSHIP_ENV } from "../../../olt/scripts/src/engine/runner/pipe-ownership.ts";
+import { initRun, loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
 
 const roots: string[] = [];
 

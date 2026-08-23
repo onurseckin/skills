@@ -18,7 +18,7 @@ import {
   seedGateProof,
 } from "./probe-fixture.ts";
 import { setupRun as setupSingleTaskRun } from "./probe-fixture.ts";
-import { transact } from "../../../olt/scripts/src/store/transaction.ts";
+import { transact } from "../../../olt/scripts/src/engine/store/transaction.ts";
 
 /** Two independent (undependent) ready tasks — for the queue's own multi-candidate sort/partition branches. */
 async function setupTwoIndependentTasks(

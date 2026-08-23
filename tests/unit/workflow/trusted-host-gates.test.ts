@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import type { CommandRecord } from "../../../olt/scripts/src/contracts/commands.ts";
-import { captureGateEnvironment } from "../../../olt/scripts/src/runner/gate-environment.ts";
-import { embeddedCommandIssues } from "../../../olt/scripts/src/runner/command-shape.ts";
+import type { CommandRecord } from "../../../olt/scripts/src/core/contracts/commands.ts";
+import { captureGateEnvironment } from "../../../olt/scripts/src/engine/runner/gate-environment.ts";
+import { embeddedCommandIssues } from "../../../olt/scripts/src/engine/runner/command-shape.ts";
 import { validateCompletionArtifactVerification } from "../../../olt/scripts/src/workflow/completion/artifact-verification.ts";
 import { attachGateResult } from "../../../olt/scripts/src/workflow/gates/attach-result.ts";
 import { at, commandRecord, repositoryBinding, TestPort, workflowState } from "./test-port.ts";

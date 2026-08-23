@@ -9,9 +9,9 @@ import {
   queueWaveCommand,
 } from "../../../olt/scripts/src/cli/commands/queue.ts";
 import { formatQueueWaveBrief } from "../../../olt/scripts/src/cli/formatters/queue-formatter.ts";
-import { resetHarnessConfigCache } from "../../../olt/scripts/src/config/harness-config.ts";
-import { readySet, recordTopology } from "../../../olt/scripts/src/scheduler/index.ts";
-import { initRun, transact } from "../../../olt/scripts/src/store/index.ts";
+import { resetHarnessConfigCache } from "../../../olt/scripts/src/core/config/harness-config.ts";
+import { readySet, recordTopology } from "../../../olt/scripts/src/engine/scheduler/index.ts";
+import { initRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
 import { queueCapsuleState, schedulerState } from "./fixtures.ts";
 
 interface ReadyEntryShape {

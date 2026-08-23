@@ -1,9 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import type { JsonObject } from "../../../olt/scripts/src/contracts/json.ts";
+import type { JsonObject } from "../../../olt/scripts/src/core/contracts/json.ts";
 import {
   applyProjectionPatch,
   diffProjection,
-} from "../../../olt/scripts/src/store/projection-patch.ts";
+} from "../../../olt/scripts/src/engine/store/projection-patch.ts";
 
 describe("diffProjection", () => {
   test("returns no ops for two identical objects", () => {

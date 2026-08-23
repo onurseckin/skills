@@ -30,7 +30,7 @@ import {
   type MultiCoordinatorWavePartitionResult,
   type SmartTaskPlan,
 } from "../../../olt/scripts/src/mind/smart-task-manager.ts";
-import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 
 function createMockTask(
   id: string,

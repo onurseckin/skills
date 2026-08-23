@@ -2,9 +2,9 @@ import { describe, expect, test } from "bun:test";
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { initRun } from "../../../olt/scripts/src/store/capsule.ts";
-import { loadRun } from "../../../olt/scripts/src/store/load.ts";
-import { transact } from "../../../olt/scripts/src/store/transaction.ts";
+import { initRun } from "../../../olt/scripts/src/engine/store/capsule.ts";
+import { loadRun } from "../../../olt/scripts/src/engine/store/load.ts";
+import { transact } from "../../../olt/scripts/src/engine/store/transaction.ts";
 import { scratchRoot as makeScratchRoot } from "../../support/scratch-root.ts";
 
 function scratchRoot(label: string): string {
@@ -312,7 +312,7 @@ describe("pulse.sh driver seam", () => {
           driver: "pulse.sh",
         };
         working.pulse =
-          workingPulse as unknown as import("../../../olt/scripts/src/contracts/json.ts").JsonObject;
+          workingPulse as unknown as import("../../../olt/scripts/src/core/contracts/json.ts").JsonObject;
       },
     );
 

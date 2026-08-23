@@ -1,11 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 import {
   CAPTURE_MODES,
   VERBATIM_CAPTURE_MODE,
   captureAssurance,
   isCaptureMode,
-} from "../../../olt/scripts/src/store/assurance.ts";
+} from "../../../olt/scripts/src/engine/store/assurance.ts";
 
 describe("isCaptureMode", () => {
   test("accepts every declared capture mode", () => {

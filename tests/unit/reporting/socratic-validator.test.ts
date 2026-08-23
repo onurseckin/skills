@@ -4,7 +4,7 @@ import {
   formatSocraticAuditSection,
   SOCRATIC_DIMENSIONS,
 } from "../../../olt/scripts/src/reporting/socratic-validator.ts";
-import type { JsonObject } from "../../../olt/scripts/src/contracts/json.ts";
+import type { JsonObject } from "../../../olt/scripts/src/core/contracts/json.ts";
 
 describe("Socratic Reflexive Self-Questioning Engine", () => {
   test("defines all 5 Socratic dimensions", () => {

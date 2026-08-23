@@ -1,6 +1,6 @@
 import { describe, it, expect, mock, spyOn, beforeEach, afterEach } from "bun:test";
 import { capturePromptWithTimeout } from "../../../olt/scripts/src/cli/prompt-capture.ts";
-import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 import * as fs from "node:fs";
 
 mock.module("node:fs", () => ({

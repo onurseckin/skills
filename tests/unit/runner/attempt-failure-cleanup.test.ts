@@ -7,9 +7,9 @@ import {
   handleAttemptFailure,
   settleAndTerminateAttempt,
   startAttemptPumpsAndMonitoring,
-} from "../../../olt/scripts/src/runner/attempt-failure-cleanup.ts";
-import type { NormalizedCommandOptions } from "../../../olt/scripts/src/runner/types.ts";
-import type { ProcessIdentity } from "../../../olt/scripts/src/runner/descendant-tracker.ts";
+} from "../../../olt/scripts/src/engine/runner/attempt-failure-cleanup.ts";
+import type { NormalizedCommandOptions } from "../../../olt/scripts/src/capture/runners/types.ts";
+import type { ProcessIdentity } from "../../../olt/scripts/src/engine/runner/descendant-tracker.ts";
 
 const tempDir = mkdtempSync(join(tmpdir(), "cleanup-test-"));
 const mockOptions: NormalizedCommandOptions = {

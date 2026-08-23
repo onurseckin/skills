@@ -3,7 +3,7 @@ import {
   isAgentGrantRecord,
   isTelemetryFieldConflict,
   type TelemetryFieldConflict,
-} from "../../../olt/scripts/src/contracts/agents.ts";
+} from "../../../olt/scripts/src/core/contracts/agents.ts";
 import {
   refreshAgentDerivedTelemetry,
   registerAgentGrant,

@@ -1,7 +1,7 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { JsonObject } from "../../../olt/scripts/src/contracts/json.ts";
+import type { JsonObject } from "../../../olt/scripts/src/core/contracts/json.ts";
 import {
   appendGateProof,
   type GateProofRecord,

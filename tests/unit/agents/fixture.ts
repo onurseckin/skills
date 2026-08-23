@@ -1,7 +1,7 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
-import type { JsonObject } from "../../../olt/scripts/src/contracts/json.ts";
-import { initRun, loadRun, transact } from "../../../olt/scripts/src/store/index.ts";
+import type { JsonObject } from "../../../olt/scripts/src/core/contracts/json.ts";
+import { initRun, loadRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
 import { registerAgentGrant } from "../../../olt/scripts/src/workflow/agents/grants.ts";
 import { readAgentLedger } from "../../../olt/scripts/src/workflow/agents/ledger.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";

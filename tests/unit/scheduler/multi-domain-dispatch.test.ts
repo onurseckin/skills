@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { dependencyMap } from "../../../olt/scripts/src/graph/dependency-map.ts";
-import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 import {
   classifyTaskDomain,
   derivePrimaryValidatorDomain,
@@ -12,7 +12,7 @@ import {
   resolveParallelismFactor,
   SchedulerEngine,
   type MultiDomainBatchOptions,
-} from "../../../olt/scripts/src/scheduler/index.ts";
+} from "../../../olt/scripts/src/engine/scheduler/index.ts";
 
 interface TestTaskOptions {
   readonly priority?: number;

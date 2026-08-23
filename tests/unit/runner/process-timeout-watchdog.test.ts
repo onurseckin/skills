@@ -15,8 +15,8 @@ import {
   createProcessTimeoutWatchdog,
   createHierarchicalStallProbe,
   buildRemediationGuidance,
-} from "../../../olt/scripts/src/runner/process-timeout-watchdog.ts";
-import type { BunSubprocess } from "../../../olt/scripts/src/runner/types.ts";
+} from "../../../olt/scripts/src/engine/runner/process-timeout-watchdog.ts";
+import type { BunSubprocess } from "../../../olt/scripts/src/capture/runners/types.ts";
 
 function createFakeSubprocess(
   options: {

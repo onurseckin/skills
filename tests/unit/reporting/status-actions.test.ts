@@ -3,7 +3,7 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
-import { initRun, transact } from "../../../olt/scripts/src/store/index.ts";
+import { initRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
 import { renderHandoff } from "../../../olt/scripts/src/reporting/handoff.ts";
 import { formatStatusBrief, runStatus } from "../../../olt/scripts/src/reporting/status.ts";
 import type { NextActions } from "../../../olt/scripts/src/reporting/action-types.ts";

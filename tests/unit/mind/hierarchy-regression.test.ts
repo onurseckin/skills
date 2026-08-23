@@ -8,10 +8,10 @@ import {
   mindRoundOpenCommand,
 } from "../../../olt/scripts/src/cli/commands/mind-round.ts";
 import { COMMAND_REGISTRY, findCommand } from "../../../olt/scripts/src/cli/registry/index.ts";
-import { evidenced } from "../../../olt/scripts/src/contracts/evidence.ts";
-import type { JsonObject, JsonValue } from "../../../olt/scripts/src/contracts/json.ts";
-import { AGENT_ROLES } from "../../../olt/scripts/src/contracts/packets.ts";
-import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
+import { evidenced } from "../../../olt/scripts/src/core/contracts/evidence.ts";
+import type { JsonObject, JsonValue } from "../../../olt/scripts/src/core/contracts/json.ts";
+import { AGENT_ROLES } from "../../../olt/scripts/src/core/contracts/packets.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 import {
   DEFAULT_MIND_BUDGET,
   DEFAULT_PROHIBITIONS,
@@ -50,9 +50,9 @@ import {
   loadRoleContract,
   resolveRoleContractPath,
 } from "../../../olt/scripts/src/packets/role-contract.ts";
-import { initRun } from "../../../olt/scripts/src/store/capsule.ts";
-import { loadRun } from "../../../olt/scripts/src/store/load.ts";
-import { transact } from "../../../olt/scripts/src/store/transaction.ts";
+import { initRun } from "../../../olt/scripts/src/engine/store/capsule.ts";
+import { loadRun } from "../../../olt/scripts/src/engine/store/load.ts";
+import { transact } from "../../../olt/scripts/src/engine/store/transaction.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 function createMindTestCapsule(

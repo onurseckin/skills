@@ -1,8 +1,8 @@
 import {
   executePreparedCommand,
   prepareCommand,
-} from "../../../olt/scripts/src/runner/run-command.ts";
-import type { CommandOptions, CommandResult } from "../../../olt/scripts/src/runner/types.ts";
+} from "../../../olt/scripts/src/engine/runner/run-command.ts";
+import type { CommandOptions, CommandResult } from "../../../olt/scripts/src/capture/runners/types.ts";
 
 /**
  * Prepare-then-execute in one call. Production runs every command through the durable

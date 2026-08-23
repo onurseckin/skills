@@ -8,7 +8,7 @@ import {
   formatMindAdmitBrief,
   mindAdmitCommand,
 } from "../../../olt/scripts/src/cli/commands/mind-admit.ts";
-import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 import {
   evaluateAdmissionGates,
   evaluateGate1Witnessed,
@@ -19,9 +19,9 @@ import {
   evaluateGate6NotADuplicate,
   type CandidateRecord,
 } from "../../../olt/scripts/src/mind/gates.ts";
-import { initRun } from "../../../olt/scripts/src/store/capsule.ts";
-import { loadRun } from "../../../olt/scripts/src/store/load.ts";
-import { transact } from "../../../olt/scripts/src/store/transaction.ts";
+import { initRun } from "../../../olt/scripts/src/engine/store/capsule.ts";
+import { loadRun } from "../../../olt/scripts/src/engine/store/load.ts";
+import { transact } from "../../../olt/scripts/src/engine/store/transaction.ts";
 
 const roots: string[] = [];
 

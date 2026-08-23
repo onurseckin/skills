@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
-import type { HarnessEvent } from "../../../olt/scripts/src/contracts/capsule.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import type { HarnessEvent } from "../../../olt/scripts/src/core/contracts/capsule.ts";
 import {
   COGNITIVE_AUDIT_DIMENSIONS,
   DEFAULT_DIMENSIONAL_WEIGHTS,

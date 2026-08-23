@@ -11,7 +11,7 @@ import {
   type TaskRoleGrant,
 } from "../../../olt/scripts/src/packets/role-grant.ts";
 import { loadRoleContract } from "../../../olt/scripts/src/packets/role-contract.ts";
-import { loadRun, transact } from "../../../olt/scripts/src/store/index.ts";
+import { loadRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
 import { workflowPort } from "../../../olt/scripts/src/integration/store-ports.ts";
 import { tokenDigest } from "../../../olt/scripts/src/workflow/lease/token.ts";
 import { emptyGrantRun, seedSingleTaskGraph } from "./grant-run-fixture.ts";

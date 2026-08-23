@@ -1,11 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import { parseDarwinProcessIdentity } from "../../../olt/scripts/src/runner/darwin-process-identity.ts";
-import { parseLinuxProcessIdentity } from "../../../olt/scripts/src/runner/linux-pipes.ts";
+import { parseDarwinProcessIdentity } from "../../../olt/scripts/src/engine/runner/darwin-process-identity.ts";
+import { parseLinuxProcessIdentity } from "../../../olt/scripts/src/engine/runner/linux-pipes.ts";
 import {
   signalProcessGroup,
   terminateProcessGroup,
   type ProcessGroupIdentity,
-} from "../../../olt/scripts/src/runner/process-group.ts";
+} from "../../../olt/scripts/src/engine/runner/process-group.ts";
 
 describe("process-group identity safety", () => {
   test("uses microsecond or kernel-tick birth identity rather than display timestamps", () => {

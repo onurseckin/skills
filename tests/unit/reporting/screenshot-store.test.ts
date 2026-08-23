@@ -6,8 +6,8 @@ import {
   getVisualReport,
   queryScreenshots,
 } from "../../../olt/scripts/src/reporting/screenshot-store.ts";
-import { recordCaptures } from "../../../olt/scripts/src/store/captures.ts";
-import type { CaptureRecord } from "../../../olt/scripts/src/store/captures.ts";
+import { recordCaptures } from "../../../olt/scripts/src/engine/store/captures.ts";
+import type { CaptureRecord } from "../../../olt/scripts/src/engine/store/captures.ts";
 
 const roots: string[] = [];
 afterEach(() => {

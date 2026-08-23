@@ -7,7 +7,7 @@ import {
   loadRoleContract,
   type RoleContract,
 } from "../../../olt/scripts/src/packets/role-contract.ts";
-import { loadRun } from "../../../olt/scripts/src/store/index.ts";
+import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
 import type { PacketRecord } from "../../../olt/scripts/src/workflow/types.ts";
 
 /** Capsule roots the grant tests create; removed once the file that registered them is done. */

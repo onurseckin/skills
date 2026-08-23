@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { schedulingMetrics } from "../../../olt/scripts/src/scheduler/metrics.ts";
+import { schedulingMetrics } from "../../../olt/scripts/src/engine/scheduler/metrics.ts";
 
 describe("schedulingMetrics", () => {
   test("computes critical depth and descendant counts for a simple chain", () => {

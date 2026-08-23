@@ -1,12 +1,12 @@
 import { describe, expect, test } from "bun:test";
-import { trackerDependencies } from "../../../olt/scripts/src/runner/descendant-tracker-dependencies.ts";
-import { readProcessIdentity } from "../../../olt/scripts/src/runner/process-identity.ts";
+import { trackerDependencies } from "../../../olt/scripts/src/engine/runner/descendant-tracker-dependencies.ts";
+import { readProcessIdentity } from "../../../olt/scripts/src/engine/runner/process-identity.ts";
 import {
   ownedProcessPids,
   ownershipTokenIdentities,
-} from "../../../olt/scripts/src/runner/pipe-ownership.ts";
-import { processSnapshot } from "../../../olt/scripts/src/runner/process-tree.ts";
-import { probeAttemptProcess } from "../../../olt/scripts/src/runner/attempt-intent.ts";
+} from "../../../olt/scripts/src/engine/runner/pipe-ownership.ts";
+import { processSnapshot } from "../../../olt/scripts/src/engine/runner/process-tree.ts";
+import { probeAttemptProcess } from "../../../olt/scripts/src/engine/runner/attempt-intent.ts";
 
 describe("trackerDependencies", () => {
   test("falls back to the real platform implementations when nothing is supplied", () => {

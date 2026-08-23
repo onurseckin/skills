@@ -7,7 +7,7 @@ import {
   verifyCommonInstructions,
 } from "../../../olt/scripts/src/packets/common-instructions.ts";
 import { buildPacketFromPinnedRuntime } from "../../../olt/scripts/src/packets/render-packet.ts";
-import { initRun } from "../../../olt/scripts/src/store/index.ts";
+import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
 import { workflowState } from "../workflow/test-port.ts";
 
 const roots: string[] = [];

@@ -1,9 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import type { CommandPathBinding } from "../../../olt/scripts/src/contracts/commands.ts";
+import type { CommandPathBinding } from "../../../olt/scripts/src/core/contracts/commands.ts";
 import {
   gateControlBindingScopeIssues,
   gateControlBindingsOverlapWriteScopes,
-} from "../../../olt/scripts/src/runner/gate-path-overlap.ts";
+} from "../../../olt/scripts/src/engine/runner/gate-path-overlap.ts";
 
 function binding(overrides: Partial<CommandPathBinding>): CommandPathBinding {
   return {

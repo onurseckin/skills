@@ -3,13 +3,13 @@ import {
   isAgentGrantRecord,
   isAgentToolRef,
   type AgentGrantRecord,
-} from "../../../olt/scripts/src/contracts/agents.ts";
+} from "../../../olt/scripts/src/core/contracts/agents.ts";
 import {
   isCategoryExtras,
   isKnownToolCategory,
   isToolCategory,
   TOOL_CATEGORIES,
-} from "../../../olt/scripts/src/contracts/taxonomy.ts";
+} from "../../../olt/scripts/src/core/contracts/taxonomy.ts";
 
 function grant(extra: Record<string, unknown> = {}): Record<string, unknown> {
   return {

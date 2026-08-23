@@ -21,7 +21,7 @@ import {
   validatePushbackEvidence,
   type PushbackContestOptions,
 } from "../../../olt/scripts/src/task/pushback.ts";
-import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 import type { TransactionPort, WorkflowState } from "../../../olt/scripts/src/workflow/types.ts";
 
 function createMockTransactionPort(initialState: WorkflowState): TransactionPort {

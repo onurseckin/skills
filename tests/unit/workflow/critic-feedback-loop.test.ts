@@ -5,7 +5,7 @@ import {
   trackTaskRepairBudget,
   routeCriticReviewFindings,
 } from "../../../olt/scripts/src/workflow/completion/critic-feedback-loop.ts";
-import type { Finding } from "../../../olt/scripts/src/contracts/workflow.ts";
+import type { Finding } from "../../../olt/scripts/src/core/contracts/workflow.ts";
 import type { CompletionReview } from "../../../olt/scripts/src/workflow/completion/types.ts";
 import type { TaskRecord, WorkflowState } from "../../../olt/scripts/src/workflow/types.ts";
 import { TestPort, repositoryBinding, workflowState } from "./test-port.ts";

@@ -3,8 +3,8 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { generateGraphDataset } from "../../../olt/scripts/src/summary/graph-generator.ts";
-import { recordCaptures } from "../../../olt/scripts/src/store/captures.ts";
-import type { CaptureRecord } from "../../../olt/scripts/src/store/captures.ts";
+import { recordCaptures } from "../../../olt/scripts/src/engine/store/captures.ts";
+import type { CaptureRecord } from "../../../olt/scripts/src/engine/store/captures.ts";
 import { makeState, makeTask } from "./graph-fixtures.ts";
 
 // B3: "every captured asset, with its dimensions and byte size where known" is part of the

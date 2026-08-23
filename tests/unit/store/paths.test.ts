@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import { realpathSync, symlinkSync } from "node:fs";
 import { join } from "node:path";
-import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
-import { runFilePath } from "../../../olt/scripts/src/store/paths.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import { runFilePath } from "../../../olt/scripts/src/engine/store/paths.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("runFilePath", () => {

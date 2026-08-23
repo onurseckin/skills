@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { evidenced } from "../../../olt/scripts/src/contracts/evidence.ts";
+import { evidenced } from "../../../olt/scripts/src/core/contracts/evidence.ts";
 import { claimTask } from "../../../olt/scripts/src/workflow/lease/claim.ts";
 import { heartbeat } from "../../../olt/scripts/src/workflow/lease/heartbeat.ts";
 import { recoverStale } from "../../../olt/scripts/src/workflow/lease/recover-stale.ts";

@@ -20,8 +20,8 @@ import {
   SchedulerEngine,
   type CliDiagnosticReceipt,
   type ScriptBackedDiagnosticsResult,
-} from "../../../olt/scripts/src/scheduler/index.ts";
-import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
+} from "../../../olt/scripts/src/engine/scheduler/index.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 import type { TransactionPort, WorkflowState } from "../../../olt/scripts/src/workflow/types.ts";
 import {
   formatMindPulseActiveBrief,

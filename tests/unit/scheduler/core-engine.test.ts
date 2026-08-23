@@ -21,9 +21,9 @@ import {
   recoverStaleTasks,
   runPulseLoop,
   SchedulerEngine,
-} from "../../../olt/scripts/src/scheduler/index.ts";
+} from "../../../olt/scripts/src/engine/scheduler/index.ts";
 import { registerWatchdog } from "../../../olt/scripts/src/authority/watchdog-manager.ts";
-import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 import type {
   TaskRecord,
   TransactionPort,

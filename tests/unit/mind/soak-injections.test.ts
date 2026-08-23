@@ -17,7 +17,7 @@ import { mindInitCommand } from "../../../olt/scripts/src/cli/commands/mind-init
 import { mindPulseOpenCommand } from "../../../olt/scripts/src/cli/commands/mind-pulse-open.ts";
 import { mindRotateCommand } from "../../../olt/scripts/src/cli/commands/mind-rotate.ts";
 import { mindWakeCommand } from "../../../olt/scripts/src/cli/commands/mind-wake.ts";
-import type { JsonObject, JsonValue } from "../../../olt/scripts/src/contracts/json.ts";
+import type { JsonObject, JsonValue } from "../../../olt/scripts/src/core/contracts/json.ts";
 
 function simulatePulseClose(params: {
   run: string;
@@ -87,10 +87,10 @@ import {
   type LastPulseRecord,
 } from "../../../olt/scripts/src/mind/last-pulse.ts";
 import { calculateNextWakeInterval } from "../../../olt/scripts/src/mind/value.ts";
-import { initRun } from "../../../olt/scripts/src/store/capsule.ts";
-import { verifyIntegrity } from "../../../olt/scripts/src/store/integrity.ts";
-import { loadRun } from "../../../olt/scripts/src/store/load.ts";
-import { transact } from "../../../olt/scripts/src/store/transaction.ts";
+import { initRun } from "../../../olt/scripts/src/engine/store/capsule.ts";
+import { verifyIntegrity } from "../../../olt/scripts/src/engine/store/integrity.ts";
+import { loadRun } from "../../../olt/scripts/src/engine/store/load.ts";
+import { transact } from "../../../olt/scripts/src/engine/store/transaction.ts";
 import { auditRemoteUrls, isPushTargetInert } from "../../support/remote-safety.ts";
 
 const roots: string[] = [];

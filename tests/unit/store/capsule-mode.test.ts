@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { join } from "node:path";
 import { readFileSync, rmSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { initRun } from "../../../olt/scripts/src/store/capsule.ts";
+import { initRun } from "../../../olt/scripts/src/engine/store/capsule.ts";
 import { assertMindModeAllowed } from "../../../olt/scripts/src/mind/smart-task-manager.ts";
 
 describe("Capsule Mode Partitioning", () => {

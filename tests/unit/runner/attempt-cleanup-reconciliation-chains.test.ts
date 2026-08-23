@@ -3,7 +3,7 @@ import { mkdtemp, mkdir, readFile, rm } from "node:fs/promises";
 import { generateKeyPairSync, sign } from "node:crypto";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import type { CommandRecord } from "../../../olt/scripts/src/contracts/commands.ts";
+import type { CommandRecord } from "../../../olt/scripts/src/core/contracts/commands.ts";
 import {
   reconcileStrandedCommands,
   runAndRecordCommand,
@@ -13,17 +13,17 @@ import {
   cleanupDispositionEntryDigest,
   cleanupDispositionSigningBytes,
   type CleanupDispositionPayload,
-} from "../../../olt/scripts/src/runner/attempt-cleanup-disposition.ts";
-import { createCommandSigningCapability } from "../../../olt/scripts/src/runner/attempt-disposition-capability.ts";
+} from "../../../olt/scripts/src/engine/runner/attempt-cleanup-disposition.ts";
+import { createCommandSigningCapability } from "../../../olt/scripts/src/engine/runner/attempt-disposition-capability.ts";
 import {
   attemptStartedIssues,
   ownershipTokenDigest,
   settledAttemptTerminalProof,
   startAttemptIntent,
-} from "../../../olt/scripts/src/runner/attempt-intent.ts";
-import { createInternalCommandRunner } from "../../../olt/scripts/src/runner/internal-command-runner.ts";
-import { OWNERSHIP_ENV } from "../../../olt/scripts/src/runner/pipe-ownership.ts";
-import { initRun, loadRun } from "../../../olt/scripts/src/store/index.ts";
+} from "../../../olt/scripts/src/engine/runner/attempt-intent.ts";
+import { createInternalCommandRunner } from "../../../olt/scripts/src/engine/runner/internal-command-runner.ts";
+import { OWNERSHIP_ENV } from "../../../olt/scripts/src/engine/runner/pipe-ownership.ts";
+import { initRun, loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
 
 const roots: string[] = [];
 

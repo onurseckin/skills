@@ -2,8 +2,8 @@ import { describe, expect, test } from "bun:test";
 import {
   computeDefectDiscriminator,
   normalizeObservationSignature,
-} from "../../../olt/scripts/src/defects/discriminator.ts";
-import type { DefectRecordInput } from "../../../olt/scripts/src/defects/types.ts";
+} from "../../../olt/scripts/src/mind/defects/discriminator.ts";
+import type { DefectRecordInput } from "../../../olt/scripts/src/mind/defects/types.ts";
 
 describe("Defect Discriminator & Signature Normalization", () => {
   describe("normalizeObservationSignature", () => {

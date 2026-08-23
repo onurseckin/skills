@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   BUN_COMPATIBILITY,
   compatibleBunVersion,
-} from "../../../olt/scripts/src/store/bun-compatibility.ts";
+} from "../../../olt/scripts/src/engine/store/bun-compatibility.ts";
 
 // The manifest/capsule-enforcement cases (real initRun, real hand-tampered manifest.json) live in
 // tests/integration/store-bun-compatibility.test.ts; this file keeps the pure-function cases only.

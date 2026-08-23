@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { initRun, transact } from "../../../olt/scripts/src/store/index.ts";
+import { initRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
 import { workflowView } from "../../../olt/scripts/src/reporting/workflow-view.ts";
 import type {
   CompletionArtifactVerification,

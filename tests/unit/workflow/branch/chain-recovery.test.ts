@@ -6,8 +6,8 @@ import {
 } from "../../../../olt/scripts/src/workflow/branch/ledger.ts";
 import { branchRecord, subTask } from "./fixture.ts";
 import { draftWithTask, scopedLease, taskRecord } from "./task-fixture.ts";
-import type { JsonObject } from "../../../../olt/scripts/src/contracts/json.ts";
-import type { BranchRecord } from "../../../../olt/scripts/src/contracts/branch.ts";
+import type { JsonObject } from "../../../../olt/scripts/src/core/contracts/json.ts";
+import type { BranchRecord } from "../../../../olt/scripts/src/core/contracts/branch.ts";
 
 const NOW = new Date("2026-08-19T02:00:00.000Z");
 

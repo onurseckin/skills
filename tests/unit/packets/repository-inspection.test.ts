@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import type { RunState } from "../../../olt/scripts/src/contracts/capsule.ts";
+import type { RunState } from "../../../olt/scripts/src/core/contracts/capsule.ts";
 import {
   repositoryBindingFromInspection,
   repositoryInspectionContext,

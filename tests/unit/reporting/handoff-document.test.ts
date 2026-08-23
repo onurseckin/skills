@@ -2,9 +2,9 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { RunState } from "../../../olt/scripts/src/contracts/capsule.ts";
+import type { RunState } from "../../../olt/scripts/src/core/contracts/capsule.ts";
 import { renderHandoff } from "../../../olt/scripts/src/reporting/handoff.ts";
-import { initRun, transact } from "../../../olt/scripts/src/store/index.ts";
+import { initRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
 import { dispatchFailures, handoffArgv } from "./dispatchable.ts";
 
 const roots: string[] = [];

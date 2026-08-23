@@ -1,4 +1,4 @@
-import { resolveDefectsPath, resolveBacklogPath } from "../../../olt/scripts/src/shared/paths.ts";
+import { resolveDefectsPath, resolveBacklogPath } from "../../../olt/scripts/src/core/shared/paths.ts";
 import { describe, expect, test } from "bun:test";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";

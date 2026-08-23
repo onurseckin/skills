@@ -3,7 +3,7 @@ import { claimTask } from "../../../olt/scripts/src/workflow/lease/claim.ts";
 import { heartbeat } from "../../../olt/scripts/src/workflow/lease/heartbeat.ts";
 import { beginValidation } from "../../../olt/scripts/src/workflow/review/begin-validation.ts";
 import { submitTask } from "../../../olt/scripts/src/workflow/submission/submit.ts";
-import type { BranchLease } from "../../../olt/scripts/src/contracts/branch.ts";
+import type { BranchLease } from "../../../olt/scripts/src/core/contracts/branch.ts";
 import {
   DEAD_AGENT_RECLAIMED_KIND,
   reclaimDeadAgents,

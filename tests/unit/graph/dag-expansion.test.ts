@@ -14,10 +14,10 @@ import {
   replanFromFindings,
   type ReplanFindingInput,
 } from "../../../olt/scripts/src/graph/dag-expansion.ts";
-import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 import { requirementsDocument } from "../requirements/fixtures.ts";
 import { graphDocument } from "./fixtures.ts";
-import type { JsonObject } from "../../../olt/scripts/src/contracts/json.ts";
+import type { JsonObject } from "../../../olt/scripts/src/core/contracts/json.ts";
 
 describe("DAG Expansion & High-Leverage Planning Engine", () => {
   describe("createImplementerValidatorPair", () => {

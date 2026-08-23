@@ -13,8 +13,8 @@ import {
 import type { Stats } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { captureGatePathBindings } from "../../../olt/scripts/src/runner/gate-path-bindings.ts";
-import type { GatePathHooks } from "../../../olt/scripts/src/runner/gate-path-tree.ts";
+import { captureGatePathBindings } from "../../../olt/scripts/src/engine/runner/gate-path-bindings.ts";
+import type { GatePathHooks } from "../../../olt/scripts/src/engine/runner/gate-path-tree.ts";
 
 const roots: string[] = [];
 

@@ -3,8 +3,8 @@ import { randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { canonicalJsonBytes } from "../../../olt/scripts/src/core/json.ts";
-import type { JsonValue } from "../../../olt/scripts/src/contracts/json.ts";
-import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
+import type { JsonValue } from "../../../olt/scripts/src/core/contracts/json.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 import {
   createMarker,
   markerPath,

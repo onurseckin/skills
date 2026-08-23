@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { chmodSync, mkdirSync, mkdtempSync, realpathSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { captureGatePathBindings } from "../../../olt/scripts/src/runner/gate-path-bindings.ts";
+import { captureGatePathBindings } from "../../../olt/scripts/src/engine/runner/gate-path-bindings.ts";
 
 describe("gate-path-bindings", () => {
   test("rejects repo-local gate executable when file is not executable", () => {

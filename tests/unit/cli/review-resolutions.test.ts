@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import type { Finding } from "../../../olt/scripts/src/contracts/workflow.ts";
+import type { Finding } from "../../../olt/scripts/src/core/contracts/workflow.ts";
 import {
   assertNoResolutions,
   assertOpenFindingsAnswered,

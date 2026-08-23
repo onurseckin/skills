@@ -11,8 +11,8 @@ import {
   type DigestOpenProposal,
 } from "../../../olt/scripts/src/mind/digest.ts";
 import { executeRepairLane } from "../../../olt/scripts/src/mind/lanes/repair.ts";
-import { initRun } from "../../../olt/scripts/src/store/capsule.ts";
-import { transact } from "../../../olt/scripts/src/store/transaction.ts";
+import { initRun } from "../../../olt/scripts/src/engine/store/capsule.ts";
+import { transact } from "../../../olt/scripts/src/engine/store/transaction.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("Escalation Digest and REPAIR Lane", () => {

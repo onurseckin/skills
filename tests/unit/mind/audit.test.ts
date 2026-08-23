@@ -9,9 +9,9 @@ import {
   mindAuditStartCommand,
 } from "../../../olt/scripts/src/cli/commands/mind-audit.ts";
 import { mindPulseOpenCommand } from "../../../olt/scripts/src/cli/commands/mind-pulse-open.ts";
-import type { HarnessEvent, RunState } from "../../../olt/scripts/src/contracts/capsule.ts";
-import type { JsonObject } from "../../../olt/scripts/src/contracts/json.ts";
-import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
+import type { HarnessEvent, RunState } from "../../../olt/scripts/src/core/contracts/capsule.ts";
+import type { JsonObject } from "../../../olt/scripts/src/core/contracts/json.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 import {
   assertAuditAllowsPulseOpen,
   AUDIT_QUESTION_IDS,
@@ -26,10 +26,10 @@ import {
   normalizeQuestionId,
   validateAuditAnswers,
 } from "../../../olt/scripts/src/mind/audit.ts";
-import { initRun } from "../../../olt/scripts/src/store/capsule.ts";
-import { verifyIntegrity } from "../../../olt/scripts/src/store/integrity.ts";
-import { loadRun } from "../../../olt/scripts/src/store/load.ts";
-import { transact } from "../../../olt/scripts/src/store/transaction.ts";
+import { initRun } from "../../../olt/scripts/src/engine/store/capsule.ts";
+import { verifyIntegrity } from "../../../olt/scripts/src/engine/store/integrity.ts";
+import { loadRun } from "../../../olt/scripts/src/engine/store/load.ts";
+import { transact } from "../../../olt/scripts/src/engine/store/transaction.ts";
 
 const roots: string[] = [];
 

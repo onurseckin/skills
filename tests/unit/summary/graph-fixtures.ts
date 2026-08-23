@@ -1,6 +1,6 @@
-import type { AgentGrantRecord } from "../../../olt/scripts/src/contracts/agents.ts";
-import type { HarnessEvent } from "../../../olt/scripts/src/contracts/capsule.ts";
-import type { CommandRecord } from "../../../olt/scripts/src/contracts/commands.ts";
+import type { AgentGrantRecord } from "../../../olt/scripts/src/core/contracts/agents.ts";
+import type { HarnessEvent } from "../../../olt/scripts/src/core/contracts/capsule.ts";
+import type { CommandRecord } from "../../../olt/scripts/src/core/contracts/commands.ts";
 import type { TaskRecord, WorkflowState } from "../../../olt/scripts/src/workflow/types.ts";
 
 export function makeTask(id: string, overrides: Partial<TaskRecord> = {}): TaskRecord {

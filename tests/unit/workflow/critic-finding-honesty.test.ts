@@ -2,11 +2,11 @@ import { describe, expect, test } from "bun:test";
 import { appendFileSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 import { parseRawFindings } from "../../../olt/scripts/src/workflow/completion/parse-raw-findings.ts";
 import { observeCapsuleIntegrity } from "../../../olt/scripts/src/workflow/completion/integrity-evidence.ts";
-import { initRun } from "../../../olt/scripts/src/store/capsule.ts";
-import { loadRun } from "../../../olt/scripts/src/store/load.ts";
+import { initRun } from "../../../olt/scripts/src/engine/store/capsule.ts";
+import { loadRun } from "../../../olt/scripts/src/engine/store/load.ts";
 import { integrityGateIssues } from "./integrity-review-fixture.ts";
 
 const complete = {

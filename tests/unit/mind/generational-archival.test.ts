@@ -6,8 +6,8 @@ import {
   formatMindRotateBrief,
   mindRotateCommand,
 } from "../../../olt/scripts/src/cli/commands/mind-rotate.ts";
-import type { JsonObject, JsonValue } from "../../../olt/scripts/src/contracts/json.ts";
-import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
+import type { JsonObject, JsonValue } from "../../../olt/scripts/src/core/contracts/json.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 import {
   appendArchivedObjectives,
   archiveCapsule,
@@ -39,9 +39,9 @@ import {
 } from "../../../olt/scripts/src/mind/memory.ts";
 import { rotateMindGeneration } from "../../../olt/scripts/src/mind/rotate.ts";
 import type { ObjectiveRecord } from "../../../olt/scripts/src/mind/rounds.ts";
-import { verifyIntegrity } from "../../../olt/scripts/src/store/integrity.ts";
-import { loadRun } from "../../../olt/scripts/src/store/load.ts";
-import { transact } from "../../../olt/scripts/src/store/transaction.ts";
+import { verifyIntegrity } from "../../../olt/scripts/src/engine/store/integrity.ts";
+import { loadRun } from "../../../olt/scripts/src/engine/store/load.ts";
+import { transact } from "../../../olt/scripts/src/engine/store/transaction.ts";
 import { scratchRoot as makeScratchRoot } from "../../support/scratch-root.ts";
 
 function scratchRoot(label: string): string {

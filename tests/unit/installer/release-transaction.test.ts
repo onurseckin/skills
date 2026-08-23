@@ -4,7 +4,7 @@ import { mkdirSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 import { join } from "node:path";
 import { canonicalJsonBytes } from "../../../olt/scripts/src/core/json.ts";
-import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 import { sealInstallationManifest } from "../../../olt/scripts/src/installer/manifest-integrity.ts";
 import { acquireInstallerLock } from "../../../olt/scripts/src/installer/installer-lock.ts";
 import { pathIdentity } from "../../../olt/scripts/src/installer/path-safety.ts";

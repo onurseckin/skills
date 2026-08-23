@@ -6,7 +6,7 @@ import {
   getHarnessConfig,
   resetHarnessConfigCache,
   resolveHarnessConfig,
-} from "../../../olt/scripts/src/config/harness-config.ts";
+} from "../../../olt/scripts/src/core/config/harness-config.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("resolved harness config", () => {

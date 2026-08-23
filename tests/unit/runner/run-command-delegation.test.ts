@@ -2,13 +2,13 @@ import { describe, expect, test } from "bun:test";
 import {
   executePreparedCommand,
   prepareCommand,
-} from "../../../olt/scripts/src/runner/run-command.ts";
-import type { InternalCommandRunner } from "../../../olt/scripts/src/runner/internal-command-runner.ts";
+} from "../../../olt/scripts/src/engine/runner/run-command.ts";
+import type { InternalCommandRunner } from "../../../olt/scripts/src/engine/runner/internal-command-runner.ts";
 import type {
   CommandOptions,
   CommandResult,
   PreparedCommand,
-} from "../../../olt/scripts/src/runner/types.ts";
+} from "../../../olt/scripts/src/capture/runners/types.ts";
 
 // `prepareCommand`/`executePreparedCommand` are the production entry points: by default they
 // delegate to a runner wired to the real repository inspector and the real attempt spawner, which

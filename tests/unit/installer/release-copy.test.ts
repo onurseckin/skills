@@ -3,7 +3,7 @@ import { cp, mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 import { join } from "node:path";
-import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 import { acquireInstallerLock } from "../../../olt/scripts/src/installer/installer-lock.ts";
 import {
   atomicReleaseCopy,

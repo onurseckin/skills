@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { loadRun } from "../../../olt/scripts/src/store/index.ts";
+import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
 import { completionReviewIssues } from "../../../olt/scripts/src/workflow/completion/review-issues.ts";
 import type { WorkflowState } from "../../../olt/scripts/src/workflow/types.ts";
 

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { AGENT_ROLES, type AgentRole } from "../../../olt/scripts/src/contracts/packets.ts";
-import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
+import { AGENT_ROLES, type AgentRole } from "../../../olt/scripts/src/core/contracts/packets.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 import {
   ABSTRACT_PROFILES,
   assertAbstractProfile,

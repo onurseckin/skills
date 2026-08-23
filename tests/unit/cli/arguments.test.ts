@@ -4,7 +4,7 @@ import {
   parseArguments,
   suggestFlag,
 } from "../../../olt/scripts/src/cli/arguments.ts";
-import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 import { shouldReadPromptStdin } from "../../../olt/scripts/src/cli/prompt-input.ts";
 
 describe("CLI argument parsing", () => {

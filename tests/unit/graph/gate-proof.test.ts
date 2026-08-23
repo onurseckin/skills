@@ -11,8 +11,8 @@ import {
   type GateProofRecord,
   type GateSpawn,
 } from "../../../olt/scripts/src/graph/gate-proof.ts";
-import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
-import type { JsonObject } from "../../../olt/scripts/src/contracts/json.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import type { JsonObject } from "../../../olt/scripts/src/core/contracts/json.ts";
 import type {
   RepositoryGitCommand,
   RepositoryGitResult,

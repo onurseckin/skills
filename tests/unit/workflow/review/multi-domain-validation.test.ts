@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { applicableValidatorDomains } from "../../../../olt/scripts/src/contracts/workflow.ts";
+import { applicableValidatorDomains } from "../../../../olt/scripts/src/core/contracts/workflow.ts";
 import {
   appendGateProof,
   type GateProofRecord,

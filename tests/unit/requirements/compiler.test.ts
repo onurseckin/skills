@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { compileRequirementsFromPrompt } from "../../../olt/scripts/src/requirements/compiler.ts";
 import { compileGraphDocument } from "../../../olt/scripts/src/graph/compiler.ts";
-import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 
 describe("Requirements and Graph Compilers", () => {
   test("compileRequirementsFromPrompt generates valid requirements covering all lines", () => {

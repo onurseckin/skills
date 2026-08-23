@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import type { CommandRecord } from "../../../olt/scripts/src/contracts/commands.ts";
-import { gitExecutionArgvIssues } from "../../../olt/scripts/src/runner/git-execution-shape.ts";
+import type { CommandRecord } from "../../../olt/scripts/src/core/contracts/commands.ts";
+import { gitExecutionArgvIssues } from "../../../olt/scripts/src/engine/runner/git-execution-shape.ts";
 
 function createCommandRecord(overrides: Partial<CommandRecord> = {}): CommandRecord {
   return {

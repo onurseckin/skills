@@ -1,12 +1,12 @@
 import { describe, expect, test } from "bun:test";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
-import { evidenced, estimated } from "../../../olt/scripts/src/contracts/evidence.ts";
+import { evidenced, estimated } from "../../../olt/scripts/src/core/contracts/evidence.ts";
 import type {
   AgentToolUse,
   TelemetryFieldConflict,
-} from "../../../olt/scripts/src/contracts/agents.ts";
-import { initRun } from "../../../olt/scripts/src/store/index.ts";
+} from "../../../olt/scripts/src/core/contracts/agents.ts";
+import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
 import { registerAgentGrant } from "../../../olt/scripts/src/workflow/agents/grants.ts";
 import {
   appendTelemetryConflicts,

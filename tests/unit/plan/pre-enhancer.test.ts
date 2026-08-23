@@ -12,7 +12,7 @@
  */
 
 import { describe, test, expect } from "bun:test";
-import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 import {
   PRE_ENHANCER_VERSION,
   DEFAULT_TASK_PRIORITY,

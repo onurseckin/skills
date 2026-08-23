@@ -23,12 +23,12 @@ import {
   DOCTOR_SUPERVISOR_CODE_CONTAMINATION,
   isSourceCodeFile,
   type TierConfinementFinding,
-} from "../../../olt/scripts/src/doctor/tier-confinement.ts";
-import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
-import type { AgentGrantRecord } from "../../../olt/scripts/src/contracts/agents.ts";
-import type { CommandRecord } from "../../../olt/scripts/src/contracts/commands.ts";
+} from "../../../olt/scripts/src/reporting/doctor/tier-confinement.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import type { AgentGrantRecord } from "../../../olt/scripts/src/core/contracts/agents.ts";
+import type { CommandRecord } from "../../../olt/scripts/src/core/contracts/commands.ts";
 import type { TaskRecord } from "../../../olt/scripts/src/workflow/types.ts";
-import type { JsonObject } from "../../../olt/scripts/src/contracts/json.ts";
+import type { JsonObject } from "../../../olt/scripts/src/core/contracts/json.ts";
 
 describe("Autonomic Watchdog 3-Minute Heartbeat Loop (p47)", () => {
   it("initializes with 3-minute standard cadence (180,000ms) and 6-minute timeout (360,000ms)", () => {

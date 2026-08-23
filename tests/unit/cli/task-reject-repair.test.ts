@@ -2,8 +2,8 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { execute } from "../../../olt/scripts/src/cli/execute.ts";
 import { taskAssignRepairerCommand } from "../../../olt/scripts/src/cli/commands/task-assign-repairer.ts";
 import { taskRejectCommand } from "../../../olt/scripts/src/cli/commands/task-reject.ts";
-import { linkBlobIntoView, putBlobFile } from "../../../olt/scripts/src/store/blobs.ts";
-import { recordCaptures } from "../../../olt/scripts/src/store/captures.ts";
+import { linkBlobIntoView, putBlobFile } from "../../../olt/scripts/src/engine/store/blobs.ts";
+import { recordCaptures } from "../../../olt/scripts/src/engine/store/captures.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
 import { claimSubmitValidateAndReject, setupCompiledRun } from "./file-persistence-fixture.ts";
 

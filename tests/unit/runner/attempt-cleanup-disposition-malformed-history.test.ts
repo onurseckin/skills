@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { cleanupDispositionIssues } from "../../../olt/scripts/src/runner/attempt-cleanup-disposition.ts";
-import { attemptStartedBaseDigest } from "../../../olt/scripts/src/runner/attempt-cleanup-signature.ts";
+import { cleanupDispositionIssues } from "../../../olt/scripts/src/engine/runner/attempt-cleanup-disposition.ts";
+import { attemptStartedBaseDigest } from "../../../olt/scripts/src/engine/runner/attempt-cleanup-signature.ts";
 
 function baseRecord() {
   const base = {

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 import type { RepositoryGitCommand } from "../../../olt/scripts/src/packets/repository-git-command.ts";
 import {
   declaredWriteScopeUnion,
@@ -20,7 +20,7 @@ function stateWithBaseline(overrides: Partial<WorkflowState> = {}): WorkflowStat
   const baseline = inspection("baseline");
   state.baseline_repository_inspection_sha256 = baseline.inspection_sha256;
   state.repository_inspections = { [baseline.inspection_sha256]: baseline };
-  return { ...state, ...overrides };
+  return { ...state, ...overrides } as unknown as WorkflowState;
 }
 
 describe("declaredWriteScopeUnion", () => {

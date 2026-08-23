@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { canonicalizeYaml } from "../../../../olt/scripts/src/store/content-normalization/yaml-canonical.ts";
+import { canonicalizeYaml } from "../../../../olt/scripts/src/engine/store/content-normalization/yaml-canonical.ts";
 
 const encode = (text: string): Uint8Array => new TextEncoder().encode(text);
 

@@ -8,7 +8,7 @@ import {
   inside,
   portableRelative,
   resolvePathExecutable,
-} from "../../../olt/scripts/src/runner/gate-path-binding-verify.ts";
+} from "../../../olt/scripts/src/engine/runner/gate-path-binding-verify.ts";
 
 const roots: string[] = [];
 

@@ -13,7 +13,7 @@ import {
 import { findCommand } from "../../../olt/scripts/src/cli/registry/index.ts";
 import { assertRoleMayInvoke } from "../../../olt/scripts/src/packets/command-authority.ts";
 import { loadRoleContract } from "../../../olt/scripts/src/packets/role-contract.ts";
-import { initRun, transact } from "../../../olt/scripts/src/store/index.ts";
+import { initRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
 
 const roots: string[] = [];
 afterEach(async () => {

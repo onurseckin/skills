@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { detectContentFormat } from "../../../../olt/scripts/src/store/content-normalization/format.ts";
+import { detectContentFormat } from "../../../../olt/scripts/src/engine/store/content-normalization/format.ts";
 
 describe("detectContentFormat", () => {
   test("recognizes JSON by extension", () => {

@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createHash } from "node:crypto";
 import { execute } from "../../../olt/scripts/src/cli/execute.ts";
-import { transact, loadRun } from "../../../olt/scripts/src/store/index.ts";
+import { transact, loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
 import { buildPacket } from "../../../olt/scripts/src/packets/render-packet.ts";
 import { isolateValidatorContext } from "../../../olt/scripts/src/packets/validator-context.ts";
 import { evidenceSchema } from "../../../olt/scripts/src/packets/evidence-schema.ts";

@@ -3,7 +3,7 @@ import {
   agentRegisterCommand,
   agentReportCommand,
 } from "../../../olt/scripts/src/cli/commands/agent-ops.ts";
-import { loadRun } from "../../../olt/scripts/src/store/index.ts";
+import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
 import {
   buildNodeTelemetry,
   buildNodeTools,

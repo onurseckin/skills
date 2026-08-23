@@ -4,7 +4,7 @@ import { join } from "node:path";
 import {
   DEFAULT_RESOLVED_CONFIG,
   resolveHarnessConfig,
-} from "../../../olt/scripts/src/config/harness-config.ts";
+} from "../../../olt/scripts/src/core/config/harness-config.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 // scratchRoot() creates and tears itself down (see tests/support/README.md) — this file no longer

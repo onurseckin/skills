@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
-import { AGENT_ROLES } from "../../../olt/scripts/src/contracts/packets.ts";
+import { AGENT_ROLES } from "../../../olt/scripts/src/core/contracts/packets.ts";
 import {
   assertGrantedCommand,
   assertRoleMayInvoke,

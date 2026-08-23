@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   repositoryObservationIssues,
   sameCommandJson,
-} from "../../../olt/scripts/src/runner/repository-observation-shape.ts";
+} from "../../../olt/scripts/src/engine/runner/repository-observation-shape.ts";
 
 function validObservation(): Record<string, unknown> {
   return {

@@ -8,8 +8,8 @@ import {
   appendGateProof,
   type GateProofRecord,
 } from "../../../olt/scripts/src/graph/gate-proof.ts";
-import { loadRun } from "../../../olt/scripts/src/store/index.ts";
-import { transact } from "../../../olt/scripts/src/store/transaction.ts";
+import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
+import { transact } from "../../../olt/scripts/src/engine/store/transaction.ts";
 
 export const TASK_ID = "task-core";
 export const VALIDATOR = "val-1";

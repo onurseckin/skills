@@ -1,4 +1,4 @@
-import type { JsonObject } from "../../../../olt/scripts/src/contracts/json.ts";
+import type { JsonObject } from "../../../../olt/scripts/src/core/contracts/json.ts";
 import type { ScopedLease, TaskRecord } from "../../../../olt/scripts/src/workflow/types.ts";
 
 export function scopedLease(overrides: Partial<ScopedLease> = {}): ScopedLease {

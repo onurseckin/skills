@@ -1,11 +1,11 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { isAgentRole } from "../../../olt/scripts/src/contracts/packets.ts";
+import { isAgentRole } from "../../../olt/scripts/src/core/contracts/packets.ts";
 import {
   MAX_REPAIR_ROUNDS,
   MIN_ADVERSARIAL_PROBES,
-} from "../../../olt/scripts/src/config/constants.ts";
+} from "../../../olt/scripts/src/core/config/constants.ts";
 import { resolveRoleContractPath } from "../../../olt/scripts/src/packets/role-contract.ts";
 
 const agentsRoot = join(import.meta.dir, "..", "..", "..", "olt", "agents");

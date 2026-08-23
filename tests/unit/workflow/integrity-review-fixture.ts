@@ -1,4 +1,4 @@
-import type { JsonObject } from "../../../olt/scripts/src/contracts/json.ts";
+import type { JsonObject } from "../../../olt/scripts/src/core/contracts/json.ts";
 import { completionReviewIssues } from "../../../olt/scripts/src/workflow/completion/review-issues.ts";
 import type { CompletionReview } from "../../../olt/scripts/src/workflow/completion/types.ts";
 import type { WorkflowState } from "../../../olt/scripts/src/workflow/types.ts";

@@ -10,7 +10,7 @@ import {
   formatValidationStartBrief,
 } from "../../../olt/scripts/src/cli/formatters/task-formatter.ts";
 import { formatAgentBrief } from "../../../olt/scripts/src/cli/formatters/agent-formatter.ts";
-import { transact } from "../../../olt/scripts/src/store/transaction.ts";
+import { transact } from "../../../olt/scripts/src/engine/store/transaction.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
 import { TASK_ID, setupRun } from "./probe-fixture.ts";
 

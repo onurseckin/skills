@@ -3,7 +3,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 import {
   assertDoctorCertification,
   certifyHarnessDoctor,
@@ -16,7 +16,7 @@ import {
   type DoctorCertificationReport,
   type HarnessHealthCheck,
   type MutationKind,
-} from "../../../olt/scripts/src/doctor/adversarial-doctor.ts";
+} from "../../../olt/scripts/src/reporting/doctor/adversarial-doctor.ts";
 
 const tempDirs: string[] = [];
 afterEach(async () => {

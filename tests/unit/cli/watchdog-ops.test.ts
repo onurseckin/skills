@@ -8,7 +8,7 @@ import {
   type WatchdogStore,
 } from "../../../olt/scripts/src/authority/watchdog-manager.ts";
 import { execute } from "../../../olt/scripts/src/cli/execute.ts";
-import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("CLI - watchdog:status", () => {

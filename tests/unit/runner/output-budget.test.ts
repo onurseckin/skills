@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { OutputBudget } from "../../../olt/scripts/src/runner/output-budget.ts";
+import { OutputBudget } from "../../../olt/scripts/src/engine/runner/output-budget.ts";
 
 describe("OutputBudget", () => {
   test("tracks consumed bytes across claims within the maximum", () => {

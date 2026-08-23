@@ -25,7 +25,7 @@ import {
   type SupervisoryPersonaReminder,
   type SupervisoryReminderEvaluationContext,
 } from "../../../olt/scripts/src/authority/supervisory-persona-reminder.ts";
-import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 
 describe("YAML and Markdown Frontmatter Parser (manifest-parser.ts)", () => {
   test("parses plain scalars, booleans, numbers, and nulls correctly", () => {

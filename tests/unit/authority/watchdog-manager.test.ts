@@ -27,7 +27,7 @@ import {
   watchdogStatusCommand,
   watchdogVerifyCommand,
 } from "../../../olt/scripts/src/cli/commands/watchdog-ops.ts";
-import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("WatchdogManager - Store Lifecycle & Resolution", () => {

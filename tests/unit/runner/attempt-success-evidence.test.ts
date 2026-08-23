@@ -6,13 +6,13 @@ import { join } from "node:path";
 import {
   finalizeSuccessfulAttempt,
   writeSuccessfulAttemptEvidence,
-} from "../../../olt/scripts/src/runner/attempt-success-evidence.ts";
+} from "../../../olt/scripts/src/engine/runner/attempt-success-evidence.ts";
 import type {
   NormalizedCommandOptions,
   OutputSummary,
-} from "../../../olt/scripts/src/runner/types.ts";
-import type { WatchdogOutcome } from "../../../olt/scripts/src/runner/watchdog.ts";
-import type { ProcessIdentity } from "../../../olt/scripts/src/runner/descendant-tracker.ts";
+} from "../../../olt/scripts/src/capture/runners/types.ts";
+import type { WatchdogOutcome } from "../../../olt/scripts/src/engine/runner/watchdog.ts";
+import type { ProcessIdentity } from "../../../olt/scripts/src/engine/runner/descendant-tracker.ts";
 
 const roots: string[] = [];
 

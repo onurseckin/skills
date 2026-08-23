@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 import {
   isMicroCycleRecord,
   type MicroCycleRecord,
-} from "../../../olt/scripts/src/contracts/workflow.ts";
+} from "../../../olt/scripts/src/core/contracts/workflow.ts";
 import {
   DEFAULT_MAX_MICRO_CYCLES,
   formatMicroCycleFeedback,

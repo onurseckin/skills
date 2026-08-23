@@ -13,8 +13,8 @@ import {
   summarizeBehavioralHealth,
 } from "../../../olt/scripts/src/reporting/behavioral-auditor.ts";
 import { runDoctor } from "../../../olt/scripts/src/reporting/doctor.ts";
-import { initRun, transact } from "../../../olt/scripts/src/store/index.ts";
-import type { JsonObject } from "../../../olt/scripts/src/contracts/json.ts";
+import { initRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
+import type { JsonObject } from "../../../olt/scripts/src/core/contracts/json.ts";
 
 const roots: string[] = [];
 afterEach(async () =>

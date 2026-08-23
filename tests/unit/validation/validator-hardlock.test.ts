@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { findCommand } from "../../../olt/scripts/src/cli/registry/index.ts";
 import type { CommandSpec } from "../../../olt/scripts/src/cli/registry/types.ts";
 import type { Flags } from "../../../olt/scripts/src/cli/options.ts";
-import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 import {
   isCognitiveValidatorRole,
   isMechanicValidatorRole,
@@ -30,7 +30,7 @@ import {
   assertNoBoundaryLeak,
   type BoundaryLeakCheck,
 } from "../../../olt/scripts/src/validation/anti-leak.ts";
-import { transact } from "../../../olt/scripts/src/store/index.ts";
+import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
 import { emptyGrantRun } from "../packets/grant-run-fixture.ts";
 import type { DynamicRoleSpec } from "../../../olt/scripts/src/mind/dynamic-roles.ts";
 

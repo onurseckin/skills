@@ -18,7 +18,7 @@ import {
   type TriadAuditReport,
   type TriadValidationResult,
 } from "../../../olt/scripts/src/agents/agent-triad.ts";
-import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 
 describe("P06 Agent Triad Architecture Unit Tests", () => {
   const standardRoles = [

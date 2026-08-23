@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 import { claimTask } from "../../../olt/scripts/src/workflow/lease/claim.ts";
 import { beginValidation } from "../../../olt/scripts/src/workflow/review/begin-validation.ts";
 import { recordReview } from "../../../olt/scripts/src/workflow/review/record-review.ts";

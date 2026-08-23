@@ -11,7 +11,7 @@ import {
   resolveOltDir,
   resolvePolicyPath,
   resolveTelemetryPath,
-} from "../../../olt/scripts/src/shared/paths.ts";
+} from "../../../olt/scripts/src/core/shared/paths.ts";
 
 describe("Canonical olt/ Storage & Paths System", () => {
   let tmpRoot: string;

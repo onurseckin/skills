@@ -15,7 +15,7 @@ import {
   type SynthesizedTopology,
   type TopologySynthesisSpec,
 } from "../../../olt/scripts/src/orchestrator/topology-synthesis.ts";
-import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 
 describe("Topology Synthesis Unit Tests", () => {
   describe("Scope Utilities", () => {

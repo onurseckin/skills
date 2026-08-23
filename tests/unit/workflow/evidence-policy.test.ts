@@ -7,7 +7,7 @@ import { attachGateResult } from "../../../olt/scripts/src/workflow/gates/attach
 import { claimTask } from "../../../olt/scripts/src/workflow/lease/claim.ts";
 import { submitTask } from "../../../olt/scripts/src/workflow/submission/submit.ts";
 import { at, commandRecord, TEST_GATE_ARGV, TestPort, workflowState } from "./test-port.ts";
-import { captureGatePathBindings } from "../../../olt/scripts/src/runner/gate-path-bindings.ts";
+import { captureGatePathBindings } from "../../../olt/scripts/src/engine/runner/gate-path-bindings.ts";
 import { commandFingerprint } from "../../../olt/scripts/src/workflow/gates/gate-policy.ts";
 
 const clock = at("2026-08-13T12:00:00.000Z");

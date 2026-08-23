@@ -3,8 +3,8 @@ import {
   deduplicateDefectLog,
   parseAndDeduplicateDefectJsonl,
   serializeAggregatedDefectLog,
-} from "../../../olt/scripts/src/defects/dedup-stream.ts";
-import type { DefectRecordInput } from "../../../olt/scripts/src/defects/types.ts";
+} from "../../../olt/scripts/src/mind/defects/dedup-stream.ts";
+import type { DefectRecordInput } from "../../../olt/scripts/src/mind/defects/types.ts";
 
 describe("Defect Stream Deduplication & Serialization", () => {
   describe("deduplicateDefectLog", () => {

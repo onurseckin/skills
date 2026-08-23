@@ -7,8 +7,8 @@ import {
   ingestVisualReport,
 } from "../../../olt/scripts/src/reporting/screenshot-ingestion.ts";
 import { queryScreenshots } from "../../../olt/scripts/src/reporting/screenshot-store.ts";
-import { listBlobs } from "../../../olt/scripts/src/store/blobs.ts";
-import { readCaptures } from "../../../olt/scripts/src/store/captures.ts";
+import { listBlobs } from "../../../olt/scripts/src/engine/store/blobs.ts";
+import { readCaptures } from "../../../olt/scripts/src/engine/store/captures.ts";
 
 const roots: string[] = [];
 afterEach(() => {

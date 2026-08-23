@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { HarnessError } from "../../../olt/scripts/src/errors/harness-error.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 import { assertCriticIndependent } from "../../../olt/scripts/src/workflow/completion/critic-identity.ts";
 import { workflowState } from "./test-port.ts";
 

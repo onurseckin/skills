@@ -9,7 +9,7 @@ import type {
   StackingViolation,
   VisualMetricsReport,
 } from "../../../olt/scripts/src/reporting/screenshot-types.ts";
-import type { CaptureRecord } from "../../../olt/scripts/src/store/captures.ts";
+import type { CaptureRecord } from "../../../olt/scripts/src/engine/store/captures.ts";
 
 function baseReport(overrides: Partial<VisualMetricsReport> = {}): VisualMetricsReport {
   return {

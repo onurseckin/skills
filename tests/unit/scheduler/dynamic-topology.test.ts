@@ -6,7 +6,7 @@ import {
   calculateValidatorAllocations,
   calculateCriticConcurrency,
   synthesizeDynamicTopology,
-} from "../../../olt/scripts/src/scheduler/index.ts";
+} from "../../../olt/scripts/src/engine/scheduler/index.ts";
 import { schedulerState, topologyState } from "./fixtures.ts";
 
 describe("Dynamic Topology Synthesis", () => {

@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import type { HarnessEvent } from "../../../olt/scripts/src/contracts/capsule.ts";
+import type { HarnessEvent } from "../../../olt/scripts/src/core/contracts/capsule.ts";
 import {
   buildDynamicDagState,
   buildLivingTracerReport,
