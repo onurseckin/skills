@@ -16,16 +16,17 @@
   "author": "Onur Seçkin Şenoğlu",
   "type": "module",
   "scripts": {
-    "test": "bun test --timeout 30000 --parallel --no-isolate tests/unit",
+    "test": "bun scripts/test-runner.ts tests/unit",
+    "test:all": "bun scripts/test-runner.ts tests",
     "test:changed": "bun scripts/test-changed.ts",
-    "test:coverage": "bun test --timeout 30000 --parallel --no-isolate --coverage tests/unit",
+    "test:coverage": "bun scripts/test-runner.ts --coverage tests/unit",
     "coverage:check": "bun test:coverage",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "oxlint --quiet",
     "format": "oxfmt '!**/.olt/capsules/**' '!**/.olt/scratch/**'",
     "format:check": "oxfmt '!**/.olt/capsules/**' '!**/.olt/scratch/**' --check",
     "sync:local": "bun scripts/sync-global.ts",
-    "sync:remote": "npx skills update orchestrating-long-tasks -g -y",
+    "sync:remote": "npx skills update olt -g -y",
     "sync": "bun run sync:local"
   },
   "devDependencies": {

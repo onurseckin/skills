@@ -425,6 +425,7 @@ export function verifyCommandAuthorization(
   policy?: RepoPolicy,
 ): AuthorizationResult {
   const role = actor.role.trim();
+  const normalizedRole = role.toLowerCase();
   const roleCanExecute = inferCanExecuteShell(role);
   const canExecute = !roleCanExecute
     ? false
@@ -435,6 +436,28 @@ export function verifyCommandAuthorization(
   const commandStr = typeof command === "string" ? command.trim() : command.join(" ").trim();
   const argv = typeof command === "string" ? command.trim().split(/\s+/) : command;
   const activePolicy = policy ?? loadRepoPolicy();
+
+  const isCognitiveValidator =
+    normalizedRole === "validator" ||
+    normalizedRole === "cognitive-validator" ||
+    normalizedRole === "cognitive_validator" ||
+    normalizedRole.startsWith("validator-") ||
+    normalizedRole === "critic" ||
+    normalizedRole === "completeness-critic" ||
+    normalizedRole === "completeness_critic" ||
+    normalizedRole === "plan-validator" ||
+    normalizedRole === "plan_validator" ||
+    normalizedRole === "sub-investigator" ||
+    normalizedRole === "sub_investigator";
+
+  const isSupervisor =
+    normalizedRole === "mind" ||
+    normalizedRole === "orchestrator" ||
+    normalizedRole === "coordinator" ||
+    normalizedRole === "meta-auditor" ||
+    normalizedRole === "meta_auditor" ||
+    normalizedRole === "mind-auditor" ||
+    normalizedRole === "mind_auditor";
 
   // 1. Check Subshell and Chaining Escapes
   const subshellCheck = hasUnshieldedSubshellOrChaining(commandStr, argv);
@@ -450,7 +473,32 @@ export function verifyCommandAuthorization(
     };
   }
 
-  // 2. Check Cognitive Validator & Non-Shell Roles Hard-Lock
+  // 2. Check Cognitive Validator Hard-Lock
+  if (isCognitiveValidator) {
+    return {
+      authorized: false,
+      error_code: "ROLE_BOUNDARY_VIOLATION",
+      reason: `Role '${role}' has 'can_execute_shell: false'`,
+      message:
+        `[ROLE_BOUNDARY_VIOLATION] Cognitive Validators are locked to 0 command execution.\n` +
+        `Focus exclusively on Socratic diff review and logic critique.`,
+    };
+  }
+
+  // 3. Supervisor strict ban on tests
+  const isTestCommand =
+    /^(bun\s+test|vitest|npm\s+test|pytest|cargo\s+test)\b/i.test(commandStr) ||
+    /\.(test|spec)\.ts\b/.test(commandStr);
+  if (isSupervisor && isTestCommand) {
+    return {
+      authorized: false,
+      error_code: "ROLE_BOUNDARY_VIOLATION",
+      reason: `Supervisors cannot run tests: '${commandStr}'`,
+      message: `[ROLE_BOUNDARY_VIOLATION] Coordinators and Orchestrators are mechanically blocked from running test commands.`,
+    };
+  }
+
+  // 4. General !canExecute check (if they are a supervisor but running non-test command, or other non-exec roles)
   if (!canExecute) {
     return {
       authorized: false,
@@ -458,26 +506,25 @@ export function verifyCommandAuthorization(
       reason: `Role '${role}' has 'can_execute_shell: false'`,
       message:
         `[PERMISSION_DENIED] Role '${role}' has 'can_execute_shell: false'.\n` +
-        `Cognitive Validators are strictly prohibited from running commands.\n` +
-        `Focus exclusively on Socratic diff review and logic critique.`,
+        `This role is strictly prohibited from running commands.`,
     };
   }
 
-  // 3. Check Un-Targeted Test Suite Executions (Implementer / Worker)
+  // 5. Check Un-Targeted Test Suite Executions (Implementer / Worker)
   if (isUntargetedTestCommand(commandStr, argv, activePolicy)) {
     const targetedExample = activePolicy.test_runner?.targeted_pattern ?? "bun test <path>";
     return {
       authorized: false,
-      error_code: "INVALID_SCOPE",
+      error_code: "POLICY_VIOLATION",
       reason: `Un-targeted whole-repo test run detected: '${commandStr}'`,
       message:
-        `[INVALID_SCOPE] Un-targeted whole-repo test run detected: '${commandStr}'.\n` +
+        `[POLICY_VIOLATION] Un-targeted whole-repo test run detected: '${commandStr}'.\n` +
         `Implementers are forbidden from running full test suites.\n` +
         `You must pass a targeted file argument matching: '${targetedExample}'.`,
     };
   }
 
-  // 4. Check Forbidden Regex Patterns
+  // 6. Check Forbidden Regex Patterns
   const forbiddenPatterns = compileEffectiveForbiddenPatterns(role, activePolicy);
   for (const pattern of forbiddenPatterns) {
     if (pattern.test(commandStr)) {

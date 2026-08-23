@@ -115,6 +115,25 @@ describe("RBAC Engine & Hybrid Deny-List", () => {
   });
 
   describe("verifyCommandAuthorization", () => {
+    test("blocks coordinator from running test commands", () => {
+      const coordinatorActor = {
+        agent_id: "coord-1",
+        role: "coordinator",
+        tier: 2,
+        write_scope: [],
+        allowed_read_scope: [],
+        can_execute_shell: true,
+        spawned_at: new Date().toISOString(),
+      };
+      
+      const result = verifyCommandAuthorization(coordinatorActor, "bun test", {
+        test_runner: { targeted_pattern: "bun test <path>" }
+      } as RepoPolicy);
+      
+      expect(result.authorized).toBe(false);
+      expect(result.error_code).toBe("ROLE_BOUNDARY_VIOLATION");
+    });
+
     test("enforces immutable can_execute_shell: false on validator even if spoofed to true", () => {
       const spoofedValidatorActor = {
         agent_id: "val-spoofed",
@@ -125,10 +144,8 @@ describe("RBAC Engine & Hybrid Deny-List", () => {
 
       const result = verifyCommandAuthorization(spoofedValidatorActor, "ls -la", samplePolicy);
       expect(result.authorized).toBe(false);
-      expect(result.error_code).toBe("PERMISSION_DENIED");
-      expect(result.message).toContain(
-        "Cognitive Validators are strictly prohibited from running commands",
-      );
+      expect(result.error_code).toBe("ROLE_BOUNDARY_VIOLATION");
+      expect(result.message).toContain("Cognitive Validators are locked to 0 command execution");
     });
 
     test("blocks subshell and evaluator invocations with UNSHIELDED_COMMAND_BLUNDER", () => {
@@ -228,11 +245,8 @@ describe("RBAC Engine & Hybrid Deny-List", () => {
 
       const result = verifyCommandAuthorization(validatorActor, "git status", samplePolicy);
       expect(result.authorized).toBe(false);
-      expect(result.error_code).toBe("PERMISSION_DENIED");
-      expect(result.message).toContain("[PERMISSION_DENIED]");
-      expect(result.message).toContain(
-        "Cognitive Validators are strictly prohibited from running commands",
-      );
+      expect(result.error_code).toBe("ROLE_BOUNDARY_VIOLATION");
+      expect(result.message).toContain("Cognitive Validators are locked to 0 command execution");
     });
 
     test("blocks implementer from running un-targeted full test suite", () => {
@@ -248,8 +262,8 @@ describe("RBAC Engine & Hybrid Deny-List", () => {
 
       const result = verifyCommandAuthorization(implementerActor, "bun test", samplePolicy);
       expect(result.authorized).toBe(false);
-      expect(result.error_code).toBe("INVALID_SCOPE");
-      expect(result.message).toContain("[INVALID_SCOPE]");
+      expect(result.error_code).toBe("POLICY_VIOLATION");
+      expect(result.message).toContain("[POLICY_VIOLATION]");
       expect(result.message).toContain("Un-targeted whole-repo test run detected: 'bun test'");
     });
 
