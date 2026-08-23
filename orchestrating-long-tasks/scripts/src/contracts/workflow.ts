@@ -121,6 +121,7 @@ export interface Finding extends JsonObject {
   remediation: string;
   revalidation: string;
   status: "open" | "resolved";
+  kind?: "defect" | "cognitive_probe" | "adversarial_probe" | string;
 }
 
 export interface GateResult extends JsonObject {

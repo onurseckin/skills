@@ -11,6 +11,20 @@ export interface TestRunnerPolicy {
   readonly full_suite_command: string;
 }
 
+export interface ReviewProtocolPolicy {
+  readonly max_adversarial_pushes: number;
+  readonly cognitive_pushes: number;
+  readonly enable_cognitive_deepening?: boolean;
+  readonly escalate_on_exhausted_adversarial?: boolean;
+}
+
+export const DEFAULT_REVIEW_PROTOCOL_POLICY: ReviewProtocolPolicy = {
+  max_adversarial_pushes: 5,
+  cognitive_pushes: 3,
+  enable_cognitive_deepening: true,
+  escalate_on_exhausted_adversarial: true,
+};
+
 export interface RepoPolicy {
   readonly schema_version: number;
   readonly ecosystem: RepoEcosystem;
@@ -21,6 +35,7 @@ export interface RepoPolicy {
   readonly allowed_commands?: readonly string[] | undefined;
   readonly forbidden_commands?: readonly string[] | undefined;
   readonly read_scope_neighborhood_depth?: number | undefined;
+  readonly review_protocol?: ReviewProtocolPolicy | undefined;
 }
 
 export const CURRENT_POLICY_SCHEMA_VERSION = 1;
@@ -89,6 +104,7 @@ export function generateDefaultRepoPolicy(repoRoot?: string): RepoPolicy {
         ],
         forbidden_commands: ["git commit", "git push", "git reset", "rm -rf /"],
         read_scope_neighborhood_depth: 2,
+        review_protocol: DEFAULT_REVIEW_PROTOCOL_POLICY,
       };
 
     case "cargo":
@@ -114,6 +130,7 @@ export function generateDefaultRepoPolicy(repoRoot?: string): RepoPolicy {
         ],
         forbidden_commands: ["git commit", "git push", "git reset"],
         read_scope_neighborhood_depth: 2,
+        review_protocol: DEFAULT_REVIEW_PROTOCOL_POLICY,
       };
 
     case "python":
@@ -144,6 +161,7 @@ export function generateDefaultRepoPolicy(repoRoot?: string): RepoPolicy {
         ],
         forbidden_commands: ["git commit", "git push", "git reset"],
         read_scope_neighborhood_depth: 2,
+        review_protocol: DEFAULT_REVIEW_PROTOCOL_POLICY,
       };
 
     case "node": {
@@ -167,6 +185,7 @@ export function generateDefaultRepoPolicy(repoRoot?: string): RepoPolicy {
         allowed_commands: [`${pm} test`, "npm test", "git status", "git diff", "ls", "grep"],
         forbidden_commands: ["git commit", "git push", "git reset"],
         read_scope_neighborhood_depth: 2,
+        review_protocol: DEFAULT_REVIEW_PROTOCOL_POLICY,
       };
     }
 
@@ -180,6 +199,7 @@ export function generateDefaultRepoPolicy(repoRoot?: string): RepoPolicy {
           full_suite_command: "test",
         },
         read_scope_neighborhood_depth: 2,
+        review_protocol: DEFAULT_REVIEW_PROTOCOL_POLICY,
       };
   }
 }
@@ -257,6 +277,40 @@ export function validateRepoPolicy(raw: unknown): RepoPolicy {
       ? rec["read_scope_neighborhood_depth"]
       : 2;
 
+  let reviewProtocol: ReviewProtocolPolicy | undefined;
+  if (typeof rec["review_protocol"] === "object" && rec["review_protocol"] !== null) {
+    const rp = rec["review_protocol"] as Record<string, unknown>;
+    const maxAdv =
+      typeof rp["max_adversarial_pushes"] === "number" &&
+      Number.isSafeInteger(rp["max_adversarial_pushes"]) &&
+      rp["max_adversarial_pushes"] >= 1
+        ? rp["max_adversarial_pushes"]
+        : DEFAULT_REVIEW_PROTOCOL_POLICY.max_adversarial_pushes;
+    const cogPushes =
+      typeof rp["cognitive_pushes"] === "number" &&
+      Number.isSafeInteger(rp["cognitive_pushes"]) &&
+      rp["cognitive_pushes"] >= 0
+        ? rp["cognitive_pushes"]
+        : DEFAULT_REVIEW_PROTOCOL_POLICY.cognitive_pushes;
+    const enableCog =
+      typeof rp["enable_cognitive_deepening"] === "boolean"
+        ? rp["enable_cognitive_deepening"]
+        : (DEFAULT_REVIEW_PROTOCOL_POLICY.enable_cognitive_deepening ?? true);
+    const escalateOnExhausted =
+      typeof rp["escalate_on_exhausted_adversarial"] === "boolean"
+        ? rp["escalate_on_exhausted_adversarial"]
+        : (DEFAULT_REVIEW_PROTOCOL_POLICY.escalate_on_exhausted_adversarial ?? true);
+
+    reviewProtocol = {
+      max_adversarial_pushes: maxAdv,
+      cognitive_pushes: cogPushes,
+      enable_cognitive_deepening: enableCog,
+      escalate_on_exhausted_adversarial: escalateOnExhausted,
+    };
+  } else {
+    reviewProtocol = DEFAULT_REVIEW_PROTOCOL_POLICY;
+  }
+
   return {
     schema_version: schemaVersion,
     ecosystem,
@@ -267,6 +321,7 @@ export function validateRepoPolicy(raw: unknown): RepoPolicy {
     ...(allowedCommands ? { allowed_commands: allowedCommands } : {}),
     ...(forbiddenCommands ? { forbidden_commands: forbiddenCommands } : {}),
     read_scope_neighborhood_depth: readScopeDepth,
+    review_protocol: reviewProtocol,
   };
 }
 

@@ -57,6 +57,7 @@ Implement only the leased task and submit trusted-host observed evidence.
 
 - **Zero-Exploration 1-Shot Briefings**: Implementers start from structured 1-shot task briefings (`task:brief`) specifying assigned task ID, exact disjoint write scope, target files, recommended file-scoped test commands (`bun test <path.test.ts>`), and acceptance criteria—eliminating exploratory probing.
 - **1-Hop In-Lease Micro-Cycles**: When paired with a validator who emits micro-cycle critique (`--micro-cycle` / `--in-lease`), do not release the lease or terminate. Directly address the findings in-lease, verify with file-scoped tests, and re-submit (bounded to 3 micro-cycle rounds before formal escalation).
+- **Dual-Channel Review & Socratic Probing Contract**: Respond in-lease to validator cognitive probes (`task:probe --kind cognitive`) with concrete empirical proof, edge-case hardening, and static invariant verification. Cognitive probes carry zero penalty on your repair budget and do not trigger task escalation.
 - **Strict File-Scoped Testing**: Execute ONLY the file-scoped test commands covering touched files (`bun test <path.test.ts>`). Running whole-repo test suites is strictly forbidden.
 - Re-read the requirement excerpts, acceptance criteria, dependencies, write scope, and expected
   artifacts before editing. Reconcile the packet's digest-bound baseline and current repository

@@ -19,6 +19,11 @@ interface:
   tools:
     enable_subagent_tools: true
     enable_write_tools: true
+  config:
+    review_config:
+      max_adversarial_pushes: 5
+      cognitive_pushes: 3
+      enable_cognitive_deepening: true
 protocol:
   cli: "bun ~/.agents/skills/orchestrating-long-tasks/scripts/harness.ts"
   zero_json: true

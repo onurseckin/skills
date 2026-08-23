@@ -32,6 +32,8 @@ import {
   reviewPolicyFor,
 } from "./task-review-support.ts";
 
+import { ReviewProtocolEngine, type ReviewChannelKind } from "../../policy/review-protocol.ts";
+
 export async function taskRejectCommand(flags: Flags): Promise<Record<string, unknown>> {
   const isMicroCycle = boolFlag(flags, "micro-cycle") || boolFlag(flags, "in-lease");
   const [run, taskId, validator, reason] = [
@@ -40,6 +42,8 @@ export async function taskRejectCommand(flags: Flags): Promise<Record<string, un
     textFlag(flags, "validator")!,
     textFlag(flags, "reason")!,
   ];
+  const kindFlag = textFlag(flags, "kind", false);
+  const channelKind: ReviewChannelKind = kindFlag === "cognitive" ? "cognitive" : "adversarial";
 
   if (isMicroCycle) {
     const remediation = textFlag(flags, "remediation", false) ?? textFlag(flags, "finding", false);
@@ -116,14 +120,27 @@ export async function taskRejectCommand(flags: Flags): Promise<Record<string, un
     findings: [findingObj],
   };
 
+  const policy = reviewPolicyFor(loaded.runRoot, validator);
   const state = recordReview(
     workflowPort(run),
     taskId,
     validator,
     reviewPayload,
     systemClock,
-    reviewPolicyFor(loaded.runRoot).maxRepairRounds,
+    policy.maxRepairRounds,
+    policy.minProbes,
   );
+
+  const engine = new ReviewProtocolEngine(policy.reviewProtocol);
+  const updatedTask = state.tasks[taskId]!;
+  engine.recordEntry(updatedTask, {
+    round: updatedTask.repair_round ?? 1,
+    channel: channelKind,
+    actor_id: validator,
+    verdict: "reject",
+    findings_count: 1,
+    summary: reason,
+  });
   const isUiTask = classifiesAsUiTask(
     loaded.state as unknown as WorkflowState,
     taskBefore,

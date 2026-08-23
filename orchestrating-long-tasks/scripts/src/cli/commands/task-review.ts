@@ -28,6 +28,12 @@ import {
   markMicroCycleAddressed,
   recordMicroCycleCritique,
 } from "../../workflow/review/micro-cycle.ts";
+import {
+  assertReviewProtocolSatisfied,
+  projectTaskReviewState,
+  ReviewProtocolEngine,
+  type ReviewChannelKind,
+} from "../../policy/review-protocol.ts";
 import { formatTaskRejectBrief, formatTaskReviewPassBrief } from "../formatters/index.ts";
 import { boolFlag, integerFlag, textFlag, type Flags } from "../options.ts";
 import {
@@ -285,7 +291,11 @@ export async function taskReviewCommand(flags: Flags): Promise<Record<string, un
     ...(resolutions.length === 0 ? {} : { resolved_findings: resolutions }),
   };
 
-  const policy = reviewPolicyFor(loaded.runRoot);
+  const policy = reviewPolicyFor(loaded.runRoot, validator);
+  if (isPass) {
+    assertReviewProtocolSatisfied(taskBefore, policy.reviewProtocol);
+  }
+
   let state = recordReview(
     workflowPort(run),
     taskId,
@@ -295,6 +305,33 @@ export async function taskReviewCommand(flags: Flags): Promise<Record<string, un
     policy.maxRepairRounds,
     policy.minProbes,
   );
+
+  const kindFlag = textFlag(flags, "kind", false);
+  const channelKind: ReviewChannelKind =
+    kindFlag === "cognitive"
+      ? "cognitive"
+      : kindFlag === "adversarial"
+        ? "adversarial"
+        : isPass
+          ? "cognitive"
+          : "adversarial";
+
+  const engine = new ReviewProtocolEngine(policy.reviewProtocol);
+  const updatedTaskBeforeSave = state.tasks[taskId];
+  if (updatedTaskBeforeSave) {
+    engine.recordEntry(updatedTaskBeforeSave, {
+      round: isPass
+        ? (updatedTaskBeforeSave.probe_round ?? 0) + 1
+        : (updatedTaskBeforeSave.repair_round ?? 1),
+      channel: channelKind,
+      actor_id: validator,
+      verdict: isPass ? "pass" : "reject",
+      findings_count: findingObj !== null ? 1 : 0,
+      summary:
+        summary ?? (isPass ? "Validation passed" : (failure?.observation ?? "Changes requested")),
+    });
+  }
+
   if (findingObj === null) {
     state = finalizePassingTask(run, taskId, validator, checkIds, state);
   }

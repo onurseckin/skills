@@ -23,5 +23,11 @@
     "wc"
   ],
   "forbidden_commands": ["git commit", "git push", "git reset", "rm -rf /"],
-  "read_scope_neighborhood_depth": 2
+  "read_scope_neighborhood_depth": 2,
+  "review_protocol": {
+    "max_adversarial_pushes": 5,
+    "cognitive_pushes": 3,
+    "enable_cognitive_deepening": true,
+    "escalate_on_exhausted_adversarial": true
+  }
 }

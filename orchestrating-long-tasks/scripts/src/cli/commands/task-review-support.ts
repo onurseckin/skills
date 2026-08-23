@@ -24,16 +24,30 @@ export function repoRootOf(runRoot: string): string {
   return dirname(dirname(runRoot));
 }
 
+import {
+  resolveReviewProtocolConfig,
+  type ReviewProtocolConfig,
+} from "../../policy/review-protocol.ts";
+import { readAgentMetadata } from "../../runtime/agent-metadata.ts";
+
 export interface ReviewPolicy {
   minProbes: number;
   maxRepairRounds: number;
+  reviewProtocol: ReviewProtocolConfig;
 }
 
-export function reviewPolicyFor(runRoot: string): ReviewPolicy {
-  const config = getHarnessConfig(repoRootOf(runRoot), runRoot);
+export function reviewPolicyFor(runRoot: string, validatorId?: string): ReviewPolicy {
+  const repoRoot = repoRootOf(runRoot);
+  const config = getHarnessConfig(repoRoot, runRoot);
+  const agentMetadata = validatorId ? readAgentMetadata(validatorId, runRoot) : undefined;
+  const reviewProtocol = resolveReviewProtocolConfig(repoRoot, agentMetadata);
+
   return {
-    minProbes: config.min_adversarial_probes,
-    maxRepairRounds: config.max_repair_rounds,
+    minProbes: reviewProtocol.enable_cognitive_deepening
+      ? reviewProtocol.cognitive_pushes
+      : config.min_adversarial_probes,
+    maxRepairRounds: reviewProtocol.max_adversarial_pushes,
+    reviewProtocol,
   };
 }
 

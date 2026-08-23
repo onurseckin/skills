@@ -14,6 +14,10 @@ tools:
 config:
   min_adversarial_probes: 1
   max_repair_rounds: 6
+  review_config:
+    max_adversarial_pushes: 5
+    cognitive_pushes: 3
+    enable_cognitive_deepening: true
 interface:
   display_name: "Task Validator"
   short_description: "Tier 3 cognitive validator focusing 100% bandwidth on code reading, architectural contracts, Socratic critique, edge-case analysis, and evidence-backed markdown review reports"
@@ -25,6 +29,10 @@ interface:
   config:
     min_adversarial_probes: 1
     max_repair_rounds: 6
+    review_config:
+      max_adversarial_pushes: 5
+      cognitive_pushes: 3
+      enable_cognitive_deepening: true
   validator_invariants:
     cognitive_validator_hardlock: true
     hierarchical_parent_child_supervision: true

@@ -36,6 +36,7 @@ export interface ProbeDemandParams {
   demand: string;
   commandIds: readonly string[];
   revalidation?: string | undefined;
+  kind?: "cognitive_probe" | "adversarial_probe" | string | undefined;
 }
 
 const PROBE_SEVERITY = "minor";
@@ -46,6 +47,7 @@ export function buildProbeDemand(params: ProbeDemandParams): Record<string, unkn
   return {
     id: `probe-${params.taskId}-${String(params.round).padStart(2, "0")}-${params.index + 1}`,
     class: "probe_demand",
+    kind: params.kind ?? "cognitive_probe",
     requirement_id: params.requirementId,
     severity: PROBE_SEVERITY,
     evidence:
@@ -125,6 +127,7 @@ export interface ReviewFindingParams {
   summary: string;
   remediation: string;
   revalidation?: string | undefined;
+  kind?: "defect" | "cognitive_probe" | "adversarial_probe" | string | undefined;
 }
 
 export function buildReviewFinding(params: ReviewFindingParams): Record<string, unknown> {
@@ -137,6 +140,7 @@ export function buildReviewFinding(params: ReviewFindingParams): Record<string, 
   return {
     id: findingId,
     class: "defect",
+    kind: params.kind ?? "defect",
     requirement_id: params.requirementId,
     severity: params.severity,
     evidence:
