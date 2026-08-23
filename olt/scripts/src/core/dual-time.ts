@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { HarnessError } from "../errors/harness-error.ts";
+import { HarnessError } from "./errors/harness-error.ts";
 
 /**
  * Universal Dual-Time Record containing full UTC and local time representation,

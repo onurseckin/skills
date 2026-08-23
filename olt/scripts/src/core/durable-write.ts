@@ -11,7 +11,7 @@ import {
 } from "node:fs";
 import { dirname, join } from "node:path";
 import { randomUUID } from "node:crypto";
-import type { JsonValue } from "../contracts/json.ts";
+import type { JsonValue } from "./contracts/json.ts";
 import { canonicalJsonBytes } from "./json.ts";
 
 export type DurableWriteStep = "chmod" | "file-fsync" | "rename" | "directory-fsync";

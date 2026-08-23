@@ -1,5 +1,5 @@
 import { basename } from "node:path";
-import { HarnessError } from "../errors/harness-error.ts";
+import { HarnessError } from "./errors/harness-error.ts";
 
 export const RESTRICTED_GIT_ENVIRONMENT = Object.freeze({
   GIT_CONFIG_GLOBAL: "/dev/null",

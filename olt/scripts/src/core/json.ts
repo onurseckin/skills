@@ -1,4 +1,4 @@
-import type { JsonValue } from "../contracts/json.ts";
+import type { JsonValue } from "./contracts/json.ts";
 import { closeSync, constants, fstatSync, openSync, readSync } from "node:fs";
 import { createHash } from "node:crypto";
 
