@@ -102,6 +102,9 @@ Every agent executing within this repository must adhere to the following non-ne
 29. **Smart Neighborhood Read Scope & Dynamic Scope Expansion (`harness.ts scope:expand`)**:
     - Read scope is bounded to target files and direct directory neighborhoods (default depth: 2).
     - Subagents requiring access to out-of-neighborhood files must dynamically expand their declared read scope using `bun harness.ts scope:expand --actor <id> --read <path>`.
+30. **Root Directory Hygiene & Scratch Confinement (`scratch/`)**:
+    - All temporary test scripts, one-off patches, debugging tools, scratch payloads, repair files, or experiment artifacts MUST strictly reside inside the gitignored `scratch/` (or `.olt/scratch/`) directory.
+    - Writing, creating, or leaving temporary `.ts`, `.js`, `.cjs`, `.json`, `.py`, or `.log` scratch files in the repository root is strictly prohibited (`ROOT_HYGIENE_VIOLATION`). Subagents must keep the repository root clean.
 
 ---
 

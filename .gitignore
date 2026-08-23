@@ -18,6 +18,10 @@ __pycache__/
 !.olt/
 .olt/capsules/
 .olt/scratch/
+.olt/.sessions/
+scratch/
+.scratch/
+.tmp/
 
 # test temporary sandbox
 tests/.tmp/
