@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import { HarnessError } from "../errors/harness-error.ts";
-import { findRepoRoot, resolvePolicyPath } from "../shared/paths.ts";
+import { HarnessError } from "../core/errors/harness-error.ts";
+import { findRepoRoot, resolvePolicyPath } from "../core/shared/paths.ts";
 
 export type RepoEcosystem = "bun" | "node" | "python" | "cargo" | "unknown";
 

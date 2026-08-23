@@ -1,5 +1,5 @@
-import { isBranchOpen } from "../../contracts/branch.ts";
-import type { JsonObject } from "../../contracts/json.ts";
+import { isBranchOpen } from "../../core/contracts/branch.ts";
+import type { JsonObject } from "../../core/contracts/json.ts";
 import { leaseIsExpired } from "../lease/suspension.ts";
 import { readBranchLedger, writeBranchLedger } from "./ledger.ts";
 

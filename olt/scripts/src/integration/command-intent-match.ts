@@ -1,5 +1,5 @@
-import type { CommandRecord } from "../contracts/commands.ts";
-import { sameCommandJson } from "../runner/command-shape.ts";
+import type { CommandRecord } from "../core/contracts/commands.ts";
+import { sameCommandJson } from "../engine/runner/command-shape.ts";
 
 export function sameOptionalJson(left: unknown, right: unknown): boolean {
   if (left == null && right == null) return true;

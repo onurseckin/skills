@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { HarnessError } from "../errors/harness-error.ts";
-import type { JsonObject, JsonValue } from "../contracts/json.ts";
+import { HarnessError } from "../core/errors/harness-error.ts";
+import type { JsonObject, JsonValue } from "../core/contracts/json.ts";
 
 export type CapsuleExecutionStatus =
   | "pending"

@@ -1,8 +1,8 @@
-import { HarnessError } from "../../errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
 import { workflowPort } from "../../integration/store-ports.ts";
 import { isValidatorDomain } from "../../packets/role-contract.ts";
 import { publishTaskRolePacket } from "../../packets/role-grant.ts";
-import { loadRun } from "../../store/index.ts";
+import { loadRun } from "../../engine/store/index.ts";
 import { applicableGates } from "../../workflow/gates/gate-policy.ts";
 import { beginValidation } from "../../workflow/review/begin-validation.ts";
 import { validationForValidator } from "../../workflow/review/validation-state.ts";

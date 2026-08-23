@@ -1,15 +1,15 @@
 import { existsSync, lstatSync, realpathSync } from "node:fs";
 import { join } from "node:path";
-import type { Manifest, RunFiles, RunState } from "../../contracts/capsule.ts";
+import type { Manifest, RunFiles, RunState } from "../../core/contracts/capsule.ts";
 import { readCanonicalObject } from "../../core/json.ts";
 import { readRegularFileNoFollow } from "../../core/no-follow.ts";
-import { HarnessError } from "../../errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
 import { type StoreLimits, limits } from "./constants.ts";
 import { validateEventChain } from "./event-stream.ts";
 import { throwIntegrity } from "./issues.ts";
 import { runFilePath } from "./paths.ts";
 import { verifyIntegrity } from "./integrity.ts";
-import { resolveCapsulesDir } from "../../shared/paths.ts";
+import { resolveCapsulesDir } from "../../core/shared/paths.ts";
 
 function loadRunFiles(
   runRoot: string,

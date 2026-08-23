@@ -1,6 +1,6 @@
 import { dlopen, FFIType, read } from "bun:ffi";
 import { readFileSync } from "node:fs";
-import { HarnessError } from "../errors/harness-error.ts";
+import { HarnessError } from "../core/errors/harness-error.ts";
 
 const LOCK_EX = 2;
 const LOCK_NB = 4;

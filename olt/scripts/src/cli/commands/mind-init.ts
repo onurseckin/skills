@@ -1,15 +1,15 @@
 import { existsSync, lstatSync, realpathSync } from "node:fs";
 import { isAbsolute, join, relative, resolve } from "node:path";
-import type { JsonValue } from "../../contracts/json.ts";
+import type { JsonValue } from "../../core/contracts/json.ts";
 import { atomicWriteJson } from "../../core/durable-write.ts";
 import { readRegularFileNoFollow } from "../../core/no-follow.ts";
-import { HarnessError } from "../../errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
 import { DEFAULT_MIND_BUDGET, parseCharter, type ParsedCharter } from "../../mind/charter.ts";
-import { initRun, loadRun } from "../../store/index.ts";
-import { transact } from "../../store/transaction.ts";
+import { initRun, loadRun } from "../../engine/store/index.ts";
+import { transact } from "../../engine/store/transaction.ts";
 import { enforceLineLimit, mindInitNextActions, nextActionsBlock } from "../formatters/index.ts";
 import { integerFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
-import { resolveCapsulesDir } from "../../shared/paths.ts";
+import { resolveCapsulesDir } from "../../core/shared/paths.ts";
 
 export interface MindInitResult {
   markdown: string;

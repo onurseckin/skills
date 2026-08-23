@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import { HarnessError } from "../errors/harness-error.ts";
+import { HarnessError } from "../core/errors/harness-error.ts";
 import { resolveTaskQueuePath } from "./task-queue.ts";
 
 export type FeedbackPriority =

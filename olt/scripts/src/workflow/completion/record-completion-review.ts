@@ -1,4 +1,4 @@
-import { HarnessError } from "../../errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
 import { requireSubstantiveObjects } from "../evidence.ts";
 import { tokenMatches } from "../lease/token.ts";
 import { requireText, utc } from "../task-state.ts";

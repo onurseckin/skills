@@ -1,5 +1,5 @@
-import { isJsonObject, type JsonObject } from "../../contracts/json.ts";
-import type { Finding } from "../../contracts/workflow.ts";
+import { isJsonObject, type JsonObject } from "../../core/contracts/json.ts";
+import type { Finding } from "../../core/contracts/workflow.ts";
 import {
   UNKNOWN,
   code,

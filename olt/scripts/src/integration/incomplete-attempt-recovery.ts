@@ -5,21 +5,21 @@ import type {
   CommandAttemptStartedRecord,
   CommandLogMetadata,
   CommandRecord,
-} from "../contracts/commands.ts";
+} from "../core/contracts/commands.ts";
 import { atomicWriteBytes, atomicWriteJson } from "../core/durable-write.ts";
 import { readBoundedBytes, readCanonicalObject, sha256Bytes } from "../core/json.ts";
-import { HarnessError } from "../errors/harness-error.ts";
+import { HarnessError } from "../core/errors/harness-error.ts";
 import {
   attemptStartedIssues,
   probeAttemptProcess,
   retainedActivityTimes,
   type AttemptProcessProof,
-} from "../runner/attempt-intent.ts";
-import { resolveArtifactPath } from "../runner/artifact-paths.ts";
-import { outputEvidenceIssues } from "../runner/output-evidence.ts";
-import { OWNERSHIP_ENV } from "../runner/pipe-ownership.ts";
-import type { ProcessIdentity } from "../runner/process-identity.ts";
-import { assertCommandAttemptSize } from "../runner/command-record-size.ts";
+} from "../engine/runner/attempt-intent.ts";
+import { resolveArtifactPath } from "../engine/runner/artifact-paths.ts";
+import { outputEvidenceIssues } from "../engine/runner/output-evidence.ts";
+import { OWNERSHIP_ENV } from "../engine/runner/pipe-ownership.ts";
+import type { ProcessIdentity } from "../engine/runner/process-identity.ts";
+import { assertCommandAttemptSize } from "../engine/runner/command-record-size.ts";
 
 const MAX_ACTIVITY_BYTES = 1024 * 1024;
 const INTERRUPTED = "attempt interrupted before terminal evidence was durable";

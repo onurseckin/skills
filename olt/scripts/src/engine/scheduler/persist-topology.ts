@@ -1,5 +1,5 @@
-import type { RunState } from "../../contracts/capsule.ts";
-import type { TopologyRecord } from "../../contracts/topology.ts";
+import type { RunState } from "../../core/contracts/capsule.ts";
+import type { TopologyRecord } from "../../core/contracts/topology.ts";
 import { loadRun } from "../store/load.ts";
 import { transact } from "../store/transaction.ts";
 import { computeTopology, type TopologyConfig, type TopologyInputs } from "./topology.ts";

@@ -1,7 +1,7 @@
-import { isJsonObject } from "../../contracts/json.ts";
-import type { WorktreeCommitRecord } from "../../contracts/worktree.ts";
-import { HarnessError } from "../../errors/harness-error.ts";
-import { transact } from "../../store/index.ts";
+import { isJsonObject } from "../../core/contracts/json.ts";
+import type { WorktreeCommitRecord } from "../../core/contracts/worktree.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
+import { transact } from "../../engine/store/index.ts";
 import { commitChangedLines, runGit, stageAndCommit, type GitRunner } from "./git-ops.ts";
 import { readWorktreeLedger, writeWorktreeLedger } from "./ledger.ts";
 

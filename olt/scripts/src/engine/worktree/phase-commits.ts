@@ -1,4 +1,4 @@
-import { HarnessError } from "../../errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
 import { buildInclusiveStageArgs, isPathInWriteScope } from "./zero-destructive-policy.ts";
 
 export { buildInclusiveStageArgs, isPathInWriteScope };

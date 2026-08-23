@@ -1,8 +1,8 @@
 import { createHash } from "node:crypto";
-import { HarnessError } from "../../errors/harness-error.ts";
-import type { Evidenced } from "../../contracts/evidence.ts";
-import type { Finding } from "../../contracts/workflow.ts";
-import type { JsonObject } from "../../contracts/json.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
+import type { Evidenced } from "../../core/contracts/evidence.ts";
+import type { Finding } from "../../core/contracts/workflow.ts";
+import type { JsonObject } from "../../core/contracts/json.ts";
 import { repositoryGit, type RepositoryGitCommand } from "../../packets/repository-git-command.ts";
 import { tokenMatches } from "../lease/token.ts";
 import { jsonCopy, requireText, taskIn, transition, utc } from "../task-state.ts";
@@ -16,7 +16,7 @@ import {
   isCoordinatorRole,
   isOrchestratorRole,
   isMindRole,
-} from "../../doctor/tier-confinement.ts";
+} from "../../reporting/doctor/tier-confinement.ts";
 
 export interface EffortEvidenceOptions {
   currentWriteScopeContentHash?: Evidenced<string>;

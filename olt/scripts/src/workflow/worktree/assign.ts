@@ -1,7 +1,7 @@
-import type { TopologyRecord } from "../../contracts/topology.ts";
-import type { WorktreeAssignment } from "../../contracts/worktree.ts";
-import { HarnessError } from "../../errors/harness-error.ts";
-import { scopeConflict } from "../../scheduler/conflicts.ts";
+import type { TopologyRecord } from "../../core/contracts/topology.ts";
+import type { WorktreeAssignment } from "../../core/contracts/worktree.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
+import { scopeConflict } from "../../engine/scheduler/conflicts.ts";
 
 export interface AssignableTask {
   write_scope: readonly string[];

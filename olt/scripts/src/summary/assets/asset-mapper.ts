@@ -1,5 +1,5 @@
-import type { Manifest } from "../../contracts/capsule.ts";
-import type { CommandRecord } from "../../contracts/commands.ts";
+import type { Manifest } from "../../core/contracts/capsule.ts";
+import type { CommandRecord } from "../../core/contracts/commands.ts";
 import type { CompletionReview, TaskRecord } from "../../workflow/types.ts";
 import { queryScreenshots } from "../../reporting/screenshot-store.ts";
 import { extractFindingScreenshots, mapFindingDetails } from "./asset-mapper-findings.ts";

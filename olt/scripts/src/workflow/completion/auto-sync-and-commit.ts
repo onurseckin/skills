@@ -4,7 +4,7 @@ import { dispatchLifecycleHook } from "../../hooks/index.ts";
 import {
   buildInclusiveStageArgs,
   formatConventionalCommitMessage,
-} from "../../worktree/phase-commits.ts";
+} from "../../engine/worktree/phase-commits.ts";
 
 export interface AutoSyncOptions {
   taskId: string;

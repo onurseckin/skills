@@ -1,5 +1,5 @@
-import type { HarnessEvent, Manifest } from "../../contracts/capsule.ts";
-import type { CommandRecord } from "../../contracts/commands.ts";
+import type { HarnessEvent, Manifest } from "../../core/contracts/capsule.ts";
+import type { CommandRecord } from "../../core/contracts/commands.ts";
 import type { TaskRecord, WorkflowState } from "../../workflow/types.ts";
 import {
   computeGateTiming,

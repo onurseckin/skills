@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import { HarnessError } from "../../errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
 import { DEFAULT_PRESETS, DEFAULT_SIDEBAR_LAYOUT } from "../../capture/config/default-presets.ts";
 import { textFlag, type CommandContext, type Flags } from "../options.ts";
 

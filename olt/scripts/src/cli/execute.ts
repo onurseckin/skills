@@ -1,5 +1,5 @@
-import type { JsonObject } from "../contracts/json.ts";
-import { HarnessError } from "../errors/harness-error.ts";
+import type { JsonObject } from "../core/contracts/json.ts";
+import { HarnessError } from "../core/errors/harness-error.ts";
 import { parseArguments } from "./arguments.ts";
 import { assertFlags, type CommandContext } from "./options.ts";
 import { assertGrantedCommand } from "../packets/command-authority.ts";

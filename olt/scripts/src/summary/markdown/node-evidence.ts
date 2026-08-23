@@ -1,9 +1,9 @@
 import { closeSync, fstatSync, openSync, readSync } from "node:fs";
 import { isAbsolute, join } from "node:path";
-import type { HarnessEvent } from "../../contracts/capsule.ts";
-import type { CommandRecord } from "../../contracts/commands.ts";
-import type { EvidenceClass } from "../../contracts/evidence.ts";
-import { isJsonObject, type JsonObject } from "../../contracts/json.ts";
+import type { HarnessEvent } from "../../core/contracts/capsule.ts";
+import type { CommandRecord } from "../../core/contracts/commands.ts";
+import type { EvidenceClass } from "../../core/contracts/evidence.ts";
+import { isJsonObject, type JsonObject } from "../../core/contracts/json.ts";
 import type { TaskRecord } from "../../workflow/types.ts";
 import type { NodeScript, NodeStateTransition } from "../types.ts";
 

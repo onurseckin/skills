@@ -1,5 +1,5 @@
 import { workflowPort } from "../integration/store-ports.ts";
-import { loadRun } from "../store/index.ts";
+import { loadRun } from "../engine/store/index.ts";
 import { systemClock, type Clock } from "../workflow/types.ts";
 import { buildMorningReport, type MorningReport } from "./morning-report.ts";
 import type { DispatchLogEvent } from "./dispatch-log.ts";

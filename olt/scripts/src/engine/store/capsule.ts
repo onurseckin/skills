@@ -1,12 +1,12 @@
 import { existsSync, lstatSync, mkdirSync, realpathSync, rmSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 import { join } from "node:path";
-import type { CapsuleMode, Manifest } from "../../contracts/capsule.ts";
+import type { CapsuleMode, Manifest } from "../../core/contracts/capsule.ts";
 import { atomicWriteBytes, atomicWriteJson, fsyncDirectory } from "../../core/durable-write.ts";
 import { copyPinnedRuntime } from "../../core/runtime-tree.ts";
 import { safeRepoPath } from "../../core/paths.ts";
 import { sha256Bytes } from "../../core/json.ts";
-import { HarnessError } from "../../errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
 import { captureAssurance, isCaptureMode } from "./assurance.ts";
 import { BUN_COMPATIBILITY } from "./bun-compatibility.ts";
 import { FORMAT_VERSION, MANIFEST_SCHEMA, RUN_ID_PATTERN, RUNTIME_VERSION } from "./constants.ts";
@@ -15,7 +15,7 @@ import { initialState } from "./state.ts";
 import { writeIndex } from "./capsule-index.ts";
 import { normalizeRunId } from "./run-id.ts";
 import { writeTrace } from "./trace.ts";
-import { resolveCapsulesDir } from "../../shared/paths.ts";
+import { resolveCapsulesDir } from "../../core/shared/paths.ts";
 
 export interface InitRunOptions {
   runtimeSource?: string;

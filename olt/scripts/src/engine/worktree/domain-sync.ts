@@ -1,7 +1,7 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
-import { isJsonObject, type JsonObject } from "../../contracts/json.ts";
-import { HarnessError } from "../../errors/harness-error.ts";
+import { isJsonObject, type JsonObject } from "../../core/contracts/json.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
 import { transact } from "../store/index.ts";
 import {
   addWorktree,

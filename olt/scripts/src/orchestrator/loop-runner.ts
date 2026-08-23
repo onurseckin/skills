@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { HarnessError } from "../errors/harness-error.ts";
-import { normalizeRunId } from "../store/run-id.ts";
+import { HarnessError } from "../core/errors/harness-error.ts";
+import { normalizeRunId } from "../engine/store/run-id.ts";
 import { OrchestratorWatchdog } from "./watchdog.ts";
 import { synthesizeNextRoundPrompt } from "./defect-synthesizer.ts";
 import { chainCapsules } from "./capsule-chainer.ts";

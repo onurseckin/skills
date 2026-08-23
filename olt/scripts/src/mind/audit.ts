@@ -1,9 +1,9 @@
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
-import type { CommandRecord } from "../contracts/commands.ts";
-import type { HarnessEvent, RunState } from "../contracts/capsule.ts";
-import type { JsonObject, JsonValue } from "../contracts/json.ts";
-import { HarnessError } from "../errors/harness-error.ts";
+import type { CommandRecord } from "../core/contracts/commands.ts";
+import type { HarnessEvent, RunState } from "../core/contracts/capsule.ts";
+import type { JsonObject, JsonValue } from "../core/contracts/json.ts";
+import { HarnessError } from "../core/errors/harness-error.ts";
 import { resolveWitnessCommand, verifyDefectWitness } from "./witness.ts";
 import { calculatePulseValue, type PulseValueMetrics } from "./value.ts";
 

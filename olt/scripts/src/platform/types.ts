@@ -1,6 +1,6 @@
-import type { JsonObject, JsonValue } from "../contracts/json.ts";
-import type { AgentRole } from "../contracts/packets.ts";
-import type { AgentModelTier, ThinkingLevel } from "../contracts/agents.ts";
+import type { JsonObject, JsonValue } from "../core/contracts/json.ts";
+import type { AgentRole } from "../core/contracts/packets.ts";
+import type { AgentModelTier, ThinkingLevel } from "../core/contracts/agents.ts";
 
 export type HostProvider = "antigravity" | "claude-code" | "cursor" | "codex" | "chatgpt";
 

@@ -1,5 +1,5 @@
-import type { JsonObject } from "../contracts/json.ts";
-import { HarnessError } from "../errors/harness-error.ts";
+import type { JsonObject } from "../core/contracts/json.ts";
+import { HarnessError } from "../core/errors/harness-error.ts";
 import { jsonCopy } from "./task-state.ts";
 
 function hasSubstance(value: unknown): boolean {

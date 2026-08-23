@@ -2,9 +2,9 @@ import { realpathSync } from "node:fs";
 import { mkdir } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import { dirname, relative, resolve, sep } from "node:path";
-import type { CommandPolicyRecord } from "../../contracts/commands.ts";
+import type { CommandPolicyRecord } from "../../core/contracts/commands.ts";
 import { safeRepoPath } from "../../core/paths.ts";
-import { HarnessError } from "../../errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
 import type { CommandOptions, NormalizedCommandOptions } from "./types.ts";
 import { captureGateEnvironment } from "./gate-environment.ts";
 

@@ -1,5 +1,5 @@
-import type { JsonObject, JsonValue } from "../contracts/json.ts";
-import { HarnessError } from "../errors/harness-error.ts";
+import type { JsonObject, JsonValue } from "../core/contracts/json.ts";
+import { HarnessError } from "../core/errors/harness-error.ts";
 import type { UnfulfilledDemandItem, UnfulfilledDemandPushbackReport } from "./types.ts";
 
 export interface UnfulfilledDemandEvaluationOptions {

@@ -4,7 +4,7 @@ import type {
   CommandAttemptStartedRecord,
   CommandLogMetadata,
   CommandRecord,
-} from "../../contracts/commands.ts";
+} from "../../core/contracts/commands.ts";
 import { readBoundedBytes, readCanonicalObject, sha256Bytes } from "../../core/json.ts";
 import { resolveArtifactPath } from "./artifact-paths.ts";
 import { attemptStartedIssues } from "./attempt-intent.ts";

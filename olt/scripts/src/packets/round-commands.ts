@@ -1,6 +1,6 @@
-import type { CommandLogMetadata, CommandRecord } from "../contracts/commands.ts";
-import type { JsonObject } from "../contracts/json.ts";
-import { isMechanicValidatorRole } from "../contracts/packets.ts";
+import type { CommandLogMetadata, CommandRecord } from "../core/contracts/commands.ts";
+import type { JsonObject } from "../core/contracts/json.ts";
+import { isMechanicValidatorRole } from "../core/contracts/packets.ts";
 import { readLog } from "../summary/node-evidence.ts";
 import type { WorkflowState } from "../workflow/types.ts";
 

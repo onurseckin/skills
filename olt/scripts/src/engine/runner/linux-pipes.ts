@@ -7,7 +7,7 @@ import {
   readlinkSync,
   statSync,
 } from "node:fs";
-import { HarnessError } from "../../errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
 import type { ProcessIdentity } from "./process-identity.ts";
 
 export const OWNERSHIP_ENV = "HARNESS_INTERNAL_OWNERSHIP_TOKEN";

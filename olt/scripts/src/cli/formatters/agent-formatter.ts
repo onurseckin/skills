@@ -1,6 +1,6 @@
-import type { AgentGrantRecord, AgentToolRef } from "../../contracts/agents.ts";
-import type { Evidenced } from "../../contracts/evidence.ts";
-import { isKnownToolCategory } from "../../contracts/taxonomy.ts";
+import type { AgentGrantRecord, AgentToolRef } from "../../core/contracts/agents.ts";
+import type { Evidenced } from "../../core/contracts/evidence.ts";
+import { isKnownToolCategory } from "../../core/contracts/taxonomy.ts";
 import type { TaskLineage } from "../../workflow/agents/lineage.ts";
 import { enforceLineLimit, formatTable } from "./line-limiter.ts";
 import {

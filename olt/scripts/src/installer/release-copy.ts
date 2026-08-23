@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { cp, lstat, mkdir, realpath, writeFile } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
 import { canonicalJsonBytes } from "../core/json.ts";
-import { HarnessError } from "../errors/harness-error.ts";
+import { HarnessError } from "../core/errors/harness-error.ts";
 import { removeBoundPath } from "./bound-mutations.ts";
 import { syncTree } from "./durable-tree.ts";
 import { identifiedInstallation } from "./identity.ts";

@@ -1,8 +1,8 @@
 import { realpathSync, statSync } from "node:fs";
 import { delimiter, isAbsolute, relative, resolve, sep } from "node:path";
-import type { CommandPathBinding } from "../../contracts/commands.ts";
+import type { CommandPathBinding } from "../../core/contracts/commands.ts";
 import { canonicalJsonBytes } from "../../core/json.ts";
-import { HarnessError } from "../../errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
 import { commandLayers } from "./command-wrappers.ts";
 import { captureGatePathBindings } from "./gate-path-bindings.ts";
 

@@ -1,6 +1,6 @@
 import { resolve } from "node:path";
-import { isJsonObject, type JsonObject } from "../../contracts/json.ts";
-import { HarnessError } from "../../errors/harness-error.ts";
+import { isJsonObject, type JsonObject } from "../../core/contracts/json.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
 import {
   AUDIT_INVARIANT_IDS,
   auditPlan,
@@ -11,8 +11,8 @@ import {
   type PlanAuditResult,
 } from "../../graph/plan-audit.ts";
 import type { TaskDeclaration } from "../../requirements/compiler.ts";
-import { loadRun } from "../../store/index.ts";
-import { transact } from "../../store/transaction.ts";
+import { loadRun } from "../../engine/store/index.ts";
+import { transact } from "../../engine/store/transaction.ts";
 import { formatPlanAuditBrief } from "../formatters/index.ts";
 import { actorFlag, textFlag, type Flags } from "../options.ts";
 

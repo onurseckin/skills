@@ -9,8 +9,8 @@ import {
   realpathSync,
 } from "node:fs";
 import { resolve } from "node:path";
-import type { BranchRepositoryEntry, BranchRepositoryObservation } from "../../contracts/branch.ts";
-import { HarnessError } from "../../errors/harness-error.ts";
+import type { BranchRepositoryEntry, BranchRepositoryObservation } from "../../core/contracts/branch.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
 import { repositoryGit, type RepositoryGitCommand } from "../../packets/repository-git-command.ts";
 import { hasRepositoryGitMetadata } from "../../packets/repository-git-metadata.ts";
 

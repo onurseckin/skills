@@ -1,4 +1,4 @@
-import { HarnessError } from "../errors/harness-error.ts";
+import { HarnessError } from "../core/errors/harness-error.ts";
 import { graphParts } from "./parts.ts";
 import { dependencyData, type DependencyMap } from "./topology.ts";
 

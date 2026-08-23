@@ -1,6 +1,6 @@
-import { HarnessError } from "../../errors/harness-error.ts";
-import { uiDomainApplies } from "../../contracts/workflow.ts";
-import { isJsonObject, type JsonValue } from "../../contracts/json.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
+import { uiDomainApplies } from "../../core/contracts/workflow.ts";
+import { isJsonObject, type JsonValue } from "../../core/contracts/json.ts";
 import type { TaskRecord, WorkflowState } from "../types.ts";
 
 function textOf(value: unknown): string | undefined {

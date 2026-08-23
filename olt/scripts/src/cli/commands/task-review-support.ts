@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import { getHarnessConfig } from "../../config/harness-config.ts";
-import { HarnessError } from "../../errors/harness-error.ts";
+import { getHarnessConfig } from "../../core/config/harness-config.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
 import { ingestScreenshots, ingestVisualReport } from "../../reporting/screenshot-ingestion.ts";
 import { getVisualReport, queryScreenshots } from "../../reporting/screenshot-store.ts";
 import type { ScreenshotRecord } from "../../reporting/screenshot-types.ts";
@@ -20,7 +20,7 @@ import { applicableGates } from "../../workflow/gates/gate-policy.ts";
 import { workflowPort } from "../../integration/store-ports.ts";
 import type { TaskRecord, TransactionPort, WorkflowState } from "../../workflow/types.ts";
 
-import { findRepoRoot } from "../../shared/paths.ts";
+import { findRepoRoot } from "../../core/shared/paths.ts";
 
 export function repoRootOf(runRoot: string): string {
   return findRepoRoot(runRoot);

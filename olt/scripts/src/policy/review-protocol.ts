@@ -1,4 +1,4 @@
-import { HarnessError } from "../errors/harness-error.ts";
+import { HarnessError } from "../core/errors/harness-error.ts";
 import {
   DEFAULT_REVIEW_PROTOCOL_POLICY,
   loadRepoPolicy,
@@ -6,7 +6,7 @@ import {
   type ReviewProtocolPolicy,
 } from "./repo-policy.ts";
 import type { AgentMetadata } from "../runtime/agent-metadata.ts";
-import type { Finding } from "../contracts/workflow.ts";
+import type { Finding } from "../core/contracts/workflow.ts";
 import type { TaskRecord } from "../workflow/types.ts";
 
 export type ReviewPhase = "adversarial" | "cognitive" | "completed";

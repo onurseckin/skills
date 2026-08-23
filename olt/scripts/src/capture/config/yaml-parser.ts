@@ -1,4 +1,4 @@
-import { canonicalizeYaml } from "../../store/content-normalization/yaml-canonical.ts";
+import { canonicalizeYaml } from "../../engine/store/content-normalization/yaml-canonical.ts";
 
 export function parseYamlOrJson(rawText: string): unknown {
   const trimmed = rawText.trim();

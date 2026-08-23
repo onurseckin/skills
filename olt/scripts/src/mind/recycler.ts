@@ -1,8 +1,8 @@
 import { enforceLineLimit } from "../cli/formatters/line-limiter.ts";
-import type { JsonObject, JsonValue } from "../contracts/json.ts";
-import { HarnessError } from "../errors/harness-error.ts";
-import { loadRun } from "../store/load.ts";
-import { transact } from "../store/transaction.ts";
+import type { JsonObject, JsonValue } from "../core/contracts/json.ts";
+import { HarnessError } from "../core/errors/harness-error.ts";
+import { loadRun } from "../engine/store/load.ts";
+import { transact } from "../engine/store/transaction.ts";
 import { DEFAULT_MIND_BUDGET } from "./charter.ts";
 import { drainPendingFeedbacks, readFeedbackQueue, type FeedbackItem } from "./feedback-queue.ts";
 import type { CandidateRecord } from "./gates.ts";

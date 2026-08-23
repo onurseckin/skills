@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
-import { loadRun } from "../store/index.ts";
-import { isJsonObject, type JsonObject } from "../contracts/json.ts";
-import { auditTierConfinement, type TierConfinementFinding } from "../doctor/tier-confinement.ts";
+import { loadRun } from "../engine/store/index.ts";
+import { isJsonObject, type JsonObject } from "../core/contracts/json.ts";
+import { auditTierConfinement, type TierConfinementFinding } from "../reporting/doctor/tier-confinement.ts";
 import { BootGateEnforcer } from "./boot-gate-enforcer.ts";
 import {
   DEFAULT_ADAPTIVE_ACTIVITY_BOOST,

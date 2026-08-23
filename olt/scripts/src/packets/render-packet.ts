@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
-import { HarnessError } from "../errors/harness-error.ts";
-import { isJsonObject, type JsonObject } from "../contracts/json.ts";
+import { HarnessError } from "../core/errors/harness-error.ts";
+import { isJsonObject, type JsonObject } from "../core/contracts/json.ts";
 import { loadCommonInstructions, verifyCommonInstructions } from "./common-instructions.ts";
 import {
   isolateValidatorContext,
@@ -18,9 +18,9 @@ import { CONCLUSION_EXCLUSIONS, validatorTaskContract } from "./prior-round-dema
 import { renderValidationRound } from "./render-validation-round.ts";
 import { VALIDATION_ROUND_KEY } from "./validation-round.ts";
 import { pruneNonUiPayload } from "../workflow/review/role-evidence.ts";
-import { uiDomainApplies } from "../contracts/workflow.ts";
+import { uiDomainApplies } from "../core/contracts/workflow.ts";
 
-import type { AgentRole } from "../contracts/packets.ts";
+import type { AgentRole } from "../core/contracts/packets.ts";
 
 function isUiTaskPacket(input: PacketInput): boolean {
   if (input.task) {

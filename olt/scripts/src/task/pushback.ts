@@ -1,13 +1,13 @@
-import { MAX_REPAIR_ROUNDS } from "../config/constants.ts";
-import type { JsonObject } from "../contracts/json.ts";
+import { MAX_REPAIR_ROUNDS } from "../core/config/constants.ts";
+import type { JsonObject } from "../core/contracts/json.ts";
 import {
   isCoordinatorPushbackCause,
   isValidatorDomain,
   type CoordinatorPushback,
   type CoordinatorPushbackCause,
   type ValidatorDomain,
-} from "../contracts/workflow.ts";
-import { HarnessError } from "../errors/harness-error.ts";
+} from "../core/contracts/workflow.ts";
+import { HarnessError } from "../core/errors/harness-error.ts";
 import {
   assertNoUnfulfilledDemands,
   evaluateUnfulfilledDemands,

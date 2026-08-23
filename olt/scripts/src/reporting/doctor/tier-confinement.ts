@@ -1,13 +1,13 @@
 import { existsSync } from "node:fs";
-import { HarnessError } from "../../errors/harness-error.ts";
-import type { AgentGrantRecord, AgentToolRef, AgentToolUse } from "../../contracts/agents.ts";
-import { isAgentRole } from "../../contracts/packets.ts";
-import type { CommandRecord } from "../../contracts/commands.ts";
-import { isJsonObject, type JsonObject } from "../../contracts/json.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
+import type { AgentGrantRecord, AgentToolRef, AgentToolUse } from "../../core/contracts/agents.ts";
+import { isAgentRole } from "../../core/contracts/packets.ts";
+import type { CommandRecord } from "../../core/contracts/commands.ts";
+import { isJsonObject, type JsonObject } from "../../core/contracts/json.ts";
 import type { TaskRecord, ValidationAttempt } from "../../workflow/types.ts";
-import type { RunState } from "../../contracts/capsule.ts";
+import type { RunState } from "../../core/contracts/capsule.ts";
 import { readAgentLedger } from "../../workflow/agents/ledger.ts";
-import { loadRun } from "../../store/index.ts";
+import { loadRun } from "../../engine/store/index.ts";
 import {
   type ExecutionTier,
   roleToTier,

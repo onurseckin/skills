@@ -1,6 +1,6 @@
 import { realpathSync } from "node:fs";
 import { isAbsolute, posix, relative, resolve, sep } from "node:path";
-import type { CommandRecord } from "../../contracts/commands.ts";
+import type { CommandRecord } from "../../core/contracts/commands.ts";
 import { aggregateFinalAttemptIssues } from "./command-aggregate-shape.ts";
 import { canonicalCommandFingerprint } from "./command-id.ts";
 import { policyRecordIssues } from "./policy.ts";

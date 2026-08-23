@@ -1,4 +1,4 @@
-import { HarnessError } from "../../errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
 import { isLeaseSuspended } from "./suspension.ts";
 import { tokenMatches } from "./token.ts";
 import { requireText, taskIn, transition, utc } from "../task-state.ts";

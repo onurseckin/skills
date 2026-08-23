@@ -1,4 +1,4 @@
-import { HarnessError } from "../../errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
 import { requireText } from "../task-state.ts";
 import type {
   CompletionArtifactPacket,
@@ -13,8 +13,8 @@ import {
   sameRepositoryBinding,
   validateRepositoryBinding,
 } from "./repository-binding.ts";
-import type { RepositoryBinding } from "../../contracts/repository.ts";
-import { TRUSTED_HOST_ASSURANCE } from "../../contracts/trusted-host.ts";
+import type { RepositoryBinding } from "../../core/contracts/repository.ts";
+import { TRUSTED_HOST_ASSURANCE } from "../../core/contracts/trusted-host.ts";
 
 export interface CompletionArtifactRequirements {
   command_ids: string[];

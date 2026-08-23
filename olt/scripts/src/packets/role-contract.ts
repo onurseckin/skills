@@ -7,14 +7,14 @@ import {
   isCognitiveValidatorRole,
   isMechanicValidatorRole,
   type AgentRole,
-} from "../contracts/packets.ts";
+} from "../core/contracts/packets.ts";
 import {
   isValidatorDomain,
   VALIDATOR_DOMAINS,
   type ValidatorDomain,
-} from "../contracts/workflow.ts";
+} from "../core/contracts/workflow.ts";
 import { readRegularFileNoFollow } from "../core/no-follow.ts";
-import { HarnessError } from "../errors/harness-error.ts";
+import { HarnessError } from "../core/errors/harness-error.ts";
 
 const ROLES_ROOT = fileURLToPath(new URL("../../../roles", import.meta.url));
 const SCRIPTS_SRC_ROLES_ROOT = fileURLToPath(new URL("../roles", import.meta.url));

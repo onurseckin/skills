@@ -1,5 +1,5 @@
-import type { Finding } from "../../contracts/workflow.ts";
-import { HarnessError } from "../../errors/harness-error.ts";
+import type { Finding } from "../../core/contracts/workflow.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
 import { findingClassOf, type FindingClass } from "../../workflow/review/finding-class.ts";
 import type { RevalidationProof } from "../../workflow/review/validate-review.ts";
 import { listFlag, type Flags } from "../options.ts";

@@ -1,9 +1,9 @@
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { isJsonObject } from "../../contracts/json.ts";
+import { isJsonObject } from "../../core/contracts/json.ts";
 import { diffAnchor, type DiffAnchor } from "../../packets/round-repository-delta.ts";
 import { repositoryGit, type RepositoryGitCommand } from "../../packets/repository-git-command.ts";
-import { findRepoRoot } from "../../shared/paths.ts";
+import { findRepoRoot } from "../../core/shared/paths.ts";
 import type { FileRef } from "../graph/graph-types.ts";
 
 const DIFF_PATH_CEILING_BYTES = 1 * 1024 * 1024;

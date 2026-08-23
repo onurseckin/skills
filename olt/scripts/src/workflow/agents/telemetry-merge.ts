@@ -3,12 +3,12 @@ import type {
   AgentToolUse,
   TelemetryFieldConflict,
   ThinkingLevel,
-} from "../../contracts/agents.ts";
-import type { RunState } from "../../contracts/capsule.ts";
-import { evidenced, type Evidenced, type EvidenceClass } from "../../contracts/evidence.ts";
-import type { JsonObject } from "../../contracts/json.ts";
-import { HarnessError } from "../../errors/harness-error.ts";
-import { loadRun, transact } from "../../store/index.ts";
+} from "../../core/contracts/agents.ts";
+import type { RunState } from "../../core/contracts/capsule.ts";
+import { evidenced, type Evidenced, type EvidenceClass } from "../../core/contracts/evidence.ts";
+import type { JsonObject } from "../../core/contracts/json.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
+import { loadRun, transact } from "../../engine/store/index.ts";
 import {
   findGrant,
   readAgentLedger,
@@ -28,7 +28,7 @@ export interface DerivedTelemetryInput {
   transcript?: AgentTranscriptTelemetry;
 }
 
-export type { TelemetryFieldConflict } from "../../contracts/agents.ts";
+export type { TelemetryFieldConflict } from "../../core/contracts/agents.ts";
 
 export interface TelemetryProbeOutcome {
   grant: AgentGrantRecord;

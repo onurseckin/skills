@@ -1,5 +1,5 @@
-import { HarnessError } from "../errors/harness-error.ts";
-import type { Finding } from "../contracts/workflow.ts";
+import { HarnessError } from "../core/errors/harness-error.ts";
+import type { Finding } from "../core/contracts/workflow.ts";
 import type { FindingDetail } from "../workflow/scope-partitioner.ts";
 import type { SmartTaskPlan } from "../mind/smart-task-manager.ts";
 import {

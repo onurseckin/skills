@@ -12,8 +12,8 @@
  * - Discriminating unit test generation rejecting mock tautologies and trivial assertions.
  */
 
-import { HarnessError } from "../errors/harness-error.ts";
-import type { JsonObject, JsonValue } from "../contracts/json.ts";
+import { HarnessError } from "../core/errors/harness-error.ts";
+import type { JsonObject, JsonValue } from "../core/contracts/json.ts";
 import { isRecord, isNonblank, isInteger } from "../requirements/predicates.ts";
 import { checkScopeOverlap, normalizeScopePath } from "../graph/scope-analyzer.ts";
 

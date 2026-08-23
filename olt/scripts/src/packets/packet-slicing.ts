@@ -1,10 +1,10 @@
 import { createHash } from "node:crypto";
-import type { JsonObject, JsonPrimitive, JsonValue } from "../contracts/json.ts";
-import { isJsonObject } from "../contracts/json.ts";
-import type { AgentRole } from "../contracts/packets.ts";
-import { isAgentRole } from "../contracts/packets.ts";
+import type { JsonObject, JsonPrimitive, JsonValue } from "../core/contracts/json.ts";
+import { isJsonObject } from "../core/contracts/json.ts";
+import type { AgentRole } from "../core/contracts/packets.ts";
+import { isAgentRole } from "../core/contracts/packets.ts";
 import { canonicalJsonBytes, sha256Bytes } from "../core/json.ts";
-import { HarnessError } from "../errors/harness-error.ts";
+import { HarnessError } from "../core/errors/harness-error.ts";
 import type { TaskRecord, WorkflowState } from "../workflow/types.ts";
 import { buildPacket } from "./render-packet.ts";
 import type { BuiltPacket, PacketInput } from "./types.ts";

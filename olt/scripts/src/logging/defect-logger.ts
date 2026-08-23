@@ -6,15 +6,15 @@ import {
   parseAndDeduplicateDefectJsonl,
   serializeAggregatedDefectLog,
   toAggregatedDefect,
-} from "../defects/index.ts";
+} from "../mind/defects/index.ts";
 import type {
   AggregatedDefect,
   DefectRecordInput,
   LiveDeduplicationOptions,
-} from "../defects/types.ts";
+} from "../mind/defects/types.ts";
 import { atomicWriteBytes } from "../core/durable-write.ts";
 import type { DefectLogOptions, DefectLogResult } from "./types.ts";
-import { resolveDefectsPath } from "../shared/paths.ts";
+import { resolveDefectsPath } from "../core/shared/paths.ts";
 
 export function resolveDefectLogPath(options: DefectLogOptions = {}): string | null {
   if (options.filePath) {

@@ -1,4 +1,4 @@
-import { HarnessError } from "../../errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
 import { jsonDigest } from "../completion/completion-review-digest.ts";
 import type { WorkflowState } from "../types.ts";
 

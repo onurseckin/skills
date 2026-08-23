@@ -1,5 +1,5 @@
-import type { EvidenceClass } from "../contracts/evidence.ts";
-import type { JsonObject, JsonValue } from "../contracts/json.ts";
+import type { EvidenceClass } from "../core/contracts/evidence.ts";
+import type { JsonObject, JsonValue } from "../core/contracts/json.ts";
 import type {
   ActionKind,
   ActionOutcome,

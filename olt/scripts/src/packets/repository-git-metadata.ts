@@ -1,7 +1,7 @@
 import { lstatSync, realpathSync } from "node:fs";
 import type { Stats } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import { HarnessError } from "../errors/harness-error.ts";
+import { HarnessError } from "../core/errors/harness-error.ts";
 import {
   readRepositoryGitControlFile,
   type RepositoryGitFileHooks,

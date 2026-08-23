@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { assertRoleArtifactPresent } from "./review/role-evidence.ts";
-import { HarnessError } from "../errors/harness-error.ts";
+import { HarnessError } from "../core/errors/harness-error.ts";
 
 describe("Role Evidence Artifact Enforcement", () => {
   it("allows non-UI domains without artifact evidence", () => {

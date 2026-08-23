@@ -1,4 +1,4 @@
-import { HarnessError } from "../errors/harness-error.ts";
+import { HarnessError } from "../core/errors/harness-error.ts";
 import { AntigravityHostAdapter } from "./antigravity.ts";
 import { ClaudeCodeHostAdapter } from "./claude-code.ts";
 import { CursorHostAdapter } from "./cursor.ts";

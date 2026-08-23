@@ -1,6 +1,6 @@
-import type { BranchRecord, BranchSubTask } from "../../contracts/branch.ts";
-import type { HarnessEvent, Manifest } from "../../contracts/capsule.ts";
-import type { CommandRecord } from "../../contracts/commands.ts";
+import type { BranchRecord, BranchSubTask } from "../../core/contracts/branch.ts";
+import type { HarnessEvent, Manifest } from "../../core/contracts/capsule.ts";
+import type { CommandRecord } from "../../core/contracts/commands.ts";
 import type { RepositoryGitCommand } from "../../packets/repository-git-command.ts";
 import {
   buildNodeTelemetry,

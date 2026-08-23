@@ -1,5 +1,5 @@
-import type { EvidenceClass } from "../contracts/evidence.ts";
-import type { CategoryExtras, ToolCategory } from "../contracts/taxonomy.ts";
+import type { EvidenceClass } from "../core/contracts/evidence.ts";
+import type { CategoryExtras, ToolCategory } from "../core/contracts/taxonomy.ts";
 
 export interface BrowserRunViewport {
   width: number;

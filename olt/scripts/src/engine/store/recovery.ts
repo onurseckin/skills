@@ -1,6 +1,6 @@
 import { lstatSync, mkdirSync, realpathSync } from "node:fs";
-import type { RunState } from "../../contracts/capsule.ts";
-import { HarnessError } from "../../errors/harness-error.ts";
+import type { RunState } from "../../core/contracts/capsule.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
 import { withRunLock } from "../../platform/run-lock.ts";
 import { validateEventChain } from "./event-stream.ts";
 import { appendProjectionEvent } from "./event-append.ts";

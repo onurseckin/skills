@@ -1,5 +1,5 @@
 import { safeRepoPath } from "../../core/paths.ts";
-import { HarnessError } from "../../errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
 
 export function runFilePath(runRoot: string, name: string): string {
   try {

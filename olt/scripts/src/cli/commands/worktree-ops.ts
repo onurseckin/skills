@@ -1,7 +1,7 @@
 import { resolve } from "node:path";
-import { getHarnessConfig } from "../../config/harness-config.ts";
-import { HarnessError } from "../../errors/harness-error.ts";
-import { loadRun } from "../../store/index.ts";
+import { getHarnessConfig } from "../../core/config/harness-config.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
+import { loadRun } from "../../engine/store/index.ts";
 import { readWorktreeLedger } from "../../workflow/worktree/ledger.ts";
 import { reclaimOrphanedWorktrees, recordReclaim } from "../../workflow/worktree/reclaim.ts";
 import { enforceLineLimit } from "../formatters/line-limiter.ts";

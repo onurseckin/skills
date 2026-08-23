@@ -1,7 +1,7 @@
-import type { CommandRecord } from "../../contracts/commands.ts";
-import type { EvidenceClass } from "../../contracts/evidence.ts";
-import type { JsonObject } from "../../contracts/json.ts";
-import { HarnessError } from "../../errors/harness-error.ts";
+import type { CommandRecord } from "../../core/contracts/commands.ts";
+import type { EvidenceClass } from "../../core/contracts/evidence.ts";
+import type { JsonObject } from "../../core/contracts/json.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
 import type { TaskRecord } from "../types.ts";
 import { pathAllowed } from "./validate-report.ts";
 

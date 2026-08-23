@@ -9,7 +9,7 @@
  * - Deterministic trigger dispatching and dynamic backoff coordination.
  */
 
-import { HarnessError } from "../errors/harness-error.ts";
+import { HarnessError } from "../core/errors/harness-error.ts";
 import {
   applyIntervalJitter,
   calculateExponentialBackoff,

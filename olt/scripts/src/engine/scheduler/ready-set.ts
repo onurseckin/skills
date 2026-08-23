@@ -1,4 +1,4 @@
-import { readTopology, topologyWavesByTask } from "../../contracts/topology.ts";
+import { readTopology, topologyWavesByTask } from "../../core/contracts/topology.ts";
 import { proposeBatch } from "./propose-batch.ts";
 
 export interface ReadyEntry {

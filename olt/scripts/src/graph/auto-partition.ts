@@ -1,6 +1,6 @@
 import { readdirSync, type Dirent } from "node:fs";
 import { join, posix } from "node:path";
-import { HarnessError } from "../errors/harness-error.ts";
+import { HarnessError } from "../core/errors/harness-error.ts";
 
 const EXCLUDED_DIRS = new Set([
   ".git",

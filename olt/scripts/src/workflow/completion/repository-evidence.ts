@@ -1,5 +1,5 @@
-import type { CommandRecord } from "../../contracts/commands.ts";
-import { embeddedCommandIssues } from "../../runner/command-shape.ts";
+import type { CommandRecord } from "../../core/contracts/commands.ts";
+import { embeddedCommandIssues } from "../../engine/runner/command-shape.ts";
 import { commandMatchesGate, workflowGates } from "../gates/gate-policy.ts";
 import type { WorkflowState } from "../types.ts";
 

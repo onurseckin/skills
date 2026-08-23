@@ -1,5 +1,5 @@
-import { HarnessError } from "../../errors/harness-error.ts";
-import { gateControlBindingScopeIssues } from "../../runner/gate-path-overlap.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
+import { gateControlBindingScopeIssues } from "../../engine/runner/gate-path-overlap.ts";
 import { taskIn, transition } from "../task-state.ts";
 import { systemClock, type Clock, type TransactionPort } from "../types.ts";
 import { applicableGates, commandMatchesGate } from "./gate-policy.ts";

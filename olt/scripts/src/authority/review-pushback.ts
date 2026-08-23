@@ -1,5 +1,5 @@
-import { MAX_REPAIR_ROUNDS } from "../config/constants.ts";
-import type { JsonObject } from "../contracts/json.ts";
+import { MAX_REPAIR_ROUNDS } from "../core/config/constants.ts";
+import type { JsonObject } from "../core/contracts/json.ts";
 import {
   isCoordinatorPushbackCause,
   isValidatorDomain,
@@ -7,8 +7,8 @@ import {
   type CoordinatorPushbackCause,
   type TaskStatus,
   type ValidatorDomain,
-} from "../contracts/workflow.ts";
-import { HarnessError } from "../errors/harness-error.ts";
+} from "../core/contracts/workflow.ts";
+import { HarnessError } from "../core/errors/harness-error.ts";
 
 /**
  * Common superficial patterns and canned phrases that indicate rubber-stamping or lack of concrete verification.

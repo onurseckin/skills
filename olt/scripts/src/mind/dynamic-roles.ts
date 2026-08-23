@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { findCommand } from "../cli/registry/index.ts";
 import type { CommandSpec } from "../cli/registry/types.ts";
-import { HarnessError } from "../errors/harness-error.ts";
+import { HarnessError } from "../core/errors/harness-error.ts";
 import type {
   RoleCheatSheet,
   RoleCheatSheetOptions,

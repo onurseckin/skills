@@ -1,8 +1,8 @@
-import { loadRun } from "../../store/index.ts";
+import { loadRun } from "../../engine/store/index.ts";
 import { decideProposal } from "../../mind/proposal.ts";
 import { workflowPort } from "../../integration/store-ports.ts";
 import { recordAuthorityDecision } from "../../workflow/authority/record-authority-decision.ts";
-import { HarnessError } from "../../errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
 import { enforceLineLimit } from "../formatters/line-limiter.ts";
 import { textFlag, type Flags } from "../options.ts";
 

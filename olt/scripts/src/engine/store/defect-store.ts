@@ -1,13 +1,13 @@
 import { existsSync, readFileSync } from "node:fs";
-import { parseAndDeduplicateDefectJsonl, serializeAggregatedDefectLog } from "../../defects/index.ts";
+import { parseAndDeduplicateDefectJsonl, serializeAggregatedDefectLog } from "../../mind/defects/index.ts";
 import type {
   AggregatedDefect,
   DefectRecordInput,
   DefectResolutionProof,
   LiveDeduplicationOptions,
-} from "../../defects/types.ts";
+} from "../../mind/defects/types.ts";
 import { atomicWriteBytes } from "../../core/durable-write.ts";
-import { HarnessError } from "../../errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
 import {
   compactDefectLogFile,
   readDefectLogFile,

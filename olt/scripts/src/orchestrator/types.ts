@@ -1,6 +1,6 @@
-import type { JsonObject, JsonValue } from "../contracts/json.ts";
+import type { JsonObject, JsonValue } from "../core/contracts/json.ts";
 import type { FindingDetail } from "../workflow/scope-partitioner.ts";
-import type { Finding, TaskStatus } from "../contracts/workflow.ts";
+import type { Finding, TaskStatus } from "../core/contracts/workflow.ts";
 
 export type RoundExecutionStatus =
   | "pending"

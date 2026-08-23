@@ -1,7 +1,7 @@
 import { dirname, join } from "node:path";
 import { mkdirSync, writeFileSync } from "node:fs";
-import type { RepositoryBinding } from "../../contracts/repository.ts";
-import { HarnessError } from "../../errors/harness-error.ts";
+import type { RepositoryBinding } from "../../core/contracts/repository.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
 import { readPlanObject } from "../../graph/read-plan.ts";
 import { workflowPort } from "../../integration/store-ports.ts";
 import { inspectRepositoryBinding } from "../../packets/repository-identity.ts";
@@ -10,7 +10,7 @@ import {
   repositoryEvidenceCommandIds,
 } from "../../packets/critic-grant.ts";
 import { recordGrantInspections } from "../../packets/role-grant.ts";
-import { loadRun } from "../../store/index.ts";
+import { loadRun } from "../../engine/store/index.ts";
 import { tokenDigest } from "../../workflow/lease/token.ts";
 import { beginCompletenessCritic } from "../../workflow/completion/begin-completeness-critic.ts";
 import { parseRawFindings } from "../../workflow/completion/parse-raw-findings.ts";
@@ -27,7 +27,7 @@ import {
 } from "../formatters/index.ts";
 import { enforceLineLimit } from "../formatters/line-limiter.ts";
 import { listFlag, textFlag, type Flags } from "../options.ts";
-import { findRepoRoot } from "../../shared/paths.ts";
+import { findRepoRoot } from "../../core/shared/paths.ts";
 import { queryScreenshots } from "../../reporting/screenshot-store.ts";
 
 function liveRepositoryBinding(run: string, expected: Readonly<RepositoryBinding>) {

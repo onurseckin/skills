@@ -1,11 +1,11 @@
 import { dirname } from "node:path";
-import type { RunState } from "../contracts/capsule.ts";
-import type { JsonObject } from "../contracts/json.ts";
-import type { RepositoryBinding } from "../contracts/repository.ts";
+import type { RunState } from "../core/contracts/capsule.ts";
+import type { JsonObject } from "../core/contracts/json.ts";
+import type { RepositoryBinding } from "../core/contracts/repository.ts";
 import { canonicalJsonBytes, sha256Bytes } from "../core/json.ts";
-import { HarnessError } from "../errors/harness-error.ts";
-import { findRepoRoot } from "../shared/paths.ts";
-import { loadRun, transact } from "../store/index.ts";
+import { HarnessError } from "../core/errors/harness-error.ts";
+import { findRepoRoot } from "../core/shared/paths.ts";
+import { loadRun, transact } from "../engine/store/index.ts";
 import { requireText } from "../workflow/task-state.ts";
 import { inspectRepository } from "./repository-snapshot.ts";
 

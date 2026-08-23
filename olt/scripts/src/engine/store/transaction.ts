@@ -1,7 +1,7 @@
-import type { RunState, StateMutator } from "../../contracts/capsule.ts";
-import type { JsonObject } from "../../contracts/json.ts";
+import type { RunState, StateMutator } from "../../core/contracts/capsule.ts";
+import type { JsonObject } from "../../core/contracts/json.ts";
 import { normalizeJson } from "../../core/json.ts";
-import { HarnessError } from "../../errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
 import { withRunLock } from "../../platform/run-lock.ts";
 import { RESERVED_STATE_KEYS, type StoreLimits, limits } from "./constants.ts";
 import { appendProjectionEvent } from "./event-append.ts";

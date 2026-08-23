@@ -1,4 +1,4 @@
-import type { EvidenceClass } from "../../contracts/evidence.ts";
+import type { EvidenceClass } from "../../core/contracts/evidence.ts";
 
 export type EdgeKind =
   | "backtrack"

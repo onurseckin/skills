@@ -1,5 +1,5 @@
-import { isJsonObject, type JsonObject, type JsonValue } from "../../contracts/json.ts";
-import { HarnessError } from "../../errors/harness-error.ts";
+import { isJsonObject, type JsonObject, type JsonValue } from "../../core/contracts/json.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
 import { checkScopeOverlap } from "../../graph/scope-analyzer.ts";
 
 export type GateSource = "flag" | "finding" | "parent_task";

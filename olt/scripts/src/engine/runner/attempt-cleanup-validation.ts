@@ -1,7 +1,7 @@
 import type {
   CommandAttemptCleanupDisposition,
   CommandProcessIdentity,
-} from "../../contracts/commands.ts";
+} from "../../core/contracts/commands.ts";
 import {
   canonicalBase64,
   digest,

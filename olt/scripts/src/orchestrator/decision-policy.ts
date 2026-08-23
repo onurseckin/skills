@@ -1,10 +1,10 @@
-import { HarnessError } from "../errors/harness-error.ts";
+import { HarnessError } from "../core/errors/harness-error.ts";
 import type { TaskRecord, WorkflowState } from "../workflow/types.ts";
 import {
   evaluateHierarchicalDecision,
   type AgentRoleHierarchy,
   type HierarchicalDecisionResult,
-} from "../scheduler/decision-tree.ts";
+} from "../engine/scheduler/decision-tree.ts";
 
 export interface HierarchicalViolation {
   readonly ruleId: string;

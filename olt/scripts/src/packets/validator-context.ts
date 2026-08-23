@@ -1,4 +1,4 @@
-import type { JsonObject } from "../contracts/json.ts";
+import type { JsonObject } from "../core/contracts/json.ts";
 
 const FORBIDDEN = new Set([
   "assumed_complete",

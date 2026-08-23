@@ -1,9 +1,9 @@
 import { closeSync, constants, fsyncSync, lstatSync, openSync, writeSync } from "node:fs";
-import type { HarnessEvent, Manifest, RunState } from "../../contracts/capsule.ts";
-import type { JsonObject } from "../../contracts/json.ts";
+import type { HarnessEvent, Manifest, RunState } from "../../core/contracts/capsule.ts";
+import type { JsonObject } from "../../core/contracts/json.ts";
 import { atomicWriteJson } from "../../core/durable-write.ts";
 import { canonicalJsonBytes, normalizeJson, sha256Bytes } from "../../core/json.ts";
-import { HarnessError } from "../../errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
 import { writeIndex } from "./capsule-index.ts";
 import {
   EVENT_SCHEMA,

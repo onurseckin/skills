@@ -12,7 +12,7 @@ import { join } from "node:path";
 import { atomicWriteBytes, fsyncDirectory } from "../core/durable-write.ts";
 import { canonicalJsonBytes } from "../core/json.ts";
 import { readRegularFileNoFollow } from "../core/no-follow.ts";
-import { HarnessError } from "../errors/harness-error.ts";
+import { HarnessError } from "../core/errors/harness-error.ts";
 import type { BuiltPacket } from "./types.ts";
 
 export interface PacketPaths {

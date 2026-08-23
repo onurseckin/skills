@@ -1,5 +1,5 @@
-import { estimated, evidenced, type Evidenced } from "../../contracts/evidence.ts";
-import { readTopology, topologyWavesByTask } from "../../contracts/topology.ts";
+import { estimated, evidenced, type Evidenced } from "../../core/contracts/evidence.ts";
+import { readTopology, topologyWavesByTask } from "../../core/contracts/topology.ts";
 import type { TaskRecord } from "../../workflow/types.ts";
 
 export type WaveSource = "recorded" | "derived";

@@ -23,7 +23,7 @@ import { mindRotateCommand } from "../commands/mind-rotate.ts";
 import { mindRoundCloseCommand, mindRoundOpenCommand } from "../commands/mind-round.ts";
 import { mindWakeCommand } from "../commands/mind-wake.ts";
 import { smartTaskIngestCommand, smartTaskSynthesizeCommand } from "../commands/smart-task-ops.ts";
-import { HarnessError } from "../../errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
 import {
   DEFAULT_EXIT_CODES,
   optionalFlag,

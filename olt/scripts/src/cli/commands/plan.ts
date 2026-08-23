@@ -1,8 +1,8 @@
 import { basename, dirname, resolve } from "node:path";
-import { getHarnessConfig } from "../../config/harness-config.ts";
-import { isJsonObject, type JsonObject, type JsonValue } from "../../contracts/json.ts";
+import { getHarnessConfig } from "../../core/config/harness-config.ts";
+import { isJsonObject, type JsonObject, type JsonValue } from "../../core/contracts/json.ts";
 import { readBoundedBytes } from "../../core/json.ts";
-import { HarnessError } from "../../errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
 import { partitionByGlob, slugifyScope } from "../../graph/auto-partition.ts";
 import { compileGraphDocument } from "../../graph/compiler.ts";
 import { projectPlan } from "../../graph/project-plan.ts";
@@ -16,11 +16,11 @@ import {
 } from "../../requirements/compiler.ts";
 import { buildEnhancedPlan, writeEnhancedPlan } from "../../requirements/enhanced-plan.ts";
 import { parseRequirementLines } from "../../requirements/requirement-lines.ts";
-import { recordTopology } from "../../scheduler/index.ts";
-import { initRun, loadRun } from "../../store/index.ts";
-import { transact } from "../../store/transaction.ts";
+import { recordTopology } from "../../engine/scheduler/index.ts";
+import { initRun, loadRun } from "../../engine/store/index.ts";
+import { transact } from "../../engine/store/transaction.ts";
 import { ensureHarnessIgnored } from "../git-ignore.ts";
-import { findRepoRoot } from "../../shared/paths.ts";
+import { findRepoRoot } from "../../core/shared/paths.ts";
 import { discoverGatePaths, gateBreadthWarning } from "../../graph/gate-breadth.ts";
 import {
   formatAutoPartitionBrief,

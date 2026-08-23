@@ -1,18 +1,18 @@
 import { createHash } from "node:crypto";
 import { existsSync, lstatSync, readFileSync } from "node:fs";
 import { dirname } from "node:path";
-import type { AgentGrantRecord } from "../../contracts/agents.ts";
-import type { JsonObject } from "../../contracts/json.ts";
-import { HarnessError } from "../../errors/harness-error.ts";
+import type { AgentGrantRecord } from "../../core/contracts/agents.ts";
+import type { JsonObject } from "../../core/contracts/json.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
 import { checkDailyBudget, parseNowMs, rollDayKeyIfNeeded } from "../../mind/budget.ts";
 import { DEFAULT_MIND_BUDGET, resolveCharterPath } from "../../mind/charter.ts";
 import { formatDuration } from "../../mind/brief.ts";
 import { writeLastPulse } from "../../mind/last-pulse.ts";
 import { parseDuration } from "../../mind/value.ts";
-import { loadRun } from "../../store/load.ts";
-import { transact } from "../../store/transaction.ts";
+import { loadRun } from "../../engine/store/load.ts";
+import { transact } from "../../engine/store/transaction.ts";
 import { findGrant, readAgentLedger, writeAgentLedger } from "../../workflow/agents/ledger.ts";
-import { findRepoRoot } from "../../shared/paths.ts";
+import { findRepoRoot } from "../../core/shared/paths.ts";
 import { enforceLineLimit } from "../formatters/line-limiter.ts";
 import { textFlag, type CommandContext, type Flags } from "../options.ts";
 import {
@@ -24,7 +24,7 @@ import {
   runScriptBackedDiagnostics,
   type CliDiagnosticReceipt,
   type ScriptBackedDiagnosticsResult,
-} from "../../scheduler/diagnostics.ts";
+} from "../../engine/scheduler/diagnostics.ts";
 
 export const CLOSING_FORBIDDEN_FOR_MIND = "CLOSING_FORBIDDEN_FOR_MIND" as const;
 

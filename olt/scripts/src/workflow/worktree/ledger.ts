@@ -1,6 +1,6 @@
-import { isWorktreeLedgerState, type WorktreeLedgerState } from "../../contracts/worktree.ts";
-import type { JsonObject } from "../../contracts/json.ts";
-import { HarnessError } from "../../errors/harness-error.ts";
+import { isWorktreeLedgerState, type WorktreeLedgerState } from "../../core/contracts/worktree.ts";
+import type { JsonObject } from "../../core/contracts/json.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
 
 export const WORKTREE_LEDGER_KEY = "worktree_ledger";
 

@@ -1,8 +1,8 @@
 import { existsSync, readdirSync, statSync } from "node:fs";
 import { isAbsolute, join, normalize, relative, resolve } from "node:path";
-import { readCaptures, type CaptureRecord } from "../../store/captures.ts";
-import type { JsonObject } from "../../contracts/json.ts";
-import { isJsonObject } from "../../contracts/json.ts";
+import { readCaptures, type CaptureRecord } from "../../engine/store/captures.ts";
+import type { JsonObject } from "../../core/contracts/json.ts";
+import { isJsonObject } from "../../core/contracts/json.ts";
 import {
   isUnifiedEvidencePath,
   isUnifiedEvidenceRelativePath,

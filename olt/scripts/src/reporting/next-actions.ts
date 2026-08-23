@@ -1,6 +1,6 @@
-import { getHarnessConfig } from "../config/harness-config.ts";
-import type { AgentGrantRecord } from "../contracts/agents.ts";
-import type { JsonObject } from "../contracts/json.ts";
+import { getHarnessConfig } from "../core/config/harness-config.ts";
+import type { AgentGrantRecord } from "../core/contracts/agents.ts";
+import type { JsonObject } from "../core/contracts/json.ts";
 import {
   mergeActions,
   repositoryOf,

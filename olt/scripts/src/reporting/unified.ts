@@ -1,11 +1,11 @@
 import { dirname } from "node:path";
-import { loadRun, verifyCapsuleDeep, verifyIntegrity } from "../store/index.ts";
+import { loadRun, verifyCapsuleDeep, verifyIntegrity } from "../engine/store/index.ts";
 import type { TaskRecord, WorkflowState } from "../workflow/types.ts";
 import { enforceLineLimit, formatTable } from "../cli/formatters/line-limiter.ts";
 import { isRecord } from "../requirements/predicates.ts";
-import { getHarnessConfig } from "../config/harness-config.ts";
-import { findRepoRoot } from "../shared/paths.ts";
-import { MINIMUM_BUN_VERSION } from "../config/constants.ts";
+import { getHarnessConfig } from "../core/config/harness-config.ts";
+import { findRepoRoot } from "../core/shared/paths.ts";
+import { MINIMUM_BUN_VERSION } from "../core/config/constants.ts";
 import {
   agentIdToRole,
   agentIdToTier,

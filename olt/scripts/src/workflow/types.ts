@@ -1,15 +1,15 @@
-import type { AgentGrantRecord } from "../contracts/agents.ts";
-import type { BranchRecord } from "../contracts/branch.ts";
-import type { CommandRecord } from "../contracts/commands.ts";
+import type { AgentGrantRecord } from "../core/contracts/agents.ts";
+import type { BranchRecord } from "../core/contracts/branch.ts";
+import type { CommandRecord } from "../core/contracts/commands.ts";
 import type {
   Finding,
   GateResult,
   Lease,
   TaskStatus,
   ValidatorDomain,
-} from "../contracts/workflow.ts";
-import type { Evidenced } from "../contracts/evidence.ts";
-import type { JsonObject, JsonValue } from "../contracts/json.ts";
+} from "../core/contracts/workflow.ts";
+import type { Evidenced } from "../core/contracts/evidence.ts";
+import type { JsonObject, JsonValue } from "../core/contracts/json.ts";
 import type {
   CompletionArtifactVerification,
   CompletionCriticAuthorization,
@@ -17,10 +17,10 @@ import type {
   CompletionResult,
   CompletionReview,
 } from "./completion/types.ts";
-import type { RepositoryBinding } from "../contracts/repository.ts";
+import type { RepositoryBinding } from "../core/contracts/repository.ts";
 import type { GateProofRecord } from "../graph/gate-proof.ts";
 import type { OrphanEvidenceDisposition } from "./orphan-evidence/types.ts";
-import type { WorktreeCommitRecord, WorktreeLedgerState } from "../contracts/worktree.ts";
+import type { WorktreeCommitRecord, WorktreeLedgerState } from "../core/contracts/worktree.ts";
 import type { PlanFinding, PlanReview, PlanValidationAuthorization } from "./plan-review/types.ts";
 
 export type {
@@ -48,8 +48,8 @@ export {
   applicableValidatorDomains,
   isValidatorDomain,
   VALIDATOR_DOMAINS,
-} from "../contracts/workflow.ts";
-export type { ValidatorDomain } from "../contracts/workflow.ts";
+} from "../core/contracts/workflow.ts";
+export type { ValidatorDomain } from "../core/contracts/workflow.ts";
 
 export interface TaskHistory extends JsonObject {
   at: string;

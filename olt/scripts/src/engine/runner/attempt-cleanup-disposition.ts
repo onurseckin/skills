@@ -2,7 +2,7 @@ import { verify } from "node:crypto";
 import type {
   CommandAttemptCleanupDisposition,
   CommandAttemptStartedRecord,
-} from "../../contracts/commands.ts";
+} from "../../core/contracts/commands.ts";
 import {
   attemptStartedBaseDigest,
   cleanupDispositionEntryDigest,

@@ -1,4 +1,4 @@
-import type { JsonObject } from "../../contracts/json.ts";
+import type { JsonObject } from "../../core/contracts/json.ts";
 import { jsonDigest } from "../completion/completion-review-digest.ts";
 import type { WorkflowState } from "../types.ts";
 

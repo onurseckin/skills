@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
-import { HarnessError } from "../../errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
 import {
   assertFlags,
   boolFlag,
@@ -15,7 +15,7 @@ import {
   searchMemory,
   type MemoryQueryResult,
 } from "../../mind/memory.ts";
-import { resolveCapsulesDir } from "../../shared/paths.ts";
+import { resolveCapsulesDir } from "../../core/shared/paths.ts";
 
 export interface MemoryQueryCommandResult {
   readonly markdown: string;

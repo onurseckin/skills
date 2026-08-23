@@ -1,4 +1,4 @@
-import { HarnessError } from "../../errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
 import {
   analyzeRunForensics,
   injectRemediationToFeedbackQueue,
@@ -14,7 +14,7 @@ import {
 } from "../../mind/meta-auditor.ts";
 import { enforceLineLimit, formatTable } from "../formatters/line-limiter.ts";
 import { assertFlags, boolFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
-import { resolveBacklogPath } from "../../shared/paths.ts";
+import { resolveBacklogPath } from "../../core/shared/paths.ts";
 
 export type {
   FeedbackInjectionOptions,

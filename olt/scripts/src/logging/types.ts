@@ -3,7 +3,7 @@ import type {
   DefectKeyOptions,
   DeduplicationStrategy,
   LiveDeduplicationOptions,
-} from "../defects/types.ts";
+} from "../mind/defects/types.ts";
 
 export interface DefectLogOptions {
   readonly runRoot?: string | undefined;

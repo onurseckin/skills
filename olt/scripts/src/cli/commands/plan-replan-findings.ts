@@ -1,4 +1,4 @@
-import { HarnessError } from "../../errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
 import type { FindingDetail } from "../../workflow/scope-partitioner.ts";
 
 export interface ReplanFindingsInput {

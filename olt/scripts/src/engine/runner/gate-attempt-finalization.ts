@@ -1,4 +1,4 @@
-import type { CommandRecord } from "../../contracts/commands.ts";
+import type { CommandRecord } from "../../core/contracts/commands.ts";
 import type { inspectRepositoryBinding } from "../../packets/repository-identity.ts";
 import { boundedEvidenceError } from "./command-record-size.ts";
 import { gatePathBindingIssues } from "./gate-path-bindings.ts";

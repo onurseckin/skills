@@ -1,21 +1,21 @@
 import { dirname } from "node:path";
-import type { CommandRecord } from "../contracts/commands.ts";
-import type { JsonObject } from "../contracts/json.ts";
+import type { CommandRecord } from "../core/contracts/commands.ts";
+import type { JsonObject } from "../core/contracts/json.ts";
 import { readCanonicalObject } from "../core/json.ts";
-import { HarnessError } from "../errors/harness-error.ts";
-import { findRepoRoot } from "../shared/paths.ts";
-import { executePreparedCommand, prepareCommand } from "../runner/run-command.ts";
-import { resolveArtifactPath } from "../runner/artifact-paths.ts";
-import { MAX_COMMAND_RECORD_BYTES } from "../runner/command-record-size.ts";
+import { HarnessError } from "../core/errors/harness-error.ts";
+import { findRepoRoot } from "../core/shared/paths.ts";
+import { executePreparedCommand, prepareCommand } from "../engine/runner/run-command.ts";
+import { resolveArtifactPath } from "../engine/runner/artifact-paths.ts";
+import { MAX_COMMAND_RECORD_BYTES } from "../engine/runner/command-record-size.ts";
 import {
   assertCommandActor,
   assertCommandArgv,
   assertCommandIdentities,
-} from "../runner/policy.ts";
-import type { CommandOptions, CommandResult } from "../runner/types.ts";
-import { verifyCommandRecord } from "../runner/verify-command.ts";
-import { gateControlBindingsOverlapWriteScopes } from "../runner/gate-path-overlap.ts";
-import { loadRun, transact } from "../store/index.ts";
+} from "../engine/runner/policy.ts";
+import type { CommandOptions, CommandResult } from "../engine/runner/types.ts";
+import { verifyCommandRecord } from "../engine/runner/verify-command.ts";
+import { gateControlBindingsOverlapWriteScopes } from "../engine/runner/gate-path-overlap.ts";
+import { loadRun, transact } from "../engine/store/index.ts";
 import {
   recoverAggregateFromAttempts,
   type AttemptReconciliationDependencies,

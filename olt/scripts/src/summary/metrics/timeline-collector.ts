@@ -1,5 +1,5 @@
-import type { HarnessEvent } from "../../contracts/capsule.ts";
-import type { JsonValue } from "../../contracts/json.ts";
+import type { HarnessEvent } from "../../core/contracts/capsule.ts";
+import type { JsonValue } from "../../core/contracts/json.ts";
 import type {
   ActionKind,
   ActionOutcome,

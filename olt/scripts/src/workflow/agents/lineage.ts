@@ -1,5 +1,5 @@
-import type { AgentGrantRecord, AgentGrantStatus } from "../../contracts/agents.ts";
-import type { AgentRole } from "../../contracts/packets.ts";
+import type { AgentGrantRecord, AgentGrantStatus } from "../../core/contracts/agents.ts";
+import type { AgentRole } from "../../core/contracts/packets.ts";
 
 export interface AgentLineageNode {
   agent_id: string;

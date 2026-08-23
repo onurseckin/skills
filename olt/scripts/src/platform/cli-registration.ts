@@ -1,7 +1,7 @@
-import type { AgentRole } from "../contracts/packets.ts";
+import type { AgentRole } from "../core/contracts/packets.ts";
 import type { HostProvider, MandatoryCliActionSequence } from "./types.ts";
-import type { JsonObject } from "../contracts/json.ts";
-import { HarnessError } from "../errors/harness-error.ts";
+import type { JsonObject } from "../core/contracts/json.ts";
+import { HarnessError } from "../core/errors/harness-error.ts";
 
 export interface CliRegistrationOptions {
   readonly runRoot: string;

@@ -1,6 +1,6 @@
-import { isAgentGrantRecord, type AgentGrantRecord } from "../../contracts/agents.ts";
-import { isJsonObject, type JsonObject } from "../../contracts/json.ts";
-import { HarnessError } from "../../errors/harness-error.ts";
+import { isAgentGrantRecord, type AgentGrantRecord } from "../../core/contracts/agents.ts";
+import { isJsonObject, type JsonObject } from "../../core/contracts/json.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
 
 export const AGENT_LEDGER_KEY = "agents";
 

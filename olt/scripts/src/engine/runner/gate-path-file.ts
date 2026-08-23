@@ -8,7 +8,7 @@ import {
   readSync,
   type Stats,
 } from "node:fs";
-import { HarnessError } from "../../errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
 import type { SyncDirectoryReader } from "../../core/bounded-directory.ts";
 
 export const MAX_FILE_BYTES = 128 * 1024 * 1024;

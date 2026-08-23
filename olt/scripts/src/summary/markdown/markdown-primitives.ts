@@ -1,4 +1,4 @@
-import type { EvidenceClass, Evidenced } from "../../contracts/evidence.ts";
+import type { EvidenceClass, Evidenced } from "../../core/contracts/evidence.ts";
 
 export const UNKNOWN = "unknown";
 

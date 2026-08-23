@@ -1,4 +1,4 @@
-import { isJsonObject, type JsonObject, type JsonValue } from "../contracts/json.ts";
+import { isJsonObject, type JsonObject, type JsonValue } from "../core/contracts/json.ts";
 import { assertNoConclusions } from "./prior-round-demands.ts";
 
 function fenced(text: string, language: string): string {

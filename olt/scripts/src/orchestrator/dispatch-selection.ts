@@ -1,4 +1,4 @@
-import { readySet, type ReadyEntry } from "../scheduler/index.ts";
+import { readySet, type ReadyEntry } from "../engine/scheduler/index.ts";
 import { readDispatchHistory, type DispatchLogEvent } from "./dispatch-log.ts";
 
 export interface BackingOffTask {

@@ -1,10 +1,10 @@
-import type { RunState } from "../../contracts/capsule.ts";
-import type { JsonObject } from "../../contracts/json.ts";
+import type { RunState } from "../../core/contracts/capsule.ts";
+import type { JsonObject } from "../../core/contracts/json.ts";
 import { FORMAT_VERSION, RESERVED_STATE_KEYS, STATE_SCHEMA } from "./constants.ts";
 
 export { sameJson } from "../../core/json.ts";
 
-import type { CapsuleMode } from "../../contracts/capsule.ts";
+import type { CapsuleMode } from "../../core/contracts/capsule.ts";
 
 export function initialState(mode?: CapsuleMode): RunState {
   return {

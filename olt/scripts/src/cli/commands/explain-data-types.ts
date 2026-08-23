@@ -1,4 +1,4 @@
-import type { ErrorCode } from "../../errors/codes.ts";
+import type { ErrorCode } from "../../core/errors/codes.ts";
 
 export interface ExplainExample {
   readonly file: string;

@@ -1,6 +1,6 @@
-import type { AgentModelTier, ThinkingLevel } from "../contracts/agents.ts";
-import { evidenced, type Evidenced } from "../contracts/evidence.ts";
-import type { AgentRole } from "../contracts/packets.ts";
+import type { AgentModelTier, ThinkingLevel } from "../core/contracts/agents.ts";
+import { evidenced, type Evidenced } from "../core/contracts/evidence.ts";
+import type { AgentRole } from "../core/contracts/packets.ts";
 import type { HostCapabilities } from "../summary/host-telemetry.ts";
 
 export type AbstractProfile = "deliberate" | "default" | "adversarial" | "cheap_bulk";

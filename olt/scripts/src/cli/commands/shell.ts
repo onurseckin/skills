@@ -2,8 +2,8 @@ import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import { HarnessError } from "../../errors/harness-error.ts";
-import { loadRun } from "../../store/index.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
+import { loadRun } from "../../engine/store/index.ts";
 import { runAndRecordCommand } from "../../integration/record-command.ts";
 import { declaredToolFlags } from "../taxonomy-flags.ts";
 import { formatRunExecBrief } from "../formatters/index.ts";
@@ -12,7 +12,7 @@ import { loadRepoPolicy } from "../../policy/repo-policy.ts";
 import { verifyCommandAuthorization } from "../../policy/rbac-engine.ts";
 import { createAgentMetadata, readAgentMetadata } from "../../runtime/agent-metadata.ts";
 import { emitTelemetryEvent } from "../../reporting/telemetry-stream.ts";
-import { findRepoRoot, resolveEvidenceDir } from "../../shared/paths.ts";
+import { findRepoRoot, resolveEvidenceDir } from "../../core/shared/paths.ts";
 
 export interface ShellExecutionResult {
   readonly markdown: string;

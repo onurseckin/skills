@@ -7,7 +7,7 @@
 import { existsSync, mkdirSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import ts from "typescript";
-import { HarnessError } from "../../errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
 import { workflowPort } from "../../integration/store-ports.ts";
 import {
   ALL_AST_LINT_RULES,
@@ -16,7 +16,7 @@ import {
   type AstLintRule,
   type AstLintViolation,
 } from "../../linter/ast-enforcer.ts";
-import { loadRun } from "../../store/index.ts";
+import { loadRun } from "../../engine/store/index.ts";
 import type { TaskRecord } from "../../workflow/types.ts";
 import { enforceLineLimit, formatTable } from "../formatters/line-limiter.ts";
 import { boolFlag, listFlag, textFlag, type CommandContext, type Flags } from "../options.ts";

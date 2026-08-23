@@ -5,7 +5,7 @@
  */
 import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-import type { HarnessEvent } from "../contracts/capsule.ts";
+import type { HarnessEvent } from "../core/contracts/capsule.ts";
 import { readCapsuleEvents } from "./event-stream.ts";
 import { formatTable } from "../cli/formatters/line-limiter.ts";
 import { formatCoordinates, formatStatusBadge, formatSubagentAllocation } from "./sugiyama-dag.ts";

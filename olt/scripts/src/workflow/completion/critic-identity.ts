@@ -1,4 +1,4 @@
-import { HarnessError } from "../../errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
 import type { WorkflowState } from "../types.ts";
 import { openValidations } from "../review/validation-state.ts";
 

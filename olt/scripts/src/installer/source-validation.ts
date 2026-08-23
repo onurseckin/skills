@@ -1,7 +1,7 @@
 import { lstat, realpath } from "node:fs/promises";
 import { resolve } from "node:path";
 import { parseJsonBytes } from "../core/json.ts";
-import { HarnessError } from "../errors/harness-error.ts";
+import { HarnessError } from "../core/errors/harness-error.ts";
 import { treeDigest } from "./tree-digest.ts";
 import { RUNTIME_PACKAGE_NAME, SKILL_NAME } from "./constants.ts";
 import { readStableBytes, readStableText } from "./stable-file.ts";

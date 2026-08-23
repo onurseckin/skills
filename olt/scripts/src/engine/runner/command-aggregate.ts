@@ -1,4 +1,4 @@
-import type { CommandAttemptRecord, CommandRecord } from "../../contracts/commands.ts";
+import type { CommandAttemptRecord, CommandRecord } from "../../core/contracts/commands.ts";
 import type { AttemptResult, FailureClass } from "./types.ts";
 
 export function transientFailure(failure: FailureClass | string | null | undefined): boolean {

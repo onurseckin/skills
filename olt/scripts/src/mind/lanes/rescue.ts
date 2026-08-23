@@ -1,10 +1,10 @@
 import { createHash } from "node:crypto";
 import { existsSync, lstatSync, readdirSync, readFileSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
-import type { AgentGrantRecord } from "../../contracts/agents.ts";
-import type { JsonObject } from "../../contracts/json.ts";
-import { HarnessError } from "../../errors/harness-error.ts";
-import { loadRun, recoverProjection, transact, verifyIntegrity } from "../../store/index.ts";
+import type { AgentGrantRecord } from "../../core/contracts/agents.ts";
+import type { JsonObject } from "../../core/contracts/json.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
+import { loadRun, recoverProjection, transact, verifyIntegrity } from "../../engine/store/index.ts";
 import { workflowPort } from "../../integration/store-ports.ts";
 import { abandonAttempt } from "../../workflow/lease/abandon.ts";
 import { isAttemptOpen } from "../../workflow/lease/attempt-state.ts";
@@ -22,8 +22,8 @@ import { runSupervisionTick } from "../../orchestrator/supervision-tick.ts";
 import { runDoctor } from "../../reporting/doctor.ts";
 import { installedRuntimeFreshness } from "../../installer/runtime-freshness.ts";
 import { validateSkillSource } from "../../installer/source-validation.ts";
-import { findRepoRoot } from "../../shared/paths.ts";
-import { getHarnessConfig } from "../../config/harness-config.ts";
+import { findRepoRoot } from "../../core/shared/paths.ts";
+import { getHarnessConfig } from "../../core/config/harness-config.ts";
 import { resolveCharterPath } from "../charter.ts";
 import { writeLastPulse } from "../last-pulse.ts";
 

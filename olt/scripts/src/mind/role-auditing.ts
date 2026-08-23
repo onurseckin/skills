@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
-import { isJsonObject, type JsonObject } from "../contracts/json.ts";
-import { HarnessError } from "../errors/harness-error.ts";
+import { isJsonObject, type JsonObject } from "../core/contracts/json.ts";
+import { HarnessError } from "../core/errors/harness-error.ts";
 import { logBoundaryViolationDefect, type DefectEntry } from "./defects.ts";
 import {
   type DynamicRoleContract,

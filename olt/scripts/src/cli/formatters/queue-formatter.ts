@@ -1,4 +1,4 @@
-import { DEFAULT_RESOLVED_CONFIG } from "../../config/harness-config.ts";
+import { DEFAULT_RESOLVED_CONFIG } from "../../core/config/harness-config.ts";
 import { enforceLineLimit, formatTable } from "./line-limiter.ts";
 import {
   nextActionsBlock,

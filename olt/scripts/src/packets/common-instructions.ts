@@ -1,8 +1,8 @@
 import { createHash } from "node:crypto";
 import { join } from "node:path";
 import { readRegularFileNoFollow } from "../core/no-follow.ts";
-import { HarnessError } from "../errors/harness-error.ts";
-import { loadRun } from "../store/index.ts";
+import { HarnessError } from "../core/errors/harness-error.ts";
+import { loadRun } from "../engine/store/index.ts";
 import type { CanonicalCommonInstructions } from "./types.ts";
 
 function digest(bytes: Uint8Array): string {

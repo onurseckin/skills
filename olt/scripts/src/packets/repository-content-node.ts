@@ -8,9 +8,9 @@ import {
   readlinkSync,
   readSync,
 } from "node:fs";
-import type { JsonObject } from "../contracts/json.ts";
+import type { JsonObject } from "../core/contracts/json.ts";
 import { sha256Bytes } from "../core/json.ts";
-import { HarnessError } from "../errors/harness-error.ts";
+import { HarnessError } from "../core/errors/harness-error.ts";
 import type { RepositoryContentPath } from "./repository-content-paths.ts";
 import { captureRepositoryLeaf, verifyRepositoryAncestors } from "./repository-path-identity.ts";
 

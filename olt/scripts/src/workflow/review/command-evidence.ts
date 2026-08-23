@@ -1,5 +1,5 @@
-import { HarnessError } from "../../errors/harness-error.ts";
-import { embeddedCommandIssues } from "../../runner/command-shape.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
+import { embeddedCommandIssues } from "../../engine/runner/command-shape.ts";
 import { applicableGates, commandMatchesGate } from "../gates/gate-policy.ts";
 import type { CommandProof, WorkflowState } from "../types.ts";
 

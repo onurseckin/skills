@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { HarnessError } from "../../errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
 import { workflowPort } from "../../integration/store-ports.ts";
 import {
   buildExactAnchorBriefing,
@@ -7,7 +7,7 @@ import {
   type ExactAnchor,
   type ExactAnchorBriefing,
 } from "../../mind/briefing-builder.ts";
-import { loadRun } from "../../store/index.ts";
+import { loadRun } from "../../engine/store/index.ts";
 import { readAgentLedger, requireGrant } from "../../workflow/agents/ledger.ts";
 import { applicableGates, commandArgv } from "../../workflow/gates/gate-policy.ts";
 import { findAssignedWorktree, readWorktreeLedger } from "../../workflow/worktree/ledger.ts";

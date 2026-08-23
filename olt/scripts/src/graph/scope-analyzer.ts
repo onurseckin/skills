@@ -1,5 +1,5 @@
 import { posix } from "node:path";
-import { scopeConflict } from "../scheduler/conflicts.ts";
+import { scopeConflict } from "../engine/scheduler/conflicts.ts";
 
 export interface TaskScopeInput {
   taskId: string;

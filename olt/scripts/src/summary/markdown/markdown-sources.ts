@@ -1,12 +1,12 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import type { BranchRecord } from "../../contracts/branch.ts";
-import { isBranchRecord } from "../../contracts/branch.ts";
-import type { CommandRecord } from "../../contracts/commands.ts";
-import { isEvidenceClass, type EvidenceClass } from "../../contracts/evidence.ts";
-import { isJsonObject, type JsonObject, type JsonValue } from "../../contracts/json.ts";
-import type { TopologyRecord } from "../../contracts/topology.ts";
-import { readTopology } from "../../contracts/topology.ts";
+import type { BranchRecord } from "../../core/contracts/branch.ts";
+import { isBranchRecord } from "../../core/contracts/branch.ts";
+import type { CommandRecord } from "../../core/contracts/commands.ts";
+import { isEvidenceClass, type EvidenceClass } from "../../core/contracts/evidence.ts";
+import { isJsonObject, type JsonObject, type JsonValue } from "../../core/contracts/json.ts";
+import type { TopologyRecord } from "../../core/contracts/topology.ts";
+import { readTopology } from "../../core/contracts/topology.ts";
 import {
   ENHANCED_PLAN_JSON_FILE,
   ENHANCED_PLAN_SCHEMA,

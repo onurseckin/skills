@@ -1,7 +1,7 @@
-import { applicableValidatorDomains } from "../../contracts/workflow.ts";
+import { applicableValidatorDomains } from "../../core/contracts/workflow.ts";
 import { openBranchIssues } from "../branch/completion-blockers.ts";
 import { applicableGates, commandMatchesGate, workflowGates } from "../gates/gate-policy.ts";
-import { embeddedCommandIssues } from "../../runner/command-shape.ts";
+import { embeddedCommandIssues } from "../../engine/runner/command-shape.ts";
 import { requirementExecutionState } from "../authority/index.ts";
 import { orphanEvidenceIssues } from "../orphan-evidence/digest.ts";
 import type { GateRuntime, RequirementRuntime, WorkflowState } from "../types.ts";

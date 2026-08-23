@@ -1,8 +1,8 @@
 import { constants, type BigIntStats } from "node:fs";
 import { lstat, open, type FileHandle } from "node:fs/promises";
-import { MAX_JSON_FILE_BYTES } from "../config/constants.ts";
+import { MAX_JSON_FILE_BYTES } from "../core/config/constants.ts";
 import { parseJsonBytes } from "../core/json.ts";
-import { HarnessError } from "../errors/harness-error.ts";
+import { HarnessError } from "../core/errors/harness-error.ts";
 import { isRecord } from "../requirements/predicates.ts";
 
 export interface ReadPlanOptions {

@@ -1,5 +1,5 @@
 import { sep } from "node:path";
-import { HarnessError } from "../../errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
 
 const CAPSULES_PREFIX = ".capsules/";
 

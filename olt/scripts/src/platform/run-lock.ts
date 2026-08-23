@@ -8,10 +8,10 @@ import {
   realpathSync,
 } from "node:fs";
 import { join } from "node:path";
-import { HarnessError } from "../errors/harness-error.ts";
+import { HarnessError } from "../core/errors/harness-error.ts";
 import { releaseFlock, tryExclusiveFlock } from "./flock-ffi.ts";
 import { clearObserver, publishObserver } from "./observer.ts";
-import { resolveCapsulesDir } from "../shared/paths.ts";
+import { resolveCapsulesDir } from "../core/shared/paths.ts";
 
 export interface RunLockOptions {
   timeoutMs?: number;

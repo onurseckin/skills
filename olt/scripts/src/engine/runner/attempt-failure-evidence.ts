@@ -1,5 +1,5 @@
 import { join } from "node:path";
-import type { CommandAttemptRecord, CommandLogMetadata } from "../../contracts/commands.ts";
+import type { CommandAttemptRecord, CommandLogMetadata } from "../../core/contracts/commands.ts";
 import { atomicWriteJson } from "../../core/durable-write.ts";
 import { readBoundedBytes, sha256Bytes } from "../../core/json.ts";
 import { AttemptExecutionError } from "./attempt-execution-error.ts";

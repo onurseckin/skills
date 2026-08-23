@@ -1,5 +1,5 @@
-import type { HarnessEvent, Manifest } from "../../contracts/capsule.ts";
-import type { CommandRecord } from "../../contracts/commands.ts";
+import type { HarnessEvent, Manifest } from "../../core/contracts/capsule.ts";
+import type { CommandRecord } from "../../core/contracts/commands.ts";
 import type { TaskRecord } from "../../workflow/types.ts";
 import { earliestOpenValidation } from "../../workflow/review/validation-state.ts";
 import type { AgentLedgerView } from "../metrics/agent-telemetry.ts";

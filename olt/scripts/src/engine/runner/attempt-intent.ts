@@ -1,5 +1,5 @@
 import { dirname, join } from "node:path";
-import type { CommandAttemptStartedRecord, CommandProcessIdentity } from "../../contracts/commands.ts";
+import type { CommandAttemptStartedRecord, CommandProcessIdentity } from "../../core/contracts/commands.ts";
 import { atomicWriteJson, fsyncDirectory } from "../../core/durable-write.ts";
 import { attemptStartedBaseDigest } from "./attempt-cleanup-disposition.ts";
 import {

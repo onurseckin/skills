@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
-import type { JsonObject, JsonValue } from "../../contracts/json.ts";
-import { HarnessError } from "../../errors/harness-error.ts";
+import type { JsonObject, JsonValue } from "../../core/contracts/json.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
 import {
   generateDefectRegressionTest,
   generateRegressionTestSuite,
@@ -10,8 +10,8 @@ import {
   type DefectEntry,
   type GeneratedRegressionTest,
 } from "../../mind/defects.ts";
-import { loadRun } from "../../store/load.ts";
-import { transact } from "../../store/transaction.ts";
+import { loadRun } from "../../engine/store/load.ts";
+import { transact } from "../../engine/store/transaction.ts";
 import { enforceLineLimit } from "../formatters/line-limiter.ts";
 import { assertFlags, boolFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
 import {
@@ -19,7 +19,7 @@ import {
   resolveCapsulesDir,
   resolveDefectsPath,
   resolveCompletedDefectsPath,
-} from "../../shared/paths.ts";
+} from "../../core/shared/paths.ts";
 
 export type DefectStatus = "open" | "admitted" | "resolved" | "declined" | "ignored";
 

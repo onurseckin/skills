@@ -1,6 +1,6 @@
 import { lstatSync } from "node:fs";
 import { basename } from "node:path";
-import type { Manifest, IntegrityIssue } from "../../contracts/capsule.ts";
+import type { Manifest, IntegrityIssue } from "../../core/contracts/capsule.ts";
 import { readCanonicalObject, sha256Bytes } from "../../core/json.ts";
 import { readRegularFileNoFollow } from "../../core/no-follow.ts";
 import { captureAssurance, isCaptureMode } from "./assurance.ts";

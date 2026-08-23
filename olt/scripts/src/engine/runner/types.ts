@@ -2,7 +2,7 @@ import type {
   CommandAttemptRecord,
   CommandLogMetadata,
   CommandRecord,
-} from "../../contracts/commands.ts";
+} from "../../core/contracts/commands.ts";
 import type { pumpOutput } from "./output-pump.ts";
 import type { OutputBudget } from "./output-budget.ts";
 

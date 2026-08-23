@@ -1,7 +1,7 @@
 import { appendFileSync } from "node:fs";
 import { join } from "node:path";
-import type { HarnessEvent } from "../../contracts/capsule.ts";
-import type { JsonObject } from "../../contracts/json.ts";
+import type { HarnessEvent } from "../../core/contracts/capsule.ts";
+import type { JsonObject } from "../../core/contracts/json.ts";
 import { atomicWriteBytes } from "../../core/durable-write.ts";
 
 const TRACE_FILE = "trace.md";

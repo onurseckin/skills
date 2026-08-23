@@ -1,6 +1,6 @@
 import { dirname } from "node:path";
-import type { JsonObject, JsonValue } from "../../contracts/json.ts";
-import { HarnessError } from "../../errors/harness-error.ts";
+import type { JsonObject, JsonValue } from "../../core/contracts/json.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
 import {
   findSourceDefinition,
   MIND_DISCOVERY_SOURCES,
@@ -9,11 +9,11 @@ import {
   type MindObservationRecord,
   type MindSourceId,
 } from "../../mind/sources.ts";
-import { loadRun } from "../../store/load.ts";
-import { transact } from "../../store/transaction.ts";
+import { loadRun } from "../../engine/store/load.ts";
+import { transact } from "../../engine/store/transaction.ts";
 import { findGrant, readAgentLedger } from "../../workflow/agents/ledger.ts";
 import { enforceLineLimit } from "../formatters/line-limiter.ts";
-import { findRepoRoot } from "../../shared/paths.ts";
+import { findRepoRoot } from "../../core/shared/paths.ts";
 import { integerFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
 
 export interface MindObserveResult {

@@ -1,6 +1,6 @@
-import type { TaskStatus } from "../../contracts/workflow.ts";
-import { isJsonObject, type JsonObject } from "../../contracts/json.ts";
-import { HarnessError } from "../../errors/harness-error.ts";
+import type { TaskStatus } from "../../core/contracts/workflow.ts";
+import { isJsonObject, type JsonObject } from "../../core/contracts/json.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
 import { dependencyMap } from "../../graph/dependency-map.ts";
 import { graphParts } from "../../graph/parts.ts";
 import { dependencyData, topologicalOrder, type DependencyMap } from "../../graph/topology.ts";

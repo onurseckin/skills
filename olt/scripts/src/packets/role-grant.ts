@@ -1,13 +1,13 @@
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
-import type { RunState } from "../contracts/capsule.ts";
-import type { JsonObject } from "../contracts/json.ts";
-import type { AgentToolRef } from "../contracts/agents.ts";
-import type { AgentRole } from "../contracts/packets.ts";
-import { isCognitiveValidatorRole, isMechanicValidatorRole } from "../contracts/packets.ts";
+import type { RunState } from "../core/contracts/capsule.ts";
+import type { JsonObject } from "../core/contracts/json.ts";
+import type { AgentToolRef } from "../core/contracts/agents.ts";
+import type { AgentRole } from "../core/contracts/packets.ts";
+import { isCognitiveValidatorRole, isMechanicValidatorRole } from "../core/contracts/packets.ts";
 import { canonicalJsonBytes } from "../core/json.ts";
-import { HarnessError } from "../errors/harness-error.ts";
-import { loadRun } from "../store/index.ts";
+import { HarnessError } from "../core/errors/harness-error.ts";
+import { loadRun } from "../engine/store/index.ts";
 import { locateSubTask, readBranchLedger } from "../workflow/branch/ledger.ts";
 import type { TransactionPort, WorkflowState } from "../workflow/types.ts";
 

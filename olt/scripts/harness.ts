@@ -1,8 +1,8 @@
 #!/usr/bin/env bun
 
 import { fileURLToPath } from "node:url";
-import { HarnessError } from "./src/errors/harness-error.ts";
-import { normalizeError } from "./src/errors/normalize-error.ts";
+import { HarnessError } from "./src/core/errors/harness-error.ts";
+import { normalizeError } from "./src/core/errors/normalize-error.ts";
 import { execute } from "./src/cli/execute.ts";
 import { helpRequest, renderHelp } from "./src/cli/help.ts";
 import { stripOutputFormat } from "./src/cli/output-format.ts";

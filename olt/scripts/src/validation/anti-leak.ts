@@ -1,4 +1,4 @@
-import { HarnessError } from "../errors/harness-error.ts";
+import { HarnessError } from "../core/errors/harness-error.ts";
 
 export type BoundaryViolationType =
   | "role_confinement_violation"

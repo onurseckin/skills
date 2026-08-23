@@ -1,4 +1,4 @@
-import type { CommandAttemptStartedRecord } from "../../contracts/commands.ts";
+import type { CommandAttemptStartedRecord } from "../../core/contracts/commands.ts";
 import type { CleanupProofKind } from "./attempt-cleanup-disposition.ts";
 import type { ProcessIdentity } from "./process-identity.ts";
 import {

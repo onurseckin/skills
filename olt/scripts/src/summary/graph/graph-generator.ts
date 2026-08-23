@@ -1,7 +1,7 @@
-import type { BranchRecord } from "../../contracts/branch.ts";
-import type { HarnessEvent, Manifest } from "../../contracts/capsule.ts";
-import type { CommandRecord } from "../../contracts/commands.ts";
-import { isJsonObject } from "../../contracts/json.ts";
+import type { BranchRecord } from "../../core/contracts/branch.ts";
+import type { HarnessEvent, Manifest } from "../../core/contracts/capsule.ts";
+import type { CommandRecord } from "../../core/contracts/commands.ts";
+import { isJsonObject } from "../../core/contracts/json.ts";
 import type { RepositoryGitCommand } from "../../packets/repository-git-command.ts";
 import { readBranchLedger } from "../../workflow/branch/ledger.ts";
 import type { TaskRecord, WorkflowState } from "../../workflow/types.ts";

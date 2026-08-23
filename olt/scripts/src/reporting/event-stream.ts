@@ -1,8 +1,8 @@
 import { existsSync, lstatSync, readFileSync, realpathSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 import { randomUUID } from "node:crypto";
-import type { HarnessEvent } from "../contracts/capsule.ts";
-import { HarnessError } from "../errors/harness-error.ts";
+import type { HarnessEvent } from "../core/contracts/capsule.ts";
+import { HarnessError } from "../core/errors/harness-error.ts";
 
 export interface EventStreamOptions {
   readonly fromSeq?: number | undefined;

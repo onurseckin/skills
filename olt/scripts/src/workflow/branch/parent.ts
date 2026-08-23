@@ -1,6 +1,6 @@
-import type { BranchRecord, BranchSubTask } from "../../contracts/branch.ts";
-import { isJsonObject, type JsonObject } from "../../contracts/json.ts";
-import { HarnessError } from "../../errors/harness-error.ts";
+import type { BranchRecord, BranchSubTask } from "../../core/contracts/branch.ts";
+import { isJsonObject, type JsonObject } from "../../core/contracts/json.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
 import { isLeaseSuspended, restoreLease, suspendLease } from "../lease/suspension.ts";
 import { tokenMatches } from "../lease/token.ts";
 import { transition } from "../task-state.ts";

@@ -1,4 +1,4 @@
-import type { CommandRecord } from "../../contracts/commands.ts";
+import type { CommandRecord } from "../../core/contracts/commands.ts";
 import type { TaskRecord } from "../../workflow/types.ts";
 import {
   earliestOpenValidation,

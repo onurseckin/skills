@@ -1,5 +1,5 @@
 import { escalateTask, type SupervisorEscalationReason } from "../workflow/lease/escalate.ts";
-import { HarnessError } from "../errors/harness-error.ts";
+import { HarnessError } from "../core/errors/harness-error.ts";
 import {
   systemClock,
   type Clock,

@@ -1,10 +1,10 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
-import type { EvidenceClass, Evidenced } from "../contracts/evidence.ts";
-import type { JsonObject } from "../contracts/json.ts";
+import type { EvidenceClass, Evidenced } from "../core/contracts/evidence.ts";
+import type { JsonObject } from "../core/contracts/json.ts";
 import { atomicWriteBytes } from "../core/durable-write.ts";
 import { canonicalJsonBytes, sha256Bytes } from "../core/json.ts";
-import { HarnessError } from "../errors/harness-error.ts";
+import { HarnessError } from "../core/errors/harness-error.ts";
 import { renderEnhancedPlanMarkdown } from "./enhanced-plan-markdown.ts";
 
 export const ENHANCED_PLAN_SCHEMA = "harness.enhanced-plan";

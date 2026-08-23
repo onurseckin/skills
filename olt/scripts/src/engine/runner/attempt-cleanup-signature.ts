@@ -2,8 +2,8 @@ import { createPublicKey } from "node:crypto";
 import type {
   CommandAttemptCleanupDisposition,
   CommandAttemptStartedRecord,
-} from "../../contracts/commands.ts";
-import type { JsonObject } from "../../contracts/json.ts";
+} from "../../core/contracts/commands.ts";
+import type { JsonObject } from "../../core/contracts/json.ts";
 import { canonicalJsonBytes, sha256Bytes } from "../../core/json.ts";
 import {
   dispositionShapeIssues,
@@ -39,7 +39,7 @@ export interface CleanupDispositionPayload extends JsonObject {
   recorded_at: string;
   reason: string;
   signals_sent: string[];
-  root_pid_identity: import("../../contracts/commands.ts").CommandProcessIdentity | null;
+  root_pid_identity: import("../../core/contracts/commands.ts").CommandProcessIdentity | null;
   proof_kind: CleanupProofKind;
   previous_sha256: string;
   previous_signature: string | null;

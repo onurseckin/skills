@@ -1,5 +1,5 @@
-import type { EvidenceClass } from "../contracts/evidence.ts";
-import type { JsonObject } from "../contracts/json.ts";
+import type { EvidenceClass } from "../core/contracts/evidence.ts";
+import type { JsonObject } from "../core/contracts/json.ts";
 import { promptLines } from "../requirements/prompt-lines.ts";
 import { looksWholeSuite, namesATarget } from "./gate-breadth.ts";
 import { latestGateProof } from "./gate-proof.ts";

@@ -1,10 +1,10 @@
 import { basename, resolve } from "node:path";
-import { getHarnessConfig } from "../../config/harness-config.ts";
-import { HarnessError } from "../../errors/harness-error.ts";
+import { getHarnessConfig } from "../../core/config/harness-config.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
 import { workflowPort } from "../../integration/store-ports.ts";
 import { publishTaskRolePacket } from "../../packets/role-grant.ts";
-import { readySet, type ReadyEntry, type ReadySetSelection } from "../../scheduler/index.ts";
-import { loadRun } from "../../store/index.ts";
+import { readySet, type ReadyEntry, type ReadySetSelection } from "../../engine/scheduler/index.ts";
+import { loadRun } from "../../engine/store/index.ts";
 import { applicableGates, commandArgv } from "../../workflow/gates/gate-policy.ts";
 import { claimTask } from "../../workflow/lease/claim.ts";
 import type { TaskRecord, WorkflowState } from "../../workflow/types.ts";

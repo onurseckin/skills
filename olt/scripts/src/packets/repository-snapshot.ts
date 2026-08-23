@@ -1,6 +1,6 @@
 import { lstatSync, opendirSync, realpathSync } from "node:fs";
 import { relative, resolve, sep } from "node:path";
-import type { JsonObject } from "../contracts/json.ts";
+import type { JsonObject } from "../core/contracts/json.ts";
 import { collectBoundedDirectoryEntries } from "../core/bounded-directory.ts";
 import { readBoundedBytes, sha256Bytes } from "../core/json.ts";
 import { repositoryGit, type RepositoryGitCommand } from "./repository-git-command.ts";

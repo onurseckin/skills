@@ -2,7 +2,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { enforceLineLimit } from "../cli/formatters/line-limiter.ts";
-import { HarnessError } from "../errors/harness-error.ts";
+import { HarnessError } from "../core/errors/harness-error.ts";
 import {
   assessRecyclingState,
   formatRecycleBrief,
@@ -12,7 +12,7 @@ import {
   type RecycleAssessment,
   type RecyclePlan,
 } from "../mind/recycler.ts";
-import { loadRun } from "../store/index.ts";
+import { loadRun } from "../engine/store/index.ts";
 import { AutonomousLoopRunner } from "./loop-runner.ts";
 import type {
   LoopRunnerOptions,

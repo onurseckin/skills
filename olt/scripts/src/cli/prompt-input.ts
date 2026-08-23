@@ -1,4 +1,4 @@
-import { HarnessError } from "../errors/harness-error.ts";
+import { HarnessError } from "../core/errors/harness-error.ts";
 import { findCommand } from "./registry/index.ts";
 
 export function shouldReadPromptStdin(argv: readonly string[]): boolean {

@@ -1,6 +1,6 @@
-import type { CommandRecord } from "../contracts/commands.ts";
-import type { JsonObject } from "../contracts/json.ts";
-import { HarnessError } from "../errors/harness-error.ts";
+import type { CommandRecord } from "../core/contracts/commands.ts";
+import type { JsonObject } from "../core/contracts/json.ts";
+import { HarnessError } from "../core/errors/harness-error.ts";
 import { requireSubstantiveObjects } from "../workflow/evidence.ts";
 import { requireText } from "../workflow/task-state.ts";
 import { authoritativeRepositoryCommand } from "../workflow/completion/repository-evidence.ts";

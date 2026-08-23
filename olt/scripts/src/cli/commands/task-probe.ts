@@ -1,6 +1,6 @@
-import { HarnessError } from "../../errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
 import { workflowPort } from "../../integration/store-ports.ts";
-import { loadRun } from "../../store/index.ts";
+import { loadRun } from "../../engine/store/index.ts";
 import { ReviewProtocolEngine, type ReviewChannelKind } from "../../policy/review-protocol.ts";
 import { probeRoundsRecorded } from "../../workflow/review/pass-preconditions.ts";
 import { recordProbe } from "../../workflow/review/record-probe.ts";

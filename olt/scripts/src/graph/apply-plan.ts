@@ -1,4 +1,4 @@
-import { HarnessError } from "../errors/harness-error.ts";
+import { HarnessError } from "../core/errors/harness-error.ts";
 import { isInteger } from "../requirements/predicates.ts";
 import { validateRequirements } from "../requirements/validate-requirements.ts";
 import { dependencyMap } from "./dependency-map.ts";

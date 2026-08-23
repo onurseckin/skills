@@ -41,7 +41,7 @@ import type {
 } from "../validation/dual-channel-types.ts";
 import { assertRoleArtifactPresent } from "./review/role-evidence.ts";
 import type { TaskRecord, WorkflowState } from "./types.ts";
-import { HarnessError } from "../errors/harness-error.ts";
+import { HarnessError } from "../core/errors/harness-error.ts";
 
 function createFindingCollector(): {
   readonly findings: StructuredFinding[];

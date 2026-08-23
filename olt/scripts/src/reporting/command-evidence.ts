@@ -1,4 +1,4 @@
-import type { JsonObject } from "../contracts/json.ts";
+import type { JsonObject } from "../core/contracts/json.ts";
 import { queryScreenshots } from "./screenshot-store.ts";
 
 export function commandEvidenceView(

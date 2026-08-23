@@ -1,4 +1,4 @@
-import { isJsonObject } from "../../contracts/json.ts";
+import { isJsonObject } from "../../core/contracts/json.ts";
 import { branchesForParent } from "../../workflow/branch/ledger.ts";
 import type { AsciiBranch, AsciiTask } from "./markdown-ascii-graph.ts";
 import { renderTaskGraphAscii } from "./markdown-ascii-graph.ts";

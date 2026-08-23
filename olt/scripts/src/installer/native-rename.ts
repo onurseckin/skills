@@ -1,6 +1,6 @@
 import * as ffiModule from "bun:ffi";
 import { readFileSync } from "node:fs";
-import { HarnessError } from "../errors/harness-error.ts";
+import { HarnessError } from "../core/errors/harness-error.ts";
 
 const EINTR = 4;
 const EEXIST = 17;

@@ -1,5 +1,5 @@
 import { downstreamMap, topologicalOrder, type DependencyMap } from "../../graph/topology.ts";
-import { HarnessError } from "../../errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
 import { statusGlyph } from "../../summary/dag-visualizer.ts";
 
 export interface SchedulingMetrics {

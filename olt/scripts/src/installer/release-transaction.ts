@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { HarnessError } from "../errors/harness-error.ts";
+import { HarnessError } from "../core/errors/harness-error.ts";
 import { removeBoundPath, replaceBoundPath } from "./bound-mutations.ts";
 import { acquireInstallerLock, type InstallerLock } from "./installer-lock.ts";
 import {

@@ -1,7 +1,7 @@
-import { HarnessError } from "../../errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
 import { workflowPort } from "../../integration/store-ports.ts";
 import { refreshHandoffOnEscalation } from "../../reporting/handoff.ts";
-import { loadRun } from "../../store/index.ts";
+import { loadRun } from "../../engine/store/index.ts";
 import { tokenDigest } from "../../workflow/lease/token.ts";
 import { recordReview } from "../../workflow/review/record-review.ts";
 import { systemClock, type TaskRecord, type WorkflowState } from "../../workflow/types.ts";

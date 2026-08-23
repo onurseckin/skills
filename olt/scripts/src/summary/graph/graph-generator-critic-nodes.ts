@@ -1,5 +1,5 @@
-import type { Manifest } from "../../contracts/capsule.ts";
-import type { CommandRecord } from "../../contracts/commands.ts";
+import type { Manifest } from "../../core/contracts/capsule.ts";
+import type { CommandRecord } from "../../core/contracts/commands.ts";
 import type { TaskRecord, WorkflowState } from "../../workflow/types.ts";
 import {
   buildNodeTelemetry,

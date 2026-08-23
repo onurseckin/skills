@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { HarnessError } from "../../errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
 import { workflowPort } from "../../integration/store-ports.ts";
 import { publishPlanValidatorRolePacket } from "../../packets/plan-validator-grant.ts";
 import { recordGrantInspections } from "../../packets/role-grant.ts";

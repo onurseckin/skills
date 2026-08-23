@@ -1,7 +1,7 @@
 import { existsSync, lstatSync, realpathSync } from "node:fs";
 import { basename } from "node:path";
-import type { HarnessEvent, IntegrityIssue, RunState } from "../../contracts/capsule.ts";
-import type { JsonObject } from "../../contracts/json.ts";
+import type { HarnessEvent, IntegrityIssue, RunState } from "../../core/contracts/capsule.ts";
+import type { JsonObject } from "../../core/contracts/json.ts";
 import { readCanonicalObject } from "../../core/json.ts";
 import { validateEventChain } from "./event-stream.ts";
 import { issue } from "./issues.ts";

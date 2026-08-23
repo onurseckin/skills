@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, isAbsolute, join, normalize, relative, resolve } from "node:path";
-import { HarnessError } from "../errors/harness-error.ts";
-import { findRepoRoot } from "../shared/paths.ts";
+import { HarnessError } from "../core/errors/harness-error.ts";
+import { findRepoRoot } from "../core/shared/paths.ts";
 import type { AgentMetadata } from "./agent-metadata.ts";
 import {
   createAgentMetadata,

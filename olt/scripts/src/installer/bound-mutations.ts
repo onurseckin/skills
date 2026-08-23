@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { rm } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
 import { fsyncDirectory } from "../core/durable-write.ts";
-import { HarnessError } from "../errors/harness-error.ts";
+import { HarnessError } from "../core/errors/harness-error.ts";
 import {
   assertPathIdentity,
   pathIdentity,

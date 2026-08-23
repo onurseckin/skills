@@ -1,4 +1,4 @@
-import { HarnessError } from "../errors/harness-error.ts";
+import { HarnessError } from "../core/errors/harness-error.ts";
 import { AntigravityHostAdapter } from "./antigravity.ts";
 import { ChatGptHostAdapter } from "./chatgpt.ts";
 import { ClaudeCodeHostAdapter } from "./claude-code.ts";
@@ -124,7 +124,7 @@ export class MechanicalFirstDispatcher {
     provider: HostProvider,
     runRoot: string,
     agentId: string,
-    role: import("../contracts/packets.ts").AgentRole,
+    role: import("../core/contracts/packets.ts").AgentRole,
     taskId: string,
   ): MandatoryCliActionSequence {
     const adapter = getHostAdapter(provider);

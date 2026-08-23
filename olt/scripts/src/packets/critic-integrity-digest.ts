@@ -1,4 +1,4 @@
-import type { JsonObject } from "../contracts/json.ts";
+import type { JsonObject } from "../core/contracts/json.ts";
 import { canonicalJsonBytes, sha256Bytes } from "../core/json.ts";
 
 export function criticIntegrityDigest(evidence: readonly JsonObject[]): string {

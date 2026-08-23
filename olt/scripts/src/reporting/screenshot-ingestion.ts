@@ -1,8 +1,8 @@
 import { readFileSync, statSync } from "node:fs";
 import { basename, extname, resolve } from "node:path";
-import { linkBlobIntoView, putBlobFile } from "../store/blobs.ts";
-import { refreshIndex } from "../store/capsule-index.ts";
-import { readCaptures, recordCaptures, type CaptureRecord } from "../store/captures.ts";
+import { linkBlobIntoView, putBlobFile } from "../engine/store/blobs.ts";
+import { refreshIndex } from "../engine/store/capsule-index.ts";
+import { readCaptures, recordCaptures, type CaptureRecord } from "../engine/store/captures.ts";
 import {
   discoverScreenshotCandidates,
   extractImagesFromText,

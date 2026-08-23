@@ -1,6 +1,6 @@
-import type { ProjectionPatchOp } from "../../contracts/capsule.ts";
-import type { JsonObject, JsonValue } from "../../contracts/json.ts";
-import { isJsonObject } from "../../contracts/json.ts";
+import type { ProjectionPatchOp } from "../../core/contracts/capsule.ts";
+import type { JsonObject, JsonValue } from "../../core/contracts/json.ts";
+import { isJsonObject } from "../../core/contracts/json.ts";
 import { sameJson } from "../../core/json.ts";
 
 function diffValue(

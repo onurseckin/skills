@@ -1,8 +1,8 @@
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import type { JsonValue } from "../contracts/json.ts";
+import type { JsonValue } from "../core/contracts/json.ts";
 import { atomicWriteJson } from "../core/durable-write.ts";
-import { HarnessError } from "../errors/harness-error.ts";
+import { HarnessError } from "../core/errors/harness-error.ts";
 import {
   createDefaultWatchdogStore,
   DEFAULT_HEARTBEAT_CADENCE_MS,

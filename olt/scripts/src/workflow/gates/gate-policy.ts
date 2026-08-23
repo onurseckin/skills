@@ -1,12 +1,12 @@
-import type { CommandRecord } from "../../contracts/commands.ts";
+import type { CommandRecord } from "../../core/contracts/commands.ts";
 import {
   sameTrustedHostRepositoryBinding,
   TRUSTED_HOST_ASSURANCE,
-} from "../../contracts/trusted-host.ts";
+} from "../../core/contracts/trusted-host.ts";
 import { isAbsolute } from "node:path";
-import { canonicalCommandFingerprint } from "../../runner/command-id.ts";
-import { embeddedCommandIssues } from "../../runner/command-shape.ts";
-import { gatePathBindingIssues } from "../../runner/gate-path-bindings.ts";
+import { canonicalCommandFingerprint } from "../../engine/runner/command-id.ts";
+import { embeddedCommandIssues } from "../../engine/runner/command-shape.ts";
+import { gatePathBindingIssues } from "../../engine/runner/gate-path-bindings.ts";
 import type { GateRuntime, TaskRecord, WorkflowState } from "../types.ts";
 import { executableTaskRequirementIds } from "../authority/execution-state.ts";
 

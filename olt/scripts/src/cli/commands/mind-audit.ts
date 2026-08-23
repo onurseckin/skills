@@ -1,8 +1,8 @@
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import type { AgentGrantRecord } from "../../contracts/agents.ts";
-import type { JsonObject, JsonValue } from "../../contracts/json.ts";
-import { HarnessError } from "../../errors/harness-error.ts";
+import type { AgentGrantRecord } from "../../core/contracts/agents.ts";
+import type { JsonObject, JsonValue } from "../../core/contracts/json.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
 import {
   AUDIT_QUESTION_IDS,
   checkPulseGaps,
@@ -10,8 +10,8 @@ import {
   type AuditAnswer,
   type AuditVerdict,
 } from "../../mind/audit.ts";
-import { loadRun } from "../../store/load.ts";
-import { transact } from "../../store/transaction.ts";
+import { loadRun } from "../../engine/store/load.ts";
+import { transact } from "../../engine/store/transaction.ts";
 import { findGrant, readAgentLedger, writeAgentLedger } from "../../workflow/agents/ledger.ts";
 import { enforceLineLimit } from "../formatters/line-limiter.ts";
 import { listFlag, textFlag, type CommandContext, type Flags } from "../options.ts";

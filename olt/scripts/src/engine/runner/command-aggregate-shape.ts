@@ -1,4 +1,4 @@
-import type { CommandAttemptRecord, CommandRecord } from "../../contracts/commands.ts";
+import type { CommandAttemptRecord, CommandRecord } from "../../core/contracts/commands.ts";
 
 type SameJson = (left: unknown, right: unknown) => boolean;
 

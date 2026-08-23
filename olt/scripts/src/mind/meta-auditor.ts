@@ -1,10 +1,10 @@
 import { existsSync, lstatSync, readdirSync, readFileSync, realpathSync } from "node:fs";
 import { basename, dirname, extname, join, resolve } from "node:path";
 import { createHash, randomBytes } from "node:crypto";
-import type { AgentGrantRecord } from "../contracts/agents.ts";
-import type { HarnessEvent, Manifest, RunState } from "../contracts/capsule.ts";
-import { isJsonObject } from "../contracts/json.ts";
-import { HarnessError } from "../errors/harness-error.ts";
+import type { AgentGrantRecord } from "../core/contracts/agents.ts";
+import type { HarnessEvent, Manifest, RunState } from "../core/contracts/capsule.ts";
+import { isJsonObject } from "../core/contracts/json.ts";
+import { HarnessError } from "../core/errors/harness-error.ts";
 import {
   appendFeedbackItem,
   readFeedbackQueue,

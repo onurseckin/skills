@@ -1,7 +1,7 @@
 import { existsSync, appendFileSync, mkdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import os from "node:os";
-import { resolveDefectsPath } from "../shared/paths.ts";
+import { resolveDefectsPath } from "../core/shared/paths.ts";
 
 export type ExecutionTier = 0 | 1 | 2 | 3;
 

@@ -1,6 +1,6 @@
 import { resolve } from "node:path";
-import { isEvidenced } from "../../contracts/evidence.ts";
-import { isJsonObject, type JsonObject } from "../../contracts/json.ts";
+import { isEvidenced } from "../../core/contracts/evidence.ts";
+import { isJsonObject, type JsonObject } from "../../core/contracts/json.ts";
 import {
   appendGateProof,
   DEFAULT_BASE_REF,
@@ -8,8 +8,8 @@ import {
   proveGateFalsifiable,
   type GateProofRecord,
 } from "../../graph/gate-proof.ts";
-import { HarnessError } from "../../errors/harness-error.ts";
-import { loadRun, transact } from "../../store/index.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
+import { loadRun, transact } from "../../engine/store/index.ts";
 import { enforceLineLimit } from "../formatters/line-limiter.ts";
 import { actorFlag, integerFlag, textFlag, type Flags } from "../options.ts";
 import { readPlanBindings } from "./plan-replan-bindings.ts";

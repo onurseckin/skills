@@ -1,15 +1,15 @@
 import { basename, dirname } from "node:path";
-import { getHarnessConfig } from "../../config/harness-config.ts";
-import { HarnessError } from "../../errors/harness-error.ts";
+import { getHarnessConfig } from "../../core/config/harness-config.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
 import { isRecord } from "../../requirements/predicates.ts";
 import type { TaskDeclaration } from "../../requirements/compiler.ts";
 import { enforceLineLimit } from "../formatters/line-limiter.ts";
 import { boolFlag, integerFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
 import { parseArguments } from "../arguments.ts";
-import { loadRun } from "../../store/index.ts";
-import { findRepoRoot } from "../../shared/paths.ts";
+import { loadRun } from "../../engine/store/index.ts";
+import { findRepoRoot } from "../../core/shared/paths.ts";
 import { resolveCapsuleRun } from "./dag-view.ts";
-import { schedulingMetrics } from "../../scheduler/metrics.ts";
+import { schedulingMetrics } from "../../engine/scheduler/metrics.ts";
 import {
   buildSugiyamaDagReport,
   type SugiyamaDagReport,

@@ -1,8 +1,8 @@
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
-import type { CommandRecord } from "../../contracts/commands.ts";
+import type { CommandRecord } from "../../core/contracts/commands.ts";
 import type { WorkflowState } from "../../workflow/types.ts";
-import { loadRun } from "../../store/index.ts";
+import { loadRun } from "../../engine/store/index.ts";
 import { collectTimeline } from "../metrics/timeline-collector.ts";
 import { collectMetrics } from "../metrics/metrics-collector.ts";
 import { generateGraphDataset } from "../graph/graph-generator.ts";

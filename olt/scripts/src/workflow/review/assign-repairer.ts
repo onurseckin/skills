@@ -1,4 +1,4 @@
-import { HarnessError } from "../../errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
 import { requireText, taskIn } from "../task-state.ts";
 import type { TransactionPort } from "../types.ts";
 

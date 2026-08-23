@@ -1,5 +1,5 @@
 import { readFileSync, statSync } from "node:fs";
-import type { CategoryExtras } from "../contracts/taxonomy.ts";
+import type { CategoryExtras } from "../core/contracts/taxonomy.ts";
 import type { BrowserRunViewport, NamedBrowserRunViewport } from "./browser-run-types.ts";
 
 export const MAX_BROWSER_REPORT_BYTES = 8 * 1024 * 1024;

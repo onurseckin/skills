@@ -1,8 +1,8 @@
 import { existsSync, lstatSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import type { AgentGrantRecord } from "../../contracts/agents.ts";
-import type { JsonObject } from "../../contracts/json.ts";
-import { HarnessError } from "../../errors/harness-error.ts";
+import type { AgentGrantRecord } from "../../core/contracts/agents.ts";
+import type { JsonObject } from "../../core/contracts/json.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
 import { DEFAULT_MIND_BUDGET } from "../../mind/charter.ts";
 import {
   closeRoundInState,
@@ -20,8 +20,8 @@ import {
   type RoundRecord,
   type RoundResult,
 } from "../../mind/rounds.ts";
-import { loadRun } from "../../store/load.ts";
-import { transact } from "../../store/transaction.ts";
+import { loadRun } from "../../engine/store/load.ts";
+import { transact } from "../../engine/store/transaction.ts";
 import { findGrant, readAgentLedger, writeAgentLedger } from "../../workflow/agents/ledger.ts";
 import { integerFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
 

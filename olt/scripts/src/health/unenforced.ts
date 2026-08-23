@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { COMMAND_REGISTRY, commandInvocations } from "../cli/registry/index.ts";
-import { AGENT_ROLES } from "../contracts/packets.ts";
+import { AGENT_ROLES } from "../core/contracts/packets.ts";
 import { parseRoleContract } from "../packets/role-contract.ts";
 import { listFiles } from "./sources.ts";
 import type { ModuleRecord } from "./modules.ts";

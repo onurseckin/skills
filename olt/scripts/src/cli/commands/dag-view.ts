@@ -1,17 +1,17 @@
 import { basename, dirname, isAbsolute, resolve } from "node:path";
 import { existsSync, readdirSync, statSync } from "node:fs";
-import { getHarnessConfig } from "../../config/harness-config.ts";
-import { HarnessError } from "../../errors/harness-error.ts";
+import { getHarnessConfig } from "../../core/config/harness-config.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
 import { dependencyMap } from "../../graph/dependency-map.ts";
-import { schedulingMetrics } from "../../scheduler/metrics.ts";
-import { scopeConflict } from "../../scheduler/conflicts.ts";
-import { loadRun } from "../../store/index.ts";
+import { schedulingMetrics } from "../../engine/scheduler/metrics.ts";
+import { scopeConflict } from "../../engine/scheduler/conflicts.ts";
+import { loadRun } from "../../engine/store/index.ts";
 import { isRecord } from "../../requirements/predicates.ts";
 import type { TaskDeclaration } from "../../requirements/compiler.ts";
 import { enforceLineLimit, formatTable } from "../formatters/line-limiter.ts";
 import { boolFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
 import { parseArguments } from "../arguments.ts";
-import { findRepoRoot, resolveCapsulesDir } from "../../shared/paths.ts";
+import { findRepoRoot, resolveCapsulesDir } from "../../core/shared/paths.ts";
 
 function isStringArray(value: unknown): value is readonly string[] {
   return Array.isArray(value) && value.every((item) => typeof item === "string");

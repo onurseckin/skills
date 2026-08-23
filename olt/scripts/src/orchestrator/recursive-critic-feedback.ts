@@ -1,6 +1,6 @@
-import { MAX_REPAIR_ROUNDS } from "../config/constants.ts";
-import type { Finding } from "../contracts/workflow.ts";
-import { HarnessError } from "../errors/harness-error.ts";
+import { MAX_REPAIR_ROUNDS } from "../core/config/constants.ts";
+import type { Finding } from "../core/contracts/workflow.ts";
+import { HarnessError } from "../core/errors/harness-error.ts";
 import {
   routeCriticReviewFindings,
   type RouteCriticFindingsOptions,

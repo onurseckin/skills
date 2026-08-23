@@ -1,5 +1,5 @@
-import { HarnessError } from "../../errors/harness-error.ts";
-import type { TaskStatus, ValidatorDomain } from "../../contracts/workflow.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
+import type { TaskStatus, ValidatorDomain } from "../../core/contracts/workflow.ts";
 import type { TaskRecord, WorkflowState } from "../../workflow/types.ts";
 
 export type AgentRoleHierarchy =

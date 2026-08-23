@@ -62,7 +62,7 @@ export function mergeActions(...parts: readonly NextActions[]): NextActions {
 }
 
 export const LEASE_TOKEN = placeholder("lease-token-returned-by:task:claim");
-import { findRepoRoot } from "../shared/paths.ts";
+import { findRepoRoot } from "../core/shared/paths.ts";
 
 export const VALIDATION_TOKEN = placeholder("validation-token-returned-by:task:validate-start");
 export const CRITIC_TOKEN = placeholder("critic-token-returned-by:critic:start");

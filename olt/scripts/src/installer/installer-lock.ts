@@ -1,5 +1,5 @@
 import { closeSync, constants, fstatSync, lstatSync, openSync } from "node:fs";
-import { HarnessError } from "../errors/harness-error.ts";
+import { HarnessError } from "../core/errors/harness-error.ts";
 import { releaseFlock, tryExclusiveFlock } from "../platform/flock-ffi.ts";
 import type { PathIdentity } from "./path-safety.ts";
 

@@ -1,8 +1,8 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
-import type { WorktreeConsolidationRecord, WorktreeLedgerState } from "../../contracts/worktree.ts";
-import { HarnessError } from "../../errors/harness-error.ts";
-import { transact } from "../../store/index.ts";
+import type { WorktreeConsolidationRecord, WorktreeLedgerState } from "../../core/contracts/worktree.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
+import { transact } from "../../engine/store/index.ts";
 import {
   addWorktreeForBranch,
   deleteBranch,

@@ -4,8 +4,8 @@ import { basename, dirname, join, resolve } from "node:path";
 import { enforceLineLimit } from "../cli/formatters/line-limiter.ts";
 import { installedRuntimeFreshness } from "../installer/runtime-freshness.ts";
 import { validateSkillSource } from "../installer/source-validation.ts";
-import { loadRun, verifyIntegrity } from "../store/index.ts";
-import { findRepoRoot } from "../shared/paths.ts";
+import { loadRun, verifyIntegrity } from "../engine/store/index.ts";
+import { findRepoRoot } from "../core/shared/paths.ts";
 import { resolveCharterPath } from "./charter.ts";
 import { reconcileLastPulse } from "./last-pulse.ts";
 

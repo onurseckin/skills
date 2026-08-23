@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
-import { HarnessError } from "../../errors/harness-error.ts";
-import { assertZeroDestructiveGit } from "../../worktree/zero-destructive-policy.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
+import { assertZeroDestructiveGit } from "../../engine/worktree/zero-destructive-policy.ts";
 
 const WORKTREE_GIT_TIMEOUT_MS = 30_000;
 const PASSTHROUGH = [

@@ -1,24 +1,24 @@
 import { existsSync } from "node:fs";
 import { posix } from "node:path";
-import type { CommandAttemptRecord, CommandRecord } from "../contracts/commands.ts";
+import type { CommandAttemptRecord, CommandRecord } from "../core/contracts/commands.ts";
 import { atomicWriteJson } from "../core/durable-write.ts";
 import { readCanonicalObject } from "../core/json.ts";
-import { HarnessError } from "../errors/harness-error.ts";
+import { HarnessError } from "../core/errors/harness-error.ts";
 import { inspectRepositoryBinding } from "../packets/repository-identity.ts";
-import { probeAttemptProcess } from "../runner/attempt-intent.ts";
-import { resolveArtifactPath } from "../runner/artifact-paths.ts";
+import { probeAttemptProcess } from "../engine/runner/attempt-intent.ts";
+import { resolveArtifactPath } from "../engine/runner/artifact-paths.ts";
 import {
   applyAttemptRecord,
   transientFailure,
   updateRetryExhaustion,
-} from "../runner/command-aggregate.ts";
-import { embeddedCommandIssues } from "../runner/command-shape.ts";
+} from "../engine/runner/command-aggregate.ts";
+import { embeddedCommandIssues } from "../engine/runner/command-shape.ts";
 import {
   assertCommandAttemptSize,
   assertCommandRecordSize,
   MAX_COMMAND_ATTEMPT_BYTES,
-} from "../runner/command-record-size.ts";
-import { verifyCommandAttempt } from "../runner/verify-command.ts";
+} from "../engine/runner/command-record-size.ts";
+import { verifyCommandAttempt } from "../engine/runner/verify-command.ts";
 import { recoverGateAttempt } from "./recover-gate-attempt.ts";
 import {
   recoverIncomplete,

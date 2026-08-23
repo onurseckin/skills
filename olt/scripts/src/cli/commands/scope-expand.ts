@@ -1,9 +1,9 @@
 import { resolve } from "node:path";
-import { HarnessError } from "../../errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
 import { actorFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
 import { expandReadScope } from "../../runtime/read-scope-guard.ts";
 import { emitTelemetryEvent } from "../../reporting/telemetry-stream.ts";
-import { findRepoRoot } from "../../shared/paths.ts";
+import { findRepoRoot } from "../../core/shared/paths.ts";
 
 export interface ScopeExpandResult {
   readonly markdown: string;

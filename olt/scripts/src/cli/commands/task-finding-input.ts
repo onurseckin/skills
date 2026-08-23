@@ -1,4 +1,4 @@
-import { HarnessError } from "../../errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
 import type { TaskRecord } from "../../workflow/types.ts";
 import { textFlag, type Flags } from "../options.ts";
 

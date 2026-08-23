@@ -1,10 +1,10 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import type { CommandRecord } from "../../contracts/commands.ts";
-import { AGENT_ROLES, isAgentRole } from "../../contracts/packets.ts";
-import { evidenced, type Evidenced } from "../../contracts/evidence.ts";
-import { getHarnessConfig } from "../../config/harness-config.ts";
-import { HarnessError } from "../../errors/harness-error.ts";
+import type { CommandRecord } from "../../core/contracts/commands.ts";
+import { AGENT_ROLES, isAgentRole } from "../../core/contracts/packets.ts";
+import { evidenced, type Evidenced } from "../../core/contracts/evidence.ts";
+import { getHarnessConfig } from "../../core/config/harness-config.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
 import { recordDefect } from "../../authority/thread-identifier.ts";
 import { readPlanObject } from "../../graph/read-plan.ts";
 import { refreshHandoff } from "../../reporting/handoff.ts";
@@ -12,8 +12,8 @@ import { workflowPort } from "../../integration/store-ports.ts";
 import { repositoryGit, type RepositoryGitCommand } from "../../packets/repository-git-command.ts";
 import { hasRepositoryGitMetadata } from "../../packets/repository-git-metadata.ts";
 import { publishTaskRolePacket } from "../../packets/role-grant.ts";
-import { findRepoRoot } from "../../shared/paths.ts";
-import { loadRun } from "../../store/index.ts";
+import { findRepoRoot } from "../../core/shared/paths.ts";
+import { loadRun } from "../../engine/store/index.ts";
 import {
   refreshAgentDerivedTelemetry,
   type TelemetryFieldConflict,

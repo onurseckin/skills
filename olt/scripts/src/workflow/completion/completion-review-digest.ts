@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import type { JsonValue } from "../../contracts/json.ts";
+import type { JsonValue } from "../../core/contracts/json.ts";
 import { canonicalJsonBytes } from "../../core/json.ts";
 import type { CompletionReview } from "../types.ts";
 

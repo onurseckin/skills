@@ -1,7 +1,7 @@
-import { isSubTaskTerminal, type BranchRecord } from "../../contracts/branch.ts";
-import { evidenced } from "../../contracts/evidence.ts";
-import { HarnessError } from "../../errors/harness-error.ts";
-import { transact } from "../../store/index.ts";
+import { isSubTaskTerminal, type BranchRecord } from "../../core/contracts/branch.ts";
+import { evidenced } from "../../core/contracts/evidence.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
+import { transact } from "../../engine/store/index.ts";
 import { requireText } from "../task-state.ts";
 import { readBranchLedger, requireBranch, writeBranchLedger } from "./ledger.ts";
 import type { BranchOutcome } from "./open.ts";

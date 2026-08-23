@@ -1,11 +1,11 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import type { JsonObject, JsonValue } from "../../contracts/json.ts";
-import { HarnessError } from "../../errors/harness-error.ts";
+import type { JsonObject, JsonValue } from "../../core/contracts/json.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
 import { commandEvidenceView, commandRecordPath } from "../../reporting/command-evidence.ts";
 import { queryScreenshots } from "../../reporting/screenshot-store.ts";
 import type { ScreenshotRecord } from "../../reporting/screenshot-types.ts";
-import { loadRun } from "../../store/index.ts";
+import { loadRun } from "../../engine/store/index.ts";
 import {
   formatEvidenceBrief,
   formatEvidenceListBrief,

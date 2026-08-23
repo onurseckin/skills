@@ -1,12 +1,12 @@
 import { existsSync, lstatSync, realpathSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, resolve } from "node:path";
-import type { JsonObject, JsonValue } from "../contracts/json.ts";
+import type { JsonObject, JsonValue } from "../core/contracts/json.ts";
 import { atomicWriteJson } from "../core/durable-write.ts";
 import { readRegularFileNoFollow } from "../core/no-follow.ts";
-import { HarnessError } from "../errors/harness-error.ts";
+import { HarnessError } from "../core/errors/harness-error.ts";
 import { chainCapsules } from "../orchestrator/capsule-chainer.ts";
-import { initRun, loadRun } from "../store/index.ts";
-import { transact } from "../store/transaction.ts";
+import { initRun, loadRun } from "../engine/store/index.ts";
+import { transact } from "../engine/store/transaction.ts";
 import { DEFAULT_MIND_BUDGET } from "./charter.ts";
 import { pruneAndArchiveGenerationalState, type ArchivedObjectiveRecord } from "./archival.ts";
 import type { CandidateRecord } from "./gates.ts";

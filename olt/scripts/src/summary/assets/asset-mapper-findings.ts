@@ -1,4 +1,4 @@
-import type { HarnessEvent, Manifest } from "../../contracts/capsule.ts";
+import type { HarnessEvent, Manifest } from "../../core/contracts/capsule.ts";
 import type { CompletionReview, TaskRecord } from "../../workflow/types.ts";
 import { extractFindingScreenshots } from "./asset-mapper-finding-screenshots.ts";
 import { isImageExtension } from "./asset-mapper-props.ts";

@@ -1,7 +1,7 @@
 import { lstatSync, opendirSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 import { collectBoundedDirectoryEntries } from "../core/bounded-directory.ts";
-import { HarnessError } from "../errors/harness-error.ts";
+import { HarnessError } from "../core/errors/harness-error.ts";
 import type { RepositoryContentPath } from "./repository-content-types.ts";
 import {
   DEFAULT_REPOSITORY_CONTENT_POLICY,

@@ -1,5 +1,5 @@
-import type { RepositoryBinding } from "../../contracts/repository.ts";
-import { HarnessError } from "../../errors/harness-error.ts";
+import type { RepositoryBinding } from "../../core/contracts/repository.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
 import type { WorkflowState } from "../types.ts";
 
 const SHA256 = /^[0-9a-f]{64}$/u;

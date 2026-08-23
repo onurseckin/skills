@@ -1,5 +1,5 @@
-import { isJsonObject, type JsonObject } from "../contracts/json.ts";
-import { HarnessError } from "../errors/harness-error.ts";
+import { isJsonObject, type JsonObject } from "../core/contracts/json.ts";
+import { HarnessError } from "../core/errors/harness-error.ts";
 import { repositoryGit, type RepositoryGitCommand } from "./repository-git-command.ts";
 
 export const DIFF_READ_CEILING_BYTES = 8 * 1024 * 1024;

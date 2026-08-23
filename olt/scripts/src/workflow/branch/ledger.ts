@@ -1,6 +1,6 @@
-import { isBranchRecord, type BranchRecord, type BranchSubTask } from "../../contracts/branch.ts";
-import type { JsonObject } from "../../contracts/json.ts";
-import { HarnessError } from "../../errors/harness-error.ts";
+import { isBranchRecord, type BranchRecord, type BranchSubTask } from "../../core/contracts/branch.ts";
+import type { JsonObject } from "../../core/contracts/json.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
 
 export const BRANCH_LEDGER_KEY = "branches";
 

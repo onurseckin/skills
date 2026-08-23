@@ -1,8 +1,8 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { isThinkingLevel, type ThinkingLevel } from "../../contracts/agents.ts";
-import type { JsonObject } from "../../contracts/json.ts";
+import { isThinkingLevel, type ThinkingLevel } from "../../core/contracts/agents.ts";
+import type { JsonObject } from "../../core/contracts/json.ts";
 
 export interface ReadAgentTranscriptOptions {
   homeDir?: string;

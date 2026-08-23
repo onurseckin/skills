@@ -1,4 +1,4 @@
-import { HarnessError } from "../../errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
 import { dependencyMap } from "../../graph/dependency-map.ts";
 import { downstreamMap, topologicalOrder, type DependencyMap } from "../../graph/topology.ts";
 import { isInteger, isRecord } from "../../requirements/predicates.ts";
@@ -6,8 +6,8 @@ import {
   applicableValidatorDomains,
   type ValidatorDomain,
   VALIDATOR_DOMAINS,
-} from "../../contracts/workflow.ts";
-import type { TopologyDecision, TopologyReason, TopologyWave } from "../../contracts/topology.ts";
+} from "../../core/contracts/workflow.ts";
+import type { TopologyDecision, TopologyReason, TopologyWave } from "../../core/contracts/topology.ts";
 import { resourceConflict, scopeConflict } from "./conflicts.ts";
 import { schedulingMetrics, type SchedulingMetrics } from "./metrics.ts";
 import { proposeBatch } from "./propose-batch.ts";

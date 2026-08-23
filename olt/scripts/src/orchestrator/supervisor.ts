@@ -1,8 +1,8 @@
 import { workflowPort } from "../integration/store-ports.ts";
-import { loadRun } from "../store/index.ts";
+import { loadRun } from "../engine/store/index.ts";
 import { systemClock, type Clock } from "../workflow/types.ts";
 import { escalateTask } from "../workflow/lease/escalate.ts";
-import { HarnessError } from "../errors/harness-error.ts";
+import { HarnessError } from "../core/errors/harness-error.ts";
 import { selectDispatchable, type BackingOffTask } from "./dispatch-selection.ts";
 import {
   recordDispatchOutcome,
@@ -22,7 +22,7 @@ import {
   type ChangesRequestedTask,
   type EscalationRecord,
 } from "./supervision-tick.ts";
-import type { ReadyEntry } from "../scheduler/index.ts";
+import type { ReadyEntry } from "../engine/scheduler/index.ts";
 import type { DeadAgentEvent } from "./dead-agent-detector.ts";
 
 export interface TaskDispatchInput {

@@ -1,17 +1,17 @@
 import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { verifyCapsuleDeep, verifyIntegrity } from "../store/index.ts";
-import { MINIMUM_BUN_VERSION } from "../config/constants.ts";
-import { findRepoRoot } from "../shared/paths.ts";
-import type { CommandRecord } from "../contracts/commands.ts";
-import type { JsonObject } from "../contracts/json.ts";
-import { loadRun } from "../store/index.ts";
-import { verifyCommandRecord } from "../runner/verify-command.ts";
+import { verifyCapsuleDeep, verifyIntegrity } from "../engine/store/index.ts";
+import { MINIMUM_BUN_VERSION } from "../core/config/constants.ts";
+import { findRepoRoot } from "../core/shared/paths.ts";
+import type { CommandRecord } from "../core/contracts/commands.ts";
+import type { JsonObject } from "../core/contracts/json.ts";
+import { loadRun } from "../engine/store/index.ts";
+import { verifyCommandRecord } from "../engine/runner/verify-command.ts";
 import type { PacketRecord } from "../workflow/types.ts";
 import { packetEvidenceIssues } from "./packet-evidence.ts";
 import { workflowView } from "./workflow-view.ts";
 import { installationStatus } from "../installer/installation-status.ts";
-import { trustedHostEvidence, trustedHostLimitations } from "../contracts/trusted-host.ts";
+import { trustedHostEvidence, trustedHostLimitations } from "../core/contracts/trusted-host.ts";
 import { repositoryGit, type RepositoryGitCommand } from "../packets/repository-git-command.ts";
 import {
   auditBehavioralHealth,

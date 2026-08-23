@@ -1,4 +1,4 @@
-import { HarnessError } from "../errors/harness-error.ts";
+import { HarnessError } from "../core/errors/harness-error.ts";
 import type { RepositoryGitCommand } from "./repository-git-command.ts";
 
 const HELPER_KEYS =

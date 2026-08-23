@@ -7,12 +7,12 @@ import {
   type AgentGrantRecord,
   type AgentModelTier,
   type ThinkingLevel,
-} from "../../contracts/agents.ts";
-import { getHarnessConfig } from "../../config/harness-config.ts";
-import { AGENT_ROLES, isAgentRole, type AgentRole } from "../../contracts/packets.ts";
-import { findRepoRoot } from "../../shared/paths.ts";
-import { HarnessError } from "../../errors/harness-error.ts";
-import { loadRun } from "../../store/index.ts";
+} from "../../core/contracts/agents.ts";
+import { getHarnessConfig } from "../../core/config/harness-config.ts";
+import { AGENT_ROLES, isAgentRole, type AgentRole } from "../../core/contracts/packets.ts";
+import { findRepoRoot } from "../../core/shared/paths.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
+import { loadRun } from "../../engine/store/index.ts";
 import {
   recordAgentReport,
   refreshAgentDerivedTelemetry,

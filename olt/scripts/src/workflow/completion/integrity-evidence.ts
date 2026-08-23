@@ -1,6 +1,6 @@
-import type { EvidenceClass } from "../../contracts/evidence.ts";
-import type { JsonObject } from "../../contracts/json.ts";
-import { verifyIntegrity } from "../../store/integrity.ts";
+import type { EvidenceClass } from "../../core/contracts/evidence.ts";
+import type { JsonObject } from "../../core/contracts/json.ts";
+import { verifyIntegrity } from "../../engine/store/integrity.ts";
 
 export interface CapsuleIntegrityEvidence extends JsonObject {
   kind: "capsule_integrity";

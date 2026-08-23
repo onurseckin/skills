@@ -1,4 +1,4 @@
-import { HarnessError } from "../../errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
 import { enforceLineLimit } from "../formatters/line-limiter.ts";
 import {
   assertFlags,
@@ -13,13 +13,13 @@ import {
   parseTimestamp,
   type WatchdogStatus,
 } from "../../authority/watchdog-manager.ts";
-import { loadRun } from "../../store/index.ts";
+import { loadRun } from "../../engine/store/index.ts";
 import { runDoctor } from "../../reporting/doctor.ts";
 import {
   auditSupervisory5PointHealth,
   dispatchSupervisoryHealthProbe,
   type Supervisory5PointHealthReport,
-} from "../../scheduler/core-engine.ts";
+} from "../../engine/scheduler/core-engine.ts";
 
 export function watchdogStatusCommand(
   flags: Flags,

@@ -2,13 +2,13 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { capturePromptWithTimeout } from "../prompt-capture.ts";
 import { readBoundedBytes } from "../../core/json.ts";
-import { HarnessError } from "../../errors/harness-error.ts";
-import { loadRun } from "../../store/index.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
+import { loadRun } from "../../engine/store/index.ts";
 import { formatOrchestrateBrief } from "../formatters/index.ts";
 import { textFlag, type CommandContext, type Flags } from "../options.ts";
 import { firstAvailableRunId, deriveRunId } from "./orchestrate-slug.ts";
 import { planInitCommand } from "./plan.ts";
-import { resolveCapsulesDir } from "../../shared/paths.ts";
+import { resolveCapsulesDir } from "../../core/shared/paths.ts";
 
 function promptText(prompt: Uint8Array): string {
   return new TextDecoder("utf-8", { fatal: true }).decode(prompt);

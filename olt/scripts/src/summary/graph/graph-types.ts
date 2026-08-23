@@ -1,8 +1,8 @@
-import type { AgentGrantRecord } from "../../contracts/agents.ts";
-import type { BranchRecord } from "../../contracts/branch.ts";
-import type { EvidenceClass, Evidenced } from "../../contracts/evidence.ts";
-import type { JsonObject } from "../../contracts/json.ts";
-import type { TopologyRecord } from "../../contracts/topology.ts";
+import type { AgentGrantRecord } from "../../core/contracts/agents.ts";
+import type { BranchRecord } from "../../core/contracts/branch.ts";
+import type { EvidenceClass, Evidenced } from "../../core/contracts/evidence.ts";
+import type { JsonObject } from "../../core/contracts/json.ts";
+import type { TopologyRecord } from "../../core/contracts/topology.ts";
 import type { BrowserTestRun, NodeScript, NodeTelemetry, NodeTool } from "./graph-agent-types.ts";
 import type {
   BadgeDetail,

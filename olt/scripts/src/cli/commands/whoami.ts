@@ -1,10 +1,10 @@
 import { integerFlag, textFlag, type Flags } from "../options.ts";
 import { enforceLineLimit, nextActionsBlock, whoamiNextActions } from "../formatters/index.ts";
-import { loadRun } from "../../store/index.ts";
+import { loadRun } from "../../engine/store/index.ts";
 import { readAgentLedger } from "../../workflow/agents/ledger.ts";
 import { identifyExecutionContext, parseTierValue } from "../../authority/thread-identifier.ts";
-import { isJsonObject } from "../../contracts/json.ts";
-import type { AgentGrantRecord } from "../../contracts/agents.ts";
+import { isJsonObject } from "../../core/contracts/json.ts";
+import type { AgentGrantRecord } from "../../core/contracts/agents.ts";
 import {
   constructSupervisoryPersonaReminder,
   type SupervisoryPersonaReminder,

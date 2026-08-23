@@ -1,7 +1,7 @@
-import type { AgentToolRef } from "../contracts/agents.ts";
-import type { CategoryExtras } from "../contracts/taxonomy.ts";
-import { TOOL_CATEGORIES } from "../contracts/taxonomy.ts";
-import { HarnessError } from "../errors/harness-error.ts";
+import type { AgentToolRef } from "../core/contracts/agents.ts";
+import type { CategoryExtras } from "../core/contracts/taxonomy.ts";
+import { TOOL_CATEGORIES } from "../core/contracts/taxonomy.ts";
+import { HarnessError } from "../core/errors/harness-error.ts";
 import { listFlag, textFlag, type Flags } from "./options.ts";
 
 export const CATEGORY_FLAG_HELP = `Generic category of the tool, e.g. ${TOOL_CATEGORIES.join(", ")}. Any other value is recorded as given.`;

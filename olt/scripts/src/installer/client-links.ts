@@ -1,7 +1,7 @@
 import { readlink, symlink } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import { dirname, join } from "node:path";
-import { HarnessError } from "../errors/harness-error.ts";
+import { HarnessError } from "../core/errors/harness-error.ts";
 import { fsyncDirectory } from "../core/durable-write.ts";
 import { removeBoundPath, replaceBoundPath } from "./bound-mutations.ts";
 import { SKILL_NAME } from "./constants.ts";

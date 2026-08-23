@@ -1,6 +1,6 @@
-import type { JsonObject } from "../../contracts/json.ts";
+import type { JsonObject } from "../../core/contracts/json.ts";
 import type { CommandProof } from "../types.ts";
-import type { RepositoryBinding } from "../../contracts/repository.ts";
+import type { RepositoryBinding } from "../../core/contracts/repository.ts";
 
 export interface CompletionEvidenceItem extends JsonObject {
   kind: "command" | "artifact" | "state";

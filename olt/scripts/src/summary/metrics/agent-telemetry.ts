@@ -1,5 +1,5 @@
-import type { AgentGrantRecord } from "../../contracts/agents.ts";
-import { isJsonObject } from "../../contracts/json.ts";
+import type { AgentGrantRecord } from "../../core/contracts/agents.ts";
+import { isJsonObject } from "../../core/contracts/json.ts";
 import { readAgentLedger } from "../../workflow/agents/ledger.ts";
 import type { NodeTelemetry, NodeTool, TokenUsageDetail } from "../types.ts";
 

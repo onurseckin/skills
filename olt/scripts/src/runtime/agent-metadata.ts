@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import { findRepoRoot, resolveCapsulesDir, resolveScratchDir } from "../shared/paths.ts";
+import { findRepoRoot, resolveCapsulesDir, resolveScratchDir } from "../core/shared/paths.ts";
 import type { ReviewProtocolPolicy } from "../policy/repo-policy.ts";
 
 export interface AgentMetadata {

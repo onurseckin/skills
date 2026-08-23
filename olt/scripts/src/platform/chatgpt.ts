@@ -1,4 +1,4 @@
-import type { AgentRole } from "../contracts/packets.ts";
+import type { AgentRole } from "../core/contracts/packets.ts";
 import { buildMandatoryCliSequence } from "./cli-registration.ts";
 import type {
   CognitiveFallbackPromptResult,

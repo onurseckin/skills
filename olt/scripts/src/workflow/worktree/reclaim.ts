@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
-import type { WorktreeLedgerState } from "../../contracts/worktree.ts";
-import { HarnessError } from "../../errors/harness-error.ts";
-import { transact } from "../../store/index.ts";
+import type { WorktreeLedgerState } from "../../core/contracts/worktree.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
+import { transact } from "../../engine/store/index.ts";
 import { readWorktreeLedger, writeWorktreeLedger } from "./ledger.ts";
 import { pruneWorktrees, removeWorktree, runGit, type GitRunner } from "./git-ops.ts";
 

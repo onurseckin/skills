@@ -1,6 +1,6 @@
-import type { RunState } from "../contracts/capsule.ts";
-import type { JsonObject } from "../contracts/json.ts";
-import { loadRun, transact } from "../store/index.ts";
+import type { RunState } from "../core/contracts/capsule.ts";
+import type { JsonObject } from "../core/contracts/json.ts";
+import { loadRun, transact } from "../engine/store/index.ts";
 import type { GateRuntime, TransactionPort, WorkflowState } from "../workflow/types.ts";
 
 function view(raw: RunState): WorkflowState {

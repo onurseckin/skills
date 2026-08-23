@@ -19,7 +19,7 @@ import type {
 } from "./types.ts";
 import { synthesizeCompanionManifest, type ValidationContext } from "../validator/index.ts";
 import { deflateSync } from "node:zlib";
-import { resolveCapsulesDir } from "../../shared/paths.ts";
+import { resolveCapsulesDir } from "../../core/shared/paths.ts";
 
 const CRC_TABLE: Int32Array = (() => {
   const table = new Int32Array(256);

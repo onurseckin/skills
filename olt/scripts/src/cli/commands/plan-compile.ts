@@ -1,7 +1,7 @@
 import { basename, resolve } from "node:path";
-import { getHarnessConfig } from "../../config/harness-config.ts";
-import type { JsonValue } from "../../contracts/json.ts";
-import { HarnessError } from "../../errors/harness-error.ts";
+import { getHarnessConfig } from "../../core/config/harness-config.ts";
+import type { JsonValue } from "../../core/contracts/json.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
 import { compileGraphDocument } from "../../graph/compiler.ts";
 import { advisoryFindings, blockingFindings } from "../../graph/plan-audit.ts";
 import { projectPlan } from "../../graph/project-plan.ts";
@@ -16,9 +16,9 @@ import {
   compileRequirementsFromPrompt,
   type TaskDeclaration,
 } from "../../requirements/compiler.ts";
-import { recordTopology } from "../../scheduler/index.ts";
-import { loadRun } from "../../store/index.ts";
-import { transact } from "../../store/transaction.ts";
+import { recordTopology } from "../../engine/scheduler/index.ts";
+import { loadRun } from "../../engine/store/index.ts";
+import { transact } from "../../engine/store/transaction.ts";
 import { formatPlanCompileBrief } from "../formatters/index.ts";
 import { actorFlag, listFlag, textFlag, type Flags } from "../options.ts";
 import { parseAuditAcceptance, recordAuditAcceptance, recordPlanAudit } from "./plan-audit.ts";

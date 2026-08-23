@@ -1,6 +1,6 @@
 import { posix } from "node:path";
-import { HarnessError } from "../../errors/harness-error.ts";
-import type { JsonObject } from "../../contracts/json.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
+import type { JsonObject } from "../../core/contracts/json.ts";
 import type { TaskRecord } from "../types.ts";
 import { requireSubstantiveObjects } from "../evidence.ts";
 import { jsonCopy, requireText } from "../task-state.ts";

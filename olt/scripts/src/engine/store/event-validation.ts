@@ -1,4 +1,4 @@
-import type { IntegrityIssue } from "../../contracts/capsule.ts";
+import type { IntegrityIssue } from "../../core/contracts/capsule.ts";
 import { FORMAT_VERSION, RESERVED_STATE_KEYS, STATE_SCHEMA } from "./constants.ts";
 import { issue } from "./issues.ts";
 

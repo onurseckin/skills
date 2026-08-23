@@ -1,14 +1,14 @@
 import { executePhaseCompletionSyncAndCommit } from "../../workflow/completion/auto-sync-and-commit.ts";
 import { readFileSync, realpathSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, resolve } from "node:path";
-import type { JsonObject } from "../../contracts/json.ts";
-import { getHarnessConfig } from "../../config/harness-config.ts";
-import { HarnessError } from "../../errors/harness-error.ts";
+import type { JsonObject } from "../../core/contracts/json.ts";
+import { getHarnessConfig } from "../../core/config/harness-config.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
 import { runAndRecordCommand } from "../../integration/record-command.ts";
 import { workflowPort } from "../../integration/store-ports.ts";
 import { inspectRepositoryBinding } from "../../packets/repository-identity.ts";
-import { verifyCommandRecord } from "../../runner/verify-command.ts";
-import { loadRun } from "../../store/index.ts";
+import { verifyCommandRecord } from "../../engine/runner/verify-command.ts";
+import { loadRun } from "../../engine/store/index.ts";
 import {
   archiveCapsule,
   consolidateCapsules,
@@ -18,11 +18,11 @@ import { drainBacklogOnRunCompletion } from "../../mind/smart-task-manager.ts";
 import { completeRun } from "../../workflow/completion/complete-run.ts";
 import { gateTally } from "../../workflow/completion/completion-state.ts";
 import type { CompletionArtifactRequirements } from "../../workflow/completion/artifact-verification.ts";
-import { findRepoRoot, resolveCapsulesDir } from "../../shared/paths.ts";
+import { findRepoRoot, resolveCapsulesDir } from "../../core/shared/paths.ts";
 import type { TaskRecord, WorkflowState } from "../../workflow/types.ts";
 import { consolidateWorktrees, recordConsolidation } from "../../workflow/worktree/consolidate.ts";
 import { readWorktreeLedger } from "../../workflow/worktree/ledger.ts";
-import type { WorktreeConsolidationRecord } from "../../contracts/worktree.ts";
+import type { WorktreeConsolidationRecord } from "../../core/contracts/worktree.ts";
 import {
   formatRunCompleteBrief,
   formatRunExecBrief,

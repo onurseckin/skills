@@ -1,5 +1,5 @@
 import { posix } from "node:path";
-import { HarnessError } from "../../errors/harness-error.ts";
+import { HarnessError } from "../../core/errors/harness-error.ts";
 
 export interface DestructiveCheckOutcome {
   destructive: boolean;
