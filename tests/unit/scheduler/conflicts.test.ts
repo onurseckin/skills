@@ -15,7 +15,7 @@ describe("scope conflicts", () => {
   test("resolves the glob scopes real capsules declare", () => {
     expect(scopeConflict(["docs/**"], ["docs/concepts/**"])).toBeTrue();
     expect(scopeConflict(["docs/concepts/**"], ["docs/**"])).toBeTrue();
-    expect(scopeConflict([".capsules/**"], [".capsules/x"])).toBeTrue();
+    expect(scopeConflict([".olt/capsules/**"], [".olt/capsules/x"])).toBeTrue();
     expect(scopeConflict(["docs/**"], ["docs"])).toBeTrue();
     expect(scopeConflict(["docs/api/**"], ["docs/concepts/**"])).toBeFalse();
     expect(scopeConflict(["docs/**"], ["src/**"])).toBeFalse();

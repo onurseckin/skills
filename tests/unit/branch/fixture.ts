@@ -50,7 +50,7 @@ export async function branchCapsule(
   git(repo, ["init", "--quiet", "--initial-branch", "main"]);
   git(repo, ["config", "user.email", "harness@example.test"]);
   git(repo, ["config", "user.name", "Harness Test"]);
-  await writeFile(join(repo, ".gitignore"), ".capsules/\nprompt.txt\n");
+  await writeFile(join(repo, ".gitignore"), ".olt/capsules/\nprompt.txt\n");
   await writeFile(join(repo, "prompt.txt"), "Build the thing.\nCover the thing with tests.\n");
   git(repo, ["add", ".gitignore"]);
   git(repo, ["commit", "--quiet", "-m", "base"]);

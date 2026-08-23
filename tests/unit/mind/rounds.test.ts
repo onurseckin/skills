@@ -230,7 +230,7 @@ describe("mind/rounds - round state helpers and chainer integration", () => {
   test("carryForwardFindingsAndRequirements carries forward unsatisfied requirements and unresolved findings", () => {
     const fixture = setupMindCapsule("chainer-test");
     const sourcePath = setupPriorRoundCapsule(fixture.repo, "round-r1");
-    const targetPath = join(fixture.repo, ".capsules", "round-r2");
+    const targetPath = join(fixture.repo, ".olt", "capsules", "round-r2");
     mkdirSync(targetPath, { recursive: true });
 
     const manifest = carryForwardFindingsAndRequirements({
@@ -258,13 +258,13 @@ describe("mind/rounds - round state helpers and chainer integration", () => {
 
   test("carryForwardFindingsAndRequirements throws on non-existent source capsule", () => {
     const fixture = setupMindCapsule("chainer-nonexistent");
-    const targetPath = join(fixture.repo, ".capsules", "round-r2");
+    const targetPath = join(fixture.repo, ".olt", "capsules", "round-r2");
 
     expect(() =>
       carryForwardFindingsAndRequirements({
         sourceRunId: "nonexistent",
         targetRunId: "round-r2",
-        sourceCapsulePath: join(fixture.repo, ".capsules", "nonexistent"),
+        sourceCapsulePath: join(fixture.repo, ".olt", "capsules", "nonexistent"),
         targetCapsulePath: targetPath,
         roundNumber: 2,
       }),
@@ -412,7 +412,7 @@ describe("mind/rounds - round state helpers and chainer integration", () => {
 
   test("formatMindRoundOpenBrief and formatMindRoundCloseBrief conform to line limits", () => {
     const openBrief = formatMindRoundOpenBrief({
-      runRoot: ".capsules/mind-gen-1",
+      runRoot: ".olt/capsules/mind-gen-1",
       actor: "orch-1",
       objective: "obj-1",
       candidate: "cand-1",
@@ -427,7 +427,7 @@ describe("mind/rounds - round state helpers and chainer integration", () => {
     expect(openBrief.split("\n").length).toBeLessThanOrEqual(30);
 
     const closeBrief = formatMindRoundCloseBrief({
-      runRoot: ".capsules/mind-gen-1",
+      runRoot: ".olt/capsules/mind-gen-1",
       actor: "orch-1",
       objective: "obj-1",
       round: 1,

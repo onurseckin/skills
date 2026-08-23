@@ -17,7 +17,7 @@ describe("Host Adapters Architecture — Mechanical-First, Cognitive-Fallback", 
   const samplePacket: SubagentDispatchPacket = {
     agentId: "impl-worker-1",
     role: "implementer",
-    runRoot: ".capsules/test-run-1",
+    runRoot: ".olt/capsules/test-run-1",
     taskId: "task-42",
     taskDescription: "Implement strict POSIX flock concurrency primitives.",
     writeScope: ["olt/scripts/src/platform/"],

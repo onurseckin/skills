@@ -63,11 +63,11 @@ describe("enumerateGlobMatches", () => {
     const repo = await fixtureRepo("excluded");
     await mkdir(join(repo, "node_modules/pkg"), { recursive: true });
     await mkdir(join(repo, ".git"), { recursive: true });
-    await mkdir(join(repo, ".capsules/run-1"), { recursive: true });
+    await mkdir(join(repo, ".olt/capsules/run-1"), { recursive: true });
     await mkdir(join(repo, "src"), { recursive: true });
     await writeFile(join(repo, "node_modules/pkg/index.ts"), "export {};\n");
     await writeFile(join(repo, ".git/index.ts"), "export {};\n");
-    await writeFile(join(repo, ".capsules/run-1/index.ts"), "export {};\n");
+    await writeFile(join(repo, ".olt/capsules/run-1/index.ts"), "export {};\n");
     await writeFile(join(repo, "src/index.ts"), "export {};\n");
 
     expect(enumerateGlobMatches(repo, "**/*.ts")).toEqual(["src/index.ts"]);

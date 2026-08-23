@@ -89,7 +89,7 @@ describe("Unified Platform Host Adapters & Mechanical Dispatch", () => {
   const samplePacket: SubagentDispatchPacket = {
     agentId: "impl-worker-alpha",
     role: "implementer",
-    runRoot: ".capsules/test-capsule",
+    runRoot: ".olt/capsules/test-capsule",
     taskId: "task-101",
     taskDescription: "Implement strict POSIX flock primitives.",
     writeScope: ["src/platform/"],
@@ -138,7 +138,7 @@ describe("Unified Platform Host Adapters & Mechanical Dispatch", () => {
   test("MechanicalFirstDispatcher builds mandatory CLI sequence correctly", () => {
     const seq = MechanicalFirstDispatcher.buildMandatoryCliSequence(
       "cursor",
-      ".capsules/run-1",
+      ".olt/capsules/run-1",
       "worker-1",
       "implementer",
       "task-1",

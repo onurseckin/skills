@@ -15,7 +15,7 @@ describe("initRun", () => {
     const repo = scratchRoot("materializes-the-full-declared-capsule-layout-for-");
     const prompt = new TextEncoder().encode("do the thing");
     const runRoot = initRun(repo, "my-run", prompt, "file", true);
-    expect(runRoot).toBe(join(realpathSync(repo), ".capsules", "my-run"));
+    expect(runRoot).toBe(join(realpathSync(repo), ".olt", "capsules", "my-run"));
     expect(readFileSync(join(runRoot, "prompt.md"))).toEqual(prompt);
     expect((statSync(join(runRoot, "prompt.md")).mode & 0o222) === 0).toBe(true);
     const manifest = JSON.parse(readFileSync(join(runRoot, "manifest.json"), "utf-8"));
@@ -37,8 +37,8 @@ describe("initRun", () => {
 
   test("strips a leading .capsules/ prefix from the run id before creating the directory", () => {
     const repo = scratchRoot("strips-a-leading-capsules-prefix-from-the-run-id-b");
-    const runRoot = initRun(repo, ".capsules/prefixed-run", new Uint8Array(), "file", true);
-    expect(runRoot).toBe(join(realpathSync(repo), ".capsules", "prefixed-run"));
+    const runRoot = initRun(repo, ".olt/capsules/prefixed-run", new Uint8Array(), "file", true);
+    expect(runRoot).toBe(join(realpathSync(repo), ".olt", "capsules", "prefixed-run"));
   });
 
   test("rejects a run id that fails RUN_ID_PATTERN even though normalizeRunId accepted it", () => {
@@ -53,7 +53,7 @@ describe("initRun", () => {
     expect(() => initRun(repo, "run", new Uint8Array(), "bogus", true)).toThrow(
       /unsupported capture_mode/,
     );
-    expect(existsSync(join(repo, ".capsules"))).toBe(false);
+    expect(existsSync(join(repo, ".olt", "capsules"))).toBe(false);
   });
 
   test("rejects a prompt that is not a Uint8Array", () => {
@@ -100,7 +100,7 @@ describe("initRun", () => {
     expect(() =>
       initRun(repo, "failed-run", new Uint8Array(), "file", true, { runtimeSource: source }),
     ).toThrow();
-    expect(existsSync(join(repo, ".capsules", "failed-run"))).toBe(false);
+    expect(existsSync(join(repo, ".olt", "capsules", "failed-run"))).toBe(false);
   });
 
   function runtimeFixture(withEntrypoint: boolean): string {

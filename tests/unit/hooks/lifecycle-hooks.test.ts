@@ -531,7 +531,7 @@ describe("Lifecycle Hooks - Declarative Config Parsing & Loading", () => {
 
   test("loads hook configuration from .capsules/hooks.json in target directory", () => {
     const dir = scratchRoot(import.meta.path, "load-capsules-config");
-    const capsulesDir = join(dir, ".capsules");
+    const capsulesDir = join(dir, ".olt", "capsules");
     mkdirSync(capsulesDir, { recursive: true });
 
     const customConfig: HookConfig = {

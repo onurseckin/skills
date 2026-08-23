@@ -290,8 +290,8 @@ describe("orchestrate", () => {
       ok: false,
       error: { code: "INVALID_ARGUMENT" },
     });
-    expect(existsSync(join(targetRepo, ".capsules"))).toBe(false);
-    expect(existsSync(join(cwdRepo, ".capsules"))).toBe(false);
+    expect(existsSync(join(targetRepo, ".olt", "capsules"))).toBe(false);
+    expect(existsSync(join(cwdRepo, ".olt", "capsules"))).toBe(false);
   });
 });
 

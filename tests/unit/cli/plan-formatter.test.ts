@@ -45,7 +45,7 @@ describe("formatCapsuleInitBrief", () => {
   test("names a supplied runtime pin instead of admitting none was given", () => {
     const brief = formatCapsuleInitBrief({
       runId: "run-1",
-      runRoot: ".capsules/run-1",
+      runRoot: ".olt/capsules/run-1",
       promptSha256: "abc123",
       promptBytes: 500,
       assurance: "source-verified",

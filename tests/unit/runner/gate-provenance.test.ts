@@ -33,7 +33,7 @@ async function repository(): Promise<string> {
   const root = await mkdtemp(join(tmpdir(), "gate-provenance-"));
   roots.push(root);
   await mkdir(join(root, "bin"));
-  await mkdir(join(root, ".capsules", "commands"), { recursive: true });
+  await mkdir(join(root, ".olt", "capsules", "commands"), { recursive: true });
   return root;
 }
 
@@ -121,8 +121,8 @@ describe("gate trusted-host provenance", () => {
       const prepared = await runner.prepareCommand({
         argv: ["./bin/verify"],
         cwd: root,
-        runRoot: join(root, ".capsules"),
-        commandDir: join(root, ".capsules", "commands"),
+        runRoot: join(root, ".olt", "capsules"),
+        commandDir: join(root, ".olt", "capsules", "commands"),
         actor: "validator",
         gateId: "G-env",
       });
@@ -163,8 +163,8 @@ describe("gate trusted-host provenance", () => {
     const prepared = await runner.prepareCommand({
       argv: ["./bin/verify"],
       cwd: root,
-      runRoot: join(root, ".capsules"),
-      commandDir: join(root, ".capsules", "commands"),
+      runRoot: join(root, ".olt", "capsules"),
+      commandDir: join(root, ".olt", "capsules", "commands"),
       actor: "validator",
       gateId: "G-race",
     });
@@ -191,8 +191,8 @@ describe("gate trusted-host provenance", () => {
     const prepared = await runner.prepareCommand({
       argv: ["./bin/verify"],
       cwd: root,
-      runRoot: join(root, ".capsules"),
-      commandDir: join(root, ".capsules", "commands"),
+      runRoot: join(root, ".olt", "capsules"),
+      commandDir: join(root, ".olt", "capsules", "commands"),
       actor: "validator",
       gateId: "G-intent",
     });

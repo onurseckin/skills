@@ -221,7 +221,7 @@ describe("branch region files carry a diff (B3/B15.2)", () => {
   function seedRunRoot(): string {
     const root = mkdtempSync(join(tmpdir(), "branch-diff-"));
     roots.push(root);
-    const runRoot = join(root, ".capsules", "run-1");
+    const runRoot = join(root, ".olt", "capsules", "run-1");
     mkdirSync(runRoot, { recursive: true });
     const digest = "d".repeat(64);
     writeFileSync(

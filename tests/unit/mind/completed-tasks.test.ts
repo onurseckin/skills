@@ -52,14 +52,14 @@ describe("Completed Tasks Ledger Engine", () => {
 
     const resolved = resolveCompletedTasksLedgerPath();
     expect(typeof resolved).toBe("string");
-    expect(resolved.endsWith(".capsules/COMPLETED_TASKS.jsonl")).toBe(true);
+    expect(resolved.endsWith(".olt/capsules/COMPLETED_TASKS.jsonl")).toBe(true);
 
     const defectExplicit = resolveDefectsPath("/custom/path/defects.jsonl");
     expect(defectExplicit).toBe("/custom/path/defects.jsonl");
 
     const defectResolved = resolveDefectsPath();
     expect(typeof defectResolved).toBe("string");
-    expect(defectResolved.endsWith(".capsules/defects.jsonl")).toBe(true);
+    expect(defectResolved.endsWith(".olt/capsules/defects.jsonl")).toBe(true);
 
     const canonicalTasks = resolveCanonicalCompletedTasksPath("/tmp/test");
     expect(canonicalTasks).toBe("/tmp/test/.capsules/mind/queue/completed-tasks.jsonl");

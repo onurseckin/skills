@@ -129,7 +129,7 @@ describe("status actions surfacing", () => {
 
     const brief = formatStatusBrief({
       runId: "large-run",
-      runRoot: ".capsules/large-run",
+      runRoot: ".olt/capsules/large-run",
       phase: "Executing",
       tasksCount: 50,
       satisfiedCount: 10,
@@ -154,7 +154,7 @@ describe("status actions surfacing", () => {
   test("formatStatusBrief handles empty actions and unavailable reasons", () => {
     const emptyBrief = formatStatusBrief({
       runId: "empty-run",
-      runRoot: ".capsules/empty-run",
+      runRoot: ".olt/capsules/empty-run",
       phase: "Planning",
       tasksCount: 0,
       satisfiedCount: 0,
@@ -165,7 +165,7 @@ describe("status actions surfacing", () => {
 
     const unavailableBrief = formatStatusBrief({
       runId: "paused-run",
-      runRoot: ".capsules/paused-run",
+      runRoot: ".olt/capsules/paused-run",
       phase: "Executing",
       tasksCount: 1,
       satisfiedCount: 0,

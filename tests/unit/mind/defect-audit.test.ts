@@ -43,7 +43,7 @@ function setupTestWorkspace(name: string): TestWorkspace {
   const repoRoot = mkdtempSync(join(tmpdir(), `defect-audit-test-${name}-${process.pid}-`));
   tempRoots.push(repoRoot);
 
-  const capsulesDir = join(repoRoot, ".capsules");
+  const capsulesDir = join(repoRoot, ".olt", "capsules");
   mkdirSync(capsulesDir, { recursive: true });
 
   const charterDir = join(repoRoot, "docs", "mind");

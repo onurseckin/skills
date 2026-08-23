@@ -19,7 +19,7 @@ describe("doctor diagnostics and gitignore policy", () => {
   test("ignoredByGit answers true, false, or unknown and never guesses", async () => {
     const repo = await mkdtemp(join(tmpdir(), "harness-git-doc-"));
     roots.push(repo);
-    const runRoot = join(repo, ".capsules", "run-1");
+    const runRoot = join(repo, ".olt", "capsules", "run-1");
 
     // Nothing to ask: the directory is not a repository.
     expect(ignoredByGit(runRoot)).toBeNull();

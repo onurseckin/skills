@@ -30,7 +30,7 @@ describe("embeddedCommandIssues schema-error fallback", () => {
     roots.push(repositoryRoot);
     await mkdir(join(repositoryRoot, "bin"));
     await writeFile(join(repositoryRoot, "bin", "verify"), "#!/bin/sh\nexit 0\n", { mode: 0o700 });
-    const runRoot = join(repositoryRoot, ".capsules");
+    const runRoot = join(repositoryRoot, ".olt", "capsules");
     await mkdir(runRoot, { recursive: true });
     const runner = createInternalCommandRunner({
       inspectRepository: () => binding(),

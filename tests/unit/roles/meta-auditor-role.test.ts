@@ -238,7 +238,7 @@ describe("Meta-Auditor Role & Agent Persona Test Suite", () => {
       const rawContent = readFileSync(roleFilePath, "utf-8");
 
       expect(rawContent).toContain("Plan & Feedback Injection Protocols");
-      expect(rawContent).toContain(".capsules/FEEDBACK_QUEUE.jsonl");
+      expect(rawContent).toContain(".olt/capsules/FEEDBACK_QUEUE.jsonl");
       expect(rawContent).toContain("Zero-Exploration Integration & Exact-Anchor Protocol");
       expect(rawContent).toContain("task:brief");
     });
@@ -359,7 +359,7 @@ describe("Meta-Auditor Role & Agent Persona Test Suite", () => {
             // CLI workflow
             expect(text).toContain("meta-audit --run <run-root>");
             expect(text).toContain("--inject");
-            expect(text).toContain(".capsules/FEEDBACK_QUEUE.jsonl");
+            expect(text).toContain(".olt/capsules/FEEDBACK_QUEUE.jsonl");
           }
         });
       });

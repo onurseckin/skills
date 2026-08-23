@@ -29,7 +29,7 @@ export async function setupReadyRun(name: string, roots: string[]) {
     join(repo, "tests/run.test.ts"),
     "import { test } from 'bun:test'; test('all', () => {});\n",
   );
-  await writeFile(join(repo, ".gitignore"), ".capsules/\n");
+  await writeFile(join(repo, ".gitignore"), ".olt/capsules/\n");
   execFileSync("git", ["init", "-q"], { cwd: repo });
   execFileSync("git", ["config", "user.email", "fixture@example.invalid"], { cwd: repo });
   execFileSync("git", ["config", "user.name", "fixture"], { cwd: repo });

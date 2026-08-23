@@ -77,7 +77,7 @@ describe("harness output format scan", () => {
         entrypoint,
         "run:exec",
         "--run",
-        join(repo, ".capsules", "format-run"),
+        join(repo, ".olt", "capsules", "format-run"),
         "--actor",
         "coordinator",
         "--format",

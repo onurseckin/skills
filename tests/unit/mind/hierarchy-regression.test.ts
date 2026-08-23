@@ -459,7 +459,7 @@ describe("Phase 4 Hierarchy and Regression Integration Suite", () => {
     test("carryForwardFindingsAndRequirements carries forward findings and requirements into multi-round reconcile", () => {
       const fixture = createMindTestCapsule(import.meta.path, "chainer-reconcile");
       const r1Path = createPriorRoundCapsule(fixture.repo, "round-chain-r1");
-      const targetPath = join(fixture.repo, ".capsules", "round-chain-r2");
+      const targetPath = join(fixture.repo, ".olt", "capsules", "round-chain-r2");
       mkdirSync(targetPath, { recursive: true });
 
       const manifest = carryForwardFindingsAndRequirements({

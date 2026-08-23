@@ -21,7 +21,7 @@ describe("a loop with no round executor", () => {
     });
 
     await expect(runner.run()).rejects.toThrow("autonomous loop has no round executor");
-    expect(existsSync(join(repo, ".capsules", "no-executor-loop-summary.json"))).toBeFalse();
+    expect(existsSync(join(repo, ".olt", "capsules", "no-executor-loop-summary.json"))).toBeFalse();
   });
 
   test("orchestrator:run fails with INVALID_STATE and writes nothing", async () => {

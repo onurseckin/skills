@@ -56,7 +56,7 @@ async function succeededFixture(name: string): Promise<{ runRoot: string; stored
   roots.push(repositoryRoot);
   await mkdir(join(repositoryRoot, "bin"));
   await writeFile(join(repositoryRoot, "bin", "verify"), "#!/bin/sh\nexit 0\n", { mode: 0o700 });
-  const runRoot = join(repositoryRoot, ".capsules", "run");
+  const runRoot = join(repositoryRoot, ".olt", "capsules", "run");
   await mkdir(join(runRoot, "commands"), { recursive: true });
 
   const runner = createInternalCommandRunner({

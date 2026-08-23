@@ -565,7 +565,7 @@ describe("Defect Promotion Engine", () => {
 
       const canonicalPath = resolveCanonicalCompletedDefectsPath("/my/root");
       expect(canonicalPath).toContain("/my/root");
-      expect(canonicalPath).toContain(".capsules/mind/queue/completed-defects.jsonl");
+      expect(canonicalPath).toContain(".olt/capsules/mind/queue/completed-defects.jsonl");
     });
   });
 });

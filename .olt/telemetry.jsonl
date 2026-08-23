@@ -139,3 +139,5 @@
 {"timestamp":"2026-08-23T11:13:27.821Z","actor":"imp-expand-test","action":"scope:expand: src/policy/repo-policy.ts","status":"success","details":{"expanded_path":"src/policy/repo-policy.ts","total_allowed_scopes":1}}
 {"timestamp":"2026-08-23T11:14:41.718Z","actor":"imp-test","action":"shell: echo harness-shell-ok","status":"success","token_estimate":10,"details":{"exit_code":0,"receipt_sha256":"1875a1b46255c56162d0ec0a7cdbfdd17f0ab915f502fa4114e42c972c91649a"}}
 {"timestamp":"2026-08-23T11:14:41.719Z","actor":"imp-expand-test","action":"scope:expand: src/policy/repo-policy.ts","status":"success","details":{"expanded_path":"src/policy/repo-policy.ts","total_allowed_scopes":1}}
+{"timestamp":"2026-08-23T11:33:05.725Z","actor":"imp-test","action":"shell: echo harness-shell-ok","status":"success","token_estimate":10,"details":{"exit_code":0,"receipt_sha256":"bf18fbfa0d192bdfa6b5ba08965a0d0ea71b6d16aad62ef7060cdb38f6c4ed7d"}}
+{"timestamp":"2026-08-23T11:33:05.725Z","actor":"imp-expand-test","action":"scope:expand: src/policy/repo-policy.ts","status":"success","details":{"expanded_path":"src/policy/repo-policy.ts","total_allowed_scopes":1}}

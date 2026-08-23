@@ -227,7 +227,7 @@ describe("mind autonomic recycler", () => {
   });
 
   describe("assessRecyclingState and transitionCompletenessCriticSignOff", () => {
-    const runRoot = ".capsules/test-mind-run";
+    const runRoot = ".olt/capsules/test-mind-run";
 
     test("critic clean: transitions to candidate_to_planning when an admitted candidate exists", () => {
       const c1 = createCandidate("cand-1", "admitted", "Fix memory leak in parser");
@@ -449,7 +449,7 @@ describe("mind autonomic recycler", () => {
 
   describe("transitionPulseCloseToWake", () => {
     test("arms next wake after pulse closure with non-termination invariant", () => {
-      const runRoot = ".capsules/pulse-test";
+      const runRoot = ".olt/capsules/pulse-test";
       const result = transitionPulseCloseToWake(runRoot, "pulse-007", "success");
 
       expect(result.canRecycle).toBe(true);
@@ -467,7 +467,7 @@ describe("mind autonomic recycler", () => {
 
   describe("planAutonomousRoundRecycle", () => {
     test("generates complete recycle plan with formatted brief", () => {
-      const runRoot = ".capsules/plan-recycle-test";
+      const runRoot = ".olt/capsules/plan-recycle-test";
       const c1 = createCandidate("cand-plan", "admitted");
       const state: Record<string, unknown> = {
         candidates: [c1],
@@ -495,7 +495,7 @@ describe("mind autonomic recycler", () => {
 
   describe("formatRecycleBrief", () => {
     test("formats brief within line limit and includes all present attributes", () => {
-      const runRoot = ".capsules/brief-test";
+      const runRoot = ".olt/capsules/brief-test";
       const assessment = {
         canRecycle: true,
         phase: "critic_signed_off" as const,
@@ -526,7 +526,7 @@ describe("mind autonomic recycler", () => {
     });
 
     test("formats brief omitting null objective, candidate, and round", () => {
-      const runRoot = ".capsules/brief-quiescent";
+      const runRoot = ".olt/capsules/brief-quiescent";
       const assessment = {
         canRecycle: true,
         phase: "quiescent" as const,
@@ -550,7 +550,7 @@ describe("mind autonomic recycler", () => {
 
   describe("enforceInfiniteMindCadence", () => {
     test("returns infinite cadence confirmation when non-terminal", () => {
-      const runRoot = ".capsules/cadence-live";
+      const runRoot = ".olt/capsules/cadence-live";
       const result = enforceInfiniteMindCadence({
         runRoot,
         actor: "mind-1",
@@ -564,7 +564,7 @@ describe("mind autonomic recycler", () => {
     });
 
     test("returns armed wake instruction even when terminal outcome recorded", () => {
-      const runRoot = ".capsules/cadence-terminal";
+      const runRoot = ".olt/capsules/cadence-terminal";
       const result = enforceInfiniteMindCadence({
         runRoot,
         actor: "mind-1",
@@ -649,7 +649,7 @@ describe("mind autonomic recycler", () => {
         candidates: [c1, c2, c3, c4, c5],
       };
 
-      const wavePlan = compileAutonomicWavePlan(state, ".capsules/mind-gen-2", {
+      const wavePlan = compileAutonomicWavePlan(state, ".olt/capsules/mind-gen-2", {
         maxParallel: 2,
       });
 
@@ -731,7 +731,7 @@ describe("mind autonomic recycler", () => {
         targetRunId: "mind-gen-2",
         sourceGeneration: 1,
         targetGeneration: 2,
-        targetRunRoot: ".capsules/mind-gen-2",
+        targetRunRoot: ".olt/capsules/mind-gen-2",
         drainedCount: 3,
         admittedCount: 3,
         waveCount: 2,
@@ -756,7 +756,7 @@ describe("mind autonomic recycler", () => {
         targetRunId: "mind-gen-2",
         sourceGeneration: 1,
         targetGeneration: 2,
-        targetRunRoot: ".capsules/mind-gen-2",
+        targetRunRoot: ".olt/capsules/mind-gen-2",
         charterSha256: "abc123def456",
         pulseCounter: 42,
         carriedCandidatesCount: 3,

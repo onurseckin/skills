@@ -155,7 +155,7 @@ function setupMindCapsule(
   } = {},
 ): MindTestFixture {
   const repoRoot = scratchRoot(label);
-  writeFileSync(join(repoRoot, ".gitignore"), ".capsules/\n.tmp/\n", "utf-8");
+  writeFileSync(join(repoRoot, ".gitignore"), ".olt/capsules/\n.tmp/\n", "utf-8");
 
   const charterDir = join(repoRoot, "docs", "mind");
   mkdirSync(charterDir, { recursive: true });

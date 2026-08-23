@@ -48,7 +48,7 @@ function createTempDir(prefix: string): string {
 
 describe("Defect Remediation 46: Archival, Classification, and Empirical Verification", () => {
   // Load defects from .capsules/defects.jsonl
-  const defectsFilePath = join(process.cwd(), ".capsules", "defects.jsonl");
+  const defectsFilePath = join(process.cwd(), ".olt", "capsules", "defects.jsonl");
   const rawDefectsContent = existsSync(defectsFilePath)
     ? readFileSync(defectsFilePath, "utf8")
     : "";
@@ -303,7 +303,7 @@ describe("Defect Remediation 46: Archival, Classification, and Empirical Verific
   describe("Capsule Audit Report Synthesis", () => {
     test("generates comprehensive audit report across test workspace", () => {
       const tempDir = createTempDir("defect-audit-test-");
-      const capsuleDir = join(tempDir, ".capsules", "mind", "queue");
+      const capsuleDir = join(tempDir, ".olt");
       mkdirSync(capsuleDir, { recursive: true });
 
       const logPath = join(capsuleDir, "defects.jsonl");

@@ -508,7 +508,7 @@ describe("rotateMindGeneration and mindRotateCommand", () => {
       targetRunId: "mind-gen-2",
       sourceGeneration: 1,
       targetGeneration: 2,
-      targetRunRoot: ".capsules/mind-gen-2",
+      targetRunRoot: ".olt/capsules/mind-gen-2",
       charterSha256: "abcdef1234567890",
       pulseCounter: 42,
       carriedCandidatesCount: 5,

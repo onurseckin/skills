@@ -41,7 +41,7 @@ describe("Evidence Location Doctor Checks - p18 unified validator evidence locat
   test("verifyUnifiedEvidenceLocation passes when captures use unified evidence paths", async () => {
     const repo = await mkdtemp(join(tmpdir(), "harness-evid-valid-"));
     roots.push(repo);
-    const runRoot = join(repo, ".capsules", "run-evid-1");
+    const runRoot = join(repo, ".olt", "capsules", "run-evid-1");
     await mkdir(join(runRoot, "evidence", "screenshots"), { recursive: true });
 
     const capturesData = {
@@ -83,7 +83,7 @@ describe("Evidence Location Doctor Checks - p18 unified validator evidence locat
   test("verifyUnifiedEvidenceLocation flags captures with non-unified evidence paths", async () => {
     const repo = await mkdtemp(join(tmpdir(), "harness-evid-invalid-"));
     roots.push(repo);
-    const runRoot = join(repo, ".capsules", "run-evid-2");
+    const runRoot = join(repo, ".olt", "capsules", "run-evid-2");
     await mkdir(runRoot, { recursive: true });
 
     const capturesData = {
@@ -120,7 +120,7 @@ describe("Evidence Location Doctor Checks - p18 unified validator evidence locat
   test("verifyUnifiedEvidenceLocation audits validation finding evidence in state", async () => {
     const repo = await mkdtemp(join(tmpdir(), "harness-evid-state-"));
     roots.push(repo);
-    const runRoot = join(repo, ".capsules", "run-evid-3");
+    const runRoot = join(repo, ".olt", "capsules", "run-evid-3");
     await mkdir(runRoot, { recursive: true });
 
     const state: JsonObject = {

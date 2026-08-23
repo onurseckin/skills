@@ -12,7 +12,7 @@ import {
 } from "../../../olt/scripts/src/platform/index.ts";
 
 describe("Mandatory CLI Action Registration Protocol", () => {
-  const runRoot = ".capsules/test-run-platform";
+  const runRoot = ".olt/capsules/test-run-platform";
   const agentId = "impl-worker-alpha";
   const taskId = "task-3";
 

@@ -217,7 +217,7 @@ describe("Mandatory Subagent Pre-Flight Boot Gates (whoami & doctor)", () => {
       "scripts/harness.ts",
       "doctor",
       "--run",
-      ".capsules/run-01",
+      ".olt/capsules/run-01",
     ]);
 
     record = enforcer.getRecord("val-agent-02");
@@ -290,7 +290,7 @@ describe("Watchdog Live CLI Integration & Process Health Auditing (p56)", () => 
     const whoamiProof: LiveCliProof = {
       gate: "whoami",
       actor: "impl-live-cli",
-      argv: ["bun", "harness.ts", "whoami", "--run", ".capsules/run-01"],
+      argv: ["bun", "harness.ts", "whoami", "--run", ".olt/capsules/run-01"],
       exitCode: 0,
       executedAt: "2026-08-22T05:00:00.000Z",
       pid: 45678,
@@ -309,7 +309,7 @@ describe("Watchdog Live CLI Integration & Process Health Auditing (p56)", () => 
     const doctorProof: LiveCliProof = {
       gate: "doctor",
       actor: "impl-live-cli",
-      argv: ["bun", "harness.ts", "doctor", "--run", ".capsules/run-01"],
+      argv: ["bun", "harness.ts", "doctor", "--run", ".olt/capsules/run-01"],
       exitCode: 0,
       executedAt: "2026-08-22T05:00:05.000Z",
       pid: 45678,
@@ -458,8 +458,8 @@ describe("DOCTOR_SUPERVISOR_CODE_CONTAMINATION Doctor Check Enforcement", () => 
     expect(isSourceCodeFile("scripts/build.sh")).toBe(true);
 
     // Non-source files
-    expect(isSourceCodeFile(".capsules/run-1/state.json")).toBe(false);
-    expect(isSourceCodeFile(".capsules/run-1/reports/report.md")).toBe(false);
+    expect(isSourceCodeFile(".olt/capsules/run-1/state.json")).toBe(false);
+    expect(isSourceCodeFile(".olt/capsules/run-1/reports/report.md")).toBe(false);
     expect(isSourceCodeFile("docs/architecture.md")).toBe(false);
     expect(isSourceCodeFile("README.md")).toBe(false);
   });

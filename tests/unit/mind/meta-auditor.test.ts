@@ -471,7 +471,7 @@ describe("Deep Behavioral Forensics Engine (meta-auditor)", () => {
 
     it("supports passing string run root or customRoot options", () => {
       const scratchDir = scratchRoot(import.meta.path, "test-root-options");
-      const subQueueDir = join(scratchDir, ".capsules", "mind", "queue");
+      const subQueueDir = join(scratchDir, ".olt");
       mkdirSync(subQueueDir, { recursive: true });
 
       const incident: ForensicsIncident = {
@@ -1400,7 +1400,7 @@ describe("Deep Behavioral Forensics Engine (meta-auditor)", () => {
 
     it("executes metaAuditCommand with --inject flag to autonomously enqueue remediations", async () => {
       const scratchDir = scratchRoot(import.meta.path, "test-cli-inject");
-      const queueDir = join(scratchDir, ".capsules", "mind", "queue");
+      const queueDir = join(scratchDir, ".olt");
       mkdirSync(queueDir, { recursive: true });
 
       const manifest: Manifest = {

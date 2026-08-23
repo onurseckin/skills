@@ -14,7 +14,7 @@ describe("internal command runner git-gate policy", () => {
   test("rejects an unrestricted git invocation as a gate command before observing the repository", async () => {
     const repositoryRoot = await mkdtemp(join(tmpdir(), "internal-runner-git-gate-"));
     roots.push(repositoryRoot);
-    const runRoot = join(repositoryRoot, ".capsules");
+    const runRoot = join(repositoryRoot, ".olt", "capsules");
     await mkdir(runRoot, { recursive: true });
     const commandDir = join(runRoot, "commands");
     let observed = false;
@@ -45,7 +45,7 @@ describe("internal command runner git-gate policy", () => {
   test("still accepts the same argv as a non-gate command", async () => {
     const repositoryRoot = await mkdtemp(join(tmpdir(), "internal-runner-git-non-gate-"));
     roots.push(repositoryRoot);
-    const runRoot = join(repositoryRoot, ".capsules");
+    const runRoot = join(repositoryRoot, ".olt", "capsules");
     await mkdir(runRoot, { recursive: true });
     const commandDir = join(runRoot, "commands");
     const runner = createInternalCommandRunner({

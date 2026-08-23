@@ -187,7 +187,7 @@ describe("P43 Unified Perpetual mind:pulse Command", () => {
     test("formats markdown brief within strict line limits", () => {
       const activeBrief = formatMindPulseActiveBrief({
         pulseId: "pulse-42",
-        runRoot: ".capsules/mind-gen-1",
+        runRoot: ".olt/capsules/mind-gen-1",
         actor: "mind-1",
         host: "antigravity",
         driver: "perpetual-loop",
@@ -205,7 +205,7 @@ describe("P43 Unified Perpetual mind:pulse Command", () => {
 
       const openedBrief = formatMindPulseOpenedBrief({
         pulseId: "pulse-1",
-        runRoot: ".capsules/mind-gen-1",
+        runRoot: ".olt/capsules/mind-gen-1",
         actor: "mind-1",
         host: "antigravity",
         driver: "perpetual-loop",
@@ -226,7 +226,7 @@ describe("P43 Unified Perpetual mind:pulse Command", () => {
   describe("Non-Stopping Invariant & Recycler Transitions", () => {
     test("enforceInfiniteMindCadence guarantees infinite autonomous cadence", () => {
       const assessment = enforceInfiniteMindCadence({
-        runRoot: ".capsules/mind-gen-1",
+        runRoot: ".olt/capsules/mind-gen-1",
         actor: "mind-1",
       });
 
@@ -236,7 +236,7 @@ describe("P43 Unified Perpetual mind:pulse Command", () => {
     });
 
     test("transitionPulseToWake provides seamless transition without process termination", () => {
-      const transition = transitionPulseToWake(".capsules/mind-gen-1", "pulse-5", "active");
+      const transition = transitionPulseToWake(".olt/capsules/mind-gen-1", "pulse-5", "active");
 
       expect(transition.canRecycle).toBe(true);
       expect(transition.infiniteCadence).toBe(true);

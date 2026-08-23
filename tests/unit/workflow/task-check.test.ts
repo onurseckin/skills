@@ -619,7 +619,7 @@ describe("task-check: formatTaskCheckMarkdown", () => {
 
     const summary: TaskCheckSummary = {
       passed: false,
-      runRoot: ".capsules/test-run-123",
+      runRoot: ".olt/capsules/test-run-123",
       taskId: "task-feat-auth",
       filesChecked: ["/path/to/src/bad.ts", "/path/to/src/good.ts"],
       durationMs: 45,

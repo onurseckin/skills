@@ -48,15 +48,15 @@ describe("Mind Product Owner Mode & Atomic Dispatch Chaining Test Suite", () => 
     `test-po-dispatch-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
   );
   const capsulesDir = testRoot;
-  const feedbackFile = join(testRoot, ".capsules", "FEEDBACK_QUEUE.jsonl");
-  const taskQueueFile = join(testRoot, ".capsules", "TASK_QUEUE.jsonl");
-  const memoryFile = join(testRoot, ".capsules", "mind", "memory.json");
+  const feedbackFile = join(testRoot, ".olt", "capsules", "FEEDBACK_QUEUE.jsonl");
+  const taskQueueFile = join(testRoot, ".olt", "capsules", "TASK_QUEUE.jsonl");
+  const memoryFile = join(testRoot, ".olt", "memory.json");
 
   beforeEach(() => {
     if (existsSync(testRoot)) {
       rmSync(testRoot, { recursive: true, force: true });
     }
-    mkdirSync(join(testRoot, ".capsules", "mind"), { recursive: true });
+    mkdirSync(join(testRoot, ".olt"), { recursive: true });
   });
 
   afterAll(() => {

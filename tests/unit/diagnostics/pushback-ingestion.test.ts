@@ -19,7 +19,7 @@ import {
 
 describe("Diagnostics Pushback Ingestion Engine", () => {
   const repoRoot = process.cwd();
-  const feedbackQueuePath = join(repoRoot, ".capsules", "FEEDBACK_QUEUE.jsonl");
+  const feedbackQueuePath = join(repoRoot, ".olt", "capsules", "FEEDBACK_QUEUE.jsonl");
   const pushbackDocPath = join(repoRoot, "USER_PUSHBACK_AND_SELF_AUDIT.md");
 
   describe("FEEDBACK_QUEUE.jsonl Ingestion", () => {

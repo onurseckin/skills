@@ -330,7 +330,7 @@ describe("Script-Backed Scheduler Diagnostics Engine", () => {
     test("formatMindPulseActiveBrief embeds CLI Diagnostics Receipts and ASCII DAG badges", () => {
       const brief = formatMindPulseActiveBrief({
         pulseId: "pulse-1",
-        runRoot: ".capsules/test-run",
+        runRoot: ".olt/capsules/test-run",
         actor: "mind-1",
         host: "antigravity",
         driver: "perpetual-loop",
@@ -356,7 +356,7 @@ describe("Script-Backed Scheduler Diagnostics Engine", () => {
     test("formatMindPulseOpenedBrief embeds CLI Diagnostics Receipts and ASCII DAG badges", () => {
       const brief = formatMindPulseOpenedBrief({
         pulseId: "pulse-2",
-        runRoot: ".capsules/test-run-2",
+        runRoot: ".olt/capsules/test-run-2",
         actor: "mind-1",
         host: "antigravity",
         driver: "perpetual-loop",

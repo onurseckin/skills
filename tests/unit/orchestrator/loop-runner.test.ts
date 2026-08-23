@@ -56,7 +56,12 @@ describe("AutonomousLoopRunner Unit Tests", () => {
     expect(completedTelemetries.length).toBe(1);
     expect(summary.finalMarkdownSummary).toContain("Autonomous Multi-Round Loop Summary");
 
-    const persistedSummary = join(testDir, ".capsules", "run-test-r1-converge-loop-summary.json");
+    const persistedSummary = join(
+      testDir,
+      ".olt",
+      "capsules",
+      "run-test-r1-converge-loop-summary.json",
+    );
     expect(existsSync(persistedSummary)).toBe(true);
   });
 
@@ -304,7 +309,7 @@ describe("AutonomousLoopRunner Unit Tests", () => {
     };
 
     const runner = new AutonomousLoopRunner({
-      baseRunId: ".capsules/2026-08-20-fine-grained-curriculum-orchestration",
+      baseRunId: ".olt/capsules/2026-08-20-fine-grained-curriculum-orchestration",
       repoPath: testDir,
       initialPrompt: "Implement the curriculum",
       executor: mockExecutor,
@@ -312,22 +317,23 @@ describe("AutonomousLoopRunner Unit Tests", () => {
 
     expect(runner.baseRunId).toBe("2026-08-20-fine-grained-curriculum-orchestration");
     expect(runner.getCapsulePath("2026-08-20-fine-grained-curriculum-orchestration-round-1")).toBe(
-      join(testDir, ".capsules", "2026-08-20-fine-grained-curriculum-orchestration-round-1"),
+      join(testDir, ".olt", "capsules", "2026-08-20-fine-grained-curriculum-orchestration-round-1"),
     );
 
     const summary = await runner.run();
 
     expect(summary.baseRunId).toBe("2026-08-20-fine-grained-curriculum-orchestration");
     expect(summary.loopId).toBe("loop-2026-08-20-fine-grained-curriculum-orchestration");
-    expect(summary.loopId).not.toContain(".capsules");
+    expect(summary.loopId).not.toContain(".olt", "capsules");
 
     const persistedSummary = join(
       testDir,
-      ".capsules",
+      ".olt",
+      "capsules",
       "2026-08-20-fine-grained-curriculum-orchestration-loop-summary.json",
     );
     expect(existsSync(persistedSummary)).toBe(true);
-    expect(existsSync(join(testDir, ".capsules", ".capsules"))).toBe(false);
+    expect(existsSync(join(testDir, ".olt", "capsules", ".olt", "capsules"))).toBe(false);
   });
 
   it("validates required options and throws HarnessError INVALID_ARGUMENT", () => {

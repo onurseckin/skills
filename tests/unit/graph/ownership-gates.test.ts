@@ -133,7 +133,7 @@ describe("graph ownership roles and scoped gates", () => {
       ["test", "-h", "links/current"],
       ["node", "scripts/verify.js"],
       ["bun", "scripts/verify.ts"],
-      ["bun", "olt/scripts/harness.ts", "status", "--run", ".capsules/example"],
+      ["bun", "olt/scripts/harness.ts", "status", "--run", ".olt/capsules/example"],
       ["deno", "test", "tests/verify_test.ts"],
       ["deno", "run", "scripts/verify.ts"],
       ["bun", "test", "tests"],

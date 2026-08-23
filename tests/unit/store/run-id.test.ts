@@ -10,7 +10,7 @@ describe("normalizeRunId", () => {
   });
 
   test("strips exactly one leading .capsules/ prefix, the documented form every other command uses", () => {
-    expect(normalizeRunId(".capsules/2026-08-20-fine-grained-curriculum-orchestration")).toBe(
+    expect(normalizeRunId(".olt/capsules/2026-08-20-fine-grained-curriculum-orchestration")).toBe(
       "2026-08-20-fine-grained-curriculum-orchestration",
     );
   });
@@ -23,8 +23,8 @@ describe("normalizeRunId", () => {
     // This is the exact shape the forensics run produced: a run id built by joining an
     // already-prefixed `.capsules/<run-id>` argument onto `.capsules/` a second time would have
     // been caught here, at the point that would otherwise perform that join.
-    expect(() => normalizeRunId(".capsules/.capsules/2026-08-20-run")).toThrow(HarnessError);
-    expect(() => normalizeRunId(".capsules/.capsules/2026-08-20-run")).toThrow(/run_id/i);
+    expect(() => normalizeRunId(".olt/capsules/.capsules/2026-08-20-run")).toThrow(HarnessError);
+    expect(() => normalizeRunId(".olt/capsules/.capsules/2026-08-20-run")).toThrow(/run_id/i);
   });
 
   test("rejects a bare value containing a path separator with no .capsules/ prefix involved", () => {

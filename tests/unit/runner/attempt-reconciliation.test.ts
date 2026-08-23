@@ -34,7 +34,7 @@ const repository: RepositoryBinding = {
 async function fixture(rootIdentity: ProcessIdentity | null = identity, terminalProof = false) {
   const root = await mkdtemp(join(tmpdir(), "attempt-reconcile-"));
   roots.push(root);
-  const runRoot = join(root, ".capsules");
+  const runRoot = join(root, ".olt", "capsules");
   await mkdir(join(runRoot, "commands"), { recursive: true });
   const signer = createCommandSigningCapability();
   const runner = createInternalCommandRunner({

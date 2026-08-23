@@ -56,7 +56,7 @@ function setupMindFixture(
   const repo = mkdtempSync(join(tmpdir(), `mind-quiesce-test-${name}-`));
   tempRoots.push(repo);
 
-  const capsulesDir = join(repo, ".capsules");
+  const capsulesDir = join(repo, ".olt", "capsules");
   mkdirSync(capsulesDir, { recursive: true });
 
   const charterDir = join(repo, "docs", "mind");

@@ -1,8 +1,8 @@
-import { describe, expect, test } from "bun:test";
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
-  findRepoRoot,
   resolveBacklogPath,
   resolveCapsulesDir,
   resolveCompletedDefectsPath,
@@ -13,8 +13,20 @@ import {
   resolveTelemetryPath,
 } from "../../../olt/scripts/src/shared/paths.ts";
 
-describe("Plan 93 Canonical olt/ Storage & Paths System", () => {
-  const tmpRoot = join(require("os").tmpdir(), "tmp", "test-olt-paths");
+describe("Canonical olt/ Storage & Paths System", () => {
+  let tmpRoot: string;
+
+  beforeEach(() => {
+    tmpRoot = mkdtempSync(join(tmpdir(), "test-olt-paths-"));
+  });
+
+  afterEach(() => {
+    try {
+      rmSync(tmpRoot, { recursive: true, force: true });
+    } catch {
+      // Ignored
+    }
+  });
 
   test("resolves canonical .olt/ directory and persistent files", () => {
     mkdirSync(join(tmpRoot, ".olt"), { recursive: true });
@@ -34,35 +46,9 @@ describe("Plan 93 Canonical olt/ Storage & Paths System", () => {
       join(tmpRoot, ".olt", "completed-defects.jsonl"),
     );
     expect(resolveTelemetryPath(tmpRoot)).toBe(join(tmpRoot, ".olt", "telemetry.jsonl"));
-
-    rmSync(tmpRoot, { recursive: true, force: true });
   });
 
-  test("resolves fallback olt/ directory when .olt does not exist", () => {
-    mkdirSync(join(tmpRoot, "olt"), { recursive: true });
-    writeFileSync(join(tmpRoot, "olt", "policy.json"), "{}", "utf-8");
-    expect(resolveOltDir(tmpRoot)).toBe(join(tmpRoot, "olt"));
-    rmSync(tmpRoot, { recursive: true, force: true });
-  });
-
-  test("falls back to legacy .capsules/ paths if olt/ is not yet created", () => {
-    mkdirSync(join(tmpRoot, ".capsules", "mind", "queue"), { recursive: true });
-    writeFileSync(join(tmpRoot, ".capsules", "mind", "queue", "feedback-queue.jsonl"), "", "utf-8");
-    writeFileSync(join(tmpRoot, ".capsules", "mind", "queue", "blunders.jsonl"), "", "utf-8");
-
-    expect(resolveBacklogPath(tmpRoot)).toBe(
-      join(tmpRoot, ".capsules", "mind", "queue", "feedback-queue.jsonl"),
-    );
-    expect(resolveDefectsPath(tmpRoot)).toBe(
-      join(tmpRoot, ".capsules", "mind", "queue", "blunders.jsonl"),
-    );
-
-    rmSync(tmpRoot, { recursive: true, force: true });
-  });
-
-  test("resolves capsules runtime directory", () => {
-    mkdirSync(join(tmpRoot, "capsules"), { recursive: true });
-    expect(resolveCapsulesDir(tmpRoot)).toBe(join(tmpRoot, "capsules"));
-    rmSync(tmpRoot, { recursive: true, force: true });
+  test("resolves canonical .olt/capsules runtime directory", () => {
+    expect(resolveCapsulesDir(tmpRoot)).toBe(join(tmpRoot, ".olt", "capsules"));
   });
 });

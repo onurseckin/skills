@@ -578,8 +578,8 @@ describe("Mind Cadence & Anti-Idle Immediate Rollover Engine", () => {
         healthy: true,
         exitCode: 0,
         reason: "Fresh",
-        capsuleDir: ".capsules/test",
-        pulseFile: ".capsules/test/last_pulse.json",
+        capsuleDir: ".olt/capsules/test",
+        pulseFile: ".olt/capsules/test/last_pulse.json",
         metrics: {
           pulseId: "pulse-99",
           outcome: "active",

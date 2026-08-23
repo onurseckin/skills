@@ -585,7 +585,7 @@ describe("mindPulseOpenCommand", () => {
   test("formatMindPulseOpenBrief renders clean markdown adhering to line limits", () => {
     const md = formatMindPulseOpenBrief({
       pulseId: "pulse-1",
-      runRoot: ".capsules/mind-gen-1",
+      runRoot: ".olt/capsules/mind-gen-1",
       actor: "mind-1",
       host: "antigravity",
       driver: "pulse.sh",

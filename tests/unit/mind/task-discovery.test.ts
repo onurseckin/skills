@@ -322,7 +322,9 @@ describe("Perpetual Infinite Mind Engine with Autonomic Task Discovery & Re-Vali
         expect(src.revalidationGate).toBeDefined();
         expect(src.discoveryCategory).toBeDefined();
 
-        const empiricalCmd = getSourceEmpiricalCommand(src.id, { runRoot: ".capsules/test-run" });
+        const empiricalCmd = getSourceEmpiricalCommand(src.id, {
+          runRoot: ".olt/capsules/test-run",
+        });
         expect(empiricalCmd).not.toContain("<r>");
 
         const gate = getSourceRevalidationGate(src.id, "tests/unit/mind/test.test.ts");

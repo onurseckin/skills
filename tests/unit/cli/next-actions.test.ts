@@ -139,31 +139,31 @@ describe("Next Actions Formatter", () => {
 
 describe("Next Actions Helper Generators", () => {
   test("plan and orchestration helpers generate exact role-bound commands", () => {
-    const initActions = planInitNextActions(".capsules/run-1");
+    const initActions = planInitNextActions(".olt/capsules/run-1");
     expect(initActions.length).toBe(2);
     expect(initActions[0]!.command).toContain("plan:enhance --run .capsules/run-1");
     expect(initActions[0]!.role).toBe("Planner");
     expect(initActions[1]!.command).toContain("plan:add --run .capsules/run-1");
 
-    const orchActions = orchestrateNextActions(".capsules/run-1");
+    const orchActions = orchestrateNextActions(".olt/capsules/run-1");
     expect(orchActions.length).toBe(3);
     expect(orchActions[0]!.role).toBe("Orchestrator");
     expect(orchActions[1]!.role).toBe("Planner");
     expect(orchActions[2]!.role).toBe("Coordinator");
 
-    const regActions = taskRegisteredNextActions(".capsules/run-1");
+    const regActions = taskRegisteredNextActions(".olt/capsules/run-1");
     expect(regActions[0]!.command).toContain("plan:add --run .capsules/run-1");
     expect(regActions[1]!.command).toContain("plan:compile --run .capsules/run-1");
 
-    const enhanceActions = planEnhanceNextActions(".capsules/run-1");
+    const enhanceActions = planEnhanceNextActions(".olt/capsules/run-1");
     expect(enhanceActions[0]!.command).toContain("plan:add --run .capsules/run-1");
     expect(enhanceActions[1]!.command).toContain("plan:compile --run .capsules/run-1");
 
-    const compileActions = planCompileNextActions(".capsules/run-1", true);
+    const compileActions = planCompileNextActions(".olt/capsules/run-1", true);
     expect(compileActions[0]!.role).toBe("Plan-Validator");
     expect(compileActions[1]!.role).toBe("Coordinator");
 
-    const compileEmptyActions = planCompileNextActions(".capsules/run-1", false);
+    const compileEmptyActions = planCompileNextActions(".olt/capsules/run-1", false);
     expect(compileEmptyActions[0]!.description).toContain("unblock scheduler");
 
     const statusCompiled = planStatusNextActions("run-1", true);
@@ -347,7 +347,7 @@ describe("Formatter Integration with ⚡ Next Actions GPS blocks", () => {
       }),
       formatCapsuleInitBrief({
         runId: "run-1",
-        runRoot: ".capsules/run-1",
+        runRoot: ".olt/capsules/run-1",
         promptSha256: "abc",
         assurance: "source-verified",
       }),

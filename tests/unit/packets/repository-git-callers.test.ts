@@ -39,7 +39,7 @@ describe("restricted repository Git callers", () => {
     const repo = mkdtempSync(join(tmpdir(), "restricted-git-callers-"));
     roots.push(repo);
     mkdirSync(join(repo, ".git"));
-    const runRoot = join(repo, ".capsules", "run");
+    const runRoot = join(repo, ".olt", "capsules", "run");
     mkdirSync(runRoot, { recursive: true });
     const calls: Array<{ argv: string[]; options: unknown }> = [];
     const command = createRepositoryGitCommand(
@@ -65,7 +65,7 @@ describe("restricted repository Git callers", () => {
     expect(ignoredByGit(runRoot, command)).toBeTrue();
     expect(calls.map(({ argv }) => argv)).toEqual([
       [...prefix, "-C", repo, "rev-parse", "--is-inside-work-tree"],
-      [...prefix, "-C", repo, "check-ignore", "--quiet", ".capsules/probe"],
+      [...prefix, "-C", repo, "check-ignore", "--quiet", ".olt/capsules/probe"],
       [...prefix, "-C", repo, "check-ignore", "--quiet", runRoot],
     ]);
     for (const call of calls)

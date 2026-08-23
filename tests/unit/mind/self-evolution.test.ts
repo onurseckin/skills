@@ -63,7 +63,7 @@ describe("Autonomous Mind Self-Evolution Loop & Perpetual Cadence", () => {
     it("enforces perpetual non-stopping cadence invariants and prevents loop termination", () => {
       const guard = enforcePerpetualNonStoppingCadence({
         actor: "perpetual-mind",
-        runRoot: ".capsules/test-run",
+        runRoot: ".olt/capsules/test-run",
       });
 
       expect(guard.cadence).toBe(PERPETUAL_NON_STOPPING_CADENCE);

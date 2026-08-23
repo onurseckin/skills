@@ -71,15 +71,15 @@ async function fixture(label: string) {
   const root = await mkdtemp(join(tmpdir(), `${label}-`));
   roots.push(root);
   await mkdir(join(root, "bin"));
-  await mkdir(join(root, ".capsules", "commands"), { recursive: true });
+  await mkdir(join(root, ".olt", "capsules", "commands"), { recursive: true });
   await writeFile(join(root, "bin", "verify"), "#!/bin/sh\nexit 0\n", { mode: 0o700 });
   return {
     root,
     input: {
       argv: ["./bin/verify"],
       cwd: root,
-      runRoot: join(root, ".capsules"),
-      commandDir: join(root, ".capsules", "commands"),
+      runRoot: join(root, ".olt", "capsules"),
+      commandDir: join(root, ".olt", "capsules", "commands"),
       actor: "validator" as const,
       taskId: "T-observed",
       gateId: "G-observed",

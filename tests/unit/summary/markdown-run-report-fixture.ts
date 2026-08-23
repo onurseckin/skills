@@ -70,7 +70,7 @@ export async function buildRunReportCapsule(): Promise<BuiltRun> {
       "console.log('gate ok');",
     ].join("\n"),
   );
-  writeFileSync(join(repo, ".gitignore"), ".capsules/\n");
+  writeFileSync(join(repo, ".gitignore"), ".olt/capsules/\n");
   writeFileSync(
     join(repo, "prompt.txt"),
     "Build the alpha subsystem.\nBuild the beta subsystem.\nWire gamma onto alpha.\n",

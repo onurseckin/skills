@@ -71,7 +71,7 @@ describe("formatRunCompleteBrief worktree consolidation", () => {
   function base() {
     return {
       runId: "run-1",
-      capsulePath: ".capsules/run-1",
+      capsulePath: ".olt/capsules/run-1",
       tasksCount: 3,
       validationsCount: 3,
       gatesPassed: 3,

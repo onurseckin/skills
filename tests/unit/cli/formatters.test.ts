@@ -48,7 +48,7 @@ describe("Markdown Formatters", () => {
   test("all brief formatters produce valid markdown <= 30 lines", () => {
     const initBrief = formatCapsuleInitBrief({
       runId: "run-1",
-      runRoot: ".capsules/run-1",
+      runRoot: ".olt/capsules/run-1",
       promptSha256: "abc123sha",
       promptBytes: 1200,
       assurance: "source-verified",
@@ -96,7 +96,7 @@ describe("Markdown Formatters", () => {
       priority: 80,
       writeScope: ["src/a"],
       gates: ["bun test"],
-      packetPath: ".capsules/packet.md",
+      packetPath: ".olt/capsules/packet.md",
       runId: "run-1",
     });
     expect(queueNext.split("\n").length).toBeLessThanOrEqual(30);
@@ -121,7 +121,7 @@ describe("Markdown Formatters", () => {
       expiresAt: "20:00:00",
       writeScope: ["src/a"],
       gates: ["bun test"],
-      packetPath: ".capsules/packet.md",
+      packetPath: ".olt/capsules/packet.md",
     });
     expect(queuePop.split("\n").length).toBeLessThanOrEqual(30);
 
@@ -212,7 +212,7 @@ describe("Markdown Formatters", () => {
 
     const runComp = formatRunCompleteBrief({
       runId: "run-1",
-      capsulePath: ".capsules/run-1",
+      capsulePath: ".olt/capsules/run-1",
       tasksCount: 3,
       validationsCount: 3,
       gatesPassed: 3,

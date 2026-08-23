@@ -676,7 +676,7 @@ describe("Generational State Archival (REMED-007)", () => {
       expect(gen4Objectives.some((o) => o.id === "obj-gen2-parser")).toBe(true);
 
       // Verify ARCHIVED_OBJECTIVES.jsonl on disk
-      const capsulesDir = join(repoRoot, ".capsules");
+      const capsulesDir = join(repoRoot, ".olt", "capsules");
       const globalArchivedPath = join(capsulesDir, "ARCHIVED_OBJECTIVES.jsonl");
       expect(existsSync(globalArchivedPath)).toBe(true);
 
@@ -778,7 +778,7 @@ describe("Generational State Archival (REMED-007)", () => {
   describe("Semantic Memory Search integration with ARCHIVED_OBJECTIVES.jsonl", () => {
     test("indexArchivedObjectiveDocuments and searchMemory discover archived objectives", () => {
       const scratch = scratchRoot("memory-archival-search");
-      const capsulesDir = join(scratch, ".capsules");
+      const capsulesDir = join(scratch, ".olt", "capsules");
       const archivalPath = join(capsulesDir, "ARCHIVED_OBJECTIVES.jsonl");
 
       const records: readonly ArchivedObjectiveRecord[] = [
@@ -910,7 +910,7 @@ describe("Generational State Archival (REMED-007)", () => {
 
       const archiveResult = archiveCapsule(runRoot);
       expect(archiveResult.runId).toContain("mind-gen-1");
-      expect(archiveResult.archivedPath).toContain(join(".capsules", "archive"));
+      expect(archiveResult.archivedPath).toContain(join(".olt", "capsules", "archive"));
       expect(existsSync(runRoot)).toBe(false);
       expect(existsSync(archiveResult.archivedPath)).toBe(true);
 
@@ -924,7 +924,7 @@ describe("Generational State Archival (REMED-007)", () => {
 
     test("consolidateCapsules archives legacy generation roots into .capsules/archive/ and keeps active roots minimal", () => {
       const scratch = scratchRoot("consolidate-capsules-test");
-      const capsulesDir = join(scratch, ".capsules");
+      const capsulesDir = join(scratch, ".olt", "capsules");
       mkdirSync(capsulesDir, { recursive: true });
 
       writeFileSync(join(scratch, "CHARTER.md"), SAMPLE_CHARTER, "utf-8");
@@ -988,7 +988,7 @@ describe("Generational State Archival (REMED-007)", () => {
 
     test("pruneAndArchiveGenerationalState consolidates on-disk capsules when consolidateCapsulesOnDisk is enabled", () => {
       const scratch = scratchRoot("prune-archive-disk-consolidation");
-      const capsulesDir = join(scratch, ".capsules");
+      const capsulesDir = join(scratch, ".olt", "capsules");
       mkdirSync(capsulesDir, { recursive: true });
       writeFileSync(join(scratch, "CHARTER.md"), SAMPLE_CHARTER, "utf-8");
 

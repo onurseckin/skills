@@ -68,37 +68,37 @@ describe("Mind & Todo Storage Canonical Layout and Transparent Resolvers", () =>
   describe("Standardized Canonical Constants & Layout Naming", () => {
     it("verifies canonical filenames adhere strictly to lowercase kebab-case naming", () => {
       expect(CANONICAL_FEEDBACK_FILE).toBe("olt/backlog.jsonl");
-      expect(TODO_FEEDBACK_FILE).toBe(".capsules/todo/feedback-queue.jsonl");
-      expect(LEGACY_FEEDBACK_FILE).toBe(".capsules/FEEDBACK_QUEUE.jsonl");
-      expect(LEGACY_LOWER_FEEDBACK_FILE).toBe(".capsules/feedback-queue.jsonl");
+      expect(TODO_FEEDBACK_FILE).toBe(".olt/capsules/todo/feedback-queue.jsonl");
+      expect(LEGACY_FEEDBACK_FILE).toBe(".olt/capsules/FEEDBACK_QUEUE.jsonl");
+      expect(LEGACY_LOWER_FEEDBACK_FILE).toBe(".olt/capsules/feedback-queue.jsonl");
 
       expect(CANONICAL_COMPLETED_TASKS_FILE).toBe("olt/completed-tasks.jsonl");
-      expect(TODO_COMPLETED_TASKS_FILE).toBe(".capsules/todo/completed-tasks.jsonl");
-      expect(LEGACY_COMPLETED_TASKS_FILE).toBe(".capsules/COMPLETED_TASKS.jsonl");
-      expect(LEGACY_LOWER_COMPLETED_TASKS_FILE).toBe(".capsules/completed-tasks.jsonl");
+      expect(TODO_COMPLETED_TASKS_FILE).toBe(".olt/capsules/todo/completed-tasks.jsonl");
+      expect(LEGACY_COMPLETED_TASKS_FILE).toBe(".olt/capsules/COMPLETED_TASKS.jsonl");
+      expect(LEGACY_LOWER_COMPLETED_TASKS_FILE).toBe(".olt/capsules/completed-tasks.jsonl");
 
       expect(CANONICAL_DEFECTS_FILE).toBe("olt/defects.jsonl");
-      expect(TODO_DEFECTS_FILE).toBe(".capsules/todo/defects.jsonl");
-      expect(LEGACY_DEFECTS_FILE).toBe(".capsules/defects.jsonl");
-      expect(LEGACY_UPPER_DEFECTS_FILE).toBe(".capsules/DEFECTS.jsonl");
+      expect(TODO_DEFECTS_FILE).toBe(".olt/capsules/todo/defects.jsonl");
+      expect(LEGACY_DEFECTS_FILE).toBe(".olt/capsules/defects.jsonl");
+      expect(LEGACY_UPPER_DEFECTS_FILE).toBe(".olt/capsules/DEFECTS.jsonl");
 
       expect(CANONICAL_COMPLETED_DEFECTS_FILE).toBe("olt/completed-defects.jsonl");
-      expect(TODO_COMPLETED_DEFECTS_FILE).toBe(".capsules/todo/completed-defects.jsonl");
-      expect(LEGACY_COMPLETED_DEFECTS_FILE).toBe(".capsules/COMPLETED_DEFECTS.jsonl");
-      expect(LEGACY_LOWER_COMPLETED_DEFECTS_FILE).toBe(".capsules/completed-defects.jsonl");
+      expect(TODO_COMPLETED_DEFECTS_FILE).toBe(".olt/capsules/todo/completed-defects.jsonl");
+      expect(LEGACY_COMPLETED_DEFECTS_FILE).toBe(".olt/capsules/COMPLETED_DEFECTS.jsonl");
+      expect(LEGACY_LOWER_COMPLETED_DEFECTS_FILE).toBe(".olt/capsules/completed-defects.jsonl");
 
       expect(CANONICAL_OBSERVATIONS_FILE).toBe("olt/telemetry.jsonl");
-      expect(TODO_OBSERVATIONS_FILE).toBe(".capsules/todo/observations.jsonl");
-      expect(LEGACY_OBSERVATIONS_FILE).toBe(".capsules/OBSERVATIONS.jsonl");
-      expect(LEGACY_LOWER_OBSERVATIONS_FILE).toBe(".capsules/observations.jsonl");
+      expect(TODO_OBSERVATIONS_FILE).toBe(".olt/capsules/todo/observations.jsonl");
+      expect(LEGACY_OBSERVATIONS_FILE).toBe(".olt/capsules/OBSERVATIONS.jsonl");
+      expect(LEGACY_LOWER_OBSERVATIONS_FILE).toBe(".olt/capsules/observations.jsonl");
 
-      expect(CANONICAL_WATCHDOG_FILE).toBe(".capsules/mind/queue/watchdogs.json");
-      expect(TODO_WATCHDOG_FILE).toBe(".capsules/todo/watchdogs.json");
-      expect(LEGACY_WATCHDOG_FILE).toBe(".capsules/watchdogs.json");
+      expect(CANONICAL_WATCHDOG_FILE).toBe(".olt/capsules/mind/queue/watchdogs.json");
+      expect(TODO_WATCHDOG_FILE).toBe(".olt/capsules/todo/watchdogs.json");
+      expect(LEGACY_WATCHDOG_FILE).toBe(".olt/capsules/watchdogs.json");
 
-      expect(CANONICAL_COGNITIVE_MEMORY_FILE).toBe(".capsules/mind/memory.json");
-      expect(TODO_COGNITIVE_MEMORY_FILE).toBe(".capsules/todo/memory.json");
-      expect(LEGACY_COGNITIVE_MEMORY_FILE).toBe(".capsules/memory.json");
+      expect(CANONICAL_COGNITIVE_MEMORY_FILE).toBe(".olt/capsules/mind/memory.json");
+      expect(TODO_COGNITIVE_MEMORY_FILE).toBe(".olt/capsules/todo/memory.json");
+      expect(LEGACY_COGNITIVE_MEMORY_FILE).toBe(".olt/capsules/memory.json");
     });
 
     it("resolves canonical paths correctly with custom roots and todo layout flags", () => {
@@ -107,7 +107,7 @@ describe("Mind & Todo Storage Canonical Layout and Transparent Resolvers", () =>
       // Feedback queue
       expect(resolveCanonicalFeedbackQueuePath(root)).toBe(join(root, "olt/backlog.jsonl"));
       expect(resolveCanonicalFeedbackQueuePath(root, true)).toBe(
-        join(root, ".capsules/todo/feedback-queue.jsonl"),
+        join(root, ".olt/capsules/todo/feedback-queue.jsonl"),
       );
 
       // Completed tasks
@@ -115,13 +115,13 @@ describe("Mind & Todo Storage Canonical Layout and Transparent Resolvers", () =>
         join(root, "olt/completed-tasks.jsonl"),
       );
       expect(resolveCanonicalCompletedTasksPath(root, true)).toBe(
-        join(root, ".capsules/todo/completed-tasks.jsonl"),
+        join(root, ".olt/capsules/todo/completed-tasks.jsonl"),
       );
 
       // Defects
       expect(resolveCanonicalDefectsPath(root)).toBe(join(root, "olt/defects.jsonl"));
       expect(resolveCanonicalDefectsPath(root, true)).toBe(
-        join(root, ".capsules/todo/defects.jsonl"),
+        join(root, ".olt/capsules/todo/defects.jsonl"),
       );
 
       // Completed defects
@@ -129,29 +129,29 @@ describe("Mind & Todo Storage Canonical Layout and Transparent Resolvers", () =>
         join(root, "olt/completed-defects.jsonl"),
       );
       expect(resolveCanonicalCompletedDefectsPath(root, true)).toBe(
-        join(root, ".capsules/todo/completed-defects.jsonl"),
+        join(root, ".olt/capsules/todo/completed-defects.jsonl"),
       );
 
       // Observations
       expect(resolveCanonicalObservationsPath(root)).toBe(join(root, "olt/telemetry.jsonl"));
       expect(resolveCanonicalObservationsPath(root, true)).toBe(
-        join(root, ".capsules/todo/observations.jsonl"),
+        join(root, ".olt/capsules/todo/observations.jsonl"),
       );
 
       // Watchdogs
       expect(resolveCanonicalWatchdogStorePath(root)).toBe(
-        join(root, ".capsules/mind/queue/watchdogs.json"),
+        join(root, ".olt/capsules/mind/queue/watchdogs.json"),
       );
       expect(resolveCanonicalWatchdogStorePath(root, true)).toBe(
-        join(root, ".capsules/todo/watchdogs.json"),
+        join(root, ".olt/capsules/todo/watchdogs.json"),
       );
 
       // Cognitive memory
       expect(resolveCanonicalCognitiveMemoryPath(root)).toBe(
-        join(root, ".capsules/mind/memory.json"),
+        join(root, ".olt/capsules/mind/memory.json"),
       );
       expect(resolveCanonicalCognitiveMemoryPath(root, true)).toBe(
-        join(root, ".capsules/todo/memory.json"),
+        join(root, ".olt/capsules/todo/memory.json"),
       );
     });
   });
@@ -184,14 +184,14 @@ describe("Mind & Todo Storage Canonical Layout and Transparent Resolvers", () =>
       const testDir = scratchRoot(import.meta.path, "transparent-resolvers");
 
       // Setup directory structure with canonical and legacy files
-      const canonicalQueue = join(testDir, ".capsules", "mind", "queue", "feedback-queue.jsonl");
-      const legacyQueue = join(testDir, ".capsules", "FEEDBACK_QUEUE.jsonl");
+      const canonicalQueue = join(testDir, ".olt", "feedback-queue.jsonl");
+      const legacyQueue = join(testDir, ".olt", "capsules", "FEEDBACK_QUEUE.jsonl");
       mkdirSync(dirname(canonicalQueue), { recursive: true });
       writeFileSync(canonicalQueue, "", "utf8");
       writeFileSync(legacyQueue, "", "utf8");
 
-      const canonicalTasks = join(testDir, ".capsules", "mind", "queue", "completed-tasks.jsonl");
-      const legacyTasks = join(testDir, ".capsules", "COMPLETED_TASKS.jsonl");
+      const canonicalTasks = join(testDir, ".olt", "completed-tasks.jsonl");
+      const legacyTasks = join(testDir, ".olt", "capsules", "COMPLETED_TASKS.jsonl");
       mkdirSync(dirname(canonicalTasks), { recursive: true });
       writeFileSync(canonicalTasks, "", "utf8");
       writeFileSync(legacyTasks, "", "utf8");
@@ -208,8 +208,8 @@ describe("Mind & Todo Storage Canonical Layout and Transparent Resolvers", () =>
   describe("Legacy Migration Mechanics", () => {
     it("migrates FEEDBACK_QUEUE.jsonl to canonical .capsules/mind/queue/feedback-queue.jsonl", () => {
       const testDir = scratchRoot(import.meta.path, "migrate-feedback");
-      const legacyFile = join(testDir, ".capsules", "FEEDBACK_QUEUE.jsonl");
-      const canonicalFile = join(testDir, ".capsules", "mind", "queue", "feedback-queue.jsonl");
+      const legacyFile = join(testDir, ".olt", "capsules", "FEEDBACK_QUEUE.jsonl");
+      const canonicalFile = join(testDir, ".olt", "feedback-queue.jsonl");
 
       mkdirSync(dirname(legacyFile), { recursive: true });
       const sampleItem: FeedbackItem = {
@@ -249,8 +249,8 @@ describe("Mind & Todo Storage Canonical Layout and Transparent Resolvers", () =>
 
     it("migrates COMPLETED_TASKS.jsonl to canonical .capsules/mind/queue/completed-tasks.jsonl", () => {
       const testDir = scratchRoot(import.meta.path, "migrate-completed");
-      const legacyFile = join(testDir, ".capsules", "COMPLETED_TASKS.jsonl");
-      const canonicalFile = join(testDir, ".capsules", "mind", "queue", "completed-tasks.jsonl");
+      const legacyFile = join(testDir, ".olt", "capsules", "COMPLETED_TASKS.jsonl");
+      const canonicalFile = join(testDir, ".olt", "completed-tasks.jsonl");
 
       mkdirSync(dirname(legacyFile), { recursive: true });
       const record: CompletedTaskRecord = {
@@ -304,7 +304,7 @@ describe("Mind & Todo Storage Canonical Layout and Transparent Resolvers", () =>
 
     it("writes, reads, and persists custom CognitiveMemoryState", () => {
       const testDir = scratchRoot(import.meta.path, "memory-persist");
-      const memoryFile = join(testDir, ".capsules", "mind", "memory.json");
+      const memoryFile = join(testDir, ".olt", "memory.json");
 
       const customState: CognitiveMemoryState = {
         version: 2,
@@ -362,7 +362,7 @@ describe("Mind & Todo Storage Canonical Layout and Transparent Resolvers", () =>
 
     it("atomically updates cognitive memory with updater function via updateCognitiveMemory", () => {
       const testDir = scratchRoot(import.meta.path, "memory-update");
-      const memoryFile = join(testDir, ".capsules", "mind", "memory.json");
+      const memoryFile = join(testDir, ".olt", "memory.json");
 
       // Initial write
       const initial: CognitiveMemoryState = {

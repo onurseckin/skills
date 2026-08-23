@@ -778,7 +778,7 @@ describe("Mind Admission Gates (W3.3 / PLAN.md §7.3)", () => {
   test("formatMindAdmitBrief: Renders clean markdown summary within line limits", () => {
     const brief = formatMindAdmitBrief({
       candidateId: "cand-100",
-      runRoot: ".capsules/mind-gen-1",
+      runRoot: ".olt/capsules/mind-gen-1",
       actor: "mind-1",
       statement: "Syntax error in parser",
       admittedAt: "2026-08-21T12:00:00.000Z",

@@ -39,7 +39,7 @@ async function compiledSingleTaskRun(
   git(repo, ["init", "--quiet", "--initial-branch", "main"]);
   git(repo, ["config", "user.email", "harness@example.test"]);
   git(repo, ["config", "user.name", "Harness Test"]);
-  writeFileSync(join(repo, ".gitignore"), ".capsules/\nprompt.txt\n");
+  writeFileSync(join(repo, ".gitignore"), ".olt/capsules/\nprompt.txt\n");
   writeFileSync(join(repo, "README.md"), "hi\n");
   git(repo, ["add", "-A"]);
   git(repo, ["commit", "--quiet", "-m", "base"]);

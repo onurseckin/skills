@@ -39,7 +39,7 @@ function seedRepository(): string {
   git(repo, ["config", "user.name", "fixture"]);
   mkdirSync(join(repo, "src", "alpha"), { recursive: true });
   mkdirSync(join(repo, "src", "beta"), { recursive: true });
-  writeFileSync(join(repo, ".gitignore"), ".capsules/\n");
+  writeFileSync(join(repo, ".gitignore"), ".olt/capsules/\n");
   writeFileSync(join(repo, "src", "alpha", "index.ts"), "export const alpha = 1;\n");
   git(repo, ["add", "-A"]);
   git(repo, ["commit", "-qm", "baseline"]);

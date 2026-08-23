@@ -45,7 +45,7 @@ describe("Feedback Queue Engine", () => {
 
     const resolved = resolveFeedbackQueuePath();
     expect(typeof resolved).toBe("string");
-    expect(resolved.endsWith(".capsules/FEEDBACK_QUEUE.jsonl")).toBe(true);
+    expect(resolved.endsWith(".olt/capsules/FEEDBACK_QUEUE.jsonl")).toBe(true);
   });
 
   it("resolves canonical feedback queue paths with todo and mind layout", () => {

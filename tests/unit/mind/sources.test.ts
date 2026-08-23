@@ -50,7 +50,7 @@ function setupMindCapsuleEnvironment(name: string): MindTestCapsule {
   const repo = mkdtempSync(join(tmpdir(), `mind-sources-test-${name}-`));
   tempRoots.push(repo);
 
-  const capsulesDir = join(repo, ".capsules");
+  const capsulesDir = join(repo, ".olt", "capsules");
   mkdirSync(capsulesDir, { recursive: true });
 
   const charterDir = join(repo, "docs", "mind");
@@ -587,7 +587,7 @@ describe("mindObserveCommand", () => {
   test("formatMindObserveBrief renders clean markdown adhering to line limit", () => {
     const md = formatMindObserveBrief({
       observationId: "obs-1",
-      runRoot: ".capsules/mind-gen-1",
+      runRoot: ".olt/capsules/mind-gen-1",
       actor: "mind-1",
       sourceId: "intent-drift",
       sourceNumber: 1,

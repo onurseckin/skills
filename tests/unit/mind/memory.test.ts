@@ -55,7 +55,7 @@ interface TestWorkspace {
 
 function setupTestWorkspace(name: string): TestWorkspace {
   const repoRoot = createTempDir(`memory-test-${name}-`);
-  const capsulesDir = join(repoRoot, ".capsules");
+  const capsulesDir = join(repoRoot, ".olt", "capsules");
   mkdirSync(capsulesDir, { recursive: true });
 
   const runRoot = join(capsulesDir, `mind-gen-1`);
@@ -358,7 +358,7 @@ describe("Semantic Knowledge & Memory Search Indexer", () => {
           kind: "defect",
           title: "Main Thread Boundary Violation",
           capsule_id: "mind-gen-1",
-          source_path: ".capsules/mind-gen-1/defects.jsonl",
+          source_path: ".olt/capsules/mind-gen-1/defects.jsonl",
           content: "Direct execution on main thread without subagent delegation.",
         }),
         createMemoryDocument({
@@ -366,7 +366,7 @@ describe("Semantic Knowledge & Memory Search Indexer", () => {
           kind: "decision",
           title: "Candidate 1 Admission",
           capsule_id: "mind-gen-1",
-          source_path: ".capsules/mind-gen-1/state.json",
+          source_path: ".olt/capsules/mind-gen-1/state.json",
           content: "Candidate cand-1 admitted by mind-lead for memory indexing.",
         }),
         createMemoryDocument({
@@ -374,7 +374,7 @@ describe("Semantic Knowledge & Memory Search Indexer", () => {
           kind: "report",
           title: "Validation Report Gen 1",
           capsule_id: "mind-gen-1",
-          source_path: ".capsules/mind-gen-1/reports/validation.md",
+          source_path: ".olt/capsules/mind-gen-1/reports/validation.md",
           content: "Validation report: all invariant gates passed.",
         }),
         createMemoryDocument({
@@ -382,7 +382,7 @@ describe("Semantic Knowledge & Memory Search Indexer", () => {
           kind: "capsule",
           title: "Capsule Prompt Gen 2",
           capsule_id: "mind-gen-2",
-          source_path: ".capsules/mind-gen-2/prompt.md",
+          source_path: ".olt/capsules/mind-gen-2/prompt.md",
           content: "Prompt: Refactor memory search ranking.",
         }),
       ];
@@ -502,7 +502,7 @@ describe("Semantic Knowledge & Memory Search Indexer", () => {
           kind: "defect" as MemoryKind,
           title: "Main Thread Execution",
           capsule_id: "mind-gen-1",
-          source_path: ".capsules/defects.jsonl",
+          source_path: ".olt/capsules/defects.jsonl",
           score: 4.821,
           snippet: "Direct write without subagent",
           matched_terms: ["thread", "execution"],

@@ -67,7 +67,7 @@ interface RunRootFixture {
  */
 function seedRunRoot(testName: string): RunRootFixture {
   const repositoryRoot = scratchRoot(testName);
-  const runRoot = join(repositoryRoot, ".capsules", "run-1");
+  const runRoot = join(repositoryRoot, ".olt", "capsules", "run-1");
   mkdirSync(runRoot, { recursive: true });
   const headCommit = "f".repeat(40);
   const digest = "d".repeat(64);
@@ -178,7 +178,7 @@ describe("enrichFileRefsWithDiffs", () => {
 
   test("a run root with no repository on disk passes files through unchanged", () => {
     const root = scratchRoot("no-repo-on-disk");
-    const runRoot = join(root, ".capsules", "run-1");
+    const runRoot = join(root, ".olt", "capsules", "run-1");
     mkdirSync(runRoot, { recursive: true });
     const [enriched] = enrichFileRefsWithDiffs([ref("src/a.ts")], runRoot, throwingCommand);
     expect(enriched).toEqual(ref("src/a.ts"));
