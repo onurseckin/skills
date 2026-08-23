@@ -17,7 +17,6 @@ import { mindInitCommand } from "../../../orchestrating-long-tasks/scripts/src/c
 import { mindPulseOpenCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/mind-pulse-open.ts";
 import { mindRotateCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/mind-rotate.ts";
 import { mindWakeCommand } from "../../../orchestrating-long-tasks/scripts/src/cli/commands/mind-wake.ts";
-import { writeLastPulse } from "../../../orchestrating-long-tasks/scripts/src/mind/last-pulse.ts";
 import type {
   JsonObject,
   JsonValue,
