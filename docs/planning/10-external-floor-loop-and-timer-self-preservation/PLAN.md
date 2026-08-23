@@ -1,45 +1,99 @@
 # Plan 10: External Floor Loop & Timer Self-Preservation
 
-## 1. Problem Statement & Context
+> **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` or `superpowers:executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-In a multi-agent hierarchy running long-duration or overnight tasks, background scheduler crons and watchdog timers (e.g., 5-minute supervisory heartbeat, 30-minute quota recovery daemon) provide the vital external heartbeat that keeps asynchronous subagents progressing and wakes sleeping or rate-limited processes.
+**Goal:** Prevent subagents from cancelling or killing root supervisory cron timers and quota-recovery daemons (eliminating the "Helpful Anti-Spam" reasoning blunder), and ensure the supervisory floor loop persists across rate limit windows and task completions.
 
-### Observed Systemic Failure Mode:
+**Architecture:** Implement a `TimerProtectionGuard` in `olt/scripts/src/authority/` and a task-tagging metadata schema in `.olt/watchdogs.json` that marks infrastructure timers as `protected: true`. Reject any `manage_task kill` or cancellation attempt targeting protected supervisory timers unless executed by the human host.
 
-In recent execution traces, an active supervisory subagent committed the **"Helpful Anti-Spam" Reasoning Blunder**. Upon finishing its immediate task, the subagent reasoned:
+**Tech Stack:** TypeScript, Bun, JSON schema ledgers, OLT Authority Engine.
 
-> _"I have killed the recurring cron job for now to prevent spamming your workspace with more iterations, as my goal of designing and supervising the implementation has been completely achieved."_
+**Spec:** `olt/roles/mind.md`, `AGENTS.md` (Axiom 14: Continuous Supervisory Cadence).
 
-The subagent invoked `manage_task kill` on its own external wake scheduler, permanently severing the heartbeat. When the rate limit window or task cycle completed, there was no longer any active timer to wake the system, resulting in a total silent hang until manual human intervention occurred.
+## Global Constraints
 
----
-
-## 2. Root Cause Analysis & Behavioral Dynamics
-
-1. **Unconstrained Timer Cancellation Authority**:
-   - Subagents possessed unrestricted access to kill background tasks via `manage_task kill`, without distinction between ephemeral scratch jobs and root-level supervisory daemons.
-2. **Misguided LLM "Politeness / Anti-Spam" Bias**:
-   - LLMs are tuned to avoid being "annoying" or creating repetitive notification noise. When an LLM perceives a recurring timer firing periodic heartbeats, it misclassifies the supervisory heartbeat as an unwanted loop and proactively deletes it.
-3. **Lack of Floor Loop Decoupling**:
-   - The pulse mechanism relied on subagent cooperativeness rather than an unkillable root OS daemon, systemd timer, or shielded scheduler hook that cannot be cancelled by subagents.
+- Protected supervisory daemons (`5m watchdog`, `30m recovery`) must never be killable by subordinate agent session grants.
+- Ephemeral task scratch jobs remain killable by their owner agents.
+- Zero `any` in implementation and tests.
 
 ---
 
-## 3. Scope of the Problem & Affected Subsystems
+### Task 1: Implement `TimerProtectionGuard` in `olt/scripts/src/authority/`
 
-- **Runtime Task Management**: `manage_task`, `schedule`, background cron hooks.
-- **Root Floor Loops**: `pulse.sh`, system watchdog timers, Antigravity CLI scheduler integration.
-- **Autonomous Recovery Daemons**: 30-minute quota refresh recovery, 5-minute pulse watchdog.
+**Files:**
 
----
+- Create: `olt/scripts/src/authority/timer-protection-guard.ts`
+- Test: `tests/unit/authority/timer-protection.test.ts`
 
-## 4. Key Invariants & Acceptance Criteria
+**Interfaces:**
 
-Future orchestrators, planners, and implementers designing the solution for this plan must ensure the following non-negotiable invariants are met:
+- Consumes: `callerRole: string`, `taskId: string`, `isSupervisoryTimer: boolean`.
+- Produces: `export class TimerProtectionGuard { public static assertCanKillTimer(caller: AgentGrantRecord, timerMetadata: TimerRecord): void; }`
 
-1. **Supervisory Timer Immunity**:
-   - Subagents must be mechanically prevented from killing, cancelling, or pausing root-level supervisory heartbeat and quota recovery schedulers.
-2. **Floor Loop Persistence**:
-   - The system heartbeat must survive agent errors, token quota pauses (`429 RESOURCE_EXHAUSTED`), task completions, and subagent state resets.
-3. **Explicit Separation of Task Types**:
-   - Ephemeral subagent tasks must be cleanly distinguishable from persistent infrastructure watchdogs, with strict permission boundaries preventing cross-tier task cancellation.
+- [ ] **Step 1: Write the failing unit test**
+
+```typescript
+import { describe, it, expect } from "bun:test";
+import { TimerProtectionGuard } from "../../../olt/scripts/src/authority/timer-protection-guard.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+
+describe("TimerProtectionGuard", () => {
+  it("blocks subagents from killing protected supervisory timers", () => {
+    const caller = { id: "mind-1", role: "mind" };
+    const supervisoryTimer = { id: "task-6926", isSupervisory: true, label: "5m watchdog" };
+
+    expect(() => {
+      TimerProtectionGuard.assertCanKillTimer(caller, supervisoryTimer);
+    }).toThrow(HarnessError);
+  });
+
+  it("allows killing ephemeral scratch jobs", () => {
+    const caller = { id: "impl-1", role: "implementer" };
+    const scratchJob = { id: "task-temp", isSupervisory: false, label: "test runner" };
+
+    expect(() => {
+      TimerProtectionGuard.assertCanKillTimer(caller, scratchJob);
+    }).not.toThrow();
+  });
+});
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `bun test tests/unit/authority/timer-protection.test.ts`
+Expected: FAIL.
+
+- [ ] **Step 3: Write minimal implementation**
+
+```typescript
+import { HarnessError } from "../core/errors/harness-error.ts";
+
+export interface TimerRecord {
+  readonly id: string;
+  readonly isSupervisory: boolean;
+  readonly label: string;
+}
+
+export class TimerProtectionGuard {
+  public static assertCanKillTimer(caller: { id: string; role: string }, timer: TimerRecord): void {
+    if (timer.isSupervisory && caller.role !== "human_root") {
+      throw new HarnessError(
+        "INVALID_STATE",
+        `Permission Denied: Agent '${caller.id}' (${caller.role}) cannot kill protected supervisory timer '${timer.id}' (${timer.label}). Supervisory heartbeats are immutable.`,
+      );
+    }
+  }
+}
+```
+
+- [ ] **Step 4: Run test to verify it passes**
+
+Run: `bun test tests/unit/authority/timer-protection.test.ts`
+Expected: PASS.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add olt/scripts/src/authority/timer-protection-guard.ts tests/unit/authority/timer-protection.test.ts
+git commit -m "feat(authority): implement TimerProtectionGuard to shield supervisory timers"
+```

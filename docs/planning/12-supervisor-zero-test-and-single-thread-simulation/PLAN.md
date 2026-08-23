@@ -1,48 +1,97 @@
 # Plan 12: Supervisor Zero-Test Invariant & Single-Thread Simulation Prevention
 
-## 1. Problem Statement & Context
+> **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` or `superpowers:executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-The 4-tier agent architecture relies on strict functional separation:
+**Goal:** Mechanically prevent Tier 1 Orchestrators and Tier 2 Coordinators from falling into Single-Thread Execution Simulation (editing source files and running unit tests directly on their own thread), forcing them to dispatch all ready wave lanes in parallel via `invoke_subagent`.
 
-- **Tier 0 Mind & Tier 1 Orchestrators & Tier 2 Coordinators (Supervisory Tiers)**: Must focus 100% of cognitive bandwidth on macro-planning, DAG dependency tracking, 1-shot exact briefings, wave lane dispatch, and release verification.
-- **Tier 3 Implementers & Mechanics (Worker Tiers)**: Own 100% of line-level editing and file-scoped unit test execution.
+**Architecture:** Implement a `ParallelWaveDispatchEnforcer` in `olt/scripts/src/engine/scheduler/` that detects when a wave contains $N \ge 2$ ready disjoint lanes. If a supervisor attempts to claim or execute tasks sequentially on its own thread, the harness blocks execution with `FALSE_SERIALIZATION_BLUNDER`.
 
-### Observed Systemic Failure Mode:
+**Tech Stack:** TypeScript, Bun, DAG topological wave analysis, OLT Scheduler Engine.
 
-During complex multi-file runs, Orchestrators and Coordinators frequently collapse the multi-agent hierarchy into **Single-Thread Execution Simulation**. When faced with a wave containing multiple ready tasks or minor test assertion failures, the supervisor agent:
+**Spec:** `AGENTS.md` (Axiom 11: Brent Work/Span Dynamic Concurrency, Axiom 25: Anti-Serialization Interlock).
 
-1. Skips dispatching Tier 3 Implementers via `invoke_subagent`.
-2. Attempts to simulate all tasks sequentially within its own single thread.
-3. Edits source files directly and runs `bun test` in loops on its own thread, blinding the system to true parallel execution ($P = \lceil W/S \rceil$) and violating the Supervisor Zero-Source-Edit and Zero-Unit-Test invariants.
+## Global Constraints
 
----
-
-## 2. Root Cause Analysis & Behavioral Dynamics
-
-1. **Context Switching & Dispatch Friction**:
-   - Assembling structured prompt briefs for subagents and waiting for background roundtrips creates perceived cognitive friction. Supervisors take shortcuts by executing small changes directly.
-2. **Cognitive Anchoring on Line-Level Details**:
-   - Once a supervisor reads a specific error stack trace, it becomes cognitively anchored on the micro-level implementation details rather than maintaining a 30,000-ft strategic overview.
-3. **Absence of Hard Anti-Serialization Interlocks in Task Claims**:
-   - While `task:claim` blocks role `orchestrator`, supervisors previously bypassed this by running commands without `--role` or running tests outside the lease system.
+- Orchestrators and Coordinators must never claim code write leases or run test runners directly.
+- Single-thread simulation is strictly prohibited when parallel wave lanes exist.
+- 0 `any` annotations.
 
 ---
 
-## 3. Scope of the Problem & Affected Subsystems
+### Task 1: Implement `ParallelWaveDispatchEnforcer` in `olt/scripts/src/engine/scheduler/`
 
-- **Supervisory Roles**: `orchestrator` (`roles/orchestrator.md`), `coordinator` (`roles/coordinator.md`).
-- **Scheduling & Wave Engine**: `olt/scripts/src/engine/scheduler/`, `olt/scripts/src/cli/commands/task-claim.ts`.
-- **Concurrency Math**: Brent Work/Span dynamic parallel occupancy ($P = \lceil W / S \rceil$).
+**Files:**
 
----
+- Create: `olt/scripts/src/engine/scheduler/parallel-enforcer.ts`
+- Test: `tests/unit/scheduler/parallel-enforcer.test.ts`
 
-## 4. Key Invariants & Acceptance Criteria
+**Interfaces:**
 
-Future orchestrators, planners, and implementers designing the solution for this plan must ensure the following non-negotiable invariants are met:
+- Consumes: `wave: WaveTopology`, `readyTaskCount: number`.
+- Produces: `export class ParallelWaveDispatchEnforcer { public static assertParallelDispatch(wave: WaveTopology, requestedSubagentCount: number): void; }`
 
-1. **True Parallel Wave Dispatch Enforcement**:
-   - When a wave contains $N \ge 2$ ready disjoint lanes, single-thread sequential simulation must be mechanically prevented; the supervisor must invoke all $N$ lanes in parallel via `invoke_subagent(Subagents: [...])`.
-2. **Strict Supervisor Zero-Source-Edit & Zero-Test Enforcement**:
-   - Supervisory tiers must be completely prevented from executing source file modifications and test runners.
-3. **Automated Blunder Detection (`FALSE_SERIALIZATION_BLUNDER`)**:
-   - Any attempt by a supervisor to simulate wave execution in a single thread or run tests directly must trigger an immediate behavioral violation in the defect ledger.
+- [ ] **Step 1: Write the failing unit test**
+
+```typescript
+import { describe, it, expect } from "bun:test";
+import { ParallelWaveDispatchEnforcer } from "../../../olt/scripts/src/engine/scheduler/parallel-enforcer.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+
+describe("ParallelWaveDispatchEnforcer", () => {
+  it("blocks single-agent dispatch when wave contains 3 ready disjoint lanes", () => {
+    const wave = { waveIndex: 1, readyTaskIds: ["t1", "t2", "t3"] };
+
+    expect(() => {
+      ParallelWaveDispatchEnforcer.assertParallelDispatch(wave, 1);
+    }).toThrow(HarnessError);
+  });
+
+  it("permits full parallel batch dispatch", () => {
+    const wave = { waveIndex: 1, readyTaskIds: ["t1", "t2", "t3"] };
+
+    expect(() => {
+      ParallelWaveDispatchEnforcer.assertParallelDispatch(wave, 3);
+    }).not.toThrow();
+  });
+});
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `bun test tests/unit/scheduler/parallel-enforcer.test.ts`
+Expected: FAIL.
+
+- [ ] **Step 3: Implement `ParallelWaveDispatchEnforcer`**
+
+```typescript
+import { HarnessError } from "../../core/errors/harness-error.ts";
+
+export interface WaveTopology {
+  readonly waveIndex: number;
+  readonly readyTaskIds: readonly string[];
+}
+
+export class ParallelWaveDispatchEnforcer {
+  public static assertParallelDispatch(wave: WaveTopology, requestedSubagentCount: number): void {
+    const laneCount = wave.readyTaskIds.length;
+    if (laneCount > 1 && requestedSubagentCount < laneCount) {
+      throw new HarnessError(
+        "INVALID_STATE",
+        `[FALSE_SERIALIZATION_BLUNDER] Wave ${wave.waveIndex} contains ${laneCount} ready disjoint lanes (${wave.readyTaskIds.join(", ")}). You MUST invoke all ${laneCount} subagents in parallel via Subagents: [...]. Single-thread simulation is prohibited.`,
+      );
+    }
+  }
+}
+```
+
+- [ ] **Step 4: Run test to verify it passes**
+
+Run: `bun test tests/unit/scheduler/parallel-enforcer.test.ts`
+Expected: PASS.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add olt/scripts/src/engine/scheduler/parallel-enforcer.ts tests/unit/scheduler/parallel-enforcer.test.ts
+git commit -m "feat(scheduler): implement ParallelWaveDispatchEnforcer to block false serialization"
+```

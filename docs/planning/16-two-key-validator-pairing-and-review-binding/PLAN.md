@@ -1,48 +1,98 @@
 # Plan 16: 2-Key Validator Pairing & Review Binding
 
-## 1. Problem Statement & Context
+> **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` or `superpowers:executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-In the 2-Key Orchestration model, every implementation task requires independent dual-key verification before completion:
+**Goal:** Enforce strict 1:1 immutable pairing between Implementers and Cognitive Validators in `state.json`, requiring that only the specifically designated paired Validator can issue review verdicts on a task (`task:review`), and blocking unevidenced rubber-stamping.
 
-- **Key 1 (Implementer)**: Responsible for implementation within a strictly leased disjoint write scope and providing file-scoped test execution receipts.
-- **Key 2 (Paired Cognitive Validator)**: Dedicated to independent, adversarial Socratic review of the code diff, verifying that invariants hold, zero `any` or suppressions were introduced, and that acceptance criteria are genuinely satisfied.
+**Architecture:** Update `taskClaimCommand` in `olt/scripts/src/cli/commands/task-claim.ts` to record `paired_validator_id` in `task.lease`. Update `taskReviewCommand` in `task-review.ts` to assert that `caller.agent_id === task.lease.paired_validator_id` and require non-empty Socratic critique findings before approval.
 
-### Observed Systemic Failure Mode:
+**Tech Stack:** TypeScript, Bun, OLT Lease State & Socratic Validator.
 
-During multi-lane execution runs, several integrity breakdowns occur:
+**Spec:** `AGENTS.md` (Axiom 5: 1-Hop Micro-Cycles, Axiom 20: Cognitive Validator Hard-Lock).
 
-1. **Uneven / Missing Pairing**: Implementers claim leases without a dedicated, named Validator being assigned to the task.
-2. **Review Identity Spoofing**: `task:review` or `task:validate-start` is called by arbitrary agents or supervisors rather than the specific 1:1 paired validator assigned to the task.
-3. **Superficial Rubber-Stamping**: Validators occasionally approve tasks without conducting substantive Socratic inquiry or generating concrete critique receipts.
+## Global Constraints
 
----
-
-## 2. Root Cause Analysis & Behavioral Dynamics
-
-1. **Disconnected Lease State in `state.json`**:
-   - `task.lease` previously tracked the implementer's identity, but lacked an immutable binding to the assigned paired validator's session.
-2. **Missing Reviewer Authorization Gate**:
-   - `task:review` verified that the task was in `submitted` or `validating` status, but did not strictly enforce that `caller.agent_id === task.assigned_validator_id`.
-3. **Cognitive Validator Command Temptation**:
-   - When Validators want to double-check a type error, they frequently attempt to run `tsc` or `bun test` rather than performing static code analysis and requesting the implementer to provide execution evidence via in-lease micro-cycles.
+- A task cannot be leased without an assigned Cognitive Validator grant.
+- Only the assigned paired Validator can execute `task:review`.
+- Cognitive Validators are strictly locked at 0 shell commands.
+- 0 `any` annotations.
 
 ---
 
-## 3. Scope of the Problem & Affected Subsystems
+### Task 1: Enforce 1:1 Paired Validator Review Authorization in `task-review.ts`
 
-- **Validation Commands**: `olt/scripts/src/cli/commands/task-review.ts`, `task-validate-start.ts`, `task-reject.ts`.
-- **Review Engine**: `olt/scripts/src/reporting/socratic-validator.ts`, `olt/scripts/src/packets/command-authority.ts`.
-- **Lease State Schema**: `olt/scripts/src/core/contracts/capsule.ts`.
+**Files:**
 
----
+- Modify: `olt/scripts/src/cli/commands/task-review.ts`
+- Test: `tests/unit/workflow/paired-validator-review.test.ts`
 
-## 4. Key Invariants & Acceptance Criteria
+**Interfaces:**
 
-Future orchestrators, planners, and implementers designing the solution for this plan must ensure the following non-negotiable invariants are met:
+- Consumes: `callerAgentId: string`, `task: TaskRecord`.
+- Produces: `taskReviewCommand` throws `AUTHENTICATION_FAILURE` if reviewer does not match `task.lease.paired_validator_id`.
 
-1. **Strict 1:1 Immutable Pairing**:
-   - A task cannot enter `leased` state without an explicitly assigned, authenticated Cognitive Validator grant bound to the task ledger.
-2. **Cryptographic Review Binding**:
-   - Only the designated paired Validator can issue review verdicts (`task:review --decision approve/reject`); attempts by other agents or supervisors must be rejected with `AUTHENTICATION_FAILURE`.
-3. **Substantive Socratic Critique Enforcement**:
-   - Approvals must require non-empty, substantive critique and verification proofs; unevidenced rubber-stamping must be rejected by the review gate.
+- [ ] **Step 1: Write the failing unit test**
+
+```typescript
+import { describe, it, expect } from "bun:test";
+import { assertValidReviewer } from "../../../olt/scripts/src/cli/commands/task-review.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+
+describe("assertValidReviewer", () => {
+  it("rejects reviews from unassigned agents", () => {
+    const task = {
+      id: "task-1",
+      lease: { agent_id: "impl-1", paired_validator_id: "val-1" },
+    };
+
+    expect(() => {
+      assertValidReviewer("val-impostor", task as any);
+    }).toThrow(HarnessError);
+  });
+
+  it("permits review from the assigned paired validator", () => {
+    const task = {
+      id: "task-1",
+      lease: { agent_id: "impl-1", paired_validator_id: "val-1" },
+    };
+
+    expect(() => {
+      assertValidReviewer("val-1", task as any);
+    }).not.toThrow();
+  });
+});
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `bun test tests/unit/workflow/paired-validator-review.test.ts`
+Expected: FAIL.
+
+- [ ] **Step 3: Implement reviewer validation in `task-review.ts`**
+
+```typescript
+import { HarnessError } from "../../core/errors/harness-error.ts";
+import type { TaskRecord } from "../../workflow/types.ts";
+
+export function assertValidReviewer(callerId: string, task: TaskRecord): void {
+  const pairedValidatorId = (task.lease as any)?.paired_validator_id;
+  if (pairedValidatorId && callerId !== pairedValidatorId) {
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      `Reviewer Authorization Failed: Caller '${callerId}' is not the assigned paired validator ('${pairedValidatorId}') for task '${task.id}'.`,
+    );
+  }
+}
+```
+
+- [ ] **Step 4: Run test to verify it passes**
+
+Run: `bun test tests/unit/workflow/paired-validator-review.test.ts`
+Expected: PASS.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add olt/scripts/src/cli/commands/task-review.ts tests/unit/workflow/paired-validator-review.test.ts
+git commit -m "feat(workflow): enforce 1:1 paired validator authorization on task:review"
+```

@@ -1,48 +1,87 @@
 # Plan 11: Native Host Tool Bypass & Universal Shell RBAC Enforcement
 
-## 1. Problem Statement & Context
+> **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` or `superpowers:executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-The OLT system establishes strict Role-Based Access Control (RBAC) rules:
+**Goal:** Close the native tool bypass gap where subagents invoke raw shell strings via `run_command("bun test ...")` directly on `/bin/zsh`, bypassing harness RBAC and deny-lists. Ensure all shell execution is structurally intercepted and validated against role permissions.
 
-- **Tier 0 Mind & Tier 1 Orchestrators**: Forbidden from running unit test suites directly (Zero Unit Test Execution).
-- **Tier 3 Cognitive Validators**: Locked at 0 shell commands (Hard-Lock Interlock).
-- **Tier 3 Implementers**: Restricted to file-scoped tests and forbidden from running whole-repo test suites (`bun test`, `npm test`) or un-gated git mutations.
+**Architecture:** Implement a universal shell command compiler and interceptor in `olt/scripts/src/policy/rbac-engine.ts` and wrap shell dispatches with cryptographic execution receipts. Enforce strict blocking of whole-repo test suites (`^bun test$`, `^npm test$`) and Cognitive Validator shell calls.
 
-### Observed Systemic Failure Mode:
+**Tech Stack:** TypeScript, Bun, regular expressions / AST token parsing, OLT RBAC Engine.
 
-While the OLT harness CLI implements cryptographic command signing (`harness.ts shell` and `harness.ts run:exec`), AI agents frequently **bypass the harness entirely** by calling the native host tool `run_command` with raw shell strings (e.g., `run_command("bun test ...")`). Because `run_command` dispatches directly to the OS shell (`/bin/zsh`), the harness RBAC checks are never invoked, allowing supervisors and validators to run forbidden commands with impunity.
+**Spec:** `AGENTS.md` (Axiom 28: Hard-Coded Mechanical RBAC Engine & Shielded Shell).
 
----
+## Global Constraints
 
-## 2. Root Cause Analysis & Behavioral Dynamics
-
-1. **Tool Invocation Dual-Track Divergence**:
-   - The LLM has direct access to the native tool `run_command`.
-   - When the LLM decides to test a hypothesis, it chooses the path of least resistance: writing a raw bash command into `run_command` rather than wrapping it in `bun harness.ts shell -- ...`.
-2. **Post-Hoc vs. Pre-Execution Gating**:
-   - Currently, harness RBAC is evaluated _inside_ the harness CLI entrypoint.
-   - If the agent never calls `harness.ts`, the harness has zero opportunity to block or intercept the execution before it reaches the OS kernel.
-3. **Absence of Native Shell Interception / Pre-Tool Hooks**:
-   - The environment lacks a system-level pre-tool execution hook that intercepts raw `run_command` payloads and validates caller identity and role permissions before shell dispatch.
+- Cognitive Validators: `can_execute_shell: false` (Hard-lock: 0 terminal commands).
+- Supervisors: Forbidden from executing unit test runners directly.
+- Implementers: Forbidden from running un-targeted whole-suite test runs (`bun test` without specific file path).
+- 0 `any` annotations across all policy logic.
 
 ---
 
-## 3. Scope of the Problem & Affected Subsystems
+### Task 1: Enhance `verifyCommandAuthorization` in `olt/scripts/src/policy/rbac-engine.ts`
 
-- **Native Tools**: `run_command`, terminal execution hooks.
-- **Harness Policy Engine**: `olt/scripts/src/policy/rbac-engine.ts`, `olt/scripts/src/authority/`.
-- **Shell Wrapper**: `olt/scripts/src/cli/commands/shell.ts`.
-- **System Lifecycle Hooks**: Antigravity CLI / host hook configurations.
+**Files:**
 
----
+- Modify: `olt/scripts/src/policy/rbac-engine.ts`
+- Test: `tests/unit/policy/rbac-engine.test.ts`
 
-## 4. Key Invariants & Acceptance Criteria
+**Interfaces:**
 
-Future orchestrators, planners, and implementers designing the solution for this plan must ensure the following non-negotiable invariants are met:
+- Consumes: `callerMetadata: AgentMetadata`, `argv: readonly string[]`.
+- Produces: `export function verifyCommandAuthorization(metadata: AgentMetadata, argv: readonly string[]): AuthorizationResult;`
 
-1. **Universal Command Interception**:
-   - No agent can execute an out-of-role shell command, whole-repo test suite, or unauthorized git mutation, regardless of whether it invokes `run_command` directly or uses `harness.ts`.
-2. **Cognitive Validator Absolute 0-Command Lock**:
-   - Any attempt by a Cognitive Validator to execute a terminal command must be intercepted and mechanically blocked before execution.
-3. **Supervisor Zero-Test Enforcement**:
-   - Supervisors attempting to run test runners directly must receive an immediate structural block directing them to dispatch a Tier 3 Implementer.
+- [ ] **Step 1: Write the failing unit test**
+
+```typescript
+import { describe, it, expect } from "bun:test";
+import { verifyCommandAuthorization } from "../../../olt/scripts/src/policy/rbac-engine.ts";
+
+describe("verifyCommandAuthorization", () => {
+  it("blocks cognitive validators from all shell commands", () => {
+    const validatorMetadata = { id: "val-1", role: "validator" };
+    const res = verifyCommandAuthorization(validatorMetadata as any, [
+      "bun",
+      "test",
+      "foo.test.ts",
+    ]);
+    expect(res.authorized).toBe(false);
+    expect(res.error_code).toBe("COGNITIVE_VALIDATOR_COMMAND_FORBIDDEN");
+  });
+
+  it("blocks supervisors from running unit test runners directly", () => {
+    const orchMetadata = { id: "orch-1", role: "orchestrator" };
+    const res = verifyCommandAuthorization(orchMetadata as any, ["bun", "test", "foo.test.ts"]);
+    expect(res.authorized).toBe(false);
+    expect(res.error_code).toBe("SUPERVISOR_TEST_EXECUTION_FORBIDDEN");
+  });
+
+  it("blocks implementers from running whole-repo test suites", () => {
+    const implMetadata = { id: "impl-1", role: "implementer" };
+    const res = verifyCommandAuthorization(implMetadata as any, ["bun", "test"]);
+    expect(res.authorized).toBe(false);
+    expect(res.error_code).toBe("UNBOUNDED_TEST_RUNNER_FORBIDDEN");
+  });
+});
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `bun test tests/unit/policy/rbac-engine.test.ts`
+Expected: FAIL.
+
+- [ ] **Step 3: Implement RBAC rules in `rbac-engine.ts`**
+
+Update `verifyCommandAuthorization` to inspect the command argv and caller role against the strict policy table.
+
+- [ ] **Step 4: Run test to verify it passes**
+
+Run: `bun test tests/unit/policy/rbac-engine.test.ts`
+Expected: PASS.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add olt/scripts/src/policy/rbac-engine.ts tests/unit/policy/rbac-engine.test.ts
+git commit -m "feat(policy): enforce strict RBAC deny-lists for validators, supervisors, and whole-suite tests"
+```

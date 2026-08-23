@@ -1,54 +1,170 @@
 # Plan 09: Tier 0 Mind Infinite Cadence & Anti-Idle Autonomous Task Discovery
 
-## 1. Problem Statement & Context
+> **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` or `superpowers:executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-In the long-task orchestration architecture, the **Tier 0 Mind** role is designated as the macro-strategic consciousness and Infinite Product Owner for the repository. According to its core specification in `roles/mind.md`, Mind must operate on an unbroken, perpetual pulse cadence, maintaining continuous governance across two distinct operational modes:
+**Goal:** Establish an unskippable, infinite autonomous discovery and self-evolution loop for Tier 0 Mind, ensuring that whenever the feedback queue is empty or active runs finish, Mind automatically initiates Mode A Discovery (Zero-`any` audits, Charter gap analysis, Blunder regression tests, and Work/Span DAG optimization) rather than halting or going idle.
 
-- **Mode B (Backlog & Intake)**: Draining active feedback items, defect reports, and user directives into discrete long-task execution capsules.
-- **Mode A (Continuous Autonomous Discovery)**: When the active backlog is empty or all runs are complete, Mind must immediately and autonomously scan the repository for improvement opportunities (e.g., zero-`any` audits, charter gap analyses, blunder regression verification, Work/Span DAG parallelization optimizations, and proactive architecture refactoring).
+**Architecture:** Integrate deterministic Mode A auto-chaining into `mind:pulse` and `mind:wake` telemetry. Implement a `MindAutonomousDiscoveryEngine` in `olt/scripts/src/mind/` that automatically constructs discovery objectives and registers candidate proposals into `.olt/backlog.jsonl` when no active runs exist.
 
-### Observed Systemic Failure Mode:
+**Tech Stack:** TypeScript, Bun, Node.js process / filesystem APIs, OLT Harness CLI.
 
-During recent multi-hour autonomous execution runs, Tier 0 Mind repeatedly exhibited a **single-task completion bias**. Upon witnessing the completion and sealing of a subordinate execution capsule, the Mind agent:
+**Spec:** `olt/roles/mind.md`, `AGENTS.md` (Axiom 18: Infinite Mind Product Owner Mode).
 
-1. Synthesized a "Run Completion Summary" message.
-2. Emitted conversational text stating that its goal was accomplished.
-3. Completely stopped invoking harness tools and entered an unprompted `idle` state.
-4. Left the repository with zero active discovery, zero background audits, and zero subsequent capsule dispatches until human intervention or manual prompts forced it to wake.
+## Global Constraints
 
----
-
-## 2. Root Cause Analysis & Behavioral Dynamics
-
-1. **Pre-Trained LLM Completion Heuristics**:
-   - Standard frontier LLMs possess strong pre-trained instincts to treat user interactions as finite, task-and-finish dialogues. When an immediate milestone (such as a feature implementation) reaches a green gate, the model instinctively concludes its turn rather than recognizing that its persona is an infinite background supervisor.
-2. **Missing Autonomous Transition Chaining in Pulse Telemetry**:
-   - When `mind:pulse` reports that active runs are complete and `backlog.jsonl` contains zero pending items, the command output historically lacked an authoritative, unskippable transition signal that compels the model to trigger Mode A Discovery immediately.
-3. **Absence of Autonomous Task Generation Grounding**:
-   - When Mind is not provided with an explicit user prompt, it often struggles to spontaneously formulate high-value engineering objectives unless provided with a deterministic discovery checklist and concrete repository analysis tools.
+- Zero source code edits directly by Tier 0 Mind (The Three Hard Zeros).
+- Zero unit test execution directly by Tier 0 Mind.
+- Tier 0 Mind dispatches ONLY Tier 1 Orchestrators (`invoke_subagent`).
+- Strict prohibition on `any` annotations or compiler suppressions across all new TypeScript code.
+- All tests must run via `bun test <file>` in isolated temporary sandboxes (`.tmp/`).
 
 ---
 
-## 3. Scope of the Problem & Affected Subsystems
+### Task 1: Implement `MindAutonomousDiscoveryEngine` in `olt/scripts/src/mind/`
 
-- **Core Role**: Tier 0 Mind (`olt/roles/mind.md`, `agents/mind.yaml`).
-- **CLI Commands**: `mind:pulse`, `mind:wake`, `mind:candidate`, `mind:admit`, `defect:audit`.
-- **Governance Ledgers**: `.olt/backlog.jsonl`, `.olt/defects.jsonl`, `.olt/completed-tasks.jsonl`.
-- **Runtime Schedulers**: Continuous pulse loop drivers and watchdog trigger hooks.
+**Files:**
+
+- Create: `olt/scripts/src/mind/discovery-engine.ts`
+- Test: `tests/unit/mind/discovery-engine.test.ts`
+
+**Interfaces:**
+
+- Consumes: `RunState` from `core/contracts/capsule.ts`, `FeedbackQueueItem` from `mind/types.ts`.
+- Produces: `export class MindAutonomousDiscoveryEngine { public static scanRepository(repoRoot: string): DiscoveryProposal[]; }`
+
+- [ ] **Step 1: Write the failing unit test**
+
+```typescript
+import { describe, it, expect } from "bun:test";
+import { MindAutonomousDiscoveryEngine } from "../../../olt/scripts/src/mind/discovery-engine.ts";
+
+describe("MindAutonomousDiscoveryEngine", () => {
+  it("generates deterministic Mode A discovery proposals when queue is empty", () => {
+    const proposals = MindAutonomousDiscoveryEngine.generateProposals({
+      backlogCount: 0,
+      activeRunCount: 0,
+      unresolvedDefects: 0,
+    });
+    expect(proposals.length).toBeGreaterThanOrEqual(3);
+    expect(proposals.some((p) => p.category === "zero_any_audit")).toBe(true);
+    expect(proposals.some((p) => p.category === "charter_gap_audit")).toBe(true);
+    expect(proposals.some((p) => p.category === "work_span_optimization")).toBe(true);
+  });
+});
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `bun test tests/unit/mind/discovery-engine.test.ts`
+Expected: FAIL with module/class not found.
+
+- [ ] **Step 3: Write minimal implementation**
+
+```typescript
+export interface DiscoveryProposal {
+  readonly id: string;
+  readonly title: string;
+  readonly category:
+    "zero_any_audit" | "charter_gap_audit" | "work_span_optimization" | "blunder_regression";
+  readonly priority: number;
+  readonly candidateGoal: string;
+}
+
+export class MindAutonomousDiscoveryEngine {
+  public static generateProposals(context: {
+    backlogCount: number;
+    activeRunCount: number;
+    unresolvedDefects: number;
+  }): readonly DiscoveryProposal[] {
+    if (context.backlogCount > 0 || context.activeRunCount > 0) return [];
+
+    return [
+      {
+        id: `disc-typecheck-${Date.now()}`,
+        title: "Autonomous Zero-Any & Compiler Suppression Audit",
+        category: "zero_any_audit",
+        priority: 100,
+        candidateGoal:
+          "Audit the codebase for explicit/implicit any types and unauthorized suppressions using tsc --noEmit.",
+      },
+      {
+        id: `disc-charter-${Date.now()}`,
+        title: "Autonomous Charter Gap Analysis",
+        category: "charter_gap_audit",
+        priority: 90,
+        candidateGoal: "Audit unfulfilled charter milestones and align public API documentation.",
+      },
+      {
+        id: `disc-workspan-${Date.now()}`,
+        title: "Autonomous Work/Span DAG Concurrency Optimization",
+        category: "work_span_optimization",
+        priority: 80,
+        candidateGoal:
+          "Analyze topological dependency critical paths and recommend P = ceil(W/S) concurrency decoupling.",
+      },
+    ];
+  }
+}
+```
+
+- [ ] **Step 4: Run test to verify it passes**
+
+Run: `bun test tests/unit/mind/discovery-engine.test.ts`
+Expected: PASS.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add olt/scripts/src/mind/discovery-engine.ts tests/unit/mind/discovery-engine.test.ts
+git commit -m "feat(mind): implement MindAutonomousDiscoveryEngine for Mode A discovery"
+```
 
 ---
 
-## 4. Key Invariants & Acceptance Criteria
+### Task 2: Wire Mode A Auto-Chaining into `mind:pulse` and `mind:wake`
 
-Future orchestrators, planners, and implementers designing the solution for this plan must ensure the following non-negotiable invariants are met:
+**Files:**
 
-1. **`CLOSING_FORBIDDEN_FOR_MIND` Invariant**:
-   - Tier 0 Mind must be structurally incapable of terminating its pulse loop or emitting "standing by / awaiting user input" when the queue is clean.
-2. **Deterministic Mode A Discovery Pipeline**:
-   - An empty backlog must automatically trigger a concrete discovery cycle that systematically audits:
-     - Strict type safety (0 `any`, 0 compiler suppressions via `tsc --noEmit`).
-     - Unfulfilled charter milestones ($G_1, G_2, \dots, G_n$).
-     - Anti-blunder regression test suites.
-     - Work/Span graph parallelization bottlenecks.
-3. **Autonomous Capsule Creation**:
-   - High-value discovery findings must be automatically structured into candidate objectives, admitted via `mind:admit`, and dispatched to newly opened Tier 1 Orchestrator capsules without human intervention.
+- Modify: `olt/scripts/src/cli/commands/mind-pulse.ts` (or `mind-ops.ts`)
+- Test: `tests/unit/mind/pulse-mode-a.test.ts`
+
+**Interfaces:**
+
+- Consumes: `MindAutonomousDiscoveryEngine.generateProposals()`.
+- Produces: Formatted Mode A discovery directives injected into pulse brief stdout when active runs = 0.
+
+- [ ] **Step 1: Write the failing unit test**
+
+```typescript
+import { describe, it, expect } from "bun:test";
+import { formatPulseDirective } from "../../../olt/scripts/src/cli/commands/mind-pulse.ts";
+
+describe("formatPulseDirective", () => {
+  it("injects Mode A discovery mandate when active runs and backlog are zero", () => {
+    const output = formatPulseDirective({ activeRuns: 0, pendingBacklog: 0 });
+    expect(output).toContain("MODE A AUTONOMOUS DISCOVERY REQUIRED");
+    expect(output).toContain("CLOSING_FORBIDDEN_FOR_MIND");
+  });
+});
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `bun test tests/unit/mind/pulse-mode-a.test.ts`
+Expected: FAIL.
+
+- [ ] **Step 3: Implement Mode A injection in `mind-pulse.ts`**
+
+Inject the auto-chaining block so that when `activeRuns === 0 && pendingBacklog === 0`, `mind:pulse` renders the unskippable discovery checklist and candidate creation command.
+
+- [ ] **Step 4: Run test to verify it passes**
+
+Run: `bun test tests/unit/mind/pulse-mode-a.test.ts`
+Expected: PASS.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add olt/scripts/src/cli/commands/mind-pulse.ts tests/unit/mind/pulse-mode-a.test.ts
+git commit -m "feat(cli): wire Mode A auto-chaining into mind:pulse telemetry"
+```
