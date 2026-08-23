@@ -2,6 +2,12 @@
   "summary": "Moved options, registry, commands, formatters, and next-actions to src/cli/. Fixed internal imports and verified with typecheck.",
   "requirement_ids": ["req-mod_cli"],
   "files_changed": [],
-  "checks": [{"type": "typecheck", "status": "passed", "message": "bun run typecheck passed with no errors"}],
-  "evidence": [{"type": "manual_review", "status": "directories_already_moved"}]
+  "checks": [
+    {
+      "type": "typecheck",
+      "status": "passed",
+      "message": "bun run typecheck passed with no errors"
+    }
+  ],
+  "evidence": [{ "type": "manual_review", "status": "directories_already_moved" }]
 }

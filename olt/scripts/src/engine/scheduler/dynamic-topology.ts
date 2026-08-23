@@ -7,7 +7,11 @@ import {
   type ValidatorDomain,
   VALIDATOR_DOMAINS,
 } from "../../core/contracts/workflow.ts";
-import type { TopologyDecision, TopologyReason, TopologyWave } from "../../core/contracts/topology.ts";
+import type {
+  TopologyDecision,
+  TopologyReason,
+  TopologyWave,
+} from "../../core/contracts/topology.ts";
 import { resourceConflict, scopeConflict } from "./conflicts.ts";
 import { schedulingMetrics, type SchedulingMetrics } from "./metrics.ts";
 import { proposeBatch } from "./propose-batch.ts";

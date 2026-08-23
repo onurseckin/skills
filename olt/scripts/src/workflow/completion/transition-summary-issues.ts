@@ -1,5 +1,9 @@
 import type { AgentGrantRecord } from "../../core/contracts/agents.ts";
-import { isBranchOpen, type BranchRecord, type BranchSubTask } from "../../core/contracts/branch.ts";
+import {
+  isBranchOpen,
+  type BranchRecord,
+  type BranchSubTask,
+} from "../../core/contracts/branch.ts";
 import { readAgentLedger } from "../agents/ledger.ts";
 import { readBranchLedger } from "../branch/ledger.ts";
 import type { TaskRecord, WorkflowState } from "../types.ts";

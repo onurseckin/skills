@@ -1,5 +1,8 @@
 import { existsSync, readFileSync } from "node:fs";
-import { parseAndDeduplicateDefectJsonl, serializeAggregatedDefectLog } from "../../mind/defects/index.ts";
+import {
+  parseAndDeduplicateDefectJsonl,
+  serializeAggregatedDefectLog,
+} from "../../mind/defects/index.ts";
 import type {
   AggregatedDefect,
   DefectRecordInput,

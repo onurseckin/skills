@@ -1,5 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { ownershipConflicts, scopeConflict } from "../../../olt/scripts/src/engine/scheduler/conflicts.ts";
+import {
+  ownershipConflicts,
+  scopeConflict,
+} from "../../../olt/scripts/src/engine/scheduler/conflicts.ts";
 import { proposeBatch } from "../../../olt/scripts/src/engine/scheduler/propose-batch.ts";
 import { topologyState } from "./fixtures.ts";
 

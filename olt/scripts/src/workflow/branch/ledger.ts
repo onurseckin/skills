@@ -1,4 +1,8 @@
-import { isBranchRecord, type BranchRecord, type BranchSubTask } from "../../core/contracts/branch.ts";
+import {
+  isBranchRecord,
+  type BranchRecord,
+  type BranchSubTask,
+} from "../../core/contracts/branch.ts";
 import type { JsonObject } from "../../core/contracts/json.ts";
 import { HarnessError } from "../../core/errors/harness-error.ts";
 

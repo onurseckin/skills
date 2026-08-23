@@ -12,6 +12,7 @@ import { getHarnessConfig } from "../../core/config/harness-config.ts";
 import { AGENT_ROLES, isAgentRole, type AgentRole } from "../../core/contracts/packets.ts";
 import { findRepoRoot } from "../../core/shared/paths.ts";
 import { HarnessError } from "../../core/errors/harness-error.ts";
+import { registerSessionGrant } from "../../authority/session-registry.ts";
 import { loadRun } from "../../engine/store/index.ts";
 import {
   recordAgentReport,
@@ -89,23 +90,35 @@ export function agentRegisterCommand(flags: Flags): Record<string, unknown> {
   const parentTask = textFlag(flags, "parent-task", false) ?? null;
   const actor = textFlag(flags, "actor", false) ?? parentAgent ?? agent;
   const derivedTelemetry = probeAgentTelemetry(agent);
+  const role = roleFlag(flags);
+  const host = textFlag(flags, "host")!;
   const outcome = registerAgentGrant({
     runRoot: run,
     agentId: agent,
-    role: roleFlag(flags),
+    role,
     parentAgentId: parentAgent,
     parentTaskId: parentTask,
-    host: textFlag(flags, "host")!,
+    host,
     actor,
     maxAgents: getHarnessConfig(findRepoRoot(run), run).max_agents,
     telemetry: telemetryFlags(flags),
     ...(Object.keys(derivedTelemetry).length === 0 ? {} : { derivedTelemetry }),
   });
+
+  // Automatically register session token and bind process ancestry
+  const session = registerSessionGrant({
+    runRoot: run,
+    agentId: agent,
+    role,
+    host,
+  });
+
   return withHostTelemetryConflicts(
     {
       markdown: formatAgentRegisterBrief(outcome.grant, run),
       run_root: run,
       agent: outcome.grant,
+      session_token: session.token,
       active_grants: outcome.ledger.filter((grant) => grant.status === "active").length,
     },
     outcome.conflicts,
