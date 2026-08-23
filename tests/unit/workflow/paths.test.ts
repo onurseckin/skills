@@ -14,7 +14,7 @@ import {
 } from "../../../olt/scripts/src/shared/paths.ts";
 
 describe("Plan 93 Canonical olt/ Storage & Paths System", () => {
-  const tmpRoot = join(process.cwd(), ".tmp", "test-olt-paths");
+  const tmpRoot = join(require("os").tmpdir(), "tmp", "test-olt-paths");
 
   test("resolves canonical .olt/ directory and persistent files", () => {
     mkdirSync(join(tmpRoot, ".olt"), { recursive: true });

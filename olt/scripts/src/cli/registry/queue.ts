@@ -17,7 +17,7 @@ export const QUEUE_COMMANDS: readonly CommandSpec[] = [
     readsStdin: false,
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
-    examples: ["bun harness.ts queue:next --run .capsules/<run-id>"],
+    examples: ["bun harness.ts queue:next --run .olt/capsules/<run-id>"],
     handler: queueNextCommand,
   },
   {
@@ -31,7 +31,7 @@ export const QUEUE_COMMANDS: readonly CommandSpec[] = [
     readsStdin: false,
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
-    examples: ["bun harness.ts queue:list --run .capsules/<run-id>"],
+    examples: ["bun harness.ts queue:list --run .olt/capsules/<run-id>"],
     handler: queueListCommand,
   },
   {
@@ -52,7 +52,7 @@ export const QUEUE_COMMANDS: readonly CommandSpec[] = [
     readsStdin: false,
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
-    examples: ["bun harness.ts queue:wave --run .capsules/<run-id> --max-parallel 4"],
+    examples: ["bun harness.ts queue:wave --run .olt/capsules/<run-id> --max-parallel 4"],
     handler: queueWaveCommand,
   },
   {
@@ -72,7 +72,7 @@ export const QUEUE_COMMANDS: readonly CommandSpec[] = [
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
-      "bun harness.ts queue:pop --run .capsules/<run-id> --agent worker-1 --lease-seconds 1800",
+      "bun harness.ts queue:pop --run .olt/capsules/<run-id> --agent worker-1 --lease-seconds 1800",
     ],
     handler: queuePopCommand,
   },

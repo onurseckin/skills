@@ -17,7 +17,7 @@ export const SUMMARY_COMMANDS: readonly CommandSpec[] = [
     readsStdin: false,
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
-    examples: ["bun harness.ts summary:export --run .capsules/<run-id>"],
+    examples: ["bun harness.ts summary:export --run .olt/capsules/<run-id>"],
     handler: summaryExportCommand,
   },
   {
@@ -30,7 +30,7 @@ export const SUMMARY_COMMANDS: readonly CommandSpec[] = [
     readsStdin: false,
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
-    examples: ["bun harness.ts summary:view --run .capsules/<run-id>"],
+    examples: ["bun harness.ts summary:view --run .olt/capsules/<run-id>"],
     handler: summaryViewCommand,
   },
   {
@@ -58,7 +58,7 @@ export const SUMMARY_COMMANDS: readonly CommandSpec[] = [
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
       "bun harness.ts test:summary",
-      "bun harness.ts test:summary --run .capsules/<run-id>",
+      "bun harness.ts test:summary --run .olt/capsules/<run-id>",
       "bun harness.ts test:summary --passed 45 --failed 0 --duration 1200",
     ],
     handler: testSummaryCommand,

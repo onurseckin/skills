@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import { categorizeBlunder, type BlunderCategory, type MindCandidateProposal } from "./blunders.ts";
+import { categorizeDefect, type DefectCategory, type MindCandidateProposal } from "./defects.ts";
 import { readFeedbackQueue, type FeedbackCategory, type FeedbackItem } from "./feedback-queue.ts";
 
 export interface PushbackItem {
@@ -8,7 +8,7 @@ export interface PushbackItem {
   readonly title?: string | undefined;
   readonly issue: string;
   readonly resolution: string;
-  readonly category?: BlunderCategory | undefined;
+  readonly category?: DefectCategory | undefined;
 }
 
 export interface PushbackInvariant {
@@ -32,7 +32,7 @@ export interface PushbackAuditReport {
   readonly feedback_items: readonly FeedbackItem[];
   readonly total_pushbacks: number;
   readonly total_feedback_items: number;
-  readonly by_category: Readonly<Record<BlunderCategory, number>>;
+  readonly by_category: Readonly<Record<DefectCategory, number>>;
   readonly candidate_proposals: readonly MindCandidateProposal[];
   readonly generated_at: string;
 }
@@ -59,14 +59,14 @@ export function resolvePushbackMarkdownPath(customPath?: string): string {
 }
 
 /**
- * Maps a feedback queue category or raw string to a canonical BlunderCategory:
+ * Maps a feedback queue category or raw string to a canonical DefectCategory:
  * - boundary_violation: AGENT_CONTRACTS, WATCHDOG, EXECUTION_EFFICIENCY, role_confusion, boundary violations
  * - model_reasoning_error: DOCUMENTATION, GENERAL, ARCHITECTURE, planning drift, reasoning errors
  * - code_defect: CLI_TOOLING, CORE_ENGINE, REPAIR, SCALING, CORE_SCHEDULER, VALIDATION_ENGINE, code defects
  */
-export function mapFeedbackCategoryToBlunderCategory(
+export function mapFeedbackCategoryToDefectCategory(
   category: FeedbackCategory | string,
-): BlunderCategory {
+): DefectCategory {
   if (typeof category !== "string") {
     return "code_defect";
   }
@@ -287,7 +287,7 @@ export function parsePushbackMarkdown(content: string): PushbackRecord[] {
         }
 
         if (itemTitle || issue || resolution) {
-          const inferredCategory = categorizeBlunder({
+          const inferredCategory = categorizeDefect({
             type: itemTitle,
             observation: issue,
             remediation: resolution,
@@ -314,7 +314,7 @@ export function parsePushbackMarkdown(content: string): PushbackRecord[] {
         title: currentSectionTitle,
         issue: firstFewLines || currentSectionTitle,
         resolution: "Satisfy all canonical invariants for this generation",
-        category: categorizeBlunder({
+        category: categorizeDefect({
           type: currentSectionTitle,
           observation: firstFewLines,
           remediation: "Satisfy all canonical invariants",
@@ -407,7 +407,7 @@ export function ingestPushbacks(
 
   const feedbackItems = readFeedbackQueue(feedbackQueuePath);
 
-  const categoryCounts: Record<BlunderCategory, number> = {
+  const categoryCounts: Record<DefectCategory, number> = {
     code_defect: 0,
     model_reasoning_error: 0,
     boundary_violation: 0,
@@ -427,7 +427,7 @@ export function ingestPushbacks(
       }
       const cat =
         item.category ??
-        categorizeBlunder({
+        categorizeDefect({
           type: item.title ?? rec.title,
           observation: item.issue,
           remediation: item.resolution,
@@ -472,7 +472,7 @@ export function ingestPushbacks(
     if (fb === undefined) {
       continue;
     }
-    const cat = mapFeedbackCategoryToBlunderCategory(fb.category);
+    const cat = mapFeedbackCategoryToDefectCategory(fb.category);
     categoryCounts[cat] = (categoryCounts[cat] ?? 0) + 1;
 
     if (fb.status === "PENDING" || fb.status === "ADMITTED") {

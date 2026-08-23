@@ -9,7 +9,7 @@ import {
   formatThreadIdentificationBrief,
   identifyExecutionContext,
   parseTierValue,
-  recordBlunder,
+  recordDefect,
   roleToTier,
   TIER_NAMES,
   validateTierSpawning,
@@ -156,8 +156,8 @@ describe("Thread Identifier - 4-Tier Authority & Spawning Rules", () => {
     expect(mainCtx.is_main_thread).toBe(true);
     expect(mainCtx.compliance_state).toBe("restrained");
     expect(mainCtx.advisory).toContain("MAIN THREAD RESTRAINT ACTIVE");
-    expect(mainCtx.blunder).not.toBeNull();
-    expect(mainCtx.blunder?.type).toBe("main_thread_direct_execution");
+    expect(mainCtx.defect).not.toBeNull();
+    expect(mainCtx.defect?.type).toBe("main_thread_direct_execution");
 
     // Session-based main thread without subagent headers
     const sessionCtx = identifyExecutionContext({
@@ -288,10 +288,10 @@ describe("Thread Identifier - 4-Tier Authority & Spawning Rules", () => {
     expect(brief).toContain("task_claim, task_submit");
   });
 
-  test("recordBlunder persists blunder log into runRoot or capsules dir", () => {
-    const dir = scratchRoot(import.meta.path, "blunder-log");
-    const blunderRecord = {
-      id: "blunder-test-123",
+  test("recordDefect persists defect log into runRoot or capsules dir", () => {
+    const dir = scratchRoot(import.meta.path, "defect-log");
+    const defectRecord = {
+      id: "defect-test-123",
       type: "main_thread_direct_execution" as const,
       severity: "critical" as const,
       timestamp: new Date().toISOString(),
@@ -306,11 +306,11 @@ describe("Thread Identifier - 4-Tier Authority & Spawning Rules", () => {
       },
     };
 
-    recordBlunder(blunderRecord, { runRoot: dir });
-    const blundersFile = join(dir, "blunders.jsonl");
-    expect(existsSync(blundersFile)).toBe(true);
-    const content = readFileSync(blundersFile, "utf8");
-    expect(content).toContain("blunder-test-123");
+    recordDefect(defectRecord, { runRoot: dir });
+    const defectsFile = join(dir, "defects.jsonl");
+    expect(existsSync(defectsFile)).toBe(true);
+    const content = readFileSync(defectsFile, "utf8");
+    expect(content).toContain("defect-test-123");
     expect(content).toContain("main_thread_direct_execution");
   });
 });

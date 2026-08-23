@@ -413,11 +413,11 @@ describe("Mind Proposal & Plan Revision Subsystem", () => {
           charterGoalId: "goal-maintainability",
         },
         {
-          signalType: "BLUNDER_SURGE",
-          source: "scripts/src/mind/blunders.ts",
+          signalType: "DEFECT_SURGE",
+          source: "scripts/src/mind/defects.ts",
           severity: "CRITICAL",
           evidence: "Multiple consecutive compilation errors detected",
-          affectedWriteScopes: ["olt/scripts/src/mind/blunders.ts"],
+          affectedWriteScopes: ["olt/scripts/src/mind/defects.ts"],
           charterGoalId: "goal-zero-defect",
         },
       ];
@@ -439,10 +439,10 @@ describe("Mind Proposal & Plan Revision Subsystem", () => {
       expect(cogRev?.revisionType).toBe("COORDINATOR_REORGANIZATION");
       expect(cogRev?.proposedChanges.recommendedCoordinators).toBe(2);
 
-      const blunderRev = revisions.find((r) => r.signal.signalType === "BLUNDER_SURGE");
-      expect(blunderRev).toBeDefined();
-      expect(blunderRev?.revisionType).toBe("PRIORITY_ESCALATION");
-      expect(blunderRev?.proposedChanges.newPriority).toBe("CRITICAL");
+      const defectRev = revisions.find((r) => r.signal.signalType === "DEFECT_SURGE");
+      expect(defectRev).toBeDefined();
+      expect(defectRev?.revisionType).toBe("PRIORITY_ESCALATION");
+      expect(defectRev?.proposedChanges.newPriority).toBe("CRITICAL");
     });
 
     it("applies a plan revision to capsule state and formats markdown brief", () => {

@@ -21,7 +21,7 @@ export const INSPECTION_COMMANDS: readonly CommandSpec[] = [
     readsStdin: false,
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
-    examples: ["bun harness.ts finding:get --run .capsules/<run-id> --id finding-task-1"],
+    examples: ["bun harness.ts finding:get --run .olt/capsules/<run-id> --id finding-task-1"],
     handler: findingGetCommand,
   },
   {
@@ -46,7 +46,9 @@ export const INSPECTION_COMMANDS: readonly CommandSpec[] = [
     readsStdin: false,
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
-    examples: ["bun harness.ts report:get --run .capsules/<run-id> --task task-1 --type review"],
+    examples: [
+      "bun harness.ts report:get --run .olt/capsules/<run-id> --task task-1 --type review",
+    ],
     handler: reportGetCommand,
   },
   {
@@ -68,7 +70,7 @@ export const INSPECTION_COMMANDS: readonly CommandSpec[] = [
     readsStdin: false,
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
-    examples: ["bun harness.ts evidence:get --run .capsules/<run-id> --task task-1"],
+    examples: ["bun harness.ts evidence:get --run .olt/capsules/<run-id> --task task-1"],
     handler: evidenceGetCommand,
   },
   {
@@ -88,7 +90,7 @@ export const INSPECTION_COMMANDS: readonly CommandSpec[] = [
     readsStdin: false,
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
-    examples: ["bun harness.ts evidence:screenshots --run .capsules/<run-id> --task task-1"],
+    examples: ["bun harness.ts evidence:screenshots --run .olt/capsules/<run-id> --task task-1"],
     handler: evidenceScreenshotsCommand,
   },
 ];

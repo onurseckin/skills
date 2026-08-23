@@ -263,7 +263,7 @@ export function mapDiscoveryCategoryToSourceId(category: string): MindSourceId {
       return "intent-drift";
     case "FEEDBACK_INTAKE":
       return "open-findings";
-    case "BLUNDER_REMEDIATION":
+    case "DEFECT_REMEDIATION":
       return "capsule-integrity";
     case "ARCHITECTURAL_HEALTH":
       return "intent-drift";
@@ -463,9 +463,6 @@ export function validateQuiescentSources(
     reason,
   };
 }
-
-export const LEGACY_OBSERVATIONS_FILE = ".capsules/OBSERVATIONS.jsonl";
-export const LEGACY_LOWER_OBSERVATIONS_FILE = ".capsules/observations.jsonl";
 
 export function resolveCanonicalObservationsPath(customRoot?: string, useTodo = false): string {
   return require("path").join(customRoot || process.cwd(), ".olt", "telemetry.jsonl");

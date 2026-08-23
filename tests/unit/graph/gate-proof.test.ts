@@ -190,7 +190,7 @@ describe("proveGateFalsifiable", () => {
 
   test("throws when the repository root carries no Git metadata", () => {
     // Must sit outside the checkout's own Git tree — scratchRoot() is deliberately nested inside
-    // it (under .tmp/test-scratch), which would make hasRepositoryGitMetadata's parent walk find
+    // it (under os.tmpdir()/olt-test-scratch), which would make hasRepositoryGitMetadata's parent walk find
     // this repo's real .git and defeat the very thing this test proves. tmpdir() is the one
     // location guaranteed to have no Git ancestor, so this is the one test in the file that still
     // needs a real, OS-temp scratch directory with its own cleanup.

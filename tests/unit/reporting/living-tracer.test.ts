@@ -42,7 +42,7 @@ function createMockEvent(
   };
 }
 
-describe("Living Dynamic DAG Expansion & Real-Time Step Tracer (p27 & blunder-20260822-18)", () => {
+describe("Living Dynamic DAG Expansion & Real-Time Step Tracer (p27 & defect-20260822-18)", () => {
   describe("Dynamic DAG Expansion & Rejection Branch Sprouting", () => {
     it("tracks task creation, state transitions, and dynamic expansions", () => {
       const events: HarnessEvent[] = [

@@ -152,7 +152,7 @@ describe("Smart Task Manager & Autonomic Benchmark Suite", () => {
         charter_goals: ["G1"],
         acceptance_criteria: ["Fix both"],
         dependencies: [],
-        source_type: "blunder_remediation",
+        source_type: "defect_remediation",
         rationale: "Multi defect fix",
         assigned_implementer: "impl-1",
         assigned_validator: "val-1",

@@ -36,11 +36,11 @@ describe("Parallel Test Isolation Primitives", () => {
   });
 
   describe("getIsolatedTempDir and removeIsolatedTempDir", () => {
-    it("should create an isolated directory under .olt/scratch/test-isolation", () => {
+    it("should create an isolated directory under tmpdir()/olt-test-scratch/test-isolation", () => {
       const tempDir = getIsolatedTempDir();
       try {
         expect(existsSync(tempDir)).toBe(true);
-        expect(tempDir).toContain(join(".olt", "scratch", "test-isolation"));
+        expect(tempDir).toContain(join("olt-test-scratch", "test-isolation"));
       } finally {
         removeIsolatedTempDir(tempDir);
       }

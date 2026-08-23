@@ -201,7 +201,7 @@ describe("behavioral health auditor - coordinator violations", () => {
     expect(finding?.observation).toContain("executed file modification");
   });
 
-  test("detects coordinator running full test suite (blunder-20260822-20)", () => {
+  test("detects coordinator running full test suite (defect-20260822-20)", () => {
     const state: JsonObject = {
       agents: [
         {
@@ -353,7 +353,7 @@ describe("behavioral health auditor - orchestrator violations", () => {
     expect(finding?.observation).toContain("holds task lease for task");
   });
 
-  test("detects orchestrator running full test suite (blunder-20260822-20)", () => {
+  test("detects orchestrator running full test suite (defect-20260822-20)", () => {
     const state: JsonObject = {
       agents: [
         {

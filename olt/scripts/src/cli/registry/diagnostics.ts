@@ -1,4 +1,4 @@
-import { blunderAuditCommand } from "../commands/blunder-audit.ts";
+import { defectAuditCommand } from "../commands/defect-audit.ts";
 import { coverageCheckCommand } from "../commands/coverage-check.ts";
 import {
   doctorCommand,
@@ -18,23 +18,23 @@ import {
 
 export const DIAGNOSTICS_COMMANDS: readonly CommandSpec[] = [
   {
-    name: "blunder:audit",
-    aliases: [],
+    name: "defect:audit",
+    aliases: ["defects"],
     domain: "diagnostics",
     tier: "internal",
     internal: true,
-    summary: "Audit, deduplicate, and auto-admit blunders across capsules.",
+    summary: "Audit, deduplicate, and auto-admit defects across capsules.",
     description:
-      "Discovers blunders.jsonl files across .capsules/ and active run, deduplicates entries, displays an ASCII summary matrix, and optionally auto-admits candidate remediations.",
+      "Discovers defects.jsonl files across .olt/capsules/ and active run, deduplicates entries, displays an ASCII summary matrix, and optionally auto-admits candidate remediations.",
     flags: [
       optionalFlag("run", "string", "Capsule run root."),
       optionalFlag("capsules-dir", "string", "Capsules root directory."),
       optionalFlag("filter-status", "string", "Filter by status: open, admitted, resolved, all."),
-      optionalFlag("filter-category", "string", "Filter by blunder category/type."),
+      optionalFlag("filter-category", "string", "Filter by defect category/type."),
       optionalFlag("filter-type", "string", "Alias for --filter-category."),
-      optionalFlag("auto-admit", "bool", "Automatically admit open blunders as candidates."),
+      optionalFlag("auto-admit", "bool", "Automatically admit open defects as candidates."),
       optionalFlag("actor", "string", "Actor recording admissions."),
-      optionalFlag("all", "bool", "Show all blunders without line truncation."),
+      optionalFlag("all", "bool", "Show all defects without line truncation."),
       optionalFlag("now", "string", "Timestamp override (ISO8601)."),
       optionalFlag("json", "bool", "Output JSON."),
     ],
@@ -42,11 +42,11 @@ export const DIAGNOSTICS_COMMANDS: readonly CommandSpec[] = [
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
-      "bun harness.ts blunder:audit",
-      "bun harness.ts blunder:audit --run .capsules/<run-id> --filter-status open",
-      "bun harness.ts blunder:audit --auto-admit --actor coordinator",
+      "bun harness.ts defect:audit",
+      "bun harness.ts defect:audit --run .olt/capsules/<run-id> --filter-status open",
+      "bun harness.ts defect:audit --auto-admit --actor coordinator",
     ],
-    handler: blunderAuditCommand,
+    handler: defectAuditCommand,
   },
   {
     name: "coverage:check",
@@ -132,7 +132,7 @@ export const DIAGNOSTICS_COMMANDS: readonly CommandSpec[] = [
     readsStdin: false,
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
-    examples: ["bun harness.ts doctor --run .capsules/<run-id>"],
+    examples: ["bun harness.ts doctor --run .olt/capsules/<run-id>"],
     handler: doctorCommand,
   },
   {
@@ -155,7 +155,7 @@ export const DIAGNOSTICS_COMMANDS: readonly CommandSpec[] = [
     readsStdin: false,
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
-    examples: ["bun harness.ts doctor:repair --run .capsules/<run-id> --actor coordinator"],
+    examples: ["bun harness.ts doctor:repair --run .olt/capsules/<run-id> --actor coordinator"],
     handler: repairProjectionCommand,
   },
   {
@@ -179,7 +179,7 @@ export const DIAGNOSTICS_COMMANDS: readonly CommandSpec[] = [
     readsStdin: false,
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
-    examples: ["bun harness.ts recover --run .capsules/<run-id> --actor coordinator"],
+    examples: ["bun harness.ts recover --run .olt/capsules/<run-id> --actor coordinator"],
     handler: recoverCommand,
   },
   {
@@ -201,7 +201,7 @@ export const DIAGNOSTICS_COMMANDS: readonly CommandSpec[] = [
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
-      "bun harness.ts task:release --run .capsules/<run-id> --task task-1 --agent worker-1 --token <token>",
+      "bun harness.ts task:release --run .olt/capsules/<run-id> --task task-1 --agent worker-1 --token <token>",
     ],
     handler: taskReleaseCommand,
   },
@@ -225,7 +225,7 @@ export const DIAGNOSTICS_COMMANDS: readonly CommandSpec[] = [
     readsStdin: false,
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
-    examples: ["bun harness.ts worktree:reclaim --run .capsules/<run-id> --actor coordinator"],
+    examples: ["bun harness.ts worktree:reclaim --run .olt/capsules/<run-id> --actor coordinator"],
     handler: worktreeReclaimCommand,
   },
 ];

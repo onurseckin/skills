@@ -35,7 +35,7 @@ const FALLBACK_CEILING: ReadonlyMap<string, number> = new Map([
   ["olt/scripts/src/graph/dag-expansion.ts", 1],
   ["olt/scripts/src/installer/tree-digest.ts", 1],
   ["olt/scripts/src/mind/audit.ts", 4],
-  ["olt/scripts/src/mind/blunders.ts", 6],
+  ["olt/scripts/src/mind/defects.ts", 6],
   ["olt/scripts/src/mind/brief.ts", 3],
   ["olt/scripts/src/mind/cognitive-flavor.ts", 2],
   ["olt/scripts/src/mind/counterfactual.ts", 1],

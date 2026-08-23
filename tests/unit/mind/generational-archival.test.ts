@@ -937,7 +937,7 @@ describe("Generational State Archival (REMED-007)", () => {
 
       // Add dummy companion files in .capsules to ensure they are preserved
       writeFileSync(join(capsulesDir, "ARCHIVED_OBJECTIVES.jsonl"), '{"id":"test"}\n');
-      writeFileSync(join(capsulesDir, "blunders.jsonl"), '{"id":"blunder-1"}\n');
+      writeFileSync(join(capsulesDir, "defects.jsonl"), '{"id":"defect-1"}\n');
 
       // Consolidate with currentGeneration = 4, retentionGenerations = 2
       // Cutoff = 4 - 2 = 2. Gen 1 and Gen 2 are legacy (<= 2) -> ARCHIVED to .capsules/archive/
@@ -968,7 +968,7 @@ describe("Generational State Archival (REMED-007)", () => {
 
       // Verify companion files are preserved in .capsules
       expect(existsSync(join(capsulesDir, "ARCHIVED_OBJECTIVES.jsonl"))).toBe(true);
-      expect(existsSync(join(capsulesDir, "blunders.jsonl"))).toBe(true);
+      expect(existsSync(join(capsulesDir, "defects.jsonl"))).toBe(true);
 
       // Verify integrity of all active and archived capsules
       expect(verifyIntegrity(join(archiveDir, "mind-gen-1"))).toEqual([]);

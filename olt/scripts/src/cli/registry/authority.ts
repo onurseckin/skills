@@ -29,7 +29,7 @@ export const AUTHORITY_COMMANDS: readonly CommandSpec[] = [
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
-      'bun harness.ts authority:decide --run .capsules/<run-id> --requirement req-prod-deploy --actor coordinator --decision grant --rationale "Human approved the production deploy in the review thread"',
+      'bun harness.ts authority:decide --run .olt/capsules/<run-id> --requirement req-prod-deploy --actor coordinator --decision grant --rationale "Human approved the production deploy in the review thread"',
     ],
     handler: authorityDecideCommand,
   },
@@ -40,7 +40,7 @@ export const AUTHORITY_COMMANDS: readonly CommandSpec[] = [
     summary:
       "Inspect thread execution tier, PID, active agent, grants, and main-thread compliance.",
     description:
-      "Inspects the calling thread's OS process ID, parent PID, execution tier, active agent ID, active role grants, and task leases. When executed on the interactive main thread, enforces the Main-Thread Restraint Guard advisory and logs structured blunder records for unauthorized direct implementations.",
+      "Inspects the calling thread's OS process ID, parent PID, execution tier, active agent ID, active role grants, and task leases. When executed on the interactive main thread, enforces the Main-Thread Restraint Guard advisory and logs structured defect records for unauthorized direct implementations.",
     flags: [
       optionalFlag(
         "run",
@@ -59,7 +59,7 @@ export const AUTHORITY_COMMANDS: readonly CommandSpec[] = [
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
       "bun harness.ts whoami",
-      "bun harness.ts whoami --run .capsules/<run-id> --agent coordinator-lead",
+      "bun harness.ts whoami --run .olt/capsules/<run-id> --agent coordinator-lead",
     ],
     handler: whoamiCommand,
   },
@@ -225,7 +225,7 @@ export const AUTHORITY_COMMANDS: readonly CommandSpec[] = [
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
       "bun harness.ts watchdog:probe",
-      "bun harness.ts watchdog:probe --run .capsules/<run-id>",
+      "bun harness.ts watchdog:probe --run .olt/capsules/<run-id>",
     ],
     handler: watchdogProbeCommand,
   },

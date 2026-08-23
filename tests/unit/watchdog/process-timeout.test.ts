@@ -334,7 +334,7 @@ describe("ProcessTimeoutWatchdog - SIGKILL Enforcement & Signal Escalation", () 
 });
 
 describe("ProcessTimeoutWatchdog - Structured Failure Payload & Remediation Guidance", () => {
-  test("synthesizes structured failure payload with diagnostics and blunder reference", () => {
+  test("synthesizes structured failure payload with diagnostics and defect reference", () => {
     let now = 1_000_000;
     const watchdog = new ProcessTimeoutWatchdog({
       pid: 5432,
@@ -356,7 +356,7 @@ describe("ProcessTimeoutWatchdog - Structured Failure Payload & Remediation Guid
       exitStatus: EXIT_STATUS_SIGKILL_TIMEOUT,
       errorClassification: ERROR_CLASS_STALL_TIMEOUT,
       reason: "Critic test run hung on zombie process (task-107)",
-      blunderReference: "blunder-20260822-24",
+      defectReference: "defect-20260822-24",
     });
 
     expect(payload.schema).toBe("harness.structured_failure_payload");
@@ -376,22 +376,22 @@ describe("ProcessTimeoutWatchdog - Structured Failure Payload & Remediation Guid
     expect(payload.diagnostics.durationMs).toBe(65_000);
 
     expect(payload.remediationGuidance.action).toBe("autonomous_repair_routing");
-    expect(payload.remediationGuidance.blunderReference).toBe("blunder-20260822-24");
+    expect(payload.remediationGuidance.defectReference).toBe("defect-20260822-24");
     expect(payload.remediationGuidance.supervisorTarget).toBe("coordinator");
     expect(payload.remediationGuidance.prescribedSteps.length).toBeGreaterThan(2);
     expect(payload.remediationGuidance.fallbackDirective).toContain("single-file scoped unit test");
   });
 
-  test("generates appropriate remediation guidance for implementer hang (blunder-20260822-28)", () => {
+  test("generates appropriate remediation guidance for implementer hang (defect-20260822-28)", () => {
     const guidance = buildRemediationGuidance({
       role: "task_implementer",
       supervisorTier: "coordinator",
       errorClassification: ERROR_CLASS_STALL_TIMEOUT,
-      blunderReference: "blunder-20260822-28",
+      defectReference: "defect-20260822-28",
     });
 
     expect(guidance.action).toBe("autonomous_repair_routing");
-    expect(guidance.blunderReference).toBe("blunder-20260822-28");
+    expect(guidance.defectReference).toBe("defect-20260822-28");
     expect(guidance.supervisorTarget).toBe("coordinator");
     expect(guidance.summary).toContain("Stalled task implementer execution detected");
   });
@@ -613,7 +613,7 @@ describe("HierarchicalStallProbe - Supervisor-to-Child Health Probing", () => {
     expect(payload?.exitStatus).toBe(EXIT_STATUS_SIGKILL_TIMEOUT);
     expect(payload?.errorClassification).toBe(ERROR_CLASS_STALL_TIMEOUT);
     expect(payload?.childRole).toBe("completeness_critic");
-    expect(payload?.remediationGuidance.blunderReference).toBe("blunder-20260822-24");
+    expect(payload?.remediationGuidance.defectReference).toBe("defect-20260822-24");
   });
 
   test("handles child stall: enforces SIGKILL, returns failure payload, unregisters child", async () => {

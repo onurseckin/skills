@@ -50,10 +50,10 @@ export const COORDINATOR_COMMANDS: readonly CommandSpec[] = [
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
-      "bun harness.ts coordinator:pushback --run .capsules/<run-id> --task task-1 --actor coordinator " +
+      "bun harness.ts coordinator:pushback --run .olt/capsules/<run-id> --task task-1 --actor coordinator " +
         '--validator val-1 --domain ui-design --cause procedural --observation "pass carried zero screenshot evidence" ' +
         '--remediation "re-run the visual suite and record real evidence before passing again"',
-      "bun harness.ts coordinator:pushback --run .capsules/<run-id> --task task-1 --actor coordinator " +
+      "bun harness.ts coordinator:pushback --run .olt/capsules/<run-id> --task task-1 --actor coordinator " +
         '--validator val-1 --domain code-quality --cause substantive --observation "the recorded check output shows the gate never ran" ' +
         '--remediation "fix the gate invocation and resubmit"',
     ],

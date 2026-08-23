@@ -249,7 +249,7 @@ export function partitionDefectsToIsolatedTasks(
         "1:1 implementer-validator isolation verified",
       ],
       dependencies: [],
-      source_type: "blunder_remediation",
+      source_type: "defect_remediation",
       priority:
         normalized.severity === "critical"
           ? "CRITICAL"

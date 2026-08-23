@@ -111,7 +111,7 @@ const EXPECTED_INVOCATIONS = [
   "watchdog:health-probe",
   "install",
   "installation-status",
-  "blunder:audit",
+  "defect:audit",
   "coverage:check",
   "health",
   "doctor",

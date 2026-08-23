@@ -107,8 +107,8 @@ export const ORCHESTRATOR_COMMANDS: readonly CommandSpec[] = [
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
-      "bun harness.ts orchestrator:supervise --run .capsules/<run-id> --actor coordinator",
-      "bun harness.ts orchestrator:supervise --run .capsules/<run-id> --actor coordinator --watch --interval 30",
+      "bun harness.ts orchestrator:supervise --run .olt/capsules/<run-id> --actor coordinator",
+      "bun harness.ts orchestrator:supervise --run .olt/capsules/<run-id> --actor coordinator --watch --interval 30",
     ],
     handler: orchestratorSuperviseCommand,
   },

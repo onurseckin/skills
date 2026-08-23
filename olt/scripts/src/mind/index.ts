@@ -1,8 +1,8 @@
 // Subsystem and domain namespace exports
 export * as archival from "./archival.ts";
 export * as audit from "./audit.ts";
-export * as blunderAudit from "./blunder-audit.ts";
-export * as blunders from "./blunders.ts";
+export * as defectAudit from "./defect-audit.ts";
+export * as defects from "./defects.ts";
 export * as brief from "./brief.ts";
 export * as briefingBuilder from "./briefing-builder.ts";
 export * as budget from "./budget.ts";

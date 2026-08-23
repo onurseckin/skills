@@ -32,7 +32,7 @@ export const CRITIC_COMMANDS: readonly CommandSpec[] = [
     readsStdin: false,
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
-    examples: ["bun harness.ts critic:start --run .capsules/<run-id> --critic critic-1"],
+    examples: ["bun harness.ts critic:start --run .olt/capsules/<run-id> --critic critic-1"],
     handler: criticStartCommand,
   },
   {
@@ -58,7 +58,7 @@ export const CRITIC_COMMANDS: readonly CommandSpec[] = [
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
-      'bun harness.ts critic:review --run .capsules/<run-id> --critic critic-1 --token <token> --decision approve --proofs-file proofs.json --summary "Whole diff verified"',
+      'bun harness.ts critic:review --run .olt/capsules/<run-id> --critic critic-1 --token <token> --decision approve --proofs-file proofs.json --summary "Whole diff verified"',
     ],
     handler: criticReviewCommand,
   },
@@ -84,7 +84,7 @@ export const CRITIC_COMMANDS: readonly CommandSpec[] = [
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
-      'bun harness.ts critic:reject --run .capsules/<run-id> --critic critic-1 --token <token> --summary "Missing error boundary" --findings \'[{"id":"F-01","requirement_id":"req-1","severity":"critical","observation":"No error boundary around the render tree","remediation":"Wrap the tree in an error boundary","revalidation":"bun test tests/render"}]\'',
+      'bun harness.ts critic:reject --run .olt/capsules/<run-id> --critic critic-1 --token <token> --summary "Missing error boundary" --findings \'[{"id":"F-01","requirement_id":"req-1","severity":"critical","observation":"No error boundary around the render tree","remediation":"Wrap the tree in an error boundary","revalidation":"bun test tests/render"}]\'',
     ],
     handler: criticRejectCommand,
   },
@@ -114,7 +114,7 @@ export const CRITIC_COMMANDS: readonly CommandSpec[] = [
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
-      'bun harness.ts critic:remediate --run .capsules/<run-id> --actor coordinator --resolve CF-1=C-fix-1 --resolution-method CF-1="focused repair and verification"',
+      'bun harness.ts critic:remediate --run .olt/capsules/<run-id> --actor coordinator --resolve CF-1=C-fix-1 --resolution-method CF-1="focused repair and verification"',
     ],
     handler: criticRemediateCommand,
   },

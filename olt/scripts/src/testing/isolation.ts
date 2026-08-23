@@ -1,7 +1,8 @@
+import { tmpdir } from "node:os";
 /**
  * Multi-Agent Parallel Test Isolation & Concurrency Sandbox Primitives.
  *
- * Provides isolated filesystem sandboxing under .tmp/test-isolation/<uuid>,
+ * Provides isolated filesystem sandboxing under os.tmpdir()/olt-test-scratch/<uuid>,
  * safe process environment mutation & restoration, and ephemeral port allocation.
  */
 
@@ -81,7 +82,7 @@ export function findRepoRoot(startDir?: string | undefined): string {
 }
 
 /**
- * Returns an isolated temporary directory path under .tmp/test-isolation/<uuid>.
+ * Returns an isolated temporary directory path under os.tmpdir()/olt-test-scratch/<uuid>.
  * Automatically ensures creation and cleanup of stale predecessors.
  */
 export function getIsolatedTempDir(options?: string | IsolatedTempDirOptions | undefined): string {
@@ -90,7 +91,7 @@ export function getIsolatedTempDir(options?: string | IsolatedTempDirOptions | u
 
   const baseDir = opts.baseDir
     ? resolve(opts.baseDir)
-    : join(findRepoRoot(), ".olt", "scratch", "test-isolation");
+    : join(tmpdir(), "olt-test-scratch", "test-isolation");
 
   const id = opts.uuid ?? randomUUID();
   const folderName = opts.prefix ? `${opts.prefix}-${id}` : id;

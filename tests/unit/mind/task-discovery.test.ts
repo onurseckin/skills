@@ -1,6 +1,7 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it, afterAll } from "bun:test";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { tmpdir } from "node:os";
 import {
   appendFeedbackItem,
   readFeedbackQueue,
@@ -35,7 +36,8 @@ import {
 } from "../../../olt/scripts/src/mind/task-queue.ts";
 
 describe("Perpetual Infinite Mind Engine with Autonomic Task Discovery & Re-Validation Loops", () => {
-  const testDir = join(process.cwd(), ".tmp-test-task-discovery-" + Date.now().toString());
+  afterAll(teardownWorkspace);
+  const testDir = join(tmpdir(), "tmp-test-task-discovery-" + Date.now().toString());
   const taskQueueFile = join(testDir, "TASK_QUEUE.jsonl");
   const feedbackQueueFile = join(testDir, "FEEDBACK_QUEUE.jsonl");
   const charterFile = join(testDir, "CHARTER.md");
@@ -333,7 +335,7 @@ describe("Perpetual Infinite Mind Engine with Autonomic Task Discovery & Re-Vali
       expect(mapDiscoveryCategoryToSourceId("TEST_COVERAGE")).toBe("failing-gates");
       expect(mapDiscoveryCategoryToSourceId("DORMANT_CRITERIA")).toBe("charter-backlog");
       expect(mapDiscoveryCategoryToSourceId("FEEDBACK_INTAKE")).toBe("open-findings");
-      expect(mapDiscoveryCategoryToSourceId("BLUNDER_REMEDIATION")).toBe("capsule-integrity");
+      expect(mapDiscoveryCategoryToSourceId("DEFECT_REMEDIATION")).toBe("capsule-integrity");
 
       expect(mapSourceIdToDiscoveryCategory("unused-code")).toBe("CODE_QUALITY");
       expect(mapSourceIdToDiscoveryCategory("open-findings")).toBe("FEEDBACK_INTAKE");
@@ -447,7 +449,7 @@ describe("Perpetual Infinite Mind Engine with Autonomic Task Discovery & Re-Vali
         charterPath: charterFile,
         feedbackQueuePath: feedbackQueueFile,
         taskQueuePath: taskQueueFile,
-        enableBlunderScan: false,
+        enableDefectScan: false,
         maxTasks: 5,
         autoEnqueue: true,
       });
@@ -465,7 +467,7 @@ describe("Perpetual Infinite Mind Engine with Autonomic Task Discovery & Re-Vali
         charterPath: charterFile,
         feedbackQueuePath: feedbackQueueFile,
         taskQueuePath: taskQueueFile,
-        enableBlunderScan: false,
+        enableDefectScan: false,
         maxTasks: 5,
         autoEnqueue: true,
       });
@@ -489,7 +491,7 @@ describe("Perpetual Infinite Mind Engine with Autonomic Task Discovery & Re-Vali
         charterPath: charterFile,
         feedbackQueuePath: feedbackQueueFile,
         taskQueuePath: taskQueueFile,
-        enableBlunderScan: false,
+        enableDefectScan: false,
         enableCodeQualityScan: false,
         enableTestCoverageScan: false,
         enableCognitiveGapScan: false,

@@ -296,7 +296,7 @@ describe("Tier Boundary Confinement Doctor Checks - p21 4-tier hierarchy enforce
     expect(isFullTestSuiteCommand(["pytest", "tests/unit/test_foo.py"])).toBe(false);
   });
 
-  test("auditTierConfinement detects orchestrator running full test suite (blunder-20260822-20)", () => {
+  test("auditTierConfinement detects orchestrator running full test suite (defect-20260822-20)", () => {
     const state: JsonObject = {
       agents: [
         {
@@ -336,7 +336,7 @@ describe("Tier Boundary Confinement Doctor Checks - p21 4-tier hierarchy enforce
     );
   });
 
-  test("auditTierConfinement detects coordinator running full test suite (blunder-20260822-20)", () => {
+  test("auditTierConfinement detects coordinator running full test suite (defect-20260822-20)", () => {
     const state: JsonObject = {
       agents: [
         {

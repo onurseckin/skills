@@ -182,8 +182,8 @@ export function whoamiCommand(flags: Flags): Record<string, unknown> {
     );
   }
 
-  if (thread.blunder) {
-    mdLines.push(`- **Blunder Logged**: \`${thread.blunder.id}\` (${thread.blunder.type})`);
+  if (thread.defect) {
+    mdLines.push(`- **Defect Logged**: \`${thread.defect.id}\` (${thread.defect.type})`);
   }
 
   if (run !== null) {
@@ -217,7 +217,7 @@ export function whoamiCommand(flags: Flags): Record<string, unknown> {
     advisory: thread.advisory,
     active_grants: filteredGrants,
     active_leases: filteredLeases,
-    blunder: thread.blunder,
+    defect: thread.defect,
     host_profile: thread.host_profile,
     capabilities: thread.capabilities,
     persona_reminder: personaReminder,

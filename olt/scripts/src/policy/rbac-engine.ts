@@ -8,7 +8,7 @@ export interface AuthorizationResult {
   readonly error_code?:
     | "PERMISSION_DENIED"
     | "INVALID_SCOPE"
-    | "UNSHIELDED_COMMAND_BLUNDER"
+    | "UNSHIELDED_COMMAND_DEFECT"
     | string
     | undefined;
   readonly reason?: string | undefined;
@@ -464,10 +464,10 @@ export function verifyCommandAuthorization(
   if (subshellCheck.detected) {
     return {
       authorized: false,
-      error_code: "UNSHIELDED_COMMAND_BLUNDER",
+      error_code: "UNSHIELDED_COMMAND_DEFECT",
       reason: subshellCheck.reason,
       message:
-        `[UNSHIELDED_COMMAND_BLUNDER] Direct subshell invocation, evaluator, or command chaining blocked: '${commandStr}'.\n` +
+        `[UNSHIELDED_COMMAND_DEFECT] Direct subshell invocation, evaluator, or command chaining blocked: '${commandStr}'.\n` +
         `All commands must be executed as direct argv arrays via: 'bun harness.ts shell --actor <agent_id> -- <command>'.\n` +
         `Subshells ('sh -c', 'bash -c', 'eval') and command chaining ('&&', '||', ';', '|') are strictly prohibited.`,
     };

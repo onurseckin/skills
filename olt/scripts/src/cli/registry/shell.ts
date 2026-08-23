@@ -45,7 +45,7 @@ export const SHELL_COMMANDS: readonly CommandSpec[] = [
     examples: [
       "bun harness.ts shell --actor imp-1 -- bun test tests/unit/auth.test.ts",
       "bun harness.ts shell --actor val-1 -- git status",
-      "bun harness.ts shell --actor imp-1 --run .capsules/<run-id> --task task-1 -- bun test tests/unit/parser.test.ts",
+      "bun harness.ts shell --actor imp-1 --run .olt/capsules/<run-id> --task task-1 -- bun test tests/unit/parser.test.ts",
     ],
     handler: shellCommand,
   },
@@ -67,7 +67,7 @@ export const SHELL_COMMANDS: readonly CommandSpec[] = [
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
       "bun harness.ts scope:expand --actor imp-1 --read src/shared/types.ts",
-      "bun harness.ts scope:expand --actor imp-1 --run .capsules/<run-id> --read src/policy/repo-policy.ts",
+      "bun harness.ts scope:expand --actor imp-1 --run .olt/capsules/<run-id> --read src/policy/repo-policy.ts",
     ],
     handler: scopeExpandCommand,
   },

@@ -1,11 +1,11 @@
 import type {
-  AggregatedBlunder,
-  BlunderKeyOptions,
+  AggregatedDefect,
+  DefectKeyOptions,
   DeduplicationStrategy,
   LiveDeduplicationOptions,
-} from "../blunders/types.ts";
+} from "../defects/types.ts";
 
-export interface BlunderLogOptions {
+export interface DefectLogOptions {
   readonly runRoot?: string | undefined;
   readonly targetDir?: string | undefined;
   readonly filePath?: string | undefined;
@@ -14,11 +14,11 @@ export interface BlunderLogOptions {
   readonly strategy?: DeduplicationStrategy | undefined;
   readonly windowMs?: number | undefined;
   readonly maxOccurrencesTracked?: number | undefined;
-  readonly keyOptions?: BlunderKeyOptions | undefined;
+  readonly keyOptions?: DefectKeyOptions | undefined;
 }
 
-export interface BlunderLogResult {
-  readonly recorded: AggregatedBlunder;
+export interface DefectLogResult {
+  readonly recorded: AggregatedDefect;
   readonly isNew: boolean;
   readonly totalEntries: number;
   readonly filePath: string;

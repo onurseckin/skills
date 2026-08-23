@@ -76,7 +76,7 @@ export interface RemediationGuidance {
     | "reassign_scope";
   readonly summary: string;
   readonly prescribedSteps: readonly string[];
-  readonly blunderReference: "blunder-20260822-24" | "blunder-20260822-28" | string;
+  readonly defectReference: "defect-20260822-24" | "defect-20260822-28" | string;
   readonly supervisorTarget?: string;
   readonly fallbackDirective?: string;
 }
@@ -186,7 +186,7 @@ export function buildRemediationGuidance(params: {
   role?: HierarchicalRole | string | undefined;
   supervisorTier?: SupervisorTier | string | undefined;
   errorClassification: ErrorClassification | string;
-  blunderReference?: "blunder-20260822-24" | "blunder-20260822-28" | string | undefined;
+  defectReference?: "defect-20260822-24" | "defect-20260822-28" | string | undefined;
   taskId?: string | null | undefined;
 }): RemediationGuidance {
   const role = typeof params.role === "string" ? params.role : "worker";
@@ -207,10 +207,8 @@ export function buildRemediationGuidance(params: {
         "Notify supervising Coordinator with structured failure payload to trigger autonomous repair loop.",
         "Enforce strict scoped single-file test re-execution (bun test tests/unit/<path>.test.ts) without full test suite runs.",
       ],
-      blunderReference:
-        typeof params.blunderReference === "string"
-          ? params.blunderReference
-          : "blunder-20260822-24",
+      defectReference:
+        typeof params.defectReference === "string" ? params.defectReference : "defect-20260822-24",
       supervisorTarget: "coordinator",
       fallbackDirective: "Re-run only single-file scoped unit test; ban full test suite execution.",
     };
@@ -228,10 +226,8 @@ export function buildRemediationGuidance(params: {
         "Route structured diagnostic payload to supervising Coordinator to trigger autonomous repair/retry loop.",
         "Re-dispatch implementer with bounded timeout limits and verified leased file scopes.",
       ],
-      blunderReference:
-        typeof params.blunderReference === "string"
-          ? params.blunderReference
-          : "blunder-20260822-28",
+      defectReference:
+        typeof params.defectReference === "string" ? params.defectReference : "defect-20260822-28",
       supervisorTarget: "coordinator",
       fallbackDirective: "Reassign task with tightened scope or fresh subagent worker.",
     };
@@ -247,10 +243,8 @@ export function buildRemediationGuidance(params: {
         "Orchestrator evaluates active wave lane state and rebalances pending task assignments.",
         "Re-dispatch coordinator with refreshed domain context packet.",
       ],
-      blunderReference:
-        typeof params.blunderReference === "string"
-          ? params.blunderReference
-          : "blunder-20260822-24",
+      defectReference:
+        typeof params.defectReference === "string" ? params.defectReference : "defect-20260822-24",
       supervisorTarget: "orchestrator",
       fallbackDirective: "Orchestrator assumes direct lane coordination or splits domain tasks.",
     };
@@ -265,10 +259,8 @@ export function buildRemediationGuidance(params: {
         "Synthesize execution failure payload with classification STALL_TIMEOUT.",
         "Mind re-plans domain wave partitioning and dispatches fresh orchestrator track.",
       ],
-      blunderReference:
-        typeof params.blunderReference === "string"
-          ? params.blunderReference
-          : "blunder-20260822-24",
+      defectReference:
+        typeof params.defectReference === "string" ? params.defectReference : "defect-20260822-24",
       supervisorTarget: "mind",
       fallbackDirective: "Mind initiates autonomous wave replanning and lane repartitioning.",
     };
@@ -283,8 +275,8 @@ export function buildRemediationGuidance(params: {
       "Synthesize structured failure payload with exit status SIGKILL_TIMEOUT.",
       "Notify supervising tier to initiate autonomous recovery.",
     ],
-    blunderReference:
-      typeof params.blunderReference === "string" ? params.blunderReference : "blunder-20260822-28",
+    defectReference:
+      typeof params.defectReference === "string" ? params.defectReference : "defect-20260822-28",
     supervisorTarget:
       typeof params.supervisorTier === "string" ? params.supervisorTier : "coordinator",
   };
@@ -527,7 +519,7 @@ export class ProcessTimeoutWatchdog {
     exitStatus?: ExitStatus | string;
     errorClassification?: ErrorClassification | string;
     reason: string;
-    blunderReference?: "blunder-20260822-24" | "blunder-20260822-28" | string;
+    defectReference?: "defect-20260822-24" | "defect-20260822-28" | string;
     now?: number;
   }): StructuredFailurePayload {
     const now = params.now ?? this.clock();
@@ -539,7 +531,7 @@ export class ProcessTimeoutWatchdog {
       role: this.childRole,
       supervisorTier: this.supervisorTier,
       errorClassification: classification,
-      blunderReference: params.blunderReference,
+      defectReference: params.defectReference,
       taskId: this.taskId,
     });
 

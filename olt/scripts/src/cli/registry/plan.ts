@@ -85,7 +85,7 @@ export const PLAN_COMMANDS: readonly CommandSpec[] = [
     domain: "plan",
     summary: "Create a run capsule and capture the prompt bytes immutably.",
     description:
-      "Initialises <repo>/.capsules/<run-id>, records the verbatim prompt with its sha256, and ensures the capsule is gitignored.",
+      "Initialises <repo>/.olt/capsules/<run-id>, records the verbatim prompt with its sha256, and ensures the capsule is gitignored.",
     flags: [
       optionalFlag("run", "string", "Run id; interchangeable with --run-id."),
       optionalFlag("run-id", "string", "Run id; interchangeable with --run."),
@@ -143,7 +143,7 @@ export const PLAN_COMMANDS: readonly CommandSpec[] = [
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
-      'bun harness.ts plan:enhance --run .capsules/<run-id> --actor planner --summary "Wire the drawer to the graph store" --todo "Add the state machine tab" --todo "Delete the legacy asset writes" --risk "Fixture dataset predates the new schema" --source src/graph/store.ts',
+      'bun harness.ts plan:enhance --run .olt/capsules/<run-id> --actor planner --summary "Wire the drawer to the graph store" --todo "Add the state machine tab" --todo "Delete the legacy asset writes" --risk "Fixture dataset predates the new schema" --source src/graph/store.ts',
     ],
     handler: planEnhanceCommand,
   },
@@ -222,10 +222,10 @@ export const PLAN_COMMANDS: readonly CommandSpec[] = [
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
-      'bun harness.ts plan:add --run .capsules/<run-id> --id task-1 --label "Database schema" --scope "src/db" --gate "bun test tests/db.test.ts" --actor coordinator',
-      'bun harness.ts plan:add --run .capsules/<run-id> --id task-2 --label "CLI wiring" --scope "src/cli" --gate "bun test tests/unit/cli" --actor coordinator --requirement-lines "3-5"',
-      'bun harness.ts plan:add --run .capsules/<run-id> --id task-3 --label "Integration" --scope "src/integration" --gate "bun test tests/integration" --actor coordinator --deps task-1,task-2 --dep-reason "task-1:reads the schema task-1 writes" --dep-reason "task-2:reads the CLI wiring task-2 writes"',
-      'bun harness.ts plan:add --run .capsules/<run-id> --id task-topic --label "Topic bank" --actor coordinator --auto-partition "src/curriculum/mlQuestions/*.ts" --gate-template "bun test {scope}"',
+      'bun harness.ts plan:add --run .olt/capsules/<run-id> --id task-1 --label "Database schema" --scope "src/db" --gate "bun test tests/db.test.ts" --actor coordinator',
+      'bun harness.ts plan:add --run .olt/capsules/<run-id> --id task-2 --label "CLI wiring" --scope "src/cli" --gate "bun test tests/unit/cli" --actor coordinator --requirement-lines "3-5"',
+      'bun harness.ts plan:add --run .olt/capsules/<run-id> --id task-3 --label "Integration" --scope "src/integration" --gate "bun test tests/integration" --actor coordinator --deps task-1,task-2 --dep-reason "task-1:reads the schema task-1 writes" --dep-reason "task-2:reads the CLI wiring task-2 writes"',
+      'bun harness.ts plan:add --run .olt/capsules/<run-id> --id task-topic --label "Topic bank" --actor coordinator --auto-partition "src/curriculum/mlQuestions/*.ts" --gate-template "bun test {scope}"',
     ],
     handler: planAddCommand,
   },
@@ -249,7 +249,7 @@ export const PLAN_COMMANDS: readonly CommandSpec[] = [
     readsStdin: false,
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
-    examples: ["bun harness.ts plan:audit --run .capsules/<run-id> --actor planner"],
+    examples: ["bun harness.ts plan:audit --run .olt/capsules/<run-id> --actor planner"],
     handler: planAuditCommand,
   },
   {
@@ -279,8 +279,8 @@ export const PLAN_COMMANDS: readonly CommandSpec[] = [
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
-      'bun harness.ts plan:compile --run .capsules/<run-id> --actor planner --completion-gate "bun test tests/unit"',
-      'bun harness.ts plan:compile --run .capsules/<run-id> --actor planner --completion-gate "bun test tests/unit" --accept-audit "A3-gate-discrimination:task-a and task-b legitimately share the shared-fixture regression test"',
+      'bun harness.ts plan:compile --run .olt/capsules/<run-id> --actor planner --completion-gate "bun test tests/unit"',
+      'bun harness.ts plan:compile --run .olt/capsules/<run-id> --actor planner --completion-gate "bun test tests/unit" --accept-audit "A3-gate-discrimination:task-a and task-b legitimately share the shared-fixture regression test"',
     ],
     handler: planCompileCommand,
   },
@@ -305,7 +305,7 @@ export const PLAN_COMMANDS: readonly CommandSpec[] = [
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
-      "bun harness.ts plan:validate-start --run .capsules/<run-id> --validator plan-val-1",
+      "bun harness.ts plan:validate-start --run .olt/capsules/<run-id> --validator plan-val-1",
     ],
     handler: planValidateStartCommand,
   },
@@ -368,8 +368,8 @@ export const PLAN_COMMANDS: readonly CommandSpec[] = [
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
-      'bun harness.ts plan:review --run .capsules/<run-id> --validator plan-val-1 --token <token> --status approved --decomposition-answer "14 tasks match the 14 named topics" --dependency-answer "no dependency edges; every task is an independent root" --gate-answer "each gate runs only that task\'s own scoped test file" --straggler-answer "every task carries the same one-topic effort estimate" --gate-ids-reviewed "gate-1,gate-2,gate-3" --summary "Decomposition matches the prompt; gates are scope-narrow"',
-      'bun harness.ts plan:review --run .capsules/<run-id> --validator plan-val-1 --token <token> --status changes_requested --decomposition-answer "10 topics compressed into 1 task" --dependency-answer "n/a" --gate-answer "the shared gate cannot fail per-task" --straggler-answer "n/a" --gate-ids-reviewed "gate-1" --summary "Compressed decomposition; see findings" --findings \'[{"id":"PV-1","invariant":"A2-parallelism","severity":"critical","observation":"10 distinct topics collapsed into task-domains","remediation":"one task per topic, each with its own scoped gate"}]\'',
+      'bun harness.ts plan:review --run .olt/capsules/<run-id> --validator plan-val-1 --token <token> --status approved --decomposition-answer "14 tasks match the 14 named topics" --dependency-answer "no dependency edges; every task is an independent root" --gate-answer "each gate runs only that task\'s own scoped test file" --straggler-answer "every task carries the same one-topic effort estimate" --gate-ids-reviewed "gate-1,gate-2,gate-3" --summary "Decomposition matches the prompt; gates are scope-narrow"',
+      'bun harness.ts plan:review --run .olt/capsules/<run-id> --validator plan-val-1 --token <token> --status changes_requested --decomposition-answer "10 topics compressed into 1 task" --dependency-answer "n/a" --gate-answer "the shared gate cannot fail per-task" --straggler-answer "n/a" --gate-ids-reviewed "gate-1" --summary "Compressed decomposition; see findings" --findings \'[{"id":"PV-1","invariant":"A2-parallelism","severity":"critical","observation":"10 distinct topics collapsed into task-domains","remediation":"one task per topic, each with its own scoped gate"}]\'',
     ],
     handler: planReviewCommand,
   },
@@ -396,7 +396,7 @@ export const PLAN_COMMANDS: readonly CommandSpec[] = [
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
-      'bun harness.ts plan:replan --run .capsules/<run-id> --actor coordinator --gate "bun run typecheck"',
+      'bun harness.ts plan:replan --run .olt/capsules/<run-id> --actor coordinator --gate "bun run typecheck"',
     ],
     handler: planReplanCommand,
   },
@@ -419,7 +419,7 @@ export const PLAN_COMMANDS: readonly CommandSpec[] = [
     readsStdin: false,
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
-    examples: ["bun harness.ts plan:claim --run .capsules/<run-id> --agent planner-1"],
+    examples: ["bun harness.ts plan:claim --run .olt/capsules/<run-id> --agent planner-1"],
     handler: planClaimCommand,
   },
   {
@@ -452,7 +452,7 @@ export const PLAN_COMMANDS: readonly CommandSpec[] = [
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
-      "bun harness.ts plan:apply --run .capsules/<run-id> --actor planner-1 --expected-revision 0",
+      "bun harness.ts plan:apply --run .olt/capsules/<run-id> --actor planner-1 --expected-revision 0",
     ],
     handler: planApplyCommand,
   },
@@ -466,45 +466,7 @@ export const PLAN_COMMANDS: readonly CommandSpec[] = [
     readsStdin: false,
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
-    examples: ["bun harness.ts plan:status --run .capsules/<run-id>"],
+    examples: ["bun harness.ts plan:status --run .olt/capsules/<run-id>"],
     handler: planStatusCommand,
-  },
-  {
-    name: "dag:view",
-    aliases: ["graph:ascii", "status:dag"],
-    domain: "plan",
-    summary:
-      "Render live ASCII execution DAG, active subagent allocations, and algorithmic parallelization recommendations.",
-    description:
-      "Inspects compiled graph or planning buffer DAG topology, computes critical path depth, tracks active subagent leases, and generates algorithmic parallelization recommendations.",
-    flags: [
-      optionalFlag(
-        "run",
-        "string",
-        "Capsule run root. Defaults to current repository .capsules/ when omitted.",
-      ),
-      optionalFlag("run-id", "string", "Alias of --run."),
-      optionalFlag("repo", "string", "Repository root to search for .capsules/.", "."),
-      optionalFlag(
-        "detailed",
-        "bool",
-        "Render full write scopes, gate commands, and dependency lists.",
-      ),
-      optionalFlag(
-        "recommendations",
-        "bool",
-        "Highlight algorithmic parallelization opportunities.",
-      ),
-      optionalFlag("all", "bool", "Do not truncate output lines."),
-    ],
-    readsStdin: false,
-    takesRemainder: false,
-    exitCodes: DEFAULT_EXIT_CODES,
-    examples: [
-      "bun harness.ts dag:view --run .capsules/<run-id>",
-      "bun harness.ts graph:ascii --run .capsules/<run-id> --detailed",
-      "bun harness.ts dag:view --detailed --recommendations",
-    ],
-    handler: dagViewCommand,
   },
 ];

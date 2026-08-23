@@ -510,7 +510,7 @@ export function decoupleDisjointTasks(
   };
 }
 
-export const FALSE_SERIALIZATION_BLUNDER = "FALSE_SERIALIZATION_BLUNDER" as const;
+export const FALSE_SERIALIZATION_DEFECT = "FALSE_SERIALIZATION_DEFECT" as const;
 export const MAX_LANES_PER_COORDINATOR = 5 as const;
 export const FAST_PATH_TASK_COUNT = 1 as const;
 
@@ -560,7 +560,7 @@ export interface AntiSerializationInterlockResult {
   readonly dispatchedCount: number;
   readonly violation?:
     | {
-        readonly code: typeof FALSE_SERIALIZATION_BLUNDER;
+        readonly code: typeof FALSE_SERIALIZATION_DEFECT;
         readonly message: string;
         readonly readyTaskIds: readonly string[];
         readonly recommendedDispatchArray: readonly SubagentDispatchItem[];
@@ -932,14 +932,14 @@ export function verifyAntiSerializationInterlock(
 
   if (readyCount >= 2 && dispatchedCount < readyCount) {
     const recommendedDispatchArray = formatParallelSubagentsDispatchArray(targetTasks);
-    const message = `[FALSE_SERIALIZATION_BLUNDER] Wave contains ${readyCount} ready disjoint lanes. You MUST invoke all ${readyCount} subagents in parallel via Subagents: [...].`;
+    const message = `[FALSE_SERIALIZATION_DEFECT] Wave contains ${readyCount} ready disjoint lanes. You MUST invoke all ${readyCount} subagents in parallel via Subagents: [...].`;
 
     return {
       passed: false,
       readyLanesCount: readyCount,
       dispatchedCount,
       violation: {
-        code: FALSE_SERIALIZATION_BLUNDER,
+        code: FALSE_SERIALIZATION_DEFECT,
         message,
         readyTaskIds,
         recommendedDispatchArray: recommendedDispatchArray as SubagentDispatchItem[],
@@ -955,7 +955,7 @@ export function verifyAntiSerializationInterlock(
 }
 
 /**
- * Asserts the Anti-Serialization Interlock, throwing a HarnessError if a serialization blunder is detected.
+ * Asserts the Anti-Serialization Interlock, throwing a HarnessError if a serialization defect is detected.
  */
 export function assertAntiSerializationInterlock(
   readyLanes:

@@ -53,7 +53,7 @@ describe("CLI Shell Interlock & Read Scope Expansion", () => {
         thrownSh = err;
       }
       expect(thrownSh).toBeInstanceOf(HarnessError);
-      expect((thrownSh as HarnessError).message).toContain("[UNSHIELDED_COMMAND_BLUNDER]");
+      expect((thrownSh as HarnessError).message).toContain("[UNSHIELDED_COMMAND_DEFECT]");
 
       let thrownChain: unknown;
       try {
@@ -68,7 +68,7 @@ describe("CLI Shell Interlock & Read Scope Expansion", () => {
         thrownChain = err;
       }
       expect(thrownChain).toBeInstanceOf(HarnessError);
-      expect((thrownChain as HarnessError).message).toContain("[UNSHIELDED_COMMAND_BLUNDER]");
+      expect((thrownChain as HarnessError).message).toContain("[UNSHIELDED_COMMAND_DEFECT]");
     });
 
     test("executes authorized diagnostic command and outputs cryptographic receipt with evidence file", async () => {

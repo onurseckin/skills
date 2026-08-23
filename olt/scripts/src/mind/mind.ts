@@ -108,7 +108,6 @@ import {
   type MindProactiveBandwidthActivity,
 } from "./strategic-purpose.ts";
 import {
-  LEGACY_COGNITIVE_MEMORY_FILE,
   DEFAULT_COGNITIVE_MEMORY_FILE,
   resolveCanonicalCognitiveMemoryPath,
   resolveCognitiveMemoryPath,
@@ -149,8 +148,6 @@ import {
   type AutonomousDualIntakeResult,
 } from "./smart-task-manager.ts";
 import {
-  LEGACY_TASK_QUEUE_FILE,
-  LEGACY_LOWER_TASK_QUEUE_FILE,
   DEFAULT_TASK_QUEUE_FILE,
   resolveCanonicalTaskQueuePath,
   resolveTaskQueuePath,
@@ -278,7 +275,6 @@ export {
 
 // Re-export persistent cognitive memory and smart task manager
 export {
-  LEGACY_COGNITIVE_MEMORY_FILE,
   DEFAULT_COGNITIVE_MEMORY_FILE,
   resolveCanonicalCognitiveMemoryPath,
   resolveCognitiveMemoryPath,
@@ -321,8 +317,6 @@ export {
 
 // Re-export canonical task queue facilities
 export {
-  LEGACY_TASK_QUEUE_FILE,
-  LEGACY_LOWER_TASK_QUEUE_FILE,
   DEFAULT_TASK_QUEUE_FILE,
   resolveCanonicalTaskQueuePath,
   resolveTaskQueuePath,
@@ -358,7 +352,7 @@ export {
 /**
  * CLI Command Handler: mind:task-discovery / mind-task-discovery
  * Autonomically scans the workspace for cognitive gaps, code quality defects,
- * test coverage deficits, dormant criteria, pending feedback, and blunder logs.
+ * test coverage deficits, dormant criteria, pending feedback, and defect logs.
  */
 export function mindTaskDiscoveryCommand(
   flags: Flags,
@@ -502,7 +496,7 @@ export const MIND_TASK_DISCOVERY_COMMAND_SPEC: CommandSpec = {
   domain: "mind",
   summary: "Autonomously scan workspace for cognitive gaps, quality issues, and dormant criteria.",
   description:
-    "Runs cognitive task discovery across source modules, unit tests, charter goals, feedback queue, and blunder logs to identify gaps and synthesize anti-batched self-evolution tasks.",
+    "Runs cognitive task discovery across source modules, unit tests, charter goals, feedback queue, and defect logs to identify gaps and synthesize anti-batched self-evolution tasks.",
   flags: [
     optionalFlag("run", "string", "Mind capsule run root or workspace directory."),
     optionalFlag("source-root", "string", "Source directory to scan; repeat for multiple."),

@@ -90,12 +90,12 @@ describe("Mandatory Supervisory Scheduler Invariant & Rule 16 Contract", () => {
     expect(content).toContain("Tier 1 Background Orchestrator");
   });
 
-  test("dag:view command is registered in COMMAND_REGISTRY with correct aliases", () => {
-    const dagSpec = COMMAND_REGISTRY.find((spec) => spec.name === "dag:view");
+  test("dag command is registered in COMMAND_REGISTRY with correct aliases", () => {
+    const dagSpec = COMMAND_REGISTRY.find((spec) => spec.name === "dag");
     expect(dagSpec).toBeDefined();
-    expect(dagSpec?.domain).toBe("plan");
-    expect(dagSpec?.aliases).toContain("graph:ascii");
-    expect(dagSpec?.aliases).toContain("status:dag");
+    expect(dagSpec?.aliases).toContain("dag:view");
+    expect(dagSpec?.aliases).toContain("dag:render");
+    expect(dagSpec?.domain).toBe("reporting");
   });
 
   test("zero TypeScript any and zero suppressions across scheduler and DAG source and test files", () => {

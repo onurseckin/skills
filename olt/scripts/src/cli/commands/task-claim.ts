@@ -5,7 +5,7 @@ import { AGENT_ROLES, isAgentRole } from "../../contracts/packets.ts";
 import { evidenced, type Evidenced } from "../../contracts/evidence.ts";
 import { getHarnessConfig } from "../../config/harness-config.ts";
 import { HarnessError } from "../../errors/harness-error.ts";
-import { recordBlunder } from "../../authority/thread-identifier.ts";
+import { recordDefect } from "../../authority/thread-identifier.ts";
 import { readPlanObject } from "../../graph/read-plan.ts";
 import { refreshHandoff } from "../../reporting/handoff.ts";
 import { workflowPort } from "../../integration/store-ports.ts";
@@ -154,10 +154,10 @@ export async function taskClaimCommand(
 
   if (isOrchestrator || isCoordinator) {
     const roleTitle = isOrchestrator ? "Orchestrators" : "Coordinators";
-    const blunderId = `blunder-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    recordBlunder(
+    const defectId = `defect-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    recordDefect(
       {
-        id: blunderId,
+        id: defectId,
         type: "role_confinement_violation",
         severity: "critical",
         timestamp: new Date().toISOString(),
@@ -208,10 +208,10 @@ export async function taskClaimCommand(
 
   if (isCriticOrValidator) {
     const roleTitle = role === "completeness-critic" ? "Completeness critics" : "Validators";
-    const blunderId = `blunder-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    recordBlunder(
+    const defectId = `defect-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    recordDefect(
       {
-        id: blunderId,
+        id: defectId,
         type: "role_confinement_violation",
         severity: "critical",
         timestamp: new Date().toISOString(),

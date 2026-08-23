@@ -236,7 +236,7 @@ describe("timeline collector", () => {
   });
 
   // Regression guard for the wiring itself, not just `step-event-summaries.ts` in isolation: a
-  // real fixture run (`.tmp/fixture-build/build-fixture.ts`) had 42 of 78 recorded steps fall to
+  // real fixture run (`os.tmpdir()/fixture-build/build-fixture.ts`) had 42 of 78 recorded steps fall to
   // the fully generic `Event <kind> recorded by <actor>` before this case existed, which is what
   // B21.3's "reconstructible from summaries alone" bar refuses to accept. This proves both
   // `collectTimeline` and `collectActionSteps` route an event kind their own switch has no case

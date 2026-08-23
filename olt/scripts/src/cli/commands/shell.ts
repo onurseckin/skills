@@ -64,7 +64,7 @@ export async function shellCommand(
   const auth = verifyCommandAuthorization(metadata, remainder, policy);
   if (!auth.authorized) {
     const errCode =
-      auth.error_code === "INVALID_SCOPE" || auth.error_code === "UNSHIELDED_COMMAND_BLUNDER"
+      auth.error_code === "INVALID_SCOPE" || auth.error_code === "UNSHIELDED_COMMAND_DEFECT"
         ? "INVALID_ARGUMENT"
         : "ROLE_CONFINEMENT_VIOLATION";
     throw new HarnessError(

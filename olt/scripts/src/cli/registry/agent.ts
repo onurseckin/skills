@@ -4,7 +4,6 @@ import {
   agentReleaseCommand,
   agentReportCommand,
 } from "../commands/agent-ops.ts";
-import { agentBriefCommand } from "../commands/task-brief.ts";
 import { CATEGORY_FLAG_HELP } from "../taxonomy-flags.ts";
 import {
   DEFAULT_EXIT_CODES,
@@ -32,25 +31,6 @@ const toolExtraFlag: FlagSpec = {
 };
 
 export const AGENT_COMMANDS: readonly CommandSpec[] = [
-  {
-    name: "agent:brief",
-    aliases: [],
-    domain: "agent",
-    tier: "internal",
-    internal: true,
-    summary: "Generate a zero-exploration 1-shot briefing for a dispatched agent.",
-    description:
-      "Produces a structured briefing for the agent with role, parent lineage, model/thinking configuration, tools, and parent task write scope and test commands if attached to a task.",
-    flags: [
-      requiredFlag("run", "string", "Capsule run root."),
-      requiredFlag("agent", "string", "Agent id holding the grant."),
-    ],
-    readsStdin: false,
-    takesRemainder: false,
-    exitCodes: DEFAULT_EXIT_CODES,
-    examples: ["bun harness.ts agent:brief --run .capsules/<run-id> --agent worker-1"],
-    handler: agentBriefCommand,
-  },
   {
     name: "agent:register",
     aliases: [],
@@ -104,7 +84,7 @@ export const AGENT_COMMANDS: readonly CommandSpec[] = [
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
-      "bun harness.ts agent:register --run .capsules/<run-id> --agent worker-1 --role implementer --host claude-code --parent-agent coordinator-1 --parent-task task-1 --tool Bash=shell --tool-extra Bash:shell=zsh",
+      "bun harness.ts agent:register --run .olt/capsules/<run-id> --agent worker-1 --role implementer --host claude-code --parent-agent coordinator-1 --parent-task task-1 --tool Bash=shell --tool-extra Bash:shell=zsh",
     ],
     handler: agentRegisterCommand,
   },
@@ -139,7 +119,7 @@ export const AGENT_COMMANDS: readonly CommandSpec[] = [
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
-      "bun harness.ts agent:report --run .capsules/<run-id> --agent worker-1 --tool Read=file-edit --tool Grep=search --tokens-in 18000 --tokens-out 2400 --token-extra cache_read_input_tokens=91000",
+      "bun harness.ts agent:report --run .olt/capsules/<run-id> --agent worker-1 --tool Read=file-edit --tool Grep=search --tokens-in 18000 --tokens-out 2400 --token-extra cache_read_input_tokens=91000",
     ],
     handler: agentReportCommand,
   },
@@ -162,7 +142,7 @@ export const AGENT_COMMANDS: readonly CommandSpec[] = [
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
-      'bun harness.ts agent:release --run .capsules/<run-id> --agent worker-1 --reason "task-1 submitted"',
+      'bun harness.ts agent:release --run .olt/capsules/<run-id> --agent worker-1 --reason "task-1 submitted"',
     ],
     handler: agentReleaseCommand,
   },
@@ -184,8 +164,8 @@ export const AGENT_COMMANDS: readonly CommandSpec[] = [
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
-      "bun harness.ts agent:list --run .capsules/<run-id>",
-      "bun harness.ts agent:list --run .capsules/<run-id> --task task-1",
+      "bun harness.ts agent:list --run .olt/capsules/<run-id>",
+      "bun harness.ts agent:list --run .olt/capsules/<run-id> --task task-1",
     ],
     handler: agentListCommand,
   },

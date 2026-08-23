@@ -4,14 +4,14 @@
  * Verifies:
  * 1. Fast-Path Compaction on N = 1 single tasks (Orchestrator manages worker directly).
  * 2. Multi-Coordinator Partitioning for waves > 5 lanes or multi-stack features (max 5 lanes per coordinator).
- * 3. Hard-Coded Anti-Serialization Mechanical Interlock (FALSE_SERIALIZATION_BLUNDER).
+ * 3. Hard-Coded Anti-Serialization Mechanical Interlock (FALSE_SERIALIZATION_DEFECT).
  * 4. Integration with Smart Task Manager, Wave Execution, and Multi-Orchestrator Pre-Planning.
  * 5. Strict static code invariants (0 any, 0 compiler/linter suppressions).
  */
 
 import { describe, expect, it } from "bun:test";
 import {
-  FALSE_SERIALIZATION_BLUNDER,
+  FALSE_SERIALIZATION_DEFECT,
   FAST_PATH_TASK_COUNT,
   MAX_LANES_PER_COORDINATOR,
   assertAntiSerializationInterlock,
@@ -261,7 +261,7 @@ describe("Plan 91 Pillar 1: Elastic Dynamic Hierarchy Scaling & Anti-Serializati
       expect(() => assertAntiSerializationInterlock(readyTasks, 3)).not.toThrow();
     });
 
-    it("mechanically blocks single-subagent dispatches on N >= 2 ready lanes with FALSE_SERIALIZATION_BLUNDER", () => {
+    it("mechanically blocks single-subagent dispatches on N >= 2 ready lanes with FALSE_SERIALIZATION_DEFECT", () => {
       const readyTasks = [
         createMockTask("lane-1", ["src/lane1.ts"]),
         createMockTask("lane-2", ["src/lane2.ts"]),
@@ -272,9 +272,9 @@ describe("Plan 91 Pillar 1: Elastic Dynamic Hierarchy Scaling & Anti-Serializati
       const result = verifyAntiSerializationInterlock(readyTasks, 1);
       expect(result.passed).toBe(false);
       expect(result.violation).toBeDefined();
-      expect(result.violation?.code).toBe(FALSE_SERIALIZATION_BLUNDER);
+      expect(result.violation?.code).toBe(FALSE_SERIALIZATION_DEFECT);
       expect(result.violation?.message).toBe(
-        "[FALSE_SERIALIZATION_BLUNDER] Wave contains 4 ready disjoint lanes. You MUST invoke all 4 subagents in parallel via Subagents: [...].",
+        "[FALSE_SERIALIZATION_DEFECT] Wave contains 4 ready disjoint lanes. You MUST invoke all 4 subagents in parallel via Subagents: [...].",
       );
       expect(result.violation?.readyTaskIds).toEqual(["lane-1", "lane-2", "lane-3", "lane-4"]);
       expect(result.violation?.recommendedDispatchArray.length).toBe(4);
@@ -284,12 +284,12 @@ describe("Plan 91 Pillar 1: Elastic Dynamic Hierarchy Scaling & Anti-Serializati
       // Verify partial batching (k = 2 or k = 3 for N = 4) is also blocked
       const partial2 = verifyAntiSerializationInterlock(readyTasks, 2);
       expect(partial2.passed).toBe(false);
-      expect(partial2.violation?.code).toBe(FALSE_SERIALIZATION_BLUNDER);
+      expect(partial2.violation?.code).toBe(FALSE_SERIALIZATION_DEFECT);
       expect(() => assertAntiSerializationInterlock(readyTasks, 2)).toThrow(HarnessError);
 
       const partial3 = verifyAntiSerializationInterlock(readyTasks, 3);
       expect(partial3.passed).toBe(false);
-      expect(partial3.violation?.code).toBe(FALSE_SERIALIZATION_BLUNDER);
+      expect(partial3.violation?.code).toBe(FALSE_SERIALIZATION_DEFECT);
       expect(() => assertAntiSerializationInterlock(readyTasks, 3)).toThrow(HarnessError);
 
       try {
@@ -298,7 +298,7 @@ describe("Plan 91 Pillar 1: Elastic Dynamic Hierarchy Scaling & Anti-Serializati
         expect(err instanceof HarnessError).toBe(true);
         const harnessErr = err as HarnessError;
         expect(harnessErr.code).toBe("INVALID_STATE");
-        expect(harnessErr.message).toContain("[FALSE_SERIALIZATION_BLUNDER]");
+        expect(harnessErr.message).toContain("[FALSE_SERIALIZATION_DEFECT]");
         expect(harnessErr.message).toContain(
           "You MUST invoke all 4 subagents in parallel via Subagents: [...]",
         );

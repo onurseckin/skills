@@ -148,7 +148,7 @@ describe("RBAC Engine & Hybrid Deny-List", () => {
       expect(result.message).toContain("Cognitive Validators are locked to 0 command execution");
     });
 
-    test("blocks subshell and evaluator invocations with UNSHIELDED_COMMAND_BLUNDER", () => {
+    test("blocks subshell and evaluator invocations with UNSHIELDED_COMMAND_DEFECT", () => {
       const implementerActor: AgentMetadata = {
         agent_id: "imp-1",
         role: "implementer",
@@ -161,7 +161,7 @@ describe("RBAC Engine & Hybrid Deny-List", () => {
 
       const resSh = verifyCommandAuthorization(implementerActor, "sh -c 'bun test'", samplePolicy);
       expect(resSh.authorized).toBe(false);
-      expect(resSh.error_code).toBe("UNSHIELDED_COMMAND_BLUNDER");
+      expect(resSh.error_code).toBe("UNSHIELDED_COMMAND_DEFECT");
 
       const resBash = verifyCommandAuthorization(
         implementerActor,
@@ -169,7 +169,7 @@ describe("RBAC Engine & Hybrid Deny-List", () => {
         samplePolicy,
       );
       expect(resBash.authorized).toBe(false);
-      expect(resBash.error_code).toBe("UNSHIELDED_COMMAND_BLUNDER");
+      expect(resBash.error_code).toBe("UNSHIELDED_COMMAND_DEFECT");
 
       const resNode = verifyCommandAuthorization(
         implementerActor,
@@ -177,7 +177,7 @@ describe("RBAC Engine & Hybrid Deny-List", () => {
         samplePolicy,
       );
       expect(resNode.authorized).toBe(false);
-      expect(resNode.error_code).toBe("UNSHIELDED_COMMAND_BLUNDER");
+      expect(resNode.error_code).toBe("UNSHIELDED_COMMAND_DEFECT");
 
       const resBun = verifyCommandAuthorization(
         implementerActor,
@@ -185,7 +185,7 @@ describe("RBAC Engine & Hybrid Deny-List", () => {
         samplePolicy,
       );
       expect(resBun.authorized).toBe(false);
-      expect(resBun.error_code).toBe("UNSHIELDED_COMMAND_BLUNDER");
+      expect(resBun.error_code).toBe("UNSHIELDED_COMMAND_DEFECT");
 
       const resPy = verifyCommandAuthorization(
         implementerActor,
@@ -193,7 +193,7 @@ describe("RBAC Engine & Hybrid Deny-List", () => {
         samplePolicy,
       );
       expect(resPy.authorized).toBe(false);
-      expect(resPy.error_code).toBe("UNSHIELDED_COMMAND_BLUNDER");
+      expect(resPy.error_code).toBe("UNSHIELDED_COMMAND_DEFECT");
     });
 
     test("blocks unshielded command chaining operators in argv", () => {
@@ -213,7 +213,7 @@ describe("RBAC Engine & Hybrid Deny-List", () => {
         samplePolicy,
       );
       expect(resAnd.authorized).toBe(false);
-      expect(resAnd.error_code).toBe("UNSHIELDED_COMMAND_BLUNDER");
+      expect(resAnd.error_code).toBe("UNSHIELDED_COMMAND_DEFECT");
 
       const resPipe = verifyCommandAuthorization(
         implementerActor,
@@ -221,7 +221,7 @@ describe("RBAC Engine & Hybrid Deny-List", () => {
         samplePolicy,
       );
       expect(resPipe.authorized).toBe(false);
-      expect(resPipe.error_code).toBe("UNSHIELDED_COMMAND_BLUNDER");
+      expect(resPipe.error_code).toBe("UNSHIELDED_COMMAND_DEFECT");
 
       const resSemi = verifyCommandAuthorization(
         implementerActor,
@@ -229,7 +229,7 @@ describe("RBAC Engine & Hybrid Deny-List", () => {
         samplePolicy,
       );
       expect(resSemi.authorized).toBe(false);
-      expect(resSemi.error_code).toBe("UNSHIELDED_COMMAND_BLUNDER");
+      expect(resSemi.error_code).toBe("UNSHIELDED_COMMAND_DEFECT");
     });
 
     test("blocks cognitive validator from running any shell command", () => {

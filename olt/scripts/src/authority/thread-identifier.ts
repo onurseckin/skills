@@ -15,7 +15,7 @@ export const TIER_NAMES: Readonly<Record<ExecutionTier, string>> = {
 export const MAIN_THREAD_ADVISORY =
   "[MAIN THREAD RESTRAINT ACTIVE]: Main interactive thread must not directly modify files or execute implementation tasks. It must dispatch Tier 2 Background Coordinators or Tier 3 Implementers via invoke_subagent.";
 
-export interface BlunderRecord {
+export interface DefectRecord {
   id: string;
   type:
     | "main_thread_direct_execution"
@@ -63,7 +63,7 @@ export interface ThreadIdentification {
   compliance_state: "compliant" | "restrained" | "violation";
   advisory: string | null;
   indicators: Record<string, string>;
-  blunder: BlunderRecord | null;
+  defect: DefectRecord | null;
   host_profile: HostProfile;
   capabilities: CapabilitiesProfile;
 }
@@ -206,12 +206,12 @@ export function agentIdToRole(agentId: string): string | null {
   return null;
 }
 
-export function recordBlunder(
-  blunder: BlunderRecord,
+export function recordDefect(
+  defect: DefectRecord,
   options: { runRoot?: string | undefined; cwd?: string | undefined } = {},
-): BlunderRecord {
+): DefectRecord {
   const targetFile = options.runRoot
-    ? join(options.runRoot, "blunders.jsonl")
+    ? join(options.runRoot, "defects.jsonl")
     : resolveDefectsPath(options.cwd);
 
   try {
@@ -219,11 +219,11 @@ export function recordBlunder(
     if (!existsSync(dir)) {
       mkdirSync(dir, { recursive: true });
     }
-    appendFileSync(targetFile, `${JSON.stringify(blunder)}\n`, "utf8");
+    appendFileSync(targetFile, `${JSON.stringify(defect)}\n`, "utf8");
   } catch {
     // Disk recording is best-effort and non-fatal
   }
-  return blunder;
+  return defect;
 }
 
 export function detectHostApp(env: NodeJS.ProcessEnv | Record<string, string | undefined>): string {
@@ -361,11 +361,11 @@ export function identifyExecutionContext(
 
   const advisory = isMainThread ? MAIN_THREAD_ADVISORY : null;
 
-  let blunder: BlunderRecord | null = null;
+  let defect: DefectRecord | null = null;
   if (isMainThread) {
-    const blunderId = `blunder-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    blunder = {
-      id: blunderId,
+    const defectId = `defect-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    defect = {
+      id: defectId,
       type: "main_thread_direct_execution",
       severity: "critical",
       timestamp: new Date().toISOString(),
@@ -381,7 +381,7 @@ export function identifyExecutionContext(
         indicators,
       },
     };
-    recordBlunder(blunder, {
+    recordDefect(defect, {
       ...(options.runRoot !== undefined ? { runRoot: options.runRoot } : {}),
       cwd,
     });
@@ -409,7 +409,7 @@ export function identifyExecutionContext(
     compliance_state: complianceState,
     advisory,
     indicators,
-    blunder,
+    defect,
     host_profile,
     capabilities,
   };
@@ -438,8 +438,8 @@ export function formatThreadIdentificationBrief(id: ThreadIdentification): strin
   if (id.advisory) {
     lines.push(`- **Advisory**: ⚠️ ${id.advisory}`);
   }
-  if (id.blunder) {
-    lines.push(`- **Blunder Logged**: \`${id.blunder.id}\` (${id.blunder.type})`);
+  if (id.defect) {
+    lines.push(`- **Defect Logged**: \`${id.defect.id}\` (${id.defect.type})`);
   }
 
   return lines.join("\n");

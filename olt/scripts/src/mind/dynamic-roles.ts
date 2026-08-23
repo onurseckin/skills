@@ -33,7 +33,7 @@ export type RoleSpecializationDomain =
   | "performance"
   | "reliability"
   | "documentation"
-  | "blunder-investigation"
+  | "defect-investigation"
   | "concurrency"
   | "type-safety"
   | "general";
@@ -161,11 +161,11 @@ export interface DynamicRoleSynthesisPlan {
 }
 
 /**
- * Parameters for synthesizing roles from a blunder remediation context.
+ * Parameters for synthesizing roles from a defect remediation context.
  */
-export interface BlunderRoleSynthesisParams {
-  readonly blunderId: string;
-  readonly blunderType: string;
+export interface DefectRoleSynthesisParams {
+  readonly defectId: string;
+  readonly defectType: string;
   readonly rootCause: string;
   readonly affectedScope: readonly string[];
   readonly correctiveAction: string;
@@ -944,27 +944,27 @@ export function synthesizeRoleFromTaskRequirements(
 }
 
 /**
- * Synthesizes a specialized role from blunder remediation context.
+ * Synthesizes a specialized role from defect remediation context.
  */
-export function synthesizeRoleFromBlunderRemediation(
-  params: BlunderRoleSynthesisParams,
+export function synthesizeRoleFromDefectRemediation(
+  params: DefectRoleSynthesisParams,
 ): DynamicRoleContract {
-  const roleName = `remediator-blunder-${params.blunderId.replace(/[^a-z0-9_-]/gi, "-").toLowerCase()}`;
+  const roleName = `remediator-defect-${params.defectId.replace(/[^a-z0-9_-]/gi, "-").toLowerCase()}`;
 
   const defaultPillars = [
-    `Remediation of Blunder: ${params.blunderType}`,
+    `Remediation of Defect: ${params.defectType}`,
     `Root Cause Defense: ${params.rootCause}`,
     "Strict Anti-Regression Verification",
   ];
 
   const prohibitedActions = [
-    "Touch files outside affected blunder scope",
-    "Re-introduce identical blunder signature pattern",
+    "Touch files outside affected defect scope",
+    "Re-introduce identical defect signature pattern",
     "Introduce TypeScript `any` or suppressions",
   ];
 
   const invariants = [
-    `Remediation Target: ${params.blunderId}`,
+    `Remediation Target: ${params.defectId}`,
     `Action: ${params.correctiveAction}`,
     ...(params.requiredInvariants ?? []),
   ];
@@ -972,12 +972,12 @@ export function synthesizeRoleFromBlunderRemediation(
   return synthesizeDynamicRole({
     name: roleName,
     archetype: "tier_3_repairer",
-    domain: "blunder-investigation",
-    title: `Blunder Remediation Specialist: ${params.blunderId}`,
-    summary: `Specialized repairer synthesized to fix blunder '${params.blunderId}' (${params.blunderType}) without regressions.`,
+    domain: "defect-investigation",
+    title: `Defect Remediation Specialist: ${params.defectId}`,
+    summary: `Specialized repairer synthesized to fix defect '${params.defectId}' (${params.defectType}) without regressions.`,
     writeScopePolicy: "lease_bounded",
     permittedActivities: [
-      `Claim write scope for blunder remediation: [${params.affectedScope.join(", ")}]`,
+      `Claim write scope for defect remediation: [${params.affectedScope.join(", ")}]`,
       `Apply corrective action: ${params.correctiveAction}`,
       "Run targeted regression test suite",
     ],
@@ -985,8 +985,8 @@ export function synthesizeRoleFromBlunderRemediation(
     invariants,
     cognitivePillars: defaultPillars,
     metadata: {
-      blunderId: params.blunderId,
-      blunderType: params.blunderType,
+      defectId: params.defectId,
+      defectType: params.defectType,
     },
   });
 }

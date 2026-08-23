@@ -36,8 +36,8 @@ export const GATE_COMMANDS: readonly CommandSpec[] = [
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
-      "bun harness.ts gate:prove --run .capsules/<run-id> --task task-1 --actor coordinator",
-      "bun harness.ts gate:prove --run .capsules/<run-id> --task task-1 --actor coordinator --base HEAD~1",
+      "bun harness.ts gate:prove --run .olt/capsules/<run-id> --task task-1 --actor coordinator",
+      "bun harness.ts gate:prove --run .olt/capsules/<run-id> --task task-1 --actor coordinator --base HEAD~1",
     ],
     handler: gateProveCommand,
   },

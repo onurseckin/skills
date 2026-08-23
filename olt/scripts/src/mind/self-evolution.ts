@@ -681,11 +681,8 @@ export function synthesizeDynamicPlanRevisions(params: {
         sigType = "TEST_REGRESSION";
       } else if (disc.category === "COGNITIVE_GAP" || disc.category === "cognitive_gap") {
         sigType = "COGNITIVE_OVERLOAD";
-      } else if (
-        disc.category === "BLUNDER_REMEDIATION" ||
-        disc.category === "blunder_remediation"
-      ) {
-        sigType = "BLUNDER_SURGE";
+      } else if (disc.category === "DEFECT_REMEDIATION" || disc.category === "defect_remediation") {
+        sigType = "DEFECT_SURGE";
       } else if (disc.category === "CODE_QUALITY" || disc.category === "code_quality") {
         sigType = "SCOPE_COLLISION";
       }
@@ -872,7 +869,7 @@ export function runSelfEvolutionCycle(
       enableCognitiveGapScan: false,
       enableDormantCriteriaScan: false,
       enableFeedbackQueueScan: true,
-      enableBlunderScan: false,
+      enableDefectScan: false,
       maxTasks,
       autoEnqueue: options.autoEnqueue !== false,
       actor: options.actor,
@@ -905,7 +902,7 @@ export function runSelfEvolutionCycle(
       enableCognitiveGapScan: true,
       enableDormantCriteriaScan: true,
       enableFeedbackQueueScan: false,
-      enableBlunderScan: true,
+      enableDefectScan: true,
       maxTasks,
       autoEnqueue: options.autoEnqueue !== false,
       actor: options.actor,

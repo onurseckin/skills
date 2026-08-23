@@ -114,7 +114,7 @@ export type PlanRevisionSignalType =
   | "TEST_REGRESSION"
   | "PERFORMANCE_DEGRADATION"
   | "COGNITIVE_OVERLOAD"
-  | "BLUNDER_SURGE"
+  | "DEFECT_SURGE"
   | "DORMANT_CRITERIA"
   | "QUIESCENCE_EVOLUTION"
   | "SCOPE_COLLISION"
@@ -1122,7 +1122,7 @@ export function generatePlanRevisionFromSignals(
         autonomousEligible = true;
         confidence = 0.88;
         break;
-      case "BLUNDER_SURGE":
+      case "DEFECT_SURGE":
         revisionType = "PRIORITY_ESCALATION";
         autonomousEligible = true;
         confidence = 0.92;

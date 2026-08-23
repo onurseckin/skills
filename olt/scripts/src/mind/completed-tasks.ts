@@ -11,7 +11,7 @@ import {
 
 export type CompletedTaskSource =
   | "feedback_queue"
-  | "blunder"
+  | "defect"
   | "task_queue"
   | "mind_plan"
   | "direct"
@@ -46,26 +46,13 @@ export interface RecordCompletedTaskOptions {
   readonly customPath?: string | undefined;
   readonly feedbackQueuePath?: string | undefined;
   readonly updateFeedbackQueue?: boolean | undefined;
-  readonly blundersPath?: string | undefined;
-  readonly updateBlunders?: boolean | undefined;
+  readonly defectsPath?: string | undefined;
+  readonly updateDefects?: boolean | undefined;
 }
 
-export const LEGACY_COMPLETED_TASKS_FILE = ".capsules/COMPLETED_TASKS.jsonl";
-export const LEGACY_LOWER_COMPLETED_TASKS_FILE = ".capsules/completed-tasks.jsonl";
 export const DEFAULT_COMPLETED_TASKS_FILE = "olt/completed-tasks.jsonl";
 
-export const LEGACY_MIND_BLUNDERS_FILE = ".capsules/mind/queue/blunders.jsonl";
-export const LEGACY_BLUNDERS_FILE = ".capsules/blunders.jsonl";
-export const LEGACY_UPPER_BLUNDERS_FILE = ".capsules/BLUNDERS.jsonl";
-export const DEFAULT_BLUNDERS_FILE = "olt/defects.jsonl";
-
-export const LEGACY_MIND_COMPLETED_BLUNDERS_FILE = ".capsules/mind/queue/completed-blunders.jsonl";
-export const LEGACY_COMPLETED_BLUNDERS_FILE = ".capsules/COMPLETED_BLUNDERS.jsonl";
-export const LEGACY_LOWER_COMPLETED_BLUNDERS_FILE = ".capsules/completed-blunders.jsonl";
-
-export const LEGACY_MIND_OBSERVATIONS_FILE = ".capsules/mind/queue/observations.jsonl";
-export const LEGACY_OBSERVATIONS_FILE = ".capsules/OBSERVATIONS.jsonl";
-export const LEGACY_LOWER_OBSERVATIONS_FILE = ".capsules/observations.jsonl";
+export const DEFAULT_DEFECTS_FILE = "olt/defects.jsonl";
 
 export function resolveCanonicalCompletedTasksPath(customRoot?: string, useTodo = false): string {
   return require("path").join(customRoot || process.cwd(), ".olt", "completed-tasks.jsonl");
@@ -76,23 +63,20 @@ export function resolveCompletedTasksLedgerPath(customPath?: string): string {
   return require("path").join(process.cwd(), ".olt", "completed-tasks.jsonl");
 }
 
-export function resolveCanonicalBlundersPath(customRoot?: string, useTodo = false): string {
+export function resolveCanonicalDefectsPath(customRoot?: string, useTodo = false): string {
   return require("path").join(customRoot || process.cwd(), ".olt", "defects.jsonl");
 }
 
-export function resolveBlundersPath(customPath?: string): string {
+export function resolveDefectsPath(customPath?: string): string {
   if (customPath && customPath.trim()) return require("path").resolve(customPath.trim());
   return require("path").join(process.cwd(), ".olt", "defects.jsonl");
 }
 
-export function resolveCanonicalCompletedBlundersPath(
-  customRoot?: string,
-  useTodo = false,
-): string {
+export function resolveCanonicalCompletedDefectsPath(customRoot?: string, useTodo = false): string {
   return require("path").join(customRoot || process.cwd(), ".olt", "completed-defects.jsonl");
 }
 
-export function resolveCompletedBlundersPath(customPath?: string): string {
+export function resolveCompletedDefectsPath(customPath?: string): string {
   if (customPath && customPath.trim()) return require("path").resolve(customPath.trim());
   return require("path").join(process.cwd(), ".olt", "completed-defects.jsonl");
 }
@@ -110,7 +94,7 @@ export function validateCompletedTaskSource(val: unknown): CompletedTaskSource {
   if (typeof val === "string") {
     const lower = val.trim().toLowerCase();
     if (lower === "feedback_queue" || lower === "feedback") return "feedback_queue";
-    if (lower === "blunder" || lower === "blunders") return "blunder";
+    if (lower === "defect" || lower === "defects") return "defect";
     if (lower === "task_queue" || lower === "queue") return "task_queue";
     if (lower === "mind_plan" || lower === "plan") return "mind_plan";
     if (lower === "direct") return "direct";
@@ -332,8 +316,8 @@ function updateFeedbackQueueItems(
   return;
 }
 
-function updateBlunderItems(records: readonly CompletedTaskRecord[], customPath?: string): void {
-  const filePath = resolveBlundersPath(customPath);
+function updateDefectItems(records: readonly CompletedTaskRecord[], customPath?: string): void {
+  const filePath = resolveDefectsPath(customPath);
   if (!existsSync(filePath)) {
     return;
   }
@@ -404,8 +388,8 @@ export function recordCompletedTasksBatch(
     updateFeedbackQueueItems(validatedRecords, options?.feedbackQueuePath);
   }
 
-  if (options?.updateBlunders) {
-    updateBlunderItems(validatedRecords, options?.blundersPath);
+  if (options?.updateDefects) {
+    updateDefectItems(validatedRecords, options?.defectsPath);
   }
 
   return validatedRecords;

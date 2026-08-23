@@ -18,7 +18,7 @@ import { dagRenderCommand, dagTraceCommand } from "../commands/dag.ts";
 export const REPORTING_COMMANDS: readonly CommandSpec[] = [
   {
     name: "report",
-    aliases: ["report:unified", "report:all"],
+    aliases: ["report:all"],
     domain: "reporting",
     summary:
       "Deliver unified topology, lifecycle tier breakdown, agent roles, IDs, and timestamps.",
@@ -28,10 +28,10 @@ export const REPORTING_COMMANDS: readonly CommandSpec[] = [
       optionalFlag(
         "run",
         "string",
-        "Capsule run root. Defaults to current repository .capsules/ when omitted.",
+        "Capsule run root. Defaults to current repository .olt/capsules/ when omitted.",
       ),
       optionalFlag("run-id", "string", "Alias of --run."),
-      optionalFlag("repo", "string", "Repository root to search for .capsules/.", "."),
+      optionalFlag("repo", "string", "Repository root to search for .olt/capsules/.", "."),
       optionalFlag("detailed", "bool", "Detailed topology and audit forensics."),
       optionalFlag("json", "bool", "Output structured JSON report."),
     ],
@@ -39,8 +39,8 @@ export const REPORTING_COMMANDS: readonly CommandSpec[] = [
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
-      "bun harness.ts report --run .capsules/<run-id>",
-      "bun harness.ts report:unified --run .capsules/<run-id>",
+      "bun harness.ts report --run .olt/capsules/<run-id>",
+      "bun harness.ts report:unified --run .olt/capsules/<run-id>",
     ],
     handler: reportUnifiedCommand,
   },
@@ -59,7 +59,7 @@ export const REPORTING_COMMANDS: readonly CommandSpec[] = [
       optionalFlag("out", "string", "Path to save JSON"),
       optionalFlag("pretty", "bool", "Format output JSON nicely"),
     ],
-    examples: ["bun harness.ts report:graph-json --run .capsules/<run-id> --out graph.json"],
+    examples: ["bun harness.ts report:graph-json --run .olt/capsules/<run-id> --out graph.json"],
     handler: exportGraphJsonCommand,
   },
   {
@@ -73,10 +73,10 @@ export const REPORTING_COMMANDS: readonly CommandSpec[] = [
       optionalFlag(
         "run",
         "string",
-        "Capsule run root. Defaults to current repository .capsules/ when omitted.",
+        "Capsule run root. Defaults to current repository .olt/capsules/ when omitted.",
       ),
       optionalFlag("run-id", "string", "Alias of --run."),
-      optionalFlag("repo", "string", "Repository root to search for .capsules/.", "."),
+      optionalFlag("repo", "string", "Repository root to search for .olt/capsules/.", "."),
       optionalFlag(
         "detailed",
         "bool",
@@ -92,7 +92,7 @@ export const REPORTING_COMMANDS: readonly CommandSpec[] = [
     readsStdin: false,
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
-    examples: ["bun harness.ts report:dag --run .capsules/<run-id>"],
+    examples: ["bun harness.ts report:dag --run .olt/capsules/<run-id>"],
     handler: reportDagCommand,
   },
   {
@@ -108,7 +108,7 @@ export const REPORTING_COMMANDS: readonly CommandSpec[] = [
     readsStdin: false,
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
-    examples: ["bun harness.ts report:graph --run .capsules/<run-id>"],
+    examples: ["bun harness.ts report:graph --run .olt/capsules/<run-id>"],
     handler: reportGraphCommand,
   },
   {
@@ -126,7 +126,7 @@ export const REPORTING_COMMANDS: readonly CommandSpec[] = [
     readsStdin: false,
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
-    examples: ["bun harness.ts report:health --run .capsules/<run-id>"],
+    examples: ["bun harness.ts report:health --run .olt/capsules/<run-id>"],
     handler: reportHealthCommand,
   },
   {
@@ -139,7 +139,7 @@ export const REPORTING_COMMANDS: readonly CommandSpec[] = [
     readsStdin: false,
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
-    examples: ["bun harness.ts report:leases --run .capsules/<run-id>"],
+    examples: ["bun harness.ts report:leases --run .olt/capsules/<run-id>"],
     handler: reportLeasesCommand,
   },
   {
@@ -152,7 +152,7 @@ export const REPORTING_COMMANDS: readonly CommandSpec[] = [
     readsStdin: false,
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
-    examples: ["bun harness.ts report:decisions --run .capsules/<run-id>"],
+    examples: ["bun harness.ts report:decisions --run .olt/capsules/<run-id>"],
     handler: reportDecisionsCommand,
   },
   {
@@ -169,7 +169,7 @@ export const REPORTING_COMMANDS: readonly CommandSpec[] = [
     readsStdin: false,
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
-    examples: ["bun harness.ts report:summary --run .capsules/<run-id>"],
+    examples: ["bun harness.ts report:summary --run .olt/capsules/<run-id>"],
     handler: summaryViewCommand,
   },
   {
@@ -196,8 +196,8 @@ export const REPORTING_COMMANDS: readonly CommandSpec[] = [
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
-      "bun harness.ts report:task --run .capsules/<run-id> --task task-1",
-      "bun harness.ts report:task --run .capsules/<run-id> --task task-1 --type review",
+      "bun harness.ts report:task --run .olt/capsules/<run-id> --task task-1",
+      "bun harness.ts report:task --run .olt/capsules/<run-id> --task task-1 --type review",
     ],
     handler: reportGetCommand,
   },
@@ -229,15 +229,22 @@ export const REPORTING_COMMANDS: readonly CommandSpec[] = [
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
-      "bun harness.ts stream:events --run .capsules/<run-id>",
-      "bun harness.ts stream:events --run .capsules/<run-id> --from-seq 10 --max-events 20",
-      "bun harness.ts stream:events --run .capsules/<run-id> --filter-type task-claimed",
+      "bun harness.ts stream:events --run .olt/capsules/<run-id>",
+      "bun harness.ts stream:events --run .olt/capsules/<run-id> --from-seq 10 --max-events 20",
+      "bun harness.ts stream:events --run .olt/capsules/<run-id> --filter-type task-claimed",
     ],
     handler: streamEventsCommand,
   },
   {
-    name: "dag:render",
-    aliases: ["graph:sugiyama", "report:sugiyama"],
+    name: "dag",
+    aliases: [
+      "dag:render",
+      "dag:view",
+      "graph:sugiyama",
+      "report:sugiyama",
+      "graph:ascii",
+      "status:dag",
+    ],
     domain: "reporting",
     summary:
       "Render Sugiyama hierarchical DAG layout with rounded Unicode boxes and cycle diagnostics.",
@@ -247,10 +254,10 @@ export const REPORTING_COMMANDS: readonly CommandSpec[] = [
       optionalFlag(
         "run",
         "string",
-        "Capsule run root. Defaults to current repository .capsules/ when omitted.",
+        "Capsule run root. Defaults to current repository .olt/capsules/ when omitted.",
       ),
       optionalFlag("run-id", "string", "Alias of --run."),
-      optionalFlag("repo", "string", "Repository root to search for .capsules/.", "."),
+      optionalFlag("repo", "string", "Repository root to search for .olt/capsules/.", "."),
       optionalFlag(
         "detailed",
         "bool",
@@ -264,7 +271,7 @@ export const REPORTING_COMMANDS: readonly CommandSpec[] = [
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
-      "bun harness.ts dag:render --run .capsules/<run-id>",
+      "bun harness.ts dag:render --run .olt/capsules/<run-id>",
       "bun harness.ts dag:render --detailed --box-style rounded",
     ],
     handler: dagRenderCommand,
@@ -294,8 +301,8 @@ export const REPORTING_COMMANDS: readonly CommandSpec[] = [
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
-      "bun harness.ts dag:trace --run .capsules/<run-id>",
-      "bun harness.ts dag:trace --run .capsules/<run-id> --task task-1",
+      "bun harness.ts dag:trace --run .olt/capsules/<run-id>",
+      "bun harness.ts dag:trace --run .olt/capsules/<run-id> --task task-1",
     ],
     handler: dagTraceCommand,
   },

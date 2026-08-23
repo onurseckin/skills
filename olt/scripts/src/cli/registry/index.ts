@@ -19,7 +19,6 @@ import { RUN_COMMANDS } from "./run.ts";
 import { SUMMARY_COMMANDS } from "./summary.ts";
 import { SHELL_COMMANDS } from "./shell.ts";
 import { TASK_COMMANDS } from "./task.ts";
-import { TODO_COMMANDS } from "./todo.ts";
 import {
   isInternalCommand,
   isPrimaryCommand,
@@ -28,7 +27,6 @@ import {
 } from "./types.ts";
 
 export * from "./types.ts";
-export { TODO_COMMANDS } from "./todo.ts";
 export { SHELL_COMMANDS } from "./shell.ts";
 
 export const COMMAND_REGISTRY: readonly CommandSpec[] = [

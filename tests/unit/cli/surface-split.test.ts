@@ -93,7 +93,7 @@ describe("2-Tier CLI Surface Split (REMED-005)", () => {
       "capture:init",
       "critic:review",
       "diagnostics",
-      "blunder:audit",
+      "defect:audit",
       "coverage:check",
       "health",
       "recover",

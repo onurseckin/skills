@@ -16,7 +16,7 @@ import {
 import { readCompletedTasksLedger } from "../../../olt/scripts/src/mind/completed-tasks.ts";
 
 describe("Mind Backlog Drainage & Autonomous Creative Overload", () => {
-  const tmpDir = join(process.cwd(), ".tmp", "test-backlog-drainage");
+  const tmpDir = join(require("os").tmpdir(), "tmp", "test-backlog-drainage");
   const backlogPath = join(tmpDir, "backlog.jsonl");
   const completedTasksPath = join(tmpDir, "completed-tasks.jsonl");
 

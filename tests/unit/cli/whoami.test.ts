@@ -6,8 +6,8 @@ import { join } from "node:path";
 import {
   identifyExecutionContext,
   MAIN_THREAD_ADVISORY,
-  recordBlunder,
-  type BlunderRecord,
+  recordDefect,
+  type DefectRecord,
 } from "../../../olt/scripts/src/authority/thread-identifier.ts";
 import { whoamiCommand } from "../../../olt/scripts/src/cli/commands/whoami.ts";
 import { commandInvocations, findCommand } from "../../../olt/scripts/src/cli/registry/index.ts";
@@ -30,7 +30,7 @@ describe("Thread Authority Identifier", () => {
     expect(identified.is_main_thread).toBeFalse();
     expect(identified.compliance_state).toBe("compliant");
     expect(identified.advisory).toBeNull();
-    expect(identified.blunder).toBeNull();
+    expect(identified.defect).toBeNull();
   });
 
   test("identifies Tier 1 Autonomous Orchestrator from environment", () => {
@@ -179,19 +179,19 @@ describe("Thread Authority Identifier", () => {
     expect(identified.tier_name).toBe("Main Interactive Agent Thread");
     expect(identified.compliance_state).toBe("restrained");
     expect(identified.advisory).toBe(MAIN_THREAD_ADVISORY);
-    expect(identified.blunder).not.toBeNull();
-    expect(identified.blunder?.type).toBe("main_thread_direct_execution");
-    expect(identified.blunder?.severity).toBe("critical");
-    expect(identified.blunder?.observation).toContain("interactive main conversation thread");
-    expect(identified.blunder?.remediation).toContain("invoke_subagent");
+    expect(identified.defect).not.toBeNull();
+    expect(identified.defect?.type).toBe("main_thread_direct_execution");
+    expect(identified.defect?.severity).toBe("critical");
+    expect(identified.defect?.observation).toContain("interactive main conversation thread");
+    expect(identified.defect?.remediation).toContain("invoke_subagent");
   });
 
-  test("records blunder records to run directory when available", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "harness-blunder-test-"));
+  test("records defect records to run directory when available", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "harness-defect-test-"));
     roots.push(dir);
 
-    const blunder: BlunderRecord = {
-      id: "blunder-test-1",
+    const defect: DefectRecord = {
+      id: "defect-test-1",
       type: "main_thread_boundary_violation",
       severity: "critical",
       timestamp: new Date().toISOString(),
@@ -206,13 +206,13 @@ describe("Thread Authority Identifier", () => {
       },
     };
 
-    const recorded = recordBlunder(blunder, { runRoot: dir });
-    expect(recorded.id).toBe("blunder-test-1");
+    const recorded = recordDefect(defect, { runRoot: dir });
+    expect(recorded.id).toBe("defect-test-1");
 
-    const blundersFile = join(dir, "blunders.jsonl");
-    expect(existsSync(blundersFile)).toBeTrue();
-    const contents = readFileSync(blundersFile, "utf8");
-    expect(contents).toContain("blunder-test-1");
+    const defectsFile = join(dir, "defects.jsonl");
+    expect(existsSync(defectsFile)).toBeTrue();
+    const contents = readFileSync(defectsFile, "utf8");
+    expect(contents).toContain("defect-test-1");
   });
 });
 

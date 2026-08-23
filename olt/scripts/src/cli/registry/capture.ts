@@ -65,7 +65,7 @@ export const CAPTURE_COMMANDS: readonly CommandSpec[] = [
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
       "bun harness.ts capture:run --config .capture.yaml",
-      "bun harness.ts capture:run --run .capsules/<run-id> --screen dashboard --viewport desktop",
+      "bun harness.ts capture:run --run .olt/capsules/<run-id> --screen dashboard --viewport desktop",
     ],
     handler: captureRunCommand,
   },

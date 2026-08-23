@@ -53,7 +53,7 @@ export const BRANCH_COMMANDS: readonly CommandSpec[] = [
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
-      'bun harness.ts branch:open --run .capsules/<run-id> --parent-task task-1 --agent worker-1 --token <token> --reason "parser rewrite blocks the API change" --sub-task S-1 --sub-label S-1="Fix the parser" --sub-scope S-1=src/one/parser',
+      'bun harness.ts branch:open --run .olt/capsules/<run-id> --parent-task task-1 --agent worker-1 --token <token> --reason "parser rewrite blocks the API change" --sub-task S-1 --sub-label S-1="Fix the parser" --sub-scope S-1=src/one/parser',
     ],
     handler: branchOpenCommand,
   },
@@ -82,7 +82,7 @@ export const BRANCH_COMMANDS: readonly CommandSpec[] = [
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
-      "bun harness.ts branch:claim --run .capsules/<run-id> --branch B-<uuid> --sub-task S-1 --agent sub-1 --role sub-implementer",
+      "bun harness.ts branch:claim --run .olt/capsules/<run-id> --branch B-<uuid> --sub-task S-1 --agent sub-1 --role sub-implementer",
     ],
     handler: branchClaimCommand,
   },
@@ -106,7 +106,7 @@ export const BRANCH_COMMANDS: readonly CommandSpec[] = [
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
-      'bun harness.ts branch:submit --run .capsules/<run-id> --branch B-<uuid> --sub-task S-1 --agent sub-1 --token <token> --summary "Parser accepts the new grammar"',
+      'bun harness.ts branch:submit --run .olt/capsules/<run-id> --branch B-<uuid> --sub-task S-1 --agent sub-1 --token <token> --summary "Parser accepts the new grammar"',
     ],
     handler: branchSubmitCommand,
   },
@@ -130,7 +130,7 @@ export const BRANCH_COMMANDS: readonly CommandSpec[] = [
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
-      'bun harness.ts branch:collect --run .capsules/<run-id> --branch B-<uuid> --agent worker-1 --token <token> --summary "Parser fixed; API change unblocked"',
+      'bun harness.ts branch:collect --run .olt/capsules/<run-id> --branch B-<uuid> --agent worker-1 --token <token> --summary "Parser fixed; API change unblocked"',
     ],
     handler: branchCollectCommand,
   },
@@ -153,7 +153,7 @@ export const BRANCH_COMMANDS: readonly CommandSpec[] = [
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
-      'bun harness.ts branch:abandon --run .capsules/<run-id> --branch B-<uuid> --agent worker-1 --token <token> --reason "sub-agent could not reproduce the failure"',
+      'bun harness.ts branch:abandon --run .olt/capsules/<run-id> --branch B-<uuid> --agent worker-1 --token <token> --reason "sub-agent could not reproduce the failure"',
     ],
     handler: branchAbandonCommand,
   },
@@ -174,8 +174,8 @@ export const BRANCH_COMMANDS: readonly CommandSpec[] = [
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
-      "bun harness.ts branch:status --run .capsules/<run-id>",
-      "bun harness.ts branch:status --run .capsules/<run-id> --task task-1 --all",
+      "bun harness.ts branch:status --run .olt/capsules/<run-id>",
+      "bun harness.ts branch:status --run .olt/capsules/<run-id> --task task-1 --all",
     ],
     handler: branchStatusCommand,
   },

@@ -83,7 +83,6 @@ export interface ConsolidateCapsulesOptions {
   readonly targetArchiveDir?: string | undefined;
   readonly pruneBoilerplate?: boolean | undefined;
   readonly dryRun?: boolean | undefined;
-  readonly archiveLegacyRoots?: boolean | undefined;
 }
 
 export interface ConsolidateCapsulesResult {
@@ -119,8 +118,6 @@ export interface PruneAndArchiveResult {
   readonly prunedBoilerplateDirectories?: readonly string[] | undefined;
 }
 
-export const LEGACY_ARCHIVED_OBJECTIVES_FILE = ".capsules/ARCHIVED_OBJECTIVES.jsonl";
-export const LEGACY_LOWER_ARCHIVED_OBJECTIVES_FILE = ".capsules/archived-objectives.jsonl";
 export const DEFAULT_ARCHIVED_OBJECTIVES_FILE = ".capsules/ARCHIVED_OBJECTIVES.jsonl";
 
 /**
@@ -777,7 +774,7 @@ export function consolidateCapsules(
   const currentGen = options.currentGeneration;
   const cutoffGen = currentGen !== undefined ? currentGen - retention : undefined;
   const activeRunIdsSet = options.activeRunIds ? new Set(options.activeRunIds) : undefined;
-  const archiveLegacy = options.archiveLegacyRoots ?? true;
+
   const pruneBoilerplate = options.pruneBoilerplate ?? true;
 
   const entries = readdirSync(resolvedCapsulesDir);
@@ -842,7 +839,7 @@ export function consolidateCapsules(
       }
     }
 
-    if (isLegacy && archiveLegacy) {
+    if (isLegacy) {
       const archiveRes = archiveCapsule(fullPath, {
         targetArchiveDir,
         pruneBoilerplate,

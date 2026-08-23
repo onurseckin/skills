@@ -259,9 +259,9 @@ export async function runPulseLoop(
   // Register watchdog for the loop session
   let watchdog: WatchdogRecord | undefined = undefined;
   try {
-    const regResult = registerWatchdog(
+    watchdog = registerWatchdog(
       {
-        phase: "scheduler-pulse-loop",
+        phase: "scheduler-continuous-loop",
         agent_id: "scheduler-pulse-loop",
         now: options.clock?.now() ?? new Date(),
         heartbeat_cadence_ms: options.heartbeatCadenceMs ?? 180_000,
@@ -269,7 +269,6 @@ export async function runPulseLoop(
       },
       options.watchdogTarget,
     );
-    watchdog = regResult.watchdog;
   } catch {
     // Non-fatal
   }

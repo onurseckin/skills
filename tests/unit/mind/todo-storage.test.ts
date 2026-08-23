@@ -19,24 +19,24 @@ import {
   TODO_COMPLETED_TASKS_FILE,
   LEGACY_COMPLETED_TASKS_FILE,
   LEGACY_LOWER_COMPLETED_TASKS_FILE,
-  CANONICAL_BLUNDERS_FILE,
-  TODO_BLUNDERS_FILE,
-  LEGACY_BLUNDERS_FILE,
-  LEGACY_UPPER_BLUNDERS_FILE,
-  CANONICAL_COMPLETED_BLUNDERS_FILE,
-  TODO_COMPLETED_BLUNDERS_FILE,
-  LEGACY_COMPLETED_BLUNDERS_FILE,
-  LEGACY_LOWER_COMPLETED_BLUNDERS_FILE,
+  CANONICAL_DEFECTS_FILE,
+  TODO_DEFECTS_FILE,
+  LEGACY_DEFECTS_FILE,
+  LEGACY_UPPER_DEFECTS_FILE,
+  CANONICAL_COMPLETED_DEFECTS_FILE,
+  TODO_COMPLETED_DEFECTS_FILE,
+  LEGACY_COMPLETED_DEFECTS_FILE,
+  LEGACY_LOWER_COMPLETED_DEFECTS_FILE,
   CANONICAL_OBSERVATIONS_FILE,
   TODO_OBSERVATIONS_FILE,
   LEGACY_OBSERVATIONS_FILE,
   LEGACY_LOWER_OBSERVATIONS_FILE,
   resolveCanonicalCompletedTasksPath,
   resolveCompletedTasksLedgerPath,
-  resolveCanonicalBlundersPath,
-  resolveBlundersPath,
-  resolveCanonicalCompletedBlundersPath,
-  resolveCompletedBlundersPath,
+  resolveCanonicalDefectsPath,
+  resolveDefectsPath,
+  resolveCanonicalCompletedDefectsPath,
+  resolveCompletedDefectsPath,
   resolveCanonicalObservationsPath,
   resolveObservationsPath,
   migrateCompletedTasksLedger,
@@ -77,15 +77,15 @@ describe("Mind & Todo Storage Canonical Layout and Transparent Resolvers", () =>
       expect(LEGACY_COMPLETED_TASKS_FILE).toBe(".capsules/COMPLETED_TASKS.jsonl");
       expect(LEGACY_LOWER_COMPLETED_TASKS_FILE).toBe(".capsules/completed-tasks.jsonl");
 
-      expect(CANONICAL_BLUNDERS_FILE).toBe("olt/defects.jsonl");
-      expect(TODO_BLUNDERS_FILE).toBe(".capsules/todo/blunders.jsonl");
-      expect(LEGACY_BLUNDERS_FILE).toBe(".capsules/blunders.jsonl");
-      expect(LEGACY_UPPER_BLUNDERS_FILE).toBe(".capsules/BLUNDERS.jsonl");
+      expect(CANONICAL_DEFECTS_FILE).toBe("olt/defects.jsonl");
+      expect(TODO_DEFECTS_FILE).toBe(".capsules/todo/defects.jsonl");
+      expect(LEGACY_DEFECTS_FILE).toBe(".capsules/defects.jsonl");
+      expect(LEGACY_UPPER_DEFECTS_FILE).toBe(".capsules/DEFECTS.jsonl");
 
-      expect(CANONICAL_COMPLETED_BLUNDERS_FILE).toBe("olt/completed-defects.jsonl");
-      expect(TODO_COMPLETED_BLUNDERS_FILE).toBe(".capsules/todo/completed-blunders.jsonl");
-      expect(LEGACY_COMPLETED_BLUNDERS_FILE).toBe(".capsules/COMPLETED_BLUNDERS.jsonl");
-      expect(LEGACY_LOWER_COMPLETED_BLUNDERS_FILE).toBe(".capsules/completed-blunders.jsonl");
+      expect(CANONICAL_COMPLETED_DEFECTS_FILE).toBe("olt/completed-defects.jsonl");
+      expect(TODO_COMPLETED_DEFECTS_FILE).toBe(".capsules/todo/completed-defects.jsonl");
+      expect(LEGACY_COMPLETED_DEFECTS_FILE).toBe(".capsules/COMPLETED_DEFECTS.jsonl");
+      expect(LEGACY_LOWER_COMPLETED_DEFECTS_FILE).toBe(".capsules/completed-defects.jsonl");
 
       expect(CANONICAL_OBSERVATIONS_FILE).toBe("olt/telemetry.jsonl");
       expect(TODO_OBSERVATIONS_FILE).toBe(".capsules/todo/observations.jsonl");
@@ -118,18 +118,18 @@ describe("Mind & Todo Storage Canonical Layout and Transparent Resolvers", () =>
         join(root, ".capsules/todo/completed-tasks.jsonl"),
       );
 
-      // Blunders
-      expect(resolveCanonicalBlundersPath(root)).toBe(join(root, "olt/defects.jsonl"));
-      expect(resolveCanonicalBlundersPath(root, true)).toBe(
-        join(root, ".capsules/todo/blunders.jsonl"),
+      // Defects
+      expect(resolveCanonicalDefectsPath(root)).toBe(join(root, "olt/defects.jsonl"));
+      expect(resolveCanonicalDefectsPath(root, true)).toBe(
+        join(root, ".capsules/todo/defects.jsonl"),
       );
 
-      // Completed blunders
-      expect(resolveCanonicalCompletedBlundersPath(root)).toBe(
+      // Completed defects
+      expect(resolveCanonicalCompletedDefectsPath(root)).toBe(
         join(root, "olt/completed-defects.jsonl"),
       );
-      expect(resolveCanonicalCompletedBlundersPath(root, true)).toBe(
-        join(root, ".capsules/todo/completed-blunders.jsonl"),
+      expect(resolveCanonicalCompletedDefectsPath(root, true)).toBe(
+        join(root, ".capsules/todo/completed-defects.jsonl"),
       );
 
       // Observations
@@ -164,11 +164,11 @@ describe("Mind & Todo Storage Canonical Layout and Transparent Resolvers", () =>
       const customCompleted = "/tmp/explicit/my-completed.jsonl";
       expect(resolveCompletedTasksLedgerPath(customCompleted)).toBe(customCompleted);
 
-      const customBlunder = "/tmp/explicit/my-blunders.jsonl";
-      expect(resolveBlundersPath(customBlunder)).toBe(customBlunder);
+      const customDefect = "/tmp/explicit/my-defects.jsonl";
+      expect(resolveDefectsPath(customDefect)).toBe(customDefect);
 
-      const customCompletedBlunder = "/tmp/explicit/my-completed-blunders.jsonl";
-      expect(resolveCompletedBlundersPath(customCompletedBlunder)).toBe(customCompletedBlunder);
+      const customCompletedDefect = "/tmp/explicit/my-completed-defects.jsonl";
+      expect(resolveCompletedDefectsPath(customCompletedDefect)).toBe(customCompletedDefect);
 
       const customObs = "/tmp/explicit/my-obs.jsonl";
       expect(resolveObservationsPath(customObs)).toBe(customObs);

@@ -28,7 +28,7 @@ export const TASK_COMMANDS: readonly CommandSpec[] = [
       "Produces a structured briefing containing assigned write scope, target files, gate commands, recommended file-scoped test commands, acceptance criteria, and next actions.",
     flags: [
       requiredFlag("run", "string", "Capsule run root."),
-      requiredFlag("task", "string", "Task id to brief."),
+      optionalFlag("task", "string", "Task id to brief."),
       optionalFlag("agent", "string", "Agent id assigned to or briefing for the task."),
       optionalFlag("role", "string", "Role under which the task is being briefed."),
     ],
@@ -36,8 +36,8 @@ export const TASK_COMMANDS: readonly CommandSpec[] = [
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
-      "bun harness.ts task:brief --run .capsules/<run-id> --task task-1",
-      "bun harness.ts task:brief --run .capsules/<run-id> --task task-1 --agent worker-1 --role implementer",
+      "bun harness.ts task:brief --run .olt/capsules/<run-id> --task task-1",
+      "bun harness.ts task:brief --run .olt/capsules/<run-id> --task task-1 --agent worker-1 --role implementer",
     ],
     handler: taskBriefCommand,
   },
@@ -64,8 +64,8 @@ export const TASK_COMMANDS: readonly CommandSpec[] = [
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
-      "bun harness.ts task:claim --run .capsules/<run-id> --task task-1 --agent worker-1 --role implementer",
-      "bun harness.ts task:claim --run .capsules/<run-id> --task task-1 --agent worker-1 --role repairer",
+      "bun harness.ts task:claim --run .olt/capsules/<run-id> --task task-1 --agent worker-1 --role implementer",
+      "bun harness.ts task:claim --run .olt/capsules/<run-id> --task task-1 --agent worker-1 --role repairer",
     ],
     handler: taskClaimCommand,
   },
@@ -85,7 +85,7 @@ export const TASK_COMMANDS: readonly CommandSpec[] = [
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
-      "bun harness.ts task:heartbeat --run .capsules/<run-id> --task task-1 --agent worker-1 --token <token>",
+      "bun harness.ts task:heartbeat --run .olt/capsules/<run-id> --task task-1 --agent worker-1 --token <token>",
     ],
     handler: taskHeartbeatCommand,
   },
@@ -124,8 +124,8 @@ export const TASK_COMMANDS: readonly CommandSpec[] = [
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
-      'bun harness.ts task:submit --run .capsules/<run-id> --task task-1 --agent worker-1 --token <token> --summary "Implemented user auth"',
-      'bun harness.ts task:submit --run .capsules/<run-id> --task task-1 --agent worker-1 --token <token> --summary "Investigated; no code change was needed" --no-op --reason "task-0 already fixed the same defect"',
+      'bun harness.ts task:submit --run .olt/capsules/<run-id> --task task-1 --agent worker-1 --token <token> --summary "Implemented user auth"',
+      'bun harness.ts task:submit --run .olt/capsules/<run-id> --task task-1 --agent worker-1 --token <token> --summary "Investigated; no code change was needed" --no-op --reason "task-0 already fixed the same defect"',
     ],
     handler: taskSubmitCommand,
   },
@@ -150,8 +150,8 @@ export const TASK_COMMANDS: readonly CommandSpec[] = [
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
-      "bun harness.ts task:validate-start --run .capsules/<run-id> --task task-1 --validator val-1",
-      "bun harness.ts task:validate-start --run .capsules/<run-id> --task task-1 --validator val-1 --validator-domain code-quality",
+      "bun harness.ts task:validate-start --run .olt/capsules/<run-id> --task task-1 --validator val-1",
+      "bun harness.ts task:validate-start --run .olt/capsules/<run-id> --task task-1 --validator val-1 --validator-domain code-quality",
     ],
     handler: taskValidateStartCommand,
   },
@@ -222,10 +222,10 @@ export const TASK_COMMANDS: readonly CommandSpec[] = [
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
-      'bun harness.ts task:review --run .capsules/<run-id> --task task-1 --validator val-1 --token <token> --status pass --checks C-123 --summary "All gates pass"',
-      "bun harness.ts task:review --run .capsules/<run-id> --task task-1 --validator val-1 --token <token> --status pass --checks C-123 --resolve probe-task-1-01-1=C-123",
-      'bun harness.ts task:review --run .capsules/<run-id> --task task-1 --validator val-1 --token <token> --status fail --summary "Gate command never ran against the new schema" --severity critical --remediation "Point the gate at tests/db and rerun it"',
-      'bun harness.ts task:review --run .capsules/<run-id> --task task-1 --validator val-1 --token <token> --status pass --checks C-123 --summary "All gates pass" --checklist-domain code-quality --checklist-report coverage.json',
+      'bun harness.ts task:review --run .olt/capsules/<run-id> --task task-1 --validator val-1 --token <token> --status pass --checks C-123 --summary "All gates pass"',
+      "bun harness.ts task:review --run .olt/capsules/<run-id> --task task-1 --validator val-1 --token <token> --status pass --checks C-123 --resolve probe-task-1-01-1=C-123",
+      'bun harness.ts task:review --run .olt/capsules/<run-id> --task task-1 --validator val-1 --token <token> --status fail --summary "Gate command never ran against the new schema" --severity critical --remediation "Point the gate at tests/db and rerun it"',
+      'bun harness.ts task:review --run .olt/capsules/<run-id> --task task-1 --validator val-1 --token <token> --status pass --checks C-123 --summary "All gates pass" --checklist-domain code-quality --checklist-report coverage.json',
     ],
     handler: taskReviewCommand,
   },
@@ -250,7 +250,7 @@ export const TASK_COMMANDS: readonly CommandSpec[] = [
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
-      'bun harness.ts task:probe --run .capsules/<run-id> --task task-1 --validator val-1 --token <token> --demand "Prove the parser rejects an empty payload"',
+      'bun harness.ts task:probe --run .olt/capsules/<run-id> --task task-1 --validator val-1 --token <token> --demand "Prove the parser rejects an empty payload"',
     ],
     handler: taskProbeCommand,
   },
@@ -283,7 +283,7 @@ export const TASK_COMMANDS: readonly CommandSpec[] = [
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
-      'bun harness.ts task:reject --run .capsules/<run-id> --task task-1 --validator val-1 --token <token> --reason "Missing input validation" --severity critical --remediation "Validate the payload before the insert"',
+      'bun harness.ts task:reject --run .olt/capsules/<run-id> --task task-1 --validator val-1 --token <token> --reason "Missing input validation" --severity critical --remediation "Validate the payload before the insert"',
     ],
     handler: taskRejectCommand,
   },
@@ -310,7 +310,7 @@ export const TASK_COMMANDS: readonly CommandSpec[] = [
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
-      'bun harness.ts task:assign-repairer --run .capsules/<run-id> --task task-1 --actor coordinator --repairer worker-2 --reason unavailable --evidence "worker-1 released without claiming the repair lease"',
+      'bun harness.ts task:assign-repairer --run .olt/capsules/<run-id> --task task-1 --actor coordinator --repairer worker-2 --reason unavailable --evidence "worker-1 released without claiming the repair lease"',
     ],
     handler: taskAssignRepairerCommand,
   },
@@ -331,7 +331,7 @@ export const TASK_COMMANDS: readonly CommandSpec[] = [
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
-      'bun harness.ts task:abandon --run .capsules/<run-id> --task task-1 --actor coordinator --reason "agent-1 crashed mid-attempt and will not return"',
+      'bun harness.ts task:abandon --run .olt/capsules/<run-id> --task task-1 --actor coordinator --reason "agent-1 crashed mid-attempt and will not return"',
     ],
     handler: taskAbandonCommand,
   },

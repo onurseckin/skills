@@ -32,9 +32,9 @@ export interface WatchdogRecord {
 
 export interface WatchdogStore {
   readonly schema: "harness.watchdog_store";
-  readonly version: 1;
+  readonly version: 2;
   readonly updated_at: string;
-  readonly watchdogs: readonly WatchdogRecord[];
+  readonly active_watchdog: WatchdogRecord | null;
 }
 
 export interface RegisterWatchdogOptions {
@@ -51,14 +51,6 @@ export interface RegisterWatchdogOptions {
   readonly timeout_ms?: number | undefined;
   readonly metadata?: Readonly<Record<string, unknown>> | undefined;
   readonly now?: string | number | Date | undefined;
-  readonly autoCleanupStale?: boolean | undefined;
-  readonly enforceSingleActive?: boolean | undefined;
-}
-
-export interface WatchdogRegistrationResult {
-  readonly watchdog: WatchdogRecord;
-  readonly supersededWatchdogs: readonly WatchdogRecord[];
-  readonly store: WatchdogStore;
 }
 
 export interface HeartbeatOptions {
@@ -71,94 +63,6 @@ export interface TerminateOptions {
   readonly now?: string | number | Date | undefined;
   readonly reason?: string | undefined;
   readonly metadata?: Readonly<Record<string, unknown>> | undefined;
-}
-
-export interface WatchdogFilterOptions {
-  readonly generation?: number | undefined;
-  readonly status?: WatchdogStatus | readonly WatchdogStatus[] | "all" | undefined;
-  readonly pulse_id?: string | null | undefined;
-  readonly run_id?: string | null | undefined;
-  readonly phase?: string | undefined;
-  readonly max_age_ms?: number | undefined;
-  readonly now?: string | number | Date | undefined;
-}
-
-export interface CleanupOptions {
-  readonly now?: string | number | Date | undefined;
-  readonly maxAgeMs?: number | undefined;
-  readonly generation?: number | undefined;
-  readonly dryRun?: boolean | undefined;
-  readonly markAs?: "stale" | "orphaned" | "terminated" | undefined;
-  readonly reason?: string | undefined;
-}
-
-export interface CleanupResult {
-  readonly cleanedCount: number;
-  readonly cleanedWatchdogs: readonly WatchdogRecord[];
-  readonly activeCount: number;
-  readonly totalCount: number;
-  readonly dryRun: boolean;
-  readonly store: WatchdogStore;
-}
-
-export interface TerminatePhaseWatchdogsOptions {
-  readonly phase?: string | undefined;
-  readonly generation?: number | undefined;
-  readonly pulse_id?: string | null | undefined;
-  readonly excludeId?: string | undefined;
-  readonly reason?: string | undefined;
-  readonly markAs?: "terminated" | "stale" | "orphaned" | undefined;
-  readonly dryRun?: boolean | undefined;
-  readonly now?: string | number | Date | undefined;
-  readonly metadata?: Readonly<Record<string, unknown>> | undefined;
-}
-
-export interface TerminatePhaseWatchdogsResult {
-  readonly terminatedCount: number;
-  readonly terminatedWatchdogs: readonly WatchdogRecord[];
-  readonly activeCount: number;
-  readonly totalCount: number;
-  readonly dryRun: boolean;
-  readonly store: WatchdogStore;
-}
-
-export interface CleanupPreviousPhaseOptions {
-  readonly currentPhase: string;
-  readonly generation?: number | undefined;
-  readonly pulse_id?: string | null | undefined;
-  readonly currentWatchdogId?: string | undefined;
-  readonly reason?: string | undefined;
-  readonly markAs?: "terminated" | "stale" | "orphaned" | undefined;
-  readonly dryRun?: boolean | undefined;
-  readonly now?: string | number | Date | undefined;
-  readonly metadata?: Readonly<Record<string, unknown>> | undefined;
-}
-
-export interface VerifyWatchdogLifecycleOptions {
-  readonly generation?: number | undefined;
-  readonly pulse_id?: string | null | undefined;
-  readonly run_id?: string | null | undefined;
-  readonly phase?: string | undefined;
-  readonly now?: string | number | Date | undefined;
-}
-
-export interface LifecycleInvariantViolation {
-  readonly rule: string;
-  readonly message: string;
-  readonly watchdogIds: readonly string[];
-}
-
-export interface WatchdogLifecycleVerificationResult {
-  readonly valid: boolean;
-  readonly violations: readonly string[];
-  readonly violationDetails: readonly LifecycleInvariantViolation[];
-  readonly activeCount: number;
-  readonly staleCount: number;
-  readonly terminatedCount: number;
-  readonly orphanedCount: number;
-  readonly totalCount: number;
-  readonly watchdogs: readonly WatchdogRecord[];
-  readonly store: WatchdogStore;
 }
 
 export function parseTimestamp(input?: string | number | Date | undefined): number {
@@ -175,21 +79,19 @@ export function resolveWatchdogStorePath(target?: string): string {
   if (!target) {
     return join(resolveCapsulesDir(), "watchdogs.json");
   }
-
   const resolved = resolve(target);
   if (resolved.endsWith(".json")) {
     return resolved;
   }
-
   return join(resolved, "watchdogs.json");
 }
 
 export function createDefaultWatchdogStore(nowIso?: string): WatchdogStore {
   return {
     schema: "harness.watchdog_store",
-    version: 1,
+    version: 2,
     updated_at: nowIso ?? new Date().toISOString(),
-    watchdogs: [],
+    active_watchdog: null,
   };
 }
 
@@ -201,76 +103,27 @@ export function loadWatchdogStore(target?: string): WatchdogStore {
 
   try {
     const raw = readFileSync(storePath, "utf8");
-    const parsed: unknown = JSON.parse(raw);
-    if (typeof parsed !== "object" || parsed === null) {
-      throw new HarnessError("INVALID_STATE", `corrupted watchdog store at ${storePath}`);
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+
+    // If it's a legacy version 1 store, discard it and return a fresh version 2 store
+    if (parsed.version === 1) {
+      return createDefaultWatchdogStore();
     }
-    const record = parsed as Record<string, unknown>;
-    const watchdogsRaw = Array.isArray(record.watchdogs) ? record.watchdogs : [];
-    const watchdogs: WatchdogRecord[] = [];
 
-    for (const item of watchdogsRaw) {
-      if (typeof item === "object" && item !== null) {
-        const entry = item as Record<string, unknown>;
-        if (typeof entry.id === "string") {
-          const statusRaw = entry.status;
-          const status: WatchdogStatus =
-            statusRaw === "active" ||
-            statusRaw === "stale" ||
-            statusRaw === "terminated" ||
-            statusRaw === "orphaned"
-              ? statusRaw
-              : "orphaned";
-
-          const wdRecord: WatchdogRecord = {
-            id: entry.id,
-            generation: typeof entry.generation === "number" ? entry.generation : 1,
-            pulse_id: typeof entry.pulse_id === "string" ? entry.pulse_id : null,
-            phase: typeof entry.phase === "string" ? entry.phase : "unknown",
-            run_id: typeof entry.run_id === "string" ? entry.run_id : null,
-            run_root: typeof entry.run_root === "string" ? entry.run_root : null,
-            pid: typeof entry.pid === "number" ? entry.pid : 0,
-            ppid: typeof entry.ppid === "number" ? entry.ppid : 0,
-            agent_id: typeof entry.agent_id === "string" ? entry.agent_id : null,
-            started_at:
-              typeof entry.started_at === "string" ? entry.started_at : new Date().toISOString(),
-            last_heartbeat_at:
-              typeof entry.last_heartbeat_at === "string"
-                ? entry.last_heartbeat_at
-                : new Date().toISOString(),
-            heartbeat_cadence_ms:
-              typeof entry.heartbeat_cadence_ms === "number"
-                ? entry.heartbeat_cadence_ms
-                : DEFAULT_HEARTBEAT_CADENCE_MS,
-            timeout_ms:
-              typeof entry.timeout_ms === "number" ? entry.timeout_ms : DEFAULT_WATCHDOG_TIMEOUT_MS,
-            status,
-            terminated_at: typeof entry.terminated_at === "string" ? entry.terminated_at : null,
-            termination_reason:
-              typeof entry.termination_reason === "string" ? entry.termination_reason : null,
-            ...(typeof entry.metadata === "object" && entry.metadata !== null
-              ? { metadata: entry.metadata as Record<string, unknown> }
-              : {}),
-          };
-
-          watchdogs.push(wdRecord);
-        }
-      }
+    let active_watchdog: WatchdogRecord | null = null;
+    if (parsed.active_watchdog && typeof parsed.active_watchdog === "object") {
+      active_watchdog = parsed.active_watchdog as unknown as WatchdogRecord;
     }
 
     return {
       schema: "harness.watchdog_store",
-      version: 1,
+      version: 2,
       updated_at:
-        typeof record.updated_at === "string" ? record.updated_at : new Date().toISOString(),
-      watchdogs,
+        typeof parsed.updated_at === "string" ? parsed.updated_at : new Date().toISOString(),
+      active_watchdog,
     };
   } catch (err: unknown) {
-    if (err instanceof HarnessError) throw err;
-    throw new HarnessError(
-      "INVALID_STATE",
-      `failed to load watchdog store at ${storePath}: ${err instanceof Error ? err.message : String(err)}`,
-    );
+    return createDefaultWatchdogStore();
   }
 }
 
@@ -280,7 +133,6 @@ export function saveWatchdogStore(store: WatchdogStore, target?: string): void {
   if (!existsSync(dir)) {
     mkdirSync(dir, { recursive: true });
   }
-  // Strip any undefined properties to ensure canonical JSON bytes serialization
   const serialized = JSON.parse(JSON.stringify(store)) as unknown as JsonValue;
   atomicWriteJson(storePath, serialized);
 }
@@ -294,67 +146,15 @@ function generateWatchdogId(generation: number): string {
 export function registerWatchdog(
   params: RegisterWatchdogOptions = {},
   target?: string,
-): WatchdogRegistrationResult {
+): WatchdogRecord {
   const nowMs = parseTimestamp(params.now);
   const nowIso = new Date(nowMs).toISOString();
-  const currentStore = loadWatchdogStore(target);
 
-  const generation = params.generation ?? 1;
-  const heartbeatCadence = params.heartbeat_cadence_ms ?? DEFAULT_HEARTBEAT_CADENCE_MS;
-  const timeoutMs =
-    params.timeout_ms ??
-    (params.heartbeat_cadence_ms !== undefined
-      ? params.heartbeat_cadence_ms * 2
-      : DEFAULT_WATCHDOG_TIMEOUT_MS);
-
-  const autoCleanup = params.autoCleanupStale !== false;
-  const singleActive = params.enforceSingleActive !== false;
-
-  const supersededWatchdogs: WatchdogRecord[] = [];
-  const updatedWatchdogs: WatchdogRecord[] = [];
-
-  for (const wd of currentStore.watchdogs) {
-    let updatedWd = wd;
-
-    // 1. Auto-cleanup stale monitors if heartbeat is overdue
-    if (wd.status === "active" && autoCleanup) {
-      const lastHeartbeatMs = parseTimestamp(wd.last_heartbeat_at);
-      if (nowMs - lastHeartbeatMs > wd.timeout_ms) {
-        updatedWd = {
-          ...wd,
-          status: "stale",
-          termination_reason: "heartbeat_timeout",
-        };
-      }
-    }
-
-    // 2. Enforce max 1 active watchdog per pulse / generation to prevent multi-watchdog accumulation
-    if (updatedWd.status === "active" && singleActive) {
-      const matchGen = updatedWd.generation === generation;
-      const matchPulse =
-        params.pulse_id !== null &&
-        params.pulse_id !== undefined &&
-        updatedWd.pulse_id === params.pulse_id;
-
-      if (matchGen || matchPulse) {
-        updatedWd = {
-          ...updatedWd,
-          status: "terminated",
-          terminated_at: nowIso,
-          termination_reason: "superseded_by_new_watchdog",
-        };
-        supersededWatchdogs.push(updatedWd);
-      }
-    }
-
-    updatedWatchdogs.push(updatedWd);
-  }
-
-  const watchdogId = params.id ?? generateWatchdogId(generation);
+  const watchdogId = params.id ?? generateWatchdogId(params.generation ?? 1);
 
   const newWatchdog: WatchdogRecord = {
     id: watchdogId,
-    generation,
+    generation: params.generation ?? 1,
     pulse_id: params.pulse_id ?? null,
     phase: params.phase !== undefined ? params.phase : "autonomous-loop",
     run_id: params.run_id ?? null,
@@ -364,30 +164,27 @@ export function registerWatchdog(
     agent_id: params.agent_id ?? null,
     started_at: nowIso,
     last_heartbeat_at: nowIso,
-    heartbeat_cadence_ms: heartbeatCadence,
-    timeout_ms: timeoutMs,
+    heartbeat_cadence_ms: params.heartbeat_cadence_ms ?? DEFAULT_HEARTBEAT_CADENCE_MS,
+    timeout_ms:
+      params.timeout_ms ??
+      (params.heartbeat_cadence_ms !== undefined
+        ? params.heartbeat_cadence_ms * 2
+        : DEFAULT_WATCHDOG_TIMEOUT_MS),
     status: "active",
     terminated_at: null,
     termination_reason: null,
     ...(params.metadata !== undefined ? { metadata: params.metadata } : {}),
   };
 
-  updatedWatchdogs.push(newWatchdog);
-
   const updatedStore: WatchdogStore = {
     schema: "harness.watchdog_store",
-    version: 1,
+    version: 2,
     updated_at: nowIso,
-    watchdogs: updatedWatchdogs,
+    active_watchdog: newWatchdog,
   };
 
   saveWatchdogStore(updatedStore, target);
-
-  return {
-    watchdog: newWatchdog,
-    supersededWatchdogs,
-    store: updatedStore,
-  };
+  return newWatchdog;
 }
 
 export function heartbeatWatchdog(
@@ -399,21 +196,15 @@ export function heartbeatWatchdog(
   const nowIso = new Date(nowMs).toISOString();
   const currentStore = loadWatchdogStore(target);
 
-  const index = currentStore.watchdogs.findIndex((wd) => wd.id === id);
-  if (index === -1) {
-    throw new HarnessError("INVALID_ARGUMENT", `watchdog not found: ${id}`);
-  }
-
-  const existing = currentStore.watchdogs[index]!;
-  if (existing.status === "terminated") {
-    throw new HarnessError("INVALID_STATE", `cannot heartbeat terminated watchdog: ${id}`);
+  const existing = currentStore.active_watchdog;
+  if (!existing || existing.id !== id) {
+    throw new HarnessError("INVALID_ARGUMENT", `watchdog not found or not active: ${id}`);
   }
 
   const updatedWd: WatchdogRecord = {
     ...existing,
     last_heartbeat_at: nowIso,
     status: "active",
-    termination_reason: null,
     phase: options.phase ?? existing.phase,
     ...(options.metadata !== undefined || existing.metadata !== undefined
       ? {
@@ -425,13 +216,11 @@ export function heartbeatWatchdog(
       : {}),
   };
 
-  const updatedList = [...currentStore.watchdogs];
-  updatedList[index] = updatedWd;
-
   const updatedStore: WatchdogStore = {
-    ...currentStore,
+    schema: "harness.watchdog_store",
+    version: 2,
     updated_at: nowIso,
-    watchdogs: updatedList,
+    active_watchdog: updatedWd,
   };
 
   saveWatchdogStore(updatedStore, target);
@@ -442,495 +231,18 @@ export function terminateWatchdog(
   id: string,
   options: TerminateOptions = {},
   target?: string,
-): WatchdogRecord {
+): void {
   const nowMs = parseTimestamp(options.now);
   const nowIso = new Date(nowMs).toISOString();
   const currentStore = loadWatchdogStore(target);
 
-  const index = currentStore.watchdogs.findIndex((wd) => wd.id === id);
-  if (index === -1) {
-    throw new HarnessError("INVALID_ARGUMENT", `watchdog not found: ${id}`);
-  }
-
-  const existing = currentStore.watchdogs[index]!;
-  if (existing.status === "terminated") {
-    return existing;
-  }
-
-  const updatedWd: WatchdogRecord = {
-    ...existing,
-    status: "terminated",
-    terminated_at: nowIso,
-    termination_reason: options.reason !== undefined ? options.reason : "normal_termination",
-    ...(options.metadata !== undefined || existing.metadata !== undefined
-      ? {
-          metadata: {
-            ...(existing.metadata ?? {}),
-            ...(options.metadata ?? {}),
-          },
-        }
-      : {}),
-  };
-
-  const updatedList = [...currentStore.watchdogs];
-  updatedList[index] = updatedWd;
-
-  const updatedStore: WatchdogStore = {
-    ...currentStore,
-    updated_at: nowIso,
-    watchdogs: updatedList,
-  };
-
-  saveWatchdogStore(updatedStore, target);
-  return updatedWd;
-}
-
-export function listWatchdogs(
-  filter: WatchdogFilterOptions = {},
-  target?: string,
-): readonly WatchdogRecord[] {
-  const store = loadWatchdogStore(target);
-  const nowMs = parseTimestamp(filter.now);
-
-  return store.watchdogs.filter((wd) => {
-    if (filter.generation !== undefined && wd.generation !== filter.generation) {
-      return false;
-    }
-    if (filter.pulse_id !== undefined && wd.pulse_id !== filter.pulse_id) {
-      return false;
-    }
-    if (filter.run_id !== undefined && wd.run_id !== filter.run_id) {
-      return false;
-    }
-    if (filter.phase !== undefined && wd.phase !== filter.phase) {
-      return false;
-    }
-    if (filter.status !== undefined && filter.status !== "all") {
-      if (Array.isArray(filter.status)) {
-        if (!filter.status.includes(wd.status)) return false;
-      } else if (wd.status !== filter.status) {
-        return false;
-      }
-    }
-    if (filter.max_age_ms !== undefined) {
-      const age = nowMs - parseTimestamp(wd.last_heartbeat_at);
-      if (age > filter.max_age_ms) return false;
-    }
-    return true;
-  });
-}
-
-export function cleanupStaleWatchdogs(
-  options: CleanupOptions = {},
-  target?: string,
-): CleanupResult {
-  const nowMs = parseTimestamp(options.now);
-  const nowIso = new Date(nowMs).toISOString();
-  const currentStore = loadWatchdogStore(target);
-
-  const markAs: WatchdogStatus = options.markAs !== undefined ? options.markAs : "stale";
-  const dryRun = options.dryRun === true;
-  const reason = options.reason !== undefined ? options.reason : "stale_cadence_exceeded";
-
-  const cleanedWatchdogs: WatchdogRecord[] = [];
-  const updatedWatchdogs: WatchdogRecord[] = [];
-
-  for (const wd of currentStore.watchdogs) {
-    if (wd.status === "active") {
-      if (options.generation !== undefined && wd.generation !== options.generation) {
-        updatedWatchdogs.push(wd);
-        continue;
-      }
-
-      const threshold = options.maxAgeMs ?? wd.timeout_ms;
-      const ageMs = nowMs - parseTimestamp(wd.last_heartbeat_at);
-
-      if (ageMs > threshold) {
-        const cleaned: WatchdogRecord = {
-          ...wd,
-          status: markAs,
-          terminated_at: markAs === "terminated" ? nowIso : wd.terminated_at,
-          termination_reason: reason,
-        };
-        cleanedWatchdogs.push(cleaned);
-        updatedWatchdogs.push(cleaned);
-        continue;
-      }
-    }
-
-    updatedWatchdogs.push(wd);
-  }
-
-  const activeCount = updatedWatchdogs.filter((w) => w.status === "active").length;
-
-  const updatedStore: WatchdogStore = {
-    ...currentStore,
-    updated_at: nowIso,
-    watchdogs: updatedWatchdogs,
-  };
-
-  if (!dryRun && cleanedWatchdogs.length > 0) {
+  if (currentStore.active_watchdog?.id === id) {
+    const updatedStore: WatchdogStore = {
+      schema: "harness.watchdog_store",
+      version: 2,
+      updated_at: nowIso,
+      active_watchdog: null,
+    };
     saveWatchdogStore(updatedStore, target);
   }
-
-  return {
-    cleanedCount: cleanedWatchdogs.length,
-    cleanedWatchdogs,
-    activeCount,
-    totalCount: updatedWatchdogs.length,
-    dryRun,
-    store: dryRun ? currentStore : updatedStore,
-  };
-}
-
-export function terminatePhaseWatchdogs(
-  options: TerminatePhaseWatchdogsOptions = {},
-  target?: string,
-): TerminatePhaseWatchdogsResult {
-  const nowMs = parseTimestamp(options.now);
-  const nowIso = new Date(nowMs).toISOString();
-  const currentStore = loadWatchdogStore(target);
-
-  const markAs: WatchdogStatus = options.markAs ?? "terminated";
-  const dryRun = options.dryRun === true;
-  const reason =
-    options.reason ??
-    (options.phase !== undefined ? `phase_completed_${options.phase}` : "phase_cleanup");
-
-  const terminatedWatchdogs: WatchdogRecord[] = [];
-  const updatedWatchdogs: WatchdogRecord[] = [];
-
-  for (const wd of currentStore.watchdogs) {
-    if (wd.status === "active") {
-      if (options.generation !== undefined && wd.generation !== options.generation) {
-        updatedWatchdogs.push(wd);
-        continue;
-      }
-      if (
-        options.pulse_id !== undefined &&
-        options.pulse_id !== null &&
-        wd.pulse_id !== options.pulse_id
-      ) {
-        updatedWatchdogs.push(wd);
-        continue;
-      }
-      if (options.phase !== undefined && wd.phase !== options.phase) {
-        updatedWatchdogs.push(wd);
-        continue;
-      }
-      if (options.excludeId !== undefined && wd.id === options.excludeId) {
-        updatedWatchdogs.push(wd);
-        continue;
-      }
-
-      const terminated: WatchdogRecord = {
-        ...wd,
-        status: markAs,
-        terminated_at: markAs === "terminated" ? nowIso : wd.terminated_at,
-        termination_reason: reason,
-        ...(options.metadata !== undefined || wd.metadata !== undefined
-          ? {
-              metadata: {
-                ...(wd.metadata ?? {}),
-                ...(options.metadata ?? {}),
-              },
-            }
-          : {}),
-      };
-      terminatedWatchdogs.push(terminated);
-      updatedWatchdogs.push(terminated);
-      continue;
-    }
-
-    updatedWatchdogs.push(wd);
-  }
-
-  const activeCount = updatedWatchdogs.filter((w) => w.status === "active").length;
-
-  const updatedStore: WatchdogStore = {
-    ...currentStore,
-    updated_at: nowIso,
-    watchdogs: updatedWatchdogs,
-  };
-
-  if (!dryRun && terminatedWatchdogs.length > 0) {
-    saveWatchdogStore(updatedStore, target);
-  }
-
-  return {
-    terminatedCount: terminatedWatchdogs.length,
-    terminatedWatchdogs,
-    activeCount,
-    totalCount: updatedWatchdogs.length,
-    dryRun,
-    store: dryRun ? currentStore : updatedStore,
-  };
-}
-
-export function cleanupPreviousPhaseWatchdogs(
-  options: CleanupPreviousPhaseOptions,
-  target?: string,
-): TerminatePhaseWatchdogsResult {
-  const nowMs = parseTimestamp(options.now);
-  const nowIso = new Date(nowMs).toISOString();
-  const currentStore = loadWatchdogStore(target);
-
-  const markAs: WatchdogStatus = options.markAs ?? "terminated";
-  const dryRun = options.dryRun === true;
-  const reason = options.reason ?? `phase_transition_to_${options.currentPhase}`;
-
-  const terminatedWatchdogs: WatchdogRecord[] = [];
-  const updatedWatchdogs: WatchdogRecord[] = [];
-
-  for (const wd of currentStore.watchdogs) {
-    if (wd.status === "active") {
-      if (options.generation !== undefined && wd.generation !== options.generation) {
-        updatedWatchdogs.push(wd);
-        continue;
-      }
-      if (
-        options.pulse_id !== undefined &&
-        options.pulse_id !== null &&
-        wd.pulse_id !== options.pulse_id
-      ) {
-        updatedWatchdogs.push(wd);
-        continue;
-      }
-      if (options.currentWatchdogId !== undefined && wd.id === options.currentWatchdogId) {
-        updatedWatchdogs.push(wd);
-        continue;
-      }
-      if (wd.phase !== options.currentPhase) {
-        const terminated: WatchdogRecord = {
-          ...wd,
-          status: markAs,
-          terminated_at: markAs === "terminated" ? nowIso : wd.terminated_at,
-          termination_reason: reason,
-          ...(options.metadata !== undefined || wd.metadata !== undefined
-            ? {
-                metadata: {
-                  ...(wd.metadata ?? {}),
-                  ...(options.metadata ?? {}),
-                },
-              }
-            : {}),
-        };
-        terminatedWatchdogs.push(terminated);
-        updatedWatchdogs.push(terminated);
-        continue;
-      }
-    }
-
-    updatedWatchdogs.push(wd);
-  }
-
-  const activeCount = updatedWatchdogs.filter((w) => w.status === "active").length;
-
-  const updatedStore: WatchdogStore = {
-    ...currentStore,
-    updated_at: nowIso,
-    watchdogs: updatedWatchdogs,
-  };
-
-  if (!dryRun && terminatedWatchdogs.length > 0) {
-    saveWatchdogStore(updatedStore, target);
-  }
-
-  return {
-    terminatedCount: terminatedWatchdogs.length,
-    terminatedWatchdogs,
-    activeCount,
-    totalCount: updatedWatchdogs.length,
-    dryRun,
-    store: dryRun ? currentStore : updatedStore,
-  };
-}
-
-export function verifyWatchdogLifecycle(
-  options: VerifyWatchdogLifecycleOptions = {},
-  target?: string,
-): WatchdogLifecycleVerificationResult {
-  const store = loadWatchdogStore(target);
-  const nowMs = parseTimestamp(options.now);
-
-  const watchdogs = listWatchdogs(
-    {
-      generation: options.generation,
-      pulse_id: options.pulse_id,
-      run_id: options.run_id,
-      phase: options.phase,
-      status: "all",
-      now: nowMs,
-    },
-    target,
-  );
-
-  const violations: string[] = [];
-  const violationDetails: LifecycleInvariantViolation[] = [];
-
-  let activeCount = 0;
-  let staleCount = 0;
-  let terminatedCount = 0;
-  let orphanedCount = 0;
-
-  const activeByGen = new Map<number, string[]>();
-  const activeByPulse = new Map<string, string[]>();
-
-  for (const wd of watchdogs) {
-    if (wd.status === "active") {
-      activeCount++;
-      const lastHb = parseTimestamp(wd.last_heartbeat_at);
-      if (nowMs - lastHb > wd.timeout_ms) {
-        const msg = `Watchdog '${wd.id}' is active but heartbeat is overdue by ${nowMs - lastHb - wd.timeout_ms}ms`;
-        violations.push(msg);
-        violationDetails.push({
-          rule: "heartbeat_timeout_exceeded",
-          message: msg,
-          watchdogIds: [wd.id],
-        });
-      }
-
-      const genList = activeByGen.get(wd.generation) ?? [];
-      genList.push(wd.id);
-      activeByGen.set(wd.generation, genList);
-
-      if (wd.pulse_id !== null) {
-        const pulseList = activeByPulse.get(wd.pulse_id) ?? [];
-        pulseList.push(wd.id);
-        activeByPulse.set(wd.pulse_id, pulseList);
-      }
-    } else if (wd.status === "stale") {
-      staleCount++;
-    } else if (wd.status === "terminated") {
-      terminatedCount++;
-    } else if (wd.status === "orphaned") {
-      orphanedCount++;
-    }
-  }
-
-  for (const [gen, ids] of activeByGen.entries()) {
-    if (ids.length > 1) {
-      const msg = `Multiple active watchdogs found in generation ${gen}: ${ids.join(", ")} (violates max 1 active monitor invariant)`;
-      violations.push(msg);
-      violationDetails.push({
-        rule: "single_active_per_generation",
-        message: msg,
-        watchdogIds: ids,
-      });
-    }
-  }
-
-  for (const [pulse, ids] of activeByPulse.entries()) {
-    if (ids.length > 1) {
-      const msg = `Multiple active watchdogs found for pulse '${pulse}': ${ids.join(", ")} (violates max 1 active monitor per pulse invariant)`;
-      violations.push(msg);
-      violationDetails.push({
-        rule: "single_active_per_pulse",
-        message: msg,
-        watchdogIds: ids,
-      });
-    }
-  }
-
-  const valid = violations.length === 0;
-
-  return {
-    valid,
-    violations,
-    violationDetails,
-    activeCount,
-    staleCount,
-    terminatedCount,
-    orphanedCount,
-    totalCount: watchdogs.length,
-    watchdogs,
-    store,
-  };
-}
-
-function padRight(str: string, width: number): string {
-  if (str.length >= width) return str;
-  return `${str}${" ".repeat(width - str.length)}`;
-}
-
-function truncateString(str: string, maxLen: number): string {
-  if (str.length <= maxLen) return str;
-  return `${str.slice(0, maxLen - 1)}…`;
-}
-
-function formatStatusBadge(status: WatchdogStatus): string {
-  switch (status) {
-    case "active":
-      return "[ACTIVE 🟢]";
-    case "stale":
-      return "[STALE ⚠️]";
-    case "terminated":
-      return "[TERM ⏹️]";
-    case "orphaned":
-      return "[ORPHAN ❌]";
-  }
-}
-
-function formatHeartbeatAge(lastHeartbeatIso: string, nowMs: number): string {
-  const deltaMs = Math.max(0, nowMs - parseTimestamp(lastHeartbeatIso));
-  const deltaSec = Math.floor(deltaMs / 1000);
-  if (deltaSec < 60) return `${deltaSec}s ago`;
-  if (deltaSec < 3600) {
-    const mins = Math.floor(deltaSec / 60);
-    const secs = deltaSec % 60;
-    return `${mins}m ${secs}s ago`;
-  }
-  const hours = Math.floor(deltaSec / 3600);
-  return `${hours}h ago`;
-}
-
-export function renderAsciiWatchdogTable(
-  watchdogs: readonly WatchdogRecord[],
-  options: { readonly now?: string | number | Date | undefined } = {},
-): string {
-  if (watchdogs.length === 0) {
-    return [
-      "┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐",
-      "│ No registered watchdog monitors found matching criteria                                                               │",
-      "└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘",
-    ].join("\n");
-  }
-
-  const nowMs = parseTimestamp(options.now);
-
-  const colIdWidth = 24;
-  const colGenWidth = 14;
-  const colPhaseWidth = 16;
-  const colStatusWidth = 16;
-  const colPidWidth = 8;
-  const colHbWidth = 16;
-  const colCadenceWidth = 10;
-
-  const topBorder = `┌${"─".repeat(colIdWidth + 2)}┬${"─".repeat(colGenWidth + 2)}┬${"─".repeat(colPhaseWidth + 2)}┬${"─".repeat(colStatusWidth + 2)}┬${"─".repeat(colPidWidth + 2)}┬${"─".repeat(colHbWidth + 2)}┬${"─".repeat(colCadenceWidth + 2)}┐`;
-  const header = `│ ${padRight("Watchdog ID", colIdWidth)} │ ${padRight("Gen / Pulse", colGenWidth)} │ ${padRight("Phase", colPhaseWidth)} │ ${padRight("Status", colStatusWidth)} │ ${padRight("PID", colPidWidth)} │ ${padRight("Last Heartbeat", colHbWidth)} │ ${padRight("Cadence", colCadenceWidth)} │`;
-  const separator = `├${"─".repeat(colIdWidth + 2)}┼${"─".repeat(colGenWidth + 2)}┼${"─".repeat(colPhaseWidth + 2)}┼${"─".repeat(colStatusWidth + 2)}┼${"─".repeat(colPidWidth + 2)}┼${"─".repeat(colHbWidth + 2)}┼${"─".repeat(colCadenceWidth + 2)}┤`;
-  const bottomBorder = `└${"─".repeat(colIdWidth + 2)}┴${"─".repeat(colGenWidth + 2)}┴${"─".repeat(colPhaseWidth + 2)}┴${"─".repeat(colStatusWidth + 2)}┴${"─".repeat(colPidWidth + 2)}┴${"─".repeat(colHbWidth + 2)}┴${"─".repeat(colCadenceWidth + 2)}┘`;
-
-  const rows = watchdogs.map((wd) => {
-    const idCell = padRight(truncateString(wd.id, colIdWidth), colIdWidth);
-    const genText =
-      wd.pulse_id !== null ? `Gen ${wd.generation} • ${wd.pulse_id}` : `Gen ${wd.generation}`;
-    const genCell = padRight(truncateString(genText, colGenWidth), colGenWidth);
-    const phaseCell = padRight(truncateString(wd.phase, colPhaseWidth), colPhaseWidth);
-    const statusCell = padRight(
-      truncateString(formatStatusBadge(wd.status), colStatusWidth),
-      colStatusWidth,
-    );
-    const pidCell = padRight(truncateString(String(wd.pid), colPidWidth), colPidWidth);
-    const hbCell = padRight(
-      truncateString(formatHeartbeatAge(wd.last_heartbeat_at, nowMs), colHbWidth),
-      colHbWidth,
-    );
-    const cadenceText = `${Math.round(wd.heartbeat_cadence_ms / 1000)}s`;
-    const cadenceCell = padRight(truncateString(cadenceText, colCadenceWidth), colCadenceWidth);
-
-    return `│ ${idCell} │ ${genCell} │ ${phaseCell} │ ${statusCell} │ ${pidCell} │ ${hbCell} │ ${cadenceCell} │`;
-  });
-
-  return [topBorder, header, separator, ...rows, bottomBorder].join("\n");
 }

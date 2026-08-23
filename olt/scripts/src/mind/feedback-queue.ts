@@ -95,8 +95,7 @@ export interface BackpropagationRecord {
 }
 
 export const CANONICAL_FEEDBACK_FILE = "olt/backlog.jsonl";
-export const LEGACY_FEEDBACK_FILE = ".capsules/FEEDBACK_QUEUE.jsonl";
-export const LEGACY_LOWER_FEEDBACK_FILE = ".capsules/feedback-queue.jsonl";
+
 export const DEFAULT_FEEDBACK_FILE = "olt/backlog.jsonl";
 
 export const PRIORITY_ORDER: Record<FeedbackPriority, number> = {

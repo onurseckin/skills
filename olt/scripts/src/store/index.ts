@@ -6,11 +6,11 @@ export { verifyIntegrity } from "./integrity.ts";
 export { verifyCapsuleDeep } from "./layout-integrity.ts";
 export { indexFreshness, loadIndex } from "./capsule-index.ts";
 export {
-  appendCapsuleBlunder,
-  loadCapsuleBlunders,
-  compactCapsuleBlunders,
-  resolveCapsuleBlunder,
-} from "./blunder-store.ts";
+  appendCapsuleDefect,
+  loadCapsuleDefects,
+  compactCapsuleDefects,
+  resolveCapsuleDefect,
+} from "./defect-store.ts";
 export {
   pruneCapsuleBoilerplate,
   archiveCapsule,

@@ -11,7 +11,7 @@ import {
   extractSnippet,
   formatMemoryQueryBrief,
   indexAllMemory,
-  indexBlunderDocuments,
+  indexDefectDocuments,
   indexCapsuleDocuments,
   indexCharterDocuments,
   indexDecisionDocuments,
@@ -93,10 +93,10 @@ Autonomous Verification Core for test suites and memory indexing.
     "utf-8",
   );
 
-  // 3. Blunders
-  const rootBlunders = [
+  // 3. Defects
+  const rootDefects = [
     JSON.stringify({
-      id: "blunder-101",
+      id: "defect-101",
       type: "main_thread_direct_execution",
       category: "boundary_violation",
       severity: "critical",
@@ -106,7 +106,7 @@ Autonomous Verification Core for test suites and memory indexing.
       timestamp: "2026-08-21T10:00:00Z",
     }),
     JSON.stringify({
-      id: "blunder-102",
+      id: "defect-102",
       type: "type_defect",
       category: "code_defect",
       severity: "warning",
@@ -116,12 +116,12 @@ Autonomous Verification Core for test suites and memory indexing.
       timestamp: "2026-08-21T11:00:00Z",
     }),
   ].join("\n");
-  writeFileSync(join(capsulesDir, "blunders.jsonl"), rootBlunders, "utf-8");
+  writeFileSync(join(capsulesDir, "defects.jsonl"), rootDefects, "utf-8");
 
   // 4. Capsule prompt & trace & state
   writeFileSync(
     join(runRoot, "prompt.md"),
-    "# Prompt: Implement Autonomous Mind Memory Search\nIndex all capsules and blunders.",
+    "# Prompt: Implement Autonomous Mind Memory Search\nIndex all capsules and defects.",
     "utf-8",
   );
   writeFileSync(
@@ -276,9 +276,9 @@ describe("Semantic Knowledge & Memory Search Indexer", () => {
       });
       const d2 = createMemoryDocument({
         id: "d2",
-        kind: "blunder",
-        title: "Direct Mutation Blunder",
-        source_path: "blunders.jsonl",
+        kind: "defect",
+        title: "Direct Mutation Defect",
+        source_path: "defects.jsonl",
         content: "Main thread direct execution and boundary violation.",
       });
 
@@ -354,11 +354,11 @@ describe("Semantic Knowledge & Memory Search Indexer", () => {
           content: "G1: Zero TypeScript any and 0 compiler suppressions.",
         }),
         createMemoryDocument({
-          id: "doc-blunder-boundary",
-          kind: "blunder",
+          id: "doc-defect-boundary",
+          kind: "defect",
           title: "Main Thread Boundary Violation",
           capsule_id: "mind-gen-1",
-          source_path: ".capsules/mind-gen-1/blunders.jsonl",
+          source_path: ".capsules/mind-gen-1/defects.jsonl",
           content: "Direct execution on main thread without subagent delegation.",
         }),
         createMemoryDocument({
@@ -395,19 +395,19 @@ describe("Semantic Knowledge & Memory Search Indexer", () => {
       const top = results[0];
       expect(top).toBeDefined();
       if (top !== undefined) {
-        expect(top.id).toBe("doc-blunder-boundary");
-        expect(top.kind).toBe("blunder");
+        expect(top.id).toBe("doc-defect-boundary");
+        expect(top.kind).toBe("defect");
         expect(top.matched_terms).toContain("boundary");
         expect(top.matched_terms).toContain("violation");
       }
     });
 
     test("filters by kind", () => {
-      const blunderResults = searchMemory(sampleIndex, {
+      const defectResults = searchMemory(sampleIndex, {
         query: "main thread boundary",
-        kind: "blunder",
+        kind: "defect",
       });
-      expect(blunderResults.every((r) => r.kind === "blunder")).toBe(true);
+      expect(defectResults.every((r) => r.kind === "defect")).toBe(true);
 
       const charterResults = searchMemory(sampleIndex, {
         query: "zero any",
@@ -457,16 +457,16 @@ describe("Semantic Knowledge & Memory Search Indexer", () => {
   });
 
   describe("Workspace Indexing Pipeline", () => {
-    test("indexes charter, blunders, capsules, decisions, and reports from workspace", () => {
+    test("indexes charter, defects, capsules, decisions, and reports from workspace", () => {
       const ws = setupTestWorkspace("full-scan");
       const charterDocs = indexCharterDocuments(ws.repoRoot);
       expect(charterDocs.length).toBeGreaterThan(0);
       expect(charterDocs.some((d) => d.id === "charter-root")).toBe(true);
       expect(charterDocs.some((d) => d.id === "charter-goal-g1")).toBe(true);
 
-      const blunderDocs = indexBlunderDocuments(ws.capsulesDir);
-      expect(blunderDocs.length).toBe(2);
-      expect(blunderDocs.some((b) => b.id === "blunder-blunder-101")).toBe(true);
+      const defectDocs = indexDefectDocuments(ws.capsulesDir);
+      expect(defectDocs.length).toBe(2);
+      expect(defectDocs.some((b) => b.id === "defect-defect-101")).toBe(true);
 
       const capsuleDocs = indexCapsuleDocuments(ws.capsulesDir);
       expect(capsuleDocs.length).toBeGreaterThan(0);
@@ -498,11 +498,11 @@ describe("Semantic Knowledge & Memory Search Indexer", () => {
     test("renders ASCII table with Unicode borders for non-empty results", () => {
       const results = [
         {
-          id: "blunder-101",
-          kind: "blunder" as MemoryKind,
+          id: "defect-101",
+          kind: "defect" as MemoryKind,
           title: "Main Thread Execution",
           capsule_id: "mind-gen-1",
-          source_path: ".capsules/blunders.jsonl",
+          source_path: ".capsules/defects.jsonl",
           score: 4.821,
           snippet: "Direct write without subagent",
           matched_terms: ["thread", "execution"],
@@ -512,7 +512,7 @@ describe("Semantic Knowledge & Memory Search Indexer", () => {
 
       const table = renderAsciiMemoryTable(results);
       expect(table).toContain("┌");
-      expect(table).toContain("blunder-101");
+      expect(table).toContain("defect-101");
       expect(table).toContain("4.821");
       expect(table).toContain("└");
     });
@@ -652,12 +652,12 @@ describe("Semantic Knowledge & Memory Search Indexer", () => {
         query: "main thread",
         repo: ws.repoRoot,
         "capsules-dir": ws.capsulesDir,
-        kind: "blunder",
+        kind: "defect",
         limit: "1",
       });
 
       expect(res.results.length).toBe(1);
-      expect(res.results[0]?.kind).toBe("blunder");
+      expect(res.results[0]?.kind).toBe("defect");
     });
 
     test("supports --run flag and resolves relative capsules directory", () => {

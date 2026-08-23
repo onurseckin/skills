@@ -24,7 +24,6 @@ import { mindRoundCloseCommand, mindRoundOpenCommand } from "../commands/mind-ro
 import { mindWakeCommand } from "../commands/mind-wake.ts";
 import { smartTaskIngestCommand, smartTaskSynthesizeCommand } from "../commands/smart-task-ops.ts";
 import { HarnessError } from "../../errors/harness-error.ts";
-import { TODO_COMMANDS } from "./todo.ts";
 import {
   DEFAULT_EXIT_CODES,
   optionalFlag,
@@ -56,7 +55,6 @@ export {
   mindWakeCommand,
   smartTaskIngestCommand,
   smartTaskSynthesizeCommand,
-  TODO_COMMANDS,
   todoAddCommand,
   todoCleanCommand,
   todoDrainCommand,
@@ -153,7 +151,7 @@ export const MIND_COMMANDS: readonly CommandSpec[] = [
         "Mind capsule run id; defaults to mind-gen-1.",
         "mind-gen-1",
       ),
-      optionalFlag("capsules-dir", "string", "Override .capsules/ directory location."),
+      optionalFlag("capsules-dir", "string", "Override .olt/capsules/ directory location."),
     ],
     readsStdin: false,
     takesRemainder: false,
@@ -181,7 +179,7 @@ export const MIND_COMMANDS: readonly CommandSpec[] = [
     readsStdin: false,
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
-    examples: ["bun harness.ts mind:wake --run .capsules/mind-gen-1"],
+    examples: ["bun harness.ts mind:wake --run .olt/capsules/mind-gen-1"],
     handler: mindWakeCommand,
   },
   {
@@ -201,7 +199,7 @@ export const MIND_COMMANDS: readonly CommandSpec[] = [
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
-      "bun harness.ts mind:pulse-open --run .capsules/mind-gen-1 --actor mind-1 --host antigravity --driver bash-loop",
+      "bun harness.ts mind:pulse-open --run .olt/capsules/mind-gen-1 --actor mind-1 --host antigravity --driver bash-loop",
     ],
     handler: mindPulseOpenCommand,
   },
@@ -225,8 +223,8 @@ export const MIND_COMMANDS: readonly CommandSpec[] = [
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
-      "bun harness.ts mind:pulse --run .capsules/mind-gen-1 --actor mind-1",
-      "bun harness.ts mind:pulse --run .capsules/mind-gen-1 --arm 15m",
+      "bun harness.ts mind:pulse --run .olt/capsules/mind-gen-1 --actor mind-1",
+      "bun harness.ts mind:pulse --run .olt/capsules/mind-gen-1 --arm 15m",
     ],
     handler: mindPulseCommand,
   },
@@ -248,7 +246,7 @@ export const MIND_COMMANDS: readonly CommandSpec[] = [
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
-      "bun harness.ts mind:observe --run .capsules/mind-gen-1 --actor mind-1 --source intent-drift --command-id cmd-41 --count 0",
+      "bun harness.ts mind:observe --run .olt/capsules/mind-gen-1 --actor mind-1 --source intent-drift --command-id cmd-41 --count 0",
     ],
     handler: mindObserveCommand,
   },
@@ -282,7 +280,7 @@ export const MIND_COMMANDS: readonly CommandSpec[] = [
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
-      'bun harness.ts mind:candidate --run .capsules/mind-gen-1 --actor mind-1 --kind defect --statement "typecheck fails" --witness cmd-123 --charter-goal G1 --falsifier "bun run typecheck" --write-scope olt/scripts/src/health/',
+      'bun harness.ts mind:candidate --run .olt/capsules/mind-gen-1 --actor mind-1 --kind defect --statement "typecheck fails" --witness cmd-123 --charter-goal G1 --falsifier "bun run typecheck" --write-scope olt/scripts/src/health/',
     ],
     handler: mindCandidateCommand,
   },
@@ -302,7 +300,7 @@ export const MIND_COMMANDS: readonly CommandSpec[] = [
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
-      "bun harness.ts mind:admit --run .capsules/mind-gen-1 --actor mind-1 --candidate cand-12",
+      "bun harness.ts mind:admit --run .olt/capsules/mind-gen-1 --actor mind-1 --candidate cand-12",
     ],
     handler: mindAdmitCommand,
   },
@@ -323,7 +321,7 @@ export const MIND_COMMANDS: readonly CommandSpec[] = [
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
-      'bun harness.ts mind:decline --run .capsules/mind-gen-1 --actor mind-1 --candidate cand-12 --reason "scope overlaps active lease"',
+      'bun harness.ts mind:decline --run .olt/capsules/mind-gen-1 --actor mind-1 --candidate cand-12 --reason "scope overlaps active lease"',
     ],
     handler: mindDeclineCommand,
   },
@@ -343,7 +341,7 @@ export const MIND_COMMANDS: readonly CommandSpec[] = [
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
-      "bun harness.ts mind:quiesce --run .capsules/mind-gen-1 --actor mind-1 --source intent-drift:cmd-1:0 --source unassigned-todos:cmd-2:0",
+      "bun harness.ts mind:quiesce --run .olt/capsules/mind-gen-1 --actor mind-1 --source intent-drift:cmd-1:0 --source unassigned-todos:cmd-2:0",
     ],
     handler: mindQuiesceCommand,
   },
@@ -364,7 +362,7 @@ export const MIND_COMMANDS: readonly CommandSpec[] = [
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
-      'bun harness.ts mind:escalate --run .capsules/mind-gen-1 --actor mind-1 --reason "budget exhausted unexpectedly"',
+      'bun harness.ts mind:escalate --run .olt/capsules/mind-gen-1 --actor mind-1 --reason "budget exhausted unexpectedly"',
     ],
     handler: mindEscalateCommand,
   },
@@ -384,7 +382,7 @@ export const MIND_COMMANDS: readonly CommandSpec[] = [
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
-      'bun harness.ts mind:halt --run .capsules/mind-gen-1 --actor mind-1 --reason "critical safety check failure"',
+      'bun harness.ts mind:halt --run .olt/capsules/mind-gen-1 --actor mind-1 --reason "critical safety check failure"',
     ],
     handler: mindHaltCommand,
   },
@@ -407,7 +405,7 @@ export const MIND_COMMANDS: readonly CommandSpec[] = [
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
-      "bun harness.ts mind:round-open --run .capsules/mind-gen-1 --actor mind-1 --objective obj-1 --round 1",
+      "bun harness.ts mind:round-open --run .olt/capsules/mind-gen-1 --actor mind-1 --objective obj-1 --round 1",
     ],
     handler: mindRoundOpenCommand,
   },
@@ -436,7 +434,7 @@ export const MIND_COMMANDS: readonly CommandSpec[] = [
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
-      'bun harness.ts mind:round-close --run .capsules/mind-gen-1 --actor mind-1 --objective obj-1 --round 1 --terminal-reason "objective completed"',
+      'bun harness.ts mind:round-close --run .olt/capsules/mind-gen-1 --actor mind-1 --objective obj-1 --round 1 --terminal-reason "objective completed"',
     ],
     handler: mindRoundCloseCommand,
   },
@@ -457,7 +455,7 @@ export const MIND_COMMANDS: readonly CommandSpec[] = [
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
-      "bun harness.ts mind:audit-start --run .capsules/mind-gen-1 --actor auditor-1 --audit-id audit-1 --window-start 2026-08-21T00:00:00Z",
+      "bun harness.ts mind:audit-start --run .olt/capsules/mind-gen-1 --actor auditor-1 --audit-id audit-1 --window-start 2026-08-21T00:00:00Z",
     ],
     handler: mindAuditStartCommand,
   },
@@ -479,7 +477,7 @@ export const MIND_COMMANDS: readonly CommandSpec[] = [
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
-      "bun harness.ts mind:audit-report --run .capsules/mind-gen-1 --actor auditor-1 --audit-id audit-1 --verdict approved --answer Q1:cmd-10:pass",
+      "bun harness.ts mind:audit-report --run .olt/capsules/mind-gen-1 --actor auditor-1 --audit-id audit-1 --verdict approved --answer Q1:cmd-10:pass",
     ],
     handler: mindAuditReportCommand,
   },
@@ -499,11 +497,10 @@ export const MIND_COMMANDS: readonly CommandSpec[] = [
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
     examples: [
-      "bun harness.ts mind:rotate --run .capsules/mind-gen-1 --next-run .capsules/mind-gen-2 --actor coordinator-1",
+      "bun harness.ts mind:rotate --run .olt/capsules/mind-gen-1 --next-run .olt/capsules/mind-gen-2 --actor coordinator-1",
     ],
     handler: mindRotateCommand,
   },
-  ...TODO_COMMANDS,
   {
     name: "smart-task:plan",
     aliases: ["task:synthesize"],

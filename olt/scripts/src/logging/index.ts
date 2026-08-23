@@ -1,2 +1,2 @@
 export * from "./types.ts";
-export * from "./blunder-logger.ts";
+export * from "./defect-logger.ts";

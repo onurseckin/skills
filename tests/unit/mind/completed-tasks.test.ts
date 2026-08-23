@@ -8,9 +8,9 @@ import {
   readCompletedTasksLedger,
   recordCompletedTask,
   recordCompletedTasksBatch,
-  resolveBlundersPath,
-  resolveCanonicalBlundersPath,
-  resolveCanonicalCompletedBlundersPath,
+  resolveDefectsPath,
+  resolveCanonicalDefectsPath,
+  resolveCanonicalCompletedDefectsPath,
   resolveCanonicalCompletedTasksPath,
   resolveCanonicalObservationsPath,
   resolveCompletedTasksLedgerPath,
@@ -31,7 +31,7 @@ describe("Completed Tasks Ledger Engine", () => {
   const testDir = scratchRoot(import.meta.path, "test-completed-tasks");
   const ledgerFile = join(testDir, "COMPLETED_TASKS.jsonl");
   const feedbackFile = join(testDir, "FEEDBACK_QUEUE.jsonl");
-  const blundersFile = join(testDir, "blunders.jsonl");
+  const defectsFile = join(testDir, "defects.jsonl");
 
   function setup() {
     if (existsSync(testDir)) {
@@ -54,29 +54,29 @@ describe("Completed Tasks Ledger Engine", () => {
     expect(typeof resolved).toBe("string");
     expect(resolved.endsWith(".capsules/COMPLETED_TASKS.jsonl")).toBe(true);
 
-    const blunderExplicit = resolveBlundersPath("/custom/path/blunders.jsonl");
-    expect(blunderExplicit).toBe("/custom/path/blunders.jsonl");
+    const defectExplicit = resolveDefectsPath("/custom/path/defects.jsonl");
+    expect(defectExplicit).toBe("/custom/path/defects.jsonl");
 
-    const blunderResolved = resolveBlundersPath();
-    expect(typeof blunderResolved).toBe("string");
-    expect(blunderResolved.endsWith(".capsules/blunders.jsonl")).toBe(true);
+    const defectResolved = resolveDefectsPath();
+    expect(typeof defectResolved).toBe("string");
+    expect(defectResolved.endsWith(".capsules/defects.jsonl")).toBe(true);
 
     const canonicalTasks = resolveCanonicalCompletedTasksPath("/tmp/test");
     expect(canonicalTasks).toBe("/tmp/test/.capsules/mind/queue/completed-tasks.jsonl");
     const todoTasks = resolveCanonicalCompletedTasksPath("/tmp/test", true);
     expect(todoTasks).toBe("/tmp/test/.capsules/todo/completed-tasks.jsonl");
 
-    const canonicalBlunders = resolveCanonicalBlundersPath("/tmp/test");
-    expect(canonicalBlunders).toBe("/tmp/test/.capsules/mind/queue/blunders.jsonl");
-    const todoBlunders = resolveCanonicalBlundersPath("/tmp/test", true);
-    expect(todoBlunders).toBe("/tmp/test/.capsules/todo/blunders.jsonl");
+    const canonicalDefects = resolveCanonicalDefectsPath("/tmp/test");
+    expect(canonicalDefects).toBe("/tmp/test/.capsules/mind/queue/defects.jsonl");
+    const todoDefects = resolveCanonicalDefectsPath("/tmp/test", true);
+    expect(todoDefects).toBe("/tmp/test/.capsules/todo/defects.jsonl");
 
-    const canonicalCompletedBlunders = resolveCanonicalCompletedBlundersPath("/tmp/test");
-    expect(canonicalCompletedBlunders).toBe(
-      "/tmp/test/.capsules/mind/queue/completed-blunders.jsonl",
+    const canonicalCompletedDefects = resolveCanonicalCompletedDefectsPath("/tmp/test");
+    expect(canonicalCompletedDefects).toBe(
+      "/tmp/test/.capsules/mind/queue/completed-defects.jsonl",
     );
-    const todoCompletedBlunders = resolveCanonicalCompletedBlundersPath("/tmp/test", true);
-    expect(todoCompletedBlunders).toBe("/tmp/test/.capsules/todo/completed-blunders.jsonl");
+    const todoCompletedDefects = resolveCanonicalCompletedDefectsPath("/tmp/test", true);
+    expect(todoCompletedDefects).toBe("/tmp/test/.capsules/todo/completed-defects.jsonl");
 
     const canonicalObs = resolveCanonicalObservationsPath("/tmp/test");
     expect(canonicalObs).toBe("/tmp/test/.capsules/mind/queue/observations.jsonl");
@@ -133,8 +133,8 @@ describe("Completed Tasks Ledger Engine", () => {
     };
 
     const task2: CompletedTaskRecord = {
-      id: "blunder-01",
-      source: "blunder",
+      id: "defect-01",
+      source: "defect",
       title: "Fix Null Pointer in Watchdog",
       status: "RESOLVED",
       proof_summary: "Fixed undefined check in watchdog.ts",
@@ -150,7 +150,7 @@ describe("Completed Tasks Ledger Engine", () => {
     expect(read[0]?.source).toBe("task_queue");
     expect(read[0]?.status).toBe("COMPLETED");
     expect(read[0]?.commit_sha).toBe("abc1234");
-    expect(read[1]?.id).toBe("blunder-01");
+    expect(read[1]?.id).toBe("defect-01");
     expect(read[1]?.status).toBe("RESOLVED");
 
     teardown();
@@ -192,8 +192,8 @@ describe("Completed Tasks Ledger Engine", () => {
   it("validates CompletedTaskRecord and normalizes sources and statuses", () => {
     expect(validateCompletedTaskSource("feedback_queue")).toBe("feedback_queue");
     expect(validateCompletedTaskSource("feedback")).toBe("feedback_queue");
-    expect(validateCompletedTaskSource("blunder")).toBe("blunder");
-    expect(validateCompletedTaskSource("blunders")).toBe("blunder");
+    expect(validateCompletedTaskSource("defect")).toBe("defect");
+    expect(validateCompletedTaskSource("defects")).toBe("defect");
     expect(validateCompletedTaskSource("task_queue")).toBe("task_queue");
     expect(validateCompletedTaskSource("queue")).toBe("task_queue");
     expect(validateCompletedTaskSource("mind_plan")).toBe("mind_plan");
@@ -346,7 +346,7 @@ describe("Completed Tasks Ledger Engine", () => {
       },
       {
         id: "t3",
-        source: "blunder",
+        source: "defect",
         title: "T3",
         status: "RESOLVED",
         proof_summary: "P3",
@@ -366,7 +366,7 @@ describe("Completed Tasks Ledger Engine", () => {
     const stats = getCompletedTasksStats(records);
     expect(stats.total).toBe(4);
     expect(stats.by_source["feedback_queue"]).toBe(2);
-    expect(stats.by_source["blunder"]).toBe(1);
+    expect(stats.by_source["defect"]).toBe(1);
     expect(stats.by_source["direct"]).toBe(1);
     expect(stats.by_category["CLI_TOOLING"]).toBe(2);
     expect(stats.by_category["WATCHDOG"]).toBe(1);
@@ -479,13 +479,13 @@ describe("Completed Tasks Ledger Engine", () => {
     teardown();
   });
 
-  it("seamlessly updates blunders.jsonl when resolving blunder items", () => {
+  it("seamlessly updates defects.jsonl when resolving defect items", () => {
     setup();
 
-    // Prepare initial blunders.jsonl
-    const blunders = [
+    // Prepare initial defects.jsonl
+    const defects = [
       {
-        id: "blunder-99",
+        id: "defect-99",
         type: "failing_test",
         severity: "critical",
         timestamp: "2026-08-22T00:10:00.000Z",
@@ -495,22 +495,22 @@ describe("Completed Tasks Ledger Engine", () => {
         remediation: "Implement completed-tasks module properly",
       },
       {
-        id: "blunder-100",
+        id: "defect-100",
         type: "reasoning_error",
         severity: "warning",
         timestamp: "2026-08-22T00:15:00.000Z",
         category: "model_reasoning_error",
         status: "open",
-        observation: "Other blunder",
+        observation: "Other defect",
         remediation: "Keep open",
       },
     ];
 
-    writeFileSync(blundersFile, blunders.map((b) => JSON.stringify(b)).join("\n") + "\n", "utf8");
+    writeFileSync(defectsFile, defects.map((b) => JSON.stringify(b)).join("\n") + "\n", "utf8");
 
-    const completedBlunder: CompletedTaskRecord = {
-      id: "blunder-99",
-      source: "blunder",
+    const completedDefect: CompletedTaskRecord = {
+      id: "defect-99",
+      source: "defect",
       title: "Fix Completed Tasks Unit Test",
       status: "RESOLVED",
       generation_id: "gen-6",
@@ -522,29 +522,29 @@ describe("Completed Tasks Ledger Engine", () => {
       category: "code_defect",
     };
 
-    recordCompletedTask(completedBlunder, {
+    recordCompletedTask(completedDefect, {
       customPath: ledgerFile,
-      blundersPath: blundersFile,
-      updateBlunders: true,
+      defectsPath: defectsFile,
+      updateDefects: true,
     });
 
     // Check ledger
     const ledger = readCompletedTasksLedger(ledgerFile);
     expect(ledger).toHaveLength(1);
-    expect(ledger[0]?.id).toBe("blunder-99");
+    expect(ledger[0]?.id).toBe("defect-99");
     expect(ledger[0]?.status).toBe("RESOLVED");
 
-    // Check blunders log: resolved blunder-99 is purged from active blunders file
-    const rawBlunders = readFileSync(blundersFile, "utf8");
-    const blunderLines = rawBlunders
+    // Check defects log: resolved defect-99 is purged from active defects file
+    const rawDefects = readFileSync(defectsFile, "utf8");
+    const defectLines = rawDefects
       .trim()
       .split("\n")
       .filter(Boolean)
       .map((l) => JSON.parse(l) as Record<string, unknown>);
-    expect(blunderLines).toHaveLength(1);
+    expect(defectLines).toHaveLength(1);
 
-    const untouchedBlunder100 = blunderLines.find((b) => b["id"] === "blunder-100");
-    expect(untouchedBlunder100?.["status"]).toBe("open");
+    const untouchedDefect100 = defectLines.find((b) => b["id"] === "defect-100");
+    expect(untouchedDefect100?.["status"]).toBe("open");
 
     teardown();
   });
@@ -561,8 +561,8 @@ describe("Completed Tasks Ledger Engine", () => {
         category: "CLI_TOOLING",
       },
       {
-        id: "blunder-02",
-        source: "blunder",
+        id: "defect-02",
+        source: "defect",
         title: "Fix syntax error in scheduler",
         status: "RESOLVED",
         proof_summary: "Fixed syntax",
@@ -574,7 +574,7 @@ describe("Completed Tasks Ledger Engine", () => {
     const brief = formatCompletedTasksBrief(records);
     expect(brief).toContain("### Completed Tasks Ledger");
     expect(brief).toContain("- **Total Completed**: 2");
-    expect(brief).toContain("- **By Source**: feedback_queue: 1, blunder: 1");
+    expect(brief).toContain("- **By Source**: feedback_queue: 1, defect: 1");
     expect(brief).toContain("⚡ Next Actions:");
     expect(brief).toContain("`bun harness.ts mind:wake`");
     expect(brief).toContain("`bun harness.ts queue:list`");

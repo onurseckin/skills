@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { isJsonObject, type JsonObject } from "../contracts/json.ts";
 import { HarnessError } from "../errors/harness-error.ts";
-import { logBoundaryViolationBlunder, type BlunderEntry } from "./blunders.ts";
+import { logBoundaryViolationDefect, type DefectEntry } from "./defects.ts";
 import {
   type DynamicRoleContract,
   type DynamicRoleRegistry,
@@ -1252,7 +1252,7 @@ export interface RoleBoundaryViolation {
   readonly remediation: string;
   readonly action: RoleBoundaryAction;
   readonly timestamp: string;
-  readonly blunderEntry?: BlunderEntry | undefined;
+  readonly defectEntry?: DefectEntry | undefined;
   readonly evidence?: Readonly<Record<string, unknown>> | undefined;
 }
 
@@ -1261,9 +1261,9 @@ export interface RoleBoundaryViolation {
  */
 export interface RoleBoundaryWatchdogOptions {
   readonly strictZeroTolerance?: boolean | undefined;
-  readonly autoLogBlunder?: boolean | undefined;
+  readonly autoLogDefect?: boolean | undefined;
   readonly capsuleRoot?: string | undefined;
-  readonly blunderLogger?: ((violation: RoleBoundaryViolation) => BlunderEntry | void) | undefined;
+  readonly defectLogger?: ((violation: RoleBoundaryViolation) => DefectEntry | void) | undefined;
   readonly onViolation?: ((violation: RoleBoundaryViolation) => void) | undefined;
   readonly allowedTaskTests?: ReadonlyMap<string, readonly string[]> | undefined;
 }
@@ -2052,14 +2052,14 @@ export class RoleBoundaryWatchdog {
   }
 
   private handleViolation(violation: RoleBoundaryViolation): RoleBoundaryViolation {
-    let blunderEntry: BlunderEntry | undefined = undefined;
+    let defectEntry: DefectEntry | undefined = undefined;
 
-    if (this.options.autoLogBlunder) {
-      if (this.options.blunderLogger) {
-        const res = this.options.blunderLogger(violation);
-        if (res) blunderEntry = res;
+    if (this.options.autoLogDefect) {
+      if (this.options.defectLogger) {
+        const res = this.options.defectLogger(violation);
+        if (res) defectEntry = res;
       } else {
-        blunderEntry = logBoundaryViolationBlunder(
+        defectEntry = logBoundaryViolationDefect(
           {
             agent_id: violation.agentId,
             role: violation.role,
@@ -2080,7 +2080,7 @@ export class RoleBoundaryWatchdog {
 
     const completeViolation: RoleBoundaryViolation = {
       ...violation,
-      ...(blunderEntry !== undefined ? { blunderEntry } : {}),
+      ...(defectEntry !== undefined ? { defectEntry } : {}),
     };
 
     this.violations.push(completeViolation);

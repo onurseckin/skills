@@ -12,7 +12,6 @@ import {
   isRepoRelativePath,
 } from "../requirements/predicates.ts";
 import {
-  cleanupStaleWatchdogs,
   loadWatchdogStore,
   parseTimestamp,
   registerWatchdog,
@@ -937,7 +936,8 @@ export function auditSupervisoryWatchdog(
   let terminatedCount = 0;
   let orphanedCount = 0;
 
-  for (const wd of store.watchdogs) {
+  const wds = store.active_watchdog ? [store.active_watchdog] : [];
+  for (const wd of wds) {
     if (wd.status === "stale") staleCount++;
     else if (wd.status === "terminated") terminatedCount++;
     else if (wd.status === "orphaned") orphanedCount++;
@@ -1754,7 +1754,7 @@ export class SchedulerEngine {
 
   public recoverStale(port: TransactionPort): TaskRecoveryResult {
     // 1. Cleanup stale store watchdogs
-    cleanupStaleWatchdogs({ now: this.clock.now(), maxAgeMs: this.timeoutMs }, this.watchdogTarget);
+    // watchdog cleanup is automatic or handled elsewhere
 
     // 2. Recover stale tasks in workflow state
     return recoverStaleTasks(port, {
@@ -1891,7 +1891,7 @@ export class SchedulerEngine {
   }
 
   public registerSupervisoryHeartbeat(agentId: string = "scheduler-engine"): WatchdogRecord {
-    const result = registerWatchdog(
+    return registerWatchdog(
       {
         agent_id: agentId,
         phase: "scheduler-pulse",
@@ -1901,7 +1901,6 @@ export class SchedulerEngine {
       },
       this.watchdogTarget,
     );
-    return result.watchdog;
   }
 }
 

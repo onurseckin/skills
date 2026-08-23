@@ -1,6 +1,6 @@
 export * from "./agent-ops.ts";
 export * from "./authority-ops.ts";
-export * from "./blunder-audit.ts";
+export * from "./defect-audit.ts";
 export * from "./branch-ops.ts";
 export * from "./capture-eval.ts";
 export * from "./capture-init.ts";

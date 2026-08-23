@@ -1,7 +1,7 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { basename, dirname, extname, join, relative, resolve } from "node:path";
 import { HarnessError } from "../errors/harness-error.ts";
-import { auditBlunderLog, type BlunderEntry } from "./blunders.ts";
+import { auditDefectLog, type DefectEntry } from "./defects.ts";
 import { parseCharter, type ParsedCharter } from "./charter.ts";
 import { readFeedbackQueue, type FeedbackItem, type FeedbackPriority } from "./feedback-queue.ts";
 import {
@@ -27,7 +27,7 @@ export type DiscoveryCategory =
   | "DORMANT_CRITERIA"
   | "COGNITIVE_GAP"
   | "FEEDBACK_INTAKE"
-  | "BLUNDER_REMEDIATION"
+  | "DEFECT_REMEDIATION"
   | "ARCHITECTURAL_HEALTH"
   | "CONTINUOUS_HARDENING";
 
@@ -260,7 +260,7 @@ export interface TaskDiscoveryOptions {
   readonly enableDormantCriteriaScan?: boolean | undefined;
   readonly enableArchitecturalHealthScan?: boolean | undefined;
   readonly enableFeedbackQueueScan?: boolean | undefined;
-  readonly enableBlunderScan?: boolean | undefined;
+  readonly enableDefectScan?: boolean | undefined;
   readonly autoEnqueue?: boolean | undefined;
   readonly actor?: string | undefined;
 }
@@ -274,7 +274,7 @@ export interface TaskDiscoveryResult {
     readonly dormantCriteria: readonly DormantCriteriaFinding[];
     readonly architecturalHealth: readonly ArchitecturalHealthFinding[];
     readonly feedbackPending: readonly FeedbackItem[];
-    readonly openBlunders: readonly BlunderEntry[];
+    readonly openDefects: readonly DefectEntry[];
   };
   readonly discoveries: readonly DiscoveryItem[];
   readonly candidateProposals: readonly CandidateEvolutionProposal[];
@@ -288,7 +288,7 @@ export interface TaskDiscoveryResult {
     readonly dormantCriteriaCount: number;
     readonly architecturalHealthCount: number;
     readonly feedbackCount: number;
-    readonly blunderCount: number;
+    readonly defectCount: number;
     readonly synthesizedCount: number;
     readonly enqueuedCount: number;
   };
@@ -1113,7 +1113,7 @@ export function proposeCandidateEvolutions(findings: {
   readonly dormantCriteria?: readonly DormantCriteriaFinding[] | undefined;
   readonly architecturalHealth?: readonly ArchitecturalHealthFinding[] | undefined;
   readonly feedbackPending?: readonly FeedbackItem[] | undefined;
-  readonly openBlunders?: readonly BlunderEntry[] | undefined;
+  readonly openDefects?: readonly DefectEntry[] | undefined;
 }): readonly CandidateEvolutionProposal[] {
   const proposals: CandidateEvolutionProposal[] = [];
 
@@ -1195,26 +1195,26 @@ export function proposeCandidateEvolutions(findings: {
     }
   }
 
-  // 4. Propose from blunders
-  if (findings.openBlunders) {
-    for (const bl of findings.openBlunders) {
+  // 4. Propose from defects
+  if (findings.openDefects) {
+    for (const bl of findings.openDefects) {
       const slug = sanitizeSlug(bl.id);
       proposals.push({
-        id: `cand-evo-blunder-${slug}`,
+        id: `cand-evo-defect-${slug}`,
         kind: "defect",
-        title: `Remediate Blunder: ${bl.observation.slice(0, 50)}`,
+        title: `Remediate Defect: ${bl.observation.slice(0, 50)}`,
         statement: bl.observation,
-        rationale: bl.remediation || "Fix root cause of blunder with regression immunity",
+        rationale: bl.remediation || "Fix root cause of defect with regression immunity",
         targetFiles: ["olt/scripts/src/mind/"],
         writeScope: ["olt/scripts/src/mind/", "tests/unit/mind/"],
         gate: "bun test tests/unit/mind && bun run typecheck",
         charterGoals: ["G2"],
         acceptanceCriteria: [
-          `Resolve open blunder ${bl.id}`,
+          `Resolve open defect ${bl.id}`,
           "Verify regression immunity with automated test",
         ],
         priority: "CRITICAL",
-        sourceType: "blunder_remediation",
+        sourceType: "defect_remediation",
         estimatedEffort: "LARGE",
       });
     }
@@ -1295,7 +1295,7 @@ export function formatTaskDiscoveryBrief(result: TaskDiscoveryResult): string {
     `- **Dormant Criteria**: ${result.stats.dormantCriteriaCount} goal(s)`,
     `- **Architectural Health**: ${result.stats.architecturalHealthCount} finding(s)`,
     `- **Pending Feedback**: ${result.stats.feedbackCount} item(s)`,
-    `- **Open Blunders**: ${result.stats.blunderCount} item(s)`,
+    `- **Open Defects**: ${result.stats.defectCount} item(s)`,
     `- **Synthesized Plans**: ${result.synthesizedPlans.length} task(s)`,
     `- **Auto-Enqueued**: ${result.enqueuedTasks.length} task(s)`,
   ];
@@ -1313,7 +1313,7 @@ export function formatTaskDiscoveryBrief(result: TaskDiscoveryResult): string {
 /**
  * Main Autonomous Mind Task Discovery Engine.
  * Scans all 8 canonical categories: code quality, test coverage, cognitive gaps,
- * dormant criteria, architectural health, pending feedback, blunder logs, and continuous hardening.
+ * dormant criteria, architectural health, pending feedback, defect logs, and continuous hardening.
  * Auto-synthesizes actionable, anti-batched self-evolution tasks for idle Mind loops with deduplication.
  */
 export function discoverTasks(options: TaskDiscoveryOptions = {}): TaskDiscoveryResult {
@@ -1386,12 +1386,12 @@ export function discoverTasks(options: TaskDiscoveryOptions = {}): TaskDiscovery
       ? readFeedbackQueue(options.feedbackQueuePath).filter((f) => f.status === "PENDING")
       : [];
 
-  // Step 7: Scan Open Blunders
-  const openBlunders =
-    options.enableBlunderScan !== false
-      ? auditBlunderLog(
-          options.capsulesDir ? [options.capsulesDir] : [".capsules/"],
-        ).blunders.filter((b) => b.status === "open")
+  // Step 7: Scan Open Defects
+  const openDefects =
+    options.enableDefectScan !== false
+      ? auditDefectLog(options.capsulesDir ? [options.capsulesDir] : [".capsules/"]).defects.filter(
+          (b) => b.status === "open",
+        )
       : [];
 
   const rawDiscoveries: DiscoveryItem[] = [];
@@ -1431,14 +1431,14 @@ export function discoverTasks(options: TaskDiscoveryOptions = {}): TaskDiscovery
     });
   }
 
-  // Transform Open Blunders into Discoveries
-  for (const bl of openBlunders) {
+  // Transform Open Defects into Discoveries
+  for (const bl of openDefects) {
     const slug = sanitizeSlug(bl.id);
     const scope = ["olt/scripts/src/mind/", "tests/unit/mind/"];
     addDiscovery({
-      id: `blunder-${slug}`,
-      category: "BLUNDER_REMEDIATION",
-      title: `Remediate Blunder: ${bl.observation.slice(0, 50)}`,
+      id: `defect-${slug}`,
+      category: "DEFECT_REMEDIATION",
+      title: `Remediate Defect: ${bl.observation.slice(0, 50)}`,
       description: bl.observation,
       priority: "CRITICAL",
       targetFiles: scope,
@@ -1446,13 +1446,13 @@ export function discoverTasks(options: TaskDiscoveryOptions = {}): TaskDiscovery
       gate: "bun test tests/unit/mind && bun run typecheck",
       charterGoals: ["G2"],
       acceptanceCriteria: [
-        `Resolve open blunder ${bl.id}: ${bl.observation.slice(0, 80)}`,
+        `Resolve open defect ${bl.id}: ${bl.observation.slice(0, 80)}`,
         "Verify regression immunity with unit tests",
       ],
-      remediation: bl.remediation || bl.prescribed_remediation || "Fix root cause of blunder",
-      sourceType: "blunder_remediation",
+      remediation: bl.remediation || bl.prescribed_remediation || "Fix root cause of defect",
+      sourceType: "defect_remediation",
       sourceReference: bl.id,
-      metadata: { blunder_id: bl.id, category: bl.category },
+      metadata: { defect_id: bl.id, category: bl.category },
     });
   }
 
@@ -1605,7 +1605,7 @@ export function discoverTasks(options: TaskDiscoveryOptions = {}): TaskDiscovery
     dormantCriteria: dormantCriteriaResult.findings,
     architecturalHealth: architecturalHealthResult.findings,
     feedbackPending: pendingFeedback,
-    openBlunders,
+    openDefects,
   });
 
   // Deduplicate and synthesize plans against existing queue
@@ -1685,9 +1685,9 @@ export function discoverTasks(options: TaskDiscoveryOptions = {}): TaskDiscovery
     dormantCriteriaResult.dormantCount +
     architecturalHealthResult.totalFindings +
     pendingFeedback.length +
-    openBlunders.length;
+    openDefects.length;
 
-  const summary = `Mind Task Discovery: identified ${totalFindings} finding(s) across code quality (${codeQualityResult.totalFindings}), test coverage (${testCoverageResult.missingTestCount} missing), cognitive gaps (${cognitiveGapResult.totalFindings}), dormant criteria (${dormantCriteriaResult.dormantCount}), architectural health (${architecturalHealthResult.totalFindings}), feedback (${pendingFeedback.length}), and blunders (${openBlunders.length}). Synthesized ${synthesizedPlans.length} actionable task(s).`;
+  const summary = `Mind Task Discovery: identified ${totalFindings} finding(s) across code quality (${codeQualityResult.totalFindings}), test coverage (${testCoverageResult.missingTestCount} missing), cognitive gaps (${cognitiveGapResult.totalFindings}), dormant criteria (${dormantCriteriaResult.dormantCount}), architectural health (${architecturalHealthResult.totalFindings}), feedback (${pendingFeedback.length}), and defects (${openDefects.length}). Synthesized ${synthesizedPlans.length} actionable task(s).`;
 
   return {
     scannedAt: nowIso,
@@ -1698,7 +1698,7 @@ export function discoverTasks(options: TaskDiscoveryOptions = {}): TaskDiscovery
       dormantCriteria: dormantCriteriaResult.findings,
       architecturalHealth: architecturalHealthResult.findings,
       feedbackPending: pendingFeedback,
-      openBlunders,
+      openDefects,
     },
     discoveries: rawDiscoveries,
     candidateProposals,
@@ -1712,7 +1712,7 @@ export function discoverTasks(options: TaskDiscoveryOptions = {}): TaskDiscovery
       dormantCriteriaCount: dormantCriteriaResult.dormantCount,
       architecturalHealthCount: architecturalHealthResult.totalFindings,
       feedbackCount: pendingFeedback.length,
-      blunderCount: openBlunders.length,
+      defectCount: openDefects.length,
       synthesizedCount: synthesizedPlans.length,
       enqueuedCount: enqueuedTasks.length,
     },

@@ -14,7 +14,7 @@ import {
   type FeedbackPriority,
   type FeedbackStatus,
 } from "./feedback-queue.ts";
-import { auditBlunderLog } from "./blunders.ts";
+import { auditDefectLog } from "./defects.ts";
 import {
   enqueueTasksBatch,
   getQueueStats,
@@ -47,7 +47,7 @@ import {
 } from "./briefing-builder.ts";
 import {
   ARTIFICIAL_SERIALIZATION_WARNING,
-  FALSE_SERIALIZATION_BLUNDER,
+  FALSE_SERIALIZATION_DEFECT,
   FAST_PATH_TASK_COUNT,
   MAX_LANES_PER_COORDINATOR,
   type AntiSerializationInterlockResult,
@@ -80,7 +80,7 @@ import {
 
 export type { AnchorSymbolKind };
 export {
-  FALSE_SERIALIZATION_BLUNDER,
+  FALSE_SERIALIZATION_DEFECT,
   FAST_PATH_TASK_COUNT,
   MAX_LANES_PER_COORDINATOR,
   type AntiSerializationInterlockResult,
@@ -103,7 +103,7 @@ export {
 export type SmartTaskSourceType =
   | "feedback_intake"
   | "self_evolution"
-  | "blunder_remediation"
+  | "defect_remediation"
   | "direct_prompt"
   | "external_intake"
   | "plan_enhancement";
@@ -189,13 +189,11 @@ export interface CognitiveMemoryState {
 }
 
 export const CANONICAL_COGNITIVE_MEMORY_FILE = ".capsules/mind/memory.json";
-export const TODO_COGNITIVE_MEMORY_FILE = ".capsules/todo/memory.json";
-export const LEGACY_COGNITIVE_MEMORY_FILE = ".capsules/memory.json";
 export const DEFAULT_COGNITIVE_MEMORY_FILE = ".capsules/mind/memory.json";
 
 export function resolveCanonicalCognitiveMemoryPath(customRoot?: string, useTodo = false): string {
   const root = customRoot && customRoot.trim() ? resolve(customRoot.trim()) : process.cwd();
-  const relPath = useTodo ? TODO_COGNITIVE_MEMORY_FILE : CANONICAL_COGNITIVE_MEMORY_FILE;
+  const relPath = CANONICAL_COGNITIVE_MEMORY_FILE;
   return join(root, relPath);
 }
 
@@ -209,12 +207,6 @@ export function resolveCognitiveMemoryPath(customPath?: string): string {
   for (const root of candidates) {
     const canonical = join(root, CANONICAL_COGNITIVE_MEMORY_FILE);
     if (existsSync(canonical)) return canonical;
-
-    const todo = join(root, TODO_COGNITIVE_MEMORY_FILE);
-    if (existsSync(todo)) return todo;
-
-    const legacy = join(root, LEGACY_COGNITIVE_MEMORY_FILE);
-    if (existsSync(legacy)) return legacy;
   }
 
   if (existsSync(join(cwd, ".capsules", "mind"))) {
@@ -1869,7 +1861,7 @@ export function synthesizeSmartTasksFromFeedbackQueue(
 }
 
 /**
- * Synthesizes self-evolution smart tasks from open blunder logs, charter gap analysis,
+ * Synthesizes self-evolution smart tasks from open defect logs, charter gap analysis,
  * Brent's theorem Work/Span (P = W/S) optimizations, and continuous invariant hardening (Mode A).
  */
 export function synthesizeSmartTasksFromSelfEvolution(
@@ -1884,44 +1876,44 @@ export function synthesizeSmartTasksFromSelfEvolution(
 ): SmartTaskSynthesisResult {
   const maxTasks = options.maxTasks ?? 5;
   const targetRoots = options.capsulesDir ? [options.capsulesDir] : [".capsules/"];
-  const blunderAudit = auditBlunderLog(targetRoots);
-  const openBlunders = blunderAudit.blunders.filter((b) => b.status === "open");
+  const defectAudit = auditDefectLog(targetRoots);
+  const openDefects = defectAudit.defects.filter((b) => b.status === "open");
 
   const selfTasks: SmartTaskPlan[] = [];
 
-  // 1. Open blunder remediation
-  if (openBlunders.length > 0) {
-    const blunder = openBlunders[0]!;
-    const blunderSlug = sanitizeSlug(blunder.id);
-    const blunderScope = deriveWriteScopeForCategory("CORE_ENGINE", blunder.id);
-    const blunderGate = deriveGateForCategory("CORE_ENGINE", blunderScope);
+  // 1. Open defect remediation
+  if (openDefects.length > 0) {
+    const defect = openDefects[0]!;
+    const defectSlug = sanitizeSlug(defect.id);
+    const defectScope = deriveWriteScopeForCategory("CORE_ENGINE", defect.id);
+    const defectGate = deriveGateForCategory("CORE_ENGINE", defectScope);
 
     selfTasks.push({
-      id: `task-1-blunder-${blunderSlug}`,
-      label: `Automated Blunder Remediation (${blunder.category})`,
-      write_scope: blunderScope,
-      gate: blunderGate,
+      id: `task-1-defect-${defectSlug}`,
+      label: `Automated Defect Remediation (${defect.category})`,
+      write_scope: defectScope,
+      gate: defectGate,
       charter_goals:
         options.charterGoals && options.charterGoals.length > 0
           ? [options.charterGoals[0]!]
           : ["G2"],
       acceptance_criteria: [
-        `Remediate open blunder ${blunder.id}: ${blunder.observation.slice(0, 100)}`,
-        `Pass gate: ${blunderGate}`,
+        `Remediate open defect ${defect.id}: ${defect.observation.slice(0, 100)}`,
+        `Pass gate: ${defectGate}`,
         "Verify regression immunity in unit test suite",
       ],
       dependencies: [],
-      source_type: "blunder_remediation",
+      source_type: "defect_remediation",
       priority: "CRITICAL",
-      rationale: `Autonomous remediation for open blunder ${blunder.id}: ${blunder.observation}`,
+      rationale: `Autonomous remediation for open defect ${defect.id}: ${defect.observation}`,
       assigned_tier: "Tier_3_Implementer",
-      assigned_implementer: `implementer-blunder-${blunderSlug}`,
-      assigned_validator: `validator-blunder-${blunderSlug}`,
-      candidate_id: blunder.id,
+      assigned_implementer: `implementer-defect-${defectSlug}`,
+      assigned_validator: `validator-defect-${defectSlug}`,
+      candidate_id: defect.id,
       metadata: {
-        candidate_id: blunder.id,
-        assigned_implementer: `implementer-blunder-${blunderSlug}`,
-        assigned_validator: `validator-blunder-${blunderSlug}`,
+        candidate_id: defect.id,
+        assigned_implementer: `implementer-defect-${defectSlug}`,
+        assigned_validator: `validator-defect-${defectSlug}`,
       },
     });
   }
@@ -1994,21 +1986,21 @@ export function synthesizeSmartTasksFromSelfEvolution(
     },
   });
 
-  // 4. Historical Blunder Regression & Brent's Theorem Work/Span (P = W/S) Optimization
+  // 4. Historical Defect Regression & Brent's Theorem Work/Span (P = W/S) Optimization
   const brentOptimizationScope = [
     "olt/scripts/src/mind/strategic-purpose.ts",
     "tests/unit/mind/strategic-purpose.test.ts",
   ];
   selfTasks.push({
     id: `task-${selfTasks.length + 1}-brent-work-span-optimization`,
-    label: "Macro DAG Work/Span (P = W/S) Optimization & Historical Blunder Regression Immunity",
+    label: "Macro DAG Work/Span (P = W/S) Optimization & Historical Defect Regression Immunity",
     write_scope: brentOptimizationScope,
     gate: "bun test tests/unit/mind/strategic-purpose.test.ts && bun run typecheck",
     charter_goals:
       options.charterGoals && options.charterGoals.length > 0 ? [options.charterGoals[0]!] : ["G2"],
     acceptance_criteria: [
       "Optimize Work/Span parallelism P = W/S across topological DAG waves",
-      "Verify historical blunder regression immunity across test suites",
+      "Verify historical defect regression immunity across test suites",
     ],
     dependencies: selfTasks
       .filter((prev) => detectScopeOverlap(brentOptimizationScope, prev.write_scope).length > 0)
@@ -2124,7 +2116,7 @@ export function synthesizeSmartTasksFromSelfEvolution(
     mode: "self_evolution",
     tasks: selectedSelfTasks,
     summary: `Autonomous self-evolution synthesized ${selectedSelfTasks.length} isolated task(s) on empty queue with 1:1 implementer-validator mapping.`,
-    source_items_count: openBlunders.length,
+    source_items_count: openDefects.length,
     anti_batching_enforced: true,
     hierarchy_scaling: hierarchyScaling,
     fast_path_compaction: hierarchyScaling.fastPath,

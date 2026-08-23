@@ -192,7 +192,7 @@ describe("task:claim / task:heartbeat / task:submit", () => {
     expect((validation.task as { status: string }).status).toBe("validating");
   });
 
-  test("task:claim rejects orchestrator and logs blunder to capsule directory", async () => {
+  test("task:claim rejects orchestrator and logs defect to capsule directory", async () => {
     const { run } = await setupRun("claim-orch-confinement", roots);
     try {
       await execute([
@@ -215,15 +215,15 @@ describe("task:claim / task:heartbeat / task:submit", () => {
       );
     }
 
-    const blundersFile = `${run}/blunders.jsonl`;
-    const blundersExist = await Bun.file(blundersFile).exists();
-    expect(blundersExist).toBeTrue();
-    const contents = await Bun.file(blundersFile).text();
+    const defectsFile = `${run}/defects.jsonl`;
+    const defectsExist = await Bun.file(defectsFile).exists();
+    expect(defectsExist).toBeTrue();
+    const contents = await Bun.file(defectsFile).text();
     expect(contents).toContain("role_confinement_violation");
     expect(contents).toContain("orch-lead");
   });
 
-  test("task:claim rejects coordinator and logs blunder to capsule directory", async () => {
+  test("task:claim rejects coordinator and logs defect to capsule directory", async () => {
     const { run } = await setupRun("claim-coord-confinement", roots);
     try {
       await execute([
@@ -246,10 +246,10 @@ describe("task:claim / task:heartbeat / task:submit", () => {
       );
     }
 
-    const blundersFile = `${run}/blunders.jsonl`;
-    const blundersExist = await Bun.file(blundersFile).exists();
-    expect(blundersExist).toBeTrue();
-    const contents = await Bun.file(blundersFile).text();
+    const defectsFile = `${run}/defects.jsonl`;
+    const defectsExist = await Bun.file(defectsFile).exists();
+    expect(defectsExist).toBeTrue();
+    const contents = await Bun.file(defectsFile).text();
     expect(contents).toContain("role_confinement_violation");
     expect(contents).toContain("coord-dispatcher");
   });

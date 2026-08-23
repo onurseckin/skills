@@ -11,7 +11,7 @@ import {
   renderDynamicRolesAsciiTable,
   resetGlobalRoleRegistry,
   synthesizeDynamicRole,
-  synthesizeRoleFromBlunderRemediation,
+  synthesizeRoleFromDefectRemediation,
   synthesizeRoleFromTaskRequirements,
   validateDynamicRoleSpec,
   type DynamicRoleContract,
@@ -428,25 +428,25 @@ Prose summary
     });
   });
 
-  describe("Blunder Remediation Role Synthesis (synthesizeRoleFromBlunderRemediation)", () => {
-    it("synthesizes specialized blunder remediator with root-cause defense pillars", () => {
-      const role = synthesizeRoleFromBlunderRemediation({
-        blunderId: "blunder-scope-leak-042",
-        blunderType: "WRITE_SCOPE_LEAK",
+  describe("Defect Remediation Role Synthesis (synthesizeRoleFromDefectRemediation)", () => {
+    it("synthesizes specialized defect remediator with root-cause defense pillars", () => {
+      const role = synthesizeRoleFromDefectRemediation({
+        defectId: "defect-scope-leak-042",
+        defectType: "WRITE_SCOPE_LEAK",
         rootCause: "Unchecked file write outside lease boundary",
         affectedScope: ["src/core/runner.ts"],
         correctiveAction: "Enforce strictly checked file paths in wrapper",
         requiredInvariants: ["Pre-write path containment check"],
       });
 
-      expect(role.role).toContain("remediator-blunder-blunder-scope-leak-042");
+      expect(role.role).toContain("remediator-defect-defect-scope-leak-042");
       expect(role.tier).toBe(3);
-      expect(role.domain).toBe("blunder-investigation");
+      expect(role.domain).toBe("defect-investigation");
       expect(role.cognitivePillars.some((p) => p.includes("WRITE_SCOPE_LEAK"))).toBe(true);
       expect(role.cognitivePillars.some((p) => p.includes("Unchecked file write"))).toBe(true);
-      expect(
-        role.must_not.some((m) => m.includes("Re-introduce identical blunder signature")),
-      ).toBe(true);
+      expect(role.must_not.some((m) => m.includes("Re-introduce identical defect signature"))).toBe(
+        true,
+      );
     });
   });
 

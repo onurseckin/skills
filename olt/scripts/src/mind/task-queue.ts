@@ -53,7 +53,7 @@ export type TaskSourceType =
   | "external_intake"
   | "feedback_intake"
   | "self_evolution"
-  | "blunder_remediation"
+  | "defect_remediation"
   | "direct_prompt"
   | "plan_enhancement";
 
@@ -127,8 +127,6 @@ export interface TaskQueueStats {
   readonly expired_leases: number;
 }
 
-export const LEGACY_TASK_QUEUE_FILE = ".capsules/TASK_QUEUE.jsonl";
-export const LEGACY_LOWER_TASK_QUEUE_FILE = ".capsules/task-queue.jsonl";
 export const DEFAULT_TASK_QUEUE_FILE = ".capsules/TASK_QUEUE.jsonl";
 
 const DEFAULT_LEASE_DURATION_SECONDS = 1800; // 30 minutes
@@ -1408,7 +1406,7 @@ function validateSourceType(val: unknown): TaskSourceType {
       val === "external_intake" ||
       val === "feedback_intake" ||
       val === "self_evolution" ||
-      val === "blunder_remediation" ||
+      val === "defect_remediation" ||
       val === "direct_prompt" ||
       val === "plan_enhancement"
     ) {

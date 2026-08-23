@@ -9,7 +9,7 @@ import {
 } from "../../../olt/scripts/src/mind/feedback-queue.ts";
 import {
   ingestPushbacks,
-  mapFeedbackCategoryToBlunderCategory,
+  mapFeedbackCategoryToDefectCategory,
   parsePushbackMarkdown,
   resolvePushbackMarkdownPath,
   type PushbackAuditReport,
@@ -60,31 +60,31 @@ describe("Diagnostics Pushback Ingestion Engine", () => {
       }
     });
 
-    test("maps feedback queue categories to canonical blunder categories", () => {
+    test("maps feedback queue categories to canonical defect categories", () => {
       // Boundary violations
-      expect(mapFeedbackCategoryToBlunderCategory("AGENT_CONTRACTS")).toBe("boundary_violation");
-      expect(mapFeedbackCategoryToBlunderCategory("WATCHDOG")).toBe("boundary_violation");
-      expect(mapFeedbackCategoryToBlunderCategory("EXECUTION_EFFICIENCY")).toBe(
+      expect(mapFeedbackCategoryToDefectCategory("AGENT_CONTRACTS")).toBe("boundary_violation");
+      expect(mapFeedbackCategoryToDefectCategory("WATCHDOG")).toBe("boundary_violation");
+      expect(mapFeedbackCategoryToDefectCategory("EXECUTION_EFFICIENCY")).toBe(
         "boundary_violation",
       );
-      expect(mapFeedbackCategoryToBlunderCategory("ROLE_CONFUSION")).toBe("boundary_violation");
-      expect(mapFeedbackCategoryToBlunderCategory("boundary_confinement")).toBe(
+      expect(mapFeedbackCategoryToDefectCategory("ROLE_CONFUSION")).toBe("boundary_violation");
+      expect(mapFeedbackCategoryToDefectCategory("boundary_confinement")).toBe(
         "boundary_violation",
       );
 
       // Model reasoning errors
-      expect(mapFeedbackCategoryToBlunderCategory("DOCUMENTATION")).toBe("model_reasoning_error");
-      expect(mapFeedbackCategoryToBlunderCategory("GENERAL")).toBe("model_reasoning_error");
-      expect(mapFeedbackCategoryToBlunderCategory("ARCHITECTURE")).toBe("model_reasoning_error");
-      expect(mapFeedbackCategoryToBlunderCategory("plan_revision")).toBe("model_reasoning_error");
+      expect(mapFeedbackCategoryToDefectCategory("DOCUMENTATION")).toBe("model_reasoning_error");
+      expect(mapFeedbackCategoryToDefectCategory("GENERAL")).toBe("model_reasoning_error");
+      expect(mapFeedbackCategoryToDefectCategory("ARCHITECTURE")).toBe("model_reasoning_error");
+      expect(mapFeedbackCategoryToDefectCategory("plan_revision")).toBe("model_reasoning_error");
 
       // Code defects
-      expect(mapFeedbackCategoryToBlunderCategory("CLI_TOOLING")).toBe("code_defect");
-      expect(mapFeedbackCategoryToBlunderCategory("CORE_ENGINE")).toBe("code_defect");
-      expect(mapFeedbackCategoryToBlunderCategory("REPAIR")).toBe("code_defect");
-      expect(mapFeedbackCategoryToBlunderCategory("SCALING")).toBe("code_defect");
-      expect(mapFeedbackCategoryToBlunderCategory("CORE_SCHEDULER")).toBe("code_defect");
-      expect(mapFeedbackCategoryToBlunderCategory("VALIDATION_ENGINE")).toBe("code_defect");
+      expect(mapFeedbackCategoryToDefectCategory("CLI_TOOLING")).toBe("code_defect");
+      expect(mapFeedbackCategoryToDefectCategory("CORE_ENGINE")).toBe("code_defect");
+      expect(mapFeedbackCategoryToDefectCategory("REPAIR")).toBe("code_defect");
+      expect(mapFeedbackCategoryToDefectCategory("SCALING")).toBe("code_defect");
+      expect(mapFeedbackCategoryToDefectCategory("CORE_SCHEDULER")).toBe("code_defect");
+      expect(mapFeedbackCategoryToDefectCategory("VALIDATION_ENGINE")).toBe("code_defect");
     });
   });
 

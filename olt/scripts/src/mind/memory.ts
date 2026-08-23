@@ -3,11 +3,11 @@ import { basename, join, resolve } from "node:path";
 import { enforceLineLimit } from "../cli/formatters/line-limiter.ts";
 import { HarnessError } from "../errors/harness-error.ts";
 
-export type MemoryKind = "capsule" | "blunder" | "decision" | "charter" | "report";
+export type MemoryKind = "capsule" | "defect" | "decision" | "charter" | "report";
 
 export const MEMORY_KINDS: readonly MemoryKind[] = [
   "capsule",
-  "blunder",
+  "defect",
   "decision",
   "charter",
   "report",
@@ -832,15 +832,15 @@ export function indexCharterDocuments(repoRoot: string): MemoryDocument[] {
 }
 
 /**
- * Indexes blunders from blunders.jsonl files across capsules and root directories.
+ * Indexes defects from defects.jsonl files across capsules and root directories.
  */
-export function indexBlunderDocuments(capsulesDir: string, explicitRun?: string): MemoryDocument[] {
+export function indexDefectDocuments(capsulesDir: string, explicitRun?: string): MemoryDocument[] {
   const documents: MemoryDocument[] = [];
   const filesToScan: Array<{ capsule: string; filePath: string }> = [];
 
-  const rootBlunders = join(capsulesDir, "blunders.jsonl");
-  if (existsSync(rootBlunders)) {
-    filesToScan.push({ capsule: "capsules-root", filePath: rootBlunders });
+  const rootDefects = join(capsulesDir, "defects.jsonl");
+  if (existsSync(rootDefects)) {
+    filesToScan.push({ capsule: "capsules-root", filePath: rootDefects });
   }
 
   if (existsSync(capsulesDir)) {
@@ -849,9 +849,9 @@ export function indexBlunderDocuments(capsulesDir: string, explicitRun?: string)
       for (let i = 0; i < entries.length; i += 1) {
         const entry = entries[i];
         if (entry !== undefined && entry.isDirectory()) {
-          const blunderPath = join(capsulesDir, entry.name, "blunders.jsonl");
-          if (existsSync(blunderPath)) {
-            filesToScan.push({ capsule: entry.name, filePath: blunderPath });
+          const defectPath = join(capsulesDir, entry.name, "defects.jsonl");
+          if (existsSync(defectPath)) {
+            filesToScan.push({ capsule: entry.name, filePath: defectPath });
           }
         }
       }
@@ -861,9 +861,9 @@ export function indexBlunderDocuments(capsulesDir: string, explicitRun?: string)
   }
 
   if (explicitRun !== undefined) {
-    const explicitBlunders = join(resolve(explicitRun), "blunders.jsonl");
-    if (existsSync(explicitBlunders)) {
-      filesToScan.push({ capsule: basename(resolve(explicitRun)), filePath: explicitBlunders });
+    const explicitDefects = join(resolve(explicitRun), "defects.jsonl");
+    if (existsSync(explicitDefects)) {
+      filesToScan.push({ capsule: basename(resolve(explicitRun)), filePath: explicitDefects });
     }
   }
 
@@ -896,7 +896,7 @@ export function indexBlunderDocuments(capsulesDir: string, explicitRun?: string)
                 : [];
 
             const tags = normalizeTags([
-              "blunder",
+              "defect",
               severity,
               status,
               category,
@@ -910,9 +910,9 @@ export function indexBlunderDocuments(capsulesDir: string, explicitRun?: string)
 
             documents.push(
               createMemoryDocument({
-                id: `blunder-${parsed.id}`,
-                kind: "blunder",
-                title: `Blunder [${parsed.id}]: ${parsed.type}`,
+                id: `defect-${parsed.id}`,
+                kind: "defect",
+                title: `Defect [${parsed.id}]: ${parsed.type}`,
                 capsule_id: item.capsule !== "capsules-root" ? item.capsule : null,
                 generation: gen,
                 tags,
@@ -920,7 +920,7 @@ export function indexBlunderDocuments(capsulesDir: string, explicitRun?: string)
                 content: searchableContent,
                 snippet,
                 metadata: {
-                  blunder_id: parsed.id,
+                  defect_id: parsed.id,
                   type: parsed.type,
                   severity,
                   status,
@@ -1489,7 +1489,7 @@ export function indexArchivedObjectiveDocuments(
 }
 
 /**
- * Indexes all memory artifacts (charter, blunders, capsules, decisions, reports, archived objectives) into an integrated MemoryIndex.
+ * Indexes all memory artifacts (charter, defects, capsules, decisions, reports, archived objectives) into an integrated MemoryIndex.
  */
 export function indexAllMemory(options: IndexMemoryOptions = {}): MemoryIndex {
   const repoRoot = options.repoRoot !== undefined ? resolve(options.repoRoot) : process.cwd();
@@ -1498,7 +1498,7 @@ export function indexAllMemory(options: IndexMemoryOptions = {}): MemoryIndex {
   const runRoot = options.runRoot !== undefined ? resolve(options.runRoot) : undefined;
 
   const charterDocs = indexCharterDocuments(repoRoot);
-  const blunderDocs = indexBlunderDocuments(capsulesDir, runRoot);
+  const defectDocs = indexDefectDocuments(capsulesDir, runRoot);
   const capsuleDocs = indexCapsuleDocuments(capsulesDir, runRoot);
   const decisionDocs = indexDecisionDocuments(capsulesDir, runRoot);
   const reportDocs = indexReportDocuments(capsulesDir, runRoot);
@@ -1506,7 +1506,7 @@ export function indexAllMemory(options: IndexMemoryOptions = {}): MemoryIndex {
 
   const documentMap = new Map<string, MemoryDocument>();
 
-  const allLists = [charterDocs, blunderDocs, capsuleDocs, decisionDocs, reportDocs, archivedDocs];
+  const allLists = [charterDocs, defectDocs, capsuleDocs, decisionDocs, reportDocs, archivedDocs];
   for (let i = 0; i < allLists.length; i += 1) {
     const list = allLists[i];
     if (list === undefined) continue;

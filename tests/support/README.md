@@ -81,7 +81,7 @@ process — see that file's own top comment for why.
    `scratchRoot(import.meta.path, "label")`, where `label` is a short, descriptive tag for _that
    call site_ — usually a shortened version of the test's own name. It does not need to be unique
    across the whole file; the call counter already guarantees that. Give it a real label anyway —
-   it becomes the directory name under `.tmp/test-scratch/`, and a descriptive one is what makes
+   it becomes the directory name under `os.tmpdir()/olt-test-scratch/`, and a descriptive one is what makes
    that directory useful when you're staring at a failure.
 3. Delete the file's own `roots`/`tempDirs` array and its `afterEach`/`afterAll` cleanup loop.
    scratchRoot() owns teardown now.
