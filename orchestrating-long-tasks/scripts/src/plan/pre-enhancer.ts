@@ -504,7 +504,7 @@ export function compileAgpCounterfactualProbes(
     targetFile,
     probeCategory: "fallback_injection",
     originalBehaviorDescription: "Explicit parameter validation checks throwing on undefined or null input values",
-    counterfactualMutation: "Replace explicit validation with `const val = input ?? 'default_fallback';`",
+    counterfactualMutation: "Replace explicit validation with invalid fallback injection",
     expectedGateOutcome: "failure",
     expectedFailurePattern: "fallback operator detected or boundary test failure",
     remediationGuidance: "Remove fallback operator and restore explicit validation guard",
