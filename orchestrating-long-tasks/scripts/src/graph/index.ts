@@ -1,6 +1,13 @@
 export * from "./topology.ts";
 export * from "./dag-forensics.ts";
 export * from "./parallel-decoupler.ts";
+export {
+  type ArtificialSerializationWarning,
+  type ParallelLaneAssignment,
+  allocateParallelLanes,
+  describeCycle,
+  detectArtificialSerialization,
+} from "./topology.ts";
 export * from "./scope-analyzer.ts";
 export * from "./scope-expansion.ts";
 export * from "./dag-expansion.ts";

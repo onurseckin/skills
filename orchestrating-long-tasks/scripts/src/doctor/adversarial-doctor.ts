@@ -1,3 +1,4 @@
+import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { basename, resolve } from "node:path";
 import { MINIMUM_BUN_VERSION } from "../config/constants.ts";
@@ -355,18 +356,22 @@ export async function runAdversarialCounterfactualCheck(
 
     if (Array.isArray(options.testCommand) && options.testCommand.length > 0) {
       try {
-        const proc = Bun.spawnSync([...options.testCommand], {
+        const cmd = options.testCommand[0];
+        const args = options.testCommand.slice(1);
+        if (!cmd) {
+          return { success: false, output: "Empty test command", exitCode: 1 };
+        }
+        const proc = spawnSync(cmd, args, {
           cwd,
-          stdout: "pipe",
-          stderr: "pipe",
+          encoding: "utf-8",
         });
-        const stdoutText = proc.stdout ? new TextDecoder().decode(proc.stdout) : "";
-        const stderrText = proc.stderr ? new TextDecoder().decode(proc.stderr) : "";
+        const stdoutText = proc.stdout ? String(proc.stdout) : "";
+        const stderrText = proc.stderr ? String(proc.stderr) : "";
         const combinedOutput = `${stdoutText}\n${stderrText}`.trim();
         return {
-          success: proc.exitCode === 0,
+          success: proc.status === 0,
           output: combinedOutput,
-          exitCode: proc.exitCode,
+          exitCode: proc.status ?? (proc.error ? 1 : 0),
         };
       } catch (err: unknown) {
         return {
@@ -380,18 +385,17 @@ export async function runAdversarialCounterfactualCheck(
     // Default test execution: if file is a test file, run bun test
     if (path.endsWith(".test.ts") || path.endsWith(".spec.ts")) {
       try {
-        const proc = Bun.spawnSync(["bun", "test", path], {
+        const proc = spawnSync("bun", ["test", path], {
           cwd,
-          stdout: "pipe",
-          stderr: "pipe",
+          encoding: "utf-8",
         });
-        const stdoutText = proc.stdout ? new TextDecoder().decode(proc.stdout) : "";
-        const stderrText = proc.stderr ? new TextDecoder().decode(proc.stderr) : "";
+        const stdoutText = proc.stdout ? String(proc.stdout) : "";
+        const stderrText = proc.stderr ? String(proc.stderr) : "";
         const combinedOutput = `${stdoutText}\n${stderrText}`.trim();
         return {
-          success: proc.exitCode === 0,
+          success: proc.status === 0,
           output: combinedOutput,
-          exitCode: proc.exitCode,
+          exitCode: proc.status ?? (proc.error ? 1 : 0),
         };
       } catch (err: unknown) {
         return {
@@ -448,7 +452,7 @@ export async function runAdversarialCounterfactualCheck(
       options.mutationKind !== undefined ? options.mutationKind : "syntax_error";
     const mutResult = mutateWriteScopeForCounterfactual(resolvedPath, {
       kind: mutationKind,
-      customMutator: options.customMutator,
+      ...(options.customMutator !== undefined ? { customMutator: options.customMutator } : {}),
     });
     mutation = mutResult.mutation;
     revertFn = mutResult.revert;
@@ -761,7 +765,9 @@ export async function certifyHarnessDoctor(
           options.mutationKind !== undefined ? options.mutationKind : "syntax_error";
         const check = await runAdversarialCounterfactualCheck(scopePath, {
           mutationKind,
-          testRunner: options.adversarialTestRunner,
+          ...(options.adversarialTestRunner !== undefined
+            ? { testRunner: options.adversarialTestRunner }
+            : {}),
         });
         adversarialChecks.push(check);
       }

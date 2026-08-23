@@ -346,7 +346,7 @@ export function assertNoBoundaryLeak(checks: readonly BoundaryLeakCheck[] | Boun
       violation_type: v.violation_type,
       agent_id: v.agent_id,
       role: v.role,
-      task_id: v.task_id,
+      task_id: v.task_id ?? null,
       observation: v.observation,
       remediation: v.remediation,
     }));
