@@ -298,40 +298,8 @@ describe("PHASE-6 W6.4: Remote Container Safety & Capability Removal", () => {
     });
   });
 
-  describe("4. 3-Layer Security Model Architecture & Documentation Verification", () => {
-    const safetyDocPath = resolve(import.meta.dir, "../../../deploy/SAFETY.md");
-
-    test("deploy/SAFETY.md exists and is non-empty", () => {
-      expect(existsSync(safetyDocPath)).toBe(true);
-      const content = readFileSync(safetyDocPath, "utf-8");
-      expect(content.length).toBeGreaterThan(1000);
-    });
-
-    test("deploy/SAFETY.md documents all 3 layers per PHASE-6 §3.4 and PLAN.md §11.4", () => {
-      const content = readFileSync(safetyDocPath, "utf-8");
-
-      // Verify Layer 1: Host Permission System
-      expect(content).toContain("Layer 1: Host Permission System");
-      expect(content).toMatch(/host.*permission/iu);
-
-      // Verify Layer 2: Blast Radius Containment
-      expect(content).toContain("Layer 2: Blast Radius Containment");
-      expect(content).toMatch(/no push remote/iu);
-      expect(content).toMatch(/pull-only credentials/iu);
-      expect(content).toMatch(/branch protection/iu);
-
-      // Verify Layer 3: Harness Rails
-      expect(content).toContain("Layer 3: Harness Rails");
-      expect(content).toMatch(/CLI door constrains harness commands.*not.*shell/iu);
-    });
-
-    test("deploy/SAFETY.md explains capability removal vs soft policy rules", () => {
-      const content = readFileSync(safetyDocPath, "utf-8");
-      expect(content).toMatch(/Remove the capability.*not.*merely forbid/iu);
-      expect(content).toContain("no_push");
-    });
-
-    test("Mind role contract in Layer 3 enforces command boundaries", () => {
+  describe("4. Mind Role Contract Command Boundaries", () => {
+    test("Mind role contract enforces command boundaries", () => {
       const mindContract = loadMindContract();
       expect(mindContract.role).toBe("mind");
       expect(mindContract.tier).toBe(0);

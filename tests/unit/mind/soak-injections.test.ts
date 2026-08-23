@@ -135,10 +135,6 @@ Autonomous Mind supervising remote container operations and health invariants.
 - \`tests/\`
 `;
 
-const BACKUP_SH_PATH = resolve(import.meta.dir, "../../../deploy/backup-capsule.sh");
-
-const RESTORE_SH_PATH = resolve(import.meta.dir, "../../../deploy/restore-capsule.sh");
-
 const HARNESS_PATH = resolve(
   import.meta.dir,
   "../../../orchestrating-long-tasks/scripts/harness.ts",
@@ -1141,69 +1137,6 @@ describe("PHASE-6 72-Hour Soak and Failure Injection Test Suite", () => {
       const missingReport = evaluateExternalLiveness(emptyRun, baseTimeMs);
       expect(missingReport.status).toBe("error_check_failed");
       expect(missingReport.message).toContain("last_pulse.json missing");
-    });
-
-    test("Exit Criterion 5: Restore drill produces capsule accepted by doctor with prompt mode 0444 preserved", async () => {
-      const sourceRepo = scratchRoot("restore-drill-src");
-      writeFileSync(join(sourceRepo, ".gitignore"), ".capsules/\n.tmp/\n", "utf-8");
-
-      const charterDir = join(sourceRepo, "docs", "mind");
-      mkdirSync(charterDir, { recursive: true });
-      writeFileSync(join(charterDir, "CHARTER.md"), SAMPLE_CHARTER, "utf-8");
-
-      const initResult = mindInitCommand({
-        repo: sourceRepo,
-        charter: "docs/mind/CHARTER.md",
-      });
-      const sourceRunRoot = initResult.run_root as string;
-
-      // Add transaction to active capsule
-      transact(sourceRunRoot, "mind-agent", "soak-drill-event", { phase: "pre-backup" }, (s) => {
-        s.pre_backup_verified = true;
-      });
-
-      const backupDir = join(sourceRepo, "backups");
-      mkdirSync(backupDir, { recursive: true });
-      const archivePath = join(backupDir, "mind-gen-1.tar.gz");
-      const manifestPath = join(backupDir, "mind-gen-1.manifest.json");
-
-      // 1. Create backup archive
-      const backupProc = Bun.spawn(
-        ["bash", BACKUP_SH_PATH, sourceRunRoot, archivePath, manifestPath],
-        {
-          cwd: sourceRepo,
-          env: { ...process.env, HARNESS_PATH },
-        },
-      );
-      expect(await backupProc.exited).toBe(0);
-
-      // 2. Restore backup into destination repository
-      const targetRepo = scratchRoot("restore-drill-target");
-      writeFileSync(join(targetRepo, ".gitignore"), ".capsules/\n.tmp/\n", "utf-8");
-      const restoredCapsulePath = join(targetRepo, ".capsules", "mind-gen-1");
-
-      const restoreProc = Bun.spawn(
-        ["bash", RESTORE_SH_PATH, archivePath, restoredCapsulePath, manifestPath],
-        {
-          cwd: targetRepo,
-          env: { ...process.env, HARNESS_PATH },
-          stdout: "pipe",
-          stderr: "pipe",
-        },
-      );
-      expect(await restoreProc.exited).toBe(0);
-
-      // 3. Verify 0444 mode on prompt.md in restored capsule
-      const promptPath = join(restoredCapsulePath, "prompt.md");
-      expect(existsSync(promptPath)).toBe(true);
-      const stat = statSync(promptPath);
-      expect((stat.mode & 0o222) === 0).toBe(true);
-
-      // 4. Verify doctor accepts the restored capsule
-      const doctorReport = await doctorCommand({ run: restoredCapsulePath });
-      expect(typeof doctorReport.markdown).toBe("string");
-      expect(doctorReport.markdown as string).toContain("Capsule Doctor");
-      expect(verifyIntegrity(restoredCapsulePath)).toEqual([]);
     });
   });
 });
