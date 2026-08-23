@@ -67,7 +67,7 @@ export function findRepoRoot(startDir?: string | undefined): string {
   while (true) {
     if (
       existsSync(join(current, "package.json")) ||
-      existsSync(join(current, ".capsules")) ||
+      existsSync(join(current, ".olt")) ||
       existsSync(join(current, ".git"))
     ) {
       return current;
@@ -82,7 +82,7 @@ export function findRepoRoot(startDir?: string | undefined): string {
 }
 
 /**
- * Returns an isolated temporary directory path under os.tmpdir()/olt-test-scratch/<uuid>.
+ * Returns an isolated temporary directory path under tests/.tmp/test-isolation/<uuid>.
  * Automatically ensures creation and cleanup of stale predecessors.
  */
 export function getIsolatedTempDir(options?: string | IsolatedTempDirOptions | undefined): string {
@@ -91,7 +91,7 @@ export function getIsolatedTempDir(options?: string | IsolatedTempDirOptions | u
 
   const baseDir = opts.baseDir
     ? resolve(opts.baseDir)
-    : join(tmpdir(), "olt-test-scratch", "test-isolation");
+    : join(findRepoRoot(), "tests", ".tmp", "test-isolation");
 
   const id = opts.uuid ?? randomUUID();
   const folderName = opts.prefix ? `${opts.prefix}-${id}` : id;

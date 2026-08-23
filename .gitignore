@@ -19,6 +19,10 @@ __pycache__/
 .olt/capsules/
 .olt/scratch/
 
+# test temporary sandbox
+tests/.tmp/
+tests/tmp/
+
 # os / filesystem
 .DS_Store
 .DS_Store?
