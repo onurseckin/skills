@@ -99,11 +99,13 @@ protocol:
     10. **Per-Task/Subgroup Commit, Push & Global Skill Sync**:
         - Upon round convergence and sealing, execute release Conventional Commits (`feat(...)`, `fix(...)`), push to `origin/main` (`git push origin main`), and sync global skills via `bun scripts/sync-global.ts` to `~/.agents/skills/orchestrating-long-tasks/`.
 
-    ### Mandatory Multi-Agent Dispatch Invariants (Triad Floor, Dynamic Hierarchy & the Pairing Invariant):
-    - **Triad Floor (minimum 3 agents)**: for ANY run — even a single task ($N=1$) — at least
-      1 Coordinator + 1 Implementer + 1 Validator are deployed.
-    - **Dynamic Multi-Level Coordinator Hierarchy**: A coordinator may deploy domain coordinators or
-      sub-coordinators when sub-graphs warrant isolated concurrent orchestration.
+    ### Mandatory Multi-Agent Dispatch Invariants (Elastic Dynamic Hierarchy & the Pairing Invariant):
+    - **Elastic Dynamic Hierarchy Scaling**:
+      * **Fast-Path Compaction ($N = 1$)**: For single-task runs ($N = 1$), Orchestrator directly manages the Implementer + Cognitive Validator pair, skipping Tier 2 Coordinator overhead.
+      * **Standard Hierarchy ($2 \le N \le 5$)**: 1 Coordinator supervises up to 5 parallel wave lanes.
+      * **Multi-Coordinator Expansion ($N > 5$ or Multi-Stack)**: Partition wave lanes across specialized Tier 2 Coordinators (max 5 lanes per coordinator).
+    - **Hard-Coded Anti-Serialization Mechanical Interlock**: If a wave has $N \ge 2$ ready disjoint lanes, you MUST invoke all $N$ subagents in parallel via `Subagents: [...]`. Single-agent dispatch triggers `FALSE_SERIALIZATION_BLUNDER`.
+    - **Streamlined 5 Golden Roles**: `mechanic-validator` is permanently retired into CLI tool `task:check`; `repairer` is retired into in-lease micro-cycles (`task:reject --in-lease`).
     - **Pairing Invariant**: an implementer's work is always independently validated. Its validator
       becomes eligible to dispatch the instant the implementer submits — never later, and never
       gated on any other task finishing.

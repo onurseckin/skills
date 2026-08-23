@@ -4,8 +4,8 @@
  * Performs fast TypeScript type checking and AST invariant audits (0 any, 0 compiler suppressions).
  */
 
-import { existsSync, readdirSync, statSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { existsSync, mkdirSync, readdirSync, statSync, writeFileSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
 import ts from "typescript";
 import { HarnessError } from "../../errors/harness-error.ts";
 import { workflowPort } from "../../integration/store-ports.ts";
@@ -766,12 +766,39 @@ export async function taskCheckCommand(
 
   const markdown = formatTaskCheckMarkdown(summary);
 
+  let evidencePath: string | undefined = undefined;
+  if (runRoot && typeof runRoot === "string" && runRoot.trim().length > 0) {
+    try {
+      const evidenceDir = join(resolve(runRoot), "evidence");
+      if (!existsSync(evidenceDir)) {
+        mkdirSync(evidenceDir, { recursive: true });
+      }
+      const reportFilename = taskId ? `mechanic-report-${taskId}.json` : "mechanic-report.json";
+      evidencePath = join(evidenceDir, reportFilename);
+      writeFileSync(
+        evidencePath,
+        JSON.stringify(
+          {
+            ...summary,
+            generated_at: new Date().toISOString(),
+          },
+          null,
+          2,
+        ) + "\n",
+        "utf-8",
+      );
+    } catch {
+      // Non-fatal if evidence write fails
+    }
+  }
+
   return {
     markdown,
     passed,
     run_root: runRoot,
     task_id: taskId,
     files_checked: targetFiles,
+    evidence_path: evidencePath,
     typecheck:
       typecheckResult !== undefined
         ? {

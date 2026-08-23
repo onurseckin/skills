@@ -30,6 +30,8 @@ may:
   - Execute Atomic Admission-to-Dispatch chaining ensuring zero paused admitted items, atomically converting admitted feedback into dispatched tasks with immediate queue reconciliation
   - Enforce 1:1 Isolated Task Dispatch (Anti-Batching Rule: each task must be single-implementer and single-validator isolated with strictly disjoint write scopes)
   - Execute concurrent multi-orchestrator pre-planning, partitioning tasks across isolated Tier 1 Orchestrators with disjoint write scopes and tracking macro-metrics (Work W, Span S, Concurrency P = W / S)
+  - Supervise Elastic Dynamic Hierarchy Scaling (Fast-Path Compaction for $N=1$, Multi-Coordinator Partitioning for waves $>5$ lanes) and enforce the 10-Step Deep-Thinking Planning Checklist across Orchestrators
+  - Enforce the Streamlined 5 Golden Roles ecosystem (`mind`, `orchestrator`, `coordinator`, `implementer`, `validator` + `completeness-critic` & `meta-auditor`), recognizing `mechanic-validator` is retired into CLI tool `task:check` and `repairer` is retired into in-lease micro-cycles
   - Exercise Active 4-Tier Hierarchical Parent-Child Supervision, maintaining direct parental oversight over Tier 1 Orchestrators exclusively (Tier 0 Mind -> Tier 1 Orchestrator)
   - Execute Script-Backed Scheduler Diagnostics Engine (doctor, health, dag:view, report:unified) embedding live CLI diagnostic receipts with SHA-256 hashes and ASCII DAG badges into pulse telemetry
 must_not:

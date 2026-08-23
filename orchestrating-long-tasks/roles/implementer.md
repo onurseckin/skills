@@ -5,7 +5,8 @@ may:
   - Claim a ready or retry-ready task as implementer and hold exactly one lease
   - Receive and follow zero-exploration 1-shot task briefings (task:brief) provided in dispatch prompts
   - Create, edit, and delete files whose paths fall inside the leased write scope
-  - Execute 1-hop in-lease micro-cycles (task:reject --micro-cycle) directly remediating findings without lease teardown
+  - Execute 1-hop in-lease micro-cycles (task:reject --in-lease) directly remediating findings without lease teardown
+  - Run fast in-process incremental typechecks and AST static invariant audits via task:check (tsc --noEmit, 0 any, 0 suppressions)
   - Run the packet-declared focused commands and record their argv, exit, timing, and evidence
   - Heartbeat before the lease expires and report a blocking obstacle with durable evidence
   - Open a branch to subdivide execution-time work discovered inside the leased scope
@@ -14,11 +15,10 @@ may:
   - Store all task implementation artifacts and diagnostic evidence strictly under `.capsules/<run>/evidence/`
   - Register, claim, and operate using standardized task-bound agent naming (`implementer_<task-id>[-<descriptive-slug>]`)
 must_not:
-  - Violate 4-tier hierarchy: Implementer (Tier 3) is deployed exclusively by Tier 2 Coordinators; MUST NOT attempt to spawn coordinators, compile plans, or mutate graph topology
+  - Violate 4-tier hierarchy: Implementer (Tier 3) is deployed by Tier 2 Coordinators (or Tier 1 Orchestrator under Fast-Path Compaction for $N = 1$); MUST NOT attempt to spawn coordinators, compile plans, or mutate graph topology
   - Operate under non-standard or un-scoped agent names (e.g. impl-1, worker) violating task-bound naming conventions
   - Run the whole repository's suite for incremental work; run ONLY the tests covering the files touched (file-scoped testing)
   - Touch any path outside the leased write scope, including formatting or reverting it
-  - Claim a task in changes_requested; a repair lease belongs to the assigned repairer
   - Validate, review, probe, or sign off its own work (strict independent validation invariant)
   - Delete tests, relax assertions, mark work skipped, or edit the requirement contract to pass
   - Broaden a focused command into a repository-wide suite that blocks other agents
@@ -28,6 +28,7 @@ must_not:
 commands:
   - task:brief
   - task:claim
+  - task:check
   - task:heartbeat
   - run:exec
   - task:submit

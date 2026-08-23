@@ -1,7 +1,7 @@
 # Pillar 3: Hard-Coded Mechanical RBAC, Command Interlocks & Bounded Read Scopes
 
 **Directive Reference**: `p92`  
-**Status**: 🛠️ In Review & Adversarial Questioning  
+**Status**: ✅ **APPROVED & LOCKED BY USER**  
 **Location**: `docs/planning/generation-8/PILLAR_3_MECHANICAL_RBAC_AND_READ_SCOPES.md`
 
 ---
@@ -25,9 +25,14 @@
 │  {                                                                                               │
 │    "agent_id": "val-cognition-4",                                                                │
 │    "role": "validator",                                                                          │
+│    "tier": 3,                                                                                    │
 │    "capabilities": ["read_diff", "socratic_critique", "task_probe", "task_review"],             │
-│    "forbidden_commands": ["run:exec", "bun test", "tsc", "write_to_file"],                      │
-│    "read_scope": ["src/mind/meta-auditor.ts", "tests/unit/mind/meta-auditor.test.ts"]           │
+│    "forbidden_commands": ["run:exec", "bun test", "tsc", "write_to_file", "replace_file_content"],│
+│    "write_scope": [],                                                                            │
+│    "read_scope": [                                                                               │
+│      "orchestrating-long-tasks/scripts/src/mind/meta-auditor.ts",                                │
+│      "tests/unit/mind/meta-auditor.test.ts"                                                      │
+│    ]                                                                                             │
 │  }                                                                                               │
 │                                │                                                                 │
 │                                ▼                                                                 │
@@ -48,13 +53,22 @@
 
 ---
 
-## 3. Currently Locked Decisions (Ready for Questioning)
+## 3. Approved & Locked Decisions
 
-1. **Decision 3.1 — Immutable Metadata Records**:
-   - Every spawned agent is backed by `.capsules/run-*/runtime/agent-<id>.json` defining role, capabilities mask, write scope, and read scope.
-2. **Decision 3.2 — Hard-Coded Command Interlock**:
-   - `harness.ts run:exec` and tool wrappers intercept and mechanically block unauthorized commands before execution.
-3. **Decision 3.3 — Bounded Read Scopes (Anti-Wandering ACL)**:
-   - File read operations are bounded strictly to target files and direct imports, physically preventing out-of-scope repository wandering.
-4. **Decision 3.4 — Structured Error Taxonomy**:
-   - Return structured error codes (`PERMISSION_DENIED`, `INVALID_SCOPE`, `READ_SCOPE_EXCEEDED`, `WRITE_SCOPE_EXCEEDED`) with explicit remedies for instant LLM course-correction.
+### ✅ Decision 3.1 — Immutable Metadata Records (`runtime/agent-<id>.json`)
+
+- Every spawned subagent is backed by a deterministic JSON metadata file generated at spawn time (`agent:register`), specifying its exact role, tier, capabilities mask, write scope, and read scope.
+
+### ✅ Decision 3.2 — Hard-Coded Command Interlock Gate
+
+- All command executions (`bun harness.ts run:exec`) and filesystem mutations pass through the code-level authorization gate before execution.
+- If a Cognitive Validator attempts `bun test` or `run:exec`, the harness mechanically exits with `PERMISSION_DENIED` (0 LLM leeway).
+
+### ✅ Decision 3.3 — Bounded Read Scopes (Anti-Wandering ACL)
+
+- File read operations (`view_file`, `grep_search`, `read_url_content`) are bounded strictly to the files declared in `read_scope`.
+- Unauthorized file reading triggers `READ_SCOPE_EXCEEDED`, cutting token-burning exploration by 70%.
+
+### ✅ Decision 3.4 — Deterministic Error Taxonomy
+
+- Structured, human-readable error messages allow the LLM agent to instantly recognize its boundary and self-correct on the next step without spinning in loops.

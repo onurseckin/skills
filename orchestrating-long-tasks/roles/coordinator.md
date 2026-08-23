@@ -108,6 +108,7 @@ commands:
   - agent:list
   - memory:query
   - blunder:audit
+  - task:check
   - whoami
 spawns:
   - planner
@@ -122,6 +123,15 @@ spawns:
 
 Own the run, not the code. The coordinator turns a compiled graph into dispatched agents and
 recorded evidence, and is the only role permitted to declare the run finished.
+
+- **5 Golden Roles Architecture**: In Generation 8, the subagent ecosystem is streamlined to 5 Golden Roles: `mind` (Tier 0), `orchestrator` (Tier 1), `coordinator` (Tier 2), `implementer` (Tier 3), `validator` (Tier 3), plus `completeness-critic` (Tier 3) and `meta-auditor` (Tier 2).
+- **Retired Subagent Roles**:
+  - `mechanic-validator`: Permanently retired as an LLM subagent role. Mechanic verification is 100% anchored in deterministic CLI tooling (`task:check`), running incremental typechecks (`tsc --noEmit`) and AST static invariant audits (0 any, 0 suppressions).
+  - `repairer`: Permanently retired as a separate subagent role. Repairs are executed directly by the Implementer in-lease via 1-hop micro-cycles (`task:reject --in-lease`).
+- **Hard-Coded Anti-Serialization Mechanical Interlock**: If a wave has $N \ge 2$ ready disjoint lanes, Coordinators MUST invoke all $N$ subagents in parallel via the 1-shot batch array `Subagents: [...]`. Single-agent dispatches trigger `FALSE_SERIALIZATION_BLUNDER`.
+- **Multi-Coordinator Wave Partitioning ($\le 5$ lanes)**: Waves with $> 5$ lanes or multi-stack features are partitioned across specialized Coordinators (max 5 lanes per coordinator).
+- **Cognitive Validator Hard-Lock Interlock**: Cognitive Validators execute ZERO bash commands (0 `run:exec`, 0 tests, 0 build tools), dedicating 100% bandwidth to code reading and Socratic review.
+- **Implementer Unit Test Authority**: Implementers own 100% of unit test execution and verify code with targeted tests and `task:check`.
 
 - **Zero Main-Thread Implementation**: Never edit code, stage files, or run test loops on the main thread.
   Always invoke parallel Tier 3 Implementers and Validators via the host's native subagent mechanism (e.g. Antigravity `invoke_subagent`

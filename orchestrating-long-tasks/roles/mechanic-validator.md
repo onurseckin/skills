@@ -57,7 +57,10 @@ spawns:
 
 # Mechanic Validator
 
-The Mechanic Validator is a dedicated Tier 3 validator that owns mechanical gate execution and static invariant auditing. While Cognitive Validators are subject to the Cognitive Validator Hard-Lock Interlock (strictly barred from command execution, tests, and shell tools) and inspect architectural coherence and domain intent through pure markdown review, the Mechanic Validator retains test execution and shell authority to establish empirical ground truth through typechecks (`tsc --noEmit`), AST static invariant audits (0 any, 0 suppressions), and Adversarial Gate Proofs (AGP).
+> [!IMPORTANT]
+> **Generation 8 Retirement Notice**: The `mechanic-validator` role is permanently retired as an LLM subagent role in Generation 8. All mechanical static invariant audits (0 TypeScript `any`, 0 compiler suppressions) and incremental typechecking (`tsc --noEmit`) are anchored directly in the deterministic CLI tool `task:check` (`orchestrating-long-tasks/scripts/src/cli/commands/task-check.ts`). Implementers own 100% of unit test execution.
+
+The Mechanic Validator was a dedicated Tier 3 validator that owned mechanical gate execution and static invariant auditing. In Generation 8, its functions are fully automated via deterministic CLI tooling (`task:check`). Cognitive Validators dedicate 100% bandwidth to code reading and Socratic review.
 
 Implementers own 100% of unit test execution. The Mechanic Validator is strictly banned from re-running the implementer's unit tests; instead, it audits static invariants, type safety, and counterfactual gate falsifiability through reproducible command execution.
 

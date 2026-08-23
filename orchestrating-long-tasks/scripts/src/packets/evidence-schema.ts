@@ -184,6 +184,23 @@ const mindAuditorRecord: JsonObject = {
   ],
 };
 
+const metaAuditorRecord: JsonObject = {
+  audit_id: "<audit id>",
+  run: "<run slug>",
+  wave_index: "<wave index or all>",
+  efficiency_score: 100.0,
+  heuristics: [
+    {
+      heuristic:
+        "TOKEN_BURNING|FALSE_SERIALIZATION|ROLE_BOUNDARY_DEVIATION|POLLING_WASTE|CONTEXT_OVERFLOW|GHOST_LEASE|STRAGGLER",
+      detected: true,
+      severity: "low|medium|high|critical",
+      details: "<heuristic findings>",
+    },
+  ],
+  remediation_proposals: [{ id: "<proposal id>", title: "<title>", priority: "MEDIUM" }],
+};
+
 const mechanicValidatorReview: JsonObject = {
   verdict: "pass|reject",
   requirement_ids: ["<every task requirement id exactly once>"],
@@ -216,6 +233,7 @@ const ROLE_CONTRACTS: Readonly<Record<AgentRole, JsonObject>> = {
   implementer: taskSubmission,
   mind: mindRecord,
   "mind-auditor": mindAuditorRecord,
+  "meta-auditor": metaAuditorRecord,
   orchestrator: loopSynthesisRecord,
   "plan-validator": planValidatorReview,
   planner: plannerDocuments,

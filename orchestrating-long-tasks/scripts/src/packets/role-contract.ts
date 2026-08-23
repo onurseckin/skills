@@ -177,11 +177,21 @@ export function parseRoleContract(bytes: Uint8Array, source: string): RoleContra
   const rawDomain = frontmatter.scalars.get("domain");
   let domain: ValidatorDomain | undefined;
   if (rawDomain !== undefined) {
-    if (role !== "validator")
-      invalid("role contract", source, `domain is only valid for the validator role: ${rawDomain}`);
-    if (!isValidatorDomain(rawDomain))
-      invalid("role contract", source, `domain is not a recognized validator domain: ${rawDomain}`);
-    domain = rawDomain;
+    if (role !== "validator" && role !== "meta-auditor")
+      invalid(
+        "role contract",
+        source,
+        `domain is only valid for validator or meta-auditor roles: ${rawDomain}`,
+      );
+    if (role === "validator") {
+      if (!isValidatorDomain(rawDomain))
+        invalid(
+          "role contract",
+          source,
+          `domain is not a recognized validator domain: ${rawDomain}`,
+        );
+      domain = rawDomain;
+    }
   }
   const spawns: AgentRole[] = [];
   for (const spawned of requireList(frontmatter, "spawns", source)) {

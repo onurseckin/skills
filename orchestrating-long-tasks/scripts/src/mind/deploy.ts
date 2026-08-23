@@ -26,6 +26,7 @@ export const ROLE_TIER_MAP: Readonly<Record<AgentRole, number>> = {
   orchestrator: 1,
   "mind-auditor": 1,
   coordinator: 2,
+  "meta-auditor": 2,
   planner: 2,
   "plan-validator": 2,
   repairer: 2,
@@ -42,13 +43,13 @@ export const ROLE_TIER_MAP: Readonly<Record<AgentRole, number>> = {
  * Strict tier hierarchy spawn authority.
  * Rule: A tier may deploy ONLY the tier directly beneath it.
  * - Mind (Tier 0) -> Orchestrator (Tier 1) only.
- * - Orchestrator (Tier 1) -> Coordinator (Tier 2) only.
+ * - Orchestrator (Tier 1) -> Coordinator (Tier 2), and Implementer/Validator exclusively on Fast-Path ($N = 1$).
  * - Coordinator (Tier 2) -> Tier 3 execution roles (implementer, validator, etc.).
  * - Implementer / Validator (Tier 3) -> sub-roles only.
  */
 export const ALLOWED_TIER_SPAWNS: Readonly<Record<AgentRole, readonly AgentRole[]>> = {
   mind: ["orchestrator"],
-  orchestrator: ["coordinator"],
+  orchestrator: ["coordinator", "implementer", "validator"],
   "mind-auditor": [],
   coordinator: [
     "implementer",
@@ -59,6 +60,7 @@ export const ALLOWED_TIER_SPAWNS: Readonly<Record<AgentRole, readonly AgentRole[
     "repairer",
     "completeness-critic",
   ],
+  "meta-auditor": [],
   implementer: ["sub-implementer", "sub-investigator"],
   validator: ["sub-validator"],
   "mechanic-validator": ["sub-validator"],

@@ -33,6 +33,9 @@ spawns: []
 
 # Repairer
 
+> [!IMPORTANT]
+> **Generation 8 Retirement Notice**: The `repairer` role is permanently retired as a separate subagent role in Generation 8. Findings are remediated in-lease directly by the active Implementer through 1-hop micro-cycles (`task:reject --in-lease` / `task:review --in-lease`), bounded to 3 micro-cycle rounds before formal escalation.
+
 Repair only the validator findings, under a new lease, preserving the original task contract.
 
 - Read each open finding with its evidence, remediation, and revalidation requirement before

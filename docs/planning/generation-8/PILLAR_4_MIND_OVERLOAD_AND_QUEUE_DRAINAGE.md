@@ -1,7 +1,7 @@
 # Pillar 4: Autonomous Mind Creative Overload & Robust Queue Drainage
 
 **Directive Reference**: `p91`  
-**Status**: 🛠️ In Review & Adversarial Questioning  
+**Status**: ✅ **APPROVED & LOCKED BY USER**  
 **Location**: `docs/planning/generation-8/PILLAR_4_MIND_OVERLOAD_AND_QUEUE_DRAINAGE.md`
 
 ---
@@ -40,11 +40,16 @@
 
 ---
 
-## 3. Currently Locked Decisions (Ready for Questioning)
+## 3. Approved & Locked Decisions
 
-1. **Decision 4.1 — Strict Non-Idle Invariant**:
-   - Mind is forbidden from reporting "idle in standby". On low queue, Mind actively researches and synthesizes parallel backlogs.
-2. **Decision 4.2 — Automated FIFO Archival**:
-   - Completed tasks and blunders are cleanly moved from active JSONLs into `completed-*.jsonl` with empirical commit SHAs and test assertion counts.
-3. **Decision 4.3 — Single Source of Truth (`.capsules/mind/queue/`)**:
-   - All queue state is consolidated into lowercase kebab-case files under `.capsules/mind/queue/`.
+### ✅ Decision 4.1 — Strict Non-Idle Invariant
+
+- Mind is strictly forbidden from reporting "idle in standby". When the queue is low or empty, Mind actively researches the codebase and web standards to formulate rich, parallelizable backlogs.
+
+### ✅ Decision 4.2 — Automated FIFO Archival
+
+- Completed tasks and blunders are automatically drained into `completed-tasks.jsonl` and `completed-blunders.jsonl` upon run seal, permanently removing processed items from the active queue.
+
+### ✅ Decision 4.3 — Single Source of Truth (`.capsules/mind/queue/`)
+
+- All queue operations are consolidated strictly under `.capsules/mind/queue/`, eliminating root-level legacy JSONL drift.

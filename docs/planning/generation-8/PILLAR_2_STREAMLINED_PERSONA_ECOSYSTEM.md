@@ -1,7 +1,7 @@
 # Pillar 2: Streamlined Persona Ecosystem & Deterministic CLI Gates
 
 **Directive Reference**: `p91`  
-**Status**: 🛠️ In Review & Adversarial Questioning  
+**Status**: ✅ **APPROVED & LOCKED BY USER**  
 **Location**: `docs/planning/generation-8/PILLAR_2_STREAMLINED_PERSONA_ECOSYSTEM.md`
 
 ---
@@ -49,13 +49,75 @@ In earlier versions, too many specialized agent roles were created for determini
 
 ---
 
-## 3. Currently Locked Decisions (Ready for Questioning)
+## 3. Approved & Locked Decisions
 
-1. **Decision 2.1 — Retire `mechanic-validator` as an Agent Role**:
-   - Converted permanently to a deterministic CLI tool/gate (`harness.ts task:check`).
-2. **Decision 2.2 — Retire `repairer` as a Separate Agent**:
-   - Merged into Implementer via **1-Hop In-Lease Micro-Cycles** (`task:reject --in-lease`).
-3. **Decision 2.3 — Integrate Planning into Orchestrator**:
-   - Orchestrator uses a built-in **10-Step Self-Check Planning Checklist** to compile and validate DAGs directly without spawning separate planner agents.
-4. **Decision 2.4 — The 5 Golden Pillars**:
-   - The core system consists of 5 fundamental roles: `mind` (Tier 0), `orchestrator` (Tier 1), `coordinator` (Tier 2), `implementer` (Tier 3), `validator` (Tier 3 Cognitive), supported by `completeness-critic` and `meta-auditor`.
+### ✅ Decision 2.1 — Retire `mechanic-validator` as an Agent Role
+
+- Permanently converted into a deterministic CLI tool/gate: `bun harness.ts task:check --task <id>`.
+- Runs `tsc --noEmit`, `oxlint`, and AST zero-any enforcement in sub-seconds with 0 LLM token cost.
+
+### ✅ Decision 2.2 — Retire `repairer` as a Separate Agent
+
+- Merged into Implementer via **1-Hop In-Lease Micro-Cycles** (`task:reject --in-lease`). The implementer fixes issues in-lease without releasing the task or spawning extra agents.
+
+### ✅ Decision 2.3 — Integrate Planning Directly into Orchestrator
+
+- Orchestrator replaces standalone planner subagents by executing the **10-Step Deep-Thinking Planning Checklist** directly before dispatching waves.
+
+### ✅ Decision 2.4 — The 5 Golden Pillars
+
+- The core system consists of 5 fundamental roles: `mind` (Tier 0), `orchestrator` (Tier 1), `coordinator` (Tier 2), `implementer` (Tier 3), and `validator` (Cognitive Tier 3), supported by `completeness-critic` and `meta-auditor`.
+
+---
+
+## 4. The 10-Step Orchestrator Deep-Thinking Planning Checklist
+
+To ensure **zero blunders, zero false serialization, and 100% requirement coverage**, every Orchestrator must execute this 10-step checklist before compiling and dispatching any wave:
+
+```text
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                         ORCHESTRATOR 10-STEP DEEP-THINKING PLANNING CHECKLIST                    │
+├──────────────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                                  │
+│  [ STEP 1: Exhaustive Requirement & Acceptance Extraction ]                                      │
+│  • Decompose the incoming prompt into explicit, atomic functional deliverables.                  │
+│  • Verify no implicit requirement (e.g. CLI flags, doc updates, sync scripts) is missed.         │
+│                                                                                                  │
+│  [ STEP 2: Disjoint Write Scope Partitioning & Non-Overlap Proof ]                               │
+│  • Identify the exact target files for each task.                                                │
+│  • Enforce: `Scope(Task A) ∩ Scope(Task B) = ∅` for all tasks intended for the same wave.       │
+│                                                                                                  │
+│  [ STEP 3: Exact-Anchor Compilation (Line Coordinates & Symbol Signatures) ]                     │
+│  • Use AST extraction to identify exact target line ranges (`#L120-L160`) and function names.    │
+│  • Package exact drop-in replacement chunks into task briefings to eliminate discovery reads.   │
+│                                                                                                  │
+│  [ STEP 4: Deterministic Mechanical Gate Assignment ]                                            │
+│  • Assign `task:check` gate commands (`tsc --noEmit`, `oxlint`, AST 0-any audits) per task.     │
+│  • For UI tasks, assign Dual-Channel rasterization and DOM metric extraction gates.              │
+│                                                                                                  │
+│  [ STEP 5: Dynamic Concurrency & Wave Partitioning ]                                             │
+│  • Calculate Brent Work/Span ($P = \lceil W / S \rceil$).                                        │
+│  • If wave lanes > 5, partition across multiple specialized Coordinators (e.g. core, cli, tests).│
+│                                                                                                  │
+│  [ STEP 6: Adversarial Gate Proofs (AGP Falsification Checks) ]                                  │
+│  • Verify that every task gate is genuinely falsifiable (a broken change WILL fail the gate).    │
+│  • Prohibit mock receipts, synthetic passes, or unconditional `exit 0` assertions.               │
+│                                                                                                  │
+│  [ STEP 7: 1-Hop In-Lease Pairing Configuration ]                                                │
+│  • Pair every Implementer with a dedicated Cognitive Validator.                                  │
+│  • Configure `--in-lease` fast micro-cycle routing for instant Socratic critique and repairs.   │
+│                                                                                                  │
+│  [ STEP 8: Bounded Read Scope & Anti-Wandering ACL Generation ]                                  │
+│  • Declare explicit `read_scope` arrays in task metadata (`runtime/agent-<id>.json`).           │
+│  • Bound file read access strictly to target files and direct import dependencies.               │
+│                                                                                                  │
+│  [ STEP 9: Whole-Diff Completeness Criteria Definition ]                                         │
+│  • Pre-define the exact whole-run integration assertions for the Completeness Critic.            │
+│  • Ensure full test suite execution (`bun test`) is staged for final critic review.              │
+│                                                                                                  │
+│  [ STEP 10: Anti-Serialization Pre-Flight Interlock Verification ]                              │
+│  • Verify that all ready disjoint lanes are formatted into the 1-shot `Subagents: [...]` array. │
+│  • Run `bun harness.ts plan:compile` and ensure 0 `FALSE_SERIALIZATION_BLUNDER` errors exist.    │
+│                                                                                                  │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+```

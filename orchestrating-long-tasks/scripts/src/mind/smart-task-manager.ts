@@ -43,8 +43,60 @@ import {
   type ExactAnchorBriefing as ExactAnchorBriefingCore,
   type ExactAnchorBriefingOptions as ExactAnchorBriefingCoreOptions,
 } from "./briefing-builder.ts";
+import {
+  ARTIFICIAL_SERIALIZATION_WARNING,
+  FALSE_SERIALIZATION_BLUNDER,
+  FAST_PATH_TASK_COUNT,
+  MAX_LANES_PER_COORDINATOR,
+  type AntiSerializationInterlockResult,
+  type ArtificialSerializationWarning,
+  type CoordinatorPartition,
+  type DecoupledGraphResult,
+  type DecoupleOptions,
+  type DynamicLanePartitioningResult,
+  type HierarchyScalingPath,
+  type HierarchyScalingResult,
+  type MultiCoordinatorPartitionOptions,
+  type MultiCoordinatorWavePartitionResult,
+  type ParallelLaneAssignment,
+  type ParallelMetrics,
+  type SubagentDispatchFormatOptions,
+  type SubagentDispatchItem,
+  allocateParallelLanes,
+  assertAntiSerializationInterlock,
+  computeWorkSpanMetrics,
+  decoupleDisjointTasks,
+  detectArtificialSerialization,
+  evaluateHierarchyScaling,
+  formatParallelSubagentsDispatchArray,
+  inferStackOrDomain,
+  isFastPathCompactionEligible,
+  partitionDynamicLanes,
+  partitionWaveCoordinators,
+  verifyAntiSerializationInterlock,
+} from "../graph/topology.ts";
 
 export type { AnchorSymbolKind };
+export {
+  FALSE_SERIALIZATION_BLUNDER,
+  FAST_PATH_TASK_COUNT,
+  MAX_LANES_PER_COORDINATOR,
+  type AntiSerializationInterlockResult,
+  type CoordinatorPartition,
+  type HierarchyScalingPath,
+  type HierarchyScalingResult,
+  type MultiCoordinatorPartitionOptions,
+  type MultiCoordinatorWavePartitionResult,
+  type SubagentDispatchFormatOptions,
+  type SubagentDispatchItem,
+  assertAntiSerializationInterlock,
+  evaluateHierarchyScaling,
+  formatParallelSubagentsDispatchArray,
+  inferStackOrDomain,
+  isFastPathCompactionEligible,
+  partitionWaveCoordinators,
+  verifyAntiSerializationInterlock,
+};
 
 export type SmartTaskSourceType =
   | "feedback_intake"
@@ -334,12 +386,15 @@ export interface SmartTaskSynthesisResult {
   readonly source_items_count: number;
   readonly enqueued_count?: number | undefined;
   readonly anti_batching_enforced?: boolean | undefined;
+  readonly hierarchy_scaling?: HierarchyScalingResult | undefined;
+  readonly fast_path_compaction?: boolean | undefined;
 }
 
 export interface WaveGroup {
   readonly wave_number: number;
   readonly task_ids: readonly string[];
   readonly tasks: readonly SmartTaskPlan[];
+  readonly coordinator_partitions?: readonly CoordinatorPartition[] | undefined;
 }
 
 export interface SmartWavePlanResult {
@@ -348,6 +403,11 @@ export interface SmartWavePlanResult {
   readonly waves: readonly WaveGroup[];
   readonly macro_metrics?: MacroMetrics | undefined;
   readonly optimal_lanes?: number | undefined;
+  readonly hierarchy_scaling?: HierarchyScalingResult | undefined;
+  readonly fast_path_compaction?: boolean | undefined;
+  readonly multi_coordinator_partitions?:
+    | readonly MultiCoordinatorWavePartitionResult[]
+    | undefined;
 }
 
 export interface RebalancedTaskPlanResult extends SmartWavePlanResult {
@@ -368,6 +428,7 @@ export interface MultiOrchestratorSubTreePlan {
   readonly tasks: readonly SmartTaskPlan[];
   readonly wave_plan: SmartWavePlanResult;
   readonly macro_metrics: MacroMetrics;
+  readonly coordinator_partitions?: readonly CoordinatorPartition[] | undefined;
 }
 
 export interface MultiOrchestratorPrePlanningResult {
@@ -378,6 +439,8 @@ export interface MultiOrchestratorPrePlanningResult {
   readonly is_disjoint: boolean;
   readonly cross_orchestrator_collisions: readonly ScopeCollision[];
   readonly warnings: readonly string[];
+  readonly hierarchy_scaling?: HierarchyScalingResult | undefined;
+  readonly total_coordinators?: number | undefined;
 }
 
 export interface MultiOrchestratorPlanningOptions {
@@ -1415,10 +1478,12 @@ export function planWaveExecution(tasks: readonly SmartTaskPlan[]): SmartWavePla
     }
 
     for (const bucket of subWaves) {
+      const coordPartitions = partitionWaveCoordinators(bucket, { waveIndex });
       finalWaves.push({
         wave_number: waveIndex++,
         task_ids: bucket.map((t) => t.id),
         tasks: bucket,
+        coordinator_partitions: coordPartitions.partitions,
       });
     }
   }
@@ -1429,13 +1494,61 @@ export function planWaveExecution(tasks: readonly SmartTaskPlan[]): SmartWavePla
     Math.min(40, Math.ceil(macroMetrics.parallelism > 0 ? macroMetrics.parallelism : 1)),
   );
 
+  const hierarchyScaling = evaluateHierarchyScaling({
+    taskCount: tasks.length,
+    waveLanes: optimalLanes,
+  });
+
+  const multiCoordPartitions = finalWaves.map((w) =>
+    partitionWaveCoordinators(w.tasks, { waveIndex: w.wave_number }),
+  );
+
   return {
     total_waves: finalWaves.length,
     total_tasks: tasks.length,
     waves: finalWaves,
     macro_metrics: macroMetrics,
     optimal_lanes: optimalLanes,
+    hierarchy_scaling: hierarchyScaling,
+    fast_path_compaction: hierarchyScaling.fastPath,
+    multi_coordinator_partitions: multiCoordPartitions,
   };
+}
+
+/**
+ * Evaluates hierarchy scaling for an array of smart task plans.
+ */
+export function evaluateSmartHierarchy(
+  tasks: readonly SmartTaskPlan[],
+  options: {
+    readonly waveLanes?: number | undefined;
+    readonly multiStack?: boolean | undefined;
+    readonly maxLanesPerCoordinator?: number | undefined;
+  } = {},
+): HierarchyScalingResult {
+  return evaluateHierarchyScaling({
+    taskCount: tasks.length,
+    waveLanes: options.waveLanes,
+    multiStack: options.multiStack,
+    maxLanesPerCoordinator: options.maxLanesPerCoordinator,
+  });
+}
+
+/**
+ * Plans multi-coordinator partitions across an entire SmartWavePlanResult.
+ */
+export function planMultiCoordinatorWaves(
+  wavePlan: SmartWavePlanResult,
+  options: MultiCoordinatorPartitionOptions = {},
+): readonly MultiCoordinatorWavePartitionResult[] {
+  return wavePlan.waves.map((w) =>
+    partitionWaveCoordinators(w.tasks, {
+      waveIndex: w.wave_number,
+      maxLanesPerCoordinator: options.maxLanesPerCoordinator,
+      stackPartitioning: options.stackPartitioning,
+      domainHints: options.domainHints,
+    }),
+  );
 }
 
 /**
@@ -1739,12 +1852,16 @@ export function synthesizeSmartTasksFromFeedbackQueue(
     drainPendingFeedbacks({ markAs: "ADMITTED", limit: selected.length }, options.capsulesDir);
   }
 
+  const hierarchyScaling = evaluateHierarchyScaling({ taskCount: tasks.length });
+
   return {
     mode: "feedback_intake",
     tasks,
     summary: `Synthesized ${tasks.length} isolated task(s) from pending user feedback queue with 1:1 implementer-validator mapping.`,
     source_items_count: pendingFeedback.length,
     anti_batching_enforced: true,
+    hierarchy_scaling: hierarchyScaling,
+    fast_path_compaction: hierarchyScaling.fastPath,
     ...(enqueuedCount > 0 ? { enqueued_count: enqueuedCount } : {}),
   };
 }
@@ -1999,12 +2116,16 @@ export function synthesizeSmartTasksFromSelfEvolution(
     enqueuedCount = enqueued.length;
   }
 
+  const hierarchyScaling = evaluateHierarchyScaling({ taskCount: selectedSelfTasks.length });
+
   return {
     mode: "self_evolution",
     tasks: selectedSelfTasks,
     summary: `Autonomous self-evolution synthesized ${selectedSelfTasks.length} isolated task(s) on empty queue with 1:1 implementer-validator mapping.`,
     source_items_count: openBlunders.length,
     anti_batching_enforced: true,
+    hierarchy_scaling: hierarchyScaling,
+    fast_path_compaction: hierarchyScaling.fastPath,
     ...(enqueuedCount > 0 ? { enqueued_count: enqueuedCount } : {}),
   };
 }
@@ -2695,6 +2816,18 @@ export function preplanMultiOrchestratorTasks(
       // non-fatal
     }
   }
+  let totalCoordinators = 0;
+  for (const st of subTreePlans) {
+    for (const w of st.wave_plan.waves) {
+      totalCoordinators += w.coordinator_partitions?.length ?? 1;
+    }
+  }
+
+  const hierarchyScaling = evaluateHierarchyScaling({
+    taskCount: tasks.length,
+    waveLanes: optimalLanes,
+    domainCount: subTreePlans.length,
+  });
 
   return {
     total_orchestrators: subTreePlans.length,
@@ -2704,6 +2837,8 @@ export function preplanMultiOrchestratorTasks(
     is_disjoint: crossCollisions.length === 0,
     cross_orchestrator_collisions: crossCollisions,
     warnings,
+    hierarchy_scaling: hierarchyScaling,
+    total_coordinators: Math.max(subTreePlans.length, totalCoordinators),
   };
 }
 

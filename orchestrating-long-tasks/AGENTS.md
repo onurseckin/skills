@@ -81,6 +81,16 @@ Every agent executing within this repository must adhere to the following non-ne
     - Computes deterministic behavioral efficiency scores ($0.0\% - 100.0\%$) and quantitative operational metrics.
     - Autonomously synthesizes structured remediation proposals and injects them directly into the canonical feedback queue (`.capsules/FEEDBACK_QUEUE.jsonl`) via `meta-audit --inject` and the Mind candidate pool (`mind:candidate`).
     - Strictly prohibited from making direct code edits, claiming leases, running tests, or rubber-stamping unevidenced passes.
+24. **Elastic Dynamic Hierarchy Scaling & Fast-Path Compaction**:
+    - **Fast-Path Compaction ($N = 1$)**: When an active queue or plan has exactly 1 task, the Tier 1 Orchestrator directly supervises the Implementer and Cognitive Validator pair, skipping Tier 2 Coordinator middleman overhead.
+    - **Multi-Coordinator Partitioning ($N > 5$ or Multi-Stack)**: Waves with $> 5$ parallel lanes or distinct domain stacks are partitioned across specialized Tier 2 Coordinators (max 5 lanes per coordinator, e.g. `coordinator_core`, `coordinator_cli`, `coordinator_ui`).
+25. **Hard-Coded Anti-Serialization Mechanical Interlock (`FALSE_SERIALIZATION_BLUNDER`)**:
+    - When a wave has $N \ge 2$ ready disjoint lanes, single-subagent dispatches are mechanically blocked. The harness throws `[FALSE_SERIALIZATION_BLUNDER] Wave contains N ready disjoint lanes. You MUST invoke all N subagents in parallel via Subagents: [...]`.
+    - Coordinators and Orchestrators must dispatch full parallel wave arrays using 1-shot batch prompts.
+26. **Streamlined 5 Golden Roles & Deterministic CLI Gates**:
+    - Core personas are streamlined to 5 Golden Roles: `mind` (Tier 0), `orchestrator` (Tier 1), `coordinator` (Tier 2), `implementer` (Tier 3), `validator` (Tier 3), plus `completeness-critic` (Tier 3) and `meta-auditor` (Tier 2).
+    - `mechanic-validator` is permanently retired as an LLM subagent role; all typechecks and AST static invariant audits (0 any, 0 suppressions) are anchored in the deterministic CLI tool `task:check`.
+    - `repairer` is permanently retired as a separate subagent role; repairs are executed directly by the active Implementer through 1-hop in-lease micro-cycles (`task:reject --in-lease`).
 
 ---
 

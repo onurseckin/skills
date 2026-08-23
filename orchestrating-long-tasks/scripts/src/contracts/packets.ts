@@ -5,6 +5,7 @@ export type AgentRole =
   | "coordinator"
   | "implementer"
   | "mechanic-validator"
+  | "meta-auditor"
   | "mind"
   | "mind-auditor"
   | "orchestrator"
@@ -21,6 +22,7 @@ export const AGENT_ROLES: readonly AgentRole[] = [
   "coordinator",
   "implementer",
   "mechanic-validator",
+  "meta-auditor",
   "mind",
   "mind-auditor",
   "orchestrator",
