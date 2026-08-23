@@ -216,6 +216,28 @@ bun harness.ts queue:pop --run .olt/capsules/<slug> --agent <id> --role <role>
 
 Governs worker leases, heartbeats, submissions, and adversarial validation.
 
+#### `task:brief`
+
+Generates a zero-exploration exact-anchor briefing document for a task, isolating the implementer from broader context.
+
+```text
+┌─────────────────────────────────────────────────────────┐
+│                 TASK:BRIEF ARCHITECTURE                 │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│  [ state.graph ] ──► ( Filter exact scope ) ──┐         │
+│                                               │         │
+│  [ context.md  ] ──► ( Exclude noise ) ───────┼──► [ Markdown Brief ]
+│                                               │         │
+│  [ tests/      ] ──► ( Locate exact tests ) ──┘         │
+│                                                         │
+└─────────────────────────────────────────────────────────┘
+```
+
+```bash
+bun harness.ts task:brief --run .olt/capsules/<slug> --task <id> [--agent <id>] [--role <role>]
+```
+
 #### `task:claim`
 
 Claims a specific task under a formal role contract (`implementer` or `repairer`).
@@ -383,7 +405,46 @@ bun harness.ts gate:prove --run .olt/capsules/<slug> --task <id> --actor <id> [-
 
 ### 9. `dag` & `reporting` Domains: Sugiyama Layout & Living Tracing
 
+#### `report` & Status Commands
+
+Provides tabular readouts of health, open leases, structural decisions, task details, and capsule summaries.
+
+```text
+┌─────────────────────────────────────────────────────────┐
+│                  REPORTING ARCHITECTURE                 │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│  [ events.jsonl ] ──► ( Projection Engine ) ──┐         │
+│                                               │         │
+│  [ state.graph  ] ──► ( Filter & Slice ) ─────┼──► [ ASCII Table ]
+│                                               │         │
+│  [ state.agents ] ──► ( Ledger Lookup ) ──────┘         │
+│                                                         │
+└─────────────────────────────────────────────────────────┘
+```
+
+```bash
+bun harness.ts report:health --run .olt/capsules/<slug>
+bun harness.ts report:leases --run .olt/capsules/<slug>
+bun harness.ts report:decisions --run .olt/capsules/<slug>
+bun harness.ts report:summary --run .olt/capsules/<slug>
+bun harness.ts report:task --run .olt/capsules/<slug> --task <id>
+```
+
 #### `dag` (alias `graph:sugiyama`)
+
+Renders the Sugiyama 4-phase hierarchical DAG with Unicode/ASCII boxes and live status badges.
+
+```text
+┌─────────────────────────────────────────────────────────┐
+│              SUGIYAMA DAG 4-PHASE PIPELINE              │
+├─────────────────────────────────────────────────────────┤
+│  1. Cycle Removal (Tarjan)                              │
+│  2. Layer Assignment (Longest Path)                     │
+│  3. Crossing Minimization (Barycenter)                  │
+│  4. Orthogonal Routing & ASCII Box Drawing              │
+└─────────────────────────────────────────────────────────┘
+```
 
 Renders the Sugiyama 4-phase hierarchical DAG with Unicode/ASCII boxes and live status badges.
 
@@ -413,6 +474,28 @@ bun harness.ts mind:query --run .olt/capsules/<slug> --topic "<domain>"
 ---
 
 ### 11. `diagnostics` Domain: Health & Doctor Audits
+
+#### `defect:audit`
+
+Audits, deduplicates, and mechanically promotes defect findings from active `defects.jsonl` to global `.olt/completed-blunders.jsonl`.
+
+```text
+┌─────────────────────────────────────────────────────────┐
+│               DEFECT AUDIT ARCHITECTURE                 │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│  [ active defects.jsonl ] ──┐                           │
+│                             ├─► [ Deduplication ] ──┐   │
+│  [ capsule defects ] ───────┘                       │   │
+│                                                     ▼   │
+│  [ .olt/completed-blunders.jsonl ] ◄── ( Auto-Admit )   │
+│                                                         │
+└─────────────────────────────────────────────────────────┘
+```
+
+```bash
+bun harness.ts defect:audit --run .olt/capsules/<slug> [--filter-status open|admit|resolved] [--auto-admit]
+```
 
 #### `doctor`
 
