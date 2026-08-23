@@ -979,12 +979,11 @@ export function lintSourceCode(
         !ts.isExportDeclaration(node.parent) &&
         !isInsideVendorConfigDefinition(node)
       ) {
-        const strVendor = findVendorInWordList(node.text, vendorSet);
-        if (strVendor !== undefined && strVendor !== null) {
+        if (/\b(gpt-[0-9]|claude-[0-9]|gemini-[0-9]|dall-e-[0-9]|text-davinci|sonnet-[0-9]|opus-[0-9]|haiku-[0-9])\b/iu.test(node.text)) {
           const loc = sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile));
           violations.push({
             rule: "vendor_leak",
-            message: `Prohibited vendor string '${strVendor}' found in literal '${node.text}'.`,
+            message: `Prohibited vendor model/system string found in literal '${node.text}'.`,
             file: fileName,
             line: loc.line + 1,
             column: loc.character + 1,
