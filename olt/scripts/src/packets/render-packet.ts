@@ -15,8 +15,6 @@ import { loadRoleContract } from "./role-contract.ts";
 import { criticContext } from "./critic-context.ts";
 import { validateRepositoryInspectionPair } from "./repository-inspection.ts";
 import { CONCLUSION_EXCLUSIONS, validatorTaskContract } from "./prior-round-demands.ts";
-import { renderValidationRound } from "./render-validation-round.ts";
-import { VALIDATION_ROUND_KEY } from "./validation-round.ts";
 import { pruneNonUiPayload } from "../workflow/review/role-evidence.ts";
 import { uiDomainApplies } from "../core/contracts/workflow.ts";
 
@@ -110,21 +108,6 @@ function responsibilityChecklist(role: AgentRole): string {
   ].join("\n");
 }
 
-function capsuleMemoryGuidance(runId: string, taskId: string | null): string {
-  const taskFlag = taskId ? ` --task ${taskId}` : "";
-  return [
-    "Heavy metadata, full event streams, dependency graphs, historical logs, and error dumps are decoupled into structured Capsule Memory on disk (`.capsules/`).",
-    "Query detailed runtime information on demand using the following Harness CLI commands:",
-    `- Inspect task status & review history: \`bun harness.ts report:task --run .capsules/${runId}${taskFlag}\``,
-    `- Stream event timeline: \`bun harness.ts stream:events --run .capsules/${runId}\``,
-    `- Inspect DAG topology & waves: \`bun harness.ts dag:view --run .capsules/${runId}\``,
-    `- Verify gate falsifiability (AGP): \`bun harness.ts gate:prove --run .capsules/${runId}${taskFlag}\``,
-    `- Query errors & remedies: \`bun harness.ts explain <ERROR_CODE>\``,
-    `- Check run health & diagnostics: \`bun harness.ts doctor --run .capsules/${runId}\``,
-    `- Retrieve recorded evidence artifacts: \`bun harness.ts evidence:get --run .capsules/${runId} --evidence <ID>\``,
-  ].join("\n");
-}
-
 function roleContext(input: PacketInput): JsonObject {
   if (VALIDATION_ROLES.has(input.role)) return isolateValidatorContext(input.authoritativeContext);
   if (input.role === "completeness-critic") return criticContext(input);
@@ -169,12 +152,7 @@ export function buildPacket(input: PacketInput): BuiltPacket {
   const common = verifyCommonInstructions(input.commonInstructions);
   const taskId = input.task?.id ?? input.subTask?.id ?? null;
   const requirementIds = input.task?.requirement_ids ?? [];
-  const mappedRequirements = input.state.requirements.filter((requirement) =>
-    requirementIds.includes(requirement.id),
-  );
-  const mapped = VALIDATION_ROLES.has(input.role)
-    ? mappedRequirements.map((requirement) => excludeValidatorContamination(requirement))
-    : mappedRequirements.map((requirement) => sanitizeLeanContext(requirement));
+
   const metadata: JsonObject = {
     schema: "harness.packet",
     version: 1,
@@ -203,28 +181,23 @@ export function buildPacket(input: PacketInput): BuiltPacket {
         }
       : {}),
   };
-  const { [VALIDATION_ROUND_KEY]: validationRound, ...rawRemainingContext } = context;
-  const remainingContext = isUiTaskPacket(input)
-    ? rawRemainingContext
-    : pruneNonUiPayload(rawRemainingContext, false);
+
+  const anchors = taskContract(input);
+  const targetedCommands = input.targetedCommands ?? [];
+
   const sections = [
     `# ${input.role} packet`,
     section(
       "Identity",
       `Run: ${input.runId}\nTask: ${taskId ?? "none - run-level packet"}\nAttempt: ${input.attempt}`,
     ),
-    section("Responsibility checklist", responsibilityChecklist(input.role)),
-    section("Capsule memory on disk", capsuleMemoryGuidance(input.runId, taskId)),
-    section("Role contract", roleContract.text),
-    jsonSection("Task contract", taskContract(input)),
-    jsonSection("Mapped requirements", mapped),
-    jsonSection("Allowed scope", allowedScope(input)),
-    jsonSection("Expected evidence schema", input.evidenceSchema),
-    jsonSection("Targeted commands", input.targetedCommands),
-    jsonSection("Authoritative context", remainingContext),
-    ...(isJsonObject(validationRound) ? [renderValidationRound(validationRound)] : []),
+    jsonSection("Disjoint Write Scope", allowedScope(input).write_scope),
+    ...(anchors ? [jsonSection("Action Anchors", anchors)] : []),
+    jsonSection("Allowed Commands", targetedCommands),
+    section("Actionable Task Checklist", responsibilityChecklist(input.role)),
   ].join("\n");
-  const markdown = `${sections}\n## Common instructions\n\n${common.text}`;
+
+  const markdown = sections;
   metadata.packet_sha256 = createHash("sha256").update(markdown).digest("hex");
   return { markdown, metadata };
 }

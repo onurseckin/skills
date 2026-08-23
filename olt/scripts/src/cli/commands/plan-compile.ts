@@ -1,8 +1,10 @@
-import { basename, resolve } from "node:path";
+import { basename, resolve, join } from "node:path";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { getHarnessConfig } from "../../core/config/harness-config.ts";
 import type { JsonValue } from "../../core/contracts/json.ts";
 import { HarnessError } from "../../core/errors/harness-error.ts";
-import { compileGraphDocument } from "../../graph/compiler.ts";
+import { compileGraphDocument, compilePlanMarkdown } from "../../graph/compiler.ts";
+import { executeDagViewCommand } from "./dag-view.ts";
 import { advisoryFindings, blockingFindings } from "../../graph/plan-audit.ts";
 import { projectPlan } from "../../graph/project-plan.ts";
 import { guardPlanRevision } from "../../graph/revision-guard.ts";
@@ -159,6 +161,26 @@ export function planCompileCommand(flags: Flags): Record<string, unknown> {
     auditAccepted: acceptances,
     auditNotEvaluated: auditResult.not_evaluated.map((n) => n.reason),
   });
+
+  const planningDir = join(run, "planning");
+  mkdirSync(planningDir, { recursive: true });
+
+  const planMd = compilePlanMarkdown(buffer, requirementsDocument);
+  writeFileSync(join(planningDir, "plan.md"), planMd, "utf-8");
+
+  const dagReport = executeDagViewCommand(["--run", run]);
+  writeFileSync(join(planningDir, "dag.txt"), dagReport.ascii_dag, "utf-8");
+
+  const reqLines = (
+    Array.isArray(requirementsDocument.requirements) ? requirementsDocument.requirements : []
+  )
+    .map((r) => JSON.stringify(r))
+    .join("\n");
+  writeFileSync(
+    join(planningDir, "requirements.jsonl"),
+    reqLines + (reqLines ? "\n" : ""),
+    "utf-8",
+  );
 
   return {
     markdown,

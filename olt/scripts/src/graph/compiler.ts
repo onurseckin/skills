@@ -117,3 +117,34 @@ export function compileGraphDocument(
 
   return { graphDocument };
 }
+
+export function compilePlanMarkdown(
+  tasks: readonly TaskDeclaration[],
+  requirementsDocument: Record<string, unknown>,
+): string {
+  const lines: string[] = ["# Implementation Plan\n"];
+
+  lines.push("## Objectives & Requirements");
+  const reqs = Array.isArray(requirementsDocument.requirements)
+    ? (requirementsDocument.requirements as Record<string, unknown>[])
+    : [];
+  for (const r of reqs) {
+    lines.push(`- **${String(r.id)}**: ${String(r.instruction)}`);
+  }
+  lines.push("");
+
+  lines.push("## Tasks & Scopes");
+  for (const t of tasks) {
+    lines.push(`### ${t.id}: ${t.label}`);
+    lines.push(`- **Dependencies**: ${t.deps && t.deps.length > 0 ? t.deps.join(", ") : "None"}`);
+    lines.push(`- **Write Scope**:`);
+    for (const scope of t.writeScope) {
+      lines.push(`  - \`${scope}\``);
+    }
+    const gateStr = typeof t.gate === "string" ? t.gate : t.gate.join(" ");
+    lines.push(`- **Gate**: \`${gateStr}\``);
+    lines.push("");
+  }
+
+  return lines.join("\n");
+}
