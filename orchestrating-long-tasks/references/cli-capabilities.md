@@ -2591,70 +2591,132 @@ Performs generational rotation, carrying forward charter pin and declined candid
 bun harness.ts mind:rotate --run .capsules/mind-gen-1 --next-run .capsules/mind-gen-2 --actor coordinator-1
 ```
 
-### `feedback:list`
+### `mind:queue:list`
 
-List, search, and inspect items in .capsules/FEEDBACK_QUEUE.jsonl.
+List, search, and inspect items in .capsules/mind/queue/feedback-queue.jsonl.
 
 Queries the persistent file-backed feedback queue, returning priority-ranked items and status statistics.
 
-- **Aliases**: `feedback:query`, `feedback:status`
+- **Aliases**: `todo:list`, `feedback:list`, `feedback:query`, `feedback:status`
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
 | Flag | Type | Required | Repeatable | Default | Description |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `--queue-file` | string | no | no | - | Custom path to FEEDBACK_QUEUE.jsonl. |
+| `--queue-file` | string | no | no | - | Custom path to feedback-queue.jsonl. |
+| `--queue-path` | string | no | no | - | Alias for --queue-file. |
 | `--status` | string | no | no | - | Filter by status: PENDING, ADMITTED, PROCESSED, COMPLETED, DECLINED. |
 | `--category` | string | no | no | - | Filter by category: DOCUMENTATION, AGENT_CONTRACTS, CLI_TOOLING, etc. |
-| `--limit` | int | no | no | - | Maximum number of items to return (default: 20). |
+| `--priority` | string | no | no | - | Filter by priority: CRITICAL_USER_FEEDBACK, HIGH_ARCHITECTURAL_FEATURE, etc. |
+| `--limit` | int | no | no | `20` | Maximum number of items to return (default: 20). |
+| `--all` | bool | no | no | - | Display all matching items without truncation limit. |
+| `--format` | string | no | no | - | Output format: markdown or json. |
 
 ```bash
-bun harness.ts feedback:list
-bun harness.ts feedback:list --status PENDING --limit 10
+bun harness.ts mind:queue:list
+bun harness.ts todo:list --status PENDING --all
+bun harness.ts todo:list --category ARCHITECTURE
 ```
 
-### `feedback:ingest`
+### `mind:queue:add`
 
 Ingest a new user feedback or architectural directive into the queue.
 
-Appends a structured feedback item to .capsules/FEEDBACK_QUEUE.jsonl for autonomous Mind intake.
+Appends a structured feedback/todo item to .capsules/mind/queue/feedback-queue.jsonl for autonomous Mind intake.
 
-- **Aliases**: `feedback:add`
+- **Aliases**: `todo:add`, `feedback:ingest`, `feedback:add`
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
 | Flag | Type | Required | Repeatable | Default | Description |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `--id` | string | yes | no | - | Unique feedback item identifier. |
 | `--title` | string | yes | no | - | Human-readable summary title. |
 | `--content` | string | yes | no | - | Detailed feedback or directive content. |
+| `--id` | string | no | no | - | Unique feedback item identifier. |
 | `--priority` | string | no | no | - | Priority: CRITICAL_USER_FEEDBACK, HIGH_ARCHITECTURAL_FEATURE, USER_DIRECTIVE, NORMAL, LOW. |
-| `--category` | string | no | no | - | Category: DOCUMENTATION, AGENT_CONTRACTS, CLI_TOOLING, WATCHDOG, SCALING, ARCHITECTURE, CORE_ENGINE. |
-| `--queue-file` | string | no | no | - | Custom path to FEEDBACK_QUEUE.jsonl. |
+| `--category` | string | no | no | - | Category: DOCUMENTATION, AGENT_CONTRACTS, CLI_TOOLING, WATCHDOG, SCALING, ARCHITECTURE, CORE_ENGINE, REPAIR, GENERAL. |
+| `--queue-file` | string | no | no | - | Custom path to feedback-queue.jsonl. |
+| `--queue-path` | string | no | no | - | Alias for --queue-file. |
 
 ```bash
-bun harness.ts feedback:ingest --id fb-08 --title 'New Feature' --content 'Implement streaming UI' --priority HIGH_ARCHITECTURAL_FEATURE
+bun harness.ts mind:queue:add --title 'New Feature' --content 'Implement streaming UI' --priority HIGH_ARCHITECTURAL_FEATURE
+bun harness.ts todo:add --title 'Fix edge case' --content 'Address empty array handling' --category REPAIR
 ```
 
-### `feedback:drain`
+### `mind:queue:drain`
 
-Drain and mark pending feedback items as processed or admitted.
+Drain and mark pending items in FIFO order for execution.
 
-Selects pending items from FEEDBACK_QUEUE.jsonl and transitions their status.
+Extracts next available item in FIFO order from feedback-queue.jsonl and transitions its status.
 
-- **Aliases**: `feedback:pop`
+- **Aliases**: `todo:drain`, `feedback:drain`, `feedback:pop`
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
 | Flag | Type | Required | Repeatable | Default | Description |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `--mark-as` | string | no | no | - | Status to transition to: PROCESSED, ADMITTED, DECLINED, COMPLETED (default: PROCESSED). |
-| `--limit` | int | no | no | - | Maximum items to drain. |
+| `--limit` | int | no | no | `1` | Maximum items to drain (default: 1). |
 | `--category` | string | no | no | - | Filter category to drain. |
-| `--queue-file` | string | no | no | - | Custom path to FEEDBACK_QUEUE.jsonl. |
+| `--priority` | string | no | no | - | Filter priority to drain. |
+| `--queue-file` | string | no | no | - | Custom path to feedback-queue.jsonl. |
+| `--queue-path` | string | no | no | - | Alias for --queue-file. |
 
 ```bash
-bun harness.ts feedback:drain --mark-as ADMITTED --limit 5
+bun harness.ts mind:queue:drain
+bun harness.ts todo:drain --limit 1 --mark-as ADMITTED
+```
+
+### `mind:queue:seal`
+
+Seal an item in the queue with resolution proof and verification metadata.
+
+Records resolution notes and optional empirical proof (commit sha, test paths) for a completed queue item.
+
+- **Aliases**: `todo:seal`
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--id` | string | yes | no | - | Item ID to seal. |
+| `--resolution` | string | yes | no | - | Resolution note or proof summary. |
+| `--commit` | string | no | no | - | Commit SHA associated with the fix. |
+| `--commit-sha` | string | no | no | - | Alias for --commit. |
+| `--test-path` | string | no | no | - | Path to verification test. |
+| `--assertions` | string | no | no | - | Assertion count or summary. |
+| `--runtime-ms` | int | no | no | - | Test runtime in milliseconds. |
+| `--queue-file` | string | no | no | - | Custom path to feedback-queue.jsonl. |
+| `--queue-path` | string | no | no | - | Alias for --queue-file. |
+| `--require-commit-sha` | bool | no | no | - | Require commit SHA to be present and >= 7 chars. |
+| `--require-test-path` | bool | no | no | - | Require test path to be present. |
+
+```bash
+bun harness.ts mind:queue:seal --id fb-123 --resolution 'Fixed broken parser' --commit a1b2c3d
+bun harness.ts todo:seal --id fb-123 --resolution 'Implemented CLI command' --test-path tests/cli.test.ts
+```
+
+### `mind:queue:clean`
+
+Prune resolved items from the queue into completed archives ledger.
+
+Archives completed and declined items from feedback-queue.jsonl into completed-tasks.jsonl ledger.
+
+- **Aliases**: `todo:clean`
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--queue-file` | string | no | no | - | Custom path to feedback-queue.jsonl. |
+| `--queue-path` | string | no | no | - | Alias for --queue-file. |
+| `--archive-file` | string | no | no | - | Custom path to completed-tasks.jsonl ledger. |
+| `--completed-file` | string | no | no | - | Alias for --archive-file. |
+| `--dry-run` | bool | no | no | - | Simulate clean without writing changes to files. |
+
+```bash
+bun harness.ts mind:queue:clean
+bun harness.ts todo:clean --dry-run
 ```
 
 ### `smart-task:plan`

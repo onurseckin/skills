@@ -1,13 +1,18 @@
 import { describe, expect, it } from "bun:test";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import {
   formatCompletedTasksBrief,
   getCompletedTasksStats,
+  migrateCompletedTasksLedger,
   readCompletedTasksLedger,
   recordCompletedTask,
   recordCompletedTasksBatch,
   resolveBlundersPath,
+  resolveCanonicalBlundersPath,
+  resolveCanonicalCompletedBlundersPath,
+  resolveCanonicalCompletedTasksPath,
+  resolveCanonicalObservationsPath,
   resolveCompletedTasksLedgerPath,
   validateCompletedTaskRecord,
   validateCompletedTaskSource,
@@ -15,6 +20,11 @@ import {
   writeCompletedTasksLedger,
   type CompletedTaskRecord,
 } from "../../../orchestrating-long-tasks/scripts/src/mind/completed-tasks.ts";
+import {
+  popNextEligibleTaskWithCleanup,
+  readTaskQueue,
+  writeTaskQueue,
+} from "../../../orchestrating-long-tasks/scripts/src/mind/task-queue.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("Completed Tasks Ledger Engine", () => {
@@ -50,6 +60,54 @@ describe("Completed Tasks Ledger Engine", () => {
     const blunderResolved = resolveBlundersPath();
     expect(typeof blunderResolved).toBe("string");
     expect(blunderResolved.endsWith(".capsules/blunders.jsonl")).toBe(true);
+
+    const canonicalTasks = resolveCanonicalCompletedTasksPath("/tmp/test");
+    expect(canonicalTasks).toBe("/tmp/test/.capsules/mind/queue/completed-tasks.jsonl");
+    const todoTasks = resolveCanonicalCompletedTasksPath("/tmp/test", true);
+    expect(todoTasks).toBe("/tmp/test/.capsules/todo/completed-tasks.jsonl");
+
+    const canonicalBlunders = resolveCanonicalBlundersPath("/tmp/test");
+    expect(canonicalBlunders).toBe("/tmp/test/.capsules/mind/queue/blunders.jsonl");
+    const todoBlunders = resolveCanonicalBlundersPath("/tmp/test", true);
+    expect(todoBlunders).toBe("/tmp/test/.capsules/todo/blunders.jsonl");
+
+    const canonicalCompletedBlunders = resolveCanonicalCompletedBlundersPath("/tmp/test");
+    expect(canonicalCompletedBlunders).toBe(
+      "/tmp/test/.capsules/mind/queue/completed-blunders.jsonl",
+    );
+    const todoCompletedBlunders = resolveCanonicalCompletedBlundersPath("/tmp/test", true);
+    expect(todoCompletedBlunders).toBe("/tmp/test/.capsules/todo/completed-blunders.jsonl");
+
+    const canonicalObs = resolveCanonicalObservationsPath("/tmp/test");
+    expect(canonicalObs).toBe("/tmp/test/.capsules/mind/queue/observations.jsonl");
+    const todoObs = resolveCanonicalObservationsPath("/tmp/test", true);
+    expect(todoObs).toBe("/tmp/test/.capsules/todo/observations.jsonl");
+  });
+
+  it("migrates completed tasks ledger from legacy path to canonical path", () => {
+    const legacyPath = join(testDir, "legacy-COMPLETED_TASKS.jsonl");
+    const canonicalPath = join(testDir, "canonical-completed-tasks.jsonl");
+
+    const sampleRecord: CompletedTaskRecord = {
+      id: "task-migrated-01",
+      source: "task_queue",
+      title: "Migrated completed task",
+      status: "COMPLETED",
+      proof_summary: "Validated migration",
+      completed_at: "2026-08-22T02:00:00.000Z",
+    };
+    writeCompletedTasksLedger([sampleRecord], legacyPath);
+
+    const migRes = migrateCompletedTasksLedger({
+      sourcePath: legacyPath,
+      targetPath: canonicalPath,
+    });
+    expect(migRes.migrated).toBe(true);
+    expect(migRes.count).toBe(1);
+
+    const canonicalItems = readCompletedTasksLedger(canonicalPath);
+    expect(canonicalItems).toHaveLength(1);
+    expect(canonicalItems[0]?.id).toBe("task-migrated-01");
   });
 
   it("returns empty array when ledger file does not exist", () => {
@@ -536,6 +594,47 @@ describe("Completed Tasks Ledger Engine", () => {
     const truncatedBrief = formatCompletedTasksBrief(records, 5);
     expect(truncatedBrief.split("\n").length).toBeLessThanOrEqual(5);
     expect(truncatedBrief).toContain("truncated");
+  });
+
+  it("pops next eligible task and atomically cleans up completed items via popNextEligibleTaskWithCleanup", () => {
+    setup();
+    const queueFile = join(testDir, "test-task-queue.jsonl");
+    const testLedger = join(testDir, "test-completed-archive.jsonl");
+
+    writeTaskQueue(
+      [
+        {
+          id: "task-done-1",
+          title: "Finished Task",
+          status: "COMPLETED",
+          completed_at: "2026-08-22T01:00:00.000Z",
+          dependencies: [],
+          attempts: 0,
+        },
+        {
+          id: "task-ready-2",
+          title: "Pending Ready Task",
+          status: "PENDING",
+          dependencies: [],
+          attempts: 0,
+        },
+      ],
+      queueFile,
+    );
+
+    const popResult = popNextEligibleTaskWithCleanup({
+      agentId: "test-agent",
+      customPath: queueFile,
+      completedTasksPath: testLedger,
+    });
+
+    expect(popResult).not.toBeNull();
+    expect(popResult?.task.id).toBe("task-ready-2");
+    expect(popResult?.prunedCount).toBe(1);
+
+    const remaining = readTaskQueue(queueFile);
+    expect(remaining.some((t) => t.id === "task-done-1")).toBe(false);
+    teardown();
   });
 });
 

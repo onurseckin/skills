@@ -594,6 +594,48 @@ export function resolveBlunder(
   };
 }
 
+export const CANONICAL_BLUNDERS_FILE = ".capsules/mind/queue/blunders.jsonl";
+export const TODO_BLUNDERS_FILE = ".capsules/todo/blunders.jsonl";
+export const LEGACY_BLUNDERS_FILE = ".capsules/blunders.jsonl";
+export const LEGACY_UPPER_BLUNDERS_FILE = ".capsules/BLUNDERS.jsonl";
+export const CANONICAL_COMPLETED_BLUNDERS_FILE = ".capsules/mind/queue/completed-blunders.jsonl";
+export const TODO_COMPLETED_BLUNDERS_FILE = ".capsules/todo/completed-blunders.jsonl";
+export const LEGACY_COMPLETED_BLUNDERS_FILE = ".capsules/COMPLETED_BLUNDERS.jsonl";
+
+export function resolveCanonicalBlunderLogPath(customRoot?: string, useTodo = false): string {
+  const root = customRoot && customRoot.trim() ? resolve(customRoot.trim()) : process.cwd();
+  const relPath = useTodo ? TODO_BLUNDERS_FILE : CANONICAL_BLUNDERS_FILE;
+  return join(root, relPath);
+}
+
+export function resolveBlunderLogPath(customPath?: string): string {
+  if (customPath && customPath.trim()) {
+    const trimmed = customPath.trim();
+    return resolve(trimmed);
+  }
+  const cwd = process.cwd();
+  const candidates = [cwd, join(cwd, "..")];
+
+  for (const root of candidates) {
+    const canonical = join(root, CANONICAL_BLUNDERS_FILE);
+    if (existsSync(canonical)) return canonical;
+
+    const todo = join(root, TODO_BLUNDERS_FILE);
+    if (existsSync(todo)) return todo;
+
+    const legacy = join(root, LEGACY_BLUNDERS_FILE);
+    if (existsSync(legacy)) return legacy;
+
+    const legacyUpper = join(root, LEGACY_UPPER_BLUNDERS_FILE);
+    if (existsSync(legacyUpper)) return legacyUpper;
+  }
+
+  if (existsSync(join(cwd, ".capsules"))) {
+    return join(cwd, LEGACY_BLUNDERS_FILE);
+  }
+  return resolve(cwd, LEGACY_BLUNDERS_FILE);
+}
+
 function findBlunderFiles(targetPath: string): string[] {
   const found: string[] = [];
   if (!existsSync(targetPath)) {
@@ -609,14 +651,22 @@ function findBlunderFiles(targetPath: string): string[] {
       return found;
     }
 
-    const directBlunders = join(targetPath, "blunders.jsonl");
-    if (existsSync(directBlunders)) {
-      found.push(directBlunders);
-    }
+    const checkCandidates = [
+      join(targetPath, ".capsules", "mind", "queue", "blunders.jsonl"),
+      join(targetPath, ".capsules", "todo", "blunders.jsonl"),
+      join(targetPath, ".capsules", "blunders.jsonl"),
+      join(targetPath, ".capsules", "BLUNDERS.jsonl"),
+      join(targetPath, "mind", "queue", "blunders.jsonl"),
+      join(targetPath, "todo", "blunders.jsonl"),
+      join(targetPath, "blunders.jsonl"),
+      join(targetPath, "BLUNDERS.jsonl"),
+    ];
 
-    const capsuleBlunders = join(targetPath, ".capsules", "blunders.jsonl");
-    if (existsSync(capsuleBlunders) && !found.includes(capsuleBlunders)) {
-      found.push(capsuleBlunders);
+    for (let i = 0; i < checkCandidates.length; i += 1) {
+      const cand = checkCandidates[i];
+      if (cand !== undefined && existsSync(cand) && !found.includes(cand)) {
+        found.push(cand);
+      }
     }
 
     const entries = readdirSync(targetPath);
@@ -627,9 +677,20 @@ function findBlunderFiles(targetPath: string): string[] {
         try {
           const subStats = lstatSync(subPath);
           if (subStats.isDirectory()) {
-            const subBlunders = join(subPath, "blunders.jsonl");
-            if (existsSync(subBlunders) && !found.includes(subBlunders)) {
-              found.push(subBlunders);
+            const subCandidates = [
+              join(subPath, "blunders.jsonl"),
+              join(subPath, "BLUNDERS.jsonl"),
+              join(subPath, ".capsules", "mind", "queue", "blunders.jsonl"),
+              join(subPath, ".capsules", "todo", "blunders.jsonl"),
+              join(subPath, ".capsules", "blunders.jsonl"),
+              join(subPath, "mind", "queue", "blunders.jsonl"),
+              join(subPath, "todo", "blunders.jsonl"),
+            ];
+            for (let j = 0; j < subCandidates.length; j += 1) {
+              const subCand = subCandidates[j];
+              if (subCand !== undefined && existsSync(subCand) && !found.includes(subCand)) {
+                found.push(subCand);
+              }
             }
           }
         } catch {

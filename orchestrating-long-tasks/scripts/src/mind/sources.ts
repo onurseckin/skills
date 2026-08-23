@@ -462,3 +462,46 @@ export function validateQuiescentSources(
     reason,
   };
 }
+
+export const CANONICAL_OBSERVATIONS_FILE = ".capsules/mind/queue/observations.jsonl";
+export const TODO_OBSERVATIONS_FILE = ".capsules/todo/observations.jsonl";
+export const LEGACY_OBSERVATIONS_FILE = ".capsules/OBSERVATIONS.jsonl";
+export const LEGACY_LOWER_OBSERVATIONS_FILE = ".capsules/observations.jsonl";
+
+export function resolveCanonicalObservationsPath(customRoot?: string, useTodo = false): string {
+  const root = customRoot && customRoot.trim() ? customRoot.trim() : process.cwd();
+  const relPath = useTodo ? TODO_OBSERVATIONS_FILE : CANONICAL_OBSERVATIONS_FILE;
+  return join(root, relPath);
+}
+
+export function resolveObservationsPath(customPath?: string): string {
+  if (customPath && customPath.trim()) {
+    const trimmed = customPath.trim();
+    return trimmed;
+  }
+  const cwd = process.cwd();
+  const candidates = [cwd, dirname(cwd)];
+
+  for (const root of candidates) {
+    const canonical = join(root, CANONICAL_OBSERVATIONS_FILE);
+    if (existsSync(canonical)) return canonical;
+
+    const todo = join(root, TODO_OBSERVATIONS_FILE);
+    if (existsSync(todo)) return todo;
+
+    const legacy = join(root, LEGACY_OBSERVATIONS_FILE);
+    if (existsSync(legacy)) return legacy;
+
+    const legacyLower = join(root, LEGACY_LOWER_OBSERVATIONS_FILE);
+    if (existsSync(legacyLower)) return legacyLower;
+  }
+
+  if (existsSync(join(cwd, ".capsules"))) {
+    return join(cwd, CANONICAL_OBSERVATIONS_FILE);
+  }
+  const parentCapsules = join(dirname(cwd), ".capsules");
+  if (existsSync(parentCapsules)) {
+    return join(dirname(cwd), CANONICAL_OBSERVATIONS_FILE);
+  }
+  return join(cwd, CANONICAL_OBSERVATIONS_FILE);
+}

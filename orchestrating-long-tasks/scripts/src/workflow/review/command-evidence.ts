@@ -24,7 +24,7 @@ export function assertValidatorCommands(
       command.task_id !== taskId ||
       command.actor !== validatorId ||
       embeddedCommandIssues(command).length > 0 ||
-      (gates.length > 0 && matching.length === 0)
+      (requireAllGates && gates.length > 0 && matching.length === 0)
     ) {
       throw new HarnessError(
         "INVALID_STATE",

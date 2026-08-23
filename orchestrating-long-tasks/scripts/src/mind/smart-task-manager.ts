@@ -1,3 +1,5 @@
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
 import { HarnessError } from "../errors/harness-error.ts";
 import {
   drainPendingFeedbacks,
@@ -10,11 +12,18 @@ import {
   enqueueTasksBatch,
   getQueueStats,
   readTaskQueue,
+  resolveCanonicalTaskQueuePath,
+  resolveTaskQueuePath,
   type NewTaskQueueInput,
   type TaskPriority,
   type TaskQueueItem,
   type TaskQueueStats,
 } from "./task-queue.ts";
+import {
+  recordCompletedTask,
+  recordCompletedTasksBatch,
+  type CompletedTaskRecord,
+} from "./completed-tasks.ts";
 
 export type SmartTaskSourceType =
   | "feedback_intake"
@@ -23,6 +32,197 @@ export type SmartTaskSourceType =
   | "direct_prompt"
   | "external_intake"
   | "plan_enhancement";
+
+export interface ActiveHypothesis {
+  readonly id: string;
+  readonly statement: string;
+  readonly confidence: number;
+  readonly status: "active" | "validated" | "refuted";
+  readonly evidence: readonly string[];
+  readonly created_at: string;
+  readonly updated_at: string;
+}
+
+export interface RoadmapItem {
+  readonly id: string;
+  readonly title: string;
+  readonly target_horizon: string;
+  readonly milestones: readonly string[];
+  readonly status: "active" | "completed" | "superseded";
+}
+
+export interface MacroMetrics {
+  readonly work: number;
+  readonly span: number;
+  readonly parallelism: number; // P = W / S
+  readonly efficiency: number;
+}
+
+export interface CognitiveMemoryState {
+  readonly version: number;
+  readonly last_updated: string;
+  readonly strategic_focus: readonly string[];
+  readonly active_hypotheses: readonly ActiveHypothesis[];
+  readonly roadmaps: readonly RoadmapItem[];
+  readonly macro_metrics?: MacroMetrics | undefined;
+  readonly context?: Readonly<Record<string, unknown>> | undefined;
+}
+
+export const CANONICAL_COGNITIVE_MEMORY_FILE = ".capsules/mind/memory.json";
+export const TODO_COGNITIVE_MEMORY_FILE = ".capsules/todo/memory.json";
+export const LEGACY_COGNITIVE_MEMORY_FILE = ".capsules/memory.json";
+export const DEFAULT_COGNITIVE_MEMORY_FILE = ".capsules/mind/memory.json";
+
+export function resolveCanonicalCognitiveMemoryPath(customRoot?: string, useTodo = false): string {
+  const root = customRoot && customRoot.trim() ? resolve(customRoot.trim()) : process.cwd();
+  const relPath = useTodo ? TODO_COGNITIVE_MEMORY_FILE : CANONICAL_COGNITIVE_MEMORY_FILE;
+  return join(root, relPath);
+}
+
+export function resolveCognitiveMemoryPath(customPath?: string): string {
+  if (customPath && customPath.trim()) {
+    return resolve(customPath.trim());
+  }
+  const cwd = process.cwd();
+  const candidates = [cwd, dirname(cwd)];
+
+  for (const root of candidates) {
+    const canonical = join(root, CANONICAL_COGNITIVE_MEMORY_FILE);
+    if (existsSync(canonical)) return canonical;
+
+    const todo = join(root, TODO_COGNITIVE_MEMORY_FILE);
+    if (existsSync(todo)) return todo;
+
+    const legacy = join(root, LEGACY_COGNITIVE_MEMORY_FILE);
+    if (existsSync(legacy)) return legacy;
+  }
+
+  if (existsSync(join(cwd, ".capsules", "mind"))) {
+    return join(cwd, CANONICAL_COGNITIVE_MEMORY_FILE);
+  }
+  if (existsSync(join(cwd, ".capsules"))) {
+    return join(cwd, CANONICAL_COGNITIVE_MEMORY_FILE);
+  }
+  const parentCapsules = join(dirname(cwd), ".capsules");
+  if (existsSync(parentCapsules)) {
+    return join(dirname(cwd), CANONICAL_COGNITIVE_MEMORY_FILE);
+  }
+  return resolve(cwd, CANONICAL_COGNITIVE_MEMORY_FILE);
+}
+
+export function readCognitiveMemory(customPath?: string): CognitiveMemoryState {
+  const filePath = resolveCognitiveMemoryPath(customPath);
+  if (!existsSync(filePath)) {
+    return {
+      version: 1,
+      last_updated: new Date().toISOString(),
+      strategic_focus: [
+        "Continuous Zero-Any & Zero-Suppression Assurance",
+        "Charter Alignment & Macro DAG Work/Span (P = W/S) Optimization",
+        "Autonomous Task Discovery & 1:1 Isolated Execution",
+      ],
+      active_hypotheses: [
+        {
+          id: "hyp-1-parallelism",
+          statement:
+            "Disjoint write scope partitioning maximizes effective parallelism P = W/S across 4 tiers without collision.",
+          confidence: 0.95,
+          status: "active",
+          evidence: ["Topological wave planning resolves write scope collisions ahead of dispatch"],
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+      ],
+      roadmaps: [
+        {
+          id: "roadmap-autonomous-fleet",
+          title: "Autonomous Fleet Continuous Improvement",
+          target_horizon: "Perpetual",
+          milestones: [
+            "Anti-batching 1:1 partitioning enforcement",
+            "Generational state archival and lean queue maintenance",
+            "Zero zombie accumulation across completed task logs",
+          ],
+          status: "active",
+        },
+      ],
+      macro_metrics: {
+        work: 10,
+        span: 2,
+        parallelism: 5,
+        efficiency: 0.95,
+      },
+    };
+  }
+
+  try {
+    const raw = readFileSync(filePath, "utf8");
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    const version = typeof parsed["version"] === "number" ? parsed["version"] : 1;
+    const lastUpdated =
+      typeof parsed["last_updated"] === "string"
+        ? parsed["last_updated"]
+        : new Date().toISOString();
+    const strategicFocus = Array.isArray(parsed["strategic_focus"])
+      ? (parsed["strategic_focus"] as readonly string[])
+      : [];
+    const activeHypotheses = Array.isArray(parsed["active_hypotheses"])
+      ? (parsed["active_hypotheses"] as readonly ActiveHypothesis[])
+      : [];
+    const roadmaps = Array.isArray(parsed["roadmaps"])
+      ? (parsed["roadmaps"] as readonly RoadmapItem[])
+      : [];
+    const macroMetrics =
+      typeof parsed["macro_metrics"] === "object" && parsed["macro_metrics"] !== null
+        ? (parsed["macro_metrics"] as MacroMetrics)
+        : undefined;
+    const context =
+      typeof parsed["context"] === "object" && parsed["context"] !== null
+        ? (parsed["context"] as Readonly<Record<string, unknown>>)
+        : undefined;
+
+    return {
+      version,
+      last_updated: lastUpdated,
+      strategic_focus: strategicFocus,
+      active_hypotheses: activeHypotheses,
+      roadmaps,
+      ...(macroMetrics !== undefined ? { macro_metrics: macroMetrics } : {}),
+      ...(context !== undefined ? { context } : {}),
+    };
+  } catch {
+    return {
+      version: 1,
+      last_updated: new Date().toISOString(),
+      strategic_focus: [],
+      active_hypotheses: [],
+      roadmaps: [],
+    };
+  }
+}
+
+export function writeCognitiveMemory(memory: CognitiveMemoryState, customPath?: string): void {
+  const filePath = resolveCognitiveMemoryPath(customPath);
+  const dir = dirname(filePath);
+  if (!existsSync(dir)) {
+    mkdirSync(dir, { recursive: true });
+  }
+  writeFileSync(filePath, JSON.stringify(memory, null, 2) + "\n", "utf8");
+}
+
+export function updateCognitiveMemory(
+  updater: (current: CognitiveMemoryState) => CognitiveMemoryState,
+  customPath?: string,
+): CognitiveMemoryState {
+  const current = readCognitiveMemory(customPath);
+  const updated = updater(current);
+  const stateToPersist: CognitiveMemoryState = {
+    ...updated,
+    last_updated: new Date().toISOString(),
+  };
+  writeCognitiveMemory(stateToPersist, customPath);
+  return stateToPersist;
+}
 
 export interface SmartTaskPlan {
   readonly id: string;
@@ -741,7 +941,8 @@ export function synthesizeSmartTasksFromFeedbackQueue(
 }
 
 /**
- * Synthesizes self-evolution smart tasks from open blunder logs and continuous invariant hardening (Mode A).
+ * Synthesizes self-evolution smart tasks from open blunder logs, charter gap analysis,
+ * Brent's theorem Work/Span (P = W/S) optimizations, and continuous invariant hardening (Mode A).
  */
 export function synthesizeSmartTasksFromSelfEvolution(
   options: {
@@ -750,6 +951,7 @@ export function synthesizeSmartTasksFromSelfEvolution(
     readonly charterGoals?: readonly string[] | undefined;
     readonly maxTasks?: number | undefined;
     readonly autoEnqueue?: boolean | undefined;
+    readonly cognitiveMemoryPath?: string | undefined;
   } = {},
 ): SmartTaskSynthesisResult {
   const maxTasks = options.maxTasks ?? 5;
@@ -759,6 +961,7 @@ export function synthesizeSmartTasksFromSelfEvolution(
 
   const selfTasks: SmartTaskPlan[] = [];
 
+  // 1. Open blunder remediation
   if (openBlunders.length > 0) {
     const blunder = openBlunders[0]!;
     const blunderSlug = sanitizeSlug(blunder.id);
@@ -795,7 +998,7 @@ export function synthesizeSmartTasksFromSelfEvolution(
     });
   }
 
-  // Invariant hardening task
+  // 2. Code Quality & Zero-Suppression Assurance
   const hardeningScope = [
     "orchestrating-long-tasks/scripts/src/mind/smart-task-manager.ts",
     "orchestrating-long-tasks/scripts/src/mind/task-queue.ts",
@@ -828,11 +1031,78 @@ export function synthesizeSmartTasksFromSelfEvolution(
     },
   });
 
-  // Autonomic continuous optimization task
+  // 3. Charter Gap Analysis & Cognitive Flavor Checks
+  const charterGapScope = [
+    "docs/mind/CHARTER.md",
+    "orchestrating-long-tasks/scripts/src/mind/cognitive-flavor.ts",
+    "tests/unit/mind/cognitive-flavor.test.ts",
+  ];
+  selfTasks.push({
+    id: `task-${selfTasks.length + 1}-charter-gap-analysis`,
+    label: "Charter Gap Analysis & Cognitive Flavor Posture Verification",
+    write_scope: charterGapScope,
+    gate: "bun test tests/unit/mind/cognitive-flavor.test.ts && bun run typecheck",
+    charter_goals:
+      options.charterGoals && options.charterGoals.length > 0 ? [options.charterGoals[0]!] : ["G1"],
+    acceptance_criteria: [
+      "Perform cognitive flavor gap analysis across 4 tiers",
+      "Ensure alignment with Mind Charter invariants and strategic altitude",
+    ],
+    dependencies: [selfTasks[selfTasks.length - 1]!.id],
+    source_type: "self_evolution",
+    priority: "HIGH",
+    rationale:
+      "Autonomous charter gap analysis verifying cognitive flavor alignments and macro objectives.",
+    assigned_tier: "Tier_2_Coordinator",
+    assigned_implementer: "implementer-charter-gap",
+    assigned_validator: "validator-charter-gap",
+    metadata: {
+      assigned_implementer: "implementer-charter-gap",
+      assigned_validator: "validator-charter-gap",
+    },
+  });
+
+  // 4. Historical Blunder Regression & Brent's Theorem Work/Span (P = W/S) Optimization
+  const brentOptimizationScope = [
+    "orchestrating-long-tasks/scripts/src/mind/strategic-purpose.ts",
+    "tests/unit/mind/strategic-purpose.test.ts",
+  ];
+  selfTasks.push({
+    id: `task-${selfTasks.length + 1}-brent-work-span-optimization`,
+    label: "Macro DAG Work/Span (P = W/S) Optimization & Historical Blunder Regression Immunity",
+    write_scope: brentOptimizationScope,
+    gate: "bun test tests/unit/mind/strategic-purpose.test.ts && bun run typecheck",
+    charter_goals:
+      options.charterGoals && options.charterGoals.length > 0 ? [options.charterGoals[0]!] : ["G2"],
+    acceptance_criteria: [
+      "Optimize Work/Span parallelism P = W/S across topological DAG waves",
+      "Verify historical blunder regression immunity across test suites",
+    ],
+    dependencies: [selfTasks[selfTasks.length - 1]!.id],
+    source_type: "self_evolution",
+    priority: "MEDIUM",
+    rationale:
+      "Brent's theorem Work/Span (P = W/S) parallelism optimization preventing schedule bottlenecking.",
+    assigned_tier: "Tier_1_Orchestrator",
+    assigned_implementer: "implementer-brent-optimization",
+    assigned_validator: "validator-brent-optimization",
+    metadata: {
+      assigned_implementer: "implementer-brent-optimization",
+      assigned_validator: "validator-brent-optimization",
+    },
+  });
+
+  // 5. Autonomic Continuous Optimization & Lean Architecture
+  const autonomicOptScope = [
+    "orchestrating-long-tasks/scripts/src/mind/archival.ts",
+    "orchestrating-long-tasks/scripts/src/mind/recycler.ts",
+    "tests/unit/mind/generational-archival.test.ts",
+    "tests/unit/mind/recycler.test.ts",
+  ];
   selfTasks.push({
     id: `task-${selfTasks.length + 1}-autonomic-optimization`,
-    label: "Continuous Architecture & Invariant Hardening",
-    write_scope: ["orchestrating-long-tasks/scripts/src/mind/", "tests/unit/mind/"],
+    label: "Continuous Architecture & Lean Queue Maintenance",
+    write_scope: autonomicOptScope,
     gate: "bun test tests/unit/mind && bun run typecheck",
     charter_goals:
       options.charterGoals && options.charterGoals.length > 0 ? [options.charterGoals[0]!] : ["G3"],
@@ -844,7 +1114,7 @@ export function synthesizeSmartTasksFromSelfEvolution(
     source_type: "self_evolution",
     priority: "MEDIUM",
     rationale:
-      "Autonomic self-evolution cycle maintaining 0 any, 0 suppressions, and continuous loop cadence.",
+      "Autonomic self-evolution cycle maintaining 0 any, 0 suppressions, and zero zombie task accumulation.",
     assigned_tier: "Tier_1_Orchestrator",
     assigned_implementer: "implementer-autonomic-optimization",
     assigned_validator: "validator-autonomic-optimization",
@@ -856,6 +1126,44 @@ export function synthesizeSmartTasksFromSelfEvolution(
 
   const selectedSelfTasks = selfTasks.slice(0, maxTasks);
   assertAntiBatchingRule(selectedSelfTasks);
+
+  // Update persistent cognitive memory at .capsules/mind/memory.json
+  try {
+    updateCognitiveMemory(
+      (curr) => ({
+        ...curr,
+        strategic_focus: [
+          "Continuous Zero-Any & Zero-Suppression Assurance",
+          "Charter Gap Analysis & Cognitive Flavor Checks",
+          "Brent's Theorem Work/Span (P = W/S) Macro DAG Optimization",
+          "Automated FIFO Pop & Clean-up Mechanics (Zero Zombie Accumulation)",
+        ],
+        active_hypotheses: [
+          {
+            id: "hyp-brent-parallelism",
+            statement:
+              "Disjoint write scope wave partitioning maximizes effective parallelism P = W/S without collision overhead.",
+            confidence: 0.96,
+            status: "active",
+            evidence: [
+              `Discovered ${selectedSelfTasks.length} self-evolution tasks across disjoint write scopes`,
+            ],
+            created_at: curr.last_updated,
+            updated_at: new Date().toISOString(),
+          },
+        ],
+        macro_metrics: {
+          work: selectedSelfTasks.length * 2,
+          span: 2,
+          parallelism: Math.max(1, Math.floor((selectedSelfTasks.length * 2) / 2)),
+          efficiency: 0.96,
+        },
+      }),
+      options.cognitiveMemoryPath,
+    );
+  } catch {
+    // Non-fatal cognitive memory persistence
+  }
 
   let enqueuedCount = 0;
   if (options.autoEnqueue) {

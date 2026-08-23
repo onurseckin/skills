@@ -76,7 +76,11 @@ export interface BackpropagationRecord {
   readonly resolution?: FeedbackResolutionProof | null | undefined;
 }
 
-const DEFAULT_FEEDBACK_FILE = ".capsules/FEEDBACK_QUEUE.jsonl";
+export const CANONICAL_FEEDBACK_FILE = ".capsules/mind/queue/feedback-queue.jsonl";
+export const TODO_FEEDBACK_FILE = ".capsules/todo/feedback-queue.jsonl";
+export const LEGACY_FEEDBACK_FILE = ".capsules/FEEDBACK_QUEUE.jsonl";
+export const LEGACY_LOWER_FEEDBACK_FILE = ".capsules/feedback-queue.jsonl";
+export const DEFAULT_FEEDBACK_FILE = ".capsules/FEEDBACK_QUEUE.jsonl";
 
 export const PRIORITY_ORDER: Record<FeedbackPriority, number> = {
   CRITICAL_USER_FEEDBACK: 1,
@@ -86,11 +90,34 @@ export const PRIORITY_ORDER: Record<FeedbackPriority, number> = {
   LOW: 5,
 };
 
+export function resolveCanonicalFeedbackQueuePath(customRoot?: string, useTodo = false): string {
+  const root = customRoot && customRoot.trim() ? resolve(customRoot.trim()) : process.cwd();
+  const relPath = useTodo ? TODO_FEEDBACK_FILE : CANONICAL_FEEDBACK_FILE;
+  return join(root, relPath);
+}
+
 export function resolveFeedbackQueuePath(customPath?: string): string {
   if (customPath && customPath.trim()) {
-    return resolve(customPath.trim());
+    const trimmed = customPath.trim();
+    return resolve(trimmed);
   }
   const cwd = process.cwd();
+  const candidates = [cwd, dirname(cwd)];
+
+  for (const root of candidates) {
+    const canonical = join(root, CANONICAL_FEEDBACK_FILE);
+    if (existsSync(canonical)) return canonical;
+
+    const todo = join(root, TODO_FEEDBACK_FILE);
+    if (existsSync(todo)) return todo;
+
+    const legacy = join(root, LEGACY_FEEDBACK_FILE);
+    if (existsSync(legacy)) return legacy;
+
+    const legacyLower = join(root, LEGACY_LOWER_FEEDBACK_FILE);
+    if (existsSync(legacyLower)) return legacyLower;
+  }
+
   if (existsSync(join(cwd, ".capsules"))) {
     return join(cwd, DEFAULT_FEEDBACK_FILE);
   }
@@ -99,6 +126,28 @@ export function resolveFeedbackQueuePath(customPath?: string): string {
     return join(dirname(cwd), DEFAULT_FEEDBACK_FILE);
   }
   return resolve(cwd, DEFAULT_FEEDBACK_FILE);
+}
+
+export function migrateFeedbackQueue(options?: {
+  readonly sourcePath?: string | undefined;
+  readonly targetPath?: string | undefined;
+}): { readonly migrated: boolean; readonly count: number } {
+  const sourcePath =
+    options?.sourcePath !== undefined ? options.sourcePath : resolveFeedbackQueuePath();
+  const targetPath =
+    options?.targetPath !== undefined ? options.targetPath : resolveCanonicalFeedbackQueuePath();
+
+  if (!existsSync(sourcePath) || sourcePath === targetPath) {
+    return { migrated: false, count: 0 };
+  }
+
+  const items = readFeedbackQueue(sourcePath);
+  if (items.length === 0) {
+    return { migrated: false, count: 0 };
+  }
+
+  writeFeedbackQueue(items, targetPath);
+  return { migrated: true, count: items.length };
 }
 
 export function validateFeedbackResolutionProof(

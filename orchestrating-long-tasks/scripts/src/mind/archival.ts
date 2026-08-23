@@ -119,19 +119,58 @@ export interface PruneAndArchiveResult {
   readonly prunedBoilerplateDirectories?: readonly string[] | undefined;
 }
 
-const DEFAULT_ARCHIVED_OBJECTIVES_FILE = ".capsules/ARCHIVED_OBJECTIVES.jsonl";
+export const CANONICAL_ARCHIVED_OBJECTIVES_FILE = ".capsules/mind/queue/archived-objectives.jsonl";
+export const TODO_ARCHIVED_OBJECTIVES_FILE = ".capsules/todo/archived-objectives.jsonl";
+export const LEGACY_ARCHIVED_OBJECTIVES_FILE = ".capsules/ARCHIVED_OBJECTIVES.jsonl";
+export const LEGACY_LOWER_ARCHIVED_OBJECTIVES_FILE = ".capsules/archived-objectives.jsonl";
+export const DEFAULT_ARCHIVED_OBJECTIVES_FILE = ".capsules/ARCHIVED_OBJECTIVES.jsonl";
 
 /**
- * Resolves the path to the ARCHIVED_OBJECTIVES.jsonl ledger.
+ * Resolves the canonical path to the archived objectives ledger.
+ */
+export function resolveCanonicalArchivedObjectivesPath(
+  customRoot?: string,
+  useTodo = false,
+): string {
+  const root = customRoot && customRoot.trim() ? resolve(customRoot.trim()) : process.cwd();
+  const relPath = useTodo ? TODO_ARCHIVED_OBJECTIVES_FILE : CANONICAL_ARCHIVED_OBJECTIVES_FILE;
+  return join(root, relPath);
+}
+
+/**
+ * Resolves the path to the archived objectives ledger, supporting canonical, todo, and legacy locations.
  */
 export function resolveArchivedObjectivesPath(capsulesDir?: string, customPath?: string): string {
   if (customPath && customPath.trim()) {
     return resolve(customPath.trim());
   }
   if (capsulesDir && capsulesDir.trim()) {
-    return join(resolve(capsulesDir.trim()), "ARCHIVED_OBJECTIVES.jsonl");
+    const base = resolve(capsulesDir.trim());
+    const canonicalInCapsules = join(base, "mind", "queue", "archived-objectives.jsonl");
+    if (existsSync(canonicalInCapsules)) return canonicalInCapsules;
+    const todoInCapsules = join(base, "todo", "archived-objectives.jsonl");
+    if (existsSync(todoInCapsules)) return todoInCapsules;
+    const legacyInCapsules = join(base, "ARCHIVED_OBJECTIVES.jsonl");
+    if (existsSync(legacyInCapsules)) return legacyInCapsules;
+    return legacyInCapsules;
   }
   const cwd = process.cwd();
+  const candidates = [cwd, dirname(cwd)];
+
+  for (const root of candidates) {
+    const canonical = join(root, CANONICAL_ARCHIVED_OBJECTIVES_FILE);
+    if (existsSync(canonical)) return canonical;
+
+    const todo = join(root, TODO_ARCHIVED_OBJECTIVES_FILE);
+    if (existsSync(todo)) return todo;
+
+    const legacy = join(root, LEGACY_ARCHIVED_OBJECTIVES_FILE);
+    if (existsSync(legacy)) return legacy;
+
+    const legacyLower = join(root, LEGACY_LOWER_ARCHIVED_OBJECTIVES_FILE);
+    if (existsSync(legacyLower)) return legacyLower;
+  }
+
   if (existsSync(join(cwd, ".capsules"))) {
     return join(cwd, DEFAULT_ARCHIVED_OBJECTIVES_FILE);
   }
@@ -140,6 +179,33 @@ export function resolveArchivedObjectivesPath(capsulesDir?: string, customPath?:
     return join(dirname(cwd), DEFAULT_ARCHIVED_OBJECTIVES_FILE);
   }
   return resolve(cwd, DEFAULT_ARCHIVED_OBJECTIVES_FILE);
+}
+
+/**
+ * Migrates legacy archived objectives files to the canonical .capsules/mind/queue/ layout.
+ */
+export function migrateArchivedObjectives(options?: {
+  readonly sourcePath?: string | undefined;
+  readonly targetPath?: string | undefined;
+}): { readonly migrated: boolean; readonly count: number } {
+  const sourcePath =
+    options?.sourcePath !== undefined ? options.sourcePath : resolveArchivedObjectivesPath();
+  const targetPath =
+    options?.targetPath !== undefined
+      ? options.targetPath
+      : resolveCanonicalArchivedObjectivesPath();
+
+  if (!existsSync(sourcePath) || sourcePath === targetPath) {
+    return { migrated: false, count: 0 };
+  }
+
+  const items = readArchivedObjectives(sourcePath);
+  if (items.length === 0) {
+    return { migrated: false, count: 0 };
+  }
+
+  writeArchivedObjectives(items, targetPath);
+  return { migrated: true, count: items.length };
 }
 
 /**

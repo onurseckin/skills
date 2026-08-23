@@ -229,4 +229,21 @@ screens:
       console.log(`Screenshots: ${shotPath}`);
     });
   });
+
+  describe("cli-capabilities contracts", () => {
+    it("validates cli-capabilities.json contains standardized mind:queue commands", () => {
+      const jsonPath = join(
+        __dirname,
+        "../../../orchestrating-long-tasks/references/cli-capabilities.json",
+      );
+      const content = readFileSync(jsonPath, "utf-8");
+      const parsed = JSON.parse(content);
+      const commandNames = new Set(parsed.commands.map((c: { name: string }) => c.name));
+      expect(commandNames.has("mind:queue:list")).toBe(true);
+      expect(commandNames.has("mind:queue:add")).toBe(true);
+      expect(commandNames.has("mind:queue:drain")).toBe(true);
+      expect(commandNames.has("mind:queue:seal")).toBe(true);
+      expect(commandNames.has("mind:queue:clean")).toBe(true);
+    });
+  });
 });

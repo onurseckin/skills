@@ -5681,16 +5681,25 @@
       "takes_remainder": false
     },
     {
-      "name": "feedback:list",
+      "name": "mind:queue:list",
       "aliases": [
+        "todo:list",
+        "feedback:list",
         "feedback:query",
         "feedback:status"
       ],
       "domain": "mind",
-      "summary": "List, search, and inspect items in .capsules/FEEDBACK_QUEUE.jsonl.",
+      "summary": "List, search, and inspect items in .capsules/mind/queue/feedback-queue.jsonl.",
       "flags": [
         {
           "name": "queue-file",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null
+        },
+        {
+          "name": "queue-path",
           "type": "string",
           "required": false,
           "repeatable": false,
@@ -5711,8 +5720,29 @@
           "default": null
         },
         {
+          "name": "priority",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null
+        },
+        {
           "name": "limit",
           "type": "int",
+          "required": false,
+          "repeatable": false,
+          "default": 20
+        },
+        {
+          "name": "all",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null
+        },
+        {
+          "name": "format",
+          "type": "string",
           "required": false,
           "repeatable": false,
           "default": null
@@ -5722,20 +5752,15 @@
       "takes_remainder": false
     },
     {
-      "name": "feedback:ingest",
+      "name": "mind:queue:add",
       "aliases": [
+        "todo:add",
+        "feedback:ingest",
         "feedback:add"
       ],
       "domain": "mind",
       "summary": "Ingest a new user feedback or architectural directive into the queue.",
       "flags": [
-        {
-          "name": "id",
-          "type": "string",
-          "required": true,
-          "repeatable": false,
-          "default": null
-        },
         {
           "name": "title",
           "type": "string",
@@ -5747,6 +5772,13 @@
           "name": "content",
           "type": "string",
           "required": true,
+          "repeatable": false,
+          "default": null
+        },
+        {
+          "name": "id",
+          "type": "string",
+          "required": false,
           "repeatable": false,
           "default": null
         },
@@ -5770,18 +5802,27 @@
           "required": false,
           "repeatable": false,
           "default": null
+        },
+        {
+          "name": "queue-path",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null
         }
       ],
       "reads_stdin": false,
       "takes_remainder": false
     },
     {
-      "name": "feedback:drain",
+      "name": "mind:queue:drain",
       "aliases": [
+        "todo:drain",
+        "feedback:drain",
         "feedback:pop"
       ],
       "domain": "mind",
-      "summary": "Drain and mark pending feedback items as processed or admitted.",
+      "summary": "Drain and mark pending items in FIFO order for execution.",
       "flags": [
         {
           "name": "mark-as",
@@ -5795,7 +5836,7 @@
           "type": "int",
           "required": false,
           "repeatable": false,
-          "default": null
+          "default": 1
         },
         {
           "name": "category",
@@ -5805,8 +5846,158 @@
           "default": null
         },
         {
+          "name": "priority",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null
+        },
+        {
           "name": "queue-file",
           "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null
+        },
+        {
+          "name": "queue-path",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false
+    },
+    {
+      "name": "mind:queue:seal",
+      "aliases": [
+        "todo:seal"
+      ],
+      "domain": "mind",
+      "summary": "Seal an item in the queue with resolution proof and verification metadata.",
+      "flags": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null
+        },
+        {
+          "name": "resolution",
+          "type": "string",
+          "required": true,
+          "repeatable": false,
+          "default": null
+        },
+        {
+          "name": "commit",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null
+        },
+        {
+          "name": "commit-sha",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null
+        },
+        {
+          "name": "test-path",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null
+        },
+        {
+          "name": "assertions",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null
+        },
+        {
+          "name": "runtime-ms",
+          "type": "int",
+          "required": false,
+          "repeatable": false,
+          "default": null
+        },
+        {
+          "name": "queue-file",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null
+        },
+        {
+          "name": "queue-path",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null
+        },
+        {
+          "name": "require-commit-sha",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null
+        },
+        {
+          "name": "require-test-path",
+          "type": "bool",
+          "required": false,
+          "repeatable": false,
+          "default": null
+        }
+      ],
+      "reads_stdin": false,
+      "takes_remainder": false
+    },
+    {
+      "name": "mind:queue:clean",
+      "aliases": [
+        "todo:clean"
+      ],
+      "domain": "mind",
+      "summary": "Prune resolved items from the queue into completed archives ledger.",
+      "flags": [
+        {
+          "name": "queue-file",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null
+        },
+        {
+          "name": "queue-path",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null
+        },
+        {
+          "name": "archive-file",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null
+        },
+        {
+          "name": "completed-file",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "default": null
+        },
+        {
+          "name": "dry-run",
+          "type": "bool",
           "required": false,
           "repeatable": false,
           "default": null

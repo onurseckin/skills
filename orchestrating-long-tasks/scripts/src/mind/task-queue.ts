@@ -2,6 +2,11 @@ import { randomBytes } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { HarnessError } from "../errors/harness-error.ts";
+import {
+  recordCompletedTask,
+  recordCompletedTasksBatch,
+  type CompletedTaskRecord,
+} from "./completed-tasks.ts";
 
 export type TaskQueueStatus =
   | "PENDING"
@@ -122,18 +127,48 @@ export interface TaskQueueStats {
   readonly expired_leases: number;
 }
 
-const DEFAULT_TASK_QUEUE_FILE = ".capsules/TASK_QUEUE.jsonl";
+export const CANONICAL_TASK_QUEUE_FILE = ".capsules/mind/queue/task-queue.jsonl";
+export const TODO_TASK_QUEUE_FILE = ".capsules/todo/task-queue.jsonl";
+export const LEGACY_TASK_QUEUE_FILE = ".capsules/TASK_QUEUE.jsonl";
+export const LEGACY_LOWER_TASK_QUEUE_FILE = ".capsules/task-queue.jsonl";
+export const DEFAULT_TASK_QUEUE_FILE = ".capsules/TASK_QUEUE.jsonl";
+
 const DEFAULT_LEASE_DURATION_SECONDS = 1800; // 30 minutes
 const DEFAULT_MAX_RETRIES = 3;
 
 /**
- * Resolves the absolute path to the task queue storage file.
+ * Resolves the canonical path for the task queue storage file.
+ */
+export function resolveCanonicalTaskQueuePath(customRoot?: string, useTodo = false): string {
+  const root = customRoot && customRoot.trim() ? resolve(customRoot.trim()) : process.cwd();
+  const relPath = useTodo ? TODO_TASK_QUEUE_FILE : CANONICAL_TASK_QUEUE_FILE;
+  return join(root, relPath);
+}
+
+/**
+ * Resolves the absolute path to the task queue storage file, supporting canonical, todo, and legacy locations.
  */
 export function resolveTaskQueuePath(customPath?: string): string {
   if (customPath && customPath.trim()) {
     return resolve(customPath.trim());
   }
   const cwd = process.cwd();
+  const candidates = [cwd, dirname(cwd)];
+
+  for (const root of candidates) {
+    const canonical = join(root, CANONICAL_TASK_QUEUE_FILE);
+    if (existsSync(canonical)) return canonical;
+
+    const todo = join(root, TODO_TASK_QUEUE_FILE);
+    if (existsSync(todo)) return todo;
+
+    const legacy = join(root, LEGACY_TASK_QUEUE_FILE);
+    if (existsSync(legacy)) return legacy;
+
+    const legacyLower = join(root, LEGACY_LOWER_TASK_QUEUE_FILE);
+    if (existsSync(legacyLower)) return legacyLower;
+  }
+
   if (existsSync(join(cwd, ".capsules"))) {
     return join(cwd, DEFAULT_TASK_QUEUE_FILE);
   }
@@ -142,6 +177,31 @@ export function resolveTaskQueuePath(customPath?: string): string {
     return join(dirname(cwd), DEFAULT_TASK_QUEUE_FILE);
   }
   return resolve(cwd, DEFAULT_TASK_QUEUE_FILE);
+}
+
+/**
+ * Migrates legacy task queue files to the canonical .capsules/mind/queue/ layout.
+ */
+export function migrateTaskQueue(options?: {
+  readonly sourcePath?: string | undefined;
+  readonly targetPath?: string | undefined;
+}): { readonly migrated: boolean; readonly count: number } {
+  const sourcePath =
+    options?.sourcePath !== undefined ? options.sourcePath : resolveTaskQueuePath();
+  const targetPath =
+    options?.targetPath !== undefined ? options.targetPath : resolveCanonicalTaskQueuePath();
+
+  if (!existsSync(sourcePath) || sourcePath === targetPath) {
+    return { migrated: false, count: 0 };
+  }
+
+  const items = readTaskQueue(sourcePath);
+  if (items.length === 0) {
+    return { migrated: false, count: 0 };
+  }
+
+  writeTaskQueue(items, targetPath);
+  return { migrated: true, count: items.length };
 }
 
 /**
@@ -708,7 +768,7 @@ export function startTaskValidation(params: {
 }
 
 /**
- * Marks a task as COMPLETED, clears lease, and unblocks any dependent tasks.
+ * Marks a task as COMPLETED, clears lease, unblocks dependent tasks, and optionally archives record.
  */
 export function completeTask(params: {
   readonly taskId: string;
@@ -716,9 +776,18 @@ export function completeTask(params: {
   readonly leaseToken?: string | undefined;
   readonly customPath?: string | undefined;
   readonly nowIso?: string | undefined;
+  readonly proofSummary?: string | undefined;
+  readonly testPath?: string | undefined;
+  readonly assertions?: number | string | readonly string[] | null | undefined;
+  readonly runtimeMs?: number | string | null | undefined;
+  readonly commitSha?: string | null | undefined;
+  readonly autoArchive?: boolean | undefined;
+  readonly completedTasksPath?: string | undefined;
+  readonly autoPrune?: boolean | undefined;
 }): {
   readonly completedTask: TaskQueueItem;
   readonly unblockedTasks: readonly TaskQueueItem[];
+  readonly archivedRecord?: CompletedTaskRecord | undefined;
 } {
   const queue = readTaskQueue(params.customPath);
   const index = queue.findIndex((t) => t.id === params.taskId);
@@ -770,11 +839,55 @@ export function completeTask(params: {
     }
   }
 
-  writeTaskQueue(queue, params.customPath);
+  let archivedRecord: CompletedTaskRecord | undefined = undefined;
+  if (params.autoArchive || params.proofSummary) {
+    const proofSummary =
+      params.proofSummary ?? completedTask.description ?? `Completed task ${completedTask.id}`;
+    try {
+      archivedRecord = recordCompletedTask(
+        {
+          id: completedTask.id,
+          source: "task_queue",
+          title: completedTask.title,
+          status: "COMPLETED",
+          proof_summary: proofSummary,
+          completed_at: nowIso,
+          category: (completedTask.metadata?.["category"] as string | undefined) ?? "CORE_ENGINE",
+          test_path:
+            params.testPath ?? (completedTask.metadata?.["test_path"] as string | undefined),
+          assertions:
+            params.assertions ??
+            (completedTask.metadata?.["assertions"] as
+              | number
+              | string
+              | readonly string[]
+              | null
+              | undefined),
+          runtime_ms:
+            params.runtimeMs ??
+            (completedTask.metadata?.["runtime_ms"] as number | string | null | undefined),
+          commit_sha:
+            params.commitSha ?? (completedTask.metadata?.["commit_sha"] as string | undefined),
+          metadata: completedTask.metadata,
+        },
+        { customPath: params.completedTasksPath },
+      );
+    } catch {
+      // Non-fatal archival fallback
+    }
+  }
+
+  if (params.autoPrune) {
+    const remainingQueue = queue.filter((t) => t.id !== completedTask.id);
+    writeTaskQueue(remainingQueue, params.customPath);
+  } else {
+    writeTaskQueue(queue, params.customPath);
+  }
 
   return {
     completedTask,
     unblockedTasks,
+    ...(archivedRecord ? { archivedRecord } : {}),
   };
 }
 
@@ -1173,15 +1286,46 @@ export function listTaskQueue(
 }
 
 /**
- * Prunes completed tasks from queue storage, returning count of removed items.
+ * Prunes completed tasks from queue storage, automatically archiving them to completed-tasks.jsonl.
  */
-export function pruneCompletedTasks(customPath?: string): {
+export function pruneCompletedTasks(
+  customPath?: string,
+  options?: {
+    readonly completedTasksPath?: string | undefined;
+    readonly autoArchive?: boolean | undefined;
+  },
+): {
   readonly prunedCount: number;
   readonly remainingCount: number;
+  readonly archivedCount?: number | undefined;
 } {
   const all = readTaskQueue(customPath);
+  const completed = all.filter((t) => t.status === "COMPLETED");
   const remaining = all.filter((t) => t.status !== "COMPLETED");
-  const prunedCount = all.length - remaining.length;
+  const prunedCount = completed.length;
+
+  let archivedCount = 0;
+  if (completed.length > 0 && options?.autoArchive !== false) {
+    const records: CompletedTaskRecord[] = completed.map((t) => ({
+      id: t.id,
+      source: "task_queue",
+      title: t.title,
+      status: "COMPLETED",
+      proof_summary: t.description || `Completed task ${t.id}`,
+      completed_at: t.completed_at ?? new Date().toISOString(),
+      category: t.metadata?.["category"] as string | undefined,
+      test_path: t.metadata?.["test_path"] as string | undefined,
+      metadata: t.metadata,
+    }));
+    try {
+      const archived = recordCompletedTasksBatch(records, {
+        customPath: options?.completedTasksPath,
+      });
+      archivedCount = archived.length;
+    } catch {
+      // Non-fatal if ledger path is not configured
+    }
+  }
 
   if (prunedCount > 0) {
     writeTaskQueue(remaining, customPath);
@@ -1190,6 +1334,38 @@ export function pruneCompletedTasks(customPath?: string): {
   return {
     prunedCount,
     remainingCount: remaining.length,
+    archivedCount,
+  };
+}
+
+/**
+ * Pops the next eligible task from the queue and cleans up completed tasks atomically.
+ */
+export function popNextEligibleTaskWithCleanup(params: {
+  readonly agentId: string;
+  readonly durationSeconds?: number | undefined;
+  readonly customPath?: string | undefined;
+  readonly completedTasksPath?: string | undefined;
+  readonly nowIso?: string | undefined;
+}): {
+  readonly task: TaskQueueItem;
+  readonly leaseToken: string;
+  readonly prunedCount: number;
+} | null {
+  const pruneRes = pruneCompletedTasks(params.customPath, {
+    completedTasksPath: params.completedTasksPath,
+    autoArchive: true,
+  });
+  const popped = popNextEligibleTask({
+    agentId: params.agentId,
+    durationSeconds: params.durationSeconds,
+    customPath: params.customPath,
+    nowIso: params.nowIso,
+  });
+  if (!popped) return null;
+  return {
+    ...popped,
+    prunedCount: pruneRes.prunedCount,
   };
 }
 

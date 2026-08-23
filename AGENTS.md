@@ -88,20 +88,21 @@ The repository enforces a strict **3-Tier Host-Agnostic Architecture** to isolat
 
 ### Role Contracts & Prohibitions
 
-| Role                      | Tier | Key Responsibilities                                                                                                   | Non-Negotiable Prohibitions (`must_not`)                                                                                                             |
-| :------------------------ | :--: | :--------------------------------------------------------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **`coordinator`**         |  2   | Run lifecycle ownership, agent registration, 1-shot briefings, wave dispatching, hard resets, git commits/pushes/sync. | **Must not** write repository code, claim tasks, self-validate, or execute raw test suites (`bun test`).                                             |
-| **`orchestrator`**        | 1/2  | Multi-round orchestration, watchdog cadence, final synthesis, release syncing.                                         | **Must not** implement tasks directly, run raw test suites, or spill work onto the main interactive thread.                                          |
-| **`planner`**             |  3   | Prompt decomposition, DAG generation, gate assignment.                                                                 | **Must not** implement code or execute task write scopes.                                                                                            |
-| **`plan-validator`**      |  3   | Adversarial inspection of compiled plan topology.                                                                      | **Must not** touch task implementation or alter runtime code.                                                                                        |
-| **`implementer`**         |  3   | Leased task implementation within assigned write scope; 1-hop micro-cycles; file-scoped testing.                       | **Must not** edit outside write scope, self-validate work, or run whole-repo test suites (`bun test`).                                               |
-| **`validator`**           |  3   | Cognitive verification, adversarial probing, 1-hop micro-cycle critique, Socratic review.                              | **Must not** execute ANY bash/test commands (`run:exec`, 0 command privileges), pass without probe round, or validate own work.                      |
-| **`mechanic-validator`**  |  3   | Typechecks (`tsc --noEmit`), AST static invariant audits, Adversarial Gate Proofs (AGP).                               | **Must not** re-run implementer unit tests, write application code, run whole-repo test suites, or validate tasks without direct execution receipts. |
-| **`repairer`**            |  3   | Targeted remediation of specific validator findings.                                                                   | **Must not** expand scope beyond reported finding remediations.                                                                                      |
-| **`completeness-critic`** |  3   | Whole-run verification against original user prompt.                                                                   | **Must not** approve runs with unmapped requirements or failing gates.                                                                               |
-| **`sub-implementer`**     |  3   | Narrow branch sub-task execution.                                                                                      | **Must not** exceed parent's write scope subset.                                                                                                     |
-| **`sub-validator`**       |  3   | Command execution and evidence gathering.                                                                              | **Must not** render verdicts (`pass`/`fail`) or close findings.                                                                                      |
-| **`sub-investigator`**    |  3   | Read-only diagnosis and root-cause analysis.                                                                           | **Must not** modify filesystem state or write code.                                                                                                  |
+| Role                      | Tier | Key Responsibilities                                                                                                                                                                                        | Non-Negotiable Prohibitions (`must_not`)                                                                                                             |
+| :------------------------ | :--: | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`mind`**                |  0   | Perpetual supervisory consciousness, candidate admission, multi-orchestrator scaling, macro DAG diagnostics, queue governance (`.capsules/mind/queue/`), memory persistence, non-idle autonomous discovery. | **Must not** write repository code, execute unit tests, perform critic jobs directly, or sit idle/enter standby when feedback queue is empty.        |
+| **`coordinator`**         |  2   | Run lifecycle ownership, agent registration, 1-shot briefings, wave dispatching, hard resets, git commits/pushes/sync.                                                                                      | **Must not** write repository code, claim tasks, self-validate, or execute raw test suites (`bun test`).                                             |
+| **`orchestrator`**        | 1/2  | Multi-round orchestration, watchdog cadence, final synthesis, release syncing.                                                                                                                              | **Must not** implement tasks directly, run raw test suites, or spill work onto the main interactive thread.                                          |
+| **`planner`**             |  3   | Prompt decomposition, DAG generation, gate assignment.                                                                                                                                                      | **Must not** implement code or execute task write scopes.                                                                                            |
+| **`plan-validator`**      |  3   | Adversarial inspection of compiled plan topology.                                                                                                                                                           | **Must not** touch task implementation or alter runtime code.                                                                                        |
+| **`implementer`**         |  3   | Leased task implementation within assigned write scope; 1-hop micro-cycles; file-scoped testing.                                                                                                            | **Must not** edit outside write scope, self-validate work, or run whole-repo test suites (`bun test`).                                               |
+| **`validator`**           |  3   | Cognitive verification, adversarial probing, 1-hop micro-cycle critique, Socratic review.                                                                                                                   | **Must not** execute ANY bash/test commands (`run:exec`, 0 command privileges), pass without probe round, or validate own work.                      |
+| **`mechanic-validator`**  |  3   | Typechecks (`tsc --noEmit`), AST static invariant audits, Adversarial Gate Proofs (AGP).                                                                                                                    | **Must not** re-run implementer unit tests, write application code, run whole-repo test suites, or validate tasks without direct execution receipts. |
+| **`repairer`**            |  3   | Targeted remediation of specific validator findings.                                                                                                                                                        | **Must not** expand scope beyond reported finding remediations.                                                                                      |
+| **`completeness-critic`** |  3   | Whole-run verification against original user prompt.                                                                                                                                                        | **Must not** approve runs with unmapped requirements or failing gates.                                                                               |
+| **`sub-implementer`**     |  3   | Narrow branch sub-task execution.                                                                                                                                                                           | **Must not** exceed parent's write scope subset.                                                                                                     |
+| **`sub-validator`**       |  3   | Command execution and evidence gathering.                                                                                                                                                                   | **Must not** render verdicts (`pass`/`fail`) or close findings.                                                                                      |
+| **`sub-investigator`**    |  3   | Read-only diagnosis and root-cause analysis.                                                                                                                                                                | **Must not** modify filesystem state or write code.                                                                                                  |
 
 ---
 
@@ -213,9 +214,12 @@ To protect repository state and prevent common LLM blunder modes:
    - Implementers holding active leases must periodically issue `task:heartbeat` before lease expiry.
    - Expired leases are automatically reclaimed by `recover` / `orchestrator:supervise` to prevent orphaned dead-agent blocking.
 10. **Git Hygiene & Ephemeral State:**
-
-- Dynamic plan state belongs strictly in `.capsules/<run-id>/`, never committed to `docs/planning/` or root git history.
-- Temporary testing artifacts must be directed to designated `.tmp/` or scratch directories.
+    - Dynamic plan state belongs strictly in `.capsules/<run-id>/`, never committed to `docs/planning/` or root git history.
+    - Temporary testing artifacts must be directed to designated `.tmp/` or scratch directories.
+11. **Canonical Mind Queue & Strict Non-Idle Discovery Invariant:**
+    - Mind queue data lives strictly under `<repo-root>/.capsules/mind/queue/` (and `.capsules/todo/`) using standardized lowercase kebab-case files: `feedback-queue.jsonl`, `completed-tasks.jsonl`, `blunders.jsonl`, `completed-blunders.jsonl`, `observations.jsonl`, `watchdogs.json`, alongside indexed cognitive memory at `.capsules/mind/memory.json`.
+    - When feedback queue count is 0, Mind is strictly forbidden from sitting idle or reporting "waiting in standby"; it must immediately trigger autonomous discovery (0 any checks, charter gap audits, blunder regression tests, Work/Span P = W / S optimizations).
+    - Mind queue operations must execute via `mind:queue:*` or alias `todo:*` CLI commands (`list`, `add`, `drain`, `seal`, `clean`).
 
 ---
 
@@ -238,6 +242,8 @@ All contributions to the `@onurseckin/skills` monorepo must strictly satisfy all
 ---
 
 ## 7. Standard Harness Workflows & Step Machine
+
+### A. Task Execution & Validation Step-Machine
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -287,6 +293,41 @@ All contributions to the `@onurseckin/skills` monorepo must strictly satisfy all
 │                                                                             │
 │  11. Hard Agent Reset:                                                      │
 │      (manage_subagents with Action: 'kill' for completed subagents)         │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### B. Mind Queue & Feedback Lifecycle Step-Machine
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    MIND QUEUE & FEEDBACK LIFECYCLE                          │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  1. Ingest Feedback / Directive:                                            │
+│     bun harness.ts mind:queue:add --title "<TITLE>" --content "<CONTENT>" \ │
+│       --priority HIGH_ARCHITECTURAL_FEATURE --category ARCHITECTURE         │
+│     (alias: bun harness.ts todo:add ...)                                    │
+│                                                                             │
+│  2. List & Inspect Pending Queue:                                           │
+│     bun harness.ts mind:queue:list --status PENDING --all                   │
+│     (alias: bun harness.ts todo:list ...)                                   │
+│                                                                             │
+│  3. Drain Queue Item for Intake:                                            │
+│     bun harness.ts mind:queue:drain --limit 1 --mark-as ADMITTED            │
+│     (alias: bun harness.ts todo:drain ...)                                  │
+│                                                                             │
+│  4. Seal Completed Item with Empirical Proof:                               │
+│     bun harness.ts mind:queue:seal --id <id> --resolution "<PROOF>" \       │
+│       --commit <SHA> --test-path <PATH> --assertions <COUNT>                │
+│     (alias: bun harness.ts todo:seal ...)                                   │
+│                                                                             │
+│  5. Clean / Archive Resolved Items to completed-tasks.jsonl:                │
+│     bun harness.ts mind:queue:clean                                         │
+│     (alias: bun harness.ts todo:clean)                                      │
+│                                                                             │
+│  6. Autonomous Discovery on Empty Queue (0 Pending):                        │
+│     (Trigger 0 any scan, charter gap audit, blunder regression, P = W / S)  │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```

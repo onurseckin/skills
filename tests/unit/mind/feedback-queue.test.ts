@@ -6,8 +6,12 @@ import {
   backpropagateFeedbackResolution,
   drainPendingFeedbacks,
   getFeedbackStats,
+  migrateFeedbackQueue,
   readFeedbackQueue,
   resolveFeedbackQueuePath,
+  resolveCanonicalFeedbackQueuePath,
+  TODO_FEEDBACK_FILE,
+  CANONICAL_FEEDBACK_FILE,
   sealFeedbackResolution,
   updateFeedbackItem,
   validateFeedbackResolutionProof,
@@ -42,6 +46,41 @@ describe("Feedback Queue Engine", () => {
     const resolved = resolveFeedbackQueuePath();
     expect(typeof resolved).toBe("string");
     expect(resolved.endsWith(".capsules/FEEDBACK_QUEUE.jsonl")).toBe(true);
+  });
+
+  it("resolves canonical feedback queue paths with todo and mind layout", () => {
+    const canonical = resolveCanonicalFeedbackQueuePath("/tmp/repo");
+    expect(canonical).toBe("/tmp/repo/.capsules/mind/queue/feedback-queue.jsonl");
+
+    const todo = resolveCanonicalFeedbackQueuePath("/tmp/repo", true);
+    expect(todo).toBe("/tmp/repo/.capsules/todo/feedback-queue.jsonl");
+  });
+
+  it("migrates feedback queue from legacy path to canonical path", () => {
+    const legacyPath = join(testDir, "legacy-FEEDBACK_QUEUE.jsonl");
+    const canonicalPath = join(testDir, "canonical-feedback-queue.jsonl");
+
+    const sampleItem: FeedbackItem = {
+      id: "fb-migrated-01",
+      timestamp: "2026-08-22T00:00:00.000Z",
+      priority: "CRITICAL_USER_FEEDBACK",
+      status: "PENDING",
+      category: "CORE_ENGINE",
+      title: "Migrated Feedback",
+      content: "Testing migration",
+    };
+    writeFeedbackQueue([sampleItem], legacyPath);
+
+    const migRes = migrateFeedbackQueue({
+      sourcePath: legacyPath,
+      targetPath: canonicalPath,
+    });
+    expect(migRes.migrated).toBe(true);
+    expect(migRes.count).toBe(1);
+
+    const canonicalItems = readFeedbackQueue(canonicalPath);
+    expect(canonicalItems).toHaveLength(1);
+    expect(canonicalItems[0]?.id).toBe("fb-migrated-01");
   });
 
   it("returns empty array when queue file does not exist", () => {
