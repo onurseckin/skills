@@ -1,5 +1,6 @@
 import { describe, it, expect, mock, spyOn, beforeEach, afterEach, type Mock } from "bun:test";
 import { join, resolve } from "node:path";
+import { tmpdir } from "node:os";
 import * as fs from "node:fs";
 import {
   findRepoRoot,
@@ -74,11 +75,11 @@ describe("paths", () => {
     });
 
     it("should resolve scratch dir", () => {
-      expect(resolveScratchDir(fakeRoot)).toBe(join(fakeRoot, ".olt", "scratch"));
+      expect(resolveScratchDir()).toBe(join(tmpdir(), "olt-scratch"));
     });
 
     it("should resolve evidence dir without runRoot", () => {
-      expect(resolveEvidenceDir(fakeRoot)).toBe(join(fakeRoot, ".olt", "scratch", "evidence"));
+      expect(resolveEvidenceDir(fakeRoot)).toBe(join(tmpdir(), "olt-scratch", "evidence"));
     });
 
     it("should resolve evidence dir with runRoot", () => {

@@ -40,13 +40,12 @@ describe("Shared Path Resolvers", () => {
     expect(resolveTelemetryPath()).toContain("telemetry.jsonl");
   });
 
-  it("resolves scratch and evidence directories strictly under .olt/", () => {
+  it("resolves scratch and evidence directories strictly under OS tmpdir", () => {
     const scratch = resolveScratchDir();
-    expect(scratch).toContain(".olt");
-    expect(scratch).toContain("scratch");
+    expect(scratch).toContain("olt-scratch");
 
     const evidence = resolveEvidenceDir();
-    expect(evidence).toContain(".olt");
+    expect(evidence).toContain("olt-scratch");
     expect(evidence).toContain("evidence");
   });
 });

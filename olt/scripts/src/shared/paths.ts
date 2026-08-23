@@ -1,4 +1,5 @@
 import { existsSync, lstatSync, realpathSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { isAbsolute, join, relative, resolve, sep } from "node:path";
 import { HarnessError } from "../errors/harness-error.ts";
 
@@ -97,15 +98,13 @@ export function resolveWatchdogsPath(repoRoot?: string, customPath?: string): st
   return join(root, OLT_DIR_NAME, OLT_FILES.WATCHDOGS);
 }
 
-export function resolveScratchDir(repoRoot?: string): string {
-  const root = repoRoot ? resolve(repoRoot) : findRepoRoot();
-  return join(root, OLT_DIR_NAME, "scratch");
+export function resolveScratchDir(_repoRoot?: string): string {
+  return join(tmpdir(), "olt-scratch");
 }
 
 export function resolveEvidenceDir(repoRoot?: string, runRoot?: string): string {
   if (runRoot && existsSync(runRoot)) {
     return join(runRoot, "evidence");
   }
-  const root = repoRoot ? resolve(repoRoot) : findRepoRoot();
-  return join(root, OLT_DIR_NAME, "scratch", "evidence");
+  return join(resolveScratchDir(), "evidence");
 }
