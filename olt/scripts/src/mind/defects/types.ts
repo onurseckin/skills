@@ -9,7 +9,7 @@ import type {
   DefectResolutionProof,
   DefectStatus,
   DeliberationPipelineOptions,
-} from "../mind/defects.ts";
+} from "../defects.ts";
 
 export type {
   DefectAuditReport,

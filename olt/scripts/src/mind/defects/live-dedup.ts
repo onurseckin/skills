@@ -1,4 +1,4 @@
-import { resolveDefect } from "../mind/defects.ts";
+import { resolveDefect } from "../defects.ts";
 import {
   aggregateDefectEntries,
   calculateDefectAggregateMetrics,
