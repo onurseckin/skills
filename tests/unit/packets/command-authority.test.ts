@@ -51,11 +51,88 @@ describe("assertGrantedCommand", () => {
     expect(() => assertGrantedCommand(spec("task:probe"), flags)).not.toThrow();
   });
 
+  test("enforces command-running ban on cognitive validators attempting run:exec", async () => {
+    const { run } = await emptyGrantRun("command-authority-ban-");
+    transact(run, "test-setup", "grant-agent", {}, (draft) => {
+      draft.agents = [
+        {
+          id: "validator-cog-1",
+          role: "validator",
+          parent_agent_id: null,
+          parent_task_id: null,
+          host: "claude-code",
+          granted_at: new Date().toISOString(),
+          status: "active",
+        },
+        {
+          id: "mechanic-val-1",
+          role: "mechanic-validator",
+          parent_agent_id: null,
+          parent_task_id: null,
+          host: "claude-code",
+          granted_at: new Date().toISOString(),
+          status: "active",
+        },
+      ];
+    });
+
+    // Cognitive validator attempting run:exec must be refused
+    const cogFlags: Flags = { run, actor: "validator-cog-1" };
+    expect(() => assertGrantedCommand(spec("run:exec"), cogFlags)).toThrow(
+      "cognitive validators are strictly banned from executing bash/shell commands or running test suites",
+    );
+
+    // Cognitive validator using shell/test-runner tool category must be refused
+    const toolCatFlags: Flags = {
+      run,
+      validator: "validator-cog-1",
+      "tool-category": "shell",
+    };
+    expect(() => assertGrantedCommand(spec("task:probe"), toolCatFlags)).toThrow(
+      "may not invoke execution tool category",
+    );
+
+    // Mechanic validator attempting run:exec must succeed
+    const mechFlags: Flags = { run, actor: "mechanic-val-1" };
+    expect(() => assertGrantedCommand(spec("run:exec"), mechFlags)).not.toThrow();
+  });
+
   test("excludes a command's own subject flag from the candidates it reads the acting agent from", () => {
-    // queue:pop's subject flag is "agent", so actingAgent must look at validator/critic/actor
-    // instead — exercised here via a nonexistent capsule, which only needs the subject-flag
-    // exclusion itself to run, not a resolved ledger entry.
     const flags: Flags = { run: "/nonexistent/capsule", actor: "coordinator" };
     expect(() => assertGrantedCommand(spec("queue:pop"), flags)).not.toThrow();
   });
+
+  test("verifies zero TypeScript any and zero suppressions across command authority files", () => {
+    const { existsSync, readFileSync } = require("node:fs");
+    const filesToAudit = [
+      "/Users/onurseckinsenoglu/repos/skills/orchestrating-long-tasks/scripts/src/packets/command-authority.ts",
+      "/Users/onurseckinsenoglu/repos/skills/tests/unit/packets/command-authority.test.ts",
+    ];
+
+    const anyPattern = new RegExp(":\\s*any\\b|as\\s+any\\b|<any>");
+    const suppressionPattern = new RegExp(
+      [
+        "@ts" + "-ignore",
+        "@ts" + "-expect-error",
+        "@ts" + "-nocheck",
+        "eslint" + "-disable",
+        "oxlint" + "-disable",
+      ].join("|"),
+    );
+
+    for (const filePath of filesToAudit) {
+      expect(existsSync(filePath)).toBe(true);
+      const content = readFileSync(filePath, "utf-8");
+      const lines = content.split("\n");
+
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i]!;
+        if (line.includes("anyPattern") || line.includes("suppressionPattern")) continue;
+
+        expect(anyPattern.test(line)).toBe(false);
+        expect(suppressionPattern.test(line)).toBe(false);
+      }
+    }
+  });
 });
+

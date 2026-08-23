@@ -43,8 +43,6 @@ export function isCognitiveValidatorRole(role: string): boolean {
   const normalized = role.toLowerCase().trim();
   return (
     normalized === "validator" ||
-    normalized === "sub-validator" ||
-    normalized === "plan-validator" ||
     normalized === "ui-validator" ||
     normalized.startsWith("validator-")
   );

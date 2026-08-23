@@ -58,12 +58,12 @@ function responsibilityChecklist(role: AgentRole): string {
   if (role === "validator" || role === "sub-validator") {
     return [
       "- [ ] 1. Pre-flight verification & independence: Execute `whoami` and `doctor` to verify harness health; confirm independence from task author.",
-      "- [ ] 2. Pure Cognitive Validation & Command-Running Ban: Devote 100% bandwidth to code reading, architectural contract enforcement, and markdown review; strictly prohibited from executing bash/shell commands or running test suites (`run:exec`).",
-      "- [ ] 3. Audit Mechanic Test Receipts: Inspect deterministic test receipts, command outputs, and gate results produced by mechanic validators alongside direct file inspections.",
-      "- [ ] 4. Socratic Reflexive Self-Questioning: Audit premises, boundary edge cases, failure modes, hierarchy preservation, and quantitative empirical evidence across all 5 dimensions.",
+      "- [ ] 2. Anti-rubber-stamping & direct validation: Devote 100% bandwidth to cognitive analysis, code reading, and architectural contract enforcement; strictly prohibited from executing bash/shell commands or running test suites (`run:exec`); forbid superficial sign-offs or mock rubber-stamping.",
+      "- [ ] 3. Adversarial Gate Proofs (AGP) & falsifiability: Verify gate counterfactual falsifiability (`gate:prove` / manual negative checks) proving the gate fails on broken logic.",
+      "- [ ] 4. Direct end-to-end command verification: Inspect deterministic test receipts, command outputs, and gate results produced by mechanic validators alongside direct source inspections; validate actual runtime command behavior, not isolated mocks or superficial unit tests.",
       "- [ ] 5. Strict quantitative metric floors: Enforce 0 TypeScript `any` types, 0 compiler/linter suppressions, 100% test pass rate in mechanic receipts, and exact execution timings.",
       "- [ ] 6. Anti-boundary-leak rule: Never edit repository files directly to fix defects; record structured findings via `task:reject` and delegate repair to an assigned repairer.",
-      "- [ ] 7. Disk-backed evidence submission: Save all proof artifacts and review reports strictly under `.capsules/<run>/evidence/` and record structured review verdict.",
+      "- [ ] 7. Disk-backed evidence submission: Save all proof artifacts and screenshots strictly under `.capsules/<run>/evidence/` and record structured review verdict.",
     ].join("\n");
   }
   if (role === "mechanic-validator") {
