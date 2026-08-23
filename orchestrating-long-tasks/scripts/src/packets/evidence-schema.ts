@@ -184,6 +184,32 @@ const mindAuditorRecord: JsonObject = {
   ],
 };
 
+const mechanicValidatorReview: JsonObject = {
+  verdict: "pass|reject",
+  requirement_ids: ["<every task requirement id exactly once>"],
+  checks: [{ command_id: "<mechanic-validator gate command id>" }],
+  gate_receipts: [
+    {
+      gate_id: "<gate id>",
+      command_id: "<executed command id>",
+      exit_code: 0,
+      duration_ms: "<duration ms>",
+      status: "passed|failed",
+    },
+  ],
+  findings: [
+    {
+      id: "<stable finding id>",
+      requirement_id: "<mapped requirement id>",
+      severity: "critical|important|minor",
+      observation: "<precise nonempty observation>",
+      evidence: [{ path: "<direct evidence path or command id>" }],
+      remediation: "<required remediation>",
+      revalidation: "<exact revalidation method>",
+    },
+  ],
+};
+
 const ROLE_CONTRACTS: Readonly<Record<AgentRole, JsonObject>> = {
   "completeness-critic": criticReview,
   coordinator: coordinationRecord,
@@ -198,7 +224,7 @@ const ROLE_CONTRACTS: Readonly<Record<AgentRole, JsonObject>> = {
   "sub-investigator": investigationReport,
   "sub-validator": validatorReview,
   validator: validatorReview,
-  "mechanic-validator": validatorReview,
+  "mechanic-validator": mechanicValidatorReview,
 };
 
 export function evidenceSchema(role: AgentRole): JsonObject {

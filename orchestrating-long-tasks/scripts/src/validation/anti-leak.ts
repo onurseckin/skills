@@ -441,3 +441,180 @@ export function delegateRepairTask(params: DelegateRepairTaskParams): RepairDele
     generated_at: new Date().toISOString(),
   };
 }
+
+export interface AcyclicPushbackValidationParams {
+  readonly taskId: string;
+  readonly validatorId: string;
+  readonly assignedRepairer?: string | undefined;
+  readonly observation?: string | undefined;
+  readonly remediation?: string | undefined;
+  readonly findings?: readonly unknown[] | undefined;
+  readonly repairRound?: number | undefined;
+  readonly dependencyGraph?: Readonly<Record<string, readonly string[]>> | undefined;
+}
+
+export interface AcyclicPushbackValidationResult {
+  readonly valid: boolean;
+  readonly acyclic: boolean;
+  readonly structured: boolean;
+  readonly violations: readonly string[];
+  readonly remediation_guidance?: string | undefined;
+}
+
+export function detectGraphCycles(
+  graph: Readonly<Record<string, readonly string[]>>,
+): { hasCycle: boolean; cyclePath?: string[] } {
+  const visited = new Set<string>();
+  const recStack = new Set<string>();
+  const path: string[] = [];
+
+  function dfs(node: string): boolean {
+    visited.add(node);
+    recStack.add(node);
+    path.push(node);
+
+    const neighbors = graph[node] ?? [];
+    for (const neighbor of neighbors) {
+      if (!visited.has(neighbor)) {
+        if (dfs(neighbor)) return true;
+      } else if (recStack.has(neighbor)) {
+        path.push(neighbor);
+        return true;
+      }
+    }
+
+    recStack.delete(node);
+    path.pop();
+    return false;
+  }
+
+  for (const node of Object.keys(graph)) {
+    if (!visited.has(node)) {
+      if (dfs(node)) {
+        return { hasCycle: true, cyclePath: [...path] };
+      }
+    }
+  }
+
+  return { hasCycle: false };
+}
+
+export function validateAcyclicPushbackDelegation(
+  params: AcyclicPushbackValidationParams,
+): AcyclicPushbackValidationResult {
+  const violations: string[] = [];
+  let structured = true;
+  let acyclic = true;
+
+  const taskId = params.taskId;
+  const validatorId = params.validatorId;
+  const assignedRepairer = params.assignedRepairer;
+
+  if (!taskId || taskId.trim() === "") {
+    violations.push("taskId must be a non-empty string");
+    structured = false;
+  }
+
+  if (!validatorId || validatorId.trim() === "") {
+    violations.push("validatorId must be a non-empty string");
+    structured = false;
+  }
+
+  // 1. Structured observation & remediation validation
+  if (params.observation !== undefined && params.observation.trim().length === 0) {
+    violations.push("Pushback observation must not be empty");
+    structured = false;
+  }
+
+  if (params.remediation !== undefined && params.remediation.trim().length === 0) {
+    violations.push("Pushback remediation must provide non-empty actionable instructions");
+    structured = false;
+  }
+
+  // 2. Findings structure validation
+  if (params.findings && params.findings.length > 0) {
+    for (let i = 0; i < params.findings.length; i++) {
+      const f = params.findings[i];
+      if (typeof f !== "object" || f === null) {
+        violations.push(`Finding at index ${i} is not a valid object`);
+        structured = false;
+        continue;
+      }
+      const rec = f as Record<string, unknown>;
+      if (!rec["id"] || typeof rec["id"] !== "string" || rec["id"].trim().length === 0) {
+        violations.push(`Finding at index ${i} missing stable non-empty 'id'`);
+        structured = false;
+      }
+      if (
+        !rec["remediation"] ||
+        typeof rec["remediation"] !== "string" ||
+        rec["remediation"].trim().length === 0
+      ) {
+        violations.push(
+          `Finding '${String(rec["id"] ?? i)}' missing non-empty 'remediation' instructions`,
+        );
+        structured = false;
+      }
+      if (
+        !rec["observation"] ||
+        typeof rec["observation"] !== "string" ||
+        rec["observation"].trim().length === 0
+      ) {
+        violations.push(`Finding '${String(rec["id"] ?? i)}' missing non-empty 'observation'`);
+        structured = false;
+      }
+    }
+  }
+
+  // 3. Acyclic repairer delegation (prevent self-repair 1-agent cycle)
+  if (assignedRepairer && validatorId && assignedRepairer.trim() === validatorId.trim()) {
+    violations.push(
+      `Circular delegation violation: assigned repairer '${assignedRepairer}' matches rejecting validator '${validatorId}'`,
+    );
+    acyclic = false;
+  }
+
+  if (assignedRepairer && isCriticOrValidatorAgent(assignedRepairer)) {
+    violations.push(
+      `Role confinement violation: repairer '${assignedRepairer}' cannot be a validator/critic agent`,
+    );
+    acyclic = false;
+  }
+
+  // 4. DAG Cycle Detection
+  if (params.dependencyGraph) {
+    const cycleCheck = detectGraphCycles(params.dependencyGraph);
+    if (cycleCheck.hasCycle) {
+      violations.push(
+        `Circular DAG dependency detected: cycle along path [${(cycleCheck.cyclePath ?? []).join(" -> ")}]`,
+      );
+      acyclic = false;
+    }
+  }
+
+  const valid = violations.length === 0;
+  return {
+    valid,
+    acyclic,
+    structured,
+    violations,
+    remediation_guidance: valid
+      ? undefined
+      : "Ensure all pushbacks provide structured remediation instructions and assign disjoint repairers without cyclic dependencies.",
+  };
+}
+
+export function assertAcyclicPushbackDelegation(params: AcyclicPushbackValidationParams): void {
+  const result = validateAcyclicPushbackDelegation(params);
+  if (!result.valid) {
+    throw new HarnessError(
+      "ROLE_CONFINEMENT_VIOLATION",
+      `Acyclic pushback delegation failure: ${result.violations.join("; ")}`,
+      result.violations.map((v) => ({ violation: v })),
+      3,
+      result.remediation_guidance ??
+        "Provide structured remediation and eliminate circular dependencies.",
+    );
+  }
+}
+

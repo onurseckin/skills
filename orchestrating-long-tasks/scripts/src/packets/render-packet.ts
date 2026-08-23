@@ -48,18 +48,33 @@ function jsonSection(title: string, value: unknown): string {
 }
 
 const READ_ONLY_BRANCH_ROLES: ReadonlySet<string> = new Set(["sub-investigator", "sub-validator"]);
-const VALIDATION_ROLES: ReadonlySet<string> = new Set(["sub-validator", "validator"]);
+const VALIDATION_ROLES: ReadonlySet<string> = new Set([
+  "sub-validator",
+  "validator",
+  "mechanic-validator",
+]);
 
 function responsibilityChecklist(role: AgentRole): string {
   if (role === "validator" || role === "sub-validator") {
     return [
       "- [ ] 1. Pre-flight verification & independence: Execute `whoami` and `doctor` to verify harness health; confirm independence from task author.",
-      "- [ ] 2. Anti-rubber-stamping & direct validation: Execute independent validation commands directly against actual disk state; forbid superficial sign-offs or mock rubber-stamping.",
-      "- [ ] 3. Adversarial Gate Proofs (AGP) & falsifiability: Verify gate counterfactual falsifiability (`gate:prove` / manual negative checks) proving the gate fails on broken logic.",
-      "- [ ] 4. Direct end-to-end command verification: Validate actual runtime command behavior, not isolated mocks or superficial unit tests.",
-      "- [ ] 5. Strict quantitative metric floors: Enforce 0 TypeScript `any` types, 0 compiler/linter suppressions, 100% test pass rate, and exact execution timings.",
-      "- [ ] 6. Anti-boundary-leak rule: Never edit repository files directly to fix defects; record structured findings via `task:reject` and assign repairers.",
-      "- [ ] 7. Disk-backed evidence submission: Save all proof artifacts and screenshots strictly under `.capsules/<run>/evidence/` and record structured review verdict.",
+      "- [ ] 2. Pure Cognitive Validation & Command-Running Ban: Devote 100% bandwidth to code reading, architectural contract enforcement, and markdown review; strictly prohibited from executing bash/shell commands or running test suites (`run:exec`).",
+      "- [ ] 3. Audit Mechanic Test Receipts: Inspect deterministic test receipts, command outputs, and gate results produced by mechanic validators alongside direct file inspections.",
+      "- [ ] 4. Socratic Reflexive Self-Questioning: Audit premises, boundary edge cases, failure modes, hierarchy preservation, and quantitative empirical evidence across all 5 dimensions.",
+      "- [ ] 5. Strict quantitative metric floors: Enforce 0 TypeScript `any` types, 0 compiler/linter suppressions, 100% test pass rate in mechanic receipts, and exact execution timings.",
+      "- [ ] 6. Anti-boundary-leak rule: Never edit repository files directly to fix defects; record structured findings via `task:reject` and delegate repair to an assigned repairer.",
+      "- [ ] 7. Disk-backed evidence submission: Save all proof artifacts and review reports strictly under `.capsules/<run>/evidence/` and record structured review verdict.",
+    ].join("\n");
+  }
+  if (role === "mechanic-validator") {
+    return [
+      "- [ ] 1. Pre-flight verification & independence: Execute `whoami` and `doctor` to verify harness health; confirm independence from task author.",
+      "- [ ] 2. 100% Mechanical Execution Ownership: Execute task-specific unit tests, compilation checks, and gate commands via `run:exec`.",
+      "- [ ] 3. Adversarial Gate Proofs (AGP) & Falsifiability: Prove gate commands are discriminative by verifying that defective logic or reverted write scope produces non-zero exit codes.",
+      "- [ ] 4. Structured Test Receipts & Evidence Generation: Produce structured execution receipts, exit codes, and timing logs under `.capsules/<run>/evidence/`.",
+      "- [ ] 5. Static Invariant & Metric Enforcement: Mechanically verify 0 TypeScript `any` types, 0 compiler/linter suppressions, and 100% gate pass rate.",
+      "- [ ] 6. Anti-boundary-leak rule: Never edit repository files directly; record structured findings via `task:reject` and delegate repair to an assigned repairer.",
+      "- [ ] 7. Disk-backed test receipt submission: Store all command logs and test receipts under `.capsules/<run>/evidence/` and report execution results.",
     ].join("\n");
   }
   if (role === "completeness-critic") {
