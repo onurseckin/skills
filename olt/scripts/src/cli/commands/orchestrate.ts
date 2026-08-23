@@ -1,5 +1,6 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
+import { capturePromptWithTimeout } from "../prompt-capture.ts";
 import { readBoundedBytes } from "../../core/json.ts";
 import { HarnessError } from "../../errors/harness-error.ts";
 import { loadRun } from "../../store/index.ts";
@@ -19,18 +20,15 @@ export async function orchestrateCommand(
 ): Promise<Record<string, unknown>> {
   const inlinePrompt = context.inlinePrompt;
   const fromFile = textFlag(flags, "prompt-file", false);
-  const prompt =
-    inlinePrompt !== undefined
-      ? new TextEncoder().encode(inlinePrompt)
-      : fromFile === undefined
-        ? context.stdin
-        : readBoundedBytes(fromFile, 64 * 1024 * 1024);
-  if (prompt === undefined) {
-    throw new HarnessError(
-      "INVALID_ARGUMENT",
-      "the prompt is unavailable: type it after the command, pipe it to stdin, or pass --prompt-file",
-    );
-  }
+  const promptStdin = textFlag(flags, "prompt-stdin", false) !== undefined;
+
+  const capturedText = await capturePromptWithTimeout(inlinePrompt, {
+    ...(fromFile !== undefined ? { promptFile: fromFile } : {}),
+    promptStdin: promptStdin || context.stdin !== undefined,
+  });
+
+  const prompt = new TextEncoder().encode(capturedText);
+
   const sourceCaptureMode: "argv" | "file" | "stdin" =
     inlinePrompt !== undefined ? "argv" : fromFile !== undefined ? "file" : "stdin";
 

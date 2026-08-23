@@ -67,62 +67,16 @@ export {
   type WatchdogStore,
 };
 
-export const CANONICAL_WATCHDOG_FILE = ".capsules/mind/queue/watchdogs.json";
-export const TODO_WATCHDOG_FILE = ".capsules/todo/watchdogs.json";
 export const LEGACY_WATCHDOG_FILE = ".capsules/watchdogs.json";
 export const DEFAULT_WATCHDOG_FILE = ".capsules/watchdogs.json";
 
 export function resolveCanonicalWatchdogStorePath(customRoot?: string, useTodo = false): string {
-  const root = customRoot && customRoot.trim() ? resolve(customRoot.trim()) : process.cwd();
-  const relPath = useTodo ? TODO_WATCHDOG_FILE : CANONICAL_WATCHDOG_FILE;
-  return join(root, relPath);
+  return require("path").join(customRoot || process.cwd(), ".olt", "watchdogs.json");
 }
 
-export function resolveWatchdogStorePath(target?: string): string {
-  if (target && target.trim()) {
-    const resolved = resolve(target.trim());
-    if (resolved.endsWith(".json")) {
-      return resolved;
-    }
-
-    const checkPaths = [
-      join(resolved, ".capsules", "mind", "queue", "watchdogs.json"),
-      join(resolved, ".capsules", "todo", "watchdogs.json"),
-      join(resolved, "mind", "queue", "watchdogs.json"),
-      join(resolved, "todo", "watchdogs.json"),
-      join(resolved, ".capsules", "watchdogs.json"),
-      join(resolved, "watchdogs.json"),
-    ];
-
-    for (const p of checkPaths) {
-      if (existsSync(p)) return p;
-    }
-
-    return join(resolved, "watchdogs.json");
-  }
-
-  const cwd = process.cwd();
-  const candidates = [cwd, dirname(cwd)];
-
-  for (const root of candidates) {
-    const canonical = join(root, CANONICAL_WATCHDOG_FILE);
-    if (existsSync(canonical)) return canonical;
-
-    const todo = join(root, TODO_WATCHDOG_FILE);
-    if (existsSync(todo)) return todo;
-
-    const legacy = join(root, LEGACY_WATCHDOG_FILE);
-    if (existsSync(legacy)) return legacy;
-
-    const cwdWatchdogs = join(root, "watchdogs.json");
-    if (existsSync(cwdWatchdogs)) return cwdWatchdogs;
-  }
-
-  const cwdCapsules = join(cwd, ".capsules");
-  if (existsSync(cwdCapsules)) {
-    return join(cwdCapsules, "watchdogs.json");
-  }
-  return join(cwd, "watchdogs.json");
+export function resolveWatchdogStorePath(customPath?: string): string {
+  if (customPath && customPath.trim()) return require("path").resolve(customPath.trim());
+  return require("path").join(process.cwd(), ".olt", "watchdogs.json");
 }
 
 export function loadMindWatchdogStore(target?: string): WatchdogStore {
@@ -221,24 +175,23 @@ export function saveMindWatchdogStore(store: WatchdogStore, target?: string): vo
   atomicWriteJson(storePath, serialized);
 }
 
-export function migrateWatchdogStore(options?: {
-  readonly sourcePath?: string | undefined;
-  readonly targetPath?: string | undefined;
-}): { readonly migrated: boolean; readonly count: number } {
-  const sourcePath =
-    options?.sourcePath !== undefined ? options.sourcePath : resolveWatchdogStorePath();
-  const targetPath =
-    options?.targetPath !== undefined ? options.targetPath : resolveCanonicalWatchdogStorePath();
-
-  if (!existsSync(sourcePath) || sourcePath === targetPath) {
-    return { migrated: false, count: 0 };
+function isProcessRunning(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (e: unknown) {
+    return false;
   }
+}
 
-  const store = loadMindWatchdogStore(sourcePath);
-  if (store.watchdogs.length === 0) {
-    return { migrated: false, count: 0 };
-  }
+export function auditProcessLiveness(
+  pid: number,
+  registeredAtMs: number,
+  timeoutMs: number = 60_000,
+): { isAlive: boolean; isFrozen: boolean } {
+  const isAlive = isProcessRunning(pid);
+  const elapsed = Date.now() - registeredAtMs;
+  const isFrozen = isAlive && elapsed > timeoutMs;
 
-  saveMindWatchdogStore(store, targetPath);
-  return { migrated: true, count: store.watchdogs.length };
+  return { isAlive, isFrozen };
 }
