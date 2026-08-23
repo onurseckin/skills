@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "last_updated": "2026-08-23T13:27:37.990Z",
+  "last_updated": "2026-08-23T23:35:27.526Z",
   "strategic_focus": [
     "Continuous Zero-Any & Zero-Suppression Assurance",
     "Charter Gap Analysis & Cognitive Flavor Checks",
@@ -13,9 +13,11 @@
       "statement": "Disjoint write scope wave partitioning maximizes effective parallelism P = W/S without collision overhead.",
       "confidence": 0.96,
       "status": "active",
-      "evidence": ["Discovered 4 self-evolution tasks across disjoint write scopes"],
-      "created_at": "2026-08-23T13:27:37.990Z",
-      "updated_at": "2026-08-23T13:27:37.990Z"
+      "evidence": [
+        "Discovered 3 self-evolution tasks across disjoint write scopes"
+      ],
+      "created_at": "2026-08-23T23:35:23.796Z",
+      "updated_at": "2026-08-23T23:35:27.526Z"
     }
   ],
   "roadmaps": [
@@ -32,9 +34,9 @@
     }
   ],
   "macro_metrics": {
-    "work": 4,
+    "work": 3,
     "span": 1,
-    "parallelism": 4,
+    "parallelism": 3,
     "efficiency": 1
   }
 }

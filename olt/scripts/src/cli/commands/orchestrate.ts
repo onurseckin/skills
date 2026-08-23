@@ -5,7 +5,7 @@ import { readBoundedBytes } from "../../core/json.ts";
 import { HarnessError } from "../../core/errors/harness-error.ts";
 import { loadRun } from "../../engine/store/index.ts";
 import { formatOrchestrateBrief } from "../formatters/index.ts";
-import { textFlag, type CommandContext, type Flags } from "../options.ts";
+import { textFlag, boolFlag, type CommandContext, type Flags } from "../options.ts";
 import { firstAvailableRunId, deriveRunId } from "./orchestrate-slug.ts";
 import { planInitCommand } from "./plan.ts";
 import { resolveCapsulesDir } from "../../core/shared/paths.ts";
@@ -20,12 +20,21 @@ export async function orchestrateCommand(
 ): Promise<Record<string, unknown>> {
   const inlinePrompt = context.inlinePrompt;
   const fromFile = textFlag(flags, "prompt-file", false);
-  const promptStdin = textFlag(flags, "prompt-stdin", false) !== undefined;
+  const promptStdin = boolFlag(flags, "prompt-stdin");
 
-  const capturedText = await capturePromptWithTimeout(inlinePrompt, {
-    ...(fromFile !== undefined ? { promptFile: fromFile } : {}),
-    promptStdin: promptStdin || context.stdin !== undefined,
-  });
+  let capturedText: string;
+  if (inlinePrompt) {
+    capturedText = inlinePrompt;
+  } else if (context.stdin) {
+    capturedText = new TextDecoder("utf-8").decode(context.stdin);
+  } else if (!promptStdin && fromFile === undefined) {
+    throw new HarnessError("INVALID_ARGUMENT", "the prompt is unavailable");
+  } else {
+    capturedText = await capturePromptWithTimeout(inlinePrompt, {
+      ...(fromFile !== undefined ? { promptFile: fromFile } : {}),
+      promptStdin,
+    });
+  }
 
   const prompt = new TextEncoder().encode(capturedText);
 

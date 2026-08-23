@@ -865,6 +865,8 @@ export async function mindPulseCommand(
     waveLanes: cognitiveTelemetry.waveLanes,
     cliReceiptSummaryBadge: diagResult?.receiptSummaryBadge,
     dagBadges,
+    activeRuns: cognitiveTelemetry.activeAgents?.length ?? 0,
+    pendingBacklog: (Array.isArray(state.planning_buffer) ? state.planning_buffer.length : 0) + (typeof state.tasks === 'object' && state.tasks ? Object.values(state.tasks).filter(t => t && typeof t === 'object' && (t as Record<string, unknown>).status === 'proposed').length : 0),
   });
 
   return {

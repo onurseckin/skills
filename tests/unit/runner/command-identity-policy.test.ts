@@ -114,7 +114,7 @@ describe("command identity policy", () => {
     const repositoryRoot = await mkdtemp(join(tmpdir(), "command-record-identity-"));
     roots.push(repositoryRoot);
     const runRoot = join(repositoryRoot, ".olt", "capsules");
-    await mkdir(runRoot);
+    await mkdir(runRoot, { recursive: true });
     const runner = createInternalCommandRunner({
       inspectRepository: () => {
         throw new Error("non-gate preparation must not observe the repository");
@@ -145,7 +145,7 @@ describe("command identity policy", () => {
     const repositoryRoot = await mkdtemp(join(tmpdir(), "command-argv-policy-"));
     roots.push(repositoryRoot);
     const runRoot = join(repositoryRoot, ".olt", "capsules");
-    await mkdir(runRoot);
+    await mkdir(runRoot, { recursive: true });
     const runner = createInternalCommandRunner({
       inspectRepository: () => {
         throw new Error("must not observe");

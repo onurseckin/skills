@@ -348,7 +348,7 @@ function planAddAutoPartitionCommand(
     throw new HarnessError("INVALID_ARGUMENT", "--group-by must be 'file' or 'directory'");
   }
   const actor = actorFlag(flags);
-  const repoRoot = resolve(run, "..", "..");
+  const repoRoot = resolve(run, "..", "..", "..");
   const partitions = partitionByGlob(repoRoot, glob, groupBy);
 
   const generated: TaskDeclaration[] = partitions.map((entry) => ({

@@ -4,11 +4,20 @@ import {
   prepareCommand,
 } from "../../../olt/scripts/src/engine/runner/run-command.ts";
 import type { InternalCommandRunner } from "../../../olt/scripts/src/engine/runner/internal-command-runner.ts";
-import type {
+import {
   CommandOptions,
   CommandResult,
   PreparedCommand,
 } from "../../../olt/scripts/src/capture/runners/types.ts";
+import { mock } from "bun:test";
+
+mock.module("../../../olt/scripts/src/runtime/agent-metadata.ts", () => ({
+  readAgentMetadata: () => ({ agent_id: "validator", role: "validator" }),
+}));
+
+mock.module("../../../olt/scripts/src/policy/rbac-engine.ts", () => ({
+  verifyCommandAuthorization: () => ({ authorized: true }),
+}));
 
 // `prepareCommand`/`executePreparedCommand` are the production entry points: by default they
 // delegate to a runner wired to the real repository inspector and the real attempt spawner, which
@@ -19,7 +28,7 @@ import type {
 describe("prepareCommand / executePreparedCommand delegation", () => {
   test("prepareCommand forwards its input to the supplied runner unchanged and returns its result", async () => {
     const seenInputs: CommandOptions[] = [];
-    const preparedStub = { commandRoot: "stub-root" } as unknown as PreparedCommand;
+    const preparedStub = { commandRoot: "stub-root", options: { runRoot: "/repo", repositoryRoot: "/repo" } } as unknown as PreparedCommand;
     const fakeRunner: InternalCommandRunner = {
       prepareCommand: async (input) => {
         seenInputs.push(input);
@@ -43,7 +52,7 @@ describe("prepareCommand / executePreparedCommand delegation", () => {
   test("executePreparedCommand forwards its prepared command to the supplied runner unchanged", async () => {
     const seenPrepared: PreparedCommand[] = [];
     const resultStub = { record: { id: "C-1" } } as unknown as CommandResult;
-    const prepared = { commandRoot: "stub-root-2" } as unknown as PreparedCommand;
+    const prepared = { commandRoot: "stub-root-2", options: { runRoot: "/repo", repositoryRoot: "/repo", argv: ["echo"] } } as unknown as PreparedCommand;
     const fakeRunner: InternalCommandRunner = {
       prepareCommand: async () => {
         throw new Error("must not be called by executePreparedCommand");

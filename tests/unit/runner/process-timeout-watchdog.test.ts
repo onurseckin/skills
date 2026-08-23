@@ -621,8 +621,8 @@ describe("Invariants & Cleanliness Audit - Mechanical Process Timeout Watchdog",
     const { join } = require("node:path");
 
     const sourceFiles = [
-      join(__dirname, "../../../olt/scripts/src/runner/process-timeout-watchdog.ts"),
-      join(__dirname, "../../../olt/scripts/src/runner/policy.ts"),
+      join(__dirname, "../../../olt/scripts/src/engine/runner/process-timeout-watchdog.ts"),
+      join(__dirname, "../../../olt/scripts/src/engine/runner/policy.ts"),
       __filename,
     ];
 
