@@ -53,7 +53,7 @@ coordinator per round; only the coordinator ever touches task-level work:
      findings are synthesized into the next round, never bubbled to Tier 0 as an unresolved report.
    - Full contract: `roles/orchestrator.md`; persona: `agents/orchestrator.yaml`.
 2. **Tier 2 (Background Run Coordinator)**:
-   - Owns `.capsules/<run_id>/` execution lifecycle for one round.
+   - Owns `.olt/capsules/<run_id>/` execution lifecycle for one round.
    - Equipped with subagent tools (`enable_subagent_tools: true` or native team lead capabilities).
    - Coordinates execution waves and routes findings to workers; reports its round's milestones to
      the Tier 1 orchestrator that dispatched it.
@@ -277,21 +277,21 @@ Every host adapter implementation must enforce the following guardrails:
 ### 5.5 Repository Root Capsule Resolution Protocol
 
 - **Anti-Pattern**: Writing `.capsules` into subdirectories (e.g. `scripts/.capsules`) when invoked from a nested directory.
-- **Guardrail**: All harness storage MUST resolve to `<repo-root>/.capsules/` at the active local Git repository root.
+- **Guardrail**: All harness storage MUST resolve to `<repo-root>/.olt/capsules/` at the active local Git repository root.
 
 ### 5.6 Mandatory 5-Minute Supervisory Scheduler & Live ASCII DAG Optimization
 
 - **Anti-Pattern**: Schedulers running unmonitored without active wake intervals, or serializing parallelizable tasks due to lack of topological introspection. Coordinators editing codebase files directly instead of orchestrating.
 - **Guardrail**:
   - Enforce mandatory 5-minute supervisory scheduler registration (`schedule` cron `*/5 * * * *` or timer `DurationSeconds=300`) across all multi-phase runs.
-  - Use `dag:view` (alias: graph:ascii) to inspect live ASCII execution trees, track subagent lease occupancy, and surface algorithmic parallelization opportunities (e.g. disjoint write scopes artificially serialized).
+  - Use `dag` (alias: graph:ascii) to inspect live ASCII execution trees, track subagent lease occupancy, and surface algorithmic parallelization opportunities (e.g. disjoint write scopes artificially serialized).
   - Coordinators must strictly orchestrate and NEVER write, edit, or test code directly.
 
 ### 5.7 Multi-Coordinator Scaling & Algorithmic DAG Parallelization
 
 - **Anti-Pattern**: Single coordinator bottlenecking wide multi-subsystem codebases, or artificial serial dependency chains when write scopes are disjoint.
 - **Guardrail**:
-  - Perform algorithmic DAG analysis (`dag:view`) to calculate Work vs Span ($P = \text{Work} / \text{Span}$) and detect false dependencies between disjoint scopes.
+  - Perform algorithmic DAG analysis (`dag`) to calculate Work vs Span ($P = \text{Work} / \text{Span}$) and detect false dependencies between disjoint scopes.
   - When $P < P_{\text{optimal}}$ and 2+ disjoint domains exist (e.g. backend, frontend, database, docs), scale out by deploying dedicated Tier 2 Domain Coordinators (`coordinator-<domain>`) to manage disjoint execution wave lanes independently.
   - Eliminate artificial serialization warnings (`ARTIFICIAL_SERIALIZATION_WARNING`) by decoupling soft dependencies into concurrent wave lanes.
 

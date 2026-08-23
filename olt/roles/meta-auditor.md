@@ -8,7 +8,7 @@ may:
   - Detect root causes: token burning, false serialization, role boundary deviations, polling waste, context overflow, ghost leases, and straggler tasks
   - Compute deterministic behavioral efficiency scores (0.0% - 100.0%) and quantitative operational metrics
   - Synthesize actionable remediation proposals and directives from detected forensics incidents
-  - Inject remediation items autonomously into the canonical feedback queue (`.capsules/FEEDBACK_QUEUE.jsonl`) and mind candidate pool
+  - Inject remediation items autonomously into the canonical feedback queue (`.olt/backlog.jsonl`) and mind candidate pool
   - Generate and output structured markdown and JSON deep behavioral forensics reports
   - Issue zero-exploration exact-anchor task briefings to prevent exploratory tool calling and token burning
   - Record and report forensics findings to parent orchestrator and mind supervisory loop
@@ -38,7 +38,7 @@ The Tier 2 independent supervisory role responsible for post-wave and post-run d
 - **Independent Forensics Supervision**: Operates with strict analytical detachment, evaluating raw event streams (`events.jsonl`), state ledgers (`state.json`), agent transcripts, and tool executions rather than subjective self-evaluations or narrative summaries.
 - **Root-Cause Anomaly Detection**: Analyzes multi-agent coordination traces to isolate anti-patterns: token burning exploratory loops, false serialization of disjoint work scopes, role boundary leaks, polling waste, context saturation, ghost leases, and straggler tasks.
 - **Deterministic Efficiency Scoring**: Computes reproducible quantitative efficiency scores ($0.0\% - 100.0\%$) and operational metrics (read/write ratio, sequential wave bottlenecks, polling frequency, estimated token waste).
-- **Autonomous Remediation & Feedback Injection**: Formulates structured, actionable remediation directives and injects them directly into the feedback queue (`.capsules/FEEDBACK_QUEUE.jsonl`) and mind candidate pool (`mind:candidate`).
+- **Autonomous Remediation & Feedback Injection**: Formulates structured, actionable remediation directives and injects them directly into the feedback queue (`.olt/backlog.jsonl`) and mind candidate pool (`mind:candidate`).
 - **Zero-Exploration Exact-Anchor Enforcement**: Interfaces with Tier 2 Coordinators to mandate zero-exploration 1-shot task briefings (`task:brief`), ensuring Tier 3 implementers execute immediate single-turn edits without context-wasting exploratory scans.
 - **Standardized Naming**: Registers and operates under standardized phase/run-bound agent identifiers: `meta-auditor_<run-or-phase-slug>` (e.g. `meta-auditor_wave-3-forensics`).
 
@@ -156,7 +156,7 @@ flowchart TD
     C -->|Yes| E[synthesizeRemediationPlan]
     E --> F[PlanInjectionProposals]
     F --> G[injectRemediationToFeedbackQueue]
-    G --> H[.capsules/FEEDBACK_QUEUE.jsonl]
+    G --> H[.olt/backlog.jsonl]
     F --> I[mind:candidate / todo:add]
     H --> J[Next Wave / Next Run Planning]
     I --> J
@@ -164,7 +164,7 @@ flowchart TD
 
 ### Injection Execution Flow:
 1. **Forensics Run**: Execute `meta-audit --run <run-root> --format markdown` (or `--json`).
-2. **Autonomous Enqueueing**: When invoked with `--inject`, synthesize structured `PlanInjectionProposal` records and append them to `.capsules/FEEDBACK_QUEUE.jsonl`.
+2. **Autonomous Enqueueing**: When invoked with `--inject`, synthesize structured `PlanInjectionProposal` records and append them to `.olt/backlog.jsonl`.
 3. **Candidate Promotion**: For cross-generational systemic defects, register structured candidates via `mind:candidate` or queue tasks via `todo:add`.
 4. **De-duplication**: Injection mechanisms maintain title and category fingerprints to prevent redundant duplicate proposals from entering active queues.
 

@@ -22,7 +22,7 @@ Preserve this entire request for future agents. Inspect existing conventions bef
 
 ### 1. Capture and inspect before tracked changes
 
-Create `.capsules/local-automation-20260813/` immediately. The capsule is already covered by the repository’s `.capsules/` ignore rule.
+Create `.olt/capsules/local-automation-20260813/` immediately. The capsule is already covered by the repository’s `.olt/capsules/` ignore rule.
 
 ```text
 prompt.md                 verbatim, immutable request
@@ -42,7 +42,7 @@ handoff.md                deterministic restart instructions and next actions
 final-report.md            completion evidence
 ```
 
-Before implementation, inspect `git status`, instruction files, recent changes, `scripts/README.md`, current script/test conventions, and `.gitignore`. Preserve all pre-existing changes. Record results in the capsule and verify `git check-ignore -q .capsules/example`.
+Before implementation, inspect `git status`, instruction files, recent changes, `scripts/README.md`, current script/test conventions, and `.gitignore`. Preserve all pre-existing changes. Record results in the capsule and verify `git check-ignore -q .olt/capsules/example`.
 
 ### 2. Freeze architecture and ownership
 
@@ -51,7 +51,7 @@ Use a Python-standard-library-only design:
 - `shared.py`: versioned SQLite schema, state-directory resolution, atomic transactions, IDs, timestamps, job/run states, leases, heartbeats, and recovery.
 - `scripts/cli/**`: commands to create, list, inspect, cancel, retry, and resume automations/runs; stable JSON output for other clients.
 - `scripts/scheduler/**`: due-work polling, atomic claiming, `subprocess` execution with `shell=False`, output capture, heartbeat renewal, timeouts, and stale-run recovery.
-- Product state: `.capsules/local-automation/state.sqlite3`, with logs beneath the same directory. No authoritative state may live only in memory or PID files.
+- Product state: `.olt/capsules/local-automation/state.sqlite3`, with logs beneath the same directory. No authoritative state may live only in memory or PID files.
 - Cross-client behavior: separate processes use the same schema and state path; a restarted or different client can recover expired leases and continue without repeating completed runs.
 
 Tracked artifacts:
@@ -98,7 +98,7 @@ Use all safe concurrency in dependency waves:
 | Inspect conventions first             | Baseline captured before tracked writes                                                    | Timestamped `repo-baseline.json` and `conventions.md`           |
 | Cross-client local automation         | Stable CLI JSON protocol and shared durable store                                          | Two-process integration scenario                                |
 | Python standard library               | Runtime imports only stdlib modules                                                        | `python3 -S` smoke commands and import audit                    |
-| Run state gitignored                  | All workflow and product state under `.capsules/`                                          | `git check-ignore`; tracked-file audit                          |
+| Run state gitignored                  | All workflow and product state under `.olt/capsules/`                                      | `git check-ignore`; tracked-file audit                          |
 | Maximize safe parallelism             | Dependency-ready, disjoint writer batches plus read-only reviewers                         | `graph.json`, leases, dispatch events                           |
 | Alpha/Beta ownership                  | Exact write scopes with serialized `shared.py` lease                                       | Diff-to-owner audit; hash/lease history                         |
 | No overwrites                         | Atomic SQLite transactions and exclusive path leases                                       | Concurrent-claim and stale-token tests                          |
@@ -174,14 +174,14 @@ bun <installed-skill>/scripts/harness.ts init --repo <absolute-repo> \
 I will not pass `--source-verified`. The capsule must therefore record the assurance as
 `recorded-unverified`: its digest can prove that the stored copy does not later change, but cannot
 prove identity to a source the host does not expose independently. All later commands will use the
-copied `.capsules/<run>/runtime/harness.ts`, never the mutable installed skill.
+copied `.olt/capsules/<run>/runtime/harness.ts`, never the mutable installed skill.
 
 No product architecture is approved yet. The requested Python standard-library runtime,
 cross-client behavior, ownership boundaries, and evidence rules are requirements; module names,
 persistence choices, command shape, and tests remain provisional until repository inspection. The
 first durable task is read-only inspection of `git status`, applicable instruction files, recent
 commits, `.gitignore`, existing script and test layouts, supported Python version, naming and
-packaging conventions, and all pre-existing dirty paths. I will prove `.capsules/` is ignored before
+packaging conventions, and all pre-existing dirty paths. I will prove `.olt/capsules/` is ignored before
 placing run state there. If it is not ignored, I will record that blocker and make only the smallest
 allowed ignore-rule change before initialization; I will not place state in an unignored path.
 

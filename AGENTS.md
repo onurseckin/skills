@@ -46,8 +46,8 @@ Every agent executing within this repository must adhere to the following non-ne
     - Supervisory tiers (Tier 0 `mind`, Tier 1 `orchestrator`, Tier 2 `coordinator`, Tier 2 `meta-auditor`) must **never** edit repository source files or run unit test suites.
     - Continuous watchdog monitoring (`watchdog:role-boundary`) detects boundary violations, anti-leak/anti-drift defects, and persona duplication using deterministic persona signature hashing.
 13. **Empirical Blunder Logging & Resolution Proofs:**
-    - Boundary violations, main-thread implementation attempts, and reasoning errors are logged to canonical `.capsules/mind/queue/blunders.jsonl`.
-    - Blunders are deduplicated, audited (`blunder:audit`), and resolved only with empirical proof (`commit_sha`, `test_assertion`, `task_id`).
+    - Boundary violations, main-thread implementation attempts, and reasoning errors are logged to canonical `.olt/defects.jsonl`.
+    - Blunders are deduplicated, audited (`defect:audit`), and resolved only with empirical proof (`commit_sha`, `test_assertion`, `task_id`).
 14. **Live Cognitive Telemetry & Active Coordinate Badges:**
     - Supervisory pulses (`mind:pulse`) stream live Work/Span metrics ($W, S, P$, optimal concurrency, active concurrency) and active agent coordinate badges (`[W<wave>:L<lane>]`).
     - The supervisory mind operates on an infinite autonomous cadence (`CLOSING_FORBIDDEN_FOR_MIND`) with active persona mandate injection.
@@ -56,7 +56,7 @@ Every agent executing within this repository must adhere to the following non-ne
 16. **Multi-Attribute Semantic Memory & Cross-Generational Retrieval:**
     - Cross-generational cognitive memory querying (`memory:query` / `memory:search`) supports fine-grained multi-attribute filtering across `--kind` (task, capture, decision, blunder, blunder_promotion, objective, artifact), `--generation` (`--gen`), `--tags`, `--pattern` (regex matching), and semantic query terms (`--query`), ensuring rapid historical context retrieval and anti-blunder grounding.
 17. **Automated Blunder Promotion & Regression Immunity:**
-    - Resolved blunders are systematically audited (`blunder:audit`) and auto-promoted (`--auto-promote`) from `blunders.jsonl` to `completed-blunders.jsonl` with verifiable empirical proofs (`commit_sha`, `test_assertion`, `task_id`). Automated regression test suite generation (`--generate-tests`, `--output-tests`) guarantees permanent immunity across all historical blunder instances (46 verified blunder remediations).
+    - Resolved blunders are systematically audited (`defect:audit`) and auto-promoted (`--auto-promote`) from `blunders.jsonl` to `completed-blunders.jsonl` with verifiable empirical proofs (`commit_sha`, `test_assertion`, `task_id`). Automated regression test suite generation (`--generate-tests`, `--output-tests`) guarantees permanent immunity across all historical blunder instances (46 verified blunder remediations).
 18. **Infinite Mind Product Owner Mode & Atomic Admission-to-Dispatch Chaining:**
     - Tier 0 Mind operates as an Infinite Product Owner governing backlog lifecycle across Mode A (Autonomous Self-Evolution on empty queue) and Mode B (External Intake).
     - Admitting feedback atomically converts and dispatches into `TASK_QUEUE.jsonl` with ZERO paused admitted items (`reconcilePausedAdmittedFeedbacks`).
@@ -70,7 +70,7 @@ Every agent executing within this repository must adhere to the following non-ne
     - Mechanic Validators (`mechanic-validator`) retain test execution and shell authority (`run:exec`, `tsc --noEmit`, AST static audits, AGPs).
     - Implementers own 100% of unit test execution.
 21. **Script-Backed Scheduler Diagnostics Engine:**
-    - Scheduler pulses and coordination loops execute deterministic script-backed diagnostics (`doctor`, `health`, `dag:view`, `report:unified`) before generating telemetry.
+    - Scheduler pulses and coordination loops execute deterministic script-backed diagnostics (`doctor`, `health`, `dag`, `report`) before generating telemetry.
     - Embeds live CLI receipts with SHA-256 cryptographic hashes and ASCII DAG badges into pulse briefs and coordination reports.
 22. **Zero-Exploration Exact-Anchor Briefings & Fast Incremental Verification (`task:check`):**
     - Coordinators must dispatch workers with exact file paths, line ranges (`StartLine`, `EndLine`), symbols, and drop-in replacements (`task:brief`), driving immediate Turn 1 edits with 0 exploratory discovery reads.
@@ -79,7 +79,7 @@ Every agent executing within this repository must adhere to the following non-ne
     - Independent Tier 2 supervisory forensics role (`meta-auditor`, domain: `forensics`) inspects raw event streams (`events.jsonl`), state ledgers (`state.json`), transcripts, and tool executions post-wave and post-run.
     - Scans coordination traces against 7 behavioral heuristics: `TOKEN_BURNING`, `FALSE_SERIALIZATION`, `ROLE_BOUNDARY_DEVIATION`, `POLLING_WASTE`, `CONTEXT_OVERFLOW`, `GHOST_LEASE`, and `STRAGGLER`.
     - Computes deterministic behavioral efficiency scores ($0.0\% - 100.0\%$) and quantitative operational metrics.
-    - Autonomously synthesizes structured remediation proposals and injects them directly into the canonical feedback queue (`.capsules/FEEDBACK_QUEUE.jsonl`) via `meta-audit --inject` and the Mind candidate pool (`mind:candidate`).
+    - Autonomously synthesizes structured remediation proposals and injects them directly into the canonical feedback queue (`.olt/backlog.jsonl`) via `meta-audit --inject` and the Mind candidate pool (`mind:candidate`).
     - Strictly prohibited from making direct code edits, claiming leases, running tests, or rubber-stamping unevidenced passes.
 24. **Elastic Dynamic Hierarchy Scaling & Fast-Path Compaction**:
     - **Fast-Path Compaction ($N = 1$)**: When an active queue or plan has exactly 1 task, the Tier 1 Orchestrator directly supervises the Implementer and Cognitive Validator pair, skipping Tier 2 Coordinator middleman overhead.
@@ -93,7 +93,7 @@ Every agent executing within this repository must adhere to the following non-ne
     - `repairer` is permanently retired as a separate subagent role; repairs are executed directly by the active Implementer through 1-hop in-lease micro-cycles (`task:reject --in-lease`).
 27. **Canonical `olt/` Repository Directory & Persistent Governance**:
     - Project governance, backlog, defect remediation logs, and telemetry are persisted in the committed `olt/` directory (`olt/policy.json`, `olt/backlog.jsonl`, `olt/completed-tasks.jsonl`, `olt/defects.jsonl`, `olt/completed-defects.jsonl`, `olt/telemetry.jsonl`).
-    - Runtime capsule workspaces remain gitignored under `capsules/` (and legacy `.capsules/`).
+    - Runtime capsule workspaces remain gitignored under `capsules/` (and legacy `.olt/capsules/`).
 28. **Hard-Coded Mechanical RBAC Engine & Shielded Shell (`harness.ts shell`)**:
     - All subagent command executions are verified through the hybrid static + dynamic deny-list compiler (`verifyCommandAuthorization`).
     - Cognitive Validators have `can_execute_shell: false` (Hard-lock interlock: 0 commands allowed).
@@ -158,7 +158,7 @@ The repository enforces a strict **4-Tier Host-Agnostic Architecture** to isolat
 
 | Role                      | Tier | Key Responsibilities                                                                                                                                                                                                          | Non-Negotiable Prohibitions (`must_not`)                                                                                                             |
 | :------------------------ | :--: | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **`mind`**                |  0   | Infinite Product Owner, candidate admission, atomic dispatch chaining, multi-orchestrator scaling, macro DAG diagnostics, queue governance (`.capsules/mind/queue/`), memory persistence, non-idle autonomous discovery.      | **Must not** write repository code, execute unit tests, spawn Tier 2/3 agents directly, or permit paused admitted items to linger.                   |
+| **`mind`**                |  0   | Infinite Product Owner, candidate admission, atomic dispatch chaining, multi-orchestrator scaling, macro DAG diagnostics, queue governance (`.olt/`), memory persistence, non-idle autonomous discovery.                      | **Must not** write repository code, execute unit tests, spawn Tier 2/3 agents directly, or permit paused admitted items to linger.                   |
 | **`orchestrator`**        |  1   | Multi-round orchestration, capsule chaining, convergence governance, watchdog cadence, final synthesis, release syncing.                                                                                                      | **Must not** implement tasks directly, run raw test suites, spawn Tier 3 workers directly, or spill work onto main thread.                           |
 | **`coordinator`**         |  2   | Run lifecycle ownership, agent registration, 1-shot exact-anchor briefings, wave dispatching, hard resets, git commits/pushes/sync, Tier 3 supervision.                                                                       | **Must not** write repository code, claim tasks, assign commands to Cognitive Validators, or execute raw test suites (`bun test`).                   |
 | **`meta-auditor`**        |  2   | Post-wave and post-run deep behavioral forensics, 7 anomaly detection heuristics, deterministic efficiency scoring (0.0% - 100.0%), autonomous remediation injection (`--inject`), zero-exploration exact-anchor enforcement. | **Must not** make direct source code edits, claim code write leases, execute task tests directly, rubber-stamp passes, or bypass 4-tier hierarchy.   |
@@ -261,7 +261,7 @@ To protect repository state and prevent common LLM blunder modes:
 
 1. **Main-Thread Restraint Guard:**
    - Interactive Tier 1 sessions must never perform direct task implementations or file edits.
-   - Unauthorized direct edits trigger automated blunder logging (`blunder:audit`) and require delegation to background subagents.
+   - Unauthorized direct edits trigger automated blunder logging (`defect:audit`) and require delegation to background subagents.
 2. **Zero-Exploration Exact-Anchor Briefing Mandate:**
    - Subagents must never be spawned without complete task context. Always issue `task:brief` or `agent:brief` containing exact target files, line ranges (`StartLine`, `EndLine`), concrete symbols, and drop-in code replacements. Implementers must achieve Turn 1 edits with 0 exploratory discovery reads. Flag $>5$ exploratory reads before first edit as `TOKEN_BURNING`.
 3. **Strict Test Ban on Coordinators / Orchestrators:**
@@ -274,7 +274,7 @@ To protect repository state and prevent common LLM blunder modes:
    - **Never** read, parse, or inject massive raw JSON dumps (e.g. `cli-capabilities.json`).
    - Always discover commands via targeted CLI help: `bun harness.ts help <command>` or error diagnostics via `bun harness.ts explain <ERROR_CODE>`.
 7. **Monolithic Default Output & Step Guidance:**
-   - Rely on unified status views (`summary:view` / `report:unified` / `run:status`) which automatically integrate the Sugiyama DAG, live doctor checks, task metrics, and subagent allocations.
+   - Rely on unified status views (`summary:view` / `report` / `run:status`) which automatically integrate the Sugiyama DAG, live doctor checks, task metrics, and subagent allocations.
    - Always follow the structured `nextRecommendedCommand` guidance emitted in CLI briefs.
 8. **Bearer Token Confidentiality & Hygiene:**
    - Bearer tokens (`--token <token>`) are authorization credentials that must **only** appear as CLI arguments in direct harness invocations.
@@ -283,17 +283,17 @@ To protect repository state and prevent common LLM blunder modes:
    - Implementers holding active leases must periodically issue `task:heartbeat` before lease expiry.
    - Expired leases are automatically reclaimed by `recover` / `orchestrator:supervise` to prevent orphaned dead-agent blocking.
 10. **Git Hygiene & Ephemeral State:**
-    - Dynamic plan state belongs strictly in `.capsules/<run-id>/`, never committed to `docs/planning/` or root git history.
+    - Dynamic plan state belongs strictly in `.olt/capsules/<run-id>/`, never committed to `docs/planning/` or root git history.
     - Temporary testing artifacts must be directed to designated `.tmp/` or scratch directories.
 11. **Canonical Mind Queue & Strict Non-Idle Discovery Invariant:**
-    - Mind queue data lives strictly under `<repo-root>/.capsules/mind/queue/` (and `.capsules/todo/`) using standardized lowercase kebab-case files: `feedback-queue.jsonl`, `completed-tasks.jsonl`, `blunders.jsonl`, `completed-blunders.jsonl`, `observations.jsonl`, `watchdogs.json`, alongside indexed cognitive memory at `.capsules/mind/memory.json`.
+    - Mind queue data lives strictly under `<repo-root>/.olt/` (and `.olt/`) using standardized lowercase kebab-case files: `feedback-queue.jsonl`, `completed-tasks.jsonl`, `blunders.jsonl`, `completed-blunders.jsonl`, `observations.jsonl`, `watchdogs.json`, alongside indexed cognitive memory at `.olt/memory.json`.
     - When feedback queue count is 0, Mind is strictly forbidden from sitting idle or reporting "waiting in standby"; it must immediately trigger autonomous discovery (0 any checks, charter gap audits, blunder regression tests, Work/Span P = W / S optimizations).
     - Mind queue operations must execute via `mind:queue:*` or alias `todo:*` CLI commands (`list`, `add`, `drain`, `seal`, `clean`).
 12. **Role Boundary Watchdog & Persona Deduplication:**
     - Continuous watchdog auditing (`watchdog:role-boundary`, `createRoleBoundaryWatchdog`) ensures no agent violates its tier constraints, leaks write scopes, or runs forbidden test suites.
     - Dynamic personas are deterministically hashed (`computePersonaSignature`) and deduplicated to prevent persona sprawl across multi-orchestrator deployments.
 13. **Empirical Blunder Resolution Invariant:**
-    - Every recorded blunder in `blunders.jsonl` requires empirical proof to resolve (`blunder:resolve` / `blunder:audit` with `commit_sha`, `test_assertion`, and `task_id`).
+    - Every recorded blunder in `blunders.jsonl` requires empirical proof to resolve (`blunder:resolve` / `defect:audit` with `commit_sha`, `test_assertion`, and `task_id`).
     - Speculative assertions, verbal dismissals, and unevidenced status overrides are strictly prohibited.
 14. **Brent Work/Span Optimization & Edge Decoupling:**
     - Wave execution plans must maximize concurrency ($P = \lceil W / S \rceil$) by pruning artificial dependencies between tasks with disjoint write scopes.
@@ -305,11 +305,11 @@ To protect repository state and prevent common LLM blunder modes:
 17. **Multi-Attribute Semantic Memory Querying:**
     - Historical pattern retrieval must leverage `memory:query` / `memory:search` with targeted `--kind`, `--generation`, `--tags`, and `--pattern` filters to search indexed cognitive memory across all generations before planning new objectives or declaring solutions.
 18. **Automated Blunder Promotion & Regression Suite Maintenance:**
-    - Every resolved blunder in `blunders.jsonl` must be promoted via `blunder:audit --auto-promote` into `completed-blunders.jsonl` with empirical proof and regression test assertions (`--generate-tests`, `--output-tests`), maintaining 100% regression immunity across all 46 blunder instances.
+    - Every resolved blunder in `blunders.jsonl` must be promoted via `defect:audit --auto-promote` into `completed-blunders.jsonl` with empirical proof and regression test assertions (`--generate-tests`, `--output-tests`), maintaining 100% regression immunity across all 46 blunder instances.
 19. **Fast Incremental Verification Discipline (`task:check`):**
     - Implementers and mechanic validators must execute `task:check` (`--task <id> --run <run>` or `--file <paths>`) for instant in-process TypeScript type checking and AST invariant audits (strict 0 `any`, 0 suppressions) before submitting or passing tasks.
 20. **Autonomous Meta-Auditor Forensics & Closed-Loop Remediation:**
-    - Post-wave and post-run reviews must execute `meta-audit --run <run> --inject` to detect coordination defects across 7 behavioral heuristics, compute quantitative efficiency scores, and autonomously enqueue remediation proposals directly into `.capsules/FEEDBACK_QUEUE.jsonl`.
+    - Post-wave and post-run reviews must execute `meta-audit --run <run> --inject` to detect coordination defects across 7 behavioral heuristics, compute quantitative efficiency scores, and autonomously enqueue remediation proposals directly into `.olt/backlog.jsonl`.
 
 ---
 
@@ -433,7 +433,7 @@ All contributions to the `@onurseckin/skills` monorepo must strictly satisfy all
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
 │  1. Dynamic Work/Span Topology Rebalancing & Edge Decoupling:               │
-│     bun harness.ts dag:render --run <run> --detailed                        │
+│     bun harness.ts dag --run <run> --detailed                        │
 │     (Decouples non-overlapping serial edges, calculates P = ceil(W / S))   │
 │                                                                             │
 │  2. Live Cognitive Telemetry & Active Agent Coordinates:                    │
@@ -441,8 +441,8 @@ All contributions to the `@onurseckin/skills` monorepo must strictly satisfy all
 │     (Displays W, S, P, optimal/active concurrency, [W<wave>:L<lane>] badges)│
 │                                                                             │
 │  3. Blunder Audit & Candidate Admission:                                    │
-│     bun harness.ts blunder:audit --run <run> --filter-status open           │
-│     bun harness.ts blunder:audit --run <run> --auto-admit --actor coordinator│
+│     bun harness.ts defect:audit --run <run> --filter-status open           │
+│     bun harness.ts defect:audit --run <run> --auto-admit --actor coordinator│
 │                                                                             │
 │  4. Continuous Role Boundary Watchdog Verification:                         │
 │     bun harness.ts watchdog:verify --generation 1 --all                     │
@@ -483,11 +483,11 @@ All contributions to the `@onurseckin/skills` monorepo must strictly satisfy all
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
 │  1. Audit and Auto-Promote Resolved Blunders:                               │
-│     bun harness.ts blunder:audit --auto-promote                             │
+│     bun harness.ts defect:audit --auto-promote                             │
 │     (Promotes resolved entries to completed-blunders.jsonl with proof)      │
 │                                                                             │
 │  2. Generate Automated Regression Tests:                                    │
-│     bun harness.ts blunder:audit --generate-tests \                         │
+│     bun harness.ts defect:audit --generate-tests \                         │
 │       --output-tests tests/unit/mind/blunder-remediation-46.test.ts          │
 │                                                                             │
 │  3. Verify Blunder Regression Immunity:                                     │
@@ -512,7 +512,7 @@ All contributions to the `@onurseckin/skills` monorepo must strictly satisfy all
 │                                                                             │
 │  3. Autonomous Closed-Loop Feedback Queue Injection:                        │
 │     bun harness.ts meta-audit --run <run> --inject                          │
-│     (Synthesizes PlanInjectionProposals into .capsules/FEEDBACK_QUEUE.jsonl) │
+│     (Synthesizes PlanInjectionProposals into .olt/backlog.jsonl) │
 │                                                                             │
 │  4. Fast Incremental Verification on Targeted Scope (task:check):           │
 │     bun harness.ts task:check --run <run> --task <id>                       │
@@ -562,7 +562,7 @@ When executed with `--inject` (`bun harness.ts meta-audit --run <run> --inject`)
 
 1. Synthesizes structured `PlanInjectionProposal` records for detected high/critical incidents.
 2. Formats remediation directives containing exact file targets, prescribed behavioral fixes, and priority levels.
-3. Appends proposals to `.capsules/FEEDBACK_QUEUE.jsonl` (and `mind:candidate` pool) with cryptographic title/category deduplication.
+3. Appends proposals to `.olt/backlog.jsonl` (and `mind:candidate` pool) with cryptographic title/category deduplication.
 4. Feeds directly into Tier 0 Mind's atomic admission-to-dispatch loop for the subsequent wave or run cycle.
 
 ### Zero-Exploration Exact-Anchor Briefings & Fast Incremental Verification (`task:check`)

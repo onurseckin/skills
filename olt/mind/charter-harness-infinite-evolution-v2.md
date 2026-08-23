@@ -7,7 +7,7 @@ The Master Infinite Mind Subsystem within `olt` is the supreme autonomous engine
 ## Goals
 
 - G1: Enforce behavioral role segregation and true system health auditing in `doctor` (detecting coordinator code writing, orchestrator implementation, and boundary violations).
-- G2: Provide topological ASCII DAG visualization in `dag:view` with active agent coordinate badges, wave lanes, and dependency justifications.
+- G2: Provide topological ASCII DAG visualization in `dag` with active agent coordinate badges, wave lanes, and dependency justifications.
 - G3: Implement automated false-dependency decoupling and concurrency scaling supporting up to 40 parallel agents.
 - G4: Enforce infinite autonomous mind cadence (Rule 17), prohibiting agents from killing schedulers or terminating pulses.
 - G5: Isolate all final release operations (git commit, git push, global sync) to dedicated background Tier 1 Orchestrator threads, maintaining zero main-thread spillover.

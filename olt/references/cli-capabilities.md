@@ -715,7 +715,7 @@ Generates comprehensive unified run report across tasks, topology, agent lifecyc
 
 ```bash
 bun harness.ts report --run .olt/capsules/<run-id>
-bun harness.ts report:unified --run .olt/capsules/<run-id>
+bun harness.ts report --run .olt/capsules/<run-id>
 ```
 
 ### `report:graph-json`
@@ -743,7 +743,7 @@ bun harness.ts report:graph-json --run .olt/capsules/<run-id> --out graph.json
 
 Canonical reporting for DAG status.
 
-Aliases/links to dag:view to inspect compiled graph or planning buffer DAG topology.
+Aliases/links to dag to inspect compiled graph or planning buffer DAG topology.
 
 - **Aliases**: none
 - **Stdin**: not read
@@ -927,7 +927,7 @@ Render Sugiyama hierarchical DAG layout with rounded Unicode boxes and cycle dia
 
 Computes Sugiyama layered layout, crossing minimization via barycenter heuristics, Tarjan cycle alerts, illegal bypass warnings, and orthogonal connectors.
 
-- **Aliases**: `dag:render`, `dag:view`, `graph:sugiyama`, `report:sugiyama`, `graph:ascii`, `status:dag`
+- **Aliases**: `dag`, `dag`, `graph:sugiyama`, `report:sugiyama`, `graph:ascii`, `status:dag`
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
@@ -942,8 +942,8 @@ Computes Sugiyama layered layout, crossing minimization via barycenter heuristic
 | `--json` | bool | no | no | - | Output structured JSON report. |
 
 ```bash
-bun harness.ts dag:render --run .olt/capsules/<run-id>
-bun harness.ts dag:render --detailed --box-style rounded
+bun harness.ts dag --run .olt/capsules/<run-id>
+bun harness.ts dag --detailed --box-style rounded
 ```
 
 ### `dag:trace`

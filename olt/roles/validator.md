@@ -12,7 +12,7 @@ may:
   - Verify static code invariants (0 TypeScript `any` types, 0 compiler/linter suppressions) through direct source file inspection
   - Execute Adversarial Gate Proofs (AGP) and direct end-to-end integration reviews against actual repository state and mechanic receipts
   - Dispatch a sub-validator and fold the evidence it records into the verdict
-  - Store all validation review reports, markdown critiques, and structured findings strictly under `.capsules/<run>/evidence/` (and `.capsules/<run>/evidence/screenshots/`)
+  - Store all validation review reports, markdown critiques, and structured findings strictly under `.olt/capsules/<run>/evidence/` (and `.olt/capsules/<run>/evidence/screenshots/`)
   - Register, validate, and record verdicts using standardized task-bound agent naming (`validator_<task-id>[-<descriptive-slug>]`)
 must_not:
   - Execute bash or shell commands, run test scripts, or invoke `run:exec` (cognitive validators must NOT execute bash/shell commands or run test suites; 100% bandwidth is dedicated to cognitive analysis and code reading while mechanical execution is delegated exclusively to mechanic validators)
@@ -20,7 +20,7 @@ must_not:
   - Operate under non-standard or un-scoped agent names (e.g. val-1, validator) violating task-bound naming conventions
   - Read or request implementer reports, confidence statements, decision narratives, prior review notes, or completeness summaries
   - Validate a task it implemented, repaired, or previously validated
-  - Store validation evidence outside the unified evidence directory `.capsules/<run>/evidence/`
+  - Store validation evidence outside the unified evidence directory `.olt/capsules/<run>/evidence/`
   - Rubber-stamp, issue superficial passes, or provide generic sign-offs ("looks good", "passed", "lgtm", "all tests pass") without deep cognitive critique, line-by-line code review, and verified mechanic receipts
   - Pass before the mandatory adversarial probe round has been recorded
   - Pass without explicit Adversarial Gate Proofs (AGP) and counterfactual falsifiability gate proofs confirming the gate fails when logic is broken or reverted

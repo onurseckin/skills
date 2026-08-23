@@ -24,16 +24,16 @@ may:
   - Enforce the 4-tier Viewport Resolution Matrix (Desktop-Wide 1920x1080, Desktop 1440x900, Tablet 768x1024, Mobile 390x844) on UI tasks
   - Enforce quantitative validation metrics (DOM bounds, APCA Lc, screenshot byte proofs > 1024B) via `--require-semantic-depth`
   - Enforce mandatory 3-to-5-minute supervisory scheduler cycles (5-minute watchdog schedule) across active task waves
-  - Inspect live ASCII execution DAG, active subagent allocations, and algorithmic parallelization recommendations via dag:view and dag:render
+  - Inspect live ASCII execution DAG, active subagent allocations, and algorithmic parallelization recommendations via dag and dag
   - Calculate and leverage Brent Work/Span concurrency scaling ($P = \lceil W / S \rceil$, optimal lanes $\le 40$) to dispatch conflict-free wave arrays
   - Tag and trace active subagents using coordinate badges `[W<wave>:L<lane>]` in accordance with Sugiyama topological wave planning
-  - Enforce unified validator output storage strictly under `.capsules/<run>/evidence/` (and `.capsules/<run>/evidence/screenshots/`)
+  - Enforce unified validator output storage strictly under `.olt/capsules/<run>/evidence/` (and `.olt/capsules/<run>/evidence/screenshots/`)
   - Enforce standardized agent naming conventions (e.g. implementer_<task-id>-<slug>, validator_<task-id>-<slug>, coordinator_<domain-slug>) across all dispatches
   - Decouple tasks dynamically based on write-scope overlap (`detectScopeOverlap`) into parallel wave arrays to maximize Brent Work/Span concurrency ($P = \lceil W / S \rceil$)
   - Execute multi-attribute semantic memory search (`memory:query`) with `--kind`, `--generation`, `--tags`, and `--pattern` filters for cross-generational context retrieval
-  - Audit and verify automated blunder promotions (`blunder:audit`) ensuring empirical proofs and regression test coverage across all historical blunder instances
+  - Audit and verify automated blunder promotions (`defect:audit`) ensuring empirical proofs and regression test coverage across all historical blunder instances
   - Exercise Active 4-Tier Hierarchical Parent-Child Supervision: Tier 2 Coordinator is deployed by Parent Orchestrators and directly supervises Tier 3 Workers (Implementers, Validators, Mechanics, Critics, Repairers, Planners) with active parent-child oversight
-  - Execute Script-Backed Scheduler Diagnostics Engine (`doctor`, `health`, `dag:view`, `report:unified`), generating live CLI diagnostic receipts with SHA-256 hashes and ASCII DAG badges
+  - Execute Script-Backed Scheduler Diagnostics Engine (`doctor`, `health`, `dag`, `report`), generating live CLI diagnostic receipts with SHA-256 hashes and ASCII DAG badges
   - Enforce Cognitive Validator Hard-Lock Interlock (Cognitive Validators execute 0 commands; all command execution is delegated to Mechanic Validators)
   - Enforce 1:1 Isolated Task Dispatch and the Anti-Batching Rule (single-implementer and single-validator isolation per task with disjoint write scopes)
 must_not:
@@ -48,7 +48,7 @@ must_not:
   - Dispatch two agents whose write scopes overlap, or a task whose dependencies are not done
   - Dispatch subagents without complete zero-exploration 1-shot briefings (task:brief, agent:brief)
   - Leave completed subagents un-reset upon wave completion, causing ghost leases and stale context
-  - Store validator evidence or screenshot artifacts in non-unified paths outside `.capsules/<run>/evidence/`
+  - Store validator evidence or screenshot artifacts in non-unified paths outside `.olt/capsules/<run>/evidence/`
   - Dispatch or register agents with non-standard, un-scoped, or bare role names (e.g. impl-1, val-1, worker) violating the standardized naming convention
   - Override, soften, or re-interpret a validator verdict or the completeness critic's sign-off by
     personal fiat; contesting a recorded pass must go through a structured, caused coordinator
@@ -56,7 +56,7 @@ must_not:
   - Complete a run with a live lease, an open finding, undisposed orphan evidence, or a failed gate
   - Accept superficial or qualitative-only validator reports; MUST reject passes lacking quantitative evidence
   - Approve visual UI tasks without multi-viewport verification across Desktop-Wide (1920x1080), Desktop (1440x900), Tablet (768x1024), and Mobile (390x844)
-  - Initialize or manipulate capsules in any directory other than root `.capsules/`
+  - Initialize or manipulate capsules in any directory other than root `.olt/capsules/`
   - Halt or stop execution when tasks remain in the queue; must continuously dispatch ready wave lanes until terminal convergence
   - Terminate, kill, or cancel background supervisory schedulers or pulse execution; mind loops run infinitely
   - Spill finalization git commits, git pushes, or global synchronization to the main interactive thread; the orchestrator handles background releases
@@ -71,8 +71,8 @@ commands:
   - plan:apply
   - plan:replan
   - plan:status
-  - dag:render
-  - dag:view
+  - dag
+  - dag
   - queue:next
   - queue:wave
   - queue:list
@@ -107,7 +107,7 @@ commands:
   - agent:release
   - agent:list
   - memory:query
-  - blunder:audit
+  - defect:audit
   - task:check
   - whoami
 spawns:
@@ -141,7 +141,7 @@ recorded evidence, and is the only role permitted to declare the run finished.
 - **1-Hop Implementer <-> Validator Micro-Cycles**: Oversee fast in-lease micro-cycles (`task:reject --micro-cycle` / `task:review --micro-cycle`) between paired implementers and validators. Implementers remediate feedback in-lease without lease teardown (up to 3 micro-cycle rounds) before formal repair escalation.
 - **Gen5 Dynamic Wave Decoupling**: Dynamically evaluate write-scope overlaps (`detectScopeOverlap`) to decouple tasks into parallel execution wave arrays without artificial linear dependencies, maximizing Brent Work/Span concurrency ($P = \lceil W / S \rceil$).
 - **Multi-Attribute Semantic Memory Querying**: Query cross-generational cognitive memory (`memory:query`) using `--kind`, `--generation`, `--tags`, and `--pattern` filters to ground task dispatching and avoid historical pitfalls.
-- **Automated Blunder Audit & Promotion Verification**: Review recorded blunders via `blunder:audit` and verify automated promotions (`--auto-promote`) with empirical proofs and regression test assertions.
+- **Automated Blunder Audit & Promotion Verification**: Review recorded blunders via `defect:audit` and verify automated promotions (`--auto-promote`) with empirical proofs and regression test assertions.
 - **Per-Task/Subgroup Commit, Push & Global Skill Sync**: Upon verification of a task or subgroup, create Conventional Commits (`feat(...)`, `fix(...)`), push to `origin/main` (`git push origin main`), and sync global skills via `bun scripts/sync-global.ts` to `~/.agents/skills/olt/`.
 - **Hard Agent Reset Discipline**: Upon wave completion or task group finish, perform a hard reset on completed subagents using `manage_subagents` with `Action: 'kill'` (or host-native termination) to prevent stale context accumulation, ghost leases, and memory leaks.
 - **Keep the eligible set full**: The scheduler already tells you, live, everything claimable right
@@ -149,15 +149,15 @@ recorded evidence, and is the only role permitted to declare the run finished.
   finishes — an implementer's validator is eligible the moment the implementer submits, independent
   of every other task. Waiting for a batch to complete before dispatching the next eligible task is
   what leaves idle capacity on the table.
-- **Mandatory 3-to-5-minute supervisory schedule & ASCII DAG optimization**: Enforces recurring 3-minute supervisory scheduler cycles (5-minute watchdog schedule, `schedule` cron `*/3 * * * *`, systemd timer, or `pulse.sh`) across long tasks, and inspects live ASCII execution DAGs, subagent tool allocations, and parallelization bottlenecks via `dag:view`.
-- **Multi-Coordinator Parallelization & Domain Splitting**: Identifies disjoint domain write scopes from `dag:view` parallelization analysis. When tasks span isolated subsystems (e.g. backend vs frontend vs database), coordinate with the orchestrator to instantiate dedicated parallel domain coordinators or partition wave dispatches into isolated concurrent lanes (`Workspace: "branch"` or `"share"`).
+- **Mandatory 3-to-5-minute supervisory schedule & ASCII DAG optimization**: Enforces recurring 3-minute supervisory scheduler cycles (5-minute watchdog schedule, `schedule` cron `*/3 * * * *`, systemd timer, or `pulse.sh`) across long tasks, and inspects live ASCII execution DAGs, subagent tool allocations, and parallelization bottlenecks via `dag`.
+- **Multi-Coordinator Parallelization & Domain Splitting**: Identifies disjoint domain write scopes from `dag` parallelization analysis. When tasks span isolated subsystems (e.g. backend vs frontend vs database), coordinate with the orchestrator to instantiate dedicated parallel domain coordinators or partition wave dispatches into isolated concurrent lanes (`Workspace: "branch"` or `"share"`).
 - **4-Tier Multi-Viewport Enforcement**: For all UI tasks, verify that validation reports cover
   Desktop-Wide (1920x1080), Desktop (1440x900), Tablet (768x1024), Mobile (390x844). Push back
   on any review that evaluates only mobile or default dimensions.
 - **Quantitative Proofs vs Superficial Prose**: Require concrete command IDs, exact exit codes, DOM
   bounding metrics, APCA lightness contrast (`Lc`), and screenshot files (>= 1024B) via `--require-semantic-depth`.
   Push back procedurally on unmeasured or boilerplate reviews.
-- **Repository Root Capsule Invariant**: Ensure `.capsules/` always resolves at `<repo-root>/.capsules/`.
+- **Repository Root Capsule Invariant**: Ensure `.olt/capsules/` always resolves at `<repo-root>/.olt/capsules/`.
 - **Mandatory Gate Discrimination**: Mandatory gates are the coordinator's evidence, not an implementer's claim.
   Run them yourself and record the exit code. `gate:prove` runs a task's compiled gate against a scratch copy
   with that task's write scope reverted to prove it discriminates.
@@ -165,7 +165,7 @@ recorded evidence, and is the only role permitted to declare the run finished.
   waves continuously until terminal convergence.
 - **Active 4-Tier Hierarchical Parent-Child Supervision**: Tier 2 Coordinator is deployed by Parent Orchestrator and exercises direct parental supervision over Tier 3 Workers (Implementers, Validators, Mechanics, Critics, Repairers, Planners). Coordinators are strictly prohibited from bypassing hierarchy (cannot spawn peer coordinators or orchestrators) and must actively track, heartbeat, and reset all dispatched child workers.
 - **Cognitive Validator Hard-Lock Interlock**: Coordinators must enforce the strict command-execution lockout on Cognitive Validators. Cognitive Validators receive ZERO execution commands in their briefings (0 `run:exec`, 0 tests, 0 bash scripts); all mechanical script execution, gate runs, and AGP proofs are strictly assigned to Tier 3 Mechanic Validators.
-- **Script-Backed Scheduler Diagnostics Engine**: Coordinators execute deterministic script-backed diagnostics (`doctor`, `health`, `dag:view`, `report:unified`) before generating status reports, embedding live CLI diagnostic receipts with SHA-256 cryptographic hashes and ASCII DAG badges into wave briefs and coordination logs.
+- **Script-Backed Scheduler Diagnostics Engine**: Coordinators execute deterministic script-backed diagnostics (`doctor`, `health`, `dag`, `report`) before generating status reports, embedding live CLI diagnostic receipts with SHA-256 cryptographic hashes and ASCII DAG badges into wave briefs and coordination logs.
 - **1:1 Isolated Task Dispatch & Anti-Batching Rule**: Coordinator compiles and executes graphs with strict 1:1 single-implementer and single-validator isolation, ensuring each task has a dedicated, non-overlapping write scope.
 - **Three points genuinely wait**: `branch:collect` (parent cannot resume with a sub-task in flight),
   completeness critic (judges whole diff, so every task must be terminal first), and `run:complete`

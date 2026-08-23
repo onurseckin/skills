@@ -148,7 +148,7 @@ To prevent flawed, monolithic, or unverifiable plans from reaching execution, `o
 A blocking finding can be overridden with an explicit, attributed justification:
 
 ```bash
-bun harness.ts plan:compile --run .capsules/<slug> --actor planner \
+bun harness.ts plan:compile --run .olt/capsules/<slug> --actor planner \
   --completion-gate "bun test tests/unit" \
   --accept-audit "A3-gate-discrimination:task-a and task-b share common integration fixture"
 ```
@@ -160,10 +160,10 @@ Blanket overrides are strictly rejected. Every overridden invariant requires its
 While `plan:audit` evaluates structural shapes mechanically, the **Plan-Validator** evaluates whether the decomposition matches the semantic intent of the user prompt.
 
 ```bash
-bun harness.ts agent:register --run .capsules/<slug> --agent plan-val-1 \
+bun harness.ts agent:register --run .olt/capsules/<slug> --agent plan-val-1 \
   --role plan-validator --host claude-code --parent-agent coordinator-1
 
-bun harness.ts plan:validate-start --run .capsules/<slug> --validator plan-val-1
+bun harness.ts plan:validate-start --run .olt/capsules/<slug> --validator plan-val-1
 ```
 
 #### Written Verification Questions
@@ -171,7 +171,7 @@ bun harness.ts plan:validate-start --run .capsules/<slug> --validator plan-val-1
 The plan-validator must submit written answers to four mandatory architectural questions:
 
 ```bash
-bun harness.ts plan:review --run .capsules/<slug> --validator plan-val-1 --token "$PV_TOKEN" \
+bun harness.ts plan:review --run .olt/capsules/<slug> --validator plan-val-1 --token "$PV_TOKEN" \
   --status approved \
   --decomposition-answer "Decomposed into 4 granular tasks matching the 4 prompt modules" \
   --dependency-answer "All 2 dependency edges reflect real schema import requirements" \
@@ -217,7 +217,7 @@ Static heuristics cannot always determine whether a gate command will legitimate
 ```
 
 ```bash
-bun harness.ts gate:prove --run .capsules/<slug> --task task-slug --actor coordinator-1
+bun harness.ts gate:prove --run .olt/capsules/<slug> --task task-slug --actor coordinator-1
 ```
 
 ```text
@@ -237,7 +237,7 @@ bun harness.ts gate:prove --run .capsules/<slug> --task task-slug --actor coordi
 When defects, test failures, or validator findings require structural changes, the coordinator invokes `plan:replan`:
 
 ```bash
-bun harness.ts plan:replan --run .capsules/<slug> --actor coordinator \
+bun harness.ts plan:replan --run .olt/capsules/<slug> --actor coordinator \
   --findings-file findings.json --gate "bun test tests/repair.test.ts" --round 2
 ```
 
@@ -256,7 +256,7 @@ bun harness.ts plan:replan --run .capsules/<slug> --actor coordinator \
 While `state.graph` remains frozen for each revision, real-time execution generates dynamic branches, sub-tasks, and validator probes. The **Living Tracer Engine** reconstructs the full runtime execution state by replaying the hash-chained `events.jsonl` log via `readCapsuleEvents`:
 
 ```bash
-bun harness.ts dag:trace --run .capsules/<slug> --max-steps 20
+bun harness.ts dag:trace --run .olt/capsules/<slug> --max-steps 20
 ```
 
 ```text

@@ -3,7 +3,7 @@
 ## Run directory
 
 ```text
-.capsules/<run>/
+.olt/capsules/<run>/
 ├── prompt.md             immutable original bytes, mode 0444
 ├── README.md             generated layout note: one line per entry and what it is for
 ├── manifest.json         assurance, prompt digest, capture mode, runtime version

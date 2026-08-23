@@ -106,7 +106,7 @@ When a task enters `changes_requested`, it must be explicitly claimed by an agen
 
 ```bash
 bun harness.ts task:claim \
-  --run .capsules/<run-id> \
+  --run .olt/capsules/<run-id> \
   --task <task-id> \
   --agent <worker-id> \
   --role repairer
@@ -238,7 +238,7 @@ Every generated repair task requires a verification gate:
 
 ```bash
 bun harness.ts task:claim \
-  --run .capsules/<run-id> \
+  --run .olt/capsules/<run-id> \
   --task <task-id> \
   --agent <agent-id> \
   --role repairer
@@ -248,7 +248,7 @@ bun harness.ts task:claim \
 
 ```bash
 bun harness.ts task:assign-repairer \
-  --run .capsules/<run-id> \
+  --run .olt/capsules/<run-id> \
   --task <task-id> \
   --actor coordinator \
   --repairer <replacement-agent-id> \
@@ -261,13 +261,13 @@ bun harness.ts task:assign-repairer \
 ```bash
 # Release prior validator
 bun harness.ts agent:release \
-  --run .capsules/<run-id> \
+  --run .olt/capsules/<run-id> \
   --agent val-1 \
   --reason "round 1 complete"
 
 # Register fresh validator
 bun harness.ts agent:register \
-  --run .capsules/<run-id> \
+  --run .olt/capsules/<run-id> \
   --agent val-2 \
   --role validator \
   --host localhost \
@@ -275,7 +275,7 @@ bun harness.ts agent:register \
 
 # Start validation under fresh agent
 bun harness.ts task:validate-start \
-  --run .capsules/<run-id> \
+  --run .olt/capsules/<run-id> \
   --task <task-id> \
   --validator val-2
 ```
@@ -284,7 +284,7 @@ bun harness.ts task:validate-start \
 
 ```bash
 bun harness.ts plan:replan \
-  --run .capsules/<run-id> \
+  --run .olt/capsules/<run-id> \
   --actor coordinator \
   --findings-file open-defects.json \
   --gate "bun test" \
@@ -303,7 +303,7 @@ bun harness.ts plan:replan \
 
 ```bash
 bun harness.ts task:claim \
-  --run .capsules/run-88 \
+  --run .olt/capsules/run-88 \
   --task task-parser \
   --agent imp-1 \
   --role repairer
@@ -314,13 +314,13 @@ bun harness.ts task:claim \
 Implementer adds a test with a 10MB input file (`tests/parser-perf.test.ts`), refactors `src/parser.ts` to use streaming lexing, runs tests locally, and submits:
 
 ```bash
-bun harness.ts run:exec --run .capsules/run-88 --actor imp-1 --task task-parser -- \
+bun harness.ts run:exec --run .olt/capsules/run-88 --actor imp-1 --task task-parser -- \
   bun test tests/parser-perf.test.ts
 ```
 
 ```bash
 bun harness.ts task:submit \
-  --run .capsules/run-88 \
+  --run .olt/capsules/run-88 \
   --task task-parser \
   --agent imp-1 \
   --token IMP_TOKEN_88
@@ -332,7 +332,7 @@ Attempting to use `val-1` fails:
 
 ```bash
 bun harness.ts task:validate-start \
-  --run .capsules/run-88 \
+  --run .olt/capsules/run-88 \
   --task task-parser \
   --validator val-1
 ```
@@ -347,7 +347,7 @@ Fresh validator `val-2` is registered and claims validation:
 
 ```bash
 bun harness.ts task:validate-start \
-  --run .capsules/run-88 \
+  --run .olt/capsules/run-88 \
   --task task-parser \
   --validator val-2
 ```
@@ -359,7 +359,7 @@ Validation token `VAL_TOK_2291` is minted.
 Validator runs mandatory gate:
 
 ```bash
-bun harness.ts run:exec --run .capsules/run-88 --actor val-2 --task task-parser -- \
+bun harness.ts run:exec --run .olt/capsules/run-88 --actor val-2 --task task-parser -- \
   bun test tests/parser.test.ts
 ```
 
@@ -369,7 +369,7 @@ Validator approves and resolves finding:
 
 ```bash
 bun harness.ts task:review \
-  --run .capsules/run-88 \
+  --run .olt/capsules/run-88 \
   --task task-parser \
   --validator val-2 \
   --token VAL_TOK_2291 \

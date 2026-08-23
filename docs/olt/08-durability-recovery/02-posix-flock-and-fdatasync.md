@@ -114,7 +114,7 @@ To provide immediate visibility into who holds a lock without polluting the caps
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
 │  Filesystem Layout:                                                         │
-│  ├── .capsules/run-402/          ◄── Pure Immutable Audit Evidence          │
+│  ├── .olt/capsules/run-402/          ◄── Pure Immutable Audit Evidence          │
 │  │   ├── events.jsonl                                                       │
 │  │   └── state.json                                                         │
 │  │                                                                          │
@@ -229,7 +229,7 @@ ps -p 19402
 If the process does not exist, the holder crashed. Run `doctor:repair` to clean stale lock state:
 
 ```bash
-bun harness.ts doctor:repair --run .capsules/<run-id> --actor coordinator
+bun harness.ts doctor:repair --run .olt/capsules/<run-id> --actor coordinator
 ```
 
 ---
@@ -242,7 +242,7 @@ Worker `worker-1` attempts to claim `task-auth`.
 
 ### 2. Lock Acquisition
 
-1. Harness opens descriptor on `.capsules/run-99` directory.
+1. Harness opens descriptor on `.olt/capsules/run-99` directory.
 2. Calls `flock(fd, LOCK_EX | LOCK_NB)` via `bun:ffi`.
 3. Writes `.locks/run-99/owner.json` with PID and token.
 

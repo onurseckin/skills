@@ -19,7 +19,7 @@
 
 In conventional systems, state is updated by mutating a database table or rewriting a centralized JSON file in place. If an agent crashes or the OS loses power during a write, the state is corrupted or lost.
 
-In `olt`, state is never mutated in place. All state transitions are recorded as **discrete, immutable events** appended to `.capsules/<run-id>/events.jsonl`. The live in-memory state (`RunState`) and `state.json` file are **pure mathematical projections** derived by replaying `events.jsonl` from line 1 to head.
+In `olt`, state is never mutated in place. All state transitions are recorded as **discrete, immutable events** appended to `.olt/capsules/<run-id>/events.jsonl`. The live in-memory state (`RunState`) and `state.json` file are **pure mathematical projections** derived by replaying `events.jsonl` from line 1 to head.
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -190,13 +190,13 @@ All event consumers and state projectors must tolerate the absence of modern fie
 ### Auditing a Capsule with Doctor
 
 ```bash
-bun harness.ts doctor --run .capsules/<run-id>
+bun harness.ts doctor --run .olt/capsules/<run-id>
 ```
 
 Output:
 
 ```text
-### Capsule Doctor: `.capsules/run-402`
+### Capsule Doctor: `.olt/capsules/run-402`
 - **Healthy**: yes
 - **Hash Chain Verified**: 84/84 events valid (Genesis to Head intact)
 - **Manifest Integrity**: 100% blobs verified against SHA-256 digests
@@ -207,10 +207,10 @@ Output:
 
 ```bash
 # View latest event head
-bun harness.ts events:head --run .capsules/<run-id>
+bun harness.ts events:head --run .olt/capsules/<run-id>
 
 # View full event history
-bun harness.ts events:list --run .capsules/<run-id> --limit 10
+bun harness.ts events:list --run .olt/capsules/<run-id> --limit 10
 ```
 
 ---

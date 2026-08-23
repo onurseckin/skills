@@ -24,7 +24,7 @@ here. Before writing a command invocation into any document, check the flag exis
 - Output is a markdown brief of at most 30 lines. `--format json` (or `--format=json`) returns the
   structured result instead. Both forms are stripped before the first bare `--`, so a `--format` in
   a `run:exec` child command reaches the child untouched.
-- `--run` takes the capsule root, e.g. `.capsules/<run-id>`. The exception is `plan:init`, which has
+- `--run` takes the capsule root, e.g. `.olt/capsules/<run-id>`. The exception is `plan:init`, which has
   no capsule yet: there `--run` (or `--run-id`) is the run id slug to create under `<repo>/.capsules`.
 - Exit codes: `0` success; `3` INVALID_ARGUMENT / INVALID_STATE / INTEGRITY / PATH_SAFETY /
   UNSUPPORTED_PLATFORM, rejected before the capsule changed; `4` LOCK_TIMEOUT; `70` unclassified

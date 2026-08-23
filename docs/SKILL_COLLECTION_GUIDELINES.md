@@ -79,7 +79,7 @@ All contributions and skill updates must pass the repository quality gates:
    - Every feature, CLI command, and role invariant must have unit and integration test coverage (`bun test`).
    - Gates must fail when changes are missing or reverted, proving gate falsifiability.
 5. **No Static Planning Files in Git:**
-   - Execution state belongs strictly in ephemeral capsules under `.capsules/<run-id>/`, never committed as static planning docs in `docs/planning/`.
+   - Execution state belongs strictly in ephemeral capsules under `.olt/capsules/<run-id>/`, never committed as static planning docs in `docs/planning/`.
 
 ---
 

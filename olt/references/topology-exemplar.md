@@ -50,7 +50,7 @@ actually matches on disk and register one task per file:
 
 ```
 PINNED=olt/scripts/harness.ts
-RUN=.capsules/<slug>
+RUN=.olt/capsules/<slug>
 ```
 
 ```bash
@@ -101,5 +101,5 @@ Generation 5 introduces automatic Work/Span topology rebalancing using Brent's T
 - **Work ($W$)**: Total task execution effort ($\sum \text{effort}$).
 - **Span ($S$)**: Critical path length along true dependency chains.
 - **Parallelism Factor ($P$)**: $P = \lceil W / S \rceil$, defining optimal concurrency headroom without artificial worker limits.
-- **Automatic Edge Decoupling**: The harness (`dag:render`, `rebalanceTasksWithBrentLimits`) detects false serialization barriers where write scopes are disjoint and dataflow rationale is absent, automatically decoupling them to restore maximum concurrency lanes ($\le 40$).
-- **Live Memory Integration**: Computed metrics ($W, S, P$, efficiency) are persistently recorded in `.capsules/mind/memory.json` for cross-run cognitive planning.
+- **Automatic Edge Decoupling**: The harness (`dag`, `rebalanceTasksWithBrentLimits`) detects false serialization barriers where write scopes are disjoint and dataflow rationale is absent, automatically decoupling them to restore maximum concurrency lanes ($\le 40$).
+- **Live Memory Integration**: Computed metrics ($W, S, P$, efficiency) are persistently recorded in `.olt/memory.json` for cross-run cognitive planning.

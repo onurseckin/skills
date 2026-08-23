@@ -36,7 +36,7 @@ disposed rather than demanding a fabricated proof for it.
 ### The recording path: `authority:decide`
 
 ```bash
-bun harness.ts authority:decide --run .capsules/<run-id> --requirement req-prod-deploy \
+bun harness.ts authority:decide --run .olt/capsules/<run-id> --requirement req-prod-deploy \
   --actor coordinator --decision grant \
   --rationale "The user approved the production deploy in the review thread."
 ```
@@ -134,9 +134,9 @@ Chapter 06 documents for an implementer grading its own code.
 ### The commands
 
 ```bash
-bun harness.ts plan:validate-start --run .capsules/<slug> --validator plan-val-1
+bun harness.ts plan:validate-start --run .olt/capsules/<slug> --validator plan-val-1
 
-bun harness.ts plan:review --run .capsules/<slug> --validator plan-val-1 --token <token> \
+bun harness.ts plan:review --run .olt/capsules/<slug> --validator plan-val-1 --token <token> \
   --status approved \
   --decomposition-answer "14 tasks match the 14 named topics" \
   --dependency-answer "no dependency edges; every task is an independent root" \
@@ -146,7 +146,7 @@ bun harness.ts plan:review --run .capsules/<slug> --validator plan-val-1 --token
   --gate-ids-reviewed "gate-1,gate-2,...,gate-14" \
   --summary "Decomposition matches the prompt; gates are scope-narrow"
 
-bun harness.ts plan:review --run .capsules/<slug> --validator plan-val-1 --token <token> \
+bun harness.ts plan:review --run .olt/capsules/<slug> --validator plan-val-1 --token <token> \
   --status changes_requested \
   --decomposition-answer "10 topics compressed into 1 task" --dependency-answer "n/a" \
   --gate-answer "the shared gate cannot fail per-task" --straggler-answer "n/a" \

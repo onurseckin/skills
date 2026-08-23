@@ -83,7 +83,7 @@ its read-only guarantee is its role contract, not a filesystem permission.
 Real output from the tutorial run, opening the branch shown in the diagram above:
 
 ```bash
-bun harness.ts branch:open --run .capsules/slugger --parent-task task-truncate \
+bun harness.ts branch:open --run .olt/capsules/slugger --parent-task task-truncate \
   --agent impl-truncate --token "$TRUNC_TOKEN" \
   --reason "measuring the cut point and choosing the ellipsis are separable and were slowing each other down" \
   --sub-task S-measure  --sub-label S-measure="Cut-point measurement" --sub-scope S-measure=src/truncate/measure.ts \
@@ -105,8 +105,8 @@ bun harness.ts branch:open --run .capsules/slugger --parent-task task-truncate \
 ```
 
 ```bash
-bun harness.ts branch:claim --run .capsules/slugger --branch B-1b72a087-53c9-49bd-855e-7d8a7aa4705c --sub-task <ID> --agent <AGENT>
-bun harness.ts branch:collect --run .capsules/slugger --branch B-1b72a087-53c9-49bd-855e-7d8a7aa4705c --agent impl-truncate --token <PARENT_TOKEN> --summary "<WHAT CAME BACK>"
+bun harness.ts branch:claim --run .olt/capsules/slugger --branch B-1b72a087-53c9-49bd-855e-7d8a7aa4705c --sub-task <ID> --agent <AGENT>
+bun harness.ts branch:collect --run .olt/capsules/slugger --branch B-1b72a087-53c9-49bd-855e-7d8a7aa4705c --agent impl-truncate --token <PARENT_TOKEN> --summary "<WHAT CAME BACK>"
 ```
 
 The brief itself hands back the two commands that close the loop — the same "trailing block naming the

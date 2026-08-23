@@ -206,7 +206,7 @@ bun harness.ts shell --actor worker-1 -- bun test tests/unit/auth.test.ts
 │                                                                                                  │
 │  3. Cryptographic Signed Evidence Receipts:                                                      │
 │     • Every execution captures stdout, stderr, exit code, duration, and actor ID.                │
-│     • Receipts are SHA-256 hashed and stored under `.capsules/<run-id>/evidence/`.               │
+│     • Receipts are SHA-256 hashed and stored under `.olt/capsules/<run-id>/evidence/`.               │
 │                                                                                                  │
 └──────────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -297,7 +297,7 @@ When a subagent crashes, loses connectivity, or exceeds its lease duration:
 │  3. Late Submission Quarantine:                                                                  │
 │     • If a zombie worker wakes up and calls `task:submit --token <old_token>`, the submission    │
 │       is REJECTED.                                                                               │
-│     • The late payload is safely quarantined under `.capsules/<run-id>/evidence/orphans/`        │
+│     • The late payload is safely quarantined under `.olt/capsules/<run-id>/evidence/orphans/`        │
 │       without mutating active task state or corrupting git branches.                             │
 │                                                                                                  │
 └──────────────────────────────────────────────────────────────────────────────────────────────────┘

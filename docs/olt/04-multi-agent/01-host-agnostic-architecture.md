@@ -188,7 +188,7 @@ A primary driver of latency, high API costs, and context runaway in autonomous a
 When a coordinator or host prepares to dispatch a worker, it runs:
 
 ```bash
-bun harness.ts task:brief --run .capsules/<run-id> --task task-auth --agent worker-1 --role implementer
+bun harness.ts task:brief --run .olt/capsules/<run-id> --task task-auth --agent worker-1 --role implementer
 ```
 
 The harness generates and prints a structured, token-optimized briefing:
@@ -211,7 +211,7 @@ The harness generates and prints a structured, token-optimized briefing:
   - Requirement `REQ-AUTH-01`: Token revocation blacklist handled in memory.
     ⚡ Next Actions:
 
-1. `bun harness.ts task:claim --run .capsules/<run-id> --task task-auth --agent worker-1 --role implementer`
+1. `bun harness.ts task:claim --run .olt/capsules/<run-id> --task task-auth --agent worker-1 --role implementer`
 ```
 
 ### Context Compaction Invariants
@@ -292,7 +292,7 @@ Instead, the harness preserves both:
 While a human developer or lead coordinator can manually dispatch tasks one by one, `orchestrator:supervise` provides an autonomous supervision loop. It performs an atomic reclaim-classify-dispatch cycle over the run's eligible set:
 
 ```bash
-bun harness.ts orchestrator:supervise --run .capsules/<run-id> --actor coordinator
+bun harness.ts orchestrator:supervise --run .olt/capsules/<run-id> --actor coordinator
 ```
 
 ```text

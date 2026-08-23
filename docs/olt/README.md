@@ -45,7 +45,7 @@ To ensure clarity and usability across different developer needs, this manual is
 1. **[01. Why Long Tasks Fail in Autonomous Agents](./01-foundations/01-why-long-tasks-fail.md)**  
    _Context decay, sycophancy, hallucinated progress, write collisions, and the core philosophy: "Prose is not state, memory is not proof."_
 2. **[02. Capsule & Storage Model](./01-foundations/02-capsule-and-storage-model.md)**  
-   _The `.capsules/<run-id>/` directory layout, `prompt.md` immutability, `manifest.json`, `events.jsonl` cryptographic hash chain, `state.json` projection, and POSIX kernel `flock` atomicity._
+   _The `.olt/capsules/<run-id>/` directory layout, `prompt.md` immutability, `manifest.json`, `events.jsonl` cryptographic hash chain, `state.json` projection, and POSIX kernel `flock` atomicity._
 3. **[03. The Lifecycle Walkthrough](./01-foundations/03-lifecycle-walkthrough.md)**  
    _The ten stages from prompt capture to mechanical completion, alongside the formal task state machine including `branched` and `retry_ready`._
 
@@ -65,7 +65,7 @@ To ensure clarity and usability across different developer needs, this manual is
 ### [Chapter 03: Graph Scheduling & Write-Scope Isolation](./03-graph-scheduler/01-dependency-graph-theory.md)
 
 7. **[01. Dependency Graph Theory & Schema](./03-graph-scheduler/01-dependency-graph-theory.md)**  
-   _The plan graph's 8 node types and 10 edge types, Sugiyama Hierarchical DAG rendering (`graph:sugiyama`, `dag:render`), Tarjan cycle detection (`detectCyclesTarjan`), and orthogonal ASCII box layouts._
+   _The plan graph's 8 node types and 10 edge types, Sugiyama Hierarchical DAG rendering (`graph:sugiyama`, `dag`), Tarjan cycle detection (`detectCyclesTarjan`), and orthogonal ASCII box layouts._
 8. **[02. Topological Conflict-Free Batching & Concurrency Scaling](./03-graph-scheduler/02-topological-conflict-free-batching.md)**  
    _`proposeBatch` as the single scheduling authority, 6-factor ranking, glob-aware scope conflict (`detectScopeOverlap`), Brent Work/Span scaling ($W$, $S$, $P=\lceil W/S \rceil$), multi-coordinator partitioning, and anti-serialization interlocks (`FALSE_SERIALIZATION_BLUNDER`)._
 9. **[03. Plan Revision, Replanning & Immutability](./03-graph-scheduler/03-plan-revision-and-freezing.md)**  
@@ -142,7 +142,7 @@ To ensure clarity and usability across different developer needs, this manual is
 ### [Chapter 10: Complete End-to-End Tutorial & CLI Manual](./10-tutorial-and-cli/01-end-to-end-tutorial.md)
 
 28. **[01. Complete End-to-End Tutorial](./10-tutorial-and-cli/01-end-to-end-tutorial.md)**  
-    _An executed walkthrough from prompt to sealed capsule — including `dag:render` Sugiyama visualization, `dag:trace` living dynamic step tracing, and `watchdog:verify` lifecycle auditing._
+    _An executed walkthrough from prompt to sealed capsule — including `dag` Sugiyama visualization, `dag:trace` living dynamic step tracing, and `watchdog:verify` lifecycle auditing._
 29. **[02. Comprehensive CLI Command Reference](./10-tutorial-and-cli/02-cli-command-reference.md)**  
     _The complete Zero-JSON colon CLI reference covering all 16 command domains, standard exit codes, and global flag conventions._
 30. **[03. Troubleshooting, Blunder Dictionary & FAQ](./10-tutorial-and-cli/03-troubleshooting-and-faq.md)**  
@@ -159,7 +159,7 @@ To ensure clarity and usability across different developer needs, this manual is
                                                   │
                                                   ▼
 ┌───────────────────────────────────────────────────────────────────────────────────────────────────┐
-│                          1. IMMUTABLE RUN CAPSULE (.capsules/<slug>/)                             │
+│                          1. IMMUTABLE RUN CAPSULE (.olt/capsules/<slug>/)                             │
 │  • prompt.md (mode 0444, SHA-256 bound)    • manifest.json (runtime pin, environment hash)        │
 │  • events.jsonl (SHA-256 HMAC hash chain)  • state.json (single projected atomic state)           │
 │  • Kernel POSIX flock concurrency guard    • harness.config.json (probes=1, repair_budget=6)      │
@@ -176,7 +176,7 @@ To ensure clarity and usability across different developer needs, this manual is
 ┌───────────────────────────────────────────────────────────────────────────────────────────────────┐
 │                          3. STRICT DEPENDENCY GRAPH & TOPOLOGY (state.graph)                      │
 │  • 8 formal node types, 10 edge types      • Tarjan SCC linear cycle detector (detectCyclesTarjan)│
-│  • Mandatory C6 topology declarations      • Sugiyama 4-phase hierarchical DAG (dag:render)       │
+│  • Mandatory C6 topology declarations      • Sugiyama 4-phase hierarchical DAG (dag)       │
 └─────────────────────────────────────────────────┬─────────────────────────────────────────────────┘
                                                   │
                                                   ▼

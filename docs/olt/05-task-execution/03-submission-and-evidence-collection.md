@@ -10,7 +10,7 @@ When an implementer completes its assigned coding work within its leased write s
 
 ```bash
 bun harness.ts task:submit \
-  --run .capsules/<run-id> \
+  --run .olt/capsules/<run-id> \
   --task <task-id> \
   --agent <worker-id> \
   --token <bearer-token> \
@@ -22,7 +22,7 @@ bun harness.ts task:submit \
 - **Agent**: `impl-slug` | Status: `submitted`
 - **Write Scope Compliance**: Passed (1 files touched within `src/slug.ts`)
 - **Diff Stats**: 1 files touched
-- **Report**: `.capsules/slugger/reports/task-slug-submission.json`
+- **Report**: `.olt/capsules/slugger/reports/task-slug-submission.json`
 - **Next Step**: Dispatch independent validator via `bun harness.ts task:validate-start …`
 ```
 
@@ -87,7 +87,7 @@ There is exactly one way past this refusal, and it is a declaration, not a bypas
 "<why nothing needed to change>"`.
 
 ```bash
-bun harness.ts task:submit --run .capsules/<run-id> --task task-slug --agent worker-1 --token <token> \
+bun harness.ts task:submit --run .olt/capsules/<run-id> --task task-slug --agent worker-1 --token <token> \
   --summary "Investigated; no code change was needed" \
   --no-op --reason "task-0 already fixed the same defect"
 ```
@@ -114,7 +114,7 @@ All gate executions and validation checks are executed through `run:exec`:
 
 ```bash
 bun harness.ts run:exec \
-  --run .capsules/<run-id> \
+  --run .olt/capsules/<run-id> \
   --task <task-id> \
   --gate <gate-id> \
   --actor <validator-id> \
@@ -123,7 +123,7 @@ bun harness.ts run:exec \
 
 ### What `run:exec` Produces on Disk:
 
-Under `.capsules/<run-id>/commands/<command-id>/`:
+Under `.olt/capsules/<run-id>/commands/<command-id>/`:
 
 1. **`record.json`** — the whole observation: `argv`, `cwd`, `actor`, `task_id`, `gate_id`, `status`,
    `exit_code`, `started_at` / `finished_at`, `signal` and `signals_sent`, `repository_before` and
@@ -153,7 +153,7 @@ time, even if both ran the identical argv.
 |                                    COMMAND RECORD RECEPTACLE                                  |
 +-----------------------------------------------------------------------------------------------+
 |                                                                                               |
-|  .capsules/<run-id>/commands/C-89145bcc-77ff-4439-bd83-06060bcd160a/                           |
+|  .olt/capsules/<run-id>/commands/C-89145bcc-77ff-4439-bd83-06060bcd160a/                           |
 |  ├── record.json        ---> argv, cwd, actor, gate_id, exit_code: 0, status: "succeeded",     |
 |  │                           repository_before/after, assurance: trusted_host_observed_v1      |
 |  └── attempt-1/                                                                                |

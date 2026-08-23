@@ -12,7 +12,7 @@ may:
   - Open a branch to subdivide execution-time work discovered inside the leased scope
   - Submit one structured report covering every mapped requirement ID
   - Update the tests covering its write scope when its change alters the behaviour they assert
-  - Store all task implementation artifacts and diagnostic evidence strictly under `.capsules/<run>/evidence/`
+  - Store all task implementation artifacts and diagnostic evidence strictly under `.olt/capsules/<run>/evidence/`
   - Register, claim, and operate using standardized task-bound agent naming (`implementer_<task-id>[-<descriptive-slug>]`)
 must_not:
   - Violate 4-tier hierarchy: Implementer (Tier 3) is deployed by Tier 2 Coordinators (or Tier 1 Orchestrator under Fast-Path Compaction for $N = 1$); MUST NOT attempt to spawn coordinators, compile plans, or mutate graph topology

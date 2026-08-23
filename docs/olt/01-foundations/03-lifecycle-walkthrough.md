@@ -68,7 +68,7 @@ An engineering objective within the OLT framework transitions through an authori
 Tier 0 Mind operates as an **Infinite Product Owner** managing repository backlogs across two operational modes:
 
 - **Mode A (Autonomous Self-Evolution)**: Triggers continuous codebase optimization, charter gap audits, and blunder regression tests when the queue is empty.
-- **Mode B (External Intake)**: Ingests user directives, architectural features, and external bug reports into `.capsules/mind/queue/feedback-queue.jsonl`.
+- **Mode B (External Intake)**: Ingests user directives, architectural features, and external bug reports into `.olt/backlog.jsonl`.
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────────────────────┐
@@ -145,13 +145,13 @@ printf "%s" "$USER_PROMPT" | bun harness.ts plan:init \
   --prompt-stdin
 ```
 
-Creates `.capsules/oauth-pkce-v1/` with `prompt.md` locked at mode `0444` and cryptographic hash recorded in `manifest.json`.
+Creates `.olt/capsules/oauth-pkce-v1/` with `prompt.md` locked at mode `0444` and cryptographic hash recorded in `manifest.json`.
 
 #### 2. Enhance Plan (`plan:enhance`)
 
 ```bash
 bun harness.ts plan:enhance \
-  --run .capsules/oauth-pkce-v1 \
+  --run .olt/capsules/oauth-pkce-v1 \
   --actor planner \
   --summary "OAuth2 PKCE integration" \
   --observation "Existing auth handler in src/auth/session.ts uses legacy cookies" \
@@ -164,7 +164,7 @@ bun harness.ts plan:enhance \
 
 ```bash
 bun harness.ts plan:add \
-  --run .capsules/oauth-pkce-v1 \
+  --run .olt/capsules/oauth-pkce-v1 \
   --actor planner \
   --id task-pkce-core \
   --label "Core PKCE Code Generator" \
@@ -177,7 +177,7 @@ bun harness.ts plan:add \
 
 ```bash
 bun harness.ts plan:compile \
-  --run .capsules/oauth-pkce-v1 \
+  --run .olt/capsules/oauth-pkce-v1 \
   --actor planner \
   --completion-gate "bun test tests/auth/"
 ```
@@ -224,11 +224,11 @@ Tasks with strictly disjoint write scopes are grouped into parallel waves. The c
 
 ```bash
 # 1. Inspect ready wave lanes
-bun harness.ts queue:wave --run .capsules/oauth-pkce-v1
+bun harness.ts queue:wave --run .olt/capsules/oauth-pkce-v1
 
 # 2. Register Implementer Agent
 bun harness.ts agent:register \
-  --run .capsules/oauth-pkce-v1 \
+  --run .olt/capsules/oauth-pkce-v1 \
   --agent imp-1 \
   --role implementer \
   --host antigravity \
@@ -237,14 +237,14 @@ bun harness.ts agent:register \
 
 # 3. Assemble Exact-Anchor Briefing
 bun harness.ts task:brief \
-  --run .capsules/oauth-pkce-v1 \
+  --run .olt/capsules/oauth-pkce-v1 \
   --task task-pkce-core \
   --agent imp-1 \
   --role implementer
 
 # 4. Claim Task Lease
 bun harness.ts task:claim \
-  --run .capsules/oauth-pkce-v1 \
+  --run .olt/capsules/oauth-pkce-v1 \
   --task task-pkce-core \
   --agent imp-1 \
   --role implementer
@@ -280,19 +280,19 @@ The Implementer executes modifications strictly within `task.write_scope`.
 ```bash
 # 1. Maintain active lease heartbeat during work
 bun harness.ts task:heartbeat \
-  --run .capsules/oauth-pkce-v1 \
+  --run .olt/capsules/oauth-pkce-v1 \
   --task task-pkce-core \
   --agent imp-1 \
   --token <token>
 
 # 2. Fast incremental verification (AST static invariants + TypeScript typecheck)
 bun harness.ts task:check \
-  --run .capsules/oauth-pkce-v1 \
+  --run .olt/capsules/oauth-pkce-v1 \
   --task task-pkce-core
 
 # 3. Submit completed implementation
 bun harness.ts task:submit \
-  --run .capsules/oauth-pkce-v1 \
+  --run .olt/capsules/oauth-pkce-v1 \
   --task task-pkce-core \
   --agent imp-1 \
   --token <token> \
@@ -335,7 +335,7 @@ Once submitted, the task is handed to an independent **Cognitive Validator**.
 
 ```bash
 bun harness.ts task:validate-start \
-  --run .capsules/oauth-pkce-v1 \
+  --run .olt/capsules/oauth-pkce-v1 \
   --task task-pkce-core \
   --validator val-1 \
   --validator-domain security
@@ -345,7 +345,7 @@ bun harness.ts task:validate-start \
 
 ```bash
 bun harness.ts task:probe \
-  --run .capsules/oauth-pkce-v1 \
+  --run .olt/capsules/oauth-pkce-v1 \
   --task task-pkce-core \
   --validator val-1 \
   --token <val-token> \
@@ -356,7 +356,7 @@ bun harness.ts task:probe \
 
 ```bash
 bun harness.ts task:reject \
-  --run .capsules/oauth-pkce-v1 \
+  --run .olt/capsules/oauth-pkce-v1 \
   --task task-pkce-core \
   --validator val-1 \
   --token <val-token> \
@@ -369,7 +369,7 @@ bun harness.ts task:reject \
 
 ```bash
 bun harness.ts task:review \
-  --run .capsules/oauth-pkce-v1 \
+  --run .olt/capsules/oauth-pkce-v1 \
   --task task-pkce-core \
   --validator val-1 \
   --token <val-token> \
@@ -405,19 +405,19 @@ Before any run can finish, the **Completeness Critic** performs whole-run advers
 ```bash
 # 1. Start critic assignment
 bun harness.ts critic:start \
-  --run .capsules/oauth-pkce-v1 \
+  --run .olt/capsules/oauth-pkce-v1 \
   --critic critic-lead
 
 # 2. Run whole-suite completion gate
 bun harness.ts run:exec \
-  --run .capsules/oauth-pkce-v1 \
+  --run .olt/capsules/oauth-pkce-v1 \
   --gate gate-completion \
   --actor critic-lead \
   -- bun test tests/auth/
 
 # 3. Submit critic approval
 bun harness.ts critic:review \
-  --run .capsules/oauth-pkce-v1 \
+  --run .olt/capsules/oauth-pkce-v1 \
   --critic critic-lead \
   --token <critic-token> \
   --decision approve \
@@ -434,18 +434,18 @@ The terminal completion command mechanically seals the run capsule:
 ```bash
 # 1. Release all agent grants
 bun harness.ts agent:release \
-  --run .capsules/oauth-pkce-v1 \
+  --run .olt/capsules/oauth-pkce-v1 \
   --agent imp-1 \
   --reason "Wave execution finished"
 
 # 2. Execute mechanical completion gate
 bun harness.ts run:complete \
-  --run .capsules/oauth-pkce-v1 \
+  --run .olt/capsules/oauth-pkce-v1 \
   --actor coordinator \
   --auth-token <critic-token>
 
 # 3. Verify sealed status
-bun harness.ts run:status --run .capsules/oauth-pkce-v1
+bun harness.ts run:status --run .olt/capsules/oauth-pkce-v1
 ```
 
 #### Five Invariant Checks Enforced by `run:complete`:
@@ -481,7 +481,7 @@ Following wave or run completion, the **Meta-Auditor** inspects the event trace 
 │         │                                                                               │
 │         ▼                                                                               │
 │  [ Closed-Loop Injection ] ──► meta-audit --inject                                      │
-│                                Synthesizes remediation into .capsules/FEEDBACK_QUEUE.json│
+│                                Synthesizes remediation into .olt/capsules/FEEDBACK_QUEUE.json│
 │                                                                                         │
 └─────────────────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -490,10 +490,10 @@ Following wave or run completion, the **Meta-Auditor** inspects the event trace 
 
 ```bash
 # 1. Run behavioral audit and compute score
-bun harness.ts meta-audit --run .capsules/oauth-pkce-v1 --format markdown
+bun harness.ts meta-audit --run .olt/capsules/oauth-pkce-v1 --format markdown
 
 # 2. Autonomously inject detected remediations into the feedback queue
-bun harness.ts meta-audit --run .capsules/oauth-pkce-v1 --inject
+bun harness.ts meta-audit --run .olt/capsules/oauth-pkce-v1 --inject
 ```
 
 ---

@@ -176,7 +176,7 @@ OLT enforces a strict separation between **permanent repository governance** and
 │                                           │                                             │
 │                                           ▼                                             │
 │                                                                                         │
-│  [ RUNTIME CAPSULE LAYER: .capsules/<run-id>/ ] (Gitignored, Inode-Locked)              │
+│  [ RUNTIME CAPSULE LAYER: .olt/capsules/<run-id>/ ] (Gitignored, Inode-Locked)              │
 │  ├── prompt.md                # Byte-exact raw prompt (read-only mode 0444)             │
 │  ├── manifest.json            # Capture assurance, SHA-256 hashes, runtime pin         │
 │  ├── events.jsonl             # Forward-secure cryptographic append-only hash chain    │
@@ -193,7 +193,7 @@ OLT enforces a strict separation between **permanent repository governance** and
    - Preserves organizational memory, anti-blunder regression suites, quality gate policies, and historical task completion proofs.
    - Provides longitudinal context across multiple autonomous runs.
 
-2. **Runtime Capsule Layer (`.capsules/<run-id>/`)**:
+2. **Runtime Capsule Layer (`.olt/capsules/<run-id>/`)**:
    - Ephemeral, zero-dependency, crash-resilient workspace for an individual run.
    - Completely isolated from Git history and external package modifications.
    - Allows instant crash recovery and host-switching by simply pointing to the directory.
@@ -291,7 +291,7 @@ TRADITIONAL CHAT-DRIVEN AGENTS               THE OLT HARNESS ARCHITECTURE
 [ User Prompt in Chat Window ]               [ Raw User Prompt ]
       │                                            │ (Byte-exact SHA-256 capture: plan:init)
       ▼                                            ▼
-[ Unstructured Conversational Context ]      [ Immutable Run Capsule: .capsules/<run>/ ]
+[ Unstructured Conversational Context ]      [ Immutable Run Capsule: .olt/capsules/<run>/ ]
       │                                            │ (100% Line Disposition: plan:compile)
       ▼ (Context saturation & drift)               ▼
 [ Agent edits all files at once ]            [ Topological DAG Wave Scheduling: queue:wave ]

@@ -77,7 +77,7 @@ than reading the prompt itself.
 
 ## 🛡️ The `manifest.json` Cryptographic Binding
 
-During `plan:init`, the prompt is written to `.capsules/<run-id>/prompt.md` with read-only permissions (`mode 0444`), and its SHA-256 digest is permanently bound in `manifest.json`:
+During `plan:init`, the prompt is written to `.olt/capsules/<run-id>/prompt.md` with read-only permissions (`mode 0444`), and its SHA-256 digest is permanently bound in `manifest.json`:
 
 ```json
 {
@@ -114,7 +114,7 @@ If a single byte, space, or newline in `prompt.md` changes, the harness immediat
 ### 📎 `plan:enhance` in Detail
 
 ```bash
-bun harness.ts plan:enhance --run .capsules/<slug> --actor planner \
+bun harness.ts plan:enhance --run .olt/capsules/<slug> --actor planner \
   --summary "<what this run is about>" --observation "<what the repo actually contains>" \
   --todo "<one organised step>" --risk "<what could go wrong>" --source <file-actually-read>
 ```

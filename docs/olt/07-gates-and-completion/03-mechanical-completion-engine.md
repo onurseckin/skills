@@ -33,7 +33,7 @@ In `olt`, **an agent cannot declare completion**. The transition to `status: "co
 │  Agent Claim: "I am finished!"                                              │
 │       │                                                                     │
 │       ▼                                                                     │
-│  `run:complete --run .capsules/<id> --auth-token <critic-tok>`              │
+│  `run:complete --run .olt/capsules/<id> --auth-token <critic-tok>`              │
 │       │                                                                     │
 │       ▼                                                                     │
 │  ┌───────────────────────────────────────────────────────────────────────┐  │
@@ -151,14 +151,14 @@ When `run:complete` succeeds:
 Run doctor to check for orphan evidence:
 
 ```bash
-bun harness.ts doctor --run .capsules/<run-id>
+bun harness.ts doctor --run .olt/capsules/<run-id>
 ```
 
 If orphans are found, dispose them explicitly:
 
 ```bash
 bun harness.ts orphan:dispose \
-  --run .capsules/<run-id> \
+  --run .olt/capsules/<run-id> \
   --actor coordinator \
   --orphan-sha256 <orphan-sha> \
   --disposition superseded \
@@ -172,12 +172,12 @@ All subagents must be released before completion:
 
 ```bash
 bun harness.ts agent:release \
-  --run .capsules/<run-id> \
+  --run .olt/capsules/<run-id> \
   --agent worker-1 \
   --reason "run sealing"
 
 bun harness.ts agent:release \
-  --run .capsules/<run-id> \
+  --run .olt/capsules/<run-id> \
   --agent val-1 \
   --reason "run sealing"
 ```
@@ -186,7 +186,7 @@ bun harness.ts agent:release \
 
 ```bash
 bun harness.ts run:complete \
-  --run .capsules/<run-id> \
+  --run .olt/capsules/<run-id> \
   --actor coordinator \
   --auth-token <token-minted-by-critic:start>
 ```
@@ -195,7 +195,7 @@ Output:
 
 ```text
 ### 🎉 Run Completed Successfully: auth-engine
-- **Capsule**: `.capsules/auth-engine`
+- **Capsule**: `.olt/capsules/auth-engine`
 - **Summary**: 4 tasks executed, 4 independent validations passed, 1 critic sign-off
 - **Total Gates Verified**: 5/5 gates green
 - **Capsule Status**: Sealed & Auditable 🔒
@@ -204,13 +204,13 @@ Output:
 ### Step 4: Verify Capsule Health with Doctor
 
 ```bash
-bun harness.ts doctor --run .capsules/<run-id>
+bun harness.ts doctor --run .olt/capsules/<run-id>
 ```
 
 Expected Output:
 
 ```text
-### Capsule Doctor: `.capsules/auth-engine`
+### Capsule Doctor: `.olt/capsules/auth-engine`
 - **Healthy**: yes
 - **Hash Chain Verified**: 142/142 events valid
 - **Gitignored**: yes
@@ -221,7 +221,7 @@ Expected Output:
 
 ```bash
 # Export summary metrics
-bun harness.ts summary:export --run .capsules/<run-id> --out ./reports
+bun harness.ts summary:export --run .olt/capsules/<run-id> --out ./reports
 
 # Review working tree
 git status --short
@@ -237,12 +237,12 @@ git commit -m "feat(auth): implement token generation and revocation engine"
 
 ### Context
 
-Run `.capsules/run-402` has 2 tasks (`task-jwt`, `task-schema`). Both are `validated`. The completeness critic (`critic-1`) has executed the run gate and approved review.
+Run `.olt/capsules/run-402` has 2 tasks (`task-jwt`, `task-schema`). Both are `validated`. The completeness critic (`critic-1`) has executed the run gate and approved review.
 
 ### 1. Attempt Sealing Without Token (Fails)
 
 ```bash
-bun harness.ts run:complete --run .capsules/run-402 --actor coordinator
+bun harness.ts run:complete --run .olt/capsules/run-402 --actor coordinator
 ```
 
 Output:
@@ -254,20 +254,20 @@ Output:
 ### 2. Check for Active Leases
 
 ```bash
-bun harness.ts agent:list --run .capsules/run-402
+bun harness.ts agent:list --run .olt/capsules/run-402
 ```
 
 Output shows `worker-jwt` still active. Release agent:
 
 ```bash
-bun harness.ts agent:release --run .capsules/run-402 --agent worker-jwt --reason "work finished"
+bun harness.ts agent:release --run .olt/capsules/run-402 --agent worker-jwt --reason "work finished"
 ```
 
 ### 3. Seal Run with Critic Token
 
 ```bash
 bun harness.ts run:complete \
-  --run .capsules/run-402 \
+  --run .olt/capsules/run-402 \
   --actor coordinator \
   --auth-token CRITIC_TOK_88194
 ```
@@ -293,7 +293,7 @@ Sealing capsule... DONE. Status: completed.
 Attempting any modification now:
 
 ```bash
-bun harness.ts task:claim --run .capsules/run-402 --task task-jwt --agent imp-9 --role implementer
+bun harness.ts task:claim --run .olt/capsules/run-402 --task task-jwt --agent imp-9 --role implementer
 ```
 
 Output:

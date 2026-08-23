@@ -20,7 +20,7 @@ This repository is structured as a modular, multi-skill monorepo adhering to the
 - **Labelled Evidence Throughout:** Every reported value carries an `evidence_class` — `harness_observed`, `agent_reported`, `host_reported`, `derived` or `unknown`. Nothing substitutes a plausible value for a missing one.
 - **Dual-Channel Validator Protocol:** Computed DOM metrics (`visual-report.json`) alongside Playwright layout screenshots across mobile, tablet, and desktop viewports.
 - **Cascading Scope-Aware Replanning:** `plan:replan` partitions findings into a disjoint repair wave so repairs run in parallel too.
-- **Durable Crash Recovery:** Capsules under `.capsules/<run-id>/` resume across interruptions; `recover` reclaims dead leases explicitly and `task:release` hands one back voluntarily.
+- **Durable Crash Recovery:** Capsules under `.olt/capsules/<run-id>/` resume across interruptions; `recover` reclaims dead leases explicitly and `task:release` hands one back voluntarily.
 - **Zero Runtime Dependencies:** Pure Bun standard library and native OS bindings (`node:fs`, `node:crypto`, `node:child_process`). No `node_modules` and no network calls at runtime.
 
 📚 **[Read the skill specification →](./olt/SKILL.md)** · 🧭 **[Generated CLI manifest →](./olt/references/cli-capabilities.md)** · 📖 **[Protocol reference →](./olt/references/protocol.md)**
@@ -134,11 +134,11 @@ exactly once.
 
 ```bash
 H=olt/scripts/harness.ts
-RUN=.capsules/quickstart
+RUN=.olt/capsules/quickstart
 jv() { bun -e 'const p=Bun.argv[1];const j=JSON.parse(await Bun.stdin.text());console.log(String(p.split(".").reduce((a,k)=>a?.[k],j)))' "$1"; }
 
 # 0. The capsule must be gitignored before it may be created
-printf '.capsules/\n' >> .gitignore
+printf '.olt/capsules/\n' >> .gitignore
 
 # 0b. The gate has to name a file that exists: run:exec refuses a gate path it cannot lstat
 mkdir -p tests && cat > tests/slug.test.ts <<'EOF'
@@ -248,17 +248,17 @@ runs the same flow with a branch, a real rejection and a repair round.
 
 ## 📊 Visualizing Execution Graphs in GVUI
 
-Runs executed by `olt` produce complete execution graph datasets, agent-grant telemetry, gate verifications, and visual audit evidence inside `.capsules/<run-id>/`. Every value in that export carries its `evidence_class`, and a value nobody reported renders as `unknown` rather than as a plausible default. You can visualize any run interactively in [**GVUI (Graph Visualization UI)**](https://github.com/onurseckin/gvui):
+Runs executed by `olt` produce complete execution graph datasets, agent-grant telemetry, gate verifications, and visual audit evidence inside `.olt/capsules/<run-id>/`. Every value in that export carries its `evidence_class`, and a value nobody reported renders as `unknown` rather than as a plausible default. You can visualize any run interactively in [**GVUI (Graph Visualization UI)**](https://github.com/onurseckin/gvui):
 
 ### 1. Export the Capsule Summary Suite
 
 From the workspace where your task ran, export the graph datasets:
 
 ```bash
-bun olt/scripts/harness.ts summary:export --run .capsules/<run-id>
+bun olt/scripts/harness.ts summary:export --run .olt/capsules/<run-id>
 ```
 
-This compiles `.capsules/<run-id>/summary/`:
+This compiles `.olt/capsules/<run-id>/summary/`:
 
 - `graph.json` — Nodes, edges and sections. Validators are their own nodes, a branch becomes a section carrying the reason it was opened, and each node owns its evidence in `node.assets` plus its `scripts`, `tools` and `stateTransitions`.
 - `metrics.json` — Gate pass rates, wall-clock timing, and token footprints where the host reported them.
@@ -269,7 +269,7 @@ Real output from a two-task run with one branch:
 
 ```text
 ### Summary Suite Exported: `slugger`
-- **Capsule Summary Root**: `.capsules/slugger/summary`
+- **Capsule Summary Root**: `.olt/capsules/slugger/summary`
 - **Artifacts Generated**:
   - `graph.json` (GVUI GraphDataset, 12 nodes, 19 edges)
   - `timeline.json` (61 chronological events)
@@ -283,9 +283,9 @@ In your local `gvui` repository, import the capsule report:
 
 ```bash
 # From the gvui repository root:
-bun run gvui:import --capsule /path/to/.capsules/<run-id>
+bun run gvui:import --capsule /path/to/.olt/capsules/<run-id>
 # Or directly:
-bun scripts/import-capsule.ts --capsule /path/to/.capsules/<run-id>
+bun scripts/import-capsule.ts --capsule /path/to/.olt/capsules/<run-id>
 ```
 
 ### 3. Explore the Execution Graph

@@ -13,7 +13,7 @@ completion), which `orchestrate` does not run on its own.
 
 ```text
 PINNED=olt/scripts/harness.ts
-RUN=.capsules/<slug>
+RUN=.olt/capsules/<slug>
 ```
 
 Every command prints a markdown brief of at most 30 lines. `--format json` returns the structured
@@ -228,14 +228,14 @@ bun $PINNED summary:view --run $RUN
 
 ```bash
 # Render topological Sugiyama DAG with Work/Span metrics and decoupled artificial edges
-bun $PINNED dag:render --run $RUN --detailed
+bun $PINNED dag --run $RUN --detailed
 
 # Real-time supervisory telemetry with Work/Span metrics and active [W<wave>:L<lane>] badges
 bun $PINNED mind:pulse --run $RUN
 
 # Blunder audit, deduplication, and candidate auto-admission
-bun $PINNED blunder:audit --run $RUN --filter-status open
-bun $PINNED blunder:audit --run $RUN --auto-admit --actor coordinator
+bun $PINNED defect:audit --run $RUN --filter-status open
+bun $PINNED defect:audit --run $RUN --auto-admit --actor coordinator
 
 # Role boundary watchdog verification across active monitors
 bun $PINNED watchdog:verify --generation 1 --all

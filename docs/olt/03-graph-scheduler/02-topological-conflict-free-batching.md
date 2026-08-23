@@ -188,10 +188,10 @@ To dynamically scale agent concurrency without exceeding hardware limits or caus
 
 ### Telemetry Integration with Cognitive Memory
 
-The scheduler computes Work/Span metrics upon compilation and persists them into both `metrics.json` and the cognitive memory store (`.capsules/mind/memory.json`).
+The scheduler computes Work/Span metrics upon compilation and persists them into both `metrics.json` and the cognitive memory store (`.olt/memory.json`).
 
 ```bash
-bun harness.ts dag:render --run .capsules/<slug> --recommendations
+bun harness.ts dag --run .olt/capsules/<slug> --recommendations
 ```
 
 ```text

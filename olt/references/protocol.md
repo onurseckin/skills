@@ -422,7 +422,7 @@ triggers dynamic graph recompilation and parallel repair rounds:
 - Concurrency $P$ is determined algorithmically by Work $W$ over Span $S$: $P = \lceil W / S \rceil$.
 - **Artificial Dependency Decoupling**: Tasks with disjoint write scopes are automatically decoupled unless explicit dataflow or artifact coupling is documented.
 - **Wave Lane Planning**: Sugiyama topological wave scheduling maps parallel lanes with optimal concurrency caps ($\le 40$).
-- **Cognitive Memory Integration**: Work/Span metrics ($W, S, P$, efficiency) are persistently recorded in `.capsules/mind/memory.json`.
+- **Cognitive Memory Integration**: Work/Span metrics ($W, S, P$, efficiency) are persistently recorded in `.olt/memory.json`.
 
 ### 2. Role Boundary Watchdog & Anti-Leak Governance
 
@@ -432,9 +432,9 @@ triggers dynamic graph recompilation and parallel repair rounds:
 
 ### 3. Empirical Blunder Logging & Resolution
 
-- **Canonical Storage**: Blunders and boundary violations are logged to `<repo-root>/.capsules/mind/queue/blunders.jsonl`.
-- **Resolution Proofs**: Resolving blunders (`resolveBlunder` / `blunder:audit`) requires empirical proof: `commit_sha`, `test_assertion`, and `task_id`.
-- **Candidate Proposal Flow**: Open blunders are discovered, deduplicated, and admitted via `blunder:audit --auto-admit`.
+- **Canonical Storage**: Blunders and boundary violations are logged to `<repo-root>/.olt/defects.jsonl`.
+- **Resolution Proofs**: Resolving blunders (`resolveBlunder` / `defect:audit`) requires empirical proof: `commit_sha`, `test_assertion`, and `task_id`.
+- **Candidate Proposal Flow**: Open blunders are discovered, deduplicated, and admitted via `defect:audit --auto-admit`.
 
 ### 4. Live Cognitive Telemetry & Coordinate Badges
 

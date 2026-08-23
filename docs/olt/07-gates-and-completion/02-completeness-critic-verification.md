@@ -98,14 +98,14 @@ Furthermore, critic verification commands must be **unbound to any specific task
 ```bash
 # ✅ VALID: Critic runs completion gate unbound to tasks
 bun harness.ts run:exec \
-  --run .capsules/<run-id> \
+  --run .olt/capsules/<run-id> \
   --actor critic-1 \
   --gate gate-run-completion \
   -- bun test tests/
 
 # ❌ INVALID: Critic attempts to cite a task-bound command (Refused)
 bun harness.ts run:exec \
-  --run .capsules/<run-id> \
+  --run .olt/capsules/<run-id> \
   --actor critic-1 \
   --task task-slug \
   -- bun test tests/slug.test.ts
@@ -201,7 +201,7 @@ If a plan-validator rejects a graph revision (`status: "changes_requested"`), al
 
 ```bash
 bun harness.ts critic:start \
-  --run .capsules/<run-id> \
+  --run .olt/capsules/<run-id> \
   --critic critic-1
 ```
 
@@ -209,7 +209,7 @@ Output:
 
 ```text
 ### Completeness Critic Leased: critic-1
-- **Run**: `.capsules/run-402`
+- **Run**: `.olt/capsules/run-402`
 - **Critic Token**: `CRITIC_TOK_88194` (digest recorded)
 - **Action Required**: Execute whole-suite gates and compile requirement proofs.
 ```
@@ -219,14 +219,14 @@ Output:
 ```bash
 # Run completion gate
 bun harness.ts run:exec \
-  --run .capsules/<run-id> \
+  --run .olt/capsules/<run-id> \
   --actor critic-1 \
   --gate gate-run-completion \
   -- bun test
 
 # Run specific integration check
 bun harness.ts run:exec \
-  --run .capsules/<run-id> \
+  --run .olt/capsules/<run-id> \
   --actor critic-1 \
   -- bun run build
 ```
@@ -235,7 +235,7 @@ bun harness.ts run:exec \
 
 ```bash
 bun harness.ts critic:review \
-  --run .capsules/<run-id> \
+  --run .olt/capsules/<run-id> \
   --critic critic-1 \
   --token CRITIC_TOK_88194 \
   --decision approve \
@@ -247,7 +247,7 @@ bun harness.ts critic:review \
 
 ```bash
 bun harness.ts critic:reject \
-  --run .capsules/<run-id> \
+  --run .olt/capsules/<run-id> \
   --critic critic-1 \
   --token CRITIC_TOK_88194 \
   --summary "Missing OpenAPI schema generation" \
@@ -260,7 +260,7 @@ When defects are fixed, the coordinator registers the remediation receipts:
 
 ```bash
 bun harness.ts critic:remediate \
-  --run .capsules/<run-id> \
+  --run .olt/capsules/<run-id> \
   --actor coordinator \
   --resolve CF-01=C-948210 \
   --resolution-method CF-01="Generated OpenAPI spec via build script"
@@ -273,7 +273,7 @@ bun harness.ts critic:remediate \
 ### 1. Critic Starts Review
 
 ```bash
-bun harness.ts critic:start --run .capsules/run-99 --critic critic-audit-1
+bun harness.ts critic:start --run .olt/capsules/run-99 --critic critic-audit-1
 ```
 
 Mints token `CRIT_9901`.
@@ -288,7 +288,7 @@ Critic inspects `git diff HEAD~3` and compares against `prompt.md`. Critic finds
 ### 3. Critic Executes Gate and Discovers Failure
 
 ```bash
-bun harness.ts run:exec --run .capsules/run-99 --actor critic-audit-1 -- \
+bun harness.ts run:exec --run .olt/capsules/run-99 --actor critic-audit-1 -- \
   bun test tests/integration/rate-limit.test.ts
 ```
 
@@ -298,7 +298,7 @@ Receipt `C-110022` recorded with exit code `1`.
 
 ```bash
 bun harness.ts critic:reject \
-  --run .capsules/run-99 \
+  --run .olt/capsules/run-99 \
   --critic critic-audit-1 \
   --token CRIT_9901 \
   --summary "Rate limiter lacks Redis backend required by prompt." \

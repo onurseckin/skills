@@ -10,7 +10,7 @@ During previous execution runs, a Tier 2 Coordinator was observed executing unit
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
 │  [ Tier 0: Mind ]                                                           │
-│    • Allowed: mind:*, authority:*, memory:*, dag:view                       │
+│    • Allowed: mind:*, authority:*, memory:*, dag                       │
 │    • Forbidden: ANY code edits, ANY unit test executions, ANY worker spawns │
 │                                                                             │
 │  [ Tier 1: Orchestrator ]                                                   │

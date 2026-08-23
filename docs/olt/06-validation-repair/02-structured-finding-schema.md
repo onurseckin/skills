@@ -250,7 +250,7 @@ Every item in the domain checklist must have an explicit entry:
 
 ```bash
 bun harness.ts task:reject \
-  --run .capsules/<run-id> \
+  --run .olt/capsules/<run-id> \
   --task <task-id> \
   --validator <val-id> \
   --token <val-token> \
@@ -264,7 +264,7 @@ bun harness.ts task:reject \
 
 ```bash
 bun harness.ts task:probe \
-  --run .capsules/<run-id> \
+  --run .olt/capsules/<run-id> \
   --task <task-id> \
   --validator <val-id> \
   --token <val-token> \
@@ -275,20 +275,20 @@ bun harness.ts task:probe \
 ### Querying All Open Findings
 
 ```bash
-bun harness.ts finding:get --run .capsules/<run-id> --status open
+bun harness.ts finding:get --run .olt/capsules/<run-id> --status open
 ```
 
 ### Querying Specific Finding Detail
 
 ```bash
-bun harness.ts finding:get --run .capsules/<run-id> --id finding-task-slug-01
+bun harness.ts finding:get --run .olt/capsules/<run-id> --id finding-task-slug-01
 ```
 
 ### Resolving Findings with Gate Receipts
 
 ```bash
 bun harness.ts task:review \
-  --run .capsules/<run-id> \
+  --run .olt/capsules/<run-id> \
   --task <task-id> \
   --validator <val-id> \
   --token <val-token> \
@@ -315,7 +315,7 @@ A repairer implemented the fix and re-submitted. A fresh validator (`val-crypto-
 ### Step 1: Query Open Findings
 
 ```bash
-bun harness.ts finding:get --run .capsules/run-91 --task task-crypto-hash
+bun harness.ts finding:get --run .olt/capsules/run-91 --task task-crypto-hash
 ```
 
 Output:
@@ -329,7 +329,7 @@ Found 2 open finding(s) for task-crypto-hash:
 ### Step 2: Validator Reruns Mandatory Test Gate
 
 ```bash
-bun harness.ts run:exec --run .capsules/run-91 --actor val-crypto-2 --task task-crypto-hash -- \
+bun harness.ts run:exec --run .olt/capsules/run-91 --actor val-crypto-2 --task task-crypto-hash -- \
   bun test tests/crypto/hash.test.ts
 ```
 
@@ -338,7 +338,7 @@ Receipt generated: `C-552019` (Exit code: 0).
 ### Step 3: Validator Runs Specific Timing Test
 
 ```bash
-bun harness.ts run:exec --run .capsules/run-91 --actor val-crypto-2 --task task-crypto-hash -- \
+bun harness.ts run:exec --run .olt/capsules/run-91 --actor val-crypto-2 --task task-crypto-hash -- \
   bun test tests/crypto/timing.test.ts
 ```
 
@@ -348,7 +348,7 @@ Receipt generated: `C-552020` (Exit code: 0).
 
 ```bash
 bun harness.ts task:review \
-  --run .capsules/run-91 \
+  --run .olt/capsules/run-91 \
   --task task-crypto-hash \
   --validator val-crypto-2 \
   --token VAL_TOK_HASH_2 \

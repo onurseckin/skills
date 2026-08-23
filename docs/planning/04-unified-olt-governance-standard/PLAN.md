@@ -2,7 +2,7 @@
 
 ## 1. Context & Problem Statement
 
-In previous iterations, confusion arose across agents and toolchains regarding the distinction between `olt/` and `.olt/`. Some subagents attempted to read or write governance records into `olt/backlog.jsonl` while runtime capsules were placed in `.capsules/` or `.olt/capsules/`.
+In previous iterations, confusion arose across agents and toolchains regarding the distinction between `olt/` and `.olt/`. Some subagents attempted to read or write governance records into `olt/backlog.jsonl` while runtime capsules were placed in `.olt/capsules/` or `.olt/capsules/`.
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -39,7 +39,7 @@ In previous iterations, confusion arose across agents and toolchains regarding t
 1. **Unambiguous Single Source of Truth (`.olt/`):**
    - All runtime operations, governance reads, defect promotions, telemetry logging, and capsule storage must resolve strictly to `.olt/`.
 2. **Zero Fallback / Zero Ambiguity:**
-   - Eliminate all code paths that check whether `olt/` or `.capsules/` exist. If a path is needed, it is strictly `.olt/<file>`.
+   - Eliminate all code paths that check whether `olt/` or `.olt/capsules/` exist. If a path is needed, it is strictly `.olt/<file>`.
 3. **Clean Git Tracking & Exclusion Invariants:**
    - `.gitignore` must contain exactly:
      ```gitignore
@@ -111,4 +111,4 @@ export function resolveGovernanceFile(
    - All governance paths resolve strictly under `<repo>/.olt/`.
    - Capsules resolve strictly under `<repo>/.olt/capsules/`.
    - Scratch and evidence resolve strictly under `<repo>/.olt/scratch/`.
-   - 0 references to legacy `.capsules/` or `TODO_*` remain.
+   - 0 references to legacy `.olt/capsules/` or `TODO_*` remain.

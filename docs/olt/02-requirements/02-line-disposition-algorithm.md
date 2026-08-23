@@ -30,12 +30,12 @@ Version 1 of the requirements document accepts four disposition kinds — `requi
 ## 🧩 Declaring Tasks and Binding Them to Lines
 
 ```bash
-bun harness.ts plan:add --run .capsules/<slug> --actor planner --id <task-id> \
+bun harness.ts plan:add --run .olt/capsules/<slug> --actor planner --id <task-id> \
   --label "<label>" --scope <path> --gate "<gate-cmd>" --requirement-lines "3-5,8" [--deps <dep-id>]
 
-bun harness.ts plan:status --run .capsules/<slug>
+bun harness.ts plan:status --run .olt/capsules/<slug>
 
-bun harness.ts plan:compile --run .capsules/<slug> --actor planner --completion-gate "bun test tests"
+bun harness.ts plan:compile --run .olt/capsules/<slug> --actor planner --completion-gate "bun test tests"
 ```
 
 Real output of a bound declaration:
@@ -241,7 +241,7 @@ produce real findings; the sixth is permanently, deliberately unevaluated:
 Run it standalone at any point to preview the verdict without attempting a compile:
 
 ```bash
-bun harness.ts plan:audit --run .capsules/<slug> --actor planner
+bun harness.ts plan:audit --run .olt/capsules/<slug> --actor planner
 ```
 
 `plan:compile` runs the identical check automatically, first, before deriving anything. **The
@@ -252,7 +252,7 @@ exactly what was checked and what it found, rather than a warning printed to a t
 A blocking finding can be overridden, but never silently and never in bulk:
 
 ```bash
-bun harness.ts plan:compile --run .capsules/<slug> --actor planner \
+bun harness.ts plan:compile --run .olt/capsules/<slug> --actor planner \
   --completion-gate "bun test tests/unit" \
   --accept-audit "A3-gate-discrimination:task-a and task-b legitimately share the shared-fixture regression test"
 ```
@@ -272,7 +272,7 @@ Every dependency edge a plan declares needs a stated reason. `plan:add --deps <i
 edge _unjustified_; pairing it with `--dep-reason` records why it exists:
 
 ```bash
-bun harness.ts plan:add --run .capsules/<slug> --actor planner --id task-b \
+bun harness.ts plan:add --run .olt/capsules/<slug> --actor planner --id task-b \
   --label "..." --scope src/b --gate "bun test tests/b.test.ts" \
   --deps task-a --dep-reason "task-a:task-b imports the type task-a defines"
 ```
@@ -310,7 +310,7 @@ enumerate what actually exists on disk and derive one task per match, so "fewer 
 bookkeeping" stops being the path of least resistance:
 
 ```bash
-bun harness.ts plan:add --run .capsules/<slug> --id task-topic --label "Topic bank" \
+bun harness.ts plan:add --run .olt/capsules/<slug> --id task-topic --label "Topic bank" \
   --actor planner --auto-partition "src/curriculum/mlQuestions/*.ts" \
   --gate-template "bun test {scope}"
 ```

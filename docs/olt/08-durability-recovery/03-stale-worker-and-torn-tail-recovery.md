@@ -64,7 +64,7 @@ If a process terminates mid-append while writing to `events.jsonl`, the trailing
 │  │                                                                       │  │
 │  │ 2. ISOLATE TORN BYTES TO QUARANTINE                                   │  │
 │  │    Copy all bytes past clean offset to:                               │  │
-│  │    `.capsules/<run-id>/quarantine/recovery-torn-<token>.fragment`     │  │
+│  │    `.olt/capsules/<run-id>/quarantine/recovery-torn-<token>.fragment`     │  │
 │  │    (Chmod to 0o400 read-only; preserved for post-mortem forensics)    │  │
 │  │                                                                       │  │
 │  │ 3. TRUNCATE REAL LOG FILE                                             │  │
@@ -89,7 +89,7 @@ When an agent process terminates or hangs, its lease eventually expires:
 $$\text{now}() > \text{lease.expires\_at} + \text{grace\_seconds}$$
 
 ```bash
-bun harness.ts recover --run .capsules/<run-id> --actor coordinator --grace-seconds 30
+bun harness.ts recover --run .olt/capsules/<run-id> --actor coordinator --grace-seconds 30
 ```
 
 ```text
@@ -221,7 +221,7 @@ In long-running autonomous runs, monitors and health probes are managed by the *
 
 ```bash
 bun harness.ts recover \
-  --run .capsules/<run-id> \
+  --run .olt/capsules/<run-id> \
   --actor coordinator \
   --grace-seconds 30
 ```
@@ -230,11 +230,11 @@ bun harness.ts recover \
 
 ```bash
 # Check status (Read-only)
-bun harness.ts doctor --run .capsules/<run-id>
+bun harness.ts doctor --run .olt/capsules/<run-id>
 
 # Execute repair and quarantine
 bun harness.ts doctor:repair \
-  --run .capsules/<run-id> \
+  --run .olt/capsules/<run-id> \
   --actor coordinator
 ```
 
@@ -242,7 +242,7 @@ bun harness.ts doctor:repair \
 
 ```bash
 bun harness.ts orchestrator:supervise \
-  --run .capsules/<run-id> \
+  --run .olt/capsules/<run-id> \
   --actor coordinator
 ```
 
@@ -263,13 +263,13 @@ Host machine crashed while worker `worker-slug` was submitting Event 42. `events
 ### Step 1: Run Doctor (Read-Only)
 
 ```bash
-bun harness.ts doctor --run .capsules/run-402
+bun harness.ts doctor --run .olt/capsules/run-402
 ```
 
 Output:
 
 ```text
-### Capsule Doctor: `.capsules/run-402`
+### Capsule Doctor: `.olt/capsules/run-402`
 - **Healthy**: no ❌
 - **Issues**:
   1. Torn tail detected in events.jsonl at line 42 (JSON parse error: Unexpected EOF)
@@ -279,14 +279,14 @@ Output:
 ### Step 2: Execute Forensic Repair
 
 ```bash
-bun harness.ts doctor:repair --run .capsules/run-402 --actor coordinator
+bun harness.ts doctor:repair --run .olt/capsules/run-402 --actor coordinator
 ```
 
 Output:
 
 ```text
-### Doctor Repair: `.capsules/run-402`
-- **Quarantined Fragment**: `.capsules/run-402/quarantine/recovery-torn-91a8f2.fragment` (412 bytes)
+### Doctor Repair: `.olt/capsules/run-402`
+- **Quarantined Fragment**: `.olt/capsules/run-402/quarantine/recovery-torn-91a8f2.fragment` (412 bytes)
 - **Clean Event Head**: Sequence 41 (Hash: `9a810284...`)
 - **Action**: Truncated events.jsonl to 18,402 bytes. Rebuilt state.json.
 - **Event Appended**: `projection-recovered` (Sequence 42)
@@ -295,13 +295,13 @@ Output:
 ### Step 3: Reclaim Stale Leases
 
 ```bash
-bun harness.ts recover --run .capsules/run-402 --actor coordinator
+bun harness.ts recover --run .olt/capsules/run-402 --actor coordinator
 ```
 
 Output:
 
 ```text
-### Stale Recovery: `.capsules/run-402`
+### Stale Recovery: `.olt/capsules/run-402`
 - **Reclaimed Tasks**: `task-slug` returned to `retry_ready` (Prior attempt by `worker-slug` expired).
 ```
 

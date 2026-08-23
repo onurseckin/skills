@@ -4,7 +4,7 @@
 
 **Principle:** Modern systems only. Zero backward compatibility debt.
 
-The repository will operate exclusively against the modern `.olt/` governance and execution architecture. All legacy migration shims, multi-variant fallback ladders (e.g. searching `.capsules/`, `.capsules/mind/queue/`, `FEEDBACK_QUEUE.jsonl`, `TODO_*`), legacy pre-ledger readers, and obsolete test fixtures will be permanently excised.
+The repository will operate exclusively against the modern `.olt/` governance and execution architecture. All legacy migration shims, multi-variant fallback ladders (e.g. searching `.olt/capsules/`, `.olt/`, `FEEDBACK_QUEUE.jsonl`, `TODO_*`), legacy pre-ledger readers, and obsolete test fixtures will be permanently excised.
 
 ---
 
@@ -37,7 +37,7 @@ The repository will operate exclusively against the modern `.olt/` governance an
 │                                                                                 │
 │  [ 3. Legacy Todo & Directory Fallbacks ]                                       │
 │    • Remove TODO_* constants and useTodo flags                                  │
-│    • Remove legacy capsule archival movers (.capsules/archive/)                 │
+│    • Remove legacy capsule archival movers (.olt/capsules/archive/)                 │
 │                                                                                 │
 │  [ 4. Stale Role & Command Inconsistencies ]                                    │
 │    • Remove references to retired command orchestrator:run                      │
@@ -133,7 +133,7 @@ tests/unit/olt/
 
 | #      | Topic            | Proposed Modern Direction                                                | Alternative / Legacy                             |
 | :----- | :--------------- | :----------------------------------------------------------------------- | :----------------------------------------------- |
-| **D1** | Capsule Location | Strictly `.olt/capsules/<run-id>/`                                       | Allow root `.capsules/` fallback (REJECTED)      |
+| **D1** | Capsule Location | Strictly `.olt/capsules/<run-id>/`                                       | Allow root `.olt/capsules/` fallback (REJECTED)  |
 | **D2** | Governance Files | Strictly `.olt/*.jsonl` and `.olt/*.json`                                | Support old uppercase/queue fallbacks (REJECTED) |
 | **D3** | Migration Shims  | Drop all migration functions; files are already in modern format         | Keep runtime migration logic (REJECTED)          |
 | **D4** | Test Fixtures    | Dynamic in-memory fixture generators in `tests/support/`                 | Checked-in static JSON files (REJECTED)          |

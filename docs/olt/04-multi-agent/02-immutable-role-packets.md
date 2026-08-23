@@ -278,7 +278,7 @@ The whole-run Completeness Critic operates under a dedicated context filter that
 Rather than forcing agents to parse hundreds of lines of complex JSON, `olt` emits compact, human- and LLM-readable markdown briefs (≤ 30 lines) directly to standard output:
 
 ```bash
-bun harness.ts task:claim --run .capsules/<run-id> --task task-db --agent worker-2 --role implementer
+bun harness.ts task:claim --run .olt/capsules/<run-id> --task task-db --agent worker-2 --role implementer
 ```
 
 ```markdown

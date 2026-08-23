@@ -227,7 +227,7 @@ Before and during validation, static code quality is verified via `task:check`. 
 Running `task:check` ensures the codebase is statically sound before cognitive review begins:
 
 ```bash
-bun harness.ts task:check --run .capsules/<run-id> --task <task-id>
+bun harness.ts task:check --run .olt/capsules/<run-id> --task <task-id>
 ```
 
 ---
@@ -322,7 +322,7 @@ Follow this operational procedure when validating any task.
 
 ```bash
 bun harness.ts task:validate-start \
-  --run .capsules/<run-id> \
+  --run .olt/capsules/<run-id> \
   --task <task-id> \
   --validator <validator-agent-id> \
   --validator-domain code-quality
@@ -343,7 +343,7 @@ Output:
 
 ```bash
 bun harness.ts task:check \
-  --run .capsules/<run-id> \
+  --run .olt/capsules/<run-id> \
   --task <task-id>
 ```
 
@@ -353,7 +353,7 @@ Every mandatory gate must be executed by the validator using its own actor ident
 
 ```bash
 bun harness.ts run:exec \
-  --run .capsules/<run-id> \
+  --run .olt/capsules/<run-id> \
   --actor <validator-agent-id> \
   --task <task-id> \
   -- bun test tests/slug.test.ts
@@ -363,7 +363,7 @@ bun harness.ts run:exec \
 
 ```bash
 bun harness.ts task:probe \
-  --run .capsules/<run-id> \
+  --run .olt/capsules/<run-id> \
   --task <task-id> \
   --validator <validator-agent-id> \
   --token <validation-token> \
@@ -377,7 +377,7 @@ When all gates pass, probes are answered, and static checks are clean:
 
 ```bash
 bun harness.ts task:review \
-  --run .capsules/<run-id> \
+  --run .olt/capsules/<run-id> \
   --task <task-id> \
   --validator <validator-agent-id> \
   --token <validation-token> \
@@ -393,7 +393,7 @@ If a fast, isolated fix is needed within the active lease:
 
 ```bash
 bun harness.ts task:reject \
-  --run .capsules/<run-id> \
+  --run .olt/capsules/<run-id> \
   --task <task-id> \
   --validator <validator-agent-id> \
   --token <validation-token> \
@@ -410,7 +410,7 @@ For substantial defects or exhausted micro-cycles:
 
 ```bash
 bun harness.ts task:reject \
-  --run .capsules/<run-id> \
+  --run .olt/capsules/<run-id> \
   --task <task-id> \
   --validator <validator-agent-id> \
   --token <validation-token> \
@@ -432,7 +432,7 @@ An implementer (`imp-1`) has submitted `task-auth-token`, which generates and ve
 
 ```bash
 bun harness.ts task:validate-start \
-  --run .capsules/run-402 \
+  --run .olt/capsules/run-402 \
   --task task-auth-token \
   --validator val-sec-1 \
   --validator-domain code-quality
@@ -443,7 +443,7 @@ The harness mints validation token `VAL_TOK_9981`.
 ### 2. Run AST Static Check
 
 ```bash
-bun harness.ts task:check --run .capsules/run-402 --task task-auth-token
+bun harness.ts task:check --run .olt/capsules/run-402 --task task-auth-token
 ```
 
 Result: `0 any types found, 0 linter suppression comments detected. Clean.`
@@ -451,7 +451,7 @@ Result: `0 any types found, 0 linter suppression comments detected. Clean.`
 ### 3. Validator Executes Gate
 
 ```bash
-bun harness.ts run:exec --run .capsules/run-402 --actor val-sec-1 --task task-auth-token -- \
+bun harness.ts run:exec --run .olt/capsules/run-402 --actor val-sec-1 --task task-auth-token -- \
   bun test tests/auth/token.test.ts
 ```
 
@@ -463,7 +463,7 @@ Validator inspects `src/auth/token.ts` and notices token expiration check uses c
 
 ```bash
 bun harness.ts task:probe \
-  --run .capsules/run-402 \
+  --run .olt/capsules/run-402 \
   --task task-auth-token \
   --validator val-sec-1 \
   --token VAL_TOK_9981 \
@@ -479,7 +479,7 @@ Validator runs a test against token expiration and finds the expiration check wa
 
 ```bash
 bun harness.ts task:reject \
-  --run .capsules/run-402 \
+  --run .olt/capsules/run-402 \
   --task task-auth-token \
   --validator val-sec-1 \
   --token VAL_TOK_9981 \
@@ -499,7 +499,7 @@ Implementer `imp-1` (still holding lease) updates `src/auth/token.ts`, adds an e
 Validator reruns gate:
 
 ```bash
-bun harness.ts run:exec --run .capsules/run-402 --actor val-sec-1 --task task-auth-token -- \
+bun harness.ts run:exec --run .olt/capsules/run-402 --actor val-sec-1 --task task-auth-token -- \
   bun test tests/auth/token.test.ts
 ```
 
@@ -509,7 +509,7 @@ Validator signs off:
 
 ```bash
 bun harness.ts task:review \
-  --run .capsules/run-402 \
+  --run .olt/capsules/run-402 \
   --task task-auth-token \
   --validator val-sec-1 \
   --token VAL_TOK_9981 \

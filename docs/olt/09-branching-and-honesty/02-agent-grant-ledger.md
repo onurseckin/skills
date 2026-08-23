@@ -23,7 +23,7 @@ that record, and the `agent:*` family is how it is written.
 ## 🪪 `agent:register` — the grant
 
 ```bash
-bun harness.ts agent:register --run .capsules/<run-id> \
+bun harness.ts agent:register --run .olt/capsules/<run-id> \
   --agent impl-slug --role implementer --host claude-code \
   --parent-agent coordinator-1 --parent-task task-slug \
   --model claude-opus-4-6 --model-tier l --thinking-level high \
@@ -57,7 +57,7 @@ That last rule is the whole point. Compare two real registrations from the tutor
 ```
 
 ```bash
-bun harness.ts agent:release --run .capsules/slugger --agent impl-slug --reason "<why>"
+bun harness.ts agent:release --run .olt/capsules/slugger --agent impl-slug --reason "<why>"
 ```
 
 ```text
@@ -72,7 +72,7 @@ bun harness.ts agent:release --run .capsules/slugger --agent impl-slug --reason 
 ```
 
 ```bash
-bun harness.ts agent:release --run .capsules/slugger --agent impl-truncate --reason "<why>"
+bun harness.ts agent:release --run .olt/capsules/slugger --agent impl-truncate --reason "<why>"
 ```
 
 The second agent ran on the same machine, under the same harness, on the same day. Nothing was
@@ -95,7 +95,7 @@ _compiled plan itself_, dispatched once per graph revision rather than once per 
 mechanism:
 
 ```bash
-bun harness.ts agent:register --run .capsules/<run-id> --agent plan-val-1 \
+bun harness.ts agent:register --run .olt/capsules/<run-id> --agent plan-val-1 \
   --role plan-validator --host claude-code --parent-agent coordinator-1
 ```
 
@@ -111,7 +111,7 @@ bun harness.ts agent:register --run .capsules/<run-id> --agent plan-val-1 \
 ```
 
 ```bash
-bun harness.ts agent:release --run .capsules/slugger --agent plan-val-1 --reason "<why>"
+bun harness.ts agent:release --run .olt/capsules/slugger --agent plan-val-1 --reason "<why>"
 ```
 
 Its grant carries `/ no task` under "Under" — a plan-validator reviews the whole compiled plan, not a
@@ -132,7 +132,7 @@ the `coordinator` or `planner` that produced the plan under review —
 ## 📊 `agent:report` — telemetry in flight
 
 ```bash
-bun harness.ts agent:report --run .capsules/<run-id> --agent impl-slug \
+bun harness.ts agent:report --run .olt/capsules/<run-id> --agent impl-slug \
   --tool Read --tool Edit --tokens-in 18000 --tokens-out 2400
 ```
 
@@ -152,7 +152,7 @@ bun harness.ts agent:report --run .capsules/<run-id> --agent impl-slug \
 ## 🔚 `agent:release` — closing the grant
 
 ```bash
-bun harness.ts agent:release --run .capsules/<run-id> --agent impl-slug --reason "task-slug done"
+bun harness.ts agent:release --run .olt/capsules/<run-id> --agent impl-slug --reason "task-slug done"
 ```
 
 Release every grant **before** `run:complete`. A completed run is terminal, and a late release fails:

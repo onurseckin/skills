@@ -200,7 +200,7 @@ If any files are modified after a gate was executed, the gate receipt becomes **
 
 ```bash
 bun harness.ts run:exec \
-  --run .capsules/<run-id> \
+  --run .olt/capsules/<run-id> \
   --actor <agent-id> \
   --task <task-id> \
   --gate <gate-id> \
@@ -210,7 +210,7 @@ bun harness.ts run:exec \
 ### Semantics:
 
 - **Harness Exit Code**: `run:exec` itself exits `0` whenever the child process launched and completed, regardless of whether the child passed or failed.
-- **Child Status Recording**: The child's exit code, duration, stdout, stderr, and repository bindings are recorded into `.capsules/<run-id>/evidence/C-<uuid>.json`.
+- **Child Status Recording**: The child's exit code, duration, stdout, stderr, and repository bindings are recorded into `.olt/capsules/<run-id>/evidence/C-<uuid>.json`.
 - **Argv Splitting**: All flags after `--` are forwarded verbatim to the child process. Harness flags (`--format json`, `--actor`) must appear before `--`.
 
 ---
@@ -221,7 +221,7 @@ bun harness.ts run:exec \
 
 ```bash
 bun harness.ts gate:prove \
-  --run .capsules/<run-id> \
+  --run .olt/capsules/<run-id> \
   --task task-slug \
   --actor coordinator
 ```
@@ -242,7 +242,7 @@ Expected Output:
 
 ```bash
 bun harness.ts run:exec \
-  --run .capsules/<run-id> \
+  --run .olt/capsules/<run-id> \
   --actor val-1 \
   --task task-slug \
   --gate gate-slug \
@@ -253,7 +253,7 @@ bun harness.ts run:exec \
 
 ```bash
 bun harness.ts run:exec \
-  --run .capsules/<run-id> \
+  --run .olt/capsules/<run-id> \
   --actor critic-1 \
   --gate gate-run-completion \
   -- bun test tests/
@@ -265,7 +265,7 @@ If two tasks legitimately share a regression test fixture:
 
 ```bash
 bun harness.ts plan:compile \
-  --run .capsules/<run-id> \
+  --run .olt/capsules/<run-id> \
   --actor planner \
   --completion-gate "bun test" \
   --accept-audit "A3-gate-discrimination:task-a and task-b share common integration fixture"
@@ -284,7 +284,7 @@ Test file: `tests/format/date.test.ts`.
 
 ```bash
 bun harness.ts plan:add \
-  --run .capsules/run-50 \
+  --run .olt/capsules/run-50 \
   --id task-date-format \
   --title "Implement ISO date formatting helper" \
   --write-scope "src/format/date.ts,tests/format/date.test.ts" \
@@ -295,7 +295,7 @@ bun harness.ts plan:add \
 
 ```bash
 bun harness.ts gate:prove \
-  --run .capsules/run-50 \
+  --run .olt/capsules/run-50 \
   --task task-date-format \
   --actor coordinator
 ```

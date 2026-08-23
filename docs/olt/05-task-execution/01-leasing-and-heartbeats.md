@@ -38,7 +38,7 @@ If a long-running compile or complex test suite takes significant time, the agen
 
 ```bash
 bun harness.ts task:heartbeat \
-  --run .capsules/<run-id> \
+  --run .olt/capsules/<run-id> \
   --task <task-id> \
   --agent <worker-id> \
   --token <bearer-token>
@@ -69,7 +69,7 @@ to `branched`. A suspended lease still authenticates — that is how the parent 
 
 ```bash
 bun harness.ts task:release \
-  --run .capsules/<run-id> \
+  --run .olt/capsules/<run-id> \
   --task <task-id> \
   --agent <worker-id> \
   --token <bearer-token>
@@ -131,7 +131,7 @@ If an agent host crashes, runs out of memory, or disconnects without releasing i
 an explicit command rather than a silent side effect:
 
 ```bash
-bun harness.ts recover --run .capsules/<run-id> --actor coordinator --grace-seconds 30
+bun harness.ts recover --run .olt/capsules/<run-id> --actor coordinator --grace-seconds 30
 ```
 
 - Expired leases are revoked; the task returns to `retry_ready`, or `changes_requested` after a repair
@@ -156,7 +156,7 @@ In long-running autonomous runs, leases alone do not protect against silent agen
 │  [ Generation / Pulse Cadence ]                                             │
 │    • Mind Generation (generation: 1, 2, ...)                                │
 │    • Periodic Heartbeat Pulse (pulse-id: pulse-<uuid>)                      │
-│    • Watchdog Store: .capsules/watchdogs.json                               │
+│    • Watchdog Store: .olt/capsules/watchdogs.json                               │
 │                                  │                                          │
 │                                  ▼                                          │
 │  [ Single Active Monitor Invariant ]                                        │
@@ -193,7 +193,7 @@ bun harness.ts watchdog:status --generation 1 --filter-status active
 
 ```text
 ### Watchdog Lifecycle & Cadence Status
-- **Capsules Target Root**: `.capsules/`
+- **Capsules Target Root**: `.olt/capsules/`
 - **Total Registered Monitors**: 4 (1 matching filter)
 - **Status Breakdown**: Active: 1 | Stale: 0 | Terminated: 3 | Orphaned: 0
 - **Accumulation Invariant**: Max 1 active monitor per generation/pulse strictly enforced

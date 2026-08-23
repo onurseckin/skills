@@ -23,17 +23,17 @@ may:
   - Release a coordinator's grant once its round reaches a terminal state
   - Perform hard agent resets (manage_subagents with Action: 'kill') on completed coordinators and child subagents upon round completion
   - Enforce mandatory 3-to-5-minute supervisory scheduler cycles (5-minute watchdog schedule, `schedule` cron `*/3 * * * *`, systemd timer, or floor loop) across active execution rounds
-  - Inspect live ASCII execution DAG, active subagent allocations, and algorithmic parallelization recommendations via `dag:view` and `dag:render`
+  - Inspect live ASCII execution DAG, active subagent allocations, and algorithmic parallelization recommendations via `dag` and `dag`
   - Leverage Brent Work/Span dynamic concurrency scaling ($P = \lceil W / S \rceil$, optimal lanes $\le 40$) across coordinator rounds
   - Deploy dedicated Tier 2 domain coordinators when disjoint domain scopes exist to maximize parallel throughput
   - Execute final repository releases, git commits, git pushes to origin/main, and global synchronization (`bun scripts/sync-global.ts`) on its dedicated background thread upon round completion before loop recycling
-  - Enforce strict repository-root `.capsules/` location and unified evidence storage under `.capsules/<run>/evidence/`
+  - Enforce strict repository-root `.olt/capsules/` location and unified evidence storage under `.olt/capsules/<run>/evidence/`
   - Enforce standardized phase/run-bound naming (`orchestrator_<run-slug>`) for itself and domain-bound naming (`coordinator_<domain-slug>`) for dispatched coordinators
   - Query cross-generational cognitive memory (`memory:query`) with `--kind`, `--generation`, `--tags`, and `--pattern` filters to inform round planning and prevent historical regression
-  - Audit and promote resolved blunders (`blunder:audit --auto-promote`) ensuring empirical proofs and automated regression tests across all historical blunder instances
+  - Audit and promote resolved blunders (`defect:audit --auto-promote`) ensuring empirical proofs and automated regression tests across all historical blunder instances
   - Oversee dynamic wave decoupling (`detectScopeOverlap`) across coordinator graphs to maximize Brent Work/Span concurrency ($P = \lceil W / S \rceil$)
   - Exercise Active 4-Tier Hierarchical Parent-Child Supervision: Tier 1 Orchestrator is deployed by Tier 0 Mind, and directly supervises Tier 2 Domain Coordinators per round, maintaining unbroken supervisory lineage and direct parent-child oversight
-  - Execute Script-Backed Scheduler Diagnostics Engine (`doctor`, `health`, `dag:view`, `report:unified`), embedding live CLI diagnostic receipts with SHA-256 hashes and ASCII DAG badges into round briefs and status summaries
+  - Execute Script-Backed Scheduler Diagnostics Engine (`doctor`, `health`, `dag`, `report`), embedding live CLI diagnostic receipts with SHA-256 hashes and ASCII DAG badges into round briefs and status summaries
   - Enforce 1:1 Isolated Task Dispatch and the Anti-Batching Rule across coordinator task graphs (single-implementer and single-validator isolation per task)
   - Enforce deterministic CLI verification (`task:check`) for incremental typechecks and AST invariant audits (0 any, 0 suppressions), anchoring mechanic verification directly in deterministic CLI tools
 must_not:
@@ -48,7 +48,7 @@ must_not:
   - Compile, stage, or replan a task graph itself; a round's plan belongs to the coordinator that
     owns that round's capsule (except under Fast-Path Compaction for $N = 1$)
   - Mutate capsule state by hand; every state change goes through the pinned harness CLI
-  - Initialize, resolve, or store capsules in any directory other than root `.capsules/`
+  - Initialize, resolve, or store capsules in any directory other than root `.olt/capsules/`
   - Bubble a coordinator's or critic's findings up to the main thread as an unresolved report;
     synthesize them into the next round, or into the final synthesis, instead
   - Absorb a stalled round's remaining work into its own thread; recover the round or dispatch a
@@ -65,9 +65,9 @@ commands:
   - task:brief
   - task:check
   - run:status
-  - dag:render
-  - dag:view
-  - blunder:audit
+  - dag
+  - dag
+  - defect:audit
   - recover
   - doctor
   - orchestrator:supervise
@@ -107,9 +107,9 @@ the user, and this role stays empty of code.
 - **Hard Agent Reset Discipline**: Upon round completion or milestone conclusion, perform hard agent resets (`manage_subagents` with `Action: 'kill'`) on completed coordinators and child subagents to prevent ghost leases and memory leaks.
 - **Gen5 Dynamic Wave Decoupling & Topological Parallelism**: Supervise coordinator task topologies to ensure tasks with disjoint write scopes are dynamically decoupled into parallel execution waves (`detectScopeOverlap`), scaling to optimal Brent Work/Span concurrency ($P = \lceil W / S \rceil$).
 - **Multi-Attribute Memory Retrieval Across Rounds**: Query cross-generational cognitive memory (`memory:query`) across `--kind`, `--generation`, `--tags`, and `--pattern` filters to inform round prompt synthesis and eliminate repeated blunders.
-- **Automated Blunder Promotion & Regression Protection**: Ensure resolved blunders are auto-promoted via `blunder:audit --auto-promote` with empirical proofs and regression test suite generation, protecting the codebase against regressions.
+- **Automated Blunder Promotion & Regression Protection**: Ensure resolved blunders are auto-promoted via `defect:audit --auto-promote` with empirical proofs and regression test suite generation, protecting the codebase against regressions.
 - **Per-Task/Subgroup Commit, Push & Global Skill Sync**: Upon round convergence and sealing, execute release Conventional Commits (`feat(...)`, `fix(...)`), push to `origin/main` (`git push origin main`), and sync global skills via `bun scripts/sync-global.ts` to `~/.agents/skills/olt/`.
-- **Mandatory 3-to-5-minute supervisory schedule & ASCII DAG monitoring.** Enforces recurring 3-minute supervisory scheduler cycles (5-minute watchdog schedule, `schedule` cron `*/3 * * * *`, systemd timer, or `pulse.sh`) across rounds, and inspects live round DAG status and parallelization bottlenecks via `dag:view`.
+- **Mandatory 3-to-5-minute supervisory schedule & ASCII DAG monitoring.** Enforces recurring 3-minute supervisory scheduler cycles (5-minute watchdog schedule, `schedule` cron `*/3 * * * *`, systemd timer, or `pulse.sh`) across rounds, and inspects live round DAG status and parallelization bottlenecks via `dag`.
 - **Convergence, not a wave, ends a round.** Watch a round through read-only inspection —
   `run:status --detailed`, the critic's recorded decision, open findings, `branch:status` — until
   the completeness critic approves with zero open findings, every gate green, and no open branch.
@@ -130,7 +130,7 @@ the user, and this role stays empty of code.
   and re-dispatch a coordinator; never pick up the round's remaining work in your own thread.
 - **Multi-Coordinator Parallelization Scaling**: When waves have $> 5$ lanes or multi-stack features, deploy partitioned Tier 2 Domain Coordinators (`coordinator_<domain-slug>`) (max 5 lanes per coordinator) to manage parallel wave execution in isolated lanes rather than bottlenecking under a single coordinator.
 - **Active 4-Tier Hierarchical Parent-Child Supervision**: Tier 1 Orchestrator is deployed by Tier 0 Mind, and maintains direct top-down supervisory authority over Tier 2 Coordinators. Orchestrators must NEVER attempt to bypass the coordinator tier to spawn Tier 3 workers directly (except under Fast-Path Compaction for $N = 1$).
-- **Script-Backed Scheduler Diagnostics Engine**: Orchestrators execute deterministic script-backed diagnostics (`doctor`, `health`, `dag:view`, `report:unified`) before generating telemetry, embedding live CLI diagnostic receipts with SHA-256 cryptographic hashes and ASCII DAG badges into supervision briefs and round status exports.
+- **Script-Backed Scheduler Diagnostics Engine**: Orchestrators execute deterministic script-backed diagnostics (`doctor`, `health`, `dag`, `report`) before generating telemetry, embedding live CLI diagnostic receipts with SHA-256 cryptographic hashes and ASCII DAG badges into supervision briefs and round status exports.
 - **1:1 Isolated Task Dispatch & Anti-Batching Floor**: Supervise coordinator task graph compilation to ensure every planned task maintains strict 1:1 single-implementer and single-validator isolation with non-overlapping write scopes.
 - **Deterministic CLI Mechanic Gating (`task:check`)**: Mechanic verification is 100% anchored in deterministic CLI tooling (`task:check`), performing millisecond-level incremental typechecks (`tsc --noEmit`) and AST static invariant audits (0 any, 0 suppressions). The `mechanic-validator` role is permanently retired.
 - **In-Lease Micro-Cycles**: Repairs are executed in-lease by Implementers (`task:reject --in-lease`) bounded to 3 micro-cycles. The `repairer` role is permanently retired as a separate subagent.

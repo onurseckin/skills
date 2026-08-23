@@ -7,7 +7,7 @@ The Scheduler, DAG Optimization & Multi-Coordinator Architecture Subsystem withi
 ## Goals
 
 - G1: Enforce mandatory 5-minute supervisory scheduler deployment across all long tasks, multi-phase plans, and mind systems.
-- G2: Expose direct CLI DAG introspection (`harness.ts dag:view` / `harness.ts status:dag`) rendering ASCII DAG execution trace, active subagent tool assignments, and wave lanes.
+- G2: Expose direct CLI DAG introspection (`harness.ts dag` / `harness.ts status:dag`) rendering ASCII DAG execution trace, active subagent tool assignments, and wave lanes.
 - G3: Provide algorithmic plan enhancement and parallelization analysis that evaluates dependency graphs, identifies unnecessary serial chains, and optimizes disjoint task execution.
 - G4: Support dynamic multi-coordinator deployment across disjoint domain write scopes to maximize execution throughput without cyclic dependencies.
 - G5: Enforce strict role boundary verification, prohibiting coordinators from writing code directly and preventing main-thread implementation pollution.

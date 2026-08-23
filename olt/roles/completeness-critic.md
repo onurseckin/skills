@@ -11,14 +11,14 @@ may:
   - Verify direct end-to-end command execution, subsystem integration, and unified user-facing CLI surfaces across the full prompt scope
   - Verify quantitative repository invariants (0 TypeScript `any` types, 0 compiler/linter suppressions, 100% test pass rate, exact execution timings)
   - Record findings that block completion, or approve with an explicit residual-risk list
-  - Store all completeness proofs, reports, and residual risk findings strictly under `.capsules/<run>/evidence/`
+  - Store all completeness proofs, reports, and residual risk findings strictly under `.olt/capsules/<run>/evidence/`
   - Register and operate using standardized phase/run-bound agent naming (`completeness-critic_<run-or-wave-slug>`)
 must_not:
   - Violate 4-tier hierarchy: Completeness Critic (Tier 3) is deployed exclusively by Tier 2 Coordinators; MUST NOT attempt to spawn coordinators, write code, or claim implementation leases
   - Register or operate under an ambiguous, un-prefixed, or non-standard identifier
   - Consume implementer unit reports, confidence statements, or self-grading narratives
   - Review a run in which it acted as planner, implementer, repairer, or validator
-  - Store evidence outside the unified evidence directory `.capsules/<run>/evidence/`
+  - Store evidence outside the unified evidence directory `.olt/capsules/<run>/evidence/`
   - Rubber-stamp, issue superficial passes, or provide generic sign-offs ("looks good", "all pass", "lgtm") without comprehensive requirement evidence and direct end-to-end command verification
   - Approve without explicit Adversarial Gate Proofs (AGP) and counterfactual falsifiability verification proving run gates fail on defective states
   - Approve when any TypeScript `any` type (`: any`, `as any`, `<any>`, `Record<string, any>`) or compiler/linter suppression (`@ts-ignore`, `@ts-expect-error`, `eslint-disable`) is present across the diff

@@ -29,13 +29,13 @@ To solve this, the OLT harness enforces a strict, physically separated **Dual-La
 │                                           ▲                                             │
 │               Historical Retrieval        │   Automated Promotion                       │
 │               & Memory Queries            │   & Evidence Sealing                        │
-│               (memory:query)              │   (blunder:audit / run:complete)            │
+│               (memory:query)              │   (defect:audit / run:complete)            │
 │                                           ▼                                             │
 │                                                                                         │
-│  ========================= RUNTIME WORKSPACE: .capsules/<run-id>/ ===================== │
+│  ========================= RUNTIME WORKSPACE: .olt/capsules/<run-id>/ ===================== │
 │  (Gitignored • Inode-Bound POSIX flock • Forward-Secure SHA-256 Hash Chain)              │
 │                                                                                         │
-│  .capsules/<run-id>/                                                                    │
+│  .olt/capsules/<run-id>/                                                                    │
 │  ├── prompt.md                # Byte-exact raw prompt (read-only mode 0444)             │
 │  ├── manifest.json            # Capture assurance, SHA-256 binding, pinned runtime     │
 │  ├── events.jsonl             # Canonical append-only cryptographic event hash chain    │
@@ -73,31 +73,31 @@ The `olt/` directory lives at the root of the repository and is **tracked direct
    The immutable archive of all finished tasks across all runs. Each entry records the task ID, prompt line mappings, completing commit SHA, completion timestamp, and cryptographic proof hashes.
 
 4. **`olt/defects.jsonl` & `olt/completed-blunders.jsonl`**:
-   Active blunders, anti-patterns, and reasoning defects detected during agent runs are logged to `defects.jsonl`. When a blunder is verified as resolved (`blunder:audit --auto-promote`), it is permanently promoted to `completed-blunders.jsonl` alongside regression test assertions. This ensures **permanent regression immunity** across all future runs.
+   Active blunders, anti-patterns, and reasoning defects detected during agent runs are logged to `defects.jsonl`. When a blunder is verified as resolved (`defect:audit --auto-promote`), it is permanently promoted to `completed-blunders.jsonl` alongside regression test assertions. This ensures **permanent regression immunity** across all future runs.
 
 5. **`olt/telemetry.jsonl`**:
    Longitudinal telemetry tracking Brent Work/Span metrics ($W, S, P = \lceil W / S \rceil$), subagent token consumption, tool call distributions, and behavioral efficiency scores over time.
 
 ---
 
-## 📦 Layer 2: The Runtime Capsule Layer (`.capsules/<run-id>/`)
+## 📦 Layer 2: The Runtime Capsule Layer (`.olt/capsules/<run-id>/`)
 
 A **Run Capsule** is an isolated, zero-dependency, crash-resilient directory created for an individual task or feature execution. By default, capsules are stored under:
 
 ```text
-<repository-root>/.capsules/<run-id>/
+<repository-root>/.olt/capsules/<run-id>/
 ```
 
 Capsules are **gitignored**. They maintain the real-time execution state machine, cryptographic event log, file write leases, and command receipts.
 
-If an AI agent crashes mid-task, hits a token limit, or is swapped for a different model host (e.g., transitioning from Claude Code to Antigravity), the replacement agent simply reads `.capsules/<run-id>/` and resumes execution with **100% state fidelity**.
+If an AI agent crashes mid-task, hits a token limit, or is swapped for a different model host (e.g., transitioning from Claude Code to Antigravity), the replacement agent simply reads `.olt/capsules/<run-id>/` and resumes execution with **100% state fidelity**.
 
 ---
 
 ## 🗂️ Complete Capsule Directory Anatomy
 
 ```text
-.capsules/<run-id>/
+.olt/capsules/<run-id>/
 ├── prompt.md             # Immutable original prompt bytes (read-only, mode 0444)
 ├── manifest.json         # Capture assurance, prompt SHA-256, runtime pin, Bun version
 ├── README.md             # Generated layout documentation for the capsule
@@ -126,7 +126,7 @@ If an AI agent crashes mid-task, hits a token limit, or is swapped for a differe
 ```
 
 > [!NOTE]
-> **Separation of Locks**: Lock files are not stored inside the capsule itself. They reside beside capsules in `.capsules/.locks/<run-id>/` because transient coordination state must never pollute durable state.
+> **Separation of Locks**: Lock files are not stored inside the capsule itself. They reside beside capsules in `.olt/capsules/.locks/<run-id>/` because transient coordination state must never pollute durable state.
 
 ---
 
@@ -294,18 +294,18 @@ To allow parallel subagents, supervisory coordinators, and background watchdog p
 
 ## 🪪 Run-Id Typing: An Identifier, Never a Path
 
-A frequent defect in multi-agent scripts is treating `<run-id>` carelessly as a filesystem path fragment. If an agent naively concatenates `.capsules/` onto an already prefixed argument, it generates corrupted nested paths like `.capsules/.capsules/my-feature`.
+A frequent defect in multi-agent scripts is treating `<run-id>` carelessly as a filesystem path fragment. If an agent naively concatenates `.olt/capsules/` onto an already prefixed argument, it generates corrupted nested paths like `.olt/capsules/.olt/capsules/my-feature`.
 
 The harness enforces strict run-ID normalization (`store/run-id.ts`'s `normalizeRunId`):
 
-1. **Prefix Stripping**: Strips at most one leading `.capsules/` prefix.
+1. **Prefix Stripping**: Strips at most one leading `.olt/capsules/` prefix.
 2. **Path Separator Rejection**: Rejects any string still containing a path separator (`/` or `\`) after prefix removal.
 3. **Regex Enforcement**: Enforces `RUN_ID_PATTERN` (`^[a-zA-Z0-9._-]{1,128}$`).
 
 ### CLI Command Conventions:
 
 - **`plan:init` & `orchestrate`**: Take a **bare run ID** (`--run auth-v2`).
-- **All other CLI commands** (`task:claim`, `task:submit`, `queue:wave`, `run:complete`): Take the **full capsule path** (`--run .capsules/auth-v2`).
+- **All other CLI commands** (`task:claim`, `task:submit`, `queue:wave`, `run:complete`): Take the **full capsule path** (`--run .olt/capsules/auth-v2`).
 
 ---
 
@@ -322,7 +322,7 @@ Every command emits a compact, high-signal **Markdown brief** ($\le 30$ lines):
 - **Duration**: 20 minutes (expires: 2026-08-23T03:25:00Z)
 - **Assigned Write Scope**: `src/auth/`
 - **Target Files**: `src/auth/token.ts:L45-L89`
-- **Next Command**: bun harness.ts task:submit --run .capsules/auth-v2 --task task-auth-token --token qSGsImlAsT8wBTk2FyR7eeAKf5u0CEGspRRXGgtNgQo
+- **Next Command**: bun harness.ts task:submit --run .olt/capsules/auth-v2 --task task-auth-token --token qSGsImlAsT8wBTk2FyR7eeAKf5u0CEGspRRXGgtNgQo
 ```
 
 Subagents parse these concise Markdown briefs without token bloat or schema serialization failures.
