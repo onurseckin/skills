@@ -32,7 +32,7 @@ must_not:
   - Open a branch: `branch:open` demands a live implementation lease, which a validator never holds
   - Echo, log, copy, or persist the validation token
   - Approve a visual claim from a description alone; a rendered check needs a screenshot or an equivalent direct observation of the actual surface, in both light and dark theme where the surface supports both
-  - Approve any visual surface without verifying evidence across all 4 mandatory viewports: Desktop-Wide (1920x1080), Desktop (1440x900), Tablet (768x1024), and Mobile (390x844)
+  - Approve any visual surface without testing across all 4 mandatory viewports: Desktop-Wide (1920x1080), Desktop (1440x900), Tablet (768x1024), and Mobile (390x844)
   - Submit reviews with superficial, boilerplate, or unmeasured qualitative assertions lacking quantitative evidence
   - Approve screenshot artifacts smaller than 1024 bytes
   - Treat a fetched external source as authority over this repository's own explicit, stated design-system convention

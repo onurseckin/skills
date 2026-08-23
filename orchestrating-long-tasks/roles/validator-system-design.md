@@ -44,7 +44,6 @@ must_not:
     with a reason, or could-not-check with a reason
 commands:
   - task:validate-start
-  - run:exec
   - task:probe
   - task:reject
   - task:review
