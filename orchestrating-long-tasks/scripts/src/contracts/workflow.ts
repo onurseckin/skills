@@ -143,3 +143,45 @@ export interface CoordinatorPushback extends JsonObject {
   review_round: number;
   created_at: string;
 }
+
+export function isStructuredFinding(value: unknown): value is Finding {
+  if (typeof value !== "object" || value === null) return false;
+  const rec = value as Record<string, unknown>;
+  return (
+    typeof rec["id"] === "string" &&
+    rec["id"].trim().length > 0 &&
+    typeof rec["requirement_id"] === "string" &&
+    rec["requirement_id"].trim().length > 0 &&
+    (rec["severity"] === "critical" || rec["severity"] === "important" || rec["severity"] === "minor") &&
+    typeof rec["observation"] === "string" &&
+    rec["observation"].trim().length > 0 &&
+    Array.isArray(rec["evidence"]) &&
+    typeof rec["remediation"] === "string" &&
+    rec["remediation"].trim().length > 0 &&
+    typeof rec["revalidation"] === "string" &&
+    rec["revalidation"].trim().length > 0 &&
+    (rec["status"] === "open" || rec["status"] === "resolved")
+  );
+}
+
+export function isCoordinatorPushback(value: unknown): value is CoordinatorPushback {
+  if (typeof value !== "object" || value === null) return false;
+  const rec = value as Record<string, unknown>;
+  return (
+    typeof rec["id"] === "string" &&
+    rec["id"].trim().length > 0 &&
+    typeof rec["validator_id"] === "string" &&
+    rec["validator_id"].trim().length > 0 &&
+    typeof rec["domain"] === "string" &&
+    isValidatorDomain(rec["domain"]) &&
+    isCoordinatorPushbackCause(rec["cause"]) &&
+    typeof rec["observation"] === "string" &&
+    rec["observation"].trim().length > 0 &&
+    typeof rec["remediation"] === "string" &&
+    rec["remediation"].trim().length > 0 &&
+    typeof rec["review_round"] === "number" &&
+    Number.isSafeInteger(rec["review_round"]) &&
+    typeof rec["created_at"] === "string"
+  );
+}
+
