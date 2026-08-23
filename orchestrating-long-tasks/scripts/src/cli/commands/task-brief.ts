@@ -128,16 +128,19 @@ export async function taskBriefCommand(flags: Flags): Promise<Record<string, unk
   const loaded = loadRun(run);
   const state = loaded.state;
   const wf = workflowPort(run).read();
-  const task = wf.tasks[taskId] ?? (state.tasks as Record<string, TaskRecord> | undefined)?.[taskId];
+  const task =
+    wf.tasks[taskId] !== undefined
+      ? wf.tasks[taskId]
+      : (state.tasks as Record<string, TaskRecord> | undefined)?.[taskId];
   if (!task) {
     throw new HarnessError("INVALID_ARGUMENT", `unknown task ${taskId}`);
   }
 
   const ledger = readWorktreeLedger(state);
-  const assigned = ledger ? findAssignedWorktree(ledger, taskId) : null;
-  const worktreePath = assigned?.worktreePath;
+  const assigned = ledger !== null ? findAssignedWorktree(ledger, taskId) : null;
+  const worktreePath = assigned !== null ? assigned.worktreePath : undefined;
 
-  const writeScope = task.write_scope ?? [];
+  const writeScope = task.write_scope !== undefined ? task.write_scope : [];
   const explicitTargets = Array.isArray(task.target_files)
     ? (task.target_files.filter((item): item is string => typeof item === "string") as readonly string[])
     : undefined;
@@ -158,13 +161,18 @@ export async function taskBriefCommand(flags: Flags): Promise<Record<string, unk
 
   const nextSteps = deriveNextSteps(run, taskId, task.status, role, agent);
 
+  const resolvedRole =
+    role !== undefined ? role : (typeof task.role === "string" ? task.role : undefined);
+  const resolvedAgent =
+    agent !== undefined ? agent : (typeof task.agent === "string" ? task.agent : undefined);
+
   const briefing: TaskBriefParams = {
     taskId,
     label: typeof task.label === "string" ? task.label : undefined,
-    role: role ?? (typeof task.role === "string" ? task.role : undefined),
-    agent: agent ?? (typeof task.agent === "string" ? task.agent : undefined),
+    role: resolvedRole,
+    agent: resolvedAgent,
     writeScope,
-    worktreePath: worktreePath ?? undefined,
+    worktreePath: worktreePath !== undefined ? worktreePath : undefined,
     targetFiles: targetFiles.length > 0 ? targetFiles : undefined,
     recommendedCommands: recommendedCommands.length > 0 ? recommendedCommands : undefined,
     gateCommands: gateCommands.length > 0 ? gateCommands : undefined,
@@ -194,13 +202,14 @@ export async function agentBriefCommand(flags: Flags): Promise<Record<string, un
   let writeScope: readonly string[] | undefined;
   let recommendedCommands: readonly string[] | undefined;
 
-  if (grant.parent_task_id) {
+  if (grant.parent_task_id !== null && grant.parent_task_id !== undefined) {
     const wf = workflowPort(run).read();
     const parentTask =
-      wf.tasks[grant.parent_task_id] ??
-      (state.tasks as Record<string, TaskRecord> | undefined)?.[grant.parent_task_id];
+      wf.tasks[grant.parent_task_id] !== undefined
+        ? wf.tasks[grant.parent_task_id]
+        : (state.tasks as Record<string, TaskRecord> | undefined)?.[grant.parent_task_id];
     if (parentTask) {
-      writeScope = parentTask.write_scope ?? [];
+      writeScope = parentTask.write_scope !== undefined ? parentTask.write_scope : [];
       const explicitTargets = Array.isArray(parentTask.target_files)
         ? (parentTask.target_files.filter(
             (item): item is string => typeof item === "string",
@@ -213,7 +222,10 @@ export async function agentBriefCommand(flags: Flags): Promise<Record<string, un
     }
   }
 
-  const toolsGranted = grant.tools_granted?.value?.map((t) => t.name) ?? [];
+  const toolsGranted =
+    grant.tools_granted?.value !== undefined
+      ? grant.tools_granted.value.map((t) => t.name)
+      : [];
 
   const briefing: AgentBriefParams = {
     agentId: grant.id,
@@ -226,7 +238,7 @@ export async function agentBriefCommand(flags: Flags): Promise<Record<string, un
     tools: toolsGranted.length > 0 ? toolsGranted : undefined,
     writeScope,
     recommendedCommands:
-      recommendedCommands && recommendedCommands.length > 0 ? recommendedCommands : undefined,
+      recommendedCommands !== undefined && recommendedCommands.length > 0 ? recommendedCommands : undefined,
   };
 
   const markdown = formatAgentBrief(briefing);

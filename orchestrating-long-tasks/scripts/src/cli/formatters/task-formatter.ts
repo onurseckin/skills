@@ -13,59 +13,62 @@ import {
 
 export interface TaskBriefParams {
   taskId: string;
-  label?: string;
-  role?: string;
-  agent?: string;
+  label?: string | undefined;
+  role?: string | undefined;
+  agent?: string | undefined;
   writeScope: readonly string[];
-  worktreePath?: string;
-  targetFiles?: readonly string[];
-  recommendedCommands?: readonly string[];
-  gateCommands?: readonly string[];
-  acceptanceCriteria?: readonly string[];
-  nextSteps?: readonly string[];
+  worktreePath?: string | undefined;
+  targetFiles?: readonly string[] | undefined;
+  recommendedCommands?: readonly string[] | undefined;
+  gateCommands?: readonly string[] | undefined;
+  acceptanceCriteria?: readonly string[] | undefined;
+  nextSteps?: readonly string[] | undefined;
 }
 
 export function formatTaskBrief(params: TaskBriefParams): string {
-  const scopeStr = params.writeScope.map((s) => `\`${s}\``).join(", ") || "`none`";
+  const scopeStr =
+    params.writeScope.length > 0
+      ? params.writeScope.map((s) => `\`${s}\``).join(", ")
+      : "`none`";
   const mdLines: string[] = [
     `### 🌌 Zero-Exploration Briefing: ${params.taskId}`,
   ];
-  if (params.label) {
+  if (params.label !== undefined && params.label.trim() !== "") {
     mdLines.push(`- **Label**: ${params.label}`);
   }
-  if (params.role || params.agent) {
-    const rolePart = params.role ? `Role: \`${params.role}\`` : "";
-    const agentPart = params.agent ? `Agent: \`${params.agent}\`` : "";
-    const combined = [rolePart, agentPart].filter(Boolean).join(" · ");
+  if (params.role !== undefined || params.agent !== undefined) {
+    const rolePart = params.role !== undefined ? `Role: \`${params.role}\`` : "";
+    const agentPart = params.agent !== undefined ? `Agent: \`${params.agent}\`` : "";
+    const combined = [rolePart, agentPart].filter((s) => s.length > 0).join(" · ");
     mdLines.push(`- **Assignment**: ${combined}`);
   }
   mdLines.push(`- **Assigned Write Scope**: ${scopeStr}`);
-  if (params.worktreePath) {
+  if (params.worktreePath !== undefined) {
     mdLines.push(`- **Isolated Worktree**: \`${params.worktreePath}\``);
   }
-  if (params.targetFiles && params.targetFiles.length > 0) {
+  if (params.targetFiles !== undefined && params.targetFiles.length > 0) {
     const filesStr = params.targetFiles.map((f) => `\`${f}\``).join(", ");
     mdLines.push(`- **Suggested Target Files**: ${filesStr}`);
   }
-  if (params.recommendedCommands && params.recommendedCommands.length > 0) {
+  if (params.recommendedCommands !== undefined && params.recommendedCommands.length > 0) {
     mdLines.push(`- **Recommended Commands**:`);
     for (const cmd of params.recommendedCommands) {
       mdLines.push(`  - \`${cmd}\``);
     }
   }
-  if (params.gateCommands && params.gateCommands.length > 0) {
+  if (params.gateCommands !== undefined && params.gateCommands.length > 0) {
     mdLines.push(`- **Gate Commands**:`);
     for (const cmd of params.gateCommands) {
       mdLines.push(`  - \`${cmd}\``);
     }
   }
-  if (params.acceptanceCriteria && params.acceptanceCriteria.length > 0) {
+  if (params.acceptanceCriteria !== undefined && params.acceptanceCriteria.length > 0) {
     mdLines.push(`- **Acceptance Criteria**:`);
     for (const ac of params.acceptanceCriteria) {
       mdLines.push(`  - ${ac}`);
     }
   }
-  if (params.nextSteps && params.nextSteps.length > 0) {
+  if (params.nextSteps !== undefined && params.nextSteps.length > 0) {
     mdLines.push(...nextActionsBlock(params.nextSteps));
   }
   return enforceLineLimit(mdLines.join("\n"), 30);
@@ -77,10 +80,10 @@ export interface TaskClaimParams {
   token: string;
   durationMinutes: number;
   writeScope: readonly string[];
-  packetPath?: string;
+  packetPath?: string | undefined;
   worktreePath?: string | undefined;
-  targetFiles?: readonly string[];
-  recommendedCommands?: readonly string[];
+  targetFiles?: readonly string[] | undefined;
+  recommendedCommands?: readonly string[] | undefined;
 }
 
 export function formatTaskClaimBrief(params: TaskClaimParams): string {
@@ -161,11 +164,11 @@ export interface ValidationStartParams {
   validator: string;
   token: string;
   gates: readonly string[];
-  packetPath?: string;
-  minProbes?: number;
-  targetFiles?: readonly string[];
-  recommendedCommands?: readonly string[];
-  writeScope?: readonly string[];
+  packetPath?: string | undefined;
+  minProbes?: number | undefined;
+  targetFiles?: readonly string[] | undefined;
+  recommendedCommands?: readonly string[] | undefined;
+  writeScope?: readonly string[] | undefined;
 }
 
 export function formatValidationStartBrief(params: ValidationStartParams): string {

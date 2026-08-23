@@ -417,6 +417,28 @@ bun harness.ts queue:pop --run .capsules/<run-id> --agent worker-1 --lease-secon
 
 ## task
 
+### `task:brief`
+
+Generate a zero-exploration 1-shot briefing for a task.
+
+Produces a structured briefing containing assigned write scope, target files, gate commands, recommended file-scoped test commands, acceptance criteria, and next actions.
+
+- **Aliases**: none
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--run` | string | yes | no | - | Capsule run root. |
+| `--task` | string | yes | no | - | Task id to brief. |
+| `--agent` | string | no | no | - | Agent id assigned to or briefing for the task. |
+| `--role` | string | no | no | - | Role under which the task is being briefed. |
+
+```bash
+bun harness.ts task:brief --run .capsules/<run-id> --task task-1
+bun harness.ts task:brief --run .capsules/<run-id> --task task-1 --agent worker-1 --role implementer
+```
+
 ### `task:claim`
 
 Lease a specific ready task under a declared role.
@@ -1518,6 +1540,25 @@ bun harness.ts branch:status --run .capsules/<run-id> --task task-1 --all
 ```
 
 ## agent
+
+### `agent:brief`
+
+Generate a zero-exploration 1-shot briefing for a dispatched agent.
+
+Produces a structured briefing for the agent with role, parent lineage, model/thinking configuration, tools, and parent task write scope and test commands if attached to a task.
+
+- **Aliases**: none
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--run` | string | yes | no | - | Capsule run root. |
+| `--agent` | string | yes | no | - | Agent id holding the grant. |
+
+```bash
+bun harness.ts agent:brief --run .capsules/<run-id> --agent worker-1
+```
 
 ### `agent:register`
 

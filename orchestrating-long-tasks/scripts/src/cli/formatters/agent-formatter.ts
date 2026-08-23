@@ -13,38 +13,49 @@ import {
 export interface AgentBriefParams {
   agentId: string;
   role: string;
-  parentAgentId?: string | null;
-  parentTaskId?: string | null;
-  model?: string;
-  thinkingLevel?: string;
-  tools?: readonly string[];
-  writeScope?: readonly string[];
-  recommendedCommands?: readonly string[];
+  parentAgentId?: string | null | undefined;
+  parentTaskId?: string | null | undefined;
+  model?: string | undefined;
+  thinkingLevel?: string | undefined;
+  tools?: readonly string[] | undefined;
+  writeScope?: readonly string[] | undefined;
+  recommendedCommands?: readonly string[] | undefined;
 }
 
 export function formatAgentBrief(params: AgentBriefParams): string {
-  const parent = params.parentAgentId ? `\`${params.parentAgentId}\`` : "root";
-  const task = params.parentTaskId ? `task \`${params.parentTaskId}\`` : "no task";
+  const parent =
+    params.parentAgentId !== undefined && params.parentAgentId !== null
+      ? `\`${params.parentAgentId}\``
+      : "root";
+  const task =
+    params.parentTaskId !== undefined && params.parentTaskId !== null
+      ? `task \`${params.parentTaskId}\``
+      : "no task";
   const toolsStr =
-    params.tools && params.tools.length > 0
+    params.tools !== undefined && params.tools.length > 0
       ? params.tools.map((t) => `\`${t}\``).join(", ")
       : "none";
   const scopeStr =
-    params.writeScope && params.writeScope.length > 0
+    params.writeScope !== undefined && params.writeScope.length > 0
       ? params.writeScope.map((s) => `\`${s}\``).join(", ")
       : undefined;
+
+  const modelPart =
+    params.model !== undefined ? `\`${params.model}\`` : "unknown";
+  const thinkingPart =
+    params.thinkingLevel !== undefined ? `\`${params.thinkingLevel}\`` : "unknown";
 
   const mdLines: string[] = [
     `### 🌌 Zero-Exploration Briefing: Agent ${params.agentId} (${params.role})`,
     `- **Under**: ${parent} / ${task}`,
-    `- **Model**: \`${params.model ?? "unknown"}\` · **Thinking**: \`${params.thinkingLevel ?? "unknown"}\``,
+    `- **Model**: ${modelPart} · **Thinking**: ${thinkingPart}`,
     `- **Tools Granted**: ${toolsStr}`,
   ];
 
-  if (scopeStr) {
+  if (scopeStr !== undefined) {
     mdLines.push(`- **Assigned Write Scope**: ${scopeStr}`);
   }
-  if (params.recommendedCommands && params.recommendedCommands.length > 0) {
+  if (params.recommendedCommands !== undefined && params.recommendedCommands.length > 0) {
     mdLines.push(`- **Recommended Commands**:`);
     for (const cmd of params.recommendedCommands) {
       mdLines.push(`  - \`${cmd}\``);
@@ -52,7 +63,7 @@ export function formatAgentBrief(params: AgentBriefParams): string {
   }
 
   const nextActions: NextActionItem[] = [];
-  if (params.parentTaskId) {
+  if (params.parentTaskId !== undefined && params.parentTaskId !== null) {
     nextActions.push({
       command: `bun harness.ts task:brief --task ${params.parentTaskId} --agent ${params.agentId} --role ${params.role}`,
       role: params.role,
