@@ -1,14 +1,20 @@
 # Lefthook Git Hooks Configuration
 #
-# Commit is unblocked (zero checks, no typecheck, no lint) so work can be committed instantly.
-# Push is the strict boundary where full validation occurs:
-# typecheck, local skill synchronization, and full test coverage.
+# Pre-commit runs fast typechecks, lint, and format checks.
+# Pre-push runs only the local skill synchronization.
+# Unit tests and build are handled during development by implementers and critics.
+
+pre-commit:
+  parallel: true
+  commands:
+    typecheck:
+      run: bun run typecheck
+    lint:
+      run: bun run lint
+    format-check:
+      run: bun run format:check
 
 pre-push:
   commands:
     sync-local:
       run: bun run sync:local
-    typecheck:
-      run: bun run typecheck
-    test-coverage:
-      run: bun test --timeout 30000 --parallel --no-isolate tests/unit
