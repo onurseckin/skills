@@ -108,8 +108,6 @@ import {
   type MindProactiveBandwidthActivity,
 } from "./strategic-purpose.ts";
 import {
-  CANONICAL_COGNITIVE_MEMORY_FILE,
-  TODO_COGNITIVE_MEMORY_FILE,
   LEGACY_COGNITIVE_MEMORY_FILE,
   DEFAULT_COGNITIVE_MEMORY_FILE,
   resolveCanonicalCognitiveMemoryPath,
@@ -151,14 +149,11 @@ import {
   type AutonomousDualIntakeResult,
 } from "./smart-task-manager.ts";
 import {
-  CANONICAL_TASK_QUEUE_FILE,
-  TODO_TASK_QUEUE_FILE,
   LEGACY_TASK_QUEUE_FILE,
   LEGACY_LOWER_TASK_QUEUE_FILE,
   DEFAULT_TASK_QUEUE_FILE,
   resolveCanonicalTaskQueuePath,
   resolveTaskQueuePath,
-  migrateTaskQueue,
   readTaskQueue,
   writeTaskQueue,
   clearTaskQueue,
@@ -283,8 +278,6 @@ export {
 
 // Re-export persistent cognitive memory and smart task manager
 export {
-  CANONICAL_COGNITIVE_MEMORY_FILE,
-  TODO_COGNITIVE_MEMORY_FILE,
   LEGACY_COGNITIVE_MEMORY_FILE,
   DEFAULT_COGNITIVE_MEMORY_FILE,
   resolveCanonicalCognitiveMemoryPath,
@@ -328,14 +321,11 @@ export {
 
 // Re-export canonical task queue facilities
 export {
-  CANONICAL_TASK_QUEUE_FILE,
-  TODO_TASK_QUEUE_FILE,
   LEGACY_TASK_QUEUE_FILE,
   LEGACY_LOWER_TASK_QUEUE_FILE,
   DEFAULT_TASK_QUEUE_FILE,
   resolveCanonicalTaskQueuePath,
   resolveTaskQueuePath,
-  migrateTaskQueue,
   readTaskQueue,
   writeTaskQueue,
   clearTaskQueue,

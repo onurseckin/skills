@@ -125,11 +125,11 @@ describe("RBAC Engine & Hybrid Deny-List", () => {
         can_execute_shell: true,
         spawned_at: new Date().toISOString(),
       };
-      
+
       const result = verifyCommandAuthorization(coordinatorActor, "bun test", {
-        test_runner: { targeted_pattern: "bun test <path>" }
+        test_runner: { targeted_pattern: "bun test <path>" },
       } as RepoPolicy);
-      
+
       expect(result.authorized).toBe(false);
       expect(result.error_code).toBe("ROLE_BOUNDARY_VIOLATION");
     });

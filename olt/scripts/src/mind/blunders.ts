@@ -672,107 +672,31 @@ export function resolveBlunder(
   };
 }
 
-export const CANONICAL_BLUNDERS_FILE = "olt/defects.jsonl";
-export const LEGACY_MIND_BLUNDERS_FILE = ".capsules/mind/queue/blunders.jsonl";
-export const TODO_BLUNDERS_FILE = ".capsules/todo/blunders.jsonl";
 export const LEGACY_BLUNDERS_FILE = ".capsules/blunders.jsonl";
 export const LEGACY_UPPER_BLUNDERS_FILE = ".capsules/BLUNDERS.jsonl";
-export const CANONICAL_COMPLETED_BLUNDERS_FILE = "olt/completed-defects.jsonl";
-export const LEGACY_MIND_COMPLETED_BLUNDERS_FILE = ".capsules/mind/queue/completed-blunders.jsonl";
-export const TODO_COMPLETED_BLUNDERS_FILE = ".capsules/todo/completed-blunders.jsonl";
 export const LEGACY_COMPLETED_BLUNDERS_FILE = ".capsules/COMPLETED_BLUNDERS.jsonl";
 export const LEGACY_LOWER_COMPLETED_BLUNDERS_FILE = ".capsules/completed-blunders.jsonl";
 export const DEFAULT_COMPLETED_BLUNDERS_FILE = "olt/completed-defects.jsonl";
 
 export function resolveCanonicalBlunderLogPath(customRoot?: string, useTodo = false): string {
-  const root = customRoot && customRoot.trim() ? resolve(customRoot.trim()) : process.cwd();
-  if (useTodo) return join(root, TODO_BLUNDERS_FILE);
-  const canonical = join(root, CANONICAL_BLUNDERS_FILE);
-  if (existsSync(canonical)) return canonical;
-  const legacyMind = join(root, LEGACY_MIND_BLUNDERS_FILE);
-  if (existsSync(legacyMind)) return legacyMind;
-  return canonical;
+  return require("path").join(customRoot || process.cwd(), ".olt", "defects.jsonl");
 }
 
 export function resolveBlunderLogPath(customPath?: string): string {
-  if (customPath && customPath.trim()) {
-    const trimmed = customPath.trim();
-    return resolve(trimmed);
-  }
-  const cwd = process.cwd();
-  const candidates = [cwd, join(cwd, "..")];
-
-  for (const root of candidates) {
-    const canonical = join(root, CANONICAL_BLUNDERS_FILE);
-    if (existsSync(canonical)) return canonical;
-
-    const legacyMind = join(root, LEGACY_MIND_BLUNDERS_FILE);
-    if (existsSync(legacyMind)) return legacyMind;
-
-    const todo = join(root, TODO_BLUNDERS_FILE);
-    if (existsSync(todo)) return todo;
-
-    const legacy = join(root, LEGACY_BLUNDERS_FILE);
-    if (existsSync(legacy)) return legacy;
-
-    const legacyUpper = join(root, LEGACY_UPPER_BLUNDERS_FILE);
-    if (existsSync(legacyUpper)) return legacyUpper;
-  }
-
-  if (existsSync(join(cwd, "olt"))) {
-    return join(cwd, CANONICAL_BLUNDERS_FILE);
-  }
-  if (existsSync(join(cwd, ".capsules"))) {
-    return join(cwd, CANONICAL_BLUNDERS_FILE);
-  }
-  return resolve(cwd, CANONICAL_BLUNDERS_FILE);
+  if (customPath && customPath.trim()) return require("path").resolve(customPath.trim());
+  return require("path").join(process.cwd(), ".olt", "defects.jsonl");
 }
 
 export function resolveCanonicalCompletedBlundersPath(
   customRoot?: string,
   useTodo = false,
 ): string {
-  const root = customRoot && customRoot.trim() ? resolve(customRoot.trim()) : process.cwd();
-  if (useTodo) return join(root, TODO_COMPLETED_BLUNDERS_FILE);
-  const canonical = join(root, CANONICAL_COMPLETED_BLUNDERS_FILE);
-  if (existsSync(canonical)) return canonical;
-  const legacyMind = join(root, LEGACY_MIND_COMPLETED_BLUNDERS_FILE);
-  if (existsSync(legacyMind)) return legacyMind;
-  return canonical;
+  return require("path").join(customRoot || process.cwd(), ".olt", "completed-defects.jsonl");
 }
 
 export function resolveCompletedBlundersPath(customPath?: string): string {
-  if (customPath && customPath.trim()) {
-    const trimmed = customPath.trim();
-    return resolve(trimmed);
-  }
-  const cwd = process.cwd();
-  const candidates = [cwd, join(cwd, "..")];
-
-  for (const root of candidates) {
-    const canonical = join(root, CANONICAL_COMPLETED_BLUNDERS_FILE);
-    if (existsSync(canonical)) return canonical;
-
-    const legacyMind = join(root, LEGACY_MIND_COMPLETED_BLUNDERS_FILE);
-    if (existsSync(legacyMind)) return legacyMind;
-
-    const todo = join(root, TODO_COMPLETED_BLUNDERS_FILE);
-    if (existsSync(todo)) return todo;
-
-    const legacy = join(root, LEGACY_COMPLETED_BLUNDERS_FILE);
-    if (existsSync(legacy)) return legacy;
-
-    const legacyLower = join(root, LEGACY_LOWER_COMPLETED_BLUNDERS_FILE);
-    if (existsSync(legacyLower)) return legacyLower;
-  }
-
-  if (existsSync(join(cwd, "olt"))) {
-    return join(cwd, CANONICAL_COMPLETED_BLUNDERS_FILE);
-  }
-  if (existsSync(join(cwd, ".capsules"))) {
-    return join(cwd, CANONICAL_COMPLETED_BLUNDERS_FILE);
-  }
-  return resolve(cwd, CANONICAL_COMPLETED_BLUNDERS_FILE);
+  if (customPath && customPath.trim()) return require("path").resolve(customPath.trim());
+  return require("path").join(process.cwd(), ".olt", "completed-defects.jsonl");
 }
 
 export function readCompletedBlundersLog(customPath?: string): BlunderEntry[] {

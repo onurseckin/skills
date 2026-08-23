@@ -50,217 +50,60 @@ export interface RecordCompletedTaskOptions {
   readonly updateBlunders?: boolean | undefined;
 }
 
-export const CANONICAL_COMPLETED_TASKS_FILE = "olt/completed-tasks.jsonl";
-export const LEGACY_MIND_COMPLETED_TASKS_FILE = ".capsules/mind/queue/completed-tasks.jsonl";
-export const TODO_COMPLETED_TASKS_FILE = ".capsules/todo/completed-tasks.jsonl";
 export const LEGACY_COMPLETED_TASKS_FILE = ".capsules/COMPLETED_TASKS.jsonl";
 export const LEGACY_LOWER_COMPLETED_TASKS_FILE = ".capsules/completed-tasks.jsonl";
 export const DEFAULT_COMPLETED_TASKS_FILE = "olt/completed-tasks.jsonl";
 
-export const CANONICAL_BLUNDERS_FILE = "olt/defects.jsonl";
 export const LEGACY_MIND_BLUNDERS_FILE = ".capsules/mind/queue/blunders.jsonl";
-export const TODO_BLUNDERS_FILE = ".capsules/todo/blunders.jsonl";
 export const LEGACY_BLUNDERS_FILE = ".capsules/blunders.jsonl";
 export const LEGACY_UPPER_BLUNDERS_FILE = ".capsules/BLUNDERS.jsonl";
 export const DEFAULT_BLUNDERS_FILE = "olt/defects.jsonl";
 
-export const CANONICAL_COMPLETED_BLUNDERS_FILE = "olt/completed-defects.jsonl";
 export const LEGACY_MIND_COMPLETED_BLUNDERS_FILE = ".capsules/mind/queue/completed-blunders.jsonl";
-export const TODO_COMPLETED_BLUNDERS_FILE = ".capsules/todo/completed-blunders.jsonl";
 export const LEGACY_COMPLETED_BLUNDERS_FILE = ".capsules/COMPLETED_BLUNDERS.jsonl";
 export const LEGACY_LOWER_COMPLETED_BLUNDERS_FILE = ".capsules/completed-blunders.jsonl";
 
-export const CANONICAL_OBSERVATIONS_FILE = "olt/telemetry.jsonl";
 export const LEGACY_MIND_OBSERVATIONS_FILE = ".capsules/mind/queue/observations.jsonl";
-export const TODO_OBSERVATIONS_FILE = ".capsules/todo/observations.jsonl";
 export const LEGACY_OBSERVATIONS_FILE = ".capsules/OBSERVATIONS.jsonl";
 export const LEGACY_LOWER_OBSERVATIONS_FILE = ".capsules/observations.jsonl";
 
 export function resolveCanonicalCompletedTasksPath(customRoot?: string, useTodo = false): string {
-  const root = customRoot && customRoot.trim() ? resolve(customRoot.trim()) : process.cwd();
-  if (useTodo) return join(root, TODO_COMPLETED_TASKS_FILE);
-  const canonical = join(root, CANONICAL_COMPLETED_TASKS_FILE);
-  if (existsSync(canonical)) return canonical;
-  const legacyMind = join(root, LEGACY_MIND_COMPLETED_TASKS_FILE);
-  if (existsSync(legacyMind)) return legacyMind;
-  return canonical;
+  return require("path").join(customRoot || process.cwd(), ".olt", "completed-tasks.jsonl");
 }
 
 export function resolveCompletedTasksLedgerPath(customPath?: string): string {
-  if (customPath && customPath.trim()) {
-    const trimmed = customPath.trim();
-    return resolve(trimmed);
-  }
-  const cwd = process.cwd();
-  const candidates = [cwd, dirname(cwd)];
-
-  for (const root of candidates) {
-    const canonical = join(root, CANONICAL_COMPLETED_TASKS_FILE);
-    if (existsSync(canonical)) return canonical;
-
-    const legacyMind = join(root, LEGACY_MIND_COMPLETED_TASKS_FILE);
-    if (existsSync(legacyMind)) return legacyMind;
-
-    const todo = join(root, TODO_COMPLETED_TASKS_FILE);
-    if (existsSync(todo)) return todo;
-
-    const legacy = join(root, LEGACY_COMPLETED_TASKS_FILE);
-    if (existsSync(legacy)) return legacy;
-
-    const legacyLower = join(root, LEGACY_LOWER_COMPLETED_TASKS_FILE);
-    if (existsSync(legacyLower)) return legacyLower;
-  }
-
-  if (existsSync(join(cwd, "olt"))) {
-    return join(cwd, CANONICAL_COMPLETED_TASKS_FILE);
-  }
-  if (existsSync(join(cwd, ".capsules"))) {
-    return join(cwd, CANONICAL_COMPLETED_TASKS_FILE);
-  }
-  const parentCapsules = join(dirname(cwd), ".capsules");
-  if (existsSync(parentCapsules)) {
-    return join(dirname(cwd), CANONICAL_COMPLETED_TASKS_FILE);
-  }
-  return resolve(cwd, CANONICAL_COMPLETED_TASKS_FILE);
+  if (customPath && customPath.trim()) return require("path").resolve(customPath.trim());
+  return require("path").join(process.cwd(), ".olt", "completed-tasks.jsonl");
 }
 
 export function resolveCanonicalBlundersPath(customRoot?: string, useTodo = false): string {
-  const root = customRoot && customRoot.trim() ? resolve(customRoot.trim()) : process.cwd();
-  const relPath = useTodo ? TODO_BLUNDERS_FILE : CANONICAL_BLUNDERS_FILE;
-  return join(root, relPath);
+  return require("path").join(customRoot || process.cwd(), ".olt", "defects.jsonl");
 }
 
 export function resolveBlundersPath(customPath?: string): string {
-  if (customPath && customPath.trim()) {
-    const trimmed = customPath.trim();
-    return resolve(trimmed);
-  }
-  const cwd = process.cwd();
-  const candidates = [cwd, dirname(cwd)];
-
-  for (const root of candidates) {
-    const canonical = join(root, CANONICAL_BLUNDERS_FILE);
-    if (existsSync(canonical)) return canonical;
-
-    const todo = join(root, TODO_BLUNDERS_FILE);
-    if (existsSync(todo)) return todo;
-
-    const legacy = join(root, LEGACY_BLUNDERS_FILE);
-    if (existsSync(legacy)) return legacy;
-
-    const legacyUpper = join(root, LEGACY_UPPER_BLUNDERS_FILE);
-    if (existsSync(legacyUpper)) return legacyUpper;
-  }
-
-  if (existsSync(join(cwd, ".capsules"))) {
-    return join(cwd, DEFAULT_BLUNDERS_FILE);
-  }
-  const parentCapsules = join(dirname(cwd), ".capsules");
-  if (existsSync(parentCapsules)) {
-    return join(dirname(cwd), DEFAULT_BLUNDERS_FILE);
-  }
-  return resolve(cwd, DEFAULT_BLUNDERS_FILE);
+  if (customPath && customPath.trim()) return require("path").resolve(customPath.trim());
+  return require("path").join(process.cwd(), ".olt", "defects.jsonl");
 }
 
 export function resolveCanonicalCompletedBlundersPath(
   customRoot?: string,
   useTodo = false,
 ): string {
-  const root = customRoot && customRoot.trim() ? resolve(customRoot.trim()) : process.cwd();
-  const relPath = useTodo ? TODO_COMPLETED_BLUNDERS_FILE : CANONICAL_COMPLETED_BLUNDERS_FILE;
-  return join(root, relPath);
+  return require("path").join(customRoot || process.cwd(), ".olt", "completed-defects.jsonl");
 }
 
 export function resolveCompletedBlundersPath(customPath?: string): string {
-  if (customPath && customPath.trim()) {
-    const trimmed = customPath.trim();
-    return resolve(trimmed);
-  }
-  const cwd = process.cwd();
-  const candidates = [cwd, dirname(cwd)];
-
-  for (const root of candidates) {
-    const canonical = join(root, CANONICAL_COMPLETED_BLUNDERS_FILE);
-    if (existsSync(canonical)) return canonical;
-
-    const todo = join(root, TODO_COMPLETED_BLUNDERS_FILE);
-    if (existsSync(todo)) return todo;
-
-    const legacy = join(root, LEGACY_COMPLETED_BLUNDERS_FILE);
-    if (existsSync(legacy)) return legacy;
-
-    const legacyLower = join(root, LEGACY_LOWER_COMPLETED_BLUNDERS_FILE);
-    if (existsSync(legacyLower)) return legacyLower;
-  }
-
-  if (existsSync(join(cwd, ".capsules"))) {
-    return join(cwd, LEGACY_COMPLETED_BLUNDERS_FILE);
-  }
-  const parentCapsules = join(dirname(cwd), ".capsules");
-  if (existsSync(parentCapsules)) {
-    return join(dirname(cwd), LEGACY_COMPLETED_BLUNDERS_FILE);
-  }
-  return resolve(cwd, LEGACY_COMPLETED_BLUNDERS_FILE);
+  if (customPath && customPath.trim()) return require("path").resolve(customPath.trim());
+  return require("path").join(process.cwd(), ".olt", "completed-defects.jsonl");
 }
 
 export function resolveCanonicalObservationsPath(customRoot?: string, useTodo = false): string {
-  const root = customRoot && customRoot.trim() ? resolve(customRoot.trim()) : process.cwd();
-  const relPath = useTodo ? TODO_OBSERVATIONS_FILE : CANONICAL_OBSERVATIONS_FILE;
-  return join(root, relPath);
+  return require("path").join(customRoot || process.cwd(), ".olt", "telemetry.jsonl");
 }
 
 export function resolveObservationsPath(customPath?: string): string {
-  if (customPath && customPath.trim()) {
-    const trimmed = customPath.trim();
-    return resolve(trimmed);
-  }
-  const cwd = process.cwd();
-  const candidates = [cwd, dirname(cwd)];
-
-  for (const root of candidates) {
-    const canonical = join(root, CANONICAL_OBSERVATIONS_FILE);
-    if (existsSync(canonical)) return canonical;
-
-    const todo = join(root, TODO_OBSERVATIONS_FILE);
-    if (existsSync(todo)) return todo;
-
-    const legacy = join(root, LEGACY_OBSERVATIONS_FILE);
-    if (existsSync(legacy)) return legacy;
-
-    const legacyLower = join(root, LEGACY_LOWER_OBSERVATIONS_FILE);
-    if (existsSync(legacyLower)) return legacyLower;
-  }
-
-  if (existsSync(join(cwd, ".capsules"))) {
-    return join(cwd, CANONICAL_OBSERVATIONS_FILE);
-  }
-  const parentCapsules = join(dirname(cwd), ".capsules");
-  if (existsSync(parentCapsules)) {
-    return join(dirname(cwd), CANONICAL_OBSERVATIONS_FILE);
-  }
-  return resolve(cwd, CANONICAL_OBSERVATIONS_FILE);
-}
-
-export function migrateCompletedTasksLedger(options?: {
-  readonly sourcePath?: string | undefined;
-  readonly targetPath?: string | undefined;
-}): { readonly migrated: boolean; readonly count: number } {
-  const sourcePath =
-    options?.sourcePath !== undefined ? options.sourcePath : resolveCompletedTasksLedgerPath();
-  const targetPath =
-    options?.targetPath !== undefined ? options.targetPath : resolveCanonicalCompletedTasksPath();
-
-  if (!existsSync(sourcePath) || sourcePath === targetPath) {
-    return { migrated: false, count: 0 };
-  }
-
-  const items = readCompletedTasksLedger(sourcePath);
-  if (items.length === 0) {
-    return { migrated: false, count: 0 };
-  }
-
-  writeCompletedTasksLedger(items, targetPath);
-  return { migrated: true, count: items.length };
+  if (customPath && customPath.trim()) return require("path").resolve(customPath.trim());
+  return require("path").join(process.cwd(), ".olt", "telemetry.jsonl");
 }
 
 export function validateCompletedTaskSource(val: unknown): CompletedTaskSource {

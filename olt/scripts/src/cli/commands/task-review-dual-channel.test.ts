@@ -379,7 +379,7 @@ describe("task:review CLI Command Dual-Channel & Semantic Depth Refusal Enforcem
           exit_code: 1,
           timed_out: false,
           proved_at: new Date().toISOString(),
-          actor: "val-01",
+          actor: "worker-01",
         },
       ];
       draft.requirements = {
@@ -434,6 +434,22 @@ describe("task:review CLI Command Dual-Channel & Semantic Depth Refusal Enforcem
       return draft;
     });
 
+    const { createAgentMetadata } = require("../../runtime/agent-metadata.ts");
+    createAgentMetadata({ runRoot, role: "validator", agentId: "val-01", context: {} });
+
+    const metaDir = join(runRoot, "runtime");
+    mkdirSync(metaDir, { recursive: true });
+    writeFileSync(
+      join(metaDir, "agent-val-01.json"),
+      JSON.stringify({
+        agent_id: "val-01",
+        role: "validator",
+        capabilities: [],
+        session_started_at: new Date().toISOString(),
+        runRoot,
+        context: {},
+      }),
+    );
     await publishTaskRolePacket({
       runRoot,
       port: workflowPort(runRoot),
@@ -445,8 +461,19 @@ describe("task:review CLI Command Dual-Channel & Semantic Depth Refusal Enforcem
       validatorDomain: "ui-design",
     });
 
+    writeFileSync(
+      join(metaDir, "agent-mech-01.json"),
+      JSON.stringify({
+        agent_id: "mech-01",
+        role: "mechanic-validator",
+        capabilities: [],
+        session_started_at: new Date().toISOString(),
+        runRoot,
+        context: {},
+      }),
+    );
     const cmdResult = await runAndRecordCommand(runRoot, {
-      actor: "val-01",
+      actor: "mech-01",
       argv: ["echo", "validation-check-ok"],
       cwd: testDir,
       commandDir: join(runRoot, "commands"),
@@ -468,7 +495,7 @@ describe("task:review CLI Command Dual-Channel & Semantic Depth Refusal Enforcem
     ingestScreenshots({
       runRoot,
       taskId,
-      actor: "val-01",
+      actor: "worker-01",
       searchDirs: [screenshotsDir],
       explicitPaths: [p1, p2, p3],
     });

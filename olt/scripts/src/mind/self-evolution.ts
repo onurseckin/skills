@@ -130,12 +130,6 @@ export interface LoadBalancingAssignment {
 
 export interface LoadBalancingPlan {
   readonly assignments: readonly LoadBalancingAssignment[];
-  readonly migratedTasks: readonly {
-    readonly taskId: string;
-    readonly fromOrchestrator: string;
-    readonly toOrchestrator: string;
-    readonly reason: string;
-  }[];
   readonly isBalanced: boolean;
   readonly loadVarianceBefore: number;
   readonly loadVarianceAfter: number;
@@ -571,7 +565,6 @@ export function balanceOrchestratorLoad(
   if (orchestrators.length === 0) {
     return {
       assignments: [],
-      migratedTasks: [],
       isBalanced: true,
       loadVarianceBefore: 0,
       loadVarianceAfter: 0,
@@ -589,12 +582,6 @@ export function balanceOrchestratorLoad(
   }
 
   let scopeCollisionsAvoided = 0;
-  const migratedTasks: {
-    readonly taskId: string;
-    readonly fromOrchestrator: string;
-    readonly toOrchestrator: string;
-    readonly reason: string;
-  }[] = [];
 
   // Calculate variance before
   const loadsBefore = Array.from(assignmentsMap.values()).map((a) => a.taskIds.length);
@@ -657,7 +644,6 @@ export function balanceOrchestratorLoad(
 
   return {
     assignments,
-    migratedTasks,
     isBalanced: varianceAfter <= 1.0,
     loadVarianceBefore: Number(varianceBefore.toFixed(2)),
     loadVarianceAfter: Number(varianceAfter.toFixed(2)),

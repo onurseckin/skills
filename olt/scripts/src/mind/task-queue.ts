@@ -127,8 +127,6 @@ export interface TaskQueueStats {
   readonly expired_leases: number;
 }
 
-export const CANONICAL_TASK_QUEUE_FILE = ".capsules/mind/queue/task-queue.jsonl";
-export const TODO_TASK_QUEUE_FILE = ".capsules/todo/task-queue.jsonl";
 export const LEGACY_TASK_QUEUE_FILE = ".capsules/TASK_QUEUE.jsonl";
 export const LEGACY_LOWER_TASK_QUEUE_FILE = ".capsules/task-queue.jsonl";
 export const DEFAULT_TASK_QUEUE_FILE = ".capsules/TASK_QUEUE.jsonl";
@@ -140,69 +138,20 @@ const DEFAULT_MAX_RETRIES = 3;
  * Resolves the canonical path for the task queue storage file.
  */
 export function resolveCanonicalTaskQueuePath(customRoot?: string, useTodo = false): string {
-  const root = customRoot && customRoot.trim() ? resolve(customRoot.trim()) : process.cwd();
-  const relPath = useTodo ? TODO_TASK_QUEUE_FILE : CANONICAL_TASK_QUEUE_FILE;
-  return join(root, relPath);
+  return require("path").join(customRoot || process.cwd(), ".olt", "task-queue.jsonl");
 }
 
 /**
  * Resolves the absolute path to the task queue storage file, supporting canonical, todo, and legacy locations.
  */
 export function resolveTaskQueuePath(customPath?: string): string {
-  if (customPath && customPath.trim()) {
-    return resolve(customPath.trim());
-  }
-  const cwd = process.cwd();
-  const candidates = [cwd, dirname(cwd)];
-
-  for (const root of candidates) {
-    const canonical = join(root, CANONICAL_TASK_QUEUE_FILE);
-    if (existsSync(canonical)) return canonical;
-
-    const todo = join(root, TODO_TASK_QUEUE_FILE);
-    if (existsSync(todo)) return todo;
-
-    const legacy = join(root, LEGACY_TASK_QUEUE_FILE);
-    if (existsSync(legacy)) return legacy;
-
-    const legacyLower = join(root, LEGACY_LOWER_TASK_QUEUE_FILE);
-    if (existsSync(legacyLower)) return legacyLower;
-  }
-
-  if (existsSync(join(cwd, ".capsules"))) {
-    return join(cwd, DEFAULT_TASK_QUEUE_FILE);
-  }
-  const parentCapsules = join(dirname(cwd), ".capsules");
-  if (existsSync(parentCapsules)) {
-    return join(dirname(cwd), DEFAULT_TASK_QUEUE_FILE);
-  }
-  return resolve(cwd, DEFAULT_TASK_QUEUE_FILE);
+  if (customPath && customPath.trim()) return require("path").resolve(customPath.trim());
+  return require("path").join(process.cwd(), ".olt", "task-queue.jsonl");
 }
 
 /**
  * Migrates legacy task queue files to the canonical .capsules/mind/queue/ layout.
  */
-export function migrateTaskQueue(options?: {
-  readonly sourcePath?: string | undefined;
-  readonly targetPath?: string | undefined;
-}): { readonly migrated: boolean; readonly count: number } {
-  const sourcePath =
-    options?.sourcePath !== undefined ? options.sourcePath : resolveTaskQueuePath();
-  const targetPath =
-    options?.targetPath !== undefined ? options.targetPath : resolveCanonicalTaskQueuePath();
-
-  if (!existsSync(sourcePath) || sourcePath === targetPath) {
-    return { migrated: false, count: 0 };
-  }
-
-  const items = readTaskQueue(sourcePath);
-  if (items.length === 0) {
-    return { migrated: false, count: 0 };
-  }
-
-  writeTaskQueue(items, targetPath);
-  return { migrated: true, count: items.length };
-}
 
 /**
  * Reads and parses all task items from the task queue JSONL storage.
