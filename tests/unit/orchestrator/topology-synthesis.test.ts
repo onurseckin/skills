@@ -512,7 +512,11 @@ describe("Topology Synthesis Unit Tests", () => {
         const lineNum = i + 1;
 
         // Skip regexes in the test verification loop itself
-        if (line.includes("/:\\s*any\\b/") || line.includes("/@ts-ignore/")) {
+        if (
+          line.includes(".test(line)") ||
+          line.includes("anyMatches") ||
+          line.includes("suppressionMatches")
+        ) {
           continue;
         }
 
