@@ -30,7 +30,6 @@ describe("Task Review Dual-Channel Pushback Enforcement", () => {
       assertReviewProtocolSatisfied(task, {
         max_adversarial_pushes: 5,
         cognitive_pushes: 3,
-        enable_cognitive_deepening: true,
         escalate_on_exhausted_adversarial: true,
       });
     }).toThrow(HarnessError);
@@ -39,7 +38,6 @@ describe("Task Review Dual-Channel Pushback Enforcement", () => {
       assertReviewProtocolSatisfied(task, {
         max_adversarial_pushes: 5,
         cognitive_pushes: 3,
-        enable_cognitive_deepening: true,
         escalate_on_exhausted_adversarial: true,
       });
     } catch (err) {
@@ -60,7 +58,6 @@ describe("Task Review Dual-Channel Pushback Enforcement", () => {
       assertReviewProtocolSatisfied(task, {
         max_adversarial_pushes: 5,
         cognitive_pushes: 3,
-        enable_cognitive_deepening: true,
         escalate_on_exhausted_adversarial: true,
       });
       expect(true).toBe(false); // Should not reach here
@@ -81,7 +78,21 @@ describe("Task Review Dual-Channel Pushback Enforcement", () => {
       assertReviewProtocolSatisfied(task, {
         max_adversarial_pushes: 5,
         cognitive_pushes: 3,
-        enable_cognitive_deepening: true,
+        escalate_on_exhausted_adversarial: true,
+      });
+    }).not.toThrow();
+  });
+
+  test("assertReviewProtocolSatisfied allows immediate pass when cognitive_pushes is 0", () => {
+    const task: TaskRecord = {
+      ...baseTask,
+      probe_round: 0,
+    };
+
+    expect(() => {
+      assertReviewProtocolSatisfied(task, {
+        max_adversarial_pushes: 5,
+        cognitive_pushes: 0,
         escalate_on_exhausted_adversarial: true,
       });
     }).not.toThrow();
@@ -109,7 +120,6 @@ describe("Task Review Dual-Channel Pushback Enforcement", () => {
       assertReviewProtocolSatisfied(task, {
         max_adversarial_pushes: 5,
         cognitive_pushes: 3,
-        enable_cognitive_deepening: true,
         escalate_on_exhausted_adversarial: true,
       });
     }).toThrow("1 open finding(s) remain unresolved");
@@ -119,7 +129,6 @@ describe("Task Review Dual-Channel Pushback Enforcement", () => {
     const engine = new ReviewProtocolEngine({
       max_adversarial_pushes: 5,
       cognitive_pushes: 3,
-      enable_cognitive_deepening: true,
     });
 
     const task: TaskRecord = { ...baseTask };
@@ -148,7 +157,7 @@ describe("Task Review Dual-Channel Pushback Enforcement", () => {
     });
 
     let state = engine.projectState(task);
-    expect(state.current_phase).toBe("adversarial_defect_resolution");
+    expect(state.current_phase).toBe("adversarial");
     expect(state.adversarial_rounds_used).toBe(1);
     expect(state.can_finalize_review).toBe(false);
 
@@ -157,7 +166,7 @@ describe("Task Review Dual-Channel Pushback Enforcement", () => {
 
     // Now transitions to cognitive deepening
     state = engine.projectState(task);
-    expect(state.current_phase).toBe("cognitive_socratic_deepening");
+    expect(state.current_phase).toBe("cognitive");
     expect(state.can_finalize_review).toBe(false);
 
     // Cognitive Round 1 (Boundary Probe)
@@ -171,7 +180,7 @@ describe("Task Review Dual-Channel Pushback Enforcement", () => {
       summary: "What happens when input array is empty?",
     });
     state = engine.projectState(task);
-    expect(state.current_phase).toBe("cognitive_socratic_deepening");
+    expect(state.current_phase).toBe("cognitive");
     expect(state.cognitive_rounds_completed).toBe(1);
     expect(state.can_finalize_review).toBe(false);
 

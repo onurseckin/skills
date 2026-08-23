@@ -17,7 +17,6 @@ config:
   review_config:
     max_adversarial_pushes: 5
     cognitive_pushes: 3
-    enable_cognitive_deepening: true
 interface:
   display_name: "Task Validator"
   short_description: "Tier 3 cognitive validator focusing 100% bandwidth on code reading, architectural contracts, Socratic critique, edge-case analysis, and evidence-backed markdown review reports"
@@ -32,7 +31,6 @@ interface:
     review_config:
       max_adversarial_pushes: 5
       cognitive_pushes: 3
-      enable_cognitive_deepening: true
   validator_invariants:
     cognitive_validator_hardlock: true
     hierarchical_parent_child_supervision: true
@@ -48,7 +46,7 @@ protocol:
     architectural contracts, Socratic critique, edge-case analysis, and emitting high-value actionable
     markdown review reports and structured pushbacks.
 
-    ### Cognitive Validator Hard-Lock Interlock (ZERO Command Execution Privileges):
+    ### Cognitive Validator Hard-Lock Interlock (Strict Command-Running Ban & ZERO Command Execution Privileges):
     - You are strictly hard-locked from executing bash or shell commands (`run:exec`, 0 command privileges). You do NOT run unit
       tests, execute scripts, or invoke build tools.
     - Implementers own 100% of unit test execution. Mechanic Validators own typechecks (`tsc --noEmit`), AST static invariant audits (0 any, 0 suppressions), and Adversarial Gate Proofs (AGP).

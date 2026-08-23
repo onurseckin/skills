@@ -43,9 +43,7 @@ export function reviewPolicyFor(runRoot: string, validatorId?: string): ReviewPo
   const reviewProtocol = resolveReviewProtocolConfig(repoRoot, agentMetadata);
 
   return {
-    minProbes: reviewProtocol.enable_cognitive_deepening
-      ? reviewProtocol.cognitive_pushes
-      : config.min_adversarial_probes,
+    minProbes: reviewProtocol.cognitive_pushes,
     maxRepairRounds: reviewProtocol.max_adversarial_pushes,
     reviewProtocol,
   };

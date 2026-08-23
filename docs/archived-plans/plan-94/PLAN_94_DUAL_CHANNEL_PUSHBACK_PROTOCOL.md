@@ -110,7 +110,6 @@ The primary source of truth. Users can customize these numbers per repository:
   "review_protocol": {
     "max_adversarial_pushes": 5,
     "cognitive_pushes": 3,
-    "enable_cognitive_deepening": true,
     "escalate_on_exhausted_adversarial": true
   }
 }
@@ -149,7 +148,7 @@ The harness state machine tracks review round progression inside `task.review_hi
     "max_adversarial_pushes": 5,
     "cognitive_rounds_completed": 2,
     "cognitive_pushes_required": 3,
-    "current_phase": "cognitive_deepening",
+    "current_phase": "cognitive",
     "can_finalize_review": false
   }
 }

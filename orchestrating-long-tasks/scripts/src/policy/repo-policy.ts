@@ -14,14 +14,12 @@ export interface TestRunnerPolicy {
 export interface ReviewProtocolPolicy {
   readonly max_adversarial_pushes: number;
   readonly cognitive_pushes: number;
-  readonly enable_cognitive_deepening?: boolean;
   readonly escalate_on_exhausted_adversarial?: boolean;
 }
 
 export const DEFAULT_REVIEW_PROTOCOL_POLICY: ReviewProtocolPolicy = {
   max_adversarial_pushes: 5,
   cognitive_pushes: 3,
-  enable_cognitive_deepening: true,
   escalate_on_exhausted_adversarial: true,
 };
 
@@ -292,10 +290,6 @@ export function validateRepoPolicy(raw: unknown): RepoPolicy {
       rp["cognitive_pushes"] >= 0
         ? rp["cognitive_pushes"]
         : DEFAULT_REVIEW_PROTOCOL_POLICY.cognitive_pushes;
-    const enableCog =
-      typeof rp["enable_cognitive_deepening"] === "boolean"
-        ? rp["enable_cognitive_deepening"]
-        : (DEFAULT_REVIEW_PROTOCOL_POLICY.enable_cognitive_deepening ?? true);
     const escalateOnExhausted =
       typeof rp["escalate_on_exhausted_adversarial"] === "boolean"
         ? rp["escalate_on_exhausted_adversarial"]
@@ -304,7 +298,6 @@ export function validateRepoPolicy(raw: unknown): RepoPolicy {
     reviewProtocol = {
       max_adversarial_pushes: maxAdv,
       cognitive_pushes: cogPushes,
-      enable_cognitive_deepening: enableCog,
       escalate_on_exhausted_adversarial: escalateOnExhausted,
     };
   } else {

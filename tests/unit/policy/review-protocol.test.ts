@@ -29,14 +29,14 @@ describe("ReviewProtocolEngine & Dual-Channel Review Protocol", () => {
   test("initial flawless submission advances directly to cognitive deepening phase with 0 adversarial rounds used", () => {
     const state = projectTaskReviewState(dummyTask, DEFAULT_REVIEW_PROTOCOL_CONFIG);
 
-    expect(state.current_phase).toBe("cognitive_socratic_deepening");
+    expect(state.current_phase).toBe("cognitive");
     expect(state.adversarial_rounds_used).toBe(0);
     expect(state.cognitive_rounds_completed).toBe(0);
     expect(state.cognitive_pushes_required).toBe(3);
     expect(state.can_finalize_review).toBe(false);
   });
 
-  test("defect findings keep task in adversarial_defect_resolution phase", () => {
+  test("defect findings keep task in adversarial phase", () => {
     const taskWithBugs: TaskRecord = {
       ...dummyTask,
       repair_round: 1,
@@ -56,12 +56,12 @@ describe("ReviewProtocolEngine & Dual-Channel Review Protocol", () => {
 
     const state = projectTaskReviewState(taskWithBugs, DEFAULT_REVIEW_PROTOCOL_CONFIG);
 
-    expect(state.current_phase).toBe("adversarial_defect_resolution");
+    expect(state.current_phase).toBe("adversarial");
     expect(state.adversarial_rounds_used).toBe(1);
     expect(state.can_finalize_review).toBe(false);
   });
 
-  test("resolving defect findings transitions task into cognitive deepening phase", () => {
+  test("resolving defect findings transitions task into cognitive phase", () => {
     const taskResolvedBugs: TaskRecord = {
       ...dummyTask,
       repair_round: 2,
@@ -81,7 +81,7 @@ describe("ReviewProtocolEngine & Dual-Channel Review Protocol", () => {
 
     const state = projectTaskReviewState(taskResolvedBugs, DEFAULT_REVIEW_PROTOCOL_CONFIG);
 
-    expect(state.current_phase).toBe("cognitive_socratic_deepening");
+    expect(state.current_phase).toBe("cognitive");
     expect(state.adversarial_rounds_used).toBe(2);
     expect(state.can_finalize_review).toBe(false);
   });
@@ -120,7 +120,7 @@ describe("ReviewProtocolEngine & Dual-Channel Review Protocol", () => {
 
     const state = projectTaskReviewState(exhaustedTask, DEFAULT_REVIEW_PROTOCOL_CONFIG);
 
-    expect(state.current_phase).toBe("adversarial_defect_resolution");
+    expect(state.current_phase).toBe("adversarial");
     expect(state.exhausted_adversarial).toBe(true);
     expect(state.can_finalize_review).toBe(false);
   });
@@ -183,7 +183,6 @@ describe("ReviewProtocolEngine & Dual-Channel Review Protocol", () => {
       review_protocol: {
         max_adversarial_pushes: 7,
         cognitive_pushes: 4,
-        enable_cognitive_deepening: true,
       },
     };
 
@@ -206,7 +205,6 @@ describe("ReviewProtocolEngine & Dual-Channel Review Protocol", () => {
 
     expect(resolved.max_adversarial_pushes).toBe(7);
     expect(resolved.cognitive_pushes).toBe(4); // Repo policy takes precedence over agent metadata
-    expect(resolved.enable_cognitive_deepening).toBe(true);
     expect(resolved.escalate_on_exhausted_adversarial).toBe(true); // Defaults merged cleanly
   });
 
@@ -241,14 +239,12 @@ describe("ReviewProtocolEngine & Dual-Channel Review Protocol", () => {
 
     expect(resolved.max_adversarial_pushes).toBe(8);
     expect(resolved.cognitive_pushes).toBe(5);
-    expect(resolved.enable_cognitive_deepening).toBe(true);
   });
 
   test("boundary condition N=0 cognitive pushes allows immediate pass with 0 probes required", () => {
     const configN0: ReviewProtocolConfig = {
       max_adversarial_pushes: 5,
       cognitive_pushes: 0,
-      enable_cognitive_deepening: true,
       escalate_on_exhausted_adversarial: true,
     };
 
@@ -261,19 +257,18 @@ describe("ReviewProtocolEngine & Dual-Channel Review Protocol", () => {
     expect(canFinalizeReview(cleanTask, configN0)).toBe(true);
   });
 
-  test("enable_cognitive_deepening: false disables required cognitive probes", () => {
-    const configDisabled: ReviewProtocolConfig = {
+  test("cognitive_pushes: 0 in ReviewProtocolEngine allows immediate finalization without probes", () => {
+    const engine = new ReviewProtocolEngine({
       max_adversarial_pushes: 5,
-      cognitive_pushes: 3,
-      enable_cognitive_deepening: false,
-      escalate_on_exhausted_adversarial: true,
-    };
+      cognitive_pushes: 0,
+    });
 
     const cleanTask: TaskRecord = { ...dummyTask, probe_round: 0 };
-    const state = projectTaskReviewState(cleanTask, configDisabled);
+    const state = engine.projectState(cleanTask);
 
     expect(state.cognitive_pushes_required).toBe(0);
     expect(state.current_phase).toBe("completed");
-    expect(state.can_finalize_review).toBe(true);
+    expect(engine.canFinalize(cleanTask)).toBe(true);
+    expect(() => engine.assertSatisfied(cleanTask)).not.toThrow();
   });
 });

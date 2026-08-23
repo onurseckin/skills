@@ -9,10 +9,7 @@ import type { AgentMetadata } from "../runtime/agent-metadata.ts";
 import type { Finding } from "../contracts/workflow.ts";
 import type { TaskRecord } from "../workflow/types.ts";
 
-export type ReviewPhase =
-  | "adversarial_defect_resolution"
-  | "cognitive_socratic_deepening"
-  | "completed";
+export type ReviewPhase = "adversarial" | "cognitive" | "completed";
 
 export type ReviewChannelKind = "adversarial" | "cognitive";
 
@@ -30,14 +27,12 @@ export interface ReviewChannelEntry {
 export interface ReviewProtocolConfig {
   readonly max_adversarial_pushes: number;
   readonly cognitive_pushes: number;
-  readonly enable_cognitive_deepening: boolean;
   readonly escalate_on_exhausted_adversarial: boolean;
 }
 
 export const DEFAULT_REVIEW_PROTOCOL_CONFIG: ReviewProtocolConfig = {
   max_adversarial_pushes: DEFAULT_REVIEW_PROTOCOL_POLICY.max_adversarial_pushes,
   cognitive_pushes: DEFAULT_REVIEW_PROTOCOL_POLICY.cognitive_pushes,
-  enable_cognitive_deepening: DEFAULT_REVIEW_PROTOCOL_POLICY.enable_cognitive_deepening ?? true,
   escalate_on_exhausted_adversarial:
     DEFAULT_REVIEW_PROTOCOL_POLICY.escalate_on_exhausted_adversarial ?? true,
 };
@@ -95,12 +90,6 @@ export function resolveReviewProtocolConfig(
     agentConfig?.cognitive_pushes ??
     DEFAULT_REVIEW_PROTOCOL_CONFIG.cognitive_pushes;
 
-  const mergedEnableCog =
-    overrides?.enable_cognitive_deepening ??
-    policyConfig?.enable_cognitive_deepening ??
-    agentConfig?.enable_cognitive_deepening ??
-    DEFAULT_REVIEW_PROTOCOL_CONFIG.enable_cognitive_deepening;
-
   const mergedEscalate =
     overrides?.escalate_on_exhausted_adversarial ??
     policyConfig?.escalate_on_exhausted_adversarial ??
@@ -118,7 +107,6 @@ export function resolveReviewProtocolConfig(
       mergedCognitive >= 0
         ? mergedCognitive
         : DEFAULT_REVIEW_PROTOCOL_CONFIG.cognitive_pushes,
-    enable_cognitive_deepening: Boolean(mergedEnableCog),
     escalate_on_exhausted_adversarial: Boolean(mergedEscalate),
   };
 }
@@ -182,7 +170,7 @@ export function projectTaskReviewState(
       ).length
     : 0;
 
-  const requiredCognitive = config.enable_cognitive_deepening ? config.cognitive_pushes : 0;
+  const requiredCognitive = config.cognitive_pushes;
   const exhaustedAdversarial =
     openDefects > 0 &&
     config.escalate_on_exhausted_adversarial &&
@@ -190,9 +178,9 @@ export function projectTaskReviewState(
 
   let currentPhase: ReviewPhase;
   if (openDefects > 0 || (adversarialRounds > 0 && openDefects > 0)) {
-    currentPhase = "adversarial_defect_resolution";
-  } else if (config.enable_cognitive_deepening && cognitiveRounds < requiredCognitive) {
-    currentPhase = "cognitive_socratic_deepening";
+    currentPhase = "adversarial";
+  } else if (cognitiveRounds < requiredCognitive) {
+    currentPhase = "cognitive";
   } else {
     currentPhase = "completed";
   }
@@ -247,10 +235,7 @@ export function assertReviewProtocolSatisfied(
     );
   }
 
-  if (
-    config.enable_cognitive_deepening &&
-    state.cognitive_rounds_completed < state.cognitive_pushes_required
-  ) {
+  if (state.cognitive_rounds_completed < state.cognitive_pushes_required) {
     throw new HarnessError(
       "INVALID_STATE",
       `Cannot finalize review for task '${task.id}': Cognitive deepening protocol not satisfied. Completed ${state.cognitive_rounds_completed}/${state.cognitive_pushes_required} required cognitive rounds. Run \`task:probe --task ${task.id} --kind cognitive\` to satisfy cognitive deepening.`,
