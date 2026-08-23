@@ -102,7 +102,7 @@ async function publish(
     ? { ...boundBinding, validator_domain: grant.validatorDomain }
     : boundBinding;
   const round =
-    grant.role === "validator" && bound.task
+    (grant.role === "validator" || grant.role === "mechanic-validator") && bound.task
       ? validationRoundContext({
           runRoot: grant.runRoot,
           runState,
