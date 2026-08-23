@@ -75,8 +75,8 @@ describe("branch:open", () => {
     // lease or the repo's harness config, so every one of these throws on flags alone — no branch,
     // no repo, no capsule needed to reach any of them.
     const base = {
-      run: "unused",
-      repo: "unused",
+      run: mkdtempSync(join(tmpdir(), "olt-test-")),
+      repo: mkdtempSync(join(tmpdir(), "olt-test-")),
       "parent-task": "task-1",
       agent: "worker-1",
       token: "unused-token",
@@ -170,8 +170,8 @@ describe("branch:claim", () => {
     // branchClaimCommand checks --role (branchRoleFlag) before it leases anything, so this needs
     // no branch, no repo, no capsule at all — just a flag set with a bad role.
     const base = {
-      run: "unused",
-      repo: "unused",
+      run: mkdtempSync(join(tmpdir(), "olt-test-")),
+      repo: mkdtempSync(join(tmpdir(), "olt-test-")),
       branch: "unused-branch",
       "sub-task": "S-1",
       agent: "sub-1",

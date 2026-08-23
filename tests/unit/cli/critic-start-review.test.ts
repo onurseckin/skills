@@ -314,7 +314,7 @@ describe("CLI critic-ops commands", () => {
     // ready run, no critic:start, no capsule at all.
     await expect(
       criticReviewCommand({
-        run: "unused",
+        run: mkdtempSync(join(tmpdir(), "olt-test-")),
         critic: "critic-iota",
         token: "unused-token",
         decision: "abstain",

@@ -64,7 +64,7 @@ describe("plan:review", () => {
     // plan:validate-start, no real token is needed to reach this refusal.
     await expect(
       planReviewCommand({
-        run: "unused",
+        run: mkdtempSync(join(tmpdir(), "olt-test-")),
         validator: "plan-val-1",
         token: "unused-token",
         status: "maybe",
@@ -78,7 +78,7 @@ describe("plan:review", () => {
     // only required to be non-blank at this point, not verified against a real plan yet.
     await expect(
       planReviewCommand({
-        run: "unused",
+        run: mkdtempSync(join(tmpdir(), "olt-test-")),
         validator: "plan-val-1",
         token: "unused-token",
         status: "approved",
@@ -97,7 +97,7 @@ describe("plan:review", () => {
   test("changes_requested requires --findings or --findings-file", async () => {
     await expect(
       planReviewCommand({
-        run: "unused",
+        run: mkdtempSync(join(tmpdir(), "olt-test-")),
         validator: "plan-val-1",
         token: "unused-token",
         status: "changes_requested",
@@ -179,7 +179,7 @@ describe("plan:review", () => {
     // Findings are read from disk before loadRun; the file doesn't need to live in any capsule.
     await expect(
       planReviewCommand({
-        run: "unused",
+        run: mkdtempSync(join(tmpdir(), "olt-test-")),
         validator: "plan-val-1",
         token: "unused-token",
         status: "changes_requested",
@@ -196,7 +196,7 @@ describe("plan:review", () => {
   test("malformed inline --findings JSON is refused", async () => {
     await expect(
       planReviewCommand({
-        run: "unused",
+        run: mkdtempSync(join(tmpdir(), "olt-test-")),
         validator: "plan-val-1",
         token: "unused-token",
         status: "changes_requested",

@@ -18,7 +18,7 @@ describe("task:claim / task:heartbeat / task:submit", () => {
     // taskClaimCommand checks --role before it ever opens the run root, so no capsule is needed.
     await expect(
       taskClaimCommand({
-        run: "unused",
+        run: mkdtempSync(join(tmpdir(), "olt-test-")),
         task: TASK_ID,
         agent: "worker-1",
         role: "reviewer",
@@ -29,7 +29,7 @@ describe("task:claim / task:heartbeat / task:submit", () => {
   test("refuses task claim by validator or completeness-critic (anti-boundary-leak rule)", async () => {
     await expect(
       taskClaimCommand({
-        run: "unused",
+        run: mkdtempSync(join(tmpdir(), "olt-test-")),
         task: TASK_ID,
         agent: "val-agent-1",
         role: "validator",
@@ -40,7 +40,7 @@ describe("task:claim / task:heartbeat / task:submit", () => {
 
     await expect(
       taskClaimCommand({
-        run: "unused",
+        run: mkdtempSync(join(tmpdir(), "olt-test-")),
         task: TASK_ID,
         agent: "critic-agent-1",
         role: "completeness-critic",
@@ -51,7 +51,7 @@ describe("task:claim / task:heartbeat / task:submit", () => {
 
     await expect(
       taskClaimCommand({
-        run: "unused",
+        run: mkdtempSync(join(tmpdir(), "olt-test-")),
         task: TASK_ID,
         agent: "subval-1",
         role: "sub-validator",
@@ -60,7 +60,7 @@ describe("task:claim / task:heartbeat / task:submit", () => {
 
     await expect(
       taskClaimCommand({
-        run: "unused",
+        run: mkdtempSync(join(tmpdir(), "olt-test-")),
         task: TASK_ID,
         agent: "planval-1",
         role: "plan-validator",
@@ -148,7 +148,7 @@ describe("task:claim / task:heartbeat / task:submit", () => {
     // capsule, let alone a claimed task.
     await expect(
       taskSubmitCommand({
-        run: "unused",
+        run: mkdtempSync(join(tmpdir(), "olt-test-")),
         task: TASK_ID,
         agent: "worker-1",
         token: "unused-token",
@@ -159,7 +159,7 @@ describe("task:claim / task:heartbeat / task:submit", () => {
 
     await expect(
       taskSubmitCommand({
-        run: "unused",
+        run: mkdtempSync(join(tmpdir(), "olt-test-")),
         task: TASK_ID,
         agent: "worker-1",
         token: "unused-token",
