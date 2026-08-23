@@ -473,7 +473,6 @@ export function partitionGroupedFeedbacksStrictly(
 ): readonly SmartTaskPlan[] {
   const prefix = options.baseIdPrefix ?? "task";
   const tasks: SmartTaskPlan[] = [];
-  const seenScopes = new Set<string>();
 
   for (let i = 0; i < feedbacks.length; i++) {
     const fb = feedbacks[i]!;
@@ -484,12 +483,10 @@ export function partitionGroupedFeedbacksStrictly(
     const taskId = `${prefix}-${i + 1}-${slug}`;
 
     const dependencies: string[] = [];
-    for (const s of scope) {
-      if (seenScopes.has(s) && i > 0) {
-        dependencies.push(tasks[i - 1]!.id);
-        break;
+    for (const prev of tasks) {
+      if (detectScopeOverlap(scope, prev.write_scope).length > 0) {
+        dependencies.push(prev.id);
       }
-      seenScopes.add(s);
     }
 
     tasks.push({
@@ -564,7 +561,6 @@ export function partitionCandidatesStrictly(
 ): readonly SmartTaskPlan[] {
   const prefix = options.baseIdPrefix ?? "candidate-task";
   const tasks: SmartTaskPlan[] = [];
-  const seenScopes = new Set<string>();
 
   for (let i = 0; i < candidates.length; i++) {
     const cand = candidates[i]!;
@@ -579,12 +575,10 @@ export function partitionCandidatesStrictly(
     const taskId = `${prefix}-${i + 1}-${slug}`;
 
     const dependencies: string[] = [];
-    for (const s of scope) {
-      if (seenScopes.has(s) && i > 0) {
-        dependencies.push(tasks[i - 1]!.id);
-        break;
+    for (const prev of tasks) {
+      if (detectScopeOverlap(scope, prev.write_scope).length > 0) {
+        dependencies.push(prev.id);
       }
-      seenScopes.add(s);
     }
 
     tasks.push({
@@ -1352,7 +1346,9 @@ export function synthesizeSmartTasksFromSelfEvolution(
       "0 compiler or linter suppressions",
       "All unit tests pass with exit code 0",
     ],
-    dependencies: selfTasks.length > 0 ? [selfTasks[0]!.id] : [],
+    dependencies: selfTasks
+      .filter((prev) => detectScopeOverlap(hardeningScope, prev.write_scope).length > 0)
+      .map((prev) => prev.id),
     source_type: "self_evolution",
     priority: "HIGH",
     rationale:
@@ -1383,7 +1379,9 @@ export function synthesizeSmartTasksFromSelfEvolution(
       "Perform cognitive flavor gap analysis across 4 tiers",
       "Ensure alignment with Mind Charter invariants and strategic altitude",
     ],
-    dependencies: [selfTasks[selfTasks.length - 1]!.id],
+    dependencies: selfTasks
+      .filter((prev) => detectScopeOverlap(charterGapScope, prev.write_scope).length > 0)
+      .map((prev) => prev.id),
     source_type: "self_evolution",
     priority: "HIGH",
     rationale:
@@ -1413,7 +1411,9 @@ export function synthesizeSmartTasksFromSelfEvolution(
       "Optimize Work/Span parallelism P = W/S across topological DAG waves",
       "Verify historical blunder regression immunity across test suites",
     ],
-    dependencies: [selfTasks[selfTasks.length - 1]!.id],
+    dependencies: selfTasks
+      .filter((prev) => detectScopeOverlap(brentOptimizationScope, prev.write_scope).length > 0)
+      .map((prev) => prev.id),
     source_type: "self_evolution",
     priority: "MEDIUM",
     rationale:
@@ -1445,7 +1445,9 @@ export function synthesizeSmartTasksFromSelfEvolution(
       "Autonomic self-evolution cycle maintaining loop cadence and clean metrics",
       "Pass all mind unit tests cleanly",
     ],
-    dependencies: [selfTasks[selfTasks.length - 1]!.id],
+    dependencies: selfTasks
+      .filter((prev) => detectScopeOverlap(autonomicOptScope, prev.write_scope).length > 0)
+      .map((prev) => prev.id),
     source_type: "self_evolution",
     priority: "MEDIUM",
     rationale:
@@ -1872,7 +1874,6 @@ export function planEnhanceToWavePlan(
 
   const prefix = typeof options.baseIdPrefix === "string" ? options.baseIdPrefix : "fb-wave";
   const tasks: SmartTaskPlan[] = [];
-  const seenScopes = new Set<string>();
 
   for (let i = 0; i < promptOrFeedbacks.length; i++) {
     const fb = promptOrFeedbacks[i]!;
@@ -1882,12 +1883,10 @@ export function planEnhanceToWavePlan(
     });
 
     const dependencies: string[] = [];
-    for (const s of basePlan.write_scope) {
-      if (seenScopes.has(s) && i > 0) {
-        dependencies.push(tasks[i - 1]!.id);
-        break;
+    for (const prev of tasks) {
+      if (detectScopeOverlap(basePlan.write_scope, prev.write_scope).length > 0) {
+        dependencies.push(prev.id);
       }
-      seenScopes.add(s);
     }
 
     tasks.push({

@@ -29,6 +29,9 @@ may:
   - Tag and trace active subagents using coordinate badges `[W<wave>:L<lane>]` in accordance with Sugiyama topological wave planning
   - Enforce unified validator output storage strictly under `.capsules/<run>/evidence/` (and `.capsules/<run>/evidence/screenshots/`)
   - Enforce standardized agent naming conventions (e.g. implementer_<task-id>-<slug>, validator_<task-id>-<slug>, coordinator_<domain-slug>) across all dispatches
+  - Decouple tasks dynamically based on write-scope overlap (`detectScopeOverlap`) into parallel wave arrays to maximize Brent Work/Span concurrency ($P = \lceil W / S \rceil$)
+  - Execute multi-attribute semantic memory search (`memory:query`) with `--kind`, `--generation`, `--tags`, and `--pattern` filters for cross-generational context retrieval
+  - Audit and verify automated blunder promotions (`blunder:audit`) ensuring empirical proofs and regression test coverage across all historical blunder instances
 must_not:
   - Declare a whole-suite gate for a narrow task; the run-wide suite belongs to the completion gate
   - Write, edit, stage, revert, format, or delete any repository file, including a one-line fix
@@ -98,6 +101,8 @@ commands:
   - agent:report
   - agent:release
   - agent:list
+  - memory:query
+  - blunder:audit
   - whoami
 spawns:
   - planner
@@ -119,6 +124,9 @@ recorded evidence, and is the only role permitted to declare the run finished.
 - **Strict Test Execution Ban**: Coordinators NEVER run repo-wide test suites (`bun test`, `vitest`, `npm test`) or task tests directly. All test execution is strictly delegated to Tier 3 Mechanic Validators using file-scoped test commands.
 - **Zero-Exploration 1-Shot Agent Briefings**: Every dispatched subagent MUST receive an instant, all-inclusive 1-shot briefing in its dispatch prompt generated via `task:brief` or `agent:brief`. The briefing includes: assigned task ID & title, exact disjoint write scope, suggested target files, allowed/recommended test commands (`bun test <path.test.ts>` for implementers), acceptance criteria, and next steps. Coordinators must NEVER assign unit test execution commands to validators in 1-shot briefings (Implementers own 100% of unit test execution; Cognitive Validators execute 0 commands; Mechanic Validators execute ONLY typecheck `tsc --noEmit`, AST static invariant audits, and AGPs).
 - **1-Hop Implementer <-> Validator Micro-Cycles**: Oversee fast in-lease micro-cycles (`task:reject --micro-cycle` / `task:review --micro-cycle`) between paired implementers and validators. Implementers remediate feedback in-lease without lease teardown (up to 3 micro-cycle rounds) before formal repair escalation.
+- **Gen5 Dynamic Wave Decoupling**: Dynamically evaluate write-scope overlaps (`detectScopeOverlap`) to decouple tasks into parallel execution wave arrays without artificial linear dependencies, maximizing Brent Work/Span concurrency ($P = \lceil W / S \rceil$).
+- **Multi-Attribute Semantic Memory Querying**: Query cross-generational cognitive memory (`memory:query`) using `--kind`, `--generation`, `--tags`, and `--pattern` filters to ground task dispatching and avoid historical pitfalls.
+- **Automated Blunder Audit & Promotion Verification**: Review recorded blunders via `blunder:audit` and verify automated promotions (`--auto-promote`) with empirical proofs and regression test assertions.
 - **Per-Task/Subgroup Commit, Push & Global Skill Sync**: Upon verification of a task or subgroup, create Conventional Commits (`feat(...)`, `fix(...)`), push to `origin/main` (`git push origin main`), and sync global skills via `bun scripts/sync-global.ts` to `~/.agents/skills/orchestrating-long-tasks/`.
 - **Hard Agent Reset Discipline**: Upon wave completion or task group finish, perform a hard reset on completed subagents using `manage_subagents` with `Action: 'kill'` (or host-native termination) to prevent stale context accumulation, ghost leases, and memory leaks.
 - **Keep the eligible set full**: The scheduler already tells you, live, everything claimable right

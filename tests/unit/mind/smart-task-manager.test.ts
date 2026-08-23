@@ -651,6 +651,10 @@ describe("Smart Task Manager & Autonomic Benchmark Suite", () => {
 
       const queue = readTaskQueue(taskQueueFile);
       expect(queue.length).toBe(result.tasks.length);
+      // Verify decoupled parallel dependencies across disjoint write scopes
+      for (const t of result.tasks) {
+        expect(t.dependencies).toHaveLength(0);
+      }
       teardown();
     });
 

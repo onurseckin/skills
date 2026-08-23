@@ -682,5 +682,20 @@ describe("Semantic Knowledge & Memory Search Indexer", () => {
 
       expect(res.markdown).toContain("Semantic Knowledge & Memory Search Report");
     });
+
+    test("supports generation, tag, and pattern multi-attribute filtering via CLI flags", () => {
+      const ws = setupTestWorkspace("cli-multi-attribute");
+      const res = memoryQueryCommand({
+        query: "Prompt",
+        repo: ws.repoRoot,
+        "capsules-dir": ws.capsulesDir,
+        generation: "5",
+        pattern: ".*",
+      });
+
+      expect(res.total_indexed).toBeGreaterThan(0);
+      expect(res.generation_filter).toBe("5");
+      expect(res.pattern_filter).toBe(".*");
+    });
   });
 });

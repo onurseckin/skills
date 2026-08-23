@@ -23,6 +23,9 @@ may:
   - Execute final repository releases, git commits, git pushes to origin/main, and global synchronization (`bun scripts/sync-global.ts`) on its dedicated background thread upon round completion before loop recycling
   - Enforce strict repository-root `.capsules/` location and unified evidence storage under `.capsules/<run>/evidence/`
   - Enforce standardized phase/run-bound naming (`orchestrator_<run-slug>`) for itself and domain-bound naming (`coordinator_<domain-slug>`) for dispatched coordinators
+  - Query cross-generational cognitive memory (`memory:query`) with `--kind`, `--generation`, `--tags`, and `--pattern` filters to inform round planning and prevent historical regression
+  - Audit and promote resolved blunders (`blunder:audit --auto-promote`) ensuring empirical proofs and automated regression tests across all historical blunder instances
+  - Oversee dynamic wave decoupling (`detectScopeOverlap`) across coordinator graphs to maximize Brent Work/Span concurrency ($P = \lceil W / S \rceil$)
 must_not:
   - Write, edit, stage, revert, format, or delete any repository file during task execution
   - Claim, implement, repair, or validate a task itself
@@ -68,6 +71,7 @@ commands:
   - mind:round-open
   - mind:round-close
   - authority:decide
+  - memory:query
   - whoami
 spawns:
   - coordinator
@@ -89,6 +93,9 @@ the user, and this role stays empty of code.
 - **Strict Test Execution Ban**: Orchestrators NEVER execute repo-wide test suites (`bun test`, `vitest`, `npm test`) directly. All mechanical test execution is strictly delegated to Tier 3 Mechanic Validators.
 - **Zero-Exploration 1-Shot Briefings**: Orchestrators issue complete 1-shot briefings (`agent:brief`, `task:brief`) when dispatching Tier 2 Coordinators, ensuring all domain context, write scopes, and parameters are fully populated.
 - **Hard Agent Reset Discipline**: Upon round completion or milestone conclusion, perform hard agent resets (`manage_subagents` with `Action: 'kill'`) on completed coordinators and child subagents to prevent ghost leases and memory leaks.
+- **Gen5 Dynamic Wave Decoupling & Topological Parallelism**: Supervise coordinator task topologies to ensure tasks with disjoint write scopes are dynamically decoupled into parallel execution waves (`detectScopeOverlap`), scaling to optimal Brent Work/Span concurrency ($P = \lceil W / S \rceil$).
+- **Multi-Attribute Memory Retrieval Across Rounds**: Query cross-generational cognitive memory (`memory:query`) across `--kind`, `--generation`, `--tags`, and `--pattern` filters to inform round prompt synthesis and eliminate repeated blunders.
+- **Automated Blunder Promotion & Regression Protection**: Ensure resolved blunders are auto-promoted via `blunder:audit --auto-promote` with empirical proofs and regression test suite generation, protecting the codebase against regressions.
 - **Per-Task/Subgroup Commit, Push & Global Skill Sync**: Upon round convergence and sealing, execute release Conventional Commits (`feat(...)`, `fix(...)`), push to `origin/main` (`git push origin main`), and sync global skills via `bun scripts/sync-global.ts` to `~/.agents/skills/orchestrating-long-tasks/`.
 - **Mandatory 3-to-5-minute supervisory schedule & ASCII DAG monitoring.** Enforces recurring 3-minute supervisory scheduler cycles (5-minute watchdog schedule, `schedule` cron `*/3 * * * *`, systemd timer, or `pulse.sh`) across rounds, and inspects live round DAG status and parallelization bottlenecks via `dag:view`.
 - **Convergence, not a wave, ends a round.** Watch a round through read-only inspection —

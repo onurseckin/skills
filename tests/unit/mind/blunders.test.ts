@@ -5,12 +5,21 @@ import { join } from "node:path";
 import { HarnessError } from "../../../orchestrating-long-tasks/scripts/src/errors/harness-error.ts";
 import {
   auditBlunderLog,
+  autoPromoteBlunder,
   categorizeBlunder,
   formatBlunderAuditBrief,
   formulateBlunderCandidates,
+  generateBlunderRegressionTest,
+  generateRegressionTestSuite,
+  isBlunderEligibleForPromotion,
   parseBlunderLog,
+  promoteResolvedBlunders,
+  readCompletedBlundersLog,
   resolveBlunder,
   serializeBlunderLog,
+  validateRegressionTest,
+  validateResolutionProof,
+  writeCompletedBlundersLog,
   type BlunderAuditReport,
   type BlunderCategory,
   type BlunderEntry,
@@ -600,6 +609,243 @@ describe("Core Blunder Categorization & Resolution Tracking Engine", () => {
       const lineCount = brief.split("\n").length;
       expect(lineCount).toBeLessThanOrEqual(15);
       expect(brief).toContain("truncated");
+    });
+  });
+
+  describe("validateResolutionProof", () => {
+    test("validates complete resolution proof", () => {
+      const proof = {
+        task_id: "task-test-fix",
+        test_assertion: "bun test tests/unit/proof.test.ts",
+        resolved_at: "2026-08-22T05:00:00.000Z",
+        commit_sha: "abc1234def",
+      };
+      const validated = validateResolutionProof(proof);
+      expect(validated.task_id).toBe("task-test-fix");
+      expect(validated.test_assertion).toBe("bun test tests/unit/proof.test.ts");
+      expect(validated.commit_sha).toBe("abc1234def");
+    });
+
+    test("throws HarnessError on missing required fields", () => {
+      expect(() => validateResolutionProof(null)).toThrow(HarnessError);
+      expect(() => validateResolutionProof({ task_id: "" })).toThrow(HarnessError);
+      expect(() =>
+        validateResolutionProof({
+          task_id: "task-1",
+          test_assertion: "",
+          resolved_at: "2026-08-22T00:00:00.000Z",
+        }),
+      ).toThrow(HarnessError);
+    });
+
+    test("enforces commit_sha when requireCommitSha is enabled", () => {
+      const proof = {
+        task_id: "task-test-fix",
+        test_assertion: "bun test",
+        resolved_at: "2026-08-22T05:00:00.000Z",
+      };
+      expect(() => validateResolutionProof(proof, { requireCommitSha: true })).toThrow(
+        HarnessError,
+      );
+    });
+  });
+
+  describe("isBlunderEligibleForPromotion", () => {
+    test("returns true for resolved blunder with valid proof", () => {
+      const blunder: BlunderEntry = {
+        id: "b-promo-1",
+        type: "code_defect",
+        severity: "warning",
+        timestamp: "2026-08-22T00:00:00.000Z",
+        status: "resolved",
+        resolution: {
+          task_id: "task-fix-1",
+          test_assertion: "bun test",
+          resolved_at: "2026-08-22T01:00:00.000Z",
+          commit_sha: "c12345",
+        },
+      };
+      expect(isBlunderEligibleForPromotion(blunder)).toBeTrue();
+    });
+
+    test("returns false for open or wontfix blunders", () => {
+      const openBlunder: BlunderEntry = {
+        id: "b-open",
+        type: "code_defect",
+        severity: "warning",
+        timestamp: "2026-08-22T00:00:00.000Z",
+        status: "open",
+      };
+      expect(isBlunderEligibleForPromotion(openBlunder)).toBeFalse();
+    });
+  });
+
+  describe("generateBlunderRegressionTest and generateRegressionTestSuite", () => {
+    test("generates valid regression test structure", () => {
+      const blunder: BlunderEntry = {
+        id: "blunder-reg-1",
+        type: "syntax_error",
+        severity: "critical",
+        timestamp: "2026-08-22T00:00:00.000Z",
+        category: "code_defect",
+        status: "resolved",
+        observation: "Unmatched braces in config parser",
+        remediation: "Add balanced brace validation",
+        resolution: {
+          task_id: "task-fix-parser",
+          test_assertion: "bun test tests/unit/parser.test.ts",
+          resolved_at: "2026-08-22T01:00:00.000Z",
+        },
+      };
+
+      const generated = generateBlunderRegressionTest(blunder);
+      expect(generated.blunder_id).toBe("blunder-reg-1");
+      expect(generated.test_name).toContain("blunder-reg-1");
+      expect(generated.test_code).toContain("test(");
+      expect(generated.test_code).toContain("expect(");
+
+      const validation = validateRegressionTest(generated.test_code);
+      expect(validation.isValid).toBeTrue();
+    });
+
+    test("generates regression test suite for multiple blunders", () => {
+      const blunders: BlunderEntry[] = [
+        {
+          id: "blunder-suite-1",
+          type: "code_defect",
+          severity: "warning",
+          timestamp: "2026-08-22T00:00:00.000Z",
+          status: "resolved",
+          observation: "Obs 1",
+          remediation: "Remed 1",
+          resolution: {
+            task_id: "t1",
+            test_assertion: "bun test",
+            resolved_at: "2026-08-22T01:00:00.000Z",
+          },
+        },
+        {
+          id: "blunder-suite-2",
+          type: "boundary_violation",
+          severity: "critical",
+          timestamp: "2026-08-22T02:00:00.000Z",
+          status: "resolved",
+          observation: "Obs 2",
+          remediation: "Remed 2",
+          resolution: {
+            task_id: "t2",
+            test_assertion: "bun test",
+            resolved_at: "2026-08-22T03:00:00.000Z",
+          },
+        },
+      ];
+
+      const suite = generateRegressionTestSuite(blunders);
+      expect(suite).toContain("describe(");
+      expect(suite).toContain("Total blunders protected: 2");
+      expect(suite).toContain("blunder-suite-1");
+      expect(suite).toContain("blunder-suite-2");
+    });
+  });
+
+  describe("validateRegressionTest", () => {
+    test("validates test code syntax and assertions", () => {
+      const valid = 'test("passes", () => { expect(1).toBe(1); });';
+      expect(validateRegressionTest(valid).isValid).toBeTrue();
+
+      const invalidMismatchedBraces = 'test("broken", () => { expect(1).toBe(1);';
+      expect(validateRegressionTest(invalidMismatchedBraces).isValid).toBeFalse();
+
+      const noExpect = 'test("no assert", () => { console.log("noop"); });';
+      expect(validateRegressionTest(noExpect).isValid).toBeFalse();
+    });
+  });
+
+  describe("promoteResolvedBlunders and autoPromoteBlunder", () => {
+    test("promotes resolved blunders and separates remaining", () => {
+      const testDir = createTempDir("blunder-promo-");
+      const targetPath = join(testDir, "COMPLETED_BLUNDERS.jsonl");
+
+      const blunders: BlunderEntry[] = [
+        {
+          id: "b-promo-res-1",
+          type: "syntax_defect",
+          severity: "warning",
+          timestamp: "2026-08-22T00:00:00.000Z",
+          status: "resolved",
+          observation: "Syntax bug",
+          remediation: "Fix bug",
+          resolution: {
+            task_id: "task-res-1",
+            test_assertion: "bun test",
+            resolved_at: "2026-08-22T01:00:00.000Z",
+            commit_sha: "abc1",
+          },
+        },
+        {
+          id: "b-promo-open-2",
+          type: "logic_error",
+          severity: "critical",
+          timestamp: "2026-08-22T00:30:00.000Z",
+          status: "open",
+        },
+      ];
+
+      const result = promoteResolvedBlunders(blunders, {
+        targetPath,
+        generateRegressionTests: true,
+        updateSourceFile: false,
+      });
+
+      expect(result.promoted_count).toBe(1);
+      expect(result.unpromoted_count).toBe(1);
+      expect(result.promoted_blunders[0]?.id).toBe("b-promo-res-1");
+      expect(result.remaining_blunders[0]?.id).toBe("b-promo-open-2");
+      expect(result.generated_tests?.length).toBe(1);
+
+      const completed = readCompletedBlundersLog(targetPath);
+      expect(completed.length).toBe(1);
+      expect(completed[0]?.id).toBe("b-promo-res-1");
+    });
+
+    test("autoPromoteBlunder creates verified resolved entry and saves to target log", () => {
+      const testDir = createTempDir("blunder-autopromo-");
+      const sourcePath = join(testDir, "blunders.jsonl");
+      const targetPath = join(testDir, "COMPLETED_BLUNDERS.jsonl");
+
+      const blunder: BlunderEntry = {
+        id: "b-single-1",
+        type: "code_defect",
+        severity: "warning",
+        timestamp: "2026-08-22T00:00:00.000Z",
+        status: "open",
+        observation: "Missing null check",
+        remediation: "Add defensive guard",
+      };
+
+      writeFileSync(sourcePath, `${JSON.stringify(blunder)}\n`);
+
+      const result = autoPromoteBlunder({
+        id: "b-single-1",
+        proof: {
+          task_id: "task-null-guard",
+          test_assertion: "bun test tests/unit/guard.test.ts",
+          resolved_at: "2026-08-22T01:00:00.000Z",
+          commit_sha: "csha123",
+        },
+        options: {
+          sourcePath,
+          targetPath,
+        },
+      });
+
+      expect(result.promoted).toBeTrue();
+      expect(result.blunder.status).toBe("resolved");
+      expect(result.blunder.resolution?.task_id).toBe("task-null-guard");
+
+      const completed = readCompletedBlundersLog(targetPath);
+      expect(completed.length).toBe(1);
+      expect(completed[0]?.id).toBe("b-single-1");
     });
   });
 });

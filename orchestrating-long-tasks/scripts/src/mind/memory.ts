@@ -1,4 +1,4 @@
-import { existsSync, lstatSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
 import { enforceLineLimit } from "../cli/formatters/line-limiter.ts";
 import { HarnessError } from "../errors/harness-error.ts";
@@ -18,6 +18,8 @@ export interface MemoryDocument {
   readonly kind: MemoryKind;
   readonly title: string;
   readonly capsule_id: string | null;
+  readonly generation?: number | null | undefined;
+  readonly tags?: readonly string[] | undefined;
   readonly source_path: string;
   readonly snippet: string;
   readonly metadata: Readonly<Record<string, unknown>>;
@@ -31,6 +33,8 @@ export interface MemoryQueryResult {
   readonly kind: MemoryKind;
   readonly title: string;
   readonly capsule_id: string | null;
+  readonly generation?: number | null | undefined;
+  readonly tags?: readonly string[] | undefined;
   readonly source_path: string;
   readonly score: number;
   readonly snippet: string;
@@ -47,11 +51,16 @@ export interface MemoryIndex {
 }
 
 export interface MemorySearchOptions {
-  readonly query: string;
+  readonly query?: string | undefined;
   readonly kind?: MemoryKind | readonly MemoryKind[] | "all" | string | undefined;
   readonly capsule?: string | readonly string[] | undefined;
+  readonly generation?: number | readonly number[] | string | undefined;
+  readonly tags?: string | readonly string[] | undefined;
+  readonly tag?: string | readonly string[] | undefined;
+  readonly pattern?: string | RegExp | undefined;
   readonly minScore?: number | undefined;
   readonly limit?: number | undefined;
+  readonly offset?: number | undefined;
 }
 
 export interface IndexMemoryOptions {
@@ -159,6 +168,111 @@ export function countTokens(tokens: readonly string[]): Readonly<Record<string, 
 }
 
 /**
+ * Extracts generation number from a capsule directory name (e.g., mind-gen-1 -> 1, run-p87-gen5-... -> 5).
+ */
+export function extractGenerationFromCapsuleId(
+  capsuleId: string | null | undefined,
+): number | null {
+  if (typeof capsuleId !== "string" || !capsuleId.trim()) return null;
+  const match = capsuleId.match(/(?:gen|generation)[-_]?(\d+)/i);
+  if (match && match[1]) {
+    const num = Number.parseInt(match[1], 10);
+    if (Number.isFinite(num)) return num;
+  }
+  return null;
+}
+
+/**
+ * Extracts generation number from an item record or falls back to capsule derivation.
+ */
+export function extractGeneration(
+  item: Record<string, unknown>,
+  fallbackCapsuleId?: string | null,
+): number | null {
+  if (typeof item["generation"] === "number" && Number.isFinite(item["generation"])) {
+    return item["generation"];
+  }
+  if (typeof item["generation"] === "string") {
+    const num = Number.parseInt(item["generation"], 10);
+    if (Number.isFinite(num)) return num;
+  }
+  if (typeof item["generation_id"] === "number" && Number.isFinite(item["generation_id"])) {
+    return item["generation_id"];
+  }
+  if (typeof item["generation_id"] === "string") {
+    const match = item["generation_id"].match(/(?:gen|generation)[-_]?(\d+)/i);
+    if (match && match[1]) {
+      const parsed = Number.parseInt(match[1], 10);
+      if (Number.isFinite(parsed)) return parsed;
+    }
+  }
+  if (typeof item["metadata"] === "object" && item["metadata"] !== null) {
+    const metaGen = (item["metadata"] as Record<string, unknown>)["generation"];
+    if (typeof metaGen === "number" && Number.isFinite(metaGen)) {
+      return metaGen;
+    }
+  }
+  if (typeof item["capsule"] === "string") {
+    const fromCap = extractGenerationFromCapsuleId(item["capsule"]);
+    if (fromCap !== null) return fromCap;
+  }
+  if (fallbackCapsuleId) {
+    const fromFallback = extractGenerationFromCapsuleId(fallbackCapsuleId);
+    if (fromFallback !== null) return fromFallback;
+  }
+  return null;
+}
+
+/**
+ * Normalizes tags into an array of lowercase, trimmed, unique tag strings.
+ */
+export function normalizeTags(tags?: readonly string[] | string | undefined): string[] {
+  if (!tags) return [];
+  const list = Array.isArray(tags) ? tags : String(tags).split(/[,;\s]+/);
+  const result: string[] = [];
+  const seen = new Set<string>();
+
+  for (let i = 0; i < list.length; i += 1) {
+    const raw = list[i];
+    if (typeof raw !== "string") continue;
+    const clean = raw.trim().toLowerCase();
+    if (clean && !seen.has(clean)) {
+      seen.add(clean);
+      result.push(clean);
+    }
+  }
+  return result;
+}
+
+/**
+ * Compiles a search pattern into a RegExp safely.
+ */
+export function compileSearchPattern(pattern: string | RegExp | undefined): RegExp | null {
+  if (!pattern) return null;
+  if (pattern instanceof RegExp) return pattern;
+  if (typeof pattern !== "string" || !pattern.trim()) return null;
+
+  const trimmed = pattern.trim();
+  const slashMatch = trimmed.match(/^\/(.*)\/([a-z]*)$/);
+  if (slashMatch && slashMatch[1] !== undefined) {
+    try {
+      const flags =
+        typeof slashMatch[2] === "string" && slashMatch[2].length > 0 ? slashMatch[2] : "i";
+      return new RegExp(slashMatch[1], flags);
+    } catch {
+      // Fallback below
+    }
+  }
+
+  try {
+    return new RegExp(trimmed, "i");
+  } catch {
+    const escaped = trimmed.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return new RegExp(escaped, "i");
+  }
+}
+
+/**
  * Creates a MemoryDocument from text contents and metadata.
  */
 export function createMemoryDocument(params: {
@@ -166,12 +280,16 @@ export function createMemoryDocument(params: {
   readonly kind: MemoryKind;
   readonly title: string;
   readonly capsule_id?: string | null | undefined;
+  readonly generation?: number | null | undefined;
+  readonly tags?: readonly string[] | undefined;
   readonly source_path: string;
   readonly content: string;
   readonly snippet?: string | undefined;
   readonly metadata?: Readonly<Record<string, unknown>> | undefined;
 }): MemoryDocument {
-  const fullSearchableText = `${params.id} ${params.title} ${params.content}`;
+  const normTags = normalizeTags(params.tags);
+  const tagsText = normTags.join(" ");
+  const fullSearchableText = `${params.id} ${params.title} ${tagsText} ${params.content}`;
   const tokens = tokenize(fullSearchableText);
   const tokenCounts = countTokens(tokens);
 
@@ -182,11 +300,21 @@ export function createMemoryDocument(params: {
         ? `${params.content.slice(0, 197)}...`
         : params.content.trim();
 
+  let generation: number | null = params.generation !== undefined ? params.generation : null;
+  if (generation === null && params.capsule_id) {
+    generation = extractGenerationFromCapsuleId(params.capsule_id);
+  }
+  if (generation === null && params.metadata && typeof params.metadata["generation"] === "number") {
+    generation = params.metadata["generation"];
+  }
+
   return {
     id: params.id,
     kind: params.kind,
     title: params.title,
     capsule_id: params.capsule_id !== undefined ? params.capsule_id : null,
+    generation,
+    tags: normTags,
     source_path: params.source_path,
     snippet,
     metadata: params.metadata !== undefined ? params.metadata : {},
@@ -221,7 +349,8 @@ export function buildMemoryIndex(documents: readonly MemoryDocument[]): MemoryIn
     totalLength += doc.length;
 
     for (const [term, tf] of Object.entries(doc.token_counts)) {
-      docFreq.set(term, (docFreq.get(term) ?? 0) + 1);
+      const prevDf = docFreq.get(term);
+      docFreq.set(term, (prevDf !== undefined ? prevDf : 0) + 1);
 
       let plist = postingsMap.get(term);
       if (plist === undefined) {
@@ -267,7 +396,7 @@ export function extractSnippet(
   for (let i = 0; i < queryTokens.length; i += 1) {
     const q = queryTokens[i];
     if (q !== undefined && q.length >= 2) {
-      const idx = lowerContent.indexOf(q);
+      const idx = lowerContent.indexOf(q.toLowerCase());
       if (idx !== -1 && (firstMatchPos === -1 || idx < firstMatchPos)) {
         firstMatchPos = idx;
       }
@@ -290,7 +419,7 @@ export function extractSnippet(
 }
 
 /**
- * Scores documents against a search query using BM25 with term matching boosts.
+ * Scores documents against a search query using BM25 with term matching and tag boosts.
  */
 export function scoreDocumentBM25(
   doc: MemoryDocument,
@@ -310,15 +439,18 @@ export function scoreDocumentBM25(
 
   const docTitleLower = doc.title.toLowerCase();
   const docIdLower = doc.id.toLowerCase();
+  const docTags = new Set((doc.tags !== undefined ? doc.tags : []).map((t) => t.toLowerCase()));
 
   for (let i = 0; i < queryTokens.length; i += 1) {
     const term = queryTokens[i];
     if (term === undefined) continue;
 
-    const tf = doc.token_counts[term] ?? 0;
+    const termCount = doc.token_counts[term];
+    const tf = typeof termCount === "number" ? termCount : 0;
     if (tf > 0) {
       matchedTerms.push(term);
-      const idf = index.idf.get(term) ?? 1.0;
+      const idfScore = index.idf.get(term);
+      const idf = typeof idfScore === "number" ? idfScore : 1.0;
       const numerator = tf * (k1 + 1);
       const denominator = tf + k1 * (1 - b + b * (docLen / avgLen));
       let termScore = idf * (numerator / denominator);
@@ -326,6 +458,11 @@ export function scoreDocumentBM25(
       // Boost if term is present in document title or ID
       if (docTitleLower.includes(term) || docIdLower.includes(term)) {
         termScore *= 1.5;
+      }
+
+      // Boost if term matches document tags
+      if (docTags.has(term)) {
+        termScore *= 1.3;
       }
 
       bm25Score += termScore;
@@ -339,7 +476,7 @@ export function scoreDocumentBM25(
 }
 
 /**
- * Searches the memory index for relevant documents matching query and filters.
+ * Searches and queries the memory index with multi-attribute filtering (generation, kind, tags, pattern, query).
  */
 export function searchMemory(
   index: MemoryIndex,
@@ -355,32 +492,85 @@ export function searchMemory(
   const minScore =
     typeof options.minScore === "number" && options.minScore >= 0 ? options.minScore : 0.0;
   const limit = typeof options.limit === "number" && options.limit > 0 ? options.limit : 10;
+  const offset = typeof options.offset === "number" && options.offset >= 0 ? options.offset : 0;
 
-  // Normalize kind filter
+  // 1. Kind filter
   let allowedKinds: Set<string> | null = null;
   if (options.kind !== undefined && options.kind !== "all" && options.kind !== "") {
     if (Array.isArray(options.kind)) {
       allowedKinds = new Set(options.kind.map((k) => String(k).trim().toLowerCase()));
     } else {
       const splitKinds = String(options.kind)
-        .split(",")
-        .map((k) => k.trim().toLowerCase());
-      allowedKinds = new Set(splitKinds);
+        .split(/[,;\s]+/)
+        .map((k) => k.trim().toLowerCase())
+        .filter(Boolean);
+      if (splitKinds.length > 0) {
+        allowedKinds = new Set(splitKinds);
+      }
     }
   }
 
-  // Normalize capsule filter
+  // 2. Capsule filter
   let allowedCapsules: Set<string> | null = null;
   if (options.capsule !== undefined && options.capsule !== "all" && options.capsule !== "") {
     if (Array.isArray(options.capsule)) {
       allowedCapsules = new Set(options.capsule.map((c) => String(c).trim().toLowerCase()));
     } else {
       const splitCapsules = String(options.capsule)
-        .split(",")
-        .map((c) => c.trim().toLowerCase());
-      allowedCapsules = new Set(splitCapsules);
+        .split(/[,;\s]+/)
+        .map((c) => c.trim().toLowerCase())
+        .filter(Boolean);
+      if (splitCapsules.length > 0) {
+        allowedCapsules = new Set(splitCapsules);
+      }
     }
   }
+
+  // 3. Generation filter
+  let allowedGenerations: Set<number> | null = null;
+  if (
+    options.generation !== undefined &&
+    options.generation !== "all" &&
+    options.generation !== ""
+  ) {
+    if (Array.isArray(options.generation)) {
+      allowedGenerations = new Set(
+        options.generation
+          .map((g) => (typeof g === "number" ? g : Number.parseInt(String(g), 10)))
+          .filter((n) => Number.isFinite(n)),
+      );
+    } else if (typeof options.generation === "number") {
+      allowedGenerations = new Set([options.generation]);
+    } else {
+      const parts = String(options.generation).split(/[,;\s]+/);
+      const parsedGens: number[] = [];
+      for (let i = 0; i < parts.length; i += 1) {
+        const p = parts[i];
+        if (p === undefined) continue;
+        const match = p.match(/(?:gen|generation)?[-_]?(\d+)/i);
+        if (match && match[1]) {
+          const num = Number.parseInt(match[1], 10);
+          if (Number.isFinite(num)) parsedGens.push(num);
+        }
+      }
+      if (parsedGens.length > 0) {
+        allowedGenerations = new Set(parsedGens);
+      }
+    }
+  }
+
+  // 4. Tags filter
+  const rawTagsFilter = options.tags !== undefined ? options.tags : options.tag;
+  let requiredTags: string[] | null = null;
+  if (rawTagsFilter !== undefined && rawTagsFilter !== "all" && rawTagsFilter !== "") {
+    const normalized = normalizeTags(rawTagsFilter);
+    if (normalized.length > 0) {
+      requiredTags = normalized;
+    }
+  }
+
+  // 5. Pattern filter (semantic pattern regex)
+  const patternRegex = compileSearchPattern(options.pattern);
 
   const results: MemoryQueryResult[] = [];
 
@@ -401,37 +591,106 @@ export function searchMemory(
       }
     }
 
+    // Apply generation filter
+    if (allowedGenerations !== null) {
+      if (
+        doc.generation === null ||
+        doc.generation === undefined ||
+        !allowedGenerations.has(doc.generation)
+      ) {
+        continue;
+      }
+    }
+
+    // Apply tags filter
+    if (requiredTags !== null) {
+      const docTags = new Set((doc.tags !== undefined ? doc.tags : []).map((t) => t.toLowerCase()));
+      const docTokensSet = new Set(doc.tokens);
+      let allTagsMatch = true;
+
+      for (let j = 0; j < requiredTags.length; j += 1) {
+        const reqTag = requiredTags[j];
+        if (reqTag === undefined) continue;
+        const tagMatched =
+          docTags.has(reqTag) ||
+          Array.from(docTags).some((t) => t.includes(reqTag) || reqTag.includes(t)) ||
+          docTokensSet.has(reqTag);
+
+        if (!tagMatched) {
+          allTagsMatch = false;
+          break;
+        }
+      }
+
+      if (!allTagsMatch) {
+        continue;
+      }
+    }
+
+    // Apply pattern regex filter
+    let patternMatched = false;
+    const patternMatchTerms: string[] = [];
+    if (patternRegex !== null) {
+      const docTagsText = (doc.tags !== undefined ? doc.tags : []).join(" ");
+      const searchableStr = `${doc.id} ${doc.title} ${docTagsText} ${doc.snippet} ${doc.source_path}`;
+      const match = patternRegex.exec(searchableStr);
+      if (!match) {
+        continue;
+      }
+      patternMatched = true;
+      if (match[0]) {
+        patternMatchTerms.push(match[0]);
+      }
+    }
+
     if (queryTokens.length === 0) {
-      // Return unranked if query is empty but filter matched
+      // Return unranked/filtered document if query is empty
+      let score = 1.0;
+      if (patternMatched) score += 2.0;
+      if (requiredTags !== null) score += 0.5;
+
       results.push({
         id: doc.id,
         kind: doc.kind,
         title: doc.title,
         capsule_id: doc.capsule_id,
+        generation: doc.generation,
+        tags: doc.tags,
         source_path: doc.source_path,
-        score: 1.0,
+        score,
         snippet: doc.snippet,
-        matched_terms: [],
+        matched_terms: patternMatchTerms,
         metadata: doc.metadata,
       });
       continue;
     }
 
-    const { score, matchedTerms } = scoreDocumentBM25(doc, queryTokens, index);
+    const { score: bm25Score, matchedTerms } = scoreDocumentBM25(doc, queryTokens, index);
 
-    if (matchedTerms.length > 0 && score >= minScore) {
-      const dynamicSnippet = extractSnippet(doc.snippet, queryTokens);
-      results.push({
-        id: doc.id,
-        kind: doc.kind,
-        title: doc.title,
-        capsule_id: doc.capsule_id,
-        source_path: doc.source_path,
-        score,
-        snippet: dynamicSnippet,
-        matched_terms: matchedTerms,
-        metadata: doc.metadata,
-      });
+    if (matchedTerms.length > 0 || patternMatched) {
+      let finalScore = bm25Score;
+      if (patternMatched) finalScore += 2.5;
+
+      if (finalScore >= minScore) {
+        const combinedMatchedTerms = Array.from(new Set([...matchedTerms, ...patternMatchTerms]));
+        const dynamicSnippet = extractSnippet(doc.snippet, [
+          ...queryTokens,
+          ...combinedMatchedTerms,
+        ]);
+        results.push({
+          id: doc.id,
+          kind: doc.kind,
+          title: doc.title,
+          capsule_id: doc.capsule_id,
+          generation: doc.generation,
+          tags: doc.tags,
+          source_path: doc.source_path,
+          score: Number(finalScore.toFixed(4)),
+          snippet: dynamicSnippet,
+          matched_terms: combinedMatchedTerms,
+          metadata: doc.metadata,
+        });
+      }
     }
   }
 
@@ -444,8 +703,13 @@ export function searchMemory(
     return a.id.localeCompare(b.id);
   });
 
-  return results.slice(0, limit);
+  return results.slice(offset, offset + limit);
 }
+
+/**
+ * Semantic query alias for searchMemory.
+ */
+export const queryMemory = searchMemory;
 
 /**
  * Indexes charter documents from docs/mind/CHARTER.md, references, and docs.
@@ -466,6 +730,8 @@ export function indexCharterDocuments(repoRoot: string): MemoryDocument[] {
           kind: "charter",
           title: "Mind Charter (Core Directives & Invariants)",
           source_path: "docs/mind/CHARTER.md",
+          generation: null,
+          tags: ["charter", "directive", "invariant", "core"],
           content,
           snippet: content.slice(0, 200),
           metadata: { file: "docs/mind/CHARTER.md" },
@@ -484,6 +750,8 @@ export function indexCharterDocuments(repoRoot: string): MemoryDocument[] {
               kind: "charter",
               title: `Charter Goal ${goalId}`,
               source_path: "docs/mind/CHARTER.md",
+              generation: null,
+              tags: ["charter", "goal", goalId.toLowerCase()],
               content: `${goalId}: ${goalText}`,
               snippet: goalText,
               metadata: { goal_id: goalId },
@@ -504,6 +772,8 @@ export function indexCharterDocuments(repoRoot: string): MemoryDocument[] {
               kind: "charter",
               title: `Charter ${pillarId}`,
               source_path: "docs/mind/CHARTER.md",
+              generation: null,
+              tags: ["charter", "pillar", pillarId.toLowerCase().replace(/\s+/g, "-")],
               content: `${pillarId}: ${pillarText}`,
               snippet: pillarText,
               metadata: { pillar: pillarId },
@@ -540,6 +810,8 @@ export function indexCharterDocuments(repoRoot: string): MemoryDocument[] {
                   kind: "charter",
                   title: `Reference: ${entry.name}`,
                   source_path: filePath,
+                  generation: null,
+                  tags: ["charter", "reference", entry.name.toLowerCase().replace(/\.[^/.]+$/, "")],
                   content,
                   snippet: content.slice(0, 200),
                   metadata: { file: entry.name },
@@ -613,6 +885,26 @@ export function indexBlunderDocuments(capsulesDir: string, explicitRun?: string)
             const severity = typeof parsed.severity === "string" ? parsed.severity : "warning";
             const category = typeof parsed.category === "string" ? parsed.category : "code_defect";
 
+            const gen = extractGeneration(
+              parsed,
+              item.capsule !== "capsules-root" ? item.capsule : null,
+            );
+            const extraTags = Array.isArray(parsed.tags)
+              ? (parsed.tags as string[])
+              : Array.isArray(parsed.labels)
+                ? (parsed.labels as string[])
+                : [];
+
+            const tags = normalizeTags([
+              "blunder",
+              severity,
+              status,
+              category,
+              parsed.type,
+              ...(gen !== null ? [`gen-${gen}`] : []),
+              ...extraTags,
+            ]);
+
             const searchableContent = `${parsed.id} ${parsed.type} ${category} ${status} ${severity} ${observation} ${remediation}`;
             const snippet = `[${severity.toUpperCase()} | ${status}] ${observation} Remediation: ${remediation}`;
 
@@ -622,6 +914,8 @@ export function indexBlunderDocuments(capsulesDir: string, explicitRun?: string)
                 kind: "blunder",
                 title: `Blunder [${parsed.id}]: ${parsed.type}`,
                 capsule_id: item.capsule !== "capsules-root" ? item.capsule : null,
+                generation: gen,
+                tags,
                 source_path: item.filePath,
                 content: searchableContent,
                 snippet,
@@ -633,6 +927,8 @@ export function indexBlunderDocuments(capsulesDir: string, explicitRun?: string)
                   category,
                   observation,
                   remediation,
+                  generation: gen,
+                  tags,
                   pid: typeof parsed.pid === "number" ? parsed.pid : undefined,
                   ppid: typeof parsed.ppid === "number" ? parsed.ppid : undefined,
                   agent_id: typeof parsed.agent_id === "string" ? parsed.agent_id : undefined,
@@ -685,6 +981,8 @@ export function indexCapsuleDocuments(capsulesDir: string, explicitRun?: string)
     const cap = capsuleDirs[i];
     if (cap === undefined) continue;
 
+    const gen = extractGenerationFromCapsuleId(cap.name);
+
     // 1. Prompt
     const promptPath = join(cap.path, "prompt.md");
     if (existsSync(promptPath)) {
@@ -696,10 +994,17 @@ export function indexCapsuleDocuments(capsulesDir: string, explicitRun?: string)
             kind: "capsule",
             title: `Capsule Prompt (${cap.name})`,
             capsule_id: cap.name,
+            generation: gen,
+            tags: normalizeTags([
+              "capsule",
+              "prompt",
+              cap.name,
+              ...(gen !== null ? [`gen-${gen}`] : []),
+            ]),
             source_path: promptPath,
             content: promptContent,
             snippet: promptContent.slice(0, 200),
-            metadata: { capsule: cap.name, file: "prompt.md" },
+            metadata: { capsule: cap.name, generation: gen, file: "prompt.md" },
           }),
         );
       } catch {
@@ -718,10 +1023,17 @@ export function indexCapsuleDocuments(capsulesDir: string, explicitRun?: string)
             kind: "capsule",
             title: `Execution Trace (${cap.name})`,
             capsule_id: cap.name,
+            generation: gen,
+            tags: normalizeTags([
+              "capsule",
+              "trace",
+              cap.name,
+              ...(gen !== null ? [`gen-${gen}`] : []),
+            ]),
             source_path: tracePath,
             content: traceContent,
             snippet: traceContent.slice(0, 200),
-            metadata: { capsule: cap.name, file: "trace.md" },
+            metadata: { capsule: cap.name, generation: gen, file: "trace.md" },
           }),
         );
       } catch {
@@ -754,6 +1066,15 @@ export function indexCapsuleDocuments(capsulesDir: string, explicitRun?: string)
                   kind: "capsule",
                   title: `Task ${taskId} (${cap.name})`,
                   capsule_id: cap.name,
+                  generation: gen,
+                  tags: normalizeTags([
+                    "capsule",
+                    "task",
+                    status.toLowerCase(),
+                    taskId.toLowerCase(),
+                    cap.name,
+                    ...(gen !== null ? [`gen-${gen}`] : []),
+                  ]),
                   source_path: statePath,
                   content,
                   snippet,
@@ -761,6 +1082,7 @@ export function indexCapsuleDocuments(capsulesDir: string, explicitRun?: string)
                     task_id: taskId,
                     status,
                     capsule: cap.name,
+                    generation: gen,
                     write_scope: task.write_scope,
                   },
                 }),
@@ -813,6 +1135,8 @@ export function indexDecisionDocuments(
     const cap = capsuleDirs[i];
     if (cap === undefined) continue;
 
+    const gen = extractGenerationFromCapsuleId(cap.name);
+
     const statePath = join(cap.path, "state.json");
     if (existsSync(statePath)) {
       try {
@@ -839,6 +1163,15 @@ export function indexDecisionDocuments(
                   kind: "decision",
                   title: `Candidate Decision: ${candId} (${status})`,
                   capsule_id: cap.name,
+                  generation: gen,
+                  tags: normalizeTags([
+                    "decision",
+                    "candidate",
+                    status.toLowerCase(),
+                    candId.toLowerCase(),
+                    cap.name,
+                    ...(gen !== null ? [`gen-${gen}`] : []),
+                  ]),
                   source_path: statePath,
                   content,
                   snippet,
@@ -848,6 +1181,7 @@ export function indexDecisionDocuments(
                     statement,
                     rationale,
                     decided_by: decidedBy,
+                    generation: gen,
                     capsule: cap.name,
                   },
                 }),
@@ -874,10 +1208,25 @@ export function indexDecisionDocuments(
                   kind: "decision",
                   title: `Audit Decision: ${auditId} (${verdict})`,
                   capsule_id: cap.name,
+                  generation: gen,
+                  tags: normalizeTags([
+                    "decision",
+                    "audit",
+                    verdict.toLowerCase(),
+                    auditId.toLowerCase(),
+                    cap.name,
+                    ...(gen !== null ? [`gen-${gen}`] : []),
+                  ]),
                   source_path: statePath,
                   content,
                   snippet,
-                  metadata: { audit_id: auditId, verdict, actor, capsule: cap.name },
+                  metadata: {
+                    audit_id: auditId,
+                    verdict,
+                    actor,
+                    generation: gen,
+                    capsule: cap.name,
+                  },
                 }),
               );
             }
@@ -925,6 +1274,8 @@ export function indexReportDocuments(capsulesDir: string, explicitRun?: string):
     const cap = capsuleDirs[i];
     if (cap === undefined) continue;
 
+    const gen = extractGenerationFromCapsuleId(cap.name);
+
     // Scan reports directory
     const reportsDir = join(cap.path, "reports");
     if (existsSync(reportsDir)) {
@@ -936,16 +1287,24 @@ export function indexReportDocuments(capsulesDir: string, explicitRun?: string):
             const reportPath = join(reportsDir, rentry.name);
             try {
               const content = readFileSync(reportPath, "utf-8");
+              const reportBase = rentry.name.replace(/\.[^/.]+$/, "");
               documents.push(
                 createMemoryDocument({
-                  id: `report-${cap.name}-${rentry.name.replace(/\.[^/.]+$/, "")}`,
+                  id: `report-${cap.name}-${reportBase}`,
                   kind: "report",
                   title: `Report: ${rentry.name} (${cap.name})`,
                   capsule_id: cap.name,
+                  generation: gen,
+                  tags: normalizeTags([
+                    "report",
+                    reportBase.toLowerCase(),
+                    cap.name,
+                    ...(gen !== null ? [`gen-${gen}`] : []),
+                  ]),
                   source_path: reportPath,
                   content,
                   snippet: content.slice(0, 200),
-                  metadata: { filename: rentry.name, capsule: cap.name },
+                  metadata: { filename: rentry.name, generation: gen, capsule: cap.name },
                 }),
               );
             } catch {
@@ -976,10 +1335,18 @@ export function indexReportDocuments(capsulesDir: string, explicitRun?: string):
                     kind: "report",
                     title: `Role Packet: ${pentry.name} (${cap.name})`,
                     capsule_id: cap.name,
+                    generation: gen,
+                    tags: normalizeTags([
+                      "report",
+                      "packet",
+                      pentry.name.toLowerCase(),
+                      cap.name,
+                      ...(gen !== null ? [`gen-${gen}`] : []),
+                    ]),
                     source_path: packetMd,
                     content: packetContent,
                     snippet: packetContent.slice(0, 200),
-                    metadata: { packet_id: pentry.name, capsule: cap.name },
+                    metadata: { packet_id: pentry.name, generation: gen, capsule: cap.name },
                   }),
                 );
               } catch {
@@ -1058,10 +1425,30 @@ export function indexArchivedObjectiveDocuments(
           if (typeof parsed["id"] === "string") {
             const statement = typeof parsed["statement"] === "string" ? parsed["statement"] : "";
             const result = typeof parsed["result"] === "string" ? parsed["result"] : "completed";
-            const gen = typeof parsed["generation"] === "number" ? parsed["generation"] : 1;
+            const extractedGen = extractGeneration(
+              parsed,
+              item.capsule !== "capsules-root" ? item.capsule : null,
+            );
+            const gen =
+              typeof parsed["generation"] === "number"
+                ? parsed["generation"]
+                : extractedGen !== null
+                  ? extractedGen
+                  : 1;
             const completedAt =
               typeof parsed["completed_at"] === "string" ? parsed["completed_at"] : "";
             const type = typeof parsed["type"] === "string" ? parsed["type"] : "objective";
+
+            const goals = Array.isArray(parsed["charter_goals"])
+              ? (parsed["charter_goals"] as string[])
+              : [];
+            const tags = normalizeTags([
+              "archived",
+              type.toLowerCase(),
+              result.toLowerCase(),
+              `gen-${gen}`,
+              ...goals,
+            ]);
 
             const searchableContent = `${parsed["id"]} ${type} ${statement} gen-${gen} ${result} ${completedAt}`;
             const snippet = `[GEN ${gen} | ${result.toUpperCase()}] (${type}) ${statement}`;
@@ -1072,6 +1459,8 @@ export function indexArchivedObjectiveDocuments(
                 kind: "decision",
                 title: `Archived ${type.toUpperCase()} [${parsed["id"]}] (Gen ${gen})`,
                 capsule_id: item.capsule !== "capsules-root" ? item.capsule : null,
+                generation: gen,
+                tags,
                 source_path: item.filePath,
                 content: searchableContent,
                 snippet,
@@ -1079,6 +1468,7 @@ export function indexArchivedObjectiveDocuments(
                   archived_id: parsed["id"],
                   type,
                   generation: gen,
+                  tags,
                   result,
                   completed_at: completedAt,
                   capsule: item.capsule,
@@ -1187,21 +1577,30 @@ export function formatMemoryQueryBrief(params: {
   readonly capsulesDir: string;
   readonly runRoot: string | null;
   readonly kindFilter?: string | undefined;
+  readonly generationFilter?: string | number | undefined;
+  readonly tagsFilter?: string | undefined;
+  readonly patternFilter?: string | undefined;
   readonly isAll?: boolean | undefined;
 }): string {
+  const queryDisplay = params.query.length > 0 ? params.query : "*all*";
   const lines: string[] = [
     "### Semantic Knowledge & Memory Search Report",
-    `- **Search Query**: \`${params.query}\``,
+    `- **Search Query**: \`${queryDisplay}\``,
     `- **Total Memory Documents Indexed**: ${params.totalIndexed}`,
     `- **Matching Records Found**: ${params.results.length}`,
     params.kindFilter ? `- **Kind Filter**: \`${params.kindFilter}\`` : "- **Kind Filter**: `all`",
+    params.generationFilter !== undefined
+      ? `- **Generation Filter**: \`${params.generationFilter}\``
+      : null,
+    params.tagsFilter ? `- **Tags Filter**: \`${params.tagsFilter}\`` : null,
+    params.patternFilter ? `- **Pattern Filter**: \`${params.patternFilter}\`` : null,
     params.runRoot !== null
       ? `- **Target Run Root**: \`${params.runRoot}\``
       : "- **Target Run Root**: *all*",
     "",
     "#### Search Results Matrix",
     renderAsciiMemoryTable(params.results),
-  ];
+  ].filter((line): line is string => line !== null);
 
   if (params.results.length > 0) {
     lines.push("");
@@ -1209,11 +1608,16 @@ export function formatMemoryQueryBrief(params: {
     for (let i = 0; i < params.results.length; i += 1) {
       const r = params.results[i];
       if (r === undefined) continue;
-      lines.push(`- **\`${r.id}\`** [\`${r.kind}\`] (Score: \`${r.score.toFixed(3)}\`)`);
+      const genBadge =
+        r.generation !== null && r.generation !== undefined ? ` [Gen ${r.generation}]` : "";
+      lines.push(`- **\`${r.id}\`** [\`${r.kind}\`]${genBadge} (Score: \`${r.score.toFixed(3)}\`)`);
       lines.push(`  - **Title**: ${r.title}`);
       lines.push(`  - **Source**: \`${r.source_path}\``);
       if (r.capsule_id) {
         lines.push(`  - **Capsule**: \`${r.capsule_id}\``);
+      }
+      if (r.tags && r.tags.length > 0) {
+        lines.push(`  - **Tags**: \`${r.tags.join("`, `")}\``);
       }
       if (r.matched_terms.length > 0) {
         lines.push(`  - **Matched Terms**: \`${r.matched_terms.join("`, `")}\``);

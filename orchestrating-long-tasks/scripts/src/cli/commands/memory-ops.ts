@@ -24,6 +24,10 @@ export interface MemoryQueryCommandResult {
   readonly capsules_dir: string;
   readonly run_root: string | null;
   readonly results: readonly MemoryQueryResult[];
+  readonly generation_filter?: string | number | null;
+  readonly kind_filter?: string | null;
+  readonly tags_filter?: string | null;
+  readonly pattern_filter?: string | null;
   readonly [key: string]: unknown;
 }
 
@@ -40,6 +44,11 @@ export function memoryQueryCommand(
     "capsules-dir",
     "repo",
     "kind",
+    "generation",
+    "gen",
+    "tag",
+    "tags",
+    "pattern",
     "limit",
     "min-score",
     "format",
@@ -52,15 +61,18 @@ export function memoryQueryCommand(
   if (query === undefined && context?.inlinePrompt !== undefined) {
     query = context.inlinePrompt.trim();
   }
-  if (query === undefined || !query.trim()) {
-    throw new HarnessError("INVALID_ARGUMENT", "--query must have a non-blank value");
-  }
 
   const run = textFlag(flags, "run", false);
   const capsulesDirFlag = textFlag(flags, "capsules-dir", false);
   const repoFlag = textFlag(flags, "repo", false);
   const kindFlag = textFlag(flags, "kind", false);
-  const limit = integerFlag(flags, "limit", { minimum: 1 }) ?? 10;
+  const rawGenFlag = textFlag(flags, "generation", false);
+  const generationFlag = rawGenFlag !== undefined ? rawGenFlag : textFlag(flags, "gen", false);
+  const rawTagsFlag = textFlag(flags, "tags", false);
+  const tagsFlag = rawTagsFlag !== undefined ? rawTagsFlag : textFlag(flags, "tag", false);
+  const patternFlag = textFlag(flags, "pattern", false);
+  const parsedLimit = integerFlag(flags, "limit", { minimum: 1 });
+  const limit = typeof parsedLimit === "number" ? parsedLimit : 10;
   const minScoreRaw = textFlag(flags, "min-score", false);
   const isAll = boolFlag(flags, "all");
   const now = textFlag(flags, "now", false);
@@ -68,6 +80,19 @@ export function memoryQueryCommand(
   if (now !== undefined && !Number.isFinite(Date.parse(now))) {
     throw new HarnessError("INVALID_ARGUMENT", `invalid --now timestamp: ${now}`);
   }
+
+  if (
+    (query === undefined || !query.trim()) &&
+    kindFlag === undefined &&
+    generationFlag === undefined &&
+    tagsFlag === undefined &&
+    patternFlag === undefined &&
+    run === undefined
+  ) {
+    throw new HarnessError("INVALID_ARGUMENT", "--query must have a non-blank value");
+  }
+
+  const normalizedQuery = query !== undefined ? query.trim() : "";
 
   let minScore = 0.0;
   if (minScoreRaw !== undefined) {
@@ -116,30 +141,40 @@ export function memoryQueryCommand(
   });
 
   const searchResults = searchMemory(index, {
-    query,
+    query: normalizedQuery,
     kind: kindFlag,
     capsule: run !== undefined ? basename(resolve(run)) : undefined,
+    generation: generationFlag,
+    tags: tagsFlag,
+    pattern: patternFlag,
     minScore,
     limit,
   });
 
   const markdown = formatMemoryQueryBrief({
-    query,
+    query: normalizedQuery,
     results: searchResults,
     totalIndexed: index.total_documents,
     capsulesDir: resolvedCapsulesDir,
     runRoot: run !== undefined ? resolve(run) : null,
     kindFilter: kindFlag,
+    generationFilter: generationFlag,
+    tagsFilter: tagsFlag,
+    patternFilter: patternFlag,
     isAll,
   });
 
   return {
     markdown,
-    query,
+    query: normalizedQuery,
     total_indexed: index.total_documents,
     total_matches: searchResults.length,
     capsules_dir: resolvedCapsulesDir,
     run_root: run !== undefined ? resolve(run) : null,
     results: searchResults,
+    generation_filter: generationFlag !== undefined ? generationFlag : null,
+    kind_filter: kindFlag !== undefined ? kindFlag : null,
+    tags_filter: tagsFlag !== undefined ? tagsFlag : null,
+    pattern_filter: patternFlag !== undefined ? patternFlag : null,
   };
 }

@@ -1,7 +1,16 @@
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import type { JsonObject, JsonValue } from "../../contracts/json.ts";
 import { HarnessError } from "../../errors/harness-error.ts";
+import {
+  generateBlunderRegressionTest,
+  generateRegressionTestSuite,
+  promoteResolvedBlunders,
+  resolveCompletedBlundersPath,
+  type BlunderCategory,
+  type BlunderEntry,
+  type GeneratedRegressionTest,
+} from "../../mind/blunders.ts";
 import { loadRun } from "../../store/load.ts";
 import { transact } from "../../store/transaction.ts";
 import { enforceLineLimit } from "../formatters/line-limiter.ts";
@@ -52,6 +61,7 @@ export interface AuditedBlunder {
   readonly source_capsule: string;
   readonly source_file: string;
   readonly candidate_id?: string | null | undefined;
+  readonly resolution?: Record<string, unknown> | null | undefined;
 }
 
 export interface BlunderAuditSummary {
@@ -76,6 +86,10 @@ export interface BlunderAuditCommandResult {
   readonly summary: BlunderAuditSummary;
   readonly auto_admitted_count: number;
   readonly auto_admitted_candidates: readonly string[];
+  readonly promoted_count?: number | undefined;
+  readonly promoted_blunders?: readonly string[] | undefined;
+  readonly generated_tests?: readonly GeneratedRegressionTest[] | undefined;
+  readonly generated_test_suite?: string | undefined;
   readonly [key: string]: unknown;
 }
 
@@ -371,6 +385,13 @@ function parseBlundersFromFile(
           candidateId = candidateMatch.candidateId;
         }
 
+        let resolution: Record<string, unknown> | null | undefined = undefined;
+        if (typeof raw.resolution === "object" && raw.resolution !== null) {
+          resolution = raw.resolution as Record<string, unknown>;
+        } else if (raw.resolution === null) {
+          resolution = null;
+        }
+
         blunders.push({
           id,
           type,
@@ -386,6 +407,7 @@ function parseBlundersFromFile(
           source_capsule: fileInfo.capsuleName,
           source_file: fileInfo.filePath,
           candidate_id: candidateId,
+          ...(resolution !== undefined ? { resolution } : {}),
         });
       }
     } catch {
@@ -449,6 +471,9 @@ export function formatBlunderAuditReport(params: {
   readonly autoAdmittedCount: number;
   readonly autoAdmittedCandidates: readonly string[];
   readonly isAll?: boolean | undefined;
+  readonly promotedCount?: number | undefined;
+  readonly promotedBlunders?: readonly string[] | undefined;
+  readonly generatedTestsCount?: number | undefined;
 }): string {
   const lines: string[] = [
     "### Blunder Audit & Observability Report",
@@ -466,6 +491,16 @@ export function formatBlunderAuditReport(params: {
     lines.push(
       `- **Auto-Admitted Candidates**: ${params.autoAdmittedCount} candidate(s) created (\`${params.autoAdmittedCandidates.join("`, `")}\`)`,
     );
+  }
+
+  if (params.promotedCount !== undefined && params.promotedCount > 0) {
+    lines.push(
+      `- **Promoted to COMPLETED_BLUNDERS**: ${params.promotedCount} blunder(s) archived with verified proof`,
+    );
+  }
+
+  if (params.generatedTestsCount !== undefined && params.generatedTestsCount > 0) {
+    lines.push(`- **Regression Tests Generated**: ${params.generatedTestsCount} test(s) generated`);
   }
 
   lines.push("");
@@ -519,6 +554,12 @@ export function blunderAuditCommand(
     "all",
     "now",
     "json",
+    "auto-promote",
+    "promote",
+    "generate-tests",
+    "output-tests",
+    "completed-file",
+    "dry-run",
   ]);
 
   const run = textFlag(flags, "run", false);
@@ -532,6 +573,12 @@ export function blunderAuditCommand(
   const actorFlag = textFlag(flags, "actor", false);
   const isAll = boolFlag(flags, "all");
   const now = textFlag(flags, "now", false);
+  const autoPromote = boolFlag(flags, "auto-promote");
+  const promoteFlag = textFlag(flags, "promote", false);
+  const generateTests = boolFlag(flags, "generate-tests");
+  const outputTests = textFlag(flags, "output-tests", false);
+  const completedFileFlag = textFlag(flags, "completed-file", false);
+  const dryRun = boolFlag(flags, "dry-run");
 
   const nowMs = now !== undefined ? Date.parse(now) : Date.now();
   if (now !== undefined && !Number.isFinite(nowMs)) {
@@ -707,7 +754,102 @@ export function blunderAuditCommand(
     }
   }
 
-  // 6. Compute summary metrics and APCA compliance
+  // 6. Handle promotion (--auto-promote, --promote)
+  let promotedCount = 0;
+  const promotedBlunders: string[] = [];
+
+  if (autoPromote || promoteFlag !== undefined) {
+    const targetCompletedFile = completedFileFlag
+      ? resolve(completedFileFlag)
+      : resolveCompletedBlundersPath();
+
+    const toPromoteList: BlunderEntry[] = [];
+    for (const b of allBlunders) {
+      const matchesTarget =
+        promoteFlag === undefined || promoteFlag === "all" || b.id === promoteFlag;
+      if (matchesTarget && b.status === "resolved") {
+        const resolution =
+          typeof b.resolution === "object" && b.resolution !== null
+            ? (b.resolution as unknown as BlunderEntry["resolution"])
+            : undefined;
+
+        const bEntry: BlunderEntry = {
+          id: b.id,
+          type: b.type,
+          severity: b.severity,
+          timestamp: b.timestamp,
+          category: (b.context as Record<string, unknown>)?.category
+            ? ((b.context as Record<string, unknown>).category as BlunderCategory)
+            : "code_defect",
+          status: "resolved",
+          observation: b.observation,
+          remediation: b.remediation,
+          ...(b.pid ? { pid: b.pid } : {}),
+          ...(b.ppid ? { ppid: b.ppid } : {}),
+          ...(b.agent_id ? { agent_id: b.agent_id } : {}),
+          context: b.context,
+          ...(resolution !== undefined ? { resolution } : {}),
+        };
+        toPromoteList.push(bEntry);
+      }
+    }
+
+    if (toPromoteList.length > 0) {
+      const promotionResult = promoteResolvedBlunders(toPromoteList, {
+        targetPath: targetCompletedFile,
+        dryRun,
+        updateSourceFile: false,
+      });
+      promotedCount = promotionResult.promoted_count;
+      for (const pb of promotionResult.promoted_blunders) {
+        promotedBlunders.push(pb.id);
+      }
+    }
+  }
+
+  // 7. Handle regression test generation (--generate-tests, --output-tests)
+  let generatedTestsList: GeneratedRegressionTest[] | undefined = undefined;
+  let generatedTestSuiteStr: string | undefined = undefined;
+
+  if (generateTests || outputTests !== undefined) {
+    const blunderEntries: BlunderEntry[] = allBlunders.map((b) => ({
+      id: b.id,
+      type: b.type,
+      severity: b.severity,
+      timestamp: b.timestamp,
+      category: (b.context as Record<string, unknown>)?.category
+        ? ((b.context as Record<string, unknown>).category as BlunderCategory)
+        : "code_defect",
+      status: b.status === "resolved" ? "resolved" : b.status === "open" ? "open" : "wontfix",
+      observation: b.observation,
+      remediation: b.remediation,
+      ...(b.pid ? { pid: b.pid } : {}),
+      ...(b.ppid ? { ppid: b.ppid } : {}),
+      ...(b.agent_id ? { agent_id: b.agent_id } : {}),
+      context: b.context,
+      ...(b.resolution
+        ? { resolution: b.resolution as unknown as BlunderEntry["resolution"] }
+        : {}),
+    }));
+
+    generatedTestsList = blunderEntries.map((b) => generateBlunderRegressionTest(b));
+    generatedTestSuiteStr = generateRegressionTestSuite(blunderEntries);
+
+    if (outputTests !== undefined) {
+      try {
+        const outPath = resolve(outputTests);
+        const parent = dirname(outPath);
+        if (!existsSync(parent)) {
+          mkdirSync(parent, { recursive: true });
+        }
+        writeFileSync(outPath, generatedTestSuiteStr, "utf8");
+      } catch {
+        // Non-fatal if test output write fails
+      }
+    }
+  }
+
+  // 8. Compute summary metrics and APCA compliance
   let openCount = 0;
   let admittedCount = 0;
   let resolvedCount = 0;
@@ -771,6 +913,9 @@ export function blunderAuditCommand(
     autoAdmittedCount,
     autoAdmittedCandidates,
     isAll,
+    promotedCount,
+    promotedBlunders,
+    generatedTestsCount: generatedTestsList ? generatedTestsList.length : undefined,
   });
 
   return {
@@ -782,5 +927,10 @@ export function blunderAuditCommand(
     summary,
     auto_admitted_count: autoAdmittedCount,
     auto_admitted_candidates: autoAdmittedCandidates,
+    ...(promotedCount > 0
+      ? { promoted_count: promotedCount, promoted_blunders: promotedBlunders }
+      : {}),
+    ...(generatedTestsList !== undefined ? { generated_tests: generatedTestsList } : {}),
+    ...(generatedTestSuiteStr !== undefined ? { generated_test_suite: generatedTestSuiteStr } : {}),
   };
 }

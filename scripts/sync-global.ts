@@ -49,3 +49,5 @@ if (existsSync(nestedTargetCapsules)) {
 console.log(
   "✓ Global skill sync complete: ~/.agents/skills/orchestrating-long-tasks is up to date and isolated from working tree edits.",
 );
+
+export const GLOBAL_SYNC_GEN5 = true;

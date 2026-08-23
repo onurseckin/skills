@@ -60,6 +60,9 @@ Do not create a harness for a simple answer, one-file mechanical edit, or short 
 23. Hard Agent Reset Discipline: Upon wave completion or task group finish, coordinators and orchestrators MUST execute a hard reset on completed subagents (`manage_subagents` with `Action: 'kill'`) to prevent stale context accumulation and ghost leases.
 24. Strict Test Execution Ban on Coordinator & Orchestrator: Coordinators and orchestrators are STRICTLY FORBIDDEN from running repo-wide or task test suites directly (`bun test`, `npm test`, `vitest`); all test execution is strictly delegated to Tier 3 Mechanic Validators using file-scoped test commands.
 25. Strict Non-Idle Autonomous Task Discovery Invariant: When the feedback queue is empty (0 pending items), Tier 0 Mind is strictly forbidden from sitting idle, entering standby, or terminating pulse cadence. Mind MUST automatically trigger Autonomous Discovery Mode (0 any checks, charter gap audits, blunder regression tests, Work/Span P = W / S optimizations).
+26. Gen5 Dynamic Wave Decoupling & Topological Parallel Cognition: Tasks with disjoint write scopes are dynamically decoupled into independent topological waves (`detectScopeOverlap`) without artificial linear chaining. Task planners and feedback synthesizers must maximize Brent Work/Span concurrency ($P = \lceil W / S \rceil$) across parallel lanes.
+27. Multi-Attribute Semantic Memory & Cross-Generational Search: Cross-generational cognitive querying (`memory:query` / `memory:search`) supports fine-grained multi-attribute filtering across `--kind` (task, capture, decision, blunder, blunder_promotion, objective, artifact), `--generation` (`--gen`), `--tags`, `--pattern` (regex matching), and semantic query terms (`--query`), ensuring deep memory grounding and historical blunder avoidance.
+28. Automated Blunder Promotion & Permanent Regression Immunity: Resolved blunders in `blunders.jsonl` are automatically audited and promoted (`blunder:audit --auto-promote`) into `completed-blunders.jsonl` with empirical proof and regression test assertions (`--generate-tests`, `--output-tests`), maintaining 100% regression immunity across all historical blunder instances (46 verified blunder remediations).
 
 ## Route by role
 
@@ -89,14 +92,14 @@ Host adapters: [agents/antigravity.yaml](agents/antigravity.yaml), [agents/claud
 
 Command sequences: [`references/run-playbook.md`](references/run-playbook.md); rules: [`references/protocol.md`](references/protocol.md).
 
-- **Mind Queue & Feedback**: `mind:queue:list` (alias `todo:list`), `mind:queue:add` (`todo:add`), `mind:queue:drain` (`todo:drain`), `mind:queue:seal` (`todo:seal`), `mind:queue:clean` (`todo:clean`), `memory:query`, `smart-task:plan`, `smart-task:ingest`.
+- **Mind Queue & Feedback**: `mind:queue:list` (alias `todo:list`), `mind:queue:add` (`todo:add`), `mind:queue:drain` (`todo:drain`), `mind:queue:seal` (`todo:seal`), `mind:queue:clean` (`todo:clean`), `memory:query`, `memory:search`, `blunder:audit` (with `--auto-promote`, `--generate-tests`), `smart-task:plan`, `smart-task:ingest`.
 - **Plan**: `plan:init`, `plan:enhance`, `plan:add` (use `--auto-partition <glob>`, [`references/topology-exemplar.md`](references/topology-exemplar.md)), `plan:compile`, `dag:view`, [`references/schema-examples.md`](references/schema-examples.md).
 - **Dispatch**: `queue:wave`, `agent:register`, `task:brief`, `agent:brief`, [`references/host-adapters.md`](references/host-adapters.md) (main-thread isolation, per-host dispatch).
 - **Execute**: `task:claim`, `run:exec`, `task:submit`, `task:release`, [`references/parity-matrix.md`](references/parity-matrix.md).
 - **Branch**: `branch:open`, `branch:claim`, `branch:submit`, `branch:collect`, [`references/state-model.md`](references/state-model.md).
 - **Validate**: `task:validate-start`, `task:probe`, `task:reject` (with `--micro-cycle`), `task:review`, [`references/failure-modes.md`](references/failure-modes.md).
 - **Replan & Seal**: `critic:reject`, `plan:replan`, `critic:start`, `critic:review`, `run:complete`.
-- **Recover & Inspect**: `recover`, `doctor`, `summary:export`, `summary:view`, `dag:view`, `whoami`, [`references/cli.md`](references/cli.md), [`references/cli-capabilities.md`](references/cli-capabilities.md) ([`references/cli-capabilities.json`](references/cli-capabilities.json)).
+- **Recover & Inspect**: `recover`, `doctor`, `summary:export`, `summary:view`, `dag:view`, `whoami`, `memory:query`, `blunder:audit`, [`references/cli.md`](references/cli.md), [`references/cli-capabilities.md`](references/cli-capabilities.md) ([`references/cli-capabilities.json`](references/cli-capabilities.json)).
 
 ## Critical Anti-Patterns & Operational Guardrails
 
@@ -107,6 +110,8 @@ Command sequences: [`references/run-playbook.md`](references/run-playbook.md); r
 - **Uncommitted Verified Tasks**: Never leave verified task groups uncommitted or un-synced; always create Conventional Commits, push to `origin/main`, and run `bun scripts/sync-global.ts`.
 - **Temporary Directory Leakage (Zero /tmp Ban)**: Never store state, artifacts, scratch files, or reports under `/tmp` or `.tmp/`. All skills work, artifacts, reports, and payloads must reside exclusively in `<repo-root>/.capsules/`.
 - **Mind Idle / Standby Anti-Pattern**: Never permit Tier 0 Mind to sit idle or emit "waiting in standby" when the feedback queue is empty. Autonomous discovery (0 any checks, charter gap audits, blunder regression tests, Work/Span P = W / S optimizations) must trigger automatically.
+- **Artificial Serialization Anti-Pattern**: Never chain tasks with disjoint write scopes sequentially when dynamic wave decoupling (`detectScopeOverlap`) can schedule them in parallel. Always inspect and optimize DAG waves via `dag:view`.
+- **Unevidenced Blunder Dismissal Anti-Pattern**: Never resolve or ignore blunders without empirical proof (`commit_sha`, `test_assertion`, `task_id`) and automated promotion (`blunder:audit --auto-promote`).
 - **Missing Supervisory Schedule / 3-Minute Watchdog**: Never leave background tasks unmonitored or terminate schedulers on idle ticks. Always register a recurring 3-minute supervisory cron/timer (`schedule` cron `*/3 * * * *`, systemd timer, or floor loop).
 - **Prose-Only or List-Only DAG Reports**: Never represent graph status as flat text lists or generic status adjectives ("satisfied", "done"). Always render True Visual DAGs in ASCII/Unicode boxed format with topological levels and active node indicators (`dag:view`).
 - **Sequential Execution Simulation**: Never serialize disjoint tasks when parallel wave subagents can be dispatched. Inspect and optimize the DAG via `dag:view`.

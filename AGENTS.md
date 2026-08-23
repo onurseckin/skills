@@ -51,6 +51,12 @@ Every agent executing within this repository must adhere to the following non-ne
 14. **Live Cognitive Telemetry & Active Coordinate Badges:**
     - Supervisory pulses (`mind:pulse`) stream live Work/Span metrics ($W, S, P$, optimal concurrency, active concurrency) and active agent coordinate badges (`[W<wave>:L<lane>]`).
     - The supervisory mind operates on an infinite autonomous cadence (`CLOSING_FORBIDDEN_FOR_MIND`) with active persona mandate injection.
+15. **Gen5 Dynamic Wave Decoupling & Topological Parallelism:**
+    - Tasks with disjoint write scopes are dynamically decoupled into independent topological waves (`detectScopeOverlap`) without artificial linear chaining or false serial dependencies. Candidate partitioning, feedback grouping, and self-evolution task graphs leverage dynamic wave decoupling to maximize parallel cognition ($P = \lceil W / S \rceil$).
+16. **Multi-Attribute Semantic Memory & Cross-Generational Retrieval:**
+    - Cross-generational cognitive memory querying (`memory:query` / `memory:search`) supports fine-grained multi-attribute filtering across `--kind` (task, capture, decision, blunder, blunder_promotion, objective, artifact), `--generation` (`--gen`), `--tags`, `--pattern` (regex matching), and semantic query terms (`--query`), ensuring rapid historical context retrieval and anti-blunder grounding.
+17. **Automated Blunder Promotion & Regression Immunity:**
+    - Resolved blunders are systematically audited (`blunder:audit`) and auto-promoted (`--auto-promote`) from `blunders.jsonl` to `completed-blunders.jsonl` with verifiable empirical proofs (`commit_sha`, `test_assertion`, `task_id`). Automated regression test suite generation (`--generate-tests`, `--output-tests`) guarantees permanent immunity across all historical blunder instances (46 verified blunder remediations).
 
 ---
 
@@ -242,6 +248,12 @@ To protect repository state and prevent common LLM blunder modes:
     - Tasks must never enforce artificial serialization unless dataflow or artifact coupling is explicitly documented.
 15. **Active Coordinate Badge Traceability:**
     - All dispatched subagents must display coordinate badges `[W<wave>:L<lane>]` corresponding to their Sugiyama DAG wave and parallel lane assignments during telemetry pulses (`mind:pulse`).
+16. **Dynamic Wave Decoupling Overlap Invariant:**
+    - Candidate partitioning, self-evolution task graphs, and feedback batching must strictly use dynamic write-scope overlap checking (`detectScopeOverlap`) to avoid artificial serial edges. Disjoint tasks must be assigned parallel wave coordinates without forced sequential constraints.
+17. **Multi-Attribute Semantic Memory Querying:**
+    - Historical pattern retrieval must leverage `memory:query` / `memory:search` with targeted `--kind`, `--generation`, `--tags`, and `--pattern` filters to search indexed cognitive memory across all generations before planning new objectives or declaring solutions.
+18. **Automated Blunder Promotion & Regression Suite Maintenance:**
+    - Every resolved blunder in `blunders.jsonl` must be promoted via `blunder:audit --auto-promote` into `completed-blunders.jsonl` with empirical proof and regression test assertions (`--generate-tests`, `--output-tests`), maintaining 100% regression immunity across all 46 blunder instances.
 
 ---
 
@@ -379,6 +391,48 @@ All contributions to the `@onurseckin/skills` monorepo must strictly satisfy all
 │                                                                             │
 │  5. Empirical Blunder Resolution:                                           │
 │     (Resolves defects citing task ID, commit SHA, and test assertions)      │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### D. Multi-Attribute Semantic Memory & Cross-Generational Search Step-Machine
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│             MULTI-ATTRIBUTE SEMANTIC MEMORY & PATTERN RETRIEVAL             │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  1. Multi-Attribute Semantic Querying:                                      │
+│     bun harness.ts memory:query --query "<QUERY>" --kind <KIND> \           │
+│       --generation <GEN> --tags "<TAG1>,<TAG2>"                             │
+│     (Searches memory across tasks, captures, decisions, blunder promotions) │
+│                                                                             │
+│  2. Regex Pattern Search across Cognitive Memory:                           │
+│     bun harness.ts memory:query --pattern "<REGEX>" --all                   │
+│                                                                             │
+│  3. Historical Blunder Search & Pattern Grounding:                          │
+│     bun harness.ts memory:query --kind blunder --tags "anti-pattern"         │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### E. Automated Blunder Promotion & Regression Suite Maintenance Step-Machine
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│          AUTOMATED BLUNDER PROMOTION & REGRESSION SUITE GENERATION          │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  1. Audit and Auto-Promote Resolved Blunders:                               │
+│     bun harness.ts blunder:audit --auto-promote                             │
+│     (Promotes resolved entries to completed-blunders.jsonl with proof)      │
+│                                                                             │
+│  2. Generate Automated Regression Tests:                                    │
+│     bun harness.ts blunder:audit --generate-tests \                         │
+│       --output-tests tests/unit/mind/blunder-remediation-46.test.ts          │
+│                                                                             │
+│  3. Verify Blunder Regression Immunity:                                     │
+│     bun test tests/unit/mind/blunder-remediation-46.test.ts                 │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
