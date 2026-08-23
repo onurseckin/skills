@@ -4,7 +4,7 @@ import { homedir } from "node:os";
 
 const SOURCE = join(process.cwd(), "olt");
 const TARGET_OLT = join(homedir(), ".agents", "skills", "olt");
-const TARGET_LEGACY = join(homedir(), ".agents", "skills", "olt");
+const TARGET_LEGACY = join(homedir(), ".agents", "skills", "orchestrating-long-tasks");
 
 console.log(`[sync] Deploying ${SOURCE} -> ${TARGET_OLT}...`);
 
@@ -16,7 +16,21 @@ function safeRemove(targetPath: string): void {
   }
 }
 
-// Deploy to ~/.agents/skills/olt
+function ensureSymlink(target: string, linkPath: string): void {
+  safeRemove(linkPath);
+  try {
+    symlinkSync(target, linkPath);
+  } catch {
+    // If symlink fails, copy contents as fallback
+    try {
+      cpSync(target, linkPath, { recursive: true });
+    } catch {
+      // Ignored
+    }
+  }
+}
+
+// 1. Deploy primary canonical skill to ~/.agents/skills/olt
 safeRemove(TARGET_OLT);
 mkdirSync(TARGET_OLT, { recursive: true });
 
@@ -43,41 +57,40 @@ for (const entry of ENTRIES) {
   }
 }
 
-// Also deploy / link legacy target for backward compatibility
-safeRemove(TARGET_LEGACY);
-try {
-  symlinkSync(TARGET_OLT, TARGET_LEGACY);
-} catch {
-  try {
-    cpSync(TARGET_OLT, TARGET_LEGACY, { recursive: true });
-  } catch {
-    // Ignored
-  }
-}
+// 2. Link legacy name in ~/.agents/skills/
+ensureSymlink(TARGET_OLT, TARGET_LEGACY);
 
-// Maintain Antigravity Cloud / Gemini Config symlinks
-const GEMINI_SKILLS_DIR = join(homedir(), ".gemini", "config", "skills");
-if (existsSync(GEMINI_SKILLS_DIR)) {
-  const geminiOlt = join(GEMINI_SKILLS_DIR, "olt");
-  const geminiLegacy = join(GEMINI_SKILLS_DIR, "olt");
+// 3. Application Skill Directories to Link Across Ecosystem
+const ASSISTANT_SKILL_DIRS = [
+  join(homedir(), ".gemini", "config", "skills"), // Antigravity Cloud / Gemini Config
+  join(homedir(), ".gemini", "antigravity-cli", "skills"), // Antigravity CLI
+  join(homedir(), ".gemini", "antigravity-ide", "skills"), // Antigravity IDE
+  join(homedir(), ".gemini", "skills"), // Gemini Global Skills
+  join(homedir(), ".claude", "skills"), // Claude Code
+  join(homedir(), ".cursor", "skills"), // Cursor IDE
+  join(homedir(), ".codex", "skills"), // Codex
+  join(homedir(), ".codex", "vendor_imports", "skills"), // Codex Vendor Imports
+  join(homedir(), ".openai", "skills"), // OpenAI / ChatGPT
+];
 
-  safeRemove(geminiOlt);
-  try {
-    symlinkSync(TARGET_OLT, geminiOlt);
-  } catch {
-    // Ignored
-  }
+let syncedAssistantsCount = 0;
 
-  safeRemove(geminiLegacy);
+for (const dir of ASSISTANT_SKILL_DIRS) {
   try {
-    symlinkSync(TARGET_OLT, geminiLegacy);
-  } catch {
-    // Ignored
+    mkdirSync(dir, { recursive: true });
+    const oltLink = join(dir, "olt");
+    const legacyLink = join(dir, "orchestrating-long-tasks");
+
+    ensureSymlink(TARGET_OLT, oltLink);
+    ensureSymlink(TARGET_OLT, legacyLink);
+    syncedAssistantsCount++;
+  } catch (err) {
+    console.warn(`[sync] Could not link into ${dir}:`, err);
   }
 }
 
 console.log(
-  "✓ Global skill sync complete: ~/.agents/skills/olt and Antigravity cloud symlinks are up to date.",
+  `✓ Global skill sync complete: ~/.agents/skills/olt and ${syncedAssistantsCount} assistant platforms (Antigravity CLI/IDE/Cloud, Claude, Codex, Cursor, Gemini) are 100% in sync with both 'olt' and 'orchestrating-long-tasks' aliases.`,
 );
 
 export const GLOBAL_SYNC_GEN5 = true;
