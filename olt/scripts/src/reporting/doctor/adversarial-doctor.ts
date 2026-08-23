@@ -1,10 +1,10 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { basename, resolve } from "node:path";
-import { MINIMUM_BUN_VERSION } from "../config/constants.ts";
-import type { JsonObject } from "../contracts/json.ts";
-import { HarnessError } from "../errors/harness-error.ts";
-import { verifyCapsuleDeep, verifyIntegrity } from "../store/index.ts";
+import { MINIMUM_BUN_VERSION } from "../../config/constants.ts";
+import type { JsonObject } from "../../contracts/json.ts";
+import { HarnessError } from "../../errors/harness-error.ts";
+import { verifyCapsuleDeep, verifyIntegrity } from "../../store/index.ts";
 import { verifyStrictRepositoryCapsuleRoot } from "./capsule-root.ts";
 import { verifyUnifiedEvidenceLocation } from "./evidence-location.ts";
 import { auditTierConfinement } from "./tier-confinement.ts";

@@ -28,7 +28,7 @@ import {
   type TierConfinementSummary,
   type TierViolationSeverity,
   type TierViolationType,
-} from "../doctor/tier-confinement.ts";
+} from "./doctor/tier-confinement.ts";
 import {
   evaluateSocraticSelfQuestioning,
   formatSocraticAuditSection,
